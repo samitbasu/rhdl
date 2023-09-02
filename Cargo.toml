@@ -1,14 +1,3 @@
-[package]
-name = "rhdl"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
-description = "Write firmware for FPGAs in Rust (formerly rust-hdl)"
-homepage = "https://rhdl.org"
-repository = "https://github.com/samitbasu/rhdl"
-keywords = ["fpga", "hdl", "verilog", "hardware"]
-authors = ["Samit Basu <basu.samit@gmail.com>"]
+[workspace]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
+members = ["rhdl", "rhdl-bits"]

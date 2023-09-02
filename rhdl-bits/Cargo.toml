@@ -1,0 +1,22 @@
+[package]
+name = "rhdl-bits"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Support crate for RHDL that provides a Bits type."
+homepage = "https://rhdl.org"
+repository = "https://github.com/samitbasu/rhdl"
+keywords = [
+    "fpga",
+    "hdl",
+    "verilog",
+    "vhdl",
+    "rust",
+    "hardware",
+    "binary",
+    "bitvec",
+]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
