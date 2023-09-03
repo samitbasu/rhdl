@@ -1,0 +1,78 @@
+use std::ops::Sub;
+use std::ops::SubAssign;
+
+use crate::bits::Bits;
+
+impl<const N: usize> Sub<Bits<N>> for Bits<N> {
+    type Output = Self;
+    #[allow(clippy::suspicious_arithmetic_impl)]
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self(u128::wrapping_sub(self.0, rhs.0) & Self::mask().0)
+    }
+}
+
+impl<const N: usize> Sub<Bits<N>> for u128 {
+    type Output = Bits<N>;
+    fn sub(self, rhs: Bits<N>) -> Self::Output {
+        Bits::<N>::from(self) - rhs
+    }
+}
+
+impl<const N: usize> Sub<u128> for Bits<N> {
+    type Output = Self;
+    fn sub(self, rhs: u128) -> Self::Output {
+        self - Bits::<N>::from(rhs)
+    }
+}
+
+impl<const N: usize> SubAssign<Bits<N>> for Bits<N> {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
+    }
+}
+
+impl<const N: usize> SubAssign<u128> for Bits<N> {
+    fn sub_assign(&mut self, rhs: u128) {
+        *self = *self - rhs;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::num::Wrapping;
+
+    #[test]
+    fn test_sub_bits() {
+        let bits: Bits<8> = 0b1101_1010.into();
+        let result = bits - bits;
+        assert_eq!(result.0, 0_u128);
+        let x: std::num::Wrapping<u8> = Wrapping(0b1101_1010);
+        let bits: Bits<8> = 0b1101_1010.into();
+        let result = bits - bits - bits;
+        assert_eq!(Wrapping(result.0 as u8), x - x - x);
+        let mut bits: Bits<128> = 0.into();
+        bits.set_bit(127, true);
+        let result = bits - bits;
+        assert_eq!(result.0, 0_u128);
+        let bits: Bits<54> = 0b1101_1010.into();
+        let result = bits - 1;
+        let bits_m_1: Bits<54> = 0b1101_1001.into();
+        assert_eq!(result, bits_m_1);
+        let result = 1 - bits;
+        // The 2s complement equivalent of 1 - x is 1 + (x::mask() - x) + 1
+        // which is 2 + (x::mask() - x)
+        assert_eq!(result.0, 2 + (Bits::<54>::mask().0 - bits.0));
+    }
+
+    #[test]
+    fn test_subassign_bits() {
+        let mut bits: Bits<8> = 0b1101_1010.into();
+        let bits_m_1: Bits<8> = 0b1101_1001.into();
+        bits -= bits_m_1;
+        assert_eq!(bits.0, 1_u128);
+        let mut bits: Bits<8> = 0b1101_1010.into();
+        bits -= 1;
+        assert_eq!(bits.0, 0b1101_1001_u128);
+    }
+}

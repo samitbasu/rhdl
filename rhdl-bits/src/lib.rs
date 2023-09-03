@@ -1,14 +1,9 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub mod add;
+pub mod and;
+pub mod bits;
+pub mod not;
+pub mod or;
+pub mod shl;
+pub mod shr;
+pub mod sub;
+pub mod xor;
