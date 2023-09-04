@@ -32,6 +32,12 @@ impl<const N: usize> SubAssign<u128> for Bits<N> {
     }
 }
 
+impl<const N: usize> SubAssign<Bits<N>> for Bits<N> {
+    fn sub_assign(&mut self, rhs: Bits<N>) {
+        *self = *self - rhs;
+    }
+}
+
 impl<const N: usize> Sub<SignedBits<N>> for SignedBits<N> {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
@@ -48,6 +54,12 @@ impl<const N: usize> Sub<i128> for SignedBits<N> {
 
 impl<const N: usize> SubAssign<i128> for SignedBits<N> {
     fn sub_assign(&mut self, rhs: i128) {
+        *self = *self - rhs;
+    }
+}
+
+impl<const N: usize> SubAssign<SignedBits<N>> for SignedBits<N> {
+    fn sub_assign(&mut self, rhs: SignedBits<N>) {
         *self = *self - rhs;
     }
 }
