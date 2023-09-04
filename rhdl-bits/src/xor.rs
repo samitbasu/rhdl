@@ -2,13 +2,7 @@ use std::ops::BitXor;
 use std::ops::BitXorAssign;
 
 use crate::bits::Bits;
-
-impl<const N: usize> BitXor<Bits<N>> for Bits<N> {
-    type Output = Self;
-    fn bitxor(self, rhs: Self) -> Self::Output {
-        Self(self.0 ^ rhs.0)
-    }
-}
+use crate::signed_bits::SignedBits;
 
 impl<const N: usize> BitXor<Bits<N>> for u128 {
     type Output = Bits<N>;
@@ -24,14 +18,28 @@ impl<const N: usize> BitXor<u128> for Bits<N> {
     }
 }
 
-impl<const N: usize> BitXorAssign<Bits<N>> for Bits<N> {
-    fn bitxor_assign(&mut self, rhs: Self) {
+impl<const N: usize> BitXorAssign<u128> for Bits<N> {
+    fn bitxor_assign(&mut self, rhs: u128) {
         *self = *self ^ rhs;
     }
 }
 
-impl<const N: usize> BitXorAssign<u128> for Bits<N> {
-    fn bitxor_assign(&mut self, rhs: u128) {
+impl<const N: usize> BitXor<SignedBits<N>> for i128 {
+    type Output = SignedBits<N>;
+    fn bitxor(self, rhs: SignedBits<N>) -> Self::Output {
+        SignedBits::<N>::from(self) ^ rhs
+    }
+}
+
+impl<const N: usize> BitXor<i128> for SignedBits<N> {
+    type Output = Self;
+    fn bitxor(self, rhs: i128) -> Self::Output {
+        self ^ SignedBits::<N>::from(rhs)
+    }
+}
+
+impl<const N: usize> BitXorAssign<i128> for SignedBits<N> {
+    fn bitxor_assign(&mut self, rhs: i128) {
         *self = *self ^ rhs;
     }
 }

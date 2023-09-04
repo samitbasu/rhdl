@@ -1,4 +1,6 @@
-use std::fmt::{Binary, Formatter, LowerHex, UpperHex};
+use crate::signed_bits::SignedBits;
+use derive_more::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign};
+use std::fmt::{Binary, Display, Formatter, LowerHex, UpperHex};
 
 // The [Bits] type is a fixed-sized bit vector.  It is meant to
 // imitate the behavior of bit vectors in hardware.  Due to the
@@ -17,26 +19,47 @@ use std::fmt::{Binary, Formatter, LowerHex, UpperHex};
 //
 // Note also that the [Bits] kind is treated as an unsigned value for
 // the purposes of comparisons.  If you need signed comparisons, you
-// will need the [SBits] type.
-#[derive(Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+// will need the [SignedBits] type.
+#[derive(
+    Clone,
+    Debug,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    BitAnd,
+    BitAndAssign,
+    BitOr,
+    BitOrAssign,
+    BitXor,
+    BitXorAssign,
+)]
 #[repr(transparent)]
 pub struct Bits<const N: usize>(pub(crate) u128);
 
 impl<const N: usize> LowerHex for Bits<N> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:x}", self.0)
+        std::fmt::LowerHex::fmt(&self.0, f)
     }
 }
 
 impl<const N: usize> UpperHex for Bits<N> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:X}", self.0)
+        std::fmt::UpperHex::fmt(&self.0, f)
     }
 }
 
 impl<const N: usize> Binary for Bits<N> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:b}", self.0)
+        std::fmt::Binary::fmt(&self.0, f)
+    }
+}
+
+impl<const N: usize> Display for Bits<N> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.0, f)
     }
 }
 
@@ -89,6 +112,14 @@ impl<const N: usize> Bits<N> {
     pub fn slice<const M: usize>(&self, start: usize) -> Bits<M> {
         Bits((self.0 >> start) & Bits::<M>::mask().0)
     }
+    pub fn as_signed(self) -> SignedBits<N> {
+        // Need to a sign extension here.
+        if self.get_bit(N - 1) {
+            SignedBits((self.0 | !(Self::mask().0)) as i128)
+        } else {
+            SignedBits(self.0 as i128)
+        }
+    }
 }
 
 // The default value for a [Bits] value is 0.
@@ -103,6 +134,7 @@ impl<const N: usize> Default for Bits<N> {
 // is larger than the [Bits] value can hold.
 impl<const N: usize> From<u128> for Bits<N> {
     fn from(value: u128) -> Self {
+        assert!(N <= 128);
         assert!(value <= Self::mask().0);
         Self(value)
     }
@@ -253,5 +285,17 @@ mod tests {
         assert_eq!(result.0, 0b1101);
         let result = bits.slice::<2>(6);
         assert_eq!(result.0, 0b11);
+    }
+
+    #[test]
+    fn test_round_trip_unsigned_signed() {
+        let bits: Bits<8> = 0b1101_1010.into();
+        let signed = bits.as_signed();
+        println!("{}", signed);
+        assert!(signed.is_negative());
+        let unsigned = signed.as_unsigned();
+        assert_eq!(bits.0, unsigned.0);
+        let signed = unsigned.as_signed();
+        assert!(signed.is_negative());
     }
 }
