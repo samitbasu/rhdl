@@ -26,12 +26,6 @@ impl<const N: usize> Add<Bits<N>> for Bits<N> {
     }
 }
 
-impl<const N: usize> AddAssign<Bits<N>> for Bits<N> {
-    fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs;
-    }
-}
-
 impl<const N: usize> AddAssign<u128> for Bits<N> {
     fn add_assign(&mut self, rhs: u128) {
         *self = *self + rhs;
@@ -58,12 +52,6 @@ impl<const N: usize> Add<SignedBits<N>> for SignedBits<N> {
         // Signed addition is the same as unsigned addition.
         // But the result needs to be reinterpreted as a signed value.
         (self.as_unsigned() + rhs.as_unsigned()).as_signed()
-    }
-}
-
-impl<const N: usize> AddAssign<SignedBits<N>> for SignedBits<N> {
-    fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs;
     }
 }
 

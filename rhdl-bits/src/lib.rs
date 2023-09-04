@@ -1,6 +1,7 @@
 pub mod add;
 pub mod and;
 pub mod bits;
+pub mod neg;
 pub mod not;
 pub mod or;
 pub mod shl;
