@@ -17,6 +17,5 @@ keywords = [
     "bitvec",
 ]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+derive_more = "0.99.17"
