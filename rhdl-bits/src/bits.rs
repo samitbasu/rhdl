@@ -1,5 +1,7 @@
 use crate::signed_bits::SignedBits;
-use derive_more::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign};
+use derive_more::{
+    AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, SubAssign,
+};
 use std::fmt::{Binary, Display, Formatter, LowerHex, UpperHex};
 
 // The [Bits] type is a fixed-sized bit vector.  It is meant to
@@ -35,6 +37,8 @@ use std::fmt::{Binary, Display, Formatter, LowerHex, UpperHex};
     BitOrAssign,
     BitXor,
     BitXorAssign,
+    AddAssign,
+    SubAssign,
 )]
 #[repr(transparent)]
 pub struct Bits<const N: usize>(pub(crate) u128);
