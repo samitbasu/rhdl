@@ -11,6 +11,7 @@ pub mod sub;
 pub mod xor;
 
 pub use bits::Bits;
+pub use signed_bits::SignedBits;
 
 #[cfg(test)]
 mod test {

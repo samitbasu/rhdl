@@ -1,8 +1,8 @@
 use crate::Bits;
 use derive_more::{
-    AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, SubAssign,
+    Binary, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Display, LowerHex,
+    UpperHex,
 };
-use std::fmt::{Binary, Display, Formatter, LowerHex, UpperHex};
 
 // The [SignedBits] type is a fixed-size bit vector.  It is
 // meant to imitate the behavior of signed bit vectors in hardware.
@@ -39,35 +39,13 @@ use std::fmt::{Binary, Display, Formatter, LowerHex, UpperHex};
     BitOrAssign,
     BitXor,
     BitXorAssign,
-    AddAssign,
-    SubAssign,
+    Binary,
+    LowerHex,
+    UpperHex,
+    Display,
 )]
 #[repr(transparent)]
 pub struct SignedBits<const N: usize>(pub(crate) i128);
-
-impl<const N: usize> LowerHex for SignedBits<N> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        std::fmt::LowerHex::fmt(&self.0, f)
-    }
-}
-
-impl<const N: usize> UpperHex for SignedBits<N> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        std::fmt::UpperHex::fmt(&self.0, f)
-    }
-}
-
-impl<const N: usize> Binary for SignedBits<N> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Binary::fmt(&self.0, f)
-    }
-}
-
-impl<const N: usize> Display for SignedBits<N> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(&self.0, f)
-    }
-}
 
 impl<const N: usize> SignedBits<N> {
     // Return a [SignedBits] value with all bits set to 1.

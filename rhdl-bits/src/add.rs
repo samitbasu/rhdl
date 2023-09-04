@@ -26,6 +26,12 @@ impl<const N: usize> Add<Bits<N>> for Bits<N> {
     }
 }
 
+impl<const N: usize> AddAssign<Bits<N>> for Bits<N> {
+    fn add_assign(&mut self, rhs: Bits<N>) {
+        *self = *self + rhs;
+    }
+}
+
 impl<const N: usize> AddAssign<u128> for Bits<N> {
     fn add_assign(&mut self, rhs: u128) {
         *self = *self + rhs;
@@ -57,6 +63,12 @@ impl<const N: usize> Add<SignedBits<N>> for SignedBits<N> {
 
 impl<const N: usize> AddAssign<i128> for SignedBits<N> {
     fn add_assign(&mut self, rhs: i128) {
+        *self = *self + rhs;
+    }
+}
+
+impl<const N: usize> AddAssign<SignedBits<N>> for SignedBits<N> {
+    fn add_assign(&mut self, rhs: SignedBits<N>) {
         *self = *self + rhs;
     }
 }
