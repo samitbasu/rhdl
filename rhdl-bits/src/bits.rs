@@ -4,24 +4,24 @@ use derive_more::{
     UpperHex,
 };
 
-// The [Bits] type is a fixed-sized bit vector.  It is meant to
-// imitate the behavior of bit vectors in hardware.  Due to the
-// design of the [Bits] type, you can only create a [Bits] type of
-// up to 128 bits in length for now.  However, you can easily express
-// larger constructs in hardware using arrays, tuples and structs.
-// The only real limitation of the [Bits] type being 128 bits is that
-// you cannot perform arbitrary arithmetic on longer bit values in your
-// hardware designs.  I don't think this is a significant issue, but
-// the [Bits] design of the `rust-hdl` crate was much slower and harder
-// to maintain and use.  I think this is a good trade-off.
-//
-// Note that the [Bits] type implements 2's complement arithmetic.
-// See [https://en.wikipedia.org/wiki/Two%27s_complement] for more
-// information.
-//
-// Note also that the [Bits] kind is treated as an unsigned value for
-// the purposes of comparisons.  If you need signed comparisons, you
-// will need the [SignedBits] type.
+/// The [Bits] type is a fixed-sized bit vector.  It is meant to
+/// imitate the behavior of bit vectors in hardware.  Due to the
+/// design of the [Bits] type, you can only create a [Bits] type of
+/// up to 128 bits in length for now.  However, you can easily express
+/// larger constructs in hardware using arrays, tuples and structs.
+/// The only real limitation of the [Bits] type being 128 bits is that
+/// you cannot perform arbitrary arithmetic on longer bit values in your
+/// hardware designs.  I don't think this is a significant issue, but
+/// the [Bits] design of the `rust-hdl` crate was much slower and harder
+/// to maintain and use.  I think this is a good trade-off.
+///
+/// Note that the [Bits] type implements 2's complement arithmetic.
+/// See [https://en.wikipedia.org/wiki/Two%27s_complement] for more
+/// information.
+///
+/// Note also that the [Bits] kind is treated as an unsigned value for
+/// the purposes of comparisons.  If you need signed comparisons, you
+/// will need the [SignedBits] type.
 #[derive(
     Clone,
     Debug,
@@ -46,8 +46,15 @@ use derive_more::{
 pub struct Bits<const N: usize>(pub(crate) u128);
 
 impl<const N: usize> Bits<N> {
-    // Return a [Bits] value with all bits set to 1.
-    pub fn mask() -> Self {
+    /// Defines a constant Bits value with all bits set to 1.
+    pub const MASK: Self = Self::mask();
+    /// Return a [Bits] value with all bits set to 1.
+    /// ```
+    /// # use rhdl_bits::Bits;
+    /// let bits = Bits::<8>::mask();
+    /// assert_eq!(bits, 0xFF);
+    /// ```
+    pub const fn mask() -> Self {
         // Do not compute this as you will potentially
         // cause overflow.
         if N < 128 {
@@ -56,7 +63,17 @@ impl<const N: usize> Bits<N> {
             Self(u128::MAX)
         }
     }
-    // Set a specific bit of a [Bits] value to 1 or 0.
+    /// Set a specific bit of a [Bits] value to 1 or 0.
+    /// Panics if the index of the bit is outside the range
+    /// of the [Bits] value.
+    /// ```
+    /// # use rhdl_bits::Bits;
+    /// let mut bits = Bits::<8>::mask();
+    /// bits.set_bit(0, false);
+    /// assert_eq!(bits, 0xFE);
+    /// bits.set_bit(0, true);
+    /// assert_eq!(bits, 0xFF);
+    /// ```
     pub fn set_bit(&mut self, bit: usize, value: bool) {
         assert!(bit < N);
         if value {
@@ -65,20 +82,43 @@ impl<const N: usize> Bits<N> {
             self.0 &= !(1 << bit);
         }
     }
-    // Get the value of a specific bit of a [Bits] value.
+    /// Get the value of a specific bit of a [Bits] value.
+    /// Panics if the index of the bit is outside the range
+    /// of the [Bits] value.
+    /// ```
+    /// # use rhdl_bits::Bits;
+    /// let bits : Bits<8> = 0b1101_1010.into();
+    /// assert!(!bits.get_bit(0));
+    /// assert!(bits.get_bit(7));
+    /// assert!(bits.get_bit(6));
+    /// ```
     pub fn get_bit(&self, bit: usize) -> bool {
         assert!(bit < N);
         (self.0 & (1 << bit)) != 0
     }
-    // Returns true if any of the bits are set to 1.
+    /// Returns true if any of the bits are set to 1.
+    /// ```
+    /// # use rhdl_bits::Bits;
+    /// let bits : Bits<8> = 0b1101_1010.into();
+    /// assert!(bits.any());
+    /// let bits : Bits<8> = 0.into();
+    /// assert!(!bits.any());
+    /// ```
     pub fn any(self) -> bool {
         (self.0 & Self::mask().0) != 0
     }
-    // Returns true if all of the bits are set to 1.
+    /// Returns true if all of the bits are set to 1.
+    /// ```
+    /// # use rhdl_bits::Bits;
+    /// let bits : Bits<8> = 0b1101_1010.into();
+    /// assert!(!bits.all());
+    /// let bits : Bits<8> = Bits::mask();
+    /// assert!(bits.all());
+    /// ```
     pub fn all(self) -> bool {
         (self.0 & Self::mask().0) == Self::mask().0
     }
-    // Computes the xor of all of the bits in the value.
+    /// Computes the xor of all of the bits in the value.
     pub fn xor(self) -> bool {
         let mut x = self.0 & Self::mask().0;
         x ^= x >> 64;
@@ -90,10 +130,11 @@ impl<const N: usize> Bits<N> {
         x ^= x >> 1;
         x & 1 == 1
     }
-    // Extracts a range of bits from the [Bits] value.
+    /// Extracts a range of bits from the [Bits] value.
     pub fn slice<const M: usize>(&self, start: usize) -> Bits<M> {
         Bits((self.0 >> start) & Bits::<M>::mask().0)
     }
+    /// Reinterpret the [Bits] value as a [SignedBits] value.
     pub fn as_signed(self) -> SignedBits<N> {
         // Need to a sign extension here.
         if self.get_bit(N - 1) {
@@ -104,21 +145,27 @@ impl<const N: usize> Bits<N> {
     }
 }
 
-// The default value for a [Bits] value is 0.
+/// The default value for a [Bits] value is 0.
 impl<const N: usize> Default for Bits<N> {
     fn default() -> Self {
         Self(0)
     }
 }
 
-// Provide conversion from a `u128` to a [Bits] value.
-// This will panic if you try to convert a value that
-// is larger than the [Bits] value can hold.
+/// Provide conversion from a `u128` to a [Bits] value.
+/// This will panic if you try to convert a value that
+/// is larger than the [Bits] value can hold.
 impl<const N: usize> From<u128> for Bits<N> {
     fn from(value: u128) -> Self {
         assert!(N <= 128);
         assert!(value <= Self::mask().0);
         Self(value)
+    }
+}
+
+impl<const N: usize> PartialEq<u128> for Bits<N> {
+    fn eq(&self, other: &u128) -> bool {
+        self == &Self::from(*other)
     }
 }
 

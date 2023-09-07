@@ -4,26 +4,26 @@ use derive_more::{
     UpperHex,
 };
 
-// The [SignedBits] type is a fixed-size bit vector.  It is
-// meant to imitate the behavior of signed bit vectors in hardware.
-// Due to the design of the [SignedBits] type, you can only create a
-// signed bit vector of up to 128 bits in lnegth for now.  However,
-// you can easily express larger constructs in hardware using arrays,
-// tuples and structs.  The only real limitation of the [SignedBits]
-// type being 128 bits is that you cannot perform arbitrary arithmetic
-// on longer bit values in your hardware designs.
-//
-// Signed arithmetic is performed using 2's complement arithmetic.
-// See [https://en.wikipedia.org/wiki/Two%27s_complement] for more
-// information.
-//
-// Note that unlike the [Bits] type, comparisons are performed using
-// signed arithmetic.  Note also that the right shift operator when
-// applied to a signed value will sign extend the value.  This is
-// the same behavior as is seen in Rust (i.e., ((-4) >> 2) == -2).
-//
-// If you want to right shift a signed value without sign extension,
-// then you should convert it to a [Bits] type first.
+/// The [SignedBits] type is a fixed-size bit vector.  It is
+/// meant to imitate the behavior of signed bit vectors in hardware.
+/// Due to the design of the [SignedBits] type, you can only create a
+/// signed bit vector of up to 128 bits in lnegth for now.  However,
+/// you can easily express larger constructs in hardware using arrays,
+/// tuples and structs.  The only real limitation of the [SignedBits]
+/// type being 128 bits is that you cannot perform arbitrary arithmetic
+/// on longer bit values in your hardware designs.
+///
+/// Signed arithmetic is performed using 2's complement arithmetic.
+/// See [https://en.wikipedia.org/wiki/Two%27s_complement] for more
+/// information.
+///
+/// Note that unlike the [Bits] type, comparisons are performed using
+/// signed arithmetic.  Note also that the right shift operator when
+/// applied to a signed value will sign extend the value.  This is
+/// the same behavior as is seen in Rust (i.e., ((-4) >> 2) == -2).
+///
+/// If you want to right shift a signed value without sign extension,
+/// then you should convert it to a [Bits] type first.
 #[derive(
     Clone,
     Debug,
@@ -48,8 +48,18 @@ use derive_more::{
 pub struct SignedBits<const N: usize>(pub(crate) i128);
 
 impl<const N: usize> SignedBits<N> {
-    // Return a [SignedBits] value with all bits set to 1.
-    pub fn mask() -> Self {
+    /// Return a [SignedBits] value with all bits set to 1.
+    pub const MASK: Self = Self::mask();
+    /// Return a [SignedBits] value with all bits set to 1.
+    /// This is the same as [MASK].
+    /// ```
+    /// use rhdl::bits::SignedBits;
+    /// let mask = SignedBits::<8>::mask();
+    /// assert_eq!(mask, -1);
+    /// ```
+    /// Note that for a [SignedBits] value, the mask is the same
+    /// as a representation of -1.
+    pub const fn mask() -> Self {
         // Do not compute this as you will potentially
         // cause overflow.
         if N < 128 {
@@ -58,7 +68,7 @@ impl<const N: usize> SignedBits<N> {
             Self(-1)
         }
     }
-    // Extract the sign bit from the [SignedBits] value.
+    /// Extract the sign bit from the [SignedBits] value.
     pub fn sign_bit(&self) -> bool {
         self.get_bit(N - 1)
     }
@@ -121,7 +131,7 @@ impl<const N: usize> SignedBits<N> {
     // include the proper 2's complement representation for
     // a signed value, they are simple a [Bits] vector.
     pub fn slice<const M: usize>(&self, start: usize) -> Bits<M> {
-        Bits(((self.0 >> start) as u128) & crate::Bits::<M>::mask().0)
+        Bits::from(((self.0 >> start) as u128) & Bits::<M>::mask().0)
     }
     pub fn as_unsigned(self) -> Bits<N> {
         Bits(self.0 as u128 & Bits::<N>::mask().0)
@@ -131,6 +141,12 @@ impl<const N: usize> SignedBits<N> {
 impl<const N: usize> Default for SignedBits<N> {
     fn default() -> Self {
         Self(0)
+    }
+}
+
+impl<const N: usize> PartialEq<i128> for SignedBits<N> {
+    fn eq(&self, other: &i128) -> bool {
+        self == &Self::from(*other)
     }
 }
 
