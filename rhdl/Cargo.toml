@@ -12,3 +12,4 @@ authors = ["Samit Basu <basu.samit@gmail.com>"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+rhdl-bits = { path = "../rhdl-bits" }
