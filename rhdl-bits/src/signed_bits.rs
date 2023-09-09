@@ -20,7 +20,7 @@ use derive_more::{
 /// Note that unlike the [Bits] type, comparisons are performed using
 /// signed arithmetic.  Note also that the right shift operator when
 /// applied to a signed value will sign extend the value.  This is
-/// the same behavior as is seen in Rust (i.e., ((-4) >> 2) == -2).
+/// the same behavior as is seen in Rust (i.e., ((-4) >> 1) == -2).
 ///
 /// If you want to right shift a signed value without sign extension,
 /// then you should convert it to a [Bits] type first.
