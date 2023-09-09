@@ -6,16 +6,7 @@ license = "MIT"
 description = "Support crate for RHDL that provides a Bits type."
 homepage = "https://rhdl.org"
 repository = "https://github.com/samitbasu/rhdl"
-keywords = [
-    "fpga",
-    "hdl",
-    "verilog",
-    "vhdl",
-    "rust",
-    "hardware",
-    "binary",
-    "bitvec",
-]
+keywords = ["fpga", "hdl", "hardware", "binary", "bitvec"]
 
 [dependencies]
 derive_more = "0.99.17"
