@@ -162,6 +162,10 @@ impl<const N: usize> Bits<N> {
             SignedBits(self.0 as i128)
         }
     }
+    /// Extract the raw `u128` behind the [Bits] value.
+    pub fn raw(self) -> u128 {
+        self.0
+    }
 }
 
 /// The default value for a [Bits] value is 0.

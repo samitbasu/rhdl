@@ -198,6 +198,11 @@ impl<const N: usize> SignedBits<N> {
     pub fn as_unsigned(self) -> Bits<N> {
         Bits(self.0 as u128 & Bits::<N>::mask().0)
     }
+    /// Extract the raw signed `i128` backing this SignedBits
+    /// value.
+    pub fn raw(self) -> i128 {
+        self.0
+    }
     // This is a helper function for sign extending a value.
     // It is used internally by the [SignedBits] type.
     // It is not meant to be used externally.

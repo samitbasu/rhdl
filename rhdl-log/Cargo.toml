@@ -1,0 +1,13 @@
+[package]
+name = "rhdl-log"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Support crate for RHDL that provides the log/trace support."
+homepage = "https://rhdl.org"
+repository = "https://github.com/samitbasu/rhdl"
+keywords = ["fpga", "hdl", "hardware", "log", "trace"]
+
+[dependencies]
+rhdl-bits = { version = "0.1.0", path = "../rhdl-bits" }
+serde = { version = "1.0.188", features = ["derive"] }
