@@ -14,7 +14,7 @@ use derive_more::{
 /// on longer bit values in your hardware designs.
 ///
 /// Signed arithmetic is performed using 2's complement arithmetic.
-/// See [https://en.wikipedia.org/wiki/Two%27s_complement] for more
+/// See <https://en.wikipedia.org/wiki/Two%27s_complement> for more
 /// information.
 ///
 /// Note that unlike the [Bits] type, comparisons are performed using
