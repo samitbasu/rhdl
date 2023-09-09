@@ -16,7 +16,7 @@ use derive_more::{
 /// to maintain and use.  I think this is a good trade-off.
 ///
 /// Note that the [Bits] type implements 2's complement arithmetic.
-/// See [https://en.wikipedia.org/wiki/Two%27s_complement] for more
+/// See <https://en.wikipedia.org/wiki/Two%27s_complement> for more
 /// information.
 ///
 /// Note also that the [Bits] kind is treated as an unsigned value for
@@ -44,6 +44,25 @@ use derive_more::{
 )]
 #[repr(transparent)]
 pub struct Bits<const N: usize>(pub(crate) u128);
+
+/// Helper function for creating a bits value from
+/// a constant.
+/// ```
+/// # use rhdl_bits::{Bits, bits};
+/// let value : Bits<8> = bits(0b1010_1010);
+/// assert_eq!(value, 0b1010_1010);
+/// ```
+/// Because the function is `const`, you can use it a constant
+/// context:
+/// ```
+/// # use rhdl_bits::{Bits, bits};
+/// const VALUE : Bits<8> = bits(0b1010_1010);
+/// ```
+pub const fn bits<const N: usize>(value: u128) -> Bits<N> {
+    assert!(N <= 128);
+    assert!(value <= Bits::<N>::mask().0);
+    Bits(value)
+}
 
 impl<const N: usize> Bits<N> {
     /// Defines a constant Bits value with all bits set to 1.

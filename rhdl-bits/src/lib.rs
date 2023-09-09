@@ -274,9 +274,9 @@
 //! All four of the standard Rust logical operators are supported for both [Bits] and [SignedBits].
 //! They operate bitwise, and are implemented using the standard Rust traits.  For completeness,
 //! the list of supported bitwise operators is:
-//! - [Or](std::ops::Or) and [OrAssign](std::ops::OrAssign) for `|` and `|=`
-//! - [And](std::ops::And) and [AndAssign](std::ops::AndAssign) for `&` and `&=`
-//! - [Xor](std::ops::Xor) and [XorAssign](std::ops::XorAssign) for `^` and `^=`
+//! - [Or](std::ops::BitOr) and [OrAssign](std::ops::BitOrAssign) for `|` and `|=`
+//! - [And](std::ops::BitAnd) and [AndAssign](std::ops::BitAndAssign) for `&` and `&=`
+//! - [Xor](std::ops::BitXor) and [XorAssign](std::ops::BitXorAssign) for `^` and `^=`
 //! - [Not](std::ops::Not) for `!`
 //! Other, more exotic binary operators (like Xnor or Nand) are not supported.  If you need these,
 //! you will need to implement them in terms of these more basic operators.
@@ -394,30 +394,32 @@
 //! assert_eq!(x.as_unsigned(), 0b1111_1111);
 //! ```
 //!
-/// Implementation of the addition operators
+#[doc(hidden)]
 pub mod add;
-/// Implementation of the logical and operators
+#[doc(hidden)]
 pub mod and;
-/// The base [Bits] struct used to represent arbitrary bit-width unsigned integers.
+#[doc(hidden)]
 pub mod bits;
-/// Implementation of the negation (-) operator for signed integers
+#[doc(hidden)]
 pub mod neg;
-/// Implementation of the logical not operator
+#[doc(hidden)]
 pub mod not;
-/// Implementation of the logical or operators
+#[doc(hidden)]
 pub mod or;
-/// Implementation of the shift left operator
+#[doc(hidden)]
 pub mod shl;
-/// Implementation of the shift right operator
+#[doc(hidden)]
 pub mod shr;
-/// The base [SignedBits] struct used to represent arbitrary bit-width signed integers.
+#[doc(hidden)]
 pub mod signed_bits;
-/// Implementation of subtraction operators
+#[doc(hidden)]
 pub mod sub;
-/// Implementatino of exclusive or operators
+#[doc(hidden)]
 pub mod xor;
 
+pub use bits::bits;
 pub use bits::Bits;
+pub use signed_bits::signed;
 pub use signed_bits::SignedBits;
 
 #[cfg(test)]
