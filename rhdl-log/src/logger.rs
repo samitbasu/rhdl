@@ -17,12 +17,6 @@ impl<T: LoggerImpl> LoggerImpl for &mut T {
     fn write_bits<L: Loggable>(&mut self, tag: TagID<L>, val: u128) {
         (**self).write_bits(tag, val)
     }
-    fn write_signed<L: Loggable>(&mut self, tag: TagID<L>, val: i128) {
-        (**self).write_signed(tag, val)
-    }
-    fn write_large<L: Loggable>(&mut self, tag: TagID<L>, val: &[bool]) {
-        (**self).write_large(tag, val)
-    }
     fn write_string<L: Loggable>(&mut self, tag: TagID<L>, val: &'static str) {
         (**self).write_string(tag, val)
     }
@@ -31,7 +25,5 @@ impl<T: LoggerImpl> LoggerImpl for &mut T {
 pub trait LoggerImpl: Sized {
     fn write_bool<L: Loggable>(&mut self, tag: TagID<L>, val: bool);
     fn write_bits<L: Loggable>(&mut self, tag: TagID<L>, val: u128);
-    fn write_signed<L: Loggable>(&mut self, tag: TagID<L>, val: i128);
-    fn write_large<L: Loggable>(&mut self, tag: TagID<L>, val: &[bool]);
     fn write_string<L: Loggable>(&mut self, tag: TagID<L>, val: &'static str);
 }
