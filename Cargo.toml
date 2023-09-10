@@ -1,3 +1,9 @@
 [workspace]
 
-members = ["rhdl", "rhdl-bits", "rhdl-log", "rhdl-basic-logger"]
+members = [
+    "rhdl",
+    "rhdl-bits",
+    "rhdl-log",
+    "rhdl-basic-logger",
+    "rhdl-macro-core",
+]

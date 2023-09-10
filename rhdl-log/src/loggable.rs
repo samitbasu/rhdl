@@ -46,3 +46,15 @@ impl<const N: usize> Loggable for SignedBits<N> {
         logger.write_signed(tag, self.raw());
     }
 }
+
+impl<S: Loggable, T: Loggable> Loggable for (S, T) {
+    fn allocate<L: Loggable>(tag: TagID<L>, builder: impl LogBuilder) {
+        S::allocate(tag, builder.namespace("0"));
+        T::allocate(tag, builder.namespace("1"));
+    }
+
+    fn record<L: Loggable>(&self, tag: TagID<L>, mut logger: impl LoggerImpl) {
+        self.0.record(tag, &mut logger);
+        self.1.record(tag, &mut logger);
+    }
+}
