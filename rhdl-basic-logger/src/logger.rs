@@ -17,7 +17,6 @@ pub(crate) struct TimedValue<T: Clone + PartialEq + Eq> {
 pub(crate) enum LogValues<'a> {
     Bool(Vec<TimedValue<bool>>),
     Bits(Vec<TimedValue<u128>>),
-    Long(Vec<TimedValue<Vec<bool>>>),
     #[serde(borrow)]
     Enum(Vec<TimedValue<&'a str>>),
 }
@@ -27,7 +26,6 @@ impl<'a> LogValues<'a> {
         match self {
             LogValues::Bool(v) => v.len(),
             LogValues::Bits(v) => v.len(),
-            LogValues::Long(v) => v.len(),
             LogValues::Enum(v) => v.len(),
         }
     }
@@ -50,10 +48,8 @@ impl<'a> LogSignal<'a> {
                 LogValues::Enum(vec![])
             } else if width == 1 {
                 LogValues::Bool(vec![])
-            } else if width <= 128 {
-                LogValues::Bits(vec![])
             } else {
-                LogValues::Long(vec![])
+                LogValues::Bits(vec![])
             },
         }
     }
@@ -373,21 +369,6 @@ impl Logger<'static> {
                                 keep_running = true;
                             }
                         }
-                        LogValues::Long(ref values) => {
-                            if let Some(value) = values.get(ptr.index) {
-                                if value.time_in_fs == current_time {
-                                    writer.change_vector(
-                                        ptr.code,
-                                        value.value.iter().map(|x| (*x).into()).rev(),
-                                    )?;
-                                    ptr.index += 1;
-                                    found_match = true;
-                                } else {
-                                    next_time = next_time.min(value.time_in_fs);
-                                }
-                                keep_running = true;
-                            }
-                        }
                         LogValues::Enum(ref values) => {
                             if let Some(value) = values.get(ptr.index) {
                                 if value.time_in_fs == current_time {
@@ -439,20 +420,6 @@ impl LoggerImpl for Logger<'static> {
         let time_in_fs = self.time_in_fs;
         if let LogValues::Bits(ref mut values) = self.signal(tag_id).values {
             values.push(TimedValue { time_in_fs, value });
-        } else {
-            panic!("Wrong type");
-        }
-    }
-    fn write_signed<L: Loggable>(&mut self, tag_id: TagID<L>, value: i128) {
-        self.write_bits(tag_id, value as u128);
-    }
-    fn write_large<L: Loggable>(&mut self, tag: TagID<L>, val: &[bool]) {
-        let time_in_fs = self.time_in_fs;
-        if let LogValues::Long(ref mut values) = self.signal(tag).values {
-            values.push(TimedValue {
-                time_in_fs,
-                value: val.to_vec(),
-            });
         } else {
             panic!("Wrong type");
         }
