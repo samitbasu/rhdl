@@ -167,3 +167,109 @@ impl<T: Synthesizable, const N: usize> Synthesizable for [T; N] {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::kind::Variant;
+
+    #[test]
+    fn test_synthesizable_enum() {
+        #[derive(Copy, Clone, PartialEq)]
+        enum State {
+            Init,
+            Boot,
+            Running,
+            Stop,
+            Boom,
+        }
+        impl Synthesizable for State {
+            fn static_kind() -> Kind {
+                Kind::Enum {
+                    variants: vec![
+                        Variant {
+                            name: "Init".to_string(),
+                            discriminant: 0,
+                            kind: Kind::Empty,
+                        },
+                        Variant {
+                            name: "Boot".to_string(),
+                            discriminant: 1,
+                            kind: Kind::Empty,
+                        },
+                        Variant {
+                            name: "Running".to_string(),
+                            discriminant: 2,
+                            kind: Kind::Empty,
+                        },
+                        Variant {
+                            name: "Stop".to_string(),
+                            discriminant: 3,
+                            kind: Kind::Empty,
+                        },
+                        Variant {
+                            name: "Boom".to_string(),
+                            discriminant: 4,
+                            kind: Kind::Empty,
+                        },
+                    ],
+                }
+            }
+            fn bin(self) -> Vec<bool> {
+                match self {
+                    Self::Init => rhdl_bits::bits::<3>(0).to_bools(),
+                    Self::Boot => rhdl_bits::bits::<3>(1).to_bools(),
+                    Self::Running => rhdl_bits::bits::<3>(2).to_bools(),
+                    Self::Stop => rhdl_bits::bits::<3>(3).to_bools(),
+                    Self::Boom => rhdl_bits::bits::<3>(4).to_bools(),
+                }
+            }
+            fn allocate<L: Synthesizable>(tag: TagID<L>, builder: impl LogBuilder) {
+                builder.allocate(tag, 0);
+            }
+            fn record<L: Synthesizable>(&self, tag: TagID<L>, mut logger: impl LoggerImpl) {
+                match self {
+                    Self::Init => logger.write_string(tag, stringify!(Init)),
+                    Self::Boot => logger.write_string(tag, stringify!(Boot)),
+                    Self::Running => logger.write_string(tag, stringify!(Running)),
+                    Self::Stop => logger.write_string(tag, stringify!(Stop)),
+                    Self::Boom => logger.write_string(tag, stringify!(Boom)),
+                }
+            }
+        }
+        let val = State::Boom;
+        assert_eq!(val.bin(), rhdl_bits::bits::<3>(4).to_bools());
+        assert_eq!(
+            val.kind(),
+            Kind::Enum {
+                variants: vec![
+                    Variant {
+                        name: "Init".to_string(),
+                        discriminant: 0,
+                        kind: Kind::Empty,
+                    },
+                    Variant {
+                        name: "Boot".to_string(),
+                        discriminant: 1,
+                        kind: Kind::Empty,
+                    },
+                    Variant {
+                        name: "Running".to_string(),
+                        discriminant: 2,
+                        kind: Kind::Empty,
+                    },
+                    Variant {
+                        name: "Stop".to_string(),
+                        discriminant: 3,
+                        kind: Kind::Empty,
+                    },
+                    Variant {
+                        name: "Boom".to_string(),
+                        discriminant: 4,
+                        kind: Kind::Empty,
+                    },
+                ],
+            }
+        );
+    }
+}

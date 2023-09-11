@@ -1,3 +1,3 @@
-mod loggable;
+mod synthesizable;
 mod utils;
-pub use loggable::derive_loggable;
+pub use synthesizable::derive_synthesizable;
