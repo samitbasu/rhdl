@@ -4,7 +4,7 @@ use std::{
 };
 
 use indexmap::IndexMap;
-use rhdl_log::{logger::LoggerImpl, ClockDetails, Loggable, TagID};
+use rhdl_core::{logger::LoggerImpl, ClockDetails, Synthesizable, TagID};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -225,7 +225,7 @@ impl<'a> Display for Logger<'a> {
 // in a hierarchical manner.
 
 impl Logger<'static> {
-    fn signal<L: Loggable>(&mut self, tag_id: TagID<L>) -> &mut LogSignal<'static> {
+    fn signal<T: Synthesizable>(&mut self, tag_id: TagID<T>) -> &mut LogSignal<'static> {
         let scope = &mut self.scopes[tag_id.context];
         let tag = &mut scope.tags[tag_id.id];
         let len = tag.data.len();
@@ -397,7 +397,7 @@ impl Logger<'static> {
     }
 }
 
-impl rhdl_log::Logger for Logger<'static> {
+impl rhdl_core::Logger for Logger<'static> {
     type Impl = Self;
     fn set_time_in_fs(&mut self, time: u64) {
         self.time_in_fs = time;
@@ -408,7 +408,7 @@ impl rhdl_log::Logger for Logger<'static> {
 }
 
 impl LoggerImpl for Logger<'static> {
-    fn write_bool<L: Loggable>(&mut self, tag_id: TagID<L>, value: bool) {
+    fn write_bool<T: Synthesizable>(&mut self, tag_id: TagID<T>, value: bool) {
         let time_in_fs = self.time_in_fs;
         if let LogValues::Bool(ref mut values) = self.signal(tag_id).values {
             values.push(TimedValue { time_in_fs, value });
@@ -416,7 +416,7 @@ impl LoggerImpl for Logger<'static> {
             panic!("Wrong type");
         }
     }
-    fn write_bits<L: Loggable>(&mut self, tag_id: TagID<L>, value: u128) {
+    fn write_bits<T: Synthesizable>(&mut self, tag_id: TagID<T>, value: u128) {
         let time_in_fs = self.time_in_fs;
         if let LogValues::Bits(ref mut values) = self.signal(tag_id).values {
             values.push(TimedValue { time_in_fs, value });
@@ -424,7 +424,7 @@ impl LoggerImpl for Logger<'static> {
             panic!("Wrong type");
         }
     }
-    fn write_string<L: Loggable>(&mut self, tag_id: TagID<L>, val: &'static str) {
+    fn write_string<T: Synthesizable>(&mut self, tag_id: TagID<T>, val: &'static str) {
         let time_in_fs = self.time_in_fs;
         if let LogValues::Enum(ref mut values) = self.signal(tag_id).values {
             values.push(TimedValue {

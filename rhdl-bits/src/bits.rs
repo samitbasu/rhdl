@@ -166,6 +166,17 @@ impl<const N: usize> Bits<N> {
     pub fn raw(self) -> u128 {
         self.0
     }
+    /// Build a (dynamic, stack allocated) vector containing
+    /// the bits that make up this value.  This will be slow.
+    pub fn to_bools(self) -> Vec<bool> {
+        let mut v = Vec::new();
+        let mut x = self.0;
+        for _i in 0..N {
+            v.push(x & 1 == 1);
+            x = x.wrapping_shr(1);
+        }
+        v
+    }
 }
 
 /// The default value for a [Bits] value is 0.
@@ -349,5 +360,15 @@ mod tests {
         assert_eq!(bits.0, unsigned.0);
         let signed = unsigned.as_signed();
         assert!(signed.is_negative());
+    }
+
+    #[test]
+    fn test_to_bits_method() {
+        let bits: Bits<8> = 0b1101_1010.into();
+        let result = bits.to_bools();
+        assert_eq!(
+            result,
+            vec![false, true, false, true, true, false, true, true]
+        );
     }
 }

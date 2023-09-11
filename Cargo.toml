@@ -3,7 +3,7 @@
 members = [
     "rhdl",
     "rhdl-bits",
-    "rhdl-log",
     "rhdl-basic-logger",
     "rhdl-macro-core",
+    "rhdl-core",
 ]

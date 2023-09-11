@@ -4,7 +4,7 @@ use std::{
     rc::Rc,
 };
 
-use rhdl_log::{ClockDetails, LogBuilder, Loggable, TagID};
+use rhdl_core::{ClockDetails, LogBuilder, Synthesizable, TagID};
 
 use crate::{
     logger::{LogSignal, ScopeRecord, TaggedSignal},
@@ -70,7 +70,7 @@ impl LogBuilder for Builder {
         }
     }
 
-    fn tag<L: Loggable>(&mut self, name: &str) -> TagID<L> {
+    fn tag<T: Synthesizable>(&mut self, name: &str) -> TagID<T> {
         let context_id: usize = self.my_scope;
         let tag = {
             let scope = &mut self.inner.borrow_mut().scopes[context_id];
@@ -84,11 +84,11 @@ impl LogBuilder for Builder {
                 _marker: Default::default(),
             }
         };
-        L::allocate(tag, self);
+        T::allocate(tag, self);
         tag
     }
 
-    fn allocate<L: Loggable>(&self, tag: TagID<L>, width: usize) {
+    fn allocate<T: Synthesizable>(&self, tag: TagID<T>, width: usize) {
         let name = self.path.join("$");
         let signal = LogSignal::new(name, width);
         let context_id: usize = tag.context;
