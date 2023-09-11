@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::loggable::Loggable;
+use crate::synthesizable::Synthesizable;
 
 /// The [TagID] is a unique opaque identifier for a [Loggable] type.
 /// For performance reasons, you will need to include a [TagID] in your
@@ -24,7 +24,7 @@ use crate::loggable::Loggable;
 /// Structured types (such as structs, tuples, enums, etc) are supported
 /// as well.
 #[derive(Debug, Clone, Copy)]
-pub struct TagID<T: Loggable> {
+pub struct TagID<T: Synthesizable> {
     pub context: usize,
     pub id: usize,
     pub _marker: PhantomData<*const T>,
