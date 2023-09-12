@@ -13,6 +13,7 @@ pub trait Digital: Copy + PartialEq + Sized + Clone {
     fn bin(self) -> Vec<bool>;
     fn allocate<T: Digital>(tag: TagID<T>, builder: impl LogBuilder);
     fn record<T: Digital>(&self, tag: TagID<T>, logger: impl LoggerImpl);
+    // Need an index.
 }
 
 impl Digital for bool {
@@ -170,6 +171,7 @@ mod test {
     use crate::kind::Variant;
 
     #[test]
+    #[allow(dead_code)]
     fn test_digital_enum() {
         #[derive(Copy, Clone, PartialEq)]
         enum State {
