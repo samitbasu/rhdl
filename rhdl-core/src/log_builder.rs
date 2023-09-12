@@ -1,10 +1,10 @@
-use crate::{clock_details::ClockDetails, synthesizable::Synthesizable, tag_id::TagID};
+use crate::{clock_details::ClockDetails, digital::Digital, tag_id::TagID};
 
 pub trait LogBuilder {
     type SubBuilder: LogBuilder;
     fn scope(&self, name: &str) -> Self::SubBuilder;
-    fn tag<T: Synthesizable>(&mut self, name: &str) -> TagID<T>;
-    fn allocate<T: Synthesizable>(&self, tag: TagID<T>, width: usize);
+    fn tag<T: Digital>(&mut self, name: &str) -> TagID<T>;
+    fn allocate<T: Digital>(&self, tag: TagID<T>, width: usize);
     fn namespace(&self, name: &str) -> Self::SubBuilder;
     fn add_clock(&mut self, clock: ClockDetails);
     fn add_simple_clock(&mut self, period_in_fs: u64) {
@@ -22,10 +22,10 @@ impl<T: LogBuilder> LogBuilder for &mut T {
     fn scope(&self, name: &str) -> Self::SubBuilder {
         (**self).scope(name)
     }
-    fn tag<S: Synthesizable>(&mut self, name: &str) -> TagID<S> {
+    fn tag<S: Digital>(&mut self, name: &str) -> TagID<S> {
         (**self).tag(name)
     }
-    fn allocate<S: Synthesizable>(&self, tag: TagID<S>, width: usize) {
+    fn allocate<S: Digital>(&self, tag: TagID<S>, width: usize) {
         (**self).allocate(tag, width)
     }
     fn namespace(&self, name: &str) -> Self::SubBuilder {
