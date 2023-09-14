@@ -13,12 +13,11 @@ pub trait Digital: Copy + PartialEq + Sized + Clone {
     fn bin(self) -> Vec<bool>;
     fn allocate<T: Digital>(tag: TagID<T>, builder: impl LogBuilder);
     fn record<T: Digital>(&self, tag: TagID<T>, logger: impl LoggerImpl);
-    // Need an index.
 }
 
 impl Digital for bool {
     fn static_kind() -> Kind {
-        Kind::Bits { digits: 1 }
+        Kind::make_bits(1)
     }
     fn bin(self) -> Vec<bool> {
         vec![self]
@@ -33,7 +32,7 @@ impl Digital for bool {
 
 impl<const N: usize> Digital for Bits<N> {
     fn static_kind() -> Kind {
-        Kind::Bits { digits: N }
+        Kind::make_bits(N)
     }
     fn bin(self) -> Vec<bool> {
         self.to_bools()
@@ -48,7 +47,7 @@ impl<const N: usize> Digital for Bits<N> {
 
 impl<const N: usize> Digital for SignedBits<N> {
     fn static_kind() -> Kind {
-        Kind::Bits { digits: N }
+        Kind::make_bits(N)
     }
     fn bin(self) -> Vec<bool> {
         self.as_unsigned().to_bools()
@@ -64,9 +63,7 @@ impl<const N: usize> Digital for SignedBits<N> {
 // Add blanket implementation for tuples up to size 4.
 impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
     fn static_kind() -> Kind {
-        Kind::Tuple {
-            elements: vec![T0::static_kind(), T1::static_kind()],
-        }
+        Kind::make_tuple(vec![T0::static_kind(), T1::static_kind()])
     }
     fn bin(self) -> Vec<bool> {
         let mut v = self.0.bin();
@@ -85,9 +82,11 @@ impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
 
 impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {
     fn static_kind() -> Kind {
-        Kind::Tuple {
-            elements: vec![T0::static_kind(), T1::static_kind(), T2::static_kind()],
-        }
+        Kind::make_tuple(vec![
+            T0::static_kind(),
+            T1::static_kind(),
+            T2::static_kind(),
+        ])
     }
     fn bin(self) -> Vec<bool> {
         let mut v = self.0.bin();
@@ -109,14 +108,12 @@ impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {
 
 impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2, T3) {
     fn static_kind() -> Kind {
-        Kind::Tuple {
-            elements: vec![
-                T0::static_kind(),
-                T1::static_kind(),
-                T2::static_kind(),
-                T3::static_kind(),
-            ],
-        }
+        Kind::make_tuple(vec![
+            T0::static_kind(),
+            T1::static_kind(),
+            T2::static_kind(),
+            T3::static_kind(),
+        ])
     }
     fn bin(self) -> Vec<bool> {
         let mut v = self.0.bin();
@@ -141,10 +138,7 @@ impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2
 
 impl<T: Digital, const N: usize> Digital for [T; N] {
     fn static_kind() -> Kind {
-        Kind::Array {
-            base: Box::new(T::static_kind()),
-            size: N,
-        }
+        Kind::make_array(T::static_kind(), N)
     }
     fn bin(self) -> Vec<bool> {
         let mut v = Vec::new();
@@ -168,7 +162,7 @@ impl<T: Digital, const N: usize> Digital for [T; N] {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::kind::Variant;
+    use crate::kind::{DiscriminantAlignment, Variant};
 
     #[test]
     #[allow(dead_code)]
@@ -183,8 +177,8 @@ mod test {
         }
         impl Digital for State {
             fn static_kind() -> Kind {
-                Kind::Enum {
-                    variants: vec![
+                Kind::make_enum(
+                    vec![
                         Variant {
                             name: "Init".to_string(),
                             discriminant: 0,
@@ -211,7 +205,9 @@ mod test {
                             kind: Kind::Empty,
                         },
                     ],
-                }
+                    Some(3),
+                    DiscriminantAlignment::LSB,
+                )
             }
             fn bin(self) -> Vec<bool> {
                 match self {
@@ -239,8 +235,8 @@ mod test {
         assert_eq!(val.bin(), rhdl_bits::bits::<3>(4).to_bools());
         assert_eq!(
             val.kind(),
-            Kind::Enum {
-                variants: vec![
+            Kind::make_enum(
+                vec![
                     Variant {
                         name: "Init".to_string(),
                         discriminant: 0,
@@ -267,7 +263,9 @@ mod test {
                         kind: Kind::Empty,
                     },
                 ],
-            }
+                Some(3),
+                DiscriminantAlignment::LSB,
+            )
         );
     }
 }
