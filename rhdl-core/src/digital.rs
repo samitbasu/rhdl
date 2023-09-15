@@ -206,7 +206,7 @@ mod test {
                         },
                     ],
                     Some(3),
-                    DiscriminantAlignment::LSB,
+                    DiscriminantAlignment::Lsb,
                 )
             }
             fn bin(self) -> Vec<bool> {
@@ -264,7 +264,7 @@ mod test {
                     },
                 ],
                 Some(3),
-                DiscriminantAlignment::LSB,
+                DiscriminantAlignment::Lsb,
             )
         );
     }

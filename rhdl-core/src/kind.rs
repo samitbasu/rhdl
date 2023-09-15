@@ -26,8 +26,8 @@ pub struct Struct {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DiscriminantAlignment {
-    MSB,
-    LSB,
+    Msb,
+    Lsb,
 }
 
 #[derive(Debug, Clone, PartialEq)]
