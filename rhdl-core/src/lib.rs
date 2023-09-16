@@ -15,6 +15,6 @@ pub use tag_id::TagID;
 #[cfg(feature = "svg")]
 pub use kind::kind_svg::svg_grid;
 #[cfg(feature = "svg")]
-pub use kind::kind_svg::svg_grid_veritcal;
+pub use kind::kind_svg::svg_grid_vertical;
 
 pub use kind::text_grid;
