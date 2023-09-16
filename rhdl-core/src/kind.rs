@@ -91,6 +91,12 @@ impl Kind {
     pub fn make_tuple(elements: Vec<Kind>) -> Self {
         Self::Tuple(Tuple { elements })
     }
+    pub fn make_field(name: &str, kind: Kind) -> Field {
+        Field {
+            name: name.to_string(),
+            kind,
+        }
+    }
     pub fn make_struct(fields: Vec<Field>) -> Self {
         Self::Struct(Struct { fields })
     }
@@ -357,6 +363,36 @@ pub mod kind_svg {
     // Given this layout tree, we can then render it as required.
     use super::*;
 
+    fn text_box(
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        text: &str,
+        fill_color: &str,
+        stroke_color: &str,
+        document: svg::Document,
+    ) -> svg::Document {
+        let text_x = x + width / 2;
+        let text_y = y + height / 2;
+        let text = svg::node::element::Text::new()
+            .add(svg::node::Text::new(text))
+            .set("x", text_x)
+            .set("y", text_y)
+            .set("font-family", "monospace")
+            .set("font-size", "10px")
+            .set("text-anchor", "middle")
+            .set("dominant-baseline", "middle");
+        let rect = svg::node::element::Rectangle::new()
+            .set("x", x)
+            .set("y", y)
+            .set("width", width)
+            .set("height", height)
+            .set("fill", fill_color)
+            .set("stroke", stroke_color);
+        document.add(rect).add(text)
+    }
+
     pub fn svg_grid_vertical(kind: &Kind, name: &str) -> svg::Document {
         let layout = generate_kind_layout(kind, name, 0, 0);
         let num_cols = layout.iter().map(|x| x.row).max().unwrap_or(0) + 1;
@@ -409,45 +445,30 @@ pub mod kind_svg {
         // lines
         for bit in 0..num_bits {
             let x = -bit_digits * pixels_per_char as i32;
-            let y = bit * pixels_per_char;
+            let y = (bit * pixels_per_char) as i32;
             let width = bit_digits * pixels_per_char as i32;
-            let height = pixels_per_char;
-            let text_x = x + width / 2;
-            let text_y = y + height / 2;
-            let text = svg::node::element::Text::new()
-                .add(svg::node::Text::new(format!("{}", bit)))
-                .set("x", text_x)
-                .set("y", text_y)
-                .set("font-family", "monospace")
-                .set("font-size", "10px")
-                .set("text-anchor", "middle")
-                .set("dominant-baseline", "middle");
-            let rect = svg::node::element::Rectangle::new()
-                .set("x", x)
-                .set("y", y)
-                .set("width", width)
-                .set("height", height)
-                .set("fill", "#EEEEEE")
-                .set("stroke", "darkblue");
-            document = document.add(rect).add(text);
+            let height = pixels_per_char as i32;
+            document = text_box(
+                x,
+                y,
+                width,
+                height,
+                &format!("{}", bit),
+                "#EEEEEE",
+                "darkblue",
+                document,
+            );
             let x = total_col_width * pixels_per_char as i32;
-            let text_x = x + width / 2;
-            let text = svg::node::element::Text::new()
-                .add(svg::node::Text::new(format!("{}", bit)))
-                .set("x", text_x)
-                .set("y", text_y)
-                .set("font-family", "monospace")
-                .set("font-size", "10px")
-                .set("text-anchor", "middle")
-                .set("dominant-baseline", "middle");
-            let rect = svg::node::element::Rectangle::new()
-                .set("x", x)
-                .set("y", y)
-                .set("width", width)
-                .set("height", height)
-                .set("fill", "#EEEEEE")
-                .set("stroke", "darkblue");
-            document = document.add(rect).add(text);
+            document = text_box(
+                x,
+                y,
+                width,
+                height,
+                &format!("{}", bit),
+                "#EEEEEE",
+                "darkblue",
+                document,
+            );
             // Add a grid line in a faint dashed gray
             let line = svg::node::element::Line::new()
                 .set("x1", 0)
@@ -469,24 +490,16 @@ pub mod kind_svg {
                 .sum::<usize>()
                 * pixels_per_char;
             let height = pixels_per_char * cell.cols.len();
-            let text_x = x + width / 2;
-            let text_y = y + height / 2;
-            let text = svg::node::element::Text::new()
-                .add(svg::node::Text::new(cell.name.clone()))
-                .set("x", text_x)
-                .set("y", text_y)
-                .set("font-family", "monospace")
-                .set("font-size", "10px")
-                .set("text-anchor", "middle")
-                .set("dominant-baseline", "middle");
-            let rect = svg::node::element::Rectangle::new()
-                .set("x", x)
-                .set("y", y)
-                .set("width", width)
-                .set("height", height)
-                .set("fill", *color)
-                .set("stroke", "gray");
-            document = document.add(rect).add(text);
+            document = text_box(
+                x as i32,
+                y as i32,
+                width as i32,
+                height as i32,
+                &cell.name,
+                color,
+                "gray",
+                document,
+            );
         }
         document
     }
@@ -526,42 +539,27 @@ pub mod kind_svg {
             let y = -(pixels_per_char as i32);
             let width = chars_per_bit * pixels_per_char;
             let height = pixels_per_char as i32;
-            let text_x = x + width / 2;
-            let text_y = y + height / 2;
-            let text = svg::node::element::Text::new()
-                .add(svg::node::Text::new(format!("{}", bit)))
-                .set("x", text_x)
-                .set("y", text_y)
-                .set("font-family", "monospace")
-                .set("font-size", "10px")
-                .set("text-anchor", "middle")
-                .set("dominant-baseline", "middle");
-            let rect = svg::node::element::Rectangle::new()
-                .set("x", x)
-                .set("y", y)
-                .set("width", width)
-                .set("height", height)
-                .set("fill", "#EEEEEE")
-                .set("stroke", "darkblue");
-            document = document.add(rect).add(text);
+            document = text_box(
+                x as i32,
+                y,
+                width as i32,
+                height,
+                &format!("{}", bit),
+                "#EEEEEE",
+                "darkblue",
+                document,
+            );
             let y = (num_rows * pixels_per_char) as i32;
-            let text_y = y + height / 2;
-            let text = svg::node::element::Text::new()
-                .add(svg::node::Text::new(format!("{}", bit)))
-                .set("x", text_x)
-                .set("y", text_y)
-                .set("font-family", "monospace")
-                .set("font-size", "10px")
-                .set("text-anchor", "middle")
-                .set("dominant-baseline", "middle");
-            let rect = svg::node::element::Rectangle::new()
-                .set("x", x)
-                .set("y", y)
-                .set("width", width)
-                .set("height", height)
-                .set("fill", "#EEEEEE")
-                .set("stroke", "darkblue");
-            document = document.add(rect).add(text);
+            document = text_box(
+                x as i32,
+                y,
+                width as i32,
+                height,
+                &format!("{}", bit),
+                "#EEEEEE",
+                "darkblue",
+                document,
+            );
             // Add a grid line in a faint dashed gray
             let line = svg::node::element::Line::new()
                 .set("x1", x)
@@ -580,24 +578,16 @@ pub mod kind_svg {
             let y = cell.row * pixels_per_char;
             let width = cell.cols.len() * chars_per_bit * pixels_per_char;
             let height = pixels_per_char * cell.depth;
-            let text_x = x + width / 2;
-            let text_y = y + height / 2;
-            let text = svg::node::element::Text::new()
-                .add(svg::node::Text::new(cell.name.clone()))
-                .set("x", text_x)
-                .set("y", text_y)
-                .set("font-family", "monospace")
-                .set("font-size", "10px")
-                .set("text-anchor", "middle")
-                .set("dominant-baseline", "middle");
-            let rect = svg::node::element::Rectangle::new()
-                .set("x", x)
-                .set("y", y)
-                .set("width", width)
-                .set("height", height)
-                .set("fill", *color)
-                .set("stroke", "gray");
-            document = document.add(rect).add(text);
+            document = text_box(
+                x as i32,
+                y as i32,
+                width as i32,
+                height as i32,
+                &cell.name,
+                color,
+                "gray",
+                document,
+            );
         }
         document
     }

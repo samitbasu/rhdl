@@ -1,3 +1,4 @@
-mod synthesizable;
+mod digital;
 mod utils;
-pub use synthesizable::derive_synthesizable;
+pub use digital::derive_digital;
+mod digital_enum;

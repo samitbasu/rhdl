@@ -5,57 +5,30 @@ use quote::quote;
 use syn::spanned::Spanned;
 use syn::{Data, DeriveInput};
 
-pub fn derive_synthesizable(input: TokenStream) -> anyhow::Result<TokenStream> {
+use crate::digital_enum::derive_digital_enum;
+
+pub fn derive_digital(input: TokenStream) -> anyhow::Result<TokenStream> {
     let decl = syn::parse2::<syn::DeriveInput>(input)?;
     match &decl.data {
-        Data::Struct(_s) => derive_synthesizable_struct(decl),
-        Data::Enum(_e) => derive_synthesizable_enum(decl),
-        _ => Err(anyhow!("Only structs, enums can be derived synthesizable")),
+        Data::Struct(_s) => derive_digital_struct(decl),
+        Data::Enum(_e) => derive_digital_enum(decl),
+        _ => bail!("Only structs and enums can be digital"),
+        //        Data::Union(_u) => derive_digital_union(decl),
     }
 }
 
-fn derive_synthesizable_enum(decl: DeriveInput) -> anyhow::Result<TokenStream> {
-    let enum_name = &decl.ident;
-    let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
-    match decl.data {
-        Data::Enum(e) => {
-            let variants = e.variants.iter().map(|x| &x.ident);
-            for variant in &e.variants.clone() {
-                if !matches!(variant.fields, syn::Fields::Unit) {
-                    bail!("Only unit variants are supported for synthesizable enums")
-                }
-            }
-            Ok(quote! {
-                impl #impl_generics rhdl_core::Synthesizable for #enum_name #ty_generics #where_clause {
-                    fn allocate<L: rhdl_core::Synthesizable>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
-                        builder.allocate(tag, 0);
-                    }
-                    fn record<L: rhdl_core::Synthesizable>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
-                        match self {
-                            #(
-                                Self::#variants => logger.write_string(tag, stringify!(#variants)),
-                            )*
-                        }
-                    }
-                }
-            })
-        }
-        _ => Err(anyhow!("Only enums can be synthesizable")),
-    }
-}
-
-fn derive_synthesizable_struct(decl: DeriveInput) -> anyhow::Result<TokenStream> {
+fn derive_digital_struct(decl: DeriveInput) -> anyhow::Result<TokenStream> {
     match &decl.data {
         Data::Struct(s) => match s.fields {
-            syn::Fields::Named(_) => derive_synthesizable_named_struct(decl),
-            syn::Fields::Unnamed(_) => derive_synthesizable_tuple_struct(decl),
-            syn::Fields::Unit => Err(anyhow!("Unit structs are not synthesizable")),
+            syn::Fields::Named(_) => derive_digital_named_struct(decl),
+            syn::Fields::Unnamed(_) => derive_digital_tuple_struct(decl),
+            syn::Fields::Unit => Err(anyhow!("Unit structs are not digital")),
         },
-        _ => Err(anyhow!("Only structs can be synthesizable")),
+        _ => Err(anyhow!("Only structs can be digital")),
     }
 }
 
-fn derive_synthesizable_tuple_struct(decl: DeriveInput) -> anyhow::Result<TokenStream> {
+fn derive_digital_tuple_struct(decl: DeriveInput) -> anyhow::Result<TokenStream> {
     let struct_name = &decl.ident;
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
     match decl.data {
@@ -68,13 +41,13 @@ fn derive_synthesizable_tuple_struct(decl: DeriveInput) -> anyhow::Result<TokenS
             let fields2 = fields.clone();
             let field_types = s.fields.iter().map(|x| &x.ty);
             Ok(quote! {
-                impl #impl_generics rhdl_core::Synthesizable for #struct_name #ty_generics #where_clause {
-                    fn allocate<L: rhdl_core::Synthesizable>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
+                impl #impl_generics rhdl_core::Digital for #struct_name #ty_generics #where_clause {
+                    fn allocate<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
                         #(
-                            <#field_types as rhdl_core::Synthesizable>::allocate(tag, builder.namespace(stringify!(#fields)));
+                            <#field_types as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(#fields)));
                         )*
                     }
-                    fn record<L: rhdl_core::Synthesizable>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
+                    fn record<L: rhdl_core::Digital>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
                         #(
                             self.#fields2.record(tag, &mut logger);
                         )*
@@ -82,11 +55,11 @@ fn derive_synthesizable_tuple_struct(decl: DeriveInput) -> anyhow::Result<TokenS
                 }
             })
         }
-        _ => Err(anyhow!("Only structs can be synthesizable")),
+        _ => Err(anyhow!("Only structs can be digital")),
     }
 }
 
-fn derive_synthesizable_named_struct(decl: DeriveInput) -> anyhow::Result<TokenStream> {
+fn derive_digital_named_struct(decl: DeriveInput) -> anyhow::Result<TokenStream> {
     let struct_name = &decl.ident;
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
     match decl.data {
@@ -95,13 +68,13 @@ fn derive_synthesizable_named_struct(decl: DeriveInput) -> anyhow::Result<TokenS
             let fields2 = fields.clone();
             let field_types = s.fields.iter().map(|x| &x.ty);
             Ok(quote! {
-                impl #impl_generics rhdl_core::Synthesizable for #struct_name #ty_generics #where_clause {
-                    fn allocate<L: rhdl_core::Synthesizable>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
+                impl #impl_generics rhdl_core::Digital for #struct_name #ty_generics #where_clause {
+                    fn allocate<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
                         #(
-                            <#field_types as rhdl_core::Synthesizable>::allocate(tag, builder.namespace(stringify!(#fields)));
+                            <#field_types as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(#fields)));
                         )*
                     }
-                    fn record<L: rhdl_core::Synthesizable>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
+                    fn record<L: rhdl_core::Digital>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
                         #(
                             self.#fields2.record(tag, &mut logger);
                         )*
@@ -109,7 +82,7 @@ fn derive_synthesizable_named_struct(decl: DeriveInput) -> anyhow::Result<TokenS
                 }
             })
         }
-        _ => Err(anyhow!("Only structs can be synthesizable")),
+        _ => Err(anyhow!("Only structs can be digital")),
     }
 }
 
@@ -119,7 +92,7 @@ mod test {
     use crate::utils::assert_tokens_eq;
 
     #[test]
-    fn test_synthesizable_enum() {
+    fn test_digital_enum() {
         let decl = quote!(
             pub enum State {
                 Init,
@@ -129,9 +102,9 @@ mod test {
                 Boom,
             }
         );
-        let output = derive_synthesizable(decl).unwrap();
+        let output = derive_digital(decl).unwrap();
         let expected = quote! {
-            impl rhdl_core::Synthesizable for State {
+            impl rhdl_core::Digital for State {
                 fn static_kind() -> rhdl_core::Kind {
                     rhdl_core::Kind::Enum {
                         variants: vec![
@@ -162,10 +135,10 @@ mod test {
                         Self::Boom => rhdl_bits::Bits::<3>::(4).to_bools(),
                     }
                 }
-                fn allocate<L: rhdl_core::Synthesizable>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
+                fn allocate<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
                     builder.allocate(tag, 0);
                 }
-                fn record<L: rhdl_core::Synthesizable>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
+                fn record<L: rhdl_core::Digital>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
                     match self {
                         Self::Init => logger.write_string(tag, stringify!(Init)),
                         Self::Boot => logger.write_string(tag, stringify!(Boot)),
@@ -180,7 +153,7 @@ mod test {
     }
 
     #[test]
-    fn test_synthesizable_proc_macro() {
+    fn test_digital_proc_macro() {
         let decl = quote!(
             pub struct NestedBits {
                 nest_1: bool,
@@ -188,15 +161,15 @@ mod test {
                 nest_3: TwoBits,
             }
         );
-        let output = derive_synthesizable(decl).unwrap();
+        let output = derive_digital(decl).unwrap();
         let expected = quote! {
-            impl rhdl_core::Synthesizable for NestedBits {
-                fn allocate<L: rhdl_core::Synthesizable>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
-                    <bool as rhdl_core::Synthesizable>::allocate(tag, builder.namespace(stringify!(nest_1)));
-                    <u8 as rhdl_core::Synthesizable>::allocate(tag, builder.namespace(stringify!(nest_2)));
-                    <TwoBits as rhdl_core::Synthesizable>::allocate(tag, builder.namespace(stringify!(nest_3)));
+            impl rhdl_core::Digital for NestedBits {
+                fn allocate<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
+                    <bool as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(nest_1)));
+                    <u8 as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(nest_2)));
+                    <TwoBits as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(nest_3)));
                 }
-                fn record<L: rhdl_core::Synthesizable>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
+                fn record<L: rhdl_core::Digital>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
                     self.nest_1.record(tag, &mut logger);
                     self.nest_2.record(tag, &mut logger);
                     self.nest_3.record(tag, &mut logger);
@@ -207,7 +180,7 @@ mod test {
     }
 
     #[test]
-    fn test_synthesizable_with_struct() {
+    fn test_digital_with_struct() {
         let decl = quote!(
             pub struct Inputs {
                 pub input: u32,
@@ -215,23 +188,23 @@ mod test {
                 pub read: bool,
             }
         );
-        let output = derive_synthesizable(decl).unwrap();
+        let output = derive_digital(decl).unwrap();
         let expected = quote! {
-            impl rhdl_core::Synthesizable for Inputs {
+            impl rhdl_core::Digital for Inputs {
                 fn static_kind() -> rhdl_core::Kind {
                     rhdl_core::Kind::Struct {
                         fields: vec![
                             rhdl_core::Field {
                                 name: "input".to_string(),
-                                kind: <u32 as rhdl_core::Synthesizable>::static_kind(),
+                                kind: <u32 as rhdl_core::Digital>::static_kind(),
                             },
                             rhdl_core::Field {
                                 name: "write".to_string(),
-                                kind: <bool as rhdl_core::Synthesizable>::static_kind(),
+                                kind: <bool as rhdl_core::Digital>::static_kind(),
                             },
                             rhdl_core::Field {
                                 name: "read".to_string(),
-                                kind: <bool as rhdl_core::Synthesizable>::static_kind(),
+                                kind: <bool as rhdl_core::Digital>::static_kind(),
                             },
                         ],
                     }
@@ -242,13 +215,13 @@ mod test {
                     v.extend(self.read.bin());
                     v
                 }
-                fn allocate<L: rhdl_core::Synthesizable>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
-                    <u32 as rhdl_core::Synthesizable>::allocate(tag, builder.namespace(stringify!(input)));
-                    <bool as rhdl_core::Synthesizable>::allocate(tag, builder.namespace(stringify!(write)));
-                    <bool as rhdl_core::Synthesizable>::allocate(tag, builder.namespace(stringify!(read)));
+                fn allocate<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
+                    <u32 as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(input)));
+                    <bool as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(write)));
+                    <bool as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(read)));
                 }
 
-                fn record<L: rhdl_core::Synthesizable>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
+                fn record<L: rhdl_core::Digital>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
                     self.input.record(tag, &mut logger);
                     self.write.record(tag, &mut logger);
                     self.read.record(tag, &mut logger);
@@ -267,23 +240,23 @@ mod test {
                 pub read: (bool, bool),
             }
         );
-        let output = derive_synthesizable(decl).unwrap();
+        let output = derive_digital(decl).unwrap();
         let expected = quote! {
-            impl rhdl_core::Synthesizable for Inputs {
+            impl rhdl_core::Digital for Inputs {
                 fn static_kind() -> rhdl_core::Kind {
                     rhdl_core::Kind::Struct {
                         fields: vec![
                             rhdl_core::Field {
                                 name: "input".to_string(),
-                                kind: <u32 as rhdl_core::Synthesizable>::static_kind(),
+                                kind: <u32 as rhdl_core::Digital>::static_kind(),
                             },
                             rhdl_core::Field {
                                 name: "write".to_string(),
-                                kind: <bool as rhdl_core::Synthesizable>::static_kind(),
+                                kind: <bool as rhdl_core::Digital>::static_kind(),
                             },
                             rhdl_core::Field {
                                 name: "read".to_string(),
-                                kind: <(bool, bool) as rhdl_core::Synthesizable>::static_kind(),
+                                kind: <(bool, bool) as rhdl_core::Digital>::static_kind(),
                             },
                         ],
                     }
@@ -294,13 +267,13 @@ mod test {
                     v.extend(self.read.bin());
                     v
                 }
-                fn allocate<L: rhdl_core::Synthesizable>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
-                    <u32 as rhdl_core::Synthesizable>::allocate(tag, builder.namespace(stringify!(input)));
-                    <bool as rhdl_core::Synthesizable>::allocate(tag, builder.namespace(stringify!(write)));
-                    <(bool, bool) as rhdl_core::Synthesizable>::allocate(tag, builder.namespace(stringify!(read)));
+                fn allocate<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
+                    <u32 as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(input)));
+                    <bool as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(write)));
+                    <(bool, bool) as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(read)));
                 }
 
-                fn record<L: rhdl_core::Synthesizable>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
+                fn record<L: rhdl_core::Digital>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
                     self.input.record(tag, &mut logger);
                     self.write.record(tag, &mut logger);
                     self.read.record(tag, &mut logger);
@@ -311,27 +284,27 @@ mod test {
     }
 
     #[test]
-    fn test_synthesizable_with_tuple_struct() {
+    fn test_digital_with_tuple_struct() {
         let decl = quote!(
             pub struct Inputs(pub u32, pub bool, pub bool);
         );
-        let output = derive_synthesizable(decl).unwrap();
+        let output = derive_digital(decl).unwrap();
         let expected = quote! {
-            impl rhdl_core::Synthesizable for Inputs {
+            impl rhdl_core::Digital for Inputs {
                 fn static_kind() -> rhdl_core::Kind {
                     rhdl_core::Kind::Struct {
                         fields: vec![
                             rhdl_core::Field {
                                 name: "0".to_string(),
-                                kind: <u32 as rhdl_core::Synthesizable>::static_kind(),
+                                kind: <u32 as rhdl_core::Digital>::static_kind(),
                             },
                             rhdl_core::Field {
                                 name: "1".to_string(),
-                                kind: <bool as rhdl_core::Synthesizable>::static_kind(),
+                                kind: <bool as rhdl_core::Digital>::static_kind(),
                             },
                             rhdl_core::Field {
                                 name: "2".to_string(),
-                                kind: <bool as rhdl_core::Synthesizable>::static_kind(),
+                                kind: <bool as rhdl_core::Digital>::static_kind(),
                             },
                         ],
                     }
@@ -342,13 +315,13 @@ mod test {
                     v.extend(self.2.bin());
                     v
                 }
-                fn allocate<L: rhdl_core::Synthesizable>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
-                    <u32 as rhdl_core::Synthesizable>::allocate(tag, builder.namespace(stringify!(0)));
-                    <bool as rhdl_core::Synthesizable>::allocate(tag, builder.namespace(stringify!(1)));
-                    <bool as rhdl_core::Synthesizable>::allocate(tag, builder.namespace(stringify!(2)));
+                fn allocate<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
+                    <u32 as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(0)));
+                    <bool as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(1)));
+                    <bool as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(2)));
                 }
 
-                fn record<L: rhdl_core::Synthesizable>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
+                fn record<L: rhdl_core::Digital>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
                     self.0.record(tag, &mut logger);
                     self.1.record(tag, &mut logger);
                     self.2.record(tag, &mut logger);
