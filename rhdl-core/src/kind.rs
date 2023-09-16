@@ -133,7 +133,7 @@ impl Kind {
 }
 
 #[derive(Clone, Debug)]
-pub struct KindLayout {
+struct KindLayout {
     row: usize,
     depth: usize,
     cols: Range<usize>,
@@ -277,7 +277,7 @@ fn generate_kind_layout(
 }
 
 // Validate a layout
-pub fn is_layout_valid(layout: &[KindLayout]) -> bool {
+fn is_layout_valid(layout: &[KindLayout]) -> bool {
     // Get the range of rows and colums
     // For each row, check that the columns do not overlap
     // For each column, check that the rows do not overlap
@@ -317,8 +317,9 @@ fn get_chars_per_bit(layout: &[KindLayout]) -> usize {
 }
 
 // Generate a string (text) representation of the layout
-pub fn text_grid(layout: &[KindLayout]) -> String {
-    let chars_per_bit = get_chars_per_bit(layout);
+pub fn text_grid(kind: &Kind, name: &str) -> String {
+    let layout = generate_kind_layout(kind, name, 0, 0);
+    let chars_per_bit = get_chars_per_bit(&layout);
     let mut result = String::new();
     let num_rows = layout.iter().map(|x| x.row).max().unwrap_or(0) + 1;
     for row in 0..num_rows {
@@ -356,10 +357,11 @@ pub mod kind_svg {
     // Given this layout tree, we can then render it as required.
     use super::*;
 
-    pub fn svg_grid_veritcal(layout: &[KindLayout]) -> svg::Document {
+    pub fn svg_grid_vertical(kind: &Kind, name: &str) -> svg::Document {
+        let layout = generate_kind_layout(kind, name, 0, 0);
         let num_cols = layout.iter().map(|x| x.row).max().unwrap_or(0) + 1;
         let num_bits = layout.iter().map(|x| x.cols.end).max().unwrap_or(0);
-        let pixels_per_char = 16;
+        let pixels_per_char = 16_usize;
         let col_widths = (0..num_cols)
             .map(|col| {
                 layout
@@ -379,16 +381,14 @@ pub mod kind_svg {
                 Some(result)
             })
             .collect();
-        let total_col_width = col_widths.iter().sum::<usize>();
-        dbg!(&col_widths);
-        dbg!(&col_starts);
-        dbg!(total_col_width);
+        let total_col_width = col_widths.iter().sum::<usize>() as i32;
+        let bit_digits = (num_bits as f32).log10().ceil().max(1.0) as i32;
         let mut document = Document::new().set(
             "viewBox",
             (
+                -bit_digits * pixels_per_char as i32,
                 0,
-                0,
-                total_col_width * pixels_per_char,
+                (2 * bit_digits + total_col_width) * pixels_per_char as i32,
                 num_bits * pixels_per_char,
             ),
         );
@@ -400,11 +400,65 @@ pub mod kind_svg {
         let background = svg::node::element::Rectangle::new()
             .set("x", 0)
             .set("y", 0)
-            .set("width", total_col_width * pixels_per_char)
+            .set("width", total_col_width * pixels_per_char as i32)
             .set("height", num_bits * pixels_per_char)
             .set("fill", "#EEEEEE")
             .set("stroke", "darkblue");
         document = document.add(background);
+        // Add bit rectangles to each row, and horizontal faint gray dashed grid
+        // lines
+        for bit in 0..num_bits {
+            let x = -bit_digits * pixels_per_char as i32;
+            let y = bit * pixels_per_char;
+            let width = bit_digits * pixels_per_char as i32;
+            let height = pixels_per_char;
+            let text_x = x + width / 2;
+            let text_y = y + height / 2;
+            let text = svg::node::element::Text::new()
+                .add(svg::node::Text::new(format!("{}", bit)))
+                .set("x", text_x)
+                .set("y", text_y)
+                .set("font-family", "monospace")
+                .set("font-size", "10px")
+                .set("text-anchor", "middle")
+                .set("dominant-baseline", "middle");
+            let rect = svg::node::element::Rectangle::new()
+                .set("x", x)
+                .set("y", y)
+                .set("width", width)
+                .set("height", height)
+                .set("fill", "#EEEEEE")
+                .set("stroke", "darkblue");
+            document = document.add(rect).add(text);
+            let x = total_col_width * pixels_per_char as i32;
+            let text_x = x + width / 2;
+            let text = svg::node::element::Text::new()
+                .add(svg::node::Text::new(format!("{}", bit)))
+                .set("x", text_x)
+                .set("y", text_y)
+                .set("font-family", "monospace")
+                .set("font-size", "10px")
+                .set("text-anchor", "middle")
+                .set("dominant-baseline", "middle");
+            let rect = svg::node::element::Rectangle::new()
+                .set("x", x)
+                .set("y", y)
+                .set("width", width)
+                .set("height", height)
+                .set("fill", "#EEEEEE")
+                .set("stroke", "darkblue");
+            document = document.add(rect).add(text);
+            // Add a grid line in a faint dashed gray
+            let line = svg::node::element::Line::new()
+                .set("x1", 0)
+                .set("y1", y)
+                .set("x2", total_col_width * pixels_per_char as i32)
+                .set("y2", y)
+                .set("stroke", "#DFDFDF")
+                .set("stroke-width", 1)
+                .set("stroke-dasharray", "1,1");
+            document = document.add(line);
+        }
         // For each cell add a rectangle, where
         // the x coordinate is
         for (cell, color) in layout.iter().zip(soft_palette_colors.iter().cycle()) {
@@ -437,18 +491,19 @@ pub mod kind_svg {
         document
     }
 
-    pub fn svg_grid(layout: &[KindLayout]) -> svg::Document {
+    pub fn svg_grid(kind: &Kind, name: &str) -> svg::Document {
+        let layout = generate_kind_layout(kind, name, 0, 0);
         let num_rows = layout.iter().map(|x| x.row).max().unwrap_or(0) + 1;
         let num_cols = layout.iter().map(|x| x.cols.end).max().unwrap_or(0);
-        let chars_per_bit = get_chars_per_bit(layout);
+        let chars_per_bit = get_chars_per_bit(&layout);
         let pixels_per_char = 16;
         let mut document = Document::new().set(
             "viewBox",
             (
                 0,
-                0,
+                -(pixels_per_char as i32),
                 num_cols * chars_per_bit * pixels_per_char,
-                num_rows * pixels_per_char,
+                (num_rows + 2) * pixels_per_char,
             ),
         );
         let soft_palette_colors = [
@@ -464,6 +519,60 @@ pub mod kind_svg {
             .set("fill", "#EEEEEE")
             .set("stroke", "darkblue");
         document = document.add(background);
+        // Add a rectangle for each bit indicating the bit number.  One at the
+        // top and one along the bottom of the diagram.
+        for bit in 0..num_cols {
+            let x = bit * chars_per_bit * pixels_per_char;
+            let y = -(pixels_per_char as i32);
+            let width = chars_per_bit * pixels_per_char;
+            let height = pixels_per_char as i32;
+            let text_x = x + width / 2;
+            let text_y = y + height / 2;
+            let text = svg::node::element::Text::new()
+                .add(svg::node::Text::new(format!("{}", bit)))
+                .set("x", text_x)
+                .set("y", text_y)
+                .set("font-family", "monospace")
+                .set("font-size", "10px")
+                .set("text-anchor", "middle")
+                .set("dominant-baseline", "middle");
+            let rect = svg::node::element::Rectangle::new()
+                .set("x", x)
+                .set("y", y)
+                .set("width", width)
+                .set("height", height)
+                .set("fill", "#EEEEEE")
+                .set("stroke", "darkblue");
+            document = document.add(rect).add(text);
+            let y = (num_rows * pixels_per_char) as i32;
+            let text_y = y + height / 2;
+            let text = svg::node::element::Text::new()
+                .add(svg::node::Text::new(format!("{}", bit)))
+                .set("x", text_x)
+                .set("y", text_y)
+                .set("font-family", "monospace")
+                .set("font-size", "10px")
+                .set("text-anchor", "middle")
+                .set("dominant-baseline", "middle");
+            let rect = svg::node::element::Rectangle::new()
+                .set("x", x)
+                .set("y", y)
+                .set("width", width)
+                .set("height", height)
+                .set("fill", "#EEEEEE")
+                .set("stroke", "darkblue");
+            document = document.add(rect).add(text);
+            // Add a grid line in a faint dashed gray
+            let line = svg::node::element::Line::new()
+                .set("x1", x)
+                .set("y1", 0)
+                .set("x2", x)
+                .set("y2", (num_rows * pixels_per_char) as i32)
+                .set("stroke", "#DFDFDF")
+                .set("stroke-width", 1)
+                .set("stroke-dasharray", "1,1");
+            document = document.add(line);
+        }
         // For each cell, add a rectangle to the SVG with the
         // name of the cell centered in the rectangle
         for (cell, color) in layout.iter().zip(soft_palette_colors.iter().cycle()) {
@@ -631,12 +740,12 @@ mod test {
         println!("{:#?}", layout);
         assert!(is_layout_valid(&layout));
         println!("Chars per bit {}", get_chars_per_bit(&layout));
-        println!("{}", text_grid(&layout));
+        println!("{}", text_grid(&kind, "value"));
         #[cfg(feature = "svg")]
         {
-            let svg = kind_svg::svg_grid(&layout);
+            let svg = kind_svg::svg_grid(&kind, "value");
             svg::save("test.svg", &svg).unwrap();
-            let svg = kind_svg::svg_grid_veritcal(&layout);
+            let svg = kind_svg::svg_grid_vertical(&kind, "value");
             svg::save("test_vertical.svg", &svg).unwrap();
         }
     }
@@ -660,9 +769,9 @@ mod test {
         println!("{:#?}", layout);
         #[cfg(feature = "svg")]
         {
-            let svg = kind_svg::svg_grid(&layout);
+            let svg = kind_svg::svg_grid(&kind, "value");
             svg::save("test.svg", &svg).unwrap();
-            let svg = kind_svg::svg_grid_veritcal(&layout);
+            let svg = kind_svg::svg_grid_vertical(&kind, "value");
             svg::save("test_vertical.svg", &svg).unwrap();
         }
     }
@@ -695,9 +804,9 @@ mod test {
         println!("{:#?}", layout);
         #[cfg(feature = "svg")]
         {
-            let svg = kind_svg::svg_grid(&layout);
+            let svg = kind_svg::svg_grid(&kind, "value");
             svg::save("test.svg", &svg).unwrap();
-            let svg = kind_svg::svg_grid_veritcal(&layout);
+            let svg = kind_svg::svg_grid_vertical(&kind, "value");
             svg::save("test_vertical.svg", &svg).unwrap();
         }
     }
@@ -722,9 +831,9 @@ mod test {
         println!("{:#?}", layout);
         #[cfg(feature = "svg")]
         {
-            let svg = kind_svg::svg_grid(&layout);
+            let svg = kind_svg::svg_grid(&kind, "value");
             svg::save("test.svg", &svg).unwrap();
-            let svg = kind_svg::svg_grid_veritcal(&layout);
+            let svg = kind_svg::svg_grid_vertical(&kind, "value");
             svg::save("test_vertical.svg", &svg).unwrap();
         }
     }
@@ -756,9 +865,9 @@ mod test {
         println!("{:#?}", layout);
         #[cfg(feature = "svg")]
         {
-            let svg = kind_svg::svg_grid(&layout);
+            let svg = kind_svg::svg_grid(&kind, "value");
             svg::save("test.svg", &svg).unwrap();
-            let svg = kind_svg::svg_grid_veritcal(&layout);
+            let svg = kind_svg::svg_grid_vertical(&kind, "value");
             svg::save("test_vertical.svg", &svg).unwrap();
         }
     }
