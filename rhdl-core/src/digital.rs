@@ -5,6 +5,39 @@ use crate::{logger::LoggerImpl, Kind, LogBuilder, TagID};
 /// This is the core trait for all of `RHDL` data elements.  If you
 /// want to use a data type in the hardware part of the design,
 /// it must implement this trait.  
+///
+/// From <https://serde.rs/data-model.html>, we get a catalog of
+/// different types that represent the data model used by Serde
+/// (and by extension Rust).  Here are the list of types and
+/// how they are represented in `RHDL`.
+///
+/// # Primitive types
+///
+/// Only the `bool` type is directly supported.  Otherwise,
+/// use [Bits] or [SignedBits] to ensure that the arithmetic
+/// operations model the behavior of the hardware.
+///
+/// # String, Byte Array, Unit, Unit Struct, Sequence, Map
+///
+/// These are all unsupported on a hardware target.  They either
+/// have variable size or no size at all.
+///
+/// # Option
+///
+/// The option _is_ supported in `RHDL`.  It is represented as
+/// an enum with two variants, precisely as it is in Rust.
+///
+/// # Enum Variants
+///
+/// Enum variants can be either empty or have a payload.  Empty
+/// variants are represented via the discriminant, with no payload.
+/// Variants with a payload are represented as a the discriminant
+/// and the payload packed into binary representation.
+///
+/// # Structs, Tuples, Arrays, Unions
+///
+/// These are all supported in `RHDL`.
+///
 pub trait Digital: Copy + PartialEq + Sized + Clone {
     fn static_kind() -> Kind;
     fn kind(self) -> Kind {
