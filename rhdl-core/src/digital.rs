@@ -46,6 +46,7 @@ pub trait Digital: Copy + PartialEq + Sized + Clone {
     fn bin(self) -> Vec<bool>;
     fn allocate<T: Digital>(tag: TagID<T>, builder: impl LogBuilder);
     fn record<T: Digital>(&self, tag: TagID<T>, logger: impl LoggerImpl);
+    fn skip<T: Digital>(tag: TagID<T>, logger: impl LoggerImpl);
 }
 
 impl Digital for bool {
@@ -60,6 +61,9 @@ impl Digital for bool {
     }
     fn record<T: Digital>(&self, tag: TagID<T>, mut logger: impl LoggerImpl) {
         logger.write_bool(tag, *self);
+    }
+    fn skip<T: Digital>(tag: TagID<T>, mut logger: impl LoggerImpl) {
+        logger.skip(tag);
     }
 }
 
@@ -76,6 +80,9 @@ impl<const N: usize> Digital for Bits<N> {
     fn record<T: Digital>(&self, tag: TagID<T>, mut logger: impl LoggerImpl) {
         logger.write_bits(tag, self.raw());
     }
+    fn skip<T: Digital>(tag: TagID<T>, mut logger: impl LoggerImpl) {
+        logger.skip(tag);
+    }
 }
 
 impl<const N: usize> Digital for SignedBits<N> {
@@ -90,6 +97,9 @@ impl<const N: usize> Digital for SignedBits<N> {
     }
     fn record<T: Digital>(&self, tag: TagID<T>, mut logger: impl LoggerImpl) {
         logger.write_bits(tag, self.as_unsigned().raw());
+    }
+    fn skip<T: Digital>(tag: TagID<T>, mut logger: impl LoggerImpl) {
+        logger.skip(tag);
     }
 }
 
@@ -110,6 +120,10 @@ impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
     fn record<T: Digital>(&self, tag: TagID<T>, mut logger: impl LoggerImpl) {
         self.0.record(tag, &mut logger);
         self.1.record(tag, &mut logger);
+    }
+    fn skip<T: Digital>(tag: TagID<T>, mut logger: impl LoggerImpl) {
+        T0::skip(tag, &mut logger);
+        T1::skip(tag, &mut logger);
     }
 }
 
@@ -136,6 +150,11 @@ impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {
         self.0.record(tag, &mut logger);
         self.1.record(tag, &mut logger);
         self.2.record(tag, &mut logger);
+    }
+    fn skip<T: Digital>(tag: TagID<T>, mut logger: impl LoggerImpl) {
+        T0::skip(tag, &mut logger);
+        T1::skip(tag, &mut logger);
+        T2::skip(tag, &mut logger);
     }
 }
 
@@ -167,6 +186,12 @@ impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2
         self.2.record(tag, &mut logger);
         self.3.record(tag, &mut logger);
     }
+    fn skip<T: Digital>(tag: TagID<T>, mut logger: impl LoggerImpl) {
+        T0::skip(tag, &mut logger);
+        T1::skip(tag, &mut logger);
+        T2::skip(tag, &mut logger);
+        T3::skip(tag, &mut logger);
+    }
 }
 
 impl<T: Digital, const N: usize> Digital for [T; N] {
@@ -188,6 +213,11 @@ impl<T: Digital, const N: usize> Digital for [T; N] {
     fn record<U: Digital>(&self, tag: TagID<U>, mut logger: impl LoggerImpl) {
         for x in self.iter() {
             x.record(tag, &mut logger);
+        }
+    }
+    fn skip<U: Digital>(tag: TagID<U>, mut logger: impl LoggerImpl) {
+        for _ in 0..N {
+            T::skip(tag, &mut logger);
         }
     }
 }
@@ -288,32 +318,62 @@ mod test {
                 <bool as Digital>::allocate(tag, builder.namespace("Bool"));
                 <(bool, Bits<3>) as Digital>::allocate(tag, builder.namespace("Tuple"));
                 <[bool; 3] as Digital>::allocate(tag, builder.namespace("Array"));
-                <(bool, Bits<3>) as Digital>::allocate(tag, builder.namespace("Strct"));
+                {
+                    let builder = builder.namespace("Strct");
+                    <bool as Digital>::allocate(tag, builder.namespace("a"));
+                    <Bits<3> as Digital>::allocate(tag, builder.namespace("b"));
+                }
             }
             fn record<L: Digital>(&self, tag: TagID<L>, mut logger: impl LoggerImpl) {
                 match self {
-                    Self::None => logger.write_string(tag, stringify!(None)),
+                    Self::None => {
+                        logger.write_string(tag, stringify!(None));
+                        <bool as Digital>::skip(tag, &mut logger);
+                        <(bool, Bits<3>) as Digital>::skip(tag, &mut logger);
+                        <[bool; 3] as Digital>::skip(tag, &mut logger);
+                        <(bool, Bits<3>) as Digital>::skip(tag, &mut logger);
+                    }
                     Self::Bool(b) => {
                         logger.write_string(tag, stringify!(Bool));
                         b.record(tag, &mut logger);
+                        <(bool, Bits<3>) as Digital>::skip(tag, &mut logger);
+                        <[bool; 3] as Digital>::skip(tag, &mut logger);
+                        <(bool, Bits<3>) as Digital>::skip(tag, &mut logger);
                     }
                     Self::Tuple(b, c) => {
                         logger.write_string(tag, stringify!(Tuple));
+                        <bool as Digital>::skip(tag, &mut logger);
                         b.record(tag, &mut logger);
                         c.record(tag, &mut logger);
+                        <[bool; 3] as Digital>::skip(tag, &mut logger);
+                        <(bool, Bits<3>) as Digital>::skip(tag, &mut logger);
                     }
                     Self::Array([b, c, d]) => {
                         logger.write_string(tag, stringify!(Array));
+                        <bool as Digital>::skip(tag, &mut logger);
+                        <(bool, Bits<3>) as Digital>::skip(tag, &mut logger);
                         b.record(tag, &mut logger);
                         c.record(tag, &mut logger);
                         d.record(tag, &mut logger);
+                        <(bool, Bits<3>) as Digital>::skip(tag, &mut logger);
                     }
                     Self::Strct { a, b } => {
                         logger.write_string(tag, stringify!(Strct));
+                        <bool as Digital>::skip(tag, &mut logger);
+                        <(bool, Bits<3>) as Digital>::skip(tag, &mut logger);
+                        <[bool; 3] as Digital>::skip(tag, &mut logger);
                         a.record(tag, &mut logger);
                         b.record(tag, &mut logger);
                     }
                 }
+            }
+            fn skip<T: Digital>(tag: TagID<T>, mut logger: impl LoggerImpl) {
+                logger.skip(tag); // Discriminant
+                                  // None - no skip required
+                <bool as Digital>::skip(tag, &mut logger);
+                <(bool, Bits<3>) as Digital>::skip(tag, &mut logger);
+                <[bool; 3] as Digital>::skip(tag, &mut logger);
+                <(bool, Bits<3>) as Digital>::skip(tag, &mut logger);
             }
         }
         println!("{:?}", Mixed::None.bin());
@@ -322,7 +382,7 @@ mod test {
         #[cfg(feature = "svg")]
         {
             let svg = crate::svg_grid(&Mixed::static_kind(), "val");
-            svg::save("mixed.svg", &svg).unwrap(); 
+            svg::save("mixed.svg", &svg).unwrap();
         }
     }
 
@@ -391,6 +451,9 @@ mod test {
                     Self::Stop => logger.write_string(tag, stringify!(Stop)),
                     Self::Boom => logger.write_string(tag, stringify!(Boom)),
                 }
+            }
+            fn skip<L: Digital>(tag: TagID<L>, mut logger: impl LoggerImpl) {
+                logger.skip(tag);
             }
         }
         let val = State::Boom;
