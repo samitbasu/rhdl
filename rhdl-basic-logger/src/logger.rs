@@ -435,4 +435,7 @@ impl LoggerImpl for Logger<'static> {
             panic!("Wrong type");
         }
     }
+    fn skip<T: Digital>(&mut self, tag_id: TagID<T>) {
+        let _ = self.signal(tag_id);
+    }
 }

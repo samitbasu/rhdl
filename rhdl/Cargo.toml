@@ -13,3 +13,5 @@ authors = ["Samit Basu <basu.samit@gmail.com>"]
 
 [dependencies]
 rhdl-bits = { path = "../rhdl-bits" }
+rhdl-core = { path = "../rhdl-core" }
+rhdl-basic-logger = { path = "../rhdl-basic-logger" }

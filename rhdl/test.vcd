@@ -1,0 +1,18 @@
+$timescale 1 fs $end
+$scope module top $end
+$scope module  $end
+$scope module root $end
+$scope module simple $end
+$var wire 1 ! a $end
+$var wire 8 " b $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+1!
+b10101010 "
+#1000000
+0!
+b01010101 "
