@@ -457,6 +457,26 @@ pub mod sub;
 pub mod xor;
 
 pub mod alias {
+    //!
+    //! # Type Aliases
+    //! This crate provides a set of type aliases that you can use to save keystrokes.
+    //! These type aliases are named `b1` through `b128` for [Bits], and `s1` through
+    //! `s128` for [SignedBits].  So, for example, if you want to represent a 32 bit value,
+    //! you can use the type alias `b32` instead of the full type name [Bits]<32>.  For example:
+    //! ```
+    //! use rhdl_bits::alias::*;
+    //! let bits: b32 = 0xDEAD_BEEF.into();
+    //! let signed_bits: s4 = (-2).into();
+    //! ```
+    //! Note that in order to avoid differences in behavior between Rust arithmetic and hardware
+    //! arithmetic, that you should use `b8, b16, b32, b64, b128` instead of `u8, u16, u32, u64, u128`.
+    //! Similarly, use `s8, s16, s32, s64, s128` instead of `i8, i16, i32, i64, i128`.
+    //! Note also that `b1` is _not_ the same as `bool`.  `b1` is a 1 bit unsigned integer type, and
+    //! `bool` is a 1 bit boolean type.  The two types are not interchangeable.  When making comparisons
+    //! or using other Rust constructs that require a boolean type, you cannot simply substitute `b1`.
+    //! On the other hand, you _can_ use `bool` in your design instead of `b1`.  The two types _behave_
+    //! the same way, even though they are different.
+    //!
     seq_macro::seq!(N in 1..=128 {
         #(
             pub use crate::bits::b~N;
