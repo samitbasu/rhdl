@@ -173,10 +173,10 @@ impl Kind {
             Kind::Empty => 0,
         }
     }
-    pub fn pad(&self, bits: &[bool]) -> Vec<bool> {
-        bits.iter()
-            .cloned()
-            .chain(repeat(false).take(self.bits() - bits.len()))
+    pub fn pad(&self, bits: Vec<bool>) -> Vec<bool> {
+        let pad_len = self.bits() - bits.len();
+        bits.into_iter()
+            .chain(repeat(false).take(pad_len))
             .collect()
     }
 }

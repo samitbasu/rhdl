@@ -202,7 +202,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> anyhow::Result<TokenStream> {
         Data::Enum(e) => {
             let variants = e.variants.iter().map(|x| &x.ident);
             let variant_destructure_args = e.variants.iter().map(variant_destructure_args);
-            let variant_destructure_args_2 = variant_destructure_args.clone();
+            let variant_destructure_args_for_bin = variant_destructure_args.clone();
             // For each variant, we need to create the allocate and record functions if the variant has fields
             let allocate_fns = e.variants.iter().map(variant_allocate);
             let record_fns = e
@@ -211,8 +211,8 @@ pub fn derive_digital_enum(decl: DeriveInput) -> anyhow::Result<TokenStream> {
                 .map(|variant| variant_payload_case(variant, e.variants.iter()));
             let skip_fns = e.variants.iter().map(variant_payload_skip);
             let kind_mapping = e.variants.iter().map(variant_kind_mapping);
-            let variants_2 = variants.clone();
-            let variants_4 = variants.clone();
+            let variant_names_for_kind = variants.clone();
+            let variant_names_for_bin = variants.clone();
             let width = clog2(e.variants.len());
             let bin_fns = e
                 .variants
@@ -232,7 +232,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> anyhow::Result<TokenStream> {
                         Kind::make_enum(
                             vec![
                                 #(
-                                    Kind::make_variant(stringify!(#variants_2), #kind_mapping).with_discriminant(#discriminants)
+                                    Kind::make_variant(stringify!(#variant_names_for_kind), #kind_mapping).with_discriminant(#discriminants)
                                 ),*
                             ],
                             None,
@@ -242,7 +242,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> anyhow::Result<TokenStream> {
                     fn bin(self) -> Vec<bool> {
                         self.kind().pad(match self {
                             #(
-                                Self::#variants_4 #variant_destructure_args_2 => {#bin_fns}
+                                Self::#variant_names_for_bin #variant_destructure_args_for_bin => {#bin_fns}
                             )*
                         })
 
@@ -458,7 +458,7 @@ mod test {
         let b_fn = variant_destructure_args(b);
         let c_fn = variant_destructure_args(c);
         assert_frag_eq(&quote! {}, &a_fn);
-        assert_frag_eq(&quote! { (_0, ) }, &b_fn);
+        assert_frag_eq(&quote! { (_0) }, &b_fn);
         assert_frag_eq(&quote! { { a, b } }, &c_fn);
     }
     #[test]
@@ -471,6 +471,209 @@ mod test {
             }
         };
         let output = derive_digital_enum(input).unwrap();
-        assert_frag_eq(&output, &quote! {})
+        assert_frag_eq(
+            &output,
+            &quote! {
+                impl rhdl_core::Digital for Test {
+                    fn static_kind() -> rhdl_core::Kind {
+                        Kind::make_enum(
+                            vec![
+                                Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty)
+                                .with_discriminant(Some(1)), Kind::make_variant(stringify!(B),
+                                rhdl_core::Kind::make_tuple(vec![< Bits:: < 16 > as
+                                rhdl_core::Digital > ::static_kind()])).with_discriminant(None),
+                                Kind::make_variant(stringify!(C),
+                                rhdl_core::Kind::make_struct(vec![rhdl_core::Kind::make_field(stringify!(a),
+                                < Bits:: < 32 > as rhdl_core::Digital > ::static_kind()),
+                                rhdl_core::Kind::make_field(stringify!(b), < Bits:: < 8 > as
+                                rhdl_core::Digital > ::static_kind())])).with_discriminant(None)
+                            ],
+                            None,
+                            DiscriminantAlignment::Msb,
+                        )
+                    }
+                    fn bin(self) -> Vec<bool> {
+                        self.kind()
+                            .pad(
+                                match self {
+                                    Self::A => rhdl_bits::bits::<2usize>(0usize as u128).to_bools(),
+                                    Self::B(_0) => {
+                                        let mut v = rhdl_bits::bits::<2usize>(1usize as u128)
+                                            .to_bools();
+                                        v.extend(_0.bin());
+                                        v
+                                    }
+                                    Self::C { a, b } => {
+                                        let mut v = rhdl_bits::bits::<2usize>(2usize as u128)
+                                            .to_bools();
+                                        v.extend(a.bin());
+                                        v.extend(b.bin());
+                                        v
+                                    }
+                                },
+                            )
+                    }
+                    fn allocate<L: rhdl_core::Digital>(
+                        tag: rhdl_core::TagID<L>,
+                        builder: impl rhdl_core::LogBuilder,
+                    ) {
+                        builder.allocate(tag, 0);
+                        {
+                            let mut builder = builder.namespace(stringify!(B));
+                            <Bits<
+                                16,
+                            > as rhdl_core::Digital>::allocate(
+                                tag,
+                                builder.namespace(stringify!(0)),
+                            );
+                        }
+                        {
+                            let mut builder = builder.namespace(stringify!(C));
+                            <Bits<
+                                32,
+                            > as rhdl_core::Digital>::allocate(
+                                tag,
+                                builder.namespace(stringify!(a)),
+                            );
+                            <Bits<
+                                8,
+                            > as rhdl_core::Digital>::allocate(
+                                tag,
+                                builder.namespace(stringify!(b)),
+                            );
+                        }
+                    }
+                    fn record<L: rhdl_core::Digital>(
+                        &self,
+                        tag: rhdl_core::TagID<L>,
+                        mut logger: impl rhdl_core::LoggerImpl,
+                    ) {
+                        match self {
+                            Self::A => {
+                                logger.write_string(tag, stringify!(A));
+                                <Bits<16> as rhdl_core::Digital>::skip(tag, &mut logger);
+                                <Bits<32> as rhdl_core::Digital>::skip(tag, &mut logger);
+                                <Bits<8> as rhdl_core::Digital>::skip(tag, &mut logger);
+                            }
+                            Self::B(_0) => {
+                                logger.write_string(tag, stringify!(B));
+                                _0.record(tag, &mut logger);
+                                <Bits<32> as rhdl_core::Digital>::skip(tag, &mut logger);
+                                <Bits<8> as rhdl_core::Digital>::skip(tag, &mut logger);
+                            }
+                            Self::C { a, b } => {
+                                logger.write_string(tag, stringify!(C));
+                                <Bits<16> as rhdl_core::Digital>::skip(tag, &mut logger);
+                                a.record(tag, &mut logger);
+                                b.record(tag, &mut logger);
+                            }
+                        }
+                    }
+                    fn skip<L: rhdl_core::Digital>(
+                        tag: rhdl_core::TagID<L>,
+                        mut logger: impl rhdl_core::LoggerImpl,
+                    ) {
+                        logger.skip(tag);
+                        <Bits<16> as rhdl_core::Digital>::skip(tag, &mut logger);
+                        <Bits<32> as rhdl_core::Digital>::skip(tag, &mut logger);
+                        <Bits<8> as rhdl_core::Digital>::skip(tag, &mut logger);
+                    }
+                }
+            },
+        );
+    }
+
+    #[test]
+    fn test_enum_no_payloads() {
+        let decl = quote!(
+            pub enum State {
+                Init,
+                Boot,
+                Running,
+                Stop,
+                Boom,
+            }
+        );
+        let output = derive_digital_enum(syn::parse2(decl).unwrap()).unwrap();
+        let expected = quote! {
+            impl rhdl_core::Digital for State {
+                impl rhdl_core::Digital for State {
+                    fn static_kind() -> rhdl_core::Kind {
+                        Kind::make_enum(
+                            vec![
+                                Kind::make_variant(stringify!(Init), rhdl_core::Kind::Empty)
+                                .with_discriminant(None), Kind::make_variant(stringify!(Boot),
+                                rhdl_core::Kind::Empty).with_discriminant(None),
+                                Kind::make_variant(stringify!(Running), rhdl_core::Kind::Empty)
+                                .with_discriminant(None), Kind::make_variant(stringify!(Stop),
+                                rhdl_core::Kind::Empty).with_discriminant(None),
+                                Kind::make_variant(stringify!(Boom), rhdl_core::Kind::Empty)
+                                .with_discriminant(None)
+                            ],
+                            None,
+                            DiscriminantAlignment::Msb,
+                        )
+                    }
+                    fn bin(self) -> Vec<bool> {
+                        self.kind()
+                            .pad(
+                                match self {
+                                    Self::Init => {
+                                        rhdl_bits::bits::<3usize>(0usize as u128).to_bools()
+                                    }
+                                    Self::Boot => {
+                                        rhdl_bits::bits::<3usize>(1usize as u128).to_bools()
+                                    }
+                                    Self::Running => {
+                                        rhdl_bits::bits::<3usize>(2usize as u128).to_bools()
+                                    }
+                                    Self::Stop => {
+                                        rhdl_bits::bits::<3usize>(3usize as u128).to_bools()
+                                    }
+                                    Self::Boom => {
+                                        rhdl_bits::bits::<3usize>(4usize as u128).to_bools()
+                                    }
+                                },
+                            )
+                    }
+                    fn allocate<L: rhdl_core::Digital>(
+                        tag: rhdl_core::TagID<L>,
+                        builder: impl rhdl_core::LogBuilder,
+                    ) {
+                        builder.allocate(tag, 0);
+                    }
+                    fn record<L: rhdl_core::Digital>(
+                        &self,
+                        tag: rhdl_core::TagID<L>,
+                        mut logger: impl rhdl_core::LoggerImpl,
+                    ) {
+                        match self {
+                            Self::Init => {
+                                logger.write_string(tag, stringify!(Init));
+                            }
+                            Self::Boot => {
+                                logger.write_string(tag, stringify!(Boot));
+                            }
+                            Self::Running => {
+                                logger.write_string(tag, stringify!(Running));
+                            }
+                            Self::Stop => {
+                                logger.write_string(tag, stringify!(Stop));
+                            }
+                            Self::Boom => {
+                                logger.write_string(tag, stringify!(Boom));
+                            }
+                        }
+                    }
+                    fn skip<L: rhdl_core::Digital>(
+                        tag: rhdl_core::TagID<L>,
+                        mut logger: impl rhdl_core::LoggerImpl,
+                    ) {
+                        logger.skip(tag);
+                    }
+                }
+            }
+        };
+        assert_frag_eq(&expected, &output);
     }
 }
