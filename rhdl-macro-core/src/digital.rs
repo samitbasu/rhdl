@@ -137,67 +137,6 @@ mod test {
     use crate::utils::assert_tokens_eq;
 
     #[test]
-    fn test_digital_enum() {
-        let decl = quote!(
-            pub enum State {
-                Init,
-                Boot,
-                Running,
-                Stop,
-                Boom,
-            }
-        );
-        let output = derive_digital(decl).unwrap();
-        let expected = quote! {
-            impl rhdl_core::Digital for State {
-                fn static_kind() -> rhdl_core::Kind {
-                    rhdl_core::Kind::Enum {
-                        variants: vec![
-                            rhdl_core::Variant {
-                                name: "Init".to_string(),
-                            },
-                            rhdl_core::Variant {
-                                name: "Boot".to_string(),
-                            },
-                            rhdl_core::Variant {
-                                name: "Running".to_string(),
-                            },
-                            rhdl_core::Variant {
-                                name: "Stop".to_string(),
-                            },
-                            rhdl_core::Variant {
-                                name: "Boom".to_string(),
-                            },
-                        ],
-                    }
-                }
-                fn bin(&self) -> Vec<bool> {
-                    match self {
-                        Self::Init => rhdl_bits::Bits::<3>::(0).to_bools(),
-                        Self::Boot => rhdl_bits::Bits::<3>::(1).to_bools(),
-                        Self::Running => rhdl_bits::Bits::<3>::(2).to_bools(),
-                        Self::Stop => rhdl_bits::Bits::<3>::(3).to_bools(),
-                        Self::Boom => rhdl_bits::Bits::<3>::(4).to_bools(),
-                    }
-                }
-                fn allocate<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
-                    builder.allocate(tag, 0);
-                }
-                fn record<L: rhdl_core::Digital>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
-                    match self {
-                        Self::Init => logger.write_string(tag, stringify!(Init)),
-                        Self::Boot => logger.write_string(tag, stringify!(Boot)),
-                        Self::Running => logger.write_string(tag, stringify!(Running)),
-                        Self::Stop => logger.write_string(tag, stringify!(Stop)),
-                        Self::Boom => logger.write_string(tag, stringify!(Boom)),
-                    }
-                }
-            }
-        };
-        assert_tokens_eq(&expected, &output);
-    }
-
-    #[test]
     fn test_digital_proc_macro() {
         let decl = quote!(
             pub struct NestedBits {

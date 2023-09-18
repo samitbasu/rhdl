@@ -273,7 +273,7 @@ mod tests {
                 )
             }
             fn bin(self) -> Vec<bool> {
-                let raw = match self {
+                self.kind().pad(match self {
                     Self::A => rhdl_bits::bits::<2usize>(0usize as u128).to_bools(),
                     Self::B(_0) => {
                         let mut v = rhdl_bits::bits::<2usize>(1usize as u128).to_bools();
@@ -286,8 +286,7 @@ mod tests {
                         v.extend(b.bin());
                         v
                     }
-                };
-                raw
+                })
             }
             fn allocate<L: rhdl_core::Digital>(
                 tag: rhdl_core::TagID<L>,

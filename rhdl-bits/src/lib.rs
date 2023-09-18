@@ -6,6 +6,12 @@
 //! fixed width binary-represented integers as typically are synthesized in hardware
 //! designs.  
 //!
+//! **Note**
+//! This crate is not meant to provide a general bit-width integer type for use
+//! in your Rust applications.  There are several better alternatives for that
+//! available on <crates.io>.  Instead, this crate is meant to provide types that
+//! behave the same way as hardware fixed-width integers.  
+//! 
 //! One significant difference between hardware design and software programming is the need
 //! (and indeed ability) to easily manipulate collections of bits that are of various lengths.
 //! While Rust has built in types to represent 8, 16, 32, 64, and 128 bits (at the time of this
