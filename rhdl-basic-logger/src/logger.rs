@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct TimedValue<T: Clone + PartialEq + Eq> {
     pub(crate) time_in_fs: u64,
-    pub(crate) value: T,
+    pub(crate) value: Option<T>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -247,6 +247,7 @@ impl Logger<'static> {
                 // treat the tag as a scope.  In the second, we treat it as a signal.
                 if tag.data.len() == 1 {
                     let signal = &tag.data[0];
+                    println!("signal name: {}", signal.name);
                     root.children_at(&path)
                         .entry(tag.tag.clone())
                         .or_insert_with(|| ScopeNode::Leaf {
@@ -328,11 +329,7 @@ impl Logger<'static> {
                         LogValues::Bool(ref values) => {
                             if let Some(value) = values.get(ptr.index) {
                                 if value.time_in_fs == current_time {
-                                    writer.writer().write_all(if value.value {
-                                        b"1"
-                                    } else {
-                                        b"0"
-                                    })?;
+                                    writer.writer().write_all(bool_to_vcd(value.value))?;
                                     writer.writer().write_all(&ptr.code_as_bytes)?;
                                     writer.writer().write_all(b"\n")?;
                                     ptr.index += 1;
@@ -347,14 +344,7 @@ impl Logger<'static> {
                             if let Some(value) = values.get(ptr.index) {
                                 if value.time_in_fs == current_time {
                                     sbuf[0] = b'b';
-                                    let n = ptr.signal.width;
-                                    for i in 0..n {
-                                        sbuf[i + 1] = if value.value & (1 << (n - 1 - i)) != 0 {
-                                            b'1'
-                                        } else {
-                                            b'0'
-                                        }
-                                    }
+                                    bits_to_vcd(value.value, ptr.signal.width, &mut sbuf[1..]);
                                     sbuf[ptr.signal.width + 1] = b' ';
                                     writer
                                         .writer()
@@ -372,7 +362,7 @@ impl Logger<'static> {
                         LogValues::Enum(ref values) => {
                             if let Some(value) = values.get(ptr.index) {
                                 if value.time_in_fs == current_time {
-                                    writer.change_string(ptr.code, value.value)?;
+                                    writer.change_string(ptr.code, value.value.unwrap_or("X"))?;
                                     ptr.index += 1;
                                     found_match = true;
                                 } else {
@@ -407,11 +397,38 @@ impl rhdl_core::Logger for Logger<'static> {
     }
 }
 
+fn bool_to_vcd(x: Option<bool>) -> &'static [u8] {
+    match x {
+        Some(true) => b"1",
+        Some(false) => b"0",
+        None => b"x",
+    }
+}
+
+fn bits_to_vcd(x: Option<u128>, width: usize, buffer: &mut [u8]) {
+    if let Some(x) = x {
+        for i in 0..width {
+            buffer[i] = if x & (1 << (width - 1 - i)) != 0 {
+                b'1'
+            } else {
+                b'0'
+            };
+        }
+    } else {
+        for i in 0..width {
+            buffer[i] = b'x';
+        }
+    }
+}
+
 impl LoggerImpl for Logger<'static> {
     fn write_bool<T: Digital>(&mut self, tag_id: TagID<T>, value: bool) {
         let time_in_fs = self.time_in_fs;
         if let LogValues::Bool(ref mut values) = self.signal(tag_id).values {
-            values.push(TimedValue { time_in_fs, value });
+            values.push(TimedValue {
+                time_in_fs,
+                value: Some(value),
+            });
         } else {
             panic!("Wrong type");
         }
@@ -419,7 +436,10 @@ impl LoggerImpl for Logger<'static> {
     fn write_bits<T: Digital>(&mut self, tag_id: TagID<T>, value: u128) {
         let time_in_fs = self.time_in_fs;
         if let LogValues::Bits(ref mut values) = self.signal(tag_id).values {
-            values.push(TimedValue { time_in_fs, value });
+            values.push(TimedValue {
+                time_in_fs,
+                value: Some(value),
+            });
         } else {
             panic!("Wrong type");
         }
@@ -429,13 +449,33 @@ impl LoggerImpl for Logger<'static> {
         if let LogValues::Enum(ref mut values) = self.signal(tag_id).values {
             values.push(TimedValue {
                 time_in_fs,
-                value: val,
+                value: Some(val),
             });
         } else {
             panic!("Wrong type");
         }
     }
     fn skip<T: Digital>(&mut self, tag_id: TagID<T>) {
-        let _ = self.signal(tag_id);
+        let time_in_fs = self.time_in_fs;
+        match self.signal(tag_id).values {
+            LogValues::Bool(ref mut values) => {
+                values.push(TimedValue {
+                    time_in_fs,
+                    value: None,
+                });
+            }
+            LogValues::Bits(ref mut values) => {
+                values.push(TimedValue {
+                    time_in_fs,
+                    value: None,
+                });
+            }
+            LogValues::Enum(ref mut values) => {
+                values.push(TimedValue {
+                    time_in_fs,
+                    value: None,
+                });
+            }
+        }
     }
 }

@@ -8,6 +8,7 @@ pub mod tag_id;
 
 pub use clock_details::ClockDetails;
 pub use digital::Digital;
+pub use kind::DiscriminantAlignment;
 pub use log_builder::LogBuilder;
 pub use logger::Logger;
 pub use logger::LoggerImpl;

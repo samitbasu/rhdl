@@ -44,6 +44,13 @@ pub trait Digital: Copy + PartialEq + Sized + Clone {
         Self::static_kind()
     }
     fn bin(self) -> Vec<bool>;
+    fn binary_string(self) -> String {
+        self.bin()
+            .iter()
+            .rev()
+            .map(|b| if *b { '1' } else { '0' })
+            .collect()
+    }
     fn allocate<T: Digital>(tag: TagID<T>, builder: impl LogBuilder);
     fn record<T: Digital>(&self, tag: TagID<T>, logger: impl LoggerImpl);
     fn skip<T: Digital>(tag: TagID<T>, logger: impl LoggerImpl);
@@ -61,6 +68,42 @@ impl Digital for bool {
     }
     fn record<T: Digital>(&self, tag: TagID<T>, mut logger: impl LoggerImpl) {
         logger.write_bool(tag, *self);
+    }
+    fn skip<T: Digital>(tag: TagID<T>, mut logger: impl LoggerImpl) {
+        logger.skip(tag);
+    }
+}
+
+impl Digital for u8 {
+    fn static_kind() -> Kind {
+        Kind::make_bits(8)
+    }
+    fn bin(self) -> Vec<bool> {
+        Bits::<8>::from(self as u128).to_bools()
+    }
+    fn allocate<T: Digital>(tag: TagID<T>, builder: impl LogBuilder) {
+        builder.allocate(tag, 8);
+    }
+    fn record<T: Digital>(&self, tag: TagID<T>, mut logger: impl LoggerImpl) {
+        logger.write_bits(tag, Bits::<8>::from(*self as u128).raw());
+    }
+    fn skip<T: Digital>(tag: TagID<T>, mut logger: impl LoggerImpl) {
+        logger.skip(tag);
+    }
+}
+
+impl Digital for u16 {
+    fn static_kind() -> Kind {
+        Kind::make_bits(16)
+    }
+    fn bin(self) -> Vec<bool> {
+        Bits::<16>::from(self as u128).to_bools()
+    }
+    fn allocate<T: Digital>(tag: TagID<T>, builder: impl LogBuilder) {
+        builder.allocate(tag, 16);
+    }
+    fn record<T: Digital>(&self, tag: TagID<T>, mut logger: impl LoggerImpl) {
+        logger.write_bits(tag, Bits::<16>::from(*self as u128).raw());
     }
     fn skip<T: Digital>(tag: TagID<T>, mut logger: impl LoggerImpl) {
         logger.skip(tag);
@@ -247,27 +290,27 @@ mod test {
                     vec![
                         Variant {
                             name: "None".to_string(),
-                            discriminant: 0,
+                            discriminant: Some(0),
                             kind: Kind::Empty,
                         },
                         Variant {
                             name: "Bool".to_string(),
-                            discriminant: 1,
+                            discriminant: Some(1),
                             kind: Kind::make_bits(1),
                         },
                         Variant {
                             name: "Tuple".to_string(),
-                            discriminant: 2,
+                            discriminant: Some(2),
                             kind: Kind::make_tuple(vec![Kind::make_bits(1), Kind::make_bits(3)]),
                         },
                         Variant {
                             name: "Array".to_string(),
-                            discriminant: 3,
+                            discriminant: Some(3),
                             kind: Kind::make_array(Kind::make_bits(1), 3),
                         },
                         Variant {
                             name: "Strct".to_string(),
-                            discriminant: 4,
+                            discriminant: Some(4),
                             kind: Kind::make_struct(vec![
                                 Kind::make_field("a", Kind::make_bits(1)),
                                 Kind::make_field("b", Kind::make_bits(3)),
@@ -403,27 +446,27 @@ mod test {
                     vec![
                         Variant {
                             name: "Init".to_string(),
-                            discriminant: 0,
+                            discriminant: Some(0),
                             kind: Kind::Empty,
                         },
                         Variant {
                             name: "Boot".to_string(),
-                            discriminant: 1,
+                            discriminant: Some(1),
                             kind: Kind::Empty,
                         },
                         Variant {
                             name: "Running".to_string(),
-                            discriminant: 2,
+                            discriminant: Some(2),
                             kind: Kind::Empty,
                         },
                         Variant {
                             name: "Stop".to_string(),
-                            discriminant: 3,
+                            discriminant: Some(3),
                             kind: Kind::Empty,
                         },
                         Variant {
                             name: "Boom".to_string(),
-                            discriminant: 4,
+                            discriminant: Some(4),
                             kind: Kind::Empty,
                         },
                     ],
@@ -464,27 +507,27 @@ mod test {
                 vec![
                     Variant {
                         name: "Init".to_string(),
-                        discriminant: 0,
+                        discriminant: Some(0),
                         kind: Kind::Empty,
                     },
                     Variant {
                         name: "Boot".to_string(),
-                        discriminant: 1,
+                        discriminant: Some(1),
                         kind: Kind::Empty,
                     },
                     Variant {
                         name: "Running".to_string(),
-                        discriminant: 2,
+                        discriminant: Some(2),
                         kind: Kind::Empty,
                     },
                     Variant {
                         name: "Stop".to_string(),
-                        discriminant: 3,
+                        discriminant: Some(3),
                         kind: Kind::Empty,
                     },
                     Variant {
                         name: "Boom".to_string(),
-                        discriminant: 4,
+                        discriminant: Some(4),
                         kind: Kind::Empty,
                     },
                 ],

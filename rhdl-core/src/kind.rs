@@ -48,12 +48,14 @@ pub struct Enum {
 impl Enum {
     fn discriminant_width(&self) -> usize {
         self.discriminant_width.unwrap_or_else(|| {
-            self.variants
-                .iter()
-                .map(|x| x.discriminant)
-                .max()
-                .map(|x| clog2(x.max(1) + 1))
-                .unwrap_or(0)
+            clog2(
+                self.variants
+                    .iter()
+                    .filter_map(|x| x.discriminant)
+                    .max()
+                    .unwrap_or(self.variants.len())
+                    + 1,
+            )
         })
     }
 }
@@ -67,7 +69,7 @@ pub struct Field {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Variant {
     pub name: String,
-    pub discriminant: usize,
+    pub discriminant: Option<usize>,
     pub kind: Kind,
 }
 
@@ -79,6 +81,25 @@ pub const fn clog2(t: usize) -> usize {
         b *= 2;
     }
     p
+}
+
+// Assign the discriminants using the same rules as Rust:
+// The first variant is assigned 0 if no value is provided
+// For each variant, the previous value + 1 is assigned
+// if no value is provided.
+fn assign_discriminants(elements: &[Variant]) -> Vec<Variant> {
+    let mut result = vec![];
+    let mut next_discriminant = 0;
+    for element in elements {
+        let discriminant = element.discriminant.unwrap_or(next_discriminant);
+        next_discriminant = discriminant + 1;
+        result.push(Variant {
+            name: element.name.clone(),
+            discriminant: Some(discriminant),
+            kind: element.kind.clone(),
+        });
+    }
+    result
 }
 
 impl Kind {
@@ -97,6 +118,13 @@ impl Kind {
             kind,
         }
     }
+    pub fn make_variant(name: &str, kind: Kind) -> Variant {
+        Variant {
+            name: name.to_string(),
+            discriminant: None,
+            kind,
+        }
+    }
     pub fn make_struct(fields: Vec<Field>) -> Self {
         Self::Struct(Struct { fields })
     }
@@ -109,7 +137,7 @@ impl Kind {
         discriminant_alignment: DiscriminantAlignment,
     ) -> Self {
         Self::Enum(Enum {
-            variants,
+            variants: assign_discriminants(&variants),
             discriminant_width,
             discriminant_alignment,
         })
@@ -258,7 +286,7 @@ fn generate_kind_layout(
                     name: format!(
                         "{}({:0width$b})",
                         variant.name,
-                        variant.discriminant,
+                        variant.discriminant.unwrap(),
                         width = disc_width
                     ),
                 });
@@ -325,6 +353,7 @@ fn get_chars_per_bit(layout: &[KindLayout]) -> usize {
 // Generate a string (text) representation of the layout
 pub fn text_grid(kind: &Kind, name: &str) -> String {
     let layout = generate_kind_layout(kind, name, 0, 0);
+    assert!(is_layout_valid(&layout));
     let chars_per_bit = get_chars_per_bit(&layout);
     let mut result = String::new();
     let num_rows = layout.iter().map(|x| x.row).max().unwrap_or(0) + 1;
@@ -364,15 +393,13 @@ pub mod kind_svg {
     use super::*;
 
     fn text_box(
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
+        pos: (i32, i32, i32, i32),
         text: &str,
         fill_color: &str,
         stroke_color: &str,
         document: svg::Document,
     ) -> svg::Document {
+        let (x, y, width, height) = pos;
         let text_x = x + width / 2;
         let text_y = y + height / 2;
         let text = svg::node::element::Text::new()
@@ -449,10 +476,7 @@ pub mod kind_svg {
             let width = bit_digits * pixels_per_char as i32;
             let height = pixels_per_char as i32;
             document = text_box(
-                x,
-                y,
-                width,
-                height,
+                (x, y, width, height),
                 &format!("{}", bit),
                 "#EEEEEE",
                 "darkblue",
@@ -460,10 +484,7 @@ pub mod kind_svg {
             );
             let x = total_col_width * pixels_per_char as i32;
             document = text_box(
-                x,
-                y,
-                width,
-                height,
+                (x, y, width, height),
                 &format!("{}", bit),
                 "#EEEEEE",
                 "darkblue",
@@ -491,10 +512,7 @@ pub mod kind_svg {
                 * pixels_per_char;
             let height = pixels_per_char * cell.cols.len();
             document = text_box(
-                x as i32,
-                y as i32,
-                width as i32,
-                height as i32,
+                (x as i32, y as i32, width as i32, height as i32),
                 &cell.name,
                 color,
                 "gray",
@@ -540,10 +558,7 @@ pub mod kind_svg {
             let width = chars_per_bit * pixels_per_char;
             let height = pixels_per_char as i32;
             document = text_box(
-                x as i32,
-                y,
-                width as i32,
-                height,
+                (x as i32, y, width as i32, height),
                 &format!("{}", bit),
                 "#EEEEEE",
                 "darkblue",
@@ -551,10 +566,7 @@ pub mod kind_svg {
             );
             let y = (num_rows * pixels_per_char) as i32;
             document = text_box(
-                x as i32,
-                y,
-                width as i32,
-                height,
+                (x as i32, y, width as i32, height),
                 &format!("{}", bit),
                 "#EEEEEE",
                 "darkblue",
@@ -579,10 +591,7 @@ pub mod kind_svg {
             let width = cell.cols.len() * chars_per_bit * pixels_per_char;
             let height = pixels_per_char * cell.depth;
             document = text_box(
-                x as i32,
-                y as i32,
-                width as i32,
-                height as i32,
+                (x as i32, y as i32, width as i32, height as i32),
                 &cell.name,
                 color,
                 "gray",
@@ -614,22 +623,22 @@ mod test {
             vec![
                 Variant {
                     name: "A".to_string(),
-                    discriminant: 0,
+                    discriminant: Some(0),
                     kind: Kind::Empty,
                 },
                 Variant {
                     name: "B".to_string(),
-                    discriminant: 1,
+                    discriminant: Some(1),
                     kind: Kind::make_bits(8),
                 },
                 Variant {
                     name: "C".to_string(),
-                    discriminant: 2,
+                    discriminant: Some(2),
                     kind: Kind::make_tuple(vec![Kind::make_bits(8), Kind::make_bits(16)]),
                 },
                 Variant {
                     name: "D".to_string(),
-                    discriminant: 3,
+                    discriminant: Some(3),
                     kind: Kind::make_struct(vec![
                         Field {
                             name: "a".to_string(),
@@ -643,12 +652,12 @@ mod test {
                 },
                 Variant {
                     name: "E".to_string(),
-                    discriminant: 4,
+                    discriminant: Some(4),
                     kind: Kind::make_array(Kind::make_bits(8), 4),
                 },
                 Variant {
                     name: "F".to_string(),
-                    discriminant: 5,
+                    discriminant: Some(5),
                     kind: Kind::make_struct(vec![
                         Field {
                             name: "a".to_string(),
@@ -662,7 +671,7 @@ mod test {
                 },
                 Variant {
                     name: "F2".to_string(),
-                    discriminant: 7,
+                    discriminant: Some(7),
                     kind: Kind::make_union(vec![
                         Field {
                             name: "op_code".to_string(),
@@ -676,7 +685,7 @@ mod test {
                 },
                 Variant {
                     name: "G".to_string(),
-                    discriminant: 6,
+                    discriminant: Some(6),
                     kind: Kind::make_struct(vec![
                         Field {
                             name: "a".to_string(),
@@ -694,22 +703,22 @@ mod test {
                 },
                 Variant {
                     name: "H".to_string(),
-                    discriminant: 8,
+                    discriminant: Some(8),
                     kind: Kind::make_enum(
                         vec![
                             Variant {
                                 name: "A".to_string(),
-                                discriminant: 0,
+                                discriminant: Some(0),
                                 kind: Kind::Empty,
                             },
                             Variant {
                                 name: "B".to_string(),
-                                discriminant: 1,
+                                discriminant: Some(1),
                                 kind: Kind::Bits(4),
                             },
                             Variant {
                                 name: "C".to_string(),
-                                discriminant: 2,
+                                discriminant: Some(2),
                                 kind: Kind::Empty,
                             },
                         ],
@@ -834,17 +843,17 @@ mod test {
             vec![
                 Variant {
                     name: "A".to_string(),
-                    discriminant: 0,
+                    discriminant: Some(0),
                     kind: Kind::Empty,
                 },
                 Variant {
                     name: "B".to_string(),
-                    discriminant: 1,
+                    discriminant: Some(1),
                     kind: Kind::Empty,
                 },
                 Variant {
                     name: "C".to_string(),
-                    discriminant: 2,
+                    discriminant: Some(2),
                     kind: Kind::Empty,
                 },
             ],
