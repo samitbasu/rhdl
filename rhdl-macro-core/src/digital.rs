@@ -37,7 +37,7 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> anyhow::Result<TokenStream>
                 .fields
                 .iter()
                 .enumerate()
-                .map(|(ndx, field)| syn::LitInt::new(&ndx.to_string(), field.span()));
+                .map(|(ndx, _)| syn::Index::from(ndx));
             let fields2 = fields.clone();
             let fields_3 = fields.clone();
             let fields_4 = fields.clone();

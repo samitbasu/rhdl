@@ -25,3 +25,14 @@ pub(crate) fn assert_tokens_eq(
         panic!("expected != actual");
     }
 }
+
+#[cfg(test)]
+pub(crate) fn assert_frag_eq(
+    expected: &proc_macro2::TokenStream,
+    actual: &proc_macro2::TokenStream,
+) {
+    assert_tokens_eq(
+        &quote::quote!(fn foo() { #expected }),
+        &quote::quote!(fn foo() { #actual }),
+    );
+}
