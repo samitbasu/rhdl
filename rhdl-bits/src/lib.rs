@@ -11,7 +11,7 @@
 //! in your Rust applications.  There are several better alternatives for that
 //! available on <crates.io>.  Instead, this crate is meant to provide types that
 //! behave the same way as hardware fixed-width integers.  
-//! 
+//!
 //! One significant difference between hardware design and software programming is the need
 //! (and indeed ability) to easily manipulate collections of bits that are of various lengths.
 //! While Rust has built in types to represent 8, 16, 32, 64, and 128 bits (at the time of this
@@ -50,8 +50,9 @@
 //! `s128` for [SignedBits].  So, for example, if you want to represent a 32 bit value, you can
 //! use the type alias `b32` instead of the full type name [Bits]<32>.  For example:
 //! ```
-//! # use rhdl_bits::b32;
+//! use rhdl_bits::alias::*;
 //! let bits: b32 = 0xDEAD_BEEF.into();
+//! let signed_bits: s4 = (-2).into();
 //! ```
 //!
 //! Note that in order to avoid differences in behavior between Rust arithmetic and hardware
@@ -69,7 +70,7 @@
 //! There are several ways to construct a [Bits] value.  The simplest is to use the
 //! [From] trait, and convert from integer literals.  For example:
 //! ```
-//! use rhdl_bits::Bits;
+//! use rhdl_bits::{Bits, alias::*};
 //! let bits: Bits<8> = 0b1101_1010.into(); // Long form
 //! let bits: b8 = 0b1101_1010.into(); // Short form (not the same as u8)
 //! ```
@@ -78,7 +79,7 @@
 //!
 //! You can also construct a [Bits] value from a [u128] value:
 //! ```
-//! # use rhdl_bits::Bits;
+//! # use rhdl_bits::{Bits, alias::*};
 //! let bits: Bits<8> = 0b1101_1010_u128.into(); // Long form
 //! let bits: b8 = 0b1101_1010_u128.into(); // Short form (not the same as u8)
 //! ```
@@ -95,14 +96,14 @@
 //! The [SignedBits] type can be constructed in the same way as the [Bits] type.  The
 //! only difference is that the [SignedBits] type can be constructed from a [i128] value:
 //! ```
-//! # use rhdl_bits::SignedBits;
+//! # use rhdl_bits::{SignedBits, alias::*};
 //! let bits: SignedBits<8> = 0b0101_1010_i128.into(); // Long form
 //! let bits: s8 = 0b0101_1010_i128.into(); // Short form
 //! ```
 //!
 //! Likewise, you can construct a [SignedBits] from a signed literal
 //! ```
-//! # use rhdl_bits::SignedBits;
+//! # use rhdl_bits::{SignedBits, alias::*};
 //! let bits: SignedBits<8> = (-42).into(); // Long form
 //! let bits: s8 = (-42).into(); // Short form
 //! ```
@@ -118,7 +119,7 @@
 //! of the _same width_, or you can use integer literals, which will be converted to
 //! [Bits] types of the appropriate width.  For example:
 //! ```
-//! # use rhdl_bits::Bits;
+//! # use rhdl_bits::{Bits, alias::*};
 //! let bits: Bits<8> = 0b1101_1010.into();  // Long form
 //! let result = bits & 0b1111_0000;
 //! assert_eq!(result, 0b1101_0000);
@@ -132,7 +133,7 @@
 //! You can also operate on [Bits] types of different widths, but you will need to
 //! convert them to the same width first.  For example:
 //! ```
-//! # use rhdl_bits::Bits;
+//! # use rhdl_bits::{Bits, alias::*};
 //! let bits: b8 = 0b1101_1010.into();
 //! let nibble: b4 = 0b1111.into();
 //! let result = bits.slice(4) & nibble;
@@ -146,7 +147,7 @@
 //! bits will be initialized to 0.
 //!
 //! ```
-//! # use rhdl_bits::Bits;
+//! # use rhdl_bits::{Bits, alias::*};
 //! let bits: b8 = 0b1101_1010.into();
 //! let word: b16 = bits.slice(0);
 //! assert_eq!(word, 0b0000_0000_1101_1010);
@@ -157,8 +158,8 @@
 //! not a [SignedBits] type.  For example:
 //!
 //! ```
-//! # use rhdl_bits::{SignedBits, Bits};
-//! let bits: b8 = (-42).into();
+//! # use rhdl_bits::{alias::*};
+//! let bits: s8 = (-42).into();
 //! let word: b16 = bits.slice(0);
 //! assert_eq!(word, 0xFF_D6);
 //! ```
@@ -168,7 +169,7 @@
 //! example:
 //!
 //! ```
-//! # use rhdl_bits::{Bits,SignedBits};
+//! # use rhdl_bits::{alias::*};
 //! let bits: s8 = (-42).into();
 //! let nibble: b4 = bits.slice(0);
 //! assert_eq!(nibble, 6);
@@ -202,14 +203,14 @@
 //! [Bits] values together, or you can add a [Bits] value to an integer literal.
 //! For example:
 //! ```
-//! # use rhdl_bits::Bits;
+//! # use rhdl_bits::alias::*;
 //! let x: b32 = 0xDEAD_BEEE.into();
 //! let y: b32 = x + 1;
 //! assert_eq!(y, 0xDEAD_BEEF);
 //! ```
 //! The order of the arguments does not matter:
 //! ```
-//! # use rhdl_bits::Bits;
+//! # use rhdl_bits::alias::*;
 //! let x: b32 = 0xDEAD_BEEE.into();
 //! let y: b32 = 1 + x;
 //! assert_eq!(y, 0xDEAD_BEEF);
@@ -217,7 +218,7 @@
 //!
 //! Or using two [Bits] values:
 //! ```
-//! # use rhdl_bits::Bits;
+//! # use rhdl_bits::alias::*;
 //! let x: b32 = 0xDEAD_0000.into();
 //! let y: b32 = 0xBEEF.into();
 //! let z: b32 = x + y;
@@ -227,7 +228,7 @@
 //! The [AddAssign](std::ops::AddAssign) trait is also implemented for [Bits] and
 //! [SignedBits], so you can use the `+=` operator as well:
 //! ```
-//! # use rhdl_bits::Bits;
+//! # use rhdl_bits::alias::*;
 //! let mut x: b32 = 0xDEAD_0000.into();
 //! x += 0xBEEF;
 //! assert_eq!(x, 0xDEAD_BEEF);
@@ -291,7 +292,7 @@
 //!
 //! For [SignedBits], the result is the same, but interpreted correctly:
 //! ```
-//! # use rhdl_bits::SignedBits;
+//! # use rhdl_bits::alias::*;
 //! let x: s8 = 0b0000_0001.into();
 //! let y: s8 = 0b0000_0010.into();
 //! let z: s8 = x - y; // 1 - 2 = -1
@@ -425,7 +426,7 @@
 //! ```
 //! On the other hand with [SignedBits]:
 //! ```
-//! # use rhdl_bits::SignedBits;
+//! # use rhdl_bits::alias::*;
 //! let x: s8 = (-0b0000_0001).into();
 //! let y: s8 = 0b0000_0000.into();
 //! assert!(x < y);
@@ -455,12 +456,14 @@ pub mod sub;
 #[doc(hidden)]
 pub mod xor;
 
-seq_macro::seq!(N in 1..=128 {
-    #(
-        pub use bits::b~N;
-        pub use signed_bits::s~N;
-    )*
-});
+pub mod alias {
+    seq_macro::seq!(N in 1..=128 {
+        #(
+            pub use crate::bits::b~N;
+            pub use crate::signed_bits::s~N;
+        )*
+    });
+}
 
 pub use bits::bits;
 pub use bits::Bits;
@@ -469,7 +472,7 @@ pub use signed_bits::SignedBits;
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use super::alias::*;
     #[test]
     fn time_adding_120_bit_values() {
         use std::time::Instant;
