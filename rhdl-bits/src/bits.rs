@@ -1,8 +1,10 @@
+#![allow(non_camel_case_types)]
 use crate::signed_bits::SignedBits;
 use derive_more::{
     Binary, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Display, LowerHex,
     UpperHex,
 };
+use seq_macro::seq;
 
 /// The [Bits] type is a fixed-sized bit vector.  It is meant to
 /// imitate the behavior of bit vectors in hardware.  Due to the
@@ -44,6 +46,12 @@ use derive_more::{
 )]
 #[repr(transparent)]
 pub struct Bits<const N: usize>(pub(crate) u128);
+
+seq!(N in 1..=128 {
+    #(
+        pub type b~N = Bits<N>;
+    )*
+});
 
 /// Helper function for creating a bits value from
 /// a constant.

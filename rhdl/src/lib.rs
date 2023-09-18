@@ -150,6 +150,7 @@ mod tests {
         let mut logger = builder.build();
         logger.set_time_in_fs(0);
         logger.log(tag, Enum::None);
+        logger.log(tag2, 0b10101010);
         logger.set_time_in_fs(1_000);
         logger.log(tag, Enum::A(42, 1024));
         logger.set_time_in_fs(2_000);

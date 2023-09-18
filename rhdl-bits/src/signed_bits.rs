@@ -1,8 +1,10 @@
+#![allow(non_camel_case_types)]
 use crate::Bits;
 use derive_more::{
     Binary, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Display, LowerHex,
     UpperHex,
 };
+use seq_macro::seq;
 
 /// The [SignedBits] type is a fixed-size bit vector.  It is
 /// meant to imitate the behavior of signed bit vectors in hardware.
@@ -46,6 +48,12 @@ use derive_more::{
 )]
 #[repr(transparent)]
 pub struct SignedBits<const N: usize>(pub(crate) i128);
+
+seq!(N in 1..=128 {
+    #(
+        pub type s~N = SignedBits<N>;
+    )*
+});
 
 /// Helper function for creating a signed bits value
 /// from a constant.

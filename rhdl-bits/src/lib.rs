@@ -417,6 +417,12 @@ pub mod sub;
 #[doc(hidden)]
 pub mod xor;
 
+seq_macro::seq!(N in 1..=128 {
+    #(
+        pub use bits::b~N;
+        pub use signed_bits::s~N;
+    )*
+});
 pub use bits::bits;
 pub use bits::Bits;
 pub use signed_bits::signed;
@@ -428,9 +434,9 @@ mod test {
     #[test]
     fn time_adding_120_bit_values() {
         use std::time::Instant;
-        let mut a = Bits::<120>::default();
-        let mut b = Bits::<120>::default();
-        let mut c = Bits::<120>::default();
+        let mut a = b120::default();
+        let mut b = b120::default();
+        let mut c = b120::default();
         let start = Instant::now();
         for _k in 0..100 {
             for i in 0..120 {

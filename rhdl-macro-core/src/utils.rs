@@ -11,6 +11,17 @@ pub(crate) fn assert_tokens_eq(
     if expected != actual {
         println!("expected: {}", expected);
         println!("actual:   {}", actual);
+        // Print the lines that are different
+        let expected_lines = expected.lines().collect::<Vec<_>>();
+        let actual_lines = actual.lines().collect::<Vec<_>>();
+        for (i, (expected_line, actual_line)) in
+            expected_lines.iter().zip(actual_lines.iter()).enumerate()
+        {
+            if expected_line != actual_line {
+                println!("line {}: expected: {}", i + 1, expected_line);
+                println!("line {}: actual:   {}", i + 1, actual_line);
+            }
+        }
         panic!("expected != actual");
     }
 }
