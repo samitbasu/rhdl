@@ -2,7 +2,6 @@ use anyhow::anyhow;
 use anyhow::bail;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::spanned::Spanned;
 use syn::{Data, DeriveInput};
 
 use crate::digital_enum::derive_digital_enum;

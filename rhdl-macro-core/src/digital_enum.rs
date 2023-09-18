@@ -1,5 +1,4 @@
 use anyhow::anyhow;
-use anyhow::bail;
 use proc_macro2::TokenStream;
 use quote::format_ident;
 use quote::quote;
@@ -28,6 +27,61 @@ fn variant_payload_record(variant: &Variant) -> TokenStream {
                 #(
                     #field_names.record(tag, &mut logger);
                 )*
+            }
+        }
+    }
+}
+
+fn variant_kind_mapping(variant: &Variant) -> TokenStream {
+    match &variant.fields {
+        syn::Fields::Unit => quote! {rhdl_core::Kind::Empty},
+        syn::Fields::Unnamed(fields) => {
+            let field_types = fields.unnamed.iter().map(|f| &f.ty);
+            quote! {
+                rhdl_core::Kind::make_tuple(vec![#(
+                    <#field_types as rhdl_core::Digital>::static_kind()
+                ),*])
+            }
+        }
+        syn::Fields::Named(fields) => {
+            let field_names = fields.named.iter().map(|f| &f.ident);
+            let field_types = fields.named.iter().map(|f| &f.ty);
+            quote! {
+                rhdl_core::Kind::make_struct(vec![#(
+                    rhdl_core::Kind::make_field(stringify!(#field_names), <#field_types as rhdl_core::Digital>::static_kind())
+                ),*])
+            }
+        }
+    }
+}
+
+fn variant_payload_bin(variant: &Variant, width: usize, discriminant: usize) -> TokenStream {
+    match &variant.fields {
+        syn::Fields::Unit => quote! {
+            rhdl_bits::bits::<#width>(#discriminant as u128).to_bools()
+        },
+        syn::Fields::Unnamed(fields) => {
+            let field_names = fields
+                .unnamed
+                .iter()
+                .enumerate()
+                .map(|(i, _)| format_ident!("_{}", i));
+            quote! {
+                let mut v = rhdl_bits::bits::<#width>(#discriminant as u128).to_bools();
+                #(
+                    v.extend(#field_names.bin());
+                )*
+                v
+            }
+        }
+        syn::Fields::Named(fields) => {
+            let field_names = fields.named.iter().map(|f| &f.ident);
+            quote! {
+                let mut v = rhdl_bits::bits::<#width>(#discriminant as u128).to_bools();
+                #(
+                    v.extend(#field_names.bin());
+                )*
+                v
             }
         }
     }
@@ -67,7 +121,7 @@ fn variant_payload_case<'a>(
     )
 }
 
-// Generate the payload destructure arguments used in the 
+// Generate the payload destructure arguments used in the
 // match
 fn variant_destructure_args(variant: &Variant) -> TokenStream {
     match &variant.fields {
@@ -96,7 +150,6 @@ fn variant_destructure_args(variant: &Variant) -> TokenStream {
         }
     }
 }
-
 
 fn variant_allocate(variant: &Variant) -> TokenStream {
     let variant_name = &variant.ident;
@@ -132,16 +185,68 @@ fn variant_allocate(variant: &Variant) -> TokenStream {
     }
 }
 
+pub const fn clog2(t: usize) -> usize {
+    let mut p = 0;
+    let mut b = 1;
+    while b < t {
+        p += 1;
+        b *= 2;
+    }
+    p
+}
+
 pub fn derive_digital_enum(decl: DeriveInput) -> anyhow::Result<TokenStream> {
     let enum_name = &decl.ident;
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
     match decl.data {
         Data::Enum(e) => {
             let variants = e.variants.iter().map(|x| &x.ident);
+            let variant_destructure_args = e.variants.iter().map(variant_destructure_args);
+            let variant_destructure_args_2 = variant_destructure_args.clone();
             // For each variant, we need to create the allocate and record functions if the variant has fields
             let allocate_fns = e.variants.iter().map(variant_allocate);
+            let record_fns = e
+                .variants
+                .iter()
+                .map(|variant| variant_payload_case(variant, e.variants.iter()));
+            let skip_fns = e.variants.iter().map(variant_payload_skip);
+            let kind_mapping = e.variants.iter().map(variant_kind_mapping);
+            let variants_2 = variants.clone();
+            let variants_4 = variants.clone();
+            let width = clog2(e.variants.len());
+            let bin_fns = e
+                .variants
+                .iter()
+                .enumerate()
+                .map(|(ndx, variant)| variant_payload_bin(variant, width, ndx));
+            let discriminants = e.variants.iter().map(|x| {
+                x.discriminant
+                    .as_ref()
+                    .map(|x| &x.1)
+                    .map(|x| quote! {Some(#x)})
+                    .unwrap_or(quote! {None})
+            });
             Ok(quote! {
                 impl #impl_generics rhdl_core::Digital for #enum_name #ty_generics #where_clause {
+                    fn static_kind() -> rhdl_core::Kind {
+                        Kind::make_enum(
+                            vec![
+                                #(
+                                    Kind::make_variant(stringify!(#variants_2), #kind_mapping).with_discriminant(#discriminants)
+                                ),*
+                            ],
+                            None,
+                            DiscriminantAlignment::Msb
+                        )
+                    }
+                    fn bin(self) -> Vec<bool> {
+                        self.kind().pad(match self {
+                            #(
+                                Self::#variants_4 #variant_destructure_args_2 => {#bin_fns}
+                            )*
+                        })
+
+                    }
                     fn allocate<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
                         builder.allocate(tag, 0);
                         #(
@@ -151,9 +256,15 @@ pub fn derive_digital_enum(decl: DeriveInput) -> anyhow::Result<TokenStream> {
                     fn record<L: rhdl_core::Digital>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
                         match self {
                             #(
-                                Self::#variants => logger.write_string(tag, stringify!(#variants)),
+                                Self::#variants #variant_destructure_args => {#record_fns},
                             )*
                         }
+                    }
+                    fn skip<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
+                        logger.skip(tag);
+                        #(
+                            #skip_fns;
+                        )*
                     }
                 }
             })
@@ -164,7 +275,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> anyhow::Result<TokenStream> {
 
 #[cfg(test)]
 mod test {
-    use crate::utils::{assert_frag_eq, assert_tokens_eq};
+    use crate::utils::assert_frag_eq;
 
     use super::*;
 
@@ -349,5 +460,17 @@ mod test {
         assert_frag_eq(&quote! {}, &a_fn);
         assert_frag_eq(&quote! { (_0, ) }, &b_fn);
         assert_frag_eq(&quote! { { a, b } }, &c_fn);
+    }
+    #[test]
+    fn test_enum_derive() {
+        let input: syn::DeriveInput = syn::parse_quote! {
+            enum Test {
+                A = 1,
+                B(Bits::<16>),
+                C {a: Bits::<32>, b: Bits::<8>},
+            }
+        };
+        let output = derive_digital_enum(input).unwrap();
+        assert_frag_eq(&output, &quote! {})
     }
 }
