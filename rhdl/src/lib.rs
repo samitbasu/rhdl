@@ -112,9 +112,9 @@ mod tests {
                         <u8 as Digital>::skip(tag, &mut logger);
                         <bool as Digital>::skip(tag, &mut logger);
                     }
-                    Enum::A(a, b) => {
+                    Enum::A(t, b) => {
                         logger.write_string(tag, "A");
-                        logger.write_bits(tag, *a as u128);
+                        logger.write_bits(tag, *t as u128);
                         logger.write_bits(tag, *b as u128);
                         <u8 as Digital>::skip(tag, &mut logger);
                         <u8 as Digital>::skip(tag, &mut logger);
