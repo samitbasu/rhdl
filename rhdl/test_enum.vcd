@@ -4,10 +4,10 @@ $scope module  $end
 $scope module root $end
 $scope module enum $end
 $var wire 0 ! $disc $end
-$var wire 8 " 0 $end
-$var wire 16 # 1 $end
-$var wire 8 $ name $end
-$var wire 8 % name_2 $end
+$var wire 8 " A$0 $end
+$var wire 16 # A$1 $end
+$var wire 8 $ B$name $end
+$var wire 8 % B$name_2 $end
 $var wire 1 & C $end
 $upscope $end
 $var wire 8 ' color $end
@@ -22,6 +22,7 @@ bxxxxxxxxxxxxxxxx #
 bxxxxxxxx $
 bxxxxxxxx %
 x&
+b10101010 '
 #1000
 sA !
 b00101010 "
