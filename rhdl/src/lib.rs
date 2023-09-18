@@ -230,4 +230,124 @@ mod tests {
         let mut vcd_file = std::fs::File::create("test.vcd").unwrap();
         logger.vcd(&mut vcd_file).unwrap();
     }
+
+    #[test]
+    fn test_derive() {
+        #[derive(Clone, Copy, PartialEq)]
+        enum Test {
+            A,
+            B(Bits<16>),
+            C { a: Bits<32>, b: Bits<8> },
+        }
+
+        impl rhdl_core::Digital for Test {
+            fn static_kind() -> rhdl_core::Kind {
+                Kind::make_enum(
+                    vec![
+                        Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty)
+                            .with_discriminant(Some(1)),
+                        Kind::make_variant(
+                            stringify!(B),
+                            rhdl_core::Kind::make_tuple(vec![
+                                <Bits<16> as rhdl_core::Digital>::static_kind(),
+                            ]),
+                        )
+                        .with_discriminant(None),
+                        Kind::make_variant(
+                            stringify!(C),
+                            rhdl_core::Kind::make_struct(vec![
+                                rhdl_core::Kind::make_field(
+                                    stringify!(a),
+                                    <Bits<32> as rhdl_core::Digital>::static_kind(),
+                                ),
+                                rhdl_core::Kind::make_field(
+                                    stringify!(b),
+                                    <Bits<8> as rhdl_core::Digital>::static_kind(),
+                                ),
+                            ]),
+                        )
+                        .with_discriminant(None),
+                    ],
+                    None,
+                    DiscriminantAlignment::Msb,
+                )
+            }
+            fn bin(self) -> Vec<bool> {
+                let raw = match self {
+                    Self::A => rhdl_bits::bits::<2usize>(0usize as u128).to_bools(),
+                    Self::B(_0) => {
+                        let mut v = rhdl_bits::bits::<2usize>(1usize as u128).to_bools();
+                        v.extend(_0.bin());
+                        v
+                    }
+                    Self::C { a, b } => {
+                        let mut v = rhdl_bits::bits::<2usize>(2usize as u128).to_bools();
+                        v.extend(a.bin());
+                        v.extend(b.bin());
+                        v
+                    }
+                };
+                raw
+            }
+            fn allocate<L: rhdl_core::Digital>(
+                tag: rhdl_core::TagID<L>,
+                builder: impl rhdl_core::LogBuilder,
+            ) {
+                builder.allocate(tag, 0);
+                {
+                    let mut builder = builder.namespace(stringify!(B));
+                    <Bits<16> as rhdl_core::Digital>::allocate(
+                        tag,
+                        builder.namespace(stringify!(0)),
+                    );
+                }
+                {
+                    let mut builder = builder.namespace(stringify!(C));
+                    <Bits<32> as rhdl_core::Digital>::allocate(
+                        tag,
+                        builder.namespace(stringify!(a)),
+                    );
+                    <Bits<8> as rhdl_core::Digital>::allocate(
+                        tag,
+                        builder.namespace(stringify!(b)),
+                    );
+                }
+            }
+            fn record<L: rhdl_core::Digital>(
+                &self,
+                tag: rhdl_core::TagID<L>,
+                mut logger: impl rhdl_core::LoggerImpl,
+            ) {
+                match self {
+                    Self::A => {
+                        logger.write_string(tag, stringify!(A));
+                        <Bits<16> as rhdl_core::Digital>::skip(tag, &mut logger);
+                        <Bits<32> as rhdl_core::Digital>::skip(tag, &mut logger);
+                        <Bits<8> as rhdl_core::Digital>::skip(tag, &mut logger);
+                    }
+                    Self::B(_0) => {
+                        logger.write_string(tag, stringify!(B));
+                        _0.record(tag, &mut logger);
+                        <Bits<32> as rhdl_core::Digital>::skip(tag, &mut logger);
+                        <Bits<8> as rhdl_core::Digital>::skip(tag, &mut logger);
+                    }
+                    Self::C { a, b } => {
+                        logger.write_string(tag, stringify!(C));
+                        <Bits<16> as rhdl_core::Digital>::skip(tag, &mut logger);
+                        a.record(tag, &mut logger);
+                        b.record(tag, &mut logger);
+                    }
+                }
+            }
+            fn skip<L: rhdl_core::Digital>(
+                tag: rhdl_core::TagID<L>,
+                mut logger: impl rhdl_core::LoggerImpl,
+            ) {
+                logger.skip(tag);
+                <Bits<16> as rhdl_core::Digital>::skip(tag, &mut logger);
+                <Bits<32> as rhdl_core::Digital>::skip(tag, &mut logger);
+                <Bits<8> as rhdl_core::Digital>::skip(tag, &mut logger);
+            }
+        }
+    }
 }

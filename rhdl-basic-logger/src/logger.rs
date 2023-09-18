@@ -407,17 +407,17 @@ fn bool_to_vcd(x: Option<bool>) -> &'static [u8] {
 
 fn bits_to_vcd(x: Option<u128>, width: usize, buffer: &mut [u8]) {
     if let Some(x) = x {
-        for i in 0..width {
+        (0..width).for_each(|i| {
             buffer[i] = if x & (1 << (width - 1 - i)) != 0 {
                 b'1'
             } else {
                 b'0'
             };
-        }
+        });
     } else {
-        for i in 0..width {
+        (0..width).for_each(|i| {
             buffer[i] = b'x';
-        }
+        });
     }
 }
 

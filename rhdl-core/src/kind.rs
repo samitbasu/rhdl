@@ -73,6 +73,15 @@ pub struct Variant {
     pub kind: Kind,
 }
 
+impl Variant {
+    pub fn with_discriminant(self, discriminant: Option<usize>) -> Variant {
+        Variant {
+            discriminant,
+            ..self
+        }
+    }
+}
+
 pub const fn clog2(t: usize) -> usize {
     let mut p = 0;
     let mut b = 1;
@@ -163,6 +172,12 @@ impl Kind {
             Kind::Bits(digits) => *digits,
             Kind::Empty => 0,
         }
+    }
+    pub fn pad(&self, bits: &[bool]) -> Vec<bool> {
+        bits.iter()
+            .cloned()
+            .chain(repeat(false).take(self.bits() - bits.len()))
+            .collect()
     }
 }
 
