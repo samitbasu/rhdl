@@ -349,4 +349,80 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_derive_no_payload() {
+        #[derive(Copy, Clone, PartialEq)]
+        pub enum State {
+            Init,
+            Boot,
+            Running,
+            Stop,
+            Boom,
+        }
+        impl rhdl_core::Digital for State {
+            fn static_kind() -> rhdl_core::Kind {
+                Kind::make_enum(
+                    vec![
+                        Kind::make_variant(stringify!(Init), rhdl_core::Kind::Empty)
+                            .with_discriminant(None),
+                        Kind::make_variant(stringify!(Boot), rhdl_core::Kind::Empty)
+                            .with_discriminant(None),
+                        Kind::make_variant(stringify!(Running), rhdl_core::Kind::Empty)
+                            .with_discriminant(None),
+                        Kind::make_variant(stringify!(Stop), rhdl_core::Kind::Empty)
+                            .with_discriminant(None),
+                        Kind::make_variant(stringify!(Boom), rhdl_core::Kind::Empty)
+                            .with_discriminant(None),
+                    ],
+                    None,
+                    DiscriminantAlignment::Msb,
+                )
+            }
+            fn bin(self) -> Vec<bool> {
+                self.kind().pad(match self {
+                    Self::Init => rhdl_bits::bits::<3usize>(0usize as u128).to_bools(),
+                    Self::Boot => rhdl_bits::bits::<3usize>(1usize as u128).to_bools(),
+                    Self::Running => rhdl_bits::bits::<3usize>(2usize as u128).to_bools(),
+                    Self::Stop => rhdl_bits::bits::<3usize>(3usize as u128).to_bools(),
+                    Self::Boom => rhdl_bits::bits::<3usize>(4usize as u128).to_bools(),
+                })
+            }
+            fn allocate<L: rhdl_core::Digital>(
+                tag: rhdl_core::TagID<L>,
+                builder: impl rhdl_core::LogBuilder,
+            ) {
+                builder.allocate(tag, 0);
+            }
+            fn record<L: rhdl_core::Digital>(
+                &self,
+                tag: rhdl_core::TagID<L>,
+                mut logger: impl rhdl_core::LoggerImpl,
+            ) {
+                match self {
+                    Self::Init => {
+                        logger.write_string(tag, stringify!(Init));
+                    }
+                    Self::Boot => {
+                        logger.write_string(tag, stringify!(Boot));
+                    }
+                    Self::Running => {
+                        logger.write_string(tag, stringify!(Running));
+                    }
+                    Self::Stop => {
+                        logger.write_string(tag, stringify!(Stop));
+                    }
+                    Self::Boom => {
+                        logger.write_string(tag, stringify!(Boom));
+                    }
+                }
+            }
+            fn skip<L: rhdl_core::Digital>(
+                tag: rhdl_core::TagID<L>,
+                mut logger: impl rhdl_core::LoggerImpl,
+            ) {
+                logger.skip(tag);
+            }
+        }
+    }
 }
