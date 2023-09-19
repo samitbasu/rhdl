@@ -15,3 +15,4 @@ authors = ["Samit Basu <basu.samit@gmail.com>"]
 rhdl-bits = { path = "../rhdl-bits" }
 rhdl-core = { path = "../rhdl-core" }
 rhdl-basic-logger = { path = "../rhdl-basic-logger" }
+rhdl-macro = { path = "../rhdl-macro" }

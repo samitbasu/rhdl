@@ -248,7 +248,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> anyhow::Result<TokenStream> {
 
                     }
                     fn allocate<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
-                        builder.allocate(tag, 0);
+                        builder.namespace("$disc").allocate(tag, 0);
                         #(
                             #allocate_fns
                         )*
@@ -517,7 +517,7 @@ mod test {
                         tag: rhdl_core::TagID<L>,
                         builder: impl rhdl_core::LogBuilder,
                     ) {
-                        builder.allocate(tag, 0);
+                        builder.namespace("$disc").allocate(tag, 0);
                         {
                             let mut builder = builder.namespace(stringify!(B));
                             <Bits<
@@ -639,7 +639,7 @@ mod test {
                     tag: rhdl_core::TagID<L>,
                     builder: impl rhdl_core::LogBuilder
                 ) {
-                    builder.allocate(tag, 0);
+                    builder.namespace("$disc").allocate(tag, 0);
                 }
                 fn record<L: rhdl_core::Digital>(
                     &self,
@@ -672,6 +672,20 @@ mod test {
                 }
             }
         };
+        assert_tokens_eq(&expected, &output);
+    }
+
+    #[test]
+    fn test_enum_mixed() {
+        let decl = quote! {
+            enum Test {
+                A,
+                B(b2, b3),
+                C { a: b8, b: b8 },
+            }
+        };
+        let output = derive_digital_enum(syn::parse2(decl).unwrap()).unwrap();
+        let expected = quote! {};
         assert_tokens_eq(&expected, &output);
     }
 }
