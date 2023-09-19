@@ -8,6 +8,7 @@ pub use crate::core::Kind;
 pub use crate::core::LogBuilder;
 pub use crate::core::LoggerImpl;
 pub use crate::core::TagID;
+pub use rhdl_macro::Digital;
 
 #[cfg(test)]
 mod tests {
@@ -424,5 +425,62 @@ mod tests {
                 logger.skip(tag);
             }
         }
+    }
+
+    #[test]
+    fn test_derive_digital_simple_struct() {
+        use rhdl_bits::alias::*;
+
+        #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+        struct Test {
+            a: bool,
+            b: b8,
+        }
+
+        let foo = Test {
+            a: true,
+            b: b8::from(0b10101011),
+        };
+
+        println!("foo val: {}", foo.binary_string());
+    }
+
+    #[test]
+    fn test_derive_digital_complex_enum() {
+        use rhdl_bits::alias::*;
+
+        #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+        enum Test {
+            A,
+            B(b2, b3),
+            C { a: b8, b: b8 },
+        }
+
+        let foo_1 = Test::C {
+            a: b8::from(0b10101010),
+            b: b8::from(0b11010111),
+        };
+
+        println!("foo val: {}", foo_1.binary_string());
+
+        let foo_2 = Test::B(b2::from(0b10), b3::from(0b101));
+
+        println!("foo val: {}", foo_2.binary_string());
+
+        let foo_3 = Test::A;
+
+        let mut builder = basic_logger::Builder::default();
+        let tag = builder.tag("test");
+        let mut logger = builder.build();
+        logger.set_time_in_fs(0);
+        logger.log(tag, foo_1);
+        logger.set_time_in_fs(1_000);
+        logger.log(tag, foo_2);
+        logger.set_time_in_fs(2_000);
+        logger.log(tag, foo_3);
+        logger.set_time_in_fs(3_000);
+        logger.log(tag, foo_1);
+        let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
+        logger.vcd(&mut vcd_file).unwrap();
     }
 }

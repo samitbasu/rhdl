@@ -6,4 +6,5 @@ members = [
     "rhdl-basic-logger",
     "rhdl-macro-core",
     "rhdl-core",
+    "rhdl-macro",
 ]
