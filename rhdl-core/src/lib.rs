@@ -20,3 +20,4 @@ pub use kind::kind_svg::svg_grid;
 pub use kind::kind_svg::svg_grid_vertical;
 
 pub use kind::text_grid;
+pub mod path;

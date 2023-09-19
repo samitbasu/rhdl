@@ -46,7 +46,7 @@ pub struct Enum {
 }
 
 impl Enum {
-    fn discriminant_width(&self) -> usize {
+    pub fn discriminant_width(&self) -> usize {
         self.discriminant_width.unwrap_or_else(|| {
             clog2(
                 self.variants

@@ -13,7 +13,7 @@ pub use rhdl_macro::Digital;
 #[cfg(test)]
 mod tests {
 
-    use rhdl_core::{DiscriminantAlignment, Logger};
+    use rhdl_core::{path::bit_range, DiscriminantAlignment, Logger};
 
     use super::*;
 
@@ -443,6 +443,34 @@ mod tests {
         };
 
         println!("foo val: {}", foo.binary_string());
+    }
+
+    #[test]
+    fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
+        use rhdl_bits::alias::*;
+        use rhdl_core::path::*;
+
+        #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+        enum Test {
+            A,
+            B(b2, b3),
+            C { a: b8, b: b8 },
+        }
+
+        let foo = Test::B(b2::from(0b10), b3::from(0b101));
+        let disc = vec![Path::EnumPayload(stringify!(B)), Path::Index(1)];
+        let index = bit_range(Test::static_kind(), &disc)?;
+        println!("{:?}", index);
+        let bits = foo.bin();
+        let bits = &bits[index.0];
+        println!(
+            "Extracted bits: {}",
+            bits.iter()
+                .rev()
+                .map(|x| if *x { '1' } else { '0' })
+                .collect::<String>()
+        );
+        Ok(())
     }
 
     #[test]
