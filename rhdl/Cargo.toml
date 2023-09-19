@@ -16,3 +16,4 @@ rhdl-bits = { path = "../rhdl-bits" }
 rhdl-core = { path = "../rhdl-core" }
 rhdl-basic-logger = { path = "../rhdl-basic-logger" }
 rhdl-macro = { path = "../rhdl-macro" }
+anyhow = "1.0.75"
