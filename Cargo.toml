@@ -7,4 +7,5 @@ members = [
     "rhdl-macro-core",
     "rhdl-core",
     "rhdl-macro",
+    "rhdl-fuzz",
 ]
