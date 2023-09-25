@@ -3,6 +3,7 @@ use std::ops::Range;
 use anyhow::bail;
 use anyhow::Result;
 
+use crate::DiscriminantAlignment;
 use crate::Kind;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -74,7 +75,14 @@ pub fn bit_range(kind: Kind, path: &[Path]) -> Result<(Range<usize>, Kind)> {
             },
             Path::EnumDiscriminant => match &kind {
                 Kind::Enum(enumerate) => {
-                    range = range.start..range.start + enumerate.discriminant_width;
+                    range = match enumerate.discriminant_alignment {
+                        DiscriminantAlignment::Lsb => {
+                            range.start..range.start + enumerate.discriminant_width
+                        }
+                        DiscriminantAlignment::Msb => {
+                            range.end - enumerate.discriminant_width..range.end
+                        }
+                    };
                     kind = Kind::Bits(enumerate.discriminant_width);
                 }
                 _ => bail!("Enum discriminant not valid for non-enum types"),
