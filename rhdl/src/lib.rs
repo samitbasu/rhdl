@@ -13,7 +13,7 @@ pub use rhdl_macro::Digital;
 #[cfg(test)]
 mod tests {
 
-    use rhdl_core::{path::bit_range, DiscriminantAlignment, Logger};
+    use rhdl_core::{DiscriminantAlignment, Logger};
 
     use super::*;
 
@@ -31,21 +31,24 @@ mod tests {
             fn static_kind() -> Kind {
                 Kind::make_enum(
                     vec![
-                        Kind::make_variant("None", Kind::Empty),
+                        Kind::make_variant("None", Kind::Empty, 0),
                         Kind::make_variant(
                             "A",
                             Kind::make_tuple(vec![Kind::make_bits(8), Kind::make_bits(16)]),
+                            1,
                         ),
                         Kind::make_variant(
                             "B",
                             Kind::make_struct(vec![Kind::make_field("name", Kind::make_bits(8))]),
+                            2,
                         ),
                         Kind::make_variant(
                             "C",
                             Kind::make_struct(vec![Kind::make_field("a", Kind::make_bits(1))]),
+                            3,
                         ),
                     ],
-                    None,
+                    3,
                     DiscriminantAlignment::Msb,
                 )
             }
@@ -233,6 +236,8 @@ mod tests {
     }
 
     #[test]
+    #[allow(dead_code)]
+    #[allow(clippy::just_underscores_and_digits)]
     fn test_derive() {
         #[derive(Clone, Copy, PartialEq)]
         enum Test {
@@ -245,15 +250,14 @@ mod tests {
             fn static_kind() -> rhdl_core::Kind {
                 Kind::make_enum(
                     vec![
-                        Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty)
-                            .with_discriminant(Some(1)),
+                        Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1),
                         Kind::make_variant(
                             stringify!(B),
                             rhdl_core::Kind::make_tuple(vec![
                                 <Bits<16> as rhdl_core::Digital>::static_kind(),
                             ]),
-                        )
-                        .with_discriminant(None),
+                            2,
+                        ),
                         Kind::make_variant(
                             stringify!(C),
                             rhdl_core::Kind::make_struct(vec![
@@ -266,10 +270,10 @@ mod tests {
                                     <Bits<8> as rhdl_core::Digital>::static_kind(),
                                 ),
                             ]),
-                        )
-                        .with_discriminant(None),
+                            3,
+                        ),
                     ],
-                    None,
+                    2,
                     DiscriminantAlignment::Msb,
                 )
             }
@@ -295,14 +299,14 @@ mod tests {
             ) {
                 builder.allocate(tag, 0);
                 {
-                    let mut builder = builder.namespace(stringify!(B));
+                    let builder = builder.namespace(stringify!(B));
                     <Bits<16> as rhdl_core::Digital>::allocate(
                         tag,
                         builder.namespace(stringify!(0)),
                     );
                 }
                 {
-                    let mut builder = builder.namespace(stringify!(C));
+                    let builder = builder.namespace(stringify!(C));
                     <Bits<32> as rhdl_core::Digital>::allocate(
                         tag,
                         builder.namespace(stringify!(a)),
@@ -352,6 +356,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(dead_code)]
     fn test_derive_no_payload() {
         #[derive(Copy, Clone, PartialEq)]
         pub enum State {
@@ -365,18 +370,13 @@ mod tests {
             fn static_kind() -> rhdl_core::Kind {
                 Kind::make_enum(
                     vec![
-                        Kind::make_variant(stringify!(Init), rhdl_core::Kind::Empty)
-                            .with_discriminant(None),
-                        Kind::make_variant(stringify!(Boot), rhdl_core::Kind::Empty)
-                            .with_discriminant(None),
-                        Kind::make_variant(stringify!(Running), rhdl_core::Kind::Empty)
-                            .with_discriminant(None),
-                        Kind::make_variant(stringify!(Stop), rhdl_core::Kind::Empty)
-                            .with_discriminant(None),
-                        Kind::make_variant(stringify!(Boom), rhdl_core::Kind::Empty)
-                            .with_discriminant(None),
+                        Kind::make_variant(stringify!(Init), rhdl_core::Kind::Empty, 0),
+                        Kind::make_variant(stringify!(Boot), rhdl_core::Kind::Empty, 1),
+                        Kind::make_variant(stringify!(Running), rhdl_core::Kind::Empty, 2),
+                        Kind::make_variant(stringify!(Stop), rhdl_core::Kind::Empty, 3),
+                        Kind::make_variant(stringify!(Boom), rhdl_core::Kind::Empty, 4),
                     ],
-                    None,
+                    3,
                     DiscriminantAlignment::Msb,
                 )
             }
@@ -446,6 +446,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(dead_code)]
     fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
         use rhdl_bits::alias::*;
         use rhdl_core::path::*;

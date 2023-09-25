@@ -41,23 +41,8 @@ pub enum DiscriminantAlignment {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Enum {
     pub variants: Vec<Variant>,
-    pub discriminant_width: Option<usize>,
+    pub discriminant_width: usize,
     pub discriminant_alignment: DiscriminantAlignment,
-}
-
-impl Enum {
-    pub fn discriminant_width(&self) -> usize {
-        self.discriminant_width.unwrap_or_else(|| {
-            clog2(
-                self.variants
-                    .iter()
-                    .filter_map(|x| x.discriminant)
-                    .max()
-                    .unwrap_or(self.variants.len())
-                    + 1,
-            )
-        })
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -69,46 +54,17 @@ pub struct Field {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Variant {
     pub name: String,
-    pub discriminant: Option<usize>,
+    pub discriminant: i64,
     pub kind: Kind,
 }
 
 impl Variant {
-    pub fn with_discriminant(self, discriminant: Option<usize>) -> Variant {
+    pub fn with_discriminant(self, discriminant: i64) -> Variant {
         Variant {
             discriminant,
             ..self
         }
     }
-}
-
-pub const fn clog2(t: usize) -> usize {
-    let mut p = 0;
-    let mut b = 1;
-    while b < t {
-        p += 1;
-        b *= 2;
-    }
-    p
-}
-
-// Assign the discriminants using the same rules as Rust:
-// The first variant is assigned 0 if no value is provided
-// For each variant, the previous value + 1 is assigned
-// if no value is provided.
-fn assign_discriminants(elements: &[Variant]) -> Vec<Variant> {
-    let mut result = vec![];
-    let mut next_discriminant = 0;
-    for element in elements {
-        let discriminant = element.discriminant.unwrap_or(next_discriminant);
-        next_discriminant = discriminant + 1;
-        result.push(Variant {
-            name: element.name.clone(),
-            discriminant: Some(discriminant),
-            kind: element.kind.clone(),
-        });
-    }
-    result
 }
 
 impl Kind {
@@ -127,10 +83,10 @@ impl Kind {
             kind,
         }
     }
-    pub fn make_variant(name: &str, kind: Kind) -> Variant {
+    pub fn make_variant(name: &str, kind: Kind, discriminant: i64) -> Variant {
         Variant {
             name: name.to_string(),
-            discriminant: None,
+            discriminant,
             kind,
         }
     }
@@ -142,11 +98,11 @@ impl Kind {
     }
     pub fn make_enum(
         variants: Vec<Variant>,
-        discriminant_width: Option<usize>,
+        discriminant_width: usize,
         discriminant_alignment: DiscriminantAlignment,
     ) -> Self {
         Self::Enum(Enum {
-            variants: assign_discriminants(&variants),
+            variants,
             discriminant_width,
             discriminant_alignment,
         })
@@ -161,7 +117,7 @@ impl Kind {
             Kind::Struct(kind) => kind.fields.iter().map(|x| x.kind.bits()).sum(),
             Kind::Union(kind) => kind.fields.iter().map(|x| x.kind.bits()).max().unwrap_or(0),
             Kind::Enum(kind) => {
-                kind.discriminant_width()
+                kind.discriminant_width
                     + kind
                         .variants
                         .iter()
@@ -174,10 +130,23 @@ impl Kind {
         }
     }
     pub fn pad(&self, bits: Vec<bool>) -> Vec<bool> {
+        if bits.len() > self.bits() {
+            panic!("Too many bits for kind!");
+        }
         let pad_len = self.bits() - bits.len();
-        bits.into_iter()
-            .chain(repeat(false).take(pad_len))
-            .collect()
+        let bits = bits.into_iter().chain(repeat(false).take(pad_len));
+        match self {
+            Kind::Enum(kind) => match kind.discriminant_alignment {
+                DiscriminantAlignment::Lsb => bits.collect(),
+                DiscriminantAlignment::Msb => {
+                    let discriminant_width = kind.discriminant_width;
+                    let discriminant = bits.clone().take(discriminant_width);
+                    let payload = bits.skip(discriminant_width);
+                    payload.chain(discriminant).collect()
+                }
+            },
+            _ => bits.collect(),
+        }
     }
 }
 
@@ -283,16 +252,16 @@ fn generate_kind_layout(
                 name: format!("{name}|{}|", kind.bits()),
             }];
             let variant_cols = match e.discriminant_alignment {
-                DiscriminantAlignment::Lsb => offset_col..(offset_col + e.discriminant_width()),
+                DiscriminantAlignment::Lsb => offset_col..(offset_col + e.discriminant_width),
                 DiscriminantAlignment::Msb => {
-                    offset_col + kind.bits() - e.discriminant_width()..(offset_col + kind.bits())
+                    offset_col + kind.bits() - e.discriminant_width..(offset_col + kind.bits())
                 }
             };
             let payload_offset = match e.discriminant_alignment {
-                DiscriminantAlignment::Lsb => offset_col + e.discriminant_width(),
+                DiscriminantAlignment::Lsb => offset_col + e.discriminant_width,
                 DiscriminantAlignment::Msb => offset_col,
             };
-            let disc_width = e.discriminant_width();
+            let disc_width = e.discriminant_width;
             for variant in &e.variants {
                 result.push(KindLayout {
                     row: offset_row + 1,
@@ -301,7 +270,7 @@ fn generate_kind_layout(
                     name: format!(
                         "{}({:0width$b})",
                         variant.name,
-                        variant.discriminant.unwrap(),
+                        variant.discriminant,
                         width = disc_width
                     ),
                 });
@@ -638,22 +607,22 @@ mod test {
             vec![
                 Variant {
                     name: "A".to_string(),
-                    discriminant: Some(0),
+                    discriminant: 0,
                     kind: Kind::Empty,
                 },
                 Variant {
                     name: "B".to_string(),
-                    discriminant: Some(1),
+                    discriminant: 1,
                     kind: Kind::make_bits(8),
                 },
                 Variant {
                     name: "C".to_string(),
-                    discriminant: Some(2),
+                    discriminant: 2,
                     kind: Kind::make_tuple(vec![Kind::make_bits(8), Kind::make_bits(16)]),
                 },
                 Variant {
                     name: "D".to_string(),
-                    discriminant: Some(3),
+                    discriminant: 3,
                     kind: Kind::make_struct(vec![
                         Field {
                             name: "a".to_string(),
@@ -667,12 +636,12 @@ mod test {
                 },
                 Variant {
                     name: "E".to_string(),
-                    discriminant: Some(4),
+                    discriminant: 4,
                     kind: Kind::make_array(Kind::make_bits(8), 4),
                 },
                 Variant {
                     name: "F".to_string(),
-                    discriminant: Some(5),
+                    discriminant: 5,
                     kind: Kind::make_struct(vec![
                         Field {
                             name: "a".to_string(),
@@ -686,7 +655,7 @@ mod test {
                 },
                 Variant {
                     name: "F2".to_string(),
-                    discriminant: Some(7),
+                    discriminant: 7,
                     kind: Kind::make_union(vec![
                         Field {
                             name: "op_code".to_string(),
@@ -700,7 +669,7 @@ mod test {
                 },
                 Variant {
                     name: "G".to_string(),
-                    discriminant: Some(6),
+                    discriminant: 6,
                     kind: Kind::make_struct(vec![
                         Field {
                             name: "a".to_string(),
@@ -718,31 +687,31 @@ mod test {
                 },
                 Variant {
                     name: "H".to_string(),
-                    discriminant: Some(8),
+                    discriminant: 8,
                     kind: Kind::make_enum(
                         vec![
                             Variant {
                                 name: "A".to_string(),
-                                discriminant: Some(0),
+                                discriminant: 0,
                                 kind: Kind::Empty,
                             },
                             Variant {
                                 name: "B".to_string(),
-                                discriminant: Some(1),
+                                discriminant: 1,
                                 kind: Kind::Bits(4),
                             },
                             Variant {
                                 name: "C".to_string(),
-                                discriminant: Some(2),
+                                discriminant: 2,
                                 kind: Kind::Empty,
                             },
                         ],
-                        None,
+                        2,
                         DiscriminantAlignment::Msb,
                     ),
                 },
             ],
-            None,
+            4,
             DiscriminantAlignment::Lsb,
         )
     }
@@ -858,21 +827,21 @@ mod test {
             vec![
                 Variant {
                     name: "A".to_string(),
-                    discriminant: Some(0),
+                    discriminant: 0,
                     kind: Kind::Empty,
                 },
                 Variant {
                     name: "B".to_string(),
-                    discriminant: Some(1),
+                    discriminant: 1,
                     kind: Kind::Empty,
                 },
                 Variant {
                     name: "C".to_string(),
-                    discriminant: Some(2),
+                    discriminant: 2,
                     kind: Kind::Empty,
                 },
             ],
-            None,
+            2,
             DiscriminantAlignment::Lsb,
         );
         let layout = generate_kind_layout(&kind, "value", 0, 0);

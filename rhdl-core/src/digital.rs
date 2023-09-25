@@ -290,34 +290,34 @@ mod test {
                     vec![
                         Variant {
                             name: "None".to_string(),
-                            discriminant: Some(0),
+                            discriminant: 0,
                             kind: Kind::Empty,
                         },
                         Variant {
                             name: "Bool".to_string(),
-                            discriminant: Some(1),
+                            discriminant: 1,
                             kind: Kind::make_bits(1),
                         },
                         Variant {
                             name: "Tuple".to_string(),
-                            discriminant: Some(2),
+                            discriminant: 2,
                             kind: Kind::make_tuple(vec![Kind::make_bits(1), Kind::make_bits(3)]),
                         },
                         Variant {
                             name: "Array".to_string(),
-                            discriminant: Some(3),
+                            discriminant: 3,
                             kind: Kind::make_array(Kind::make_bits(1), 3),
                         },
                         Variant {
                             name: "Strct".to_string(),
-                            discriminant: Some(4),
+                            discriminant: 4,
                             kind: Kind::make_struct(vec![
                                 Kind::make_field("a", Kind::make_bits(1)),
                                 Kind::make_field("b", Kind::make_bits(3)),
                             ]),
                         },
                     ],
-                    Some(3),
+                    3,
                     DiscriminantAlignment::Lsb,
                 )
             }
@@ -446,31 +446,31 @@ mod test {
                     vec![
                         Variant {
                             name: "Init".to_string(),
-                            discriminant: Some(0),
+                            discriminant: 0,
                             kind: Kind::Empty,
                         },
                         Variant {
                             name: "Boot".to_string(),
-                            discriminant: Some(1),
+                            discriminant: 1,
                             kind: Kind::Empty,
                         },
                         Variant {
                             name: "Running".to_string(),
-                            discriminant: Some(2),
+                            discriminant: 2,
                             kind: Kind::Empty,
                         },
                         Variant {
                             name: "Stop".to_string(),
-                            discriminant: Some(3),
+                            discriminant: 3,
                             kind: Kind::Empty,
                         },
                         Variant {
                             name: "Boom".to_string(),
-                            discriminant: Some(4),
+                            discriminant: 4,
                             kind: Kind::Empty,
                         },
                     ],
-                    Some(3),
+                    3,
                     DiscriminantAlignment::Lsb,
                 )
             }
@@ -507,31 +507,31 @@ mod test {
                 vec![
                     Variant {
                         name: "Init".to_string(),
-                        discriminant: Some(0),
+                        discriminant: 0,
                         kind: Kind::Empty,
                     },
                     Variant {
                         name: "Boot".to_string(),
-                        discriminant: Some(1),
+                        discriminant: 1,
                         kind: Kind::Empty,
                     },
                     Variant {
                         name: "Running".to_string(),
-                        discriminant: Some(2),
+                        discriminant: 2,
                         kind: Kind::Empty,
                     },
                     Variant {
                         name: "Stop".to_string(),
-                        discriminant: Some(3),
+                        discriminant: 3,
                         kind: Kind::Empty,
                     },
                     Variant {
                         name: "Boom".to_string(),
-                        discriminant: Some(4),
+                        discriminant: 4,
                         kind: Kind::Empty,
                     },
                 ],
-                Some(3),
+                3,
                 DiscriminantAlignment::Lsb,
             )
         );

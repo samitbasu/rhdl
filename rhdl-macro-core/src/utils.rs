@@ -4,9 +4,6 @@ pub(crate) fn assert_tokens_eq(
     actual: &proc_macro2::TokenStream,
 ) {
     let expected = expected.to_string();
-
-    println!("{}", expected);
-
     let expected = prettyplease::unparse(
         &syn::parse_file(&expected).expect("Expected string is not valid rust code"),
     );

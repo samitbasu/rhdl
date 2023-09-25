@@ -74,8 +74,8 @@ pub fn bit_range(kind: Kind, path: &[Path]) -> Result<(Range<usize>, Kind)> {
             },
             Path::EnumDiscriminant => match &kind {
                 Kind::Enum(enumerate) => {
-                    range = range.start..range.start + enumerate.discriminant_width();
-                    kind = Kind::Bits(enumerate.discriminant_width());
+                    range = range.start..range.start + enumerate.discriminant_width;
+                    kind = Kind::Bits(enumerate.discriminant_width);
                 }
                 _ => bail!("Enum discriminant not valid for non-enum types"),
             },
@@ -88,8 +88,8 @@ pub fn bit_range(kind: Kind, path: &[Path]) -> Result<(Range<usize>, Kind)> {
                         .ok_or_else(|| anyhow::anyhow!("Enum payload not found"))?
                         .kind
                         .clone();
-                    range = range.start + enumerate.discriminant_width()
-                        ..range.start + enumerate.discriminant_width() + field.bits();
+                    range = range.start + enumerate.discriminant_width
+                        ..range.start + enumerate.discriminant_width + field.bits();
                     kind = field;
                 }
                 _ => bail!("Enum payload not valid for non-enum types"),

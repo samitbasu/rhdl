@@ -2,38 +2,84 @@ $timescale 1 fs $end
 $scope module top $end
 $scope module  $end
 $scope module root $end
-$scope module test $end
+$scope module enum $end
 $var wire 0 ! $disc $end
-$var wire 2 " B$0 $end
-$var wire 3 # B$1 $end
-$var wire 8 $ C$a $end
-$var wire 8 % C$b $end
+$var wire 8 " A$0 $end
+$var wire 16 # A$1 $end
+$var wire 8 $ B$name $end
+$var wire 8 % B$name_2 $end
+$var wire 1 & C $end
 $upscope $end
+$var wire 8 ' color $end
 $upscope $end
 $upscope $end
 $upscope $end
 $enddefinitions $end
 #0
-sC !
-bxx "
-bxxx #
+sNone !
+bxxxxxxxx "
+bxxxxxxxxxxxxxxxx #
+bxxxxxxxx $
+bxxxxx
+bxxx
+x&
+b10101010 '
+#1000
+sA !
+b00101010
+b
+b000
 b10101010 $
 b11010111 %
-#1000
-sB !
-b10 "
-b101 #
-bxxxxxxxx $
+ $
 bxxxxxxxx %
+x&
 #2000
-sA !
-bxx "
-bxxx #
-bxxxxxxxx $
-bxxxxxxxx %
+sB !
+bxxxxxxxx "
+bxxxxxxxxxxxxxxxx #
+b01000011 $
+b01000011 %
+x&
 #3000
 sC !
-bxx "
-bxxx #
-b10101010 $
-b11010111 %
+bxxxxxxxx "
+bxxxxxxxxxxxxxxxx #
+bxxxxxxxx $
+bxxxxxxxx %
+1&
+#4000
+sC !
+bxxxxxxxx "
+bxxxxxxxxxxxxxxxx #
+bxxxxxxxx $
+bxxxxxxxx %
+0&
+#5000
+sB !
+bxxxxxxxx "
+bxxxxxxxxxxxxxxxx #
+b01000001 $
+b01000001 %
+x&
+#6000
+sA !
+b00010101 "
+b0000001000000000 #
+bxxxxxxxx $
+bxxxxxxxx %
+x&
+#7000
+sNone !
+bxxxxxxxx "
+bxxxxxxxxxxxxxxxx #
+bxxxxxxxx $
+bxxxxxxxx %
+x&
+#8000
+sNone !
+bxxxxxxxx "
+bxxxxxxxxxxxxxxxx #
+bxxxxxxxx $
+bxxxxxxxx %
+x&
