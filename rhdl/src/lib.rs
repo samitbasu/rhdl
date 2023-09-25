@@ -13,7 +13,10 @@ pub use rhdl_macro::Digital;
 #[cfg(test)]
 mod tests {
 
-    use rhdl_core::{DiscriminantAlignment, Logger};
+    use rhdl_core::{
+        path::{bit_range, Path},
+        DiscriminantAlignment, Logger,
+    };
 
     use super::*;
 
@@ -443,6 +446,16 @@ mod tests {
         };
 
         println!("foo val: {}", foo.binary_string());
+        let test_kind = Test::static_kind();
+        let (range, kind) = bit_range(test_kind, &[Path::Field("b")]).unwrap();
+        println!("range: {:?}", range);
+        println!("kind: {:?}", kind);
+        assert_eq!(range, 1..9);
+        assert_eq!(kind, Kind::make_bits(8));
+        let bits = foo.bin();
+        let bits = &bits[range];
+        assert_eq!(bits.len(), 8);
+        assert_eq!(bits, [true, true, false, true, false, true, false, true]);
     }
 
     #[test]
@@ -471,6 +484,12 @@ mod tests {
                 .map(|x| if *x { '1' } else { '0' })
                 .collect::<String>()
         );
+        let (disc_range, disc_kind) = bit_range(Test::static_kind(), &[Path::EnumDiscriminant])?;
+        println!("{:?}", disc_range);
+        println!("{:?}", disc_kind);
+        let disc_bits = foo.bin();
+        let disc_bits = &disc_bits[disc_range];
+        assert_eq!(disc_bits, [true, false]);
         Ok(())
     }
 
@@ -511,5 +530,38 @@ mod tests {
         logger.log(tag, foo_1);
         let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
         logger.vcd(&mut vcd_file).unwrap();
+    }
+
+    #[test]
+    fn test_derive_enum_explicit_discriminant_width() {
+        use rhdl_bits::alias::*;
+
+        #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+        #[rhdl(discriminant_width = 4)]
+        enum Test {
+            A,
+            B(b2, b3),
+            C { a: b8, b: b8 },
+        }
+
+        let (range, kind) = bit_range(Test::static_kind(), &[Path::EnumDiscriminant]).unwrap();
+        assert_eq!(range.len(), 4);
+        assert_eq!(kind, Kind::make_bits(4));
+    }
+
+    #[test]
+    fn test_derive_enum_alignment_lsb() {
+        use rhdl_bits::alias::*;
+
+        #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+        #[rhdl(discriminant_align = "lsb")]
+        enum Test {
+            A,
+            B(b2, b3),
+            C { a: b8, b: b8 },
+        }
+        let (range, kind) = bit_range(Test::static_kind(), &[Path::EnumDiscriminant]).unwrap();
+        assert_eq!(range, 0..2);
+        assert_eq!(kind, Kind::make_bits(2));
     }
 }
