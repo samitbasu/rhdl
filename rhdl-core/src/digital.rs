@@ -1,6 +1,10 @@
 use rhdl_bits::{Bits, SignedBits};
 
-use crate::{logger::LoggerImpl, Kind, LogBuilder, TagID};
+use crate::{
+    logger::LoggerImpl,
+    path::{bit_range, Path},
+    Kind, LogBuilder, TagID,
+};
 
 /// This is the core trait for all of `RHDL` data elements.  If you
 /// want to use a data type in the hardware part of the design,
@@ -50,6 +54,12 @@ pub trait Digital: Copy + PartialEq + Sized + Clone {
             .rev()
             .map(|b| if *b { '1' } else { '0' })
             .collect()
+    }
+    fn path(self, path: &[Path]) -> anyhow::Result<(Vec<bool>, Kind)> {
+        let (range, kind) = bit_range(self.kind(), path)?;
+        dbg!(self.binary_string());
+        dbg!(&range);
+        Ok((self.bin()[range].to_vec(), kind))
     }
     fn allocate<T: Digital>(tag: TagID<T>, builder: impl LogBuilder);
     fn record<T: Digital>(&self, tag: TagID<T>, logger: impl LoggerImpl);
