@@ -217,7 +217,7 @@ fn variant_payload_bin(
         }
         DiscriminantType::Signed(x) => {
             quote! {
-                rhdl_bits::signed_bits::<#x>(#discriminant as i128).to_bools()
+                rhdl_bits::signed::<#x>(#discriminant as i128).to_bools()
             }
         }
     };
@@ -369,8 +369,8 @@ pub fn derive_digital_enum(decl: DeriveInput) -> anyhow::Result<TokenStream> {
     let discriminant_alignment = match parse_discriminant_alignment_attribute(&decl.attrs)?
         .unwrap_or(DiscriminantAlignment::Msb)
     {
-        DiscriminantAlignment::Lsb => quote! { DiscriminantAlignment::Lsb },
-        DiscriminantAlignment::Msb => quote! { DiscriminantAlignment::Msb },
+        DiscriminantAlignment::Lsb => quote! { rhdl_core::DiscriminantAlignment::Lsb },
+        DiscriminantAlignment::Msb => quote! { rhdl_core::DiscriminantAlignment::Msb },
     };
     let variants = e.variants.iter().map(|x| &x.ident);
     let variant_destructure_args = e.variants.iter().map(variant_destructure_args);
@@ -410,10 +410,10 @@ pub fn derive_digital_enum(decl: DeriveInput) -> anyhow::Result<TokenStream> {
     Ok(quote! {
         impl #impl_generics rhdl_core::Digital for #enum_name #ty_generics #where_clause {
             fn static_kind() -> rhdl_core::Kind {
-                Kind::make_enum(
+                rhdl_core::Kind::make_enum(
                     vec![
                         #(
-                            Kind::make_variant(stringify!(#variant_names_for_kind), #kind_mapping, #discriminants)
+                            rhdl_core::Kind::make_variant(stringify!(#variant_names_for_kind), #kind_mapping, #discriminants)
                         ),*
                     ],
                     #width_bits,
@@ -429,6 +429,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> anyhow::Result<TokenStream> {
 
             }
             fn allocate<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
+                use rhdl_core::LogBuilder;
                 builder.namespace("$disc").allocate(tag, 0);
                 #(
                     #allocate_fns

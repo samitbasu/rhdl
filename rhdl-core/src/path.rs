@@ -23,33 +23,29 @@ pub fn bit_range(kind: Kind, path: &[Path]) -> Result<(Range<usize>, Kind)> {
     for p in path {
         match p {
             Path::All => (),
-            Path::Index(i) => {
-                match &kind {
-                    Kind::Array(array) => {
-                        let element_size = array.base.bits();
-                        if i >= &array.size {
-                            bail!("Array index out of bounds")
-                        }
-                        range =
-                            range.start + i * element_size..range.start + (i + 1) * element_size;
-                        kind = *array.base.clone();
+            Path::Index(i) => match &kind {
+                Kind::Array(array) => {
+                    let element_size = array.base.bits();
+                    if i >= &array.size {
+                        bail!("Array index out of bounds")
                     }
-                    Kind::Tuple(tuple) => {
-                        if i >= &tuple.elements.len() {
-                            bail!("Tuple index out of bounds")
-                        }
-                        let offset = tuple.elements[0..*i]
-                            .iter()
-                            .map(|e| e.bits())
-                            .sum::<usize>();
-                        let size = tuple.elements[*i].bits();
-                        range = range.start + offset..range.start + offset + size;
-                        kind = tuple.elements[*i].clone();
-                    }
-                    _ => bail!("Indexing non-indexable type"),
+                    range = range.start + i * element_size..range.start + (i + 1) * element_size;
+                    kind = *array.base.clone();
                 }
-                range = range.start + i..range.start + i + 1;
-            }
+                Kind::Tuple(tuple) => {
+                    if i >= &tuple.elements.len() {
+                        bail!("Tuple index out of bounds")
+                    }
+                    let offset = dbg!(tuple.elements[0..*i]
+                        .iter()
+                        .map(|e| e.bits())
+                        .sum::<usize>());
+                    let size = dbg!(tuple.elements[*i].bits());
+                    range = range.start + offset..range.start + offset + size;
+                    kind = tuple.elements[*i].clone();
+                }
+                _ => bail!("Indexing non-indexable type"),
+            },
             Path::Field(field) => match &kind {
                 Kind::Struct(structure) => {
                     if !structure.fields.iter().any(|f| &f.name == field) {
@@ -96,8 +92,14 @@ pub fn bit_range(kind: Kind, path: &[Path]) -> Result<(Range<usize>, Kind)> {
                         .ok_or_else(|| anyhow::anyhow!("Enum payload not found"))?
                         .kind
                         .clone();
-                    range = range.start + enumerate.discriminant_width
-                        ..range.start + enumerate.discriminant_width + field.bits();
+                    range = match enumerate.discriminant_alignment {
+                        DiscriminantAlignment::Lsb => {
+                            range.start + enumerate.discriminant_width
+                                ..range.start + enumerate.discriminant_width + field.bits()
+                        }
+                        DiscriminantAlignment::Msb => range.start..range.start + field.bits(),
+                    };
+                    dbg!(&range);
                     kind = field;
                 }
                 _ => bail!("Enum payload not valid for non-enum types"),

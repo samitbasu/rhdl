@@ -222,6 +222,12 @@ impl<const N: usize> SignedBits<N> {
             SignedBits(self.0)
         }
     }
+    /// Build a (dynamic, stack allocated) vector
+    /// containing the bits that make up this value.
+    /// This will be slow.
+    pub fn to_bools(self) -> Vec<bool> {
+        self.as_unsigned().to_bools()
+    }
 }
 
 impl<const N: usize> Default for SignedBits<N> {

@@ -13,22 +13,24 @@ $upscope $end
 $var wire 8 ' color $end
 $upscope $end
 $upscope $end
-$upscope $end
-$enddefinitions $end
-#0
-sNone !
-bxxxxxxxx "
-bxxxxxxxxxxxxxxxx #
-bxxxxxxxx $
-bxxxxx
-bxxx
-x&
-b10101010 '
+$upscope $e$
+b11010111 %
 #1000
+sB !
+b10 "
+b101 #
+bxxxxxxxx $
+bxxxxxxxx %
+#2000
 sA !
-b00101010
-b
-b000
+bxx "
+bxxx #
+bxxxxxxxx $
+bxxxxxxxx %
+#3000
+sC !
+bxx "
+bxxx #
 b10101010 $
 b11010111 %
  $
