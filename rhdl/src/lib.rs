@@ -674,11 +674,14 @@ mod tests {
         );
 
         let foo = Packet::State(State::Boom);
-        dbg!(foo.path(&[Path::EnumPayload("State")]));
         assert_eq!(
-            foo.path(&[Path::EnumPayload("State"), Path::EnumDiscriminant])
-                .unwrap()
-                .0,
+            foo.path(&[
+                Path::EnumPayload("State"),
+                Path::Index(0),
+                Path::EnumDiscriminant
+            ])
+            .unwrap()
+            .0,
             b5::from(0b01010).bin()
         );
         assert_eq!(
