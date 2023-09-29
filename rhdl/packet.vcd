@@ -1,0 +1,113 @@
+$timescale 1 fs $end
+$scope module top $end
+$scope module  $end
+$scope module root $end
+$scope module packet $end
+$var wire 0 ! $disc $end
+$var wire 8 " Color$r $end
+$var wire 8 # Color$g $end
+$var wire 8 $ Color$b $end
+$var wire 16 % Size$w $end
+$var wire 16 & Size$h $end
+$var wire 4 ' Position$0 $end
+$var wire 4 ( Position$1 $end
+$var wire 0 ) State$0$$disc $end
+$var wire 32 * Log$msg $end
+$var wire 8 + Log$level$level $end
+$var wire 1 , Log$level$active $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+sColor !
+b10101010 "
+b11010101 #
+b11110000 $
+bxxxxxxxxxxxxxxxx %
+bxxxxxxxxxxxxxxxx &
+bxxxx '
+bxxxx (
+sX )
+bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx *
+bxxxxxxxx +
+x,
+#1000
+sSize !
+bxxxxxxxx "
+bxxxxxxxx #
+bxxxxxxxx $
+b1101111010101101 %
+b1011111011101111 &
+bxxxx '
+bxxxx (
+sX )
+bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx *
+bxxxxxxxx +
+x,
+#2000
+sPosition !
+bxxxxxxxx "
+bxxxxxxxx #
+bxxxxxxxx $
+bxxxxxxxxxxxxxxxx %
+bxxxxxxxxxxxxxxxx &
+b1010 '
+b1101 (
+sX )
+bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx *
+bxxxxxxxx +
+x,
+#3000
+sState !
+bxxxxxxxx "
+bxxxxxxxx #
+bxxxxxxxx $
+bxxxxxxxxxxxxxxxx %
+bxxxxxxxxxxxxxxxx &
+bxxxx '
+bxxxx (
+sBoom )
+bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx *
+bxxxxxxxx +
+x,
+#4000
+sState !
+bxxxxxxxx "
+bxxxxxxxx #
+bxxxxxxxx $
+bxxxxxxxxxxxxxxxx %
+bxxxxxxxxxxxxxxxx &
+bxxxx '
+bxxxx (
+sInit )
+bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx *
+bxxxxxxxx +
+x,
+#5000
+sLog !
+bxxxxxxxx "
+bxxxxxxxx #
+bxxxxxxxx $
+bxxxxxxxxxxxxxxxx %
+bxxxxxxxxxxxxxxxx &
+bxxxx '
+bxxxx (
+sX )
+b11001010111111101011111011101111 *
+b10111010 +
+1,
+#6000
+sState !
+bxxxxxxxx "
+bxxxxxxxx #
+bxxxxxxxx $
+bxxxxxxxxxxxxxxxx %
+bxxxxxxxxxxxxxxxx &
+bxxxx '
+bxxxx (
+sRunning )
+bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx *
+bxxxxxxxx +
+x,

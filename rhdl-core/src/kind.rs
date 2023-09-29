@@ -263,6 +263,11 @@ fn generate_kind_layout(
             };
             let disc_width = e.discriminant_width;
             for variant in &e.variants {
+                let discriminant = if variant.discriminant < 0 {
+                    (variant.discriminant as u128) & ((1 << disc_width) - 1)
+                } else {
+                    variant.discriminant as u128
+                };
                 result.push(KindLayout {
                     row: offset_row + 1,
                     depth: 1,
@@ -270,7 +275,7 @@ fn generate_kind_layout(
                     name: format!(
                         "{}({:0width$b})",
                         variant.name,
-                        variant.discriminant,
+                        discriminant,
                         width = disc_width
                     ),
                 });
