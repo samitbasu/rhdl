@@ -1,9 +1,10 @@
+use rhdl::basic_logger;
 use rhdl_bits::alias::*;
-use rhdl_core::{path::Path, Digital, Kind};
+use rhdl_core::{path::Path, Digital, Kind, LogBuilder, Logger};
 use rhdl_macro::Digital;
 
 #[derive(Copy, Clone, PartialEq, Debug, Digital)]
-#[repr(u8)]
+#[repr(i8)]
 enum Packet {
     Color { r: b8, g: b8, b: b8 } = 1,
     Size { w: b16, h: b16 } = 2,
@@ -117,16 +118,124 @@ fn test_position_case() {
 
 #[test]
 fn test_state_case() {
-    let foo = Packet::State(State::Boom);
-    dbg!(foo.path(&[Path::EnumPayload("State")]));
+    let packet = Packet::State(State::Boom);
     assert_eq!(
-        foo.path(&[Path::EnumPayload("State"), Path::EnumDiscriminant])
+        packet
+            .path(&[
+                Path::EnumPayload("State"),
+                Path::Index(0),
+                Path::EnumDiscriminant
+            ])
             .unwrap()
             .0,
-        b5::from(0b01010).bin()
+        s3::from(2).bin()
     );
     assert_eq!(
-        foo.path(&[Path::EnumDiscriminant]).unwrap().0,
+        packet.path(&[Path::EnumDiscriminant]).unwrap().0,
         b5::from(0b01000).bin()
     );
+    let packet = Packet::State(State::Init);
+    assert_eq!(
+        packet
+            .path(&[
+                Path::EnumPayload("State"),
+                Path::Index(0),
+                Path::EnumDiscriminant
+            ])
+            .unwrap()
+            .0,
+        s3::from(-2).bin()
+    );
+}
+
+#[test]
+fn test_nested_struct_case() {
+    let packet = Packet::Log {
+        msg: b32::from(0xDEAD_BEEF),
+        level: LogLevel {
+            level: b8::from(0xBA),
+            active: true,
+        },
+    };
+    assert_eq!(
+        packet
+            .path(&[Path::EnumPayload("Log"), Path::Field("msg")])
+            .unwrap()
+            .0,
+        b32::from(0xDEAD_BEEF).bin()
+    );
+    assert_eq!(
+        packet
+            .path(&[
+                Path::EnumPayload("Log"),
+                Path::Field("level"),
+                Path::Field("active")
+            ])
+            .unwrap()
+            .0,
+        b1::from(1).bin()
+    );
+    assert_eq!(
+        packet
+            .path(&[
+                Path::EnumPayload("Log"),
+                Path::Field("level"),
+                Path::Field("level")
+            ])
+            .unwrap()
+            .0,
+        b8::from(0xBA).bin()
+    )
+}
+
+#[cfg(feature = "svg")]
+#[test]
+fn test_documentation_svgs() {
+    let svg = rhdl_core::svg_grid_vertical(&Packet::static_kind(), "Packet");
+    svg::save("packets.svg", &svg).unwrap();
+}
+
+#[test]
+fn test_vcd_generation() {
+    let mut builder = basic_logger::Builder::default();
+    let tag = builder.tag("packet");
+    let mut logger = builder.build();
+    logger.set_time_in_fs(0);
+    logger.log(
+        tag,
+        Packet::Color {
+            r: b8::from(0b10101010),
+            g: b8::from(0b11010101),
+            b: b8::from(0b11110000),
+        },
+    );
+    logger.set_time_in_fs(1_000);
+    logger.log(
+        tag,
+        Packet::Size {
+            w: 0xDEAD.into(),
+            h: 0xBEEF.into(),
+        },
+    );
+    logger.set_time_in_fs(2_000);
+    logger.log(tag, Packet::Position(0b1010.into(), 0b1101.into()));
+    logger.set_time_in_fs(3_000);
+    logger.log(tag, Packet::State(State::Boom));
+    logger.set_time_in_fs(4_000);
+    logger.log(tag, Packet::State(State::Init));
+    logger.set_time_in_fs(5_000);
+    logger.log(
+        tag,
+        Packet::Log {
+            msg: 0xCAFE_BEEF.into(),
+            level: LogLevel {
+                level: 0xBA.into(),
+                active: true,
+            },
+        },
+    );
+    logger.set_time_in_fs(6_000);
+    logger.log(tag, Packet::State(State::Running));
+    let mut vcd_file = std::fs::File::create("packet.vcd").unwrap();
+    logger.vcd(&mut vcd_file).unwrap();
 }
