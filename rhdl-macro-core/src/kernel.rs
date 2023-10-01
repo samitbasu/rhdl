@@ -144,6 +144,7 @@ fn hdl_expr(expr: &syn::Expr) -> Result<TS> {
         syn::Expr::Repeat(expr) => hdl_repeat(expr),
         syn::Expr::ForLoop(expr) => hdl_for_loop(expr),
         syn::Expr::While(expr) => hdl_while_loop(expr),
+        syn::Expr::Call(expr) => hdl_call(expr),
         _ => Err(syn::Error::new(
             expr.span(),
             format!(
@@ -152,6 +153,19 @@ fn hdl_expr(expr: &syn::Expr) -> Result<TS> {
             ),
         )),
     }
+}
+
+fn hdl_call(expr: &syn::ExprCall) -> Result<TS> {
+    let path = hdl_expr(&expr.func)?;
+    let args = expr.args.iter().map(hdl_expr).collect::<Result<Vec<_>>>()?;
+    Ok(quote! {
+        rhdl_core::ast::Expr::Call(
+            rhdl_core::ast::ExprCall {
+                path: Box::new(#path),
+                args: vec![#(#args),*],
+            }
+        )
+    })
 }
 
 fn hdl_for_loop(expr: &syn::ExprForLoop) -> Result<TS> {
@@ -285,7 +299,13 @@ fn hdl_match(expr: &syn::ExprMatch) -> Result<TS> {
 
 fn hdl_arm(arm: &syn::Arm) -> Result<TS> {
     let pat = hdl_pat(&arm.pat)?;
-    let guard = arm.guard.as_ref().map(|(_if, x)| hdl_expr(x)).transpose()?;
+    let guard = arm
+        .guard
+        .as_ref()
+        .map(|(_if, x)| hdl_expr(x))
+        .transpose()?
+        .map(|x| quote! {Some(Box::new(#x))})
+        .unwrap_or(quote! {None});
     let body = hdl_expr(&arm.body)?;
     Ok(quote! {
         rhdl_core::ast::Arm {
@@ -361,12 +381,24 @@ fn hdl_struct(structure: &syn::ExprStruct) -> Result<TS> {
 }
 
 fn hdl_path(path: &syn::Path) -> Result<TS> {
-    let ident = path.get_ident().ok_or(syn::Error::new(
-        path.span(),
-        "Unsupported path expression in rhdl kernel function",
-    ))?;
+    let segments = path
+        .segments
+        .iter()
+        .map(hdl_path_segment)
+        .collect::<Result<Vec<_>>>()?;
     Ok(quote! {
-        rhdl_core::ast::Expr::Ident(stringify!(#ident).to_string())
+    rhdl_core::ast::Expr::Path(
+        rhdl_core::ast::ExprPath {
+            path: vec![#(#segments),*],
+        }
+    )
+    })
+}
+
+fn hdl_path_segment(segment: &syn::PathSegment) -> Result<TS> {
+    let ident = &segment.ident;
+    Ok(quote! {
+        stringify!(#ident).to_string()
     })
 }
 
@@ -580,6 +612,23 @@ mod test {
         let result = stmt(&if_expr).unwrap();
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         let result = result.replace("rhdl_core :: ast :: ", "");
+        let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
+        println!("{}", result);
+    }
+
+    #[test]
+    fn test_match_expression() {
+        let test_code = quote! {
+            match l {
+                State::Init => {}
+                State::Run(a) => {}
+                State::Boom => {}
+            }
+        };
+        let match_expr = syn::parse2::<syn::Stmt>(test_code).unwrap();
+        let result = stmt(&match_expr).unwrap();
+        let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
+        //        let result = result.replace("rhdl_core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
         println!("{}", result);
     }

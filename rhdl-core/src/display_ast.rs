@@ -91,10 +91,11 @@ impl Display for Expr {
             Expr::Block(block) => write!(f, "{}", block),
             Expr::Array(array) => write!(f, "{}", array),
             Expr::Range(range) => write!(f, "{}", range),
-            Expr::Ident(ident) => write!(f, "{}", ident),
+            Expr::Path(path) => write!(f, "{}", path),
             Expr::Let(let_) => write!(f, "{}", let_),
             Expr::Repeat(repeat) => write!(f, "{}", repeat),
             Expr::Struct(struct_) => write!(f, "{}", struct_),
+            Expr::Call(call) => write!(f, "{}", call),
         }
     }
 }
@@ -130,9 +131,34 @@ impl Display for ExprRepeat {
     }
 }
 
+impl Display for ExprCall {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}(", self.path)?;
+        for (i, arg) in self.args.iter().enumerate() {
+            if i > 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "{}", arg)?;
+        }
+        write!(f, ")")
+    }
+}
+
 impl Display for ExprLet {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "if let {} = {} {}", self.pattern, self.value, self.body)
+    }
+}
+
+impl Display for ExprPath {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for (i, segment) in self.path.iter().enumerate() {
+            if i > 0 {
+                write!(f, "::")?;
+            }
+            write!(f, "{}", segment)?;
+        }
+        Ok(())
     }
 }
 
