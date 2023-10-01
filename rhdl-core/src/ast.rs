@@ -18,11 +18,11 @@ pub struct Local {
 pub enum LocalPattern {
     Ident(LocalIdent),
     Tuple(Vec<LocalPattern>),
-    TupleStruct(TupleStructPattern),
+    TupleStruct(LocalTupleStruct),
 }
 
 #[derive(Debug, Clone)]
-pub struct TupleStructPattern {
+pub struct LocalTupleStruct {
     pub path: Box<Expr>,
     pub elems: Vec<LocalPattern>,
 }
@@ -56,22 +56,18 @@ pub enum Expr {
     Let(ExprLet),
     Repeat(ExprRepeat),
     Struct(ExprStruct),
+    Call(ExprCall),
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprCall {
+    pub path: Box<Expr>,
+    pub args: Vec<Expr>,
 }
 
 #[derive(Debug, Clone)]
 pub struct ExprPath {
-    pub path: Vec<ExprPathSegment>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ExprPathSegment {
-    pub ident: String,
-    pub args: Option<PathArguments>,
-}
-
-#[derive(Debug, Clone)]
-pub enum PathArguments {
-    Angle,
+    pub path: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -264,11 +260,17 @@ mod test {
                     }),
                     value: Box::new(Expr::Binary(ExprBinary {
                         op: BinOp::Add,
-                        lhs: Box::new(Expr::Ident(stringify!(a).to_string())),
-                        rhs: Box::new(Expr::Ident(stringify!(b).to_string())),
+                        lhs: Box::new(Expr::Path(ExprPath {
+                            path: vec![stringify!(a).to_string()],
+                        })),
+                        rhs: Box::new(Expr::Path(ExprPath {
+                            path: vec![stringify!(b).to_string()],
+                        })),
                     })),
                 }),
-                Stmt::Expr(Expr::Ident(stringify!(c).to_string())),
+                Stmt::Expr(Expr::Path(ExprPath {
+                    path: vec![stringify!(c).to_string()],
+                })),
             ]
         }
         println!("{:#?}", jnk());
