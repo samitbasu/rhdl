@@ -1,33 +1,36 @@
-use anyhow::anyhow;
-use anyhow::bail;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Data, DeriveInput};
+use syn::{spanned::Spanned, Data, DeriveInput};
 
 use crate::digital_enum::derive_digital_enum;
 
-pub fn derive_digital(input: TokenStream) -> anyhow::Result<TokenStream> {
+pub fn derive_digital(input: TokenStream) -> syn::Result<TokenStream> {
     let decl = syn::parse2::<syn::DeriveInput>(input)?;
     match &decl.data {
         Data::Struct(_s) => derive_digital_struct(decl),
         Data::Enum(_e) => derive_digital_enum(decl),
-        _ => bail!("Only structs and enums can be digital"),
-        //        Data::Union(_u) => derive_digital_union(decl),
+        _ => Err(syn::Error::new(
+            decl.span(),
+            "Only structs and enums can be digital",
+        )),
     }
 }
 
-fn derive_digital_struct(decl: DeriveInput) -> anyhow::Result<TokenStream> {
+fn derive_digital_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     match &decl.data {
         Data::Struct(s) => match s.fields {
             syn::Fields::Named(_) => derive_digital_named_struct(decl),
             syn::Fields::Unnamed(_) => derive_digital_tuple_struct(decl),
-            syn::Fields::Unit => Err(anyhow!("Unit structs are not digital")),
+            syn::Fields::Unit => Err(syn::Error::new(
+                s.fields.span(),
+                "Unit structs are not digital",
+            )),
         },
-        _ => Err(anyhow!("Only structs can be digital")),
+        _ => Err(syn::Error::new(decl.span(), "Only structs can be digital")),
     }
 }
 
-fn derive_digital_tuple_struct(decl: DeriveInput) -> anyhow::Result<TokenStream> {
+fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
     match decl.data {
@@ -77,11 +80,11 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> anyhow::Result<TokenStream>
                 }
             })
         }
-        _ => Err(anyhow!("Only structs can be digital")),
+        _ => Err(syn::Error::new(decl.span(), "Only structs can be digital")),
     }
 }
 
-fn derive_digital_named_struct(decl: DeriveInput) -> anyhow::Result<TokenStream> {
+fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
     match decl.data {
@@ -127,7 +130,7 @@ fn derive_digital_named_struct(decl: DeriveInput) -> anyhow::Result<TokenStream>
                 }
             })
         }
-        _ => Err(anyhow!("Only structs can be digital")),
+        _ => Err(syn::Error::new(decl.span(), "Only structs can be digital")),
     }
 }
 
