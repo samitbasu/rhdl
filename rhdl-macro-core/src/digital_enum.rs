@@ -1,7 +1,8 @@
-use anyhow::bail;
+use proc_macro2::Span;
 use proc_macro2::TokenStream;
 use quote::format_ident;
 use quote::quote;
+use syn::spanned::Spanned;
 use syn::Attribute;
 use syn::Expr;
 use syn::ExprLit;
@@ -38,22 +39,25 @@ enum DiscriminantAlignment {
 
 fn override_width(
     width: DiscriminantType,
-    new_width: Option<usize>,
-) -> anyhow::Result<DiscriminantType> {
-    if let Some(new_width) = new_width {
+    new_width: Option<(usize, Span)>,
+) -> syn::Result<DiscriminantType> {
+    if let Some((new_width, span)) = new_width {
         if new_width == 0 {
-            bail!("Override discriminant width cannot be zero")
+            return Err(syn::Error::new(
+                span,
+                "Override discriminant width cannot be zero",
+            ));
         }
         match width {
             DiscriminantType::Unsigned(old_width) => {
                 if old_width > new_width {
-                    bail!("Override discriminant width of {new_width} is too small.  At least {old_width} bits are required.")
+                    return Err(syn::Error::new(span, format!("Override discriminant width of {new_width} is too small.  At least {old_width} bits are required.")));
                 }
                 Ok(DiscriminantType::Unsigned(new_width))
             }
             DiscriminantType::Signed(old_width) => {
                 if old_width > new_width {
-                    bail!("Override discriminant width of {new_width} is too small.  At least {old_width} bits are required.")
+                    return Err(syn::Error::new(span, format!("Override discriminant width of {new_width} is too small.  At least {old_width} bits are required.")));
                 }
                 Ok(DiscriminantType::Signed(new_width))
             }
@@ -65,7 +69,7 @@ fn override_width(
 
 fn parse_discriminant_alignment_attribute(
     attrs: &[Attribute],
-) -> anyhow::Result<Option<DiscriminantAlignment>> {
+) -> syn::Result<Option<DiscriminantAlignment>> {
     for attr in attrs {
         if attr.path().is_ident("rhdl") {
             if let Ok(Expr::Assign(assign)) = attr.parse_args::<Expr>() {
@@ -81,7 +85,10 @@ fn parse_discriminant_alignment_attribute(
                             } else if value.value() == "msb" {
                                 return Ok(Some(DiscriminantAlignment::Msb));
                             } else {
-                                bail!("Unknown discriminant alignment value (expected either lsb or msb)")
+                                return Err(syn::Error::new(
+                                    value.span(),
+                                    "Unknown discriminant alignment value (expected either lsb or msb)",
+                                ));
                             }
                         }
                     }
@@ -92,7 +99,7 @@ fn parse_discriminant_alignment_attribute(
     Ok(None)
 }
 
-fn parse_discriminant_width_attribute(attrs: &[Attribute]) -> anyhow::Result<Option<usize>> {
+fn parse_discriminant_width_attribute(attrs: &[Attribute]) -> syn::Result<Option<(usize, Span)>> {
     for attr in attrs {
         if attr.path().is_ident("rhdl") {
             if let Ok(Expr::Assign(assign)) = attr.parse_args::<Expr>() {
@@ -103,7 +110,7 @@ fn parse_discriminant_width_attribute(attrs: &[Attribute]) -> anyhow::Result<Opt
                             ..
                         }) = *assign.right
                         {
-                            return Ok(Some(value.base10_parse::<usize>()?));
+                            return Ok(Some((value.base10_parse::<usize>()?, value.span())));
                         }
                     }
                 }
@@ -132,9 +139,15 @@ fn discriminant_width(discriminants: &[i64]) -> DiscriminantType {
     }
 }
 
-fn evaluate_const_expression(expr: &syn::Expr) -> evalexpr::EvalexprResult<i64> {
-    let expr = quote!(#expr).to_string();
-    evalexpr::eval_int(&expr)
+fn evaluate_const_expression(expr: &syn::Expr) -> syn::Result<i64> {
+    let expr_as_string = quote!(#expr).to_string();
+    match evalexpr::eval_int(&expr_as_string) {
+        Ok(x) => Ok(x),
+        Err(err) => Err(syn::Error::new(
+            expr.span(),
+            format!("Failed to evaluate expression: {}", err),
+        )),
+    }
 }
 
 fn allocate_discriminants(discriminants: &[Option<i64>]) -> Vec<i64> {
@@ -360,11 +373,11 @@ pub const fn clog2(t: u128) -> usize {
     p
 }
 
-pub fn derive_digital_enum(decl: DeriveInput) -> anyhow::Result<TokenStream> {
+pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
     let enum_name = &decl.ident;
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
     let Data::Enum(e) = decl.data else {
-        bail!("Only enums can be digital")
+        return Err(syn::Error::new(decl.span(), "Only enums can be digital"));
     };
     let discriminant_alignment = match parse_discriminant_alignment_attribute(&decl.attrs)?
         .unwrap_or(DiscriminantAlignment::Msb)

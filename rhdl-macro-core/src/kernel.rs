@@ -1,12 +1,26 @@
-use quote::{quote, ToTokens};
+use quote::{format_ident, quote, ToTokens};
 use syn::spanned::Spanned;
 type TS = proc_macro2::TokenStream;
 type Result<T> = syn::Result<T>;
 
-pub fn hdl_block(block: &syn::Block) -> Result<TS> {
+pub fn hdl_kernel(input: TS) -> Result<TS> {
+    let original = input.clone();
+    let input = syn::parse::<syn::ItemFn>(input.into())?;
+    let name = format_ident!("{}_hdl_kernel", &input.sig.ident);
+    let block = hdl_block(&input.block)?;
+    Ok(quote! {
+        #original
+
+        fn #name() -> rhdl_core::ast::Block {
+            #block
+        }
+    })
+}
+
+fn hdl_block(block: &syn::Block) -> Result<TS> {
     let stmts = block.stmts.iter().map(stmt).collect::<Result<Vec<_>>>()?;
     Ok(quote! {
-        vec![#(#stmts),*]
+        rhdl_core::ast::Block(vec![#(#stmts),*])
     })
 }
 
@@ -43,7 +57,7 @@ fn stmt_local(local: &syn::Local) -> Result<TS> {
             "Unsupported local declaration",
         ))??;
     Ok(quote! {
-        rhdl_core::ast::Stmt::Local(Local{pattern: #pattern, value: Box::new(#local_init)})
+        rhdl_core::ast::Stmt::Local(rhdl_core::ast::Local{pattern: #pattern, value: Box::new(#local_init)})
     })
 }
 
@@ -68,6 +82,22 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
             })
         }
         syn::Pat::TupleStruct(tuple) => {
+            let path = hdl_path(&tuple.path)?;
+            let elems = tuple
+                .elems
+                .iter()
+                .map(hdl_pat)
+                .collect::<Result<Vec<_>>>()?;
+            Ok(quote! {
+                rhdl_core::ast::LocalPattern::TupleStruct(
+                    rhdl_core::ast::LocalTupleStruct{
+                        path: Box::new(#path),
+                        elems: vec![#(#elems),*]
+                    }
+                )
+            })
+        }
+        syn::Pat::Tuple(tuple) => {
             let elems = tuple
                 .elems
                 .iter()
@@ -75,6 +105,17 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
                 .collect::<Result<Vec<_>>>()?;
             Ok(quote! {
                 rhdl_core::ast::LocalPattern::Tuple(vec![#(#elems),*])
+            })
+        }
+        syn::Pat::Path(path) => {
+            let path = hdl_path(&path.path)?;
+            Ok(quote! {
+                rhdl_core::ast::LocalPattern::Ident(
+                    rhdl_core::ast::LocalIdent{
+                        name: #path,
+                        mutable: false
+                    }
+                )
             })
         }
         _ => Err(syn::Error::new(pat.span(), "Unsupported pattern type")),
@@ -105,7 +146,10 @@ fn hdl_expr(expr: &syn::Expr) -> Result<TS> {
         syn::Expr::While(expr) => hdl_while_loop(expr),
         _ => Err(syn::Error::new(
             expr.span(),
-            format!("Unsupported expression type {}", quote!(#expr)),
+            format!(
+                "Unsupported expression type {} in an rhdl kernel function",
+                quote!(#expr)
+            ),
         )),
     }
 }
@@ -272,7 +316,9 @@ fn hdl_if(expr: &syn::ExprIf) -> Result<TS> {
         .else_branch
         .as_ref()
         .map(|x| hdl_expr(&x.1))
-        .transpose()?;
+        .transpose()?
+        .map(|x| quote! {Some(#x)})
+        .unwrap_or(quote! {None});
     Ok(quote! {
         rhdl_core::ast::Expr::If(
             rhdl_core::ast::ExprIf {
@@ -289,19 +335,24 @@ fn hdl_struct(structure: &syn::ExprStruct) -> Result<TS> {
     let fields = structure
         .fields
         .iter()
-        .map(hdl_field)
+        .map(hdl_field_value)
         .collect::<Result<Vec<_>>>()?;
     if structure.qself.is_some() {
         return Err(syn::Error::new(
             structure.span(),
-            "Unsupported qualified self",
+            "Unsupported qualified self in rhdl kernel function",
         ));
     }
-    let rest = structure.rest.as_ref().map(|x| hdl_expr(&x)).transpose()?;
+    let rest = structure
+        .rest
+        .as_ref()
+        .map(|x| hdl_expr(x))
+        .transpose()?
+        .unwrap_or(quote! {None});
     Ok(quote! {
         rhdl_core::ast::Expr::Struct(
             rhdl_core::ast::ExprStruct {
-                path: #path,
+                path: Box::new(#path),
                 fields: vec![#(#fields),*],
                 rest: #rest,
             }
@@ -310,9 +361,10 @@ fn hdl_struct(structure: &syn::ExprStruct) -> Result<TS> {
 }
 
 fn hdl_path(path: &syn::Path) -> Result<TS> {
-    let ident = path
-        .get_ident()
-        .ok_or(syn::Error::new(path.span(), "Unsupported path expression"))?;
+    let ident = path.get_ident().ok_or(syn::Error::new(
+        path.span(),
+        "Unsupported path expression in rhdl kernel function",
+    ))?;
     Ok(quote! {
         rhdl_core::ast::Expr::Ident(stringify!(#ident).to_string())
     })
@@ -322,7 +374,12 @@ fn hdl_assign(assign: &syn::ExprAssign) -> Result<TS> {
     let left = hdl_expr(&assign.left)?;
     let right = hdl_expr(&assign.right)?;
     Ok(quote! {
-        rhdl_core::ast::Expr::Assign(Box::new(#left), Box::new(#right))
+        rhdl_core::ast::Expr::Assign(
+            rhdl_core::ast::ExprAssign {
+                lhs: Box::new(#left),
+                rhs: Box::new(#right),
+            }
+        )
     })
 }
 
@@ -339,13 +396,13 @@ fn hdl_field_expression(field: &syn::ExprField) -> Result<TS> {
     })
 }
 
-fn hdl_field(field: &syn::FieldValue) -> Result<TS> {
+fn hdl_field_value(field: &syn::FieldValue) -> Result<TS> {
     let member = hdl_member(&field.member)?;
-    let expr = hdl_expr(&field.expr)?;
+    let value = hdl_expr(&field.expr)?;
     Ok(quote! {
-        rhdl_core::ast::ExprField {
+        rhdl_core::ast::FieldValue {
             member: #member,
-            expr: Box::new(#expr),
+            value: Box::new(#value),
         }
     })
 }
@@ -368,7 +425,12 @@ fn hdl_unary(unary: &syn::ExprUnary) -> Result<TS> {
     let op = match unary.op {
         syn::UnOp::Neg(_) => quote!(rhdl_core::ast::UnOp::Neg),
         syn::UnOp::Not(_) => quote!(rhdl_core::ast::UnOp::Not),
-        _ => return Err(syn::Error::new(unary.span(), "Unsupported unary operator")),
+        _ => {
+            return Err(syn::Error::new(
+                unary.span(),
+                "Unsupported unary operator in rhdl kernel function",
+            ))
+        }
     };
     let expr = hdl_expr(&unary.expr)?;
     Ok(quote! {
@@ -411,7 +473,7 @@ fn hdl_binary(binary: &syn::ExprBinary) -> Result<TS> {
         _ => {
             return Err(syn::Error::new(
                 binary.span(),
-                "Unsupported binary operator",
+                "Unsupported binary operator in rhdl kernel function",
             ))
         }
     };
@@ -447,7 +509,10 @@ fn hdl_lit(lit: &syn::ExprLit) -> Result<TS> {
                 )
             })
         }
-        _ => Err(syn::Error::new(lit.span(), "Unsupported literal type")),
+        _ => Err(syn::Error::new(
+            lit.span(),
+            "Unsupported literal type in rhdl kernel function",
+        )),
     }
 }
 
@@ -485,6 +550,34 @@ mod test {
         };
         let block = syn::parse2::<syn::Block>(test_code).unwrap();
         let result = hdl_block(&block).unwrap();
+        let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
+        let result = result.replace("rhdl_core :: ast :: ", "");
+        let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
+        println!("{}", result);
+    }
+
+    #[test]
+    fn test_struct_expression_let() {
+        let test_code = quote! {
+            let d = Foo {a: 1, b: 2};
+        };
+        let local = syn::parse2::<syn::Stmt>(test_code).unwrap();
+        let result = stmt(&local).unwrap();
+        let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
+        let result = result.replace("rhdl_core :: ast :: ", "");
+        let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
+        println!("{}", result);
+    }
+
+    #[test]
+    fn test_if_expression() {
+        let test_code = quote! {
+            if d > 0 {
+                d = d - 1;
+            }
+        };
+        let if_expr = syn::parse2::<syn::Stmt>(test_code).unwrap();
+        let result = stmt(&if_expr).unwrap();
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         let result = result.replace("rhdl_core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());

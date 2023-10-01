@@ -8,6 +8,7 @@ pub use crate::core::Kind;
 pub use crate::core::LogBuilder;
 pub use crate::core::LoggerImpl;
 pub use crate::core::TagID;
+pub use rhdl_macro::kernel;
 pub use rhdl_macro::Digital;
 
 #[cfg(test)]
@@ -563,5 +564,39 @@ mod tests {
         let (range, kind) = bit_range(Test::static_kind(), &[Path::EnumDiscriminant]).unwrap();
         assert_eq!(range, 0..2);
         assert_eq!(kind, Kind::make_bits(2));
+    }
+
+    #[test]
+    fn test_ast_basic_func() {
+        pub struct Foo {
+            a: u8,
+            b: u16,
+        }
+
+        pub enum State {
+            Init,
+            Run(u8),
+            Boom,
+        }
+
+        #[kernel]
+        fn do_stuff() {
+            let a = 1;
+            let b = !2;
+            let c = a + (b - 1);
+            let q = (a, b, c);
+            let (a, b, c) = q;
+            let d = Foo { a: 1, b: 2 };
+            let e = d.a;
+            let mut d = 7;
+            if d > 0 {
+                d = d - 1;
+            }
+            let j = if d < 3 { 7 } else { 9 };
+            let k = State::Boom;
+        }
+
+        let ast = do_stuff_hdl_kernel();
+        println!("{}", ast);
     }
 }
