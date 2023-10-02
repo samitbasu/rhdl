@@ -593,6 +593,7 @@ mod tests {
                 d = d - 1;
             }
             let j = if d < 3 { 7 } else { 9 };
+
             let k = State::Boom;
             let l = State::Run(3);
             match l {
@@ -605,51 +606,4 @@ mod tests {
         let ast = do_stuff_hdl_kernel();
         println!("{}", ast);
     }
-}
-
-fn jnk() -> Vec<Stmt> {
-    rhdl_core::ast::Stmt::Expr(rhdl_core::ast::Expr::Match(rhdl_core::ast::ExprMatch {
-        expr: Box::new(rhdl_core::ast::Expr::Path(rhdl_core::ast::ExprPath {
-            path: vec![stringify!(l).to_string()],
-        })),
-        arms: vec![
-            rhdl_core::ast::Arm {
-                pattern: rhdl_core::ast::LocalPattern::Ident(rhdl_core::ast::LocalIdent {
-                    name: rhdl_core::ast::Expr::Path(rhdl_core::ast::ExprPath {
-                        path: vec![stringify!(State).to_string(), stringify!(Init).to_string()],
-                    }),
-                    mutable: false,
-                }),
-                guard: None,
-                body: Box::new(rhdl_core::ast::Block(vec![])),
-            },
-            rhdl_core::ast::Arm {
-                pattern: rhdl_core::ast::LocalPattern::TupleStruct(
-                    rhdl_core::ast::LocalTupleStruct {
-                        path: Box::new(rhdl_core::ast::Expr::Path(rhdl_core::ast::ExprPath {
-                            path: vec![stringify!(State).to_string(), stringify!(Run).to_string()],
-                        })),
-                        elems: vec![rhdl_core::ast::LocalPattern::Ident(
-                            rhdl_core::ast::LocalIdent {
-                                name: stringify!(a).to_string(),
-                                mutable: false,
-                            },
-                        )],
-                    },
-                ),
-                guard: None,
-                body: Box::new(rhdl_core::ast::Block(vec![])),
-            },
-            rhdl_core::ast::Arm {
-                pattern: rhdl_core::ast::LocalPattern::Ident(rhdl_core::ast::LocalIdent {
-                    name: rhdl_core::ast::Expr::Path(rhdl_core::ast::ExprPath {
-                        path: vec![stringify!(State).to_string(), stringify!(Boom).to_string()],
-                    }),
-                    mutable: false,
-                }),
-                guard: None,
-                body: Box::new(rhdl_core::ast::Block(vec![])),
-            },
-        ],
-    }))
 }
