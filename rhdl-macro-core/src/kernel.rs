@@ -7,7 +7,7 @@ pub fn hdl_kernel(input: TS) -> Result<TS> {
     let original = input.clone();
     let input = syn::parse::<syn::ItemFn>(input.into())?;
     let name = format_ident!("{}_hdl_kernel", &input.sig.ident);
-    let block = hdl_block(&input.block)?;
+    let block = hdl_block_inner(&input.block)?;
     Ok(quote! {
         #original
 
@@ -18,9 +18,20 @@ pub fn hdl_kernel(input: TS) -> Result<TS> {
 }
 
 fn hdl_block(block: &syn::Block) -> Result<TS> {
+    let block = hdl_block_inner(block)?;
+    Ok(quote! {
+        rhdl_core::ast::Expr::Block(
+            #block
+        )
+    })
+}
+
+fn hdl_block_inner(block: &syn::Block) -> Result<TS> {
     let stmts = block.stmts.iter().map(stmt).collect::<Result<Vec<_>>>()?;
     Ok(quote! {
-        rhdl_core::ast::Block(vec![#(#stmts),*])
+        rhdl_core::ast::Block (
+            vec![#(#stmts),*],
+        )
     })
 }
 
@@ -52,10 +63,7 @@ fn stmt_local(local: &syn::Local) -> Result<TS> {
         .init
         .as_ref()
         .map(|x| hdl_expr(&x.expr))
-        .ok_or(syn::Error::new(
-            local.span(),
-            "Unsupported local declaration",
-        ))??;
+        .ok_or_else(|| syn::Error::new(local.span(), "Unsupported local declaration"))??;
     Ok(quote! {
         rhdl_core::ast::Stmt::Local(rhdl_core::ast::Local{pattern: #pattern, value: Box::new(#local_init)})
     })
@@ -73,8 +81,8 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
                 ));
             }
             Ok(quote! {
-                rhdl_core::ast::LocalPattern::Ident(
-                    rhdl_core::ast::LocalIdent{
+                rhdl_core::ast::Pattern::Ident(
+                    rhdl_core::ast::PatternIdent{
                         name: stringify!(#name).to_string(),
                         mutable: #mutability
                     }
@@ -89,8 +97,8 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
                 .map(hdl_pat)
                 .collect::<Result<Vec<_>>>()?;
             Ok(quote! {
-                rhdl_core::ast::LocalPattern::TupleStruct(
-                    rhdl_core::ast::LocalTupleStruct{
+                rhdl_core::ast::Pattern::TupleStruct(
+                    rhdl_core::ast::PatternTupleStruct{
                         path: Box::new(#path),
                         elems: vec![#(#elems),*]
                     }
@@ -104,17 +112,14 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
                 .map(hdl_pat)
                 .collect::<Result<Vec<_>>>()?;
             Ok(quote! {
-                rhdl_core::ast::LocalPattern::Tuple(vec![#(#elems),*])
+                rhdl_core::ast::Pattern::Tuple(vec![#(#elems),*])
             })
         }
         syn::Pat::Path(path) => {
-            let path = hdl_path(&path.path)?;
+            let path = hdl_path_inner(&path.path)?;
             Ok(quote! {
-                rhdl_core::ast::LocalPattern::Ident(
-                    rhdl_core::ast::LocalIdent{
-                        name: #path,
-                        mutable: false
-                    }
+                rhdl_core::ast::Pattern::Path(
+                    #path
                 )
             })
         }
@@ -331,13 +336,13 @@ fn hdl_let(expr: &syn::ExprLet) -> Result<TS> {
 
 fn hdl_if(expr: &syn::ExprIf) -> Result<TS> {
     let cond = hdl_expr(&expr.cond)?;
-    let then = hdl_block(&expr.then_branch)?;
+    let then = hdl_block_inner(&expr.then_branch)?;
     let else_ = expr
         .else_branch
         .as_ref()
         .map(|x| hdl_expr(&x.1))
         .transpose()?
-        .map(|x| quote! {Some(#x)})
+        .map(|x| quote! {Some(Box::new(#x))})
         .unwrap_or(quote! {None});
     Ok(quote! {
         rhdl_core::ast::Expr::If(
@@ -381,17 +386,24 @@ fn hdl_struct(structure: &syn::ExprStruct) -> Result<TS> {
 }
 
 fn hdl_path(path: &syn::Path) -> Result<TS> {
+    let inner = hdl_path_inner(path)?;
+    Ok(quote! {
+    rhdl_core::ast::Expr::Path(
+        #inner
+    )
+    })
+}
+
+fn hdl_path_inner(path: &syn::Path) -> Result<TS> {
     let segments = path
         .segments
         .iter()
         .map(hdl_path_segment)
         .collect::<Result<Vec<_>>>()?;
     Ok(quote! {
-    rhdl_core::ast::Expr::Path(
         rhdl_core::ast::ExprPath {
             path: vec![#(#segments),*],
         }
-    )
     })
 }
 

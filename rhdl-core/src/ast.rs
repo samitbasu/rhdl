@@ -10,25 +10,29 @@ pub struct Block(pub Vec<Stmt>);
 
 #[derive(Debug, Clone)]
 pub struct Local {
-    pub pattern: LocalPattern,
+    pub pattern: Pattern,
     pub value: Box<Expr>,
 }
 
 #[derive(Debug, Clone)]
-pub enum LocalPattern {
-    Ident(LocalIdent),
-    Tuple(Vec<LocalPattern>),
-    TupleStruct(LocalTupleStruct),
+pub enum Pattern {
+    Ident(PatternIdent),
+    Tuple(Vec<Pattern>),
+    TupleStruct(PatternTupleStruct),
+    Lit(ExprLit),
+    Or(Vec<Pattern>),
+    Paren(Box<Pattern>),
+    Path(ExprPath),
 }
 
 #[derive(Debug, Clone)]
-pub struct LocalTupleStruct {
+pub struct PatternTupleStruct {
     pub path: Box<Expr>,
-    pub elems: Vec<LocalPattern>,
+    pub elems: Vec<Pattern>,
 }
 
 #[derive(Debug, Clone)]
-pub struct LocalIdent {
+pub struct PatternIdent {
     pub name: String,
     pub mutable: bool,
 }
@@ -91,7 +95,7 @@ pub struct ExprRepeat {
 
 #[derive(Debug, Clone)]
 pub struct ExprLet {
-    pub pattern: LocalPattern,
+    pub pattern: Pattern,
     pub value: Box<Expr>,
     pub body: Box<Expr>,
 }
@@ -176,7 +180,7 @@ pub enum UnOp {
 pub struct ExprIf {
     pub cond: Box<Expr>,
     pub then_branch: Block,
-    pub else_branch: Option<Block>,
+    pub else_branch: Option<Box<Expr>>,
 }
 
 #[derive(Debug, Clone)]
@@ -193,13 +197,6 @@ pub struct Arm {
 }
 
 #[derive(Debug, Clone)]
-pub enum Pattern {
-    Lit(ExprLit),
-    Or(Vec<Pattern>),
-    Paren(Box<Pattern>),
-}
-
-#[derive(Debug, Clone)]
 pub enum ExprLit {
     Int(String),
     Bool(bool),
@@ -213,7 +210,7 @@ pub struct ExprIndex {
 
 #[derive(Debug, Clone)]
 pub struct ExprForLoop {
-    pub pat: Box<LocalPattern>,
+    pub pat: Box<Pattern>,
     pub expr: Box<Expr>,
     pub body: Block,
 }
@@ -240,21 +237,21 @@ mod test {
         fn jnk() -> Vec<Stmt> {
             vec![
                 Stmt::Local(Local {
-                    pattern: LocalPattern::Ident(LocalIdent {
+                    pattern: Pattern::Ident(PatternIdent {
                         name: stringify!(a).to_string(),
                         mutable: false,
                     }),
                     value: Box::new(Expr::Lit(ExprLit::Int("1".to_string()))),
                 }),
                 Stmt::Local(Local {
-                    pattern: LocalPattern::Ident(LocalIdent {
+                    pattern: Pattern::Ident(PatternIdent {
                         name: stringify!(b).to_string(),
                         mutable: false,
                     }),
                     value: Box::new(Expr::Lit(ExprLit::Int("2".to_string()))),
                 }),
                 Stmt::Local(Local {
-                    pattern: LocalPattern::Ident(LocalIdent {
+                    pattern: Pattern::Ident(PatternIdent {
                         name: stringify!(c).to_string(),
                         mutable: false,
                     }),

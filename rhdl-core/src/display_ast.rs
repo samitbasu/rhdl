@@ -29,18 +29,18 @@ impl Display for Local {
     }
 }
 
-impl Display for LocalPattern {
+impl Display for Pattern {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            LocalPattern::Ident(ident) => write!(f, "{}", ident.name),
-            LocalPattern::Tuple(patterns) => {
+            Pattern::Ident(ident) => write!(f, "{}", ident.name),
+            Pattern::Tuple(patterns) => {
                 write!(f, "(")?;
                 for pattern in patterns.iter() {
                     write!(f, "{}, ", pattern)?;
                 }
                 write!(f, ")")
             }
-            LocalPattern::TupleStruct(pat) => {
+            Pattern::TupleStruct(pat) => {
                 write!(f, "{}", pat.path)?;
                 write!(f, "(")?;
                 for pattern in &pat.elems {
@@ -48,11 +48,24 @@ impl Display for LocalPattern {
                 }
                 write!(f, ")")
             }
+            Pattern::Lit(lit) => write!(f, "{}", lit),
+            Pattern::Paren(pattern) => write!(f, "({})", pattern),
+            Pattern::Or(patterns) => {
+                write!(f, "(")?;
+                for (i, pattern) in patterns.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, " | ")?;
+                    }
+                    write!(f, "{}", pattern)?;
+                }
+                write!(f, ")")
+            }
+            Pattern::Path(path) => write!(f, "{}", path),
         }
     }
 }
 
-impl Display for LocalIdent {
+impl Display for PatternIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if self.mutable {
             write!(f, "mut ")?;
@@ -274,25 +287,6 @@ impl Display for Arm {
             write!(f, " if {}", guard)?;
         }
         write!(f, " => {}", self.body)
-    }
-}
-
-impl Display for Pattern {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Pattern::Lit(lit) => write!(f, "{}", lit),
-            Pattern::Or(patterns) => {
-                write!(f, "(")?;
-                for (i, pattern) in patterns.iter().enumerate() {
-                    if i > 0 {
-                        write!(f, " | ")?;
-                    }
-                    write!(f, "{}", pattern)?;
-                }
-                write!(f, ")")
-            }
-            Pattern::Paren(pattern) => write!(f, "({})", pattern),
-        }
     }
 }
 
