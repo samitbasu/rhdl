@@ -571,6 +571,7 @@ mod tests {
         pub struct Foo {
             a: u8,
             b: u16,
+            c: [u8; 3],
         }
 
         pub enum State {
@@ -579,28 +580,61 @@ mod tests {
             Boom,
         }
 
+        pub struct Bar(pub u8, pub u8);
+
         #[kernel]
-        fn do_stuff() {
-            let a = 1;
-            let b = !2;
-            let c = a + (b - 1);
-            let q = (a, b, c);
-            let (a, b, c) = q;
-            let d = Foo { a: 1, b: 2 };
-            let e = d.a;
-            let mut d = 7;
+        fn do_stuff() -> i32 {
+            let a = 1; // Straight local assignment
+            let b = !2; // Unary operator
+            let c = a + (b - 1); // Binary operator
+            let q = (a, b, c); // Tuple valued expression
+            let (a, b, c) = q; // Tuple destructuring
+            let h = Bar(1, 2); // Tuple struct literal
+            let i = h.0; // Tuple struct field access
+            let Bar(j, k) = h; // Tuple struct destructuring
+            let d = [1, 2, 3]; // Array literal
+            let d = Foo {
+                a: 1,
+                b: 2,
+                c: [1, 2, 3],
+            }; // Struct literal
+            let h = {
+                let e = 3;
+                let f = 4;
+                e + f
+            }; // Statement expression
+            let Foo { a, b, .. } = d; // Struct destructuring
+            let g = d.c[1]; // Array indexing
+            let e = d.a; // Struct field access
+            let mut d = 7; // Mutable local
             if d > 0 {
+                // if statement
+                d = d - 1;
+                // early return
+                return d;
+            }
+            // if-else statement (and a statement expression)
+            let j = if d < 3 { 7 } else { 9 };
+            // Enum literal
+            let k = State::Boom;
+            // Enum literal with a payload
+            let l = State::Run(3);
+            // Match expression with enum variants
+            let j = match l {
+                State::Init => 1,
+                State::Run(a) => 2,
+                State::Boom => 3,
+            };
+            // For loops
+            for ndx in 0..8 {
+                d = d + ndx;
+            }
+            // while loops
+            while d > 0 {
                 d = d - 1;
             }
-            let j = if d < 3 { 7 } else { 9 };
-
-            let k = State::Boom;
-            let l = State::Run(3);
-            match l {
-                State::Init => {}
-                State::Run(a) => {}
-                State::Boom => {}
-            }
+            // block expression
+            42
         }
 
         let ast = do_stuff_hdl_kernel();

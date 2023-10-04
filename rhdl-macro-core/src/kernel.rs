@@ -1,4 +1,4 @@
-use quote::{format_ident, quote, ToTokens};
+use quote::{format_ident, quote};
 use syn::spanned::Spanned;
 type TS = proc_macro2::TokenStream;
 type Result<T> = syn::Result<T>;
@@ -123,8 +123,49 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
                 )
             })
         }
+        syn::Pat::Struct(structure) => {
+            let path = hdl_path(&structure.path)?;
+            let fields = structure
+                .fields
+                .iter()
+                .map(hdl_field_pat)
+                .collect::<Result<Vec<_>>>()?;
+            if structure.qself.is_some() {
+                return Err(syn::Error::new(
+                    structure.span(),
+                    "Unsupported qualified self in rhdl kernel function",
+                ));
+            }
+            let rest = structure.rest.is_some();
+            Ok(quote! {
+                rhdl_core::ast::Pattern::Struct(
+                    rhdl_core::ast::PatternStruct {
+                        path: Box::new(#path),
+                        fields: vec![#(#fields),*],
+                        rest: #rest,
+                    }
+                )
+            })
+        }
         _ => Err(syn::Error::new(pat.span(), "Unsupported pattern type")),
     }
+}
+
+fn hdl_field_pat(expr: &syn::FieldPat) -> Result<TS> {
+    let member = hdl_member(&expr.member)?;
+    let pat = hdl_pat(&expr.pat)?;
+    Ok(quote! {
+        rhdl_core::ast::FieldPat {
+            member: #member,
+            pat: Box::new(#pat),
+        }
+    })
+}
+
+fn hdl_pat_rest(pat: &syn::PatRest) -> Result<TS> {
+    Ok(quote! {
+        rhdl_core::ast::PatRest
+    })
 }
 
 fn hdl_expr(expr: &syn::Expr) -> Result<TS> {
@@ -150,6 +191,8 @@ fn hdl_expr(expr: &syn::Expr) -> Result<TS> {
         syn::Expr::ForLoop(expr) => hdl_for_loop(expr),
         syn::Expr::While(expr) => hdl_while_loop(expr),
         syn::Expr::Call(expr) => hdl_call(expr),
+        syn::Expr::Array(expr) => hdl_array(expr),
+        syn::Expr::Index(expr) => hdl_index(expr),
         _ => Err(syn::Error::new(
             expr.span(),
             format!(
@@ -158,6 +201,34 @@ fn hdl_expr(expr: &syn::Expr) -> Result<TS> {
             ),
         )),
     }
+}
+
+fn hdl_index(expr: &syn::ExprIndex) -> Result<TS> {
+    let index = hdl_expr(&expr.index)?;
+    let expr = hdl_expr(&expr.expr)?;
+    Ok(quote! {
+        rhdl_core::ast::Expr::Index(
+            rhdl_core::ast::ExprIndex {
+                expr: Box::new(#expr),
+                index: Box::new(#index),
+            }
+        )
+    })
+}
+
+fn hdl_array(expr: &syn::ExprArray) -> Result<TS> {
+    let elems = expr
+        .elems
+        .iter()
+        .map(hdl_expr)
+        .collect::<Result<Vec<_>>>()?;
+    Ok(quote! {
+        rhdl_core::ast::Expr::Array(
+            rhdl_core::ast::ExprArray {
+                elems: vec![#(#elems),*],
+            }
+        )
+    })
 }
 
 fn hdl_call(expr: &syn::ExprCall) -> Result<TS> {
@@ -175,12 +246,12 @@ fn hdl_call(expr: &syn::ExprCall) -> Result<TS> {
 
 fn hdl_for_loop(expr: &syn::ExprForLoop) -> Result<TS> {
     let pat = hdl_pat(&expr.pat)?;
-    let body = hdl_block(&expr.body)?;
+    let body = hdl_block_inner(&expr.body)?;
     let expr = hdl_expr(&expr.expr)?;
     Ok(quote! {
         rhdl_core::ast::Expr::ForLoop(
             rhdl_core::ast::ExprForLoop {
-                pat: #pat,
+                pat: Box::new(#pat),
                 expr: Box::new(#expr),
                 body: #body,
             }
@@ -190,7 +261,7 @@ fn hdl_for_loop(expr: &syn::ExprForLoop) -> Result<TS> {
 
 fn hdl_while_loop(expr: &syn::ExprWhile) -> Result<TS> {
     let cond = hdl_expr(&expr.cond)?;
-    let body = hdl_block(&expr.body)?;
+    let body = hdl_block_inner(&expr.body)?;
     Ok(quote! {
         rhdl_core::ast::Expr::While(
             rhdl_core::ast::ExprWhile {
