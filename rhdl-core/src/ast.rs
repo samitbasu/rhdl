@@ -23,6 +23,14 @@ pub enum Pattern {
     Or(Vec<Pattern>),
     Paren(Box<Pattern>),
     Path(ExprPath),
+    Struct(PatternStruct),
+}
+
+#[derive(Debug, Clone)]
+pub struct PatternStruct {
+    pub path: Box<Expr>,
+    pub fields: Vec<FieldPat>,
+    pub rest: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -226,6 +234,12 @@ pub struct ExprRange {
 pub enum RangeLimits {
     HalfOpen,
     Closed,
+}
+
+#[derive(Debug, Clone)]
+pub struct FieldPat {
+    pub member: Member,
+    pub pat: Box<Pattern>,
 }
 
 #[cfg(test)]

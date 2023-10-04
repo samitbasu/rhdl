@@ -61,6 +61,7 @@ impl Display for Pattern {
                 write!(f, ")")
             }
             Pattern::Path(path) => write!(f, "{}", path),
+            Pattern::Struct(structure) => write!(f, "{}", structure),
         }
     }
 }
@@ -71,6 +72,25 @@ impl Display for PatternIdent {
             write!(f, "mut ")?;
         }
         write!(f, "{}", self.name)
+    }
+}
+
+impl Display for PatternStruct {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{", self.path)?;
+        for field in self.fields.iter() {
+            write!(f, "{}, ", field)?;
+        }
+        if self.rest {
+            write!(f, "..")?;
+        }
+        write!(f, "}}")
+    }
+}
+
+impl Display for FieldPat {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.member, self.pat)
     }
 }
 
