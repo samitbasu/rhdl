@@ -1,3 +1,5 @@
+use crate::Kind;
+
 #[derive(Debug, Clone)]
 pub enum Stmt {
     Local(Local),
@@ -24,6 +26,13 @@ pub enum Pattern {
     Paren(Box<Pattern>),
     Path(ExprPath),
     Struct(PatternStruct),
+    Type(PatternType),
+}
+
+#[derive(Debug, Clone)]
+pub struct PatternType {
+    pub pattern: Box<Pattern>,
+    pub kind: Kind,
 }
 
 #[derive(Debug, Clone)]
@@ -31,6 +40,7 @@ pub struct PatternStruct {
     pub path: Box<Expr>,
     pub fields: Vec<FieldPat>,
     pub rest: bool,
+    pub kind: Kind,
 }
 
 #[derive(Debug, Clone)]
@@ -69,6 +79,14 @@ pub enum Expr {
     Repeat(ExprRepeat),
     Struct(ExprStruct),
     Call(ExprCall),
+    MethodCall(ExprMethodCall),
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprMethodCall {
+    pub receiver: Box<Expr>,
+    pub args: Vec<Expr>,
+    pub method: String,
 }
 
 #[derive(Debug, Clone)]
@@ -87,6 +105,7 @@ pub struct ExprStruct {
     pub path: Box<Expr>,
     pub fields: Vec<FieldValue>,
     pub rest: Option<Box<Expr>>,
+    pub kind: Kind,
 }
 
 #[derive(Debug, Clone)]
@@ -240,50 +259,4 @@ pub enum RangeLimits {
 pub struct FieldPat {
     pub member: Member,
     pub pat: Box<Pattern>,
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn example_fn() {
-        fn jnk() -> Vec<Stmt> {
-            vec![
-                Stmt::Local(Local {
-                    pattern: Pattern::Ident(PatternIdent {
-                        name: stringify!(a).to_string(),
-                        mutable: false,
-                    }),
-                    value: Box::new(Expr::Lit(ExprLit::Int("1".to_string()))),
-                }),
-                Stmt::Local(Local {
-                    pattern: Pattern::Ident(PatternIdent {
-                        name: stringify!(b).to_string(),
-                        mutable: false,
-                    }),
-                    value: Box::new(Expr::Lit(ExprLit::Int("2".to_string()))),
-                }),
-                Stmt::Local(Local {
-                    pattern: Pattern::Ident(PatternIdent {
-                        name: stringify!(c).to_string(),
-                        mutable: false,
-                    }),
-                    value: Box::new(Expr::Binary(ExprBinary {
-                        op: BinOp::Add,
-                        lhs: Box::new(Expr::Path(ExprPath {
-                            path: vec![stringify!(a).to_string()],
-                        })),
-                        rhs: Box::new(Expr::Path(ExprPath {
-                            path: vec![stringify!(b).to_string()],
-                        })),
-                    })),
-                }),
-                Stmt::Expr(Expr::Path(ExprPath {
-                    path: vec![stringify!(c).to_string()],
-                })),
-            ]
-        }
-        println!("{:#?}", jnk());
-    }
 }

@@ -34,27 +34,28 @@ fn test_color_case() {
         r: b8::from(0b10101010),
         g: b8::from(0b11010101),
         b: b8::from(0b11110000),
-    };
+    }
+    .typed_bits();
     assert_eq!(
         foo.path(&[Path::EnumPayload("Color"), Path::Field("g")])
             .unwrap()
-            .0,
+            .bits,
         b8::from(0b11010101).bin()
     );
     assert_eq!(
         foo.path(&[Path::EnumPayload("Color"), Path::Field("g")])
             .unwrap()
-            .1,
+            .kind,
         Kind::make_bits(8)
     );
     assert_eq!(
         foo.path(&[Path::EnumPayload("Color"), Path::Field("r")])
             .unwrap()
-            .0,
+            .bits,
         b8::from(0b10101010).bin()
     );
     assert_eq!(
-        foo.path(&[Path::EnumDiscriminant]).unwrap().0,
+        foo.path(&[Path::EnumDiscriminant]).unwrap().bits,
         b5::from(0b00001).bin()
     );
 }
@@ -64,61 +65,62 @@ fn test_size_case() {
     let foo = Packet::Size {
         w: b16::from(0b1010101010101010),
         h: b16::from(0b1101010110101010),
-    };
+    }
+    .typed_bits();
     assert_eq!(
         foo.path(&[Path::EnumPayload("Size"), Path::Field("w")])
             .unwrap()
-            .0,
+            .bits,
         b16::from(0b1010101010101010).bin()
     );
     assert_eq!(
         foo.path(&[Path::EnumPayload("Size"), Path::Field("w")])
             .unwrap()
-            .1,
+            .kind,
         Kind::make_bits(16)
     );
     assert_eq!(
         foo.path(&[Path::EnumPayload("Size"), Path::Field("h")])
             .unwrap()
-            .0,
+            .bits,
         b16::from(0b1101010110101010).bin()
     );
     assert_eq!(
-        foo.path(&[Path::EnumDiscriminant]).unwrap().0,
+        foo.path(&[Path::EnumDiscriminant]).unwrap().bits,
         b5::from(0b00010).bin()
     );
 }
 
 #[test]
 fn test_position_case() {
-    let foo = Packet::Position(b4::from(0b1010), b4::from(0b1101));
+    let foo = Packet::Position(b4::from(0b1010), b4::from(0b1101)).typed_bits();
     assert_eq!(
         foo.path(&[Path::EnumPayload("Position"), Path::Index(0)])
             .unwrap()
-            .0,
+            .bits,
         b4::from(0b1010).bin()
     );
     assert_eq!(
         foo.path(&[Path::EnumPayload("Position"), Path::Index(0)])
             .unwrap()
-            .1,
+            .kind,
         Kind::make_bits(4)
     );
     assert_eq!(
         foo.path(&[Path::EnumPayload("Position"), Path::Index(1)])
             .unwrap()
-            .0,
+            .bits,
         b4::from(0b1101).bin()
     );
     assert_eq!(
-        foo.path(&[Path::EnumDiscriminant]).unwrap().0,
+        foo.path(&[Path::EnumDiscriminant]).unwrap().bits,
         b5::from(0b00100).bin()
     );
 }
 
 #[test]
 fn test_state_case() {
-    let packet = Packet::State(State::Boom);
+    let packet = Packet::State(State::Boom).typed_bits();
     assert_eq!(
         packet
             .path(&[
@@ -127,14 +129,14 @@ fn test_state_case() {
                 Path::EnumDiscriminant
             ])
             .unwrap()
-            .0,
+            .bits,
         s3::from(2).bin()
     );
     assert_eq!(
-        packet.path(&[Path::EnumDiscriminant]).unwrap().0,
+        packet.path(&[Path::EnumDiscriminant]).unwrap().bits,
         b5::from(0b01000).bin()
     );
-    let packet = Packet::State(State::Init);
+    let packet = Packet::State(State::Init).typed_bits();
     assert_eq!(
         packet
             .path(&[
@@ -143,7 +145,7 @@ fn test_state_case() {
                 Path::EnumDiscriminant
             ])
             .unwrap()
-            .0,
+            .bits,
         s3::from(-2).bin()
     );
 }
@@ -156,12 +158,13 @@ fn test_nested_struct_case() {
             level: b8::from(0xBA),
             active: true,
         },
-    };
+    }
+    .typed_bits();
     assert_eq!(
         packet
             .path(&[Path::EnumPayload("Log"), Path::Field("msg")])
             .unwrap()
-            .0,
+            .bits,
         b32::from(0xDEAD_BEEF).bin()
     );
     assert_eq!(
@@ -172,7 +175,7 @@ fn test_nested_struct_case() {
                 Path::Field("active")
             ])
             .unwrap()
-            .0,
+            .bits,
         b1::from(1).bin()
     );
     assert_eq!(
@@ -183,7 +186,7 @@ fn test_nested_struct_case() {
                 Path::Field("level")
             ])
             .unwrap()
-            .0,
+            .bits,
         b8::from(0xBA).bin()
     )
 }

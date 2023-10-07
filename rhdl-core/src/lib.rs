@@ -23,3 +23,4 @@ pub use kind::text_grid;
 pub mod ast;
 pub mod display_ast;
 pub mod path;
+pub mod rhif;

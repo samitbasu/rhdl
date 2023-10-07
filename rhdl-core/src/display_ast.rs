@@ -62,7 +62,14 @@ impl Display for Pattern {
             }
             Pattern::Path(path) => write!(f, "{}", path),
             Pattern::Struct(structure) => write!(f, "{}", structure),
+            Pattern::Type(type_) => write!(f, "{}", type_),
         }
+    }
+}
+
+impl Display for PatternType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {:?}", self.pattern, self.kind)
     }
 }
 
@@ -124,12 +131,26 @@ impl Display for Expr {
             Expr::Block(block) => write!(f, "{}", block),
             Expr::Array(array) => write!(f, "{}", array),
             Expr::Range(range) => write!(f, "{}", range),
-            Expr::Path(path) => write!(f, "{}", path),
+            Expr::Path(path) => write!(f, "<<{}>>", path),
             Expr::Let(let_) => write!(f, "{}", let_),
             Expr::Repeat(repeat) => write!(f, "{}", repeat),
             Expr::Struct(struct_) => write!(f, "{}", struct_),
             Expr::Call(call) => write!(f, "{}", call),
+            Expr::MethodCall(method_call) => write!(f, "{}", method_call),
         }
+    }
+}
+
+impl Display for ExprMethodCall {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}(", self.receiver, self.method)?;
+        for (i, arg) in self.args.iter().enumerate() {
+            if i > 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "{}", arg)?;
+        }
+        write!(f, ")")
     }
 }
 
