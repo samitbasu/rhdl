@@ -14,6 +14,7 @@ pub use rhdl_macro::Digital;
 #[cfg(test)]
 mod tests {
 
+    use rhdl_bits::bits;
     use rhdl_core::{
         path::{bit_range, Path},
         DiscriminantAlignment, Logger,
@@ -568,24 +569,28 @@ mod tests {
 
     #[test]
     fn test_ast_basic_func() {
+        use rhdl_bits::alias::*;
+        #[derive(PartialEq, Copy, Clone, Digital)]
         pub struct Foo {
             a: u8,
             b: u16,
             c: [u8; 3],
         }
 
+        #[derive(PartialEq, Copy, Clone, Digital)]
         pub enum State {
             Init,
             Run(u8),
             Boom,
         }
 
+        #[derive(PartialEq, Copy, Clone, Digital)]
         pub struct Bar(pub u8, pub u8);
 
         #[kernel]
-        fn do_stuff() -> i32 {
-            let a = 1; // Straight local assignment
-            let b = !2; // Unary operator
+        fn do_stuff() -> b8 {
+            let a: b4 = bits(1); // Straight local assignment
+            let b = !a; // Unary operator
             let c = a + (b - 1); // Binary operator
             let q = (a, b, c); // Tuple valued expression
             let (a, b, c) = q; // Tuple destructuring
@@ -606,15 +611,15 @@ mod tests {
             let Foo { a, b, .. } = d; // Struct destructuring
             let g = d.c[1]; // Array indexing
             let e = d.a; // Struct field access
-            let mut d = 7; // Mutable local
-            if d > 0 {
+            let mut d: b8 = bits(7); // Mutable local
+            if d > bits(0) {
                 // if statement
-                d = d - 1;
+                d = d - bits(1);
                 // early return
                 return d;
             }
             // if-else statement (and a statement expression)
-            let j = if d < 3 { 7 } else { 9 };
+            let j = if d < 3.into() { 7 } else { 9 };
             // Enum literal
             let k = State::Boom;
             // Enum literal with a payload
@@ -627,14 +632,14 @@ mod tests {
             };
             // For loops
             for ndx in 0..8 {
-                d = d + ndx;
+                d = d + bits(ndx);
             }
             // while loops
-            while d > 0 {
+            while d > bits(0) {
                 d = d - 1;
             }
             // block expression
-            42
+            bits(42)
         }
 
         let ast = do_stuff_hdl_kernel();

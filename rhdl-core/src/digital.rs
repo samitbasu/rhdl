@@ -48,6 +48,12 @@ pub trait Digital: Copy + PartialEq + Sized + Clone {
         Self::static_kind()
     }
     fn bin(self) -> Vec<bool>;
+    fn typed_bits(self) -> TypedBits {
+        TypedBits {
+            bits: self.bin(),
+            kind: self.kind(),
+        }
+    }
     fn binary_string(self) -> String {
         self.bin()
             .iter()
@@ -55,15 +61,25 @@ pub trait Digital: Copy + PartialEq + Sized + Clone {
             .map(|b| if *b { '1' } else { '0' })
             .collect()
     }
-    fn path(self, path: &[Path]) -> anyhow::Result<(Vec<bool>, Kind)> {
-        let (range, kind) = bit_range(self.kind(), path)?;
-        dbg!(self.binary_string());
-        dbg!(&range);
-        Ok((self.bin()[range].to_vec(), kind))
-    }
     fn allocate<T: Digital>(tag: TagID<T>, builder: impl LogBuilder);
     fn record<T: Digital>(&self, tag: TagID<T>, logger: impl LoggerImpl);
     fn skip<T: Digital>(tag: TagID<T>, logger: impl LoggerImpl);
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TypedBits {
+    pub bits: Vec<bool>,
+    pub kind: Kind,
+}
+
+impl TypedBits {
+    pub fn path(&self, path: &[Path]) -> anyhow::Result<TypedBits> {
+        let (range, kind) = bit_range(self.kind.clone(), path)?;
+        Ok(TypedBits {
+            bits: self.bits[range].to_vec(),
+            kind,
+        })
+    }
 }
 
 impl Digital for bool {

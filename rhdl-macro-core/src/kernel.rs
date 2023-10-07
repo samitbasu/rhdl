@@ -84,7 +84,7 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
                 rhdl_core::ast::Pattern::Ident(
                     rhdl_core::ast::PatternIdent{
                         name: stringify!(#name).to_string(),
-                        mutable: #mutability
+                        mutable: #mutability,
                     }
                 )
             })
@@ -100,7 +100,7 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
                 rhdl_core::ast::Pattern::TupleStruct(
                     rhdl_core::ast::PatternTupleStruct{
                         path: Box::new(#path),
-                        elems: vec![#(#elems),*]
+                        elems: vec![#(#elems),*],
                     }
                 )
             })
@@ -124,6 +124,7 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
             })
         }
         syn::Pat::Struct(structure) => {
+            let save_path = &structure.path;
             let path = hdl_path(&structure.path)?;
             let fields = structure
                 .fields
@@ -143,6 +144,20 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
                         path: Box::new(#path),
                         fields: vec![#(#fields),*],
                         rest: #rest,
+                        kind: <#save_path as rhdl_core::Digital>::static_kind(),
+                    }
+                )
+            })
+        }
+        syn::Pat::Type(pat) => {
+            let ty = &pat.ty;
+            let pat = hdl_pat(&pat.pat)?;
+            let kind = quote! {<#ty as rhdl_core::Digital>::static_kind()};
+            Ok(quote! {
+                rhdl_core::ast::Pattern::Type(
+                    rhdl_core::ast::PatternType {
+                        pattern: Box::new(#pat),
+                        kind: #kind,
                     }
                 )
             })
@@ -193,6 +208,7 @@ fn hdl_expr(expr: &syn::Expr) -> Result<TS> {
         syn::Expr::Call(expr) => hdl_call(expr),
         syn::Expr::Array(expr) => hdl_array(expr),
         syn::Expr::Index(expr) => hdl_index(expr),
+        syn::Expr::MethodCall(expr) => hdl_method_call(expr),
         _ => Err(syn::Error::new(
             expr.span(),
             format!(
@@ -201,6 +217,21 @@ fn hdl_expr(expr: &syn::Expr) -> Result<TS> {
             ),
         )),
     }
+}
+
+fn hdl_method_call(expr: &syn::ExprMethodCall) -> Result<TS> {
+    let receiver = hdl_expr(&expr.receiver)?;
+    let args = expr.args.iter().map(hdl_expr).collect::<Result<Vec<_>>>()?;
+    let method = &expr.method;
+    Ok(quote! {
+        rhdl_core::ast::Expr::MethodCall(
+            rhdl_core::ast::ExprMethodCall {
+                receiver: Box::new(#receiver),
+                args: vec![#(#args),*],
+                method: stringify!(#method).to_string(),
+            }
+        )
+    })
 }
 
 fn hdl_index(expr: &syn::ExprIndex) -> Result<TS> {
@@ -427,6 +458,7 @@ fn hdl_if(expr: &syn::ExprIf) -> Result<TS> {
 }
 
 fn hdl_struct(structure: &syn::ExprStruct) -> Result<TS> {
+    let save_path = &structure.path;
     let path = hdl_path(&structure.path)?;
     let fields = structure
         .fields
@@ -451,6 +483,7 @@ fn hdl_struct(structure: &syn::ExprStruct) -> Result<TS> {
                 path: Box::new(#path),
                 fields: vec![#(#fields),*],
                 rest: #rest,
+                kind: <#save_path as rhdl_core::Digital>::static_kind(),
             }
         )
     })
@@ -710,6 +743,19 @@ mod test {
         };
         let match_expr = syn::parse2::<syn::Stmt>(test_code).unwrap();
         let result = stmt(&match_expr).unwrap();
+        let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
+        //        let result = result.replace("rhdl_core :: ast :: ", "");
+        let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
+        println!("{}", result);
+    }
+
+    #[test]
+    fn test_self_update() {
+        let test_code = quote! {
+            let a: b4 = bits(3);
+        };
+        let assign = syn::parse2::<syn::Stmt>(test_code).unwrap();
+        let result = stmt(&assign).unwrap();
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         //        let result = result.replace("rhdl_core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
