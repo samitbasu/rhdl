@@ -3,8 +3,8 @@ use crate::Kind;
 #[derive(Debug, Clone)]
 pub enum Stmt {
     Local(Local),
-    Expr(Expr),
-    Semi(Expr),
+    Expr(ExprStatement),
+    Semi(ExprStatement),
 }
 
 #[derive(Debug, Clone)]
@@ -14,6 +14,13 @@ pub struct Block(pub Vec<Stmt>);
 pub struct Local {
     pub pattern: Pattern,
     pub value: Box<Expr>,
+    pub text: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprStatement {
+    pub expr: Expr,
+    pub text: Option<String>,
 }
 
 #[derive(Debug, Clone)]
