@@ -16,8 +16,8 @@ mod tests {
 
     use rhdl_bits::bits;
     use rhdl_core::{
+        compiler::Compiler,
         path::{bit_range, Path},
-        rhif::{expr_block, Context},
         DiscriminantAlignment, Logger,
     };
 
@@ -659,20 +659,30 @@ mod tests {
 
         #[kernel]
         fn do_stuff(mut a: Foo) {
+            let q: u8 = 4;
+            a.c[1] = q + 3;
             a.b = 2 + 3;
             a.b = {
                 7 + 9;
                 5 + !8
             };
+            a.a = if 1 > 3 {
+                7
+            } else {
+                {
+                    a.b = 1;
+                    a.b = 4;
+                }
+                9
+            };
         }
 
         let ast = do_stuff_hdl_kernel();
         println!("{}", ast);
-        let mut ctx = Context::default();
+        let mut ctx = Compiler::default();
         ctx.bind("a");
-        expr_block(&mut ctx, ast).unwrap();
-        for opcode in ctx.code {
-            println!("{}", opcode);
-        }
+        let lhs = ctx.compile(ast).unwrap();
+        println!("Code:");
+        println!("{}", ctx);
     }
 }

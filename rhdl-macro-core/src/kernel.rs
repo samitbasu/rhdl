@@ -40,13 +40,28 @@ fn stmt(statement: &syn::Stmt) -> Result<TS> {
         syn::Stmt::Local(local) => stmt_local(local),
         syn::Stmt::Expr(expr, semi) => {
             let expr = hdl_expr(expr)?;
+            let span_text = statement
+                .span()
+                .source_text()
+                .map(|x| quote! {Some(#x.to_string())})
+                .unwrap_or_else(|| quote! {None});
             if semi.is_some() {
                 Ok(quote! {
-                    rhdl_core::ast::Stmt::Semi(#expr)
+                    rhdl_core::ast::Stmt::Semi(
+                        rhdl_core::ast::ExprStatement {
+                            expr: #expr,
+                            text: #span_text
+                        }
+                    )
                 })
             } else {
                 Ok(quote! {
-                    rhdl_core::ast::Stmt::Expr(#expr)
+                    rhdl_core::ast::Stmt::Expr(
+                        rhdl_core::ast::ExprStatement {
+                            expr: #expr,
+                            text: #span_text
+                        }
+                    )
                 })
             }
         }
@@ -64,8 +79,13 @@ fn stmt_local(local: &syn::Local) -> Result<TS> {
         .as_ref()
         .map(|x| hdl_expr(&x.expr))
         .ok_or_else(|| syn::Error::new(local.span(), "Unsupported local declaration"))??;
+    let text = local
+        .span()
+        .source_text()
+        .map(|x| quote! {Some(#x.to_string())})
+        .unwrap_or(quote! {None});
     Ok(quote! {
-        rhdl_core::ast::Stmt::Local(rhdl_core::ast::Local{pattern: #pattern, value: Box::new(#local_init)})
+        rhdl_core::ast::Stmt::Local(rhdl_core::ast::Local{pattern: #pattern, value: Box::new(#local_init), text: #text})
     })
 }
 

@@ -12,6 +12,12 @@ impl Display for Stmt {
     }
 }
 
+impl Display for ExprStatement {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} ({:?})", self.expr, self.text)
+    }
+}
+
 impl Display for Block {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "{{")?;
