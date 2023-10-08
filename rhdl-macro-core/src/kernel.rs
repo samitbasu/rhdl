@@ -752,7 +752,7 @@ mod test {
     #[test]
     fn test_self_update() {
         let test_code = quote! {
-            let a: b4 = bits(3);
+            (a,b,c) = 3;
         };
         let assign = syn::parse2::<syn::Stmt>(test_code).unwrap();
         let result = stmt(&assign).unwrap();

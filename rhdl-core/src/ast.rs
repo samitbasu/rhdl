@@ -223,7 +223,7 @@ pub struct Arm {
     pub body: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ExprLit {
     Int(String),
     Bool(bool),
