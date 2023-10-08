@@ -17,6 +17,7 @@ mod tests {
     use rhdl_bits::bits;
     use rhdl_core::{
         path::{bit_range, Path},
+        rhif::{expr_block, Context},
         DiscriminantAlignment, Logger,
     };
 
@@ -644,5 +645,34 @@ mod tests {
 
         let ast = do_stuff_hdl_kernel();
         println!("{}", ast);
+    }
+
+    #[test]
+    fn test_compile() {
+        use rhdl_bits::alias::*;
+        #[derive(PartialEq, Copy, Clone, Digital)]
+        pub struct Foo {
+            a: u8,
+            b: u16,
+            c: [u8; 3],
+        }
+
+        #[kernel]
+        fn do_stuff(mut a: Foo) {
+            a.b = 2 + 3;
+            a.b = {
+                7 + 9;
+                5 + !8
+            };
+        }
+
+        let ast = do_stuff_hdl_kernel();
+        println!("{}", ast);
+        let mut ctx = Context::default();
+        ctx.bind("a");
+        expr_block(&mut ctx, ast).unwrap();
+        for opcode in ctx.code {
+            println!("{}", opcode);
+        }
     }
 }

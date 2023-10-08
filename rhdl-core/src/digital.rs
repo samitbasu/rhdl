@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use rhdl_bits::{Bits, SignedBits};
 
 use crate::{
