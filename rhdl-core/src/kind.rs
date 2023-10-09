@@ -1,5 +1,7 @@
 use std::{iter::repeat, ops::Range};
 
+use anyhow::Result;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Kind {
     Array(Array),
@@ -146,6 +148,12 @@ impl Kind {
                 }
             },
             _ => bits.collect(),
+        }
+    }
+    pub fn get_tuple_kind(&self, ndx: usize) -> Result<Kind> {
+        match self {
+            Kind::Tuple(tuple) => Ok(tuple.elements[ndx].clone()),
+            _ => Err(anyhow::anyhow!("Not a tuple")),
         }
     }
 }

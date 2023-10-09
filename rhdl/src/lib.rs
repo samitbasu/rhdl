@@ -661,7 +661,9 @@ mod tests {
         fn do_stuff(mut a: Foo) {
             let q: u8 = 4;
             a.c[1] = q + 3;
-            a.b = 2 + 3;
+            let q = (1, 0, 6);
+            let (q0, q1, q2): (u8, u8, u16) = q; // Tuple destructuring
+            a.a = 2 + 3 + q1;
             a.b = {
                 7 + 9;
                 5 + !8
@@ -677,6 +679,7 @@ mod tests {
             };
         }
 
+        let a: b4 = bits(3);
         let ast = do_stuff_hdl_kernel();
         println!("{}", ast);
         let mut ctx = Compiler::default();

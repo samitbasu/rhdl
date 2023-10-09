@@ -1,13 +1,8 @@
 // RHDL Intermediate Form (RHIF).
-use crate::ast;
-use crate::ast::{BinOp, UnOp};
 
-use std::cell::Ref;
-use std::fmt::Display;
-use std::{collections::HashMap, ops::Range};
+use anyhow::Result;
 
-use crate::{ast::ExprLit, digital::TypedBits};
-use anyhow::{bail, Result};
+use crate::ast::ExprLit;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum OpCode {
@@ -189,6 +184,14 @@ pub enum Slot {
     Literal(ExprLit),
     Register(usize),
     Empty,
+}
+impl Slot {
+    pub fn reg(&self) -> Result<usize> {
+        match self {
+            Slot::Register(r) => Ok(*r),
+            _ => Err(anyhow::anyhow!("Not a register")),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
 use crate::rhif::{
-    AluBinary, AluUnary, AssignOp, BinaryOp, BlockId, CopyOp, FieldRefOp, IfOp, IndexRefOp, Member,
-    OpCode, RefOp, Slot, UnaryOp,
+    AluBinary, AluUnary, AssignOp, BinaryOp, BlockId, CopyOp, FieldOp, FieldRefOp, IfOp,
+    IndexRefOp, Member, OpCode, RefOp, Slot, TupleOp, UnaryOp,
 };
 
 impl Display for OpCode {
@@ -17,8 +17,29 @@ impl Display for OpCode {
             OpCode::If(op) => write!(f, "{}", op),
             OpCode::Call(block) => write!(f, "sub {}", block),
             OpCode::Copy(op) => write!(f, "{}", op),
+            OpCode::Tuple(op) => write!(f, "{}", op),
+            OpCode::Field(op) => write!(f, "{}", op),
             _ => todo!("opcode {:?}", self),
         }
+    }
+}
+
+impl Display for FieldOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, " {} <- {}.{}", self.lhs, self.arg, self.member)
+    }
+}
+
+impl Display for TupleOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, " {} <- (", self.lhs)?;
+        for (i, arg) in self.fields.iter().enumerate() {
+            if i != 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "{}", arg)?;
+        }
+        write!(f, ")")
     }
 }
 
