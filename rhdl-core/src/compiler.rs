@@ -3,8 +3,8 @@ use std::{collections::HashMap, fmt::Display};
 
 use crate::ast::{self, BinOp, UnOp};
 use crate::rhif::{
-    AluBinary, AluUnary, AssignOp, BinaryOp, BlockId, CopyOp, FieldRefOp, IfOp, IndexRefOp, Member,
-    OpCode, RefOp, Slot, UnaryOp,
+    AluBinary, AluUnary, AssignOp, BinaryOp, BlockId, CopyOp, FieldOp, FieldRefOp, IfOp,
+    IndexRefOp, Member, OpCode, RefOp, Slot, TupleOp, UnaryOp,
 };
 use crate::Kind;
 use anyhow::bail;
@@ -141,8 +141,22 @@ impl Compiler {
                 }
                 Ok(self.get_reference(path.path.last().unwrap())?)
             }
+            ast::Expr::Tuple(tuple) => self.tuple(&tuple),
             _ => todo!("expr {:?}", expr_),
         }
+    }
+
+    fn tuple(&mut self, tuple: &[ast::Expr]) -> Result<Slot> {
+        let lhs = self.reg();
+        let mut fields = vec![];
+        for expr in tuple {
+            fields.push(self.expr(expr.clone())?);
+        }
+        self.op(OpCode::Tuple(TupleOp {
+            lhs: lhs.clone(),
+            fields,
+        }));
+        Ok(lhs)
     }
 
     pub fn expr_lhs(&mut self, expr_: ast::Expr) -> Result<Slot> {
@@ -189,7 +203,6 @@ impl Compiler {
     }
 
     pub fn stmt(&mut self, statement: ast::Stmt) -> Result<Slot> {
-        dbg!(&statement);
         match statement {
             ast::Stmt::Local(local) => {
                 self.local(local)?;
@@ -204,28 +217,70 @@ impl Compiler {
     }
 
     fn local(&mut self, local: ast::Local) -> Result<()> {
-        let lhs = self.let_pattern(local.pattern)?;
         let rhs = self.expr(*local.value)?;
-        self.op(OpCode::Copy(CopyOp { lhs, rhs }));
+        self.let_pattern(local.pattern, rhs)?;
         Ok(())
     }
 
-    fn let_pattern(&mut self, pattern: ast::Pattern) -> Result<Slot> {
+    // Some observations.
+    // A type designation must appear outermost.  So if we have
+    // something like:
+    //  let (a, b, c) : ty = foo
+    // this is legal, but
+    //  let (a: ty, b: ty, c: ty) = foo
+    // is not legal.
+    //
+    // In some ways, (a, b, c) is sort of like a shadow type declaration.
+    // We could just as well devise an anonymous Tuple Struct named "Foo",
+    // and then write:
+    //   let Foo(a, b, c) = foo
+
+    fn let_pattern(&mut self, pattern: ast::Pattern, rhs: Slot) -> Result<()> {
+        if let ast::Pattern::Type(ty) = pattern {
+            self.let_pattern_inner(*ty.pattern, Some(ty.kind), rhs)
+        } else {
+            self.let_pattern_inner(pattern, None, rhs)
+        }
+    }
+
+    fn let_pattern_inner(
+        &mut self,
+        pattern: ast::Pattern,
+        ty: Option<Kind>,
+        rhs: Slot,
+    ) -> Result<()> {
         match pattern {
             ast::Pattern::Ident(ident) => {
                 let lhs = self.bind(&ident.name);
-                Ok(lhs)
+                if let Some(ty) = ty {
+                    self.types.insert(lhs.reg()?, ty);
+                }
+                self.op(OpCode::Copy(CopyOp {
+                    lhs: lhs.clone(),
+                    rhs,
+                }));
+                Ok(())
             }
-            ast::Pattern::Type(ty) => {
-                let lhs = self.let_pattern(*ty.pattern)?;
-                if let Slot::Register(ndx) = lhs {
-                    self.types.insert(ndx, ty.kind);
-                } else {
-                    bail!("Invalid pattern for type")
-                };
-                Ok(lhs)
+            ast::Pattern::Tuple(tuple) => {
+                for (ndx, pat) in tuple.into_iter().enumerate() {
+                    let element_rhs = self.reg();
+                    self.op(OpCode::Field(FieldOp {
+                        lhs: element_rhs.clone(),
+                        arg: rhs.clone(),
+                        member: Member::Unnamed(ndx as u32),
+                    }));
+                    let element_ty = if let Some(ty) = ty.as_ref() {
+                        let sub_ty = ty.get_tuple_kind(ndx)?;
+                        self.types.insert(element_rhs.reg()?, sub_ty.clone());
+                        Some(sub_ty)
+                    } else {
+                        None
+                    };
+                    self.let_pattern_inner(pat, element_ty, element_rhs)?;
+                }
+                Ok(())
             }
-            _ => todo!("let {:?}", pattern),
+            _ => todo!("Unsupported let pattern {:?}", pattern),
         }
     }
 
