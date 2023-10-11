@@ -78,14 +78,16 @@ fn stmt_local(local: &syn::Local) -> Result<TS> {
         .init
         .as_ref()
         .map(|x| hdl_expr(&x.expr))
-        .ok_or_else(|| syn::Error::new(local.span(), "Unsupported local declaration"))??;
+        .transpose()?
+        .map(|x| quote!(Some(Box::new(#x))))
+        .unwrap_or(quote! {None});
     let text = local
         .span()
         .source_text()
         .map(|x| quote! {Some(#x.to_string())})
         .unwrap_or(quote! {None});
     Ok(quote! {
-        rhdl_core::ast::Stmt::Local(rhdl_core::ast::Local{pattern: #pattern, value: Box::new(#local_init), text: #text})
+        rhdl_core::ast::Stmt::Local(rhdl_core::ast::Local{pattern: #pattern, value: #local_init, text: #text})
     })
 }
 
