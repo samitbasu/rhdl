@@ -13,7 +13,7 @@ pub struct Block(pub Vec<Stmt>);
 #[derive(Debug, Clone)]
 pub struct Local {
     pub pattern: Pattern,
-    pub value: Box<Expr>,
+    pub value: Option<Box<Expr>>,
     pub text: Option<String>,
 }
 

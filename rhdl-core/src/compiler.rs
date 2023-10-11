@@ -217,7 +217,7 @@ impl Compiler {
     }
 
     fn local(&mut self, local: ast::Local) -> Result<()> {
-        let rhs = self.expr(*local.value)?;
+        let rhs = local.value.map(|x| self.expr(*x)).transpose()?;
         self.let_pattern(local.pattern, rhs)?;
         Ok(())
     }
@@ -235,7 +235,7 @@ impl Compiler {
     // and then write:
     //   let Foo(a, b, c) = foo
 
-    fn let_pattern(&mut self, pattern: ast::Pattern, rhs: Slot) -> Result<()> {
+    fn let_pattern(&mut self, pattern: ast::Pattern, rhs: Option<Slot>) -> Result<()> {
         if let ast::Pattern::Type(ty) = pattern {
             self.let_pattern_inner(*ty.pattern, Some(ty.kind), rhs)
         } else {
@@ -247,7 +247,7 @@ impl Compiler {
         &mut self,
         pattern: ast::Pattern,
         ty: Option<Kind>,
-        rhs: Slot,
+        rhs: Option<Slot>,
     ) -> Result<()> {
         match pattern {
             ast::Pattern::Ident(ident) => {
@@ -255,28 +255,36 @@ impl Compiler {
                 if let Some(ty) = ty {
                     self.types.insert(lhs.reg()?, ty);
                 }
-                self.op(OpCode::Copy(CopyOp {
-                    lhs: lhs.clone(),
-                    rhs,
-                }));
+                if let Some(rhs) = rhs {
+                    self.op(OpCode::Copy(CopyOp {
+                        lhs: lhs.clone(),
+                        rhs,
+                    }));
+                }
                 Ok(())
             }
             ast::Pattern::Tuple(tuple) => {
                 for (ndx, pat) in tuple.into_iter().enumerate() {
-                    let element_rhs = self.reg();
-                    self.op(OpCode::Field(FieldOp {
-                        lhs: element_rhs.clone(),
-                        arg: rhs.clone(),
-                        member: Member::Unnamed(ndx as u32),
-                    }));
+                    let element_lhs = self.reg();
+                    if let Some(rhs) = rhs.clone() {
+                        self.op(OpCode::Field(FieldOp {
+                            lhs: element_lhs.clone(),
+                            arg: rhs.clone(),
+                            member: Member::Unnamed(ndx as u32),
+                        }));
+                    }
                     let element_ty = if let Some(ty) = ty.as_ref() {
                         let sub_ty = ty.get_tuple_kind(ndx)?;
-                        self.types.insert(element_rhs.reg()?, sub_ty.clone());
+                        self.types.insert(element_lhs.reg()?, sub_ty.clone());
                         Some(sub_ty)
                     } else {
                         None
                     };
-                    self.let_pattern_inner(pat, element_ty, element_rhs)?;
+                    if rhs.is_some() {
+                        self.let_pattern_inner(pat, element_ty, Some(element_lhs))?;
+                    } else {
+                        self.let_pattern_inner(pat, element_ty, None)?;
+                    }
                 }
                 Ok(())
             }

@@ -31,7 +31,11 @@ impl Display for Block {
 
 impl Display for Local {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "let {} = {};", self.pattern, self.value)
+        if let Some(value) = self.value.as_ref() {
+            write!(f, "let {} = {}", self.pattern, value)
+        } else {
+            write!(f, "let {}", self.pattern)
+        }
     }
 }
 

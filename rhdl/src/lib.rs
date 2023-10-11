@@ -661,9 +661,15 @@ mod tests {
         fn do_stuff(mut a: Foo) {
             let q: u8 = 4;
             a.c[1] = q + 3;
-            let q = (1, 0, 6);
-            let (q0, q1, q2): (u8, u8, u16) = q; // Tuple destructuring
+            let q = (1, (0, 5), 6);
+            let (q0, (q1, q1b), q2): (u8, (u8, u8), u16) = q; // Tuple destructuring
             a.a = 2 + 3 + q1;
+            let z;
+            if 1 > 3 {
+                z = 2;
+            } else {
+                z = 5;
+            }
             a.b = {
                 7 + 9;
                 5 + !8
@@ -687,5 +693,7 @@ mod tests {
         let lhs = ctx.compile(ast).unwrap();
         println!("Code:");
         println!("{}", ctx);
+        let (a, b, c): (i8, i8, i8);
+        a = 4;
     }
 }
