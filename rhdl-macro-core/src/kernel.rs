@@ -184,6 +184,15 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
                 )
             })
         }
+        syn::Pat::Lit(pat) => {
+            let lit = hdl_lit_inner(pat)?;
+            Ok(quote! {
+                rhdl_core::ast::Pattern::Lit(#lit)
+            })
+        }
+        syn::Pat::Wild(_) => Ok(quote! {
+            rhdl_core::ast::Pattern::Wild
+        }),
         _ => Err(syn::Error::new(pat.span(), "Unsupported pattern type")),
     }
 }
@@ -661,22 +670,25 @@ fn hdl_binary(binary: &syn::ExprBinary) -> Result<TS> {
 }
 
 fn hdl_lit(lit: &syn::ExprLit) -> Result<TS> {
+    let inner = hdl_lit_inner(lit)?;
+    Ok(quote! {
+        rhdl_core::ast::Expr::Lit(#inner)
+    })
+}
+
+fn hdl_lit_inner(lit: &syn::ExprLit) -> Result<TS> {
     let lit = &lit.lit;
     match lit {
         syn::Lit::Int(int) => {
             let value = int.token();
             Ok(quote! {
-                rhdl_core::ast::Expr::Lit(
                     rhdl_core::ast::ExprLit::Int(stringify!(#value).to_string())
-                )
             })
         }
         syn::Lit::Bool(boolean) => {
             let value = boolean.value;
             Ok(quote! {
-                rhdl_core::ast::Expr::Lit(
                     rhdl_core::ast::ExprLit::Bool(#value)
-                )
             })
         }
         _ => Err(syn::Error::new(

@@ -4,7 +4,7 @@ use std::{collections::HashMap, fmt::Display};
 use crate::ast::{self, BinOp, UnOp};
 use crate::rhif::{
     AluBinary, AluUnary, AssignOp, BinaryOp, BlockId, CopyOp, FieldOp, FieldRefOp, IfOp,
-    IndexRefOp, Member, OpCode, RefOp, Slot, TupleOp, UnaryOp,
+    IndexRefOp, Member, OpCode, RefOp, RomArgument, RomOp, Slot, TupleOp, UnaryOp,
 };
 use crate::Kind;
 use anyhow::bail;
@@ -142,6 +142,7 @@ impl Compiler {
                 Ok(self.get_reference(path.path.last().unwrap())?)
             }
             ast::Expr::Tuple(tuple) => self.tuple(&tuple),
+            ast::Expr::Match(match_) => self.expr_match(match_),
             _ => todo!("expr {:?}", expr_),
         }
     }
@@ -155,6 +156,62 @@ impl Compiler {
         self.op(OpCode::Tuple(TupleOp {
             lhs: lhs.clone(),
             fields,
+        }));
+        Ok(lhs)
+    }
+
+    pub fn expr_match(&mut self, expr_match: ast::ExprMatch) -> Result<Slot> {
+        // Only two supported cases of match arms
+        // The first is all literals and possibly a wildcard
+        // The second is all enums with no literals and possibly a wildcard
+        for arm in &expr_match.arms {
+            if let Some(guard) = &arm.guard {
+                bail!(
+                    "RHDL does not currently support match guards in hardware {:?}",
+                    guard
+                );
+            }
+        }
+        let all_literals_or_wild = expr_match
+            .arms
+            .iter()
+            .all(|arm| matches!(arm.pattern, ast::Pattern::Lit(_) | ast::Pattern::Wild));
+        let all_enum_or_wild = expr_match
+            .arms
+            .iter()
+            .all(|arm| matches!(arm.pattern, ast::Pattern::Path(_)));
+        if !all_literals_or_wild && !all_enum_or_wild {
+            bail!("RHDL currently supports only match arms with all literals or all enums (and a wildcard '_' is allowed)");
+        }
+        if all_literals_or_wild {
+            self.expr_rom(expr_match)
+        } else {
+            todo!()
+        }
+    }
+
+    pub fn expr_rom(&mut self, expr_match: ast::ExprMatch) -> Result<Slot> {
+        let lhs = self.reg();
+        let expr = self.expr(*expr_match.expr)?;
+        let table = expr_match
+            .arms
+            .into_iter()
+            .map(|arm| match arm.pattern {
+                ast::Pattern::Wild => Ok((
+                    RomArgument::Wild,
+                    self.wrap_expr_in_block(Some(arm.body), lhs.clone())?,
+                )),
+                ast::Pattern::Lit(lit) => Ok((
+                    RomArgument::Literal(Slot::Literal(lit)),
+                    self.wrap_expr_in_block(Some(arm.body), lhs.clone())?,
+                )),
+                _ => bail!("Unsupported match pattern {:?} in hardware", arm.pattern),
+            })
+            .collect::<Result<_>>()?;
+        self.op(OpCode::Rom(RomOp {
+            lhs: lhs.clone(),
+            expr,
+            table,
         }));
         Ok(lhs)
     }
@@ -297,16 +354,7 @@ impl Compiler {
         let cond = self.expr(*if_expr.cond)?;
         let then_branch = self.expr_block(if_expr.then_branch, lhs.clone())?;
         // Create a block containing the else part of the if expression
-        let else_block = if_expr
-            .else_branch
-            .map(|x| {
-                ast::Block(vec![ast::Stmt::Expr(ast::ExprStatement {
-                    expr: *x,
-                    text: None,
-                })])
-            })
-            .unwrap_or(ast::Block(vec![]));
-        let else_branch = self.expr_block(else_block, lhs.clone())?;
+        let else_branch = self.wrap_expr_in_block(if_expr.else_branch, lhs.clone())?;
         self.op(OpCode::If(IfOp {
             lhs: lhs.clone(),
             cond,
@@ -405,5 +453,26 @@ impl Compiler {
         }
         self.set_block(current_block);
         Ok(id)
+    }
+
+    // There are places where Rust allows either an expression or a block.  For example in the
+    // else branch of an if, or in each arm of a match.  Because these have different behaviors
+    // in RHIF (a block is executed when jumped to, while an expression is immediate), we need
+    // to be able to "wrap" an expression into a block so that it can be invoked conditionally.
+    // As a special case, if the expression is empty (None), we create an empty block.
+    pub fn wrap_expr_in_block(
+        &mut self,
+        expr: Option<Box<crate::ast::Expr>>,
+        lhs: Slot,
+    ) -> Result<BlockId> {
+        let block = if let Some(expr) = expr {
+            ast::Block(vec![ast::Stmt::Expr(ast::ExprStatement {
+                expr: *expr,
+                text: None,
+            })])
+        } else {
+            ast::Block(vec![])
+        };
+        self.expr_block(block, lhs)
     }
 }

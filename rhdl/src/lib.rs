@@ -657,8 +657,15 @@ mod tests {
             c: [u8; 3],
         }
 
+        #[derive(PartialEq, Copy, Clone, Digital)]
+        pub enum State {
+            Init,
+            Run(u8),
+            Boom,
+        }
+
         #[kernel]
-        fn do_stuff(mut a: Foo) {
+        fn do_stuff(mut a: Foo, mut s: State) {
             let q: u8 = 4;
             a.c[1] = q + 3;
             let q = (1, (0, 5), 6);
@@ -683,6 +690,26 @@ mod tests {
                 }
                 9
             };
+            let c = match z {
+                1 => 2,
+                2 => 3,
+                3 => {
+                    a.a = 4;
+                    4
+                }
+                _ => 6,
+            };
+            /*            match s {
+                State::Init => {
+                    a.a = 1;
+                }
+                State::Run(level) => {
+                    a.a = level;
+                }
+                State::Boom => {
+                    a.a = 3;
+                }
+            }*/
         }
 
         let a: b4 = bits(3);

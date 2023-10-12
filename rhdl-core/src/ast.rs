@@ -34,6 +34,7 @@ pub enum Pattern {
     Path(ExprPath),
     Struct(PatternStruct),
     Type(PatternType),
+    Wild,
 }
 
 #[derive(Debug, Clone)]
