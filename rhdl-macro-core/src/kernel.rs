@@ -146,7 +146,6 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
             })
         }
         syn::Pat::Struct(structure) => {
-            let save_path = &structure.path;
             let path = hdl_path(&structure.path)?;
             let fields = structure
                 .fields
@@ -166,7 +165,6 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
                         path: Box::new(#path),
                         fields: vec![#(#fields),*],
                         rest: #rest,
-                        kind: <#save_path as rhdl_core::Digital>::static_kind(),
                     }
                 )
             })
@@ -435,8 +433,17 @@ fn hdl_match(expr: &syn::ExprMatch) -> Result<TS> {
     })
 }
 
+fn hdl_pat_arm(pat: &syn::Pat) -> Result<TS> {
+    // Here (or a level above) - we need to check for the
+    // all literal + wildcard case or the enum case.
+    // We should also restrict the enum case so that all
+    // paths are the same.  And that path should correspond
+    // to a Digital type.
+    todo!()
+}
+
 fn hdl_arm(arm: &syn::Arm) -> Result<TS> {
-    let pat = hdl_pat(&arm.pat)?;
+    let pat = hdl_pat_arm(&arm.pat)?;
     let guard = arm
         .guard
         .as_ref()

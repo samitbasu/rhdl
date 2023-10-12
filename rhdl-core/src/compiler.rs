@@ -176,10 +176,15 @@ impl Compiler {
             .arms
             .iter()
             .all(|arm| matches!(arm.pattern, ast::Pattern::Lit(_) | ast::Pattern::Wild));
-        let all_enum_or_wild = expr_match
-            .arms
-            .iter()
-            .all(|arm| matches!(arm.pattern, ast::Pattern::Path(_)));
+        let all_enum_or_wild = expr_match.arms.iter().all(|arm| {
+            matches!(
+                arm.pattern,
+                ast::Pattern::Path(_)
+                    | ast::Pattern::Struct(_)
+                    | ast::Pattern::TupleStruct(_)
+                    | ast::Pattern::Wild
+            )
+        });
         if !all_literals_or_wild && !all_enum_or_wild {
             bail!("RHDL currently supports only match arms with all literals or all enums (and a wildcard '_' is allowed)");
         }

@@ -658,14 +658,15 @@ mod tests {
         }
 
         #[derive(PartialEq, Copy, Clone, Digital)]
-        pub enum State {
+        pub enum NooState {
             Init,
             Run(u8),
+            Walk { foo: u8 },
             Boom,
         }
 
         #[kernel]
-        fn do_stuff(mut a: Foo, mut s: State) {
+        fn do_stuff(mut a: Foo, mut s: NooState) {
             let q: u8 = 4;
             a.c[1] = q + 3;
             let q = (1, (0, 5), 6);
@@ -699,21 +700,28 @@ mod tests {
                 }
                 _ => 6,
             };
-            /*            match s {
-                State::Init => {
+            match s {
+                NooState::Init => {
                     a.a = 1;
                 }
-                State::Run(level) => {
-                    a.a = level;
+                NooState::Run(4) => {
+                    a.a = 4;
                 }
-                State::Boom => {
+                NooState::Walk { foo: 4 } => {
+                    a.a = 5;
+                }
+                NooState::Boom => {
                     a.a = 3;
                 }
-            }*/
+                _ => {
+                    a.a = 2;
+                }
+            }
         }
 
         let a: b4 = bits(3);
         let ast = do_stuff_hdl_kernel();
+        println!("{:#?}", ast);
         println!("{}", ast);
         let mut ctx = Compiler::default();
         ctx.bind("a");
