@@ -40,6 +40,21 @@ pub enum OpCode {
     IndexRef(IndexRefOp),
     // Jump
     Call(BlockId),
+    // ROM table
+    Rom(RomOp),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RomOp {
+    pub lhs: Slot,
+    pub expr: Slot,
+    pub table: Vec<(RomArgument, BlockId)>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum RomArgument {
+    Literal(Slot),
+    Wild,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -77,7 +92,7 @@ pub struct MatchOp {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MatchArm {
-    //    pub pattern: MatchPattern,
+    pub pattern: Slot,
     pub body: BlockOp,
 }
 

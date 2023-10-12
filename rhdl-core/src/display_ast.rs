@@ -73,6 +73,7 @@ impl Display for Pattern {
             Pattern::Path(path) => write!(f, "{}", path),
             Pattern::Struct(structure) => write!(f, "{}", structure),
             Pattern::Type(type_) => write!(f, "{}", type_),
+            Pattern::Wild => write!(f, "_"),
         }
     }
 }

@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::rhif::{
     AluBinary, AluUnary, AssignOp, BinaryOp, BlockId, CopyOp, FieldOp, FieldRefOp, IfOp,
-    IndexRefOp, Member, OpCode, RefOp, Slot, TupleOp, UnaryOp,
+    IndexRefOp, Member, OpCode, RefOp, RomArgument, RomOp, Slot, TupleOp, UnaryOp,
 };
 
 impl Display for OpCode {
@@ -19,7 +19,27 @@ impl Display for OpCode {
             OpCode::Copy(op) => write!(f, "{}", op),
             OpCode::Tuple(op) => write!(f, "{}", op),
             OpCode::Field(op) => write!(f, "{}", op),
+            OpCode::Rom(op) => write!(f, "{}", op),
             _ => todo!("opcode {:?}", self),
+        }
+    }
+}
+
+impl Display for RomOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, " {} <- case {}", self.lhs, self.expr)?;
+        for (cond, val) in self.table.iter() {
+            writeln!(f, "         {} => {}", cond, val)?;
+        }
+        Ok(())
+    }
+}
+
+impl Display for RomArgument {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RomArgument::Literal(l) => write!(f, "{}", l),
+            RomArgument::Wild => write!(f, "_"),
         }
     }
 }
