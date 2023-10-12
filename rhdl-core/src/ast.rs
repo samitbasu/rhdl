@@ -48,7 +48,6 @@ pub struct PatternStruct {
     pub path: Box<Expr>,
     pub fields: Vec<FieldPat>,
     pub rest: bool,
-    pub kind: Kind,
 }
 
 #[derive(Debug, Clone)]
