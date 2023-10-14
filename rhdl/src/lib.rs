@@ -660,7 +660,7 @@ mod tests {
         #[derive(PartialEq, Copy, Clone, Digital)]
         pub enum NooState {
             Init,
-            Run(u8),
+            Run(u8, u8, u8),
             Walk { foo: u8 },
             Boom,
         }
@@ -704,11 +704,11 @@ mod tests {
                 NooState::Init => {
                     a.a = 1;
                 }
-                NooState::Run(4) => {
-                    a.a = 4;
+                NooState::Run(x, _, y) => {
+                    a.a = x + y;
                 }
-                NooState::Walk { foo: 4 } => {
-                    a.a = 5;
+                NooState::Walk { foo: x } => {
+                    a.a = x;
                 }
                 NooState::Boom => {
                     a.a = 3;
@@ -719,16 +719,18 @@ mod tests {
             }
         }
 
+        use NooState::{Init, Run};
+
+        let k = Init;
         let a: b4 = bits(3);
         let ast = do_stuff_hdl_kernel();
         println!("{:#?}", ast);
         println!("{}", ast);
         let mut ctx = Compiler::default();
         ctx.bind("a");
+        ctx.bind("s");
         let lhs = ctx.compile(ast).unwrap();
         println!("Code:");
         println!("{}", ctx);
-        let (a, b, c): (i8, i8, i8);
-        a = 4;
     }
 }

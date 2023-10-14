@@ -112,7 +112,7 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
             })
         }
         syn::Pat::TupleStruct(tuple) => {
-            let path = hdl_path(&tuple.path)?;
+            let path = hdl_path_inner(&tuple.path)?;
             let elems = tuple
                 .elems
                 .iter()
@@ -121,7 +121,7 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
             Ok(quote! {
                 rhdl_core::ast::Pattern::TupleStruct(
                     rhdl_core::ast::PatternTupleStruct{
-                        path: Box::new(#path),
+                        path: #path,
                         elems: vec![#(#elems),*],
                     }
                 )
@@ -433,13 +433,67 @@ fn hdl_match(expr: &syn::ExprMatch) -> Result<TS> {
     })
 }
 
+fn literal_or_ranges(pat: &syn::Pat) -> bool {
+    match pat {
+        syn::Pat::Lit(_) => true,
+        syn::Pat::Range(_) => true,
+        syn::Pat::Paren(pat) => literal_or_ranges(&pat.pat),
+        syn::Pat::TupleStruct(tuple) => tuple.elems.iter().any(literal_or_ranges),
+        syn::Pat::Struct(structure) => structure.fields.iter().any(|x| literal_or_ranges(&x.pat)),
+        syn::Pat::Or(pat) => pat.cases.iter().any(literal_or_ranges),
+        _ => false,
+    }
+}
+
+fn ident_or_wildcard(pat: &syn::Pat) -> bool {
+    matches!(pat, syn::Pat::Ident(_) | syn::Pat::Wild(_))
+}
+
 fn hdl_pat_arm(pat: &syn::Pat) -> Result<TS> {
     // Here (or a level above) - we need to check for the
     // all literal + wildcard case or the enum case.
     // We should also restrict the enum case so that all
     // paths are the same.  And that path should correspond
     // to a Digital type.
-    todo!()
+
+    // If the top level pattern is a TupleStruct, or a Struct,
+    // then we need to ensure there are no literal or
+    // range patterns in the fields.
+
+    match pat {
+        syn::Pat::TupleStruct(tuple) => {
+            if !tuple.elems.iter().all(ident_or_wildcard) {
+                return Err(syn::Error::new(
+                    tuple.span(),
+                    "Unsupported tuple struct pattern - rhdl only supports simple patterns like Foo(a,b,_)",
+                ));
+            }
+        }
+        syn::Pat::Struct(structure) => {
+            if !structure.fields.iter().all(|x| ident_or_wildcard(&x.pat)) {
+                return Err(syn::Error::new(
+                    structure.span(),
+                    "Unsupported literal or range in struct pattern",
+                ));
+            }
+        }
+        syn::Pat::Path(path) => {
+            if path.qself.is_some() {
+                return Err(syn::Error::new(
+                    path.span(),
+                    "Unsupported qualified self in rhdl kernel function",
+                ));
+            }
+        }
+        syn::Pat::Lit(_) | syn::Pat::Wild(_) => {}
+        _ => {
+            return Err(syn::Error::new(
+                pat.span(),
+                "Unsupported match pattern in rhdl kernel function",
+            ))
+        }
+    }
+    hdl_pat(pat)
 }
 
 fn hdl_arm(arm: &syn::Arm) -> Result<TS> {
@@ -771,6 +825,20 @@ mod test {
         let result = result.replace("rhdl_core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
         println!("{}", result);
+    }
+
+    #[test]
+    fn test_syn_match() {
+        let test_code = quote! {
+            match l {
+                State::Init => {}
+                State::Run(a) => {}
+                State::Boom => {}
+                State::NotOk(3) => {}
+            }
+        };
+        let match_expr = syn::parse2::<syn::Stmt>(test_code).unwrap();
+        println!("{:#?}", match_expr);
     }
 
     #[test]

@@ -80,7 +80,7 @@ impl Compiler {
             if let Some(slot) = self.blocks[ip.0].names.get(path) {
                 return Ok(slot.clone());
             }
-            if self.active_block == ROOT_BLOCK {
+            if ip == ROOT_BLOCK {
                 break;
             }
             ip = self.blocks[ip.0].parent;
@@ -188,37 +188,85 @@ impl Compiler {
         if !all_literals_or_wild && !all_enum_or_wild {
             bail!("RHDL currently supports only match arms with all literals or all enums (and a wildcard '_' is allowed)");
         }
-        if all_literals_or_wild {
-            self.expr_rom(expr_match)
-        } else {
-            todo!()
-        }
+        self.expr_rom(expr_match)
     }
 
-    pub fn expr_rom(&mut self, expr_match: ast::ExprMatch) -> Result<Slot> {
+    fn expr_rom(&mut self, expr_match: ast::ExprMatch) -> Result<Slot> {
         let lhs = self.reg();
-        let expr = self.expr(*expr_match.expr)?;
+        let target = self.expr(*expr_match.expr)?;
         let table = expr_match
             .arms
             .into_iter()
-            .map(|arm| match arm.pattern {
-                ast::Pattern::Wild => Ok((
-                    RomArgument::Wild,
-                    self.wrap_expr_in_block(Some(arm.body), lhs.clone())?,
-                )),
-                ast::Pattern::Lit(lit) => Ok((
-                    RomArgument::Literal(Slot::Literal(lit)),
-                    self.wrap_expr_in_block(Some(arm.body), lhs.clone())?,
-                )),
-                _ => bail!("Unsupported match pattern {:?} in hardware", arm.pattern),
-            })
+            .map(|arm| self.expr_arm(target.clone(), lhs.clone(), arm))
             .collect::<Result<_>>()?;
         self.op(OpCode::Rom(RomOp {
             lhs: lhs.clone(),
-            expr,
+            expr: target,
             table,
         }));
         Ok(lhs)
+    }
+
+    fn expr_arm(
+        &mut self,
+        target: Slot,
+        lhs: Slot,
+        arm: ast::Arm,
+    ) -> Result<(RomArgument, BlockId)> {
+        match arm.pattern {
+            ast::Pattern::Wild => Ok((
+                RomArgument::Wild,
+                self.wrap_expr_in_block(Some(arm.body), lhs)?,
+            )),
+            ast::Pattern::Lit(lit) => Ok((
+                RomArgument::Literal(Slot::Literal(lit)),
+                self.wrap_expr_in_block(Some(arm.body), lhs)?,
+            )),
+            ast::Pattern::Path(pat) => Ok((
+                RomArgument::Path(pat.path),
+                self.wrap_expr_in_block(Some(arm.body), lhs)?,
+            )),
+            ast::Pattern::TupleStruct(tuple) => {
+                // Collect the elements of the tuple struct that are identifiers (and not wildcards)
+                // For each element of the pattern, collect the name (this is the binding) and the
+                // position within the tuple.
+                let bindings = tuple
+                    .elems
+                    .into_iter()
+                    .enumerate()
+                    .map(|(ndx, x)| match x {
+                        ast::Pattern::Ident(ident) => Ok(Some((ident.name, ndx))),
+                        ast::Pattern::Wild => Ok(None),
+                        _ => bail!("Unsupported match pattern {:?} in hardware", x),
+                    })
+                    .filter_map(|x| x.transpose())
+                    .collect::<Result<Vec<_>>>()?;
+                // Create a new block for the tuple struct match
+                let current_id = self.current_block();
+                let id = self.new_block(lhs.clone());
+                // For each binding, create a new register and bind it to the name
+                // Then insert an opcode into the block to extract the field from the tuple
+                // that is the target of the match.
+                bindings.into_iter().for_each(|(ident, index)| {
+                    let reg = self.bind(&ident);
+                    self.op(OpCode::Field(FieldOp {
+                        lhs: reg.clone(),
+                        arg: target.clone(),
+                        member: Member::Unnamed(index as u32),
+                    }));
+                });
+                // Add the arm body to the block
+                let expr_output = self.expr(*arm.body)?;
+                // Copy the result of the arm body to the lhs
+                self.op(OpCode::Copy(CopyOp {
+                    lhs: lhs.clone(),
+                    rhs: expr_output,
+                }));
+                self.set_block(current_id);
+                Ok((RomArgument::Path(tuple.path.path), id))
+            }
+            _ => bail!("Unsupported match pattern {:?} in hardware", arm.pattern),
+        }
     }
 
     pub fn expr_lhs(&mut self, expr_: ast::Expr) -> Result<Slot> {
@@ -440,22 +488,29 @@ impl Compiler {
         Ok(dest)
     }
 
-    pub fn expr_block(&mut self, block: crate::ast::Block, lhs: Slot) -> Result<BlockId> {
-        let statement_count = block.0.len();
-        let current_block = self.current_block();
-        let id = self.new_block(lhs.clone());
-        // process each statement in the block and return the last one
-        for (ndx, stmt_) in block.0.iter().enumerate() {
+    // Add a set of statements to the current block with capturing of lhs for the last
+    // statement in the list.
+    fn expr_block_inner(&mut self, statements: &[ast::Stmt], lhs: Slot) -> Result<()> {
+        let statement_count = statements.len();
+        for (ndx, stmt) in statements.iter().enumerate() {
             if ndx == statement_count - 1 {
-                let rhs = self.stmt(stmt_.clone())?;
+                let rhs = self.stmt(stmt.clone())?;
                 self.op(OpCode::Copy(CopyOp {
                     lhs: lhs.clone(),
                     rhs,
                 }));
             } else {
-                self.stmt(stmt_.clone())?;
+                self.stmt(stmt.clone())?;
             }
         }
+        Ok(())
+    }
+
+    pub fn expr_block(&mut self, block: crate::ast::Block, lhs: Slot) -> Result<BlockId> {
+        let statement_count = block.0.len();
+        let current_block = self.current_block();
+        let id = self.new_block(lhs.clone());
+        self.expr_block_inner(&block.0, lhs.clone())?;
         self.set_block(current_block);
         Ok(id)
     }

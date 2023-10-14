@@ -40,6 +40,7 @@ impl Display for RomArgument {
         match self {
             RomArgument::Literal(l) => write!(f, "{}", l),
             RomArgument::Wild => write!(f, "_"),
+            RomArgument::Path(p) => write!(f, "{}", p.join("::")),
         }
     }
 }

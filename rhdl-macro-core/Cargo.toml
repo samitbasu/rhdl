@@ -3,7 +3,7 @@ name = "rhdl-macro-core"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-description = "Support crate for RHDL that provides proedural macro implementations."
+description = "Support crate for RHDL that provides procedural macro implementations."
 homepage = "https://rhdl.org"
 repository = "https://github.com/samitbasu/rhdl"
 keywords = ["fpga", "hdl", "hardware", "macro"]
@@ -15,4 +15,4 @@ evalexpr = "11.1.0"
 prettyplease = "0.2.15"
 proc-macro2 = "1.0.66"
 quote = "1.0.33"
-syn = { version = "2.0.31", features = ["full"] }
+syn = { version = "2.0.31", features = ["full", "extra-traits"] }

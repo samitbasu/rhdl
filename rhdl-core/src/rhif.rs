@@ -55,6 +55,7 @@ pub struct RomOp {
 pub enum RomArgument {
     Literal(Slot),
     Wild,
+    Path(Vec<String>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
