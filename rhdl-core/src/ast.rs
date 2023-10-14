@@ -45,7 +45,7 @@ pub struct PatternType {
 
 #[derive(Debug, Clone)]
 pub struct PatternStruct {
-    pub path: Box<Expr>,
+    pub path: ExprPath,
     pub fields: Vec<FieldPat>,
     pub rest: bool,
 }
@@ -98,7 +98,7 @@ pub struct ExprMethodCall {
 
 #[derive(Debug, Clone)]
 pub struct ExprCall {
-    pub path: Box<Expr>,
+    pub path: ExprPath,
     pub args: Vec<Expr>,
 }
 
@@ -109,10 +109,9 @@ pub struct ExprPath {
 
 #[derive(Debug, Clone)]
 pub struct ExprStruct {
-    pub path: Box<Expr>,
+    pub path: ExprPath,
     pub fields: Vec<FieldValue>,
     pub rest: Option<Box<Expr>>,
-    pub kind: Kind,
 }
 
 #[derive(Debug, Clone)]

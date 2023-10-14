@@ -1,16 +1,25 @@
 use std::collections::BTreeMap;
 use std::{collections::HashMap, fmt::Display};
 
-use crate::ast::{self, BinOp, UnOp};
+use crate::ast::{self, BinOp, PatternTupleStruct, UnOp};
 use crate::rhif::{
-    AluBinary, AluUnary, AssignOp, BinaryOp, BlockId, CopyOp, FieldOp, FieldRefOp, IfOp,
-    IndexRefOp, Member, OpCode, RefOp, RomArgument, RomOp, Slot, TupleOp, UnaryOp,
+    AluBinary, AluUnary, AssignOp, BinaryOp, BlockId, CopyOp, ExecOp, FieldOp, FieldRefOp, IfOp,
+    IndexRefOp, Member, OpCode, RefOp, RomArgument, RomOp, Slot, StructOp, TupleOp, UnaryOp,
 };
 use crate::Kind;
 use anyhow::bail;
 use anyhow::Result;
 
 const ROOT_BLOCK: BlockId = BlockId(0);
+
+impl From<ast::Member> for crate::rhif::Member {
+    fn from(member: ast::Member) -> Self {
+        match member {
+            ast::Member::Named(name) => crate::rhif::Member::Named(name),
+            ast::Member::Unnamed(index) => crate::rhif::Member::Unnamed(index),
+        }
+    }
+}
 
 pub struct Block {
     pub id: BlockId,
@@ -135,16 +144,37 @@ impl Compiler {
             ast::Expr::If(if_expr) => self.expr_if(if_expr),
             ast::Expr::Assign(assign) => self.expr_assign(assign),
             ast::Expr::Paren(paren) => self.expr(*paren),
-            ast::Expr::Path(path) => {
-                if path.path.len() != 1 {
-                    bail!("Invalid path for assignment in RHDL code");
-                }
-                Ok(self.get_reference(path.path.last().unwrap())?)
-            }
+            ast::Expr::Path(path) => Ok(self.get_reference(&path.path.join("::"))?),
             ast::Expr::Tuple(tuple) => self.tuple(&tuple),
             ast::Expr::Match(match_) => self.expr_match(match_),
+            ast::Expr::Call(call) => self.expr_call(call),
+            ast::Expr::Struct(structure) => self.expr_struct(structure),
             _ => todo!("expr {:?}", expr_),
         }
+    }
+
+    fn field_value(&mut self, element: ast::FieldValue) -> Result<crate::rhif::FieldValue> {
+        let value = self.expr(*element.value)?;
+        Ok(crate::rhif::FieldValue {
+            member: element.member.into(),
+            value,
+        })
+    }
+
+    fn expr_struct(&mut self, structure: ast::ExprStruct) -> Result<Slot> {
+        let lhs = self.reg();
+        let fields = structure
+            .fields
+            .into_iter()
+            .map(|x| self.field_value(x))
+            .collect::<Result<Vec<_>>>()?;
+        self.op(OpCode::Struct(StructOp {
+            lhs: lhs.clone(),
+            path: structure.path.path,
+            fields,
+            rest: None,
+        }));
+        Ok(lhs)
     }
 
     fn tuple(&mut self, tuple: &[ast::Expr]) -> Result<Slot> {
@@ -160,7 +190,23 @@ impl Compiler {
         Ok(lhs)
     }
 
-    pub fn expr_match(&mut self, expr_match: ast::ExprMatch) -> Result<Slot> {
+    fn expr_call(&mut self, call: ast::ExprCall) -> Result<Slot> {
+        let lhs = self.reg();
+        let path = call.path.path;
+        let args = call
+            .args
+            .into_iter()
+            .map(|x| self.expr(x))
+            .collect::<Result<_>>()?;
+        self.op(OpCode::Exec(ExecOp {
+            lhs: lhs.clone(),
+            path,
+            args,
+        }));
+        Ok(lhs)
+    }
+
+    fn expr_match(&mut self, expr_match: ast::ExprMatch) -> Result<Slot> {
         // Only two supported cases of match arms
         // The first is all literals and possibly a wildcard
         // The second is all enums with no literals and possibly a wildcard
@@ -207,6 +253,97 @@ impl Compiler {
         Ok(lhs)
     }
 
+    fn expr_arm_struct(
+        &mut self,
+        target: Slot,
+        lhs: Slot,
+        structure: ast::PatternStruct,
+        body: ast::Expr,
+    ) -> Result<(RomArgument, BlockId)> {
+        // Collect the elements of the struct that are identifiers (and not wildcards)
+        // For each element of the pattern, collect the name (this is the binding) and the
+        // position within the tuple.
+        let bindings: Vec<(Member, String)> = structure
+            .fields
+            .into_iter()
+            .map(|x| match *x.pat {
+                ast::Pattern::Ident(ident) => Ok(Some((x.member.into(), ident.name))),
+                ast::Pattern::Wild => Ok(None),
+                _ => bail!("Unsupported match pattern {:?} in hardware", x),
+            })
+            .filter_map(|x| x.transpose())
+            .collect::<Result<Vec<_>>>()?;
+        // Create a new block for the struct match
+        let current_id = self.current_block();
+        let id = self.new_block(lhs.clone());
+        // For each binding, create a new register and bind it to the name
+        // Then insert an opcode into the block to extract the field from the struct
+        // that is the target of the match.
+        bindings.into_iter().for_each(|(member, ident)| {
+            let reg = self.bind(&ident);
+            self.op(OpCode::Field(FieldOp {
+                lhs: reg,
+                arg: target.clone(),
+                member,
+            }));
+        });
+        // Add the arm body to the block
+        let expr_output = self.expr(body)?;
+        // Copy the result of the arm body to the lhs
+        self.op(OpCode::Copy(CopyOp {
+            lhs,
+            rhs: expr_output,
+        }));
+        self.set_block(current_id);
+        Ok((RomArgument::Path(structure.path.path), id))
+    }
+
+    fn expr_arm_tuple_struct(
+        &mut self,
+        target: Slot,
+        lhs: Slot,
+        tuple: ast::PatternTupleStruct,
+        body: ast::Expr,
+    ) -> Result<(RomArgument, BlockId)> {
+        // Collect the elements of the tuple struct that are identifiers (and not wildcards)
+        // For each element of the pattern, collect the name (this is the binding) and the
+        // position within the tuple.
+        let bindings = tuple
+            .elems
+            .into_iter()
+            .enumerate()
+            .map(|(ndx, x)| match x {
+                ast::Pattern::Ident(ident) => Ok(Some((ident.name, ndx))),
+                ast::Pattern::Wild => Ok(None),
+                _ => bail!("Unsupported match pattern {:?} in hardware", x),
+            })
+            .filter_map(|x| x.transpose())
+            .collect::<Result<Vec<_>>>()?;
+        // Create a new block for the tuple struct match
+        let current_id = self.current_block();
+        let id = self.new_block(lhs.clone());
+        // For each binding, create a new register and bind it to the name
+        // Then insert an opcode into the block to extract the field from the tuple
+        // that is the target of the match.
+        bindings.into_iter().for_each(|(ident, index)| {
+            let reg = self.bind(&ident);
+            self.op(OpCode::Field(FieldOp {
+                lhs: reg,
+                arg: target.clone(),
+                member: Member::Unnamed(index as u32),
+            }));
+        });
+        // Add the arm body to the block
+        let expr_output = self.expr(body)?;
+        // Copy the result of the arm body to the lhs
+        self.op(OpCode::Copy(CopyOp {
+            lhs,
+            rhs: expr_output,
+        }));
+        self.set_block(current_id);
+        Ok((RomArgument::Path(tuple.path.path), id))
+    }
+
     fn expr_arm(
         &mut self,
         target: Slot,
@@ -227,43 +364,10 @@ impl Compiler {
                 self.wrap_expr_in_block(Some(arm.body), lhs)?,
             )),
             ast::Pattern::TupleStruct(tuple) => {
-                // Collect the elements of the tuple struct that are identifiers (and not wildcards)
-                // For each element of the pattern, collect the name (this is the binding) and the
-                // position within the tuple.
-                let bindings = tuple
-                    .elems
-                    .into_iter()
-                    .enumerate()
-                    .map(|(ndx, x)| match x {
-                        ast::Pattern::Ident(ident) => Ok(Some((ident.name, ndx))),
-                        ast::Pattern::Wild => Ok(None),
-                        _ => bail!("Unsupported match pattern {:?} in hardware", x),
-                    })
-                    .filter_map(|x| x.transpose())
-                    .collect::<Result<Vec<_>>>()?;
-                // Create a new block for the tuple struct match
-                let current_id = self.current_block();
-                let id = self.new_block(lhs.clone());
-                // For each binding, create a new register and bind it to the name
-                // Then insert an opcode into the block to extract the field from the tuple
-                // that is the target of the match.
-                bindings.into_iter().for_each(|(ident, index)| {
-                    let reg = self.bind(&ident);
-                    self.op(OpCode::Field(FieldOp {
-                        lhs: reg.clone(),
-                        arg: target.clone(),
-                        member: Member::Unnamed(index as u32),
-                    }));
-                });
-                // Add the arm body to the block
-                let expr_output = self.expr(*arm.body)?;
-                // Copy the result of the arm body to the lhs
-                self.op(OpCode::Copy(CopyOp {
-                    lhs: lhs.clone(),
-                    rhs: expr_output,
-                }));
-                self.set_block(current_id);
-                Ok((RomArgument::Path(tuple.path.path), id))
+                self.expr_arm_tuple_struct(target, lhs, tuple, *arm.body)
+            }
+            ast::Pattern::Struct(structure) => {
+                self.expr_arm_struct(target, lhs, structure, *arm.body)
             }
             _ => bail!("Unsupported match pattern {:?} in hardware", arm.pattern),
         }
@@ -272,10 +376,7 @@ impl Compiler {
     pub fn expr_lhs(&mut self, expr_: ast::Expr) -> Result<Slot> {
         Ok(match expr_ {
             ast::Expr::Path(path) => {
-                if path.path.len() != 1 {
-                    bail!("Invalid path for assignment in RHDL code");
-                }
-                let arg = self.get_reference(path.path.last().unwrap())?;
+                let arg = self.get_reference(&path.path.join("::"))?;
                 let lhs = self.reg();
                 self.op(OpCode::Ref(RefOp {
                     lhs: lhs.clone(),

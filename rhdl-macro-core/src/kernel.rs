@@ -146,7 +146,7 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
             })
         }
         syn::Pat::Struct(structure) => {
-            let path = hdl_path(&structure.path)?;
+            let path = hdl_path_inner(&structure.path)?;
             let fields = structure
                 .fields
                 .iter()
@@ -162,7 +162,7 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
             Ok(quote! {
                 rhdl_core::ast::Pattern::Struct(
                     rhdl_core::ast::PatternStruct {
-                        path: Box::new(#path),
+                        path: #path,
                         fields: vec![#(#fields),*],
                         rest: #rest,
                     }
@@ -292,12 +292,18 @@ fn hdl_array(expr: &syn::ExprArray) -> Result<TS> {
 }
 
 fn hdl_call(expr: &syn::ExprCall) -> Result<TS> {
-    let path = hdl_expr(&expr.func)?;
+    let syn::Expr::Path(func_path) = expr.func.as_ref() else {
+        return Err(syn::Error::new(
+            expr.func.span(),
+            "Unsupported function call in rhdl kernel function (only paths allowed here)",
+        ));
+    };
+    let path = hdl_path_inner(&func_path.path)?;
     let args = expr.args.iter().map(hdl_expr).collect::<Result<Vec<_>>>()?;
     Ok(quote! {
         rhdl_core::ast::Expr::Call(
             rhdl_core::ast::ExprCall {
-                path: Box::new(#path),
+                path: #path,
                 args: vec![#(#args),*],
             }
         )
@@ -550,8 +556,7 @@ fn hdl_if(expr: &syn::ExprIf) -> Result<TS> {
 }
 
 fn hdl_struct(structure: &syn::ExprStruct) -> Result<TS> {
-    let save_path = &structure.path;
-    let path = hdl_path(&structure.path)?;
+    let path = hdl_path_inner(&structure.path)?;
     let fields = structure
         .fields
         .iter()
@@ -572,10 +577,9 @@ fn hdl_struct(structure: &syn::ExprStruct) -> Result<TS> {
     Ok(quote! {
         rhdl_core::ast::Expr::Struct(
             rhdl_core::ast::ExprStruct {
-                path: Box::new(#path),
+                path: #path,
                 fields: vec![#(#fields),*],
                 rest: #rest,
-                kind: <#save_path as rhdl_core::Digital>::static_kind(),
             }
         )
     })

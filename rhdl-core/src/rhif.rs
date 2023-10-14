@@ -42,6 +42,15 @@ pub enum OpCode {
     Call(BlockId),
     // ROM table
     Rom(RomOp),
+    // Exec a function
+    Exec(ExecOp),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ExecOp {
+    pub lhs: Slot,
+    pub path: Vec<String>,
+    pub args: Vec<Slot>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -105,6 +114,7 @@ pub struct TupleOp {
 #[derive(Debug, Clone, PartialEq)]
 pub struct StructOp {
     pub lhs: Slot,
+    pub path: Vec<String>,
     pub fields: Vec<FieldValue>,
     pub rest: Option<Slot>,
 }
