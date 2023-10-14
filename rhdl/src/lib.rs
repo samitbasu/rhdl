@@ -700,23 +700,28 @@ mod tests {
                 }
                 _ => 6,
             };
-            match s {
+            let d = match s {
                 NooState::Init => {
                     a.a = 1;
+                    NooState::Run(1, 2, 3)
                 }
                 NooState::Run(x, _, y) => {
                     a.a = x + y;
+                    NooState::Walk { foo: 7 }
                 }
                 NooState::Walk { foo: x } => {
                     a.a = x;
+                    NooState::Boom
                 }
                 NooState::Boom => {
                     a.a = 3;
+                    NooState::Init
                 }
                 _ => {
                     a.a = 2;
+                    NooState::Boom
                 }
-            }
+            };
         }
 
         use NooState::{Init, Run};
@@ -729,6 +734,10 @@ mod tests {
         let mut ctx = Compiler::default();
         ctx.bind("a");
         ctx.bind("s");
+        ctx.bind("NooState::Boom");
+        ctx.bind("NooState::Init");
+        ctx.bind("NooState::Run");
+        ctx.bind("NooState::Walk");
         let lhs = ctx.compile(ast).unwrap();
         println!("Code:");
         println!("{}", ctx);

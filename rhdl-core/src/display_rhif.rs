@@ -1,8 +1,9 @@
 use std::fmt::Display;
 
 use crate::rhif::{
-    AluBinary, AluUnary, AssignOp, BinaryOp, BlockId, CopyOp, FieldOp, FieldRefOp, IfOp,
-    IndexRefOp, Member, OpCode, RefOp, RomArgument, RomOp, Slot, TupleOp, UnaryOp,
+    AluBinary, AluUnary, AssignOp, BinaryOp, BlockId, CopyOp, ExecOp, FieldOp, FieldRefOp,
+    FieldValue, IfOp, IndexRefOp, Member, OpCode, RefOp, RomArgument, RomOp, Slot, StructOp,
+    TupleOp, UnaryOp,
 };
 
 impl Display for OpCode {
@@ -20,8 +21,42 @@ impl Display for OpCode {
             OpCode::Tuple(op) => write!(f, "{}", op),
             OpCode::Field(op) => write!(f, "{}", op),
             OpCode::Rom(op) => write!(f, "{}", op),
+            OpCode::Exec(op) => write!(f, "{}", op),
+            OpCode::Struct(op) => write!(f, "{}", op),
             _ => todo!("opcode {:?}", self),
         }
+    }
+}
+
+impl Display for StructOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, " {} <- {} {{", self.lhs, self.path.join("::"))?;
+        for (i, field) in self.fields.iter().enumerate() {
+            if i != 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "{}", field)?;
+        }
+        write!(f, " }}")
+    }
+}
+
+impl Display for FieldValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.member, self.value)
+    }
+}
+
+impl Display for ExecOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, " {} <- {}(", self.lhs, self.path.join("::"))?;
+        for (i, arg) in self.args.iter().enumerate() {
+            if i != 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "{}", arg)?;
+        }
+        write!(f, ")")
     }
 }
 
