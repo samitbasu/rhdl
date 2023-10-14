@@ -52,7 +52,7 @@ pub struct PatternStruct {
 
 #[derive(Debug, Clone)]
 pub struct PatternTupleStruct {
-    pub path: Box<Expr>,
+    pub path: ExprPath,
     pub elems: Vec<Pattern>,
 }
 
