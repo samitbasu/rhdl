@@ -326,16 +326,11 @@ fn hdl_for_loop(expr: &syn::ExprForLoop) -> Result<TS> {
 }
 
 fn hdl_while_loop(expr: &syn::ExprWhile) -> Result<TS> {
-    let cond = hdl_expr(&expr.cond)?;
-    let body = hdl_block_inner(&expr.body)?;
-    Ok(quote! {
-        rhdl_core::ast::Expr::While(
-            rhdl_core::ast::ExprWhile {
-                cond: Box::new(#cond),
-                body: #body,
-            }
-        )
-    })
+    // In version 2.0...
+    Err(syn::Error::new(
+        expr.span(),
+        "Unsupported while loop in rhdl kernel function",
+    ))
 }
 
 fn hdl_repeat(expr: &syn::ExprRepeat) -> Result<TS> {
@@ -344,7 +339,7 @@ fn hdl_repeat(expr: &syn::ExprRepeat) -> Result<TS> {
     Ok(quote! {
         rhdl_core::ast::Expr::Repeat(
             rhdl_core::ast::ExprRepeat {
-                expr: Box::new(#expr),
+                value: Box::new(#expr),
                 len: Box::new(#len),
             }
         )

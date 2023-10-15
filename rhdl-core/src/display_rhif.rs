@@ -1,9 +1,9 @@
 use std::fmt::Display;
 
 use crate::rhif::{
-    AluBinary, AluUnary, AssignOp, BinaryOp, BlockId, CopyOp, ExecOp, FieldOp, FieldRefOp,
-    FieldValue, IfOp, IndexRefOp, Member, OpCode, RefOp, RomArgument, RomOp, Slot, StructOp,
-    TupleOp, UnaryOp,
+    AluBinary, AluUnary, ArrayOp, AssignOp, BinaryOp, BlockId, CaseArgument, CaseOp, CopyOp,
+    ExecOp, FieldOp, FieldRefOp, FieldValue, IfOp, IndexOp, IndexRefOp, Member, OpCode, RefOp,
+    RepeatOp, Slot, StructOp, TupleOp, UnaryOp,
 };
 
 impl Display for OpCode {
@@ -16,15 +16,43 @@ impl Display for OpCode {
             OpCode::FieldRef(op) => write!(f, "{}", op),
             OpCode::IndexRef(op) => write!(f, "{}", op),
             OpCode::If(op) => write!(f, "{}", op),
-            OpCode::Call(block) => write!(f, "sub {}", block),
+            OpCode::Block(block) => write!(f, " blk {}", block),
             OpCode::Copy(op) => write!(f, "{}", op),
             OpCode::Tuple(op) => write!(f, "{}", op),
             OpCode::Field(op) => write!(f, "{}", op),
-            OpCode::Rom(op) => write!(f, "{}", op),
+            OpCode::Case(op) => write!(f, "{}", op),
             OpCode::Exec(op) => write!(f, "{}", op),
             OpCode::Struct(op) => write!(f, "{}", op),
-            _ => todo!("opcode {:?}", self),
+            OpCode::Index(op) => write!(f, "{}", op),
+            OpCode::Array(op) => write!(f, "{}", op),
+            OpCode::Repeat(op) => write!(f, "{}", op),
+            _ => todo!("OpCode {:?} not covered", self),
         }
+    }
+}
+
+impl Display for RepeatOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, " {} <- [{}; {}]", self.lhs, self.value, self.len)
+    }
+}
+
+impl Display for ArrayOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, " {} <- [", self.lhs)?;
+        for (i, arg) in self.elements.iter().enumerate() {
+            if i != 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "{}", arg)?;
+        }
+        write!(f, "]")
+    }
+}
+
+impl Display for IndexOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, " {} <- {}[{}]", self.lhs, self.arg, self.index)
     }
 }
 
@@ -60,7 +88,7 @@ impl Display for ExecOp {
     }
 }
 
-impl Display for RomOp {
+impl Display for CaseOp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, " {} <- case {}", self.lhs, self.expr)?;
         for (cond, val) in self.table.iter() {
@@ -70,12 +98,12 @@ impl Display for RomOp {
     }
 }
 
-impl Display for RomArgument {
+impl Display for CaseArgument {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RomArgument::Literal(l) => write!(f, "{}", l),
-            RomArgument::Wild => write!(f, "_"),
-            RomArgument::Path(p) => write!(f, "{}", p.join("::")),
+            CaseArgument::Literal(l) => write!(f, "{}", l),
+            CaseArgument::Wild => write!(f, "_"),
+            CaseArgument::Path(p) => write!(f, "{}", p.join("::")),
         }
     }
 }

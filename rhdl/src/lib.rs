@@ -635,10 +635,6 @@ mod tests {
             for ndx in 0..8 {
                 d = d + bits(ndx);
             }
-            // while loops
-            while d > bits(0) {
-                d = d - 1;
-            }
             // block expression
             bits(42)
         }
@@ -669,6 +665,8 @@ mod tests {
         fn do_stuff(mut a: Foo, mut s: NooState) {
             let q: u8 = 4;
             a.c[1] = q + 3;
+            a.c = [0; 3];
+            a.c = [1, 2, 3];
             let q = (1, (0, 5), 6);
             let (q0, (q1, q1b), q2): (u8, (u8, u8), u16) = q; // Tuple destructuring
             a.a = 2 + 3 + q1;
@@ -714,7 +712,7 @@ mod tests {
                     NooState::Boom
                 }
                 NooState::Boom => {
-                    a.a = 3;
+                    a.a = a.a + 3;
                     NooState::Init
                 }
                 _ => {
@@ -729,8 +727,6 @@ mod tests {
         let k = Init;
         let a: b4 = bits(3);
         let ast = do_stuff_hdl_kernel();
-        println!("{:#?}", ast);
-        println!("{}", ast);
         let mut ctx = Compiler::default();
         ctx.bind("a");
         ctx.bind("s");
