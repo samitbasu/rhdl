@@ -18,6 +18,7 @@ mod tests {
     use rhdl_core::{
         compiler::Compiler,
         path::{bit_range, Path},
+        typer::infer_type,
         DiscriminantAlignment, Logger,
     };
 
@@ -664,6 +665,7 @@ mod tests {
         #[kernel]
         fn do_stuff(mut a: Foo, mut s: NooState) {
             let q: u8 = 4;
+            let z = a.c;
             a.c[1] = q + 3;
             a.c = [0; 3];
             a.c = [1, 2, 3];
@@ -689,6 +691,9 @@ mod tests {
                 }
                 9
             };
+            let g = 1 > 2;
+            let h = 3 != 4;
+            let i = g && h;
             let c = match z {
                 1 => 2,
                 2 => 3,
@@ -698,6 +703,7 @@ mod tests {
                 }
                 _ => 6,
             };
+            /*
             let d = match s {
                 NooState::Init => {
                     a.a = 1;
@@ -719,7 +725,7 @@ mod tests {
                     a.a = 2;
                     NooState::Boom
                 }
-            };
+            };*/
         }
 
         use NooState::{Init, Run};
@@ -728,13 +734,20 @@ mod tests {
         let a: b4 = bits(3);
         let ast = do_stuff_hdl_kernel();
         let mut ctx = Compiler::default();
-        ctx.bind("a");
-        ctx.bind("s");
+        ctx.type_bind("a", Foo::static_kind());
+        ctx.type_bind("s", NooState::static_kind());
         ctx.bind("NooState::Boom");
         ctx.bind("NooState::Init");
         ctx.bind("NooState::Run");
         ctx.bind("NooState::Walk");
         let lhs = ctx.compile(ast).unwrap();
+        println!("Types before inference: {}", ctx.types_known());
+        infer_type(&mut ctx).unwrap();
+        println!("Types after inference: {}", ctx.types_known());
+        infer_type(&mut ctx).unwrap();
+        println!("Types after inference: {}", ctx.types_known());
+        infer_type(&mut ctx).unwrap();
+        println!("Types after inference: {}", ctx.types_known());
         println!("Code:");
         println!("{}", ctx);
     }
