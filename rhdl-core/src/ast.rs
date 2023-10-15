@@ -74,7 +74,6 @@ pub enum Expr {
     Paren(Box<Expr>),
     Tuple(Vec<Expr>),
     ForLoop(ExprForLoop),
-    While(ExprWhile),
     Assign(ExprAssign),
     Group(Box<Expr>),
     Field(ExprField),

@@ -3,8 +3,9 @@ use std::{collections::HashMap, fmt::Display};
 
 use crate::ast::{self, BinOp, PatternTupleStruct, UnOp};
 use crate::rhif::{
-    AluBinary, AluUnary, AssignOp, BinaryOp, BlockId, CopyOp, ExecOp, FieldOp, FieldRefOp, IfOp,
-    IndexRefOp, Member, OpCode, RefOp, RomArgument, RomOp, Slot, StructOp, TupleOp, UnaryOp,
+    AluBinary, AluUnary, AssignOp, BinaryOp, BlockId, CaseArgument, CaseOp, CopyOp, ExecOp,
+    FieldOp, FieldRefOp, IfOp, IndexOp, IndexRefOp, Member, OpCode, RefOp, RepeatOp, Slot,
+    StructOp, TupleOp, UnaryOp,
 };
 use crate::Kind;
 use anyhow::bail;
@@ -126,7 +127,7 @@ impl Compiler {
     pub fn compile(&mut self, ast: crate::ast::Block) -> Result<Slot> {
         let lhs = self.reg();
         let block_id = self.expr_block(ast, lhs.clone())?;
-        self.op(OpCode::Call(block_id));
+        self.op(OpCode::Block(block_id));
         Ok(lhs)
     }
 
@@ -138,7 +139,7 @@ impl Compiler {
             ast::Expr::Block(block) => {
                 let lhs = self.reg();
                 let block = self.expr_block(block, lhs.clone())?;
-                self.op(OpCode::Call(block));
+                self.op(OpCode::Block(block));
                 Ok(lhs)
             }
             ast::Expr::If(if_expr) => self.expr_if(if_expr),
@@ -149,8 +150,50 @@ impl Compiler {
             ast::Expr::Match(match_) => self.expr_match(match_),
             ast::Expr::Call(call) => self.expr_call(call),
             ast::Expr::Struct(structure) => self.expr_struct(structure),
+            ast::Expr::Index(index) => self.expr_index(index),
+            ast::Expr::Group(group) => self.expr(*group),
+            ast::Expr::Field(field) => self.expr_field(field),
+            ast::Expr::Array(array) => self.expr_array(array),
+            ast::Expr::Repeat(repeat) => self.expr_repeat(repeat),
             _ => todo!("expr {:?}", expr_),
         }
+    }
+
+    fn expr_repeat(&mut self, repeat: ast::ExprRepeat) -> Result<Slot> {
+        let lhs = self.reg();
+        let value = self.expr(*repeat.value)?;
+        let len = self.expr(*repeat.len)?;
+        self.op(OpCode::Repeat(RepeatOp {
+            lhs: lhs.clone(),
+            value,
+            len,
+        }));
+        Ok(lhs)
+    }
+
+    fn expr_array(&mut self, array: ast::ExprArray) -> Result<Slot> {
+        let lhs = self.reg();
+        let elements = array
+            .elems
+            .into_iter()
+            .map(|x| self.expr(x))
+            .collect::<Result<_>>()?;
+        self.op(OpCode::Array(crate::rhif::ArrayOp {
+            lhs: lhs.clone(),
+            elements,
+        }));
+        Ok(lhs)
+    }
+
+    fn expr_field(&mut self, field: ast::ExprField) -> Result<Slot> {
+        let lhs = self.reg();
+        let arg = self.expr(*field.expr)?;
+        self.op(OpCode::Field(FieldOp {
+            lhs: lhs.clone(),
+            arg,
+            member: field.member.into(),
+        }));
+        Ok(lhs)
     }
 
     fn field_value(&mut self, element: ast::FieldValue) -> Result<crate::rhif::FieldValue> {
@@ -159,6 +202,18 @@ impl Compiler {
             member: element.member.into(),
             value,
         })
+    }
+
+    fn expr_index(&mut self, index: ast::ExprIndex) -> Result<Slot> {
+        let lhs = self.reg();
+        let arg = self.expr_lhs(*index.expr)?;
+        let index = self.expr(*index.index)?;
+        self.op(OpCode::Index(IndexOp {
+            lhs: lhs.clone(),
+            arg,
+            index,
+        }));
+        Ok(lhs)
     }
 
     fn expr_struct(&mut self, structure: ast::ExprStruct) -> Result<Slot> {
@@ -234,10 +289,10 @@ impl Compiler {
         if !all_literals_or_wild && !all_enum_or_wild {
             bail!("RHDL currently supports only match arms with all literals or all enums (and a wildcard '_' is allowed)");
         }
-        self.expr_rom(expr_match)
+        self.expr_case(expr_match)
     }
 
-    fn expr_rom(&mut self, expr_match: ast::ExprMatch) -> Result<Slot> {
+    fn expr_case(&mut self, expr_match: ast::ExprMatch) -> Result<Slot> {
         let lhs = self.reg();
         let target = self.expr(*expr_match.expr)?;
         let table = expr_match
@@ -245,7 +300,7 @@ impl Compiler {
             .into_iter()
             .map(|arm| self.expr_arm(target.clone(), lhs.clone(), arm))
             .collect::<Result<_>>()?;
-        self.op(OpCode::Rom(RomOp {
+        self.op(OpCode::Case(CaseOp {
             lhs: lhs.clone(),
             expr: target,
             table,
@@ -259,7 +314,7 @@ impl Compiler {
         lhs: Slot,
         structure: ast::PatternStruct,
         body: ast::Expr,
-    ) -> Result<(RomArgument, BlockId)> {
+    ) -> Result<(CaseArgument, BlockId)> {
         // Collect the elements of the struct that are identifiers (and not wildcards)
         // For each element of the pattern, collect the name (this is the binding) and the
         // position within the tuple.
@@ -295,7 +350,7 @@ impl Compiler {
             rhs: expr_output,
         }));
         self.set_block(current_id);
-        Ok((RomArgument::Path(structure.path.path), id))
+        Ok((CaseArgument::Path(structure.path.path), id))
     }
 
     fn expr_arm_tuple_struct(
@@ -304,7 +359,7 @@ impl Compiler {
         lhs: Slot,
         tuple: ast::PatternTupleStruct,
         body: ast::Expr,
-    ) -> Result<(RomArgument, BlockId)> {
+    ) -> Result<(CaseArgument, BlockId)> {
         // Collect the elements of the tuple struct that are identifiers (and not wildcards)
         // For each element of the pattern, collect the name (this is the binding) and the
         // position within the tuple.
@@ -341,7 +396,7 @@ impl Compiler {
             rhs: expr_output,
         }));
         self.set_block(current_id);
-        Ok((RomArgument::Path(tuple.path.path), id))
+        Ok((CaseArgument::Path(tuple.path.path), id))
     }
 
     fn expr_arm(
@@ -349,18 +404,18 @@ impl Compiler {
         target: Slot,
         lhs: Slot,
         arm: ast::Arm,
-    ) -> Result<(RomArgument, BlockId)> {
+    ) -> Result<(CaseArgument, BlockId)> {
         match arm.pattern {
             ast::Pattern::Wild => Ok((
-                RomArgument::Wild,
+                CaseArgument::Wild,
                 self.wrap_expr_in_block(Some(arm.body), lhs)?,
             )),
             ast::Pattern::Lit(lit) => Ok((
-                RomArgument::Literal(Slot::Literal(lit)),
+                CaseArgument::Literal(Slot::Literal(lit)),
                 self.wrap_expr_in_block(Some(arm.body), lhs)?,
             )),
             ast::Pattern::Path(pat) => Ok((
-                RomArgument::Path(pat.path),
+                CaseArgument::Path(pat.path),
                 self.wrap_expr_in_block(Some(arm.body), lhs)?,
             )),
             ast::Pattern::TupleStruct(tuple) => {

@@ -135,7 +135,6 @@ impl Display for Expr {
                 write!(f, ")")
             }
             Expr::ForLoop(for_loop) => write!(f, "{}", for_loop),
-            Expr::While(while_) => write!(f, "{}", while_),
             Expr::Assign(assign) => write!(f, "{}", assign),
             Expr::Group(expr) => write!(f, "({})", expr),
             Expr::Field(field) => write!(f, "{}", field),

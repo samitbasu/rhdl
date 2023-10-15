@@ -14,8 +14,6 @@ pub enum OpCode {
     Return(Option<Slot>),
     // if cond { then_branch } else { else_branch }
     If(IfOp),
-    // x <- {block}
-    Block(BlockOp),
     // x <- a[i]
     Index(IndexOp),
     // x <- a
@@ -30,20 +28,20 @@ pub enum OpCode {
     Struct(StructOp),
     // x <- Tuple(fields)
     Tuple(TupleOp),
-    // x <- match a { arms }
-    Match(MatchOp),
     // x = &a
     Ref(RefOp),
     // x = &a.field
     FieldRef(FieldRefOp),
     // x = &a[i]
     IndexRef(IndexRefOp),
-    // Jump
-    Call(BlockId),
+    // Jump to block
+    Block(BlockId),
     // ROM table
-    Rom(RomOp),
+    Case(CaseOp),
     // Exec a function
     Exec(ExecOp),
+    // x <- [a, b, c, d]
+    Array(ArrayOp),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -54,14 +52,14 @@ pub struct ExecOp {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct RomOp {
+pub struct CaseOp {
     pub lhs: Slot,
     pub expr: Slot,
-    pub table: Vec<(RomArgument, BlockId)>,
+    pub table: Vec<(CaseArgument, BlockId)>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum RomArgument {
+pub enum CaseArgument {
     Literal(Slot),
     Wild,
     Path(Vec<String>),
@@ -94,23 +92,17 @@ pub struct FieldRefOp {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct MatchOp {
-    pub lhs: Slot,
-    pub arg: Slot,
-    pub arms: Vec<MatchArm>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct MatchArm {
-    pub pattern: Slot,
-    pub body: BlockOp,
-}
-
-#[derive(Debug, Clone, PartialEq)]
 pub struct TupleOp {
     pub lhs: Slot,
     pub fields: Vec<Slot>,
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArrayOp {
+    pub lhs: Slot,
+    pub elements: Vec<Slot>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct StructOp {
     pub lhs: Slot,
@@ -128,8 +120,8 @@ pub struct FieldValue {
 #[derive(Debug, Clone, PartialEq)]
 pub struct RepeatOp {
     pub lhs: Slot,
-    pub arg: Slot,
-    pub count: Slot,
+    pub value: Slot,
+    pub len: Slot,
 }
 #[derive(Debug, Clone, PartialEq)]
 pub struct FieldOp {
@@ -148,12 +140,6 @@ pub struct IndexOp {
     pub lhs: Slot,
     pub arg: Slot,
     pub index: Slot,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct BlockOp {
-    pub lhs: Slot,
-    pub body: Vec<OpCode>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
