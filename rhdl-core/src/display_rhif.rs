@@ -233,7 +233,7 @@ impl Display for UnaryOp {
 impl Display for Slot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Slot::Literal(l) => write!(f, "{}", l),
+            Slot::Literal(l) => write!(f, "l{}", l),
             // Use 4 spaces for alignment
             Slot::Register(usize) => write!(f, "r{}", usize),
             Slot::Empty => write!(f, "{{}}"),
