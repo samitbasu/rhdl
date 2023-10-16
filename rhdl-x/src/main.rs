@@ -1,5 +1,5 @@
-use anyhow::bail;
 use anyhow::Result;
+use anyhow::{anyhow, bail};
 use std::vec;
 use std::{collections::HashMap, fmt::Display};
 
@@ -7,32 +7,11 @@ use std::{collections::HashMap, fmt::Display};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TypeId(pub usize);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Kind {
     Int,
     Bool,
-}
-
-// These are type functions.  They can be applied to a
-// type to produce a new type.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Functions {
-    // The pointer function
-    Ref,
-    // The tuple function (makes a type tuple)
-    Tuple,
-    // The function that gets a field from a struct
-    GetField(String),
-}
-
-impl Display for Functions {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Functions::Ref => write!(f, "ref"),
-            Functions::Tuple => write!(f, "tuple"),
-            Functions::GetField(s) => write!(f, "get_field<{}>", s),
-        }
-    }
+    Struct { fields: HashMap<String, Kind> },
 }
 
 // Start simple, modelling as in the Eli Bendersky example.
@@ -41,32 +20,58 @@ impl Display for Functions {
 // is some function.  Also, when we say that a = &b.foo,
 // that could be considered the application of a function
 // a = get_field(b, "foo").
-#[derive(PartialEq, Debug, Clone, Eq, Hash)]
+#[derive(PartialEq, Debug, Clone, Eq)]
 pub enum Term {
     Var(TypeId),
     Const(Kind),
-    App { func: Functions, args: Vec<Term> },
+    Ref(Box<Term>),
+    Tuple { fields: Vec<Term> },
 }
 
 fn tuple(args: Vec<Term>) -> Term {
-    Term::App {
-        func: Functions::Tuple,
-        args,
-    }
+    Term::Tuple { fields: args }
 }
 
 fn as_ref(t: Term) -> Term {
-    Term::App {
-        func: Functions::Ref,
-        args: vec![t],
-    }
+    Term::Ref(Box::new(t))
 }
 
-fn get_field(t: Term, field: &str) -> Term {
-    Term::App {
-        func: Functions::GetField(field.to_string()),
-        args: vec![t],
+fn get_named_field(t: Term, field: &str, subs: &Subst) -> Result<Term> {
+    let Term::Var(id) = t else {
+        bail!("Cannot get field of non-variable")
+    };
+    let Some(t) = subs.map.get(&id) else {
+        bail!("Type must be known at this point")
+    };
+    let Term::Const(k) = t else {
+        bail!("Type must be known at this point")
+    };
+    let Kind::Struct { fields } = k else {
+        bail!("Type must be a struct")
+    };
+    let Some(ty) = fields.get(field) else {
+        bail!("Field {} not found", field)
+    };
+    Ok(Term::Const(ty.clone()))
+}
+
+fn get_unnamed_field(t: Term, field: usize, subs: &Subst) -> Result<Term> {
+    let Term::Var(id) = t else {
+        bail!("Cannot get field of non-variable")
+    };
+    let Some(t) = subs.map.get(&id) else {
+        bail!("Type must be known at this point")
+    };
+    if let Term::Ref(t) = t {
+        return get_unnamed_field(*t.clone(), field, subs).map(|x| Term::Ref(Box::new(x)));
     }
+    let Term::Tuple { fields } = t else {
+        bail!("Type must be a tuple")
+    };
+    fields
+        .get(field)
+        .cloned()
+        .ok_or_else(|| anyhow!("Field {} not found", field))
 }
 
 fn var(id: usize) -> Term {
@@ -78,9 +83,9 @@ impl Display for Term {
         match self {
             Term::Var(id) => write!(f, "V{}", id.0),
             Term::Const(kind) => write!(f, "Kind<{:?}>", kind),
-            Term::App { func, args } => {
-                write!(f, "{} (", func)?;
-                for (i, term) in args.iter().enumerate() {
+            Term::Tuple { fields } => {
+                write!(f, "(")?;
+                for (i, term) in fields.iter().enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
                     }
@@ -88,6 +93,7 @@ impl Display for Term {
                 }
                 write!(f, ")")
             }
+            Term::Ref(t) => write!(f, "&{}", t),
         }
     }
 }
@@ -95,7 +101,6 @@ impl Display for Term {
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct Subst {
     map: HashMap<TypeId, Term>,
-    extras: Vec<(Term, Term)>,
 }
 
 fn show_table(subst: &Subst) {
@@ -103,10 +108,6 @@ fn show_table(subst: &Subst) {
         .map
         .iter()
         .for_each(|(k, v)| println!("V{} -> {}", k.0, v));
-    subst
-        .extras
-        .iter()
-        .for_each(|(k, v)| println!("{} <-> {}", k, v));
 }
 
 pub fn unify(x: Term, y: Term, mut subst: Subst) -> Result<Subst> {
@@ -114,35 +115,26 @@ pub fn unify(x: Term, y: Term, mut subst: Subst) -> Result<Subst> {
         return Ok(subst);
     }
     if let Term::Var(x) = x {
-        unify_variable(x, y, subst)
-    } else if let Term::Var(y) = y {
-        unify_variable(y, x, subst)
-    } else if let (
-        Term::App {
-            func: x_func,
-            args: x_args,
-        },
-        Term::App {
-            func: y_func,
-            args: y_args,
-        },
-    ) = (x.clone(), y.clone())
-    {
-        if x_func != y_func {
-            bail!("Cannot unify {:?} and {:?}", x, y)
-        }
-        if x_args.len() != y_args.len() {
+        return unify_variable(x, y, subst);
+    }
+    if let Term::Var(y) = y {
+        return unify_variable(y, x, subst);
+    }
+    // Neither is a variable.  Check the reference case
+    if let (Term::Ref(x), Term::Ref(y)) = (x.clone(), y.clone()) {
+        return unify(*x, *y, subst);
+    }
+    if let (Term::Tuple { fields: x }, Term::Tuple { fields: y }) = (x.clone(), y.clone()) {
+        if x.len() != y.len() {
             bail!("Cannot unify tuples of different lengths")
         } else {
-            for (x, y) in x_args.iter().zip(y_args.iter()) {
+            for (x, y) in x.iter().zip(y.iter()) {
                 subst = unify(x.clone(), y.clone(), subst)?;
             }
-            Ok(subst)
+            return Ok(subst);
         }
-    } else {
-        subst.extras.push((x, y));
-        Ok(subst)
     }
+    bail!("Cannot unify {:?} and {:?}", x, y)
 }
 
 fn unify_variable(v: TypeId, x: Term, mut subst: Subst) -> Result<Subst> {
@@ -168,8 +160,12 @@ fn occurs_check(v: TypeId, term: &Term, subst: &Subst) -> bool {
         if let Some(t) = subst.map.get(&x) {
             return occurs_check(v, t, subst);
         }
-    } else if let Term::App { func: _, args } = term {
-        return args.iter().any(|x| occurs_check(v, x, subst));
+    }
+    if let Term::Ref(x) = term {
+        return occurs_check(v, x, subst);
+    }
+    if let Term::Tuple { fields } = term {
+        return fields.iter().any(|x| occurs_check(v, x, subst));
     }
     false
 }
@@ -280,6 +276,8 @@ fn test_case_6() {
 // let d = &b
 // let *d = c
 // --> a = { foo: bool }
+// Answer - Rust insists that a needs an explicit type!
+// So we can't do this.
 #[test]
 fn test_case_7() {
     let subst = Subst::default();
@@ -287,8 +285,17 @@ fn test_case_7() {
     let b = var(1);
     let c = var(2);
     let d = var(3);
+    let ty_foo_struct = Term::Const(Kind::Struct {
+        fields: [("foo".to_string(), Kind::Bool)].into(),
+    });
     let ty_bool = Term::Const(Kind::Bool);
-    let subst = unify(b.clone(), get_field(a.clone(), "foo"), subst).unwrap();
+    let subst = unify(a.clone(), ty_foo_struct.clone(), subst).unwrap();
+    let subst = unify(
+        b.clone(),
+        get_named_field(a.clone(), "foo", &subst).unwrap(),
+        subst,
+    )
+    .unwrap();
     let subst = unify(c.clone(), ty_bool.clone(), subst).unwrap();
     let subst = unify(d.clone(), as_ref(b.clone()), subst).unwrap();
     let subst = unify(d.clone(), as_ref(c.clone()), subst).unwrap();
@@ -306,7 +313,7 @@ fn test_case_7() {
 // let d = bool
 // let *c = d
 // Then do we have a = (x, bool, bool)?
-#[test] 
+#[test]
 fn test_case_8() {
     let subst = Subst::default();
     let a = var(0);
@@ -315,15 +322,28 @@ fn test_case_8() {
     let d = var(3);
     let ty_bool = Term::Const(Kind::Bool);
     let subst = unify(a.clone(), tuple(vec![var(4), var(5), var(6)]), subst).unwrap();
-    let subst = unify(get_field(a.clone(), "1"), ty_bool.clone(), subst).unwrap();
+    let subst = unify(
+        get_unnamed_field(a.clone(), 1, &subst).unwrap(),
+        ty_bool.clone(),
+        subst,
+    )
+    .unwrap();
     let subst = unify(b.clone(), as_ref(a.clone()), subst).unwrap();
-    let subst = unify(c.clone(), get_field(b.clone(), "2"), subst).unwrap();
+    let subst = unify(
+        c.clone(),
+        get_unnamed_field(b.clone(), 2, &subst).unwrap(),
+        subst,
+    )
+    .unwrap();
     let subst = unify(d.clone(), ty_bool.clone(), subst).unwrap();
     let subst = unify(c.clone(), as_ref(d.clone()), subst).unwrap();
+    let subst = unify(a.clone(), tuple(vec![var(4), var(5), var(6)]), subst).unwrap();
     show_table(&subst);
-    assert_eq!(subst.map.get(&TypeId(0)).unwrap(), &tuple(vec![var(4), ty_bool.clone(), ty_bool.clone()]));
+    assert_eq!(
+        subst.map.get(&TypeId(0)).unwrap(),
+        &tuple(vec![var(4), ty_bool.clone(), ty_bool.clone()])
+    );
 }
-
 
 fn main() {
     println!("Hello, world!");
