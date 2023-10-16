@@ -1,10 +1,30 @@
 use crate::{
     compiler::Compiler,
     digital::Digital,
-    rhif::{AluBinary, AssignOp, BinaryOp, CopyOp, FieldOp, IfOp, Member, OpCode, RefOp, Slot},
+    rhif::{
+        AluBinary, AssignOp, BinaryOp, CopyOp, FieldOp, FieldRefOp, IfOp, Member, OpCode, RefOp,
+        Slot,
+    },
     rhif_type::Ty,
     Kind,
 };
+
+// Some more notes on type inference.
+//
+// Each register and literal needs a type variable.  This should just be a number, but for
+// safety, it will be a newtype, something like struct TypeId(pub u32).
+//
+// Next, we need a Term to contain elements that can be stored in the unification table.
+//
+// It should be something like:
+//
+// pub enum Term {
+//     Var(TypeId),
+//     Ty(Ty),
+//     Tuple(Vec<Term>),
+// }
+//
+// The substitution table is a mapping from TypeId to Term.
 
 use anyhow::{bail, Result};
 
@@ -20,6 +40,7 @@ pub fn infer_type(compiler: &mut Compiler) -> Result<()> {
     arithmetic_ops(compiler)?;
     boolean_ops(compiler)?;
     struct_ops(compiler)?;
+    ref_struct_ops(compiler)?;
     Ok(())
 }
 
@@ -232,6 +253,25 @@ fn struct_ops(compiler: &mut Compiler) -> Result<()> {
             let arg_kind = arg_ty.kind()?;
             let sub_kind = get_field_of_type(&arg_kind, &member)?;
             constrain_type(compiler, lhs, &Ty::Kind(sub_kind))?;
+        }
+    }
+    Ok(())
+}
+
+fn ref_struct_ops(compiler: &mut Compiler) -> Result<()> {
+    let ops = compiler
+        .iter_ops()
+        .filter_map(|x| match x {
+            OpCode::FieldRef(FieldRefOp { lhs, arg, member }) => Some((*lhs, *arg, member.clone())),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    for (lhs, arg, member) in ops {
+        let arg_ty = compiler.ty(arg);
+        if let Some(arg_ty) = arg_ty {
+            let arg_kind = arg_ty.target_kind()?;
+            let sub_kind = get_field_of_type(&arg_kind, &member)?;
+            constrain_type(compiler, lhs, &Ty::Address(sub_kind))?;
         }
     }
     Ok(())

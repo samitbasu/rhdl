@@ -666,6 +666,7 @@ mod tests {
         fn do_stuff(mut a: Foo, mut s: NooState) {
             let q: u8 = 4;
             let z = a.c;
+            let w = (a, a);
             a.c[1] = q + 3;
             a.c = [0; 3];
             a.c = [1, 2, 3];
@@ -742,6 +743,8 @@ mod tests {
         ctx.bind("NooState::Walk");
         let lhs = ctx.compile(ast).unwrap();
         println!("Types before inference: {}", ctx.types_known());
+        infer_type(&mut ctx).unwrap();
+        println!("Types after inference: {}", ctx.types_known());
         infer_type(&mut ctx).unwrap();
         println!("Types after inference: {}", ctx.types_known());
         infer_type(&mut ctx).unwrap();

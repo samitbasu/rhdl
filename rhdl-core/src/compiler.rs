@@ -63,6 +63,12 @@ impl Display for Compiler {
                 writeln!(f, "  {}", op)?;
             }
         }
+        // List registers that are not typed
+        for ndx in 0..self.reg_count {
+            if !self.types.contains_key(&ndx) {
+                writeln!(f, "Register r{} is not typed", ndx)?;
+            }
+        }
         Ok(())
     }
 }
