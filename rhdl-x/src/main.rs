@@ -295,6 +295,36 @@ fn test_case_7() {
     show_table(&subst);
 }
 
+// Let's keep going.
+// Suppose we have a tuple type
+// let a = (x, y, z)
+// and then we have
+// y = bool
+// And then we have
+// let b = &a
+// let c = &b.2
+// let d = bool
+// let *c = d
+// Then do we have a = (x, bool, bool)?
+#[test] 
+fn test_case_8() {
+    let subst = Subst::default();
+    let a = var(0);
+    let b = var(1);
+    let c = var(2);
+    let d = var(3);
+    let ty_bool = Term::Const(Kind::Bool);
+    let subst = unify(a.clone(), tuple(vec![var(4), var(5), var(6)]), subst).unwrap();
+    let subst = unify(get_field(a.clone(), "1"), ty_bool.clone(), subst).unwrap();
+    let subst = unify(b.clone(), as_ref(a.clone()), subst).unwrap();
+    let subst = unify(c.clone(), get_field(b.clone(), "2"), subst).unwrap();
+    let subst = unify(d.clone(), ty_bool.clone(), subst).unwrap();
+    let subst = unify(c.clone(), as_ref(d.clone()), subst).unwrap();
+    show_table(&subst);
+    assert_eq!(subst.map.get(&TypeId(0)).unwrap(), &tuple(vec![var(4), ty_bool.clone(), ty_bool.clone()]));
+}
+
+
 fn main() {
     println!("Hello, world!");
 }
