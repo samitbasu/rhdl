@@ -2,6 +2,7 @@ use std::{iter::repeat, ops::Range};
 
 use anyhow::Result;
 
+// TODO - add a Signed variant
 #[derive(Debug, Clone, PartialEq)]
 pub enum Kind {
     Array(Array),
