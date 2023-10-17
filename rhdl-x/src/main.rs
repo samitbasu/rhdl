@@ -1,5 +1,6 @@
 use anyhow::Result;
 use anyhow::{anyhow, bail};
+use std::collections::BTreeMap;
 use std::vec;
 use std::{collections::HashMap, fmt::Display};
 
@@ -8,24 +9,53 @@ use std::{collections::HashMap, fmt::Display};
 pub struct TypeId(pub usize);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Kind {
-    Int,
-    Bool,
-    Struct { fields: HashMap<String, Kind> },
+pub enum Bits {
+    Signed(usize),
+    Unsigned(usize),
 }
 
 // Start simple, modelling as in the Eli Bendersky example.
-// Now, consider the case of a reference, i.e., a = &b.
-// This is equivalent to saying that a = ptr(b), where ptr
-// is some function.  Also, when we say that a = &b.foo,
-// that could be considered the application of a function
-// a = get_field(b, "foo").
+// Support for function types as a target for inference
+// has been dropped for now.  I don't expect to support
+// those at first, focusing instead on traditional type functions.
+// Stil to do is enum support
 #[derive(PartialEq, Debug, Clone, Eq)]
 pub enum Term {
     Var(TypeId),
-    Const(Kind),
+    Const(Bits),
     Ref(Box<Term>),
-    Tuple { fields: Vec<Term> },
+    Tuple {
+        fields: Vec<Term>,
+    },
+    Array {
+        elems: Vec<Term>,
+    },
+    Struct {
+        name: String,
+        fields: BTreeMap<String, Term>,
+    },
+}
+
+fn bits(width: usize) -> Term {
+    Term::Const(Bits::Unsigned(width))
+}
+
+fn signed(width: usize) -> Term {
+    Term::Const(Bits::Signed(width))
+}
+
+fn array(t: Term, len: usize) -> Term {
+    Term::Array {
+        elems: vec![t; len],
+    }
+}
+
+fn array_vars(args: Vec<Term>, mut subs: Subst) -> Result<(Term, Subst)> {
+    // put all of the terms into a single unified equivalence class
+    for x in args.windows(2) {
+        subs = unify(x[0].clone(), x[1].clone(), subs)?;
+    }
+    Ok((Term::Array { elems: args }, subs))
 }
 
 fn tuple(args: Vec<Term>) -> Term {
@@ -43,16 +73,16 @@ fn get_named_field(t: Term, field: &str, subs: &Subst) -> Result<Term> {
     let Some(t) = subs.map.get(&id) else {
         bail!("Type must be known at this point")
     };
-    let Term::Const(k) = t else {
-        bail!("Type must be known at this point")
-    };
-    let Kind::Struct { fields } = k else {
+    if let Term::Ref(t) = t {
+        return get_named_field(*t.clone(), field, subs).map(|x| Term::Ref(Box::new(x)));
+    }
+    let Term::Struct { name: _, fields } = t else {
         bail!("Type must be a struct")
     };
     let Some(ty) = fields.get(field) else {
         bail!("Field {} not found", field)
     };
-    Ok(Term::Const(ty.clone()))
+    Ok(ty.clone())
 }
 
 fn get_unnamed_field(t: Term, field: usize, subs: &Subst) -> Result<Term> {
@@ -74,6 +104,25 @@ fn get_unnamed_field(t: Term, field: usize, subs: &Subst) -> Result<Term> {
         .ok_or_else(|| anyhow!("Field {} not found", field))
 }
 
+fn get_indexed_item(t: Term, index: usize, subs: &Subst) -> Result<Term> {
+    let Term::Var(id) = t else {
+        bail!("Cannot get field of non-variable")
+    };
+    let Some(t) = subs.map.get(&id) else {
+        bail!("Type must be known at this point")
+    };
+    if let Term::Ref(t) = t {
+        return get_indexed_item(*t.clone(), index, subs).map(|x| Term::Ref(Box::new(x)));
+    }
+    let Term::Array { elems } = t else {
+        bail!("Type must be an array")
+    };
+    elems
+        .get(index)
+        .cloned()
+        .ok_or_else(|| anyhow!("Index {} out of bounds", index))
+}
+
 fn var(id: usize) -> Term {
     Term::Var(TypeId(id))
 }
@@ -82,7 +131,20 @@ impl Display for Term {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Term::Var(id) => write!(f, "V{}", id.0),
-            Term::Const(kind) => write!(f, "Kind<{:?}>", kind),
+            Term::Const(bits) => match bits {
+                Bits::Signed(width) => write!(f, "s{}", width),
+                Bits::Unsigned(width) => write!(f, "b{}", width),
+            },
+            Term::Struct { name, fields } => {
+                write!(f, "{} {{", name)?;
+                for (i, (field, ty)) in fields.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}: {}", field, ty)?;
+                }
+                write!(f, "}}")
+            }
             Term::Tuple { fields } => {
                 write!(f, "(")?;
                 for (i, term) in fields.iter().enumerate() {
@@ -94,6 +156,16 @@ impl Display for Term {
                 write!(f, ")")
             }
             Term::Ref(t) => write!(f, "&{}", t),
+            Term::Array { elems } => {
+                write!(f, "[")?;
+                for (i, term) in elems.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", term)?;
+                }
+                write!(f, "]")
+            }
         }
     }
 }
@@ -108,6 +180,36 @@ fn show_table(subst: &Subst) {
         .map
         .iter()
         .for_each(|(k, v)| println!("V{} -> {}", k.0, v));
+}
+
+pub fn apply_unifier(typ: Term, subst: &Subst) -> Term {
+    match typ {
+        Term::Var(id) => {
+            if let Some(t) = subst.map.get(&id) {
+                apply_unifier(t.clone(), subst)
+            } else {
+                Term::Var(id)
+            }
+        }
+        Term::Const { .. } => typ,
+        Term::Tuple { fields } => Term::Tuple {
+            fields: fields
+                .into_iter()
+                .map(|x| apply_unifier(x, subst))
+                .collect(),
+        },
+        Term::Ref(t) => Term::Ref(Box::new(apply_unifier(*t, subst))),
+        Term::Array { elems } => Term::Array {
+            elems: elems.into_iter().map(|x| apply_unifier(x, subst)).collect(),
+        },
+        Term::Struct { name, fields } => Term::Struct {
+            name,
+            fields: fields
+                .into_iter()
+                .map(|(k, v)| (k, apply_unifier(v, subst)))
+                .collect(),
+        },
+    }
 }
 
 pub fn unify(x: Term, y: Term, mut subst: Subst) -> Result<Subst> {
@@ -130,6 +232,40 @@ pub fn unify(x: Term, y: Term, mut subst: Subst) -> Result<Subst> {
         } else {
             for (x, y) in x.iter().zip(y.iter()) {
                 subst = unify(x.clone(), y.clone(), subst)?;
+            }
+            return Ok(subst);
+        }
+    }
+    if let (Term::Array { elems: x_elems }, Term::Array { elems: y_elems }) = (x.clone(), y.clone())
+    {
+        if x_elems.len() != y_elems.len() {
+            bail!("Cannot unify arrays of different lengths")
+        } else {
+            for (x_elem, y_elem) in x_elems.iter().zip(y_elems.iter()) {
+                subst = unify(x_elem.clone(), y_elem.clone(), subst)?;
+            }
+            return Ok(subst);
+        }
+    }
+    if let (
+        Term::Struct {
+            name: x_name,
+            fields: x_fields,
+        },
+        Term::Struct {
+            name: y_name,
+            fields: y_fields,
+        },
+    ) = (x.clone(), y.clone())
+    {
+        if x_name != y_name {
+            bail!("Cannot unify structs of different names")
+        } else {
+            for (x_field, y_field) in x_fields.iter().zip(y_fields.iter()) {
+                if x_field.0 != y_field.0 {
+                    bail!("Cannot unify structs with different fields")
+                }
+                subst = unify(x_field.1.clone(), y_field.1.clone(), subst)?;
             }
             return Ok(subst);
         }
@@ -167,6 +303,12 @@ fn occurs_check(v: TypeId, term: &Term, subst: &Subst) -> bool {
     if let Term::Tuple { fields } = term {
         return fields.iter().any(|x| occurs_check(v, x, subst));
     }
+    if let Term::Array { elems } = term {
+        return elems.iter().any(|x| occurs_check(v, x, subst));
+    }
+    if let Term::Struct { fields, .. } = term {
+        return fields.values().any(|x| occurs_check(v, x, subst));
+    }
     false
 }
 
@@ -180,7 +322,7 @@ fn test_case_1() {
     let a = Term::Var(TypeId(0));
     let one = Term::Var(TypeId(1));
     let subst = unify(a, one.clone(), subst).unwrap();
-    let subst = unify(one, Term::Const(Kind::Int), subst).unwrap();
+    let subst = unify(one, bits(4), subst).unwrap();
     println!("{:?}", subst);
 }
 
@@ -208,8 +350,8 @@ fn test_case_3() {
     let c = Term::Var(TypeId(2));
     let subst = unify(a.clone(), b.clone(), subst).unwrap();
     let subst = unify(a.clone(), c.clone(), subst).unwrap();
-    let subst = unify(b.clone(), Term::Const(Kind::Int), subst).unwrap();
-    let subst = unify(c.clone(), Term::Const(Kind::Bool), subst).unwrap();
+    let subst = unify(b.clone(), bits(8), subst).unwrap();
+    let subst = unify(c.clone(), bits(1), subst).unwrap();
     print!("{:?}", subst);
 }
 
@@ -228,8 +370,8 @@ fn test_case_4() {
     let f = Term::Var(TypeId(5));
     let q = Term::Var(TypeId(6));
     let p = Term::Var(TypeId(7));
-    let ty_int = Term::Const(Kind::Int);
-    let ty_bool = Term::Const(Kind::Bool);
+    let ty_int = bits(8);
+    let ty_bool = bits(1);
     let subst = unify(b.clone(), ty_int.clone(), subst).unwrap();
     let subst = unify(d.clone(), ty_bool.clone(), subst).unwrap();
     let subst = unify(f.clone(), ty_bool.clone(), subst).unwrap();
@@ -261,7 +403,7 @@ fn test_case_6() {
     let a = var(0);
     let b = var(1);
     let c = var(2);
-    let ty_bool = Term::Const(Kind::Bool);
+    let ty_bool = bits(1);
     let subst = unify(b.clone(), as_ref(a.clone()), subst).unwrap();
     let subst = unify(c.clone(), ty_bool.clone(), subst).unwrap();
     let subst = unify(b.clone(), as_ref(c.clone()), subst).unwrap();
@@ -285,10 +427,11 @@ fn test_case_7() {
     let b = var(1);
     let c = var(2);
     let d = var(3);
-    let ty_foo_struct = Term::Const(Kind::Struct {
-        fields: [("foo".to_string(), Kind::Bool)].into(),
-    });
-    let ty_bool = Term::Const(Kind::Bool);
+    let ty_bool = bits(1);
+    let ty_foo_struct = Term::Struct {
+        name: "FooStruct".into(),
+        fields: [("foo".to_string(), ty_bool.clone())].into(),
+    };
     let subst = unify(a.clone(), ty_foo_struct.clone(), subst).unwrap();
     let subst = unify(
         b.clone(),
@@ -299,6 +442,36 @@ fn test_case_7() {
     let subst = unify(c.clone(), ty_bool.clone(), subst).unwrap();
     let subst = unify(d.clone(), as_ref(b.clone()), subst).unwrap();
     let subst = unify(d.clone(), as_ref(c.clone()), subst).unwrap();
+    show_table(&subst);
+}
+
+// let a = <some struct>
+// let b = &a
+// let c = &b.foo
+// let d = bool
+// let *c = d
+#[test]
+fn test_ref_struct_field() {
+    let subst = Subst::default();
+    let a = var(0);
+    let b = var(1);
+    let c = var(2);
+    let d = var(3);
+    let ty_bool = bits(1);
+    let ty_foo_struct = Term::Struct {
+        name: "FooStruct".into(),
+        fields: [("foo".to_string(), ty_bool.clone())].into(),
+    };
+    let subst = unify(a.clone(), ty_foo_struct.clone(), subst).unwrap();
+    let subst = unify(b.clone(), as_ref(a.clone()), subst).unwrap();
+    let subst = unify(
+        c.clone(),
+        get_named_field(b.clone(), "foo", &subst).unwrap(),
+        subst,
+    )
+    .unwrap();
+    let subst = unify(d.clone(), ty_bool.clone(), subst).unwrap();
+    let subst = unify(c.clone(), as_ref(d.clone()), subst).unwrap();
     show_table(&subst);
 }
 
@@ -320,7 +493,7 @@ fn test_case_8() {
     let b = var(1);
     let c = var(2);
     let d = var(3);
-    let ty_bool = Term::Const(Kind::Bool);
+    let ty_bool = bits(1);
     let subst = unify(a.clone(), tuple(vec![var(4), var(5), var(6)]), subst).unwrap();
     let subst = unify(
         get_unnamed_field(a.clone(), 1, &subst).unwrap(),
@@ -340,10 +513,84 @@ fn test_case_8() {
     let subst = unify(a.clone(), tuple(vec![var(4), var(5), var(6)]), subst).unwrap();
     show_table(&subst);
     assert_eq!(
-        subst.map.get(&TypeId(0)).unwrap(),
-        &tuple(vec![var(4), ty_bool.clone(), ty_bool.clone()])
+        apply_unifier(a, &subst),
+        tuple(vec![var(4), ty_bool.clone(), ty_bool.clone()])
     );
 }
+
+// Test array case:
+// let a
+// let b = [a; 4]
+// let c = &b
+// let d = &c[2]
+// let e = bool
+// let *d = e
+#[test]
+fn test_case_9() {
+    let subst = Subst::default();
+    let a = var(0);
+    let b = var(1);
+    let c = var(2);
+    let d = var(3);
+    let e = var(4);
+    let ty_bool = bits(1);
+    let subst = unify(b.clone(), array(a.clone(), 4), subst).unwrap();
+    let subst = unify(c.clone(), as_ref(b.clone()), subst).unwrap();
+    let subst = unify(
+        d.clone(),
+        get_indexed_item(c.clone(), 2, &subst).unwrap(),
+        subst,
+    )
+    .unwrap();
+    let subst = unify(e.clone(), ty_bool.clone(), subst).unwrap();
+    let subst = unify(d.clone(), as_ref(e.clone()), subst).unwrap();
+    show_table(&subst);
+    assert_eq!(subst.map.get(&TypeId(0)).unwrap(), &ty_bool.clone());
+}
+
+// Test array from multiple variables:
+// let a
+// let b
+// let c
+// let d = [a, b, c];
+// let e = &d[2]
+// let f = bool
+// let *e = f
+#[test]
+fn test_case_10() {
+    let subst = Subst::default();
+    let a = var(0);
+    let b = var(1);
+    let c = var(2);
+    let d = var(3);
+    let e = var(4);
+    let f = var(5);
+    let ty_bool = bits(1);
+    let (ar, subst) = array_vars(vec![a.clone(), b.clone(), c.clone()], subst).unwrap();
+    let subst = unify(d.clone(), ar, subst).unwrap();
+    let subst = unify(
+        e.clone(),
+        as_ref(get_indexed_item(d.clone(), 2, &subst).unwrap()),
+        subst,
+    )
+    .unwrap();
+    let subst = unify(f.clone(), ty_bool.clone(), subst).unwrap();
+    let subst = unify(e.clone(), as_ref(f.clone()), subst).unwrap();
+    show_table(&subst);
+    assert_eq!(
+        apply_unifier(d, &subst),
+        Term::Array {
+            elems: vec![ty_bool.clone(), ty_bool.clone(), ty_bool.clone()]
+        },
+    );
+}
+
+// Need to sort out interaction of pre-defined arrays tuples, with dynamically generated
+// arrays and tuples.
+// For example, if a is struct that contains a field foo, which has type (bool, bool, bool),
+// then if we assign
+// a.foo = (b, c, d)
+// We immediately know that the tuple of (b, c, d) are all bools.
 
 fn main() {
     println!("Hello, world!");
