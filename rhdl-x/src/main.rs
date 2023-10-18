@@ -12,6 +12,52 @@ pub struct TypeId(pub usize);
 pub enum Bits {
     Signed(usize),
     Unsigned(usize),
+    Empty,
+}
+
+#[derive(PartialEq, Debug, Clone, Eq)]
+pub struct TermMap {
+    name: String,
+    fields: BTreeMap<String, Term>,
+}
+
+// A simple macro rules style macro that allows you to construct a TermMap
+// using a struct-like syntax, like
+// term_map! {
+//     name: "Foo",
+//     fields: {
+//         "foo" => bits(8),
+//         "bar" => bits(1),
+//     }
+// }
+macro_rules! ty_struct {
+    (name: $name:expr, fields: { $($field:expr => $ty:expr),* $(,)? }) => {
+        Term::Struct(TermMap {
+            name: $name.into(),
+            fields: {
+                let mut map = BTreeMap::new();
+                $(
+                    map.insert($field.into(), $ty);
+                )*
+                map
+            }
+        })
+    };
+}
+
+macro_rules! ty_enum {
+    (name: $name:expr, fields: { $($field:expr => $ty:expr),* $(,)? }) => {
+        Term::Enum(TermMap {
+            name: $name.into(),
+            fields: {
+                let mut map = BTreeMap::new();
+                $(
+                    map.insert($field.into(), $ty);
+                )*
+                map
+            }
+        })
+    };
 }
 
 // Start simple, modelling as in the Eli Bendersky example.
@@ -24,16 +70,10 @@ pub enum Term {
     Var(TypeId),
     Const(Bits),
     Ref(Box<Term>),
-    Tuple {
-        fields: Vec<Term>,
-    },
-    Array {
-        elems: Vec<Term>,
-    },
-    Struct {
-        name: String,
-        fields: BTreeMap<String, Term>,
-    },
+    Tuple(Vec<Term>),
+    Array(Vec<Term>),
+    Struct(TermMap),
+    Enum(TermMap),
 }
 
 fn bits(width: usize) -> Term {
@@ -45,9 +85,7 @@ fn signed(width: usize) -> Term {
 }
 
 fn array(t: Term, len: usize) -> Term {
-    Term::Array {
-        elems: vec![t; len],
-    }
+    Term::Array(vec![t; len])
 }
 
 fn array_vars(args: Vec<Term>, mut subs: Subst) -> Result<(Term, Subst)> {
@@ -55,15 +93,34 @@ fn array_vars(args: Vec<Term>, mut subs: Subst) -> Result<(Term, Subst)> {
     for x in args.windows(2) {
         subs = unify(x[0].clone(), x[1].clone(), subs)?;
     }
-    Ok((Term::Array { elems: args }, subs))
+    Ok((Term::Array(args), subs))
 }
 
 fn tuple(args: Vec<Term>) -> Term {
-    Term::Tuple { fields: args }
+    Term::Tuple(args)
 }
 
 fn as_ref(t: Term) -> Term {
     Term::Ref(Box::new(t))
+}
+
+fn get_variant(t: Term, variant: &str, subs: &Subst) -> Result<Term> {
+    let Term::Var(id) = t else {
+        bail!("Cannot get variant of non-variable")
+    };
+    let Some(t) = subs.map.get(&id) else {
+        bail!("Type must be known at this point")
+    };
+    if let Term::Ref(t) = t {
+        return get_variant(*t.clone(), variant, subs).map(|x| Term::Ref(Box::new(x)));
+    }
+    let Term::Enum(enum_) = t else {
+        bail!("Type must be an enum")
+    };
+    let Some(ty) = enum_.fields.get(variant) else {
+        bail!("Variant {} not found", variant)
+    };
+    Ok(ty.clone())
 }
 
 fn get_named_field(t: Term, field: &str, subs: &Subst) -> Result<Term> {
@@ -76,10 +133,10 @@ fn get_named_field(t: Term, field: &str, subs: &Subst) -> Result<Term> {
     if let Term::Ref(t) = t {
         return get_named_field(*t.clone(), field, subs).map(|x| Term::Ref(Box::new(x)));
     }
-    let Term::Struct { name: _, fields } = t else {
+    let Term::Struct(struct_) = t else {
         bail!("Type must be a struct")
     };
-    let Some(ty) = fields.get(field) else {
+    let Some(ty) = struct_.fields.get(field) else {
         bail!("Field {} not found", field)
     };
     Ok(ty.clone())
@@ -95,10 +152,10 @@ fn get_unnamed_field(t: Term, field: usize, subs: &Subst) -> Result<Term> {
     if let Term::Ref(t) = t {
         return get_unnamed_field(*t.clone(), field, subs).map(|x| Term::Ref(Box::new(x)));
     }
-    let Term::Tuple { fields } = t else {
+    let Term::Tuple(fields_) = t else {
         bail!("Type must be a tuple")
     };
-    fields
+    fields_
         .get(field)
         .cloned()
         .ok_or_else(|| anyhow!("Field {} not found", field))
@@ -114,7 +171,7 @@ fn get_indexed_item(t: Term, index: usize, subs: &Subst) -> Result<Term> {
     if let Term::Ref(t) = t {
         return get_indexed_item(*t.clone(), index, subs).map(|x| Term::Ref(Box::new(x)));
     }
-    let Term::Array { elems } = t else {
+    let Term::Array(elems) = t else {
         bail!("Type must be an array")
     };
     elems
@@ -134,10 +191,11 @@ impl Display for Term {
             Term::Const(bits) => match bits {
                 Bits::Signed(width) => write!(f, "s{}", width),
                 Bits::Unsigned(width) => write!(f, "b{}", width),
+                Bits::Empty => write!(f, "{{}}"),
             },
-            Term::Struct { name, fields } => {
-                write!(f, "{} {{", name)?;
-                for (i, (field, ty)) in fields.iter().enumerate() {
+            Term::Struct(struct_) | Term::Enum(struct_) => {
+                write!(f, "{} {{", struct_.name)?;
+                for (i, (field, ty)) in struct_.fields.iter().enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
                     }
@@ -145,7 +203,7 @@ impl Display for Term {
                 }
                 write!(f, "}}")
             }
-            Term::Tuple { fields } => {
+            Term::Tuple(fields) => {
                 write!(f, "(")?;
                 for (i, term) in fields.iter().enumerate() {
                     if i > 0 {
@@ -156,7 +214,7 @@ impl Display for Term {
                 write!(f, ")")
             }
             Term::Ref(t) => write!(f, "&{}", t),
-            Term::Array { elems } => {
+            Term::Array(elems) => {
                 write!(f, "[")?;
                 for (i, term) in elems.iter().enumerate() {
                     if i > 0 {
@@ -192,23 +250,57 @@ pub fn apply_unifier(typ: Term, subst: &Subst) -> Term {
             }
         }
         Term::Const { .. } => typ,
-        Term::Tuple { fields } => Term::Tuple {
-            fields: fields
+        Term::Tuple(fields) => Term::Tuple(
+            fields
                 .into_iter()
                 .map(|x| apply_unifier(x, subst))
                 .collect(),
-        },
+        ),
         Term::Ref(t) => Term::Ref(Box::new(apply_unifier(*t, subst))),
-        Term::Array { elems } => Term::Array {
-            elems: elems.into_iter().map(|x| apply_unifier(x, subst)).collect(),
-        },
-        Term::Struct { name, fields } => Term::Struct {
-            name,
-            fields: fields
+        Term::Array(elems) => {
+            Term::Array(elems.into_iter().map(|x| apply_unifier(x, subst)).collect())
+        }
+        Term::Struct(struct_) => Term::Struct(TermMap {
+            name: struct_.name,
+            fields: struct_
+                .fields
                 .into_iter()
                 .map(|(k, v)| (k, apply_unifier(v, subst)))
                 .collect(),
-        },
+        }),
+        Term::Enum(enum_) => Term::Enum(TermMap {
+            name: enum_.name,
+            fields: enum_
+                .fields
+                .into_iter()
+                .map(|(k, v)| (k, apply_unifier(v, subst)))
+                .collect(),
+        }),
+    }
+}
+
+fn unify_tuple_arrays(x: Vec<Term>, y: Vec<Term>, mut subst: Subst) -> Result<Subst> {
+    if x.len() != y.len() {
+        bail!("Cannot unify tuples/arrays of different lengths")
+    } else {
+        for (x, y) in x.iter().zip(y.iter()) {
+            subst = unify(x.clone(), y.clone(), subst)?;
+        }
+        Ok(subst)
+    }
+}
+
+fn unify_maps(x: TermMap, y: TermMap, mut subst: Subst) -> Result<Subst> {
+    if x.name != y.name {
+        bail!("Cannot unify structs/enums of different names")
+    } else {
+        for (x_field, y_field) in x.fields.iter().zip(y.fields.iter()) {
+            if x_field.0 != y_field.0 {
+                bail!("Cannot unify structs/enums with different fields/discriminants")
+            }
+            subst = unify(x_field.1.clone(), y_field.1.clone(), subst)?;
+        }
+        Ok(subst)
     }
 }
 
@@ -216,61 +308,19 @@ pub fn unify(x: Term, y: Term, mut subst: Subst) -> Result<Subst> {
     if x == y {
         return Ok(subst);
     }
-    if let Term::Var(x) = x {
-        return unify_variable(x, y, subst);
-    }
-    if let Term::Var(y) = y {
-        return unify_variable(y, x, subst);
-    }
-    // Neither is a variable.  Check the reference case
-    if let (Term::Ref(x), Term::Ref(y)) = (x.clone(), y.clone()) {
-        return unify(*x, *y, subst);
-    }
-    if let (Term::Tuple { fields: x }, Term::Tuple { fields: y }) = (x.clone(), y.clone()) {
-        if x.len() != y.len() {
-            bail!("Cannot unify tuples of different lengths")
-        } else {
-            for (x, y) in x.iter().zip(y.iter()) {
-                subst = unify(x.clone(), y.clone(), subst)?;
-            }
-            return Ok(subst);
+    match (x, y) {
+        (Term::Var(x), y) => unify_variable(x, y, subst),
+        (x, Term::Var(y)) => unify_variable(y, x, subst),
+        (Term::Ref(x), Term::Ref(y)) => unify(*x, *y, subst),
+        (Term::Const(x), Term::Const(y)) => bail!("Cannot unify {:?} and {:?}", x, y),
+        (Term::Tuple(x), Term::Tuple(y)) | (Term::Array(x), Term::Array(y)) => {
+            unify_tuple_arrays(x, y, subst)
         }
-    }
-    if let (Term::Array { elems: x_elems }, Term::Array { elems: y_elems }) = (x.clone(), y.clone())
-    {
-        if x_elems.len() != y_elems.len() {
-            bail!("Cannot unify arrays of different lengths")
-        } else {
-            for (x_elem, y_elem) in x_elems.iter().zip(y_elems.iter()) {
-                subst = unify(x_elem.clone(), y_elem.clone(), subst)?;
-            }
-            return Ok(subst);
+        (Term::Struct(x), Term::Struct(y)) | (Term::Enum(x), Term::Enum(y)) => {
+            unify_maps(x, y, subst)
         }
+        (x, y) => bail!("Cannot unify {:?} and {:?}", x, y),
     }
-    if let (
-        Term::Struct {
-            name: x_name,
-            fields: x_fields,
-        },
-        Term::Struct {
-            name: y_name,
-            fields: y_fields,
-        },
-    ) = (x.clone(), y.clone())
-    {
-        if x_name != y_name {
-            bail!("Cannot unify structs of different names")
-        } else {
-            for (x_field, y_field) in x_fields.iter().zip(y_fields.iter()) {
-                if x_field.0 != y_field.0 {
-                    bail!("Cannot unify structs with different fields")
-                }
-                subst = unify(x_field.1.clone(), y_field.1.clone(), subst)?;
-            }
-            return Ok(subst);
-        }
-    }
-    bail!("Cannot unify {:?} and {:?}", x, y)
 }
 
 fn unify_variable(v: TypeId, x: Term, mut subst: Subst) -> Result<Subst> {
@@ -300,14 +350,14 @@ fn occurs_check(v: TypeId, term: &Term, subst: &Subst) -> bool {
     if let Term::Ref(x) = term {
         return occurs_check(v, x, subst);
     }
-    if let Term::Tuple { fields } = term {
+    if let Term::Tuple(fields) = term {
         return fields.iter().any(|x| occurs_check(v, x, subst));
     }
-    if let Term::Array { elems } = term {
+    if let Term::Array(elems) = term {
         return elems.iter().any(|x| occurs_check(v, x, subst));
     }
-    if let Term::Struct { fields, .. } = term {
-        return fields.values().any(|x| occurs_check(v, x, subst));
+    if let Term::Struct(struct_) = term {
+        return struct_.fields.values().any(|x| occurs_check(v, x, subst));
     }
     false
 }
@@ -428,9 +478,11 @@ fn test_case_7() {
     let c = var(2);
     let d = var(3);
     let ty_bool = bits(1);
-    let ty_foo_struct = Term::Struct {
-        name: "FooStruct".into(),
-        fields: [("foo".to_string(), ty_bool.clone())].into(),
+    let ty_foo_struct = ty_struct! {
+        name: "FooStruct",
+        fields: {
+            "foo" => ty_bool.clone(),
+        }
     };
     let subst = unify(a.clone(), ty_foo_struct.clone(), subst).unwrap();
     let subst = unify(
@@ -458,10 +510,11 @@ fn test_ref_struct_field() {
     let c = var(2);
     let d = var(3);
     let ty_bool = bits(1);
-    let ty_foo_struct = Term::Struct {
-        name: "FooStruct".into(),
-        fields: [("foo".to_string(), ty_bool.clone())].into(),
-    };
+    let ty_foo_struct = ty_struct!(
+    name: "FooStruct",
+    fields: {
+        "foo" => ty_bool.clone(),
+    });
     let subst = unify(a.clone(), ty_foo_struct.clone(), subst).unwrap();
     let subst = unify(b.clone(), as_ref(a.clone()), subst).unwrap();
     let subst = unify(
@@ -579,10 +632,40 @@ fn test_case_10() {
     show_table(&subst);
     assert_eq!(
         apply_unifier(d, &subst),
-        Term::Array {
-            elems: vec![ty_bool.clone(), ty_bool.clone(), ty_bool.clone()]
-        },
+        Term::Array(vec![ty_bool.clone(), ty_bool.clone(), ty_bool.clone()]),
     );
+}
+
+// Test the case of an enum.  First, we construct
+// an enum with 2 variants.
+// The first has no type payload, and the second has
+// a Foo Struct.
+#[test]
+fn test_case_11() {
+    let subst = Subst::default();
+    let a = var(0);
+    let b = var(1);
+    let ty_bool = bits(1);
+    let ty_foo_struct = ty_struct!(
+    name: "FooStruct",
+    fields: {
+        "foo" => ty_bool.clone(),
+    });
+    let ty_enum = ty_enum!(
+    name: "FooEnum",
+    fields: {
+        "A" => Term::Const(Bits::Empty),
+        "B" => ty_foo_struct.clone(),
+    });
+    let subst = unify(a.clone(), ty_enum.clone(), subst).unwrap();
+    let subst = unify(
+        b.clone(),
+        get_variant(a.clone(), "B", &subst).unwrap(),
+        subst,
+    )
+    .unwrap();
+    show_table(&subst);
+    assert_eq!(apply_unifier(b, &subst), ty_foo_struct.clone(),);
 }
 
 // Need to sort out interaction of pre-defined arrays tuples, with dynamically generated
