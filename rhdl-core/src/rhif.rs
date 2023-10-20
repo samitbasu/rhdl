@@ -6,14 +6,28 @@ use crate::ast::ExprLit;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum OpCode {
-    // x <- a op b
-    Binary(BinaryOp),
-    // x <- op a
-    Unary(UnaryOp),
+    // lhs <- arg1 op arg2
+    Binary {
+        op: AluBinary,
+        lhs: Slot,
+        arg1: Slot,
+        arg2: Slot,
+    },
+    // lhs <- op arg1
+    Unary {
+        op: AluUnary,
+        lhs: Slot,
+        arg1: Slot,
+    },
     // return a
     Return(Option<Slot>),
-    // if cond { then_branch } else { else_branch }
-    If(IfOp),
+    // lhs <- if cond { then_branch } else { else_branch }
+    If {
+        lhs: Slot,
+        cond: Slot,
+        then_branch: BlockId,
+        else_branch: BlockId,
+    },
     // x <- a[i]
     Index(IndexOp),
     // x <- a
@@ -143,27 +157,7 @@ pub struct IndexOp {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct IfOp {
-    pub lhs: Slot,
-    pub cond: Slot,
-    pub then_branch: BlockId,
-    pub else_branch: BlockId,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct BinaryOp {
-    pub op: AluBinary,
-    pub lhs: Slot,
-    pub arg1: Slot,
-    pub arg2: Slot,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct UnaryOp {
-    pub op: AluUnary,
-    pub lhs: Slot,
-    pub arg1: Slot,
-}
+pub struct IfOp {}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum AluBinary {
