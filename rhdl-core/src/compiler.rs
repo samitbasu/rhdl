@@ -1,11 +1,11 @@
 use std::collections::BTreeMap;
 use std::{collections::HashMap, fmt::Display};
 
-use crate::ast::{self, BinOp, PatternTupleStruct, UnOp};
+use crate::ast::{self, BinOp, Expr, UnOp};
 use crate::rhif::{
-    AluBinary, AluUnary, AssignOp, BinaryOp, BlockId, CaseArgument, CaseOp, CopyOp, ExecOp,
-    FieldOp, FieldRefOp, IfOp, IndexOp, IndexRefOp, Member, OpCode, RefOp, RepeatOp, Slot,
-    StructOp, TupleOp, UnaryOp,
+    AluBinary, AluUnary, AssignOp, BlockId, CaseArgument, CaseOp, CopyOp, ExecOp, FieldOp,
+    FieldRefOp, IfOp, IndexOp, IndexRefOp, Member, OpCode, RefOp, RepeatOp, Slot, StructOp,
+    TupleOp, UnaryOp,
 };
 use crate::rhif_type::Ty;
 use crate::Kind;
@@ -182,18 +182,22 @@ impl Compiler {
         Ok(lhs)
     }
 
-    fn expr(&mut self, expr_: ast::Expr) -> Result<Slot> {
-        match expr_ {
+    fn expr(&mut self, expr_: Box<ast::Expr>) -> Result<Slot> {
+        match expr_.kind {
+            ast::ExprKind::Binary { op, lhs, rhs } => self.expr_binop(op, lhs, rhs),
+            ast::ExprKind::Unary { op, expr } => self.expr_unop(op, expr),
+            ast::ExprKind::If {
+                cond,
+                then_branch,
+                else_branch,
+            } => self.expr_if(cond, then_branch, else_branch),
             ast::Expr::Lit(lit) => self.expr_literal(lit),
-            ast::Expr::Unary(unop) => self.expr_unop(unop),
-            ast::Expr::Binary(binop) => self.expr_binop(binop),
             ast::Expr::Block(block) => {
                 let lhs = self.reg();
                 let block = self.expr_block(block, lhs)?;
                 self.op(OpCode::Block(block));
                 Ok(lhs)
             }
-            ast::Expr::If(if_expr) => self.expr_if(if_expr),
             ast::Expr::Assign(assign) => self.expr_assign(assign),
             ast::Expr::Paren(paren) => self.expr(*paren),
             ast::Expr::Path(path) => Ok(self.get_reference(&path.path.join("::"))?),
@@ -578,18 +582,23 @@ impl Compiler {
         }
     }
 
-    pub fn expr_if(&mut self, if_expr: crate::ast::ExprIf) -> Result<Slot> {
+    pub fn expr_if(
+        &mut self,
+        cond: Box<Expr>,
+        then_branch: Box<Block>,
+        else_branch: Option<Box<Expr>>,
+    ) -> Result<Slot> {
         let lhs = self.reg();
-        let cond = self.expr(*if_expr.cond)?;
-        let then_branch = self.expr_block(if_expr.then_branch, lhs)?;
+        let cond = self.expr(cond)?;
+        let then_branch = self.expr_block(then_branch, lhs)?;
         // Create a block containing the else part of the if expression
-        let else_branch = self.wrap_expr_in_block(if_expr.else_branch, lhs)?;
-        self.op(OpCode::If(IfOp {
+        let else_branch = self.wrap_expr_in_block(else_branch, lhs)?;
+        self.op(OpCode::If {
             lhs,
             cond,
             then_branch,
             else_branch,
-        }));
+        });
         Ok(lhs)
     }
 
@@ -606,27 +615,27 @@ impl Compiler {
         Ok(Slot::Empty)
     }
 
-    pub fn expr_unop(&mut self, unop: crate::ast::ExprUnary) -> Result<Slot> {
-        let arg = self.expr(*unop.expr)?;
+    pub fn expr_unop(&mut self, op: UnOp, expr: Box<Expr>) -> Result<Slot> {
+        let arg = self.expr(expr)?;
         let dest = self.reg();
-        let alu = match unop.op {
+        let alu = match op {
             UnOp::Neg => AluUnary::Neg,
             UnOp::Not => AluUnary::Not,
         };
-        self.op(OpCode::Unary(UnaryOp {
+        self.op(OpCode::Unary {
             op: alu,
             lhs: dest,
             arg1: arg,
-        }));
+        });
         Ok(dest)
     }
 
-    pub fn expr_binop(&mut self, binop: crate::ast::ExprBinary) -> Result<Slot> {
+    pub fn expr_binop(&mut self, op: BinOp, lhs: Box<Expr>, rhs: Box<Expr>) -> Result<Slot> {
         // Allocate a register for the output
-        let lhs = self.expr(*binop.lhs)?;
-        let rhs = self.expr(*binop.rhs)?;
+        let lhs = self.expr(lhs)?;
+        let rhs = self.expr(rhs)?;
         let self_assign = matches!(
-            binop.op,
+            op,
             BinOp::AddAssign
                 | BinOp::SubAssign
                 | BinOp::MulAssign
@@ -636,7 +645,7 @@ impl Compiler {
                 | BinOp::BitOrAssign
                 | BinOp::ShrAssign
         );
-        let alu = match binop.op {
+        let alu = match op {
             BinOp::Add | BinOp::AddAssign => AluBinary::Add,
             BinOp::Sub | BinOp::SubAssign => AluBinary::Sub,
             BinOp::Mul | BinOp::MulAssign => AluBinary::Mul,
@@ -655,12 +664,12 @@ impl Compiler {
             BinOp::Gt => AluBinary::Gt,
         };
         let dest = if self_assign { lhs } else { self.reg() };
-        self.op(OpCode::Binary(BinaryOp {
+        self.op(OpCode::Binary {
             op: alu,
             lhs: dest,
             arg1: lhs,
             arg2: rhs,
-        }));
+        });
         Ok(dest)
     }
 
