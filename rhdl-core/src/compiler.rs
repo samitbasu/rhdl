@@ -309,14 +309,14 @@ impl Compiler {
         let all_literals_or_wild = expr_match
             .arms
             .iter()
-            .all(|arm| matches!(arm.pattern, ast::Pattern::Lit(_) | ast::Pattern::Wild));
+            .all(|arm| matches!(arm.pattern, ast::PatKind::Lit(_) | ast::PatKind::Wild));
         let all_enum_or_wild = expr_match.arms.iter().all(|arm| {
             matches!(
                 arm.pattern,
-                ast::Pattern::Path(_)
-                    | ast::Pattern::Struct(_)
-                    | ast::Pattern::TupleStruct(_)
-                    | ast::Pattern::Wild
+                ast::PatKind::Path(_)
+                    | ast::PatKind::Struct(_)
+                    | ast::PatKind::TupleStruct(_)
+                    | ast::PatKind::Wild
             )
         });
         if !all_literals_or_wild && !all_enum_or_wild {
@@ -355,8 +355,8 @@ impl Compiler {
             .fields
             .into_iter()
             .map(|x| match *x.pat {
-                ast::Pattern::Ident(ident) => Ok(Some((x.member.into(), ident.name))),
-                ast::Pattern::Wild => Ok(None),
+                ast::PatKind::Ident(ident) => Ok(Some((x.member.into(), ident.name))),
+                ast::PatKind::Wild => Ok(None),
                 _ => bail!("Unsupported match pattern {:?} in hardware", x),
             })
             .filter_map(|x| x.transpose())
@@ -401,8 +401,8 @@ impl Compiler {
             .into_iter()
             .enumerate()
             .map(|(ndx, x)| match x {
-                ast::Pattern::Ident(ident) => Ok(Some((ident.name, ndx))),
-                ast::Pattern::Wild => Ok(None),
+                ast::PatKind::Ident(ident) => Ok(Some((ident.name, ndx))),
+                ast::PatKind::Wild => Ok(None),
                 _ => bail!("Unsupported match pattern {:?} in hardware", x),
             })
             .filter_map(|x| x.transpose())
@@ -439,22 +439,22 @@ impl Compiler {
         arm: ast::Arm,
     ) -> Result<(CaseArgument, BlockId)> {
         match arm.pattern {
-            ast::Pattern::Wild => Ok((
+            ast::PatKind::Wild => Ok((
                 CaseArgument::Wild,
                 self.wrap_expr_in_block(Some(arm.body), lhs)?,
             )),
-            ast::Pattern::Lit(lit) => Ok((
+            ast::PatKind::Lit(lit) => Ok((
                 CaseArgument::Literal(self.literal(lit)),
                 self.wrap_expr_in_block(Some(arm.body), lhs)?,
             )),
-            ast::Pattern::Path(pat) => Ok((
+            ast::PatKind::Path(pat) => Ok((
                 CaseArgument::Path(pat.path),
                 self.wrap_expr_in_block(Some(arm.body), lhs)?,
             )),
-            ast::Pattern::TupleStruct(tuple) => {
+            ast::PatKind::TupleStruct(tuple) => {
                 self.expr_arm_tuple_struct(target, lhs, tuple, *arm.body)
             }
-            ast::Pattern::Struct(structure) => {
+            ast::PatKind::Struct(structure) => {
                 self.expr_arm_struct(target, lhs, structure, *arm.body)
             }
             _ => bail!("Unsupported match pattern {:?} in hardware", arm.pattern),
@@ -505,8 +505,8 @@ impl Compiler {
     }
 
     fn local(&mut self, local: ast::Local) -> Result<()> {
-        let rhs = local.value.map(|x| self.expr(*x)).transpose()?;
-        self.let_pattern(local.pattern, rhs)?;
+        let rhs = local.init.map(|x| self.expr(*x)).transpose()?;
+        self.let_pattern(local.pat, rhs)?;
         Ok(())
     }
 
@@ -523,8 +523,8 @@ impl Compiler {
     // and then write:
     //   let Foo(a, b, c) = foo
 
-    fn let_pattern(&mut self, pattern: ast::Pattern, rhs: Option<Slot>) -> Result<()> {
-        if let ast::Pattern::Type(ty) = pattern {
+    fn let_pattern(&mut self, pattern: ast::PatKind, rhs: Option<Slot>) -> Result<()> {
+        if let ast::PatKind::Type(ty) = pattern {
             self.let_pattern_inner(*ty.pattern, Some(ty.kind), rhs)
         } else {
             self.let_pattern_inner(pattern, None, rhs)
@@ -533,12 +533,12 @@ impl Compiler {
 
     fn let_pattern_inner(
         &mut self,
-        pattern: ast::Pattern,
+        pattern: ast::PatKind,
         ty: Option<Kind>,
         rhs: Option<Slot>,
     ) -> Result<()> {
         match pattern {
-            ast::Pattern::Ident(ident) => {
+            ast::PatKind::Ident(ident) => {
                 let lhs = self.bind(&ident.name);
                 if let Some(ty) = ty {
                     self.types.insert(lhs.reg()?, Ty::Kind(ty));
@@ -548,7 +548,7 @@ impl Compiler {
                 }
                 Ok(())
             }
-            ast::Pattern::Tuple(tuple) => {
+            ast::PatKind::Tuple(tuple) => {
                 for (ndx, pat) in tuple.into_iter().enumerate() {
                     let element_lhs = self.reg();
                     if let Some(rhs) = rhs {

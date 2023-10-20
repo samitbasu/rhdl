@@ -27,4 +27,5 @@ pub mod display_rhif;
 pub mod path;
 pub mod rhif;
 pub mod rhif_type;
+pub mod ty;
 pub mod typer;
