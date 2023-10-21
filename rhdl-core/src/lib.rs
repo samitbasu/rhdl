@@ -21,6 +21,7 @@ pub use kind::kind_svg::svg_grid_vertical;
 
 pub use kind::text_grid;
 pub mod ast;
+pub mod ast_builder;
 pub mod compiler;
 pub mod display_ast;
 pub mod display_rhif;
@@ -29,3 +30,4 @@ pub mod rhif;
 pub mod rhif_type;
 pub mod ty;
 pub mod typer;
+pub mod util;
