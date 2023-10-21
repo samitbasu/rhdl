@@ -20,7 +20,9 @@ pub enum OpCode {
         arg1: Slot,
     },
     // return a
-    Return(Option<Slot>),
+    Return {
+        result: Option<Slot>,
+    },
     // lhs <- if cond { then_branch } else { else_branch }
     If {
         lhs: Slot,
@@ -28,101 +30,89 @@ pub enum OpCode {
         then_branch: BlockId,
         else_branch: BlockId,
     },
-    // x <- a[i]
-    Index(IndexOp),
-    // x <- a
-    Copy(CopyOp),
-    // *x <- a
-    Assign(AssignOp),
-    // x <- a.field
-    Field(FieldOp),
-    // x <- [a; count]
-    Repeat(RepeatOp),
-    // x <- Struct { fields }
-    Struct(StructOp),
-    // x <- Tuple(fields)
-    Tuple(TupleOp),
-    // x = &a
-    Ref(RefOp),
-    // x = &a.field
-    FieldRef(FieldRefOp),
-    // x = &a[i]
-    IndexRef(IndexRefOp),
+    // lhs <- arg[index]
+    Index {
+        lhs: Slot,
+        arg: Slot,
+        index: Slot,
+    },
+    // lhs <- rhs
+    Copy {
+        lhs: Slot,
+        rhs: Slot,
+    },
+    // *lhs <- rhs
+    Assign {
+        lhs: Slot,
+        rhs: Slot,
+    },
+    // lhs <- arg.member
+    Field {
+        lhs: Slot,
+        arg: Slot,
+        member: Member,
+    },
+    // lhs <- [value; len]
+    Repeat {
+        lhs: Slot,
+        value: Slot,
+        len: Slot,
+    },
+    // lhs <- Struct@path { fields (..rest) }
+    Struct {
+        lhs: Slot,
+        path: String,
+        fields: Vec<FieldValue>,
+        rest: Option<Slot>,
+    },
+    // lhs <- Tuple(fields)
+    Tuple {
+        lhs: Slot,
+        fields: Vec<Slot>,
+    },
+    // lhs = &arg
+    Ref {
+        lhs: Slot,
+        arg: Slot,
+    },
+    // lhs = &arg.member
+    FieldRef {
+        lhs: Slot,
+        arg: Slot,
+        member: Member,
+    },
+    // lhs = &arg[index]
+    IndexRef {
+        lhs: Slot,
+        arg: Slot,
+        index: Slot,
+    },
     // Jump to block
     Block(BlockId),
     // ROM table
-    Case(CaseOp),
-    // Exec a function
-    Exec(ExecOp),
+    Case {
+        lhs: Slot,
+        expr: Slot,
+        table: Vec<(CaseArgument, BlockId)>,
+    },
+    // lhs = @path(args)
+    Exec {
+        lhs: Slot,
+        path: String,
+        args: Vec<Slot>,
+    },
     // x <- [a, b, c, d]
-    Array(ArrayOp),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ExecOp {
-    pub lhs: Slot,
-    pub path: Vec<String>,
-    pub args: Vec<Slot>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct CaseOp {
-    pub lhs: Slot,
-    pub expr: Slot,
-    pub table: Vec<(CaseArgument, BlockId)>,
+    Array {
+        lhs: Slot,
+        elements: Vec<Slot>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum CaseArgument {
     Literal(Slot),
     Wild,
-    Path(Vec<String>),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct CopyOp {
-    pub lhs: Slot,
-    pub rhs: Slot,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct RefOp {
-    pub lhs: Slot,
-    pub arg: Slot,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct IndexRefOp {
-    pub lhs: Slot,
-    pub arg: Slot,
-    pub index: Slot,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct FieldRefOp {
-    pub lhs: Slot,
-    pub arg: Slot,
-    pub member: Member,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct TupleOp {
-    pub lhs: Slot,
-    pub fields: Vec<Slot>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ArrayOp {
-    pub lhs: Slot,
-    pub elements: Vec<Slot>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct StructOp {
-    pub lhs: Slot,
-    pub path: Vec<String>,
-    pub fields: Vec<FieldValue>,
-    pub rest: Option<Slot>,
+    Path(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -130,34 +120,6 @@ pub struct FieldValue {
     pub member: Member,
     pub value: Slot,
 }
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct RepeatOp {
-    pub lhs: Slot,
-    pub value: Slot,
-    pub len: Slot,
-}
-#[derive(Debug, Clone, PartialEq)]
-pub struct FieldOp {
-    pub lhs: Slot,
-    pub arg: Slot,
-    pub member: Member,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct AssignOp {
-    pub lhs: Slot,
-    pub rhs: Slot,
-}
-#[derive(Debug, Clone, PartialEq)]
-pub struct IndexOp {
-    pub lhs: Slot,
-    pub arg: Slot,
-    pub index: Slot,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct IfOp {}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum AluBinary {

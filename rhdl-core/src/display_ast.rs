@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use crate::ast::*;
+use crate::{ast::*, util::splice};
 
 impl Display for Stmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -43,14 +43,6 @@ impl Display for Pat {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.kind)
     }
-}
-
-fn splice<T: Display>(elems: &[T], sep: &str) -> String {
-    elems
-        .iter()
-        .map(|x| x.to_string())
-        .collect::<Vec<_>>()
-        .join(sep)
 }
 
 impl Display for PatKind {

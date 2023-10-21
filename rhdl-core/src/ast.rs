@@ -7,7 +7,7 @@ pub struct NodeId(u32);
 
 #[derive(Debug, Clone)]
 pub struct Stmt {
-    pub id: NodeId,
+    pub id: Option<NodeId>,
     pub kind: StmtKind,
 }
 
@@ -20,26 +20,26 @@ pub enum StmtKind {
 
 #[derive(Debug, Clone)]
 pub struct Block {
-    pub id: NodeId,
-    pub stmts: Vec<Stmt>,
+    pub id: Option<NodeId>,
+    pub stmts: Vec<Box<Stmt>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Local {
-    pub id: NodeId,
+    pub id: Option<NodeId>,
     pub pat: Box<Pat>,
     pub init: Option<Box<Expr>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Pat {
-    pub id: NodeId,
+    pub id: Option<NodeId>,
     pub kind: PatKind,
 }
 
 #[derive(Debug, Clone)]
 pub struct PathSegment {
-    pub id: NodeId,
+    pub id: Option<NodeId>,
     pub ident: String,
 }
 
@@ -59,7 +59,7 @@ pub enum PatKind {
     },
     TupleStruct {
         path: Box<Path>,
-        elems: Vec<Box<PatKind>>,
+        elems: Vec<Box<Pat>>,
     },
     Lit {
         lit: Box<ExprLit>,
@@ -79,7 +79,7 @@ pub enum PatKind {
         rest: bool,
     },
     Type {
-        pat: Box<PatKind>,
+        pat: Box<Pat>,
         kind: Kind,
     },
     Wild,
@@ -87,7 +87,7 @@ pub enum PatKind {
 
 #[derive(Debug, Clone)]
 pub struct Expr {
-    pub id: NodeId,
+    pub id: Option<NodeId>,
     pub kind: ExprKind,
 }
 
@@ -147,7 +147,7 @@ pub enum ExprKind {
         block: Box<Block>,
     },
     Array {
-        elems: Vec<Box<Block>>,
+        elems: Vec<Box<Expr>>,
     },
     Range {
         start: Option<Box<Expr>>,
@@ -230,7 +230,7 @@ pub enum UnOp {
 
 #[derive(Debug, Clone)]
 pub struct Arm {
-    pub pattern: PatKind,
+    pub pattern: Box<Pat>,
     pub guard: Option<Box<Expr>>,
     pub body: Box<Expr>,
 }
@@ -250,5 +250,5 @@ pub enum RangeLimits {
 #[derive(Debug, Clone)]
 pub struct FieldPat {
     pub member: Member,
-    pub pat: Box<PatKind>,
+    pub pat: Box<Pat>,
 }

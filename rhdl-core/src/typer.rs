@@ -1,10 +1,7 @@
 use crate::{
     compiler::Compiler,
     digital::Digital,
-    rhif::{
-        AluBinary, AssignOp, BinaryOp, CopyOp, FieldOp, FieldRefOp, IfOp, Member, OpCode, RefOp,
-        Slot,
-    },
+    rhif::{AluBinary, Member, OpCode, Slot},
     rhif_type::Ty,
     Kind,
 };
@@ -48,7 +45,7 @@ fn map_assignments(compiler: &mut Compiler) -> Result<()> {
     let assignments = compiler
         .iter_ops()
         .filter_map(|x| match x {
-            OpCode::Assign(AssignOp { lhs, rhs }) => Some((*lhs, *rhs)),
+            OpCode::Assign { lhs, rhs } => Some((*lhs, *rhs)),
             _ => None,
         })
         .collect::<Vec<_>>();
@@ -76,7 +73,7 @@ fn propogate_copies(compiler: &mut Compiler) -> Result<()> {
     let copies = compiler
         .iter_ops()
         .filter_map(|x| match x {
-            OpCode::Copy(CopyOp { lhs, rhs }) => Some((*lhs, *rhs)),
+            OpCode::Copy { lhs, rhs } => Some((*lhs, *rhs)),
             _ => None,
         })
         .collect::<Vec<_>>();
@@ -90,7 +87,7 @@ fn map_addresses_to_types(compiler: &mut Compiler) -> Result<()> {
     let addresses = compiler
         .iter_ops()
         .filter_map(|x| match x {
-            OpCode::Ref(RefOp { lhs, arg }) => Some((*lhs, *arg)),
+            OpCode::Ref { lhs, arg } => Some((*lhs, *arg)),
             _ => None,
         })
         .collect::<Vec<_>>();
@@ -125,7 +122,7 @@ fn map_comparisons_to_boolean(compiler: &mut Compiler) -> Result<()> {
     let comparisons = compiler
         .iter_ops()
         .filter_map(|x| match x {
-            OpCode::Binary(BinaryOp {
+            OpCode::Binary {
                 op:
                     AluBinary::Ge
                     | AluBinary::Gt
@@ -135,8 +132,8 @@ fn map_comparisons_to_boolean(compiler: &mut Compiler) -> Result<()> {
                     | AluBinary::Ne,
                 lhs,
                 ..
-            }) => Some(lhs),
-            OpCode::If(IfOp { cond, .. }) => Some(cond),
+            } => Some(lhs),
+            OpCode::If { cond, .. } => Some(cond),
             _ => None,
         })
         .cloned()
@@ -195,7 +192,7 @@ fn arithmetic_ops(compiler: &mut Compiler) -> Result<()> {
     let ops = compiler
         .iter_ops()
         .filter_map(|x| match x {
-            OpCode::Binary(BinaryOp {
+            OpCode::Binary {
                 op:
                     AluBinary::Add
                     | AluBinary::Sub
@@ -206,7 +203,7 @@ fn arithmetic_ops(compiler: &mut Compiler) -> Result<()> {
                 lhs,
                 arg1,
                 arg2,
-            }) => Some((*lhs, *arg1, *arg2)),
+            } => Some((*lhs, *arg1, *arg2)),
             _ => None,
         })
         .collect::<Vec<_>>();
@@ -222,12 +219,12 @@ fn boolean_ops(compiler: &mut Compiler) -> Result<()> {
     let ops = compiler
         .iter_ops()
         .filter_map(|x| match x {
-            OpCode::Binary(BinaryOp {
+            OpCode::Binary {
                 op: AluBinary::And | AluBinary::Or,
                 lhs,
                 arg1,
                 arg2,
-            }) => Some((*lhs, *arg1, *arg2)),
+            } => Some((*lhs, *arg1, *arg2)),
             _ => None,
         })
         .collect::<Vec<_>>();
@@ -243,7 +240,7 @@ fn struct_ops(compiler: &mut Compiler) -> Result<()> {
     let ops = compiler
         .iter_ops()
         .filter_map(|x| match x {
-            OpCode::Field(FieldOp { lhs, arg, member }) => Some((*lhs, *arg, member.clone())),
+            OpCode::Field { lhs, arg, member } => Some((*lhs, *arg, member.clone())),
             _ => None,
         })
         .collect::<Vec<_>>();
@@ -262,7 +259,7 @@ fn ref_struct_ops(compiler: &mut Compiler) -> Result<()> {
     let ops = compiler
         .iter_ops()
         .filter_map(|x| match x {
-            OpCode::FieldRef(FieldRefOp { lhs, arg, member }) => Some((*lhs, *arg, member.clone())),
+            OpCode::FieldRef { lhs, arg, member } => Some((*lhs, *arg, member.clone())),
             _ => None,
         })
         .collect::<Vec<_>>();
