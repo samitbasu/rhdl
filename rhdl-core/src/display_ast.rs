@@ -48,32 +48,32 @@ impl Display for Pat {
 impl Display for PatKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            PatKind::Ident { name, mutable } => {
+            PatKind::Ident(PatIdent { name, mutable }) => {
                 if *mutable {
                     write!(f, "mut ")?;
                 }
                 write!(f, "{}", name)
             }
-            PatKind::Tuple { elements } => {
+            PatKind::Tuple(PatTuple { elements }) => {
                 write!(f, "({})", splice(elements.as_slice(), ", "))
             }
-            PatKind::TupleStruct { path, elems } => {
+            PatKind::TupleStruct(PatTupleStruct { path, elems }) => {
                 write!(f, "{}({})", path, splice(elems.as_slice(), ", "))
             }
-            PatKind::Struct { path, fields, rest } => {
+            PatKind::Struct(PatStruct { path, fields, rest }) => {
                 write!(f, "{} {{{}", path, splice(fields.as_slice(), ", "))?;
                 if *rest {
                     write!(f, "..")?;
                 }
                 write!(f, "}}")
             }
-            PatKind::Lit { lit } => write!(f, "{}", lit),
-            PatKind::Or { segments } => {
+            PatKind::Lit(PatLit { lit }) => write!(f, "{}", lit),
+            PatKind::Or(PatOr { segments }) => {
                 write!(f, "{}", splice(segments.as_slice(), " | "))
             }
-            PatKind::Paren { pat } => write!(f, "({})", pat),
-            PatKind::Path { path } => write!(f, "{}", path),
-            PatKind::Type { pat, kind } => write!(f, "{}: {:?}", pat, kind),
+            PatKind::Paren(PatParen { pat }) => write!(f, "({})", pat),
+            PatKind::Path(PatPath { path }) => write!(f, "{}", path),
+            PatKind::Type(PatType { pat, kind }) => write!(f, "{}: {:?}", pat, kind),
             PatKind::Wild => write!(f, "_"),
         }
     }
@@ -94,23 +94,23 @@ impl Display for Expr {
 impl Display for ExprKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ExprKind::Binary { op, lhs, rhs } => write!(f, "{} {} {}", lhs, op, rhs),
-            ExprKind::Unary { op, expr } => write!(f, "{}{}", op, expr),
-            ExprKind::Match { expr, arms } => {
+            ExprKind::Binary(ExprBinary { op, lhs, rhs }) => write!(f, "{} {} {}", lhs, op, rhs),
+            ExprKind::Unary(ExprUnary { op, expr }) => write!(f, "{}{}", op, expr),
+            ExprKind::Match(ExprMatch { expr, arms }) => {
                 write!(f, "match {} {{{}}}", expr, splice(arms.as_slice(), ""))
             }
-            ExprKind::Ret { expr } => {
+            ExprKind::Ret(ExprRet { expr }) => {
                 write!(f, "return ")?;
                 if let Some(expr) = expr {
                     write!(f, "{}", expr)?;
                 }
                 Ok(())
             }
-            ExprKind::If {
+            ExprKind::If(ExprIf {
                 cond,
                 then_branch,
                 else_branch,
-            } => {
+            }) => {
                 write!(f, "if {} ", cond)?;
                 write!(f, "{}", then_branch)?;
                 if let Some(else_branch) = else_branch {
@@ -118,30 +118,32 @@ impl Display for ExprKind {
                 }
                 Ok(())
             }
-            ExprKind::Index { expr, index } => write!(f, "{}[{}]", expr, index),
-            ExprKind::Lit { lit } => write!(f, "{}", lit),
-            ExprKind::Paren { expr } => write!(f, "({})", expr),
-            ExprKind::Tuple { elements } => write!(f, "({})", splice(elements.as_slice(), ", ")),
-            ExprKind::ForLoop { pat, expr, body } => {
+            ExprKind::Index(ExprIndex { expr, index }) => write!(f, "{}[{}]", expr, index),
+            ExprKind::Lit(lit) => write!(f, "{}", lit),
+            ExprKind::Paren(ExprParen { expr }) => write!(f, "({})", expr),
+            ExprKind::Tuple(ExprTuple { elements }) => {
+                write!(f, "({})", splice(elements.as_slice(), ", "))
+            }
+            ExprKind::ForLoop(ExprForLoop { pat, expr, body }) => {
                 write!(f, "for {} in {} ", pat, expr)?;
                 write!(f, "{}", body)
             }
-            ExprKind::Assign { lhs, rhs } => {
+            ExprKind::Assign(ExprAssign { lhs, rhs }) => {
                 write!(f, "{} = {}", lhs, rhs)
             }
-            ExprKind::Group { expr } => {
+            ExprKind::Group(ExprGroup { expr }) => {
                 write!(f, "({})", expr)
             }
-            ExprKind::Field { expr, member } => {
+            ExprKind::Field(ExprField { expr, member }) => {
                 write!(f, "{}.{}", expr, member)
             }
-            ExprKind::Block { block } => {
+            ExprKind::Block(ExprBlock { block }) => {
                 write!(f, "{}", block)
             }
-            ExprKind::Array { elems } => {
+            ExprKind::Array(ExprArray { elems }) => {
                 write!(f, "[{}]", splice(elems.as_slice(), ", "))
             }
-            ExprKind::Range { start, limits, end } => {
+            ExprKind::Range(ExprRange { start, limits, end }) => {
                 if let Some(start) = start {
                     write!(f, "{}", start)?;
                 }
@@ -151,34 +153,34 @@ impl Display for ExprKind {
                 }
                 Ok(())
             }
-            ExprKind::Path { path } => {
+            ExprKind::Path(ExprPath { path }) => {
                 write!(f, "{}", path)
             }
-            ExprKind::Let {
+            ExprKind::Let(ExprLet {
                 pattern,
                 value,
                 body,
-            } => {
+            }) => {
                 write!(f, "let {} = {} {}", pattern, value, body)
             }
-            ExprKind::Repeat { value, len } => {
+            ExprKind::Repeat(ExprRepeat { value, len }) => {
                 write!(f, "[{}; {}]", value, len)
             }
-            ExprKind::Struct { path, fields, rest } => {
+            ExprKind::Struct(ExprStruct { path, fields, rest }) => {
                 write!(f, "{} {{{}", path, splice(fields.as_slice(), ", "))?;
                 if let Some(rest) = rest {
                     write!(f, ".. {}", rest)?;
                 }
                 write!(f, "}}")
             }
-            ExprKind::Call { path, args } => {
+            ExprKind::Call(ExprCall { path, args }) => {
                 write!(f, "{}({})", path, splice(args.as_slice(), ", "))
             }
-            ExprKind::MethodCall {
+            ExprKind::MethodCall(ExprMethodCall {
                 receiver,
                 method,
                 args,
-            } => {
+            }) => {
                 write!(
                     f,
                     "{}.{}({})",

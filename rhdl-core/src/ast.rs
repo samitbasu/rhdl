@@ -5,6 +5,12 @@ use crate::Kind;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct NodeId(u32);
 
+impl NodeId {
+    pub fn new(id: u32) -> Self {
+        NodeId(id)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Stmt {
     pub id: Option<NodeId>,
@@ -45,44 +51,72 @@ pub struct PathSegment {
 
 #[derive(Debug, Clone)]
 pub struct Path {
+    pub id: Option<NodeId>,
     pub segments: Vec<PathSegment>,
 }
 
 #[derive(Debug, Clone)]
 pub enum PatKind {
-    Ident {
-        name: String,
-        mutable: bool,
-    },
-    Tuple {
-        elements: Vec<Box<Pat>>,
-    },
-    TupleStruct {
-        path: Box<Path>,
-        elems: Vec<Box<Pat>>,
-    },
-    Lit {
-        lit: Box<ExprLit>,
-    },
-    Or {
-        segments: Vec<Box<Pat>>,
-    },
-    Paren {
-        pat: Box<Pat>,
-    },
-    Path {
-        path: Box<Path>,
-    },
-    Struct {
-        path: Box<Path>,
-        fields: Vec<Box<FieldPat>>,
-        rest: bool,
-    },
-    Type {
-        pat: Box<Pat>,
-        kind: Kind,
-    },
+    Ident(PatIdent),
+    Tuple(PatTuple),
+    TupleStruct(PatTupleStruct),
+    Lit(PatLit),
+    Or(PatOr),
+    Paren(PatParen),
+    Path(PatPath),
+    Struct(PatStruct),
+    Type(PatType),
     Wild,
+}
+
+#[derive(Debug, Clone)]
+pub struct PatIdent {
+    pub name: String,
+    pub mutable: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct PatTuple {
+    pub elements: Vec<Box<Pat>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PatTupleStruct {
+    pub path: Box<Path>,
+    pub elems: Vec<Box<Pat>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PatLit {
+    pub lit: Box<ExprLit>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PatOr {
+    pub segments: Vec<Box<Pat>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PatParen {
+    pub pat: Box<Pat>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PatPath {
+    pub path: Box<Path>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PatStruct {
+    pub path: Box<Path>,
+    pub fields: Vec<Box<FieldPat>>,
+    pub rest: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct PatType {
+    pub pat: Box<Pat>,
+    pub kind: Kind,
 }
 
 #[derive(Debug, Clone)]
@@ -93,93 +127,154 @@ pub struct Expr {
 
 #[derive(Debug, Clone)]
 pub enum ExprKind {
-    Binary {
-        op: BinOp,
-        lhs: Box<Expr>,
-        rhs: Box<Expr>,
-    },
-    Unary {
-        op: UnOp,
-        expr: Box<Expr>,
-    },
-    Match {
-        expr: Box<Expr>,
-        arms: Vec<Box<Arm>>,
-    },
-    Ret {
-        expr: Option<Box<Expr>>,
-    },
-    If {
-        cond: Box<Expr>,
-        then_branch: Box<Block>,
-        else_branch: Option<Box<Expr>>,
-    },
-    Index {
-        expr: Box<Expr>,
-        index: Box<Expr>,
-    },
-    Lit {
-        lit: Box<ExprLit>,
-    },
-    Paren {
-        expr: Box<Expr>,
-    },
-    Tuple {
-        elements: Vec<Box<Expr>>,
-    },
-    ForLoop {
-        pat: Box<Pat>,
-        expr: Box<Expr>,
-        body: Box<Block>,
-    },
-    Assign {
-        lhs: Box<Expr>,
-        rhs: Box<Expr>,
-    },
-    Group {
-        expr: Box<Expr>,
-    },
-    Field {
-        expr: Box<Expr>,
-        member: Member,
-    },
-    Block {
-        block: Box<Block>,
-    },
-    Array {
-        elems: Vec<Box<Expr>>,
-    },
-    Range {
-        start: Option<Box<Expr>>,
-        limits: RangeLimits,
-        end: Option<Box<Expr>>,
-    },
-    Path {
-        path: Box<Path>,
-    },
-    Let {
-        pattern: Box<Pat>,
-        value: Box<Expr>,
-        body: Box<Expr>,
-    },
-    Repeat {
-        value: Box<Expr>,
-        len: Box<Expr>,
-    },
-    Struct {
-        path: Box<Path>,
-        fields: Vec<Box<FieldValue>>,
-        rest: Option<Box<Expr>>,
-    },
-    Call {
-        path: Box<Path>,
-        args: Vec<Box<Expr>>,
-    },
-    MethodCall {
-        receiver: Box<Expr>,
-        args: Vec<Box<Expr>>,
-        method: String,
-    },
+    Binary(ExprBinary),
+    Unary(ExprUnary),
+    Match(ExprMatch),
+    Ret(ExprRet),
+    If(ExprIf),
+    Index(ExprIndex),
+    Lit(ExprLit),
+    Paren(ExprParen),
+    Tuple(ExprTuple),
+    ForLoop(ExprForLoop),
+    Assign(ExprAssign),
+    Group(ExprGroup),
+    Field(ExprField),
+    Block(ExprBlock),
+    Array(ExprArray),
+    Range(ExprRange),
+    Path(ExprPath),
+    Let(ExprLet),
+    Repeat(ExprRepeat),
+    Struct(ExprStruct),
+    Call(ExprCall),
+    MethodCall(ExprMethodCall),
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprBinary {
+    pub op: BinOp,
+    pub lhs: Box<Expr>,
+    pub rhs: Box<Expr>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprUnary {
+    pub op: UnOp,
+    pub expr: Box<Expr>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprMatch {
+    pub expr: Box<Expr>,
+    pub arms: Vec<Box<Arm>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprRet {
+    pub expr: Option<Box<Expr>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprIf {
+    pub cond: Box<Expr>,
+    pub then_branch: Box<Block>,
+    pub else_branch: Option<Box<Expr>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprIndex {
+    pub expr: Box<Expr>,
+    pub index: Box<Expr>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprParen {
+    pub expr: Box<Expr>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprTuple {
+    pub elements: Vec<Box<Expr>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprForLoop {
+    pub pat: Box<Pat>,
+    pub expr: Box<Expr>,
+    pub body: Box<Block>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprAssign {
+    pub lhs: Box<Expr>,
+    pub rhs: Box<Expr>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprGroup {
+    pub expr: Box<Expr>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprField {
+    pub expr: Box<Expr>,
+    pub member: Member,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprBlock {
+    pub block: Box<Block>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprArray {
+    pub elems: Vec<Box<Expr>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprRange {
+    pub start: Option<Box<Expr>>,
+    pub limits: RangeLimits,
+    pub end: Option<Box<Expr>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprPath {
+    pub path: Box<Path>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprLet {
+    pub pattern: Box<Pat>,
+    pub value: Box<Expr>,
+    pub body: Box<Expr>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprRepeat {
+    pub value: Box<Expr>,
+    pub len: Box<Expr>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprStruct {
+    pub path: Box<Path>,
+    pub fields: Vec<Box<FieldValue>>,
+    pub rest: Option<Box<Expr>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprCall {
+    pub path: Box<Path>,
+    pub args: Vec<Box<Expr>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprMethodCall {
+    pub receiver: Box<Expr>,
+    pub args: Vec<Box<Expr>>,
+    pub method: String,
 }
 
 #[derive(Debug, Clone)]

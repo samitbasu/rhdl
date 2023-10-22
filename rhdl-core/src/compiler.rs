@@ -1,7 +1,12 @@
 use std::collections::BTreeMap;
 use std::{collections::HashMap, fmt::Display};
 
-use crate::ast::{self, BinOp, Expr, Path, UnOp};
+use crate::ast::{
+    self, BinOp, Expr, ExprArray, ExprAssign, ExprBinary, ExprBlock, ExprCall, ExprField,
+    ExprGroup, ExprIf, ExprIndex, ExprMatch, ExprParen, ExprPath, ExprRepeat, ExprStruct,
+    ExprTuple, ExprUnary, PatIdent, PatLit, PatPath, PatStruct, PatTuple, PatTupleStruct, PatType,
+    Path, UnOp,
+};
 use crate::rhif::{AluBinary, AluUnary, BlockId, CaseArgument, Member, OpCode, Slot};
 use crate::rhif_type::Ty;
 use crate::Kind;
@@ -195,27 +200,29 @@ impl Compiler {
 
     fn expr(&mut self, expr_: Box<ast::Expr>) -> Result<Slot> {
         match expr_.kind {
-            ast::ExprKind::Binary { op, lhs, rhs } => self.expr_binop(op, lhs, rhs),
-            ast::ExprKind::Unary { op, expr } => self.expr_unop(op, expr),
-            ast::ExprKind::If {
+            ast::ExprKind::Binary(ExprBinary { op, lhs, rhs }) => self.expr_binop(op, lhs, rhs),
+            ast::ExprKind::Unary(ExprUnary { op, expr }) => self.expr_unop(op, expr),
+            ast::ExprKind::If(ExprIf {
                 cond,
                 then_branch,
                 else_branch,
-            } => self.expr_if(cond, then_branch, else_branch),
-            ast::ExprKind::Index { expr, index } => self.expr_index(expr, index),
-            ast::ExprKind::Assign { lhs, rhs } => self.expr_assign(lhs, rhs),
-            ast::ExprKind::Lit { lit } => self.expr_literal(lit),
-            ast::ExprKind::Repeat { value, len } => self.expr_repeat(value, len),
-            ast::ExprKind::Paren { expr } => self.expr(expr),
-            ast::ExprKind::Group { expr } => self.expr(expr),
-            ast::ExprKind::Array { elems } => self.expr_array(elems),
-            ast::ExprKind::Field { expr, member } => self.expr_field(expr, member),
-            ast::ExprKind::Path { path } => Ok(self.get_reference(&collapse_path(path))?),
-            ast::ExprKind::Tuple { elements } => self.tuple(elements),
-            ast::ExprKind::Struct { path, fields, rest } => self.expr_struct(path, fields, rest),
-            ast::ExprKind::Call { path, args } => self.expr_call(path, args),
-            ast::ExprKind::Match { expr, arms } => self.expr_match(expr, arms),
-            ast::ExprKind::Block { block } => {
+            }) => self.expr_if(cond, then_branch, else_branch),
+            ast::ExprKind::Index(ExprIndex { expr, index }) => self.expr_index(expr, index),
+            ast::ExprKind::Assign(ExprAssign { lhs, rhs }) => self.expr_assign(lhs, rhs),
+            ast::ExprKind::Lit(lit) => self.expr_literal(Box::new(lit)),
+            ast::ExprKind::Repeat(ExprRepeat { value, len }) => self.expr_repeat(value, len),
+            ast::ExprKind::Paren(ExprParen { expr }) => self.expr(expr),
+            ast::ExprKind::Group(ExprGroup { expr }) => self.expr(expr),
+            ast::ExprKind::Array(ExprArray { elems }) => self.expr_array(elems),
+            ast::ExprKind::Field(ExprField { expr, member }) => self.expr_field(expr, member),
+            ast::ExprKind::Path(ExprPath { path }) => Ok(self.get_reference(&collapse_path(path))?),
+            ast::ExprKind::Tuple(ExprTuple { elements }) => self.tuple(elements),
+            ast::ExprKind::Struct(ExprStruct { path, fields, rest }) => {
+                self.expr_struct(path, fields, rest)
+            }
+            ast::ExprKind::Call(ExprCall { path, args }) => self.expr_call(path, args),
+            ast::ExprKind::Match(ExprMatch { expr, arms }) => self.expr_match(expr, arms),
+            ast::ExprKind::Block(ExprBlock { block }) => {
                 let lhs = self.reg();
                 let block = self.expr_block(block, lhs)?;
                 self.op(OpCode::Block(block));
@@ -365,7 +372,7 @@ impl Compiler {
         let bindings: Vec<(Member, String)> = fields
             .into_iter()
             .map(|x| match x.pat.kind {
-                ast::PatKind::Ident { name, .. } => Ok(Some((x.member.into(), name))),
+                ast::PatKind::Ident(PatIdent { name, .. }) => Ok(Some((x.member.into(), name))),
                 ast::PatKind::Wild => Ok(None),
                 _ => bail!("Unsupported match pattern {:?} in hardware", x),
             })
@@ -411,7 +418,7 @@ impl Compiler {
             .into_iter()
             .enumerate()
             .map(|(ndx, x)| match x.kind {
-                ast::PatKind::Ident { name, .. } => Ok(Some((name, ndx))),
+                ast::PatKind::Ident(PatIdent { name, .. }) => Ok(Some((name, ndx))),
                 ast::PatKind::Wild => Ok(None),
                 _ => bail!("Unsupported match pattern {:?} in hardware", x),
             })
@@ -453,18 +460,18 @@ impl Compiler {
                 CaseArgument::Wild,
                 self.wrap_expr_in_block(Some(arm.body), lhs)?,
             )),
-            ast::PatKind::Lit { lit } => Ok((
+            ast::PatKind::Lit(PatLit { lit }) => Ok((
                 CaseArgument::Literal(self.literal(lit)),
                 self.wrap_expr_in_block(Some(arm.body), lhs)?,
             )),
-            ast::PatKind::Path { path } => Ok((
+            ast::PatKind::Path(PatPath { path }) => Ok((
                 CaseArgument::Path(collapse_path(path)),
                 self.wrap_expr_in_block(Some(arm.body), lhs)?,
             )),
-            ast::PatKind::TupleStruct { path, elems } => {
+            ast::PatKind::TupleStruct(PatTupleStruct { path, elems }) => {
                 self.expr_arm_tuple_struct(target, lhs, path, elems, arm.body)
             }
-            ast::PatKind::Struct { path, fields, rest } => {
+            ast::PatKind::Struct(PatStruct { path, fields, rest }) => {
                 self.expr_arm_struct(target, lhs, path, fields, rest, arm.body)
             }
             _ => bail!("Unsupported match pattern {:?} in hardware", arm.pattern),
@@ -473,20 +480,20 @@ impl Compiler {
 
     pub fn expr_lhs(&mut self, expr_: Box<ast::Expr>) -> Result<Slot> {
         Ok(match expr_.kind {
-            ast::ExprKind::Path { path } => {
+            ast::ExprKind::Path(ExprPath { path }) => {
                 let arg = self.get_reference(&collapse_path(path))?;
                 let lhs = self.reg();
                 self.op(OpCode::Ref { lhs, arg });
                 lhs
             }
-            ast::ExprKind::Field { expr, member } => {
+            ast::ExprKind::Field(ExprField { expr, member }) => {
                 let lhs = self.reg();
                 let arg = self.expr_lhs(expr)?;
                 let member = member.into();
                 self.op(OpCode::FieldRef { lhs, arg, member });
                 lhs
             }
-            ast::ExprKind::Index { expr, index } => {
+            ast::ExprKind::Index(ExprIndex { expr, index }) => {
                 let lhs = self.reg();
                 let arg = self.expr_lhs(expr)?;
                 let index = self.expr(index)?;
@@ -531,7 +538,7 @@ impl Compiler {
     //   let Foo(a, b, c) = foo
 
     fn let_pattern(&mut self, pattern: Box<ast::Pat>, rhs: Option<Slot>) -> Result<()> {
-        if let ast::PatKind::Type { pat, kind } = pattern.kind {
+        if let ast::PatKind::Type(PatType { pat, kind }) = pattern.kind {
             self.let_pattern_inner(pat, Some(kind), rhs)
         } else {
             self.let_pattern_inner(pattern, None, rhs)
@@ -545,7 +552,7 @@ impl Compiler {
         rhs: Option<Slot>,
     ) -> Result<()> {
         match pattern.kind {
-            ast::PatKind::Ident { name, mutable } => {
+            ast::PatKind::Ident(PatIdent { name, mutable }) => {
                 let lhs = self.bind(&name);
                 if let Some(ty) = ty {
                     self.types.insert(lhs.reg()?, Ty::Kind(ty));
@@ -555,7 +562,7 @@ impl Compiler {
                 }
                 Ok(())
             }
-            ast::PatKind::Tuple { elements } => {
+            ast::PatKind::Tuple(PatTuple { elements }) => {
                 for (ndx, pat) in elements.into_iter().enumerate() {
                     let element_lhs = self.reg();
                     if let Some(rhs) = rhs {
