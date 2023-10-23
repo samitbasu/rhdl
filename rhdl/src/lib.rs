@@ -16,6 +16,7 @@ mod tests {
 
     use rhdl_bits::bits;
     use rhdl_core::{
+        assign_node::assign_node_ids,
         compiler::Compiler,
         path::{bit_range, Path},
         typer::infer_type,
@@ -733,7 +734,9 @@ mod tests {
 
         let k = Init;
         let a: b4 = bits(3);
-        let ast = do_stuff_hdl_kernel();
+        let mut ast = do_stuff_hdl_kernel();
+        assign_node_ids(&mut ast);
+        println!("{}", ast);
         let mut ctx = Compiler::default();
         ctx.type_bind("a", Foo::static_kind());
         ctx.type_bind("s", NooState::static_kind());
