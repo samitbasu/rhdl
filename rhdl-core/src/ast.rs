@@ -9,6 +9,9 @@ impl NodeId {
     pub fn new(id: u32) -> Self {
         NodeId(id)
     }
+    pub fn as_u32(self) -> u32 {
+        self.0
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -45,7 +48,6 @@ pub struct Pat {
 
 #[derive(Debug, Clone)]
 pub struct PathSegment {
-    pub id: Option<NodeId>,
     pub ident: String,
 }
 

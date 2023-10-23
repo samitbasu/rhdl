@@ -18,11 +18,19 @@ impl Display for StmtKind {
     }
 }
 
+fn id(node: Option<NodeId>) -> String {
+    if let Some(id) = node {
+        format!("<{}>", id.as_u32())
+    } else {
+        String::new()
+    }
+}
+
 impl Display for Block {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{{")?;
+        writeln!(f, "{{ {}", id(self.id))?;
         for stmt in &self.stmts {
-            writeln!(f, "{}", stmt)?;
+            writeln!(f, "{}{}", id(stmt.id), stmt)?;
         }
         writeln!(f, "}}")?;
         Ok(())
@@ -32,16 +40,16 @@ impl Display for Block {
 impl Display for Local {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if let Some(init) = self.init.as_ref() {
-            write!(f, "let {} = {}", self.pat, init)
+            write!(f, "let{} {} = {}", id(self.id), self.pat, init)
         } else {
-            write!(f, "let {}", self.pat)
+            write!(f, "let{} {}", id(self.id), self.pat)
         }
     }
 }
 
 impl Display for Pat {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.kind)
+        write!(f, "{} {}", id(self.id), self.kind)
     }
 }
 
@@ -87,7 +95,7 @@ impl Display for FieldPat {
 
 impl Display for Expr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.kind)
+        write!(f, "{}{}", id(self.id), self.kind)
     }
 }
 
@@ -201,7 +209,7 @@ impl Display for FieldValue {
 
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", splice(&self.segments, "::"))
+        write!(f, "{} {}", id(self.id), splice(&self.segments, "::"))
     }
 }
 

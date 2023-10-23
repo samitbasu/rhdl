@@ -67,7 +67,7 @@ pub fn let_expr(pattern: Box<Pat>, value: Box<Expr>, body: Box<Expr>) -> Box<Exp
 }
 
 pub fn path_segment(ident: String) -> PathSegment {
-    PathSegment { id: None, ident }
+    PathSegment { ident }
 }
 
 pub fn path(segments: Vec<PathSegment>) -> Box<Path> {
