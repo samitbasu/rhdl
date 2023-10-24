@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::fmt::Display;
 
 // First we define a type id - this is equivalent to the type variable.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct TypeId(pub usize);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,8 +17,8 @@ pub enum Bits {
 
 #[derive(PartialEq, Debug, Clone, Eq)]
 pub struct TyMap {
-    name: String,
-    fields: BTreeMap<String, Ty>,
+    pub name: String,
+    pub fields: BTreeMap<String, Ty>,
 }
 
 // A simple macro rules style macro that allows you to construct a TermMap
@@ -30,12 +30,13 @@ pub struct TyMap {
 //         "bar" => bits(1),
 //     }
 // }
+#[macro_export]
 macro_rules! ty_struct {
     (name: $name:expr, fields: { $($field:expr => $ty:expr),* $(,)? }) => {
-        Ty::Struct(TyMap {
+        Ty::Struct($crate::ty::TyMap {
             name: $name.into(),
             fields: {
-                let mut map = BTreeMap::new();
+                let mut map = std::collections::BTreeMap::new();
                 $(
                     map.insert($field.into(), $ty);
                 )*
@@ -45,12 +46,14 @@ macro_rules! ty_struct {
     };
 }
 
+pub(crate) use ty_struct;
+
 macro_rules! ty_enum {
     (name: $name:expr, fields: { $($field:expr => $ty:expr),* $(,)? }) => {
-        Ty::Enum(TyMap {
+        Ty::Enum($crate::ty::TyMap {
             name: $name.into(),
             fields: {
-                let mut map = BTreeMap::new();
+                let mut map = std::collections::BTreeMap::new();
                 $(
                     map.insert($field.into(), $ty);
                 )*
@@ -59,6 +62,8 @@ macro_rules! ty_enum {
         })
     };
 }
+
+pub(crate) use ty_enum;
 
 // Start simple, modelling as in the Eli Bendersky example.
 // https://eli.thegreenplace.net/2018/type-inference/
@@ -91,113 +96,15 @@ pub fn ty_array(t: Ty, len: usize) -> Ty {
     Ty::Array(vec![t; len])
 }
 
-#[derive(Clone, Default, Debug, PartialEq, Eq)]
-pub struct Subst {
-    map: HashMap<TypeId, Ty>,
-}
-
-fn show_table(subst: &Subst) {
-    subst
-        .map
-        .iter()
-        .for_each(|(k, v)| println!("V{} -> {}", k.0, v));
-}
-
-/*
-fn array_vars(args: Vec<Ty>, mut subs: Subst) -> Result<(Ty, Subst)> {
-    // put all of the terms into a single unified equivalence class
-    for x in args.windows(2) {
-        subs = unify(x[0].clone(), x[1].clone(), subs)?;
-    }
-    Ok((Ty::Array(args), subs))
-}
-*/
-
-fn tuple(args: Vec<Ty>) -> Ty {
+pub fn ty_tuple(args: Vec<Ty>) -> Ty {
     Ty::Tuple(args)
 }
 
-fn as_ref(t: Ty) -> Ty {
+pub fn ty_as_ref(t: Ty) -> Ty {
     Ty::Ref(Box::new(t))
 }
 
-fn get_variant(t: Ty, variant: &str, subs: &Subst) -> Result<Ty> {
-    let Ty::Var(id) = t else {
-        bail!("Cannot get variant of non-variable")
-    };
-    let Some(t) = subs.map.get(&id) else {
-        bail!("Type must be known at this point")
-    };
-    if let Ty::Ref(t) = t {
-        return get_variant(*t.clone(), variant, subs).map(|x| Ty::Ref(Box::new(x)));
-    }
-    let Ty::Enum(enum_) = t else {
-        bail!("Type must be an enum")
-    };
-    let Some(ty) = enum_.fields.get(variant) else {
-        bail!("Variant {} not found", variant)
-    };
-    Ok(ty.clone())
-}
-
-fn get_named_field(t: Ty, field: &str, subs: &Subst) -> Result<Ty> {
-    let Ty::Var(id) = t else {
-        bail!("Cannot get field of non-variable")
-    };
-    let Some(t) = subs.map.get(&id) else {
-        bail!("Type must be known at this point")
-    };
-    if let Ty::Ref(t) = t {
-        return get_named_field(*t.clone(), field, subs).map(|x| Ty::Ref(Box::new(x)));
-    }
-    let Ty::Struct(struct_) = t else {
-        bail!("Type must be a struct")
-    };
-    let Some(ty) = struct_.fields.get(field) else {
-        bail!("Field {} not found", field)
-    };
-    Ok(ty.clone())
-}
-
-fn get_unnamed_field(t: Ty, field: usize, subs: &Subst) -> Result<Ty> {
-    let Ty::Var(id) = t else {
-        bail!("Cannot get field of non-variable")
-    };
-    let Some(t) = subs.map.get(&id) else {
-        bail!("Type must be known at this point")
-    };
-    if let Ty::Ref(t) = t {
-        return get_unnamed_field(*t.clone(), field, subs).map(|x| Ty::Ref(Box::new(x)));
-    }
-    let Ty::Tuple(fields_) = t else {
-        bail!("Type must be a tuple")
-    };
-    fields_
-        .get(field)
-        .cloned()
-        .ok_or_else(|| anyhow!("Field {} not found", field))
-}
-
-fn get_indexed_item(t: Ty, index: usize, subs: &Subst) -> Result<Ty> {
-    let Ty::Var(id) = t else {
-        bail!("Cannot get field of non-variable")
-    };
-    let Some(t) = subs.map.get(&id) else {
-        bail!("Type must be known at this point")
-    };
-    if let Ty::Ref(t) = t {
-        return get_indexed_item(*t.clone(), index, subs).map(|x| Ty::Ref(Box::new(x)));
-    }
-    let Ty::Array(elems) = t else {
-        bail!("Type must be an array")
-    };
-    elems
-        .get(index)
-        .cloned()
-        .ok_or_else(|| anyhow!("Index {} out of bounds", index))
-}
-
-fn var(id: usize) -> Ty {
+pub fn ty_var(id: usize) -> Ty {
     Ty::Var(TypeId(id))
 }
 
