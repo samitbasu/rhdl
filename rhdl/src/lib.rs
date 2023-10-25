@@ -18,6 +18,8 @@ mod tests {
     use rhdl_core::{
         assign_node::assign_node_ids,
         compiler::Compiler,
+        dot::render_dot,
+        infer_types::TypeInference,
         path::{bit_range, Path},
         typer::infer_type,
         DiscriminantAlignment, Logger,
@@ -735,8 +737,13 @@ mod tests {
         let k = Init;
         let a: b4 = bits(3);
         let mut ast = do_stuff_hdl_kernel();
-        assign_node_ids(&mut ast);
+        assign_node_ids(&mut ast).unwrap();
         println!("{}", ast);
+        let mut ty_ctx = TypeInference::default();
+        ty_ctx.infer(&mut ast).unwrap();
+        println!("{}", render_dot(&mut ast).unwrap());
+        std::fs::write("test.dot", render_dot(&mut ast).unwrap()).unwrap();
+        /*
         let mut ctx = Compiler::default();
         ctx.type_bind("a", Foo::static_kind());
         ctx.type_bind("s", NooState::static_kind());
@@ -756,6 +763,7 @@ mod tests {
         println!("Types after inference: {}", ctx.types_known());
         println!("Code:");
         println!("{}", ctx);
+        */
     }
 
     #[test]

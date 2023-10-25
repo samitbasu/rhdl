@@ -2,6 +2,7 @@ use crate::{
     ast,
     visit::{walk_block, Visitor},
 };
+use anyhow::Result;
 
 // Recursively traverse the AST, and assign
 // NodeIds to all of the nodes in the tree.
@@ -30,27 +31,33 @@ impl NodeIdGenerator {
 }
 
 impl Visitor for NodeIdGenerator {
-    fn visit_stmt(&mut self, stmt: &mut ast::Stmt) {
+    fn visit_stmt(&mut self, stmt: &mut ast::Stmt) -> Result<()> {
         self.id(&mut stmt.id);
+        Ok(())
     }
-    fn visit_block(&mut self, block: &mut ast::Block) {
+    fn visit_block(&mut self, block: &mut ast::Block) -> Result<()> {
         self.id(&mut block.id);
+        Ok(())
     }
-    fn visit_local(&mut self, local: &mut ast::Local) {
+    fn visit_local(&mut self, local: &mut ast::Local) -> Result<()> {
         self.id(&mut local.id);
+        Ok(())
     }
-    fn visit_pat(&mut self, pat: &mut ast::Pat) {
+    fn visit_pat(&mut self, pat: &mut ast::Pat) -> Result<()> {
         self.id(&mut pat.id);
+        Ok(())
     }
-    fn visit_path(&mut self, path: &mut ast::Path) {
+    fn visit_path(&mut self, path: &mut ast::Path) -> Result<()> {
         self.id(&mut path.id);
+        Ok(())
     }
-    fn visit_expr(&mut self, expr: &mut ast::Expr) {
+    fn visit_expr(&mut self, expr: &mut ast::Expr) -> Result<()> {
         self.id(&mut expr.id);
+        Ok(())
     }
 }
 
-pub fn assign_node_ids(root: &mut Box<ast::Block>) {
+pub fn assign_node_ids(root: &mut Box<ast::Block>) -> Result<()> {
     let mut generator = NodeIdGenerator::new();
-    walk_block(&mut generator, root);
+    walk_block(&mut generator, root)
 }

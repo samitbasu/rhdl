@@ -1,7 +1,5 @@
 // This module provides the type system for RHDL.
-use anyhow::Result;
-use anyhow::{anyhow, bail};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::fmt::Display;
 
 // First we define a type id - this is equivalent to the type variable.
@@ -78,6 +76,10 @@ pub enum Ty {
     Array(Vec<Ty>),
     Struct(TyMap),
     Enum(TyMap),
+}
+
+pub fn ty_bool() -> Ty {
+    Ty::Const(Bits::Unsigned(1))
 }
 
 pub fn ty_empty() -> Ty {
