@@ -68,6 +68,33 @@ impl Visitor for DotGenerator {
         }
         Ok(())
     }
+    fn visit_path(&mut self, path: &mut Path) -> Result<()> {
+        self.dot.push_str(&format!(
+            "{} [label=\"{}\"];\n",
+            id(path.id)?,
+            path.segments
+                .iter()
+                .map(|x| x.ident.to_string())
+                .collect::<Vec<_>>()
+                .join("::")
+        ));
+        Ok(())
+    }
+    fn visit_pat(&mut self, pat: &mut Pat) -> Result<()> {
+        match &pat.kind {
+            PatKind::Path(path) => {
+                self.dot
+                    .push_str(&format!("{} [label=\"Pat::Path\"];\n", id(pat.id)?));
+                self.dot
+                    .push_str(&format!("{} -> {};\n", id(pat.id)?, id(path.path.id)?));
+            }
+            _ => {
+                self.dot
+                    .push_str(&format!("{} [label=\"Pat\"];\n", id(pat.id)?));
+            }
+        }
+        Ok(())
+    }
     fn visit_expr(&mut self, expr: &mut Expr) -> Result<()> {
         match &expr.kind {
             ExprKind::Binary(bin) => {
