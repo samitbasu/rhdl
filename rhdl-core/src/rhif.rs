@@ -2,8 +2,6 @@
 
 use anyhow::Result;
 
-use crate::ast::ExprLit;
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum OpCode {
     // lhs <- arg1 op arg2

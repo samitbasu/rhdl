@@ -114,7 +114,7 @@ impl UnifyContext {
             if *x == v {
                 return true;
             }
-            if let Some(t) = self.map.get(&x) {
+            if let Some(t) = self.map.get(x) {
                 return self.occurs_check(v, t);
             }
         }
