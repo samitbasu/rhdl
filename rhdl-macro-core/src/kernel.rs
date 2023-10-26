@@ -1,11 +1,14 @@
 use quote::{format_ident, quote};
 use syn::spanned::Spanned;
+use syn::visit_mut::{self, VisitMut};
 type TS = proc_macro2::TokenStream;
 type Result<T> = syn::Result<T>;
+use syn::{parse_quote, Expr, Lit, LitInt};
 
 pub fn hdl_kernel(input: TS) -> Result<TS> {
     let original = input.clone();
-    let input = syn::parse::<syn::ItemFn>(input.into())?;
+    let mut input = syn::parse::<syn::ItemFn>(input.into())?;
+    //CustomSuffix.visit_item_fn_mut(&mut input);
     let name = format_ident!("{}_hdl_kernel", &input.sig.ident);
     let block = hdl_block_inner(&input.block)?;
     Ok(quote! {
@@ -15,6 +18,23 @@ pub fn hdl_kernel(input: TS) -> Result<TS> {
             #block
         }
     })
+}
+
+struct CustomSuffix;
+
+impl VisitMut for CustomSuffix {
+    fn visit_expr_mut(&mut self, node: &mut Expr) {
+        if let Expr::Lit(expr) = &node {
+            if let Lit::Int(int) = &expr.lit {
+                if int.suffix().starts_with('b') {
+                    let digits = int.base10_digits();
+                    let unsuffixed: LitInt = syn::parse_str(digits).unwrap();
+                    let suffix = int.suffix();
+                    *node = parse_quote!(#suffix(#unsuffixed))
+                }
+            }
+        }
+    }
 }
 
 fn hdl_block(block: &syn::Block) -> Result<TS> {
@@ -719,6 +739,21 @@ mod test {
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         //        let result = result.replace("rhdl_core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
+        println!("{}", result);
+    }
+
+    #[test]
+    fn test_custom_suffix() {
+        let num = 0xdedbeef;
+        let test_code = quote! {
+            fn update() {
+                let a = 54_234_b14;
+            }
+        };
+        let mut item = syn::parse2::<syn::ItemFn>(test_code).unwrap();
+        CustomSuffix.visit_item_fn_mut(&mut item);
+        let new_code = quote! {#item};
+        let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         println!("{}", result);
     }
 }
