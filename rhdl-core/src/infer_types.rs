@@ -14,7 +14,7 @@ pub struct TypeInference {
 }
 
 impl TypeInference {
-    pub fn infer(&mut self, root: &mut Box<ast::Block>) -> Result<()> {
+    pub fn infer(&mut self, root: &Box<ast::Block>) -> Result<()> {
         let mut generator = TypeInference::default();
         walk_block(&mut generator, root)?;
         println!("Type inference: {}", generator.context);
@@ -31,7 +31,7 @@ fn id_to_var(id: Option<ast::NodeId>) -> Result<Ty> {
 }
 
 impl Visitor for TypeInference {
-    fn visit_expr(&mut self, expr: &mut ast::Expr) -> Result<()> {
+    fn visit_expr(&mut self, expr: &ast::Expr) -> Result<()> {
         let my_ty = id_to_var(expr.id)?;
         match &expr.kind {
             // x <- l + r --> tx = tl = tr
