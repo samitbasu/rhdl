@@ -36,3 +36,4 @@ pub mod typer;
 pub mod unify;
 pub mod util;
 pub mod visit;
+pub mod visit_mut;

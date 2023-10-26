@@ -1,8 +1,8 @@
 // Given an AST, generate a dot representation of it.
 
 use crate::ast;
-use crate::visit::walk_block;
-use crate::{ast::*, visit::Visitor};
+use crate::ast::*;
+use crate::visit::{walk_block, Visitor};
 use anyhow::Result;
 
 #[derive(Default)]
@@ -26,16 +26,16 @@ pub fn render_dot(block: &mut ast::Block) -> Result<String> {
 }
 
 impl Visitor for DotGenerator {
-    fn visit_block(&mut self, blk: &mut Block) -> Result<()> {
+    fn visit_block(&mut self, blk: &Block) -> Result<()> {
         self.dot
             .push_str(&format!("{} [label=\"Block\"];\n", id(blk.id)?));
-        for stmt in &mut blk.stmts {
+        for stmt in &blk.stmts {
             self.dot
                 .push_str(&format!("{} -> {};\n", id(blk.id)?, id(stmt.id)?));
         }
         Ok(())
     }
-    fn visit_stmt(&mut self, stmt: &mut Stmt) -> Result<()> {
+    fn visit_stmt(&mut self, stmt: &Stmt) -> Result<()> {
         let child = match &stmt.kind {
             StmtKind::Local(local) => {
                 self.dot
@@ -57,18 +57,18 @@ impl Visitor for DotGenerator {
             .push_str(&format!("{} -> {};\n", id(stmt.id)?, id(child)?));
         Ok(())
     }
-    fn visit_local(&mut self, local: &mut Local) -> Result<()> {
+    fn visit_local(&mut self, local: &Local) -> Result<()> {
         self.dot
             .push_str(&format!("{} [label=\"Local\"];\n", id(local.id)?));
         self.dot
             .push_str(&format!("{} -> {};\n", id(local.id)?, id(local.pat.id)?));
-        if let Some(init) = &mut local.init {
+        if let Some(init) = &local.init {
             self.dot
                 .push_str(&format!("{} -> {};\n", id(local.id)?, id(init.id)?));
         }
         Ok(())
     }
-    fn visit_path(&mut self, path: &mut Path) -> Result<()> {
+    fn visit_path(&mut self, path: &Path) -> Result<()> {
         self.dot.push_str(&format!(
             "{} [label=\"{}\"];\n",
             id(path.id)?,
@@ -80,7 +80,7 @@ impl Visitor for DotGenerator {
         ));
         Ok(())
     }
-    fn visit_pat(&mut self, pat: &mut Pat) -> Result<()> {
+    fn visit_pat(&mut self, pat: &Pat) -> Result<()> {
         match &pat.kind {
             PatKind::Path(path) => {
                 self.dot
@@ -95,7 +95,7 @@ impl Visitor for DotGenerator {
         }
         Ok(())
     }
-    fn visit_expr(&mut self, expr: &mut Expr) -> Result<()> {
+    fn visit_expr(&mut self, expr: &Expr) -> Result<()> {
         match &expr.kind {
             ExprKind::Binary(bin) => {
                 self.dot

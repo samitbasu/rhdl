@@ -1,6 +1,6 @@
 use crate::{
     ast,
-    visit::{walk_block, Visitor},
+    visit_mut::{walk_mut_block, VisitorMut},
 };
 use anyhow::Result;
 
@@ -30,7 +30,7 @@ impl NodeIdGenerator {
     }
 }
 
-impl Visitor for NodeIdGenerator {
+impl VisitorMut for NodeIdGenerator {
     fn visit_stmt(&mut self, stmt: &mut ast::Stmt) -> Result<()> {
         self.id(&mut stmt.id);
         Ok(())
@@ -59,5 +59,5 @@ impl Visitor for NodeIdGenerator {
 
 pub fn assign_node_ids(root: &mut Box<ast::Block>) -> Result<()> {
     let mut generator = NodeIdGenerator::new();
-    walk_block(&mut generator, root)
+    walk_mut_block(&mut generator, root)
 }
