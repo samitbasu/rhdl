@@ -14,7 +14,7 @@ pub struct TypeInference {
 }
 
 impl TypeInference {
-    pub fn infer(&mut self, root: &Box<ast::Block>) -> Result<()> {
+    pub fn infer(&mut self, root: &ast::Block) -> Result<()> {
         let mut generator = TypeInference::default();
         walk_block(&mut generator, root)?;
         println!("Type inference: {}", generator.context);

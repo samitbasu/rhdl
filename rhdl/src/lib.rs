@@ -14,6 +14,7 @@ pub use rhdl_macro::Digital;
 #[cfg(test)]
 mod tests {
 
+    use bits::b4;
     use rhdl_bits::bits;
     use rhdl_core::{
         assign_node::assign_node_ids,
@@ -767,5 +768,12 @@ mod tests {
     }
 
     #[test]
-    fn test_expand() {}
+    fn test_custom_suffix() {
+        #[kernel]
+        fn do_stuff(mut a: b4) {
+            let b = a + 1;
+            let c = 3;
+            a = b;
+        }
+    }
 }
