@@ -47,7 +47,7 @@ use seq_macro::seq;
     Display,
 )]
 #[repr(transparent)]
-pub struct SignedBits<const N: usize>(pub(crate) i128);
+pub struct SignedBits<const N: usize>(pub i128);
 
 seq!(N in 1..=128 {
     #(

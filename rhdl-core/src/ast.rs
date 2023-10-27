@@ -49,6 +49,7 @@ pub struct Pat {
 #[derive(Debug, Clone)]
 pub struct PathSegment {
     pub ident: String,
+    pub arguments: Vec<Box<Expr>>,
 }
 
 #[derive(Debug, Clone)]

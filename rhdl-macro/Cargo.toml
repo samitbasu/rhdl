@@ -1,6 +1,6 @@
 [package]
 name = "rhdl-macro"
-version = "0.1.0"
+version = "0.0.2"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -10,4 +10,4 @@ proc-macro = true
 
 [dependencies]
 proc-macro2 = "1.0.67"
-rhdl-macro-core = { version = "0.1.0", path = "../rhdl-macro-core" }
+rhdl-macro-core = { path = "../rhdl-macro-core" }

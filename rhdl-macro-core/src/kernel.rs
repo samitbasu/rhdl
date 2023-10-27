@@ -1,40 +1,25 @@
+use crate::suffix::CustomSuffix;
 use quote::{format_ident, quote};
-use syn::spanned::Spanned;
-use syn::visit_mut::{self, VisitMut};
+use syn::{spanned::Spanned, visit_mut::VisitMut};
 type TS = proc_macro2::TokenStream;
 type Result<T> = syn::Result<T>;
-use syn::{parse_quote, Expr, Lit, LitInt};
 
 pub fn hdl_kernel(input: TS) -> Result<TS> {
-    let original = input.clone();
-    let mut input = syn::parse::<syn::ItemFn>(input.into())?;
-    //CustomSuffix.visit_item_fn_mut(&mut input);
-    let name = format_ident!("{}_hdl_kernel", &input.sig.ident);
-    let block = hdl_block_inner(&input.block)?;
+    let input = syn::parse::<syn::ItemFn>(input.into())?;
+    hdl_function(input)
+}
+
+fn hdl_function(mut function: syn::ItemFn) -> Result<TS> {
+    CustomSuffix.visit_item_fn_mut(&mut function);
+    let name = format_ident!("{}_hdl_kernel", function.sig.ident);
+    let block = hdl_block_inner(&function.block)?;
     Ok(quote! {
-        #original
+        #function
 
         fn #name() -> Box<rhdl_core::ast::Block> {
             #block
         }
     })
-}
-
-struct CustomSuffix;
-
-impl VisitMut for CustomSuffix {
-    fn visit_expr_mut(&mut self, node: &mut Expr) {
-        if let Expr::Lit(expr) = &node {
-            if let Lit::Int(int) = &expr.lit {
-                if int.suffix().starts_with('b') {
-                    let digits = int.base10_digits();
-                    let unsuffixed: LitInt = syn::parse_str(digits).unwrap();
-                    let suffix = int.suffix();
-                    *node = parse_quote!(#suffix(#unsuffixed))
-                }
-            }
-        }
-    }
 }
 
 fn hdl_block(block: &syn::Block) -> Result<TS> {
@@ -420,7 +405,8 @@ fn hdl_pat_arm(pat: &syn::Pat) -> Result<TS> {
 }
 
 fn hdl_arm(arm: &syn::Arm) -> Result<TS> {
-    let pat = hdl_pat_arm(&arm.pat)?;
+    //let pat = hdl_pat_arm(&arm.pat)?;
+    let pat = hdl_pat(&arm.pat)?;
     let guard = arm
         .guard
         .as_ref()
@@ -501,9 +487,49 @@ fn hdl_path_inner(path: &syn::Path) -> Result<TS> {
 
 fn hdl_path_segment(segment: &syn::PathSegment) -> Result<TS> {
     let ident = &segment.ident;
+    let args = hdl_path_arguments(&segment.arguments)?;
     Ok(quote! {
-        rhdl_core::ast_builder::path_segment(stringify!(#ident).to_string())
+        rhdl_core::ast_builder::path_segment(stringify!(#ident).to_string(), #args)
     })
+}
+
+fn hdl_path_arguments(arguments: &syn::PathArguments) -> Result<TS> {
+    // We only allow Const arguments.
+    let args = match arguments {
+        syn::PathArguments::None => quote! {rhdl_core::ast_builder::path_arguments_none()},
+        syn::PathArguments::AngleBracketed(args) => {
+            let args = args
+                .args
+                .iter()
+                .map(hdl_generic_argument)
+                .collect::<Result<Vec<_>>>()?;
+            quote! {rhdl_core::ast_builder::path_arguments_angle_bracketed(vec![#(#args),*])}
+        }
+        _ => {
+            return Err(syn::Error::new(
+                arguments.span(),
+                "Unsupported path arguments in rhdl kernel function",
+            ))
+        }
+    };
+    Ok(quote! {
+        #args
+    })
+}
+
+fn hdl_generic_argument(argument: &syn::GenericArgument) -> Result<TS> {
+    match argument {
+        syn::GenericArgument::Const(expr) => {
+            let expr = hdl_expr(expr)?;
+            Ok(quote! {
+                rhdl_core::ast_builder::generic_argument_const(#expr)
+            })
+        }
+        _ => Err(syn::Error::new(
+            argument.span(),
+            "Unsupported generic argument in rhdl kernel function",
+        )),
+    }
 }
 
 fn hdl_assign(assign: &syn::ExprAssign) -> Result<TS> {
@@ -743,15 +769,54 @@ mod test {
     }
 
     #[test]
-    fn test_custom_suffix() {
-        let num = 0xdedbeef;
+    fn test_suffix() {
         let test_code = quote! {
             fn update() {
-                let a = 54_234_b14;
+                let b = 0x4313_u8;
+                let j = 342;
+                let i = 0x432_u8;
+                let a = 54_234_i14;
+                let p = 0o644_u12;
+                let z = 2_u4;
+                let h = 0b1010110_u_10;
+                let p = 0b110011_i15;
+                let q: u8 = 4;
+                let z = a.c;
+                let w = (a, a);
+                a.c[1] = q + 3;
+                a.c = [0; 3];
+                a.c = [1, 2, 3];
+                let q = (1, (0, 5), 6);
+                let (q0, (q1, q1b), q2): (u8, (u8, u8), u16) = q; // Tuple destructuring
+                a.a = 2 + 3 + q1;
+                let z;
+                if 1 > 3 {
+                    z = 2_u4;
+                } else {
+                    z = 5;
+                }
             }
         };
-        let mut item = syn::parse2::<syn::ItemFn>(test_code).unwrap();
-        CustomSuffix.visit_item_fn_mut(&mut item);
+        let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
+        let item = hdl_function(function).unwrap();
+        let new_code = quote! {#item};
+        let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
+        println!("{}", result);
+    }
+
+    #[test]
+    fn test_match_arm_pattern() {
+        let test_code = quote! {
+            fn update() {
+                match z {
+                    1_u4 => {},
+                    2_u4 => {}
+                }
+            }
+        };
+        let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
+        println!("{:?}", function);
+        let item = hdl_function(function).unwrap();
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         println!("{}", result);
