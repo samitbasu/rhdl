@@ -66,8 +66,20 @@ pub fn let_expr(pattern: Box<Pat>, value: Box<Expr>, body: Box<Expr>) -> Box<Exp
     })
 }
 
-pub fn path_segment(ident: String) -> PathSegment {
-    PathSegment { ident }
+pub fn path_arguments_none() -> Vec<Box<Expr>> {
+    vec![]
+}
+
+pub fn path_arguments_angle_bracketed(args: Vec<Box<Expr>>) -> Vec<Box<Expr>> {
+    args
+}
+
+pub fn generic_argument_const(expr: Box<Expr>) -> Box<Expr> {
+    expr
+}
+
+pub fn path_segment(ident: String, arguments: Vec<Box<Expr>>) -> PathSegment {
+    PathSegment { ident, arguments }
 }
 
 pub fn path(segments: Vec<PathSegment>) -> Box<Path> {

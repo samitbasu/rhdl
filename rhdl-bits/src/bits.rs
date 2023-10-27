@@ -45,7 +45,7 @@ use seq_macro::seq;
     Binary,
 )]
 #[repr(transparent)]
-pub struct Bits<const N: usize>(pub(crate) u128);
+pub struct Bits<const N: usize>(pub u128);
 
 seq!(N in 1..=128 {
     #(

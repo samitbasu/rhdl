@@ -215,7 +215,11 @@ impl Display for Path {
 
 impl Display for PathSegment {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.ident)
+        write!(f, "{}", self.ident)?;
+        if !self.arguments.is_empty() {
+            write!(f, "<{}>", splice(&self.arguments, ", "))?;
+        }
+        Ok(())
     }
 }
 
