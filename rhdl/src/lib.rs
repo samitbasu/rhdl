@@ -8,6 +8,7 @@ pub use crate::core::Kind;
 pub use crate::core::LogBuilder;
 pub use crate::core::LoggerImpl;
 pub use crate::core::TagID;
+use rhdl_macro::hdl;
 pub use rhdl_macro::kernel;
 pub use rhdl_macro::Digital;
 
@@ -644,8 +645,8 @@ mod tests {
             bits(42)
         }
 
-        let ast = do_stuff_hdl_kernel();
-        println!("{}", ast);
+        //        let ast = do_stuff_hdl_kernel();
+        //println!("{}", ast);
     }
 
     #[test]
@@ -703,9 +704,9 @@ mod tests {
                 i = false;
             }
             let c = match z {
-                rhdl_bits::Bits::<4usize>(1) => 2,
-                rhdl_bits::Bits::<4usize>(2) => 3,
-                rhdl_bits::Bits::<4usize>(3) => {
+                Bits(1) => 2,
+                Bits(2) => 3,
+                Bits(3) => {
                     a.a = 4;
                     4
                 }
@@ -738,8 +739,6 @@ mod tests {
 
         use NooState::{Init, Run};
 
-        let k = Init;
-        let a: b4 = bits(3);
         let mut ast = do_stuff_hdl_kernel();
         assign_node_ids(&mut ast).unwrap();
         println!("{}", ast);
@@ -747,6 +746,8 @@ mod tests {
         ty_ctx.infer(&mut ast).unwrap();
         println!("{}", render_dot(&mut ast).unwrap());
         std::fs::write("test.dot", render_dot(&mut ast).unwrap()).unwrap();
+        std::fs::write("test.json", serde_json::to_string_pretty(&ast).unwrap()).unwrap();
+
         /*
         let mut ctx = Compiler::default();
         ctx.type_bind("a", Foo::static_kind());
@@ -789,7 +790,6 @@ mod tests {
             _ => {}
         }
     }
-
     #[test]
     fn test_macro_output() {
         use rhdl_bits::alias::*;
@@ -807,684 +807,26 @@ mod tests {
             Walk { foo: u8 },
             Boom,
         }
+
+        // Define a macro called b4 that converts the argument into
+        // a Bits<4> type
+        fn bits4(x: u128) -> Bits<4> {
+            Bits::<4>::from(x)
+        }
+        fn bits6(x: u128) -> Bits<6> {
+            Bits::<6>::from(x)
+        }
+
+        #[kernel]
         fn do_stuff(mut a: Foo, mut s: NooState) {
-            let q: u8 = 4;
-            let z = a.c;
-            let w = (a, a);
-            a.c[1] = q + 3;
-            a.c = [0; 3];
-            a.c = [1, 2, 3];
-            let q = (1, (0, 5), 6);
-            let (q0, (q1, q1b), q2): (u8, (u8, u8), u16) = q;
-            a.a = 2 + 3 + q1;
-            let z;
-            if 1 > 3 {
-                z = rhdl_bits::Bits::<4usize>(2);
-            } else {
-                z = rhdl_bits::Bits::<4usize>(5);
-            }
-            a.b = {
-                7 + 9;
-                5 + !8
-            };
-            a.a = if 1 > 3 {
-                7
-            } else {
-                {
-                    a.b = 1;
-                    a.b = 4;
-                }
-                9
-            };
-            let g = 1 > 2;
-            let h = 3 != 4;
-            let mut i = g && h;
-            if z == rhdl_bits::Bits::<4usize>(3) {
-                i = false;
-            }
+            let z = bits::<6>(3);
             let c = match z {
-                rhdl_bits::Bits::<4usize>(1) => 2,
-                rhdl_bits::Bits::<4usize>(2) => 3,
-                rhdl_bits::Bits::<4usize>(3) => {
-                    a.a = 4;
-                    4
-                }
-                _ => 6,
+                Bits(4) => bits(7),
+                Bits(3) => bits::<4>(3),
+                _ => bits(8),
             };
         }
-        fn do_stuff_hdl_kernel() -> Box<rhdl_core::ast::Block> {
-            rhdl_core::ast_builder::block(vec![
-                rhdl_core::ast_builder::local_stmt(
-                    rhdl_core::ast_builder::type_pat(
-                        rhdl_core::ast_builder::ident_pat(stringify!(q).to_string(), false),
-                        <u8 as rhdl_core::Digital>::static_kind(),
-                    ),
-                    Some(rhdl_core::ast_builder::lit_expr(
-                        rhdl_core::ast_builder::expr_lit_int(stringify!(4).to_string()),
-                    )),
-                ),
-                rhdl_core::ast_builder::local_stmt(
-                    rhdl_core::ast_builder::ident_pat(stringify!(z).to_string(), false),
-                    Some(rhdl_core::ast_builder::field_expr(
-                        rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                            rhdl_core::ast_builder::path_segment(
-                                stringify!(a).to_string(),
-                                rhdl_core::ast_builder::path_arguments_none(),
-                            ),
-                        ])),
-                        rhdl_core::ast_builder::member_named(stringify!(c).to_string()),
-                    )),
-                ),
-                rhdl_core::ast_builder::local_stmt(
-                    rhdl_core::ast_builder::ident_pat(stringify!(w).to_string(), false),
-                    Some(rhdl_core::ast_builder::tuple_expr(vec![
-                        rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                            rhdl_core::ast_builder::path_segment(
-                                stringify!(a).to_string(),
-                                rhdl_core::ast_builder::path_arguments_none(),
-                            ),
-                        ])),
-                        rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                            rhdl_core::ast_builder::path_segment(
-                                stringify!(a).to_string(),
-                                rhdl_core::ast_builder::path_arguments_none(),
-                            ),
-                        ])),
-                    ])),
-                ),
-                rhdl_core::ast_builder::semi_stmt(rhdl_core::ast_builder::assign_expr(
-                    rhdl_core::ast_builder::index_expr(
-                        rhdl_core::ast_builder::field_expr(
-                            rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                                rhdl_core::ast_builder::path_segment(
-                                    stringify!(a).to_string(),
-                                    rhdl_core::ast_builder::path_arguments_none(),
-                                ),
-                            ])),
-                            rhdl_core::ast_builder::member_named(stringify!(c).to_string()),
-                        ),
-                        rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                            stringify!(1).to_string(),
-                        )),
-                    ),
-                    rhdl_core::ast_builder::binary_expr(
-                        rhdl_core::ast_builder::BinOp::Add,
-                        rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                            rhdl_core::ast_builder::path_segment(
-                                stringify!(q).to_string(),
-                                rhdl_core::ast_builder::path_arguments_none(),
-                            ),
-                        ])),
-                        rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                            stringify!(3).to_string(),
-                        )),
-                    ),
-                )),
-                rhdl_core::ast_builder::semi_stmt(rhdl_core::ast_builder::assign_expr(
-                    rhdl_core::ast_builder::field_expr(
-                        rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                            rhdl_core::ast_builder::path_segment(
-                                stringify!(a).to_string(),
-                                rhdl_core::ast_builder::path_arguments_none(),
-                            ),
-                        ])),
-                        rhdl_core::ast_builder::member_named(stringify!(c).to_string()),
-                    ),
-                    rhdl_core::ast_builder::repeat_expr(
-                        rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                            stringify!(0).to_string(),
-                        )),
-                        rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                            stringify!(3).to_string(),
-                        )),
-                    ),
-                )),
-                rhdl_core::ast_builder::semi_stmt(rhdl_core::ast_builder::assign_expr(
-                    rhdl_core::ast_builder::field_expr(
-                        rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                            rhdl_core::ast_builder::path_segment(
-                                stringify!(a).to_string(),
-                                rhdl_core::ast_builder::path_arguments_none(),
-                            ),
-                        ])),
-                        rhdl_core::ast_builder::member_named(stringify!(c).to_string()),
-                    ),
-                    rhdl_core::ast_builder::array_expr(vec![
-                        rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                            stringify!(1).to_string(),
-                        )),
-                        rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                            stringify!(2).to_string(),
-                        )),
-                        rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                            stringify!(3).to_string(),
-                        )),
-                    ]),
-                )),
-                rhdl_core::ast_builder::local_stmt(
-                    rhdl_core::ast_builder::ident_pat(stringify!(q).to_string(), false),
-                    Some(rhdl_core::ast_builder::tuple_expr(vec![
-                        rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                            stringify!(1).to_string(),
-                        )),
-                        rhdl_core::ast_builder::tuple_expr(vec![
-                            rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                                stringify!(0).to_string(),
-                            )),
-                            rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                                stringify!(5).to_string(),
-                            )),
-                        ]),
-                        rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                            stringify!(6).to_string(),
-                        )),
-                    ])),
-                ),
-                rhdl_core::ast_builder::local_stmt(
-                    rhdl_core::ast_builder::type_pat(
-                        rhdl_core::ast_builder::tuple_pat(vec![
-                            rhdl_core::ast_builder::ident_pat(stringify!(q0).to_string(), false),
-                            rhdl_core::ast_builder::tuple_pat(vec![
-                                rhdl_core::ast_builder::ident_pat(
-                                    stringify!(q1).to_string(),
-                                    false,
-                                ),
-                                rhdl_core::ast_builder::ident_pat(
-                                    stringify!(q1b).to_string(),
-                                    false,
-                                ),
-                            ]),
-                            rhdl_core::ast_builder::ident_pat(stringify!(q2).to_string(), false),
-                        ]),
-                        <(u8, (u8, u8), u16) as rhdl_core::Digital>::static_kind(),
-                    ),
-                    Some(rhdl_core::ast_builder::path_expr(
-                        rhdl_core::ast_builder::path(vec![rhdl_core::ast_builder::path_segment(
-                            stringify!(q).to_string(),
-                            rhdl_core::ast_builder::path_arguments_none(),
-                        )]),
-                    )),
-                ),
-                rhdl_core::ast_builder::semi_stmt(rhdl_core::ast_builder::assign_expr(
-                    rhdl_core::ast_builder::field_expr(
-                        rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                            rhdl_core::ast_builder::path_segment(
-                                stringify!(a).to_string(),
-                                rhdl_core::ast_builder::path_arguments_none(),
-                            ),
-                        ])),
-                        rhdl_core::ast_builder::member_named(stringify!(a).to_string()),
-                    ),
-                    rhdl_core::ast_builder::binary_expr(
-                        rhdl_core::ast_builder::BinOp::Add,
-                        rhdl_core::ast_builder::binary_expr(
-                            rhdl_core::ast_builder::BinOp::Add,
-                            rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                                stringify!(2).to_string(),
-                            )),
-                            rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                                stringify!(3).to_string(),
-                            )),
-                        ),
-                        rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                            rhdl_core::ast_builder::path_segment(
-                                stringify!(q1).to_string(),
-                                rhdl_core::ast_builder::path_arguments_none(),
-                            ),
-                        ])),
-                    ),
-                )),
-                rhdl_core::ast_builder::local_stmt(
-                    rhdl_core::ast_builder::ident_pat(stringify!(z).to_string(), false),
-                    None,
-                ),
-                rhdl_core::ast_builder::semi_stmt(rhdl_core::ast_builder::if_expr(
-                    rhdl_core::ast_builder::binary_expr(
-                        rhdl_core::ast_builder::BinOp::Gt,
-                        rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                            stringify!(1).to_string(),
-                        )),
-                        rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                            stringify!(3).to_string(),
-                        )),
-                    ),
-                    rhdl_core::ast_builder::block(vec![rhdl_core::ast_builder::semi_stmt(
-                        rhdl_core::ast_builder::assign_expr(
-                            rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                                rhdl_core::ast_builder::path_segment(
-                                    stringify!(z).to_string(),
-                                    rhdl_core::ast_builder::path_arguments_none(),
-                                ),
-                            ])),
-                            rhdl_core::ast_builder::call_expr(
-                                rhdl_core::ast_builder::path(vec![
-                                    rhdl_core::ast_builder::path_segment(
-                                        stringify!(rhdl_bits).to_string(),
-                                        rhdl_core::ast_builder::path_arguments_none(),
-                                    ),
-                                    rhdl_core::ast_builder::path_segment(
-                                        stringify!(Bits).to_string(),
-                                        rhdl_core::ast_builder::path_arguments_angle_bracketed(
-                                            vec![rhdl_core::ast_builder::generic_argument_const(
-                                                rhdl_core::ast_builder::lit_expr(
-                                                    rhdl_core::ast_builder::expr_lit_int(
-                                                        stringify!(4usize).to_string(),
-                                                    ),
-                                                ),
-                                            )],
-                                        ),
-                                    ),
-                                ]),
-                                vec![rhdl_core::ast_builder::lit_expr(
-                                    rhdl_core::ast_builder::expr_lit_int(stringify!(2).to_string()),
-                                )],
-                            ),
-                        ),
-                    )]),
-                    Some(rhdl_core::ast_builder::block_expr(
-                        rhdl_core::ast_builder::block(vec![rhdl_core::ast_builder::semi_stmt(
-                            rhdl_core::ast_builder::assign_expr(
-                                rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(
-                                    vec![rhdl_core::ast_builder::path_segment(
-                                        stringify!(z).to_string(),
-                                        rhdl_core::ast_builder::path_arguments_none(),
-                                    )],
-                                )),
-                                rhdl_core::ast_builder::call_expr(
-                                    rhdl_core::ast_builder::path(vec![
-                                        rhdl_core::ast_builder::path_segment(
-                                            stringify!(rhdl_bits).to_string(),
-                                            rhdl_core::ast_builder::path_arguments_none(),
-                                        ),
-                                        rhdl_core::ast_builder::path_segment(
-                                            stringify!(Bits).to_string(),
-                                            rhdl_core::ast_builder::path_arguments_angle_bracketed(
-                                                vec![
-                                                    rhdl_core::ast_builder::generic_argument_const(
-                                                        rhdl_core::ast_builder::lit_expr(
-                                                            rhdl_core::ast_builder::expr_lit_int(
-                                                                stringify!(4usize).to_string(),
-                                                            ),
-                                                        ),
-                                                    ),
-                                                ],
-                                            ),
-                                        ),
-                                    ]),
-                                    vec![rhdl_core::ast_builder::lit_expr(
-                                        rhdl_core::ast_builder::expr_lit_int(
-                                            stringify!(5).to_string(),
-                                        ),
-                                    )],
-                                ),
-                            ),
-                        )]),
-                    )),
-                )),
-                rhdl_core::ast_builder::semi_stmt(rhdl_core::ast_builder::assign_expr(
-                    rhdl_core::ast_builder::field_expr(
-                        rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                            rhdl_core::ast_builder::path_segment(
-                                stringify!(a).to_string(),
-                                rhdl_core::ast_builder::path_arguments_none(),
-                            ),
-                        ])),
-                        rhdl_core::ast_builder::member_named(stringify!(b).to_string()),
-                    ),
-                    rhdl_core::ast_builder::block_expr(rhdl_core::ast_builder::block(vec![
-                        rhdl_core::ast_builder::semi_stmt(rhdl_core::ast_builder::binary_expr(
-                            rhdl_core::ast_builder::BinOp::Add,
-                            rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                                stringify!(7).to_string(),
-                            )),
-                            rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                                stringify!(9).to_string(),
-                            )),
-                        )),
-                        rhdl_core::ast_builder::expr_stmt(rhdl_core::ast_builder::binary_expr(
-                            rhdl_core::ast_builder::BinOp::Add,
-                            rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                                stringify!(5).to_string(),
-                            )),
-                            rhdl_core::ast_builder::unary_expr(
-                                rhdl_core::ast_builder::UnOp::Not,
-                                rhdl_core::ast_builder::lit_expr(
-                                    rhdl_core::ast_builder::expr_lit_int(stringify!(8).to_string()),
-                                ),
-                            ),
-                        )),
-                    ])),
-                )),
-                rhdl_core::ast_builder::semi_stmt(rhdl_core::ast_builder::assign_expr(
-                    rhdl_core::ast_builder::field_expr(
-                        rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                            rhdl_core::ast_builder::path_segment(
-                                stringify!(a).to_string(),
-                                rhdl_core::ast_builder::path_arguments_none(),
-                            ),
-                        ])),
-                        rhdl_core::ast_builder::member_named(stringify!(a).to_string()),
-                    ),
-                    rhdl_core::ast_builder::if_expr(
-                        rhdl_core::ast_builder::binary_expr(
-                            rhdl_core::ast_builder::BinOp::Gt,
-                            rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                                stringify!(1).to_string(),
-                            )),
-                            rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                                stringify!(3).to_string(),
-                            )),
-                        ),
-                        rhdl_core::ast_builder::block(vec![rhdl_core::ast_builder::expr_stmt(
-                            rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                                stringify!(7).to_string(),
-                            )),
-                        )]),
-                        Some(rhdl_core::ast_builder::block_expr(
-                            rhdl_core::ast_builder::block(vec![
-                                rhdl_core::ast_builder::semi_stmt(
-                                    rhdl_core::ast_builder::block_expr(
-                                        rhdl_core::ast_builder::block(vec![
-                                            rhdl_core::ast_builder::semi_stmt(
-                                                rhdl_core::ast_builder::assign_expr(
-                                                    rhdl_core::ast_builder::field_expr(
-                                                        rhdl_core::ast_builder::path_expr(
-                                                            rhdl_core::ast_builder::path(vec![
-                                                    rhdl_core::ast_builder::path_segment(
-                                                        stringify!(a).to_string(),
-                                                        rhdl_core::ast_builder::path_arguments_none(
-                                                        ),
-                                                    ),
-                                                ]),
-                                                        ),
-                                                        rhdl_core::ast_builder::member_named(
-                                                            stringify!(b).to_string(),
-                                                        ),
-                                                    ),
-                                                    rhdl_core::ast_builder::lit_expr(
-                                                        rhdl_core::ast_builder::expr_lit_int(
-                                                            stringify!(1).to_string(),
-                                                        ),
-                                                    ),
-                                                ),
-                                            ),
-                                            rhdl_core::ast_builder::semi_stmt(
-                                                rhdl_core::ast_builder::assign_expr(
-                                                    rhdl_core::ast_builder::field_expr(
-                                                        rhdl_core::ast_builder::path_expr(
-                                                            rhdl_core::ast_builder::path(vec![
-                                                    rhdl_core::ast_builder::path_segment(
-                                                        stringify!(a).to_string(),
-                                                        rhdl_core::ast_builder::path_arguments_none(
-                                                        ),
-                                                    ),
-                                                ]),
-                                                        ),
-                                                        rhdl_core::ast_builder::member_named(
-                                                            stringify!(b).to_string(),
-                                                        ),
-                                                    ),
-                                                    rhdl_core::ast_builder::lit_expr(
-                                                        rhdl_core::ast_builder::expr_lit_int(
-                                                            stringify!(4).to_string(),
-                                                        ),
-                                                    ),
-                                                ),
-                                            ),
-                                        ]),
-                                    ),
-                                ),
-                                rhdl_core::ast_builder::expr_stmt(
-                                    rhdl_core::ast_builder::lit_expr(
-                                        rhdl_core::ast_builder::expr_lit_int(
-                                            stringify!(9).to_string(),
-                                        ),
-                                    ),
-                                ),
-                            ]),
-                        )),
-                    ),
-                )),
-                rhdl_core::ast_builder::local_stmt(
-                    rhdl_core::ast_builder::ident_pat(stringify!(g).to_string(), false),
-                    Some(rhdl_core::ast_builder::binary_expr(
-                        rhdl_core::ast_builder::BinOp::Gt,
-                        rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                            stringify!(1).to_string(),
-                        )),
-                        rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                            stringify!(2).to_string(),
-                        )),
-                    )),
-                ),
-                rhdl_core::ast_builder::local_stmt(
-                    rhdl_core::ast_builder::ident_pat(stringify!(h).to_string(), false),
-                    Some(rhdl_core::ast_builder::binary_expr(
-                        rhdl_core::ast_builder::BinOp::Ne,
-                        rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                            stringify!(3).to_string(),
-                        )),
-                        rhdl_core::ast_builder::lit_expr(rhdl_core::ast_builder::expr_lit_int(
-                            stringify!(4).to_string(),
-                        )),
-                    )),
-                ),
-                rhdl_core::ast_builder::local_stmt(
-                    rhdl_core::ast_builder::ident_pat(stringify!(i).to_string(), true),
-                    Some(rhdl_core::ast_builder::binary_expr(
-                        rhdl_core::ast_builder::BinOp::And,
-                        rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                            rhdl_core::ast_builder::path_segment(
-                                stringify!(g).to_string(),
-                                rhdl_core::ast_builder::path_arguments_none(),
-                            ),
-                        ])),
-                        rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                            rhdl_core::ast_builder::path_segment(
-                                stringify!(h).to_string(),
-                                rhdl_core::ast_builder::path_arguments_none(),
-                            ),
-                        ])),
-                    )),
-                ),
-                rhdl_core::ast_builder::semi_stmt(rhdl_core::ast_builder::if_expr(
-                    rhdl_core::ast_builder::binary_expr(
-                        rhdl_core::ast_builder::BinOp::Eq,
-                        rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                            rhdl_core::ast_builder::path_segment(
-                                stringify!(z).to_string(),
-                                rhdl_core::ast_builder::path_arguments_none(),
-                            ),
-                        ])),
-                        rhdl_core::ast_builder::call_expr(
-                            rhdl_core::ast_builder::path(vec![
-                                rhdl_core::ast_builder::path_segment(
-                                    stringify!(rhdl_bits).to_string(),
-                                    rhdl_core::ast_builder::path_arguments_none(),
-                                ),
-                                rhdl_core::ast_builder::path_segment(
-                                    stringify!(Bits).to_string(),
-                                    rhdl_core::ast_builder::path_arguments_angle_bracketed(vec![
-                                        rhdl_core::ast_builder::generic_argument_const(
-                                            rhdl_core::ast_builder::lit_expr(
-                                                rhdl_core::ast_builder::expr_lit_int(
-                                                    stringify!(4usize).to_string(),
-                                                ),
-                                            ),
-                                        ),
-                                    ]),
-                                ),
-                            ]),
-                            vec![rhdl_core::ast_builder::lit_expr(
-                                rhdl_core::ast_builder::expr_lit_int(stringify!(3).to_string()),
-                            )],
-                        ),
-                    ),
-                    rhdl_core::ast_builder::block(vec![rhdl_core::ast_builder::semi_stmt(
-                        rhdl_core::ast_builder::assign_expr(
-                            rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                                rhdl_core::ast_builder::path_segment(
-                                    stringify!(i).to_string(),
-                                    rhdl_core::ast_builder::path_arguments_none(),
-                                ),
-                            ])),
-                            rhdl_core::ast_builder::lit_expr(
-                                rhdl_core::ast_builder::expr_lit_bool(false),
-                            ),
-                        ),
-                    )]),
-                    None,
-                )),
-                rhdl_core::ast_builder::local_stmt(
-                    rhdl_core::ast_builder::ident_pat(stringify!(c).to_string(), false),
-                    Some(rhdl_core::ast_builder::match_expr(
-                        rhdl_core::ast_builder::path_expr(rhdl_core::ast_builder::path(vec![
-                            rhdl_core::ast_builder::path_segment(
-                                stringify!(z).to_string(),
-                                rhdl_core::ast_builder::path_arguments_none(),
-                            ),
-                        ])),
-                        vec![
-                            rhdl_core::ast_builder::arm(
-                                rhdl_core::ast_builder::tuple_struct_pat(
-                                    rhdl_core::ast_builder::path(vec![
-                                        rhdl_core::ast_builder::path_segment(
-                                            stringify!(rhdl_bits).to_string(),
-                                            rhdl_core::ast_builder::path_arguments_none(),
-                                        ),
-                                        rhdl_core::ast_builder::path_segment(
-                                            stringify!(Bits).to_string(),
-                                            rhdl_core::ast_builder::path_arguments_angle_bracketed(
-                                                vec![
-                                                    rhdl_core::ast_builder::generic_argument_const(
-                                                        rhdl_core::ast_builder::lit_expr(
-                                                            rhdl_core::ast_builder::expr_lit_int(
-                                                                stringify!(4usize).to_string(),
-                                                            ),
-                                                        ),
-                                                    ),
-                                                ],
-                                            ),
-                                        ),
-                                    ]),
-                                    vec![rhdl_core::ast_builder::lit_pat(
-                                        rhdl_core::ast_builder::expr_lit_int(
-                                            stringify!(1).to_string(),
-                                        ),
-                                    )],
-                                ),
-                                None,
-                                rhdl_core::ast_builder::lit_expr(
-                                    rhdl_core::ast_builder::expr_lit_int(stringify!(2).to_string()),
-                                ),
-                            ),
-                            rhdl_core::ast_builder::arm(
-                                rhdl_core::ast_builder::tuple_struct_pat(
-                                    rhdl_core::ast_builder::path(vec![
-                                        rhdl_core::ast_builder::path_segment(
-                                            stringify!(rhdl_bits).to_string(),
-                                            rhdl_core::ast_builder::path_arguments_none(),
-                                        ),
-                                        rhdl_core::ast_builder::path_segment(
-                                            stringify!(Bits).to_string(),
-                                            rhdl_core::ast_builder::path_arguments_angle_bracketed(
-                                                vec![
-                                                    rhdl_core::ast_builder::generic_argument_const(
-                                                        rhdl_core::ast_builder::lit_expr(
-                                                            rhdl_core::ast_builder::expr_lit_int(
-                                                                stringify!(4usize).to_string(),
-                                                            ),
-                                                        ),
-                                                    ),
-                                                ],
-                                            ),
-                                        ),
-                                    ]),
-                                    vec![rhdl_core::ast_builder::lit_pat(
-                                        rhdl_core::ast_builder::expr_lit_int(
-                                            stringify!(2).to_string(),
-                                        ),
-                                    )],
-                                ),
-                                None,
-                                rhdl_core::ast_builder::lit_expr(
-                                    rhdl_core::ast_builder::expr_lit_int(stringify!(3).to_string()),
-                                ),
-                            ),
-                            rhdl_core::ast_builder::arm(
-                                rhdl_core::ast_builder::tuple_struct_pat(
-                                    rhdl_core::ast_builder::path(vec![
-                                        rhdl_core::ast_builder::path_segment(
-                                            stringify!(rhdl_bits).to_string(),
-                                            rhdl_core::ast_builder::path_arguments_none(),
-                                        ),
-                                        rhdl_core::ast_builder::path_segment(
-                                            stringify!(Bits).to_string(),
-                                            rhdl_core::ast_builder::path_arguments_angle_bracketed(
-                                                vec![
-                                                    rhdl_core::ast_builder::generic_argument_const(
-                                                        rhdl_core::ast_builder::lit_expr(
-                                                            rhdl_core::ast_builder::expr_lit_int(
-                                                                stringify!(4usize).to_string(),
-                                                            ),
-                                                        ),
-                                                    ),
-                                                ],
-                                            ),
-                                        ),
-                                    ]),
-                                    vec![rhdl_core::ast_builder::lit_pat(
-                                        rhdl_core::ast_builder::expr_lit_int(
-                                            stringify!(3).to_string(),
-                                        ),
-                                    )],
-                                ),
-                                None,
-                                rhdl_core::ast_builder::block_expr(rhdl_core::ast_builder::block(
-                                    vec![
-                                        rhdl_core::ast_builder::semi_stmt(
-                                            rhdl_core::ast_builder::assign_expr(
-                                                rhdl_core::ast_builder::field_expr(
-                                                    rhdl_core::ast_builder::path_expr(
-                                                        rhdl_core::ast_builder::path(vec![
-                                            rhdl_core::ast_builder::path_segment(
-                                                stringify!(a).to_string(),
-                                                rhdl_core::ast_builder::path_arguments_none(),
-                                            ),
-                                        ]),
-                                                    ),
-                                                    rhdl_core::ast_builder::member_named(
-                                                        stringify!(a).to_string(),
-                                                    ),
-                                                ),
-                                                rhdl_core::ast_builder::lit_expr(
-                                                    rhdl_core::ast_builder::expr_lit_int(
-                                                        stringify!(4).to_string(),
-                                                    ),
-                                                ),
-                                            ),
-                                        ),
-                                        rhdl_core::ast_builder::expr_stmt(
-                                            rhdl_core::ast_builder::lit_expr(
-                                                rhdl_core::ast_builder::expr_lit_int(
-                                                    stringify!(4).to_string(),
-                                                ),
-                                            ),
-                                        ),
-                                    ],
-                                )),
-                            ),
-                            rhdl_core::ast_builder::arm(
-                                rhdl_core::ast_builder::wild_pat(),
-                                None,
-                                rhdl_core::ast_builder::lit_expr(
-                                    rhdl_core::ast_builder::expr_lit_int(stringify!(6).to_string()),
-                                ),
-                            ),
-                        ],
-                    )),
-                ),
-            ])
-        }
+        let a = do_stuff_hdl_kernel();
+        println!("{}", a);
     }
 }

@@ -1,5 +1,5 @@
 use syn::visit_mut::VisitMut;
-use syn::{parse_quote, Arm, Expr, Lit, LitInt, Pat};
+use syn::{parse_quote, Arm, Expr, Lit, LitInt, Pat, PatTupleStruct};
 
 pub struct CustomSuffix;
 
@@ -22,24 +22,30 @@ impl VisitMut for CustomSuffix {
         }
         syn::visit_mut::visit_expr_mut(self, node);
     }
+    // TODO - Revisit in the future so that we can
+    // match on values with a custom suffix.
+    /*
     fn visit_pat_mut(&mut self, node: &mut Pat) {
+        let mut replaced = false;
         if let Pat::Lit(lit) = node {
             if let Lit::Int(int) = &lit.lit {
                 let suffix = int.suffix().replace('_', "");
                 let unsuffixed: LitInt = syn::parse_str(int.base10_digits()).unwrap();
                 let suffix_width: String = suffix.chars().skip(1).collect();
                 if let Ok(suffix_width_digits) = suffix_width.parse::<usize>() {
+                    let suffix_width_digits = syn::Index::from(suffix_width_digits);
                     if suffix.starts_with('u') {
-                        *node = parse_quote!(rhdl_bits::Bits::<#suffix_width_digits>(#unsuffixed))
+                        *node = parse_quote!(rhdl_bits::Bits::<{#suffix_width_digits}>(#unsuffixed));
                     } else if suffix.starts_with('i') {
-                        *node =
-                            parse_quote!(rhdl_bits::SignedBits::<#suffix_width_digits>(#unsuffixed))
+                        *node = parse_quote!(rhdl_bits::SignedBits::<{#suffix_width_digits}>(#unsuffixed));
                     }
+                    replaced = true;
                 }
             }
         }
         syn::visit_mut::visit_pat_mut(self, node);
     }
+    */
 }
 
 #[cfg(test)]
@@ -77,11 +83,11 @@ mod tests {
                     z = 5;
                 }
                 match z {
-                    1_u4 => {
+                    Bits(1) => {
                         z = 2_u4;
                         z = 0x432_u10;
                     }
-                    2_u4 => {
+                    Bits(2) => {
                         z = 5;
                     }
                 }
@@ -90,6 +96,7 @@ mod tests {
         };
         let mut item = syn::parse2::<syn::ItemFn>(test_code).unwrap();
         CustomSuffix.visit_item_fn_mut(&mut item);
+        println!("{:#?}", item);
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         println!("{}", result);

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ClockDetails {
     pub name: String,
     pub period_in_fs: u64,
