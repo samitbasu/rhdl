@@ -7,8 +7,9 @@ use crate::{
     visit::{walk_block, Visitor},
 };
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 
-#[derive(Default)]
+#[derive(Default, Deserialize, Serialize)]
 pub struct TypeInference {
     context: UnifyContext,
 }

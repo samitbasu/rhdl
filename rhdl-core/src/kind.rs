@@ -1,9 +1,10 @@
+use serde::{Deserialize, Serialize};
 use std::{iter::repeat, ops::Range};
 
 use anyhow::Result;
 
 // TODO - add a Signed variant
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Kind {
     Array(Array),
     Tuple(Tuple),
@@ -14,47 +15,47 @@ pub enum Kind {
     Empty,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Array {
     pub base: Box<Kind>,
     pub size: usize,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Tuple {
     pub elements: Vec<Kind>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Struct {
     pub fields: Vec<Field>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Union {
     pub fields: Vec<Field>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum DiscriminantAlignment {
     Msb,
     Lsb,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Enum {
     pub variants: Vec<Variant>,
     pub discriminant_width: usize,
     pub discriminant_alignment: DiscriminantAlignment,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Field {
     pub name: String,
     pub kind: Kind,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Variant {
     pub name: String,
     pub discriminant: i64,

@@ -1,6 +1,5 @@
-use crate::suffix::CustomSuffix;
 use quote::{format_ident, quote};
-use syn::{spanned::Spanned, visit_mut::VisitMut};
+use syn::spanned::Spanned;
 type TS = proc_macro2::TokenStream;
 type Result<T> = syn::Result<T>;
 
@@ -9,8 +8,8 @@ pub fn hdl_kernel(input: TS) -> Result<TS> {
     hdl_function(input)
 }
 
-fn hdl_function(mut function: syn::ItemFn) -> Result<TS> {
-    CustomSuffix.visit_item_fn_mut(&mut function);
+fn hdl_function(function: syn::ItemFn) -> Result<TS> {
+    //    CustomSuffix.visit_item_fn_mut(&mut function);
     let name = format_ident!("{}_hdl_kernel", function.sig.ident);
     let block = hdl_block_inner(&function.block)?;
     Ok(quote! {

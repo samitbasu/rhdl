@@ -5,8 +5,9 @@ use anyhow::Result;
 use std::{collections::HashMap, fmt::Display};
 type Term = crate::ty::Ty;
 type TermMap = crate::ty::TyMap;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Default, Debug, PartialEq, Eq)]
+#[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UnifyContext {
     map: HashMap<TypeId, Term>,
 }

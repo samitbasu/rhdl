@@ -315,7 +315,7 @@ digraph {
 186 -> 187;
 186 -> 188;
 187 [label="Pat"];
-188 [label="<188>match <189><190> z {<191> <192> rhdl_bits::Bits<4usize>(<193> 1) => <194>2<195> <196> rhdl_bits::Bits<4usize>(<197> 2) => <198>3<199> <200> rhdl_bits::Bits<4usize>(<201> 3) => <202>{ <203>
+188 [label="<188>match <189><190> z {<191> <192> Bits(<193> 1) => <194>2<195> <196> Bits(<197> 2) => <198>3<199> <200> Bits(<201> 3) => <202>{ <203>
 <204><205><206><207><208> a.a = <209>4;
 <210><211>4
 }
@@ -323,15 +323,15 @@ digraph {
 189 [label="<189><190> z"];
 190 [label="z"];
 191 [label="Pat"];
-192 [label="rhdl_bits::Bits"];
+192 [label="Bits"];
 193 [label="Pat"];
 194 [label="<194>2"];
 195 [label="Pat"];
-196 [label="rhdl_bits::Bits"];
+196 [label="Bits"];
 197 [label="Pat"];
 198 [label="<198>3"];
 199 [label="Pat"];
-200 [label="rhdl_bits::Bits"];
+200 [label="Bits"];
 201 [label="Pat"];
 202 -> 203;
 203 [label="Block"];

@@ -1,19 +1,20 @@
 // This module provides the type system for RHDL.
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fmt::Display;
 
 // First we define a type id - this is equivalent to the type variable.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd, Deserialize, Serialize)]
 pub struct TypeId(pub usize);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Bits {
     Signed(usize),
     Unsigned(usize),
     Empty,
 }
 
-#[derive(PartialEq, Debug, Clone, Eq)]
+#[derive(PartialEq, Debug, Clone, Eq, Deserialize, Serialize)]
 pub struct TyMap {
     pub name: String,
     pub fields: BTreeMap<String, Ty>,
@@ -67,7 +68,7 @@ pub(crate) use ty_enum;
 // https://eli.thegreenplace.net/2018/type-inference/
 // Support for function types as a target for inference
 // has been dropped for now.
-#[derive(PartialEq, Debug, Clone, Eq)]
+#[derive(PartialEq, Debug, Clone, Eq, Deserialize, Serialize)]
 pub enum Ty {
     Var(TypeId),
     Const(Bits),
