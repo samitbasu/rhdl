@@ -164,12 +164,8 @@ impl Display for ExprKind {
             ExprKind::Path(ExprPath { path }) => {
                 write!(f, "{}", path)
             }
-            ExprKind::Let(ExprLet {
-                pattern,
-                value,
-                body,
-            }) => {
-                write!(f, "let {} = {} {}", pattern, value, body)
+            ExprKind::Let(ExprLet { pattern, value }) => {
+                write!(f, "let {} = {}", pattern, value)
             }
             ExprKind::Repeat(ExprRepeat { value, len }) => {
                 write!(f, "[{}; {}]", value, len)

@@ -18,10 +18,11 @@ mod tests {
     use bits::b4;
     use rhdl_bits::bits;
     use rhdl_core::{
+        ascii::render_ast_to_string,
         assign_node::assign_node_ids,
         compiler::Compiler,
         dot::render_dot,
-        infer_types::TypeInference,
+        infer_types::{infer, TypeInference},
         path::{bit_range, Path},
         typer::infer_type,
         DiscriminantAlignment, Logger,
@@ -669,6 +670,15 @@ mod tests {
 
         #[kernel]
         fn do_stuff(mut a: Foo, mut s: NooState) {
+            let k = {
+                bits::<12>(4);
+                bits::<12>(6)
+            };
+            let mut a: Foo = a;
+            let mut s: NooState = s;
+            let q = if a.a > 0 { bits::<12>(3) } else { bits(0) };
+            let y = bits::<12>(72);
+            let t2 = (y, y);
             let q: u8 = 4;
             let z = a.c;
             let w = (a, a);
@@ -680,9 +690,9 @@ mod tests {
             a.a = 2 + 3 + q1;
             let z;
             if 1 > 3 {
-                z = 2_u4;
+                z = bits::<4>(2);
             } else {
-                z = 5_u4;
+                z = bits::<4>(5);
             }
             a.b = {
                 7 + 9;
@@ -700,7 +710,7 @@ mod tests {
             let g = 1 > 2;
             let h = 3 != 4;
             let mut i = g && h;
-            if z == 3_u4 {
+            if z == bits::<4>(3) {
                 i = false;
             }
             let c = match z {
@@ -742,11 +752,9 @@ mod tests {
         let mut ast = do_stuff_hdl_kernel();
         assign_node_ids(&mut ast).unwrap();
         println!("{}", ast);
-        let mut ty_ctx = TypeInference::default();
-        ty_ctx.infer(&mut ast).unwrap();
-        println!("{}", render_dot(&mut ast).unwrap());
-        std::fs::write("test.dot", render_dot(&mut ast).unwrap()).unwrap();
-        std::fs::write("test.json", serde_json::to_string_pretty(&ast).unwrap()).unwrap();
+        let ctx = infer(&ast).unwrap();
+        let ast_ascii = render_ast_to_string(&ast, &ctx).unwrap();
+        println!("{}", ast_ascii);
 
         /*
         let mut ctx = Compiler::default();
@@ -776,7 +784,7 @@ mod tests {
         #[kernel]
         fn do_stuff(mut a: b4) {
             let b = a + 1;
-            let c = 3_u4;
+            let c = bits::<4>(3);
             a = b;
         }
     }

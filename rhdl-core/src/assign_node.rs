@@ -1,6 +1,6 @@
 use crate::{
     ast,
-    visit_mut::{walk_mut_block, VisitorMut},
+    visit_mut::{self, VisitorMut},
 };
 use anyhow::Result;
 
@@ -31,33 +31,33 @@ impl NodeIdGenerator {
 }
 
 impl VisitorMut for NodeIdGenerator {
-    fn visit_stmt(&mut self, stmt: &mut ast::Stmt) -> Result<()> {
-        self.id(&mut stmt.id);
-        Ok(())
+    fn visit_mut_stmt(&mut self, node: &mut ast::Stmt) -> Result<()> {
+        self.id(&mut node.id);
+        visit_mut::visit_mut_stmt(self, node)
     }
-    fn visit_block(&mut self, block: &mut ast::Block) -> Result<()> {
-        self.id(&mut block.id);
-        Ok(())
+    fn visit_mut_block(&mut self, node: &mut ast::Block) -> Result<()> {
+        self.id(&mut node.id);
+        visit_mut::visit_mut_block(self, node)
     }
-    fn visit_local(&mut self, local: &mut ast::Local) -> Result<()> {
-        self.id(&mut local.id);
-        Ok(())
+    fn visit_mut_local(&mut self, node: &mut ast::Local) -> Result<()> {
+        self.id(&mut node.id);
+        visit_mut::visit_mut_local(self, node)
     }
-    fn visit_pat(&mut self, pat: &mut ast::Pat) -> Result<()> {
-        self.id(&mut pat.id);
-        Ok(())
+    fn visit_mut_pat(&mut self, node: &mut ast::Pat) -> Result<()> {
+        self.id(&mut node.id);
+        visit_mut::visit_mut_pat(self, node)
     }
-    fn visit_path(&mut self, path: &mut ast::Path) -> Result<()> {
-        self.id(&mut path.id);
-        Ok(())
+    fn visit_mut_path(&mut self, node: &mut ast::Path) -> Result<()> {
+        self.id(&mut node.id);
+        visit_mut::visit_mut_path(self, node)
     }
-    fn visit_expr(&mut self, expr: &mut ast::Expr) -> Result<()> {
-        self.id(&mut expr.id);
-        Ok(())
+    fn visit_mut_expr(&mut self, node: &mut ast::Expr) -> Result<()> {
+        self.id(&mut node.id);
+        visit_mut::visit_mut_expr(self, node)
     }
 }
 
 pub fn assign_node_ids(root: &mut Box<ast::Block>) -> Result<()> {
     let mut generator = NodeIdGenerator::new();
-    walk_mut_block(&mut generator, root)
+    generator.visit_mut_block(root)
 }

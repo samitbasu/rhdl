@@ -8,4 +8,5 @@ members = [
     "rhdl-core",
     "rhdl-macro",
     "rhdl-fuzz",
+    "rhdl-vis",
 ]
