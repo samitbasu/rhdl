@@ -6,505 +6,582 @@ use crate::ast::*;
 use anyhow::Result;
 
 pub trait Visitor {
-    fn visit_block(&mut self, _block: &Block) -> Result<()> {
-        Ok(())
+    fn visit_block(&mut self, node: &Block) -> Result<()> {
+        visit_block(self, node)
     }
-    fn visit_stmt(&mut self, _stmt: &Stmt) -> Result<()> {
-        Ok(())
+    fn visit_stmt(&mut self, node: &Stmt) -> Result<()> {
+        visit_stmt(self, node)
     }
-    fn visit_local(&mut self, _local: &Local) -> Result<()> {
-        Ok(())
+    fn visit_local(&mut self, node: &Local) -> Result<()> {
+        visit_local(self, node)
     }
-    fn visit_pat(&mut self, _pat: &Pat) -> Result<()> {
-        Ok(())
+    fn visit_pat(&mut self, node: &Pat) -> Result<()> {
+        visit_pat(self, node)
     }
-    fn visit_path_segment(&mut self, _path_segment: &PathSegment) -> Result<()> {
-        Ok(())
+    fn visit_path_segment(&mut self, node: &PathSegment) -> Result<()> {
+        visit_path_segment(self, node)
     }
-    fn visit_path(&mut self, _path: &Path) -> Result<()> {
-        Ok(())
+    fn visit_path(&mut self, node: &Path) -> Result<()> {
+        visit_path(self, node)
     }
-    fn visit_pat_ident(&mut self, _pat_ident: &PatIdent) -> Result<()> {
-        Ok(())
+    fn visit_pat_ident(&mut self, node: &PatIdent) -> Result<()> {
+        visit_pat_ident(self, node)
     }
-    fn visit_pat_tuple(&mut self, _pat_tuple: &PatTuple) -> Result<()> {
-        Ok(())
+    fn visit_pat_tuple(&mut self, node: &PatTuple) -> Result<()> {
+        visit_pat_tuple(self, node)
     }
-    fn visit_pat_tuple_struct(&mut self, _pat_tuple_struct: &PatTupleStruct) -> Result<()> {
-        Ok(())
+    fn visit_pat_tuple_struct(&mut self, node: &PatTupleStruct) -> Result<()> {
+        visit_pat_tuple_struct(self, node)
     }
-    fn visit_pat_lit(&mut self, _pat_lit: &PatLit) -> Result<()> {
-        Ok(())
+    fn visit_pat_lit(&mut self, node: &PatLit) -> Result<()> {
+        visit_pat_lit(self, node)
     }
-    fn visit_pat_or(&mut self, _pat_or: &PatOr) -> Result<()> {
-        Ok(())
+    fn visit_pat_or(&mut self, node: &PatOr) -> Result<()> {
+        visit_pat_or(self, node)
     }
-    fn visit_pat_paren(&mut self, _pat_paren: &PatParen) -> Result<()> {
-        Ok(())
+    fn visit_pat_paren(&mut self, node: &PatParen) -> Result<()> {
+        visit_pat_paren(self, node)
     }
-    fn visit_pat_path(&mut self, _pat_path: &PatPath) -> Result<()> {
-        Ok(())
+    fn visit_pat_path(&mut self, node: &PatPath) -> Result<()> {
+        visit_pat_path(self, node)
     }
-    fn visit_pat_struct(&mut self, _pat_struct: &PatStruct) -> Result<()> {
-        Ok(())
+    fn visit_pat_struct(&mut self, node: &PatStruct) -> Result<()> {
+        visit_pat_struct(self, node)
     }
-    fn visit_pat_type(&mut self, _pat_type: &PatType) -> Result<()> {
-        Ok(())
+    fn visit_pat_type(&mut self, node: &PatType) -> Result<()> {
+        visit_pat_type(self, node)
     }
     fn visit_pat_wild(&mut self) -> Result<()> {
-        Ok(())
+        visit_pat_wild(self)
     }
-    fn visit_expr(&mut self, _expr: &Expr) -> Result<()> {
-        Ok(())
+    fn visit_expr(&mut self, node: &Expr) -> Result<()> {
+        visit_expr(self, node)
     }
-    fn visit_expr_binary(&mut self, _expr_binary: &ExprBinary) -> Result<()> {
-        Ok(())
+    fn visit_expr_binary(&mut self, node: &ExprBinary) -> Result<()> {
+        visit_expr_binary(self, node)
     }
-    fn visit_expr_unary(&mut self, _expr_unary: &ExprUnary) -> Result<()> {
-        Ok(())
+    fn visit_expr_unary(&mut self, node: &ExprUnary) -> Result<()> {
+        visit_expr_unary(self, node)
     }
-    fn visit_expr_match(&mut self, _expr_match: &ExprMatch) -> Result<()> {
-        Ok(())
+    fn visit_expr_match(&mut self, node: &ExprMatch) -> Result<()> {
+        visit_expr_match(self, node)
     }
-    fn visit_expr_ret(&mut self, _expr_return: &ExprRet) -> Result<()> {
-        Ok(())
+    fn visit_expr_ret(&mut self, node: &ExprRet) -> Result<()> {
+        visit_expr_ret(self, node)
     }
-    fn visit_expr_if(&mut self, _expr_if: &ExprIf) -> Result<()> {
-        Ok(())
+    fn visit_expr_if(&mut self, node: &ExprIf) -> Result<()> {
+        visit_expr_if(self, node)
     }
-    fn visit_expr_index(&mut self, _expr_index: &ExprIndex) -> Result<()> {
-        Ok(())
+    fn visit_expr_index(&mut self, node: &ExprIndex) -> Result<()> {
+        visit_expr_index(self, node)
     }
-    fn visit_expr_paren(&mut self, _expr_paren: &ExprParen) -> Result<()> {
-        Ok(())
+    fn visit_expr_paren(&mut self, node: &ExprParen) -> Result<()> {
+        visit_expr_paren(self, node)
     }
-    fn visit_expr_tuple(&mut self, _expr_tuple: &ExprTuple) -> Result<()> {
-        Ok(())
+    fn visit_expr_tuple(&mut self, node: &ExprTuple) -> Result<()> {
+        visit_expr_tuple(self, node)
     }
-    fn visit_expr_for_loop(&mut self, _expr_for_loop: &ExprForLoop) -> Result<()> {
-        Ok(())
+    fn visit_expr_for_loop(&mut self, node: &ExprForLoop) -> Result<()> {
+        visit_expr_for_loop(self, node)
     }
-    fn visit_expr_assign(&mut self, _expr_assign: &ExprAssign) -> Result<()> {
-        Ok(())
+    fn visit_expr_assign(&mut self, node: &ExprAssign) -> Result<()> {
+        visit_expr_assign(self, node)
     }
-    fn visit_expr_group(&mut self, _expr_group: &ExprGroup) -> Result<()> {
-        Ok(())
+    fn visit_expr_group(&mut self, node: &ExprGroup) -> Result<()> {
+        visit_expr_group(self, node)
     }
-    fn visit_expr_field(&mut self, _expr_field: &ExprField) -> Result<()> {
-        Ok(())
+    fn visit_expr_field(&mut self, node: &ExprField) -> Result<()> {
+        visit_expr_field(self, node)
     }
-    fn visit_expr_block(&mut self, _expr_block: &ExprBlock) -> Result<()> {
-        Ok(())
+    fn visit_expr_block(&mut self, node: &ExprBlock) -> Result<()> {
+        visit_expr_block(self, node)
     }
-    fn visit_expr_array(&mut self, _expr_array: &ExprArray) -> Result<()> {
-        Ok(())
+    fn visit_expr_array(&mut self, node: &ExprArray) -> Result<()> {
+        visit_expr_array(self, node)
     }
-    fn visit_expr_range(&mut self, _expr_range: &ExprRange) -> Result<()> {
-        Ok(())
+    fn visit_expr_range(&mut self, node: &ExprRange) -> Result<()> {
+        visit_expr_range(self, node)
     }
-    fn visit_expr_path(&mut self, _expr_path: &ExprPath) -> Result<()> {
-        Ok(())
+    fn visit_expr_path(&mut self, node: &ExprPath) -> Result<()> {
+        visit_expr_path(self, node)
     }
-    fn visit_expr_let(&mut self, _expr_let: &ExprLet) -> Result<()> {
-        Ok(())
+    fn visit_expr_let(&mut self, node: &ExprLet) -> Result<()> {
+        visit_expr_let(self, node)
     }
-    fn visit_expr_repeat(&mut self, _expr_repeat: &ExprRepeat) -> Result<()> {
-        Ok(())
+    fn visit_expr_repeat(&mut self, node: &ExprRepeat) -> Result<()> {
+        visit_expr_repeat(self, node)
     }
-    fn visit_expr_struct(&mut self, _expr_struct: &ExprStruct) -> Result<()> {
-        Ok(())
+    fn visit_expr_struct(&mut self, node: &ExprStruct) -> Result<()> {
+        visit_expr_struct(self, node)
     }
-    fn visit_expr_call(&mut self, _expr_call: &ExprCall) -> Result<()> {
-        Ok(())
+    fn visit_expr_call(&mut self, node: &ExprCall) -> Result<()> {
+        visit_expr_call(self, node)
     }
-    fn visit_expr_method_call(&mut self, _expr_method_call: &ExprMethodCall) -> Result<()> {
-        Ok(())
+    fn visit_expr_method_call(&mut self, node: &ExprMethodCall) -> Result<()> {
+        visit_expr_method_call(self, node)
     }
-    fn visit_match_arm(&mut self, _arm: &Arm) -> Result<()> {
-        Ok(())
+    fn visit_match_arm(&mut self, node: &Arm) -> Result<()> {
+        visit_match_arm(self, node)
     }
-    fn visit_expr_lit(&mut self, _lit: &ExprLit) -> Result<()> {
-        Ok(())
+    fn visit_expr_lit(&mut self, node: &ExprLit) -> Result<()> {
+        visit_expr_lit(self, node)
     }
-    fn visit_field_value(&mut self, _field_value: &FieldValue) -> Result<()> {
-        Ok(())
+    fn visit_field_value(&mut self, node: &FieldValue) -> Result<()> {
+        visit_field_value(self, node)
     }
-    fn visit_field_pat(&mut self, _field_pat: &FieldPat) -> Result<()> {
-        Ok(())
+    fn visit_field_pat(&mut self, node: &FieldPat) -> Result<()> {
+        visit_field_pat(self, node)
     }
 }
 
-pub fn walk_block(visitor: &mut dyn Visitor, block: &Block) -> Result<()> {
-    visitor.visit_block(block)?;
+pub fn visit_block<V>(visitor: &mut V, block: &Block) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
     for stmt in &block.stmts {
-        walk_stmt(visitor, stmt)?;
+        visitor.visit_stmt(stmt)?;
     }
     Ok(())
 }
 
-pub fn walk_stmt(visitor: &mut dyn Visitor, stmt: &Stmt) -> Result<()> {
-    visitor.visit_stmt(stmt)?;
+pub fn visit_stmt<V>(visitor: &mut V, stmt: &Stmt) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
     match &stmt.kind {
         StmtKind::Local(local) => {
-            walk_local(visitor, local)?;
+            visitor.visit_local(local)?;
         }
         StmtKind::Expr(expr) => {
-            walk_expr(visitor, expr)?;
+            visitor.visit_expr(expr)?;
         }
         StmtKind::Semi(expr) => {
-            walk_expr(visitor, expr)?;
+            visitor.visit_expr(expr)?;
         }
     }
     Ok(())
 }
 
-pub fn walk_local(visitor: &mut dyn Visitor, local: &Local) -> Result<()> {
-    visitor.visit_local(local)?;
-    walk_pat(visitor, &local.pat)?;
+pub fn visit_local<V>(visitor: &mut V, local: &Local) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_pat(&local.pat)?;
     if let Some(init) = &local.init {
-        walk_expr(visitor, init)?;
+        visitor.visit_expr(init)?;
     }
     Ok(())
 }
 
-pub fn walk_pat_ident(visitor: &mut dyn Visitor, pat_ident: &PatIdent) -> Result<()> {
-    visitor.visit_pat_ident(pat_ident)?;
+pub fn visit_pat_ident<V>(visitor: &mut V, pat_ident: &PatIdent) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
     Ok(())
 }
 
-pub fn walk_pat_tuple(visitor: &mut dyn Visitor, pat_tuple: &PatTuple) -> Result<()> {
-    visitor.visit_pat_tuple(pat_tuple)?;
+pub fn visit_pat_tuple<V>(visitor: &mut V, pat_tuple: &PatTuple) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
     for pat in &pat_tuple.elements {
-        walk_pat(visitor, pat)?;
+        visitor.visit_pat(pat)?;
     }
     Ok(())
 }
 
-pub fn walk_pat_tuple_struct(
-    visitor: &mut dyn Visitor,
-    pat_tuple_struct: &PatTupleStruct,
-) -> Result<()> {
-    visitor.visit_pat_tuple_struct(pat_tuple_struct)?;
-    walk_path(visitor, &pat_tuple_struct.path)?;
+pub fn visit_pat_tuple_struct<V>(visitor: &mut V, pat_tuple_struct: &PatTupleStruct) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_path(&pat_tuple_struct.path)?;
     for pat in &pat_tuple_struct.elems {
-        walk_pat(visitor, pat)?;
+        visitor.visit_pat(pat)?;
     }
     Ok(())
 }
 
-pub fn walk_pat_lit(visitor: &mut dyn Visitor, pat_lit: &PatLit) -> Result<()> {
-    visitor.visit_pat_lit(pat_lit)?;
+pub fn visit_pat_lit<V>(visitor: &mut V, pat_lit: &PatLit) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
     Ok(())
 }
 
-pub fn walk_pat_or(visitor: &mut dyn Visitor, pat_or: &PatOr) -> Result<()> {
-    visitor.visit_pat_or(pat_or)?;
+pub fn visit_pat_or<V>(visitor: &mut V, pat_or: &PatOr) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
     for pat in &pat_or.segments {
-        walk_pat(visitor, pat)?;
+        visitor.visit_pat(pat)?;
     }
     Ok(())
 }
 
-pub fn walk_pat_paren(visitor: &mut dyn Visitor, pat_paren: &PatParen) -> Result<()> {
-    visitor.visit_pat_paren(pat_paren)?;
-    walk_pat(visitor, &pat_paren.pat)?;
+pub fn visit_pat_paren<V>(visitor: &mut V, pat_paren: &PatParen) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_pat(&pat_paren.pat)?;
     Ok(())
 }
 
-pub fn walk_pat_path(visitor: &mut dyn Visitor, pat_path: &PatPath) -> Result<()> {
-    visitor.visit_pat_path(pat_path)?;
-    walk_path(visitor, &pat_path.path)?;
+pub fn visit_pat_path<V>(visitor: &mut V, pat_path: &PatPath) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_path(&pat_path.path)?;
     Ok(())
 }
 
-pub fn walk_pat_struct(visitor: &mut dyn Visitor, pat_struct: &PatStruct) -> Result<()> {
-    visitor.visit_pat_struct(pat_struct)?;
-    walk_path(visitor, &pat_struct.path)?;
+pub fn visit_pat_struct<V>(visitor: &mut V, pat_struct: &PatStruct) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_path(&pat_struct.path)?;
     for field in &pat_struct.fields {
-        walk_field_pat(visitor, field)?;
+        visitor.visit_field_pat(field)?;
     }
     Ok(())
 }
 
-pub fn walk_field_pat(visitor: &mut dyn Visitor, field_pat: &FieldPat) -> Result<()> {
-    visitor.visit_field_pat(field_pat)?;
-    walk_pat(visitor, &field_pat.pat)?;
+pub fn visit_field_pat<V>(visitor: &mut V, field_pat: &FieldPat) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_pat(&field_pat.pat)?;
     Ok(())
 }
 
-pub fn walk_pat_type(visitor: &mut dyn Visitor, pat_type: &PatType) -> Result<()> {
-    visitor.visit_pat_type(pat_type)?;
-    walk_pat(visitor, &pat_type.pat)?;
+pub fn visit_pat_type<V>(visitor: &mut V, pat_type: &PatType) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_pat(&pat_type.pat)?;
     Ok(())
 }
 
-pub fn walk_pat_wild(visitor: &mut dyn Visitor) -> Result<()> {
-    visitor.visit_pat_wild()?;
+pub fn visit_pat_wild<V>(visitor: &mut V) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
     Ok(())
 }
 
-pub fn walk_pat(visitor: &mut dyn Visitor, pat: &Pat) -> Result<()> {
-    visitor.visit_pat(pat)?;
+pub fn visit_pat<V>(visitor: &mut V, pat: &Pat) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
     match &pat.kind {
         PatKind::Ident(pat) => {
-            walk_pat_ident(visitor, pat)?;
+            visitor.visit_pat_ident(pat)?;
         }
         PatKind::Tuple(tuple) => {
-            walk_pat_tuple(visitor, tuple)?;
+            visitor.visit_pat_tuple(tuple)?;
         }
         PatKind::TupleStruct(tuple_struct) => {
-            walk_pat_tuple_struct(visitor, tuple_struct)?;
+            visitor.visit_pat_tuple_struct(tuple_struct)?;
         }
         PatKind::Lit(lit) => {
-            walk_pat_lit(visitor, lit)?;
+            visitor.visit_pat_lit(lit)?;
         }
         PatKind::Or(pat_or) => {
-            walk_pat_or(visitor, pat_or)?;
+            visitor.visit_pat_or(pat_or)?;
         }
         PatKind::Paren(pat_paren) => {
-            walk_pat_paren(visitor, pat_paren)?;
+            visitor.visit_pat_paren(pat_paren)?;
         }
         PatKind::Path(path) => {
-            walk_pat_path(visitor, path)?;
+            visitor.visit_pat_path(path)?;
         }
         PatKind::Struct(structure) => {
-            walk_pat_struct(visitor, structure)?;
+            visitor.visit_pat_struct(structure)?;
         }
         PatKind::Type(pat_type) => {
-            walk_pat_type(visitor, pat_type)?;
+            visitor.visit_pat_type(pat_type)?;
         }
         PatKind::Wild => {
-            walk_pat_wild(visitor)?;
+            visitor.visit_pat_wild()?;
         }
     }
     Ok(())
 }
 
-pub fn walk_expr_binary(visitor: &mut dyn Visitor, expr_binary: &ExprBinary) -> Result<()> {
-    visitor.visit_expr_binary(expr_binary)?;
-    walk_expr(visitor, &expr_binary.lhs)?;
-    walk_expr(visitor, &expr_binary.rhs)?;
+pub fn visit_expr_binary<V>(visitor: &mut V, expr_binary: &ExprBinary) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_expr(&expr_binary.lhs)?;
+    visitor.visit_expr(&expr_binary.rhs)?;
     Ok(())
 }
 
-pub fn walk_expr_unary(visitor: &mut dyn Visitor, expr_unary: &ExprUnary) -> Result<()> {
-    visitor.visit_expr_unary(expr_unary)?;
-    walk_expr(visitor, &expr_unary.expr)?;
+pub fn visit_expr_unary<V>(visitor: &mut V, expr_unary: &ExprUnary) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_expr(&expr_unary.expr)?;
     Ok(())
 }
 
-pub fn walk_expr_match(visitor: &mut dyn Visitor, expr_match: &ExprMatch) -> Result<()> {
-    visitor.visit_expr_match(expr_match)?;
-    walk_expr(visitor, &expr_match.expr)?;
+pub fn visit_expr_match<V>(visitor: &mut V, expr_match: &ExprMatch) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_expr(&expr_match.expr)?;
     for arm in &expr_match.arms {
-        walk_match_arm(visitor, arm)?;
+        visitor.visit_match_arm(arm)?;
     }
     Ok(())
 }
 
-pub fn walk_match_arm(visitor: &mut dyn Visitor, arm: &Arm) -> Result<()> {
-    visitor.visit_match_arm(arm)?;
-    walk_pat(visitor, &arm.pattern)?;
+pub fn visit_match_arm<V>(visitor: &mut V, arm: &Arm) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_pat(&arm.pattern)?;
     if let Some(guard) = &arm.guard {
-        walk_expr(visitor, guard)?;
+        visitor.visit_expr(guard)?;
     }
-    walk_expr(visitor, &arm.body)?;
+    visitor.visit_expr(&arm.body)?;
     Ok(())
 }
 
-pub fn walk_expr_ret(visitor: &mut dyn Visitor, expr_return: &ExprRet) -> Result<()> {
-    visitor.visit_expr_ret(expr_return)?;
+pub fn visit_expr_ret<V>(visitor: &mut V, expr_return: &ExprRet) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
     if let Some(expr) = &expr_return.expr {
-        walk_expr(visitor, expr)?;
+        visitor.visit_expr(expr)?;
     }
     Ok(())
 }
 
-pub fn walk_expr_if(visitor: &mut dyn Visitor, expr_if: &ExprIf) -> Result<()> {
-    visitor.visit_expr_if(expr_if)?;
-    walk_expr(visitor, &expr_if.cond)?;
-    walk_block(visitor, &expr_if.then_branch)?;
+pub fn visit_expr_if<V>(visitor: &mut V, expr_if: &ExprIf) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_expr(&expr_if.cond)?;
+    visitor.visit_block(&expr_if.then_branch)?;
     if let Some(else_branch) = &expr_if.else_branch {
-        walk_expr(visitor, else_branch)?;
+        visitor.visit_expr(else_branch)?;
     }
     Ok(())
 }
 
-pub fn walk_expr_index(visitor: &mut dyn Visitor, expr_index: &ExprIndex) -> Result<()> {
-    visitor.visit_expr_index(expr_index)?;
-    walk_expr(visitor, &expr_index.expr)?;
-    walk_expr(visitor, &expr_index.index)?;
+pub fn visit_expr_index<V>(visitor: &mut V, expr_index: &ExprIndex) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_expr(&expr_index.expr)?;
+    visitor.visit_expr(&expr_index.index)?;
     Ok(())
 }
 
-pub fn walk_expr_lit(visitor: &mut dyn Visitor, lit: &ExprLit) -> Result<()> {
-    visitor.visit_expr_lit(lit)?;
+pub fn visit_expr_lit<V>(visitor: &mut V, lit: &ExprLit) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
     Ok(())
 }
 
-pub fn walk_expr_paren(visitor: &mut dyn Visitor, expr_paren: &ExprParen) -> Result<()> {
-    visitor.visit_expr_paren(expr_paren)?;
-    walk_expr(visitor, &expr_paren.expr)?;
+pub fn visit_expr_paren<V>(visitor: &mut V, expr_paren: &ExprParen) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_expr(&expr_paren.expr)?;
     Ok(())
 }
 
-pub fn walk_expr_tuple(visitor: &mut dyn Visitor, expr_tuple: &ExprTuple) -> Result<()> {
-    visitor.visit_expr_tuple(expr_tuple)?;
+pub fn visit_expr_tuple<V>(visitor: &mut V, expr_tuple: &ExprTuple) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
     for expr in &expr_tuple.elements {
-        walk_expr(visitor, expr)?;
+        visitor.visit_expr(expr)?;
     }
     Ok(())
 }
 
-pub fn walk_expr_for_loop(visitor: &mut dyn Visitor, expr_for_loop: &ExprForLoop) -> Result<()> {
-    visitor.visit_expr_for_loop(expr_for_loop)?;
-    walk_pat(visitor, &expr_for_loop.pat)?;
-    walk_expr(visitor, &expr_for_loop.expr)?;
-    walk_block(visitor, &expr_for_loop.body)?;
+pub fn visit_expr_for_loop<V>(visitor: &mut V, expr_for_loop: &ExprForLoop) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_pat(&expr_for_loop.pat)?;
+    visitor.visit_expr(&expr_for_loop.expr)?;
+    visitor.visit_block(&expr_for_loop.body)?;
     Ok(())
 }
 
-pub fn walk_expr_assign(visitor: &mut dyn Visitor, expr_assign: &ExprAssign) -> Result<()> {
-    visitor.visit_expr_assign(expr_assign)?;
-    walk_expr(visitor, &expr_assign.lhs)?;
-    walk_expr(visitor, &expr_assign.rhs)?;
+pub fn visit_expr_assign<V>(visitor: &mut V, expr_assign: &ExprAssign) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_expr(&expr_assign.lhs)?;
+    visitor.visit_expr(&expr_assign.rhs)?;
     Ok(())
 }
 
-pub fn walk_expr_group(visitor: &mut dyn Visitor, expr_group: &ExprGroup) -> Result<()> {
-    visitor.visit_expr_group(expr_group)?;
-    walk_expr(visitor, &expr_group.expr)?;
+pub fn visit_expr_group<V>(visitor: &mut V, expr_group: &ExprGroup) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_expr(&expr_group.expr)?;
     Ok(())
 }
 
-pub fn walk_expr_field(visitor: &mut dyn Visitor, expr_field: &ExprField) -> Result<()> {
-    visitor.visit_expr_field(expr_field)?;
-    walk_expr(visitor, &expr_field.expr)?;
+pub fn visit_expr_field<V>(visitor: &mut V, expr_field: &ExprField) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_expr(&expr_field.expr)?;
     Ok(())
 }
 
-pub fn walk_expr_block(visitor: &mut dyn Visitor, expr_block: &ExprBlock) -> Result<()> {
-    visitor.visit_expr_block(expr_block)?;
-    walk_block(visitor, &expr_block.block)?;
+pub fn visit_expr_block<V>(visitor: &mut V, expr_block: &ExprBlock) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_block(&expr_block.block)?;
     Ok(())
 }
 
-pub fn walk_expr_array(visitor: &mut dyn Visitor, expr_array: &ExprArray) -> Result<()> {
-    visitor.visit_expr_array(expr_array)?;
+pub fn visit_expr_array<V>(visitor: &mut V, expr_array: &ExprArray) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
     for expr in &expr_array.elems {
-        walk_expr(visitor, expr)?;
+        visitor.visit_expr(expr)?;
     }
     Ok(())
 }
 
-pub fn walk_expr_range(visitor: &mut dyn Visitor, expr_range: &ExprRange) -> Result<()> {
-    visitor.visit_expr_range(expr_range)?;
+pub fn visit_expr_range<V>(visitor: &mut V, expr_range: &ExprRange) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
     if let Some(start) = &expr_range.start {
-        walk_expr(visitor, start)?;
+        visitor.visit_expr(start)?;
     }
     if let Some(end) = &expr_range.end {
-        walk_expr(visitor, end)?;
+        visitor.visit_expr(end)?;
     }
     Ok(())
 }
 
-pub fn walk_expr_path(visitor: &mut dyn Visitor, expr_path: &ExprPath) -> Result<()> {
-    visitor.visit_expr_path(expr_path)?;
-    walk_path(visitor, &expr_path.path)?;
+pub fn visit_expr_path<V>(visitor: &mut V, expr_path: &ExprPath) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_path(&expr_path.path)?;
     Ok(())
 }
 
-pub fn walk_expr_let(visitor: &mut dyn Visitor, expr_let: &ExprLet) -> Result<()> {
-    visitor.visit_expr_let(expr_let)?;
-    walk_pat(visitor, &expr_let.pattern)?;
-    walk_expr(visitor, &expr_let.value)?;
-    walk_expr(visitor, &expr_let.body)?;
+pub fn visit_expr_let<V>(visitor: &mut V, expr_let: &ExprLet) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_pat(&expr_let.pattern)?;
+    visitor.visit_expr(&expr_let.value)?;
     Ok(())
 }
 
-pub fn walk_expr_repeat(visitor: &mut dyn Visitor, expr_repeat: &ExprRepeat) -> Result<()> {
-    visitor.visit_expr_repeat(expr_repeat)?;
-    walk_expr(visitor, &expr_repeat.value)?;
-    walk_expr(visitor, &expr_repeat.len)?;
+pub fn visit_expr_repeat<V>(visitor: &mut V, expr_repeat: &ExprRepeat) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_expr(&expr_repeat.value)?;
+    visitor.visit_expr(&expr_repeat.len)?;
     Ok(())
 }
 
-pub fn walk_expr_struct(visitor: &mut dyn Visitor, expr_struct: &ExprStruct) -> Result<()> {
-    visitor.visit_expr_struct(expr_struct)?;
-    walk_path(visitor, &expr_struct.path)?;
+pub fn visit_expr_struct<V>(visitor: &mut V, expr_struct: &ExprStruct) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_path(&expr_struct.path)?;
     for field in &expr_struct.fields {
-        walk_field_value(visitor, field)?;
+        visitor.visit_field_value(field)?;
     }
     if let Some(rest) = &expr_struct.rest {
-        walk_expr(visitor, rest)?;
+        visitor.visit_expr(rest)?;
     }
     Ok(())
 }
 
-pub fn walk_expr_call(visitor: &mut dyn Visitor, expr_call: &ExprCall) -> Result<()> {
-    visitor.visit_expr_call(expr_call)?;
-    walk_path(visitor, &expr_call.path)?;
+pub fn visit_expr_call<V>(visitor: &mut V, expr_call: &ExprCall) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_path(&expr_call.path)?;
     for arg in &expr_call.args {
-        walk_expr(visitor, arg)?;
+        visitor.visit_expr(arg)?;
     }
     Ok(())
 }
 
-pub fn walk_expr_method_call(
-    visitor: &mut dyn Visitor,
-    expr_method_call: &ExprMethodCall,
-) -> Result<()> {
-    visitor.visit_expr_method_call(expr_method_call)?;
-    walk_expr(visitor, &expr_method_call.receiver)?;
+pub fn visit_expr_method_call<V>(visitor: &mut V, expr_method_call: &ExprMethodCall) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_expr(&expr_method_call.receiver)?;
     for arg in &expr_method_call.args {
-        walk_expr(visitor, arg)?;
+        visitor.visit_expr(arg)?;
     }
     Ok(())
 }
 
-pub fn walk_expr(visitor: &mut dyn Visitor, expr: &Expr) -> Result<()> {
-    visitor.visit_expr(expr)?;
+pub fn visit_expr<V>(visitor: &mut V, expr: &Expr) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
     match &expr.kind {
-        ExprKind::Binary(expr) => walk_expr_binary(visitor, expr),
-        ExprKind::Unary(expr) => walk_expr_unary(visitor, expr),
-        ExprKind::Match(expr) => walk_expr_match(visitor, expr),
-        ExprKind::Ret(expr) => walk_expr_ret(visitor, expr),
-        ExprKind::If(expr) => walk_expr_if(visitor, expr),
-        ExprKind::Index(expr) => walk_expr_index(visitor, expr),
-        ExprKind::Lit(expr) => walk_expr_lit(visitor, expr),
-        ExprKind::Paren(expr) => walk_expr_paren(visitor, expr),
-        ExprKind::Tuple(expr) => walk_expr_tuple(visitor, expr),
-        ExprKind::ForLoop(expr) => walk_expr_for_loop(visitor, expr),
-        ExprKind::Assign(expr) => walk_expr_assign(visitor, expr),
-        ExprKind::Group(expr) => walk_expr_group(visitor, expr),
-        ExprKind::Field(expr) => walk_expr_field(visitor, expr),
-        ExprKind::Block(expr) => walk_expr_block(visitor, expr),
-        ExprKind::Array(expr) => walk_expr_array(visitor, expr),
-        ExprKind::Range(expr) => walk_expr_range(visitor, expr),
-        ExprKind::Path(expr) => walk_expr_path(visitor, expr),
-        ExprKind::Let(expr) => walk_expr_let(visitor, expr),
-        ExprKind::Repeat(expr) => walk_expr_repeat(visitor, expr),
-        ExprKind::Struct(expr) => walk_expr_struct(visitor, expr),
-        ExprKind::Call(expr) => walk_expr_call(visitor, expr),
-        ExprKind::MethodCall(expr) => walk_expr_method_call(visitor, expr),
+        ExprKind::Binary(expr) => visitor.visit_expr_binary(expr),
+        ExprKind::Unary(expr) => visitor.visit_expr_unary(expr),
+        ExprKind::Match(expr) => visitor.visit_expr_match(expr),
+        ExprKind::Ret(expr) => visitor.visit_expr_ret(expr),
+        ExprKind::If(expr) => visitor.visit_expr_if(expr),
+        ExprKind::Index(expr) => visitor.visit_expr_index(expr),
+        ExprKind::Lit(expr) => visitor.visit_expr_lit(expr),
+        ExprKind::Paren(expr) => visitor.visit_expr_paren(expr),
+        ExprKind::Tuple(expr) => visitor.visit_expr_tuple(expr),
+        ExprKind::ForLoop(expr) => visitor.visit_expr_for_loop(expr),
+        ExprKind::Assign(expr) => visitor.visit_expr_assign(expr),
+        ExprKind::Group(expr) => visitor.visit_expr_group(expr),
+        ExprKind::Field(expr) => visitor.visit_expr_field(expr),
+        ExprKind::Block(expr) => visitor.visit_expr_block(expr),
+        ExprKind::Array(expr) => visitor.visit_expr_array(expr),
+        ExprKind::Range(expr) => visitor.visit_expr_range(expr),
+        ExprKind::Path(expr) => visitor.visit_expr_path(expr),
+        ExprKind::Let(expr) => visitor.visit_expr_let(expr),
+        ExprKind::Repeat(expr) => visitor.visit_expr_repeat(expr),
+        ExprKind::Struct(expr) => visitor.visit_expr_struct(expr),
+        ExprKind::Call(expr) => visitor.visit_expr_call(expr),
+        ExprKind::MethodCall(expr) => visitor.visit_expr_method_call(expr),
     }
 }
 
-pub fn walk_path(visitor: &mut dyn Visitor, path: &Path) -> Result<()> {
-    visitor.visit_path(path)?;
+pub fn visit_path<V>(visitor: &mut V, path: &Path) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
     for segment in &path.segments {
-        walk_path_segment(visitor, segment)?;
+        visitor.visit_path_segment(segment)?;
     }
     Ok(())
 }
 
-pub fn walk_path_segment(visitor: &mut dyn Visitor, path_segment: &PathSegment) -> Result<()> {
-    visitor.visit_path_segment(path_segment)?;
+pub fn visit_path_segment<V>(visitor: &mut V, path_segment: &PathSegment) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
     Ok(())
 }
 
-pub fn walk_field_value(visitor: &mut dyn Visitor, field_value: &FieldValue) -> Result<()> {
-    visitor.visit_field_value(field_value)?;
-    walk_expr(visitor, &field_value.value)?;
+pub fn visit_field_value<V>(visitor: &mut V, field_value: &FieldValue) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    visitor.visit_expr(&field_value.value)?;
     Ok(())
 }

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::Kind;
 use serde::{Deserialize, Serialize};
 
@@ -12,6 +14,12 @@ impl NodeId {
     }
     pub fn as_u32(self) -> u32 {
         self.0
+    }
+}
+
+impl Display for NodeId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "N{}", self.0)
     }
 }
 
@@ -253,7 +261,6 @@ pub struct ExprPath {
 pub struct ExprLet {
     pub pattern: Box<Pat>,
     pub value: Box<Expr>,
-    pub body: Box<Expr>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

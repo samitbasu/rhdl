@@ -2,7 +2,7 @@
 
 use crate::ast;
 use crate::ast::*;
-use crate::visit::{walk_block, Visitor};
+use crate::visit::{self, visit_block, Visitor};
 use anyhow::Result;
 
 #[derive(Default)]
@@ -20,7 +20,7 @@ fn id(node: Option<NodeId>) -> anyhow::Result<u32> {
 pub fn render_dot(block: &mut ast::Block) -> Result<String> {
     let mut dot = DotGenerator::default();
     dot.dot.push_str("digraph {\n");
-    walk_block(&mut dot, block)?;
+    visit_block(&mut dot, block)?;
     dot.dot.push_str("}\n");
     Ok(dot.dot)
 }
@@ -33,7 +33,7 @@ impl Visitor for DotGenerator {
             self.dot
                 .push_str(&format!("{} -> {};\n", id(blk.id)?, id(stmt.id)?));
         }
-        Ok(())
+        visit::visit_block(self, blk)
     }
     fn visit_stmt(&mut self, stmt: &Stmt) -> Result<()> {
         let child = match &stmt.kind {
@@ -55,7 +55,7 @@ impl Visitor for DotGenerator {
         };
         self.dot
             .push_str(&format!("{} -> {};\n", id(stmt.id)?, id(child)?));
-        Ok(())
+        visit::visit_stmt(self, stmt)
     }
     fn visit_local(&mut self, local: &Local) -> Result<()> {
         self.dot
@@ -66,7 +66,7 @@ impl Visitor for DotGenerator {
             self.dot
                 .push_str(&format!("{} -> {};\n", id(local.id)?, id(init.id)?));
         }
-        Ok(())
+        visit::visit_local(self, local)
     }
     fn visit_path(&mut self, path: &Path) -> Result<()> {
         self.dot.push_str(&format!(
@@ -78,7 +78,7 @@ impl Visitor for DotGenerator {
                 .collect::<Vec<_>>()
                 .join("::")
         ));
-        Ok(())
+        visit::visit_path(self, path)
     }
     fn visit_pat(&mut self, pat: &Pat) -> Result<()> {
         match &pat.kind {
@@ -93,7 +93,7 @@ impl Visitor for DotGenerator {
                     .push_str(&format!("{} [label=\"Pat\"];\n", id(pat.id)?));
             }
         }
-        Ok(())
+        visit::visit_pat(self, pat)
     }
     fn visit_expr(&mut self, expr: &Expr) -> Result<()> {
         match &expr.kind {
@@ -149,6 +149,6 @@ impl Visitor for DotGenerator {
                     .push_str(&format!("{} [label=\"{}\"];\n", id(expr.id)?, expr));
             }
         }
-        Ok(())
+        visit::visit_expr(self, expr)
     }
 }

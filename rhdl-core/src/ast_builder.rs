@@ -55,14 +55,10 @@ pub fn if_expr(
     })
 }
 
-pub fn let_expr(pattern: Box<Pat>, value: Box<Expr>, body: Box<Expr>) -> Box<Expr> {
+pub fn let_expr(pattern: Box<Pat>, value: Box<Expr>) -> Box<Expr> {
     Box::new(Expr {
         id: None,
-        kind: ExprKind::Let(ExprLet {
-            pattern,
-            value,
-            body,
-        }),
+        kind: ExprKind::Let(ExprLet { pattern, value }),
     })
 }
 
