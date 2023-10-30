@@ -79,7 +79,7 @@ pub fn path_segment(ident: String, arguments: Vec<Box<Expr>>) -> PathSegment {
 }
 
 pub fn path(segments: Vec<PathSegment>) -> Box<Path> {
-    Box::new(Path { id: None, segments })
+    Box::new(Path { segments })
 }
 
 pub fn path_expr(path: Box<Path>) -> Box<Expr> {
@@ -235,6 +235,13 @@ pub fn path_pat(path: Box<Path>) -> Box<Pat> {
     Box::new(Pat {
         id: None,
         kind: PatKind::Path(PatPath { path }),
+    })
+}
+
+pub fn slice_pat(elems: Vec<Box<Pat>>) -> Box<Pat> {
+    Box::new(Pat {
+        id: None,
+        kind: PatKind::Slice(PatSlice { elems }),
     })
 }
 

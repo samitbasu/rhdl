@@ -1,16 +1,17 @@
-use std::collections::HashMap;
-
-use crate::ast::{ExprAssign, ExprIf, ExprLit};
-use crate::ty::{ty_as_ref, ty_bits, ty_bool, ty_empty, ty_tuple};
+use crate::ast::{ExprAssign, ExprIf, ExprLit, NodeId};
+use crate::ty::{ty_array, ty_as_ref, ty_bits, ty_bool, ty_empty, ty_tuple};
 use crate::unify::UnifyContext;
 use crate::{
     ast::{self, BinOp, ExprBinary, ExprKind},
     ty::{ty_var, Ty},
     visit::{self, Visitor},
 };
-use anyhow::Result;
+use anyhow::{bail, Result};
+use log::*;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
+#[derive(Copy, Clone, Debug, PartialEq)]
 struct ScopeId(usize);
 
 const ROOT_SCOPE: ScopeId = ScopeId(0);
@@ -22,6 +23,7 @@ impl Default for ScopeId {
 }
 
 struct Scope {
+    block: NodeId,
     names: HashMap<String, Ty>,
     children: Vec<ScopeId>,
     parent: ScopeId,
@@ -32,6 +34,93 @@ pub struct TypeInference {
     scopes: Vec<Scope>,
     active_scope: ScopeId,
     context: UnifyContext,
+}
+
+impl TypeInference {
+    fn new_scope(&mut self, block: NodeId) -> ScopeId {
+        let id = ScopeId(self.scopes.len());
+        self.scopes.push(Scope {
+            block,
+            names: HashMap::new(),
+            children: Vec::new(),
+            parent: self.active_scope,
+        });
+        self.scopes[self.active_scope.0].children.push(id);
+        self.active_scope = id;
+        id
+    }
+    fn end_scope(&mut self) {
+        self.active_scope = self.scopes[self.active_scope.0].parent;
+    }
+    fn current_scope(&self) -> ScopeId {
+        self.active_scope
+    }
+    fn bind(&mut self, name: &str, id: Option<NodeId>) -> Result<()> {
+        println!("Binding {} to {:?}", name, id);
+        self.scopes[self.active_scope.0]
+            .names
+            .insert(name.to_string(), id_to_var(id)?);
+        Ok(())
+    }
+    fn lookup(&mut self, path: &str) -> Option<Ty> {
+        let mut scope = self.active_scope;
+        loop {
+            if let Some(ty) = self.scopes[scope.0].names.get(path) {
+                return Some(ty.clone());
+            }
+            if scope == ROOT_SCOPE {
+                break;
+            }
+            scope = self.scopes[scope.0].parent;
+        }
+        None
+    }
+    fn bind_pattern(&mut self, pat: &ast::Pat) -> Result<()> {
+        match &pat.kind {
+            ast::PatKind::Ident(ref ident) => {
+                self.bind(&ident.name, pat.id)?;
+            }
+            ast::PatKind::Tuple(ref tuple) => {
+                for elem in tuple.elements.iter() {
+                    self.bind_pattern(elem)?;
+                }
+                self.context.unify(
+                    id_to_var(pat.id)?,
+                    ty_tuple(
+                        tuple
+                            .elements
+                            .iter()
+                            .map(|elem| id_to_var(elem.id))
+                            .collect::<Result<Vec<_>>>()?,
+                    ),
+                )?;
+            }
+            ast::PatKind::Slice(ref slice) => {
+                let array_type = slice
+                    .elems
+                    .first()
+                    .map(|x| id_to_var(x.id))
+                    .transpose()?
+                    .unwrap_or_else(ty_empty);
+                for elem in slice.elems.iter() {
+                    self.bind_pattern(elem)?;
+                    self.context
+                        .unify(id_to_var(elem.id)?, array_type.clone())?;
+                }
+                self.context
+                    .unify(id_to_var(pat.id)?, ty_array(array_type, slice.elems.len()))?;
+            }
+            ast::PatKind::Type(ref ty) => {
+                self.bind_pattern(&ty.pat)?;
+                self.context
+                    .unify(id_to_var(ty.pat.id)?, ty.kind.clone().into())?;
+                self.context
+                    .unify(id_to_var(pat.id)?, id_to_var(ty.pat.id)?)?;
+            }
+            _ => bail!("Unsupported pattern kind: {:?}", pat.kind),
+        }
+        Ok(())
+    }
 }
 
 pub fn infer(root: &ast::Block) -> Result<UnifyContext> {
@@ -66,17 +155,21 @@ impl Visitor for TypeInference {
             self.context
                 .unify(id_to_var(node.pat.id)?, id_to_var(init.id)?)?;
         }
+        self.bind_pattern(&node.pat)?;
         visit::visit_local(self, node)
     }
     fn visit_block(&mut self, node: &ast::Block) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
+        self.new_scope(node.id.ok_or(anyhow::anyhow!("No ID found"))?);
         // Block is unified with the last statement (or is empty)
         if let Some(stmt) = node.stmts.last() {
             self.context.unify(my_ty, id_to_var(stmt.id)?)?;
         } else {
             self.context.unify(my_ty, ty_empty())?;
         }
-        visit::visit_block(self, node)
+        visit::visit_block(self, node)?;
+        self.end_scope();
+        Ok(())
     }
     fn visit_expr(&mut self, node: &ast::Expr) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
@@ -180,8 +273,31 @@ impl Visitor for TypeInference {
                     ),
                 )?;
             }
+            ExprKind::Array(array) => {
+                let array_type = array
+                    .elems
+                    .first()
+                    .map(|x| id_to_var(x.id))
+                    .transpose()?
+                    .unwrap_or_else(ty_empty);
+                let array_len = array.elems.len();
+                self.context
+                    .unify(my_ty, ty_array(array_type.clone(), array_len))?;
+                for elem in &array.elems {
+                    self.context
+                        .unify(id_to_var(elem.id)?, array_type.clone())?;
+                }
+            }
             ExprKind::Block(block) => {
                 self.context.unify(my_ty, id_to_var(block.block.id)?)?;
+            }
+            ExprKind::Path(path) => {
+                if path.path.segments.len() == 1 && path.path.segments[0].arguments.is_empty() {
+                    let name = &path.path.segments[0].ident;
+                    if let Some(ty) = self.lookup(name) {
+                        self.context.unify(my_ty, ty.clone())?;
+                    }
+                }
             }
             _ => {}
         }

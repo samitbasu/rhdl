@@ -51,6 +51,9 @@ pub trait Visitor {
     fn visit_pat_type(&mut self, node: &PatType) -> Result<()> {
         visit_pat_type(self, node)
     }
+    fn visit_pat_slice(&mut self, node: &PatSlice) -> Result<()> {
+        visit_pat_slice(self, node)
+    }
     fn visit_pat_wild(&mut self) -> Result<()> {
         visit_pat_wild(self)
     }
@@ -180,6 +183,16 @@ where
     Ok(())
 }
 
+pub fn visit_pat_slice<V>(visitor: &mut V, pat_slice: &PatSlice) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    for pat in &pat_slice.elems {
+        visitor.visit_pat(pat)?;
+    }
+    Ok(())
+}
+
 pub fn visit_pat_tuple<V>(visitor: &mut V, pat_tuple: &PatTuple) -> Result<()>
 where
     V: Visitor + ?Sized,
@@ -278,6 +291,9 @@ where
         }
         PatKind::Tuple(tuple) => {
             visitor.visit_pat_tuple(tuple)?;
+        }
+        PatKind::Slice(slice) => {
+            visitor.visit_pat_slice(slice)?;
         }
         PatKind::TupleStruct(tuple_struct) => {
             visitor.visit_pat_tuple_struct(tuple_struct)?;

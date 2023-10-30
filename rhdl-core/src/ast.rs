@@ -64,7 +64,6 @@ pub struct PathSegment {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Path {
-    pub id: Option<NodeId>,
     pub segments: Vec<PathSegment>,
 }
 
@@ -77,6 +76,7 @@ pub enum PatKind {
     Or(PatOr),
     Paren(PatParen),
     Path(PatPath),
+    Slice(PatSlice),
     Struct(PatStruct),
     Type(PatType),
     Wild,
@@ -91,6 +91,11 @@ pub struct PatIdent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PatTuple {
     pub elements: Vec<Box<Pat>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PatSlice {
+    pub elems: Vec<Box<Pat>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

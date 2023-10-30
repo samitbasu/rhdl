@@ -107,6 +107,16 @@ fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
                 rhdl_core::ast_builder::tuple_pat(vec![#(#elems),*])
             })
         }
+        syn::Pat::Slice(slice) => {
+            let elems = slice
+                .elems
+                .iter()
+                .map(hdl_pat)
+                .collect::<Result<Vec<_>>>()?;
+            Ok(quote! {
+                rhdl_core::ast_builder::slice_pat(vec![#(#elems),*])
+            })
+        }
         syn::Pat::Path(path) => {
             let path = hdl_path_inner(&path.path)?;
             Ok(quote! {
