@@ -64,6 +64,8 @@ macro_rules! ty_enum {
 
 pub(crate) use ty_enum;
 
+use crate::Kind;
+
 // Start simple, modelling as in the Eli Bendersky example.
 // https://eli.thegreenplace.net/2018/type-inference/
 // Support for function types as a target for inference
@@ -151,6 +153,33 @@ impl Display for Ty {
                 }
                 write!(f, "]")
             }
+        }
+    }
+}
+
+// Provide a conversion from Kind (which is a concrete type descriptor) to
+// Ty (which can contain variables)
+impl From<Kind> for Ty {
+    fn from(value: Kind) -> Self {
+        match value {
+            Kind::Bits(width) => ty_bits(width),
+            Kind::Empty => ty_empty(),
+            Kind::Struct(struct_) => Ty::Struct(TyMap {
+                name: "Foo".into(), // TODO: this should come from the Kind type
+                fields: struct_
+                    .fields
+                    .into_iter()
+                    .map(|field| (field.name, field.kind.into()))
+                    .collect(),
+            }),
+            Kind::Tuple(fields) => Ty::Tuple(
+                fields
+                    .elements
+                    .into_iter()
+                    .map(|field| field.into())
+                    .collect(),
+            ),
+            _ => unimplemented!(),
         }
     }
 }

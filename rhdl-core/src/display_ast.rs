@@ -65,6 +65,9 @@ impl Display for PatKind {
             PatKind::Tuple(PatTuple { elements }) => {
                 write!(f, "({})", splice(elements.as_slice(), ", "))
             }
+            PatKind::Slice(PatSlice { elems }) => {
+                write!(f, "[{}]", splice(elems.as_slice(), ", "))
+            }
             PatKind::TupleStruct(PatTupleStruct { path, elems }) => {
                 write!(f, "{}({})", path, splice(elems.as_slice(), ", "))
             }
@@ -205,7 +208,7 @@ impl Display for FieldValue {
 
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}", id(self.id), splice(&self.segments, "::"))
+        write!(f, "{}", splice(&self.segments, "::"))
     }
 }
 

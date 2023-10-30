@@ -275,6 +275,9 @@ impl<'a> AsciiRenderer<'a> {
             PatKind::Wild => {
                 self.push("wild");
             }
+            PatKind::Type(ty) => {
+                self.push(&format!("type {:?}", ty));
+            }
             _ => {
                 self.push(&format!("unhandled {:?}", pat.kind));
             }

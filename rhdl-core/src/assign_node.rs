@@ -47,10 +47,6 @@ impl VisitorMut for NodeIdGenerator {
         self.id(&mut node.id);
         visit_mut::visit_mut_pat(self, node)
     }
-    fn visit_mut_path(&mut self, node: &mut ast::Path) -> Result<()> {
-        self.id(&mut node.id);
-        visit_mut::visit_mut_path(self, node)
-    }
     fn visit_mut_expr(&mut self, node: &mut ast::Expr) -> Result<()> {
         self.id(&mut node.id);
         visit_mut::visit_mut_expr(self, node)

@@ -21,7 +21,6 @@ mod tests {
         ascii::render_ast_to_string,
         assign_node::assign_node_ids,
         compiler::Compiler,
-        dot::render_dot,
         infer_types::{infer, TypeInference},
         path::{bit_range, Path},
         typer::infer_type,
@@ -648,6 +647,38 @@ mod tests {
 
         //        let ast = do_stuff_hdl_kernel();
         //println!("{}", ast);
+    }
+
+    #[test]
+    fn test_simple_type_inference() {
+        #[kernel]
+        fn do_stuff() {
+            let k = bits::<12>(6);
+            let m = bits::<14>(7);
+            let c = k + 3;
+            let d = if c > k { c } else { k };
+            let e = (c, m);
+            let (f, g) = e;
+            let h = g + 1;
+            let k: b4 = 7.into();
+            let q = (bits::<2>(1), (bits::<5>(0), bits::<8>(5)), bits::<12>(6));
+            let (q0, (q1, q1b), q2) = q; // Tuple destructuring
+            let z = q1b + 4;
+            let h = [d, c, f];
+            let [i, j, k] = h;
+            let o = j;
+            let l = {
+                let a = bits::<12>(3);
+                let b = bits(4);
+                a + b
+            };
+        }
+        let mut ast = do_stuff_hdl_kernel();
+        assign_node_ids(&mut ast).unwrap();
+        println!("{}", ast);
+        let ctx = infer(&ast).unwrap();
+        let ast_ascii = render_ast_to_string(&ast, &ctx).unwrap();
+        println!("{}", ast_ascii);
     }
 
     #[test]
