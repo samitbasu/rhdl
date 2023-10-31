@@ -49,7 +49,9 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
             Ok(quote! {
                 impl #impl_generics rhdl_core::Digital for #struct_name #ty_generics #where_clause {
                     fn static_kind() -> rhdl_core::Kind {
-                        rhdl_core::Kind::make_struct(vec![
+                        rhdl_core::Kind::make_struct(
+                            stringify!(#struct_name),
+                            vec![
                             #(
                                 rhdl_core::Kind::make_field(stringify!(#fields_4), <#field_types_3 as rhdl_core::Digital>::static_kind()),
                             )*
@@ -99,7 +101,9 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
             Ok(quote! {
                 impl #impl_generics rhdl_core::Digital for #struct_name #ty_generics #where_clause {
                     fn static_kind() -> rhdl_core::Kind {
-                        rhdl_core::Kind::make_struct(vec![
+                        rhdl_core::Kind::make_struct(
+                            stringify!(#struct_name),
+                            vec![
                             #(
                                 rhdl_core::Kind::make_field(stringify!(#fields_4), <#field_types_3 as rhdl_core::Digital>::static_kind()),
                             )*
@@ -152,7 +156,9 @@ mod test {
         let expected = quote! {
             impl rhdl_core::Digital for NestedBits {
                 fn static_kind() -> rhdl_core::Kind {
-                    rhdl_core::Kind::make_struct(vec![
+                    rhdl_core::Kind::make_struct(
+                        stringify!(NestedBits),
+                        vec![
                         rhdl_core::Kind::make_field(stringify!(nest_1), <bool as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(nest_2), <u8 as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(nest_3), <TwoBits as rhdl_core::Digital>::static_kind()),
@@ -198,7 +204,9 @@ mod test {
         let expected = quote! {
             impl rhdl_core::Digital for Inputs {
                 fn static_kind() -> rhdl_core::Kind {
-                    rhdl_core::Kind::make_struct(vec![
+                    rhdl_core::Kind::make_struct(
+                        stringify!(Inputs),
+                        vec![
                         rhdl_core::Kind::make_field(stringify!(input), <u32 as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(write), <bool as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(read), <bool as rhdl_core::Digital>::static_kind()),
@@ -245,7 +253,9 @@ mod test {
         let expected = quote! {
             impl rhdl_core::Digital for Inputs {
                 fn static_kind() -> rhdl_core::Kind {
-                    rhdl_core::Kind::make_struct(vec![
+                    rhdl_core::Kind::make_struct(
+                        stringify!(Inputs),
+                        vec![
                         rhdl_core::Kind::make_field(stringify!(input), <u32 as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(write), <bool as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(read), <(bool, bool) as rhdl_core::Digital>::static_kind()),
@@ -287,7 +297,9 @@ mod test {
         let expected = quote! {
             impl rhdl_core::Digital for Inputs {
                 fn static_kind() -> rhdl_core::Kind {
-                    rhdl_core::Kind::make_struct(vec![
+                    rhdl_core::Kind::make_struct(
+                        stringify!(Inputs),
+                        vec![
                         rhdl_core::Kind::make_field(stringify!(0), <u32 as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(1), <bool as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(2), <bool as rhdl_core::Digital>::static_kind()),

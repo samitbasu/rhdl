@@ -12,6 +12,7 @@ pub enum Kind {
     Union(Union),
     Enum(Enum),
     Bits(usize),
+    Signed(usize),
     Empty,
 }
 
@@ -28,6 +29,7 @@ pub struct Tuple {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Struct {
+    pub name: String,
     pub fields: Vec<Field>,
 }
 
@@ -44,6 +46,7 @@ pub enum DiscriminantAlignment {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Enum {
+    pub name: String,
     pub variants: Vec<Variant>,
     pub discriminant_width: usize,
     pub discriminant_alignment: DiscriminantAlignment,
@@ -94,18 +97,23 @@ impl Kind {
             kind,
         }
     }
-    pub fn make_struct(fields: Vec<Field>) -> Self {
-        Self::Struct(Struct { fields })
+    pub fn make_struct(name: &str, fields: Vec<Field>) -> Self {
+        Self::Struct(Struct {
+            name: name.into(),
+            fields,
+        })
     }
     pub fn make_union(fields: Vec<Field>) -> Self {
         Self::Union(Union { fields })
     }
     pub fn make_enum(
+        name: &str,
         variants: Vec<Variant>,
         discriminant_width: usize,
         discriminant_alignment: DiscriminantAlignment,
     ) -> Self {
         Self::Enum(Enum {
+            name: name.into(),
             variants,
             discriminant_width,
             discriminant_alignment,
@@ -113,6 +121,9 @@ impl Kind {
     }
     pub fn make_bits(digits: usize) -> Self {
         Self::Bits(digits)
+    }
+    pub fn make_signed(digits: usize) -> Self {
+        Self::Signed(digits)
     }
     pub fn bits(&self) -> usize {
         match self {
@@ -130,6 +141,7 @@ impl Kind {
                         .unwrap_or(0)
             }
             Kind::Bits(digits) => *digits,
+            Kind::Signed(digits) => *digits,
             Kind::Empty => 0,
         }
     }
@@ -182,6 +194,14 @@ fn generate_kind_layout(
                 depth: 1,
                 cols: offset_col..offset_col + digits,
                 name: format!("{name} b{digits}"),
+            }]
+        }
+        Kind::Signed(digits) => {
+            vec![KindLayout {
+                row: offset_row,
+                depth: 1,
+                cols: offset_col..offset_col + digits,
+                name: format!("{name} s{digits}"),
             }]
         }
         Kind::Struct(s) => {
@@ -619,6 +639,7 @@ mod test {
     // }
     fn make_complex_kind() -> Kind {
         Kind::make_enum(
+            "Crazy",
             vec![
                 Variant {
                     name: "A".to_string(),
@@ -638,16 +659,19 @@ mod test {
                 Variant {
                     name: "D".to_string(),
                     discriminant: 3,
-                    kind: Kind::make_struct(vec![
-                        Field {
-                            name: "a".to_string(),
-                            kind: Kind::make_bits(8),
-                        },
-                        Field {
-                            name: "b".to_string(),
-                            kind: Kind::make_bits(16),
-                        },
-                    ]),
+                    kind: Kind::make_struct(
+                        "Crazy::D".into(),
+                        vec![
+                            Field {
+                                name: "a".to_string(),
+                                kind: Kind::make_bits(8),
+                            },
+                            Field {
+                                name: "b".to_string(),
+                                kind: Kind::make_bits(16),
+                            },
+                        ],
+                    ),
                 },
                 Variant {
                     name: "E".to_string(),
@@ -657,16 +681,19 @@ mod test {
                 Variant {
                     name: "F".to_string(),
                     discriminant: 5,
-                    kind: Kind::make_struct(vec![
-                        Field {
-                            name: "a".to_string(),
-                            kind: Kind::make_bits(8),
-                        },
-                        Field {
-                            name: "b".to_string(),
-                            kind: Kind::make_array(Kind::make_bits(8), 4),
-                        },
-                    ]),
+                    kind: Kind::make_struct(
+                        "Crazy::F".into(),
+                        vec![
+                            Field {
+                                name: "a".to_string(),
+                                kind: Kind::make_bits(8),
+                            },
+                            Field {
+                                name: "b".to_string(),
+                                kind: Kind::make_array(Kind::make_bits(8), 4),
+                            },
+                        ],
+                    ),
                 },
                 Variant {
                     name: "F2".to_string(),
@@ -685,25 +712,29 @@ mod test {
                 Variant {
                     name: "G".to_string(),
                     discriminant: 6,
-                    kind: Kind::make_struct(vec![
-                        Field {
-                            name: "a".to_string(),
-                            kind: Kind::make_bits(8),
-                        },
-                        Field {
-                            name: "b".to_string(),
-                            kind: Kind::make_array(Kind::make_bits(8), 4),
-                        },
-                        Field {
-                            name: "c".to_string(),
-                            kind: Kind::make_bits(16),
-                        },
-                    ]),
+                    kind: Kind::make_struct(
+                        "Crazy::G".into(),
+                        vec![
+                            Field {
+                                name: "a".to_string(),
+                                kind: Kind::make_bits(8),
+                            },
+                            Field {
+                                name: "b".to_string(),
+                                kind: Kind::make_array(Kind::make_bits(8), 4),
+                            },
+                            Field {
+                                name: "c".to_string(),
+                                kind: Kind::make_bits(16),
+                            },
+                        ],
+                    ),
                 },
                 Variant {
                     name: "H".to_string(),
                     discriminant: 8,
                     kind: Kind::make_enum(
+                        "Crazy::H",
                         vec![
                             Variant {
                                 name: "A".to_string(),
@@ -749,20 +780,23 @@ mod test {
     }
     #[test]
     fn test_layout_of_struct() {
-        let kind = Kind::make_struct(vec![
-            Field {
-                name: "a".to_string(),
-                kind: Kind::make_bits(8),
-            },
-            Field {
-                name: "b".to_string(),
-                kind: Kind::make_bits(16),
-            },
-            Field {
-                name: "c".to_string(),
-                kind: Kind::make_bits(32),
-            },
-        ]);
+        let kind = Kind::make_struct(
+            "Foo".into(),
+            vec![
+                Field {
+                    name: "a".to_string(),
+                    kind: Kind::make_bits(8),
+                },
+                Field {
+                    name: "b".to_string(),
+                    kind: Kind::make_bits(16),
+                },
+                Field {
+                    name: "c".to_string(),
+                    kind: Kind::make_bits(32),
+                },
+            ],
+        );
         let layout = generate_kind_layout(&kind, "value", 0, 0);
         println!("{:#?}", layout);
         #[cfg(feature = "svg")]
@@ -775,29 +809,35 @@ mod test {
     }
     #[test]
     fn test_layout_of_struct_with_nesting() {
-        let kind = Kind::make_struct(vec![
-            Field {
-                name: "a".to_string(),
-                kind: Kind::make_bits(8),
-            },
-            Field {
-                name: "b".to_string(),
-                kind: Kind::make_bits(16),
-            },
-            Field {
-                name: "c".to_string(),
-                kind: Kind::make_struct(vec![
-                    Field {
-                        name: "d".to_string(),
-                        kind: Kind::make_bits(8),
-                    },
-                    Field {
-                        name: "e".to_string(),
-                        kind: Kind::make_bits(16),
-                    },
-                ]),
-            },
-        ]);
+        let kind = Kind::make_struct(
+            "Foo",
+            vec![
+                Field {
+                    name: "a".to_string(),
+                    kind: Kind::make_bits(8),
+                },
+                Field {
+                    name: "b".to_string(),
+                    kind: Kind::make_bits(16),
+                },
+                Field {
+                    name: "c".to_string(),
+                    kind: Kind::make_struct(
+                        "Foo:c",
+                        vec![
+                            Field {
+                                name: "d".to_string(),
+                                kind: Kind::make_bits(8),
+                            },
+                            Field {
+                                name: "e".to_string(),
+                                kind: Kind::make_bits(16),
+                            },
+                        ],
+                    ),
+                },
+            ],
+        );
         let layout = generate_kind_layout(&kind, "value", 0, 0);
         println!("{:#?}", layout);
         #[cfg(feature = "svg")]
@@ -839,6 +879,7 @@ mod test {
     #[test]
     fn test_layout_of_simple_enum() {
         let kind = Kind::make_enum(
+            "Simple",
             vec![
                 Variant {
                     name: "A".to_string(),

@@ -42,6 +42,7 @@ mod tests {
         impl Digital for Enum {
             fn static_kind() -> Kind {
                 Kind::make_enum(
+                    "Enum",
                     vec![
                         Kind::make_variant("None", Kind::Empty, 0),
                         Kind::make_variant(
@@ -51,12 +52,18 @@ mod tests {
                         ),
                         Kind::make_variant(
                             "B",
-                            Kind::make_struct(vec![Kind::make_field("name", Kind::make_bits(8))]),
+                            Kind::make_struct(
+                                "Enum::B",
+                                vec![Kind::make_field("name", Kind::make_bits(8))],
+                            ),
                             2,
                         ),
                         Kind::make_variant(
                             "C",
-                            Kind::make_struct(vec![Kind::make_field("a", Kind::make_bits(1))]),
+                            Kind::make_struct(
+                                "Enum::C",
+                                vec![Kind::make_field("a", Kind::make_bits(1))],
+                            ),
                             3,
                         ),
                     ],
@@ -202,10 +209,13 @@ mod tests {
 
         impl Digital for Simple {
             fn static_kind() -> Kind {
-                Kind::make_struct(vec![
-                    Kind::make_field("a", Kind::make_bits(1)),
-                    Kind::make_field("b", Kind::make_bits(8)),
-                ])
+                Kind::make_struct(
+                    "Simple",
+                    vec![
+                        Kind::make_field("a", Kind::make_bits(1)),
+                        Kind::make_field("b", Kind::make_bits(8)),
+                    ],
+                )
             }
             fn bin(self) -> Vec<bool> {
                 let mut result = vec![self.a];
@@ -261,6 +271,7 @@ mod tests {
         impl rhdl_core::Digital for Test {
             fn static_kind() -> rhdl_core::Kind {
                 Kind::make_enum(
+                    "Test",
                     vec![
                         Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1),
                         Kind::make_variant(
@@ -272,16 +283,19 @@ mod tests {
                         ),
                         Kind::make_variant(
                             stringify!(C),
-                            rhdl_core::Kind::make_struct(vec![
-                                rhdl_core::Kind::make_field(
-                                    stringify!(a),
-                                    <Bits<32> as rhdl_core::Digital>::static_kind(),
-                                ),
-                                rhdl_core::Kind::make_field(
-                                    stringify!(b),
-                                    <Bits<8> as rhdl_core::Digital>::static_kind(),
-                                ),
-                            ]),
+                            rhdl_core::Kind::make_struct(
+                                "Test::C",
+                                vec![
+                                    rhdl_core::Kind::make_field(
+                                        stringify!(a),
+                                        <Bits<32> as rhdl_core::Digital>::static_kind(),
+                                    ),
+                                    rhdl_core::Kind::make_field(
+                                        stringify!(b),
+                                        <Bits<8> as rhdl_core::Digital>::static_kind(),
+                                    ),
+                                ],
+                            ),
                             3,
                         ),
                     ],
@@ -381,6 +395,7 @@ mod tests {
         impl rhdl_core::Digital for State {
             fn static_kind() -> rhdl_core::Kind {
                 Kind::make_enum(
+                    "State",
                     vec![
                         Kind::make_variant(stringify!(Init), rhdl_core::Kind::Empty, 0),
                         Kind::make_variant(stringify!(Boot), rhdl_core::Kind::Empty, 1),

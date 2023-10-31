@@ -6,6 +6,7 @@ use syn::spanned::Spanned;
 use syn::Attribute;
 use syn::Expr;
 use syn::ExprLit;
+use syn::Ident;
 use syn::Lit;
 use syn::Variant;
 use syn::{Data, DeriveInput};
@@ -194,7 +195,7 @@ fn variant_payload_record(variant: &Variant) -> TokenStream {
     }
 }
 
-fn variant_kind_mapping(variant: &Variant) -> TokenStream {
+fn variant_kind_mapping(enum_name: &Ident, variant: &Variant) -> TokenStream {
     match &variant.fields {
         syn::Fields::Unit => quote! {rhdl_core::Kind::Empty},
         syn::Fields::Unnamed(fields) => {
@@ -208,8 +209,11 @@ fn variant_kind_mapping(variant: &Variant) -> TokenStream {
         syn::Fields::Named(fields) => {
             let field_names = fields.named.iter().map(|f| &f.ident);
             let field_types = fields.named.iter().map(|f| &f.ty);
+            let struct_name = format_ident!("_{}__{}", enum_name, variant.ident);
             quote! {
-                rhdl_core::Kind::make_struct(vec![#(
+                rhdl_core::Kind::make_struct(
+                    stringify!(#struct_name),
+                    vec![#(
                     rhdl_core::Kind::make_field(stringify!(#field_names), <#field_types as rhdl_core::Digital>::static_kind())
                 ),*])
             }
@@ -395,7 +399,10 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         .iter()
         .map(|variant| variant_payload_case(variant, e.variants.iter()));
     let skip_fns = e.variants.iter().map(variant_payload_skip);
-    let kind_mapping = e.variants.iter().map(variant_kind_mapping);
+    let kind_mapping = e
+        .variants
+        .iter()
+        .map(|v| variant_kind_mapping(enum_name, v));
     let variant_names_for_kind = variants.clone();
     let variant_names_for_bin = variants.clone();
     let discriminants: Vec<Option<i64>> = e
@@ -424,6 +431,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         impl #impl_generics rhdl_core::Digital for #enum_name #ty_generics #where_clause {
             fn static_kind() -> rhdl_core::Kind {
                 rhdl_core::Kind::make_enum(
+                    stringify!(#enum_name),
                     vec![
                         #(
                             rhdl_core::Kind::make_variant(stringify!(#variant_names_for_kind), #kind_mapping, #discriminants)
