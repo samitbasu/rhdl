@@ -3,6 +3,7 @@
 // using indented text.
 
 use crate::ast::*;
+use crate::kernel::Kernel;
 use crate::{infer_types::id_to_var, unify::UnifyContext};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -13,9 +14,9 @@ pub struct AsciiRenderer<'a> {
     ty: &'a UnifyContext,
 }
 
-pub fn render_ast_to_string(ast: &Block, ty: &UnifyContext) -> Result<String> {
+pub fn render_ast_to_string(kernel: &Kernel, ty: &UnifyContext) -> Result<String> {
     let mut renderer = AsciiRenderer::new(ty);
-    renderer.render(ast)
+    renderer.render(&kernel.ast)
 }
 
 impl<'a> AsciiRenderer<'a> {
@@ -27,8 +28,8 @@ impl<'a> AsciiRenderer<'a> {
         }
     }
 
-    pub fn render(&mut self, ast: &crate::ast::Block) -> Result<String> {
-        self.render_block(ast)?;
+    pub fn render(&mut self, ast: &crate::ast::KernelFn) -> Result<String> {
+        self.render_kernel(ast)?;
         Ok(self.buffer.clone())
     }
 
@@ -282,6 +283,20 @@ impl<'a> AsciiRenderer<'a> {
                 self.push(&format!("unhandled {:?}", pat.kind));
             }
         }
+        self.indent -= 1;
+        Ok(())
+    }
+    fn render_kernel(&mut self, kernel: &KernelFn) -> Result<()> {
+        self.push(&format!(
+            "kernel {} --> {}",
+            kernel.id.unwrap(),
+            self.ty.apply(id_to_var(kernel.id)?)
+        ));
+        self.indent += 1;
+        for input in &kernel.inputs {
+            self.render_pat(&input)?;
+        }
+        self.render_block(&kernel.body)?;
         self.indent -= 1;
         Ok(())
     }

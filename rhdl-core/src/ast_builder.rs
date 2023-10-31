@@ -328,3 +328,13 @@ pub fn expr_lit_int(value: String) -> ExprLit {
 pub fn expr_lit_bool(value: bool) -> ExprLit {
     ExprLit::Bool(value)
 }
+
+pub fn kernel_fn(name: &str, inputs: Vec<Box<Pat>>, ret: Kind, body: Box<Block>) -> Box<KernelFn> {
+    Box::new(KernelFn {
+        id: None,
+        name: name.into(),
+        inputs,
+        ret,
+        body,
+    })
+}

@@ -3,8 +3,11 @@ use crate::kind::Kind;
 
 #[derive(Debug, Clone)]
 pub struct Kernel {
-    pub code: Box<ast::Block>,
-    pub args: Vec<(String, Kind)>,
-    pub ret: Kind,
-    pub name: String,
+    pub ast: Box<ast::KernelFn>,
+}
+
+impl From<Box<ast::KernelFn>> for Kernel {
+    fn from(ast: Box<ast::KernelFn>) -> Self {
+        Kernel { ast }
+    }
 }

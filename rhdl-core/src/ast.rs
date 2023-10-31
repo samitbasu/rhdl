@@ -364,3 +364,12 @@ pub struct FieldPat {
     pub member: Member,
     pub pat: Box<Pat>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KernelFn {
+    pub id: Option<NodeId>,
+    pub name: String,
+    pub inputs: Vec<Box<Pat>>,
+    pub ret: Kind,
+    pub body: Box<Block>,
+}

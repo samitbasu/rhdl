@@ -22,6 +22,7 @@ mod tests {
         assign_node::assign_node_ids,
         compiler::Compiler,
         infer_types::{infer, TypeInference},
+        kernel::Kernel,
         path::{bit_range, Path},
         typer::infer_type,
         DiscriminantAlignment, Logger,
@@ -689,11 +690,11 @@ mod tests {
                 a + b
             };
         }
-        let mut ast = do_stuff_hdl_kernel();
-        assign_node_ids(&mut ast.code).unwrap();
-        println!("{}", ast.code);
-        let ctx = infer(&ast).unwrap();
-        let ast_ascii = render_ast_to_string(&ast.code, &ctx).unwrap();
+        let mut kernel: Kernel = do_stuff_hdl_kernel().into();
+        assign_node_ids(&mut kernel).unwrap();
+        println!("{}", kernel.ast);
+        let ctx = infer(&kernel).unwrap();
+        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
         println!("{}", ast_ascii);
     }
 
@@ -716,14 +717,15 @@ mod tests {
                 a: bits(1),
                 b: signed(2),
             };
+            //let Foo { a, b } = d;
             bits(42)
         }
-        let mut ast = do_stuff_hdl_kernel();
-        println!("{:?}", ast);
-        assign_node_ids(&mut ast.code).unwrap();
-        println!("{}", ast.code);
-        let ctx = infer(&ast).unwrap();
-        let ast_ascii = render_ast_to_string(&ast.code, &ctx).unwrap();
+        let mut kernel: Kernel = do_stuff_hdl_kernel().into();
+        println!("{:?}", kernel);
+        assign_node_ids(&mut kernel).unwrap();
+        println!("{}", kernel.ast);
+        let ctx = infer(&kernel).unwrap();
+        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
         println!("{}", ast_ascii);
     }
 
@@ -826,11 +828,11 @@ mod tests {
 
         use NooState::{Init, Run};
 
-        let mut ast = do_stuff_hdl_kernel();
-        assign_node_ids(&mut ast.code).unwrap();
-        println!("{}", ast.code);
-        let ctx = infer(&ast).unwrap();
-        let ast_ascii = render_ast_to_string(&ast.code, &ctx).unwrap();
+        let mut kernel: Kernel = do_stuff_hdl_kernel().into();
+        assign_node_ids(&mut kernel).unwrap();
+        println!("{}", kernel.ast);
+        let ctx = infer(&kernel).unwrap();
+        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
         println!("{}", ast_ascii);
 
         /*
@@ -911,7 +913,7 @@ mod tests {
                 _ => bits(8),
             };
         }
-        let a = do_stuff_hdl_kernel();
-        println!("{}", a.code);
+        let a: Kernel = do_stuff_hdl_kernel().into();
+        println!("{}", a.ast);
     }
 }
