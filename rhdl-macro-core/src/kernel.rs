@@ -10,13 +10,50 @@ pub fn hdl_kernel(input: TS) -> Result<TS> {
 
 fn hdl_function(function: syn::ItemFn) -> Result<TS> {
     //    CustomSuffix.visit_item_fn_mut(&mut function);
+    let orig_name = &function.sig.ident;
     let name = format_ident!("{}_hdl_kernel", function.sig.ident);
     let block = hdl_block_inner(&function.block)?;
+    let ret = match &function.sig.output {
+        syn::ReturnType::Default => quote! {rhdl_core::Kind::Empty},
+        syn::ReturnType::Type(_, ty) => {
+            quote! {<#ty as rhdl_core::Digital>::static_kind()}
+        }
+    };
+    let args = &function
+        .sig
+        .inputs
+        .iter()
+        .map(|arg| match arg {
+            syn::FnArg::Receiver(_) => Err(syn::Error::new(
+                arg.span(),
+                "Unsupported receiver in rhdl kernel function",
+            )),
+            syn::FnArg::Typed(pat) => match pat.pat.as_ref() {
+                syn::Pat::Ident(ident) => {
+                    let name = ident.ident.to_string();
+                    let ty = &pat.ty;
+                    let kind = quote! {<#ty as rhdl_core::Digital>::static_kind()};
+                    Ok(quote! {
+                        (#name.to_string(), #kind)
+                    })
+                }
+                _ => Err(syn::Error::new(
+                    pat.span(),
+                    "Unsupported pattern in rhdl kernel function",
+                )),
+            },
+        })
+        .collect::<Result<Vec<_>>>()?;
     Ok(quote! {
         #function
 
-        fn #name() -> Box<rhdl_core::ast::Block> {
-            #block
+        fn #name() -> rhdl_core::kernel::Kernel {
+            rhdl_core::kernel::Kernel {
+                code: #block,
+                args: vec![#(#args),*],
+                ret: #ret,
+                name: stringify!(#orig_name).to_string(),
+            }
         }
     })
 }

@@ -29,6 +29,7 @@ pub mod display_ast;
 pub mod display_rhif;
 //pub mod dot;
 pub mod infer_types;
+pub mod kernel;
 pub mod path;
 pub mod rhif;
 pub mod rhif_type;

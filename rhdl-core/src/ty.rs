@@ -163,9 +163,10 @@ impl From<Kind> for Ty {
     fn from(value: Kind) -> Self {
         match value {
             Kind::Bits(width) => ty_bits(width),
+            Kind::Signed(width) => ty_signed(width),
             Kind::Empty => ty_empty(),
             Kind::Struct(struct_) => Ty::Struct(TyMap {
-                name: "Foo".into(), // TODO: this should come from the Kind type
+                name: struct_.name,
                 fields: struct_
                     .fields
                     .into_iter()
