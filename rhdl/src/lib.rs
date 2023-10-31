@@ -16,7 +16,7 @@ pub use rhdl_macro::Digital;
 mod tests {
 
     use bits::b4;
-    use rhdl_bits::bits;
+    use rhdl_bits::{bits, signed};
     use rhdl_core::{
         ascii::render_ast_to_string,
         assign_node::assign_node_ids,
@@ -676,7 +676,8 @@ mod tests {
             let (f, g) = e;
             let h = g + 1;
             let k: b4 = 7.into();
-            let q = (bits::<2>(1), (bits::<5>(0), bits::<8>(5)), bits::<12>(6));
+            let q = (bits::<2>(1), (bits::<5>(0), signed::<8>(5)), bits::<12>(6));
+            let b = q.1 .1;
             let (q0, (q1, q1b), q2) = q; // Tuple destructuring
             let z = q1b + 4;
             let h = [d, c, f];
@@ -689,10 +690,39 @@ mod tests {
             };
         }
         let mut ast = do_stuff_hdl_kernel();
-        assign_node_ids(&mut ast).unwrap();
-        println!("{}", ast);
+        assign_node_ids(&mut ast.code).unwrap();
+        println!("{}", ast.code);
         let ctx = infer(&ast).unwrap();
-        let ast_ascii = render_ast_to_string(&ast, &ctx).unwrap();
+        let ast_ascii = render_ast_to_string(&ast.code, &ctx).unwrap();
+        println!("{}", ast_ascii);
+    }
+
+    #[test]
+    fn test_struct_inference() {
+        use rhdl_bits::alias::*;
+        use rhdl_bits::bits;
+
+        #[derive(PartialEq, Copy, Clone, Digital)]
+        pub struct Foo {
+            a: b8,
+            b: s4,
+        }
+
+        #[kernel]
+        fn do_stuff(a: Foo) {
+            let z = (a.b, a.a);
+            let c = a;
+            let k = Foo {
+                a: bits(1),
+                b: signed(2),
+            };
+        }
+        let mut ast = do_stuff_hdl_kernel();
+        println!("{:?}", ast);
+        assign_node_ids(&mut ast.code).unwrap();
+        println!("{}", ast.code);
+        let ctx = infer(&ast).unwrap();
+        let ast_ascii = render_ast_to_string(&ast.code, &ctx).unwrap();
         println!("{}", ast_ascii);
     }
 
@@ -796,10 +826,10 @@ mod tests {
         use NooState::{Init, Run};
 
         let mut ast = do_stuff_hdl_kernel();
-        assign_node_ids(&mut ast).unwrap();
-        println!("{}", ast);
+        assign_node_ids(&mut ast.code).unwrap();
+        println!("{}", ast.code);
         let ctx = infer(&ast).unwrap();
-        let ast_ascii = render_ast_to_string(&ast, &ctx).unwrap();
+        let ast_ascii = render_ast_to_string(&ast.code, &ctx).unwrap();
         println!("{}", ast_ascii);
 
         /*
@@ -881,6 +911,6 @@ mod tests {
             };
         }
         let a = do_stuff_hdl_kernel();
-        println!("{}", a);
+        println!("{}", a.code);
     }
 }

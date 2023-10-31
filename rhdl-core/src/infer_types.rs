@@ -1,5 +1,6 @@
 use crate::ast::{ExprAssign, ExprIf, ExprLit, NodeId};
-use crate::ty::{ty_array, ty_as_ref, ty_bits, ty_bool, ty_empty, ty_tuple};
+use crate::kernel::Kernel;
+use crate::ty::{ty_array, ty_as_ref, ty_bits, ty_bool, ty_empty, ty_signed, ty_tuple};
 use crate::unify::UnifyContext;
 use crate::{
     ast::{self, BinOp, ExprBinary, ExprKind},
@@ -55,6 +56,9 @@ impl TypeInference {
     fn current_scope(&self) -> ScopeId {
         self.active_scope
     }
+    fn unify(&mut self, lhs: Ty, rhs: Ty) -> Result<()> {
+        self.context.unify(lhs, rhs)
+    }
     fn bind(&mut self, name: &str, id: Option<NodeId>) -> Result<()> {
         println!("Binding {} to {:?}", name, id);
         self.scopes[self.active_scope.0]
@@ -84,7 +88,7 @@ impl TypeInference {
                 for elem in tuple.elements.iter() {
                     self.bind_pattern(elem)?;
                 }
-                self.context.unify(
+                self.unify(
                     id_to_var(pat.id)?,
                     ty_tuple(
                         tuple
@@ -123,9 +127,15 @@ impl TypeInference {
     }
 }
 
-pub fn infer(root: &ast::Block) -> Result<UnifyContext> {
+pub fn infer(root: &Kernel) -> Result<UnifyContext> {
     let mut generator = TypeInference::default();
-    generator.visit_block(root)?;
+    generator.new_scope(NodeId::new(100_000));
+    for (ndx, (name, kind)) in root.args.iter().enumerate() {
+        let id = NodeId::new((ndx + 100_000) as u32);
+        generator.bind(name, Some(id))?;
+        generator.unify(id_to_var(Some(id))?, kind.clone().into())?;
+    }
+    generator.visit_block(&root.code)?;
     println!("Type inference: {}", generator.context);
     Ok(generator.context)
 }
@@ -142,15 +152,15 @@ impl Visitor for TypeInference {
     fn visit_stmt(&mut self, node: &ast::Stmt) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
         if let ast::StmtKind::Expr(expr) = &node.kind {
-            self.context.unify(my_ty, id_to_var(expr.id)?)?;
+            self.unify(my_ty, id_to_var(expr.id)?)?;
         } else {
-            self.context.unify(my_ty, ty_empty())?;
+            self.unify(my_ty, ty_empty())?;
         }
         visit::visit_stmt(self, node)
     }
     fn visit_local(&mut self, node: &ast::Local) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
-        self.context.unify(my_ty, ty_empty())?;
+        self.unify(my_ty, ty_empty())?;
         if let Some(init) = node.init.as_ref() {
             self.context
                 .unify(id_to_var(node.pat.id)?, id_to_var(init.id)?)?;
@@ -163,9 +173,9 @@ impl Visitor for TypeInference {
         self.new_scope(node.id.ok_or(anyhow::anyhow!("No ID found"))?);
         // Block is unified with the last statement (or is empty)
         if let Some(stmt) = node.stmts.last() {
-            self.context.unify(my_ty, id_to_var(stmt.id)?)?;
+            self.unify(my_ty, id_to_var(stmt.id)?)?;
         } else {
-            self.context.unify(my_ty, ty_empty())?;
+            self.unify(my_ty, ty_empty())?;
         }
         visit::visit_block(self, node)?;
         self.end_scope();
@@ -181,8 +191,8 @@ impl Visitor for TypeInference {
                 lhs,
                 rhs,
             }) => {
-                self.context.unify(my_ty.clone(), id_to_var(lhs.id)?)?;
-                self.context.unify(my_ty, id_to_var(rhs.id)?)?;
+                self.unify(my_ty.clone(), id_to_var(lhs.id)?)?;
+                self.unify(my_ty, id_to_var(rhs.id)?)?;
             }
             // x <- l && r --> tx = tl = tr = bool
             ExprKind::Binary(ExprBinary {
@@ -190,9 +200,9 @@ impl Visitor for TypeInference {
                 lhs,
                 rhs,
             }) => {
-                self.context.unify(my_ty.clone(), id_to_var(lhs.id)?)?;
-                self.context.unify(my_ty.clone(), id_to_var(rhs.id)?)?;
-                self.context.unify(my_ty, ty_bool())?;
+                self.unify(my_ty.clone(), id_to_var(lhs.id)?)?;
+                self.unify(my_ty.clone(), id_to_var(rhs.id)?)?;
+                self.unify(my_ty, ty_bool())?;
             }
             // x <- l << r --> tx = tl
             ExprKind::Binary(ExprBinary {
@@ -200,7 +210,7 @@ impl Visitor for TypeInference {
                 lhs,
                 rhs: _,
             }) => {
-                self.context.unify(my_ty.clone(), id_to_var(lhs.id)?)?;
+                self.unify(my_ty.clone(), id_to_var(lhs.id)?)?;
             }
             // x <- l == r --> tx = bool, tl = tr
             ExprKind::Binary(ExprBinary {
@@ -208,8 +218,8 @@ impl Visitor for TypeInference {
                 lhs,
                 rhs,
             }) => {
-                self.context.unify(id_to_var(lhs.id)?, id_to_var(rhs.id)?)?;
-                self.context.unify(my_ty, ty_bool())?;
+                self.unify(id_to_var(lhs.id)?, id_to_var(rhs.id)?)?;
+                self.unify(my_ty, ty_bool())?;
             }
             // x <- l += r --> tx = {}, tl = tr
             ExprKind::Binary(ExprBinary {
@@ -223,14 +233,14 @@ impl Visitor for TypeInference {
                 lhs,
                 rhs,
             }) => {
-                self.context.unify(id_to_var(lhs.id)?, id_to_var(rhs.id)?)?;
-                self.context.unify(my_ty, ty_empty())?;
+                self.unify(id_to_var(lhs.id)?, id_to_var(rhs.id)?)?;
+                self.unify(my_ty, ty_empty())?;
             }
             // x <- y = z --> tx = {}, ty = &tz
             ExprKind::Assign(ExprAssign { lhs, rhs }) => {
                 self.context
                     .unify(id_to_var(lhs.id)?, ty_as_ref(id_to_var(rhs.id)?))?;
-                self.context.unify(my_ty, ty_empty())?;
+                self.unify(my_ty, ty_empty())?;
             }
             // x <- if c { t } else { e } --> tx = tt = te, tc = bool
             ExprKind::If(ExprIf {
@@ -238,14 +248,15 @@ impl Visitor for TypeInference {
                 then_branch,
                 else_branch,
             }) => {
-                self.context.unify(id_to_var(cond.id)?, ty_bool())?;
+                self.unify(id_to_var(cond.id)?, ty_bool())?;
                 self.context
                     .unify(my_ty.clone(), id_to_var(then_branch.id)?)?;
                 if let Some(else_branch) = else_branch {
-                    self.context.unify(my_ty, id_to_var(else_branch.id)?)?;
+                    self.unify(my_ty, id_to_var(else_branch.id)?)?;
                 }
             }
             // x <- bits::<len>(y) --> tx = bits<len>
+            // TODO - make this extensible and not gross.
             ExprKind::Call(call) => {
                 if call.path.segments.len() == 1
                     && call.path.segments[0].ident == "bits"
@@ -256,13 +267,25 @@ impl Visitor for TypeInference {
                         &call.path.segments[0].arguments[0].kind
                     {
                         if let Ok(bits) = len.parse::<usize>() {
-                            self.context.unify(my_ty, ty_bits(bits))?;
+                            self.unify(my_ty, ty_bits(bits))?;
+                        }
+                    }
+                } else if call.path.segments.len() == 1
+                    && call.path.segments[0].ident == "signed"
+                    && call.args.len() == 1
+                    && call.path.segments[0].arguments.len() == 1
+                {
+                    if let ExprKind::Lit(ExprLit::Int(len)) =
+                        &call.path.segments[0].arguments[0].kind
+                    {
+                        if let Ok(bits) = len.parse::<usize>() {
+                            self.unify(my_ty, ty_signed(bits))?;
                         }
                     }
                 }
             }
             ExprKind::Tuple(tuple) => {
-                self.context.unify(
+                self.unify(
                     my_ty,
                     ty_tuple(
                         tuple
@@ -289,15 +312,26 @@ impl Visitor for TypeInference {
                 }
             }
             ExprKind::Block(block) => {
-                self.context.unify(my_ty, id_to_var(block.block.id)?)?;
+                self.unify(my_ty, id_to_var(block.block.id)?)?;
             }
             ExprKind::Path(path) => {
                 if path.path.segments.len() == 1 && path.path.segments[0].arguments.is_empty() {
                     let name = &path.path.segments[0].ident;
                     if let Some(ty) = self.lookup(name) {
-                        self.context.unify(my_ty, ty.clone())?;
+                        self.unify(my_ty, ty.clone())?;
                     }
                 }
+            }
+            ExprKind::Field(field) => {
+                visit::visit_expr(self, node)?;
+                let arg = id_to_var(field.expr.id)?;
+                let sub = match field.member {
+                    ast::Member::Named(ref name) => self.context.get_named_field(arg, name),
+                    ast::Member::Unnamed(ref index) => {
+                        self.context.get_unnamed_field(arg, *index as usize)
+                    }
+                }?;
+                self.unify(my_ty, sub)?;
             }
             _ => {}
         }
