@@ -313,6 +313,7 @@ mod test {
         impl Digital for Mixed {
             fn static_kind() -> Kind {
                 Kind::make_enum(
+                    "Mixed",
                     vec![
                         Variant {
                             name: "None".to_string(),
@@ -337,10 +338,13 @@ mod test {
                         Variant {
                             name: "Strct".to_string(),
                             discriminant: 4,
-                            kind: Kind::make_struct(vec![
-                                Kind::make_field("a", Kind::make_bits(1)),
-                                Kind::make_field("b", Kind::make_bits(3)),
-                            ]),
+                            kind: Kind::make_struct(
+                                "Mixed::Strct",
+                                vec![
+                                    Kind::make_field("a", Kind::make_bits(1)),
+                                    Kind::make_field("b", Kind::make_bits(3)),
+                                ],
+                            ),
                         },
                     ],
                     3,
@@ -469,6 +473,7 @@ mod test {
         impl Digital for State {
             fn static_kind() -> Kind {
                 Kind::make_enum(
+                    "State",
                     vec![
                         Variant {
                             name: "Init".to_string(),
@@ -530,6 +535,7 @@ mod test {
         assert_eq!(
             val.kind(),
             Kind::make_enum(
+                "State",
                 vec![
                     Variant {
                         name: "Init".to_string(),

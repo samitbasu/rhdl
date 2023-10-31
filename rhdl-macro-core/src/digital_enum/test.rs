@@ -199,20 +199,21 @@ fn test_enum_derive() {
         &quote! {
             impl rhdl_core::Digital for Test {
                 fn static_kind() -> rhdl_core::Kind {
-                    Kind::make_enum(
+                    rhdl_core::Kind::make_enum(
+                        stringify!(Test),
                         vec![
-                            Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
-                            Kind::make_variant(stringify!(B),
+                            rhdl_core::Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
+                            rhdl_core::Kind::make_variant(stringify!(B),
                             rhdl_core::Kind::make_tuple(vec![< Bits:: < 16 > as
                             rhdl_core::Digital > ::static_kind()]), 2i64),
-                            Kind::make_variant(stringify!(C),
-                            rhdl_core::Kind::make_struct(vec![rhdl_core::Kind::make_field(stringify!(a),
+                            rhdl_core::Kind::make_variant(stringify!(C),
+                            rhdl_core::Kind::make_struct(stringify!(_Test__C), vec![rhdl_core::Kind::make_field(stringify!(a),
                             < Bits:: < 32 > as rhdl_core::Digital > ::static_kind()),
                             rhdl_core::Kind::make_field(stringify!(b), < Bits:: < 8 > as
                             rhdl_core::Digital > ::static_kind())]), 3i64)
                         ],
                         2usize,
-                        DiscriminantAlignment::Msb,
+                        rhdl_core::DiscriminantAlignment::Msb,
                     )
                 }
                 fn bin(self) -> Vec<bool> {
@@ -240,6 +241,7 @@ fn test_enum_derive() {
                     tag: rhdl_core::TagID<L>,
                     builder: impl rhdl_core::LogBuilder,
                 ) {
+                    use rhdl_core::LogBuilder;
                     builder.namespace("$disc").allocate(tag, 0);
                     {
                         let mut builder = builder.namespace(stringify!(B));
@@ -321,16 +323,17 @@ fn test_enum_no_payloads() {
     let expected = quote! {
         impl rhdl_core::Digital for State {
             fn static_kind() -> rhdl_core::Kind {
-                Kind::make_enum(
+                rhdl_core::Kind::make_enum(
+                    stringify!(State),
                     vec![
-                        Kind::make_variant(stringify!(Init), rhdl_core::Kind::Empty, 0i64),
-                        Kind::make_variant(stringify!(Boot), rhdl_core::Kind::Empty, 1i64),
-                        Kind::make_variant(stringify!(Running), rhdl_core::Kind::Empty, 2i64),
-                        Kind::make_variant(stringify!(Stop), rhdl_core::Kind::Empty, 3i64),
-                        Kind::make_variant(stringify!(Boom), rhdl_core::Kind::Empty, 4i64)
+                        rhdl_core::Kind::make_variant(stringify!(Init), rhdl_core::Kind::Empty, 0i64),
+                        rhdl_core::Kind::make_variant(stringify!(Boot), rhdl_core::Kind::Empty, 1i64),
+                        rhdl_core::Kind::make_variant(stringify!(Running), rhdl_core::Kind::Empty, 2i64),
+                        rhdl_core::Kind::make_variant(stringify!(Stop), rhdl_core::Kind::Empty, 3i64),
+                        rhdl_core::Kind::make_variant(stringify!(Boom), rhdl_core::Kind::Empty, 4i64)
                     ],
                     3usize,
-                    DiscriminantAlignment::Msb,
+                    rhdl_core::DiscriminantAlignment::Msb,
                 )
             }
             fn bin(self) -> Vec<bool> {
@@ -359,6 +362,7 @@ fn test_enum_no_payloads() {
                 tag: rhdl_core::TagID<L>,
                 builder: impl rhdl_core::LogBuilder
             ) {
+                use rhdl_core::LogBuilder;
                 builder.namespace("$disc").allocate(tag, 0);
             }
             fn record<L: rhdl_core::Digital>(
@@ -408,14 +412,15 @@ fn test_enum_with_signed_discriminants() {
     let expected = quote! {
         impl rhdl_core::Digital for Test {
             fn static_kind() -> rhdl_core::Kind {
-                Kind::make_enum(
+                rhdl_core::Kind::make_enum(
+                    stringify!(Test),
                     vec![
-                        Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
-                        Kind::make_variant(stringify!(B), rhdl_core::Kind::Empty, 9i64),
-                        Kind::make_variant(stringify!(C), rhdl_core::Kind::Empty, -8i64)
+                        rhdl_core::Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
+                        rhdl_core::Kind::make_variant(stringify!(B), rhdl_core::Kind::Empty, 9i64),
+                        rhdl_core::Kind::make_variant(stringify!(C), rhdl_core::Kind::Empty, -8i64)
                     ],
                     5usize,
-                    DiscriminantAlignment::Msb,
+                    rhdl_core::DiscriminantAlignment::Msb,
                 )
             }
             fn bin(self) -> Vec<bool> {
@@ -423,13 +428,13 @@ fn test_enum_with_signed_discriminants() {
                     .pad(
                         match self {
                             Self::A => {
-                                rhdl_bits::signed_bits::<5usize>(1i64 as i128).to_bools()
+                                rhdl_bits::signed::<5usize>(1i64 as i128).to_bools()
                             }
                             Self::B => {
-                                rhdl_bits::signed_bits::<5usize>(9i64 as i128).to_bools()
+                                rhdl_bits::signed::<5usize>(9i64 as i128).to_bools()
                             }
                             Self::C => {
-                                rhdl_bits::signed_bits::<5usize>(-8i64 as i128).to_bools()
+                                rhdl_bits::signed::<5usize>(-8i64 as i128).to_bools()
                             }
                         },
                     )
@@ -438,6 +443,7 @@ fn test_enum_with_signed_discriminants() {
                 tag: rhdl_core::TagID<L>,
                 builder: impl rhdl_core::LogBuilder
             ) {
+                use rhdl_core::LogBuilder;
                 builder.namespace("$disc").allocate(tag, 0);
             }
             fn record<L: rhdl_core::Digital>(
@@ -481,9 +487,9 @@ fn test_enum_with_discriminants() {
     let expected = quote! {
         impl rhdl_core::Digital for Test {
             fn static_kind() -> rhdl_core::Kind {
-                Kind::make_enum(vec![Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
-                Kind::make_variant(stringify!(B), rhdl_core::Kind::Empty, 6i64),
-                Kind::make_variant(stringify!(C), rhdl_core::Kind::Empty, 8i64)], 4usize, DiscriminantAlignment::Msb)
+                rhdl_core::Kind::make_enum(stringify!(Test), vec![rhdl_core::Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
+                rhdl_core::Kind::make_variant(stringify!(B), rhdl_core::Kind::Empty, 6i64),
+                rhdl_core::Kind::make_variant(stringify!(C), rhdl_core::Kind::Empty, 8i64)], 4usize, rhdl_core::DiscriminantAlignment::Msb)
             }
             fn bin(self) -> Vec<bool> {
                 self.kind()
@@ -505,6 +511,7 @@ fn test_enum_with_discriminants() {
                 tag: rhdl_core::TagID<L>,
                 builder: impl rhdl_core::LogBuilder
             ) {
+                use rhdl_core::LogBuilder;
                 builder.namespace("$disc").allocate(tag, 0);
             }
             fn record<L: rhdl_core::Digital>(
