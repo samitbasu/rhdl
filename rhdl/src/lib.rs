@@ -709,13 +709,14 @@ mod tests {
         }
 
         #[kernel]
-        fn do_stuff(a: Foo) {
+        fn do_stuff(a: Foo) -> b7 {
             let z = (a.b, a.a);
             let c = a;
-            let k = Foo {
+            let d = Foo {
                 a: bits(1),
                 b: signed(2),
             };
+            bits(42)
         }
         let mut ast = do_stuff_hdl_kernel();
         println!("{:?}", ast);

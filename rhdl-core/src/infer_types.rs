@@ -135,6 +135,7 @@ pub fn infer(root: &Kernel) -> Result<UnifyContext> {
         generator.bind(name, Some(id))?;
         generator.unify(id_to_var(Some(id))?, kind.clone().into())?;
     }
+    generator.unify(id_to_var(root.code.id)?, root.ret.clone().into())?;
     generator.visit_block(&root.code)?;
     println!("Type inference: {}", generator.context);
     Ok(generator.context)
