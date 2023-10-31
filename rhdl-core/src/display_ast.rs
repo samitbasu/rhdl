@@ -298,3 +298,12 @@ impl Display for RangeLimits {
         }
     }
 }
+
+impl Display for KernelFn {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "fn {}(", self.name)?;
+        write!(f, "{}", splice(&self.inputs, ", "))?;
+        write!(f, ") -> {:?}", self.ret)?;
+        write!(f, "{}", self.body)
+    }
+}

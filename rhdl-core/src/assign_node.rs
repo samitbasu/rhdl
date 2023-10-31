@@ -1,5 +1,6 @@
 use crate::{
     ast,
+    kernel::Kernel,
     visit_mut::{self, VisitorMut},
 };
 use anyhow::Result;
@@ -51,9 +52,13 @@ impl VisitorMut for NodeIdGenerator {
         self.id(&mut node.id);
         visit_mut::visit_mut_expr(self, node)
     }
+    fn visit_mut_kernel_fn(&mut self, node: &mut ast::KernelFn) -> Result<()> {
+        self.id(&mut node.id);
+        visit_mut::visit_mut_kernel_fn(self, node)
+    }
 }
 
-pub fn assign_node_ids(root: &mut Box<ast::Block>) -> Result<()> {
+pub fn assign_node_ids(root: &mut Kernel) -> Result<()> {
     let mut generator = NodeIdGenerator::new();
-    generator.visit_mut_block(root)
+    generator.visit_mut_kernel_fn(&mut root.ast)
 }

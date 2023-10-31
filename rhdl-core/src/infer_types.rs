@@ -129,14 +129,7 @@ impl TypeInference {
 
 pub fn infer(root: &Kernel) -> Result<UnifyContext> {
     let mut generator = TypeInference::default();
-    generator.new_scope(NodeId::new(100_000));
-    for (ndx, (name, kind)) in root.args.iter().enumerate() {
-        let id = NodeId::new((ndx + 100_000) as u32);
-        generator.bind(name, Some(id))?;
-        generator.unify(id_to_var(Some(id))?, kind.clone().into())?;
-    }
-    generator.unify(id_to_var(root.code.id)?, root.ret.clone().into())?;
-    generator.visit_block(&root.code)?;
+    generator.visit_kernel_fn(&root.ast)?;
     println!("Type inference: {}", generator.context);
     Ok(generator.context)
 }
@@ -337,5 +330,17 @@ impl Visitor for TypeInference {
             _ => {}
         }
         visit::visit_expr(self, node)
+    }
+    fn visit_kernel_fn(&mut self, node: &ast::KernelFn) -> Result<()> {
+        let my_ty = id_to_var(node.id)?;
+        self.unify(my_ty, node.ret.clone().into())?;
+        self.new_scope(node.id.ok_or(anyhow::anyhow!("No ID found"))?);
+        for pat in &node.inputs {
+            self.bind_pattern(pat)?;
+        }
+        self.unify(id_to_var(node.body.id)?, node.ret.clone().into())?;
+        visit::visit_kernel_fn(self, node)?;
+        self.end_scope();
+        Ok(())
     }
 }

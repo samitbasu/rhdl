@@ -28,32 +28,24 @@ fn hdl_function(function: syn::ItemFn) -> Result<TS> {
                 arg.span(),
                 "Unsupported receiver in rhdl kernel function",
             )),
-            syn::FnArg::Typed(pat) => match pat.pat.as_ref() {
-                syn::Pat::Ident(ident) => {
-                    let name = ident.ident.to_string();
-                    let ty = &pat.ty;
-                    let kind = quote! {<#ty as rhdl_core::Digital>::static_kind()};
-                    Ok(quote! {
-                        (#name.to_string(), #kind)
-                    })
-                }
-                _ => Err(syn::Error::new(
-                    pat.span(),
-                    "Unsupported pattern in rhdl kernel function",
-                )),
-            },
+            syn::FnArg::Typed(pat) => {
+                let ty = &pat.ty;
+                let pat = hdl_pat(&pat.pat)?;
+                let kind = quote! {<#ty as rhdl_core::Digital>::static_kind()};
+                Ok(quote! { rhdl_core::ast_builder::type_pat(#pat, #kind)})
+            }
         })
         .collect::<Result<Vec<_>>>()?;
     Ok(quote! {
         #function
 
-        fn #name() -> rhdl_core::kernel::Kernel {
-            rhdl_core::kernel::Kernel {
-                code: #block,
-                args: vec![#(#args),*],
-                ret: #ret,
-                name: stringify!(#orig_name).to_string(),
-            }
+        fn #name() -> Box<rhdl_core::ast::KernelFn> {
+            rhdl_core::ast_builder::kernel_fn(
+                stringify!(#orig_name),
+                vec!{#(#args),*},
+                #ret,
+                #block,
+            )
         }
     })
 }

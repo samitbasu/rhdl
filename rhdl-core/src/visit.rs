@@ -135,6 +135,9 @@ pub trait Visitor {
     fn visit_field_pat(&mut self, node: &FieldPat) -> Result<()> {
         visit_field_pat(self, node)
     }
+    fn visit_kernel_fn(&mut self, node: &KernelFn) -> Result<()> {
+        visit_kernel_fn(self, node)
+    }
 }
 
 pub fn visit_block<V>(visitor: &mut V, block: &Block) -> Result<()>
@@ -599,5 +602,16 @@ where
     V: Visitor + ?Sized,
 {
     visitor.visit_expr(&field_value.value)?;
+    Ok(())
+}
+
+pub fn visit_kernel_fn<V>(visitor: &mut V, kernel_fn: &KernelFn) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    for arg in &kernel_fn.inputs {
+        visitor.visit_pat(arg)?;
+    }
+    visitor.visit_block(&kernel_fn.body)?;
     Ok(())
 }

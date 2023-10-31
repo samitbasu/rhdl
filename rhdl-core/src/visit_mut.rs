@@ -136,6 +136,9 @@ pub trait VisitorMut {
     fn visit_mut_field_pat(&mut self, node: &mut FieldPat) -> Result<()> {
         visit_mut_field_pat(self, node)
     }
+    fn visit_mut_kernel_fn(&mut self, node: &mut KernelFn) -> Result<()> {
+        visit_mut_kernel_fn(self, node)
+    }
 }
 
 pub fn visit_mut_block<V>(visitor: &mut V, block: &mut Block) -> Result<()>
@@ -607,4 +610,15 @@ where
 {
     visitor.visit_mut_expr(&mut field_value.value)?;
     Ok(())
+}
+
+pub fn visit_mut_kernel_fn<V>(visitor: &mut V, kernel_fn: &mut KernelFn) -> Result<()>
+where
+    V: VisitorMut + ?Sized,
+{
+    for arg in &mut kernel_fn.inputs {
+        visitor.visit_mut_pat(arg)?;
+    }
+
+    visitor.visit_mut_block(&mut kernel_fn.body)
 }
