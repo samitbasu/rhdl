@@ -8,8 +8,6 @@ use crate::{
     visit::{self, Visitor},
 };
 use anyhow::{bail, Result};
-use log::*;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -24,7 +22,6 @@ impl Default for ScopeId {
 }
 
 struct Scope {
-    block: NodeId,
     names: HashMap<String, Ty>,
     children: Vec<ScopeId>,
     parent: ScopeId,
@@ -39,10 +36,9 @@ pub struct TypeInference {
 }
 
 impl TypeInference {
-    fn new_scope(&mut self, block: NodeId) -> ScopeId {
+    fn new_scope(&mut self) -> ScopeId {
         let id = ScopeId(self.scopes.len());
         self.scopes.push(Scope {
-            block,
             names: HashMap::new(),
             children: Vec::new(),
             parent: self.active_scope,
@@ -53,9 +49,6 @@ impl TypeInference {
     }
     fn end_scope(&mut self) {
         self.active_scope = self.scopes[self.active_scope.0].parent;
-    }
-    fn current_scope(&self) -> ScopeId {
-        self.active_scope
     }
     fn flat_path(path: &ast::Path) -> String {
         path.segments
@@ -199,7 +192,7 @@ impl Visitor for TypeInference {
     }
     fn visit_block(&mut self, node: &ast::Block) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
-        self.new_scope(node.id.ok_or(anyhow::anyhow!("No ID found"))?);
+        self.new_scope();
         // Block is unified with the last statement (or is empty)
         if let Some(stmt) = node.stmts.last() {
             self.unify(my_ty, id_to_var(stmt.id)?)?;
@@ -380,7 +373,7 @@ impl Visitor for TypeInference {
     fn visit_kernel_fn(&mut self, node: &ast::KernelFn) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
         self.unify(my_ty, node.ret.clone().into())?;
-        self.new_scope(node.id.ok_or(anyhow::anyhow!("No ID found"))?);
+        self.new_scope();
         for pat in &node.inputs {
             self.bind_pattern(pat)?;
         }

@@ -156,7 +156,7 @@ impl<const N: usize> Digital for Bits<N> {
 
 impl<const N: usize> Digital for SignedBits<N> {
     fn static_kind() -> Kind {
-        Kind::make_bits(N)
+        Kind::make_signed(N)
     }
     fn bin(self) -> Vec<bool> {
         self.as_unsigned().to_bools()

@@ -725,13 +725,13 @@ mod tests {
                 x: bits(1),
                 y: bits(2),
             };
-            /*            let d = Foo {
+            let d = Foo {
                 a: bits(1),
                 b: q,
                 c,
             };
             let Foo { a: ar, b, c: _ } = d;
-            let e = ar;*/
+            let e = ar;
             bits(42)
         }
         let mut kernel: Kernel = do_stuff_hdl_kernel().into();
