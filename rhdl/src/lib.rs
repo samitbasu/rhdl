@@ -704,20 +704,34 @@ mod tests {
         use rhdl_bits::bits;
 
         #[derive(PartialEq, Copy, Clone, Digital)]
+        pub struct Red {
+            x: b4,
+            y: b6,
+        }
+
+        #[derive(PartialEq, Copy, Clone, Digital)]
         pub struct Foo {
             a: b8,
             b: s4,
+            c: Red,
         }
 
         #[kernel]
         fn do_stuff(a: Foo) -> b7 {
             let z = (a.b, a.a);
             let c = a;
-            let d = Foo {
-                a: bits(1),
-                b: signed(2),
+            let q = signed::<4>(2);
+            let c = Red {
+                x: bits(1),
+                y: bits(2),
             };
-            //let Foo { a, b } = d;
+            /*            let d = Foo {
+                a: bits(1),
+                b: q,
+                c,
+            };
+            let Foo { a: ar, b, c: _ } = d;
+            let e = ar;*/
             bits(42)
         }
         let mut kernel: Kernel = do_stuff_hdl_kernel().into();

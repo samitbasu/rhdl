@@ -1,4 +1,4 @@
-use crate::ast::{ExprAssign, ExprIf, ExprLit, NodeId};
+use crate::ast::{ExprAssign, ExprIf, ExprLit, Member, NodeId};
 use crate::kernel::Kernel;
 use crate::ty::{ty_array, ty_as_ref, ty_bits, ty_bool, ty_empty, ty_signed, ty_tuple};
 use crate::unify::UnifyContext;
@@ -35,6 +35,7 @@ pub struct TypeInference {
     scopes: Vec<Scope>,
     active_scope: ScopeId,
     context: UnifyContext,
+    structs: HashMap<String, Ty>,
 }
 
 impl TypeInference {
@@ -56,7 +57,30 @@ impl TypeInference {
     fn current_scope(&self) -> ScopeId {
         self.active_scope
     }
+    fn flat_path(path: &ast::Path) -> String {
+        path.segments
+            .iter()
+            .map(|x| x.ident.to_string())
+            .collect::<Vec<_>>()
+            .join("::")
+    }
+    fn insert_struct(&mut self, ty: &Ty) -> Result<()> {
+        if let Ty::Struct(struct_) = ty {
+            println!("Inserting struct {:?} into scope", struct_);
+            if let Some(prev) = self.structs.insert(struct_.name.clone(), ty.clone()) {
+                if prev != *ty {
+                    bail!("Struct {} defined twice with different types", struct_.name);
+                }
+            }
+            for field_ty in struct_.fields.values() {
+                self.insert_struct(field_ty)?;
+            }
+        }
+        Ok(())
+    }
     fn unify(&mut self, lhs: Ty, rhs: Ty) -> Result<()> {
+        self.insert_struct(&lhs)?;
+        self.insert_struct(&rhs)?;
         self.context.unify(lhs, rhs)
     }
     fn bind(&mut self, name: &str, id: Option<NodeId>) -> Result<()> {
@@ -108,19 +132,31 @@ impl TypeInference {
                     .unwrap_or_else(ty_empty);
                 for elem in slice.elems.iter() {
                     self.bind_pattern(elem)?;
-                    self.context
-                        .unify(id_to_var(elem.id)?, array_type.clone())?;
+                    self.unify(id_to_var(elem.id)?, array_type.clone())?;
                 }
-                self.context
-                    .unify(id_to_var(pat.id)?, ty_array(array_type, slice.elems.len()))?;
+                self.unify(id_to_var(pat.id)?, ty_array(array_type, slice.elems.len()))?;
             }
             ast::PatKind::Type(ref ty) => {
                 self.bind_pattern(&ty.pat)?;
-                self.context
-                    .unify(id_to_var(ty.pat.id)?, ty.kind.clone().into())?;
-                self.context
-                    .unify(id_to_var(pat.id)?, id_to_var(ty.pat.id)?)?;
+                self.unify(id_to_var(ty.pat.id)?, ty.kind.clone().into())?;
+                self.unify(id_to_var(pat.id)?, id_to_var(ty.pat.id)?)?;
             }
+            ast::PatKind::Struct(ref ty) => {
+                if let Some(Ty::Struct(struct_ty)) =
+                    self.structs.get(&Self::flat_path(&ty.path)).cloned()
+                {
+                    for field in &ty.fields {
+                        if let Member::Named(name) = &field.member {
+                            if let Some(ty) = struct_ty.fields.get(name) {
+                                self.bind_pattern(&field.pat)?;
+                                self.unify(id_to_var(field.pat.id)?, ty.clone())?;
+                            }
+                        }
+                    }
+                    self.unify(id_to_var(pat.id)?, Ty::Struct(struct_ty.clone()))?;
+                }
+            }
+            ast::PatKind::Wild => {}
             _ => bail!("Unsupported pattern kind: {:?}", pat.kind),
         }
         Ok(())
@@ -156,8 +192,7 @@ impl Visitor for TypeInference {
         let my_ty = id_to_var(node.id)?;
         self.unify(my_ty, ty_empty())?;
         if let Some(init) = node.init.as_ref() {
-            self.context
-                .unify(id_to_var(node.pat.id)?, id_to_var(init.id)?)?;
+            self.unify(id_to_var(node.pat.id)?, id_to_var(init.id)?)?;
         }
         self.bind_pattern(&node.pat)?;
         visit::visit_local(self, node)
@@ -232,8 +267,7 @@ impl Visitor for TypeInference {
             }
             // x <- y = z --> tx = {}, ty = &tz
             ExprKind::Assign(ExprAssign { lhs, rhs }) => {
-                self.context
-                    .unify(id_to_var(lhs.id)?, ty_as_ref(id_to_var(rhs.id)?))?;
+                self.unify(id_to_var(lhs.id)?, ty_as_ref(id_to_var(rhs.id)?))?;
                 self.unify(my_ty, ty_empty())?;
             }
             // x <- if c { t } else { e } --> tx = tt = te, tc = bool
@@ -243,8 +277,7 @@ impl Visitor for TypeInference {
                 else_branch,
             }) => {
                 self.unify(id_to_var(cond.id)?, ty_bool())?;
-                self.context
-                    .unify(my_ty.clone(), id_to_var(then_branch.id)?)?;
+                self.unify(my_ty.clone(), id_to_var(then_branch.id)?)?;
                 if let Some(else_branch) = else_branch {
                     self.unify(my_ty, id_to_var(else_branch.id)?)?;
                 }
@@ -298,11 +331,9 @@ impl Visitor for TypeInference {
                     .transpose()?
                     .unwrap_or_else(ty_empty);
                 let array_len = array.elems.len();
-                self.context
-                    .unify(my_ty, ty_array(array_type.clone(), array_len))?;
+                self.unify(my_ty, ty_array(array_type.clone(), array_len))?;
                 for elem in &array.elems {
-                    self.context
-                        .unify(id_to_var(elem.id)?, array_type.clone())?;
+                    self.unify(id_to_var(elem.id)?, array_type.clone())?;
                 }
             }
             ExprKind::Block(block) => {
@@ -326,6 +357,21 @@ impl Visitor for TypeInference {
                     }
                 }?;
                 self.unify(my_ty, sub)?;
+            }
+            ExprKind::Struct(struct_) => {
+                if let Some(Ty::Struct(struct_ty)) =
+                    self.structs.get(&Self::flat_path(&struct_.path)).cloned()
+                {
+                    self.unify(my_ty, Ty::Struct(struct_ty.clone()))?;
+                    // Each of the field expressions is also defined
+                    for field in &struct_.fields {
+                        if let Member::Named(name) = &field.member {
+                            if let Some(ty) = struct_ty.fields.get(name) {
+                                self.unify(id_to_var(field.value.id)?, ty.clone())?;
+                            }
+                        }
+                    }
+                }
             }
             _ => {}
         }
