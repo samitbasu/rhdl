@@ -242,6 +242,18 @@ impl<'a> AsciiRenderer<'a> {
                 }
                 self.indent -= 1;
             }
+            ExprKind::Struct(struct_) => {
+                self.push("struct");
+                self.indent += 1;
+                self.push(&format!("path {:?}", struct_.path));
+                for field in &struct_.fields {
+                    self.push(&format!("field {:?}", field.member));
+                    self.indent += 1;
+                    self.render_expr(&field.value)?;
+                    self.indent -= 1;
+                }
+                self.indent -= 1;
+            }
             _ => {
                 self.push(&format!("unhandled {:?}", expr.kind));
             }
