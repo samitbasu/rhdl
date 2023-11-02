@@ -21,7 +21,7 @@ mod tests {
         ascii::render_ast_to_string,
         assign_node::assign_node_ids,
         compiler::Compiler,
-        infer_types::{infer, TypeInference},
+        infer_types::TypeInference,
         kernel::Kernel,
         path::{bit_range, Path},
         typer::infer_type,
@@ -693,7 +693,7 @@ mod tests {
         let mut kernel: Kernel = do_stuff_hdl_kernel().into();
         assign_node_ids(&mut kernel).unwrap();
         println!("{}", kernel.ast);
-        let ctx = infer(&kernel).unwrap();
+        let ctx = TypeInference::default().infer(&kernel).unwrap();
         let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
         println!("{}", ast_ascii);
     }
@@ -738,7 +738,86 @@ mod tests {
         println!("{:?}", kernel);
         assign_node_ids(&mut kernel).unwrap();
         println!("{}", kernel.ast);
-        let ctx = infer(&kernel).unwrap();
+        let mut gen = TypeInference::default();
+        gen.define_kind(Foo::static_kind()).unwrap();
+        gen.define_kind(Red::static_kind()).unwrap();
+        let ctx = gen.infer(&kernel).unwrap();
+        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
+        println!("{}", ast_ascii);
+    }
+
+    #[test]
+    fn test_rebinding() {
+        #[kernel]
+        fn do_stuff() {
+            let q = bits::<12>(6);
+            let q = bits::<16>(7);
+        }
+
+        let mut kernel: Kernel = do_stuff_hdl_kernel().into();
+        println!("{:?}", kernel);
+        assign_node_ids(&mut kernel).unwrap();
+        println!("{}", kernel.ast);
+        let mut gen = TypeInference::default();
+        let ctx = gen.infer(&kernel).unwrap();
+        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
+        println!("{}", ast_ascii);
+    }
+
+    #[test]
+    fn test_adt_inference() {
+        use rhdl_bits::alias::*;
+        use rhdl_bits::bits;
+
+        #[derive(PartialEq, Copy, Clone, Digital)]
+        pub enum Red {
+            A,
+            B(b4),
+            C { x: b4, y: b6 },
+        }
+
+        #[derive(PartialEq, Copy, Clone, Digital)]
+        pub struct Foo {
+            a: b8,
+            b: s4,
+            c: Red,
+        }
+
+        #[derive(PartialEq, Copy, Clone, Digital)]
+        pub enum Green {
+            Init,
+            Boom,
+        }
+
+        #[kernel]
+        fn do_stuff(a: Foo) -> b7 {
+            let z = (a.b, a.a);
+            let foo = bits::<12>(6);
+            let c = a;
+            let q = signed::<4>(2);
+            let q = Foo {
+                a: bits(1),
+                b: q,
+                c: Red::A,
+            };
+            let c = Red::A;
+            let d = c;
+            let q = bits(1);
+            let e = Red::B(q);
+            let x1 = bits(4);
+            let y1 = bits(6);
+            let f = Red::C { y: y1, x: x1 };
+            bits(42)
+        }
+        let mut kernel: Kernel = do_stuff_hdl_kernel().into();
+        println!("{:?}", kernel);
+        assign_node_ids(&mut kernel).unwrap();
+        println!("{}", kernel.ast);
+        let mut gen = TypeInference::default();
+        gen.define_kind(Foo::static_kind()).unwrap();
+        gen.define_kind(Green::static_kind()).unwrap();
+        gen.define_kind(Red::static_kind()).unwrap();
+        let ctx = gen.infer(&kernel).unwrap();
         let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
         println!("{}", ast_ascii);
     }
@@ -845,7 +924,7 @@ mod tests {
         let mut kernel: Kernel = do_stuff_hdl_kernel().into();
         assign_node_ids(&mut kernel).unwrap();
         println!("{}", kernel.ast);
-        let ctx = infer(&kernel).unwrap();
+        let ctx = TypeInference::default().infer(&kernel).unwrap();
         let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
         println!("{}", ast_ascii);
 
@@ -929,5 +1008,57 @@ mod tests {
         }
         let a: Kernel = do_stuff_hdl_kernel().into();
         println!("{}", a.ast);
+    }
+
+    #[test]
+    fn test_module_isolation_idea() {
+        mod demo {
+            use rhdl_bits::alias::*;
+            use rhdl_macro::Digital;
+
+            #[derive(PartialEq, Copy, Clone, Debug, Digital)]
+            pub struct Foo {
+                pub a: u8,
+                pub b: NooState,
+                pub c: [u8; 3],
+            }
+
+            #[derive(PartialEq, Copy, Clone, Debug, Digital)]
+            pub enum NooState {
+                Init,
+                Run(u8, u8, u8),
+                Walk { foo: u8 },
+                Boom,
+            }
+
+            mod private {
+                use super::Foo;
+                use super::NooState;
+                use rhdl_bits::bits;
+                use rhdl_bits::Bits;
+                pub fn do_stuff(mut a: Foo) -> Foo {
+                    let z = bits::<6>(3);
+                    let c = match z {
+                        Bits(4) => bits(7),
+                        Bits(3) => bits::<4>(3),
+                        _ => bits(8),
+                    };
+                    a.b = NooState::Boom;
+                    a
+                }
+            }
+            pub use private::do_stuff;
+        }
+        use demo::do_stuff;
+        use demo::Foo;
+        use demo::NooState;
+
+        let a = Foo {
+            a: 1,
+            b: NooState::Init,
+            c: [1, 2, 3],
+        };
+        let b = do_stuff(a);
+        assert_eq!(b.b, NooState::Boom);
     }
 }

@@ -1,7 +1,8 @@
 use crate::ast::{ExprAssign, ExprIf, ExprLit, Member, NodeId};
 use crate::kernel::Kernel;
-use crate::ty::{ty_array, ty_as_ref, ty_bits, ty_bool, ty_empty, ty_signed, ty_tuple};
+use crate::ty::{ty_array, ty_as_ref, ty_bits, ty_bool, ty_empty, ty_signed, ty_tuple, TyMap};
 use crate::unify::UnifyContext;
+use crate::Kind;
 use crate::{
     ast::{self, BinOp, ExprBinary, ExprKind},
     ty::{ty_var, Ty},
@@ -33,6 +34,8 @@ pub struct TypeInference {
     active_scope: ScopeId,
     context: UnifyContext,
     structs: HashMap<String, Ty>,
+    enums: HashMap<String, Ty>,
+    functions: HashMap<String, (Vec<Ty>, Ty)>,
 }
 
 impl TypeInference {
@@ -57,23 +60,25 @@ impl TypeInference {
             .collect::<Vec<_>>()
             .join("::")
     }
-    fn insert_struct(&mut self, ty: &Ty) -> Result<()> {
-        if let Ty::Struct(struct_) = ty {
-            println!("Inserting struct {:?} into scope", struct_);
-            if let Some(prev) = self.structs.insert(struct_.name.clone(), ty.clone()) {
-                if prev != *ty {
-                    bail!("Struct {} defined twice with different types", struct_.name);
-                }
+    pub fn define_function(&mut self, name: &str, args: Vec<Kind>, result: Kind) -> Result<()> {
+        let args = args.into_iter().map(|x| x.into()).collect::<Vec<_>>();
+        let result = result.into();
+        self.functions.insert(name.to_string(), (args, result));
+        Ok(())
+    }
+    pub fn define_kind(&mut self, kind: Kind) -> Result<()> {
+        match &kind {
+            Kind::Struct(struct_) => {
+                self.structs.insert(struct_.name.clone(), kind.into());
             }
-            for field_ty in struct_.fields.values() {
-                self.insert_struct(field_ty)?;
+            Kind::Enum(enum_) => {
+                self.enums.insert(enum_.name.clone(), kind.into());
             }
+            _ => {}
         }
         Ok(())
     }
     fn unify(&mut self, lhs: Ty, rhs: Ty) -> Result<()> {
-        self.insert_struct(&lhs)?;
-        self.insert_struct(&rhs)?;
         self.context.unify(lhs, rhs)
     }
     fn bind(&mut self, name: &str, id: Option<NodeId>) -> Result<()> {
@@ -83,7 +88,7 @@ impl TypeInference {
             .insert(name.to_string(), id_to_var(id)?);
         Ok(())
     }
-    fn lookup(&mut self, path: &str) -> Option<Ty> {
+    fn lookup(&self, path: &str) -> Option<Ty> {
         let mut scope = self.active_scope;
         loop {
             if let Some(ty) = self.scopes[scope.0].names.get(path) {
@@ -93,6 +98,53 @@ impl TypeInference {
                 break;
             }
             scope = self.scopes[scope.0].parent;
+        }
+        None
+    }
+    // Given a path of the form a::b::c::d --> "a::b::c"
+    fn flat_path_of_parent(path: &ast::Path) -> String {
+        path.segments
+            .iter()
+            .take(path.segments.len() - 1)
+            .map(|x| x.ident.to_string())
+            .collect::<Vec<_>>()
+            .join("::")
+    }
+    fn lookup_enum_unit_variant(&self, path: &ast::Path) -> Option<Ty> {
+        let last_segment = path.segments.iter().last()?;
+        // Collect all but the last segment into a '::' separated string
+        let path = Self::flat_path_of_parent(path);
+        if let Some(Ty::Enum(ty)) = self.enums.get(&path) {
+            // Check to see if the last segment is a unit variant
+            if let Some(Ty::Const(crate::ty::Bits::Empty)) = ty.fields.get(&last_segment.ident) {
+                return Some(Ty::Enum(ty.clone()));
+            }
+        }
+        None
+    }
+    // Look for a tuple variant, i.e., A::Variant(x, y, z), and if so,
+    // return the type of the variant, and the type for the tuple of arguments.
+    fn lookup_enum_tuple_variant(&self, path: &ast::Path) -> Option<(Ty, Vec<Ty>)> {
+        let last_segment = path.segments.iter().last()?;
+        let path = Self::flat_path_of_parent(path);
+        if let Some(Ty::Enum(ty)) = self.enums.get(&path) {
+            // Check to see if the last segment is a tuple struct variant
+            if let Some(Ty::Tuple(fields)) = ty.fields.get(&last_segment.ident).cloned() {
+                return Some((Ty::Enum(ty.clone()), fields));
+            }
+        }
+        None
+    }
+    // Look for a struct variant, i.e., A::Variant{x: x, y: y, z: z}, and if so,
+    // return the type of the variant.  Also return the fields of the variant.
+    fn lookup_enum_struct_variant(&self, path: &ast::Path) -> Option<(Ty, TyMap)> {
+        let last_segment = path.segments.iter().last()?;
+        let path = Self::flat_path_of_parent(path);
+        if let Some(Ty::Enum(ty)) = self.enums.get(&path) {
+            // Check to see if the last segment is a tuple struct variant
+            if let Some(Ty::Struct(fields)) = ty.fields.get(&last_segment.ident).cloned() {
+                return Some((Ty::Enum(ty.clone()), fields));
+            }
         }
         None
     }
@@ -154,13 +206,11 @@ impl TypeInference {
         }
         Ok(())
     }
-}
-
-pub fn infer(root: &Kernel) -> Result<UnifyContext> {
-    let mut generator = TypeInference::default();
-    generator.visit_kernel_fn(&root.ast)?;
-    println!("Type inference: {}", generator.context);
-    Ok(generator.context)
+    pub fn infer(mut self, root: &Kernel) -> Result<UnifyContext> {
+        self.visit_kernel_fn(&root.ast)?;
+        println!("Type inference: {}", self.context);
+        Ok(self.context)
+    }
 }
 
 // Shortcut to allow us to reuse the node IDs as
@@ -187,8 +237,8 @@ impl Visitor for TypeInference {
         if let Some(init) = node.init.as_ref() {
             self.unify(id_to_var(node.pat.id)?, id_to_var(init.id)?)?;
         }
-        self.bind_pattern(&node.pat)?;
-        visit::visit_local(self, node)
+        visit::visit_local(self, node)?;
+        self.bind_pattern(&node.pat)
     }
     fn visit_block(&mut self, node: &ast::Block) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
@@ -302,6 +352,19 @@ impl Visitor for TypeInference {
                             self.unify(my_ty, ty_signed(bits))?;
                         }
                     }
+                } else if let Some((enum_ty, variant_ty)) =
+                    self.lookup_enum_tuple_variant(&call.path)
+                {
+                    self.unify(my_ty, enum_ty)?;
+                    if call.args.len() != variant_ty.len() {
+                        bail!(
+                            "Wrong number of arguments to enum variant: {}",
+                            call.args.len()
+                        );
+                    }
+                    for (arg, ty) in call.args.iter().zip(variant_ty) {
+                        self.unify(id_to_var(arg.id)?, ty)?;
+                    }
                 }
             }
             ExprKind::Tuple(tuple) => {
@@ -338,7 +401,13 @@ impl Visitor for TypeInference {
                     if let Some(ty) = self.lookup(name) {
                         self.unify(my_ty, ty.clone())?;
                     }
+                } else {
+                    // Check for the case of enum unit variant
+                    if let Some(ty) = self.lookup_enum_unit_variant(&path.path) {
+                        self.unify(my_ty, ty.clone())?;
+                    }
                 }
+                // TODO - handle more complex paths
             }
             ExprKind::Field(field) => {
                 visit::visit_expr(self, node)?;
@@ -360,6 +429,17 @@ impl Visitor for TypeInference {
                     for field in &struct_.fields {
                         if let Member::Named(name) = &field.member {
                             if let Some(ty) = struct_ty.fields.get(name) {
+                                self.unify(id_to_var(field.value.id)?, ty.clone())?;
+                            }
+                        }
+                    }
+                } else if let Some((enum_ty, variant_ty)) =
+                    self.lookup_enum_struct_variant(&struct_.path)
+                {
+                    self.unify(my_ty, enum_ty)?;
+                    for field in &struct_.fields {
+                        if let Member::Named(name) = &field.member {
+                            if let Some(ty) = variant_ty.fields.get(name) {
                                 self.unify(id_to_var(field.value.id)?, ty.clone())?;
                             }
                         }
