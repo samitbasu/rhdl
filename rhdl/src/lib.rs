@@ -784,13 +784,15 @@ mod tests {
         }
 
         #[derive(PartialEq, Copy, Clone, Digital)]
-        pub enum Green {
+        pub enum NooState {
             Init,
+            Run(b4, b5),
+            Walk { foo: b5 },
             Boom,
         }
 
         #[kernel]
-        fn do_stuff(a: Foo) -> b7 {
+        fn do_stuff(a: Foo, s: NooState) -> b7 {
             let z = (a.b, a.a);
             let foo = bits::<12>(6);
             let c = a;
@@ -807,6 +809,16 @@ mod tests {
             let x1 = bits(4);
             let y1 = bits(6);
             let f = Red::C { y: y1, x: x1 };
+            let d = match s {
+                NooState::Init => NooState::Run(bits(1), bits(2)),
+                NooState::Run(x, y) => NooState::Walk { foo: y + 3 },
+                NooState::Walk { foo: x } => {
+                    let q = bits(1) + x;
+                    NooState::Boom
+                }
+                NooState::Boom => NooState::Init,
+                _ => NooState::Boom,
+            };
             bits(42)
         }
         let mut kernel: Kernel = do_stuff_hdl_kernel().into();
@@ -815,8 +827,8 @@ mod tests {
         println!("{}", kernel.ast);
         let mut gen = TypeInference::default();
         gen.define_kind(Foo::static_kind()).unwrap();
-        gen.define_kind(Green::static_kind()).unwrap();
         gen.define_kind(Red::static_kind()).unwrap();
+        gen.define_kind(NooState::static_kind()).unwrap();
         let ctx = gen.infer(&kernel).unwrap();
         let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
         println!("{}", ast_ascii);

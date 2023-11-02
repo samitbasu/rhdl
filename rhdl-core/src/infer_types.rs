@@ -199,9 +199,41 @@ impl TypeInference {
                         }
                     }
                     self.unify(id_to_var(pat.id)?, Ty::Struct(struct_ty.clone()))?;
+                } else if let Some((enum_ty, variant_ty)) =
+                    self.lookup_enum_struct_variant(&ty.path)
+                {
+                    for field in &ty.fields {
+                        if let Member::Named(name) = &field.member {
+                            if let Some(ty) = variant_ty.fields.get(name) {
+                                self.bind_pattern(&field.pat)?;
+                                self.unify(id_to_var(field.pat.id)?, ty.clone())?;
+                            }
+                        }
+                    }
+                    self.unify(id_to_var(pat.id)?, enum_ty)?;
+                }
+            }
+            ast::PatKind::TupleStruct(ref ty) => {
+                if let Some((enum_ty, variant_ty)) = self.lookup_enum_tuple_variant(&ty.path) {
+                    if ty.elems.len() != variant_ty.len() {
+                        bail!(
+                            "Wrong number of arguments to enum variant: {}",
+                            ty.elems.len()
+                        );
+                    }
+                    for (elem, ty) in ty.elems.iter().zip(variant_ty) {
+                        self.bind_pattern(elem)?;
+                        self.unify(id_to_var(elem.id)?, ty.clone())?;
+                    }
+                    self.unify(id_to_var(pat.id)?, enum_ty)?;
                 }
             }
             ast::PatKind::Wild => {}
+            ast::PatKind::Path(path) => {
+                if let Some(ty) = self.lookup_enum_unit_variant(&path.path) {
+                    self.unify(id_to_var(pat.id)?, ty)?;
+                }
+            }
             _ => bail!("Unsupported pattern kind: {:?}", pat.kind),
         }
         Ok(())
@@ -323,6 +355,18 @@ impl Visitor for TypeInference {
                 self.unify(my_ty.clone(), id_to_var(then_branch.id)?)?;
                 if let Some(else_branch) = else_branch {
                     self.unify(my_ty, id_to_var(else_branch.id)?)?;
+                }
+            }
+            ExprKind::Match(match_) => {
+                // Unify the match target conditional with the type of the match arms
+                let match_expr = id_to_var(match_.expr.id)?;
+                for arm in &match_.arms {
+                    self.unify(match_expr.clone(), id_to_var(arm.pattern.id)?)?;
+                }
+                // Unify the type of the match expression with the types of the
+                // arm bodies
+                for arm in &match_.arms {
+                    self.unify(my_ty.clone(), id_to_var(arm.body.id)?)?;
                 }
             }
             // x <- bits::<len>(y) --> tx = bits<len>
@@ -449,6 +493,13 @@ impl Visitor for TypeInference {
             _ => {}
         }
         visit::visit_expr(self, node)
+    }
+    fn visit_match_arm(&mut self, node: &ast::Arm) -> Result<()> {
+        self.new_scope();
+        self.bind_pattern(&node.pattern)?;
+        visit::visit_match_arm(self, node)?;
+        self.end_scope();
+        Ok(())
     }
     fn visit_kernel_fn(&mut self, node: &ast::KernelFn) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
