@@ -180,6 +180,14 @@ impl From<Kind> for Ty {
                     .map(|field| field.into())
                     .collect(),
             ),
+            Kind::Enum(enum_) => Ty::Enum(TyMap {
+                name: enum_.name,
+                fields: enum_
+                    .variants
+                    .into_iter()
+                    .map(|variant| (variant.name, variant.kind.into()))
+                    .collect(),
+            }),
             _ => unimplemented!(),
         }
     }
