@@ -1,7 +1,387 @@
 use std::fmt::{Display, Formatter};
 
-use crate::{ast::*, util::splice};
+use crate::{
+    ast::*,
+    infer_types::id_to_var,
+    kernel::Kernel,
+    ty::{self, Ty},
+    unify::UnifyContext,
+    util::splice,
+    Kind,
+};
+use anyhow::Result;
 
+pub struct PrettyPrinter<'a> {
+    indent: usize,
+    buffer: String,
+    ty: &'a UnifyContext,
+}
+
+pub fn pretty_print_kernel(kernel: &Kernel, ty: &UnifyContext) -> Result<String> {
+    let mut printer = PrettyPrinter {
+        indent: 0,
+        buffer: String::new(),
+        ty,
+    };
+    printer.print_kernel(kernel)?;
+    let buffer = printer.buffer;
+    // Reformat with prettyplease
+    //    let result = prettyplease::unparse(&syn::parse_file(&buffer).unwrap());
+    Ok(buffer)
+}
+
+impl<'a> PrettyPrinter<'a> {
+    pub fn print_kernel(&mut self, kernel: &Kernel) -> Result<()> {
+        self.push(&format!("fn {}(", kernel.ast.name));
+        kernel
+            .ast
+            .inputs
+            .iter()
+            .try_for_each(|input| self.print_pattern(&input))?;
+        self.push(") -> ");
+        self.print_kind(&kernel.ast.ret)?;
+        self.push(" ");
+        self.print_block(&kernel.ast.body)?;
+        Ok(())
+    }
+    fn push(&mut self, s: &str) {
+        if s.contains('\n') {
+            let lines = s.split('\n');
+            for line in lines {
+                self.buffer.push_str(line);
+                self.buffer.push('\n');
+                self.buffer
+                    .push_str(&format!("{}", ".".repeat(self.indent)));
+            }
+        } else {
+            self.buffer.push_str(s);
+        }
+    }
+    fn print_pattern(&mut self, pat: &Pat) -> Result<()> {
+        match &pat.kind {
+            PatKind::Ident(ident) => {
+                self.push(&ident.name);
+                let term = self.ty.apply(id_to_var(pat.id)?);
+                self.push(" /* ");
+                self.print_type(&term)?;
+                self.push(" */");
+            }
+            PatKind::Wild => {
+                self.push("_");
+            }
+            PatKind::Lit(lit) => {
+                self.push(&format!("{}", lit.lit));
+            }
+            PatKind::Or(pat) => {
+                for segment in &pat.segments {
+                    self.print_pattern(segment)?;
+                    self.push(" | ");
+                }
+            }
+            PatKind::Paren(pat) => {
+                self.push("(");
+                self.print_pattern(&pat.pat)?;
+                self.push(")");
+            }
+            PatKind::Path(pat) => {
+                self.push(&format!("{}", pat.path));
+            }
+            PatKind::Slice(pat) => {
+                self.push("[");
+                for elem in &pat.elems {
+                    self.print_pattern(elem)?;
+                    self.push(", ");
+                }
+                self.push("]");
+            }
+            PatKind::Struct(pat) => {
+                self.push(&format!("{}", pat.path));
+                self.push(" {");
+                for field in &pat.fields {
+                    if let Member::Named(name) = &field.member {
+                        self.push(&format!("{}: ", name));
+                    }
+                    self.print_pattern(&field.pat)?;
+                    self.push(", ");
+                }
+                self.push("}");
+            }
+            PatKind::Tuple(pat) => {
+                self.push("(");
+                for elem in &pat.elements {
+                    self.print_pattern(elem)?;
+                    self.push(", ");
+                }
+                self.push(")");
+            }
+            PatKind::TupleStruct(pat) => {
+                self.push(&format!("{}", pat.path));
+                self.push("(");
+                for elem in &pat.elems {
+                    self.print_pattern(elem)?;
+                    self.push(", ");
+                }
+                self.push(")");
+            }
+            PatKind::Type(pat) => {
+                self.print_pattern(&pat.pat)?;
+                self.push(": ");
+                self.print_kind(&pat.kind)?;
+            }
+        }
+        Ok(())
+    }
+    fn print_block(&mut self, block: &Block) -> Result<()> {
+        self.push("{\n");
+        self.indent += 1;
+        for stmt in &block.stmts {
+            self.print_stmt(stmt)?;
+        }
+        self.indent -= 1;
+        self.push("}\n");
+        Ok(())
+    }
+    fn print_stmt(&mut self, stmt: &Stmt) -> Result<()> {
+        match &stmt.kind {
+            StmtKind::Local(local) => {
+                self.push("let ");
+                self.print_pattern(&local.pat)?;
+                if let Some(init) = &local.init {
+                    self.push(" = ");
+                    self.print_expr(init)?;
+                }
+                self.push(";\n");
+            }
+            StmtKind::Expr(expr) => {
+                self.print_expr(expr)?;
+                self.push("\n");
+            }
+            StmtKind::Semi(expr) => {
+                self.print_expr(expr)?;
+                self.push(";\n");
+            }
+        }
+        Ok(())
+    }
+    fn print_kind(&mut self, kind: &Kind) -> Result<()> {
+        match kind {
+            Kind::Empty => self.push("()"),
+            Kind::Signed(n) => self.push(&format!("s{}", n)),
+            Kind::Bits(n) => self.push(&format!("b{}", n)),
+            Kind::Tuple(kinds) => {
+                self.push("(");
+                for kind in &kinds.elements {
+                    self.print_kind(kind)?;
+                    self.push(", ");
+                }
+                self.push(")");
+            }
+            Kind::Array(kind) => {
+                self.push("[");
+                self.print_kind(&kind.base)?;
+                self.push("; ");
+                self.push(&format!("{}", kind.size));
+                self.push("]");
+            }
+            Kind::Struct(kind) => {
+                self.push(&kind.name);
+            }
+            Kind::Enum(kind) => {
+                self.push(&kind.name);
+            }
+            _ => todo!(),
+        }
+        Ok(())
+    }
+    fn print_type(&mut self, term: &Ty) -> Result<()> {
+        match term {
+            Ty::Var(var) => {
+                self.push(&format!("??"));
+            }
+            Ty::Array(ty) => {
+                self.push("[");
+                for t in ty {
+                    self.print_type(t)?;
+                    self.push(", ");
+                }
+                self.push("]");
+            }
+            Ty::Const(ty) => match ty {
+                ty::Bits::Empty => self.push("()"),
+                ty::Bits::Signed(n) => self.push(&format!("s{}", n)),
+                ty::Bits::Unsigned(n) => self.push(&format!("b{}", n)),
+            },
+            Ty::Enum(ty) | Ty::Struct(ty) => {
+                self.push(&ty.name);
+            }
+            Ty::Ref(_) => todo!(),
+            Ty::Tuple(ty) => {
+                self.push("(");
+                for t in ty {
+                    self.print_type(t)?;
+                    self.push(", ");
+                }
+                self.push(")");
+            }
+        }
+        Ok(())
+    }
+    fn print_expr(&mut self, expr: &Expr) -> Result<()> {
+        match &expr.kind {
+            ExprKind::Array(expr) => {
+                self.push("[");
+                for elem in &expr.elems {
+                    self.print_expr(elem)?;
+                    self.push(", ");
+                }
+                self.push("]");
+            }
+            ExprKind::Binary(expr) => {
+                self.print_expr(&expr.lhs)?;
+                self.push(&format!(" {} ", expr.op));
+                self.print_expr(&expr.rhs)?;
+            }
+            ExprKind::Assign(expr) => {
+                self.print_expr(&expr.lhs)?;
+                self.push(" = ");
+                self.print_expr(&expr.rhs)?;
+            }
+            ExprKind::Block(expr) => {
+                self.print_block(&expr.block)?;
+            }
+            ExprKind::Call(expr) => {
+                self.push(&format!("{}", expr.path));
+                self.push("(");
+                for arg in &expr.args {
+                    self.print_expr(arg)?;
+                    self.push(", ");
+                }
+                self.push(")");
+            }
+            ExprKind::Field(expr) => {
+                self.print_expr(&expr.expr)?;
+                self.push(&format!(".{}", expr.member));
+            }
+            ExprKind::ForLoop(expr) => {
+                self.push("for ");
+                self.print_pattern(&expr.pat)?;
+                self.push(" in ");
+                self.print_expr(&expr.expr)?;
+                self.push(" ");
+                self.print_block(&expr.body)?;
+            }
+            ExprKind::Group(expr) => {
+                self.print_expr(&expr.expr)?;
+            }
+            ExprKind::If(expr) => {
+                self.push("if ");
+                self.print_expr(&expr.cond)?;
+                self.push(" ");
+                self.print_block(&expr.then_branch)?;
+                if let Some(else_branch) = &expr.else_branch {
+                    self.push(" else ");
+                    self.print_expr(else_branch)?;
+                }
+            }
+            ExprKind::Index(expr) => {
+                self.print_expr(&expr.expr)?;
+                self.push("[");
+                self.print_expr(&expr.index)?;
+                self.push("]");
+            }
+            ExprKind::Let(expr) => {
+                self.push("let ");
+                self.print_pattern(&expr.pattern)?;
+                self.push(" = ");
+                self.print_expr(&expr.value)?;
+            }
+            ExprKind::Lit(expr) => {
+                self.push(&format!("{}", expr));
+            }
+            ExprKind::Match(expr) => {
+                self.push("match ");
+                self.print_expr(&expr.expr)?;
+                self.push(" {\n");
+                self.indent += 1;
+                for arm in &expr.arms {
+                    self.push("  ");
+                    self.print_pattern(&arm.pattern)?;
+                    self.push(" => ");
+                    self.print_expr(&arm.body)?;
+                    self.push(",\n");
+                }
+                self.indent -= 1;
+                self.push("}");
+            }
+            ExprKind::MethodCall(expr) => {
+                self.print_expr(&expr.receiver)?;
+                self.push(&format!(".{}", expr.method));
+                self.push("(");
+                for arg in &expr.args {
+                    self.print_expr(arg)?;
+                    self.push(", ");
+                }
+                self.push(")");
+            }
+            ExprKind::Paren(expr) => {
+                self.push("(");
+                self.print_expr(&expr.expr)?;
+                self.push(")");
+            }
+            ExprKind::Path(expr) => {
+                self.push(&format!("{}", expr.path));
+            }
+            ExprKind::Range(expr) => {
+                if let Some(start) = &expr.start {
+                    self.print_expr(start)?;
+                }
+                self.push(&format!("{}", expr.limits));
+                if let Some(end) = &expr.end {
+                    self.print_expr(end)?;
+                }
+            }
+            ExprKind::Repeat(expr) => {
+                self.push("[");
+                self.print_expr(&expr.value)?;
+                self.push("; ");
+                self.print_expr(&expr.len)?;
+                self.push("]");
+            }
+            ExprKind::Ret(expr) => {
+                self.push("return ");
+                if let Some(expr) = &expr.expr {
+                    self.print_expr(expr)?;
+                }
+            }
+            ExprKind::Struct(expr) => {
+                self.push(&format!("{}", expr.path));
+                self.push(" {");
+                for field in &expr.fields {
+                    if let Member::Named(name) = &field.member {
+                        self.push(&format!("{}: ", name));
+                    }
+                    self.print_expr(&field.value)?;
+                    self.push(", ");
+                }
+                self.push("}");
+            }
+            ExprKind::Tuple(expr) => {
+                self.push("(");
+                for elem in &expr.elements {
+                    self.print_expr(elem)?;
+                    self.push(", ");
+                }
+                self.push(")");
+            }
+            ExprKind::Unary(expr) => {
+                self.push(&format!("{}", expr.op));
+                self.print_expr(&expr.expr)?;
+            }
+        }
+        Ok(())
+    }
+}
+/*
 impl Display for Stmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.kind.fmt(f)
@@ -222,12 +602,47 @@ impl Display for PathSegment {
     }
 }
 
-impl Display for Member {
+
+
+impl Display for Arm {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.pattern)?;
+        if let Some(guard) = &self.guard {
+            write!(f, " if {}", guard)?;
+        }
+        write!(f, " => {}", self.body)
+    }
+}
+
+
+
+impl Display for KernelFn {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "fn {}(", self.name)?;
+        write!(f, "{}", splice(&self.inputs, ", "))?;
+        write!(f, ") -> {:?}", self.ret)?;
+        write!(f, "{}", self.body)
+    }
+}
+*/
+
+impl Display for ExprLit {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Member::Named(name) => write!(f, "{}", name),
-            Member::Unnamed(index) => write!(f, "{}", index),
+            ExprLit::Int(int) => write!(f, "{}", int),
+            ExprLit::Bool(bool) => write!(f, "{}", bool),
         }
+    }
+}
+
+impl Display for Path {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let segments = self
+            .segments
+            .iter()
+            .map(|segment| segment.ident.as_str())
+            .collect::<Vec<_>>();
+        write!(f, "{}", splice(&segments, "::"))
     }
 }
 
@@ -271,21 +686,11 @@ impl Display for UnOp {
     }
 }
 
-impl Display for Arm {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.pattern)?;
-        if let Some(guard) = &self.guard {
-            write!(f, " if {}", guard)?;
-        }
-        write!(f, " => {}", self.body)
-    }
-}
-
-impl Display for ExprLit {
+impl Display for Member {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ExprLit::Int(int) => write!(f, "{}", int),
-            ExprLit::Bool(bool) => write!(f, "{}", bool),
+            Member::Named(name) => write!(f, "{}", name),
+            Member::Unnamed(index) => write!(f, "{}", index),
         }
     }
 }
@@ -296,14 +701,5 @@ impl Display for RangeLimits {
             RangeLimits::HalfOpen => write!(f, ".."),
             RangeLimits::Closed => write!(f, "..="),
         }
-    }
-}
-
-impl Display for KernelFn {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "fn {}(", self.name)?;
-        write!(f, "{}", splice(&self.inputs, ", "))?;
-        write!(f, ") -> {:?}", self.ret)?;
-        write!(f, "{}", self.body)
     }
 }

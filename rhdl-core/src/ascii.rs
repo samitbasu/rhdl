@@ -6,7 +6,6 @@ use crate::ast::*;
 use crate::kernel::Kernel;
 use crate::{infer_types::id_to_var, unify::UnifyContext};
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
 
 pub struct AsciiRenderer<'a> {
     indent: usize,

@@ -21,6 +21,7 @@ mod tests {
         ascii::render_ast_to_string,
         assign_node::assign_node_ids,
         compiler::Compiler,
+        display_ast::pretty_print_kernel,
         infer_types::TypeInference,
         kernel::Kernel,
         path::{bit_range, Path},
@@ -692,7 +693,7 @@ mod tests {
         }
         let mut kernel: Kernel = do_stuff_hdl_kernel().into();
         assign_node_ids(&mut kernel).unwrap();
-        println!("{}", kernel.ast);
+        //println!("{}", kernel.ast);
         let ctx = TypeInference::default().infer(&kernel).unwrap();
         let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
         println!("{}", ast_ascii);
@@ -737,13 +738,15 @@ mod tests {
         let mut kernel: Kernel = do_stuff_hdl_kernel().into();
         println!("{:?}", kernel);
         assign_node_ids(&mut kernel).unwrap();
-        println!("{}", kernel.ast);
+        //println!("{}", kernel.ast);
         let mut gen = TypeInference::default();
         gen.define_kind(Foo::static_kind()).unwrap();
         gen.define_kind(Red::static_kind()).unwrap();
         let ctx = gen.infer(&kernel).unwrap();
         let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
         println!("{}", ast_ascii);
+        let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
+        println!("{ast_code}");
     }
 
     #[test]
@@ -757,7 +760,7 @@ mod tests {
         let mut kernel: Kernel = do_stuff_hdl_kernel().into();
         println!("{:?}", kernel);
         assign_node_ids(&mut kernel).unwrap();
-        println!("{}", kernel.ast);
+        //println!("{}", kernel.ast);
         let mut gen = TypeInference::default();
         let ctx = gen.infer(&kernel).unwrap();
         let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
@@ -824,7 +827,7 @@ mod tests {
         let mut kernel: Kernel = do_stuff_hdl_kernel().into();
         println!("{:?}", kernel);
         assign_node_ids(&mut kernel).unwrap();
-        println!("{}", kernel.ast);
+        //println!("{}", kernel.ast);
         let mut gen = TypeInference::default();
         gen.define_kind(Foo::static_kind()).unwrap();
         gen.define_kind(Red::static_kind()).unwrap();
@@ -935,7 +938,7 @@ mod tests {
 
         let mut kernel: Kernel = do_stuff_hdl_kernel().into();
         assign_node_ids(&mut kernel).unwrap();
-        println!("{}", kernel.ast);
+        //println!("{}", kernel.ast);
         let ctx = TypeInference::default().infer(&kernel).unwrap();
         let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
         println!("{}", ast_ascii);
@@ -1019,7 +1022,7 @@ mod tests {
             };
         }
         let a: Kernel = do_stuff_hdl_kernel().into();
-        println!("{}", a.ast);
+        //println!("{}", a.ast);
     }
 
     #[test]
