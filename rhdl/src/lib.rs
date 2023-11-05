@@ -795,9 +795,15 @@ mod tests {
         }
 
         #[kernel]
+        fn fifo(b: b8, a: b4) -> b8 {
+            b
+        }
+
+        #[kernel]
         fn do_stuff(a: Foo, s: NooState) -> b7 {
             let z = (a.b, a.a);
             let foo = bits::<12>(6);
+            let foo2 = (foo + foo);
             let c = a;
             let q = signed::<4>(2);
             let q = Foo {
@@ -807,10 +813,23 @@ mod tests {
             };
             let c = Red::A;
             let d = c;
-            let q = bits(1);
+            let z = fifo(bits(3), bits(5));
+            let mut q = bits(1);
+            let l = q.any();
+            q.set_bit(3, true);
+            let p = q.get_bit(2);
+            let p = q.as_signed();
+            if a.a > bits(0) {
+                return bits(3);
+            }
             let e = Red::B(q);
             let x1 = bits(4);
             let y1 = bits(6);
+            let ar = [bits(1), bits(1), bits(3)];
+            let z: [Bits<4>; 3] = ar;
+            let q = ar[1];
+            let f: [b4; 5] = [bits(1); 5];
+            let h = f[2];
             let f = Red::C { y: y1, x: x1 };
             let d = match s {
                 NooState::Init => NooState::Run(bits(1), bits(2)),
@@ -825,16 +844,24 @@ mod tests {
             bits(42)
         }
         let mut kernel: Kernel = do_stuff_hdl_kernel().into();
-        println!("{:?}", kernel);
+        //println!("{:?}", kernel);
         assign_node_ids(&mut kernel).unwrap();
         //println!("{}", kernel.ast);
         let mut gen = TypeInference::default();
         gen.define_kind(Foo::static_kind()).unwrap();
         gen.define_kind(Red::static_kind()).unwrap();
         gen.define_kind(NooState::static_kind()).unwrap();
+        gen.define_function(
+            "fifo",
+            vec![Kind::make_bits(8), Kind::make_bits(4)],
+            Kind::make_bits(8),
+        )
+        .unwrap();
         let ctx = gen.infer(&kernel).unwrap();
         let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-        println!("{}", ast_ascii);
+        //println!("{}", ast_ascii);
+        let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
+        println!("{ast_code}");
     }
 
     #[test]

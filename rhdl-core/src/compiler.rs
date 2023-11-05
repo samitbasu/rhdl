@@ -93,7 +93,7 @@ impl Default for Compiler {
     }
 }
 
-fn collapse_path(path: Box<Path>) -> String {
+fn collapse_path(path: &Path) -> String {
     path.segments
         .iter()
         .map(|x| x.ident.to_string())
@@ -215,7 +215,9 @@ impl Compiler {
             ast::ExprKind::Group(ExprGroup { expr }) => self.expr(expr),
             ast::ExprKind::Array(ExprArray { elems }) => self.expr_array(elems),
             ast::ExprKind::Field(ExprField { expr, member }) => self.expr_field(expr, member),
-            ast::ExprKind::Path(ExprPath { path }) => Ok(self.get_reference(&collapse_path(path))?),
+            ast::ExprKind::Path(ExprPath { path }) => {
+                Ok(self.get_reference(&collapse_path(&path))?)
+            }
             ast::ExprKind::Tuple(ExprTuple { elements }) => self.tuple(elements),
             ast::ExprKind::Struct(ExprStruct { path, fields, rest }) => {
                 self.expr_struct(path, fields, rest)
@@ -287,7 +289,7 @@ impl Compiler {
             .collect::<Result<Vec<_>>>()?;
         self.op(OpCode::Struct {
             lhs,
-            path: collapse_path(path),
+            path: collapse_path(&path),
             fields,
             rest: None,
         });
@@ -303,7 +305,7 @@ impl Compiler {
 
     fn expr_call(&mut self, path: Box<Path>, args: Vec<Box<Expr>>) -> Result<Slot> {
         let lhs = self.reg();
-        let path = collapse_path(path);
+        let path = collapse_path(&path);
         let args = self.expr_list(args)?;
         self.op(OpCode::Exec { lhs, path, args });
         Ok(lhs)
@@ -400,7 +402,7 @@ impl Compiler {
             rhs: expr_output,
         });
         self.set_block(current_id);
-        Ok((CaseArgument::Path(collapse_path(path)), id))
+        Ok((CaseArgument::Path(collapse_path(&path)), id))
     }
 
     fn expr_arm_tuple_struct(
@@ -446,7 +448,7 @@ impl Compiler {
             rhs: expr_output,
         });
         self.set_block(current_id);
-        Ok((CaseArgument::Path(collapse_path(path)), id))
+        Ok((CaseArgument::Path(collapse_path(&path)), id))
     }
 
     fn expr_arm(
@@ -465,7 +467,7 @@ impl Compiler {
                 self.wrap_expr_in_block(Some(arm.body), lhs)?,
             )),
             ast::PatKind::Path(PatPath { path }) => Ok((
-                CaseArgument::Path(collapse_path(path)),
+                CaseArgument::Path(collapse_path(&path)),
                 self.wrap_expr_in_block(Some(arm.body), lhs)?,
             )),
             ast::PatKind::TupleStruct(PatTupleStruct { path, elems }) => {
@@ -481,7 +483,7 @@ impl Compiler {
     pub fn expr_lhs(&mut self, expr_: Box<ast::Expr>) -> Result<Slot> {
         Ok(match expr_.kind {
             ast::ExprKind::Path(ExprPath { path }) => {
-                let arg = self.get_reference(&collapse_path(path))?;
+                let arg = self.get_reference(&collapse_path(&path))?;
                 let lhs = self.reg();
                 self.op(OpCode::Ref { lhs, arg });
                 lhs

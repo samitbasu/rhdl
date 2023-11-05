@@ -1,4 +1,4 @@
-use crate::ast::{ExprAssign, ExprIf, ExprLit, Member, NodeId};
+use crate::ast::{ExprAssign, ExprIf, ExprLit, ExprUnary, Member, NodeId};
 use crate::kernel::Kernel;
 use crate::ty::{ty_array, ty_as_ref, ty_bits, ty_bool, ty_empty, ty_signed, ty_tuple, TyMap};
 use crate::unify::UnifyContext;
@@ -36,6 +36,7 @@ pub struct TypeInference {
     structs: HashMap<String, Ty>,
     enums: HashMap<String, Ty>,
     functions: HashMap<String, (Vec<Ty>, Ty)>,
+    ret: Option<Ty>,
 }
 
 impl TypeInference {
@@ -79,6 +80,7 @@ impl TypeInference {
         Ok(())
     }
     fn unify(&mut self, lhs: Ty, rhs: Ty) -> Result<()> {
+        println!("Unifying {:?} and {:?}", lhs, rhs);
         self.context.unify(lhs, rhs)
     }
     fn bind(&mut self, name: &str, id: Option<NodeId>) -> Result<()> {
@@ -241,7 +243,92 @@ impl TypeInference {
     pub fn infer(mut self, root: &Kernel) -> Result<UnifyContext> {
         self.visit_kernel_fn(&root.ast)?;
         println!("Type inference: {}", self.context);
+        self.visit_kernel_fn(&root.ast)?;
+        println!("Type inference: {}", self.context);
         Ok(self.context)
+    }
+    fn handle_method_call(&mut self, my_ty: Ty, call: &ast::ExprMethodCall) -> Result<()> {
+        let target = self.context.apply(id_to_var(call.receiver.id)?);
+        // We only support method calls on Bits and Signed for now.
+        let method_name = &call.method;
+        match method_name.as_str() {
+            "set_bit" => {
+                // Signature is set_bit(self, index: usize, value: bool) -> bits
+                if call.args.len() != 2 {
+                    bail!("Wrong number of arguments to set_bit: {}", call.args.len());
+                }
+                self.unify(id_to_var(call.args[1].id)?, ty_bool())?;
+                self.unify(my_ty, ty_empty())?;
+            }
+            "get_bit" => {
+                // Signature is get_bit(self, index: usize) -> bool
+                if call.args.len() != 1 {
+                    bail!("Wrong number of arguments to get_bit: {}", call.args.len());
+                }
+                self.unify(my_ty, ty_bool())?;
+            }
+            "any" | "all" | "xor" | "sign_bit" | "is_negative" | "is_non_negative" => {
+                self.unify(my_ty, ty_bool())?;
+            }
+            "slice" => {}
+            "as_signed" => {
+                if let Ty::Const(crate::ty::Bits::Unsigned(len)) = target {
+                    self.unify(my_ty, ty_signed(len))?;
+                }
+            }
+            "as_unsigned" => {
+                if let Ty::Const(crate::ty::Bits::Signed(len)) = target {
+                    self.unify(my_ty, ty_bits(len))?;
+                }
+            }
+            _ => {
+                bail!("Unsupported method call: {}", method_name);
+            }
+        }
+        Ok(())
+    }
+    fn handle_call(&mut self, my_ty: Ty, call: &ast::ExprCall) -> Result<()> {
+        if call.path.segments.len() == 1
+            && call.path.segments[0].ident == "bits"
+            && call.args.len() == 1
+            && call.path.segments[0].arguments.len() == 1
+        {
+            if let ExprKind::Lit(ExprLit::Int(len)) = &call.path.segments[0].arguments[0].kind {
+                if let Ok(bits) = len.parse::<usize>() {
+                    self.unify(my_ty, ty_bits(bits))?;
+                }
+            }
+        } else if call.path.segments.len() == 1
+            && call.path.segments[0].ident == "signed"
+            && call.args.len() == 1
+            && call.path.segments[0].arguments.len() == 1
+        {
+            if let ExprKind::Lit(ExprLit::Int(len)) = &call.path.segments[0].arguments[0].kind {
+                if let Ok(bits) = len.parse::<usize>() {
+                    self.unify(my_ty, ty_signed(bits))?;
+                }
+            }
+        } else if let Some((enum_ty, variant_ty)) = self.lookup_enum_tuple_variant(&call.path) {
+            self.unify(my_ty, enum_ty)?;
+            if call.args.len() != variant_ty.len() {
+                bail!(
+                    "Wrong number of arguments to enum variant: {}",
+                    call.args.len()
+                );
+            }
+            for (arg, ty) in call.args.iter().zip(variant_ty) {
+                self.unify(id_to_var(arg.id)?, ty)?;
+            }
+        } else if let Some(func) = self.functions.get(&Self::flat_path(&call.path)).cloned() {
+            if call.args.len() != func.0.len() {
+                bail!("Wrong number of arguments to function: {}", call.args.len());
+            }
+            for (arg, ty) in call.args.iter().zip(&func.0) {
+                self.unify(id_to_var(arg.id)?, ty.clone())?;
+            }
+            self.unify(my_ty, func.1.clone())?;
+        }
+        Ok(())
     }
 }
 
@@ -316,6 +403,13 @@ impl Visitor for TypeInference {
             }) => {
                 self.unify(my_ty.clone(), id_to_var(lhs.id)?)?;
             }
+            // x <- (l <<= r) --> tx = {}
+            ExprKind::Binary(ExprBinary {
+                op: BinOp::ShlAssign | BinOp::ShrAssign,
+                ..
+            }) => {
+                self.unify(my_ty, ty_empty())?;
+            }
             // x <- l == r --> tx = bool, tl = tr
             ExprKind::Binary(ExprBinary {
                 op: BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge,
@@ -372,44 +466,7 @@ impl Visitor for TypeInference {
             // x <- bits::<len>(y) --> tx = bits<len>
             // TODO - make this extensible and not gross.
             ExprKind::Call(call) => {
-                if call.path.segments.len() == 1
-                    && call.path.segments[0].ident == "bits"
-                    && call.args.len() == 1
-                    && call.path.segments[0].arguments.len() == 1
-                {
-                    if let ExprKind::Lit(ExprLit::Int(len)) =
-                        &call.path.segments[0].arguments[0].kind
-                    {
-                        if let Ok(bits) = len.parse::<usize>() {
-                            self.unify(my_ty, ty_bits(bits))?;
-                        }
-                    }
-                } else if call.path.segments.len() == 1
-                    && call.path.segments[0].ident == "signed"
-                    && call.args.len() == 1
-                    && call.path.segments[0].arguments.len() == 1
-                {
-                    if let ExprKind::Lit(ExprLit::Int(len)) =
-                        &call.path.segments[0].arguments[0].kind
-                    {
-                        if let Ok(bits) = len.parse::<usize>() {
-                            self.unify(my_ty, ty_signed(bits))?;
-                        }
-                    }
-                } else if let Some((enum_ty, variant_ty)) =
-                    self.lookup_enum_tuple_variant(&call.path)
-                {
-                    self.unify(my_ty, enum_ty)?;
-                    if call.args.len() != variant_ty.len() {
-                        bail!(
-                            "Wrong number of arguments to enum variant: {}",
-                            call.args.len()
-                        );
-                    }
-                    for (arg, ty) in call.args.iter().zip(variant_ty) {
-                        self.unify(id_to_var(arg.id)?, ty)?;
-                    }
-                }
+                self.handle_call(my_ty, call)?;
             }
             ExprKind::Tuple(tuple) => {
                 self.unify(
@@ -490,6 +547,46 @@ impl Visitor for TypeInference {
                     }
                 }
             }
+            ExprKind::Index(index) => {
+                visit::visit_expr(self, node)?;
+                let arg = id_to_var(index.expr.id)?;
+                self.unify(my_ty, self.context.get_array_base(arg)?)?;
+            }
+            ExprKind::Ret(ret) => {
+                if let Some(expr) = ret.expr.as_ref() {
+                    self.unify(my_ty.clone(), id_to_var(expr.id)?)?;
+                } else {
+                    self.unify(my_ty.clone(), ty_empty())?;
+                }
+                if let Some(ret) = &self.ret {
+                    self.unify(my_ty, ret.clone())?;
+                }
+            }
+            ExprKind::Paren(paren) => {
+                self.unify(my_ty, id_to_var(paren.expr.id)?)?;
+            }
+            ExprKind::Group(group) => {
+                self.unify(my_ty, id_to_var(group.expr.id)?)?;
+            }
+            // x <- +/- y --> tx = ty
+            ExprKind::Unary(ExprUnary { op: _, expr }) => {
+                self.unify(my_ty, id_to_var(expr.id)?)?;
+            }
+            ExprKind::Lit(lit) => {
+                if matches!(lit, ExprLit::Bool(_)) {
+                    self.unify(my_ty, ty_bool())?;
+                }
+            }
+            ExprKind::Repeat(repeat) => {
+                if let ExprKind::Lit(ExprLit::Int(len)) = &repeat.len.kind {
+                    if let Ok(len) = len.parse::<usize>() {
+                        self.unify(my_ty, ty_array(id_to_var(repeat.value.id)?, len))?;
+                    }
+                }
+            }
+            ExprKind::MethodCall(call) => {
+                self.handle_method_call(my_ty, call)?;
+            }
             _ => {}
         }
         visit::visit_expr(self, node)
@@ -504,6 +601,7 @@ impl Visitor for TypeInference {
     fn visit_kernel_fn(&mut self, node: &ast::KernelFn) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
         self.unify(my_ty, node.ret.clone().into())?;
+        self.ret = Some(node.ret.clone().into());
         self.new_scope();
         for pat in &node.inputs {
             self.bind_pattern(pat)?;

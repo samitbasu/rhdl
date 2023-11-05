@@ -6,28 +6,24 @@ use crate::{
     kernel::Kernel,
     ty::{self, Ty},
     unify::UnifyContext,
-    util::splice,
+    util::{splice, IndentingFormatter},
     Kind,
 };
 use anyhow::Result;
 
 pub struct PrettyPrinter<'a> {
-    indent: usize,
-    buffer: String,
+    buffer: IndentingFormatter,
     ty: &'a UnifyContext,
 }
 
 pub fn pretty_print_kernel(kernel: &Kernel, ty: &UnifyContext) -> Result<String> {
     let mut printer = PrettyPrinter {
-        indent: 0,
-        buffer: String::new(),
+        buffer: Default::default(),
         ty,
     };
     printer.print_kernel(kernel)?;
     let buffer = printer.buffer;
-    // Reformat with prettyplease
-    //    let result = prettyplease::unparse(&syn::parse_file(&buffer).unwrap());
-    Ok(buffer)
+    Ok(buffer.buffer())
 }
 
 impl<'a> PrettyPrinter<'a> {
@@ -37,7 +33,7 @@ impl<'a> PrettyPrinter<'a> {
             .ast
             .inputs
             .iter()
-            .try_for_each(|input| self.print_pattern(&input))?;
+            .try_for_each(|input| self.print_pattern(input))?;
         self.push(") -> ");
         self.print_kind(&kernel.ast.ret)?;
         self.push(" ");
@@ -45,17 +41,7 @@ impl<'a> PrettyPrinter<'a> {
         Ok(())
     }
     fn push(&mut self, s: &str) {
-        if s.contains('\n') {
-            let lines = s.split('\n');
-            for line in lines {
-                self.buffer.push_str(line);
-                self.buffer.push('\n');
-                self.buffer
-                    .push_str(&format!("{}", ".".repeat(self.indent)));
-            }
-        } else {
-            self.buffer.push_str(s);
-        }
+        self.buffer.write(s);
     }
     fn print_pattern(&mut self, pat: &Pat) -> Result<()> {
         match &pat.kind {
@@ -133,11 +119,9 @@ impl<'a> PrettyPrinter<'a> {
     }
     fn print_block(&mut self, block: &Block) -> Result<()> {
         self.push("{\n");
-        self.indent += 1;
         for stmt in &block.stmts {
             self.print_stmt(stmt)?;
         }
-        self.indent -= 1;
         self.push("}\n");
         Ok(())
     }
@@ -195,8 +179,8 @@ impl<'a> PrettyPrinter<'a> {
     }
     fn print_type(&mut self, term: &Ty) -> Result<()> {
         match term {
-            Ty::Var(var) => {
-                self.push(&format!("??"));
+            Ty::Var(_var) => {
+                self.push("??");
             }
             Ty::Array(ty) => {
                 self.push("[");
@@ -227,6 +211,7 @@ impl<'a> PrettyPrinter<'a> {
         Ok(())
     }
     fn print_expr(&mut self, expr: &Expr) -> Result<()> {
+        let my_id = id_to_var(expr.id)?;
         match &expr.kind {
             ExprKind::Array(expr) => {
                 self.push("[");
@@ -251,7 +236,10 @@ impl<'a> PrettyPrinter<'a> {
             }
             ExprKind::Call(expr) => {
                 self.push(&format!("{}", expr.path));
-                self.push("(");
+                let term = self.ty.apply(my_id);
+                self.push("<");
+                self.print_type(&term)?;
+                self.push(">(");
                 for arg in &expr.args {
                     self.print_expr(arg)?;
                     self.push(", ");
@@ -302,15 +290,12 @@ impl<'a> PrettyPrinter<'a> {
                 self.push("match ");
                 self.print_expr(&expr.expr)?;
                 self.push(" {\n");
-                self.indent += 1;
                 for arm in &expr.arms {
-                    self.push("  ");
                     self.print_pattern(&arm.pattern)?;
                     self.push(" => ");
                     self.print_expr(&arm.body)?;
                     self.push(",\n");
                 }
-                self.indent -= 1;
                 self.push("}");
             }
             ExprKind::MethodCall(expr) => {
