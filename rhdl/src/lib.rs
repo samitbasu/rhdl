@@ -740,7 +740,6 @@ mod tests {
         assign_node_ids(&mut kernel).unwrap();
         //println!("{}", kernel.ast);
         let mut gen = TypeInference::default();
-        gen.define_kind(Foo::static_kind()).unwrap();
         gen.define_kind(Red::static_kind()).unwrap();
         let ctx = gen.infer(&kernel).unwrap();
         let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
@@ -825,7 +824,8 @@ mod tests {
             let e = Red::B(q);
             let x1 = bits(4);
             let y1 = bits(6);
-            let ar = [bits(1), bits(1), bits(3)];
+            let mut ar = [bits(1), bits(1), bits(3)];
+            ar[1] = bits(2);
             let z: [Bits<4>; 3] = ar;
             let q = ar[1];
             let f: [b4; 5] = [bits(1); 5];
@@ -848,9 +848,7 @@ mod tests {
         assign_node_ids(&mut kernel).unwrap();
         //println!("{}", kernel.ast);
         let mut gen = TypeInference::default();
-        gen.define_kind(Foo::static_kind()).unwrap();
         gen.define_kind(Red::static_kind()).unwrap();
-        gen.define_kind(NooState::static_kind()).unwrap();
         gen.define_function(
             "fifo",
             vec![Kind::make_bits(8), Kind::make_bits(4)],
@@ -936,7 +934,6 @@ mod tests {
                 }
                 _ => 6,
             };
-            /*
             let d = match s {
                 NooState::Init => {
                     a.a = 1;
@@ -958,7 +955,7 @@ mod tests {
                     a.a = 2;
                     NooState::Boom
                 }
-            };*/
+            };
         }
 
         use NooState::{Init, Run};
@@ -966,9 +963,10 @@ mod tests {
         let mut kernel: Kernel = do_stuff_hdl_kernel().into();
         assign_node_ids(&mut kernel).unwrap();
         //println!("{}", kernel.ast);
-        let ctx = TypeInference::default().infer(&kernel).unwrap();
-        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-        println!("{}", ast_ascii);
+        let mut gen = TypeInference::default();
+        let ctx = gen.infer(&kernel).unwrap();
+        let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
+        println!("{ast_code}");
 
         /*
         let mut ctx = Compiler::default();
@@ -1050,6 +1048,48 @@ mod tests {
         }
         let a: Kernel = do_stuff_hdl_kernel().into();
         //println!("{}", a.ast);
+    }
+
+    #[test]
+    fn test_generics() {
+        #[kernel]
+        fn do_stuff<T: Digital>(a: T, b: T) -> bool {
+            a == b
+        }
+
+        let mut kernel: Kernel = do_stuff_hdl_kernel::<rhdl_bits::alias::s4>().into();
+        assign_node_ids(&mut kernel).unwrap();
+        //println!("{}", kernel.ast);
+        let mut gen = TypeInference::default();
+        let ctx = gen.infer(&kernel).unwrap();
+        let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
+        println!("{ast_code}");
+    }
+
+    #[test]
+    fn test_nested_generics() {
+        #[derive(PartialEq, Copy, Clone, Digital)]
+        struct Foo<T: Digital> {
+            a: T,
+            b: T,
+        }
+
+        #[kernel]
+        fn do_stuff<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {
+            let c = x.a;
+            let d = (x.a, y.b);
+            let e = Foo { a: c, b: c };
+            e == x
+        }
+
+        let mut kernel: Kernel =
+            do_stuff_hdl_kernel::<rhdl_bits::alias::s4, rhdl_bits::alias::b3>().into();
+        assign_node_ids(&mut kernel).unwrap();
+        //println!("{}", kernel.ast);
+        let mut gen = TypeInference::default();
+        let ctx = gen.infer(&kernel).unwrap();
+        let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
+        println!("{ast_code}");
     }
 
     #[test]

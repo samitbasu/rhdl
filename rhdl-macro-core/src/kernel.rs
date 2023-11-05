@@ -11,6 +11,7 @@ pub fn hdl_kernel(input: TS) -> Result<TS> {
 fn hdl_function(function: syn::ItemFn) -> Result<TS> {
     //    CustomSuffix.visit_item_fn_mut(&mut function);
     let orig_name = &function.sig.ident;
+    let generics = &function.sig.generics;
     let name = format_ident!("{}_hdl_kernel", function.sig.ident);
     let block = hdl_block_inner(&function.block)?;
     let ret = match &function.sig.output {
@@ -39,7 +40,7 @@ fn hdl_function(function: syn::ItemFn) -> Result<TS> {
     Ok(quote! {
         #function
 
-        fn #name() -> Box<rhdl_core::ast::KernelFn> {
+        fn #name #generics() -> Box<rhdl_core::ast::KernelFn> {
             rhdl_core::ast_builder::kernel_fn(
                 stringify!(#orig_name),
                 vec!{#(#args),*},
@@ -697,6 +698,20 @@ fn hdl_lit_inner(lit: &syn::ExprLit) -> Result<TS> {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_generic_kernel() {
+        let test_code = quote! {
+            fn update<T: Digital>(a: T, b: T) -> [T; 2] {
+                [a, b]
+            }
+        };
+        let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
+        let item = hdl_function(function).unwrap();
+        let new_code = quote! {#item};
+        let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
+        println!("{}", result);
+    }
 
     #[test]
     fn test_basic_block() {

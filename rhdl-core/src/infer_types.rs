@@ -1,4 +1,4 @@
-use crate::ast::{ExprAssign, ExprIf, ExprLit, ExprUnary, Member, NodeId};
+use crate::ast::{ExprAssign, ExprIf, ExprLit, ExprUnary, Member, NodeId, PatKind};
 use crate::kernel::Kernel;
 use crate::ty::{ty_array, ty_as_ref, ty_bits, ty_bool, ty_empty, ty_signed, ty_tuple, TyMap};
 use crate::unify::UnifyContext;
@@ -80,7 +80,6 @@ impl TypeInference {
         Ok(())
     }
     fn unify(&mut self, lhs: Ty, rhs: Ty) -> Result<()> {
-        println!("Unifying {:?} and {:?}", lhs, rhs);
         self.context.unify(lhs, rhs)
     }
     fn bind(&mut self, name: &str, id: Option<NodeId>) -> Result<()> {
@@ -242,9 +241,7 @@ impl TypeInference {
     }
     pub fn infer(mut self, root: &Kernel) -> Result<UnifyContext> {
         self.visit_kernel_fn(&root.ast)?;
-        println!("Type inference: {}", self.context);
         self.visit_kernel_fn(&root.ast)?;
-        println!("Type inference: {}", self.context);
         Ok(self.context)
     }
     fn handle_method_call(&mut self, my_ty: Ty, call: &ast::ExprMethodCall) -> Result<()> {
@@ -270,7 +267,7 @@ impl TypeInference {
             "any" | "all" | "xor" | "sign_bit" | "is_negative" | "is_non_negative" => {
                 self.unify(my_ty, ty_bool())?;
             }
-            "slice" => {}
+            "slice" | "into" => {}
             "as_signed" => {
                 if let Ty::Const(crate::ty::Bits::Unsigned(len)) = target {
                     self.unify(my_ty, ty_signed(len))?;
@@ -436,7 +433,7 @@ impl Visitor for TypeInference {
             }
             // x <- y = z --> tx = {}, ty = &tz
             ExprKind::Assign(ExprAssign { lhs, rhs }) => {
-                self.unify(id_to_var(lhs.id)?, ty_as_ref(id_to_var(rhs.id)?))?;
+                self.unify(id_to_var(lhs.id)?, id_to_var(rhs.id)?)?;
                 self.unify(my_ty, ty_empty())?;
             }
             // x <- if c { t } else { e } --> tx = tt = te, tc = bool
@@ -599,6 +596,11 @@ impl Visitor for TypeInference {
         Ok(())
     }
     fn visit_kernel_fn(&mut self, node: &ast::KernelFn) -> Result<()> {
+        for arg in &node.inputs {
+            if let PatKind::Type(ty) = &arg.kind {
+                self.define_kind(ty.kind.clone())?;
+            }
+        }
         let my_ty = id_to_var(node.id)?;
         self.unify(my_ty, node.ret.clone().into())?;
         self.ret = Some(node.ret.clone().into());

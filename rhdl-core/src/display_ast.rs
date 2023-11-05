@@ -29,11 +29,10 @@ pub fn pretty_print_kernel(kernel: &Kernel, ty: &UnifyContext) -> Result<String>
 impl<'a> PrettyPrinter<'a> {
     pub fn print_kernel(&mut self, kernel: &Kernel) -> Result<()> {
         self.push(&format!("fn {}(", kernel.ast.name));
-        kernel
-            .ast
-            .inputs
-            .iter()
-            .try_for_each(|input| self.print_pattern(input))?;
+        for arg in &kernel.ast.inputs {
+            self.print_pattern(arg)?;
+            self.push(", ");
+        }
         self.push(") -> ");
         self.print_kind(&kernel.ast.ret)?;
         self.push(" ");
