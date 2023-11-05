@@ -14,6 +14,15 @@ pub enum Bits {
     Empty,
 }
 
+impl Bits {
+    pub fn len(self) -> usize {
+        match self {
+            Bits::Signed(width) | Bits::Unsigned(width) => width,
+            Bits::Empty => 0,
+        }
+    }
+}
+
 #[derive(PartialEq, Debug, Clone, Eq, Deserialize, Serialize)]
 pub struct TyMap {
     pub name: String,
@@ -188,7 +197,8 @@ impl From<Kind> for Ty {
                     .map(|variant| (variant.name, variant.kind.into()))
                     .collect(),
             }),
-            _ => unimplemented!(),
+            Kind::Array(array) => ty_array((*array.base).into(), array.size),
+            _ => unimplemented!("No type conversion for kind: {:?}", value),
         }
     }
 }

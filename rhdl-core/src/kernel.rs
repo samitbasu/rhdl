@@ -1,5 +1,4 @@
 use crate::ast;
-use crate::kind::Kind;
 
 #[derive(Debug, Clone)]
 pub struct Kernel {

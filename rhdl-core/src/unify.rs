@@ -193,6 +193,26 @@ impl UnifyContext {
             .cloned()
             .ok_or_else(|| anyhow!("Field {} not found", field))
     }
+    pub fn get_array_base(&self, t: Ty) -> Result<Ty> {
+        let Ty::Var(id) = t else {
+            bail!("Cannot get field of non-variable")
+        };
+        let Some(t) = self.map.get(&id) else {
+            bail!("Type must be known at this point")
+        };
+        if let Ty::Ref(t) = t {
+            return self
+                .get_array_base(*t.clone())
+                .map(|x| Ty::Ref(Box::new(x)));
+        }
+        let Ty::Array(elems) = t else {
+            bail!("Type must be an array")
+        };
+        elems
+            .get(0)
+            .cloned()
+            .ok_or_else(|| anyhow!("Array must have at least one element"))
+    }
     pub fn get_indexed_item(&self, t: Ty, index: usize) -> Result<Ty> {
         let Ty::Var(id) = t else {
             bail!("Cannot get field of non-variable")

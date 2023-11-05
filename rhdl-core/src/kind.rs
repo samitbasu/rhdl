@@ -660,7 +660,7 @@ mod test {
                     name: "D".to_string(),
                     discriminant: 3,
                     kind: Kind::make_struct(
-                        "Crazy::D".into(),
+                        "Crazy::D",
                         vec![
                             Field {
                                 name: "a".to_string(),
@@ -682,7 +682,7 @@ mod test {
                     name: "F".to_string(),
                     discriminant: 5,
                     kind: Kind::make_struct(
-                        "Crazy::F".into(),
+                        "Crazy::F",
                         vec![
                             Field {
                                 name: "a".to_string(),
@@ -713,7 +713,7 @@ mod test {
                     name: "G".to_string(),
                     discriminant: 6,
                     kind: Kind::make_struct(
-                        "Crazy::G".into(),
+                        "Crazy::G",
                         vec![
                             Field {
                                 name: "a".to_string(),
@@ -781,7 +781,7 @@ mod test {
     #[test]
     fn test_layout_of_struct() {
         let kind = Kind::make_struct(
-            "Foo".into(),
+            "Foo",
             vec![
                 Field {
                     name: "a".to_string(),

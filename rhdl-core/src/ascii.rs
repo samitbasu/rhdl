@@ -305,7 +305,7 @@ impl<'a> AsciiRenderer<'a> {
         ));
         self.indent += 1;
         for input in &kernel.inputs {
-            self.render_pat(&input)?;
+            self.render_pat(input)?;
         }
         self.render_block(&kernel.body)?;
         self.indent -= 1;
