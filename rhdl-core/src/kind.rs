@@ -1,9 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::{iter::repeat, ops::Range};
+use std::{f32::consts::E, iter::repeat, ops::Range};
 
 use anyhow::Result;
 
-// TODO - add a Signed variant
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Kind {
     Array(Array),
@@ -168,6 +167,27 @@ impl Kind {
         match self {
             Kind::Tuple(tuple) => Ok(tuple.elements[ndx].clone()),
             _ => Err(anyhow::anyhow!("Not a tuple")),
+        }
+    }
+    // Return a rust type-like name for the kind
+    pub fn get_name(&self) -> String {
+        match self {
+            Kind::Bits(digits) => format!("b{}", digits),
+            Kind::Signed(digits) => format!("s{}", digits),
+            Kind::Array(array) => format!("[{}; {}]", array.base.get_name(), array.size),
+            Kind::Empty => "()".to_string(),
+            Kind::Tuple(tuple) => {
+                let elements = tuple
+                    .elements
+                    .iter()
+                    .map(|x| x.get_name())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("({})", elements)
+            }
+            Kind::Struct(s) => s.name.clone(),
+            Kind::Union(u) => todo!(),
+            Kind::Enum(e) => e.name.clone(),
         }
     }
 }
