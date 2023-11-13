@@ -30,8 +30,25 @@ fn derive_digital_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     }
 }
 
+//  Add the module path to the name
+
+fn get_fqdn(decl: &DeriveInput) -> TokenStream {
+    let struct_name = &decl.ident;
+    if decl.generics.type_params().count() > 0 {
+        let generics_names = decl
+            .generics
+            .type_params()
+            .map(|x| &x.ident)
+            .map(|x| quote!(<#x as rhdl_core::Digital>::static_kind().get_name()));
+        quote!(&vec![module_path!(), stringify!(#struct_name).to_string(), "<".to_string(),  #(#generics_names),*, ">".to_string()].join(""))
+    } else {
+        quote!(concat!(module_path!(), stringify! (#struct_name)))
+    }
+}
+
 fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
+    let fqdn = get_fqdn(&decl);
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
     match decl.data {
         Data::Struct(s) => {
@@ -50,7 +67,7 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                 impl #impl_generics rhdl_core::Digital for #struct_name #ty_generics #where_clause {
                     fn static_kind() -> rhdl_core::Kind {
                         rhdl_core::Kind::make_struct(
-                            stringify!(#struct_name),
+                            #fqdn,
                             vec![
                             #(
                                 rhdl_core::Kind::make_field(stringify!(#fields_4), <#field_types_3 as rhdl_core::Digital>::static_kind()),
@@ -89,6 +106,7 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
 fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
+    let fqdn = get_fqdn(&decl);
     match decl.data {
         Data::Struct(s) => {
             let fields = s.fields.iter().map(|field| &field.ident);
@@ -102,7 +120,7 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                 impl #impl_generics rhdl_core::Digital for #struct_name #ty_generics #where_clause {
                     fn static_kind() -> rhdl_core::Kind {
                         rhdl_core::Kind::make_struct(
-                            stringify!(#struct_name),
+                            #fqdn,
                             vec![
                             #(
                                 rhdl_core::Kind::make_field(stringify!(#fields_4), <#field_types_3 as rhdl_core::Digital>::static_kind()),
@@ -236,7 +254,56 @@ mod test {
                 }
             }
         };
+        assert_tokens_eq(&expected, &output);
+    }
 
+    #[test]
+    fn test_struct_with_generics() {
+        let decl = quote!(
+            pub struct Inputs<T: Digital> {
+                pub input: T,
+                pub write: bool,
+                pub read: bool,
+            }
+        );
+        let output = derive_digital(decl).unwrap();
+        let expected = quote! {
+            impl<T: Digital> rhdl_core::Digital for Inputs<T> {
+                fn static_kind() -> rhdl_core::Kind {
+                    rhdl_core::Kind::make_struct(
+                        vec![
+                            stringify!(Inputs).to_string(), "<".to_string(), <T as rhdl_core::Digital>::static_kind().get_name(), ">".to_string()
+                        ].join(""),
+                        vec![
+                        rhdl_core::Kind::make_field(stringify!(input), <T as rhdl_core::Digital>::static_kind()),
+                        rhdl_core::Kind::make_field(stringify!(write), <bool as rhdl_core::Digital>::static_kind()),
+                        rhdl_core::Kind::make_field(stringify!(read), <bool as rhdl_core::Digital>::static_kind()),
+                    ])
+                }
+                fn bin(self) -> Vec<bool> {
+                    let mut result = vec![];
+                    result.extend(self.input.bin());
+                    result.extend(self.write.bin());
+                    result.extend(self.read.bin());
+                    result
+                }
+                fn allocate<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
+                    <T as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(input)));
+                    <bool as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(write)));
+                    <bool as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(read)));
+                }
+                fn record<L: rhdl_core::Digital>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
+                    self.input.record(tag, &mut logger);
+                    self.write.record(tag, &mut logger);
+                    self.read.record(tag, &mut logger);
+                }
+                fn skip<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
+                    <T as rhdl_core::Digital>::skip(tag, &mut logger);
+                    <bool as rhdl_core::Digital>::skip(tag, &mut logger);
+                    <bool as rhdl_core::Digital>::skip(tag, &mut logger);
+                }
+            }
+        };
         assert_tokens_eq(&expected, &output);
     }
 

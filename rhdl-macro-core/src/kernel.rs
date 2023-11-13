@@ -1,5 +1,5 @@
 use quote::{format_ident, quote};
-use syn::spanned::Spanned;
+use syn::{spanned::Spanned, Type};
 type TS = proc_macro2::TokenStream;
 type Result<T> = syn::Result<T>;
 
@@ -564,6 +564,9 @@ fn hdl_generic_argument(argument: &syn::GenericArgument) -> Result<TS> {
                 rhdl_core::ast_builder::generic_argument_const(#expr)
             })
         }
+        syn::GenericArgument::Type(Type::Path(path)) => Ok(quote! {
+            rhdl_core::ast_builder::generic_argument_type(#path)
+        }),
         _ => Err(syn::Error::new(
             argument.span(),
             "Unsupported generic argument in rhdl kernel function",
