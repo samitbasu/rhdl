@@ -339,6 +339,7 @@ impl<'a> PrettyPrinter<'a> {
             }
             ExprKind::Struct(expr) => {
                 self.push(&format!("{}", expr.path));
+                self.push(&format!("/* {} */", expr.kind.get_name()));
                 self.push(" {");
                 for field in &expr.fields {
                     if let Member::Named(name) = &field.member {
@@ -361,6 +362,7 @@ impl<'a> PrettyPrinter<'a> {
                 self.push(&format!("{}", expr.op));
                 self.print_expr(&expr.expr)?;
             }
+            ExprKind::Type(ty) => self.push(&format!("<{}>", ty.kind.get_name())),
         }
         Ok(())
     }

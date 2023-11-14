@@ -47,5 +47,9 @@ fn main() {
         a: Default::default(),
         b: Default::default(),
     };
+    let d = Foo {
+        ..Default::default()
+    };
     c.hello();
+    Hello::hello(&c);
 }

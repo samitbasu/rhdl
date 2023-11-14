@@ -33,11 +33,14 @@ mod tests {
 
     #[test]
     fn test_vcd_enum() {
-        #[derive(Clone, Copy, Debug, PartialEq)]
+        #[derive(Clone, Copy, Debug, PartialEq, Default)]
         enum Enum {
+            #[default]
             None,
             A(u8, u16),
-            B { name: u8 },
+            B {
+                name: u8,
+            },
             C(bool),
         }
 
@@ -203,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_vcd_basic() {
-        #[derive(Clone, Copy, PartialEq)]
+        #[derive(Clone, Copy, PartialEq, Default)]
         pub struct Simple {
             a: bool,
             b: Bits<8>,
@@ -263,11 +266,15 @@ mod tests {
     #[allow(dead_code)]
     #[allow(clippy::just_underscores_and_digits)]
     fn test_derive() {
-        #[derive(Clone, Copy, PartialEq)]
+        #[derive(Clone, Copy, PartialEq, Default)]
         enum Test {
+            #[default]
             A,
             B(Bits<16>),
-            C { a: Bits<32>, b: Bits<8> },
+            C {
+                a: Bits<32>,
+                b: Bits<8>,
+            },
         }
 
         impl rhdl_core::Digital for Test {
@@ -386,8 +393,9 @@ mod tests {
     #[test]
     #[allow(dead_code)]
     fn test_derive_no_payload() {
-        #[derive(Copy, Clone, PartialEq)]
+        #[derive(Copy, Clone, PartialEq, Default)]
         pub enum State {
+            #[default]
             Init,
             Boot,
             Running,
@@ -460,7 +468,7 @@ mod tests {
     fn test_derive_digital_simple_struct() {
         use rhdl_bits::alias::*;
 
-        #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+        #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
         struct Test {
             a: bool,
             b: b8,
@@ -490,11 +498,15 @@ mod tests {
         use rhdl_bits::alias::*;
         use rhdl_core::path::*;
 
-        #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+        #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
         enum Test {
+            #[default]
             A,
             B(b2, b3),
-            C { a: b8, b: b8 },
+            C {
+                a: b8,
+                b: b8,
+            },
         }
 
         let foo = Test::B(b2::from(0b10), b3::from(0b101));
@@ -523,11 +535,15 @@ mod tests {
     fn test_derive_digital_complex_enum() {
         use rhdl_bits::alias::*;
 
-        #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+        #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
         enum Test {
+            #[default]
             A,
             B(b2, b3),
-            C { a: b8, b: b8 },
+            C {
+                a: b8,
+                b: b8,
+            },
         }
 
         let foo_1 = Test::C {
@@ -562,12 +578,16 @@ mod tests {
     fn test_derive_enum_explicit_discriminant_width() {
         use rhdl_bits::alias::*;
 
-        #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+        #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
         #[rhdl(discriminant_width = 4)]
         enum Test {
+            #[default]
             A,
             B(b2, b3),
-            C { a: b8, b: b8 },
+            C {
+                a: b8,
+                b: b8,
+            },
         }
 
         let (range, kind) = bit_range(Test::static_kind(), &[Path::EnumDiscriminant]).unwrap();
@@ -579,12 +599,16 @@ mod tests {
     fn test_derive_enum_alignment_lsb() {
         use rhdl_bits::alias::*;
 
-        #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+        #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
         #[rhdl(discriminant_align = "lsb")]
         enum Test {
+            #[default]
             A,
             B(b2, b3),
-            C { a: b8, b: b8 },
+            C {
+                a: b8,
+                b: b8,
+            },
         }
         let (range, kind) = bit_range(Test::static_kind(), &[Path::EnumDiscriminant]).unwrap();
         assert_eq!(range, 0..2);
@@ -594,26 +618,27 @@ mod tests {
     #[test]
     fn test_ast_basic_func() {
         use rhdl_bits::alias::*;
-        #[derive(PartialEq, Copy, Clone, Digital)]
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub struct Foo {
             a: u8,
             b: u16,
             c: [u8; 3],
         }
 
-        #[derive(PartialEq, Copy, Clone, Digital)]
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub enum State {
+            #[default]
             Init,
             Run(u8),
             Boom,
         }
 
-        #[derive(PartialEq, Copy, Clone, Digital)]
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub struct Bar(pub u8, pub u8);
 
         #[kernel]
         fn do_stuff() -> b8 {
-            let a: b4 = bits(1); // Straight local assignment
+            let a: b4 = bits::<4>(1); // Straight local assignment
             let b = !a; // Unary operator
             let c = a + (b - 1); // Binary operator
             let q = (a, b, c); // Tuple valued expression
@@ -635,10 +660,10 @@ mod tests {
             let Foo { a, b, .. } = d; // Struct destructuring
             let g = d.c[1]; // Array indexing
             let e = d.a; // Struct field access
-            let mut d: b8 = bits(7); // Mutable local
-            if d > bits(0) {
+            let mut d: b8 = bits::<8>(7); // Mutable local
+            if d > bits::<8>(0) {
                 // if statement
-                d = d - bits(1);
+                d = d - bits::<8>(1);
                 // early return
                 return d;
             }
@@ -656,10 +681,10 @@ mod tests {
             };
             // For loops
             for ndx in 0..8 {
-                d = d + bits(ndx);
+                d = d + bits::<8>(ndx);
             }
             // block expression
-            bits(42)
+            bits::<8>(42)
         }
 
         //        let ast = do_stuff_hdl_kernel();
@@ -687,7 +712,7 @@ mod tests {
             let o = j;
             let l = {
                 let a = bits::<12>(3);
-                let b = bits(4);
+                let b = bits::<12>(4);
                 a + b
             };
         }
@@ -704,13 +729,13 @@ mod tests {
         use rhdl_bits::alias::*;
         use rhdl_bits::bits;
 
-        #[derive(PartialEq, Copy, Clone, Digital)]
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub struct Red {
             x: b4,
             y: b6,
         }
 
-        #[derive(PartialEq, Copy, Clone, Digital)]
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub struct Foo {
             a: b8,
             b: s4,
@@ -723,17 +748,17 @@ mod tests {
             let c = a;
             let q = signed::<4>(2);
             let c = Red {
-                x: bits(1),
-                y: bits(2),
+                x: bits::<4>(1),
+                y: bits::<6>(2),
             };
             let d = Foo {
-                a: bits(1),
+                a: bits::<8>(1),
                 b: q,
                 c,
             };
             let Foo { a: ar, b, c: _ } = d;
             let e = ar;
-            bits(42)
+            bits::<7>(42)
         }
         let mut kernel: Kernel = do_stuff_hdl_kernel().into();
         println!("{:?}", kernel);
@@ -771,25 +796,32 @@ mod tests {
         use rhdl_bits::alias::*;
         use rhdl_bits::bits;
 
-        #[derive(PartialEq, Copy, Clone, Digital)]
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub enum Red {
+            #[default]
             A,
             B(b4),
-            C { x: b4, y: b6 },
+            C {
+                x: b4,
+                y: b6,
+            },
         }
 
-        #[derive(PartialEq, Copy, Clone, Digital)]
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub struct Foo {
             a: b8,
             b: s4,
             c: Red,
         }
 
-        #[derive(PartialEq, Copy, Clone, Digital)]
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub enum NooState {
+            #[default]
             Init,
             Run(b4, b5),
-            Walk { foo: b5 },
+            Walk {
+                foo: b5,
+            },
             Boom,
         }
 
@@ -802,53 +834,52 @@ mod tests {
         fn do_stuff(a: Foo, s: NooState) -> b7 {
             let z = (a.b, a.a);
             let foo = bits::<12>(6);
-            let foo2 = (foo + foo);
+            let foo2 = foo + foo;
             let c = a;
             let q = signed::<4>(2);
             let q = Foo {
-                a: bits(1),
+                a: bits::<8>(1),
                 b: q,
                 c: Red::A,
             };
             let c = Red::A;
             let d = c;
-            let z = fifo(bits(3), bits(5));
-            let mut q = bits(1);
+            let z = fifo(bits::<8>(3), bits::<4>(5));
+            let mut q = bits::<4>(1);
             let l = q.any();
             q.set_bit(3, true);
             let p = q.get_bit(2);
             let p = q.as_signed();
-            if a.a > bits(0) {
-                return bits(3);
+            if a.a > bits::<8>(0) {
+                return bits::<7>(3);
             }
             let e = Red::B(q);
-            let x1 = bits(4);
-            let y1 = bits(6);
-            let mut ar = [bits(1), bits(1), bits(3)];
-            ar[1] = bits(2);
+            let x1 = bits::<4>(4);
+            let y1 = bits::<6>(6);
+            let mut ar = [bits::<4>(1), bits::<4>(1), bits::<4>(3)];
+            ar[1] = bits::<4>(2);
             let z: [Bits<4>; 3] = ar;
             let q = ar[1];
-            let f: [b4; 5] = [bits(1); 5];
+            let f: [b4; 5] = [bits::<4>(1); 5];
             let h = f[2];
             let f = Red::C { y: y1, x: x1 };
             let d = match s {
-                NooState::Init => NooState::Run(bits(1), bits(2)),
+                NooState::Init => NooState::Run(bits::<4>(1), bits::<5>(2)),
                 NooState::Run(x, y) => NooState::Walk { foo: y + 3 },
                 NooState::Walk { foo: x } => {
-                    let q = bits(1) + x;
+                    let q = bits::<5>(1) + x;
                     NooState::Boom
                 }
                 NooState::Boom => NooState::Init,
                 _ => NooState::Boom,
             };
-            bits(42)
+            bits::<7>(42)
         }
         let mut kernel: Kernel = do_stuff_hdl_kernel().into();
         //println!("{:?}", kernel);
         assign_node_ids(&mut kernel).unwrap();
         //println!("{}", kernel.ast);
         let mut gen = TypeInference::default();
-        gen.define_kind(Red::static_kind()).unwrap();
         gen.define_function(
             "fifo",
             vec![Kind::make_bits(8), Kind::make_bits(4)],
@@ -865,18 +896,21 @@ mod tests {
     #[test]
     fn test_compile() {
         use rhdl_bits::alias::*;
-        #[derive(PartialEq, Copy, Clone, Digital)]
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub struct Foo {
             a: u8,
             b: u16,
             c: [u8; 3],
         }
 
-        #[derive(PartialEq, Copy, Clone, Digital)]
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub enum NooState {
+            #[default]
             Init,
             Run(u8, u8, u8),
-            Walk { foo: u8 },
+            Walk {
+                foo: u8,
+            },
             Boom,
         }
 
@@ -888,7 +922,11 @@ mod tests {
             };
             let mut a: Foo = a;
             let mut s: NooState = s;
-            let q = if a.a > 0 { bits::<12>(3) } else { bits(0) };
+            let q = if a.a > 0 {
+                bits::<12>(3)
+            } else {
+                bits::<12>(0)
+            };
             let y = bits::<12>(72);
             let t2 = (y, y);
             let q: u8 = 4;
@@ -1013,18 +1051,21 @@ mod tests {
     #[test]
     fn test_macro_output() {
         use rhdl_bits::alias::*;
-        #[derive(PartialEq, Copy, Clone, Digital)]
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub struct Foo {
             a: u8,
             b: u16,
             c: [u8; 3],
         }
 
-        #[derive(PartialEq, Copy, Clone, Digital)]
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub enum NooState {
+            #[default]
             Init,
             Run(u8, u8, u8),
-            Walk { foo: u8 },
+            Walk {
+                foo: u8,
+            },
             Boom,
         }
 
@@ -1041,13 +1082,20 @@ mod tests {
         fn do_stuff(mut a: Foo, mut s: NooState) {
             let z = bits::<6>(3);
             let c = match z {
-                Bits(4) => bits(7),
+                Bits(4) => bits::<4>(7),
                 Bits(3) => bits::<4>(3),
-                _ => bits(8),
+                _ => bits::<4>(8),
             };
+            let z = 1;
+            let h = NooState::Run(1, z, 3);
         }
-        let a: Kernel = do_stuff_hdl_kernel().into();
-        //println!("{}", a.ast);
+        let mut kernel: Kernel = do_stuff_hdl_kernel().into();
+        assign_node_ids(&mut kernel).unwrap();
+        //println!("{}", kernel.ast);
+        let mut gen = TypeInference::default();
+        let ctx = gen.infer(&kernel).unwrap();
+        let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
+        println!("{ast_code}");
     }
 
     #[test]
@@ -1068,7 +1116,7 @@ mod tests {
 
     #[test]
     fn test_nested_generics() {
-        #[derive(PartialEq, Copy, Clone, Digital)]
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
         struct Foo<T: Digital> {
             a: T,
             b: T,
@@ -1078,7 +1126,7 @@ mod tests {
         fn do_stuff<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {
             let c = x.a;
             let d = (x.a, y.b);
-            let e = Foo { a: c, b: c };
+            let e = Foo::<T> { a: c, b: c };
             e == x
         }
 
@@ -1093,23 +1141,62 @@ mod tests {
     }
 
     #[test]
+    fn test_fn_pointer_stuff() {
+        #[derive(Copy, Clone, Debug, PartialEq, Digital, Default)]
+        enum Test {
+            #[default]
+            Init,
+            Red(u8),
+        }
+
+        trait DigitalFun {
+            fn signature() -> String;
+        }
+
+        impl<T: Digital, S: Digital> DigitalFun for fn(T) -> S {
+            fn signature() -> String {
+                let mut s = String::new();
+                s.push_str("fn(");
+                s.push_str(") -> ");
+                s
+            }
+        }
+
+        impl<T0: Digital, T1: Digital, S: Digital> DigitalFun for fn(T0, T1) -> S {
+            fn signature() -> String {
+                let mut s = String::new();
+                s.push_str("fn(");
+                s.push_str(", ");
+                s.push_str(") -> ");
+                s
+            }
+        }
+
+        let g = Test::Red;
+        let h = g(4);
+    }
+
+    #[test]
     fn test_module_isolation_idea() {
         mod demo {
             use rhdl_bits::alias::*;
             use rhdl_macro::Digital;
 
-            #[derive(PartialEq, Copy, Clone, Debug, Digital)]
+            #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
             pub struct Foo {
                 pub a: u8,
                 pub b: NooState,
                 pub c: [u8; 3],
             }
 
-            #[derive(PartialEq, Copy, Clone, Debug, Digital)]
+            #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
             pub enum NooState {
+                #[default]
                 Init,
                 Run(u8, u8, u8),
-                Walk { foo: u8 },
+                Walk {
+                    foo: u8,
+                },
                 Boom,
             }
 

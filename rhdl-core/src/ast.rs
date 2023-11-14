@@ -167,6 +167,12 @@ pub enum ExprKind {
     Struct(ExprStruct),
     Call(ExprCall),
     MethodCall(ExprMethodCall),
+    Type(ExprType),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExprType {
+    pub kind: Kind,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -279,12 +285,14 @@ pub struct ExprStruct {
     pub path: Box<Path>,
     pub fields: Vec<Box<FieldValue>>,
     pub rest: Option<Box<Expr>>,
+    pub kind: Kind,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExprCall {
     pub path: Box<Path>,
     pub args: Vec<Box<Expr>>,
+    pub kind: Kind,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

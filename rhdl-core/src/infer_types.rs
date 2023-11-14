@@ -519,26 +519,22 @@ impl Visitor for TypeInference {
                 self.unify(my_ty, sub)?;
             }
             ExprKind::Struct(struct_) => {
-                if let Some(Ty::Struct(struct_ty)) =
-                    self.structs.get(&Self::flat_path(&struct_.path)).cloned()
-                {
-                    self.unify(my_ty, Ty::Struct(struct_ty.clone()))?;
-                    // Each of the field expressions is also defined
-                    for field in &struct_.fields {
+                self.unify(my_ty, struct_.kind.clone().into())?;
+                if let Some(s_kind) = match &struct_.kind {
+                    Kind::Struct(s) => Some(s),
+                    Kind::Variant(e, v) => match &v.kind {
+                        Kind::Struct(s) => Some(s),
+                        _ => None,
+                    },
+                    _ => None,
+                } {
+                    for field in struct_.fields.iter() {
                         if let Member::Named(name) = &field.member {
-                            if let Some(ty) = struct_ty.fields.get(name) {
-                                self.unify(id_to_var(field.value.id)?, ty.clone())?;
-                            }
-                        }
-                    }
-                } else if let Some((enum_ty, variant_ty)) =
-                    self.lookup_enum_struct_variant(&struct_.path)
-                {
-                    self.unify(my_ty, enum_ty)?;
-                    for field in &struct_.fields {
-                        if let Member::Named(name) = &field.member {
-                            if let Some(ty) = variant_ty.fields.get(name) {
-                                self.unify(id_to_var(field.value.id)?, ty.clone())?;
+                            if let Some(k_field) = s_kind.fields.iter().find(|x| &x.name == name) {
+                                self.unify(
+                                    id_to_var(field.value.id)?,
+                                    k_field.kind.clone().into(),
+                                )?;
                             }
                         }
                     }

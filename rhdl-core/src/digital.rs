@@ -42,9 +42,9 @@ use crate::{
 ///
 /// These are all supported in `RHDL`.
 ///
-pub trait Digital: Copy + PartialEq + Sized + Clone {
+pub trait Digital: Copy + PartialEq + Sized + Clone + Default {
     fn static_kind() -> Kind;
-    fn kind(self) -> Kind {
+    fn kind(&self) -> Kind {
         Self::static_kind()
     }
     fn bin(self) -> Vec<bool>;
@@ -263,33 +263,47 @@ impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2
     }
 }
 
-impl<T: Digital, const N: usize> Digital for [T; N] {
-    fn static_kind() -> Kind {
-        Kind::make_array(T::static_kind(), N)
-    }
-    fn bin(self) -> Vec<bool> {
-        let mut v = Vec::new();
-        for x in self.iter() {
-            v.extend(x.bin());
-        }
-        v
-    }
-    fn allocate<U: Digital>(tag: TagID<U>, builder: impl LogBuilder) {
-        for i in 0..N {
-            T::allocate(tag, builder.namespace(&format!("{}", i)));
-        }
-    }
-    fn record<U: Digital>(&self, tag: TagID<U>, mut logger: impl LoggerImpl) {
-        for x in self.iter() {
-            x.record(tag, &mut logger);
-        }
-    }
-    fn skip<U: Digital>(tag: TagID<U>, mut logger: impl LoggerImpl) {
-        for _ in 0..N {
-            T::skip(tag, &mut logger);
-        }
-    }
+// Because of the way Rust works, we cannot simply use a const-generic
+// array here.  Instead, we have to implement each size of array
+// separately.  This is unfortunate, but it is the only way to
+// make this work.
+
+// The following macro makes it easier
+macro_rules! impl_array {
+    ($($N:literal),*) => {
+        $(
+            impl<T: Digital> Digital for [T; $N] {
+                fn static_kind() -> Kind {
+                    Kind::make_array(T::static_kind(), $N)
+                }
+                fn bin(self) -> Vec<bool> {
+                    let mut v = Vec::new();
+                    for x in self.iter() {
+                        v.extend(x.bin());
+                    }
+                    v
+                }
+                fn allocate<U: Digital>(tag: TagID<U>, builder: impl LogBuilder) {
+                    for i in 0..$N {
+                        T::allocate(tag, builder.namespace(&format!("{}", i)));
+                    }
+                }
+                fn record<U: Digital>(&self, tag: TagID<U>, mut logger: impl LoggerImpl) {
+                    for x in self.iter() {
+                        x.record(tag, &mut logger);
+                    }
+                }
+                fn skip<U: Digital>(tag: TagID<U>, mut logger: impl LoggerImpl) {
+                    for _ in 0..$N {
+                        T::skip(tag, &mut logger);
+                    }
+                }
+            }
+        )*
+    };
 }
+
+impl_array!(1, 2, 3, 4, 5, 6, 7, 8);
 
 #[cfg(test)]
 mod test {
@@ -301,13 +315,17 @@ mod test {
     #[test]
     #[allow(dead_code)]
     fn test_digital_enum_with_payloads() {
-        #[derive(Copy, Clone, PartialEq)]
+        #[derive(Copy, Clone, PartialEq, Default)]
         enum Mixed {
+            #[default]
             None,
             Bool(bool),
             Tuple(bool, Bits<3>),
             Array([bool; 3]),
-            Strct { a: bool, b: Bits<3> },
+            Strct {
+                a: bool,
+                b: Bits<3>,
+            },
         }
 
         impl Digital for Mixed {
@@ -462,8 +480,9 @@ mod test {
     #[test]
     #[allow(dead_code)]
     fn test_digital_enum() {
-        #[derive(Copy, Clone, PartialEq)]
+        #[derive(Copy, Clone, PartialEq, Default)]
         enum State {
+            #[default]
             Init,
             Boot,
             Running,

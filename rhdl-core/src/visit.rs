@@ -138,6 +138,9 @@ pub trait Visitor {
     fn visit_kernel_fn(&mut self, node: &KernelFn) -> Result<()> {
         visit_kernel_fn(self, node)
     }
+    fn visit_expr_type(&mut self, node: &ExprType) -> Result<()> {
+        visit_expr_type(self, node)
+    }
 }
 
 pub fn visit_block<V>(visitor: &mut V, block: &Block) -> Result<()>
@@ -550,6 +553,13 @@ where
     Ok(())
 }
 
+pub fn visit_expr_type<V>(visitor: &mut V, expr_type: &ExprType) -> Result<()>
+where
+    V: Visitor + ?Sized,
+{
+    Ok(())
+}
+
 pub fn visit_expr<V>(visitor: &mut V, expr: &Expr) -> Result<()>
 where
     V: Visitor + ?Sized,
@@ -577,6 +587,7 @@ where
         ExprKind::Struct(expr) => visitor.visit_expr_struct(expr),
         ExprKind::Call(expr) => visitor.visit_expr_call(expr),
         ExprKind::MethodCall(expr) => visitor.visit_expr_method_call(expr),
+        ExprKind::Type(expr) => visitor.visit_expr_type(expr),
     }
 }
 
