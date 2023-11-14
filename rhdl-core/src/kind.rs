@@ -10,6 +10,7 @@ pub enum Kind {
     Struct(Struct),
     Union(Union),
     Enum(Enum),
+    Variant(Enum, Box<Variant>),
     Bits(usize),
     Signed(usize),
     Empty,
@@ -130,7 +131,7 @@ impl Kind {
             Kind::Tuple(tuple) => tuple.elements.iter().map(|x| x.bits()).sum(),
             Kind::Struct(kind) => kind.fields.iter().map(|x| x.kind.bits()).sum(),
             Kind::Union(kind) => kind.fields.iter().map(|x| x.kind.bits()).max().unwrap_or(0),
-            Kind::Enum(kind) => {
+            Kind::Enum(kind) | Kind::Variant(kind, ..) => {
                 kind.discriminant_width
                     + kind
                         .variants
@@ -151,7 +152,7 @@ impl Kind {
         let pad_len = self.bits() - bits.len();
         let bits = bits.into_iter().chain(repeat(false).take(pad_len));
         match self {
-            Kind::Enum(kind) => match kind.discriminant_alignment {
+            Kind::Enum(kind) | Kind::Variant(kind, ..) => match kind.discriminant_alignment {
                 DiscriminantAlignment::Lsb => bits.collect(),
                 DiscriminantAlignment::Msb => {
                     let discriminant_width = kind.discriminant_width;
@@ -188,6 +189,7 @@ impl Kind {
             Kind::Struct(s) => s.name.clone(),
             Kind::Union(u) => todo!(),
             Kind::Enum(e) => e.name.clone(),
+            Kind::Variant(e, v) => format!("{}::{}", e.name, v.name),
         }
     }
 }
@@ -294,7 +296,7 @@ fn generate_kind_layout(
             }
             result
         }
-        Kind::Enum(e) => {
+        Kind::Enum(e) | Kind::Variant(e, ..) => {
             let mut result = vec![KindLayout {
                 row: offset_row,
                 cols: offset_col..(offset_col + kind.bits()),

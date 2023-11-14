@@ -189,7 +189,7 @@ impl From<Kind> for Ty {
                     .map(|field| field.into())
                     .collect(),
             ),
-            Kind::Enum(enum_) => Ty::Enum(TyMap {
+            Kind::Enum(enum_) | Kind::Variant(enum_, ..) => Ty::Enum(TyMap {
                 name: enum_.name,
                 fields: enum_
                     .variants

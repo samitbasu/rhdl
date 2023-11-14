@@ -33,10 +33,16 @@ pub fn struct_expr(
     path: Box<Path>,
     fields: Vec<Box<FieldValue>>,
     rest: Option<Box<Expr>>,
+    kind: Kind,
 ) -> Box<Expr> {
     Box::new(Expr {
         id: None,
-        kind: ExprKind::Struct(ExprStruct { path, fields, rest }),
+        kind: ExprKind::Struct(ExprStruct {
+            path,
+            fields,
+            rest,
+            kind,
+        }),
     })
 }
 
@@ -72,6 +78,13 @@ pub fn path_arguments_angle_bracketed(args: Vec<Box<Expr>>) -> Vec<Box<Expr>> {
 
 pub fn generic_argument_const(expr: Box<Expr>) -> Box<Expr> {
     expr
+}
+
+pub fn generic_argument_type(kind: Kind) -> Box<Expr> {
+    Box::new(Expr {
+        id: None,
+        kind: ExprKind::Type(ExprType { kind }),
+    })
 }
 
 pub fn path_segment(ident: String, arguments: Vec<Box<Expr>>) -> PathSegment {
@@ -161,10 +174,10 @@ pub fn for_expr(pat: Box<Pat>, expr: Box<Expr>, body: Box<Block>) -> Box<Expr> {
     })
 }
 
-pub fn call_expr(path: Box<Path>, args: Vec<Box<Expr>>) -> Box<Expr> {
+pub fn call_expr(path: Box<Path>, args: Vec<Box<Expr>>, kind: Kind) -> Box<Expr> {
     Box::new(Expr {
         id: None,
-        kind: ExprKind::Call(ExprCall { path, args }),
+        kind: ExprKind::Call(ExprCall { path, args, kind }),
     })
 }
 

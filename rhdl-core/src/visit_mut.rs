@@ -136,6 +136,9 @@ pub trait VisitorMut {
     fn visit_mut_field_pat(&mut self, node: &mut FieldPat) -> Result<()> {
         visit_mut_field_pat(self, node)
     }
+    fn visit_mut_expr_type(&mut self, node: &mut ExprType) -> Result<()> {
+        visit_mut_expr_type(self, node)
+    }
     fn visit_mut_kernel_fn(&mut self, node: &mut KernelFn) -> Result<()> {
         visit_mut_kernel_fn(self, node)
     }
@@ -557,6 +560,13 @@ where
     Ok(())
 }
 
+pub fn visit_mut_expr_type<V>(visitor: &mut V, expr_type: &mut ExprType) -> Result<()>
+where
+    V: VisitorMut + ?Sized,
+{
+    Ok(())
+}
+
 pub fn visit_mut_expr<V>(visitor: &mut V, expr: &mut Expr) -> Result<()>
 where
     V: VisitorMut + ?Sized,
@@ -584,6 +594,7 @@ where
         ExprKind::Struct(expr) => visitor.visit_mut_expr_struct(expr),
         ExprKind::Call(expr) => visitor.visit_mut_expr_call(expr),
         ExprKind::MethodCall(expr) => visitor.visit_mut_expr_method_call(expr),
+        ExprKind::Type(expr) => visitor.visit_mut_expr_type(expr),
     }
 }
 

@@ -264,6 +264,11 @@ fn hdl_array(expr: &syn::ExprArray) -> Result<TS> {
     })
 }
 
+// A call expression like `a = Foo(...)` can be either a variant
+// or an actual function call.  We need to determine the result
+// of this expression type.  We do this with the same default
+// argument trick used to disambiguate structs from variants with
+// struct arguments.
 fn hdl_call(expr: &syn::ExprCall) -> Result<TS> {
     let syn::Expr::Path(func_path) = expr.func.as_ref() else {
         return Err(syn::Error::new(
@@ -271,10 +276,12 @@ fn hdl_call(expr: &syn::ExprCall) -> Result<TS> {
             "Unsupported function call in rhdl kernel function (only paths allowed here)",
         ));
     };
+    let args_as_default = expr.args.iter().map(|_| quote!(Default::default()));
+    let call_to_get_type = quote!({Digital::kind(& #func_path ( #(#args_as_default),* ))});
     let path = hdl_path_inner(&func_path.path)?;
     let args = expr.args.iter().map(hdl_expr).collect::<Result<Vec<_>>>()?;
     Ok(quote! {
-        rhdl_core::ast_builder::call_expr(#path, vec![#(#args),*])
+        rhdl_core::ast_builder::call_expr(#path, vec![#(#args),*], #call_to_get_type)
     })
 }
 
@@ -482,6 +489,33 @@ fn hdl_if(expr: &syn::ExprIf) -> Result<TS> {
     })
 }
 
+// Interesting detail here.  Struct has a slight asymmetry in the handling
+// of enums and structs that we take advantage of.  For structs, we can
+// have so-called Functional Record Update (FRU) syntax, in which the
+// struct definition includes interpolated (spread) values from another
+// struct.  This allows us to infer that an expression of the type:
+//
+//  Foo { a: 1, ..bar }
+//
+// means that `Foo` is a struct in this case, and we can get the Kind of
+// Foo by using the usual
+//
+//  <Foo as Digital>::static_kind()
+//
+// method.  However, in general, if we have something like
+//
+//  Foo {a: 1, b: 2},
+//
+// the type could be either an enum or a struct.  If it's an enum, we cannot
+// legally call <Foo as Digital>, since `Foo` is not a type.  However, we
+// can take advantage of the requirement that `Digital: Default`, and that
+// all fields of a `Digital` struct or `Digital` enum must also implement `Default`
+// to generate an instance of the thing at run time using
+//
+//  (Foo {a: Default::default(), b: Default::default()}).kind()
+//
+// In both cases, we want to include the Kind information into the AST at the
+// point the AST is generated.
 fn hdl_struct(structure: &syn::ExprStruct) -> Result<TS> {
     let path = hdl_path_inner(&structure.path)?;
     let fields = structure
@@ -501,9 +535,39 @@ fn hdl_struct(structure: &syn::ExprStruct) -> Result<TS> {
         .map(|x| hdl_expr(x))
         .transpose()?
         .unwrap_or(quote! {None});
+    let kind = if structure.rest.is_some() {
+        // The presence of a rest means we know that path -> struct
+        let path = &structure.path;
+        quote!(< #path as rhdl_core::Digital>::static_kind())
+    } else {
+        let path = &structure.path;
+        // Could be either a struct or an enum.  So we have to construct one
+        // to find out.  And the only way to do that is to use the fields and
+        // fill defaults for them all.
+        let fields_with_default = structure
+            .fields
+            .iter()
+            .map(hdl_default_field_value)
+            .collect::<Result<Vec<_>>>()?;
+        quote! {
+            Digital::kind(& #path { #(#fields_with_default),* })
+        }
+    };
     Ok(quote! {
-        rhdl_core::ast_builder::struct_expr(#path,vec![#(#fields),*],#rest),
+        rhdl_core::ast_builder::struct_expr(#path,vec![#(#fields),*],#rest,#kind),
     })
+}
+
+fn hdl_default_field_value(field: &syn::FieldValue) -> Result<TS> {
+    match &field.member {
+        syn::Member::Unnamed(_) => {
+            return Err(syn::Error::new(
+                field.span(),
+                "Unsupported unnamed field in rhdl kernel function",
+            ))
+        }
+        syn::Member::Named(x) => Ok(quote!(#x: Default::default())),
+    }
 }
 
 fn hdl_path(path: &syn::Path) -> Result<TS> {
@@ -565,7 +629,7 @@ fn hdl_generic_argument(argument: &syn::GenericArgument) -> Result<TS> {
             })
         }
         syn::GenericArgument::Type(Type::Path(path)) => Ok(quote! {
-            rhdl_core::ast_builder::generic_argument_type(#path)
+            rhdl_core::ast_builder::generic_argument_type(<#path as Digital>::static_kind())
         }),
         _ => Err(syn::Error::new(
             argument.span(),
@@ -755,12 +819,25 @@ mod test {
     #[test]
     fn test_struct_expression_let() {
         let test_code = quote! {
-            let d = Foo {a: 1, b: 2};
+            let d = Foo::<T> {a: 1, b: 2};
         };
         let local = syn::parse2::<syn::Stmt>(test_code).unwrap();
         let result = stmt(&local).unwrap();
+        eprintln!("{}", result);
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
-        let result = result.replace("rhdl_core :: ast :: ", "");
+        let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
+        println!("{}", result);
+    }
+
+    #[test]
+    fn test_struct_expression_let_with_spread() {
+        let test_code = quote! {
+            let d = Foo::<T> {a: 1, ..b};
+        };
+        let local = syn::parse2::<syn::Stmt>(test_code).unwrap();
+        let result = stmt(&local).unwrap();
+        eprintln!("{}", result);
+        let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
         println!("{}", result);
     }

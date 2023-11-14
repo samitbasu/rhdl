@@ -219,10 +219,13 @@ impl Compiler {
                 Ok(self.get_reference(&collapse_path(&path))?)
             }
             ast::ExprKind::Tuple(ExprTuple { elements }) => self.tuple(elements),
-            ast::ExprKind::Struct(ExprStruct { path, fields, rest }) => {
-                self.expr_struct(path, fields, rest)
-            }
-            ast::ExprKind::Call(ExprCall { path, args }) => self.expr_call(path, args),
+            ast::ExprKind::Struct(ExprStruct {
+                path,
+                fields,
+                rest,
+                kind: _,
+            }) => self.expr_struct(path, fields, rest),
+            ast::ExprKind::Call(ExprCall { path, args, .. }) => self.expr_call(path, args),
             ast::ExprKind::Match(ExprMatch { expr, arms }) => self.expr_match(expr, arms),
             ast::ExprKind::Block(ExprBlock { block }) => {
                 let lhs = self.reg();

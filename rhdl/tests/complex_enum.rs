@@ -13,8 +13,19 @@ enum Packet {
     Log { msg: b32, level: LogLevel } = 16,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+impl Default for Packet {
+    fn default() -> Self {
+        Self::Color {
+            r: b8::from(0),
+            g: b8::from(0),
+            b: b8::from(0),
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
 enum State {
+    #[default]
     Init = -2,
     Boot,
     Running,
@@ -22,7 +33,7 @@ enum State {
     Boom = 2,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+#[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
 struct LogLevel {
     level: b8,
     active: bool,
