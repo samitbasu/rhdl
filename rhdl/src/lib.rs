@@ -1141,39 +1141,73 @@ mod tests {
     }
 
     #[test]
-    fn test_fn_pointer_stuff() {
-        #[derive(Copy, Clone, Debug, PartialEq, Digital, Default)]
-        enum Test {
-            #[default]
-            Init,
+    fn test_fn_name_stuff() {
+        // There are 2 namespaces (type and value).
+        // A function is a value.  So this is legal:
+
+        struct add_stuff {}
+
+        impl add_stuff {
+            fn args() -> Vec<Kind> {
+                vec![Kind::make_bits(8), Kind::make_bits(8)]
+            }
+            fn ret() -> Kind {
+                Kind::make_bits(8)
+            }
+        }
+
+        fn add_stuff(a: u8, b: u8) -> u8 {
+            a + b
+        }
+
+        assert_eq!(add_stuff(3_u8, 4_u8), 7_u8);
+        assert_eq!(
+            add_stuff::args(),
+            vec![Kind::make_bits(8), Kind::make_bits(8)]
+        );
+        assert_eq!(add_stuff::ret(), Kind::make_bits(8));
+    }
+
+    #[test]
+    fn test_fn_name_generic_stuff() {
+        struct add_stuff<T: Digital> {
+            _phantom: std::marker::PhantomData<T>,
+        }
+
+        impl<T: Digital> add_stuff<T> {
+            fn args() -> Vec<Kind> {
+                vec![T::static_kind(), T::static_kind()]
+            }
+            fn ret() -> Kind {
+                T::static_kind()
+            }
+        }
+
+        fn add_stuff<T: Digital>(a: T, b: T) -> T {
+            b
+        }
+
+        assert_eq!(add_stuff::<b4>(3.into(), 4.into()), bits(4));
+        assert_eq!(
+            add_stuff::<b4>::args(),
+            vec![Kind::make_bits(4), Kind::make_bits(4)]
+        );
+        assert_eq!(add_stuff::<b4>::ret(), Kind::make_bits(4));
+    }
+
+    #[test]
+    fn test_enum_constructor_function() {
+        // Start with a variant that has a tuple struct argument.
+        enum Color {
             Red(u8),
         }
 
-        trait DigitalFun {
-            fn signature() -> String;
-        }
-
-        impl<T: Digital, S: Digital> DigitalFun for fn(T) -> S {
-            fn signature() -> String {
-                let mut s = String::new();
-                s.push_str("fn(");
-                s.push_str(") -> ");
-                s
-            }
-        }
-
-        impl<T0: Digital, T1: Digital, S: Digital> DigitalFun for fn(T0, T1) -> S {
-            fn signature() -> String {
-                let mut s = String::new();
-                s.push_str("fn(");
-                s.push_str(", ");
-                s.push_str(") -> ");
-                s
-            }
-        }
-
-        let g = Test::Red;
-        let h = g(4);
+        // Now Color::Red is a function that takes a u8 and returns a Color.
+        let x = Color::Red(3);
+        // We want to be able to do Color::Red::args() and get back a Vec<Kind>
+        // that describes the argument types.
+        // We also want to be able to do Color::Red::ret() and get back a Kind
+        // that describes the return type.
     }
 
     #[test]
