@@ -1202,12 +1202,84 @@ mod tests {
             Red(u8),
         }
 
-        // Now Color::Red is a function that takes a u8 and returns a Color.
-        let x = Color::Red(3);
-        // We want to be able to do Color::Red::args() and get back a Vec<Kind>
-        // that describes the argument types.
-        // We also want to be able to do Color::Red::ret() and get back a Kind
-        // that describes the return type.
+        struct Foo {}
+
+        impl Foo {
+            fn args() -> Vec<Kind> {
+                vec![Kind::make_bits(8)]
+            }
+            fn ret() -> Kind {
+                Kind::make_enum(
+                    "Color",
+                    vec![Kind::make_variant(
+                        "Red",
+                        Kind::make_tuple(vec![Kind::make_bits(8)]),
+                        1,
+                    )],
+                    1,
+                    DiscriminantAlignment::Msb,
+                )
+            }
+        }
+
+        trait TypeName {
+            fn type_name() -> String;
+        }
+
+        impl TypeName for usize {
+            fn type_name() -> String {
+                "usize".into()
+            }
+        }
+
+        impl TypeName for String {
+            fn type_name() -> String {
+                "String".into()
+            }
+        }
+
+        impl<T: TypeName> TypeName for Vec<T> {
+            fn type_name() -> String {
+                format!("Vec<{}>", T::type_name())
+            }
+        }
+
+        impl TypeName for () {
+            fn type_name() -> String {
+                "Unit".into()
+            }
+        }
+
+        impl<T1: TypeName, T2: TypeName> TypeName for (T1, T2) {
+            fn type_name() -> String {
+                format!("({}, {})", T1::type_name(), T2::type_name())
+            }
+        }
+
+        impl TypeName for u8 {
+            fn type_name() -> String {
+                "u8".into()
+            }
+        }
+
+        impl TypeName for Color {
+            fn type_name() -> String {
+                "Color".into()
+            }
+        }
+
+        fn inspect_function<F, T1, T2>(_f: F) -> String
+        where
+            F: Fn(T1) -> T2,
+            T1: TypeName,
+            T2: TypeName,
+        {
+            format!("Function: {} -> {}", T1::type_name(), T2::type_name())
+        }
+
+        eprintln!("{}", inspect_function(Color::Red));
+
+        // See: https://jsdw.me/posts/rust-fn-traits/
     }
 
     #[test]
