@@ -5,34 +5,29 @@ $scope module root $end
 $scope module enum $end
 $var wire 0 ! $disc $end
 $var wire 8 " A$0 $end
-$var wire 1 # BA$  $end$$varwwir 8  $ B$name $end
-$var w8 % C$b B$nam$up $end
+$var wire 16 # A$1 $end
+$var wire 8 $ B$name $end
+$var wire 8 % B$name_2 $end
 $var wire 1 & C $end
 $upscope $end
 $var wire 8 ' color $end
 $upscope $end
 $upscope $end
 $upscope $end
-$enddefini
-#1000
-sB !
-b1sNo
-b1!
+$enddefinitions $end
+#0
+sNone !
 bxxxxxxxx "
-bxxxxxxxxxxxxx
-#2000
-sA !
-bxx "
-bxxx #
+bxxxxxxxxxxxxxxxx #
 bxxxxxxxx $
 bxxxxxxxx %
-#3000
-sC !
-bxx "
-bxxx #
-b10101010 $
-b11010111 %
- $
+x&
+b10101010 '
+#1000
+sA !
+b00101010 "
+b0000010000000000 #
+bxxxxxxxx $
 bxxxxxxxx %
 x&
 #2000

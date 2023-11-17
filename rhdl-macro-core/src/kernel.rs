@@ -11,8 +11,24 @@ pub fn hdl_kernel(input: TS) -> Result<TS> {
 fn hdl_function(function: syn::ItemFn) -> Result<TS> {
     //    CustomSuffix.visit_item_fn_mut(&mut function);
     let orig_name = &function.sig.ident;
-    let generics = &function.sig.generics;
-    let name = format_ident!("{}_hdl_kernel", function.sig.ident);
+    let (impl_generics, ty_generics, where_clause) = function.sig.generics.split_for_impl();
+    let phantom_fields = function
+        .sig
+        .generics
+        .params
+        .iter()
+        .enumerate()
+        .map(|(ndx, param)| {
+            let ident = format_ident!("__phantom_{}", ndx);
+            let ty = match param {
+                syn::GenericParam::Type(ty) => &ty.ident,
+                syn::GenericParam::Lifetime(lt) => &lt.lifetime.ident,
+                syn::GenericParam::Const(cst) => &cst.ident,
+            };
+            quote! {#ident: std::marker::PhantomData<#ty>}
+        })
+        .collect::<Vec<_>>();
+    let name = &function.sig.ident;
     let block = hdl_block_inner(&function.block)?;
     let ret = match &function.sig.output {
         syn::ReturnType::Default => quote! {rhdl_core::Kind::Empty},
@@ -40,13 +56,17 @@ fn hdl_function(function: syn::ItemFn) -> Result<TS> {
     Ok(quote! {
         #function
 
-        fn #name #generics() -> Box<rhdl_core::ast::KernelFn> {
-            rhdl_core::ast_builder::kernel_fn(
-                stringify!(#orig_name),
-                vec!{#(#args),*},
-                #ret,
-                #block,
-            )
+        struct #name #ty_generics {#(#phantom_fields,)*};
+
+        impl #impl_generics rhdl_core::digital_fn::DigitalFn for #name #ty_generics #where_clause {
+            fn kernel_fn() -> Box<rhdl_core::ast::KernelFn> {
+                rhdl_core::ast_builder::kernel_fn(
+                    stringify!(#orig_name),
+                    vec!{#(#args),*},
+                    #ret,
+                    #block,
+                )
+            }
         }
     })
 }
@@ -950,6 +970,24 @@ mod test {
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
         println!("{:?}", function);
         let item = hdl_function(function).unwrap();
+        let new_code = quote! {#item};
+        let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
+        println!("{}", result);
+    }
+
+    #[test]
+    fn test_generics() {
+        let test_code = quote! {
+            fn do_stuff<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {
+                let c = x.a;
+                let d = (x.a, y.b);
+                let e = Foo::<T> { a: c, b: c };
+                e == x
+            }
+        };
+        let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
+        let item = hdl_function(function).unwrap();
+        println!("{}", item);
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         println!("{}", result);
