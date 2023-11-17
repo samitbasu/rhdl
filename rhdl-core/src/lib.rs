@@ -28,6 +28,7 @@ pub mod compiler;
 pub mod display_ast;
 pub mod display_rhif;
 //pub mod dot;
+pub mod digital_fn;
 pub mod infer_types;
 pub mod kernel;
 pub mod path;

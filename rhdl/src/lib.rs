@@ -21,6 +21,7 @@ mod tests {
         ascii::render_ast_to_string,
         assign_node::assign_node_ids,
         compiler::Compiler,
+        digital_fn::DigitalFn,
         display_ast::pretty_print_kernel,
         infer_types::TypeInference,
         kernel::Kernel,
@@ -716,7 +717,7 @@ mod tests {
                 a + b
             };
         }
-        let mut kernel: Kernel = do_stuff_hdl_kernel().into();
+        let mut kernel: Kernel = do_stuff::kernel_fn().into();
         assign_node_ids(&mut kernel).unwrap();
         //println!("{}", kernel.ast);
         let ctx = TypeInference::default().infer(&kernel).unwrap();
@@ -760,7 +761,7 @@ mod tests {
             let e = ar;
             bits::<7>(42)
         }
-        let mut kernel: Kernel = do_stuff_hdl_kernel().into();
+        let mut kernel: Kernel = do_stuff::kernel_fn().into();
         println!("{:?}", kernel);
         assign_node_ids(&mut kernel).unwrap();
         //println!("{}", kernel.ast);
@@ -781,7 +782,7 @@ mod tests {
             let q = bits::<16>(7);
         }
 
-        let mut kernel: Kernel = do_stuff_hdl_kernel().into();
+        let mut kernel: Kernel = do_stuff::kernel_fn().into();
         println!("{:?}", kernel);
         assign_node_ids(&mut kernel).unwrap();
         //println!("{}", kernel.ast);
@@ -875,7 +876,7 @@ mod tests {
             };
             bits::<7>(42)
         }
-        let mut kernel: Kernel = do_stuff_hdl_kernel().into();
+        let mut kernel: Kernel = do_stuff::kernel_fn().into();
         //println!("{:?}", kernel);
         assign_node_ids(&mut kernel).unwrap();
         //println!("{}", kernel.ast);
@@ -998,7 +999,7 @@ mod tests {
 
         use NooState::{Init, Run};
 
-        let mut kernel: Kernel = do_stuff_hdl_kernel().into();
+        let mut kernel: Kernel = do_stuff::kernel_fn().into();
         assign_node_ids(&mut kernel).unwrap();
         //println!("{}", kernel.ast);
         let mut gen = TypeInference::default();
@@ -1089,7 +1090,7 @@ mod tests {
             let z = 1;
             let h = NooState::Run(1, z, 3);
         }
-        let mut kernel: Kernel = do_stuff_hdl_kernel().into();
+        let mut kernel: Kernel = do_stuff::kernel_fn().into();
         assign_node_ids(&mut kernel).unwrap();
         //println!("{}", kernel.ast);
         let mut gen = TypeInference::default();
@@ -1105,7 +1106,7 @@ mod tests {
             a == b
         }
 
-        let mut kernel: Kernel = do_stuff_hdl_kernel::<rhdl_bits::alias::s4>().into();
+        let mut kernel: Kernel = do_stuff::<rhdl_bits::alias::s4>::kernel_fn().into();
         assign_node_ids(&mut kernel).unwrap();
         //println!("{}", kernel.ast);
         let mut gen = TypeInference::default();
@@ -1131,7 +1132,7 @@ mod tests {
         }
 
         let mut kernel: Kernel =
-            do_stuff_hdl_kernel::<rhdl_bits::alias::s4, rhdl_bits::alias::b3>().into();
+            do_stuff::<rhdl_bits::alias::s4, rhdl_bits::alias::b3>::kernel_fn().into();
         assign_node_ids(&mut kernel).unwrap();
         //println!("{}", kernel.ast);
         let mut gen = TypeInference::default();
