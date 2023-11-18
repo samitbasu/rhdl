@@ -799,6 +799,45 @@ mod tests {
     }
 
     #[test]
+    fn test_importing() {
+        use rhdl_bits::alias::*;
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
+        pub enum Red {
+            #[default]
+            A,
+            B(b4),
+            C {
+                x: b4,
+                y: b6,
+            },
+        }
+
+        const MY_SPECIAL_NUMBER: b8 = bits(42);
+
+        #[kernel]
+        fn do_stuff() {
+            let k = Red::A;
+            let l = Red::B(bits::<4>(1));
+            let c = Red::C {
+                x: bits::<4>(1),
+                y: bits::<6>(2),
+            };
+            let d = MY_SPECIAL_NUMBER;
+        }
+
+        let mut kernel: Kernel = do_stuff::kernel_fn().into();
+        //println!("{:?}", kernel);
+        assign_node_ids(&mut kernel).unwrap();
+        //println!("{}", kernel.ast);
+        let mut gen = TypeInference::default();
+        let ctx = gen.infer(&kernel).unwrap();
+        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
+        //println!("{}", ast_ascii);
+        let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
+        println!("{ast_code}");
+    }
+
+    #[test]
     fn test_adt_inference() {
         use rhdl_bits::alias::*;
         use rhdl_bits::bits;
@@ -869,6 +908,7 @@ mod tests {
             let q = ar[1];
             let f: [b4; 5] = [bits::<4>(1); 5];
             let h = f[2];
+            let k = NooState::Init;
             let f = Red::C { y: y1, x: x1 };
             let d = match s {
                 NooState::Init => NooState::Run(bits::<4>(1), bits::<5>(2)),

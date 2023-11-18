@@ -217,6 +217,10 @@ fn shift<const N: u128>(x: b8) -> b8 {
 impl Hello for Color {}
 
 fn main() {
+    fn check(a::n: u32) -> u32 {
+        a
+    }
+
     // Check for default via variant syntax
     let a = Color::Red; // a is Color::Red
     a.hello();
