@@ -1,3 +1,4 @@
+use crate::digital_fn::DigitalSignature;
 use crate::{ast::*, Kind};
 
 // Constructor functions
@@ -174,10 +175,20 @@ pub fn for_expr(pat: Box<Pat>, expr: Box<Expr>, body: Box<Block>) -> Box<Expr> {
     })
 }
 
-pub fn call_expr(path: Box<Path>, args: Vec<Box<Expr>>, kind: Kind) -> Box<Expr> {
+pub fn call_expr(
+    path: Box<Path>,
+    args: Vec<Box<Expr>>,
+    signature: DigitalSignature,
+    code: Option<Box<KernelFn>>,
+) -> Box<Expr> {
     Box::new(Expr {
         id: None,
-        kind: ExprKind::Call(ExprCall { path, args, kind }),
+        kind: ExprKind::Call(ExprCall {
+            path,
+            args,
+            signature,
+            code,
+        }),
     })
 }
 

@@ -1,10 +1,12 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{ast::KernelFn, Digital, Kind};
 
 pub trait DigitalFn {
     fn kernel_fn() -> Box<KernelFn>;
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DigitalSignature {
     pub arguments: Vec<Kind>,
     pub ret: Kind,

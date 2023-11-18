@@ -35,7 +35,6 @@ pub struct TypeInference {
     context: UnifyContext,
     structs: HashMap<String, Ty>,
     enums: HashMap<String, Ty>,
-    functions: HashMap<String, (Vec<Ty>, Ty)>,
     ret: Option<Ty>,
 }
 
@@ -60,12 +59,6 @@ impl TypeInference {
             .map(|x| x.ident.to_string())
             .collect::<Vec<_>>()
             .join("::")
-    }
-    pub fn define_function(&mut self, name: &str, args: Vec<Kind>, result: Kind) -> Result<()> {
-        let args = args.into_iter().map(|x| x.into()).collect::<Vec<_>>();
-        let result = result.into();
-        self.functions.insert(name.to_string(), (args, result));
-        Ok(())
     }
     pub fn define_kind(&mut self, kind: Kind) -> Result<()> {
         match &kind {
@@ -285,45 +278,13 @@ impl TypeInference {
         Ok(())
     }
     fn handle_call(&mut self, my_ty: Ty, call: &ast::ExprCall) -> Result<()> {
-        if call.path.segments.len() == 1
-            && call.path.segments[0].ident == "bits"
-            && call.args.len() == 1
-            && call.path.segments[0].arguments.len() == 1
-        {
-            if let ExprKind::Lit(ExprLit::Int(len)) = &call.path.segments[0].arguments[0].kind {
-                if let Ok(bits) = len.parse::<usize>() {
-                    self.unify(my_ty, ty_bits(bits))?;
-                }
+        self.unify(my_ty, call.signature.ret.clone().into())?;
+        if call.args.len() == call.signature.arguments.len() {
+            for (arg, ty) in call.args.iter().zip(&call.signature.arguments) {
+                self.unify(id_to_var(arg.id)?, ty.clone().into())?;
             }
-        } else if call.path.segments.len() == 1
-            && call.path.segments[0].ident == "signed"
-            && call.args.len() == 1
-            && call.path.segments[0].arguments.len() == 1
-        {
-            if let ExprKind::Lit(ExprLit::Int(len)) = &call.path.segments[0].arguments[0].kind {
-                if let Ok(bits) = len.parse::<usize>() {
-                    self.unify(my_ty, ty_signed(bits))?;
-                }
-            }
-        } else if let Some((enum_ty, variant_ty)) = self.lookup_enum_tuple_variant(&call.path) {
-            self.unify(my_ty, enum_ty)?;
-            if call.args.len() != variant_ty.len() {
-                bail!(
-                    "Wrong number of arguments to enum variant: {}",
-                    call.args.len()
-                );
-            }
-            for (arg, ty) in call.args.iter().zip(variant_ty) {
-                self.unify(id_to_var(arg.id)?, ty)?;
-            }
-        } else if let Some(func) = self.functions.get(&Self::flat_path(&call.path)).cloned() {
-            if call.args.len() != func.0.len() {
-                bail!("Wrong number of arguments to function: {}", call.args.len());
-            }
-            for (arg, ty) in call.args.iter().zip(&func.0) {
-                self.unify(id_to_var(arg.id)?, ty.clone())?;
-            }
-            self.unify(my_ty, func.1.clone())?;
+        } else {
+            bail!("Wrong number of arguments to function: {}", call.args.len());
         }
         Ok(())
     }
