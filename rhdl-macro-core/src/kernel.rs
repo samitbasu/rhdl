@@ -1,5 +1,7 @@
+use std::arch::x86_64;
+
 use quote::{format_ident, quote};
-use syn::{spanned::Spanned, Type};
+use syn::{spanned::Spanned, ExprPath, Type};
 type TS = proc_macro2::TokenStream;
 type Result<T> = syn::Result<T>;
 
@@ -284,11 +286,17 @@ fn hdl_array(expr: &syn::ExprArray) -> Result<TS> {
     })
 }
 
+fn ident_starts_with_capital_letter(i: &syn::Ident) -> bool {
+    i.to_string()
+        .chars()
+        .next()
+        .map(|x| x.is_uppercase())
+        .unwrap_or(false)
+}
+
 // A call expression like `a = Foo(...)` can be either a variant
-// or an actual function call.  We need to determine the result
-// of this expression type.  We do this with the same default
-// argument trick used to disambiguate structs from variants with
-// struct arguments.
+// or an actual function call.  Use the `inspect_digital` function
+// to extract a call signature from the function.
 fn hdl_call(expr: &syn::ExprCall) -> Result<TS> {
     let syn::Expr::Path(func_path) = expr.func.as_ref() else {
         return Err(syn::Error::new(
@@ -296,13 +304,46 @@ fn hdl_call(expr: &syn::ExprCall) -> Result<TS> {
             "Unsupported function call in rhdl kernel function (only paths allowed here)",
         ));
     };
-    let args_as_default = expr.args.iter().map(|_| quote!(Default::default()));
-    let call_to_get_type = quote!({Digital::kind(& #func_path ( #(#args_as_default),* ))});
+    // Kludge - I don't know how else to do this.  We want to differentiate
+    // between the builtin variant constructor function and a RHDL kernel.
+    // Unfortunately, the only way to do this is by adding some convention or
+    // by coupling global state across the macro invocations (e.g., by writing to
+    // a file or something equally gross).  So, I instead choose to use a simple
+    // convention.  Enum Variants must be namespaced (e.g., `Foo::Bar`), and both
+    // the enum and the variant must be capitalized.  This is a simple convention
+    // that is easy to follow and easy to understand.  It also allows us to
+    // differentiate between the two cases without any global state.
+    let code = hdl_get_code(func_path)?;
+    let call_to_get_type = quote!(rhdl_core::digital_fn::inspect_digital(#func_path));
     let path = hdl_path_inner(&func_path.path)?;
     let args = expr.args.iter().map(hdl_expr).collect::<Result<Vec<_>>>()?;
     Ok(quote! {
-        rhdl_core::ast_builder::call_expr(#path, vec![#(#args),*], #call_to_get_type)
+        rhdl_core::ast_builder::call_expr(#path, vec![#(#args),*], #call_to_get_type, #code)
     })
+}
+
+fn hdl_get_code(path: &ExprPath) -> Result<TS> {
+    if path.path.segments.len() == 0 {
+        return Err(syn::Error::new(
+            path.span(),
+            "Empty path in rhdl kernel function",
+        ));
+    }
+    let last = &path.path.segments.last().unwrap().ident;
+    if last == "bits" || last == "signed" {
+        return Ok(quote!(None));
+    }
+    if path.path.segments.len() >= 2 {
+        let len = path.path.segments.len();
+        let last = &path.path.segments[len - 1];
+        let second_to_last = &path.path.segments[len - 2];
+        if ident_starts_with_capital_letter(&last.ident)
+            && ident_starts_with_capital_letter(&second_to_last.ident)
+        {
+            return Ok(quote!(None));
+        }
+    }
+    Ok(quote!(Some(<#path as rhdl_core::digital_fn::DigitalFn>::kernel_fn())))
 }
 
 fn hdl_for_loop(expr: &syn::ExprForLoop) -> Result<TS> {

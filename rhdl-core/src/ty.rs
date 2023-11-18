@@ -11,12 +11,18 @@ pub struct TypeId(pub usize);
 pub enum Bits {
     Signed(usize),
     Unsigned(usize),
+    I128,
+    U128,
     Empty,
 }
 
 impl Bits {
+    pub fn is_empty(self) -> bool {
+        self.len() == 0
+    }
     pub fn len(self) -> usize {
         match self {
+            Bits::I128 | Bits::U128 => 128,
             Bits::Signed(width) | Bits::Unsigned(width) => width,
             Bits::Empty => 0,
         }
@@ -127,6 +133,8 @@ impl Display for Ty {
         match self {
             Ty::Var(id) => write!(f, "V{}", id.0),
             Ty::Const(bits) => match bits {
+                Bits::I128 => write!(f, "i128"),
+                Bits::U128 => write!(f, "u128"),
                 Bits::Signed(width) => write!(f, "s{}", width),
                 Bits::Unsigned(width) => write!(f, "b{}", width),
                 Bits::Empty => write!(f, "{{}}"),
@@ -171,6 +179,8 @@ impl Display for Ty {
 impl From<Kind> for Ty {
     fn from(value: Kind) -> Self {
         match value {
+            Kind::I128 => Ty::Const(Bits::I128),
+            Kind::U128 => Ty::Const(Bits::U128),
             Kind::Bits(width) => ty_bits(width),
             Kind::Signed(width) => ty_signed(width),
             Kind::Empty => ty_empty(),

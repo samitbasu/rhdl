@@ -637,6 +637,12 @@ mod tests {
         #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub struct Bar(pub u8, pub u8);
 
+        impl rhdl_core::digital_fn::DigitalFn for Bar {
+            fn kernel_fn() -> Box<rhdl_core::ast::KernelFn> {
+                todo!()
+            }
+        }
+
         #[kernel]
         fn do_stuff() -> b8 {
             let a: b4 = bits::<4>(1); // Straight local assignment
@@ -874,19 +880,14 @@ mod tests {
                 NooState::Boom => NooState::Init,
                 _ => NooState::Boom,
             };
-            bits::<7>(42)
+            let k = 42;
+            bits::<7>(k)
         }
         let mut kernel: Kernel = do_stuff::kernel_fn().into();
         //println!("{:?}", kernel);
         assign_node_ids(&mut kernel).unwrap();
         //println!("{}", kernel.ast);
         let mut gen = TypeInference::default();
-        gen.define_function(
-            "fifo",
-            vec![Kind::make_bits(8), Kind::make_bits(4)],
-            Kind::make_bits(8),
-        )
-        .unwrap();
         let ctx = gen.infer(&kernel).unwrap();
         let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
         //println!("{}", ast_ascii);

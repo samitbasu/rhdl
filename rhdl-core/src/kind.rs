@@ -13,6 +13,8 @@ pub enum Kind {
     Variant(Enum, Box<Variant>),
     Bits(usize),
     Signed(usize),
+    U128,
+    I128,
     Empty,
 }
 
@@ -142,6 +144,8 @@ impl Kind {
             }
             Kind::Bits(digits) => *digits,
             Kind::Signed(digits) => *digits,
+            Kind::U128 => 128,
+            Kind::I128 => 128,
             Kind::Empty => 0,
         }
     }
@@ -190,6 +194,8 @@ impl Kind {
             Kind::Union(u) => todo!(),
             Kind::Enum(e) => e.name.clone(),
             Kind::Variant(e, v) => format!("{}::{}", e.name, v.name),
+            Kind::U128 => "u128".to_string(),
+            Kind::I128 => "i128".to_string(),
         }
     }
 }
@@ -216,6 +222,22 @@ fn generate_kind_layout(
                 depth: 1,
                 cols: offset_col..offset_col + digits,
                 name: format!("{name} b{digits}"),
+            }]
+        }
+        Kind::U128 => {
+            vec![KindLayout {
+                row: offset_row,
+                depth: 1,
+                cols: offset_col..offset_col + 128,
+                name: format!("{name} u128"),
+            }]
+        }
+        Kind::I128 => {
+            vec![KindLayout {
+                row: offset_row,
+                depth: 1,
+                cols: offset_col..offset_col + 128,
+                name: format!("{name} i128"),
             }]
         }
         Kind::Signed(digits) => {

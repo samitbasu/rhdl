@@ -136,6 +136,42 @@ impl Digital for u16 {
     }
 }
 
+impl Digital for u128 {
+    fn static_kind() -> Kind {
+        Kind::U128
+    }
+    fn bin(self) -> Vec<bool> {
+        Bits::<128>::from(self).to_bools()
+    }
+    fn allocate<T: Digital>(tag: TagID<T>, builder: impl LogBuilder) {
+        builder.allocate(tag, 128);
+    }
+    fn record<T: Digital>(&self, tag: TagID<T>, mut logger: impl LoggerImpl) {
+        logger.write_bits(tag, Bits::<128>::from(*self).raw());
+    }
+    fn skip<T: Digital>(tag: TagID<T>, mut logger: impl LoggerImpl) {
+        logger.skip(tag);
+    }
+}
+
+impl Digital for i128 {
+    fn static_kind() -> Kind {
+        Kind::I128
+    }
+    fn bin(self) -> Vec<bool> {
+        SignedBits::<128>::from(self).as_unsigned().to_bools()
+    }
+    fn allocate<T: Digital>(tag: TagID<T>, builder: impl LogBuilder) {
+        builder.allocate(tag, 128);
+    }
+    fn record<T: Digital>(&self, tag: TagID<T>, mut logger: impl LoggerImpl) {
+        logger.write_bits(tag, SignedBits::<128>::from(*self).as_unsigned().raw());
+    }
+    fn skip<T: Digital>(tag: TagID<T>, mut logger: impl LoggerImpl) {
+        logger.skip(tag);
+    }
+}
+
 impl<const N: usize> Digital for Bits<N> {
     fn static_kind() -> Kind {
         Kind::make_bits(N)
