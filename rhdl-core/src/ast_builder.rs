@@ -1,3 +1,4 @@
+use crate::digital::TypedBits;
 use crate::digital_fn::DigitalSignature;
 use crate::{ast::*, Kind};
 
@@ -361,4 +362,8 @@ pub fn kernel_fn(name: &str, inputs: Vec<Box<Pat>>, ret: Kind, body: Box<Block>)
         ret,
         body,
     })
+}
+
+pub fn expr_typed_bits(path: Box<Path>, value: TypedBits) -> ExprLit {
+    ExprLit::TypedBits(ExprTypedBits { path, value })
 }
