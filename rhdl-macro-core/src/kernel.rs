@@ -22,16 +22,33 @@ impl Default for ScopeId {
     }
 }
 
+#[derive(Default)]
 struct Scope {
     bindings: HashSet<Ident>,
     children: Vec<ScopeId>,
     parent: ScopeId,
 }
 
-#[derive(Default)]
 pub struct Context {
     scopes: Vec<Scope>,
     active_scope: ScopeId,
+}
+
+impl Default for Context {
+    fn default() -> Context {
+        Context {
+            scopes: vec![Default::default()],
+            active_scope: Default::default(),
+        }
+    }
+}
+
+fn ident_starts_with_capital_letter(i: &syn::Ident) -> bool {
+    i.to_string()
+        .chars()
+        .next()
+        .map(|x| x.is_uppercase())
+        .unwrap_or(false)
 }
 
 impl Context {
@@ -67,23 +84,33 @@ impl Context {
         false
     }
     fn add_scoped_binding(&mut self, pat: &Pat) -> Result<()> {
-        if let Pat::Ident(ident) = pat {
-            let name = &ident.ident;
-            let mutability = ident.mutability.is_some();
-            if ident.by_ref.is_some() {
+        match pat {
+            Pat::Ident(ident) => {
+                let name = &ident.ident;
+                if ident.by_ref.is_some() {
+                    return Err(syn::Error::new(
+                        ident.span(),
+                        "Unsupported reference pattern in rhdl kernel function",
+                    ));
+                }
+                self.scopes[self.active_scope.0]
+                    .bindings
+                    .insert(name.clone());
+            }
+            Pat::Tuple(tuple) => {
+                for pat in tuple.elems.iter() {
+                    self.add_scoped_binding(pat)?;
+                }
+            }
+            _ => {
                 return Err(syn::Error::new(
-                    ident.span(),
-                    "Unsupported reference pattern in rhdl kernel function",
+                    pat.span(),
+                    format!(
+                        "Unsupported pattern {} in rhdl kernel function",
+                        quote!(#pat)
+                    ),
                 ));
             }
-            self.scopes[self.active_scope.0]
-                .bindings
-                .insert(name.clone());
-        } else {
-            return Err(syn::Error::new(
-                pat.span(),
-                "Unsupported pattern in rhdl kernel function",
-            ));
         }
         Ok(())
     }
@@ -92,11 +119,11 @@ impl Context {
 pub fn hdl_kernel(input: TS) -> Result<TS> {
     let input = syn::parse::<syn::ItemFn>(input.into())?;
     let mut context = Context::default();
-    context.hdl_function(input)
+    context.function(input)
 }
 
 impl Context {
-    fn hdl_function(&mut self, function: syn::ItemFn) -> Result<TS> {
+    fn function(&mut self, function: syn::ItemFn) -> Result<TS> {
         let orig_name = &function.sig.ident;
         let (impl_generics, ty_generics, where_clause) = function.sig.generics.split_for_impl();
         let phantom_fields = function
@@ -130,7 +157,7 @@ impl Context {
                 }
             }
         }
-        let block = self.hdl_block_inner(&function.block)?;
+        let block = self.block_inner(&function.block)?;
         let ret = match &function.sig.output {
             syn::ReturnType::Default => quote! {rhdl_core::Kind::Empty},
             syn::ReturnType::Type(_, ty) => {
@@ -148,7 +175,7 @@ impl Context {
                 )),
                 syn::FnArg::Typed(pat) => {
                     let ty = &pat.ty;
-                    let pat = hdl_pat(&pat.pat)?;
+                    let pat = self.pat(&pat.pat)?;
                     let kind = quote! {<#ty as rhdl_core::Digital>::static_kind()};
                     Ok(quote! { rhdl_core::ast_builder::type_pat(#pat, #kind)})
                 }
@@ -157,7 +184,7 @@ impl Context {
         Ok(quote! {
             #function
 
-            struct #name #ty_generics {#(#phantom_fields,)*};
+            struct #name #ty_generics {#(#phantom_fields,)*}
 
             impl #impl_generics rhdl_core::digital_fn::DigitalFn for #name #ty_generics #where_clause {
                 fn kernel_fn() -> Box<rhdl_core::ast::KernelFn> {
@@ -172,25 +199,31 @@ impl Context {
         })
     }
 
-    fn hdl_block(block: &syn::Block) -> Result<TS> {
-        let block = hdl_block_inner(block)?;
+    fn block(&mut self, block: &syn::Block) -> Result<TS> {
+        self.new_scope();
+        let block = self.block_inner(block)?;
+        self.end_scope();
         Ok(quote! {
             rhdl_core::ast_builder::block_expr(#block)
         })
     }
 
-    fn hdl_block_inner(block: &syn::Block) -> Result<TS> {
-        let stmts = block.stmts.iter().map(stmt).collect::<Result<Vec<_>>>()?;
+    fn block_inner(&mut self, block: &syn::Block) -> Result<TS> {
+        let stmts = block
+            .stmts
+            .iter()
+            .map(|x| self.stmt(x))
+            .collect::<Result<Vec<_>>>()?;
         Ok(quote! {
             rhdl_core::ast_builder::block(vec![#(#stmts),*],)
         })
     }
 
-    fn stmt(statement: &syn::Stmt) -> Result<TS> {
+    fn stmt(&mut self, statement: &syn::Stmt) -> Result<TS> {
         match statement {
-            syn::Stmt::Local(local) => stmt_local(local),
+            syn::Stmt::Local(local) => self.stmt_local(local),
             syn::Stmt::Expr(expr, semi) => {
-                let expr = hdl_expr(expr)?;
+                let expr = self.expr(expr)?;
                 if semi.is_some() {
                     Ok(quote! {
                         rhdl_core::ast_builder::semi_stmt(#expr)
@@ -208,12 +241,13 @@ impl Context {
         }
     }
 
-    fn stmt_local(local: &syn::Local) -> Result<TS> {
-        let pattern = hdl_pat(&local.pat)?;
+    fn stmt_local(&mut self, local: &syn::Local) -> Result<TS> {
+        let pattern = self.pat(&local.pat)?;
+        self.add_scoped_binding(&local.pat)?;
         let local_init = local
             .init
             .as_ref()
-            .map(|x| hdl_expr(&x.expr))
+            .map(|x| self.expr(&x.expr))
             .transpose()?
             .map(|x| quote!(Some(#x)))
             .unwrap_or(quote! {None});
@@ -222,7 +256,7 @@ impl Context {
         })
     }
 
-    fn hdl_pat(pat: &syn::Pat) -> Result<TS> {
+    fn pat(&mut self, pat: &syn::Pat) -> Result<TS> {
         match pat {
             syn::Pat::Ident(ident) => {
                 let name = &ident.ident;
@@ -238,11 +272,11 @@ impl Context {
                 })
             }
             syn::Pat::TupleStruct(tuple) => {
-                let path = hdl_path_inner(&tuple.path)?;
+                let path = self.path_inner(&tuple.path)?;
                 let elems = tuple
                     .elems
                     .iter()
-                    .map(hdl_pat)
+                    .map(|x| self.pat(x))
                     .collect::<Result<Vec<_>>>()?;
                 Ok(quote! {
                     rhdl_core::ast_builder::tuple_struct_pat(#path, vec![#(#elems),*])
@@ -252,7 +286,7 @@ impl Context {
                 let elems = tuple
                     .elems
                     .iter()
-                    .map(hdl_pat)
+                    .map(|x| self.pat(x))
                     .collect::<Result<Vec<_>>>()?;
                 Ok(quote! {
                     rhdl_core::ast_builder::tuple_pat(vec![#(#elems),*])
@@ -262,24 +296,24 @@ impl Context {
                 let elems = slice
                     .elems
                     .iter()
-                    .map(hdl_pat)
+                    .map(|x| self.pat(x))
                     .collect::<Result<Vec<_>>>()?;
                 Ok(quote! {
                     rhdl_core::ast_builder::slice_pat(vec![#(#elems),*])
                 })
             }
             syn::Pat::Path(path) => {
-                let path = hdl_path_inner(&path.path)?;
+                let path = self.path_inner(&path.path)?;
                 Ok(quote! {
                     rhdl_core::ast_builder::path_pat(#path)
                 })
             }
             syn::Pat::Struct(structure) => {
-                let path = hdl_path_inner(&structure.path)?;
+                let path = self.path_inner(&structure.path)?;
                 let fields = structure
                     .fields
                     .iter()
-                    .map(hdl_field_pat)
+                    .map(|x| self.field_pat(x))
                     .collect::<Result<Vec<_>>>()?;
                 if structure.qself.is_some() {
                     return Err(syn::Error::new(
@@ -294,14 +328,14 @@ impl Context {
             }
             syn::Pat::Type(pat) => {
                 let ty = &pat.ty;
-                let pat = hdl_pat(&pat.pat)?;
+                let pat = self.pat(&pat.pat)?;
                 let kind = quote! {<#ty as rhdl_core::Digital>::static_kind()};
                 Ok(quote! {
                     rhdl_core::ast_builder::type_pat(#pat, #kind)
                 })
             }
             syn::Pat::Lit(pat) => {
-                let lit = hdl_lit_inner(pat)?;
+                let lit = self.lit_inner(pat)?;
                 Ok(quote! {
                     rhdl_core::ast_builder::lit_pat(#lit)
                 })
@@ -313,40 +347,40 @@ impl Context {
         }
     }
 
-    fn hdl_field_pat(expr: &syn::FieldPat) -> Result<TS> {
-        let member = hdl_member(&expr.member)?;
-        let pat = hdl_pat(&expr.pat)?;
+    fn field_pat(&mut self, expr: &syn::FieldPat) -> Result<TS> {
+        let member = self.member(&expr.member)?;
+        let pat = self.pat(&expr.pat)?;
         Ok(quote! {
             rhdl_core::ast_builder::field_pat(#member, #pat)
         })
     }
 
-    fn hdl_expr(expr: &syn::Expr) -> Result<TS> {
+    fn expr(&mut self, expr: &syn::Expr) -> Result<TS> {
         match expr {
-            syn::Expr::Lit(expr) => hdl_lit(expr),
-            syn::Expr::Binary(expr) => hdl_binary(expr),
-            syn::Expr::Unary(expr) => hdl_unary(expr),
-            syn::Expr::Group(expr) => hdl_group(expr),
-            syn::Expr::Paren(expr) => hdl_paren(expr),
-            syn::Expr::Assign(expr) => hdl_assign(expr),
-            syn::Expr::Path(expr) => hdl_path(&expr.path),
-            syn::Expr::Struct(expr) => hdl_struct(expr),
-            syn::Expr::Block(expr) => hdl_block(&expr.block),
-            syn::Expr::Field(expr) => hdl_field_expression(expr),
-            syn::Expr::If(expr) => hdl_if(expr),
-            syn::Expr::Let(expr) => hdl_let(expr),
-            syn::Expr::Match(expr) => hdl_match(expr),
-            syn::Expr::Range(expr) => hdl_range(expr),
-            syn::Expr::Try(expr) => hdl_try(expr),
-            syn::Expr::Return(expr) => hdl_return(expr),
-            syn::Expr::Tuple(expr) => hdl_tuple(expr),
-            syn::Expr::Repeat(expr) => hdl_repeat(expr),
-            syn::Expr::ForLoop(expr) => hdl_for_loop(expr),
-            syn::Expr::While(expr) => hdl_while_loop(expr),
-            syn::Expr::Call(expr) => hdl_call(expr),
-            syn::Expr::Array(expr) => hdl_array(expr),
-            syn::Expr::Index(expr) => hdl_index(expr),
-            syn::Expr::MethodCall(expr) => hdl_method_call(expr),
+            syn::Expr::Lit(expr) => self.lit(expr),
+            syn::Expr::Binary(expr) => self.binary(expr),
+            syn::Expr::Unary(expr) => self.unary(expr),
+            syn::Expr::Group(expr) => self.group(expr),
+            syn::Expr::Paren(expr) => self.paren(expr),
+            syn::Expr::Assign(expr) => self.assign(expr),
+            syn::Expr::Path(expr) => self.path(&expr.path),
+            syn::Expr::Struct(expr) => self.struct_ex(expr),
+            syn::Expr::Block(expr) => self.block(&expr.block),
+            syn::Expr::Field(expr) => self.field_expression(expr),
+            syn::Expr::If(expr) => self.if_ex(expr),
+            syn::Expr::Let(expr) => self.let_ex(expr),
+            syn::Expr::Match(expr) => self.match_ex(expr),
+            syn::Expr::Range(expr) => self.range(expr),
+            syn::Expr::Try(expr) => self.try_ex(expr),
+            syn::Expr::Return(expr) => self.ret(expr),
+            syn::Expr::Tuple(expr) => self.tuple(expr),
+            syn::Expr::Repeat(expr) => self.repeat(expr),
+            syn::Expr::ForLoop(expr) => self.for_loop(expr),
+            syn::Expr::While(expr) => self.while_loop(expr),
+            syn::Expr::Call(expr) => self.call(expr),
+            syn::Expr::Array(expr) => self.array(expr),
+            syn::Expr::Index(expr) => self.index(expr),
+            syn::Expr::MethodCall(expr) => self.method_call(expr),
             _ => Err(syn::Error::new(
                 expr.span(),
                 format!(
@@ -357,46 +391,42 @@ impl Context {
         }
     }
 
-    fn hdl_method_call(expr: &syn::ExprMethodCall) -> Result<TS> {
-        let receiver = hdl_expr(&expr.receiver)?;
-        let args = expr.args.iter().map(hdl_expr).collect::<Result<Vec<_>>>()?;
+    fn method_call(&mut self, expr: &syn::ExprMethodCall) -> Result<TS> {
+        let receiver = self.expr(&expr.receiver)?;
+        let args = expr
+            .args
+            .iter()
+            .map(|x| self.expr(x))
+            .collect::<Result<Vec<_>>>()?;
         let method = &expr.method;
         Ok(quote! {
             rhdl_core::ast_builder::method_expr(#receiver, vec![#(#args),*], stringify!(#method).to_string())
         })
     }
 
-    fn hdl_index(expr: &syn::ExprIndex) -> Result<TS> {
-        let index = hdl_expr(&expr.index)?;
-        let expr = hdl_expr(&expr.expr)?;
+    fn index(&mut self, expr: &syn::ExprIndex) -> Result<TS> {
+        let index = self.expr(&expr.index)?;
+        let expr = self.expr(&expr.expr)?;
         Ok(quote! {
             rhdl_core::ast_builder::index_expr(#expr, #index)
         })
     }
 
-    fn hdl_array(expr: &syn::ExprArray) -> Result<TS> {
+    fn array(&mut self, expr: &syn::ExprArray) -> Result<TS> {
         let elems = expr
             .elems
             .iter()
-            .map(hdl_expr)
+            .map(|x| self.expr(x))
             .collect::<Result<Vec<_>>>()?;
         Ok(quote! {
             rhdl_core::ast_builder::array_expr(vec![#(#elems),*])
         })
     }
 
-    fn ident_starts_with_capital_letter(i: &syn::Ident) -> bool {
-        i.to_string()
-            .chars()
-            .next()
-            .map(|x| x.is_uppercase())
-            .unwrap_or(false)
-    }
-
     // A call expression like `a = Foo(...)` can be either a variant
     // or an actual function call.  Use the `inspect_digital` function
     // to extract a call signature from the function.
-    fn hdl_call(expr: &syn::ExprCall) -> Result<TS> {
+    fn call(&mut self, expr: &syn::ExprCall) -> Result<TS> {
         let syn::Expr::Path(func_path) = expr.func.as_ref() else {
             return Err(syn::Error::new(
                 expr.func.span(),
@@ -412,16 +442,20 @@ impl Context {
         // the enum and the variant must be capitalized.  This is a simple convention
         // that is easy to follow and easy to understand.  It also allows us to
         // differentiate between the two cases without any global state.
-        let code = hdl_get_code(func_path)?;
+        let code = self.get_code(func_path)?;
         let call_to_get_type = quote!(rhdl_core::digital_fn::inspect_digital(#func_path));
-        let path = hdl_path_inner(&func_path.path)?;
-        let args = expr.args.iter().map(hdl_expr).collect::<Result<Vec<_>>>()?;
+        let path = self.path_inner(&func_path.path)?;
+        let args = expr
+            .args
+            .iter()
+            .map(|x| self.expr(x))
+            .collect::<Result<Vec<_>>>()?;
         Ok(quote! {
             rhdl_core::ast_builder::call_expr(#path, vec![#(#args),*], #call_to_get_type, #code)
         })
     }
 
-    fn hdl_get_code(path: &ExprPath) -> Result<TS> {
+    fn get_code(&mut self, path: &ExprPath) -> Result<TS> {
         if path.path.segments.len() == 0 {
             return Err(syn::Error::new(
                 path.span(),
@@ -445,16 +479,19 @@ impl Context {
         Ok(quote!(Some(<#path as rhdl_core::digital_fn::DigitalFn>::kernel_fn())))
     }
 
-    fn hdl_for_loop(expr: &syn::ExprForLoop) -> Result<TS> {
-        let pat = hdl_pat(&expr.pat)?;
-        let body = hdl_block_inner(&expr.body)?;
-        let expr = hdl_expr(&expr.expr)?;
+    fn for_loop(&mut self, expr: &syn::ExprForLoop) -> Result<TS> {
+        self.new_scope();
+        let pat = self.pat(&expr.pat)?;
+        self.add_scoped_binding(&expr.pat)?;
+        let body = self.block_inner(&expr.body)?;
+        let expr = self.expr(&expr.expr)?;
+        self.end_scope();
         Ok(quote! {
             rhdl_core::ast_builder::for_expr(#pat, #expr, #body)
         })
     }
 
-    fn hdl_while_loop(expr: &syn::ExprWhile) -> Result<TS> {
+    fn while_loop(&mut self, expr: &syn::ExprWhile) -> Result<TS> {
         // In version 2.0...
         Err(syn::Error::new(
             expr.span(),
@@ -462,44 +499,44 @@ impl Context {
         ))
     }
 
-    fn hdl_repeat(expr: &syn::ExprRepeat) -> Result<TS> {
-        let len = hdl_expr(&expr.len)?;
-        let expr = hdl_expr(&expr.expr)?;
+    fn repeat(&mut self, expr: &syn::ExprRepeat) -> Result<TS> {
+        let len = self.expr(&expr.len)?;
+        let expr = self.expr(&expr.expr)?;
         Ok(quote! {
             rhdl_core::ast_builder::repeat_expr(#expr, #len)
         })
     }
 
-    fn hdl_tuple(expr: &syn::ExprTuple) -> Result<TS> {
+    fn tuple(&mut self, expr: &syn::ExprTuple) -> Result<TS> {
         let elems = expr
             .elems
             .iter()
-            .map(hdl_expr)
+            .map(|x| self.expr(x))
             .collect::<Result<Vec<_>>>()?;
         Ok(quote! {
             rhdl_core::ast_builder::tuple_expr(vec![#(#elems),*])
         })
     }
 
-    fn hdl_group(expr: &syn::ExprGroup) -> Result<TS> {
-        let expr = hdl_expr(&expr.expr)?;
+    fn group(&mut self, expr: &syn::ExprGroup) -> Result<TS> {
+        let expr = self.expr(&expr.expr)?;
         Ok(quote! {
             rhdl_core::ast_builder::group_expr(#expr)
         })
     }
 
-    fn hdl_paren(expr: &syn::ExprParen) -> Result<TS> {
-        let expr = hdl_expr(&expr.expr)?;
+    fn paren(&mut self, expr: &syn::ExprParen) -> Result<TS> {
+        let expr = self.expr(&expr.expr)?;
         Ok(quote! {
             rhdl_core::ast_builder::paren_expr(#expr)
         })
     }
 
-    fn hdl_return(expr: &syn::ExprReturn) -> Result<TS> {
+    fn ret(&mut self, expr: &syn::ExprReturn) -> Result<TS> {
         let expr = expr
             .expr
             .as_ref()
-            .map(|x| hdl_expr(x))
+            .map(|x| self.expr(x))
             .transpose()?
             .map(|x| quote! {Some(#x)})
             .unwrap_or_else(|| quote! {None});
@@ -508,25 +545,25 @@ impl Context {
         })
     }
 
-    fn hdl_try(expr: &syn::ExprTry) -> Result<TS> {
+    fn try_ex(&mut self, expr: &syn::ExprTry) -> Result<TS> {
         Err(syn::Error::new(
             expr.span(),
             "Unsupported try expression in rhdl kernel function",
         ))
     }
 
-    fn hdl_range(expr: &syn::ExprRange) -> Result<TS> {
+    fn range(&mut self, expr: &syn::ExprRange) -> Result<TS> {
         let start = expr
             .start
             .as_ref()
-            .map(|x| hdl_expr(x))
+            .map(|x| self.expr(x))
             .transpose()?
             .map(|x| quote! {Some(#x)})
             .unwrap_or_else(|| quote! {None});
         let end = expr
             .end
             .as_ref()
-            .map(|x| hdl_expr(x))
+            .map(|x| self.expr(x))
             .transpose()?
             .map(|x| quote! {Some(#x)})
             .unwrap_or_else(|| quote! {None});
@@ -541,110 +578,48 @@ impl Context {
         })
     }
 
-    fn hdl_match(expr: &syn::ExprMatch) -> Result<TS> {
-        let arms = expr.arms.iter().map(hdl_arm).collect::<Result<Vec<_>>>()?;
-        let expr = hdl_expr(&expr.expr)?;
+    fn match_ex(&mut self, expr: &syn::ExprMatch) -> Result<TS> {
+        let arms = expr
+            .arms
+            .iter()
+            .map(|x| self.arm(x))
+            .collect::<Result<Vec<_>>>()?;
+        let expr = self.expr(&expr.expr)?;
         Ok(quote! {
             rhdl_core::ast_builder::match_expr(#expr, vec![#(#arms),*])
         })
     }
 
-    fn literal_or_ranges(pat: &syn::Pat) -> bool {
-        match pat {
-            syn::Pat::Lit(_) => true,
-            syn::Pat::Range(_) => true,
-            syn::Pat::Paren(pat) => literal_or_ranges(&pat.pat),
-            syn::Pat::TupleStruct(tuple) => tuple.elems.iter().any(literal_or_ranges),
-            syn::Pat::Struct(structure) => {
-                structure.fields.iter().any(|x| literal_or_ranges(&x.pat))
-            }
-            syn::Pat::Or(pat) => pat.cases.iter().any(literal_or_ranges),
-            _ => false,
-        }
-    }
-
-    fn ident_or_wildcard(pat: &syn::Pat) -> bool {
-        matches!(pat, syn::Pat::Ident(_) | syn::Pat::Wild(_))
-    }
-
-    fn hdl_pat_arm(pat: &syn::Pat) -> Result<TS> {
-        // Here (or a level above) - we need to check for the
-        // all literal + wildcard case or the enum case.
-        // We should also restrict the enum case so that all
-        // paths are the same.  And that path should correspond
-        // to a Digital type.
-
-        // If the top level pattern is a TupleStruct, or a Struct,
-        // then we need to ensure there are no literal or
-        // range patterns in the fields.
-
-        match pat {
-            syn::Pat::TupleStruct(tuple) => {
-                if !tuple.elems.iter().all(ident_or_wildcard) {
-                    return Err(syn::Error::new(
-                    tuple.span(),
-                    "Unsupported tuple struct pattern - rhdl only supports simple patterns like Foo(a,b,_)",
-                ));
-                }
-            }
-            syn::Pat::Struct(structure) => {
-                if !structure.fields.iter().all(|x| ident_or_wildcard(&x.pat)) {
-                    return Err(syn::Error::new(
-                        structure.span(),
-                        "Unsupported literal or range in struct pattern",
-                    ));
-                }
-            }
-            syn::Pat::Path(path) => {
-                if path.qself.is_some() {
-                    return Err(syn::Error::new(
-                        path.span(),
-                        "Unsupported qualified self in rhdl kernel function",
-                    ));
-                }
-            }
-            syn::Pat::Lit(_) | syn::Pat::Wild(_) => {}
-            _ => {
-                return Err(syn::Error::new(
-                    pat.span(),
-                    "Unsupported match pattern in rhdl kernel function",
-                ))
-            }
-        }
-        hdl_pat(pat)
-    }
-
-    fn hdl_arm(arm: &syn::Arm) -> Result<TS> {
-        //let pat = hdl_pat_arm(&arm.pat)?;
-        let pat = hdl_pat(&arm.pat)?;
+    fn arm(&mut self, arm: &syn::Arm) -> Result<TS> {
+        let pat = self.pat(&arm.pat)?;
         let guard = arm
             .guard
             .as_ref()
-            .map(|(_if, x)| hdl_expr(x))
+            .map(|(_if, x)| self.expr(x))
             .transpose()?
             .map(|x| quote! {Some(#x)})
             .unwrap_or(quote! {None});
-        let body = hdl_expr(&arm.body)?;
+        let body = self.expr(&arm.body)?;
         Ok(quote! {
             rhdl_core::ast_builder::arm(#pat, #guard, #body)
         })
     }
 
-    fn hdl_let(expr: &syn::ExprLet) -> Result<TS> {
-        let pattern = hdl_pat(&expr.pat)?;
-        let value = hdl_expr(&expr.expr)?;
+    fn let_ex(&mut self, expr: &syn::ExprLet) -> Result<TS> {
+        let pattern = self.pat(&expr.pat)?;
+        let value = self.expr(&expr.expr)?;
         Ok(quote! {
             rhdl_core::ast_builder::let_expr(#pattern, #value)
         })
     }
 
-    fn hdl_if(expr: &syn::ExprIf) -> Result<TS> {
-        let cond = hdl_expr(&expr.cond)?;
-        let then = hdl_block_inner(&expr.then_branch)?;
+    fn if_ex(&mut self, expr: &syn::ExprIf) -> Result<TS> {
+        let cond = self.expr(&expr.cond)?;
+        let then = self.block_inner(&expr.then_branch)?;
         let else_ = expr
             .else_branch
             .as_ref()
-            .map(|x| hdl_expr(&x.1))
+            .map(|x| self.expr(&x.1))
             .transpose()?
             .map(|x| quote! {Some(#x)})
             .unwrap_or(quote! {None});
@@ -680,12 +655,12 @@ impl Context {
     //
     // In both cases, we want to include the Kind information into the AST at the
     // point the AST is generated.
-    fn hdl_struct(structure: &syn::ExprStruct) -> Result<TS> {
-        let path = hdl_path_inner(&structure.path)?;
+    fn struct_ex(&mut self, structure: &syn::ExprStruct) -> Result<TS> {
+        let path = self.path_inner(&structure.path)?;
         let fields = structure
             .fields
             .iter()
-            .map(hdl_field_value)
+            .map(|x| self.field_value(x))
             .collect::<Result<Vec<_>>>()?;
         if structure.qself.is_some() {
             return Err(syn::Error::new(
@@ -696,7 +671,7 @@ impl Context {
         let rest = structure
             .rest
             .as_ref()
-            .map(|x| hdl_expr(x))
+            .map(|x| self.expr(x))
             .transpose()?
             .unwrap_or(quote! {None});
         let kind = if structure.rest.is_some() {
@@ -711,7 +686,7 @@ impl Context {
             let fields_with_default = structure
                 .fields
                 .iter()
-                .map(hdl_default_field_value)
+                .map(|x| self.default_field_value(x))
                 .collect::<Result<Vec<_>>>()?;
             quote! {
                 Digital::kind(& #path { #(#fields_with_default),* })
@@ -722,45 +697,50 @@ impl Context {
         })
     }
 
-    fn hdl_default_field_value(field: &syn::FieldValue) -> Result<TS> {
+    fn default_field_value(&mut self, field: &syn::FieldValue) -> Result<TS> {
         match &field.member {
-            syn::Member::Unnamed(_) => {
-                return Err(syn::Error::new(
-                    field.span(),
-                    "Unsupported unnamed field in rhdl kernel function",
-                ))
-            }
+            syn::Member::Unnamed(_) => Err(syn::Error::new(
+                field.span(),
+                "Unsupported unnamed field in rhdl kernel function",
+            )),
             syn::Member::Named(x) => Ok(quote!(#x: Default::default())),
         }
     }
 
-    fn hdl_path(path: &syn::Path) -> Result<TS> {
-        let inner = hdl_path_inner(path)?;
+    fn path(&mut self, path: &syn::Path) -> Result<TS> {
+        // Check for a locally defined path
+        if !self.is_scoped_binding(path) {
+            return Err(syn::Error::new(
+                path.span(),
+                format!("Unsupported path {} in rhdl kernel function", quote!(#path)),
+            ));
+        }
+        let inner = self.path_inner(path)?;
         Ok(quote! {
             rhdl_core::ast_builder::path_expr(#inner)
         })
     }
 
-    fn hdl_path_inner(path: &syn::Path) -> Result<TS> {
+    fn path_inner(&mut self, path: &syn::Path) -> Result<TS> {
         let segments = path
             .segments
             .iter()
-            .map(hdl_path_segment)
+            .map(|x| self.path_segment(x))
             .collect::<Result<Vec<_>>>()?;
         Ok(quote! {
             rhdl_core::ast_builder::path(vec![#(#segments),*],)
         })
     }
 
-    fn hdl_path_segment(segment: &syn::PathSegment) -> Result<TS> {
+    fn path_segment(&mut self, segment: &syn::PathSegment) -> Result<TS> {
         let ident = &segment.ident;
-        let args = hdl_path_arguments(&segment.arguments)?;
+        let args = self.path_arguments(&segment.arguments)?;
         Ok(quote! {
             rhdl_core::ast_builder::path_segment(stringify!(#ident).to_string(), #args)
         })
     }
 
-    fn hdl_path_arguments(arguments: &syn::PathArguments) -> Result<TS> {
+    fn path_arguments(&mut self, arguments: &syn::PathArguments) -> Result<TS> {
         // We only allow Const arguments.
         let args = match arguments {
             syn::PathArguments::None => quote! {rhdl_core::ast_builder::path_arguments_none()},
@@ -768,7 +748,7 @@ impl Context {
                 let args = args
                     .args
                     .iter()
-                    .map(hdl_generic_argument)
+                    .map(|x| self.generic_argument(x))
                     .collect::<Result<Vec<_>>>()?;
                 quote! {rhdl_core::ast_builder::path_arguments_angle_bracketed(vec![#(#args),*])}
             }
@@ -784,10 +764,10 @@ impl Context {
         })
     }
 
-    fn hdl_generic_argument(argument: &syn::GenericArgument) -> Result<TS> {
+    fn generic_argument(&mut self, argument: &syn::GenericArgument) -> Result<TS> {
         match argument {
             syn::GenericArgument::Const(expr) => {
-                let expr = hdl_expr(expr)?;
+                let expr = self.expr(expr)?;
                 Ok(quote! {
                     rhdl_core::ast_builder::generic_argument_const(#expr)
                 })
@@ -802,31 +782,31 @@ impl Context {
         }
     }
 
-    fn hdl_assign(assign: &syn::ExprAssign) -> Result<TS> {
-        let left = hdl_expr(&assign.left)?;
-        let right = hdl_expr(&assign.right)?;
+    fn assign(&mut self, assign: &syn::ExprAssign) -> Result<TS> {
+        let left = self.expr(&assign.left)?;
+        let right = self.expr(&assign.right)?;
         Ok(quote! {
             rhdl_core::ast_builder::assign_expr(#left, #right)
         })
     }
 
-    fn hdl_field_expression(field: &syn::ExprField) -> Result<TS> {
-        let expr = hdl_expr(&field.base)?;
-        let member = hdl_member(&field.member)?;
+    fn field_expression(&mut self, field: &syn::ExprField) -> Result<TS> {
+        let expr = self.expr(&field.base)?;
+        let member = self.member(&field.member)?;
         Ok(quote! {
             rhdl_core::ast_builder::field_expr(#expr, #member)
         })
     }
 
-    fn hdl_field_value(field: &syn::FieldValue) -> Result<TS> {
-        let member = hdl_member(&field.member)?;
-        let value = hdl_expr(&field.expr)?;
+    fn field_value(&mut self, field: &syn::FieldValue) -> Result<TS> {
+        let member = self.member(&field.member)?;
+        let value = self.expr(&field.expr)?;
         Ok(quote! {
             rhdl_core::ast_builder::field_value(#member, #value)
         })
     }
 
-    fn hdl_member(member: &syn::Member) -> Result<TS> {
+    fn member(&mut self, member: &syn::Member) -> Result<TS> {
         Ok(match member {
             syn::Member::Named(ident) => quote! {
                 rhdl_core::ast_builder::member_named(stringify!(#ident).to_string())
@@ -840,7 +820,7 @@ impl Context {
         })
     }
 
-    fn hdl_unary(unary: &syn::ExprUnary) -> Result<TS> {
+    fn unary(&mut self, unary: &syn::ExprUnary) -> Result<TS> {
         let op = match unary.op {
             syn::UnOp::Neg(_) => quote!(rhdl_core::ast_builder::UnOp::Neg),
             syn::UnOp::Not(_) => quote!(rhdl_core::ast_builder::UnOp::Not),
@@ -851,13 +831,13 @@ impl Context {
                 ))
             }
         };
-        let expr = hdl_expr(&unary.expr)?;
+        let expr = self.expr(&unary.expr)?;
         Ok(quote! {
             rhdl_core::ast_builder::unary_expr(#op, #expr)
         })
     }
 
-    fn hdl_binary(binary: &syn::ExprBinary) -> Result<TS> {
+    fn binary(&mut self, binary: &syn::ExprBinary) -> Result<TS> {
         let op = match binary.op {
             syn::BinOp::Add(_) => quote!(rhdl_core::ast_builder::BinOp::Add),
             syn::BinOp::Sub(_) => quote!(rhdl_core::ast_builder::BinOp::Sub),
@@ -890,21 +870,21 @@ impl Context {
                 ))
             }
         };
-        let left = hdl_expr(&binary.left)?;
-        let right = hdl_expr(&binary.right)?;
+        let left = self.expr(&binary.left)?;
+        let right = self.expr(&binary.right)?;
         Ok(quote! {
             rhdl_core::ast_builder::binary_expr(#op, #left, #right)
         })
     }
 
-    fn hdl_lit(lit: &syn::ExprLit) -> Result<TS> {
-        let inner = hdl_lit_inner(lit)?;
+    fn lit(&mut self, lit: &syn::ExprLit) -> Result<TS> {
+        let inner = self.lit_inner(lit)?;
         Ok(quote! {
             rhdl_core::ast_builder::lit_expr(#inner)
         })
     }
 
-    fn hdl_lit_inner(lit: &syn::ExprLit) -> Result<TS> {
+    fn lit_inner(&mut self, lit: &syn::ExprLit) -> Result<TS> {
         let lit = &lit.lit;
         match lit {
             syn::Lit::Int(int) => {
@@ -939,7 +919,7 @@ mod test {
             }
         };
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
-        let item = hdl_function(function).unwrap();
+        let item = Context::default().function(function).unwrap();
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         println!("{}", result);
@@ -960,7 +940,7 @@ mod test {
             }
         };
         let block = syn::parse2::<syn::Block>(test_code).unwrap();
-        let result = hdl_block(&block).unwrap();
+        let result = Context::default().block(&block).unwrap();
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         let result = result.replace("rhdl_core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
@@ -974,7 +954,7 @@ mod test {
             }
         };
         let block = syn::parse2::<syn::Block>(test_code).unwrap();
-        let result = hdl_block(&block).unwrap();
+        let result = Context::default().block(&block).unwrap();
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         let result = result.replace("rhdl_core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
@@ -987,7 +967,7 @@ mod test {
             let d = Foo::<T> {a: 1, b: 2};
         };
         let local = syn::parse2::<syn::Stmt>(test_code).unwrap();
-        let result = stmt(&local).unwrap();
+        let result = Context::default().stmt(&local).unwrap();
         eprintln!("{}", result);
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
@@ -997,10 +977,13 @@ mod test {
     #[test]
     fn test_struct_expression_let_with_spread() {
         let test_code = quote! {
-            let d = Foo::<T> {a: 1, ..b};
+            {
+                let b = 3;
+                let d = Foo::<T> {a: 1, ..b};
+            }
         };
-        let local = syn::parse2::<syn::Stmt>(test_code).unwrap();
-        let result = stmt(&local).unwrap();
+        let local = syn::parse2::<syn::Block>(test_code).unwrap();
+        let result = Context::default().block(&local).unwrap();
         eprintln!("{}", result);
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
@@ -1010,12 +993,15 @@ mod test {
     #[test]
     fn test_if_expression() {
         let test_code = quote! {
-            if d > 0 {
-                d = d - 1;
+            {
+                let d = 4;
+                if d > 0 {
+                    d = d - 1;
+                }
             }
         };
-        let if_expr = syn::parse2::<syn::Stmt>(test_code).unwrap();
-        let result = stmt(&if_expr).unwrap();
+        let if_expr = syn::parse2::<syn::Block>(test_code).unwrap();
+        let result = Context::default().block(&if_expr).unwrap();
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         let result = result.replace("rhdl_core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
@@ -1039,14 +1025,17 @@ mod test {
     #[test]
     fn test_match_expression() {
         let test_code = quote! {
-            match l {
-                State::Init => {}
-                State::Run(a) => {}
-                State::Boom => {}
+            {
+                let l = 3;
+                match l {
+                    State::Init => {}
+                    State::Run(a) => {}
+                    State::Boom => {}
+                }
             }
         };
-        let match_expr = syn::parse2::<syn::Stmt>(test_code).unwrap();
-        let result = stmt(&match_expr).unwrap();
+        let match_expr = syn::parse2::<syn::Block>(test_code).unwrap();
+        let result = Context::default().block(&match_expr).unwrap();
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         //        let result = result.replace("rhdl_core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
@@ -1056,10 +1045,10 @@ mod test {
     #[test]
     fn test_self_update() {
         let test_code = quote! {
-            (a,b,c) = 3;
+            let (a, b, c) = (3, 4, 5);
         };
         let assign = syn::parse2::<syn::Stmt>(test_code).unwrap();
-        let result = stmt(&assign).unwrap();
+        let result = Context::default().stmt(&assign).unwrap();
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         //        let result = result.replace("rhdl_core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
@@ -1096,7 +1085,7 @@ mod test {
             }
         };
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
-        let item = hdl_function(function).unwrap();
+        let item = Context::default().function(function).unwrap();
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         println!("{}", result);
@@ -1105,7 +1094,7 @@ mod test {
     #[test]
     fn test_match_arm_pattern() {
         let test_code = quote! {
-            fn update() {
+            fn update(z: u8) {
                 match z {
                     1_u4 => {},
                     2_u4 => {}
@@ -1114,7 +1103,7 @@ mod test {
         };
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
         println!("{:?}", function);
-        let item = hdl_function(function).unwrap();
+        let item = Context::default().function(function).unwrap();
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         println!("{}", result);
@@ -1131,7 +1120,7 @@ mod test {
             }
         };
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
-        let item = hdl_function(function).unwrap();
+        let item = Context::default().function(function).unwrap();
         println!("{}", item);
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
