@@ -619,6 +619,7 @@ impl Display for ExprLit {
         match self {
             ExprLit::Int(int) => write!(f, "{}", int),
             ExprLit::Bool(bool) => write!(f, "{}", bool),
+            ExprLit::TypedBits(ty) => write!(f, "<typed_bits {}>", ty.path),
         }
     }
 }

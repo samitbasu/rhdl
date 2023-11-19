@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{digital_fn::DigitalSignature, Kind};
+use crate::{digital::TypedBits, digital_fn::DigitalSignature, Kind};
 use serde::{Deserialize, Serialize};
 
 // Modeled after rustc's AST
@@ -356,10 +356,17 @@ pub struct Arm {
     pub body: Box<Expr>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExprLit {
+    TypedBits(ExprTypedBits),
     Int(String),
     Bool(bool),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExprTypedBits {
+    pub path: Box<Path>,
+    pub value: TypedBits,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -102,6 +102,27 @@ impl Context {
                     self.add_scoped_binding(pat)?;
                 }
             }
+            Pat::Slice(slice) => {
+                for pat in slice.elems.iter() {
+                    self.add_scoped_binding(pat)?;
+                }
+            }
+            Pat::Struct(structure) => {
+                for field in structure.fields.iter() {
+                    self.add_scoped_binding(&field.pat)?;
+                }
+            }
+            Pat::TupleStruct(tuple) => {
+                for pat in tuple.elems.iter() {
+                    self.add_scoped_binding(pat)?;
+                }
+            }
+            Pat::Or(or) => {
+                for pat in or.cases.iter() {
+                    self.add_scoped_binding(pat)?;
+                }
+            }
+            Pat::Path(_) | Pat::Const(_) | Pat::Lit(_) => {}
             _ => {
                 return Err(syn::Error::new(
                     pat.span(),
@@ -591,7 +612,9 @@ impl Context {
     }
 
     fn arm(&mut self, arm: &syn::Arm) -> Result<TS> {
+        self.new_scope();
         let pat = self.pat(&arm.pat)?;
+        self.add_scoped_binding(&arm.pat)?;
         let guard = arm
             .guard
             .as_ref()
@@ -600,6 +623,7 @@ impl Context {
             .map(|x| quote! {Some(#x)})
             .unwrap_or(quote! {None});
         let body = self.expr(&arm.body)?;
+        self.end_scope();
         Ok(quote! {
             rhdl_core::ast_builder::arm(#pat, #guard, #body)
         })
@@ -709,13 +733,12 @@ impl Context {
 
     fn path(&mut self, path: &syn::Path) -> Result<TS> {
         // Check for a locally defined path
-        if !self.is_scoped_binding(path) {
-            return Err(syn::Error::new(
-                path.span(),
-                format!("Unsupported path {} in rhdl kernel function", quote!(#path)),
-            ));
-        }
         let inner = self.path_inner(path)?;
+        if !self.is_scoped_binding(path) {
+            return Ok(quote! {
+                rhdl_core::ast_builder::expr_typed_bits(#inner, rhdl_core::Digital::typed_bits(#path))
+            });
+        }
         Ok(quote! {
             rhdl_core::ast_builder::path_expr(#inner)
         })
@@ -1029,7 +1052,9 @@ mod test {
                 let l = 3;
                 match l {
                     State::Init => {}
-                    State::Run(a) => {}
+                    State::Run(a) => {
+                        l = a;
+                    }
                     State::Boom => {}
                 }
             }

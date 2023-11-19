@@ -1,4 +1,5 @@
 use rhdl_bits::{Bits, SignedBits};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     logger::LoggerImpl,
@@ -66,7 +67,7 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + Default {
     fn skip<T: Digital>(tag: TagID<T>, logger: impl LoggerImpl);
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TypedBits {
     pub bits: Vec<bool>,
     pub kind: Kind,
