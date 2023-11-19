@@ -128,6 +128,14 @@ pub fn ty_var(id: usize) -> Ty {
     Ty::Var(TypeId(id))
 }
 
+pub fn ty_int() -> Ty {
+    Ty::Const(Bits::I128)
+}
+
+pub fn ty_uint() -> Ty {
+    Ty::Const(Bits::U128)
+}
+
 impl Display for Ty {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

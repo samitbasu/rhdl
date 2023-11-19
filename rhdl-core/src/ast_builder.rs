@@ -364,6 +364,9 @@ pub fn kernel_fn(name: &str, inputs: Vec<Box<Pat>>, ret: Kind, body: Box<Block>)
     })
 }
 
-pub fn expr_typed_bits(path: Box<Path>, value: TypedBits) -> ExprLit {
-    ExprLit::TypedBits(ExprTypedBits { path, value })
+pub fn expr_typed_bits(path: Box<Path>, value: TypedBits) -> Box<Expr> {
+    Box::new(Expr {
+        id: None,
+        kind: ExprKind::Lit(ExprLit::TypedBits(ExprTypedBits { path, value })),
+    })
 }

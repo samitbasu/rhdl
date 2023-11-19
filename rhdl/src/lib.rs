@@ -876,9 +876,11 @@ mod tests {
             b
         }
 
+        const MY_SPECIAL_NUMBER: b8 = bits(42);
+
         #[kernel]
         fn do_stuff(a: Foo, s: NooState) -> b7 {
-            let z = (a.b, a.a);
+            let z = (a.b, a.a + MY_SPECIAL_NUMBER);
             let foo = bits::<12>(6);
             let foo2 = foo + foo;
             let c = a;

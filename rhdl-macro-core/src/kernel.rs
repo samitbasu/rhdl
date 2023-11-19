@@ -122,7 +122,8 @@ impl Context {
                     self.add_scoped_binding(pat)?;
                 }
             }
-            Pat::Path(_) | Pat::Const(_) | Pat::Lit(_) => {}
+            Pat::Type(pat) => self.add_scoped_binding(&pat.pat)?,
+            Pat::Wild(_) | Pat::Path(_) | Pat::Const(_) | Pat::Lit(_) => {}
             _ => {
                 return Err(syn::Error::new(
                     pat.span(),
