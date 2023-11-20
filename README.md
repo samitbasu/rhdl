@@ -82,6 +82,7 @@ risk than a technical one.
 - [x] Provide support for calling other HDL kernels from within another one
 - [x] Import undefined bindings from the calling scope
 - [x] Move to a standard library of functions that can be synthesized and used
+- [ ] Build a test infrastructure to compare Verilog with Rust results
 - [ ] Write a compiler capable of handling multiple kernels
 - [ ] Write a RHIF -> Verilog assembler
 - [ ] Port the `RustHDL` widget library to `RHDL`

@@ -248,11 +248,11 @@ mod tests {
     use crate::ty::ty_array;
     use crate::ty::ty_as_ref as as_ref;
     use crate::ty::ty_bits;
-    use crate::ty::ty_enum;
-    use crate::ty::ty_struct;
     use crate::ty::ty_tuple as tuple;
     use crate::ty::ty_var as var;
     use crate::ty::Bits;
+    use tests::ty::ty_enum;
+    use tests::ty::ty_struct;
 
     #[test]
     fn test_case_1() {

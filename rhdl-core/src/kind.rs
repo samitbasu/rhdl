@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{f32::consts::E, iter::repeat, ops::Range};
+use std::{iter::repeat, ops::Range};
 
 use anyhow::Result;
 
@@ -191,7 +191,7 @@ impl Kind {
                 format!("({})", elements)
             }
             Kind::Struct(s) => s.name.clone(),
-            Kind::Union(u) => todo!(),
+            Kind::Union(_u) => todo!(),
             Kind::Enum(e) => e.name.clone(),
             Kind::Variant(e, v) => format!("{}::{}", e.name, v.name),
             Kind::U128 => "u128".to_string(),

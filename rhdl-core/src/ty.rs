@@ -35,50 +35,6 @@ pub struct TyMap {
     pub fields: BTreeMap<String, Ty>,
 }
 
-// A simple macro rules style macro that allows you to construct a TermMap
-// using a struct-like syntax, like
-// term_map! {
-//     name: "Foo",
-//     fields: {
-//         "foo" => bits(8),
-//         "bar" => bits(1),
-//     }
-// }
-#[macro_export]
-macro_rules! ty_struct {
-    (name: $name:expr, fields: { $($field:expr => $ty:expr),* $(,)? }) => {
-        Ty::Struct($crate::ty::TyMap {
-            name: $name.into(),
-            fields: {
-                let mut map = std::collections::BTreeMap::new();
-                $(
-                    map.insert($field.into(), $ty);
-                )*
-                map
-            }
-        })
-    };
-}
-
-pub(crate) use ty_struct;
-
-macro_rules! ty_enum {
-    (name: $name:expr, fields: { $($field:expr => $ty:expr),* $(,)? }) => {
-        Ty::Enum($crate::ty::TyMap {
-            name: $name.into(),
-            fields: {
-                let mut map = std::collections::BTreeMap::new();
-                $(
-                    map.insert($field.into(), $ty);
-                )*
-                map
-            }
-        })
-    };
-}
-
-pub(crate) use ty_enum;
-
 use crate::Kind;
 
 // Start simple, modelling as in the Eli Bendersky example.
@@ -219,4 +175,53 @@ impl From<Kind> for Ty {
             _ => unimplemented!("No type conversion for kind: {:?}", value),
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // A simple macro rules style macro that allows you to construct a TermMap
+    // using a struct-like syntax, like
+    // term_map! {
+    //     name: "Foo",
+    //     fields: {
+    //         "foo" => bits(8),
+    //         "bar" => bits(1),
+    //     }
+    // }
+    #[macro_export]
+    macro_rules! ty_struct {
+    (name: $name:expr, fields: { $($field:expr => $ty:expr),* $(,)? }) => {
+        Ty::Struct($crate::ty::TyMap {
+            name: $name.into(),
+            fields: {
+                let mut map = std::collections::BTreeMap::new();
+                $(
+                    map.insert($field.into(), $ty);
+                )*
+                map
+            }
+        })
+    };
+}
+
+    pub(crate) use ty_struct;
+
+    macro_rules! ty_enum {
+    (name: $name:expr, fields: { $($field:expr => $ty:expr),* $(,)? }) => {
+        Ty::Enum($crate::ty::TyMap {
+            name: $name.into(),
+            fields: {
+                let mut map = std::collections::BTreeMap::new();
+                $(
+                    map.insert($field.into(), $ty);
+                )*
+                map
+            }
+        })
+    };
+}
+
+    pub(crate) use ty_enum;
 }

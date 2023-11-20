@@ -16,6 +16,7 @@ rhdl-bits = { path = "../rhdl-bits" }
 rhdl-core = { path = "../rhdl-core" }
 rhdl-basic-logger = { path = "../rhdl-basic-logger" }
 rhdl-macro = { version = "0.0.2", path = "../rhdl-macro" }
+rhdl-std = { path = "../rhdl-std" }
 anyhow = "1.0.75"
 svg = { version = "0.14.0", optional = true }
 serde_json = "1.0.64"

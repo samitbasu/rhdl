@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{kernel::KernelFnKind, Digital, Kind};
+pub use crate::{kernel::KernelFnKind, Digital, Kind};
 
 pub trait DigitalFn {
     fn kernel_fn() -> KernelFnKind;

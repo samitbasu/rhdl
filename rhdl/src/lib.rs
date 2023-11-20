@@ -638,7 +638,7 @@ mod tests {
         pub struct Bar(pub u8, pub u8);
 
         impl rhdl_core::digital_fn::DigitalFn for Bar {
-            fn kernel_fn() -> KernelFnKind {
+            fn kernel_fn() -> rhdl_core::kernel::KernelFnKind {
                 todo!()
             }
         }
@@ -675,7 +675,7 @@ mod tests {
                 return d;
             }
             // if-else statement (and a statement expression)
-            let j = if d < bits(3) { 7 } else { 9 };
+            let j = if d < bits::<8>(3) { 7 } else { 9 };
             // Enum literal
             let k = State::Boom;
             // Enum literal with a payload
@@ -709,7 +709,7 @@ mod tests {
             let e = (c, m);
             let (f, g) = e;
             let h = g + 1;
-            let k: b4 = bits(7);
+            let k: b4 = bits::<4>(7);
             let q = (bits::<2>(1), (bits::<5>(0), signed::<8>(5)), bits::<12>(6));
             let b = q.1 .1;
             let (q0, (q1, q1b), q2) = q; // Tuple destructuring
@@ -841,6 +841,7 @@ mod tests {
     fn test_adt_inference() {
         use rhdl_bits::alias::*;
         use rhdl_bits::bits;
+        use rhdl_std::*;
 
         #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub enum Red {
@@ -894,10 +895,10 @@ mod tests {
             let d = c;
             let z = fifo(bits::<8>(3), bits::<4>(5));
             let mut q = bits::<4>(1);
-            let l = q.any();
-            q.set_bit(3, true);
-            let p = q.get_bit(2);
-            let p = q.as_signed();
+            let l = any::<4>(q);
+            q = set_bit::<4>(q, 3, true);
+            let p = get_bit::<4>(q, 2);
+            let p = as_signed::<4>(q);
             if a.a > bits::<8>(0) {
                 return bits::<7>(3);
             }

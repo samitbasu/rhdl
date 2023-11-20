@@ -4,7 +4,7 @@ use rhdl_core::digital_fn::DigitalFn;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
 
-pub fn set_bit<const N: usize>(x: Bits<N>, i: usize, value: bool) -> Bits<N> {
+pub fn set_bit<const N: usize>(x: Bits<N>, i: u128, value: bool) -> Bits<N> {
     let selector = 1_u128 << i;
     let x = if value {
         x.0 | selector
