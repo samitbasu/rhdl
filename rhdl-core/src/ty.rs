@@ -208,6 +208,7 @@ mod tests {
 
     pub(crate) use ty_struct;
 
+    #[macro_export]
     macro_rules! ty_enum {
     (name: $name:expr, fields: { $($field:expr => $ty:expr),* $(,)? }) => {
         Ty::Enum($crate::ty::TyMap {
@@ -221,7 +222,7 @@ mod tests {
             }
         })
     };
-}
+    }
 
     pub(crate) use ty_enum;
 }
