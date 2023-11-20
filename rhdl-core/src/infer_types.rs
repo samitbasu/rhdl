@@ -1,8 +1,6 @@
 use crate::ast::{ExprAssign, ExprIf, ExprLit, ExprUnary, Member, NodeId, PatKind};
 use crate::kernel::Kernel;
-use crate::ty::{
-    ty_array, ty_as_ref, ty_bits, ty_bool, ty_empty, ty_int, ty_signed, ty_tuple, ty_uint, TyMap,
-};
+use crate::ty::{ty_array, ty_bits, ty_bool, ty_empty, ty_signed, ty_tuple, TyMap};
 use crate::unify::UnifyContext;
 use crate::Kind;
 use crate::{
@@ -485,7 +483,7 @@ impl Visitor for TypeInference {
                 self.unify(my_ty, struct_.kind.clone().into())?;
                 if let Some(s_kind) = match &struct_.kind {
                     Kind::Struct(s) => Some(s),
-                    Kind::Variant(e, v) => match &v.kind {
+                    Kind::Variant(_, v) => match &v.kind {
                         Kind::Struct(s) => Some(s),
                         _ => None,
                     },

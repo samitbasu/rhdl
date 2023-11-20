@@ -47,22 +47,22 @@
 //! ```
 //!
 
-pub mod all;
-pub mod any;
-pub mod get_bit;
-pub mod set_bit;
-pub mod sign_bit;
-pub mod signed;
-pub mod slice;
-pub mod unsigned;
-pub mod xor;
+mod impl_all;
+mod impl_any;
+mod impl_as_signed;
+mod impl_as_unsigned;
+mod impl_get_bit;
+mod impl_set_bit;
+mod impl_sign_bit;
+mod impl_slice;
+mod impl_xor;
 
-pub use all::*;
-pub use any::*;
-pub use get_bit::*;
-pub use set_bit::*;
-pub use sign_bit::*;
-pub use signed::*;
-pub use slice::*;
-pub use unsigned::*;
-pub use xor::*;
+pub use impl_all::*;
+pub use impl_any::*;
+pub use impl_as_signed::*;
+pub use impl_as_unsigned::*;
+pub use impl_get_bit::*;
+pub use impl_set_bit::*;
+pub use impl_sign_bit::*;
+pub use impl_slice::*;
+pub use impl_xor::*;
