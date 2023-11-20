@@ -209,7 +209,7 @@ impl Context {
             struct #name #ty_generics {#(#phantom_fields,)*}
 
             impl #impl_generics rhdl_core::digital_fn::DigitalFn for #name #ty_generics #where_clause {
-                fn kernel_fn() -> Box<rhdl_core::ast::KernelFn> {
+                fn kernel_fn() -> rhdl_core::digital_fn::KernelFnKind {
                     rhdl_core::ast_builder::kernel_fn(
                         stringify!(#orig_name),
                         vec!{#(#args),*},
@@ -402,7 +402,7 @@ impl Context {
             syn::Expr::Call(expr) => self.call(expr),
             syn::Expr::Array(expr) => self.array(expr),
             syn::Expr::Index(expr) => self.index(expr),
-            syn::Expr::MethodCall(expr) => self.method_call(expr),
+            //syn::Expr::MethodCall(expr) => self.method_call(expr),
             _ => Err(syn::Error::new(
                 expr.span(),
                 format!(

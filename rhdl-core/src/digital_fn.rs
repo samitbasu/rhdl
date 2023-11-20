@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{ast::KernelFn, Digital, Kind};
+use crate::{kernel::KernelFnKind, Digital, Kind};
 
 pub trait DigitalFn {
-    fn kernel_fn() -> Box<KernelFn>;
+    fn kernel_fn() -> KernelFnKind;
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

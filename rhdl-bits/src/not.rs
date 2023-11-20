@@ -26,7 +26,7 @@ mod test {
         let result = !bits;
         assert_eq!(result.0, 0b0010_0101_u128);
         let mut bits: Bits<128> = 0.into();
-        bits.set_bit(127, true);
+        bits = crate::test::set_bit(bits, 127, true);
         let result = !bits;
         assert_eq!(result.0, !0_u128 - (1 << 127));
         let bits: Bits<14> = 0b1101_1010.into();
