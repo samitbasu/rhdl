@@ -80,8 +80,8 @@ risk than a technical one.
 - [x] Write a bootstrap compiler that can convert AST from Rust to RHIF
 - [x] Write a type inference engine that can perform run time type inference
 - [x] Provide support for calling other HDL kernels from within another one
-- [ ] Import undefined bindings from the calling scope
-- [ ] Move to a standard library of functions that can be synthesized and used
+- [x] Import undefined bindings from the calling scope
+- [x] Move to a standard library of functions that can be synthesized and used
 - [ ] Write a compiler capable of handling multiple kernels
 - [ ] Write a RHIF -> Verilog assembler
 - [ ] Port the `RustHDL` widget library to `RHDL`
