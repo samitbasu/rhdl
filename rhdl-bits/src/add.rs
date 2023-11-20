@@ -86,7 +86,7 @@ mod test {
         let result = bits + bits + bits;
         assert_eq!(result.0, 142_u128);
         let mut bits: Bits<128> = 0.into();
-        bits.set_bit(127, true);
+        bits = crate::test::set_bit(bits, 127, true);
         let result = bits + bits;
         assert_eq!(result.0, 0_u128);
         let bits: Bits<54> = 0b1101_1010.into();
@@ -106,7 +106,7 @@ mod test {
         bits += bits;
         assert_eq!(bits.0, ((218 * 4) as u128) & 0xff);
         let mut bits: Bits<128> = 0.into();
-        bits.set_bit(127, true);
+        bits = crate::test::set_bit(bits, 127, true);
         bits += bits;
         assert_eq!(bits.0, 0_u128);
         let mut bits: Bits<54> = 0b1101_1010.into();

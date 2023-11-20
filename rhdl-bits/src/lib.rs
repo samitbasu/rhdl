@@ -131,52 +131,7 @@
 //! Note that in case the `result` is being directly compared to an integer literal.
 //!
 //! You can also operate on [Bits] types of different widths, but you will need to
-//! convert them to the same width first.  For example:
-//! ```
-//! # use rhdl_bits::{Bits, alias::*};
-//! let bits: b8 = 0b1101_1010.into();
-//! let nibble: b4 = 0b1111.into();
-//! let result = bits.slice(4) & nibble;
-//! assert_eq!(result, 0b1101);
-//! ```
-//!
-//! Here the `slice` operator will extract the upper 4 bits of the `bits` value, and
-//! they can then be operated on using the `&` operator.  Note that the `slice` operator
-//! is generic over the width of the slice, so you can extract any number of bits from
-//! the [Bits] value.  If you request more bits than the [Bits] value has, the extra
-//! bits will be initialized to 0.
-//!
-//! ```
-//! # use rhdl_bits::{Bits, alias::*};
-//! let bits: b8 = 0b1101_1010.into();
-//! let word: b16 = bits.slice(0);
-//! assert_eq!(word, 0b0000_0000_1101_1010);
-//! ```
-//!
-//! You can also `slice` [SignedBits] as well.  However, in this case, extra bits
-//! are sign-extended, not zero-extended.  And the end result is a [Bits] type,
-//! not a [SignedBits] type.  For example:
-//!
-//! ```
-//! # use rhdl_bits::{alias::*};
-//! let bits: s8 = (-42).into();
-//! let word: b16 = bits.slice(0);
-//! assert_eq!(word, 0xFF_D6);
-//! ```
-//!
-//! * Be careful * when using the `slice` operator on [SignedBits] values.  If you
-//! slice a [SignedBits] value to a smaller size, the sign bit will be lost.  For
-//! example:
-//!
-//! ```
-//! # use rhdl_bits::{alias::*};
-//! let bits: s8 = (-42).into();
-//! let nibble: b4 = bits.slice(0);
-//! assert_eq!(nibble, 6);
-//! ```
-//!
-//! To elaborate on this example, -42 in 8 bits is 1101_0110.  If you slice this
-//! to 4 bits, you get 0110, which is 6.  The sign bit is lost in the slicing.
+//! convert them to the same width first.  
 //!
 //! ## Bit Widths and Binary Operators
 //!
@@ -249,13 +204,6 @@
 //! and what one would expect from hardware addition (without a carry).  If you _need_ the
 //! carry bit, then the solution is to first cast to 1 higher bit, and then add, or alternately,
 //! to compute the carry directly.
-//!
-//! ```
-//! # use rhdl_bits::Bits;
-//! let x: Bits<40> = (0xFF_FFFF_FFFF).into();
-//! let y: Bits<41> = x.slice(0) + 1;
-//! assert_eq!(y, 0x100_0000_0000);
-//! ```
 //!
 //! ## Subtraction
 //! Hardware subtraction is defined using 2s complement arithmetic.  This is pretty
@@ -493,6 +441,18 @@ pub use signed_bits::SignedBits;
 #[cfg(test)]
 mod test {
     use super::alias::*;
+    use super::*;
+
+    pub(crate) fn set_bit<const N: usize>(x: Bits<N>, i: usize, value: bool) -> Bits<N> {
+        let selector = 1_u128 << i;
+        let x = if value {
+            x.0 | selector
+        } else {
+            x.0 & !selector
+        };
+        bits(x)
+    }
+
     #[test]
     fn time_adding_120_bit_values() {
         use std::time::Instant;
@@ -503,11 +463,11 @@ mod test {
         for _k in 0..100 {
             for i in 0..120 {
                 for j in 0..120 {
-                    a.set_bit(i, true);
-                    b.set_bit(j, true);
+                    a = set_bit(a, i, true);
+                    b = set_bit(b, j, true);
                     c += a + b;
-                    a.set_bit(i, false);
-                    b.set_bit(j, false);
+                    a = set_bit(a, i, false);
+                    b = set_bit(b, j, false);
                 }
             }
         }

@@ -1,5 +1,6 @@
 use crate::digital::TypedBits;
 use crate::digital_fn::DigitalSignature;
+use crate::kernel::KernelFnKind;
 use crate::{ast::*, Kind};
 
 // Constructor functions
@@ -180,7 +181,7 @@ pub fn call_expr(
     path: Box<Path>,
     args: Vec<Box<Expr>>,
     signature: DigitalSignature,
-    code: Option<Box<KernelFn>>,
+    code: Option<KernelFnKind>,
 ) -> Box<Expr> {
     Box::new(Expr {
         id: None,
@@ -354,14 +355,14 @@ pub fn expr_lit_bool(value: bool) -> ExprLit {
     ExprLit::Bool(value)
 }
 
-pub fn kernel_fn(name: &str, inputs: Vec<Box<Pat>>, ret: Kind, body: Box<Block>) -> Box<KernelFn> {
-    Box::new(KernelFn {
+pub fn kernel_fn(name: &str, inputs: Vec<Box<Pat>>, ret: Kind, body: Box<Block>) -> KernelFnKind {
+    KernelFnKind::Kernel(Box::new(KernelFn {
         id: None,
         name: name.into(),
         inputs,
         ret,
         body,
-    })
+    }))
 }
 
 pub fn expr_typed_bits(path: Box<Path>, value: TypedBits) -> Box<Expr> {

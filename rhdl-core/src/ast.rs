@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{digital::TypedBits, digital_fn::DigitalSignature, Kind};
+use crate::{digital::TypedBits, digital_fn::DigitalSignature, kernel::KernelFnKind, Kind};
 use serde::{Deserialize, Serialize};
 
 // Modeled after rustc's AST
@@ -293,7 +293,7 @@ pub struct ExprCall {
     pub path: Box<Path>,
     pub args: Vec<Box<Expr>>,
     pub signature: DigitalSignature,
-    pub code: Option<Box<KernelFn>>,
+    pub code: Option<KernelFnKind>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

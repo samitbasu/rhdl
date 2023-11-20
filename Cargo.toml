@@ -1,5 +1,5 @@
 [workspace]
-
+resolver = "2"
 members = [
     "rhdl",
     "rhdl-bits",
@@ -8,4 +8,5 @@ members = [
     "rhdl-core",
     "rhdl-macro",
     "rhdl-fuzz",
+    "rhdl-std",
 ]

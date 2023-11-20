@@ -79,7 +79,7 @@ mod test {
         let result = bits - bits - bits;
         assert_eq!(Wrapping(result.0 as u8), x - x - x);
         let mut bits: Bits<128> = 0.into();
-        bits.set_bit(127, true);
+        bits = crate::test::set_bit(bits, 127, true);
         let result = bits - bits;
         assert_eq!(result.0, 0_u128);
         let bits: Bits<54> = 0b1101_1010.into();
