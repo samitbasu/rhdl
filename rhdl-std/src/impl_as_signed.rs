@@ -41,4 +41,10 @@ mod tests {
         assert_eq!(as_signed(Bits::<8>(0b0000_0000)), SignedBits::<8>(0));
         assert_eq!(as_signed(Bits::<8>(0b0000_0001)), SignedBits::<8>(1));
     }
+
+    #[test]
+    fn test_iverilog() -> anyhow::Result<()> {
+        let test_values = (0..=255).map(Bits::<8>::from).map(|x| (x,));
+        rhdl_core::test_with_iverilog(as_signed::<8>, as_signed::<8>::kernel_fn(), test_values)
+    }
 }

@@ -41,3 +41,6 @@ pub mod unify;
 pub mod util;
 pub mod visit;
 pub mod visit_mut;
+
+#[cfg(feature = "iverilog")]
+pub use test_module::test_with_iverilog;

@@ -45,4 +45,10 @@ mod tests {
         let bits: Bits<5> = 0b11010.into();
         assert!(xor(bits));
     }
+
+    #[test]
+    fn test_iverilog() -> anyhow::Result<()> {
+        let test_values = (0..=255).map(Bits::<8>::from).map(|x| (x,));
+        rhdl_core::test_with_iverilog(xor::<8>, xor::<8>::kernel_fn(), test_values)
+    }
 }

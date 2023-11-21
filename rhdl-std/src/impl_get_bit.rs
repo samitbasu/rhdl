@@ -55,4 +55,10 @@ mod tests {
         assert!(get_bit(bits, 1));
         assert!(!get_bit(bits, 0));
     }
+
+    #[test]
+    fn test_iverilog() -> anyhow::Result<()> {
+        let test_values = (0..=255).map(|x| (Bits::<8>::from(x), x % 8));
+        rhdl_core::test_with_iverilog(get_bit::<8>, get_bit::<8>::kernel_fn(), test_values)
+    }
 }

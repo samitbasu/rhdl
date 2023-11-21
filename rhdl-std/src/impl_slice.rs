@@ -3,7 +3,8 @@ use rhdl_core::digital_fn::DigitalFn;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
 
-pub fn slice<const N: usize, const M: usize>(x: Bits<N>, start: usize) -> Bits<M> {
+pub fn slice<const N: usize, const M: usize>(x: Bits<N>, start: u128) -> Bits<M> {
+    assert!(start + M as u128 <= N as u128);
     Bits((x.0 >> start) & Bits::<M>::mask().0)
 }
 
@@ -36,5 +37,11 @@ mod tests {
         assert_eq!(result.0, 0b1101);
         let result = slice::<8, 2>(bits, 6);
         assert_eq!(result.0, 0b11);
+    }
+
+    #[test]
+    fn test_iverilog() -> anyhow::Result<()> {
+        let test_values = (0..=255).map(Bits::<8>::from).map(|x| (x, x.raw() % 5));
+        rhdl_core::test_with_iverilog(slice::<8, 3>, slice::<8, 3>::kernel_fn(), test_values)
     }
 }

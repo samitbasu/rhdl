@@ -35,4 +35,10 @@ mod tests {
         assert_eq!(as_unsigned(SignedBits::<8>(0)), Bits::<8>(0b0000_0000));
         assert_eq!(as_unsigned(SignedBits::<8>(1)), Bits::<8>(0b0000_0001));
     }
+
+    #[test]
+    fn test_iverilog() -> anyhow::Result<()> {
+        let test_values = (-128..=127).map(SignedBits::<8>::from).map(|x| (x,));
+        rhdl_core::test_with_iverilog(as_unsigned::<8>, as_unsigned::<8>::kernel_fn(), test_values)
+    }
 }
