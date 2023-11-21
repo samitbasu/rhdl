@@ -25,6 +25,9 @@ impl<const N: usize> DigitalFn for any<N> {
 
 #[cfg(test)]
 mod tests {
+    use rhdl_bits::bits;
+    use rhdl_core::test_with_iverilog;
+
     use super::*;
 
     #[test]
@@ -39,5 +42,11 @@ mod tests {
         assert!(any(bits));
         let bits: Bits<5> = 0b00000.into();
         assert!(!any(bits));
+    }
+
+    #[test]
+    fn test_iverilog() -> anyhow::Result<()> {
+        let test_values = (0..=255).map(bits).map(|x| (x,));
+        test_with_iverilog(any::<8>, any::<8>::kernel_fn(), test_values)
     }
 }

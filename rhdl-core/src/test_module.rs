@@ -206,6 +206,21 @@ impl TestModule {
     }
 }
 
+// This is split up so that in the future we can add additional
+// test programs (verilator?) and still keep the back end in place.
+#[cfg(feature = "iverilog")]
+pub fn test_with_iverilog<F, Args, T0>(
+    uut: F,
+    desc: KernelFnKind,
+    vals: impl Iterator<Item = Args>,
+) -> anyhow::Result<()>
+where
+    F: Testable<Args, T0>,
+    T0: Digital,
+{
+    test_module(uut, desc, vals).run_iverilog()
+}
+
 #[cfg(test)]
 mod tests {
     use crate::digital_fn::DigitalFn;

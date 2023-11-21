@@ -8,3 +8,7 @@ edition = "2021"
 [dependencies]
 rhdl-bits = { version = "0.1.0", path = "../rhdl-bits" }
 rhdl-core = { version = "0.1.0", path = "../rhdl-core" }
+
+[dev-dependencies]
+anyhow = "1.0.75"
+rhdl-core = { path = "../rhdl-core", features = ["iverilog"] }

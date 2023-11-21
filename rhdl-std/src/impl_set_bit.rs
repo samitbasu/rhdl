@@ -74,4 +74,10 @@ mod tests {
         bits = set_bit(bits, 1, true);
         assert_eq!(bits.0, u128::MAX);
     }
+
+    #[test]
+    fn test_iverilog() -> anyhow::Result<()> {
+        let test_values = (0..=255).map(|x| (Bits::<8>::from(x), x % 8, x % 2 == 0));
+        rhdl_core::test_with_iverilog(set_bit::<8>, set_bit::<8>::kernel_fn(), test_values)
+    }
 }
