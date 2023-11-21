@@ -30,6 +30,7 @@ pub mod display_rhif;
 //pub mod dot;
 pub mod digital_fn;
 pub mod infer_types;
+pub mod iverilog;
 pub mod kernel;
 pub mod path;
 pub mod rhif;
