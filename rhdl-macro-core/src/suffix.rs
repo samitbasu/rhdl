@@ -1,5 +1,5 @@
 use syn::visit_mut::VisitMut;
-use syn::{parse_quote, Arm, Expr, Lit, LitInt, Pat, PatTupleStruct};
+use syn::{parse_quote, Expr, Lit, LitInt};
 
 pub struct CustomSuffix;
 

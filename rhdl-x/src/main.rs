@@ -3,6 +3,7 @@ use anyhow::{anyhow, bail};
 use rhdl_bits::alias::{b12, b4, b8};
 use rhdl_core::{Digital, Kind};
 use rhdl_macro::Digital;
+use std::alloc::Layout;
 use std::collections::{BTreeMap, HashSet};
 use std::env::args;
 use std::path::Path;
@@ -10,6 +11,7 @@ use std::{collections::HashMap, fmt::Display};
 use std::{default, vec};
 use syn::token::In;
 use utils::IndentingFormatter;
+use zerocopy::AsBytes;
 
 pub mod utils;
 
@@ -217,6 +219,11 @@ fn shift<const N: u128>(x: b8) -> b8 {
 impl Hello for Color {}
 
 fn main() {
+    // Some facts about Color
+
+    let layout = Layout::new::<Color>();
+    eprintln!("Color layout: {:?}", layout);
+
     // Check for default via variant syntax
     let a = Color::Red; // a is Color::Red
     a.hello();
