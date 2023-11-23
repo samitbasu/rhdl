@@ -218,6 +218,83 @@ fn shift<const N: u128>(x: b8) -> b8 {
 
 impl Hello for Color {}
 
+// Logging playground.
+
+// Need a basic macro called `vcd!` that does the following:
+// 1. Takes a log level (optionally), like error, warn, info, debug, trace.
+// 2. Takes a target name (optionally), like "foo", "bar", "baz".  Must be a string literal.
+// 3. Takes an object to log, which must impl the Digital trait.
+// Given these three, the macro should
+//  1. Acquire the thread-local global logger object (which must be set up)
+//  2. Call the logger's log method, passing the log level, target name, and object to log.
+// The logger object must be a thread-local global, and must be set up by the user.
+// The logger object must impl the Logger trait, which is defined in rhdl-core.
+
+// For a generalized logging to work, we need both a serialization and dynamic deserialization
+// mechanism.  Something like:
+// 1. A Digital Object --> byte array.
+// 2. Given a Kind + a byte array, query a serialized object
+//
+
+// We don't actually need the Digital Object to be a trait object.  It would be sufficient to
+// convert it into a Record, and then have _that_ be the trait object.  But it really doesn't
+// matter.  In the end, we want to inspect the records at run time.
+//
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum NoteLevel {
+    Error = 0,
+    Warn,
+    Info,
+    Debug,
+    Trace,
+}
+
+#[macro_export]
+macro_rules! note {
+    (target: $target:literal, $lvl:expr, $value:expr) => {{
+        let lvl = $lvl;
+        $crate::note(
+            lvl,
+            concat!(
+                module_path!(),
+                "::",
+                file!(),
+                "::",
+                line!(),
+                "::",
+                column!(),
+                "::",
+                $target
+            ),
+            &$value,
+        )
+    }};
+    // note!(level, value) --> note!(target: module_path)
+    ($lvl: expr, $value: expr) => {{
+        let lvl = $lvl;
+        $crate::note(
+            lvl,
+            concat!(
+                module_path!(),
+                "::",
+                file!(),
+                "::",
+                line!(),
+                "::",
+                column!(),
+                "::",
+                stringify!($value)
+            ),
+            &$value,
+        )
+    }};
+}
+
+fn note(lvl: NoteLevel, target: &'static str, value: &impl Digital) {
+    eprintln!("{:?}: {} = {:?}", lvl, target, value.typed_bits());
+}
+
 fn main() {
     // Some facts about Color
 
@@ -227,6 +304,9 @@ fn main() {
     // Check for default via variant syntax
     let a = Color::Red; // a is Color::Red
     a.hello();
+    note!(target: "b", NoteLevel::Debug, a);
+    note!(NoteLevel::Info, a);
+    //    note!(0, a);
     let b = Color::Green(Default::default());
     b.hello();
     let c = Color::Blue {
