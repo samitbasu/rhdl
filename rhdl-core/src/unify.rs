@@ -293,8 +293,7 @@ mod tests {
         subst.unify(a.clone(), b.clone()).unwrap();
         subst.unify(a.clone(), c.clone()).unwrap();
         subst.unify(b.clone(), ty_bits(8)).unwrap();
-        subst.unify(c.clone(), ty_bits(1)).unwrap();
-        print!("{}", subst);
+        assert!(subst.unify(c.clone(), ty_bits(1)).is_err());
     }
 
     #[test]
@@ -330,7 +329,7 @@ mod tests {
         let a = Term::Var(TypeId(0));
         let b = Term::Var(TypeId(1));
         subst.unify(a.clone(), b.clone()).unwrap();
-        subst.unify(b.clone(), tuple(vec![a])).unwrap();
+        assert!(subst.unify(b.clone(), tuple(vec![a])).is_err());
     }
 
     // Test the reference case...

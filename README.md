@@ -87,3 +87,97 @@ risk than a technical one.
 - [ ] Write a RHIF -> Verilog assembler
 - [ ] Port the `RustHDL` widget library to `RHDL`
 - [ ] Port the various FPGA BSPs to `RustHDL` from `RHDL`.
+
+# Logging - Rethought
+
+So one challenge with the current logging infrastructure is that it was designed before I realized
+that `rhdl` was going evolve the way it did.  So it needs a revisit.  If we lean more heavily towards
+software logging and the `log` facade instead of hardware logging and the `vcd` concept, then we want
+something as simple as:
+
+```rust
+vcd!("target", <value>)
+```
+where `value: Digital`.  Key ideas:
+
+1. The "target" string can be combined with the module/file source location to get a unique 
+  string that serves as a key for the log site.
+2. The timestamp is held in the global logger state.
+3. Thread local storage can be used in the future to allow for multiple loggers.
+4. The `vcd` macro records a log of name/value pairs into a global db.  Delta compression is
+applied somehow (which means it needs a way to compare values).
+5. Later, the DB can be post-processed to generate VCD files.
+
+We can also support the idea of logging/tracing levels.  Something like:
+
+```rust
+vcd!(level, "target", <value>)
+```
+
+The kernel proc-macro can just omit `vcd!` calls.
+
+
+
+The core idea is still good.
+The primary points of the new logging design are:
+
+- Logging inside the "hot loop" needs to be super quick.
+- Filters on the logging level can still be set on the log context.
+- Context based logging - i.e., hierarchical names to identify log points
+
+The base of storing data is to keep logs organized into streams of a given type.  Let's say we have a
+function that serializes a Digital type into some Bytes.  I.e., assume that for any Digital data structure,
+we can call
+
+```rust
+let y = x.log(); // <-- converts x into a log friendly representation
+```
+
+The idea is that we can then stash this byte slice into a bucket that is indexed by a simple integer.  So that
+a log database looks something like (without worrying too much about performance just yet).
+
+```rust
+// New type to wrap the log index
+struct LogIndex(usize);
+
+// Log ID if allocated.  If not, it will have index: None.
+struct LogID<T: Digital> {
+  index: Option<LogIndex>,
+  level: LogLevel,
+  _kind: Phantom<T>,
+}
+
+// A log record, consisting of the serialized bytes and the timestamp.
+struct LogRecord {
+  data: Bytes,
+  time: u64,
+}
+
+// For a log stream, the kind of the log data, 
+struct LogDetails {
+  name: String,
+  kind: Kind,
+}
+
+// The log database is then just a list of data streams
+struct LogDatabase {
+  records: HashMap<LogIndex, LogRecord>,
+  index: HashMap<LogIndex, LogDetails>,
+}
+```
+
+Logging within a kernel then looks something like:
+
+```rust
+
+struct S {
+    inputs_log: LogID<I>,
+}
+
+fn foo_state(inputs: I, state: S) -> S {
+  log.record(state.inputs_log, inputs);
+}
+```
+
+We could also split out the log context from the inputs and the
+state. But that means you have to maintain a separate call 

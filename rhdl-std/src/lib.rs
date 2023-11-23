@@ -4,10 +4,11 @@
 //! the [Bits] value.  If you request more bits than the [Bits] value has, the extra
 //! bits will be initialized to 0.
 //!
-//! ```
+//! ```[should_panic]
 //! # use rhdl_bits::{Bits, alias::*};
+//! # use rhdl_std::*;
 //! let bits: b8 = 0b1101_1010.into();
-//! let word: b16 = bits.slice(0);
+//! let word: b16 = slice::<16,8>(bits,0);
 //! assert_eq!(word, 0b0000_0000_1101_1010);
 //! ```
 //!
@@ -15,10 +16,11 @@
 //! are sign-extended, not zero-extended.  And the end result is a [Bits] type,
 //! not a [SignedBits] type.  For example:
 //!
-//! ```
+//! ```[should_panic]
 //! # use rhdl_bits::{alias::*};
+//! # use rhdl_std::*;
 //! let bits: s8 = (-42).into();
-//! let word: b16 = bits.slice(0);
+//! let word: b16 = slice::<8, 16>(as_unsigned::<8>(bits),0);
 //! assert_eq!(word, 0xFF_D6);
 //! ```
 //!
@@ -28,8 +30,9 @@
 //!
 //! ```
 //! # use rhdl_bits::{alias::*};
+//! # use rhdl_std::*;
 //! let bits: s8 = (-42).into();
-//! let nibble: b4 = bits.slice(0);
+//! let nibble: b4 = slice::<8, 4>(as_unsigned::<8>(bits),0);
 //! assert_eq!(nibble, 6);
 //! ```
 //!
@@ -40,9 +43,10 @@
 //! For example:
 //! ```
 //! # use rhdl_bits::{Bits, alias::*};
+//! # use rhdl_std::*;
 //! let bits: b8 = 0b1101_1010.into();
 //! let nibble: b4 = 0b1111.into();
-//! let result = bits.slice(4) & nibble;
+//! let result = slice::<8, 4>(bits, 4) & nibble;
 //! assert_eq!(result, 0b1101);
 //! ```
 //!
