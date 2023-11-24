@@ -4,7 +4,7 @@ pub trait Logger: Sized {
     type Impl: LoggerImpl;
     fn set_time_in_fs(&mut self, time: u64);
     fn log<T: Digital>(&mut self, tag: TagID<T>, val: T) {
-        val.record(tag, self.get_impl())
+        //val.record(tag, self.get_impl())
     }
     fn get_impl(&mut self) -> &mut Self::Impl;
 }

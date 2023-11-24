@@ -31,6 +31,7 @@ pub mod display_rhif;
 pub mod digital_fn;
 pub mod infer_types;
 pub mod kernel;
+pub mod note;
 pub mod path;
 pub mod rhif;
 pub mod rhif_type;

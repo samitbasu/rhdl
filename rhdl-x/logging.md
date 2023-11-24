@@ -234,3 +234,26 @@ impl NoteWriter for BasicNoteWriter {
 I think this will work.  It is simple, transparent, configurable.  The magic of a hierarchical
 call setup is lost, but I think it's worth it.  
 
+Additional difficulties arise.  You cannot do this:
+
+```rust
+fn foo(key: &'static str) {
+    let k = concat!(key, ".");
+}
+
+```
+
+Because `concat!` only works with string literals.  Makes sense, since we want this resolved
+at compile time, but the compiler does not know contents of `key`.  
+
+So we need another strategy.  One option is to think of the key not as a static string, but as
+a tuple of static strings.  Something like:
+
+```rust
+fn foo(key: &'static str) {
+    let k = (key, ".");
+}
+```
+
+We can make the `foo` function generic over a trait that is implemented only for static strings
+and tuples of them.  
