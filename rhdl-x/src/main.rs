@@ -295,11 +295,42 @@ fn note(lvl: NoteLevel, target: &'static str, value: &impl Digital) {
     eprintln!("{:?}: {} = {:?}", lvl, target, value.typed_bits());
 }
 
+enum Record {
+    Bool(bool),
+    Bits(u128, u8),
+    Signed(i128, u8),
+    String(&'static str),
+}
+
+struct TimeLine<T> {
+    times: Vec<u64>,
+    values: Vec<T>,
+    size: u8,
+}
+
+struct NoteDB {
+    bools: HashMap<&'static str, TimeLine<bool>>,
+    bits: HashMap<&'static str, TimeLine<u128>>,
+    signed: HashMap<&'static str, TimeLine<i128>>,
+    strings: HashMap<&'static str, TimeLine<&'static str>>,
+    time: u64,
+}
+
+trait NoteWriter {
+    fn write_bool(&mut self, target: &'static str, value: bool);
+    fn write_bits(&mut self, target: &'static str, value: u128, size: u8);
+    fn write_signed(&mut self, target: &'static str, value: i128, size: u8);
+    fn write_string(&mut self, target: &'static str, value: &'static str);
+}
+
 fn main() {
     // Some facts about Color
 
     let layout = Layout::new::<Color>();
     eprintln!("Color layout: {:?}", layout);
+
+    let layout = Layout::new::<Record>();
+    eprintln!("Record layout: {:?}", layout);
 
     // Check for default via variant syntax
     let a = Color::Red; // a is Color::Red

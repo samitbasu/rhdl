@@ -62,6 +62,10 @@ fn note(lvl: NoteLevel, target: &'static str, value: &impl Digital) {
 }
 ```
 
+Additional concern.  `note` is a function with side effects.  What happens when it is dropped from the
+HDL version?  Is there a potential for weirdness here?  It would be better if the `$value:expr` argument 
+was something that had no side effects.
+
 I am concerned that `typed_bits` will suffer from terrible performance.  So we 
 need somthing slightly better.  Ideally something that generates a Note.
 
@@ -94,6 +98,139 @@ struct StampedNote {
 }
 ```
 
-And then the `note` function could simply do:
+Better might be to have the Digital object serialize itself to a stream.  For example,
 
+```rust
+trait Digital {
+    fn note(&self, W: impl NoteWriter)
+}
+```
+
+Then `NoteSerializer` could have the following methods:
+
+```rust
+trait NoteWriter {
+    fn write_bool(&mut self, val: bool);
+    fn write_bits(&mut self, bits: u8, val: u128);
+    fn write_signed(&mut self, bits: u8, val: i128);
+    fn write_string(&mut self, val: &'static str);
+}
+```
+
+This would be sufficient for any `Digital` object to serialize itself to the `NoteWriter` stream.
+The resulting stream could contain an arbitrary representation.  The `Digital` object would not care
+how the data is represented. 
+
+For the data structure to be seekable, we need to be able to find the offset of any given field in
+the data structure without necessarily reading the entire data structure from scratch.  For now,
+let's assume that means we have a cursor interface to a Note.  A Cursor interface would have something
+like:
+
+```rust
+trait NoteCursor {
+    fn pos(&self) -> usize;
+    fn advance_bool(&mut self);
+    fn advance_bits(&mut self, bits: u8);
+    fn advance_signed(&mut self, bits: u8);
+    fn advance_string(&mut self);
+}
+```
+
+An alternate option would be to have the NoteDB itself store the unpacked representation.  This is 
+somewhat closer to what I had before with the Logging design.  In this design, we would simply add
+additional keys for each of the subelements of the data structure.  So something like:
+
+```rust
+trait Digital {
+    fn note(&self, key: &'static str, w: impl NoteWriter);
+}
+```
+
+We then have basic impls for the core types:
+
+```rust
+impl Digital for bool {
+    fn note(&self, key: &'static str, w: impl NoteWriter) {
+        w.write_bool(key, *self);
+    }
+}
+```
+
+And similarly
+```rust
+impl<const N: usize> Digital for Bits<N> {
+    fn note(&self, key: &'static str, w: impl NoteWriter) {
+        w.write_bits(key, N, *self.0);
+    }
+}
+```
+
+Then, when we have a struct, we can augment the keys using the `concat` macro.  So, for example:
+
+```rust
+struct Foo {
+    a: b4,
+    b: b23,
+}
+
+
+impl Digital for Foo {
+    fn note(&self, key: &'static str, w: impl NoteWriter) {
+        a.note(concat!(key, ".", stringify!(a)), &mut w);
+        b.note(concat!(key, ".", stringify!(b)), &mut w);
+    }
+}
+```
+
+This design means the individual structs no longer "exist" in the log stream.  They are just time series
+with name value pairs.  Which is ideal for both delta detection (change logging), as well as post processing.
+
+From a data storage efficiency perspective, the NoteWriter can even optimize over the size of the object being
+stored.  If it matters.  Since that is an optimization detail, for now, we can assume a super simple set of options.
+
+```rust
+
+enum NoteRecord {
+    Bool(bool),
+    Bits(u128, u8),
+    Signed(i128, u8),
+    String(&'static str),
+}
+
+struct TimedNoteRecord {
+    record: NoteRecord,
+    time: u64,
+}
+
+struct DeltaVec<T> {
+    vec: Vec<T>,
+}
+
+impl<T: PartialEq + Copy> DeltaVec<T> {
+    pub fn push(&mut self, val: T) {
+        if let Some(prev) = self.last() {
+            if prev != val {
+                self.vec.push(val)
+            }
+        } else {
+            self.vec.push(val)
+        }
+    }
+}
+
+struct BaseNoteWriter {
+    db: HashMap<&'static str, Vec<TimedNoteRecord>>,
+    time: u64,
+}
+
+impl NoteWriter for BasicNoteWriter {
+    fn write_bool(&mut self, key: &'static str, value: bool) {
+        self.db.entry(key).or_default().push(Timed::new(value, self.time));
+    }
+    fn write_bits(&mut self, key: &'static str, value: ...)...
+}
+```
+
+I think this will work.  It is simple, transparent, configurable.  The magic of a hierarchical
+call setup is lost, but I think it's worth it.  
 
