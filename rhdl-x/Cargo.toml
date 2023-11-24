@@ -9,10 +9,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
-proc-macro2 = "1.0.69"
-quote = "1.0.33"
-syn = { version = "2.0.39", features = ["full", "extra-traits", "visit-mut"] }
-rhdl-bits = { path = "../rhdl-bits" }
-rhdl-macro = { path = "../rhdl-macro" }
-rhdl-core = { path = "../rhdl-core" }
-zerocopy = { version = "0.7.26", features = ["derive"] }
+const-fnv1a-hash = "1.1.0"
+fnv = "1.0.7"
+lazy_static = "1.4.0"
+parking_lot = "0.12.1"
