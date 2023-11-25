@@ -121,7 +121,7 @@ fn parse_discriminant_width_attribute(attrs: &[Attribute]) -> syn::Result<Option
     Ok(None)
 }
 
-fn discriminant_width(discriminants: &[i64]) -> DiscriminantType {
+fn discriminant_kind(discriminants: &[i64]) -> DiscriminantType {
     let min = discriminants.iter().min().unwrap();
     let max = discriminants.iter().max().unwrap();
     if *min >= 0 {
@@ -269,38 +269,51 @@ fn variant_payload_bin(
     }
 }
 
-fn variant_payload_skip(variant: &Variant) -> TokenStream {
-    let field_types = variant.fields.iter().map(|f| &f.ty);
-    quote! (
-        #(
-            <#field_types as rhdl_core::Digital>::skip(tag, &mut logger);
-        )*
-    )
-}
-
-// Generate the body of a record function for a specific variant.
-// We write the variant name, and then for the matching payload,
-// we write the actual data.  For all other payloads, we call the
-// skip function.
-fn variant_payload_case<'a>(
-    variant: &Variant,
-    all_variants: impl Iterator<Item = &'a Variant>,
-) -> TokenStream {
-    // The skips have to be called in order
-    let record_or_skip = all_variants.map(|x| {
-        if x.ident == variant.ident {
-            variant_payload_record(x)
-        } else {
-            variant_payload_skip(x)
-        }
-    });
+fn variant_note_case(variant: &Variant, kind: DiscriminantType, disc: &i64) -> TokenStream {
     let variant_name = &variant.ident;
-    quote!(
-        logger.write_string(tag, stringify!(#variant_name));
-        #(
-            #record_or_skip
-        )*
-    )
+    let discriminant = match kind {
+        DiscriminantType::Unsigned(x) => {
+            let x = x as u8;
+            quote! {
+                writer.write_bits((key,".__disc"), #disc as u128, #x);
+            }
+        }
+        DiscriminantType::Signed(x) => {
+            let x = x as u8;
+            quote! {
+                writer.write_signed((key,".__disc"), #disc as i128, #x);
+            }
+        }
+    };
+    let payloads = match &variant.fields {
+        syn::Fields::Unit => quote! {},
+        syn::Fields::Unnamed(fields) => {
+            let field_names = fields
+                .unnamed
+                .iter()
+                .enumerate()
+                .map(|(i, _)| format_ident!("_{}", i));
+            let field_numbers = fields.unnamed.iter().enumerate().map(|(i, _)| i);
+            quote! {
+                #(
+                    rhdl_core::Digital::note(&#field_names, (key, #field_numbers), &mut writer);
+                )*
+            }
+        }
+        syn::Fields::Named(fields) => {
+            let field_names = fields.named.iter().map(|f| &f.ident);
+            quote! {
+                #(
+                    rhdl_core::Digital::note(&#field_names, (key, stringify!(#field_names)), &mut writer);
+                )*
+            }
+        }
+    };
+    quote! {
+        writer.write_string(key, stringify!(#variant_name));
+        #discriminant
+        #payloads
+    }
 }
 
 // Generate the payload destructure arguments used in the
@@ -333,40 +346,6 @@ fn variant_destructure_args(variant: &Variant) -> TokenStream {
     }
 }
 
-fn variant_allocate(variant: &Variant) -> TokenStream {
-    let variant_name = &variant.ident;
-    match &variant.fields {
-        syn::Fields::Unit => quote! {},
-        syn::Fields::Unnamed(fields) => {
-            let field_names = fields
-                .unnamed
-                .iter()
-                .enumerate()
-                .map(|(i, _)| syn::Index::from(i));
-            let field_types = fields.unnamed.iter().map(|f| &f.ty);
-            quote! (
-                {
-                    let mut builder = builder.namespace(stringify!(#variant_name));
-                    #(
-                        <#field_types as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(#field_names)));
-                    )*
-                }
-            )
-        }
-        syn::Fields::Named(fields) => {
-            let field_names = fields.named.iter().map(|f| &f.ident);
-            let field_types = fields.named.iter().map(|f| &f.ty);
-            quote!(
-            {
-                let mut builder = builder.namespace(stringify!(#variant_name));
-                #(
-                    <#field_types as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(#field_names)));
-                )*
-            })
-        }
-    }
-}
-
 pub const fn clog2(t: u128) -> usize {
     let mut p = 0;
     let mut b = 1;
@@ -379,6 +358,7 @@ pub const fn clog2(t: u128) -> usize {
 
 pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
     let enum_name = &decl.ident;
+    let fqdn = crate::utils::get_fqdn(&decl);
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
     let Data::Enum(e) = decl.data else {
         return Err(syn::Error::new(decl.span(), "Only enums can be digital"));
@@ -393,12 +373,6 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
     let variant_destructure_args = e.variants.iter().map(variant_destructure_args);
     let variant_destructure_args_for_bin = variant_destructure_args.clone();
     // For each variant, we need to create the allocate and record functions if the variant has fields
-    let allocate_fns = e.variants.iter().map(variant_allocate);
-    let record_fns = e
-        .variants
-        .iter()
-        .map(|variant| variant_payload_case(variant, e.variants.iter()));
-    let skip_fns = e.variants.iter().map(variant_payload_skip);
     let kind_mapping = e
         .variants
         .iter()
@@ -417,21 +391,26 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         .map(|x| x.transpose())
         .collect::<Result<Vec<_>, _>>()?;
     let discriminants_values = allocate_discriminants(&discriminants);
-    let width = discriminant_width(&discriminants_values);
+    let kind = discriminant_kind(&discriminants_values);
     let width_override = parse_discriminant_width_attribute(&decl.attrs)?;
-    let width = override_width(width, width_override)?;
-    let width_bits = width.bits();
+    let kind = override_width(kind, width_override)?;
+    let note_fns = e
+        .variants
+        .iter()
+        .zip(discriminants_values.iter())
+        .map(|(variant, discriminant)| variant_note_case(variant, kind, discriminant));
+    let width_bits = kind.bits();
     let discriminants = discriminants_values.iter().map(|x| quote! { #x });
     let bin_fns = e
         .variants
         .iter()
         .zip(discriminants_values.iter())
-        .map(|(variant, discriminant)| variant_payload_bin(variant, width, *discriminant));
+        .map(|(variant, discriminant)| variant_payload_bin(variant, kind, *discriminant));
     Ok(quote! {
         impl #impl_generics rhdl_core::Digital for #enum_name #ty_generics #where_clause {
             fn static_kind() -> rhdl_core::Kind {
                 rhdl_core::Kind::make_enum(
-                    stringify!(#enum_name),
+                    #fqdn,
                     vec![
                         #(
                             rhdl_core::Kind::make_variant(stringify!(#variant_names_for_kind), #kind_mapping, #discriminants)
@@ -449,25 +428,12 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                 })
 
             }
-            fn allocate<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
-                use rhdl_core::LogBuilder;
-                builder.namespace("$disc").allocate(tag, 0);
-                #(
-                    #allocate_fns
-                )*
-            }
-            fn record<L: rhdl_core::Digital>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
+            fn note(&self, key: impl NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {
                     #(
-                        Self::#variants #variant_destructure_args => {#record_fns},
+                        Self::#variants #variant_destructure_args => {#note_fns},
                     )*
                 }
-            }
-            fn skip<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
-                logger.skip(tag);
-                #(
-                    #skip_fns;
-                )*
             }
         }
     })

@@ -9,7 +9,9 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
-const-fnv1a-hash = "1.1.0"
 fnv = "1.0.7"
 lazy_static = "1.4.0"
 parking_lot = "0.12.1"
+rhdl-bits = { version = "0.1.0", path = "../rhdl-bits" }
+rhdl-core = { version = "0.1.0", path = "../rhdl-core" }
+rhdl-macro = { version = "0.0.2", path = "../rhdl-macro" }
