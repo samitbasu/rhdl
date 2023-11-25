@@ -3,165 +3,6 @@ use crate::utils::{assert_frag_eq, assert_tokens_eq};
 use super::*;
 
 #[test]
-fn test_allocate_function() {
-    let input: syn::DeriveInput = syn::parse_quote! {
-        enum Test {
-            A,
-            B(u32),
-            C { a: u32, b: u32 },
-        }
-    };
-    let e = match input.data {
-        Data::Enum(e) => e,
-        _ => panic!("Not an enum"),
-    };
-    let a = &e.variants[0];
-    let b = &e.variants[1];
-    let c = &e.variants[2];
-    let a_fn = variant_allocate(a);
-    let b_fn = variant_allocate(b);
-    let c_fn = variant_allocate(c);
-    assert_frag_eq(&quote! {}, &a_fn);
-    assert_frag_eq(
-        &quote! {
-            {
-                let mut builder = builder.namespace(stringify!(B));
-                <u32 as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(0)));
-            }
-        },
-        &b_fn,
-    );
-    assert_frag_eq(
-        &quote! {
-            {
-                let mut builder = builder.namespace(stringify!(C));
-                <u32 as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(a)));
-                <u32 as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(b)));
-            }
-        },
-        &c_fn,
-    );
-}
-
-#[test]
-fn test_variant_payload_record_function() {
-    let input: syn::DeriveInput = syn::parse_quote! {
-        enum Test {
-            A,
-            B(u32),
-            C { a: u32, b: u32 },
-        }
-    };
-    let e = match input.data {
-        Data::Enum(e) => e,
-        _ => panic!("Not an enum"),
-    };
-    let a = &e.variants[0];
-    let b = &e.variants[1];
-    let c = &e.variants[2];
-    let a_fn = variant_payload_record(a);
-    let b_fn = variant_payload_record(b);
-    let c_fn = variant_payload_record(c);
-    assert_frag_eq(&quote! {}, &a_fn);
-    assert_frag_eq(
-        &quote! {
-            _0.record(tag, &mut logger);
-        },
-        &b_fn,
-    );
-    assert_frag_eq(
-        &quote! {
-            a.record(tag, &mut logger);
-            b.record(tag, &mut logger);
-        },
-        &c_fn,
-    );
-}
-
-#[test]
-fn test_variant_payload_skip_function() {
-    let input: syn::DeriveInput = syn::parse_quote! {
-        enum Test {
-            A,
-            B(u32),
-            C { a: u32, b: u32 },
-        }
-    };
-    let e = match input.data {
-        Data::Enum(e) => e,
-        _ => panic!("Not an enum"),
-    };
-    let a = &e.variants[0];
-    let b = &e.variants[1];
-    let c = &e.variants[2];
-    let a_fn = variant_payload_skip(a);
-    let b_fn = variant_payload_skip(b);
-    let c_fn = variant_payload_skip(c);
-    assert_frag_eq(&quote! {}, &a_fn);
-    assert_frag_eq(
-        &quote! {
-            <u32 as rhdl_core::Digital>::skip(tag, &mut logger);
-        },
-        &b_fn,
-    );
-    assert_frag_eq(
-        &quote! {
-            <u32 as rhdl_core::Digital>::skip(tag, &mut logger);
-            <u32 as rhdl_core::Digital>::skip(tag, &mut logger);
-        },
-        &c_fn,
-    );
-}
-
-#[test]
-fn test_variant_payload_case_function() {
-    let input: syn::DeriveInput = syn::parse_quote! {
-        enum Test {
-            A,
-            B(u16),
-            C { a: u32, b: u8 },
-        }
-    };
-    let e = match input.data {
-        Data::Enum(e) => e,
-        _ => panic!("Not an enum"),
-    };
-    let a = &e.variants[0];
-    let b = &e.variants[1];
-    let c = &e.variants[2];
-    let a_fn = variant_payload_case(a, e.variants.iter());
-    let b_fn = variant_payload_case(b, e.variants.iter());
-    let c_fn = variant_payload_case(c, e.variants.iter());
-    assert_frag_eq(
-        &quote! {
-            logger.write_string(tag, stringify!(A));
-            <u16 as rhdl_core::Digital>::skip(tag, &mut logger);
-            <u32 as rhdl_core::Digital>::skip(tag, &mut logger);
-            <u8 as rhdl_core::Digital>::skip(tag, &mut logger);
-        },
-        &a_fn,
-    );
-    assert_frag_eq(
-        &quote! {
-            logger.write_string(tag, stringify!(B));
-            _0.record(tag, &mut logger);
-            <u32 as rhdl_core::Digital>::skip(tag, &mut logger);
-            <u8 as rhdl_core::Digital>::skip(tag, &mut logger);
-        },
-        &b_fn,
-    );
-    assert_frag_eq(
-        &quote! {
-            logger.write_string(tag, stringify!(C));
-            <u16 as rhdl_core::Digital>::skip(tag, &mut logger);
-            a.record(tag, &mut logger);
-            b.record(tag, &mut logger);
-        },
-        &c_fn,
-    );
-}
-
-#[test]
 fn test_variant_destructure_args_function() {
     let input: syn::DeriveInput = syn::parse_quote! {
         enum Test {
@@ -200,7 +41,7 @@ fn test_enum_derive() {
             impl rhdl_core::Digital for Test {
                 fn static_kind() -> rhdl_core::Kind {
                     rhdl_core::Kind::make_enum(
-                        stringify!(Test),
+                        concat!(module_path!(), stringify!(Test)),
                         vec![
                             rhdl_core::Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
                             rhdl_core::Kind::make_variant(stringify!(B),
@@ -237,71 +78,24 @@ fn test_enum_derive() {
                             },
                         )
                 }
-                fn allocate<L: rhdl_core::Digital>(
-                    tag: rhdl_core::TagID<L>,
-                    builder: impl rhdl_core::LogBuilder,
-                ) {
-                    use rhdl_core::LogBuilder;
-                    builder.namespace("$disc").allocate(tag, 0);
-                    {
-                        let mut builder = builder.namespace(stringify!(B));
-                        <Bits<
-                            16,
-                        > as rhdl_core::Digital>::allocate(
-                            tag,
-                            builder.namespace(stringify!(0)),
-                        );
-                    }
-                    {
-                        let mut builder = builder.namespace(stringify!(C));
-                        <Bits<
-                            32,
-                        > as rhdl_core::Digital>::allocate(
-                            tag,
-                            builder.namespace(stringify!(a)),
-                        );
-                        <Bits<
-                            8,
-                        > as rhdl_core::Digital>::allocate(
-                            tag,
-                            builder.namespace(stringify!(b)),
-                        );
-                    }
-                }
-                fn record<L: rhdl_core::Digital>(
-                    &self,
-                    tag: rhdl_core::TagID<L>,
-                    mut logger: impl rhdl_core::LoggerImpl,
-                ) {
+                fn note(&self, key: impl NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                     match self {
                         Self::A => {
-                            logger.write_string(tag, stringify!(A));
-                            <Bits<16> as rhdl_core::Digital>::skip(tag, &mut logger);
-                            <Bits<32> as rhdl_core::Digital>::skip(tag, &mut logger);
-                            <Bits<8> as rhdl_core::Digital>::skip(tag, &mut logger);
+                            writer.write_string(key, stringify!(A));
+                            writer.write_bits((key, ".__disc"), 1i64 as u128, 2u8);
                         }
                         Self::B(_0) => {
-                            logger.write_string(tag, stringify!(B));
-                            _0.record(tag, &mut logger);
-                            <Bits<32> as rhdl_core::Digital>::skip(tag, &mut logger);
-                            <Bits<8> as rhdl_core::Digital>::skip(tag, &mut logger);
+                            writer.write_string(key, stringify!(B));
+                            writer.write_bits((key, ".__disc"), 2i64 as u128, 2u8);
+                            rhdl_core::Digital::note(&_0, (key, 0usize), &mut writer);
                         }
                         Self::C { a, b } => {
-                            logger.write_string(tag, stringify!(C));
-                            <Bits<16> as rhdl_core::Digital>::skip(tag, &mut logger);
-                            a.record(tag, &mut logger);
-                            b.record(tag, &mut logger);
+                            writer.write_string(key, stringify!(C));
+                            writer.write_bits((key, ".__disc"), 3i64 as u128, 2u8);
+                            rhdl_core::Digital::note(&a, (key, stringify!(a)), &mut writer);
+                            rhdl_core::Digital::note(&b, (key, stringify!(b)), &mut writer);
                         }
                     }
-                }
-                fn skip<L: rhdl_core::Digital>(
-                    tag: rhdl_core::TagID<L>,
-                    mut logger: impl rhdl_core::LoggerImpl,
-                ) {
-                    logger.skip(tag);
-                    <Bits<16> as rhdl_core::Digital>::skip(tag, &mut logger);
-                    <Bits<32> as rhdl_core::Digital>::skip(tag, &mut logger);
-                    <Bits<8> as rhdl_core::Digital>::skip(tag, &mut logger);
                 }
             }
         },
@@ -324,7 +118,7 @@ fn test_enum_no_payloads() {
         impl rhdl_core::Digital for State {
             fn static_kind() -> rhdl_core::Kind {
                 rhdl_core::Kind::make_enum(
-                    stringify!(State),
+                    concat!(module_path!(), stringify!(State)),
                     vec![
                         rhdl_core::Kind::make_variant(stringify!(Init), rhdl_core::Kind::Empty, 0i64),
                         rhdl_core::Kind::make_variant(stringify!(Boot), rhdl_core::Kind::Empty, 1i64),
@@ -358,41 +152,29 @@ fn test_enum_no_payloads() {
                         },
                     )
             }
-            fn allocate<L: rhdl_core::Digital>(
-                tag: rhdl_core::TagID<L>,
-                builder: impl rhdl_core::LogBuilder
-            ) {
-                use rhdl_core::LogBuilder;
-                builder.namespace("$disc").allocate(tag, 0);
-            }
-            fn record<L: rhdl_core::Digital>(
-                &self,
-                tag: rhdl_core::TagID<L>,
-                mut logger: impl rhdl_core::LoggerImpl
-            ) {
+            fn note(&self, key: impl NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {
                     Self::Init => {
-                        logger.write_string(tag, stringify!(Init));
+                        writer.write_string(key, stringify!(Init));
+                        writer.write_bits((key, ".__disc"), 0i64 as u128, 3u8);
                     }
                     Self::Boot => {
-                        logger.write_string(tag, stringify!(Boot));
+                        writer.write_string(key, stringify!(Boot));
+                        writer.write_bits((key, ".__disc"), 1i64 as u128, 3u8);
                     }
                     Self::Running => {
-                        logger.write_string(tag, stringify!(Running));
+                        writer.write_string(key, stringify!(Running));
+                        writer.write_bits((key, ".__disc"), 2i64 as u128, 3u8);
                     }
                     Self::Stop => {
-                        logger.write_string(tag, stringify!(Stop));
+                        writer.write_string(key, stringify!(Stop));
+                        writer.write_bits((key, ".__disc"), 3i64 as u128, 3u8);
                     }
                     Self::Boom => {
-                        logger.write_string(tag, stringify!(Boom));
+                        writer.write_string(key, stringify!(Boom));
+                        writer.write_bits((key, ".__disc"), 4i64 as u128, 3u8);
                     }
                 }
-            }
-            fn skip<L: rhdl_core::Digital>(
-                tag: rhdl_core::TagID<L>,
-                mut logger: impl rhdl_core::LoggerImpl
-            ) {
-                logger.skip(tag);
             }
         }
     };
@@ -413,7 +195,7 @@ fn test_enum_with_signed_discriminants() {
         impl rhdl_core::Digital for Test {
             fn static_kind() -> rhdl_core::Kind {
                 rhdl_core::Kind::make_enum(
-                    stringify!(Test),
+                    concat!(module_path!(), stringify!(Test)),
                     vec![
                         rhdl_core::Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
                         rhdl_core::Kind::make_variant(stringify!(B), rhdl_core::Kind::Empty, 9i64),
@@ -439,35 +221,21 @@ fn test_enum_with_signed_discriminants() {
                         },
                     )
             }
-            fn allocate<L: rhdl_core::Digital>(
-                tag: rhdl_core::TagID<L>,
-                builder: impl rhdl_core::LogBuilder
-            ) {
-                use rhdl_core::LogBuilder;
-                builder.namespace("$disc").allocate(tag, 0);
-            }
-            fn record<L: rhdl_core::Digital>(
-                &self,
-                tag: rhdl_core::TagID<L>,
-                mut logger: impl rhdl_core::LoggerImpl
-            ) {
+            fn note(&self, key: impl NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {
                     Self::A => {
-                        logger.write_string(tag, stringify!(A));
+                        writer.write_string(key, stringify!(A));
+                        writer.write_signed((key, ".__disc"), 1i64 as i128, 5u8);
                     }
                     Self::B => {
-                        logger.write_string(tag, stringify!(B));
+                        writer.write_string(key, stringify!(B));
+                        writer.write_signed((key, ".__disc"), 9i64 as i128, 5u8);
                     }
                     Self::C => {
-                        logger.write_string(tag, stringify!(C));
+                        writer.write_string(key, stringify!(C));
+                        writer.write_signed((key, ".__disc"), -8i64 as i128, 5u8);
                     }
                 }
-            }
-            fn skip<L: rhdl_core::Digital>(
-                tag: rhdl_core::TagID<L>,
-                mut logger: impl rhdl_core::LoggerImpl
-            ) {
-                logger.skip(tag);
             }
         }
     };
@@ -487,7 +255,7 @@ fn test_enum_with_discriminants() {
     let expected = quote! {
         impl rhdl_core::Digital for Test {
             fn static_kind() -> rhdl_core::Kind {
-                rhdl_core::Kind::make_enum(stringify!(Test), vec![rhdl_core::Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
+                rhdl_core::Kind::make_enum(concat!(module_path!(), stringify!(Test)), vec![rhdl_core::Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
                 rhdl_core::Kind::make_variant(stringify!(B), rhdl_core::Kind::Empty, 6i64),
                 rhdl_core::Kind::make_variant(stringify!(C), rhdl_core::Kind::Empty, 8i64)], 4usize, rhdl_core::DiscriminantAlignment::Msb)
             }
@@ -507,35 +275,21 @@ fn test_enum_with_discriminants() {
                         },
                     )
             }
-            fn allocate<L: rhdl_core::Digital>(
-                tag: rhdl_core::TagID<L>,
-                builder: impl rhdl_core::LogBuilder
-            ) {
-                use rhdl_core::LogBuilder;
-                builder.namespace("$disc").allocate(tag, 0);
-            }
-            fn record<L: rhdl_core::Digital>(
-                &self,
-                tag: rhdl_core::TagID<L>,
-                mut logger: impl rhdl_core::LoggerImpl
-            ) {
+            fn note(&self, key: impl NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {
                     Self::A => {
-                        logger.write_string(tag, stringify!(A));
+                        writer.write_string(key, stringify!(A));
+                        writer.write_bits((key, ".__disc"), 1i64 as u128, 4u8);
                     }
                     Self::B => {
-                        logger.write_string(tag, stringify!(B));
+                        writer.write_string(key, stringify!(B));
+                        writer.write_bits((key, ".__disc"), 6i64 as u128, 4u8);
                     }
                     Self::C => {
-                        logger.write_string(tag, stringify!(C));
+                        writer.write_string(key, stringify!(C));
+                        writer.write_bits((key, ".__disc"), 8i64 as u128, 4u8);
                     }
                 }
-            }
-            fn skip<L: rhdl_core::Digital>(
-                tag: rhdl_core::TagID<L>,
-                mut logger: impl rhdl_core::LoggerImpl
-            ) {
-                logger.skip(tag);
             }
         }
     };
@@ -553,19 +307,19 @@ fn test_allocate_discriminants() {
 #[test]
 fn test_dicriminant_size_calculation() {
     let x = vec![-4, 3];
-    assert_eq!(discriminant_width(&x), DiscriminantType::Signed(3));
+    assert_eq!(discriminant_kind(&x), DiscriminantType::Signed(3));
     let x = vec![0, 3];
-    assert_eq!(discriminant_width(&x), DiscriminantType::Unsigned(2));
+    assert_eq!(discriminant_kind(&x), DiscriminantType::Unsigned(2));
     let x = vec![0, 3, 4];
-    assert_eq!(discriminant_width(&x), DiscriminantType::Unsigned(3));
+    assert_eq!(discriminant_kind(&x), DiscriminantType::Unsigned(3));
     let x = vec![-5, 3, 4, 5];
-    assert_eq!(discriminant_width(&x), DiscriminantType::Signed(4));
+    assert_eq!(discriminant_kind(&x), DiscriminantType::Signed(4));
     let x = vec![-1, 0, 1];
-    assert_eq!(discriminant_width(&x), DiscriminantType::Signed(2));
-    assert_eq!(discriminant_width(&[0, 1]), DiscriminantType::Unsigned(1));
-    assert_eq!(discriminant_width(&[0, 3]), DiscriminantType::Unsigned(2));
-    assert_eq!(discriminant_width(&[1, 7]), DiscriminantType::Unsigned(3));
-    assert_eq!(discriminant_width(&[-8, 0]), DiscriminantType::Signed(4));
+    assert_eq!(discriminant_kind(&x), DiscriminantType::Signed(2));
+    assert_eq!(discriminant_kind(&[0, 1]), DiscriminantType::Unsigned(1));
+    assert_eq!(discriminant_kind(&[0, 3]), DiscriminantType::Unsigned(2));
+    assert_eq!(discriminant_kind(&[1, 7]), DiscriminantType::Unsigned(3));
+    assert_eq!(discriminant_kind(&[-8, 0]), DiscriminantType::Signed(4));
 }
 
 #[test]

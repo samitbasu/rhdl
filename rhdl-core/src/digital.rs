@@ -364,7 +364,7 @@ mod test {
                     }
                     Self::Bool(b) => {
                         writer.write_string(key, stringify!(Bool));
-                        b.note((key, "b"), &mut writer);
+                        Digital::note(b, key, &mut writer);
                     }
                     Self::Tuple(b, c) => {
                         writer.write_string(key, stringify!(Tuple));
