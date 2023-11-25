@@ -61,7 +61,6 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
             let fields_3 = fields.clone();
             let fields_4 = fields.clone();
             let field_types = s.fields.iter().map(|x| &x.ty);
-            let field_types2 = field_types.clone();
             let field_types_3 = field_types.clone();
             Ok(quote! {
                 impl #impl_generics rhdl_core::Digital for #struct_name #ty_generics #where_clause {
@@ -81,19 +80,9 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         )*
                         result
                     }
-                    fn allocate<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, builder: impl rhdl_core::LogBuilder) {
+                    fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                         #(
-                            <#field_types as rhdl_core::Digital>::allocate(tag, builder.namespace(stringify!(#fields)));
-                        )*
-                    }
-                    fn record<L: rhdl_core::Digital>(&self, tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
-                        #(
-                            self.#fields2.record(tag, &mut logger);
-                        )*
-                    }
-                    fn skip<L: rhdl_core::Digital>(tag: rhdl_core::TagID<L>, mut logger: impl rhdl_core::LoggerImpl) {
-                        #(
-                            <#field_types2 as rhdl_core::Digital>::skip(tag, &mut logger);
+                            self.#fields2.note((key, stringify!(#fields)), &mut writer);
                         )*
                     }
                 }
