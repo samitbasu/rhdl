@@ -40,7 +40,7 @@ impl NoteKey for &'static str {
 
 impl NoteKey for usize {
     fn as_string(&self) -> String {
-        self.to_string()
+        format!("[{}]", self)
     }
 }
 

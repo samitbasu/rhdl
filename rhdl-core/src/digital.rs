@@ -2,10 +2,9 @@ use rhdl_bits::{Bits, SignedBits};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    logger::LoggerImpl,
     note::{NoteKey, NoteWriter},
     path::{bit_range, Path},
-    Kind, LogBuilder, TagID,
+    Kind,
 };
 
 /// This is the core trait for all of `RHDL` data elements.  If you
@@ -452,20 +451,14 @@ mod test {
                     Self::Boom => rhdl_bits::bits::<3>(4).to_bools(),
                 }
             }
-            fn allocate<L: Digital>(tag: TagID<L>, builder: impl LogBuilder) {
-                builder.allocate(tag, 0);
-            }
-            fn record<L: Digital>(&self, tag: TagID<L>, mut logger: impl LoggerImpl) {
+            fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
                 match self {
-                    Self::Init => logger.write_string(tag, stringify!(Init)),
-                    Self::Boot => logger.write_string(tag, stringify!(Boot)),
-                    Self::Running => logger.write_string(tag, stringify!(Running)),
-                    Self::Stop => logger.write_string(tag, stringify!(Stop)),
-                    Self::Boom => logger.write_string(tag, stringify!(Boom)),
+                    Self::Init => writer.write_string(key, stringify!(Init)),
+                    Self::Boot => writer.write_string(key, stringify!(Boot)),
+                    Self::Running => writer.write_string(key, stringify!(Running)),
+                    Self::Stop => writer.write_string(key, stringify!(Stop)),
+                    Self::Boom => writer.write_string(key, stringify!(Boom)),
                 }
-            }
-            fn skip<L: Digital>(tag: TagID<L>, mut logger: impl LoggerImpl) {
-                logger.skip(tag);
             }
         }
         let val = State::Boom;
