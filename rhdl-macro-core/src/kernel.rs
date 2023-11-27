@@ -1,7 +1,9 @@
 use std::collections::HashSet;
 
 use quote::{format_ident, quote};
-use syn::{spanned::Spanned, ExprPath, Ident, Pat, Path, Type};
+use syn::{
+    punctuated::Punctuated, spanned::Spanned, token::Comma, ExprPath, Ident, Pat, Path, Type,
+};
 type TS = proc_macro2::TokenStream;
 type Result<T> = syn::Result<T>;
 
@@ -144,6 +146,59 @@ pub fn hdl_kernel(input: TS) -> Result<TS> {
     context.function(input)
 }
 
+// put the original function inside a wrapper function with the name of the original.
+// Call the wrapped function 'inner'
+// Capture the return of the wrapped function
+// Call note_push("function_name") before calling the wrapped function
+// call note_pop() after calling the wrapped function
+// So it should go from this:
+//
+//  fn my_func(args) -> Ret {
+//      body
+//  }
+//
+// to
+//
+//  fn my_func(args) -> Ret {
+//      fn inner(args) -> Ret { body }
+//      note_push("my_func");
+//      let ret = inner(args);
+//      note_pop();
+//      ret
+//  }
+//
+fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
+    let orig_name = &function.sig.ident;
+    let (impl_generics, ty_generics, where_clause) = function.sig.generics.split_for_impl();
+    let args = &function.sig.inputs;
+    let call_args = args
+        .iter()
+        .map(|arg| match arg {
+            syn::FnArg::Receiver(_) => Err(syn::Error::new(
+                arg.span(),
+                "Unsupported receiver in rhdl kernel function",
+            )),
+            syn::FnArg::Typed(pat) => {
+                let pat = &pat.pat;
+                Ok(quote! { #pat })
+            }
+        })
+        .collect::<Result<Punctuated<_, Comma>>>()?;
+    let ret = &function.sig.output;
+    let body = &function.block;
+    Ok(quote! {
+        fn #orig_name #impl_generics (#args) #ret #where_clause {
+            fn inner #impl_generics (#args) #ret #where_clause {
+                #body
+            }
+            rhdl_core::note_push_path(stringify!(#orig_name));
+            let ret = inner(#call_args);
+            rhdl_core::note_pop_path();
+            ret
+        }
+    })
+}
+
 impl Context {
     fn function(&mut self, function: syn::ItemFn) -> Result<TS> {
         let orig_name = &function.sig.ident;
@@ -154,14 +209,13 @@ impl Context {
             .params
             .iter()
             .enumerate()
-            .map(|(ndx, param)| {
+            .filter_map(|(ndx, param)| {
                 let ident = format_ident!("__phantom_{}", ndx);
-                let ty = match param {
-                    syn::GenericParam::Type(ty) => &ty.ident,
-                    syn::GenericParam::Lifetime(lt) => &lt.lifetime.ident,
-                    syn::GenericParam::Const(cst) => &cst.ident,
-                };
-                quote! {#ident: std::marker::PhantomData<#ty>}
+                if let syn::GenericParam::Type(ty) = param {
+                    Some(quote! {#ident: std::marker::PhantomData<#ty>})
+                } else {
+                    None
+                }
             })
             .collect::<Vec<_>>();
         let name = &function.sig.ident;
@@ -203,10 +257,11 @@ impl Context {
                 }
             })
             .collect::<Result<Vec<_>>>()?;
+        let wrapped_function = note_wrap_function(&function)?;
         Ok(quote! {
-            #function
+            #wrapped_function
 
-            struct #name #ty_generics {#(#phantom_fields,)*}
+            struct #name #impl_generics {#(#phantom_fields,)*}
 
             impl #impl_generics rhdl_core::digital_fn::DigitalFn for #name #ty_generics #where_clause {
                 fn kernel_fn() -> rhdl_core::digital_fn::KernelFnKind {
@@ -455,6 +510,13 @@ impl Context {
                 "Unsupported function call in rhdl kernel function (only paths allowed here)",
             ));
         };
+        if let Some(name) = func_path.path.segments.last() {
+            if name.ident == "note" {
+                return Ok(quote! {
+                    rhdl_core::ast_builder::block_expr(rhdl_core::ast_builder::block(vec![]))
+                });
+            }
+        }
         // Kludge - I don't know how else to do this.  We want to differentiate
         // between the builtin variant constructor function and a RHDL kernel.
         // Unfortunately, the only way to do this is by adding some convention or
