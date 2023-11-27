@@ -1,5 +1,5 @@
 use crate::{ClockDetails, Digital, NoteKey, NoteWriter};
-use anyhow::{anyhow, bail};
+use anyhow::bail;
 use std::{cell::RefCell, hash::Hasher, io::Write};
 use vcd::IdCode;
 
@@ -27,7 +27,6 @@ impl<T> TimeSeries<T> {
             kind: details.kind,
             next_time: Some(x.0),
             hash: details.hash,
-            width: self.width,
             ptr: 0,
             code,
             code_as_bytes: code.to_string().into_bytes(),
@@ -49,7 +48,7 @@ impl TimeSeries<bool> {
         cursor: &mut Cursor,
         writer: &mut vcd::Writer<W>,
     ) -> anyhow::Result<()> {
-        if let Some((time, value)) = self.values.get(cursor.ptr) {
+        if let Some((_time, value)) = self.values.get(cursor.ptr) {
             writer
                 .writer()
                 .write_all(if *value { b"1" } else { b"0" })?;
@@ -70,7 +69,7 @@ impl TimeSeries<u128> {
         writer: &mut vcd::Writer<W>,
     ) -> anyhow::Result<()> {
         let mut sbuf = [0_u8; 256];
-        if let Some((time, value)) = self.values.get(cursor.ptr) {
+        if let Some((_time, value)) = self.values.get(cursor.ptr) {
             sbuf[0] = b'b';
             bits_to_vcd(*value, self.width as usize, &mut sbuf[1..]);
             sbuf[self.width as usize + 1] = b' ';
@@ -94,7 +93,7 @@ impl TimeSeries<i128> {
         writer: &mut vcd::Writer<W>,
     ) -> anyhow::Result<()> {
         let mut sbuf = [0_u8; 256];
-        if let Some((time, value)) = self.values.get(cursor.ptr) {
+        if let Some((_time, value)) = self.values.get(cursor.ptr) {
             sbuf[0] = b'b';
             bits_to_vcd(*value as u128, self.width as usize, &mut sbuf[1..]);
             sbuf[self.width as usize + 1] = b' ';
@@ -117,8 +116,8 @@ impl TimeSeries<&'static str> {
         cursor: &mut Cursor,
         writer: &mut vcd::Writer<W>,
     ) -> anyhow::Result<()> {
-        if let Some((time, value)) = self.values.get(cursor.ptr) {
-            writer.change_string(cursor.code, *value)?;
+        if let Some((_time, value)) = self.values.get(cursor.ptr) {
+            writer.change_string(cursor.code, value)?;
             self.advance_cursor(cursor);
             Ok(())
         } else {
@@ -129,16 +128,13 @@ impl TimeSeries<&'static str> {
 
 impl<T: PartialEq> TimeSeries<T> {
     fn push(&mut self, time: u64, value: T, width: u8) {
-        if let Some((last_time, last_value)) = self.values.last() {
+        if let Some((_last_time, last_value)) = self.values.last() {
             if *last_value == value {
                 return;
             }
         }
         self.values.push((time, value));
         assert_eq!(self.width, width);
-    }
-    fn len(&self) -> usize {
-        self.values.len()
     }
 }
 
@@ -173,7 +169,6 @@ struct Cursor {
     next_time: Option<u64>,
     hash: TimeSeriesHash,
     kind: TimeSeriesKind,
-    width: u8,
     ptr: usize,
     code: IdCode,
     code_as_bytes: Vec<u8>,
@@ -278,9 +273,6 @@ impl NoteDB {
                 .insert(key_hash, TimeSeries::new(self.time, value, 0));
         }
     }
-    fn first_sample_time<T>(series: &TimeSeries<T>) -> u64 {
-        series.values.first().map(|x| x.0).unwrap_or(0)
-    }
     fn setup_cursor<W: Write>(
         &self,
         name: &str,
@@ -351,26 +343,6 @@ pub fn note(key: impl NoteKey, value: impl Digital) {
     DB.with(|db| {
         let mut db = db.borrow_mut();
         value.note(key, &mut *db);
-    });
-}
-
-pub fn dump() {
-    DB.with(|db| {
-        let db = db.borrow();
-        for (key, series) in &db.details {
-            if let Some(values) = db.db_bool.get(&series.hash) {
-                println!("{}: {}", key, values.len());
-            }
-            if let Some(values) = db.db_bits.get(&series.hash) {
-                println!("{}: {}", key, values.len());
-            }
-            if let Some(values) = db.db_signed.get(&series.hash) {
-                println!("{}: {}", key, values.len());
-            }
-            if let Some(values) = db.db_string.get(&series.hash) {
-                println!("{}: {}", key, values.len());
-            }
-        }
     });
 }
 
@@ -462,7 +434,7 @@ mod tests {
         let clock = ClockDetails::new("clk", 5, 0, false);
         dump_vcd(&[clock], &mut vcd).unwrap();
         let vcd = String::from_utf8(vcd).unwrap();
-        std::fs::write("test.vcd", &vcd).unwrap();
+        std::fs::write("test.vcd", vcd).unwrap();
     }
 
     #[test]
@@ -607,6 +579,6 @@ mod tests {
         let mut vcd = vec![];
         dump_vcd(&[clock], &mut vcd).unwrap();
         let vcd = String::from_utf8(vcd).unwrap();
-        std::fs::write("test_enum.vcd", &vcd).unwrap();
+        std::fs::write("test_enum.vcd", vcd).unwrap();
     }
 }
