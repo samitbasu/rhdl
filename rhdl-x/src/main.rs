@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use rhdl_bits::bits;
-use rhdl_core::{note, note_db::dump};
+use rhdl_core::{note, note_db::dump_vcd};
 use rhdl_x::Foo;
 
 fn main() {
@@ -15,5 +15,8 @@ fn main() {
         note("foo", foo);
     }
     eprintln!("{}ms", start.elapsed().as_millis());
-    dump();
+    let mut s = vec![];
+    let start = Instant::now();
+    dump_vcd(&[], s).unwrap();
+    eprintln!("{}ms", start.elapsed().as_millis());
 }
