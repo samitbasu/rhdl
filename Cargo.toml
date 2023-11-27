@@ -3,10 +3,10 @@ resolver = "2"
 members = [
     "rhdl",
     "rhdl-bits",
-    "rhdl-basic-logger",
     "rhdl-macro-core",
     "rhdl-core",
     "rhdl-macro",
     "rhdl-fuzz",
     "rhdl-std",
+    "rhdl-basic-logger",
 ]

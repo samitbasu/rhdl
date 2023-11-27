@@ -40,12 +40,14 @@ impl NoteKey for &'static str {
 
 impl NoteKey for usize {
     fn as_string(&self) -> String {
-        format!("[{}]", self)
+        format!("{}", self)
     }
 }
 
 impl<T: NoteKey, U: NoteKey> NoteKey for (T, U) {
     fn as_string(&self) -> String {
-        format!("{}{}", self.0.as_string(), self.1.as_string())
+        format!("{}::{}", self.0.as_string(), self.1.as_string())
     }
 }
+
+
