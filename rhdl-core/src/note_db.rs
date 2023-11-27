@@ -1,5 +1,6 @@
 use crate::{ClockDetails, Digital, NoteKey, NoteWriter};
 use anyhow::bail;
+use std::hash::Hash;
 use std::{cell::RefCell, hash::Hasher, io::Write};
 use vcd::IdCode;
 
@@ -162,6 +163,7 @@ struct NoteDB {
     db_signed: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<i128>>,
     db_string: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<&'static str>>,
     details: fnv::FnvHashMap<String, TimeSeriesDetails>,
+    path: Vec<&'static str>,
     time: u64,
 }
 
@@ -201,8 +203,15 @@ impl NoteWriter for NoteDB {
 }
 
 impl NoteDB {
+    fn push_path(&mut self, name: &'static str) {
+        self.path.push(name);
+    }
+    fn pop_path(&mut self) {
+        self.path.pop();
+    }
     fn note_bool(&mut self, key: impl NoteKey, value: bool) {
         let mut hasher = fnv::FnvHasher::default();
+        let key = (&self.path[..], key);
         key.hash(&mut hasher);
         let key_hash = hasher.finish() as TimeSeriesHash;
         if let Some(values) = self.db_bool.get_mut(&key_hash) {
@@ -221,6 +230,7 @@ impl NoteDB {
     }
     fn note_u128(&mut self, key: impl NoteKey, value: u128, width: u8) {
         let mut hasher = fnv::FnvHasher::default();
+        let key = (&self.path[..], key);
         key.hash(&mut hasher);
         let key_hash = hasher.finish() as TimeSeriesHash;
         if let Some(values) = self.db_bits.get_mut(&key_hash) {
@@ -239,6 +249,7 @@ impl NoteDB {
     }
     fn note_i128(&mut self, key: impl NoteKey, value: i128, width: u8) {
         let mut hasher = fnv::FnvHasher::default();
+        let key = (&self.path[..], key);
         key.hash(&mut hasher);
         let key_hash = hasher.finish() as TimeSeriesHash;
         if let Some(values) = self.db_signed.get_mut(&key_hash) {
@@ -257,6 +268,7 @@ impl NoteDB {
     }
     fn note_string(&mut self, key: impl NoteKey, value: &'static str) {
         let mut hasher = fnv::FnvHasher::default();
+        let key = (&self.path[..], key);
         key.hash(&mut hasher);
         let key_hash = hasher.finish() as TimeSeriesHash;
         if let Some(values) = self.db_string.get_mut(&key_hash) {
@@ -330,6 +342,20 @@ impl NoteDB {
 
 thread_local! {
     static DB: RefCell<NoteDB> = RefCell::new(NoteDB::default());
+}
+
+pub fn note_push_path(name: &'static str) {
+    DB.with(|db| {
+        let mut db = db.borrow_mut();
+        db.push_path(name);
+    });
+}
+
+pub fn note_pop_path() {
+    DB.with(|db| {
+        let mut db = db.borrow_mut();
+        db.pop_path();
+    });
 }
 
 pub fn note_time(time: u64) {
@@ -433,7 +459,6 @@ mod tests {
         let mut vcd = vec![];
         let clock = ClockDetails::new("clk", 5, 0, false);
         dump_vcd(&[clock], &mut vcd).unwrap();
-        let vcd = String::from_utf8(vcd).unwrap();
         std::fs::write("test.vcd", vcd).unwrap();
     }
 
@@ -578,7 +603,23 @@ mod tests {
         let clock = ClockDetails::new("clk", 100, 0, false);
         let mut vcd = vec![];
         dump_vcd(&[clock], &mut vcd).unwrap();
-        let vcd = String::from_utf8(vcd).unwrap();
         std::fs::write("test_enum.vcd", vcd).unwrap();
+    }
+
+    #[test]
+    fn test_vcd_with_nested_paths() {
+        for i in 0..10 {
+            note_time(i * 1000);
+            note_push_path("fn1");
+            note_push_path("fn2");
+            note("a", true);
+            note_pop_path();
+            note("a", rhdl_bits::bits::<6>(i as u128));
+            note_pop_path();
+        }
+        let mut vcd = vec![];
+        let clock = ClockDetails::new("clk", 500, 0, false);
+        dump_vcd(&[clock], &mut vcd).unwrap();
+        std::fs::write("test_nested_paths.vcd", vcd).unwrap();
     }
 }

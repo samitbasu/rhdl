@@ -45,3 +45,5 @@ pub use test_module::test_with_iverilog;
 pub use note::NoteKey;
 pub use note::NoteWriter;
 pub use note_db::note;
+pub use note_db::note_pop_path;
+pub use note_db::note_push_path;
