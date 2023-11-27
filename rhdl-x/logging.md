@@ -257,3 +257,53 @@ fn foo(key: &'static str) {
 
 We can make the `foo` function generic over a trait that is implemented only for static strings
 and tuples of them.  
+
+
+Solving multiple instances can also be done by including string literals in the structs, and making
+them ignored by the Digital trait.  Something like this:
+
+```rust
+struct MyState {
+    target: &'static str,
+}
+```
+
+Then when we call `note` from within the update function associated with MyState, we can include the
+target in the state in the key.
+
+```rust
+
+fn update() {
+    note!(target = q.target, ...)
+}
+```
+
+This approach would at least allow for the identification of different calls to `update` in the VCD.
+
+I could also use the `backtrace` crate to capture a backtrace at the point of the `note` call.  This
+seems pretty expensive tho.
+
+Another option would be to use some macro magic to insert caller information into the process.  Like
+the span based tracers do.  That would mean something like this.
+
+```rust
+#[kernel]
+fn foo<Generics>(args) -> ret {}
+```
+
+Expands to
+
+```rust
+fn foo<Generics>(args) -> ret {
+    note_set_context("foo");
+    // original foo() function
+    fn inner<Generics>(args) -> ret {
+        // original body goes here
+    }
+    let ret = inner::<Generics>(args);
+    note_clear_context();
+    return ret;
+}
+```
+
+In the NoteDB, the Key could be built from this context as needed.  The injection 
