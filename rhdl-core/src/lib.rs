@@ -27,6 +27,7 @@ pub mod digital_fn;
 pub mod infer_types;
 pub mod kernel;
 pub mod note;
+pub mod note_db;
 pub mod path;
 pub mod rhif;
 pub mod rhif_type;
@@ -43,3 +44,4 @@ pub use test_module::test_with_iverilog;
 
 pub use note::NoteKey;
 pub use note::NoteWriter;
+pub use note_db::note;
