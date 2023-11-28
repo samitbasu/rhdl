@@ -1,6 +1,10 @@
-use rhdl::basic_logger;
 use rhdl_bits::alias::*;
-use rhdl_core::{path::Path, Digital, Kind, LogBuilder, Logger};
+use rhdl_core::{
+    note,
+    note_db::{dump_vcd, note_time},
+    path::Path,
+    Digital, Kind,
+};
 use rhdl_macro::Digital;
 
 #[derive(Copy, Clone, PartialEq, Debug, Digital)]
@@ -211,35 +215,32 @@ fn test_documentation_svgs() {
 
 #[test]
 fn test_vcd_generation() {
-    let mut builder = basic_logger::Builder::default();
-    let tag = builder.tag("packet");
-    let mut logger = builder.build();
-    logger.set_time_in_fs(0);
-    logger.log(
-        tag,
+    note_time(0);
+    note(
+        "packet",
         Packet::Color {
             r: b8::from(0b10101010),
             g: b8::from(0b11010101),
             b: b8::from(0b11110000),
         },
     );
-    logger.set_time_in_fs(1_000);
-    logger.log(
-        tag,
+    note_time(1_000);
+    note(
+        "packet",
         Packet::Size {
             w: 0xDEAD.into(),
             h: 0xBEEF.into(),
         },
     );
-    logger.set_time_in_fs(2_000);
-    logger.log(tag, Packet::Position(0b1010.into(), 0b1101.into()));
-    logger.set_time_in_fs(3_000);
-    logger.log(tag, Packet::State(State::Boom));
-    logger.set_time_in_fs(4_000);
-    logger.log(tag, Packet::State(State::Init));
-    logger.set_time_in_fs(5_000);
-    logger.log(
-        tag,
+    note_time(2_000);
+    note("packet", Packet::Position(0b1010.into(), 0b1101.into()));
+    note_time(3_000);
+    note("packet", Packet::State(State::Boom));
+    note_time(4_000);
+    note("packet", Packet::State(State::Init));
+    note_time(5_000);
+    note(
+        "packet",
         Packet::Log {
             msg: 0xCAFE_BEEF.into(),
             level: LogLevel {
@@ -248,8 +249,8 @@ fn test_vcd_generation() {
             },
         },
     );
-    logger.set_time_in_fs(6_000);
-    logger.log(tag, Packet::State(State::Running));
+    note_time(6_000);
+    note("packet", Packet::State(State::Running));
     let mut vcd_file = std::fs::File::create("packet.vcd").unwrap();
-    logger.vcd(&mut vcd_file).unwrap();
+    dump_vcd(&[], vcd_file).unwrap();
 }

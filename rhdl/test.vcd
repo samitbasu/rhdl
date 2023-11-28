@@ -1,21 +1,12 @@
 $timescale 1 fs $end
 $scope module top $end
-$scope module  $end
-$scope module root $end
-$scope module simple $end
-$var wire 1 ! a $end
-$var wire 8 " b $end
-$upscope $end
-$upscope $end
-$upscope $end
+$var wire 8 ! __simple__b $end
+$var wire 1 " __simple__a $end
 $upscope $end
 $enddefinitions $end
 #0
-1!
-b10101010 "
+b10101010 !
+1"
 #1000
-0!
-b01010101 "
-#2000
-0!
-b01010101 "
+b01010101 !
+0"

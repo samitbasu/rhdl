@@ -1,113 +1,51 @@
 $timescale 1 fs $end
 $scope module top $end
-$scope module  $end
-$scope module root $end
-$scope module packet $end
-$var wire 0 ! $disc $end
-$var wire 8 " Color$r $end
-$var wire 8 # Color$g $end
-$var wire 8 $ Color$b $end
-$var wire 16 % Size$w $end
-$var wire 16 & Size$h $end
-$var wire 4 ' Position$0 $end
-$var wire 4 ( Position$1 $end
-$var wire 0 ) State$0$$disc $end
-$var wire 32 * Log$msg $end
-$var wire 8 + Log$level$level $end
-$var wire 1 , Log$level$active $end
-$upscope $end
-$upscope $end
-$upscope $end
+$var wire 1 ! __packet__level__active $end
+$var wire 8 " __packet__r $end
+$var wire 8 # __packet__b $end
+$var wire 0 $ __packet__0 $end
+$var wire 8 % __packet__g $end
+$var wire 16 & __packet__w $end
+$var wire 3 ' __packet__0__.__disc $end
+$var wire 0 ( __packet $end
+$var wire 32 ) __packet__msg $end
+$var wire 16 * __packet__h $end
+$var wire 4 + __packet__1 $end
+$var wire 8 , __packet__level__level $end
+$var wire 5 - __packet__.__disc $end
 $upscope $end
 $enddefinitions $end
 #0
-sColor !
 b10101010 "
-b11010101 #
-b11110000 $
-bxxxxxxxxxxxxxxxx %
-bxxxxxxxxxxxxxxxx &
-bxxxx '
-bxxxx (
-sX )
-bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx *
-bxxxxxxxx +
-x,
+b11110000 #
+b11010101 %
+sColor (
+b00001 -
 #1000
-sSize !
-bxxxxxxxx "
-bxxxxxxxx #
-bxxxxxxxx $
-b1101111010101101 %
-b1011111011101111 &
-bxxxx '
-bxxxx (
-sX )
-bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx *
-bxxxxxxxx +
-x,
+b1101111010101101 &
+sSize (
+b1011111011101111 *
+b00010 -
 #2000
-sPosition !
-bxxxxxxxx "
-bxxxxxxxx #
-bxxxxxxxx $
-bxxxxxxxxxxxxxxxx %
-bxxxxxxxxxxxxxxxx &
-b1010 '
-b1101 (
-sX )
-bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx *
-bxxxxxxxx +
-x,
+sPosition (
+b1101 +
+b00100 -
 #3000
-sState !
-bxxxxxxxx "
-bxxxxxxxx #
-bxxxxxxxx $
-bxxxxxxxxxxxxxxxx %
-bxxxxxxxxxxxxxxxx &
-bxxxx '
-bxxxx (
-sBoom )
-bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx *
-bxxxxxxxx +
-x,
+sBoom $
+b010 '
+sState (
+b01000 -
 #4000
-sState !
-bxxxxxxxx "
-bxxxxxxxx #
-bxxxxxxxx $
-bxxxxxxxxxxxxxxxx %
-bxxxxxxxxxxxxxxxx &
-bxxxx '
-bxxxx (
-sInit )
-bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx *
-bxxxxxxxx +
-x,
+sInit $
+b110 '
 #5000
-sLog !
-bxxxxxxxx "
-bxxxxxxxx #
-bxxxxxxxx $
-bxxxxxxxxxxxxxxxx %
-bxxxxxxxxxxxxxxxx &
-bxxxx '
-bxxxx (
-sX )
-b11001010111111101011111011101111 *
-b10111010 +
-1,
+1!
+sLog (
+b11001010111111101011111011101111 )
+b10111010 ,
+b10000 -
 #6000
-sState !
-bxxxxxxxx "
-bxxxxxxxx #
-bxxxxxxxx $
-bxxxxxxxxxxxxxxxx %
-bxxxxxxxxxxxxxxxx &
-bxxxx '
-bxxxx (
-sRunning )
-bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx *
-bxxxxxxxx +
-x,
+sRunning $
+b000 '
+sState (
+b01000 -
