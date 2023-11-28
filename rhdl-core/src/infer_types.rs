@@ -117,32 +117,6 @@ impl TypeInference {
         }
         None
     }
-    // Look for a tuple variant, i.e., A::Variant(x, y, z), and if so,
-    // return the type of the variant, and the type for the tuple of arguments.
-    fn lookup_enum_tuple_variant(&self, path: &ast::Path) -> Option<(Ty, Vec<Ty>)> {
-        let last_segment = path.segments.iter().last()?;
-        let path = Self::flat_path_of_parent(path);
-        if let Some(Ty::Enum(ty)) = self.enums.get(&path) {
-            // Check to see if the last segment is a tuple struct variant
-            if let Some(Ty::Tuple(fields)) = ty.fields.get(&last_segment.ident).cloned() {
-                return Some((Ty::Enum(ty.clone()), fields));
-            }
-        }
-        None
-    }
-    // Look for a struct variant, i.e., A::Variant{x: x, y: y, z: z}, and if so,
-    // return the type of the variant.  Also return the fields of the variant.
-    fn lookup_enum_struct_variant(&self, path: &ast::Path) -> Option<(Ty, TyMap)> {
-        let last_segment = path.segments.iter().last()?;
-        let path = Self::flat_path_of_parent(path);
-        if let Some(Ty::Enum(ty)) = self.enums.get(&path) {
-            // Check to see if the last segment is a tuple struct variant
-            if let Some(Ty::Struct(fields)) = ty.fields.get(&last_segment.ident).cloned() {
-                return Some((Ty::Enum(ty.clone()), fields));
-            }
-        }
-        None
-    }
     fn bind_pattern(&mut self, pat: &ast::Pat) -> Result<()> {
         eprintln!("bind pattern {:?}", pat);
         match &pat.kind {
@@ -235,11 +209,7 @@ impl TypeInference {
                 }
             }
             ast::PatKind::Wild => {}
-            ast::PatKind::Path(path) => {
-                if let Some(ty) = self.lookup_enum_unit_variant(&path.path) {
-                    self.unify(id_to_var(pat.id)?, ty)?;
-                }
-            }
+            ast::PatKind::Path(_path) => {}
             _ => bail!("Unsupported pattern kind: {:?}", pat.kind),
         }
         Ok(())
