@@ -68,7 +68,7 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                     }
                     fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                         #(
-                            rhdl_core::Digital::note(self.#fields2, (key, stringify!(#fields)), &mut writer);
+                            rhdl_core::Digital::note(&self.#fields2, (key, stringify!(#fields)), &mut writer);
                         )*
                     }
                 }
@@ -305,9 +305,9 @@ mod test {
                     result
                 }
                 fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
-                    rhdl_core::Digital::note(self.0, (key, stringify!(0)), &mut writer);
-                    rhdl_core::Digital::note(self.1, (key, stringify!(1)), &mut writer);
-                    rhdl_core::Digital::note(self.2, (key, stringify!(2)), &mut writer);
+                    rhdl_core::Digital::note(&self.0, (key, stringify!(0)), &mut writer);
+                    rhdl_core::Digital::note(&self.1, (key, stringify!(1)), &mut writer);
+                    rhdl_core::Digital::note(&self.2, (key, stringify!(2)), &mut writer);
                 }
             }
         };

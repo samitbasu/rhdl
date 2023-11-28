@@ -179,8 +179,15 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
                 "Unsupported receiver in rhdl kernel function",
             )),
             syn::FnArg::Typed(pat) => {
-                let pat = &pat.pat;
-                Ok(quote! { #pat })
+                if let syn::Pat::Ident(ident) = pat.pat.as_ref() {
+                    let name = &ident.ident;
+                    Ok(quote! { #name })
+                } else {
+                    Err(syn::Error::new(
+                        pat.span(),
+                        "Unsupported pattern in rhdl kernel function",
+                    ))
+                }
             }
         })
         .collect::<Result<Punctuated<_, Comma>>>()?;
@@ -212,7 +219,8 @@ impl Context {
             .filter_map(|(ndx, param)| {
                 let ident = format_ident!("__phantom_{}", ndx);
                 if let syn::GenericParam::Type(ty) = param {
-                    Some(quote! {#ident: std::marker::PhantomData<#ty>})
+                    let ty_name = &ty.ident;
+                    Some(quote! {#ident: std::marker::PhantomData<#ty_name>})
                 } else {
                     None
                 }

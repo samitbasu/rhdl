@@ -78,7 +78,7 @@ fn test_enum_derive() {
                             },
                         )
                 }
-                fn note(&self, key: impl NoteKey, mut writer: impl rhdl_core::NoteWriter) {
+                fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                     match self {
                         Self::A => {
                             writer.write_string(key, stringify!(A));
@@ -87,13 +87,13 @@ fn test_enum_derive() {
                         Self::B(_0) => {
                             writer.write_string(key, stringify!(B));
                             writer.write_bits((key, ".__disc"), 2i64 as u128, 2u8);
-                            rhdl_core::Digital::note(&_0, (key, 0usize), &mut writer);
+                            rhdl_core::Digital::note(_0, (key, 0usize), &mut writer);
                         }
                         Self::C { a, b } => {
                             writer.write_string(key, stringify!(C));
                             writer.write_bits((key, ".__disc"), 3i64 as u128, 2u8);
-                            rhdl_core::Digital::note(&a, (key, stringify!(a)), &mut writer);
-                            rhdl_core::Digital::note(&b, (key, stringify!(b)), &mut writer);
+                            rhdl_core::Digital::note(a, (key, stringify!(a)), &mut writer);
+                            rhdl_core::Digital::note(b, (key, stringify!(b)), &mut writer);
                         }
                     }
                 }
@@ -152,7 +152,7 @@ fn test_enum_no_payloads() {
                         },
                     )
             }
-            fn note(&self, key: impl NoteKey, mut writer: impl rhdl_core::NoteWriter) {
+            fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {
                     Self::Init => {
                         writer.write_string(key, stringify!(Init));
@@ -221,7 +221,7 @@ fn test_enum_with_signed_discriminants() {
                         },
                     )
             }
-            fn note(&self, key: impl NoteKey, mut writer: impl rhdl_core::NoteWriter) {
+            fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {
                     Self::A => {
                         writer.write_string(key, stringify!(A));
@@ -275,7 +275,7 @@ fn test_enum_with_discriminants() {
                         },
                     )
             }
-            fn note(&self, key: impl NoteKey, mut writer: impl rhdl_core::NoteWriter) {
+            fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {
                     Self::A => {
                         writer.write_string(key, stringify!(A));
