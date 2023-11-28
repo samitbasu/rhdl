@@ -678,13 +678,13 @@ mod tests {
                     a.a = 1;
                     NooState::Run(1, 2, 3)
                 }
-                NooState::Run(x, _, y) => {
-                    a.a = x + y;
-                    NooState::Walk { foo: 7 }
-                }
                 NooState::Walk { foo: x } => {
                     a.a = x;
                     NooState::Boom
+                }
+                NooState::Run(x, _, y) => {
+                    a.a = x + y;
+                    NooState::Walk { foo: 7 }
                 }
                 NooState::Boom => {
                     a.a = a.a + 3;
@@ -702,6 +702,9 @@ mod tests {
         let mut kernel: Kernel = do_stuff::kernel_fn().try_into().unwrap();
         assign_node_ids(&mut kernel).unwrap();
         //println!("{}", kernel.ast);
+        let ctx = Default::default();
+        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
+        println!("{}", ast_ascii);
         let mut gen = TypeInference::default();
         let ctx = gen.infer(&kernel).unwrap();
         let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
