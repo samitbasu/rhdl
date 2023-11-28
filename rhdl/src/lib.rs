@@ -595,6 +595,64 @@ mod tests {
     }
 
     #[test]
+    fn test_adt_shadow() {
+        use rhdl_bits::alias::*;
+
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
+        pub enum NooState {
+            #[default]
+            Init,
+            Run(u8, u8, u8),
+            Walk {
+                foo: u8,
+            },
+            Boom,
+        }
+
+        #[kernel]
+        fn do_stuff(mut s: NooState) {
+            let y = bits::<12>(72);
+            let foo = bits::<14>(32);
+            let mut a: u8 = 0;
+            let d = match s {
+                NooState::Init => {
+                    a = 1;
+                    NooState::Run(1, 2, 3)
+                }
+                NooState::Walk { foo: x } => {
+                    a = x;
+                    NooState::Boom
+                }
+                NooState::Run(x, _, y) => {
+                    a = x + y;
+                    NooState::Walk { foo: 7 }
+                }
+                NooState::Boom => {
+                    a = a + 3;
+                    NooState::Init
+                }
+                _ => {
+                    a = 2;
+                    NooState::Boom
+                }
+            };
+        }
+
+        use NooState::{Init, Run};
+
+        let mut kernel: Kernel = do_stuff::kernel_fn().try_into().unwrap();
+        assign_node_ids(&mut kernel).unwrap();
+        //println!("{}", kernel.ast);
+        let ctx = Default::default();
+        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
+        println!("{}", ast_ascii);
+        let mut gen = TypeInference::default();
+        let ctx = gen.infer(&kernel).unwrap();
+        let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
+        println!("{ast_code}");
+    }
+
+    #[test]
     fn test_compile() {
         use rhdl_bits::alias::*;
         #[derive(PartialEq, Copy, Clone, Digital, Default)]

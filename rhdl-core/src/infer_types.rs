@@ -144,6 +144,7 @@ impl TypeInference {
         None
     }
     fn bind_pattern(&mut self, pat: &ast::Pat) -> Result<()> {
+        eprintln!("bind pattern {:?}", pat);
         match &pat.kind {
             ast::PatKind::Ident(ref ident) => {
                 self.bind(&ident.name, pat.id)?;
@@ -182,9 +183,9 @@ impl TypeInference {
                 self.unify(id_to_var(pat.id)?, id_to_var(ty.pat.id)?)?;
             }
             ast::PatKind::Struct(ref ty) => {
-                if let Some(Ty::Struct(struct_ty)) =
-                    self.structs.get(&Self::flat_path(&ty.path)).cloned()
-                {
+                let term = self.context.apply(id_to_var(pat.id)?);
+                eprintln!("Struct type: {term}");
+                if let Ty::Struct(struct_ty) = term {
                     for field in &ty.fields {
                         if let Member::Named(name) = &field.member {
                             if let Some(ty) = struct_ty.fields.get(name) {
@@ -193,34 +194,44 @@ impl TypeInference {
                             }
                         }
                     }
-                    self.unify(id_to_var(pat.id)?, Ty::Struct(struct_ty.clone()))?;
-                } else if let Some((enum_ty, variant_ty)) =
-                    self.lookup_enum_struct_variant(&ty.path)
-                {
-                    for field in &ty.fields {
-                        if let Member::Named(name) = &field.member {
-                            if let Some(ty) = variant_ty.fields.get(name) {
-                                self.bind_pattern(&field.pat)?;
-                                self.unify(id_to_var(field.pat.id)?, ty.clone())?;
+                } else if let Ty::Enum(enum_ty) = term {
+                    if let Some(variant_name) = &ty.path.segments.last() {
+                        if let Some(Ty::Struct(variant_ty)) =
+                            enum_ty.fields.get(&variant_name.ident.to_string())
+                        {
+                            for field in &ty.fields {
+                                if let Member::Named(name) = &field.member {
+                                    if let Some(ty) = variant_ty.fields.get(name) {
+                                        self.bind_pattern(&field.pat)?;
+                                        self.unify(id_to_var(field.pat.id)?, ty.clone())?;
+                                    }
+                                }
                             }
                         }
                     }
-                    self.unify(id_to_var(pat.id)?, enum_ty)?;
                 }
             }
             ast::PatKind::TupleStruct(ref ty) => {
-                if let Some((enum_ty, variant_ty)) = self.lookup_enum_tuple_variant(&ty.path) {
-                    if ty.elems.len() != variant_ty.len() {
-                        bail!(
-                            "Wrong number of arguments to enum variant: {}",
-                            ty.elems.len()
-                        );
+                let term = self.context.apply(id_to_var(pat.id)?);
+                eprintln!("Tuple Struct type: {term}");
+                // TODO - Tuple struct support is missing?
+                if let Ty::Enum(enum_ty) = term {
+                    if let Some(variant_name) = &ty.path.segments.last() {
+                        if let Some(Ty::Tuple(variant_ty)) =
+                            enum_ty.fields.get(&variant_name.ident.to_string())
+                        {
+                            if ty.elems.len() != variant_ty.len() {
+                                bail!(
+                                    "Wrong number of arguments to enum variant: {}",
+                                    ty.elems.len()
+                                );
+                            }
+                            for (elem, ty) in ty.elems.iter().zip(variant_ty) {
+                                self.bind_pattern(elem)?;
+                                self.unify(id_to_var(elem.id)?, ty.clone())?;
+                            }
+                        }
                     }
-                    for (elem, ty) in ty.elems.iter().zip(variant_ty) {
-                        self.bind_pattern(elem)?;
-                        self.unify(id_to_var(elem.id)?, ty.clone())?;
-                    }
-                    self.unify(id_to_var(pat.id)?, enum_ty)?;
                 }
             }
             ast::PatKind::Wild => {}
@@ -553,6 +564,7 @@ impl Visitor for TypeInference {
         visit::visit_expr(self, node)
     }
     fn visit_match_arm(&mut self, node: &ast::Arm) -> Result<()> {
+        eprintln!("match arm visited");
         self.new_scope();
         self.bind_pattern(&node.pattern)?;
         visit::visit_match_arm(self, node)?;
