@@ -73,10 +73,11 @@ impl TypeInference {
         Ok(())
     }
     fn unify(&mut self, lhs: Ty, rhs: Ty) -> Result<()> {
+        eprintln!("unify {:?} = {:?}", lhs, rhs);
         self.context.unify(lhs, rhs)
     }
     fn bind(&mut self, name: &str, id: Option<NodeId>) -> Result<()> {
-        println!("Binding {} to {:?}", name, id);
+        eprintln!("Binding {} to {:?}", name, id);
         self.scopes[self.active_scope.0]
             .names
             .insert(name.to_string(), id_to_var(id)?);
