@@ -1062,6 +1062,16 @@ mod tests {
     }
 
     #[test]
+    fn test_signature_for_associated_functions() {
+        fn add(a: u8, b: u8) -> u8 {
+            todo!()
+        }
+
+        let sig = inspect_digital(add);
+        println!("{:?}", sig);
+    }
+
+    #[test]
     fn test_module_isolation_idea() {
         mod demo {
             use rhdl_bits::alias::*;
