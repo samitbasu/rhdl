@@ -1,6 +1,6 @@
 use std::ops::Not;
 
-use crate::{bits::Bits, signed_bits::SignedBits};
+use crate::{bits_impl::Bits, signed_bits_impl::SignedBits};
 
 impl<const N: usize> Not for Bits<N> {
     type Output = Self;

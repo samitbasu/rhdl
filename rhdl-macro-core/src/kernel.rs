@@ -547,9 +547,6 @@ impl Context {
             ));
         }
         let last = &path.path.segments.last().unwrap().ident;
-        if last == "bits" || last == "signed" {
-            return Ok(quote!(None));
-        }
         //
         // This is a kludge.  I do not know of any way to determine if
         // an expression like j = Foo::Bar(3) is a function named Bar

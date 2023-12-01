@@ -1,5 +1,5 @@
 #![allow(non_camel_case_types)]
-use crate::signed_bits::SignedBits;
+use crate::signed_bits_impl::SignedBits;
 use derive_more::{
     Binary, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Display, LowerHex,
     UpperHex,
@@ -50,6 +50,9 @@ pub struct Bits<const N: usize>(pub u128);
 seq!(N in 1..=128 {
     #(
         pub type b~N = Bits<N>;
+        pub fn b~N(value: u128) -> b~N {
+            b~N::from(value)
+        }
     )*
 });
 
@@ -71,6 +74,8 @@ pub const fn bits<const N: usize>(value: u128) -> Bits<N> {
     assert!(value <= Bits::<N>::mask().0);
     Bits(value)
 }
+
+pub struct bits<const N: usize> {}
 
 impl<const N: usize> Bits<N> {
     /// Defines a constant Bits value with all bits set to 1.

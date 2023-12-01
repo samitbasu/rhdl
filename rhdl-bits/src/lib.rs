@@ -386,7 +386,7 @@ pub mod add;
 #[doc(hidden)]
 pub mod and;
 #[doc(hidden)]
-pub mod bits;
+pub mod bits_impl;
 #[doc(hidden)]
 pub mod neg;
 #[doc(hidden)]
@@ -398,7 +398,7 @@ pub mod shl;
 #[doc(hidden)]
 pub mod shr;
 #[doc(hidden)]
-pub mod signed_bits;
+pub mod signed_bits_impl;
 #[doc(hidden)]
 pub mod sub;
 #[doc(hidden)]
@@ -427,16 +427,16 @@ pub mod alias {
     //!
     seq_macro::seq!(N in 1..=128 {
         #(
-            pub use crate::bits::b~N;
-            pub use crate::signed_bits::s~N;
+            pub use crate::bits_impl::b~N;
+            pub use crate::signed_bits_impl::s~N;
         )*
     });
 }
 
-pub use bits::bits;
-pub use bits::Bits;
-pub use signed_bits::signed;
-pub use signed_bits::SignedBits;
+pub use bits_impl::bits;
+pub use bits_impl::Bits;
+pub use signed_bits_impl::signed;
+pub use signed_bits_impl::SignedBits;
 
 #[cfg(test)]
 mod test {

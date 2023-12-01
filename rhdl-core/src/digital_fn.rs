@@ -51,3 +51,27 @@ where
 {
     F::describe()
 }
+
+impl<const N: usize> DigitalFn for rhdl_bits::Bits<N> {
+    fn kernel_fn() -> KernelFnKind {
+        KernelFnKind::BitConstructor(N)
+    }
+}
+
+impl<const N: usize> DigitalFn for rhdl_bits::SignedBits<N> {
+    fn kernel_fn() -> KernelFnKind {
+        KernelFnKind::SignedBitsConstructor(N)
+    }
+}
+
+impl<const N: usize> DigitalFn for rhdl_bits::bits<N> {
+    fn kernel_fn() -> KernelFnKind {
+        KernelFnKind::BitConstructor(N)
+    }
+}
+
+impl<const N: usize> DigitalFn for rhdl_bits::signed<N> {
+    fn kernel_fn() -> KernelFnKind {
+        KernelFnKind::SignedBitsConstructor(N)
+    }
+}

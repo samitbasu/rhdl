@@ -1,8 +1,8 @@
 use std::ops::Shl;
 use std::ops::ShlAssign;
 
-use crate::bits::Bits;
-use crate::signed_bits::SignedBits;
+use crate::bits_impl::Bits;
+use crate::signed_bits_impl::SignedBits;
 
 impl<const N: usize> Shl<u128> for Bits<N> {
     type Output = Self;

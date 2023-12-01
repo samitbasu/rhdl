@@ -52,6 +52,9 @@ pub struct SignedBits<const N: usize>(pub i128);
 seq!(N in 1..=128 {
     #(
         pub type s~N = SignedBits<N>;
+        pub fn s~N(value: i128) -> s~N {
+            s~N::from(value)
+        }
     )*
 });
 
@@ -76,6 +79,8 @@ pub const fn signed<const N: usize>(value: i128) -> SignedBits<N> {
         value
     })
 }
+
+pub struct signed<const N: usize> {}
 
 impl<const N: usize> SignedBits<N> {
     /// Return a [SignedBits] value with all bits set to 1.

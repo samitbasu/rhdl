@@ -1,8 +1,8 @@
 use std::ops::Sub;
 use std::ops::SubAssign;
 
-use crate::bits::Bits;
-use crate::signed_bits::SignedBits;
+use crate::bits_impl::Bits;
+use crate::signed_bits_impl::SignedBits;
 
 impl<const N: usize> Sub<Bits<N>> for Bits<N> {
     type Output = Self;

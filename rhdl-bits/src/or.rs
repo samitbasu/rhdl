@@ -1,8 +1,8 @@
 use std::ops::BitOr;
 use std::ops::BitOrAssign;
 
-use crate::bits::Bits;
-use crate::signed_bits::SignedBits;
+use crate::bits_impl::Bits;
+use crate::signed_bits_impl::SignedBits;
 
 impl<const N: usize> BitOr<Bits<N>> for u128 {
     type Output = Bits<N>;

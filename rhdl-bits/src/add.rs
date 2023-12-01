@@ -1,8 +1,8 @@
 use std::ops::Add;
 use std::ops::AddAssign;
 
-use crate::bits::Bits;
-use crate::signed_bits::SignedBits;
+use crate::bits_impl::Bits;
+use crate::signed_bits_impl::SignedBits;
 
 impl<const N: usize> Add<u128> for Bits<N> {
     type Output = Self;
