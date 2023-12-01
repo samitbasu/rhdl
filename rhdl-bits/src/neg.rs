@@ -1,4 +1,4 @@
-use crate::signed_bits::SignedBits;
+use crate::signed_bits_impl::SignedBits;
 use std::ops::Neg;
 
 impl<const N: usize> Neg for SignedBits<N> {
@@ -10,7 +10,7 @@ impl<const N: usize> Neg for SignedBits<N> {
 
 #[cfg(test)]
 mod test {
-    use crate::signed_bits::SignedBits;
+    use crate::signed_bits_impl::SignedBits;
 
     #[test]
     fn test_neg_wrapping() {

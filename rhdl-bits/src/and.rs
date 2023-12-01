@@ -1,6 +1,6 @@
 use std::ops::{BitAnd, BitAndAssign};
 
-use crate::{bits::Bits, signed_bits::SignedBits};
+use crate::{bits_impl::Bits, signed_bits_impl::SignedBits};
 
 impl<const N: usize> BitAnd<Bits<N>> for u128 {
     type Output = Bits<N>;

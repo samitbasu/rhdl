@@ -11,8 +11,7 @@ pub use rhdl_macro::Digital;
 #[cfg(test)]
 mod tests {
 
-    use bits::b4;
-    use rhdl_bits::{bits, signed};
+    use rhdl_bits::{alias::*, bits, signed};
     use rhdl_core::{
         ascii::render_ast_to_string,
         assign_node::assign_node_ids,
@@ -368,7 +367,7 @@ mod tests {
             let [i, j, k] = h;
             let o = j;
             let l = {
-                let a = bits::<12>(3);
+                let a = b12(3);
                 let b = bits::<12>(4);
                 a + b
             };
