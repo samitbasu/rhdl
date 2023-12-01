@@ -34,8 +34,10 @@ fn derive_digital_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
 
 fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
+    let struct_name2 = &decl.ident;
     let fqdn = crate::utils::get_fqdn(&decl);
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
+    let (impl_generics2, ty_generics2, where_clause2) = decl.generics.split_for_impl();
     match decl.data {
         Data::Struct(s) => {
             let fields = s
@@ -70,6 +72,11 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         #(
                             rhdl_core::Digital::note(&self.#fields2, (key, stringify!(#fields)), &mut writer);
                         )*
+                    }
+                }
+                impl #impl_generics2 rhdl_core::DigitalFn for #struct_name2 #ty_generics2 #where_clause2 {
+                    fn kernel_fn() -> rhdl_core::KernelFnKind {
+                        rhdl_core::KernelFnKind::TupleStructConstructor
                     }
                 }
             })
@@ -308,6 +315,11 @@ mod test {
                     rhdl_core::Digital::note(&self.0, (key, stringify!(0)), &mut writer);
                     rhdl_core::Digital::note(&self.1, (key, stringify!(1)), &mut writer);
                     rhdl_core::Digital::note(&self.2, (key, stringify!(2)), &mut writer);
+                }
+            }
+            impl rhdl_core::DigitalFn for Inputs {
+                fn kernel_fn() -> rhdl_core::KernelFnKind {
+                    rhdl_core::KernelFnKind::TupleStructConstructor
                 }
             }
         };

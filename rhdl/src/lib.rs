@@ -17,10 +17,10 @@ mod tests {
         ascii::render_ast_to_string,
         assign_node::assign_node_ids,
         compiler::Compiler,
-        digital_fn::DigitalFn,
+        digital_fn::{inspect_digital, DigitalFn},
         display_ast::pretty_print_kernel,
         infer_types::TypeInference,
-        kernel::Kernel,
+        kernel::{ExternalKernelDef, Kernel, KernelFnKind},
         note,
         note_db::{dump_vcd, note_time},
         path::{bit_range, Path},
@@ -293,12 +293,6 @@ mod tests {
         #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub struct Bar(pub u8, pub u8);
 
-        impl rhdl_core::digital_fn::DigitalFn for Bar {
-            fn kernel_fn() -> rhdl_core::kernel::KernelFnKind {
-                todo!()
-            }
-        }
-
         #[kernel]
         fn do_stuff() -> b8 {
             let a: b4 = bits::<4>(1); // Straight local assignment
@@ -405,6 +399,20 @@ mod tests {
             c: Red,
         }
 
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
+        pub struct Bar(pub u8, pub u8);
+
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
+        pub enum NooState {
+            #[default]
+            Init,
+            Run(b4, b5),
+            Walk {
+                foo: b5,
+            },
+            Boom,
+        }
+
         #[kernel]
         fn do_stuff(a: Foo) -> b7 {
             let z = (a.b, a.a);
@@ -420,9 +428,15 @@ mod tests {
                 c,
             };
             let Foo { a: ar, b, c: _ } = d;
+            let q = Bar(1, 2);
+            let x = NooState::Run(bits::<4>(1), bits::<5>(2));
             let e = ar;
             bits::<7>(42)
         }
+        let sig = inspect_digital(Bar);
+        println!("{:?}", sig);
+        let sig2 = inspect_digital(NooState::Run);
+        println!("{:?}", sig2);
         let mut kernel: Kernel = do_stuff::kernel_fn().try_into().unwrap();
         println!("{:?}", kernel);
         assign_node_ids(&mut kernel).unwrap();
