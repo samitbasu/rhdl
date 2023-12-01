@@ -23,6 +23,9 @@ impl TryFrom<KernelFnKind> for Kernel {
             KernelFnKind::Extern(_extern_kernel) => {
                 bail!("Externally defined function cannot be mapped to an AST kernel")
             }
+            KernelFnKind::TupleStructConstructor => {
+                bail!("Tuple struct constructor cannot be mapped to an AST kernel")
+            }
         }
     }
 }
@@ -31,6 +34,7 @@ impl TryFrom<KernelFnKind> for Kernel {
 pub enum KernelFnKind {
     Kernel(Box<KernelFn>),
     Extern(ExternalKernelDef),
+    TupleStructConstructor,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

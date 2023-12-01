@@ -509,7 +509,8 @@ impl Context {
     }
 
     // A call expression like `a = Foo(...)` can be either a variant
-    // or an actual function call.  Use the `inspect_digital` function
+    // constructor, a tuple struct constructor or an actual function
+    // call.  Use the `inspect_digital` function
     // to extract a call signature from the function.
     fn call(&mut self, expr: &syn::ExprCall) -> Result<TS> {
         let syn::Expr::Path(func_path) = expr.func.as_ref() else {
@@ -525,15 +526,6 @@ impl Context {
                 });
             }
         }
-        // Kludge - I don't know how else to do this.  We want to differentiate
-        // between the builtin variant constructor function and a RHDL kernel.
-        // Unfortunately, the only way to do this is by adding some convention or
-        // by coupling global state across the macro invocations (e.g., by writing to
-        // a file or something equally gross).  So, I instead choose to use a simple
-        // convention.  Enum Variants must be namespaced (e.g., `Foo::Bar`), and both
-        // the enum and the variant must be capitalized.  This is a simple convention
-        // that is easy to follow and easy to understand.  It also allows us to
-        // differentiate between the two cases without any global state.
         let code = self.get_code(func_path)?;
         let call_to_get_type = quote!(rhdl_core::digital_fn::inspect_digital(#func_path));
         let path = self.path_inner(&func_path.path)?;
@@ -548,7 +540,7 @@ impl Context {
     }
 
     fn get_code(&mut self, path: &ExprPath) -> Result<TS> {
-        if path.path.segments.len() == 0 {
+        if path.path.segments.is_empty() {
             return Err(syn::Error::new(
                 path.span(),
                 "Empty path in rhdl kernel function",
@@ -558,6 +550,20 @@ impl Context {
         if last == "bits" || last == "signed" {
             return Ok(quote!(None));
         }
+        //
+        // This is a kludge.  I do not know of any way to determine if
+        // an expression like j = Foo::Bar(3) is a function named Bar
+        // in the namespace of Foo, or if it is a variant tuple constructor
+        // for the variant Bar of the enum Foo.  In the later case, I will
+        // note be able to call <Foo as DigitalFn>::kernel_fn() to get the
+        // function details, since Foo is not a type.  As a result, I resort
+        // to the following hack.
+        //
+        // If the path is of the form Foo::Bar, and Foo and Bar are both
+        // capitalized, then we assume that it is a tuple struct variant
+        // in an Enum.  This could fail.  But I have no solution for that
+        // at the moment.
+        //
         if path.path.segments.len() >= 2 {
             let len = path.path.segments.len();
             let last = &path.path.segments[len - 1];
