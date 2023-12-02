@@ -1069,6 +1069,19 @@ mod tests {
 
         let sig = inspect_digital(add);
         println!("{:?}", sig);
+
+        // Suppose we have a method call syntax.
+        // Such as y = a.any();
+        // One way to support this is to transform
+        // it into
+        //  y = any(a);
+        // and then use the existing function call
+        // syntax.  The problem is the polymorphism
+        // of the function call.  For example, the `any` method
+        // _could_ exist on both signed and unsigned bit vectors.
+        // But we can only take one of them as an argument to
+        // the `any` function.  Unless we make it generic over
+        // the type of the argument.
     }
 
     #[test]
