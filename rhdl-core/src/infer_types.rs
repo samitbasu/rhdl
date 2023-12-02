@@ -374,7 +374,7 @@ impl Visitor for TypeInference {
                 self.unify(id_to_var(lhs.id)?, id_to_var(rhs.id)?)?;
                 self.unify(my_ty, ty_empty())?;
             }
-            // x <- y = z --> tx = {}, ty = &tz
+            // x <- y = z --> tx = {}, ty = tz
             ExprKind::Assign(ExprAssign { lhs, rhs }) => {
                 self.unify(id_to_var(lhs.id)?, id_to_var(rhs.id)?)?;
                 self.unify(my_ty, ty_empty())?;
