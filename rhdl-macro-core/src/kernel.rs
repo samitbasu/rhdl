@@ -341,6 +341,22 @@ impl Context {
         })
     }
 
+    // Use for patterns that are in a match context
+    fn match_pat(&mut self, pat: &syn::Pat) -> Result<TS> {
+        match pat {
+            syn::Pat::Ident(ident) => {
+                // For a match pattern, we always assume that an
+                // identifier is a path to a literal.  This is a
+                // limitation of rhdl.
+                Ok(quote! {
+                    rhdl_core::ast_builder::const_pat(stringify!(#ident), rhdl_core::Digital::typed_bits(#ident))
+                })
+            }
+            _ => self.pat(pat),
+        }
+    }
+
+    // Use for patterns that are in let contexts.
     fn pat(&mut self, pat: &syn::Pat) -> Result<TS> {
         match pat {
             syn::Pat::Ident(ident) => {
@@ -357,6 +373,8 @@ impl Context {
                 })
             }
             syn::Pat::TupleStruct(tuple) => {
+                let constructor = &tuple.path;
+                let signature = quote!(rhdl_core::digital_fn::inspect_digital(#constructor));
                 let path = self.path_inner(&tuple.path)?;
                 let elems = tuple
                     .elems
@@ -364,7 +382,7 @@ impl Context {
                     .map(|x| self.pat(x))
                     .collect::<Result<Vec<_>>>()?;
                 Ok(quote! {
-                    rhdl_core::ast_builder::tuple_struct_pat(#path, vec![#(#elems),*])
+                    rhdl_core::ast_builder::tuple_struct_pat(#path, vec![#(#elems),*], #signature)
                 })
             }
             syn::Pat::Tuple(tuple) => {
@@ -526,7 +544,7 @@ impl Context {
                 });
             }
         }
-        let code = self.get_code(func_path)?;
+        let code = self.get_code(&func_path.path)?;
         let call_to_get_type = quote!(rhdl_core::digital_fn::inspect_digital(#func_path));
         let path = self.path_inner(&func_path.path)?;
         let args = expr
@@ -539,14 +557,13 @@ impl Context {
         })
     }
 
-    fn get_code(&mut self, path: &ExprPath) -> Result<TS> {
-        if path.path.segments.is_empty() {
+    fn get_code(&mut self, path: &Path) -> Result<TS> {
+        if path.segments.is_empty() {
             return Err(syn::Error::new(
                 path.span(),
                 "Empty path in rhdl kernel function",
             ));
         }
-        let last = &path.path.segments.last().unwrap().ident;
         //
         // This is a kludge.  I do not know of any way to determine if
         // an expression like j = Foo::Bar(3) is a function named Bar
@@ -561,10 +578,10 @@ impl Context {
         // in an Enum.  This could fail.  But I have no solution for that
         // at the moment.
         //
-        if path.path.segments.len() >= 2 {
-            let len = path.path.segments.len();
-            let last = &path.path.segments[len - 1];
-            let second_to_last = &path.path.segments[len - 2];
+        if path.segments.len() >= 2 {
+            let len = path.segments.len();
+            let last = &path.segments[len - 1];
+            let second_to_last = &path.segments[len - 2];
             if ident_starts_with_capital_letter(&last.ident)
                 && ident_starts_with_capital_letter(&second_to_last.ident)
             {
@@ -687,7 +704,7 @@ impl Context {
 
     fn arm(&mut self, arm: &syn::Arm) -> Result<TS> {
         self.new_scope();
-        let pat = self.pat(&arm.pat)?;
+        let pat = self.match_pat(&arm.pat)?;
         self.add_scoped_binding(&arm.pat)?;
         let guard = arm
             .guard
@@ -1196,7 +1213,8 @@ mod test {
             fn update(z: u8) {
                 match z {
                     1_u4 => {},
-                    2_u4 => {}
+                    2_u4 => {},
+                    CONST_VAL => {},
                 }
             }
         };

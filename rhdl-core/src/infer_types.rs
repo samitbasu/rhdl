@@ -33,8 +33,6 @@ pub struct TypeInference {
     scopes: Vec<Scope>,
     active_scope: ScopeId,
     context: UnifyContext,
-    structs: HashMap<String, Ty>,
-    enums: HashMap<String, Ty>,
     ret: Option<Ty>,
 }
 
@@ -52,25 +50,6 @@ impl TypeInference {
     }
     fn end_scope(&mut self) {
         self.active_scope = self.scopes[self.active_scope.0].parent;
-    }
-    fn flat_path(path: &ast::Path) -> String {
-        path.segments
-            .iter()
-            .map(|x| x.ident.to_string())
-            .collect::<Vec<_>>()
-            .join("::")
-    }
-    pub fn define_kind(&mut self, kind: Kind) -> Result<()> {
-        match &kind {
-            Kind::Struct(struct_) => {
-                self.structs.insert(struct_.name.clone(), kind.into());
-            }
-            Kind::Enum(enum_) => {
-                self.enums.insert(enum_.name.clone(), kind.into());
-            }
-            _ => {}
-        }
-        Ok(())
     }
     fn unify(&mut self, lhs: Ty, rhs: Ty) -> Result<()> {
         eprintln!("unify {:?} = {:?}", lhs, rhs);
@@ -96,30 +75,12 @@ impl TypeInference {
         }
         None
     }
-    // Given a path of the form a::b::c::d --> "a::b::c"
-    fn flat_path_of_parent(path: &ast::Path) -> String {
-        path.segments
-            .iter()
-            .take(path.segments.len() - 1)
-            .map(|x| x.ident.to_string())
-            .collect::<Vec<_>>()
-            .join("::")
-    }
-    fn lookup_enum_unit_variant(&self, path: &ast::Path) -> Option<Ty> {
-        let last_segment = path.segments.iter().last()?;
-        // Collect all but the last segment into a '::' separated string
-        let path = Self::flat_path_of_parent(path);
-        if let Some(Ty::Enum(ty)) = self.enums.get(&path) {
-            // Check to see if the last segment is a unit variant
-            if let Some(Ty::Const(crate::ty::Bits::Empty)) = ty.fields.get(&last_segment.ident) {
-                return Some(Ty::Enum(ty.clone()));
-            }
-        }
-        None
-    }
     fn bind_pattern(&mut self, pat: &ast::Pat) -> Result<()> {
         eprintln!("bind pattern {:?}", pat);
         match &pat.kind {
+            ast::PatKind::Const(ref const_pat) => {
+                self.unify(id_to_var(pat.id)?, const_pat.lit.kind.clone().into())?;
+            }
             ast::PatKind::Ident(ref ident) => {
                 self.bind(&ident.name, pat.id)?;
             }
@@ -156,6 +117,7 @@ impl TypeInference {
                 self.unify(id_to_var(ty.pat.id)?, ty.kind.clone().into())?;
                 self.unify(id_to_var(pat.id)?, id_to_var(ty.pat.id)?)?;
             }
+            ast::PatKind::Lit(ref lit) => {}
             ast::PatKind::Struct(ref ty) => {
                 let term = self.context.apply(id_to_var(pat.id)?);
                 eprintln!("Struct type: {term}");
@@ -188,7 +150,6 @@ impl TypeInference {
             ast::PatKind::TupleStruct(ref ty) => {
                 let term = self.context.apply(id_to_var(pat.id)?);
                 eprintln!("Tuple Struct type: {term}");
-                // TODO - Tuple struct support is missing?
                 if let Ty::Enum(enum_ty) = term {
                     if let Some(variant_name) = &ty.path.segments.last() {
                         if let Some(Ty::Tuple(variant_ty)) =
@@ -206,6 +167,18 @@ impl TypeInference {
                             }
                         }
                     }
+                } else {
+                    self.unify(id_to_var(pat.id)?, ty.signature.ret.clone().into())?;
+                    if ty.signature.arguments.len() != ty.elems.len() {
+                        bail!(
+                            "Wrong number of arguments to tuple struct: {}",
+                            ty.elems.len()
+                        );
+                    }
+                    for (elem, ty) in ty.elems.iter().zip(&ty.signature.arguments) {
+                        self.bind_pattern(elem)?;
+                        self.unify(id_to_var(elem.id)?, ty.clone().into())?;
+                    }
                 }
             }
             ast::PatKind::Wild => {}
@@ -213,11 +186,6 @@ impl TypeInference {
             _ => bail!("Unsupported pattern kind: {:?}", pat.kind),
         }
         Ok(())
-    }
-    pub fn infer(mut self, root: &Kernel) -> Result<UnifyContext> {
-        self.visit_kernel_fn(&root.ast)?;
-        self.visit_kernel_fn(&root.ast)?;
-        Ok(self.context)
     }
     fn handle_method_call(&mut self, my_ty: Ty, call: &ast::ExprMethodCall) -> Result<()> {
         let target = self.context.apply(id_to_var(call.receiver.id)?);
@@ -404,7 +372,6 @@ impl Visitor for TypeInference {
                 }
             }
             // x <- bits::<len>(y) --> tx = bits<len>
-            // TODO - make this extensible and not gross.
             ExprKind::Call(call) => {
                 self.handle_call(my_ty, call)?;
             }
@@ -442,13 +409,7 @@ impl Visitor for TypeInference {
                     if let Some(ty) = self.lookup(name) {
                         self.unify(my_ty, ty.clone())?;
                     }
-                } else {
-                    // Check for the case of enum unit variant
-                    if let Some(ty) = self.lookup_enum_unit_variant(&path.path) {
-                        self.unify(my_ty, ty.clone())?;
-                    }
                 }
-                // TODO - handle more complex paths
             }
             ExprKind::Field(field) => {
                 visit::visit_expr(self, node)?;
@@ -529,7 +490,22 @@ impl Visitor for TypeInference {
             ExprKind::MethodCall(call) => {
                 self.handle_method_call(my_ty, call)?;
             }
-            _ => {}
+            ExprKind::ForLoop(for_loop) => {
+                self.new_scope();
+                self.bind_pattern(&for_loop.pat)?;
+                self.unify(my_ty, ty_empty())?;
+                visit::visit_expr(self, node)?;
+                self.end_scope();
+            }
+            ExprKind::Range(range) => {
+                if let Some(start) = range.start.as_ref() {
+                    self.unify(my_ty.clone(), id_to_var(start.id)?)?;
+                }
+                if let Some(end) = range.end.as_ref() {
+                    self.unify(my_ty, id_to_var(end.id)?)?;
+                }
+            }
+            _ => todo!("{:?}", node.kind),
         }
         visit::visit_expr(self, node)
     }
@@ -542,11 +518,6 @@ impl Visitor for TypeInference {
         Ok(())
     }
     fn visit_kernel_fn(&mut self, node: &ast::KernelFn) -> Result<()> {
-        for arg in &node.inputs {
-            if let PatKind::Type(ty) = &arg.kind {
-                self.define_kind(ty.kind.clone())?;
-            }
-        }
         let my_ty = id_to_var(node.id)?;
         self.unify(my_ty, node.ret.clone().into())?;
         self.ret = Some(node.ret.clone().into());
@@ -559,4 +530,11 @@ impl Visitor for TypeInference {
         self.end_scope();
         Ok(())
     }
+}
+
+pub fn infer(root: &Kernel) -> Result<UnifyContext> {
+    let mut inference_engine = TypeInference::default();
+    inference_engine.visit_kernel_fn(&root.ast)?;
+    inference_engine.visit_kernel_fn(&root.ast)?;
+    Ok(inference_engine.context)
 }

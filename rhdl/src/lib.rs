@@ -15,10 +15,11 @@ mod tests {
     use rhdl_core::{
         ascii::render_ast_to_string,
         assign_node::assign_node_ids,
+        check_inference,
         compiler::Compiler,
         digital_fn::{inspect_digital, DigitalFn},
         display_ast::pretty_print_kernel,
-        infer_types::TypeInference,
+        infer_types::{infer, TypeInference},
         kernel::{ExternalKernelDef, Kernel, KernelFnKind},
         note,
         note_db::{dump_vcd, note_time},
@@ -28,6 +29,16 @@ mod tests {
     };
 
     use super::*;
+
+    fn test_inference_result(kernel: KernelFnKind) -> anyhow::Result<()> {
+        let mut kernel: Kernel = kernel.try_into()?;
+        assign_node_ids(&mut kernel)?;
+        let ctx = infer(&kernel)?;
+        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
+        eprintln!("{}", ast_ascii);
+        check_inference(&kernel, &ctx)?;
+        Ok(())
+    }
 
     #[test]
     fn test_vcd_enum() {
@@ -311,7 +322,7 @@ mod tests {
             let h = {
                 let e = 3;
                 let f = 4;
-                e + f
+                b8(e) + b8(f)
             }; // Statement expression
             let Foo { a, b, .. } = d; // Struct destructuring
             let g = d.c[1]; // Array indexing
@@ -324,16 +335,16 @@ mod tests {
                 return d;
             }
             // if-else statement (and a statement expression)
-            let j = if d < bits::<8>(3) { 7 } else { 9 };
+            let j = b5(if d < bits::<8>(3) { 7 } else { 9 });
             // Enum literal
             let k = State::Boom;
             // Enum literal with a payload
             let l = State::Run(3);
             // Match expression with enum variants
             let j = match l {
-                State::Init => 1,
-                State::Run(a) => 2,
-                State::Boom => 3,
+                State::Init => b3(1),
+                State::Run(a) => b3(2),
+                State::Boom => b3(3),
             };
             // For loops
             for ndx in 0..8 {
@@ -343,8 +354,7 @@ mod tests {
             bits::<8>(42)
         }
 
-        //        let ast = do_stuff_hdl_kernel();
-        //println!("{}", ast);
+        test_inference_result(do_stuff::kernel_fn()).unwrap();
     }
 
     #[test]
@@ -372,12 +382,7 @@ mod tests {
                 a + b
             };
         }
-        let mut kernel: Kernel = do_stuff::kernel_fn().try_into().unwrap();
-        assign_node_ids(&mut kernel).unwrap();
-        //println!("{}", kernel.ast);
-        let ctx = TypeInference::default().infer(&kernel).unwrap();
-        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-        println!("{}", ast_ascii);
+        test_inference_result(do_stuff::kernel_fn()).unwrap();
     }
 
     #[test]
@@ -432,21 +437,7 @@ mod tests {
             let e = ar;
             bits::<7>(42)
         }
-        let sig = inspect_digital(Bar);
-        println!("{:?}", sig);
-        let sig2 = inspect_digital(NooState::Run);
-        println!("{:?}", sig2);
-        let mut kernel: Kernel = do_stuff::kernel_fn().try_into().unwrap();
-        println!("{:?}", kernel);
-        assign_node_ids(&mut kernel).unwrap();
-        //println!("{}", kernel.ast);
-        let mut gen = TypeInference::default();
-        gen.define_kind(Red::static_kind()).unwrap();
-        let ctx = gen.infer(&kernel).unwrap();
-        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-        println!("{}", ast_ascii);
-        let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
-        println!("{ast_code}");
+        test_inference_result(do_stuff::kernel_fn()).unwrap();
     }
 
     #[test]
@@ -456,15 +447,7 @@ mod tests {
             let q = bits::<12>(6);
             let q = bits::<16>(7);
         }
-
-        let mut kernel: Kernel = do_stuff::kernel_fn().try_into().unwrap();
-        println!("{:?}", kernel);
-        assign_node_ids(&mut kernel).unwrap();
-        //println!("{}", kernel.ast);
-        let mut gen = TypeInference::default();
-        let ctx = gen.infer(&kernel).unwrap();
-        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-        println!("{}", ast_ascii);
+        test_inference_result(do_stuff::kernel_fn()).unwrap();
     }
 
     #[test]
@@ -493,17 +476,7 @@ mod tests {
             };
             let d = MY_SPECIAL_NUMBER;
         }
-
-        let mut kernel: Kernel = do_stuff::kernel_fn().try_into().unwrap();
-        //println!("{:?}", kernel);
-        assign_node_ids(&mut kernel).unwrap();
-        //println!("{}", kernel.ast);
-        let mut gen = TypeInference::default();
-        let ctx = gen.infer(&kernel).unwrap();
-        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-        //println!("{}", ast_ascii);
-        let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
-        println!("{ast_code}");
+        test_inference_result(do_stuff::kernel_fn()).unwrap();
     }
 
     #[test]
@@ -595,16 +568,7 @@ mod tests {
             let k = 42;
             bits::<7>(k)
         }
-        let mut kernel: Kernel = do_stuff::kernel_fn().try_into().unwrap();
-        //println!("{:?}", kernel);
-        assign_node_ids(&mut kernel).unwrap();
-        //println!("{}", kernel.ast);
-        let mut gen = TypeInference::default();
-        let ctx = gen.infer(&kernel).unwrap();
-        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-        println!("{}", ast_ascii);
-        let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
-        println!("{ast_code}");
+        test_inference_result(do_stuff::kernel_fn()).unwrap();
     }
 
     #[test]
@@ -650,19 +614,7 @@ mod tests {
                 }
             };
         }
-
-        use NooState::{Init, Run};
-
-        let mut kernel: Kernel = do_stuff::kernel_fn().try_into().unwrap();
-        assign_node_ids(&mut kernel).unwrap();
-        //println!("{}", kernel.ast);
-        let ctx = Default::default();
-        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-        println!("{}", ast_ascii);
-        let mut gen = TypeInference::default();
-        let ctx = gen.infer(&kernel).unwrap();
-        let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
-        println!("{ast_code}");
+        test_inference_result(do_stuff::kernel_fn()).unwrap();
     }
 
     #[test]
@@ -686,6 +638,7 @@ mod tests {
             Boom,
         }
 
+        const CONST_PATH: b4 = bits(4);
         #[kernel]
         fn do_stuff(mut a: Foo, mut s: NooState) {
             let k = {
@@ -735,10 +688,24 @@ mod tests {
             if z == bits::<4>(3) {
                 i = false;
             }
+            match a {
+                Foo {
+                    a: 1,
+                    b: 2,
+                    c: [1, 2, 3],
+                } => {}
+                Foo {
+                    a: 3,
+                    b: 4,
+                    c: [1, 2, 3],
+                } => {}
+                _ => {}
+            }
             let c = bits::<4>(match z {
-                Bits(1) => 2,
-                Bits(2) => 3,
-                Bits(3) => {
+                CONST_PATH => 1,
+                Bits::<4>(1) => 2,
+                Bits::<4>(2) => 3,
+                Bits::<4>(3) => {
                     a.a = 4;
                     4
                 }
@@ -767,41 +734,7 @@ mod tests {
                 }
             };
         }
-
-        use NooState::{Init, Run};
-
-        let mut kernel: Kernel = do_stuff::kernel_fn().try_into().unwrap();
-        assign_node_ids(&mut kernel).unwrap();
-        //println!("{}", kernel.ast);
-        let ctx = Default::default();
-        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-        println!("{}", ast_ascii);
-        let mut gen = TypeInference::default();
-        let ctx = gen.infer(&kernel).unwrap();
-        let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
-        println!("{ast_code}");
-
-        /*
-        let mut ctx = Compiler::default();
-        ctx.type_bind("a", Foo::static_kind());
-        ctx.type_bind("s", NooState::static_kind());
-        ctx.bind("NooState::Boom");
-        ctx.bind("NooState::Init");
-        ctx.bind("NooState::Run");
-        ctx.bind("NooState::Walk");
-        let lhs = ctx.compile(ast).unwrap();
-        println!("Types before inference: {}", ctx.types_known());
-        infer_type(&mut ctx).unwrap();
-        println!("Types after inference: {}", ctx.types_known());
-        infer_type(&mut ctx).unwrap();
-        println!("Types after inference: {}", ctx.types_known());
-        infer_type(&mut ctx).unwrap();
-        println!("Types after inference: {}", ctx.types_known());
-        infer_type(&mut ctx).unwrap();
-        println!("Types after inference: {}", ctx.types_known());
-        println!("Code:");
-        println!("{}", ctx);
-        */
+        test_inference_result(do_stuff::kernel_fn()).unwrap();
     }
 
     #[test]
@@ -857,20 +790,14 @@ mod tests {
         fn do_stuff(mut a: Foo, mut s: NooState) {
             let z = bits::<6>(3);
             let c = match z {
-                Bits(4) => bits::<4>(7),
-                Bits(3) => bits::<4>(3),
+                Bits::<6>(4) => bits::<4>(7),
+                Bits::<6>(3) => bits::<4>(3),
                 _ => bits::<4>(8),
             };
             let z = 1;
             let h = NooState::Run(1, z, 3);
         }
-        let mut kernel: Kernel = do_stuff::kernel_fn().try_into().unwrap();
-        assign_node_ids(&mut kernel).unwrap();
-        //println!("{}", kernel.ast);
-        let mut gen = TypeInference::default();
-        let ctx = gen.infer(&kernel).unwrap();
-        let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
-        println!("{ast_code}");
+        test_inference_result(do_stuff::kernel_fn()).unwrap();
     }
 
     #[test]
@@ -880,15 +807,7 @@ mod tests {
             a == b
         }
 
-        let mut kernel: Kernel = do_stuff::<rhdl_bits::alias::s4>::kernel_fn()
-            .try_into()
-            .unwrap();
-        assign_node_ids(&mut kernel).unwrap();
-        //println!("{}", kernel.ast);
-        let mut gen = TypeInference::default();
-        let ctx = gen.infer(&kernel).unwrap();
-        let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
-        println!("{ast_code}");
+        test_inference_result(do_stuff::<rhdl_bits::alias::s4>::kernel_fn()).unwrap();
     }
 
     #[test]
@@ -907,16 +826,8 @@ mod tests {
             e == x
         }
 
-        let mut kernel: Kernel =
-            do_stuff::<rhdl_bits::alias::s4, rhdl_bits::alias::b3>::kernel_fn()
-                .try_into()
-                .unwrap();
-        assign_node_ids(&mut kernel).unwrap();
-        //println!("{}", kernel.ast);
-        let mut gen = TypeInference::default();
-        let ctx = gen.infer(&kernel).unwrap();
-        let ast_code = pretty_print_kernel(&kernel, &ctx).unwrap();
-        println!("{ast_code}");
+        test_inference_result(do_stuff::<rhdl_bits::alias::s4, rhdl_bits::alias::b3>::kernel_fn())
+            .unwrap()
     }
 
     #[test]
@@ -1082,6 +993,21 @@ mod tests {
         // But we can only take one of them as an argument to
         // the `any` function.  Unless we make it generic over
         // the type of the argument.
+        //
+        // Another option is to make the methods trait methods
+        // on the Digital trait itself.
+        //
+        // That would allow (expr).any(), for example, since
+        // .any() was by definition part of the Digital trait,
+        // and any expr must impl Digital.  We could then rewrite
+        // it as any(expr: impl Digital) -> bool.
+        //
+        // For performance, we can provide custom implementations
+        // for signed and unsigned bit vecs.
+        //
+        // Unfortunately, this does not really make sense.  What does
+        // (enum).all() mean?
+        //
     }
 
     #[test]

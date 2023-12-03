@@ -236,6 +236,16 @@ pub fn wild_pat() -> Box<Pat> {
     })
 }
 
+pub fn const_pat(name: &str, value: TypedBits) -> Box<Pat> {
+    Box::new(Pat {
+        id: None,
+        kind: PatKind::Const(PatConst {
+            name: name.into(),
+            lit: Box::new(value),
+        }),
+    })
+}
+
 pub fn lit_pat(lit: ExprLit) -> Box<Pat> {
     Box::new(Pat {
         id: None,
@@ -278,10 +288,18 @@ pub fn tuple_pat(elems: Vec<Box<Pat>>) -> Box<Pat> {
     })
 }
 
-pub fn tuple_struct_pat(path: Box<Path>, elems: Vec<Box<Pat>>) -> Box<Pat> {
+pub fn tuple_struct_pat(
+    path: Box<Path>,
+    elems: Vec<Box<Pat>>,
+    signature: DigitalSignature,
+) -> Box<Pat> {
     Box::new(Pat {
         id: None,
-        kind: PatKind::TupleStruct(PatTupleStruct { path, elems }),
+        kind: PatKind::TupleStruct(PatTupleStruct {
+            path,
+            elems,
+            signature,
+        }),
     })
 }
 

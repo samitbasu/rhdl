@@ -25,6 +25,9 @@ pub trait VisitorMut {
     fn visit_mut_path(&mut self, node: &mut Path) -> Result<()> {
         visit_mut_path(self, node)
     }
+    fn visit_mut_pat_const(&mut self, node: &mut PatConst) -> Result<()> {
+        visit_mut_pat_const(self, node)
+    }
     fn visit_mut_pat_ident(&mut self, node: &mut PatIdent) -> Result<()> {
         visit_mut_pat_ident(self, node)
     }
@@ -183,6 +186,13 @@ where
     Ok(())
 }
 
+pub fn visit_mut_pat_const<V>(visitor: &mut V, pat_const: &mut PatConst) -> Result<()>
+where
+    V: VisitorMut + ?Sized,
+{
+    Ok(())
+}
+
 pub fn visit_mut_pat_ident<V>(visitor: &mut V, pat_ident: &mut PatIdent) -> Result<()>
 where
     V: VisitorMut + ?Sized,
@@ -296,6 +306,9 @@ where
     V: VisitorMut + ?Sized,
 {
     match &mut pat.kind {
+        PatKind::Const(pat_const) => {
+            visitor.visit_mut_pat_const(pat_const)?;
+        }
         PatKind::Ident(pat) => {
             visitor.visit_mut_pat_ident(pat)?;
         }

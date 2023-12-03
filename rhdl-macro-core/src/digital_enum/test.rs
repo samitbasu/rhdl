@@ -41,7 +41,7 @@ fn test_enum_derive() {
             impl rhdl_core::Digital for Test {
                 fn static_kind() -> rhdl_core::Kind {
                     rhdl_core::Kind::make_enum(
-                        concat!(module_path!(), stringify!(Test)),
+                        concat!(module_path!(), "::", stringify!(Test)),
                         vec![
                             rhdl_core::Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
                             rhdl_core::Kind::make_variant(stringify!(B),
@@ -118,7 +118,7 @@ fn test_enum_no_payloads() {
         impl rhdl_core::Digital for State {
             fn static_kind() -> rhdl_core::Kind {
                 rhdl_core::Kind::make_enum(
-                    concat!(module_path!(), stringify!(State)),
+                    concat!(module_path!(), "::", stringify!(State)),
                     vec![
                         rhdl_core::Kind::make_variant(stringify!(Init), rhdl_core::Kind::Empty, 0i64),
                         rhdl_core::Kind::make_variant(stringify!(Boot), rhdl_core::Kind::Empty, 1i64),
@@ -195,7 +195,7 @@ fn test_enum_with_signed_discriminants() {
         impl rhdl_core::Digital for Test {
             fn static_kind() -> rhdl_core::Kind {
                 rhdl_core::Kind::make_enum(
-                    concat!(module_path!(), stringify!(Test)),
+                    concat!(module_path!(), "::", stringify!(Test)),
                     vec![
                         rhdl_core::Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
                         rhdl_core::Kind::make_variant(stringify!(B), rhdl_core::Kind::Empty, 9i64),
@@ -255,7 +255,7 @@ fn test_enum_with_discriminants() {
     let expected = quote! {
         impl rhdl_core::Digital for Test {
             fn static_kind() -> rhdl_core::Kind {
-                rhdl_core::Kind::make_enum(concat!(module_path!(), stringify!(Test)), vec![rhdl_core::Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
+                rhdl_core::Kind::make_enum(concat!(module_path!(), "::", stringify!(Test)), vec![rhdl_core::Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
                 rhdl_core::Kind::make_variant(stringify!(B), rhdl_core::Kind::Empty, 6i64),
                 rhdl_core::Kind::make_variant(stringify!(C), rhdl_core::Kind::Empty, 8i64)], 4usize, rhdl_core::DiscriminantAlignment::Msb)
             }

@@ -79,6 +79,7 @@ pub enum PatKind {
     Slice(PatSlice),
     Struct(PatStruct),
     Type(PatType),
+    Const(PatConst),
     Wild,
 }
 
@@ -102,11 +103,18 @@ pub struct PatSlice {
 pub struct PatTupleStruct {
     pub path: Box<Path>,
     pub elems: Vec<Box<Pat>>,
+    pub signature: DigitalSignature,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PatLit {
     pub lit: Box<ExprLit>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PatConst {
+    pub name: String,
+    pub lit: Box<TypedBits>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -65,6 +65,10 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + Default {
     fn note(&self, key: impl NoteKey, writer: impl NoteWriter);
 }
 
+fn binary_string(x: &[bool]) -> String {
+    x.iter().rev().map(|b| if *b { '1' } else { '0' }).collect()
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TypedBits {
     pub bits: Vec<bool>,
@@ -78,6 +82,12 @@ impl TypedBits {
             bits: self.bits[range].to_vec(),
             kind,
         })
+    }
+}
+
+impl std::fmt::Display for TypedBits {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}b{:?}", binary_string(&self.bits), self.kind)
     }
 }
 

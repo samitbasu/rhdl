@@ -473,9 +473,11 @@ impl Compiler {
                 CaseArgument::Path(collapse_path(&path)),
                 self.wrap_expr_in_block(Some(arm.body), lhs)?,
             )),
-            ast::PatKind::TupleStruct(PatTupleStruct { path, elems }) => {
-                self.expr_arm_tuple_struct(target, lhs, path, elems, arm.body)
-            }
+            ast::PatKind::TupleStruct(PatTupleStruct {
+                path,
+                elems,
+                signature,
+            }) => self.expr_arm_tuple_struct(target, lhs, path, elems, arm.body),
             ast::PatKind::Struct(PatStruct { path, fields, rest }) => {
                 self.expr_arm_struct(target, lhs, path, fields, rest, arm.body)
             }
