@@ -1,5 +1,5 @@
 use crate::{digital_fn::KernelFnKind, kernel::ExternalKernelDef, Digital};
-use anyhow::{bail, Result};
+use anyhow::bail;
 
 pub trait Testable<Args, T1> {
     fn test_string(&self, name: &str, args: Args) -> String;
@@ -274,6 +274,7 @@ mod tests {
         a + b
     }
 
+    #[allow(non_camel_case_types)]
     struct add {}
 
     impl DigitalFn for add {

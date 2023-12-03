@@ -18,17 +18,17 @@ pub trait Visitor {
     fn visit_pat(&mut self, node: &Pat) -> Result<()> {
         visit_pat(self, node)
     }
-    fn visit_path_segment(&mut self, node: &PathSegment) -> Result<()> {
-        visit_path_segment(self, node)
+    fn visit_path_segment(&mut self, _node: &PathSegment) -> Result<()> {
+        Ok(())
     }
     fn visit_path(&mut self, node: &Path) -> Result<()> {
         visit_path(self, node)
     }
-    fn visit_pat_const(&mut self, node: &PatConst) -> Result<()> {
-        visit_pat_const(self, node)
+    fn visit_pat_const(&mut self, _node: &PatConst) -> Result<()> {
+        Ok(())
     }
-    fn visit_pat_ident(&mut self, node: &PatIdent) -> Result<()> {
-        visit_pat_ident(self, node)
+    fn visit_pat_ident(&mut self, _node: &PatIdent) -> Result<()> {
+        Ok(())
     }
     fn visit_pat_tuple(&mut self, node: &PatTuple) -> Result<()> {
         visit_pat_tuple(self, node)
@@ -36,8 +36,8 @@ pub trait Visitor {
     fn visit_pat_tuple_struct(&mut self, node: &PatTupleStruct) -> Result<()> {
         visit_pat_tuple_struct(self, node)
     }
-    fn visit_pat_lit(&mut self, node: &PatLit) -> Result<()> {
-        visit_pat_lit(self, node)
+    fn visit_pat_lit(&mut self, _node: &PatLit) -> Result<()> {
+        Ok(())
     }
     fn visit_pat_or(&mut self, node: &PatOr) -> Result<()> {
         visit_pat_or(self, node)
@@ -58,7 +58,7 @@ pub trait Visitor {
         visit_pat_slice(self, node)
     }
     fn visit_pat_wild(&mut self) -> Result<()> {
-        visit_pat_wild(self)
+        Ok(())
     }
     fn visit_expr(&mut self, node: &Expr) -> Result<()> {
         visit_expr(self, node)
@@ -129,8 +129,8 @@ pub trait Visitor {
     fn visit_match_arm(&mut self, node: &Arm) -> Result<()> {
         visit_match_arm(self, node)
     }
-    fn visit_expr_lit(&mut self, node: &ExprLit) -> Result<()> {
-        visit_expr_lit(self, node)
+    fn visit_expr_lit(&mut self, _node: &ExprLit) -> Result<()> {
+        Ok(())
     }
     fn visit_field_value(&mut self, node: &FieldValue) -> Result<()> {
         visit_field_value(self, node)
@@ -141,8 +141,8 @@ pub trait Visitor {
     fn visit_kernel_fn(&mut self, node: &KernelFn) -> Result<()> {
         visit_kernel_fn(self, node)
     }
-    fn visit_expr_type(&mut self, node: &ExprType) -> Result<()> {
-        visit_expr_type(self, node)
+    fn visit_expr_type(&mut self, _node: &ExprType) -> Result<()> {
+        Ok(())
     }
 }
 
@@ -185,20 +185,6 @@ where
     Ok(())
 }
 
-pub fn visit_pat_const<V>(visitor: &mut V, pat_const: &PatConst) -> Result<()>
-where
-    V: Visitor + ?Sized,
-{
-    Ok(())
-}
-
-pub fn visit_pat_ident<V>(visitor: &mut V, pat_ident: &PatIdent) -> Result<()>
-where
-    V: Visitor + ?Sized,
-{
-    Ok(())
-}
-
 pub fn visit_pat_slice<V>(visitor: &mut V, pat_slice: &PatSlice) -> Result<()>
 where
     V: Visitor + ?Sized,
@@ -227,13 +213,6 @@ where
     for pat in &pat_tuple_struct.elems {
         visitor.visit_pat(pat)?;
     }
-    Ok(())
-}
-
-pub fn visit_pat_lit<V>(visitor: &mut V, pat_lit: &PatLit) -> Result<()>
-where
-    V: Visitor + ?Sized,
-{
     Ok(())
 }
 
@@ -287,13 +266,6 @@ where
     V: Visitor + ?Sized,
 {
     visitor.visit_pat(&pat_type.pat)?;
-    Ok(())
-}
-
-pub fn visit_pat_wild<V>(visitor: &mut V) -> Result<()>
-where
-    V: Visitor + ?Sized,
-{
     Ok(())
 }
 
@@ -410,13 +382,6 @@ where
 {
     visitor.visit_expr(&expr_index.expr)?;
     visitor.visit_expr(&expr_index.index)?;
-    Ok(())
-}
-
-pub fn visit_expr_lit<V>(visitor: &mut V, lit: &ExprLit) -> Result<()>
-where
-    V: Visitor + ?Sized,
-{
     Ok(())
 }
 
@@ -566,13 +531,6 @@ where
     Ok(())
 }
 
-pub fn visit_expr_type<V>(visitor: &mut V, expr_type: &ExprType) -> Result<()>
-where
-    V: Visitor + ?Sized,
-{
-    Ok(())
-}
-
 pub fn visit_expr<V>(visitor: &mut V, expr: &Expr) -> Result<()>
 where
     V: Visitor + ?Sized,
@@ -611,13 +569,6 @@ where
     for segment in &path.segments {
         visitor.visit_path_segment(segment)?;
     }
-    Ok(())
-}
-
-pub fn visit_path_segment<V>(visitor: &mut V, path_segment: &PathSegment) -> Result<()>
-where
-    V: Visitor + ?Sized,
-{
     Ok(())
 }
 

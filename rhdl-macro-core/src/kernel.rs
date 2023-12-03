@@ -1,9 +1,7 @@
 use std::collections::HashSet;
 
 use quote::{format_ident, quote};
-use syn::{
-    punctuated::Punctuated, spanned::Spanned, token::Comma, ExprPath, Ident, Pat, Path, Type,
-};
+use syn::{punctuated::Punctuated, spanned::Spanned, token::Comma, Ident, Pat, Path, Type};
 type TS = proc_macro2::TokenStream;
 type Result<T> = syn::Result<T>;
 
@@ -169,7 +167,7 @@ pub fn hdl_kernel(input: TS) -> Result<TS> {
 //
 fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
     let orig_name = &function.sig.ident;
-    let (impl_generics, ty_generics, where_clause) = function.sig.generics.split_for_impl();
+    let (impl_generics, _ty_generics, where_clause) = function.sig.generics.split_for_impl();
     let args = &function.sig.inputs;
     let call_args = args
         .iter()
@@ -269,6 +267,7 @@ impl Context {
         Ok(quote! {
             #wrapped_function
 
+            #[allow(non_camel_case_types)]
             struct #name #impl_generics {#(#phantom_fields,)*}
 
             impl #impl_generics rhdl_core::digital_fn::DigitalFn for #name #ty_generics #where_clause {
