@@ -10,9 +10,9 @@ pub(crate) fn get_fqdn(decl: &DeriveInput) -> TokenStream {
             .type_params()
             .map(|x| &x.ident)
             .map(|x| quote!(<#x as rhdl_core::Digital>::static_kind().get_name()));
-        quote!(&vec![module_path!().to_string(), stringify!(#struct_name).to_string(), "<".to_string(),  #(#generics_names),*, ">".to_string()].join(""))
+        quote!(&vec![module_path!().to_string(), "::".to_string(), stringify!(#struct_name).to_string(), "<".to_string(),  #(#generics_names),*, ">".to_string()].join(""))
     } else {
-        quote!(concat!(module_path!(), stringify! (#struct_name)))
+        quote!(concat!(module_path!(), "::", stringify! (#struct_name)))
     }
 }
 

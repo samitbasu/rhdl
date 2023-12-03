@@ -185,13 +185,19 @@ impl UnifyContext {
                 .get_unnamed_field(*t.clone(), field)
                 .map(|x| Ty::Ref(Box::new(x)));
         }
-        let Ty::Tuple(fields_) = t else {
-            bail!("Type must be a tuple")
-        };
-        fields_
-            .get(field)
-            .cloned()
-            .ok_or_else(|| anyhow!("Field {} not found", field))
+        // We can get an unnamed field from a tuple or a tuple struct
+        match t {
+            Ty::Tuple(fields_) => fields_
+                .get(field)
+                .cloned()
+                .ok_or_else(|| anyhow!("Field {} not found", field)),
+            Ty::Struct(struct_) => struct_
+                .fields
+                .get(&format!("{}", field))
+                .cloned()
+                .ok_or_else(|| anyhow!("Field {} not found in struct {}", field, struct_.name)),
+            _ => bail!("Type must be a tuple or tuple struct"),
+        }
     }
     pub fn get_array_base(&self, t: Ty) -> Result<Ty> {
         let Ty::Var(id) = t else {

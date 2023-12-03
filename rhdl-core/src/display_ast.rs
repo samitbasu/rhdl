@@ -26,6 +26,16 @@ pub fn pretty_print_kernel(kernel: &Kernel, ty: &UnifyContext) -> Result<String>
     Ok(buffer.buffer())
 }
 
+pub fn pretty_print_statement(stmt: &Stmt, ty: &UnifyContext) -> Result<String> {
+    let mut printer = PrettyPrinter {
+        buffer: Default::default(),
+        ty,
+    };
+    printer.print_stmt(stmt)?;
+    let buffer = printer.buffer;
+    Ok(buffer.buffer())
+}
+
 impl<'a> PrettyPrinter<'a> {
     pub fn print_kernel(&mut self, kernel: &Kernel) -> Result<()> {
         self.push(&format!("fn {}(", kernel.ast.name));
@@ -43,13 +53,10 @@ impl<'a> PrettyPrinter<'a> {
         self.buffer.write(s);
     }
     fn print_pattern(&mut self, pat: &Pat) -> Result<()> {
+        let term = self.ty.apply(id_to_var(pat.id)?);
         match &pat.kind {
             PatKind::Ident(ident) => {
                 self.push(&ident.name);
-                let term = self.ty.apply(id_to_var(pat.id)?);
-                self.push(" /* ");
-                self.print_type(&term)?;
-                self.push(" */");
             }
             PatKind::Wild => {
                 self.push("_");
@@ -113,7 +120,15 @@ impl<'a> PrettyPrinter<'a> {
                 self.push(": ");
                 self.print_kind(&pat.kind)?;
             }
+            PatKind::Const(pat) => {
+                self.push(&format!("const {}: ", pat.name));
+                self.print_type(&term)?;
+                self.push(&format!("{}", pat.lit));
+            }
         }
+        self.push(" /* ");
+        self.print_type(&term)?;
+        self.push(" */");
         Ok(())
     }
     fn print_block(&mut self, block: &Block) -> Result<()> {
@@ -228,7 +243,11 @@ impl<'a> PrettyPrinter<'a> {
                 self.print_expr(&expr.rhs)?;
             }
             ExprKind::Assign(expr) => {
+                let term = self.ty.apply(id_to_var(expr.lhs.id)?);
                 self.print_expr(&expr.lhs)?;
+                self.push(" /*");
+                self.print_type(&term)?;
+                self.push("*/");
                 self.push(" = ");
                 self.print_expr(&expr.rhs)?;
             }

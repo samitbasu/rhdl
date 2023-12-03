@@ -135,11 +135,17 @@ where
     let KernelFnKind::Extern(ExternalKernelDef { name, body }) = desc else {
         unimplemented!("Expected an external kernel")
     };
+    let mut num_cases = 0;
     let cases = vals
+        .map(|x| {
+            num_cases += 1;
+            x
+        })
         .map(|arg| uut.test_string(&name, arg))
         .collect::<String>();
-    TestModule(format!(
-        "
+    TestModule {
+        testbench: format!(
+            "
 module testbench;
    {body}
 
@@ -150,10 +156,15 @@ $finish;
        end
 endmodule
     "
-    ))
+        ),
+        num_cases,
+    }
 }
 
-pub struct TestModule(pub String);
+pub struct TestModule {
+    pub testbench: String,
+    pub num_cases: usize,
+}
 
 impl TestModule {
     pub fn new<F, Args, T0>(
@@ -171,29 +182,31 @@ impl TestModule {
 
 impl std::fmt::Display for TestModule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
+        self.testbench.fmt(f)
     }
 }
 
 #[cfg(feature = "iverilog")]
 impl TestModule {
     pub fn run_iverilog(&self) -> anyhow::Result<()> {
-        let d = temp_dir::TempDir::new()?;
+        let d = tempfile::tempdir()?;
         // Write the test bench to a file
-        std::fs::write(d.path().join("testbench.v"), &self.0)?;
+        let d_path = d.path();
+        std::fs::write(d_path.join("testbench.v"), &self.testbench)?;
         // Compile the test bench
         let mut cmd = std::process::Command::new("iverilog");
         cmd.arg("-o")
-            .arg(d.path().join("testbench"))
-            .arg(d.path().join("testbench.v"));
+            .arg(d_path.join("testbench"))
+            .arg(d_path.join("testbench.v"));
         let status = cmd.status()?;
         if !status.success() {
             bail!("Failed to compile testbench");
         }
-        let mut cmd = std::process::Command::new(d.path().join("testbench"));
+        let mut cmd = std::process::Command::new(d_path.join("testbench"));
         let output = cmd.output()?;
         for case in String::from_utf8_lossy(&output.stdout)
             .lines()
+            .take(self.num_cases)
             .map(|line| line.split(' ').collect::<Vec<_>>())
         {
             let expected = case[0];

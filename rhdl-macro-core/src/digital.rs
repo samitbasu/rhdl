@@ -146,7 +146,7 @@ mod test {
             impl rhdl_core::Digital for NestedBits {
                 fn static_kind() -> rhdl_core::Kind {
                     rhdl_core::Kind::make_struct(
-                        concat!(module_path!(), stringify!(NestedBits)),
+                        concat!(module_path!(), "::", stringify!(NestedBits)),
                         vec![
                         rhdl_core::Kind::make_field(stringify!(nest_1), <bool as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(nest_2), <u8 as rhdl_core::Digital>::static_kind()),
@@ -184,7 +184,7 @@ mod test {
             impl rhdl_core::Digital for Inputs {
                 fn static_kind() -> rhdl_core::Kind {
                     rhdl_core::Kind::make_struct(
-                        concat!(module_path!(), stringify!(Inputs)),
+                        concat!(module_path!(), "::", stringify!(Inputs)),
                         vec![
                         rhdl_core::Kind::make_field(stringify!(input), <u32 as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(write), <bool as rhdl_core::Digital>::static_kind()),
@@ -223,7 +223,7 @@ mod test {
                 fn static_kind() -> rhdl_core::Kind {
                     rhdl_core::Kind::make_struct(
                         &vec![
-                            module_path!().to_string(),
+                            module_path!().to_string(),"::".to_string(),
                             stringify!(Inputs).to_string(), "<".to_string(), <T as rhdl_core::Digital>::static_kind().get_name(), ">".to_string()
                         ].join(""),
                         vec![
@@ -263,7 +263,7 @@ mod test {
             impl rhdl_core::Digital for Inputs {
                 fn static_kind() -> rhdl_core::Kind {
                     rhdl_core::Kind::make_struct(
-                        concat!(module_path!(), stringify!(Inputs)),
+                        concat!(module_path!(), "::", stringify!(Inputs)),
                         vec![
                         rhdl_core::Kind::make_field(stringify!(input), <u32 as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(write), <bool as rhdl_core::Digital>::static_kind()),
@@ -297,7 +297,7 @@ mod test {
             impl rhdl_core::Digital for Inputs {
                 fn static_kind() -> rhdl_core::Kind {
                     rhdl_core::Kind::make_struct(
-                        concat!(module_path!(), stringify!(Inputs)),
+                        concat!(module_path!(), "::", stringify!(Inputs)),
                         vec![
                         rhdl_core::Kind::make_field(stringify!(0), <u32 as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(1), <bool as rhdl_core::Digital>::static_kind()),
