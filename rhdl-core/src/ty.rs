@@ -13,6 +13,7 @@ pub enum Bits {
     Unsigned(usize),
     I128,
     U128,
+    Usize,
     Empty,
 }
 
@@ -22,6 +23,7 @@ impl Bits {
     }
     pub fn len(self) -> usize {
         match self {
+            Bits::Usize => std::mem::size_of::<usize>() * 8,
             Bits::I128 | Bits::U128 => 128,
             Bits::Signed(width) | Bits::Unsigned(width) => width,
             Bits::Empty => 0,
@@ -50,6 +52,7 @@ pub enum Ty {
     Array(Vec<Ty>),
     Struct(TyMap),
     Enum(TyMap),
+    Integer,
 }
 
 pub fn ty_bool() -> Ty {
@@ -92,6 +95,14 @@ pub fn ty_uint() -> Ty {
     Ty::Const(Bits::U128)
 }
 
+pub fn ty_usize() -> Ty {
+    Ty::Const(Bits::Usize)
+}
+
+pub fn ty_integer() -> Ty {
+    Ty::Integer
+}
+
 impl Display for Ty {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -99,6 +110,7 @@ impl Display for Ty {
             Ty::Const(bits) => match bits {
                 Bits::I128 => write!(f, "i128"),
                 Bits::U128 => write!(f, "u128"),
+                Bits::Usize => write!(f, "usize"),
                 Bits::Signed(width) => write!(f, "s{}", width),
                 Bits::Unsigned(width) => write!(f, "b{}", width),
                 Bits::Empty => write!(f, "{{}}"),
@@ -134,6 +146,7 @@ impl Display for Ty {
                 }
                 write!(f, "]")
             }
+            Ty::Integer => write!(f, "int"),
         }
     }
 }

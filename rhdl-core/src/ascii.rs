@@ -18,6 +18,12 @@ pub fn render_ast_to_string(kernel: &Kernel, ty: &UnifyContext) -> Result<String
     renderer.render(&kernel.ast)
 }
 
+pub fn render_statement_to_string(stmt: &Stmt, ty: &UnifyContext) -> Result<String> {
+    let mut renderer = AsciiRenderer::new(ty);
+    renderer.render_stmt(stmt)?;
+    Ok(renderer.buffer)
+}
+
 impl<'a> AsciiRenderer<'a> {
     pub fn new(ty: &'a UnifyContext) -> Self {
         Self {

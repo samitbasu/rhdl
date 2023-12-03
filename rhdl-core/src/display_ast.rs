@@ -210,7 +210,9 @@ impl<'a> PrettyPrinter<'a> {
                 ty::Bits::Unsigned(n) => self.push(&format!("b{}", n)),
                 ty::Bits::I128 => self.push("i128"),
                 ty::Bits::U128 => self.push("u128"),
+                ty::Bits::Usize => self.push("usize"),
             },
+            Ty::Integer => self.push("int"),
             Ty::Enum(ty) | Ty::Struct(ty) => {
                 self.push(&ty.name);
             }

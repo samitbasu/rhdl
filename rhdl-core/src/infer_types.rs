@@ -1,6 +1,8 @@
 use crate::ast::{ExprAssign, ExprIf, ExprLit, ExprUnary, Member, NodeId, PatKind};
 use crate::kernel::Kernel;
-use crate::ty::{ty_array, ty_bits, ty_bool, ty_empty, ty_signed, ty_tuple, TyMap};
+use crate::ty::{
+    ty_array, ty_bits, ty_bool, ty_empty, ty_integer, ty_signed, ty_tuple, ty_uint, ty_usize, TyMap,
+};
 use crate::unify::UnifyContext;
 use crate::Kind;
 use crate::{
@@ -448,6 +450,7 @@ impl Visitor for TypeInference {
                 visit::visit_expr(self, node)?;
                 let arg = id_to_var(index.expr.id)?;
                 self.unify(my_ty, self.context.get_array_base(arg)?)?;
+                self.unify(id_to_var(index.index.id)?, ty_usize())?;
             }
             ExprKind::Ret(ret) => {
                 if let Some(expr) = ret.expr.as_ref() {
@@ -471,7 +474,7 @@ impl Visitor for TypeInference {
             }
             ExprKind::Lit(lit) => match lit {
                 ExprLit::Int(_) => {
-                    //self.unify(my_ty, ty_uint())?;
+                    self.unify(my_ty, ty_integer())?;
                 }
                 ExprLit::Bool(_) => {
                     self.unify(my_ty, ty_bool())?;
@@ -481,6 +484,7 @@ impl Visitor for TypeInference {
                 }
             },
             ExprKind::Repeat(repeat) => {
+                self.unify(id_to_var(repeat.len.id)?, ty_usize())?;
                 if let ExprKind::Lit(ExprLit::Int(len)) = &repeat.len.kind {
                     if let Ok(len) = len.parse::<usize>() {
                         self.unify(my_ty, ty_array(id_to_var(repeat.value.id)?, len))?;
