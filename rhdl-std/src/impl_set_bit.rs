@@ -4,7 +4,7 @@ use rhdl_core::digital_fn::DigitalFn;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
 
-pub fn set_bit<const N: usize>(x: Bits<N>, i: u128, value: bool) -> Bits<N> {
+pub fn set_bit<const N: usize>(x: Bits<N>, i: u8, value: bool) -> Bits<N> {
     let selector = 1_u128 << i;
     let x = if value {
         x.0 | selector
@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn test_iverilog() -> anyhow::Result<()> {
-        let test_values = (0..=255).map(|x| (Bits::<8>::from(x), x % 8, x % 2 == 0));
+        let test_values = (0..=255).map(|x| (Bits::<8>::from(x), (x % 8) as u8, x % 2 == 0));
         rhdl_core::test_with_iverilog(set_bit::<8>, set_bit::<8>::kernel_fn(), test_values)
     }
 }

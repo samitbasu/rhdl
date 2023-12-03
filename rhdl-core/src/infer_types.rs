@@ -193,22 +193,35 @@ impl TypeInference {
         let method_name = &call.method;
         match method_name.as_str() {
             "set_bit" => {
-                // Signature is set_bit(self, index: usize, value: bool) -> bits
-                if call.args.len() != 2 {
-                    bail!("Wrong number of arguments to set_bit: {}", call.args.len());
+                if let Ty::Const(crate::ty::Bits::Unsigned(_len)) = target {
+                    // Signature is set_bit(self, index: usize, value: bool) -> bits
+                    if call.args.len() != 2 {
+                        bail!("Wrong number of arguments to set_bit: {}", call.args.len());
+                    }
+                    self.unify(id_to_var(call.args[0].id)?, ty_usize())?;
+                    self.unify(id_to_var(call.args[1].id)?, ty_bool())?;
+                    self.unify(my_ty, ty_empty())?;
                 }
-                self.unify(id_to_var(call.args[1].id)?, ty_bool())?;
-                self.unify(my_ty, ty_empty())?;
             }
             "get_bit" => {
-                // Signature is get_bit(self, index: usize) -> bool
-                if call.args.len() != 1 {
-                    bail!("Wrong number of arguments to get_bit: {}", call.args.len());
+                if let Ty::Const(crate::ty::Bits::Unsigned(_len)) = target {
+                    // Signature is get_bit(self, index: usize) -> bool
+                    if call.args.len() != 1 {
+                        bail!("Wrong number of arguments to get_bit: {}", call.args.len());
+                    }
+                    self.unify(id_to_var(call.args[0].id)?, ty_usize())?;
+                    self.unify(my_ty, ty_bool())?;
                 }
-                self.unify(my_ty, ty_bool())?;
             }
-            "any" | "all" | "xor" | "sign_bit" | "is_negative" | "is_non_negative" => {
-                self.unify(my_ty, ty_bool())?;
+            "any" | "all" | "xor" => {
+                if let Ty::Const(crate::ty::Bits::Unsigned(_len)) = target {
+                    self.unify(my_ty, ty_bool())?;
+                }
+            }
+            "sign_bit" => {
+                if let Ty::Const(crate::ty::Bits::Signed(_len)) = target {
+                    self.unify(my_ty, ty_bool())?;
+                }
             }
             "slice" | "into" => {}
             "as_signed" => {

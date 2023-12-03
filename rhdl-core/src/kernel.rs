@@ -32,10 +32,16 @@ pub enum KernelFnKind {
     TupleStructConstructor,
     BitConstructor(usize),
     SignedBitsConstructor(usize),
+    MethodCall(MethodCallDef),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExternalKernelDef {
     pub name: String,
     pub body: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum MethodCallDef {
+    Any(usize),
 }

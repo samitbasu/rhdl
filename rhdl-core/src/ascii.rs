@@ -197,7 +197,7 @@ impl<'a> AsciiRenderer<'a> {
                 self.indent -= 1;
             }
             ExprKind::MethodCall(method_call) => {
-                self.push("method_call");
+                self.push(&format!("method_call {}", method_call.method));
                 self.indent += 1;
                 self.render_expr(&method_call.receiver)?;
                 for arg in &method_call.args {

@@ -482,7 +482,7 @@ impl Context {
             syn::Expr::Call(expr) => self.call(expr),
             syn::Expr::Array(expr) => self.array(expr),
             syn::Expr::Index(expr) => self.index(expr),
-            //syn::Expr::MethodCall(expr) => self.method_call(expr),
+            syn::Expr::MethodCall(expr) => self.method_call(expr),
             _ => Err(syn::Error::new(
                 expr.span(),
                 format!(

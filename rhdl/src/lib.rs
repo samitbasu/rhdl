@@ -335,7 +335,7 @@ mod tests {
                 return d;
             }
             // if-else statement (and a statement expression)
-            let j = b5(if d < bits::<8>(3) { 7 } else { 9 });
+            let j = if d < bits::<8>(3) { 7 } else { 9 };
             // Enum literal
             let k = State::Boom;
             // Enum literal with a payload
@@ -355,6 +355,53 @@ mod tests {
         }
 
         test_inference_result(do_stuff::kernel_fn()).unwrap();
+    }
+
+    #[test]
+    fn test_method_call_syntax() {
+        use rhdl_std::UnsignedMethods;
+
+        #[derive(Copy, Clone, PartialEq, Default, Digital)]
+        struct Baz {
+            a: u8,
+        }
+
+        impl Baz {
+            fn any(&self) -> bool {
+                false
+            }
+        }
+
+        #[kernel]
+        fn do_stuff() {
+            let k = b12(5);
+            let h = Baz { a: 3 };
+            let j = k.any();
+            let i = k.get_bit(3);
+        }
+        test_inference_result(do_stuff::kernel_fn()).unwrap();
+    }
+
+    #[test]
+    fn test_method_call_fails_with_roll_your_own() {
+        #[derive(Copy, Clone, PartialEq, Default, Digital)]
+        struct Baz {
+            a: u8,
+        }
+
+        impl Baz {
+            fn any(&self) -> bool {
+                false
+            }
+        }
+
+        #[kernel]
+        fn do_stuff() {
+            let k = b12(5);
+            let h = Baz { a: 3 };
+            let j = h.any();
+        }
+        assert!(test_inference_result(do_stuff::kernel_fn()).is_err());
     }
 
     #[test]
