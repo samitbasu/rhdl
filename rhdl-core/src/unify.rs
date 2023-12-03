@@ -33,7 +33,7 @@ impl UnifyContext {
                     Term::Var(id)
                 }
             }
-            Term::Const { .. } => typ,
+            Term::Const { .. } | Term::Integer => typ,
             Term::Tuple(fields) => Term::Tuple(fields.into_iter().map(|x| self.apply(x)).collect()),
             Term::Ref(t) => Term::Ref(Box::new(self.apply(*t))),
             Term::Array(elems) => Term::Array(elems.into_iter().map(|x| self.apply(x)).collect()),
@@ -93,6 +93,7 @@ impl UnifyContext {
             (Term::Struct(x), Term::Struct(y)) | (Term::Enum(x), Term::Enum(y)) => {
                 self.unify_maps(x, y)
             }
+            (Term::Const(x), Term::Integer) | (Term::Integer, Term::Const(x)) => Ok(()),
             (x, y) => bail!("Cannot unify {:?} and {:?}", x, y),
         }
     }

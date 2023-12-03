@@ -1,3 +1,4 @@
+use crate::ascii::render_statement_to_string;
 use crate::display_ast::pretty_print_statement;
 use crate::ty::Ty;
 use crate::{ast, visit};
@@ -28,20 +29,20 @@ impl<'a> Validator<'a> {
     fn validate_bound_type(&mut self, node_id: Option<ast::NodeId>) -> Result<()> {
         let var = id_to_var(node_id)?;
         let ty = self.ty.apply(var);
-        if matches!(ty, Ty::Var(_)) {
+        if let Ty::Var(ndx) = ty {
             bail!(
-                "unbound type variable in statement: {}",
+                "unbound type variable V{} in statement: {}",
+                ndx.0,
                 self.current_statement
             );
-        } else {
-            Ok(())
         }
+        Ok(())
     }
 }
 
 impl<'a> Visitor for Validator<'a> {
     fn visit_stmt(&mut self, node: &crate::ast::Stmt) -> Result<()> {
-        self.current_statement = pretty_print_statement(node, self.ty)?;
+        self.current_statement = render_statement_to_string(node, self.ty)?;
         self.validate_bound_type(node.id)?;
         visit::visit_stmt(self, node)
     }
@@ -56,6 +57,10 @@ impl<'a> Visitor for Validator<'a> {
     fn visit_pat(&mut self, node: &crate::ast::Pat) -> Result<()> {
         self.validate_bound_type(node.id)?;
         visit::visit_pat(self, node)
+    }
+    fn visit_expr(&mut self, node: &ast::Expr) -> Result<()> {
+        self.validate_bound_type(node.id)?;
+        visit::visit_expr(self, node)
     }
     fn visit_expr_assign(&mut self, node: &ast::ExprAssign) -> Result<()> {
         self.validate_bound_type(node.lhs.id)?;

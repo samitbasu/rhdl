@@ -642,7 +642,7 @@ mod tests {
         #[kernel]
         fn do_stuff(mut a: Foo, mut s: NooState) {
             let k = {
-                bits::<12>(4);
+                bits::<12>(4) + 6;
                 bits::<12>(6)
             };
             let mut a: Foo = a;
