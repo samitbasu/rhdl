@@ -8,7 +8,7 @@ use crate::impl_get_bit::get_bit;
 
 pub fn as_signed<const N: usize>(x: Bits<N>) -> SignedBits<N> {
     // Need a sign extension here.
-    if get_bit(x, N as u128 - 1) {
+    if get_bit(x, (N - 1).try_into().unwrap()) {
         SignedBits((x.0 | !(Bits::<N>::mask().0)) as i128)
     } else {
         SignedBits(x.0 as i128)

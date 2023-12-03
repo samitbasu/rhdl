@@ -70,3 +70,6 @@ pub use impl_set_bit::*;
 pub use impl_sign_bit::*;
 pub use impl_slice::*;
 pub use impl_xor::*;
+
+mod impl_methods;
+pub use impl_methods::{SignedMethods, UnsignedMethods};

@@ -8,6 +8,7 @@ pub use clock_details::ClockDetails;
 pub use digital::Digital;
 pub use digital_fn::DigitalFn;
 pub use kernel::KernelFnKind;
+pub use kernel::MethodCallDef;
 pub use kind::DiscriminantAlignment;
 pub use tag_id::TagID;
 
