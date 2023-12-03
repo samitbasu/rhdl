@@ -52,26 +52,3 @@ pub use note_db::note_push_path;
 pub mod check_inference;
 
 pub use check_inference::check_inference;
-
-fn test_ig() {
-    let x = 5;
-    const Q: i32 = 15;
-    fn double(x: i32) -> i32 {
-        x * 2
-    }
-    let z = 5;
-    match x {
-        Q => {
-            eprintln!("Q = {Q}")
-        }
-        z => {
-            eprintln!("z = {z}")
-        }
-    }
-    match (x, x) {
-        (Q, Q) => {
-            eprintln!("Q = {Q}")
-        }
-        _ => {}
-    }
-}

@@ -19,17 +19,17 @@ pub trait VisitorMut {
     fn visit_mut_pat(&mut self, node: &mut Pat) -> Result<()> {
         visit_mut_pat(self, node)
     }
-    fn visit_mut_path_segment(&mut self, node: &mut PathSegment) -> Result<()> {
-        visit_mut_path_segment(self, node)
+    fn visit_mut_path_segment(&mut self, _node: &mut PathSegment) -> Result<()> {
+        Ok(())
     }
     fn visit_mut_path(&mut self, node: &mut Path) -> Result<()> {
         visit_mut_path(self, node)
     }
-    fn visit_mut_pat_const(&mut self, node: &mut PatConst) -> Result<()> {
-        visit_mut_pat_const(self, node)
+    fn visit_mut_pat_const(&mut self, _node: &mut PatConst) -> Result<()> {
+        Ok(())
     }
-    fn visit_mut_pat_ident(&mut self, node: &mut PatIdent) -> Result<()> {
-        visit_mut_pat_ident(self, node)
+    fn visit_mut_pat_ident(&mut self, _node: &mut PatIdent) -> Result<()> {
+        Ok(())
     }
     fn visit_mut_pat_tuple(&mut self, node: &mut PatTuple) -> Result<()> {
         visit_mut_pat_tuple(self, node)
@@ -37,8 +37,8 @@ pub trait VisitorMut {
     fn visit_mut_pat_tuple_struct(&mut self, node: &mut PatTupleStruct) -> Result<()> {
         visit_mut_pat_tuple_struct(self, node)
     }
-    fn visit_mut_pat_lit(&mut self, node: &mut PatLit) -> Result<()> {
-        visit_mut_pat_lit(self, node)
+    fn visit_mut_pat_lit(&mut self, _node: &mut PatLit) -> Result<()> {
+        Ok(())
     }
     fn visit_mut_pat_or(&mut self, node: &mut PatOr) -> Result<()> {
         visit_mut_pat_or(self, node)
@@ -130,8 +130,8 @@ pub trait VisitorMut {
     fn visit_mut_match_arm(&mut self, node: &mut Arm) -> Result<()> {
         visit_mut_match_arm(self, node)
     }
-    fn visit_mut_expr_lit(&mut self, node: &mut ExprLit) -> Result<()> {
-        visit_mut_expr_lit(self, node)
+    fn visit_mut_expr_lit(&mut self, _node: &mut ExprLit) -> Result<()> {
+        Ok(())
     }
     fn visit_mut_field_value(&mut self, node: &mut FieldValue) -> Result<()> {
         visit_mut_field_value(self, node)
@@ -139,8 +139,8 @@ pub trait VisitorMut {
     fn visit_mut_field_pat(&mut self, node: &mut FieldPat) -> Result<()> {
         visit_mut_field_pat(self, node)
     }
-    fn visit_mut_expr_type(&mut self, node: &mut ExprType) -> Result<()> {
-        visit_mut_expr_type(self, node)
+    fn visit_mut_expr_type(&mut self, _node: &mut ExprType) -> Result<()> {
+        Ok(())
     }
     fn visit_mut_kernel_fn(&mut self, node: &mut KernelFn) -> Result<()> {
         visit_mut_kernel_fn(self, node)
@@ -186,20 +186,6 @@ where
     Ok(())
 }
 
-pub fn visit_mut_pat_const<V>(visitor: &mut V, pat_const: &mut PatConst) -> Result<()>
-where
-    V: VisitorMut + ?Sized,
-{
-    Ok(())
-}
-
-pub fn visit_mut_pat_ident<V>(visitor: &mut V, pat_ident: &mut PatIdent) -> Result<()>
-where
-    V: VisitorMut + ?Sized,
-{
-    Ok(())
-}
-
 pub fn visit_mut_pat_slice<V>(visitor: &mut V, pat_slice: &mut PatSlice) -> Result<()>
 where
     V: VisitorMut + ?Sized,
@@ -231,13 +217,6 @@ where
     for pat in &mut pat_tuple_struct.elems {
         visitor.visit_mut_pat(pat)?;
     }
-    Ok(())
-}
-
-pub fn visit_mut_pat_lit<V>(visitor: &mut V, pat_lit: &mut PatLit) -> Result<()>
-where
-    V: VisitorMut + ?Sized,
-{
     Ok(())
 }
 
@@ -294,13 +273,6 @@ where
     Ok(())
 }
 
-pub fn visit_mut_pat_wild<V>(visitor: &mut V) -> Result<()>
-where
-    V: VisitorMut + ?Sized,
-{
-    Ok(())
-}
-
 pub fn visit_mut_pat<V>(visitor: &mut V, pat: &mut Pat) -> Result<()>
 where
     V: VisitorMut + ?Sized,
@@ -339,9 +311,7 @@ where
         PatKind::Slice(pat_slice) => {
             visitor.visit_mut_pat_slice(pat_slice)?;
         }
-        PatKind::Wild => {
-            visit_mut_pat_wild(visitor)?;
-        }
+        PatKind::Wild => {}
     }
     Ok(())
 }
@@ -414,13 +384,6 @@ where
 {
     visitor.visit_mut_expr(&mut expr_index.expr)?;
     visitor.visit_mut_expr(&mut expr_index.index)?;
-    Ok(())
-}
-
-pub fn visit_mut_expr_lit<V>(visitor: &mut V, lit: &mut ExprLit) -> Result<()>
-where
-    V: VisitorMut + ?Sized,
-{
     Ok(())
 }
 
@@ -573,13 +536,6 @@ where
     Ok(())
 }
 
-pub fn visit_mut_expr_type<V>(visitor: &mut V, expr_type: &mut ExprType) -> Result<()>
-where
-    V: VisitorMut + ?Sized,
-{
-    Ok(())
-}
-
 pub fn visit_mut_expr<V>(visitor: &mut V, expr: &mut Expr) -> Result<()>
 where
     V: VisitorMut + ?Sized,
@@ -618,13 +574,6 @@ where
     for segment in &mut path.segments {
         visitor.visit_mut_path_segment(segment)?;
     }
-    Ok(())
-}
-
-pub fn visit_mut_path_segment<V>(visitor: &mut V, path_segment: &mut PathSegment) -> Result<()>
-where
-    V: VisitorMut + ?Sized,
-{
     Ok(())
 }
 

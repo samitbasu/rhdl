@@ -93,7 +93,6 @@ impl UnifyContext {
             (Term::Struct(x), Term::Struct(y)) | (Term::Enum(x), Term::Enum(y)) => {
                 self.unify_maps(x, y)
             }
-            (Term::Const(x), Term::Integer) | (Term::Integer, Term::Const(x)) => Ok(()),
             (x, y) => bail!("Cannot unify {:?} and {:?}", x, y),
         }
     }

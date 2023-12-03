@@ -42,7 +42,11 @@ impl<'a> Validator<'a> {
 
 impl<'a> Visitor for Validator<'a> {
     fn visit_stmt(&mut self, node: &crate::ast::Stmt) -> Result<()> {
-        self.current_statement = render_statement_to_string(node, self.ty)?;
+        self.current_statement = format!(
+            "\n\nStatement:\n{}AST:\n{}",
+            pretty_print_statement(node, self.ty)?,
+            render_statement_to_string(node, self.ty)?
+        );
         self.validate_bound_type(node.id)?;
         visit::visit_stmt(self, node)
     }

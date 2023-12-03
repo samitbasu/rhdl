@@ -1,8 +1,6 @@
-use crate::ast::{ExprAssign, ExprIf, ExprLit, ExprUnary, Member, NodeId, PatKind};
+use crate::ast::{ExprAssign, ExprIf, ExprLit, ExprUnary, Member, NodeId};
 use crate::kernel::Kernel;
-use crate::ty::{
-    ty_array, ty_bits, ty_bool, ty_empty, ty_integer, ty_signed, ty_tuple, ty_uint, ty_usize, TyMap,
-};
+use crate::ty::{ty_array, ty_bits, ty_bool, ty_empty, ty_integer, ty_signed, ty_tuple, ty_usize};
 use crate::unify::UnifyContext;
 use crate::Kind;
 use crate::{
@@ -119,7 +117,7 @@ impl TypeInference {
                 self.unify(id_to_var(ty.pat.id)?, ty.kind.clone().into())?;
                 self.unify(id_to_var(pat.id)?, id_to_var(ty.pat.id)?)?;
             }
-            ast::PatKind::Lit(ref lit) => {}
+            ast::PatKind::Lit(ref _lit) => {}
             ast::PatKind::Struct(ref ty) => {
                 let term = self.context.apply(id_to_var(pat.id)?);
                 eprintln!("Struct type: {term}");
@@ -473,8 +471,21 @@ impl Visitor for TypeInference {
                 self.unify(my_ty, id_to_var(expr.id)?)?;
             }
             ExprKind::Lit(lit) => match lit {
+                // We apply the generic integer type to all integer
+                // literals only _after_ all other steps of type inference.
+                // This is to allow other constraints to be applied first.
+                //
+                // For example, if we have y = bits(3), then 3 is an
+                // integer literal, but the `bits` function constrains
+                // it to be a u128.
+                //
+                // On the other hand, expressions like `if 3 > 4` do not
+                // apply any strong type constraints.  These are under-constrained
+                // literals, and Rust will automatically assume they are i32.
+                // We do likewise, but in a separate inference pass.
+                //
                 ExprLit::Int(_) => {
-                    self.unify(my_ty, ty_integer())?;
+                    // self.unify(my_ty, ty_integer())?;
                 }
                 ExprLit::Bool(_) => {
                     self.unify(my_ty, ty_bool())?;
@@ -536,9 +547,38 @@ impl Visitor for TypeInference {
     }
 }
 
+struct InferenceForGenericIntegers<'a> {
+    context: &'a mut UnifyContext,
+}
+
+impl<'a> Visitor for InferenceForGenericIntegers<'a> {
+    fn visit_expr(&mut self, node: &ast::Expr) -> Result<()> {
+        let my_ty = id_to_var(node.id)?;
+        let resolved_type = self.context.apply(my_ty.clone());
+        match &node.kind {
+            ExprKind::Lit(lit) => {
+                if let Ty::Var(_) = resolved_type {
+                    match lit {
+                        ExprLit::Int(_) => {
+                            self.context.unify(my_ty, ty_integer())?;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            _ => {}
+        }
+        visit::visit_expr(self, node)
+    }
+}
+
 pub fn infer(root: &Kernel) -> Result<UnifyContext> {
     let mut inference_engine = TypeInference::default();
     inference_engine.visit_kernel_fn(&root.ast)?;
     inference_engine.visit_kernel_fn(&root.ast)?;
+    let mut integer_fixup = InferenceForGenericIntegers {
+        context: &mut inference_engine.context,
+    };
+    integer_fixup.visit_kernel_fn(&root.ast)?;
     Ok(inference_engine.context)
 }

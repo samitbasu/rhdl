@@ -2,11 +2,10 @@ use std::time::Instant;
 
 use rhdl_bits::bits;
 use rhdl_core::note_db::note_time;
-use rhdl_core::{note, note_db::dump_vcd, Digital};
+use rhdl_core::{note, note_db::dump_vcd};
 use rhdl_macro::kernel;
 use rhdl_x::Foo;
 
-use rhdl_bits::alias::*;
 use rhdl_bits::Bits;
 
 #[kernel]
@@ -20,13 +19,13 @@ fn main() {
     let start = Instant::now();
     for i in 0..1_000_000 {
         note_time((i as u64) * 10);
-        let foo: Foo = Foo {
+        let foo_baz: Foo = Foo {
             field1: bits(i % 16),
             field2: bits(2),
             field3: (bits(i % 16), bits(i % 64)),
         };
-        note("foo", foo);
-        let res = add_em2(foo.field1, foo.field1);
+        note("foo", foo_baz);
+        let _res = add_em2(foo_baz.field1, foo_baz.field1);
     }
     eprintln!("{}ms", start.elapsed().as_millis());
     let mut s = vec![];
