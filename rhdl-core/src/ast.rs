@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 // Modeled after rustc's AST
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Hash, Eq)]
 pub struct NodeId(u32);
 
 impl NodeId {

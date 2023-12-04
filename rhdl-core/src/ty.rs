@@ -7,6 +7,12 @@ use std::fmt::Display;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd, Deserialize, Serialize)]
 pub struct TypeId(pub usize);
 
+impl From<TypeId> for crate::ast::NodeId {
+    fn from(value: TypeId) -> Self {
+        NodeId::new(value.0 as u32)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Bits {
     Signed(usize),
@@ -37,6 +43,7 @@ pub struct TyMap {
     pub fields: BTreeMap<String, Ty>,
 }
 
+use crate::ast::NodeId;
 use crate::Kind;
 
 // Start simple, modelling as in the Eli Bendersky example.
@@ -192,7 +199,6 @@ impl From<Kind> for Ty {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
     // A simple macro rules style macro that allows you to construct a TermMap
     // using a struct-like syntax, like
@@ -219,8 +225,6 @@ mod tests {
     };
 }
 
-    pub(crate) use ty_struct;
-
     #[macro_export]
     macro_rules! ty_enum {
     (name: $name:expr, fields: { $($field:expr => $ty:expr),* $(,)? }) => {
@@ -236,6 +240,4 @@ mod tests {
         })
     };
     }
-
-    pub(crate) use ty_enum;
 }

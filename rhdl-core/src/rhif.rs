@@ -145,7 +145,7 @@ pub enum AluUnary {
     Not,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
 pub enum Slot {
     Literal(usize),
     Register(usize),
