@@ -17,6 +17,7 @@ mod tests {
         assign_node::assign_node_ids,
         check_inference,
         compiler::Compiler,
+        compiler_gen2::CompilerContext,
         digital_fn::{inspect_digital, DigitalFn},
         display_ast::pretty_print_kernel,
         infer_types::{infer, TypeInference},
@@ -25,6 +26,7 @@ mod tests {
         note_db::{dump_vcd, note_time},
         path::{bit_range, Path},
         typer::infer_type,
+        visit::Visitor,
         DiscriminantAlignment, NoteKey,
     };
 
@@ -305,7 +307,7 @@ mod tests {
 
         #[kernel]
         fn do_stuff() -> b8 {
-            let a: b4 = bits::<4>(1); // Straight local assignment
+            let a = b4(1); // Straight local assignment
             let b = !a; // Unary operator
             let c = a + (b - 1); // Binary operator
             let q = (a, b, c); // Tuple valued expression
@@ -1110,5 +1112,24 @@ mod tests {
         };
         let b = do_stuff(a);
         assert_eq!(b.b, NooState::Boom);
+    }
+
+    #[test]
+    fn test_basic_compile() {
+        #[kernel]
+        fn add(a: b4, b: b4) -> b4 {
+            let c = a;
+            a + b + c
+        }
+
+        let mut kernel: Kernel = add::kernel_fn().try_into().unwrap();
+        assign_node_ids(&mut kernel).unwrap();
+        let ctx = infer(&kernel).unwrap();
+        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
+        eprintln!("{}", ast_ascii);
+        check_inference(&kernel, &ctx).unwrap();
+        let mut compiler = CompilerContext::new(ctx);
+        compiler.visit_kernel_fn(&kernel.ast).unwrap();
+        eprintln!("{}", compiler);
     }
 }

@@ -2,9 +2,9 @@ use crate::{
     ast::{self, BinOp, Expr, ExprBinary, ExprKind, NodeId, Pat, PatKind},
     infer_types::id_to_var,
     rhif::{AluBinary, BlockId, OpCode, Slot},
-    ty::Ty,
+    ty::{Ty, TypeId},
     unify::UnifyContext,
-    visit::Visitor,
+    visit::{self, Visitor},
 };
 use anyhow::{bail, Result};
 use std::collections::HashMap;
@@ -28,6 +28,7 @@ pub struct CompilerContext {
     type_context: UnifyContext,
     ty: HashMap<Slot, Ty>,
     regs: HashMap<NodeId, Slot>,
+    rev_regs: HashMap<Slot, NodeId>,
 }
 
 pub struct Literal {
@@ -38,7 +39,13 @@ pub struct Literal {
 impl std::fmt::Display for CompilerContext {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for regs in self.ty.keys() {
-            writeln!(f, "Reg r{} = {:?}", regs.reg().unwrap(), self.ty[regs])?;
+            writeln!(
+                f,
+                "Reg r{} = {} {}",
+                regs.reg().unwrap(),
+                self.ty[regs],
+                self.rev_regs[regs]
+            )?;
         }
         for (ndx, literal) in self.literals.iter().enumerate() {
             writeln!(
@@ -74,6 +81,7 @@ impl CompilerContext {
             type_context,
             ty: Default::default(),
             regs: Default::default(),
+            rev_regs: Default::default(),
         }
     }
     fn reg(&mut self, id: Option<NodeId>) -> Result<Slot> {
@@ -86,13 +94,9 @@ impl CompilerContext {
         let reg = Slot::Register(self.reg_count);
         self.ty.insert(reg, ty);
         self.regs.insert(id, reg);
+        self.rev_regs.insert(reg, id);
         self.reg_count += 1;
         Ok(reg)
-    }
-    fn bind(&mut self, name: &str, reg: Slot) {
-        self.blocks[self.active_block.0]
-            .names
-            .insert(name.to_string(), reg);
     }
     fn op(&mut self, op: OpCode) {
         self.blocks[self.active_block.0].ops.push(op);
@@ -119,6 +123,16 @@ impl CompilerContext {
     fn ty(&self, id: Option<NodeId>) -> Result<Ty> {
         let var = id_to_var(id)?;
         Ok(self.type_context.apply(var))
+    }
+    fn lookup(&mut self, child: Option<NodeId>) -> Result<Slot> {
+        let child_id = id_to_var(child)?;
+        if let Ty::Var(child_id) = child_id {
+            if let Some(parent) = self.type_context.get_parent(child_id) {
+                let parent_node: Option<NodeId> = Some(parent.into());
+                return self.reg(parent_node);
+            }
+        }
+        bail!("No parent for {:?}", child_id)
     }
     fn binop(&mut self, id: Option<NodeId>, bin: &ExprBinary) -> Result<()> {
         let lhs = self.reg(bin.lhs.id)?;
@@ -165,10 +179,10 @@ impl CompilerContext {
     }
 }
 
-fn argument_name(arg_pat: &Pat) -> Result<String> {
+fn argument_id(arg_pat: &Pat) -> Result<Option<NodeId>> {
     match &arg_pat.kind {
-        PatKind::Ident(name) => Ok(name.name.clone()),
-        PatKind::Type(ty) => argument_name(&ty.pat),
+        PatKind::Ident(name) => Ok(arg_pat.id),
+        PatKind::Type(ty) => argument_id(&ty.pat),
         _ => {
             bail!("Arguments to kernel functions must be identifiers, instead got {arg_pat:?}")
         }
@@ -183,10 +197,10 @@ impl Visitor for CompilerContext {
         // return slot for the block
         let id = self.new_block(ret_reg);
         self.set_active_block(id);
-        // Set up the arguments as registers as well...
+        // Allocate a register for each argument
         for arg in &node.inputs {
-            let reg = self.reg(arg.id)?;
-            self.bind(&argument_name(arg)?, reg);
+            let arg_reg = self.reg(argument_id(arg)?)?;
+            eprintln!("Argument {:?} is in register {:?}", arg, arg_reg);
         }
         for stmt in &node.body.stmts {
             self.visit_stmt(stmt)?;
@@ -194,9 +208,28 @@ impl Visitor for CompilerContext {
         Ok(())
     }
     fn visit_expr(&mut self, node: &Expr) -> Result<()> {
+        visit::visit_expr(self, node)?;
         match &node.kind {
             ExprKind::Binary(bin) => self.binop(node.id, bin),
+            ExprKind::Path(_path) => {
+                let parent = self.lookup(node.id)?;
+                let result = self.reg(node.id)?;
+                self.op(OpCode::Copy {
+                    lhs: result,
+                    rhs: parent,
+                });
+                Ok(())
+            }
             _ => bail!("Unsupported expression: {:?}", node),
         }
+    }
+    fn visit_local(&mut self, node: &ast::Local) -> Result<()> {
+        visit::visit_local(self, node)?;
+        let reg = self.reg(node.pat.id)?;
+        if let Some(init) = &node.init {
+            let rhs = self.reg(init.id)?;
+            self.op(OpCode::Copy { lhs: reg, rhs })
+        }
+        Ok(())
     }
 }

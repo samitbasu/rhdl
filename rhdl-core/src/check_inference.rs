@@ -66,9 +66,4 @@ impl<'a> Visitor for Validator<'a> {
         self.validate_bound_type(node.id)?;
         visit::visit_expr(self, node)
     }
-    fn visit_expr_assign(&mut self, node: &ast::ExprAssign) -> Result<()> {
-        self.validate_bound_type(node.lhs.id)?;
-        self.validate_bound_type(node.rhs.id)?;
-        visit::visit_expr_assign(self, node)
-    }
 }

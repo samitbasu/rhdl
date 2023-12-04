@@ -23,6 +23,7 @@ pub mod assign_node;
 pub mod ast;
 pub mod ast_builder;
 pub mod compiler;
+pub mod compiler_gen2;
 pub mod display_ast;
 pub mod display_rhif;
 //pub mod dot;

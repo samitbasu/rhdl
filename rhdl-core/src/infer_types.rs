@@ -52,7 +52,6 @@ impl TypeInference {
         self.active_scope = self.scopes[self.active_scope.0].parent;
     }
     fn unify(&mut self, lhs: Ty, rhs: Ty) -> Result<()> {
-        eprintln!("unify {:?} = {:?}", lhs, rhs);
         self.context.unify(lhs, rhs)
     }
     fn bind(&mut self, name: &str, id: Option<NodeId>) -> Result<()> {
@@ -61,6 +60,15 @@ impl TypeInference {
             .names
             .insert(name.to_string(), id_to_var(id)?);
         Ok(())
+    }
+    fn cross_reference(&mut self, parent: Ty, child: Ty) -> Result<()> {
+        eprintln!("Cross reference p{:?} = c{:?}", parent, child);
+        if let (Ty::Var(parent), Ty::Var(child)) = (parent, child) {
+            self.context.bind(parent, child);
+            Ok(())
+        } else {
+            bail!("Cannot cross reference non-variables");
+        }
     }
     fn lookup(&self, path: &str) -> Option<Ty> {
         let mut scope = self.active_scope;
@@ -420,7 +428,10 @@ impl Visitor for TypeInference {
                 if path.path.segments.len() == 1 && path.path.segments[0].arguments.is_empty() {
                     let name = &path.path.segments[0].ident;
                     if let Some(ty) = self.lookup(name) {
-                        self.unify(my_ty, ty.clone())?;
+                        self.unify(my_ty.clone(), ty.clone())?;
+                        // Record a cross reference between the two type variables
+                        // for later use in the compiler
+                        self.cross_reference(ty, my_ty)?;
                     }
                 }
             }
@@ -568,18 +579,10 @@ impl<'a> Visitor for InferenceForGenericIntegers<'a> {
     fn visit_expr(&mut self, node: &ast::Expr) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
         let resolved_type = self.context.apply(my_ty.clone());
-        match &node.kind {
-            ExprKind::Lit(lit) => {
-                if let Ty::Var(_) = resolved_type {
-                    match lit {
-                        ExprLit::Int(_) => {
-                            self.context.unify(my_ty, ty_integer())?;
-                        }
-                        _ => {}
-                    }
-                }
+        if let ExprKind::Lit(lit) = &node.kind {
+            if let (Ty::Var(_), ExprLit::Int(_)) = (resolved_type, lit) {
+                self.context.unify(my_ty, ty_integer())?;
             }
-            _ => {}
         }
         visit::visit_expr(self, node)
     }

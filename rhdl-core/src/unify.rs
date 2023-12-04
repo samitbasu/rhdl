@@ -10,6 +10,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UnifyContext {
     map: HashMap<TypeId, Term>,
+    // The unify context also records the relationship between type variables
+    // that are unified.  So if have an expression path that resolves to a binding
+    // we record that cross reference here.  While this is not strictly the concern
+    // of type inference, it is helpful to avoid duplicating the work later.
+    cross_reference: HashMap<TypeId, TypeId>,
 }
 
 impl Display for UnifyContext {
@@ -24,6 +29,12 @@ impl Display for UnifyContext {
 }
 
 impl UnifyContext {
+    pub fn bind(&mut self, parent: TypeId, child: TypeId) {
+        self.cross_reference.insert(child, parent);
+    }
+    pub fn get_parent(&self, child: TypeId) -> Option<TypeId> {
+        self.cross_reference.get(&child).cloned()
+    }
     pub fn apply(&self, typ: Term) -> Term {
         match typ {
             Term::Var(id) => {
