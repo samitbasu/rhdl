@@ -81,6 +81,7 @@ impl Display for OpCode {
                 write!(f, " {} <- [{}; {}]", lhs, value, len)
             }
             OpCode::Block(BlockId(x)) => write!(f, " sub B{x}"),
+            OpCode::Comment(s) => write!(f, " # {}", s),
             _ => todo!("OpCode {:?} not covered", self),
         }
     }
