@@ -1,10 +1,11 @@
 use crate::{
-    ast::{self, BinOp, Expr, ExprBinary, ExprKind, NodeId, Pat, PatKind},
+    ast::{self, BinOp, Expr, ExprBinary, ExprIf, ExprKind, Local, NodeId, Pat, PatKind},
+    display_ast::pretty_print_statement,
     infer_types::id_to_var,
-    rhif::{AluBinary, BlockId, OpCode, Slot},
+    rhif::{AluBinary, AluUnary, BlockId, OpCode, Slot},
     ty::{Ty, TypeId},
     unify::UnifyContext,
-    visit::{self, Visitor},
+    visit::{self, visit_block, Visitor},
 };
 use anyhow::{bail, Result};
 use std::collections::HashMap;
@@ -112,6 +113,7 @@ impl CompilerContext {
             parent: self.active_block,
         });
         self.blocks[self.active_block.0].children.push(id);
+        self.active_block = id;
         id
     }
     fn current_block(&self) -> BlockId {
@@ -134,9 +136,68 @@ impl CompilerContext {
         }
         bail!("No parent for {:?}", child_id)
     }
-    fn binop(&mut self, id: Option<NodeId>, bin: &ExprBinary) -> Result<()> {
-        let lhs = self.reg(bin.lhs.id)?;
-        let rhs = self.reg(bin.rhs.id)?;
+    fn unop(&mut self, id: Option<NodeId>, unary: &ast::ExprUnary) -> Result<Slot> {
+        let arg = self.expr(&unary.expr)?;
+        let result = self.reg(id)?;
+        let op = match unary.op {
+            ast::UnOp::Neg => AluUnary::Neg,
+            ast::UnOp::Not => AluUnary::Not,
+        };
+        self.op(OpCode::Unary {
+            op,
+            lhs: result,
+            arg1: arg,
+        });
+        Ok(result)
+    }
+    fn stmt(&mut self, statement: &ast::Stmt) -> Result<Slot> {
+        let statement_text = pretty_print_statement(statement, &self.type_context)?;
+        self.op(OpCode::Comment(statement_text));
+        match &statement.kind {
+            ast::StmtKind::Local(local) => self.local(&local),
+            ast::StmtKind::Expr(expr) => self.expr(&expr),
+            ast::StmtKind::Semi(expr) => {
+                self.expr(&expr)?;
+                Ok(Slot::Empty)
+            }
+        }
+    }
+    fn local(&mut self, local: &Local) -> Result<Slot> {
+        todo!()
+    }
+    fn block(&mut self, block_result: Slot, block: &ast::Block) -> Result<BlockId> {
+        let current_block = self.current_block();
+        let id = self.new_block(block_result);
+        let statement_count = block.stmts.len();
+        for (ndx, statement) in block.stmts.iter().enumerate() {
+            let is_last = ndx == statement_count - 1;
+            let result = self.stmt(statement)?;
+            if is_last {
+                self.op(OpCode::Copy {
+                    lhs: block_result,
+                    rhs: result,
+                })
+            }
+        }
+        self.set_active_block(current_block);
+        Ok(id)
+    }
+    fn if_expr(&mut self, id: Option<NodeId>, if_expr: &ExprIf) -> Result<Slot> {
+        let result = self.reg(id)?;
+        let cond = self.expr(&if_expr.cond)?;
+        let then_branch = self.block(result, &if_expr.then_branch)?;
+        let else_branch = self.wrap_expr_in_block(result, &if_expr.else_branch)?;
+        self.op(OpCode::If {
+            cond,
+            then_branch,
+            else_branch,
+            lhs: result,
+        });
+        Ok(result)
+    }
+    fn binop(&mut self, id: Option<NodeId>, bin: &ExprBinary) -> Result<Slot> {
+        let lhs = self.expr(&bin.lhs)?;
+        let rhs = self.expr(&bin.rhs)?;
         let result = self.reg(id)?;
         let op = &bin.op;
         let self_assign = matches!(
@@ -168,14 +229,49 @@ impl CompilerContext {
             BinOp::Ge => AluBinary::Ge,
             BinOp::Gt => AluBinary::Gt,
         };
+        assert!(!self_assign);
         self.op(OpCode::Binary {
             op: alu,
             lhs: result,
             arg1: lhs,
             arg2: rhs,
         });
-        assert!(!self_assign);
-        Ok(())
+        Ok(result)
+    }
+    fn expr_lhs(&mut self, expr: &Expr) {}
+    fn expr(&mut self, expr: &Expr) -> Result<Slot> {
+        match &expr.kind {
+            ExprKind::Binary(bin) => self.binop(expr.id, bin),
+            ExprKind::Unary(unary) => self.unop(expr.id, unary),
+            ExprKind::Path(_path) => self.lookup(expr.id),
+            ExprKind::Block(block) => {
+                let block_result = self.reg(expr.id)?;
+                let block_id = self.block(block_result, &block.block)?;
+                self.op(OpCode::Block(block_id));
+                Ok(block_result)
+            }
+            ExprKind::If(if_expr) => self.if_expr(expr.id, if_expr),
+            _ => todo!("expr {:?}", expr),
+        }
+    }
+    fn wrap_expr_in_block(
+        &mut self,
+        block_result: Slot,
+        expr: &Option<Box<Expr>>,
+    ) -> Result<BlockId> {
+        let current_block = self.current_block();
+        let id = self.new_block(block_result);
+        let result = if let Some(expr) = expr {
+            self.expr(expr)?
+        } else {
+            Slot::Empty
+        };
+        self.op(OpCode::Copy {
+            lhs: block_result,
+            rhs: result,
+        });
+        self.set_active_block(current_block);
+        Ok(id)
     }
 }
 
@@ -191,45 +287,13 @@ fn argument_id(arg_pat: &Pat) -> Result<Option<NodeId>> {
 
 impl Visitor for CompilerContext {
     fn visit_kernel_fn(&mut self, node: &ast::KernelFn) -> Result<()> {
-        // Allocate a register to hold the return type
-        let ret_reg = self.reg(node.id)?;
-        // Create a new block with ret_reg set as the
-        // return slot for the block
-        let id = self.new_block(ret_reg);
-        self.set_active_block(id);
         // Allocate a register for each argument
         for arg in &node.inputs {
             let arg_reg = self.reg(argument_id(arg)?)?;
             eprintln!("Argument {:?} is in register {:?}", arg, arg_reg);
         }
-        for stmt in &node.body.stmts {
-            self.visit_stmt(stmt)?;
-        }
-        Ok(())
-    }
-    fn visit_expr(&mut self, node: &Expr) -> Result<()> {
-        visit::visit_expr(self, node)?;
-        match &node.kind {
-            ExprKind::Binary(bin) => self.binop(node.id, bin),
-            ExprKind::Path(_path) => {
-                let parent = self.lookup(node.id)?;
-                let result = self.reg(node.id)?;
-                self.op(OpCode::Copy {
-                    lhs: result,
-                    rhs: parent,
-                });
-                Ok(())
-            }
-            _ => bail!("Unsupported expression: {:?}", node),
-        }
-    }
-    fn visit_local(&mut self, node: &ast::Local) -> Result<()> {
-        visit::visit_local(self, node)?;
-        let reg = self.reg(node.pat.id)?;
-        if let Some(init) = &node.init {
-            let rhs = self.reg(init.id)?;
-            self.op(OpCode::Copy { lhs: reg, rhs })
-        }
+        let block_result = self.reg(node.id)?;
+        let _ = self.block(block_result, &node.body)?;
         Ok(())
     }
 }

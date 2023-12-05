@@ -1117,9 +1117,14 @@ mod tests {
     #[test]
     fn test_basic_compile() {
         #[kernel]
-        fn add(a: b4, b: b4) -> b4 {
-            let c = a;
-            a + b + c
+        fn add(mut a: b4, b: b4) -> b4 {
+            if a > b {
+                a
+            } else if b > a {
+                b
+            } else {
+                b + a
+            }
         }
 
         let mut kernel: Kernel = add::kernel_fn().try_into().unwrap();

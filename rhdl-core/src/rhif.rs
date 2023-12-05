@@ -104,6 +104,7 @@ pub enum OpCode {
         lhs: Slot,
         elements: Vec<Slot>,
     },
+    Comment(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]
