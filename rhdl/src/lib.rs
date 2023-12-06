@@ -1118,7 +1118,8 @@ mod tests {
     fn test_basic_compile() {
         #[kernel]
         fn add(mut a: b4, b: b4) -> b4 {
-            let c = a;
+            let (d, c) = (1, 3);
+            let p = a + c;
             a + c + b
         }
 

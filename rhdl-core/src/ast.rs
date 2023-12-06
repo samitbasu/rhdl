@@ -6,25 +6,30 @@ use serde::{Deserialize, Serialize};
 // Modeled after rustc's AST
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Hash, Eq)]
-pub struct NodeId(u32);
+pub struct NodeId(Option<u32>);
 
 impl NodeId {
     pub fn new(id: u32) -> Self {
-        NodeId(id)
+        NodeId(Some(id))
     }
+    // Panics for invalid node IDs!
     pub fn as_u32(self) -> u32 {
-        self.0
+        self.0.unwrap()
     }
     pub fn is_invalid(&self) -> bool {
         self.0 == INVALID_NODE_ID.0
     }
 }
 
-pub const INVALID_NODE_ID: NodeId = NodeId(!0);
+pub const INVALID_NODE_ID: NodeId = NodeId(None);
 
 impl Display for NodeId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "N{}", self.0)
+        if let Some(x) = self.0 {
+            write!(f, "N{x}")
+        } else {
+            write!(f, "N<invalid>")
+        }
     }
 }
 
