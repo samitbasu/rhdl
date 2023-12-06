@@ -24,9 +24,9 @@ impl NodeIdGenerator {
         ast::NodeId::new(id)
     }
 
-    fn id(&mut self, id: &mut Option<ast::NodeId>) {
-        if id.is_none() {
-            *id = Some(self.next());
+    fn id(&mut self, id: &mut ast::NodeId) {
+        if id.is_invalid() {
+            *id = self.next();
         }
     }
 }

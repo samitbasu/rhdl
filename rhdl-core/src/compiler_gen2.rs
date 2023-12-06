@@ -28,8 +28,7 @@ pub struct CompilerContext {
     active_block: BlockId,
     type_context: UnifyContext,
     ty: HashMap<Slot, Ty>,
-    regs: HashMap<NodeId, Slot>,
-    rev_regs: HashMap<Slot, NodeId>,
+    locals: HashMap<TypeId, Slot>,
 }
 
 pub struct Literal {
@@ -40,20 +39,10 @@ pub struct Literal {
 impl std::fmt::Display for CompilerContext {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for regs in self.ty.keys() {
-            writeln!(
-                f,
-                "Reg r{} = {} {}",
-                regs.reg().unwrap(),
-                self.ty[regs],
-                self.rev_regs[regs]
-            )?;
+            writeln!(f, "Reg r{} : {}", regs.reg().unwrap(), self.ty[regs],)?;
         }
         for (ndx, literal) in self.literals.iter().enumerate() {
-            writeln!(
-                f,
-                "Literal l{} = {:?} <{:?}>",
-                ndx, literal.value, literal.ty
-            )?;
+            writeln!(f, "Literal l{} : {} = {:?}", ndx, literal.ty, literal.value)?;
         }
         for block in &self.blocks {
             writeln!(f, "Block {}", block.id.0)?;
@@ -81,21 +70,16 @@ impl CompilerContext {
             active_block: ROOT_BLOCK,
             type_context,
             ty: Default::default(),
-            regs: Default::default(),
-            rev_regs: Default::default(),
+            locals: Default::default(),
         }
     }
-    fn reg(&mut self, id: Option<NodeId>) -> Result<Slot> {
-        let id = id.ok_or(anyhow::anyhow!("No node id"))?;
-        if self.regs.contains_key(&id) {
-            return Ok(self.regs[&id]);
-        }
-        let var = id_to_var(Some(id))?;
-        let ty = self.type_context.apply(var);
+    fn node_ty(&self, id: NodeId) -> Result<Ty> {
+        let var = id_to_var(id)?;
+        Ok(self.type_context.apply(var))
+    }
+    fn reg(&mut self, ty: Ty) -> Result<Slot> {
         let reg = Slot::Register(self.reg_count);
         self.ty.insert(reg, ty);
-        self.regs.insert(id, reg);
-        self.rev_regs.insert(reg, id);
         self.reg_count += 1;
         Ok(reg)
     }
@@ -122,23 +106,26 @@ impl CompilerContext {
     fn set_active_block(&mut self, id: BlockId) {
         self.active_block = id;
     }
-    fn ty(&self, id: Option<NodeId>) -> Result<Ty> {
+    fn ty(&self, id: NodeId) -> Result<Ty> {
         let var = id_to_var(id)?;
         Ok(self.type_context.apply(var))
     }
-    fn lookup(&mut self, child: Option<NodeId>) -> Result<Slot> {
+    fn lookup(&mut self, child: NodeId) -> Result<Slot> {
         let child_id = id_to_var(child)?;
         if let Ty::Var(child_id) = child_id {
             if let Some(parent) = self.type_context.get_parent(child_id) {
-                let parent_node: Option<NodeId> = Some(parent.into());
-                return self.reg(parent_node);
+                return self.locals.get(&parent).cloned().ok_or(anyhow::anyhow!(
+                    "No local variable for {:?} in {:?}",
+                    child_id,
+                    self.locals
+                ));
             }
         }
         bail!("No parent for {:?}", child_id)
     }
-    fn unop(&mut self, id: Option<NodeId>, unary: &ast::ExprUnary) -> Result<Slot> {
+    fn unop(&mut self, id: NodeId, unary: &ast::ExprUnary) -> Result<Slot> {
         let arg = self.expr(&unary.expr)?;
-        let result = self.reg(id)?;
+        let result = self.reg(self.node_ty(id)?)?;
         let op = match unary.op {
             ast::UnOp::Neg => AluUnary::Neg,
             ast::UnOp::Not => AluUnary::Not,
@@ -154,10 +141,10 @@ impl CompilerContext {
         let statement_text = pretty_print_statement(statement, &self.type_context)?;
         self.op(OpCode::Comment(statement_text));
         match &statement.kind {
-            ast::StmtKind::Local(local) => self.local(&local),
-            ast::StmtKind::Expr(expr) => self.expr(&expr),
+            ast::StmtKind::Local(local) => self.local(local),
+            ast::StmtKind::Expr(expr) => self.expr(expr),
             ast::StmtKind::Semi(expr) => {
-                self.expr(&expr)?;
+                self.expr(expr)?;
                 Ok(Slot::Empty)
             }
         }
@@ -182,8 +169,8 @@ impl CompilerContext {
         self.set_active_block(current_block);
         Ok(id)
     }
-    fn if_expr(&mut self, id: Option<NodeId>, if_expr: &ExprIf) -> Result<Slot> {
-        let result = self.reg(id)?;
+    fn if_expr(&mut self, id: NodeId, if_expr: &ExprIf) -> Result<Slot> {
+        let result = self.reg(self.node_ty(id)?)?;
         let cond = self.expr(&if_expr.cond)?;
         let then_branch = self.block(result, &if_expr.then_branch)?;
         let else_branch = self.wrap_expr_in_block(result, &if_expr.else_branch)?;
@@ -195,10 +182,10 @@ impl CompilerContext {
         });
         Ok(result)
     }
-    fn binop(&mut self, id: Option<NodeId>, bin: &ExprBinary) -> Result<Slot> {
+    fn binop(&mut self, id: NodeId, bin: &ExprBinary) -> Result<Slot> {
         let lhs = self.expr(&bin.lhs)?;
         let rhs = self.expr(&bin.rhs)?;
-        let result = self.reg(id)?;
+        let result = self.reg(self.node_ty(id)?)?;
         let op = &bin.op;
         let self_assign = matches!(
             op,
@@ -238,19 +225,35 @@ impl CompilerContext {
         });
         Ok(result)
     }
-    fn expr_lhs(&mut self, expr: &Expr) {}
+    fn expr_lhs(&mut self, expr: &Expr) -> Result<Slot> {
+        match &expr.kind {
+            ExprKind::Path(_path) => {
+                todo!(); //self.lookup(expr.id);
+            }
+            _ => todo!("expr_lhs {:?}", expr),
+        }
+    }
     fn expr(&mut self, expr: &Expr) -> Result<Slot> {
         match &expr.kind {
             ExprKind::Binary(bin) => self.binop(expr.id, bin),
             ExprKind::Unary(unary) => self.unop(expr.id, unary),
             ExprKind::Path(_path) => self.lookup(expr.id),
             ExprKind::Block(block) => {
-                let block_result = self.reg(expr.id)?;
+                let block_result = self.reg(self.node_ty(expr.id)?)?;
                 let block_id = self.block(block_result, &block.block)?;
                 self.op(OpCode::Block(block_id));
                 Ok(block_result)
             }
             ExprKind::If(if_expr) => self.if_expr(expr.id, if_expr),
+            ExprKind::Lit(lit) => {
+                let ndx = self.literals.len();
+                let ty = self.ty(expr.id)?;
+                self.literals.push(Literal {
+                    value: Box::new(lit.clone()),
+                    ty,
+                });
+                Ok(Slot::Literal(ndx))
+            }
             _ => todo!("expr {:?}", expr),
         }
     }
@@ -275,7 +278,7 @@ impl CompilerContext {
     }
 }
 
-fn argument_id(arg_pat: &Pat) -> Result<Option<NodeId>> {
+fn argument_id(arg_pat: &Pat) -> Result<NodeId> {
     match &arg_pat.kind {
         PatKind::Ident(name) => Ok(arg_pat.id),
         PatKind::Type(ty) => argument_id(&ty.pat),
@@ -287,12 +290,15 @@ fn argument_id(arg_pat: &Pat) -> Result<Option<NodeId>> {
 
 impl Visitor for CompilerContext {
     fn visit_kernel_fn(&mut self, node: &ast::KernelFn) -> Result<()> {
-        // Allocate a register for each argument
+        // Allocate local binding for each argument
         for arg in &node.inputs {
-            let arg_reg = self.reg(argument_id(arg)?)?;
+            let arg_id = argument_id(arg)?;
+            let arg_ty = self.ty(arg_id)?;
+            let arg_reg = self.reg(arg_ty)?;
+            self.locals.insert(arg_id.into(), arg_reg);
             eprintln!("Argument {:?} is in register {:?}", arg, arg_reg);
         }
-        let block_result = self.reg(node.id)?;
+        let block_result = self.reg(self.ty(node.id)?)?;
         let _ = self.block(block_result, &node.body)?;
         Ok(())
     }

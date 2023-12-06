@@ -15,7 +15,12 @@ impl NodeId {
     pub fn as_u32(self) -> u32 {
         self.0
     }
+    pub fn is_invalid(&self) -> bool {
+        self.0 == INVALID_NODE_ID.0
+    }
 }
+
+pub const INVALID_NODE_ID: NodeId = NodeId(!0);
 
 impl Display for NodeId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -25,7 +30,7 @@ impl Display for NodeId {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Stmt {
-    pub id: Option<NodeId>,
+    pub id: NodeId,
     pub kind: StmtKind,
 }
 
@@ -38,20 +43,20 @@ pub enum StmtKind {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Block {
-    pub id: Option<NodeId>,
+    pub id: NodeId,
     pub stmts: Vec<Box<Stmt>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Local {
-    pub id: Option<NodeId>,
+    pub id: NodeId,
     pub pat: Box<Pat>,
     pub init: Option<Box<Expr>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Pat {
-    pub id: Option<NodeId>,
+    pub id: NodeId,
     pub kind: PatKind,
 }
 
@@ -147,7 +152,7 @@ pub struct PatType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Expr {
-    pub id: Option<NodeId>,
+    pub id: NodeId,
     pub kind: ExprKind,
 }
 
@@ -391,7 +396,7 @@ pub struct FieldPat {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KernelFn {
-    pub id: Option<NodeId>,
+    pub id: NodeId,
     pub name: String,
     pub inputs: Vec<Box<Pat>>,
     pub ret: Kind,

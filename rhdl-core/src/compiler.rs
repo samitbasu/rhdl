@@ -5,7 +5,7 @@ use crate::ast::{
     self, BinOp, Expr, ExprArray, ExprAssign, ExprBinary, ExprBlock, ExprCall, ExprField,
     ExprGroup, ExprIf, ExprIndex, ExprMatch, ExprParen, ExprPath, ExprRepeat, ExprStruct,
     ExprTuple, ExprUnary, PatIdent, PatLit, PatPath, PatStruct, PatTuple, PatTupleStruct, PatType,
-    Path, UnOp,
+    Path, UnOp, INVALID_NODE_ID,
 };
 use crate::rhif::{AluBinary, AluUnary, BlockId, CaseArgument, Member, OpCode, Slot};
 use crate::rhif_type::Ty;
@@ -725,16 +725,16 @@ impl Compiler {
     ) -> Result<BlockId> {
         let block = if let Some(expr) = expr {
             let stmt = ast::Stmt {
-                id: None,
+                id: INVALID_NODE_ID,
                 kind: ast::StmtKind::Expr(expr),
             };
             ast::Block {
-                id: None,
+                id: INVALID_NODE_ID,
                 stmts: vec![Box::new(stmt)],
             }
         } else {
             ast::Block {
-                id: None,
+                id: INVALID_NODE_ID,
                 stmts: vec![],
             }
         };

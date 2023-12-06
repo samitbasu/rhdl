@@ -1123,7 +1123,7 @@ mod tests {
             } else if b > a {
                 b
             } else {
-                b + a
+                b + a + 3
             }
         }
 

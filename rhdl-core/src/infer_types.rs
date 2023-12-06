@@ -54,7 +54,7 @@ impl TypeInference {
     fn unify(&mut self, lhs: Ty, rhs: Ty) -> Result<()> {
         self.context.unify(lhs, rhs)
     }
-    fn bind(&mut self, name: &str, id: Option<NodeId>) -> Result<()> {
+    fn bind(&mut self, name: &str, id: NodeId) -> Result<()> {
         eprintln!("Binding {} to {:?}", name, id);
         self.scopes[self.active_scope.0]
             .names
@@ -263,10 +263,11 @@ impl TypeInference {
 
 // Shortcut to allow us to reuse the node IDs as
 // type variables in the resolver.
-pub fn id_to_var(id: Option<ast::NodeId>) -> Result<Ty> {
-    id.map(|x| x.as_u32() as usize)
-        .map(ty_var)
-        .ok_or_else(|| anyhow::anyhow!("No type ID found"))
+pub fn id_to_var(id: ast::NodeId) -> Result<Ty> {
+    if id.is_invalid() {
+        bail!("Invalid node ID");
+    }
+    Ok(ty_var(id.as_u32() as usize))
 }
 
 impl Visitor for TypeInference {

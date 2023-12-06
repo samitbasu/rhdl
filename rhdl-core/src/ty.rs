@@ -13,6 +13,12 @@ impl From<TypeId> for crate::ast::NodeId {
     }
 }
 
+impl From<crate::ast::NodeId> for TypeId {
+    fn from(value: crate::ast::NodeId) -> Self {
+        TypeId(value.as_u32() as usize)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Bits {
     Signed(usize),
