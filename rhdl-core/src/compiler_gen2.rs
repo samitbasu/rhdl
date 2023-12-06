@@ -2,12 +2,12 @@ use crate::{
     ast::{self, BinOp, Expr, ExprBinary, ExprIf, ExprKind, Local, NodeId, Pat, PatKind},
     display_ast::pretty_print_statement,
     infer_types::id_to_var,
-    rhif::{AluBinary, AluUnary, BlockId, OpCode, Slot},
+    rhif::{self, AluBinary, AluUnary, BlockId, OpCode, Slot},
     ty::{Ty, TypeId},
     unify::UnifyContext,
     visit::{self, visit_block, Visitor},
 };
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use std::collections::HashMap;
 
 const ROOT_BLOCK: BlockId = BlockId(0);
@@ -21,6 +21,12 @@ pub struct Block {
     pub parent: BlockId,
 }
 
+#[derive(Clone, Debug)]
+pub struct NamedSlot {
+    name: String,
+    slot: Slot,
+}
+
 pub struct CompilerContext {
     pub blocks: Vec<Block>,
     pub literals: Vec<Literal>,
@@ -28,7 +34,7 @@ pub struct CompilerContext {
     active_block: BlockId,
     type_context: UnifyContext,
     ty: HashMap<Slot, Ty>,
-    locals: HashMap<TypeId, Slot>,
+    locals: HashMap<TypeId, NamedSlot>,
 }
 
 pub struct Literal {
@@ -110,18 +116,51 @@ impl CompilerContext {
         let var = id_to_var(id)?;
         Ok(self.type_context.apply(var))
     }
-    fn lookup(&mut self, child: NodeId) -> Result<Slot> {
+    // Create a local variable binding based on the
+    // type information in the given node.  It will
+    // be referred to by cross references in the type
+    // context.
+    fn bind(&mut self, id: NodeId, name: &str) -> Result<()> {
+        let ty = self.ty(id)?;
+        let reg = self.reg(ty)?;
+        eprintln!("Binding {name}#{id} -> {reg}");
+        if self
+            .locals
+            .insert(
+                id.into(),
+                NamedSlot {
+                    slot: reg,
+                    name: name.to_string(),
+                },
+            )
+            .is_some()
+        {
+            bail!("Duplicate local variable binding for {:?}", id)
+        }
+        Ok(())
+    }
+    fn resolve_parent(&mut self, child: NodeId) -> Result<Slot> {
         let child_id = id_to_var(child)?;
         if let Ty::Var(child_id) = child_id {
             if let Some(parent) = self.type_context.get_parent(child_id) {
-                return self.locals.get(&parent).cloned().ok_or(anyhow::anyhow!(
-                    "No local variable for {:?} in {:?}",
-                    child_id,
-                    self.locals
-                ));
+                return self
+                    .locals
+                    .get(&parent)
+                    .map(|x| x.slot)
+                    .ok_or(anyhow::anyhow!(
+                        "No local variable for {:?} in {:?}",
+                        child_id,
+                        self.locals
+                    ));
             }
         }
         bail!("No parent for {:?}", child_id)
+    }
+    fn resolve_local(&mut self, id: NodeId) -> Result<Slot> {
+        self.locals
+            .get(&id.into())
+            .map(|x| x.slot)
+            .ok_or(anyhow::anyhow!("No local variable for {:?}", id))
     }
     fn unop(&mut self, id: NodeId, unary: &ast::ExprUnary) -> Result<Slot> {
         let arg = self.expr(&unary.expr)?;
@@ -141,7 +180,10 @@ impl CompilerContext {
         let statement_text = pretty_print_statement(statement, &self.type_context)?;
         self.op(OpCode::Comment(statement_text));
         match &statement.kind {
-            ast::StmtKind::Local(local) => self.local(local),
+            ast::StmtKind::Local(local) => {
+                self.local(local)?;
+                Ok(Slot::Empty)
+            }
             ast::StmtKind::Expr(expr) => self.expr(expr),
             ast::StmtKind::Semi(expr) => {
                 self.expr(expr)?;
@@ -149,8 +191,33 @@ impl CompilerContext {
             }
         }
     }
-    fn local(&mut self, local: &Local) -> Result<Slot> {
-        todo!()
+    fn local(&mut self, local: &Local) -> Result<()> {
+        self.bind_pattern(&local.pat)?;
+        match &local.pat.kind {
+            PatKind::Ident(ident) => {
+                if let Some(expr) = &local.init {
+                    let result = self.expr(expr)?;
+                    let lhs = self.resolve_local(local.pat.id)?;
+                    self.op(OpCode::Copy { lhs, rhs: result });
+                }
+                Ok(())
+            }
+            PatKind::Tuple(tuple) => {
+                if let Some(expr) = &local.init {
+                    let rhs = self.expr(expr)?;
+                    for (ndx, pat) in tuple.elements.iter().enumerate() {
+                        let element_lhs = self.resolve_local(pat.id)?;
+                        self.op(OpCode::Field {
+                            lhs: element_lhs,
+                            arg: rhs,
+                            member: rhif::Member::Unnamed(ndx as u32),
+                        });
+                    }
+                }
+                Ok(())
+            }
+            _ => todo!("Unsupported let pattern: {:?}", local.pat),
+        }
     }
     fn block(&mut self, block_result: Slot, block: &ast::Block) -> Result<BlockId> {
         let current_block = self.current_block();
@@ -237,7 +304,7 @@ impl CompilerContext {
         match &expr.kind {
             ExprKind::Binary(bin) => self.binop(expr.id, bin),
             ExprKind::Unary(unary) => self.unop(expr.id, unary),
-            ExprKind::Path(_path) => self.lookup(expr.id),
+            ExprKind::Path(_path) => self.resolve_parent(expr.id),
             ExprKind::Block(block) => {
                 let block_result = self.reg(self.node_ty(expr.id)?)?;
                 let block_id = self.block(block_result, &block.block)?;
@@ -276,11 +343,23 @@ impl CompilerContext {
         self.set_active_block(current_block);
         Ok(id)
     }
+    fn bind_pattern(&mut self, pattern: &Pat) -> Result<()> {
+        match &pattern.kind {
+            PatKind::Ident(ident) => self.bind(pattern.id, &ident.name),
+            PatKind::Tuple(tuple) => {
+                for pat in &tuple.elements {
+                    self.bind_pattern(pat)?;
+                }
+                Ok(())
+            }
+            _ => bail!("Unsupported pattern {:?}", pattern),
+        }
+    }
 }
 
-fn argument_id(arg_pat: &Pat) -> Result<NodeId> {
+fn argument_id(arg_pat: &Pat) -> Result<(String, NodeId)> {
     match &arg_pat.kind {
-        PatKind::Ident(name) => Ok(arg_pat.id),
+        PatKind::Ident(name) => Ok((name.name.to_string(), arg_pat.id)),
         PatKind::Type(ty) => argument_id(&ty.pat),
         _ => {
             bail!("Arguments to kernel functions must be identifiers, instead got {arg_pat:?}")
@@ -292,11 +371,8 @@ impl Visitor for CompilerContext {
     fn visit_kernel_fn(&mut self, node: &ast::KernelFn) -> Result<()> {
         // Allocate local binding for each argument
         for arg in &node.inputs {
-            let arg_id = argument_id(arg)?;
-            let arg_ty = self.ty(arg_id)?;
-            let arg_reg = self.reg(arg_ty)?;
-            self.locals.insert(arg_id.into(), arg_reg);
-            eprintln!("Argument {:?} is in register {:?}", arg, arg_reg);
+            let (arg_name, arg_id) = argument_id(arg)?;
+            self.bind(arg_id, &arg_name)?;
         }
         let block_result = self.reg(self.ty(node.id)?)?;
         let _ = self.block(block_result, &node.body)?;
