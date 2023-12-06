@@ -1,5 +1,7 @@
 use crate::{
-    ast::{self, BinOp, Expr, ExprBinary, ExprIf, ExprKind, Local, NodeId, Pat, PatKind},
+    ast::{
+        self, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprTuple, Local, NodeId, Pat, PatKind,
+    },
     display_ast::pretty_print_statement,
     infer_types::id_to_var,
     rhif::{self, AluBinary, AluUnary, BlockId, OpCode, Slot},
@@ -236,6 +238,21 @@ impl CompilerContext {
         self.set_active_block(current_block);
         Ok(id)
     }
+    fn expr_list(&mut self, exprs: &[Box<Expr>]) -> Result<Vec<Slot>> {
+        exprs
+            .into_iter()
+            .map(|x| self.expr(&x))
+            .collect::<Result<_>>()
+    }
+    fn tuple(&mut self, id: NodeId, tuple: &ExprTuple) -> Result<Slot> {
+        let result = self.reg(self.node_ty(id)?)?;
+        let fields = self.expr_list(&tuple.elements)?;
+        self.op(OpCode::Tuple {
+            lhs: result,
+            fields,
+        });
+        Ok(result)
+    }
     fn if_expr(&mut self, id: NodeId, if_expr: &ExprIf) -> Result<Slot> {
         let result = self.reg(self.node_ty(id)?)?;
         let cond = self.expr(&if_expr.cond)?;
@@ -303,8 +320,6 @@ impl CompilerContext {
     fn expr(&mut self, expr: &Expr) -> Result<Slot> {
         match &expr.kind {
             ExprKind::Binary(bin) => self.binop(expr.id, bin),
-            ExprKind::Unary(unary) => self.unop(expr.id, unary),
-            ExprKind::Path(_path) => self.resolve_parent(expr.id),
             ExprKind::Block(block) => {
                 let block_result = self.reg(self.node_ty(expr.id)?)?;
                 let block_id = self.block(block_result, &block.block)?;
@@ -321,6 +336,9 @@ impl CompilerContext {
                 });
                 Ok(Slot::Literal(ndx))
             }
+            ExprKind::Path(_path) => self.resolve_parent(expr.id),
+            ExprKind::Tuple(tuple) => self.tuple(expr.id, tuple),
+            ExprKind::Unary(unary) => self.unop(expr.id, unary),
             _ => todo!("expr {:?}", expr),
         }
     }
