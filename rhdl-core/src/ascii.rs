@@ -51,7 +51,7 @@ impl<'a> AsciiRenderer<'a> {
     fn render_block(&mut self, block: &crate::ast::Block) -> Result<()> {
         self.push(&format!(
             "block {} --> {}",
-            block.id.unwrap(),
+            block.id,
             self.ty.apply(id_to_var(block.id)?)
         ));
         self.indent += 1;
@@ -64,7 +64,7 @@ impl<'a> AsciiRenderer<'a> {
     fn render_stmt(&mut self, stmt: &crate::ast::Stmt) -> Result<()> {
         self.push(&format!(
             "stmt {} --> {}",
-            stmt.id.unwrap(),
+            stmt.id,
             self.ty.apply(id_to_var(stmt.id)?)
         ));
         self.indent += 1;
@@ -72,7 +72,7 @@ impl<'a> AsciiRenderer<'a> {
             StmtKind::Local(local) => {
                 self.push(&format!(
                     "local {} --> {}",
-                    local.id.unwrap(),
+                    local.id,
                     self.ty.apply(id_to_var(local.id)?)
                 ));
                 self.indent += 1;
@@ -122,7 +122,7 @@ impl<'a> AsciiRenderer<'a> {
     fn render_expr(&mut self, expr: &Expr) -> Result<()> {
         self.push(&format!(
             "expr {} --> {}",
-            expr.id.unwrap(),
+            expr.id,
             self.ty.apply(id_to_var(expr.id)?)
         ));
         self.indent += 1;
@@ -269,7 +269,7 @@ impl<'a> AsciiRenderer<'a> {
     fn render_pat(&mut self, pat: &Pat) -> Result<()> {
         self.push(&format!(
             "pat {} --> {}",
-            pat.id.unwrap(),
+            pat.id,
             self.ty.apply(id_to_var(pat.id)?)
         ));
         self.indent += 1;
@@ -306,7 +306,7 @@ impl<'a> AsciiRenderer<'a> {
     fn render_kernel(&mut self, kernel: &KernelFn) -> Result<()> {
         self.push(&format!(
             "kernel {} --> {}",
-            kernel.id.unwrap(),
+            kernel.id,
             self.ty.apply(id_to_var(kernel.id)?)
         ));
         self.indent += 1;
