@@ -1116,11 +1116,21 @@ mod tests {
 
     #[test]
     fn test_basic_compile() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub struct Foo {
+            a: b4,
+            b: b4,
+        }
+
         #[kernel]
-        fn add(mut a: b4, b: b4) -> b4 {
+        fn add(mut a: b4, b: [b4; 4]) -> b4 {
             let (d, c) = (1, 3);
             let p = a + c;
-            a + c + b
+            let q = b[2];
+            let k = (q, q, q, q);
+            let p = k.2;
+            let q = Foo { a: a, b: b[2] };
+            a + c
         }
 
         let mut kernel: Kernel = add::kernel_fn().try_into().unwrap();

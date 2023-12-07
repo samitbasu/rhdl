@@ -1,6 +1,7 @@
 use crate::{
     ast::{
-        self, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprTuple, Local, NodeId, Pat, PatKind,
+        self, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprTuple, FieldValue, Local, NodeId, Pat,
+        PatKind, Path,
     },
     display_ast::pretty_print_statement,
     infer_types::id_to_var,
@@ -60,6 +61,14 @@ impl std::fmt::Display for CompilerContext {
         }
         Ok(())
     }
+}
+
+fn collapse_path(path: &Path) -> String {
+    path.segments
+        .iter()
+        .map(|x| x.ident.to_string())
+        .collect::<Vec<_>>()
+        .join("::")
 }
 
 impl CompilerContext {
@@ -266,6 +275,51 @@ impl CompilerContext {
         });
         Ok(result)
     }
+    fn index(&mut self, id: NodeId, index: &ast::ExprIndex) -> Result<Slot> {
+        let lhs = self.reg(self.node_ty(id)?)?;
+        let arg = self.expr(&index.expr)?;
+        let index = self.expr(&index.index)?;
+        self.op(OpCode::Index { lhs, arg, index });
+        Ok(lhs)
+    }
+    fn array(&mut self, id: NodeId, array: &ast::ExprArray) -> Result<Slot> {
+        let lhs = self.reg(self.node_ty(id)?)?;
+        let elements = self.expr_list(&array.elems)?;
+        self.op(OpCode::Array { lhs, elements });
+        Ok(lhs)
+    }
+    fn field(&mut self, id: NodeId, field: &ast::ExprField) -> Result<Slot> {
+        let lhs = self.reg(self.node_ty(id)?)?;
+        let arg = self.expr(&field.expr)?;
+        let member = match &field.member {
+            ast::Member::Named(name) => rhif::Member::Named(name.to_string()),
+            ast::Member::Unnamed(ndx) => rhif::Member::Unnamed(*ndx),
+        };
+        self.op(OpCode::Field { lhs, arg, member });
+        Ok(lhs)
+    }
+    fn field_value(&mut self, element: &FieldValue) -> Result<rhif::FieldValue> {
+        let value = self.expr(&element.value)?;
+        Ok(rhif::FieldValue {
+            value,
+            member: element.member.clone().into(),
+        })
+    }
+    fn struct_expr(&mut self, id: NodeId, _struct: &ast::ExprStruct) -> Result<Slot> {
+        let lhs = self.reg(self.node_ty(id)?)?;
+        let fields = _struct
+            .fields
+            .iter()
+            .map(|x| self.field_value(&x))
+            .collect::<Result<_>>()?;
+        self.op(OpCode::Struct {
+            lhs,
+            path: collapse_path(&_struct.path),
+            fields,
+            rest: None,
+        });
+        Ok(lhs)
+    }
     fn binop(&mut self, id: NodeId, bin: &ExprBinary) -> Result<Slot> {
         let lhs = self.expr(&bin.lhs)?;
         let rhs = self.expr(&bin.rhs)?;
@@ -319,6 +373,7 @@ impl CompilerContext {
     }
     fn expr(&mut self, expr: &Expr) -> Result<Slot> {
         match &expr.kind {
+            ExprKind::Array(array) => self.array(expr.id, array),
             ExprKind::Binary(bin) => self.binop(expr.id, bin),
             ExprKind::Block(block) => {
                 let block_result = self.reg(self.node_ty(expr.id)?)?;
@@ -336,10 +391,14 @@ impl CompilerContext {
                 });
                 Ok(Slot::Literal(ndx))
             }
+            ExprKind::Field(field) => self.field(expr.id, field),
+            ExprKind::Group(group) => self.expr(&group.expr),
+            ExprKind::Index(index) => self.index(expr.id, index),
+            ExprKind::Paren(paren) => self.expr(&paren.expr),
             ExprKind::Path(_path) => self.resolve_parent(expr.id),
+            ExprKind::Struct(_struct) => self.struct_expr(expr.id, _struct),
             ExprKind::Tuple(tuple) => self.tuple(expr.id, tuple),
             ExprKind::Unary(unary) => self.unop(expr.id, unary),
-            _ => todo!("expr {:?}", expr),
         }
     }
     fn wrap_expr_in_block(
