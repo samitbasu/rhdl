@@ -145,6 +145,12 @@ impl<const N: usize> PartialEq<u128> for Bits<N> {
     }
 }
 
+impl<const N: usize> PartialOrd<u128> for Bits<N> {
+    fn partial_cmp(&self, other: &u128) -> Option<std::cmp::Ordering> {
+        self.partial_cmp(&Self::from(*other))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

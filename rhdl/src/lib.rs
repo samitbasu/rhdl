@@ -1126,11 +1126,22 @@ mod tests {
         fn add(mut a: b4, b: [b4; 4]) -> b4 {
             let (d, c) = (1, 3);
             let p = a + c;
+            let q = p;
             let q = b[2];
+            let p = [q; 3];
             let k = (q, q, q, q);
-            let p = k.2;
-            let q = Foo { a: a, b: b[2] };
-            a + c
+            let mut p = k.2;
+            if p > 2 {
+                return p;
+            }
+            p = a - 1;
+            let mut q = Foo { a: a, b: b[2] };
+            let Foo { a: x, b: y } = q;
+            q.a += p;
+            let mut bb = b;
+            bb[2] = p;
+            let z: b4 = p + x + y;
+            a + c + z
         }
 
         let mut kernel: Kernel = add::kernel_fn().try_into().unwrap();

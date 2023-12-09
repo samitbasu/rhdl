@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, result};
 
 use crate::{
     rhif::{AluBinary, AluUnary, BlockId, CaseArgument, FieldValue, Member, OpCode, Slot},
@@ -39,6 +39,13 @@ impl Display for OpCode {
                     " {} <- if {} then {} else {}",
                     lhs, cond, then_branch, else_branch
                 )
+            }
+            OpCode::Return { result } => {
+                if let Some(result) = result {
+                    write!(f, " ret {}", result)
+                } else {
+                    write!(f, " ret")
+                }
             }
             OpCode::Copy { lhs, rhs } => {
                 write!(f, " {} <- {}", lhs, rhs)
@@ -81,7 +88,7 @@ impl Display for OpCode {
                 write!(f, " {} <- [{}; {}]", lhs, value, len)
             }
             OpCode::Block(BlockId(x)) => write!(f, " sub B{x}"),
-            OpCode::Comment(s) => write!(f, " # {}", s),
+            OpCode::Comment(s) => write!(f, " # {}", s.trim_end().replace('\n', "\n   # ")),
             _ => todo!("OpCode {:?} not covered", self),
         }
     }
