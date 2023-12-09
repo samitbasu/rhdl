@@ -3,12 +3,14 @@ use crate::{
         self, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprTuple, FieldValue, Local, NodeId, Pat,
         PatKind, Path,
     },
+    digital_fn::DigitalSignature,
     display_ast::pretty_print_statement,
     infer_types::id_to_var,
     rhif::{self, AluBinary, AluUnary, BlockId, OpCode, Slot},
     ty::{ty_as_ref, Ty, TypeId},
     unify::UnifyContext,
     visit::{self, visit_block, Visitor},
+    Digital, KernelFnKind,
 };
 use anyhow::{bail, Result};
 use std::collections::HashMap;
@@ -38,6 +40,13 @@ pub struct CompilerContext {
     type_context: UnifyContext,
     ty: HashMap<Slot, Ty>,
     locals: HashMap<TypeId, NamedSlot>,
+    stash: HashMap<String, ExternalFunction>,
+}
+
+pub struct ExternalFunction {
+    pub path: String,
+    pub code: Option<KernelFnKind>,
+    pub signature: DigitalSignature,
 }
 
 pub struct Literal {
@@ -52,6 +61,18 @@ impl std::fmt::Display for CompilerContext {
         }
         for (ndx, literal) in self.literals.iter().enumerate() {
             writeln!(f, "Literal l{} : {} = {:?}", ndx, literal.ty, literal.value)?;
+        }
+        for (name, func) in &self.stash {
+            writeln!(
+                f,
+                "Function name: {} code: {} signature: {}",
+                name,
+                func.code
+                    .as_ref()
+                    .map(|x| format!("{}", x))
+                    .unwrap_or("none".into()),
+                func.signature
+            )?;
         }
         for block in &self.blocks {
             writeln!(f, "Block {}", block.id.0)?;
@@ -88,6 +109,7 @@ impl CompilerContext {
             type_context,
             ty: Default::default(),
             locals: Default::default(),
+            stash: Default::default(),
         }
     }
     fn node_ty(&self, id: NodeId) -> Result<Ty> {
@@ -234,6 +256,18 @@ impl CompilerContext {
                 }
                 Ok(())
             }
+            PatKind::TupleStruct(_tuple_struct) => {
+                let rhs = self.expr(init)?;
+                for (ndx, pat) in _tuple_struct.elems.iter().enumerate() {
+                    let element_lhs = self.resolve_local(pat.id)?;
+                    self.op(OpCode::Field {
+                        lhs: element_lhs,
+                        arg: rhs,
+                        member: rhif::Member::Unnamed(ndx as u32),
+                    });
+                }
+                Ok(())
+            }
             PatKind::Type(ty) => self.initialize_local(&ty.pat, init),
             _ => todo!("Unsupported let init pattern: {:?}", pat),
         }
@@ -355,13 +389,20 @@ impl CompilerContext {
     }
     fn call(&mut self, id: NodeId, call: &ast::ExprCall) -> Result<Slot> {
         let lhs = self.reg(self.node_ty(id)?)?;
-        todo!();
-        //        let path = collapse_path(&call.func);
-        //let args = self.expr_list(&call.args)?;
-        //self.op(OpCode::Exec { lhs, path, args });
+        let path = collapse_path(&call.path);
+        let args = self.expr_list(&call.args)?;
+        self.stash.insert(
+            path.clone(),
+            ExternalFunction {
+                code: call.code.clone(),
+                path: path.clone(),
+                signature: call.signature.clone(),
+            },
+        );
+        self.op(OpCode::Exec { lhs, path, args });
         Ok(lhs)
     }
-    fn self_assign_binop(&mut self, id: NodeId, bin: &ExprBinary) -> Result<Slot> {
+    fn self_assign_binop(&mut self, bin: &ExprBinary) -> Result<Slot> {
         let dest = self.expr_lhs(&bin.lhs)?;
         let lhs = self.expr(&bin.lhs)?;
         let rhs = self.expr(&bin.rhs)?;
@@ -392,9 +433,6 @@ impl CompilerContext {
         Ok(result)
     }
     fn binop(&mut self, id: NodeId, bin: &ExprBinary) -> Result<Slot> {
-        let lhs = self.expr(&bin.lhs)?;
-        let rhs = self.expr(&bin.rhs)?;
-        let result = self.reg(self.node_ty(id)?)?;
         let op = &bin.op;
         let self_assign = matches!(
             op,
@@ -408,8 +446,11 @@ impl CompilerContext {
                 | BinOp::ShrAssign
         );
         if self_assign {
-            return self.self_assign_binop(id, bin);
+            return self.self_assign_binop(bin);
         }
+        let lhs = self.expr(&bin.lhs)?;
+        let rhs = self.expr(&bin.rhs)?;
+        let result = self.reg(self.node_ty(id)?)?;
         let alu = match op {
             BinOp::Add | BinOp::AddAssign => AluBinary::Add,
             BinOp::Sub | BinOp::SubAssign => AluBinary::Sub,
@@ -545,6 +586,12 @@ impl CompilerContext {
             PatKind::Struct(_struct) => {
                 for field in &_struct.fields {
                     self.bind_pattern(&field.pat)?;
+                }
+                Ok(())
+            }
+            PatKind::TupleStruct(_tuple_struct) => {
+                for pat in &_tuple_struct.elems {
+                    self.bind_pattern(pat)?;
                 }
                 Ok(())
             }

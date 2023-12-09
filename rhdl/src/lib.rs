@@ -1122,6 +1122,14 @@ mod tests {
             b: b4,
         }
 
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub struct TupStruct(b4, b4);
+
+        #[kernel]
+        fn nib_add(a: b4, b: b4) -> b4 {
+            a + b
+        }
+
         #[kernel]
         fn add(mut a: b4, b: [b4; 4]) -> b4 {
             let (d, c) = (1, 3);
@@ -1140,7 +1148,9 @@ mod tests {
             q.a += p;
             let mut bb = b;
             bb[2] = p;
-            let z: b4 = p + x + y;
+            let z: b4 = p + nib_add(x, y);
+            let q = TupStruct(x, y);
+            let TupStruct(x, y) = q;
             a + c + z
         }
 

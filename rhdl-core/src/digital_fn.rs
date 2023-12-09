@@ -12,6 +12,21 @@ pub struct DigitalSignature {
     pub ret: Kind,
 }
 
+impl std::fmt::Display for DigitalSignature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "[{}] -> {}",
+            self.arguments
+                .iter()
+                .map(|k| k.to_string())
+                .collect::<Vec<_>>()
+                .join(", "),
+            self.ret
+        )
+    }
+}
+
 pub trait Describable<Args> {
     fn describe() -> DigitalSignature;
 }

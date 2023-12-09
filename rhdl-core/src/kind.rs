@@ -18,6 +18,32 @@ pub enum Kind {
     Empty,
 }
 
+impl std::fmt::Display for Kind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Kind::Array(array) => write!(f, "[{}; {}]", array.base, array.size),
+            Kind::Tuple(tuple) => {
+                let elements = tuple
+                    .elements
+                    .iter()
+                    .map(|x| format!("{}", x))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                write!(f, "({})", elements)
+            }
+            Kind::Struct(s) => write!(f, "{}", s.name),
+            Kind::Union(_u) => todo!(),
+            Kind::Enum(e) => write!(f, "{}", e.name),
+            Kind::Variant(e, v) => write!(f, "{}::{}", e.name, v.name),
+            Kind::Bits(digits) => write!(f, "b{}", digits),
+            Kind::Signed(digits) => write!(f, "s{}", digits),
+            Kind::U128 => write!(f, "u128"),
+            Kind::I128 => write!(f, "i128"),
+            Kind::Empty => write!(f, "()"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Array {
     pub base: Box<Kind>,
