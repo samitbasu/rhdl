@@ -6,11 +6,11 @@ use crate::{
     display_ast::pretty_print_statement,
     infer_types::id_to_var,
     rhif::{self, AluBinary, AluUnary, BlockId, OpCode, Slot},
-    ty::{Ty, TypeId},
+    ty::{ty_as_ref, Ty, TypeId},
     unify::UnifyContext,
     visit::{self, visit_block, Visitor},
 };
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
 use std::collections::HashMap;
 
 const ROOT_BLOCK: BlockId = BlockId(0);
@@ -202,33 +202,48 @@ impl CompilerContext {
             }
         }
     }
-    fn local(&mut self, local: &Local) -> Result<()> {
-        self.bind_pattern(&local.pat)?;
-        match &local.pat.kind {
+    fn initialize_local(&mut self, pat: &Pat, init: &Expr) -> Result<()> {
+        match &pat.kind {
             PatKind::Ident(ident) => {
-                if let Some(expr) = &local.init {
-                    let result = self.expr(expr)?;
-                    let lhs = self.resolve_local(local.pat.id)?;
-                    self.op(OpCode::Copy { lhs, rhs: result });
-                }
+                let result = self.expr(init)?;
+                let lhs = self.resolve_local(pat.id)?;
+                self.op(OpCode::Copy { lhs, rhs: result });
                 Ok(())
             }
             PatKind::Tuple(tuple) => {
-                if let Some(expr) = &local.init {
-                    let rhs = self.expr(expr)?;
-                    for (ndx, pat) in tuple.elements.iter().enumerate() {
-                        let element_lhs = self.resolve_local(pat.id)?;
-                        self.op(OpCode::Field {
-                            lhs: element_lhs,
-                            arg: rhs,
-                            member: rhif::Member::Unnamed(ndx as u32),
-                        });
-                    }
+                let rhs = self.expr(init)?;
+                for (ndx, pat) in tuple.elements.iter().enumerate() {
+                    let element_lhs = self.resolve_local(pat.id)?;
+                    self.op(OpCode::Field {
+                        lhs: element_lhs,
+                        arg: rhs,
+                        member: rhif::Member::Unnamed(ndx as u32),
+                    });
                 }
                 Ok(())
             }
-            _ => todo!("Unsupported let pattern: {:?}", local.pat),
+            PatKind::Struct(_struct) => {
+                let rhs = self.expr(init)?;
+                for field in &_struct.fields {
+                    let element_lhs = self.resolve_local(field.pat.id)?;
+                    self.op(OpCode::Field {
+                        lhs: element_lhs,
+                        arg: rhs,
+                        member: field.member.clone().into(),
+                    });
+                }
+                Ok(())
+            }
+            PatKind::Type(ty) => self.initialize_local(&ty.pat, init),
+            _ => todo!("Unsupported let init pattern: {:?}", pat),
         }
+    }
+    fn local(&mut self, local: &Local) -> Result<()> {
+        self.bind_pattern(&local.pat)?;
+        if let Some(init) = &local.init {
+            self.initialize_local(&local.pat, init)?;
+        }
+        Ok(())
     }
     fn block(&mut self, block_result: Slot, block: &ast::Block) -> Result<BlockId> {
         let current_block = self.current_block();
@@ -320,6 +335,62 @@ impl CompilerContext {
         });
         Ok(lhs)
     }
+    fn return_expr(&mut self, id: NodeId, _return: &ast::ExprRet) -> Result<Slot> {
+        let result = _return.expr.as_ref().map(|x| self.expr(x)).transpose()?;
+        self.op(OpCode::Return { result });
+        Ok(Slot::Empty)
+    }
+    fn repeat(&mut self, id: NodeId, repeat: &ast::ExprRepeat) -> Result<Slot> {
+        let lhs = self.reg(self.node_ty(id)?)?;
+        let len = self.expr(&repeat.len)?;
+        let value = self.expr(&repeat.value)?;
+        self.op(OpCode::Repeat { lhs, len, value });
+        Ok(lhs)
+    }
+    fn assign(&mut self, assign: &ast::ExprAssign) -> Result<Slot> {
+        let lhs = self.expr_lhs(&assign.lhs)?;
+        let rhs = self.expr(&assign.rhs)?;
+        self.op(OpCode::Assign { lhs, rhs });
+        Ok(Slot::Empty)
+    }
+    fn call(&mut self, id: NodeId, call: &ast::ExprCall) -> Result<Slot> {
+        let lhs = self.reg(self.node_ty(id)?)?;
+        todo!();
+        //        let path = collapse_path(&call.func);
+        //let args = self.expr_list(&call.args)?;
+        //self.op(OpCode::Exec { lhs, path, args });
+        Ok(lhs)
+    }
+    fn self_assign_binop(&mut self, id: NodeId, bin: &ExprBinary) -> Result<Slot> {
+        let dest = self.expr_lhs(&bin.lhs)?;
+        let lhs = self.expr(&bin.lhs)?;
+        let rhs = self.expr(&bin.rhs)?;
+        let temp = self.reg(self.node_ty(bin.lhs.id)?)?;
+        let result = Slot::Empty;
+        let op = &bin.op;
+        let alu = match op {
+            BinOp::AddAssign => AluBinary::Add,
+            BinOp::SubAssign => AluBinary::Sub,
+            BinOp::MulAssign => AluBinary::Mul,
+            BinOp::BitXorAssign => AluBinary::BitXor,
+            BinOp::BitAndAssign => AluBinary::BitAnd,
+            BinOp::BitOrAssign => AluBinary::BitOr,
+            BinOp::ShlAssign => AluBinary::Shl,
+            BinOp::ShrAssign => AluBinary::Shr,
+            _ => bail!("ICE - self_assign_binop {:?}", op),
+        };
+        self.op(OpCode::Binary {
+            op: alu,
+            lhs: temp,
+            arg1: lhs,
+            arg2: rhs,
+        });
+        self.op(OpCode::Assign {
+            lhs: dest,
+            rhs: temp,
+        });
+        Ok(result)
+    }
     fn binop(&mut self, id: NodeId, bin: &ExprBinary) -> Result<Slot> {
         let lhs = self.expr(&bin.lhs)?;
         let rhs = self.expr(&bin.rhs)?;
@@ -336,6 +407,9 @@ impl CompilerContext {
                 | BinOp::BitOrAssign
                 | BinOp::ShrAssign
         );
+        if self_assign {
+            return self.self_assign_binop(id, bin);
+        }
         let alu = match op {
             BinOp::Add | BinOp::AddAssign => AluBinary::Add,
             BinOp::Sub | BinOp::SubAssign => AluBinary::Sub,
@@ -366,7 +440,35 @@ impl CompilerContext {
     fn expr_lhs(&mut self, expr: &Expr) -> Result<Slot> {
         match &expr.kind {
             ExprKind::Path(_path) => {
-                todo!(); //self.lookup(expr.id);
+                let parent = self.resolve_parent(expr.id)?;
+                let reg = self.reg(ty_as_ref(self.node_ty(expr.id)?))?;
+                self.op(OpCode::Ref {
+                    lhs: reg,
+                    arg: parent,
+                });
+                Ok(reg)
+            }
+            ExprKind::Field(field) => {
+                let parent = self.expr(&field.expr)?;
+                let reg = self.reg(ty_as_ref(self.node_ty(expr.id)?))?;
+                let member = field.member.clone().into();
+                self.op(OpCode::FieldRef {
+                    lhs: reg,
+                    arg: parent,
+                    member,
+                });
+                Ok(reg)
+            }
+            ExprKind::Index(index) => {
+                let parent = self.expr(&index.expr)?;
+                let reg = self.reg(ty_as_ref(self.node_ty(expr.id)?))?;
+                let index = self.expr(&index.index)?;
+                self.op(OpCode::IndexRef {
+                    lhs: reg,
+                    arg: parent,
+                    index,
+                });
+                Ok(reg)
             }
             _ => todo!("expr_lhs {:?}", expr),
         }
@@ -399,6 +501,16 @@ impl CompilerContext {
             ExprKind::Struct(_struct) => self.struct_expr(expr.id, _struct),
             ExprKind::Tuple(tuple) => self.tuple(expr.id, tuple),
             ExprKind::Unary(unary) => self.unop(expr.id, unary),
+            ExprKind::Match(_) => todo!(),
+            ExprKind::Ret(_return) => self.return_expr(expr.id, _return),
+            ExprKind::ForLoop(_) => todo!(),
+            ExprKind::Assign(assign) => self.assign(assign),
+            ExprKind::Range(_) => todo!(),
+            ExprKind::Let(_) => todo!(),
+            ExprKind::Repeat(repeat) => self.repeat(expr.id, repeat),
+            ExprKind::Call(call) => self.call(expr.id, call),
+            ExprKind::MethodCall(_) => todo!(),
+            ExprKind::Type(_) => todo!(),
         }
     }
     fn wrap_expr_in_block(
@@ -429,7 +541,14 @@ impl CompilerContext {
                 }
                 Ok(())
             }
-            _ => bail!("Unsupported pattern {:?}", pattern),
+            PatKind::Type(ty) => self.bind_pattern(&ty.pat),
+            PatKind::Struct(_struct) => {
+                for field in &_struct.fields {
+                    self.bind_pattern(&field.pat)?;
+                }
+                Ok(())
+            }
+            _ => bail!("Unsupported binding pattern {:?}", pattern),
         }
     }
 }

@@ -178,6 +178,12 @@ impl<const N: usize> PartialEq<i128> for SignedBits<N> {
     }
 }
 
+impl<const N: usize> PartialOrd<i128> for SignedBits<N> {
+    fn partial_cmp(&self, other: &i128) -> Option<std::cmp::Ordering> {
+        self.partial_cmp(&Self::from(*other))
+    }
+}
+
 // Provide conversion from a `i128` to a [SignedBits] value.
 // This will panic if you try to convert a value that
 // is larger than the [SignedBits] value can hold.
