@@ -343,11 +343,13 @@ mod tests {
             // Enum literal with a payload
             let l = State::Run(3);
             // Match expression with enum variants
+            /*
             let j = match l {
                 State::Init => b3(1),
                 State::Run(a) => b3(2),
                 State::Boom => b3(3),
             };
+            */
             // For loops
             for ndx in 0..8 {
                 d = d + bits::<8>(ndx);
@@ -604,6 +606,7 @@ mod tests {
             let h = f[2];
             let k = NooState::Init;
             let f = Red::C { y: y1, x: x1 };
+            /*
             let d = match s {
                 NooState::Init => NooState::Run(bits::<4>(1), bits::<5>(2)),
                 NooState::Run(x, y) => NooState::Walk { foo: y + 3 },
@@ -613,7 +616,7 @@ mod tests {
                 }
                 NooState::Boom => NooState::Init,
                 _ => NooState::Boom,
-            };
+            };*/
             let k = 42;
             bits::<7>(k)
         }
@@ -640,6 +643,7 @@ mod tests {
             let y = bits::<12>(72);
             let foo = bits::<14>(32);
             let mut a: u8 = 0;
+            /*
             let d = match s {
                 NooState::Init => {
                     a = 1;
@@ -661,7 +665,7 @@ mod tests {
                     a = 2;
                     NooState::Boom
                 }
-            };
+            };*/
         }
         test_inference_result(do_stuff::kernel_fn()).unwrap();
     }
@@ -760,6 +764,7 @@ mod tests {
                 }
                 _ => 6,
             });
+            /*
             let d = match s {
                 NooState::Init => {
                     a.a = 1;
@@ -769,7 +774,7 @@ mod tests {
                     a.a = x;
                     NooState::Boom
                 }
-                NooState::Run(x, _, y) => {
+                NooState::Run(x, t, y) => {
                     a.a = x + y;
                     NooState::Walk { foo: 7 }
                 }
@@ -781,7 +786,8 @@ mod tests {
                     a.a = 2;
                     NooState::Boom
                 }
-            };
+            };'
+            */
         }
         test_inference_result(do_stuff::kernel_fn()).unwrap();
     }

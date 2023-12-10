@@ -221,6 +221,23 @@ fn variant_kind_mapping(enum_name: &Ident, variant: &Variant) -> TokenStream {
     }
 }
 
+fn make_discriminant_values_into_typed_bits(
+    kind: DiscriminantType,
+    values: &[i64],
+) -> impl Iterator<Item = TokenStream> + '_ {
+    values.iter().map(move |x| match kind {
+        DiscriminantType::Unsigned(width) => quote! {
+            rhdl_bits::bits::<#width>(#x as u128).typed_bits()
+        },
+        DiscriminantType::Signed(width) => {
+            let x = *x as i128;
+            quote! {
+                rhdl_bits::signed::<#width>(#x).typed_bits()
+            }
+        }
+    })
+}
+
 fn variant_payload_bin(
     variant: &Variant,
     kind: DiscriminantType,
@@ -372,13 +389,14 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
     let variants = e.variants.iter().map(|x| &x.ident);
     let variant_destructure_args = e.variants.iter().map(variant_destructure_args);
     let variant_destructure_args_for_bin = variant_destructure_args.clone();
-    // For each variant, we need to create the allocate and record functions if the variant has fields
+    let variant_destructure_args_for_discriminant = variant_destructure_args.clone();
     let kind_mapping = e
         .variants
         .iter()
         .map(|v| variant_kind_mapping(enum_name, v));
     let variant_names_for_kind = variants.clone();
     let variant_names_for_bin = variants.clone();
+    let variant_names_for_discriminant = variants.clone();
     let discriminants: Vec<Option<i64>> = e
         .variants
         .iter()
@@ -406,6 +424,8 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         .iter()
         .zip(discriminants_values.iter())
         .map(|(variant, discriminant)| variant_payload_bin(variant, kind, *discriminant));
+    let discriminants_as_typed_bits =
+        make_discriminant_values_into_typed_bits(kind, &discriminants_values);
     Ok(quote! {
         impl #impl_generics rhdl_core::Digital for #enum_name #ty_generics #where_clause {
             fn static_kind() -> rhdl_core::Kind {
@@ -427,6 +447,13 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                     )*
                 })
 
+            }
+            fn discriminant(self) -> TypedBits {
+                match self {
+                    #(
+                        Self::#variant_names_for_discriminant #variant_destructure_args_for_discriminant => {#discriminants_as_typed_bits}
+                    )*
+                }
             }
             fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {

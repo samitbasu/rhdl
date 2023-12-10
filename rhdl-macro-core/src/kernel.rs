@@ -341,6 +341,7 @@ impl Context {
     }
 
     // Use for patterns that are in a match context
+    // These are fallible.
     fn match_pat(&mut self, pat: &syn::Pat) -> Result<TS> {
         match pat {
             syn::Pat::Ident(ident) => {
@@ -351,11 +352,15 @@ impl Context {
                     rhdl_core::ast_builder::const_pat(stringify!(#ident), rhdl_core::Digital::typed_bits(#ident))
                 })
             }
+            syn::Pat::TupleStruct(tuple) => Ok(quote! {
+                rhdl_core::ast_builder::const_pat(stringify!(#tuple), rhdl_core::Digital::typed_bits(#tuple))
+            }),
             _ => self.pat(pat),
         }
     }
 
     // Use for patterns that are in let contexts.
+    // These are infallible.
     fn pat(&mut self, pat: &syn::Pat) -> Result<TS> {
         match pat {
             syn::Pat::Ident(ident) => {
