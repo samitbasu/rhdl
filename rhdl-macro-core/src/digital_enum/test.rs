@@ -78,6 +78,15 @@ fn test_enum_derive() {
                             },
                         )
                 }
+                fn discriminant(self) -> TypedBits {
+                    match self {
+                        Self::A => rhdl_bits::bits::<2usize>(1i64 as u128).typed_bits(),
+                        Self::B(_0) => rhdl_bits::bits::<2usize>(2i64 as u128).typed_bits(),
+                        Self::C { a, b } => {
+                            rhdl_bits::bits::<2usize>(3i64 as u128).typed_bits()
+                        }
+                    }
+                }
                 fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                     match self {
                         Self::A => {
@@ -152,6 +161,15 @@ fn test_enum_no_payloads() {
                         },
                     )
             }
+            fn discriminant(self) -> TypedBits {
+                match self {
+                    Self::Init => rhdl_bits::bits::<3usize>(0i64 as u128).typed_bits(),
+                    Self::Boot => rhdl_bits::bits::<3usize>(1i64 as u128).typed_bits(),
+                    Self::Running => rhdl_bits::bits::<3usize>(2i64 as u128).typed_bits(),
+                    Self::Stop => rhdl_bits::bits::<3usize>(3i64 as u128).typed_bits(),
+                    Self::Boom => rhdl_bits::bits::<3usize>(4i64 as u128).typed_bits(),
+                }
+            }
             fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {
                     Self::Init => {
@@ -221,6 +239,13 @@ fn test_enum_with_signed_discriminants() {
                         },
                     )
             }
+            fn discriminant(self) -> TypedBits {
+                match self {
+                    Self::A => rhdl_bits::signed::<5usize>(1i128).typed_bits(),
+                    Self::B => rhdl_bits::signed::<5usize>(9i128).typed_bits(),
+                    Self::C => rhdl_bits::signed::<5usize>(-8i128).typed_bits(),
+                }
+            }
             fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {
                     Self::A => {
@@ -274,6 +299,13 @@ fn test_enum_with_discriminants() {
                             }
                         },
                     )
+            }
+            fn discriminant(self) -> TypedBits {
+                match self {
+                    Self::A => rhdl_bits::bits::<4usize>(1i64 as u128).typed_bits(),
+                    Self::B => rhdl_bits::bits::<4usize>(6i64 as u128).typed_bits(),
+                    Self::C => rhdl_bits::bits::<4usize>(8i64 as u128).typed_bits(),
+                }
             }
             fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {

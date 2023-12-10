@@ -420,7 +420,10 @@ impl CompilerContext {
                 let block = self.wrap_expr_in_block(lhs, &arm.body)?;
                 Ok((CaseArgument::Wild, block))
             }
-            _ => todo!("Only const matches are currently implemented"),
+            _ => todo!(
+                "Only const matches are currently implemented not: {:?}",
+                arm.pattern
+            ),
         }
     }
     fn return_expr(&mut self, id: NodeId, _return: &ast::ExprRet) -> Result<Slot> {
