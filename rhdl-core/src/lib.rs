@@ -54,3 +54,4 @@ pub use note_db::note_push_path;
 pub mod check_inference;
 
 pub use check_inference::check_inference;
+pub use digital::TypedBits;

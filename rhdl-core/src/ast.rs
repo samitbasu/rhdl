@@ -89,7 +89,7 @@ pub enum PatKind {
     Slice(PatSlice),
     Struct(PatStruct),
     Type(PatType),
-    Const(PatConst),
+    Match(PatMatch),
     Wild,
 }
 
@@ -122,9 +122,9 @@ pub struct PatLit {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PatConst {
-    pub name: String,
-    pub lit: Box<TypedBits>,
+pub struct PatMatch {
+    pub pat: Box<Pat>,
+    pub discriminant: Box<TypedBits>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

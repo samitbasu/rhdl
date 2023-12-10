@@ -411,8 +411,8 @@ impl CompilerContext {
             bail!("Guards are not currently supported in rhdl.  Please use a match arm instead.")
         }
         match &arm.pattern.kind {
-            PatKind::Const(x) => {
-                let value = self.literal_from_typed_bits(&x.lit)?;
+            PatKind::Match(x) => {
+                let value = self.literal_from_typed_bits(&x.discriminant)?;
                 let block = self.wrap_expr_in_block(lhs, &arm.body)?;
                 Ok((CaseArgument::Literal(value), block))
             }

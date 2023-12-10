@@ -86,8 +86,9 @@ impl TypeInference {
     fn bind_pattern(&mut self, pat: &ast::Pat) -> Result<()> {
         eprintln!("bind pattern {:?}", pat);
         match &pat.kind {
-            ast::PatKind::Const(ref const_pat) => {
-                self.unify(id_to_var(pat.id)?, const_pat.lit.kind.clone().into())?;
+            ast::PatKind::Match(ref const_pat) => {
+                self.bind_pattern(&const_pat.pat)?;
+                self.unify(id_to_var(pat.id)?, id_to_var(const_pat.pat.id)?)?;
             }
             ast::PatKind::Ident(ref ident) => {
                 self.bind(&ident.name, pat.id)?;

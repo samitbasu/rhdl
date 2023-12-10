@@ -120,10 +120,11 @@ impl<'a> PrettyPrinter<'a> {
                 self.push(": ");
                 self.print_kind(&pat.kind)?;
             }
-            PatKind::Const(pat) => {
-                self.push(&format!("const {}: ", pat.name));
+            PatKind::Match(pat) => {
+                self.push("match ");
+                self.print_pattern(&pat.pat)?;
                 self.print_type(&term)?;
-                self.push(&format!("{}", pat.lit));
+                self.push(&format!("{}", pat.discriminant));
             }
         }
         self.push(" /* ");
