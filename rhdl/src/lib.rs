@@ -1142,6 +1142,14 @@ mod tests {
             },
         }
 
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub enum SimpleEnum {
+            #[default]
+            Init,
+            Run(u8),
+            Boom,
+        }
+
         #[kernel]
         fn nib_add(a: b4, b: b4) -> b4 {
             a + b
@@ -1149,9 +1157,10 @@ mod tests {
 
         const ONE: b4 = bits(1);
         const TWO: b4 = bits(2);
+        const MOMO: u8 = 15;
 
         #[kernel]
-        fn add(mut a: b4, b: [b4; 4]) -> b4 {
+        fn add(mut a: b4, b: [b4; 4], state: SimpleEnum) -> b4 {
             let (d, c) = (1, 3);
             let p = a + c;
             let q = p;
@@ -1181,6 +1190,12 @@ mod tests {
                 Bits::<4>(3) => {}
                 _ => {}
             }
+            match state {
+                SimpleEnum::Init => {}
+                SimpleEnum::Run(MOMO) => {}
+                SimpleEnum::Boom => {}
+                _ => {}
+            }
             a + c + z
         }
 
@@ -1193,5 +1208,37 @@ mod tests {
         let mut compiler = CompilerContext::new(ctx);
         compiler.visit_kernel_fn(&kernel.ast).unwrap();
         eprintln!("{}", compiler);
+    }
+
+    #[test]
+    #[forbid(non_upper_case_globals)]
+    #[forbid(non_snake_case)]
+    #[forbid(non_camel_case_types)]
+    fn test_rust_match_args_as_constants() {
+        #[derive(Copy, Clone, Debug)]
+        enum State {
+            Init,
+            Run(u8),
+            Boom,
+            SHOUT_ME,
+            Shrug,
+        }
+
+        const OOP: u8 = 1;
+
+        fn match_it(x: State) -> String {
+            match x {
+                State::Init => "Init".into(),
+                State::Run(OOP) => "BIG".into(),
+                State::Run(x) => format!("{x}"),
+                State::Boom => "Boom".into(),
+                State::SHOUTME => "SHOUT".into(),
+                _ => "shrug".into(),
+            }
+        }
+
+        assert_eq!(match_it(State::Init), "Init");
+        assert_eq!(match_it(State::Run(5)), "5");
+        assert_eq!(match_it(State::Run(1)), "1");
     }
 }

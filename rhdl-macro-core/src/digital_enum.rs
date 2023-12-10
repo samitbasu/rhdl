@@ -448,7 +448,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                 })
 
             }
-            fn discriminant(self) -> TypedBits {
+            fn discriminant(self) -> rhdl_core::TypedBits {
                 match self {
                     #(
                         Self::#variant_names_for_discriminant #variant_destructure_args_for_discriminant => {#discriminants_as_typed_bits}

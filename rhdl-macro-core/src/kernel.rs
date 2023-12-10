@@ -193,6 +193,8 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
     let body = &function.block;
     Ok(quote! {
         fn #orig_name #impl_generics (#args) #ret #where_clause {
+            #[forbid(non_snake_case)]
+            #[forbid(non_upper_case_globals)]
             fn inner #impl_generics (#args) #ret #where_clause {
                 #body
             }
@@ -340,22 +342,24 @@ impl Context {
         })
     }
 
+    // TBD - we need to distinguish between something like:
+    //  Foo::Bar(3)
+    // and
+    //  Foo::Bar(a)
+    // Unfortunately, since `a` may be a constant at the outer scope,
+    // this is not immediately obvious.
+
     // Use for patterns that are in a match context
     // These are fallible.
     fn match_pat(&mut self, pat: &syn::Pat) -> Result<TS> {
+        let inner = self.pat(pat)?;
         match pat {
-            syn::Pat::Ident(ident) => {
-                // For a match pattern, we always assume that an
-                // identifier is a path to a literal.  This is a
-                // limitation of rhdl.
-                Ok(quote! {
-                    rhdl_core::ast_builder::const_pat(stringify!(#ident), rhdl_core::Digital::typed_bits(#ident))
-                })
-            }
-            syn::Pat::TupleStruct(tuple) => Ok(quote! {
-                rhdl_core::ast_builder::const_pat(stringify!(#tuple), rhdl_core::Digital::typed_bits(#tuple))
+            syn::Pat::Wild(_) => Ok(quote! {
+                rhdl_core::ast_builder::match_pat(#inner, rhdl_core::ast_builder::wild_discriminant())
             }),
-            _ => self.pat(pat),
+            _ => Ok(quote! {
+                rhdl_core::ast_builder::match_pat(#inner, rhdl_core::Digital::discriminant(#pat))
+            }),
         }
     }
 

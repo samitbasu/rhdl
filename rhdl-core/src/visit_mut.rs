@@ -105,6 +105,9 @@ where
         PatKind::Type(pat_type) => {
             visitor.visit_mut_pat(&mut pat_type.pat)?;
         }
+        PatKind::Match(pat_match) => {
+            visitor.visit_mut_pat(&mut pat_match.pat)?;
+        }
         _ => {}
     }
     Ok(())

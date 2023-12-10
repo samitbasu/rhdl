@@ -235,14 +235,21 @@ pub fn wild_pat() -> Box<Pat> {
     })
 }
 
-pub fn const_pat(name: &str, value: TypedBits) -> Box<Pat> {
+pub fn match_pat(pat: Box<Pat>, discriminant: TypedBits) -> Box<Pat> {
     Box::new(Pat {
         id: INVALID_NODE_ID,
-        kind: PatKind::Const(PatConst {
-            name: name.into(),
-            lit: Box::new(value),
+        kind: PatKind::Match(PatMatch {
+            pat,
+            discriminant: Box::new(discriminant),
         }),
     })
+}
+
+pub fn wild_discriminant() -> TypedBits {
+    TypedBits {
+        bits: vec![],
+        kind: Kind::Empty,
+    }
 }
 
 pub fn lit_pat(lit: ExprLit) -> Box<Pat> {

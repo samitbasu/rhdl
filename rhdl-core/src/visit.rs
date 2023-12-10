@@ -104,6 +104,9 @@ where
         PatKind::Type(pat_type) => {
             visitor.visit_pat(&pat_type.pat)?;
         }
+        PatKind::Match(pat_match) => {
+            visitor.visit_pat(&pat_match.pat)?;
+        }
         _ => {}
     }
     Ok(())

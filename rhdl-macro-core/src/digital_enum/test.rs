@@ -78,7 +78,7 @@ fn test_enum_derive() {
                             },
                         )
                 }
-                fn discriminant(self) -> TypedBits {
+                fn discriminant(self) -> rhdl_core::TypedBits {
                     match self {
                         Self::A => rhdl_bits::bits::<2usize>(1i64 as u128).typed_bits(),
                         Self::B(_0) => rhdl_bits::bits::<2usize>(2i64 as u128).typed_bits(),
@@ -161,7 +161,7 @@ fn test_enum_no_payloads() {
                         },
                     )
             }
-            fn discriminant(self) -> TypedBits {
+            fn discriminant(self) -> rhdl_core::TypedBits {
                 match self {
                     Self::Init => rhdl_bits::bits::<3usize>(0i64 as u128).typed_bits(),
                     Self::Boot => rhdl_bits::bits::<3usize>(1i64 as u128).typed_bits(),
@@ -239,7 +239,7 @@ fn test_enum_with_signed_discriminants() {
                         },
                     )
             }
-            fn discriminant(self) -> TypedBits {
+            fn discriminant(self) -> rhdl_core::TypedBits {
                 match self {
                     Self::A => rhdl_bits::signed::<5usize>(1i128).typed_bits(),
                     Self::B => rhdl_bits::signed::<5usize>(9i128).typed_bits(),
@@ -300,7 +300,7 @@ fn test_enum_with_discriminants() {
                         },
                     )
             }
-            fn discriminant(self) -> TypedBits {
+            fn discriminant(self) -> rhdl_core::TypedBits {
                 match self {
                     Self::A => rhdl_bits::bits::<4usize>(1i64 as u128).typed_bits(),
                     Self::B => rhdl_bits::bits::<4usize>(6i64 as u128).typed_bits(),
