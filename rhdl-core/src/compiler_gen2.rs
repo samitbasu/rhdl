@@ -1,12 +1,13 @@
 use crate::{
     ast::{
-        self, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprTuple, FieldValue, Local, NodeId, Pat,
-        PatKind, Path,
+        self, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprTuple, ExprTypedBits, FieldValue,
+        Local, NodeId, Pat, PatKind, Path,
     },
+    digital::TypedBits,
     digital_fn::DigitalSignature,
     display_ast::pretty_print_statement,
     infer_types::id_to_var,
-    rhif::{self, AluBinary, AluUnary, BlockId, OpCode, Slot},
+    rhif::{self, AluBinary, AluUnary, BlockId, CaseArgument, OpCode, Slot},
     ty::{ty_as_ref, Ty, TypeId},
     unify::UnifyContext,
     visit::{self, visit_block, Visitor},
@@ -121,6 +122,18 @@ impl CompilerContext {
         self.ty.insert(reg, ty);
         self.reg_count += 1;
         Ok(reg)
+    }
+    fn literal_from_typed_bits(&mut self, value: &TypedBits) -> Result<Slot> {
+        let ndx = self.literals.len();
+        let ty = value.kind.clone().into();
+        self.literals.push(Literal {
+            value: Box::new(ast::ExprLit::TypedBits(ExprTypedBits {
+                path: Box::new(Path { segments: vec![] }),
+                value: value.clone(),
+            })),
+            ty,
+        });
+        Ok(Slot::Literal(ndx))
     }
     fn op(&mut self, op: OpCode) {
         self.blocks[self.active_block.0].ops.push(op);
@@ -315,7 +328,11 @@ impl CompilerContext {
         let result = self.reg(self.node_ty(id)?)?;
         let cond = self.expr(&if_expr.cond)?;
         let then_branch = self.block(result, &if_expr.then_branch)?;
-        let else_branch = self.wrap_expr_in_block(result, &if_expr.else_branch)?;
+        let else_branch = if let Some(expr) = if_expr.else_branch.as_ref() {
+            self.wrap_expr_in_block(result, expr)
+        } else {
+            self.empty_block(result)
+        }?;
         self.op(OpCode::If {
             cond,
             then_branch,
@@ -368,6 +385,43 @@ impl CompilerContext {
             rest: None,
         });
         Ok(lhs)
+    }
+    fn match_expr(&mut self, id: NodeId, _match: &ast::ExprMatch) -> Result<Slot> {
+        let lhs = self.reg(self.node_ty(id)?)?;
+        let target = self.expr(&_match.expr)?;
+        let table = _match
+            .arms
+            .iter()
+            .map(|x| self.expr_arm(target, lhs, x))
+            .collect::<Result<_>>()?;
+        self.op(OpCode::Case {
+            lhs,
+            expr: target,
+            table,
+        });
+        Ok(lhs)
+    }
+    fn expr_arm(
+        &mut self,
+        target: Slot,
+        lhs: Slot,
+        arm: &ast::Arm,
+    ) -> Result<(CaseArgument, BlockId)> {
+        if arm.guard.is_some() {
+            bail!("Guards are not currently supported in rhdl.  Please use a match arm instead.")
+        }
+        match &arm.pattern.kind {
+            PatKind::Const(x) => {
+                let value = self.literal_from_typed_bits(&x.lit)?;
+                let block = self.wrap_expr_in_block(lhs, &arm.body)?;
+                Ok((CaseArgument::Literal(value), block))
+            }
+            PatKind::Wild => {
+                let block = self.wrap_expr_in_block(lhs, &arm.body)?;
+                Ok((CaseArgument::Wild, block))
+            }
+            _ => todo!("Only const matches are currently implemented"),
+        }
     }
     fn return_expr(&mut self, id: NodeId, _return: &ast::ExprRet) -> Result<Slot> {
         let result = _return.expr.as_ref().map(|x| self.expr(x)).transpose()?;
@@ -542,33 +596,35 @@ impl CompilerContext {
             ExprKind::Struct(_struct) => self.struct_expr(expr.id, _struct),
             ExprKind::Tuple(tuple) => self.tuple(expr.id, tuple),
             ExprKind::Unary(unary) => self.unop(expr.id, unary),
-            ExprKind::Match(_) => todo!(),
+            ExprKind::Match(_match) => self.match_expr(expr.id, _match),
             ExprKind::Ret(_return) => self.return_expr(expr.id, _return),
             ExprKind::ForLoop(_) => todo!(),
             ExprKind::Assign(assign) => self.assign(assign),
             ExprKind::Range(_) => todo!(),
-            ExprKind::Let(_) => todo!(),
+            ExprKind::Let(_) => bail!("Fallible let expressions are not currently supported in rhdl.  Use a match instead"),
             ExprKind::Repeat(repeat) => self.repeat(expr.id, repeat),
             ExprKind::Call(call) => self.call(expr.id, call),
-            ExprKind::MethodCall(_) => todo!(),
-            ExprKind::Type(_) => todo!(),
+            ExprKind::MethodCall(_) => bail!("Method calls are not currently supported in rhdl.  Please use a regular function call instead."),
+            ExprKind::Type(_) => Ok(Slot::Empty),
         }
     }
-    fn wrap_expr_in_block(
-        &mut self,
-        block_result: Slot,
-        expr: &Option<Box<Expr>>,
-    ) -> Result<BlockId> {
+    fn wrap_expr_in_block(&mut self, block_result: Slot, expr: &Expr) -> Result<BlockId> {
         let current_block = self.current_block();
         let id = self.new_block(block_result);
-        let result = if let Some(expr) = expr {
-            self.expr(expr)?
-        } else {
-            Slot::Empty
-        };
+        let result = self.expr(expr)?;
         self.op(OpCode::Copy {
             lhs: block_result,
             rhs: result,
+        });
+        self.set_active_block(current_block);
+        Ok(id)
+    }
+    fn empty_block(&mut self, block_result: Slot) -> Result<BlockId> {
+        let current_block = self.current_block();
+        let id = self.new_block(block_result);
+        self.op(OpCode::Copy {
+            lhs: block_result,
+            rhs: Slot::Empty,
         });
         self.set_active_block(current_block);
         Ok(id)

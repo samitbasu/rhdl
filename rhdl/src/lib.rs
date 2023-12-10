@@ -1125,10 +1125,24 @@ mod tests {
         #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
         pub struct TupStruct(b4, b4);
 
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub enum Bar {
+            #[default]
+            A,
+            B(b4),
+            C {
+                x: b4,
+                y: b4,
+            },
+        }
+
         #[kernel]
         fn nib_add(a: b4, b: b4) -> b4 {
             a + b
         }
+
+        const ONE: b4 = bits(1);
+        const TWO: b4 = bits(2);
 
         #[kernel]
         fn add(mut a: b4, b: [b4; 4]) -> b4 {
@@ -1151,6 +1165,16 @@ mod tests {
             let z: b4 = p + nib_add(x, y);
             let q = TupStruct(x, y);
             let TupStruct(x, y) = q;
+            let h = Bar::A;
+            let h = Bar::B(p);
+            let h = Bar::C { x: p, y: p };
+            let k: Bar = Bar::A;
+            match x {
+                ONE => {}
+                TWO => {}
+                Bits::<4>(3) => {}
+                _ => {}
+            }
             a + c + z
         }
 
