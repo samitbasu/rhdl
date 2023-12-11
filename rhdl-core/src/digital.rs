@@ -58,6 +58,9 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + Default {
     fn discriminant(self) -> TypedBits {
         self.typed_bits()
     }
+    fn variant_kind(self) -> Kind {
+        self.kind()
+    }
     fn binary_string(self) -> String {
         self.bin()
             .iter()

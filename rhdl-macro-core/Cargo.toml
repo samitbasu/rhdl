@@ -12,6 +12,7 @@ keywords = ["fpga", "hdl", "hardware", "macro"]
 
 [dependencies]
 evalexpr = "11.1.0"
+inflections = "1.1.1"
 prettyplease = "0.2.15"
 proc-macro2 = "1.0.66"
 quote = "1.0.33"

@@ -168,33 +168,6 @@ fn allocate_discriminants(discriminants: &[Option<i64>]) -> Vec<i64> {
         .collect()
 }
 
-// By convention, fields of a tuple are named _0, _1, ...
-fn variant_payload_record(variant: &Variant) -> TokenStream {
-    match &variant.fields {
-        syn::Fields::Unit => quote! {},
-        syn::Fields::Unnamed(fields) => {
-            let field_names = fields
-                .unnamed
-                .iter()
-                .enumerate()
-                .map(|(i, _)| format_ident!("_{}", i));
-            quote! {
-                #(
-                    #field_names.record(tag, &mut logger);
-                )*
-            }
-        }
-        syn::Fields::Named(fields) => {
-            let field_names = fields.named.iter().map(|f| &f.ident);
-            quote! {
-                #(
-                    #field_names.record(tag, &mut logger);
-                )*
-            }
-        }
-    }
-}
-
 fn variant_kind_mapping(enum_name: &Ident, variant: &Variant) -> TokenStream {
     match &variant.fields {
         syn::Fields::Unit => quote! {rhdl_core::Kind::Empty},
@@ -390,13 +363,16 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
     let variant_destructure_args = e.variants.iter().map(variant_destructure_args);
     let variant_destructure_args_for_bin = variant_destructure_args.clone();
     let variant_destructure_args_for_discriminant = variant_destructure_args.clone();
+    let variant_destructure_args_for_variant_kind = variant_destructure_args.clone();
     let kind_mapping = e
         .variants
         .iter()
         .map(|v| variant_kind_mapping(enum_name, v));
+    let variant_kind_mapping = kind_mapping.clone();
     let variant_names_for_kind = variants.clone();
     let variant_names_for_bin = variants.clone();
     let variant_names_for_discriminant = variants.clone();
+    let variant_names_for_variant_kind = variants.clone();
     let discriminants: Vec<Option<i64>> = e
         .variants
         .iter()
@@ -452,6 +428,13 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                 match self {
                     #(
                         Self::#variant_names_for_discriminant #variant_destructure_args_for_discriminant => {#discriminants_as_typed_bits}
+                    )*
+                }
+            }
+            fn variant_kind(self) -> rhdl_core::Kind {
+                match self {
+                    #(
+                        Self::#variant_names_for_variant_kind #variant_destructure_args_for_variant_kind => {#variant_kind_mapping}
                     )*
                 }
             }

@@ -125,6 +125,7 @@ pub struct PatLit {
 pub struct PatMatch {
     pub pat: Box<Pat>,
     pub discriminant: Box<TypedBits>,
+    pub payload_kind: Kind,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -104,6 +104,13 @@ pub enum OpCode {
         lhs: Slot,
         elements: Vec<Slot>,
     },
+    // x <- a#b where a is an enum, and b is the discriminant of the
+    // variant.
+    Payload {
+        lhs: Slot,
+        arg: Slot,
+        discriminant: Slot,
+    },
     Comment(String),
 }
 

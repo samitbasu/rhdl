@@ -89,6 +89,13 @@ impl Display for OpCode {
             }
             OpCode::Block(BlockId(x)) => write!(f, " sub B{x}"),
             OpCode::Comment(s) => write!(f, " # {}", s.trim_end().replace('\n', "\n   # ")),
+            OpCode::Payload {
+                lhs,
+                arg,
+                discriminant,
+            } => {
+                write!(f, " {} <- {}#[{}]", lhs, arg, discriminant)
+            }
             _ => todo!("OpCode {:?} not covered", self),
         }
     }

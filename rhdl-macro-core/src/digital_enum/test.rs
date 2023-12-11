@@ -87,6 +87,27 @@ fn test_enum_derive() {
                         }
                     }
                 }
+                fn variant_kind(self) -> rhdl_core::Kind {
+                    match self {
+                        Self::A => rhdl_core::Kind::Empty,
+                        Self::B(_0) => {
+                            rhdl_core::Kind::make_tuple(
+                                vec![< Bits:: < 16 > as rhdl_core::Digital > ::static_kind()],
+                            )
+                        }
+                        Self::C { a, b } => {
+                            rhdl_core::Kind::make_struct(
+                                stringify!(_Test__C),
+                                vec![
+                                    rhdl_core::Kind::make_field(stringify!(a), < Bits:: < 32 > as
+                                    rhdl_core::Digital > ::static_kind()),
+                                    rhdl_core::Kind::make_field(stringify!(b), < Bits:: < 8 > as
+                                    rhdl_core::Digital > ::static_kind())
+                                ],
+                            )
+                        }
+                    }
+                }
                 fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                     match self {
                         Self::A => {
@@ -170,6 +191,15 @@ fn test_enum_no_payloads() {
                     Self::Boom => rhdl_bits::bits::<3usize>(4i64 as u128).typed_bits(),
                 }
             }
+            fn variant_kind(self) -> rhdl_core::Kind {
+                match self {
+                    Self::Init => rhdl_core::Kind::Empty,
+                    Self::Boot => rhdl_core::Kind::Empty,
+                    Self::Running => rhdl_core::Kind::Empty,
+                    Self::Stop => rhdl_core::Kind::Empty,
+                    Self::Boom => rhdl_core::Kind::Empty,
+                }
+            }
             fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {
                     Self::Init => {
@@ -246,6 +276,13 @@ fn test_enum_with_signed_discriminants() {
                     Self::C => rhdl_bits::signed::<5usize>(-8i128).typed_bits(),
                 }
             }
+            fn variant_kind(self) -> rhdl_core::Kind {
+                match self {
+                    Self::A => rhdl_core::Kind::Empty,
+                    Self::B => rhdl_core::Kind::Empty,
+                    Self::C => rhdl_core::Kind::Empty,
+                }
+            }
             fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {
                     Self::A => {
@@ -305,6 +342,13 @@ fn test_enum_with_discriminants() {
                     Self::A => rhdl_bits::bits::<4usize>(1i64 as u128).typed_bits(),
                     Self::B => rhdl_bits::bits::<4usize>(6i64 as u128).typed_bits(),
                     Self::C => rhdl_bits::bits::<4usize>(8i64 as u128).typed_bits(),
+                }
+            }
+            fn variant_kind(self) -> rhdl_core::Kind {
+                match self {
+                    Self::A => rhdl_core::Kind::Empty,
+                    Self::B => rhdl_core::Kind::Empty,
+                    Self::C => rhdl_core::Kind::Empty,
                 }
             }
             fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
