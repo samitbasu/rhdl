@@ -1115,6 +1115,45 @@ mod tests {
     }
 
     #[test]
+    fn test_rebind_compile() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub enum SimpleEnum {
+            #[default]
+            Init,
+            Run(u8),
+            Point {
+                x: b4,
+                y: u8,
+            },
+            Boom,
+        }
+
+        const B6: b6 = bits(6);
+
+        #[kernel]
+        fn add(state: SimpleEnum) -> u8 {
+            let x = B6;
+            match state {
+                SimpleEnum::Init => 1,
+                SimpleEnum::Run(x) => x,
+                SimpleEnum::Point { x, y } => y,
+                SimpleEnum::Boom => 7,
+                _ => 0,
+            }
+        }
+
+        let mut kernel: Kernel = add::kernel_fn().try_into().unwrap();
+        assign_node_ids(&mut kernel).unwrap();
+        let ctx = infer(&kernel).unwrap();
+        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
+        eprintln!("{}", ast_ascii);
+        check_inference(&kernel, &ctx).unwrap();
+        let mut compiler = CompilerContext::new(ctx);
+        compiler.visit_kernel_fn(&kernel.ast).unwrap();
+        eprintln!("{}", compiler);
+    }
+
+    #[test]
     fn test_basic_compile() {
         #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
         pub struct Foo {

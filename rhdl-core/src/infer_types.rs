@@ -22,10 +22,21 @@ impl Default for ScopeId {
     }
 }
 
+#[derive(Debug)]
 struct Scope {
     names: HashMap<String, Ty>,
     children: Vec<ScopeId>,
     parent: ScopeId,
+}
+
+impl std::fmt::Display for Scope {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{{")?;
+        for (name, ty) in &self.names {
+            write!(f, "{}: {}, ", name, ty)?;
+        }
+        write!(f, "}}")
+    }
 }
 
 #[derive(Default)]
@@ -52,7 +63,20 @@ impl TypeInference {
         self.active_scope = self.scopes[self.active_scope.0].parent;
     }
     fn unify(&mut self, lhs: Ty, rhs: Ty) -> Result<()> {
-        self.context.unify(lhs, rhs)
+        if let Err(err) = self.context.unify(lhs, rhs) {
+            bail!(
+                "Type error: {}, active_scope: {:?}, scopes: {}",
+                err,
+                self.scopes[self.active_scope.0],
+                self.scopes
+                    .iter()
+                    .map(|x| x.to_string())
+                    .collect::<Vec<_>>()
+                    .join(","),
+            );
+        } else {
+            Ok(())
+        }
     }
     fn bind(&mut self, name: &str, id: NodeId) -> Result<()> {
         eprintln!("Binding {} to {:?}", name, id);
@@ -131,6 +155,7 @@ impl TypeInference {
                 let term = self.context.apply(id_to_var(pat.id)?);
                 eprintln!("Struct type: {term}");
                 if let Ty::Struct(struct_ty) = term {
+                    eprintln!("struct type is just a struct");
                     for field in &ty.fields {
                         if let Member::Named(name) = &field.member {
                             if let Some(ty) = struct_ty.fields.get(name) {
@@ -140,10 +165,13 @@ impl TypeInference {
                         }
                     }
                 } else if let Ty::Enum(enum_ty) = term {
+                    eprintln!("struct type is an enum");
                     if let Some(variant_name) = &ty.path.segments.last() {
+                        eprintln!("variant name is {}", variant_name.ident);
                         if let Some(Ty::Struct(variant_ty)) =
                             enum_ty.fields.get(&variant_name.ident.to_string())
                         {
+                            eprintln!("variant has fields {:?}", variant_ty);
                             for field in &ty.fields {
                                 if let Member::Named(name) = &field.member {
                                     if let Some(ty) = variant_ty.fields.get(name) {
@@ -551,10 +579,12 @@ impl Visitor for TypeInference {
         visit::visit_expr(self, node)
     }
     fn visit_match_arm(&mut self, node: &ast::Arm) -> Result<()> {
-        eprintln!("match arm visited");
+        eprintln!("match arm visit - create new scope");
         self.new_scope();
         self.bind_pattern(&node.pattern)?;
+        eprintln!("handle body");
         visit::visit_match_arm(self, node)?;
+        eprintln!("end scope");
         self.end_scope();
         Ok(())
     }
