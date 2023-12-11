@@ -343,13 +343,11 @@ mod tests {
             // Enum literal with a payload
             let l = State::Run(3);
             // Match expression with enum variants
-            /*
             let j = match l {
                 State::Init => b3(1),
                 State::Run(a) => b3(2),
                 State::Boom => b3(3),
             };
-            */
             // For loops
             for ndx in 0..8 {
                 d = d + bits::<8>(ndx);
@@ -606,7 +604,6 @@ mod tests {
             let h = f[2];
             let k = NooState::Init;
             let f = Red::C { y: y1, x: x1 };
-            /*
             let d = match s {
                 NooState::Init => NooState::Run(bits::<4>(1), bits::<5>(2)),
                 NooState::Run(x, y) => NooState::Walk { foo: y + 3 },
@@ -616,7 +613,7 @@ mod tests {
                 }
                 NooState::Boom => NooState::Init,
                 _ => NooState::Boom,
-            };*/
+            };
             let k = 42;
             bits::<7>(k)
         }
@@ -643,7 +640,6 @@ mod tests {
             let y = bits::<12>(72);
             let foo = bits::<14>(32);
             let mut a: u8 = 0;
-            /*
             let d = match s {
                 NooState::Init => {
                     a = 1;
@@ -665,7 +661,7 @@ mod tests {
                     a = 2;
                     NooState::Boom
                 }
-            };*/
+            };
         }
         test_inference_result(do_stuff::kernel_fn()).unwrap();
     }
@@ -764,7 +760,6 @@ mod tests {
                 }
                 _ => 6,
             });
-            /*
             let d = match s {
                 NooState::Init => {
                     a.a = 1;
@@ -786,8 +781,7 @@ mod tests {
                     a.a = 2;
                     NooState::Boom
                 }
-            };'
-            */
+            };
         }
         test_inference_result(do_stuff::kernel_fn()).unwrap();
     }
@@ -1147,6 +1141,10 @@ mod tests {
             #[default]
             Init,
             Run(u8),
+            Point {
+                x: b4,
+                y: u8,
+            },
             Boom,
         }
 
@@ -1190,12 +1188,13 @@ mod tests {
                 Bits::<4>(3) => {}
                 _ => {}
             }
-            match state {
-                SimpleEnum::Init => {}
-                SimpleEnum::Run(MOMO) => {}
-                SimpleEnum::Boom => {}
-                _ => {}
-            }
+            let count = match state {
+                SimpleEnum::Init => 1,
+                SimpleEnum::Run(x) => x,
+                SimpleEnum::Point { x, y } => y,
+                SimpleEnum::Boom => 7,
+                _ => 0,
+            };
             a + c + z
         }
 
@@ -1208,37 +1207,5 @@ mod tests {
         let mut compiler = CompilerContext::new(ctx);
         compiler.visit_kernel_fn(&kernel.ast).unwrap();
         eprintln!("{}", compiler);
-    }
-
-    #[test]
-    #[forbid(non_upper_case_globals)]
-    #[forbid(non_snake_case)]
-    #[forbid(non_camel_case_types)]
-    fn test_rust_match_args_as_constants() {
-        #[derive(Copy, Clone, Debug)]
-        enum State {
-            Init,
-            Run(u8),
-            Boom,
-            SHOUT_ME,
-            Shrug,
-        }
-
-        const OOP: u8 = 1;
-
-        fn match_it(x: State) -> String {
-            match x {
-                State::Init => "Init".into(),
-                State::Run(OOP) => "BIG".into(),
-                State::Run(x) => format!("{x}"),
-                State::Boom => "Boom".into(),
-                State::SHOUTME => "SHOUT".into(),
-                _ => "shrug".into(),
-            }
-        }
-
-        assert_eq!(match_it(State::Init), "Init");
-        assert_eq!(match_it(State::Run(5)), "5");
-        assert_eq!(match_it(State::Run(1)), "1");
     }
 }

@@ -235,12 +235,13 @@ pub fn wild_pat() -> Box<Pat> {
     })
 }
 
-pub fn match_pat(pat: Box<Pat>, discriminant: TypedBits) -> Box<Pat> {
+pub fn match_pat(pat: Box<Pat>, discriminant: TypedBits, payload_kind: Kind) -> Box<Pat> {
     Box::new(Pat {
         id: INVALID_NODE_ID,
         kind: PatKind::Match(PatMatch {
             pat,
             discriminant: Box::new(discriminant),
+            payload_kind,
         }),
     })
 }

@@ -287,6 +287,15 @@ impl<'a> AsciiRenderer<'a> {
             PatKind::Struct(struct_) => {
                 self.push(&format!("struct {:?}", struct_));
             }
+            PatKind::TupleStruct(tuple) => {
+                self.push("tuple_struct ");
+                self.push(&format!("path {:?}", tuple.path));
+                self.indent += 1;
+                for pat in &tuple.elems {
+                    self.render_pat(pat)?;
+                }
+                self.indent -= 1;
+            }
             PatKind::Tuple(tuple) => {
                 self.push(&format!("tuple {:?}", tuple));
             }
@@ -295,6 +304,12 @@ impl<'a> AsciiRenderer<'a> {
             }
             PatKind::Type(ty) => {
                 self.push(&format!("type {:?}", ty));
+            }
+            PatKind::Match(match_) => {
+                self.push("match");
+                self.indent += 1;
+                self.render_pat(&match_.pat)?;
+                self.indent -= 1;
             }
             _ => {
                 self.push(&format!("unhandled {:?}", pat.kind));

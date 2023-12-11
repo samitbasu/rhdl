@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use inflections::Inflect;
+use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{punctuated::Punctuated, spanned::Spanned, token::Comma, Ident, Pat, Path, Type};
 type TS = proc_macro2::TokenStream;
@@ -49,6 +51,84 @@ fn ident_starts_with_capital_letter(i: &syn::Ident) -> bool {
         .next()
         .map(|x| x.is_uppercase())
         .unwrap_or(false)
+}
+
+fn pattern_has_bindings(pat: &syn::Pat) -> bool {
+    match pat {
+        Pat::Ident(x) => x.ident.to_string().is_snake_case(),
+        Pat::Or(subs) => subs.cases.iter().any(pattern_has_bindings),
+        Pat::Paren(pat) => pattern_has_bindings(&pat.pat),
+        Pat::Slice(slice) => slice.elems.iter().any(pattern_has_bindings),
+        Pat::Tuple(tuple) => tuple.elems.iter().any(pattern_has_bindings),
+        Pat::Struct(struct_) => struct_.fields.iter().any(|x| pattern_has_bindings(&x.pat)),
+        Pat::TupleStruct(tuple) => tuple.elems.iter().any(pattern_has_bindings),
+        Pat::Type(ty) => pattern_has_bindings(&ty.pat),
+        _ => false,
+    }
+}
+
+fn pattern_has_literals(pat: &syn::Pat) -> bool {
+    match pat {
+        Pat::Ident(x) => x.ident.to_string().is_constant_case(),
+        Pat::Or(subs) => subs.cases.iter().any(pattern_has_literals),
+        Pat::Paren(pat) => pattern_has_literals(&pat.pat),
+        Pat::Slice(slice) => slice.elems.iter().any(pattern_has_literals),
+        Pat::Tuple(tuple) => tuple.elems.iter().any(pattern_has_literals),
+        Pat::Struct(struct_) => struct_.fields.iter().any(|x| pattern_has_literals(&x.pat)),
+        Pat::TupleStruct(tuple) => tuple.elems.iter().any(pattern_has_literals),
+        Pat::Type(ty) => pattern_has_literals(&ty.pat),
+        _ => false,
+    }
+}
+
+fn rewrite_pattern_to_use_defaults_for_bindings(pat: &syn::Pat) -> TS {
+    match pat {
+        Pat::Ident(x) => {
+            quote! { Default::default() }
+        }
+        Pat::Or(subs) => {
+            let cases = subs
+                .cases
+                .iter()
+                .map(rewrite_pattern_to_use_defaults_for_bindings);
+            quote! { #(#cases) |* }
+        }
+        Pat::Paren(pat) => rewrite_pattern_to_use_defaults_for_bindings(&pat.pat),
+        Pat::Slice(slice) => {
+            let elems = slice
+                .elems
+                .iter()
+                .map(rewrite_pattern_to_use_defaults_for_bindings);
+            quote! { [#(#elems),*] }
+        }
+        Pat::Tuple(tuple) => {
+            let elems = tuple
+                .elems
+                .iter()
+                .map(rewrite_pattern_to_use_defaults_for_bindings);
+            quote! { (#(#elems),*) }
+        }
+        Pat::Struct(struct_) => {
+            let path = &struct_.path;
+            let fields = struct_.fields.iter().map(|x| {
+                let field_name = &x.member;
+                let field_pat = rewrite_pattern_to_use_defaults_for_bindings(&x.pat);
+                quote!( #field_name: #field_pat)
+            });
+            quote! { #path {#(#fields),*} }
+        }
+        Pat::TupleStruct(tuple) => {
+            let path = &tuple.path;
+            let elems = tuple
+                .elems
+                .iter()
+                .map(rewrite_pattern_to_use_defaults_for_bindings);
+            quote! { #path (#(#elems),*) }
+        }
+        Pat::Type(ty) => rewrite_pattern_to_use_defaults_for_bindings(&ty.pat),
+        Pat::Wild(_) => quote! { Default::default() },
+        _ => quote! { #pat },
+    }
 }
 
 impl Context {
@@ -352,14 +432,27 @@ impl Context {
     // Use for patterns that are in a match context
     // These are fallible.
     fn match_pat(&mut self, pat: &syn::Pat) -> Result<TS> {
+        if pattern_has_bindings(pat) && pattern_has_literals(pat) {
+            return Err(syn::Error::new(
+                pat.span(),
+                "Unsupported pattern with bindings in rhdl kernel function - only literals or pure patterns are allowed in this match context",
+            ));
+        }
         let inner = self.pat(pat)?;
-        match pat {
-            syn::Pat::Wild(_) => Ok(quote! {
-                rhdl_core::ast_builder::match_pat(#inner, rhdl_core::ast_builder::wild_discriminant())
-            }),
-            _ => Ok(quote! {
-                rhdl_core::ast_builder::match_pat(#inner, rhdl_core::Digital::discriminant(#pat))
-            }),
+        if !pattern_has_bindings(pat) {
+            match pat {
+                syn::Pat::Wild(_) => Ok(quote! {
+                    rhdl_core::ast_builder::match_pat(#inner, rhdl_core::ast_builder::wild_discriminant(), rhdl_core::Kind::Empty)
+                }),
+                _ => Ok(quote! {
+                    rhdl_core::ast_builder::match_pat(#inner, rhdl_core::Digital::discriminant(#pat), rhdl_core::Digital::variant_kind(#pat))
+                }),
+            }
+        } else {
+            let pat_as_expr = rewrite_pattern_to_use_defaults_for_bindings(pat);
+            Ok(
+                quote! {rhdl_core::ast_builder::match_pat(#inner, rhdl_core::Digital::discriminant(#pat_as_expr), rhdl_core::Digital::variant_kind(#pat_as_expr))},
+            )
         }
     }
 
@@ -1235,6 +1328,25 @@ mod test {
     }
 
     #[test]
+    fn test_match_arm_pattern_rewrite() {
+        let test_code = quote! {
+            fn update(z: Bar) {
+                match z {
+                    Bar::A => {},
+                    Bar::B(x) => {},
+                    Bar::C{x, y} => {},
+                }
+            }
+        };
+        let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
+        println!("{:?}", function);
+        let item = Context::default().function(function).unwrap();
+        let new_code = quote! {#item};
+        let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
+        println!("{}", result);
+    }
+
+    #[test]
     fn test_generics() {
         let test_code = quote! {
             fn do_stuff<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {
@@ -1250,5 +1362,59 @@ mod test {
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         println!("{}", result);
+    }
+
+    #[test]
+    fn test_pattern_binding_test() {
+        let test_code = quote! {
+            match t {
+                Foo::<T>{a: 1, b: 2} => {}
+                Foo::<T>{a, b} => {}
+                Foo(CACHE) => {}
+                Foo{a: x} => {}
+                Bar(CACHE, x) => {}
+            }
+        };
+        let expr = syn::parse2::<syn::ExprMatch>(test_code).unwrap();
+        expr.arms.iter().for_each(|arm| {
+            eprintln!("{:?}", arm);
+            eprintln!("pattern has bindings {:?}", pattern_has_bindings(&arm.pat));
+            eprintln!("pattern has constants {:?}", pattern_has_literals(&arm.pat));
+        });
+    }
+
+    #[test]
+    fn test_pattern_binding_rewrite_function() {
+        enum Baz {
+            A,
+            B(u8),
+            C { x: u8, y: u8 },
+        }
+
+        let a: Baz = Baz::A;
+        match a {
+            Baz::A => {}
+            Baz::B(3) => {}
+            Baz::C { x: 3, y: 4 } => {}
+            Baz::C { x, y } => {}
+            _ => {}
+        }
+        let test_code = quote! {
+            match a {
+                Baz::A => {}
+                Baz::B(3) => {}
+                Baz::C { x: 3, y: 4 } => {}
+                Baz::C { x, y } => {}
+                _ => {}
+            }
+        };
+        let expr = syn::parse2::<syn::ExprMatch>(test_code).unwrap();
+        expr.arms.iter().for_each(|arm| {
+            eprintln!("{:?}", arm);
+            eprintln!("pattern has bindings {:?}", pattern_has_bindings(&arm.pat));
+            eprintln!("pattern has constants {:?}", pattern_has_literals(&arm.pat));
+            let rewrite = rewrite_pattern_to_use_defaults_for_bindings(&arm.pat);
+            eprintln!("{}", rewrite);
+        });
     }
 }

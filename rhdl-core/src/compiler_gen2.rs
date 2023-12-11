@@ -194,9 +194,8 @@ impl CompilerContext {
                     .get(&parent)
                     .map(|x| x.slot)
                     .ok_or(anyhow::anyhow!(
-                        "No local variable for {:?} in {:?}",
+                        "No local variable for {:?} defined when needed",
                         child_id,
-                        self.locals
                     ));
             }
         }
@@ -237,58 +236,60 @@ impl CompilerContext {
             }
         }
     }
-    fn initialize_local(&mut self, pat: &Pat, init: &Expr) -> Result<()> {
+    fn initialize_local(&mut self, pat: &Pat, rhs: Slot) -> Result<()> {
         match &pat.kind {
             PatKind::Ident(ident) => {
-                let result = self.expr(init)?;
-                let lhs = self.resolve_local(pat.id)?;
-                self.op(OpCode::Copy { lhs, rhs: result });
+                if let Ok(lhs) = self.resolve_local(pat.id) {
+                    self.op(OpCode::Copy { lhs, rhs });
+                }
                 Ok(())
             }
             PatKind::Tuple(tuple) => {
-                let rhs = self.expr(init)?;
                 for (ndx, pat) in tuple.elements.iter().enumerate() {
-                    let element_lhs = self.resolve_local(pat.id)?;
-                    self.op(OpCode::Field {
-                        lhs: element_lhs,
-                        arg: rhs,
-                        member: rhif::Member::Unnamed(ndx as u32),
-                    });
+                    if let Ok(element_lhs) = self.resolve_local(pat.id) {
+                        self.op(OpCode::Field {
+                            lhs: element_lhs,
+                            arg: rhs,
+                            member: rhif::Member::Unnamed(ndx as u32),
+                        });
+                    }
                 }
                 Ok(())
             }
             PatKind::Struct(_struct) => {
-                let rhs = self.expr(init)?;
                 for field in &_struct.fields {
-                    let element_lhs = self.resolve_local(field.pat.id)?;
-                    self.op(OpCode::Field {
-                        lhs: element_lhs,
-                        arg: rhs,
-                        member: field.member.clone().into(),
-                    });
+                    if let Ok(element_lhs) = self.resolve_local(field.pat.id) {
+                        self.op(OpCode::Field {
+                            lhs: element_lhs,
+                            arg: rhs,
+                            member: field.member.clone().into(),
+                        });
+                    }
                 }
                 Ok(())
             }
             PatKind::TupleStruct(_tuple_struct) => {
-                let rhs = self.expr(init)?;
                 for (ndx, pat) in _tuple_struct.elems.iter().enumerate() {
-                    let element_lhs = self.resolve_local(pat.id)?;
-                    self.op(OpCode::Field {
-                        lhs: element_lhs,
-                        arg: rhs,
-                        member: rhif::Member::Unnamed(ndx as u32),
-                    });
+                    if let Ok(element_lhs) = self.resolve_local(pat.id) {
+                        self.op(OpCode::Field {
+                            lhs: element_lhs,
+                            arg: rhs,
+                            member: rhif::Member::Unnamed(ndx as u32),
+                        });
+                    }
                 }
                 Ok(())
             }
-            PatKind::Type(ty) => self.initialize_local(&ty.pat, init),
+            PatKind::Type(ty) => self.initialize_local(&ty.pat, rhs),
+            PatKind::Wild | PatKind::Lit(_) | PatKind::Path(_) => Ok(()),
             _ => todo!("Unsupported let init pattern: {:?}", pat),
         }
     }
     fn local(&mut self, local: &Local) -> Result<()> {
         self.bind_pattern(&local.pat)?;
         if let Some(init) = &local.init {
-            self.initialize_local(&local.pat, init)?;
+            let rhs = self.expr(init)?;
+            self.initialize_local(&local.pat, rhs)?;
         }
         Ok(())
     }
@@ -401,6 +402,34 @@ impl CompilerContext {
         });
         Ok(lhs)
     }
+    fn bind_match_pattern(&mut self, pattern: &Pat) -> Result<()> {
+        match &pattern.kind {
+            PatKind::Ident(ident) => self.bind(pattern.id, &ident.name),
+            PatKind::Tuple(tuple) => {
+                for pat in &tuple.elements {
+                    self.bind_match_pattern(pat)?;
+                }
+                Ok(())
+            }
+            PatKind::Type(ty) => self.bind_match_pattern(&ty.pat),
+            PatKind::Struct(_struct) => {
+                for field in &_struct.fields {
+                    self.bind_match_pattern(&field.pat)?;
+                }
+                Ok(())
+            }
+            PatKind::TupleStruct(_tuple_struct) => {
+                for pat in &_tuple_struct.elems {
+                    self.bind_match_pattern(pat)?;
+                }
+                Ok(())
+            }
+            PatKind::Paren(paren) => self.bind_match_pattern(&paren.pat),
+            PatKind::Lit(_) | PatKind::Wild | PatKind::Path(_) => Ok(()),
+            _ => bail!("Unsupported binding pattern {:?}", pattern),
+        }
+    }
+
     fn expr_arm(
         &mut self,
         target: Slot,
@@ -412,9 +441,22 @@ impl CompilerContext {
         }
         match &arm.pattern.kind {
             PatKind::Match(x) => {
+                // Allocate the local bindings for the match pattern
+                self.bind_match_pattern(&x.pat)?;
                 let value = self.literal_from_typed_bits(&x.discriminant)?;
-                let block = self.wrap_expr_in_block(lhs, &arm.body)?;
-                Ok((CaseArgument::Literal(value), block))
+                let current_block = self.current_block();
+                let id = self.new_block(lhs);
+                let payload = self.reg(x.payload_kind.clone().into())?;
+                self.op(OpCode::Payload {
+                    lhs: payload,
+                    arg: target,
+                    discriminant: value,
+                });
+                self.initialize_local(&x.pat, payload)?;
+                let result = self.expr(&arm.body)?;
+                self.op(OpCode::Copy { lhs, rhs: result });
+                self.set_active_block(current_block);
+                Ok((CaseArgument::Literal(value), id))
             }
             PatKind::Wild => {
                 let block = self.wrap_expr_in_block(lhs, &arm.body)?;
