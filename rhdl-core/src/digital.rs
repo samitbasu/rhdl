@@ -82,6 +82,11 @@ pub struct TypedBits {
 }
 
 impl TypedBits {
+    pub const EMPTY: TypedBits = TypedBits {
+        bits: Vec::new(),
+        kind: Kind::Empty,
+    };
+
     pub fn path(&self, path: &[Path]) -> anyhow::Result<TypedBits> {
         let (range, kind) = bit_range(self.kind.clone(), path)?;
         Ok(TypedBits {
@@ -154,6 +159,20 @@ impl Digital for i128 {
     }
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_signed(key, *self, 128);
+    }
+}
+
+impl Digital for i32 {
+    fn static_kind() -> Kind {
+        Kind::Signed(32)
+    }
+    fn bin(self) -> Vec<bool> {
+        SignedBits::<32>::from(self as i128)
+            .as_unsigned()
+            .to_bools()
+    }
+    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
+        writer.write_signed(key, *self as i128, 32);
     }
 }
 

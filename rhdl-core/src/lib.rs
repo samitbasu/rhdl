@@ -52,6 +52,7 @@ pub use note_db::note;
 pub use note_db::note_pop_path;
 pub use note_db::note_push_path;
 pub mod check_inference;
-
+pub mod check_rhif_type;
 pub use check_inference::check_inference;
+pub use check_rhif_type::check_type_correctness;
 pub use digital::TypedBits;
