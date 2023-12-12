@@ -15,9 +15,9 @@ mod tests {
     use rhdl_core::{
         ascii::render_ast_to_string,
         assign_node::assign_node_ids,
-        check_inference,
+        check_inference, check_type_correctness,
         compiler::Compiler,
-        compiler_gen2::CompilerContext,
+        compiler_gen2::{compile, CompilerContext},
         digital_fn::{inspect_digital, DigitalFn},
         display_ast::pretty_print_kernel,
         infer_types::{infer, TypeInference},
@@ -1148,9 +1148,8 @@ mod tests {
         let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
         eprintln!("{}", ast_ascii);
         check_inference(&kernel, &ctx).unwrap();
-        let mut compiler = CompilerContext::new(ctx);
-        compiler.visit_kernel_fn(&kernel.ast).unwrap();
-        eprintln!("{}", compiler);
+        let obj = compile(&kernel.ast, ctx).unwrap();
+        eprintln!("{}", obj);
     }
 
     #[test]
@@ -1243,8 +1242,8 @@ mod tests {
         let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
         eprintln!("{}", ast_ascii);
         check_inference(&kernel, &ctx).unwrap();
-        let mut compiler = CompilerContext::new(ctx);
-        compiler.visit_kernel_fn(&kernel.ast).unwrap();
-        eprintln!("{}", compiler);
+        let obj = compile(&kernel.ast, ctx).unwrap();
+        eprintln!("{}", obj);
+        check_type_correctness(&obj).unwrap();
     }
 }

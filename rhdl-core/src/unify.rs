@@ -1,3 +1,4 @@
+use crate::ty::{ty_array_base, ty_indexed_item, ty_named_field, ty_unnamed_field};
 use crate::ty::{Ty, TypeId};
 use anyhow::anyhow;
 use anyhow::bail;
@@ -171,18 +172,7 @@ impl UnifyContext {
         let Some(t) = self.map.get(&id) else {
             bail!("Type must be known at this point")
         };
-        if let Ty::Ref(t) = t {
-            return self
-                .get_named_field(*t.clone(), field)
-                .map(|x| Ty::Ref(Box::new(x)));
-        }
-        let Ty::Struct(struct_) = t else {
-            bail!("Type must be a struct")
-        };
-        let Some(ty) = struct_.fields.get(field) else {
-            bail!("Field {} not found", field)
-        };
-        Ok(ty.clone())
+        ty_named_field(t, field)
     }
     pub fn get_unnamed_field(&self, t: Ty, field: usize) -> Result<Ty> {
         let Ty::Var(id) = t else {
@@ -191,24 +181,7 @@ impl UnifyContext {
         let Some(t) = self.map.get(&id) else {
             bail!("Type must be known at this point")
         };
-        if let Ty::Ref(t) = t {
-            return self
-                .get_unnamed_field(*t.clone(), field)
-                .map(|x| Ty::Ref(Box::new(x)));
-        }
-        // We can get an unnamed field from a tuple or a tuple struct
-        match t {
-            Ty::Tuple(fields_) => fields_
-                .get(field)
-                .cloned()
-                .ok_or_else(|| anyhow!("Field {} not found", field)),
-            Ty::Struct(struct_) => struct_
-                .fields
-                .get(&format!("{}", field))
-                .cloned()
-                .ok_or_else(|| anyhow!("Field {} not found in struct {}", field, struct_.name)),
-            _ => bail!("Type must be a tuple or tuple struct"),
-        }
+        ty_unnamed_field(t, field)
     }
     pub fn get_array_base(&self, t: Ty) -> Result<Ty> {
         let Ty::Var(id) = t else {
@@ -217,18 +190,7 @@ impl UnifyContext {
         let Some(t) = self.map.get(&id) else {
             bail!("Type must be known at this point")
         };
-        if let Ty::Ref(t) = t {
-            return self
-                .get_array_base(*t.clone())
-                .map(|x| Ty::Ref(Box::new(x)));
-        }
-        let Ty::Array(elems) = t else {
-            bail!("Type must be an array")
-        };
-        elems
-            .get(0)
-            .cloned()
-            .ok_or_else(|| anyhow!("Array must have at least one element"))
+        ty_array_base(t)
     }
     pub fn get_indexed_item(&self, t: Ty, index: usize) -> Result<Ty> {
         let Ty::Var(id) = t else {
@@ -237,18 +199,7 @@ impl UnifyContext {
         let Some(t) = self.map.get(&id) else {
             bail!("Type must be known at this point")
         };
-        if let Ty::Ref(t) = t {
-            return self
-                .get_indexed_item(*t.clone(), index)
-                .map(|x| Ty::Ref(Box::new(x)));
-        }
-        let Ty::Array(elems) = t else {
-            bail!("Type must be an array")
-        };
-        elems
-            .get(index)
-            .cloned()
-            .ok_or_else(|| anyhow!("Index {} out of bounds", index))
+        ty_indexed_item(t, index)
     }
     pub fn array_vars(&mut self, args: Vec<Ty>) -> Result<Ty> {
         // put all of the terms into a single unified equivalence class

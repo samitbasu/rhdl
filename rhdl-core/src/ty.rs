@@ -1,3 +1,6 @@
+use anyhow::anyhow;
+use anyhow::bail;
+use anyhow::Result;
 // This module provides the type system for RHDL.
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -114,6 +117,65 @@ pub fn ty_usize() -> Ty {
 
 pub fn ty_integer() -> Ty {
     Ty::Integer
+}
+
+pub fn ty_named_field(base: &Ty, field: &str) -> Result<Ty> {
+    if let Ty::Ref(base) = base {
+        return ty_named_field(base, field).map(|x| Ty::Ref(Box::new(x)));
+    }
+    let Ty::Struct(struct_) = base else {
+        bail!("Expected struct type, got {:?}", base)
+    };
+    struct_
+        .fields
+        .get(field)
+        .cloned()
+        .ok_or_else(|| anyhow::anyhow!("No field named {} in {:?}", field, base))
+}
+
+pub fn ty_unnamed_field(base: &Ty, field: usize) -> Result<Ty> {
+    if let Ty::Ref(t) = base {
+        return ty_unnamed_field(base, field).map(|x| Ty::Ref(Box::new(x)));
+    }
+    // We can get an unnamed field from a tuple or a tuple struct
+    match base {
+        Ty::Tuple(fields_) => fields_
+            .get(field)
+            .cloned()
+            .ok_or_else(|| anyhow!("Field {} not found", field)),
+        Ty::Struct(struct_) => struct_
+            .fields
+            .get(&format!("{}", field))
+            .cloned()
+            .ok_or_else(|| anyhow!("Field {} not found in struct {}", field, struct_.name)),
+        _ => bail!("Type must be a tuple or tuple struct"),
+    }
+}
+
+pub fn ty_indexed_item(base: &Ty, index: usize) -> Result<Ty> {
+    if let Ty::Ref(t) = base {
+        return ty_indexed_item(base, index).map(|x| Ty::Ref(Box::new(x)));
+    }
+    let Ty::Array(elems) = base else {
+        bail!("Type must be an array")
+    };
+    elems
+        .get(index)
+        .cloned()
+        .ok_or_else(|| anyhow!("Index {} out of bounds", index))
+}
+
+pub fn ty_array_base(base: &Ty) -> Result<Ty> {
+    if let Ty::Ref(t) = base {
+        return ty_array_base(base).map(|x| Ty::Ref(Box::new(x)));
+    }
+    let Ty::Array(elems) = base else {
+        bail!("Type must be an array")
+    };
+    elems
+        .get(0)
+        .cloned()
+        .ok_or_else(|| anyhow!("Array must have at least one element"))
 }
 
 impl Display for Ty {

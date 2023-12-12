@@ -7,7 +7,7 @@ use crate::{
     digital_fn::DigitalSignature,
     display_ast::pretty_print_statement,
     infer_types::id_to_var,
-    rhif::{self, AluBinary, AluUnary, BlockId, CaseArgument, OpCode, Slot},
+    rhif::{self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, OpCode, Slot},
     ty::{ty_as_ref, Ty, TypeId},
     unify::UnifyContext,
     visit::{self, visit_block, Visitor},
@@ -35,7 +35,7 @@ pub struct NamedSlot {
 
 pub struct CompilerContext {
     pub blocks: Vec<Block>,
-    pub literals: Vec<Literal>,
+    pub literals: Vec<Box<ast::ExprLit>>,
     pub reg_count: usize,
     active_block: BlockId,
     type_context: UnifyContext,
@@ -44,24 +44,19 @@ pub struct CompilerContext {
     stash: HashMap<String, ExternalFunction>,
 }
 
-pub struct ExternalFunction {
-    pub path: String,
-    pub code: Option<KernelFnKind>,
-    pub signature: DigitalSignature,
-}
-
-pub struct Literal {
-    pub value: Box<ast::ExprLit>,
-    pub ty: Ty,
-}
-
 impl std::fmt::Display for CompilerContext {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for regs in self.ty.keys() {
             writeln!(f, "Reg r{} : {}", regs.reg().unwrap(), self.ty[regs],)?;
         }
         for (ndx, literal) in self.literals.iter().enumerate() {
-            writeln!(f, "Literal l{} : {} = {:?}", ndx, literal.ty, literal.value)?;
+            writeln!(
+                f,
+                "Literal l{} : {} = {:?}",
+                ndx,
+                self.ty[&Slot::Literal(ndx)],
+                literal
+            )?;
         }
         for (name, func) in &self.stash {
             writeln!(
@@ -94,7 +89,7 @@ fn collapse_path(path: &Path) -> String {
 }
 
 impl CompilerContext {
-    pub fn new(type_context: UnifyContext) -> Self {
+    fn new(type_context: UnifyContext) -> Self {
         Self {
             blocks: vec![Block {
                 id: ROOT_BLOCK,
@@ -126,13 +121,12 @@ impl CompilerContext {
     fn literal_from_typed_bits(&mut self, value: &TypedBits) -> Result<Slot> {
         let ndx = self.literals.len();
         let ty = value.kind.clone().into();
-        self.literals.push(Literal {
-            value: Box::new(ast::ExprLit::TypedBits(ExprTypedBits {
+        self.literals
+            .push(Box::new(ast::ExprLit::TypedBits(ExprTypedBits {
                 path: Box::new(Path { segments: vec![] }),
                 value: value.clone(),
-            })),
-            ty,
-        });
+            })));
+        self.ty.insert(Slot::Literal(ndx), ty);
         Ok(Slot::Literal(ndx))
     }
     fn op(&mut self, op: OpCode) {
@@ -627,10 +621,8 @@ impl CompilerContext {
             ExprKind::Lit(lit) => {
                 let ndx = self.literals.len();
                 let ty = self.ty(expr.id)?;
-                self.literals.push(Literal {
-                    value: Box::new(lit.clone()),
-                    ty,
-                });
+                self.literals.push(Box::new(lit.clone()));
+                self.ty.insert(Slot::Literal(ndx), ty);
                 Ok(Slot::Literal(ndx))
             }
             ExprKind::Field(field) => self.field(expr.id, field),
@@ -722,4 +714,34 @@ impl Visitor for CompilerContext {
         let _ = self.block(block_result, &node.body)?;
         Ok(())
     }
+}
+
+pub fn compile(func: &ast::KernelFn, ctx: UnifyContext) -> Result<rhif::Object> {
+    let mut compiler = CompilerContext::new(ctx);
+    compiler.visit_kernel_fn(func)?;
+    let literals = compiler
+        .literals
+        .into_iter()
+        .map(|x| {
+            Ok(match *x {
+                ast::ExprLit::TypedBits(t) => t.value.clone(),
+                ast::ExprLit::Bool(b) => b.typed_bits(),
+                ast::ExprLit::Int(x) => x.parse::<i32>()?.typed_bits(),
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let blocks = compiler
+        .blocks
+        .into_iter()
+        .map(|x| rhif::Block {
+            id: x.id,
+            ops: x.ops,
+        })
+        .collect();
+    Ok(rhif::Object {
+        literals,
+        ty: compiler.ty,
+        blocks,
+        externals: compiler.stash,
+    })
 }

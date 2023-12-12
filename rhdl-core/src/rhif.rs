@@ -1,6 +1,10 @@
 // RHDL Intermediate Form (RHIF).
 
+use std::collections::HashMap;
+
 use anyhow::Result;
+
+use crate::{digital_fn::DigitalSignature, ty::Ty, KernelFnKind, TypedBits};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum OpCode {
@@ -176,3 +180,56 @@ pub enum Member {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct BlockId(pub usize);
+
+#[derive(Debug, Clone)]
+pub struct Block {
+    pub id: BlockId,
+    pub ops: Vec<OpCode>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExternalFunction {
+    pub path: String,
+    pub code: Option<KernelFnKind>,
+    pub signature: DigitalSignature,
+}
+
+#[derive(Debug, Clone)]
+pub struct Object {
+    pub literals: Vec<TypedBits>,
+    pub ty: HashMap<Slot, Ty>,
+    pub blocks: Vec<Block>,
+    pub externals: HashMap<String, ExternalFunction>,
+}
+
+impl std::fmt::Display for Object {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for regs in self.ty.keys() {
+            if let Slot::Register(ndx) = regs {
+                writeln!(f, "Reg r{} : {}", ndx, self.ty[regs])?;
+            }
+        }
+        for (ndx, literal) in self.literals.iter().enumerate() {
+            writeln!(f, "Literal l{} : {}", ndx, literal)?;
+        }
+        for (name, func) in &self.externals {
+            writeln!(
+                f,
+                "Function name: {} code: {} signature: {}",
+                name,
+                func.code
+                    .as_ref()
+                    .map(|x| format!("{}", x))
+                    .unwrap_or("none".into()),
+                func.signature
+            )?;
+        }
+        for block in &self.blocks {
+            writeln!(f, "Block {}", block.id.0)?;
+            for op in &block.ops {
+                writeln!(f, "  {}", op)?;
+            }
+        }
+        Ok(())
+    }
+}
