@@ -107,13 +107,52 @@ impl TypeInference {
         }
         None
     }
+
+    fn bind_match_pattern(&mut self, pat: &ast::Pat) -> Result<()> {
+        eprintln!("bind match pattern {:?}", pat);
+        match &pat.kind {
+            ast::PatKind::Match(const_pat) => {
+                self.unify(
+                    id_to_var(const_pat.pat.id)?,
+                    const_pat.payload_kind.clone().into(),
+                )?;
+                self.bind_match_pattern(&const_pat.pat)?;
+            }
+            ast::PatKind::TupleStruct(tuple_struct) => {
+                for (elem, ty) in tuple_struct
+                    .elems
+                    .iter()
+                    .zip(&tuple_struct.signature.arguments)
+                {
+                    self.bind_match_pattern(elem)?;
+                    self.unify(id_to_var(elem.id)?, ty.clone().into())?;
+                }
+            }
+            ast::PatKind::Struct(ty) => {
+                let term = self.context.apply(id_to_var(pat.id)?);
+                if let Ty::Struct(struct_ty) = term {
+                    eprintln!("struct type is just a struct");
+                    for field in &ty.fields {
+                        if let Member::Named(name) = &field.member {
+                            if let Some(ty) = struct_ty.fields.get(name) {
+                                self.bind_match_pattern(&field.pat)?;
+                                self.unify(id_to_var(field.pat.id)?, ty.clone())?;
+                            }
+                        }
+                    }
+                }
+            }
+            ast::PatKind::Ident(ident) => {
+                self.bind(&ident.name, pat.id)?;
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
     fn bind_pattern(&mut self, pat: &ast::Pat) -> Result<()> {
         eprintln!("bind pattern {:?}", pat);
         match &pat.kind {
-            ast::PatKind::Match(ref const_pat) => {
-                self.unify(id_to_var(pat.id)?, id_to_var(const_pat.pat.id)?)?;
-                self.bind_pattern(&const_pat.pat)?;
-            }
             ast::PatKind::Ident(ref ident) => {
                 self.bind(&ident.name, pat.id)?;
             }
@@ -581,7 +620,7 @@ impl Visitor for TypeInference {
     fn visit_match_arm(&mut self, node: &ast::Arm) -> Result<()> {
         eprintln!("match arm visit - create new scope");
         self.new_scope();
-        self.bind_pattern(&node.pattern)?;
+        self.bind_match_pattern(&node.pattern)?;
         eprintln!("handle body");
         visit::visit_match_arm(self, node)?;
         eprintln!("end scope");
@@ -617,6 +656,16 @@ impl<'a> Visitor for InferenceForGenericIntegers<'a> {
             }
         }
         visit::visit_expr(self, node)
+    }
+    fn visit_pat(&mut self, node: &ast::Pat) -> Result<()> {
+        let my_ty = id_to_var(node.id)?;
+        let resolved_type = self.context.apply(my_ty.clone());
+        if let ast::PatKind::Lit(lit) = &node.kind {
+            if let (Ty::Var(_), ExprLit::Int(_)) = (resolved_type, lit.lit.as_ref()) {
+                self.context.unify(my_ty, ty_integer())?;
+            }
+        }
+        visit::visit_pat(self, node)
     }
 }
 

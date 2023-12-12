@@ -1132,8 +1132,8 @@ mod tests {
 
         #[kernel]
         fn add(state: SimpleEnum) -> u8 {
-            let x = B6;
-            match state {
+            let x = state;
+            match x {
                 SimpleEnum::Init => 1,
                 SimpleEnum::Run(x) => x,
                 SimpleEnum::Point { x, y } => y,
