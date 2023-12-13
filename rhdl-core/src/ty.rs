@@ -134,7 +134,7 @@ pub fn ty_named_field(base: &Ty, field: &str) -> Result<Ty> {
 }
 
 pub fn ty_unnamed_field(base: &Ty, field: usize) -> Result<Ty> {
-    if let Ty::Ref(t) = base {
+    if let Ty::Ref(base) = base {
         return ty_unnamed_field(base, field).map(|x| Ty::Ref(Box::new(x)));
     }
     // We can get an unnamed field from a tuple or a tuple struct
@@ -153,7 +153,7 @@ pub fn ty_unnamed_field(base: &Ty, field: usize) -> Result<Ty> {
 }
 
 pub fn ty_indexed_item(base: &Ty, index: usize) -> Result<Ty> {
-    if let Ty::Ref(t) = base {
+    if let Ty::Ref(base) = base {
         return ty_indexed_item(base, index).map(|x| Ty::Ref(Box::new(x)));
     }
     let Ty::Array(elems) = base else {
@@ -166,7 +166,7 @@ pub fn ty_indexed_item(base: &Ty, index: usize) -> Result<Ty> {
 }
 
 pub fn ty_array_base(base: &Ty) -> Result<Ty> {
-    if let Ty::Ref(t) = base {
+    if let Ty::Ref(base) = base {
         return ty_array_base(base).map(|x| Ty::Ref(Box::new(x)));
     }
     let Ty::Array(elems) = base else {
