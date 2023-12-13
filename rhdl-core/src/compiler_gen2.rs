@@ -274,6 +274,19 @@ impl CompilerContext {
                 }
                 Ok(())
             }
+            PatKind::Slice(slice) => {
+                for (ndx, pat) in slice.elems.iter().enumerate() {
+                    if let Ok(element_lhs) = self.resolve_local(pat.id) {
+                        let index = self.literal_from_typed_bits(&ndx.typed_bits())?;
+                        self.op(OpCode::Index {
+                            lhs: element_lhs,
+                            arg: rhs,
+                            index,
+                        });
+                    }
+                }
+                Ok(())
+            }
             PatKind::Type(ty) => self.initialize_local(&ty.pat, rhs),
             PatKind::Wild | PatKind::Lit(_) | PatKind::Path(_) => Ok(()),
             _ => todo!("Unsupported let init pattern: {:?}", pat),
@@ -418,9 +431,15 @@ impl CompilerContext {
                 }
                 Ok(())
             }
+            PatKind::Slice(slice) => {
+                for pat in &slice.elems {
+                    self.bind_match_pattern(pat)?;
+                }
+                Ok(())
+            }
             PatKind::Paren(paren) => self.bind_match_pattern(&paren.pat),
             PatKind::Lit(_) | PatKind::Wild | PatKind::Path(_) => Ok(()),
-            _ => bail!("Unsupported binding pattern {:?}", pattern),
+            _ => bail!("Unsupported match binding pattern {:?}", pattern),
         }
     }
 
@@ -635,7 +654,7 @@ impl CompilerContext {
             ExprKind::Unary(unary) => self.unop(expr.id, unary),
             ExprKind::Match(_match) => self.match_expr(expr.id, _match),
             ExprKind::Ret(_return) => self.return_expr(expr.id, _return),
-            ExprKind::ForLoop(_) => todo!(),
+            ExprKind::ForLoop(_) => todo!("For loop support is not complete"),
             ExprKind::Assign(assign) => self.assign(assign),
             ExprKind::Range(_) => todo!(),
             ExprKind::Let(_) => bail!("Fallible let expressions are not currently supported in rhdl.  Use a match instead"),
@@ -688,6 +707,14 @@ impl CompilerContext {
                 }
                 Ok(())
             }
+            PatKind::Slice(slice) => {
+                for pat in &slice.elems {
+                    self.bind_pattern(pat)?;
+                }
+                Ok(())
+            }
+            PatKind::Paren(paren) => self.bind_pattern(&paren.pat),
+            PatKind::Wild => Ok(()),
             _ => bail!("Unsupported binding pattern {:?}", pattern),
         }
     }
