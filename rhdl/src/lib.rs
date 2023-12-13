@@ -39,6 +39,8 @@ mod tests {
         let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
         eprintln!("{}", ast_ascii);
         check_inference(&kernel, &ctx)?;
+        let obj = compile(&kernel.ast, ctx)?;
+        check_type_correctness(&obj)?;
         Ok(())
     }
 

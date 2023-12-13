@@ -1,8 +1,8 @@
 // Check a RHIF object for type correctness.
 
 use crate::{
-    rhif::{Object, OpCode, Slot},
-    ty::{self, ty_array, ty_array_base, ty_as_ref, Ty},
+    rhif::{AluBinary, Object, OpCode, Slot},
+    ty::{self, ty_array, ty_array_base, ty_as_ref, ty_bool, Ty},
     TypedBits,
 };
 use anyhow::anyhow;
@@ -24,15 +24,49 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
     };
     for block in &obj.blocks {
         for op in &block.ops {
+            eprintln!("op: {:?}", op);
             match op {
                 OpCode::Binary {
-                    op,
+                    op:
+                        AluBinary::Add
+                        | AluBinary::Sub
+                        | AluBinary::Mul
+                        | AluBinary::BitAnd
+                        | AluBinary::BitOr
+                        | AluBinary::BitXor
+                        | AluBinary::Shl
+                        | AluBinary::Shr,
                     lhs,
                     arg1,
                     arg2,
                 } => {
                     eq_types(slot_type(lhs)?, slot_type(arg1)?)?;
                     eq_types(slot_type(lhs)?, slot_type(arg2)?)?;
+                }
+                OpCode::Binary {
+                    op: AluBinary::And | AluBinary::Or,
+                    lhs,
+                    arg1,
+                    arg2,
+                } => {
+                    eq_types(slot_type(lhs)?, slot_type(arg1)?)?;
+                    eq_types(slot_type(lhs)?, slot_type(arg2)?)?;
+                    eq_types(slot_type(lhs)?, ty_bool())?;
+                }
+                OpCode::Binary {
+                    op:
+                        AluBinary::Eq
+                        | AluBinary::Ge
+                        | AluBinary::Gt
+                        | AluBinary::Le
+                        | AluBinary::Lt
+                        | AluBinary::Ne,
+                    lhs,
+                    arg1,
+                    arg2,
+                } => {
+                    eq_types(slot_type(arg1)?, slot_type(arg2)?)?;
+                    eq_types(slot_type(lhs)?, ty_bool())?;
                 }
                 OpCode::Unary { op, lhs, arg1 } => {
                     eq_types(slot_type(lhs)?, slot_type(arg1)?)?;
