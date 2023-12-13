@@ -138,6 +138,18 @@ impl Digital for u16 {
     }
 }
 
+impl Digital for usize {
+    fn static_kind() -> Kind {
+        Kind::make_bits(usize::BITS as usize)
+    }
+    fn bin(self) -> Vec<bool> {
+        Bits::<{ usize::BITS as usize }>::from(self as u128).to_bools()
+    }
+    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
+        writer.write_bits(key, *self as u128, usize::BITS as u8);
+    }
+}
+
 impl Digital for u128 {
     fn static_kind() -> Kind {
         Kind::U128
