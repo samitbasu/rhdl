@@ -1117,6 +1117,27 @@ mod tests {
     }
 
     #[test]
+    fn test_for_loop() {
+        #[kernel]
+        fn looper(a: b8) -> bool {
+            let mut ret: bool = false;
+            for i in 0..8 {
+                ret ^= rhdl_std::get_bit::<8>(a, i);
+            }
+            ret
+        }
+
+        let mut kernel: Kernel = add::kernel_fn().try_into().unwrap();
+        assign_node_ids(&mut kernel).unwrap();
+        let ctx = infer(&kernel).unwrap();
+        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
+        eprintln!("{}", ast_ascii);
+        check_inference(&kernel, &ctx).unwrap();
+        let obj = compile(&kernel.ast, ctx).unwrap();
+        eprintln!("{}", obj);
+    }
+
+    #[test]
     fn test_rebind_compile() {
         #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
         pub enum SimpleEnum {

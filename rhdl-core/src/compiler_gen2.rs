@@ -1,7 +1,7 @@
 use crate::{
     ast::{
-        self, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprTuple, ExprTypedBits, FieldValue,
-        Local, NodeId, Pat, PatKind, Path,
+        self, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprLit, ExprTuple, ExprTypedBits,
+        FieldValue, Local, NodeId, Pat, PatKind, Path,
     },
     digital::TypedBits,
     digital_fn::DigitalSignature,
@@ -590,6 +590,44 @@ impl CompilerContext {
         });
         Ok(result)
     }
+    fn for_loop(&mut self, id: NodeId, for_loop: &ast::ExprForLoop) -> Result<Slot> {
+        let current_block = self.current_block();
+        let id = self.new_block(Slot::Empty);
+        self.bind_pattern(&for_loop.pat)?;
+        let ExprKind::Range(range) = &for_loop.expr.kind else {
+            bail!("For loop must be over a range")
+        };
+        let Some(start) = &range.start else {
+            bail!("For loop range must have a start")
+        };
+        let Some(end) = &range.end else {
+            bail!("For loop range must have an end")
+        };
+        let Expr {
+            id: start_id,
+            kind: ExprKind::Lit(ExprLit::Int(start_lit)),
+        } = start.as_ref()
+        else {
+            bail!("For loop range must have a literal start")
+        };
+        let Expr {
+            id: end_id,
+            kind: ExprKind::Lit(ExprLit::Int(end_lit)),
+        } = end.as_ref()
+        else {
+            bail!("For loop range must have a literal end")
+        };
+        let start_lit = start_lit.parse::<i32>()?;
+        let end_lit = end_lit.parse::<i32>()?;
+        for ndx in start_lit..end_lit {
+            let value = self.literal_from_typed_bits(&ndx.typed_bits())?;
+            self.initialize_local(&for_loop.pat, value)?;
+            let body = self.block(Slot::Empty, &for_loop.body)?;
+            self.op(OpCode::Block(body));
+        }
+        self.set_active_block(current_block);
+        Ok(Slot::Empty)
+    }
     fn expr_lhs(&mut self, expr: &Expr) -> Result<Slot> {
         match &expr.kind {
             ExprKind::Path(_path) => {
@@ -654,7 +692,7 @@ impl CompilerContext {
             ExprKind::Unary(unary) => self.unop(expr.id, unary),
             ExprKind::Match(_match) => self.match_expr(expr.id, _match),
             ExprKind::Ret(_return) => self.return_expr(expr.id, _return),
-            ExprKind::ForLoop(_) => todo!("For loop support is not complete"),
+            ExprKind::ForLoop(for_loop) => self.for_loop(expr.id, for_loop),
             ExprKind::Assign(assign) => self.assign(assign),
             ExprKind::Range(_) => todo!(),
             ExprKind::Let(_) => bail!("Fallible let expressions are not currently supported in rhdl.  Use a match instead"),
