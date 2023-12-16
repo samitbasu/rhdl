@@ -1,12 +1,12 @@
 // Check a RHIF object for type correctness.
 
 use crate::{
-    rhif::{AluBinary, Object, OpCode, Slot},
-    ty::{self, ty_array, ty_array_base, ty_as_ref, ty_bool, Ty},
+    rhif::{AluBinary, AluUnary, Object, OpCode, Slot},
+    ty::{self, ty_array, ty_array_base, ty_as_ref, ty_bool, Bits, Ty},
     TypedBits,
 };
-use anyhow::anyhow;
 use anyhow::Result;
+use anyhow::{anyhow, bail};
 
 pub fn check_type_correctness(obj: &Object) -> Result<()> {
     let slot_type = |slot| -> Result<Ty> {
@@ -68,8 +68,41 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     eq_types(slot_type(arg1)?, slot_type(arg2)?)?;
                     eq_types(slot_type(lhs)?, ty_bool())?;
                 }
-                OpCode::Unary { op, lhs, arg1 } => {
+                OpCode::Unary {
+                    op: AluUnary::Not | AluUnary::Neg,
+                    lhs,
+                    arg1,
+                } => {
                     eq_types(slot_type(lhs)?, slot_type(arg1)?)?;
+                }
+                OpCode::Unary {
+                    op: AluUnary::All | AluUnary::Any | AluUnary::Xor,
+                    lhs,
+                    arg1,
+                } => {
+                    eq_types(slot_type(lhs)?, ty_bool())?;
+                }
+                OpCode::Unary {
+                    op: AluUnary::Signed,
+                    lhs,
+                    arg1,
+                } => {
+                    let arg1_ty = slot_type(arg1)?;
+                    let Ty::Const(Bits::Unsigned(x)) = arg1_ty else {
+                        bail!("signed operator requires unsigned argument")
+                    };
+                    eq_types(slot_type(lhs)?, ty::ty_signed(x))?;
+                }
+                OpCode::Unary {
+                    op: AluUnary::Unsigned,
+                    lhs,
+                    arg1,
+                } => {
+                    let arg1_ty = slot_type(arg1)?;
+                    let Ty::Const(Bits::Signed(x)) = arg1_ty else {
+                        bail!("unsigned operator requires signed argument")
+                    };
+                    eq_types(slot_type(lhs)?, ty::ty_bits(x))?;
                 }
                 OpCode::Array { lhs, elements } => eq_types(
                     slot_type(lhs)?,

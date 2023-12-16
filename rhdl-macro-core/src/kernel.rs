@@ -603,6 +603,16 @@ impl Context {
             .map(|x| self.expr(x))
             .collect::<Result<Vec<_>>>()?;
         let method = &expr.method;
+        if !["any", "all", "xor", "as_signed", "as_unsigned"].contains(&method.to_string().as_str())
+        {
+            return Err(syn::Error::new(
+                expr.span(),
+                format!(
+                    "Unsupported method call {} in an rhdl kernel function",
+                    quote!(#expr)
+                ),
+            ));
+        }
         Ok(quote! {
             rhdl_core::ast_builder::method_expr(#receiver, vec![#(#args),*], stringify!(#method).to_string())
         })

@@ -155,6 +155,11 @@ pub enum AluBinary {
 pub enum AluUnary {
     Neg,
     Not,
+    All,
+    Any,
+    Xor,
+    Signed,
+    Unsigned,
 }
 
 #[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
