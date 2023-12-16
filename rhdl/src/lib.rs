@@ -322,6 +322,7 @@ mod tests {
                 b: 2,
                 c: [1, 2, 3],
             }; // Struct literal
+            let p = Foo { a: 4, ..d };
             let h = {
                 let e = 3;
                 let f = 4;
@@ -620,6 +621,16 @@ mod tests {
             let k = 42;
             bits::<7>(k)
         }
+
+        eprintln!(
+            "Kind for enum: {}",
+            Digital::variant_kind(Foo {
+                a: bits::<8>(1),
+                b: signed::<4>(2),
+                c: Red::A
+            })
+        );
+
         test_inference_result(do_stuff::kernel_fn()).unwrap();
     }
 

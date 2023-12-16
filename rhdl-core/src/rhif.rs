@@ -115,6 +115,13 @@ pub enum OpCode {
         arg: Slot,
         discriminant: Slot,
     },
+    // x <- enum(discriminant, fields)
+    Enum {
+        lhs: Slot,
+        path: String,
+        discriminant: Slot,
+        fields: Vec<FieldValue>,
+    },
     Comment(String),
 }
 

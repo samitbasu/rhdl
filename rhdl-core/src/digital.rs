@@ -246,6 +246,20 @@ impl Digital for i32 {
     }
 }
 
+impl Digital for i64 {
+    fn static_kind() -> Kind {
+        Kind::Signed(64)
+    }
+    fn bin(self) -> Vec<bool> {
+        SignedBits::<64>::from(self as i128)
+            .as_unsigned()
+            .to_bools()
+    }
+    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
+        writer.write_signed(key, *self as i128, 64);
+    }
+}
+
 impl<const N: usize> Digital for Bits<N> {
     fn static_kind() -> Kind {
         Kind::make_bits(N)

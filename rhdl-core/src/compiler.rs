@@ -10,7 +10,7 @@ use crate::{
     ty::{ty_as_ref, Bits, Ty, TypeId},
     unify::UnifyContext,
     visit::Visitor,
-    Digital,
+    Digital, Kind,
 };
 use anyhow::{bail, Result};
 use std::collections::HashMap;
@@ -414,18 +414,32 @@ impl CompilerContext {
         })
     }
     fn struct_expr(&mut self, id: NodeId, _struct: &ast::ExprStruct) -> Result<Slot> {
+        eprintln!("Struct expr {:?} kind: {}", _struct, _struct.kind);
         let lhs = self.reg(self.node_ty(id)?)?;
         let fields = _struct
             .fields
             .iter()
             .map(|x| self.field_value(x))
             .collect::<Result<_>>()?;
-        self.op(OpCode::Struct {
-            lhs,
-            path: collapse_path(&_struct.path),
-            fields,
-            rest: None,
-        });
+        let rest = _struct.rest.as_ref().map(|x| self.expr(x)).transpose()?;
+        if let Kind::Variant(_enum, _variant) = &_struct.kind {
+            eprintln!("Emitting enum opcode");
+            let discriminant = self.literal_from_typed_bits(&_variant.discriminant.typed_bits())?;
+            self.op(OpCode::Enum {
+                lhs,
+                path: collapse_path(&_struct.path),
+                discriminant,
+                fields,
+            })
+        } else {
+            eprintln!("Emitting struct opcode");
+            self.op(OpCode::Struct {
+                lhs,
+                path: collapse_path(&_struct.path),
+                fields,
+                rest,
+            });
+        }
         Ok(lhs)
     }
     fn match_expr(&mut self, id: NodeId, _match: &ast::ExprMatch) -> Result<Slot> {
