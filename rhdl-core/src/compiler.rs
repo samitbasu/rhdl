@@ -1,17 +1,20 @@
-use std::collections::BTreeMap;
-use std::{collections::HashMap, fmt::Display};
-
-use crate::ast::{
-    self, BinOp, Expr, ExprArray, ExprAssign, ExprBinary, ExprBlock, ExprCall, ExprField,
-    ExprGroup, ExprIf, ExprIndex, ExprMatch, ExprParen, ExprPath, ExprRepeat, ExprStruct,
-    ExprTuple, ExprUnary, PatIdent, PatLit, PatPath, PatStruct, PatTuple, PatTupleStruct, PatType,
-    Path, UnOp, INVALID_NODE_ID,
+use crate::{
+    ast::{
+        self, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprLit, ExprTuple, ExprTypedBits,
+        FieldValue, Local, NodeId, Pat, PatKind, Path,
+    },
+    digital::TypedBits,
+    digital_fn::DigitalSignature,
+    display_ast::pretty_print_statement,
+    infer_types::id_to_var,
+    rhif::{self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, OpCode, Slot},
+    ty::{ty_as_ref, Ty, TypeId},
+    unify::UnifyContext,
+    visit::{self, visit_block, Visitor},
+    Digital, KernelFnKind,
 };
-use crate::rhif::{AluBinary, AluUnary, BlockId, CaseArgument, Member, OpCode, Slot};
-use crate::rhif_type::Ty;
-use crate::Kind;
-use anyhow::bail;
-use anyhow::Result;
+use anyhow::{bail, Result};
+use std::collections::HashMap;
 
 const ROOT_BLOCK: BlockId = BlockId(0);
 
@@ -33,29 +36,47 @@ pub struct Block {
     pub parent: BlockId,
 }
 
-pub struct Compiler {
+#[derive(Clone, Debug)]
+pub struct NamedSlot {
+    name: String,
+    slot: Slot,
+}
+
+pub struct CompilerContext {
     pub blocks: Vec<Block>,
-    pub literals: Vec<Literal>,
+    pub literals: Vec<Box<ast::ExprLit>>,
     pub reg_count: usize,
     active_block: BlockId,
-    types: BTreeMap<usize, Ty>,
+    type_context: UnifyContext,
+    ty: HashMap<Slot, Ty>,
+    locals: HashMap<TypeId, NamedSlot>,
+    stash: HashMap<String, ExternalFunction>,
 }
 
-pub struct Literal {
-    pub value: Box<ast::ExprLit>,
-    pub ty: Option<Ty>,
-}
-
-impl Display for Compiler {
+impl std::fmt::Display for CompilerContext {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (ndx, kind) in &self.types {
-            writeln!(f, "Type r{} = {:?}", ndx, kind)?;
+        for regs in self.ty.keys() {
+            writeln!(f, "Reg r{} : {}", regs.reg().unwrap(), self.ty[regs],)?;
         }
         for (ndx, literal) in self.literals.iter().enumerate() {
             writeln!(
                 f,
-                "Literal l{} = {:?} <{:?}>",
-                ndx, literal.value, literal.ty
+                "Literal l{} : {} = {:?}",
+                ndx,
+                self.ty[&Slot::Literal(ndx)],
+                literal
+            )?;
+        }
+        for (name, func) in &self.stash {
+            writeln!(
+                f,
+                "Function name: {} code: {} signature: {}",
+                name,
+                func.code
+                    .as_ref()
+                    .map(|x| format!("{}", x))
+                    .unwrap_or("none".into()),
+                func.signature
             )?;
         }
         for block in &self.blocks {
@@ -64,18 +85,20 @@ impl Display for Compiler {
                 writeln!(f, "  {}", op)?;
             }
         }
-        // List registers that are not typed
-        for ndx in 0..self.reg_count {
-            if !self.types.contains_key(&ndx) {
-                writeln!(f, "Register r{} is not typed", ndx)?;
-            }
-        }
         Ok(())
     }
 }
 
-impl Default for Compiler {
-    fn default() -> Self {
+fn collapse_path(path: &Path) -> String {
+    path.segments
+        .iter()
+        .map(|x| x.ident.to_string())
+        .collect::<Vec<_>>()
+        .join("::")
+}
+
+impl CompilerContext {
+    fn new(type_context: UnifyContext) -> Self {
         Self {
             blocks: vec![Block {
                 id: ROOT_BLOCK,
@@ -88,83 +111,37 @@ impl Default for Compiler {
             literals: vec![],
             reg_count: 0,
             active_block: ROOT_BLOCK,
-            types: Default::default(),
+            type_context,
+            ty: Default::default(),
+            locals: Default::default(),
+            stash: Default::default(),
         }
     }
-}
-
-fn collapse_path(path: &Path) -> String {
-    path.segments
-        .iter()
-        .map(|x| x.ident.to_string())
-        .collect::<Vec<_>>()
-        .join("::")
-}
-
-impl Compiler {
-    pub fn ty(&self, slot: Slot) -> Option<&Ty> {
-        match slot {
-            Slot::Literal(ndx) => self.literals[ndx].ty.as_ref(),
-            Slot::Register(ndx) => self.types.get(&ndx),
-            Slot::Empty => Some(&Ty::Empty),
-        }
+    fn node_ty(&self, id: NodeId) -> Result<Ty> {
+        let var = id_to_var(id)?;
+        Ok(self.type_context.apply(var))
     }
-    pub fn set_ty(&mut self, arg: Slot, target_kind: Ty) {
-        match arg {
-            Slot::Literal(ndx) => {
-                self.literals[ndx].ty = Some(target_kind);
-            }
-            Slot::Register(ndx) => {
-                self.types.insert(ndx, target_kind);
-            }
-            Slot::Empty => {}
-        }
-    }
-    pub fn types_known(&self) -> usize {
-        self.types.len() + self.literals.iter().filter(|x| x.ty.is_some()).count()
-    }
-    pub fn reg(&mut self) -> Slot {
-        let reg = self.reg_count;
+    fn reg(&mut self, ty: Ty) -> Result<Slot> {
+        let reg = Slot::Register(self.reg_count);
+        self.ty.insert(reg, ty);
         self.reg_count += 1;
-        Slot::Register(reg)
+        Ok(reg)
     }
-    pub fn bind(&mut self, name: &str) -> Slot {
-        let reg = self.reg();
-        self.blocks[self.active_block.0]
-            .names
-            .insert(name.to_string(), reg);
-        reg
-    }
-    pub fn literal(&mut self, value: Box<ast::ExprLit>) -> Slot {
+    fn literal_from_typed_bits(&mut self, value: &TypedBits) -> Result<Slot> {
         let ndx = self.literals.len();
-        self.literals.push(Literal { value, ty: None });
-        Slot::Literal(ndx)
+        let ty = value.kind.clone().into();
+        self.literals
+            .push(Box::new(ast::ExprLit::TypedBits(ExprTypedBits {
+                path: Box::new(Path { segments: vec![] }),
+                value: value.clone(),
+            })));
+        self.ty.insert(Slot::Literal(ndx), ty);
+        Ok(Slot::Literal(ndx))
     }
-    pub fn type_bind(&mut self, name: &str, kind: Kind) -> Slot {
-        let reg = self.bind(name);
-        self.types.insert(reg.reg().unwrap(), Ty::Kind(kind));
-        reg
-    }
-    pub fn get_reference(&mut self, path: &str) -> Result<Slot> {
-        let mut ip = self.active_block;
-        loop {
-            if let Some(slot) = self.blocks[ip.0].names.get(path) {
-                return Ok(*slot);
-            }
-            if ip == ROOT_BLOCK {
-                break;
-            }
-            ip = self.blocks[ip.0].parent;
-        }
-        bail!("Unknown path {}", path);
-    }
-    pub fn iter_ops(&self) -> impl Iterator<Item = &OpCode> {
-        self.blocks.iter().flat_map(|x| x.ops.iter())
-    }
-    pub fn op(&mut self, op: OpCode) {
+    fn op(&mut self, op: OpCode) {
         self.blocks[self.active_block.0].ops.push(op);
     }
-    pub fn new_block(&mut self, result: Slot) -> BlockId {
+    fn new_block(&mut self, result: Slot) -> BlockId {
         let id = BlockId(self.blocks.len());
         self.blocks.push(Block {
             id,
@@ -181,178 +158,258 @@ impl Compiler {
     fn current_block(&self) -> BlockId {
         self.active_block
     }
-    fn set_block(&mut self, id: BlockId) {
+    fn set_active_block(&mut self, id: BlockId) {
         self.active_block = id;
     }
-    pub fn compile(&mut self, ast: Box<crate::ast::Block>) -> Result<Slot> {
-        let lhs = self.reg();
-        let block_id = self.expr_block(ast, lhs)?;
-        self.op(OpCode::Block(block_id));
-        Ok(lhs)
+    fn ty(&self, id: NodeId) -> Result<Ty> {
+        let var = id_to_var(id)?;
+        Ok(self.type_context.apply(var))
     }
-
-    fn expr_list(&mut self, exprs: Vec<Box<ast::Expr>>) -> Result<Vec<Slot>> {
-        exprs
-            .into_iter()
-            .map(|x| self.expr(x))
-            .collect::<Result<_>>()
+    // Create a local variable binding based on the
+    // type information in the given node.  It will
+    // be referred to by cross references in the type
+    // context.
+    fn bind(&mut self, id: NodeId, name: &str) -> Result<()> {
+        let ty = self.ty(id)?;
+        let reg = self.reg(ty)?;
+        eprintln!("Binding {name}#{id} -> {reg}");
+        if self
+            .locals
+            .insert(
+                id.into(),
+                NamedSlot {
+                    slot: reg,
+                    name: name.to_string(),
+                },
+            )
+            .is_some()
+        {
+            bail!("Duplicate local variable binding for {:?}", id)
+        }
+        Ok(())
     }
-
-    fn expr(&mut self, expr_: Box<ast::Expr>) -> Result<Slot> {
-        match expr_.kind {
-            ast::ExprKind::Binary(ExprBinary { op, lhs, rhs }) => self.expr_binop(op, lhs, rhs),
-            ast::ExprKind::Unary(ExprUnary { op, expr }) => self.expr_unop(op, expr),
-            ast::ExprKind::If(ExprIf {
-                cond,
-                then_branch,
-                else_branch,
-            }) => self.expr_if(cond, then_branch, else_branch),
-            ast::ExprKind::Index(ExprIndex { expr, index }) => self.expr_index(expr, index),
-            ast::ExprKind::Assign(ExprAssign { lhs, rhs }) => self.expr_assign(lhs, rhs),
-            ast::ExprKind::Lit(lit) => self.expr_literal(Box::new(lit)),
-            ast::ExprKind::Repeat(ExprRepeat { value, len }) => self.expr_repeat(value, len),
-            ast::ExprKind::Paren(ExprParen { expr }) => self.expr(expr),
-            ast::ExprKind::Group(ExprGroup { expr }) => self.expr(expr),
-            ast::ExprKind::Array(ExprArray { elems }) => self.expr_array(elems),
-            ast::ExprKind::Field(ExprField { expr, member }) => self.expr_field(expr, member),
-            ast::ExprKind::Path(ExprPath { path }) => {
-                Ok(self.get_reference(&collapse_path(&path))?)
+    fn resolve_parent(&mut self, child: NodeId) -> Result<Slot> {
+        let child_id = id_to_var(child)?;
+        if let Ty::Var(child_id) = child_id {
+            if let Some(parent) = self.type_context.get_parent(child_id) {
+                return self
+                    .locals
+                    .get(&parent)
+                    .map(|x| x.slot)
+                    .ok_or(anyhow::anyhow!(
+                        "No local variable for {:?} defined when needed",
+                        child_id,
+                    ));
             }
-            ast::ExprKind::Tuple(ExprTuple { elements }) => self.tuple(elements),
-            ast::ExprKind::Struct(ExprStruct {
-                path,
-                fields,
-                rest,
-                kind: _,
-            }) => self.expr_struct(path, fields, rest),
-            ast::ExprKind::Call(ExprCall { path, args, .. }) => self.expr_call(path, args),
-            ast::ExprKind::Match(ExprMatch { expr, arms }) => self.expr_match(expr, arms),
-            ast::ExprKind::Block(ExprBlock { block }) => {
-                let lhs = self.reg();
-                let block = self.expr_block(block, lhs)?;
-                self.op(OpCode::Block(block));
-                Ok(lhs)
+        }
+        bail!("No parent for {:?}", child_id)
+    }
+    fn resolve_local(&mut self, id: NodeId) -> Result<Slot> {
+        self.locals
+            .get(&id.into())
+            .map(|x| x.slot)
+            .ok_or(anyhow::anyhow!("No local variable for {:?}", id))
+    }
+    fn unop(&mut self, id: NodeId, unary: &ast::ExprUnary) -> Result<Slot> {
+        let arg = self.expr(&unary.expr)?;
+        let result = self.reg(self.node_ty(id)?)?;
+        let op = match unary.op {
+            ast::UnOp::Neg => AluUnary::Neg,
+            ast::UnOp::Not => AluUnary::Not,
+        };
+        self.op(OpCode::Unary {
+            op,
+            lhs: result,
+            arg1: arg,
+        });
+        Ok(result)
+    }
+    fn stmt(&mut self, statement: &ast::Stmt) -> Result<Slot> {
+        let statement_text = pretty_print_statement(statement, &self.type_context)?;
+        self.op(OpCode::Comment(statement_text));
+        match &statement.kind {
+            ast::StmtKind::Local(local) => {
+                self.local(local)?;
+                Ok(Slot::Empty)
             }
-            _ => todo!("expr {:?}", expr_),
+            ast::StmtKind::Expr(expr) => self.expr(expr),
+            ast::StmtKind::Semi(expr) => {
+                self.expr(expr)?;
+                Ok(Slot::Empty)
+            }
         }
     }
-
-    fn expr_repeat(&mut self, value: Box<Expr>, len: Box<Expr>) -> Result<Slot> {
-        let lhs = self.reg();
-        let value = self.expr(value)?;
-        let len = self.expr(len)?;
-        self.op(OpCode::Repeat { lhs, value, len });
-        Ok(lhs)
+    fn initialize_local(&mut self, pat: &Pat, rhs: Slot) -> Result<()> {
+        match &pat.kind {
+            PatKind::Ident(ident) => {
+                if let Ok(lhs) = self.resolve_local(pat.id) {
+                    self.op(OpCode::Copy { lhs, rhs });
+                }
+                Ok(())
+            }
+            PatKind::Tuple(tuple) => {
+                for (ndx, pat) in tuple.elements.iter().enumerate() {
+                    if let Ok(element_lhs) = self.resolve_local(pat.id) {
+                        self.op(OpCode::Field {
+                            lhs: element_lhs,
+                            arg: rhs,
+                            member: rhif::Member::Unnamed(ndx as u32),
+                        });
+                    }
+                }
+                Ok(())
+            }
+            PatKind::Struct(_struct) => {
+                for field in &_struct.fields {
+                    if let Ok(element_lhs) = self.resolve_local(field.pat.id) {
+                        self.op(OpCode::Field {
+                            lhs: element_lhs,
+                            arg: rhs,
+                            member: field.member.clone().into(),
+                        });
+                    }
+                }
+                Ok(())
+            }
+            PatKind::TupleStruct(_tuple_struct) => {
+                for (ndx, pat) in _tuple_struct.elems.iter().enumerate() {
+                    if let Ok(element_lhs) = self.resolve_local(pat.id) {
+                        self.op(OpCode::Field {
+                            lhs: element_lhs,
+                            arg: rhs,
+                            member: rhif::Member::Unnamed(ndx as u32),
+                        });
+                    }
+                }
+                Ok(())
+            }
+            PatKind::Slice(slice) => {
+                for (ndx, pat) in slice.elems.iter().enumerate() {
+                    if let Ok(element_lhs) = self.resolve_local(pat.id) {
+                        let index = self.literal_from_typed_bits(&ndx.typed_bits())?;
+                        self.op(OpCode::Index {
+                            lhs: element_lhs,
+                            arg: rhs,
+                            index,
+                        });
+                    }
+                }
+                Ok(())
+            }
+            PatKind::Type(ty) => self.initialize_local(&ty.pat, rhs),
+            PatKind::Wild | PatKind::Lit(_) | PatKind::Path(_) => Ok(()),
+            _ => todo!("Unsupported let init pattern: {:?}", pat),
+        }
     }
-
-    fn expr_array(&mut self, elems: Vec<Box<Expr>>) -> Result<Slot> {
-        let lhs = self.reg();
-        let elements = self.expr_list(elems)?;
-        self.op(OpCode::Array { lhs, elements });
-        Ok(lhs)
+    fn local(&mut self, local: &Local) -> Result<()> {
+        self.bind_pattern(&local.pat)?;
+        if let Some(init) = &local.init {
+            let rhs = self.expr(init)?;
+            self.initialize_local(&local.pat, rhs)?;
+        }
+        Ok(())
     }
-
-    fn expr_field(&mut self, expr: Box<Expr>, member: ast::Member) -> Result<Slot> {
-        let lhs = self.reg();
-        let arg = self.expr(expr)?;
-        self.op(OpCode::Field {
-            lhs,
-            arg,
-            member: member.into(),
+    fn block(&mut self, block_result: Slot, block: &ast::Block) -> Result<BlockId> {
+        let current_block = self.current_block();
+        let id = self.new_block(block_result);
+        let statement_count = block.stmts.len();
+        for (ndx, statement) in block.stmts.iter().enumerate() {
+            let is_last = ndx == statement_count - 1;
+            let result = self.stmt(statement)?;
+            if is_last {
+                self.op(OpCode::Copy {
+                    lhs: block_result,
+                    rhs: result,
+                })
+            }
+        }
+        self.set_active_block(current_block);
+        Ok(id)
+    }
+    fn expr_list(&mut self, exprs: &[Box<Expr>]) -> Result<Vec<Slot>> {
+        exprs
+            .into_iter()
+            .map(|x| self.expr(&x))
+            .collect::<Result<_>>()
+    }
+    fn tuple(&mut self, id: NodeId, tuple: &ExprTuple) -> Result<Slot> {
+        let result = self.reg(self.node_ty(id)?)?;
+        let fields = self.expr_list(&tuple.elements)?;
+        self.op(OpCode::Tuple {
+            lhs: result,
+            fields,
         });
-        Ok(lhs)
+        Ok(result)
     }
-
-    fn field_value(&mut self, element: Box<ast::FieldValue>) -> Result<crate::rhif::FieldValue> {
-        let value = self.expr(element.value)?;
-        Ok(crate::rhif::FieldValue {
-            member: element.member.into(),
-            value,
-        })
+    fn if_expr(&mut self, id: NodeId, if_expr: &ExprIf) -> Result<Slot> {
+        let result = self.reg(self.node_ty(id)?)?;
+        let cond = self.expr(&if_expr.cond)?;
+        let then_branch = self.block(result, &if_expr.then_branch)?;
+        let else_branch = if let Some(expr) = if_expr.else_branch.as_ref() {
+            self.wrap_expr_in_block(result, expr)
+        } else {
+            self.empty_block(result)
+        }?;
+        self.op(OpCode::If {
+            cond,
+            then_branch,
+            else_branch,
+            lhs: result,
+        });
+        Ok(result)
     }
-
-    fn expr_index(&mut self, expr: Box<Expr>, index: Box<Expr>) -> Result<Slot> {
-        let lhs = self.reg();
-        let arg = self.expr(expr)?;
-        let index = self.expr(index)?;
+    fn index(&mut self, id: NodeId, index: &ast::ExprIndex) -> Result<Slot> {
+        let lhs = self.reg(self.node_ty(id)?)?;
+        let arg = self.expr(&index.expr)?;
+        let index = self.expr(&index.index)?;
         self.op(OpCode::Index { lhs, arg, index });
         Ok(lhs)
     }
-
-    fn expr_struct(
-        &mut self,
-        path: Box<Path>,
-        fields: Vec<Box<ast::FieldValue>>,
-        rest: Option<Box<Expr>>,
-    ) -> Result<Slot> {
-        let lhs = self.reg();
-        let fields = fields
-            .into_iter()
-            .map(|x| self.field_value(x))
-            .collect::<Result<Vec<_>>>()?;
+    fn array(&mut self, id: NodeId, array: &ast::ExprArray) -> Result<Slot> {
+        let lhs = self.reg(self.node_ty(id)?)?;
+        let elements = self.expr_list(&array.elems)?;
+        self.op(OpCode::Array { lhs, elements });
+        Ok(lhs)
+    }
+    fn field(&mut self, id: NodeId, field: &ast::ExprField) -> Result<Slot> {
+        let lhs = self.reg(self.node_ty(id)?)?;
+        let arg = self.expr(&field.expr)?;
+        let member = match &field.member {
+            ast::Member::Named(name) => rhif::Member::Named(name.to_string()),
+            ast::Member::Unnamed(ndx) => rhif::Member::Unnamed(*ndx),
+        };
+        self.op(OpCode::Field { lhs, arg, member });
+        Ok(lhs)
+    }
+    fn field_value(&mut self, element: &FieldValue) -> Result<rhif::FieldValue> {
+        let value = self.expr(&element.value)?;
+        Ok(rhif::FieldValue {
+            value,
+            member: element.member.clone().into(),
+        })
+    }
+    fn struct_expr(&mut self, id: NodeId, _struct: &ast::ExprStruct) -> Result<Slot> {
+        let lhs = self.reg(self.node_ty(id)?)?;
+        let fields = _struct
+            .fields
+            .iter()
+            .map(|x| self.field_value(&x))
+            .collect::<Result<_>>()?;
         self.op(OpCode::Struct {
             lhs,
-            path: collapse_path(&path),
+            path: collapse_path(&_struct.path),
             fields,
             rest: None,
         });
         Ok(lhs)
     }
-
-    fn tuple(&mut self, tuple: Vec<Box<ast::Expr>>) -> Result<Slot> {
-        let lhs = self.reg();
-        let fields = self.expr_list(tuple)?;
-        self.op(OpCode::Tuple { lhs, fields });
-        Ok(lhs)
-    }
-
-    fn expr_call(&mut self, path: Box<Path>, args: Vec<Box<Expr>>) -> Result<Slot> {
-        let lhs = self.reg();
-        let path = collapse_path(&path);
-        let args = self.expr_list(args)?;
-        self.op(OpCode::Exec { lhs, path, args });
-        Ok(lhs)
-    }
-
-    fn expr_match(&mut self, expr: Box<Expr>, arms: Vec<Box<ast::Arm>>) -> Result<Slot> {
-        // Only two supported cases of match arms
-        // The first is all literals and possibly a wildcard
-        // The second is all enums with no literals and possibly a wildcard
-        for arm in &arms {
-            if let Some(guard) = &arm.guard {
-                bail!(
-                    "RHDL does not currently support match guards in hardware {:?}",
-                    guard
-                );
-            }
-        }
-        let all_literals_or_wild = arms.iter().all(|arm| {
-            matches!(
-                arm.pattern.kind,
-                ast::PatKind::Lit { .. } | ast::PatKind::Wild
-            )
-        });
-        let all_enum_or_wild = arms.iter().all(|arm| {
-            matches!(
-                arm.pattern.kind,
-                ast::PatKind::Path { .. }
-                    | ast::PatKind::Struct { .. }
-                    | ast::PatKind::TupleStruct { .. }
-                    | ast::PatKind::Wild
-            )
-        });
-        if !all_literals_or_wild && !all_enum_or_wild {
-            bail!("RHDL currently supports only match arms with all literals or all enums (and a wildcard '_' is allowed)");
-        }
-        self.expr_case(expr, arms)
-    }
-
-    fn expr_case(&mut self, expr: Box<Expr>, arms: Vec<Box<ast::Arm>>) -> Result<Slot> {
-        let lhs = self.reg();
-        let target = self.expr(expr)?;
-        let table = arms
-            .into_iter()
-            .map(|arm| self.expr_arm(target, lhs, arm))
+    fn match_expr(&mut self, id: NodeId, _match: &ast::ExprMatch) -> Result<Slot> {
+        let lhs = self.reg(self.node_ty(id)?)?;
+        let target = self.expr(&_match.expr)?;
+        let table = _match
+            .arms
+            .iter()
+            .map(|x| self.expr_arm(target, lhs, x))
             .collect::<Result<_>>()?;
         self.op(OpCode::Case {
             lhs,
@@ -361,296 +418,158 @@ impl Compiler {
         });
         Ok(lhs)
     }
-
-    fn expr_arm_struct(
-        &mut self,
-        target: Slot,
-        lhs: Slot,
-        path: Box<Path>,
-        fields: Vec<Box<ast::FieldPat>>,
-        rest: bool,
-        body: Box<ast::Expr>,
-    ) -> Result<(CaseArgument, BlockId)> {
-        // Collect the elements of the struct that are identifiers (and not wildcards)
-        // For each element of the pattern, collect the name (this is the binding) and the
-        // position within the tuple.
-        let bindings: Vec<(Member, String)> = fields
-            .into_iter()
-            .map(|x| match x.pat.kind {
-                ast::PatKind::Ident(PatIdent { name, .. }) => Ok(Some((x.member.into(), name))),
-                ast::PatKind::Wild => Ok(None),
-                _ => bail!("Unsupported match pattern {:?} in hardware", x),
-            })
-            .filter_map(|x| x.transpose())
-            .collect::<Result<Vec<_>>>()?;
-        // Create a new block for the struct match
-        let current_id = self.current_block();
-        let id = self.new_block(lhs);
-        // For each binding, create a new register and bind it to the name
-        // Then insert an opcode into the block to extract the field from the struct
-        // that is the target of the match.
-        bindings.into_iter().for_each(|(member, ident)| {
-            let reg = self.bind(&ident);
-            self.op(OpCode::Field {
-                lhs: reg,
-                arg: target,
-                member,
-            });
-        });
-        // Add the arm body to the block
-        let expr_output = self.expr(body)?;
-        // Copy the result of the arm body to the lhs
-        self.op(OpCode::Copy {
-            lhs,
-            rhs: expr_output,
-        });
-        self.set_block(current_id);
-        Ok((CaseArgument::Path(collapse_path(&path)), id))
-    }
-
-    fn expr_arm_tuple_struct(
-        &mut self,
-        target: Slot,
-        lhs: Slot,
-        path: Box<Path>,
-        elements: Vec<Box<ast::Pat>>,
-        body: Box<ast::Expr>,
-    ) -> Result<(CaseArgument, BlockId)> {
-        // Collect the elements of the tuple struct that are identifiers (and not wildcards)
-        // For each element of the pattern, collect the name (this is the binding) and the
-        // position within the tuple.
-        let bindings = elements
-            .into_iter()
-            .enumerate()
-            .map(|(ndx, x)| match x.kind {
-                ast::PatKind::Ident(PatIdent { name, .. }) => Ok(Some((name, ndx))),
-                ast::PatKind::Wild => Ok(None),
-                _ => bail!("Unsupported match pattern {:?} in hardware", x),
-            })
-            .filter_map(|x| x.transpose())
-            .collect::<Result<Vec<_>>>()?;
-        // Create a new block for the tuple struct match
-        let current_id = self.current_block();
-        let id = self.new_block(lhs);
-        // For each binding, create a new register and bind it to the name
-        // Then insert an opcode into the block to extract the field from the tuple
-        // that is the target of the match.
-        bindings.into_iter().for_each(|(ident, index)| {
-            let reg = self.bind(&ident);
-            self.op(OpCode::Field {
-                lhs: reg,
-                arg: target,
-                member: Member::Unnamed(index as u32),
-            });
-        });
-        // Add the arm body to the block
-        let expr_output = self.expr(body)?;
-        // Copy the result of the arm body to the lhs
-        self.op(OpCode::Copy {
-            lhs,
-            rhs: expr_output,
-        });
-        self.set_block(current_id);
-        Ok((CaseArgument::Path(collapse_path(&path)), id))
+    fn bind_match_pattern(&mut self, pattern: &Pat) -> Result<()> {
+        match &pattern.kind {
+            PatKind::Ident(ident) => self.bind(pattern.id, &ident.name),
+            PatKind::Tuple(tuple) => {
+                for pat in &tuple.elements {
+                    self.bind_match_pattern(pat)?;
+                }
+                Ok(())
+            }
+            PatKind::Type(ty) => self.bind_match_pattern(&ty.pat),
+            PatKind::Struct(_struct) => {
+                for field in &_struct.fields {
+                    self.bind_match_pattern(&field.pat)?;
+                }
+                Ok(())
+            }
+            PatKind::TupleStruct(_tuple_struct) => {
+                for pat in &_tuple_struct.elems {
+                    self.bind_match_pattern(pat)?;
+                }
+                Ok(())
+            }
+            PatKind::Slice(slice) => {
+                for pat in &slice.elems {
+                    self.bind_match_pattern(pat)?;
+                }
+                Ok(())
+            }
+            PatKind::Paren(paren) => self.bind_match_pattern(&paren.pat),
+            PatKind::Lit(_) | PatKind::Wild | PatKind::Path(_) => Ok(()),
+            _ => bail!("Unsupported match binding pattern {:?}", pattern),
+        }
     }
 
     fn expr_arm(
         &mut self,
         target: Slot,
         lhs: Slot,
-        arm: Box<ast::Arm>,
+        arm: &ast::Arm,
     ) -> Result<(CaseArgument, BlockId)> {
-        match arm.pattern.kind {
-            ast::PatKind::Wild => Ok((
-                CaseArgument::Wild,
-                self.wrap_expr_in_block(Some(arm.body), lhs)?,
-            )),
-            ast::PatKind::Lit(PatLit { lit }) => Ok((
-                CaseArgument::Literal(self.literal(lit)),
-                self.wrap_expr_in_block(Some(arm.body), lhs)?,
-            )),
-            ast::PatKind::Path(PatPath { path }) => Ok((
-                CaseArgument::Path(collapse_path(&path)),
-                self.wrap_expr_in_block(Some(arm.body), lhs)?,
-            )),
-            ast::PatKind::TupleStruct(PatTupleStruct {
-                path,
-                elems,
-                signature,
-            }) => self.expr_arm_tuple_struct(target, lhs, path, elems, arm.body),
-            ast::PatKind::Struct(PatStruct { path, fields, rest }) => {
-                self.expr_arm_struct(target, lhs, path, fields, rest, arm.body)
+        if arm.guard.is_some() {
+            bail!("Guards are not currently supported in rhdl.  Please use a match arm instead.")
+        }
+        match &arm.pattern.kind {
+            PatKind::Match(x) => {
+                // Allocate the local bindings for the match pattern
+                self.bind_match_pattern(&x.pat)?;
+                let value = self.literal_from_typed_bits(&x.discriminant)?;
+                let current_block = self.current_block();
+                let id = self.new_block(lhs);
+                let payload = self.reg(x.payload_kind.clone().into())?;
+                self.op(OpCode::Payload {
+                    lhs: payload,
+                    arg: target,
+                    discriminant: value,
+                });
+                self.initialize_local(&x.pat, payload)?;
+                let result = self.expr(&arm.body)?;
+                self.op(OpCode::Copy { lhs, rhs: result });
+                self.set_active_block(current_block);
+                Ok((CaseArgument::Literal(value), id))
             }
-            _ => bail!("Unsupported match pattern {:?} in hardware", arm.pattern),
+            PatKind::Wild => {
+                let block = self.wrap_expr_in_block(lhs, &arm.body)?;
+                Ok((CaseArgument::Wild, block))
+            }
+            _ => todo!(
+                "Only const matches are currently implemented not: {:?}",
+                arm.pattern
+            ),
         }
     }
-
-    pub fn expr_lhs(&mut self, expr_: Box<ast::Expr>) -> Result<Slot> {
-        Ok(match expr_.kind {
-            ast::ExprKind::Path(ExprPath { path }) => {
-                let arg = self.get_reference(&collapse_path(&path))?;
-                let lhs = self.reg();
-                self.op(OpCode::Ref { lhs, arg });
-                lhs
-            }
-            ast::ExprKind::Field(ExprField { expr, member }) => {
-                let lhs = self.reg();
-                let arg = self.expr_lhs(expr)?;
-                let member = member.into();
-                self.op(OpCode::FieldRef { lhs, arg, member });
-                lhs
-            }
-            ast::ExprKind::Index(ExprIndex { expr, index }) => {
-                let lhs = self.reg();
-                let arg = self.expr_lhs(expr)?;
-                let index = self.expr(index)?;
-                self.op(OpCode::IndexRef { lhs, arg, index });
-                lhs
-            }
-            _ => todo!("expr_lhs {:?}", expr_),
-        })
+    fn return_expr(&mut self, id: NodeId, _return: &ast::ExprRet) -> Result<Slot> {
+        let result = _return.expr.as_ref().map(|x| self.expr(x)).transpose()?;
+        self.op(OpCode::Return { result });
+        Ok(Slot::Empty)
     }
-
-    pub fn stmt(&mut self, statement: ast::Stmt) -> Result<Slot> {
-        match statement.kind {
-            ast::StmtKind::Local(local) => {
-                self.local(local)?;
-                Ok(Slot::Empty)
-            }
-            ast::StmtKind::Expr(expr_) => self.expr(expr_),
-            ast::StmtKind::Semi(expr_) => {
-                self.expr(expr_)?;
-                Ok(Slot::Empty)
-            }
-        }
-    }
-
-    fn local(&mut self, local: Box<ast::Local>) -> Result<()> {
-        let rhs = local.init.map(|x| self.expr(x)).transpose()?;
-        self.let_pattern(local.pat, rhs)?;
-        Ok(())
-    }
-
-    // Some observations.
-    // A type designation must appear outermost.  So if we have
-    // something like:
-    //  let (a, b, c) : ty = foo
-    // this is legal, but
-    //  let (a: ty, b: ty, c: ty) = foo
-    // is not legal.
-    //
-    // In some ways, (a, b, c) is sort of like a shadow type declaration.
-    // We could just as well devise an anonymous Tuple Struct named "Foo",
-    // and then write:
-    //   let Foo(a, b, c) = foo
-
-    fn let_pattern(&mut self, pattern: Box<ast::Pat>, rhs: Option<Slot>) -> Result<()> {
-        if let ast::PatKind::Type(PatType { pat, kind }) = pattern.kind {
-            self.let_pattern_inner(pat, Some(kind), rhs)
-        } else {
-            self.let_pattern_inner(pattern, None, rhs)
-        }
-    }
-
-    fn let_pattern_inner(
-        &mut self,
-        pattern: Box<ast::Pat>,
-        ty: Option<Kind>,
-        rhs: Option<Slot>,
-    ) -> Result<()> {
-        match pattern.kind {
-            ast::PatKind::Ident(PatIdent { name, mutable }) => {
-                let lhs = self.bind(&name);
-                if let Some(ty) = ty {
-                    self.types.insert(lhs.reg()?, Ty::Kind(ty));
-                }
-                if let Some(rhs) = rhs {
-                    self.op(OpCode::Copy { lhs, rhs });
-                }
-                Ok(())
-            }
-            ast::PatKind::Tuple(PatTuple { elements }) => {
-                for (ndx, pat) in elements.into_iter().enumerate() {
-                    let element_lhs = self.reg();
-                    if let Some(rhs) = rhs {
-                        self.op(OpCode::Field {
-                            lhs: element_lhs,
-                            arg: rhs,
-                            member: Member::Unnamed(ndx as u32),
-                        });
-                    }
-                    let element_ty = if let Some(ty) = ty.as_ref() {
-                        let sub_ty = ty.get_tuple_kind(ndx)?;
-                        self.types
-                            .insert(element_lhs.reg()?, Ty::Kind(sub_ty.clone()));
-                        Some(sub_ty)
-                    } else {
-                        None
-                    };
-                    if rhs.is_some() {
-                        self.let_pattern_inner(pat, element_ty, Some(element_lhs))?;
-                    } else {
-                        self.let_pattern_inner(pat, element_ty, None)?;
-                    }
-                }
-                Ok(())
-            }
-            _ => todo!("Unsupported let pattern {:?}", pattern),
-        }
-    }
-
-    pub fn expr_if(
-        &mut self,
-        cond: Box<Expr>,
-        then_branch: Box<ast::Block>,
-        else_branch: Option<Box<Expr>>,
-    ) -> Result<Slot> {
-        let lhs = self.reg();
-        let cond = self.expr(cond)?;
-        let then_branch = self.expr_block(then_branch, lhs)?;
-        // Create a block containing the else part of the if expression
-        let else_branch = self.wrap_expr_in_block(else_branch, lhs)?;
-        self.op(OpCode::If {
-            lhs,
-            cond,
-            then_branch,
-            else_branch,
-        });
+    fn repeat(&mut self, id: NodeId, repeat: &ast::ExprRepeat) -> Result<Slot> {
+        let lhs = self.reg(self.node_ty(id)?)?;
+        let len = self.expr(&repeat.len)?;
+        let value = self.expr(&repeat.value)?;
+        self.op(OpCode::Repeat { lhs, len, value });
         Ok(lhs)
     }
-
-    // Start simple.
-    // If an expression is <ExprLit> then stuff it into a Slot
-    pub fn expr_literal(&mut self, lit: Box<crate::ast::ExprLit>) -> Result<Slot> {
-        Ok(self.literal(lit))
-    }
-
-    pub fn expr_assign(&mut self, lhs: Box<Expr>, rhs: Box<Expr>) -> Result<Slot> {
-        let lhs = self.expr_lhs(lhs)?;
-        let rhs = self.expr(rhs)?;
+    fn assign(&mut self, assign: &ast::ExprAssign) -> Result<Slot> {
+        let lhs = self.expr_lhs(&assign.lhs)?;
+        let rhs = self.expr(&assign.rhs)?;
         self.op(OpCode::Assign { lhs, rhs });
         Ok(Slot::Empty)
     }
-
-    pub fn expr_unop(&mut self, op: UnOp, expr: Box<Expr>) -> Result<Slot> {
-        let arg = self.expr(expr)?;
-        let dest = self.reg();
-        let alu = match op {
-            UnOp::Neg => AluUnary::Neg,
-            UnOp::Not => AluUnary::Not,
+    fn method_call(&mut self, id: NodeId, method_call: &ast::ExprMethodCall) -> Result<Slot> {
+        // First handle unary ops only
+        let op = match method_call.method.as_str() {
+            "any" => AluUnary::Any,
+            "all" => AluUnary::All,
+            "xor" => AluUnary::Xor,
+            "as_unsigned" => AluUnary::Unsigned,
+            "as_signed" => AluUnary::Signed,
+            _ => bail!("Unsupported method call {:?}", method_call),
         };
-        self.op(OpCode::Unary {
-            op: alu,
-            lhs: dest,
-            arg1: arg,
-        });
-        Ok(dest)
+        let lhs = self.reg(self.node_ty(id)?)?;
+        let arg = self.expr(&method_call.receiver)?;
+        self.op(OpCode::Unary { op, lhs, arg1: arg });
+        Ok(lhs)
     }
-
-    pub fn expr_binop(&mut self, op: BinOp, lhs: Box<Expr>, rhs: Box<Expr>) -> Result<Slot> {
-        // Allocate a register for the output
-        let lhs = self.expr(lhs)?;
-        let rhs = self.expr(rhs)?;
+    fn call(&mut self, id: NodeId, call: &ast::ExprCall) -> Result<Slot> {
+        let lhs = self.reg(self.node_ty(id)?)?;
+        let path = collapse_path(&call.path);
+        let args = self.expr_list(&call.args)?;
+        self.stash.insert(
+            path.clone(),
+            ExternalFunction {
+                code: call.code.clone(),
+                path: path.clone(),
+                signature: call.signature.clone(),
+            },
+        );
+        self.op(OpCode::Exec { lhs, path, args });
+        Ok(lhs)
+    }
+    fn self_assign_binop(&mut self, bin: &ExprBinary) -> Result<Slot> {
+        let dest = self.expr_lhs(&bin.lhs)?;
+        let lhs = self.expr(&bin.lhs)?;
+        let rhs = self.expr(&bin.rhs)?;
+        let temp = self.reg(self.node_ty(bin.lhs.id)?)?;
+        let result = Slot::Empty;
+        let op = &bin.op;
+        let alu = match op {
+            BinOp::AddAssign => AluBinary::Add,
+            BinOp::SubAssign => AluBinary::Sub,
+            BinOp::MulAssign => AluBinary::Mul,
+            BinOp::BitXorAssign => AluBinary::BitXor,
+            BinOp::BitAndAssign => AluBinary::BitAnd,
+            BinOp::BitOrAssign => AluBinary::BitOr,
+            BinOp::ShlAssign => AluBinary::Shl,
+            BinOp::ShrAssign => AluBinary::Shr,
+            _ => bail!("ICE - self_assign_binop {:?}", op),
+        };
+        self.op(OpCode::Binary {
+            op: alu,
+            lhs: temp,
+            arg1: lhs,
+            arg2: rhs,
+        });
+        self.op(OpCode::Assign {
+            lhs: dest,
+            rhs: temp,
+        });
+        Ok(result)
+    }
+    fn binop(&mut self, id: NodeId, bin: &ExprBinary) -> Result<Slot> {
+        let op = &bin.op;
         let self_assign = matches!(
             op,
             BinOp::AddAssign
@@ -662,6 +581,12 @@ impl Compiler {
                 | BinOp::BitOrAssign
                 | BinOp::ShrAssign
         );
+        if self_assign {
+            return self.self_assign_binop(bin);
+        }
+        let lhs = self.expr(&bin.lhs)?;
+        let rhs = self.expr(&bin.rhs)?;
+        let result = self.reg(self.node_ty(id)?)?;
         let alu = match op {
             BinOp::Add | BinOp::AddAssign => AluBinary::Add,
             BinOp::Sub | BinOp::SubAssign => AluBinary::Sub,
@@ -680,64 +605,232 @@ impl Compiler {
             BinOp::Ge => AluBinary::Ge,
             BinOp::Gt => AluBinary::Gt,
         };
-        let dest = if self_assign { lhs } else { self.reg() };
+        assert!(!self_assign);
         self.op(OpCode::Binary {
             op: alu,
-            lhs: dest,
+            lhs: result,
             arg1: lhs,
             arg2: rhs,
         });
-        Ok(dest)
+        Ok(result)
     }
-
-    // Add a set of statements to the current block with capturing of lhs for the last
-    // statement in the list.
-    fn expr_block_inner(&mut self, statements: &[Box<ast::Stmt>], lhs: Slot) -> Result<()> {
-        let statement_count = statements.len();
-        for (ndx, stmt) in statements.iter().enumerate() {
-            if ndx == statement_count - 1 {
-                let rhs = self.stmt(*stmt.clone())?;
-                self.op(OpCode::Copy { lhs, rhs });
-            } else {
-                self.stmt(*stmt.clone())?;
-            }
-        }
-        Ok(())
-    }
-
-    pub fn expr_block(&mut self, block: Box<crate::ast::Block>, lhs: Slot) -> Result<BlockId> {
+    fn for_loop(&mut self, id: NodeId, for_loop: &ast::ExprForLoop) -> Result<Slot> {
         let current_block = self.current_block();
-        let id = self.new_block(lhs);
-        self.expr_block_inner(&block.stmts, lhs)?;
-        self.set_block(current_block);
+        let id = self.new_block(Slot::Empty);
+        self.bind_pattern(&for_loop.pat)?;
+        let ExprKind::Range(range) = &for_loop.expr.kind else {
+            bail!("For loop must be over a range")
+        };
+        let Some(start) = &range.start else {
+            bail!("For loop range must have a start")
+        };
+        let Some(end) = &range.end else {
+            bail!("For loop range must have an end")
+        };
+        let Expr {
+            id: start_id,
+            kind: ExprKind::Lit(ExprLit::Int(start_lit)),
+        } = start.as_ref()
+        else {
+            bail!("For loop range must have a literal start")
+        };
+        let Expr {
+            id: end_id,
+            kind: ExprKind::Lit(ExprLit::Int(end_lit)),
+        } = end.as_ref()
+        else {
+            bail!("For loop range must have a literal end")
+        };
+        let start_lit = start_lit.parse::<i32>()?;
+        let end_lit = end_lit.parse::<i32>()?;
+        for ndx in start_lit..end_lit {
+            let value = self.literal_from_typed_bits(&ndx.typed_bits())?;
+            self.initialize_local(&for_loop.pat, value)?;
+            let body = self.block(Slot::Empty, &for_loop.body)?;
+            self.op(OpCode::Block(body));
+        }
+        self.set_active_block(current_block);
+        Ok(Slot::Empty)
+    }
+    fn expr_lhs(&mut self, expr: &Expr) -> Result<Slot> {
+        match &expr.kind {
+            ExprKind::Path(_path) => {
+                let parent = self.resolve_parent(expr.id)?;
+                let reg = self.reg(ty_as_ref(self.node_ty(expr.id)?))?;
+                self.op(OpCode::Ref {
+                    lhs: reg,
+                    arg: parent,
+                });
+                Ok(reg)
+            }
+            ExprKind::Field(field) => {
+                let parent = self.expr(&field.expr)?;
+                let reg = self.reg(ty_as_ref(self.node_ty(expr.id)?))?;
+                let member = field.member.clone().into();
+                self.op(OpCode::FieldRef {
+                    lhs: reg,
+                    arg: parent,
+                    member,
+                });
+                Ok(reg)
+            }
+            ExprKind::Index(index) => {
+                let parent = self.expr(&index.expr)?;
+                let reg = self.reg(ty_as_ref(self.node_ty(expr.id)?))?;
+                let index = self.expr(&index.index)?;
+                self.op(OpCode::IndexRef {
+                    lhs: reg,
+                    arg: parent,
+                    index,
+                });
+                Ok(reg)
+            }
+            _ => todo!("expr_lhs {:?}", expr),
+        }
+    }
+    fn expr(&mut self, expr: &Expr) -> Result<Slot> {
+        match &expr.kind {
+            ExprKind::Array(array) => self.array(expr.id, array),
+            ExprKind::Binary(bin) => self.binop(expr.id, bin),
+            ExprKind::Block(block) => {
+                let block_result = self.reg(self.node_ty(expr.id)?)?;
+                let block_id = self.block(block_result, &block.block)?;
+                self.op(OpCode::Block(block_id));
+                Ok(block_result)
+            }
+            ExprKind::If(if_expr) => self.if_expr(expr.id, if_expr),
+            ExprKind::Lit(lit) => {
+                let ndx = self.literals.len();
+                let ty = self.ty(expr.id)?;
+                self.literals.push(Box::new(lit.clone()));
+                self.ty.insert(Slot::Literal(ndx), ty);
+                Ok(Slot::Literal(ndx))
+            }
+            ExprKind::Field(field) => self.field(expr.id, field),
+            ExprKind::Group(group) => self.expr(&group.expr),
+            ExprKind::Index(index) => self.index(expr.id, index),
+            ExprKind::Paren(paren) => self.expr(&paren.expr),
+            ExprKind::Path(_path) => self.resolve_parent(expr.id),
+            ExprKind::Struct(_struct) => self.struct_expr(expr.id, _struct),
+            ExprKind::Tuple(tuple) => self.tuple(expr.id, tuple),
+            ExprKind::Unary(unary) => self.unop(expr.id, unary),
+            ExprKind::Match(_match) => self.match_expr(expr.id, _match),
+            ExprKind::Ret(_return) => self.return_expr(expr.id, _return),
+            ExprKind::ForLoop(for_loop) => self.for_loop(expr.id, for_loop),
+            ExprKind::Assign(assign) => self.assign(assign),
+            ExprKind::Range(_) => todo!(),
+            ExprKind::Let(_) => bail!("Fallible let expressions are not currently supported in rhdl.  Use a match instead"),
+            ExprKind::Repeat(repeat) => self.repeat(expr.id, repeat),
+            ExprKind::Call(call) => self.call(expr.id, call),
+            ExprKind::MethodCall(method) => self.method_call(expr.id, method),
+            ExprKind::Type(_) => Ok(Slot::Empty),
+        }
+    }
+    fn wrap_expr_in_block(&mut self, block_result: Slot, expr: &Expr) -> Result<BlockId> {
+        let current_block = self.current_block();
+        let id = self.new_block(block_result);
+        let result = self.expr(expr)?;
+        self.op(OpCode::Copy {
+            lhs: block_result,
+            rhs: result,
+        });
+        self.set_active_block(current_block);
         Ok(id)
     }
-
-    // There are places where Rust allows either an expression or a block.  For example in the
-    // else branch of an if, or in each arm of a match.  Because these have different behaviors
-    // in RHIF (a block is executed when jumped to, while an expression is immediate), we need
-    // to be able to "wrap" an expression into a block so that it can be invoked conditionally.
-    // As a special case, if the expression is empty (None), we create an empty block.
-    pub fn wrap_expr_in_block(
-        &mut self,
-        expr: Option<Box<crate::ast::Expr>>,
-        lhs: Slot,
-    ) -> Result<BlockId> {
-        let block = if let Some(expr) = expr {
-            let stmt = ast::Stmt {
-                id: INVALID_NODE_ID,
-                kind: ast::StmtKind::Expr(expr),
-            };
-            ast::Block {
-                id: INVALID_NODE_ID,
-                stmts: vec![Box::new(stmt)],
-            }
-        } else {
-            ast::Block {
-                id: INVALID_NODE_ID,
-                stmts: vec![],
-            }
-        };
-        self.expr_block(Box::new(block), lhs)
+    fn empty_block(&mut self, block_result: Slot) -> Result<BlockId> {
+        let current_block = self.current_block();
+        let id = self.new_block(block_result);
+        self.op(OpCode::Copy {
+            lhs: block_result,
+            rhs: Slot::Empty,
+        });
+        self.set_active_block(current_block);
+        Ok(id)
     }
+    fn bind_pattern(&mut self, pattern: &Pat) -> Result<()> {
+        match &pattern.kind {
+            PatKind::Ident(ident) => self.bind(pattern.id, &ident.name),
+            PatKind::Tuple(tuple) => {
+                for pat in &tuple.elements {
+                    self.bind_pattern(pat)?;
+                }
+                Ok(())
+            }
+            PatKind::Type(ty) => self.bind_pattern(&ty.pat),
+            PatKind::Struct(_struct) => {
+                for field in &_struct.fields {
+                    self.bind_pattern(&field.pat)?;
+                }
+                Ok(())
+            }
+            PatKind::TupleStruct(_tuple_struct) => {
+                for pat in &_tuple_struct.elems {
+                    self.bind_pattern(pat)?;
+                }
+                Ok(())
+            }
+            PatKind::Slice(slice) => {
+                for pat in &slice.elems {
+                    self.bind_pattern(pat)?;
+                }
+                Ok(())
+            }
+            PatKind::Paren(paren) => self.bind_pattern(&paren.pat),
+            PatKind::Wild => Ok(()),
+            _ => bail!("Unsupported binding pattern {:?}", pattern),
+        }
+    }
+}
+
+fn argument_id(arg_pat: &Pat) -> Result<(String, NodeId)> {
+    match &arg_pat.kind {
+        PatKind::Ident(name) => Ok((name.name.to_string(), arg_pat.id)),
+        PatKind::Type(ty) => argument_id(&ty.pat),
+        _ => {
+            bail!("Arguments to kernel functions must be identifiers, instead got {arg_pat:?}")
+        }
+    }
+}
+
+impl Visitor for CompilerContext {
+    fn visit_kernel_fn(&mut self, node: &ast::KernelFn) -> Result<()> {
+        // Allocate local binding for each argument
+        for arg in &node.inputs {
+            let (arg_name, arg_id) = argument_id(arg)?;
+            self.bind(arg_id, &arg_name)?;
+        }
+        let block_result = self.reg(self.ty(node.id)?)?;
+        let _ = self.block(block_result, &node.body)?;
+        Ok(())
+    }
+}
+
+pub fn compile(func: &ast::KernelFn, ctx: UnifyContext) -> Result<rhif::Object> {
+    let mut compiler = CompilerContext::new(ctx);
+    compiler.visit_kernel_fn(func)?;
+    let literals = compiler
+        .literals
+        .into_iter()
+        .map(|x| {
+            Ok(match *x {
+                ast::ExprLit::TypedBits(t) => t.value.clone(),
+                ast::ExprLit::Bool(b) => b.typed_bits(),
+                ast::ExprLit::Int(x) => x.parse::<i32>()?.typed_bits(),
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let blocks = compiler
+        .blocks
+        .into_iter()
+        .map(|x| rhif::Block {
+            id: x.id,
+            ops: x.ops,
+        })
+        .collect();
+    Ok(rhif::Object {
+        literals,
+        ty: compiler.ty,
+        blocks,
+        externals: compiler.stash,
+    })
 }

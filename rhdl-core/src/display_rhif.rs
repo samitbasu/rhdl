@@ -160,6 +160,11 @@ impl Display for AluUnary {
         match self {
             AluUnary::Neg => write!(f, "-"),
             AluUnary::Not => write!(f, "!"),
+            AluUnary::All => write!(f, "&"),
+            AluUnary::Any => write!(f, "|"),
+            AluUnary::Xor => write!(f, "^"),
+            AluUnary::Signed => write!(f, "signed "),
+            AluUnary::Unsigned => write!(f, "unsigned "),
         }
     }
 }

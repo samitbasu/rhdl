@@ -41,6 +41,7 @@ mod tests {
         check_inference(&kernel, &ctx)?;
         let obj = compile(&kernel.ast, ctx)?;
         check_type_correctness(&obj)?;
+        eprintln!("{}", obj);
         Ok(())
     }
 
@@ -381,7 +382,10 @@ mod tests {
             let k = b12(5);
             let h = Baz { a: 3 };
             let j = k.any();
-            let i = k.get_bit(3);
+            let s = k.as_signed();
+            let t = s.as_unsigned();
+            let u: b4 = 3.into();
+            //            let i = k.get_bit(3);
         }
         test_inference_result(do_stuff::kernel_fn()).unwrap();
     }
