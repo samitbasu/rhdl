@@ -16,8 +16,7 @@ mod tests {
         ascii::render_ast_to_string,
         assign_node::assign_node_ids,
         check_inference, check_type_correctness,
-        compiler::Compiler,
-        compiler_gen2::{compile, CompilerContext},
+        compiler::{compile, CompilerContext},
         digital_fn::{inspect_digital, DigitalFn},
         display_ast::pretty_print_kernel,
         infer_types::{infer, TypeInference},
@@ -25,7 +24,6 @@ mod tests {
         note,
         note_db::{dump_vcd, note_time},
         path::{bit_range, Path},
-        typer::infer_type,
         visit::Visitor,
         DiscriminantAlignment, NoteKey,
     };
@@ -384,7 +382,6 @@ mod tests {
             let j = k.any();
             let s = k.as_signed();
             let t = s.as_unsigned();
-            let u: b4 = 3.into();
             //            let i = k.get_bit(3);
         }
         test_inference_result(do_stuff::kernel_fn()).unwrap();
