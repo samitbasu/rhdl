@@ -96,6 +96,21 @@ impl Display for OpCode {
             } => {
                 write!(f, " {} <- {}#[{}]", lhs, arg, discriminant)
             }
+            OpCode::Enum {
+                lhs,
+                path,
+                discriminant,
+                fields,
+            } => {
+                write!(
+                    f,
+                    " {} <- {}::{}({})",
+                    lhs,
+                    path,
+                    discriminant,
+                    splice(fields, ", ")
+                )
+            }
         }
     }
 }

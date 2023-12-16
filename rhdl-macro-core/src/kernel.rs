@@ -899,6 +899,7 @@ impl Context {
             .as_ref()
             .map(|x| self.expr(x))
             .transpose()?
+            .map(|x| quote! {Some(#x)})
             .unwrap_or(quote! {None});
         let kind = if structure.rest.is_some() {
             // The presence of a rest means we know that path -> struct

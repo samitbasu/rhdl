@@ -372,6 +372,10 @@ impl<'a> PrettyPrinter<'a> {
                     self.print_expr(&field.value)?;
                     self.push(", ");
                 }
+                if let Some(rest) = &expr.rest {
+                    self.push("..");
+                    self.print_expr(rest)?;
+                }
                 self.push("}");
             }
             ExprKind::Tuple(expr) => {
