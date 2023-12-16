@@ -1,6 +1,5 @@
 use crate::ty::{ty_array_base, ty_as_ref, ty_indexed_item, ty_named_field, ty_unnamed_field};
 use crate::ty::{Ty, TypeId};
-use anyhow::anyhow;
 use anyhow::bail;
 use anyhow::Result;
 use std::{collections::HashMap, fmt::Display};

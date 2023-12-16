@@ -75,17 +75,17 @@ where
     match &pat.kind {
         PatKind::Tuple(tuple) => {
             for pat in &tuple.elements {
-                visitor.visit_pat(&pat)?;
+                visitor.visit_pat(pat)?;
             }
         }
         PatKind::Slice(slice) => {
             for pat in &slice.elems {
-                visitor.visit_pat(&pat)?;
+                visitor.visit_pat(pat)?;
             }
         }
         PatKind::TupleStruct(tuple_struct) => {
             for pat in &tuple_struct.elems {
-                visitor.visit_pat(&pat)?;
+                visitor.visit_pat(pat)?;
             }
         }
         PatKind::Or(pat_or) => {
