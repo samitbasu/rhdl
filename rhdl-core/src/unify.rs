@@ -1,4 +1,4 @@
-use crate::ty::{ty_array_base, ty_indexed_item, ty_named_field, ty_unnamed_field};
+use crate::ty::{ty_array_base, ty_as_ref, ty_indexed_item, ty_named_field, ty_unnamed_field};
 use crate::ty::{Ty, TypeId};
 use anyhow::anyhow;
 use anyhow::bail;
@@ -153,9 +153,7 @@ impl UnifyContext {
             bail!("Type must be known at this point")
         };
         if let Ty::Ref(t) = t {
-            return self
-                .get_variant(*t.clone(), variant)
-                .map(|x| Ty::Ref(Box::new(x)));
+            return self.get_variant(*t.clone(), variant).map(ty_as_ref);
         }
         let Ty::Enum(enum_) = t else {
             bail!("Type must be an enum")
@@ -172,7 +170,11 @@ impl UnifyContext {
         let Some(t) = self.map.get(&id) else {
             bail!("Type must be known at this point")
         };
-        ty_named_field(t, field)
+        if let Ty::Ref(t) = t {
+            self.get_named_field(*t.clone(), field).map(ty_as_ref)
+        } else {
+            ty_named_field(t, field)
+        }
     }
     pub fn get_unnamed_field(&self, t: Ty, field: usize) -> Result<Ty> {
         let Ty::Var(id) = t else {
@@ -181,7 +183,11 @@ impl UnifyContext {
         let Some(t) = self.map.get(&id) else {
             bail!("Type must be known at this point")
         };
-        ty_unnamed_field(t, field)
+        if let Ty::Ref(t) = t {
+            self.get_unnamed_field(*t.clone(), field).map(ty_as_ref)
+        } else {
+            ty_unnamed_field(t, field)
+        }
     }
     pub fn get_array_base(&self, t: Ty) -> Result<Ty> {
         let Ty::Var(id) = t else {
@@ -190,7 +196,11 @@ impl UnifyContext {
         let Some(t) = self.map.get(&id) else {
             bail!("Type must be known at this point")
         };
-        ty_array_base(t)
+        if let Ty::Ref(t) = t {
+            self.get_array_base(*t.clone()).map(ty_as_ref)
+        } else {
+            ty_array_base(t)
+        }
     }
     pub fn get_indexed_item(&self, t: Ty, index: usize) -> Result<Ty> {
         let Ty::Var(id) = t else {
@@ -199,7 +209,11 @@ impl UnifyContext {
         let Some(t) = self.map.get(&id) else {
             bail!("Type must be known at this point")
         };
-        ty_indexed_item(t, index)
+        if let Ty::Ref(t) = t {
+            self.get_indexed_item(*t.clone(), index).map(ty_as_ref)
+        } else {
+            ty_indexed_item(t, index)
+        }
     }
     pub fn array_vars(&mut self, args: Vec<Ty>) -> Result<Ty> {
         // put all of the terms into a single unified equivalence class
