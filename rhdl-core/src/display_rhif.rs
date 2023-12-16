@@ -1,4 +1,4 @@
-use std::{fmt::Display, result};
+use std::fmt::Display;
 
 use crate::{
     rhif::{AluBinary, AluUnary, BlockId, CaseArgument, FieldValue, Member, OpCode, Slot},
@@ -96,7 +96,6 @@ impl Display for OpCode {
             } => {
                 write!(f, " {} <- {}#[{}]", lhs, arg, discriminant)
             }
-            _ => todo!("OpCode {:?} not covered", self),
         }
     }
 }
