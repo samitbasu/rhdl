@@ -718,7 +718,7 @@ impl CompilerContext {
             ExprKind::Ret(_return) => self.return_expr(expr.id, _return),
             ExprKind::ForLoop(for_loop) => self.for_loop(expr.id, for_loop),
             ExprKind::Assign(assign) => self.assign(assign),
-            ExprKind::Range(_) => todo!(),
+            ExprKind::Range(_) => bail!("Ranges are only supported in for loops"),
             ExprKind::Let(_) => bail!("Fallible let expressions are not currently supported in rhdl.  Use a match instead"),
             ExprKind::Repeat(repeat) => self.repeat(expr.id, repeat),
             ExprKind::Call(call) => self.call(expr.id, call),
