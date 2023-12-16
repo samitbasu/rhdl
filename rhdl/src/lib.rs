@@ -1127,14 +1127,7 @@ mod tests {
             ret
         }
 
-        let mut kernel: Kernel = add::kernel_fn().try_into().unwrap();
-        assign_node_ids(&mut kernel).unwrap();
-        let ctx = infer(&kernel).unwrap();
-        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-        eprintln!("{}", ast_ascii);
-        check_inference(&kernel, &ctx).unwrap();
-        let obj = compile(&kernel.ast, ctx).unwrap();
-        eprintln!("{}", obj);
+        test_inference_result(looper::kernel_fn()).unwrap();
     }
 
     #[test]
