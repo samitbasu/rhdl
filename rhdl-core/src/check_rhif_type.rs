@@ -2,14 +2,19 @@
 
 use crate::{
     rhif::{AluBinary, AluUnary, Object, OpCode, Slot},
-    ty::{self, ty_array, ty_array_base, ty_as_ref, ty_bool, Bits, Ty},
-    TypedBits,
+    ty::{
+        self, ty_array, ty_array_base, ty_as_ref, ty_bool, ty_named_field, ty_unnamed_field, Bits,
+        Ty,
+    },
 };
 use anyhow::Result;
 use anyhow::{anyhow, bail};
 
 pub fn check_type_correctness(obj: &Object) -> Result<()> {
-    let slot_type = |slot| -> Result<Ty> {
+    let slot_type = |slot: &Slot| -> Result<Ty> {
+        if matches!(*slot, Slot::Empty) {
+            return Ok(ty::ty_empty());
+        }
         obj.ty
             .get(slot)
             .cloned()
@@ -124,6 +129,50 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                 }
                 OpCode::Assign { lhs, rhs } => {
                     eq_types(slot_type(lhs)?, ty_as_ref(slot_type(rhs)?))?;
+                }
+                OpCode::Copy { lhs, rhs } => {
+                    eq_types(slot_type(lhs)?, slot_type(rhs)?)?;
+                }
+                OpCode::Tuple { lhs, fields } => {
+                    let ty = fields.iter().map(slot_type).collect::<Result<Vec<_>>>()?;
+                    eq_types(slot_type(lhs)?, ty::ty_tuple(ty))?;
+                }
+                OpCode::Field { lhs, arg, member } => {
+                    let ty = slot_type(arg)?;
+                    match member {
+                        crate::rhif::Member::Named(name) => {
+                            let ty = ty_named_field(&ty, name)?;
+                            eq_types(slot_type(lhs)?, ty)?;
+                        }
+                        crate::rhif::Member::Unnamed(index) => {
+                            let ty = ty_unnamed_field(&ty, *index as usize)?;
+                            eq_types(slot_type(lhs)?, ty)?;
+                        }
+                    }
+                }
+                OpCode::Struct {
+                    lhs,
+                    path,
+                    fields,
+                    rest,
+                } => {
+                    let ty = slot_type(lhs)?;
+                    if let Some(rest) = rest {
+                        let rest_ty = slot_type(rest)?;
+                        eq_types(ty.clone(), rest_ty)?;
+                    }
+                    for field in fields {
+                        match &field.member {
+                            crate::rhif::Member::Named(name) => {
+                                let ty = ty_named_field(&ty, name)?;
+                                eq_types(slot_type(&field.value)?, ty)?;
+                            }
+                            crate::rhif::Member::Unnamed(index) => {
+                                let ty = ty_unnamed_field(&ty, *index as usize)?;
+                                eq_types(slot_type(&field.value)?, ty)?;
+                            }
+                        }
+                    }
                 }
                 _ => {}
             }

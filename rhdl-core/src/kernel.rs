@@ -38,14 +38,14 @@ pub enum KernelFnKind {
 impl std::fmt::Display for KernelFnKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            KernelFnKind::Kernel(kernel) => write!(f, "kernel"),
+            KernelFnKind::Kernel(_kernel) => write!(f, "kernel"),
             KernelFnKind::Extern(extern_kernel) => write!(f, "extern {}", extern_kernel.name),
             KernelFnKind::TupleStructConstructor => write!(f, "tuple struct constructor"),
             KernelFnKind::BitConstructor(width) => write!(f, "bit constructor {}", width),
             KernelFnKind::SignedBitsConstructor(width) => {
                 write!(f, "signed bits constructor {}", width)
             }
-            KernelFnKind::MethodCall(method_call) => write!(f, "method call"),
+            KernelFnKind::MethodCall(_method_call) => write!(f, "method call"),
         }
     }
 }

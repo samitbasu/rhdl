@@ -4,14 +4,13 @@ use crate::{
         FieldValue, Local, NodeId, Pat, PatKind, Path,
     },
     digital::TypedBits,
-    digital_fn::DigitalSignature,
     display_ast::pretty_print_statement,
     infer_types::id_to_var,
     rhif::{self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, OpCode, Slot},
-    ty::{ty_as_ref, Ty, TypeId},
+    ty::{ty_as_ref, Bits, Ty, TypeId},
     unify::UnifyContext,
-    visit::{self, visit_block, Visitor},
-    Digital, KernelFnKind,
+    visit::Visitor,
+    Digital, Kind,
 };
 use anyhow::{bail, Result};
 use std::collections::HashMap;
@@ -127,6 +126,35 @@ impl CompilerContext {
         self.reg_count += 1;
         Ok(reg)
     }
+    fn literal_from_type_and_int(&mut self, ty: &Ty, value: i32) -> Result<Slot> {
+        let ndx = self.literals.len();
+        let typed_bits = match ty {
+            Ty::Const(Bits::U128) => {
+                let x: u128 = value.try_into()?;
+                x.typed_bits()
+            }
+            Ty::Const(Bits::I128) => {
+                let x: i128 = value.try_into()?;
+                x.typed_bits()
+            }
+            Ty::Const(Bits::Unsigned(n)) => {
+                let x: u128 = value.try_into()?;
+                x.typed_bits().unsigned_cast(*n)?
+            }
+            Ty::Const(Bits::Signed(n)) => {
+                let x: i128 = value.try_into()?;
+                x.typed_bits().signed_cast(*n)?
+            }
+            Ty::Const(Bits::Usize) => {
+                let x: usize = value.try_into()?;
+                x.typed_bits()
+            }
+            _ => {
+                bail!("Unsupported literal type {:?} - most likely this means your for loop index variable is of an unexpected type", ty)
+            }
+        };
+        self.literal_from_typed_bits(&typed_bits)
+    }
     fn literal_from_typed_bits(&mut self, value: &TypedBits) -> Result<Slot> {
         let ndx = self.literals.len();
         let ty = value.kind.clone().into();
@@ -241,7 +269,7 @@ impl CompilerContext {
     }
     fn initialize_local(&mut self, pat: &Pat, rhs: Slot) -> Result<()> {
         match &pat.kind {
-            PatKind::Ident(ident) => {
+            PatKind::Ident(_ident) => {
                 if let Ok(lhs) = self.resolve_local(pat.id) {
                     self.op(OpCode::Copy { lhs, rhs });
                 }
@@ -327,10 +355,7 @@ impl CompilerContext {
         Ok(id)
     }
     fn expr_list(&mut self, exprs: &[Box<Expr>]) -> Result<Vec<Slot>> {
-        exprs
-            .into_iter()
-            .map(|x| self.expr(&x))
-            .collect::<Result<_>>()
+        exprs.iter().map(|x| self.expr(x)).collect::<Result<_>>()
     }
     fn tuple(&mut self, id: NodeId, tuple: &ExprTuple) -> Result<Slot> {
         let result = self.reg(self.node_ty(id)?)?;
@@ -389,18 +414,32 @@ impl CompilerContext {
         })
     }
     fn struct_expr(&mut self, id: NodeId, _struct: &ast::ExprStruct) -> Result<Slot> {
+        eprintln!("Struct expr {:?} kind: {}", _struct, _struct.kind);
         let lhs = self.reg(self.node_ty(id)?)?;
         let fields = _struct
             .fields
             .iter()
-            .map(|x| self.field_value(&x))
+            .map(|x| self.field_value(x))
             .collect::<Result<_>>()?;
-        self.op(OpCode::Struct {
-            lhs,
-            path: collapse_path(&_struct.path),
-            fields,
-            rest: None,
-        });
+        let rest = _struct.rest.as_ref().map(|x| self.expr(x)).transpose()?;
+        if let Kind::Variant(_enum, _variant) = &_struct.kind {
+            eprintln!("Emitting enum opcode");
+            let discriminant = self.literal_from_typed_bits(&_variant.discriminant.typed_bits())?;
+            self.op(OpCode::Enum {
+                lhs,
+                path: collapse_path(&_struct.path),
+                discriminant,
+                fields,
+            })
+        } else {
+            eprintln!("Emitting struct opcode");
+            self.op(OpCode::Struct {
+                lhs,
+                path: collapse_path(&_struct.path),
+                fields,
+                rest,
+            });
+        }
         Ok(lhs)
     }
     fn match_expr(&mut self, id: NodeId, _match: &ast::ExprMatch) -> Result<Slot> {
@@ -616,8 +655,14 @@ impl CompilerContext {
     }
     fn for_loop(&mut self, id: NodeId, for_loop: &ast::ExprForLoop) -> Result<Slot> {
         let current_block = self.current_block();
-        let id = self.new_block(Slot::Empty);
+        let _ = self.new_block(Slot::Empty);
         self.bind_pattern(&for_loop.pat)?;
+        // Determine the loop type
+        let index_reg = self.resolve_local(for_loop.pat.id)?;
+        let index_ty = self.ty.get(&index_reg).cloned().ok_or(anyhow::anyhow!(
+            "No type for index register {:?}",
+            index_reg
+        ))?;
         let ExprKind::Range(range) = &for_loop.expr.kind else {
             bail!("For loop must be over a range")
         };
@@ -644,7 +689,7 @@ impl CompilerContext {
         let start_lit = start_lit.parse::<i32>()?;
         let end_lit = end_lit.parse::<i32>()?;
         for ndx in start_lit..end_lit {
-            let value = self.literal_from_typed_bits(&ndx.typed_bits())?;
+            let value = self.literal_from_type_and_int(&index_ty, ndx)?;
             self.initialize_local(&for_loop.pat, value)?;
             let body = self.block(Slot::Empty, &for_loop.body)?;
             self.op(OpCode::Block(body));
