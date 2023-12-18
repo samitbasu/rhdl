@@ -38,8 +38,8 @@ mod tests {
         eprintln!("{}", ast_ascii);
         check_inference(&kernel, &ctx)?;
         let obj = compile(&kernel.ast, ctx)?;
-        check_type_correctness(&obj)?;
         eprintln!("{}", obj);
+        check_type_correctness(&obj)?;
         Ok(())
     }
 
@@ -323,10 +323,7 @@ mod tests {
 
         #[kernel]
         fn do_stuff() -> b8 {
-            let d = Foo::C {
-                a: 1,
-                b: 2,
-            }; // Struct literal
+            let d = Foo::C { a: 1, b: 2 }; // Struct literal
             b8(5)
         }
         test_inference_result(do_stuff::kernel_fn()).unwrap();
