@@ -504,6 +504,10 @@ impl CompilerContext {
         }
         match &arm.pattern.kind {
             PatKind::Match(x) => {
+                if matches!(x.pat.kind, PatKind::Wild) {
+                    let block = self.wrap_expr_in_block(lhs, &arm.body)?;
+                    return Ok((CaseArgument::Wild, block));
+                }
                 // Allocate the local bindings for the match pattern
                 self.bind_match_pattern(&x.pat)?;
                 let value = self.literal_from_typed_bits(&x.discriminant)?;
