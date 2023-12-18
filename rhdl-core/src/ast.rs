@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{digital::TypedBits, digital_fn::DigitalSignature, kernel::KernelFnKind, Kind};
+use crate::{digital_fn::DigitalSignature, kernel::KernelFnKind, typed_bits::TypedBits, Kind};
 use serde::{Deserialize, Serialize};
 
 // Modeled after rustc's AST
@@ -305,6 +305,8 @@ pub struct ExprStruct {
     pub fields: Vec<Box<FieldValue>>,
     pub rest: Option<Box<Expr>>,
     pub kind: Kind,
+    pub variant: Kind,
+    pub discriminant: TypedBits,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -104,7 +104,7 @@ impl Display for OpCode {
             } => {
                 write!(
                     f,
-                    " {} <- {}::{}({})",
+                    " {} <- {}#{}({})",
                     lhs,
                     path,
                     discriminant,
@@ -126,7 +126,6 @@ impl Display for CaseArgument {
         match self {
             CaseArgument::Literal(l) => write!(f, "{}", l),
             CaseArgument::Wild => write!(f, "_"),
-            CaseArgument::Path(p) => write!(f, "{}", p),
         }
     }
 }
