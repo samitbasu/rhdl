@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     note::{NoteKey, NoteWriter},
     path::{bit_range, Path},
-    Kind,
+    Kind, TypedBits,
 };
 
 /// This is the core trait for all of `RHDL` data elements.  If you
@@ -73,91 +73,8 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + Default {
     fn note(&self, key: impl NoteKey, writer: impl NoteWriter);
 }
 
-fn binary_string(x: &[bool]) -> String {
+pub fn binary_string(x: &[bool]) -> String {
     x.iter().rev().map(|b| if *b { '1' } else { '0' }).collect()
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct TypedBits {
-    pub bits: Vec<bool>,
-    pub kind: Kind,
-}
-
-impl TypedBits {
-    pub const EMPTY: TypedBits = TypedBits {
-        bits: Vec::new(),
-        kind: Kind::Empty,
-    };
-
-    pub fn path(&self, path: &[Path]) -> anyhow::Result<TypedBits> {
-        let (range, kind) = bit_range(self.kind.clone(), path)?;
-        Ok(TypedBits {
-            bits: self.bits[range].to_vec(),
-            kind,
-        })
-    }
-    pub fn unsigned_cast(&self, bits: usize) -> anyhow::Result<TypedBits> {
-        if bits > self.kind.bits() {
-            let pad = bits - self.kind.bits();
-            return Ok(TypedBits {
-                bits: self
-                    .bits
-                    .clone()
-                    .into_iter()
-                    .chain(repeat(false))
-                    .take(pad)
-                    .collect(),
-                kind: Kind::make_bits(bits),
-            });
-        }
-        let (base, rest) = self.bits.split_at(bits);
-        if rest.iter().any(|b| *b) {
-            anyhow::bail!(
-                "Unsigned cast failed: {} is not representable in {} bits",
-                self,
-                bits
-            );
-        }
-        Ok(TypedBits {
-            bits: base.to_vec(),
-            kind: Kind::make_bits(bits),
-        })
-    }
-    pub fn signed_cast(&self, bits: usize) -> anyhow::Result<TypedBits> {
-        if bits > self.kind.bits() {
-            let pad = bits - self.kind.bits();
-            let sign_bit = self.bits.last().cloned().unwrap_or_default();
-            return Ok(TypedBits {
-                bits: self
-                    .bits
-                    .clone()
-                    .into_iter()
-                    .chain(repeat(sign_bit))
-                    .take(pad)
-                    .collect(),
-                kind: Kind::make_signed(bits),
-            });
-        }
-        let (base, rest) = self.bits.split_at(bits);
-        let new_sign_bit = base.last().cloned().unwrap_or_default();
-        if rest.iter().any(|b| *b != new_sign_bit) {
-            anyhow::bail!(
-                "Signed cast failed: {} is not representable in {} bits",
-                self,
-                bits
-            );
-        }
-        Ok(TypedBits {
-            bits: base.to_vec(),
-            kind: Kind::make_signed(bits),
-        })
-    }
-}
-
-impl std::fmt::Display for TypedBits {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}b{:?}", binary_string(&self.bits), self.kind)
-    }
 }
 
 impl Digital for bool {
@@ -633,5 +550,12 @@ mod test {
         assert!(s.signed_cast(7).is_err());
         let s = b8(0b1110_1010).as_signed().typed_bits();
         assert!(s.signed_cast(7).is_ok());
+    }
+
+    #[test]
+    fn test_typed_bits_i64_cast() {
+        let x = s8(-6).typed_bits();
+        let y = x.as_i64().unwrap();
+        assert_eq!(y, -6);
     }
 }

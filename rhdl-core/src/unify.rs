@@ -55,6 +55,7 @@ impl UnifyContext {
                     .into_iter()
                     .map(|(k, v)| (k, self.apply(v)))
                     .collect(),
+                kind: struct_.kind,
             }),
             Term::Enum(enum_) => Term::Enum(TermMap {
                 name: enum_.name,
@@ -63,6 +64,7 @@ impl UnifyContext {
                     .into_iter()
                     .map(|(k, v)| (k, self.apply(v)))
                     .collect(),
+                kind: enum_.kind,
             }),
         }
     }
@@ -225,6 +227,8 @@ impl UnifyContext {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use super::*;
     use crate::ty::ty_array;
     use crate::ty::ty_as_ref as as_ref;
@@ -232,8 +236,6 @@ mod tests {
     use crate::ty::ty_empty;
     use crate::ty::ty_tuple as tuple;
     use crate::ty::ty_var as var;
-    use crate::ty_enum;
-    use crate::ty_struct;
 
     #[test]
     fn test_case_1() {
@@ -350,12 +352,15 @@ mod tests {
         let c = var(2);
         let d = var(3);
         let ty_bool = ty_bits(1);
-        let ty_foo_struct = ty_struct! {
-            name: "FooStruct",
+        let ty_foo_struct = Ty::Struct(TermMap {
+            name: "FooStruct".into(),
             fields: {
-                "foo" => ty_bool.clone(),
-            }
-        };
+                let mut map = BTreeMap::default();
+                map.insert("foo".into(), ty_bool.clone());
+                map
+            },
+            kind: crate::Kind::Empty, // Not correct, but not needed for this test case
+        });
         subst.unify(a.clone(), ty_foo_struct.clone()).unwrap();
         subst
             .unify(b.clone(), subst.get_named_field(a.clone(), "foo").unwrap())
@@ -379,10 +384,14 @@ mod tests {
         let c = var(2);
         let d = var(3);
         let ty_bool = ty_bits(1);
-        let ty_foo_struct = ty_struct!(
-        name: "FooStruct",
-        fields: {
-            "foo" => ty_bool.clone(),
+        let ty_foo_struct = Ty::Struct(TermMap {
+            name: "FooStruct".into(),
+            fields: {
+                let mut map = BTreeMap::default();
+                map.insert("foo".into(), ty_bool.clone());
+                map
+            },
+            kind: crate::Kind::Empty, // Not correct, but not needed for this test case
         });
         subst.unify(a.clone(), ty_foo_struct.clone()).unwrap();
         subst.unify(b.clone(), as_ref(a.clone())).unwrap();
@@ -512,16 +521,24 @@ mod tests {
         let a = var(0);
         let b = var(1);
         let ty_bool = ty_bits(1);
-        let ty_foo_struct = ty_struct!(
-        name: "FooStruct",
-        fields: {
-            "foo" => ty_bool.clone(),
+        let ty_foo_struct = Ty::Struct(TermMap {
+            name: "FooStruct".into(),
+            fields: {
+                let mut map = BTreeMap::default();
+                map.insert("foo".into(), ty_bool.clone());
+                map
+            },
+            kind: crate::Kind::Empty, // Not correct, but not needed for this test case
         });
-        let ty_enum = ty_enum!(
-        name: "FooEnum",
-        fields: {
-            "A" => ty_empty(),
-            "B" => ty_foo_struct.clone(),
+        let ty_enum = Ty::Enum(TermMap {
+            name: "FooEnum".into(),
+            fields: {
+                let mut map = BTreeMap::default();
+                map.insert("A".into(), ty_empty());
+                map.insert("B".into(), ty_foo_struct.clone());
+                map
+            },
+            kind: crate::Kind::Empty, // Not correct, but not needed for this test case
         });
         subst.unify(a.clone(), ty_enum.clone()).unwrap();
         subst
