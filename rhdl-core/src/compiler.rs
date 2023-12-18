@@ -3,11 +3,11 @@ use crate::{
         self, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprLit, ExprTuple, ExprTypedBits,
         FieldValue, Local, NodeId, Pat, PatKind, Path,
     },
-    digital::TypedBits,
     display_ast::pretty_print_statement,
     infer_types::id_to_var,
     rhif::{self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, OpCode, Slot},
     ty::{ty_as_ref, Bits, Ty, TypeId},
+    typed_bits::TypedBits,
     unify::UnifyContext,
     visit::Visitor,
     Digital, Kind,
@@ -50,6 +50,7 @@ pub struct CompilerContext {
     ty: HashMap<Slot, Ty>,
     locals: HashMap<TypeId, NamedSlot>,
     stash: HashMap<String, ExternalFunction>,
+    return_slot: Slot,
 }
 
 impl std::fmt::Display for CompilerContext {
@@ -114,6 +115,7 @@ impl CompilerContext {
             ty: Default::default(),
             locals: Default::default(),
             stash: Default::default(),
+            return_slot: Slot::Empty,
         }
     }
     fn node_ty(&self, id: NodeId) -> Result<Ty> {
@@ -422,9 +424,9 @@ impl CompilerContext {
             .map(|x| self.field_value(x))
             .collect::<Result<_>>()?;
         let rest = _struct.rest.as_ref().map(|x| self.expr(x)).transpose()?;
-        if let Kind::Variant(_enum, _variant) = &_struct.kind {
+        if let Kind::Enum(_enum) = &_struct.kind {
             eprintln!("Emitting enum opcode");
-            let discriminant = self.literal_from_typed_bits(&_variant.discriminant.typed_bits())?;
+            let discriminant = self.literal_from_typed_bits(&_struct.discriminant)?;
             self.op(OpCode::Enum {
                 lhs,
                 path: collapse_path(&_struct.path),
@@ -846,6 +848,7 @@ impl Visitor for CompilerContext {
         }
         let block_result = self.reg(self.ty(node.id)?)?;
         let _ = self.block(block_result, &node.body)?;
+        self.return_slot = block_result;
         Ok(())
     }
 }
@@ -876,6 +879,7 @@ pub fn compile(func: &ast::KernelFn, ctx: UnifyContext) -> Result<rhif::Object> 
         literals,
         ty: compiler.ty,
         blocks,
+        return_slot: compiler.return_slot,
         externals: compiler.stash,
     })
 }

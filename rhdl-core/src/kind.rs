@@ -3,14 +3,12 @@ use std::{iter::repeat, ops::Range};
 
 use anyhow::Result;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Kind {
     Array(Array),
     Tuple(Tuple),
     Struct(Struct),
-    Union(Union),
     Enum(Enum),
-    Variant(Enum, Box<Variant>),
     Bits(usize),
     Signed(usize),
     U128,
@@ -32,9 +30,7 @@ impl std::fmt::Display for Kind {
                 write!(f, "({})", elements)
             }
             Kind::Struct(s) => write!(f, "{}", s.name),
-            Kind::Union(_u) => todo!(),
             Kind::Enum(e) => write!(f, "{}", e.name),
-            Kind::Variant(e, v) => write!(f, "{}::{}", e.name, v.name),
             Kind::Bits(digits) => write!(f, "b{}", digits),
             Kind::Signed(digits) => write!(f, "s{}", digits),
             Kind::U128 => write!(f, "u128"),
@@ -44,35 +40,35 @@ impl std::fmt::Display for Kind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Array {
     pub base: Box<Kind>,
     pub size: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Tuple {
     pub elements: Vec<Kind>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Struct {
     pub name: String,
     pub fields: Vec<Field>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Union {
     pub fields: Vec<Field>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DiscriminantAlignment {
     Msb,
     Lsb,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Enum {
     pub name: String,
     pub variants: Vec<Variant>,
@@ -80,13 +76,13 @@ pub struct Enum {
     pub discriminant_alignment: DiscriminantAlignment,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Field {
     pub name: String,
     pub kind: Kind,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Variant {
     pub name: String,
     pub discriminant: i64,
@@ -131,9 +127,6 @@ impl Kind {
             fields,
         })
     }
-    pub fn make_union(fields: Vec<Field>) -> Self {
-        Self::Union(Union { fields })
-    }
     pub fn make_enum(
         name: &str,
         variants: Vec<Variant>,
@@ -158,8 +151,7 @@ impl Kind {
             Kind::Array(array) => array.base.bits() * array.size,
             Kind::Tuple(tuple) => tuple.elements.iter().map(|x| x.bits()).sum(),
             Kind::Struct(kind) => kind.fields.iter().map(|x| x.kind.bits()).sum(),
-            Kind::Union(kind) => kind.fields.iter().map(|x| x.kind.bits()).max().unwrap_or(0),
-            Kind::Enum(kind) | Kind::Variant(kind, ..) => {
+            Kind::Enum(kind) => {
                 kind.discriminant_width
                     + kind
                         .variants
@@ -182,7 +174,7 @@ impl Kind {
         let pad_len = self.bits() - bits.len();
         let bits = bits.into_iter().chain(repeat(false).take(pad_len));
         match self {
-            Kind::Enum(kind) | Kind::Variant(kind, ..) => match kind.discriminant_alignment {
+            Kind::Enum(kind) => match kind.discriminant_alignment {
                 DiscriminantAlignment::Lsb => bits.collect(),
                 DiscriminantAlignment::Msb => {
                     let discriminant_width = kind.discriminant_width;
@@ -217,11 +209,27 @@ impl Kind {
                 format!("({})", elements)
             }
             Kind::Struct(s) => s.name.clone(),
-            Kind::Union(_u) => todo!(),
             Kind::Enum(e) => e.name.clone(),
-            Kind::Variant(e, v) => format!("{}::{}", e.name, v.name),
             Kind::U128 => "u128".to_string(),
             Kind::I128 => "i128".to_string(),
+        }
+    }
+
+    pub fn lookup_variant(&self, discriminant_value: i64) -> Result<Kind> {
+        let Kind::Enum(e) = &self else {
+            return Err(anyhow::anyhow!("Not an enum"));
+        };
+        let variant = e
+            .variants
+            .iter()
+            .find(|x| x.discriminant == discriminant_value);
+        match variant {
+            Some(variant) => Ok(variant.kind.clone()),
+            None => Err(anyhow::anyhow!(
+                "No variant with discriminant {} in enum {}",
+                discriminant_value,
+                e.name
+            )),
         }
     }
 }
@@ -325,26 +333,7 @@ fn generate_kind_layout(
             }
             result
         }
-        Kind::Union(u) => {
-            let mut result = vec![KindLayout {
-                row: offset_row,
-                depth: 1,
-                cols: offset_col..(offset_col + kind.bits()),
-                name: format!("{name} {}", kind.bits()),
-            }];
-            for field in &u.fields {
-                let variant =
-                    generate_kind_layout(&field.kind, &field.name, offset_row + 1, offset_col);
-                offset_row = variant
-                    .iter()
-                    .map(|x| x.row)
-                    .max()
-                    .unwrap_or(offset_row + 1);
-                result.extend(variant);
-            }
-            result
-        }
-        Kind::Enum(e) | Kind::Variant(e, ..) => {
+        Kind::Enum(e) => {
             let mut result = vec![KindLayout {
                 row: offset_row,
                 cols: offset_col..(offset_col + kind.bits()),
@@ -766,20 +755,6 @@ mod test {
                     ),
                 },
                 Variant {
-                    name: "F2".to_string(),
-                    discriminant: 7,
-                    kind: Kind::make_union(vec![
-                        Field {
-                            name: "op_code".to_string(),
-                            kind: Kind::make_bits(4),
-                        },
-                        Field {
-                            name: "count".to_string(),
-                            kind: Kind::make_array(Kind::make_bits(2), 4),
-                        },
-                    ]),
-                },
-                Variant {
                     name: "G".to_string(),
                     discriminant: 6,
                     kind: Kind::make_struct(
@@ -908,33 +883,6 @@ mod test {
                 },
             ],
         );
-        let layout = generate_kind_layout(&kind, "value", 0, 0);
-        println!("{:#?}", layout);
-        #[cfg(feature = "svg")]
-        {
-            let svg = kind_svg::svg_grid(&kind, "value");
-            svg::save("test.svg", &svg).unwrap();
-            let svg = kind_svg::svg_grid_vertical(&kind, "value");
-            svg::save("test_vertical.svg", &svg).unwrap();
-        }
-    }
-
-    #[test]
-    fn test_layout_of_union() {
-        let kind = Kind::make_union(vec![
-            Field {
-                name: "a".to_string(),
-                kind: Kind::make_bits(8),
-            },
-            Field {
-                name: "b".to_string(),
-                kind: Kind::make_bits(16),
-            },
-            Field {
-                name: "c".to_string(),
-                kind: Kind::make_bits(32),
-            },
-        ]);
         let layout = generate_kind_layout(&kind, "value", 0, 0);
         println!("{:#?}", layout);
         #[cfg(feature = "svg")]

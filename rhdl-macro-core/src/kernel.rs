@@ -882,7 +882,7 @@ impl Context {
     // In both cases, we want to include the Kind information into the AST at the
     // point the AST is generated.
     fn struct_ex(&mut self, structure: &syn::ExprStruct) -> Result<TS> {
-        let path = self.path_inner(&structure.path)?;
+        let path_inner = self.path_inner(&structure.path)?;
         let fields = structure
             .fields
             .iter()
@@ -901,10 +901,15 @@ impl Context {
             .transpose()?
             .map(|x| quote! {Some(#x)})
             .unwrap_or(quote! {None});
-        let kind = if structure.rest.is_some() {
+        if structure.rest.is_some() {
             // The presence of a rest means we know that path -> struct
             let path = &structure.path;
-            quote!(< #path as rhdl_core::Digital>::static_kind())
+            let kind = quote!(< #path as rhdl_core::Digital>::static_kind());
+            let discriminant = quote!(rhdl_core::TypedBits::EMPTY);
+            let variant_kind = quote!(< #path as rhdl_core::Digital>::static_kind());
+            Ok(
+                quote! {rhdl_core::ast_builder::struct_expr(#path_inner, vec![#(#fields),*], #rest, #kind, #variant_kind, #discriminant)},
+            )
         } else {
             let path = &structure.path;
             // Could be either a struct or an enum.  So we have to construct one
@@ -915,13 +920,16 @@ impl Context {
                 .iter()
                 .map(|x| self.default_field_value(x))
                 .collect::<Result<Vec<_>>>()?;
-            quote! {
-                Digital::kind(& #path { #(#fields_with_default),* })
-            }
-        };
-        Ok(quote! {
-            rhdl_core::ast_builder::struct_expr(#path,vec![#(#fields),*],#rest,#kind),
-        })
+            let obj = quote!(#path { #(#fields_with_default),* });
+            let obj_for_variant_kind = obj.clone();
+            let obj_for_discriminant = obj.clone();
+            Ok(quote! {
+                rhdl_core::ast_builder::struct_expr(#path_inner, vec![#(#fields),*], #rest,
+                rhdl_core::Digital::kind(& #obj_for_variant_kind),
+                rhdl_core::Digital::variant_kind(#obj_for_variant_kind),
+                rhdl_core::Digital::discriminant(#obj_for_discriminant))
+            })
+        }
     }
 
     fn default_field_value(&mut self, field: &syn::FieldValue) -> Result<TS> {
