@@ -129,7 +129,6 @@ pub enum OpCode {
 pub enum CaseArgument {
     Literal(Slot),
     Wild,
-    Path(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -211,7 +210,17 @@ pub struct Object {
     pub literals: Vec<TypedBits>,
     pub ty: HashMap<Slot, Ty>,
     pub blocks: Vec<Block>,
+    pub return_slot: Slot,
     pub externals: HashMap<String, ExternalFunction>,
+}
+
+impl Object {
+    pub fn literal(&self, slot: Slot) -> Result<&TypedBits> {
+        match slot {
+            Slot::Literal(l) => Ok(&self.literals[l]),
+            _ => Err(anyhow::anyhow!("Not a literal")),
+        }
+    }
 }
 
 impl std::fmt::Display for Object {

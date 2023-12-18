@@ -1,6 +1,6 @@
-use crate::digital::TypedBits;
 use crate::digital_fn::DigitalSignature;
 use crate::kernel::KernelFnKind;
+use crate::typed_bits::TypedBits;
 use crate::{ast::*, Kind};
 
 pub fn binary_expr(op: BinOp, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
@@ -36,6 +36,8 @@ pub fn struct_expr(
     fields: Vec<Box<FieldValue>>,
     rest: Option<Box<Expr>>,
     kind: Kind,
+    variant: Kind,
+    discriminant: TypedBits,
 ) -> Box<Expr> {
     Box::new(Expr {
         id: INVALID_NODE_ID,
@@ -44,6 +46,8 @@ pub fn struct_expr(
             fields,
             rest,
             kind,
+            variant,
+            discriminant,
         }),
     })
 }

@@ -6,6 +6,7 @@ use crate::{
         self, ty_array, ty_array_base, ty_as_ref, ty_bool, ty_named_field, ty_unnamed_field, Bits,
         Ty,
     },
+    Kind,
 };
 use anyhow::Result;
 use anyhow::{anyhow, bail};
@@ -150,6 +151,24 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                         }
                     }
                 }
+                OpCode::FieldRef { lhs, arg, member } => {
+                    let ty = slot_type(arg)?;
+                    match member {
+                        crate::rhif::Member::Named(name) => {
+                            let ty = ty_named_field(&ty, name)?;
+                            eq_types(slot_type(lhs)?, ty_as_ref(ty))?;
+                        }
+                        crate::rhif::Member::Unnamed(index) => {
+                            let ty = ty_unnamed_field(&ty, *index as usize)?;
+                            eq_types(slot_type(lhs)?, ty_as_ref(ty))?;
+                        }
+                    }
+                }
+                OpCode::IndexRef { lhs, arg, index } => {
+                    let ty = slot_type(arg)?;
+                    let ty = ty_array_base(&ty)?;
+                    eq_types(slot_type(lhs)?, ty_as_ref(ty))?;
+                }
                 OpCode::Struct {
                     lhs,
                     path,
@@ -173,6 +192,65 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                             }
                         }
                     }
+                }
+                OpCode::Enum {
+                    lhs,
+                    path,
+                    discriminant,
+                    fields,
+                } => {
+                    let ty = slot_type(lhs)?;
+                    let Ty::Enum(enum_ty) = &ty else {
+                        bail!("expected enum type")
+                    };
+                    let enum_kind = enum_ty.kind.clone();
+                    let discriminant_value = obj.literal(*discriminant)?;
+                    let discriminant_value = discriminant_value.as_i64()?;
+                    let variant_kind = enum_kind.lookup_variant(discriminant_value)?;
+                    let variant_ty = variant_kind.into();
+                    for field in fields {
+                        let crate::rhif::Member::Named(name) = &field.member else {
+                            bail!("expected named field")
+                        };
+                        let ty = ty_named_field(&variant_ty, name)?;
+                        eq_types(slot_type(&field.value)?, ty)?;
+                    }
+                }
+                OpCode::Repeat { lhs, value, len } => {
+                    let ty = slot_type(lhs)?;
+                    let Ty::Array(array_ty) = &ty else {
+                        bail!("expected array type")
+                    };
+                    let len_value = obj.literal(*len)?;
+                    let len_value = len_value.as_i64()?;
+                    eq_types(slot_type(value)?, array_ty[0].clone())?;
+                    eq_types(
+                        ty.clone(),
+                        ty_array(array_ty[0].clone(), len_value as usize),
+                    )?;
+                }
+                OpCode::Comment(_) => {}
+                OpCode::Return { result } => {
+                    if let Some(result) = result {
+                        eq_types(slot_type(result)?, slot_type(&obj.return_slot)?)?;
+                    }
+                }
+                OpCode::Block(_) => {}
+                OpCode::Payload {
+                    lhs,
+                    arg,
+                    discriminant,
+                } => {
+                    let ty = slot_type(arg)?;
+                    let Ty::Enum(enum_ty) = &ty else {
+                        bail!(format!("expected enum type {}", ty));
+                    };
+                    let enum_kind = enum_ty.kind.clone();
+                    let discriminant_value = obj.literal(*discriminant)?;
+                    let discriminant_value = discriminant_value.as_i64()?;
+                    let variant_kind = enum_kind.lookup_variant(discriminant_value)?;
+                    let variant_ty = variant_kind.into();
+                    eq_types(slot_type(lhs)?, variant_ty)?;
                 }
                 _ => {}
             }

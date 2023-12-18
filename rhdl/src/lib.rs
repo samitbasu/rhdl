@@ -286,6 +286,53 @@ mod tests {
     }
 
     #[test]
+    fn test_struct_expr_not_adt() {
+        use rhdl_bits::alias::*;
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
+        pub struct Foo {
+            a: u8,
+            b: u16,
+            c: [u8; 3],
+        }
+
+        #[kernel]
+        fn do_stuff() -> b8 {
+            let d = Foo {
+                a: 1,
+                b: 2,
+                c: [1, 2, 3],
+            }; // Struct literal
+            b8(5)
+        }
+        test_inference_result(do_stuff::kernel_fn()).unwrap();
+    }
+
+    #[test]
+    fn test_struct_expr_adt() {
+        use rhdl_bits::alias::*;
+        #[derive(PartialEq, Copy, Clone, Digital, Default)]
+        pub enum Foo {
+            #[default]
+            A,
+            B(u8),
+            C {
+                a: u8,
+                b: u16,
+            },
+        }
+
+        #[kernel]
+        fn do_stuff() -> b8 {
+            let d = Foo::C {
+                a: 1,
+                b: 2,
+            }; // Struct literal
+            b8(5)
+        }
+        test_inference_result(do_stuff::kernel_fn()).unwrap();
+    }
+
+    #[test]
     fn test_ast_basic_func() {
         use rhdl_bits::alias::*;
         #[derive(PartialEq, Copy, Clone, Digital, Default)]

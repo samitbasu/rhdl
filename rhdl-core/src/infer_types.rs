@@ -517,12 +517,8 @@ impl Visitor for TypeInference {
             }
             ExprKind::Struct(struct_) => {
                 self.unify(my_ty, struct_.kind.clone().into())?;
-                if let Some(s_kind) = match &struct_.kind {
+                if let Some(s_kind) = match &struct_.variant {
                     Kind::Struct(s) => Some(s),
-                    Kind::Variant(_, v) => match &v.kind {
-                        Kind::Struct(s) => Some(s),
-                        _ => None,
-                    },
                     _ => None,
                 } {
                     for field in struct_.fields.iter() {
