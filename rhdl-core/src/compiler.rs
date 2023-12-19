@@ -512,7 +512,7 @@ impl CompilerContext {
             }
             ArmKind::Constant(constant) => {
                 let block = self.wrap_expr_in_block(lhs, &arm.body)?;
-                let value = self.literal_from_typed_bits(&constant.value)?;
+                let value = self.lit(&constant.value, self.node_ty(arm.id)?)?;
                 Ok((CaseArgument::Literal(value), block))
             }
             ArmKind::Enum(arm_enum) => {

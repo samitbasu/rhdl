@@ -3,7 +3,9 @@ use std::collections::HashSet;
 use inflections::Inflect;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{punctuated::Punctuated, spanned::Spanned, token::Comma, Ident, Pat, Path, Type};
+use syn::{
+    punctuated::Punctuated, spanned::Spanned, token::Comma, ExprLit, Ident, Pat, Path, Type,
+};
 type TS = proc_macro2::TokenStream;
 type Result<T> = syn::Result<T>;
 
@@ -78,6 +80,22 @@ fn pattern_has_literals(pat: &syn::Pat) -> bool {
         Pat::TupleStruct(tuple) => tuple.elems.iter().any(pattern_has_literals),
         Pat::Type(ty) => pattern_has_literals(&ty.pat),
         _ => false,
+    }
+}
+
+fn rewrite_pattern_to_use_as_literal_expression(pat: &syn::Pat) -> syn::Result<TS> {
+    match pat {
+        Pat::Lit(lit) => match &lit.lit {
+            syn::Lit::Bool(b) => Ok(quote! {rhdl_core::ast_builder::expr_lit_bool(#b)}),
+            syn::Lit::Int(i) => Ok(quote! {rhdl_core::ast_builder::expr_lit_int(stringify!(#i))}),
+            _ => Err(syn::Error::new(
+                lit.span(),
+                "Unsupported literal in rhdl kernel function",
+            )),
+        },
+        _ => Ok(
+            quote! {rhdl_core::ast_builder::expr_lit_typed_bits(rhdl_core::Digital::typed_bits(#pat))},
+        ),
     }
 }
 
@@ -428,33 +446,6 @@ impl Context {
     //  Foo::Bar(a)
     // Unfortunately, since `a` may be a constant at the outer scope,
     // this is not immediately obvious.
-
-    // Use for patterns that are in a match context
-    // These are fallible.
-    fn match_pat(&mut self, pat: &syn::Pat) -> Result<TS> {
-        if pattern_has_bindings(pat) && pattern_has_literals(pat) {
-            return Err(syn::Error::new(
-                pat.span(),
-                "Unsupported pattern with bindings in rhdl kernel function - only literals or pure patterns are allowed in this match context",
-            ));
-        }
-        let inner = self.pat(pat)?;
-        if !pattern_has_bindings(pat) {
-            match pat {
-                syn::Pat::Wild(_) => Ok(quote! {
-                    rhdl_core::ast_builder::arm_wild(#inner, rhdl_core::ast_builder::wild_discriminant(), rhdl_core::Kind::Empty)
-                }),
-                _ => Ok(quote! {
-                    rhdl_core::ast_builder::match_pat(#inner, rhdl_core::Digital::discriminant(#pat), rhdl_core::Digital::variant_kind(#pat))
-                }),
-            }
-        } else {
-            let pat_as_expr = rewrite_pattern_to_use_defaults_for_bindings(pat);
-            Ok(
-                quote! {rhdl_core::ast_builder::match_pat(#inner, rhdl_core::Digital::discriminant(#pat_as_expr), rhdl_core::Digital::variant_kind(#pat_as_expr))},
-            )
-        }
-    }
 
     // Use for patterns that are in let contexts.
     // These are infallible.
@@ -821,7 +812,8 @@ impl Context {
             if let syn::Pat::Wild(_) = &pat {
                 quote! {rhdl_core::ast_builder::arm_wild(#body)}
             } else {
-                quote! {rhdl_core::ast_builder::arm_constant(rhdl_core::Digital::typed_bits(#pat), #body)}
+                let pat = rewrite_pattern_to_use_as_literal_expression(pat)?;
+                quote! {rhdl_core::ast_builder::arm_constant(#pat, #body)}
             }
         } else {
             self.add_scoped_binding(pat)?;
@@ -1127,7 +1119,7 @@ impl Context {
             syn::Lit::Int(int) => {
                 let value = int.token();
                 Ok(quote! {
-                        rhdl_core::ast_builder::expr_lit_int(stringify!(#value).to_string())
+                        rhdl_core::ast_builder::expr_lit_int(stringify!(#value))
                 })
             }
             syn::Lit::Bool(boolean) => {
