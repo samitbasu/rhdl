@@ -56,6 +56,10 @@ impl VisitorMut for NodeIdGenerator {
         self.id(&mut node.id);
         visit_mut::visit_mut_kernel_fn(self, node)
     }
+    fn visit_mut_match_arm(&mut self, node: &mut ast::Arm) -> Result<()> {
+        self.id(&mut node.id);
+        visit_mut::visit_mut_match_arm(self, node)
+    }
 }
 
 pub fn assign_node_ids(root: &mut Kernel) -> Result<()> {

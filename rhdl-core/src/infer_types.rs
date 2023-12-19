@@ -1,4 +1,4 @@
-use crate::ast::{ExprAssign, ExprIf, ExprLit, ExprUnary, Member, NodeId};
+use crate::ast::{ArmKind, ExprAssign, ExprIf, ExprLit, ExprUnary, Member, NodeId};
 use crate::kernel::Kernel;
 use crate::ty::{ty_array, ty_bits, ty_bool, ty_empty, ty_integer, ty_signed, ty_tuple, ty_usize};
 use crate::unify::UnifyContext;
@@ -108,23 +108,16 @@ impl TypeInference {
         None
     }
 
-    fn bind_match_pattern(&mut self, pat: &ast::Pat) -> Result<()> {
+    fn bind_arm_pattern(&mut self, pat: &ast::Pat) -> Result<()> {
         eprintln!("bind match pattern {:?}", pat);
         match &pat.kind {
-            ast::PatKind::Match(const_pat) => {
-                self.unify(
-                    id_to_var(const_pat.pat.id)?,
-                    const_pat.payload_kind.clone().into(),
-                )?;
-                self.bind_match_pattern(&const_pat.pat)?;
-            }
             ast::PatKind::TupleStruct(tuple_struct) => {
                 for (elem, ty) in tuple_struct
                     .elems
                     .iter()
                     .zip(&tuple_struct.signature.arguments)
                 {
-                    self.bind_match_pattern(elem)?;
+                    self.bind_arm_pattern(elem)?;
                     self.unify(id_to_var(elem.id)?, ty.clone().into())?;
                 }
             }
@@ -135,7 +128,7 @@ impl TypeInference {
                     for field in &ty.fields {
                         if let Member::Named(name) = &field.member {
                             if let Some(ty) = struct_ty.fields.get(name) {
-                                self.bind_match_pattern(&field.pat)?;
+                                self.bind_arm_pattern(&field.pat)?;
                                 self.unify(id_to_var(field.pat.id)?, ty.clone())?;
                             }
                         }
@@ -453,7 +446,12 @@ impl Visitor for TypeInference {
                 // Unify the match target conditional with the type of the match arms
                 let match_expr = id_to_var(match_.expr.id)?;
                 for arm in &match_.arms {
-                    self.unify(match_expr.clone(), id_to_var(arm.pattern.id)?)?;
+                    if let ArmKind::Enum(arm_enum) = &arm.kind {
+                        self.unify(id_to_var(arm.id)?, arm_enum.payload_kind.clone().into())?;
+                        self.bind_arm_pattern(&arm_enum.pat)?;
+                    } else {
+                        self.unify(match_expr.clone(), id_to_var(arm.id)?)?;
+                    }
                 }
                 // Unify the type of the match expression with the types of the
                 // arm bodies
@@ -616,7 +614,6 @@ impl Visitor for TypeInference {
     fn visit_match_arm(&mut self, node: &ast::Arm) -> Result<()> {
         eprintln!("match arm visit - create new scope");
         self.new_scope();
-        self.bind_match_pattern(&node.pattern)?;
         eprintln!("handle body");
         visit::visit_match_arm(self, node)?;
         eprintln!("end scope");

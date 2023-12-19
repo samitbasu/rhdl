@@ -7,7 +7,7 @@ use crate::{
     ty::{self, Ty},
     unify::UnifyContext,
     util::{splice, IndentingFormatter},
-    Kind,
+    Kind, TypedBits,
 };
 use anyhow::Result;
 
@@ -120,12 +120,6 @@ impl<'a> PrettyPrinter<'a> {
                 self.push(": ");
                 self.print_kind(&pat.kind)?;
             }
-            PatKind::Match(pat) => {
-                self.push("match ");
-                self.print_pattern(&pat.pat)?;
-                self.print_type(&term)?;
-                self.push(&format!("{}", pat.discriminant));
-            }
         }
         self.push(" /* ");
         self.print_type(&term)?;
@@ -160,6 +154,10 @@ impl<'a> PrettyPrinter<'a> {
                 self.push(";\n");
             }
         }
+        Ok(())
+    }
+    fn print_bits(&mut self, typed_bits: &TypedBits) -> Result<()> {
+        self.push(&format!("/* {} */", typed_bits));
         Ok(())
     }
     fn print_kind(&mut self, kind: &Kind) -> Result<()> {
@@ -314,7 +312,16 @@ impl<'a> PrettyPrinter<'a> {
                 self.print_expr(&expr.expr)?;
                 self.push(" {\n");
                 for arm in &expr.arms {
-                    self.print_pattern(&arm.pattern)?;
+                    match &arm.kind {
+                        ArmKind::Wild => self.push("_"),
+                        ArmKind::Constant(constant) => {
+                            self.push(&format!("const {}", constant.value))
+                        }
+                        ArmKind::Enum(enum_arm) => {
+                            self.print_pattern(&enum_arm.pat)?;
+                            self.push(&format!("#{}", enum_arm.discriminant));
+                        }
+                    }
                     self.push(" => ");
                     self.print_expr(&arm.body)?;
                     self.push(",\n");

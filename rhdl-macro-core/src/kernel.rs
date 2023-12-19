@@ -442,7 +442,7 @@ impl Context {
         if !pattern_has_bindings(pat) {
             match pat {
                 syn::Pat::Wild(_) => Ok(quote! {
-                    rhdl_core::ast_builder::match_pat(#inner, rhdl_core::ast_builder::wild_discriminant(), rhdl_core::Kind::Empty)
+                    rhdl_core::ast_builder::arm_wild(#inner, rhdl_core::ast_builder::wild_discriminant(), rhdl_core::Kind::Empty)
                 }),
                 _ => Ok(quote! {
                     rhdl_core::ast_builder::match_pat(#inner, rhdl_core::Digital::discriminant(#pat), rhdl_core::Digital::variant_kind(#pat))
@@ -815,20 +815,23 @@ impl Context {
 
     fn arm(&mut self, arm: &syn::Arm) -> Result<TS> {
         self.new_scope();
-        let pat = self.match_pat(&arm.pat)?;
-        self.add_scoped_binding(&arm.pat)?;
-        let guard = arm
-            .guard
-            .as_ref()
-            .map(|(_if, x)| self.expr(x))
-            .transpose()?
-            .map(|x| quote! {Some(#x)})
-            .unwrap_or(quote! {None});
-        let body = self.expr(&arm.body)?;
+        let pat = &arm.pat;
+        let arm = if !pattern_has_bindings(pat) {
+            let body = self.expr(&arm.body)?;
+            if let syn::Pat::Wild(_) = &pat {
+                quote! {rhdl_core::ast_builder::arm_wild(#body)}
+            } else {
+                quote! {rhdl_core::ast_builder::arm_constant(rhdl_core::Digital::typed_bits(#pat), #body)}
+            }
+        } else {
+            self.add_scoped_binding(pat)?;
+            let body = self.expr(&arm.body)?;
+            let pat_as_expr = rewrite_pattern_to_use_defaults_for_bindings(pat);
+            let inner = self.pat(pat)?;
+            quote! {rhdl_core::ast_builder::arm_enum(#inner, rhdl_core::Digital::discriminant(#pat_as_expr), rhdl_core::Digital::variant_kind(#pat_as_expr), #body)}
+        };
         self.end_scope();
-        Ok(quote! {
-            rhdl_core::ast_builder::arm(#pat, #guard, #body)
-        })
+        Ok(arm)
     }
 
     fn let_ex(&mut self, expr: &syn::ExprLet) -> Result<TS> {

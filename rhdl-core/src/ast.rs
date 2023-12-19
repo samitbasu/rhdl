@@ -89,7 +89,6 @@ pub enum PatKind {
     Slice(PatSlice),
     Struct(PatStruct),
     Type(PatType),
-    Match(PatMatch),
     Wild,
 }
 
@@ -119,13 +118,6 @@ pub struct PatTupleStruct {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PatLit {
     pub lit: Box<ExprLit>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PatMatch {
-    pub pat: Box<Pat>,
-    pub discriminant: Box<TypedBits>,
-    pub payload_kind: Kind,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -372,9 +364,28 @@ pub enum UnOp {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Arm {
-    pub pattern: Box<Pat>,
-    pub guard: Option<Box<Expr>>,
+    pub id: NodeId,
+    pub kind: ArmKind,
     pub body: Box<Expr>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ArmKind {
+    Wild,
+    Constant(ArmConstant),
+    Enum(ArmEnum),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ArmConstant {
+    pub value: TypedBits,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ArmEnum {
+    pub pat: Box<Pat>,
+    pub discriminant: TypedBits,
+    pub payload_kind: Kind,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

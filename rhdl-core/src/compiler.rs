@@ -1,7 +1,7 @@
 use crate::{
     ast::{
-        self, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprLit, ExprTuple, ExprTypedBits,
-        FieldValue, Local, NodeId, Pat, PatKind, Path,
+        self, ArmKind, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprLit, ExprTuple,
+        ExprTypedBits, FieldValue, Local, NodeId, Pat, PatKind, Path,
     },
     display_ast::pretty_print_statement,
     infer_types::id_to_var,
@@ -165,6 +165,12 @@ impl CompilerContext {
                 path: Box::new(Path { segments: vec![] }),
                 value: value.clone(),
             })));
+        self.ty.insert(Slot::Literal(ndx), ty);
+        Ok(Slot::Literal(ndx))
+    }
+    fn lit(&mut self, lit: &ExprLit, ty: Ty) -> Result<Slot> {
+        let ndx = self.literals.len();
+        self.literals.push(Box::new(lit.clone()));
         self.ty.insert(Slot::Literal(ndx), ty);
         Ok(Slot::Literal(ndx))
     }
@@ -459,35 +465,35 @@ impl CompilerContext {
         });
         Ok(lhs)
     }
-    fn bind_match_pattern(&mut self, pattern: &Pat) -> Result<()> {
+    fn bind_arm_pattern(&mut self, pattern: &Pat) -> Result<()> {
         match &pattern.kind {
             PatKind::Ident(ident) => self.bind(pattern.id, &ident.name),
             PatKind::Tuple(tuple) => {
                 for pat in &tuple.elements {
-                    self.bind_match_pattern(pat)?;
+                    self.bind_arm_pattern(pat)?;
                 }
                 Ok(())
             }
-            PatKind::Type(ty) => self.bind_match_pattern(&ty.pat),
+            PatKind::Type(ty) => self.bind_arm_pattern(&ty.pat),
             PatKind::Struct(_struct) => {
                 for field in &_struct.fields {
-                    self.bind_match_pattern(&field.pat)?;
+                    self.bind_arm_pattern(&field.pat)?;
                 }
                 Ok(())
             }
             PatKind::TupleStruct(_tuple_struct) => {
                 for pat in &_tuple_struct.elems {
-                    self.bind_match_pattern(pat)?;
+                    self.bind_arm_pattern(pat)?;
                 }
                 Ok(())
             }
             PatKind::Slice(slice) => {
                 for pat in &slice.elems {
-                    self.bind_match_pattern(pat)?;
+                    self.bind_arm_pattern(pat)?;
                 }
                 Ok(())
             }
-            PatKind::Paren(paren) => self.bind_match_pattern(&paren.pat),
+            PatKind::Paren(paren) => self.bind_arm_pattern(&paren.pat),
             PatKind::Lit(_) | PatKind::Wild | PatKind::Path(_) => Ok(()),
             _ => bail!("Unsupported match binding pattern {:?}", pattern),
         }
@@ -499,40 +505,34 @@ impl CompilerContext {
         lhs: Slot,
         arm: &ast::Arm,
     ) -> Result<(CaseArgument, BlockId)> {
-        if arm.guard.is_some() {
-            bail!("Guards are not currently supported in rhdl.  Please use a match arm instead.")
-        }
-        match &arm.pattern.kind {
-            PatKind::Match(x) => {
-                if matches!(x.pat.kind, PatKind::Wild) {
-                    let block = self.wrap_expr_in_block(lhs, &arm.body)?;
-                    return Ok((CaseArgument::Wild, block));
-                }
+        match &arm.kind {
+            ArmKind::Wild => {
+                let block = self.wrap_expr_in_block(lhs, &arm.body)?;
+                Ok((CaseArgument::Wild, block))
+            }
+            ArmKind::Constant(constant) => {
+                let block = self.wrap_expr_in_block(lhs, &arm.body)?;
+                let value = self.literal_from_typed_bits(&constant.value)?;
+                Ok((CaseArgument::Literal(value), block))
+            }
+            ArmKind::Enum(arm_enum) => {
                 // Allocate the local bindings for the match pattern
-                self.bind_match_pattern(&x.pat)?;
-                let value = self.literal_from_typed_bits(&x.discriminant)?;
+                self.bind_arm_pattern(&arm_enum.pat)?;
+                let value = self.literal_from_typed_bits(&arm_enum.discriminant)?;
                 let current_block = self.current_block();
                 let id = self.new_block(lhs);
-                let payload = self.reg(x.payload_kind.clone().into())?;
+                let payload = self.reg(arm_enum.payload_kind.clone().into())?;
                 self.op(OpCode::Payload {
                     lhs: payload,
                     arg: target,
                     discriminant: value,
                 });
-                self.initialize_local(&x.pat, payload)?;
+                self.initialize_local(&arm_enum.pat, payload)?;
                 let result = self.expr(&arm.body)?;
                 self.op(OpCode::Copy { lhs, rhs: result });
                 self.set_active_block(current_block);
                 Ok((CaseArgument::Literal(value), id))
             }
-            PatKind::Wild => {
-                let block = self.wrap_expr_in_block(lhs, &arm.body)?;
-                Ok((CaseArgument::Wild, block))
-            }
-            _ => todo!(
-                "Only const matches are currently implemented not: {:?}",
-                arm.pattern
-            ),
         }
     }
     fn return_expr(&mut self, id: NodeId, _return: &ast::ExprRet) -> Result<Slot> {

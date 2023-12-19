@@ -1318,4 +1318,85 @@ mod tests {
         eprintln!("{}", obj);
         check_type_correctness(&obj).unwrap();
     }
+
+    #[test]
+    fn test_enum_match() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub enum SimpleEnum {
+            #[default]
+            Init,
+            Run(u8),
+            Point {
+                x: b4,
+                y: u8,
+            },
+            Boom,
+        }
+
+        #[kernel]
+        fn add(state: SimpleEnum) -> u8 {
+            let x = state;
+            match x {
+                SimpleEnum::Init => 1,
+                SimpleEnum::Run(x) => x,
+                SimpleEnum::Point { x, y } => y,
+                SimpleEnum::Boom => 7,
+                _ => 0,
+            }
+        }
+
+        test_inference_result(add::kernel_fn()).unwrap();
+    }
+
+    #[test]
+    fn test_const_literal_match() {
+        #[kernel]
+        fn add(a: u8) -> u8 {
+            match a {
+                1 => 1,
+                2 => 2,
+                _ => 3,
+            }
+        }
+
+        test_inference_result(add::kernel_fn()).unwrap();
+    }
+
+    #[test]
+    fn test_const_literal_captured_match() {
+        const ZERO: b4 = bits(0);
+        const ONE: b4 = bits(1);
+        const TWO: b4 = bits(2);
+
+        #[kernel]
+        fn do_stuff(a: b4) -> b4 {
+            match a {
+                ONE => TWO,
+                TWO => ONE,
+                _ => ZERO,
+            }
+        }
+
+        test_inference_result(do_stuff::kernel_fn()).unwrap();
+    }
+
+    #[test]
+    fn test_struct_literal_match() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub struct Foo {
+            a: u8,
+            b: u8,
+        }
+
+        #[kernel]
+        fn add(a: Foo) -> u8 {
+            match a {
+                Foo { a: 1, b: 2 } => 1,
+                Foo { a: 3, b: 4 } => 2,
+                _ => 3,
+            } 
+        }
+
+        test_inference_result(add::kernel_fn()).unwrap();
+    }
 }
