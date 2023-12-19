@@ -115,6 +115,11 @@ pub enum OpCode {
         arg: Slot,
         discriminant: Slot,
     },
+    // x <- tag where tag is the discriminant of the enum.
+    Discriminant {
+        lhs: Slot,
+        arg: Slot,
+    },
     // x <- enum(discriminant, fields)
     Enum {
         lhs: Slot,
