@@ -446,12 +446,7 @@ impl Visitor for TypeInference {
                 // Unify the match target conditional with the type of the match arms
                 let match_expr = id_to_var(match_.expr.id)?;
                 for arm in &match_.arms {
-                    if let ArmKind::Enum(arm_enum) = &arm.kind {
-                        self.unify(id_to_var(arm.id)?, arm_enum.payload_kind.clone().into())?;
-                        self.bind_arm_pattern(&arm_enum.pat)?;
-                    } else {
-                        self.unify(match_expr.clone(), id_to_var(arm.id)?)?;
-                    }
+                    self.unify(match_expr.clone(), id_to_var(arm.id)?)?;
                 }
                 // Unify the type of the match expression with the types of the
                 // arm bodies
@@ -614,6 +609,14 @@ impl Visitor for TypeInference {
     fn visit_match_arm(&mut self, node: &ast::Arm) -> Result<()> {
         eprintln!("match arm visit - create new scope");
         self.new_scope();
+        if let ArmKind::Enum(arm_enum) = &node.kind {
+            self.unify(
+                id_to_var(arm_enum.pat.id)?,
+                arm_enum.payload_kind.clone().into(),
+            )?;
+            eprintln!("arm pattern binding");
+            self.bind_arm_pattern(&arm_enum.pat)?;
+        }
         eprintln!("handle body");
         visit::visit_match_arm(self, node)?;
         eprintln!("end scope");
