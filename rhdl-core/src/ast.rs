@@ -378,7 +378,7 @@ pub enum ArmKind {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArmConstant {
-    pub value: TypedBits,
+    pub value: ExprLit,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -116,7 +116,7 @@ pub fn arm_wild(body: Box<Expr>) -> Box<Arm> {
     })
 }
 
-pub fn arm_constant(value: TypedBits, body: Box<Expr>) -> Box<Arm> {
+pub fn arm_constant(value: ExprLit, body: Box<Expr>) -> Box<Arm> {
     Box::new(Arm {
         id: INVALID_NODE_ID,
         kind: ArmKind::Constant(ArmConstant { value }),
@@ -393,12 +393,19 @@ pub fn member_unnamed(index: u32) -> Member {
 pub use crate::ast::BinOp;
 pub use crate::ast::UnOp;
 
-pub fn expr_lit_int(value: String) -> ExprLit {
-    ExprLit::Int(value)
+pub fn expr_lit_int(value: &str) -> ExprLit {
+    ExprLit::Int(value.to_string())
 }
 
 pub fn expr_lit_bool(value: bool) -> ExprLit {
     ExprLit::Bool(value)
+}
+
+pub fn expr_lit_typed_bits(value: TypedBits) -> ExprLit {
+    ExprLit::TypedBits(ExprTypedBits {
+        path: path(vec![]),
+        value,
+    })
 }
 
 pub fn kernel_fn(name: &str, inputs: Vec<Box<Pat>>, ret: Kind, body: Box<Block>) -> KernelFnKind {

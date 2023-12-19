@@ -1394,7 +1394,7 @@ mod tests {
                 Foo { a: 1, b: 2 } => 1,
                 Foo { a: 3, b: 4 } => 2,
                 _ => 3,
-            } 
+            }
         }
 
         test_inference_result(add::kernel_fn()).unwrap();
