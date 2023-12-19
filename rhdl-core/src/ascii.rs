@@ -113,8 +113,19 @@ impl<'a> AsciiRenderer<'a> {
     fn render_arm(&mut self, arm: &Arm) -> Result<()> {
         self.push("arm");
         self.indent += 1;
-
-        self.render_pat(&arm.pattern)?;
+        match &arm.kind {
+            ArmKind::Wild => {
+                self.push("_");
+            }
+            ArmKind::Constant(constant) => {
+                self.push(&format!("{}", constant.value));
+            }
+            ArmKind::Enum(enum_arm) => {
+                self.render_pat(&enum_arm.pat)?;
+                self.push(&format!("#{}", &enum_arm.discriminant));
+            }
+        }
+        self.push(" => ");
         self.render_expr(&arm.body)?;
         self.indent -= 1;
         Ok(())
@@ -304,12 +315,6 @@ impl<'a> AsciiRenderer<'a> {
             }
             PatKind::Type(ty) => {
                 self.push(&format!("type {:?}", ty));
-            }
-            PatKind::Match(match_) => {
-                self.push("match");
-                self.indent += 1;
-                self.render_pat(&match_.pat)?;
-                self.indent -= 1;
             }
             _ => {
                 self.push(&format!("unhandled {:?}", pat.kind));

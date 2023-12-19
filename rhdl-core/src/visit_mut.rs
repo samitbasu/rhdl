@@ -105,9 +105,6 @@ where
         PatKind::Type(pat_type) => {
             visitor.visit_mut_pat(&mut pat_type.pat)?;
         }
-        PatKind::Match(pat_match) => {
-            visitor.visit_mut_pat(&mut pat_match.pat)?;
-        }
         _ => {}
     }
     Ok(())
@@ -117,9 +114,8 @@ pub fn visit_mut_match_arm<V>(visitor: &mut V, arm: &mut Arm) -> Result<()>
 where
     V: VisitorMut + ?Sized,
 {
-    visitor.visit_mut_pat(&mut arm.pattern)?;
-    if let Some(guard) = &mut arm.guard {
-        visitor.visit_mut_expr(guard)?;
+    if let ArmKind::Enum(enum_arm) = &mut arm.kind {
+        visitor.visit_mut_pat(&mut enum_arm.pat)?;
     }
     visitor.visit_mut_expr(&mut arm.body)?;
     Ok(())

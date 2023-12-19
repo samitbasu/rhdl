@@ -108,10 +108,35 @@ pub fn path_expr(path: Box<Path>) -> Box<Expr> {
     })
 }
 
-pub fn arm(pattern: Box<Pat>, guard: Option<Box<Expr>>, body: Box<Expr>) -> Box<Arm> {
+pub fn arm_wild(body: Box<Expr>) -> Box<Arm> {
     Box::new(Arm {
-        pattern,
-        guard,
+        id: INVALID_NODE_ID,
+        kind: ArmKind::Wild,
+        body,
+    })
+}
+
+pub fn arm_constant(value: TypedBits, body: Box<Expr>) -> Box<Arm> {
+    Box::new(Arm {
+        id: INVALID_NODE_ID,
+        kind: ArmKind::Constant(ArmConstant { value }),
+        body,
+    })
+}
+
+pub fn arm_enum(
+    pat: Box<Pat>,
+    discriminant: TypedBits,
+    payload_kind: Kind,
+    body: Box<Expr>,
+) -> Box<Arm> {
+    Box::new(Arm {
+        id: INVALID_NODE_ID,
+        kind: ArmKind::Enum(ArmEnum {
+            pat,
+            discriminant,
+            payload_kind,
+        }),
         body,
     })
 }
@@ -236,17 +261,6 @@ pub fn wild_pat() -> Box<Pat> {
     Box::new(Pat {
         id: INVALID_NODE_ID,
         kind: PatKind::Wild,
-    })
-}
-
-pub fn match_pat(pat: Box<Pat>, discriminant: TypedBits, payload_kind: Kind) -> Box<Pat> {
-    Box::new(Pat {
-        id: INVALID_NODE_ID,
-        kind: PatKind::Match(PatMatch {
-            pat,
-            discriminant: Box::new(discriminant),
-            payload_kind,
-        }),
     })
 }
 

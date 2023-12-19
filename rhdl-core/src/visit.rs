@@ -104,9 +104,6 @@ where
         PatKind::Type(pat_type) => {
             visitor.visit_pat(&pat_type.pat)?;
         }
-        PatKind::Match(pat_match) => {
-            visitor.visit_pat(&pat_match.pat)?;
-        }
         _ => {}
     }
     Ok(())
@@ -116,10 +113,6 @@ pub fn visit_match_arm<V>(visitor: &mut V, arm: &Arm) -> Result<()>
 where
     V: Visitor + ?Sized,
 {
-    visitor.visit_pat(&arm.pattern)?;
-    if let Some(guard) = &arm.guard {
-        visitor.visit_expr(guard)?;
-    }
     visitor.visit_expr(&arm.body)?;
     Ok(())
 }
