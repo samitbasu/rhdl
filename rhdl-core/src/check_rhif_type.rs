@@ -1,7 +1,7 @@
 // Check a RHIF object for type correctness.
 
 use crate::{
-    rhif::{AluBinary, AluUnary, Object, OpCode, Slot},
+    rhif::{AluBinary, AluUnary, CaseArgument, Object, OpCode, Slot},
     ty::{
         self, ty_array, ty_array_base, ty_as_ref, ty_bool, ty_named_field, ty_unnamed_field, Bits,
         Ty,
@@ -251,6 +251,18 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     let variant_kind = enum_kind.lookup_variant(discriminant_value)?;
                     let variant_ty = variant_kind.into();
                     eq_types(slot_type(lhs)?, variant_ty)?;
+                }
+                OpCode::Case { lhs, expr, table } => {
+                    let arg_ty = slot_type(expr)?;
+                    for (entry_test, entry_body) in table {
+                        match entry_test {
+                            CaseArgument::Literal(lit) => {
+                                let lit_ty = slot_type(lit)?;
+                                eq_types(arg_ty.clone(), lit_ty)?;
+                            }
+                            CaseArgument::Wild => {}
+                        }
+                    }
                 }
                 _ => {}
             }
