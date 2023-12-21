@@ -452,7 +452,18 @@ impl CompilerContext {
     }
     fn match_expr(&mut self, id: NodeId, _match: &ast::ExprMatch) -> Result<Slot> {
         let lhs = self.reg(self.node_ty(id)?)?;
+        let target_ty = self.ty(_match.expr.id)?;
         let target = self.expr(&_match.expr)?;
+        let target = if let Ty::Enum(enum_ty) = target_ty {
+            let discriminant = self.reg(enum_ty.discriminant.clone().into())?;
+            self.op(OpCode::Discriminant {
+                lhs: discriminant,
+                arg: target,
+            });
+            discriminant
+        } else {
+            target
+        };
         let table = _match
             .arms
             .iter()
