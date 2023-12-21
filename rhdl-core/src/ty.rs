@@ -53,6 +53,12 @@ pub struct TyMap {
     pub kind: Kind,
 }
 
+#[derive(PartialEq, Debug, Clone, Eq, Deserialize, Serialize)]
+pub struct TyEnum {
+    pub payload: TyMap,
+    pub discriminant: Box<Ty>,
+}
+
 use crate::ast::NodeId;
 use crate::Kind;
 
@@ -68,7 +74,7 @@ pub enum Ty {
     Tuple(Vec<Ty>),
     Array(Vec<Ty>),
     Struct(TyMap),
-    Enum(TyMap),
+    Enum(TyEnum),
     Integer,
 }
 
@@ -191,7 +197,18 @@ impl Display for Ty {
                 Bits::Unsigned(width) => write!(f, "b{}", width),
                 Bits::Empty => write!(f, "{{}}"),
             },
-            Ty::Struct(struct_) | Ty::Enum(struct_) => {
+            Ty::Struct(struct_) => {
+                write!(f, "{} {{", struct_.name)?;
+                for (i, (field, ty)) in struct_.fields.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}: {}", field, ty)?;
+                }
+                write!(f, "}}")
+            }
+            Ty::Enum(enum_) => {
+                let struct_ = &enum_.payload;
                 write!(f, "{} {{", struct_.name)?;
                 for (i, (field, ty)) in struct_.fields.iter().enumerate() {
                     if i > 0 {
@@ -253,14 +270,17 @@ impl From<Kind> for Ty {
                     .map(|field| field.into())
                     .collect(),
             ),
-            Kind::Enum(enum_) => Ty::Enum(TyMap {
-                name: enum_.name,
-                fields: enum_
-                    .variants
-                    .into_iter()
-                    .map(|variant| (variant.name, variant.kind.into()))
-                    .collect(),
-                kind: value,
+            Kind::Enum(enum_) => Ty::Enum(TyEnum {
+                payload: TyMap {
+                    name: enum_.name,
+                    fields: enum_
+                        .variants
+                        .into_iter()
+                        .map(|variant| (variant.name, variant.kind.into()))
+                        .collect(),
+                    kind: value,
+                },
+                discriminant: enum_.discriminant.into(),
             }),
             Kind::Array(array) => ty_array((*array.base).into(), array.size),
             _ => unimplemented!("No type conversion for kind: {:?}", value),

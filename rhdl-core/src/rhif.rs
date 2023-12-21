@@ -236,7 +236,13 @@ impl std::fmt::Display for Object {
             }
         }
         for (ndx, literal) in self.literals.iter().enumerate() {
-            writeln!(f, "Literal l{} : {}", ndx, literal)?;
+            writeln!(
+                f,
+                "Literal l{} : {} = {}",
+                ndx,
+                self.ty[&Slot::Literal(ndx)],
+                literal
+            )?;
         }
         for (name, func) in &self.externals {
             writeln!(

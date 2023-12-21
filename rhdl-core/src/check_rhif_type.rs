@@ -28,11 +28,6 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
             Err(anyhow!("type mismatch: {:?} != {:?}", a, b))
         }
     };
-    for (lit_ndx, lit_ty) in obj.literals.iter().enumerate() {
-        let slot_ty = slot_type(&Slot::Literal(lit_ndx))?;
-        let lit_ty: Ty = lit_ty.kind.clone().into();
-        eq_types(slot_ty, lit_ty)?;
-    }
     for block in &obj.blocks {
         for op in &block.ops {
             eprintln!("op: {:?}", op);
