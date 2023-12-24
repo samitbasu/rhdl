@@ -8,7 +8,7 @@ use crate::{
     rhif::{
         self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, FuncId, OpCode, Slot,
     },
-    ty::{ty_as_ref, ty_indexed_item, ty_unnamed_field, Bits, Ty, TypeId},
+    ty::{ty_as_ref, ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
     typed_bits::TypedBits,
     unify::UnifyContext,
     visit::Visitor,
@@ -319,26 +319,47 @@ impl CompilerContext {
                 Ok(())
             }
             PatKind::Struct(_struct) => {
+                let rhs_ty = self
+                    .ty
+                    .get(&rhs)
+                    .ok_or(anyhow::anyhow!(
+                        "No type for {:?} when initializing struct",
+                        rhs
+                    ))?
+                    .clone();
                 for field in &_struct.fields {
-                    if let Ok(element_lhs) = self.resolve_local(field.pat.id) {
-                        self.op(OpCode::Field {
-                            lhs: element_lhs,
-                            arg: rhs,
-                            member: field.member.clone().into(),
-                        });
-                    }
+                    let element_ty = match &field.member {
+                        ast::Member::Named(name) => ty_named_field(&rhs_ty, name)?,
+                        ast::Member::Unnamed(ndx) => ty_unnamed_field(&rhs_ty, *ndx as usize)?,
+                    };
+                    let element_rhs = self.reg(element_ty)?;
+                    self.op(OpCode::Field {
+                        lhs: element_rhs,
+                        arg: rhs,
+                        member: field.member.clone().into(),
+                    });
+                    self.initialize_local(&field.pat, element_rhs)?;
                 }
                 Ok(())
             }
             PatKind::TupleStruct(_tuple_struct) => {
+                let rhs_ty = self
+                    .ty
+                    .get(&rhs)
+                    .ok_or(anyhow::anyhow!(
+                        "No type for {:?} when initializing tuple struct",
+                        rhs
+                    ))?
+                    .clone();
                 for (ndx, pat) in _tuple_struct.elems.iter().enumerate() {
-                    if let Ok(element_lhs) = self.resolve_local(pat.id) {
-                        self.op(OpCode::Field {
-                            lhs: element_lhs,
-                            arg: rhs,
-                            member: rhif::Member::Unnamed(ndx as u32),
-                        });
-                    }
+                    let element_ty = ty_unnamed_field(&rhs_ty, ndx)?;
+                    let element_rhs = self.reg(element_ty)?;
+                    self.op(OpCode::Field {
+                        lhs: element_rhs,
+                        arg: rhs,
+                        member: rhif::Member::Unnamed(ndx as u32),
+                    });
+                    self.initialize_local(pat, element_rhs)?;
                 }
                 Ok(())
             }

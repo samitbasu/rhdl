@@ -1463,4 +1463,48 @@ mod tests {
 
         test_inference_result(add::kernel_fn()).unwrap();
     }
+
+    #[test]
+    fn test_tuple_struct_nested_init() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub struct Foo {
+            a: u8,
+            b: u8,
+        }
+
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub struct Bar {
+            a: u8,
+            b: Foo,
+        }
+
+        #[kernel]
+        fn add(a: u8) -> u8 {
+            let b = Bar {
+                a: 1,
+                b: Foo { a: 2, b: 3 },
+            };
+            let Bar {
+                a,
+                b: Foo { a: c, b: d },
+            } = b;
+            a + c + d
+        }
+
+        test_inference_result(add::kernel_fn()).unwrap();
+    }
+
+    #[test]
+    fn test_tuplestruct_nested_init() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub struct Wrap(u8, (u8, u8), u8);
+
+        #[kernel]
+        fn add(a: u8) -> u8 {
+            let b = Wrap(1, (2, 3), 4);
+            let Wrap(c, (d, e), f) = b;
+            c + d + e + f
+        }
+        test_inference_result(add::kernel_fn()).unwrap();
+    }
 }
