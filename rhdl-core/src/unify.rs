@@ -1,4 +1,6 @@
-use crate::ty::{ty_array_base, ty_as_ref, ty_indexed_item, ty_named_field, ty_unnamed_field};
+use crate::ty::{
+    ty_array_base, ty_as_ref, ty_indexed_item, ty_named_field, ty_unnamed_field, TyEnum,
+};
 use crate::ty::{Ty, TypeId};
 use anyhow::bail;
 use anyhow::Result;
@@ -57,14 +59,18 @@ impl UnifyContext {
                     .collect(),
                 kind: struct_.kind,
             }),
-            Term::Enum(enum_) => Term::Enum(TermMap {
-                name: enum_.name,
-                fields: enum_
-                    .fields
-                    .into_iter()
-                    .map(|(k, v)| (k, self.apply(v)))
-                    .collect(),
-                kind: enum_.kind,
+            Term::Enum(enum_) => Term::Enum(TyEnum {
+                payload: TermMap {
+                    name: enum_.payload.name,
+                    fields: enum_
+                        .payload
+                        .fields
+                        .into_iter()
+                        .map(|(k, v)| (k, self.apply(v)))
+                        .collect(),
+                    kind: enum_.payload.kind,
+                },
+                discriminant: enum_.discriminant,
             }),
         }
     }
@@ -103,9 +109,8 @@ impl UnifyContext {
             (Term::Tuple(x), Term::Tuple(y)) | (Term::Array(x), Term::Array(y)) => {
                 self.unify_tuple_arrays(x, y)
             }
-            (Term::Struct(x), Term::Struct(y)) | (Term::Enum(x), Term::Enum(y)) => {
-                self.unify_maps(x, y)
-            }
+            (Term::Struct(x), Term::Struct(y)) => self.unify_maps(x, y),
+            (Term::Enum(x), Term::Enum(y)) => self.unify_maps(x.payload, y.payload),
             (x, y) => bail!("Cannot unify {:?} and {:?}", x, y),
         }
     }
@@ -159,7 +164,7 @@ impl UnifyContext {
         let Ty::Enum(enum_) = t else {
             bail!("Type must be an enum")
         };
-        let Some(ty) = enum_.fields.get(variant) else {
+        let Some(ty) = enum_.payload.fields.get(variant) else {
             bail!("Variant {} not found", variant)
         };
         Ok(ty.clone())
@@ -530,15 +535,18 @@ mod tests {
             },
             kind: crate::Kind::Empty, // Not correct, but not needed for this test case
         });
-        let ty_enum = Ty::Enum(TermMap {
-            name: "FooEnum".into(),
-            fields: {
-                let mut map = BTreeMap::default();
-                map.insert("A".into(), ty_empty());
-                map.insert("B".into(), ty_foo_struct.clone());
-                map
+        let ty_enum = Ty::Enum(TyEnum {
+            payload: TermMap {
+                name: "FooEnum".into(),
+                fields: {
+                    let mut map = BTreeMap::default();
+                    map.insert("A".into(), ty_empty());
+                    map.insert("B".into(), ty_foo_struct.clone());
+                    map
+                },
+                kind: crate::Kind::Empty, // Not correct, but not needed for this test case
             },
-            kind: crate::Kind::Empty, // Not correct, but not needed for this test case
+            discriminant: Box::new(ty_bits(2)),
         });
         subst.unify(a.clone(), ty_enum.clone()).unwrap();
         subst

@@ -1,11 +1,7 @@
-use std::iter::repeat;
-
 use rhdl_bits::{Bits, SignedBits};
-use serde::{Deserialize, Serialize};
 
 use crate::{
     note::{NoteKey, NoteWriter},
-    path::{bit_range, Path},
     Kind, TypedBits,
 };
 
@@ -355,8 +351,11 @@ mod test {
                             ),
                         },
                     ],
-                    3,
-                    DiscriminantAlignment::Lsb,
+                    Kind::make_discriminant_layout(
+                        3,
+                        DiscriminantAlignment::Lsb,
+                        crate::kind::DiscriminantType::Unsigned,
+                    ),
                 )
             }
             fn bin(self) -> Vec<bool> {
@@ -475,8 +474,11 @@ mod test {
                             kind: Kind::Empty,
                         },
                     ],
-                    3,
-                    DiscriminantAlignment::Lsb,
+                    Kind::make_discriminant_layout(
+                        3,
+                        DiscriminantAlignment::Lsb,
+                        crate::kind::DiscriminantType::Unsigned,
+                    ),
                 )
             }
             fn bin(self) -> Vec<bool> {
@@ -531,8 +533,11 @@ mod test {
                         kind: Kind::Empty,
                     },
                 ],
-                3,
-                DiscriminantAlignment::Lsb,
+                Kind::make_discriminant_layout(
+                    3,
+                    DiscriminantAlignment::Lsb,
+                    crate::kind::DiscriminantType::Unsigned,
+                ),
             )
         );
     }

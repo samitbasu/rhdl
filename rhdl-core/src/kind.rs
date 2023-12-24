@@ -68,12 +68,24 @@ pub enum DiscriminantAlignment {
     Lsb,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DiscriminantType {
+    Signed,
+    Unsigned,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DiscriminantLayout {
+    pub width: usize,
+    pub alignment: DiscriminantAlignment,
+    pub ty: DiscriminantType,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Enum {
     pub name: String,
     pub variants: Vec<Variant>,
-    pub discriminant_width: usize,
-    pub discriminant_alignment: DiscriminantAlignment,
+    pub discriminant_layout: DiscriminantLayout,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -127,17 +139,26 @@ impl Kind {
             fields,
         })
     }
+    pub fn make_discriminant_layout(
+        width: usize,
+        alignment: DiscriminantAlignment,
+        ty: DiscriminantType,
+    ) -> DiscriminantLayout {
+        DiscriminantLayout {
+            width,
+            alignment,
+            ty,
+        }
+    }
     pub fn make_enum(
         name: &str,
         variants: Vec<Variant>,
-        discriminant_width: usize,
-        discriminant_alignment: DiscriminantAlignment,
+        discriminant_layout: DiscriminantLayout,
     ) -> Self {
         Self::Enum(Enum {
             name: name.into(),
             variants,
-            discriminant_width,
-            discriminant_alignment,
+            discriminant_layout,
         })
     }
     pub fn make_bits(digits: usize) -> Self {
@@ -152,7 +173,7 @@ impl Kind {
             Kind::Tuple(tuple) => tuple.elements.iter().map(|x| x.bits()).sum(),
             Kind::Struct(kind) => kind.fields.iter().map(|x| x.kind.bits()).sum(),
             Kind::Enum(kind) => {
-                kind.discriminant_width
+                kind.discriminant_layout.width
                     + kind
                         .variants
                         .iter()
@@ -174,10 +195,10 @@ impl Kind {
         let pad_len = self.bits() - bits.len();
         let bits = bits.into_iter().chain(repeat(false).take(pad_len));
         match self {
-            Kind::Enum(kind) => match kind.discriminant_alignment {
+            Kind::Enum(kind) => match kind.discriminant_layout.alignment {
                 DiscriminantAlignment::Lsb => bits.collect(),
                 DiscriminantAlignment::Msb => {
-                    let discriminant_width = kind.discriminant_width;
+                    let discriminant_width = kind.discriminant_layout.width;
                     let discriminant = bits.clone().take(discriminant_width);
                     let payload = bits.skip(discriminant_width);
                     payload.chain(discriminant).collect()
@@ -231,6 +252,10 @@ impl Kind {
                 e.name
             )),
         }
+    }
+
+    pub fn is_enum(&self) -> bool {
+        matches!(self, Kind::Enum(_))
     }
 }
 
@@ -340,17 +365,20 @@ fn generate_kind_layout(
                 depth: 1,
                 name: format!("{name}|{}|", kind.bits()),
             }];
-            let variant_cols = match e.discriminant_alignment {
-                DiscriminantAlignment::Lsb => offset_col..(offset_col + e.discriminant_width),
+            let variant_cols = match e.discriminant_layout.alignment {
+                DiscriminantAlignment::Lsb => {
+                    offset_col..(offset_col + e.discriminant_layout.width)
+                }
                 DiscriminantAlignment::Msb => {
-                    offset_col + kind.bits() - e.discriminant_width..(offset_col + kind.bits())
+                    offset_col + kind.bits() - e.discriminant_layout.width
+                        ..(offset_col + kind.bits())
                 }
             };
-            let payload_offset = match e.discriminant_alignment {
-                DiscriminantAlignment::Lsb => offset_col + e.discriminant_width,
+            let payload_offset = match e.discriminant_layout.alignment {
+                DiscriminantAlignment::Lsb => offset_col + e.discriminant_layout.width,
                 DiscriminantAlignment::Msb => offset_col,
             };
-            let disc_width = e.discriminant_width;
+            let disc_width = e.discriminant_layout.width;
             for variant in &e.variants {
                 let discriminant = if variant.discriminant < 0 {
                     (variant.discriminant as u128) & ((1 << disc_width) - 1)
@@ -797,13 +825,19 @@ mod test {
                                 kind: Kind::Empty,
                             },
                         ],
-                        2,
-                        DiscriminantAlignment::Msb,
+                        Kind::make_discriminant_layout(
+                            2,
+                            DiscriminantAlignment::Msb,
+                            DiscriminantType::Unsigned,
+                        ),
                     ),
                 },
             ],
-            4,
-            DiscriminantAlignment::Lsb,
+            Kind::make_discriminant_layout(
+                4,
+                DiscriminantAlignment::Lsb,
+                DiscriminantType::Unsigned,
+            ),
         )
     }
 
@@ -915,8 +949,11 @@ mod test {
                     kind: Kind::Empty,
                 },
             ],
-            2,
-            DiscriminantAlignment::Lsb,
+            Kind::make_discriminant_layout(
+                2,
+                DiscriminantAlignment::Lsb,
+                DiscriminantType::Unsigned,
+            ),
         );
         let layout = generate_kind_layout(&kind, "value", 0, 0);
         println!("{:#?}", layout);

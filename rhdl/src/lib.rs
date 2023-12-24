@@ -23,9 +23,9 @@ mod tests {
         kernel::{ExternalKernelDef, Kernel, KernelFnKind},
         note,
         note_db::{dump_vcd, note_time},
-        path::{bit_range, Path},
+        path::{bit_range, Path, PathElement},
         visit::Visitor,
-        DiscriminantAlignment, NoteKey,
+        DiscriminantAlignment, DiscriminantType, NoteKey,
     };
 
     use super::*;
@@ -154,7 +154,7 @@ mod tests {
 
         println!("foo val: {}", foo.binary_string());
         let test_kind = Test::static_kind();
-        let (range, kind) = bit_range(test_kind, &[Path::Field("b")]).unwrap();
+        let (range, kind) = bit_range(test_kind, &Path::new().field("b")).unwrap();
         println!("range: {:?}", range);
         println!("kind: {:?}", kind);
         assert_eq!(range, 1..9);
@@ -183,7 +183,7 @@ mod tests {
         }
 
         let foo = Test::B(b2::from(0b10), b3::from(0b101));
-        let disc = vec![Path::EnumPayload(stringify!(B)), Path::Index(1)];
+        let disc = Path::new().payload(stringify!(B)).index(1);
         let index = bit_range(Test::static_kind(), &disc)?;
         println!("{:?}", index);
         let bits = foo.bin();
@@ -195,7 +195,7 @@ mod tests {
                 .map(|x| if *x { '1' } else { '0' })
                 .collect::<String>()
         );
-        let (disc_range, disc_kind) = bit_range(Test::static_kind(), &[Path::EnumDiscriminant])?;
+        let (disc_range, disc_kind) = bit_range(Test::static_kind(), &Path::new().discriminant())?;
         println!("{:?}", disc_range);
         println!("{:?}", disc_kind);
         let disc_bits = foo.bin();
@@ -260,7 +260,7 @@ mod tests {
             },
         }
 
-        let (range, kind) = bit_range(Test::static_kind(), &[Path::EnumDiscriminant]).unwrap();
+        let (range, kind) = bit_range(Test::static_kind(), &Path::new().discriminant()).unwrap();
         assert_eq!(range.len(), 4);
         assert_eq!(kind, Kind::make_bits(4));
     }
@@ -280,7 +280,7 @@ mod tests {
                 b: b8,
             },
         }
-        let (range, kind) = bit_range(Test::static_kind(), &[Path::EnumDiscriminant]).unwrap();
+        let (range, kind) = bit_range(Test::static_kind(), &Path::new().discriminant()).unwrap();
         assert_eq!(range, 0..2);
         assert_eq!(kind, Kind::make_bits(2));
     }
@@ -1013,8 +1013,11 @@ mod tests {
                         Kind::make_tuple(vec![Kind::make_bits(8)]),
                         1,
                     )],
-                    1,
-                    DiscriminantAlignment::Msb,
+                    Kind::make_discriminant_layout(
+                        1,
+                        DiscriminantAlignment::Msb,
+                        DiscriminantType::Unsigned,
+                    ),
                 )
             }
         }

@@ -384,7 +384,7 @@ pub struct ArmConstant {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArmEnum {
     pub pat: Box<Pat>,
-    pub discriminant: TypedBits,
+    pub template: TypedBits,
     pub payload_kind: Kind,
 }
 

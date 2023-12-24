@@ -122,7 +122,7 @@ impl<'a> AsciiRenderer<'a> {
             }
             ArmKind::Enum(enum_arm) => {
                 self.render_pat(&enum_arm.pat)?;
-                self.push(&format!("#{}", &enum_arm.discriminant));
+                self.push(&format!("#{}", &enum_arm.template));
             }
         }
         self.push(" => ");

@@ -454,13 +454,8 @@ impl CompilerContext {
         let lhs = self.reg(self.node_ty(id)?)?;
         let target_ty = self.ty(_match.expr.id)?;
         let target = self.expr(&_match.expr)?;
-        let target = if let Ty::Enum(enum_ty) = target_ty {
-            let discriminant = self.reg(enum_ty.discriminant.clone().into())?;
-            self.op(OpCode::Discriminant {
-                lhs: discriminant,
-                arg: target,
-            });
-            discriminant
+        let discriminant = if let Ty::Enum(enum_ty) = target_ty {
+            self.reg(*enum_ty.discriminant.clone())?
         } else {
             target
         };
@@ -471,7 +466,7 @@ impl CompilerContext {
             .collect::<Result<_>>()?;
         self.op(OpCode::Case {
             lhs,
-            expr: target,
+            discriminant,
             table,
         });
         Ok(lhs)
@@ -523,13 +518,17 @@ impl CompilerContext {
             }
             ArmKind::Constant(constant) => {
                 let block = self.wrap_expr_in_block(lhs, &arm.body)?;
-                let value = self.lit(&constant.value, self.node_ty(arm.id)?)?;
+                let value = if let ExprLit::TypedBits(tb) = &constant.value {
+                    self.literal_from_typed_bits(&tb.value.discriminant()?)?
+                } else {
+                    self.lit(&constant.value, self.node_ty(arm.id)?)?
+                };
                 Ok((CaseArgument::Literal(value), block))
             }
             ArmKind::Enum(arm_enum) => {
                 // Allocate the local bindings for the match pattern
                 self.bind_arm_pattern(&arm_enum.pat)?;
-                let value = self.literal_from_typed_bits(&arm_enum.discriminant)?;
+                let value = self.literal_from_typed_bits(&arm_enum.template.discriminant()?)?;
                 let current_block = self.current_block();
                 let id = self.new_block(lhs);
                 let payload = self.reg(arm_enum.payload_kind.clone().into())?;

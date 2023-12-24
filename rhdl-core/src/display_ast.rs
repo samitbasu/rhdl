@@ -212,7 +212,10 @@ impl<'a> PrettyPrinter<'a> {
                 ty::Bits::Usize => self.push("usize"),
             },
             Ty::Integer => self.push("int"),
-            Ty::Enum(ty) | Ty::Struct(ty) => {
+            Ty::Enum(ty) => {
+                self.push(&ty.payload.name);
+            }
+            Ty::Struct(ty) => {
                 self.push(&ty.name);
             }
             Ty::Ref(_) => todo!(),
@@ -319,7 +322,7 @@ impl<'a> PrettyPrinter<'a> {
                         }
                         ArmKind::Enum(enum_arm) => {
                             self.print_pattern(&enum_arm.pat)?;
-                            self.push(&format!("#{}", enum_arm.discriminant));
+                            self.push(&format!("#{}", enum_arm.template));
                         }
                     }
                     self.push(" => ");

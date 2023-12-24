@@ -203,10 +203,10 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     let Ty::Enum(enum_ty) = &ty else {
                         bail!("expected enum type")
                     };
-                    let enum_kind = enum_ty.kind.clone();
+                    let payload_kind = enum_ty.payload.kind.clone();
                     let discriminant_value = obj.literal(*discriminant)?;
                     let discriminant_value = discriminant_value.as_i64()?;
-                    let variant_kind = enum_kind.lookup_variant(discriminant_value)?;
+                    let variant_kind = payload_kind.lookup_variant(discriminant_value)?;
                     let variant_ty = variant_kind.into();
                     for field in fields {
                         let crate::rhif::Member::Named(name) = &field.member else {
@@ -245,14 +245,18 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     let Ty::Enum(enum_ty) = &ty else {
                         bail!(format!("expected enum type {}", ty));
                     };
-                    let enum_kind = enum_ty.kind.clone();
+                    let payload_kind = enum_ty.payload.kind.clone();
                     let discriminant_value = obj.literal(*discriminant)?;
                     let discriminant_value = discriminant_value.as_i64()?;
-                    let variant_kind = enum_kind.lookup_variant(discriminant_value)?;
+                    let variant_kind = payload_kind.lookup_variant(discriminant_value)?;
                     let variant_ty = variant_kind.into();
                     eq_types(slot_type(lhs)?, variant_ty)?;
                 }
-                OpCode::Case { lhs, expr, table } => {
+                OpCode::Case {
+                    lhs,
+                    discriminant: expr,
+                    table,
+                } => {
                     let arg_ty = slot_type(expr)?;
                     for (entry_test, entry_body) in table {
                         match entry_test {

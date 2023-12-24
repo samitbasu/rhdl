@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     digital::binary_string,
-    path::{bit_range, Path},
+    path::{bit_range, Path, PathElement},
     Kind,
 };
 
@@ -21,12 +21,19 @@ impl TypedBits {
         kind: Kind::Empty,
     };
 
-    pub fn path(&self, path: &[Path]) -> anyhow::Result<TypedBits> {
+    pub fn path(&self, path: &Path) -> anyhow::Result<TypedBits> {
         let (range, kind) = bit_range(self.kind.clone(), path)?;
         Ok(TypedBits {
             bits: self.bits[range].to_vec(),
             kind,
         })
+    }
+    pub fn discriminant(&self) -> anyhow::Result<TypedBits> {
+        if self.kind.is_enum() {
+            self.path(&Path::new().discriminant())
+        } else {
+            Ok(self.clone())
+        }
     }
     pub fn unsigned_cast(&self, bits: usize) -> anyhow::Result<TypedBits> {
         if bits > self.kind.bits() {

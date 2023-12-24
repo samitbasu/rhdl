@@ -514,8 +514,11 @@ mod tests {
                             ),
                         },
                     ],
-                    3,
-                    DiscriminantAlignment::Lsb,
+                    Kind::make_discriminant_layout(
+                        3,
+                        DiscriminantAlignment::Lsb,
+                        crate::kind::DiscriminantType::Unsigned,
+                    ),
                 )
             }
             fn bin(self) -> Vec<bool> {
