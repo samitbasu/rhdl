@@ -15,7 +15,7 @@ mod tests {
     use rhdl_core::{
         ascii::render_ast_to_string,
         assign_node::assign_node_ids,
-        check_inference, check_type_correctness,
+        check_inference, check_rhif_flow, check_type_correctness,
         compiler::{compile, CompilerContext},
         digital_fn::{inspect_digital, DigitalFn},
         display_ast::pretty_print_kernel,
@@ -24,6 +24,7 @@ mod tests {
         note,
         note_db::{dump_vcd, note_time},
         path::{bit_range, Path, PathElement},
+        rhif::BlockId,
         visit::Visitor,
         DiscriminantAlignment, DiscriminantType, NoteKey,
     };
@@ -40,6 +41,7 @@ mod tests {
         let obj = compile(&kernel.ast, ctx)?;
         eprintln!("{}", obj);
         check_type_correctness(&obj)?;
+        check_rhif_flow(&obj)?;
         Ok(())
     }
 
@@ -154,7 +156,7 @@ mod tests {
 
         println!("foo val: {}", foo.binary_string());
         let test_kind = Test::static_kind();
-        let (range, kind) = bit_range(test_kind, &Path::new().field("b")).unwrap();
+        let (range, kind) = bit_range(test_kind, &Path::default().field("b")).unwrap();
         println!("range: {:?}", range);
         println!("kind: {:?}", kind);
         assert_eq!(range, 1..9);
@@ -183,7 +185,7 @@ mod tests {
         }
 
         let foo = Test::B(b2::from(0b10), b3::from(0b101));
-        let disc = Path::new().payload(stringify!(B)).index(1);
+        let disc = Path::default().payload(stringify!(B)).index(1);
         let index = bit_range(Test::static_kind(), &disc)?;
         println!("{:?}", index);
         let bits = foo.bin();
@@ -195,7 +197,8 @@ mod tests {
                 .map(|x| if *x { '1' } else { '0' })
                 .collect::<String>()
         );
-        let (disc_range, disc_kind) = bit_range(Test::static_kind(), &Path::new().discriminant())?;
+        let (disc_range, disc_kind) =
+            bit_range(Test::static_kind(), &Path::default().discriminant())?;
         println!("{:?}", disc_range);
         println!("{:?}", disc_kind);
         let disc_bits = foo.bin();
@@ -260,7 +263,8 @@ mod tests {
             },
         }
 
-        let (range, kind) = bit_range(Test::static_kind(), &Path::new().discriminant()).unwrap();
+        let (range, kind) =
+            bit_range(Test::static_kind(), &Path::default().discriminant()).unwrap();
         assert_eq!(range.len(), 4);
         assert_eq!(kind, Kind::make_bits(4));
     }
@@ -280,7 +284,8 @@ mod tests {
                 b: b8,
             },
         }
-        let (range, kind) = bit_range(Test::static_kind(), &Path::new().discriminant()).unwrap();
+        let (range, kind) =
+            bit_range(Test::static_kind(), &Path::default().discriminant()).unwrap();
         assert_eq!(range, 0..2);
         assert_eq!(kind, Kind::make_bits(2));
     }
@@ -1429,6 +1434,31 @@ mod tests {
                 Foo { a: 3, b: 4 } => 2,
                 _ => 3,
             }
+        }
+
+        test_inference_result(add::kernel_fn()).unwrap();
+    }
+
+    #[test]
+    fn test_nested_tuple_init() {
+        #[kernel]
+        fn add(a: u8) -> u8 {
+            let b = (1, (2, 3), 4);
+            let (c, (d, e), f) = b;
+            c + d + e + f
+        }
+
+        test_inference_result(add::kernel_fn()).unwrap();
+    }
+
+    #[test]
+    fn test_nested_tuple_array_init() {
+        #[kernel]
+        fn add(a: u8) -> u8 {
+            let b = [(1, (2, 3), 4); 3];
+            let (c, (d, e), f) = b[1];
+            let [g, (h0, (h1a, h1b), h2), i] = b;
+            c + d + e + f + g.0 + h0 + h1a + h1b + h2 + i.1 .0
         }
 
         test_inference_result(add::kernel_fn()).unwrap();

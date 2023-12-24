@@ -252,7 +252,6 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     eq_types(slot_type(lhs)?, variant_ty)?;
                 }
                 OpCode::Case {
-                    lhs,
                     discriminant: expr,
                     table,
                 } => {

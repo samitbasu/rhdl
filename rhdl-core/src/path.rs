@@ -15,17 +15,12 @@ pub enum PathElement {
     EnumPayload(&'static str),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct Path {
     pub elements: Vec<PathElement>,
 }
 
 impl Path {
-    pub fn new() -> Self {
-        Path {
-            elements: Vec::new(),
-        }
-    }
     pub fn index(self, index: usize) -> Self {
         let mut elements = self.elements;
         elements.push(PathElement::Index(index));

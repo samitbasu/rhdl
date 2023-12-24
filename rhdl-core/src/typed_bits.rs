@@ -30,7 +30,7 @@ impl TypedBits {
     }
     pub fn discriminant(&self) -> anyhow::Result<TypedBits> {
         if self.kind.is_enum() {
-            self.path(&Path::new().discriminant())
+            self.path(&Path::default().discriminant())
         } else {
             Ok(self.clone())
         }

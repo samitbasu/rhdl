@@ -93,7 +93,6 @@ pub enum OpCode {
     Block(BlockId),
     // ROM table
     Case {
-        lhs: Slot,
         discriminant: Slot,
         table: Vec<(CaseArgument, BlockId)>,
     },
@@ -220,6 +219,8 @@ pub struct Object {
     pub blocks: Vec<Block>,
     pub return_slot: Slot,
     pub externals: Vec<ExternalFunction>,
+    pub main_block: BlockId,
+    pub arguments: Vec<Slot>,
 }
 
 impl Object {
@@ -261,7 +262,11 @@ impl std::fmt::Display for Object {
             )?;
         }
         for block in &self.blocks {
-            writeln!(f, "Block {}", block.id.0)?;
+            if block.id == self.main_block {
+                writeln!(f, "Main block {}", block.id.0)?;
+            } else {
+                writeln!(f, "Block {}", block.id.0)?;
+            }
             for op in &block.ops {
                 writeln!(f, "  {}", op)?;
             }
