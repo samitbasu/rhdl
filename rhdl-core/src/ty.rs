@@ -171,7 +171,7 @@ pub fn ty_indexed_item(base: &Ty, index: usize) -> Result<Ty> {
         return ty_indexed_item(base, index).map(|x| Ty::Ref(Box::new(x)));
     }
     let Ty::Array(elems) = base else {
-        bail!("Type must be an array")
+        bail!(format!("Type must be an array, got {:?}", base))
     };
     elems
         .get(index)
