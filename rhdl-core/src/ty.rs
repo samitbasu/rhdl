@@ -79,6 +79,11 @@ pub enum Ty {
     Enum(TyEnum),
     Integer,
 }
+impl Ty {
+    pub fn is_empty(&self) -> bool {
+        self == &ty_empty()
+    }
+}
 
 pub fn ty_bool() -> Ty {
     Ty::Const(Bits::Unsigned(1))

@@ -8,7 +8,7 @@ use crate::{
     rhif::{
         self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, FuncId, OpCode, Slot,
     },
-    ty::{ty_as_ref, Bits, Ty, TypeId},
+    ty::{ty_as_ref, ty_indexed_item, ty_unnamed_field, Bits, Ty, TypeId},
     typed_bits::TypedBits,
     unify::UnifyContext,
     visit::Visitor,
@@ -53,6 +53,8 @@ pub struct CompilerContext {
     locals: HashMap<TypeId, NamedSlot>,
     stash: Vec<ExternalFunction>,
     return_slot: Slot,
+    main_block: BlockId,
+    arguments: Vec<Slot>,
 }
 
 impl std::fmt::Display for CompilerContext {
@@ -119,6 +121,8 @@ impl CompilerContext {
             locals: Default::default(),
             stash: Default::default(),
             return_slot: Slot::Empty,
+            main_block: ROOT_BLOCK,
+            arguments: Default::default(),
         }
     }
     fn node_ty(&self, id: NodeId) -> Result<Ty> {
@@ -126,6 +130,9 @@ impl CompilerContext {
         Ok(self.type_context.apply(var))
     }
     fn reg(&mut self, ty: Ty) -> Result<Slot> {
+        if ty.is_empty() {
+            return Ok(Slot::Empty);
+        }
         let reg = Slot::Register(self.reg_count);
         self.ty.insert(reg, ty);
         self.reg_count += 1;
@@ -137,7 +144,6 @@ impl CompilerContext {
         Ok(FuncId(ndx))
     }
     fn literal_from_type_and_int(&mut self, ty: &Ty, value: i32) -> Result<Slot> {
-        let ndx = self.literals.len();
         let typed_bits = match ty {
             Ty::Const(Bits::U128) => {
                 let x: u128 = value.try_into()?;
@@ -292,14 +298,23 @@ impl CompilerContext {
                 Ok(())
             }
             PatKind::Tuple(tuple) => {
+                let rhs_ty = self
+                    .ty
+                    .get(&rhs)
+                    .ok_or(anyhow::anyhow!(
+                        "No type for {:?} when initializing tuple",
+                        rhs
+                    ))?
+                    .clone();
                 for (ndx, pat) in tuple.elements.iter().enumerate() {
-                    if let Ok(element_lhs) = self.resolve_local(pat.id) {
-                        self.op(OpCode::Field {
-                            lhs: element_lhs,
-                            arg: rhs,
-                            member: rhif::Member::Unnamed(ndx as u32),
-                        });
-                    }
+                    let element_ty = ty_unnamed_field(&rhs_ty, ndx)?;
+                    let element_rhs = self.reg(element_ty)?;
+                    self.op(OpCode::Field {
+                        lhs: element_rhs,
+                        arg: rhs,
+                        member: rhif::Member::Unnamed(ndx as u32),
+                    });
+                    self.initialize_local(pat, element_rhs)?;
                 }
                 Ok(())
             }
@@ -328,15 +343,24 @@ impl CompilerContext {
                 Ok(())
             }
             PatKind::Slice(slice) => {
+                let rhs_ty = self
+                    .ty
+                    .get(&rhs)
+                    .ok_or(anyhow::anyhow!(
+                        "No type for {:?} when initializing slice",
+                        rhs
+                    ))?
+                    .clone();
                 for (ndx, pat) in slice.elems.iter().enumerate() {
-                    if let Ok(element_lhs) = self.resolve_local(pat.id) {
-                        let index = self.literal_from_typed_bits(&ndx.typed_bits())?;
-                        self.op(OpCode::Index {
-                            lhs: element_lhs,
-                            arg: rhs,
-                            index,
-                        });
-                    }
+                    let element_ty = ty_indexed_item(&rhs_ty, ndx)?;
+                    let element_rhs = self.reg(element_ty)?;
+                    let ndx_lit = self.literal_from_typed_bits(&(ndx as usize).typed_bits())?;
+                    self.op(OpCode::Index {
+                        lhs: element_rhs,
+                        arg: rhs,
+                        index: ndx_lit,
+                    });
+                    self.initialize_local(pat, element_rhs)?;
                 }
                 Ok(())
             }
@@ -360,7 +384,7 @@ impl CompilerContext {
         for (ndx, statement) in block.stmts.iter().enumerate() {
             let is_last = ndx == statement_count - 1;
             let result = self.stmt(statement)?;
-            if is_last {
+            if is_last && (block_result != result) {
                 self.op(OpCode::Copy {
                     lhs: block_result,
                     rhs: result,
@@ -478,7 +502,6 @@ impl CompilerContext {
             .map(|x| self.expr_arm(target, lhs, x))
             .collect::<Result<_>>()?;
         self.op(OpCode::Case {
-            lhs,
             discriminant,
             table,
         });
@@ -801,20 +824,18 @@ impl CompilerContext {
         let current_block = self.current_block();
         let id = self.new_block(block_result);
         let result = self.expr(expr)?;
-        self.op(OpCode::Copy {
-            lhs: block_result,
-            rhs: result,
-        });
+        if result != block_result {
+            self.op(OpCode::Copy {
+                lhs: block_result,
+                rhs: result,
+            });
+        }
         self.set_active_block(current_block);
         Ok(id)
     }
     fn empty_block(&mut self, block_result: Slot) -> Result<BlockId> {
         let current_block = self.current_block();
         let id = self.new_block(block_result);
-        self.op(OpCode::Copy {
-            lhs: block_result,
-            rhs: Slot::Empty,
-        });
         self.set_active_block(current_block);
         Ok(id)
     }
@@ -866,12 +887,15 @@ fn argument_id(arg_pat: &Pat) -> Result<(String, NodeId)> {
 impl Visitor for CompilerContext {
     fn visit_kernel_fn(&mut self, node: &ast::KernelFn) -> Result<()> {
         // Allocate local binding for each argument
+        let mut arguments = vec![];
         for arg in &node.inputs {
             let (arg_name, arg_id) = argument_id(arg)?;
             self.bind(arg_id, &arg_name)?;
+            arguments.push(self.resolve_local(arg_id)?);
         }
+        self.arguments = arguments;
         let block_result = self.reg(self.ty(node.id)?)?;
-        let _ = self.block(block_result, &node.body)?;
+        self.main_block = self.block(block_result, &node.body)?;
         self.return_slot = block_result;
         Ok(())
     }
@@ -905,5 +929,7 @@ pub fn compile(func: &ast::KernelFn, ctx: UnifyContext) -> Result<rhif::Object> 
         blocks,
         return_slot: compiler.return_slot,
         externals: compiler.stash,
+        main_block: compiler.main_block,
+        arguments: compiler.arguments,
     })
 }
