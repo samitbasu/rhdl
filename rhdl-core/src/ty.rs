@@ -60,6 +60,8 @@ pub struct TyEnum {
 }
 
 use crate::ast::NodeId;
+use crate::kind::DiscriminantLayout;
+use crate::kind::DiscriminantType;
 use crate::Kind;
 
 // Start simple, modelling as in the Eli Bendersky example.
@@ -280,10 +282,19 @@ impl From<Kind> for Ty {
                         .collect(),
                     kind: value,
                 },
-                discriminant: enum_.discriminant.into(),
+                discriminant: Box::new(enum_.discriminant_layout.into()),
             }),
             Kind::Array(array) => ty_array((*array.base).into(), array.size),
             _ => unimplemented!("No type conversion for kind: {:?}", value),
+        }
+    }
+}
+
+impl From<DiscriminantLayout> for Ty {
+    fn from(x: DiscriminantLayout) -> Self {
+        match x.ty {
+            DiscriminantType::Signed => ty_signed(x.width),
+            DiscriminantType::Unsigned => ty_bits(x.width),
         }
     }
 }

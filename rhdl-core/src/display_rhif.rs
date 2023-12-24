@@ -59,7 +59,11 @@ impl Display for OpCode {
             OpCode::Index { lhs, arg, index } => {
                 write!(f, " {} <- {}[{}]", lhs, arg, index)
             }
-            OpCode::Case { lhs, expr, table } => {
+            OpCode::Case {
+                lhs,
+                discriminant: expr,
+                table,
+            } => {
                 writeln!(f, " {} <- case {}", lhs, expr)?;
                 for (cond, val) in table {
                     writeln!(f, "         {} => {}", cond, val)?;
@@ -96,7 +100,7 @@ impl Display for OpCode {
             } => {
                 write!(f, " {} <- {}#[{}]", lhs, arg, discriminant)
             }
-            OpCode::Discriminant { lhs, arg } => write!(f, " {} <- #{}", lhs, arg),
+            OpCode::Discriminant { lhs, arg } => write!(f, " {} <- #[{}]", lhs, arg),
             OpCode::Enum {
                 lhs,
                 path,

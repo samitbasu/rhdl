@@ -83,7 +83,7 @@ fn pattern_has_literals(pat: &syn::Pat) -> bool {
     }
 }
 
-fn rewrite_pattern_to_use_as_literal_expression(pat: &syn::Pat) -> syn::Result<TS> {
+fn rewrite_pattern_as_typed_bits(pat: &syn::Pat) -> syn::Result<TS> {
     match pat {
         Pat::Lit(lit) => match &lit.lit {
             syn::Lit::Bool(b) => Ok(quote! {rhdl_core::ast_builder::expr_lit_bool(#b)}),
@@ -812,7 +812,7 @@ impl Context {
             if let syn::Pat::Wild(_) = &pat {
                 quote! {rhdl_core::ast_builder::arm_wild(#body)}
             } else {
-                let pat = rewrite_pattern_to_use_as_literal_expression(pat)?;
+                let pat = rewrite_pattern_as_typed_bits(pat)?;
                 quote! {rhdl_core::ast_builder::arm_constant(#pat, #body)}
             }
         } else {
@@ -820,7 +820,7 @@ impl Context {
             let body = self.expr(&arm.body)?;
             let pat_as_expr = rewrite_pattern_to_use_defaults_for_bindings(pat);
             let inner = self.pat(pat)?;
-            quote! {rhdl_core::ast_builder::arm_enum(#inner, rhdl_core::Digital::discriminant(#pat_as_expr), rhdl_core::Digital::variant_kind(#pat_as_expr), #body)}
+            quote! {rhdl_core::ast_builder::arm_enum(#inner, rhdl_core::Digital::typed_bits(#pat_as_expr), rhdl_core::Digital::variant_kind(#pat_as_expr), #body)}
         };
         self.end_scope();
         Ok(arm)

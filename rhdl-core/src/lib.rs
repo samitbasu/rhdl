@@ -53,4 +53,5 @@ pub mod check_inference;
 pub mod check_rhif_type;
 pub use check_inference::check_inference;
 pub use check_rhif_type::check_type_correctness;
+pub use kind::DiscriminantType;
 pub use typed_bits::TypedBits;

@@ -201,7 +201,7 @@ impl TypeInference {
                     if let Some(variant_name) = &ty.path.segments.last() {
                         eprintln!("variant name is {}", variant_name.ident);
                         if let Some(Ty::Struct(variant_ty)) =
-                            enum_ty.fields.get(&variant_name.ident.to_string())
+                            enum_ty.payload.fields.get(&variant_name.ident.to_string())
                         {
                             eprintln!("variant has fields {:?}", variant_ty);
                             for field in &ty.fields {
@@ -222,7 +222,7 @@ impl TypeInference {
                 if let Ty::Enum(enum_ty) = term {
                     if let Some(variant_name) = &ty.path.segments.last() {
                         if let Some(Ty::Tuple(variant_ty)) =
-                            enum_ty.fields.get(&variant_name.ident.to_string())
+                            enum_ty.payload.fields.get(&variant_name.ident.to_string())
                         {
                             if ty.elems.len() != variant_ty.len() {
                                 bail!(

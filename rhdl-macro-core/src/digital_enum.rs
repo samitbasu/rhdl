@@ -359,20 +359,17 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         DiscriminantAlignment::Lsb => quote! { rhdl_core::DiscriminantAlignment::Lsb },
         DiscriminantAlignment::Msb => quote! { rhdl_core::DiscriminantAlignment::Msb },
     };
-    let variants = e.variants.iter().map(|x| &x.ident);
-    let variant_destructure_args = e.variants.iter().map(variant_destructure_args);
-    let variant_destructure_args_for_bin = variant_destructure_args.clone();
-    let variant_destructure_args_for_discriminant = variant_destructure_args.clone();
-    let variant_destructure_args_for_variant_kind = variant_destructure_args.clone();
+    let variant_names = e.variants.iter().map(|x| &x.ident).collect::<Vec<_>>();
+    let variant_destructure_args = e
+        .variants
+        .iter()
+        .map(variant_destructure_args)
+        .collect::<Vec<_>>();
     let kind_mapping = e
         .variants
         .iter()
         .map(|v| variant_kind_mapping(enum_name, v));
     let variant_kind_mapping = kind_mapping.clone();
-    let variant_names_for_kind = variants.clone();
-    let variant_names_for_bin = variants.clone();
-    let variant_names_for_discriminant = variants.clone();
-    let variant_names_for_variant_kind = variants.clone();
     let discriminants: Vec<Option<i64>> = e
         .variants
         .iter()
@@ -402,6 +399,10 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         .map(|(variant, discriminant)| variant_payload_bin(variant, kind, *discriminant));
     let discriminants_as_typed_bits =
         make_discriminant_values_into_typed_bits(kind, &discriminants_values);
+    let discriminant_ty = match kind {
+        DiscriminantType::Unsigned(_) => quote! { rhdl_core::DiscriminantType::Unsigned },
+        DiscriminantType::Signed(_) => quote! { rhdl_core::DiscriminantType::Signed },
+    };
     Ok(quote! {
         impl #impl_generics rhdl_core::Digital for #enum_name #ty_generics #where_clause {
             fn static_kind() -> rhdl_core::Kind {
@@ -409,17 +410,20 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                     #fqdn,
                     vec![
                         #(
-                            rhdl_core::Kind::make_variant(stringify!(#variant_names_for_kind), #kind_mapping, #discriminants)
+                            rhdl_core::Kind::make_variant(stringify!(#variant_names), #kind_mapping, #discriminants)
                         ),*
                     ],
-                    #width_bits,
-                    #discriminant_alignment,
+                    rhdl_core::Kind::make_discriminant_layout(
+                        #width_bits,
+                        #discriminant_alignment,
+                        #discriminant_ty
+                    )
                 )
             }
             fn bin(self) -> Vec<bool> {
                 self.kind().pad(match self {
                     #(
-                        Self::#variant_names_for_bin #variant_destructure_args_for_bin => {#bin_fns}
+                        Self::#variant_names #variant_destructure_args => {#bin_fns}
                     )*
                 })
 
@@ -427,21 +431,21 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
             fn discriminant(self) -> rhdl_core::TypedBits {
                 match self {
                     #(
-                        Self::#variant_names_for_discriminant #variant_destructure_args_for_discriminant => {#discriminants_as_typed_bits}
+                        Self::#variant_names #variant_destructure_args => {#discriminants_as_typed_bits}
                     )*
                 }
             }
             fn variant_kind(self) -> rhdl_core::Kind {
                 match self {
                     #(
-                        Self::#variant_names_for_variant_kind #variant_destructure_args_for_variant_kind => {#variant_kind_mapping}
+                        Self::#variant_names #variant_destructure_args => {#variant_kind_mapping}
                     )*
                 }
             }
             fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {
                     #(
-                        Self::#variants #variant_destructure_args => {#note_fns},
+                        Self::#variant_names #variant_destructure_args => {#note_fns},
                     )*
                 }
             }

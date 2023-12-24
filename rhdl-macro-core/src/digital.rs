@@ -34,22 +34,17 @@ fn derive_digital_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
 
 fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
-    let struct_name2 = &decl.ident;
     let fqdn = crate::utils::get_fqdn(&decl);
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
-    let (impl_generics2, ty_generics2, where_clause2) = decl.generics.split_for_impl();
     match decl.data {
         Data::Struct(s) => {
             let fields = s
                 .fields
                 .iter()
                 .enumerate()
-                .map(|(ndx, _)| syn::Index::from(ndx));
-            let fields2 = fields.clone();
-            let fields_3 = fields.clone();
-            let fields_4 = fields.clone();
-            let field_types = s.fields.iter().map(|x| &x.ty);
-            let field_types_3 = field_types.clone();
+                .map(|(ndx, _)| syn::Index::from(ndx))
+                .collect::<Vec<_>>();
+            let field_types = s.fields.iter().map(|x| &x.ty).collect::<Vec<_>>();
             Ok(quote! {
                 impl #impl_generics rhdl_core::Digital for #struct_name #ty_generics #where_clause {
                     fn static_kind() -> rhdl_core::Kind {
@@ -57,24 +52,24 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                             #fqdn,
                             vec![
                             #(
-                                rhdl_core::Kind::make_field(stringify!(#fields_4), <#field_types_3 as rhdl_core::Digital>::static_kind()),
+                                rhdl_core::Kind::make_field(stringify!(#fields), <#field_types as rhdl_core::Digital>::static_kind()),
                             )*
                         ])
                     }
                     fn bin(self) -> Vec<bool> {
                         let mut result = vec![];
                         #(
-                            result.extend(self.#fields_3.bin());
+                            result.extend(self.#fields.bin());
                         )*
                         result
                     }
                     fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                         #(
-                            rhdl_core::Digital::note(&self.#fields2, (key, stringify!(#fields)), &mut writer);
+                            rhdl_core::Digital::note(&self.#fields, (key, stringify!(#fields)), &mut writer);
                         )*
                     }
                 }
-                impl #impl_generics2 rhdl_core::DigitalFn for #struct_name2 #ty_generics2 #where_clause2 {
+                impl #impl_generics rhdl_core::DigitalFn for #struct_name #ty_generics #where_clause {
                     fn kernel_fn() -> rhdl_core::KernelFnKind {
                         rhdl_core::KernelFnKind::TupleStructConstructor
                     }
@@ -91,12 +86,12 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let fqdn = crate::utils::get_fqdn(&decl);
     match decl.data {
         Data::Struct(s) => {
-            let fields = s.fields.iter().map(|field| &field.ident);
-            let fields2 = fields.clone();
-            let fields_3 = fields.clone();
-            let fields_4 = fields.clone();
-            let field_types = s.fields.iter().map(|x| &x.ty);
-            let field_types_3 = field_types.clone();
+            let fields = s
+                .fields
+                .iter()
+                .map(|field| &field.ident)
+                .collect::<Vec<_>>();
+            let field_types = s.fields.iter().map(|x| &x.ty).collect::<Vec<_>>();
             Ok(quote! {
                 impl #impl_generics rhdl_core::Digital for #struct_name #ty_generics #where_clause {
                     fn static_kind() -> rhdl_core::Kind {
@@ -104,20 +99,20 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                             #fqdn,
                             vec![
                             #(
-                                rhdl_core::Kind::make_field(stringify!(#fields_4), <#field_types_3 as rhdl_core::Digital>::static_kind()),
+                                rhdl_core::Kind::make_field(stringify!(#fields), <#field_types as rhdl_core::Digital>::static_kind()),
                             )*
                         ])
                     }
                     fn bin(self) -> Vec<bool> {
                         let mut result = vec![];
                         #(
-                            result.extend(self.#fields_3.bin());
+                            result.extend(self.#fields.bin());
                         )*
                         result
                     }
                     fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                         #(
-                            rhdl_core::Digital::note(&self.#fields2, (key, stringify!(#fields)), &mut writer);
+                            rhdl_core::Digital::note(&self.#fields, (key, stringify!(#fields)), &mut writer);
                         )*
                     }
                 }

@@ -94,7 +94,7 @@ pub enum OpCode {
     // ROM table
     Case {
         lhs: Slot,
-        expr: Slot,
+        discriminant: Slot,
         table: Vec<(CaseArgument, BlockId)>,
     },
     // lhs = @path(args)

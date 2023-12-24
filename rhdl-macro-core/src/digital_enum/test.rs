@@ -53,8 +53,10 @@ fn test_enum_derive() {
                             rhdl_core::Kind::make_field(stringify!(b), < Bits:: < 8 > as
                             rhdl_core::Digital > ::static_kind())]), 3i64)
                         ],
+                        rhdl_core::Kind::make_discriminant_layout(
                         2usize,
                         rhdl_core::DiscriminantAlignment::Msb,
+                        rhdl_core::DiscriminantType::Unsigned),
                     )
                 }
                 fn bin(self) -> Vec<bool> {
@@ -156,8 +158,11 @@ fn test_enum_no_payloads() {
                         rhdl_core::Kind::make_variant(stringify!(Stop), rhdl_core::Kind::Empty, 3i64),
                         rhdl_core::Kind::make_variant(stringify!(Boom), rhdl_core::Kind::Empty, 4i64)
                     ],
-                    3usize,
-                    rhdl_core::DiscriminantAlignment::Msb,
+                    rhdl_core::Kind::make_discriminant_layout(
+                        3usize,
+                        rhdl_core::DiscriminantAlignment::Msb,
+                        rhdl_core::DiscriminantType::Unsigned,
+                    ),
                 )
             }
             fn bin(self) -> Vec<bool> {
@@ -249,8 +254,10 @@ fn test_enum_with_signed_discriminants() {
                         rhdl_core::Kind::make_variant(stringify!(B), rhdl_core::Kind::Empty, 9i64),
                         rhdl_core::Kind::make_variant(stringify!(C), rhdl_core::Kind::Empty, -8i64)
                     ],
+                    rhdl_core::Kind::make_discriminant_layout(
                     5usize,
                     rhdl_core::DiscriminantAlignment::Msb,
+                    rhdl_core::DiscriminantType::Signed),
                 )
             }
             fn bin(self) -> Vec<bool> {
@@ -319,7 +326,10 @@ fn test_enum_with_discriminants() {
             fn static_kind() -> rhdl_core::Kind {
                 rhdl_core::Kind::make_enum(concat!(module_path!(), "::", stringify!(Test)), vec![rhdl_core::Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
                 rhdl_core::Kind::make_variant(stringify!(B), rhdl_core::Kind::Empty, 6i64),
-                rhdl_core::Kind::make_variant(stringify!(C), rhdl_core::Kind::Empty, 8i64)], 4usize, rhdl_core::DiscriminantAlignment::Msb)
+                rhdl_core::Kind::make_variant(stringify!(C), rhdl_core::Kind::Empty, 8i64)],
+                rhdl_core::Kind::make_discriminant_layout(
+                4usize, rhdl_core::DiscriminantAlignment::Msb, rhdl_core::DiscriminantType::Unsigned),
+                )
             }
             fn bin(self) -> Vec<bool> {
                 self.kind()

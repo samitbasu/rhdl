@@ -126,7 +126,7 @@ pub fn arm_constant(value: ExprLit, body: Box<Expr>) -> Box<Arm> {
 
 pub fn arm_enum(
     pat: Box<Pat>,
-    discriminant: TypedBits,
+    template: TypedBits,
     payload_kind: Kind,
     body: Box<Expr>,
 ) -> Box<Arm> {
@@ -134,7 +134,7 @@ pub fn arm_enum(
         id: INVALID_NODE_ID,
         kind: ArmKind::Enum(ArmEnum {
             pat,
-            discriminant,
+            template,
             payload_kind,
         }),
         body,
