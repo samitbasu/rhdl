@@ -1352,6 +1352,37 @@ mod tests {
     }
 
     #[test]
+    fn test_enum_match_signed_discriminant() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        #[rhdl(discriminant_width = 4)]
+        #[repr(i8)]
+        pub enum SimpleEnum {
+            #[default]
+            Init = 1,
+            Run(u8) = 2,
+            Point {
+                x: b4,
+                y: u8,
+            } = 3,
+            Boom = -2,
+        }
+
+        #[kernel]
+        fn add(state: SimpleEnum) -> u8 {
+            let x = state;
+            match x {
+                SimpleEnum::Init => 1,
+                SimpleEnum::Run(x) => x,
+                SimpleEnum::Point { x, y } => y,
+                SimpleEnum::Boom => 7,
+                _ => 0,
+            }
+        }
+
+        test_inference_result(add::kernel_fn()).unwrap();
+    }
+
+    #[test]
     fn test_const_literal_match() {
         #[kernel]
         fn add(a: u8) -> u8 {
