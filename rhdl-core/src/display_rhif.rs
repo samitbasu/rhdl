@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    rhif::{AluBinary, AluUnary, BlockId, CaseArgument, FieldValue, Member, OpCode, Slot},
+    rhif::{AluBinary, AluUnary, BlockId, CaseArgument, FieldValue, FuncId, Member, OpCode, Slot},
     util::splice,
 };
 
@@ -70,8 +70,8 @@ impl Display for OpCode {
                 }
                 Ok(())
             }
-            OpCode::Exec { lhs, path, args } => {
-                write!(f, " {} <- {}({})", lhs, path, splice(args, ", "))
+            OpCode::Exec { lhs, id, args } => {
+                write!(f, " {} <- {}({})", lhs, id, splice(args, ", "))
             }
             OpCode::Struct {
                 lhs,
@@ -138,6 +138,12 @@ impl Display for CaseArgument {
 impl Display for BlockId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "B{}", self.0)
+    }
+}
+
+impl Display for FuncId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "f{}", self.0)
     }
 }
 

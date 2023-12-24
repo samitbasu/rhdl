@@ -5,7 +5,9 @@ use crate::{
     },
     display_ast::pretty_print_statement,
     infer_types::id_to_var,
-    rhif::{self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, OpCode, Slot},
+    rhif::{
+        self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, FuncId, OpCode, Slot,
+    },
     ty::{ty_as_ref, Bits, Ty, TypeId},
     typed_bits::TypedBits,
     unify::UnifyContext,
@@ -13,7 +15,7 @@ use crate::{
     Digital, Kind,
 };
 use anyhow::{bail, Result};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 const ROOT_BLOCK: BlockId = BlockId(0);
 
@@ -47,9 +49,9 @@ pub struct CompilerContext {
     pub reg_count: usize,
     active_block: BlockId,
     type_context: UnifyContext,
-    ty: HashMap<Slot, Ty>,
+    ty: BTreeMap<Slot, Ty>,
     locals: HashMap<TypeId, NamedSlot>,
-    stash: HashMap<String, ExternalFunction>,
+    stash: Vec<ExternalFunction>,
     return_slot: Slot,
 }
 
@@ -67,11 +69,12 @@ impl std::fmt::Display for CompilerContext {
                 literal
             )?;
         }
-        for (name, func) in &self.stash {
+        for (ndx, func) in self.stash.iter().enumerate() {
             writeln!(
                 f,
-                "Function name: {} code: {} signature: {}",
-                name,
+                "Function f{} name: {} code: {} signature: {}",
+                ndx,
+                func.path,
                 func.code
                     .as_ref()
                     .map(|x| format!("{}", x))
@@ -127,6 +130,11 @@ impl CompilerContext {
         self.ty.insert(reg, ty);
         self.reg_count += 1;
         Ok(reg)
+    }
+    fn stash(&mut self, func: ExternalFunction) -> Result<FuncId> {
+        let ndx = self.stash.len();
+        self.stash.push(func);
+        Ok(FuncId(ndx))
     }
     fn literal_from_type_and_int(&mut self, ty: &Ty, value: i32) -> Result<Slot> {
         let ndx = self.literals.len();
@@ -582,15 +590,12 @@ impl CompilerContext {
         let lhs = self.reg(self.node_ty(id)?)?;
         let path = collapse_path(&call.path);
         let args = self.expr_list(&call.args)?;
-        self.stash.insert(
-            path.clone(),
-            ExternalFunction {
-                code: call.code.clone(),
-                path: path.clone(),
-                signature: call.signature.clone(),
-            },
-        );
-        self.op(OpCode::Exec { lhs, path, args });
+        let id = self.stash(ExternalFunction {
+            code: call.code.clone(),
+            path: path.clone(),
+            signature: call.signature.clone(),
+        })?;
+        self.op(OpCode::Exec { lhs, id, args });
         Ok(lhs)
     }
     fn self_assign_binop(&mut self, bin: &ExprBinary) -> Result<Slot> {
