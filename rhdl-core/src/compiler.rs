@@ -463,7 +463,12 @@ impl CompilerContext {
         let target_ty = self.ty(_match.expr.id)?;
         let target = self.expr(&_match.expr)?;
         let discriminant = if let Ty::Enum(enum_ty) = target_ty {
-            self.reg(*enum_ty.discriminant.clone())?
+            let disc_reg = self.reg(*enum_ty.discriminant.clone())?;
+            self.op(OpCode::Discriminant {
+                lhs: disc_reg,
+                arg: target,
+            });
+            disc_reg
         } else {
             target
         };

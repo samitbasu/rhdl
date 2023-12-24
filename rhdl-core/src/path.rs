@@ -112,7 +112,11 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                             range.end - enumerate.discriminant_layout.width..range.end
                         }
                     };
-                    kind = Kind::Bits(enumerate.discriminant_layout.width);
+                    kind = if enumerate.discriminant_layout.ty == crate::DiscriminantType::Signed {
+                        Kind::make_signed(enumerate.discriminant_layout.width)
+                    } else {
+                        Kind::make_bits(enumerate.discriminant_layout.width)
+                    };
                 }
                 _ => bail!("Enum discriminant not valid for non-enum types"),
             },

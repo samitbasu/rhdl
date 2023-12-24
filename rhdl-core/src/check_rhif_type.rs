@@ -8,7 +8,7 @@ use crate::{
     },
 };
 use anyhow::{anyhow, bail};
-use anyhow::{ensure, Result};
+use anyhow::{ensure, Context, Result};
 
 pub fn check_type_correctness(obj: &Object) -> Result<()> {
     let slot_type = |slot: &Slot| -> Result<Ty> {
