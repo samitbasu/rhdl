@@ -6,10 +6,9 @@ use crate::{
         self, ty_array, ty_array_base, ty_as_ref, ty_bool, ty_named_field, ty_unnamed_field, Bits,
         Ty,
     },
-    Kind,
 };
-use anyhow::Result;
 use anyhow::{anyhow, bail};
+use anyhow::{ensure, Result};
 
 pub fn check_type_correctness(obj: &Object) -> Result<()> {
     let slot_type = |slot: &Slot| -> Result<Ty> {
@@ -268,7 +267,26 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                         }
                     }
                 }
-                _ => {}
+                OpCode::Discriminant { lhs, arg } => {
+                    let arg_ty = slot_type(arg)?;
+                    if let Ty::Enum(enum_ty) = &arg_ty {
+                        eq_types(slot_type(lhs)?, *enum_ty.discriminant.clone())?;
+                    } else {
+                        eq_types(slot_type(lhs)?, arg_ty)?;
+                    }
+                }
+                OpCode::Exec { lhs, id, args } => {
+                    // Get the function signature.
+                    let signature = obj.externals[id.0].signature.clone();
+                    eq_types(slot_type(lhs)?, signature.ret.into())?;
+                    for (arg, param) in args.iter().zip(signature.arguments.iter()) {
+                        eq_types(slot_type(arg)?, param.clone().into())?;
+                    }
+                    ensure!(
+                        args.len() == signature.arguments.len(),
+                        "wrong number of arguments"
+                    )
+                }
             }
         }
     }

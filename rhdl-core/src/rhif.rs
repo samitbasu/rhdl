@@ -1,6 +1,6 @@
 // RHDL Intermediate Form (RHIF).
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use anyhow::Result;
 
@@ -100,7 +100,7 @@ pub enum OpCode {
     // lhs = @path(args)
     Exec {
         lhs: Slot,
-        path: String,
+        id: FuncId,
         args: Vec<Slot>,
     },
     // x <- [a, b, c, d]
@@ -173,7 +173,7 @@ pub enum AluUnary {
     Unsigned,
 }
 
-#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub enum Slot {
     Literal(usize),
     Register(usize),
@@ -197,6 +197,9 @@ pub enum Member {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct BlockId(pub usize);
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct FuncId(pub usize);
+
 #[derive(Debug, Clone)]
 pub struct Block {
     pub id: BlockId,
@@ -213,10 +216,10 @@ pub struct ExternalFunction {
 #[derive(Debug, Clone)]
 pub struct Object {
     pub literals: Vec<TypedBits>,
-    pub ty: HashMap<Slot, Ty>,
+    pub ty: BTreeMap<Slot, Ty>,
     pub blocks: Vec<Block>,
     pub return_slot: Slot,
-    pub externals: HashMap<String, ExternalFunction>,
+    pub externals: Vec<ExternalFunction>,
 }
 
 impl Object {
@@ -244,11 +247,12 @@ impl std::fmt::Display for Object {
                 literal
             )?;
         }
-        for (name, func) in &self.externals {
+        for (ndx, func) in self.externals.iter().enumerate() {
             writeln!(
                 f,
-                "Function name: {} code: {} signature: {}",
-                name,
+                "Function f{} name: {} code: {} signature: {}",
+                ndx,
+                func.path,
                 func.code
                     .as_ref()
                     .map(|x| format!("{}", x))
