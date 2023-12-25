@@ -5,14 +5,16 @@ use crate::{
     },
     display_ast::pretty_print_statement,
     infer_types::id_to_var,
+    kernel::ExternalKernelDef,
     rhif::{
-        self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, FuncId, OpCode, Slot,
+        self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, FuncId, Member, OpCode,
+        Slot,
     },
     ty::{ty_as_ref, ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
     typed_bits::TypedBits,
     unify::UnifyContext,
     visit::Visitor,
-    Digital, Kind,
+    Digital, KernelFnKind, Kind,
 };
 use anyhow::{bail, Result};
 use std::collections::{BTreeMap, HashMap};
@@ -75,13 +77,7 @@ impl std::fmt::Display for CompilerContext {
             writeln!(
                 f,
                 "Function f{} name: {} code: {} signature: {}",
-                ndx,
-                func.path,
-                func.code
-                    .as_ref()
-                    .map(|x| format!("{}", x))
-                    .unwrap_or("none".into()),
-                func.signature
+                ndx, func.path, func.code, func.signature
             )?;
         }
         for block in &self.blocks {
@@ -639,12 +635,60 @@ impl CompilerContext {
         let lhs = self.reg(self.node_ty(id)?)?;
         let path = collapse_path(&call.path);
         let args = self.expr_list(&call.args)?;
-        let id = self.stash(ExternalFunction {
-            code: call.code.clone(),
-            path: path.clone(),
-            signature: call.signature.clone(),
-        })?;
-        self.op(OpCode::Exec { lhs, id, args });
+        // inline calls to bits and signed
+        match &call.code {
+            KernelFnKind::BitConstructor(len) => self.op(OpCode::AsBits {
+                lhs,
+                arg: args[0],
+                len: *len,
+            }),
+            KernelFnKind::SignedBitsConstructor(len) => self.op(OpCode::AsSigned {
+                lhs,
+                arg: args[0],
+                len: *len,
+            }),
+            KernelFnKind::TupleStructConstructor => {
+                let fields = args
+                    .iter()
+                    .enumerate()
+                    .map(|(ndx, x)| rhif::FieldValue {
+                        value: *x,
+                        member: Member::Unnamed(ndx as u32),
+                    })
+                    .collect();
+                self.op(OpCode::Struct {
+                    lhs,
+                    path,
+                    fields,
+                    rest: None,
+                });
+            }
+            KernelFnKind::EnumTupleStructConstructor(template) => {
+                let discriminant = self.literal_from_typed_bits(&template.discriminant()?)?;
+                let fields = args
+                    .iter()
+                    .enumerate()
+                    .map(|(ndx, x)| rhif::FieldValue {
+                        value: *x,
+                        member: Member::Unnamed(ndx as u32),
+                    })
+                    .collect();
+                self.op(OpCode::Enum {
+                    lhs,
+                    path,
+                    discriminant,
+                    fields,
+                });
+            }
+            _ => {
+                let id = self.stash(ExternalFunction {
+                    code: call.code.clone(),
+                    path: path.clone(),
+                    signature: call.signature.clone(),
+                })?;
+                self.op(OpCode::Exec { lhs, id, args });
+            }
+        }
         Ok(lhs)
     }
     fn self_assign_binop(&mut self, bin: &ExprBinary) -> Result<Slot> {
@@ -928,13 +972,7 @@ pub fn compile(func: &ast::KernelFn, ctx: UnifyContext) -> Result<rhif::Object> 
     let literals = compiler
         .literals
         .into_iter()
-        .map(|x| {
-            Ok(match *x {
-                ast::ExprLit::TypedBits(t) => t.value.clone(),
-                ast::ExprLit::Bool(b) => b.typed_bits(),
-                ast::ExprLit::Int(x) => x.parse::<i32>()?.typed_bits(),
-            })
-        })
+        .map(|x| x.try_into())
         .collect::<Result<Vec<_>>>()?;
     let blocks = compiler
         .blocks
@@ -953,4 +991,26 @@ pub fn compile(func: &ast::KernelFn, ctx: UnifyContext) -> Result<rhif::Object> 
         main_block: compiler.main_block,
         arguments: compiler.arguments,
     })
+}
+
+impl TryFrom<ExprLit> for TypedBits {
+    type Error = anyhow::Error;
+    fn try_from(lit: ExprLit) -> Result<Self> {
+        match lit {
+            ExprLit::TypedBits(t) => Ok(t.value),
+            ExprLit::Bool(b) => Ok(b.typed_bits()),
+            ExprLit::Int(x) => Ok(x.parse::<i32>()?.typed_bits()),
+        }
+    }
+}
+
+impl TryFrom<Box<ExprLit>> for TypedBits {
+    type Error = anyhow::Error;
+    fn try_from(lit: Box<ExprLit>) -> Result<Self> {
+        match *lit {
+            ExprLit::TypedBits(t) => Ok(t.value),
+            ExprLit::Bool(b) => Ok(b.typed_bits()),
+            ExprLit::Int(x) => Ok(x.parse::<i32>()?.typed_bits()),
+        }
+    }
 }

@@ -212,6 +212,10 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
                 init_set.read_all(args)?;
                 init_set.write(lhs)?;
             }
+            OpCode::AsBits { lhs, arg, len } | OpCode::AsSigned { lhs, arg, len } => {
+                init_set.read(arg)?;
+                init_set.write(lhs)?;
+            }
         }
     }
     Ok(init_set)

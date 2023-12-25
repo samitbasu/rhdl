@@ -1507,4 +1507,37 @@ mod tests {
         }
         test_inference_result(add::kernel_fn()).unwrap();
     }
+
+    #[test]
+    fn test_link_to_bits_fn() {
+        use rhdl_std::UnsignedMethods;
+
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        struct Tuplo(b4, s6);
+
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        enum NooState {
+            #[default]
+            Init,
+            Run(b4, s6),
+            Walk {
+                foo: b5,
+            },
+            Boom,
+        }
+
+        #[kernel]
+        fn add(a: b4) -> b4 {
+            let b = bits::<4>(3);
+            let d = signed::<6>(11);
+            let c = b + a;
+            let k = c.any();
+            let h = Tuplo(c, d);
+            let p = h.0;
+            let q = NooState::Run(c, d);
+            c + p
+        }
+
+        test_inference_result(add::kernel_fn()).unwrap();
+    }
 }

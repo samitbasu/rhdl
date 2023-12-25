@@ -208,11 +208,16 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     let variant_kind = payload_kind.lookup_variant(discriminant_value)?;
                     let variant_ty = variant_kind.into();
                     for field in fields {
-                        let crate::rhif::Member::Named(name) = &field.member else {
-                            bail!("expected named field")
-                        };
-                        let ty = ty_named_field(&variant_ty, name)?;
-                        eq_types(slot_type(&field.value)?, ty)?;
+                        match &field.member {
+                            crate::rhif::Member::Named(name) => {
+                                let ty = ty_named_field(&variant_ty, name)?;
+                                eq_types(slot_type(&field.value)?, ty)?;
+                            }
+                            crate::rhif::Member::Unnamed(index) => {
+                                let ty = ty_unnamed_field(&variant_ty, *index as usize)?;
+                                eq_types(slot_type(&field.value)?, ty)?;
+                            }
+                        }
                     }
                 }
                 OpCode::Repeat { lhs, value, len } => {
@@ -285,6 +290,12 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                         args.len() == signature.arguments.len(),
                         "wrong number of arguments"
                     )
+                }
+                OpCode::AsBits { lhs, arg, len } => {
+                    eq_types(slot_type(lhs)?, ty::ty_bits(*len))?;
+                }
+                OpCode::AsSigned { lhs, arg, len } => {
+                    eq_types(slot_type(lhs)?, ty::ty_signed(*len))?;
                 }
             }
         }
