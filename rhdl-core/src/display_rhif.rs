@@ -115,6 +115,12 @@ impl Display for OpCode {
                     splice(fields, ", ")
                 )
             }
+            OpCode::AsBits { lhs, arg, len } => {
+                write!(f, " {} <- {} as b{}", lhs, arg, len)
+            }
+            OpCode::AsSigned { lhs, arg, len } => {
+                write!(f, " {} <- {} as s{}", lhs, arg, len)
+            }
         }
     }
 }

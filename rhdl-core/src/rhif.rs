@@ -126,6 +126,18 @@ pub enum OpCode {
         discriminant: Slot,
         fields: Vec<FieldValue>,
     },
+    // x <- a as bits::<len>
+    AsBits {
+        lhs: Slot,
+        arg: Slot,
+        len: usize,
+    },
+    // x <- a as signed::<len>
+    AsSigned {
+        lhs: Slot,
+        arg: Slot,
+        len: usize,
+    },
     Comment(String),
 }
 
@@ -208,7 +220,7 @@ pub struct Block {
 #[derive(Debug, Clone)]
 pub struct ExternalFunction {
     pub path: String,
-    pub code: Option<KernelFnKind>,
+    pub code: KernelFnKind,
     pub signature: DigitalSignature,
 }
 
@@ -252,13 +264,7 @@ impl std::fmt::Display for Object {
             writeln!(
                 f,
                 "Function f{} name: {} code: {} signature: {}",
-                ndx,
-                func.path,
-                func.code
-                    .as_ref()
-                    .map(|x| format!("{}", x))
-                    .unwrap_or("none".into()),
-                func.signature
+                ndx, func.path, func.code, func.signature
             )?;
         }
         for block in &self.blocks {

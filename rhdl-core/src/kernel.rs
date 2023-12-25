@@ -1,7 +1,10 @@
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::{self, KernelFn};
+use crate::{
+    ast::{self, KernelFn},
+    TypedBits,
+};
 
 #[derive(Debug, Clone)]
 pub struct Kernel {
@@ -32,7 +35,7 @@ pub enum KernelFnKind {
     TupleStructConstructor,
     BitConstructor(usize),
     SignedBitsConstructor(usize),
-    MethodCall(MethodCallDef),
+    EnumTupleStructConstructor(TypedBits),
 }
 
 impl std::fmt::Display for KernelFnKind {
@@ -45,7 +48,9 @@ impl std::fmt::Display for KernelFnKind {
             KernelFnKind::SignedBitsConstructor(width) => {
                 write!(f, "signed bits constructor {}", width)
             }
-            KernelFnKind::MethodCall(_method_call) => write!(f, "method call"),
+            KernelFnKind::EnumTupleStructConstructor(tb) => {
+                write!(f, "enum tuple struct constructor {}", tb)
+            }
         }
     }
 }
@@ -54,9 +59,4 @@ impl std::fmt::Display for KernelFnKind {
 pub struct ExternalKernelDef {
     pub name: String,
     pub body: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum MethodCallDef {
-    Any(usize),
 }
