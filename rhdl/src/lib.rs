@@ -15,7 +15,7 @@ mod tests {
     use rhdl_core::{
         ascii::render_ast_to_string,
         assign_node::assign_node_ids,
-        check_inference, check_rhif_flow, check_type_correctness,
+        check_inference, check_rhif_flow, check_type_correctness, compile_design,
         compiler::{compile, CompilerContext},
         digital_fn::{inspect_digital, DigitalFn},
         display_ast::pretty_print_kernel,
@@ -1527,6 +1527,16 @@ mod tests {
         }
 
         #[kernel]
+        fn add_two(a: b4) -> b4 {
+            a + 2
+        }
+
+        #[kernel]
+        fn add_one(a: b4) -> b4 {
+            add_two(a)
+        }
+
+        #[kernel]
         fn add(a: b4) -> b4 {
             let b = bits::<4>(3);
             let d = signed::<6>(11);
@@ -1535,9 +1545,10 @@ mod tests {
             let h = Tuplo(c, d);
             let p = h.0;
             let q = NooState::Run(c, d);
-            c + p
+            c + add_one(p)
         }
 
-        test_inference_result(add::kernel_fn()).unwrap();
+        let design = compile_design(add::kernel_fn().try_into().unwrap()).unwrap();
+        eprintln!("design: {}", design);
     }
 }

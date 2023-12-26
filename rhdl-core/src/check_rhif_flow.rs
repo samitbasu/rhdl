@@ -1,6 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::rhif::{AluBinary, BlockId, CaseArgument, Object, OpCode, Slot};
+use crate::{
+    object::Object,
+    rhif::{BlockId, CaseArgument, OpCode, Slot},
+};
 
 use anyhow::{bail, Result};
 

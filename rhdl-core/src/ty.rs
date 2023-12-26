@@ -290,7 +290,6 @@ impl From<Kind> for Ty {
                 discriminant: Box::new(enum_.discriminant_layout.into()),
             }),
             Kind::Array(array) => ty_array((*array.base).into(), array.size),
-            _ => unimplemented!("No type conversion for kind: {:?}", value),
         }
     }
 }

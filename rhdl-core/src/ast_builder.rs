@@ -408,13 +408,20 @@ pub fn expr_lit_typed_bits(value: TypedBits) -> ExprLit {
     })
 }
 
-pub fn kernel_fn(name: &str, inputs: Vec<Box<Pat>>, ret: Kind, body: Box<Block>) -> KernelFnKind {
+pub fn kernel_fn(
+    name: &str,
+    inputs: Vec<Box<Pat>>,
+    ret: Kind,
+    body: Box<Block>,
+    fn_id: String,
+) -> KernelFnKind {
     KernelFnKind::Kernel(Box::new(KernelFn {
         id: INVALID_NODE_ID,
         name: name.into(),
         inputs,
         ret,
         body,
+        fn_id,
     }))
 }
 

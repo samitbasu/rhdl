@@ -401,6 +401,7 @@ impl Context {
                         vec!{#(#args),*},
                         #ret,
                         #block,
+                        format!("{:?}", std::any::TypeId::of::<#name #ty_generics>()),
                     )
                 }
             }
