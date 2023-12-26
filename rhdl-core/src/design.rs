@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use crate::object::Object;
+use crate::{ast::FunctionId, object::Object};
 
 #[derive(Clone, Debug)]
 pub struct Design {
-    pub objects: HashMap<String, Object>,
-    pub top: String,
+    pub objects: HashMap<FunctionId, Object>,
+    pub top: FunctionId,
 }
 
 impl std::fmt::Display for Design {

@@ -25,6 +25,7 @@ mod tests {
         note_db::{dump_vcd, note_time},
         path::{bit_range, Path, PathElement},
         rhif::BlockId,
+        rhif_vm::execute_function,
         visit::Visitor,
         DiscriminantAlignment, DiscriminantType, NoteKey,
     };
@@ -1550,5 +1551,47 @@ mod tests {
 
         let design = compile_design(add::kernel_fn().try_into().unwrap()).unwrap();
         eprintln!("design: {}", design);
+    }
+
+    #[test]
+    fn test_vm_simple_function() {
+        #[kernel]
+        fn pass(a: u8) -> u8 {
+            a
+        }
+
+        let design = compile_design(pass::kernel_fn().try_into().unwrap()).unwrap();
+        eprintln!("design: {}", design);
+        let res = execute_function(&design, vec![(42_u8).typed_bits()]).unwrap();
+        assert_eq!(res, (42_u8).typed_bits());
+    }
+
+    #[test]
+    fn test_vm_simple_function_with_invalid_args_causes_ice() {
+        #[kernel]
+        fn pass(a: u8) -> u8 {
+            a
+        }
+
+        let design = compile_design(pass::kernel_fn().try_into().unwrap()).unwrap();
+        eprintln!("design: {}", design);
+        let res = execute_function(&design, vec![(42_u16).typed_bits()]);
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn test_vm_simple_binop_function() {
+        #[kernel]
+        fn add(a: b12, b: b12) -> b12 {
+            a + b + b
+        }
+
+        let design = compile_design(add::kernel_fn().try_into().unwrap()).unwrap();
+        eprintln!("design: {}", design);
+        let a = bits(42);
+        let b = bits(169);
+        let c = add(a, b); // Ask Rust to do the math
+        let res = execute_function(&design, vec![a.typed_bits(), b.typed_bits()]).unwrap();
+        assert_eq!(res, c.typed_bits());
     }
 }

@@ -1,7 +1,7 @@
 use anyhow::bail;
-use std::iter::repeat;
-
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::iter::repeat;
 
 use crate::{
     digital::binary_string,
@@ -105,8 +105,49 @@ impl TypedBits {
     }
 }
 
+impl std::ops::Add<TypedBits> for TypedBits {
+    type Output = Result<TypedBits>;
+
+    fn add(self, rhs: TypedBits) -> Self::Output {
+        if self.kind != rhs.kind {
+            bail!(
+                "Cannot add {} and {} because they have different types",
+                self,
+                rhs
+            );
+        }
+        let mut ret = Vec::new();
+        let mut carry = false;
+        for (a, b) in self.bits.iter().zip(rhs.bits.iter()) {
+            let sum = a ^ b ^ carry;
+            let new_carry = (a & b) | (a & carry) | (b & carry);
+            ret.push(sum);
+            carry = new_carry;
+        }
+        Ok(TypedBits {
+            bits: ret,
+            kind: self.kind,
+        })
+    }
+}
+
 impl std::fmt::Display for TypedBits {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}b{:?}", binary_string(&self.bits), self.kind)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Digital;
+
+    use super::*;
+
+    #[test]
+    fn test_typed_bits_add() {
+        let a = 42_u8.typed_bits();
+        let b = 196_u8.typed_bits();
+        let c = (a + b).unwrap();
+        assert_eq!(c, 238_u8.typed_bits());
     }
 }

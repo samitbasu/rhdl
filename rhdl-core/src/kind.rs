@@ -257,6 +257,10 @@ impl Kind {
     pub fn is_enum(&self) -> bool {
         matches!(self, Kind::Enum(_))
     }
+
+    pub fn is_empty(&self) -> bool {
+        matches!(self, Kind::Empty)
+    }
 }
 
 #[derive(Clone, Debug)]

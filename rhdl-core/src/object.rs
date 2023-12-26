@@ -2,6 +2,7 @@ use anyhow::Result;
 use std::collections::BTreeMap;
 
 use crate::{
+    ast::FunctionId,
     rhif::{Block, BlockId, ExternalFunction, Slot},
     ty::Ty,
     TypedBits,
@@ -17,7 +18,7 @@ pub struct Object {
     pub main_block: BlockId,
     pub arguments: Vec<Slot>,
     pub name: String,
-    pub fn_id: String,
+    pub fn_id: FunctionId,
 }
 
 impl Object {
@@ -26,6 +27,17 @@ impl Object {
             Slot::Literal(l) => Ok(&self.literals[l]),
             _ => Err(anyhow::anyhow!("Not a literal")),
         }
+    }
+    pub fn reg_count(&self) -> usize {
+        self.ty
+            .keys()
+            .filter_map(|slot| match slot {
+                Slot::Register(ndx) => Some(ndx),
+                _ => None,
+            })
+            .max()
+            .copied()
+            .unwrap_or(0)
     }
 }
 

@@ -1,7 +1,7 @@
 use crate::{
     ast::{
         self, ArmKind, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprLit, ExprTuple,
-        ExprTypedBits, FieldValue, Local, NodeId, Pat, PatKind, Path,
+        ExprTypedBits, FieldValue, FunctionId, Local, NodeId, Pat, PatKind, Path,
     },
     display_ast::pretty_print_statement,
     infer_types::id_to_var,
@@ -57,7 +57,7 @@ pub struct CompilerContext {
     return_slot: Slot,
     main_block: BlockId,
     arguments: Vec<Slot>,
-    fn_id: String,
+    fn_id: FunctionId,
     name: String,
 }
 

@@ -413,6 +413,23 @@ pub struct FieldPat {
     pub pat: Box<Pat>,
 }
 
+#[derive(
+    Clone, Copy, Serialize, Deserialize, Debug, Hash, PartialEq, PartialOrd, Ord, Eq, Default,
+)]
+pub struct FunctionId(u64);
+
+impl From<u64> for FunctionId {
+    fn from(id: u64) -> Self {
+        FunctionId(id)
+    }
+}
+
+impl std::fmt::Display for FunctionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "FnID({:x})", self.0)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KernelFn {
     pub id: NodeId,
@@ -420,5 +437,5 @@ pub struct KernelFn {
     pub inputs: Vec<Box<Pat>>,
     pub ret: Kind,
     pub body: Box<Block>,
-    pub fn_id: String,
+    pub fn_id: FunctionId,
 }
