@@ -1,7 +1,7 @@
 use crate::{
     ascii::render_ast_to_string, assign_node::assign_node_ids, check_inference, check_rhif_flow,
     check_type_correctness, compiler::compile, design::Design, infer_types::infer, kernel::Kernel,
-    object::Object, rhif::ExternalFunction, KernelFnKind,
+    object::Object, KernelFnKind,
 };
 
 use anyhow::Result;

@@ -35,6 +35,7 @@ pub mod note_db;
 pub mod object;
 pub mod path;
 pub mod rhif;
+pub mod rhif_vm;
 pub mod test_module;
 pub mod ty;
 pub mod typed_bits;

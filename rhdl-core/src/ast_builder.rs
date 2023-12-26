@@ -1,3 +1,5 @@
+use std::hash::{Hash, Hasher};
+
 use crate::digital_fn::DigitalSignature;
 use crate::kernel::KernelFnKind;
 use crate::typed_bits::TypedBits;
@@ -413,8 +415,12 @@ pub fn kernel_fn(
     inputs: Vec<Box<Pat>>,
     ret: Kind,
     body: Box<Block>,
-    fn_id: String,
+    fn_id: std::any::TypeId,
 ) -> KernelFnKind {
+    // Hash the typeID into a 64 bit unsigned int
+    let mut hasher = fnv::FnvHasher::default();
+    fn_id.hash(&mut hasher);
+    let fn_id = hasher.finish().into();
     KernelFnKind::Kernel(Box::new(KernelFn {
         id: INVALID_NODE_ID,
         name: name.into(),
