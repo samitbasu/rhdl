@@ -1,14 +1,15 @@
 // Check a RHIF object for type correctness.
 
 use crate::{
-    rhif::{AluBinary, AluUnary, CaseArgument, Object, OpCode, Slot},
+    object::Object,
+    rhif::{AluBinary, AluUnary, CaseArgument, OpCode, Slot},
     ty::{
         self, ty_array, ty_array_base, ty_as_ref, ty_bool, ty_named_field, ty_unnamed_field, Bits,
         Ty,
     },
 };
 use anyhow::{anyhow, bail};
-use anyhow::{ensure, Context, Result};
+use anyhow::{ensure, Result};
 
 pub fn check_type_correctness(obj: &Object) -> Result<()> {
     let slot_type = |slot: &Slot| -> Result<Ty> {

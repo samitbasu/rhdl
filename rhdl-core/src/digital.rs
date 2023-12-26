@@ -41,7 +41,7 @@ use crate::{
 ///
 /// These are all supported in `RHDL`.
 ///
-pub trait Digital: Copy + PartialEq + Sized + Clone + Default {
+pub trait Digital: Copy + PartialEq + Sized + Clone + Default + 'static {
     fn static_kind() -> Kind;
     fn kind(&self) -> Kind {
         Self::static_kind()

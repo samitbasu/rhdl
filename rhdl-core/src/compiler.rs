@@ -5,7 +5,7 @@ use crate::{
     },
     display_ast::pretty_print_statement,
     infer_types::id_to_var,
-    kernel::ExternalKernelDef,
+    object::Object,
     rhif::{
         self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, FuncId, Member, OpCode,
         Slot,
@@ -57,10 +57,13 @@ pub struct CompilerContext {
     return_slot: Slot,
     main_block: BlockId,
     arguments: Vec<Slot>,
+    fn_id: String,
+    name: String,
 }
 
 impl std::fmt::Display for CompilerContext {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Kernel {} ({})", self.name, self.fn_id)?;
         for regs in self.ty.keys() {
             writeln!(f, "Reg r{} : {}", regs.reg().unwrap(), self.ty[regs],)?;
         }
@@ -119,6 +122,8 @@ impl CompilerContext {
             return_slot: Slot::Empty,
             main_block: ROOT_BLOCK,
             arguments: Default::default(),
+            fn_id: Default::default(),
+            name: Default::default(),
         }
     }
     fn node_ty(&self, id: NodeId) -> Result<Ty> {
@@ -787,14 +792,14 @@ impl CompilerContext {
             bail!("For loop range must have an end")
         };
         let Expr {
-            id: start_id,
+            id: _,
             kind: ExprKind::Lit(ExprLit::Int(start_lit)),
         } = start.as_ref()
         else {
             bail!("For loop range must have a literal start")
         };
         let Expr {
-            id: end_id,
+            id: _,
             kind: ExprKind::Lit(ExprLit::Int(end_lit)),
         } = end.as_ref()
         else {
@@ -962,11 +967,13 @@ impl Visitor for CompilerContext {
         let block_result = self.reg(self.ty(node.id)?)?;
         self.main_block = self.block(block_result, &node.body)?;
         self.return_slot = block_result;
+        self.name = node.name.clone();
+        self.fn_id = node.fn_id.clone();
         Ok(())
     }
 }
 
-pub fn compile(func: &ast::KernelFn, ctx: UnifyContext) -> Result<rhif::Object> {
+pub fn compile(func: &ast::KernelFn, ctx: UnifyContext) -> Result<Object> {
     let mut compiler = CompilerContext::new(ctx);
     compiler.visit_kernel_fn(func)?;
     let literals = compiler
@@ -982,7 +989,7 @@ pub fn compile(func: &ast::KernelFn, ctx: UnifyContext) -> Result<rhif::Object> 
             ops: x.ops,
         })
         .collect();
-    Ok(rhif::Object {
+    Ok(Object {
         literals,
         ty: compiler.ty,
         blocks,
@@ -990,6 +997,8 @@ pub fn compile(func: &ast::KernelFn, ctx: UnifyContext) -> Result<rhif::Object> 
         externals: compiler.stash,
         main_block: compiler.main_block,
         arguments: compiler.arguments,
+        fn_id: compiler.fn_id,
+        name: compiler.name,
     })
 }
 

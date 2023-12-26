@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     digital::binary_string,
-    path::{bit_range, Path, PathElement},
+    path::{bit_range, Path},
     Kind,
 };
 

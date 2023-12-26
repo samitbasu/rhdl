@@ -7,7 +7,7 @@ use crate::{
     ty::{self, Ty},
     unify::UnifyContext,
     util::{splice, IndentingFormatter},
-    Kind, TypedBits,
+    Kind,
 };
 use anyhow::Result;
 
@@ -154,10 +154,6 @@ impl<'a> PrettyPrinter<'a> {
                 self.push(";\n");
             }
         }
-        Ok(())
-    }
-    fn print_bits(&mut self, typed_bits: &TypedBits) -> Result<()> {
-        self.push(&format!("/* {} */", typed_bits));
         Ok(())
     }
     fn print_kind(&mut self, kind: &Kind) -> Result<()> {

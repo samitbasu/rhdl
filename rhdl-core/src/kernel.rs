@@ -41,7 +41,14 @@ pub enum KernelFnKind {
 impl std::fmt::Display for KernelFnKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            KernelFnKind::Kernel(_kernel) => write!(f, "kernel"),
+            KernelFnKind::Kernel(kernel) => {
+                write!(
+                    f,
+                    "kernel {name} {fn_id}",
+                    name = kernel.name,
+                    fn_id = kernel.fn_id
+                )
+            }
             KernelFnKind::Extern(extern_kernel) => write!(f, "extern {}", extern_kernel.name),
             KernelFnKind::TupleStructConstructor => write!(f, "tuple struct constructor"),
             KernelFnKind::BitConstructor(width) => write!(f, "bit constructor {}", width),

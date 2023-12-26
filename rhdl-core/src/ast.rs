@@ -420,4 +420,5 @@ pub struct KernelFn {
     pub inputs: Vec<Box<Pat>>,
     pub ret: Kind,
     pub body: Box<Block>,
+    pub fn_id: String,
 }

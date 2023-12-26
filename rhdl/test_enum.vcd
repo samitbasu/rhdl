@@ -1,28 +1,26 @@
 $timescale 1 fs $end
 $scope module top $end
-$var wire 16 ! __enum__1 $end$$var wire 1 " __enum__0 $end
+$var wire 16 ! __enum__1 $end
+$var wire 1 " __enum__0 $end
 $var wire 2 # __enum__.__disc $end
-$var $ __te $ __enum__name $end
-$var wi % __% __enum $end
-$var wi & __& __color $end
+$var wire 8 $ __enum__name $end
+$var wire 0 % __enum $end
+$var wire 8 & __color $end
 $upscope $end
 $enddefinitions $end
 #0
 b00 #
 sNone %
-b101010b11&
+b10101010 &
 #1000
-b000001b10 !
-b101 #
-b01 $
-sB %
-#2000
-b00 $
+b0000010000000000 !
+b01 #
 sA %
+#2000
+b10 #
+b01000011 $
+sB %
 #3000
-b10 $
-sC %
-
 1"
 b11 #
 sC %
