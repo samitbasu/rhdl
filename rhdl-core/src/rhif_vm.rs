@@ -69,6 +69,11 @@ fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
                     AluBinary::Ne => (arg1 != arg2).typed_bits(),
                     AluBinary::Shl => (arg1 << arg2)?,
                     AluBinary::Shr => (arg1 >> arg2)?,
+                    AluBinary::Lt => (arg1 < arg2).typed_bits(),
+                    AluBinary::Le => (arg1 <= arg2).typed_bits(),
+                    AluBinary::Gt => (arg1 > arg2).typed_bits(),
+                    AluBinary::Ge => (arg1 >= arg2).typed_bits(),
+
                     //                    AluBinary::Ge => (arg1 >= arg2).typed_bits(),
                     _ => todo!(),
                 };
