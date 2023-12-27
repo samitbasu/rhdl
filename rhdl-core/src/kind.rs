@@ -261,6 +261,21 @@ impl Kind {
     pub fn is_empty(&self) -> bool {
         matches!(self, Kind::Empty)
     }
+
+    pub fn is_composite(&self) -> bool {
+        matches!(
+            self,
+            Kind::Array(_) | Kind::Tuple(_) | Kind::Struct(_) | Kind::Enum(_)
+        )
+    }
+
+    pub fn is_signed(&self) -> bool {
+        matches!(self, Kind::Signed(_) | Kind::I128)
+    }
+
+    pub fn is_unsigned(&self) -> bool {
+        matches!(self, Kind::Bits(_) | Kind::U128)
+    }
 }
 
 #[derive(Clone, Debug)]

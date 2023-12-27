@@ -3,6 +3,9 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::iter::repeat;
 
+use crate::dyn_bit_manip::{
+    bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
+};
 use crate::{
     digital::binary_string,
     path::{bit_range, Path},
@@ -116,21 +119,182 @@ impl std::ops::Add<TypedBits> for TypedBits {
                 rhs
             );
         }
-        let mut ret = Vec::new();
-        let mut carry = false;
-        for (a, b) in self.bits.iter().zip(rhs.bits.iter()) {
-            let sum = a ^ b ^ carry;
-            let new_carry = (a & b) | (a & carry) | (b & carry);
-            ret.push(sum);
-            carry = new_carry;
-        }
         Ok(TypedBits {
-            bits: ret,
+            bits: full_add(&self.bits, &rhs.bits),
             kind: self.kind,
         })
     }
 }
 
+impl std::ops::Sub<TypedBits> for TypedBits {
+    type Output = Result<TypedBits>;
+
+    fn sub(self, rhs: TypedBits) -> Self::Output {
+        if self.kind != rhs.kind {
+            bail!(
+                "Cannot subtract {} and {} because they have different types",
+                self,
+                rhs
+            );
+        }
+        Ok(TypedBits {
+            bits: full_sub(&self.bits, &rhs.bits),
+            kind: self.kind,
+        })
+    }
+}
+
+impl std::ops::Not for TypedBits {
+    type Output = Result<TypedBits>;
+
+    fn not(self) -> Self::Output {
+        if self.kind.is_composite() {
+            bail!("Cannot negate composite {}", self);
+        }
+        Ok(TypedBits {
+            bits: bit_not(&self.bits),
+            kind: self.kind,
+        })
+    }
+}
+
+impl std::ops::BitXor for TypedBits {
+    type Output = Result<TypedBits>;
+
+    fn bitxor(self, rhs: TypedBits) -> Self::Output {
+        if self.kind != rhs.kind {
+            bail!(
+                "Cannot xor {} and {} because they have different types",
+                self,
+                rhs
+            );
+        }
+        if self.kind.is_composite() {
+            bail!("Cannot xor composite {}", self);
+        }
+        Ok(TypedBits {
+            bits: bits_xor(&self.bits, &rhs.bits),
+            kind: self.kind,
+        })
+    }
+}
+
+impl std::ops::BitAnd for TypedBits {
+    type Output = Result<TypedBits>;
+
+    fn bitand(self, rhs: TypedBits) -> Self::Output {
+        if self.kind != rhs.kind {
+            bail!(
+                "Cannot and {} and {} because they have different types",
+                self,
+                rhs
+            );
+        }
+        if self.kind.is_composite() {
+            bail!("Cannot and composite {}", self);
+        }
+        Ok(TypedBits {
+            bits: bits_and(&self.bits, &rhs.bits),
+            kind: self.kind,
+        })
+    }
+}
+
+impl std::ops::BitOr for TypedBits {
+    type Output = Result<TypedBits>;
+
+    fn bitor(self, rhs: TypedBits) -> Self::Output {
+        if self.kind != rhs.kind {
+            bail!(
+                "Cannot or {} and {} because they have different types",
+                self,
+                rhs
+            );
+        }
+        if self.kind.is_composite() {
+            bail!("Cannot or composite {}", self);
+        }
+        Ok(TypedBits {
+            bits: bits_or(&self.bits, &rhs.bits),
+            kind: self.kind,
+        })
+    }
+}
+
+impl std::ops::Neg for TypedBits {
+    type Output = Result<TypedBits>;
+
+    fn neg(self) -> Self::Output {
+        if !self.kind.is_signed() {
+            bail!("Only signed values can be negated: {}", self);
+        }
+        Ok(TypedBits {
+            bits: bit_neg(&self.bits),
+            kind: self.kind,
+        })
+    }
+}
+
+impl std::ops::Shl<TypedBits> for TypedBits {
+    type Output = Result<TypedBits>;
+
+    fn shl(self, rhs: TypedBits) -> Self::Output {
+        if self.kind.is_composite() {
+            bail!("Cannot shift composite {}", self);
+        }
+        if !rhs.kind.is_unsigned() {
+            bail!("Shift amount must be unsigned: {}", rhs);
+        }
+        let shift = rhs.as_i64()?;
+        if shift >= self.bits.len() as i64 {
+            bail!(
+                "Shift amount {} is greater than the number of bits in {}",
+                shift,
+                self
+            );
+        }
+        Ok(TypedBits {
+            bits: bits_shl(&self.bits, shift),
+            kind: self.kind,
+        })
+    }
+}
+
+impl std::ops::Shr<TypedBits> for TypedBits {
+    type Output = Result<TypedBits>;
+
+    fn shr(self, rhs: TypedBits) -> Self::Output {
+        if self.kind.is_composite() {
+            bail!("Cannot shift composite {}", self);
+        }
+        if !rhs.kind.is_unsigned() {
+            bail!("Shift amount must be unsigned: {}", rhs);
+        }
+        let shift = rhs.as_i64()?;
+        if shift >= self.bits.len() as i64 {
+            bail!(
+                "Shift amount {} is greater than the number of bits in {}",
+                shift,
+                self
+            );
+        }
+        Ok(TypedBits {
+            bits: bits_shr(&self.bits, shift),
+            kind: self.kind,
+        })
+    }
+}
+
+/* impl std::cmp::PartialOrd for TypedBits {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match self.bits.partial_cmp(&other.bits) {
+            Some(core::cmp::Ordering::Equal) => {}
+            ord => return ord,
+        }
+        self.kind.partial_cmp(&other.kind)
+    }
+}
+ */
 impl std::fmt::Display for TypedBits {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}b{:?}", binary_string(&self.bits), self.kind)

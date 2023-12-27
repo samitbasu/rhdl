@@ -178,8 +178,6 @@ impl Display for AluBinary {
             AluBinary::Le => write!(f, "<="),
             AluBinary::Gt => write!(f, ">"),
             AluBinary::Ge => write!(f, ">="),
-            AluBinary::And => write!(f, "&&"),
-            AluBinary::Or => write!(f, "||"),
         }
     }
 }
