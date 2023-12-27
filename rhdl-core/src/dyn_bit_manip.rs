@@ -62,22 +62,3 @@ pub(crate) fn bits_shr(a: &[bool], b: i64) -> Vec<bool> {
         .take(a.len())
         .collect()
 }
-
-pub(crate) fn bits_eq(a: &[bool], b: &[bool]) -> bool {
-    a.iter().zip(b.iter()).all(|(a, b)| a == b)
-}
-
-pub(crate) fn bits_lt(a: &[bool], b: &[bool]) -> bool {
-    a.iter().rev().zip(b.iter().rev()).any(|(a, b)| !a && *b)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_bits_lt() {
-        assert!(bits_lt(&[false, false, false], &[false, false, true]));
-        assert!(!bits_lt(&[false, false, true], &[false, true, false]));
-    }
-}

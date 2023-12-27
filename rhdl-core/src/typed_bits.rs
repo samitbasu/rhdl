@@ -285,16 +285,21 @@ impl std::ops::Shr<TypedBits> for TypedBits {
     }
 }
 
-/* impl std::cmp::PartialOrd for TypedBits {
+impl std::cmp::PartialOrd for TypedBits {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        match self.bits.partial_cmp(&other.bits) {
-            Some(core::cmp::Ordering::Equal) => {}
-            ord => return ord,
+        if self.kind != other.kind {
+            return None;
         }
-        self.kind.partial_cmp(&other.kind)
+        if self.kind.is_unsigned() {
+            let a = std::cmp::Reverse(&self.bits);
+            let b = std::cmp::Reverse(&other.bits);
+            a.partial_cmp(&b)
+        } else {
+            todo!("Handled signed comparison")
+        }
     }
 }
- */
+
 impl std::fmt::Display for TypedBits {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}b{:?}", binary_string(&self.bits), self.kind)
@@ -311,6 +316,10 @@ mod tests {
     fn test_typed_bits_add() {
         let a = 42_u8.typed_bits();
         let b = 196_u8.typed_bits();
+        assert!(a < b);
+        assert!(a <= b);
+        assert!(b > a);
+        assert!(b >= a);
         let c = (a + b).unwrap();
         assert_eq!(c, 238_u8.typed_bits());
     }
