@@ -83,6 +83,31 @@ impl Ty {
     pub fn is_empty(&self) -> bool {
         self == &ty_empty()
     }
+    pub fn is_unsigned(&self) -> bool {
+        matches!(
+            self,
+            Ty::Const(Bits::Unsigned(_)) | Ty::Const(Bits::U128) | Ty::Const(Bits::Usize)
+        )
+    }
+    pub fn is_bool(&self) -> bool {
+        matches!(self, Ty::Const(Bits::Unsigned(1)))
+    }
+    pub fn unsigned_bits(&self) -> Result<usize> {
+        match self {
+            Ty::Const(Bits::Unsigned(width)) => Ok(*width),
+            Ty::Const(Bits::U128) => Ok(128),
+            Ty::Const(Bits::Usize) => Ok(std::mem::size_of::<usize>() * 8),
+            _ => bail!("Ty - Expected unsigned type, got {:?}", self),
+        }
+    }
+    pub fn signed_bits(&self) -> Result<usize> {
+        match self {
+            Ty::Const(Bits::Signed(width)) => Ok(*width),
+            Ty::Const(Bits::I128) => Ok(128),
+            Ty::Integer => Ok(32),
+            _ => bail!("Ty - Expected signed type, got {:?}", self),
+        }
+    }
 }
 
 pub fn ty_bool() -> Ty {

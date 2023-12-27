@@ -25,7 +25,11 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
         if a == b {
             Ok(())
         } else {
-            Err(anyhow!("type mismatch: {:?} != {:?}", a, b))
+            Err(anyhow!(
+                "type mismatch while checking RHIF type correctness: {:?} != {:?}",
+                a,
+                b
+            ))
         }
     };
     for block in &obj.blocks {
@@ -39,15 +43,22 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                         | AluBinary::Mul
                         | AluBinary::BitAnd
                         | AluBinary::BitOr
-                        | AluBinary::BitXor
-                        | AluBinary::Shl
-                        | AluBinary::Shr,
+                        | AluBinary::BitXor,
                     lhs,
                     arg1,
                     arg2,
                 } => {
                     eq_types(slot_type(lhs)?, slot_type(arg1)?)?;
                     eq_types(slot_type(lhs)?, slot_type(arg2)?)?;
+                }
+                OpCode::Binary {
+                    op: AluBinary::Shl | AluBinary::Shr,
+                    lhs,
+                    arg1,
+                    arg2,
+                } => {
+                    eq_types(slot_type(lhs)?, slot_type(arg1)?)?;
+                    ensure!(slot_type(arg2)?.is_unsigned());
                 }
                 OpCode::Binary {
                     op:

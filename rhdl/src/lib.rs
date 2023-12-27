@@ -1594,4 +1594,180 @@ mod tests {
         let res = execute_function(&design, vec![a.typed_bits(), b.typed_bits()]).unwrap();
         assert_eq!(res, c.typed_bits());
     }
+
+    fn test_two_unsigned_arg_function<K: DigitalFn, T: Digital>(kernel_fn: impl Fn(b8, b8) -> T) {
+        let design = compile_design(K::kernel_fn().try_into().unwrap()).unwrap();
+        eprintln!("design: {}", design);
+        for a in 0..255 {
+            for b in 0..255 {
+                let ba = bits(a);
+                let bb = bits(b);
+                let c = kernel_fn(ba, bb); // Ask Rust to do the math
+                let res =
+                    execute_function(&design, vec![ba.typed_bits(), bb.typed_bits()]).unwrap();
+                assert_eq!(
+                    res,
+                    c.typed_bits(),
+                    "a: {}, b: {}, vm: {} rustc: {}",
+                    a,
+                    b,
+                    res,
+                    c.typed_bits()
+                );
+            }
+        }
+    }
+
+    fn test_two_signed_arg_function<K: DigitalFn, T: Digital>(kernel_fn: impl Fn(s8, s8) -> T) {
+        let design = compile_design(K::kernel_fn().try_into().unwrap()).unwrap();
+        eprintln!("design: {}", design);
+        for a in -128..127 {
+            for b in -128..127 {
+                let sa = signed(a);
+                let sb = signed(b);
+                let c = kernel_fn(sa, sb); // Ask Rust to do the math
+                let res =
+                    execute_function(&design, vec![sa.typed_bits(), sb.typed_bits()]).unwrap();
+                assert_eq!(
+                    res,
+                    c.typed_bits(),
+                    "a: {}, b: {}, vm: {} rustc: {}",
+                    a,
+                    b,
+                    res,
+                    c.typed_bits()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_vm_unsigned_binop_function() {
+        #[kernel]
+        fn gt(a: b8, b: b8) -> bool {
+            a > b
+        }
+
+        #[kernel]
+        fn ge(a: b8, b: b8) -> bool {
+            a >= b
+        }
+
+        #[kernel]
+        fn eq(a: b8, b: b8) -> bool {
+            a == b
+        }
+
+        #[kernel]
+        fn ne(a: b8, b: b8) -> bool {
+            a != b
+        }
+
+        #[kernel]
+        fn le(a: b8, b: b8) -> bool {
+            a <= b
+        }
+
+        #[kernel]
+        fn lt(a: b8, b: b8) -> bool {
+            a < b
+        }
+
+        test_two_unsigned_arg_function::<gt, _>(gt);
+        test_two_unsigned_arg_function::<ge, _>(ge);
+        test_two_unsigned_arg_function::<eq, _>(eq);
+        test_two_unsigned_arg_function::<ne, _>(ne);
+        test_two_unsigned_arg_function::<le, _>(le);
+        test_two_unsigned_arg_function::<lt, _>(lt);
+    }
+
+    #[test]
+    fn test_vm_signed_binop_function() {
+        #[kernel]
+        fn gt(a: s8, b: s8) -> bool {
+            a > b
+        }
+
+        #[kernel]
+        fn ge(a: s8, b: s8) -> bool {
+            a >= b
+        }
+
+        #[kernel]
+        fn eq(a: s8, b: s8) -> bool {
+            a == b
+        }
+
+        #[kernel]
+        fn ne(a: s8, b: s8) -> bool {
+            a != b
+        }
+
+        #[kernel]
+        fn le(a: s8, b: s8) -> bool {
+            a <= b
+        }
+
+        #[kernel]
+        fn lt(a: s8, b: s8) -> bool {
+            a < b
+        }
+
+        test_two_signed_arg_function::<gt, _>(gt);
+        test_two_signed_arg_function::<ge, _>(ge);
+        test_two_signed_arg_function::<eq, _>(eq);
+        test_two_signed_arg_function::<ne, _>(ne);
+        test_two_signed_arg_function::<le, _>(le);
+        test_two_signed_arg_function::<lt, _>(lt);
+    }
+
+    #[test]
+    fn test_vm_shr_is_sign_preserving() {
+        #[kernel]
+        fn shr(a: s12, b: b4) -> s12 {
+            a >> b
+        }
+
+        let design = compile_design(shr::kernel_fn().try_into().unwrap()).unwrap();
+        eprintln!("design: {}", design);
+        let a = signed(-42);
+        let b = bits(2);
+        let c = shr(a, b); // Ask Rust to do the math
+        let res = execute_function(&design, vec![a.typed_bits(), b.typed_bits()]).unwrap();
+        assert_eq!(res, c.typed_bits());
+    }
+
+    #[test]
+    fn test_simple_if_expression() {
+        #[kernel]
+        fn foo(a: b8, b: b8) -> b8 {
+            if a > b {
+                a + 1
+            } else {
+                b + 2
+            }
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_plain_literals() {
+        #[kernel]
+        fn foo(a: b8, b: b8) -> b8 {
+            a + 2 + b
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_plain_literals_signed_context() {
+        #[kernel]
+        fn foo(a: s8, b: s8) -> s8 {
+            a + 2 + b
+        }
+
+        test_two_signed_arg_function::<foo, _>(foo);
+    }
 }

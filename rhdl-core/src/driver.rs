@@ -40,7 +40,7 @@ fn elaborate_design(design: &mut Design) -> Result<()> {
             let obj = compile_kernel(Kernel {
                 ast: kernel.clone(),
             })?;
-            design.objects.insert(kernel.fn_id.clone(), obj);
+            design.objects.insert(kernel.fn_id, obj);
         }
     }
     Ok(())
@@ -49,8 +49,8 @@ fn elaborate_design(design: &mut Design) -> Result<()> {
 pub fn compile_design(top: Kernel) -> Result<Design> {
     let main = compile_kernel(top)?;
     let mut design = Design {
-        objects: [(main.fn_id.clone(), main.clone())].into_iter().collect(),
-        top: main.fn_id.clone(),
+        objects: [(main.fn_id, main.clone())].into_iter().collect(),
+        top: main.fn_id,
     };
     let mut object_count = design.objects.len();
     loop {
