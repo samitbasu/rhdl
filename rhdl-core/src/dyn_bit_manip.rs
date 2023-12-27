@@ -62,3 +62,13 @@ pub(crate) fn bits_shr(a: &[bool], b: i64) -> Vec<bool> {
         .take(a.len())
         .collect()
 }
+
+pub(crate) fn bits_shr_signed(a: &[bool], b: i64) -> Vec<bool> {
+    let sign = a.last().copied().unwrap_or(false);
+    a.iter()
+        .copied()
+        .skip(b as usize)
+        .chain(repeat(sign))
+        .take(a.len())
+        .collect()
+}

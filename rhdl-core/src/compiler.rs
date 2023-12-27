@@ -16,7 +16,7 @@ use crate::{
     visit::Visitor,
     Digital, KernelFnKind, Kind,
 };
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use std::collections::{BTreeMap, HashMap};
 
 const ROOT_BLOCK: BlockId = BlockId(0);
@@ -977,7 +977,17 @@ pub fn compile(func: &ast::KernelFn, ctx: UnifyContext) -> Result<Object> {
     let literals = compiler
         .literals
         .into_iter()
-        .map(|x| x.try_into())
+        .enumerate()
+        .map(|(ndx, lit)| {
+            let ty = compiler
+                .ty
+                .get(&Slot::Literal(ndx))
+                .cloned()
+                .ok_or(anyhow!(
+                    "ICE no literal type found for a literal in the table"
+                ))?;
+            cast_literals_to_inferred_type(*lit, ty)
+        })
         .collect::<Result<Vec<_>>>()?;
     let blocks = compiler
         .blocks
@@ -1000,24 +1010,37 @@ pub fn compile(func: &ast::KernelFn, ctx: UnifyContext) -> Result<Object> {
     })
 }
 
-impl TryFrom<ExprLit> for TypedBits {
-    type Error = anyhow::Error;
-    fn try_from(lit: ExprLit) -> Result<Self> {
-        match lit {
-            ExprLit::TypedBits(t) => Ok(t.value),
-            ExprLit::Bool(b) => Ok(b.typed_bits()),
-            ExprLit::Int(x) => Ok(x.parse::<i32>()?.typed_bits()),
+fn cast_literals_to_inferred_type(t: ExprLit, ty: Ty) -> Result<TypedBits> {
+    match t {
+        ExprLit::TypedBits(t) => {
+            if ty != t.value.kind.clone().into() {
+                bail!(
+                    "Literal with explicit type {:?} does not match inferred type {:?}",
+                    t.value.kind,
+                    ty
+                )
+            } else {
+                Ok(t.value)
+            }
         }
-    }
-}
-
-impl TryFrom<Box<ExprLit>> for TypedBits {
-    type Error = anyhow::Error;
-    fn try_from(lit: Box<ExprLit>) -> Result<Self> {
-        match *lit {
-            ExprLit::TypedBits(t) => Ok(t.value),
-            ExprLit::Bool(b) => Ok(b.typed_bits()),
-            ExprLit::Int(x) => Ok(x.parse::<i32>()?.typed_bits()),
+        ExprLit::Bool(b) => {
+            if !ty.is_bool() {
+                bail!(
+                    "Literal with explicit type of bool does not match inferred type {:?}",
+                    ty
+                )
+            } else {
+                Ok(b.typed_bits())
+            }
+        }
+        ExprLit::Int(x) => {
+            if ty.is_unsigned() {
+                let x_as_u128 = x.parse::<u128>()?;
+                x_as_u128.typed_bits().unsigned_cast(ty.unsigned_bits()?)
+            } else {
+                let x_as_i128 = x.parse::<i128>()?;
+                x_as_i128.typed_bits().signed_cast(ty.signed_bits()?)
+            }
         }
     }
 }

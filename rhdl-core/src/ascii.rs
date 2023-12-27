@@ -270,6 +270,27 @@ impl<'a> AsciiRenderer<'a> {
                 }
                 self.indent -= 1;
             }
+            ExprKind::ForLoop(for_loop) => {
+                self.push("for_loop");
+                self.indent += 1;
+                self.render_pat(&for_loop.pat)?;
+                self.render_expr(&for_loop.expr)?;
+                self.render_block(&for_loop.body)?;
+                self.indent -= 1;
+            }
+            ExprKind::Range(range) => {
+                self.push("range");
+                self.indent += 1;
+                self.push("start");
+                if let Some(start) = &range.start {
+                    self.render_expr(start)?;
+                }
+                self.push("end");
+                if let Some(end) = &range.end {
+                    self.render_expr(end)?;
+                }
+                self.indent -= 1;
+            }
             _ => {
                 self.push(&format!("unhandled {:?}", expr.kind));
             }

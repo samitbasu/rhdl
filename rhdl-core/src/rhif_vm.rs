@@ -1,4 +1,5 @@
-use crate::rhif::{AluBinary, Block, OpCode, Slot};
+use crate::path::Path;
+use crate::rhif::{AluBinary, AluUnary, Block, OpCode, Slot};
 use crate::ty::Ty;
 use crate::Digital;
 use crate::{ast::FunctionId, design::Design, object::Object, TypedBits};
@@ -6,9 +7,32 @@ use crate::{ast::FunctionId, design::Design, object::Object, TypedBits};
 use anyhow::Result;
 
 use anyhow::{anyhow, bail};
+
+#[derive(Debug, Clone, PartialEq)]
+enum Register {
+    Literal(TypedBits),
+    Address(Address),
+}
+
+impl Register {
+    fn literal(&self) -> Result<&TypedBits> {
+        match self {
+            Register::Literal(l) => Ok(l),
+            Register::Address(_) => bail!("ICE Cannot get literal from address"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Address {
+    base: usize,
+    path: Path,
+}
+
 struct VMState<'a> {
-    reg_stack: &'a mut [TypedBits],
+    reg_stack: &'a mut [Option<Register>],
     literals: &'a [TypedBits],
+    blocks: &'a [Block],
 }
 
 impl<'a> VMState<'a> {
@@ -22,8 +46,11 @@ impl<'a> VMState<'a> {
             Slot::Register(r) => self
                 .reg_stack
                 .get(r)
-                .cloned()
-                .ok_or(anyhow!("ICE Register {r} not found in register stack")),
+                .ok_or(anyhow!("ICE Register {r} not found in register stack"))?
+                .clone()
+                .ok_or(anyhow!("ICE Register {r} is not initialized"))?
+                .literal()
+                .cloned(),
             Slot::Empty => Ok(TypedBits::EMPTY),
         }
     }
@@ -31,7 +58,7 @@ impl<'a> VMState<'a> {
         match slot {
             Slot::Literal(_) => bail!("ICE Cannot write to literal"),
             Slot::Register(r) => {
-                self.reg_stack[r] = value;
+                self.reg_stack[r] = Some(Register::Literal(value));
                 Ok(())
             }
             Slot::Empty => {
@@ -73,14 +100,41 @@ fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
                     AluBinary::Le => (arg1 <= arg2).typed_bits(),
                     AluBinary::Gt => (arg1 > arg2).typed_bits(),
                     AluBinary::Ge => (arg1 >= arg2).typed_bits(),
-
-                    //                    AluBinary::Ge => (arg1 >= arg2).typed_bits(),
                     _ => todo!(),
                 };
                 state.write(*lhs, result)?;
             }
+            OpCode::Unary { op, lhs, arg1 } => {
+                let arg1 = state.read(*arg1)?;
+                let result = match op {
+                    AluUnary::Not => (!arg1)?,
+                    AluUnary::Neg => (-arg1)?,
+                    AluUnary::All => arg1.all(),
+                    AluUnary::Any => arg1.any(),
+                    AluUnary::Signed => arg1.as_signed()?,
+                    AluUnary::Unsigned => arg1.as_unsigned()?,
+                    AluUnary::Xor => arg1.xor(),
+                };
+                state.write(*lhs, result)?;
+            }
             OpCode::Comment(_) => {}
-            _ => todo!(),
+            OpCode::If {
+                lhs: _,
+                cond,
+                then_branch,
+                else_branch,
+            } => {
+                let cond = state.read(*cond)?;
+                if cond.any().as_bool()? {
+                    execute_block(&state.blocks[then_branch.0], state)?;
+                } else {
+                    execute_block(&state.blocks[else_branch.0], state)?;
+                }
+            }
+            OpCode::Block(block_id) => {
+                execute_block(&state.blocks[block_id.0], state)?;
+            }
+            _ => todo!("Opcode {:?} is not implemented", op),
         }
     }
     Ok(())
@@ -118,10 +172,10 @@ fn execute(design: &Design, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
     }
     // Allocate registers for the function call.
     let max_reg = obj.reg_count() + 1;
-    let mut reg_stack = vec![TypedBits::EMPTY; max_reg + 1];
+    let mut reg_stack = vec![None; max_reg + 1];
     // Copy the arguments into the appropriate registers
     for (ndx, arg) in arguments.into_iter().enumerate() {
-        reg_stack[obj.arguments[ndx].reg()?] = arg;
+        reg_stack[obj.arguments[ndx].reg()?] = Some(Register::Literal(arg));
     }
     let block = obj
         .blocks
@@ -130,12 +184,16 @@ fn execute(design: &Design, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
     let mut state = VMState {
         reg_stack: &mut reg_stack,
         literals: &obj.literals,
+        blocks: &obj.blocks,
     };
     execute_block(block, &mut state)?;
     reg_stack
         .get(obj.return_slot.reg()?)
         .cloned()
-        .ok_or(anyhow!("return slot not found"))
+        .ok_or(anyhow!("return slot not found"))?
+        .ok_or(anyhow!("ICE return slot is not initialized"))?
+        .literal()
+        .cloned()
 }
 
 // Given a set of arguments in the form of TypedBits, execute the function described by a Design

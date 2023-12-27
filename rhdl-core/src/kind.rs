@@ -276,6 +276,10 @@ impl Kind {
     pub fn is_unsigned(&self) -> bool {
         matches!(self, Kind::Bits(_) | Kind::U128)
     }
+
+    pub fn is_bool(&self) -> bool {
+        matches!(self, Kind::Bits(1))
+    }
 }
 
 #[derive(Clone, Debug)]

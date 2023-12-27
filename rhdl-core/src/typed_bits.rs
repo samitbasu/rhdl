@@ -3,9 +3,11 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::iter::repeat;
 
+use crate::dyn_bit_manip::bits_shr_signed;
 use crate::dyn_bit_manip::{
     bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
 };
+use crate::Digital;
 use crate::{
     digital::binary_string,
     path::{bit_range, Path},
@@ -105,6 +107,42 @@ impl TypedBits {
             ret |= (tb64.bits[ndx] as u64) << ndx;
         }
         Ok(ret as i64)
+    }
+    pub fn any(&self) -> TypedBits {
+        self.bits.iter().any(|b| *b).typed_bits()
+    }
+    pub fn all(&self) -> TypedBits {
+        self.bits.iter().all(|b| *b).typed_bits()
+    }
+    pub fn as_signed(&self) -> Result<TypedBits> {
+        if let Kind::Bits(ndx) = self.kind {
+            Ok(TypedBits {
+                bits: self.bits.clone(),
+                kind: Kind::Signed(ndx),
+            })
+        } else {
+            bail!("Cannot cast {:?} to signed", self.kind)
+        }
+    }
+    pub fn as_unsigned(&self) -> Result<TypedBits> {
+        if let Kind::Signed(ndx) = self.kind {
+            Ok(TypedBits {
+                bits: self.bits.clone(),
+                kind: Kind::Bits(ndx),
+            })
+        } else {
+            bail!("Cannot cast {:?} to unsigned", self.kind)
+        }
+    }
+    pub fn xor(&self) -> TypedBits {
+        self.bits.iter().fold(false, |a, b| a ^ b).typed_bits()
+    }
+    pub fn as_bool(&self) -> Result<bool> {
+        if self.kind.is_bool() {
+            Ok(self.bits[0])
+        } else {
+            bail!("Cannot cast {:?} to bool", self.kind)
+        }
     }
 }
 
@@ -278,10 +316,17 @@ impl std::ops::Shr<TypedBits> for TypedBits {
                 self
             );
         }
-        Ok(TypedBits {
-            bits: bits_shr(&self.bits, shift),
-            kind: self.kind,
-        })
+        if self.kind.is_signed() {
+            Ok(TypedBits {
+                bits: bits_shr_signed(&self.bits, shift),
+                kind: self.kind,
+            })
+        } else {
+            Ok(TypedBits {
+                bits: bits_shr(&self.bits, shift),
+                kind: self.kind,
+            })
+        }
     }
 }
 
@@ -291,11 +336,27 @@ impl std::cmp::PartialOrd for TypedBits {
             return None;
         }
         if self.kind.is_unsigned() {
-            let a = std::cmp::Reverse(&self.bits);
-            let b = std::cmp::Reverse(&other.bits);
-            a.partial_cmp(&b)
+            let mut a_as_u128 = 0;
+            let mut b_as_u128 = 0;
+            for ndx in 0..self.bits.len() {
+                a_as_u128 |= (self.bits[ndx] as u128) << ndx;
+                b_as_u128 |= (other.bits[ndx] as u128) << ndx;
+            }
+            a_as_u128.partial_cmp(&b_as_u128)
         } else {
-            todo!("Handled signed comparison")
+            let mut a_as_i128 = 0;
+            let mut b_as_i128 = 0;
+            for ndx in 0..self.bits.len() {
+                a_as_i128 |= (self.bits[ndx] as i128) << ndx;
+                b_as_i128 |= (other.bits[ndx] as i128) << ndx;
+            }
+            let me_sign = self.bits.last().cloned().unwrap_or_default();
+            let other_sign = other.bits.last().cloned().unwrap_or_default();
+            for ndx in self.bits.len()..128 {
+                a_as_i128 |= (me_sign as i128) << ndx;
+                b_as_i128 |= (other_sign as i128) << ndx;
+            }
+            a_as_i128.partial_cmp(&b_as_i128)
         }
     }
 }
@@ -309,8 +370,6 @@ impl std::fmt::Display for TypedBits {
 #[cfg(test)]
 mod tests {
     use crate::Digital;
-
-    use super::*;
 
     #[test]
     fn test_typed_bits_add() {
