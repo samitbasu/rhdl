@@ -155,8 +155,6 @@ pub enum AluBinary {
     Add,
     Sub,
     Mul,
-    And,
-    Or,
     BitXor,
     BitAnd,
     BitOr,

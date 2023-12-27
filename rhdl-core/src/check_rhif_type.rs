@@ -50,16 +50,6 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     eq_types(slot_type(lhs)?, slot_type(arg2)?)?;
                 }
                 OpCode::Binary {
-                    op: AluBinary::And | AluBinary::Or,
-                    lhs,
-                    arg1,
-                    arg2,
-                } => {
-                    eq_types(slot_type(lhs)?, slot_type(arg1)?)?;
-                    eq_types(slot_type(lhs)?, slot_type(arg2)?)?;
-                    eq_types(slot_type(lhs)?, ty_bool())?;
-                }
-                OpCode::Binary {
                     op:
                         AluBinary::Eq
                         | AluBinary::Ge

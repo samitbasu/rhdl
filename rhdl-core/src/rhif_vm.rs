@@ -1,5 +1,6 @@
 use crate::rhif::{AluBinary, Block, OpCode, Slot};
 use crate::ty::Ty;
+use crate::Digital;
 use crate::{ast::FunctionId, design::Design, object::Object, TypedBits};
 
 use anyhow::Result;
@@ -60,6 +61,15 @@ fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
                 let arg2 = state.read(*arg2)?;
                 let result = match op {
                     AluBinary::Add => (arg1 + arg2)?,
+                    AluBinary::Sub => (arg1 - arg2)?,
+                    AluBinary::BitXor => (arg1 ^ arg2)?,
+                    AluBinary::BitAnd => (arg1 & arg2)?,
+                    AluBinary::BitOr => (arg1 | arg2)?,
+                    AluBinary::Eq => (arg1 == arg2).typed_bits(),
+                    AluBinary::Ne => (arg1 != arg2).typed_bits(),
+                    AluBinary::Shl => (arg1 << arg2)?,
+                    AluBinary::Shr => (arg1 >> arg2)?,
+                    //                    AluBinary::Ge => (arg1 >= arg2).typed_bits(),
                     _ => todo!(),
                 };
                 state.write(*lhs, result)?;

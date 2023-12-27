@@ -28,6 +28,7 @@ pub mod driver;
 //pub mod dot;
 pub mod design;
 pub mod digital_fn;
+pub mod dyn_bit_manip;
 pub mod infer_types;
 pub mod kernel;
 pub mod note;
