@@ -2,6 +2,7 @@ pub mod bits;
 pub mod core;
 
 pub use crate::bits::Bits;
+pub use crate::bits::SignedBits;
 pub use crate::core::Digital;
 pub use crate::core::Kind;
 pub use crate::core::TagID;
@@ -666,7 +667,6 @@ mod tests {
                     NooState::Boom
                 }
                 NooState::Boom => NooState::Init,
-                _ => NooState::Boom,
             };
             let k = 42;
             bits::<7>(k)
@@ -720,10 +720,6 @@ mod tests {
                 NooState::Boom => {
                     a = a + 3;
                     NooState::Init
-                }
-                _ => {
-                    a = 2;
-                    NooState::Boom
                 }
             };
         }
@@ -840,10 +836,6 @@ mod tests {
                 NooState::Boom => {
                     a.a = a.a + 3;
                     NooState::Init
-                }
-                _ => {
-                    a.a = 2;
-                    NooState::Boom
                 }
             };
         }
@@ -1219,7 +1211,6 @@ mod tests {
                 SimpleEnum::Run(x) => x,
                 SimpleEnum::Point { x, y } => y,
                 SimpleEnum::Boom => 7,
-                _ => 0,
             }
         }
 
@@ -1312,7 +1303,6 @@ mod tests {
                 SimpleEnum::Run(x) => x,
                 SimpleEnum::Point { x, y } => y,
                 SimpleEnum::Boom => 7,
-                _ => 0,
             };
             a + c + z
         }
@@ -1350,7 +1340,6 @@ mod tests {
                 SimpleEnum::Run(x) => x,
                 SimpleEnum::Point { x, y } => y,
                 SimpleEnum::Boom => 7,
-                _ => 0,
             }
         }
 
@@ -1381,7 +1370,6 @@ mod tests {
                 SimpleEnum::Run(x) => x,
                 SimpleEnum::Point { x, y } => y,
                 SimpleEnum::Boom => 7,
-                _ => 0,
             }
         }
 
@@ -1949,6 +1937,118 @@ mod tests {
             c[1] = a;
             c[0] = b;
             [c[0] + c[1], c[1]]
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_enum_basic() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        enum Foo {
+            #[default]
+            A,
+            B(b8),
+            C {
+                red: b8,
+                green: b8,
+                blue: b8,
+            },
+        }
+
+        #[kernel]
+        fn foo(a: b8, b: b8) -> Foo {
+            if a == b {
+                Foo::A
+            } else if a > b {
+                Foo::B(a + b)
+            } else {
+                Foo::C {
+                    red: a,
+                    green: b,
+                    blue: a,
+                }
+            }
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_match_enum() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        enum Foo {
+            #[default]
+            A,
+            B(b8),
+            C {
+                red: b8,
+                green: b8,
+                blue: b8,
+            },
+        }
+
+        #[kernel]
+        fn foo(a: b8, b: b8) -> b8 {
+            let c = Foo::C {
+                red: a,
+                green: b,
+                blue: a,
+            };
+            match c {
+                Foo::A => b8(1),
+                Foo::B(x) => x,
+                Foo::C { red, green, blue } => red + green + blue,
+            }
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_match_value() {
+        #[kernel]
+        fn foo(a: b8, b: b8) -> b8 {
+            match a {
+                Bits::<8>(1) => b,
+                Bits::<8>(2) => a,
+                _ => b8(3),
+            }
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_signed_match() {
+        #[kernel]
+        fn foo(a: s8, b: s8) -> s8 {
+            match a {
+                SignedBits::<8>(1) => b,
+                SignedBits::<8>(2) => a,
+                _ => s8(3),
+            }
+        }
+
+        test_two_signed_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_exec_sub_kernel() {
+        #[kernel]
+        fn double(a: b8) -> b8 {
+            a + a
+        }
+
+        #[kernel]
+        fn add(a: b8, b: b8) -> b8 {
+            double(a) + b
+        }
+
+        #[kernel]
+        fn foo(a: b8, b: b8) -> b8 {
+            let c = add(a, b);
+            c + a + b
         }
 
         test_two_unsigned_arg_function::<foo, _>(foo);

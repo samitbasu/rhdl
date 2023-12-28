@@ -14,6 +14,7 @@ pub enum PathElement {
     Field(String),
     EnumDiscriminant,
     EnumPayload(String),
+    EnumPayloadByValue(i64),
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -30,6 +31,7 @@ impl std::fmt::Display for Path {
                 PathElement::Field(s) => write!(f, ".{}", s)?,
                 PathElement::EnumDiscriminant => write!(f, "#")?,
                 PathElement::EnumPayload(s) => write!(f, "#{}", s)?,
+                PathElement::EnumPayloadByValue(v) => write!(f, "#{}", v)?,
             }
         }
         Ok(())
@@ -37,33 +39,34 @@ impl std::fmt::Display for Path {
 }
 
 impl Path {
-    pub fn index(self, index: usize) -> Self {
-        let mut elements = self.elements;
-        elements.push(PathElement::Index(index));
-        Path { elements }
+    pub fn index(mut self, index: usize) -> Self {
+        self.elements.push(PathElement::Index(index));
+        self
     }
-    pub fn field(self, field: &str) -> Self {
-        let mut elements = self.elements;
-        elements.push(PathElement::Field(field.to_string()));
-        Path { elements }
+    pub fn field(mut self, field: &str) -> Self {
+        self.elements.push(PathElement::Field(field.to_string()));
+        self
     }
-    pub fn discriminant(self) -> Self {
-        let mut elements = self.elements;
-        elements.push(PathElement::EnumDiscriminant);
-        Path { elements }
+    pub fn discriminant(mut self) -> Self {
+        self.elements.push(PathElement::EnumDiscriminant);
+        self
     }
-    pub fn payload(self, name: &str) -> Self {
-        let mut elements = self.elements;
-        elements.push(PathElement::EnumPayload(name.to_string()));
-        Path { elements }
+    pub fn payload(mut self, name: &str) -> Self {
+        self.elements
+            .push(PathElement::EnumPayload(name.to_string()));
+        self
     }
-    pub fn join(self, other: &Path) -> Self {
-        let mut elements = self.elements;
-        elements.extend(other.elements.clone());
-        Path { elements }
+    pub fn join(mut self, other: &Path) -> Self {
+        self.elements.extend(other.elements.clone());
+        self
     }
     pub fn is_empty(&self) -> bool {
         self.elements.iter().all(|e| matches!(e, PathElement::All))
+    }
+    pub fn payload_by_value(mut self, discriminant: i64) -> Self {
+        self.elements
+            .push(PathElement::EnumPayloadByValue(discriminant));
+        self
     }
 }
 
@@ -146,7 +149,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     range = range.start + offset..range.start + offset + size;
                     kind = field.clone();
                 }
-                _ => bail!("Field indexing not allowed on this type"),
+                _ => bail!("Field indexing not allowed on this type {kind}"),
             },
             PathElement::EnumDiscriminant => match &kind {
                 Kind::Enum(enumerate) => {
@@ -182,7 +185,26 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                         }
                         DiscriminantAlignment::Msb => range.start..range.start + field.bits(),
                     };
-                    dbg!(&range);
+                    kind = field;
+                }
+                _ => bail!("Enum payload not valid for non-enum types"),
+            },
+            PathElement::EnumPayloadByValue(disc) => match &kind {
+                Kind::Enum(enumerate) => {
+                    let field = enumerate
+                        .variants
+                        .iter()
+                        .find(|f| f.discriminant == *disc)
+                        .ok_or_else(|| anyhow::anyhow!("Enum payload not found"))?
+                        .kind
+                        .clone();
+                    range = match enumerate.discriminant_layout.alignment {
+                        DiscriminantAlignment::Lsb => {
+                            range.start + enumerate.discriminant_layout.width
+                                ..range.start + enumerate.discriminant_layout.width + field.bits()
+                        }
+                        DiscriminantAlignment::Msb => range.start..range.start + field.bits(),
+                    };
                     kind = field;
                 }
                 _ => bail!("Enum payload not valid for non-enum types"),

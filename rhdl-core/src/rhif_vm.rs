@@ -1,11 +1,12 @@
+use crate::object::Object;
 use crate::path::Path;
 use crate::rhif::{
-    AluBinary, AluUnary, Array, Assign, Binary, Block, If, Index, Member, OpCode, Slot, Struct,
-    Tuple, Unary,
+    AluBinary, AluUnary, Array, Assign, Binary, Block, Case, CaseArgument, Cast, Discriminant,
+    Enum, Exec, If, Index, Member, OpCode, Slot, Struct, Tuple, Unary,
 };
 use crate::ty::Ty;
 use crate::{ast::FunctionId, design::Design, TypedBits};
-use crate::{Digital, Kind};
+use crate::{Digital, KernelFnKind, Kind};
 
 use anyhow::Result;
 
@@ -15,6 +16,8 @@ struct VMState<'a> {
     reg_stack: &'a mut [Option<TypedBits>],
     literals: &'a [TypedBits],
     blocks: &'a [Block],
+    design: &'a Design,
+    obj: &'a Object,
 }
 
 impl<'a> VMState<'a> {
@@ -174,6 +177,66 @@ fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
                 }
                 state.write(*lhs, result)?;
             }
+            OpCode::Enum(Enum {
+                lhs,
+                fields,
+                template,
+            }) => {
+                let mut result = template.clone();
+                for field in fields {
+                    let base_path =
+                        Path::default().payload_by_value(template.discriminant()?.as_i64()?);
+                    let value = state.read(field.value)?;
+                    let path = match &field.member {
+                        Member::Unnamed(ndx) => base_path.index(*ndx as usize),
+                        Member::Named(name) => base_path.field(name),
+                    };
+                    result = result.update(&path, value)?;
+                }
+                state.write(*lhs, result)?;
+            }
+            OpCode::Discriminant(Discriminant { lhs, arg }) => {
+                let arg = state.read(*arg)?;
+                let result = arg.discriminant()?;
+                state.write(*lhs, result)?;
+            }
+            OpCode::Case(Case {
+                discriminant,
+                table,
+            }) => {
+                let discriminant = state.read(*discriminant)?;
+                let block = table
+                    .iter()
+                    .find(|(disc, _)| match disc {
+                        CaseArgument::Constant(disc) => discriminant == *disc,
+                        CaseArgument::Wild => true,
+                    })
+                    .ok_or(anyhow!("ICE Case was not exhaustive"))?
+                    .1;
+                execute_block(&state.blocks[block.0], state)?;
+            }
+            OpCode::AsBits(Cast { lhs, arg, len }) => {
+                let arg = state.read(*arg)?;
+                let result = arg.unsigned_cast(*len)?;
+                state.write(*lhs, result)?;
+            }
+            OpCode::AsSigned(Cast { lhs, arg, len }) => {
+                let arg = state.read(*arg)?;
+                let result = arg.signed_cast(*len)?;
+                state.write(*lhs, result)?;
+            }
+            OpCode::Exec(Exec { lhs, id, args }) => {
+                let args = args
+                    .iter()
+                    .map(|x| state.read(*x))
+                    .collect::<Result<Vec<_>>>()?;
+                let func = &state.obj.externals[id.0];
+                let KernelFnKind::Kernel(kernel) = &func.code else {
+                    todo!("No support for non-AST kernels {func:?}")
+                };
+                let result = execute(state.design, kernel.fn_id, args)?;
+                state.write(*lhs, result)?;
+            }
             _ => todo!("Opcode {:?} is not implemented", op),
         }
     }
@@ -225,6 +288,8 @@ fn execute(design: &Design, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
         reg_stack: &mut reg_stack,
         literals: &obj.literals,
         blocks: &obj.blocks,
+        design,
+        obj,
     };
     execute_block(block, &mut state)?;
     reg_stack

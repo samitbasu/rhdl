@@ -31,9 +31,6 @@ pub enum OpCode {
     Exec(Exec),
     // x <- [a, b, c, d]
     Array(Array),
-    // x <- a#b where a is an enum, and b is the discriminant of the
-    // variant.
-    Payload(Payload),
     // x <- tag where tag is the discriminant of the enum.
     Discriminant(Discriminant),
     // x <- enum(discriminant, fields)
@@ -129,7 +126,7 @@ pub struct Exec {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum CaseArgument {
-    Literal(Slot),
+    Constant(TypedBits),
     Wild,
 }
 
@@ -224,9 +221,8 @@ pub struct Discriminant {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Enum {
     pub lhs: Slot,
-    pub path: String,
-    pub discriminant: Slot,
     pub fields: Vec<FieldValue>,
+    pub template: TypedBits,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -83,24 +83,15 @@ pub fn op_array(lhs: Slot, elements: Vec<Slot>) -> OpCode {
     OpCode::Array(Array { lhs, elements })
 }
 
-pub fn op_payload(lhs: Slot, arg: Slot, discriminant: Slot) -> OpCode {
-    OpCode::Payload(Payload {
-        lhs,
-        arg,
-        discriminant,
-    })
-}
-
 pub fn op_discriminant(lhs: Slot, arg: Slot) -> OpCode {
     OpCode::Discriminant(Discriminant { lhs, arg })
 }
 
-pub fn op_enum(lhs: Slot, path: String, discriminant: Slot, fields: Vec<FieldValue>) -> OpCode {
+pub fn op_enum(lhs: Slot, fields: Vec<FieldValue>, template: TypedBits) -> OpCode {
     OpCode::Enum(Enum {
         lhs,
-        path,
-        discriminant,
         fields,
+        template,
     })
 }
 

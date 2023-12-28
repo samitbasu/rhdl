@@ -225,6 +225,14 @@ pub fn ty_path(mut base: Ty, path: &crate::path::Path) -> Result<Ty> {
                     bail!("Expected enum type, got {:?}", base)
                 }
             }
+            PathElement::EnumPayloadByValue(value) => {
+                if let Ty::Enum(enum_) = base {
+                    let kind = enum_.payload.kind.lookup_variant(*value)?;
+                    base = kind.into();
+                } else {
+                    bail!("Expected enum type, got {:?}", base)
+                }
+            }
         }
     }
     Ok(base)
