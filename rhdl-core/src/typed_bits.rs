@@ -33,6 +33,22 @@ impl TypedBits {
             kind,
         })
     }
+    pub fn update(&self, path: &Path, value: TypedBits) -> anyhow::Result<TypedBits> {
+        let (range, kind) = bit_range(self.kind.clone(), path)?;
+        if kind != value.kind {
+            bail!(
+                "Cannot update {} with {} because they have different types",
+                self,
+                value
+            );
+        }
+        let mut new_bits = self.bits.clone();
+        new_bits.splice(range, value.bits.iter().cloned());
+        Ok(TypedBits {
+            bits: new_bits,
+            kind: self.kind.clone(),
+        })
+    }
     pub fn discriminant(&self) -> anyhow::Result<TypedBits> {
         if self.kind.is_enum() {
             self.path(&Path::default().discriminant())

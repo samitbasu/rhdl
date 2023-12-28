@@ -509,7 +509,7 @@ impl Visitor for TypeInference {
                 self.unify(my_ty, sub)?;
             }
             ExprKind::Struct(struct_) => {
-                self.unify(my_ty, struct_.kind.clone().into())?;
+                self.unify(my_ty, struct_.template.kind.clone().into())?;
                 if let Some(s_kind) = match &struct_.variant {
                     Kind::Struct(s) => Some(s),
                     _ => None,

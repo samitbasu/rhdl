@@ -1,111 +1,106 @@
 use std::fmt::Display;
 
 use crate::{
-    rhif::{AluBinary, AluUnary, BlockId, CaseArgument, FieldValue, FuncId, Member, OpCode, Slot},
+    rhif::{
+        AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast,
+        Discriminant, Enum, Exec, FieldValue, FuncId, If, Index, Member, OpCode, Payload, Repeat,
+        Return, Slot, Struct, Tuple, Unary,
+    },
     util::splice,
 };
 
 impl Display for OpCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            OpCode::Binary {
+            OpCode::Binary(Binary {
                 op,
                 lhs,
                 arg1,
                 arg2,
-            } => {
+            }) => {
                 write!(f, " {} <- {} {} {}", lhs, arg1, op, arg2)
             }
-            OpCode::Unary { op, lhs, arg1 } => {
+            OpCode::Unary(Unary { op, lhs, arg1 }) => {
                 write!(f, " {} <- {}{}", lhs, op, arg1)
             }
-            OpCode::Array { lhs, elements } => {
+            OpCode::Array(Array { lhs, elements }) => {
                 write!(f, " {} <- [{}]", lhs, splice(elements, ", "))
             }
-            OpCode::Assign { lhs, rhs } => {
-                write!(f, "*{} <- {}", lhs, rhs)
+            OpCode::Assign(Assign { lhs, rhs, path }) => {
+                write!(f, "{}{} <- {}", lhs, path, rhs)
             }
-            OpCode::Ref { lhs, arg } => write!(f, " {} <- &{}", lhs, arg),
-            OpCode::IndexRef { lhs, arg, index } => write!(f, " {} <- &{}[{}]", lhs, arg, index),
-            OpCode::FieldRef { lhs, arg, member } => write!(f, " {} <- &{}.{}", lhs, arg, member),
-            OpCode::If {
+            OpCode::If(If {
                 lhs,
                 cond,
                 then_branch,
                 else_branch,
-            } => {
+            }) => {
                 write!(
                     f,
                     " {} <- if {} then {} else {}",
                     lhs, cond, then_branch, else_branch
                 )
             }
-            OpCode::Return { result } => {
+            OpCode::Return(Return { result }) => {
                 if let Some(result) = result {
                     write!(f, " ret {}", result)
                 } else {
                     write!(f, " ret")
                 }
             }
-            OpCode::Copy { lhs, rhs } => {
-                write!(f, " {} <- {}", lhs, rhs)
-            }
-            OpCode::Tuple { lhs, fields } => {
+            OpCode::Tuple(Tuple { lhs, fields }) => {
                 write!(f, " {} <- ({})", lhs, splice(fields, ", "))
             }
-            OpCode::Field { lhs, arg, member } => {
-                write!(f, " {} <- {}.{}", lhs, arg, member)
+            OpCode::Index(Index { lhs, arg, path }) => {
+                write!(f, " {} <- {}{}", lhs, arg, path)
             }
-            OpCode::Index { lhs, arg, index } => {
-                write!(f, " {} <- {}[{}]", lhs, arg, index)
-            }
-            OpCode::Case {
+            OpCode::Case(Case {
                 discriminant: expr,
                 table,
-            } => {
+            }) => {
                 writeln!(f, " case {}", expr)?;
                 for (cond, val) in table {
                     writeln!(f, "         {} => {}", cond, val)?;
                 }
                 Ok(())
             }
-            OpCode::Exec { lhs, id, args } => {
+            OpCode::Exec(Exec { lhs, id, args }) => {
                 write!(f, " {} <- {}({})", lhs, id, splice(args, ", "))
             }
-            OpCode::Struct {
+            OpCode::Struct(Struct {
                 lhs,
-                path,
                 fields,
                 rest,
-            } => {
+                template,
+            }) => {
                 write!(
                     f,
                     " {} <- {} {{ {} {} }}",
                     lhs,
-                    path,
+                    template.kind.get_name(),
                     splice(fields, ", "),
-                    rest.map(|x| format!("..{}", x)).unwrap_or_default()
+                    rest.map(|x| format!("..{}", x)).unwrap_or_default(),
                 )
             }
-            OpCode::Repeat { lhs, value, len } => {
+            OpCode::Repeat(Repeat { lhs, value, len }) => {
                 write!(f, " {} <- [{}; {}]", lhs, value, len)
             }
             OpCode::Block(BlockId(x)) => write!(f, " sub B{x}"),
             OpCode::Comment(s) => write!(f, " # {}", s.trim_end().replace('\n', "\n   # ")),
-            OpCode::Payload {
+            OpCode::Payload(Payload {
                 lhs,
                 arg,
                 discriminant,
-            } => {
+            }) => {
                 write!(f, " {} <- {}#[{}]", lhs, arg, discriminant)
             }
-            OpCode::Discriminant { lhs, arg } => write!(f, " {} <- #[{}]", lhs, arg),
-            OpCode::Enum {
+            OpCode::Discriminant(Discriminant { lhs, arg }) => write!(f, " {} <- #[{}]", lhs, arg),
+            OpCode::Enum(Enum {
                 lhs,
                 path,
                 discriminant,
                 fields,
-            } => {
+            }) => {
                 write!(
                     f,
                     " {} <- {}#{}({})",
@@ -115,10 +110,10 @@ impl Display for OpCode {
                     splice(fields, ", ")
                 )
             }
-            OpCode::AsBits { lhs, arg, len } => {
+            OpCode::AsBits(Cast { lhs, arg, len }) => {
                 write!(f, " {} <- {} as b{}", lhs, arg, len)
             }
-            OpCode::AsSigned { lhs, arg, len } => {
+            OpCode::AsSigned(Cast { lhs, arg, len }) => {
                 write!(f, " {} <- {} as s{}", lhs, arg, len)
             }
         }

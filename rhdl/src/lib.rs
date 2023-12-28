@@ -1770,4 +1770,187 @@ mod tests {
 
         test_two_signed_arg_function::<foo, _>(foo);
     }
+
+    #[test]
+    fn test_assignment() {
+        #[kernel]
+        fn foo(a: b8, b: b8) -> b8 {
+            let mut c = a;
+            c = b;
+            c
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_assignment_of_if_expression() {
+        #[kernel]
+        fn foo(a: b8, b: b8) -> b8 {
+            let mut c = a;
+            c = if a > b { a + 1 } else { b + 2 };
+            c
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_tuple_construct() {
+        #[kernel]
+        fn foo(a: b8, b: b8) -> (b8, b8) {
+            (a, b)
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_tuple_indexing() {
+        #[kernel]
+        fn foo(a: b8, b: b8) -> b8 {
+            let c = (a, b);
+            c.0 + c.1
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_tuple_construct_and_deconstruct() {
+        #[kernel]
+        fn foo(a: b8, b: b8) -> b8 {
+            let c = (a, b);
+            let (d, e) = c;
+            d + e
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_nested_tuple_indexing() {
+        #[kernel]
+        fn foo(a: b8, b: b8) -> b8 {
+            let c = (a, (b, a));
+            c.1 .0 + c.1 .1
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_field_indexing() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub struct Foo {
+            a: b8,
+            b: b8,
+        }
+
+        #[kernel]
+        fn foo(a: b8, b: b8) -> b8 {
+            let c = Foo { a, b };
+            c.a + c.b
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_field_indexing_is_order_independent() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub struct Foo {
+            a: b8,
+            b: b8,
+        }
+
+        #[kernel]
+        fn foo(a: b8, b: b8) -> Foo {
+            let c = Foo { b, a };
+            c
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_tuple_struct_construction() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub struct Foo(b8, b8);
+
+        #[kernel]
+        fn foo(a: b8, b: b8) -> Foo {
+            Foo(a, b)
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_tuple_struct_indexing() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub struct Foo(b8, b8);
+
+        #[kernel]
+        fn foo(a: b8, b: b8) -> b8 {
+            let c = Foo(a, b);
+            c.0 + c.1
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_struct_field_indexing() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub struct Foo {
+            a: (b8, b8),
+            b: b8,
+        }
+
+        #[kernel]
+        fn foo(a: b8, b: b8) -> b8 {
+            let mut c = Foo { a: (a, a), b };
+            c.a.0 = c.b;
+            c.a.0 + c.a.1 + c.b
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_struct_rest_syntax() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub struct Foo {
+            a: (b8, b8),
+            b: b8,
+        }
+
+        const FOO: Foo = Foo {
+            a: (bits(1), bits(2)),
+            b: bits(3),
+        };
+
+        #[kernel]
+        fn foo(a: b8, b: b8) -> b8 {
+            let c = Foo { a: (a, a), ..FOO };
+            let Foo { a: (d, e), .. } = c;
+            d + e + b
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_array_indexing() {
+        #[kernel]
+        fn foo(a: b8, b: b8) -> [b8; 2] {
+            let mut c = [a, b];
+            c[1] = a;
+            c[0] = b;
+            [c[0] + c[1], c[1]]
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
 }

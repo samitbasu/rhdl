@@ -911,11 +911,11 @@ impl Context {
         if structure.rest.is_some() {
             // The presence of a rest means we know that path -> struct
             let path = &structure.path;
-            let kind = quote!(< #path as rhdl_core::Digital>::static_kind());
+            let template = quote!(rhdl_core::Digital::typed_bits(< #path as Default>::default()));
             let discriminant = quote!(rhdl_core::TypedBits::EMPTY);
             let variant_kind = quote!(< #path as rhdl_core::Digital>::static_kind());
             Ok(
-                quote! {rhdl_core::ast_builder::struct_expr(#path_inner, vec![#(#fields),*], #rest, #kind, #variant_kind, #discriminant)},
+                quote! {rhdl_core::ast_builder::struct_expr(#path_inner, vec![#(#fields),*], #rest, #template, #variant_kind, #discriminant)},
             )
         } else {
             let path = &structure.path;
@@ -928,13 +928,11 @@ impl Context {
                 .map(|x| self.default_field_value(x))
                 .collect::<Result<Vec<_>>>()?;
             let obj = quote!(#path { #(#fields_with_default),* });
-            let obj_for_variant_kind = obj.clone();
-            let obj_for_discriminant = obj.clone();
             Ok(quote! {
                 rhdl_core::ast_builder::struct_expr(#path_inner, vec![#(#fields),*], #rest,
-                rhdl_core::Digital::kind(& #obj_for_variant_kind),
-                rhdl_core::Digital::variant_kind(#obj_for_variant_kind),
-                rhdl_core::Digital::discriminant(#obj_for_discriminant))
+                rhdl_core::Digital::typed_bits(#obj),
+                rhdl_core::Digital::variant_kind(#obj),
+                rhdl_core::Digital::discriminant(#obj))
             })
         }
     }

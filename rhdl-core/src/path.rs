@@ -3,6 +3,7 @@ use std::ops::Range;
 use anyhow::bail;
 use anyhow::Result;
 
+use crate::ast::Member;
 use crate::DiscriminantAlignment;
 use crate::Kind;
 
@@ -10,14 +11,29 @@ use crate::Kind;
 pub enum PathElement {
     All,
     Index(usize),
-    Field(&'static str),
+    Field(String),
     EnumDiscriminant,
-    EnumPayload(&'static str),
+    EnumPayload(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Path {
     pub elements: Vec<PathElement>,
+}
+
+impl std::fmt::Display for Path {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for e in &self.elements {
+            match e {
+                PathElement::All => write!(f, "")?,
+                PathElement::Index(i) => write!(f, "[{}]", i)?,
+                PathElement::Field(s) => write!(f, ".{}", s)?,
+                PathElement::EnumDiscriminant => write!(f, "#")?,
+                PathElement::EnumPayload(s) => write!(f, "#{}", s)?,
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Path {
@@ -26,9 +42,9 @@ impl Path {
         elements.push(PathElement::Index(index));
         Path { elements }
     }
-    pub fn field(self, field: &'static str) -> Self {
+    pub fn field(self, field: &str) -> Self {
         let mut elements = self.elements;
-        elements.push(PathElement::Field(field));
+        elements.push(PathElement::Field(field.to_string()));
         Path { elements }
     }
     pub fn discriminant(self) -> Self {
@@ -36,10 +52,31 @@ impl Path {
         elements.push(PathElement::EnumDiscriminant);
         Path { elements }
     }
-    pub fn payload(self, name: &'static str) -> Self {
+    pub fn payload(self, name: &str) -> Self {
         let mut elements = self.elements;
-        elements.push(PathElement::EnumPayload(name));
+        elements.push(PathElement::EnumPayload(name.to_string()));
         Path { elements }
+    }
+    pub fn join(self, other: &Path) -> Self {
+        let mut elements = self.elements;
+        elements.extend(other.elements.clone());
+        Path { elements }
+    }
+    pub fn is_empty(&self) -> bool {
+        self.elements.iter().all(|e| matches!(e, PathElement::All))
+    }
+}
+
+impl From<Member> for Path {
+    fn from(member: Member) -> Self {
+        match member {
+            Member::Named(name) => Path {
+                elements: vec![PathElement::Field(name)],
+            },
+            Member::Unnamed(ndx) => Path {
+                elements: vec![PathElement::Index(ndx as usize)],
+            },
+        }
     }
 }
 
@@ -64,13 +101,27 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     if i >= &tuple.elements.len() {
                         bail!("Tuple index out of bounds")
                     }
-                    let offset = dbg!(tuple.elements[0..*i]
+                    let offset = tuple.elements[0..*i]
                         .iter()
                         .map(|e| e.bits())
-                        .sum::<usize>());
-                    let size = dbg!(tuple.elements[*i].bits());
+                        .sum::<usize>();
+                    let size = tuple.elements[*i].bits();
                     range = range.start + offset..range.start + offset + size;
                     kind = tuple.elements[*i].clone();
+                }
+                Kind::Struct(structure) => {
+                    if i >= &structure.fields.len() {
+                        bail!("Struct index out of bounds")
+                    }
+                    let offset = structure
+                        .fields
+                        .iter()
+                        .take(*i)
+                        .map(|f| f.kind.bits())
+                        .sum::<usize>();
+                    let size = structure.fields[*i].kind.bits();
+                    range = range.start + offset..range.start + offset + size;
+                    kind = structure.fields[*i].kind.clone();
                 }
                 _ => bail!("Indexing non-indexable type"),
             },

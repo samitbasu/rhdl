@@ -62,6 +62,7 @@ pub struct TyEnum {
 use crate::ast::NodeId;
 use crate::kind::DiscriminantLayout;
 use crate::kind::DiscriminantType;
+use crate::path::PathElement;
 use crate::Kind;
 
 // Start simple, modelling as in the Eli Bendersky example.
@@ -72,7 +73,6 @@ use crate::Kind;
 pub enum Ty {
     Var(TypeId),
     Const(Bits),
-    Ref(Box<Ty>),
     Tuple(Vec<Ty>),
     Array(Vec<Ty>),
     Struct(TyMap),
@@ -134,10 +134,6 @@ pub fn ty_tuple(args: Vec<Ty>) -> Ty {
     Ty::Tuple(args)
 }
 
-pub fn ty_as_ref(t: Ty) -> Ty {
-    Ty::Ref(Box::new(t))
-}
-
 pub fn ty_var(id: usize) -> Ty {
     Ty::Var(TypeId(id))
 }
@@ -159,11 +155,8 @@ pub fn ty_integer() -> Ty {
 }
 
 pub fn ty_named_field(base: &Ty, field: &str) -> Result<Ty> {
-    if let Ty::Ref(base) = base {
-        return ty_named_field(base, field).map(|x| Ty::Ref(Box::new(x)));
-    }
     let Ty::Struct(struct_) = base else {
-        bail!("Expected struct type, got {:?}", base)
+        bail!("Expected struct type, got {:?} for field {field}", base)
     };
     struct_
         .fields
@@ -173,9 +166,6 @@ pub fn ty_named_field(base: &Ty, field: &str) -> Result<Ty> {
 }
 
 pub fn ty_unnamed_field(base: &Ty, field: usize) -> Result<Ty> {
-    if let Ty::Ref(base) = base {
-        return ty_unnamed_field(base, field).map(|x| Ty::Ref(Box::new(x)));
-    }
     // We can get an unnamed field from a tuple or a tuple struct
     match base {
         Ty::Tuple(fields_) => fields_
@@ -187,14 +177,15 @@ pub fn ty_unnamed_field(base: &Ty, field: usize) -> Result<Ty> {
             .get(&format!("{}", field))
             .cloned()
             .ok_or_else(|| anyhow!("Field {} not found in struct {}", field, struct_.name)),
+        Ty::Array(elems) => elems
+            .get(field)
+            .cloned()
+            .ok_or_else(|| anyhow!("Field {} not found in array", field)),
         _ => bail!("Type must be a tuple or tuple struct"),
     }
 }
 
 pub fn ty_indexed_item(base: &Ty, index: usize) -> Result<Ty> {
-    if let Ty::Ref(base) = base {
-        return ty_indexed_item(base, index).map(|x| Ty::Ref(Box::new(x)));
-    }
     let Ty::Array(elems) = base else {
         bail!(format!("Type must be an array, got {:?}", base))
     };
@@ -205,9 +196,6 @@ pub fn ty_indexed_item(base: &Ty, index: usize) -> Result<Ty> {
 }
 
 pub fn ty_array_base(base: &Ty) -> Result<Ty> {
-    if let Ty::Ref(base) = base {
-        return ty_array_base(base).map(|x| Ty::Ref(Box::new(x)));
-    }
     let Ty::Array(elems) = base else {
         bail!("Type must be an array")
     };
@@ -215,6 +203,31 @@ pub fn ty_array_base(base: &Ty) -> Result<Ty> {
         .get(0)
         .cloned()
         .ok_or_else(|| anyhow!("Array must have at least one element"))
+}
+
+pub fn ty_path(mut base: Ty, path: &crate::path::Path) -> Result<Ty> {
+    for segment in &path.elements {
+        match segment {
+            PathElement::All => (),
+            PathElement::Index(i) => base = ty_unnamed_field(&base, *i)?,
+            PathElement::Field(field) => base = ty_named_field(&base, field)?,
+            PathElement::EnumDiscriminant => {
+                if let Ty::Enum(enum_) = base {
+                    base = *enum_.discriminant.clone();
+                } else {
+                    bail!("Expected enum type, got {:?}", base)
+                }
+            }
+            PathElement::EnumPayload(_string) => {
+                if let Ty::Enum(enum_) = base {
+                    base = Ty::Struct(enum_.payload.clone());
+                } else {
+                    bail!("Expected enum type, got {:?}", base)
+                }
+            }
+        }
+    }
+    Ok(base)
 }
 
 impl Display for Ty {
@@ -260,7 +273,6 @@ impl Display for Ty {
                 }
                 write!(f, ")")
             }
-            Ty::Ref(t) => write!(f, "&{}", t),
             Ty::Array(elems) => {
                 write!(f, "[")?;
                 for (i, term) in elems.iter().enumerate() {

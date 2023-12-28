@@ -2,11 +2,11 @@
 
 use crate::{
     object::Object,
-    rhif::{AluBinary, AluUnary, CaseArgument, OpCode, Slot},
-    ty::{
-        self, ty_array, ty_array_base, ty_as_ref, ty_bool, ty_named_field, ty_unnamed_field, Bits,
-        Ty,
+    rhif::{
+        AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum,
+        Exec, If, Index, OpCode, Payload, Repeat, Return, Slot, Struct, Tuple, Unary,
     },
+    ty::{self, ty_array, ty_bool, ty_named_field, ty_path, ty_unnamed_field, Bits, Ty},
 };
 use anyhow::{anyhow, bail};
 use anyhow::{ensure, Result};
@@ -34,9 +34,9 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
     };
     for block in &obj.blocks {
         for op in &block.ops {
-            eprintln!("op: {:?}", op);
+            eprintln!("check op: {:?}", op);
             match op {
-                OpCode::Binary {
+                OpCode::Binary(Binary {
                     op:
                         AluBinary::Add
                         | AluBinary::Sub
@@ -47,20 +47,20 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     lhs,
                     arg1,
                     arg2,
-                } => {
+                }) => {
                     eq_types(slot_type(lhs)?, slot_type(arg1)?)?;
                     eq_types(slot_type(lhs)?, slot_type(arg2)?)?;
                 }
-                OpCode::Binary {
+                OpCode::Binary(Binary {
                     op: AluBinary::Shl | AluBinary::Shr,
                     lhs,
                     arg1,
                     arg2,
-                } => {
+                }) => {
                     eq_types(slot_type(lhs)?, slot_type(arg1)?)?;
                     ensure!(slot_type(arg2)?.is_unsigned());
                 }
-                OpCode::Binary {
+                OpCode::Binary(Binary {
                     op:
                         AluBinary::Eq
                         | AluBinary::Ge
@@ -71,112 +71,78 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     lhs,
                     arg1,
                     arg2,
-                } => {
+                }) => {
                     eq_types(slot_type(arg1)?, slot_type(arg2)?)?;
                     eq_types(slot_type(lhs)?, ty_bool())?;
                 }
-                OpCode::Unary {
+                OpCode::Unary(Unary {
                     op: AluUnary::Not | AluUnary::Neg,
                     lhs,
                     arg1,
-                } => {
+                }) => {
                     eq_types(slot_type(lhs)?, slot_type(arg1)?)?;
                 }
-                OpCode::Unary {
+                OpCode::Unary(Unary {
                     op: AluUnary::All | AluUnary::Any | AluUnary::Xor,
                     lhs,
-                    arg1,
-                } => {
+                    arg1: _,
+                }) => {
                     eq_types(slot_type(lhs)?, ty_bool())?;
                 }
-                OpCode::Unary {
+                OpCode::Unary(Unary {
                     op: AluUnary::Signed,
                     lhs,
                     arg1,
-                } => {
+                }) => {
                     let arg1_ty = slot_type(arg1)?;
                     let Ty::Const(Bits::Unsigned(x)) = arg1_ty else {
                         bail!("signed operator requires unsigned argument")
                     };
                     eq_types(slot_type(lhs)?, ty::ty_signed(x))?;
                 }
-                OpCode::Unary {
+                OpCode::Unary(Unary {
                     op: AluUnary::Unsigned,
                     lhs,
                     arg1,
-                } => {
+                }) => {
                     let arg1_ty = slot_type(arg1)?;
                     let Ty::Const(Bits::Signed(x)) = arg1_ty else {
                         bail!("unsigned operator requires signed argument")
                     };
                     eq_types(slot_type(lhs)?, ty::ty_bits(x))?;
                 }
-                OpCode::Array { lhs, elements } => eq_types(
+                OpCode::Array(Array { lhs, elements }) => eq_types(
                     slot_type(lhs)?,
                     ty_array(slot_type(&elements[0])?, elements.len()),
                 )?,
-                OpCode::If {
-                    lhs,
+                OpCode::If(If {
+                    lhs: _,
                     cond,
-                    then_branch,
-                    else_branch,
-                } => {
+                    then_branch: _,
+                    else_branch: _,
+                }) => {
                     eq_types(slot_type(cond)?, ty::ty_bool())?;
                 }
-                OpCode::Index { lhs, arg, index } => {
-                    eq_types(slot_type(lhs)?, ty_array_base(&slot_type(arg)?)?)?;
+                OpCode::Assign(Assign { lhs, rhs, path }) => {
+                    eq_types(ty_path(slot_type(lhs)?, path)?, slot_type(rhs)?)?;
                 }
-                OpCode::Ref { lhs, arg } => {
-                    eq_types(slot_type(lhs)?, ty_as_ref(slot_type(arg)?))?;
-                }
-                OpCode::Assign { lhs, rhs } => {
-                    eq_types(slot_type(lhs)?, ty_as_ref(slot_type(rhs)?))?;
-                }
-                OpCode::Copy { lhs, rhs } => {
-                    eq_types(slot_type(lhs)?, slot_type(rhs)?)?;
-                }
-                OpCode::Tuple { lhs, fields } => {
+                OpCode::Tuple(Tuple { lhs, fields }) => {
                     let ty = fields.iter().map(slot_type).collect::<Result<Vec<_>>>()?;
                     eq_types(slot_type(lhs)?, ty::ty_tuple(ty))?;
                 }
-                OpCode::Field { lhs, arg, member } => {
+                OpCode::Index(Index { lhs, arg, path }) => {
                     let ty = slot_type(arg)?;
-                    match member {
-                        crate::rhif::Member::Named(name) => {
-                            let ty = ty_named_field(&ty, name)?;
-                            eq_types(slot_type(lhs)?, ty)?;
-                        }
-                        crate::rhif::Member::Unnamed(index) => {
-                            let ty = ty_unnamed_field(&ty, *index as usize)?;
-                            eq_types(slot_type(lhs)?, ty)?;
-                        }
-                    }
+                    let ty = ty_path(ty, path)?;
+                    eq_types(ty, slot_type(lhs)?)?;
                 }
-                OpCode::FieldRef { lhs, arg, member } => {
-                    let ty = slot_type(arg)?;
-                    match member {
-                        crate::rhif::Member::Named(name) => {
-                            let ty = ty_named_field(&ty, name)?;
-                            eq_types(slot_type(lhs)?, ty_as_ref(ty))?;
-                        }
-                        crate::rhif::Member::Unnamed(index) => {
-                            let ty = ty_unnamed_field(&ty, *index as usize)?;
-                            eq_types(slot_type(lhs)?, ty_as_ref(ty))?;
-                        }
-                    }
-                }
-                OpCode::IndexRef { lhs, arg, index } => {
-                    let ty = slot_type(arg)?;
-                    let ty = ty_array_base(&ty)?;
-                    eq_types(slot_type(lhs)?, ty_as_ref(ty))?;
-                }
-                OpCode::Struct {
+                OpCode::Struct(Struct {
                     lhs,
-                    path,
                     fields,
                     rest,
-                } => {
+                    template,
+                }) => {
                     let ty = slot_type(lhs)?;
+                    eq_types(ty.clone(), template.kind.clone().into())?;
                     if let Some(rest) = rest {
                         let rest_ty = slot_type(rest)?;
                         eq_types(ty.clone(), rest_ty)?;
@@ -194,12 +160,12 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                         }
                     }
                 }
-                OpCode::Enum {
+                OpCode::Enum(Enum {
                     lhs,
-                    path,
+                    path: _,
                     discriminant,
                     fields,
-                } => {
+                }) => {
                     let ty = slot_type(lhs)?;
                     let Ty::Enum(enum_ty) = &ty else {
                         bail!("expected enum type")
@@ -222,7 +188,7 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                         }
                     }
                 }
-                OpCode::Repeat { lhs, value, len } => {
+                OpCode::Repeat(Repeat { lhs, value, len }) => {
                     let ty = slot_type(lhs)?;
                     let Ty::Array(array_ty) = &ty else {
                         bail!("expected array type")
@@ -236,17 +202,17 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     )?;
                 }
                 OpCode::Comment(_) => {}
-                OpCode::Return { result } => {
+                OpCode::Return(Return { result }) => {
                     if let Some(result) = result {
                         eq_types(slot_type(result)?, slot_type(&obj.return_slot)?)?;
                     }
                 }
                 OpCode::Block(_) => {}
-                OpCode::Payload {
+                OpCode::Payload(Payload {
                     lhs,
                     arg,
                     discriminant,
-                } => {
+                }) => {
                     let ty = slot_type(arg)?;
                     let Ty::Enum(enum_ty) = &ty else {
                         bail!(format!("expected enum type {}", ty));
@@ -258,12 +224,12 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     let variant_ty = variant_kind.into();
                     eq_types(slot_type(lhs)?, variant_ty)?;
                 }
-                OpCode::Case {
+                OpCode::Case(Case {
                     discriminant: expr,
                     table,
-                } => {
+                }) => {
                     let arg_ty = slot_type(expr)?;
-                    for (entry_test, entry_body) in table {
+                    for (entry_test, _entry_body) in table {
                         match entry_test {
                             CaseArgument::Literal(lit) => {
                                 let lit_ty = slot_type(lit)?;
@@ -273,7 +239,7 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                         }
                     }
                 }
-                OpCode::Discriminant { lhs, arg } => {
+                OpCode::Discriminant(Discriminant { lhs, arg }) => {
                     let arg_ty = slot_type(arg)?;
                     if let Ty::Enum(enum_ty) = &arg_ty {
                         eq_types(slot_type(lhs)?, *enum_ty.discriminant.clone())?;
@@ -281,7 +247,7 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                         eq_types(slot_type(lhs)?, arg_ty)?;
                     }
                 }
-                OpCode::Exec { lhs, id, args } => {
+                OpCode::Exec(Exec { lhs, id, args }) => {
                     // Get the function signature.
                     let signature = obj.externals[id.0].signature.clone();
                     eq_types(slot_type(lhs)?, signature.ret.into())?;
@@ -293,10 +259,10 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                         "wrong number of arguments"
                     )
                 }
-                OpCode::AsBits { lhs, arg, len } => {
+                OpCode::AsBits(Cast { lhs, arg: _, len }) => {
                     eq_types(slot_type(lhs)?, ty::ty_bits(*len))?;
                 }
-                OpCode::AsSigned { lhs, arg, len } => {
+                OpCode::AsSigned(Cast { lhs, arg: _, len }) => {
                     eq_types(slot_type(lhs)?, ty::ty_signed(*len))?;
                 }
             }

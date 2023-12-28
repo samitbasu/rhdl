@@ -214,7 +214,6 @@ impl<'a> PrettyPrinter<'a> {
             Ty::Struct(ty) => {
                 self.push(&ty.name);
             }
-            Ty::Ref(_) => todo!(),
             Ty::Tuple(ty) => {
                 self.push("(");
                 for t in ty {
@@ -369,7 +368,7 @@ impl<'a> PrettyPrinter<'a> {
             }
             ExprKind::Struct(expr) => {
                 self.push(&format!("{}", expr.path));
-                self.push(&format!("/* {} */", expr.kind.get_name()));
+                self.push(&format!("/* {} */", expr.template.kind.get_name()));
                 self.push(" {");
                 for field in &expr.fields {
                     if let Member::Named(name) = &field.member {
