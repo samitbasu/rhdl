@@ -12,8 +12,8 @@ use crate::{
     },
     rhif_builder::{
         op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment,
-        op_discriminant, op_enum, op_exec, op_if, op_index, op_payload, op_repeat, op_return,
-        op_struct, op_tuple, op_unary,
+        op_discriminant, op_enum, op_exec, op_if, op_index, op_repeat, op_return, op_struct,
+        op_tuple, op_unary,
     },
     ty::{ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
     typed_bits::TypedBits,
@@ -491,13 +491,7 @@ impl CompilerContext {
         let rest = _struct.rest.as_ref().map(|x| self.expr(x)).transpose()?;
         if let Kind::Enum(_enum) = &_struct.template.kind {
             eprintln!("Emitting enum opcode");
-            let discriminant = self.literal_from_typed_bits(&_struct.discriminant)?;
-            self.op(op_enum(
-                lhs,
-                collapse_path(&_struct.path),
-                discriminant,
-                fields,
-            ));
+            self.op(op_enum(lhs, fields, _struct.template.clone()));
         } else {
             eprintln!("Emitting struct opcode");
             self.op(op_struct(lhs, fields, rest, _struct.template.clone()));
@@ -570,26 +564,26 @@ impl CompilerContext {
             }
             ArmKind::Constant(constant) => {
                 let block = self.wrap_expr_in_block(lhs, &arm.body)?;
-                let value = if let ExprLit::TypedBits(tb) = &constant.value {
-                    self.literal_from_typed_bits(&tb.value.discriminant()?)?
-                } else {
-                    self.lit(&constant.value, self.node_ty(arm.id)?)?
-                };
-                Ok((CaseArgument::Literal(value), block))
+                let value =
+                    cast_literal_to_inferred_type(constant.value.clone(), self.node_ty(arm.id)?)?
+                        .discriminant()?;
+                Ok((CaseArgument::Constant(value), block))
             }
             ArmKind::Enum(arm_enum) => {
                 // Allocate the local bindings for the match pattern
                 self.bind_arm_pattern(&arm_enum.pat)?;
-                let value = self.literal_from_typed_bits(&arm_enum.template.discriminant()?)?;
+                let discriminant = arm_enum.template.discriminant()?;
+                let disc_as_i64 = arm_enum.template.discriminant()?.as_i64()?;
+                let path = crate::path::Path::default().payload_by_value(disc_as_i64);
                 let current_block = self.current_block();
                 let id = self.new_block(lhs);
                 let payload = self.reg(arm_enum.payload_kind.clone().into())?;
-                self.op(op_payload(payload, target, value));
+                self.op(op_index(payload, target, path));
                 self.initialize_local(&arm_enum.pat, payload)?;
                 let result = self.expr(&arm.body)?;
                 self.op(op_assign(lhs, result, crate::path::Path::default()));
                 self.set_active_block(current_block);
-                Ok((CaseArgument::Literal(value), id))
+                Ok((CaseArgument::Constant(discriminant), id))
             }
         }
     }
@@ -646,7 +640,6 @@ impl CompilerContext {
                 self.op(op_struct(lhs, fields, None, tb.clone()));
             }
             KernelFnKind::EnumTupleStructConstructor(template) => {
-                let discriminant = self.literal_from_typed_bits(&template.discriminant()?)?;
                 let fields = args
                     .iter()
                     .enumerate()
@@ -655,7 +648,7 @@ impl CompilerContext {
                         member: Member::Unnamed(ndx as u32),
                     })
                     .collect();
-                self.op(op_enum(lhs, path, discriminant, fields));
+                self.op(op_enum(lhs, fields, template.clone()));
             }
             _ => {
                 let id = self.stash(ExternalFunction {
@@ -930,7 +923,7 @@ pub fn compile(func: &ast::KernelFn, ctx: UnifyContext) -> Result<Object> {
                 .ok_or(anyhow!(
                     "ICE no literal type found for a literal in the table"
                 ))?;
-            cast_literals_to_inferred_type(*lit, ty)
+            cast_literal_to_inferred_type(*lit, ty)
         })
         .collect::<Result<Vec<_>>>()?;
     let blocks = compiler
@@ -954,7 +947,7 @@ pub fn compile(func: &ast::KernelFn, ctx: UnifyContext) -> Result<Object> {
     })
 }
 
-fn cast_literals_to_inferred_type(t: ExprLit, ty: Ty) -> Result<TypedBits> {
+fn cast_literal_to_inferred_type(t: ExprLit, ty: Ty) -> Result<TypedBits> {
     match t {
         ExprLit::TypedBits(t) => {
             if ty != t.value.kind.clone().into() {

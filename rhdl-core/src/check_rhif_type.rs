@@ -1,5 +1,7 @@
 // Check a RHIF object for type correctness.
 
+use std::collections::HashSet;
+
 use crate::{
     object::Object,
     rhif::{
@@ -7,6 +9,7 @@ use crate::{
         Exec, If, Index, OpCode, Payload, Repeat, Return, Slot, Struct, Tuple, Unary,
     },
     ty::{self, ty_array, ty_bool, ty_named_field, ty_path, ty_unnamed_field, Bits, Ty},
+    TypedBits,
 };
 use anyhow::{anyhow, bail};
 use anyhow::{ensure, Result};
@@ -162,17 +165,15 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                 }
                 OpCode::Enum(Enum {
                     lhs,
-                    path: _,
-                    discriminant,
                     fields,
+                    template,
                 }) => {
                     let ty = slot_type(lhs)?;
                     let Ty::Enum(enum_ty) = &ty else {
                         bail!("expected enum type")
                     };
                     let payload_kind = enum_ty.payload.kind.clone();
-                    let discriminant_value = obj.literal(*discriminant)?;
-                    let discriminant_value = discriminant_value.as_i64()?;
+                    let discriminant_value = template.discriminant()?.as_i64()?;
                     let variant_kind = payload_kind.lookup_variant(discriminant_value)?;
                     let variant_ty = variant_kind.into();
                     for field in fields {
@@ -208,32 +209,22 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     }
                 }
                 OpCode::Block(_) => {}
-                OpCode::Payload(Payload {
-                    lhs,
-                    arg,
-                    discriminant,
-                }) => {
-                    let ty = slot_type(arg)?;
-                    let Ty::Enum(enum_ty) = &ty else {
-                        bail!(format!("expected enum type {}", ty));
-                    };
-                    let payload_kind = enum_ty.payload.kind.clone();
-                    let discriminant_value = obj.literal(*discriminant)?;
-                    let discriminant_value = discriminant_value.as_i64()?;
-                    let variant_kind = payload_kind.lookup_variant(discriminant_value)?;
-                    let variant_ty = variant_kind.into();
-                    eq_types(slot_type(lhs)?, variant_ty)?;
-                }
                 OpCode::Case(Case {
                     discriminant: expr,
                     table,
                 }) => {
                     let arg_ty = slot_type(expr)?;
+                    let mut discriminants: HashSet<Vec<bool>> = Default::default();
                     for (entry_test, _entry_body) in table {
                         match entry_test {
-                            CaseArgument::Literal(lit) => {
-                                let lit_ty = slot_type(lit)?;
-                                eq_types(arg_ty.clone(), lit_ty)?;
+                            CaseArgument::Constant(constant) => {
+                                if discriminants.contains(&constant.bits) {
+                                    bail!("Match contains a duplicate discriminant {constant}, which is not allowed in RHDL");
+                                } else {
+                                    discriminants.insert(constant.bits.clone());
+                                }
+                                let constant_ty = constant.kind.clone().into();
+                                eq_types(arg_ty.clone(), constant_ty)?;
                             }
                             CaseArgument::Wild => {}
                         }

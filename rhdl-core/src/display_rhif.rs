@@ -87,26 +87,18 @@ impl Display for OpCode {
             }
             OpCode::Block(BlockId(x)) => write!(f, " sub B{x}"),
             OpCode::Comment(s) => write!(f, " # {}", s.trim_end().replace('\n', "\n   # ")),
-            OpCode::Payload(Payload {
-                lhs,
-                arg,
-                discriminant,
-            }) => {
-                write!(f, " {} <- {}#[{}]", lhs, arg, discriminant)
-            }
             OpCode::Discriminant(Discriminant { lhs, arg }) => write!(f, " {} <- #[{}]", lhs, arg),
             OpCode::Enum(Enum {
                 lhs,
-                path,
-                discriminant,
                 fields,
+                template,
             }) => {
                 write!(
                     f,
                     " {} <- {}#{}({})",
                     lhs,
-                    path,
-                    discriminant,
+                    template.kind.get_name(),
+                    template.discriminant().unwrap(),
                     splice(fields, ", ")
                 )
             }
@@ -129,7 +121,7 @@ impl Display for FieldValue {
 impl Display for CaseArgument {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CaseArgument::Literal(l) => write!(f, "{}", l),
+            CaseArgument::Constant(c) => write!(f, "{}", c),
             CaseArgument::Wild => write!(f, "_"),
         }
     }

@@ -14,7 +14,7 @@ use crate::{
     Kind,
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Eq, Hash)]
 pub struct TypedBits {
     pub bits: Vec<bool>,
     pub kind: Kind,

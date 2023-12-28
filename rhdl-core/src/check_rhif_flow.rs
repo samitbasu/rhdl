@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use crate::{
     object::Object,
     rhif::{
-        Array, Assign, Binary, BlockId, Case, CaseArgument, Cast, Discriminant, Enum, Exec, If,
-        Index, OpCode, Payload, Repeat, Return, Slot, Struct, Tuple, Unary,
+        Array, Assign, Binary, BlockId, Case, Cast, Discriminant, Enum, Exec, If, Index, OpCode,
+        Repeat, Return, Slot, Struct, Tuple, Unary,
     },
 };
 
@@ -126,11 +126,9 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
             }
             OpCode::Enum(Enum {
                 lhs,
-                path: _,
-                discriminant,
                 fields,
+                template,
             }) => {
-                init_set.read(discriminant)?;
                 for field in fields {
                     init_set.read(&field.value)?;
                 }
@@ -151,15 +149,6 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
             OpCode::Block(id) => {
                 init_set = check_flow(obj, *id, init_set)?;
             }
-            OpCode::Payload(Payload {
-                lhs,
-                arg,
-                discriminant,
-            }) => {
-                init_set.read(arg)?;
-                init_set.read(discriminant)?;
-                init_set.write(lhs)?;
-            }
             OpCode::Case(Case {
                 discriminant,
                 table,
@@ -168,9 +157,6 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
                 let base_set = init_set.clone();
                 let mut first_branch = true;
                 for entry in table {
-                    if let CaseArgument::Literal(lit) = &entry.0 {
-                        init_set.read(lit)?;
-                    }
                     if first_branch {
                         init_set = check_flow(obj, entry.1, init_set.clone())?;
                         first_branch = false;
