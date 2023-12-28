@@ -296,7 +296,7 @@ pub struct ExprStruct {
     pub path: Box<Path>,
     pub fields: Vec<Box<FieldValue>>,
     pub rest: Option<Box<Expr>>,
-    pub kind: Kind,
+    pub template: TypedBits,
     pub variant: Kind,
     pub discriminant: TypedBits,
 }

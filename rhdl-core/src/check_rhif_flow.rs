@@ -1,8 +1,11 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use crate::{
     object::Object,
-    rhif::{BlockId, CaseArgument, OpCode, Slot},
+    rhif::{
+        Array, Assign, Binary, BlockId, Case, CaseArgument, Cast, Discriminant, Enum, Exec, If,
+        Index, OpCode, Payload, Repeat, Return, Slot, Struct, Tuple, Unary,
+    },
 };
 
 use anyhow::{bail, Result};
@@ -10,19 +13,12 @@ use anyhow::{bail, Result};
 #[derive(Default, Debug, Clone)]
 struct InitSet {
     set: HashSet<Slot>,
-    alias: HashMap<Slot, Slot>,
 }
 
 impl InitSet {
     fn read_all(&self, slots: &[Slot]) -> Result<()> {
         for slot in slots {
             self.read(slot)?;
-        }
-        Ok(())
-    }
-    fn alias(&mut self, pointer: &Slot, target: &Slot) -> Result<()> {
-        if let Some(prev) = self.alias.insert(*pointer, *target) {
-            bail!("{} is already aliased to {}", pointer, prev);
         }
         Ok(())
     }
@@ -38,9 +34,6 @@ impl InitSet {
         Ok(())
     }
     fn write(&mut self, slot: &Slot) -> Result<()> {
-        if let Some(alias) = self.alias.get(slot).cloned() {
-            return self.write(&alias);
-        }
         match slot {
             Slot::Empty => {}
             Slot::Literal(ndx) => {
@@ -55,12 +48,6 @@ impl InitSet {
     fn intersect(&self, other: &InitSet) -> InitSet {
         Self {
             set: self.set.intersection(&other.set).cloned().collect(),
-            alias: self
-                .alias
-                .clone()
-                .into_iter()
-                .chain(other.alias.clone())
-                .collect(),
         }
     }
 }
@@ -78,72 +65,57 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
     for op in &obj.blocks[block.0].ops {
         eprintln!("Check flow for {}", op);
         match op {
-            OpCode::Binary {
+            OpCode::Binary(Binary {
                 op: _,
                 lhs,
                 arg1,
                 arg2,
-            } => {
+            }) => {
                 init_set.read(arg1)?;
                 init_set.read(arg2)?;
                 init_set.write(lhs)?;
             }
-            OpCode::Unary { op, lhs, arg1 } => {
+            OpCode::Unary(Unary { op: _, lhs, arg1 }) => {
                 init_set.read(arg1)?;
                 init_set.write(lhs)?;
             }
-            OpCode::Array { lhs, elements }
-            | OpCode::Tuple {
+            OpCode::Array(Array { lhs, elements })
+            | OpCode::Tuple(Tuple {
                 lhs,
                 fields: elements,
-            } => {
+            }) => {
                 init_set.read_all(elements)?;
                 init_set.write(lhs)?;
             }
-            OpCode::If {
+            OpCode::If(If {
                 lhs,
                 cond,
                 then_branch,
                 else_branch,
-            } => {
+            }) => {
                 init_set.read(cond)?;
                 let base_set = init_set.clone();
                 init_set = check_flow(obj, *then_branch, base_set.clone())?;
                 init_set = init_set.intersect(&check_flow(obj, *else_branch, base_set.clone())?);
                 init_set.write(lhs)?;
             }
-            OpCode::Index { lhs, arg, index } => {
-                init_set.read(arg)?;
-                init_set.read(index)?;
-                init_set.write(lhs)?;
-            }
-            OpCode::Field {
-                lhs,
-                arg,
-                member: _,
-            } => {
+            OpCode::Index(Index { lhs, arg, path: _ }) => {
                 init_set.read(arg)?;
                 init_set.write(lhs)?;
             }
-            OpCode::Ref { lhs, arg }
-            | OpCode::FieldRef {
-                lhs,
-                arg,
-                member: _,
-            }
-            | OpCode::IndexRef { lhs, arg, index: _ } => {
-                init_set.alias(lhs, arg)?;
-            }
-            OpCode::Assign { lhs, rhs } | OpCode::Copy { lhs, rhs } => {
+            OpCode::Assign(Assign { lhs, rhs, path }) => {
                 init_set.read(rhs)?;
+                if !path.is_empty() {
+                    init_set.read(lhs)?;
+                }
                 init_set.write(lhs)?;
             }
-            OpCode::Struct {
+            OpCode::Struct(Struct {
                 lhs,
-                path: _,
                 fields,
                 rest,
-            } => {
+                template: _,
+            }) => {
                 for field in fields {
                     init_set.read(&field.value)?;
                 }
@@ -152,25 +124,25 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
                 }
                 init_set.write(lhs)?;
             }
-            OpCode::Enum {
+            OpCode::Enum(Enum {
                 lhs,
                 path: _,
                 discriminant,
                 fields,
-            } => {
+            }) => {
                 init_set.read(discriminant)?;
                 for field in fields {
                     init_set.read(&field.value)?;
                 }
                 init_set.write(lhs)?;
             }
-            OpCode::Repeat { lhs, value, len } => {
+            OpCode::Repeat(Repeat { lhs, value, len }) => {
                 init_set.read(len)?;
                 init_set.read(value)?;
                 init_set.write(lhs)?;
             }
             OpCode::Comment(_) => {}
-            OpCode::Return { result } => {
+            OpCode::Return(Return { result }) => {
                 if let Some(result) = result {
                     init_set.read(result)?;
                     init_set.write(&obj.return_slot)?;
@@ -179,19 +151,19 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
             OpCode::Block(id) => {
                 init_set = check_flow(obj, *id, init_set)?;
             }
-            OpCode::Payload {
+            OpCode::Payload(Payload {
                 lhs,
                 arg,
                 discriminant,
-            } => {
+            }) => {
                 init_set.read(arg)?;
                 init_set.read(discriminant)?;
                 init_set.write(lhs)?;
             }
-            OpCode::Case {
+            OpCode::Case(Case {
                 discriminant,
                 table,
-            } => {
+            }) => {
                 init_set.read(discriminant)?;
                 let base_set = init_set.clone();
                 let mut first_branch = true;
@@ -207,15 +179,16 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
                     }
                 }
             }
-            OpCode::Discriminant { lhs, arg } => {
+            OpCode::Discriminant(Discriminant { lhs, arg }) => {
                 init_set.read(arg)?;
                 init_set.write(lhs)?;
             }
-            OpCode::Exec { lhs, id: _, args } => {
+            OpCode::Exec(Exec { lhs, id: _, args }) => {
                 init_set.read_all(args)?;
                 init_set.write(lhs)?;
             }
-            OpCode::AsBits { lhs, arg, len } | OpCode::AsSigned { lhs, arg, len } => {
+            OpCode::AsBits(Cast { lhs, arg, len: _ })
+            | OpCode::AsSigned(Cast { lhs, arg, len: _ }) => {
                 init_set.read(arg)?;
                 init_set.write(lhs)?;
             }

@@ -1,6 +1,4 @@
-use crate::ty::{
-    ty_array_base, ty_as_ref, ty_indexed_item, ty_named_field, ty_unnamed_field, TyEnum,
-};
+use crate::ty::{ty_array_base, ty_indexed_item, ty_named_field, ty_unnamed_field, TyEnum};
 use crate::ty::{Ty, TypeId};
 use anyhow::bail;
 use anyhow::Result;
@@ -48,7 +46,6 @@ impl UnifyContext {
             }
             Term::Const { .. } | Term::Integer => typ,
             Term::Tuple(fields) => Term::Tuple(fields.into_iter().map(|x| self.apply(x)).collect()),
-            Term::Ref(t) => Term::Ref(Box::new(self.apply(*t))),
             Term::Array(elems) => Term::Array(elems.into_iter().map(|x| self.apply(x)).collect()),
             Term::Struct(struct_) => Term::Struct(TermMap {
                 name: struct_.name,
@@ -104,7 +101,6 @@ impl UnifyContext {
         match (x, y) {
             (Term::Var(x), y) => self.unify_variable(x, y),
             (x, Term::Var(y)) => self.unify_variable(y, x),
-            (Term::Ref(x), Term::Ref(y)) => self.unify(*x, *y),
             (Term::Const(x), Term::Const(y)) => bail!("Cannot unify {:?} and {:?}", x, y),
             (Term::Tuple(x), Term::Tuple(y)) | (Term::Array(x), Term::Array(y)) => {
                 self.unify_tuple_arrays(x, y)
@@ -137,9 +133,6 @@ impl UnifyContext {
                 return self.occurs_check(v, t);
             }
         }
-        if let Term::Ref(x) = term {
-            return self.occurs_check(v, x);
-        }
         if let Term::Tuple(fields) = term {
             return fields.iter().any(|x| self.occurs_check(v, x));
         }
@@ -158,9 +151,6 @@ impl UnifyContext {
         let Some(t) = self.map.get(&id) else {
             bail!("Type must be known at this point")
         };
-        if let Ty::Ref(t) = t {
-            return self.get_variant(*t.clone(), variant).map(ty_as_ref);
-        }
         let Ty::Enum(enum_) = t else {
             bail!("Type must be an enum")
         };
@@ -176,11 +166,7 @@ impl UnifyContext {
         let Some(t) = self.map.get(&id) else {
             bail!("Type must be known at this point")
         };
-        if let Ty::Ref(t) = t {
-            self.get_named_field(*t.clone(), field).map(ty_as_ref)
-        } else {
-            ty_named_field(t, field)
-        }
+        ty_named_field(t, field)
     }
     pub fn get_unnamed_field(&self, t: Ty, field: usize) -> Result<Ty> {
         let Ty::Var(id) = t else {
@@ -189,11 +175,7 @@ impl UnifyContext {
         let Some(t) = self.map.get(&id) else {
             bail!("Type must be known at this point")
         };
-        if let Ty::Ref(t) = t {
-            self.get_unnamed_field(*t.clone(), field).map(ty_as_ref)
-        } else {
-            ty_unnamed_field(t, field)
-        }
+        ty_unnamed_field(t, field)
     }
     pub fn get_array_base(&self, t: Ty) -> Result<Ty> {
         let Ty::Var(id) = t else {
@@ -202,11 +184,7 @@ impl UnifyContext {
         let Some(t) = self.map.get(&id) else {
             bail!("Type must be known at this point")
         };
-        if let Ty::Ref(t) = t {
-            self.get_array_base(*t.clone()).map(ty_as_ref)
-        } else {
-            ty_array_base(t)
-        }
+        ty_array_base(t)
     }
     pub fn get_indexed_item(&self, t: Ty, index: usize) -> Result<Ty> {
         let Ty::Var(id) = t else {
@@ -215,11 +193,7 @@ impl UnifyContext {
         let Some(t) = self.map.get(&id) else {
             bail!("Type must be known at this point")
         };
-        if let Ty::Ref(t) = t {
-            self.get_indexed_item(*t.clone(), index).map(ty_as_ref)
-        } else {
-            ty_indexed_item(t, index)
-        }
+        ty_indexed_item(t, index)
     }
     pub fn array_vars(&mut self, args: Vec<Ty>) -> Result<Ty> {
         // put all of the terms into a single unified equivalence class
@@ -235,8 +209,6 @@ mod tests {
     use std::collections::BTreeMap;
 
     use super::*;
-    use crate::ty::ty_array;
-    use crate::ty::ty_as_ref as as_ref;
     use crate::ty::ty_bits;
     use crate::ty::ty_empty;
     use crate::ty::ty_tuple as tuple;
@@ -320,26 +292,6 @@ mod tests {
         assert!(subst.unify(b.clone(), tuple(vec![a])).is_err());
     }
 
-    // Test the reference case...
-    // let a
-    // let b = &a
-    // let c = bool
-    // let *b = c (i.e., assert that b = &bool)
-    // --> a = bool
-    #[test]
-    fn test_case_6() {
-        let mut subst = UnifyContext::default();
-        let a = var(0);
-        let b = var(1);
-        let c = var(2);
-        let ty_bool = ty_bits(1);
-        subst.unify(b.clone(), as_ref(a.clone())).unwrap();
-        subst.unify(c.clone(), ty_bool.clone()).unwrap();
-        subst.unify(b.clone(), as_ref(c.clone())).unwrap();
-        println!("{}", subst);
-        assert_eq!(subst.map.get(&TypeId(0)).unwrap(), &ty_bool);
-    }
-
     // What happens in this case?
     // let a
     // let b = a.foo
@@ -355,7 +307,6 @@ mod tests {
         let a = var(0);
         let b = var(1);
         let c = var(2);
-        let d = var(3);
         let ty_bool = ty_bits(1);
         let ty_foo_struct = Ty::Struct(TermMap {
             name: "FooStruct".into(),
@@ -371,149 +322,9 @@ mod tests {
             .unify(b.clone(), subst.get_named_field(a.clone(), "foo").unwrap())
             .unwrap();
         subst.unify(c.clone(), ty_bool.clone()).unwrap();
-        subst.unify(d.clone(), as_ref(b.clone())).unwrap();
-        subst.unify(d.clone(), as_ref(c.clone())).unwrap();
+        //subst.unify(d.clone(), as_ref(b.clone())).unwrap();
+        //subst.unify(d.clone(), as_ref(c.clone())).unwrap();
         println!("{}", subst);
-    }
-
-    // let a = <some struct>
-    // let b = &a
-    // let c = &b.foo
-    // let d = bool
-    // let *c = d
-    #[test]
-    fn test_ref_struct_field() {
-        let mut subst = UnifyContext::default();
-        let a = var(0);
-        let b = var(1);
-        let c = var(2);
-        let d = var(3);
-        let ty_bool = ty_bits(1);
-        let ty_foo_struct = Ty::Struct(TermMap {
-            name: "FooStruct".into(),
-            fields: {
-                let mut map = BTreeMap::default();
-                map.insert("foo".into(), ty_bool.clone());
-                map
-            },
-            kind: crate::Kind::Empty, // Not correct, but not needed for this test case
-        });
-        subst.unify(a.clone(), ty_foo_struct.clone()).unwrap();
-        subst.unify(b.clone(), as_ref(a.clone())).unwrap();
-        subst
-            .unify(c.clone(), subst.get_named_field(b.clone(), "foo").unwrap())
-            .unwrap();
-        subst.unify(d.clone(), ty_bool.clone()).unwrap();
-        subst.unify(c.clone(), as_ref(d.clone())).unwrap();
-        println!("{}", subst);
-    }
-
-    // Let's keep going.
-    // Suppose we have a tuple type
-    // let a = (x, y, z)
-    // and then we have
-    // y = bool
-    // And then we have
-    // let b = &a
-    // let c = &b.2
-    // let d = bool
-    // let *c = d
-    // Then do we have a = (x, bool, bool)?
-    #[test]
-    fn test_case_8() {
-        let mut subst = UnifyContext::default();
-        let a = var(0);
-        let b = var(1);
-        let c = var(2);
-        let d = var(3);
-        let ty_bool = ty_bits(1);
-        subst
-            .unify(a.clone(), tuple(vec![var(4), var(5), var(6)]))
-            .unwrap();
-        subst
-            .unify(
-                subst.get_unnamed_field(a.clone(), 1).unwrap(),
-                ty_bool.clone(),
-            )
-            .unwrap();
-        subst.unify(b.clone(), as_ref(a.clone())).unwrap();
-        subst
-            .unify(c.clone(), subst.get_unnamed_field(b.clone(), 2).unwrap())
-            .unwrap();
-        subst.unify(d.clone(), ty_bool.clone()).unwrap();
-        subst.unify(c.clone(), as_ref(d.clone())).unwrap();
-        subst
-            .unify(a.clone(), tuple(vec![var(4), var(5), var(6)]))
-            .unwrap();
-        println!("{}", subst);
-        assert_eq!(
-            subst.apply(a),
-            tuple(vec![var(4), ty_bool.clone(), ty_bool.clone()])
-        );
-    }
-
-    // Test array case:
-    // let a
-    // let b = [a; 4]
-    // let c = &b
-    // let d = &c[2]
-    // let e = bool
-    // let *d = e
-    #[test]
-    fn test_case_9() {
-        let mut subst = UnifyContext::default();
-        let a = var(0);
-        let b = var(1);
-        let c = var(2);
-        let d = var(3);
-        let e = var(4);
-        let ty_bool = ty_bits(1);
-        subst.unify(b.clone(), ty_array(a.clone(), 4)).unwrap();
-        subst.unify(c.clone(), as_ref(b.clone())).unwrap();
-        subst
-            .unify(d.clone(), subst.get_indexed_item(c.clone(), 2).unwrap())
-            .unwrap();
-        subst.unify(e.clone(), ty_bool.clone()).unwrap();
-        subst.unify(d.clone(), as_ref(e.clone())).unwrap();
-        println!("{}", subst);
-        assert_eq!(subst.map.get(&TypeId(0)).unwrap(), &ty_bool.clone());
-    }
-
-    // Test array from multiple variables:
-    // let a
-    // let b
-    // let c
-    // let d = [a, b, c];
-    // let e = &d[2]
-    // let f = bool
-    // let *e = f
-    #[test]
-    fn test_case_10() {
-        let mut subst = UnifyContext::default();
-        let a = var(0);
-        let b = var(1);
-        let c = var(2);
-        let d = var(3);
-        let e = var(4);
-        let f = var(5);
-        let ty_bool = ty_bits(1);
-        let ar = subst
-            .array_vars(vec![a.clone(), b.clone(), c.clone()])
-            .unwrap();
-        subst.unify(d.clone(), ar).unwrap();
-        subst
-            .unify(
-                e.clone(),
-                as_ref(subst.get_indexed_item(d.clone(), 2).unwrap()),
-            )
-            .unwrap();
-        subst.unify(f.clone(), ty_bool.clone()).unwrap();
-        subst.unify(e.clone(), as_ref(f.clone())).unwrap();
-        println!("{}", subst);
-        assert_eq!(
-            subst.apply(d),
-            Term::Array(vec![ty_bool.clone(), ty_bool.clone(), ty_bool.clone()]),
-        );
     }
 
     // Test the case of an enum.  First, we construct

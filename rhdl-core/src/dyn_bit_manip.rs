@@ -4,7 +4,7 @@ pub(crate) fn add_one(a: &[bool]) -> Vec<bool> {
     a.iter()
         .scan(true, |carry, b| {
             let sum = b ^ *carry;
-            *carry = *carry & b;
+            *carry &= b;
             Some(sum)
         })
         .collect()

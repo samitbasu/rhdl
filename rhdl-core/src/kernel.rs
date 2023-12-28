@@ -32,7 +32,7 @@ impl TryFrom<KernelFnKind> for Kernel {
 pub enum KernelFnKind {
     Kernel(Box<KernelFn>),
     Extern(ExternalKernelDef),
-    TupleStructConstructor,
+    TupleStructConstructor(TypedBits),
     BitConstructor(usize),
     SignedBitsConstructor(usize),
     EnumTupleStructConstructor(TypedBits),
@@ -50,7 +50,9 @@ impl std::fmt::Display for KernelFnKind {
                 )
             }
             KernelFnKind::Extern(extern_kernel) => write!(f, "extern {}", extern_kernel.name),
-            KernelFnKind::TupleStructConstructor => write!(f, "tuple struct constructor"),
+            KernelFnKind::TupleStructConstructor(tb) => {
+                write!(f, "tuple struct constructor {}", tb)
+            }
             KernelFnKind::BitConstructor(width) => write!(f, "bit constructor {}", width),
             KernelFnKind::SignedBitsConstructor(width) => {
                 write!(f, "signed bits constructor {}", width)

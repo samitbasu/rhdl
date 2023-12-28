@@ -10,7 +10,12 @@ use crate::{
         self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, FuncId, Member, OpCode,
         Slot,
     },
-    ty::{ty_as_ref, ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
+    rhif_builder::{
+        op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment,
+        op_discriminant, op_enum, op_exec, op_if, op_index, op_payload, op_repeat, op_return,
+        op_struct, op_tuple, op_unary,
+    },
+    ty::{ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
     typed_bits::TypedBits,
     unify::UnifyContext,
     visit::Visitor,
@@ -212,6 +217,23 @@ impl CompilerContext {
     fn set_active_block(&mut self, id: BlockId) {
         self.active_block = id;
     }
+    fn slot_to_index(&self, slot: Slot) -> Result<usize> {
+        let Slot::Literal(ndx) = slot else {
+            bail!("ICE - index is not a literal")
+        };
+        let ndx = match self.literals[ndx].as_ref() {
+            ExprLit::TypedBits(tb) => tb.value.as_i64()? as usize,
+            ExprLit::Bool(b) => {
+                if *b {
+                    1
+                } else {
+                    0
+                }
+            }
+            ExprLit::Int(i) => i.parse::<usize>()?,
+        };
+        Ok(ndx)
+    }
     fn ty(&self, id: NodeId) -> Result<Ty> {
         let var = id_to_var(id)?;
         Ok(self.type_context.apply(var))
@@ -268,16 +290,12 @@ impl CompilerContext {
             ast::UnOp::Neg => AluUnary::Neg,
             ast::UnOp::Not => AluUnary::Not,
         };
-        self.op(OpCode::Unary {
-            op,
-            lhs: result,
-            arg1: arg,
-        });
+        self.op(op_unary(op, result, arg));
         Ok(result)
     }
     fn stmt(&mut self, statement: &ast::Stmt) -> Result<Slot> {
         let statement_text = pretty_print_statement(statement, &self.type_context)?;
-        self.op(OpCode::Comment(statement_text));
+        self.op(op_comment(statement_text));
         match &statement.kind {
             ast::StmtKind::Local(local) => {
                 self.local(local)?;
@@ -294,7 +312,7 @@ impl CompilerContext {
         match &pat.kind {
             PatKind::Ident(_ident) => {
                 if let Ok(lhs) = self.resolve_local(pat.id) {
-                    self.op(OpCode::Copy { lhs, rhs });
+                    self.op(op_assign(lhs, rhs, crate::path::Path::default()));
                 }
                 Ok(())
             }
@@ -310,11 +328,11 @@ impl CompilerContext {
                 for (ndx, pat) in tuple.elements.iter().enumerate() {
                     let element_ty = ty_unnamed_field(&rhs_ty, ndx)?;
                     let element_rhs = self.reg(element_ty)?;
-                    self.op(OpCode::Field {
-                        lhs: element_rhs,
-                        arg: rhs,
-                        member: rhif::Member::Unnamed(ndx as u32),
-                    });
+                    self.op(op_index(
+                        element_rhs,
+                        rhs,
+                        crate::path::Path::default().index(ndx),
+                    ));
                     self.initialize_local(pat, element_rhs)?;
                 }
                 Ok(())
@@ -334,11 +352,8 @@ impl CompilerContext {
                         ast::Member::Unnamed(ndx) => ty_unnamed_field(&rhs_ty, *ndx as usize)?,
                     };
                     let element_rhs = self.reg(element_ty)?;
-                    self.op(OpCode::Field {
-                        lhs: element_rhs,
-                        arg: rhs,
-                        member: field.member.clone().into(),
-                    });
+                    let path = field.member.clone().into();
+                    self.op(op_index(element_rhs, rhs, path));
                     self.initialize_local(&field.pat, element_rhs)?;
                 }
                 Ok(())
@@ -355,11 +370,11 @@ impl CompilerContext {
                 for (ndx, pat) in _tuple_struct.elems.iter().enumerate() {
                     let element_ty = ty_unnamed_field(&rhs_ty, ndx)?;
                     let element_rhs = self.reg(element_ty)?;
-                    self.op(OpCode::Field {
-                        lhs: element_rhs,
-                        arg: rhs,
-                        member: rhif::Member::Unnamed(ndx as u32),
-                    });
+                    self.op(op_index(
+                        element_rhs,
+                        rhs,
+                        crate::path::Path::default().index(ndx),
+                    ));
                     self.initialize_local(pat, element_rhs)?;
                 }
                 Ok(())
@@ -376,12 +391,11 @@ impl CompilerContext {
                 for (ndx, pat) in slice.elems.iter().enumerate() {
                     let element_ty = ty_indexed_item(&rhs_ty, ndx)?;
                     let element_rhs = self.reg(element_ty)?;
-                    let ndx_lit = self.literal_from_typed_bits(&(ndx as usize).typed_bits())?;
-                    self.op(OpCode::Index {
-                        lhs: element_rhs,
-                        arg: rhs,
-                        index: ndx_lit,
-                    });
+                    self.op(op_index(
+                        element_rhs,
+                        rhs,
+                        crate::path::Path::default().index(ndx),
+                    ));
                     self.initialize_local(pat, element_rhs)?;
                 }
                 Ok(())
@@ -407,10 +421,11 @@ impl CompilerContext {
             let is_last = ndx == statement_count - 1;
             let result = self.stmt(statement)?;
             if is_last && (block_result != result) {
-                self.op(OpCode::Copy {
-                    lhs: block_result,
-                    rhs: result,
-                })
+                self.op(op_assign(
+                    block_result,
+                    result,
+                    crate::path::Path::default(),
+                ));
             }
         }
         self.set_active_block(current_block);
@@ -422,10 +437,7 @@ impl CompilerContext {
     fn tuple(&mut self, id: NodeId, tuple: &ExprTuple) -> Result<Slot> {
         let result = self.reg(self.node_ty(id)?)?;
         let fields = self.expr_list(&tuple.elements)?;
-        self.op(OpCode::Tuple {
-            lhs: result,
-            fields,
-        });
+        self.op(op_tuple(result, fields));
         Ok(result)
     }
     fn if_expr(&mut self, id: NodeId, if_expr: &ExprIf) -> Result<Slot> {
@@ -437,35 +449,28 @@ impl CompilerContext {
         } else {
             self.empty_block(result)
         }?;
-        self.op(OpCode::If {
-            cond,
-            then_branch,
-            else_branch,
-            lhs: result,
-        });
+        self.op(op_if(result, cond, then_branch, else_branch));
         Ok(result)
     }
     fn index(&mut self, id: NodeId, index: &ast::ExprIndex) -> Result<Slot> {
         let lhs = self.reg(self.node_ty(id)?)?;
         let arg = self.expr(&index.expr)?;
         let index = self.expr(&index.index)?;
-        self.op(OpCode::Index { lhs, arg, index });
+        let ndx = self.slot_to_index(index)?;
+        self.op(op_index(lhs, arg, crate::path::Path::default().index(ndx)));
         Ok(lhs)
     }
     fn array(&mut self, id: NodeId, array: &ast::ExprArray) -> Result<Slot> {
         let lhs = self.reg(self.node_ty(id)?)?;
         let elements = self.expr_list(&array.elems)?;
-        self.op(OpCode::Array { lhs, elements });
+        self.op(op_array(lhs, elements));
         Ok(lhs)
     }
     fn field(&mut self, id: NodeId, field: &ast::ExprField) -> Result<Slot> {
         let lhs = self.reg(self.node_ty(id)?)?;
         let arg = self.expr(&field.expr)?;
-        let member = match &field.member {
-            ast::Member::Named(name) => rhif::Member::Named(name.to_string()),
-            ast::Member::Unnamed(ndx) => rhif::Member::Unnamed(*ndx),
-        };
-        self.op(OpCode::Field { lhs, arg, member });
+        let path = field.member.clone().into();
+        self.op(op_index(lhs, arg, path));
         Ok(lhs)
     }
     fn field_value(&mut self, element: &FieldValue) -> Result<rhif::FieldValue> {
@@ -476,7 +481,7 @@ impl CompilerContext {
         })
     }
     fn struct_expr(&mut self, id: NodeId, _struct: &ast::ExprStruct) -> Result<Slot> {
-        eprintln!("Struct expr {:?} kind: {}", _struct, _struct.kind);
+        eprintln!("Struct expr {:?} template: {}", _struct, _struct.template);
         let lhs = self.reg(self.node_ty(id)?)?;
         let fields = _struct
             .fields
@@ -484,23 +489,18 @@ impl CompilerContext {
             .map(|x| self.field_value(x))
             .collect::<Result<_>>()?;
         let rest = _struct.rest.as_ref().map(|x| self.expr(x)).transpose()?;
-        if let Kind::Enum(_enum) = &_struct.kind {
+        if let Kind::Enum(_enum) = &_struct.template.kind {
             eprintln!("Emitting enum opcode");
             let discriminant = self.literal_from_typed_bits(&_struct.discriminant)?;
-            self.op(OpCode::Enum {
+            self.op(op_enum(
                 lhs,
-                path: collapse_path(&_struct.path),
+                collapse_path(&_struct.path),
                 discriminant,
                 fields,
-            })
+            ));
         } else {
             eprintln!("Emitting struct opcode");
-            self.op(OpCode::Struct {
-                lhs,
-                path: collapse_path(&_struct.path),
-                fields,
-                rest,
-            });
+            self.op(op_struct(lhs, fields, rest, _struct.template.clone()));
         }
         Ok(lhs)
     }
@@ -510,10 +510,7 @@ impl CompilerContext {
         let target = self.expr(&_match.expr)?;
         let discriminant = if let Ty::Enum(enum_ty) = target_ty {
             let disc_reg = self.reg(*enum_ty.discriminant.clone())?;
-            self.op(OpCode::Discriminant {
-                lhs: disc_reg,
-                arg: target,
-            });
+            self.op(op_discriminant(disc_reg, target));
             disc_reg
         } else {
             target
@@ -523,10 +520,7 @@ impl CompilerContext {
             .iter()
             .map(|x| self.expr_arm(target, lhs, x))
             .collect::<Result<_>>()?;
-        self.op(OpCode::Case {
-            discriminant,
-            table,
-        });
+        self.op(op_case(discriminant, table));
         Ok(lhs)
     }
     fn bind_arm_pattern(&mut self, pattern: &Pat) -> Result<()> {
@@ -590,35 +584,31 @@ impl CompilerContext {
                 let current_block = self.current_block();
                 let id = self.new_block(lhs);
                 let payload = self.reg(arm_enum.payload_kind.clone().into())?;
-                self.op(OpCode::Payload {
-                    lhs: payload,
-                    arg: target,
-                    discriminant: value,
-                });
+                self.op(op_payload(payload, target, value));
                 self.initialize_local(&arm_enum.pat, payload)?;
                 let result = self.expr(&arm.body)?;
-                self.op(OpCode::Copy { lhs, rhs: result });
+                self.op(op_assign(lhs, result, crate::path::Path::default()));
                 self.set_active_block(current_block);
                 Ok((CaseArgument::Literal(value), id))
             }
         }
     }
-    fn return_expr(&mut self, id: NodeId, _return: &ast::ExprRet) -> Result<Slot> {
+    fn return_expr(&mut self, _return: &ast::ExprRet) -> Result<Slot> {
         let result = _return.expr.as_ref().map(|x| self.expr(x)).transpose()?;
-        self.op(OpCode::Return { result });
+        self.op(op_return(result));
         Ok(Slot::Empty)
     }
     fn repeat(&mut self, id: NodeId, repeat: &ast::ExprRepeat) -> Result<Slot> {
         let lhs = self.reg(self.node_ty(id)?)?;
         let len = self.expr(&repeat.len)?;
         let value = self.expr(&repeat.value)?;
-        self.op(OpCode::Repeat { lhs, len, value });
+        self.op(op_repeat(lhs, value, len));
         Ok(lhs)
     }
     fn assign(&mut self, assign: &ast::ExprAssign) -> Result<Slot> {
-        let lhs = self.expr_lhs(&assign.lhs)?;
+        let (lhs, path) = self.expr_lhs(&assign.lhs)?;
         let rhs = self.expr(&assign.rhs)?;
-        self.op(OpCode::Assign { lhs, rhs });
+        self.op(op_assign(lhs, rhs, path));
         Ok(Slot::Empty)
     }
     fn method_call(&mut self, id: NodeId, method_call: &ast::ExprMethodCall) -> Result<Slot> {
@@ -633,7 +623,7 @@ impl CompilerContext {
         };
         let lhs = self.reg(self.node_ty(id)?)?;
         let arg = self.expr(&method_call.receiver)?;
-        self.op(OpCode::Unary { op, lhs, arg1: arg });
+        self.op(op_unary(op, lhs, arg));
         Ok(lhs)
     }
     fn call(&mut self, id: NodeId, call: &ast::ExprCall) -> Result<Slot> {
@@ -642,17 +632,9 @@ impl CompilerContext {
         let args = self.expr_list(&call.args)?;
         // inline calls to bits and signed
         match &call.code {
-            KernelFnKind::BitConstructor(len) => self.op(OpCode::AsBits {
-                lhs,
-                arg: args[0],
-                len: *len,
-            }),
-            KernelFnKind::SignedBitsConstructor(len) => self.op(OpCode::AsSigned {
-                lhs,
-                arg: args[0],
-                len: *len,
-            }),
-            KernelFnKind::TupleStructConstructor => {
+            KernelFnKind::BitConstructor(len) => self.op(op_as_bits(lhs, args[0], *len)),
+            KernelFnKind::SignedBitsConstructor(len) => self.op(op_as_signed(lhs, args[0], *len)),
+            KernelFnKind::TupleStructConstructor(tb) => {
                 let fields = args
                     .iter()
                     .enumerate()
@@ -661,12 +643,7 @@ impl CompilerContext {
                         member: Member::Unnamed(ndx as u32),
                     })
                     .collect();
-                self.op(OpCode::Struct {
-                    lhs,
-                    path,
-                    fields,
-                    rest: None,
-                });
+                self.op(op_struct(lhs, fields, None, tb.clone()));
             }
             KernelFnKind::EnumTupleStructConstructor(template) => {
                 let discriminant = self.literal_from_typed_bits(&template.discriminant()?)?;
@@ -678,12 +655,7 @@ impl CompilerContext {
                         member: Member::Unnamed(ndx as u32),
                     })
                     .collect();
-                self.op(OpCode::Enum {
-                    lhs,
-                    path,
-                    discriminant,
-                    fields,
-                });
+                self.op(op_enum(lhs, path, discriminant, fields));
             }
             _ => {
                 let id = self.stash(ExternalFunction {
@@ -691,13 +663,13 @@ impl CompilerContext {
                     path: path.clone(),
                     signature: call.signature.clone(),
                 })?;
-                self.op(OpCode::Exec { lhs, id, args });
+                self.op(op_exec(lhs, id, args));
             }
         }
         Ok(lhs)
     }
     fn self_assign_binop(&mut self, bin: &ExprBinary) -> Result<Slot> {
-        let dest = self.expr_lhs(&bin.lhs)?;
+        let (dest, path) = self.expr_lhs(&bin.lhs)?;
         let lhs = self.expr(&bin.lhs)?;
         let rhs = self.expr(&bin.rhs)?;
         let temp = self.reg(self.node_ty(bin.lhs.id)?)?;
@@ -714,16 +686,8 @@ impl CompilerContext {
             BinOp::ShrAssign => AluBinary::Shr,
             _ => bail!("ICE - self_assign_binop {:?}", op),
         };
-        self.op(OpCode::Binary {
-            op: alu,
-            lhs: temp,
-            arg1: lhs,
-            arg2: rhs,
-        });
-        self.op(OpCode::Assign {
-            lhs: dest,
-            rhs: temp,
-        });
+        self.op(op_binary(alu, temp, lhs, rhs));
+        self.op(op_assign(dest, temp, path));
         Ok(result)
     }
     fn binop(&mut self, id: NodeId, bin: &ExprBinary) -> Result<Slot> {
@@ -762,15 +726,10 @@ impl CompilerContext {
             BinOp::Gt => AluBinary::Gt,
         };
         assert!(!self_assign);
-        self.op(OpCode::Binary {
-            op: alu,
-            lhs: result,
-            arg1: lhs,
-            arg2: rhs,
-        });
+        self.op(op_binary(alu, result, lhs, rhs));
         Ok(result)
     }
-    fn for_loop(&mut self, id: NodeId, for_loop: &ast::ExprForLoop) -> Result<Slot> {
+    fn for_loop(&mut self, for_loop: &ast::ExprForLoop) -> Result<Slot> {
         let current_block = self.current_block();
         let _ = self.new_block(Slot::Empty);
         self.bind_pattern(&for_loop.pat)?;
@@ -814,38 +773,22 @@ impl CompilerContext {
         self.set_active_block(current_block);
         Ok(Slot::Empty)
     }
-    fn expr_lhs(&mut self, expr: &Expr) -> Result<Slot> {
+    fn expr_lhs(&mut self, expr: &Expr) -> Result<(Slot, crate::path::Path)> {
         match &expr.kind {
             ExprKind::Path(_path) => {
                 let parent = self.resolve_parent(expr.id)?;
-                let reg = self.reg(ty_as_ref(self.node_ty(expr.id)?))?;
-                self.op(OpCode::Ref {
-                    lhs: reg,
-                    arg: parent,
-                });
-                Ok(reg)
+                Ok((parent, crate::path::Path::default()))
             }
             ExprKind::Field(field) => {
-                let parent = self.expr(&field.expr)?;
-                let reg = self.reg(ty_as_ref(self.node_ty(expr.id)?))?;
-                let member = field.member.clone().into();
-                self.op(OpCode::FieldRef {
-                    lhs: reg,
-                    arg: parent,
-                    member,
-                });
-                Ok(reg)
+                let (slot, path) = self.expr_lhs(&field.expr)?;
+                let field = field.member.clone().into();
+                Ok((slot, path.join(&field)))
             }
             ExprKind::Index(index) => {
-                let parent = self.expr(&index.expr)?;
-                let reg = self.reg(ty_as_ref(self.node_ty(expr.id)?))?;
+                let (slot, path) = self.expr_lhs(&index.expr)?;
                 let index = self.expr(&index.index)?;
-                self.op(OpCode::IndexRef {
-                    lhs: reg,
-                    arg: parent,
-                    index,
-                });
-                Ok(reg)
+                let ndx = self.slot_to_index(index)?;
+                Ok((slot, path.index(ndx)))
             }
             _ => todo!("expr_lhs {:?}", expr),
         }
@@ -877,8 +820,8 @@ impl CompilerContext {
             ExprKind::Tuple(tuple) => self.tuple(expr.id, tuple),
             ExprKind::Unary(unary) => self.unop(expr.id, unary),
             ExprKind::Match(_match) => self.match_expr(expr.id, _match),
-            ExprKind::Ret(_return) => self.return_expr(expr.id, _return),
-            ExprKind::ForLoop(for_loop) => self.for_loop(expr.id, for_loop),
+            ExprKind::Ret(_return) => self.return_expr(_return),
+            ExprKind::ForLoop(for_loop) => self.for_loop( for_loop),
             ExprKind::Assign(assign) => self.assign(assign),
             ExprKind::Range(_) => bail!("Ranges are only supported in for loops"),
             ExprKind::Let(_) => bail!("Fallible let expressions are not currently supported in rhdl.  Use a match instead"),
@@ -893,10 +836,11 @@ impl CompilerContext {
         let id = self.new_block(block_result);
         let result = self.expr(expr)?;
         if result != block_result {
-            self.op(OpCode::Copy {
-                lhs: block_result,
-                rhs: result,
-            });
+            self.op(op_assign(
+                block_result,
+                result,
+                crate::path::Path::default(),
+            ));
         }
         self.set_active_block(current_block);
         Ok(id)
@@ -966,7 +910,7 @@ impl Visitor for CompilerContext {
         self.main_block = self.block(block_result, &node.body)?;
         self.return_slot = block_result;
         self.name = node.name.clone();
-        self.fn_id = node.fn_id.clone();
+        self.fn_id = node.fn_id;
         Ok(())
     }
 }

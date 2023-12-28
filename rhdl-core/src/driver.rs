@@ -35,12 +35,12 @@ fn elaborate_design(design: &mut Design) -> Result<()> {
         .cloned()
         .collect::<Vec<_>>();
     for kernel in external_kernels {
-        if !design.objects.contains_key(&kernel.fn_id) {
+        if let std::collections::hash_map::Entry::Vacant(e) = design.objects.entry(kernel.fn_id) {
             eprintln!("Compiling kernel {}", kernel.fn_id);
             let obj = compile_kernel(Kernel {
                 ast: kernel.clone(),
             })?;
-            design.objects.insert(kernel.fn_id, obj);
+            e.insert(obj);
         }
     }
     Ok(())

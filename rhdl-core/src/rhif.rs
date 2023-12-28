@@ -1,141 +1,130 @@
 // RHDL Intermediate Form (RHIF).
 use anyhow::Result;
 
-use crate::{digital_fn::DigitalSignature, KernelFnKind};
+use crate::{digital_fn::DigitalSignature, path::Path, KernelFnKind, TypedBits};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum OpCode {
     // lhs <- arg1 op arg2
-    Binary {
-        op: AluBinary,
-        lhs: Slot,
-        arg1: Slot,
-        arg2: Slot,
-    },
+    Binary(Binary),
     // lhs <- op arg1
-    Unary {
-        op: AluUnary,
-        lhs: Slot,
-        arg1: Slot,
-    },
+    Unary(Unary),
     // return a
-    Return {
-        result: Option<Slot>,
-    },
+    Return(Return),
     // lhs <- if cond { then_branch } else { else_branch }
-    If {
-        lhs: Slot,
-        cond: Slot,
-        then_branch: BlockId,
-        else_branch: BlockId,
-    },
-    // lhs <- arg[index]
-    Index {
-        lhs: Slot,
-        arg: Slot,
-        index: Slot,
-    },
-    // lhs <- rhs
-    Copy {
-        lhs: Slot,
-        rhs: Slot,
-    },
-    // *lhs <- rhs
-    Assign {
-        lhs: Slot,
-        rhs: Slot,
-    },
-    // lhs <- arg.member
-    Field {
-        lhs: Slot,
-        arg: Slot,
-        member: Member,
-    },
+    If(If),
+    // lhs <- arg[path]
+    Index(Index),
+    // lhs[path] <- rhs
+    Assign(Assign),
     // lhs <- [value; len]
-    Repeat {
-        lhs: Slot,
-        value: Slot,
-        len: Slot,
-    },
+    Repeat(Repeat),
     // lhs <- Struct@path { fields (..rest) }
-    Struct {
-        lhs: Slot,
-        path: String,
-        fields: Vec<FieldValue>,
-        rest: Option<Slot>,
-    },
+    Struct(Struct),
     // lhs <- Tuple(fields)
-    Tuple {
-        lhs: Slot,
-        fields: Vec<Slot>,
-    },
-    // lhs = &arg
-    Ref {
-        lhs: Slot,
-        arg: Slot,
-    },
-    // lhs = &arg.member
-    FieldRef {
-        lhs: Slot,
-        arg: Slot,
-        member: Member,
-    },
-    // lhs = &arg[index]
-    IndexRef {
-        lhs: Slot,
-        arg: Slot,
-        index: Slot,
-    },
+    Tuple(Tuple),
     // Jump to block
     Block(BlockId),
     // ROM table
-    Case {
-        discriminant: Slot,
-        table: Vec<(CaseArgument, BlockId)>,
-    },
+    Case(Case),
     // lhs = @path(args)
-    Exec {
-        lhs: Slot,
-        id: FuncId,
-        args: Vec<Slot>,
-    },
+    Exec(Exec),
     // x <- [a, b, c, d]
-    Array {
-        lhs: Slot,
-        elements: Vec<Slot>,
-    },
+    Array(Array),
     // x <- a#b where a is an enum, and b is the discriminant of the
     // variant.
-    Payload {
-        lhs: Slot,
-        arg: Slot,
-        discriminant: Slot,
-    },
+    Payload(Payload),
     // x <- tag where tag is the discriminant of the enum.
-    Discriminant {
-        lhs: Slot,
-        arg: Slot,
-    },
+    Discriminant(Discriminant),
     // x <- enum(discriminant, fields)
-    Enum {
-        lhs: Slot,
-        path: String,
-        discriminant: Slot,
-        fields: Vec<FieldValue>,
-    },
+    Enum(Enum),
     // x <- a as bits::<len>
-    AsBits {
-        lhs: Slot,
-        arg: Slot,
-        len: usize,
-    },
+    AsBits(Cast),
     // x <- a as signed::<len>
-    AsSigned {
-        lhs: Slot,
-        arg: Slot,
-        len: usize,
-    },
+    AsSigned(Cast),
     Comment(String),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Binary {
+    pub op: AluBinary,
+    pub lhs: Slot,
+    pub arg1: Slot,
+    pub arg2: Slot,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Unary {
+    pub op: AluUnary,
+    pub lhs: Slot,
+    pub arg1: Slot,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Return {
+    pub result: Option<Slot>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct If {
+    pub lhs: Slot,
+    pub cond: Slot,
+    pub then_branch: BlockId,
+    pub else_branch: BlockId,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Index {
+    pub lhs: Slot,
+    pub arg: Slot,
+    pub path: Path,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Assign {
+    pub lhs: Slot,
+    pub rhs: Slot,
+    pub path: Path,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Repeat {
+    pub lhs: Slot,
+    pub value: Slot,
+    pub len: Slot,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Struct {
+    pub lhs: Slot,
+    pub fields: Vec<FieldValue>,
+    pub rest: Option<Slot>,
+    pub template: TypedBits,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Case {
+    pub discriminant: Slot,
+    pub table: Vec<(CaseArgument, BlockId)>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Array {
+    pub lhs: Slot,
+    pub elements: Vec<Slot>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Tuple {
+    pub lhs: Slot,
+    pub fields: Vec<Slot>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Exec {
+    pub lhs: Slot,
+    pub id: FuncId,
+    pub args: Vec<Slot>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -217,4 +206,32 @@ pub struct ExternalFunction {
     pub path: String,
     pub code: KernelFnKind,
     pub signature: DigitalSignature,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Payload {
+    pub lhs: Slot,
+    pub arg: Slot,
+    pub discriminant: Slot,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Discriminant {
+    pub lhs: Slot,
+    pub arg: Slot,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Enum {
+    pub lhs: Slot,
+    pub path: String,
+    pub discriminant: Slot,
+    pub fields: Vec<FieldValue>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Cast {
+    pub lhs: Slot,
+    pub arg: Slot,
+    pub len: usize,
 }

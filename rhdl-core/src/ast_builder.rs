@@ -37,7 +37,7 @@ pub fn struct_expr(
     path: Box<Path>,
     fields: Vec<Box<FieldValue>>,
     rest: Option<Box<Expr>>,
-    kind: Kind,
+    template: TypedBits,
     variant: Kind,
     discriminant: TypedBits,
 ) -> Box<Expr> {
@@ -47,7 +47,7 @@ pub fn struct_expr(
             path,
             fields,
             rest,
-            kind,
+            template,
             variant,
             discriminant,
         }),
