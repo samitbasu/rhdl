@@ -3,8 +3,8 @@ use std::fmt::Display;
 use crate::{
     rhif::{
         AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast,
-        Discriminant, Enum, Exec, FieldValue, FuncId, If, Index, Member, OpCode, Payload, Repeat,
-        Return, Slot, Struct, Tuple, Unary,
+        Discriminant, Enum, Exec, FieldValue, FuncId, If, Index, Member, OpCode, Repeat, Return,
+        Slot, Struct, Tuple, Unary,
     },
     util::splice,
 };

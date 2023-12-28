@@ -206,13 +206,6 @@ pub struct ExternalFunction {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Payload {
-    pub lhs: Slot,
-    pub arg: Slot,
-    pub discriminant: Slot,
-}
-
-#[derive(Debug, Clone, PartialEq)]
 pub struct Discriminant {
     pub lhs: Slot,
     pub arg: Slot,

@@ -2,8 +2,8 @@ use crate::{
     path::Path,
     rhif::{
         AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast,
-        Discriminant, Enum, Exec, FieldValue, FuncId, If, Index, OpCode, Payload, Repeat, Return,
-        Slot, Struct, Tuple, Unary,
+        Discriminant, Enum, Exec, FieldValue, FuncId, If, Index, OpCode, Repeat, Return, Slot,
+        Struct, Tuple, Unary,
     },
     TypedBits,
 };

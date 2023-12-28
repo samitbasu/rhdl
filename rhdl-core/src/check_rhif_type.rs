@@ -6,10 +6,9 @@ use crate::{
     object::Object,
     rhif::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum,
-        Exec, If, Index, OpCode, Payload, Repeat, Return, Slot, Struct, Tuple, Unary,
+        Exec, If, Index, OpCode, Repeat, Return, Slot, Struct, Tuple, Unary,
     },
     ty::{self, ty_array, ty_bool, ty_named_field, ty_path, ty_unnamed_field, Bits, Ty},
-    TypedBits,
 };
 use anyhow::{anyhow, bail};
 use anyhow::{ensure, Result};
