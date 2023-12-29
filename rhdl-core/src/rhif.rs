@@ -173,6 +173,9 @@ impl Slot {
             _ => Err(anyhow::anyhow!("Not a register")),
         }
     }
+    pub fn is_literal(&self) -> bool {
+        matches!(self, Slot::Literal(_))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -4,6 +4,7 @@ use anyhow::bail;
 use anyhow::Result;
 
 use crate::ast::Member;
+use crate::rhif::Slot;
 use crate::DiscriminantAlignment;
 use crate::Kind;
 
@@ -15,6 +16,7 @@ pub enum PathElement {
     EnumDiscriminant,
     EnumPayload(String),
     EnumPayloadByValue(i64),
+    DynamicIndex(Slot),
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -32,6 +34,7 @@ impl std::fmt::Display for Path {
                 PathElement::EnumDiscriminant => write!(f, "#")?,
                 PathElement::EnumPayload(s) => write!(f, "#{}", s)?,
                 PathElement::EnumPayloadByValue(v) => write!(f, "#{}", v)?,
+                PathElement::DynamicIndex(slot) => write!(f, "[[{}]]", slot)?,
             }
         }
         Ok(())
@@ -39,6 +42,12 @@ impl std::fmt::Display for Path {
 }
 
 impl Path {
+    pub fn dynamic_slots(&self) -> impl Iterator<Item = &Slot> {
+        self.elements.iter().filter_map(|e| match e {
+            PathElement::DynamicIndex(slot) => Some(slot),
+            _ => None,
+        })
+    }
     pub fn index(mut self, index: usize) -> Self {
         self.elements.push(PathElement::Index(index));
         self
@@ -49,6 +58,10 @@ impl Path {
     }
     pub fn discriminant(mut self) -> Self {
         self.elements.push(PathElement::EnumDiscriminant);
+        self
+    }
+    pub fn dynamic(mut self, slot: Slot) -> Self {
+        self.elements.push(PathElement::DynamicIndex(slot));
         self
     }
     pub fn payload(mut self, name: &str) -> Self {
@@ -67,6 +80,11 @@ impl Path {
         self.elements
             .push(PathElement::EnumPayloadByValue(discriminant));
         self
+    }
+    pub fn any_dynamic(&self) -> bool {
+        self.elements
+            .iter()
+            .any(|e| matches!(e, PathElement::DynamicIndex(_)))
     }
 }
 
@@ -209,6 +227,9 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                 }
                 _ => bail!("Enum payload not valid for non-enum types"),
             },
+            PathElement::DynamicIndex(_slot) => {
+                bail!("Dynamic indices must be resolved before calling bit_range")
+            }
         }
     }
     Ok((range, kind))

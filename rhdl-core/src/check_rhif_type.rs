@@ -136,6 +136,9 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     let ty = slot_type(arg)?;
                     let ty = ty_path(ty, path)?;
                     eq_types(ty, slot_type(lhs)?)?;
+                    for slot in path.dynamic_slots() {
+                        ensure!(slot_type(slot)?.is_unsigned(), "index must be unsigned");
+                    }
                 }
                 OpCode::Struct(Struct {
                     lhs,
