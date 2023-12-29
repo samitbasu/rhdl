@@ -55,6 +55,20 @@ impl<'a> VMState<'a> {
             }
         }
     }
+    fn resolve_dynamic_paths(&mut self, path: &Path) -> Result<Path> {
+        let mut result = Path::default();
+        for element in &path.elements {
+            match element {
+                crate::path::PathElement::DynamicIndex(slot) => {
+                    let slot = self.read(*slot)?;
+                    let ndx = slot.as_i64()?;
+                    result = result.index(ndx as usize);
+                }
+                _ => result.elements.push(element.clone()),
+            }
+        }
+        Ok(result)
+    }
 }
 
 fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
@@ -121,16 +135,18 @@ fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
             }
             OpCode::Index(Index { lhs, arg, path }) => {
                 let arg = state.read(*arg)?;
-                let result = arg.path(path)?;
+                let path = state.resolve_dynamic_paths(path)?;
+                let result = arg.path(&path)?;
                 state.write(*lhs, result)?;
             }
             OpCode::Assign(Assign { lhs, rhs, path }) => {
                 let rhs_val = state.read(*rhs)?;
+                let path = state.resolve_dynamic_paths(path)?;
                 if path.is_empty() {
                     state.write(*lhs, rhs_val)?;
                 } else {
                     let lhs_val = state.read(*lhs)?;
-                    let result = lhs_val.update(path, rhs_val)?;
+                    let result = lhs_val.update(&path, rhs_val)?;
                     state.write(*lhs, result)?;
                 }
             }

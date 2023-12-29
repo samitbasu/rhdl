@@ -158,6 +158,12 @@ impl<T, const M: usize, const N: usize> std::ops::Index<Bits<N>> for [T; M] {
     }
 }
 
+impl<T, const M: usize, const N: usize> std::ops::IndexMut<Bits<N>> for [T; M] {
+    fn index_mut(&mut self, index: Bits<N>) -> &mut Self::Output {
+        &mut self[index.0 as usize]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

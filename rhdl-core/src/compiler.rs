@@ -450,8 +450,16 @@ impl CompilerContext {
         let lhs = self.reg(self.node_ty(id)?)?;
         let arg = self.expr(&index.expr)?;
         let index = self.expr(&index.index)?;
-        let ndx = self.slot_to_index(index)?;
-        self.op(op_index(lhs, arg, crate::path::Path::default().index(ndx)));
+        if index.is_literal() {
+            let ndx = self.slot_to_index(index)?;
+            self.op(op_index(lhs, arg, crate::path::Path::default().index(ndx)));
+        } else {
+            self.op(op_index(
+                lhs,
+                arg,
+                crate::path::Path::default().dynamic(index),
+            ));
+        }
         Ok(lhs)
     }
     fn array(&mut self, id: NodeId, array: &ast::ExprArray) -> Result<Slot> {
@@ -783,8 +791,12 @@ impl CompilerContext {
             ExprKind::Index(index) => {
                 let (slot, path) = self.expr_lhs(&index.expr)?;
                 let index = self.expr(&index.index)?;
-                let ndx = self.slot_to_index(index)?;
-                Ok((slot, path.index(ndx)))
+                if index.is_literal() {
+                    let ndx = self.slot_to_index(index)?;
+                    Ok((slot, path.index(ndx)))
+                } else {
+                    Ok((slot, path.dynamic(index)))
+                }
             }
             _ => todo!("expr_lhs {:?}", expr),
         }

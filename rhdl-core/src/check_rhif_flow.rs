@@ -99,8 +99,11 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
                 init_set = init_set.intersect(&check_flow(obj, *else_branch, base_set.clone())?);
                 init_set.write(lhs)?;
             }
-            OpCode::Index(Index { lhs, arg, path: _ }) => {
+            OpCode::Index(Index { lhs, arg, path }) => {
                 init_set.read(arg)?;
+                for slot in path.dynamic_slots() {
+                    init_set.read(slot)?;
+                }
                 init_set.write(lhs)?;
             }
             OpCode::Assign(Assign { lhs, rhs, path }) => {

@@ -233,6 +233,9 @@ pub fn ty_path(mut base: Ty, path: &crate::path::Path) -> Result<Ty> {
                     bail!("Expected enum type, got {:?}", base)
                 }
             }
+            PathElement::DynamicIndex(_index) => {
+                base = ty_array_base(&base)?;
+            }
         }
     }
     Ok(base)
