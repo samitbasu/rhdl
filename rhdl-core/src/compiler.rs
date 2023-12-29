@@ -188,12 +188,6 @@ impl CompilerContext {
         self.ty.insert(Slot::Literal(ndx), ty);
         Ok(Slot::Literal(ndx))
     }
-    fn lit(&mut self, lit: &ExprLit, ty: Ty) -> Result<Slot> {
-        let ndx = self.literals.len();
-        self.literals.push(Box::new(lit.clone()));
-        self.ty.insert(Slot::Literal(ndx), ty);
-        Ok(Slot::Literal(ndx))
-    }
     fn op(&mut self, op: OpCode) {
         self.blocks[self.active_block.0].ops.push(op);
     }

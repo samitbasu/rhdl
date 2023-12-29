@@ -1,11 +1,8 @@
 use std::{collections::HashSet, iter::repeat};
 
 use inflections::Inflect;
-use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{
-    punctuated::Punctuated, spanned::Spanned, token::Comma, ExprLit, Ident, Pat, Path, Type,
-};
+use syn::{punctuated::Punctuated, spanned::Spanned, token::Comma, Ident, Pat, Path, Type};
 type TS = proc_macro2::TokenStream;
 type Result<T> = syn::Result<T>;
 
@@ -69,20 +66,6 @@ fn pattern_has_bindings(pat: &syn::Pat) -> bool {
     }
 }
 
-fn pattern_has_literals(pat: &syn::Pat) -> bool {
-    match pat {
-        Pat::Ident(x) => x.ident.to_string().is_constant_case(),
-        Pat::Or(subs) => subs.cases.iter().any(pattern_has_literals),
-        Pat::Paren(pat) => pattern_has_literals(&pat.pat),
-        Pat::Slice(slice) => slice.elems.iter().any(pattern_has_literals),
-        Pat::Tuple(tuple) => tuple.elems.iter().any(pattern_has_literals),
-        Pat::Struct(struct_) => struct_.fields.iter().any(|x| pattern_has_literals(&x.pat)),
-        Pat::TupleStruct(tuple) => tuple.elems.iter().any(pattern_has_literals),
-        Pat::Type(ty) => pattern_has_literals(&ty.pat),
-        _ => false,
-    }
-}
-
 //
 // This is a kludge.  I do not know of any way to determine if
 // an expression like j = Foo::Bar(3) is a function named Bar
@@ -118,7 +101,7 @@ fn rewrite_pattern_as_typed_bits(pat: &syn::Pat) -> syn::Result<TS> {
             )),
         },
         _ => Ok(
-            quote! {rhdl_core::ast_builder::expr_lit_typed_bits(rhdl_core::Digital::typed_bits(#pat))},
+            quote! { rhdl_core::ast_builder::expr_lit_typed_bits(rhdl_core::Digital::typed_bits(#pat)) },
         ),
     }
 }
@@ -1404,7 +1387,6 @@ mod test {
         expr.arms.iter().for_each(|arm| {
             eprintln!("{:?}", arm);
             eprintln!("pattern has bindings {:?}", pattern_has_bindings(&arm.pat));
-            eprintln!("pattern has constants {:?}", pattern_has_literals(&arm.pat));
         });
     }
 
@@ -1437,7 +1419,6 @@ mod test {
         expr.arms.iter().for_each(|arm| {
             eprintln!("{:?}", arm);
             eprintln!("pattern has bindings {:?}", pattern_has_bindings(&arm.pat));
-            eprintln!("pattern has constants {:?}", pattern_has_literals(&arm.pat));
             let rewrite = rewrite_pattern_to_use_defaults_for_bindings(&arm.pat);
             eprintln!("{}", rewrite);
         });

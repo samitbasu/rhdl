@@ -11,7 +11,7 @@ pub struct Design {
 impl std::fmt::Display for Design {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Design {}", self.top)?;
-        for (name, obj) in &self.objects {
+        for obj in self.objects.values() {
             write!(f, "\n  Object {}", obj.name)?;
         }
         Ok(())
