@@ -8,6 +8,10 @@ pub fn slice<const N: usize, const M: usize>(x: Bits<N>, start: u128) -> Bits<M>
     Bits((x.0 >> start) & Bits::<M>::mask().0)
 }
 
+fn vm_slice<const M: usize>(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedBits> {
+    args[0].slice(args[1].as_i64()? as usize, M)
+}
+
 #[allow(non_camel_case_types)]
 pub struct slice<const N: usize, const M: usize> {}
 
@@ -20,6 +24,7 @@ impl<const N: usize, const M: usize> DigitalFn for slice<N, M> {
                 M - 1,
                 N - 1,
             ),
+            vm_stub: Some(vm_slice::<M>),
         })
     }
 }

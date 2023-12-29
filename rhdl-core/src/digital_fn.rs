@@ -6,6 +6,8 @@ pub trait DigitalFn {
     fn kernel_fn() -> KernelFnKind;
 }
 
+// See: https://jsdw.me/posts/rust-fn-traits/
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DigitalSignature {
     pub arguments: Vec<Kind>,

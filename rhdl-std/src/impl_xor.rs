@@ -14,6 +14,10 @@ pub fn xor<const N: usize>(x: Bits<N>) -> bool {
     x & 1 == 1
 }
 
+fn vm_xor(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedBits> {
+    Ok(args[0].xor())
+}
+
 #[allow(non_camel_case_types)]
 pub struct xor<const N: usize> {}
 
@@ -26,6 +30,7 @@ impl<const N: usize> DigitalFn for xor<N> {
                 N - 1,
                 N - 1
             ),
+            vm_stub: Some(vm_xor),
         })
     }
 }

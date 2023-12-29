@@ -2,6 +2,7 @@ use rhdl_bits::Bits;
 use rhdl_core::digital_fn::DigitalFn;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
+use rhdl_core::TypedBits;
 
 pub fn all<const N: usize>(x: Bits<N>) -> bool {
     (x.0 & Bits::<N>::mask().0) == Bits::<N>::mask().0
@@ -9,6 +10,10 @@ pub fn all<const N: usize>(x: Bits<N>) -> bool {
 
 #[allow(non_camel_case_types)]
 pub struct all<const N: usize> {}
+
+fn vm_all(args: &[TypedBits]) -> anyhow::Result<TypedBits> {
+    Ok(args[0].all())
+}
 
 impl<const N: usize> DigitalFn for all<N> {
     fn kernel_fn() -> KernelFnKind {
@@ -19,6 +24,7 @@ impl<const N: usize> DigitalFn for all<N> {
                 N - 1,
                 N - 1
             ),
+            vm_stub: Some(vm_all),
         })
     }
 }

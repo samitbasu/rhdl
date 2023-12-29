@@ -588,13 +588,21 @@ impl CompilerContext {
         }
     }
     fn return_expr(&mut self, _return: &ast::ExprRet) -> Result<Slot> {
-        let result = _return.expr.as_ref().map(|x| self.expr(x)).transpose()?;
-        self.op(op_return(result));
+        if let Some(expr) = &_return.expr {
+            let result = self.expr(expr)?;
+            self.op(op_assign(
+                self.return_slot,
+                result,
+                crate::path::Path::default(),
+            ));
+        }
+        self.op(op_return());
         Ok(Slot::Empty)
     }
     fn repeat(&mut self, id: NodeId, repeat: &ast::ExprRepeat) -> Result<Slot> {
         let lhs = self.reg(self.node_ty(id)?)?;
         let len = self.expr(&repeat.len)?;
+        let len = self.slot_to_index(len)?;
         let value = self.expr(&repeat.value)?;
         self.op(op_repeat(lhs, value, len));
         Ok(lhs)
@@ -724,7 +732,7 @@ impl CompilerContext {
     }
     fn for_loop(&mut self, for_loop: &ast::ExprForLoop) -> Result<Slot> {
         let current_block = self.current_block();
-        let _ = self.new_block(Slot::Empty);
+        let loop_block = self.new_block(Slot::Empty);
         self.bind_pattern(&for_loop.pat)?;
         // Determine the loop type
         let index_reg = self.resolve_local(for_loop.pat.id)?;
@@ -764,6 +772,7 @@ impl CompilerContext {
             self.op(OpCode::Block(body));
         }
         self.set_active_block(current_block);
+        self.op(OpCode::Block(loop_block));
         Ok(Slot::Empty)
     }
     fn expr_lhs(&mut self, expr: &Expr) -> Result<(Slot, crate::path::Path)> {
@@ -900,8 +909,8 @@ impl Visitor for CompilerContext {
         }
         self.arguments = arguments;
         let block_result = self.reg(self.ty(node.id)?)?;
-        self.main_block = self.block(block_result, &node.body)?;
         self.return_slot = block_result;
+        self.main_block = self.block(block_result, &node.body)?;
         self.name = node.name.clone();
         self.fn_id = node.fn_id;
         Ok(())

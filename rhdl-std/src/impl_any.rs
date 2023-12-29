@@ -7,6 +7,10 @@ pub fn any<const N: usize>(x: Bits<N>) -> bool {
     (x.0 & Bits::<N>::mask().0) != 0
 }
 
+pub fn vm_any(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedBits> {
+    Ok(args[0].any())
+}
+
 #[allow(non_camel_case_types)]
 pub struct any<const N: usize> {}
 
@@ -19,6 +23,7 @@ impl<const N: usize> DigitalFn for any<N> {
                 N - 1,
                 N - 1
             ),
+            vm_stub: Some(vm_any),
         })
     }
 }

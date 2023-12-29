@@ -9,8 +9,8 @@ pub enum OpCode {
     Binary(Binary),
     // lhs <- op arg1
     Unary(Unary),
-    // return a
-    Return(Return),
+    // early return
+    Return,
     // lhs <- if cond { then_branch } else { else_branch }
     If(If),
     // lhs <- arg[path]
@@ -58,11 +58,6 @@ pub struct Unary {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Return {
-    pub result: Option<Slot>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
 pub struct If {
     pub lhs: Slot,
     pub cond: Slot,
@@ -88,7 +83,7 @@ pub struct Assign {
 pub struct Repeat {
     pub lhs: Slot,
     pub value: Slot,
-    pub len: Slot,
+    pub len: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]

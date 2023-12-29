@@ -4,7 +4,7 @@ use crate::{
     object::Object,
     rhif::{
         Array, Assign, Binary, BlockId, Case, Cast, Discriminant, Enum, Exec, If, Index, OpCode,
-        Repeat, Return, Slot, Struct, Tuple, Unary,
+        Repeat, Slot, Struct, Tuple, Unary,
     },
 };
 
@@ -127,7 +127,7 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
             OpCode::Enum(Enum {
                 lhs,
                 fields,
-                template,
+                template: _,
             }) => {
                 for field in fields {
                     init_set.read(&field.value)?;
@@ -135,16 +135,12 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
                 init_set.write(lhs)?;
             }
             OpCode::Repeat(Repeat { lhs, value, len }) => {
-                init_set.read(len)?;
                 init_set.read(value)?;
                 init_set.write(lhs)?;
             }
             OpCode::Comment(_) => {}
-            OpCode::Return(Return { result }) => {
-                if let Some(result) = result {
-                    init_set.read(result)?;
-                    init_set.write(&obj.return_slot)?;
-                }
+            OpCode::Return => {
+                break;
             }
             OpCode::Block(id) => {
                 init_set = check_flow(obj, *id, init_set)?;

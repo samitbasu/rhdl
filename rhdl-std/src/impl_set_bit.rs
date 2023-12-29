@@ -14,6 +14,10 @@ pub fn set_bit<const N: usize>(x: Bits<N>, i: u8, value: bool) -> Bits<N> {
     bits(x)
 }
 
+fn vm_set_bit(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedBits> {
+    args[0].set_bit(args[1].as_i64()? as usize, args[2].as_bool()?)
+}
+
 #[allow(non_camel_case_types)]
 pub struct set_bit<const N: usize> {}
 
@@ -26,6 +30,7 @@ impl<const N: usize> DigitalFn for set_bit<N> {
                 N - 1,
                 N - 1
             ),
+            vm_stub: Some(vm_set_bit),
         })
     }
 }
