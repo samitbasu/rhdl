@@ -134,7 +134,7 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
                 }
                 init_set.write(lhs)?;
             }
-            OpCode::Repeat(Repeat { lhs, value, len }) => {
+            OpCode::Repeat(Repeat { lhs, value, len: _ }) => {
                 init_set.read(value)?;
                 init_set.write(lhs)?;
             }

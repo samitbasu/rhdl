@@ -2091,4 +2091,26 @@ mod tests {
 
         test_two_unsigned_arg_function::<foo, _>(foo);
     }
+
+    #[test]
+    fn test_array_dynamic_indexing() {
+        #[kernel]
+        fn foo(a: [b8; 8], b: b3) -> b8 {
+            a[b]
+        }
+
+        let a = [
+            bits(101),
+            bits(102),
+            bits(103),
+            bits(104),
+            bits(105),
+            bits(106),
+            bits(107),
+            bits(108),
+        ];
+        let b = exhaustive();
+        let inputs = b.into_iter().map(|b| (a, b)).collect::<Vec<_>>();
+        test_two_argument_function::<foo, _, _, _>(foo, &inputs);
+    }
 }

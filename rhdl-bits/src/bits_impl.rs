@@ -151,6 +151,13 @@ impl<const N: usize> PartialOrd<u128> for Bits<N> {
     }
 }
 
+impl<T, const M: usize, const N: usize> std::ops::Index<Bits<N>> for [T; M] {
+    type Output = T;
+    fn index(&self, index: Bits<N>) -> &Self::Output {
+        &self[index.0 as usize]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
