@@ -83,7 +83,7 @@ risk than a technical one.
 - [x] Import undefined bindings from the calling scope
 - [x] Move to a standard library of functions that can be synthesized and used
 - [x] Build a test infrastructure to compare Verilog with Rust results
-- [ ] Write a compiler capable of handling multiple kernels
+- [x] Write a compiler capable of handling multiple kernels
 - [ ] Write a RHIF -> Verilog assembler
 - [ ] Port the `RustHDL` widget library to `RHDL`
 - [ ] Port the various FPGA BSPs to `RustHDL` from `RHDL`.
