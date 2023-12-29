@@ -3,8 +3,8 @@ use std::fmt::Display;
 use crate::{
     rhif::{
         AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast,
-        Discriminant, Enum, Exec, FieldValue, FuncId, If, Index, Member, OpCode, Repeat, Return,
-        Slot, Struct, Tuple, Unary,
+        Discriminant, Enum, Exec, FieldValue, FuncId, If, Index, Member, OpCode, Repeat, Slot,
+        Struct, Tuple, Unary,
     },
     util::splice,
 };
@@ -41,12 +41,8 @@ impl Display for OpCode {
                     lhs, cond, then_branch, else_branch
                 )
             }
-            OpCode::Return(Return { result }) => {
-                if let Some(result) = result {
-                    write!(f, " ret {}", result)
-                } else {
-                    write!(f, " ret")
-                }
+            OpCode::Return => {
+                write!(f, " ret")
             }
             OpCode::Tuple(Tuple { lhs, fields }) => {
                 write!(f, " {} <- ({})", lhs, splice(fields, ", "))

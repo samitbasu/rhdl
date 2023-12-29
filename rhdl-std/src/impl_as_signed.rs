@@ -15,6 +15,10 @@ pub fn as_signed<const N: usize>(x: Bits<N>) -> SignedBits<N> {
     }
 }
 
+fn vm_as_signed(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedBits> {
+    args[0].as_signed()
+}
+
 #[allow(non_camel_case_types)]
 pub struct as_signed<const N: usize> {}
 
@@ -27,6 +31,7 @@ impl<const N: usize> DigitalFn for as_signed<N> {
                 N - 1,
                 N - 1,
             ),
+            vm_stub: Some(vm_as_signed),
         })
     }
 }

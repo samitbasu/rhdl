@@ -7,6 +7,10 @@ pub fn get_bit<const N: usize>(x: Bits<N>, i: u8) -> bool {
     (x.0 >> i) & 1 == 1
 }
 
+fn vm_get_bit(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedBits> {
+    args[0].get_bit(args[1].as_i64()? as usize)
+}
+
 #[allow(non_camel_case_types)]
 pub struct get_bit<const N: usize> {}
 
@@ -18,6 +22,7 @@ impl<const N: usize> DigitalFn for get_bit<N> {
                 "function [0:0] get_bit_{N}(input [{}:0] a, input integer i); get_bit_{N} = a[i]; endfunction",
                 N - 1,
             ),
+            vm_stub: Some(vm_get_bit),
         })
     }
 }

@@ -8,6 +8,10 @@ pub fn sign_bit<const N: usize>(x: SignedBits<N>) -> bool {
     (x.0 >> (N - 1)) & 1 == 1
 }
 
+fn vm_sign_bit(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedBits> {
+    args[0].sign_bit()
+}
+
 #[allow(non_camel_case_types)]
 pub struct sign_bit<const N: usize> {}
 
@@ -20,6 +24,7 @@ impl<const N: usize> DigitalFn for sign_bit<N> {
                 N - 1,
                 N - 1,
             ),
+            vm_stub: Some(vm_sign_bit),
         })
     }
 }

@@ -6,7 +6,7 @@ use crate::{
     object::Object,
     rhif::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum,
-        Exec, If, Index, OpCode, Repeat, Return, Slot, Struct, Tuple, Unary,
+        Exec, If, Index, OpCode, Repeat, Slot, Struct, Tuple, Unary,
     },
     ty::{self, ty_array, ty_bool, ty_named_field, ty_path, ty_unnamed_field, Bits, Ty},
 };
@@ -193,19 +193,12 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     let Ty::Array(array_ty) = &ty else {
                         bail!("expected array type")
                     };
-                    let len_value = obj.literal(*len)?;
-                    let len_value = len_value.as_i64()?;
                     eq_types(slot_type(value)?, array_ty[0].clone())?;
-                    eq_types(
-                        ty.clone(),
-                        ty_array(array_ty[0].clone(), len_value as usize),
-                    )?;
+                    eq_types(ty.clone(), ty_array(array_ty[0].clone(), *len))?;
                 }
                 OpCode::Comment(_) => {}
-                OpCode::Return(Return { result }) => {
-                    if let Some(result) = result {
-                        eq_types(slot_type(result)?, slot_type(&obj.return_slot)?)?;
-                    }
+                OpCode::Return => {
+                    break;
                 }
                 OpCode::Block(_) => {}
                 OpCode::Case(Case {

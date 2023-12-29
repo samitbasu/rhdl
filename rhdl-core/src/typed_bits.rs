@@ -150,6 +150,16 @@ impl TypedBits {
             bail!("Cannot cast {:?} to unsigned", self.kind)
         }
     }
+    pub fn sign_bit(&self) -> Result<TypedBits> {
+        if self.kind.is_signed() {
+            Ok(TypedBits {
+                bits: vec![self.bits.last().cloned().unwrap_or_default()],
+                kind: Kind::make_bits(1),
+            })
+        } else {
+            bail!("Cannot get sign bit of {:?}", self.kind)
+        }
+    }
     pub fn xor(&self) -> TypedBits {
         self.bits.iter().fold(false, |a, b| a ^ b).typed_bits()
     }
@@ -159,6 +169,69 @@ impl TypedBits {
         } else {
             bail!("Cannot cast {:?} to bool", self.kind)
         }
+    }
+    pub fn repeat(&self, count: usize) -> TypedBits {
+        let my_len = self.bits.len();
+        TypedBits {
+            bits: self
+                .bits
+                .iter()
+                .cloned()
+                .cycle()
+                .take(count * my_len)
+                .collect(),
+            kind: Kind::make_array(self.kind.clone(), count),
+        }
+    }
+    pub fn get_bit(&self, index: usize) -> Result<TypedBits> {
+        if index >= self.bits.len() {
+            bail!(
+                "Cannot get bit {} from {} because it only has {} bits",
+                index,
+                self,
+                self.bits.len()
+            );
+        }
+        Ok(TypedBits {
+            bits: vec![self.bits[index]],
+            kind: Kind::make_bits(1),
+        })
+    }
+    pub fn set_bit(&self, index: usize, val: bool) -> Result<TypedBits> {
+        if index >= self.bits.len() {
+            bail!(
+                "Cannot set bit {} in {} because it only has {} bits",
+                index,
+                self,
+                self.bits.len()
+            );
+        }
+        if self.kind.is_composite() {
+            bail!("Cannot set bit {} in composite {}", index, self);
+        }
+        let mut new_bits = self.bits.clone();
+        new_bits[index] = val;
+        Ok(TypedBits {
+            bits: new_bits,
+            kind: self.kind.clone(),
+        })
+    }
+    pub fn slice(&self, offset: usize, count: usize) -> Result<TypedBits> {
+        if self.kind.is_composite() {
+            bail!("Cannot slice composite {}", self);
+        }
+        if offset + count > self.bits.len() {
+            bail!(
+                "Cannot slice {} bits from {} because it only has {} bits",
+                count,
+                self,
+                self.bits.len()
+            );
+        }
+        Ok(TypedBits {
+            bits: self.bits[offset..offset + count].to_vec(),
+            kind: Kind::make_bits(count),
+        })
     }
 }
 

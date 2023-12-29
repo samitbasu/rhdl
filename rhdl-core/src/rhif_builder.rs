@@ -2,8 +2,8 @@ use crate::{
     path::Path,
     rhif::{
         AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast,
-        Discriminant, Enum, Exec, FieldValue, FuncId, If, Index, OpCode, Repeat, Return, Slot,
-        Struct, Tuple, Unary,
+        Discriminant, Enum, Exec, FieldValue, FuncId, If, Index, OpCode, Repeat, Slot, Struct,
+        Tuple, Unary,
     },
     TypedBits,
 };
@@ -21,8 +21,8 @@ pub fn op_unary(op: AluUnary, lhs: Slot, arg1: Slot) -> OpCode {
     OpCode::Unary(Unary { op, lhs, arg1 })
 }
 
-pub fn op_return(result: Option<Slot>) -> OpCode {
-    OpCode::Return(Return { result })
+pub fn op_return() -> OpCode {
+    OpCode::Return
 }
 
 pub fn op_if(lhs: Slot, cond: Slot, then_branch: BlockId, else_branch: BlockId) -> OpCode {
@@ -42,7 +42,7 @@ pub fn op_assign(lhs: Slot, rhs: Slot, path: Path) -> OpCode {
     OpCode::Assign(Assign { lhs, rhs, path })
 }
 
-pub fn op_repeat(lhs: Slot, value: Slot, len: Slot) -> OpCode {
+pub fn op_repeat(lhs: Slot, value: Slot, len: usize) -> OpCode {
     OpCode::Repeat(Repeat { lhs, value, len })
 }
 

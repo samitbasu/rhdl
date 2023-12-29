@@ -1,8 +1,9 @@
+use crate::kernel::ExternalKernelDef;
 use crate::object::Object;
 use crate::path::Path;
 use crate::rhif::{
     AluBinary, AluUnary, Array, Assign, Binary, Block, Case, CaseArgument, Cast, Discriminant,
-    Enum, Exec, If, Index, Member, OpCode, Slot, Struct, Tuple, Unary,
+    Enum, Exec, If, Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
 };
 use crate::ty::Ty;
 use crate::{ast::FunctionId, design::Design, TypedBits};
@@ -18,6 +19,7 @@ struct VMState<'a> {
     blocks: &'a [Block],
     design: &'a Design,
     obj: &'a Object,
+    early_return_signalled: bool,
 }
 
 impl<'a> VMState<'a> {
@@ -57,6 +59,9 @@ impl<'a> VMState<'a> {
 
 fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
     for op in &block.ops {
+        if state.early_return_signalled {
+            break;
+        }
         match op {
             OpCode::Binary(Binary {
                 op,
@@ -231,13 +236,34 @@ fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
                     .map(|x| state.read(*x))
                     .collect::<Result<Vec<_>>>()?;
                 let func = &state.obj.externals[id.0];
-                let KernelFnKind::Kernel(kernel) = &func.code else {
-                    todo!("No support for non-AST kernels {func:?}")
+                let result = match &func.code {
+                    KernelFnKind::Kernel(kernel) => execute(state.design, kernel.fn_id, args)?,
+                    KernelFnKind::Extern(ExternalKernelDef {
+                        name,
+                        body: _,
+                        vm_stub,
+                    }) => {
+                        if let Some(stub) = vm_stub {
+                            stub(&args)?
+                        } else {
+                            bail!("No VM stub for {name}")
+                        }
+                    }
+                    _ => {
+                        todo!("No support for non-AST kernels {func:?}")
+                    }
                 };
-                let result = execute(state.design, kernel.fn_id, args)?;
                 state.write(*lhs, result)?;
             }
-            _ => todo!("Opcode {:?} is not implemented", op),
+            OpCode::Repeat(Repeat { lhs, value, len }) => {
+                let value = state.read(*value)?;
+                let result = value.repeat(*len);
+                state.write(*lhs, result)?;
+            }
+            OpCode::Return => {
+                state.early_return_signalled = true;
+                break;
+            }
         }
     }
     Ok(())
@@ -290,6 +316,7 @@ fn execute(design: &Design, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
         blocks: &obj.blocks,
         design,
         obj,
+        early_return_signalled: false,
     };
     execute_block(block, &mut state)?;
     reg_stack

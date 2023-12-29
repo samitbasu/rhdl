@@ -22,3 +22,6 @@ serde_json = "1.0.64"
 
 [features]
 svg = ["rhdl-core/svg", "dep:svg"]
+
+[dev-dependencies]
+itertools = "0.12.0"

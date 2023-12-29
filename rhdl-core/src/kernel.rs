@@ -68,4 +68,6 @@ impl std::fmt::Display for KernelFnKind {
 pub struct ExternalKernelDef {
     pub name: String,
     pub body: String,
+    #[serde(skip)]
+    pub vm_stub: Option<fn(&[TypedBits]) -> anyhow::Result<TypedBits>>,
 }

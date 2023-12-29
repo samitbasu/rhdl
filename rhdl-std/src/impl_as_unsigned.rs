@@ -9,6 +9,10 @@ pub fn as_unsigned<const N: usize>(x: SignedBits<N>) -> Bits<N> {
     bits((x.0 as u128) & (Bits::<N>::mask().0))
 }
 
+fn vm_as_unsigned(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedBits> {
+    args[0].as_unsigned()
+}
+
 #[allow(non_camel_case_types)]
 pub struct as_unsigned<const N: usize> {}
 
@@ -21,6 +25,7 @@ impl<const N: usize> DigitalFn for as_unsigned<N> {
                 N - 1,
                 N - 1,
             ),
+            vm_stub: Some(vm_as_unsigned),
         })
     }
 }

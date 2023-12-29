@@ -12,6 +12,7 @@ pub use rhdl_macro::Digital;
 #[cfg(test)]
 mod tests {
 
+    use itertools::iproduct;
     use rhdl_bits::{alias::*, bits, signed};
     use rhdl_core::{
         ascii::render_ast_to_string,
@@ -294,7 +295,6 @@ mod tests {
 
     #[test]
     fn test_struct_expr_not_adt() {
-        use rhdl_bits::alias::*;
         #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub struct Foo {
             a: u8,
@@ -303,20 +303,20 @@ mod tests {
         }
 
         #[kernel]
-        fn do_stuff() -> b8 {
+        fn do_stuff(a: u8) -> Foo {
             let d = Foo {
-                a: 1,
+                a,
                 b: 2,
                 c: [1, 2, 3],
             }; // Struct literal
-            b8(5)
+            d
         }
-        test_inference_result(do_stuff::kernel_fn()).unwrap();
+
+        test_single_argument_function::<do_stuff, _, _>(do_stuff, &all_u8());
     }
 
     #[test]
     fn test_struct_expr_adt() {
-        use rhdl_bits::alias::*;
         #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub enum Foo {
             #[default]
@@ -329,11 +329,17 @@ mod tests {
         }
 
         #[kernel]
-        fn do_stuff() -> b8 {
-            let d = Foo::C { a: 1, b: 2 }; // Struct literal
-            b8(5)
+        fn do_stuff(a: u8) -> Foo {
+            if a < 10 {
+                Foo::A
+            } else if a < 20 {
+                Foo::B(a)
+            } else {
+                Foo::C { a, b: 0 }
+            }
         }
-        test_inference_result(do_stuff::kernel_fn()).unwrap();
+
+        test_single_argument_function::<do_stuff, _, _>(do_stuff, &all_u8());
     }
 
     #[test]
@@ -358,8 +364,8 @@ mod tests {
         pub struct Bar(pub u8, pub u8);
 
         #[kernel]
-        fn do_stuff() -> b8 {
-            let a = b4(1); // Straight local assignment
+        fn do_stuff(arg: b4) -> b8 {
+            let a = arg; // Straight local assignment
             let b = !a; // Unary operator
             let c = a + (b - 1); // Binary operator
             let q = (a, b, c); // Tuple valued expression
@@ -409,34 +415,22 @@ mod tests {
             bits::<8>(42)
         }
 
-        test_inference_result(do_stuff::kernel_fn()).unwrap();
+        test_single_argument_function::<do_stuff, _, _>(do_stuff, &exhaustive());
     }
 
     #[test]
     fn test_method_call_syntax() {
         use rhdl_std::UnsignedMethods;
 
-        #[derive(Copy, Clone, PartialEq, Default, Digital)]
-        struct Baz {
-            a: u8,
-        }
-
-        impl Baz {
-            fn any(&self) -> bool {
-                false
-            }
-        }
-
         #[kernel]
-        fn do_stuff() {
-            let k = b12(5);
-            let h = Baz { a: 3 };
-            let j = k.any();
-            let s = k.as_signed();
-            let t = s.as_unsigned();
-            //            let i = k.get_bit(3);
+        fn do_stuff(a: b8) -> (bool, bool, bool, s8) {
+            let any = a.any();
+            let all = a.all();
+            let xor = a.xor();
+            let s = a.as_signed();
+            (any, all, xor, s)
         }
-        test_inference_result(do_stuff::kernel_fn()).unwrap();
+        test_single_argument_function::<do_stuff, _, _>(do_stuff, &exhaustive());
     }
 
     #[test]
@@ -464,8 +458,8 @@ mod tests {
     #[test]
     fn test_simple_type_inference() {
         #[kernel]
-        fn do_stuff() {
-            let k = bits::<12>(6);
+        fn do_stuff(a: b12) -> b12 {
+            let k = a;
             let m = bits::<14>(7);
             let c = k + 3;
             let d = if c > k { c } else { k };
@@ -485,8 +479,9 @@ mod tests {
                 let b = bits::<12>(4);
                 a + b
             };
+            l + k
         }
-        test_inference_result(do_stuff::kernel_fn()).unwrap();
+        test_single_argument_function::<do_stuff, _, _>(do_stuff, &exhaustive());
     }
 
     #[test]
@@ -522,7 +517,7 @@ mod tests {
         }
 
         #[kernel]
-        fn do_stuff(a: Foo) -> b7 {
+        fn do_stuff(a: Foo) -> (b8, b8, NooState, Foo) {
             let z = (a.b, a.a);
             let c = a;
             let q = signed::<4>(2);
@@ -539,19 +534,39 @@ mod tests {
             let q = Bar(1, 2);
             let x = NooState::Run(bits::<4>(1), bits::<5>(2));
             let e = ar;
-            bits::<7>(42)
+            (e, ar, x, d)
         }
-        test_inference_result(do_stuff::kernel_fn()).unwrap();
+        let inputs = [
+            Foo {
+                a: bits::<8>(1),
+                b: signed::<4>(2),
+                c: Red {
+                    x: bits::<4>(1),
+                    y: bits::<6>(2),
+                },
+            },
+            Foo {
+                a: bits::<8>(1),
+                b: signed::<4>(2),
+                c: Red {
+                    x: bits::<4>(1),
+                    y: bits::<6>(2),
+                },
+            },
+        ];
+        test_single_argument_function::<do_stuff, _, _>(do_stuff, &inputs);
     }
 
     #[test]
     fn test_rebinding() {
         #[kernel]
-        fn do_stuff() {
+        fn do_stuff(a: b8) -> b16 {
+            let q = a;
             let q = bits::<12>(6);
             let q = bits::<16>(7);
+            q
         }
-        test_inference_result(do_stuff::kernel_fn()).unwrap();
+        test_single_argument_function::<do_stuff, _, _>(do_stuff, &exhaustive());
     }
 
     #[test]
@@ -571,7 +586,7 @@ mod tests {
         const MY_SPECIAL_NUMBER: b8 = bits(42);
 
         #[kernel]
-        fn do_stuff() {
+        fn do_stuff(a: b4) -> (Red, Red, Red, b8) {
             let k = Red::A;
             let l = Red::B(bits::<4>(1));
             let c = Red::C {
@@ -579,8 +594,9 @@ mod tests {
                 y: bits::<6>(2),
             };
             let d = MY_SPECIAL_NUMBER;
+            (k, l, c, d)
         }
-        test_inference_result(do_stuff::kernel_fn()).unwrap();
+        test_single_argument_function::<do_stuff, _, _>(do_stuff, &exhaustive());
     }
 
     #[test]
@@ -626,7 +642,7 @@ mod tests {
         const MY_SPECIAL_NUMBER: b8 = bits(42);
 
         #[kernel]
-        fn do_stuff(a: Foo, s: NooState) -> b7 {
+        fn do_stuff(a: Foo, s: NooState) -> (NooState, b7) {
             let z = (a.b, a.a + MY_SPECIAL_NUMBER);
             let foo = bits::<12>(6);
             let foo2 = foo + foo;
@@ -645,8 +661,8 @@ mod tests {
             q = set_bit::<4>(q, 3, true);
             let p = get_bit::<4>(q, 2);
             let p = as_signed::<4>(q);
-            if a.a > bits::<8>(0) {
-                return bits::<7>(3);
+            if a.a > bits::<8>(12) {
+                return (NooState::Boom, bits::<7>(3));
             }
             let e = Red::B(q);
             let x1 = bits::<4>(4);
@@ -669,25 +685,41 @@ mod tests {
                 NooState::Boom => NooState::Init,
             };
             let k = 42;
-            bits::<7>(k)
+            (d, bits::<7>(k))
         }
 
-        eprintln!(
-            "Kind for enum: {}",
-            Digital::variant_kind(Foo {
+        let foos = [
+            Foo {
                 a: bits::<8>(1),
                 b: signed::<4>(2),
-                c: Red::A
-            })
-        );
-
-        test_inference_result(do_stuff::kernel_fn()).unwrap();
+                c: Red::A,
+            },
+            Foo {
+                a: bits::<8>(1),
+                b: signed::<4>(2),
+                c: Red::B(bits::<4>(1)),
+            },
+            Foo {
+                a: bits::<8>(1),
+                b: signed::<4>(2),
+                c: Red::C {
+                    x: bits::<4>(1),
+                    y: bits::<6>(2),
+                },
+            },
+        ];
+        let noos = [
+            NooState::Init,
+            NooState::Boom,
+            NooState::Run(bits::<4>(1), bits::<5>(2)),
+            NooState::Walk { foo: bits::<5>(3) },
+        ];
+        let inputs = iproduct!(foos.into_iter(), noos.into_iter()).collect::<Vec<_>>();
+        test_two_argument_function::<do_stuff, _, _, _>(do_stuff, &inputs);
     }
 
     #[test]
     fn test_adt_shadow() {
-        use rhdl_bits::alias::*;
-
         #[derive(PartialEq, Copy, Clone, Digital, Default)]
         pub enum NooState {
             #[default]
@@ -700,7 +732,7 @@ mod tests {
         }
 
         #[kernel]
-        fn do_stuff(mut s: NooState) {
+        fn do_stuff(mut s: NooState) -> (u8, NooState) {
             let y = bits::<12>(72);
             let foo = bits::<14>(32);
             let mut a: u8 = 0;
@@ -722,8 +754,15 @@ mod tests {
                     NooState::Init
                 }
             };
+            (a, d)
         }
-        test_inference_result(do_stuff::kernel_fn()).unwrap();
+        let noos = [
+            NooState::Init,
+            NooState::Boom,
+            NooState::Run(1, 2, 3),
+            NooState::Walk { foo: 4 },
+        ];
+        test_single_argument_function::<do_stuff, _, _>(do_stuff, &noos);
     }
 
     #[test]
@@ -749,7 +788,7 @@ mod tests {
 
         const CONST_PATH: b4 = bits(4);
         #[kernel]
-        fn do_stuff(mut a: Foo, mut s: NooState) {
+        fn do_stuff(mut a: Foo, mut s: NooState) -> Foo {
             let k = {
                 bits::<12>(4) + 6;
                 bits::<12>(6)
@@ -834,12 +873,32 @@ mod tests {
                     NooState::Walk { foo: 7 }
                 }
                 NooState::Boom => {
-                    a.a = a.a + 3;
+                    a.a += 3;
                     NooState::Init
                 }
             };
+            a
         }
-        test_inference_result(do_stuff::kernel_fn()).unwrap();
+        let foos = [
+            Foo {
+                a: 1,
+                b: 2,
+                c: [1, 2, 3],
+            },
+            Foo {
+                a: 4,
+                b: 5,
+                c: [4, 5, 6],
+            },
+        ];
+        let noos = [
+            NooState::Init,
+            NooState::Boom,
+            NooState::Run(1, 2, 3),
+            NooState::Walk { foo: 4 },
+        ];
+        let inputs = iproduct!(foos.into_iter(), noos.into_iter()).collect::<Vec<_>>();
+        test_two_argument_function::<do_stuff, _, _, _>(do_stuff, &inputs);
     }
 
     #[test]
@@ -882,17 +941,8 @@ mod tests {
             Boom,
         }
 
-        // Define a macro called b4 that converts the argument into
-        // a Bits<4> type
-        fn bits4(x: u128) -> Bits<4> {
-            Bits::<4>::from(x)
-        }
-        fn bits6(x: u128) -> Bits<6> {
-            Bits::<6>::from(x)
-        }
-
         #[kernel]
-        fn do_stuff(mut a: Foo, mut s: NooState) {
+        fn do_stuff(mut a: Foo, mut s: NooState) -> NooState {
             let z = bits::<6>(3);
             let c = match z {
                 Bits::<6>(4) => bits::<4>(7),
@@ -901,8 +951,29 @@ mod tests {
             };
             let z = 1;
             let h = NooState::Run(1, z, 3);
+            h
         }
-        test_inference_result(do_stuff::kernel_fn()).unwrap();
+
+        let foos = [
+            Foo {
+                a: 1,
+                b: 2,
+                c: [1, 2, 3],
+            },
+            Foo {
+                a: 4,
+                b: 5,
+                c: [4, 5, 6],
+            },
+        ];
+        let noos = [
+            NooState::Init,
+            NooState::Boom,
+            NooState::Run(1, 2, 3),
+            NooState::Walk { foo: 4 },
+        ];
+        let inputs = iproduct!(foos.into_iter(), noos.into_iter()).collect::<Vec<_>>();
+        test_two_argument_function::<do_stuff, _, _, _>(do_stuff, &inputs);
     }
 
     #[test]
@@ -912,7 +983,15 @@ mod tests {
             a == b
         }
 
-        test_inference_result(do_stuff::<rhdl_bits::alias::s4>::kernel_fn()).unwrap();
+        let a = [
+            signed::<4>(1),
+            signed::<4>(2),
+            signed::<4>(3),
+            signed::<4>(-1),
+            signed::<4>(-3),
+        ];
+        let inputs = iproduct!(a.iter().cloned(), a.iter().cloned()).collect::<Vec<_>>();
+        test_two_argument_function::<do_stuff<s4>, _, _, _>(do_stuff, &inputs);
     }
 
     #[test]
@@ -931,8 +1010,20 @@ mod tests {
             e == x
         }
 
-        test_inference_result(do_stuff::<rhdl_bits::alias::s4, rhdl_bits::alias::b3>::kernel_fn())
-            .unwrap()
+        let a = [
+            signed::<4>(1),
+            signed::<4>(2),
+            signed::<4>(3),
+            signed::<4>(-1),
+            signed::<4>(-3),
+        ];
+        let b: Vec<b3> = exhaustive();
+        let inputs = iproduct!(
+            a.into_iter().map(|x| Foo { a: x, b: x }),
+            b.into_iter().map(|x| Foo { a: x, b: x })
+        )
+        .collect::<Vec<_>>();
+        test_two_argument_function::<do_stuff<s4, b3>, _, _, _>(do_stuff::<s4, b3>, &inputs);
     }
 
     #[test]
@@ -991,189 +1082,6 @@ mod tests {
     }
 
     #[test]
-    fn test_enum_constructor_function() {
-        // Start with a variant that has a tuple struct argument.
-        enum Color {
-            Red(u8),
-        }
-
-        struct Foo {}
-
-        impl Foo {
-            fn args() -> Vec<Kind> {
-                vec![Kind::make_bits(8)]
-            }
-            fn ret() -> Kind {
-                Kind::make_enum(
-                    "Color",
-                    vec![Kind::make_variant(
-                        "Red",
-                        Kind::make_tuple(vec![Kind::make_bits(8)]),
-                        1,
-                    )],
-                    Kind::make_discriminant_layout(
-                        1,
-                        DiscriminantAlignment::Msb,
-                        DiscriminantType::Unsigned,
-                    ),
-                )
-            }
-        }
-
-        trait TypeName {
-            fn type_name() -> String;
-        }
-
-        impl TypeName for usize {
-            fn type_name() -> String {
-                "usize".into()
-            }
-        }
-
-        impl TypeName for String {
-            fn type_name() -> String {
-                "String".into()
-            }
-        }
-
-        impl<T: TypeName> TypeName for Vec<T> {
-            fn type_name() -> String {
-                format!("Vec<{}>", T::type_name())
-            }
-        }
-
-        impl TypeName for () {
-            fn type_name() -> String {
-                "Unit".into()
-            }
-        }
-
-        impl<T1: TypeName, T2: TypeName> TypeName for (T1, T2) {
-            fn type_name() -> String {
-                format!("({}, {})", T1::type_name(), T2::type_name())
-            }
-        }
-
-        impl TypeName for u8 {
-            fn type_name() -> String {
-                "u8".into()
-            }
-        }
-
-        impl TypeName for Color {
-            fn type_name() -> String {
-                "Color".into()
-            }
-        }
-
-        fn inspect_function<F, T1, T2>(_f: F) -> String
-        where
-            F: Fn(T1) -> T2,
-            T1: TypeName,
-            T2: TypeName,
-        {
-            format!("Function: {} -> {}", T1::type_name(), T2::type_name())
-        }
-
-        eprintln!("{}", inspect_function(Color::Red));
-
-        // See: https://jsdw.me/posts/rust-fn-traits/
-    }
-
-    #[test]
-    fn test_signature_for_associated_functions() {
-        fn add(a: u8, b: u8) -> u8 {
-            todo!()
-        }
-
-        let sig = inspect_digital(add);
-        println!("{:?}", sig);
-
-        // Suppose we have a method call syntax.
-        // Such as y = a.any();
-        // One way to support this is to transform
-        // it into
-        //  y = any(a);
-        // and then use the existing function call
-        // syntax.  The problem is the polymorphism
-        // of the function call.  For example, the `any` method
-        // _could_ exist on both signed and unsigned bit vectors.
-        // But we can only take one of them as an argument to
-        // the `any` function.  Unless we make it generic over
-        // the type of the argument.
-        //
-        // Another option is to make the methods trait methods
-        // on the Digital trait itself.
-        //
-        // That would allow (expr).any(), for example, since
-        // .any() was by definition part of the Digital trait,
-        // and any expr must impl Digital.  We could then rewrite
-        // it as any(expr: impl Digital) -> bool.
-        //
-        // For performance, we can provide custom implementations
-        // for signed and unsigned bit vecs.
-        //
-        // Unfortunately, this does not really make sense.  What does
-        // (enum).all() mean?
-        //
-    }
-
-    #[test]
-    fn test_module_isolation_idea() {
-        mod demo {
-            use rhdl_bits::alias::*;
-            use rhdl_macro::Digital;
-
-            #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
-            pub struct Foo {
-                pub a: u8,
-                pub b: NooState,
-                pub c: [u8; 3],
-            }
-
-            #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
-            pub enum NooState {
-                #[default]
-                Init,
-                Run(u8, u8, u8),
-                Walk {
-                    foo: u8,
-                },
-                Boom,
-            }
-
-            mod private {
-                use super::Foo;
-                use super::NooState;
-                use rhdl_bits::bits;
-                use rhdl_bits::Bits;
-                pub fn do_stuff(mut a: Foo) -> Foo {
-                    let z = bits::<6>(3);
-                    let c = match z {
-                        Bits(4) => bits(7),
-                        Bits(3) => bits::<4>(3),
-                        _ => bits(8),
-                    };
-                    a.b = NooState::Boom;
-                    a
-                }
-            }
-            pub use private::do_stuff;
-        }
-        use demo::do_stuff;
-        use demo::Foo;
-        use demo::NooState;
-
-        let a = Foo {
-            a: 1,
-            b: NooState::Init,
-            c: [1, 2, 3],
-        };
-        let b = do_stuff(a);
-        assert_eq!(b.b, NooState::Boom);
-    }
-
-    #[test]
     fn test_for_loop() {
         #[kernel]
         fn looper(a: b8) -> bool {
@@ -1184,7 +1092,7 @@ mod tests {
             ret
         }
 
-        test_inference_result(looper::kernel_fn()).unwrap();
+        test_single_argument_function::<looper, _, _>(looper, &exhaustive());
     }
 
     #[test]
@@ -1214,18 +1122,21 @@ mod tests {
             }
         }
 
-        let mut kernel: Kernel = add::kernel_fn().try_into().unwrap();
-        assign_node_ids(&mut kernel).unwrap();
-        let ctx = infer(&kernel).unwrap();
-        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-        eprintln!("{}", ast_ascii);
-        check_inference(&kernel, &ctx).unwrap();
-        let obj = compile(&kernel.ast, ctx).unwrap();
-        eprintln!("{}", obj);
+        let inputs = [
+            SimpleEnum::Init,
+            SimpleEnum::Run(1),
+            SimpleEnum::Run(5),
+            SimpleEnum::Point { x: bits(7), y: 11 },
+            SimpleEnum::Point { x: bits(7), y: 13 },
+            SimpleEnum::Boom,
+        ];
+        test_single_argument_function::<add, _, _>(add, &inputs);
     }
 
     #[test]
     fn test_basic_compile() {
+        use itertools::iproduct;
+
         #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
         pub struct Foo {
             a: b4,
@@ -1268,7 +1179,7 @@ mod tests {
         const MOMO: u8 = 15;
 
         #[kernel]
-        fn add(mut a: b4, b: [b4; 4], state: SimpleEnum) -> b4 {
+        fn add(mut a: b4, b: [b4; 3], state: SimpleEnum) -> b4 {
             let (d, c) = (1, 3);
             let p = a + c;
             let q = p;
@@ -1307,15 +1218,21 @@ mod tests {
             a + c + z
         }
 
-        let mut kernel: Kernel = add::kernel_fn().try_into().unwrap();
-        assign_node_ids(&mut kernel).unwrap();
-        let ctx = infer(&kernel).unwrap();
-        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-        eprintln!("{}", ast_ascii);
-        check_inference(&kernel, &ctx).unwrap();
-        let obj = compile(&kernel.ast, ctx).unwrap();
-        eprintln!("{}", obj);
-        check_type_correctness(&obj).unwrap();
+        let a_set = exhaustive();
+        let b_set: Vec<[b4; 3]> = iproduct!(a_set.iter(), a_set.iter(), a_set.iter())
+            .map(|x| [*x.0, *x.1, *x.2])
+            .collect();
+        let state_set = [
+            SimpleEnum::Init,
+            SimpleEnum::Run(1),
+            SimpleEnum::Run(5),
+            SimpleEnum::Point { x: bits(7), y: 11 },
+            SimpleEnum::Point { x: bits(7), y: 13 },
+            SimpleEnum::Boom,
+        ];
+        let inputs = iproduct!(a_set.into_iter(), b_set.into_iter(), state_set.into_iter())
+            .collect::<Vec<_>>();
+        test_three_argument_function::<add, _, _, _, _>(add, &inputs);
     }
 
     #[test]
@@ -1343,7 +1260,16 @@ mod tests {
             }
         }
 
-        test_inference_result(add::kernel_fn()).unwrap();
+        let samples = vec![
+            SimpleEnum::Init,
+            SimpleEnum::Run(1),
+            SimpleEnum::Run(2),
+            SimpleEnum::Run(3),
+            SimpleEnum::Point { x: bits(1), y: 2 },
+            SimpleEnum::Point { x: bits(1), y: 9 },
+            SimpleEnum::Boom,
+        ];
+        test_single_argument_function::<add, _, _>(add, &samples);
     }
 
     #[test]
@@ -1372,8 +1298,16 @@ mod tests {
                 SimpleEnum::Boom => 7,
             }
         }
-
-        test_inference_result(add::kernel_fn()).unwrap();
+        let samples = vec![
+            SimpleEnum::Init,
+            SimpleEnum::Run(1),
+            SimpleEnum::Run(2),
+            SimpleEnum::Run(3),
+            SimpleEnum::Point { x: bits(1), y: 2 },
+            SimpleEnum::Point { x: bits(1), y: 9 },
+            SimpleEnum::Boom,
+        ];
+        test_single_argument_function::<add, _, _>(add, &samples);
     }
 
     #[test]
@@ -1386,8 +1320,7 @@ mod tests {
                 _ => 3,
             }
         }
-
-        test_inference_result(add::kernel_fn()).unwrap();
+        test_single_argument_function::<add, _, _>(add, &all_u8());
     }
 
     #[test]
@@ -1405,7 +1338,7 @@ mod tests {
             }
         }
 
-        test_inference_result(do_stuff::kernel_fn()).unwrap();
+        test_single_argument_function::<do_stuff, _, _>(do_stuff, &exhaustive())
     }
 
     #[test]
@@ -1425,7 +1358,10 @@ mod tests {
             }
         }
 
-        test_inference_result(add::kernel_fn()).unwrap();
+        let test_vec = (0..4)
+            .flat_map(|a| (0..4).map(move |b| Foo { a, b }))
+            .collect::<Vec<_>>();
+        test_single_argument_function::<add, _, _>(add, &test_vec);
     }
 
     #[test]
@@ -1437,7 +1373,7 @@ mod tests {
             c + d + e + f
         }
 
-        test_inference_result(add::kernel_fn()).unwrap();
+        test_single_argument_function::<add, _, _>(add, &all_u8())
     }
 
     #[test]
@@ -1450,7 +1386,7 @@ mod tests {
             c + d + e + f + g.0 + h0 + h1a + h1b + h2 + i.1 .0
         }
 
-        test_inference_result(add::kernel_fn()).unwrap();
+        test_single_argument_function::<add, _, _>(add, &all_u8())
     }
 
     #[test]
@@ -1480,7 +1416,7 @@ mod tests {
             a + c + d
         }
 
-        test_inference_result(add::kernel_fn()).unwrap();
+        test_single_argument_function::<add, _, _>(add, &all_u8())
     }
 
     #[test]
@@ -1494,7 +1430,7 @@ mod tests {
             let Wrap(c, (d, e), f) = b;
             c + d + e + f
         }
-        test_inference_result(add::kernel_fn()).unwrap();
+        test_single_argument_function::<add, _, _>(add, &all_u8())
     }
 
     #[test]
@@ -1537,21 +1473,17 @@ mod tests {
             c + add_one(p)
         }
 
-        let design = compile_design(add::kernel_fn().try_into().unwrap()).unwrap();
-        eprintln!("design: {}", design);
+        test_single_argument_function::<add, _, _>(add, &exhaustive());
     }
 
     #[test]
     fn test_vm_simple_function() {
         #[kernel]
-        fn pass(a: u8) -> u8 {
+        fn pass(a: b8) -> b8 {
             a
         }
 
-        let design = compile_design(pass::kernel_fn().try_into().unwrap()).unwrap();
-        eprintln!("design: {}", design);
-        let res = execute_function(&design, vec![(42_u8).typed_bits()]).unwrap();
-        assert_eq!(res, (42_u8).typed_bits());
+        test_single_argument_function::<pass, _, _>(pass, &exhaustive());
     }
 
     #[test]
@@ -1581,6 +1513,87 @@ mod tests {
         let c = add(a, b); // Ask Rust to do the math
         let res = execute_function(&design, vec![a.typed_bits(), b.typed_bits()]).unwrap();
         assert_eq!(res, c.typed_bits());
+    }
+
+    fn exhaustive<const N: usize>() -> Vec<Bits<N>> {
+        (0..(1 << N)).map(bits).collect()
+    }
+
+    fn all_u8() -> Vec<u8> {
+        (0..255).collect()
+    }
+
+    fn test_single_argument_function<K: DigitalFn, S: Digital, T: Digital>(
+        kernel_fn: impl Fn(S) -> T,
+        test_vec: &[S],
+    ) {
+        let design = compile_design(K::kernel_fn().try_into().unwrap()).unwrap();
+        eprintln!("design: {}", design);
+        for a in test_vec {
+            let c = kernel_fn(*a); // Ask Rust to do the math
+            let res = execute_function(&design, vec![a.typed_bits()]).unwrap();
+            assert_eq!(
+                res,
+                c.typed_bits(),
+                "a: {}, vm: {} rustc: {}",
+                a.binary_string(),
+                res,
+                c.typed_bits()
+            );
+        }
+    }
+
+    fn test_two_argument_function<K: DigitalFn, S1: Digital, S2: Digital, T: Digital>(
+        kernel_fn: impl Fn(S1, S2) -> T,
+        test_vec: &[(S1, S2)],
+    ) {
+        let design = compile_design(K::kernel_fn().try_into().unwrap()).unwrap();
+        eprintln!("design: {}", design);
+        for (a, b) in test_vec {
+            let c = kernel_fn(*a, *b); // Ask Rust to do the math
+            let res = execute_function(&design, vec![a.typed_bits(), b.typed_bits()]).unwrap();
+            assert_eq!(
+                res,
+                c.typed_bits(),
+                "a: {}, b: {}, vm: {} rustc: {}",
+                a.binary_string(),
+                b.binary_string(),
+                res,
+                c.typed_bits()
+            );
+        }
+    }
+
+    fn test_three_argument_function<
+        K: DigitalFn,
+        S1: Digital,
+        S2: Digital,
+        S3: Digital,
+        T: Digital,
+    >(
+        kernel_fn: impl Fn(S1, S2, S3) -> T,
+        test_vec: &[(S1, S2, S3)],
+    ) {
+        let design = compile_design(K::kernel_fn().try_into().unwrap()).unwrap();
+        eprintln!("design: {}", design);
+        for (a, b, c) in test_vec {
+            let d = kernel_fn(*a, *b, *c); // Ask Rust to do the math
+            let res = execute_function(
+                &design,
+                vec![a.typed_bits(), b.typed_bits(), c.typed_bits()],
+            )
+            .unwrap();
+            assert_eq!(
+                res,
+                d.typed_bits(),
+                "a: {}, b: {}, c: {}, vm: {} rustc: {}",
+                a.binary_string(),
+                b.binary_string(),
+                c.binary_string(),
+                res,
+                d.typed_bits()
+            );
+        }
     }
 
     fn test_two_unsigned_arg_function<K: DigitalFn, T: Digital>(kernel_fn: impl Fn(b8, b8) -> T) {
@@ -2049,6 +2062,31 @@ mod tests {
         fn foo(a: b8, b: b8) -> b8 {
             let c = add(a, b);
             c + a + b
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_repeat_op() {
+        #[kernel]
+        fn foo(a: b8, b: b8) -> ([b8; 3], [b8; 4]) {
+            let c = [a; 3];
+            let d = [b; 4];
+            (c, d)
+        }
+
+        test_two_unsigned_arg_function::<foo, _>(foo);
+    }
+
+    #[test]
+    fn test_early_return() {
+        #[kernel]
+        fn foo(a: b8, b: b8) -> b8 {
+            if a > b {
+                return a;
+            }
+            b
         }
 
         test_two_unsigned_arg_function::<foo, _>(foo);

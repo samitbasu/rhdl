@@ -132,7 +132,12 @@ where
     F: Testable<Args, T0>,
     T0: Digital,
 {
-    let KernelFnKind::Extern(ExternalKernelDef { name, body }) = desc else {
+    let KernelFnKind::Extern(ExternalKernelDef {
+        name,
+        body,
+        vm_stub: _,
+    }) = desc
+    else {
         unimplemented!("Expected an external kernel")
     };
     let mut num_cases = 0;
@@ -266,6 +271,7 @@ mod tests {
                     N - 1,
                     N - 1
                 ),
+                vm_stub: None,
             })
         }
     }
@@ -283,6 +289,7 @@ mod tests {
                 name: "add".to_string(),
                 body: "function [3:0] add(input [3:0] a, input [3:0] b); add = a + b; endfunction"
                     .to_string(),
+                vm_stub: None,
             })
         }
     }
