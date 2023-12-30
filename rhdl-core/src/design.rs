@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-
 use crate::{ast::FunctionId, object::Object};
+use anyhow::Result;
+use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 pub struct Design {
@@ -15,5 +15,15 @@ impl std::fmt::Display for Design {
             write!(f, "\n  Object {}", obj.name)?;
         }
         Ok(())
+    }
+}
+
+impl Design {
+    pub fn func_name(&self, fn_id: FunctionId) -> Result<String> {
+        let obj = self
+            .objects
+            .get(&fn_id)
+            .ok_or(anyhow::anyhow!("Function {fn_id} not found"))?;
+        Ok(format!("{}_{:x}", obj.name, fn_id))
     }
 }
