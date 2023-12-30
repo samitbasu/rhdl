@@ -220,6 +220,7 @@ impl TestModule {
                 bail!("Expected {} but got {}", expected, actual);
             }
         }
+        eprintln!("iverilog test passed {} cases OK", self.num_cases);
         Ok(())
     }
 }

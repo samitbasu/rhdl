@@ -235,7 +235,7 @@ impl<'a> TranslationContext<'a> {
                         .join(", ");
                     match &func.code {
                         KernelFnKind::Kernel(kernel) => {
-                            let func_name = func_name(self.design, kernel.fn_id)?;
+                            let func_name = self.design.func_name(kernel.fn_id)?;
                             let kernel = translate(self.design, kernel.fn_id)?;
                             self.kernels.push(kernel);
                             self.body
@@ -264,14 +264,6 @@ impl<'a> TranslationContext<'a> {
     }
 }
 
-fn func_name(design: &Design, fn_id: FunctionId) -> Result<String> {
-    let obj = design
-        .objects
-        .get(&fn_id)
-        .ok_or(anyhow::anyhow!("Function {fn_id} not found"))?;
-    Ok(format!("{}_{:x}", obj.name, fn_id))
-}
-
 fn translate(design: &Design, fn_id: FunctionId) -> Result<VerilogModule> {
     let obj = design
         .objects
@@ -295,7 +287,7 @@ fn translate(design: &Design, fn_id: FunctionId) -> Result<VerilogModule> {
     if ret_size == 0 {
         return Err(anyhow!("Function {fn_id} has no return value"));
     }
-    let func_name = func_name(design, fn_id)?;
+    let func_name = design.func_name(fn_id)?;
     let mut func = format!(
         "\nfunction {ret_signed} [{}:0] {}({});\n",
         ret_size - 1,

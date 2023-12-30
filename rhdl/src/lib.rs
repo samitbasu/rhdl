@@ -29,6 +29,7 @@ mod tests {
         path::{bit_range, Path, PathElement},
         rhif::BlockId,
         rhif_vm::execute_function,
+        test_module::TestModule,
         visit::Visitor,
         DiscriminantAlignment, DiscriminantType, NoteKey,
     };
@@ -1608,10 +1609,13 @@ mod tests {
         eprintln!("design: {}", design);
         let verilog = generate_verilog(&design).unwrap();
         eprintln!("verilog: {}", verilog);
+        // Hack for now...
+        let mut tests = vec![];
         for a in 0..255 {
             for b in 0..255 {
                 let ba = bits(a);
                 let bb = bits(b);
+                tests.push((ba, bb));
                 let c = kernel_fn(ba, bb); // Ask Rust to do the math
                 let res =
                     execute_function(&design, vec![ba.typed_bits(), bb.typed_bits()]).unwrap();
@@ -1626,6 +1630,14 @@ mod tests {
                 );
             }
         }
+        let name = design.func_name(design.top).unwrap();
+        let stub = KernelFnKind::Extern(ExternalKernelDef {
+            name,
+            body: verilog,
+            vm_stub: None,
+        });
+        let module = TestModule::new(kernel_fn, stub, tests.into_iter());
+        module.run_iverilog().unwrap();
     }
 
     fn test_two_signed_arg_function<K: DigitalFn, T: Digital>(kernel_fn: impl Fn(s8, s8) -> T) {

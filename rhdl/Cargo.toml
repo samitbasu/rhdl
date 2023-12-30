@@ -13,7 +13,7 @@ authors = ["Samit Basu <basu.samit@gmail.com>"]
 
 [dependencies]
 rhdl-bits = { path = "../rhdl-bits" }
-rhdl-core = { path = "../rhdl-core" }
+rhdl-core = { path = "../rhdl-core", features = ["iverilog"] }
 rhdl-macro = { version = "0.0.2", path = "../rhdl-macro" }
 rhdl-std = { path = "../rhdl-std" }
 anyhow = "1.0.75"
