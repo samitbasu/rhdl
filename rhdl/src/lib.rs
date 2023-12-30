@@ -21,6 +21,7 @@ mod tests {
         compiler::{compile, CompilerContext},
         digital_fn::{inspect_digital, DigitalFn},
         display_ast::pretty_print_kernel,
+        generate_verilog,
         infer_types::{infer, TypeInference},
         kernel::{ExternalKernelDef, Kernel, KernelFnKind},
         note,
@@ -520,7 +521,7 @@ mod tests {
         fn do_stuff(a: Foo) -> (b8, b8, NooState, Foo) {
             let z = (a.b, a.a);
             let c = a;
-            let q = signed::<4>(2);
+            let q = signed::<4>(-2);
             let c = Red {
                 x: bits::<4>(1),
                 y: bits::<6>(2),
@@ -1529,6 +1530,8 @@ mod tests {
     ) {
         let design = compile_design(K::kernel_fn().try_into().unwrap()).unwrap();
         eprintln!("design: {}", design);
+        let verilog = generate_verilog(&design).unwrap();
+        eprintln!("verilog: {}", verilog);
         for a in test_vec {
             let c = kernel_fn(*a); // Ask Rust to do the math
             let res = execute_function(&design, vec![a.typed_bits()]).unwrap();
@@ -1549,6 +1552,8 @@ mod tests {
     ) {
         let design = compile_design(K::kernel_fn().try_into().unwrap()).unwrap();
         eprintln!("design: {}", design);
+        let verilog = generate_verilog(&design).unwrap();
+        eprintln!("verilog: {}", verilog);
         for (a, b) in test_vec {
             let c = kernel_fn(*a, *b); // Ask Rust to do the math
             let res = execute_function(&design, vec![a.typed_bits(), b.typed_bits()]).unwrap();
@@ -1576,6 +1581,8 @@ mod tests {
     ) {
         let design = compile_design(K::kernel_fn().try_into().unwrap()).unwrap();
         eprintln!("design: {}", design);
+        let verilog = generate_verilog(&design).unwrap();
+        eprintln!("verilog: {}", verilog);
         for (a, b, c) in test_vec {
             let d = kernel_fn(*a, *b, *c); // Ask Rust to do the math
             let res = execute_function(
@@ -1599,6 +1606,8 @@ mod tests {
     fn test_two_unsigned_arg_function<K: DigitalFn, T: Digital>(kernel_fn: impl Fn(b8, b8) -> T) {
         let design = compile_design(K::kernel_fn().try_into().unwrap()).unwrap();
         eprintln!("design: {}", design);
+        let verilog = generate_verilog(&design).unwrap();
+        eprintln!("verilog: {}", verilog);
         for a in 0..255 {
             for b in 0..255 {
                 let ba = bits(a);
@@ -1622,6 +1631,8 @@ mod tests {
     fn test_two_signed_arg_function<K: DigitalFn, T: Digital>(kernel_fn: impl Fn(s8, s8) -> T) {
         let design = compile_design(K::kernel_fn().try_into().unwrap()).unwrap();
         eprintln!("design: {}", design);
+        let verilog = generate_verilog(&design).unwrap();
+        eprintln!("verilog: {}", verilog);
         for a in -128..127 {
             for b in -128..127 {
                 let sa = signed(a);

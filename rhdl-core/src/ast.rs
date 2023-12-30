@@ -430,6 +430,12 @@ impl std::fmt::Display for FunctionId {
     }
 }
 
+impl std::fmt::LowerHex for FunctionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:x}", self.0)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KernelFn {
     pub id: NodeId,

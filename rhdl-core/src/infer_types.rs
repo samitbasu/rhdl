@@ -530,7 +530,6 @@ impl Visitor for TypeInference {
                 visit::visit_expr(self, node)?;
                 let arg = id_to_var(index.expr.id)?;
                 self.unify(my_ty, self.context.get_array_base(arg)?)?;
-                //self.unify(id_to_var(index.index.id)?, ty_usize())?;
             }
             ExprKind::Ret(ret) => {
                 if let Some(expr) = ret.expr.as_ref() {

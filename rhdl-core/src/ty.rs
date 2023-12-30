@@ -33,14 +33,14 @@ pub enum Bits {
 }
 
 impl Bits {
-    pub fn is_empty(self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    pub fn len(self) -> usize {
+    pub fn len(&self) -> usize {
         match self {
             Bits::Usize => std::mem::size_of::<usize>() * 8,
             Bits::I128 | Bits::U128 => 128,
-            Bits::Signed(width) | Bits::Unsigned(width) => width,
+            Bits::Signed(width) | Bits::Unsigned(width) => *width,
             Bits::Empty => 0,
         }
     }
@@ -89,6 +89,12 @@ impl Ty {
             Ty::Const(Bits::Unsigned(_)) | Ty::Const(Bits::U128) | Ty::Const(Bits::Usize)
         )
     }
+    pub fn is_signed(&self) -> bool {
+        matches!(
+            self,
+            Ty::Const(Bits::Signed(_)) | Ty::Const(Bits::I128) | Ty::Integer
+        )
+    }
     pub fn is_bool(&self) -> bool {
         matches!(self, Ty::Const(Bits::Unsigned(1)))
     }
@@ -106,6 +112,17 @@ impl Ty {
             Ty::Const(Bits::I128) => Ok(128),
             Ty::Integer => Ok(32),
             _ => bail!("Ty - Expected signed type, got {:?}", self),
+        }
+    }
+    pub fn bits(&self) -> usize {
+        match self {
+            Ty::Const(bits) => bits.len(),
+            Ty::Tuple(fields) => fields.iter().map(|f| f.bits()).sum(),
+            Ty::Array(elems) => elems.iter().map(|e| e.bits()).sum(),
+            Ty::Struct(struct_) => struct_.kind.bits(),
+            Ty::Enum(enum_) => enum_.payload.kind.bits(),
+            Ty::Var(_) => 0,
+            Ty::Integer => 32,
         }
     }
 }
@@ -347,6 +364,42 @@ impl From<DiscriminantLayout> for Ty {
         match x.ty {
             DiscriminantType::Signed => ty_signed(x.width),
             DiscriminantType::Unsigned => ty_bits(x.width),
+        }
+    }
+}
+
+// Going from a Ty to a Kind is fallible, since a Ty can contain variables.
+impl TryFrom<Ty> for Kind {
+    type Error = anyhow::Error;
+
+    fn try_from(value: Ty) -> std::result::Result<Self, Self::Error> {
+        match value {
+            Ty::Var(_) => bail!("Cannot convert Ty::Var to Kind"),
+            Ty::Const(bits) => match bits {
+                Bits::I128 => Ok(Kind::I128),
+                Bits::U128 => Ok(Kind::U128),
+                Bits::Usize => Ok(Kind::Bits(std::mem::size_of::<usize>() * 8)),
+                Bits::Signed(width) => Ok(Kind::Signed(width)),
+                Bits::Unsigned(width) => Ok(Kind::Bits(width)),
+                Bits::Empty => Ok(Kind::Empty),
+            },
+            Ty::Struct(struct_) => Ok(struct_.kind),
+            Ty::Tuple(fields) => Ok(Kind::make_tuple(
+                fields
+                    .into_iter()
+                    .map(|field| field.try_into())
+                    .collect::<Result<_>>()?,
+            )),
+            Ty::Array(elems) => Ok(Kind::make_array(
+                elems
+                    .first()
+                    .ok_or(anyhow!("Array must have at least one element"))?
+                    .clone()
+                    .try_into()?,
+                elems.len(),
+            )),
+            Ty::Enum(enum_) => Ok(enum_.payload.kind),
+            Ty::Integer => Ok(Kind::Signed(32)),
         }
     }
 }
