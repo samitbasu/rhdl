@@ -372,7 +372,7 @@ fn verilog_binop(op: &AluBinary) -> &'static str {
         AluBinary::BitOr => "|",
         AluBinary::BitXor => "^",
         AluBinary::Shl => "<<",
-        AluBinary::Shr => ">>",
+        AluBinary::Shr => ">>>",
         AluBinary::Eq => "==",
         AluBinary::Ne => "!=",
         AluBinary::Lt => "<",
