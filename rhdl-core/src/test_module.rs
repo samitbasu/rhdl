@@ -281,6 +281,7 @@ where
 {
     let design = compile_design(K::kernel_fn().try_into()?)?;
     let verilog = generate_verilog(&design)?;
+    eprintln!("Verilog {}", verilog);
     let vm_inputs = vals.clone();
     let mut vm_test_count = 0;
     for input in vm_inputs {
