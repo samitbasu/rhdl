@@ -1608,7 +1608,6 @@ mod tests {
         let design = compile_design(K::kernel_fn().try_into().unwrap()).unwrap();
         eprintln!("design: {}", design);
         let verilog = generate_verilog(&design).unwrap();
-        eprintln!("verilog: {}", verilog);
         // Hack for now...
         let mut tests = vec![];
         for a in 0..255 {
@@ -1630,13 +1629,7 @@ mod tests {
                 );
             }
         }
-        let name = design.func_name(design.top).unwrap();
-        let stub = KernelFnKind::Extern(ExternalKernelDef {
-            name,
-            body: verilog,
-            vm_stub: None,
-        });
-        let module = TestModule::new(kernel_fn, stub, tests.into_iter());
+        let module = TestModule::new(kernel_fn, verilog, tests.into_iter());
         module.run_iverilog().unwrap();
     }
 

@@ -44,6 +44,10 @@ mod tests {
     #[test]
     fn test_iverilog() -> anyhow::Result<()> {
         let test_values = (-128..=127).map(SignedBits::<8>::from).map(|x| (x,));
-        rhdl_core::test_with_iverilog(as_unsigned::<8>, as_unsigned::<8>::kernel_fn(), test_values)
+        rhdl_core::test_with_iverilog(
+            as_unsigned::<8>,
+            as_unsigned::<8>::kernel_fn().try_into()?,
+            test_values,
+        )
     }
 }

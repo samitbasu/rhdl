@@ -52,6 +52,6 @@ mod tests {
     #[test]
     fn test_iverilog() -> anyhow::Result<()> {
         let test_values = (0..=255).map(bits).map(|x| (x,));
-        test_with_iverilog(any::<8>, any::<8>::kernel_fn(), test_values)
+        test_with_iverilog(any::<8>, any::<8>::kernel_fn().try_into()?, test_values)
     }
 }
