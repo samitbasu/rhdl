@@ -29,6 +29,7 @@ mod tests {
         path::{bit_range, Path, PathElement},
         rhif::BlockId,
         rhif_vm::execute_function,
+        test_kernel_vm_and_verilog,
         test_module::TestModule,
         visit::Visitor,
         DiscriminantAlignment, DiscriminantType, NoteKey,
@@ -314,7 +315,7 @@ mod tests {
             d
         }
 
-        test_single_argument_function::<do_stuff, _, _>(do_stuff, &all_u8());
+        test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_u8()).unwrap();
     }
 
     #[test]
@@ -341,7 +342,7 @@ mod tests {
             }
         }
 
-        test_single_argument_function::<do_stuff, _, _>(do_stuff, &all_u8());
+        test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_u8()).unwrap();
     }
 
     #[test]
@@ -417,7 +418,7 @@ mod tests {
             bits::<8>(42)
         }
 
-        test_single_argument_function::<do_stuff, _, _>(do_stuff, &exhaustive());
+        test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
     }
 
     #[test]
@@ -432,7 +433,7 @@ mod tests {
             let s = a.as_signed();
             (any, all, xor, s)
         }
-        test_single_argument_function::<do_stuff, _, _>(do_stuff, &exhaustive());
+        test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
     }
 
     #[test]
@@ -483,7 +484,7 @@ mod tests {
             };
             l + k
         }
-        test_single_argument_function::<do_stuff, _, _>(do_stuff, &exhaustive());
+        test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
     }
 
     #[test]
@@ -556,7 +557,8 @@ mod tests {
                 },
             },
         ];
-        test_single_argument_function::<do_stuff, _, _>(do_stuff, &inputs);
+        test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, inputs.into_iter().map(|x| (x,)))
+            .unwrap();
     }
 
     #[test]
@@ -568,7 +570,7 @@ mod tests {
             let q = bits::<16>(7);
             q
         }
-        test_single_argument_function::<do_stuff, _, _>(do_stuff, &exhaustive());
+        test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
     }
 
     #[test]
@@ -598,7 +600,7 @@ mod tests {
             let d = MY_SPECIAL_NUMBER;
             (k, l, c, d)
         }
-        test_single_argument_function::<do_stuff, _, _>(do_stuff, &exhaustive());
+        test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
     }
 
     #[test]
@@ -717,7 +719,7 @@ mod tests {
             NooState::Walk { foo: bits::<5>(3) },
         ];
         let inputs = iproduct!(foos.into_iter(), noos.into_iter()).collect::<Vec<_>>();
-        test_two_argument_function::<do_stuff, _, _, _>(do_stuff, &inputs);
+        test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, inputs.into_iter()).unwrap();
     }
 
     #[test]
@@ -764,7 +766,8 @@ mod tests {
             NooState::Run(1, 2, 3),
             NooState::Walk { foo: 4 },
         ];
-        test_single_argument_function::<do_stuff, _, _>(do_stuff, &noos);
+        test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, noos.into_iter().map(|x| (x,)))
+            .unwrap();
     }
 
     #[test]
@@ -900,7 +903,7 @@ mod tests {
             NooState::Walk { foo: 4 },
         ];
         let inputs = iproduct!(foos.into_iter(), noos.into_iter()).collect::<Vec<_>>();
-        test_two_argument_function::<do_stuff, _, _, _>(do_stuff, &inputs);
+        test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, inputs.into_iter()).unwrap();
     }
 
     #[test]
@@ -975,7 +978,7 @@ mod tests {
             NooState::Walk { foo: 4 },
         ];
         let inputs = iproduct!(foos.into_iter(), noos.into_iter()).collect::<Vec<_>>();
-        test_two_argument_function::<do_stuff, _, _, _>(do_stuff, &inputs);
+        test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, inputs.into_iter()).unwrap();
     }
 
     #[test]
@@ -993,7 +996,7 @@ mod tests {
             signed::<4>(-3),
         ];
         let inputs = iproduct!(a.iter().cloned(), a.iter().cloned()).collect::<Vec<_>>();
-        test_two_argument_function::<do_stuff<s4>, _, _, _>(do_stuff, &inputs);
+        test_kernel_vm_and_verilog::<do_stuff<s4>, _, _, _>(do_stuff, inputs.into_iter()).unwrap();
     }
 
     #[test]
@@ -1025,7 +1028,11 @@ mod tests {
             b.into_iter().map(|x| Foo { a: x, b: x })
         )
         .collect::<Vec<_>>();
-        test_two_argument_function::<do_stuff<s4, b3>, _, _, _>(do_stuff::<s4, b3>, &inputs);
+        test_kernel_vm_and_verilog::<do_stuff<s4, b3>, _, _, _>(
+            do_stuff::<s4, b3>,
+            inputs.into_iter(),
+        )
+        .unwrap();
     }
 
     #[test]
@@ -1094,7 +1101,7 @@ mod tests {
             ret
         }
 
-        test_single_argument_function::<looper, _, _>(looper, &exhaustive());
+        test_kernel_vm_and_verilog::<looper, _, _, _>(looper, tuple_exhaustive()).unwrap();
     }
 
     #[test]
@@ -1132,7 +1139,7 @@ mod tests {
             SimpleEnum::Point { x: bits(7), y: 13 },
             SimpleEnum::Boom,
         ];
-        test_single_argument_function::<add, _, _>(add, &inputs);
+        test_kernel_vm_and_verilog::<add, _, _, _>(add, inputs.into_iter().map(|x| (x,))).unwrap();
     }
 
     #[test]
@@ -1234,7 +1241,7 @@ mod tests {
         ];
         let inputs = iproduct!(a_set.into_iter(), b_set.into_iter(), state_set.into_iter())
             .collect::<Vec<_>>();
-        test_three_argument_function::<add, _, _, _, _>(add, &inputs);
+        test_kernel_vm_and_verilog::<add, _, _, _>(add, inputs.into_iter()).unwrap();
     }
 
     #[test]
@@ -1271,7 +1278,7 @@ mod tests {
             SimpleEnum::Point { x: bits(1), y: 9 },
             SimpleEnum::Boom,
         ];
-        test_single_argument_function::<add, _, _>(add, &samples);
+        test_kernel_vm_and_verilog::<add, _, _, _>(add, samples.into_iter().map(|x| (x,))).unwrap();
     }
 
     #[test]
@@ -1309,7 +1316,7 @@ mod tests {
             SimpleEnum::Point { x: bits(1), y: 9 },
             SimpleEnum::Boom,
         ];
-        test_single_argument_function::<add, _, _>(add, &samples);
+        test_kernel_vm_and_verilog::<add, _, _, _>(add, samples.into_iter().map(|x| (x,))).unwrap();
     }
 
     #[test]
@@ -1322,7 +1329,7 @@ mod tests {
                 _ => 3,
             }
         }
-        test_single_argument_function::<add, _, _>(add, &all_u8());
+        test_kernel_vm_and_verilog::<add, _, _, _>(add, tuple_u8()).unwrap();
     }
 
     #[test]
@@ -1340,7 +1347,7 @@ mod tests {
             }
         }
 
-        test_single_argument_function::<do_stuff, _, _>(do_stuff, &exhaustive())
+        test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
     }
 
     #[test]
@@ -1361,9 +1368,9 @@ mod tests {
         }
 
         let test_vec = (0..4)
-            .flat_map(|a| (0..4).map(move |b| Foo { a, b }))
+            .flat_map(|a| (0..4).map(move |b| (Foo { a, b },)))
             .collect::<Vec<_>>();
-        test_single_argument_function::<add, _, _>(add, &test_vec);
+        test_kernel_vm_and_verilog::<add, _, _, _>(add, test_vec.into_iter()).unwrap();
     }
 
     #[test]
@@ -1375,7 +1382,7 @@ mod tests {
             c + d + e + f
         }
 
-        test_single_argument_function::<add, _, _>(add, &all_u8())
+        test_kernel_vm_and_verilog::<add, _, _, _>(add, tuple_u8()).unwrap();
     }
 
     #[test]
@@ -1388,7 +1395,7 @@ mod tests {
             c + d + e + f + g.0 + h0 + h1a + h1b + h2 + i.1 .0
         }
 
-        test_single_argument_function::<add, _, _>(add, &all_u8())
+        test_kernel_vm_and_verilog::<add, _, _, _>(add, tuple_u8()).unwrap();
     }
 
     #[test]
@@ -1418,7 +1425,7 @@ mod tests {
             a + c + d
         }
 
-        test_single_argument_function::<add, _, _>(add, &all_u8())
+        test_kernel_vm_and_verilog::<add, _, _, _>(add, tuple_u8()).unwrap()
     }
 
     #[test]
@@ -1432,7 +1439,7 @@ mod tests {
             let Wrap(c, (d, e), f) = b;
             c + d + e + f
         }
-        test_single_argument_function::<add, _, _>(add, &all_u8())
+        test_kernel_vm_and_verilog::<add, _, _, _>(add, tuple_u8()).unwrap()
     }
 
     #[test]
@@ -1475,7 +1482,7 @@ mod tests {
             c + add_one(p)
         }
 
-        test_single_argument_function::<add, _, _>(add, &exhaustive());
+        test_kernel_vm_and_verilog::<add, _, _, _>(add, tuple_exhaustive()).unwrap();
     }
 
     #[test]
@@ -1485,7 +1492,7 @@ mod tests {
             a
         }
 
-        test_single_argument_function::<pass, _, _>(pass, &exhaustive());
+        test_kernel_vm_and_verilog::<pass, _, _, _>(pass, tuple_exhaustive()).unwrap();
     }
 
     #[test]
@@ -1508,154 +1515,39 @@ mod tests {
             a + b + b
         }
 
-        let design = compile_design(add::kernel_fn().try_into().unwrap()).unwrap();
-        eprintln!("design: {}", design);
-        let a = bits(42);
-        let b = bits(169);
-        let c = add(a, b); // Ask Rust to do the math
-        let res = execute_function(&design, vec![a.typed_bits(), b.typed_bits()]).unwrap();
-        assert_eq!(res, c.typed_bits());
+        let tests = [
+            (bits(3), bits(17)),
+            (bits(1), bits(42)),
+            (bits(1000), bits(32)),
+        ];
+
+        test_kernel_vm_and_verilog::<add, _, _, _>(add, tests.into_iter()).unwrap();
     }
 
     fn exhaustive<const N: usize>() -> Vec<Bits<N>> {
         (0..(1 << N)).map(bits).collect()
     }
 
-    fn all_u8() -> Vec<u8> {
-        (0..255).collect()
+    fn tuple_exhaustive<const N: usize>() -> impl Iterator<Item = (Bits<N>,)> + Clone {
+        exhaustive::<N>().into_iter().map(|x| (x,))
     }
 
-    fn test_single_argument_function<K: DigitalFn, S: Digital, T: Digital>(
-        kernel_fn: impl Fn(S) -> T,
-        test_vec: &[S],
-    ) {
-        let design = compile_design(K::kernel_fn().try_into().unwrap()).unwrap();
-        eprintln!("design: {}", design);
-        let verilog = generate_verilog(&design).unwrap();
-        eprintln!("verilog: {}", verilog);
-        for a in test_vec {
-            let c = kernel_fn(*a); // Ask Rust to do the math
-            let res = execute_function(&design, vec![a.typed_bits()]).unwrap();
-            assert_eq!(
-                res,
-                c.typed_bits(),
-                "a: {}, vm: {} rustc: {}",
-                a.binary_string(),
-                res,
-                c.typed_bits()
-            );
-        }
+    fn tuple_u8() -> impl Iterator<Item = (u8,)> + Clone {
+        (0_u8..255_u8).map(|x| (x,))
     }
 
-    fn test_two_argument_function<K: DigitalFn, S1: Digital, S2: Digital, T: Digital>(
-        kernel_fn: impl Fn(S1, S2) -> T,
-        test_vec: &[(S1, S2)],
-    ) {
-        let design = compile_design(K::kernel_fn().try_into().unwrap()).unwrap();
-        eprintln!("design: {}", design);
-        let verilog = generate_verilog(&design).unwrap();
-        eprintln!("verilog: {}", verilog);
-        for (a, b) in test_vec {
-            let c = kernel_fn(*a, *b); // Ask Rust to do the math
-            let res = execute_function(&design, vec![a.typed_bits(), b.typed_bits()]).unwrap();
-            assert_eq!(
-                res,
-                c.typed_bits(),
-                "a: {}, b: {}, vm: {} rustc: {}",
-                a.binary_string(),
-                b.binary_string(),
-                res,
-                c.typed_bits()
-            );
-        }
+    fn tuple_pair_b8() -> impl Iterator<Item = (b8, b8)> + Clone {
+        exhaustive::<8>()
+            .into_iter()
+            .flat_map(|x| exhaustive::<8>().into_iter().map(move |y| (x, y)))
     }
 
-    fn test_three_argument_function<
-        K: DigitalFn,
-        S1: Digital,
-        S2: Digital,
-        S3: Digital,
-        T: Digital,
-    >(
-        kernel_fn: impl Fn(S1, S2, S3) -> T,
-        test_vec: &[(S1, S2, S3)],
-    ) {
-        let design = compile_design(K::kernel_fn().try_into().unwrap()).unwrap();
-        eprintln!("design: {}", design);
-        let verilog = generate_verilog(&design).unwrap();
-        eprintln!("verilog: {}", verilog);
-        for (a, b, c) in test_vec {
-            let d = kernel_fn(*a, *b, *c); // Ask Rust to do the math
-            let res = execute_function(
-                &design,
-                vec![a.typed_bits(), b.typed_bits(), c.typed_bits()],
-            )
-            .unwrap();
-            assert_eq!(
-                res,
-                d.typed_bits(),
-                "a: {}, b: {}, c: {}, vm: {} rustc: {}",
-                a.binary_string(),
-                b.binary_string(),
-                c.binary_string(),
-                res,
-                d.typed_bits()
-            );
-        }
-    }
-
-    fn test_two_unsigned_arg_function<K: DigitalFn, T: Digital>(kernel_fn: impl Fn(b8, b8) -> T) {
-        let design = compile_design(K::kernel_fn().try_into().unwrap()).unwrap();
-        eprintln!("design: {}", design);
-        let verilog = generate_verilog(&design).unwrap();
-        // Hack for now...
-        let mut tests = vec![];
-        for a in 0..255 {
-            for b in 0..255 {
-                let ba = bits(a);
-                let bb = bits(b);
-                tests.push((ba, bb));
-                let c = kernel_fn(ba, bb); // Ask Rust to do the math
-                let res =
-                    execute_function(&design, vec![ba.typed_bits(), bb.typed_bits()]).unwrap();
-                assert_eq!(
-                    res,
-                    c.typed_bits(),
-                    "a: {}, b: {}, vm: {} rustc: {}",
-                    a,
-                    b,
-                    res,
-                    c.typed_bits()
-                );
-            }
-        }
-        let module = TestModule::new(kernel_fn, verilog, tests.into_iter());
-        module.run_iverilog().unwrap();
-    }
-
-    fn test_two_signed_arg_function<K: DigitalFn, T: Digital>(kernel_fn: impl Fn(s8, s8) -> T) {
-        let design = compile_design(K::kernel_fn().try_into().unwrap()).unwrap();
-        eprintln!("design: {}", design);
-        let verilog = generate_verilog(&design).unwrap();
-        eprintln!("verilog: {}", verilog);
-        for a in -128..127 {
-            for b in -128..127 {
-                let sa = signed(a);
-                let sb = signed(b);
-                let c = kernel_fn(sa, sb); // Ask Rust to do the math
-                let res =
-                    execute_function(&design, vec![sa.typed_bits(), sb.typed_bits()]).unwrap();
-                assert_eq!(
-                    res,
-                    c.typed_bits(),
-                    "a: {}, b: {}, vm: {} rustc: {}",
-                    a,
-                    b,
-                    res,
-                    c.typed_bits()
-                );
-            }
-        }
+    fn tuple_pair_s8() -> impl Iterator<Item = (s8, s8)> + Clone {
+        exhaustive::<8>().into_iter().flat_map(|x| {
+            exhaustive::<8>()
+                .into_iter()
+                .map(move |y| (x.as_signed(), y.as_signed()))
+        })
     }
 
     #[test]
@@ -1690,12 +1582,12 @@ mod tests {
             a < b
         }
 
-        test_two_unsigned_arg_function::<gt, _>(gt);
-        test_two_unsigned_arg_function::<ge, _>(ge);
-        test_two_unsigned_arg_function::<eq, _>(eq);
-        test_two_unsigned_arg_function::<ne, _>(ne);
-        test_two_unsigned_arg_function::<le, _>(le);
-        test_two_unsigned_arg_function::<lt, _>(lt);
+        test_kernel_vm_and_verilog::<gt, _, _, _>(gt, tuple_pair_b8()).unwrap();
+        test_kernel_vm_and_verilog::<ge, _, _, _>(ge, tuple_pair_b8()).unwrap();
+        test_kernel_vm_and_verilog::<eq, _, _, _>(eq, tuple_pair_b8()).unwrap();
+        test_kernel_vm_and_verilog::<ne, _, _, _>(ne, tuple_pair_b8()).unwrap();
+        test_kernel_vm_and_verilog::<le, _, _, _>(le, tuple_pair_b8()).unwrap();
+        test_kernel_vm_and_verilog::<lt, _, _, _>(lt, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -1730,12 +1622,12 @@ mod tests {
             a < b
         }
 
-        test_two_signed_arg_function::<gt, _>(gt);
-        test_two_signed_arg_function::<ge, _>(ge);
-        test_two_signed_arg_function::<eq, _>(eq);
-        test_two_signed_arg_function::<ne, _>(ne);
-        test_two_signed_arg_function::<le, _>(le);
-        test_two_signed_arg_function::<lt, _>(lt);
+        test_kernel_vm_and_verilog::<gt, _, _, _>(gt, tuple_pair_s8()).unwrap();
+        test_kernel_vm_and_verilog::<ge, _, _, _>(ge, tuple_pair_s8()).unwrap();
+        test_kernel_vm_and_verilog::<eq, _, _, _>(eq, tuple_pair_s8()).unwrap();
+        test_kernel_vm_and_verilog::<ne, _, _, _>(ne, tuple_pair_s8()).unwrap();
+        test_kernel_vm_and_verilog::<le, _, _, _>(le, tuple_pair_s8()).unwrap();
+        test_kernel_vm_and_verilog::<lt, _, _, _>(lt, tuple_pair_s8()).unwrap();
     }
 
     #[test]
@@ -1745,13 +1637,8 @@ mod tests {
             a >> b
         }
 
-        let design = compile_design(shr::kernel_fn().try_into().unwrap()).unwrap();
-        eprintln!("design: {}", design);
-        let a = signed(-42);
-        let b = bits(2);
-        let c = shr(a, b); // Ask Rust to do the math
-        let res = execute_function(&design, vec![a.typed_bits(), b.typed_bits()]).unwrap();
-        assert_eq!(res, c.typed_bits());
+        let test = [(signed(-42), bits(2))];
+        test_kernel_vm_and_verilog::<shr, _, _, _>(shr, test.into_iter()).unwrap();
     }
 
     #[test]
@@ -1764,8 +1651,7 @@ mod tests {
                 b + 2
             }
         }
-
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -1775,7 +1661,7 @@ mod tests {
             a + 2 + b
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -1785,7 +1671,7 @@ mod tests {
             a + 2 + b
         }
 
-        test_two_signed_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_s8()).unwrap();
     }
 
     #[test]
@@ -1797,7 +1683,7 @@ mod tests {
             c
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -1808,8 +1694,7 @@ mod tests {
             c = if a > b { a + 1 } else { b + 2 };
             c
         }
-
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -1819,7 +1704,7 @@ mod tests {
             (a, b)
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -1830,7 +1715,7 @@ mod tests {
             c.0 + c.1
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -1842,7 +1727,7 @@ mod tests {
             d + e
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -1853,7 +1738,7 @@ mod tests {
             c.1 .0 + c.1 .1
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -1870,7 +1755,7 @@ mod tests {
             c.a + c.b
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -1887,7 +1772,7 @@ mod tests {
             c
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -1900,7 +1785,7 @@ mod tests {
             Foo(a, b)
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -1914,7 +1799,7 @@ mod tests {
             c.0 + c.1
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -1932,7 +1817,7 @@ mod tests {
             c.a.0 + c.a.1 + c.b
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -1955,7 +1840,7 @@ mod tests {
             d + e + b
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -1968,7 +1853,7 @@ mod tests {
             [c[0] + c[1], c[1]]
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -2000,7 +1885,7 @@ mod tests {
             }
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -2031,7 +1916,7 @@ mod tests {
             }
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -2045,7 +1930,7 @@ mod tests {
             }
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -2059,7 +1944,7 @@ mod tests {
             }
         }
 
-        test_two_signed_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_s8()).unwrap();
     }
 
     #[test]
@@ -2080,7 +1965,7 @@ mod tests {
             c + a + b
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -2092,7 +1977,7 @@ mod tests {
             (c, d)
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -2105,7 +1990,7 @@ mod tests {
             b
         }
 
-        test_two_unsigned_arg_function::<foo, _>(foo);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
     }
 
     #[test]
@@ -2127,7 +2012,7 @@ mod tests {
         ];
         let b = exhaustive();
         let inputs = b.into_iter().map(|b| (a, b)).collect::<Vec<_>>();
-        test_two_argument_function::<foo, _, _, _>(foo, &inputs);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, inputs.into_iter()).unwrap();
     }
 
     #[test]
@@ -2151,6 +2036,6 @@ mod tests {
         ];
         let b = exhaustive();
         let inputs = b.into_iter().map(|b| (a, b)).collect::<Vec<_>>();
-        test_two_argument_function::<foo, _, _, _>(foo, &inputs);
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, inputs.into_iter()).unwrap();
     }
 }

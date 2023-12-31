@@ -65,3 +65,4 @@ pub mod check_rhif_flow;
 pub use check_rhif_flow::check_rhif_flow;
 pub use codegen::verilog::generate_verilog;
 pub use driver::compile_design;
+pub use test_module::test_kernel_vm_and_verilog;

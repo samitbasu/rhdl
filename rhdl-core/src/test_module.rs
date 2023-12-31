@@ -1,12 +1,68 @@
+use crate::rhif::Exec;
+use crate::rhif_vm::execute_function;
+use crate::TypedBits;
 use crate::{
     compile_design, digital_fn::KernelFnKind, generate_verilog, kernel::ExternalKernelDef, Digital,
     DigitalFn,
 };
-use anyhow::bail;
 use anyhow::Result;
+use anyhow::{bail, ensure};
+
+pub trait TestArg {
+    fn vec_tb(&self) -> Vec<TypedBits>;
+}
+
+impl<T0: Digital> TestArg for (T0,) {
+    fn vec_tb(&self) -> Vec<TypedBits> {
+        let (t0,) = self;
+        vec![t0.typed_bits()]
+    }
+}
+
+impl<T0: Digital, T1: Digital> TestArg for (T0, T1) {
+    fn vec_tb(&self) -> Vec<TypedBits> {
+        let (t0, t1) = self;
+        vec![t0.typed_bits(), t1.typed_bits()]
+    }
+}
+
+impl<T0: Digital, T1: Digital, T2: Digital> TestArg for (T0, T1, T2) {
+    fn vec_tb(&self) -> Vec<TypedBits> {
+        let (t0, t1, t2) = self;
+        vec![t0.typed_bits(), t1.typed_bits(), t2.typed_bits()]
+    }
+}
+
+impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> TestArg for (T0, T1, T2, T3) {
+    fn vec_tb(&self) -> Vec<TypedBits> {
+        let (t0, t1, t2, t3) = self;
+        vec![
+            t0.typed_bits(),
+            t1.typed_bits(),
+            t2.typed_bits(),
+            t3.typed_bits(),
+        ]
+    }
+}
+
+impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital, T4: Digital> TestArg
+    for (T0, T1, T2, T3, T4)
+{
+    fn vec_tb(&self) -> Vec<TypedBits> {
+        let (t0, t1, t2, t3, t4) = self;
+        vec![
+            t0.typed_bits(),
+            t1.typed_bits(),
+            t2.typed_bits(),
+            t3.typed_bits(),
+            t4.typed_bits(),
+        ]
+    }
+}
 
 pub trait Testable<Args, T1> {
     fn test_string(&self, name: &str, args: Args) -> String;
+    fn apply(&self, args: Args) -> T1;
 }
 
 impl<F, Q, T0> Testable<(T0,), Q> for F
@@ -22,6 +78,10 @@ where
         let t0_bits = T0::static_kind().bits();
         let q_bits = Q::static_kind().bits();
         format!("$display(\"0x%0h 0x%0h\", {q_bits}'b{q}, {name}({t0_bits}'b{t0}));\n")
+    }
+    fn apply(&self, args: (T0,)) -> Q {
+        let (t0,) = args;
+        (*self)(t0)
     }
 }
 
@@ -43,6 +103,10 @@ where
         format!(
             "$display(\"0x%0h 0x%0h\", {q_bits}'b{q}, {name}({t0_bits}'b{t0},{t1_bits}'b{t1}));\n"
         )
+    }
+    fn apply(&self, args: (T0, T1)) -> Q {
+        let (t0, t1) = args;
+        (*self)(t0, t1)
     }
 }
 
@@ -67,6 +131,10 @@ where
         format!(
             "$display(\"0x%0h 0x%0h\", {q_bits}'b{q}, {name}({t0_bits}'b{t0},{t1_bits}'b{t1},{t2_bits}'b{t2}));\n"
         )
+    }
+    fn apply(&self, args: (T0, T1, T2)) -> Q {
+        let (t0, t1, t2) = args;
+        (*self)(t0, t1, t2)
     }
 }
 
@@ -94,6 +162,10 @@ where
         format!(
             "$display(\"0x%0h 0x%0h\", {q_bits}'b{q}, {name}({t0_bits}'b{t0},{t1_bits}'b{t1},{t2_bits}'b{t2},{t3_bits}'b{t3}));\n"
         )
+    }
+    fn apply(&self, args: (T0, T1, T2, T3)) -> Q {
+        let (t0, t1, t2, t3) = args;
+        (*self)(t0, t1, t2, t3)
     }
 }
 
@@ -124,6 +196,10 @@ where
         format!(
             "$display(\"0x%0h 0x%0h\", {q_bits}'b{q}, {name}({t0_bits}'b{t0},{t1_bits}'b{t1},{t2_bits}'b{t2},{t3_bits}'b{t3},{t4_bits}'b{t4}));\n"
         )
+    }
+    fn apply(&self, args: (T0, T1, T2, T3, T4)) -> Q {
+        let (t0, t1, t2, t3, t4) = args;
+        (*self)(t0, t1, t2, t3, t4)
     }
 }
 
@@ -191,20 +267,36 @@ impl TestModule {
     {
         test_module(uut, desc, vals)
     }
+}
 
-    pub fn new_from_kernel<K, F, Args, T0>(
-        uut: F,
-        vals: impl Iterator<Item = Args>,
-    ) -> Result<TestModule>
-    where
-        F: Testable<Args, T0>,
-        T0: Digital,
-        K: DigitalFn,
-    {
-        let design = compile_design(K::kernel_fn().try_into()?)?;
-        let verilog = generate_verilog(&design)?;
-        Ok(test_module(uut, verilog, vals))
+pub fn test_kernel_vm_and_verilog<K, F, Args, T0>(
+    uut: F,
+    vals: impl Iterator<Item = Args> + Clone,
+) -> Result<()>
+where
+    F: Testable<Args, T0>,
+    T0: Digital,
+    K: DigitalFn,
+    Args: TestArg,
+{
+    let design = compile_design(K::kernel_fn().try_into()?)?;
+    let verilog = generate_verilog(&design)?;
+    let vm_inputs = vals.clone();
+    let mut vm_test_count = 0;
+    for input in vm_inputs {
+        let args_for_vm = input.vec_tb();
+        let expected = uut.apply(input).typed_bits();
+        let actual = execute_function(&design, args_for_vm)?;
+        ensure!(
+            expected == actual,
+            "VM test failed - expected {:?} but got {:?}",
+            expected,
+            actual
+        );
+        vm_test_count += 1;
     }
+    eprintln!("VM test passed {} cases OK", vm_test_count);
+    test_module(uut, verilog, vals).run_iverilog()
 }
 
 impl std::fmt::Display for TestModule {
