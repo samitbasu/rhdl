@@ -25,6 +25,243 @@ struct TranslationContext<'a> {
 }
 
 impl<'a> TranslationContext<'a> {
+    fn translate_op(&mut self, op: &OpCode) -> Result<()> {
+        match op {
+            OpCode::Binary(Binary {
+                op,
+                lhs,
+                arg1,
+                arg2,
+            }) => {
+                self.body.push_str(&format!(
+                    "    {lhs} = {arg1} {op} {arg2};\n",
+                    op = verilog_binop(op)
+                ));
+            }
+            OpCode::Unary(Unary { op, lhs, arg1 }) => {
+                self.body.push_str(&format!(
+                    "    {lhs} = {op}({arg1});\n",
+                    op = verilog_unop(op)
+                ));
+            }
+            OpCode::If(If {
+                lhs: _,
+                cond,
+                then_branch,
+                else_branch,
+            }) => {
+                self.body.push_str(&format!("    if ({cond})\n"));
+                self.translate_block(*then_branch)?;
+                self.body.push_str("    else\n");
+                self.translate_block(*else_branch)?;
+            }
+            OpCode::Block(block_id) => {
+                self.translate_block(*block_id)?;
+            }
+            OpCode::Index(Index { lhs, arg, path }) => {
+                ensure!(!path.any_dynamic());
+                let arg_ty = self
+                    .obj
+                    .ty
+                    .get(arg)
+                    .ok_or(anyhow!(
+                        "No type for slot {} in function {}",
+                        arg,
+                        self.obj.name
+                    ))?
+                    .clone();
+                let arg_kind: Kind = arg_ty.try_into()?;
+                let (bit_range, _) = bit_range(arg_kind, path)?;
+                self.body.push_str(&format!(
+                    "    {lhs} = {arg}[{}:{}];\n",
+                    bit_range.end - 1,
+                    bit_range.start
+                ));
+            }
+            OpCode::Assign(Assign { lhs, rhs, path }) => {
+                ensure!(!path.any_dynamic());
+                let lhs_ty = self
+                    .obj
+                    .ty
+                    .get(lhs)
+                    .ok_or(anyhow!(
+                        "No type for slot {} in function {}",
+                        lhs,
+                        self.obj.name
+                    ))?
+                    .clone();
+                let lhs_kind: Kind = lhs_ty.try_into()?;
+                let (bit_range, _) = bit_range(lhs_kind, path)?;
+                self.body.push_str(&format!(
+                    "    {lhs}[{}:{}] = {};\n",
+                    bit_range.end - 1,
+                    bit_range.start,
+                    rhs
+                ));
+            }
+            OpCode::Comment(s) => {
+                self.body.push_str(&format!(
+                    "    // {}\n",
+                    s.trim_end().replace('\n', "\n    // ")
+                ));
+            }
+            OpCode::Tuple(Tuple { lhs, fields }) => {
+                self.body.push_str(&format!(
+                    "    {lhs} = {{ {} }};\n",
+                    fields
+                        .iter()
+                        .rev()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ));
+            }
+            OpCode::Array(Array { lhs, elements }) => {
+                self.body.push_str(&format!(
+                    "    {lhs} = {{ {} }};\n",
+                    elements
+                        .iter()
+                        .rev()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ));
+            }
+            OpCode::Struct(Struct {
+                lhs,
+                fields,
+                rest,
+                template,
+            }) => {
+                let initial = if let Some(rest) = rest {
+                    rest.to_string()
+                } else {
+                    as_verilog_literal(template)
+                };
+                // Assign LHS = initial
+                self.body.push_str(&format!("    {lhs} = {};\n", initial));
+                // Now assign each of the fields
+                let kind = template.kind.clone();
+                for field in fields {
+                    let path = match &field.member {
+                        Member::Unnamed(ndx) => Path::default().index(*ndx as usize),
+                        Member::Named(name) => Path::default().field(name),
+                    };
+                    let (bit_range, _) = bit_range(kind.clone(), &path)?;
+                    self.body.push_str(&format!(
+                        "    {lhs}[{}:{}] = {};\n",
+                        bit_range.end - 1,
+                        bit_range.start,
+                        field.value
+                    ));
+                }
+            }
+            OpCode::Enum(Enum {
+                lhs,
+                fields,
+                template,
+            }) => {
+                let initial = as_verilog_literal(template);
+                // Assign LHS = initial
+                self.body.push_str(&format!("    {lhs} = {};\n", initial));
+                // Now assign each of the fields
+                let kind = template.kind.clone();
+                for field in fields {
+                    let base_path =
+                        Path::default().payload_by_value(template.discriminant()?.as_i64()?);
+                    let path = match &field.member {
+                        Member::Unnamed(ndx) => base_path.index(*ndx as usize),
+                        Member::Named(name) => base_path.field(name),
+                    };
+                    let (bit_range, _) = bit_range(kind.clone(), &path)?;
+                    self.body.push_str(&format!(
+                        "    {lhs}[{}:{}] = {};\n",
+                        bit_range.end - 1,
+                        bit_range.start,
+                        field.value
+                    ));
+                }
+            }
+            OpCode::Discriminant(Discriminant { lhs, arg }) => {
+                let arg_ty = self
+                    .obj
+                    .ty
+                    .get(arg)
+                    .ok_or(anyhow!(
+                        "No type for slot {} in function {}",
+                        arg,
+                        self.obj.name
+                    ))?
+                    .clone();
+                let arg_kind: Kind = arg_ty.try_into()?;
+                let path = Path::default().discriminant();
+                let (bit_range, _) = bit_range(arg_kind, &path)?;
+                self.body.push_str(&format!(
+                    "    {lhs} = {arg}[{}:{}];\n",
+                    bit_range.end - 1,
+                    bit_range.start,
+                ));
+            }
+            OpCode::Case(Case {
+                discriminant,
+                table,
+            }) => {
+                self.body
+                    .push_str(&format!("    case ({})\n", discriminant));
+                for (cond, block) in table {
+                    match cond {
+                        CaseArgument::Constant(c) => {
+                            self.body
+                                .push_str(&format!("      {}: ", as_verilog_literal(c)));
+                            self.translate_block(*block)?;
+                        }
+                        CaseArgument::Wild => {
+                            self.body.push_str("      default: ");
+                            self.translate_block(*block)?;
+                        }
+                    }
+                }
+                self.body.push_str("    endcase\n");
+            }
+            OpCode::Exec(Exec { lhs, id, args }) => {
+                let func = &self.obj.externals[id.0];
+                let args = args
+                    .iter()
+                    .map(|x| x.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                match &func.code {
+                    KernelFnKind::Kernel(kernel) => {
+                        let func_name = self.design.func_name(kernel.fn_id)?;
+                        let kernel = translate(self.design, kernel.fn_id)?;
+                        self.kernels.push(kernel);
+                        self.body
+                            .push_str(&format!("    {lhs} = {func_name}({args});\n"));
+                    }
+                    _ => todo!("Translate non-kernel functions"),
+                }
+            }
+            OpCode::Repeat(Repeat { lhs, value, len }) => {
+                self.body
+                    .push_str(&format!("    {lhs} = {{ {len} {{ {value} }} }};\n"));
+            }
+            OpCode::AsBits(Cast { lhs, arg, len }) => {
+                self.body
+                    .push_str(&format!("    {lhs} = {arg}[{}:0];\n", len - 1));
+            }
+            OpCode::AsSigned(Cast { lhs, arg, len }) => {
+                self.body
+                    .push_str(&format!("    {lhs} = $signed({arg}[{}:0]);\n", len - 1));
+            }
+            OpCode::Return => {
+                self.body.push_str("    __abort = 1;\n");
+                self.early_return_encountered = true;
+            }
+            _ => todo!("{op:?} is not implemented yet"),
+        }
+        Ok(())
+    }
+
     fn translate_block(&mut self, block: BlockId) -> Result<()> {
         self.body.push_str("    begin\n");
         let block = self
@@ -32,234 +269,13 @@ impl<'a> TranslationContext<'a> {
             .get(block.0)
             .ok_or(anyhow!("Block {} not found", block.0))?;
         for op in &block.ops {
-            match op {
-                OpCode::Binary(Binary {
-                    op,
-                    lhs,
-                    arg1,
-                    arg2,
-                }) => {
-                    self.body.push_str(&format!(
-                        "    {lhs} = {arg1} {op} {arg2};\n",
-                        op = verilog_binop(op)
-                    ));
-                }
-                OpCode::Unary(Unary { op, lhs, arg1 }) => {
-                    self.body.push_str(&format!(
-                        "    {lhs} = {op}({arg1});\n",
-                        op = verilog_unop(op)
-                    ));
-                }
-                OpCode::If(If {
-                    lhs: _,
-                    cond,
-                    then_branch,
-                    else_branch,
-                }) => {
-                    self.body.push_str(&format!("    if ({cond})\n"));
-                    self.translate_block(*then_branch)?;
-                    self.body.push_str("    else\n");
-                    self.translate_block(*else_branch)?;
-                }
-                OpCode::Block(block_id) => {
-                    self.translate_block(*block_id)?;
-                }
-                OpCode::Index(Index { lhs, arg, path }) => {
-                    ensure!(!path.any_dynamic());
-                    let arg_ty = self
-                        .obj
-                        .ty
-                        .get(arg)
-                        .ok_or(anyhow!(
-                            "No type for slot {} in function {}",
-                            arg,
-                            self.obj.name
-                        ))?
-                        .clone();
-                    let arg_kind: Kind = arg_ty.try_into()?;
-                    let (bit_range, _) = bit_range(arg_kind, path)?;
-                    self.body.push_str(&format!(
-                        "    {lhs} = {arg}[{}:{}];\n",
-                        bit_range.end - 1,
-                        bit_range.start
-                    ));
-                }
-                OpCode::Assign(Assign { lhs, rhs, path }) => {
-                    ensure!(!path.any_dynamic());
-                    let lhs_ty = self
-                        .obj
-                        .ty
-                        .get(lhs)
-                        .ok_or(anyhow!(
-                            "No type for slot {} in function {}",
-                            lhs,
-                            self.obj.name
-                        ))?
-                        .clone();
-                    let lhs_kind: Kind = lhs_ty.try_into()?;
-                    let (bit_range, _) = bit_range(lhs_kind, path)?;
-                    self.body.push_str(&format!(
-                        "    {lhs}[{}:{}] = {};\n",
-                        bit_range.end - 1,
-                        bit_range.start,
-                        rhs
-                    ));
-                }
-                OpCode::Comment(s) => {
-                    self.body.push_str(&format!(
-                        "    // {}\n",
-                        s.trim_end().replace('\n', "\n    // ")
-                    ));
-                }
-                OpCode::Tuple(Tuple { lhs, fields }) => {
-                    self.body.push_str(&format!(
-                        "    {lhs} = {{ {} }};\n",
-                        fields
-                            .iter()
-                            .rev()
-                            .map(|x| x.to_string())
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    ));
-                }
-                OpCode::Array(Array { lhs, elements }) => {
-                    self.body.push_str(&format!(
-                        "    {lhs} = {{ {} }};\n",
-                        elements
-                            .iter()
-                            .rev()
-                            .map(|x| x.to_string())
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    ));
-                }
-                OpCode::Struct(Struct {
-                    lhs,
-                    fields,
-                    rest,
-                    template,
-                }) => {
-                    let initial = if let Some(rest) = rest {
-                        rest.to_string()
-                    } else {
-                        as_verilog_literal(template)
-                    };
-                    // Assign LHS = initial
-                    self.body.push_str(&format!("    {lhs} = {};\n", initial));
-                    // Now assign each of the fields
-                    let kind = template.kind.clone();
-                    for field in fields {
-                        let path = match &field.member {
-                            Member::Unnamed(ndx) => Path::default().index(*ndx as usize),
-                            Member::Named(name) => Path::default().field(name),
-                        };
-                        let (bit_range, _) = bit_range(kind.clone(), &path)?;
-                        self.body.push_str(&format!(
-                            "    {lhs}[{}:{}] = {};\n",
-                            bit_range.end - 1,
-                            bit_range.start,
-                            field.value
-                        ));
-                    }
-                }
-                OpCode::Enum(Enum {
-                    lhs,
-                    fields,
-                    template,
-                }) => {
-                    let initial = as_verilog_literal(template);
-                    // Assign LHS = initial
-                    self.body.push_str(&format!("    {lhs} = {};\n", initial));
-                    // Now assign each of the fields
-                    let kind = template.kind.clone();
-                    for field in fields {
-                        let base_path =
-                            Path::default().payload_by_value(template.discriminant()?.as_i64()?);
-                        let path = match &field.member {
-                            Member::Unnamed(ndx) => base_path.index(*ndx as usize),
-                            Member::Named(name) => base_path.field(name),
-                        };
-                        let (bit_range, _) = bit_range(kind.clone(), &path)?;
-                        self.body.push_str(&format!(
-                            "    {lhs}[{}:{}] = {};\n",
-                            bit_range.end - 1,
-                            bit_range.start,
-                            field.value
-                        ));
-                    }
-                }
-                OpCode::Discriminant(Discriminant { lhs, arg }) => {
-                    let arg_ty = self
-                        .obj
-                        .ty
-                        .get(arg)
-                        .ok_or(anyhow!(
-                            "No type for slot {} in function {}",
-                            arg,
-                            self.obj.name
-                        ))?
-                        .clone();
-                    let arg_kind: Kind = arg_ty.try_into()?;
-                    let path = Path::default().discriminant();
-                    let (bit_range, _) = bit_range(arg_kind, &path)?;
-                    self.body.push_str(&format!(
-                        "    {lhs} = {arg}[{}:{}];\n",
-                        bit_range.end - 1,
-                        bit_range.start,
-                    ));
-                }
-                OpCode::Case(Case {
-                    discriminant,
-                    table,
-                }) => {
-                    self.body
-                        .push_str(&format!("    case ({})\n", discriminant));
-                    for (cond, block) in table {
-                        match cond {
-                            CaseArgument::Constant(c) => {
-                                self.body
-                                    .push_str(&format!("      {}: ", as_verilog_literal(c)));
-                                self.translate_block(*block)?;
-                            }
-                            CaseArgument::Wild => {
-                                self.body.push_str("      default: ");
-                                self.translate_block(*block)?;
-                            }
-                        }
-                    }
-                    self.body.push_str("    endcase\n");
-                }
-                OpCode::Exec(Exec { lhs, id, args }) => {
-                    let func = &self.obj.externals[id.0];
-                    let args = args
-                        .iter()
-                        .map(|x| x.to_string())
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    match &func.code {
-                        KernelFnKind::Kernel(kernel) => {
-                            let func_name = self.design.func_name(kernel.fn_id)?;
-                            let kernel = translate(self.design, kernel.fn_id)?;
-                            self.kernels.push(kernel);
-                            self.body
-                                .push_str(&format!("    {lhs} = {func_name}({args});\n"));
-                        }
-                        _ => todo!("Translate non-kernel functions"),
-                    }
-                }
-                OpCode::Repeat(Repeat { lhs, value, len }) => {
-                    self.body
-                        .push_str(&format!("    {lhs} = {{ {len} {{ {value} }} }};\n"));
-                }
-                OpCode::AsBits(Cast { lhs, arg, len }) => {
-                    self.body
-                        .push_str(&format!("    {lhs} = {arg}[{}:0];\n", len - 1));
-                }
-                OpCode::AsSigned(Cast { lhs, arg, len }) => {
-                    self.body
-                        .push_str(&format!("    {lhs} = $signed({arg}[{}:0]);\n", len - 1));
-                }
-                _ => todo!("{op:?} is not implemented yet"),
+            if self.early_return_encountered && !matches!(op, OpCode::Comment(_)) {
+                self.body.push_str(" if (!__abort)\n");
+                self.body.push_str("    begin\n");
+                self.translate_op(op)?;
+                self.body.push_str("    end\n");
+            } else {
+                self.translate_op(op)?;
             }
         }
         self.body.push_str("    end\n");
@@ -313,8 +329,11 @@ fn translate(design: &Design, fn_id: FunctionId) -> Result<VerilogModule> {
             as_verilog_literal(lit)
         ));
     }
+    func.push_str("    // Early return flag\n");
+    func.push_str("    reg __abort;\n");
     func.push_str("    // Body\n");
     func.push_str("begin\n");
+    func.push_str("    __abort = 0;\n");
     let kernels = {
         let mut context = TranslationContext {
             kernels: Vec::new(),
