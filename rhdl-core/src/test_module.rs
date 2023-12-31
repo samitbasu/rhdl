@@ -1,5 +1,9 @@
-use crate::{digital_fn::KernelFnKind, kernel::ExternalKernelDef, Digital};
+use crate::{
+    compile_design, digital_fn::KernelFnKind, generate_verilog, kernel::ExternalKernelDef, Digital,
+    DigitalFn,
+};
 use anyhow::bail;
+use anyhow::Result;
 
 pub trait Testable<Args, T1> {
     fn test_string(&self, name: &str, args: Args) -> String;
@@ -125,21 +129,14 @@ where
 
 fn test_module<F, Args, T0>(
     uut: F,
-    desc: KernelFnKind,
+    desc: VerilogDescriptor,
     vals: impl Iterator<Item = Args>,
 ) -> TestModule
 where
     F: Testable<Args, T0>,
     T0: Digital,
 {
-    let KernelFnKind::Extern(ExternalKernelDef {
-        name,
-        body,
-        vm_stub: _,
-    }) = desc
-    else {
-        unimplemented!("Expected an external kernel")
-    };
+    let VerilogDescriptor { name, body } = desc;
     let mut num_cases = 0;
     let cases = vals
         .map(|x| {
@@ -166,6 +163,17 @@ endmodule
     }
 }
 
+pub struct VerilogDescriptor {
+    pub name: String,
+    pub body: String,
+}
+
+impl std::fmt::Display for VerilogDescriptor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.body.fmt(f)
+    }
+}
+
 pub struct TestModule {
     pub testbench: String,
     pub num_cases: usize,
@@ -174,7 +182,7 @@ pub struct TestModule {
 impl TestModule {
     pub fn new<F, Args, T0>(
         uut: F,
-        desc: KernelFnKind,
+        desc: VerilogDescriptor,
         vals: impl Iterator<Item = Args>,
     ) -> TestModule
     where
@@ -182,6 +190,20 @@ impl TestModule {
         T0: Digital,
     {
         test_module(uut, desc, vals)
+    }
+
+    pub fn new_from_kernel<K, F, Args, T0>(
+        uut: F,
+        vals: impl Iterator<Item = Args>,
+    ) -> Result<TestModule>
+    where
+        F: Testable<Args, T0>,
+        T0: Digital,
+        K: DigitalFn,
+    {
+        let design = compile_design(K::kernel_fn().try_into()?)?;
+        let verilog = generate_verilog(&design)?;
+        Ok(test_module(uut, verilog, vals))
     }
 }
 
@@ -230,7 +252,7 @@ impl TestModule {
 #[cfg(feature = "iverilog")]
 pub fn test_with_iverilog<F, Args, T0>(
     uut: F,
-    desc: KernelFnKind,
+    desc: VerilogDescriptor,
     vals: impl Iterator<Item = Args>,
 ) -> anyhow::Result<()>
 where
@@ -238,6 +260,17 @@ where
     T0: Digital,
 {
     test_module(uut, desc, vals).run_iverilog()
+}
+
+impl TryFrom<KernelFnKind> for VerilogDescriptor {
+    type Error = anyhow::Error;
+
+    fn try_from(value: KernelFnKind) -> Result<Self, Self::Error> {
+        match value {
+            KernelFnKind::Extern(ExternalKernelDef { name, body, .. }) => Ok(Self { name, body }),
+            _ => bail!("Cannot convert kernel function to Verilog descriptor"),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -301,7 +334,7 @@ mod tests {
         let nibbles_b = nibbles_a.clone();
         let module = TestModule::new(
             add,
-            add::kernel_fn(),
+            add::kernel_fn().try_into()?,
             nibbles_a.cartesian_product(nibbles_b),
         );
         eprintln!("{module}");
@@ -312,7 +345,11 @@ mod tests {
     #[test]
     fn test_xor_generic() -> anyhow::Result<()> {
         let nibbles_a = (0..=15).map(bits);
-        let module = TestModule::new(xor::<4>, xor::<4>::kernel_fn(), nibbles_a.map(|x| (x,)));
+        let module = TestModule::new(
+            xor::<4>,
+            xor::<4>::kernel_fn().try_into()?,
+            nibbles_a.map(|x| (x,)),
+        );
         eprintln!("{module}");
         #[cfg(feature = "iverilog")]
         module.run_iverilog()

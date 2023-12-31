@@ -4,6 +4,7 @@ use crate::rhif::{
     AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast, Discriminant,
     Enum, Exec, If, Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
 };
+use crate::test_module::VerilogDescriptor;
 use crate::{ast::FunctionId, design::Design, object::Object, rhif::Block, TypedBits};
 use crate::{KernelFnKind, Kind};
 use anyhow::Result;
@@ -115,6 +116,7 @@ impl<'a> TranslationContext<'a> {
                         "    {lhs} = {{ {} }};\n",
                         fields
                             .iter()
+                            .rev()
                             .map(|x| x.to_string())
                             .collect::<Vec<_>>()
                             .join(", ")
@@ -125,6 +127,7 @@ impl<'a> TranslationContext<'a> {
                         "    {lhs} = {{ {} }};\n",
                         elements
                             .iter()
+                            .rev()
                             .map(|x| x.to_string())
                             .collect::<Vec<_>>()
                             .join(", ")
@@ -351,9 +354,13 @@ fn decl(slot: &Slot, obj: &Object) -> Result<String> {
     Ok(format!("reg {} [{}:0] r{}", signed, width - 1, slot.reg()?))
 }
 
-pub fn generate_verilog(design: &Design) -> Result<String> {
+pub fn generate_verilog(design: &Design) -> Result<VerilogDescriptor> {
     let module = translate(design, design.top)?;
-    Ok(module.functions.join("\n"))
+    let body = module.functions.join("\n");
+    Ok(VerilogDescriptor {
+        name: design.func_name(design.top)?,
+        body,
+    })
 }
 
 fn verilog_binop(op: &AluBinary) -> &'static str {
