@@ -1,5 +1,8 @@
+use std::collections::BTreeSet;
+
 use crate::digital::binary_string;
-use crate::path::{bit_range, Path};
+use crate::kernel::ExternalKernelDef;
+use crate::path::{bit_range, Path, PathElement};
 use crate::rhif::{
     AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast, Discriminant,
     Enum, Exec, If, Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
@@ -7,12 +10,19 @@ use crate::rhif::{
 use crate::test_module::VerilogDescriptor;
 use crate::{ast::FunctionId, design::Design, object::Object, rhif::Block, TypedBits};
 use crate::{KernelFnKind, Kind};
-use anyhow::Result;
 use anyhow::{anyhow, ensure};
+use anyhow::{bail, Result};
 
 #[derive(Default, Clone, Debug)]
 pub struct VerilogModule {
     pub functions: Vec<String>,
+}
+impl VerilogModule {
+    fn deduplicate(self) -> Result<VerilogModule> {
+        let functions: BTreeSet<String> = self.functions.into_iter().collect();
+        let functions: Vec<String> = functions.into_iter().collect();
+        Ok(VerilogModule { functions })
+    }
 }
 
 struct TranslationContext<'a> {
@@ -24,7 +34,156 @@ struct TranslationContext<'a> {
     early_return_encountered: bool,
 }
 
+fn compute_base_offset_path(path: &Path) -> Path {
+    Path {
+        elements: path
+            .elements
+            .iter()
+            .cloned()
+            .map(|x| match x {
+                PathElement::DynamicIndex(_) => PathElement::Index(0),
+                _ => x,
+            })
+            .collect(),
+    }
+}
+
+fn compute_stride_path_for_slot(path: &Path, slot: &Slot) -> Path {
+    Path {
+        elements: path
+            .elements
+            .iter()
+            .map(|x| match x {
+                PathElement::DynamicIndex(path_slot) => {
+                    if path_slot == slot {
+                        PathElement::Index(1)
+                    } else {
+                        PathElement::Index(0)
+                    }
+                }
+                o => o.clone(),
+            })
+            .collect(),
+    }
+}
+
 impl<'a> TranslationContext<'a> {
+    fn compute_dynamic_index_expression(&self, target: &Slot, path: &Path) -> Result<String> {
+        ensure!(path.any_dynamic());
+        // Collect the list of dynamic index registers
+        let dynamic_slots: Vec<Slot> = path.dynamic_slots().copied().collect();
+        // First, to get the base offset, we construct a path that
+        // replaces all dynamic indices with 0
+        let arg_kind: Kind = self
+            .obj
+            .ty
+            .get(target)
+            .ok_or(anyhow!(
+                "No type for slot {} in function {}",
+                target,
+                self.obj.name
+            ))?
+            .clone()
+            .try_into()?;
+        let base_path = compute_base_offset_path(path);
+        let base_range = bit_range(arg_kind.clone(), &base_path)?;
+        // Next for each index register, we compute a range where only that index
+        // is advanced by one.
+        let slot_ranges = dynamic_slots
+            .iter()
+            .map(|slot| {
+                let stride_path = compute_stride_path_for_slot(path, slot);
+                bit_range(arg_kind.clone(), &stride_path)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        // Now for validation.  All of the kinds should be the same.
+        for slot_range in &slot_ranges {
+            ensure!(
+                slot_range.1 == base_range.1,
+                "Mismatched types arise from dynamic indexing! ICE"
+            );
+            ensure!(
+                slot_range.0.len() == base_range.0.len(),
+                "Mismatched bit widths arise from dynamic indexing! ICE"
+            );
+        }
+        let base_offset = base_range.0.start;
+        let base_length = base_range.0.len();
+        let slot_strides = slot_ranges
+            .iter()
+            .map(|x| x.0.start - base_range.0.start)
+            .collect::<Vec<_>>();
+        let indexing_expression = dynamic_slots
+            .iter()
+            .zip(slot_strides.iter())
+            .map(|(slot, stride)| format!("({} * {})", slot, stride))
+            .collect::<Vec<_>>()
+            .join(" + ");
+        Ok(format!(
+            "({base_offset} + {indexing_expression}) +: {base_length}"
+        ))
+    }
+
+    fn translate_dynamic_assign(&mut self, lhs: &Slot, rhs: &Slot, path: &Path) -> Result<()> {
+        ensure!(path.any_dynamic());
+        let index_expression = self.compute_dynamic_index_expression(lhs, path)?;
+        self.body
+            .push_str(&format!("    {lhs}[{index_expression}] = {rhs};\n"));
+        Ok(())
+    }
+
+    fn translate_dynamic_index(&mut self, lhs: &Slot, arg: &Slot, path: &Path) -> Result<()> {
+        ensure!(path.any_dynamic());
+        let index_expression = self.compute_dynamic_index_expression(arg, path)?;
+        self.body
+            .push_str(&format!("    {lhs} = {arg}[{index_expression}];\n",));
+        Ok(())
+    }
+
+    fn translate_index(&mut self, lhs: &Slot, arg: &Slot, path: &Path) -> Result<()> {
+        ensure!(!path.any_dynamic());
+        let arg_ty = self
+            .obj
+            .ty
+            .get(arg)
+            .ok_or(anyhow!(
+                "No type for slot {} in function {}",
+                arg,
+                self.obj.name
+            ))?
+            .clone();
+        let arg_kind: Kind = arg_ty.try_into()?;
+        let (bit_range, _) = bit_range(arg_kind, path)?;
+        self.body.push_str(&format!(
+            "    {lhs} = {arg}[{}:{}];\n",
+            bit_range.end - 1,
+            bit_range.start
+        ));
+        Ok(())
+    }
+
+    fn translate_assign(&mut self, lhs: &Slot, rhs: &Slot, path: &Path) -> Result<()> {
+        ensure!(!path.any_dynamic());
+        let lhs_ty = self
+            .obj
+            .ty
+            .get(lhs)
+            .ok_or(anyhow!(
+                "No type for slot {} in function {}",
+                lhs,
+                self.obj.name
+            ))?
+            .clone();
+        let lhs_kind: Kind = lhs_ty.try_into()?;
+        let (bit_range, _) = bit_range(lhs_kind, path)?;
+        self.body.push_str(&format!(
+            "    {lhs}[{}:{}] = {rhs};\n",
+            bit_range.end - 1,
+            bit_range.start,
+        ));
+        Ok(())
+    }
+
     fn translate_op(&mut self, op: &OpCode) -> Result<()> {
         match op {
             OpCode::Binary(Binary {
@@ -59,45 +218,18 @@ impl<'a> TranslationContext<'a> {
                 self.translate_block(*block_id)?;
             }
             OpCode::Index(Index { lhs, arg, path }) => {
-                ensure!(!path.any_dynamic());
-                let arg_ty = self
-                    .obj
-                    .ty
-                    .get(arg)
-                    .ok_or(anyhow!(
-                        "No type for slot {} in function {}",
-                        arg,
-                        self.obj.name
-                    ))?
-                    .clone();
-                let arg_kind: Kind = arg_ty.try_into()?;
-                let (bit_range, _) = bit_range(arg_kind, path)?;
-                self.body.push_str(&format!(
-                    "    {lhs} = {arg}[{}:{}];\n",
-                    bit_range.end - 1,
-                    bit_range.start
-                ));
+                if path.any_dynamic() {
+                    self.translate_dynamic_index(lhs, arg, path)?;
+                } else {
+                    self.translate_index(lhs, arg, path)?;
+                }
             }
             OpCode::Assign(Assign { lhs, rhs, path }) => {
-                ensure!(!path.any_dynamic());
-                let lhs_ty = self
-                    .obj
-                    .ty
-                    .get(lhs)
-                    .ok_or(anyhow!(
-                        "No type for slot {} in function {}",
-                        lhs,
-                        self.obj.name
-                    ))?
-                    .clone();
-                let lhs_kind: Kind = lhs_ty.try_into()?;
-                let (bit_range, _) = bit_range(lhs_kind, path)?;
-                self.body.push_str(&format!(
-                    "    {lhs}[{}:{}] = {};\n",
-                    bit_range.end - 1,
-                    bit_range.start,
-                    rhs
-                ));
+                if path.any_dynamic() {
+                    self.translate_dynamic_assign(lhs, rhs, path)?;
+                } else {
+                    self.translate_assign(lhs, rhs, path)?;
+                }
             }
             OpCode::Comment(s) => {
                 self.body.push_str(&format!(
@@ -238,6 +370,17 @@ impl<'a> TranslationContext<'a> {
                         self.body
                             .push_str(&format!("    {lhs} = {func_name}({args});\n"));
                     }
+                    KernelFnKind::Extern(ExternalKernelDef {
+                        name,
+                        body,
+                        vm_stub: _,
+                    }) => {
+                        self.body
+                            .push_str(&format!("    {lhs} = {name}({args});\n"));
+                        self.kernels.push(VerilogModule {
+                            functions: vec![body.clone()],
+                        });
+                    }
                     _ => todo!("Translate non-kernel functions"),
                 }
             }
@@ -375,6 +518,7 @@ fn decl(slot: &Slot, obj: &Object) -> Result<String> {
 
 pub fn generate_verilog(design: &Design) -> Result<VerilogDescriptor> {
     let module = translate(design, design.top)?;
+    let module = module.deduplicate()?;
     let body = module.functions.join("\n");
     Ok(VerilogDescriptor {
         name: design.func_name(design.top)?,
