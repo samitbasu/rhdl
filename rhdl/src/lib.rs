@@ -1,5 +1,6 @@
 pub mod bits;
 pub mod core;
+pub mod synchronous;
 
 pub use crate::bits::Bits;
 pub use crate::bits::SignedBits;
