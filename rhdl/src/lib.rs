@@ -27,14 +27,15 @@ mod tests {
         infer_types::{infer, TypeInference},
         kernel::{ExternalKernelDef, Kernel, KernelFnKind},
         note,
-        note_db::{dump_vcd, note_time},
+        note_db::note_time,
+        note_init_db, note_take,
         path::{bit_range, Path, PathElement},
         rhif::BlockId,
         rhif_vm::execute_function,
         test_kernel_vm_and_verilog,
         test_module::TestModule,
         visit::Visitor,
-        DiscriminantAlignment, DiscriminantType, NoteKey,
+        DiscriminantAlignment, DiscriminantType, NoteKey, NoteWriter,
     };
 
     use super::*;
@@ -66,6 +67,7 @@ mod tests {
             C(bool),
         }
 
+        note_init_db();
         note_time(0);
         note("enum", Enum::None);
         note("color", bits::<8>(0b10101010));
@@ -86,7 +88,7 @@ mod tests {
         note_time(8_000);
         note("enum", Enum::None);
         let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
-        dump_vcd(&[], &mut vcd_file).unwrap();
+        note_take().unwrap().dump_vcd(&[], &mut vcd_file).unwrap();
     }
 
     #[test]
@@ -101,6 +103,7 @@ mod tests {
             a: true,
             b: Bits::from(0b10101010),
         };
+        note_init_db();
         note_time(0);
         note("simple", simple);
         note_time(1_000);
@@ -112,7 +115,7 @@ mod tests {
         note_time(2_000);
         note("simple", simple);
         let mut vcd_file = std::fs::File::create("test.vcd").unwrap();
-        dump_vcd(&[], &mut vcd_file).unwrap();
+        note_take().unwrap().dump_vcd(&[], &mut vcd_file).unwrap();
     }
 
     #[test]
@@ -242,7 +245,7 @@ mod tests {
         println!("foo val: {}", foo_2.binary_string());
 
         let foo_3 = Test::A;
-
+        note_init_db();
         note_time(0);
         note("test", foo_1);
         note_time(1_000);
@@ -252,7 +255,7 @@ mod tests {
         note_time(3_000);
         note("test", foo_1);
         let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
-        dump_vcd(&[], &mut vcd_file).unwrap();
+        note_take().unwrap().dump_vcd(&[], &mut vcd_file).unwrap();
     }
 
     #[test]

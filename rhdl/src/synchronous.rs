@@ -10,11 +10,7 @@
 
 use anyhow::Result;
 use rhdl_bits::{bits, Bits};
-use rhdl_core::{
-    note,
-    note_db::{dump_vcd, note_time},
-    Digital,
-};
+use rhdl_core::{note, note_init_db, note_take, note_time, Digital};
 use rhdl_macro::{kernel, Digital};
 
 pub trait Synchronous: Sized {
@@ -120,10 +116,11 @@ fn test_strobe_simulation() {
     let enable = std::iter::repeat(StrobeInput { enable: true }).take(1_000_000);
     let strobe = Strobe::<16> { period: bits(100) };
     let now = std::time::Instant::now();
+    note_init_db();
     let outputs = simulate(&strobe, enable, update)
         .filter(|x| x.active)
         .count();
     eprintln!("outputs: {}, elapsed {:?}", outputs, now.elapsed());
     let mut vcd_file = std::fs::File::create("strobe.vcd").unwrap();
-    dump_vcd(&[], &mut vcd_file).unwrap();
+    note_take().unwrap().dump_vcd(&[], &mut vcd_file).unwrap();
 }
