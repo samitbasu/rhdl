@@ -25,3 +25,4 @@ svg = ["rhdl-core/svg", "dep:svg"]
 
 [dev-dependencies]
 itertools = "0.12.0"
+rand = "0.8.5"

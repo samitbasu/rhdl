@@ -246,7 +246,11 @@ pub struct VerilogDescriptor {
 
 impl std::fmt::Display for VerilogDescriptor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.body.fmt(f)
+        // Print the verilog with line numbers
+        for (i, line) in self.body.lines().enumerate() {
+            write!(f, "{:3} {}\n", i + 1, line)?;
+        }
+        Ok(())
     }
 }
 

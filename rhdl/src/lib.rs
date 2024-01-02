@@ -14,6 +14,7 @@ pub use rhdl_macro::Digital;
 mod tests {
 
     use itertools::iproduct;
+    use rand::Rng;
     use rhdl_bits::{alias::*, bits, signed};
     use rhdl_core::{
         ascii::render_ast_to_string,
@@ -1992,6 +1993,103 @@ mod tests {
         }
 
         test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
+    }
+
+    fn rand_bits<const N: usize>() -> Bits<N> {
+        let mut rng = rand::thread_rng();
+        let val: u128 = rng.gen();
+        Bits::<N>(val & Bits::<N>::MASK.0)
+    }
+
+    #[test]
+    fn test_3d_array_dynamic_indexing() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub struct VolumeBits {
+            data: [[[b1; 8]; 8]; 8],
+        }
+
+        fn rand_volume_bits() -> VolumeBits {
+            let mut ret = VolumeBits::default();
+            for i in 0..8 {
+                for j in 0..8 {
+                    for k in 0..8 {
+                        ret.data[i][j][k] = rand_bits();
+                    }
+                }
+            }
+            ret
+        }
+
+        #[kernel]
+        fn foo(a: VolumeBits, b: b3, c: b3, d: b3) -> b1 {
+            a.data[b][c][d]
+        }
+
+        let test_cases = (0..100)
+            .map(|_| (rand_volume_bits(), rand_bits(), rand_bits(), rand_bits()))
+            .collect::<Vec<_>>();
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, test_cases.into_iter()).unwrap();
+    }
+
+    #[test]
+    fn test_complex_array_dynamic_indexing() {
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub struct Foo {
+            a: bool,
+            b: [b4; 4],
+            c: bool,
+        }
+
+        fn rand_foo() -> Foo {
+            // make a random Foo
+            let mut rng = rand::thread_rng();
+            let mut foo = Foo::default();
+            foo.a = rng.gen();
+            for i in 0..3 {
+                foo.b[i] = rand_bits();
+            }
+            foo.c = rng.gen();
+            foo
+        }
+
+        #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+        pub struct Bar {
+            a: b9,
+            b: [Foo; 8],
+        }
+
+        fn rand_bar() -> Bar {
+            // make a random Bar
+            let mut rng = rand::thread_rng();
+            let mut bar = Bar::default();
+            bar.a = b9(rng.gen::<u16>() as u128 % 512);
+            for i in 0..6 {
+                bar.b[i] = rand_foo();
+            }
+            bar
+        }
+
+        #[kernel]
+        fn foo(bar: Bar, n1: b3, n2: b2) -> b4 {
+            bar.b[n1].b[n2]
+        }
+
+        let test_cases = (0..100)
+            .map(|_| (rand_bar(), rand_bits(), rand_bits()))
+            .collect::<Vec<_>>();
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, test_cases.into_iter()).unwrap();
+
+        #[kernel]
+        fn bar(bar: Bar, n1: b3, b2: b2, b3: b4) -> Bar {
+            let mut ret = bar;
+            ret.b[n1].b[b2] = b3;
+            ret
+        }
+
+        let test_cases = (0..100)
+            .map(|_| (rand_bar(), rand_bits(), rand_bits(), rand_bits()))
+            .collect::<Vec<_>>();
+        test_kernel_vm_and_verilog::<bar, _, _, _>(bar, test_cases.into_iter()).unwrap();
     }
 
     #[test]

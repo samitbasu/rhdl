@@ -144,7 +144,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     range = range.start + offset..range.start + offset + size;
                     kind = structure.fields[*i].kind.clone();
                 }
-                _ => bail!("Indexing non-indexable type"),
+                _ => bail!("Indexing non-indexable type {kind}"),
             },
             PathElement::Field(field) => match &kind {
                 Kind::Struct(structure) => {

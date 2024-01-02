@@ -84,7 +84,7 @@ risk than a technical one.
 - [x] Move to a standard library of functions that can be synthesized and used
 - [x] Build a test infrastructure to compare Verilog with Rust results
 - [x] Write a compiler capable of handling multiple kernels
-- [ ] Write a RHIF -> Verilog assembler
+- [x] Write a RHIF -> Verilog assembler
 - [ ] Port the `RustHDL` widget library to `RHDL`
 - [ ] Port the various FPGA BSPs to `RustHDL` from `RHDL`.
 
