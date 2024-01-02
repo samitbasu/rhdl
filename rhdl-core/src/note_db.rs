@@ -157,7 +157,7 @@ fn bits_to_vcd(x: u128, width: usize, buffer: &mut [u8]) {
 }
 
 #[derive(Default)]
-struct NoteDB {
+pub struct NoteDB {
     db_bool: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<bool>>,
     db_bits: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<u128>>,
     db_signed: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<i128>>,
@@ -338,105 +338,111 @@ impl NoteDB {
                 .write_vcd(cursor, writer),
         }
     }
+
+    pub fn dump_vcd<W: Write>(&self, clocks: &[ClockDetails], w: W) -> anyhow::Result<()> {
+        let mut writer = vcd::Writer::new(w);
+        writer.timescale(1, vcd::TimescaleUnit::FS)?;
+        writer.add_module("top")?;
+        let clocks = clocks
+            .iter()
+            .map(|c| {
+                (
+                    c,
+                    writer
+                        .add_wire(1, &c.name)
+                        .unwrap()
+                        .to_string()
+                        .into_bytes(),
+                )
+            })
+            .collect::<Vec<_>>();
+        let mut cursors: Vec<Cursor> = self
+            .details
+            .iter()
+            .filter_map(|(name, details)| self.setup_cursor(name, details, &mut writer))
+            .collect();
+        writer.upscope()?;
+        writer.enddefinitions()?;
+        writer.timestamp(0)?;
+        let mut current_time = 0;
+        let mut keep_running = true;
+        while keep_running {
+            keep_running = false;
+            let mut next_time = !0;
+            for (clock, code) in &clocks {
+                if clock.pos_edge_at(current_time) {
+                    writer.writer().write_all(b"1")?;
+                    writer.writer().write_all(code)?;
+                    writer.writer().write_all(b"\n")?;
+                } else if clock.neg_edge_at(current_time) {
+                    writer.writer().write_all(b"0")?;
+                    writer.writer().write_all(code)?;
+                    writer.writer().write_all(b"\n")?;
+                }
+                next_time = next_time.min(clock.next_edge_after(current_time));
+            }
+            let mut found_match = true;
+            while found_match {
+                found_match = false;
+                for cursor in &mut cursors {
+                    if cursor.next_time == Some(current_time) {
+                        self.write_advance_cursor(cursor, &mut writer)?;
+                        found_match = true;
+                    } else if let Some(time) = cursor.next_time {
+                        next_time = next_time.min(time);
+                    }
+                    if cursor.next_time.is_some() {
+                        keep_running = true;
+                    }
+                }
+            }
+            if next_time != !0 {
+                current_time = next_time;
+                writer.timestamp(current_time)?;
+            }
+        }
+        Ok(())
+    }
 }
 
 thread_local! {
-    static DB: RefCell<NoteDB> = RefCell::new(NoteDB::default());
+    static DB: RefCell<Option<NoteDB>> = RefCell::new(None);
+}
+
+pub fn note_init_db() {
+    DB.replace(Some(NoteDB::default()));
 }
 
 pub fn note_push_path(name: &'static str) {
     DB.with(|db| {
         let mut db = db.borrow_mut();
-        db.push_path(name);
+        db.as_mut().map(|db| db.push_path(name));
     });
 }
 
 pub fn note_pop_path() {
     DB.with(|db| {
         let mut db = db.borrow_mut();
-        db.pop_path();
+        db.as_mut().map(|db| db.pop_path());
     });
 }
 
 pub fn note_time(time: u64) {
     DB.with(|db| {
         let mut db = db.borrow_mut();
-        db.time = time;
+        db.as_mut().map(|db| db.time = time);
     });
 }
 
 pub fn note(key: impl NoteKey, value: impl Digital) {
     DB.with(|db| {
         let mut db = db.borrow_mut();
-        value.note(key, &mut *db);
+        db.as_mut().map(|db| value.note(key, db));
     });
 }
 
-pub fn dump_vcd<W: Write>(clocks: &[ClockDetails], w: W) -> anyhow::Result<()> {
-    let mut writer = vcd::Writer::new(w);
-    writer.timescale(1, vcd::TimescaleUnit::FS)?;
-    writer.add_module("top")?;
-    let clocks = clocks
-        .iter()
-        .map(|c| {
-            (
-                c,
-                writer
-                    .add_wire(1, &c.name)
-                    .unwrap()
-                    .to_string()
-                    .into_bytes(),
-            )
-        })
-        .collect::<Vec<_>>();
-    let mut cursors: Vec<Cursor> = DB.with(|db| {
-        let db = db.borrow();
-        db.details
-            .iter()
-            .filter_map(|(name, details)| db.setup_cursor(name, details, &mut writer))
-            .collect()
-    });
-    writer.upscope()?;
-    writer.enddefinitions()?;
-    writer.timestamp(0)?;
-    let mut current_time = 0;
-    let mut keep_running = true;
-    while keep_running {
-        keep_running = false;
-        let mut next_time = !0;
-        for (clock, code) in &clocks {
-            if clock.pos_edge_at(current_time) {
-                writer.writer().write_all(b"1")?;
-                writer.writer().write_all(code)?;
-                writer.writer().write_all(b"\n")?;
-            } else if clock.neg_edge_at(current_time) {
-                writer.writer().write_all(b"0")?;
-                writer.writer().write_all(code)?;
-                writer.writer().write_all(b"\n")?;
-            }
-            next_time = next_time.min(clock.next_edge_after(current_time));
-        }
-        let mut found_match = true;
-        while found_match {
-            found_match = false;
-            for cursor in &mut cursors {
-                if cursor.next_time == Some(current_time) {
-                    DB.with(|db| db.borrow().write_advance_cursor(cursor, &mut writer))?;
-                    found_match = true;
-                } else if let Some(time) = cursor.next_time {
-                    next_time = next_time.min(time);
-                }
-                if cursor.next_time.is_some() {
-                    keep_running = true;
-                }
-            }
-        }
-        if next_time != !0 {
-            current_time = next_time;
-            writer.timestamp(current_time)?;
-        }
-    }
-    Ok(())
+pub fn note_take() -> Option<NoteDB> {
+    DB.with(|db| db.borrow_mut().take())
 }
 
 #[cfg(test)]
@@ -451,14 +457,16 @@ mod tests {
 
     #[test]
     fn test_vcd_write() {
+        note_init_db();
         for i in 0..1000 {
             note_time(i * 1000);
             note("a", i % 2 == 0);
             note("b", i % 2 == 1);
         }
         let mut vcd = vec![];
+        let db = note_take().unwrap();
         let clock = ClockDetails::new("clk", 5, 0, false);
-        dump_vcd(&[clock], &mut vcd).unwrap();
+        db.dump_vcd(&[clock], &mut vcd).unwrap();
         std::fs::write("test.vcd", vcd).unwrap();
     }
 
@@ -585,6 +593,7 @@ mod tests {
             }
         }
 
+        note_init_db();
         note_time(0);
         note("a", Mixed::None);
         note_time(100);
@@ -605,12 +614,14 @@ mod tests {
 
         let clock = ClockDetails::new("clk", 100, 0, false);
         let mut vcd = vec![];
-        dump_vcd(&[clock], &mut vcd).unwrap();
+        let db = note_take().unwrap();
+        db.dump_vcd(&[clock], &mut vcd).unwrap();
         std::fs::write("test_enum.vcd", vcd).unwrap();
     }
 
     #[test]
     fn test_vcd_with_nested_paths() {
+        note_init_db();
         for i in 0..10 {
             note_time(i * 1000);
             note_push_path("fn1");
@@ -622,7 +633,8 @@ mod tests {
         }
         let mut vcd = vec![];
         let clock = ClockDetails::new("clk", 500, 0, false);
-        dump_vcd(&[clock], &mut vcd).unwrap();
+        let db = note_take().unwrap();
+        db.dump_vcd(&[clock], &mut vcd).unwrap();
         std::fs::write("test_nested_paths.vcd", vcd).unwrap();
     }
 }
