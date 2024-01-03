@@ -40,9 +40,9 @@ impl<const N: usize> Synchronous for Pulser<N> {
     type Output = bool;
     type State = PulserState<N>;
 
-    const INITIAL_STATE: Self::State = PulserState::<{ N }> {
-        one_shot: OneShot::<{ N }>::INITIAL_STATE,
-        strobe: Strobe::<{ N }>::INITIAL_STATE,
+    const INITIAL_STATE: Self::State = PulserState::<N> {
+        one_shot: OneShot::<N>::INITIAL_STATE,
+        strobe: Strobe::<N>::INITIAL_STATE,
     };
 }
 
