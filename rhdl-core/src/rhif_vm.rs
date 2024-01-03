@@ -320,7 +320,9 @@ fn execute(design: &Design, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
     let mut reg_stack = vec![None; max_reg + 1];
     // Copy the arguments into the appropriate registers
     for (ndx, arg) in arguments.into_iter().enumerate() {
-        reg_stack[obj.arguments[ndx].reg()?] = Some(arg);
+        if let Slot::Register(r) = obj.arguments[ndx] {
+            reg_stack[r] = Some(arg);
+        }
     }
     let block = obj
         .blocks

@@ -2140,4 +2140,26 @@ mod tests {
         let inputs = b.into_iter().map(|b| (a, b)).collect::<Vec<_>>();
         test_kernel_vm_and_verilog::<foo, _, _, _>(foo, inputs.into_iter()).unwrap();
     }
+
+    #[test]
+    fn test_empty_kernel_args_accepted() {
+        #[kernel]
+        fn foo(a: (), b: b3, c: ()) -> b3 {
+            b
+        }
+
+        let inputs = (0..8).map(|x| ((), bits(x), ())).collect::<Vec<_>>();
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, inputs.into_iter()).unwrap();
+    }
+
+    #[test]
+    fn test_empty_kernel_return_accepted() {
+        #[kernel]
+        fn foo(d: (), a: b3) -> (bool, ()) {
+            (true, d)
+        }
+
+        let inputs = (0..8).map(|x| ((), bits(x))).collect::<Vec<_>>();
+        test_kernel_vm_and_verilog::<foo, _, _, _>(foo, inputs.into_iter()).unwrap();
+    }
 }

@@ -1,3 +1,4 @@
+use crate::codegen::verilog;
 use crate::rhif::Exec;
 use crate::rhif_vm::execute_function;
 use crate::TypedBits;
@@ -65,6 +66,15 @@ pub trait Testable<Args, T1> {
     fn apply(&self, args: Args) -> T1;
 }
 
+fn verilog_binary_string(x: impl Digital) -> String {
+    let q = x.binary_string();
+    if q.is_empty() {
+        "0".to_string()
+    } else {
+        format!("{x_bits}'b{q}", x_bits = q.len(), q = q)
+    }
+}
+
 impl<F, Q, T0> Testable<(T0,), Q> for F
 where
     F: Fn(T0) -> Q,
@@ -73,11 +83,9 @@ where
 {
     fn test_string(&self, name: &str, args: (T0,)) -> String {
         let (t0,) = args;
-        let q = (*self)(t0).binary_string();
-        let t0 = t0.binary_string();
-        let t0_bits = T0::static_kind().bits();
-        let q_bits = Q::static_kind().bits();
-        format!("$display(\"0x%0h 0x%0h\", {q_bits}'b{q}, {name}({t0_bits}'b{t0}));\n")
+        let q = verilog_binary_string((*self)(t0));
+        let t0 = verilog_binary_string(t0);
+        format!("$display(\"0x%0h 0x%0h\", {q}, {name}({t0}));\n")
     }
     fn apply(&self, args: (T0,)) -> Q {
         let (t0,) = args;
@@ -94,15 +102,10 @@ where
 {
     fn test_string(&self, name: &str, args: (T0, T1)) -> String {
         let (t0, t1) = args;
-        let q = (*self)(t0, t1).binary_string();
-        let t0 = t0.binary_string();
-        let t0_bits = T0::static_kind().bits();
-        let t1 = t1.binary_string();
-        let t1_bits = T1::static_kind().bits();
-        let q_bits = Q::static_kind().bits();
-        format!(
-            "$display(\"0x%0h 0x%0h\", {q_bits}'b{q}, {name}({t0_bits}'b{t0},{t1_bits}'b{t1}));\n"
-        )
+        let q = verilog_binary_string((*self)(t0, t1));
+        let t0 = verilog_binary_string(t0);
+        let t1 = verilog_binary_string(t1);
+        format!("$display(\"0x%0h 0x%0h\", {q}, {name}({t0},{t1}));\n")
     }
     fn apply(&self, args: (T0, T1)) -> Q {
         let (t0, t1) = args;
@@ -120,17 +123,11 @@ where
 {
     fn test_string(&self, name: &str, args: (T0, T1, T2)) -> String {
         let (t0, t1, t2) = args;
-        let q = (*self)(t0, t1, t2).binary_string();
-        let t0 = t0.binary_string();
-        let t0_bits = T0::static_kind().bits();
-        let t1 = t1.binary_string();
-        let t1_bits = T1::static_kind().bits();
-        let t2 = t2.binary_string();
-        let t2_bits = T2::static_kind().bits();
-        let q_bits = Q::static_kind().bits();
-        format!(
-            "$display(\"0x%0h 0x%0h\", {q_bits}'b{q}, {name}({t0_bits}'b{t0},{t1_bits}'b{t1},{t2_bits}'b{t2}));\n"
-        )
+        let q = verilog_binary_string((*self)(t0, t1, t2));
+        let t0 = verilog_binary_string(t0);
+        let t1 = verilog_binary_string(t1);
+        let t2 = verilog_binary_string(t2);
+        format!("$display(\"0x%0h 0x%0h\", {q}, {name}({t0},{t1},{t2}));\n")
     }
     fn apply(&self, args: (T0, T1, T2)) -> Q {
         let (t0, t1, t2) = args;
@@ -149,19 +146,12 @@ where
 {
     fn test_string(&self, name: &str, args: (T0, T1, T2, T3)) -> String {
         let (t0, t1, t2, t3) = args;
-        let q = (*self)(t0, t1, t2, t3).binary_string();
-        let t0 = t0.binary_string();
-        let t0_bits = T0::static_kind().bits();
-        let t1 = t1.binary_string();
-        let t1_bits = T1::static_kind().bits();
-        let t2 = t2.binary_string();
-        let t2_bits = T2::static_kind().bits();
-        let t3 = t3.binary_string();
-        let t3_bits = T3::static_kind().bits();
-        let q_bits = Q::static_kind().bits();
-        format!(
-            "$display(\"0x%0h 0x%0h\", {q_bits}'b{q}, {name}({t0_bits}'b{t0},{t1_bits}'b{t1},{t2_bits}'b{t2},{t3_bits}'b{t3}));\n"
-        )
+        let q = verilog_binary_string((*self)(t0, t1, t2, t3));
+        let t0 = verilog_binary_string(t0);
+        let t1 = verilog_binary_string(t1);
+        let t2 = verilog_binary_string(t2);
+        let t3 = verilog_binary_string(t3);
+        format!("$display(\"0x%0h 0x%0h\", {q}, {name}({t0},{t1},{t2},{t3}));\n")
     }
     fn apply(&self, args: (T0, T1, T2, T3)) -> Q {
         let (t0, t1, t2, t3) = args;
@@ -181,21 +171,13 @@ where
 {
     fn test_string(&self, name: &str, args: (T0, T1, T2, T3, T4)) -> String {
         let (t0, t1, t2, t3, t4) = args;
-        let q = (*self)(t0, t1, t2, t3, t4).binary_string();
-        let t0 = t0.binary_string();
-        let t0_bits = T0::static_kind().bits();
-        let t1 = t1.binary_string();
-        let t1_bits = T1::static_kind().bits();
-        let t2 = t2.binary_string();
-        let t2_bits = T2::static_kind().bits();
-        let t3 = t3.binary_string();
-        let t3_bits = T3::static_kind().bits();
-        let t4 = t4.binary_string();
-        let t4_bits = T4::static_kind().bits();
-        let q_bits = Q::static_kind().bits();
-        format!(
-            "$display(\"0x%0h 0x%0h\", {q_bits}'b{q}, {name}({t0_bits}'b{t0},{t1_bits}'b{t1},{t2_bits}'b{t2},{t3_bits}'b{t3},{t4_bits}'b{t4}));\n"
-        )
+        let q = verilog_binary_string((*self)(t0, t1, t2, t3, t4));
+        let t0 = verilog_binary_string(t0);
+        let t1 = verilog_binary_string(t1);
+        let t2 = verilog_binary_string(t2);
+        let t3 = verilog_binary_string(t3);
+        let t4 = verilog_binary_string(t4);
+        format!("$display(\"0x%0h 0x%0h\", {q}, {name}({t0},{t1},{t2},{t3},{t4}));\n")
     }
     fn apply(&self, args: (T0, T1, T2, T3, T4)) -> Q {
         let (t0, t1, t2, t3, t4) = args;
@@ -248,7 +230,7 @@ impl std::fmt::Display for VerilogDescriptor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Print the verilog with line numbers
         for (i, line) in self.body.lines().enumerate() {
-            write!(f, "{:3} {}\n", i + 1, line)?;
+            writeln!(f, "{:3} {}", i + 1, line)?;
         }
         Ok(())
     }
@@ -301,7 +283,9 @@ where
         vm_test_count += 1;
     }
     eprintln!("VM test passed {} cases OK", vm_test_count);
-    test_module(uut, verilog, vals).run_iverilog()
+    let tm = test_module(uut, verilog, vals);
+    eprintln!("{tm}");
+    tm.run_iverilog()
 }
 
 impl std::fmt::Display for TestModule {

@@ -243,6 +243,7 @@ impl<'a> TranslationContext<'a> {
                     fields
                         .iter()
                         .rev()
+                        .filter(|x| !x.is_empty())
                         .map(|x| x.to_string())
                         .collect::<Vec<_>>()
                         .join(", ")
@@ -435,7 +436,14 @@ fn translate(design: &Design, fn_id: FunctionId) -> Result<VerilogModule> {
     let arg_decls = obj
         .arguments
         .iter()
-        .map(|a| decl(a, obj))
+        .enumerate()
+        .map(|(ndx, a)| {
+            if a.is_empty() {
+                Ok(format!("__empty{}", ndx))
+            } else {
+                decl(a, obj)
+            }
+        })
         .collect::<Result<Vec<_>>>()?
         .iter()
         .map(|x| format!("input {}", x))
@@ -459,7 +467,7 @@ fn translate(design: &Design, fn_id: FunctionId) -> Result<VerilogModule> {
     // Allocate the registers
     let max_reg = obj.reg_count() + 1;
     // Skip the arguments..
-    let start = obj.arguments.len();
+    let start = obj.arguments.iter().filter(|x| !x.is_empty()).count();
     func.push_str("    // Registers\n");
     for reg in start..max_reg {
         func.push_str(&format!("    {};\n", decl(&Slot::Register(reg), obj)?));
