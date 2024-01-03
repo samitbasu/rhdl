@@ -73,6 +73,16 @@ pub fn binary_string(x: &[bool]) -> String {
     x.iter().rev().map(|b| if *b { '1' } else { '0' }).collect()
 }
 
+impl Digital for () {
+    fn static_kind() -> Kind {
+        Kind::Empty
+    }
+    fn bin(self) -> Vec<bool> {
+        Vec::new()
+    }
+    fn note(&self, _key: impl NoteKey, _writer: impl NoteWriter) {}
+}
+
 impl Digital for bool {
     fn static_kind() -> Kind {
         Kind::make_bits(1)

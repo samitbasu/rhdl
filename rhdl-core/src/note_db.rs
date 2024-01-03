@@ -416,28 +416,36 @@ pub fn note_init_db() {
 pub fn note_push_path(name: &'static str) {
     DB.with(|db| {
         let mut db = db.borrow_mut();
-        db.as_mut().map(|db| db.push_path(name));
+        if let Some(db) = db.as_mut() {
+            db.push_path(name)
+        }
     });
 }
 
 pub fn note_pop_path() {
     DB.with(|db| {
         let mut db = db.borrow_mut();
-        db.as_mut().map(|db| db.pop_path());
+        if let Some(db) = db.as_mut() {
+            db.pop_path()
+        }
     });
 }
 
 pub fn note_time(time: u64) {
     DB.with(|db| {
         let mut db = db.borrow_mut();
-        db.as_mut().map(|db| db.time = time);
+        if let Some(db) = db.as_mut() {
+            db.time = time
+        }
     });
 }
 
 pub fn note(key: impl NoteKey, value: impl Digital) {
     DB.with(|db| {
         let mut db = db.borrow_mut();
-        db.as_mut().map(|db| value.note(key, db));
+        if let Some(db) = db.as_mut() {
+            value.note(key, db)
+        }
     });
 }
 

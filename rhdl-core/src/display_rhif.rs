@@ -185,7 +185,7 @@ impl Display for Slot {
             Slot::Literal(l) => write!(f, "l{}", l),
             // Use 4 spaces for alignment
             Slot::Register(usize) => write!(f, "r{}", usize),
-            Slot::Empty => write!(f, "{{}}"),
+            Slot::Empty => write!(f, "()"),
         }
     }
 }

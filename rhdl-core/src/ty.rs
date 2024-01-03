@@ -148,6 +148,9 @@ pub fn ty_array(t: Ty, len: usize) -> Ty {
 }
 
 pub fn ty_tuple(args: Vec<Ty>) -> Ty {
+    if args.is_empty() {
+        return ty_empty();
+    }
     Ty::Tuple(args)
 }
 

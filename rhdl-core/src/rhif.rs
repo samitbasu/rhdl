@@ -176,6 +176,10 @@ impl Slot {
     pub fn is_literal(&self) -> bool {
         matches!(self, Slot::Literal(_))
     }
+
+    pub fn is_empty(&self) -> bool {
+        matches!(self, Slot::Empty)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

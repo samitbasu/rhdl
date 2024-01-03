@@ -271,6 +271,7 @@ pub fn hdl_kernel(input: TS) -> Result<TS> {
 //  }
 //
 fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
+    let vis = &function.vis;
     let orig_name = &function.sig.ident;
     let (impl_generics, _ty_generics, where_clause) = function.sig.generics.split_for_impl();
     let args = &function.sig.inputs;
@@ -297,7 +298,7 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
     let ret = &function.sig.output;
     let body = &function.block;
     Ok(quote! {
-        fn #orig_name #impl_generics (#args) #ret #where_clause {
+        #vis fn #orig_name #impl_generics (#args) #ret #where_clause {
             #[forbid(non_snake_case)]
             #[forbid(non_upper_case_globals)]
             #[forbid(unreachable_patterns)]
