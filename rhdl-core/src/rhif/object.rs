@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::collections::BTreeMap;
 
 use crate::{
-    ast::FunctionId,
+    ast::ast_impl::FunctionId,
     compiler::ty::Ty,
     rhif::rhif_spec::{Block, BlockId, ExternalFunction, Slot},
     TypedBits,

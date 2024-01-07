@@ -6,7 +6,7 @@ use crate::rhif::rhif_spec::{
     AluBinary, AluUnary, Array, Assign, Binary, Block, Case, CaseArgument, Cast, Discriminant,
     Enum, Exec, If, Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
 };
-use crate::{ast::FunctionId, rhif::design::Design, TypedBits};
+use crate::{ast::ast_impl::FunctionId, rhif::design::Design, TypedBits};
 use crate::{Digital, KernelFnKind, Kind};
 
 use anyhow::Result;

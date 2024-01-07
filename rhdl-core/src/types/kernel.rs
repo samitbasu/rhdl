@@ -2,17 +2,17 @@ use anyhow::bail;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    ast::{self, KernelFn},
+    ast::ast_impl::{self, KernelFn},
     TypedBits,
 };
 
 #[derive(Debug, Clone)]
 pub struct Kernel {
-    pub ast: Box<ast::KernelFn>,
+    pub ast: Box<ast_impl::KernelFn>,
 }
 
-impl From<Box<ast::KernelFn>> for Kernel {
-    fn from(ast: Box<ast::KernelFn>) -> Self {
+impl From<Box<ast_impl::KernelFn>> for Kernel {
+    fn from(ast: Box<ast_impl::KernelFn>) -> Self {
         Kernel { ast }
     }
 }

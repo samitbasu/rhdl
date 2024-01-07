@@ -2,7 +2,7 @@
 // print it to a string.  The AST is formatted
 // using indented text.
 
-use crate::ast::*;
+use crate::ast::ast_impl::*;
 use crate::compiler::{id_to_var, UnifyContext};
 use crate::kernel::Kernel;
 use anyhow::Result;
@@ -33,7 +33,7 @@ impl<'a> AsciiRenderer<'a> {
         }
     }
 
-    pub fn render(&mut self, ast: &crate::ast::KernelFn) -> Result<String> {
+    pub fn render(&mut self, ast: &crate::ast::ast_impl::KernelFn) -> Result<String> {
         self.render_kernel(ast)?;
         Ok(self.buffer.clone())
     }
@@ -48,7 +48,7 @@ impl<'a> AsciiRenderer<'a> {
         }
     }
 
-    fn render_block(&mut self, block: &crate::ast::Block) -> Result<()> {
+    fn render_block(&mut self, block: &crate::ast::ast_impl::Block) -> Result<()> {
         self.push(&format!(
             "block {} --> {}",
             block.id,
@@ -61,7 +61,7 @@ impl<'a> AsciiRenderer<'a> {
         self.indent -= 1;
         Ok(())
     }
-    fn render_stmt(&mut self, stmt: &crate::ast::Stmt) -> Result<()> {
+    fn render_stmt(&mut self, stmt: &crate::ast::ast_impl::Stmt) -> Result<()> {
         self.push(&format!(
             "stmt {} --> {}",
             stmt.id,

@@ -3,7 +3,7 @@ use std::ops::Range;
 use anyhow::bail;
 use anyhow::Result;
 
-use crate::ast::Member;
+use crate::ast::ast_impl::Member;
 use crate::rhif::rhif_spec::Slot;
 use crate::DiscriminantAlignment;
 use crate::Kind;

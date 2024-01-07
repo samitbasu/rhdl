@@ -5,3 +5,4 @@ pub mod rhif_vm;
 pub use object::Object;
 pub mod design;
 pub use design::Design;
+pub mod display_rhif;

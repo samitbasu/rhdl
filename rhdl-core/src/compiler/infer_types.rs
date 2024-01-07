@@ -1,4 +1,8 @@
-use crate::ast::{ArmKind, ExprAssign, ExprIf, ExprLit, ExprUnary, Member, NodeId};
+use crate::ast::ast_impl::{ArmKind, ExprAssign, ExprIf, ExprLit, ExprUnary, Member, NodeId};
+use crate::ast::{
+    ast_impl::{self, BinOp, ExprBinary, ExprKind},
+    visit::{self, Visitor},
+};
 use crate::compiler::ty;
 use crate::compiler::ty::{
     ty_array, ty_bits, ty_bool, ty_empty, ty_integer, ty_signed, ty_tuple, ty_usize, ty_var, Ty,
@@ -6,10 +10,6 @@ use crate::compiler::ty::{
 use crate::compiler::UnifyContext;
 use crate::kernel::Kernel;
 use crate::Kind;
-use crate::{
-    ast::{self, BinOp, ExprBinary, ExprKind},
-    visit::{self, Visitor},
-};
 use anyhow::{bail, Result};
 use std::collections::HashMap;
 
@@ -110,10 +110,10 @@ impl TypeInference {
         None
     }
 
-    fn bind_arm_pattern(&mut self, pat: &ast::Pat) -> Result<()> {
+    fn bind_arm_pattern(&mut self, pat: &ast_impl::Pat) -> Result<()> {
         eprintln!("bind match pattern {:?}", pat);
         match &pat.kind {
-            ast::PatKind::TupleStruct(tuple_struct) => {
+            ast_impl::PatKind::TupleStruct(tuple_struct) => {
                 for (elem, ty) in tuple_struct
                     .elems
                     .iter()
@@ -123,7 +123,7 @@ impl TypeInference {
                     self.unify(id_to_var(elem.id)?, ty.clone().into())?;
                 }
             }
-            ast::PatKind::Struct(ty) => {
+            ast_impl::PatKind::Struct(ty) => {
                 let term = self.context.apply(id_to_var(pat.id)?);
                 if let Ty::Struct(struct_ty) = term {
                     eprintln!("struct type is just a struct");
@@ -137,7 +137,7 @@ impl TypeInference {
                     }
                 }
             }
-            ast::PatKind::Ident(ident) => {
+            ast_impl::PatKind::Ident(ident) => {
                 self.bind(&ident.name, pat.id)?;
             }
             _ => {}
@@ -145,13 +145,13 @@ impl TypeInference {
         Ok(())
     }
 
-    fn bind_pattern(&mut self, pat: &ast::Pat) -> Result<()> {
+    fn bind_pattern(&mut self, pat: &ast_impl::Pat) -> Result<()> {
         eprintln!("bind pattern {:?}", pat);
         match &pat.kind {
-            ast::PatKind::Ident(ref ident) => {
+            ast_impl::PatKind::Ident(ref ident) => {
                 self.bind(&ident.name, pat.id)?;
             }
-            ast::PatKind::Tuple(ref tuple) => {
+            ast_impl::PatKind::Tuple(ref tuple) => {
                 for elem in tuple.elements.iter() {
                     self.bind_pattern(elem)?;
                 }
@@ -166,7 +166,7 @@ impl TypeInference {
                     ),
                 )?;
             }
-            ast::PatKind::Slice(ref slice) => {
+            ast_impl::PatKind::Slice(ref slice) => {
                 let array_type = slice
                     .elems
                     .first()
@@ -179,13 +179,13 @@ impl TypeInference {
                 }
                 self.unify(id_to_var(pat.id)?, ty_array(array_type, slice.elems.len()))?;
             }
-            ast::PatKind::Type(ref ty) => {
+            ast_impl::PatKind::Type(ref ty) => {
                 self.bind_pattern(&ty.pat)?;
                 self.unify(id_to_var(ty.pat.id)?, ty.kind.clone().into())?;
                 self.unify(id_to_var(pat.id)?, id_to_var(ty.pat.id)?)?;
             }
-            ast::PatKind::Lit(ref _lit) => {}
-            ast::PatKind::Struct(ref ty) => {
+            ast_impl::PatKind::Lit(ref _lit) => {}
+            ast_impl::PatKind::Struct(ref ty) => {
                 let term = self.context.apply(id_to_var(pat.id)?);
                 eprintln!("Struct type: {term}");
                 if let Ty::Struct(struct_ty) = term {
@@ -218,7 +218,7 @@ impl TypeInference {
                     }
                 }
             }
-            ast::PatKind::TupleStruct(ref ty) => {
+            ast_impl::PatKind::TupleStruct(ref ty) => {
                 let term = self.context.apply(id_to_var(pat.id)?);
                 eprintln!("Tuple Struct type: {term}");
                 if let Ty::Enum(enum_ty) = term {
@@ -252,13 +252,13 @@ impl TypeInference {
                     }
                 }
             }
-            ast::PatKind::Wild => {}
-            ast::PatKind::Path(_path) => {}
+            ast_impl::PatKind::Wild => {}
+            ast_impl::PatKind::Path(_path) => {}
             _ => bail!("Unsupported pattern kind: {:?}", pat.kind),
         }
         Ok(())
     }
-    fn handle_method_call(&mut self, my_ty: Ty, call: &ast::ExprMethodCall) -> Result<()> {
+    fn handle_method_call(&mut self, my_ty: Ty, call: &ast_impl::ExprMethodCall) -> Result<()> {
         let target = self.context.apply(id_to_var(call.receiver.id)?);
         // We only support method calls on Bits and Signed for now.
         let method_name = &call.method;
@@ -311,7 +311,7 @@ impl TypeInference {
         }
         Ok(())
     }
-    fn handle_call(&mut self, my_ty: Ty, call: &ast::ExprCall) -> Result<()> {
+    fn handle_call(&mut self, my_ty: Ty, call: &ast_impl::ExprCall) -> Result<()> {
         self.unify(my_ty, call.signature.ret.clone().into())?;
         if call.args.len() == call.signature.arguments.len() {
             for (arg, ty) in call.args.iter().zip(&call.signature.arguments) {
@@ -326,7 +326,7 @@ impl TypeInference {
 
 // Shortcut to allow us to reuse the node IDs as
 // type variables in the resolver.
-pub fn id_to_var(id: ast::NodeId) -> Result<Ty> {
+pub fn id_to_var(id: ast_impl::NodeId) -> Result<Ty> {
     if id.is_invalid() {
         bail!("Invalid node ID");
     }
@@ -334,16 +334,16 @@ pub fn id_to_var(id: ast::NodeId) -> Result<Ty> {
 }
 
 impl Visitor for TypeInference {
-    fn visit_stmt(&mut self, node: &ast::Stmt) -> Result<()> {
+    fn visit_stmt(&mut self, node: &ast_impl::Stmt) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
-        if let ast::StmtKind::Expr(expr) = &node.kind {
+        if let ast_impl::StmtKind::Expr(expr) = &node.kind {
             self.unify(my_ty, id_to_var(expr.id)?)?;
         } else {
             self.unify(my_ty, ty_empty())?;
         }
         visit::visit_stmt(self, node)
     }
-    fn visit_local(&mut self, node: &ast::Local) -> Result<()> {
+    fn visit_local(&mut self, node: &ast_impl::Local) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
         self.unify(my_ty, ty_empty())?;
         if let Some(init) = node.init.as_ref() {
@@ -352,7 +352,7 @@ impl Visitor for TypeInference {
         visit::visit_local(self, node)?;
         self.bind_pattern(&node.pat)
     }
-    fn visit_block(&mut self, node: &ast::Block) -> Result<()> {
+    fn visit_block(&mut self, node: &ast_impl::Block) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
         self.new_scope();
         // Block is unified with the last statement (or is empty)
@@ -365,7 +365,7 @@ impl Visitor for TypeInference {
         self.end_scope();
         Ok(())
     }
-    fn visit_expr(&mut self, node: &ast::Expr) -> Result<()> {
+    fn visit_expr(&mut self, node: &ast_impl::Expr) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
         match &node.kind {
             // x <- l + r --> tx = tl = tr
@@ -503,8 +503,8 @@ impl Visitor for TypeInference {
                 visit::visit_expr(self, node)?;
                 let arg = id_to_var(field.expr.id)?;
                 let sub = match field.member {
-                    ast::Member::Named(ref name) => self.context.get_named_field(arg, name),
-                    ast::Member::Unnamed(ref index) => {
+                    ast_impl::Member::Named(ref name) => self.context.get_named_field(arg, name),
+                    ast_impl::Member::Unnamed(ref index) => {
                         self.context.get_unnamed_field(arg, *index as usize)
                     }
                 }?;
@@ -607,7 +607,7 @@ impl Visitor for TypeInference {
         }
         visit::visit_expr(self, node)
     }
-    fn visit_match_arm(&mut self, node: &ast::Arm) -> Result<()> {
+    fn visit_match_arm(&mut self, node: &ast_impl::Arm) -> Result<()> {
         eprintln!("match arm visit - create new scope");
         self.new_scope();
         if let ArmKind::Enum(arm_enum) = &node.kind {
@@ -624,7 +624,7 @@ impl Visitor for TypeInference {
         self.end_scope();
         Ok(())
     }
-    fn visit_kernel_fn(&mut self, node: &ast::KernelFn) -> Result<()> {
+    fn visit_kernel_fn(&mut self, node: &ast_impl::KernelFn) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
         self.unify(my_ty, node.ret.clone().into())?;
         self.ret = Some(node.ret.clone().into());
@@ -644,7 +644,7 @@ struct InferenceForGenericIntegers<'a> {
 }
 
 impl<'a> Visitor for InferenceForGenericIntegers<'a> {
-    fn visit_expr(&mut self, node: &ast::Expr) -> Result<()> {
+    fn visit_expr(&mut self, node: &ast_impl::Expr) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
         let resolved_type = self.context.apply(my_ty.clone());
         if let ExprKind::Lit(lit) = &node.kind {
@@ -654,10 +654,10 @@ impl<'a> Visitor for InferenceForGenericIntegers<'a> {
         }
         visit::visit_expr(self, node)
     }
-    fn visit_pat(&mut self, node: &ast::Pat) -> Result<()> {
+    fn visit_pat(&mut self, node: &ast_impl::Pat) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
         let resolved_type = self.context.apply(my_ty.clone());
-        if let ast::PatKind::Lit(lit) = &node.kind {
+        if let ast_impl::PatKind::Lit(lit) = &node.kind {
             if let (Ty::Var(_), ExprLit::Int(_)) = (resolved_type, lit.lit.as_ref()) {
                 self.context.unify(my_ty, ty_integer())?;
             }

@@ -10,3 +10,6 @@ mod unify;
 pub(crate) use unify::UnifyContext;
 mod assign_node;
 pub(crate) use assign_node::assign_node_ids;
+pub(crate) mod check_inference;
+pub(crate) mod check_rhif_flow;
+pub(crate) mod check_rhif_type;
