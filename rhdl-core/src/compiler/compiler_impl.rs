@@ -3,8 +3,9 @@ use crate::{
         self, ArmKind, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprLit, ExprTuple,
         ExprTypedBits, FieldValue, FunctionId, Local, NodeId, Pat, PatKind, Path,
     },
+    compiler::ty::{ty_empty, ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
+    compiler::UnifyContext,
     display_ast::pretty_print_statement,
-    infer_types::id_to_var,
     object::Object,
     rhif::{
         self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, FuncId, Member, OpCode,
@@ -15,14 +16,14 @@ use crate::{
         op_discriminant, op_enum, op_exec, op_if, op_index, op_repeat, op_return, op_struct,
         op_tuple, op_unary,
     },
-    ty::{ty_empty, ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
     typed_bits::TypedBits,
-    unify::UnifyContext,
     visit::Visitor,
     Digital, KernelFnKind, Kind,
 };
 use anyhow::{anyhow, bail, Result};
 use std::collections::{BTreeMap, HashMap};
+
+use super::infer_types::id_to_var;
 
 const ROOT_BLOCK: BlockId = BlockId(0);
 

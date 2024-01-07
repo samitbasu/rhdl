@@ -85,6 +85,9 @@ fn path_is_enum_tuple_struct_by_convention(path: &Path) -> bool {
         return false;
     }
     let last = &path.segments[1];
+    if last.ident == "UPDATE" {
+        return false;
+    }
     let second_to_last = &path.segments[0];
     ident_starts_with_capital_letter(&last.ident)
         && ident_starts_with_capital_letter(&second_to_last.ident)
@@ -316,6 +319,7 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
 impl Context {
     fn function(&mut self, function: syn::ItemFn) -> Result<TS> {
         let orig_name = &function.sig.ident;
+        let vis = &function.vis;
         let (impl_generics, ty_generics, where_clause) = function.sig.generics.split_for_impl();
         let phantom_fields = function
             .sig
@@ -377,7 +381,7 @@ impl Context {
             #wrapped_function
 
             #[allow(non_camel_case_types)]
-            struct #name #impl_generics {#(#phantom_fields,)*}
+            #vis struct #name #impl_generics {#(#phantom_fields,)*}
 
             impl #impl_generics rhdl_core::digital_fn::DigitalFn for #name #ty_generics #where_clause {
                 fn kernel_fn() -> rhdl_core::digital_fn::KernelFnKind {

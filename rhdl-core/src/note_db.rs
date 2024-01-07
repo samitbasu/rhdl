@@ -341,7 +341,7 @@ impl NoteDB {
 
     pub fn dump_vcd<W: Write>(&self, clocks: &[ClockDetails], w: W) -> anyhow::Result<()> {
         let mut writer = vcd::Writer::new(w);
-        writer.timescale(1, vcd::TimescaleUnit::FS)?;
+        writer.timescale(1, vcd::TimescaleUnit::PS)?;
         writer.add_module("top")?;
         let clocks = clocks
             .iter()

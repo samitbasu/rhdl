@@ -1,10 +1,12 @@
-use crate::ty::{ty_array_base, ty_indexed_item, ty_named_field, ty_unnamed_field, TyEnum};
-use crate::ty::{Ty, TypeId};
+use crate::compiler::ty::{
+    ty_array_base, ty_indexed_item, ty_named_field, ty_unnamed_field, TyEnum,
+};
+use crate::compiler::ty::{Ty, TypeId};
 use anyhow::bail;
 use anyhow::Result;
 use std::{collections::HashMap, fmt::Display};
-type Term = crate::ty::Ty;
-type TermMap = crate::ty::TyMap;
+type Term = crate::compiler::ty::Ty;
+type TermMap = crate::compiler::ty::TyMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -209,10 +211,10 @@ mod tests {
     use std::collections::BTreeMap;
 
     use super::*;
-    use crate::ty::ty_bits;
-    use crate::ty::ty_empty;
-    use crate::ty::ty_tuple as tuple;
-    use crate::ty::ty_var as var;
+    use crate::compiler::ty::ty_bits;
+    use crate::compiler::ty::ty_empty;
+    use crate::compiler::ty::ty_tuple as tuple;
+    use crate::compiler::ty::ty_var as var;
 
     #[test]
     fn test_case_1() {

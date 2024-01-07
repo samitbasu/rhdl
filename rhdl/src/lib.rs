@@ -19,40 +19,33 @@ mod tests {
     use rhdl_core::{
         ascii::render_ast_to_string,
         assign_node::assign_node_ids,
-        check_inference, check_rhif_flow, check_type_correctness, compile_design,
-        compiler::{compile, CompilerContext},
+        check_inference,
+        check_rhif_flow,
+        check_type_correctness,
+        compile_design,
+        compiler::compile,
         digital_fn::{inspect_digital, DigitalFn},
         display_ast::pretty_print_kernel,
         generate_verilog,
-        infer_types::{infer, TypeInference},
+        //infer_types::{infer, TypeInference},
         kernel::{ExternalKernelDef, Kernel, KernelFnKind},
         note,
         note_db::note_time,
-        note_init_db, note_take,
+        note_init_db,
+        note_take,
         path::{bit_range, Path, PathElement},
         rhif::BlockId,
         rhif_vm::execute_function,
         test_kernel_vm_and_verilog,
         test_module::TestModule,
         visit::Visitor,
-        DiscriminantAlignment, DiscriminantType, NoteKey, NoteWriter,
+        DiscriminantAlignment,
+        DiscriminantType,
+        NoteKey,
+        NoteWriter,
     };
 
     use super::*;
-
-    fn test_inference_result(kernel: KernelFnKind) -> anyhow::Result<()> {
-        let mut kernel: Kernel = kernel.try_into()?;
-        assign_node_ids(&mut kernel)?;
-        let ctx = infer(&kernel)?;
-        let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-        eprintln!("{}", ast_ascii);
-        check_inference(&kernel, &ctx)?;
-        let obj = compile(&kernel.ast, ctx)?;
-        eprintln!("{}", obj);
-        check_type_correctness(&obj)?;
-        check_rhif_flow(&obj)?;
-        Ok(())
-    }
 
     #[test]
     fn test_vcd_enum() {
@@ -460,7 +453,8 @@ mod tests {
             let h = Baz { a: 3 };
             let j = h.any();
         }
-        assert!(test_inference_result(do_stuff::kernel_fn()).is_err());
+
+        assert!(compile_design(do_stuff::kernel_fn().try_into().unwrap()).is_err());
     }
 
     #[test]

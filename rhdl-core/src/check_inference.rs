@@ -1,8 +1,8 @@
 use crate::ascii::render_statement_to_string;
+use crate::compiler::{id_to_var, ty::Ty, UnifyContext};
 use crate::display_ast::pretty_print_statement;
-use crate::ty::Ty;
 use crate::{ast, visit};
-use crate::{infer_types::id_to_var, kernel::Kernel, unify::UnifyContext, visit::Visitor};
+use crate::{kernel::Kernel,  visit::Visitor};
 use anyhow::bail;
 use anyhow::Result;
 

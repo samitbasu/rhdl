@@ -43,6 +43,9 @@ use crate::{
 ///
 pub trait Digital: Copy + PartialEq + Sized + Clone + Default + 'static {
     fn static_kind() -> Kind;
+    fn bits() -> usize {
+        Self::static_kind().bits()
+    }
     fn kind(&self) -> Kind {
         Self::static_kind()
     }

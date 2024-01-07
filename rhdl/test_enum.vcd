@@ -1,4 +1,4 @@
-$timescale 1 fs $end
+$timescale 1 ps $end
 $scope module top $end
 $var wire 16 ! __enum__1 $end
 $var wire 1 " __enum__0 $end

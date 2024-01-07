@@ -3,8 +3,8 @@
 // using indented text.
 
 use crate::ast::*;
+use crate::compiler::{id_to_var, UnifyContext};
 use crate::kernel::Kernel;
-use crate::{infer_types::id_to_var, unify::UnifyContext};
 use anyhow::Result;
 
 pub struct AsciiRenderer<'a> {

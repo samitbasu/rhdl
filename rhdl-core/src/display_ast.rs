@@ -2,10 +2,10 @@ use std::fmt::{Display, Formatter};
 
 use crate::{
     ast::*,
-    infer_types::id_to_var,
+    compiler::id_to_var,
+    compiler::ty::{self, Ty},
+    compiler::UnifyContext,
     kernel::Kernel,
-    ty::{self, Ty},
-    unify::UnifyContext,
     util::{splice, IndentingFormatter},
     Kind,
 };

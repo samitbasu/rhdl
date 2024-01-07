@@ -1,3 +1,4 @@
+use crate::compiler::ty::Ty;
 use crate::kernel::ExternalKernelDef;
 use crate::object::Object;
 use crate::path::Path;
@@ -5,7 +6,6 @@ use crate::rhif::{
     AluBinary, AluUnary, Array, Assign, Binary, Block, Case, CaseArgument, Cast, Discriminant,
     Enum, Exec, If, Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
 };
-use crate::ty::Ty;
 use crate::{ast::FunctionId, design::Design, TypedBits};
 use crate::{Digital, KernelFnKind, Kind};
 
