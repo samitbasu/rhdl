@@ -4,11 +4,12 @@ use std::collections::HashSet;
 
 use crate::{
     compiler::ty::{self, ty_array, ty_bool, ty_named_field, ty_path, ty_unnamed_field, Bits, Ty},
-    object::Object,
-    rhif::{
+    rhif,
+    rhif::rhif_spec::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum,
         Exec, If, Index, OpCode, Repeat, Slot, Struct, Tuple, Unary,
     },
+    rhif::Object,
 };
 use anyhow::{anyhow, bail};
 use anyhow::{ensure, Result};
@@ -154,11 +155,11 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     }
                     for field in fields {
                         match &field.member {
-                            crate::rhif::Member::Named(name) => {
+                            rhif::rhif_spec::Member::Named(name) => {
                                 let ty = ty_named_field(&ty, name)?;
                                 eq_types(slot_type(&field.value)?, ty)?;
                             }
-                            crate::rhif::Member::Unnamed(index) => {
+                            rhif::rhif_spec::Member::Unnamed(index) => {
                                 let ty = ty_unnamed_field(&ty, *index as usize)?;
                                 eq_types(slot_type(&field.value)?, ty)?;
                             }
@@ -180,11 +181,11 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     let variant_ty = variant_kind.into();
                     for field in fields {
                         match &field.member {
-                            crate::rhif::Member::Named(name) => {
+                            rhif::rhif_spec::Member::Named(name) => {
                                 let ty = ty_named_field(&variant_ty, name)?;
                                 eq_types(slot_type(&field.value)?, ty)?;
                             }
-                            crate::rhif::Member::Unnamed(index) => {
+                            rhif::rhif_spec::Member::Unnamed(index) => {
                                 let ty = ty_unnamed_field(&variant_ty, *index as usize)?;
                                 eq_types(slot_type(&field.value)?, ty)?;
                             }

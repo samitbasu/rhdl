@@ -17,32 +17,14 @@ mod tests {
     use rand::Rng;
     use rhdl_bits::{alias::*, bits, signed};
     use rhdl_core::{
-        ascii::render_ast_to_string,
-        assign_node::assign_node_ids,
-        check_inference,
-        check_rhif_flow,
-        check_type_correctness,
         compile_design,
-        compiler::compile,
-        digital_fn::{inspect_digital, DigitalFn},
-        display_ast::pretty_print_kernel,
-        generate_verilog,
-        //infer_types::{infer, TypeInference},
-        kernel::{ExternalKernelDef, Kernel, KernelFnKind},
+        digital_fn::DigitalFn,
         note,
         note_db::note_time,
-        note_init_db,
-        note_take,
-        path::{bit_range, Path, PathElement},
-        rhif::BlockId,
+        note_init_db, note_take,
+        path::{bit_range, Path},
         rhif_vm::execute_function,
         test_kernel_vm_and_verilog,
-        test_module::TestModule,
-        visit::Visitor,
-        DiscriminantAlignment,
-        DiscriminantType,
-        NoteKey,
-        NoteWriter,
     };
 
     use super::*;

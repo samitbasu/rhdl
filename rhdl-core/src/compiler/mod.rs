@@ -9,3 +9,5 @@ pub mod ty;
 pub use ty::Ty;
 pub mod unify;
 pub use unify::UnifyContext;
+pub mod assign_node;
+pub use assign_node::assign_node_ids;

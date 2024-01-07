@@ -1,6 +1,6 @@
 use crate::{
     path::Path,
-    rhif::{
+    rhif::rhif_spec::{
         AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast,
         Discriminant, Enum, Exec, FieldValue, FuncId, If, Index, OpCode, Repeat, Slot, Struct,
         Tuple, Unary,

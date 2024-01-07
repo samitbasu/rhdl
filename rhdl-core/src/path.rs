@@ -4,7 +4,7 @@ use anyhow::bail;
 use anyhow::Result;
 
 use crate::ast::Member;
-use crate::rhif::Slot;
+use crate::rhif::rhif_spec::Slot;
 use crate::DiscriminantAlignment;
 use crate::Kind;
 
