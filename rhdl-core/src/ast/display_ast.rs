@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 use crate::{
-    ast::*,
+    ast::ast_impl::*,
     compiler::id_to_var,
     compiler::ty::{self, Ty},
     compiler::UnifyContext,

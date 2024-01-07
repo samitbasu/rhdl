@@ -10,14 +10,14 @@ use std::fmt::Display;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd, Deserialize, Serialize)]
 pub struct TypeId(pub usize);
 
-impl From<TypeId> for crate::ast::NodeId {
+impl From<TypeId> for crate::ast::ast_impl::NodeId {
     fn from(value: TypeId) -> Self {
         NodeId::new(value.0 as u32)
     }
 }
 
-impl From<crate::ast::NodeId> for TypeId {
-    fn from(value: crate::ast::NodeId) -> Self {
+impl From<crate::ast::ast_impl::NodeId> for TypeId {
+    fn from(value: crate::ast::ast_impl::NodeId) -> Self {
         TypeId(value.as_u32() as usize)
     }
 }
@@ -59,7 +59,7 @@ pub struct TyEnum {
     pub discriminant: Box<Ty>,
 }
 
-use crate::ast::NodeId;
+use crate::ast::ast_impl::NodeId;
 use crate::path::PathElement;
 use crate::types::kind::DiscriminantLayout;
 use crate::types::kind::DiscriminantType;

@@ -1,9 +1,6 @@
 use rhdl_bits::{Bits, SignedBits};
 
-use crate::{
-    note::{NoteKey, NoteWriter},
-    Kind, TypedBits,
-};
+use crate::{Kind, NoteKey, NoteWriter, TypedBits};
 
 /// This is the core trait for all of `RHDL` data elements.  If you
 /// want to use a data type in the hardware part of the design,

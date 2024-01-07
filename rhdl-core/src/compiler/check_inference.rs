@@ -1,8 +1,8 @@
-use crate::ascii::render_statement_to_string;
+use crate::ast::ascii::render_statement_to_string;
+use crate::ast::display_ast::pretty_print_statement;
+use crate::ast::{ast_impl, visit};
 use crate::compiler::{id_to_var, ty::Ty, UnifyContext};
-use crate::display_ast::pretty_print_statement;
-use crate::{ast, visit};
-use crate::{kernel::Kernel,  visit::Visitor};
+use crate::{ast::visit::Visitor, kernel::Kernel};
 use anyhow::bail;
 use anyhow::Result;
 
@@ -24,9 +24,9 @@ impl<'a> Validator<'a> {
         }
     }
     fn validate_kernel(&mut self, kernel: &Kernel) -> Result<()> {
-        crate::visit::visit_kernel_fn(self, &kernel.ast)
+        crate::ast::visit::visit_kernel_fn(self, &kernel.ast)
     }
-    fn validate_bound_type(&mut self, node_id: ast::NodeId) -> Result<()> {
+    fn validate_bound_type(&mut self, node_id: ast_impl::NodeId) -> Result<()> {
         let var = id_to_var(node_id)?;
         let ty = self.ty.apply(var);
         if let Ty::Var(ndx) = ty {
@@ -41,7 +41,7 @@ impl<'a> Validator<'a> {
 }
 
 impl<'a> Visitor for Validator<'a> {
-    fn visit_stmt(&mut self, node: &crate::ast::Stmt) -> Result<()> {
+    fn visit_stmt(&mut self, node: &crate::ast::ast_impl::Stmt) -> Result<()> {
         self.current_statement = format!(
             "\n\nStatement:\n{}AST:\n{}",
             pretty_print_statement(node, self.ty)?,
@@ -50,19 +50,19 @@ impl<'a> Visitor for Validator<'a> {
         self.validate_bound_type(node.id)?;
         visit::visit_stmt(self, node)
     }
-    fn visit_block(&mut self, node: &crate::ast::Block) -> Result<()> {
+    fn visit_block(&mut self, node: &crate::ast::ast_impl::Block) -> Result<()> {
         self.validate_bound_type(node.id)?;
         visit::visit_block(self, node)
     }
-    fn visit_local(&mut self, node: &crate::ast::Local) -> Result<()> {
+    fn visit_local(&mut self, node: &crate::ast::ast_impl::Local) -> Result<()> {
         self.validate_bound_type(node.id)?;
         visit::visit_local(self, node)
     }
-    fn visit_pat(&mut self, node: &crate::ast::Pat) -> Result<()> {
+    fn visit_pat(&mut self, node: &crate::ast::ast_impl::Pat) -> Result<()> {
         self.validate_bound_type(node.id)?;
         visit::visit_pat(self, node)
     }
-    fn visit_expr(&mut self, node: &ast::Expr) -> Result<()> {
+    fn visit_expr(&mut self, node: &ast_impl::Expr) -> Result<()> {
         self.validate_bound_type(node.id)?;
         visit::visit_expr(self, node)
     }

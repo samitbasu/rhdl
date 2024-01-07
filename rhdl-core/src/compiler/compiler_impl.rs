@@ -1,11 +1,12 @@
 use crate::{
-    ast::{
+    ast::ast_impl::{
         self, ArmKind, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprLit, ExprTuple,
         ExprTypedBits, FieldValue, FunctionId, Local, NodeId, Pat, PatKind, Path,
     },
+    ast::display_ast::pretty_print_statement,
+    ast::visit::Visitor,
     compiler::ty::{ty_empty, ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
     compiler::UnifyContext,
-    display_ast::pretty_print_statement,
     rhif::rhif_builder::{
         op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment,
         op_discriminant, op_enum, op_exec, op_if, op_index, op_repeat, op_return, op_struct,
@@ -17,7 +18,6 @@ use crate::{
     },
     rhif::Object,
     types::typed_bits::TypedBits,
-    visit::Visitor,
     Digital, KernelFnKind, Kind,
 };
 use anyhow::{anyhow, bail, Result};
@@ -27,11 +27,11 @@ use super::infer_types::id_to_var;
 
 const ROOT_BLOCK: BlockId = BlockId(0);
 
-impl From<ast::Member> for rhif_spec::Member {
-    fn from(member: ast::Member) -> Self {
+impl From<ast_impl::Member> for rhif_spec::Member {
+    fn from(member: ast_impl::Member) -> Self {
         match member {
-            ast::Member::Named(name) => rhif_spec::Member::Named(name),
-            ast::Member::Unnamed(index) => rhif_spec::Member::Unnamed(index),
+            ast_impl::Member::Named(name) => rhif_spec::Member::Named(name),
+            ast_impl::Member::Unnamed(index) => rhif_spec::Member::Unnamed(index),
         }
     }
 }
@@ -53,7 +53,7 @@ pub struct NamedSlot {
 
 pub struct CompilerContext {
     pub blocks: Vec<Block>,
-    pub literals: Vec<Box<ast::ExprLit>>,
+    pub literals: Vec<Box<ast_impl::ExprLit>>,
     pub reg_count: usize,
     active_block: BlockId,
     type_context: UnifyContext,
@@ -182,7 +182,7 @@ impl CompilerContext {
         let ndx = self.literals.len();
         let ty = value.kind.clone().into();
         self.literals
-            .push(Box::new(ast::ExprLit::TypedBits(ExprTypedBits {
+            .push(Box::new(ast_impl::ExprLit::TypedBits(ExprTypedBits {
                 path: Box::new(Path { segments: vec![] }),
                 value: value.clone(),
             })));
@@ -278,26 +278,26 @@ impl CompilerContext {
             .map(|x| x.slot)
             .ok_or(anyhow::anyhow!("No local variable for {:?}", id))
     }
-    fn unop(&mut self, id: NodeId, unary: &ast::ExprUnary) -> Result<Slot> {
+    fn unop(&mut self, id: NodeId, unary: &ast_impl::ExprUnary) -> Result<Slot> {
         let arg = self.expr(&unary.expr)?;
         let result = self.reg(self.node_ty(id)?)?;
         let op = match unary.op {
-            ast::UnOp::Neg => AluUnary::Neg,
-            ast::UnOp::Not => AluUnary::Not,
+            ast_impl::UnOp::Neg => AluUnary::Neg,
+            ast_impl::UnOp::Not => AluUnary::Not,
         };
         self.op(op_unary(op, result, arg));
         Ok(result)
     }
-    fn stmt(&mut self, statement: &ast::Stmt) -> Result<Slot> {
+    fn stmt(&mut self, statement: &ast_impl::Stmt) -> Result<Slot> {
         let statement_text = pretty_print_statement(statement, &self.type_context)?;
         self.op(op_comment(statement_text));
         match &statement.kind {
-            ast::StmtKind::Local(local) => {
+            ast_impl::StmtKind::Local(local) => {
                 self.local(local)?;
                 Ok(Slot::Empty)
             }
-            ast::StmtKind::Expr(expr) => self.expr(expr),
-            ast::StmtKind::Semi(expr) => {
+            ast_impl::StmtKind::Expr(expr) => self.expr(expr),
+            ast_impl::StmtKind::Semi(expr) => {
                 self.expr(expr)?;
                 Ok(Slot::Empty)
             }
@@ -343,8 +343,8 @@ impl CompilerContext {
                     .clone();
                 for field in &_struct.fields {
                     let element_ty = match &field.member {
-                        ast::Member::Named(name) => ty_named_field(&rhs_ty, name)?,
-                        ast::Member::Unnamed(ndx) => ty_unnamed_field(&rhs_ty, *ndx as usize)?,
+                        ast_impl::Member::Named(name) => ty_named_field(&rhs_ty, name)?,
+                        ast_impl::Member::Unnamed(ndx) => ty_unnamed_field(&rhs_ty, *ndx as usize)?,
                     };
                     let element_rhs = self.reg(element_ty)?;
                     let path = field.member.clone().into();
@@ -408,7 +408,7 @@ impl CompilerContext {
         }
         Ok(())
     }
-    fn block(&mut self, block_result: Slot, block: &ast::Block) -> Result<BlockId> {
+    fn block(&mut self, block_result: Slot, block: &ast_impl::Block) -> Result<BlockId> {
         let current_block = self.current_block();
         let id = self.new_block(block_result);
         let statement_count = block.stmts.len();
@@ -447,7 +447,7 @@ impl CompilerContext {
         self.op(op_if(result, cond, then_branch, else_branch));
         Ok(result)
     }
-    fn index(&mut self, id: NodeId, index: &ast::ExprIndex) -> Result<Slot> {
+    fn index(&mut self, id: NodeId, index: &ast_impl::ExprIndex) -> Result<Slot> {
         let lhs = self.reg(self.node_ty(id)?)?;
         let arg = self.expr(&index.expr)?;
         let index = self.expr(&index.index)?;
@@ -463,13 +463,13 @@ impl CompilerContext {
         }
         Ok(lhs)
     }
-    fn array(&mut self, id: NodeId, array: &ast::ExprArray) -> Result<Slot> {
+    fn array(&mut self, id: NodeId, array: &ast_impl::ExprArray) -> Result<Slot> {
         let lhs = self.reg(self.node_ty(id)?)?;
         let elements = self.expr_list(&array.elems)?;
         self.op(op_array(lhs, elements));
         Ok(lhs)
     }
-    fn field(&mut self, id: NodeId, field: &ast::ExprField) -> Result<Slot> {
+    fn field(&mut self, id: NodeId, field: &ast_impl::ExprField) -> Result<Slot> {
         let lhs = self.reg(self.node_ty(id)?)?;
         let arg = self.expr(&field.expr)?;
         let path = field.member.clone().into();
@@ -483,7 +483,7 @@ impl CompilerContext {
             member: element.member.clone().into(),
         })
     }
-    fn struct_expr(&mut self, id: NodeId, _struct: &ast::ExprStruct) -> Result<Slot> {
+    fn struct_expr(&mut self, id: NodeId, _struct: &ast_impl::ExprStruct) -> Result<Slot> {
         eprintln!("Struct expr {:?} template: {}", _struct, _struct.template);
         let lhs = self.reg(self.node_ty(id)?)?;
         let fields = _struct
@@ -501,7 +501,7 @@ impl CompilerContext {
         }
         Ok(lhs)
     }
-    fn match_expr(&mut self, id: NodeId, _match: &ast::ExprMatch) -> Result<Slot> {
+    fn match_expr(&mut self, id: NodeId, _match: &ast_impl::ExprMatch) -> Result<Slot> {
         let lhs = self.reg(self.node_ty(id)?)?;
         let target_ty = self.ty(_match.expr.id)?;
         let target = self.expr(&_match.expr)?;
@@ -558,7 +558,7 @@ impl CompilerContext {
         &mut self,
         target: Slot,
         lhs: Slot,
-        arm: &ast::Arm,
+        arm: &ast_impl::Arm,
     ) -> Result<(CaseArgument, BlockId)> {
         match &arm.kind {
             ArmKind::Wild => {
@@ -590,7 +590,7 @@ impl CompilerContext {
             }
         }
     }
-    fn return_expr(&mut self, _return: &ast::ExprRet) -> Result<Slot> {
+    fn return_expr(&mut self, _return: &ast_impl::ExprRet) -> Result<Slot> {
         if let Some(expr) = &_return.expr {
             let result = self.expr(expr)?;
             self.op(op_assign(
@@ -602,7 +602,7 @@ impl CompilerContext {
         self.op(op_return());
         Ok(Slot::Empty)
     }
-    fn repeat(&mut self, id: NodeId, repeat: &ast::ExprRepeat) -> Result<Slot> {
+    fn repeat(&mut self, id: NodeId, repeat: &ast_impl::ExprRepeat) -> Result<Slot> {
         let lhs = self.reg(self.node_ty(id)?)?;
         let len = self.expr(&repeat.len)?;
         let len = self.slot_to_index(len)?;
@@ -610,13 +610,13 @@ impl CompilerContext {
         self.op(op_repeat(lhs, value, len));
         Ok(lhs)
     }
-    fn assign(&mut self, assign: &ast::ExprAssign) -> Result<Slot> {
+    fn assign(&mut self, assign: &ast_impl::ExprAssign) -> Result<Slot> {
         let (lhs, path) = self.expr_lhs(&assign.lhs)?;
         let rhs = self.expr(&assign.rhs)?;
         self.op(op_assign(lhs, rhs, path));
         Ok(Slot::Empty)
     }
-    fn method_call(&mut self, id: NodeId, method_call: &ast::ExprMethodCall) -> Result<Slot> {
+    fn method_call(&mut self, id: NodeId, method_call: &ast_impl::ExprMethodCall) -> Result<Slot> {
         // First handle unary ops only
         let op = match method_call.method.as_str() {
             "any" => AluUnary::Any,
@@ -631,7 +631,7 @@ impl CompilerContext {
         self.op(op_unary(op, lhs, arg));
         Ok(lhs)
     }
-    fn call(&mut self, id: NodeId, call: &ast::ExprCall) -> Result<Slot> {
+    fn call(&mut self, id: NodeId, call: &ast_impl::ExprCall) -> Result<Slot> {
         let lhs = self.reg(self.node_ty(id)?)?;
         let path = collapse_path(&call.path);
         let args = self.expr_list(&call.args)?;
@@ -733,7 +733,7 @@ impl CompilerContext {
         self.op(op_binary(alu, result, lhs, rhs));
         Ok(result)
     }
-    fn for_loop(&mut self, for_loop: &ast::ExprForLoop) -> Result<Slot> {
+    fn for_loop(&mut self, for_loop: &ast_impl::ExprForLoop) -> Result<Slot> {
         let current_block = self.current_block();
         let loop_block = self.new_block(Slot::Empty);
         self.bind_pattern(&for_loop.pat)?;
@@ -906,7 +906,7 @@ fn argument_id(arg_pat: &Pat) -> Result<(String, NodeId)> {
 }
 
 impl Visitor for CompilerContext {
-    fn visit_kernel_fn(&mut self, node: &ast::KernelFn) -> Result<()> {
+    fn visit_kernel_fn(&mut self, node: &ast_impl::KernelFn) -> Result<()> {
         // Allocate local binding for each argument
         let mut arguments = vec![];
         for arg in &node.inputs {
@@ -924,7 +924,7 @@ impl Visitor for CompilerContext {
     }
 }
 
-pub fn compile(func: &ast::KernelFn, ctx: UnifyContext) -> Result<Object> {
+pub fn compile(func: &ast_impl::KernelFn, ctx: UnifyContext) -> Result<Object> {
     let mut compiler = CompilerContext::new(ctx);
     compiler.visit_kernel_fn(func)?;
     let literals = compiler

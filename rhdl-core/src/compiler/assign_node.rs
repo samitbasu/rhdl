@@ -1,7 +1,7 @@
 use crate::{
-    ast,
+    ast::ast_impl,
+    ast::visit_mut::{self, VisitorMut},
     kernel::Kernel,
-    visit_mut::{self, VisitorMut},
 };
 use anyhow::Result;
 
@@ -18,13 +18,13 @@ impl NodeIdGenerator {
         NodeIdGenerator { id: 0 }
     }
 
-    fn next(&mut self) -> ast::NodeId {
+    fn next(&mut self) -> ast_impl::NodeId {
         let id = self.id;
         self.id += 1;
-        ast::NodeId::new(id)
+        ast_impl::NodeId::new(id)
     }
 
-    fn id(&mut self, id: &mut ast::NodeId) {
+    fn id(&mut self, id: &mut ast_impl::NodeId) {
         if id.is_invalid() {
             *id = self.next();
         }
@@ -32,31 +32,31 @@ impl NodeIdGenerator {
 }
 
 impl VisitorMut for NodeIdGenerator {
-    fn visit_mut_stmt(&mut self, node: &mut ast::Stmt) -> Result<()> {
+    fn visit_mut_stmt(&mut self, node: &mut ast_impl::Stmt) -> Result<()> {
         self.id(&mut node.id);
         visit_mut::visit_mut_stmt(self, node)
     }
-    fn visit_mut_block(&mut self, node: &mut ast::Block) -> Result<()> {
+    fn visit_mut_block(&mut self, node: &mut ast_impl::Block) -> Result<()> {
         self.id(&mut node.id);
         visit_mut::visit_mut_block(self, node)
     }
-    fn visit_mut_local(&mut self, node: &mut ast::Local) -> Result<()> {
+    fn visit_mut_local(&mut self, node: &mut ast_impl::Local) -> Result<()> {
         self.id(&mut node.id);
         visit_mut::visit_mut_local(self, node)
     }
-    fn visit_mut_pat(&mut self, node: &mut ast::Pat) -> Result<()> {
+    fn visit_mut_pat(&mut self, node: &mut ast_impl::Pat) -> Result<()> {
         self.id(&mut node.id);
         visit_mut::visit_mut_pat(self, node)
     }
-    fn visit_mut_expr(&mut self, node: &mut ast::Expr) -> Result<()> {
+    fn visit_mut_expr(&mut self, node: &mut ast_impl::Expr) -> Result<()> {
         self.id(&mut node.id);
         visit_mut::visit_mut_expr(self, node)
     }
-    fn visit_mut_kernel_fn(&mut self, node: &mut ast::KernelFn) -> Result<()> {
+    fn visit_mut_kernel_fn(&mut self, node: &mut ast_impl::KernelFn) -> Result<()> {
         self.id(&mut node.id);
         visit_mut::visit_mut_kernel_fn(self, node)
     }
-    fn visit_mut_match_arm(&mut self, node: &mut ast::Arm) -> Result<()> {
+    fn visit_mut_match_arm(&mut self, node: &mut ast_impl::Arm) -> Result<()> {
         self.id(&mut node.id);
         visit_mut::visit_mut_match_arm(self, node)
     }

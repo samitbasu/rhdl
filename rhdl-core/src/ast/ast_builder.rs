@@ -3,7 +3,7 @@ use std::hash::{Hash, Hasher};
 use crate::kernel::KernelFnKind;
 use crate::types::typed_bits::TypedBits;
 use crate::DigitalSignature;
-use crate::{ast::*, Kind};
+use crate::{ast::ast_impl::*, Kind};
 
 pub fn binary_expr(op: BinOp, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
     Box::new(Expr {
@@ -392,8 +392,8 @@ pub fn member_unnamed(index: u32) -> Member {
     Member::Unnamed(index)
 }
 
-pub use crate::ast::BinOp;
-pub use crate::ast::UnOp;
+pub use crate::ast::ast_impl::BinOp;
+pub use crate::ast::ast_impl::UnOp;
 
 pub fn expr_lit_int(value: &str) -> ExprLit {
     ExprLit::Int(value.to_string())

@@ -1,7 +1,9 @@
 use crate::{
-    ascii::render_ast_to_string,
-    check_inference, check_rhif_flow, check_type_correctness,
-    compiler::{assign_node_ids, compile, infer},
+    ast::ascii::render_ast_to_string,
+    compiler::{
+        assign_node_ids, check_inference::check_inference, check_rhif_flow::check_rhif_flow,
+        check_rhif_type::check_type_correctness, compile, infer,
+    },
     kernel::Kernel,
     rhif::Object,
     Design, KernelFnKind,

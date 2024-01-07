@@ -1,4 +1,4 @@
-use crate::{ast::FunctionId, rhif::Object};
+use crate::{ast::ast_impl::FunctionId, rhif::Object};
 use anyhow::Result;
 use std::collections::HashMap;
 

@@ -8,7 +8,7 @@ use crate::rhif::rhif_spec::{
 };
 use crate::test_module::VerilogDescriptor;
 use crate::util::binary_string;
-use crate::{ast::FunctionId, rhif::rhif_spec::Block, rhif::Object, Design, TypedBits};
+use crate::{ast::ast_impl::FunctionId, rhif::rhif_spec::Block, rhif::Object, Design, TypedBits};
 use crate::{KernelFnKind, Kind};
 use anyhow::{anyhow, ensure};
 use anyhow::{bail, Result};
