@@ -1,7 +1,7 @@
 use rhdl_bits::Bits;
-use rhdl_core::digital_fn::DigitalFn;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
+use rhdl_core::DigitalFn;
 use rhdl_core::TypedBits;
 
 pub fn all<const N: usize>(x: Bits<N>) -> bool {

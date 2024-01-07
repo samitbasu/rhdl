@@ -1,8 +1,8 @@
 use std::hash::{Hash, Hasher};
 
-use crate::digital_fn::DigitalSignature;
 use crate::kernel::KernelFnKind;
-use crate::typed_bits::TypedBits;
+use crate::types::typed_bits::TypedBits;
+use crate::DigitalSignature;
 use crate::{ast::*, Kind};
 
 pub fn binary_expr(op: BinOp, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {

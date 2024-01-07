@@ -1,7 +1,7 @@
 use rhdl_bits::Bits;
-use rhdl_core::digital_fn::DigitalFn;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
+use rhdl_core::DigitalFn;
 
 pub fn get_bit<const N: usize>(x: Bits<N>, i: u8) -> bool {
     (x.0 >> i) & 1 == 1

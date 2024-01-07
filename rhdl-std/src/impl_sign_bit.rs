@@ -1,7 +1,7 @@
 use rhdl_bits::SignedBits;
 use rhdl_core::{
-    digital_fn::DigitalFn,
     kernel::{ExternalKernelDef, KernelFnKind},
+    DigitalFn,
 };
 
 pub fn sign_bit<const N: usize>(x: SignedBits<N>) -> bool {

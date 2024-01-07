@@ -1,8 +1,7 @@
 use crate::rhif::rhif_vm::execute_function;
 use crate::TypedBits;
 use crate::{
-    compile_design, digital_fn::KernelFnKind, generate_verilog, kernel::ExternalKernelDef, Digital,
-    DigitalFn,
+    compile_design, generate_verilog, kernel::ExternalKernelDef, Digital, DigitalFn, KernelFnKind,
 };
 use anyhow::Result;
 use anyhow::{bail, ensure};
@@ -394,7 +393,7 @@ impl TryFrom<KernelFnKind> for VerilogDescriptor {
 
 #[cfg(test)]
 mod tests {
-    use crate::digital_fn::DigitalFn;
+    use crate::DigitalFn;
     use rhdl_bits::{alias::*, bits};
 
     use super::*;

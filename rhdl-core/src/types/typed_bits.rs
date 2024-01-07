@@ -7,9 +7,9 @@ use crate::dyn_bit_manip::bits_shr_signed;
 use crate::dyn_bit_manip::{
     bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
 };
+use crate::util::binary_string;
 use crate::Digital;
 use crate::{
-    digital::binary_string,
     path::{bit_range, Path},
     Kind,
 };

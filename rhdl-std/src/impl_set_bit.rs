@@ -1,8 +1,8 @@
 use rhdl_bits::bits;
 use rhdl_bits::Bits;
-use rhdl_core::digital_fn::DigitalFn;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
+use rhdl_core::DigitalFn;
 
 pub fn set_bit<const N: usize>(x: Bits<N>, i: u8, value: bool) -> Bits<N> {
     let selector = 1_u128 << i;

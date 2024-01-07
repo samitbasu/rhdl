@@ -72,10 +72,6 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + Default + 'static {
     fn note(&self, key: impl NoteKey, writer: impl NoteWriter);
 }
 
-pub fn binary_string(x: &[bool]) -> String {
-    x.iter().rev().map(|b| if *b { '1' } else { '0' }).collect()
-}
-
 impl Digital for () {
     fn static_kind() -> Kind {
         Kind::Empty
@@ -308,7 +304,7 @@ mod test {
     use std::iter::repeat;
 
     use super::*;
-    use crate::kind::{DiscriminantAlignment, Variant};
+    use crate::types::kind::{DiscriminantAlignment, Variant};
     use rhdl_bits::alias::*;
 
     #[test]
@@ -367,7 +363,7 @@ mod test {
                     Kind::make_discriminant_layout(
                         3,
                         DiscriminantAlignment::Lsb,
-                        crate::kind::DiscriminantType::Unsigned,
+                        crate::types::kind::DiscriminantType::Unsigned,
                     ),
                 )
             }
@@ -490,7 +486,7 @@ mod test {
                     Kind::make_discriminant_layout(
                         3,
                         DiscriminantAlignment::Lsb,
-                        crate::kind::DiscriminantType::Unsigned,
+                        crate::types::kind::DiscriminantType::Unsigned,
                     ),
                 )
             }
@@ -549,7 +545,7 @@ mod test {
                 Kind::make_discriminant_layout(
                     3,
                     DiscriminantAlignment::Lsb,
-                    crate::kind::DiscriminantType::Unsigned,
+                    crate::types::kind::DiscriminantType::Unsigned,
                 ),
             )
         );

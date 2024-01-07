@@ -1,8 +1,8 @@
 use rhdl_bits::Bits;
 use rhdl_bits::SignedBits;
-use rhdl_core::digital_fn::DigitalFn;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
+use rhdl_core::DigitalFn;
 
 use crate::impl_get_bit::get_bit;
 

@@ -459,7 +459,7 @@ mod tests {
 
     use rhdl_bits::Bits;
 
-    use crate::{kind::Variant, DiscriminantAlignment, Kind};
+    use crate::{types::kind::Variant, DiscriminantAlignment, Kind};
 
     use super::*;
 
@@ -533,7 +533,7 @@ mod tests {
                     Kind::make_discriminant_layout(
                         3,
                         DiscriminantAlignment::Lsb,
-                        crate::kind::DiscriminantType::Unsigned,
+                        crate::types::kind::DiscriminantType::Unsigned,
                     ),
                 )
             }

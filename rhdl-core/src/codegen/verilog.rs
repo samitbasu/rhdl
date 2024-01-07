@@ -1,6 +1,5 @@
 use std::collections::BTreeSet;
 
-use crate::digital::binary_string;
 use crate::kernel::ExternalKernelDef;
 use crate::path::{bit_range, Path, PathElement};
 use crate::rhif::rhif_spec::{
@@ -8,7 +7,8 @@ use crate::rhif::rhif_spec::{
     Enum, Exec, If, Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
 };
 use crate::test_module::VerilogDescriptor;
-use crate::{ast::FunctionId, design::Design, object::Object, rhif::rhif_spec::Block, TypedBits};
+use crate::util::binary_string;
+use crate::{ast::FunctionId, rhif::rhif_spec::Block, rhif::Object, Design, TypedBits};
 use crate::{KernelFnKind, Kind};
 use anyhow::{anyhow, ensure};
 use anyhow::{bail, Result};

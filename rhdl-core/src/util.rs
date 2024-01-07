@@ -66,3 +66,7 @@ fn test_indenting_formatter() {
     f.write("}\n");
     println!("{}", f.buffer());
 }
+
+pub fn binary_string(x: &[bool]) -> String {
+    x.iter().rev().map(|b| if *b { '1' } else { '0' }).collect()
+}

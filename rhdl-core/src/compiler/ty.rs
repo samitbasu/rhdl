@@ -60,9 +60,9 @@ pub struct TyEnum {
 }
 
 use crate::ast::NodeId;
-use crate::kind::DiscriminantLayout;
-use crate::kind::DiscriminantType;
 use crate::path::PathElement;
+use crate::types::kind::DiscriminantLayout;
+use crate::types::kind::DiscriminantType;
 use crate::Kind;
 
 // Start simple, modelling as in the Eli Bendersky example.
