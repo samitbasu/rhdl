@@ -226,13 +226,53 @@ pub struct VerilogDescriptor {
     pub body: String,
 }
 
-impl std::fmt::Display for VerilogDescriptor {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+const VERILOG_INDENT_INCREASERS: [&str; 2] = ["begin", "function"];
+const VERILOG_INDENT_DECREASERS: [&str; 2] = ["end", "endfunction"];
+
+impl VerilogDescriptor {
+    fn display(&self, f: &mut std::fmt::Formatter<'_>, line_numbers: bool) -> std::fmt::Result {
         // Print the verilog with line numbers
+        // Indent the lines
+        let mut indent = 0;
         for (i, line) in self.body.lines().enumerate() {
-            writeln!(f, "{:3} {}", i + 1, line)?;
+            if line_numbers {
+                write!(f, "{:3} ", i + 1)?;
+            }
+            let line = line.trim();
+            if line.is_empty() {
+                writeln!(f)?;
+                continue;
+            }
+            if VERILOG_INDENT_DECREASERS
+                .iter()
+                .any(|x| line.starts_with(x))
+            {
+                indent -= 1;
+            }
+            for _ in 0..indent {
+                write!(f, "    ")?;
+            }
+            if VERILOG_INDENT_INCREASERS
+                .iter()
+                .any(|x| line.starts_with(x))
+            {
+                indent += 1;
+            }
+            writeln!(f, "{}", line)?;
         }
         Ok(())
+    }
+}
+
+impl std::fmt::Debug for VerilogDescriptor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.display(f, true)
+    }
+}
+
+impl std::fmt::Display for VerilogDescriptor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.display(f, false)
     }
 }
 

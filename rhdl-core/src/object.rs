@@ -3,8 +3,8 @@ use std::collections::BTreeMap;
 
 use crate::{
     ast::FunctionId,
+    compiler::ty::Ty,
     rhif::{Block, BlockId, ExternalFunction, Slot},
-    ty::Ty,
     TypedBits,
 };
 

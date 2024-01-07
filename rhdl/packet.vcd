@@ -1,4 +1,4 @@
-$timescale 1 fs $end
+$timescale 1 ps $end
 $scope module top $end
 $var wire 1 ! __packet__level__active $end
 $var wire 8 " __packet__r $end

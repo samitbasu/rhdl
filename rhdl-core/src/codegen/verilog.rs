@@ -211,8 +211,10 @@ impl<'a> TranslationContext<'a> {
             }) => {
                 self.body.push_str(&format!("    if ({cond})\n"));
                 self.translate_block(*then_branch)?;
-                self.body.push_str("    else\n");
-                self.translate_block(*else_branch)?;
+                if !self.block_is_empty(*else_branch)? {
+                    self.body.push_str("    else\n");
+                    self.translate_block(*else_branch)?;
+                }
             }
             OpCode::Block(block_id) => {
                 self.translate_block(*block_id)?;
@@ -407,6 +409,9 @@ impl<'a> TranslationContext<'a> {
     }
 
     fn translate_block(&mut self, block: BlockId) -> Result<()> {
+        if self.block_is_empty(block)? {
+            return Ok(());
+        }
         self.body.push_str("    begin\n");
         let block = self
             .blocks
@@ -424,6 +429,13 @@ impl<'a> TranslationContext<'a> {
         }
         self.body.push_str("    end\n");
         Ok(())
+    }
+    fn block_is_empty(&self, block: BlockId) -> Result<bool> {
+        let block = self
+            .blocks
+            .get(block.0)
+            .ok_or(anyhow!("ICE - unable to find block ID {block:?} in code"))?;
+        Ok(block.ops.is_empty())
     }
 }
 
@@ -508,7 +520,7 @@ fn translate(design: &Design, fn_id: FunctionId) -> Result<VerilogModule> {
     Ok(module)
 }
 
-fn as_verilog_literal(tb: &TypedBits) -> String {
+pub fn as_verilog_literal(tb: &TypedBits) -> String {
     let signed = if tb.kind.is_signed() { "s" } else { "" };
     let width = tb.bits.len();
     format!("{}'{}b{}", width, signed, binary_string(&tb.bits))

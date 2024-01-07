@@ -1,4 +1,4 @@
-$timescale 1 fs $end
+$timescale 1 ps $end
 $scope module top $end
 $var wire 8 ! __simple__b $end
 $var wire 1 " __simple__a $end

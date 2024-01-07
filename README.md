@@ -91,8 +91,9 @@ risk than a technical one.
 Some other topics I'm thinking about
 
 - [ ] Build a verilator bridge so that the Verilog code can be tested from Rust, using Verilator to simulate the Verilog
-- [ ] Add support for zero-sized signals.  This is needed for black box modules and synchronous automatons (no non-clock inputs)
-- [ ] Make logging pure.  The global approach feels "weird".
+- [x] Add support for zero-sized signals.  This is needed for black box modules and synchronous automatons (no non-clock inputs)
+- [-] Make logging pure.  The global approach feels "weird".
+- [ ] Clean up the generated verilog, or clean up the RHIF so that the verilog is easier to read/understand.
 
 
 # Logging - Rethought
