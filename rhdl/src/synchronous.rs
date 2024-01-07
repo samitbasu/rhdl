@@ -10,27 +10,12 @@
 
 use anyhow::Result;
 use rhdl_bits::{bits, Bits};
+use rhdl_core::Synchronous;
 use rhdl_core::{
     compile_design, generate_verilog, note, note_init_db, note_take, note_time,
     test_module::TestModule, Digital, DigitalFn,
 };
 use rhdl_macro::{kernel, Digital};
-
-pub trait Synchronous: Digital {
-    type Input: Digital;
-    type Output: Digital;
-    type State: Digital;
-    type Update: DigitalFn;
-
-    const INITIAL_STATE: Self::State;
-    const UPDATE: UpdateFunctionType<Self>;
-}
-
-type UpdateFunctionType<T> = fn(
-    T,
-    <T as Synchronous>::State,
-    <T as Synchronous>::Input,
-) -> (<T as Synchronous>::State, <T as Synchronous>::Output);
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Digital, Default)]
 pub struct Pulser<const N: usize> {
