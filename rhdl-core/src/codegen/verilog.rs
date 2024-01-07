@@ -3,12 +3,12 @@ use std::collections::BTreeSet;
 use crate::digital::binary_string;
 use crate::kernel::ExternalKernelDef;
 use crate::path::{bit_range, Path, PathElement};
-use crate::rhif::{
+use crate::rhif::rhif_spec::{
     AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast, Discriminant,
     Enum, Exec, If, Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
 };
 use crate::test_module::VerilogDescriptor;
-use crate::{ast::FunctionId, design::Design, object::Object, rhif::Block, TypedBits};
+use crate::{ast::FunctionId, design::Design, object::Object, rhif::rhif_spec::Block, TypedBits};
 use crate::{KernelFnKind, Kind};
 use anyhow::{anyhow, ensure};
 use anyhow::{bail, Result};

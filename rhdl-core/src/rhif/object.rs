@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use crate::{
     ast::FunctionId,
     compiler::ty::Ty,
-    rhif::{Block, BlockId, ExternalFunction, Slot},
+    rhif::rhif_spec::{Block, BlockId, ExternalFunction, Slot},
     TypedBits,
 };
 

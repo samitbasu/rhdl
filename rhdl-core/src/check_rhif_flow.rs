@@ -1,11 +1,11 @@
 use std::collections::HashSet;
 
 use crate::{
-    object::Object,
-    rhif::{
+    rhif::rhif_spec::{
         Array, Assign, Binary, BlockId, Case, Cast, Discriminant, Enum, Exec, If, Index, OpCode,
         Repeat, Slot, Struct, Tuple, Unary,
     },
+    rhif::Object,
 };
 
 use anyhow::{bail, Result};

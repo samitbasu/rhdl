@@ -1,8 +1,8 @@
 use crate::compiler::ty::Ty;
 use crate::kernel::ExternalKernelDef;
-use crate::object::Object;
 use crate::path::Path;
-use crate::rhif::{
+use crate::rhif::object::Object;
+use crate::rhif::rhif_spec::{
     AluBinary, AluUnary, Array, Assign, Binary, Block, Case, CaseArgument, Cast, Discriminant,
     Enum, Exec, If, Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
 };

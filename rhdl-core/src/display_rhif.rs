@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    rhif::{
+    rhif::rhif_spec::{
         AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast,
         Discriminant, Enum, Exec, FieldValue, FuncId, If, Index, Member, OpCode, Repeat, Slot,
         Struct, Tuple, Unary,

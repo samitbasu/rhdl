@@ -6,16 +6,16 @@ use crate::{
     compiler::ty::{ty_empty, ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
     compiler::UnifyContext,
     display_ast::pretty_print_statement,
-    object::Object,
-    rhif::{
-        self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, FuncId, Member, OpCode,
-        Slot,
-    },
-    rhif_builder::{
+    rhif::rhif_builder::{
         op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment,
         op_discriminant, op_enum, op_exec, op_if, op_index, op_repeat, op_return, op_struct,
         op_tuple, op_unary,
     },
+    rhif::rhif_spec::{
+        self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, FuncId, Member, OpCode,
+        Slot,
+    },
+    rhif::Object,
     typed_bits::TypedBits,
     visit::Visitor,
     Digital, KernelFnKind, Kind,
@@ -27,11 +27,11 @@ use super::infer_types::id_to_var;
 
 const ROOT_BLOCK: BlockId = BlockId(0);
 
-impl From<ast::Member> for crate::rhif::Member {
+impl From<ast::Member> for rhif_spec::Member {
     fn from(member: ast::Member) -> Self {
         match member {
-            ast::Member::Named(name) => crate::rhif::Member::Named(name),
-            ast::Member::Unnamed(index) => crate::rhif::Member::Unnamed(index),
+            ast::Member::Named(name) => rhif_spec::Member::Named(name),
+            ast::Member::Unnamed(index) => rhif_spec::Member::Unnamed(index),
         }
     }
 }
@@ -476,9 +476,9 @@ impl CompilerContext {
         self.op(op_index(lhs, arg, path));
         Ok(lhs)
     }
-    fn field_value(&mut self, element: &FieldValue) -> Result<rhif::FieldValue> {
+    fn field_value(&mut self, element: &FieldValue) -> Result<rhif_spec::FieldValue> {
         let value = self.expr(&element.value)?;
-        Ok(rhif::FieldValue {
+        Ok(rhif_spec::FieldValue {
             value,
             member: element.member.clone().into(),
         })
@@ -643,7 +643,7 @@ impl CompilerContext {
                 let fields = args
                     .iter()
                     .enumerate()
-                    .map(|(ndx, x)| rhif::FieldValue {
+                    .map(|(ndx, x)| rhif_spec::FieldValue {
                         value: *x,
                         member: Member::Unnamed(ndx as u32),
                     })
@@ -654,7 +654,7 @@ impl CompilerContext {
                 let fields = args
                     .iter()
                     .enumerate()
-                    .map(|(ndx, x)| rhif::FieldValue {
+                    .map(|(ndx, x)| rhif_spec::FieldValue {
                         value: *x,
                         member: Member::Unnamed(ndx as u32),
                     })
@@ -945,7 +945,7 @@ pub fn compile(func: &ast::KernelFn, ctx: UnifyContext) -> Result<Object> {
     let blocks = compiler
         .blocks
         .into_iter()
-        .map(|x| rhif::Block {
+        .map(|x| rhif_spec::Block {
             id: x.id,
             ops: x.ops,
         })
