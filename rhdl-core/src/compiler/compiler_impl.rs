@@ -16,7 +16,7 @@ use crate::{
         Slot,
     },
     rhif::Object,
-    typed_bits::TypedBits,
+    types::typed_bits::TypedBits,
     visit::Visitor,
     Digital, KernelFnKind, Kind,
 };

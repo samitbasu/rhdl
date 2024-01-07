@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{digital_fn::DigitalSignature, kernel::KernelFnKind, typed_bits::TypedBits, Kind};
+use crate::{kernel::KernelFnKind, types::typed_bits::TypedBits, DigitalSignature, Kind};
 use serde::{Deserialize, Serialize};
 
 // Modeled after rustc's AST

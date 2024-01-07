@@ -1,7 +1,7 @@
 use rhdl_bits::Bits;
-use rhdl_core::digital_fn::DigitalFn;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
+use rhdl_core::DigitalFn;
 
 pub fn slice<const N: usize, const M: usize>(x: Bits<N>, start: u128) -> Bits<M> {
     assert!(start + M as u128 <= N as u128);

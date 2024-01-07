@@ -2,10 +2,9 @@ use crate::{
     ascii::render_ast_to_string,
     check_inference, check_rhif_flow, check_type_correctness,
     compiler::{assign_node_ids, compile, infer},
-    design::Design,
     kernel::Kernel,
     rhif::Object,
-    KernelFnKind,
+    Design, KernelFnKind,
 };
 
 use anyhow::Result;

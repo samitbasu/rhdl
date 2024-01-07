@@ -1,9 +1,9 @@
 use rhdl_bits::bits;
 use rhdl_bits::Bits;
 use rhdl_bits::SignedBits;
-use rhdl_core::digital_fn::DigitalFn;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
+use rhdl_core::DigitalFn;
 
 pub fn as_unsigned<const N: usize>(x: SignedBits<N>) -> Bits<N> {
     bits((x.0 as u128) & (Bits::<N>::mask().0))

@@ -1,7 +1,7 @@
 // RHDL Intermediate Form (RHIF).
 use anyhow::Result;
 
-use crate::{digital_fn::DigitalSignature, path::Path, KernelFnKind, TypedBits};
+use crate::{path::Path, DigitalSignature, KernelFnKind, TypedBits};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum OpCode {
