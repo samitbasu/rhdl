@@ -48,3 +48,5 @@ pub use rhif::design::Design;
 pub use types::digital_fn;
 pub use types::digital_fn::DigitalSignature;
 pub use types::kernel;
+pub use types::synchronous::Synchronous;
+pub use types::synchronous::UpdateFn;
