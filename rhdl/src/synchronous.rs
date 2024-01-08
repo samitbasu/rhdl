@@ -8,13 +8,17 @@
 //  Update  - the update function for the design.
 //  Params  - the parameters for the design (held constant)
 
+use std::path::PathBuf;
+
 use anyhow::Result;
+use rhdl_bits::alias::b4;
 use rhdl_bits::{bits, Bits};
-use rhdl_core::Synchronous;
 use rhdl_core::{
     compile_design, generate_verilog, note, note_init_db, note_take, note_time,
     test_module::TestModule, Digital, DigitalFn,
 };
+use rhdl_core::{Synchronous, UpdateFn};
+use rhdl_fpga::{make_constrained_verilog, Constraint, PinConstraint};
 use rhdl_macro::{kernel, Digital};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Digital, Default)]
@@ -40,8 +44,7 @@ impl<const N: usize> Synchronous for Pulser<N> {
         strobe: Strobe::<N>::INITIAL_STATE,
     };
 
-    const UPDATE: fn(Self, Self::State, Self::Input) -> (Self::State, Self::Output) =
-        pulser_update::<{ N }>;
+    const UPDATE: UpdateFn<Self> = pulser_update::<{ N }>;
 }
 
 #[kernel]
@@ -94,8 +97,8 @@ impl<const N: usize> Synchronous for OneShot<N> {
     type Update = one_shot_update<{ N }>;
 
     const INITIAL_STATE: Self::State = OneShotState::<{ N }> {
-        count: bits::<{ N }>(0),
-        active: false,
+        counter: bits::<{ N }>(0),
+        running: false,
     };
     const UPDATE: fn(Self, Self::State, Self::Input) -> (Self::State, Self::Output) =
         one_shot_update::<{ N }>;
@@ -103,35 +106,33 @@ impl<const N: usize> Synchronous for OneShot<N> {
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Digital, Default)]
 pub struct OneShotState<const N: usize> {
-    count: Bits<N>,
-    active: bool,
+    counter: Bits<N>,
+    running: bool,
 }
 
 #[kernel]
 pub fn one_shot_update<const N: usize>(
     params: OneShot<N>,
-    state: OneShotState<N>,
-    input: bool,
+    q: OneShotState<N>,
+    trigger: bool,
 ) -> (OneShotState<N>, bool) {
-    let mut q_state = state;
-
-    if input {
-        q_state.active = true;
-        q_state.count = bits::<{ N }>(0);
+    note("trigger", trigger);
+    note("state", q.running);
+    note("counter", q.counter);
+    let mut d = q;
+    if q.running {
+        d.counter += 1;
     }
-
-    if state.active {
-        q_state.count += 1;
-        if q_state.count == params.duration {
-            q_state.active = false;
-        }
+    if q.running && (q.counter == params.duration) {
+        d.running = false;
     }
-
-    note("enable", input);
-    note("q_state", q_state);
-    let output = state.active;
-
-    (q_state, output)
+    let active = q.running;
+    if trigger {
+        d.running = true;
+        d.counter = bits::<{ N }>(0);
+    }
+    note("active", active);
+    (d, active)
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Digital, Default)]
@@ -163,19 +164,17 @@ pub fn strobe_update<const N: usize>(
     state: StrobeState<N>,
     input: bool,
 ) -> (StrobeState<N>, bool) {
-    let mut count = state.count;
-    let mut active = false;
-
+    let mut q_count = state.count;
     if input {
-        count += 1;
-        if count == params.period {
-            count = bits::<{ N }>(0);
-            active = true;
-        }
+        q_count += 1;
+    }
+    let active = input & (state.count == params.period);
+    if active {
+        q_count = bits::<{ N }>(0);
     }
     note("active", active);
 
-    (StrobeState::<{ N }> { count }, active)
+    (StrobeState::<{ N }> { count: q_count }, active)
 }
 
 pub fn simulate<M: Synchronous>(
@@ -310,7 +309,7 @@ fn test_one_shot_simulation() {
 fn test_pulser_simulation() {
     let input = std::iter::repeat(true).take(1_000);
     let pulser = Pulser::<16> {
-        one_shot: OneShot::<16> { duration: bits(10) },
+        one_shot: OneShot::<16> { duration: bits(20) },
         strobe: Strobe::<16> { period: bits(100) },
     };
     note_init_db();
@@ -332,4 +331,81 @@ fn get_pulser_verilog() -> Result<()> {
     };
     let tb = make_verilog_testbench(pulser, input)?;
     tb.run_iverilog()
+}
+
+// To make a blinker, we want to blink at a rate of 1 Hz. The clock is 100 MHz, so we want to
+// toggle the output every 50 million clock cycles. We can use a Strobe with a period of 50
+// million to do this.  We want the LED to be on for 1/5th of a second, which is 10 million
+// clock cycles. We can use a OneShot with a duration of 10 million to do this.
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Digital, Default)]
+pub struct Blinker {
+    pub pulser: Pulser<26>,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Digital, Default)]
+pub struct BlinkerState {
+    pub pulser: PulserState<26>,
+}
+
+impl Synchronous for Blinker {
+    type Input = ();
+    type Output = b4;
+    type State = BlinkerState;
+    type Update = blinker_update;
+
+    const INITIAL_STATE: Self::State = BlinkerState {
+        pulser: Pulser::<26>::INITIAL_STATE,
+    };
+    const UPDATE: UpdateFn<Self> = blinker_update;
+}
+
+// TODO - support binary notation?
+
+#[kernel]
+pub fn blinker_update(params: Blinker, state: BlinkerState, _input: ()) -> (BlinkerState, b4) {
+    let (q_pulser, pulser_output) = pulser_update::<26>(params.pulser, state.pulser, true);
+    let blinker_output = if pulser_output {
+        b4(0b1111)
+    } else {
+        b4(0b0000)
+    };
+    (BlinkerState { pulser: q_pulser }, blinker_output)
+}
+
+#[test]
+fn get_blinker_synth() -> Result<()> {
+    let blinker = Blinker {
+        pulser: Pulser::<26> {
+            one_shot: OneShot::<26> {
+                duration: bits(10_000_000),
+            },
+            strobe: Strobe::<26> {
+                period: bits(50_000_000),
+            },
+        },
+    };
+    // Make pin constraints for the outputs
+    let mut constraints = (0..4)
+        .map(|i| PinConstraint {
+            kind: rhdl_fpga::PinConstraintKind::Output,
+            index: i,
+            constraint: Constraint::Location(rhdl_fpga::bsp::alchitry::cu::LED_ARRAY_LOCATIONS[i]),
+        })
+        .collect::<Vec<_>>();
+    constraints.push(PinConstraint {
+        kind: rhdl_fpga::PinConstraintKind::Input,
+        index: 0,
+        constraint: Constraint::Unused,
+    });
+    let top = make_constrained_verilog(
+        blinker,
+        constraints,
+        Constraint::Location(rhdl_fpga::bsp::alchitry::cu::BASE_CLOCK_100MHZ_LOCATION),
+    )?;
+    let pcf = top.pcf()?;
+    std::fs::write("blink.v", &top.module)?;
+    std::fs::write("blink.pcf", &pcf)?;
+    eprintln!("{}", top.module);
+    rhdl_fpga::bsp::alchitry::cu::synth_yosys_nextpnr_icepack(&top, &PathBuf::from("blink"))?;
+    Ok(())
 }
