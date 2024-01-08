@@ -109,7 +109,6 @@ pub enum Timing {
 #[derive(Clone, Debug)]
 pub enum Constraint {
     Location(BGAPin),
-    CustomLocation(String),
     Kind(SignalType),
     Timing(Timing),
     Custom(String),
@@ -125,6 +124,14 @@ pub enum SlewType {
 
 #[derive(Clone, Debug)]
 pub struct PinConstraint {
+    pub kind: PinConstraintKind,
     pub index: usize,
     pub constraint: Constraint,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum PinConstraintKind {
+    Input,
+    Output,
+    Clock(String),
 }

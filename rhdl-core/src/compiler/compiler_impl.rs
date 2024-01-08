@@ -988,10 +988,26 @@ fn cast_literal_to_inferred_type(t: ExprLit, ty: Ty) -> Result<TypedBits> {
         }
         ExprLit::Int(x) => {
             if ty.is_unsigned() {
-                let x_as_u128 = x.parse::<u128>()?;
+                let x_as_u128 = if let Some(x) = x.strip_prefix("0b") {
+                    u128::from_str_radix(x, 2)?
+                } else if let Some(x) = x.strip_prefix("0o") {
+                    u128::from_str_radix(x, 8)?
+                } else if let Some(x) = x.strip_prefix("0x") {
+                    u128::from_str_radix(x, 16)?
+                } else {
+                    x.parse::<u128>()?
+                };
                 x_as_u128.typed_bits().unsigned_cast(ty.unsigned_bits()?)
             } else {
-                let x_as_i128 = x.parse::<i128>()?;
+                let x_as_i128 = if let Some(x) = x.strip_prefix("0b") {
+                    i128::from_str_radix(x, 2)?
+                } else if let Some(x) = x.strip_prefix("0o") {
+                    i128::from_str_radix(x, 8)?
+                } else if let Some(x) = x.strip_prefix("0x") {
+                    i128::from_str_radix(x, 16)?
+                } else {
+                    x.parse::<i128>()?
+                };
                 x_as_i128.typed_bits().signed_cast(ty.signed_bits()?)
             }
         }
