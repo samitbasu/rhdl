@@ -12,6 +12,7 @@ itertools = "0.12.0"
 lazy_static = "1.4.0"
 log = "0.4.20"
 parking_lot = "0.12.1"
+petgraph = "0.6.4"
 prettyplease = "0.2.15"
 rhdl-bits = { path = "../rhdl-bits" }
 seq-macro = "0.3.5"
