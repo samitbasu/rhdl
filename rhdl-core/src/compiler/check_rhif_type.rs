@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use crate::{
     compiler::ty::{self, ty_array, ty_bool, ty_named_field, ty_path, ty_unnamed_field, Bits, Ty},
     rhif,
-    rhif::rhif_spec::{
+    rhif::spec::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum,
         Exec, If, Index, OpCode, Repeat, Slot, Struct, Tuple, Unary,
     },
@@ -155,11 +155,11 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     }
                     for field in fields {
                         match &field.member {
-                            rhif::rhif_spec::Member::Named(name) => {
+                            rhif::spec::Member::Named(name) => {
                                 let ty = ty_named_field(&ty, name)?;
                                 eq_types(slot_type(&field.value)?, ty)?;
                             }
-                            rhif::rhif_spec::Member::Unnamed(index) => {
+                            rhif::spec::Member::Unnamed(index) => {
                                 let ty = ty_unnamed_field(&ty, *index as usize)?;
                                 eq_types(slot_type(&field.value)?, ty)?;
                             }
@@ -181,11 +181,11 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     let variant_ty = variant_kind.into();
                     for field in fields {
                         match &field.member {
-                            rhif::rhif_spec::Member::Named(name) => {
+                            rhif::spec::Member::Named(name) => {
                                 let ty = ty_named_field(&variant_ty, name)?;
                                 eq_types(slot_type(&field.value)?, ty)?;
                             }
-                            rhif::rhif_spec::Member::Unnamed(index) => {
+                            rhif::spec::Member::Unnamed(index) => {
                                 let ty = ty_unnamed_field(&variant_ty, *index as usize)?;
                                 eq_types(slot_type(&field.value)?, ty)?;
                             }

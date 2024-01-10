@@ -1,4 +1,4 @@
-use crate::rhif::rhif_vm::execute_function;
+use crate::rhif::vm::execute_function;
 use crate::TypedBits;
 use crate::{
     compile_design, generate_verilog, kernel::ExternalKernelDef, Digital, DigitalFn, KernelFnKind,

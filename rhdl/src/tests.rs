@@ -8,7 +8,7 @@ use rhdl_core::{
     note_db::note_time,
     note_init_db, note_take,
     path::{bit_range, Path},
-    rhif::rhif_vm::execute_function,
+    rhif::vm::execute_function,
     test_kernel_vm_and_verilog, Digital, Kind,
 };
 use rhdl_macro::{kernel, Digital};

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::{
-    rhif::rhif_spec::{
+    rhif::spec::{
         Array, Assign, Binary, BlockId, Case, Cast, Discriminant, Enum, Exec, If, Index, OpCode,
         Repeat, Slot, Struct, Tuple, Unary,
     },

@@ -12,7 +12,7 @@ use crate::{
         op_discriminant, op_enum, op_exec, op_if, op_index, op_repeat, op_return, op_struct,
         op_tuple, op_unary,
     },
-    rhif::rhif_spec::{
+    rhif::spec::{
         self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, FuncId, Member, OpCode,
         Slot,
     },
@@ -27,11 +27,11 @@ use super::infer_types::id_to_var;
 
 const ROOT_BLOCK: BlockId = BlockId(0);
 
-impl From<ast_impl::Member> for rhif_spec::Member {
+impl From<ast_impl::Member> for spec::Member {
     fn from(member: ast_impl::Member) -> Self {
         match member {
-            ast_impl::Member::Named(name) => rhif_spec::Member::Named(name),
-            ast_impl::Member::Unnamed(index) => rhif_spec::Member::Unnamed(index),
+            ast_impl::Member::Named(name) => spec::Member::Named(name),
+            ast_impl::Member::Unnamed(index) => spec::Member::Unnamed(index),
         }
     }
 }
@@ -476,9 +476,9 @@ impl CompilerContext {
         self.op(op_index(lhs, arg, path));
         Ok(lhs)
     }
-    fn field_value(&mut self, element: &FieldValue) -> Result<rhif_spec::FieldValue> {
+    fn field_value(&mut self, element: &FieldValue) -> Result<spec::FieldValue> {
         let value = self.expr(&element.value)?;
-        Ok(rhif_spec::FieldValue {
+        Ok(spec::FieldValue {
             value,
             member: element.member.clone().into(),
         })
@@ -643,7 +643,7 @@ impl CompilerContext {
                 let fields = args
                     .iter()
                     .enumerate()
-                    .map(|(ndx, x)| rhif_spec::FieldValue {
+                    .map(|(ndx, x)| spec::FieldValue {
                         value: *x,
                         member: Member::Unnamed(ndx as u32),
                     })
@@ -654,7 +654,7 @@ impl CompilerContext {
                 let fields = args
                     .iter()
                     .enumerate()
-                    .map(|(ndx, x)| rhif_spec::FieldValue {
+                    .map(|(ndx, x)| spec::FieldValue {
                         value: *x,
                         member: Member::Unnamed(ndx as u32),
                     })
@@ -945,7 +945,7 @@ pub fn compile(func: &ast_impl::KernelFn, ctx: UnifyContext) -> Result<Object> {
     let blocks = compiler
         .blocks
         .into_iter()
-        .map(|x| rhif_spec::Block {
+        .map(|x| spec::Block {
             id: x.id,
             ops: x.ops,
         })
