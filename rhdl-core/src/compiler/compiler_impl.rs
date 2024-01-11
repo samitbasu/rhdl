@@ -45,7 +45,7 @@ pub struct Block {
     pub parent: BlockId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct NamedSlot {
     name: String,
     slot: Slot,
@@ -449,12 +449,20 @@ impl CompilerContext {
     fn if_expr(&mut self, id: NodeId, if_expr: &ExprIf) -> Result<Slot> {
         let result = self.reg(self.node_ty(id)?)?;
         let cond = self.expr(&if_expr.cond)?;
+        let locals = self.locals.clone();
         let then_branch = self.block(result, &if_expr.then_branch)?;
+        let locals_then_branch = self.locals.clone();
+        self.locals = locals.clone();
         let else_branch = if let Some(expr) = if_expr.else_branch.as_ref() {
             self.wrap_expr_in_block(result, expr)
         } else {
             self.empty_block(result)
         }?;
+        let locals_else_branch = self.locals.clone();
+        self.locals = locals;
+        if locals_then_branch != locals_else_branch {
+            bail!("ICE - locals in then and else branches do not match")
+        }
         self.op(op_if(result, cond, then_branch, else_branch));
         Ok(result)
     }
