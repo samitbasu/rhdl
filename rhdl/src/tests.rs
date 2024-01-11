@@ -1944,6 +1944,8 @@ fn test_early_return() {
     #[kernel]
     fn foo(a: b8, b: b8) -> b8 {
         if a > b {
+            let d = 5;
+            d + 3;
             return a;
         }
         b

@@ -476,13 +476,14 @@ fn translate(design: &Design, fn_id: FunctionId) -> Result<VerilogModule> {
         func_name,
         arg_decls.join(", "),
     );
-    // Allocate the registers
-    let max_reg = obj.reg_count() + 1;
-    // Skip the arguments..
-    let start = obj.arguments.iter().filter(|x| !x.is_empty()).count();
     func.push_str("    // Registers\n");
-    for reg in start..max_reg {
-        func.push_str(&format!("    {};\n", decl(&Slot::Register(reg), obj)?));
+    for reg in obj
+        .ty
+        .keys()
+        .filter(|x| !obj.arguments.contains(x))
+        .filter(|x| x.is_reg())
+    {
+        func.push_str(&format!("    {};\n", decl(reg, obj)?));
     }
     func.push_str("    // Literals\n");
     // Allocate the literals

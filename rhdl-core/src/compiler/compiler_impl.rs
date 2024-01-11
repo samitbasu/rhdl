@@ -53,7 +53,7 @@ pub struct NamedSlot {
 
 pub struct CompilerContext {
     pub blocks: Vec<Block>,
-    pub literals: Vec<Box<ast_impl::ExprLit>>,
+    pub literals: Vec<ast_impl::ExprLit>,
     pub reg_count: usize,
     active_block: BlockId,
     type_context: UnifyContext,
@@ -140,7 +140,7 @@ impl CompilerContext {
         if ty.is_empty() {
             return Ok(Slot::Empty);
         }
-        let reg = Slot::Register(self.reg_count);
+        let reg = Slot::Register(self.reg_count * 10);
         self.ty.insert(reg, ty);
         self.reg_count += 1;
         Ok(reg)
@@ -157,7 +157,7 @@ impl CompilerContext {
                 x.typed_bits()
             }
             Ty::Const(Bits::I128) => {
-                let x: i128 = value.try_into()?;
+                let x: i128 = value.into();
                 x.typed_bits()
             }
             Ty::Const(Bits::Unsigned(n)) => {
@@ -165,7 +165,7 @@ impl CompilerContext {
                 x.typed_bits().unsigned_cast(*n)?
             }
             Ty::Const(Bits::Signed(n)) => {
-                let x: i128 = value.try_into()?;
+                let x: i128 = value.into();
                 x.typed_bits().signed_cast(*n)?
             }
             Ty::Const(Bits::Usize) => {
@@ -182,10 +182,10 @@ impl CompilerContext {
         let ndx = self.literals.len();
         let ty = value.kind.clone().into();
         self.literals
-            .push(Box::new(ast_impl::ExprLit::TypedBits(ExprTypedBits {
+            .push(ast_impl::ExprLit::TypedBits(ExprTypedBits {
                 path: Box::new(Path { segments: vec![] }),
                 value: value.clone(),
-            })));
+            }));
         self.ty.insert(Slot::Literal(ndx), ty);
         Ok(Slot::Literal(ndx))
     }
@@ -216,7 +216,7 @@ impl CompilerContext {
         let Slot::Literal(ndx) = slot else {
             bail!("ICE - index is not a literal")
         };
-        let ndx = match self.literals[ndx].as_ref() {
+        let ndx = match &self.literals[ndx] {
             ExprLit::TypedBits(tb) => tb.value.as_i64()? as usize,
             ExprLit::Bool(b) => {
                 if *b {
@@ -816,7 +816,7 @@ impl CompilerContext {
             ExprKind::Lit(lit) => {
                 let ndx = self.literals.len();
                 let ty = self.ty(expr.id)?;
-                self.literals.push(Box::new(lit.clone()));
+                self.literals.push(lit.clone());
                 self.ty.insert(Slot::Literal(ndx), ty);
                 Ok(Slot::Literal(ndx))
             }
@@ -939,7 +939,7 @@ pub fn compile(func: &ast_impl::KernelFn, ctx: UnifyContext) -> Result<Object> {
                 .ok_or(anyhow!(
                     "ICE no literal type found for a literal in the table"
                 ))?;
-            cast_literal_to_inferred_type(*lit, ty)
+            cast_literal_to_inferred_type(lit, ty)
         })
         .collect::<Result<Vec<_>>>()?;
     let blocks = compiler

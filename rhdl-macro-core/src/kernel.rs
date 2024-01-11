@@ -305,6 +305,8 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
             #[forbid(non_snake_case)]
             #[forbid(non_upper_case_globals)]
             #[forbid(unreachable_patterns)]
+            //#[forbid(path_statements)]
+            //#[forbid(unused_variables)]
             fn inner #impl_generics (#args) #ret #where_clause {
                 #body
             }
