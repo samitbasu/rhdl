@@ -12,6 +12,7 @@ use rhdl_core::{
     test_kernel_vm_and_verilog, Digital, Kind,
 };
 use rhdl_macro::{kernel, Digital};
+use rhdl_std::UnsignedMethods;
 
 #[test]
 fn test_vcd_enum() {
@@ -530,6 +531,31 @@ fn test_rebinding() {
         let q = a;
         let q = bits::<12>(6);
         let q = bits::<16>(7);
+        q
+    }
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
+}
+
+#[test]
+fn test_phi() {
+    #[kernel]
+    fn do_stuff(a: b1) -> b8 {
+        let mut c = bits::<8>(0);
+        if a.any() {
+            c = bits::<8>(1);
+        }
+        c
+    }
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
+}
+
+#[test]
+fn test_ssa() {
+    #[kernel]
+    fn do_stuff(a: b8) -> b8 {
+        let mut q = a;
+        q = q + a;
+        q = a;
         q
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();

@@ -140,7 +140,7 @@ impl CompilerContext {
         if ty.is_empty() {
             return Ok(Slot::Empty);
         }
-        let reg = Slot::Register(self.reg_count * 10);
+        let reg = Slot::Register(self.reg_count);
         self.ty.insert(reg, ty);
         self.reg_count += 1;
         Ok(reg)
@@ -254,6 +254,17 @@ impl CompilerContext {
         {
             bail!("Duplicate local variable binding for {:?}", id)
         }
+        Ok(())
+    }
+    fn rebind(&mut self, id: NodeId) -> Result<()> {
+        let ty = self.ty(id)?;
+        let reg = self.reg(ty)?;
+        let Some(named) = self.locals.get(&id.into()) else {
+            bail!("No local variable binding for {:?}", id)
+        };
+        let name = named.name.clone();
+        eprintln!("Rebinding {name}#{id} -> {reg}");
+        self.locals.insert(id.into(), NamedSlot { slot: reg, name });
         Ok(())
     }
     fn resolve_parent(&mut self, child: NodeId) -> Result<Slot> {
@@ -611,8 +622,8 @@ impl CompilerContext {
         Ok(lhs)
     }
     fn assign(&mut self, assign: &ast_impl::ExprAssign) -> Result<Slot> {
-        let (lhs, path) = self.expr_lhs(&assign.lhs)?;
         let rhs = self.expr(&assign.rhs)?;
+        let (lhs, path) = self.expr_lhs(&assign.lhs)?;
         self.op(op_assign(lhs, rhs, path));
         Ok(Slot::Empty)
     }
@@ -673,9 +684,9 @@ impl CompilerContext {
         Ok(lhs)
     }
     fn self_assign_binop(&mut self, bin: &ExprBinary) -> Result<Slot> {
-        let (dest, path) = self.expr_lhs(&bin.lhs)?;
         let lhs = self.expr(&bin.lhs)?;
         let rhs = self.expr(&bin.rhs)?;
+        let (dest, path) = self.expr_lhs(&bin.lhs)?;
         let temp = self.reg(self.node_ty(bin.lhs.id)?)?;
         let result = Slot::Empty;
         let op = &bin.op;
@@ -781,6 +792,14 @@ impl CompilerContext {
     fn expr_lhs(&mut self, expr: &Expr) -> Result<(Slot, crate::path::Path)> {
         match &expr.kind {
             ExprKind::Path(_path) => {
+                let child_id = id_to_var(expr.id)?;
+                let Ty::Var(child_id) = child_id else {
+                    bail!("ICE - child id is not a var")
+                };
+                let Some(parent_tyid) = self.type_context.get_parent(child_id) else {
+                    bail!("No parent for {:?}", child_id)
+                };
+                self.rebind(parent_tyid.into())?;
                 let parent = self.resolve_parent(expr.id)?;
                 Ok((parent, crate::path::Path::default()))
             }
