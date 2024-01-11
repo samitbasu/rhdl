@@ -180,6 +180,10 @@ impl Slot {
     pub fn is_empty(&self) -> bool {
         matches!(self, Slot::Empty)
     }
+
+    pub(crate) fn is_reg(&self) -> bool {
+        matches!(self, Slot::Register(_))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
