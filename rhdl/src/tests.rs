@@ -541,9 +541,15 @@ fn test_phi() {
     #[kernel]
     fn do_stuff(a: b1) -> b8 {
         let mut c = bits::<8>(0);
+        match a {
+            Bits::<1>(0) => c = bits::<8>(2),
+            Bits::<1>(1) => c = bits::<8>(3),
+            _ => {}
+        }
         if a.any() {
             c = bits::<8>(1);
         }
+        let y = c;
         c
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
