@@ -21,7 +21,7 @@ use crate::{
     Digital, KernelFnKind, Kind,
 };
 use anyhow::{anyhow, bail, Result};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use super::infer_types::id_to_var;
 
@@ -45,10 +45,10 @@ pub struct Block {
     pub parent: BlockId,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct NamedSlot {
-    name: String,
-    slot: Slot,
+type LocalsMap = HashMap<TypeId, Slot>;
+pub struct Rebind {
+    from: Slot,
+    to: Slot,
 }
 
 pub struct CompilerContext {
@@ -58,7 +58,7 @@ pub struct CompilerContext {
     active_block: BlockId,
     type_context: UnifyContext,
     ty: BTreeMap<Slot, Ty>,
-    locals: HashMap<TypeId, NamedSlot>,
+    locals: LocalsMap,
     stash: Vec<ExternalFunction>,
     return_slot: Slot,
     main_block: BlockId,
@@ -241,44 +241,32 @@ impl CompilerContext {
         let ty = self.ty(id)?;
         let reg = self.reg(ty)?;
         eprintln!("Binding {name}#{id} -> {reg}");
-        if self
-            .locals
-            .insert(
-                id.into(),
-                NamedSlot {
-                    slot: reg,
-                    name: name.to_string(),
-                },
-            )
-            .is_some()
-        {
+        if self.locals.insert(id.into(), reg).is_some() {
             bail!("Duplicate local variable binding for {:?}", id)
         }
         Ok(())
     }
-    fn rebind(&mut self, id: NodeId) -> Result<()> {
+    fn rebind(&mut self, id: NodeId) -> Result<Rebind> {
         let ty = self.ty(id)?;
         let reg = self.reg(ty)?;
-        let Some(named) = self.locals.get(&id.into()) else {
+        let Some(prev) = self.locals.get(&id.into()).copied() else {
             bail!("No local variable binding for {:?}", id)
         };
-        let name = named.name.clone();
-        eprintln!("Rebinding {name}#{id} -> {reg}");
-        self.locals.insert(id.into(), NamedSlot { slot: reg, name });
-        Ok(())
+        eprintln!("Rebinding {prev} -> {reg}");
+        self.locals.insert(id.into(), reg);
+        Ok(Rebind {
+            from: prev,
+            to: reg,
+        })
     }
     fn resolve_parent(&mut self, child: NodeId) -> Result<Slot> {
         let child_id = id_to_var(child)?;
         if let Ty::Var(child_id) = child_id {
             if let Some(parent) = self.type_context.get_parent(child_id) {
-                return self
-                    .locals
-                    .get(&parent)
-                    .map(|x| x.slot)
-                    .ok_or(anyhow::anyhow!(
-                        "No local variable for {:?} defined when needed",
-                        child_id,
-                    ));
+                return self.locals.get(&parent).cloned().ok_or(anyhow::anyhow!(
+                    "No local variable for {:?} defined when needed",
+                    child_id,
+                ));
             }
         }
         bail!("No parent for {:?}", child_id)
@@ -286,8 +274,45 @@ impl CompilerContext {
     fn resolve_local(&mut self, id: NodeId) -> Result<Slot> {
         self.locals
             .get(&id.into())
-            .map(|x| x.slot)
+            .cloned()
             .ok_or(anyhow::anyhow!("No local variable for {:?}", id))
+    }
+    fn handle_rebindings(&mut self, branch_locals: &[(BlockId, LocalsMap)]) -> Result<()> {
+        // First identify the set of local variables that have
+        // been rebound in _any_ of the branches. Only consider
+        // local variables that were defined prior to the branch
+        // being taken, since due to scoping rules, any local
+        // variable inside the block scope of the branch cannot
+        // survive the branch.
+        let mut rebound_locals = BTreeSet::new();
+        for (_block, branch_locals) in branch_locals {
+            let branch_rebindings = get_locals_changed(&self.locals, branch_locals)?;
+            rebound_locals.extend(branch_rebindings);
+        }
+        // Next, for each local variable in rebindings, we need a new
+        // binding for that variable in the current scope.
+        let post_branch_bindings: BTreeMap<TypeId, Rebind> = rebound_locals
+            .iter()
+            .map(|x| self.rebind((*x).into()).map(|r| (*x, r)))
+            .collect::<Result<_>>()?;
+        // Finally for each branch, we need to update the bindings in that branch
+        // from it's current definition of that local variable to the new
+        // target slot.  This is done by adding an assignment to the end of the
+        // block.
+        for (block, branch_locals) in branch_locals {
+            for (var, rebind) in &post_branch_bindings {
+                let old_binding = *branch_locals.get(var).ok_or(anyhow!(
+                    "ICE - no local var found for binding {var:?} in branch"
+                ))?;
+                let new_binding = rebind.to;
+                self.blocks[block.0].ops.push(op_assign(
+                    new_binding,
+                    old_binding,
+                    crate::path::Path::default(),
+                ));
+            }
+        }
+        Ok(())
     }
     fn unop(&mut self, id: NodeId, unary: &ast_impl::ExprUnary) -> Result<Slot> {
         let arg = self.expr(&unary.expr)?;
@@ -449,20 +474,20 @@ impl CompilerContext {
     fn if_expr(&mut self, id: NodeId, if_expr: &ExprIf) -> Result<Slot> {
         let result = self.reg(self.node_ty(id)?)?;
         let cond = self.expr(&if_expr.cond)?;
-        let locals = self.locals.clone();
+        let locals_prior_to_branch = self.locals.clone();
         let then_branch = self.block(result, &if_expr.then_branch)?;
-        let locals_then_branch = self.locals.clone();
-        self.locals = locals.clone();
+        let locals_after_then_branch = self.locals.clone();
+        self.locals = locals_prior_to_branch.clone();
         let else_branch = if let Some(expr) = if_expr.else_branch.as_ref() {
             self.wrap_expr_in_block(result, expr)
         } else {
             self.empty_block(result)
         }?;
-        let locals_else_branch = self.locals.clone();
-        self.locals = locals;
-        if locals_then_branch != locals_else_branch {
-            bail!("ICE - locals in then and else branches do not match")
-        }
+        let locals_after_else_branch = self.locals.clone();
+        self.handle_rebindings(&[
+            (then_branch, locals_after_then_branch),
+            (else_branch, locals_after_else_branch),
+        ])?;
         self.op(op_if(result, cond, then_branch, else_branch));
         Ok(result)
     }
@@ -531,11 +556,18 @@ impl CompilerContext {
         } else {
             target
         };
-        let table = _match
-            .arms
-            .iter()
-            .map(|x| self.expr_arm(target, lhs, x))
-            .collect::<Result<_>>()?;
+        // Need to handle local rebindings in the bodies of the arms.
+        let locals_prior_to_match = self.locals.clone();
+        let mut table = vec![];
+        let mut arm_locals = vec![];
+        for arm in &_match.arms {
+            self.locals = locals_prior_to_match.clone();
+            let (disc, block) = self.expr_arm(target, lhs, arm)?;
+            table.push((disc, block));
+            arm_locals.push((block, self.locals.clone()));
+        }
+        self.locals = locals_prior_to_match.clone();
+        self.handle_rebindings(&arm_locals)?;
         self.op(op_case(discriminant, table));
         Ok(lhs)
     }
@@ -1039,4 +1071,22 @@ fn cast_literal_to_inferred_type(t: ExprLit, ty: Ty) -> Result<TypedBits> {
             }
         }
     }
+}
+
+fn get_locals_changed(from: &LocalsMap, to: &LocalsMap) -> Result<BTreeSet<TypeId>> {
+    from.iter()
+        .filter_map(|(id, slot)| {
+            {
+                if let Some(to_slot) = to.get(id) {
+                    Ok(if to_slot != slot { Some(*id) } else { None })
+                } else {
+                    Err(anyhow!(
+                        "ICE - local variable {:?} not found in branch map",
+                        id
+                    ))
+                }
+            }
+            .transpose()
+        })
+        .collect()
 }
