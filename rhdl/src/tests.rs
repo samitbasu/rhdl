@@ -546,8 +546,16 @@ fn test_phi() {
             Bits::<1>(1) => c = bits::<8>(3),
             _ => {}
         }
+        let d = c;
         if a.any() {
             c = bits::<8>(1);
+            c = bits::<8>(2);
+        } else {
+            c = bits::<8>(3);
+            c = bits::<8>(4);
+            if a.all() {
+                c = bits::<8>(5);
+            }
         }
         let y = c;
         c
