@@ -8,6 +8,8 @@ use crate::{
     TypedBits,
 };
 
+use super::spec::Splice;
+
 pub fn op_binary(op: AluBinary, lhs: Slot, arg1: Slot, arg2: Slot) -> OpCode {
     OpCode::Binary(Binary {
         op,
@@ -38,8 +40,17 @@ pub fn op_index(lhs: Slot, arg: Slot, path: Path) -> OpCode {
     OpCode::Index(Index { lhs, arg, path })
 }
 
-pub fn op_assign(lhs: Slot, rhs: Slot, path: Path) -> OpCode {
-    OpCode::Assign(Assign { lhs, rhs, path })
+pub fn op_assign(lhs: Slot, rhs: Slot) -> OpCode {
+    OpCode::Assign(Assign { lhs, rhs })
+}
+
+pub fn op_splice(lhs: Slot, rhs: Slot, path: Path, arg: Slot) -> OpCode {
+    OpCode::Splice(Splice {
+        lhs,
+        orig: rhs,
+        path,
+        subst: arg,
+    })
 }
 
 pub fn op_repeat(lhs: Slot, value: Slot, len: usize) -> OpCode {

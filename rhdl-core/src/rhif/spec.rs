@@ -15,8 +15,10 @@ pub enum OpCode {
     If(If),
     // lhs <- arg[path]
     Index(Index),
-    // lhs[path] <- rhs
+    // lhs <- rhs,
     Assign(Assign),
+    // lhs <- rhs, where rhs[path] = arg
+    Splice(Splice),
     // lhs <- [value; len]
     Repeat(Repeat),
     // lhs <- Struct@path { fields (..rest) }
@@ -76,7 +78,14 @@ pub struct Index {
 pub struct Assign {
     pub lhs: Slot,
     pub rhs: Slot,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Splice {
+    pub lhs: Slot,
+    pub orig: Slot,
     pub path: Path,
+    pub subst: Slot,
 }
 
 #[derive(Debug, Clone, PartialEq)]

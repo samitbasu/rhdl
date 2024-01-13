@@ -9,8 +9,8 @@ use crate::{
     compiler::UnifyContext,
     rhif::rhif_builder::{
         op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment,
-        op_discriminant, op_enum, op_exec, op_if, op_index, op_repeat, op_return, op_struct,
-        op_tuple, op_unary,
+        op_discriminant, op_enum, op_exec, op_if, op_index, op_repeat, op_return, op_splice,
+        op_struct, op_tuple, op_unary,
     },
     rhif::spec::{
         self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, FuncId, Member, OpCode,
@@ -305,11 +305,9 @@ impl CompilerContext {
                     "ICE - no local var found for binding {var:?} in branch"
                 ))?;
                 let new_binding = rebind.to;
-                self.blocks[block.0].ops.push(op_assign(
-                    new_binding,
-                    old_binding,
-                    crate::path::Path::default(),
-                ));
+                self.blocks[block.0]
+                    .ops
+                    .push(op_assign(new_binding, old_binding));
             }
         }
         Ok(())
@@ -343,7 +341,7 @@ impl CompilerContext {
         match &pat.kind {
             PatKind::Ident(_ident) => {
                 if let Ok(lhs) = self.resolve_local(pat.id) {
-                    self.op(op_assign(lhs, rhs, crate::path::Path::default()));
+                    self.op(op_assign(lhs, rhs));
                 }
                 Ok(())
             }
@@ -452,11 +450,7 @@ impl CompilerContext {
             let is_last = ndx == statement_count - 1;
             let result = self.stmt(statement)?;
             if is_last && (block_result != result) {
-                self.op(op_assign(
-                    block_result,
-                    result,
-                    crate::path::Path::default(),
-                ));
+                self.op(op_assign(block_result, result));
             }
         }
         self.set_active_block(current_block);
@@ -635,7 +629,7 @@ impl CompilerContext {
                 self.op(op_index(payload, target, path));
                 self.initialize_local(&arm_enum.pat, payload)?;
                 let result = self.expr(&arm.body)?;
-                self.op(op_assign(lhs, result, crate::path::Path::default()));
+                self.op(op_assign(lhs, result));
                 self.set_active_block(current_block);
                 Ok((CaseArgument::Constant(discriminant), id))
             }
@@ -644,11 +638,7 @@ impl CompilerContext {
     fn return_expr(&mut self, _return: &ast_impl::ExprRet) -> Result<Slot> {
         if let Some(expr) = &_return.expr {
             let result = self.expr(expr)?;
-            self.op(op_assign(
-                self.return_slot,
-                result,
-                crate::path::Path::default(),
-            ));
+            self.op(op_assign(self.return_slot, result));
         }
         self.op(op_return());
         Ok(Slot::Empty)
@@ -663,8 +653,12 @@ impl CompilerContext {
     }
     fn assign(&mut self, assign: &ast_impl::ExprAssign) -> Result<Slot> {
         let rhs = self.expr(&assign.rhs)?;
-        let (lhs, path) = self.expr_lhs(&assign.lhs)?;
-        self.op(op_assign(lhs, rhs, path));
+        let (rebind, path) = self.expr_lhs(&assign.lhs)?;
+        if path.is_empty() {
+            self.op(op_assign(rebind.to, rhs));
+        } else {
+            self.op(op_splice(rebind.to, rebind.from, path, rhs));
+        }
         Ok(Slot::Empty)
     }
     fn method_call(&mut self, id: NodeId, method_call: &ast_impl::ExprMethodCall) -> Result<Slot> {
@@ -742,7 +736,11 @@ impl CompilerContext {
             _ => bail!("ICE - self_assign_binop {:?}", op),
         };
         self.op(op_binary(alu, temp, lhs, rhs));
-        self.op(op_assign(dest, temp, path));
+        if path.is_empty() {
+            self.op(op_assign(dest.to, temp));
+        } else {
+            self.op(op_splice(dest.to, dest.from, path, temp));
+        }
         Ok(result)
     }
     fn binop(&mut self, id: NodeId, bin: &ExprBinary) -> Result<Slot> {
@@ -829,7 +827,18 @@ impl CompilerContext {
         self.op(OpCode::Block(loop_block));
         Ok(Slot::Empty)
     }
-    fn expr_lhs(&mut self, expr: &Expr) -> Result<(Slot, crate::path::Path)> {
+    // We need three components
+    //    - the original variable that holds the LHS
+    //    - the path to change (if any)
+    //    - the new place to write the value.
+    // So, for example, if we have
+    //    a[n] = b
+    // Then we need to know:
+    //    The original binding of `a`
+    //    The path corresponding to `[n]`
+    //    The place to store the result of splicing `a[n]<-b` in a new
+    //    binding of the name 'a'.
+    fn expr_lhs(&mut self, expr: &Expr) -> Result<(Rebind, crate::path::Path)> {
         match &expr.kind {
             ExprKind::Path(_path) => {
                 let child_id = id_to_var(expr.id)?;
@@ -839,23 +848,22 @@ impl CompilerContext {
                 let Some(parent_tyid) = self.type_context.get_parent(child_id) else {
                     bail!("No parent for {:?}", child_id)
                 };
-                self.rebind(parent_tyid.into())?;
-                let parent = self.resolve_parent(expr.id)?;
-                Ok((parent, crate::path::Path::default()))
+                let rebind = self.rebind(parent_tyid.into())?;
+                Ok((rebind, crate::path::Path::default()))
             }
             ExprKind::Field(field) => {
-                let (slot, path) = self.expr_lhs(&field.expr)?;
+                let (rebind, path) = self.expr_lhs(&field.expr)?;
                 let field = field.member.clone().into();
-                Ok((slot, path.join(&field)))
+                Ok((rebind, path.join(&field)))
             }
             ExprKind::Index(index) => {
-                let (slot, path) = self.expr_lhs(&index.expr)?;
+                let (rebind, path) = self.expr_lhs(&index.expr)?;
                 let index = self.expr(&index.index)?;
                 if index.is_literal() {
                     let ndx = self.slot_to_index(index)?;
-                    Ok((slot, path.index(ndx)))
+                    Ok((rebind, path.index(ndx)))
                 } else {
-                    Ok((slot, path.dynamic(index)))
+                    Ok((rebind, path.dynamic(index)))
                 }
             }
             _ => todo!("expr_lhs {:?}", expr),
@@ -904,11 +912,7 @@ impl CompilerContext {
         let id = self.new_block(block_result);
         let result = self.expr(expr)?;
         if result != block_result {
-            self.op(op_assign(
-                block_result,
-                result,
-                crate::path::Path::default(),
-            ));
+            self.op(op_assign(block_result, result));
         }
         self.set_active_block(current_block);
         Ok(id)
