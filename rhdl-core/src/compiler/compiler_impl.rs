@@ -819,6 +819,7 @@ impl CompilerContext {
         let end_lit = end_lit.parse::<i32>()?;
         for ndx in start_lit..end_lit {
             let value = self.literal_from_type_and_int(&index_ty, ndx)?;
+            self.rebind(for_loop.pat.id)?;
             self.initialize_local(&for_loop.pat, value)?;
             let body = self.block(Slot::Empty, &for_loop.body)?;
             self.op(OpCode::Block(body));
