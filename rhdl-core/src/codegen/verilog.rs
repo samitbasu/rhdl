@@ -4,7 +4,7 @@ use crate::kernel::ExternalKernelDef;
 use crate::path::{bit_range, Path, PathElement};
 use crate::rhif::spec::{
     AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast, Discriminant,
-    Enum, Exec, If, Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
+    Enum, Exec, If, Index, Member, OpCode, Repeat, Slot, Splice, Struct, Tuple, Unary,
 };
 use crate::test_module::VerilogDescriptor;
 use crate::util::binary_string;
@@ -124,11 +124,18 @@ impl<'a> TranslationContext<'a> {
         ))
     }
 
-    fn translate_dynamic_assign(&mut self, lhs: &Slot, rhs: &Slot, path: &Path) -> Result<()> {
+    fn translate_dynamic_splice(
+        &mut self,
+        lhs: &Slot,
+        orig: &Slot,
+        path: &Path,
+        subst: &Slot,
+    ) -> Result<()> {
         ensure!(path.any_dynamic());
-        let index_expression = self.compute_dynamic_index_expression(lhs, path)?;
-        self.body
-            .push_str(&format!("    {lhs}[{index_expression}] = {rhs};\n"));
+        let index_expression = self.compute_dynamic_index_expression(orig, path)?;
+        self.body.push_str(&format!(
+            "    {lhs} = {orig};\n    {lhs}[{index_expression}] = {subst};\n"
+        ));
         Ok(())
     }
 
@@ -162,22 +169,28 @@ impl<'a> TranslationContext<'a> {
         Ok(())
     }
 
-    fn translate_assign(&mut self, lhs: &Slot, rhs: &Slot, path: &Path) -> Result<()> {
+    fn translate_splice(
+        &mut self,
+        lhs: &Slot,
+        orig: &Slot,
+        path: &Path,
+        subst: &Slot,
+    ) -> Result<()> {
         ensure!(!path.any_dynamic());
-        let lhs_ty = self
+        let orig_ty = self
             .obj
             .ty
-            .get(lhs)
+            .get(orig)
             .ok_or(anyhow!(
                 "No type for slot {} in function {}",
-                lhs,
+                orig,
                 self.obj.name
             ))?
             .clone();
-        let lhs_kind: Kind = lhs_ty.try_into()?;
-        let (bit_range, _) = bit_range(lhs_kind, path)?;
+        let orig_kind: Kind = orig_ty.try_into()?;
+        let (bit_range, _) = bit_range(orig_kind, path)?;
         self.body.push_str(&format!(
-            "    {lhs}[{}:{}] = {rhs};\n",
+            "     {lhs} = {orig};\n    {lhs}[{}:{}] = {subst};\n",
             bit_range.end - 1,
             bit_range.start,
         ));
@@ -226,11 +239,19 @@ impl<'a> TranslationContext<'a> {
                     self.translate_index(lhs, arg, path)?;
                 }
             }
-            OpCode::Assign(Assign { lhs, rhs, path }) => {
+            OpCode::Assign(Assign { lhs, rhs }) => {
+                self.body.push_str(&format!("    {lhs} = {rhs};\n",));
+            }
+            OpCode::Splice(Splice {
+                lhs,
+                orig,
+                path,
+                subst,
+            }) => {
                 if path.any_dynamic() {
-                    self.translate_dynamic_assign(lhs, rhs, path)?;
+                    self.translate_dynamic_splice(lhs, orig, path, subst)?;
                 } else {
-                    self.translate_assign(lhs, rhs, path)?;
+                    self.translate_splice(lhs, orig, path, subst)?;
                 }
             }
             OpCode::Comment(s) => {

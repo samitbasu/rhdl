@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::{
     rhif::spec::{
         Array, Assign, Binary, BlockId, Case, Cast, Discriminant, Enum, Exec, If, Index, OpCode,
-        Repeat, Slot, Struct, Tuple, Unary,
+        Repeat, Slot, Splice, Struct, Tuple, Unary,
     },
     rhif::Object,
 };
@@ -106,10 +106,20 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
                 }
                 init_set.write(lhs)?;
             }
-            OpCode::Assign(Assign { lhs, rhs, path }) => {
+            OpCode::Assign(Assign { lhs, rhs }) => {
                 init_set.read(rhs)?;
-                if !path.is_empty() {
-                    init_set.read(lhs)?;
+                init_set.write(lhs)?;
+            }
+            OpCode::Splice(Splice {
+                lhs,
+                orig,
+                path,
+                subst,
+            }) => {
+                init_set.read(orig)?;
+                init_set.read(subst)?;
+                for slot in path.dynamic_slots() {
+                    init_set.read(slot)?;
                 }
                 init_set.write(lhs)?;
             }

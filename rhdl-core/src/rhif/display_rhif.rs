@@ -4,7 +4,7 @@ use crate::{
     rhif::spec::{
         AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast,
         Discriminant, Enum, Exec, FieldValue, FuncId, If, Index, Member, OpCode, Repeat, Slot,
-        Struct, Tuple, Unary,
+        Splice, Struct, Tuple, Unary,
     },
     util::splice,
 };
@@ -26,8 +26,16 @@ impl Display for OpCode {
             OpCode::Array(Array { lhs, elements }) => {
                 write!(f, " {} <- [{}]", lhs, splice(elements, ", "))
             }
-            OpCode::Assign(Assign { lhs, rhs, path }) => {
-                write!(f, "{}{} <- {}", lhs, path, rhs)
+            OpCode::Assign(Assign { lhs, rhs }) => {
+                write!(f, "{} <- {}", lhs, rhs)
+            }
+            OpCode::Splice(Splice {
+                lhs,
+                orig: rhs,
+                path,
+                subst: arg,
+            }) => {
+                write!(f, "{} <- {}/[{}]{}", lhs, path, rhs, arg)
             }
             OpCode::If(If {
                 lhs,

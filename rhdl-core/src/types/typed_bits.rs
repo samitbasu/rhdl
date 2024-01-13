@@ -33,7 +33,7 @@ impl TypedBits {
             kind,
         })
     }
-    pub fn update(&self, path: &Path, value: TypedBits) -> anyhow::Result<TypedBits> {
+    pub fn splice(&self, path: &Path, value: TypedBits) -> anyhow::Result<TypedBits> {
         let (range, kind) = bit_range(self.kind.clone(), path)?;
         if kind != value.kind {
             bail!(

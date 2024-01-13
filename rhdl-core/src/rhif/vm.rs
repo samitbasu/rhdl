@@ -13,6 +13,8 @@ use anyhow::Result;
 
 use anyhow::{anyhow, bail};
 
+use super::spec::Splice;
+
 struct VMState<'a> {
     reg_stack: &'a mut [Option<TypedBits>],
     literals: &'a [TypedBits],
@@ -139,16 +141,20 @@ fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
                 let result = arg.path(&path)?;
                 state.write(*lhs, result)?;
             }
-            OpCode::Assign(Assign { lhs, rhs, path }) => {
+            OpCode::Splice(Splice {
+                lhs,
+                orig: rhs,
+                path,
+                subst: arg,
+            }) => {
                 let rhs_val = state.read(*rhs)?;
                 let path = state.resolve_dynamic_paths(path)?;
-                if path.is_empty() {
-                    state.write(*lhs, rhs_val)?;
-                } else {
-                    let lhs_val = state.read(*lhs)?;
-                    let result = lhs_val.update(&path, rhs_val)?;
-                    state.write(*lhs, result)?;
-                }
+                let arg_val = state.read(*arg)?;
+                let result = rhs_val.splice(&path, arg_val)?;
+                state.write(*lhs, result)?;
+            }
+            OpCode::Assign(Assign { lhs, rhs }) => {
+                state.write(*lhs, state.read(*rhs)?)?;
             }
             OpCode::Tuple(Tuple { lhs, fields }) => {
                 let fields = fields
@@ -194,7 +200,7 @@ fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
                         Member::Unnamed(ndx) => Path::default().index(*ndx as usize),
                         Member::Named(name) => Path::default().field(name),
                     };
-                    result = result.update(&path, value)?;
+                    result = result.splice(&path, value)?;
                 }
                 state.write(*lhs, result)?;
             }
@@ -212,7 +218,7 @@ fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
                         Member::Unnamed(ndx) => base_path.index(*ndx as usize),
                         Member::Named(name) => base_path.field(name),
                     };
-                    result = result.update(&path, value)?;
+                    result = result.splice(&path, value)?;
                 }
                 state.write(*lhs, result)?;
             }

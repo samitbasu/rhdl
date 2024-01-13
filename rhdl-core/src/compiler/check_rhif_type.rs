@@ -9,7 +9,7 @@ use crate::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum,
         Exec, If, Index, OpCode, Repeat, Slot, Struct, Tuple, Unary,
     },
-    rhif::Object,
+    rhif::{spec::Splice, Object},
 };
 use anyhow::{anyhow, bail};
 use anyhow::{ensure, Result};
@@ -126,8 +126,17 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                 }) => {
                     eq_types(slot_type(cond)?, ty::ty_bool())?;
                 }
-                OpCode::Assign(Assign { lhs, rhs, path }) => {
-                    eq_types(ty_path(slot_type(lhs)?, path)?, slot_type(rhs)?)?;
+                OpCode::Assign(Assign { lhs, rhs }) => {
+                    eq_types(slot_type(lhs)?, slot_type(rhs)?)?;
+                }
+                OpCode::Splice(Splice {
+                    lhs,
+                    orig,
+                    path,
+                    subst,
+                }) => {
+                    eq_types(ty_path(slot_type(lhs)?, path)?, slot_type(subst)?)?;
+                    eq_types(slot_type(lhs)?, slot_type(orig)?)?;
                 }
                 OpCode::Tuple(Tuple { lhs, fields }) => {
                     let ty = fields.iter().map(slot_type).collect::<Result<Vec<_>>>()?;
