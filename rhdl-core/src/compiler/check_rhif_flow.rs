@@ -40,6 +40,9 @@ impl InitSet {
                 bail!("Cannot write to literal {}", ndx);
             }
             Slot::Register(_) => {
+                if self.set.contains(slot) {
+                    bail!("{} is already initialized", slot);
+                }
                 self.set.insert(*slot);
             }
         }
@@ -97,7 +100,7 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
                 let base_set = init_set.clone();
                 init_set = check_flow(obj, *then_branch, base_set.clone())?;
                 init_set = init_set.intersect(&check_flow(obj, *else_branch, base_set.clone())?);
-                init_set.write(lhs)?;
+                //init_set.write(lhs)?;
             }
             OpCode::Index(Index { lhs, arg, path }) => {
                 init_set.read(arg)?;
@@ -153,7 +156,10 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
             }
             OpCode::Comment(_) => {}
             OpCode::Return => {
-                break;
+                // Note that we ignore the return and
+                // continue checking the rest of the block, since
+                // from a flow perspective, the return does not affect
+                // the assignments in the rest of the block;
             }
             OpCode::Block(id) => {
                 init_set = check_flow(obj, *id, init_set)?;

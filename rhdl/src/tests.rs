@@ -308,6 +308,16 @@ fn test_struct_expr_adt() {
 }
 
 #[test]
+fn test_phi_if_consts() {
+    #[kernel]
+    fn do_stuff(a: b1) -> b8 {
+        let j = if a.any() { 3 } else { 7 };
+        bits::<8>(j)
+    }
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
+}
+
+#[test]
 fn test_ast_basic_func() {
     use rhdl_bits::alias::*;
     #[derive(PartialEq, Copy, Clone, Digital, Default)]
