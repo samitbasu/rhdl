@@ -21,7 +21,6 @@ struct VMState<'a> {
     blocks: &'a [Block],
     design: &'a Design,
     obj: &'a Object,
-    early_return_signalled: bool,
 }
 
 impl<'a> VMState<'a> {
@@ -75,9 +74,6 @@ impl<'a> VMState<'a> {
 
 fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
     for op in &block.ops {
-        if state.early_return_signalled {
-            break;
-        }
         match op {
             OpCode::Binary(Binary {
                 op,
@@ -282,10 +278,6 @@ fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
                 let result = value.repeat(*len);
                 state.write(*lhs, result)?;
             }
-            OpCode::Return => {
-                state.early_return_signalled = true;
-                break;
-            }
         }
     }
     Ok(())
@@ -340,7 +332,6 @@ fn execute(design: &Design, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
         blocks: &obj.blocks,
         design,
         obj,
-        early_return_signalled: false,
     };
     execute_block(block, &mut state)?;
     reg_stack

@@ -1,7 +1,7 @@
 use crate::{
     ast::ast_impl::{
         self, ArmKind, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprLit, ExprTuple,
-        ExprTypedBits, FieldValue, FunctionId, Local, NodeId, Pat, PatKind, Path,
+        ExprTypedBits, FieldValue, FunctionId, Local, NodeId, Pat, PatKind, Path, INVALID_NODE_ID,
     },
     ast::display_ast::pretty_print_statement,
     ast::visit::Visitor,
@@ -9,8 +9,8 @@ use crate::{
     compiler::UnifyContext,
     rhif::rhif_builder::{
         op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment,
-        op_discriminant, op_enum, op_exec, op_if, op_index, op_repeat, op_return, op_splice,
-        op_struct, op_tuple, op_unary,
+        op_discriminant, op_enum, op_exec, op_if, op_index, op_repeat, op_splice, op_struct,
+        op_tuple, op_unary,
     },
     rhif::spec::{
         self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, FuncId, Member, OpCode,
@@ -23,9 +23,10 @@ use crate::{
 use anyhow::{anyhow, bail, Result};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
-use super::infer_types::id_to_var;
+use super::{infer_types::id_to_var, ty::ty_bool};
 
 const ROOT_BLOCK: BlockId = BlockId(0);
+const EARLY_RETURN_FLAG_NODE: NodeId = NodeId::new(!0);
 
 impl From<ast_impl::Member> for spec::Member {
     fn from(member: ast_impl::Member) -> Self {
@@ -60,7 +61,7 @@ pub struct CompilerContext {
     ty: BTreeMap<Slot, Ty>,
     locals: LocalsMap,
     stash: Vec<ExternalFunction>,
-    return_slot: Slot,
+    return_node: NodeId,
     main_block: BlockId,
     arguments: Vec<Slot>,
     fn_id: FunctionId,
@@ -125,7 +126,7 @@ impl CompilerContext {
             ty: [(Slot::Empty, ty_empty())].into_iter().collect(),
             locals: Default::default(),
             stash: Default::default(),
-            return_slot: Slot::Empty,
+            return_node: INVALID_NODE_ID,
             main_block: ROOT_BLOCK,
             arguments: Default::default(),
             fn_id: Default::default(),
@@ -289,6 +290,7 @@ impl CompilerContext {
             let branch_rebindings = get_locals_changed(&self.locals, branch_locals)?;
             rebound_locals.extend(branch_rebindings);
         }
+        eprintln!("Rebound locals: {:?}", rebound_locals);
         // Next, for each local variable in rebindings, we need a new
         // binding for that variable in the current scope.
         let post_branch_bindings: BTreeMap<TypeId, Rebind> = rebound_locals
@@ -636,11 +638,61 @@ impl CompilerContext {
         }
     }
     fn return_expr(&mut self, _return: &ast_impl::ExprRet) -> Result<Slot> {
+        // An early return of the type "return <expr>" is transformed
+        // into the following equivalent expression
+        // if !__early_return {
+        //    __early_return = true;
+        //    return_slot = <expr>
+        // }
+        // Because the function is pure, and has no side effects, the rest
+        // of the function can continue as normal.  We do need to make sure
+        // that a phi node is inserted at the end of this synthetic `if` statement
+        // to build a distributed priority encoder for the `__early_return` flag and
+        // for the return slot itself.
+        let early_return_flag = self.resolve_local(EARLY_RETURN_FLAG_NODE)?;
+        let early_return_test = self.reg(ty_bool())?;
+        self.op(op_unary(
+            AluUnary::Not,
+            early_return_test,
+            early_return_flag,
+        ));
+        // Next, we create a new block for the case that the early return flag is false.
+        let early_return_block = self.empty_block(Slot::Empty)?;
+        // In this early return block, we write to the early return flag, and then
+        // optionally write to the return slot.
+        let current_block = self.current_block();
+        self.set_active_block(early_return_block);
+        let literal_true = self.literal_from_typed_bits(&true.typed_bits())?;
+        // Rebind the early return flag and the return slot so we can write to them
+        // again (they were originally written in the function preamble)
+        let early_return_flag = self.rebind(EARLY_RETURN_FLAG_NODE)?;
+        let return_slot = self.rebind(self.return_node)?;
+        self.op(op_assign(early_return_flag.to, literal_true));
+        // We rebind the early return flag here, since it can only be written once
         if let Some(expr) = &_return.expr {
             let result = self.expr(expr)?;
-            self.op(op_assign(self.return_slot, result));
+            self.op(op_assign(return_slot.to, result));
         }
-        self.op(op_return());
+        // Return to the main block
+        self.set_active_block(current_block);
+        // Create an "else" block that copies the return slot and early return flag
+        // into their new bindings
+        let else_block = self.empty_block(Slot::Empty)?;
+        let current_block = self.current_block();
+        self.set_active_block(else_block);
+        self.op(op_assign(early_return_flag.to, early_return_flag.from));
+        self.op(op_assign(return_slot.to, return_slot.from));
+        // Because the previous return_slot.from is _by defintion_ undefined
+        // at this point, we do not copy it.
+        self.set_active_block(current_block);
+        // Finally, we insert an if op based on the original value of the early
+        // return flag
+        self.op(op_if(
+            Slot::Empty,
+            early_return_test,
+            early_return_block,
+            else_block,
+        ));
         Ok(Slot::Empty)
     }
     fn repeat(&mut self, id: NodeId, repeat: &ast_impl::ExprRepeat) -> Result<Slot> {
@@ -957,6 +1009,54 @@ impl CompilerContext {
             _ => bail!("Unsupported binding pattern {:?}", pattern),
         }
     }
+
+    // Add an implicit return statement at the end of the main block
+    fn insert_implicit_return(&mut self, slot: Slot) -> Result<()> {
+        // at the end of the main block, we need to insert a return of the return slot
+        self.set_active_block(self.main_block);
+        let early_return_flag = self.resolve_local(EARLY_RETURN_FLAG_NODE)?;
+        let early_return_test = self.reg(ty_bool())?;
+        self.op(op_unary(
+            AluUnary::Not,
+            early_return_test,
+            early_return_flag,
+        ));
+        let early_return_slot = self.resolve_local(self.return_node)?;
+        // Next, we create a new block for the case that the early return flag is false.
+        let early_return_block = self.empty_block(Slot::Empty)?;
+        // In this early return block, we write to the early return flag, and then
+        // optionally write to the return slot.
+        let current_block = self.current_block();
+        self.set_active_block(early_return_block);
+        let literal_true = self.literal_from_typed_bits(&true.typed_bits())?;
+        // Rebind the early return flag and the return slot so we can write to them
+        // again (they were originally written in the function preamble)
+        let early_return_flag = self.rebind(EARLY_RETURN_FLAG_NODE)?;
+        let return_slot = self.rebind(self.return_node)?;
+        self.op(op_assign(early_return_flag.to, literal_true));
+        self.op(op_assign(return_slot.to, slot));
+        // Return to the main block
+        self.set_active_block(current_block);
+        // Create an "else" block that copies the return slot and early return flag
+        // into their new bindings
+        let else_block = self.empty_block(Slot::Empty)?;
+        // In the else block, we copy the previous return binding into the new one
+        let current_block = self.current_block();
+        self.set_active_block(else_block);
+        self.op(op_assign(early_return_flag.to, early_return_flag.from));
+        self.op(op_assign(return_slot.to, early_return_slot));
+        self.set_active_block(current_block);
+        self.op(op_comment("Implicit return".into()));
+        // Finally, we insert an if op based on the original value of the early
+        // return flag
+        self.op(op_if(
+            Slot::Empty,
+            early_return_test,
+            early_return_block,
+            else_block,
+        ));
+        Ok(())
+    }
 }
 
 fn argument_id(arg_pat: &Pat) -> Result<(String, NodeId)> {
@@ -980,8 +1080,40 @@ impl Visitor for CompilerContext {
         }
         self.arguments = arguments;
         let block_result = self.reg(self.ty(node.id)?)?;
-        self.return_slot = block_result;
+        self.return_node = node.id;
+        // Allocate an unnamed local binding for the early return flag
+        self.type_context
+            .unify(self.ty(EARLY_RETURN_FLAG_NODE)?, ty_bool())?;
+        // We create 2 bindings (local vars) inside the function
+        //   - the early return flag - a flag of type bool that we initialize to false
+        //   - the return slot - a register of type ret<fn>, that we initialize to the default
+        // This is equivalent to injecting
+        //   let mut __early$exit = false;
+        //   let mut fn_name = Default::default();
+        // at the beginning of the function body.
+        // Each "return" statement must then be replaced with
+        //    return x --> if !__early$exit { __early$exit = true; fn_name = x; }
+        // The return slot is then used to return the value of the function.
+        self.bind(EARLY_RETURN_FLAG_NODE, "__early$exit")?;
+        self.bind(node.id, &node.name)?;
+        // Initialize the early exit flag in the main block
+        let init_early_exit_op = op_assign(
+            self.resolve_local(NodeId::new(!0))?,
+            self.literal_from_typed_bits(&false.typed_bits())?,
+        );
+        // Initialize the return slot in the main block
+        let init_return_slot = op_assign(
+            self.resolve_local(node.id)?,
+            self.literal_from_typed_bits(&node.ret)?,
+        );
         self.main_block = self.block(block_result, &node.body)?;
+        self.blocks[self.main_block.0]
+            .ops
+            .insert(0, init_early_exit_op);
+        self.blocks[self.main_block.0]
+            .ops
+            .insert(1, init_return_slot);
+        self.insert_implicit_return(block_result)?;
         self.name = node.name.clone();
         self.fn_id = node.fn_id;
         Ok(())
@@ -991,6 +1123,8 @@ impl Visitor for CompilerContext {
 pub fn compile(func: &ast_impl::KernelFn, ctx: UnifyContext) -> Result<Object> {
     let mut compiler = CompilerContext::new(ctx);
     compiler.visit_kernel_fn(func)?;
+    // Get the final name for the return value
+    let return_slot = compiler.resolve_local(compiler.return_node)?;
     let literals = compiler
         .literals
         .into_iter()
@@ -1018,7 +1152,7 @@ pub fn compile(func: &ast_impl::KernelFn, ctx: UnifyContext) -> Result<Object> {
         literals,
         ty: compiler.ty,
         blocks,
-        return_slot: compiler.return_slot,
+        return_slot,
         externals: compiler.stash,
         main_block: compiler.main_block,
         arguments: compiler.arguments,

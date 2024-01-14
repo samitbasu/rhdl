@@ -356,9 +356,11 @@ impl Context {
         }
         let block = self.block_inner(&function.block)?;
         let ret = match &function.sig.output {
-            syn::ReturnType::Default => quote! {rhdl_core::Kind::Empty},
+            syn::ReturnType::Default => quote! {rhdl_core::TypedBits::EMPTY},
             syn::ReturnType::Type(_, ty) => {
-                quote! {<#ty as rhdl_core::Digital>::static_kind()}
+                quote! {
+                    rhdl_core::Digital::typed_bits(<#ty as Default>::default())
+                }
             }
         };
         let args = &function

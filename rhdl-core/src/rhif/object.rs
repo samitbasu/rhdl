@@ -1,5 +1,6 @@
 use anyhow::Result;
 use std::collections::BTreeMap;
+use std::fmt::Write;
 
 use crate::{
     ast::ast_impl::FunctionId,
@@ -7,6 +8,8 @@ use crate::{
     rhif::spec::{Block, BlockId, ExternalFunction, Slot},
     TypedBits,
 };
+
+use super::spec::{Case, If, OpCode};
 
 #[derive(Debug, Clone)]
 pub struct Object {
@@ -39,6 +42,40 @@ impl Object {
             .copied()
             .unwrap_or(0)
     }
+    pub fn display_block(&self, s: &mut String, block: BlockId) {
+        for op in &self.blocks[block.0].ops {
+            self.display_op(s, op);
+        }
+    }
+    pub fn display_op(&self, s: &mut String, op: &OpCode) {
+        match op {
+            OpCode::If(If {
+                lhs: _,
+                cond,
+                then_branch,
+                else_branch,
+            }) => {
+                writeln!(s, "if {} {{", cond).unwrap();
+                self.display_block(s, *then_branch);
+                writeln!(s, "}} else {{").unwrap();
+                self.display_block(s, *else_branch);
+                writeln!(s, "}}").unwrap();
+            }
+            OpCode::Case(Case {
+                discriminant: expr,
+                table,
+            }) => {
+                writeln!(s, " case {} {{", expr).unwrap();
+                for (cond, val) in table {
+                    writeln!(s, "{} => {{", cond).unwrap();
+                    self.display_block(s, *val);
+                    writeln!(s, "}}").unwrap();
+                }
+                writeln!(s, "}}").unwrap();
+            }
+            _ => writeln!(s, "{}", op).unwrap(),
+        }
+    }
 }
 
 impl std::fmt::Display for Object {
@@ -66,15 +103,21 @@ impl std::fmt::Display for Object {
                 ndx, func.path, func.code, func.signature
             )?;
         }
-        for block in &self.blocks {
-            if block.id == self.main_block {
-                writeln!(f, "Main block {}", block.id.0)?;
-            } else {
-                writeln!(f, "Block {}", block.id.0)?;
+        let mut body_str = String::new();
+        self.display_block(&mut body_str, self.main_block);
+        let mut indent = 0;
+        for line in body_str.lines() {
+            let line = line.trim();
+            if line.contains('}') {
+                indent -= 1;
             }
-            for op in &block.ops {
-                writeln!(f, "  {}", op)?;
+            for _ in 0..indent {
+                write!(f, "   ")?;
             }
+            if line.contains('{') {
+                indent += 1;
+            }
+            writeln!(f, "{}", line)?;
         }
         Ok(())
     }

@@ -23,10 +23,6 @@ pub fn op_unary(op: AluUnary, lhs: Slot, arg1: Slot) -> OpCode {
     OpCode::Unary(Unary { op, lhs, arg1 })
 }
 
-pub fn op_return() -> OpCode {
-    OpCode::Return
-}
-
 pub fn op_if(lhs: Slot, cond: Slot, then_branch: BlockId, else_branch: BlockId) -> OpCode {
     OpCode::If(If {
         lhs,

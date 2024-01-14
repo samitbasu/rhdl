@@ -10,8 +10,8 @@ use crate::test_module::VerilogDescriptor;
 use crate::util::binary_string;
 use crate::{ast::ast_impl::FunctionId, rhif::spec::Block, rhif::Object, Design, TypedBits};
 use crate::{KernelFnKind, Kind};
+use anyhow::Result;
 use anyhow::{anyhow, ensure};
-use anyhow::{bail, Result};
 
 #[derive(Default, Clone, Debug)]
 pub struct VerilogModule {
@@ -31,7 +31,6 @@ struct TranslationContext<'a> {
     blocks: &'a [Block],
     design: &'a Design,
     obj: &'a Object,
-    early_return_encountered: bool,
 }
 
 fn compute_base_offset_path(path: &Path) -> Path {
@@ -420,11 +419,6 @@ impl<'a> TranslationContext<'a> {
                 self.body
                     .push_str(&format!("    {lhs} = $signed({arg}[{}:0]);\n", len - 1));
             }
-            OpCode::Return => {
-                self.body.push_str("    __abort = 1;\n");
-                self.early_return_encountered = true;
-            }
-            _ => todo!("{op:?} is not implemented yet"),
         }
         Ok(())
     }
@@ -439,14 +433,7 @@ impl<'a> TranslationContext<'a> {
             .get(block.0)
             .ok_or(anyhow!("Block {} not found", block.0))?;
         for op in &block.ops {
-            if self.early_return_encountered && !matches!(op, OpCode::Comment(_)) {
-                self.body.push_str(" if (!__abort)\n");
-                self.body.push_str("    begin\n");
-                self.translate_op(op)?;
-                self.body.push_str("    end\n");
-            } else {
-                self.translate_op(op)?;
-            }
+            self.translate_op(op)?;
         }
         self.body.push_str("    end\n");
         Ok(())
@@ -514,11 +501,8 @@ fn translate(design: &Design, fn_id: FunctionId) -> Result<VerilogModule> {
             as_verilog_literal(lit)
         ));
     }
-    func.push_str("    // Early return flag\n");
-    func.push_str("    reg __abort;\n");
     func.push_str("    // Body\n");
     func.push_str("begin\n");
-    func.push_str("    __abort = 0;\n");
     let kernels = {
         let mut context = TranslationContext {
             kernels: Vec::new(),
@@ -526,7 +510,6 @@ fn translate(design: &Design, fn_id: FunctionId) -> Result<VerilogModule> {
             blocks: &obj.blocks,
             design,
             obj,
-            early_return_encountered: false,
         };
         context.translate_block(obj.main_block)?;
         context.kernels

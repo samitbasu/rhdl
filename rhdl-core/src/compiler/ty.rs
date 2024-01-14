@@ -220,7 +220,7 @@ pub fn ty_array_base(base: &Ty) -> Result<Ty> {
         bail!("Type must be an array")
     };
     elems
-        .get(0)
+        .first()
         .cloned()
         .ok_or_else(|| anyhow!("Array must have at least one element"))
 }

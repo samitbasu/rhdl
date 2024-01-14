@@ -321,7 +321,7 @@ where
     }
     eprintln!("VM test passed {} cases OK", vm_test_count);
     let tm = test_module(uut, verilog, vals);
-    eprintln!("{tm}");
+    //eprintln!("{tm}");
     tm.run_iverilog()
 }
 

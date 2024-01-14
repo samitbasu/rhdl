@@ -44,7 +44,7 @@ impl<'a> PrettyPrinter<'a> {
             self.push(", ");
         }
         self.push(") -> ");
-        self.print_kind(&kernel.ast.ret)?;
+        self.print_kind(&kernel.ast.ret.kind)?;
         self.push(" ");
         self.print_block(&kernel.ast.body)?;
         Ok(())
