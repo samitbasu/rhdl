@@ -91,7 +91,7 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
                 init_set.write(lhs)?;
             }
             OpCode::If(If {
-                lhs,
+                lhs: _,
                 cond,
                 then_branch,
                 else_branch,
@@ -155,12 +155,6 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
                 init_set.write(lhs)?;
             }
             OpCode::Comment(_) => {}
-            OpCode::Return => {
-                // Note that we ignore the return and
-                // continue checking the rest of the block, since
-                // from a flow perspective, the return does not affect
-                // the assignments in the rest of the block;
-            }
             OpCode::Block(id) => {
                 init_set = check_flow(obj, *id, init_set)?;
             }

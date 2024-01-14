@@ -9,8 +9,6 @@ pub enum OpCode {
     Binary(Binary),
     // lhs <- op arg1
     Unary(Unary),
-    // early return
-    Return,
     // lhs <- if cond { then_branch } else { else_branch }
     If(If),
     // lhs <- arg[path]

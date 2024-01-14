@@ -49,9 +49,6 @@ impl Display for OpCode {
                     lhs, cond, then_branch, else_branch
                 )
             }
-            OpCode::Return => {
-                write!(f, " ret")
-            }
             OpCode::Tuple(Tuple { lhs, fields }) => {
                 write!(f, " {} <- ({})", lhs, splice(fields, ", "))
             }

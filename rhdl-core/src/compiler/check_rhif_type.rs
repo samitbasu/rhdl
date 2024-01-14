@@ -210,9 +210,6 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     eq_types(ty.clone(), ty_array(array_ty[0].clone(), *len))?;
                 }
                 OpCode::Comment(_) => {}
-                OpCode::Return => {
-                    break;
-                }
                 OpCode::Block(_) => {}
                 OpCode::Case(Case {
                     discriminant: expr,

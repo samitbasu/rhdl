@@ -1993,6 +1993,33 @@ fn test_repeat_op() {
 fn test_early_return() {
     #[kernel]
     fn foo(a: b8, b: b8) -> b8 {
+        return a;
+        b
+    }
+
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
+}
+
+#[test]
+fn test_phi_mut_no_init() {
+    #[kernel]
+    fn foo(a: b8, b: b8) -> b8 {
+        let mut c: b8;
+        if a.any() {
+            c = b8(1);
+        } else {
+            c = b8(2);
+        }
+        c
+    }
+
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
+}
+
+#[test]
+fn test_early_return_in_branch() {
+    #[kernel]
+    fn foo(a: b8, b: b8) -> b8 {
         if a > b {
             let d = 5;
             d + 3;

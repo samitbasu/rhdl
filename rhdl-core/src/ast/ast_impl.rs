@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 pub struct NodeId(Option<u32>);
 
 impl NodeId {
-    pub fn new(id: u32) -> Self {
+    pub const fn new(id: u32) -> Self {
         NodeId(Some(id))
     }
     // Panics for invalid node IDs!
@@ -441,7 +441,7 @@ pub struct KernelFn {
     pub id: NodeId,
     pub name: String,
     pub inputs: Vec<Box<Pat>>,
-    pub ret: Kind,
+    pub ret: TypedBits,
     pub body: Box<Block>,
     pub fn_id: FunctionId,
 }
