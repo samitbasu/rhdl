@@ -9,7 +9,7 @@ use crate::{
     TypedBits,
 };
 
-use super::spec::{Case, If, OpCode};
+use super::spec::{Case, OpCode};
 
 #[derive(Debug, Clone)]
 pub struct Object {
@@ -49,18 +49,6 @@ impl Object {
     }
     pub fn display_op(&self, s: &mut String, op: &OpCode) {
         match op {
-            OpCode::If(If {
-                lhs: _,
-                cond,
-                then_branch,
-                else_branch,
-            }) => {
-                writeln!(s, "if {} {{", cond).unwrap();
-                self.display_block(s, *then_branch);
-                writeln!(s, "}} else {{").unwrap();
-                self.display_block(s, *else_branch);
-                writeln!(s, "}}").unwrap();
-            }
             OpCode::Case(Case {
                 discriminant: expr,
                 table,
@@ -71,6 +59,11 @@ impl Object {
                     self.display_block(s, *val);
                     writeln!(s, "}}").unwrap();
                 }
+                writeln!(s, "}}").unwrap();
+            }
+            OpCode::Block(block) => {
+                writeln!(s, " block {{").unwrap();
+                self.display_block(s, *block);
                 writeln!(s, "}}").unwrap();
             }
             _ => writeln!(s, "{}", op).unwrap(),

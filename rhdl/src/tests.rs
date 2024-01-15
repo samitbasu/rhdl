@@ -2017,6 +2017,17 @@ fn test_phi_mut_no_init() {
 }
 
 #[test]
+fn test_flow_control_if_expression() {
+    #[kernel]
+    fn foo(a: b8, b: b8) -> b8 {
+        let c = if a > b { a + 1 } else { b + 2 };
+        c
+    }
+
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
+}
+
+#[test]
 fn test_early_return_in_branch() {
     #[kernel]
     fn foo(a: b8, b: b8) -> b8 {

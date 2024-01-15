@@ -9,8 +9,8 @@ pub enum OpCode {
     Binary(Binary),
     // lhs <- op arg1
     Unary(Unary),
-    // lhs <- if cond { then_branch } else { else_branch }
-    If(If),
+    // Select a value based on a condition.
+    Select(Select),
     // lhs <- arg[path]
     Index(Index),
     // lhs <- rhs,
@@ -58,11 +58,11 @@ pub struct Unary {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct If {
+pub struct Select {
     pub lhs: Slot,
     pub cond: Slot,
-    pub then_branch: BlockId,
-    pub else_branch: BlockId,
+    pub true_value: Slot,
+    pub false_value: Slot,
 }
 
 #[derive(Debug, Clone, PartialEq)]

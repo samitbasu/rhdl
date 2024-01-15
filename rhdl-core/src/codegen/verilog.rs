@@ -4,7 +4,7 @@ use crate::kernel::ExternalKernelDef;
 use crate::path::{bit_range, Path, PathElement};
 use crate::rhif::spec::{
     AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast, Discriminant,
-    Enum, Exec, If, Index, Member, OpCode, Repeat, Slot, Splice, Struct, Tuple, Unary,
+    Enum, Exec, Index, Member, OpCode, Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
 };
 use crate::test_module::VerilogDescriptor;
 use crate::util::binary_string;
@@ -215,17 +215,16 @@ impl<'a> TranslationContext<'a> {
                     op = verilog_unop(op)
                 ));
             }
-            OpCode::If(If {
-                lhs: _,
+            OpCode::Select(Select {
+                lhs,
                 cond,
-                then_branch,
-                else_branch,
+                true_value,
+                false_value,
             }) => {
-                self.body.push_str(&format!("    if ({cond})\n"));
-                self.translate_block(*then_branch)?;
-                if !self.block_is_empty(*else_branch)? {
-                    self.body.push_str("    else\n");
-                    self.translate_block(*else_branch)?;
+                if !lhs.is_empty() {
+                    self.body.push_str(&format!(
+                        "    {lhs} = {cond} ? {true_value} : {false_value};\n",
+                    ));
                 }
             }
             OpCode::Block(block_id) => {

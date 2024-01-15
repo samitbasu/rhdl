@@ -7,7 +7,7 @@ use crate::{
     rhif,
     rhif::spec::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum,
-        Exec, If, Index, OpCode, Repeat, Slot, Struct, Tuple, Unary,
+        Exec, Index, OpCode, Repeat, Select, Slot, Struct, Tuple, Unary,
     },
     rhif::{spec::Splice, Object},
 };
@@ -118,13 +118,15 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                     slot_type(lhs)?,
                     ty_array(slot_type(&elements[0])?, elements.len()),
                 )?,
-                OpCode::If(If {
-                    lhs: _,
+                OpCode::Select(Select {
+                    lhs,
                     cond,
-                    then_branch: _,
-                    else_branch: _,
+                    true_value,
+                    false_value,
                 }) => {
-                    eq_types(slot_type(cond)?, ty::ty_bool())?;
+                    eq_types(slot_type(lhs)?, slot_type(true_value)?)?;
+                    eq_types(slot_type(lhs)?, slot_type(false_value)?)?;
+                    eq_types(slot_type(cond)?, ty_bool())?;
                 }
                 OpCode::Assign(Assign { lhs, rhs }) => {
                     eq_types(slot_type(lhs)?, slot_type(rhs)?)?;

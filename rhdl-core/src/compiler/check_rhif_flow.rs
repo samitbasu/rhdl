@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use crate::{
     rhif::spec::{
-        Array, Assign, Binary, BlockId, Case, Cast, Discriminant, Enum, Exec, If, Index, OpCode,
-        Repeat, Slot, Splice, Struct, Tuple, Unary,
+        Array, Assign, Binary, BlockId, Case, Cast, Discriminant, Enum, Exec, Index, OpCode,
+        Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
     },
     rhif::Object,
 };
@@ -90,17 +90,16 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
                 init_set.read_all(elements)?;
                 init_set.write(lhs)?;
             }
-            OpCode::If(If {
-                lhs: _,
+            OpCode::Select(Select {
+                lhs,
                 cond,
-                then_branch,
-                else_branch,
+                true_value,
+                false_value,
             }) => {
                 init_set.read(cond)?;
-                let base_set = init_set.clone();
-                init_set = check_flow(obj, *then_branch, base_set.clone())?;
-                init_set = init_set.intersect(&check_flow(obj, *else_branch, base_set.clone())?);
-                //init_set.write(lhs)?;
+                init_set.read(true_value)?;
+                init_set.read(false_value)?;
+                init_set.write(lhs)?;
             }
             OpCode::Index(Index { lhs, arg, path }) => {
                 init_set.read(arg)?;

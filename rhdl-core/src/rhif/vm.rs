@@ -4,7 +4,7 @@ use crate::path::Path;
 use crate::rhif::object::Object;
 use crate::rhif::spec::{
     AluBinary, AluUnary, Array, Assign, Binary, Block, Case, CaseArgument, Cast, Discriminant,
-    Enum, Exec, If, Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
+    Enum, Exec, Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
 };
 use crate::{ast::ast_impl::FunctionId, rhif::design::Design, TypedBits};
 use crate::{Digital, KernelFnKind, Kind};
@@ -13,7 +13,7 @@ use anyhow::Result;
 
 use anyhow::{anyhow, bail};
 
-use super::spec::Splice;
+use super::spec::{Select, Splice};
 
 struct VMState<'a> {
     reg_stack: &'a mut [Option<TypedBits>],
@@ -115,17 +115,19 @@ fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
                 state.write(*lhs, result)?;
             }
             OpCode::Comment(_) => {}
-            OpCode::If(If {
-                lhs: _,
+            OpCode::Select(Select {
+                lhs,
                 cond,
-                then_branch,
-                else_branch,
+                true_value,
+                false_value,
             }) => {
                 let cond = state.read(*cond)?;
+                let true_value = state.read(*true_value)?;
+                let false_value = state.read(*false_value)?;
                 if cond.any().as_bool()? {
-                    execute_block(&state.blocks[then_branch.0], state)?;
+                    state.write(*lhs, true_value)?;
                 } else {
-                    execute_block(&state.blocks[else_branch.0], state)?;
+                    state.write(*lhs, false_value)?;
                 }
             }
             OpCode::Block(block_id) => {
