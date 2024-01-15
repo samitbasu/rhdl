@@ -2,13 +2,13 @@ use crate::{
     path::Path,
     rhif::spec::{
         AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast,
-        Discriminant, Enum, Exec, FieldValue, FuncId, If, Index, OpCode, Repeat, Slot, Struct,
-        Tuple, Unary,
+        Discriminant, Enum, Exec, FieldValue, FuncId, Index, OpCode, Repeat, Slot, Struct, Tuple,
+        Unary,
     },
     TypedBits,
 };
 
-use super::spec::Splice;
+use super::spec::{Select, Splice};
 
 pub fn op_binary(op: AluBinary, lhs: Slot, arg1: Slot, arg2: Slot) -> OpCode {
     OpCode::Binary(Binary {
@@ -23,12 +23,12 @@ pub fn op_unary(op: AluUnary, lhs: Slot, arg1: Slot) -> OpCode {
     OpCode::Unary(Unary { op, lhs, arg1 })
 }
 
-pub fn op_if(lhs: Slot, cond: Slot, then_branch: BlockId, else_branch: BlockId) -> OpCode {
-    OpCode::If(If {
+pub fn op_select(lhs: Slot, cond: Slot, true_value: Slot, false_value: Slot) -> OpCode {
+    OpCode::Select(Select {
         lhs,
         cond,
-        then_branch,
-        else_branch,
+        true_value,
+        false_value,
     })
 }
 

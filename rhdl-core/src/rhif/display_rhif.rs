@@ -3,11 +3,13 @@ use std::fmt::Display;
 use crate::{
     rhif::spec::{
         AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast,
-        Discriminant, Enum, Exec, FieldValue, FuncId, If, Index, Member, OpCode, Repeat, Slot,
-        Splice, Struct, Tuple, Unary,
+        Discriminant, Enum, Exec, FieldValue, FuncId, Index, Member, OpCode, Repeat, Slot, Splice,
+        Struct, Tuple, Unary,
     },
     util::splice,
 };
+
+use super::spec::Select;
 
 impl Display for OpCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -37,17 +39,13 @@ impl Display for OpCode {
             }) => {
                 write!(f, "{} <- {}/[{}]{}", lhs, path, rhs, arg)
             }
-            OpCode::If(If {
+            OpCode::Select(Select {
                 lhs,
                 cond,
-                then_branch,
-                else_branch,
+                true_value,
+                false_value,
             }) => {
-                write!(
-                    f,
-                    " {} <- if {} then {} else {}",
-                    lhs, cond, then_branch, else_branch
-                )
+                write!(f, " {} <- {} ? {} : {}", lhs, cond, true_value, false_value)
             }
             OpCode::Tuple(Tuple { lhs, fields }) => {
                 write!(f, " {} <- ({})", lhs, splice(fields, ", "))

@@ -8,8 +8,8 @@ use crate::{
     compiler::ty::{ty_empty, ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
     compiler::UnifyContext,
     rhif::rhif_builder::{
-        op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment,
-        op_discriminant, op_enum, op_exec, op_if, op_index, op_repeat, op_splice, op_struct,
+        op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_block, op_case, op_comment,
+        op_discriminant, op_enum, op_exec, op_index, op_repeat, op_select, op_splice, op_struct,
         op_tuple, op_unary,
     },
     rhif::spec::{
@@ -468,24 +468,50 @@ impl CompilerContext {
         Ok(result)
     }
     fn if_expr(&mut self, id: NodeId, if_expr: &ExprIf) -> Result<Slot> {
-        let result = self.reg(self.node_ty(id)?)?;
+        let op_result = self.reg(self.node_ty(id)?)?;
+        let then_result = self.reg(self.node_ty(id)?)?;
+        let else_result = self.reg(self.node_ty(id)?)?;
         let cond = self.expr(&if_expr.cond)?;
         let locals_prior_to_branch = self.locals.clone();
-        let then_branch = self.block(result, &if_expr.then_branch)?;
+        let then_branch = self.block(then_result, &if_expr.then_branch)?;
         let locals_after_then_branch = self.locals.clone();
         self.locals = locals_prior_to_branch.clone();
         let else_branch = if let Some(expr) = if_expr.else_branch.as_ref() {
-            self.wrap_expr_in_block(result, expr)
+            self.wrap_expr_in_block(else_result, expr)
         } else {
-            self.empty_block(result)
+            self.empty_block(else_result)
         }?;
         let locals_after_else_branch = self.locals.clone();
-        self.handle_rebindings(&[
-            (then_branch, locals_after_then_branch),
-            (else_branch, locals_after_else_branch),
-        ])?;
-        self.op(op_if(result, cond, then_branch, else_branch));
-        Ok(result)
+        self.locals = locals_prior_to_branch.clone();
+        // Linearize the if statement.
+        self.op(op_block(then_branch));
+        self.op(op_block(else_branch));
+        // TODO - For now, inline this logic, but ultimately, we want
+        // to be able to generalize to remove the `case` op.
+        let mut rebound_locals =
+            get_locals_changed(&locals_prior_to_branch, &locals_after_then_branch)?;
+        rebound_locals.extend(get_locals_changed(
+            &locals_prior_to_branch,
+            &locals_after_else_branch,
+        )?);
+        // Next, for each local variable in rebindings, we need a new
+        // binding for that variable in the current scope.
+        let post_branch_bindings: BTreeMap<TypeId, Rebind> = rebound_locals
+            .iter()
+            .map(|x| self.rebind((*x).into()).map(|r| (*x, r)))
+            .collect::<Result<_>>()?;
+        for (var, rebind) in &post_branch_bindings {
+            let then_binding = *locals_after_then_branch.get(var).ok_or(anyhow!(
+                "ICE - no local var found for binding {var:?} in then branch"
+            ))?;
+            let else_binding = *locals_after_else_branch.get(var).ok_or(anyhow!(
+                "ICE - no local var found for binding {var:?} in else branch"
+            ))?;
+            let new_binding = rebind.to;
+            self.op(op_select(new_binding, cond, then_binding, else_binding));
+        }
+        self.op(op_select(op_result, cond, then_result, else_result));
+        Ok(op_result)
     }
     fn index(&mut self, id: NodeId, index: &ast_impl::ExprIndex) -> Result<Slot> {
         let lhs = self.reg(self.node_ty(id)?)?;
@@ -650,6 +676,7 @@ impl CompilerContext {
         // to build a distributed priority encoder for the `__early_return` flag and
         // for the return slot itself.
         let early_return_flag = self.resolve_local(EARLY_RETURN_FLAG_NODE)?;
+        todo!();
         let early_return_test = self.reg(ty_bool())?;
         self.op(op_unary(
             AluUnary::Not,
@@ -687,12 +714,14 @@ impl CompilerContext {
         self.set_active_block(current_block);
         // Finally, we insert an if op based on the original value of the early
         // return flag
+        /*
         self.op(op_if(
             Slot::Empty,
             early_return_test,
             early_return_block,
             else_block,
         ));
+        */
         Ok(Slot::Empty)
     }
     fn repeat(&mut self, id: NodeId, repeat: &ast_impl::ExprRepeat) -> Result<Slot> {
@@ -1015,45 +1044,15 @@ impl CompilerContext {
         // at the end of the main block, we need to insert a return of the return slot
         self.set_active_block(self.main_block);
         let early_return_flag = self.resolve_local(EARLY_RETURN_FLAG_NODE)?;
-        let early_return_test = self.reg(ty_bool())?;
-        self.op(op_unary(
-            AluUnary::Not,
-            early_return_test,
-            early_return_flag,
-        ));
+        // This is where we read the current proposed value of the return slot
         let early_return_slot = self.resolve_local(self.return_node)?;
-        // Next, we create a new block for the case that the early return flag is false.
-        let early_return_block = self.empty_block(Slot::Empty)?;
-        // In this early return block, we write to the early return flag, and then
-        // optionally write to the return slot.
-        let current_block = self.current_block();
-        self.set_active_block(early_return_block);
-        let literal_true = self.literal_from_typed_bits(&true.typed_bits())?;
-        // Rebind the early return flag and the return slot so we can write to them
-        // again (they were originally written in the function preamble)
-        let early_return_flag = self.rebind(EARLY_RETURN_FLAG_NODE)?;
-        let return_slot = self.rebind(self.return_node)?;
-        self.op(op_assign(early_return_flag.to, literal_true));
-        self.op(op_assign(return_slot.to, slot));
-        // Return to the main block
-        self.set_active_block(current_block);
-        // Create an "else" block that copies the return slot and early return flag
-        // into their new bindings
-        let else_block = self.empty_block(Slot::Empty)?;
-        // In the else block, we copy the previous return binding into the new one
-        let current_block = self.current_block();
-        self.set_active_block(else_block);
-        self.op(op_assign(early_return_flag.to, early_return_flag.from));
-        self.op(op_assign(return_slot.to, early_return_slot));
-        self.set_active_block(current_block);
-        self.op(op_comment("Implicit return".into()));
-        // Finally, we insert an if op based on the original value of the early
-        // return flag
-        self.op(op_if(
-            Slot::Empty,
-            early_return_test,
-            early_return_block,
-            else_block,
+        // We need to write to it, so we must rebind the name
+        let final_return_slot = self.rebind(self.return_node)?;
+        self.op(op_select(
+            final_return_slot.to,
+            early_return_flag,
+            final_return_slot.from,
+            slot,
         ));
         Ok(())
     }
