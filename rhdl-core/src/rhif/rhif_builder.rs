@@ -75,8 +75,9 @@ pub fn op_block(block: BlockId) -> OpCode {
     OpCode::Block(block)
 }
 
-pub fn op_case(discriminant: Slot, table: Vec<(CaseArgument, BlockId)>) -> OpCode {
+pub fn op_case(lhs: Slot, discriminant: Slot, table: Vec<(CaseArgument, Slot)>) -> OpCode {
     OpCode::Case(Case {
+        lhs,
         discriminant,
         table,
     })

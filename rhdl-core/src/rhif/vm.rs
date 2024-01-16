@@ -121,9 +121,23 @@ fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
                 true_value,
                 false_value,
             }) => {
+                /*                 eprintln!(
+                                   "Select: {cond:?} ? {true_value:?} : {false_value:?}",
+                                   cond = cond,
+                                   true_value = true_value,
+                                   false_value = false_value
+                               );
+                */
                 let cond = state.read(*cond)?;
                 let true_value = state.read(*true_value)?;
                 let false_value = state.read(*false_value)?;
+                /*                 eprintln!(
+                                   "    - Select: {cond} ? {true_value} : {false_value}",
+                                   cond = cond,
+                                   true_value = true_value,
+                                   false_value = false_value
+                               );
+                */
                 if cond.any().as_bool()? {
                     state.write(*lhs, true_value)?;
                 } else {
@@ -226,11 +240,12 @@ fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
                 state.write(*lhs, result)?;
             }
             OpCode::Case(Case {
+                lhs,
                 discriminant,
                 table,
             }) => {
                 let discriminant = state.read(*discriminant)?;
-                let block = table
+                let arm = table
                     .iter()
                     .find(|(disc, _)| match disc {
                         CaseArgument::Constant(disc) => discriminant == *disc,
@@ -238,7 +253,8 @@ fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
                     })
                     .ok_or(anyhow!("ICE Case was not exhaustive"))?
                     .1;
-                execute_block(&state.blocks[block.0], state)?;
+                let arm = state.read(arm)?;
+                state.write(*lhs, arm)?;
             }
             OpCode::AsBits(Cast { lhs, arg, len }) => {
                 let arg = state.read(*arg)?;

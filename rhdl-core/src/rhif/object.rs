@@ -49,18 +49,6 @@ impl Object {
     }
     pub fn display_op(&self, s: &mut String, op: &OpCode) {
         match op {
-            OpCode::Case(Case {
-                discriminant: expr,
-                table,
-            }) => {
-                writeln!(s, " case {} {{", expr).unwrap();
-                for (cond, val) in table {
-                    writeln!(s, "{} => {{", cond).unwrap();
-                    self.display_block(s, *val);
-                    writeln!(s, "}}").unwrap();
-                }
-                writeln!(s, "}}").unwrap();
-            }
             OpCode::Block(block) => {
                 writeln!(s, " block {{").unwrap();
                 self.display_block(s, *block);

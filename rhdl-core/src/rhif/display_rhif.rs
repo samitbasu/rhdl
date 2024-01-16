@@ -54,10 +54,11 @@ impl Display for OpCode {
                 write!(f, " {} <- {}{}", lhs, arg, path)
             }
             OpCode::Case(Case {
+                lhs,
                 discriminant: expr,
                 table,
             }) => {
-                writeln!(f, " case {}", expr)?;
+                writeln!(f, " {} <- case {}", lhs, expr)?;
                 for (cond, val) in table {
                     writeln!(f, "         {} => {}", cond, val)?;
                 }
