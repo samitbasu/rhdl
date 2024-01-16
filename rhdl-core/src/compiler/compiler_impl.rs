@@ -47,6 +47,8 @@ pub struct Block {
 }
 
 type LocalsMap = HashMap<TypeId, Slot>;
+
+#[derive(Debug, Clone)]
 pub struct Rebind {
     from: Slot,
     to: Slot,
@@ -473,8 +475,10 @@ impl CompilerContext {
         let else_result = self.reg(self.node_ty(id)?)?;
         let cond = self.expr(&if_expr.cond)?;
         let locals_prior_to_branch = self.locals.clone();
+        eprintln!("Locals prior to branch {:?}", locals_prior_to_branch);
         let then_branch = self.block(then_result, &if_expr.then_branch)?;
         let locals_after_then_branch = self.locals.clone();
+        eprintln!("Locals after then branch {:?}", locals_after_then_branch);
         self.locals = locals_prior_to_branch.clone();
         let else_branch = if let Some(expr) = if_expr.else_branch.as_ref() {
             self.wrap_expr_in_block(else_result, expr)
@@ -500,6 +504,7 @@ impl CompilerContext {
             .iter()
             .map(|x| self.rebind((*x).into()).map(|r| (*x, r)))
             .collect::<Result<_>>()?;
+        eprintln!("post_branch bindings set {:?}", post_branch_bindings);
         for (var, rebind) in &post_branch_bindings {
             let then_binding = *locals_after_then_branch.get(var).ok_or(anyhow!(
                 "ICE - no local var found for binding {var:?} in then branch"
@@ -580,17 +585,49 @@ impl CompilerContext {
         };
         // Need to handle local rebindings in the bodies of the arms.
         let locals_prior_to_match = self.locals.clone();
-        let mut table = vec![];
+        let mut arguments = vec![];
         let mut arm_locals = vec![];
+        let mut arm_lhs = vec![];
         for arm in &_match.arms {
             self.locals = locals_prior_to_match.clone();
+            let lhs = self.reg(self.node_ty(id)?)?;
             let (disc, block) = self.expr_arm(target, lhs, arm)?;
-            table.push((disc, block));
+            arm_lhs.push(lhs);
+            arguments.push(disc);
             arm_locals.push((block, self.locals.clone()));
+            self.op(op_block(block));
         }
         self.locals = locals_prior_to_match.clone();
-        self.handle_rebindings(&arm_locals)?;
-        self.op(op_case(discriminant, table));
+        let mut rebound_locals = BTreeSet::new();
+        for (block, branch_locals) in &arm_locals {
+            let branch_rebindings = get_locals_changed(&self.locals, branch_locals)?;
+            rebound_locals.extend(branch_rebindings);
+        }
+        // Next, for each local variable in rebindings, we need a new
+        // binding for that variable in the current scope.
+        let post_branch_bindings: BTreeMap<TypeId, Rebind> = rebound_locals
+            .iter()
+            .map(|x| self.rebind((*x).into()).map(|r| (*x, r)))
+            .collect::<Result<_>>()?;
+        for (var, rebind) in &post_branch_bindings {
+            let arm_bindings = arm_locals
+                .iter()
+                .map(|x| {
+                    x.1.get(var).ok_or(anyhow!(
+                        "ICE - no local var found for binding {var:?} in arm branch"
+                    ))
+                })
+                .collect::<Result<Vec<_>>>()?;
+            let cases = arguments
+                .iter()
+                .cloned()
+                .zip(arm_bindings.into_iter().cloned())
+                .collect::<Vec<_>>();
+            let new_binding = rebind.to;
+            self.op(op_case(new_binding, discriminant, cases));
+        }
+        let match_expr_table = arguments.iter().cloned().zip(arm_lhs).collect::<Vec<_>>();
+        self.op(op_case(lhs, discriminant, match_expr_table));
         Ok(lhs)
     }
     fn bind_arm_pattern(&mut self, pattern: &Pat) -> Result<()> {
@@ -675,53 +712,38 @@ impl CompilerContext {
         // that a phi node is inserted at the end of this synthetic `if` statement
         // to build a distributed priority encoder for the `__early_return` flag and
         // for the return slot itself.
-        let early_return_flag = self.resolve_local(EARLY_RETURN_FLAG_NODE)?;
-        todo!();
-        let early_return_test = self.reg(ty_bool())?;
-        self.op(op_unary(
-            AluUnary::Not,
-            early_return_test,
-            early_return_flag,
-        ));
-        // Next, we create a new block for the case that the early return flag is false.
-        let early_return_block = self.empty_block(Slot::Empty)?;
-        // In this early return block, we write to the early return flag, and then
-        // optionally write to the return slot.
-        let current_block = self.current_block();
-        self.set_active_block(early_return_block);
+
         let literal_true = self.literal_from_typed_bits(&true.typed_bits())?;
-        // Rebind the early return flag and the return slot so we can write to them
-        // again (they were originally written in the function preamble)
         let early_return_flag = self.rebind(EARLY_RETURN_FLAG_NODE)?;
         let return_slot = self.rebind(self.return_node)?;
-        self.op(op_assign(early_return_flag.to, literal_true));
-        // We rebind the early return flag here, since it can only be written once
-        if let Some(expr) = &_return.expr {
-            let result = self.expr(expr)?;
-            self.op(op_assign(return_slot.to, result));
-        }
-        // Return to the main block
-        self.set_active_block(current_block);
-        // Create an "else" block that copies the return slot and early return flag
-        // into their new bindings
-        let else_block = self.empty_block(Slot::Empty)?;
-        let current_block = self.current_block();
-        self.set_active_block(else_block);
-        self.op(op_assign(early_return_flag.to, early_return_flag.from));
-        self.op(op_assign(return_slot.to, return_slot.from));
-        // Because the previous return_slot.from is _by defintion_ undefined
-        // at this point, we do not copy it.
-        self.set_active_block(current_block);
-        // Finally, we insert an if op based on the original value of the early
-        // return flag
-        /*
-        self.op(op_if(
-            Slot::Empty,
-            early_return_test,
-            early_return_block,
-            else_block,
+        let early_return_expr = if let Some(return_expr) = &_return.expr {
+            self.expr(return_expr)?
+        } else {
+            Slot::Empty
+        };
+        // Next, we need to code the following:
+        //  if early_return_flag.from {
+        //     return_slot.to = return_slot.from
+        //     early_return_flag.to = early_return_flag.from
+        //  } else {
+        //     return_slot.to = <expr>
+        //     early_return_flag.to = true
+        //  }
+        // These need to be encoded into 2 select instructions as:
+        // return_slot.to = select(early_return_flag.from, return_slot.from, <expr>)
+        // early_return_flag.to = select(early_return_flag.from, early_return_flag.from, true)
+        self.op(op_select(
+            return_slot.to,
+            early_return_flag.from,
+            return_slot.from,
+            early_return_expr,
         ));
-        */
+        self.op(op_select(
+            early_return_flag.to,
+            early_return_flag.from,
+            early_return_flag.from,
+            literal_true,
+        ));
         Ok(Slot::Empty)
     }
     fn repeat(&mut self, id: NodeId, repeat: &ast_impl::ExprRepeat) -> Result<Slot> {
@@ -1044,14 +1066,11 @@ impl CompilerContext {
         // at the end of the main block, we need to insert a return of the return slot
         self.set_active_block(self.main_block);
         let early_return_flag = self.resolve_local(EARLY_RETURN_FLAG_NODE)?;
-        // This is where we read the current proposed value of the return slot
-        let early_return_slot = self.resolve_local(self.return_node)?;
-        // We need to write to it, so we must rebind the name
-        let final_return_slot = self.rebind(self.return_node)?;
+        let early_return_slot = self.rebind(self.return_node)?;
         self.op(op_select(
-            final_return_slot.to,
+            early_return_slot.to,
             early_return_flag,
-            final_return_slot.from,
+            early_return_slot.from,
             slot,
         ));
         Ok(())

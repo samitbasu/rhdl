@@ -158,20 +158,15 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
                 init_set = check_flow(obj, *id, init_set)?;
             }
             OpCode::Case(Case {
+                lhs,
                 discriminant,
                 table,
             }) => {
                 init_set.read(discriminant)?;
-                let base_set = init_set.clone();
-                let mut first_branch = true;
-                for entry in table {
-                    if first_branch {
-                        init_set = check_flow(obj, entry.1, init_set.clone())?;
-                        first_branch = false;
-                    } else {
-                        init_set = init_set.intersect(&check_flow(obj, entry.1, base_set.clone())?);
-                    }
+                for (argument, slot) in table {
+                    init_set.read(slot)?;
                 }
+                init_set.write(lhs)?;
             }
             OpCode::Discriminant(Discriminant { lhs, arg }) => {
                 init_set.read(arg)?;

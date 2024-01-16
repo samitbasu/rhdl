@@ -103,8 +103,9 @@ pub struct Struct {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Case {
+    pub lhs: Slot,
     pub discriminant: Slot,
-    pub table: Vec<(CaseArgument, BlockId)>,
+    pub table: Vec<(CaseArgument, Slot)>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

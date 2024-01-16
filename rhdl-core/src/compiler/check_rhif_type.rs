@@ -214,12 +214,14 @@ pub fn check_type_correctness(obj: &Object) -> Result<()> {
                 OpCode::Comment(_) => {}
                 OpCode::Block(_) => {}
                 OpCode::Case(Case {
+                    lhs,
                     discriminant: expr,
                     table,
                 }) => {
                     let arg_ty = slot_type(expr)?;
                     let mut discriminants: HashSet<Vec<bool>> = Default::default();
-                    for (entry_test, _entry_body) in table {
+                    for (entry_test, entry_body) in table {
+                        eq_types(slot_type(lhs)?, slot_type(entry_body)?)?;
                         match entry_test {
                             CaseArgument::Constant(constant) => {
                                 if discriminants.contains(&constant.bits) {

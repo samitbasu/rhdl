@@ -357,21 +357,25 @@ impl<'a> TranslationContext<'a> {
                 ));
             }
             OpCode::Case(Case {
+                lhs,
                 discriminant,
                 table,
             }) => {
+                if lhs.is_empty() {
+                    return Ok(());
+                }
                 self.body
                     .push_str(&format!("    case ({})\n", discriminant));
-                for (cond, block) in table {
+                for (cond, slot) in table {
                     match cond {
                         CaseArgument::Constant(c) => {
                             self.body
                                 .push_str(&format!("      {}: ", as_verilog_literal(c)));
-                            self.translate_block(*block)?;
+                            self.body.push_str(&format!("{} = {};", lhs, slot));
                         }
                         CaseArgument::Wild => {
                             self.body.push_str("      default: ");
-                            self.translate_block(*block)?;
+                            self.body.push_str(&format!("{} = {};", lhs, slot));
                         }
                     }
                 }
