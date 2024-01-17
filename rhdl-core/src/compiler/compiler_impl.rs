@@ -8,13 +8,12 @@ use crate::{
     compiler::ty::{ty_empty, ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
     compiler::UnifyContext,
     rhif::rhif_builder::{
-        op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_block, op_case, op_comment,
+        op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment,
         op_discriminant, op_enum, op_exec, op_index, op_repeat, op_select, op_splice, op_struct,
         op_tuple, op_unary,
     },
     rhif::spec::{
-        self, AluBinary, AluUnary, BlockId, CaseArgument, ExternalFunction, FuncId, Member, OpCode,
-        Slot,
+        self, AluBinary, AluUnary, CaseArgument, ExternalFunction, FuncId, Member, OpCode, Slot,
     },
     rhif::Object,
     types::typed_bits::TypedBits,
@@ -25,7 +24,6 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use super::{infer_types::id_to_var, ty::ty_bool};
 
-const ROOT_BLOCK: BlockId = BlockId(0);
 const EARLY_RETURN_FLAG_NODE: NodeId = NodeId::new(!0);
 
 impl From<ast_impl::Member> for spec::Member {
@@ -37,15 +35,6 @@ impl From<ast_impl::Member> for spec::Member {
     }
 }
 
-pub struct Block {
-    pub id: BlockId,
-    pub names: HashMap<String, Slot>,
-    pub ops: Vec<OpCode>,
-    pub result: Slot,
-    pub children: Vec<BlockId>,
-    pub parent: BlockId,
-}
-
 type LocalsMap = HashMap<TypeId, Slot>;
 
 #[derive(Debug, Clone)]
@@ -55,16 +44,14 @@ pub struct Rebind {
 }
 
 pub struct CompilerContext {
-    pub blocks: Vec<Block>,
+    pub ops: Vec<OpCode>,
     pub literals: Vec<ast_impl::ExprLit>,
     pub reg_count: usize,
-    active_block: BlockId,
     type_context: UnifyContext,
     ty: BTreeMap<Slot, Ty>,
     locals: LocalsMap,
     stash: Vec<ExternalFunction>,
     return_node: NodeId,
-    main_block: BlockId,
     arguments: Vec<Slot>,
     fn_id: FunctionId,
     name: String,
@@ -92,11 +79,8 @@ impl std::fmt::Display for CompilerContext {
                 ndx, func.path, func.code, func.signature
             )?;
         }
-        for block in &self.blocks {
-            writeln!(f, "Block {}", block.id.0)?;
-            for op in &block.ops {
-                writeln!(f, "  {}", op)?;
-            }
+        for op in &self.ops {
+            writeln!(f, "  {}", op)?;
         }
         Ok(())
     }
@@ -113,23 +97,14 @@ fn collapse_path(path: &Path) -> String {
 impl CompilerContext {
     fn new(type_context: UnifyContext) -> Self {
         Self {
-            blocks: vec![Block {
-                id: ROOT_BLOCK,
-                names: Default::default(),
-                ops: vec![],
-                result: Slot::Empty,
-                children: vec![],
-                parent: ROOT_BLOCK,
-            }],
             literals: vec![],
             reg_count: 0,
-            active_block: ROOT_BLOCK,
             type_context,
             ty: [(Slot::Empty, ty_empty())].into_iter().collect(),
             locals: Default::default(),
             stash: Default::default(),
             return_node: INVALID_NODE_ID,
-            main_block: ROOT_BLOCK,
+            ops: Default::default(),
             arguments: Default::default(),
             fn_id: Default::default(),
             name: Default::default(),
@@ -193,27 +168,7 @@ impl CompilerContext {
         Ok(Slot::Literal(ndx))
     }
     fn op(&mut self, op: OpCode) {
-        self.blocks[self.active_block.0].ops.push(op);
-    }
-    fn new_block(&mut self, result: Slot) -> BlockId {
-        let id = BlockId(self.blocks.len());
-        self.blocks.push(Block {
-            id,
-            names: Default::default(),
-            ops: vec![],
-            result,
-            children: vec![],
-            parent: self.active_block,
-        });
-        self.blocks[self.active_block.0].children.push(id);
-        self.active_block = id;
-        id
-    }
-    fn current_block(&self) -> BlockId {
-        self.active_block
-    }
-    fn set_active_block(&mut self, id: BlockId) {
-        self.active_block = id;
+        self.ops.push(op);
     }
     fn slot_to_index(&self, slot: Slot) -> Result<usize> {
         let Slot::Literal(ndx) = slot else {
@@ -279,42 +234,6 @@ impl CompilerContext {
             .get(&id.into())
             .cloned()
             .ok_or(anyhow::anyhow!("No local variable for {:?}", id))
-    }
-    fn handle_rebindings(&mut self, branch_locals: &[(BlockId, LocalsMap)]) -> Result<()> {
-        // First identify the set of local variables that have
-        // been rebound in _any_ of the branches. Only consider
-        // local variables that were defined prior to the branch
-        // being taken, since due to scoping rules, any local
-        // variable inside the block scope of the branch cannot
-        // survive the branch.
-        let mut rebound_locals = BTreeSet::new();
-        for (_block, branch_locals) in branch_locals {
-            let branch_rebindings = get_locals_changed(&self.locals, branch_locals)?;
-            rebound_locals.extend(branch_rebindings);
-        }
-        eprintln!("Rebound locals: {:?}", rebound_locals);
-        // Next, for each local variable in rebindings, we need a new
-        // binding for that variable in the current scope.
-        let post_branch_bindings: BTreeMap<TypeId, Rebind> = rebound_locals
-            .iter()
-            .map(|x| self.rebind((*x).into()).map(|r| (*x, r)))
-            .collect::<Result<_>>()?;
-        // Finally for each branch, we need to update the bindings in that branch
-        // from it's current definition of that local variable to the new
-        // target slot.  This is done by adding an assignment to the end of the
-        // block.
-        for (block, branch_locals) in branch_locals {
-            for (var, rebind) in &post_branch_bindings {
-                let old_binding = *branch_locals.get(var).ok_or(anyhow!(
-                    "ICE - no local var found for binding {var:?} in branch"
-                ))?;
-                let new_binding = rebind.to;
-                self.blocks[block.0]
-                    .ops
-                    .push(op_assign(new_binding, old_binding));
-            }
-        }
-        Ok(())
     }
     fn unop(&mut self, id: NodeId, unary: &ast_impl::ExprUnary) -> Result<Slot> {
         let arg = self.expr(&unary.expr)?;
@@ -446,9 +365,7 @@ impl CompilerContext {
         }
         Ok(())
     }
-    fn block(&mut self, block_result: Slot, block: &ast_impl::Block) -> Result<BlockId> {
-        let current_block = self.current_block();
-        let id = self.new_block(block_result);
+    fn block(&mut self, block_result: Slot, block: &ast_impl::Block) -> Result<()> {
         let statement_count = block.stmts.len();
         for (ndx, statement) in block.stmts.iter().enumerate() {
             let is_last = ndx == statement_count - 1;
@@ -457,8 +374,7 @@ impl CompilerContext {
                 self.op(op_assign(block_result, result));
             }
         }
-        self.set_active_block(current_block);
-        Ok(id)
+        Ok(())
     }
     fn expr_list(&mut self, exprs: &[Box<Expr>]) -> Result<Vec<Slot>> {
         exprs.iter().map(|x| self.expr(x)).collect::<Result<_>>()
@@ -476,20 +392,16 @@ impl CompilerContext {
         let cond = self.expr(&if_expr.cond)?;
         let locals_prior_to_branch = self.locals.clone();
         eprintln!("Locals prior to branch {:?}", locals_prior_to_branch);
-        let then_branch = self.block(then_result, &if_expr.then_branch)?;
+        self.block(then_result, &if_expr.then_branch)?;
         let locals_after_then_branch = self.locals.clone();
         eprintln!("Locals after then branch {:?}", locals_after_then_branch);
         self.locals = locals_prior_to_branch.clone();
-        let else_branch = if let Some(expr) = if_expr.else_branch.as_ref() {
-            self.wrap_expr_in_block(else_result, expr)
-        } else {
-            self.empty_block(else_result)
-        }?;
+        if let Some(expr) = if_expr.else_branch.as_ref() {
+            self.wrap_expr_in_block(else_result, expr)?;
+        }
         let locals_after_else_branch = self.locals.clone();
         self.locals = locals_prior_to_branch.clone();
         // Linearize the if statement.
-        self.op(op_block(then_branch));
-        self.op(op_block(else_branch));
         // TODO - For now, inline this logic, but ultimately, we want
         // to be able to generalize to remove the `case` op.
         let mut rebound_locals =
@@ -591,15 +503,14 @@ impl CompilerContext {
         for arm in &_match.arms {
             self.locals = locals_prior_to_match.clone();
             let lhs = self.reg(self.node_ty(id)?)?;
-            let (disc, block) = self.expr_arm(target, lhs, arm)?;
+            let disc = self.expr_arm(target, lhs, arm)?;
             arm_lhs.push(lhs);
             arguments.push(disc);
-            arm_locals.push((block, self.locals.clone()));
-            self.op(op_block(block));
+            arm_locals.push(self.locals.clone());
         }
         self.locals = locals_prior_to_match.clone();
         let mut rebound_locals = BTreeSet::new();
-        for (block, branch_locals) in &arm_locals {
+        for branch_locals in &arm_locals {
             let branch_rebindings = get_locals_changed(&self.locals, branch_locals)?;
             rebound_locals.extend(branch_rebindings);
         }
@@ -613,7 +524,7 @@ impl CompilerContext {
             let arm_bindings = arm_locals
                 .iter()
                 .map(|x| {
-                    x.1.get(var).ok_or(anyhow!(
+                    x.get(var).ok_or(anyhow!(
                         "ICE - no local var found for binding {var:?} in arm branch"
                     ))
                 })
@@ -664,23 +575,18 @@ impl CompilerContext {
         }
     }
 
-    fn expr_arm(
-        &mut self,
-        target: Slot,
-        lhs: Slot,
-        arm: &ast_impl::Arm,
-    ) -> Result<(CaseArgument, BlockId)> {
+    fn expr_arm(&mut self, target: Slot, lhs: Slot, arm: &ast_impl::Arm) -> Result<CaseArgument> {
         match &arm.kind {
             ArmKind::Wild => {
-                let block = self.wrap_expr_in_block(lhs, &arm.body)?;
-                Ok((CaseArgument::Wild, block))
+                self.wrap_expr_in_block(lhs, &arm.body)?;
+                Ok(CaseArgument::Wild)
             }
             ArmKind::Constant(constant) => {
-                let block = self.wrap_expr_in_block(lhs, &arm.body)?;
+                self.wrap_expr_in_block(lhs, &arm.body)?;
                 let value =
                     cast_literal_to_inferred_type(constant.value.clone(), self.node_ty(arm.id)?)?
                         .discriminant()?;
-                Ok((CaseArgument::Constant(value), block))
+                Ok(CaseArgument::Constant(value))
             }
             ArmKind::Enum(arm_enum) => {
                 // Allocate the local bindings for the match pattern
@@ -688,15 +594,12 @@ impl CompilerContext {
                 let discriminant = arm_enum.template.discriminant()?;
                 let disc_as_i64 = arm_enum.template.discriminant()?.as_i64()?;
                 let path = crate::path::Path::default().payload_by_value(disc_as_i64);
-                let current_block = self.current_block();
-                let id = self.new_block(lhs);
                 let payload = self.reg(arm_enum.payload_kind.clone().into())?;
                 self.op(op_index(payload, target, path));
                 self.initialize_local(&arm_enum.pat, payload)?;
                 let result = self.expr(&arm.body)?;
                 self.op(op_assign(lhs, result));
-                self.set_active_block(current_block);
-                Ok((CaseArgument::Constant(discriminant), id))
+                Ok(CaseArgument::Constant(discriminant))
             }
         }
     }
@@ -886,8 +789,6 @@ impl CompilerContext {
         Ok(result)
     }
     fn for_loop(&mut self, for_loop: &ast_impl::ExprForLoop) -> Result<Slot> {
-        let current_block = self.current_block();
-        let loop_block = self.new_block(Slot::Empty);
         self.bind_pattern(&for_loop.pat)?;
         // Determine the loop type
         let index_reg = self.resolve_local(for_loop.pat.id)?;
@@ -924,11 +825,8 @@ impl CompilerContext {
             let value = self.literal_from_type_and_int(&index_ty, ndx)?;
             self.rebind(for_loop.pat.id)?;
             self.initialize_local(&for_loop.pat, value)?;
-            let body = self.block(Slot::Empty, &for_loop.body)?;
-            self.op(OpCode::Block(body));
+            self.block(Slot::Empty, &for_loop.body)?;
         }
-        self.set_active_block(current_block);
-        self.op(OpCode::Block(loop_block));
         Ok(Slot::Empty)
     }
     // We need three components
@@ -979,8 +877,7 @@ impl CompilerContext {
             ExprKind::Binary(bin) => self.binop(expr.id, bin),
             ExprKind::Block(block) => {
                 let block_result = self.reg(self.node_ty(expr.id)?)?;
-                let block_id = self.block(block_result, &block.block)?;
-                self.op(OpCode::Block(block_id));
+                self.block(block_result, &block.block)?;
                 Ok(block_result)
             }
             ExprKind::If(if_expr) => self.if_expr(expr.id, if_expr),
@@ -1011,21 +908,13 @@ impl CompilerContext {
             ExprKind::Type(_) => Ok(Slot::Empty),
         }
     }
-    fn wrap_expr_in_block(&mut self, block_result: Slot, expr: &Expr) -> Result<BlockId> {
-        let current_block = self.current_block();
-        let id = self.new_block(block_result);
+    fn wrap_expr_in_block(&mut self, block_result: Slot, expr: &Expr) -> Result<()> {
         let result = self.expr(expr)?;
-        if result != block_result {
+        // Protects against empty assignments
+        if block_result != result {
             self.op(op_assign(block_result, result));
         }
-        self.set_active_block(current_block);
-        Ok(id)
-    }
-    fn empty_block(&mut self, block_result: Slot) -> Result<BlockId> {
-        let current_block = self.current_block();
-        let id = self.new_block(block_result);
-        self.set_active_block(current_block);
-        Ok(id)
+        Ok(())
     }
     fn bind_pattern(&mut self, pattern: &Pat) -> Result<()> {
         match &pattern.kind {
@@ -1064,7 +953,6 @@ impl CompilerContext {
     // Add an implicit return statement at the end of the main block
     fn insert_implicit_return(&mut self, slot: Slot) -> Result<()> {
         // at the end of the main block, we need to insert a return of the return slot
-        self.set_active_block(self.main_block);
         let early_return_flag = self.resolve_local(EARLY_RETURN_FLAG_NODE)?;
         let early_return_slot = self.rebind(self.return_node)?;
         self.op(op_select(
@@ -1124,13 +1012,9 @@ impl Visitor for CompilerContext {
             self.resolve_local(node.id)?,
             self.literal_from_typed_bits(&node.ret)?,
         );
-        self.main_block = self.block(block_result, &node.body)?;
-        self.blocks[self.main_block.0]
-            .ops
-            .insert(0, init_early_exit_op);
-        self.blocks[self.main_block.0]
-            .ops
-            .insert(1, init_return_slot);
+        self.block(block_result, &node.body)?;
+        self.ops.insert(0, init_early_exit_op);
+        self.ops.insert(1, init_return_slot);
         self.insert_implicit_return(block_result)?;
         self.name = node.name.clone();
         self.fn_id = node.fn_id;
@@ -1158,21 +1042,12 @@ pub fn compile(func: &ast_impl::KernelFn, ctx: UnifyContext) -> Result<Object> {
             cast_literal_to_inferred_type(lit, ty)
         })
         .collect::<Result<Vec<_>>>()?;
-    let blocks = compiler
-        .blocks
-        .into_iter()
-        .map(|x| spec::Block {
-            id: x.id,
-            ops: x.ops,
-        })
-        .collect();
     Ok(Object {
         literals,
         ty: compiler.ty,
-        blocks,
+        ops: compiler.ops,
         return_slot,
         externals: compiler.stash,
-        main_block: compiler.main_block,
         arguments: compiler.arguments,
         fn_id: compiler.fn_id,
         name: compiler.name,

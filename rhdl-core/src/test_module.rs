@@ -223,8 +223,8 @@ pub struct VerilogDescriptor {
     pub body: String,
 }
 
-const VERILOG_INDENT_INCREASERS: [&str; 2] = ["begin", "function"];
-const VERILOG_INDENT_DECREASERS: [&str; 2] = ["end", "endfunction"];
+const VERILOG_INDENT_INCREASERS: [&str; 3] = ["begin", "function", "case"];
+const VERILOG_INDENT_DECREASERS: [&str; 3] = ["end", "endfunction", "endcase"];
 
 impl VerilogDescriptor {
     fn display(&self, f: &mut std::fmt::Formatter<'_>, line_numbers: bool) -> std::fmt::Result {

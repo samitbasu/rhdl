@@ -23,8 +23,6 @@ pub enum OpCode {
     Struct(Struct),
     // lhs <- Tuple(fields)
     Tuple(Tuple),
-    // Jump to block
-    Block(BlockId),
     // ROM table
     Case(Case),
     // lhs = @path(args)
@@ -201,16 +199,7 @@ pub enum Member {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct BlockId(pub usize);
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct FuncId(pub usize);
-
-#[derive(Debug, Clone)]
-pub struct Block {
-    pub id: BlockId,
-    pub ops: Vec<OpCode>,
-}
 
 #[derive(Debug, Clone)]
 pub struct ExternalFunction {

@@ -5,20 +5,19 @@ use std::fmt::Write;
 use crate::{
     ast::ast_impl::FunctionId,
     compiler::ty::Ty,
-    rhif::spec::{Block, BlockId, ExternalFunction, Slot},
+    rhif::spec::{ExternalFunction, Slot},
     TypedBits,
 };
 
-use super::spec::{Case, OpCode};
+use super::spec::OpCode;
 
 #[derive(Debug, Clone)]
 pub struct Object {
     pub literals: Vec<TypedBits>,
     pub ty: BTreeMap<Slot, Ty>,
-    pub blocks: Vec<Block>,
     pub return_slot: Slot,
     pub externals: Vec<ExternalFunction>,
-    pub main_block: BlockId,
+    pub ops: Vec<OpCode>,
     pub arguments: Vec<Slot>,
     pub name: String,
     pub fn_id: FunctionId,
@@ -41,21 +40,6 @@ impl Object {
             .max()
             .copied()
             .unwrap_or(0)
-    }
-    pub fn display_block(&self, s: &mut String, block: BlockId) {
-        for op in &self.blocks[block.0].ops {
-            self.display_op(s, op);
-        }
-    }
-    pub fn display_op(&self, s: &mut String, op: &OpCode) {
-        match op {
-            OpCode::Block(block) => {
-                writeln!(s, " block {{").unwrap();
-                self.display_block(s, *block);
-                writeln!(s, "}}").unwrap();
-            }
-            _ => writeln!(s, "{}", op).unwrap(),
-        }
     }
 }
 
@@ -85,7 +69,9 @@ impl std::fmt::Display for Object {
             )?;
         }
         let mut body_str = String::new();
-        self.display_block(&mut body_str, self.main_block);
+        for op in &self.ops {
+            writeln!(body_str, "{}", op)?;
+        }
         let mut indent = 0;
         for line in body_str.lines() {
             let line = line.trim();
