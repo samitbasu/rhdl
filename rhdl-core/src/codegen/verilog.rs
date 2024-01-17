@@ -371,7 +371,7 @@ impl<'a> TranslationContext<'a> {
                         CaseArgument::Constant(c) => {
                             self.body
                                 .push_str(&format!("      {}: ", as_verilog_literal(c)));
-                            self.body.push_str(&format!("{} = {};", lhs, slot));
+                            self.body.push_str(&format!("{} = {};\n", lhs, slot));
                         }
                         CaseArgument::Wild => {
                             self.body.push_str("      default: ");
