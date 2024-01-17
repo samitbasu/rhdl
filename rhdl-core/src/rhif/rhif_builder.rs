@@ -1,9 +1,8 @@
 use crate::{
     path::Path,
     rhif::spec::{
-        AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast,
-        Discriminant, Enum, Exec, FieldValue, FuncId, Index, OpCode, Repeat, Slot, Struct, Tuple,
-        Unary,
+        AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum,
+        Exec, FieldValue, FuncId, Index, OpCode, Repeat, Slot, Struct, Tuple, Unary,
     },
     TypedBits,
 };
@@ -69,10 +68,6 @@ pub fn op_struct(
 
 pub fn op_tuple(lhs: Slot, fields: Vec<Slot>) -> OpCode {
     OpCode::Tuple(Tuple { lhs, fields })
-}
-
-pub fn op_block(block: BlockId) -> OpCode {
-    OpCode::Block(block)
 }
 
 pub fn op_case(lhs: Slot, discriminant: Slot, table: Vec<(CaseArgument, Slot)>) -> OpCode {
