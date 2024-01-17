@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use crate::{
     rhif::spec::{
-        Array, Assign, Binary, BlockId, Case, Cast, Discriminant, Enum, Exec, Index, OpCode,
-        Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
+        Array, Assign, Binary, Case, Cast, Discriminant, Enum, Exec, Index, OpCode, Repeat, Select,
+        Slot, Splice, Struct, Tuple, Unary,
     },
     rhif::Object,
 };
@@ -48,11 +48,6 @@ impl InitSet {
         }
         Ok(())
     }
-    fn intersect(&self, other: &InitSet) -> InitSet {
-        Self {
-            set: self.set.intersection(&other.set).cloned().collect(),
-        }
-    }
 }
 
 pub fn check_rhif_flow(obj: &Object) -> Result<()> {
@@ -60,12 +55,12 @@ pub fn check_rhif_flow(obj: &Object) -> Result<()> {
     for arg in &obj.arguments {
         init_set.write(arg)?;
     }
-    check_flow(obj, obj.main_block, init_set)?;
+    check_flow(obj, init_set)?;
     Ok(())
 }
 
-fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<InitSet> {
-    for op in &obj.blocks[block.0].ops {
+fn check_flow(obj: &Object, mut init_set: InitSet) -> Result<InitSet> {
+    for op in &obj.ops {
         eprintln!("Check flow for {}", op);
         match op {
             OpCode::Binary(Binary {
@@ -154,16 +149,13 @@ fn check_flow(obj: &Object, block: BlockId, mut init_set: InitSet) -> Result<Ini
                 init_set.write(lhs)?;
             }
             OpCode::Comment(_) => {}
-            OpCode::Block(id) => {
-                init_set = check_flow(obj, *id, init_set)?;
-            }
             OpCode::Case(Case {
                 lhs,
                 discriminant,
                 table,
             }) => {
                 init_set.read(discriminant)?;
-                for (argument, slot) in table {
+                for (_, slot) in table {
                     init_set.read(slot)?;
                 }
                 init_set.write(lhs)?;

@@ -2,9 +2,9 @@ use std::fmt::Display;
 
 use crate::{
     rhif::spec::{
-        AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast,
-        Discriminant, Enum, Exec, FieldValue, FuncId, Index, Member, OpCode, Repeat, Slot, Splice,
-        Struct, Tuple, Unary,
+        AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum,
+        Exec, FieldValue, FuncId, Index, Member, OpCode, Repeat, Slot, Splice, Struct, Tuple,
+        Unary,
     },
     util::splice,
 };
@@ -58,11 +58,11 @@ impl Display for OpCode {
                 discriminant: expr,
                 table,
             }) => {
-                writeln!(f, " {} <- case {}", lhs, expr)?;
+                writeln!(f, " {} <- case {} {{", lhs, expr)?;
                 for (cond, val) in table {
                     writeln!(f, "         {} => {}", cond, val)?;
                 }
-                Ok(())
+                writeln!(f, " }}")
             }
             OpCode::Exec(Exec { lhs, id, args }) => {
                 write!(f, " {} <- {}({})", lhs, id, splice(args, ", "))
@@ -85,7 +85,6 @@ impl Display for OpCode {
             OpCode::Repeat(Repeat { lhs, value, len }) => {
                 write!(f, " {} <- [{}; {}]", lhs, value, len)
             }
-            OpCode::Block(BlockId(x)) => write!(f, " sub B{x}"),
             OpCode::Comment(s) => write!(f, " # {}", s.trim_end().replace('\n', "\n   # ")),
             OpCode::Discriminant(Discriminant { lhs, arg }) => write!(f, " {} <- #[{}]", lhs, arg),
             OpCode::Enum(Enum {
@@ -124,12 +123,6 @@ impl Display for CaseArgument {
             CaseArgument::Constant(c) => write!(f, "{}", c),
             CaseArgument::Wild => write!(f, "_"),
         }
-    }
-}
-
-impl Display for BlockId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "B{}", self.0)
     }
 }
 
