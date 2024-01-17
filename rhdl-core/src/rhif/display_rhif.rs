@@ -58,11 +58,11 @@ impl Display for OpCode {
                 discriminant: expr,
                 table,
             }) => {
-                writeln!(f, " {} <- case {}", lhs, expr)?;
+                writeln!(f, " {} <- case {} {{", lhs, expr)?;
                 for (cond, val) in table {
                     writeln!(f, "         {} => {}", cond, val)?;
                 }
-                Ok(())
+                writeln!(f, " }}")
             }
             OpCode::Exec(Exec { lhs, id, args }) => {
                 write!(f, " {} <- {}({})", lhs, id, splice(args, ", "))
