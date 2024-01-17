@@ -3,8 +3,8 @@ use crate::kernel::ExternalKernelDef;
 use crate::path::Path;
 use crate::rhif::object::Object;
 use crate::rhif::spec::{
-    AluBinary, AluUnary, Array, Assign, Binary, Block, Case, CaseArgument, Cast, Discriminant,
-    Enum, Exec, Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
+    AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum, Exec,
+    Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
 };
 use crate::{ast::ast_impl::FunctionId, rhif::design::Design, TypedBits};
 use crate::{Digital, KernelFnKind, Kind};
@@ -18,7 +18,6 @@ use super::spec::{Select, Splice};
 struct VMState<'a> {
     reg_stack: &'a mut [Option<TypedBits>],
     literals: &'a [TypedBits],
-    blocks: &'a [Block],
     design: &'a Design,
     obj: &'a Object,
 }
@@ -72,8 +71,8 @@ impl<'a> VMState<'a> {
     }
 }
 
-fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
-    for op in &block.ops {
+fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
+    for op in ops {
         match op {
             OpCode::Binary(Binary {
                 op,
@@ -143,9 +142,6 @@ fn execute_block(block: &Block, state: &mut VMState) -> Result<()> {
                 } else {
                     state.write(*lhs, false_value)?;
                 }
-            }
-            OpCode::Block(block_id) => {
-                execute_block(&state.blocks[block_id.0], state)?;
             }
             OpCode::Index(Index { lhs, arg, path }) => {
                 let arg = state.read(*arg)?;
@@ -340,18 +336,13 @@ fn execute(design: &Design, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
             reg_stack[r] = Some(arg);
         }
     }
-    let block = obj
-        .blocks
-        .get(obj.main_block.0)
-        .ok_or(anyhow!("main block not found"))?;
     let mut state = VMState {
         reg_stack: &mut reg_stack,
         literals: &obj.literals,
-        blocks: &obj.blocks,
         design,
         obj,
     };
-    execute_block(block, &mut state)?;
+    execute_block(&obj.ops, &mut state)?;
     reg_stack
         .get(obj.return_slot.reg()?)
         .cloned()

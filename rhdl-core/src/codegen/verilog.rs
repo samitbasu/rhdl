@@ -3,12 +3,12 @@ use std::collections::BTreeSet;
 use crate::kernel::ExternalKernelDef;
 use crate::path::{bit_range, Path, PathElement};
 use crate::rhif::spec::{
-    AluBinary, AluUnary, Array, Assign, Binary, BlockId, Case, CaseArgument, Cast, Discriminant,
-    Enum, Exec, Index, Member, OpCode, Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
+    AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum, Exec,
+    Index, Member, OpCode, Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
 };
 use crate::test_module::VerilogDescriptor;
 use crate::util::binary_string;
-use crate::{ast::ast_impl::FunctionId, rhif::spec::Block, rhif::Object, Design, TypedBits};
+use crate::{ast::ast_impl::FunctionId, rhif::Object, Design, TypedBits};
 use crate::{KernelFnKind, Kind};
 use anyhow::Result;
 use anyhow::{anyhow, ensure};
@@ -28,7 +28,6 @@ impl VerilogModule {
 struct TranslationContext<'a> {
     body: &'a mut String,
     kernels: Vec<VerilogModule>,
-    blocks: &'a [Block],
     design: &'a Design,
     obj: &'a Object,
 }
@@ -227,9 +226,6 @@ impl<'a> TranslationContext<'a> {
                     ));
                 }
             }
-            OpCode::Block(block_id) => {
-                self.translate_block(*block_id)?;
-            }
             OpCode::Index(Index { lhs, arg, path }) => {
                 if path.any_dynamic() {
                     self.translate_dynamic_index(lhs, arg, path)?;
@@ -426,27 +422,11 @@ impl<'a> TranslationContext<'a> {
         Ok(())
     }
 
-    fn translate_block(&mut self, block: BlockId) -> Result<()> {
-        if self.block_is_empty(block)? {
-            return Ok(());
-        }
-        self.body.push_str("    begin\n");
-        let block = self
-            .blocks
-            .get(block.0)
-            .ok_or(anyhow!("Block {} not found", block.0))?;
-        for op in &block.ops {
+    fn translate_block(&mut self, block: &[OpCode]) -> Result<()> {
+        for op in block {
             self.translate_op(op)?;
         }
-        self.body.push_str("    end\n");
         Ok(())
-    }
-    fn block_is_empty(&self, block: BlockId) -> Result<bool> {
-        let block = self
-            .blocks
-            .get(block.0)
-            .ok_or(anyhow!("ICE - unable to find block ID {block:?} in code"))?;
-        Ok(block.ops.is_empty())
     }
 }
 
@@ -510,11 +490,10 @@ fn translate(design: &Design, fn_id: FunctionId) -> Result<VerilogModule> {
         let mut context = TranslationContext {
             kernels: Vec::new(),
             body: &mut func,
-            blocks: &obj.blocks,
             design,
             obj,
         };
-        context.translate_block(obj.main_block)?;
+        context.translate_block(&obj.ops)?;
         context.kernels
     };
     func.push_str(&format!("    {} = {};\n", func_name, obj.return_slot));
