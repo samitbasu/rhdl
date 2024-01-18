@@ -328,7 +328,7 @@ fn execute(design: &Design, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
         }
     }
     // Allocate registers for the function call.
-    let max_reg = obj.reg_count() + 1;
+    let max_reg = obj.reg_max_index() + 1;
     let mut reg_stack = vec![None; max_reg + 1];
     // Copy the arguments into the appropriate registers
     for (ndx, arg) in arguments.into_iter().enumerate() {

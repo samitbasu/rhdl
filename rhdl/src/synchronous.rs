@@ -382,8 +382,15 @@ fn get_blinker_data_flow_graph() {
             },
         },
     };
-    let graph = blinker.data_flow_graph();
-    eprintln!("{}", graph);
+    let design = compile_design(
+        <Blinker as Synchronous>::Update::kernel_fn()
+            .try_into()
+            .unwrap(),
+    )
+    .unwrap();
+    let graph = rhdl_core::compiler::data_flow_graph::make_data_flow(&design).unwrap();
+    let dot = graph.dot();
+    std::fs::write("blinker.dot", dot).unwrap();
 }
 
 #[test]
