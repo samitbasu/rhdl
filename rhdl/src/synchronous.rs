@@ -359,8 +359,6 @@ impl Synchronous for Blinker {
     const UPDATE: UpdateFn<Self> = blinker_update;
 }
 
-// TODO - support binary notation?
-
 #[kernel]
 pub fn blinker_update(params: Blinker, state: BlinkerState, _input: ()) -> (BlinkerState, b4) {
     let (q_pulser, pulser_output) = pulser_update::<26>(params.pulser, state.pulser, true);
@@ -370,6 +368,22 @@ pub fn blinker_update(params: Blinker, state: BlinkerState, _input: ()) -> (Blin
         b4(0b0000)
     };
     (BlinkerState { pulser: q_pulser }, blinker_output)
+}
+
+#[test]
+fn get_blinker_data_flow_graph() {
+    let blinker = Blinker {
+        pulser: Pulser::<26> {
+            one_shot: OneShot::<26> {
+                duration: bits(10_000_000),
+            },
+            strobe: Strobe::<26> {
+                period: bits(50_000_000),
+            },
+        },
+    };
+    let graph = blinker.data_flow_graph();
+    eprintln!("{}", graph);
 }
 
 #[test]
