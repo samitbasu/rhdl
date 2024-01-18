@@ -30,11 +30,22 @@ impl Object {
             _ => Err(anyhow::anyhow!("Not a literal")),
         }
     }
-    pub fn reg_count(&self) -> usize {
+    pub fn reg_max_index(&self) -> usize {
         self.ty
             .keys()
             .filter_map(|slot| match slot {
                 Slot::Register(ndx) => Some(ndx),
+                _ => None,
+            })
+            .max()
+            .copied()
+            .unwrap_or(0)
+    }
+    pub fn literal_max_index(&self) -> usize {
+        self.ty
+            .keys()
+            .filter_map(|slot| match slot {
+                Slot::Literal(ndx) => Some(ndx),
                 _ => None,
             })
             .max()

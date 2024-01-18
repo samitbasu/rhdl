@@ -3,40 +3,84 @@ use crate::rhif::spec::{
     Slot, Splice, Struct, Tuple, Unary,
 };
 use crate::rhif::Object;
-use anyhow::Result;
+use crate::{Design, KernelFnKind};
+use anyhow::anyhow;
+use anyhow::{bail, Result};
+use petgraph::dot::{Config, Dot};
 use petgraph::graph::NodeIndex;
 use petgraph::Graph;
 use std::collections::HashMap;
 
-type DataFlowGraph = Graph<Slot, OpCode>;
+type DataFlowGraphType = Graph<Slot, OpCode>;
 
-struct DataFlowGraphContext {
-    dfg: DataFlowGraph,
+pub struct DataFlowGraph(DataFlowGraphType);
+
+#[derive(Debug, Clone, PartialEq, Default, Copy)]
+struct Relocation {
+    register_offset: usize,
+    literal_offset: usize,
+}
+
+impl Relocation {
+    fn relocate(&self, slot: &Slot) -> Slot {
+        match slot {
+            Slot::Register(ndx) => Slot::Register(ndx + self.register_offset),
+            Slot::Literal(ndx) => Slot::Literal(ndx + self.literal_offset),
+            Slot::Empty => Slot::Empty,
+        }
+    }
+}
+
+struct DataFlowGraphContext<'a> {
+    dfg: DataFlowGraphType,
     slot_to_node: HashMap<Slot, NodeIndex>,
+    next_free: Relocation,
+    base: Relocation,
+    object: &'a Object,
+    design: &'a Design,
 }
 
-pub fn make_data_flow(object: &Object) -> Result<DataFlowGraph> {
+pub fn make_data_flow(design: &Design) -> Result<DataFlowGraph> {
+    let top = &design.objects[&design.top];
     let mut ctx = DataFlowGraphContext {
-        dfg: DataFlowGraph::new(),
+        dfg: Default::default(),
         slot_to_node: HashMap::new(),
+        next_free: Default::default(),
+        base: Default::default(),
+        object: top,
+        design,
     };
-    ctx.ops(&object.ops)?;
-    Ok(ctx.dfg)
+    ctx.base = ctx.allocate(top);
+    ctx.func()?;
+    Ok(DataFlowGraph(ctx.dfg))
 }
 
-impl DataFlowGraphContext {
+impl DataFlowGraph {
+    pub fn dot(&self) -> String {
+        format!("{}", Dot::with_config(&self.0, Default::default()))
+    }
+}
+
+impl<'a> DataFlowGraphContext<'a> {
+    fn allocate(&mut self, obj: &Object) -> Relocation {
+        let result = self.next_free.clone();
+        self.next_free.register_offset += obj.reg_max_index() + 1;
+        self.next_free.literal_offset += obj.literal_max_index() + 1;
+        result
+    }
     fn node(&mut self, slot: &Slot) -> Result<NodeIndex> {
-        match self.slot_to_node.entry(*slot) {
+        let slot = self.base.relocate(slot);
+        match self.slot_to_node.entry(slot) {
             std::collections::hash_map::Entry::Occupied(entry) => Ok(*entry.get()),
             std::collections::hash_map::Entry::Vacant(entry) => {
-                let node = self.dfg.add_node(*slot);
+                let node = self.dfg.add_node(slot);
                 entry.insert(node);
                 Ok(node)
             }
         }
     }
-    fn ops(&mut self, ops: &[OpCode]) -> Result<()> {
-        for op in ops {
+    fn func(&mut self) -> Result<()> {
+        for op in &self.object.ops {
             self.op(op)?;
         }
         Ok(())
@@ -66,13 +110,15 @@ impl DataFlowGraphContext {
                 true_value,
                 false_value,
             }) => {
-                let cond_node = self.node(cond)?;
-                let true_value_node = self.node(true_value)?;
-                let false_value_node = self.node(false_value)?;
-                let lhs_node = self.node(lhs)?;
-                self.dfg.add_edge(cond_node, lhs_node, op.clone());
-                self.dfg.add_edge(true_value_node, lhs_node, op.clone());
-                self.dfg.add_edge(false_value_node, lhs_node, op.clone());
+                if !lhs.is_empty() {
+                    let cond_node = self.node(cond)?;
+                    let true_value_node = self.node(true_value)?;
+                    let false_value_node = self.node(false_value)?;
+                    let lhs_node = self.node(lhs)?;
+                    self.dfg.add_edge(cond_node, lhs_node, op.clone());
+                    self.dfg.add_edge(true_value_node, lhs_node, op.clone());
+                    self.dfg.add_edge(false_value_node, lhs_node, op.clone());
+                }
             }
             OpCode::Array(Array { lhs, elements }) => {
                 let lhs_node = self.node(lhs)?;
@@ -163,11 +209,62 @@ impl DataFlowGraphContext {
                 }
             }
             OpCode::Exec(Exec { lhs, id, args }) => {
-                let lhs_node = self.node(lhs)?;
-                for arg in args {
-                    let arg_node = self.node(arg)?;
-                    self.dfg.add_edge(arg_node, lhs_node, op.clone());
+                // Inline the called function.  To do this, we need to first
+                // calculate the register offset for the called function.
+                // We do this by taking the current offset and adding enough
+                // registers and literals to account for our needs.
+
+                // Get the register names in our current scope
+                let lhs_in_my_scope = self.node(lhs)?;
+                let args_in_my_scope = args
+                    .iter()
+                    .map(|arg| self.node(arg).map(|n| (n, *arg)))
+                    .collect::<Result<Vec<_>>>()?;
+
+                let func = &self.object.externals[id.0];
+                let KernelFnKind::Kernel(kernel) = &func.code else {
+                    bail!("DFG does not currently support external function defs")
+                };
+                let callee = self
+                    .design
+                    .objects
+                    .get(&kernel.fn_id)
+                    .ok_or(anyhow!("ICE Could not find function referenced in design"))?;
+                let callee_base = self.allocate(callee);
+
+                // save our base
+                let base = self.base;
+                let object = self.object;
+                self.base = callee_base;
+                self.object = callee;
+
+                // Link the arguments as reading from our scope and importing into the function scope
+                for (arg, arg_in_my_scope) in callee.arguments.iter().zip(args_in_my_scope) {
+                    let arg_in_callee_scope = self.node(arg)?;
+                    self.dfg.add_edge(
+                        arg_in_my_scope.0,
+                        arg_in_callee_scope,
+                        OpCode::Assign(Assign {
+                            lhs: arg_in_my_scope.1,
+                            rhs: *arg,
+                        }),
+                    );
                 }
+
+                // Link the return value as reading from the function scope and importing into our scope
+                let lhs_in_callee_scope = self.node(&callee.return_slot)?;
+                self.dfg.add_edge(
+                    lhs_in_callee_scope,
+                    lhs_in_my_scope,
+                    OpCode::Assign(Assign {
+                        lhs: callee.return_slot,
+                        rhs: callee.return_slot,
+                    }),
+                );
+
+                self.func()?;
+                self.base = base;
+                self.object = object;
             }
             OpCode::Discriminant(Discriminant { lhs, arg }) => {
                 let arg_node = self.node(arg)?;
