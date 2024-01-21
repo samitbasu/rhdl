@@ -2,7 +2,8 @@ use crate::{
     ast::ascii::render_ast_to_string,
     compiler::{
         assign_node_ids, check_inference::check_inference, check_rhif_flow::check_rhif_flow,
-        check_rhif_type::check_type_correctness, compile, infer,
+        check_rhif_type::check_type_correctness, compile, infer, pass::Pass,
+        remove_extra_registers::RemoveExtraRegistersPass,
     },
     kernel::Kernel,
     rhif::Object,
@@ -19,6 +20,7 @@ pub fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     check_inference(&kernel, &ctx)?;
     let obj = compile(&kernel.ast, ctx)?;
     eprintln!("{}", obj);
+    let obj = RemoveExtraRegistersPass::run(obj)?;
     check_type_correctness(&obj)?;
     check_rhif_flow(&obj)?;
     Ok(obj)

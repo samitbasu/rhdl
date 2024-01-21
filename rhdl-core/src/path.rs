@@ -86,6 +86,21 @@ impl Path {
             .iter()
             .any(|e| matches!(e, PathElement::DynamicIndex(_)))
     }
+
+    pub(crate) fn rename_dyn_slots(self, old: Slot, new: Slot) -> Path {
+        Path {
+            elements: self
+                .elements
+                .into_iter()
+                .map(|e| match e {
+                    PathElement::DynamicIndex(slot) => {
+                        PathElement::DynamicIndex(slot.rename(old, new))
+                    }
+                    _ => e,
+                })
+                .collect(),
+        }
+    }
 }
 
 impl From<Member> for Path {
