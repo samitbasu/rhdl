@@ -1,7 +1,8 @@
 use crate::{
     ast::ast_impl::{
         self, ArmKind, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprLit, ExprTuple,
-        ExprTypedBits, FieldValue, FunctionId, Local, NodeId, Pat, PatKind, Path, INVALID_NODE_ID,
+        ExprTypedBits, FieldValue, FunctionId, Local, NodeId, Pat, PatKind, Path, UnOp,
+        INVALID_NODE_ID,
     },
     ast::display_ast::pretty_print_statement,
     ast::visit::Visitor,
@@ -22,7 +23,8 @@ use crate::{
 use anyhow::{anyhow, bail, Result};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
-use super::{infer_types::id_to_var, ty::ty_bool};
+use super::description::*;
+use super::{description::Description, infer_types::id_to_var, ty::ty_bool};
 
 const EARLY_RETURN_FLAG_NODE: NodeId = NodeId::new(!0);
 
@@ -49,6 +51,7 @@ pub struct CompilerContext {
     pub reg_count: usize,
     type_context: UnifyContext,
     ty: BTreeMap<Slot, Ty>,
+    descriptions: HashMap<Slot, Description>,
     locals: LocalsMap,
     stash: Vec<ExternalFunction>,
     return_node: NodeId,
@@ -102,6 +105,7 @@ impl CompilerContext {
             type_context,
             ty: [(Slot::Empty, ty_empty())].into_iter().collect(),
             locals: Default::default(),
+            descriptions: Default::default(),
             stash: Default::default(),
             return_node: INVALID_NODE_ID,
             ops: Default::default(),
@@ -114,12 +118,13 @@ impl CompilerContext {
         let var = id_to_var(id)?;
         Ok(self.type_context.apply(var))
     }
-    fn reg(&mut self, ty: Ty) -> Result<Slot> {
+    fn reg(&mut self, ty: Ty, description: Description) -> Result<Slot> {
         if ty.is_empty() {
             return Ok(Slot::Empty);
         }
         let reg = Slot::Register(self.reg_count);
         self.ty.insert(reg, ty);
+        self.descriptions.insert(reg, description);
         self.reg_count += 1;
         Ok(reg)
     }
@@ -197,20 +202,26 @@ impl CompilerContext {
     // context.
     fn bind(&mut self, id: NodeId, name: &str) -> Result<()> {
         let ty = self.ty(id)?;
-        let reg = self.reg(ty)?;
+        let reg = self.reg(ty, describe_local_binding(name))?;
         eprintln!("Binding {name}#{id} -> {reg}");
         if self.locals.insert(id.into(), reg).is_some() {
             bail!("Duplicate local variable binding for {:?}", id)
         }
         Ok(())
     }
-    fn rebind(&mut self, id: NodeId) -> Result<Rebind> {
+    fn desc(&self, slot: Slot) -> Result<&Description> {
+        self.descriptions
+            .get(&slot)
+            .ok_or(anyhow::anyhow!("ICE - No description for {:?}", slot))
+    }
+    fn rebind(&mut self, id: NodeId, description: &Description) -> Result<Rebind> {
         let ty = self.ty(id)?;
-        let reg = self.reg(ty)?;
         let Some(prev) = self.locals.get(&id.into()).copied() else {
             bail!("No local variable binding for {:?}", id)
         };
+        let reg = self.reg(ty, describe_rebinding(description))?;
         eprintln!("Rebinding {prev} -> {reg}");
+
         self.locals.insert(id.into(), reg);
         Ok(Rebind {
             from: prev,
@@ -235,9 +246,20 @@ impl CompilerContext {
             .cloned()
             .ok_or(anyhow::anyhow!("No local variable for {:?}", id))
     }
-    fn unop(&mut self, id: NodeId, unary: &ast_impl::ExprUnary) -> Result<Slot> {
-        let arg = self.expr(&unary.expr)?;
-        let result = self.reg(self.node_ty(id)?)?;
+    fn unop(
+        &mut self,
+        id: NodeId,
+        unary: &ast_impl::ExprUnary,
+        desc: &Description,
+    ) -> Result<Slot> {
+        let arg = self.expr(
+            &unary.expr,
+            &Description::UnopArgument(unary.op, desc.clone().into()),
+        )?;
+        let result = self.reg(
+            self.node_ty(id)?,
+            Description::UnopTarget(unary.op, desc.clone().into()),
+        )?;
         let op = match unary.op {
             ast_impl::UnOp::Neg => AluUnary::Neg,
             ast_impl::UnOp::Not => AluUnary::Not,
@@ -245,22 +267,23 @@ impl CompilerContext {
         self.op(op_unary(op, result, arg));
         Ok(result)
     }
-    fn stmt(&mut self, statement: &ast_impl::Stmt) -> Result<Slot> {
+    fn stmt(&mut self, statement: &ast_impl::Stmt, description: &Description) -> Result<Slot> {
         let statement_text = pretty_print_statement(statement, &self.type_context)?;
         self.op(op_comment(statement_text));
+        let description = Description::Statement(statement_text, description.clone().into());
         match &statement.kind {
             ast_impl::StmtKind::Local(local) => {
-                self.local(local)?;
+                self.local(local, &description)?;
                 Ok(Slot::Empty)
             }
-            ast_impl::StmtKind::Expr(expr) => self.expr(expr),
+            ast_impl::StmtKind::Expr(expr) => self.expr(expr, &description),
             ast_impl::StmtKind::Semi(expr) => {
-                self.expr(expr)?;
+                self.expr(expr, &description)?;
                 Ok(Slot::Empty)
             }
         }
     }
-    fn initialize_local(&mut self, pat: &Pat, rhs: Slot) -> Result<()> {
+    fn initialize_local(&mut self, pat: &Pat, rhs: Slot, description: &Description) -> Result<()> {
         match &pat.kind {
             PatKind::Ident(_ident) => {
                 if let Ok(lhs) = self.resolve_local(pat.id) {
@@ -279,13 +302,20 @@ impl CompilerContext {
                     .clone();
                 for (ndx, pat) in tuple.elements.iter().enumerate() {
                     let element_ty = ty_unnamed_field(&rhs_ty, ndx)?;
-                    let element_rhs = self.reg(element_ty)?;
+                    let element_rhs = self.reg(
+                        element_ty,
+                        Description::TupleInitLeftHandSide(ndx, description.clone().into()),
+                    )?;
                     self.op(op_index(
                         element_rhs,
                         rhs,
                         crate::path::Path::default().index(ndx),
                     ));
-                    self.initialize_local(pat, element_rhs)?;
+                    self.initialize_local(
+                        pat,
+                        element_rhs,
+                        &Description::TupleInitRightHandSide(ndx, description.clone().into()),
+                    )?;
                 }
                 Ok(())
             }
@@ -303,10 +333,23 @@ impl CompilerContext {
                         ast_impl::Member::Named(name) => ty_named_field(&rhs_ty, name)?,
                         ast_impl::Member::Unnamed(ndx) => ty_unnamed_field(&rhs_ty, *ndx as usize)?,
                     };
-                    let element_rhs = self.reg(element_ty)?;
+                    let element_rhs = self.reg(
+                        element_ty,
+                        Description::StructInitLeftHandSide(
+                            field.member.clone(),
+                            description.clone().into(),
+                        ),
+                    )?;
                     let path = field.member.clone().into();
                     self.op(op_index(element_rhs, rhs, path));
-                    self.initialize_local(&field.pat, element_rhs)?;
+                    self.initialize_local(
+                        &field.pat,
+                        element_rhs,
+                        &Description::StructInitRightHandSide(
+                            field.member.clone(),
+                            description.clone().into(),
+                        ),
+                    )?;
                 }
                 Ok(())
             }
@@ -321,13 +364,20 @@ impl CompilerContext {
                     .clone();
                 for (ndx, pat) in _tuple_struct.elems.iter().enumerate() {
                     let element_ty = ty_unnamed_field(&rhs_ty, ndx)?;
-                    let element_rhs = self.reg(element_ty)?;
+                    let element_rhs = self.reg(
+                        element_ty,
+                        Description::TupleStructInitLeftHandSide(ndx, description.clone().into()),
+                    )?;
                     self.op(op_index(
                         element_rhs,
                         rhs,
                         crate::path::Path::default().index(ndx),
                     ));
-                    self.initialize_local(pat, element_rhs)?;
+                    self.initialize_local(
+                        pat,
+                        element_rhs,
+                        &Description::TupleStructInitRightHandSide(ndx, description.clone().into()),
+                    )?;
                 }
                 Ok(())
             }
@@ -342,62 +392,109 @@ impl CompilerContext {
                     .clone();
                 for (ndx, pat) in slice.elems.iter().enumerate() {
                     let element_ty = ty_indexed_item(&rhs_ty, ndx)?;
-                    let element_rhs = self.reg(element_ty)?;
+                    let element_rhs = self.reg(
+                        element_ty,
+                        Description::SliceInitLeftHandSide(ndx, description.clone().into()),
+                    )?;
                     self.op(op_index(
                         element_rhs,
                         rhs,
                         crate::path::Path::default().index(ndx),
                     ));
-                    self.initialize_local(pat, element_rhs)?;
+                    self.initialize_local(
+                        pat,
+                        element_rhs,
+                        &Description::SliceInitRightHandSide(ndx, description.clone().into()),
+                    )?;
                 }
                 Ok(())
             }
-            PatKind::Type(ty) => self.initialize_local(&ty.pat, rhs),
+            PatKind::Type(ty) => self.initialize_local(&ty.pat, rhs, description),
             PatKind::Wild | PatKind::Lit(_) | PatKind::Path(_) => Ok(()),
             _ => todo!("Unsupported let init pattern: {:?}", pat),
         }
     }
-    fn local(&mut self, local: &Local) -> Result<()> {
+    fn local(&mut self, local: &Local, description: &Description) -> Result<()> {
         self.bind_pattern(&local.pat)?;
         if let Some(init) = &local.init {
-            let rhs = self.expr(init)?;
-            self.initialize_local(&local.pat, rhs)?;
+            let rhs = self.expr(init, description)?;
+            self.initialize_local(&local.pat, rhs, description)?;
         }
         Ok(())
     }
-    fn block(&mut self, block_result: Slot, block: &ast_impl::Block) -> Result<()> {
+    fn block(
+        &mut self,
+        block_result: Slot,
+        block: &ast_impl::Block,
+        description: &Description,
+    ) -> Result<()> {
         let statement_count = block.stmts.len();
         for (ndx, statement) in block.stmts.iter().enumerate() {
             let is_last = ndx == statement_count - 1;
-            let result = self.stmt(statement)?;
+            let result = self.stmt(statement, description)?;
             if is_last && (block_result != result) {
                 self.op(op_assign(block_result, result));
             }
         }
         Ok(())
     }
-    fn expr_list(&mut self, exprs: &[Box<Expr>]) -> Result<Vec<Slot>> {
-        exprs.iter().map(|x| self.expr(x)).collect::<Result<_>>()
+    fn expr_list(&mut self, exprs: &[Box<Expr>], description: &Description) -> Result<Vec<Slot>> {
+        exprs
+            .iter()
+            .enumerate()
+            .map(|(ndx, x)| {
+                self.expr(
+                    x,
+                    &Description::ExpressionListItem(ndx, description.clone().into()),
+                )
+            })
+            .collect::<Result<_>>()
     }
-    fn tuple(&mut self, id: NodeId, tuple: &ExprTuple) -> Result<Slot> {
-        let result = self.reg(self.node_ty(id)?)?;
-        let fields = self.expr_list(&tuple.elements)?;
+    fn tuple(&mut self, id: NodeId, tuple: &ExprTuple, description: &Description) -> Result<Slot> {
+        let result = self.reg(
+            self.node_ty(id)?,
+            Description::TupleLeftHandSide(description.clone().into()),
+        )?;
+        let fields = self.expr_list(
+            &tuple.elements,
+            &Description::TupleRightHandSide(description.clone().into()),
+        )?;
         self.op(op_tuple(result, fields));
         Ok(result)
     }
-    fn if_expr(&mut self, id: NodeId, if_expr: &ExprIf) -> Result<Slot> {
-        let op_result = self.reg(self.node_ty(id)?)?;
-        let then_result = self.reg(self.node_ty(id)?)?;
-        let else_result = self.reg(self.node_ty(id)?)?;
-        let cond = self.expr(&if_expr.cond)?;
+    fn if_expr(&mut self, id: NodeId, if_expr: &ExprIf, description: &Description) -> Result<Slot> {
+        let op_result = self.reg(
+            self.node_ty(id)?,
+            Description::IfStatementResult(description.clone().into()),
+        )?;
+        let then_result = self.reg(
+            self.node_ty(id)?,
+            Description::IfStatementResultOfThenBranch(description.clone().into()),
+        )?;
+        let else_result = self.reg(
+            self.node_ty(id)?,
+            Description::IfStatementResultOfElseBranch(description.clone().into()),
+        )?;
+        let cond = self.expr(
+            &if_expr.cond,
+            &Description::IfStatementCondition(description.clone().into()),
+        )?;
         let locals_prior_to_branch = self.locals.clone();
         eprintln!("Locals prior to branch {:?}", locals_prior_to_branch);
-        self.block(then_result, &if_expr.then_branch)?;
+        self.block(
+            then_result,
+            &if_expr.then_branch,
+            &Description::IfStatementThenBranch(description.clone().into()),
+        )?;
         let locals_after_then_branch = self.locals.clone();
         eprintln!("Locals after then branch {:?}", locals_after_then_branch);
         self.locals = locals_prior_to_branch.clone();
         if let Some(expr) = if_expr.else_branch.as_ref() {
-            self.wrap_expr_in_block(else_result, expr)?;
+            self.wrap_expr_in_block(
+                else_result,
+                expr,
+                &Description::IfStatementElseBranch(description.clone().into()),
+            )?;
         }
         let locals_after_else_branch = self.locals.clone();
         self.locals = locals_prior_to_branch.clone();
@@ -430,10 +527,24 @@ impl CompilerContext {
         self.op(op_select(op_result, cond, then_result, else_result));
         Ok(op_result)
     }
-    fn index(&mut self, id: NodeId, index: &ast_impl::ExprIndex) -> Result<Slot> {
-        let lhs = self.reg(self.node_ty(id)?)?;
-        let arg = self.expr(&index.expr)?;
-        let index = self.expr(&index.index)?;
+    fn index(
+        &mut self,
+        id: NodeId,
+        index: &ast_impl::ExprIndex,
+        description: &Description,
+    ) -> Result<Slot> {
+        let lhs = self.reg(
+            self.node_ty(id)?,
+            Description::IndexExpressionLeftHandSide(description.clone().into()),
+        )?;
+        let arg = self.expr(
+            &index.expr,
+            &Description::IndexExpressionTarget(description.clone().into()),
+        )?;
+        let index = self.expr(
+            &index.index,
+            &Description::IndexExpressionIndex(description.clone().into()),
+        )?;
         if index.is_literal() {
             let ndx = self.slot_to_index(index)?;
             self.op(op_index(lhs, arg, crate::path::Path::default().index(ndx)));
@@ -446,14 +557,36 @@ impl CompilerContext {
         }
         Ok(lhs)
     }
-    fn array(&mut self, id: NodeId, array: &ast_impl::ExprArray) -> Result<Slot> {
-        let lhs = self.reg(self.node_ty(id)?)?;
-        let elements = self.expr_list(&array.elems)?;
+    fn array(
+        &mut self,
+        id: NodeId,
+        array: &ast_impl::ExprArray,
+        description: &Description,
+    ) -> Result<Slot> {
+        let lhs = self.reg(
+            self.node_ty(id)?,
+            Description::ArrayExpressionLeftHandSide(description.clone().into()),
+        )?;
+        let elements = self.expr_list(
+            &array.elems,
+            &Description::ArrayExpressionRightHandSide(description.clone().into()),
+        )?;
         self.op(op_array(lhs, elements));
         Ok(lhs)
     }
-    fn field(&mut self, id: NodeId, field: &ast_impl::ExprField) -> Result<Slot> {
-        let lhs = self.reg(self.node_ty(id)?)?;
+    fn field(
+        &mut self,
+        id: NodeId,
+        field: &ast_impl::ExprField,
+        description: &Description,
+    ) -> Result<Slot> {
+        let lhs = self.reg(
+            self.node_ty(id)?,
+            Description::StructFieldExpressionLeftHandSide(
+                field.member.clone(),
+                description.clone().into(),
+            ),
+        )?;
         let arg = self.expr(&field.expr)?;
         let path = field.member.clone().into();
         self.op(op_index(lhs, arg, path));
@@ -871,7 +1004,7 @@ impl CompilerContext {
             _ => todo!("expr_lhs {:?}", expr),
         }
     }
-    fn expr(&mut self, expr: &Expr) -> Result<Slot> {
+    fn expr(&mut self, expr: &Expr, description: &Description) -> Result<Slot> {
         match &expr.kind {
             ExprKind::Array(array) => self.array(expr.id, array),
             ExprKind::Binary(bin) => self.binop(expr.id, bin),
@@ -908,8 +1041,13 @@ impl CompilerContext {
             ExprKind::Type(_) => Ok(Slot::Empty),
         }
     }
-    fn wrap_expr_in_block(&mut self, block_result: Slot, expr: &Expr) -> Result<()> {
-        let result = self.expr(expr)?;
+    fn wrap_expr_in_block(
+        &mut self,
+        block_result: Slot,
+        expr: &Expr,
+        description: &Description,
+    ) -> Result<()> {
+        let result = self.expr(expr, description)?;
         // Protects against empty assignments
         if block_result != result {
             self.op(op_assign(block_result, result));

@@ -36,6 +36,16 @@ pub fn pretty_print_statement(stmt: &Stmt, ty: &UnifyContext) -> Result<String> 
     Ok(buffer.buffer())
 }
 
+pub fn pretty_print_expression(expr: &Expr, ty: &UnifyContext) -> Result<String> {
+    let mut printer = PrettyPrinter {
+        buffer: Default::default(),
+        ty,
+    };
+    printer.print_expr(expr)?;
+    let buffer = printer.buffer;
+    Ok(buffer.buffer())
+}
+
 impl<'a> PrettyPrinter<'a> {
     pub fn print_kernel(&mut self, kernel: &Kernel) -> Result<()> {
         self.push(&format!("fn {}(", kernel.ast.name));
