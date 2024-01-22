@@ -74,7 +74,7 @@ impl Path {
         self
     }
     pub fn is_empty(&self) -> bool {
-        self.elements.iter().all(|e| matches!(e, PathElement::All))
+        self.elements.iter().all(|e| matches!(e, PathElement::All)) || self.elements.is_empty()
     }
     pub fn payload_by_value(mut self, discriminant: i64) -> Self {
         self.elements

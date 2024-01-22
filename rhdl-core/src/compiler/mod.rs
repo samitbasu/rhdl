@@ -14,5 +14,6 @@ pub(crate) mod check_inference;
 pub(crate) mod check_rhif_flow;
 pub(crate) mod check_rhif_type;
 pub mod data_flow_graph;
+mod lower_index_to_copy;
 mod pass;
 mod remove_extra_registers;

@@ -1,10 +1,11 @@
 use crate::{
     ast::ascii::render_ast_to_string,
     compiler::{
-        assign_node_ids, check_inference::check_inference, check_rhif_flow::check_rhif_flow,
-        check_rhif_type::check_type_correctness, compile, infer, pass::Pass,
-        remove_extra_registers::RemoveExtraRegistersPass,
+        assign_node_ids, check_inference::check_inference, check_rhif_flow::DataFlowCheckPass,
+        check_rhif_type::TypeCheckPass, compile, infer, lower_index_to_copy::LowerIndexToCopy,
+        pass::Pass, remove_extra_registers::RemoveExtraRegistersPass,
     },
+    diagnostic::report::show_source,
     kernel::Kernel,
     rhif::Object,
     Design, KernelFnKind,
@@ -19,10 +20,16 @@ pub fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     eprintln!("{}", ast_ascii);
     check_inference(&kernel, &ctx)?;
     let obj = compile(&kernel.ast, ctx)?;
-    eprintln!("{}", obj);
+    let obj = LowerIndexToCopy::run(obj)?;
     let obj = RemoveExtraRegistersPass::run(obj)?;
-    check_type_correctness(&obj)?;
-    check_rhif_flow(&obj)?;
+    let obj = TypeCheckPass::run(obj)?;
+    let obj = DataFlowCheckPass::run(obj)?;
+    eprintln!("{}", obj);
+    if let Some(source) = obj.source.as_ref() {
+        for (reg, node) in &obj.register_map {
+            show_source(source, &reg.to_string(), *node);
+        }
+    }
     Ok(obj)
 }
 

@@ -10,9 +10,26 @@ use crate::{
 
 use anyhow::{bail, Result};
 
+use super::pass::Pass;
+
 #[derive(Default, Debug, Clone)]
 struct InitSet {
     set: HashSet<Slot>,
+}
+
+pub struct DataFlowCheckPass;
+
+impl Pass for DataFlowCheckPass {
+    fn name(&self) -> &'static str {
+        "check_rhif_flow"
+    }
+    fn description(&self) -> &'static str {
+        "Check that all registers are initialized before use"
+    }
+    fn run(mut input: Object) -> Result<Object> {
+        check_rhif_flow(&input)?;
+        Ok(input)
+    }
 }
 
 impl InitSet {
@@ -50,7 +67,7 @@ impl InitSet {
     }
 }
 
-pub fn check_rhif_flow(obj: &Object) -> Result<()> {
+fn check_rhif_flow(obj: &Object) -> Result<()> {
     let mut init_set = InitSet::default();
     for arg in &obj.arguments {
         init_set.write(arg)?;
