@@ -7,6 +7,7 @@ use crate::{
     ast::visit::Visitor,
     compiler::ty::{ty_empty, ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
     compiler::UnifyContext,
+    diagnostic::build_spanned_source_for_kernel,
     rhif::rhif_builder::{
         op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment,
         op_discriminant, op_enum, op_exec, op_index, op_repeat, op_select, op_splice, op_struct,
@@ -49,6 +50,7 @@ pub struct CompilerContext {
     pub reg_count: usize,
     type_context: UnifyContext,
     ty: BTreeMap<Slot, Ty>,
+    context: BTreeMap<Slot, NodeId>,
     locals: LocalsMap,
     stash: Vec<ExternalFunction>,
     return_node: NodeId,
@@ -102,6 +104,7 @@ impl CompilerContext {
             type_context,
             ty: [(Slot::Empty, ty_empty())].into_iter().collect(),
             locals: Default::default(),
+            context: Default::default(),
             stash: Default::default(),
             return_node: INVALID_NODE_ID,
             ops: Default::default(),
@@ -114,12 +117,17 @@ impl CompilerContext {
         let var = id_to_var(id)?;
         Ok(self.type_context.apply(var))
     }
-    fn reg(&mut self, ty: Ty) -> Result<Slot> {
+    fn reg(&mut self, id: NodeId) -> Result<Slot> {
+        let ty = self.node_ty(id)?;
+        self.reg_with_type_and_node(ty, id)
+    }
+    fn reg_with_type_and_node(&mut self, ty: Ty, id: NodeId) -> Result<Slot> {
         if ty.is_empty() {
             return Ok(Slot::Empty);
         }
         let reg = Slot::Register(self.reg_count);
         self.ty.insert(reg, ty);
+        self.context.insert(reg, id);
         self.reg_count += 1;
         Ok(reg)
     }
@@ -196,8 +204,7 @@ impl CompilerContext {
     // be referred to by cross references in the type
     // context.
     fn bind(&mut self, id: NodeId, name: &str) -> Result<()> {
-        let ty = self.ty(id)?;
-        let reg = self.reg(ty)?;
+        let reg = self.reg(id)?;
         eprintln!("Binding {name}#{id} -> {reg}");
         if self.locals.insert(id.into(), reg).is_some() {
             bail!("Duplicate local variable binding for {:?}", id)
@@ -205,8 +212,7 @@ impl CompilerContext {
         Ok(())
     }
     fn rebind(&mut self, id: NodeId) -> Result<Rebind> {
-        let ty = self.ty(id)?;
-        let reg = self.reg(ty)?;
+        let reg = self.reg(id)?;
         let Some(prev) = self.locals.get(&id.into()).copied() else {
             bail!("No local variable binding for {:?}", id)
         };
@@ -237,7 +243,7 @@ impl CompilerContext {
     }
     fn unop(&mut self, id: NodeId, unary: &ast_impl::ExprUnary) -> Result<Slot> {
         let arg = self.expr(&unary.expr)?;
-        let result = self.reg(self.node_ty(id)?)?;
+        let result = self.reg(id)?;
         let op = match unary.op {
             ast_impl::UnOp::Neg => AluUnary::Neg,
             ast_impl::UnOp::Not => AluUnary::Not,
@@ -279,7 +285,7 @@ impl CompilerContext {
                     .clone();
                 for (ndx, pat) in tuple.elements.iter().enumerate() {
                     let element_ty = ty_unnamed_field(&rhs_ty, ndx)?;
-                    let element_rhs = self.reg(element_ty)?;
+                    let element_rhs = self.reg_with_type_and_node(element_ty, pat.id)?;
                     self.op(op_index(
                         element_rhs,
                         rhs,
@@ -303,7 +309,7 @@ impl CompilerContext {
                         ast_impl::Member::Named(name) => ty_named_field(&rhs_ty, name)?,
                         ast_impl::Member::Unnamed(ndx) => ty_unnamed_field(&rhs_ty, *ndx as usize)?,
                     };
-                    let element_rhs = self.reg(element_ty)?;
+                    let element_rhs = self.reg_with_type_and_node(element_ty, field.pat.id)?;
                     let path = field.member.clone().into();
                     self.op(op_index(element_rhs, rhs, path));
                     self.initialize_local(&field.pat, element_rhs)?;
@@ -321,7 +327,7 @@ impl CompilerContext {
                     .clone();
                 for (ndx, pat) in _tuple_struct.elems.iter().enumerate() {
                     let element_ty = ty_unnamed_field(&rhs_ty, ndx)?;
-                    let element_rhs = self.reg(element_ty)?;
+                    let element_rhs = self.reg_with_type_and_node(element_ty, pat.id)?;
                     self.op(op_index(
                         element_rhs,
                         rhs,
@@ -342,7 +348,7 @@ impl CompilerContext {
                     .clone();
                 for (ndx, pat) in slice.elems.iter().enumerate() {
                     let element_ty = ty_indexed_item(&rhs_ty, ndx)?;
-                    let element_rhs = self.reg(element_ty)?;
+                    let element_rhs = self.reg_with_type_and_node(element_ty, pat.id)?;
                     self.op(op_index(
                         element_rhs,
                         rhs,
@@ -380,15 +386,15 @@ impl CompilerContext {
         exprs.iter().map(|x| self.expr(x)).collect::<Result<_>>()
     }
     fn tuple(&mut self, id: NodeId, tuple: &ExprTuple) -> Result<Slot> {
-        let result = self.reg(self.node_ty(id)?)?;
+        let result = self.reg(id)?;
         let fields = self.expr_list(&tuple.elements)?;
         self.op(op_tuple(result, fields));
         Ok(result)
     }
     fn if_expr(&mut self, id: NodeId, if_expr: &ExprIf) -> Result<Slot> {
-        let op_result = self.reg(self.node_ty(id)?)?;
-        let then_result = self.reg(self.node_ty(id)?)?;
-        let else_result = self.reg(self.node_ty(id)?)?;
+        let op_result = self.reg(id)?;
+        let then_result = self.reg(id)?;
+        let else_result = self.reg(id)?;
         let cond = self.expr(&if_expr.cond)?;
         let locals_prior_to_branch = self.locals.clone();
         eprintln!("Locals prior to branch {:?}", locals_prior_to_branch);
@@ -431,7 +437,7 @@ impl CompilerContext {
         Ok(op_result)
     }
     fn index(&mut self, id: NodeId, index: &ast_impl::ExprIndex) -> Result<Slot> {
-        let lhs = self.reg(self.node_ty(id)?)?;
+        let lhs = self.reg(id)?;
         let arg = self.expr(&index.expr)?;
         let index = self.expr(&index.index)?;
         if index.is_literal() {
@@ -447,13 +453,13 @@ impl CompilerContext {
         Ok(lhs)
     }
     fn array(&mut self, id: NodeId, array: &ast_impl::ExprArray) -> Result<Slot> {
-        let lhs = self.reg(self.node_ty(id)?)?;
+        let lhs = self.reg(id)?;
         let elements = self.expr_list(&array.elems)?;
         self.op(op_array(lhs, elements));
         Ok(lhs)
     }
     fn field(&mut self, id: NodeId, field: &ast_impl::ExprField) -> Result<Slot> {
-        let lhs = self.reg(self.node_ty(id)?)?;
+        let lhs = self.reg(id)?;
         let arg = self.expr(&field.expr)?;
         let path = field.member.clone().into();
         self.op(op_index(lhs, arg, path));
@@ -468,7 +474,7 @@ impl CompilerContext {
     }
     fn struct_expr(&mut self, id: NodeId, _struct: &ast_impl::ExprStruct) -> Result<Slot> {
         eprintln!("Struct expr {:?} template: {}", _struct, _struct.template);
-        let lhs = self.reg(self.node_ty(id)?)?;
+        let lhs = self.reg(id)?;
         let fields = _struct
             .fields
             .iter()
@@ -485,11 +491,12 @@ impl CompilerContext {
         Ok(lhs)
     }
     fn match_expr(&mut self, id: NodeId, _match: &ast_impl::ExprMatch) -> Result<Slot> {
-        let lhs = self.reg(self.node_ty(id)?)?;
+        let lhs = self.reg(id)?;
         let target_ty = self.ty(_match.expr.id)?;
         let target = self.expr(&_match.expr)?;
         let discriminant = if let Ty::Enum(enum_ty) = target_ty {
-            let disc_reg = self.reg(*enum_ty.discriminant.clone())?;
+            let disc_reg =
+                self.reg_with_type_and_node(*enum_ty.discriminant.clone(), _match.expr.id)?;
             self.op(op_discriminant(disc_reg, target));
             disc_reg
         } else {
@@ -502,7 +509,7 @@ impl CompilerContext {
         let mut arm_lhs = vec![];
         for arm in &_match.arms {
             self.locals = locals_prior_to_match.clone();
-            let lhs = self.reg(self.node_ty(id)?)?;
+            let lhs = self.reg(id)?;
             let disc = self.expr_arm(target, lhs, arm)?;
             arm_lhs.push(lhs);
             arguments.push(disc);
@@ -594,7 +601,10 @@ impl CompilerContext {
                 let discriminant = arm_enum.template.discriminant()?;
                 let disc_as_i64 = arm_enum.template.discriminant()?.as_i64()?;
                 let path = crate::path::Path::default().payload_by_value(disc_as_i64);
-                let payload = self.reg(arm_enum.payload_kind.clone().into())?;
+                let payload = self.reg_with_type_and_node(
+                    arm_enum.payload_kind.clone().into(),
+                    arm_enum.pat.id,
+                )?;
                 self.op(op_index(payload, target, path));
                 self.initialize_local(&arm_enum.pat, payload)?;
                 let result = self.expr(&arm.body)?;
@@ -650,7 +660,7 @@ impl CompilerContext {
         Ok(Slot::Empty)
     }
     fn repeat(&mut self, id: NodeId, repeat: &ast_impl::ExprRepeat) -> Result<Slot> {
-        let lhs = self.reg(self.node_ty(id)?)?;
+        let lhs = self.reg(id)?;
         let len = self.expr(&repeat.len)?;
         let len = self.slot_to_index(len)?;
         let value = self.expr(&repeat.value)?;
@@ -677,13 +687,13 @@ impl CompilerContext {
             "as_signed" => AluUnary::Signed,
             _ => bail!("Unsupported method call {:?}", method_call),
         };
-        let lhs = self.reg(self.node_ty(id)?)?;
+        let lhs = self.reg(id)?;
         let arg = self.expr(&method_call.receiver)?;
         self.op(op_unary(op, lhs, arg));
         Ok(lhs)
     }
     fn call(&mut self, id: NodeId, call: &ast_impl::ExprCall) -> Result<Slot> {
-        let lhs = self.reg(self.node_ty(id)?)?;
+        let lhs = self.reg(id)?;
         let path = collapse_path(&call.path);
         let args = self.expr_list(&call.args)?;
         // inline calls to bits and signed
@@ -727,7 +737,7 @@ impl CompilerContext {
         let lhs = self.expr(&bin.lhs)?;
         let rhs = self.expr(&bin.rhs)?;
         let (dest, path) = self.expr_lhs(&bin.lhs)?;
-        let temp = self.reg(self.node_ty(bin.lhs.id)?)?;
+        let temp = self.reg(bin.lhs.id)?;
         let result = Slot::Empty;
         let op = &bin.op;
         let alu = match op {
@@ -767,7 +777,7 @@ impl CompilerContext {
         }
         let lhs = self.expr(&bin.lhs)?;
         let rhs = self.expr(&bin.rhs)?;
-        let result = self.reg(self.node_ty(id)?)?;
+        let result = self.reg(id)?;
         let alu = match op {
             BinOp::Add | BinOp::AddAssign => AluBinary::Add,
             BinOp::Sub | BinOp::SubAssign => AluBinary::Sub,
@@ -876,7 +886,7 @@ impl CompilerContext {
             ExprKind::Array(array) => self.array(expr.id, array),
             ExprKind::Binary(bin) => self.binop(expr.id, bin),
             ExprKind::Block(block) => {
-                let block_result = self.reg(self.node_ty(expr.id)?)?;
+                let block_result = self.reg(expr.id)?;
                 self.block(block_result, &block.block)?;
                 Ok(block_result)
             }
@@ -985,7 +995,7 @@ impl Visitor for CompilerContext {
             arguments.push(self.resolve_local(arg_id)?);
         }
         self.arguments = arguments;
-        let block_result = self.reg(self.ty(node.id)?)?;
+        let block_result = self.reg(node.id)?;
         self.return_node = node.id;
         // Allocate an unnamed local binding for the early return flag
         self.type_context
@@ -1043,6 +1053,8 @@ pub fn compile(func: &ast_impl::KernelFn, ctx: UnifyContext) -> Result<Object> {
         })
         .collect::<Result<Vec<_>>>()?;
     Ok(Object {
+        source: Some(build_spanned_source_for_kernel(func)),
+        register_map: compiler.context,
         literals,
         ty: compiler.ty,
         ops: compiler.ops,

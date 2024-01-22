@@ -18,6 +18,9 @@ impl IndentingFormatter {
     pub fn buffer(self) -> String {
         self.buffer
     }
+    pub fn location(&self) -> usize {
+        self.buffer.len()
+    }
     pub fn write(&mut self, s: &str) {
         // Write s to the internal buffer.
         // If s contains a left brace, then increase the indent

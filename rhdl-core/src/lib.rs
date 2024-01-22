@@ -16,6 +16,7 @@ pub use types::kind::text_grid;
 pub mod ast;
 pub mod codegen;
 pub mod compiler;
+pub mod diagnostic;
 pub mod dyn_bit_manip;
 pub mod note_db;
 pub mod path;

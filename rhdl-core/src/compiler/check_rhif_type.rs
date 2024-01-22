@@ -14,7 +14,24 @@ use crate::{
 use anyhow::{anyhow, bail};
 use anyhow::{ensure, Result};
 
-pub fn check_type_correctness(obj: &Object) -> Result<()> {
+use super::pass::Pass;
+
+pub struct TypeCheckPass;
+
+impl Pass for TypeCheckPass {
+    fn name(&self) -> &'static str {
+        "check_rhif_type"
+    }
+    fn description(&self) -> &'static str {
+        "Check RHIF type correctness"
+    }
+    fn run(input: Object) -> Result<Object> {
+        check_type_correctness(&input)?;
+        Ok(input)
+    }
+}
+
+fn check_type_correctness(obj: &Object) -> Result<()> {
     let slot_type = |slot: &Slot| -> Result<Ty> {
         if matches!(*slot, Slot::Empty) {
             return Ok(ty::ty_empty());

@@ -1,10 +1,11 @@
 use anyhow::Result;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write;
 
 use crate::{
-    ast::ast_impl::FunctionId,
+    ast::ast_impl::{FunctionId, NodeId},
     compiler::ty::Ty,
+    diagnostic::SpannedSource,
     rhif::spec::{ExternalFunction, Slot},
     TypedBits,
 };
@@ -13,6 +14,8 @@ use super::spec::OpCode;
 
 #[derive(Debug, Clone)]
 pub struct Object {
+    pub source: Option<SpannedSource>,
+    pub register_map: BTreeMap<Slot, NodeId>,
     pub literals: Vec<TypedBits>,
     pub ty: BTreeMap<Slot, Ty>,
     pub return_slot: Slot,
