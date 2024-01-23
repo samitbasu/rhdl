@@ -2,12 +2,12 @@ use crate::{
     ast::ascii::render_ast_to_string,
     compiler::{
         assign_node_ids, check_inference::check_inference, check_rhif_flow::DataFlowCheckPass,
-        check_rhif_type::TypeCheckPass, compile, infer, lower_index_to_copy::LowerIndexToCopy,
-        pass::Pass, remove_extra_registers::RemoveExtraRegistersPass,
+        check_rhif_type::TypeCheckPass, compile, infer, pass::Pass,
+        remove_extra_registers::RemoveExtraRegistersPass,
     },
     diagnostic::report::show_source,
     kernel::Kernel,
-    rhif::Object,
+    rhif::{spec::OpCode, Object},
     Design, KernelFnKind,
 };
 
@@ -16,7 +16,7 @@ use anyhow::Result;
 pub fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     assign_node_ids(&mut kernel)?;
     let ctx = infer(&kernel)?;
-    let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
+    let _ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
     //eprintln!("{}", ast_ascii);
     check_inference(&kernel, &ctx)?;
     let obj = compile(&kernel.ast, ctx)?;
@@ -26,7 +26,21 @@ pub fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     //eprintln!("{}", obj);
     let obj = TypeCheckPass::run(obj)?;
     let obj = DataFlowCheckPass::run(obj)?;
-    //eprintln!("{}", obj);
+    eprintln!("{}", obj);
+    if let Some(source) = obj.source.as_ref() {
+        obj.opcode_map
+            .iter()
+            .zip(obj.ops.iter())
+            .for_each(|(location, opcode)| {
+                if matches!(
+                    opcode,
+                    OpCode::Assign(_) | OpCode::Index(_) | OpCode::Splice(_),
+                ) {
+                    eprintln!("opcode: {}", opcode);
+                    show_source(source, &opcode.to_string(), location.node);
+                }
+            });
+    }
     /*
     if let Some(source) = obj.source.as_ref() {
         for (reg, loc) in &obj.register_map {

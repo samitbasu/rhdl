@@ -154,11 +154,11 @@ impl SpannedSourceBuilder {
                 self.push(";\n");
             }
             StmtKind::Expr(expr) => {
-                self.expr(&expr);
+                self.expr(expr);
                 self.push(";\n");
             }
             StmtKind::Semi(expr) => {
-                self.expr(&expr);
+                self.expr(expr);
                 self.push(";\n");
             }
         }
