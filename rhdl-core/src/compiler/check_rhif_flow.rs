@@ -26,7 +26,7 @@ impl Pass for DataFlowCheckPass {
     fn description(&self) -> &'static str {
         "Check that all registers are initialized before use"
     }
-    fn run(mut input: Object) -> Result<Object> {
+    fn run(input: Object) -> Result<Object> {
         check_rhif_flow(&input)?;
         Ok(input)
     }
