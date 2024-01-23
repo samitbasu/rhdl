@@ -74,6 +74,7 @@ impl<'a> VMState<'a> {
 fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
     for op in ops {
         match op {
+            OpCode::Noop => {}
             OpCode::Binary(Binary {
                 op,
                 lhs,
