@@ -80,6 +80,7 @@ fn check_flow(obj: &Object, mut init_set: InitSet) -> Result<InitSet> {
     for op in &obj.ops {
         eprintln!("Check flow for {}", op);
         match op {
+            OpCode::Noop => {}
             OpCode::Binary(Binary {
                 op: _,
                 lhs,

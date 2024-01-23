@@ -17,19 +17,22 @@ pub fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     assign_node_ids(&mut kernel)?;
     let ctx = infer(&kernel)?;
     let ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-    eprintln!("{}", ast_ascii);
+    //eprintln!("{}", ast_ascii);
     check_inference(&kernel, &ctx)?;
     let obj = compile(&kernel.ast, ctx)?;
-    let obj = LowerIndexToCopy::run(obj)?;
+    //    let obj = LowerIndexToCopy::run(obj)?;
+    //eprintln!("{}", obj);
     let obj = RemoveExtraRegistersPass::run(obj)?;
+    //eprintln!("{}", obj);
     let obj = TypeCheckPass::run(obj)?;
     let obj = DataFlowCheckPass::run(obj)?;
-    eprintln!("{}", obj);
+    //eprintln!("{}", obj);
+    /*
     if let Some(source) = obj.source.as_ref() {
-        for (reg, node) in &obj.register_map {
-            show_source(source, &reg.to_string(), *node);
+        for (reg, loc) in &obj.register_map {
+            show_source(source, &reg.to_string(), loc.node);
         }
-    }
+    }*/
     Ok(obj)
 }
 

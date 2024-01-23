@@ -13,9 +13,22 @@ use crate::{
 use super::spec::OpCode;
 
 #[derive(Debug, Clone)]
+pub struct SourceLocation {
+    pub func: FunctionId,
+    pub node: NodeId,
+}
+
+impl From<(FunctionId, NodeId)> for SourceLocation {
+    fn from((func, node): (FunctionId, NodeId)) -> Self {
+        Self { func, node }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Object {
     pub source: Option<SpannedSource>,
-    pub register_map: BTreeMap<Slot, NodeId>,
+    pub register_map: BTreeMap<Slot, SourceLocation>,
+    pub opcode_map: Vec<SourceLocation>,
     pub literals: Vec<TypedBits>,
     pub ty: BTreeMap<Slot, Ty>,
     pub return_slot: Slot,

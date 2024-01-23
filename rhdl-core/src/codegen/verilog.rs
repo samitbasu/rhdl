@@ -197,6 +197,7 @@ impl<'a> TranslationContext<'a> {
 
     fn translate_op(&mut self, op: &OpCode) -> Result<()> {
         match op {
+            OpCode::Noop => {}
             OpCode::Binary(Binary {
                 op,
                 lhs,

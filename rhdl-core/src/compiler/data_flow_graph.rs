@@ -87,6 +87,7 @@ impl<'a> DataFlowGraphContext<'a> {
     }
     fn op(&mut self, op: &OpCode) -> Result<()> {
         match op {
+            OpCode::Noop => {}
             OpCode::Binary(Binary {
                 op: _,
                 lhs,

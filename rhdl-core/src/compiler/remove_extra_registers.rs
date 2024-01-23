@@ -30,9 +30,15 @@ impl Pass for RemoveExtraRegistersPass {
                     .ops
                     .into_iter()
                     .map(|op| op.rename_read_register(assign.lhs, assign.rhs))
-                    .filter(|op| match op {
-                        OpCode::Assign(Assign { lhs, rhs: _ }) => lhs != &assign.lhs,
-                        _ => true,
+                    .map(|op| match op {
+                        OpCode::Assign(Assign { lhs, rhs: _ }) => {
+                            if lhs != assign.lhs {
+                                op
+                            } else {
+                                OpCode::Noop
+                            }
+                        }
+                        _ => op,
                     })
                     .collect();
                 // Delete the register from the register map

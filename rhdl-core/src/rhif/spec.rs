@@ -5,6 +5,7 @@ use crate::{path::Path, DigitalSignature, KernelFnKind, TypedBits};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum OpCode {
+    Noop,
     // lhs <- arg1 op arg2
     Binary(Binary),
     // lhs <- op arg1
@@ -74,10 +75,14 @@ impl OpCode {
                 arg: arg.rename(old, new),
                 path: path.rename_dyn_slots(old, new),
             }),
-            OpCode::Assign(Assign { lhs, rhs }) => OpCode::Assign(Assign {
-                lhs,
-                rhs: rhs.rename(old, new),
-            }),
+            OpCode::Assign(Assign { lhs, rhs }) => {
+                let new_rhs = rhs.rename(old, new);
+                if new_rhs == lhs {
+                    OpCode::Noop
+                } else {
+                    OpCode::Assign(Assign { lhs, rhs: new_rhs })
+                }
+            }
             OpCode::Splice(Splice {
                 lhs,
                 orig,

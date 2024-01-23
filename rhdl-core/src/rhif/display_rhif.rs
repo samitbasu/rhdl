@@ -14,6 +14,7 @@ use super::spec::Select;
 impl Display for OpCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            OpCode::Noop => write!(f, " NOP"),
             OpCode::Binary(Binary {
                 op,
                 lhs,
