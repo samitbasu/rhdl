@@ -1067,7 +1067,7 @@ pub fn compile(func: &ast_impl::KernelFn, ctx: UnifyContext) -> Result<Object> {
         .collect::<Result<Vec<_>>>()?;
     Ok(Object {
         source: Some(build_spanned_source_for_kernel(func)),
-        register_map: compiler
+        slot_map: compiler
             .context
             .into_iter()
             .map(|(slot, node)| (slot, (compiler.fn_id, node).into()))

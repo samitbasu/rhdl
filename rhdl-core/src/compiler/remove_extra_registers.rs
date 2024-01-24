@@ -42,7 +42,7 @@ impl Pass for RemoveExtraRegistersPass {
                     })
                     .collect();
                 // Delete the register from the register map
-                input.register_map.remove(&assign.lhs);
+                input.slot_map.remove(&assign.lhs);
                 input.ty.remove(&assign.lhs);
             }
         }

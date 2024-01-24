@@ -20,6 +20,7 @@ rhdl-fpga = { path = "../rhdl-fpga" }
 anyhow = "1.0.75"
 svg = { version = "0.14.0", optional = true }
 serde_json = "1.0.64"
+petgraph = "0.6.4"
 
 [features]
 svg = ["rhdl-core/svg", "dep:svg"]
