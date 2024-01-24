@@ -27,20 +27,22 @@ pub fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     let obj = TypeCheckPass::run(obj)?;
     let obj = DataFlowCheckPass::run(obj)?;
     eprintln!("{}", obj);
-    if let Some(source) = obj.source.as_ref() {
-        obj.opcode_map
-            .iter()
-            .zip(obj.ops.iter())
-            .for_each(|(location, opcode)| {
-                if matches!(
-                    opcode,
-                    OpCode::Assign(_) | OpCode::Index(_) | OpCode::Splice(_),
-                ) {
-                    eprintln!("opcode: {}", opcode);
-                    show_source(source, &opcode.to_string(), location.node);
-                }
-            });
-    }
+
+    /*     if let Some(source) = obj.source.as_ref() {
+           obj.opcode_map
+               .iter()
+               .zip(obj.ops.iter())
+               .for_each(|(location, opcode)| {
+                   if matches!(
+                       opcode,
+                       OpCode::Assign(_) | OpCode::Index(_) | OpCode::Splice(_),
+                   ) {
+                       eprintln!("opcode: {}", opcode);
+                       show_source(source, &opcode.to_string(), location.node);
+                   }
+               });
+       }
+    */
     /*
     if let Some(source) = obj.source.as_ref() {
         for (reg, loc) in &obj.register_map {

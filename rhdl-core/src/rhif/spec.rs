@@ -330,7 +330,7 @@ impl Slot {
         if *self == old {
             new
         } else {
-            self.clone()
+            *self
         }
     }
 }

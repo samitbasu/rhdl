@@ -388,9 +388,19 @@ fn get_blinker_data_flow_graph() {
             .unwrap(),
     )
     .unwrap();
-    let graph = rhdl_core::compiler::data_flow_graph::make_data_flow(&design).unwrap();
-    let dot = graph.dot();
-    std::fs::write("blinker.dot", dot).unwrap();
+    let dfg = rhdl_core::compiler::data_flow_graph::make_data_flow(&design).unwrap();
+    //eprintln!("dfg: {:?}", dfg);
+    let ways = petgraph::algo::all_simple_paths::<Vec<_>, _>(
+        &dfg.graph,
+        dfg.inputs[1],
+        dfg.output,
+        0,
+        None,
+    )
+    .collect::<Vec<_>>();
+    eprintln!("ways: {:?}", ways);
+
+    //std::fs::write("blinker.dot", dot).unwrap();
 }
 
 #[test]
