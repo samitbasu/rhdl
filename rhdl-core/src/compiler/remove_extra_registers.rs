@@ -44,6 +44,8 @@ impl Pass for RemoveExtraRegistersPass {
                 // Delete the register from the register map
                 input.slot_map.remove(&assign.lhs);
                 input.ty.remove(&assign.lhs);
+                // Check the output register
+                input.return_slot = input.return_slot.rename(assign.lhs, assign.rhs);
             }
         }
         Ok(input)

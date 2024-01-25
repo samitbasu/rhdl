@@ -20,7 +20,7 @@ use crate::{
     types::typed_bits::TypedBits,
     Digital, KernelFnKind, Kind,
 };
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, bail, ensure, Result};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use super::{infer_types::id_to_var, ty::ty_bool};
@@ -1037,7 +1037,9 @@ impl Visitor for CompilerContext {
         );
         self.block(block_result, &node.body)?;
         self.ops.insert(0, init_early_exit_op);
+        self.opcode_source_map.insert(0, node.id);
         self.ops.insert(1, init_return_slot);
+        self.opcode_source_map.insert(1, node.id);
         self.insert_implicit_return(node.body.id, block_result)?;
         self.name = node.name.clone();
         self.fn_id = node.fn_id;
@@ -1065,6 +1067,10 @@ pub fn compile(func: &ast_impl::KernelFn, ctx: UnifyContext) -> Result<Object> {
             cast_literal_to_inferred_type(lit, ty)
         })
         .collect::<Result<Vec<_>>>()?;
+    ensure!(
+        compiler.opcode_source_map.len() == compiler.ops.len(),
+        "ICE - opcode source map and opcode list are not the same length",
+    );
     Ok(Object {
         source: Some(build_spanned_source_for_kernel(func)),
         slot_map: compiler
