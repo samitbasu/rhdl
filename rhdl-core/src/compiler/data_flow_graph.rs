@@ -14,8 +14,8 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Compute {
-    op: OpCode,
-    source: SourceLocation,
+    pub op: OpCode,
+    pub source: SourceLocation,
 }
 
 type DataFlowGraphType = Graph<Slot, Option<Compute>, Directed>;
@@ -63,6 +63,8 @@ pub fn make_data_flow(design: &Design) -> Result<DataFlowGraph> {
         design,
     };
     ctx.base = ctx.allocate(top);
+    eprintln!("** Arguments: {:?}", top.arguments);
+    eprintln!("** Return {:?}", top.return_slot);
     // Get the input arguments
     let inputs = top
         .arguments

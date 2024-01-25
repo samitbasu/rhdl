@@ -1,4 +1,4 @@
-use crate::{ast::ast_impl::FunctionId, rhif::Object};
+use crate::{ast::ast_impl::FunctionId, diagnostic::SpannedSource, rhif::Object};
 use anyhow::Result;
 use std::collections::HashMap;
 
@@ -25,5 +25,11 @@ impl Design {
             .get(&fn_id)
             .ok_or(anyhow::anyhow!("Function {fn_id} not found"))?;
         Ok(format!("{}_{:x}", obj.name, fn_id))
+    }
+    pub fn source_map(&self) -> HashMap<FunctionId, SpannedSource> {
+        self.objects
+            .iter()
+            .filter_map(|(fn_id, obj)| obj.source.as_ref().map(|source| (*fn_id, source.clone())))
+            .collect()
     }
 }
