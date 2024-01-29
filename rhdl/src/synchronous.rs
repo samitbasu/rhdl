@@ -487,3 +487,112 @@ fn get_blinker_synth() -> Result<()> {
     rhdl_fpga::bsp::alchitry::cu::synth_yosys_nextpnr_icepack(&top, &PathBuf::from("blink"))?;
     Ok(())
 }
+
+/*
+
+module top(input wire clk, input wire[{INPUT_BITS}:0] top_in, output reg[{OUTPUT_BITS}:0] top_out);
+localparam config_value = {config};
+reg[{STATE_BITS}:0] state;
+wire [{STATE_AND_OUTPUT_BITS}:0] update_result;
+wire [{OUTPUT_BITS}:0] output_value;
+
+{module_code}
+
+assign update_result = {update_fn}(config_value, state, top_in);
+assign output_value = update_result[{OUTPUT_END}:{OUTPUT_START}];
+
+always @(posedge clk) begin
+    state <= update_result[{STATE_BITS}:0];
+    top_out <= output_value;
+end
+
+// This may not work.
+initial begin
+    state <= {initial_state};
+end
+endmodule
+
+*/
+
+/// Notes
+/// 1. The top module name here is arbitrary, and could be provided by the Synchronous Struct.
+/// 2. The Synchronous Struct is really a FSM.  So we could add a "name" to it, and then have
+///   FSM -> Verilog Module (with a name = FSM.name, instead of "top")
+/// 3. We could then have multiple FSMs that co-operate (still all on the same clock domain).
+/// So now given fsm0: impl FSM, and fsm1: impl FSM, an input type I, and an output type O, we need
+/// to construct a new top level module that looks something like this:
+///
+/// module fsm0(input wire clk, input wire[FSM0Input] fsm_in, output reg[FSM0Output] fsm_out);
+///   <as above>
+/// endmodule
+///
+/// module fsm1(input wire clk, input wire[FSM1Input] fsm_in, output reg[FSM1Output] fsm_out);
+///   <as above>
+/// endmodule
+///
+/// module top(input wire clk, input wire[I] top_in, output reg[O] top_out);
+///
+/// wire fsm0_input[FSM0Input];
+/// wire fsm0_output[FSM0Output];
+/// fsm0 fsm0_inst(clk, fsm0_input, fsm0_output);
+///
+/// wire fsm1_input[FSM1Input];
+/// wire fsm1_output[FSM1Output];
+/// fsm1 fsm1_inst(clk, fsm1_input, fsm1_output);
+///
+/// always @(posedge clk) begin
+///     connect_logic goes here
+/// end
+///
+/// There are several different connector functions that can exist in this
+/// situation:
+///
+/// 1. Top input -> fsm0 input
+/// 2. Top input -> fsm1 input
+/// 3. fsm0 output -> fsm1 input
+/// 4. fsm1 output -> fsm0 input
+/// 5. Top input -> top output
+/// 6. fsm0 output -> top output
+/// 7. fsm1 output -> top output
+///
+/// Which is pretty gross.  But it means we can provide 3 functions:
+///
+/// fn top_output(top_input, fsm0_output, fsm1_output) -> top_output
+/// fn fsm0_input(top_input, fsm1_output) -> fsm0_input
+/// fn fsm1_input(top_input, fsm0_output) -> fsm1_input
+///
+/// Given these three functions, we can specify the body of `top` above.
+///
+/// assign top_out = top_output(top_in, fsm0_output, fsm1_output);
+/// assign fsm0_input = fsm0_input(top_in, fsm1_output);
+/// assign fsm1_input = fsm1_input(top_in, fsm0_output);
+///
+///
+/// In general, given N components, the interconnect will require N+1 functions
+/// to wire the components.
+///
+/// The simulation will require an iterate and stability check algorithm.
+///
+/// We don't actually need the objects to be impl FSM to generate Verilog.  We just
+/// need to be able to generate a verilog module for the object.
+///
+/// Also, we can use functional FSMs to build a Rust model for the module, but then
+/// spit out something completely different at the module boundary.
+///
+/// So the case that keeps bugging me is actually pretty simple?
+///
+/// struct MemoryThingState<const N: usize, D: Digital> {
+///      data: [D; N]
+/// }
+///
+/// struct MemoryThingInputs<D: Digital, const L: usize> {
+///     read_address: Bits::<L>,
+///     write_address: Bits::<L>,
+///     write_enable: bool,
+///     write_data: D,
+/// }
+///
+/// struct MemoryThingOutputs<const W: usize> {
+///     read: D,
+/// }
+struct ClippyLeaveMeAlone {}
