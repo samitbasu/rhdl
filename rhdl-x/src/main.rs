@@ -12,6 +12,88 @@ use rhdl_x::Foo;
 
 use rhdl_bits::Bits;
 
+// Consider this example:
+/*
+
+#[derive(LogicBlock)]
+pub struct Pulser {
+    pub clock: Signal<In, Clock>,
+    pub enable: Signal<In, Bit>,
+    pub pulse: Signal<Out, Bit>,
+    strobe: Strobe<32>,
+    shot: Shot<32>,
+}
+
+The update function for this looked like:
+
+fn update(&mut self) {
+
+}
+
+To make it functional, we want instead to do something like
+
+fn update(params, inputs, (internal_outputs)) -> (outputs, (internal_inputs)) {}
+
+
+In simulation, we then want to do something like:
+
+let i = next_input;
+let p = params;
+let q = obj.q();
+let (o,d) = T::Update(p, i, q);
+obj.d(d);
+
+
+We can eliminate parameters by re-introducing the notion of a Constant object
+which does not change.
+
+
+// Assuming that we thus eliminate the clock and input/output signals, we get
+// down to something like
+
+#[derive(LogicBlock)]
+pub struct Pulser {
+   params: Constant<T>,
+   strobe: Strobe<32>,
+   shot: Shot<32>,
+}
+
+This solves the problem of design parameters, since they are simply injected into
+the list of inputs.
+
+Now the update function looks like:
+
+fn update(inputs, (internal_outputs)) -> (outputs, (internal_inputs)) {}
+
+Can we then do something like:
+
+fn d(&mut self, inputs) -> outputs {
+    loop {
+        let internal_outputs = self.q();
+        let (outputs, internal_inputs) = Self::Update(inputs, internal_outputs);
+        child0.d(internal_inputs.0);
+        child1.d(internal_inputs.1);
+        if self.q() == internal_outputs {
+            return outputs;
+        }
+    }
+}
+
+fn q(&self) -> outputs {
+    (child0.q(), child1.q())
+}
+
+
+
+
+In turn, we have something like
+
+fn d(&self, inputs) {
+
+}
+
+*/
+
 // The input and output types
 // cannot be auto derived.  Nor
 // can the parameters type.
@@ -22,15 +104,11 @@ trait ClockedLogic {
     type O: Digital;
     // Parameters type
     type P: Digital;
-    // Q - internal devices output type
-    type Q: Digital;
-    // D - internal devices input type
-    type D: Digital;
     // Update function
     type Update: DigitalFn;
 
-    fn d(&mut self, d: Self::D);
-    fn q(&self) -> Self::Q;
+    fn i(&mut self, i: Self::I);
+    fn o(&self) -> Self::O;
     fn pos_edge(&mut self);
     fn neg_edge(&mut self);
     fn verilog() -> String;
@@ -53,18 +131,18 @@ struct DFF<T: Digital> {
 }
 
 impl<T: Digital> ClockedLogic for DFF<T> {
-    type D = T;
-    type Q = T;
+    type D = ();
+    type Q = ();
     type I = T;
     type O = T;
     type P = ();
     type Update = dff_update<T>;
 
-    fn d(&mut self, d: Self::D) {
-        self.d = d;
+    fn i(&mut self, i: Self::I) {
+        self.d = i;
     }
 
-    fn q(&self) -> Self::Q {
+    fn o(&self) -> Self::O {
         self.q
     }
 
@@ -82,10 +160,10 @@ impl<T: Digital> ClockedLogic for DFF<T> {
         let bits = T::bits();
         format!(
             "
-module {name}(input wire clock, input wire[{BITS}:0] d, output reg[{BITS}:0] q);
+module {name}(input wire clock, input wire[{BITS}:0] i, output reg[{BITS}:0] o);
 
     always @(posedge clock) begin
-        q <= d;
+        o <= i;
     end
 
 endmodule
@@ -100,8 +178,8 @@ endmodule
 }
 
 #[kernel]
-fn dff_update<T: Digital>(p: (), i: T, q: T) -> (T, T) {
-    (i, i)
+fn dff_update<T: Digital>(p: (), i: T, q: ()) -> (T, ()) {
+    (i, ())
 }
 
 // Assuming that the DFF above is correct.  We can now

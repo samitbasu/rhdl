@@ -7,6 +7,7 @@
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
+\usepackage{minted}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
@@ -129,6 +130,130 @@ with good reason.  RHDL in particular focuses on the functional aspects of Rust,
 provides some additional benefits to designers.  And both RustHDL and RHDL allow for high performance 
 multithreaded simulation of the designs, all from within the same Rust ecosystem.
 
+\section{RustHDL Basics}
+
+RustHDL uses two aspects of the Rust programming language to describe hardware designs.  The first
+is the use of traits.  An example is quite instructive, so here is an example of a simple strobe
+circuit, written in RustHDL, and provided in the widget library that is published on crates.io.  Like 
+every circuit desribed in RustHDL, it consists of three parts.  The first is the definition of the
+circuit components, which includes input and output signals, as well as any internal components.
+The use of Rust's `pub` mechanism is used to hide internal details that should not be accessed
+outside of the circuit.  The struct essentially describes the architecture of the circuit, including
+input and output ports, types, and internal structure.
+
+\begin{minted}{rust}
+use rust_hdl_core::prelude::*;
+use crate::{dff::DFF, dff_setup};
+
+/// A [Strobe] generates a periodic pulse train, with a single clock-cycle wide pulse
+/// at the prescribed frequency.  The argument [N] of the generic [Strobe<N>] is used
+/// to size the counter that stores the internal delay value.  Unfortunately, Rust const
+/// generics are currently not good enough to compute [N] on the fly.  However, a compile
+/// time assert ensures that the number of clock cycles between pulses does not overflow
+/// the [N]-bit wide register inside the [Strobe].
+#[derive(Clone, Debug, LogicBlock)]
+pub struct Strobe<const N: usize> {
+    /// Set this to true to enable the pulse train.
+    pub enable: Signal<In, Bit>,
+    /// This is the strobing signal - it will fire for 1 clock cycle such that the strobe frequency is generated.
+    pub strobe: Signal<Out, Bit>,
+    /// The clock that drives the [Strobe].  All signals are synchronous to this clock.
+    pub clock: Signal<In, Clock>,
+    threshold: Constant<Bits<N>>,
+    counter: DFF<Bits<N>>,
+}
+\end{minted}
+
+A couple of additional observations.  Signals have both a direction and a type.  The type of
+signal can be any Rust type that implements the `Synth` trait, and can include custom user
+types and structs.  The `derive` macro is used to generate the necessary boilerplate to make the 
+`Strobe` struct implement the `Block` and `Logic` traits.  The details of these implementations are
+unimportant, and the user can simply use the `Strobe` struct as if it were a normal Rust struct.  Also,
+the D-type flip flop (DFF), which is critical to synchronous designs, is simply another circuit element that
+is included in the internal structure of the `Strobe` struct.  The RustHDL DFF is parameterized or 
+generic over the type of data it holds, so in this case, it is holding an N-bit wide value.  The value of
+`N` is provided when the strobe is created.
+
+The second part of the circuit encapsulates its behavior.  This is done by implementing the `Logic` trait,
+and requires only a single function, called `update`:
+
+\begin{minted}{rust}
+impl<const N: usize> Logic for Strobe<N> {
+  #[hdl_gen]
+  fn update(&mut self) {
+      // Connect the counter clock to my clock
+      dff_setup!(self, clock, counter);
+      if self.enable.val() {
+          self.counter.d.next = self.counter.q.val() + 1;
+      }
+      self.strobe.next = self.enable.val() & (self.counter.q.val() == self.threshold.val());
+      if self.strobe.val() {
+          self.counter.d.next = 1.into();
+      }
+  }
+}
+\end{minted}
+
+Here, the \verb|#[hdl_gen]| attribute is attached to the `update` function to provide a way to convert the function
+into Verilog.  The key thing to note, however, is that \emph{without this attribute, the function is still a valid Rust function}.
+This means that the `update` function can be tested, debugged, and run as a normal Rust function.  The \verb|#[hdl_gen]| adds
+additional constraints to the code to ensure that it is synthesizable, but the Rust compiler still does the work of ensuring that the 
+program input is correct.
+
+The `update` function follows a few rules that are laid out in the documentation.  In short:
+\begin{itemize}
+  \item Signals have two endpoints.  A `.val()` endpoint that represents their current value, and a `.next` endpoint that represents
+    the value that the circuit is driving them to.
+  \item Several Rust flow control primitives are allowed, including `match, if` and a very limited `for`.  
+  \item The ideas of blocking and non-blocking assignments, which are confusing from a software perspective are removed.  
+  \item Local variables are allowed, but they must be declared in the architecture of the circuit, like any other element.
+  These signals have a type fo `Local`, and are declared as \verb|my_sig: Signal<Local, T>|.
+\end{itemize}
+
+The last part of the circuit is the construction and initialization.  Here again, there is nothing special in RustHDL.  The 
+constructor function is just a normal Rust function that populates the contents of the struct.  Because it can do anything
+that a normal Rust function can do, arbitrary checks and computations (which are done prior to hardware synthesis) can be 
+accomplished in the constructor.  For the completeness, here is the constructor for the `Strobe`, which includes some checks 
+and takes frequencies as inputs:
+
+\begin{minted}{rust}
+impl<const N: usize> Strobe<N> {
+  /// Generate a [Strobe] widget that can be used in a RustHDL circuit.
+  ///
+  /// # Arguments
+  ///
+  /// * `frequency`: The frequency (in Hz) of the clock signal driving the circuit.
+  /// * `strobe_freq_hz`: The desired frequency in Hz of the output strobe.  Note that
+  /// the strobe frequency will be rounded to something that can be obtained by dividing
+  /// the input clock by an integer.  As such, it may not produce exactly the desired
+  /// frequency, unless `frequency`/`strobe_freq_hz` is an integer.
+  ///
+  /// returns: Strobe<{ N }>
+  ///
+  /// # Examples
+  ///
+  /// See [BlinkExample] for an example.
+  pub fn new(frequency: u64, strobe_freq_hz: f64) -> Self {
+      let clock_duration_femto = freq_hz_to_period_femto(frequency as f64);
+      let strobe_interval_femto = freq_hz_to_period_femto(strobe_freq_hz);
+      let interval = strobe_interval_femto / clock_duration_femto;
+      let threshold = interval.round() as u64;
+      assert!((threshold as u128) < (1_u128 << (N as u128)));
+      assert!(threshold > 2);
+      Self {
+          enable: Signal::default(),
+          strobe: Signal::default(),
+          clock: Signal::default(),
+          threshold: Constant::new(threshold.into()),
+          counter: Default::default(),
+      }
+  }
+}
+\end{minted}
+
+Unfortunately, Rust does not currently support much in the way of computation with generic parameters such as the 
+size of the internal counter `N` for the strobe.  As a result, checks are made at construction time to ensure that 
+counter is wide enough to not roll over before the next strobe is generated.
 
 
 
