@@ -92,6 +92,42 @@ and lessons learned are presented Section~\ref{sec:summary}.
 
 \section{Background}
 
+In considering the scope of background work, we will focus on the use of the Rust programming
+language as primary in the consideration of Hardware Design Languages.  There are many modern
+approaches to HDL in development (see [spade] and the references therein for a good overview).  
+From a high level, however, programming languages can influence HDLs in one of two ways:
+
+\begin{itemize}
+  \item Through grammar similarity.  A number of HDLs use syntaxes that are inspired or similar to
+  programming languages in order to make the transition from software to hardware design easier.
+  For example, Chisel [chisel] uses a Scala-like syntax, and Spade [spade] uses a Rust-like syntax.
+  The underlying implementation language is irrelevant (it happens to be Rust in the case of Spade).
+  What is important is that the background experience and knowledge of the developer can be brought 
+  to bear when understanding hardware descriptions if they use syntax and patterns from a broadly
+  used programming language.
+  \item As a host environment for the design.  In this case, a subset of the programming language (
+    very similar in nature to a "synthesizable subset") is carved out of the broader programming language
+    through some means, and then used to generate hardware designs within the context of the overall
+    programming language.  An example here is MyHDL, which uses Python as the host language, and 
+    designs are expressed in a subset of Python that is synthesizable into Verilog.
+\end{itemize}
+
+While there are several examples of HDLs that use Rust as the inspiration language, RustHDL and
+RHDL fall into the second category, and the author could find no other examples like them.  In the 
+first category, the most prominent examples are XLS [xls] and Spade [spade] and Veryl [veryl].  
+In all three of these cases, the language is inspired by the syntax of Rust, and usually the type
+system, but the actual tooling is separate from the Rust programming language and ecosystem.
+
+RustHDL and RHDL are different in that \emph{hardware designs are expressed as valid Rust programs}.
+This means that before a design can be synthesized, it must first pass the checks of the Rust
+compiler.   It also means that much of the infrastructure of the Rust programming language can be reused
+by hardware designers.  Things like package management, documentation, test management and IDE 
+integration all come for free.
+
+Finally, there is a rich history of using functional programming languages to describe HDL, and
+with good reason.  RHDL in particular focuses on the functional aspects of Rust, and as a result 
+provides some additional benefits to designers.  And both RustHDL and RHDL allow for high performance 
+multithreaded simulation of the designs, all from within the same Rust ecosystem.
 
 
 
