@@ -137,7 +137,7 @@ is the use of traits.  An example is quite instructive, so here is an example of
 circuit, written in RustHDL, and provided in the widget library that is published on crates.io.  Like 
 every circuit desribed in RustHDL, it consists of three parts.  The first is the definition of the
 circuit components, which includes input and output signals, as well as any internal components.
-The use of Rust's `pub` mechanism is used to hide internal details that should not be accessed
+The use of Rust's \verb|pub| mechanism is used to hide internal details that should not be accessed
 outside of the circuit.  The struct essentially describes the architecture of the circuit, including
 input and output ports, types, and internal structure.
 
@@ -168,17 +168,17 @@ pub struct Strobe<const N: usize> {
 \end{minted}
 
 A couple of additional observations.  Signals have both a direction and a type.  The type of
-signal can be any Rust type that implements the `Synth` trait, and can include custom user
-types and structs.  The `derive` macro is used to generate the necessary boilerplate to make the 
-`Strobe` struct implement the `Block` and `Logic` traits.  The details of these implementations are
-unimportant, and the user can simply use the `Strobe` struct as if it were a normal Rust struct.  Also,
+signal can be any Rust type that implements the \verb|Synth| trait, and can include custom user
+types and structs.  The \verb|derive| macro is used to generate the necessary boilerplate to make the 
+|Strobe| struct implement the \verb|Block| and \verb|Logic| traits.  The details of these implementations are
+unimportant, and the user can simply use the \verb|Strobe| struct as if it were a normal Rust struct.  Also,
 the D-type flip flop (DFF), which is critical to synchronous designs, is simply another circuit element that
-is included in the internal structure of the `Strobe` struct.  The RustHDL DFF is parameterized or 
+is included in the internal structure of the \verb|Strobe| struct.  The RustHDL DFF is parameterized or 
 generic over the type of data it holds, so in this case, it is holding an N-bit wide value.  The value of
-`N` is provided when the strobe is created.
+|N| is provided when the strobe is created.
 
-The second part of the circuit encapsulates its behavior.  This is done by implementing the `Logic` trait,
-and requires only a single function, called `update`:
+The second part of the circuit encapsulates its behavior.  This is done by implementing the \verb|Logic| trait,
+and requires only a single function, called \verb|update|:
 
 \begin{minted}[fontsize=\footnotesize]{rust}
 impl<const N: usize> Logic for Strobe<N> {
@@ -198,45 +198,41 @@ impl<const N: usize> Logic for Strobe<N> {
 }
 \end{minted}
 
-Here, the \verb|#[hdl_gen]| attribute is attached to the `update` function to provide a way to convert the function
+Here, the \verb|#[hdl_gen]| attribute is attached to the \verb|update| function to provide a way to convert the function
 into Verilog.  The key thing to note, however, is that \emph{without this attribute, the function is still a valid Rust function}.
-This means that the `update` function can be tested, debugged, and run as a normal Rust function.  The \verb|#[hdl_gen]| adds
+This means that the \verb|update| function can be tested, debugged, and run as a normal Rust function.  The \verb|#[hdl_gen]| adds
 additional constraints to the code to ensure that it is synthesizable, but the Rust compiler still does the work of ensuring that the 
 program input is correct.
 
-The `update` function follows a few rules that are laid out in the documentation.  In short:
+The \verb|update| function follows a few rules that are laid out in the documentation.  In short:
 \begin{itemize}
-  \item Signals have two endpoints.  A `.val()` endpoint that represents their current value, and a `.next` endpoint that represents
+  \item Signals have two endpoints.  A \verb|.val()| endpoint that represents their current value, and a \verb|.next| endpoint that represents
     the value that the circuit is driving them to.
-  \item Several Rust flow control primitives are allowed, including `match, if` and a very limited `for`.  
+  \item Several Rust flow control primitives are allowed, including \verb|match, if| and a very limited \verb|for|.  
   \item The ideas of blocking and non-blocking assignments, which are confusing from a software perspective are removed.  
   \item Local variables are allowed, but they must be declared in the architecture of the circuit, like any other element.
-  These signals have a type fo `Local`, and are declared as \verb|my_sig: Signal<Local, T>|.
+  These signals have a type fo \verb|Local|, and are declared as \verb|my_sig: Signal<Local, T>|.
 \end{itemize}
 
 The last part of the circuit is the construction and initialization.  Here again, there is nothing special in RustHDL.  The 
 constructor function is just a normal Rust function that populates the contents of the struct.  Because it can do anything
 that a normal Rust function can do, arbitrary checks and computations (which are done prior to hardware synthesis) can be 
-accomplished in the constructor.  For completeness, here is the constructor for the `Strobe`, which includes some checks 
+accomplished in the constructor.  For completeness, here is the constructor for the \verb|Strobe|, which includes some checks 
 and takes frequencies as inputs (edited down for brevity):
 
 \begin{minted}[fontsize=\footnotesize]{rust}
 impl<const N: usize> Strobe<N> {
-  /// Generate a [Strobe] widget that can be used 
-  /// in a RustHDL circuit.
-  /// # Arguments
-  /// * `frequency`: (in Hz) of the clock signal 
-  /// * `strobe_freq_hz`: The desired frequency 
-  ///   in Hz of the output strobe.  
-  /// returns: Strobe<{ N }>
-  pub fn new(frequency: u64, strobe_freq_hz: f64) -> Self {
+  pub fn new(frequency: u64, strobe_freq_hz: f64)
+      -> Self {
     let clock_duration_femto = 
       freq_hz_to_period_femto(frequency as f64);
     let strobe_interval_femto = 
       freq_hz_to_period_femto(strobe_freq_hz);
-    let interval = strobe_interval_femto / clock_duration_femto;
+    let interval = 
+      strobe_interval_femto / clock_duration_femto;
     let threshold = interval.round() as u64;
-    assert!((threshold as u128) < (1_u128 << (N as u128)));
+    assert!((threshold as u128) < 
+      (1_u128 << (N as u128)));
     assert!(threshold > 2);
     Self {
         enable: Signal::default(),
@@ -249,82 +245,98 @@ impl<const N: usize> Strobe<N> {
 }
 \end{minted}
 
-Unfortunately, Rust does not currently support much in the way of computation with generic parameters such as the 
-size of the internal counter `N` for the strobe.  As a result, checks are made at construction time to ensure that 
+Note the presence of the \verb|assert!| statements, which ensure that the circuit parameters are valid for the given configuration, and
+can spot issues before the circuit can even be constructed.  Unfortunately, Rust does not currently support much in the way of computation with generic parameters such as the 
+size of the internal counter \verb|N| for the strobe.  As a result, checks are made at construction time to ensure that 
 counter is wide enough to not roll over before the next strobe is generated.
 
 \section{Simulation and Testing}
 
 One powerful aspect of RustHDL and RHDL is the ease with which designs can be tested and simulated \emph{without} 
-resorting to external tools.  For example, setting up a testbench for the `Strobe` is quite simple.  Here is an example
-for the `Blinky` example from the documentation for RustHDL:
+resorting to external tools.  For example, setting up a testbench for the \verb|Strobe| is quite simple.  Here is an example
+for the \verb|Blinky| example from the documentation for RustHDL:
 
 \begin{minted}[fontsize=\footnotesize]{rust}
-  fn main() {
-    // v--- build a simple simulation (1 testbench, single clock)
-    let mut sim = simple_sim!(Blinky, clock, CLOCK_SPEED_HZ, ep, {
-        let mut x = ep.init()?;
-        wait_clock_cycles!(ep, clock, x, 4*CLOCK_SPEED_HZ);
-        ep.done(x)
-    });
-
-    // v--- construct the circuit
-    let uut = Blinky::default();
-    // v--- run the simulation, with the output traced to a .vcd file
-    sim.run_to_file(Box::new(uut), 5 * sim_time::ONE_SEC, "blinky.vcd").unwrap();
+fn main() {
+  // v--- build a simple simulation using
+  //  the simple_sim! macro for 1 clock, and
+  //  only 1 testbench.
+  let mut sim = simple_sim!(Blinky, clock, 
+      CLOCK_SPEED_HZ, ep, 
+    {
+      // v--- The testbench code goes here.
+      let mut x = ep.init()?;
+      wait_clock_cycles!(ep, clock, 
+        x, 4*CLOCK_SPEED_HZ);
+      ep.done(x)
+    }
+  );
+  // v--- construct the circuit
+  let uut = Blinky::default();
+  // v--- run the simulation, with the 
+  // output traced to a .vcd file
+  sim.run_to_file(Box::new(uut), 
+    5*sim_time::ONE_SEC, "blinky.vcd")
+    .unwrap();
 }
 \end{minted}
 
 In this simple example, the simulation simply creates a trace file that can then be inspected visually.  While this 
 is sufficient for simple circuits, more complex designs will require sophisticated testbenches.  Fortunately, RustHDL
-allows the engineer to write those testbenches using the full power of Rust.  A more complex example is here:
+allows the engineer to write those testbenches using the full power of Rust.  A more complex example is here (again, edited for
+brevity, with the key parts left in place):
 
 \begin{minted}[fontsize=\footnotesize]{rust}
   #[test]
 fn test_hls_sdram_fifo_works() {
-    let mut uut = HLSSDRAMFIFOTest::default();
-    uut.fifo.bus_write.link_connect_dest();
-    uut.fifo.bus_read.link_connect_dest();
-    uut.connect_all();
-    let mut sim = Simulation::new();
-    let data = (0..256)
-        .map(|_| rand::thread_rng().gen::<u16>())
-        .collect::<Vec<_>>();
-    let data2 = data.clone();
-    sim.add_clock(4000, |x: &mut Box<HLSSDRAMFIFOTest>| {
-        x.clock.next = !x.clock.val()
-    });
-    sim.add_testbench(move |mut sim: Sim<HLSSDRAMFIFOTest>| {
-        let mut x = sim.init()?;
-        wait_clock_cycles!(sim, clock, x, 20);
-        hls_fifo_write_lazy!(sim, clock, x, fifo.bus_write, &data);
-        sim.done(x)
-    });
-    sim.add_testbench(move |mut sim: Sim<HLSSDRAMFIFOTest>| {
-        let mut x = sim.init()?;
-        wait_clock_cycles!(sim, clock, x, 20);
-        hls_fifo_read_lazy!(sim, clock, x, fifo.bus_read, &data2);
-        sim.done(x)
-    });
-    sim.run_to_file(Box::new(uut), 200_000_000, &vcd_path!("hls_sdram_fifo.vcd"))
-        .unwrap();
+  let mut uut = HLSSDRAMFIFOTest::default();
+  let mut sim = Simulation::new();
+  // v-- generate random data using Rust
+  let data = (0..256)
+      .map(|_| rand::thread_rng().gen::<u16>())
+      .collect::<Vec<_>>();
+  let data2 = data.clone();
+  // v-- generate the clock
+  sim.add_clock(4000, |x: &mut Box<_>| {
+      x.clock.next = !x.clock.val()
+  });
+  // v-- this testbench feed data to the fifo
+  sim.add_testbench(move |mut sim: Sim<_>| {
+      let mut x = sim.init()?;
+      wait_clock_cycles!(sim, clock, x, 20);
+      hls_fifo_write_lazy!(sim, clock, x, 
+        fifo.bus_write, &data);
+      sim.done(x)
+  });
+  // v-- this testbench drain data from the fifo
+  //    and panic if it doesn't match the input
+  sim.add_testbench(move |mut sim: Sim<_>| {
+      let mut x = sim.init()?;
+      wait_clock_cycles!(sim, clock, x, 20);
+      hls_fifo_read_lazy!(sim, clock, x, 
+        fifo.bus_read, &data2);
+      sim.done(x)
+  });
+  // v-- both testbenches are run simultaneously
+  sim.run_to_file(Box::new(uut), 200_000_000, 
+      &vcd_path!("hls_sdram_fifo.vcd")).unwrap();
 }
 \end{minted}
 
 This test harness sets up a SDRAM-backed FIFO (which is a fairly complex circuit) and then writes and reads a 
-series of random values to the FIFO and reads them back \emph{simulataneously}.  This particular testbench includes
+series of random values to the FIFO and reads them back \emph{simultaneously}.  This particular testbench includes
 a full simulation of the underlying SDRAM itself, which is also modelled in RustHDL.  The resulting trace file is
 quite complicated, but the testbench includes an assertion, and will panic if at any time the FIFO errors out.  The 
 FIFO read and write macros include random delays that ensure that different edge conditions are likely to be tested 
 during the run.  Again, this is difficult in a traditional HDL, but quite trivial in RustHDL.
 
-\begin{figure}[htbp]
-  \centerline{\includegraphics{fig1.png}}
-  \caption{Example of a figure caption.}
+\begin{figure*}[htbp]
+  \centerline{\includegraphics[width=18cm]{hls_sdram_fifo.png}}
+  \caption{Sample simulation trace for the \textrm{HLSSDRAMFIFOTest} testbench}
   \label{fig}
-\end{figure}
+\end{figure*}
   
-Finally, executing the full test suite of RustHDL is as simple as executing the standard `cargo test` command from a 
+Finally, executing the full test suite of RustHDL is as simple as executing the standard \verb|cargo test| command from a 
 checkout of the code.  The only caveat is that several of the tests require physical FPGAs to be connected to the host
 machine to operate, and require vendor specific software (synthesis tools, communication libs, etc).  However, most 
 of the cores are tested using software only frameworks.
@@ -332,15 +344,18 @@ of the cores are tested using software only frameworks.
 \section{Synthesis}
 
 Obviously, to get a RustHDL design onto an FPGA, it must be synthesized.  The process is simple.  Given a struct that
-implements the required `Logic` trait, the equivalent Verilog description of the circuit can be generated with a simple
+implements the required \verb|Logic| trait, the equivalent Verilog description of the circuit can be generated with a simple
 command:
 
 \begin{minted}[fontsize=\footnotesize]{rust}
   fn main() {
-    let mut uut = Blinky::default(); // <-- Create the circuit
-    uut.connect_all();  // <-- Internal connections are made here
+    // v--- Create the circuit
+    let mut uut = Blinky::default();
+    // v--- Internal wiring
+    uut.connect_all(); 
     let vlog = generate_verilog(&uut);
-    println!("{vlog}"); // <-- Renders the verilog to a string
+    // v--- Write the verilog to the console
+    println!("{vlog}"); 
 }
 \end{minted}
 
@@ -368,7 +383,7 @@ As a trivial example of this flexibility, consider the following code snippet fr
 \begin{minted}[fontsize=\footnotesize]{rust}
 pub fn leds() -> Signal<Out, Bits<8>> {
   let mut x = Signal::<Out, _>::default();
-  for (ndx, uname) in ["J11", "K11", "K12", "K14", "L12", "L14", "M12", "N14"]
+  for (ndx, uname) in ["J11", "K11", "K12", ...]
       .iter()
       .enumerate()
   {
@@ -382,13 +397,15 @@ This simple function provides a signal with 8 bits, each of which is pre-constra
 FPGA is connected to the corresponding LED.  That information can now be used in any design that needs an LED 
 indicator with a fair degree of device independence.  Similarly, synthesizing a design for the Alchitry Cu board 
 is handled by a function
+
 \begin{minted}[fontsize=\footnotesize]{rust}
-pub fn generate_bitstream<U: Block>(mut uut: U, prefix: &str) {...}
+pub fn generate_bitstream<U: Block>
+    (mut uut: U, prefix: &str) {}
 \end{minted}
 
 This function takes any struct that implements a design (with the constraints already attached to the relevant
 signals), and a directory location to place the intermediate files.  It then generates the Verilog description of
-the design, and invokes `yosys` and `nextpnr` followed by `icepack` to generate a bitfile for the ICE40 FPGA on the
+the design, and invokes \verb|yosys| and \verb|nextpnr| followed by \verb|icepack| to generate a bitfile for the ICE40 FPGA on the
 AlchitryCu board.  Equivalent functions provide support for Xiling Spartan-6 and Artix-7 FPGAs, as well as Lattice ECP5 parts.
 
 \section{Interoperability}
@@ -411,61 +428,34 @@ pub struct MCBInterface1GDDR2 {
     bank_select: Signal<Out, Bits<3>>,
     row_address_strobe_not: Signal<Out, Bit>,
     column_address_strobe_not: Signal<Out, Bit>,
-    write_enable_not: Signal<Out, Bit>,
-    on_die_termination: Signal<Out, Bit>,
-    clock_enable: Signal<Out, Bit>,
-    data_mask: Signal<Out, Bit>,
-    upper_byte_data_strobe: Signal<Out, Bit>,
-    upper_byte_data_strobe_neg: Signal<Out, Bit>,
-    rzq: Signal<InOut, Bit>,
-    zio: Signal<InOut, Bit>,
-    upper_data_mask: Signal<Out, Bit>,
-    data_strobe_signal: Signal<InOut, Bit>,
-    data_strobe_signal_neg: Signal<InOut, Bit>,
-    dram_clock: Signal<Out, Bit>,
-    dram_clock_neg: Signal<Out, Bit>,
+    // snip
     chip_select_neg: Signal<Out, Bit>,
 }
 \end{minted}
 
-This struct, annotated with `LogicInterface` instead of `LogicBlock` represents a set of signals that are used
-to connect to a DRAM controller.  The `LogicInterface` trait is similar to the `Logic` trait, but does not include
-an `update` function.  Interfaces allow entire groups of signals to be described with a single element of the
-top level struct.  For example, the `MCBInterface1GDDR2` is included in the memory interface generator (MIG) generated 
+This struct, annotated with \verb|LogicInterface| instead of \verb|LogicBlock| represents a set of signals that are used
+to connect to a DRAM controller.  The \verb|LogicInterface| trait is similar to the \verb|Logic| trait, but does not include
+an \verb|update| function.  Interfaces allow entire groups of signals to be described with a single element of the
+top level struct.  For example, the \verb|MCBInterface1GDDR2| is included in the memory interface generator (MIG) generated 
 by the Xilinx tools, which itself is wrapped into an RustHDL struct.
 
 \begin{minted}[fontsize=\footnotesize]{rust}
 #[derive(LogicBlock)]
 pub struct MemoryInterfaceGenerator {
-    // Raw clock from the system - cannot be intercepted
+    // Raw clock from the system - 
     pub raw_sys_clk: Signal<In, Clock>,
     // Reset - must be handled externally
     pub reset: Signal<In, Bit>,
     // Calibration complete
     pub calib_done: Signal<Out, Bit>,
-    // Buffered 100 MHz clock
-    pub clk_out: Signal<Out, Clock>,
-    // P0 command port
-    pub p0_cmd: CommandPort,
-    // P0 write port
-    pub p0_wr: WritePort,
+    // ..snip..
     // P0 read port
     pub p0_rd: ReadPort,
     // MCB interface
     pub mcb: MCBInterface1GDDR2,
     // FIFO for the commands
     cmd_fifo: AsynchronousFIFO<MIGCommand, 2, 3, 1>,
-    write_fifo: AsynchronousFIFO<MaskedWrite, 6, 7, 1>,
-    read_fifo: AsynchronousFIFO<Bits<32>, 6, 7, 1>,
-    timer: DFF<Bits<16>>,
-    address: DFF<Bits<32>>,
-    state: DFF<State>,
-    calib: DFF<bool>,
-    _dram: BTreeMap<Bits<32>, Bits<32>>,
-    cmd: Signal<Local, MIGCommand>,
-    wr_reset: AutoReset,
-    rd_reset: AutoReset,
-    cmd_reset: AutoReset,
+    // ..snip..
 }
 \end{minted}  
 
@@ -516,7 +506,7 @@ module top(clock,leds);
 endmodule // top
 \end{minted}
 
-The equivalent Rust code is:
+The equivalent RustHDL code is:
 
 \begin{minted}[fontsize=\footnotesize]{rust}
 #[derive(LogicBlock)]
@@ -545,19 +535,19 @@ are discussed in the next section.
 \section{Lessons Learned and the Path to RHDL}
 
 RustHDL has been used to develop commercial grade firmware and is deployed in commercial products.  It has also seen 
-some level of adoption by the open source community, with third party crates published on `crates.io' that add board
+some level of adoption by the open source community, with third party crates published on \verb|crates.io| that add board
 support packages to RustHDL for different FPGAs, or augment the capabilities of the framework.  However, based on
 feedback from users getting started with the framework, the following items became clear:
 
 \begin{itemize}
   \item Engineers coming to a Rust-based HDL environment are likely to be familiar with the Rust programming language,
   and have grown accustomed to patterns and language features that are not supported by RustHDL.  For example, the 
-  use of `match` \emph{expressions}, and the use of complex types with their need to employ pattern matching to destructure 
+  use of \verb|match| \emph{expressions}, and the use of complex types with their need to employ pattern matching to destructure 
   them are all idiomatic in Rust, but not supported by RustHDL.  This 
   lack of support stems from the close connection to Verilog of the generated code.
   \item Many idiomatic Rust patterns require some kind of support for Algebraic (Sum) Data Types (ADTs).  While RustHDL
   supports simple C-style enums, that is not sufficient to express many of the patterns common in Rust, including the 
-  `Result` and `Option` patterns.
+  \verb|Result| and \verb|Option| patterns.
   \item The need to declare all local variables and their types up front is cumbersome.  Being able to freely rebind
   names and assign them is also critical to several standard Rust patterns (like shadowing).  This is also not
   possible in RustHDL.
@@ -581,7 +571,7 @@ core differences between RustHDL and RHDL are:
   \item Full support of Rust syntax inside functions (with the exception of pointers), which includes 
   match and if \emph{expressions}, early returns, etc.
   \item Full support for function composition.
-  \item Support for local variables/rebindings, as well as pattern matching in `match` expressions.
+  \item Support for local variables/rebindings, as well as pattern matching in \verb|match| expressions.
   \item The use of a function iterator-style description of testbenches in which testbenches are written in 
   straight Rust, and consumed by the simulator (so that the details of how the circuit is simulated can be ignored).
   \item Support for thorough analysis of the design, including identification of potential timing issues, as well as
@@ -590,7 +580,7 @@ core differences between RustHDL and RHDL are:
 \end{itemize}
 
 These items required a signficantly broader scope and far more effort on the compiler side of the framework.  In particular,
-the first four items required the development of a full compiler that works in conjuntion with `rustc` to perform
+the first four items required the development of a full compiler that works in conjuntion with \verb|rustc| to perform
 type inference, as well as type checking, lowering of Rust expressions to an intermediate representation (which is a sort of
 RTL-SSA assembly code), optimization passes, analysis passes, and finally, generation of the input to the synthesis tools.
 
@@ -599,7 +589,7 @@ project is still in an early development phase.  While designs have been synthes
 fleshed out.  A few pieces are of interest, though, so we describe them here.
 
 \subsection{The Digital Trait}
-RHDL introduces a `Digital` trait, which is used to convert arbitrary Rust structs into bit vectors.  Here is an example from
+RHDL introduces a \verb|Digital| trait, which is used to convert arbitrary Rust structs into bit vectors.  Here is an example from
 the early RHDL work:
 
 \begin{minted}[fontsize=\footnotesize]{rust}
@@ -616,37 +606,48 @@ the early RHDL work:
   }
 \end{minted}
 
-In this case `b8` is an 8-bit unsigned value (there is also `s8` for a signed 8 bit value).  The `Digital` trait can be
+In this case \verb|b8| is an 8-bit unsigned value (there is also \verb|s8| for a signed 8 bit value).  The \verb|Digital| trait can be
 auto derived on structs and enums, and is automatically supplied for arrays and tuples.  This very powerful trait allows 
 complex data structures to be built and deconstructed safely with the compiler ensuring that bit accesses are always correct.
 In this case, the discriminant width is specified at 4 bits (instead of the 2 bits it would naturally require).  The position 
 of the discriminant can also be controlled with MSB and LSB positioning. 
 
-\subsection{The `kernel` Attribute}
-The `kernel` attribute is used to mark functions that are to be synthesized.  While there are still limits on what 
-functions can be processed, the limits are fairly broad (essentially, the inputs and outputs must be `Digital` types). 
+\subsection{The \textrm{kernel} Attribute}
+The \verb|kernel| attribute is used to mark functions that are to be synthesized.  While there are still limits on what 
+functions can be processed, the limits are fairly broad (essentially, the inputs and outputs must be \verb|Digital| types). 
 The compiler then deconstructs the kernel function and builds an intermediate form of it.  This is where support for
 Rust constructs like early returns, match expressions, etc. are handled.   At this point, type inference is also needed, 
 for intermediate local variables and pattern matching.  
 
 This small snippet of RHDL demonstrates some of those principles in action:
 \begin{minted}[fontsize=\footnotesize]{rust}
-  #[kernel]
-  pub fn blinker_update(params: Blinker, state: BlinkerState, _input: ()) -> (BlinkerState, b4) {
-      let (q_pulser, pulser_output) = pulser_update::<26>(params.pulser, state.pulser, true);
-      let blinker_output = if pulser_output {
-          b4(0b1111)
-      } else {
-          b4(0b0000)
-      };
-      (BlinkerState { pulser: q_pulser }, blinker_output)
-  }
+#[kernel]
+pub fn blinker_update(params: Blinker, 
+                        state: BlinkerState) -> 
+                        (BlinkerState, b4) {
+    // v- tuple destructuring, function chaining
+    let (q_pulser, pulser_output) = 
+        pulser_update(params.pulser, 
+                      state.pulser, 
+                      true);
+    // v- if expression, type inference
+    let blinker_output = if pulser_output {
+        b4(0b1111)
+    } else {
+        b4(0b0000)
+    };
+    // v- tuple construction
+    (
+      BlinkerState { pulser: q_pulser }, 
+      blinker_output
+    )
+}
 \end{minted}
-This function looks completely different than RustHDL, where an impure function with a `mut self` argument
-is replaced with a pure function with `Digital` inputs.  The stages of the RHDL compilation are illustrated in 
+This function looks completely different than RustHDL, where an impure function with a \verb|mut self| argument
+is replaced with a pure function with \verb|Digital| inputs.  The stages of the RHDL compilation are illustrated in 
 Figure~\ref{fig:rhdl_compiler}.  In the current version, the output of the compiler is straight Verilog, but bears
 little resemblance to the original source code.  As a result the need to perform timing analysis and other analysis
-steps at the Rust level becomes more important.  RHDL also introduces an intermediate form named `RHIF' which 
+steps at the Rust level becomes more important.  RHDL also introduces an intermediate form named \verb|RHIF| which 
 serves as a strongly typed RTL-assembly representation of the logic that obeys SSA rules.  As we will see in the
 next subsection, this intermediate representation is critical for testing and code generation.
 
@@ -659,12 +660,12 @@ trivially test a kernel function at three levels:
   \item At the RHIF level via a virtual machine, which tests the lowering of the Rust function to the lower 
   level hardware-synthesizable primitives.
   \item At the verilog level via an autogenerated testbench which includes the correct outputs as generated 
-  by `rustc'.
+  by \verb|rustc|.
 \end{enumerate}
 
 The idea is to bootstrap off of the Rust compiler (which is highly unlikely to generate incorrect code), and progressively
 test each additional level in the compilation process.  Because the functions are pure, they can, in principle, be
-exhaustively tested if the inputs are small enough.  The process of doing this consists of a single function call:
+exhaustively tested if the inputs are small enough.  The process of doing this consists of a single function call (edited for brevity):
 
 \begin{minted}[fontsize=\footnotesize]{rust}
 #[test]
@@ -677,61 +678,22 @@ fn test_simple_if_expression() {
             b + 2
         }
     }
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
+    test_kernel_vm_and_verilog
+       (foo, tuple_pair_b8()).unwrap();
 }  
 \end{minted}
 
-In this example, the `foo` function is tested at two of the three levels.  It is assumed that the 
-Rust implementation and the output generated by `rustc` are correct and as intended (this can be tested
-with standard test infrastructure used for any normal Rust code).  Then the `foo` function is compiled into RHIF, and
-the resulting code is simulated using a virtual machine implementation.  The `tuple_pair_b8()` simply returns an
+In this example, the \verb|foo| function is tested at two of the three levels.  It is assumed that the 
+Rust implementation and the output generated by \verb|rustc| are correct and as intended (this can be tested
+with standard test infrastructure used for any normal Rust code).  Then the \verb|foo| function is compiled into RHIF, and
+the resulting code is simulated using a virtual machine implementation.  The \verb|tuple_pair_b8| function simply returns an
 iterator that yields all possible pairs of 8-bit values.  Finally, the verilog version of the function is 
 generated, along with a testbench that iterates over all of the possible inputs and compares the result to 
-the reference value from `rustc`.  In this way, the engineer can have a high degree of confidence that if the Rust 
+the reference value from \verb|rustc|.  In this way, the engineer can have a high degree of confidence that if the Rust 
 code is correct that the generated HDL will also be correct.  In the current RHDL implementation, that Verilog testbench
 is executed using Icarus Verilog, but any other Verilog simulator could be used.  It is a powerful way to test 
 the compiler and to ensure that the generated code is correct.
 
-\subsection{Figures and Tables}
-\paragraph{Positioning Figures and Tables} Place figures and tables at the top and 
-bottom of columns. Avoid placing them in the middle of columns. Large 
-figures and tables may span across both columns. Figure captions should be 
-below the figures; table heads should appear above the tables. Insert 
-figures and tables after they are cited in the text. Use the abbreviation 
-``Fig.~\ref{fig}'', even at the beginning of a sentence.
-
-\begin{table}[htbp]
-\caption{Table Type Styles}
-\begin{center}
-\begin{tabular}{|c|c|c|c|}
-\hline
-\textbf{Table}&\multicolumn{3}{|c|}{\textbf{Table Column Head}} \\
-\cline{2-4} 
-\textbf{Head} & \textbf{\textit{Table column subhead}}& \textbf{\textit{Subhead}}& \textbf{\textit{Subhead}} \\
-\hline
-copy& More table copy$^{\mathrm{a}}$& &  \\
-\hline
-\multicolumn{4}{l}{$^{\mathrm{a}}$Sample of a Table footnote.}
-\end{tabular}
-\label{tab1}
-\end{center}
-\end{table}
-
-\begin{figure}[htbp]
-\centerline{\includegraphics{fig1.png}}
-\caption{Example of a figure caption.}
-\label{fig}
-\end{figure}
-
-Figure Labels: Use 8 point Times New Roman for Figure labels. Use words 
-rather than symbols or abbreviations when writing Figure axis labels to 
-avoid confusing the reader. As an example, write the quantity 
-``Magnetization'', or ``Magnetization, M'', not just ``M''. If including 
-units in the label, present them within parentheses. Do not label axes only 
-with units. In the example, write ``Magnetization (A/m)'' or ``Magnetization 
-\{A[m(1)]\}'', not just ``A/m''. Do not label axes with a ratio of 
-quantities and units. For example, write ``Temperature (K)'', not 
-``Temperature/K''.
 
 \section*{Acknowledgment}
 
