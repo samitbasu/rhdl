@@ -170,12 +170,12 @@ pub struct Strobe<const N: usize> {
 A couple of additional observations.  Signals have both a direction and a type.  The type of
 signal can be any Rust type that implements the \verb|Synth| trait, and can include custom user
 types and structs.  The \verb|derive| macro is used to generate the necessary boilerplate to make the 
-|Strobe| struct implement the \verb|Block| and \verb|Logic| traits.  The details of these implementations are
+\verb|Strobe| struct implement the \verb|Block| and \verb|Logic| traits.  The details of these implementations are
 unimportant, and the user can simply use the \verb|Strobe| struct as if it were a normal Rust struct.  Also,
 the D-type flip flop (DFF), which is critical to synchronous designs, is simply another circuit element that
 is included in the internal structure of the \verb|Strobe| struct.  The RustHDL DFF is parameterized or 
 generic over the type of data it holds, so in this case, it is holding an N-bit wide value.  The value of
-|N| is provided when the strobe is created.
+\verb|N| is provided when the strobe is created.
 
 The second part of the circuit encapsulates its behavior.  This is done by implementing the \verb|Logic| trait,
 and requires only a single function, called \verb|update|:
