@@ -136,43 +136,16 @@ with good reason.  RHDL in particular focuses on the functional aspects of Rust,
 provides some additional benefits to designers.  And both RustHDL and RHDL allow for high performance 
 multithreaded simulation of the designs, all from within the same Rust ecosystem.
 
-\section{RustHDL Core Principles}
+\section{RustHDL Basics}
 
-As this is not meant to be a tutorial, a very brief summary of the concepts used in RustHDL is presented
-in order to orient the reader.  The core concepts of RustHDL are:
-
-\begin{itemize}
-  \item RustHDL is a subset of Rust.  As such all hardware designs must be valid Rust programs.  This includes
-  all aspects of Rust validity checking including the borrow checker, type checking, initialization before 
-  use, etc.
-  \item Circuit elements are described architecturally as structs, and composition is used to combine 
-  circuit elements into larger designs. Internal details of circuit elements can be exposed using the 
-  \verb|pub| keyword, just as in a normal Rust struct.
-  \item An \verb|update| function is used to describe the behavior of the circuit, and is roughly
-  translated into Verilog using the macro extension capabilities of RPL.
-  \item The system includes a reasonably high performance simulator with extensive tracing capabilities.
-  This allows for the simulation of complex designs with a high degree of confidence, as well as 
-  the use of RPL to write testbenches.
-  \item Extensibility and collaboration are provided through the use of the Rust package manager, and 
-  the ability to publish and share designs as crates on \verb|crates.io|.
-\end{itemize}
-
-While no one aspect of the above may be novel, the author believes that in combination, they present a 
-novel and powerful way to describe hardware designs.  In the following subsections, each of these 
-elements will be briefly touched upon and explained.  More thorough documenation is available on the
-RustHDL website [rusthdl].
-
-\subsection{Circuit Elements}
-
-Circuit elements in RustHDL are simply structs, and an example is quite instructive.  The idea is to
-provide effortless reuse and composition of circuit components.  Here is an example of a simple strobe
+RustHDL uses two aspects of the Rust programming language to describe hardware designs.  The first
+is the use of traits.  An example is quite instructive, so here is an example of a simple strobe
 circuit, written in RustHDL, and provided in the widget library that is published on crates.io.  Like 
 every circuit desribed in RustHDL, it consists of three parts.  The first is the definition of the
 circuit components, which includes input and output signals, as well as any internal components.
 The use of Rust's \verb|pub| mechanism is used to hide internal details that should not be accessed
-outside of the circuit.  The struct describes the architecture of the circuit, including
-input and output ports, data types, and internal structure.  As an ancillary benefit, Rust's documentation 
-system can be used to document the circuit, and the documentation can be published to \verb|docs.rs|.
+outside of the circuit.  The struct essentially describes the architecture of the circuit, including
+input and output ports, types, and internal structure.
 
 \begin{minted}[fontsize=\footnotesize]{rust}
 use rust_hdl_core::prelude::*;
@@ -211,10 +184,7 @@ generic over the type of data it holds, so in this case, it is holding an N-bit 
 \verb|N| is provided when the strobe is created.
 
 The second part of the circuit encapsulates its behavior.  This is done by implementing the \verb|Logic| trait,
-and requires only a single function, called \verb|update|.  The \verb|update| function describes the behavior
-of the circuit and propogates signals through the internal structure of the circuit.  It is simply a Rust function
-that must obey a few rules to ensure that the circuit can be synthesized.  Here is the \verb|update| function for
-the \verb|Strobe| circuit:
+and requires only a single function, called \verb|update|:
 
 \begin{minted}[fontsize=\footnotesize]{rust}
 impl<const N: usize> Logic for Strobe<N> {
@@ -238,7 +208,7 @@ Here, the \verb|#[hdl_gen]| attribute is attached to the \verb|update| function 
 into Verilog.  The key thing to note, however, is that \emph{without this attribute, the function is still a valid Rust function}.
 This means that the \verb|update| function can be tested, debugged, and run as a normal Rust function.  The \verb|#[hdl_gen]| adds
 additional constraints to the code to ensure that it is synthesizable, but the Rust compiler still does the work of ensuring that the 
-program input is valid.
+program input is correct.
 
 The \verb|update| function follows a few rules that are laid out in the documentation.  In short:
 \begin{itemize}
@@ -247,24 +217,80 @@ The \verb|update| function follows a few rules that are laid out in the document
   \item Several Rust flow control primitives are allowed, including \verb|match, if| and a very limited \verb|for|.  
   \item The ideas of blocking and non-blocking assignments, which are confusing from a software perspective are removed.  
   \item Local variables are allowed, but they must be declared in the architecture of the circuit, like any other element.
-  These signals have a type of \verb|Local|, and are declared as \verb|my_sig: Signal<Local, T>|.
+  These signals have a type fo \verb|Local|, and are declared as \verb|my_sig: Signal<Local, T>|.
 \end{itemize}
 
 The last part of the circuit is the construction and initialization.  Here again, there is nothing special in RustHDL.  The 
 constructor function is just a normal Rust function that populates the contents of the struct.  Because it can do anything
 that a normal Rust function can do, arbitrary checks and computations (which are done prior to hardware synthesis) can be 
-accomplished in the constructor.  For example, the constructor for the \verb|Strobe|, includes some checks that the 
-desired strobe frequency will not overflow the size of the counter chosen for the design.  This is implemented as a set 
-of assertions in the constructor and will fail at run time.  Making these checks compile-time is not currently possible on
-stable Rust, but may be possible in the future.
+accomplished in the constructor.  For completeness, here is the constructor for the \verb|Strobe|, which includes some checks 
+and takes frequencies as inputs (edited down for brevity):
 
-\subsection{Simulation and Testing}
+\begin{minted}[fontsize=\footnotesize]{rust}
+impl<const N: usize> Strobe<N> {
+  pub fn new(frequency: u64, strobe_freq_hz: f64)
+      -> Self {
+    let clock_duration_femto = 
+      freq_hz_to_period_femto(frequency as f64);
+    let strobe_interval_femto = 
+      freq_hz_to_period_femto(strobe_freq_hz);
+    let interval = 
+      strobe_interval_femto / clock_duration_femto;
+    let threshold = interval.round() as u64;
+    assert!((threshold as u128) < 
+      (1_u128 << (N as u128)));
+    assert!(threshold > 2);
+    Self {
+        enable: Signal::default(),
+        strobe: Signal::default(),
+        clock: Signal::default(),
+        threshold: Constant::new(threshold.into()),
+        counter: Default::default(),
+    }
+  }
+}
+\end{minted}
 
-One powerful aspect of RustHDL is the ease with which designs can be tested and simulated \emph{without} 
-resorting to external tools. As a result, RustHDL allows the engineer to write those testbenches using 
-the full power of Rust.  The following example tests an SDRAM-backed FIFO implemented in RustHDL, that
-includes a simulated SDRAM, and reads and writes random data to the FIFO concurrently with checks for
-the integrity of the results.
+Note the presence of the \verb|assert!| statements, which ensure that the circuit parameters are valid for the given configuration, and
+can spot issues before the circuit can even be constructed.  Unfortunately, Rust does not currently support much in the way of computation with generic parameters such as the 
+size of the internal counter \verb|N| for the strobe.  As a result, checks are made at construction time to ensure that 
+counter is wide enough to not roll over before the next strobe is generated.
+
+\section{Simulation and Testing}
+
+One powerful aspect of RustHDL and RHDL is the ease with which designs can be tested and simulated \emph{without} 
+resorting to external tools.  For example, setting up a testbench for the \verb|Strobe| is quite simple.  Here is an example
+for the \verb|Blinky| example from the documentation for RustHDL:
+
+\begin{minted}[fontsize=\footnotesize]{rust}
+fn main() {
+  // v--- build a simple simulation using
+  //  the simple_sim! macro for 1 clock, and
+  //  only 1 testbench.
+  let mut sim = simple_sim!(Blinky, clock, 
+      CLOCK_SPEED_HZ, ep, 
+    {
+      // v--- The testbench code goes here.
+      let mut x = ep.init()?;
+      wait_clock_cycles!(ep, clock, 
+        x, 4*CLOCK_SPEED_HZ);
+      ep.done(x)
+    }
+  );
+  // v--- construct the circuit
+  let uut = Blinky::default();
+  // v--- run the simulation, with the 
+  // output traced to a .vcd file
+  sim.run_to_file(Box::new(uut), 
+    5*sim_time::ONE_SEC, "blinky.vcd")
+    .unwrap();
+}
+\end{minted}
+
+In this simple example, the simulation simply creates a trace file that can then be inspected visually.  While this 
+is sufficient for simple circuits, more complex designs will require sophisticated testbenches.  Fortunately, RustHDL
+allows the engineer to write those testbenches using the full power of Rust.  A more complex example is here (again, edited for
+brevity, with the key parts left in place):
 
 \begin{minted}[fontsize=\footnotesize]{rust}
   #[test]
@@ -303,12 +329,12 @@ fn test_hls_sdram_fifo_works() {
 }
 \end{minted}
 
-The resulting trace file as shown in \ref{fig:trace} is quite complicated, but 
-the testbench includes an assertion, and will panic if at any time the FIFO errors out.  
-As such, the simulation can be run to 
-verify the integrity of the design with a simple \verb|cargo test| command as part of a 
-regular integration cycle.  No visual inspection of the trace output is required unless 
-something fails in the test.
+This test harness sets up a SDRAM-backed FIFO (which is a fairly complex circuit) and then writes and reads a 
+series of random values to the FIFO and reads them back \emph{simultaneously}.  This particular testbench includes
+a full simulation of the underlying SDRAM itself, which is also modelled in RustHDL.  The resulting trace file is
+quite complicated, but the testbench includes an assertion, and will panic if at any time the FIFO errors out.  The 
+FIFO read and write macros include random delays that ensure that different edge conditions are likely to be tested 
+during the run.  Again, this is difficult in a traditional HDL, but quite trivial in RustHDL.
 
 \begin{figure*}[htbp]
   \centerline{\includegraphics[width=18cm]{hls_sdram_fifo.png}}
@@ -316,9 +342,10 @@ something fails in the test.
   \label{fig}
 \end{figure*}
   
-In the RustHDL test suite, a subset of the tests include a full synthesis, and are run on
-actual FPGA boards attached to the host computer.  But these can be disabled if the necessary 
-hardware is missing.
+Finally, executing the full test suite of RustHDL is as simple as executing the standard \verb|cargo test| command from a 
+checkout of the code.  The only caveat is that several of the tests require physical FPGAs to be connected to the host
+machine to operate, and require vendor specific software (synthesis tools, communication libs, etc).  However, most 
+of the cores are tested using software only frameworks.
 
 \section{Synthesis}
 
@@ -530,11 +557,14 @@ feedback from users getting started with the framework, the following items beca
   \item The need to declare all local variables and their types up front is cumbersome.  Being able to freely rebind
   names and assign them is also critical to several standard Rust patterns (like shadowing).  This is also not
   possible in RustHDL.
-  \item Functions composition is not possible.  This makes the development of modular \emph{behavior} difficult.
-  \item Testing is hard to grasp.  Testbenches are written in Rust, but require an understanding of the underlying
+  \item Functions cannot be chained together, i.e. composition of functions is not possible.
+  \item Testing is somewhat clunky.  Testbenches are written in Rust, but require an understanding of the underlying
   event-based simulator that is used.  This makes testbenches difficult to write, and makes it difficult to use those
   testbenches in other environments (e.g., Verilog).
-  \item Backends for multiple HDLs are needed including FIRTL, VHDL and others.  Some of those backends support
+  \item No analysis is provided.  While RustHDL should be able to identify, e.g., timing issues, potential sources of
+  metastability, or long paths in design, it does not.  This is primarily a result of the lack of a higher order model
+  of the design being constructed within RustHDL, which looks mostly at one module at a time.
+  \item Backends for multiple HDLs were requested, including FIRTL, VHDL and others.  Some of those backends support
   rich type information to be carried on signals, and so would benefit from propogating that typed information through
   to the HDL instead of simply generating bit vectors.
 \end{itemize}

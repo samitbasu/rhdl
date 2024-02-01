@@ -65,6 +65,31 @@ Now the update function looks like:
 
 fn update(inputs, (internal_outputs)) -> (outputs, (internal_inputs)) {}
 
+
+We need
+
+trait LogicBlock {
+    type I: Digital;
+    type O: Digital;
+    type Q: Digital;
+    type D: Digital;
+    type S: Digital;
+}
+
+fn update(inputs: I, internal_outputs: D) -> (outputs: O, internal_inputs: Q) {
+    // This is the update function
+    // user defined...
+}
+
+
+fn sim(&mut self, inputs: I, internal_state: S, internal_outputs: Q) -> O {
+    loop {
+        let (outputs, internal_inputs) = Self::Update(inputs, internal_outputs);
+        let o0 = chil0.sim(internal_inputs.0, internal_state.0,)
+    }
+}
+
+
 Can we then do something like:
 
 fn d(&mut self, inputs) -> outputs {
@@ -79,10 +104,20 @@ fn d(&mut self, inputs) -> outputs {
     }
 }
 
+not quite.  self.q() is not as described below.
+
 fn q(&self) -> outputs {
     (child0.q(), child1.q())
 }
 
+Somewhere, we must store the internal outputs of the child blocks.
+
+fn update(&mut self, inputs, internal_outputs) -> (outputs, internal_outputs) {
+    loop {
+        let (outputs, internal_inputs) = Self::Update(inputs, internal_outputs);
+        ??
+    }
+}
 
 
 
