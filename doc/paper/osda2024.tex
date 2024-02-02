@@ -5,10 +5,18 @@
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
 \usepackage{minted}
+
+\definecolor{myblue1}{RGB}{124,156,205}
+\definecolor{myyellow1}{RGB}{202,217,126}
+
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
+
+
 
 \title{RustHDL and RHDL - two ongoing experiments in using Rust as a Hardware Description Language}
 
@@ -89,25 +97,24 @@ The key components of both frameworks are:
 The organization of this paper is as follows.  Section~\ref{sec:related} describes related
 works.  This is a particularly fruitful time for innovation in this space, and only a
 sample of projects are discussed, primarily in their relationship to RustHDL and/or RHDL.
-Section~\ref{sec:basics} describes the basics of how Rust is used as an HDL using the RustHDL
-framework.  Section~\ref{sec:rhdl} describes how RHDL addresses the shortcomings discovered
-during the development of RustHDL, with a particular focus on support for algebraic data types
-and Rust syntax.  This section also touches briefly on the internals of the RHDL compiler and
-how it cooperates with the Rust compiler.  Section~\ref{sec:roadmap} describes the roadmap for
-the future of RHDL, and describes some of the limitations that could not be overcome.  Conclusions
-and lessons learned are presented Section~\ref{sec:summary}.
+Section~\ref{sec:core} describes the basics of how Rust is used as an HDL using the RustHDL
+framework.  This includes a discussion of how RustHDL leverages existing infrastructure 
+for the Rust programming language to ease collaboration, testing, and sharing of hardware 
+designs.  Section~\ref{sec:future} discusses the limitations observed from the initial
+release of RustHDL, and the motivation for a rewrite.  Finally, Section~\ref{sec:conclusions}
+presents conclusions.
 
-\section{Background}
+\section{Background}\label{sec:related}
 
 In considering the scope of background work, we will focus on the use of the Rust programming
 language as primary in the consideration of Hardware Design Languages.  There are many modern
-approaches to HDL in development (see [spade] and the references therein for a good overview).  
+approaches to HDL in development (see \cite{b1} and the references therein for a good overview).  
 From a high level, however, programming languages can influence HDLs in one of two ways:
 
 \begin{itemize}
   \item Through grammar similarity.  A number of HDLs use syntaxes that are inspired or similar to
   programming languages in order to make the transition from software to hardware design easier.
-  For example, Chisel [chisel] uses a Scala-like syntax, and Spade [spade] uses a Rust-like syntax.
+  For example, Chisel \cite{b2} uses a Scala-like syntax, and Spade \cite{b1} uses a Rust-like syntax.
   The underlying implementation language is irrelevant (it happens to be Rust in the case of Spade).
   What is important is that the background experience and knowledge of the developer can be brought 
   to bear when understanding hardware descriptions if they use syntax and patterns from a broadly
@@ -115,13 +122,13 @@ From a high level, however, programming languages can influence HDLs in one of t
   \item As a host environment for the design.  In this case, a subset of the programming language (
     very similar in nature to a "synthesizable subset") is carved out of the broader programming language
     through some means, and then used to generate hardware designs within the context of the overall
-    programming language.  An example here is MyHDL, which uses Python as the host language, and 
+    programming language.  An example here is MyHDL \cite{b3}, which uses Python as the host language, and 
     designs are expressed in a subset of Python that is synthesizable into Verilog.
 \end{itemize}
 
 While there are several examples of HDLs that use Rust as the inspiration language, RustHDL and
 RHDL fall into the second category, and the author could find no other examples like them.  In the 
-first category, the most prominent examples are XLS [xls] and Spade [spade] and Veryl [veryl].  
+first category, the most prominent examples are XLS \cite{b4} and Spade \cite{b1} and Veryl \cite{b5}.  
 In all three of these cases, the language is inspired by the syntax of Rust, and usually the type
 system, but the actual tooling is separate from the Rust programming language and ecosystem.
 
@@ -136,7 +143,7 @@ with good reason.  RHDL in particular focuses on the functional aspects of Rust,
 provides some additional benefits to designers.  And both RustHDL and RHDL allow for high performance 
 multithreaded simulation of the designs, all from within the same Rust ecosystem.
 
-\section{RustHDL Core Principles}
+\section{RustHDL Core Principles}\label{sec:core}
 
 As this is not meant to be a tutorial, a very brief summary of the concepts used in RustHDL is presented
 in order to orient the reader.  The core concepts of RustHDL are:
@@ -160,7 +167,7 @@ in order to orient the reader.  The core concepts of RustHDL are:
 While no one aspect of the above may be novel, the author believes that in combination, they present a 
 novel and powerful way to describe hardware designs.  In the following subsections, each of these 
 elements will be briefly touched upon and explained.  More thorough documenation is available on the
-RustHDL website [rusthdl].
+RustHDL website \cite{b6}.
 
 \subsection{Circuit Elements}
 
@@ -261,7 +268,19 @@ stable Rust, but may be possible in the future.
 \subsection{Simulation and Testing}
 
 One powerful aspect of RustHDL is the ease with which designs can be tested and simulated \emph{without} 
-resorting to external tools. As a result, RustHDL allows the engineer to write those testbenches using 
+resorting to external tools.  Figure~\ref{fig:flow} illustrates some of the potential flow paths for a 
+RustHDL design.  Without resorting to external tools or tooling, the RustHDL framework includes a high
+performance simulator that can be used to simulate the design, and generate traces of the simulation.  These
+can lend a high degree of confidence in the correctness of the design before it is synthesized.
+
+\begin{figure}[htbp]
+  \centerline{\includegraphics[width=10cm]{flow.png}}
+  \caption{Flow of a RustHDL design}
+  \label{fig:flow}
+\end{figure}
+
+
+As a result, RustHDL allows the engineer to write those testbenches using 
 the full power of Rust.  The following example tests an SDRAM-backed FIFO implemented in RustHDL, that
 includes a simulated SDRAM, and reads and writes random data to the FIFO concurrently with checks for
 the integrity of the results.
@@ -313,146 +332,60 @@ something fails in the test.
 \begin{figure*}[htbp]
   \centerline{\includegraphics[width=18cm]{hls_sdram_fifo.png}}
   \caption{Sample simulation trace for the \textrm{HLSSDRAMFIFOTest} testbench}
-  \label{fig}
+  \label{fig:trace}
 \end{figure*}
   
 In the RustHDL test suite, a subset of the tests include a full synthesis, and are run on
 actual FPGA boards attached to the host computer.  But these can be disabled if the necessary 
 hardware is missing.
 
-\section{Synthesis}
+\subsection{Synthesis}
 
-Obviously, to get a RustHDL design onto an FPGA, it must be synthesized.  The process is simple.  Given a struct that
-implements the required \verb|Logic| trait, the equivalent Verilog description of the circuit can be generated with a simple
-command:
-
-\begin{minted}[fontsize=\footnotesize]{rust}
-  fn main() {
-    // v--- Create the circuit
-    let mut uut = Blinky::default();
-    // v--- Internal wiring
-    uut.connect_all(); 
-    let vlog = generate_verilog(&uut);
-    // v--- Write the verilog to the console
-    println!("{vlog}"); 
-}
-\end{minted}
-
-The resulting Verilog can then be synthesized using standard tools.  In the course of development the author used 
-open source tools when possible (including yosys and nextpnr), but also used vendor tools (ISE, Vivado and Diamond)
-when necessary.  Designs that used a fair amount of a moderate sized FPGA and included state machines, data transfer 
-mechanisms, SPI controllers, SDRAM controllers, and other components were all built, simulated in Rust, and then
-synthesized and tested with physical devices.  While there were definitely issues encountered in which the synthesized 
-results did not match the expectation, in most cases those issues were a result of bugs in the synthesis toolchain, and not
-in the generated output.
-
-As a further advantage of the use of Rust for the design language, a number of side "effects" can also be handled 
-efficiently as part of the synthesis process.  The main issue that one typically encounters is the need to enumerate
-and attach constraints to different parts of the design.  These constraints (for FPGAs), indicate things like 
-voltage levels, if drivers are paired up differentially or are tristated, etc.  Timing constraints are also needed,
-especially when signals come from off-chip or need to meet certain setup and hold constraints.  
-
-For the most part, constraints are highly vendor specific, and thus there is not much that can be done to provide
-a universal framework for specifying them.  However RustHDL at least provides a degree of organization to the constraints.
-In fact, RustHDL proposes the use of a "Board Support Package" (as is typically used in the embedded world) to provide 
-both the toolchain configuration and constraints needed for the FPGA of interest.  
-
-As a trivial example of this flexibility, consider the following code snippet from the BSP for the Alchitry Cu board:
+Obviously, to get a RustHDL design onto an FPGA, it must be synthesized.  It is here that another 
+advantage of the Rust ecosystem becomes apparent.  RustHDL includes the concept of a \emph{board support package} 
+(a term borrowed from the embedded world), which is a software crate that provides the necessary infrastructure to
+convert a RustHDL hardware design into a bitstream targetted at a specific device.  The BSP provides a function such 
+as:
 
 \begin{minted}[fontsize=\footnotesize]{rust}
-pub fn leds() -> Signal<Out, Bits<8>> {
-  let mut x = Signal::<Out, _>::default();
-  for (ndx, uname) in ["J11", "K11", "K12", ...]
-      .iter()
-      .enumerate()
-  {
-      x.add_location(ndx, uname);
-  }
-  x
-}
+  pub fn generate_bitstream<U: Block>
+      (mut uut: U, prefix: &str) {}
 \end{minted}
 
-This simple function provides a signal with 8 bits, each of which is pre-constrained to indicate which pin on the 
-FPGA is connected to the corresponding LED.  That information can now be used in any design that needs an LED 
-indicator with a fair degree of device independence.  Similarly, synthesizing a design for the Alchitry Cu board 
-is handled by a function
+which takes a generic struct that implements a circuit, and converts it into a bitstream, using whatever tooling is
+appropriate for the target device.  As noted in \cite{b1}, there is a significant challenge associated with using 
+a standard programming language to express hardware designs - in particular, the range of acceptable expressions
+must be limited to the common set from the destination language/HDL and the source language.  Without a full compiler,
+the RustHDL grammar is limited to handle only those expressions that can be directly translated into Verilog.  
+Concepts like early returns, and match expressions, which do not exist in Verilog, cannot be used in RustHDL.  
 
-\begin{minted}[fontsize=\footnotesize]{rust}
-pub fn generate_bitstream<U: Block>
-    (mut uut: U, prefix: &str) {}
-\end{minted}
-
-This function takes any struct that implements a design (with the constraints already attached to the relevant
-signals), and a directory location to place the intermediate files.  It then generates the Verilog description of
-the design, and invokes \verb|yosys| and \verb|nextpnr| followed by \verb|icepack| to generate a bitfile for the ICE40 FPGA on the
-AlchitryCu board.  Equivalent functions provide support for Xiling Spartan-6 and Artix-7 FPGAs, as well as Lattice ECP5 parts.
-
-\section{Interoperability}
-
-There are three key aspects to interoperability in RustHDL:
-
-\begin{enumerate}
-  \item The separation of interfaces from implementations.
-  \item The ability to use existing IP cores and designs in a RustHDL design.
-  \item The ability to use RustHDL designs in existing Verilog or VHDL designs.
-\end{enumerate}
-
-For the first item, consider the following example from the Xilinx Spartan-6 BSP:
-
-\begin{minted}[fontsize=\footnotesize]{rust}
-#[derive(Clone, LogicInterface, Default)]
-pub struct MCBInterface1GDDR2 {
-    data_bus: Signal<InOut, Bits<16>>,
-    address: Signal<Out, Bits<13>>,
-    bank_select: Signal<Out, Bits<3>>,
-    row_address_strobe_not: Signal<Out, Bit>,
-    column_address_strobe_not: Signal<Out, Bit>,
-    // snip
-    chip_select_neg: Signal<Out, Bit>,
-}
-\end{minted}
-
-This struct, annotated with \verb|LogicInterface| instead of \verb|LogicBlock| represents a set of signals that are used
-to connect to a DRAM controller.  The \verb|LogicInterface| trait is similar to the \verb|Logic| trait, but does not include
-an \verb|update| function.  Interfaces allow entire groups of signals to be described with a single element of the
-top level struct.  For example, the \verb|MCBInterface1GDDR2| is included in the memory interface generator (MIG) generated 
-by the Xilinx tools, which itself is wrapped into an RustHDL struct.
+While the next version of RustHDL (RHDL) attempts to overcome these limitations, the benefit to such a close 
+association between the two languages is that the generated Verilog is quite readable.  As one of the initial 
+use cases for RustHDL was to generate IP cores that could be maintained in Verilog by other engineers, this feature
+was critical.  To demonstrate, consider the following snippet of RustHDL:
 
 \begin{minted}[fontsize=\footnotesize]{rust}
 #[derive(LogicBlock)]
-pub struct MemoryInterfaceGenerator {
-    // Raw clock from the system - 
-    pub raw_sys_clk: Signal<In, Clock>,
-    // Reset - must be handled externally
-    pub reset: Signal<In, Bit>,
-    // Calibration complete
-    pub calib_done: Signal<Out, Bit>,
-    // ..snip..
-    // P0 read port
-    pub p0_rd: ReadPort,
-    // MCB interface
-    pub mcb: MCBInterface1GDDR2,
-    // FIFO for the commands
-    cmd_fifo: AsynchronousFIFO<MIGCommand, 2, 3, 1>,
-    // ..snip..
+pub struct AlchitryCuPulser {
+    pulser: Pulser,
+    clock: Signal<In, Clock>,
+    leds: Signal<Out, Bits<8>>,
 }
-\end{minted}  
 
-Even with the very basic description of RustHDL presented so far, this description of the memory interface generator (MIG) (which is a
-fairly complicated piece of hardware) is quite simple.   Through some wrapper code, this interface is connected to a black Box
-IP instantiation that is ultimately turned by the synthesis tools into a functioning design.  For simulation purposes, a version 
-of the MIG that is implemented in fabric using a BRAM is used, and the interface is connected to that instead.  The result is that
-a design can be generated that can be run on any FPGA (even one with out the necessary hardware) for verification and testing.
+impl Logic for AlchitryCuPulser {
+    #[hdl_gen]
+    fn update(&mut self) {
+        self.pulser.enable.next = true;
+        clock!(self, clock, pulser);
+        self.leds.next = 0x00.into();
+        if self.pulser.pulse.val() {
+            self.leds.next = 0xAA.into();
+        }
+    }
+}
+\end{minted}
 
-
-Finally, one of the original use cases for RustHDL was to generate IP cores that could be utilized by engineers using traditional 
-techniques and HDL languages.  To that end the output of RustHDL was meant to be human readable Verilog.  This is an important 
-feature, since things like timing analysis and other tools will typically report issues using the Verilog as a reference.  If the
-Verilog is unstructured and difficult to read, then the ability to map e.g., a critical timing path back to the original source 
-code can be quite difficult.  RustHDL attempts to generate Verilog that is as close to the original source as possible, with 
-various renaming and unrolling transformations to account for features missing in Verilog or identifiers that are illegal in 
-one language or the other.  As an example of this preservation of syntax, the following is an example of a generated top level
-Verilog for a simple LED blinker:
+This simple blinker is translated into the following top level Verilog module:
 
 \begin{minted}[fontsize=\footnotesize]{verilog}
 module top(clock,leds);
@@ -485,33 +418,31 @@ module top(clock,leds);
 endmodule // top
 \end{minted}
 
-The equivalent RustHDL code is:
+The relationship between the two is fairly evident, and one could theoretically maintain the Verilog
+code without reference to the original RustHDL sources.
 
-\begin{minted}[fontsize=\footnotesize]{rust}
-#[derive(LogicBlock)]
-pub struct AlchitryCuPulser {
-    pulser: Pulser,
-    clock: Signal<In, Clock>,
-    leds: Signal<Out, Bits<8>>,
-}
+Based on experience, this close equivalence is primarily important when trying to understand and interpret 
+the results of the toolchain while processing the design.  Issues that arise during timing analysis, or
+during the place and route process are easier to map back into the RustHDL source code given the fairly 
+close relationship between the two.  This issue will remain critical for all new HDL environments.  Because 
+they ultimately rely upon existing toolchains, it can be difficult to interpret the results of those toolchains
+in terms of the original HDL.
 
-impl Logic for AlchitryCuPulser {
-    #[hdl_gen]
-    fn update(&mut self) {
-        self.pulser.enable.next = true;
-        clock!(self, clock, pulser);
-        self.leds.next = 0x00.into();
-        if self.pulser.pulse.val() {
-            self.leds.next = 0xAA.into();
-        }
-    }
-}
-\end{minted}
+\subsection{Extensibility}
 
-The code is essentially 1-to-1 transformed, which is both a benefit and a drawback of RustHDL.  This and other issues 
-are discussed in the next section.
+A key advantage of RustHDL is that this software module is completely decoupled
+from the core library, and can be written and published by third parties (see \cite{b7} for an example of this in the wild).  
+The core library can also be extended with new circuit elements (dubbed "widgets") that can be published on 
+\verb|crates.io| and used by other engineers. As such one of the significant challenges in hardware design - 
+that of sharing reusable components - is addressed by the Rust ecosystem.
 
-\section{Lessons Learned and the Path to RHDL}
+The first class support that Rust provides for software package management also allows the core library to be extended
+by others in the ecosystem.  Simply adding a package to the \verb|Cargo.toml| can enable new features such as 
+easier wrapping of Verilog cores into RustHDL \cite{b8}.  Support for different use cases, such as ASICs, and different
+FPGA families can be handled through external crates, avoiding the problems of a single point of coordination, testing
+and publishing.
+
+\section{Lessons Learned and the Path to RHDL}\label{sec:future}
 
 RustHDL has been used to develop commercial grade firmware and is deployed in commercial products.  It has also seen 
 some level of adoption by the open source community, with third party crates published on \verb|crates.io| that add board
@@ -556,160 +487,48 @@ core differences between RustHDL and RHDL are:
 \end{itemize}
 
 These items required a signficantly broader scope and far more effort on the compiler side of the framework.  In particular,
-the first four items required the development of a full compiler that works in conjuntion with \verb|rustc| to perform
-type inference, as well as type checking, lowering of Rust expressions to an intermediate representation (which is a sort of
-RTL-SSA assembly code), optimization passes, analysis passes, and finally, generation of the input to the synthesis tools.
-
-This effort carried with it its own set of challenges, which this paper cannot describe or address.  Suffice to say, the RHDL
-project is still in an early development phase.  While designs have been synthesized, it is still in the process of being
-fleshed out.  A few pieces are of interest, though, so we describe them here.
-
-\subsection{The Digital Trait}
-RHDL introduces a \verb|Digital| trait, which is used to convert arbitrary Rust structs into bit vectors.  Here is an example from
-the early RHDL work:
-
-\begin{minted}[fontsize=\footnotesize]{rust}
-  #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
-  #[rhdl(discriminant_width = 4)]
-  enum Test {
-      #[default]
-      A,
-      B(b2, b3),
-      C {
-          a: b8,
-          b: b8,
-      },
-  }
-\end{minted}
-
-In this case \verb|b8| is an 8-bit unsigned value (there is also \verb|s8| for a signed 8 bit value).  The \verb|Digital| trait can be
-auto derived on structs and enums, and is automatically supplied for arrays and tuples.  This very powerful trait allows 
-complex data structures to be built and deconstructed safely with the compiler ensuring that bit accesses are always correct.
-In this case, the discriminant width is specified at 4 bits (instead of the 2 bits it would naturally require).  The position 
-of the discriminant can also be controlled with MSB and LSB positioning. 
-
-\subsection{The \textrm{kernel} Attribute}
-The \verb|kernel| attribute is used to mark functions that are to be synthesized.  While there are still limits on what 
-functions can be processed, the limits are fairly broad (essentially, the inputs and outputs must be \verb|Digital| types). 
-The compiler then deconstructs the kernel function and builds an intermediate form of it.  This is where support for
-Rust constructs like early returns, match expressions, etc. are handled.   At this point, type inference is also needed, 
-for intermediate local variables and pattern matching.  
-
-This small snippet of RHDL demonstrates some of those principles in action:
-\begin{minted}[fontsize=\footnotesize]{rust}
-#[kernel]
-pub fn blinker_update(params: Blinker, 
-                        state: BlinkerState) -> 
-                        (BlinkerState, b4) {
-    // v- tuple destructuring, function chaining
-    let (q_pulser, pulser_output) = 
-        pulser_update(params.pulser, 
-                      state.pulser, 
-                      true);
-    // v- if expression, type inference
-    let blinker_output = if pulser_output {
-        b4(0b1111)
-    } else {
-        b4(0b0000)
-    };
-    // v- tuple construction
-    (
-      BlinkerState { pulser: q_pulser }, 
-      blinker_output
-    )
-}
-\end{minted}
-This function looks completely different than RustHDL, where an impure function with a \verb|mut self| argument
-is replaced with a pure function with \verb|Digital| inputs.  The stages of the RHDL compilation are illustrated in 
-Figure~\ref{fig:rhdl_compiler}.  In the current version, the output of the compiler is straight Verilog, but bears
-little resemblance to the original source code.  As a result the need to perform timing analysis and other analysis
-steps at the Rust level becomes more important.  RHDL also introduces an intermediate form named \verb|RHIF| which 
-serves as a strongly typed RTL-assembly representation of the logic that obeys SSA rules.  As we will see in the
-next subsection, this intermediate representation is critical for testing and code generation.
-
-\subsection{Functional Testing and the Virtual Machine}
-With the move to pure functions, testing becomes significantly simpler.  Indeed, RHDL allows an engineer to 
-trivially test a kernel function at three levels:
-
-\begin{enumerate}
-  \item At the Rust level, where the logic of the function is being tested.
-  \item At the RHIF level via a virtual machine, which tests the lowering of the Rust function to the lower 
-  level hardware-synthesizable primitives.
-  \item At the verilog level via an autogenerated testbench which includes the correct outputs as generated 
-  by \verb|rustc|.
-\end{enumerate}
-
-The idea is to bootstrap off of the Rust compiler (which is highly unlikely to generate incorrect code), and progressively
-test each additional level in the compilation process.  Because the functions are pure, they can, in principle, be
-exhaustively tested if the inputs are small enough.  The process of doing this consists of a single function call (edited for brevity):
-
-\begin{minted}[fontsize=\footnotesize]{rust}
-#[test]
-fn test_simple_if_expression() {
-    #[kernel]
-    fn foo(a: b8, b: b8) -> b8 {
-        if a > b {
-            a + 1
-        } else {
-            b + 2
-        }
-    }
-    test_kernel_vm_and_verilog
-       (foo, tuple_pair_b8()).unwrap();
-}  
-\end{minted}
-
-In this example, the \verb|foo| function is tested at two of the three levels.  It is assumed that the 
-Rust implementation and the output generated by \verb|rustc| are correct and as intended (this can be tested
-with standard test infrastructure used for any normal Rust code).  Then the \verb|foo| function is compiled into RHIF, and
-the resulting code is simulated using a virtual machine implementation.  The \verb|tuple_pair_b8| function simply returns an
-iterator that yields all possible pairs of 8-bit values.  Finally, the verilog version of the function is 
-generated, along with a testbench that iterates over all of the possible inputs and compares the result to 
-the reference value from \verb|rustc|.  In this way, the engineer can have a high degree of confidence that if the Rust 
-code is correct that the generated HDL will also be correct.  In the current RHDL implementation, that Verilog testbench
-is executed using Icarus Verilog, but any other Verilog simulator could be used.  It is a powerful way to test 
-the compiler and to ensure that the generated code is correct.
+the first four items require the development of a full compiler that works alongside \verb|rustc| to process the source. 
+This embedded compiler performs the following passes, each of which is necessary to achieve the full support of Rust:
+\begin {itemize}
+  \item Type inference to add support for local rebindings and pattern matching.
+  \item Lowering of Rust expressions to an intermediate representation (which is a kind of RTL-SSA assembly code).  This
+  step is where early returns, if expressions and pattern matching are lowered to ROM tables and muxes.
+  \item Optimization passes to remove unneeded registers, and unreachable code.
+  \item Validation passes that ensure there are no latches generated, and that all types are preserved through the lowering.
+  \item Analysis passes that look for potential timing issues, and metastability.
+  \item Linking of translation units into a single design.  This is where support for function composition and black boxes is
+  provided.
+  \item Generation of Verilog (or whatever target HDL is desired - Verilog only at this time).
+\end{itemize}
+Apart from the analysis passes, the remainder of the compiler is implemented and working.  The analysis passes are still in
+development.  As mentioned in Section~\ref{sec:core}, one sigificant challenge is maintaining coherence between the analysis 
+results reported by the synthesis tools and the RHDL source code.  This is a significant challenge and still an area of 
+active research and experimentation.
 
 
-\section*{Acknowledgment}
+\section{Conclusions}\label{sec:conclusions}
 
-The preferred spelling of the word ``acknowledgment'' in America is without 
-an ``e'' after the ``g''. Avoid the stilted expression ``one of us (R. B. 
-G.) thanks $\ldots$''. Instead, try ``R. B. G. thanks$\ldots$''. Put sponsor 
-acknowledgments in the unnumbered footnote on the first page.
-
-\section*{References}
-
-Please number citations consecutively within brackets \cite{b1}. The 
-sentence punctuation follows the bracket \cite{b2}. Refer simply to the reference 
-number, as in \cite{b3}---do not use ``Ref. \cite{b3}'' or ``reference \cite{b3}'' except at 
-the beginning of a sentence: ``Reference \cite{b3} was the first $\ldots$''
-
-Number footnotes separately in superscripts. Place the actual footnote at 
-the bottom of the column in which it was cited. Do not put footnotes in the 
-abstract or reference list. Use letters for table footnotes.
-
-Unless there are six authors or more give all authors' names; do not use 
-``et al.''. Papers that have not been published, even if they have been 
-submitted for publication, should be cited as ``unpublished'' \cite{b4}. Papers 
-that have been accepted for publication should be cited as ``in press'' \cite{b5}. 
-Capitalize only the first word in a paper title, except for proper nouns and 
-element symbols.
-
-For papers published in translation journals, please give the English 
-citation first, followed by the original foreign-language citation \cite{b6}.
+Rust is an excellent language to serve as the basis of building powerful environments for 
+hardware design.  RustHDL demonstrates how the compiler, tooling, infrastructure and 
+community of the Rust programming language can be leveraged to buid a powerful and 
+collaborative environment for hardware design.  The initial release and use of RustHDL,
+along with the feedback provided by the open source community lead to a roadmap for 
+the successor of RustHDL (RHDL), which employs additional software technology to bring
+the full expressiveness of the underlying language to hardware design.  The author believes
+that the use of Rust as a basis for hardware design is a powerful and compelling idea, and
+that the RHDL project will be a significant step forward in the development of hardware
+design environments.
 
 \begin{thebibliography}{00}
-\bibitem{b1} G. Eason, B. Noble, and I. N. Sneddon, ``On certain integrals of Lipschitz-Hankel type involving products of Bessel functions,'' Phil. Trans. Roy. Soc. London, vol. A247, pp. 529--551, April 1955.
-\bibitem{b2} J. Clerk Maxwell, A Treatise on Electricity and Magnetism, 3rd ed., vol. 2. Oxford: Clarendon, 1892, pp.68--73.
-\bibitem{b3} I. S. Jacobs and C. P. Bean, ``Fine particles, thin films and exchange anisotropy,'' in Magnetism, vol. III, G. T. Rado and H. Suhl, Eds. New York: Academic, 1963, pp. 271--350.
-\bibitem{b4} K. Elissa, ``Title of paper if known,'' unpublished.
-\bibitem{b5} R. Nicole, ``Title of paper with only first word capitalized,'' J. Name Stand. Abbrev., in press.
-\bibitem{b6} Y. Yorozu, M. Hirano, K. Oka, and Y. Tagawa, ``Electron spectroscopy studies on magneto-optical media and plastic substrate interface,'' IEEE Transl. J. Magn. Japan, vol. 2, pp. 740--741, August 1987 [Digests 9th Annual Conf. Magnetics Japan, p. 301, 1982].
-\bibitem{b7} M. Young, The Technical Writer's Handbook. Mill Valley, CA: University Science, 1989.
+\bibitem{b1} Spade.
+\bibitem{b2} Chisel
+\bibitem{b3} MyHDL
+\bibitem{b4} XLS
+\bibitem{b5} Veryl
+\bibitem{b6} RustHDL
+\bibitem{b7} bsp
+\bibitem{b8} macro
 \end{thebibliography}
 \vspace{12pt}
-\color{red}
-IEEE conference templates contain guidance text for composing and formatting conference papers. Please ensure that all template text is removed from your conference paper prior to submission to the conference. Failure to remove the template text from your paper may result in your paper not being published.
 
 \end{document}
