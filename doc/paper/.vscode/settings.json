@@ -1,0 +1,24 @@
+{
+    "cSpell.words": [
+        "ASICs",
+        "bitstream",
+        "deserializers",
+        "DIESL",
+        "FIRTL",
+        "HLSSDRAMFIFO",
+        "leds",
+        "muxes",
+        "rebindings",
+        "RHDL",
+        "rustc",
+        "struct",
+        "structs",
+        "synthesizable",
+        "testbench",
+        "Testbenches",
+        "usize",
+        "Verilog",
+        "Veryl",
+        "VHDL"
+    ]
+}
