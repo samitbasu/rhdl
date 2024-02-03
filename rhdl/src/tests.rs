@@ -1408,6 +1408,19 @@ fn test_nested_tuple_array_init() {
 }
 
 #[test]
+fn test_tuple_destructure_in_args() {
+    #[kernel]
+    fn add((b, c): (u8, u8)) -> u8 {
+        b + c
+    }
+
+    let test_vec = (0..4)
+        .flat_map(|a| (0..4).map(move |b| ((a, b),)))
+        .collect::<Vec<_>>();
+    test_kernel_vm_and_verilog::<add, _, _, _>(add, test_vec.into_iter()).unwrap();
+}
+
+#[test]
 fn test_tuple_struct_nested_init() {
     #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
     pub struct Foo {

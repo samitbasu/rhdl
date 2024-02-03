@@ -21,7 +21,7 @@ pub fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     check_inference(&kernel, &ctx)?;
     let obj = compile(&kernel.ast, ctx)?;
     //    let obj = LowerIndexToCopy::run(obj)?;
-    //eprintln!("{}", obj);
+    eprintln!("{}", obj);
     let obj = RemoveExtraRegistersPass::run(obj)?;
     //eprintln!("{}", obj);
     let obj = TypeCheckPass::run(obj)?;

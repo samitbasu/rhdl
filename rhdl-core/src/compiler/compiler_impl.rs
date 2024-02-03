@@ -1000,14 +1000,13 @@ fn argument_id(arg_pat: &Pat) -> Result<(String, NodeId)> {
 
 impl Visitor for CompilerContext {
     fn visit_kernel_fn(&mut self, node: &ast_impl::KernelFn) -> Result<()> {
-        // Allocate local binding for each argument
-        let mut arguments = vec![];
-        for arg in &node.inputs {
-            let (arg_name, arg_id) = argument_id(arg)?;
-            self.bind(arg_id, &arg_name)?;
-            arguments.push(self.resolve_local(arg_id)?);
-        }
-        self.arguments = arguments;
+        // Allocate a register for each argument.
+        let arguments = node
+            .inputs
+            .iter()
+            .map(|x| self.reg(x.id))
+            .collect::<Result<Vec<_>>>()?;
+        self.arguments = arguments.clone();
         let block_result = self.reg(node.id)?;
         self.return_node = node.id;
         // Allocate an unnamed local binding for the early return flag
@@ -1035,6 +1034,11 @@ impl Visitor for CompilerContext {
             self.resolve_local(node.id)?,
             self.literal_from_typed_bits(&node.ret)?,
         );
+        // Initialize the arguments in the main block
+        for (arg, slot) in node.inputs.iter().zip(arguments.iter()) {
+            self.bind_pattern(arg)?;
+            self.initialize_local(arg, *slot)?;
+        }
         self.block(block_result, &node.body)?;
         self.ops.insert(0, init_early_exit_op);
         self.opcode_source_map.insert(0, node.id);
