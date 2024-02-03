@@ -252,6 +252,29 @@ pub fn hdl_kernel(input: TS) -> Result<TS> {
     context.function(input)
 }
 
+// Convert a pattern that would appear in a function argument into an expression.
+// Only supports idents and tuples of idents.
+fn pattern_to_expr(pat: &syn::Pat) -> Result<TS> {
+    match pat {
+        syn::Pat::Ident(ident) => {
+            let name = &ident.ident;
+            Ok(quote! {#name})
+        }
+        syn::Pat::Tuple(tuple) => {
+            let elems = tuple
+                .elems
+                .iter()
+                .map(|x| pattern_to_expr(x))
+                .collect::<Result<Vec<_>>>()?;
+            Ok(quote! {(#(#elems),*)})
+        }
+        _ => Err(syn::Error::new(
+            pat.span(),
+            "Unsupported pattern in rhdl kernel function",
+        )),
+    }
+}
+
 // put the original function inside a wrapper function with the name of the original.
 // Call the wrapped function 'inner'
 // Capture the return of the wrapped function
@@ -286,15 +309,20 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
                 "Unsupported receiver in rhdl kernel function",
             )),
             syn::FnArg::Typed(pat) => {
-                if let syn::Pat::Ident(ident) = pat.pat.as_ref() {
-                    let name = &ident.ident;
-                    Ok(quote! { #name })
-                } else {
-                    Err(syn::Error::new(
-                        pat.span(),
-                        "Unsupported pattern in rhdl kernel function",
-                    ))
-                }
+                let pat = &pat.pat;
+                pattern_to_expr(pat)
+                //                Ok(quote!(#pat))
+                /*
+                                if let syn::Pat::Ident(ident) = pat.pat.as_ref() {
+                                    let name = &ident.ident;
+                                    Ok(quote! { #name })
+                                } else {
+                                    Err(syn::Error::new(
+                                        pat.span(),
+                                        "Unsupported pattern in rhdl kernel function",
+                                    ))
+                                }
+                */
             }
         })
         .collect::<Result<Punctuated<_, Comma>>>()?;
@@ -1397,6 +1425,36 @@ mod test {
             eprintln!("{:?}", arm);
             eprintln!("pattern has bindings {:?}", pattern_has_bindings(&arm.pat));
         });
+    }
+
+    #[test]
+    fn test_wrap_handles_mut_arg() {
+        let test_code = quote! {
+            fn update(mut a: u8) -> u8 {
+                let mut b = 3;
+                b = a;
+                b
+            }
+        };
+        let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
+        let item = Context::default().function(function).unwrap();
+        let new_code = quote! {#item};
+        let new_code = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
+        println!("{}", new_code);
+    }
+
+    #[test]
+    fn test_argument_tuple() {
+        let test_code = quote! {
+            fn update((a , b): (u8, u8)) -> (u8, u8) {
+                (a, a + b)
+            }
+        };
+        let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
+        let item = Context::default().function(function).unwrap();
+        let new_code = quote! {#item};
+        let new_code = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
+        println!("{}", new_code);
     }
 
     #[test]
