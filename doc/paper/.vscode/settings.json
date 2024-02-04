@@ -11,6 +11,7 @@
         "rebindings",
         "RHDL",
         "rustc",
+        "strobed",
         "struct",
         "structs",
         "synthesizable",
