@@ -204,6 +204,18 @@ impl<const N: usize> Digital for SignedBits<N> {
 }
 
 // Add blanket implementation for tuples up to size 4.
+impl<T0: Digital> Digital for (T0,) {
+    fn static_kind() -> Kind {
+        Kind::make_tuple(vec![T0::static_kind()])
+    }
+    fn bin(self) -> Vec<bool> {
+        self.0.bin()
+    }
+    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
+        self.0.note((key, ".0"), &mut writer);
+    }
+}
+
 impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
     fn static_kind() -> Kind {
         Kind::make_tuple(vec![T0::static_kind(), T1::static_kind()])

@@ -264,9 +264,9 @@ fn pattern_to_expr(pat: &syn::Pat) -> Result<TS> {
             let elems = tuple
                 .elems
                 .iter()
-                .map(|x| pattern_to_expr(x))
+                .map(pattern_to_expr)
                 .collect::<Result<Vec<_>>>()?;
-            Ok(quote! {(#(#elems),*)})
+            Ok(quote! {(#(#elems ,)*)})
         }
         _ => Err(syn::Error::new(
             pat.span(),
@@ -1448,6 +1448,28 @@ mod test {
         let test_code = quote! {
             fn update((a , b): (u8, u8)) -> (u8, u8) {
                 (a, a + b)
+            }
+        };
+        let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
+        let item = Context::default().function(function).unwrap();
+        let new_code = quote! {#item};
+        let new_code = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
+        println!("{}", new_code);
+    }
+
+    #[test]
+    fn test_arguments_with_single_element_tuples() {
+        let test_code = quote! {
+            fn counter<const N: usize>(i: CounterIn<N>, (count_q,): (Bits<N>,)) -> (Bits<N>, (DFFIn<Bits<N>>,)) {
+                let count_q = count_q.0;
+                let next = if i.enable { count_q + 1 } else { count_q };
+                (
+                    count_q,
+                    (DFFIn {
+                        clock: i.clock,
+                        data: next,
+                    },),
+                )
             }
         };
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
