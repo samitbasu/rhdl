@@ -690,6 +690,14 @@ impl Context {
                 return Ok(quote! {
                     rhdl_core::ast_builder::block_expr(rhdl_core::ast_builder::block(vec![]))
                 });
+            } else if name.ident == "default" {
+                return Ok(quote! {
+                    rhdl_core::ast_builder::lit_expr(
+                        rhdl_core::ast_builder::expr_lit_typed_bits(
+                            rhdl_core::Digital::typed_bits(#expr)
+                        )
+                    )
+                });
             }
         }
         let code = if !path_is_enum_tuple_struct_by_convention(&func_path.path) {
