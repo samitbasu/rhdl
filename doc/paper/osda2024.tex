@@ -5,9 +5,8 @@
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
-\usepackage{tikz}
-\usetikzlibrary{positioning}
 \usepackage{minted}
+\usepackage{hyperref}
 
 \definecolor{myblue1}{RGB}{124,156,205}
 \definecolor{myyellow1}{RGB}{202,217,126}
@@ -291,7 +290,7 @@ performance event-based simulator that can be used to simulate the design, and g
 signals.  These tests can lend a high degree of confidence in the correctness of the design before it is synthesized.
 
 \begin{figure}[htbp]
-  \centerline{\includegraphics[width=10cm]{flow.png}}
+  \centerline{\includegraphics[width=9cm]{flow.png}}
   \caption{Flow of a RustHDL design}
   \label{fig:flow}
 \end{figure}
@@ -303,7 +302,7 @@ includes a simulated SDRAM, and reads and writes random data to the FIFO concurr
 the integrity of the results.
 
 \begin{minted}[fontsize=\footnotesize]{rust}
-  #[test]
+#[test]
 fn test_hls_sdram_fifo_works() {
   let mut uut = HLSSDRAMFIFOTest::default();
   let mut sim = Simulation::new();
@@ -523,7 +522,6 @@ development.  As mentioned in Section~\ref{sec:core}, one significant challenge 
 results reported by the synthesis tools and the RHDL source code.  This is a significant challenge and still an area of 
 active research and experimentation.
 
-
 \section{Conclusions}\label{sec:conclusions}
 
 Rust is an excellent language to serve as the basis of building powerful environments for 
@@ -537,18 +535,17 @@ promise to make the development of hardware designs more accessible, easier to t
 verify, and simpler to share and reuse.
 
 \begin{thebibliography}{00}
-\bibitem{b1} Spade.
-\bibitem{b2} Chisel
-\bibitem{b3} MyHDL
-\bibitem{b4} XLS
-\bibitem{b5} Veryl
-\bibitem{b9} Rust Programming Language
-\bibitem{b6} RustHDL
-\bibitem{b7} bsp
-\bibitem{b8} macro
-\bibitem{b10} DIESL
-\bibitem{b11} const generic computation
+\bibitem{b1} F. Skarman and O. Gustafsson, ``Spade: An Expression-Based HDL With Pipelines'', Open Source Design Automation Conference, 2023.
+\bibitem{b2} ``Chisel - Software-defined hardware'', \url{https://www.chisel-lang.org/} (Accessed Feb 1, 2024).
+\bibitem{b3} ``MyHDL - From Python to Silicon!'', \url{https://www.myhdl.org/} (Accessed Feb 1, 2024).
+\bibitem{b4} ``XLS: Accelerated HW Synthesis'', \url{https://google.github.io/xls/} (Accessed Feb 1, 2024).
+\bibitem{b5} ``Veryl - A modern hardware description language'', \url{https://crates.io/crates/veryl} (Accessed Feb 1, 2024).
+\bibitem{b9} ``Rust - A language empowering everyone to build reliable and efficient software'', \url{https://rust-lang.org} (Accessed Feb 1, 2024).
+\bibitem{b6} ``RustHDL - Write FPGA Firmware using Rust!'', \url{https://rust-hdl.org/} (Accessed Feb 1, 2024).
+\bibitem{b7} ``rust-hdl-bsp-step-mxo2-lpc - rust-hdl board support package for STEP-MXO2-LPC'', \url{https://crates.io/crates/rust-hdl-bsp-step-mxo2-lpc} (Accessed Feb 4, 2024).
+\bibitem{b8} ``wrap\_verilog\_in\_rust\_hdl\_macro - A proc-macro to wrap Verilog in a rust-hdl module'', \url{https://crates.io/crates/wrap_verilog_in_rust_hdl_macro} (Accessed Feb 4, 2024).
+\bibitem{b10} ``Diesel is a Safe, Extensible ORM and Query Builder for Rust'', \url{https://diesel.rs/} (Accessed Feb 4, 2024).
+\bibitem{b11} ``Tracking Issue for complex generic constants: features(generic\_const\_exprs)'', \url{https://github.com/rust-lang/issues/76560} (Accessed Feb 5, 2024).
 \end{thebibliography}
-\vspace{12pt}
 
 \end{document}
