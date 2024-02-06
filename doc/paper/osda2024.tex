@@ -7,6 +7,7 @@
 \usepackage{xcolor}
 \usepackage{minted}
 \usepackage{hyperref}
+\usepackage{flushend}
 
 \definecolor{myblue1}{RGB}{124,156,205}
 \definecolor{myyellow1}{RGB}{202,217,126}
@@ -48,7 +49,7 @@ There are a number of new hardware description languages (HDL) \cite{b1}-\cite{b
 attempt to remedy some of the shortcomings of the traditional Verilog or VHDL based workflow.
 These HDLs tend to focus on newer features borrowed from the rapidly advancing fields of
 software programming language design and compiler development.  Typically, these new HDLs
-come with custom toolchains, new syntaxes and grammers, as well as new ways of thinking about
+come with custom toolchains, new syntaxes and grammars, as well as new ways of thinking about
 how hardware designs should best be expressed in text.
 
 There is, however, an additional challenge that cannot be understated.  Hardware development
@@ -62,7 +63,7 @@ assignments, priority assignments, etc.  Instead, the engineer writes fairly nor
 Python code, and the framework takes care of the translation to Verilog.
 
 The use of a programming language as the basis for an HDL is not new.  However, modern programming
-languages offer significant advantages over their predecessors.  The Rust programming 
+languages offer significant advantages over their predecessors.  The Rust programming language (RPL)
 includes a number of powerful features in a mainstream language such as:
 \begin{itemize}
   \item Strong static typing
@@ -73,22 +74,22 @@ includes a number of powerful features in a mainstream language such as:
   \item High performance and multithreading
   \item A powerful macro system
 \end{itemize}
-These features lead the author to attempt to use the Rust programming language as the basis for
-a hardware description language.  The goal was to leverage the power of the Rust programming language
-to make the development of hardware designs easier, and to bring the benefits of the Rust programming
-language to the task of hardware design.  The result of this effort is the open source RustHDL 
+These features lead the author to attempt to use the RPL as the basis for
+a hardware description language.  The goal was to leverage the power of the RPL
+to make the development of hardware designs easier and safer, and to bring the benefits of RPL
+to the task of hardware design.  The result of this effort is the open source RustHDL 
 framework that allows for the development of firmware for Field Programmable Gate Arrays (FPGAs)
 using the Rust programming language.  The framework has been used to develop commercial grade
 firmware, and has been fielded in commercial products.  A large number of sample designs are
-available on \verb|crates.io|, and the framework has seen some level of adoption by the open source
+available on \verb|crates.io|, and the framework has seen some moderate level of adoption by the open source
 community.
 
-The key components of both frameworks are:
+The key components of RustHDL are:
 \begin{itemize}
-\item The use of the type system to allow for description of complex data without
-  a synthesis overhead, and independent of the underlying toolchains support for
+\item The use of the Rust type system to describe complex data without
+  a synthesis overhead, and independently of the underlying toolchain's support for
   types.
-\item The use of composition and simple structs to describe hierarchies of design
+\item The use of simple structs and composition to describe hierarchies of design
   with encapsulation and the hiding of internal details.
 \item The use of Rust itself as the programming language.  No new grammar is required
   and all of the infrastructure for supporting the Rust programming language, including training,
@@ -126,23 +127,23 @@ From a high level programming languages can influence HDLs in one of two ways:
   to bear when understanding hardware descriptions if they use syntax and patterns from a broadly
   used programming language.
   \item As a host environment for the design.  In this case, a subset of the programming language (
-    very similar in nature to a "synthesizable subset") is carved out of the broader programming language
+    very similar in nature to a ``synthesizable subset'') is carved out of the broader programming language
     through some means, and then used to generate hardware designs within the context of the overall
     programming language.  An example here is MyHDL \cite{b3}, which uses Python as the host language, and 
     designs are expressed in a subset of Python that is synthesizable into Verilog.
 \end{itemize}
 
-While there are several examples of HDLs that use Rust as the inspiration language, RustHDL falls 
-into the second category, where it appears to be singular.  In the 
-first category, the most prominent examples are XLS \cite{b4} and Spade \cite{b1} and Veryl \cite{b5}.  
+In the first category, the most prominent examples are XLS \cite{b4} and Spade \cite{b1} and Veryl \cite{b5}.  
 In all three of these cases, the language grammar and type system are inspired by Rust, but 
 the actual tooling is separate from the Rust programming language and ecosystem.  In the case of 
 \cite{b1, b5}, the relevant compilers are also written in Rust.  But XLS, which is quite close to 
 Rust syntax, is written in C++.
 
+While there are several examples of HDLs that use Rust as the inspiration language, RustHDL falls 
+into the second category, where it appears to be unique.  
 RustHDL is unique in that \emph{hardware designs are expressed as valid Rust programs}.
 This means that before a design can be synthesized, it must first pass the checks of the Rust
-compiler, and be compiled into some form of working valid software program.
+compiler, and be compiled into some form of a working, valid software program.
 It also means that much of the infrastructure of the Rust programming language can be reused
 by hardware designers.  Things like package management, documentation, test management and IDE 
 integration all come for free.
@@ -154,7 +155,7 @@ in order to orient the reader.  The core concepts of RustHDL are:
 
 \begin{itemize}
   \item RustHDL is a subset of Rust.  As such all hardware designs must be valid Rust programs.  This includes
-  all aspects of Rust validity checking including the borrow checker, type checking, initialization before 
+  all aspects of Rust validity checking including borrow checking, type checking, initialization before 
   use, etc.
   \item Circuit elements are described architecturally as structs, and composition is used to combine 
   circuit elements into larger designs. Internal details of circuit elements can be exposed using the 
@@ -180,7 +181,7 @@ provide effortless reuse and composition of circuit components.  Every circuit i
 of three parts:
 \begin{itemize}
   \item A struct that describes the architecture of the circuit.
-  \item An \verb|update| function that describes signal propogation in the circuit internals.
+  \item An \verb|update| function that describes signal propagation in the circuit internals.
   \item A constructor function that initializes the circuit.
 \end{itemize}
 
@@ -202,7 +203,7 @@ use crate::{dff::DFF, dff_setup};
 pub struct Strobe<const N: usize> {
     /// Set this to true to enable the pulse train.
     pub enable: Signal<In, Bit>,
-    /// This is the strobing signal 
+    /// This is the strobe signal 
     /// it will fire for 1 clock cycle such that 
     /// the strobe frequency is generated.
     pub strobe: Signal<Out, Bit>,
@@ -218,10 +219,10 @@ Signals have both a direction and a type.  The type of the
 signal can be any Rust type that implements the \verb|Synth| trait, and can include custom user
 types and structs.  The \verb|derive| macro is used to generate the necessary boilerplate to make the 
 \verb|Strobe| struct implement the \verb|Block| and \verb|Logic| traits.  The details of these implementations are
-unimportant, and the user can simply use the \verb|Strobe| struct as if it were a normal Rust struct.  Also,
-the D-type flip flop (DFF), which is critical to synchronous designs, is simply another circuit element that
-is included in the internal structure of the \verb|Strobe| struct.  The RustHDL DFF is parameterized or 
-generic over the type of data it holds, so in this case, it is holding an N-bit wide value.  The value of
+unimportant, and the user can simply use the \verb|Strobe| struct as if it were a normal Rust struct. 
+The D-type flip flop (DFF), which is critical to synchronous designs, is simply another circuit element that
+is included in the internal structure of the \verb|Strobe| struct.  The RustHDL DFF is parameterized (or 
+generic) over the type of data it holds, so in this case, it is holding an N-bit wide value.  The value of
 \verb|N| is provided when the strobe is created.
 
 Note also that the \verb|pub| keyword is used to expose parts of the circuit that are considered to be part
@@ -231,7 +232,8 @@ changed without altering how this circuit is used in higher level designs.
 The second part of the circuit encapsulates its behavior.  This is done by implementing the \verb|Logic| trait,
 and requires only a single function, called \verb|update|.  The \verb|update| function describes the behavior
 of the circuit via the propagation of signals through the internal structure of the circuit.  It is simply a Rust function
-that must obey a few rules to ensure that the circuit can be synthesized.  Here is the \verb|update| function for
+that must obey a set of rules to ensure that the circuit can be synthesized.  Feedback on the compliance of the
+code to the rule set is provided at compile time, and is immediate.  Here is the \verb|update| function for
 the \verb|Strobe| circuit:
 
 \begin{minted}[fontsize=\footnotesize]{rust}
@@ -255,10 +257,10 @@ impl<const N: usize> Logic for Strobe<N> {
 \end{minted}
 
 The \verb|#[hdl_gen]| attribute is attached to the \verb|update| function to provide a way to convert the function
-into Verilog.  The key thing to note, however, is that \emph{without this attribute, the function is still a valid Rust function}.
+into Verilog.  The key thing to note, however, is that \emph{without this attribute, update is still a valid Rust function}.
 This means that the \verb|update| function can be tested, debugged, and run as a normal Rust function.  The \verb|#[hdl_gen]| adds
 additional constraints to the code to ensure that it is synthesizable, but the Rust compiler still does the work of ensuring that the 
-program input is valid.  This is in contrast to other Domain Specific Languages implemented in Rust (such as \cite{b10}) where the 
+program input is valid.  This is in contrast to other Domain Specific Languages implemented in Rust where the 
 language only uses Rust's token structure, but the actual grammar and semantics are different.  In those cases, removing the 
 macro attribute results in a non-compilable program.
 
@@ -266,14 +268,15 @@ The \verb|update| function follows a few rules that are laid out in the document
 \begin{itemize}
   \item Signals have two endpoints.  A \verb|.val()| endpoint that represents their current value, and a \verb|.next| 
     endpoint that represents the value that the circuit is driving them to.
-  \item Several (but not all) Rust flow control primitives are allowed, including \verb|match, if| \emph{statements} 
-  and a very limited \verb|for|.  
+  \item Several (but not all) Rust flow control primitives are allowed, including \verb|match|, and  \verb|if| \emph{statements} 
+  and a very limited \verb|for| loop.  
   \item Local variables are allowed, but they must be declared in the architecture of the circuit, like any other element.
   These signals have a type of \verb|Local|, and are declared as \verb|my_sig: Signal<Local, T>|.  The types of any local 
   variables must be expressed as part of the struct declaration.  There is no type inference.
 \end{itemize}
 
-The last part of the circuit is the construction and initialization.  Here again, there is nothing special in RustHDL.  The 
+The last part of the circuit is the construction and initialization.  Here again, there is nothing special in constructing 
+a struct that represents a RustHDL circuit.  The 
 constructor function is just a normal Rust function that populates the contents of the struct.  Because it can do anything
 that a normal Rust function can do, arbitrary checks and computations (which are done prior to hardware synthesis) can be 
 accomplished in the constructor.  For example, the constructor for \verb|Strobe| includes some checks that the 
@@ -285,9 +288,10 @@ compile-time is not currently possible on stable Rust, but may be possible in th
 
 One powerful aspect of RustHDL is the ease with which designs can be tested and simulated \emph{without} 
 resorting to external tools.  Figure~\ref{fig:flow} illustrates some of the potential flow paths for a 
-RustHDL design.  Without resorting to external tools or tooling, the RustHDL framework includes a high
+RustHDL design.  RustHDL includes a high
 performance event-based simulator that can be used to simulate the design, and generate traces of the circuit
-signals.  These tests can lend a high degree of confidence in the correctness of the design before it is synthesized.
+signals.  It can also be used to test the circuits by placing them into software test fixtures. 
+These tests can lend a high degree of confidence in the correctness of the design before it is synthesized.
 
 \begin{figure}[htbp]
   \centerline{\includegraphics[width=9cm]{flow.png}}
@@ -339,12 +343,12 @@ fn test_hls_sdram_fifo_works() {
 }
 \end{minted}
 
-The resulting trace file as shown in \ref{fig:trace} is quite complicated.  But the key is that
+The resulting trace file as shown in Figure~\ref{fig:trace} is quite complicated.  But the key is that
 the testbench includes assertions to ensure correct behavior of the circuit, and will fail/panic 
 if at any time the FIFO behaves incorrectly.  No manual visual inspection of the trace file is
 required.  Indeed, it is far faster to run the simulation with no trace output at all, and simply 
-have the testbenches encode the validity checks as assertions into their code. As such, the 
-simulation can be run to verify the integrity of the design with a simple \verb|cargo test| command 
+have the testbenches encode the validity checks as assertions. The 
+simulation can then be run to verify the integrity of the design with a simple \verb|cargo test| command 
 as part of a regular integration cycle.  Visual inspection of the trace output can be used when 
 a test fails or when debugging the circuit design.
 
@@ -358,7 +362,7 @@ In the RustHDL test suite, a subset of the tests include a full synthesis, and a
 actual FPGA boards attached to the host computer.  But these can be disabled if the necessary 
 hardware and supporting software is missing.
 
-\subsection{Synthesis and Extensibility}
+\subsection{Synthesis, Extensibility, and Coherence}
 
 Obviously, to get a RustHDL design onto an FPGA, it must be synthesized.  It is here that another 
 advantage of the Rust ecosystem becomes apparent.  RustHDL includes the concept of a \emph{board support package} 
@@ -372,16 +376,35 @@ as:
 \end{minted}
 
 which takes a generic struct that implements a circuit, and converts it into a bitstream, using whatever tooling is
-appropriate for the target device.  As noted in \cite{b1}, there is a significant challenge associated with using 
+appropriate for the target device.  
+
+A key advantage of RustHDL is that the software module that provides the BSP for a specific physical devices is completely decoupled
+from the core library, and can be written, published, and maintained by third parties (see \cite{b7} for an example of this in the wild).  
+The core library can also be extended with new circuit elements (dubbed "widgets") that can be published on 
+\verb|crates.io| and used by other engineers. As such one of the significant challenges in hardware design - 
+that of sharing reusable components - is addressed by the Rust ecosystem.
+
+The first class support that Rust provides for software package management also allows the core library to be extended
+by others in the ecosystem.  Simply adding a package to the \verb|Cargo.toml| can enable new features such as 
+easier wrapping of Verilog cores into RustHDL \cite{b8}.  Support for different use cases, such as ASICs, and different
+FPGA families can be handled through external crates, avoiding the problems of a single point of coordination, testing
+and publishing.
+
+When synthesizing designs, it is sometimes the case that the synthesis tools provide some feedback on the design.
+Examples include timing closure challenges, and other such issues.  The engineer must be able to map these 
+suggestions back into the original source HDL, and maintain coherence between the two.  Coherence is further
+complicated when the source HDL is richer than the one fed to the toolchain.  
+
+As noted in \cite{b1}, there is a significant challenge associated with using 
 a standard programming language to express hardware designs - in particular, the range of acceptable expressions
 must be limited to the common set from the destination language/HDL and the source language.  Without a full compiler,
 the RustHDL grammar is limited to handle only those expressions that can be directly translated into Verilog.  
 Concepts like early returns, and match expressions, which do not exist in Verilog, cannot be used in RustHDL.  
 
 While the next version of RustHDL (RHDL) attempts to overcome these limitations, the benefit to such a close 
-association between the two languages is that the generated Verilog is quite readable.  As one of the initial 
-use cases for RustHDL was to generate IP cores that could be maintained in Verilog by other engineers, this feature
-was critical.  To demonstrate, consider the following snippet of RustHDL:
+association between the two languages is that the generated Verilog is quite readable, and maintaining
+coherence between the generated code and the input source is fairly straightforward.   
+To demonstrate, consider the following snippet of RustHDL:
 
 \begin{minted}[fontsize=\footnotesize]{rust}
 #[derive(LogicBlock)]
@@ -440,24 +463,14 @@ endmodule // top
 The relationship between the two is fairly evident, and one could theoretically maintain the Verilog
 code without reference to the original RustHDL sources.
 
-This close equivalence is primarily important when trying to understand and interpret 
-the results of the toolchain while processing the design.  Issues that arise during timing analysis, or
-during the place and route process are easier to map back into the RustHDL source code given the fairly 
-close relationship between the two.  This issue will remain critical for all new HDL environments.  Because 
+This close equivalence is important when trying to understand and interpret 
+the results of the toolchain while processing the design.  A report from the place and route 
+process that refers back to a struct in RustHLD is much easier to act upon than one that 
+refers only to generic identifiers and low level primitive instances. This coherence issue will remain 
+critical for all new HDL environments.  Because 
 they ultimately rely upon existing toolchains, it will be necessary to interpret the results of those toolchains
 in terms of the original HDL.
 
-A key advantage of RustHDL is that this software module is completely decoupled
-from the core library, and can be written and published by third parties (see \cite{b7} for an example of this in the wild).  
-The core library can also be extended with new circuit elements (dubbed "widgets") that can be published on 
-\verb|crates.io| and used by other engineers. As such one of the significant challenges in hardware design - 
-that of sharing reusable components - is addressed by the Rust ecosystem.
-
-The first class support that Rust provides for software package management also allows the core library to be extended
-by others in the ecosystem.  Simply adding a package to the \verb|Cargo.toml| can enable new features such as 
-easier wrapping of Verilog cores into RustHDL \cite{b8}.  Support for different use cases, such as ASICs, and different
-FPGA families can be handled through external crates, avoiding the problems of a single point of coordination, testing
-and publishing.
 
 \section{Lessons Learned and the Path to RHDL}\label{sec:future}
 
@@ -493,18 +506,18 @@ core differences between RustHDL and RHDL are:
 \begin{itemize}
   \item Full support for Rust data types, including ADTs, tuples, etc.
   \item Full support of Rust syntax inside functions (with the exception of pointers), which includes 
-  match and if \emph{expressions}, early returns, etc.
+  match and if expressions, early returns, etc.
   \item Full support for function composition.
   \item Support for local variables/rebindings, as well as pattern matching in \verb|match| expressions.
   \item The use of a function iterator-style description of testbenches in which testbenches are written in 
   straight Rust, and consumed by the simulator (so that the details of how the circuit is simulated can be ignored).
   \item Support for thorough analysis of the design, including identification of potential timing issues, as well as
-  metastability detection, and clock domain crossings.
+  potential metastability detection, and clock domain crossings.
   \item Support for multiple backend languages is possible, even for those that want type information.
 \end{itemize}
 
 These items required a significantly broader scope and far more effort on the compiler side of the framework.  In particular,
-the first four items require the development of a full compiler that works alongside \verb|rustc| to process the source. 
+the first four items required the development of a full compiler that works alongside \verb|rustc| to process the source. 
 This embedded compiler performs the following passes, each of which is necessary to achieve the full support of Rust:
 \begin {itemize}
   \item Type inference to add support for local rebindings and pattern matching.
@@ -524,14 +537,14 @@ active research and experimentation.
 
 \section{Conclusions}\label{sec:conclusions}
 
-Rust is an excellent language to serve as the basis of building powerful environments for 
+Rust is an excellent language to serve as the basis for 
 hardware design.  RustHDL demonstrates how the compiler, tooling, infrastructure and 
 community of the Rust programming language can be leveraged to build a robust and 
 collaborative environment for hardware design.  The initial release and use of RustHDL,
 along with the feedback provided by the open source community lead to a roadmap for 
 the successor of RustHDL (RHDL), which employs additional software technology to bring
-the full expressiveness of the underlying language to hardware design.  These improvements
-promise to make the development of hardware designs more accessible, easier to test and 
+the full expressiveness of the underlying language to bear.  These improvements
+promise to make the development of hardware designs safer, more accessible, easier to test and 
 verify, and simpler to share and reuse.
 
 \begin{thebibliography}{00}
@@ -544,7 +557,6 @@ verify, and simpler to share and reuse.
 \bibitem{b6} ``RustHDL - Write FPGA Firmware using Rust!'', \url{https://rust-hdl.org/} (Accessed Feb 1, 2024).
 \bibitem{b7} ``rust-hdl-bsp-step-mxo2-lpc - rust-hdl board support package for STEP-MXO2-LPC'', \url{https://crates.io/crates/rust-hdl-bsp-step-mxo2-lpc} (Accessed Feb 4, 2024).
 \bibitem{b8} ``wrap\_verilog\_in\_rust\_hdl\_macro - A proc-macro to wrap Verilog in a rust-hdl module'', \url{https://crates.io/crates/wrap_verilog_in_rust_hdl_macro} (Accessed Feb 4, 2024).
-\bibitem{b10} ``Diesel is a Safe, Extensible ORM and Query Builder for Rust'', \url{https://diesel.rs/} (Accessed Feb 4, 2024).
 \bibitem{b11} ``Tracking Issue for complex generic constants: features(generic\_const\_exprs)'', \url{https://github.com/rust-lang/issues/76560} (Accessed Feb 5, 2024).
 \end{thebibliography}
 
