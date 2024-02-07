@@ -43,7 +43,7 @@ pub trait Circuit: 'static + Sized + Clone {
         }
     }
 
-    fn translate<T: Translator>(&self, translator: T) -> impl Iterator<Item = Result<String>>;
+    fn translate<T: Translator>(&self, translator: &mut T) -> Result<()>;
 
     fn components(&self) -> impl Iterator<Item = (String, CircuitDescriptor)>;
 }

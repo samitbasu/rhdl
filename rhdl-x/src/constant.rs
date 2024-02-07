@@ -1,6 +1,11 @@
+use anyhow::bail;
+use anyhow::Result;
 use rhdl_core::{as_verilog_literal, kernel::ExternalKernelDef, Digital, DigitalFn};
 
-use crate::circuit::{Circuit, CircuitDescriptor};
+use crate::{
+    circuit::{Circuit, CircuitDescriptor},
+    translator::Translator,
+};
 
 // Constant block
 #[derive(Clone)]
@@ -51,15 +56,29 @@ impl<T: Digital> Circuit for Constant<T> {
         std::iter::empty()
     }
 
-    fn verilog(self) -> Result<String, anyhow::Error> {
+    fn translate<F: Translator>(&self, translator: &mut F) -> Result<()> {
+        if translator.kind() == crate::translator::TranslationKind::Verilog {
+            translator.custom_code(&self.as_verilog())
+        } else {
+            bail!(
+                "Unsupported translator {:?} for constants",
+                translator.kind()
+            )
+        }
+    }
+}
+
+impl<T: Digital> Constant<T> {
+    fn as_verilog(&self) -> String {
         let module_name = self.descriptor().unique_name;
         let output_bits = T::bits().saturating_sub(1);
         let value = as_verilog_literal(&self.value.typed_bits());
-        Ok(format!(
-            "module {module_name}(input wire[0:0] i, output wire[{output_bits}:0] o);
-  assign o = {value};
-  endmodule
-  "
-        ))
+        format!(
+            "
+module {module_name}(input wire[0:0] i, output wire[{output_bits}:0] o);
+    assign o = {value};
+endmodule
+"
+        )
     }
 }

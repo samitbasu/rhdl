@@ -1,3 +1,4 @@
+use anyhow::bail;
 use anyhow::Result;
 use rhdl_bits::{bits, Bits};
 use rhdl_macro::{kernel, Digital};
@@ -98,13 +99,11 @@ impl<const N: usize> Circuit for Strobe<N> {
         .into_iter()
     }
 
-    fn translate<T: Translator>(&self, translator: T) -> impl Iterator<Item = Result<String>> {
-        [
-            translator.translate(self),
-            translator.translate(&self.threshold),
-            translator.translate(&self.counter),
-        ]
-        .into_iter()
+    fn translate<T: Translator>(&self, translator: &mut T) -> Result<()> {
+        translator.translate(self)?;
+        self.threshold.translate(translator)?;
+        self.counter.translate(translator)?;
+        Ok(())
     }
 }
 

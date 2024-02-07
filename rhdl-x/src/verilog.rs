@@ -7,10 +7,23 @@ use std::hash::{Hash, Hasher};
 use crate::circuit::{Circuit, CircuitDescriptor};
 use crate::translator::Translator;
 
-pub struct VerilogTranslator;
+#[derive(Clone, Default, Debug)]
+pub struct VerilogTranslator {
+    codes: Vec<String>,
+}
 
 impl Translator for VerilogTranslator {
-    fn translate<C: Circuit>(&self, t: &C) -> Result<String> {
+    fn kind(&self) -> crate::translator::TranslationKind {
+        crate::translator::TranslationKind::Verilog
+    }
+    fn finish(self) -> Result<String> {
+        Ok(self.codes.join("\n"))
+    }
+    fn custom_code(&mut self, code: &str) -> Result<()> {
+        self.codes.push(code.to_string());
+        Ok(())
+    }
+    fn translate<C: Circuit>(&mut self, t: &C) -> Result<()> {
         // Start with the module declaration for the circuit.
         let descriptor = t.descriptor();
         let input_bits = C::I::bits();
@@ -58,7 +71,7 @@ impl Translator for VerilogTranslator {
             C::D::bits().saturating_sub(1),
             outputs
         );
-        Ok(format!(
+        let code = format!(
             "{module_decl}
 {od_decl}
 {d_decl}
@@ -75,7 +88,9 @@ impl Translator for VerilogTranslator {
 endmodule
 
 ",
-        ))
+        );
+        self.codes.push(code);
+        Ok(())
     }
 }
 

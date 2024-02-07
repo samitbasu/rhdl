@@ -1,3 +1,4 @@
+use anyhow::bail;
 use anyhow::Result;
 use rhdl_bits::Bits;
 use rhdl_core::Digital;
@@ -57,12 +58,10 @@ impl<const N: usize> Circuit for Counter<N> {
         std::iter::once(("count".to_string(), self.count.descriptor()))
     }
 
-    fn translate<T: Translator>(&self, translator: T) -> impl Iterator<Item = Result<String>> {
-        [
-            translator.translate(self),
-            translator.translate(&self.count),
-        ]
-        .into_iter()
+    fn translate<T: Translator>(&self, translator: &mut T) -> Result<()> {
+        translator.translate(self)?;
+        self.count.translate(translator)?;
+        Ok(())
     }
 }
 
