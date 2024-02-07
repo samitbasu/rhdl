@@ -1,7 +1,9 @@
+use anyhow::bail;
+use anyhow::Result;
 use rhdl_core::{as_verilog_literal, kernel::ExternalKernelDef, Digital, DigitalFn};
 use rhdl_macro::Digital;
 
-use crate::{circuit::Circuit, clock::Clock};
+use crate::{circuit::Circuit, clock::Clock, translator::Translator};
 
 #[derive(Default, Clone)]
 pub struct DFF<T: Digital> {
@@ -48,16 +50,31 @@ impl<T: Digital> Circuit for DFF<T> {
         std::iter::empty()
     }
 
-    fn child_verilog(self) -> impl Iterator<Item = Result<String, anyhow::Error>> {
-        std::iter::empty()
+    fn translate<F: Translator>(&self, translator: &mut F) -> Result<()> {
+        if translator.kind() == crate::translator::TranslationKind::Verilog {
+            translator.custom_code(&self.as_verilog())
+        } else {
+            bail!(
+                "Unsupported translation language for DFF of {:?}",
+                translator.kind()
+            )
+        }
     }
+}
 
-    fn verilog(self) -> Result<String, anyhow::Error> {
+impl<T: Digital> DigitalFn for DFF<T> {
+    fn kernel_fn() -> rhdl_core::KernelFnKind {
+        todo!()
+    }
+}
+
+impl<T: Digital> DFF<T> {
+    fn as_verilog(&self) -> String {
         let module_name = self.descriptor().unique_name;
         let input_bits = T::bits();
         let output_bits = T::bits().saturating_sub(1);
         let init = as_verilog_literal(&T::default().typed_bits());
-        Ok(format!(
+        format!(
             "
 module {module_name}(input wire[{input_bits}:0] i, output reg[{output_bits}:0] o);
    wire clk;
@@ -72,12 +89,6 @@ module {module_name}(input wire[{input_bits}:0] i, output reg[{output_bits}:0] o
     end
 endmodule
 "
-        ))
-    }
-}
-
-impl<T: Digital> DigitalFn for DFF<T> {
-    fn kernel_fn() -> rhdl_core::KernelFnKind {
-        todo!()
+        )
     }
 }

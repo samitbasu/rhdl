@@ -21,6 +21,7 @@ use rhdl_x::Foo;
 use rhdl_bits::Bits;
 use strobe::Strobe;
 use strobe::StrobeI;
+use translator::Translator;
 use verilog::VerilogTranslator;
 
 mod circuit;
@@ -79,12 +80,9 @@ fn test_strobe() {
 #[test]
 fn test_strobe_verilog() {
     let strobe = Strobe::<8>::new(b8(5));
-    let top = strobe
-        .clone()
-        .translate(VerilogTranslator)
-        .collect::<anyhow::Result<Vec<_>>>()
-        .unwrap()
-        .join("\n");
+    let mut translator = VerilogTranslator::default();
+    strobe.translate(&mut translator).unwrap();
+    let top = translator.finish().unwrap();
     let verilog = format!(
         "
     module top;
