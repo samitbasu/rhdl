@@ -1,7 +1,8 @@
+use anyhow::Result;
 use rhdl_bits::{bits, Bits};
 use rhdl_macro::{kernel, Digital};
 
-use crate::{circuit::Circuit, clock::Clock, constant::Constant, dff::DFF};
+use crate::{circuit::Circuit, clock::Clock, constant::Constant, dff::DFF, translator::Translator};
 
 // Build a strobe
 #[derive(Clone)]
@@ -97,8 +98,13 @@ impl<const N: usize> Circuit for Strobe<N> {
         .into_iter()
     }
 
-    fn child_verilog(self) -> impl Iterator<Item = anyhow::Result<String>> {
-        [self.threshold.verilog(), self.counter.verilog()].into_iter()
+    fn translate<T: Translator>(&self, translator: T) -> impl Iterator<Item = Result<String>> {
+        [
+            translator.translate(self),
+            translator.translate(&self.threshold),
+            translator.translate(&self.counter),
+        ]
+        .into_iter()
     }
 }
 

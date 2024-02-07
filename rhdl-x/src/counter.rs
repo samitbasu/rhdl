@@ -1,3 +1,4 @@
+use anyhow::Result;
 use rhdl_bits::Bits;
 use rhdl_core::Digital;
 use rhdl_macro::{kernel, Digital};
@@ -6,6 +7,7 @@ use crate::{
     circuit::{Circuit, CircuitDescriptor},
     clock::Clock,
     dff::{DFF, DFFI},
+    translator::Translator,
 };
 
 // Next a counter with an enable signal
@@ -55,8 +57,12 @@ impl<const N: usize> Circuit for Counter<N> {
         std::iter::once(("count".to_string(), self.count.descriptor()))
     }
 
-    fn child_verilog(self) -> impl Iterator<Item = Result<String, anyhow::Error>> {
-        std::iter::once(self.count.verilog())
+    fn translate<T: Translator>(&self, translator: T) -> impl Iterator<Item = Result<String>> {
+        [
+            translator.translate(self),
+            translator.translate(&self.count),
+        ]
+        .into_iter()
     }
 }
 

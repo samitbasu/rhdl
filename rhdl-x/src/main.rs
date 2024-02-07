@@ -21,6 +21,7 @@ use rhdl_x::Foo;
 use rhdl_bits::Bits;
 use strobe::Strobe;
 use strobe::StrobeI;
+use verilog::VerilogTranslator;
 
 mod circuit;
 mod clock;
@@ -28,6 +29,7 @@ mod constant;
 mod counter;
 mod dff;
 mod strobe;
+mod translator;
 mod verilog;
 
 // First a DFF
@@ -77,10 +79,10 @@ fn test_strobe() {
 #[test]
 fn test_strobe_verilog() {
     let strobe = Strobe::<8>::new(b8(5));
-    let top = strobe.clone().verilog().unwrap();
-    let child_verilogs = strobe
-        .child_verilog()
-        .collect::<Result<Vec<_>, _>>()
+    let top = strobe
+        .clone()
+        .translate(VerilogTranslator)
+        .collect::<anyhow::Result<Vec<_>>>()
         .unwrap()
         .join("\n");
     let verilog = format!(
@@ -108,8 +110,8 @@ fn test_strobe_verilog() {
   
   endmodule
     
-    {}\n{}",
-        top, child_verilogs
+    {}",
+        top
     );
     std::fs::write("strobe.v", verilog).unwrap();
 }

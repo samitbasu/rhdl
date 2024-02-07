@@ -51,10 +51,6 @@ impl<T: Digital> Circuit for Constant<T> {
         std::iter::empty()
     }
 
-    fn child_verilog(self) -> impl Iterator<Item = anyhow::Result<String>> {
-        std::iter::empty()
-    }
-
     fn verilog(self) -> Result<String, anyhow::Error> {
         let module_name = self.descriptor().unique_name;
         let output_bits = T::bits().saturating_sub(1);

@@ -5,57 +5,61 @@ use rhdl_core::{compile_design, generate_verilog, Digital, DigitalFn};
 use std::hash::{Hash, Hasher};
 
 use crate::circuit::{Circuit, CircuitDescriptor};
+use crate::translator::Translator;
 
-pub fn verilog<C: Circuit>(t: C) -> Result<String> {
-    // Start with the module declaration for the circuit.
-    let descriptor = t.descriptor();
-    let input_bits = C::I::bits();
-    let outputs = C::O::bits();
+pub struct VerilogTranslator;
 
-    // module top(input wire clk, input wire[0:0] top_in, output reg[3:0] top_out);
+impl Translator for VerilogTranslator {
+    fn translate<C: Circuit>(&self, t: &C) -> Result<String> {
+        // Start with the module declaration for the circuit.
+        let descriptor = t.descriptor();
+        let input_bits = C::I::bits();
+        let outputs = C::O::bits();
 
-    let module_decl = format!(
-        "module {module_name}(input wire[{INPUT_BITS}:0] i, output wire[{OUTPUT_BITS}:0] o);",
-        module_name = descriptor.unique_name,
-        INPUT_BITS = input_bits.saturating_sub(1),
-        OUTPUT_BITS = outputs.saturating_sub(1)
-    );
+        // module top(input wire clk, input wire[0:0] top_in, output reg[3:0] top_out);
 
-    let o_d_bits = C::O::bits() + C::D::bits();
-    // Next declare the D and Q wires
-    let od_decl = format!(
-        "wire[{OD_BITS}:0] od;",
-        OD_BITS = o_d_bits.saturating_sub(1)
-    );
-    let d_decl = format!(
-        "wire[{D_BITS}:0] d;",
-        D_BITS = C::D::bits().saturating_sub(1)
-    );
-    let q_decl = format!(
-        "wire[{Q_BITS}:0] q;",
-        Q_BITS = C::Q::bits().saturating_sub(1)
-    );
+        let module_decl = format!(
+            "module {module_name}(input wire[{INPUT_BITS}:0] i, output wire[{OUTPUT_BITS}:0] o);",
+            module_name = descriptor.unique_name,
+            INPUT_BITS = input_bits.saturating_sub(1),
+            OUTPUT_BITS = outputs.saturating_sub(1)
+        );
 
-    // Next, for each subcomponent, we need to determine it's input range from the Q and D types.
-    // Loop over the components.
-    let component_decls = t
-        .components()
-        .enumerate()
-        .map(|(ndx, (local, desc))| component_decl::<C>(ndx, &local, &desc))
-        .collect::<Result<Vec<_>>>()?
-        .join("\n");
+        let o_d_bits = C::O::bits() + C::D::bits();
+        // Next declare the D and Q wires
+        let od_decl = format!(
+            "wire[{OD_BITS}:0] od;",
+            OD_BITS = o_d_bits.saturating_sub(1)
+        );
+        let d_decl = format!(
+            "wire[{D_BITS}:0] d;",
+            D_BITS = C::D::bits().saturating_sub(1)
+        );
+        let q_decl = format!(
+            "wire[{Q_BITS}:0] q;",
+            Q_BITS = C::Q::bits().saturating_sub(1)
+        );
 
-    let verilog = generate_verilog(&compile_design(C::Update::kernel_fn().try_into()?)?)?;
-    let fn_call = format!("assign od = {fn_name}(i, q);", fn_name = &verilog.name);
-    let fn_body = &verilog.body;
-    let o_bind = format!("assign o = od[{}:{}];", outputs.saturating_sub(1), 0);
-    let d_bind = format!(
-        "assign d = od[{}:{}];",
-        C::D::bits().saturating_sub(1),
-        outputs
-    );
-    Ok(format!(
-        "{module_decl}
+        // Next, for each subcomponent, we need to determine it's input range from the Q and D types.
+        // Loop over the components.
+        let component_decls = t
+            .components()
+            .enumerate()
+            .map(|(ndx, (local, desc))| component_decl::<C>(ndx, &local, &desc))
+            .collect::<Result<Vec<_>>>()?
+            .join("\n");
+
+        let verilog = generate_verilog(&compile_design(C::Update::kernel_fn().try_into()?)?)?;
+        let fn_call = format!("assign od = {fn_name}(i, q);", fn_name = &verilog.name);
+        let fn_body = &verilog.body;
+        let o_bind = format!("assign o = od[{}:{}];", outputs.saturating_sub(1), 0);
+        let d_bind = format!(
+            "assign d = od[{}:{}];",
+            C::D::bits().saturating_sub(1),
+            outputs
+        );
+        Ok(format!(
+            "{module_decl}
 {od_decl}
 {d_decl}
 {q_decl}
@@ -71,7 +75,8 @@ pub fn verilog<C: Circuit>(t: C) -> Result<String> {
 endmodule
 
 ",
-    ))
+        ))
+    }
 }
 
 fn component_decl<C: Circuit>(
