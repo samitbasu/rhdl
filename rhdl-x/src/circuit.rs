@@ -2,6 +2,8 @@ use anyhow::Result;
 use rhdl_core::{Digital, DigitalFn, Kind};
 use std::hash::{Hash, Hasher};
 
+use crate::translator::Translator;
+
 pub trait Circuit: 'static + Sized + Clone {
     // Input type - not auto derived
     type I: Digital;
@@ -41,13 +43,9 @@ pub trait Circuit: 'static + Sized + Clone {
         }
     }
 
-    fn verilog(self) -> Result<String> {
-        crate::verilog::verilog(self)
-    }
+    fn translate<T: Translator>(&self, translator: T) -> impl Iterator<Item = Result<String>>;
 
     fn components(&self) -> impl Iterator<Item = (String, CircuitDescriptor)>;
-
-    fn child_verilog(self) -> impl Iterator<Item = Result<String>>;
 }
 
 fn hash_id(fn_id: std::any::TypeId) -> u64 {
