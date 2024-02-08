@@ -2,6 +2,7 @@ use anyhow::Result;
 use rhdl_core::path::{bit_range, Path};
 use rhdl_core::{ast_builder::path, test_module::VerilogDescriptor};
 use rhdl_core::{compile_design, generate_verilog, Digital, DigitalFn};
+use std::collections::VecDeque;
 use std::hash::{Hash, Hasher};
 
 use crate::circuit::{Circuit, CircuitDescriptor};
@@ -10,6 +11,8 @@ use crate::translator::Translator;
 #[derive(Clone, Default, Debug)]
 pub struct VerilogTranslator {
     codes: Vec<String>,
+    path: Vec<String>,
+    current: String,
 }
 
 impl Translator for VerilogTranslator {
@@ -19,21 +22,36 @@ impl Translator for VerilogTranslator {
     fn finish(self) -> Result<String> {
         Ok(self.codes.join("\n"))
     }
-    fn custom_code(&mut self, code: &str) -> Result<()> {
+    fn custom_code(&mut self, name: &str, code: &str) -> Result<()> {
         self.codes.push(code.to_string());
         Ok(())
     }
-    fn translate<C: Circuit>(&mut self, t: &C) -> Result<()> {
+    fn push(&mut self) -> Result<()> {
+        self.path.push(self.current.clone());
+        self.current = String::default();
+        Ok(())
+    }
+    fn pop(&mut self) -> Result<()> {
+        self.path.pop();
+        self.current = String::default();
+        Ok(())
+    }
+    fn translate<C: Circuit>(&mut self, name: &str, t: &C) -> Result<()> {
+        self.current = name.to_string();
         // Start with the module declaration for the circuit.
         let descriptor = t.descriptor();
         let input_bits = C::I::bits();
         let outputs = C::O::bits();
 
+        let module_name = self.path.join("_") + "_" + name;
+
+        eprintln!("Translating {} with name {}", module_name, name);
+
         // module top(input wire clk, input wire[0:0] top_in, output reg[3:0] top_out);
 
         let module_decl = format!(
             "module {module_name}(input wire[{INPUT_BITS}:0] i, output wire[{OUTPUT_BITS}:0] o);",
-            module_name = descriptor.unique_name,
+            module_name = module_name,
             INPUT_BITS = input_bits.saturating_sub(1),
             OUTPUT_BITS = outputs.saturating_sub(1)
         );

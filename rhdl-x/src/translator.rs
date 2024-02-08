@@ -8,7 +8,9 @@ pub enum TranslationKind {
 
 pub trait Translator {
     fn kind(&self) -> TranslationKind;
-    fn translate<C: Circuit>(&mut self, circuit: &C) -> Result<()>;
-    fn custom_code(&mut self, code: &str) -> Result<()>;
+    fn translate<C: Circuit>(&mut self, name: &str, circuit: &C) -> Result<()>;
+    fn push(&mut self) -> Result<()>;
+    fn pop(&mut self) -> Result<()>;
+    fn custom_code(&mut self, name: &str, code: &str) -> Result<()>;
     fn finish(self) -> Result<String>;
 }

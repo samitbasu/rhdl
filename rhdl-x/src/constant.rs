@@ -56,9 +56,9 @@ impl<T: Digital> Circuit for Constant<T> {
         std::iter::empty()
     }
 
-    fn translate<F: Translator>(&self, translator: &mut F) -> Result<()> {
+    fn translate<F: Translator>(&self, name: &str, translator: &mut F) -> Result<()> {
         if translator.kind() == crate::translator::TranslationKind::Verilog {
-            translator.custom_code(&self.as_verilog())
+            translator.custom_code(name, &self.as_verilog())
         } else {
             bail!(
                 "Unsupported translator {:?} for constants",

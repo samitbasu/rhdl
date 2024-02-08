@@ -99,10 +99,12 @@ impl<const N: usize> Circuit for Strobe<N> {
         .into_iter()
     }
 
-    fn translate<T: Translator>(&self, translator: &mut T) -> Result<()> {
-        translator.translate(self)?;
-        self.threshold.translate(translator)?;
-        self.counter.translate(translator)?;
+    fn translate<T: Translator>(&self, name: &str, translator: &mut T) -> Result<()> {
+        translator.translate(name, self)?;
+        translator.push()?;
+        self.threshold.translate("threshold".into(), translator)?;
+        self.counter.translate("counter".into(), translator)?;
+        translator.pop()?;
         Ok(())
     }
 }

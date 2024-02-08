@@ -58,9 +58,11 @@ impl<const N: usize> Circuit for Counter<N> {
         std::iter::once(("count".to_string(), self.count.descriptor()))
     }
 
-    fn translate<T: Translator>(&self, translator: &mut T) -> Result<()> {
-        translator.translate(self)?;
-        self.count.translate(translator)?;
+    fn translate<T: Translator>(&self, name: &str, translator: &mut T) -> Result<()> {
+        translator.translate(name, self)?;
+        translator.push()?;
+        self.count.translate("count".into(), translator)?;
+        translator.pop()?;
         Ok(())
     }
 }
