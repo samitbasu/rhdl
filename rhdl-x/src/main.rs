@@ -28,6 +28,7 @@ mod circuit;
 mod clock;
 mod constant;
 mod counter;
+mod descriptions;
 mod dff;
 mod strobe;
 mod translator;
@@ -81,7 +82,7 @@ fn test_strobe() {
 fn test_strobe_verilog() {
     let strobe = Strobe::<8>::new(b8(5));
     let mut translator = VerilogTranslator::default();
-    strobe.translate(&mut translator).unwrap();
+    strobe.translate("dut", &mut translator).unwrap();
     let top = translator.finish().unwrap();
     let verilog = format!(
         "
