@@ -27,3 +27,21 @@ pub enum HDLBackend {
     VHDL,
     // etc.
 }
+
+// This would lead to a runtime failure if you do not have support for the
+// required backend.  Maybe that is OK?  In that case, we could change it to
+
+pub trait Crct2 {
+    fn as_hdl(&self, path: &Path, backend: HDLBackend) -> Result<HDLDescriptor> {}
+}
+
+// The downside of this is if a subcircuit implements `as_hdl` directly (to provide a )
+// custom implementation, we don't know that it will behave as expected.  What if we
+// used a marker trait.
+
+pub trait AsVerilog {
+    fn as_verilog(&self, path: &Path) -> Result<VerilogDescriptor> {}
+}
+
+// This is slightly better.  Assuming the trait is propagated to the children of the
+// current circuit.  Which is a hard thing to achieve.

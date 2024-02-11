@@ -21,19 +21,23 @@ use rhdl_x::Foo;
 use rhdl_bits::Bits;
 use strobe::Strobe;
 use strobe::StrobeI;
-use translator::Translator;
-use verilog::VerilogTranslator;
+//use translator::Translator;
+//use verilog::VerilogTranslator;
 
+mod backend;
 mod circuit;
 mod clock;
 mod constant;
 mod counter;
 mod descriptions;
 mod dff;
+mod push_pull;
 mod strobe;
-mod translator;
-mod verilog;
-
+mod tristate;
+//mod traitx;
+//mod translator;
+//mod verilog;
+mod visit;
 // First a DFF
 
 #[test]
@@ -81,9 +85,7 @@ fn test_strobe() {
 #[test]
 fn test_strobe_verilog() {
     let strobe = Strobe::<8>::new(b8(5));
-    let mut translator = VerilogTranslator::default();
-    strobe.translate("dut", &mut translator).unwrap();
-    let top = translator.finish().unwrap();
+    let top = strobe.as_hdl(crate::circuit::HDLKind::Verilog).unwrap();
     let verilog = format!(
         "
     module top;

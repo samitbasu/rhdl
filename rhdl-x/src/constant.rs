@@ -1,11 +1,13 @@
-use anyhow::bail;
+use anyhow::ensure;
 use anyhow::Result;
-use rhdl_core::{as_verilog_literal, kernel::ExternalKernelDef, Digital, DigitalFn};
+use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
 
-use crate::{
-    circuit::{Circuit, CircuitDescriptor},
-    translator::Translator,
-};
+use crate::circuit::no_link;
+use crate::circuit::root_descriptor;
+use crate::circuit::CircuitLinkFn;
+use crate::circuit::HDLDescriptor;
+use crate::circuit::NoLink;
+use crate::circuit::{Circuit, CircuitDescriptor};
 
 // Constant block
 #[derive(Clone)]
@@ -21,11 +23,7 @@ impl<T: Digital> From<T> for Constant<T> {
 
 impl<T: Digital> DigitalFn for Constant<T> {
     fn kernel_fn() -> rhdl_core::KernelFnKind {
-        rhdl_core::KernelFnKind::Extern(ExternalKernelDef {
-            name: todo!(),
-            body: todo!(),
-            vm_stub: todo!(),
-        })
+        todo!()
     }
 }
 
@@ -34,15 +32,23 @@ impl<T: Digital> Circuit for Constant<T> {
 
     type O = T;
 
+    type IO = ();
+
     type Q = ();
 
     type D = ();
+
+    type C = ();
 
     type S = ();
 
     type Update = Self;
 
     const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = |_, _| (T::default(), ());
+
+    type Link = NoLink;
+
+    const LINK: CircuitLinkFn<Self> = no_link::<Self>;
 
     fn sim(&self, _: Self::I, _: &mut Self::S) -> Self::O {
         self.value
@@ -52,33 +58,32 @@ impl<T: Digital> Circuit for Constant<T> {
         "Constant"
     }
 
-    fn components(&self) -> impl Iterator<Item = (String, CircuitDescriptor)> {
-        std::iter::empty()
+    fn descriptor(&self) -> CircuitDescriptor {
+        root_descriptor(self)
     }
 
-    fn translate<F: Translator>(&self, name: &str, translator: &mut F) -> Result<()> {
-        if translator.kind() == crate::translator::TranslationKind::Verilog {
-            translator.custom_code(name, &self.as_verilog())
-        } else {
-            bail!(
-                "Unsupported translator {:?} for constants",
-                translator.kind()
-            )
-        }
+    fn as_hdl(&self, kind: crate::circuit::HDLKind) -> Result<HDLDescriptor> {
+        ensure!(kind == crate::circuit::HDLKind::Verilog);
+        Ok(self.as_verilog())
     }
 }
 
 impl<T: Digital> Constant<T> {
-    fn as_verilog(&self) -> String {
+    fn as_verilog(&self) -> HDLDescriptor {
         let module_name = self.descriptor().unique_name;
         let output_bits = T::bits().saturating_sub(1);
         let value = as_verilog_literal(&self.value.typed_bits());
-        format!(
+        let body = format!(
             "
 module {module_name}(input wire[0:0] i, output wire[{output_bits}:0] o);
     assign o = {value};
 endmodule
 "
-        )
+        );
+        HDLDescriptor {
+            name: module_name,
+            body,
+            children: Default::default(),
+        }
     }
 }
