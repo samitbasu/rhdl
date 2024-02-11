@@ -1,9 +1,15 @@
 use anyhow::bail;
+use anyhow::ensure;
 use anyhow::Result;
-use rhdl_core::{as_verilog_literal, kernel::ExternalKernelDef, Digital, DigitalFn};
+use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
 use rhdl_macro::Digital;
 
-use crate::{circuit::Circuit, clock::Clock, translator::Translator};
+use crate::circuit::no_link;
+use crate::circuit::root_descriptor;
+use crate::circuit::CircuitLinkFn;
+use crate::circuit::HDLDescriptor;
+use crate::circuit::NoLink;
+use crate::{circuit::Circuit, clock::Clock};
 
 #[derive(Default, Clone)]
 pub struct DFF<T: Digital> {
@@ -21,13 +27,21 @@ impl<T: Digital> Circuit for DFF<T> {
 
     type O = T;
 
+    type IO = ();
+
     type Q = ();
 
     type D = ();
 
+    type C = ();
+
     type Update = Self;
 
     const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = |i, _| (i.data, ());
+
+    type Link = NoLink;
+
+    const LINK: CircuitLinkFn<Self> = no_link::<Self>;
 
     type S = DFFI<T>;
 
@@ -46,19 +60,13 @@ impl<T: Digital> Circuit for DFF<T> {
         "DFF"
     }
 
-    fn components(&self) -> impl Iterator<Item = (String, crate::circuit::CircuitDescriptor)> {
-        std::iter::empty()
+    fn as_hdl(&self, kind: crate::circuit::HDLKind) -> Result<HDLDescriptor> {
+        ensure!(kind == crate::circuit::HDLKind::Verilog);
+        Ok(self.as_verilog())
     }
 
-    fn translate<F: Translator>(&self, name: &str, translator: &mut F) -> Result<()> {
-        if translator.kind() == crate::translator::TranslationKind::Verilog {
-            translator.custom_code(name, &self.as_verilog())
-        } else {
-            bail!(
-                "Unsupported translation language for DFF of {:?}",
-                translator.kind()
-            )
-        }
+    fn descriptor(&self) -> crate::circuit::CircuitDescriptor {
+        root_descriptor(self)
     }
 }
 
@@ -69,12 +77,12 @@ impl<T: Digital> DigitalFn for DFF<T> {
 }
 
 impl<T: Digital> DFF<T> {
-    fn as_verilog(&self) -> String {
+    fn as_verilog(&self) -> HDLDescriptor {
         let module_name = self.descriptor().unique_name;
         let input_bits = T::bits();
         let output_bits = T::bits().saturating_sub(1);
         let init = as_verilog_literal(&T::default().typed_bits());
-        format!(
+        let code = format!(
             "
 module {module_name}(input wire[{input_bits}:0] i, output reg[{output_bits}:0] o);
    wire clk;
@@ -89,6 +97,11 @@ module {module_name}(input wire[{input_bits}:0] i, output reg[{output_bits}:0] o
     end
 endmodule
 "
-        )
+        );
+        HDLDescriptor {
+            name: module_name,
+            body: code,
+            children: Default::default(),
+        }
     }
 }

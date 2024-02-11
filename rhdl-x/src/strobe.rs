@@ -1,9 +1,15 @@
 use anyhow::bail;
 use anyhow::Result;
+use rhdl_bits::alias::*;
 use rhdl_bits::{bits, Bits};
 use rhdl_macro::{kernel, Digital};
 
-use crate::{circuit::Circuit, clock::Clock, constant::Constant, dff::DFF, translator::Translator};
+use crate::circuit::no_link;
+use crate::circuit::root_descriptor;
+use crate::circuit::root_hdl;
+use crate::circuit::CircuitLinkFn;
+use crate::circuit::NoLink;
+use crate::{circuit::Circuit, clock::Clock, constant::Constant, dff::DFF};
 
 // Build a strobe
 #[derive(Clone)]
@@ -21,7 +27,6 @@ impl<const N: usize> Strobe<N> {
     }
 }
 
-// Can we autoderive something like:
 #[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
 pub struct StrobeQ<const N: usize> {
     threshold: <Constant<Bits<N>> as Circuit>::O,
@@ -51,19 +56,35 @@ impl<const N: usize>
 }
 
 #[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
-pub struct StrobeI<const N: usize> {
+pub struct StrobeI {
     pub clock: Clock,
     pub enable: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
+pub struct StrobeIO {
+    pub left: b8,
+    pub right: b8,
+}
+
+#[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
+pub struct StrobeZ {
+    pub threshold: b8,
+    pub counter: b8,
+}
+
 impl<const N: usize> Circuit for Strobe<N> {
-    type I = StrobeI<N>;
+    type I = StrobeI;
 
     type O = bool;
+
+    type IO = StrobeIO;
 
     type Q = StrobeQ<N>;
 
     type D = StrobeD<N>;
+
+    type C = StrobeZ;
 
     type S = (
         Self::Q,
@@ -74,6 +95,10 @@ impl<const N: usize> Circuit for Strobe<N> {
     type Update = strobe<N>;
 
     const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = strobe::<N>;
+
+    type Link = strobe_link;
+
+    const LINK: CircuitLinkFn<Self> = strobe_link;
 
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O {
         loop {
@@ -91,26 +116,27 @@ impl<const N: usize> Circuit for Strobe<N> {
         "Strobe"
     }
 
-    fn components(&self) -> impl Iterator<Item = (String, crate::circuit::CircuitDescriptor)> {
-        [
-            ("threshold".to_string(), self.threshold.descriptor()),
-            ("counter".to_string(), self.counter.descriptor()),
-        ]
-        .into_iter()
+    fn descriptor(&self) -> crate::circuit::CircuitDescriptor {
+        let mut ret = root_descriptor(self);
+        ret.children
+            .insert("threshold".to_string(), self.threshold.descriptor());
+        ret.children
+            .insert("counter".to_string(), self.counter.descriptor());
+        ret
     }
 
-    fn translate<T: Translator>(&self, name: &str, translator: &mut T) -> Result<()> {
-        translator.translate(name, self)?;
-        translator.push()?;
-        self.threshold.translate("threshold".into(), translator)?;
-        self.counter.translate("counter".into(), translator)?;
-        translator.pop()?;
-        Ok(())
+    fn as_hdl(&self, kind: crate::circuit::HDLKind) -> Result<crate::circuit::HDLDescriptor> {
+        let mut ret = root_hdl(self, kind)?;
+        ret.children
+            .insert("threshold".to_string(), self.threshold.as_hdl(kind)?);
+        ret.children
+            .insert("counter".to_string(), self.counter.as_hdl(kind)?);
+        Ok(ret)
     }
 }
 
 #[kernel]
-pub fn strobe<const N: usize>(i: StrobeI<N>, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
+pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
     let mut d = StrobeD::<N>::default();
     d.counter.clock = i.clock;
     let counter_next = if i.enable { q.counter + 1 } else { q.counter };
@@ -122,4 +148,12 @@ pub fn strobe<const N: usize>(i: StrobeI<N>, q: StrobeQ<N>) -> (bool, StrobeD<N>
     };
     d.counter.data = counter_next;
     (strobe, d)
+}
+
+#[kernel]
+pub fn strobe_link(z: StrobeIO) -> StrobeZ {
+    StrobeZ {
+        threshold: z.left,
+        counter: z.right,
+    }
 }
