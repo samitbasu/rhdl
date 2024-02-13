@@ -1,3 +1,4 @@
+use crate::types::note::Notable;
 use crate::{ClockDetails, Digital, NoteKey, NoteWriter};
 use anyhow::bail;
 use std::hash::Hash;
@@ -127,6 +128,36 @@ impl TimeSeries<&'static str> {
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+struct Tristate {
+    value: u128,
+    mask: u128,
+}
+
+impl TimeSeries<Tristate> {
+    fn write_vcd<W: Write>(
+        &self,
+        cursor: &mut Cursor,
+        writer: &mut vcd::Writer<W>,
+    ) -> anyhow::Result<()> {
+        let mut sbuf = [0_u8; 256];
+        if let Some((_time, value)) = self.values.get(cursor.ptr) {
+            sbuf[0] = b'b';
+            tristate_to_vcd(value.value, value.mask, self.width as usize, &mut sbuf[1..]);
+            sbuf[self.width as usize + 1] = b' ';
+            writer
+                .writer()
+                .write_all(&sbuf[0..(self.width as usize + 2)])?;
+            writer.writer().write_all(&cursor.code_as_bytes)?;
+            writer.writer().write_all(b"\n")?;
+            self.advance_cursor(cursor);
+            Ok(())
+        } else {
+            bail!("No more values")
+        }
+    }
+}
+
 impl<T: PartialEq> TimeSeries<T> {
     fn push(&mut self, time: u64, value: T, width: u8) {
         if let Some((_last_time, last_value)) = self.values.last() {
@@ -146,6 +177,20 @@ struct TimeSeriesDetails {
     hash: TimeSeriesHash,
 }
 
+fn tristate_to_vcd(x: u128, mask: u128, width: usize, buffer: &mut [u8]) {
+    (0..width).for_each(|i| {
+        buffer[i] = if mask & (1 << (width - 1 - i)) != 0 {
+            if x & (1 << (width - 1 - i)) != 0 {
+                b'1'
+            } else {
+                b'0'
+            }
+        } else {
+            b'z'
+        };
+    })
+}
+
 fn bits_to_vcd(x: u128, width: usize, buffer: &mut [u8]) {
     (0..width).for_each(|i| {
         buffer[i] = if x & (1 << (width - 1 - i)) != 0 {
@@ -162,6 +207,7 @@ pub struct NoteDB {
     db_bits: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<u128>>,
     db_signed: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<i128>>,
     db_string: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<&'static str>>,
+    db_tristate: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<Tristate>>,
     details: fnv::FnvHashMap<String, TimeSeriesDetails>,
     path: Vec<&'static str>,
     time: u64,
@@ -182,6 +228,7 @@ enum TimeSeriesKind {
     Bits,
     Signed,
     String,
+    Tristate,
 }
 
 impl NoteWriter for NoteDB {
@@ -199,6 +246,10 @@ impl NoteWriter for NoteDB {
 
     fn write_string(&mut self, key: impl NoteKey, value: &'static str) {
         self.note_string(key, value);
+    }
+
+    fn write_tristate(&mut self, key: impl NoteKey, value: u128, mask: u128, size: u8) {
+        self.note_tristate(key, value, mask, size);
     }
 }
 
@@ -285,6 +336,28 @@ impl NoteDB {
                 .insert(key_hash, TimeSeries::new(self.time, value, 0));
         }
     }
+    fn note_tristate(&mut self, key: impl NoteKey, value: u128, mask: u128, width: u8) {
+        let mut hasher = fnv::FnvHasher::default();
+        let key = (&self.path[..], key);
+        key.hash(&mut hasher);
+        let key_hash = hasher.finish() as TimeSeriesHash;
+        if let Some(values) = self.db_tristate.get_mut(&key_hash) {
+            values.push(self.time, Tristate { value, mask }, width);
+        } else {
+            self.details.insert(
+                key.as_string().to_string(),
+                TimeSeriesDetails {
+                    kind: TimeSeriesKind::Tristate,
+                    hash: key_hash,
+                },
+            );
+            self.db_tristate.insert(
+                key_hash,
+                TimeSeries::new(self.time, Tristate { value, mask }, width),
+            );
+        }
+    }
+
     fn setup_cursor<W: Write>(
         &self,
         name: &str,
@@ -306,6 +379,10 @@ impl NoteDB {
                 .and_then(|series| series.cursor(details, name, writer)),
             TimeSeriesKind::String => self
                 .db_string
+                .get(&details.hash)
+                .and_then(|series| series.cursor(details, name, writer)),
+            TimeSeriesKind::Tristate => self
+                .db_tristate
                 .get(&details.hash)
                 .and_then(|series| series.cursor(details, name, writer)),
         }
@@ -333,6 +410,11 @@ impl NoteDB {
                 .write_vcd(cursor, writer),
             TimeSeriesKind::String => self
                 .db_string
+                .get(&cursor.hash)
+                .unwrap()
+                .write_vcd(cursor, writer),
+            TimeSeriesKind::Tristate => self
+                .db_tristate
                 .get(&cursor.hash)
                 .unwrap()
                 .write_vcd(cursor, writer),
@@ -440,7 +522,7 @@ pub fn note_time(time: u64) {
     });
 }
 
-pub fn note(key: impl NoteKey, value: impl Digital) {
+pub fn note(key: impl NoteKey, value: impl Notable) {
     DB.with(|db| {
         let mut db = db.borrow_mut();
         if let Some(db) = db.as_mut() {
@@ -572,6 +654,9 @@ mod tests {
                     raw
                 }
             }
+        }
+
+        impl Notable for Mixed {
             fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
                 match self {
                     Self::None => {
@@ -579,7 +664,7 @@ mod tests {
                     }
                     Self::Bool(b) => {
                         writer.write_string(key, stringify!(Bool));
-                        Digital::note(b, (key, 0), &mut writer);
+                        Notable::note(b, (key, 0), &mut writer);
                     }
                     Self::Tuple(b, c) => {
                         writer.write_string(key, stringify!(Tuple));

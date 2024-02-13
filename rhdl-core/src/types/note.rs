@@ -11,6 +11,7 @@ pub trait NoteWriter {
     fn write_bits(&mut self, key: impl NoteKey, value: u128, size: u8);
     fn write_signed(&mut self, key: impl NoteKey, value: i128, size: u8);
     fn write_string(&mut self, key: impl NoteKey, value: &'static str);
+    fn write_tristate(&mut self, key: impl NoteKey, value: u128, mask: u128, size: u8);
 }
 
 impl<T: NoteWriter> NoteWriter for &mut T {
@@ -25,6 +26,9 @@ impl<T: NoteWriter> NoteWriter for &mut T {
     }
     fn write_string(&mut self, key: impl NoteKey, value: &'static str) {
         (**self).write_string(key, value)
+    }
+    fn write_tristate(&mut self, key: impl NoteKey, value: u128, mask: u128, size: u8) {
+        (**self).write_tristate(key, value, mask, size)
     }
 }
 
@@ -57,4 +61,8 @@ impl<T: NoteKey, U: NoteKey> NoteKey for (T, U) {
     fn as_string(&self) -> String {
         format!("{}::{}", self.0.as_string(), self.1.as_string())
     }
+}
+
+pub trait Notable {
+    fn note(&self, key: impl NoteKey, writer: impl NoteWriter);
 }

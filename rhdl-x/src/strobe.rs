@@ -2,6 +2,7 @@ use anyhow::bail;
 use anyhow::Result;
 use rhdl_bits::alias::*;
 use rhdl_bits::{bits, Bits};
+use rhdl_core::note;
 use rhdl_macro::{kernel, Digital};
 
 use crate::circuit::root_descriptor;
@@ -120,6 +121,8 @@ impl<const N: usize> Circuit for Strobe<N> {
 #[kernel]
 pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
     let mut d = StrobeD::<N>::default();
+    note("i", i);
+    note("q", q);
     d.counter.clock = i.clock;
     let counter_next = if i.enable { q.counter + 1 } else { q.counter };
     let strobe = i.enable & (q.counter == q.threshold);
@@ -129,5 +132,7 @@ pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
         counter_next
     };
     d.counter.data = counter_next;
+    note("out", strobe);
+    note("d", d);
     (strobe, d)
 }

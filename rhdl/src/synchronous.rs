@@ -582,7 +582,7 @@ endmodule
 /// So the case that keeps bugging me is actually pretty simple?
 ///
 /// // Need to ensure that 2^L == N or something
-/// 
+///
 /// struct MemoryThingState<const N: usize, D: Digital> {
 ///      data: [D; N]
 /// }
@@ -597,7 +597,7 @@ endmodule
 /// struct MemoryThingOutputs<const W: usize> {
 ///     read: D,
 /// }
-/// 
+///
 /// This could have a completely custom Verilog implementation.
 /// But from a module level, it still looks like (clk, input, output).
 struct ClippyLeaveMeAlone {}

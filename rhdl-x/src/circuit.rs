@@ -2,6 +2,7 @@ use anyhow::bail;
 use anyhow::Result;
 use rhdl_bits::Bits;
 use rhdl_core::{Digital, DigitalFn, Kind};
+use rhdl_macro::Digital;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
@@ -21,25 +22,16 @@ pub trait Tristate: Digital {
     const DISABLED: Self::Mask;
 }
 
-
 impl Tristate for () {
     type Mask = ();
     const ENABLED: Self::Mask = ();
     const DISABLED: Self::Mask = ();
 }
 
+#[derive(Debug, Clone, PartialEq, Copy, Default)]
 pub struct BufZ<T: Tristate> {
     pub value: T,
     pub mask: T::Mask,
-}
-
-impl Default for BufZ<()> {
-    fn default() -> Self {
-        Self {
-            value: (),
-            mask: (),
-        }
-    }
 }
 
 pub trait Circuit: 'static + Sized + Clone {

@@ -63,9 +63,11 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         )*
                         result
                     }
+                }
+                impl #impl_generics rhdl_core::Notable for #struct_name #ty_generics #where_clause {
                     fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                         #(
-                            rhdl_core::Digital::note(&self.#fields, (key, stringify!(#fields)), &mut writer);
+                            rhdl_core::Notable::note(&self.#fields, (key, stringify!(#fields)), &mut writer);
                         )*
                     }
                 }
@@ -110,9 +112,12 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         )*
                         result
                     }
+                }
+
+                impl #impl_generics rhdl_core::Notable for #struct_name #ty_generics #where_clause {
                     fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                         #(
-                            rhdl_core::Digital::note(&self.#fields, (key, stringify!(#fields)), &mut writer);
+                            rhdl_core::Notable::note(&self.#fields, (key, stringify!(#fields)), &mut writer);
                         )*
                     }
                 }
@@ -155,10 +160,12 @@ mod test {
                     result.extend(self.nest_3.bin());
                     result
                 }
+            }
+            impl rhdl_core::Notable for NestedBits {
                 fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
-                    rhdl_core::Digital::note(&self.nest_1, (key, stringify!(nest_1)), &mut writer);
-                    rhdl_core::Digital::note(&self.nest_2, (key, stringify!(nest_2)), &mut writer);
-                    rhdl_core::Digital::note(&self.nest_3, (key, stringify!(nest_3)), &mut writer);
+                    rhdl_core::Notable::note(&self.nest_1, (key, stringify!(nest_1)), &mut writer);
+                    rhdl_core::Notable::note(&self.nest_2, (key, stringify!(nest_2)), &mut writer);
+                    rhdl_core::Notable::note(&self.nest_3, (key, stringify!(nest_3)), &mut writer);
                 }
             }
         };
@@ -193,10 +200,12 @@ mod test {
                     result.extend(self.read.bin());
                     result
                 }
+            }
+            impl rhdl_core::Notable for Inputs {
                 fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
-                    rhdl_core::Digital::note(&self.input, (key, stringify!(input)), &mut writer);
-                    rhdl_core::Digital::note(&self.write, (key, stringify!(write)), &mut writer);
-                    rhdl_core::Digital::note(&self.read, (key, stringify!(read)), &mut writer);
+                    rhdl_core::Notable::note(&self.input, (key, stringify!(input)), &mut writer);
+                    rhdl_core::Notable::note(&self.write, (key, stringify!(write)), &mut writer);
+                    rhdl_core::Notable::note(&self.read, (key, stringify!(read)), &mut writer);
                 }
             }
         };
@@ -234,10 +243,12 @@ mod test {
                     result.extend(self.read.bin());
                     result
                 }
+            }
+            impl<T: Digital> rhdl_core::Notable for Inputs<T> {
                 fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
-                    rhdl_core::Digital::note(&self.input, (key, stringify!(input)), &mut writer);
-                    rhdl_core::Digital::note(&self.write, (key, stringify!(write)), &mut writer);
-                    rhdl_core::Digital::note(&self.read, (key, stringify!(read)), &mut writer);
+                    rhdl_core::Notable::note(&self.input, (key, stringify!(input)), &mut writer);
+                    rhdl_core::Notable::note(&self.write, (key, stringify!(write)), &mut writer);
+                    rhdl_core::Notable::note(&self.read, (key, stringify!(read)), &mut writer);
                 }
             }
         };
@@ -272,10 +283,12 @@ mod test {
                     result.extend(self.read.bin());
                     result
                 }
+            }
+            impl rhdl_core::Notable for Inputs {
                 fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
-                    rhdl_core::Digital::note(&self.input, (key, stringify!(input)), &mut writer);
-                    rhdl_core::Digital::note(&self.write, (key, stringify!(write)), &mut writer);
-                    rhdl_core::Digital::note(&self.read, (key, stringify!(read)), &mut writer);
+                    rhdl_core::Notable::note(&self.input, (key, stringify!(input)), &mut writer);
+                    rhdl_core::Notable::note(&self.write, (key, stringify!(write)), &mut writer);
+                    rhdl_core::Notable::note(&self.read, (key, stringify!(read)), &mut writer);
                 }
             }
         };
@@ -306,10 +319,12 @@ mod test {
                     result.extend(self.2.bin());
                     result
                 }
+            }
+            impl rhdl_core::Notable for Inputs {
                 fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
-                    rhdl_core::Digital::note(&self.0, (key, stringify!(0)), &mut writer);
-                    rhdl_core::Digital::note(&self.1, (key, stringify!(1)), &mut writer);
-                    rhdl_core::Digital::note(&self.2, (key, stringify!(2)), &mut writer);
+                    rhdl_core::Notable::note(&self.0, (key, stringify!(0)), &mut writer);
+                    rhdl_core::Notable::note(&self.1, (key, stringify!(1)), &mut writer);
+                    rhdl_core::Notable::note(&self.2, (key, stringify!(2)), &mut writer);
                 }
             }
             impl rhdl_core::DigitalFn for Inputs {
