@@ -4,11 +4,9 @@ use rhdl_bits::Bits;
 use rhdl_core::Digital;
 use rhdl_macro::{kernel, Digital};
 
-use crate::circuit::no_link;
 use crate::circuit::root_descriptor;
 use crate::circuit::root_hdl;
-use crate::circuit::CircuitLinkFn;
-use crate::circuit::NoLink;
+use crate::circuit::BufZ;
 use crate::{
     circuit::{Circuit, CircuitDescriptor},
     clock::Clock,
@@ -38,24 +36,19 @@ impl<const N: usize> Circuit for Counter<N> {
 
     type D = (DFFI<Bits<N>>,);
 
-    type C = ();
-
     type Update = counter<N>;
     const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = counter::<N>;
 
-    type Link = NoLink;
-    const LINK: CircuitLinkFn<Self> = no_link::<Self>;
-
     type S = (Self::Q, <DFF<Bits<N>> as Circuit>::S);
 
-    fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O {
+    fn sim(&self, input: Self::I, io: Self::IO, state: &mut Self::S) -> (Self::O, BufZ<()>) {
         loop {
             let prev_state = state.clone();
             let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
-            let o0 = self.count.sim(internal_inputs.0, &mut state.1);
+            let (o0, _) = self.count.sim(internal_inputs.0, (), &mut state.1);
             state.0 = (o0,);
             if state == &prev_state {
-                return outputs;
+                return (outputs, Default::default());
             }
         }
     }

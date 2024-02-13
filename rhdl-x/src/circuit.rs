@@ -1,5 +1,6 @@
 use anyhow::bail;
 use anyhow::Result;
+use rhdl_bits::Bits;
 use rhdl_core::{Digital, DigitalFn, Kind};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -9,11 +10,35 @@ use crate::backend::verilog::root_verilog;
 pub type CircuitUpdateFn<C> =
     fn(<C as Circuit>::I, <C as Circuit>::Q) -> (<C as Circuit>::O, <C as Circuit>::D);
 
-pub type CircuitLinkFn<C> = fn(<C as Circuit>::IO) -> <C as Circuit>::C;
-
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum HDLKind {
     Verilog,
+}
+
+pub trait Tristate: Digital {
+    type Mask: Digital;
+}
+
+impl Tristate for Bits<8> {
+    type Mask = Bits<8>;
+}
+
+impl Tristate for () {
+    type Mask = ();
+}
+
+pub struct BufZ<T: Tristate> {
+    value: T,
+    mask: T::Mask,
+}
+
+impl Default for BufZ<()> {
+    fn default() -> Self {
+        Self {
+            value: (),
+            mask: (),
+        }
+    }
 }
 
 pub trait Circuit: 'static + Sized + Clone {
@@ -21,27 +46,23 @@ pub trait Circuit: 'static + Sized + Clone {
     type I: Digital;
     // Output type - not auto derived
     type O: Digital;
-    // InputOutput type - not auto derived
-    type IO: Digital;
+    // IO type - not auto derived
+    type IO: Tristate;
 
     type Update: DigitalFn;
     const UPDATE: CircuitUpdateFn<Self>;
-
-    type Link: DigitalFn;
-    const LINK: CircuitLinkFn<Self>;
 
     // Outputs of internal circuitry - auto derived
     type Q: Digital;
     // Inputs of internal circuitry - auto derived
     type D: Digital;
-    // InputOutputs of internal circuitry - auto derived
-    type C: Digital;
 
     // State for simulation - auto derived
     type S: Default + PartialEq + Clone;
 
     // Simulation update - auto derived
-    fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O;
+    fn sim(&self, input: Self::I, z_in: Self::IO, state: &mut Self::S)
+        -> (Self::O, BufZ<Self::IO>);
 
     fn init_state(&self) -> Self::S {
         Default::default()
@@ -106,16 +127,4 @@ impl std::fmt::Display for HDLDescriptor {
         }
         Ok(())
     }
-}
-
-pub struct NoLink {}
-
-impl DigitalFn for NoLink {
-    fn kernel_fn() -> rhdl_core::KernelFnKind {
-        todo!()
-    }
-}
-
-pub fn no_link<C: Circuit>(_: C::IO) -> C::C {
-    Default::default()
 }

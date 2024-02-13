@@ -4,11 +4,9 @@ use rhdl_bits::alias::*;
 use rhdl_bits::{bits, Bits};
 use rhdl_macro::{kernel, Digital};
 
-use crate::circuit::no_link;
 use crate::circuit::root_descriptor;
 use crate::circuit::root_hdl;
-use crate::circuit::CircuitLinkFn;
-use crate::circuit::NoLink;
+use crate::circuit::BufZ;
 use crate::{circuit::Circuit, clock::Clock, constant::Constant, dff::DFF};
 
 // Build a strobe
@@ -61,30 +59,16 @@ pub struct StrobeI {
     pub enable: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
-pub struct StrobeIO {
-    pub left: b8,
-    pub right: b8,
-}
-
-#[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
-pub struct StrobeZ {
-    pub threshold: b8,
-    pub counter: b8,
-}
-
 impl<const N: usize> Circuit for Strobe<N> {
     type I = StrobeI;
 
     type O = bool;
 
-    type IO = StrobeIO;
+    type IO = ();
 
     type Q = StrobeQ<N>;
 
     type D = StrobeD<N>;
-
-    type C = StrobeZ;
 
     type S = (
         Self::Q,
@@ -96,18 +80,16 @@ impl<const N: usize> Circuit for Strobe<N> {
 
     const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = strobe::<N>;
 
-    type Link = strobe_link;
-
-    const LINK: CircuitLinkFn<Self> = strobe_link;
-
-    fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O {
+    fn sim(&self, input: Self::I, io: Self::IO, state: &mut Self::S) -> (Self::O, BufZ<Self::IO>) {
         loop {
             let prev_state = state.clone();
             let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
-            state.0.threshold = self.threshold.sim(internal_inputs.threshold, &mut state.1);
-            state.0.counter = self.counter.sim(internal_inputs.counter, &mut state.2);
+            (state.0.threshold, _) =
+                self.threshold
+                    .sim(internal_inputs.threshold, (), &mut state.1);
+            (state.0.counter, _) = self.counter.sim(internal_inputs.counter, (), &mut state.2);
             if state == &prev_state {
-                return outputs;
+                return (outputs, Default::default());
             }
         }
     }
@@ -148,12 +130,4 @@ pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
     };
     d.counter.data = counter_next;
     (strobe, d)
-}
-
-#[kernel]
-pub fn strobe_link(z: StrobeIO) -> StrobeZ {
-    StrobeZ {
-        threshold: z.left,
-        counter: z.right,
-    }
 }

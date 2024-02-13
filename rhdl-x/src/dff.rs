@@ -4,11 +4,9 @@ use anyhow::Result;
 use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
 use rhdl_macro::Digital;
 
-use crate::circuit::no_link;
 use crate::circuit::root_descriptor;
-use crate::circuit::CircuitLinkFn;
+use crate::circuit::BufZ;
 use crate::circuit::HDLDescriptor;
-use crate::circuit::NoLink;
 use crate::{circuit::Circuit, clock::Clock};
 
 #[derive(Default, Clone)]
@@ -33,19 +31,13 @@ impl<T: Digital> Circuit for DFF<T> {
 
     type D = ();
 
-    type C = ();
-
     type Update = Self;
 
     const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = |i, _| (i.data, ());
 
-    type Link = NoLink;
-
-    const LINK: CircuitLinkFn<Self> = no_link::<Self>;
-
     type S = DFFI<T>;
 
-    fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O {
+    fn sim(&self, input: Self::I, io: Self::IO, state: &mut Self::S) -> (Self::O, BufZ<()>) {
         let output = if input.clock.0 && !state.clock.0 {
             input.data
         } else {
@@ -53,7 +45,7 @@ impl<T: Digital> Circuit for DFF<T> {
         };
         state.clock = input.clock;
         state.data = output;
-        output
+        (output, Default::default())
     }
 
     fn name(&self) -> &'static str {
