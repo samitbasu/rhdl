@@ -2,11 +2,9 @@ use anyhow::ensure;
 use anyhow::Result;
 use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
 
-use crate::circuit::no_link;
 use crate::circuit::root_descriptor;
-use crate::circuit::CircuitLinkFn;
+use crate::circuit::BufZ;
 use crate::circuit::HDLDescriptor;
-use crate::circuit::NoLink;
 use crate::circuit::{Circuit, CircuitDescriptor};
 
 // Constant block
@@ -38,20 +36,14 @@ impl<T: Digital> Circuit for Constant<T> {
 
     type D = ();
 
-    type C = ();
-
     type S = ();
 
     type Update = Self;
 
     const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = |_, _| (T::default(), ());
 
-    type Link = NoLink;
-
-    const LINK: CircuitLinkFn<Self> = no_link::<Self>;
-
-    fn sim(&self, _: Self::I, _: &mut Self::S) -> Self::O {
-        self.value
+    fn sim(&self, _: Self::I, _: Self::IO, _: &mut Self::S) -> (Self::O, BufZ<()>) {
+        (self.value, Default::default())
     }
 
     fn name(&self) -> &'static str {

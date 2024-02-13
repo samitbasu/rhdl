@@ -52,7 +52,7 @@ fn test_dff() {
     for (time, input) in inputs.enumerate().take(1000) {
         note_time(time as u64 * 1_000);
         note("input", input);
-        let output = dff.sim(input, &mut state);
+        let (output, _) = dff.sim(input, (), &mut state);
         note("output", output);
     }
     let db = note_take().unwrap();
@@ -74,7 +74,7 @@ fn test_strobe() {
     for (time, input) in inputs.enumerate().take(2000) {
         note_time(time as u64 * 100);
         note("input", input);
-        let output = strobe.sim(input, &mut state);
+        let (output, _) = strobe.sim(input, (), &mut state);
         note("output", output);
     }
     let db = note_take().unwrap();
@@ -132,7 +132,7 @@ fn main() {
     for (time, input) in inputs.enumerate().take(2000) {
         note_time(time as u64 * 100);
         note("input", input);
-        let output = counter.sim(input, &mut state);
+        let (output, _) = counter.sim(input, (), &mut state);
         note("output", output);
     }
     let db = note_take().unwrap();
