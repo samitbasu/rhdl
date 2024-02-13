@@ -80,6 +80,7 @@ pub struct bits<const N: usize> {}
 impl<const N: usize> Bits<N> {
     /// Defines a constant Bits value with all bits set to 1.
     pub const MASK: Self = Self::mask();
+    pub const ZERO: Self = Self(0);
     /// Return a [Bits] value with all bits set to 1.
     /// ```
     /// # use rhdl_bits::Bits;

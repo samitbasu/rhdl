@@ -17,19 +17,20 @@ pub enum HDLKind {
 
 pub trait Tristate: Digital {
     type Mask: Digital;
+    const ENABLED: Self::Mask;
+    const DISABLED: Self::Mask;
 }
 
-impl Tristate for Bits<8> {
-    type Mask = Bits<8>;
-}
 
 impl Tristate for () {
     type Mask = ();
+    const ENABLED: Self::Mask = ();
+    const DISABLED: Self::Mask = ();
 }
 
 pub struct BufZ<T: Tristate> {
-    value: T,
-    mask: T::Mask,
+    pub value: T,
+    pub mask: T::Mask,
 }
 
 impl Default for BufZ<()> {
