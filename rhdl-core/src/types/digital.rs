@@ -2,6 +2,8 @@ use rhdl_bits::{Bits, SignedBits};
 
 use crate::{Kind, NoteKey, NoteWriter, TypedBits};
 
+use super::note::Notable;
+
 /// This is the core trait for all of `RHDL` data elements.  If you
 /// want to use a data type in the hardware part of the design,
 /// it must implement this trait.  
@@ -38,7 +40,7 @@ use crate::{Kind, NoteKey, NoteWriter, TypedBits};
 ///
 /// These are all supported in `RHDL`.
 ///
-pub trait Digital: Copy + PartialEq + Sized + Clone + Default + 'static {
+pub trait Digital: Copy + PartialEq + Sized + Clone + Default + 'static + Notable {
     fn static_kind() -> Kind;
     fn bits() -> usize {
         Self::static_kind().bits()
@@ -66,7 +68,6 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + Default + 'static {
             .map(|b| if *b { '1' } else { '0' })
             .collect()
     }
-    fn note(&self, key: impl NoteKey, writer: impl NoteWriter);
 }
 
 impl Digital for () {
@@ -76,6 +77,9 @@ impl Digital for () {
     fn bin(self) -> Vec<bool> {
         Vec::new()
     }
+}
+
+impl Notable for () {
     fn note(&self, _key: impl NoteKey, _writer: impl NoteWriter) {}
 }
 
@@ -86,6 +90,9 @@ impl Digital for bool {
     fn bin(self) -> Vec<bool> {
         vec![self]
     }
+}
+
+impl Notable for bool {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_bool(key, *self);
     }
@@ -98,6 +105,9 @@ impl Digital for u8 {
     fn bin(self) -> Vec<bool> {
         Bits::<8>::from(self as u128).to_bools()
     }
+}
+
+impl Notable for u8 {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_bits(key, *self as u128, 8);
     }
@@ -110,6 +120,9 @@ impl Digital for u16 {
     fn bin(self) -> Vec<bool> {
         Bits::<16>::from(self as u128).to_bools()
     }
+}
+
+impl Notable for u16 {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_bits(key, *self as u128, 16);
     }
@@ -122,6 +135,9 @@ impl Digital for usize {
     fn bin(self) -> Vec<bool> {
         Bits::<{ usize::BITS as usize }>::from(self as u128).to_bools()
     }
+}
+
+impl Notable for usize {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_bits(key, *self as u128, usize::BITS as u8);
     }
@@ -134,6 +150,9 @@ impl Digital for u128 {
     fn bin(self) -> Vec<bool> {
         Bits::<128>::from(self).to_bools()
     }
+}
+
+impl Notable for u128 {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_bits(key, *self, 128);
     }
@@ -146,6 +165,9 @@ impl Digital for i128 {
     fn bin(self) -> Vec<bool> {
         SignedBits::<128>::from(self).as_unsigned().to_bools()
     }
+}
+
+impl Notable for i128 {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_signed(key, *self, 128);
     }
@@ -160,6 +182,9 @@ impl Digital for i32 {
             .as_unsigned()
             .to_bools()
     }
+}
+
+impl Notable for i32 {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_signed(key, *self as i128, 32);
     }
@@ -174,6 +199,9 @@ impl Digital for i64 {
             .as_unsigned()
             .to_bools()
     }
+}
+
+impl Notable for i64 {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_signed(key, *self as i128, 64);
     }
@@ -186,6 +214,9 @@ impl<const N: usize> Digital for Bits<N> {
     fn bin(self) -> Vec<bool> {
         self.to_bools()
     }
+}
+
+impl<const N: usize> Notable for Bits<N> {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_bits(key, self.raw(), N as u8);
     }
@@ -198,6 +229,9 @@ impl<const N: usize> Digital for SignedBits<N> {
     fn bin(self) -> Vec<bool> {
         self.as_unsigned().to_bools()
     }
+}
+
+impl<const N: usize> Notable for SignedBits<N> {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_signed(key, self.raw(), N as u8);
     }
@@ -211,6 +245,9 @@ impl<T0: Digital> Digital for (T0,) {
     fn bin(self) -> Vec<bool> {
         self.0.bin()
     }
+}
+
+impl<T0: Notable> Notable for (T0,) {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         self.0.note((key, ".0"), &mut writer);
     }
@@ -225,6 +262,9 @@ impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
         v.extend(self.1.bin());
         v
     }
+}
+
+impl<T0: Notable, T1: Notable> Notable for (T0, T1) {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         self.0.note((key, ".0"), &mut writer);
         self.1.note((key, ".1"), &mut writer);
@@ -245,6 +285,9 @@ impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {
         v.extend(self.2.bin());
         v
     }
+}
+
+impl<T0: Notable, T1: Notable, T2: Notable> Notable for (T0, T1, T2) {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         self.0.note((key, ".0"), &mut writer);
         self.1.note((key, ".1"), &mut writer);
@@ -268,6 +311,9 @@ impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2
         v.extend(self.3.bin());
         v
     }
+}
+
+impl<T0: Notable, T1: Notable, T2: Notable, T3: Notable> Notable for (T0, T1, T2, T3) {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         self.0.note((key, ".0"), &mut writer);
         self.1.note((key, ".1"), &mut writer);
@@ -296,6 +342,9 @@ macro_rules! impl_array {
                     }
                     v
                 }
+            }
+
+            impl<T: Notable> Notable for [T; $N] {
                 fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
                     for (i, x) in self.iter().enumerate() {
                         x.note((key, i), &mut writer);
@@ -411,6 +460,9 @@ mod test {
                     raw
                 }
             }
+        }
+
+        impl Notable for Mixed {
             fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
                 match self {
                     Self::None => {
@@ -418,7 +470,7 @@ mod test {
                     }
                     Self::Bool(b) => {
                         writer.write_string(key, stringify!(Bool));
-                        Digital::note(b, key, &mut writer);
+                        Notable::note(b, key, &mut writer);
                     }
                     Self::Tuple(b, c) => {
                         writer.write_string(key, stringify!(Tuple));
@@ -508,6 +560,9 @@ mod test {
                     Self::Boom => rhdl_bits::bits::<3>(4).to_bools(),
                 }
             }
+        }
+
+        impl Notable for State {
             fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
                 match self {
                     Self::Init => writer.write_string(key, stringify!(Init)),

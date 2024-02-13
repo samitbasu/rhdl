@@ -6,6 +6,7 @@ pub use types::digital::Digital;
 pub use types::digital_fn::DigitalFn;
 pub use types::kernel::KernelFnKind;
 pub use types::kind::DiscriminantAlignment;
+pub use types::note::Notable;
 
 #[cfg(feature = "svg")]
 pub use types::kind::kind_svg::svg_grid;

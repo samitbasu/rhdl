@@ -110,6 +110,8 @@ fn test_enum_derive() {
                         }
                     }
                 }
+            }
+            impl rhdl_core::Notable for Test {
                 fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                     match self {
                         Self::A => {
@@ -119,13 +121,13 @@ fn test_enum_derive() {
                         Self::B(_0) => {
                             writer.write_string(key, stringify!(B));
                             writer.write_bits((key, ".__disc"), 2i64 as u128, 2u8);
-                            rhdl_core::Digital::note(_0, (key, 0usize), &mut writer);
+                            rhdl_core::Notable::note(_0, (key, 0usize), &mut writer);
                         }
                         Self::C { a, b } => {
                             writer.write_string(key, stringify!(C));
                             writer.write_bits((key, ".__disc"), 3i64 as u128, 2u8);
-                            rhdl_core::Digital::note(a, (key, stringify!(a)), &mut writer);
-                            rhdl_core::Digital::note(b, (key, stringify!(b)), &mut writer);
+                            rhdl_core::Notable::note(a, (key, stringify!(a)), &mut writer);
+                            rhdl_core::Notable::note(b, (key, stringify!(b)), &mut writer);
                         }
                     }
                 }
@@ -205,6 +207,8 @@ fn test_enum_no_payloads() {
                     Self::Boom => rhdl_core::Kind::Empty,
                 }
             }
+        }
+        impl rhdl_core::Notable for State {
             fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {
                     Self::Init => {
@@ -290,6 +294,8 @@ fn test_enum_with_signed_discriminants() {
                     Self::C => rhdl_core::Kind::Empty,
                 }
             }
+        }
+        impl rhdl_core::Notable for Test {
             fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {
                     Self::A => {
@@ -361,6 +367,8 @@ fn test_enum_with_discriminants() {
                     Self::C => rhdl_core::Kind::Empty,
                 }
             }
+        }
+        impl rhdl_core::Notable for Test {
             fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {
                     Self::A => {

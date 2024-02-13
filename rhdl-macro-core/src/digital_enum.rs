@@ -286,7 +286,7 @@ fn variant_note_case(variant: &Variant, kind: DiscriminantType, disc: &i64) -> T
             let field_numbers = fields.unnamed.iter().enumerate().map(|(i, _)| i);
             quote! {
                 #(
-                    rhdl_core::Digital::note(#field_names, (key, #field_numbers), &mut writer);
+                    rhdl_core::Notable::note(#field_names, (key, #field_numbers), &mut writer);
                 )*
             }
         }
@@ -294,7 +294,7 @@ fn variant_note_case(variant: &Variant, kind: DiscriminantType, disc: &i64) -> T
             let field_names = fields.named.iter().map(|f| &f.ident);
             quote! {
                 #(
-                    rhdl_core::Digital::note(#field_names, (key, stringify!(#field_names)), &mut writer);
+                    rhdl_core::Notable::note(#field_names, (key, stringify!(#field_names)), &mut writer);
                 )*
             }
         }
@@ -442,6 +442,8 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                     )*
                 }
             }
+        }
+        impl #impl_generics rhdl_core::Notable for #enum_name #ty_generics #where_clause {
             fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
                 match self {
                     #(

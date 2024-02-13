@@ -1,8 +1,15 @@
 use anyhow::ensure;
 use rhdl_bits::alias::*;
 use rhdl_bits::Bits;
+use rhdl_core::note;
+use rhdl_core::note_init_db;
+use rhdl_core::note_take;
+use rhdl_core::note_time;
 use rhdl_core::Digital;
 use rhdl_core::DigitalFn;
+use rhdl_core::Notable;
+use rhdl_core::NoteKey;
+use rhdl_core::NoteWriter;
 use rhdl_macro::kernel;
 use rhdl_macro::Digital;
 
@@ -139,12 +146,9 @@ impl<const N: usize> Tristate for Bits<N> {
     const DISABLED: Self::Mask = Bits::<N>::ZERO;
 }
 
-impl<const N: usize> Default for BufZ<Bits<N>> {
-    fn default() -> Self {
-        Self {
-            value: Bits::<N>::default(),
-            mask: Bits::<N>::default(),
-        }
+impl<const N: usize> Notable for BufZ<Bits<N>> {
+    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
+        writer.write_tristate(key, self.value.0, self.mask.0, N as u8);
     }
 }
 
@@ -198,16 +202,17 @@ impl Circuit for Push {
 
     // TODO - figure out how to handle splitting of the bufz across children
     fn sim(&self, input: Self::I, io: Self::IO, state: &mut Self::S) -> (Self::O, BufZ<Self::IO>) {
-        let mut bufz = Default::default();
-        let prev_state = state.clone();
-        let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
-        (state.0.strobe, _) = self.strobe.sim(internal_inputs.strobe, (), &mut state.1);
-        (state.0.value, _) = self.value.sim(internal_inputs.value, (), &mut state.2);
-        (state.0.buf_z, bufz) = self.buf_z.sim(internal_inputs.buf_z, io, &mut state.3);
-        if state == &prev_state {
-            return ((), bufz);
+        loop {
+            let mut bufz = Default::default();
+            let prev_state = state.clone();
+            let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
+            (state.0.strobe, _) = self.strobe.sim(internal_inputs.strobe, (), &mut state.1);
+            (state.0.value, _) = self.value.sim(internal_inputs.value, (), &mut state.2);
+            (state.0.buf_z, bufz) = self.buf_z.sim(internal_inputs.buf_z, io, &mut state.3);
+            if state == &prev_state {
+                return ((), bufz);
+            }
         }
-        ((), bufz)
     }
 }
 
@@ -218,6 +223,8 @@ pub fn pushd(i: Clock, q: PushQ) -> ((), PushD) {
     d.buf_z.enable = q.strobe;
     d.strobe.clock = i;
     d.strobe.enable = true;
+    note("d", d);
+    note("q", q);
     ((), d)
 }
 
@@ -230,4 +237,32 @@ fn test_push_as_verilog() {
     };
     let top = push.as_hdl(crate::circuit::HDLKind::Verilog).unwrap();
     println!("{}", top);
+}
+
+#[test]
+fn test_simulate_push() {
+    let push = Push {
+        strobe: Strobe::new(b32(5)),
+        value: Constant::from(b8(5)),
+        buf_z: ZDriver::default(),
+    };
+    let mut state = push.init_state();
+    note_init_db();
+    note_time(0);
+    for (ndx, input) in crate::clock::clock().take(500).enumerate() {
+        note_time(ndx as u64 * 100);
+        let mut z_state = BufZ::<b8>::default();
+        note("clock", input);
+        loop {
+            let ((), bufz) = push.sim(input, z_state.value, &mut state);
+            if bufz == z_state {
+                break;
+            }
+            z_state = bufz;
+        }
+        note("bus", z_state);
+    }
+    let db = note_take().unwrap();
+    let push = std::fs::File::create("push.vcd").unwrap();
+    db.dump_vcd(&[], push).unwrap();
 }
