@@ -466,7 +466,7 @@ fn test_simulate_push_pair() {
     db.dump_vcd(&[], push).unwrap();
 }
 
-fn fold_zbus<const N: usize>(buf: &mut TristateBuf) {
+pub fn fold_zbus<const N: usize>(buf: &mut TristateBuf) {
     let left_value = buf.value >> N;
     let left_mask = buf.mask >> N;
     let right_value = buf.value & (Bits::<N>::MASK.0);
