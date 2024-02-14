@@ -1,5 +1,6 @@
 use anyhow::ensure;
 use anyhow::Result;
+use rhdl_bits::Bits;
 use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
 
 use crate::circuit::root_descriptor;
@@ -30,8 +31,6 @@ impl<T: Digital> Circuit for Constant<T> {
 
     type O = T;
 
-    type IO = ();
-
     type Q = ();
 
     type D = ();
@@ -42,8 +41,8 @@ impl<T: Digital> Circuit for Constant<T> {
 
     const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = |_, _| (T::default(), ());
 
-    fn sim(&self, _: Self::I, _: Self::IO, _: &mut Self::S) -> (Self::O, BufZ<()>) {
-        (self.value, Default::default())
+    fn sim(&self, _: Self::I, _: &mut Self::S, _: &mut BufZ) -> Self::O {
+        self.value
     }
 
     fn name(&self) -> &'static str {

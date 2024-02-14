@@ -65,8 +65,6 @@ impl<const N: usize> Circuit for Strobe<N> {
 
     type O = bool;
 
-    type IO = ();
-
     type Q = StrobeQ<N>;
 
     type D = StrobeD<N>;
@@ -81,16 +79,16 @@ impl<const N: usize> Circuit for Strobe<N> {
 
     const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = strobe::<N>;
 
-    fn sim(&self, input: Self::I, io: Self::IO, state: &mut Self::S) -> (Self::O, BufZ<Self::IO>) {
+    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut BufZ) -> Self::O {
         loop {
             let prev_state = state.clone();
             let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
-            (state.0.threshold, _) =
-                self.threshold
-                    .sim(internal_inputs.threshold, (), &mut state.1);
-            (state.0.counter, _) = self.counter.sim(internal_inputs.counter, (), &mut state.2);
+            state.0.threshold = self
+                .threshold
+                .sim(internal_inputs.threshold, &mut state.1, io);
+            state.0.counter = self.counter.sim(internal_inputs.counter, &mut state.2, io);
             if state == &prev_state {
-                return (outputs, Default::default());
+                return outputs;
             }
         }
     }
