@@ -1,7 +1,9 @@
 use std::iter::repeat;
 use std::time::Instant;
 
+use circuit::BufZ;
 use circuit::Circuit;
+use circuit::TristateBuf;
 use counter::Counter;
 use counter::CounterI;
 use dff::DFF;
@@ -16,7 +18,6 @@ use rhdl_core::DigitalFn;
 use rhdl_core::{note, Digital};
 use rhdl_macro::kernel;
 use rhdl_macro::Digital;
-use rhdl_x::Foo;
 
 use rhdl_bits::Bits;
 use strobe::Strobe;
@@ -49,10 +50,12 @@ fn test_dff() {
     note_time(0);
     let dff = DFF::<u8>::default();
     let mut state = dff.init_state();
+    let mut buffer = TristateBuf::default();
+    let mut io: BufZ = BufZ::new(&mut buffer, 0, 0);
     for (time, input) in inputs.enumerate().take(1000) {
         note_time(time as u64 * 1_000);
         note("input", input);
-        let (output, _) = dff.sim(input, (), &mut state);
+        let output = dff.sim(input, &mut state, &mut io);
         note("output", output);
     }
     let db = note_take().unwrap();
@@ -71,10 +74,12 @@ fn test_strobe() {
     note_time(0);
     let strobe = Strobe::<8>::new(b8(5));
     let mut state = strobe.init_state();
+    let mut buffer = TristateBuf::default();
+    let mut io: BufZ = BufZ::new(&mut buffer, 0, 0);
     for (time, input) in inputs.enumerate().take(2000) {
         note_time(time as u64 * 100);
         note("input", input);
-        let (output, _) = strobe.sim(input, (), &mut state);
+        let output = strobe.sim(input, &mut state, &mut io);
         note("output", output);
     }
     let db = note_take().unwrap();
@@ -129,10 +134,12 @@ fn main() {
     note_time(0);
     let counter = Counter::<8>::default();
     let mut state = counter.init_state();
+    let mut buffer = TristateBuf::default();
+    let mut io: BufZ = BufZ::new(&mut buffer, 0, 0);
     for (time, input) in inputs.enumerate().take(2000) {
         note_time(time as u64 * 100);
         note("input", input);
-        let (output, _) = counter.sim(input, (), &mut state);
+        let output = counter.sim(input, &mut state, &mut io);
         note("output", output);
     }
     let db = note_take().unwrap();

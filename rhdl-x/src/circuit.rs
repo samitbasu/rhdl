@@ -1,6 +1,7 @@
 use anyhow::bail;
 use anyhow::Result;
 use rhdl_bits::Bits;
+use rhdl_core::Notable;
 use rhdl_core::{Digital, DigitalFn, Kind};
 use rhdl_macro::Digital;
 use std::collections::HashMap;
@@ -16,22 +17,56 @@ pub enum HDLKind {
     Verilog,
 }
 
-pub trait Tristate: Digital {
-    type Mask: Digital;
-    const ENABLED: Self::Mask;
-    const DISABLED: Self::Mask;
-}
-
-impl Tristate for () {
-    type Mask = ();
-    const ENABLED: Self::Mask = ();
-    const DISABLED: Self::Mask = ();
-}
-
 #[derive(Debug, Clone, PartialEq, Copy, Default)]
-pub struct BufZ<T: Tristate> {
-    pub value: T,
-    pub mask: T::Mask,
+pub struct TristateBuf {
+    pub width: usize,
+    pub value: u128,
+    pub mask: u128,
+}
+
+impl Notable for TristateBuf {
+    fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
+        writer.write_tristate(key, self.value, self.mask, self.width as u8);
+    }
+}
+
+pub struct BufZ<'a> {
+    bus: &'a mut TristateBuf,
+    offset: usize,
+    width: usize,
+}
+
+impl<'a> BufZ<'a> {
+    pub fn shift(&mut self, offset: usize) -> BufZ {
+        BufZ {
+            bus: self.bus,
+            offset: self.offset + offset,
+            width: self.width,
+        }
+    }
+    pub fn buf(&self) -> TristateBuf {
+        *self.bus
+    }
+    pub fn new(bus: &'a mut TristateBuf, offset: usize, width: usize) -> Self {
+        Self { bus, offset, width }
+    }
+    pub fn drive<const N: usize>(&mut self, value: Bits<N>) {
+        self.bus.value &= !(value.0 << self.offset);
+        self.bus.value |= value.0 << self.offset;
+        self.bus.mask |= (Bits::<N>::MASK.0) << self.offset;
+    }
+    pub fn tri_state<const N: usize>(&mut self) {
+        self.bus.mask &= !(Bits::<N>::MASK.0 << self.offset);
+    }
+    pub fn read<const N: usize>(&self) -> Bits<N> {
+        rhdl_bits::bits::<N>((self.bus.value >> self.offset) & Bits::<N>::MASK.0)
+    }
+}
+
+impl<'a> Notable for BufZ<'a> {
+    fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
+        writer.write_tristate(key, self.bus.value, self.bus.mask, self.width as u8);
+    }
 }
 
 pub trait Circuit: 'static + Sized + Clone {
@@ -39,8 +74,9 @@ pub trait Circuit: 'static + Sized + Clone {
     type I: Digital;
     // Output type - not auto derived
     type O: Digital;
-    // IO type - not auto derived
-    type IO: Tristate;
+
+    // auto derived as the sum of NumZ of the children
+    const NumZ: usize = 0;
 
     type Update: DigitalFn;
     const UPDATE: CircuitUpdateFn<Self>;
@@ -54,8 +90,7 @@ pub trait Circuit: 'static + Sized + Clone {
     type S: Default + PartialEq + Clone;
 
     // Simulation update - auto derived
-    fn sim(&self, input: Self::I, z_in: Self::IO, state: &mut Self::S)
-        -> (Self::O, BufZ<Self::IO>);
+    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut BufZ) -> Self::O;
 
     fn init_state(&self) -> Self::S {
         Default::default()
@@ -69,6 +104,12 @@ pub trait Circuit: 'static + Sized + Clone {
 
     // auto derived
     fn as_hdl(&self, kind: HDLKind) -> Result<HDLDescriptor>;
+
+    // auto derived
+    // First is 0, then 0 + c0::NumZ, then 0 + c0::NumZ + c1::NumZ, etc
+    fn z_offsets() -> impl Iterator<Item = usize> {
+        std::iter::once(0)
+    }
 }
 
 fn hash_id(fn_id: std::any::TypeId) -> u64 {
@@ -83,6 +124,8 @@ pub struct CircuitDescriptor {
     pub unique_name: String,
     pub input_kind: Kind,
     pub output_kind: Kind,
+    pub num_tristate: usize,
+    pub tristate_offset_in_parent: usize,
     pub children: HashMap<String, CircuitDescriptor>,
 }
 
@@ -95,6 +138,8 @@ pub fn root_descriptor<C: Circuit>(circuit: &C) -> CircuitDescriptor {
         ),
         input_kind: C::I::static_kind(),
         output_kind: C::O::static_kind(),
+        num_tristate: C::NumZ,
+        tristate_offset_in_parent: 0,
         children: Default::default(),
     }
 }

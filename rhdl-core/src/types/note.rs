@@ -66,3 +66,9 @@ impl<T: NoteKey, U: NoteKey> NoteKey for (T, U) {
 pub trait Notable {
     fn note(&self, key: impl NoteKey, writer: impl NoteWriter);
 }
+
+impl<T: Notable> Notable for &T {
+    fn note(&self, key: impl NoteKey, writer: impl NoteWriter) {
+        (*self).note(key, writer)
+    }
+}

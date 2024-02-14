@@ -1,6 +1,7 @@
 use anyhow::bail;
 use anyhow::ensure;
 use anyhow::Result;
+use rhdl_core::note;
 use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
 use rhdl_macro::Digital;
 
@@ -11,7 +12,13 @@ use crate::{circuit::Circuit, clock::Clock};
 
 #[derive(Default, Clone)]
 pub struct DFF<T: Digital> {
-    phantom: std::marker::PhantomData<T>,
+    init: T,
+}
+
+impl<T: Digital> From<T> for DFF<T> {
+    fn from(init: T) -> Self {
+        Self { init }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
@@ -25,8 +32,6 @@ impl<T: Digital> Circuit for DFF<T> {
 
     type O = T;
 
-    type IO = ();
-
     type Q = ();
 
     type D = ();
@@ -37,7 +42,14 @@ impl<T: Digital> Circuit for DFF<T> {
 
     type S = DFFI<T>;
 
-    fn sim(&self, input: Self::I, io: Self::IO, state: &mut Self::S) -> (Self::O, BufZ<()>) {
+    fn init_state(&self) -> Self::S {
+        DFFI {
+            clock: Clock(true),
+            data: self.init,
+        }
+    }
+
+    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut BufZ) -> Self::O {
         let output = if input.clock.0 && !state.clock.0 {
             input.data
         } else {
@@ -45,7 +57,8 @@ impl<T: Digital> Circuit for DFF<T> {
         };
         state.clock = input.clock;
         state.data = output;
-        (output, Default::default())
+        note("dff", output);
+        output
     }
 
     fn name(&self) -> &'static str {
@@ -73,7 +86,7 @@ impl<T: Digital> DFF<T> {
         let module_name = self.descriptor().unique_name;
         let input_bits = T::bits();
         let output_bits = T::bits().saturating_sub(1);
-        let init = as_verilog_literal(&T::default().typed_bits());
+        let init = as_verilog_literal(&self.init.typed_bits());
         let code = format!(
             "
 module {module_name}(input wire[{input_bits}:0] i, output reg[{output_bits}:0] o);

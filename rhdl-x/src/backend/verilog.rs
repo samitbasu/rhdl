@@ -13,10 +13,10 @@ pub fn root_verilog<C: Circuit>(t: &C) -> Result<HDLDescriptor> {
     let module_name = &descriptor.unique_name;
     // module top(input wire clk, input wire[0:0] top_in, output reg[3:0] top_out);
 
-    let io_decl = if C::IO::bits() != 0 {
+    let io_decl = if C::NumZ != 0 {
         format!(
             ", inout wire[{IO_BITS}:0] io",
-            IO_BITS = C::IO::bits().saturating_sub(1)
+            IO_BITS = C::NumZ.saturating_sub(1)
         )
     } else {
         Default::default()
