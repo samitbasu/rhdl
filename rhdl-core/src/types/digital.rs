@@ -322,6 +322,18 @@ impl<T0: Notable, T1: Notable, T2: Notable, T3: Notable> Notable for (T0, T1, T2
     }
 }
 
+impl<T0: Notable, T1: Notable, T2: Notable, T3: Notable, T4: Notable> Notable
+    for (T0, T1, T2, T3, T4)
+{
+    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
+        self.0.note((key, ".0"), &mut writer);
+        self.1.note((key, ".1"), &mut writer);
+        self.2.note((key, ".2"), &mut writer);
+        self.3.note((key, ".3"), &mut writer);
+        self.4.note((key, ".4"), &mut writer);
+    }
+}
+
 // Because of the way Rust works, we cannot simply use a const-generic
 // array here.  Instead, we have to implement each size of array
 // separately.  This is unfortunate, but it is the only way to

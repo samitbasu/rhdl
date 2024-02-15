@@ -30,6 +30,8 @@ impl<const N: usize> Circuit for Counter<N> {
 
     type O = Bits<N>;
 
+    type Z = ();
+
     type Q = (Bits<N>,);
 
     type D = (DFFI<Bits<N>>,);
@@ -39,7 +41,7 @@ impl<const N: usize> Circuit for Counter<N> {
 
     type S = (Self::Q, <DFF<Bits<N>> as Circuit>::S);
 
-    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut BufZ) -> Self::O {
+    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
         loop {
             let prev_state = state.clone();
             let (outputs, internal_inputs) = Self::UPDATE(input, state.0);

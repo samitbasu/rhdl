@@ -50,8 +50,7 @@ fn test_dff() {
     note_time(0);
     let dff = DFF::<u8>::default();
     let mut state = dff.init_state();
-    let mut buffer = TristateBuf::default();
-    let mut io: BufZ = BufZ::new(&mut buffer, 0, 0);
+    let mut io = <DFF<u8> as Circuit>::Z::default();
     for (time, input) in inputs.enumerate().take(1000) {
         note_time(time as u64 * 1_000);
         note("input", input);
@@ -74,8 +73,7 @@ fn test_strobe() {
     note_time(0);
     let strobe = Strobe::<8>::new(b8(5));
     let mut state = strobe.init_state();
-    let mut buffer = TristateBuf::default();
-    let mut io: BufZ = BufZ::new(&mut buffer, 0, 0);
+    let mut io = <Strobe<8> as Circuit>::Z::default();
     for (time, input) in inputs.enumerate().take(2000) {
         note_time(time as u64 * 100);
         note("input", input);
@@ -134,8 +132,7 @@ fn main() {
     note_time(0);
     let counter = Counter::<8>::default();
     let mut state = counter.init_state();
-    let mut buffer = TristateBuf::default();
-    let mut io: BufZ = BufZ::new(&mut buffer, 0, 0);
+    let mut io = <Counter<8> as Circuit>::Z::default();
     for (time, input) in inputs.enumerate().take(2000) {
         note_time(time as u64 * 100);
         note("input", input);
