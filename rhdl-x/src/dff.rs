@@ -36,6 +36,8 @@ impl<T: Digital> Circuit for DFF<T> {
 
     type D = ();
 
+    type Z = ();
+
     type Update = Self;
 
     const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = |i, _| (i.data, ());
@@ -49,7 +51,7 @@ impl<T: Digital> Circuit for DFF<T> {
         }
     }
 
-    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut BufZ) -> Self::O {
+    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
         let output = if input.clock.0 && !state.clock.0 {
             input.data
         } else {

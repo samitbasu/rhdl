@@ -75,18 +75,25 @@ impl<const N: usize> Circuit for Strobe<N> {
         <DFF<Bits<N>> as Circuit>::S,
     );
 
+    type Z = (
+        <Constant<Bits<N>> as Circuit>::Z,
+        <DFF<Bits<N>> as Circuit>::Z,
+    );
+
     type Update = strobe<N>;
 
     const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = strobe::<N>;
 
-    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut BufZ) -> Self::O {
+    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
         loop {
             let prev_state = state.clone();
             let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
-            state.0.threshold = self
-                .threshold
-                .sim(internal_inputs.threshold, &mut state.1, io);
-            state.0.counter = self.counter.sim(internal_inputs.counter, &mut state.2, io);
+            state.0.threshold =
+                self.threshold
+                    .sim(internal_inputs.threshold, &mut state.1, &mut io.0);
+            state.0.counter = self
+                .counter
+                .sim(internal_inputs.counter, &mut state.2, &mut io.1);
             if state == &prev_state {
                 return outputs;
             }

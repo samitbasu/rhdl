@@ -69,6 +69,48 @@ impl<'a> Notable for BufZ<'a> {
     }
 }
 
+pub trait Tristate: Default + Clone + Copy {
+    const N: usize;
+}
+
+impl Tristate for () {
+    const N: usize = 0;
+}
+
+#[derive(Debug, Clone, PartialEq, Copy, Default)]
+pub struct BitZ<const N: usize> {
+    pub value: Bits<N>,
+    pub mask: Bits<N>,
+}
+
+impl<const N: usize> Notable for BitZ<N> {
+    fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
+        writer.write_tristate(key, self.value.0, self.mask.0, N as u8);
+    }
+}
+
+impl<const N: usize> Tristate for BitZ<N> {
+    const N: usize = N;
+}
+
+impl<T0: Tristate, T1: Tristate> Tristate for (T0, T1) {
+    const N: usize = T0::N + T1::N;
+}
+
+impl<T0: Tristate, T1: Tristate, T2: Tristate> Tristate for (T0, T1, T2) {
+    const N: usize = T0::N + T1::N + T2::N;
+}
+
+impl<T0: Tristate, T1: Tristate, T2: Tristate, T3: Tristate> Tristate for (T0, T1, T2, T3) {
+    const N: usize = T0::N + T1::N + T2::N + T3::N;
+}
+
+impl<T0: Tristate, T1: Tristate, T2: Tristate, T3: Tristate, T4: Tristate> Tristate
+    for (T0, T1, T2, T3, T4)
+{
+    const N: usize = T0::N + T1::N + T2::N + T3::N + T4::N;
+}
+
 pub trait Circuit: 'static + Sized + Clone {
     // Input type - not auto derived
     type I: Digital;
@@ -76,7 +118,7 @@ pub trait Circuit: 'static + Sized + Clone {
     type O: Digital;
 
     // auto derived as the sum of NumZ of the children
-    const NumZ: usize = 0;
+    type Z: Tristate;
 
     type Update: DigitalFn;
     const UPDATE: CircuitUpdateFn<Self>;
@@ -90,7 +132,7 @@ pub trait Circuit: 'static + Sized + Clone {
     type S: Default + PartialEq + Clone;
 
     // Simulation update - auto derived
-    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut BufZ) -> Self::O;
+    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O;
 
     fn init_state(&self) -> Self::S {
         Default::default()
@@ -138,7 +180,7 @@ pub fn root_descriptor<C: Circuit>(circuit: &C) -> CircuitDescriptor {
         ),
         input_kind: C::I::static_kind(),
         output_kind: C::O::static_kind(),
-        num_tristate: C::NumZ,
+        num_tristate: C::Z::N,
         tristate_offset_in_parent: 0,
         children: Default::default(),
     }
