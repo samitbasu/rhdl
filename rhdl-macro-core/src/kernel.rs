@@ -311,39 +311,27 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
             syn::FnArg::Typed(pat) => {
                 let pat = &pat.pat;
                 pattern_to_expr(pat)
-                //                Ok(quote!(#pat))
-                /*
-                                if let syn::Pat::Ident(ident) = pat.pat.as_ref() {
-                                    let name = &ident.ident;
-                                    Ok(quote! { #name })
-                                } else {
-                                    Err(syn::Error::new(
-                                        pat.span(),
-                                        "Unsupported pattern in rhdl kernel function",
-                                    ))
-                                }
-                */
             }
         })
         .collect::<Result<Punctuated<_, Comma>>>()?;
     let ret = &function.sig.output;
     let body = &function.block;
     Ok(quote! {
-        #vis fn #orig_name #impl_generics (#args) #ret #where_clause {
-            #[forbid(non_snake_case)]
-            #[forbid(non_upper_case_globals)]
-            #[forbid(unreachable_patterns)]
-            //#[forbid(path_statements)]
-            //#[forbid(unused_variables)]
-            fn inner #impl_generics (#args) #ret #where_clause {
-                #body
+            #vis fn #orig_name #impl_generics (#args) #ret #where_clause {
+                #[forbid(non_snake_case)]
+                #[forbid(non_upper_case_globals)]
+                #[forbid(unreachable_patterns)]
+                //#[forbid(path_statements)]
+                //#[forbid(unused_variables)]
+                fn inner #impl_generics (#args) #ret #where_clause {
+                    #body
+                }
+    //            rhdl_core::note_push_path(stringify!(#orig_name));
+                let ret = inner(#call_args);
+    //            rhdl_core::note_pop_path();
+                ret
             }
-            rhdl_core::note_push_path(stringify!(#orig_name));
-            let ret = inner(#call_args);
-            rhdl_core::note_pop_path();
-            ret
-        }
-    })
+        })
 }
 
 impl Context {
