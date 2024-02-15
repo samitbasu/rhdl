@@ -84,6 +84,7 @@ impl<const N: usize> Circuit for ZDriver<N> {
     fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
         if input.enable {
             io.mask = Bits::<N>::MASK;
+            io.value = input.data;
         } else {
             io.mask = Bits::<N>::ZERO;
         }
