@@ -1,6 +1,9 @@
 use anyhow::bail;
 use anyhow::Result;
 use rhdl_bits::Bits;
+use rhdl_core::note;
+use rhdl_core::note_pop_path;
+use rhdl_core::note_push_path;
 use rhdl_core::Digital;
 use rhdl_macro::{kernel, Digital};
 
@@ -42,12 +45,16 @@ impl<const N: usize> Circuit for Counter<N> {
     type S = (Self::Q, <DFF<Bits<N>> as Circuit>::S);
 
     fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
+        note("input", input);
         loop {
             let prev_state = state.clone();
             let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
+            note_push_path("count");
             let o0 = self.count.sim(internal_inputs.0, &mut state.1, io);
+            note_pop_path();
             state.0 = (o0,);
             if state == &prev_state {
+                note("outputs", outputs);
                 return outputs;
             }
         }

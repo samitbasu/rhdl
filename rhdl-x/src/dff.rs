@@ -52,6 +52,7 @@ impl<T: Digital> Circuit for DFF<T> {
     }
 
     fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
+        note("input", input);
         let output = if input.clock.0 && !state.clock.0 {
             input.data
         } else {
@@ -59,7 +60,7 @@ impl<T: Digital> Circuit for DFF<T> {
         };
         state.clock = input.clock;
         state.data = output;
-        note("dff", output);
+        note("output", output);
         output
     }
 

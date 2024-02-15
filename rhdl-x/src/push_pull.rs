@@ -249,18 +249,25 @@ impl Circuit for Push {
     }
 
     fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
+        note("input", input);
         loop {
             let prev_state = state.clone();
             let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
+            note_push_path("strobe");
             state.0.strobe = self
                 .strobe
                 .sim(internal_inputs.strobe, &mut state.1, &mut io.strobe);
+            note_pop_path();
+            note_push_path("value");
             state.0.value = self
                 .value
                 .sim(internal_inputs.value, &mut state.2, &mut io.value);
+            note_pop_path();
+            note_push_path("buf_z");
             state.0.buf_z = self
                 .buf_z
                 .sim(internal_inputs.buf_z, &mut state.3, &mut io.buf_z);
+            note_pop_path();
             note_push_path("side");
             state.0.side = self
                 .side
@@ -272,6 +279,7 @@ impl Circuit for Push {
                 .sim(internal_inputs.latch, &mut state.5, &mut io.latch);
             note_pop_path();
             if state == &prev_state {
+                note("outputs", outputs);
                 return outputs;
             }
         }
@@ -449,6 +457,7 @@ impl Circuit for PushPair {
     }
 
     fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
+        note("input", input);
         loop {
             let prev_state = state.clone();
             let mut z_offsets = Self::z_offsets();
@@ -464,6 +473,7 @@ impl Circuit for PushPair {
                 .sim(internal_inputs.right, &mut state.2, &mut io.right);
             note_pop_path();
             if state == &prev_state {
+                note("outputs", outputs);
                 return outputs;
             }
         }
