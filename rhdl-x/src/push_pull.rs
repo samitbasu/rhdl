@@ -337,6 +337,7 @@ fn test_simulate_push() {
     let mut io = <Push as Circuit>::Z::default();
     note_init_db();
     note_time(0);
+    note_push_path("top");
     for (ndx, input) in crate::clock::clock().take(1500).enumerate() {
         note_time(ndx as u64 * 100);
         note("clock", input);
@@ -350,6 +351,7 @@ fn test_simulate_push() {
         }
         note("bus", io);
     }
+    note_pop_path();
     let db = note_take().unwrap();
     let push = std::fs::File::create("push.vcd").unwrap();
     db.dump_vcd(&[], push).unwrap();

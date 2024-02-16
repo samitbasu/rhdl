@@ -13,6 +13,8 @@ use rhdl_bits::bits;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::note_db::note_time;
 use rhdl_core::note_init_db;
+use rhdl_core::note_pop_path;
+use rhdl_core::note_push_path;
 use rhdl_core::note_take;
 use rhdl_core::DigitalFn;
 use rhdl_core::{note, Digital};
@@ -142,4 +144,44 @@ fn main() {
     let db = note_take().unwrap();
     let dff = std::fs::File::create("counter.vcd").unwrap();
     db.dump_vcd(&[], dff).unwrap();
+}
+
+#[test]
+fn test_timing_note() {
+    #[derive(Copy, Clone, PartialEq, Digital, Default)]
+    pub enum State {
+        #[default]
+        A,
+        B,
+        C,
+    };
+    note_init_db();
+    note_time(0);
+    let tic = Instant::now();
+    for i in 0..1_000_000 {
+        note_time(i);
+        note_push_path("a");
+        note_push_path("b");
+        note_push_path("c");
+        note("i", b8(4));
+        note_pop_path();
+        note_pop_path();
+        note_pop_path();
+        note_push_path("a");
+        note_push_path("b");
+        note_push_path("d");
+        note("name", b16(0x1234));
+        note_pop_path();
+        note_pop_path();
+        note_pop_path();
+        note_push_path("b");
+        note_push_path("c");
+        note_push_path("e");
+        note("color", State::B);
+        note_pop_path();
+        note_pop_path();
+        note_pop_path();
+    }
+    let toc = Instant::now();
+    eprintln!("Time: {:?}", toc - tic);
 }
