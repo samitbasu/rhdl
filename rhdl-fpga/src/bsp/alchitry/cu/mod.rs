@@ -30,7 +30,8 @@ pub fn synth_yosys_nextpnr_icepack(v: &ConstrainedVerilog, path: &Path) -> Resul
         .current_dir(path)
         .arg(command_arg)
         .arg("top.v")
-        .output()?;
+        .output()
+        .expect("Yosys should be installed and in your PATH.");
 
     std::fs::write(path.join("yosys.stdout"), &yosys.stdout)?;
     std::fs::write(path.join("yosys.stderr"), &yosys.stderr)?;

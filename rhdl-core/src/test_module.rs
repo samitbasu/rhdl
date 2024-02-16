@@ -343,11 +343,14 @@ impl TestModule {
         cmd.arg("-o")
             .arg(d_path.join("testbench"))
             .arg(d_path.join("testbench.v"));
-        let status = cmd.status()?;
+        let status = cmd
+            .status()
+            .expect("Icarus Verilog should be installed and in your PATH.");
         if !status.success() {
-            bail!("Failed to compile testbench");
+            bail!("Failed to compile testbench with {}", status);
         }
-        let mut cmd = std::process::Command::new(d_path.join("testbench"));
+        let mut cmd = std::process::Command::new("vvp");
+        cmd.arg(d_path.join("testbench"));
         let output = cmd.output()?;
         for case in String::from_utf8_lossy(&output.stdout)
             .lines()
