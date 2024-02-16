@@ -1,10 +1,8 @@
 use anyhow::ensure;
 use anyhow::Result;
-use rhdl_bits::Bits;
 use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
 
 use crate::circuit::root_descriptor;
-use crate::circuit::BufZ;
 use crate::circuit::HDLDescriptor;
 use crate::circuit::{Circuit, CircuitDescriptor};
 
