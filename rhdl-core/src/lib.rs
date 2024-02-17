@@ -2,6 +2,10 @@ pub use types::kind::Kind;
 pub mod clock_details;
 
 pub use clock_details::ClockDetails;
+pub use types::bitz::BitZ;
+pub use types::circuit::Circuit;
+pub use types::circuit::CircuitDescriptor;
+pub use types::circuit::Tristate;
 pub use types::digital::Digital;
 pub use types::digital_fn::DigitalFn;
 pub use types::kernel::KernelFnKind;
