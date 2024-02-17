@@ -23,7 +23,7 @@ impl From<crate::ast::ast_impl::NodeId> for TypeId {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-pub enum Bits {
+pub(crate) enum Bits {
     Signed(usize),
     Unsigned(usize),
     I128,
