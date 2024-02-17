@@ -53,7 +53,7 @@ impl<T: Digital> Circuit for Constant<T> {
         root_descriptor(self)
     }
 
-    fn as_hdl(&self, kind: crate::circuit::HDLKind) -> Result<HDLDescriptor> {
+    fn as_hdl(&self, kind: crate::circuit::HDLKind) -> anyhow::Result<HDLDescriptor> {
         ensure!(kind == crate::circuit::HDLKind::Verilog);
         Ok(self.as_verilog())
     }

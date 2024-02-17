@@ -4,7 +4,6 @@ use std::{
 };
 
 use crate::{Digital, DigitalFn, Kind};
-use anyhow::Result;
 
 pub type CircuitUpdateFn<C> =
     fn(<C as Circuit>::I, <C as Circuit>::Q) -> (<C as Circuit>::O, <C as Circuit>::D);
@@ -56,7 +55,7 @@ pub trait Circuit: 'static + Sized + Clone {
     fn descriptor(&self) -> CircuitDescriptor;
 
     // auto derived
-    fn as_hdl(&self, kind: HDLKind) -> Result<HDLDescriptor>;
+    fn as_hdl(&self, kind: HDLKind) -> anyhow::Result<HDLDescriptor>;
 
     // auto derived
     // First is 0, then 0 + c0::NumZ, then 0 + c0::NumZ + c1::NumZ, etc
@@ -102,4 +101,14 @@ pub struct HDLDescriptor {
     pub name: String,
     pub body: String,
     pub children: HashMap<String, HDLDescriptor>,
+}
+
+impl std::fmt::Display for HDLDescriptor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{}", self.body)?;
+        for hdl in self.children.values() {
+            writeln!(f, "{}", hdl)?;
+        }
+        Ok(())
+    }
 }

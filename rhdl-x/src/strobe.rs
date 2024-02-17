@@ -3,6 +3,7 @@ use anyhow::Result;
 use rhdl_bits::alias::*;
 use rhdl_bits::{bits, Bits};
 use rhdl_core::note;
+use rhdl_core::Tristate;
 use rhdl_macro::{kernel, Digital};
 
 use crate::circuit::root_descriptor;
@@ -36,6 +37,23 @@ pub struct StrobeQ<const N: usize> {
 pub struct StrobeD<const N: usize> {
     threshold: <Constant<Bits<N>> as Circuit>::I,
     counter: <DFF<Bits<N>> as Circuit>::I,
+}
+
+#[derive(Debug, Clone, PartialEq, Default, Copy)]
+pub struct StrobeZ<const N: usize> {
+    threshold: <Constant<Bits<N>> as Circuit>::Z,
+    counter: <DFF<Bits<N>> as Circuit>::Z,
+}
+
+impl<const N: usize> Tristate for StrobeZ<N> {
+    const N: usize = <Constant<Bits<N>> as Circuit>::Z::N + <DFF<Bits<N>> as Circuit>::Z::N;
+}
+
+impl<const N: usize> rhdl_core::Notable for StrobeZ<N> {
+    fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
+        self.threshold.note(key, &mut writer);
+        self.counter.note(key, &mut writer);
+    }
 }
 
 impl<const N: usize>
@@ -75,10 +93,7 @@ impl<const N: usize> Circuit for Strobe<N> {
         <DFF<Bits<N>> as Circuit>::S,
     );
 
-    type Z = (
-        <Constant<Bits<N>> as Circuit>::Z,
-        <DFF<Bits<N>> as Circuit>::Z,
-    );
+    type Z = StrobeZ<N>;
 
     type Update = strobe<N>;
 
@@ -90,10 +105,10 @@ impl<const N: usize> Circuit for Strobe<N> {
             let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
             state.0.threshold =
                 self.threshold
-                    .sim(internal_inputs.threshold, &mut state.1, &mut io.0);
-            state.0.counter = self
-                .counter
-                .sim(internal_inputs.counter, &mut state.2, &mut io.1);
+                    .sim(internal_inputs.threshold, &mut state.1, &mut io.threshold);
+            state.0.counter =
+                self.counter
+                    .sim(internal_inputs.counter, &mut state.2, &mut io.counter);
             if state == &prev_state {
                 return outputs;
             }

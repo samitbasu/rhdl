@@ -25,6 +25,7 @@ use crate::circuit::TristateBuf;
 use crate::clock::Clock;
 use crate::dff::DFF;
 use crate::{circuit::Circuit, constant::Constant, strobe::Strobe};
+use rhdl_macro::Circuit;
 
 #[derive(Default, Clone)]
 pub struct ZDriver<const N: usize> {}
@@ -115,7 +116,7 @@ pub enum Side {
     Right,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Circuit)]
 pub struct Push {
     strobe: Strobe<32>,
     value: Constant<Bits<8>>,
@@ -124,6 +125,108 @@ pub struct Push {
     latch: DFF<Bits<8>>,
 }
 
+impl Circuit for Push {
+    type I = Clock;
+
+    type O = b8;
+
+    type S = (
+        Self::Q,
+        <Strobe<32> as Circuit>::S,
+        <Constant<Bits<8>> as Circuit>::S,
+        <ZDriver<8> as Circuit>::S,
+        <DFF<Side> as Circuit>::S,
+        <DFF<Bits<8>> as Circuit>::S,
+    );
+
+    fn init_state(&self) -> Self::S {
+        (
+            Default::default(),
+            self.strobe.init_state(),
+            self.value.init_state(),
+            self.buf_z.init_state(),
+            self.side.init_state(),
+            self.latch.init_state(),
+        )
+    }
+
+    type Update = pushd;
+
+    const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = pushd;
+
+    fn name(&self) -> &'static str {
+        "PushD"
+    }
+
+    fn descriptor(&self) -> crate::circuit::CircuitDescriptor {
+        let mut ret = root_descriptor(self);
+        ret.children
+            .insert("strobe".to_string(), self.strobe.descriptor());
+        ret.children
+            .insert("value".to_string(), self.value.descriptor());
+        ret.children
+            .insert("buf_z".to_string(), self.buf_z.descriptor());
+        ret.children
+            .insert("side".to_string(), self.side.descriptor());
+        ret.children
+            .insert("latch".to_string(), self.latch.descriptor());
+        ret
+    }
+
+    fn as_hdl(&self, kind: crate::circuit::HDLKind) -> anyhow::Result<HDLDescriptor> {
+        let mut ret = root_hdl(self, kind)?;
+        ret.children
+            .insert("strobe".to_string(), self.strobe.as_hdl(kind)?);
+        ret.children
+            .insert("value".to_string(), self.value.as_hdl(kind)?);
+        ret.children
+            .insert("buf_z".to_string(), self.buf_z.as_hdl(kind)?);
+        ret.children
+            .insert("side".to_string(), self.side.as_hdl(kind)?);
+        ret.children
+            .insert("latch".to_string(), self.latch.as_hdl(kind)?);
+        Ok(ret)
+    }
+
+    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
+        note("input", input);
+        loop {
+            let prev_state = state.clone();
+            let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
+            note_push_path("strobe");
+            state.0.strobe = self
+                .strobe
+                .sim(internal_inputs.strobe, &mut state.1, &mut io.strobe);
+            note_pop_path();
+            note_push_path("value");
+            state.0.value = self
+                .value
+                .sim(internal_inputs.value, &mut state.2, &mut io.value);
+            note_pop_path();
+            note_push_path("buf_z");
+            state.0.buf_z = self
+                .buf_z
+                .sim(internal_inputs.buf_z, &mut state.3, &mut io.buf_z);
+            note_pop_path();
+            note_push_path("side");
+            state.0.side = self
+                .side
+                .sim(internal_inputs.side, &mut state.4, &mut io.side);
+            note_pop_path();
+            note_push_path("latch");
+            state.0.latch = self
+                .latch
+                .sim(internal_inputs.latch, &mut state.5, &mut io.latch);
+            note_pop_path();
+            if state == &prev_state {
+                note("outputs", outputs);
+                return outputs;
+            }
+        }
+    }
+}
+
+/*
 // Auto generated
 #[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
 pub struct PushQ {
@@ -152,7 +255,6 @@ pub struct PushZ {
     side: <DFF<Side> as Circuit>::Z,
     latch: <DFF<Bits<8>> as Circuit>::Z,
 }
-
 impl Tristate for PushZ {
     const N: usize = <Strobe<32> as Circuit>::Z::N
         + <Constant<Bits<8>> as Circuit>::Z::N
@@ -161,17 +263,6 @@ impl Tristate for PushZ {
         + <DFF<Bits<8>> as Circuit>::Z::N;
 }
 
-impl Notable for PushZ {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        self.strobe.note((key, "strobe"), &mut writer);
-        self.value.note((key, "value"), &mut writer);
-        self.buf_z.note((key, "buf_z"), &mut writer);
-        self.side.note((key, "side"), &mut writer);
-        self.latch.note((key, "latch"), &mut writer);
-    }
-}
-
-/*
 impl<const N: usize> Notable for BufZ<Bits<N>> {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_tristate(key, self.value.0, self.mask.0, N as u8);
@@ -179,6 +270,7 @@ impl<const N: usize> Notable for BufZ<Bits<N>> {
 }
 */
 
+/*
 impl Circuit for Push {
     type I = Clock;
 
@@ -285,6 +377,7 @@ impl Circuit for Push {
         }
     }
 }
+*/
 
 #[kernel]
 pub fn pushd(i: Clock, q: PushQ) -> (b8, PushD) {

@@ -23,3 +23,11 @@ pub fn hdl(input: TokenStream) -> TokenStream {
         Err(err) => err.to_compile_error().into(),
     }
 }
+
+#[proc_macro_derive(Circuit)]
+pub fn circuit(input: TokenStream) -> TokenStream {
+    match rhdl_macro_core::derive_circuit(input.into()) {
+        Ok(output) => output.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
