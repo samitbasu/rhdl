@@ -12,11 +12,6 @@ use crate::backend::verilog::root_verilog;
 pub type CircuitUpdateFn<C> =
     fn(<C as Circuit>::I, <C as Circuit>::Q) -> (<C as Circuit>::O, <C as Circuit>::D);
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum HDLKind {
-    Verilog,
-}
-
 #[derive(Debug, Clone, PartialEq, Copy, Default)]
 pub struct TristateBuf {
     pub width: usize,
@@ -69,13 +64,7 @@ impl<'a> Notable for BufZ<'a> {
     }
 }
 
-pub trait Tristate: Default + Clone + Copy {
-    const N: usize;
-}
-
-impl Tristate for () {
-    const N: usize = 0;
-}
+pub use rhdl_core::Tristate;
 
 #[derive(Debug, Clone, PartialEq, Copy, Default)]
 pub struct BitZ<const N: usize> {
@@ -93,25 +82,11 @@ impl<const N: usize> Tristate for BitZ<N> {
     const N: usize = N;
 }
 
-impl<T0: Tristate, T1: Tristate> Tristate for (T0, T1) {
-    const N: usize = T0::N + T1::N;
-}
+pub use rhdl_core::Circuit;
+pub use rhdl_core::CircuitDescriptor;
+pub use rhdl_core::HDLKind;
 
-impl<T0: Tristate, T1: Tristate, T2: Tristate> Tristate for (T0, T1, T2) {
-    const N: usize = T0::N + T1::N + T2::N;
-}
-
-impl<T0: Tristate, T1: Tristate, T2: Tristate, T3: Tristate> Tristate for (T0, T1, T2, T3) {
-    const N: usize = T0::N + T1::N + T2::N + T3::N;
-}
-
-impl<T0: Tristate, T1: Tristate, T2: Tristate, T3: Tristate, T4: Tristate> Tristate
-    for (T0, T1, T2, T3, T4)
-{
-    const N: usize = T0::N + T1::N + T2::N + T3::N + T4::N;
-}
-
-pub trait Circuit: 'static + Sized + Clone {
+/*pub trait Circuit: 'static + Sized + Clone {
     // Input type - not auto derived
     type I: Digital;
     // Output type - not auto derived
@@ -153,22 +128,12 @@ pub trait Circuit: 'static + Sized + Clone {
         std::iter::once(0)
     }
 }
-
+*/
 fn hash_id(fn_id: std::any::TypeId) -> u64 {
     // Hash the typeID into a 64 bit unsigned int
     let mut hasher = fnv::FnvHasher::default();
     fn_id.hash(&mut hasher);
     hasher.finish()
-}
-
-#[derive(Clone, Debug)]
-pub struct CircuitDescriptor {
-    pub unique_name: String,
-    pub input_kind: Kind,
-    pub output_kind: Kind,
-    pub num_tristate: usize,
-    pub tristate_offset_in_parent: usize,
-    pub children: HashMap<String, CircuitDescriptor>,
 }
 
 pub fn root_descriptor<C: Circuit>(circuit: &C) -> CircuitDescriptor {
@@ -186,25 +151,10 @@ pub fn root_descriptor<C: Circuit>(circuit: &C) -> CircuitDescriptor {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct HDLDescriptor {
-    pub name: String,
-    pub body: String,
-    pub children: HashMap<String, HDLDescriptor>,
-}
+pub use rhdl_core::HDLDescriptor;
 
 pub fn root_hdl<C: Circuit>(circuit: &C, kind: HDLKind) -> Result<HDLDescriptor> {
     match kind {
         HDLKind::Verilog => root_verilog(circuit),
-    }
-}
-
-impl std::fmt::Display for HDLDescriptor {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{}", self.body)?;
-        for hdl in self.children.values() {
-            writeln!(f, "{}", hdl)?;
-        }
-        Ok(())
     }
 }
