@@ -81,8 +81,8 @@ impl<T: Digital> Circuit for DFF<T> {
 }
 
 impl<T: Digital> DigitalFn for DFF<T> {
-    fn kernel_fn() -> rhdl_core::KernelFnKind {
-        todo!()
+    fn kernel_fn() -> Option<rhdl_core::KernelFnKind> {
+        None
     }
 }
 
