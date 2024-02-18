@@ -4,7 +4,7 @@ pub use crate::{kernel::KernelFnKind, Digital, Kind};
 
 pub trait DigitalFn {
     fn kernel_fn() -> Option<KernelFnKind> {
-        return None;
+        None
     }
 }
 

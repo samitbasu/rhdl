@@ -38,8 +38,8 @@ pub struct ZDriverI<const N: usize> {
 }
 
 impl<const N: usize> DigitalFn for ZDriver<N> {
-    fn kernel_fn() -> rhdl_core::KernelFnKind {
-        todo!()
+    fn kernel_fn() -> Option<rhdl_core::KernelFnKind> {
+        None
     }
 }
 
@@ -78,9 +78,7 @@ impl<const N: usize> Circuit for ZDriver<N> {
 
     type Z = BitZ<N>;
 
-    type Update = Self;
-
-    const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = |i, _| (i.data, ());
+    type Update = rhdl_core::NoUpdateFn;
 
     type S = ();
 
@@ -119,6 +117,7 @@ pub enum Side {
 }
 
 #[derive(Clone, Circuit)]
+#[rhdl(kernel = pushd)]
 pub struct Push {
     strobe: Strobe<32>,
     value: Constant<Bits<8>>,
@@ -386,10 +385,9 @@ fn test_simulate_push() {
         note_time(ndx as u64 * 100);
         note("clock", input);
         loop {
-            let p_state = state.clone();
+            let p_state = state;
             push.sim(input, &mut state, &mut io);
             if state == p_state {
-                eprintln!("Stable[{ndx}]: {:?}", io);
                 break;
             }
         }

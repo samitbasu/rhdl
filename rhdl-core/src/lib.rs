@@ -5,6 +5,7 @@ pub use circuit::bitz::BitZ;
 pub use circuit::circuit::Circuit;
 pub use circuit::circuit::CircuitIO;
 pub use circuit::circuit::HDLKind;
+pub use circuit::circuit::NoUpdateFn;
 pub use circuit::circuit::Tristate;
 pub use circuit::circuit_descriptor::root_descriptor;
 pub use circuit::circuit_descriptor::CircuitDescriptor;

@@ -20,8 +20,8 @@ impl<T: Digital> From<T> for Constant<T> {
 }
 
 impl<T: Digital> DigitalFn for Constant<T> {
-    fn kernel_fn() -> rhdl_core::KernelFnKind {
-        todo!()
+    fn kernel_fn() -> Option<rhdl_core::KernelFnKind> {
+        None
     }
 }
 

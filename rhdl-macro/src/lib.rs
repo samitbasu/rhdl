@@ -24,7 +24,7 @@ pub fn hdl(input: TokenStream) -> TokenStream {
     }
 }
 
-#[proc_macro_derive(Circuit)]
+#[proc_macro_derive(Circuit, attributes(rhdl))]
 pub fn circuit(input: TokenStream) -> TokenStream {
     match rhdl_macro_core::derive_circuit(input.into()) {
         Ok(output) => output.into(),
