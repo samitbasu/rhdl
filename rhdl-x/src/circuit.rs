@@ -1,16 +1,12 @@
-use anyhow::bail;
 use anyhow::Result;
 use rhdl_bits::Bits;
+use rhdl_core::CircuitIO;
+use rhdl_core::Digital;
 use rhdl_core::Notable;
-use rhdl_core::{Digital, DigitalFn, Kind};
-use rhdl_macro::Digital;
-use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
-use crate::backend::verilog::root_verilog;
-
 pub type CircuitUpdateFn<C> =
-    fn(<C as Circuit>::I, <C as Circuit>::Q) -> (<C as Circuit>::O, <C as Circuit>::D);
+    fn(<C as CircuitIO>::I, <C as Circuit>::Q) -> (<C as CircuitIO>::O, <C as Circuit>::D);
 
 #[derive(Debug, Clone, PartialEq, Copy, Default)]
 pub struct TristateBuf {
@@ -155,6 +151,6 @@ pub use rhdl_core::HDLDescriptor;
 
 pub fn root_hdl<C: Circuit>(circuit: &C, kind: HDLKind) -> Result<HDLDescriptor> {
     match kind {
-        HDLKind::Verilog => root_verilog(circuit),
+        HDLKind::Verilog => rhdl_core::root_verilog(circuit),
     }
 }

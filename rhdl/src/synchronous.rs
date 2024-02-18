@@ -200,7 +200,10 @@ pub fn make_verilog_testbench<M: Synchronous>(
 ) -> Result<TestModule> {
     // Given a synchronous object and an iterator of inputs, generate a Verilog testbench
     // that will simulate the object and print the results to the console.
-    let verilog = generate_verilog(&compile_design(M::Update::kernel_fn().try_into()?)?)?;
+    let Some(kernel) = M::Update::kernel_fn() else {
+        return Err(anyhow::anyhow!("No kernel function found"));
+    };
+    let verilog = generate_verilog(&compile_design(kernel.try_into()?)?)?;
     let module_code = format!("{}", verilog);
     let inputs = inputs.collect::<Vec<_>>();
     let outputs = simulate(obj, inputs.iter().copied()).collect::<Vec<_>>();
@@ -321,7 +324,7 @@ fn test_pulser_simulation() {
 
 #[test]
 fn get_pulser_verilog() -> Result<()> {
-    let design = compile_design(pulser_update::<16>::kernel_fn().try_into()?)?;
+    let design = compile_design(pulser_update::<16>::kernel_fn().unwrap().try_into()?)?;
     let verilog = generate_verilog(&design)?;
     eprintln!("Verilog {}", verilog);
     std::fs::write("pulser.v", format!("{}", verilog))?;
@@ -387,7 +390,7 @@ fn test_basic_data_flow_graph() {
         }
     }
 
-    let design = compile_design(flow::kernel_fn().try_into().unwrap()).unwrap();
+    let design = compile_design(flow::kernel_fn().unwrap().try_into().unwrap()).unwrap();
     let source_map = design.source_map();
     let dfg = rhdl_core::compiler::data_flow_graph::make_data_flow(&design).unwrap();
     eprintln!("dfg: {:?}", dfg);
@@ -427,6 +430,7 @@ fn get_blinker_data_flow_graph() {
     };
     let design = compile_design(
         <Blinker as Synchronous>::Update::kernel_fn()
+            .unwrap()
             .try_into()
             .unwrap(),
     )

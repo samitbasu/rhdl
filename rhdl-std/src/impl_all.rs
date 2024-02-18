@@ -16,8 +16,8 @@ fn vm_all(args: &[TypedBits]) -> anyhow::Result<TypedBits> {
 }
 
 impl<const N: usize> DigitalFn for all<N> {
-    fn kernel_fn() -> KernelFnKind {
-        KernelFnKind::Extern(ExternalKernelDef {
+    fn kernel_fn() -> Option<KernelFnKind> {
+        Some(KernelFnKind::Extern(ExternalKernelDef {
             name: format!("all_{N}"),
             body: format!(
                 "function [{}:0] all_{N}(input [{}:0] a); all_{N} = &a; endfunction",
@@ -25,7 +25,7 @@ impl<const N: usize> DigitalFn for all<N> {
                 N - 1
             ),
             vm_stub: Some(vm_all),
-        })
+        }))
     }
 }
 
@@ -52,6 +52,10 @@ mod tests {
     #[test]
     fn test_iverilog() -> anyhow::Result<()> {
         let test_values = (0..=255).map(bits).map(|x| (x,));
-        test_with_iverilog(all::<8>, all::<8>::kernel_fn().try_into()?, test_values)
+        test_with_iverilog(
+            all::<8>,
+            all::<8>::kernel_fn().unwrap().try_into()?,
+            test_values,
+        )
     }
 }

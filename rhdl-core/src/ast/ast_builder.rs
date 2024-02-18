@@ -211,7 +211,7 @@ pub fn call_expr(
     path: Box<Path>,
     args: Vec<Box<Expr>>,
     signature: DigitalSignature,
-    code: KernelFnKind,
+    code: Option<KernelFnKind>,
 ) -> Box<Expr> {
     Box::new(Expr {
         id: INVALID_NODE_ID,

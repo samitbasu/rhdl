@@ -404,14 +404,14 @@ impl Context {
             #vis struct #name #impl_generics {#(#phantom_fields,)*}
 
             impl #impl_generics rhdl_core::digital_fn::DigitalFn for #name #ty_generics #where_clause {
-                fn kernel_fn() -> rhdl_core::digital_fn::KernelFnKind {
-                    rhdl_core::ast_builder::kernel_fn(
+                fn kernel_fn() -> Option<rhdl_core::digital_fn::KernelFnKind> {
+                    Some(rhdl_core::ast_builder::kernel_fn(
                         stringify!(#orig_name),
                         vec!{#(#args),*},
                         #ret,
                         #block,
                         std::any::TypeId::of::<#name #ty_generics>(),
-                    )
+                    ))
                 }
             }
         })
@@ -698,7 +698,7 @@ impl Context {
                 .collect::<Vec<_>>();
             let template = quote!(#func_path(#(#args_as_default),*));
             // This is a tuple struct constructor
-            quote!(rhdl_core::KernelFnKind::EnumTupleStructConstructor(rhdl_core::Digital::typed_bits(#template)))
+            quote!(Some(rhdl_core::KernelFnKind::EnumTupleStructConstructor(rhdl_core::Digital::typed_bits(#template))))
         };
         let call_to_get_type = quote!(rhdl_core::digital_fn::inspect_digital(#func_path));
         let path = self.path_inner(&func_path.path)?;

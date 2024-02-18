@@ -428,7 +428,7 @@ fn test_method_call_fails_with_roll_your_own() {
         let j = h.any();
     }
 
-    assert!(compile_design(do_stuff::kernel_fn().try_into().unwrap()).is_err());
+    assert!(compile_design(do_stuff::kernel_fn().unwrap().try_into().unwrap()).is_err());
 }
 
 #[test]
@@ -1524,7 +1524,7 @@ fn test_vm_simple_function_with_invalid_args_causes_ice() {
         a
     }
 
-    let design = compile_design(pass::kernel_fn().try_into().unwrap()).unwrap();
+    let design = compile_design(pass::kernel_fn().unwrap().try_into().unwrap()).unwrap();
     eprintln!("design: {}", design);
     let res = execute_function(&design, vec![(42_u16).typed_bits()]);
     assert!(res.is_err());

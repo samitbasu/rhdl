@@ -27,7 +27,7 @@ use strobe::StrobeI;
 //use translator::Translator;
 //use verilog::VerilogTranslator;
 
-mod backend;
+//mod backend;
 mod circuit;
 mod clock;
 mod constant;

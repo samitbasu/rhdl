@@ -7,6 +7,7 @@ use rhdl_core::note_pop_path;
 use rhdl_core::note_push_path;
 use rhdl_core::note_take;
 use rhdl_core::note_time;
+use rhdl_core::CircuitIO;
 use rhdl_core::Digital;
 use rhdl_core::DigitalFn;
 use rhdl_core::Notable;
@@ -65,11 +66,12 @@ endmodule
     }
 }
 
-impl<const N: usize> Circuit for ZDriver<N> {
+impl<const N: usize> CircuitIO for ZDriver<N> {
     type I = ZDriverI<N>;
-
     type O = Bits<N>;
+}
 
+impl<const N: usize> Circuit for ZDriver<N> {
     type Q = ();
 
     type D = ();
@@ -125,68 +127,17 @@ pub struct Push {
     latch: DFF<Bits<8>>,
 }
 
-impl Circuit for Push {
+impl CircuitIO for Push {
     type I = Clock;
-
     type O = b8;
+}
 
-    type S = (
-        Self::Q,
-        <Strobe<32> as Circuit>::S,
-        <Constant<Bits<8>> as Circuit>::S,
-        <ZDriver<8> as Circuit>::S,
-        <DFF<Side> as Circuit>::S,
-        <DFF<Bits<8>> as Circuit>::S,
-    );
-
-    fn init_state(&self) -> Self::S {
-        (
-            Default::default(),
-            self.strobe.init_state(),
-            self.value.init_state(),
-            self.buf_z.init_state(),
-            self.side.init_state(),
-            self.latch.init_state(),
-        )
-    }
+/*
+impl Circuit for Push {
 
     type Update = pushd;
 
     const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = pushd;
-
-    fn name(&self) -> &'static str {
-        "PushD"
-    }
-
-    fn descriptor(&self) -> crate::circuit::CircuitDescriptor {
-        let mut ret = root_descriptor(self);
-        ret.children
-            .insert("strobe".to_string(), self.strobe.descriptor());
-        ret.children
-            .insert("value".to_string(), self.value.descriptor());
-        ret.children
-            .insert("buf_z".to_string(), self.buf_z.descriptor());
-        ret.children
-            .insert("side".to_string(), self.side.descriptor());
-        ret.children
-            .insert("latch".to_string(), self.latch.descriptor());
-        ret
-    }
-
-    fn as_hdl(&self, kind: crate::circuit::HDLKind) -> anyhow::Result<HDLDescriptor> {
-        let mut ret = root_hdl(self, kind)?;
-        ret.children
-            .insert("strobe".to_string(), self.strobe.as_hdl(kind)?);
-        ret.children
-            .insert("value".to_string(), self.value.as_hdl(kind)?);
-        ret.children
-            .insert("buf_z".to_string(), self.buf_z.as_hdl(kind)?);
-        ret.children
-            .insert("side".to_string(), self.side.as_hdl(kind)?);
-        ret.children
-            .insert("latch".to_string(), self.latch.as_hdl(kind)?);
-        Ok(ret)
-    }
 
     fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
         note("input", input);
@@ -225,7 +176,7 @@ impl Circuit for Push {
         }
     }
 }
-
+*/
 /*
 // Auto generated
 #[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
@@ -469,18 +420,16 @@ pub struct PushPair {
     right: Push,
 }
 
-// Auto generated
 #[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
 pub struct PushPairQ {
-    left: <Push as Circuit>::O,
-    right: <Push as Circuit>::O,
+    left: <Push as CircuitIO>::O,
+    right: <Push as CircuitIO>::O,
 }
 
-// Auto generated
 #[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
 pub struct PushPairD {
-    left: <Push as Circuit>::I,
-    right: <Push as Circuit>::I,
+    left: <Push as CircuitIO>::I,
+    right: <Push as CircuitIO>::I,
 }
 
 #[derive(Debug, Clone, PartialEq, Copy, Default)]
@@ -500,20 +449,21 @@ impl Notable for PushPairZ {
     }
 }
 
-impl Circuit for PushPair {
+impl CircuitIO for PushPair {
     type I = Clock;
-
     type O = (b8, b8);
+}
+
+impl Circuit for PushPair {
+    type Q = PushPairQ;
+
+    type D = PushPairD;
 
     type Z = PushPairZ;
 
     fn z_offsets() -> impl Iterator<Item = usize> {
         [0, 8].iter().copied()
     }
-
-    type Q = PushPairQ;
-
-    type D = PushPairD;
 
     type S = (Self::Q, <Push as Circuit>::S, <Push as Circuit>::S);
 

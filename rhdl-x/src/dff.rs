@@ -9,6 +9,7 @@ use crate::circuit::root_descriptor;
 use crate::circuit::BufZ;
 use crate::circuit::HDLDescriptor;
 use crate::{circuit::Circuit, clock::Clock};
+use rhdl_core::CircuitIO;
 
 #[derive(Default, Clone)]
 pub struct DFF<T: Digital> {
@@ -27,11 +28,12 @@ pub struct DFFI<T: Digital> {
     pub data: T,
 }
 
-impl<T: Digital> Circuit for DFF<T> {
+impl<T: Digital> CircuitIO for DFF<T> {
     type I = DFFI<T>;
-
     type O = T;
+}
 
+impl<T: Digital> Circuit for DFF<T> {
     type Q = ();
 
     type D = ();

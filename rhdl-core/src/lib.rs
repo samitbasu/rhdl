@@ -1,13 +1,17 @@
 pub use types::kind::Kind;
 pub mod clock_details;
 
+pub use circuit::bitz::BitZ;
+pub use circuit::circuit::Circuit;
+pub use circuit::circuit::CircuitIO;
+pub use circuit::circuit::HDLKind;
+pub use circuit::circuit::Tristate;
+pub use circuit::circuit_descriptor::root_descriptor;
+pub use circuit::circuit_descriptor::CircuitDescriptor;
+pub use circuit::hdl_descriptor::root_hdl;
+pub use circuit::hdl_descriptor::HDLDescriptor;
+pub use circuit::verilog::root_verilog;
 pub use clock_details::ClockDetails;
-pub use types::bitz::BitZ;
-pub use types::circuit::Circuit;
-pub use types::circuit::CircuitDescriptor;
-pub use types::circuit::HDLDescriptor;
-pub use types::circuit::HDLKind;
-pub use types::circuit::Tristate;
 pub use types::digital::Digital;
 pub use types::digital_fn::DigitalFn;
 pub use types::kernel::KernelFnKind;
@@ -21,6 +25,7 @@ pub use types::kind::kind_svg::svg_grid_vertical;
 
 pub use types::kind::text_grid;
 pub mod ast;
+pub mod circuit;
 pub mod codegen;
 pub mod compiler;
 pub mod diagnostic;
@@ -58,3 +63,5 @@ pub use types::digital_fn::DigitalSignature;
 pub use types::kernel;
 pub use types::synchronous::Synchronous;
 pub use types::synchronous::UpdateFn;
+
+pub const MAX_ITERS: usize = 10;

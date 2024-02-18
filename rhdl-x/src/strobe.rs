@@ -3,12 +3,15 @@ use anyhow::Result;
 use rhdl_bits::alias::*;
 use rhdl_bits::{bits, Bits};
 use rhdl_core::note;
+use rhdl_core::CircuitIO;
+use rhdl_core::Digital;
 use rhdl_core::Tristate;
 use rhdl_macro::{kernel, Digital};
 
 use crate::circuit::root_descriptor;
 use crate::circuit::root_hdl;
 use crate::circuit::BufZ;
+use crate::dff::DFFI;
 use crate::{circuit::Circuit, clock::Clock, constant::Constant, dff::DFF};
 
 // Build a strobe
@@ -28,15 +31,15 @@ impl<const N: usize> Strobe<N> {
 }
 
 #[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
-pub struct StrobeQ<const N: usize> {
-    threshold: <Constant<Bits<N>> as Circuit>::O,
-    counter: <DFF<Bits<N>> as Circuit>::O,
+pub struct StrobeD<const N: usize> {
+    pub threshold: <Constant<Bits<N>> as CircuitIO>::I,
+    pub counter: <DFF<Bits<N>> as CircuitIO>::I,
 }
 
 #[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
-pub struct StrobeD<const N: usize> {
-    threshold: <Constant<Bits<N>> as Circuit>::I,
-    counter: <DFF<Bits<N>> as Circuit>::I,
+pub struct StrobeQ<const N: usize> {
+    pub threshold: <Constant<Bits<N>> as CircuitIO>::O,
+    pub counter: <DFF<Bits<N>> as CircuitIO>::O,
 }
 
 #[derive(Debug, Clone, PartialEq, Default, Copy)]
@@ -56,36 +59,21 @@ impl<const N: usize> rhdl_core::Notable for StrobeZ<N> {
     }
 }
 
-impl<const N: usize>
-    From<(
-        <Constant<Bits<N>> as Circuit>::O,
-        <DFF<Bits<N>> as Circuit>::O,
-    )> for StrobeQ<N>
-{
-    fn from(
-        (threshold, counter): (
-            <Constant<Bits<N>> as Circuit>::O,
-            <DFF<Bits<N>> as Circuit>::O,
-        ),
-    ) -> Self {
-        Self { threshold, counter }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
 pub struct StrobeI {
     pub clock: Clock,
     pub enable: bool,
 }
 
-impl<const N: usize> Circuit for Strobe<N> {
+impl<const N: usize> CircuitIO for Strobe<N> {
     type I = StrobeI;
-
     type O = bool;
+}
+
+impl<const N: usize> Circuit for Strobe<N> {
+    type D = StrobeD<N>;
 
     type Q = StrobeQ<N>;
-
-    type D = StrobeD<N>;
 
     type S = (
         Self::Q,
@@ -156,3 +144,24 @@ pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
     note("d", d);
     (strobe, d)
 }
+
+/*
+#[kernel]
+pub fn strobe<const N: usize>(
+    i: StrobeI,
+    (threshold_q, counter_q): (Bits<N>, Bits<N>),
+) -> (bool, (Bits<N>, DFFI<Bits<N>>)) {
+    let counter_next = if i.enable { counter_q + 1 } else { counter_q };
+    let strobe = i.enable & (counter_q == threshold_q);
+    let counter_next = if strobe {
+        bits::<{ N }>(1)
+    } else {
+        counter_next
+    };
+    let dff_next = DFFI::<Bits<{ N }>> {
+        clock: i.clock,
+        data: counter_next,
+    };
+    (strobe, (threshold_q, dff_next))
+}
+*/

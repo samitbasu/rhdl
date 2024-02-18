@@ -1,5 +1,3 @@
-pub mod bitz;
-pub mod circuit;
 pub mod digital;
 pub mod digital_fn;
 pub mod kernel;

@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 pub use crate::{kernel::KernelFnKind, Digital, Kind};
 
 pub trait DigitalFn {
-    fn kernel_fn() -> KernelFnKind;
+    fn kernel_fn() -> Option<KernelFnKind> {
+        return None;
+    }
 }
 
 // See: https://jsdw.me/posts/rust-fn-traits/
@@ -70,25 +72,25 @@ where
 }
 
 impl<const N: usize> DigitalFn for rhdl_bits::Bits<N> {
-    fn kernel_fn() -> KernelFnKind {
-        KernelFnKind::BitConstructor(N)
+    fn kernel_fn() -> Option<KernelFnKind> {
+        Some(KernelFnKind::BitConstructor(N))
     }
 }
 
 impl<const N: usize> DigitalFn for rhdl_bits::SignedBits<N> {
-    fn kernel_fn() -> KernelFnKind {
-        KernelFnKind::SignedBitsConstructor(N)
+    fn kernel_fn() -> Option<KernelFnKind> {
+        Some(KernelFnKind::SignedBitsConstructor(N))
     }
 }
 
 impl<const N: usize> DigitalFn for rhdl_bits::bits<N> {
-    fn kernel_fn() -> KernelFnKind {
-        KernelFnKind::BitConstructor(N)
+    fn kernel_fn() -> Option<KernelFnKind> {
+        Some(KernelFnKind::BitConstructor(N))
     }
 }
 
 impl<const N: usize> DigitalFn for rhdl_bits::signed<N> {
-    fn kernel_fn() -> KernelFnKind {
-        KernelFnKind::SignedBitsConstructor(N)
+    fn kernel_fn() -> Option<KernelFnKind> {
+        Some(KernelFnKind::SignedBitsConstructor(N))
     }
 }
