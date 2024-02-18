@@ -1,5 +1,6 @@
 use anyhow::ensure;
 use anyhow::Result;
+use rhdl_core::CircuitIO;
 use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
 
 use crate::circuit::root_descriptor;
@@ -24,11 +25,12 @@ impl<T: Digital> DigitalFn for Constant<T> {
     }
 }
 
-impl<T: Digital> Circuit for Constant<T> {
+impl<T: Digital> CircuitIO for Constant<T> {
     type I = ();
-
     type O = T;
+}
 
+impl<T: Digital> Circuit for Constant<T> {
     type Q = ();
 
     type D = ();

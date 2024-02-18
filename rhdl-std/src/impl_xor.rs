@@ -22,8 +22,8 @@ fn vm_xor(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedBits>
 pub struct xor<const N: usize> {}
 
 impl<const N: usize> DigitalFn for xor<N> {
-    fn kernel_fn() -> KernelFnKind {
-        KernelFnKind::Extern(ExternalKernelDef {
+    fn kernel_fn() -> Option<KernelFnKind> {
+        Some(KernelFnKind::Extern(ExternalKernelDef {
             name: format!("xor_{N}"),
             body: format!(
                 "function [{}:0] xor_{N}(input [{}:0] a); xor_{N} = ^a; endfunction",
@@ -31,7 +31,7 @@ impl<const N: usize> DigitalFn for xor<N> {
                 N - 1
             ),
             vm_stub: Some(vm_xor),
-        })
+        }))
     }
 }
 
@@ -54,6 +54,10 @@ mod tests {
     #[test]
     fn test_iverilog() -> anyhow::Result<()> {
         let test_values = (0..=255).map(Bits::<8>::from).map(|x| (x,));
-        rhdl_core::test_with_iverilog(xor::<8>, xor::<8>::kernel_fn().try_into()?, test_values)
+        rhdl_core::test_with_iverilog(
+            xor::<8>,
+            xor::<8>::kernel_fn().unwrap().try_into()?,
+            test_values,
+        )
     }
 }

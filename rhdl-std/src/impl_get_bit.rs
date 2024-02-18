@@ -15,15 +15,15 @@ fn vm_get_bit(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedB
 pub struct get_bit<const N: usize> {}
 
 impl<const N: usize> DigitalFn for get_bit<N> {
-    fn kernel_fn() -> KernelFnKind {
-        KernelFnKind::Extern(ExternalKernelDef {
+    fn kernel_fn() -> Option<KernelFnKind> {
+        Some(KernelFnKind::Extern(ExternalKernelDef {
             name: format!("get_bit_{N}"),
             body: format!(
                 "function [0:0] get_bit_{N}(input [{}:0] a, input integer i); get_bit_{N} = a[i]; endfunction",
                 N - 1,
             ),
             vm_stub: Some(vm_get_bit),
-        })
+        }))
     }
 }
 
@@ -66,7 +66,7 @@ mod tests {
         let test_values = (0..=255).map(|x| (Bits::<8>::from(x), (x % 8) as u8));
         rhdl_core::test_with_iverilog(
             get_bit::<8>,
-            get_bit::<8>::kernel_fn().try_into()?,
+            get_bit::<8>::kernel_fn().unwrap().try_into()?,
             test_values,
         )
     }

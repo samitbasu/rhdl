@@ -1,4 +1,7 @@
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    hash::{Hash, Hasher},
+};
 
 pub fn splice<T: Display>(elems: &[T], sep: &str) -> String {
     elems
@@ -72,4 +75,11 @@ fn test_indenting_formatter() {
 
 pub fn binary_string(x: &[bool]) -> String {
     x.iter().rev().map(|b| if *b { '1' } else { '0' }).collect()
+}
+
+pub fn hash_id(fn_id: std::any::TypeId) -> u64 {
+    // Hash the typeID into a 64 bit unsigned int
+    let mut hasher = fnv::FnvHasher::default();
+    fn_id.hash(&mut hasher);
+    hasher.finish()
 }

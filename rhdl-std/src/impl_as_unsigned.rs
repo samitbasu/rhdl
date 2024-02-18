@@ -17,8 +17,8 @@ fn vm_as_unsigned(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::Ty
 pub struct as_unsigned<const N: usize> {}
 
 impl<const N: usize> DigitalFn for as_unsigned<N> {
-    fn kernel_fn() -> KernelFnKind {
-        KernelFnKind::Extern(ExternalKernelDef {
+    fn kernel_fn() -> Option<KernelFnKind> {
+        Some(KernelFnKind::Extern(ExternalKernelDef {
             name: format!("unsigned_{N}"),
             body: format!(
                 "function [{}:0] unsigned_{N}(input signed [{}:0] a); unsigned_{N} = $unsigned(a); endfunction",
@@ -26,7 +26,7 @@ impl<const N: usize> DigitalFn for as_unsigned<N> {
                 N - 1,
             ),
             vm_stub: Some(vm_as_unsigned),
-        })
+        }))
     }
 }
 
@@ -46,7 +46,7 @@ mod tests {
         let test_values = (-128..=127).map(SignedBits::<8>::from).map(|x| (x,));
         rhdl_core::test_with_iverilog(
             as_unsigned::<8>,
-            as_unsigned::<8>::kernel_fn().try_into()?,
+            as_unsigned::<8>::kernel_fn().unwrap().try_into()?,
             test_values,
         )
     }

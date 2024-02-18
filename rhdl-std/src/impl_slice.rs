@@ -16,8 +16,8 @@ fn vm_slice<const M: usize>(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhd
 pub struct slice<const N: usize, const M: usize> {}
 
 impl<const N: usize, const M: usize> DigitalFn for slice<N, M> {
-    fn kernel_fn() -> KernelFnKind {
-        KernelFnKind::Extern(ExternalKernelDef {
+    fn kernel_fn() -> Option<KernelFnKind> {
+        Some(KernelFnKind::Extern(ExternalKernelDef {
             name: format!("slice_{N}_{M}"),
             body: format!(
                 "function [{}:0] slice_{N}_{M}(input [{}:0] a, input integer start); slice_{N}_{M} = a[start+:{M}]; endfunction",
@@ -25,7 +25,7 @@ impl<const N: usize, const M: usize> DigitalFn for slice<N, M> {
                 N - 1,
             ),
             vm_stub: Some(vm_slice::<M>),
-        })
+        }))
     }
 }
 
@@ -49,7 +49,7 @@ mod tests {
         let test_values = (0..=255).map(Bits::<8>::from).map(|x| (x, x.raw() % 5));
         rhdl_core::test_with_iverilog(
             slice::<8, 3>,
-            slice::<8, 3>::kernel_fn().try_into()?,
+            slice::<8, 3>::kernel_fn().unwrap().try_into()?,
             test_values,
         )
     }
