@@ -65,3 +65,153 @@ BUT - that means that in the HDL generation, additional code needs to be generat
 the child inputs/outputs to the provided D/Q structs.  That is definitely not going to work.
 
 
+#A New Idea!
+
+
+One idea is to introduce circuit combinations.  We need 3 kinds.  Parallel, Series, and Feedback.
+The existing Circuit trait covers all three.  But if we break it down, we can probably handle
+the D/Q issue more eloquently (although more verbosely).
+
+Here is the existing Circuit trait:
+
+```rust
+pub trait CircuitIO: 'static + Sized + Clone {
+    type I: Digital;
+    type O: Digital;
+}
+
+pub trait Circuit: 'static + Sized + Clone + CircuitIO {
+    type D: Digital;
+    type Q: Digital;
+
+    // auto derived as the sum of NumZ of the children
+    type Z: Tristate;
+
+    type Update: DigitalFn;
+
+    const UPDATE: CircuitUpdateFn<Self> = |_, _| (Default::default(), Default::default());
+
+    // State for simulation - auto derived
+    type S: Default + PartialEq + Clone;
+
+    // Simulation update - auto derived
+    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O;
+
+    fn init_state(&self) -> Self::S {
+        Default::default()
+    }
+
+    // auto derived
+    fn name(&self) -> &'static str;
+
+    // auto derived
+    fn descriptor(&self) -> CircuitDescriptor;
+
+    // auto derived
+    fn as_hdl(&self, kind: HDLKind) -> anyhow::Result<HDLDescriptor>;
+
+    // auto derived
+    // First is 0, then 0 + c0::NumZ, then 0 + c0::NumZ + c1::NumZ, etc
+    fn z_offsets() -> impl Iterator<Item = usize> {
+        std::iter::once(0)
+    }
+}
+```
+
+
+Now suppose we remove the feedback from the circuit trait.  We then do not
+know the form of the UPDATE kernel.  So that must go.  State can still
+be preserved, and the HDL func should also (as well as the descriptors).
+
+Let's ignore tristate for now.  It is a real issue...
+
+So the Circuit trait becomes:
+
+```rust
+pub trait CircuitIO: 'static + Sized + Clone {
+    type I: Digital;
+    type O: Digital;
+}
+
+pub trait Circuit: 'static + Sized + Clone + CircuitIO {
+    // auto derived as the sum of NumZ of the children
+    type Z: Tristate;
+
+    // State for simulation - auto derived
+    type S: Default + PartialEq + Clone;
+
+    // Simulation update - auto derived
+    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O;
+
+    fn init_state(&self) -> Self::S {
+        Default::default()
+    }
+
+    // auto derived
+    fn name(&self) -> &'static str;
+
+    // auto derived
+    fn descriptor(&self) -> CircuitDescriptor;
+
+    // auto derived
+    fn as_hdl(&self, kind: HDLKind) -> anyhow::Result<HDLDescriptor>;
+
+    // auto derived
+    // First is 0, then 0 + c0::NumZ, then 0 + c0::NumZ + c1::NumZ, etc
+    fn z_offsets() -> impl Iterator<Item = usize> {
+        std::iter::once(0)
+    }
+}
+```
+
+This all looks quite reasonable.  We may be heading to the possibility of `sim` being defined
+via normal functions instead of code generation...
+
+Now consider the simple case of composing 2 circuits in series.  This _should_ look something like
+
+```rust
+type Foo = SeriesCircuit<C0, F, C1>;
+```
+
+How about:
+
+```rust
+struct SeriesCircuit<C0 : Circuit, F : Kernel<C0::O, C1:I>, C1 : Circuit> {
+    c0: C0,
+    c1: C1,
+}
+
+impl<C0: Circuit, F: Kernel<C0::O, C1::I>, C1: Circuit> CircuitIO for SeriesCircuit<C0, F, C1> {
+    type I = C0::I;
+    type O = C1::I;
+}
+
+
+impl<C0: Circuit, F: Kernel<C0::O, C1::I>, C1: Circuit> Circuit for SeriesCircuit<C0, F, C1> {
+    type Z = (C0::Z, C1::Z);
+    type S = (C0::S, C1::S);
+
+    fn sim(&self, input: Self::I, state: &mut Self::S, iobuf: &mut Self::Z) -> Self::O {
+        let o0 = self.c0.sim(input, state.0, iobuf.0);
+        let i1 = F::UPDATE(o0);
+        self.c1.sim(i1, state.1, iobuf.1);
+    }
+}
+```
+
+This looks pretty clean.  The rest of the internals should be fine.  What about parallel?
+
+```rust
+
+
+struct ParallelCircuit<
+   I: Digital, 
+   Fin: Kernel<I, (C0::I, C1::I)>, 
+   C0: Circuit, 
+   C1: Circuit, 
+   FnOut: Kernel<(C0::O, C0::O), O>, 
+   O: Digital>
+> {
+    c0: C0,
+    c1: C1,
+}
