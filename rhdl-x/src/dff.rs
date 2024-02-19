@@ -9,6 +9,7 @@ use crate::circuit::root_descriptor;
 use crate::circuit::BufZ;
 use crate::circuit::HDLDescriptor;
 use crate::{circuit::Circuit, clock::Clock};
+use rhdl_core::CircuitIO;
 
 #[derive(Default, Clone)]
 pub struct DFF<T: Digital> {
@@ -27,14 +28,17 @@ pub struct DFFI<T: Digital> {
     pub data: T,
 }
 
-impl<T: Digital> Circuit for DFF<T> {
+impl<T: Digital> CircuitIO for DFF<T> {
     type I = DFFI<T>;
-
     type O = T;
+}
 
+impl<T: Digital> Circuit for DFF<T> {
     type Q = ();
 
     type D = ();
+
+    type Z = ();
 
     type Update = Self;
 
@@ -49,7 +53,8 @@ impl<T: Digital> Circuit for DFF<T> {
         }
     }
 
-    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut BufZ) -> Self::O {
+    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
+        note("input", input);
         let output = if input.clock.0 && !state.clock.0 {
             input.data
         } else {
@@ -57,7 +62,7 @@ impl<T: Digital> Circuit for DFF<T> {
         };
         state.clock = input.clock;
         state.data = output;
-        note("dff", output);
+        note("output", output);
         output
     }
 
@@ -76,8 +81,8 @@ impl<T: Digital> Circuit for DFF<T> {
 }
 
 impl<T: Digital> DigitalFn for DFF<T> {
-    fn kernel_fn() -> rhdl_core::KernelFnKind {
-        todo!()
+    fn kernel_fn() -> Option<rhdl_core::KernelFnKind> {
+        None
     }
 }
 

@@ -27,7 +27,8 @@ pub(crate) fn assert_tokens_eq(
     );
     let actual = actual.to_string();
     let actual = prettyplease::unparse(
-        &syn::parse_file(&actual).expect("Actual string is not valid rust code"),
+        &syn::parse_file(&actual)
+            .unwrap_or_else(|err| panic!("Actual string is not valid rust code: {actual}  {err}")),
     );
 
     if expected != actual {

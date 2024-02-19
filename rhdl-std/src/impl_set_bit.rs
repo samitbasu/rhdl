@@ -22,8 +22,8 @@ fn vm_set_bit(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedB
 pub struct set_bit<const N: usize> {}
 
 impl<const N: usize> DigitalFn for set_bit<N> {
-    fn kernel_fn() -> KernelFnKind {
-        KernelFnKind::Extern(ExternalKernelDef {
+    fn kernel_fn() -> Option<KernelFnKind> {
+        Some(KernelFnKind::Extern(ExternalKernelDef {
             name: format!("set_bit_{N}"),
             body: format!(
                 "function [{}:0] set_bit_{N}(input [{}:0] a, input integer i, input [0:0] value); set_bit_{N} = value ? a | (1 << i) : a & ~(1 << i); endfunction",
@@ -31,7 +31,7 @@ impl<const N: usize> DigitalFn for set_bit<N> {
                 N - 1
             ),
             vm_stub: Some(vm_set_bit),
-        })
+        }))
     }
 }
 
@@ -85,7 +85,7 @@ mod tests {
         let test_values = (0..=255).map(|x| (Bits::<8>::from(x), (x % 8) as u8, x % 2 == 0));
         rhdl_core::test_with_iverilog(
             set_bit::<8>,
-            set_bit::<8>::kernel_fn().try_into()?,
+            set_bit::<8>::kernel_fn().unwrap().try_into()?,
             test_values,
         )
     }

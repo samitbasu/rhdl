@@ -24,7 +24,10 @@ pub fn make_constrained_verilog<M: Synchronous>(
     mut constraints: Vec<PinConstraint>,
     clock_source: Constraint,
 ) -> Result<ConstrainedVerilog> {
-    let verilog = generate_verilog(&compile_design(M::Update::kernel_fn().try_into()?)?)?;
+    let Some(kernel) = M::Update::kernel_fn() else {
+        return Err(anyhow::anyhow!("No kernel function found"));
+    };
+    let verilog = generate_verilog(&compile_design(kernel.try_into()?)?)?;
     let module_code = format!("{}", verilog);
     let module = format!(
         "

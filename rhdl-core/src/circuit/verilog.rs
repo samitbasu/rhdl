@@ -1,8 +1,14 @@
 use anyhow::Result;
-use rhdl_core::path::{bit_range, Path};
-use rhdl_core::{compile_design, generate_verilog, Digital, DigitalFn};
 
-use crate::circuit::{Circuit, CircuitDescriptor, HDLDescriptor, Tristate};
+use crate::circuit::circuit::Tristate;
+use crate::path::{bit_range, Path};
+use crate::types::digital::Digital;
+use crate::types::digital_fn::DigitalFn;
+use crate::{compile_design, generate_verilog};
+
+use super::{
+    circuit::Circuit, circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor,
+};
 
 pub fn root_verilog<C: Circuit>(t: &C) -> Result<HDLDescriptor> {
     // Start with the module declaration for the circuit.
@@ -53,8 +59,10 @@ pub fn root_verilog<C: Circuit>(t: &C) -> Result<HDLDescriptor> {
         .map(|(ndx, (local, desc))| component_decl::<C>(ndx, &local, &desc))
         .collect::<Result<Vec<_>>>()?
         .join("\n");
-
-    let verilog = generate_verilog(&compile_design(C::Update::kernel_fn().try_into()?)?)?;
+    let Some(kernel) = C::Update::kernel_fn() else {
+        return Err(anyhow::anyhow!("No kernel function for {}", t.name()));
+    };
+    let verilog = generate_verilog(&compile_design(kernel.try_into()?)?)?;
     let fn_call = format!("assign od = {fn_name}(i, q);", fn_name = &verilog.name);
     let fn_body = &verilog.body;
     let o_bind = format!("assign o = od[{}:{}];", outputs.saturating_sub(1), 0);
@@ -99,6 +107,9 @@ fn component_decl<C: Circuit>(
     // wire the outputs to the range of q that corresponds to the name
     let d_kind = C::D::static_kind();
     let q_kind = C::Q::static_kind();
+    eprintln!("d_kind: {:?}", d_kind);
+    eprintln!("q_kind: {:?}", q_kind);
+    eprintln!("local_name: {local_name}");
     let (d_range, _) = bit_range(d_kind, &Path::default().field(local_name))?;
     let (q_range, _) = bit_range(q_kind, &Path::default().field(local_name))?;
     Ok(format!(

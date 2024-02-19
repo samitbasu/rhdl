@@ -16,8 +16,8 @@ fn vm_sign_bit(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::Typed
 pub struct sign_bit<const N: usize> {}
 
 impl<const N: usize> DigitalFn for sign_bit<N> {
-    fn kernel_fn() -> KernelFnKind {
-        KernelFnKind::Extern(ExternalKernelDef {
+    fn kernel_fn() -> Option<KernelFnKind> {
+        Some(KernelFnKind::Extern(ExternalKernelDef {
             name: format!("sign_bit_{N}"),
             body: format!(
                 "function [0:0] sign_bit_{N}(input signed [{}:0] a); sign_bit_{N} = a[{}]; endfunction",
@@ -25,7 +25,7 @@ impl<const N: usize> DigitalFn for sign_bit<N> {
                 N - 1,
             ),
             vm_stub: Some(vm_sign_bit),
-        })
+        }))
     }
 }
 
@@ -45,7 +45,7 @@ mod tests {
         let test_values = (-128..=127).map(SignedBits::<8>::from).map(|x| (x,));
         rhdl_core::test_with_iverilog(
             sign_bit::<8>,
-            sign_bit::<8>::kernel_fn().try_into()?,
+            sign_bit::<8>::kernel_fn().unwrap().try_into()?,
             test_values,
         )
     }

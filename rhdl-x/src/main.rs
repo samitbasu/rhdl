@@ -13,6 +13,8 @@ use rhdl_bits::bits;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::note_db::note_time;
 use rhdl_core::note_init_db;
+use rhdl_core::note_pop_path;
+use rhdl_core::note_push_path;
 use rhdl_core::note_take;
 use rhdl_core::DigitalFn;
 use rhdl_core::{note, Digital};
@@ -25,7 +27,7 @@ use strobe::StrobeI;
 //use translator::Translator;
 //use verilog::VerilogTranslator;
 
-mod backend;
+//mod backend;
 mod circuit;
 mod clock;
 mod constant;
@@ -50,8 +52,7 @@ fn test_dff() {
     note_time(0);
     let dff = DFF::<u8>::default();
     let mut state = dff.init_state();
-    let mut buffer = TristateBuf::default();
-    let mut io: BufZ = BufZ::new(&mut buffer, 0, 0);
+    let mut io = <DFF<u8> as Circuit>::Z::default();
     for (time, input) in inputs.enumerate().take(1000) {
         note_time(time as u64 * 1_000);
         note("input", input);
@@ -74,8 +75,7 @@ fn test_strobe() {
     note_time(0);
     let strobe = Strobe::<8>::new(b8(5));
     let mut state = strobe.init_state();
-    let mut buffer = TristateBuf::default();
-    let mut io: BufZ = BufZ::new(&mut buffer, 0, 0);
+    let mut io = <Strobe<8> as Circuit>::Z::default();
     for (time, input) in inputs.enumerate().take(2000) {
         note_time(time as u64 * 100);
         note("input", input);
@@ -134,8 +134,7 @@ fn main() {
     note_time(0);
     let counter = Counter::<8>::default();
     let mut state = counter.init_state();
-    let mut buffer = TristateBuf::default();
-    let mut io: BufZ = BufZ::new(&mut buffer, 0, 0);
+    let mut io = <Counter<8> as Circuit>::Z::default();
     for (time, input) in inputs.enumerate().take(2000) {
         note_time(time as u64 * 100);
         note("input", input);
@@ -145,4 +144,44 @@ fn main() {
     let db = note_take().unwrap();
     let dff = std::fs::File::create("counter.vcd").unwrap();
     db.dump_vcd(&[], dff).unwrap();
+}
+
+#[test]
+fn test_timing_note() {
+    #[derive(Copy, Clone, PartialEq, Digital, Default)]
+    pub enum State {
+        #[default]
+        A,
+        B,
+        C,
+    };
+    note_init_db();
+    note_time(0);
+    let tic = Instant::now();
+    for i in 0..1_000_000 {
+        note_time(i);
+        note_push_path("a");
+        note_push_path("b");
+        note_push_path("c");
+        note("i", b8(4));
+        note_pop_path();
+        note_pop_path();
+        note_pop_path();
+        note_push_path("a");
+        note_push_path("b");
+        note_push_path("d");
+        note("name", b16(0x1234));
+        note_pop_path();
+        note_pop_path();
+        note_pop_path();
+        note_push_path("b");
+        note_push_path("c");
+        note_push_path("e");
+        note("color", State::B);
+        note_pop_path();
+        note_pop_path();
+        note_pop_path();
+    }
+    let toc = Instant::now();
+    eprintln!("Time: {:?}", toc - tic);
 }
