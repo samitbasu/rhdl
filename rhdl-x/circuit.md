@@ -118,7 +118,6 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO {
 }
 ```
 
-
 Now suppose we remove the feedback from the circuit trait.  We then do not
 know the form of the UPDATE kernel.  So that must go.  State can still
 be preserved, and the HDL func should also (as well as the descriptors).
@@ -215,3 +214,36 @@ struct ParallelCircuit<
     c0: C0,
     c1: C1,
 }
+
+impl<
+   I: Digital, 
+   Fin: Kernel<I, (C0::I, C1::I)>, 
+   C0: Circuit, 
+   C1: Circuit, 
+   FnOut: Kernel<(C0::O, C0::O), O>, 
+   O: Digital> CircuitIO for ParallelCircuit<I, Fin, C0, C1, FnOut, O> {
+
+    type I = I;
+    type O = O;
+}
+
+impl <
+   I: Digital, 
+   Fin: Kernel<I, (C0::I, C1::I)>, 
+   C0: Circuit, 
+   C1: Circuit, 
+   FnOut: Kernel<(C0::O, C0::O), O>, 
+   O: Digital> Circuit for ParallelCircuit<I, Fin, C0, C1, FnOut, O> {
+
+    type Z = (C0::Z, C1::Z);
+    type S = (C0::S, C1::S);
+
+    fn sim(&self, input: Self::I, state: &mut Self::S, iobuf: &mut Self::Z) -> Self::O {
+        let (i0, i1) = Fin::UPDATE(input);
+        let o0 = self.c0.sim()
+    }
+}
+```
+
+
+
