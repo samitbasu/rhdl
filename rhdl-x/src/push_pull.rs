@@ -131,6 +131,50 @@ impl CircuitIO for Push {
     type O = b8;
 }
 
+struct Push_D {
+    strobe: <Strobe<32> as CircuitIO>::I,
+    value: <Constant<Bits<8>> as CircuitIO>::I,
+    buf_z: <ZDriver<8> as CircuitIO>::I,
+    side: <DFF<Side> as CircuitIO>::I,
+    latch: <DFF<Bits<8>> as CircuitIO>::I,
+}
+
+struct Push_Q {
+    strobe: <Strobe<32> as CircuitIO>::O,
+    value: <Constant<Bits<8>> as CircuitIO>::O,
+    buf_z: <ZDriver<8> as CircuitIO>::O,
+    side: <DFF<Side> as CircuitIO>::O,
+    latch: <DFF<Bits<8>> as CircuitIO>::O,
+}
+
+type ChildInputs = (
+    <Strobe<32> as CircuitIO>::I,
+    <Constant<Bits<8>> as CircuitIO>::I,
+    <ZDriver<8> as CircuitIO>::I,
+    <DFF<Side> as CircuitIO>::I,
+    <DFF<Bits<8>> as CircuitIO>::I,
+);
+
+type ChildOutputs = (
+    <Strobe<32> as CircuitIO>::O,
+    <Constant<Bits<8>> as CircuitIO>::O,
+    <ZDriver<8> as CircuitIO>::O,
+    <DFF<Side> as CircuitIO>::O,
+    <DFF<Bits<8>> as CircuitIO>::O,
+);
+
+impl From<Push_Q> for ChildOutputs {
+    fn from(q: Push_Q) -> Self {
+        (q.strobe, q.value, q.buf_z, q.side, q.latch)
+    }
+}
+
+impl From<Push_D> for ChildInputs {
+    fn from(d: Push_D) -> Self {
+        (d.strobe, d.value, d.buf_z, d.side, d.latch)
+    }
+}
+
 /*
 impl Circuit for Push {
 
