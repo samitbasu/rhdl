@@ -54,6 +54,7 @@ mod tests {
     use quote::quote;
 
     #[test]
+    #[allow(unused)]
     fn test_custom_suffix() {
         let num = 0xdedbeef;
         let test_code = quote! {
