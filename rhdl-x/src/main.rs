@@ -41,7 +41,6 @@ mod tristate;
 //mod translator;
 //mod verilog;
 mod visit;
-// First a DFF
 
 #[test]
 fn test_dff() {
