@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{spanned::Spanned, Attribute, Data, DeriveInput, Expr, ExprPath, Lit};
+use syn::{spanned::Spanned, Attribute, Data, DeriveInput, Expr, ExprPath};
 
 pub fn derive_circuit(input: TokenStream) -> syn::Result<TokenStream> {
     let decl = syn::parse2::<syn::DeriveInput>(input)?;
@@ -255,30 +255,36 @@ mod test {
         let output = derive_circuit(decl).unwrap();
         let expected = quote!(
             #[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
-            pub struct StrobeQ<N: usize> {
+            pub struct StrobeQ<const N: usize> {
                 strobe: <DFF<Bits<N>> as rhdl_core::CircuitIO>::O,
                 value: <Constant<Bits<N>> as rhdl_core::CircuitIO>::O,
             }
             #[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
-            pub struct StrobeD<N: usize> {
+            pub struct StrobeD<const N: usize> {
                 strobe: <DFF<Bits<N>> as rhdl_core::CircuitIO>::I,
                 value: <Constant<Bits<N>> as rhdl_core::CircuitIO>::I,
             }
             #[derive(Debug, Clone, PartialEq, Default, Copy)]
-            pub struct StrobeZ<N: usize> {
+            pub struct StrobeZ<const N: usize> {
                 strobe: <DFF<Bits<N>> as rhdl_core::Circuit>::Z,
                 value: <Constant<Bits<N>> as rhdl_core::Circuit>::Z,
             }
-            impl rhdl_core::Notable for StrobeZ<N> {
-                fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
-                    self.strobe.note((key,stringify!(strobe)), &mut writer);
-                    self.value.note((key,stringify!(value)), &mut writer);
+            impl<const N: usize> rhdl_core::Notable for StrobeZ<N> {
+                fn note(
+                    &self,
+                    key: impl rhdl_core::NoteKey,
+                    mut writer: impl rhdl_core::NoteWriter,
+                ) {
+                    self.strobe.note((key, stringify!(strobe)), &mut writer);
+                    self.value.note((key, stringify!(value)), &mut writer);
                 }
             }
-            impl rhdl_core::Tristate for StrobeZ<N> {
-                const N: usize = <DFF<Bits<N>> as rhdl_core::Circuit>::Z::N + <Constant<Bits<N>> as rhdl_core::Circuit>::Z::N + 0;
+            impl<const N: usize> rhdl_core::Tristate for StrobeZ<N> {
+                const N: usize = <DFF<Bits<N>> as rhdl_core::Circuit>::Z::N
+                    + <Constant<Bits<N>> as rhdl_core::Circuit>::Z::N
+                    + 0;
             }
-            impl rhdl_core::Circuit for Strobe<N> {
+            impl<const N: usize> rhdl_core::Circuit for Strobe<N> {
                 type Q = StrobeQ<N>;
                 type D = StrobeD<N>;
                 type Z = StrobeZ<N>;
@@ -287,8 +293,60 @@ mod test {
                     <DFF<Bits<N>> as rhdl_core::Circuit>::S,
                     <Constant<Bits<N>> as rhdl_core::Circuit>::S,
                 );
-                type Update = pushd::<N>;
+                type Update = pushd<N>;
                 const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = pushd::<N>;
+                fn init_state(&self) -> Self::S {
+                    (
+                        Default::default(),
+                        self.strobe.init_state(),
+                        self.value.init_state(),
+                    )
+                }
+                fn name(&self) -> &'static str {
+                    stringify!(Strobe)
+                }
+                fn descriptor(&self) -> rhdl_core::CircuitDescriptor {
+                    let mut ret = rhdl_core::root_descriptor(self);
+                    ret.add_child(stringify!(strobe), &self.strobe);
+                    ret.add_child(stringify!(value), &self.value);
+                    ret
+                }
+                fn as_hdl(
+                    &self,
+                    kind: rhdl_core::HDLKind,
+                ) -> anyhow::Result<rhdl_core::HDLDescriptor> {
+                    let mut ret = rhdl_core::root_hdl(self, kind)?;
+                    ret.add_child(stringify!(strobe), &self.strobe, kind)?;
+                    ret.add_child(stringify!(value), &self.value, kind)?;
+                    Ok(ret)
+                }
+                fn sim(
+                    &self,
+                    input: <Self as CircuitIO>::I,
+                    state: &mut Self::S,
+                    io: &mut Self::Z,
+                ) -> <Self as CircuitIO>::O {
+                    rhdl_core::note("input", input);
+                    for _ in 0..rhdl_core::MAX_ITERS {
+                        let prev_state = state.clone();
+                        let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
+                        rhdl_core::note_push_path(stringify!(strobe));
+                        state.0.strobe =
+                            self.strobe
+                                .sim(internal_inputs.strobe, &mut state.1, &mut io.strobe);
+                        rhdl_core::note_pop_path();
+                        rhdl_core::note_push_path(stringify!(value));
+                        state.0.value =
+                            self.value
+                                .sim(internal_inputs.value, &mut state.2, &mut io.value);
+                        rhdl_core::note_pop_path();
+                        if state == &prev_state {
+                            rhdl_core::note("outputs", outputs);
+                            return outputs;
+                        }
+                    }
+                    panic!("Simulation did not converge");
+                }
             }
         );
         assert_tokens_eq(&expected, &output);

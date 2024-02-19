@@ -111,7 +111,7 @@ fn rewrite_pattern_as_typed_bits(pat: &syn::Pat) -> syn::Result<TS> {
 
 fn rewrite_pattern_to_use_defaults_for_bindings(pat: &syn::Pat) -> TS {
     match pat {
-        Pat::Ident(x) => {
+        Pat::Ident(_) => {
             quote! { Default::default() }
         }
         Pat::Or(subs) => {
@@ -1476,6 +1476,7 @@ mod test {
     }
 
     #[test]
+    #[allow(unused)]
     fn test_pattern_binding_rewrite_function() {
         enum Baz {
             A,
