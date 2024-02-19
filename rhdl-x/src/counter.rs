@@ -1,12 +1,14 @@
-use anyhow::bail;
 use anyhow::Result;
 use rhdl_bits::Bits;
+use rhdl_core::note;
+use rhdl_core::note_pop_path;
+use rhdl_core::note_push_path;
+use rhdl_core::CircuitIO;
 use rhdl_core::Digital;
 use rhdl_macro::{kernel, Digital};
 
 use crate::circuit::root_descriptor;
 use crate::circuit::root_hdl;
-use crate::circuit::BufZ;
 use crate::{
     circuit::{Circuit, CircuitDescriptor},
     clock::Clock,
@@ -25,27 +27,43 @@ pub struct CounterI<const N: usize> {
     pub enable: bool,
 }
 
-impl<const N: usize> Circuit for Counter<N> {
+#[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
+pub struct CounterQ<const N: usize> {
+    pub count: <DFF<Bits<N>> as CircuitIO>::O,
+}
+
+#[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
+pub struct CounterD<const N: usize> {
+    pub count: <DFF<Bits<N>> as CircuitIO>::I,
+}
+
+impl<const N: usize> CircuitIO for Counter<N> {
     type I = CounterI<N>;
-
     type O = Bits<N>;
+}
 
-    type Q = (Bits<N>,);
+impl<const N: usize> Circuit for Counter<N> {
+    type Q = CounterQ<N>;
 
-    type D = (DFFI<Bits<N>>,);
+    type D = CounterD<N>;
+
+    type Z = ();
 
     type Update = counter<N>;
     const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = counter::<N>;
 
     type S = (Self::Q, <DFF<Bits<N>> as Circuit>::S);
 
-    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut BufZ) -> Self::O {
+    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
+        note("input", input);
         loop {
             let prev_state = state.clone();
             let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
-            let o0 = self.count.sim(internal_inputs.0, &mut state.1, io);
-            state.0 = (o0,);
+            note_push_path("count");
+            state.0.count = self.count.sim(internal_inputs.count, &mut state.1, io);
+            note_pop_path();
             if state == &prev_state {
+                note("outputs", outputs);
                 return outputs;
             }
         }
@@ -71,16 +89,12 @@ impl<const N: usize> Circuit for Counter<N> {
 }
 
 #[kernel]
-pub fn counter<const N: usize>(
-    i: CounterI<N>,
-    (count_q,): (Bits<N>,),
-) -> (Bits<N>, (DFFI<Bits<N>>,)) {
-    let count_next = if i.enable { count_q + 1 } else { count_q };
-    (
-        count_q,
-        (DFFI::<Bits<{ N }>> {
-            clock: i.clock,
-            data: count_next,
-        },),
-    )
+pub fn counter<const N: usize>(i: CounterI<N>, q: CounterQ<N>) -> (Bits<N>, CounterD<N>) {
+    let mut d = CounterD::<N>::default();
+    d.count.clock = i.clock;
+    d.count.data = q.count;
+    if i.enable {
+        d.count.data = q.count + 1;
+    }
+    (q.count, d)
 }

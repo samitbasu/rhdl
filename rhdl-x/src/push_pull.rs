@@ -7,6 +7,7 @@ use rhdl_core::note_pop_path;
 use rhdl_core::note_push_path;
 use rhdl_core::note_take;
 use rhdl_core::note_time;
+use rhdl_core::CircuitIO;
 use rhdl_core::Digital;
 use rhdl_core::DigitalFn;
 use rhdl_core::Notable;
@@ -17,12 +18,15 @@ use rhdl_macro::Digital;
 
 use crate::circuit::root_descriptor;
 use crate::circuit::root_hdl;
+use crate::circuit::BitZ;
 use crate::circuit::BufZ;
 use crate::circuit::HDLDescriptor;
+use crate::circuit::Tristate;
 use crate::circuit::TristateBuf;
 use crate::clock::Clock;
 use crate::dff::DFF;
 use crate::{circuit::Circuit, constant::Constant, strobe::Strobe};
+use rhdl_macro::Circuit;
 
 #[derive(Default, Clone)]
 pub struct ZDriver<const N: usize> {}
@@ -34,8 +38,8 @@ pub struct ZDriverI<const N: usize> {
 }
 
 impl<const N: usize> DigitalFn for ZDriver<N> {
-    fn kernel_fn() -> rhdl_core::KernelFnKind {
-        todo!()
+    fn kernel_fn() -> Option<rhdl_core::KernelFnKind> {
+        None
     }
 }
 
@@ -62,30 +66,30 @@ endmodule
     }
 }
 
-impl<const N: usize> Circuit for ZDriver<N> {
+impl<const N: usize> CircuitIO for ZDriver<N> {
     type I = ZDriverI<N>;
-
     type O = Bits<N>;
+}
 
+impl<const N: usize> Circuit for ZDriver<N> {
     type Q = ();
 
     type D = ();
 
-    const NumZ: usize = N;
+    type Z = BitZ<N>;
 
-    type Update = Self;
-
-    const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = |i, _| (i.data, ());
+    type Update = rhdl_core::NoUpdateFn;
 
     type S = ();
 
-    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut BufZ) -> Self::O {
+    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
         if input.enable {
-            io.drive(input.data);
+            io.mask = Bits::<N>::MASK;
+            io.value = input.data;
         } else {
-            io.tri_state::<N>();
+            io.mask = Bits::<N>::ZERO;
         }
-        io.read()
+        io.value
     }
 
     fn name(&self) -> &'static str {
@@ -112,7 +116,8 @@ pub enum Side {
     Right,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Circuit)]
+#[rhdl(kernel = pushd)]
 pub struct Push {
     strobe: Strobe<32>,
     value: Constant<Bits<8>>,
@@ -121,6 +126,101 @@ pub struct Push {
     latch: DFF<Bits<8>>,
 }
 
+impl CircuitIO for Push {
+    type I = Clock;
+    type O = b8;
+}
+
+struct Push_D {
+    strobe: <Strobe<32> as CircuitIO>::I,
+    value: <Constant<Bits<8>> as CircuitIO>::I,
+    buf_z: <ZDriver<8> as CircuitIO>::I,
+    side: <DFF<Side> as CircuitIO>::I,
+    latch: <DFF<Bits<8>> as CircuitIO>::I,
+}
+
+struct Push_Q {
+    strobe: <Strobe<32> as CircuitIO>::O,
+    value: <Constant<Bits<8>> as CircuitIO>::O,
+    buf_z: <ZDriver<8> as CircuitIO>::O,
+    side: <DFF<Side> as CircuitIO>::O,
+    latch: <DFF<Bits<8>> as CircuitIO>::O,
+}
+
+type ChildInputs = (
+    <Strobe<32> as CircuitIO>::I,
+    <Constant<Bits<8>> as CircuitIO>::I,
+    <ZDriver<8> as CircuitIO>::I,
+    <DFF<Side> as CircuitIO>::I,
+    <DFF<Bits<8>> as CircuitIO>::I,
+);
+
+type ChildOutputs = (
+    <Strobe<32> as CircuitIO>::O,
+    <Constant<Bits<8>> as CircuitIO>::O,
+    <ZDriver<8> as CircuitIO>::O,
+    <DFF<Side> as CircuitIO>::O,
+    <DFF<Bits<8>> as CircuitIO>::O,
+);
+
+impl From<Push_Q> for ChildOutputs {
+    fn from(q: Push_Q) -> Self {
+        (q.strobe, q.value, q.buf_z, q.side, q.latch)
+    }
+}
+
+impl From<Push_D> for ChildInputs {
+    fn from(d: Push_D) -> Self {
+        (d.strobe, d.value, d.buf_z, d.side, d.latch)
+    }
+}
+
+/*
+impl Circuit for Push {
+
+    type Update = pushd;
+
+    const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = pushd;
+
+    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
+        note("input", input);
+        loop {
+            let prev_state = state.clone();
+            let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
+            note_push_path("strobe");
+            state.0.strobe = self
+                .strobe
+                .sim(internal_inputs.strobe, &mut state.1, &mut io.strobe);
+            note_pop_path();
+            note_push_path("value");
+            state.0.value = self
+                .value
+                .sim(internal_inputs.value, &mut state.2, &mut io.value);
+            note_pop_path();
+            note_push_path("buf_z");
+            state.0.buf_z = self
+                .buf_z
+                .sim(internal_inputs.buf_z, &mut state.3, &mut io.buf_z);
+            note_pop_path();
+            note_push_path("side");
+            state.0.side = self
+                .side
+                .sim(internal_inputs.side, &mut state.4, &mut io.side);
+            note_pop_path();
+            note_push_path("latch");
+            state.0.latch = self
+                .latch
+                .sim(internal_inputs.latch, &mut state.5, &mut io.latch);
+            note_pop_path();
+            if state == &prev_state {
+                note("outputs", outputs);
+                return outputs;
+            }
+        }
+    }
+}
+*/
+/*
 // Auto generated
 #[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
 pub struct PushQ {
@@ -141,7 +241,22 @@ pub struct PushD {
     latch: <DFF<Bits<8>> as Circuit>::I,
 }
 
-/*
+#[derive(Debug, Clone, PartialEq, Default, Copy)]
+pub struct PushZ {
+    strobe: <Strobe<32> as Circuit>::Z,
+    value: <Constant<Bits<8>> as Circuit>::Z,
+    buf_z: <ZDriver<8> as Circuit>::Z,
+    side: <DFF<Side> as Circuit>::Z,
+    latch: <DFF<Bits<8>> as Circuit>::Z,
+}
+impl Tristate for PushZ {
+    const N: usize = <Strobe<32> as Circuit>::Z::N
+        + <Constant<Bits<8>> as Circuit>::Z::N
+        + <ZDriver<8> as Circuit>::Z::N
+        + <DFF<Side> as Circuit>::Z::N
+        + <DFF<Bits<8>> as Circuit>::Z::N;
+}
+
 impl<const N: usize> Notable for BufZ<Bits<N>> {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_tristate(key, self.value.0, self.mask.0, N as u8);
@@ -149,12 +264,13 @@ impl<const N: usize> Notable for BufZ<Bits<N>> {
 }
 */
 
+/*
 impl Circuit for Push {
     type I = Clock;
 
     type O = b8;
 
-    const NumZ: usize = 8;
+    type Z = PushZ;
 
     type Q = PushQ;
 
@@ -218,27 +334,44 @@ impl Circuit for Push {
         Ok(ret)
     }
 
-    // TODO - figure out how to handle splitting of the bufz across children
-    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut BufZ) -> Self::O {
+    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
+        note("input", input);
         loop {
             let prev_state = state.clone();
-            let prev_bus = io.buf();
             let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
-            state.0.strobe = self.strobe.sim(internal_inputs.strobe, &mut state.1, io);
-            state.0.value = self.value.sim(internal_inputs.value, &mut state.2, io);
-            state.0.buf_z = self.buf_z.sim(internal_inputs.buf_z, &mut state.3, io);
+            note_push_path("strobe");
+            state.0.strobe = self
+                .strobe
+                .sim(internal_inputs.strobe, &mut state.1, &mut io.strobe);
+            note_pop_path();
+            note_push_path("value");
+            state.0.value = self
+                .value
+                .sim(internal_inputs.value, &mut state.2, &mut io.value);
+            note_pop_path();
+            note_push_path("buf_z");
+            state.0.buf_z = self
+                .buf_z
+                .sim(internal_inputs.buf_z, &mut state.3, &mut io.buf_z);
+            note_pop_path();
             note_push_path("side");
-            state.0.side = self.side.sim(internal_inputs.side, &mut state.4, io);
+            state.0.side = self
+                .side
+                .sim(internal_inputs.side, &mut state.4, &mut io.side);
             note_pop_path();
             note_push_path("latch");
-            state.0.latch = self.latch.sim(internal_inputs.latch, &mut state.5, io);
+            state.0.latch = self
+                .latch
+                .sim(internal_inputs.latch, &mut state.5, &mut io.latch);
             note_pop_path();
-            if state == &prev_state && io.buf() == prev_bus {
+            if state == &prev_state {
+                note("outputs", outputs);
                 return outputs;
             }
         }
     }
 }
+*/
 
 #[kernel]
 pub fn pushd(i: Clock, q: PushQ) -> (b8, PushD) {
@@ -288,29 +421,40 @@ fn test_simulate_push() {
         latch: DFF::from(b8(0)),
     };
     let mut state = push.init_state();
+    let mut io = <Push as Circuit>::Z::default();
     note_init_db();
     note_time(0);
+    note_push_path("top");
     for (ndx, input) in crate::clock::clock().take(1500).enumerate() {
         note_time(ndx as u64 * 100);
         note("clock", input);
-        let mut buf = TristateBuf::default();
-        buf.width = 8;
         loop {
-            let p_state = state.clone();
-            let p_buf = buf.clone();
-            let mut io = BufZ::new(&mut buf, 0, 8);
+            let p_state = state;
             push.sim(input, &mut state, &mut io);
-            if (state == p_state) && (p_buf == buf) {
-                eprintln!("Stable[{ndx}]: {:?}", buf);
+            if state == p_state {
                 break;
             }
         }
-        note("bus", buf);
+        note("bus", io);
     }
+    note_pop_path();
     let db = note_take().unwrap();
     let push = std::fs::File::create("push.vcd").unwrap();
     db.dump_vcd(&[], push).unwrap();
 }
+
+/*
+
+(
+    (
+        (), ()
+    ),
+    (),
+    circuit::BitZ<8>,
+    (),
+    ()
+)
+*/
 
 #[derive(Clone)]
 pub struct PushPair {
@@ -318,34 +462,50 @@ pub struct PushPair {
     right: Push,
 }
 
-// Auto generated
 #[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
 pub struct PushPairQ {
-    left: <Push as Circuit>::O,
-    right: <Push as Circuit>::O,
+    left: <Push as CircuitIO>::O,
+    right: <Push as CircuitIO>::O,
 }
 
-// Auto generated
 #[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
 pub struct PushPairD {
-    left: <Push as Circuit>::I,
-    right: <Push as Circuit>::I,
+    left: <Push as CircuitIO>::I,
+    right: <Push as CircuitIO>::I,
+}
+
+#[derive(Debug, Clone, PartialEq, Copy, Default)]
+pub struct PushPairZ {
+    left: <Push as Circuit>::Z,
+    right: <Push as Circuit>::Z,
+}
+
+impl Tristate for PushPairZ {
+    const N: usize = <Push as Circuit>::Z::N + <Push as Circuit>::Z::N;
+}
+
+impl Notable for PushPairZ {
+    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
+        self.left.note((key, "left"), &mut writer);
+        self.right.note((key, "right"), &mut writer);
+    }
+}
+
+impl CircuitIO for PushPair {
+    type I = Clock;
+    type O = (b8, b8);
 }
 
 impl Circuit for PushPair {
-    type I = Clock;
+    type Q = PushPairQ;
 
-    type O = (b8, b8);
+    type D = PushPairD;
 
-    const NumZ: usize = 16;
+    type Z = PushPairZ;
 
     fn z_offsets() -> impl Iterator<Item = usize> {
         [0, 8].iter().copied()
     }
-
-    type Q = PushPairQ;
-
-    type D = PushPairD;
 
     type S = (Self::Q, <Push as Circuit>::S, <Push as Circuit>::S);
 
@@ -383,26 +543,24 @@ impl Circuit for PushPair {
         Ok(ret)
     }
 
-    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut BufZ) -> Self::O {
+    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
+        note("input", input);
         loop {
             let prev_state = state.clone();
             let mut z_offsets = Self::z_offsets();
             let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
             note_push_path("left");
-            state.0.left = self.left.sim(
-                internal_inputs.left,
-                &mut state.1,
-                &mut io.shift(z_offsets.next().unwrap()),
-            );
+            state.0.left = self
+                .left
+                .sim(internal_inputs.left, &mut state.1, &mut io.left);
             note_pop_path();
             note_push_path("right");
-            state.0.right = self.right.sim(
-                internal_inputs.right,
-                &mut state.2,
-                &mut io.shift(z_offsets.next().unwrap()),
-            );
+            state.0.right = self
+                .right
+                .sim(internal_inputs.right, &mut state.2, &mut io.right);
             note_pop_path();
             if state == &prev_state {
+                note("outputs", outputs);
                 return outputs;
             }
         }
@@ -443,34 +601,33 @@ fn test_simulate_push_pair() {
     eprintln!("State: {:?}", state);
     note_init_db();
     note_time(0);
+    let mut io = <PushPair as Circuit>::Z::default();
     for (ndx, input) in crate::clock::clock().take(1500).enumerate() {
         note_time(ndx as u64 * 100);
         note("clock", input);
-        let mut buf = TristateBuf::default();
-        buf.width = 16;
+        io = <PushPair as Circuit>::Z::default();
         loop {
             let p_state = state.clone();
-            let p_buf = buf.clone();
-            let mut io = BufZ::new(&mut buf, 0, 16);
+            let p_io = io.clone();
             let output = push_pair.sim(input, &mut state, &mut io);
-            fold_zbus::<8>(&mut buf);
-            if (state == p_state) && (p_buf == buf) {
+            fold_zbus(&mut io);
+            if (state == p_state) && (p_io == io) {
                 note("output", output);
                 break;
             }
         }
-        note("bus", buf);
+        note("bus", io);
     }
     let db = note_take().unwrap();
     let push = std::fs::File::create("push_pair.vcd").unwrap();
     db.dump_vcd(&[], push).unwrap();
 }
 
-pub fn fold_zbus<const N: usize>(buf: &mut TristateBuf) {
-    let left_value = buf.value >> N;
-    let left_mask = buf.mask >> N;
-    let right_value = buf.value & (Bits::<N>::MASK.0);
-    let right_mask = buf.mask & (Bits::<N>::MASK.0);
+pub fn fold_zbus(buf: &mut PushPairZ) {
+    let left_value = buf.left.buf_z.value;
+    let left_mask = buf.left.buf_z.mask;
+    let right_value = buf.right.buf_z.value;
+    let right_mask = buf.right.buf_z.mask;
 
     // Next we check that the two halves are not both enabled
     assert!(left_mask & right_mask == 0);
@@ -478,6 +635,8 @@ pub fn fold_zbus<const N: usize>(buf: &mut TristateBuf) {
     let value =
         ((left_value & left_mask) & !right_mask) | ((right_value & right_mask) & !left_mask);
     let total_mask = left_mask | right_mask;
-    buf.value = value | value << N;
-    buf.mask = total_mask | total_mask << N;
+    buf.left.buf_z.value = value;
+    buf.left.buf_z.mask = total_mask;
+    buf.right.buf_z.value = value;
+    buf.right.buf_z.mask = total_mask;
 }

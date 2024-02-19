@@ -72,8 +72,8 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                     }
                 }
                 impl #impl_generics rhdl_core::DigitalFn for #struct_name #ty_generics #where_clause {
-                    fn kernel_fn() -> rhdl_core::KernelFnKind {
-                        rhdl_core::KernelFnKind::TupleStructConstructor(rhdl_core::Digital::typed_bits(<Self as Default>::default()))
+                    fn kernel_fn() -> Option<rhdl_core::KernelFnKind> {
+                        Some(rhdl_core::KernelFnKind::TupleStructConstructor(rhdl_core::Digital::typed_bits(<Self as Default>::default())))
                     }
                 }
             })
@@ -328,8 +328,8 @@ mod test {
                 }
             }
             impl rhdl_core::DigitalFn for Inputs {
-                fn kernel_fn() -> rhdl_core::KernelFnKind {
-                    rhdl_core::KernelFnKind::TupleStructConstructor(rhdl_core::Digital::typed_bits(<Self as Default>::default()))
+                fn kernel_fn() -> Option<rhdl_core::KernelFnKind> {
+                    Some(rhdl_core::KernelFnKind::TupleStructConstructor(rhdl_core::Digital::typed_bits(<Self as Default>::default())))
                 }
             }
         };

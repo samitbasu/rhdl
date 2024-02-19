@@ -302,7 +302,10 @@ where
     K: DigitalFn,
     Args: TestArg,
 {
-    let design = compile_design(K::kernel_fn().try_into()?)?;
+    let Some(kernel) = K::kernel_fn() else {
+        bail!("Kernel function not found");
+    };
+    let design = compile_design(kernel.try_into()?)?;
     let verilog = generate_verilog(&design)?;
     eprintln!("Verilog {}", verilog);
     let vm_inputs = vals.clone();
@@ -418,8 +421,8 @@ mod tests {
     struct xor<const N: usize> {}
 
     impl<const N: usize> DigitalFn for xor<N> {
-        fn kernel_fn() -> KernelFnKind {
-            KernelFnKind::Extern(ExternalKernelDef {
+        fn kernel_fn() -> Option<KernelFnKind> {
+            Some(KernelFnKind::Extern(ExternalKernelDef {
                 name: format!("xor_{N}"),
                 body: format!(
                     "function [{}:0] xor_{N}(input [{}:0] a); xor_{N} = ^a; endfunction",
@@ -427,7 +430,7 @@ mod tests {
                     N - 1
                 ),
                 vm_stub: None,
-            })
+            }))
         }
     }
 
@@ -439,13 +442,13 @@ mod tests {
     struct add {}
 
     impl DigitalFn for add {
-        fn kernel_fn() -> KernelFnKind {
-            KernelFnKind::Extern(ExternalKernelDef {
+        fn kernel_fn() -> Option<KernelFnKind> {
+            Some(KernelFnKind::Extern(ExternalKernelDef {
                 name: "add".to_string(),
                 body: "function [3:0] add(input [3:0] a, input [3:0] b); add = a + b; endfunction"
                     .to_string(),
                 vm_stub: None,
-            })
+            }))
         }
     }
 
@@ -453,9 +456,10 @@ mod tests {
     fn test_add() -> anyhow::Result<()> {
         let nibbles_a = (0..=15).map(bits);
         let nibbles_b = nibbles_a.clone();
+        let kernel = add::kernel_fn().unwrap();
         let module = TestModule::new(
             add,
-            add::kernel_fn().try_into()?,
+            kernel.try_into()?,
             nibbles_a.cartesian_product(nibbles_b),
         );
         eprintln!("{module}");
@@ -466,11 +470,8 @@ mod tests {
     #[test]
     fn test_xor_generic() -> anyhow::Result<()> {
         let nibbles_a = (0..=15).map(bits);
-        let module = TestModule::new(
-            xor::<4>,
-            xor::<4>::kernel_fn().try_into()?,
-            nibbles_a.map(|x| (x,)),
-        );
+        let kernel = xor::<4>::kernel_fn().unwrap();
+        let module = TestModule::new(xor::<4>, kernel.try_into()?, nibbles_a.map(|x| (x,)));
         eprintln!("{module}");
         #[cfg(feature = "iverilog")]
         module.run_iverilog()

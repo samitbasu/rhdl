@@ -311,39 +311,27 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
             syn::FnArg::Typed(pat) => {
                 let pat = &pat.pat;
                 pattern_to_expr(pat)
-                //                Ok(quote!(#pat))
-                /*
-                                if let syn::Pat::Ident(ident) = pat.pat.as_ref() {
-                                    let name = &ident.ident;
-                                    Ok(quote! { #name })
-                                } else {
-                                    Err(syn::Error::new(
-                                        pat.span(),
-                                        "Unsupported pattern in rhdl kernel function",
-                                    ))
-                                }
-                */
             }
         })
         .collect::<Result<Punctuated<_, Comma>>>()?;
     let ret = &function.sig.output;
     let body = &function.block;
     Ok(quote! {
-        #vis fn #orig_name #impl_generics (#args) #ret #where_clause {
-            #[forbid(non_snake_case)]
-            #[forbid(non_upper_case_globals)]
-            #[forbid(unreachable_patterns)]
-            //#[forbid(path_statements)]
-            //#[forbid(unused_variables)]
-            fn inner #impl_generics (#args) #ret #where_clause {
-                #body
+            #vis fn #orig_name #impl_generics (#args) #ret #where_clause {
+                #[forbid(non_snake_case)]
+                #[forbid(non_upper_case_globals)]
+                #[forbid(unreachable_patterns)]
+                //#[forbid(path_statements)]
+                //#[forbid(unused_variables)]
+                fn inner #impl_generics (#args) #ret #where_clause {
+                    #body
+                }
+    //            rhdl_core::note_push_path(stringify!(#orig_name));
+                let ret = inner(#call_args);
+    //            rhdl_core::note_pop_path();
+                ret
             }
-            rhdl_core::note_push_path(stringify!(#orig_name));
-            let ret = inner(#call_args);
-            rhdl_core::note_pop_path();
-            ret
-        }
-    })
+        })
 }
 
 impl Context {
@@ -416,14 +404,14 @@ impl Context {
             #vis struct #name #impl_generics {#(#phantom_fields,)*}
 
             impl #impl_generics rhdl_core::digital_fn::DigitalFn for #name #ty_generics #where_clause {
-                fn kernel_fn() -> rhdl_core::digital_fn::KernelFnKind {
-                    rhdl_core::ast_builder::kernel_fn(
+                fn kernel_fn() -> Option<rhdl_core::digital_fn::KernelFnKind> {
+                    Some(rhdl_core::ast_builder::kernel_fn(
                         stringify!(#orig_name),
                         vec!{#(#args),*},
                         #ret,
                         #block,
                         std::any::TypeId::of::<#name #ty_generics>(),
-                    )
+                    ))
                 }
             }
         })
@@ -710,7 +698,7 @@ impl Context {
                 .collect::<Vec<_>>();
             let template = quote!(#func_path(#(#args_as_default),*));
             // This is a tuple struct constructor
-            quote!(rhdl_core::KernelFnKind::EnumTupleStructConstructor(rhdl_core::Digital::typed_bits(#template)))
+            quote!(Some(rhdl_core::KernelFnKind::EnumTupleStructConstructor(rhdl_core::Digital::typed_bits(#template))))
         };
         let call_to_get_type = quote!(rhdl_core::digital_fn::inspect_digital(#func_path));
         let path = self.path_inner(&func_path.path)?;

@@ -15,8 +15,8 @@ pub fn vm_any(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedB
 pub struct any<const N: usize> {}
 
 impl<const N: usize> DigitalFn for any<N> {
-    fn kernel_fn() -> KernelFnKind {
-        KernelFnKind::Extern(ExternalKernelDef {
+    fn kernel_fn() -> Option<KernelFnKind> {
+        Some(KernelFnKind::Extern(ExternalKernelDef {
             name: format!("any_{N}"),
             body: format!(
                 "function [{}:0] any_{N}(input [{}:0] a); any_{N} = |a; endfunction",
@@ -24,7 +24,7 @@ impl<const N: usize> DigitalFn for any<N> {
                 N - 1
             ),
             vm_stub: Some(vm_any),
-        })
+        }))
     }
 }
 
@@ -52,6 +52,10 @@ mod tests {
     #[test]
     fn test_iverilog() -> anyhow::Result<()> {
         let test_values = (0..=255).map(bits).map(|x| (x,));
-        test_with_iverilog(any::<8>, any::<8>::kernel_fn().try_into()?, test_values)
+        test_with_iverilog(
+            any::<8>,
+            any::<8>::kernel_fn().unwrap().try_into()?,
+            test_values,
+        )
     }
 }

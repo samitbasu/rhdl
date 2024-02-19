@@ -704,8 +704,11 @@ impl CompilerContext {
         let lhs = self.reg(id)?;
         let path = collapse_path(&call.path);
         let args = self.expr_list(&call.args)?;
+        let Some(code) = &call.code else {
+            bail!("No code for call {:?}", call)
+        };
         // inline calls to bits and signed
-        match &call.code {
+        match code {
             KernelFnKind::BitConstructor(len) => self.op(op_as_bits(lhs, args[0], *len), id),
             KernelFnKind::SignedBitsConstructor(len) => {
                 self.op(op_as_signed(lhs, args[0], *len), id)
@@ -734,7 +737,7 @@ impl CompilerContext {
             }
             _ => {
                 let func = self.stash(ExternalFunction {
-                    code: call.code.clone(),
+                    code: code.clone(),
                     path: path.clone(),
                     signature: call.signature.clone(),
                 })?;
@@ -985,16 +988,6 @@ impl CompilerContext {
             id,
         );
         Ok(())
-    }
-}
-
-fn argument_id(arg_pat: &Pat) -> Result<(String, NodeId)> {
-    match &arg_pat.kind {
-        PatKind::Ident(name) => Ok((name.name.to_string(), arg_pat.id)),
-        PatKind::Type(ty) => argument_id(&ty.pat),
-        _ => {
-            bail!("Arguments to kernel functions must be identifiers, instead got {arg_pat:?}")
-        }
     }
 }
 

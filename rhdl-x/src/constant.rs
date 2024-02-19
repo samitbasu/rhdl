@@ -1,10 +1,9 @@
 use anyhow::ensure;
 use anyhow::Result;
-use rhdl_bits::Bits;
+use rhdl_core::CircuitIO;
 use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
 
 use crate::circuit::root_descriptor;
-use crate::circuit::BufZ;
 use crate::circuit::HDLDescriptor;
 use crate::circuit::{Circuit, CircuitDescriptor};
 
@@ -21,27 +20,30 @@ impl<T: Digital> From<T> for Constant<T> {
 }
 
 impl<T: Digital> DigitalFn for Constant<T> {
-    fn kernel_fn() -> rhdl_core::KernelFnKind {
-        todo!()
+    fn kernel_fn() -> Option<rhdl_core::KernelFnKind> {
+        None
     }
 }
 
-impl<T: Digital> Circuit for Constant<T> {
+impl<T: Digital> CircuitIO for Constant<T> {
     type I = ();
-
     type O = T;
+}
 
+impl<T: Digital> Circuit for Constant<T> {
     type Q = ();
 
     type D = ();
 
     type S = ();
 
+    type Z = ();
+
     type Update = Self;
 
     const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = |_, _| (T::default(), ());
 
-    fn sim(&self, _: Self::I, _: &mut Self::S, _: &mut BufZ) -> Self::O {
+    fn sim(&self, _: Self::I, _: &mut Self::S, _: &mut Self::Z) -> Self::O {
         self.value
     }
 
@@ -53,7 +55,7 @@ impl<T: Digital> Circuit for Constant<T> {
         root_descriptor(self)
     }
 
-    fn as_hdl(&self, kind: crate::circuit::HDLKind) -> Result<HDLDescriptor> {
+    fn as_hdl(&self, kind: crate::circuit::HDLKind) -> anyhow::Result<HDLDescriptor> {
         ensure!(kind == crate::circuit::HDLKind::Verilog);
         Ok(self.as_verilog())
     }

@@ -306,7 +306,7 @@ pub struct ExprCall {
     pub path: Box<Path>,
     pub args: Vec<Box<Expr>>,
     pub signature: DigitalSignature,
-    pub code: KernelFnKind,
+    pub code: Option<KernelFnKind>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
