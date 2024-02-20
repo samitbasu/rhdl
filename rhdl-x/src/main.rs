@@ -212,7 +212,7 @@ fn test_dfg_analysis_of_kernel() {
     let mut dot = String::new();
     writeln!(
         dot,
-        "{:?}",
+        "{}",
         Dot::with_config(&dfg.graph, &[Config::EdgeNoLabel])
     )
     .unwrap();
