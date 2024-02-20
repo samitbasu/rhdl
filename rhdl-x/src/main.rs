@@ -8,8 +8,11 @@ use counter::Counter;
 use counter::CounterI;
 use dff::DFF;
 use dff::DFFI;
+use petgraph::dot::Config;
+use petgraph::dot::Dot;
 use rhdl_bits::alias::*;
 use rhdl_bits::bits;
+use rhdl_core::compile_design;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::note_db::note_time;
 use rhdl_core::note_init_db;
@@ -24,9 +27,13 @@ use rhdl_macro::Digital;
 use rhdl_bits::Bits;
 use strobe::Strobe;
 use strobe::StrobeI;
+
+use crate::dfg::build_dfg;
+use crate::dfg::ObjectAnalyzer;
 //use translator::Translator;
 //use verilog::VerilogTranslator;
 
+use std::fmt::Write;
 //mod backend;
 mod circuit;
 mod clock;
@@ -40,6 +47,7 @@ mod tristate;
 //mod traitx;
 //mod translator;
 //mod verilog;
+mod dfg;
 mod visit;
 
 #[test]
@@ -183,4 +191,30 @@ fn test_timing_note() {
     }
     let toc = Instant::now();
     eprintln!("Time: {:?}", toc - tic);
+}
+
+#[test]
+fn test_dfg_analysis_of_kernel() {
+    #[kernel]
+    fn concatenate_bits(x: b4, y: b4) -> b4 {
+        y - x
+    }
+
+    #[kernel]
+    fn add_stuff(x: b4, y: b4) -> b4 {
+        x + concatenate_bits(x, y)
+    }
+
+    let design = compile_design(add_stuff::kernel_fn().unwrap().try_into().unwrap()).unwrap();
+    let mut dfg = build_dfg(&design, design.top).unwrap();
+    eprintln!("{:?}", dfg);
+    // Print out the DFG graph as a DOT file
+    let mut dot = String::new();
+    writeln!(
+        dot,
+        "{:?}",
+        Dot::with_config(&dfg.graph, &[Config::EdgeNoLabel])
+    )
+    .unwrap();
+    std::fs::write("dfg.dot", dot).unwrap();
 }
