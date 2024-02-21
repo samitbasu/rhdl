@@ -17,3 +17,4 @@ petgraph = "0.6.4"
 rhdl-bits = { path = "../rhdl-bits" }
 rhdl-core = { path = "../rhdl-core" }
 rhdl-macro = { path = "../rhdl-macro" }
+rhdl-std = { path = "../rhdl-std" }

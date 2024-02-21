@@ -25,6 +25,7 @@ use rhdl_macro::kernel;
 use rhdl_macro::Digital;
 
 use rhdl_bits::Bits;
+use rhdl_std::slice;
 use strobe::Strobe;
 use strobe::StrobeI;
 
@@ -195,14 +196,28 @@ fn test_timing_note() {
 
 #[test]
 fn test_dfg_analysis_of_kernel() {
-    #[kernel]
-    fn concatenate_bits(x: b4, y: b4) -> b4 {
-        y - x
+    use rhdl_std::UnsignedMethods;
+    #[derive(Copy, Clone, PartialEq, Digital, Default)]
+    pub struct Foo {
+        a: bool,
+        b: b4,
+        c: b4,
     }
 
     #[kernel]
-    fn add_stuff(x: b4, y: b4) -> b4 {
-        x + concatenate_bits(x, y)
+    fn concatenate_bits(x: b4, y: b4) -> (b4, b4) {
+        (y - x, y + 3)
+    }
+
+    #[kernel]
+    fn add_stuff(x: b4, y: b4, z: Foo) -> b4 {
+        let h = [b4(5); 16];
+        let c = slice::<4, 2>(h[0], 1);
+        let q = x + concatenate_bits(x, y).0 + z.b;
+        match z.c.xor() {
+            true => q + z.c,
+            false => q - z.c + h[z.b] - b4(5),
+        }
     }
 
     let design = compile_design(add_stuff::kernel_fn().unwrap().try_into().unwrap()).unwrap();
@@ -210,11 +225,6 @@ fn test_dfg_analysis_of_kernel() {
     eprintln!("{:?}", dfg);
     // Print out the DFG graph as a DOT file
     let mut dot = String::new();
-    writeln!(
-        dot,
-        "{}",
-        Dot::with_config(&dfg.graph, &[Config::EdgeNoLabel])
-    )
-    .unwrap();
+    writeln!(dot, "{}", Dot::with_config(&dfg.graph, &[])).unwrap();
     std::fs::write("dfg.dot", dot).unwrap();
 }
