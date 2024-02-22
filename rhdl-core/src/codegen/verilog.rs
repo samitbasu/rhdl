@@ -4,12 +4,13 @@ use crate::kernel::ExternalKernelDef;
 use crate::path::{bit_range, Path, PathElement};
 use crate::rhif::spec::{
     AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum, Exec,
-    Index, Member, OpCode, Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
+    ExternalFunctionCode, Index, Member, OpCode, Repeat, Select, Slot, Splice, Struct, Tuple,
+    Unary,
 };
 use crate::test_module::VerilogDescriptor;
 use crate::util::binary_string;
+use crate::Kind;
 use crate::{ast::ast_impl::FunctionId, rhif::Object, Design, TypedBits};
-use crate::{KernelFnKind, Kind};
 use anyhow::Result;
 use anyhow::{anyhow, ensure};
 
@@ -386,14 +387,14 @@ impl<'a> TranslationContext<'a> {
                     .collect::<Vec<_>>()
                     .join(", ");
                 match &func.code {
-                    KernelFnKind::Kernel(kernel) => {
+                    ExternalFunctionCode::Kernel(kernel) => {
                         let func_name = self.design.func_name(kernel.inner().fn_id)?;
                         let kernel = translate(self.design, kernel.inner().fn_id)?;
                         self.kernels.push(kernel);
                         self.body
                             .push_str(&format!("    {lhs} = {func_name}({args});\n"));
                     }
-                    KernelFnKind::Extern(ExternalKernelDef {
+                    ExternalFunctionCode::Extern(ExternalKernelDef {
                         name,
                         body,
                         vm_stub: _,
@@ -404,7 +405,6 @@ impl<'a> TranslationContext<'a> {
                             functions: vec![body.clone()],
                         });
                     }
-                    _ => todo!("Translate non-kernel functions"),
                 }
             }
             OpCode::Repeat(Repeat { lhs, value, len }) => {

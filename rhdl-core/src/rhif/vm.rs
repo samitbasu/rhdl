@@ -13,7 +13,7 @@ use anyhow::Result;
 
 use anyhow::{anyhow, bail};
 
-use super::spec::{Select, Splice};
+use super::spec::{ExternalFunctionCode, Select, Splice};
 
 struct VMState<'a> {
     reg_stack: &'a mut [Option<TypedBits>],
@@ -270,10 +270,10 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
                     .collect::<Result<Vec<_>>>()?;
                 let func = &state.obj.externals[id.0];
                 let result = match &func.code {
-                    KernelFnKind::Kernel(kernel) => {
+                    ExternalFunctionCode::Kernel(kernel) => {
                         execute(state.design, kernel.inner().fn_id, args)?
                     }
-                    KernelFnKind::Extern(ExternalKernelDef {
+                    ExternalFunctionCode::Extern(ExternalKernelDef {
                         name,
                         body: _,
                         vm_stub,
@@ -283,9 +283,6 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
                         } else {
                             bail!("No VM stub for {name}")
                         }
-                    }
-                    _ => {
-                        todo!("No support for non-AST kernels {func:?}")
                     }
                 };
                 state.write(*lhs, result)?;
