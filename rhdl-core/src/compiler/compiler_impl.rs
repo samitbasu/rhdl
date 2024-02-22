@@ -1079,6 +1079,14 @@ pub fn compile(func: &ast_impl::KernelFn, ctx: UnifyContext) -> Result<Object> {
         compiler.opcode_source_map.len() == compiler.ops.len(),
         "ICE - opcode source map and opcode list are not the same length",
     );
+    let kind = compiler
+        .ty
+        .into_iter()
+        .map(|(k, v)| {
+            let kind: Result<Kind> = v.try_into();
+            kind.map(|r| (k, r))
+        })
+        .collect::<Result<_>>()?;
     Ok(Object {
         source: Some(build_spanned_source_for_kernel(func)),
         slot_map: compiler
@@ -1092,7 +1100,7 @@ pub fn compile(func: &ast_impl::KernelFn, ctx: UnifyContext) -> Result<Object> {
             .map(|node| (compiler.fn_id, node).into())
             .collect(),
         literals,
-        ty: compiler.ty,
+        kind,
         ops: compiler.ops,
         return_slot,
         externals: compiler.stash,

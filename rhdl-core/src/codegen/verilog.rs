@@ -75,7 +75,7 @@ impl<'a> TranslationContext<'a> {
         // replaces all dynamic indices with 0
         let arg_kind: Kind = self
             .obj
-            .ty
+            .kind
             .get(target)
             .ok_or(anyhow!(
                 "No type for slot {} in function {}",
@@ -150,7 +150,7 @@ impl<'a> TranslationContext<'a> {
         ensure!(!path.any_dynamic());
         let arg_ty = self
             .obj
-            .ty
+            .kind
             .get(arg)
             .ok_or(anyhow!(
                 "No type for slot {} in function {}",
@@ -178,7 +178,7 @@ impl<'a> TranslationContext<'a> {
         ensure!(!path.any_dynamic());
         let orig_ty = self
             .obj
-            .ty
+            .kind
             .get(orig)
             .ok_or(anyhow!(
                 "No type for slot {} in function {}",
@@ -337,7 +337,7 @@ impl<'a> TranslationContext<'a> {
             OpCode::Discriminant(Discriminant { lhs, arg }) => {
                 let arg_ty = self
                     .obj
-                    .ty
+                    .kind
                     .get(arg)
                     .ok_or(anyhow!(
                         "No type for slot {} in function {}",
@@ -452,7 +452,7 @@ fn translate(design: &Design, fn_id: FunctionId) -> Result<VerilogModule> {
         .iter()
         .map(|x| format!("input {}", x))
         .collect::<Vec<_>>();
-    let ret_ty = obj.ty.get(&obj.return_slot).ok_or(anyhow!(
+    let ret_ty = obj.kind.get(&obj.return_slot).ok_or(anyhow!(
         "No type for return slot {} in function {fn_id}",
         obj.return_slot
     ))?;
@@ -470,7 +470,7 @@ fn translate(design: &Design, fn_id: FunctionId) -> Result<VerilogModule> {
     );
     func.push_str("    // Registers\n");
     for reg in obj
-        .ty
+        .kind
         .keys()
         .filter(|x| !obj.arguments.contains(x))
         .filter(|x| x.is_reg())
@@ -516,7 +516,7 @@ pub fn as_verilog_literal(tb: &TypedBits) -> String {
 
 fn decl(slot: &Slot, obj: &Object) -> Result<String> {
     let ty = obj
-        .ty
+        .kind
         .get(slot)
         .ok_or(anyhow!("No type for slot {}", slot))?;
     let signed = if ty.is_signed() { "signed" } else { "" };

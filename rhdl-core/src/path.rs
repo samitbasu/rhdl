@@ -116,6 +116,10 @@ impl From<Member> for Path {
     }
 }
 
+pub fn sub_kind(kind: Kind, path: &Path) -> Result<Kind> {
+    bit_range(kind, path).map(|(range, kind)| kind)
+}
+
 // Given a Kind and a Vec<Path>, compute the bit offsets of
 // the endpoint of the path within the original data structure.
 pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
