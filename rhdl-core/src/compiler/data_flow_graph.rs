@@ -1,10 +1,10 @@
 use crate::rhif::object::SourceLocation;
 use crate::rhif::spec::{
-    Array, Assign, Binary, Case, Cast, Discriminant, Enum, Exec, Index, OpCode, Repeat, Select,
-    Slot, Splice, Struct, Tuple, Unary,
+    Array, Assign, Binary, Case, Cast, Discriminant, Enum, Exec, ExternalFunctionCode, Index,
+    OpCode, Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
 };
 use crate::rhif::Object;
-use crate::{Design, KernelFnKind};
+use crate::Design;
 use anyhow::anyhow;
 use anyhow::{bail, Result};
 use petgraph::dot::Dot;
@@ -268,7 +268,7 @@ impl<'a> DataFlowGraphContext<'a> {
                     .collect::<Result<Vec<_>>>()?;
 
                 let func = &self.object.externals[id.0];
-                let KernelFnKind::Kernel(kernel) = &func.code else {
+                let ExternalFunctionCode::Kernel(kernel) = &func.code else {
                     bail!("DFG does not currently support external function defs")
                 };
                 let callee = self

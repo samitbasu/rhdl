@@ -8,15 +8,18 @@ use crate::{
     compiler::ty::{ty_empty, ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
     compiler::UnifyContext,
     diagnostic::build_spanned_source_for_kernel,
-    rhif::rhif_builder::{
-        op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment,
-        op_discriminant, op_enum, op_exec, op_index, op_repeat, op_select, op_splice, op_struct,
-        op_tuple, op_unary,
-    },
     rhif::spec::{
         self, AluBinary, AluUnary, CaseArgument, ExternalFunction, FuncId, Member, OpCode, Slot,
     },
     rhif::Object,
+    rhif::{
+        rhif_builder::{
+            op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment,
+            op_discriminant, op_enum, op_exec, op_index, op_repeat, op_select, op_splice,
+            op_struct, op_tuple, op_unary,
+        },
+        spec::ExternalFunctionCode,
+    },
     types::typed_bits::TypedBits,
     Digital, KernelFnKind, Kind,
 };
@@ -735,9 +738,17 @@ impl CompilerContext {
                     .collect();
                 self.op(op_enum(lhs, fields, template.clone()), id);
             }
-            _ => {
+            KernelFnKind::Kernel(kernel) => {
                 let func = self.stash(ExternalFunction {
-                    code: code.clone(),
+                    code: ExternalFunctionCode::Kernel(kernel.clone()),
+                    path: path.clone(),
+                    signature: call.signature.clone(),
+                })?;
+                self.op(op_exec(lhs, func, args), id);
+            }
+            KernelFnKind::Extern(code) => {
+                let func = self.stash(ExternalFunction {
+                    code: ExternalFunctionCode::Extern(code.clone()),
                     path: path.clone(),
                     signature: call.signature.clone(),
                 })?;

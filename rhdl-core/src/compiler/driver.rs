@@ -7,7 +7,10 @@ use crate::{
     },
     diagnostic::report::show_source,
     kernel::Kernel,
-    rhif::{spec::OpCode, Object},
+    rhif::{
+        spec::{ExternalFunctionCode, OpCode},
+        Object,
+    },
     Design, KernelFnKind,
 };
 
@@ -59,7 +62,7 @@ fn elaborate_design(design: &mut Design) -> Result<()> {
         .values()
         .flat_map(|obj| obj.externals.iter())
         .filter_map(|func| {
-            if let KernelFnKind::Kernel(kernel) = &func.code {
+            if let ExternalFunctionCode::Kernel(kernel) = &func.code {
                 Some(kernel)
             } else {
                 None

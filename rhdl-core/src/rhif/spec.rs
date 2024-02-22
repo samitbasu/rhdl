@@ -1,7 +1,11 @@
 // RHDL Intermediate Form (RHIF).
 use anyhow::Result;
 
-use crate::{path::Path, DigitalSignature, KernelFnKind, TypedBits};
+use crate::{
+    kernel::{ExternalKernelDef, Kernel},
+    path::Path,
+    DigitalSignature, KernelFnKind, TypedBits,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum OpCode {
@@ -345,9 +349,33 @@ pub enum Member {
 pub struct FuncId(pub usize);
 
 #[derive(Debug, Clone)]
+pub enum ExternalFunctionCode {
+    Kernel(Kernel),
+    Extern(ExternalKernelDef),
+}
+
+impl std::fmt::Display for ExternalFunctionCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExternalFunctionCode::Kernel(kernel) => {
+                write!(
+                    f,
+                    "kernel {name} {fn_id}",
+                    name = kernel.inner().name,
+                    fn_id = kernel.inner().fn_id
+                )
+            }
+            ExternalFunctionCode::Extern(extern_kernel) => {
+                write!(f, "extern {}", extern_kernel.name)
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct ExternalFunction {
     pub path: String,
-    pub code: KernelFnKind,
+    pub code: ExternalFunctionCode,
     pub signature: DigitalSignature,
 }
 
