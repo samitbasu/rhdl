@@ -24,7 +24,7 @@ impl<'a> Validator<'a> {
         }
     }
     fn validate_kernel(&mut self, kernel: &Kernel) -> Result<()> {
-        crate::ast::visit::visit_kernel_fn(self, &kernel.ast)
+        crate::ast::visit::visit_kernel_fn(self, &kernel.inner())
     }
     fn validate_bound_type(&mut self, node_id: ast_impl::NodeId) -> Result<()> {
         let var = id_to_var(node_id)?;

@@ -7,7 +7,7 @@ use crate::rhif::Object;
 use crate::{Design, KernelFnKind};
 use anyhow::anyhow;
 use anyhow::{bail, Result};
-use petgraph::dot::{Config, Dot};
+use petgraph::dot::Dot;
 use petgraph::graph::NodeIndex;
 use petgraph::{Directed, Graph};
 use std::collections::HashMap;
@@ -274,7 +274,7 @@ impl<'a> DataFlowGraphContext<'a> {
                 let callee = self
                     .design
                     .objects
-                    .get(&kernel.fn_id)
+                    .get(&kernel.inner().fn_id)
                     .ok_or(anyhow!("ICE Could not find function referenced in design"))?;
                 let callee_base = self.allocate(callee);
 

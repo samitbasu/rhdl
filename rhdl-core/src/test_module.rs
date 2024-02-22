@@ -302,10 +302,10 @@ where
     K: DigitalFn,
     Args: TestArg,
 {
-    let Some(kernel) = K::kernel_fn() else {
+    let Some(KernelFnKind::Kernel(kernel)) = K::kernel_fn() else {
         bail!("Kernel function not found");
     };
-    let design = compile_design(kernel.try_into()?)?;
+    let design = compile_design(kernel)?;
     let verilog = generate_verilog(&design)?;
     eprintln!("Verilog {}", verilog);
     let vm_inputs = vals.clone();

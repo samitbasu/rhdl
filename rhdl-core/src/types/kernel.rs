@@ -1,36 +1,28 @@
-use anyhow::bail;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    ast::ast_impl::{self, KernelFn},
-    TypedBits,
-};
+use crate::{ast::ast_impl, TypedBits};
 
-#[derive(Debug, Clone)]
-pub struct Kernel {
-    pub ast: Box<ast_impl::KernelFn>,
-}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Kernel(Box<ast_impl::KernelFn>);
 
 impl From<Box<ast_impl::KernelFn>> for Kernel {
     fn from(ast: Box<ast_impl::KernelFn>) -> Self {
-        Kernel { ast }
+        Kernel(ast)
     }
 }
 
-impl TryFrom<KernelFnKind> for Kernel {
-    type Error = anyhow::Error;
-
-    fn try_from(kind: KernelFnKind) -> Result<Self, Self::Error> {
-        match kind {
-            KernelFnKind::Kernel(kernel) => Ok(Kernel { ast: kernel }),
-            _ => bail!("Cannot convert non-AST kernel to AST kernel"),
-        }
+impl Kernel {
+    pub fn inner(&self) -> &ast_impl::KernelFn {
+        &self.0
+    }
+    pub fn inner_mut(&mut self) -> &mut ast_impl::KernelFn {
+        &mut self.0
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum KernelFnKind {
-    Kernel(Box<KernelFn>),
+    Kernel(Kernel),
     Extern(ExternalKernelDef),
     TupleStructConstructor(TypedBits),
     BitConstructor(usize),
@@ -45,8 +37,8 @@ impl std::fmt::Display for KernelFnKind {
                 write!(
                     f,
                     "kernel {name} {fn_id}",
-                    name = kernel.name,
-                    fn_id = kernel.fn_id
+                    name = kernel.inner().name,
+                    fn_id = kernel.inner().fn_id
                 )
             }
             KernelFnKind::Extern(extern_kernel) => write!(f, "extern {}", extern_kernel.name),

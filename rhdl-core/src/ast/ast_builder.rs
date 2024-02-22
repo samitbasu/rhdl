@@ -421,14 +421,17 @@ pub fn kernel_fn(
     let mut hasher = fnv::FnvHasher::default();
     fn_id.hash(&mut hasher);
     let fn_id = hasher.finish().into();
-    KernelFnKind::Kernel(Box::new(KernelFn {
-        id: INVALID_NODE_ID,
-        name: name.into(),
-        inputs,
-        ret,
-        body,
-        fn_id,
-    }))
+    KernelFnKind::Kernel(
+        Box::new(KernelFn {
+            id: INVALID_NODE_ID,
+            name: name.into(),
+            inputs,
+            ret,
+            body,
+            fn_id,
+        })
+        .into(),
+    )
 }
 
 pub fn expr_typed_bits(path: Box<Path>, value: TypedBits) -> Box<Expr> {

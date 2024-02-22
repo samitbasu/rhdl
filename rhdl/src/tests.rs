@@ -4,12 +4,13 @@ use rhdl_bits::{alias::*, bits, signed, Bits, SignedBits};
 use rhdl_core::{
     compile_design,
     digital_fn::DigitalFn,
-    kernel, note,
+    kernel::{self, Kernel},
+    note,
     note_db::note_time,
     note_init_db, note_take,
     path::{bit_range, Path},
     rhif::vm::execute_function,
-    test_kernel_vm_and_verilog, Digital, Kind,
+    test_kernel_vm_and_verilog, Digital, KernelFnKind, Kind,
 };
 use rhdl_macro::{kernel, Digital};
 use rhdl_std::UnsignedMethods;
@@ -428,7 +429,10 @@ fn test_method_call_fails_with_roll_your_own() {
         let j = h.any();
     }
 
-    assert!(compile_design(do_stuff::kernel_fn().unwrap().try_into().unwrap()).is_err());
+    let Some(KernelFnKind::Kernel(kernel)) = do_stuff::kernel_fn() else {
+        panic!("Kernel not found");
+    };
+    assert!(compile_design(kernel).is_err());
 }
 
 #[test]
@@ -1523,8 +1527,10 @@ fn test_vm_simple_function_with_invalid_args_causes_ice() {
     fn pass(a: u8) -> u8 {
         a
     }
-
-    let design = compile_design(pass::kernel_fn().unwrap().try_into().unwrap()).unwrap();
+    let Some(KernelFnKind::Kernel(kernel)) = pass::kernel_fn() else {
+        panic!("expected kernel function");
+    };
+    let design = compile_design(kernel).unwrap();
     eprintln!("design: {}", design);
     let res = execute_function(&design, vec![(42_u16).typed_bits()]);
     assert!(res.is_err());

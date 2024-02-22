@@ -38,15 +38,15 @@ pub fn pretty_print_statement(stmt: &Stmt, ty: &UnifyContext) -> Result<String> 
 
 impl<'a> PrettyPrinter<'a> {
     pub fn print_kernel(&mut self, kernel: &Kernel) -> Result<()> {
-        self.push(&format!("fn {}(", kernel.ast.name));
-        for arg in &kernel.ast.inputs {
+        self.push(&format!("fn {}(", kernel.inner().name));
+        for arg in &kernel.inner().inputs {
             self.print_pattern(arg)?;
             self.push(", ");
         }
         self.push(") -> ");
-        self.print_kind(&kernel.ast.ret.kind)?;
+        self.print_kind(&kernel.inner().ret.kind)?;
         self.push(" ");
-        self.print_block(&kernel.ast.body)?;
+        self.print_block(&kernel.inner().body)?;
         Ok(())
     }
     fn push(&mut self, s: &str) {

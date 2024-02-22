@@ -668,11 +668,11 @@ impl<'a> Visitor for InferenceForGenericIntegers<'a> {
 
 pub fn infer(root: &Kernel) -> Result<UnifyContext> {
     let mut inference_engine = TypeInference::default();
-    inference_engine.visit_kernel_fn(&root.ast)?;
-    inference_engine.visit_kernel_fn(&root.ast)?;
+    inference_engine.visit_kernel_fn(root.inner())?;
+    inference_engine.visit_kernel_fn(root.inner())?;
     let mut integer_fixup = InferenceForGenericIntegers {
         context: &mut inference_engine.context,
     };
-    integer_fixup.visit_kernel_fn(&root.ast)?;
+    integer_fixup.visit_kernel_fn(root.inner())?;
     Ok(inference_engine.context)
 }
