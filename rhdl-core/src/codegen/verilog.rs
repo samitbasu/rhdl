@@ -387,8 +387,8 @@ impl<'a> TranslationContext<'a> {
                     .join(", ");
                 match &func.code {
                     KernelFnKind::Kernel(kernel) => {
-                        let func_name = self.design.func_name(kernel.fn_id)?;
-                        let kernel = translate(self.design, kernel.fn_id)?;
+                        let func_name = self.design.func_name(kernel.inner().fn_id)?;
+                        let kernel = translate(self.design, kernel.inner().fn_id)?;
                         self.kernels.push(kernel);
                         self.body
                             .push_str(&format!("    {lhs} = {func_name}({args});\n"));

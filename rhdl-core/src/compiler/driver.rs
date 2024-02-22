@@ -19,7 +19,7 @@ pub fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     let _ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
     //eprintln!("{}", ast_ascii);
     check_inference(&kernel, &ctx)?;
-    let obj = compile(&kernel.ast, ctx)?;
+    let obj = compile(&kernel.inner(), ctx)?;
     //    let obj = LowerIndexToCopy::run(obj)?;
     eprintln!("{}", obj);
     let obj = RemoveExtraRegistersPass::run(obj)?;
@@ -68,11 +68,11 @@ fn elaborate_design(design: &mut Design) -> Result<()> {
         .cloned()
         .collect::<Vec<_>>();
     for kernel in external_kernels {
-        if let std::collections::hash_map::Entry::Vacant(e) = design.objects.entry(kernel.fn_id) {
-            eprintln!("Compiling kernel {}", kernel.fn_id);
-            let obj = compile_kernel(Kernel {
-                ast: kernel.clone(),
-            })?;
+        if let std::collections::hash_map::Entry::Vacant(e) =
+            design.objects.entry(kernel.inner().fn_id)
+        {
+            eprintln!("Compiling kernel {}", kernel.inner().fn_id);
+            let obj = compile_kernel(kernel.clone())?;
             e.insert(obj);
         }
     }

@@ -64,5 +64,5 @@ impl VisitorMut for NodeIdGenerator {
 
 pub fn assign_node_ids(root: &mut Kernel) -> Result<()> {
     let mut generator = NodeIdGenerator::new();
-    generator.visit_mut_kernel_fn(&mut root.ast)
+    generator.visit_mut_kernel_fn(root.inner_mut())
 }

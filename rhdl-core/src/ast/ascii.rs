@@ -15,7 +15,7 @@ pub struct AsciiRenderer<'a> {
 
 pub fn render_ast_to_string(kernel: &Kernel, ty: &UnifyContext) -> Result<String> {
     let mut renderer = AsciiRenderer::new(ty);
-    renderer.render(&kernel.ast)
+    renderer.render(kernel.inner())
 }
 
 pub fn render_statement_to_string(stmt: &Stmt, ty: &UnifyContext) -> Result<String> {

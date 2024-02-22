@@ -270,7 +270,9 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
                     .collect::<Result<Vec<_>>>()?;
                 let func = &state.obj.externals[id.0];
                 let result = match &func.code {
-                    KernelFnKind::Kernel(kernel) => execute(state.design, kernel.fn_id, args)?,
+                    KernelFnKind::Kernel(kernel) => {
+                        execute(state.design, kernel.inner().fn_id, args)?
+                    }
                     KernelFnKind::Extern(ExternalKernelDef {
                         name,
                         body: _,

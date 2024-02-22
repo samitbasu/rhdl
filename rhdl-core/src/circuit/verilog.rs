@@ -4,7 +4,7 @@ use crate::circuit::circuit::Tristate;
 use crate::path::{bit_range, Path};
 use crate::types::digital::Digital;
 use crate::types::digital_fn::DigitalFn;
-use crate::{compile_design, generate_verilog};
+use crate::{compile_design, generate_verilog, KernelFnKind};
 
 use super::{
     circuit::Circuit, circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor,
@@ -59,10 +59,10 @@ pub fn root_verilog<C: Circuit>(t: &C) -> Result<HDLDescriptor> {
         .map(|(ndx, (local, desc))| component_decl::<C>(ndx, &local, &desc))
         .collect::<Result<Vec<_>>>()?
         .join("\n");
-    let Some(kernel) = C::Update::kernel_fn() else {
+    let Some(KernelFnKind::Kernel(kernel)) = C::Update::kernel_fn() else {
         return Err(anyhow::anyhow!("No kernel function for {}", t.name()));
     };
-    let verilog = generate_verilog(&compile_design(kernel.try_into()?)?)?;
+    let verilog = generate_verilog(&compile_design(kernel)?)?;
     let fn_call = format!("assign od = {fn_name}(i, q);", fn_name = &verilog.name);
     let fn_body = &verilog.body;
     let o_bind = format!("assign o = od[{}:{}];", outputs.saturating_sub(1), 0);

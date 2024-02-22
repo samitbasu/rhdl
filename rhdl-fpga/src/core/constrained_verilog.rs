@@ -4,6 +4,7 @@
 
 use rhdl_core::compile_design;
 use rhdl_core::generate_verilog;
+use rhdl_core::KernelFnKind;
 
 use rhdl_core::Digital;
 use rhdl_core::DigitalFn;
@@ -24,10 +25,10 @@ pub fn make_constrained_verilog<M: Synchronous>(
     mut constraints: Vec<PinConstraint>,
     clock_source: Constraint,
 ) -> Result<ConstrainedVerilog> {
-    let Some(kernel) = M::Update::kernel_fn() else {
+    let Some(KernelFnKind::Kernel(kernel)) = M::Update::kernel_fn() else {
         return Err(anyhow::anyhow!("No kernel function found"));
     };
-    let verilog = generate_verilog(&compile_design(kernel.try_into()?)?)?;
+    let verilog = generate_verilog(&compile_design(kernel)?)?;
     let module_code = format!("{}", verilog);
     let module = format!(
         "

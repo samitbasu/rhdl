@@ -13,12 +13,13 @@ use std::path::PathBuf;
 use anyhow::Result;
 use rhdl_bits::alias::b4;
 use rhdl_bits::{bits, Bits};
+use rhdl_core::ast::ast_impl::KernelFn;
 use rhdl_core::diagnostic::report::show_source_detail;
 use rhdl_core::{
     compile_design, generate_verilog, note, note_init_db, note_take, note_time,
     test_module::TestModule, Digital, DigitalFn,
 };
-use rhdl_core::{Synchronous, UpdateFn};
+use rhdl_core::{KernelFnKind, Synchronous, UpdateFn};
 use rhdl_fpga::{make_constrained_verilog, Constraint, PinConstraint};
 use rhdl_macro::{kernel, Digital};
 
@@ -200,10 +201,10 @@ pub fn make_verilog_testbench<M: Synchronous>(
 ) -> Result<TestModule> {
     // Given a synchronous object and an iterator of inputs, generate a Verilog testbench
     // that will simulate the object and print the results to the console.
-    let Some(kernel) = M::Update::kernel_fn() else {
+    let Some(KernelFnKind::Kernel(kernel)) = M::Update::kernel_fn() else {
         return Err(anyhow::anyhow!("No kernel function found"));
     };
-    let verilog = generate_verilog(&compile_design(kernel.try_into()?)?)?;
+    let verilog = generate_verilog(&compile_design(kernel)?)?;
     let module_code = format!("{}", verilog);
     let inputs = inputs.collect::<Vec<_>>();
     let outputs = simulate(obj, inputs.iter().copied()).collect::<Vec<_>>();
@@ -324,7 +325,10 @@ fn test_pulser_simulation() {
 
 #[test]
 fn get_pulser_verilog() -> Result<()> {
-    let design = compile_design(pulser_update::<16>::kernel_fn().unwrap().try_into()?)?;
+    let Some(KernelFnKind::Kernel(kernel)) = pulser_update::<16>::kernel_fn() else {
+        return Err(anyhow::anyhow!("No kernel function found"));
+    };
+    let design = compile_design(kernel)?;
     let verilog = generate_verilog(&design)?;
     eprintln!("Verilog {}", verilog);
     std::fs::write("pulser.v", format!("{}", verilog))?;
@@ -390,7 +394,10 @@ fn test_basic_data_flow_graph() {
         }
     }
 
-    let design = compile_design(flow::kernel_fn().unwrap().try_into().unwrap()).unwrap();
+    let Some(KernelFnKind::Kernel(kernel)) = flow::kernel_fn() else {
+        panic!("No kernel function found");
+    };
+    let design = compile_design(kernel).unwrap();
     let source_map = design.source_map();
     let dfg = rhdl_core::compiler::data_flow_graph::make_data_flow(&design).unwrap();
     eprintln!("dfg: {:?}", dfg);
@@ -428,13 +435,10 @@ fn get_blinker_data_flow_graph() {
             },
         },
     };
-    let design = compile_design(
-        <Blinker as Synchronous>::Update::kernel_fn()
-            .unwrap()
-            .try_into()
-            .unwrap(),
-    )
-    .unwrap();
+    let Some(KernelFnKind::Kernel(kernel)) = blinker_update::kernel_fn() else {
+        panic!("No kernel function found");
+    };
+    let design = compile_design(kernel).unwrap();
     let dfg = rhdl_core::compiler::data_flow_graph::make_data_flow(&design).unwrap();
     //eprintln!("dfg: {:?}", dfg);
     let ways = petgraph::algo::all_simple_paths::<Vec<_>, _>(
