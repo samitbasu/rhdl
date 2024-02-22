@@ -312,18 +312,18 @@ fn execute(design: &Design, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
         );
     }
     for (ndx, arg) in arguments.iter().enumerate() {
-        let arg_ty: Ty = arg.kind.clone().into();
-        let obj_ty = obj
-            .ty
+        let arg_kind = &arg.kind;
+        let obj_kind = obj
+            .kind
             .get(&obj.arguments[ndx])
             .ok_or(anyhow!("ICE argument {ndx} type not found in object"))?;
-        if obj_ty != &arg_ty {
+        if obj_kind != arg_kind {
             bail!(
                 "Function {fn_id} argument {ndx} expected {expected}, got {got}",
                 fn_id = fn_id,
                 ndx = ndx,
-                expected = obj.ty.get(&obj.arguments[ndx]).unwrap(),
-                got = arg_ty
+                expected = obj.kind.get(&obj.arguments[ndx]).unwrap(),
+                got = arg_kind
             );
         }
     }

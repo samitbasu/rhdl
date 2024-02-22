@@ -161,6 +161,9 @@ impl Kind {
             discriminant_layout,
         })
     }
+    pub fn make_bool() -> Self {
+        Self::Bits(1)
+    }
     pub fn make_bits(digits: usize) -> Self {
         Self::Bits(digits)
     }
@@ -233,6 +236,16 @@ impl Kind {
             Kind::Enum(e) => e.name.clone(),
             Kind::U128 => "u128".to_string(),
             Kind::I128 => "i128".to_string(),
+        }
+    }
+
+    pub fn get_discriminant_kind(&self) -> Result<Kind> {
+        let Kind::Enum(e) = &self else {
+            return Err(anyhow::anyhow!("Not an enum"));
+        };
+        match e.discriminant_layout.ty {
+            DiscriminantType::Signed => Ok(Kind::Signed(e.discriminant_layout.width)),
+            DiscriminantType::Unsigned => Ok(Kind::Bits(e.discriminant_layout.width)),
         }
     }
 

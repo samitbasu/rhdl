@@ -7,7 +7,7 @@ use crate::{
     compiler::ty::Ty,
     diagnostic::SpannedSource,
     rhif::spec::{ExternalFunction, Slot},
-    TypedBits,
+    Kind, TypedBits,
 };
 
 use super::spec::OpCode;
@@ -30,7 +30,7 @@ pub struct Object {
     pub slot_map: BTreeMap<Slot, SourceLocation>,
     pub opcode_map: Vec<SourceLocation>,
     pub literals: Vec<TypedBits>,
-    pub ty: BTreeMap<Slot, Ty>,
+    pub kind: BTreeMap<Slot, Kind>,
     pub return_slot: Slot,
     pub externals: Vec<ExternalFunction>,
     pub ops: Vec<OpCode>,
@@ -47,7 +47,7 @@ impl Object {
         }
     }
     pub fn reg_max_index(&self) -> usize {
-        self.ty
+        self.kind
             .keys()
             .filter_map(|slot| match slot {
                 Slot::Register(ndx) => Some(ndx),
@@ -58,7 +58,7 @@ impl Object {
             .unwrap_or(0)
     }
     pub fn literal_max_index(&self) -> usize {
-        self.ty
+        self.kind
             .keys()
             .filter_map(|slot| match slot {
                 Slot::Literal(ndx) => Some(ndx),
@@ -74,9 +74,9 @@ impl std::fmt::Display for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Object {}", self.name)?;
         writeln!(f, "  fn_id {}", self.fn_id)?;
-        for regs in self.ty.keys() {
+        for regs in self.kind.keys() {
             if let Slot::Register(ndx) = regs {
-                writeln!(f, "Reg r{} : {}", ndx, self.ty[regs])?;
+                writeln!(f, "Reg r{} : {}", ndx, self.kind[regs])?;
             }
         }
         for (ndx, literal) in self.literals.iter().enumerate() {
@@ -84,7 +84,7 @@ impl std::fmt::Display for Object {
                 f,
                 "Literal l{} : {} = {}",
                 ndx,
-                self.ty[&Slot::Literal(ndx)],
+                self.kind[&Slot::Literal(ndx)],
                 literal
             )?;
         }
