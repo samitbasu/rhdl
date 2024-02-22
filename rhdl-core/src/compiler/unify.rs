@@ -1,6 +1,4 @@
-use crate::compiler::ty::{
-    ty_array_base, ty_indexed_item, ty_named_field, ty_unnamed_field, TyEnum,
-};
+use crate::compiler::ty::{ty_array_base, ty_named_field, ty_unnamed_field, TyEnum};
 use crate::compiler::ty::{Ty, TypeId};
 use anyhow::bail;
 use anyhow::Result;
@@ -37,7 +35,7 @@ impl UnifyContext {
     pub fn get_parent(&self, child: TypeId) -> Option<TypeId> {
         self.cross_reference.get(&child).cloned()
     }
-    pub fn apply(&self, typ: Term) -> Term {
+    pub(crate) fn apply(&self, typ: Term) -> Term {
         match typ {
             Term::Var(id) => {
                 if let Some(t) = self.map.get(&id) {
@@ -96,7 +94,7 @@ impl UnifyContext {
             Ok(())
         }
     }
-    pub fn unify(&mut self, x: Term, y: Term) -> Result<()> {
+    pub(crate) fn unify(&mut self, x: Term, y: Term) -> Result<()> {
         if x == y {
             return Ok(());
         }
@@ -146,22 +144,7 @@ impl UnifyContext {
         }
         false
     }
-    pub fn get_variant(&self, t: Ty, variant: &str) -> Result<Ty> {
-        let Ty::Var(id) = t else {
-            bail!("Cannot get variant of non-variable")
-        };
-        let Some(t) = self.map.get(&id) else {
-            bail!("Type must be known at this point")
-        };
-        let Ty::Enum(enum_) = t else {
-            bail!("Type must be an enum")
-        };
-        let Some(ty) = enum_.payload.fields.get(variant) else {
-            bail!("Variant {} not found", variant)
-        };
-        Ok(ty.clone())
-    }
-    pub fn get_named_field(&self, t: Ty, field: &str) -> Result<Ty> {
+    pub(crate) fn get_named_field(&self, t: Ty, field: &str) -> Result<Ty> {
         let Ty::Var(id) = t else {
             bail!("Cannot get field of non-variable")
         };
@@ -170,7 +153,7 @@ impl UnifyContext {
         };
         ty_named_field(t, field)
     }
-    pub fn get_unnamed_field(&self, t: Ty, field: usize) -> Result<Ty> {
+    pub(crate) fn get_unnamed_field(&self, t: Ty, field: usize) -> Result<Ty> {
         let Ty::Var(id) = t else {
             bail!("Cannot get field of non-variable")
         };
@@ -179,7 +162,7 @@ impl UnifyContext {
         };
         ty_unnamed_field(t, field)
     }
-    pub fn get_array_base(&self, t: Ty) -> Result<Ty> {
+    pub(crate) fn get_array_base(&self, t: Ty) -> Result<Ty> {
         let Ty::Var(id) = t else {
             bail!("Cannot get field of non-variable")
         };
@@ -187,22 +170,6 @@ impl UnifyContext {
             bail!("Type must be known at this point")
         };
         ty_array_base(t)
-    }
-    pub fn get_indexed_item(&self, t: Ty, index: usize) -> Result<Ty> {
-        let Ty::Var(id) = t else {
-            bail!("Cannot get field of non-variable")
-        };
-        let Some(t) = self.map.get(&id) else {
-            bail!("Type must be known at this point")
-        };
-        ty_indexed_item(t, index)
-    }
-    pub fn array_vars(&mut self, args: Vec<Ty>) -> Result<Ty> {
-        // put all of the terms into a single unified equivalence class
-        for x in args.windows(2) {
-            self.unify(x[0].clone(), x[1].clone())?;
-        }
-        Ok(Ty::Array(args))
     }
 }
 
@@ -212,7 +179,6 @@ mod tests {
 
     use super::*;
     use crate::compiler::ty::ty_bits;
-    use crate::compiler::ty::ty_empty;
     use crate::compiler::ty::ty_tuple as tuple;
     use crate::compiler::ty::ty_var as var;
 
@@ -327,45 +293,5 @@ mod tests {
         //subst.unify(d.clone(), as_ref(b.clone())).unwrap();
         //subst.unify(d.clone(), as_ref(c.clone())).unwrap();
         println!("{}", subst);
-    }
-
-    // Test the case of an enum.  First, we construct
-    // an enum with 2 variants.
-    // The first has no type payload, and the second has
-    // a Foo Struct.
-    #[test]
-    fn test_case_11() {
-        let mut subst = UnifyContext::default();
-        let a = var(0);
-        let b = var(1);
-        let ty_bool = ty_bits(1);
-        let ty_foo_struct = Ty::Struct(TermMap {
-            name: "FooStruct".into(),
-            fields: {
-                let mut map = BTreeMap::default();
-                map.insert("foo".into(), ty_bool.clone());
-                map
-            },
-            kind: crate::Kind::Empty, // Not correct, but not needed for this test case
-        });
-        let ty_enum = Ty::Enum(TyEnum {
-            payload: TermMap {
-                name: "FooEnum".into(),
-                fields: {
-                    let mut map = BTreeMap::default();
-                    map.insert("A".into(), ty_empty());
-                    map.insert("B".into(), ty_foo_struct.clone());
-                    map
-                },
-                kind: crate::Kind::Empty, // Not correct, but not needed for this test case
-            },
-            discriminant: Box::new(ty_bits(2)),
-        });
-        subst.unify(a.clone(), ty_enum.clone()).unwrap();
-        subst
-            .unify(b.clone(), subst.get_variant(a.clone(), "B").unwrap())
-            .unwrap();
-        println!("{}", subst);
-        assert_eq!(subst.apply(b), ty_foo_struct.clone(),);
     }
 }

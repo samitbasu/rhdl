@@ -2,13 +2,13 @@ pub use types::kind::Kind;
 pub mod clock_details;
 
 pub use circuit::bitz::BitZ;
-pub use circuit::circuit::Circuit;
-pub use circuit::circuit::CircuitIO;
-pub use circuit::circuit::HDLKind;
-pub use circuit::circuit::NoUpdateFn;
-pub use circuit::circuit::Tristate;
 pub use circuit::circuit_descriptor::root_descriptor;
 pub use circuit::circuit_descriptor::CircuitDescriptor;
+pub use circuit::circuit_impl::Circuit;
+pub use circuit::circuit_impl::CircuitIO;
+pub use circuit::circuit_impl::HDLKind;
+pub use circuit::circuit_impl::NoUpdateFn;
+pub use circuit::circuit_impl::Tristate;
 pub use circuit::hdl_descriptor::root_hdl;
 pub use circuit::hdl_descriptor::HDLDescriptor;
 pub use circuit::verilog::root_verilog;

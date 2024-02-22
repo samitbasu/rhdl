@@ -1,5 +1,5 @@
 use crate::types::note::Notable;
-use crate::{ClockDetails, Digital, NoteKey, NoteWriter};
+use crate::{ClockDetails, NoteKey, NoteWriter};
 use anyhow::bail;
 use std::hash::Hash;
 use std::{cell::RefCell, hash::Hasher, io::Write};
@@ -541,7 +541,7 @@ mod tests {
 
     use rhdl_bits::Bits;
 
-    use crate::{types::kind::Variant, DiscriminantAlignment, Kind};
+    use crate::{types::kind::Variant, Digital, DiscriminantAlignment, Kind};
 
     use super::*;
 

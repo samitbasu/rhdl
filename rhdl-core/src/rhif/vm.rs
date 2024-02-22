@@ -7,7 +7,7 @@ use crate::rhif::spec::{
     Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
 };
 use crate::{ast::ast_impl::FunctionId, rhif::design::Design, TypedBits};
-use crate::{Digital, KernelFnKind, Kind};
+use crate::{Digital, Kind};
 
 use anyhow::Result;
 

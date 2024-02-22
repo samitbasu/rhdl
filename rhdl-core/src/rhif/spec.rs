@@ -4,7 +4,7 @@ use anyhow::Result;
 use crate::{
     kernel::{ExternalKernelDef, Kernel},
     path::Path,
-    DigitalSignature, KernelFnKind, TypedBits,
+    DigitalSignature, TypedBits,
 };
 
 #[derive(Debug, Clone, PartialEq)]
