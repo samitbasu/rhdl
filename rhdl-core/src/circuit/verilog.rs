@@ -1,13 +1,13 @@
 use anyhow::Result;
 
-use crate::circuit::circuit::Tristate;
+use crate::circuit::circuit_impl::Tristate;
 use crate::path::{bit_range, Path};
 use crate::types::digital::Digital;
 use crate::types::digital_fn::DigitalFn;
 use crate::{compile_design, generate_verilog, KernelFnKind};
 
 use super::{
-    circuit::Circuit, circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor,
+    circuit_descriptor::CircuitDescriptor, circuit_impl::Circuit, hdl_descriptor::HDLDescriptor,
 };
 
 pub fn root_verilog<C: Circuit>(t: &C) -> Result<HDLDescriptor> {
@@ -56,7 +56,7 @@ pub fn root_verilog<C: Circuit>(t: &C) -> Result<HDLDescriptor> {
         .children
         .iter()
         .enumerate()
-        .map(|(ndx, (local, desc))| component_decl::<C>(ndx, &local, &desc))
+        .map(|(ndx, (local, desc))| component_decl::<C>(ndx, local, desc))
         .collect::<Result<Vec<_>>>()?
         .join("\n");
     let Some(KernelFnKind::Kernel(kernel)) = C::Update::kernel_fn() else {

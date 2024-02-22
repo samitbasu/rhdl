@@ -2,7 +2,7 @@ use rhdl_bits::Bits;
 
 use crate::{Notable, NoteKey, NoteWriter};
 
-use super::circuit::Tristate;
+use super::circuit_impl::Tristate;
 
 #[derive(Debug, Clone, PartialEq, Copy, Default)]
 pub struct BitZ<const N: usize> {

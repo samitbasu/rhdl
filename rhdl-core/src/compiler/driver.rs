@@ -5,13 +5,9 @@ use crate::{
         check_rhif_type::TypeCheckPass, compile, infer, pass::Pass,
         remove_extra_registers::RemoveExtraRegistersPass,
     },
-    diagnostic::report::show_source,
     kernel::Kernel,
-    rhif::{
-        spec::{ExternalFunctionCode, OpCode},
-        Object,
-    },
-    Design, KernelFnKind,
+    rhif::{spec::ExternalFunctionCode, Object},
+    Design,
 };
 
 use anyhow::Result;
@@ -22,7 +18,7 @@ pub fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     let _ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
     //eprintln!("{}", ast_ascii);
     check_inference(&kernel, &ctx)?;
-    let obj = compile(&kernel.inner(), ctx)?;
+    let obj = compile(kernel.inner(), ctx)?;
     //    let obj = LowerIndexToCopy::run(obj)?;
     eprintln!("{}", obj);
     let obj = RemoveExtraRegistersPass::run(obj)?;

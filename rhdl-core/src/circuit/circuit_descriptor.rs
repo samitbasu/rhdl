@@ -1,9 +1,9 @@
-use crate::circuit::circuit::Tristate;
+use crate::circuit::circuit_impl::Tristate;
 use crate::types::digital::Digital;
 use crate::{util::hash_id, Kind};
 use std::collections::HashMap;
 
-use super::circuit::Circuit;
+use super::circuit_impl::Circuit;
 
 #[derive(Clone, Debug)]
 pub struct CircuitDescriptor {

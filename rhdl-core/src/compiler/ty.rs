@@ -23,7 +23,7 @@ impl From<crate::ast::ast_impl::NodeId> for TypeId {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-pub(crate) enum Bits {
+pub enum Bits {
     Signed(usize),
     Unsigned(usize),
     I128,
@@ -127,54 +127,46 @@ impl Ty {
     }
 }
 
-pub fn ty_bool() -> Ty {
+pub(crate) fn ty_bool() -> Ty {
     Ty::Const(Bits::Unsigned(1))
 }
 
-pub fn ty_empty() -> Ty {
+pub(crate) fn ty_empty() -> Ty {
     Ty::Const(Bits::Empty)
 }
 
-pub fn ty_bits(width: usize) -> Ty {
+pub(crate) fn ty_bits(width: usize) -> Ty {
     Ty::Const(Bits::Unsigned(width))
 }
 
-pub fn ty_signed(width: usize) -> Ty {
+pub(crate) fn ty_signed(width: usize) -> Ty {
     Ty::Const(Bits::Signed(width))
 }
 
-pub fn ty_array(t: Ty, len: usize) -> Ty {
+pub(crate) fn ty_array(t: Ty, len: usize) -> Ty {
     Ty::Array(vec![t; len])
 }
 
-pub fn ty_tuple(args: Vec<Ty>) -> Ty {
+pub(crate) fn ty_tuple(args: Vec<Ty>) -> Ty {
     if args.is_empty() {
         return ty_empty();
     }
     Ty::Tuple(args)
 }
 
-pub fn ty_var(id: usize) -> Ty {
+pub(crate) fn ty_var(id: usize) -> Ty {
     Ty::Var(TypeId(id))
 }
 
-pub fn ty_int() -> Ty {
-    Ty::Const(Bits::I128)
-}
-
-pub fn ty_uint() -> Ty {
-    Ty::Const(Bits::U128)
-}
-
-pub fn ty_usize() -> Ty {
+pub(crate) fn ty_usize() -> Ty {
     Ty::Const(Bits::Usize)
 }
 
-pub fn ty_integer() -> Ty {
+pub(crate) fn ty_integer() -> Ty {
     Ty::Integer
 }
 
-pub fn ty_named_field(base: &Ty, field: &str) -> Result<Ty> {
+pub(crate) fn ty_named_field(base: &Ty, field: &str) -> Result<Ty> {
     let Ty::Struct(struct_) = base else {
         bail!("Expected struct type, got {:?} for field {field}", base)
     };
@@ -185,7 +177,7 @@ pub fn ty_named_field(base: &Ty, field: &str) -> Result<Ty> {
         .ok_or_else(|| anyhow::anyhow!("No field named {} in {:?}", field, base))
 }
 
-pub fn ty_unnamed_field(base: &Ty, field: usize) -> Result<Ty> {
+pub(crate) fn ty_unnamed_field(base: &Ty, field: usize) -> Result<Ty> {
     // We can get an unnamed field from a tuple or a tuple struct
     match base {
         Ty::Tuple(fields_) => fields_
@@ -205,7 +197,7 @@ pub fn ty_unnamed_field(base: &Ty, field: usize) -> Result<Ty> {
     }
 }
 
-pub fn ty_indexed_item(base: &Ty, index: usize) -> Result<Ty> {
+pub(crate) fn ty_indexed_item(base: &Ty, index: usize) -> Result<Ty> {
     let Ty::Array(elems) = base else {
         bail!(format!("Type must be an array, got {:?}", base))
     };
@@ -215,7 +207,7 @@ pub fn ty_indexed_item(base: &Ty, index: usize) -> Result<Ty> {
         .ok_or_else(|| anyhow!("Index {} out of bounds", index))
 }
 
-pub fn ty_array_base(base: &Ty) -> Result<Ty> {
+pub(crate) fn ty_array_base(base: &Ty) -> Result<Ty> {
     let Ty::Array(elems) = base else {
         bail!("Type must be an array")
     };
@@ -225,7 +217,7 @@ pub fn ty_array_base(base: &Ty) -> Result<Ty> {
         .ok_or_else(|| anyhow!("Array must have at least one element"))
 }
 
-pub fn ty_path(mut base: Ty, path: &crate::path::Path) -> Result<Ty> {
+pub(crate) fn ty_path(mut base: Ty, path: &crate::path::Path) -> Result<Ty> {
     for segment in &path.elements {
         match segment {
             PathElement::All => (),

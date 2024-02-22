@@ -20,6 +20,7 @@ use rhdl_core::note_pop_path;
 use rhdl_core::note_push_path;
 use rhdl_core::note_take;
 use rhdl_core::DigitalFn;
+use rhdl_core::KernelFnKind;
 use rhdl_core::{note, Digital};
 use rhdl_macro::kernel;
 use rhdl_macro::Digital;
@@ -220,7 +221,10 @@ fn test_dfg_analysis_of_kernel() {
         }
     }
 
-    let design = compile_design(add_stuff::kernel_fn().unwrap().try_into().unwrap()).unwrap();
+    let Some(KernelFnKind::Kernel(kernel)) = add_stuff::kernel_fn() else {
+        panic!("No kernel function found");
+    };
+    let design = compile_design(kernel).unwrap();
     let mut dfg = build_dfg(&design, design.top).unwrap();
     eprintln!("{:?}", dfg);
     // Print out the DFG graph as a DOT file
