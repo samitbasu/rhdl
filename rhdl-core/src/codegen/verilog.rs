@@ -73,7 +73,7 @@ impl<'a> TranslationContext<'a> {
         let dynamic_slots: Vec<Slot> = path.dynamic_slots().copied().collect();
         // First, to get the base offset, we construct a path that
         // replaces all dynamic indices with 0
-        let arg_kind: Kind = self
+        let arg_kind = self
             .obj
             .kind
             .get(target)
@@ -82,8 +82,7 @@ impl<'a> TranslationContext<'a> {
                 target,
                 self.obj.name
             ))?
-            .clone()
-            .try_into()?;
+            .clone();
         let base_path = compute_base_offset_path(path);
         let base_range = bit_range(arg_kind.clone(), &base_path)?;
         // Next for each index register, we compute a range where only that index
