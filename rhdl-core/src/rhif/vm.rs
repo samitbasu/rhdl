@@ -1,4 +1,3 @@
-use crate::compiler::ty::Ty;
 use crate::kernel::ExternalKernelDef;
 use crate::path::Path;
 use crate::rhif::object::Object;

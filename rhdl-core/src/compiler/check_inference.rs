@@ -1,10 +1,12 @@
-use crate::ast::ascii::render_statement_to_string;
-use crate::ast::display_ast::pretty_print_statement;
 use crate::ast::{ast_impl, visit};
-use crate::compiler::{id_to_var, ty::Ty, UnifyContext};
+use crate::compiler::{ty::Ty, UnifyContext};
 use crate::{ast::visit::Visitor, kernel::Kernel};
 use anyhow::bail;
 use anyhow::Result;
+
+use super::ascii::render_statement_to_string;
+use super::display_ast::pretty_print_statement;
+use super::infer_types::id_to_var;
 
 pub fn check_inference(kernel: &Kernel, ty: &UnifyContext) -> Result<()> {
     let mut validator = Validator::new(ty);

@@ -1,9 +1,8 @@
 use crate::{
-    ast::ascii::render_ast_to_string,
     compiler::{
-        assign_node_ids, check_inference::check_inference, check_rhif_flow::DataFlowCheckPass,
-        check_rhif_type::TypeCheckPass, compile, infer, pass::Pass,
-        remove_extra_registers::RemoveExtraRegistersPass,
+        ascii::render_ast_to_string, assign_node_ids, check_inference::check_inference,
+        check_rhif_flow::DataFlowCheckPass, check_rhif_type::TypeCheckPass, compile, infer,
+        pass::Pass, remove_extra_registers::RemoveExtraRegistersPass,
     },
     kernel::Kernel,
     rhif::{spec::ExternalFunctionCode, Object},

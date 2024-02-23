@@ -47,20 +47,19 @@ impl Bits {
 }
 
 #[derive(PartialEq, Debug, Clone, Eq, Deserialize, Serialize)]
-pub struct TyMap {
+pub(super) struct TyMap {
     pub name: String,
     pub fields: BTreeMap<String, Ty>,
     pub kind: Kind,
 }
 
 #[derive(PartialEq, Debug, Clone, Eq, Deserialize, Serialize)]
-pub struct TyEnum {
+pub(super) struct TyEnum {
     pub payload: TyMap,
     pub discriminant: Box<Ty>,
 }
 
 use crate::ast::ast_impl::NodeId;
-use crate::path::PathElement;
 use crate::types::kind::DiscriminantLayout;
 use crate::types::kind::DiscriminantType;
 use crate::Kind;
@@ -70,7 +69,7 @@ use crate::Kind;
 // Support for function types as a target for inference
 // has been dropped for now.
 #[derive(PartialEq, Debug, Clone, Eq, Deserialize, Serialize)]
-pub enum Ty {
+pub(super) enum Ty {
     Var(TypeId),
     Const(Bits),
     Tuple(Vec<Ty>),
@@ -87,12 +86,6 @@ impl Ty {
         matches!(
             self,
             Ty::Const(Bits::Unsigned(_)) | Ty::Const(Bits::U128) | Ty::Const(Bits::Usize)
-        )
-    }
-    pub fn is_signed(&self) -> bool {
-        matches!(
-            self,
-            Ty::Const(Bits::Signed(_)) | Ty::Const(Bits::I128) | Ty::Integer
         )
     }
     pub fn is_bool(&self) -> bool {
@@ -114,59 +107,48 @@ impl Ty {
             _ => bail!("Ty - Expected signed type, got {:?}", self),
         }
     }
-    pub fn bits(&self) -> usize {
-        match self {
-            Ty::Const(bits) => bits.len(),
-            Ty::Tuple(fields) => fields.iter().map(|f| f.bits()).sum(),
-            Ty::Array(elems) => elems.iter().map(|e| e.bits()).sum(),
-            Ty::Struct(struct_) => struct_.kind.bits(),
-            Ty::Enum(enum_) => enum_.payload.kind.bits(),
-            Ty::Var(_) => 0,
-            Ty::Integer => 32,
-        }
-    }
 }
 
-pub(crate) fn ty_bool() -> Ty {
+pub(super) fn ty_bool() -> Ty {
     Ty::Const(Bits::Unsigned(1))
 }
 
-pub(crate) fn ty_empty() -> Ty {
+pub(super) fn ty_empty() -> Ty {
     Ty::Const(Bits::Empty)
 }
 
-pub(crate) fn ty_bits(width: usize) -> Ty {
+pub(super) fn ty_bits(width: usize) -> Ty {
     Ty::Const(Bits::Unsigned(width))
 }
 
-pub(crate) fn ty_signed(width: usize) -> Ty {
+pub(super) fn ty_signed(width: usize) -> Ty {
     Ty::Const(Bits::Signed(width))
 }
 
-pub(crate) fn ty_array(t: Ty, len: usize) -> Ty {
+pub(super) fn ty_array(t: Ty, len: usize) -> Ty {
     Ty::Array(vec![t; len])
 }
 
-pub(crate) fn ty_tuple(args: Vec<Ty>) -> Ty {
+pub(super) fn ty_tuple(args: Vec<Ty>) -> Ty {
     if args.is_empty() {
         return ty_empty();
     }
     Ty::Tuple(args)
 }
 
-pub(crate) fn ty_var(id: usize) -> Ty {
+pub(super) fn ty_var(id: usize) -> Ty {
     Ty::Var(TypeId(id))
 }
 
-pub(crate) fn ty_usize() -> Ty {
+pub(super) fn ty_usize() -> Ty {
     Ty::Const(Bits::Usize)
 }
 
-pub(crate) fn ty_integer() -> Ty {
+pub(super) fn ty_integer() -> Ty {
     Ty::Integer
 }
 
-pub(crate) fn ty_named_field(base: &Ty, field: &str) -> Result<Ty> {
+pub(super) fn ty_named_field(base: &Ty, field: &str) -> Result<Ty> {
     let Ty::Struct(struct_) = base else {
         bail!("Expected struct type, got {:?} for field {field}", base)
     };
@@ -177,7 +159,7 @@ pub(crate) fn ty_named_field(base: &Ty, field: &str) -> Result<Ty> {
         .ok_or_else(|| anyhow::anyhow!("No field named {} in {:?}", field, base))
 }
 
-pub(crate) fn ty_unnamed_field(base: &Ty, field: usize) -> Result<Ty> {
+pub(super) fn ty_unnamed_field(base: &Ty, field: usize) -> Result<Ty> {
     // We can get an unnamed field from a tuple or a tuple struct
     match base {
         Ty::Tuple(fields_) => fields_
@@ -197,7 +179,7 @@ pub(crate) fn ty_unnamed_field(base: &Ty, field: usize) -> Result<Ty> {
     }
 }
 
-pub(crate) fn ty_indexed_item(base: &Ty, index: usize) -> Result<Ty> {
+pub(super) fn ty_indexed_item(base: &Ty, index: usize) -> Result<Ty> {
     let Ty::Array(elems) = base else {
         bail!(format!("Type must be an array, got {:?}", base))
     };
@@ -207,7 +189,7 @@ pub(crate) fn ty_indexed_item(base: &Ty, index: usize) -> Result<Ty> {
         .ok_or_else(|| anyhow!("Index {} out of bounds", index))
 }
 
-pub(crate) fn ty_array_base(base: &Ty) -> Result<Ty> {
+pub(super) fn ty_array_base(base: &Ty) -> Result<Ty> {
     let Ty::Array(elems) = base else {
         bail!("Type must be an array")
     };
@@ -215,42 +197,6 @@ pub(crate) fn ty_array_base(base: &Ty) -> Result<Ty> {
         .first()
         .cloned()
         .ok_or_else(|| anyhow!("Array must have at least one element"))
-}
-
-pub(crate) fn ty_path(mut base: Ty, path: &crate::path::Path) -> Result<Ty> {
-    for segment in &path.elements {
-        match segment {
-            PathElement::All => (),
-            PathElement::Index(i) => base = ty_unnamed_field(&base, *i)?,
-            PathElement::Field(field) => base = ty_named_field(&base, field)?,
-            PathElement::EnumDiscriminant => {
-                if let Ty::Enum(enum_) = base {
-                    base = *enum_.discriminant.clone();
-                } else {
-                    bail!("Expected enum type, got {:?}", base)
-                }
-            }
-            PathElement::EnumPayload(_string) => {
-                if let Ty::Enum(enum_) = base {
-                    base = Ty::Struct(enum_.payload.clone());
-                } else {
-                    bail!("Expected enum type, got {:?}", base)
-                }
-            }
-            PathElement::EnumPayloadByValue(value) => {
-                if let Ty::Enum(enum_) = base {
-                    let kind = enum_.payload.kind.lookup_variant(*value)?;
-                    base = kind.into();
-                } else {
-                    bail!("Expected enum type, got {:?}", base)
-                }
-            }
-            PathElement::DynamicIndex(_index) => {
-                base = ty_array_base(&base)?;
-            }
-        }
-    }
-    Ok(base)
 }
 
 impl Display for Ty {

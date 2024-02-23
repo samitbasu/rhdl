@@ -24,6 +24,14 @@ pub struct Path {
     pub elements: Vec<PathElement>,
 }
 
+impl FromIterator<PathElement> for Path {
+    fn from_iter<T: IntoIterator<Item = PathElement>>(iter: T) -> Self {
+        Path {
+            elements: iter.into_iter().collect(),
+        }
+    }
+}
+
 impl std::fmt::Display for Path {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for e in &self.elements {
@@ -42,6 +50,9 @@ impl std::fmt::Display for Path {
 }
 
 impl Path {
+    pub fn iter(&self) -> impl Iterator<Item = &PathElement> {
+        self.elements.iter()
+    }
     pub fn dynamic_slots(&self) -> impl Iterator<Item = &Slot> {
         self.elements.iter().filter_map(|e| match e {
             PathElement::DynamicIndex(slot) => Some(slot),
@@ -117,7 +128,7 @@ impl From<Member> for Path {
 }
 
 pub fn sub_kind(kind: Kind, path: &Path) -> Result<Kind> {
-    bit_range(kind, path).map(|(range, kind)| kind)
+    bit_range(kind, path).map(|(_, kind)| kind)
 }
 
 // Given a Kind and a Vec<Path>, compute the bit offsets of

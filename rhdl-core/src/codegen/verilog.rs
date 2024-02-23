@@ -9,7 +9,6 @@ use crate::rhif::spec::{
 };
 use crate::test_module::VerilogDescriptor;
 use crate::util::binary_string;
-use crate::Kind;
 use crate::{ast::ast_impl::FunctionId, rhif::Object, Design, TypedBits};
 use anyhow::Result;
 use anyhow::{anyhow, ensure};
@@ -157,8 +156,7 @@ impl<'a> TranslationContext<'a> {
                 self.obj.name
             ))?
             .clone();
-        let arg_kind: Kind = arg_ty.try_into()?;
-        let (bit_range, _) = bit_range(arg_kind, path)?;
+        let (bit_range, _) = bit_range(arg_ty, path)?;
         self.body.push_str(&format!(
             "    {lhs} = {arg}[{}:{}];\n",
             bit_range.end - 1,
@@ -185,8 +183,7 @@ impl<'a> TranslationContext<'a> {
                 self.obj.name
             ))?
             .clone();
-        let orig_kind: Kind = orig_ty.try_into()?;
-        let (bit_range, _) = bit_range(orig_kind, path)?;
+        let (bit_range, _) = bit_range(orig_ty, path)?;
         self.body.push_str(&format!(
             "     {lhs} = {orig};\n    {lhs}[{}:{}] = {subst};\n",
             bit_range.end - 1,
@@ -344,9 +341,8 @@ impl<'a> TranslationContext<'a> {
                         self.obj.name
                     ))?
                     .clone();
-                let arg_kind: Kind = arg_ty.try_into()?;
                 let path = Path::default().discriminant();
-                let (bit_range, _) = bit_range(arg_kind, &path)?;
+                let (bit_range, _) = bit_range(arg_ty, &path)?;
                 self.body.push_str(&format!(
                     "    {lhs} = {arg}[{}:{}];\n",
                     bit_range.end - 1,

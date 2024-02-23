@@ -4,7 +4,6 @@ use std::fmt::Write;
 
 use crate::{
     ast::ast_impl::{FunctionId, NodeId},
-    compiler::ty::Ty,
     diagnostic::SpannedSource,
     rhif::spec::{ExternalFunction, Slot},
     Kind, TypedBits,

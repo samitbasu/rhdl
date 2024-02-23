@@ -88,7 +88,7 @@ impl DataFlowGraph {
 
 impl<'a> DataFlowGraphContext<'a> {
     fn allocate(&mut self, obj: &Object) -> Relocation {
-        let result = self.next_free.clone();
+        let result = self.next_free;
         self.next_free.register_offset += obj.reg_max_index() + 1;
         self.next_free.literal_offset += obj.literal_max_index() + 1;
         result
