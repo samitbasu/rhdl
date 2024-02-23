@@ -326,7 +326,7 @@ impl TypeInference {
 
 // Shortcut to allow us to reuse the node IDs as
 // type variables in the resolver.
-pub fn id_to_var(id: ast_impl::NodeId) -> Result<Ty> {
+pub(super) fn id_to_var(id: ast_impl::NodeId) -> Result<Ty> {
     if id.is_invalid() {
         bail!("Invalid node ID");
     }

@@ -3,7 +3,6 @@ use crate::{
         self, ArmKind, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprLit, ExprTuple,
         ExprTypedBits, FieldValue, FunctionId, Local, NodeId, Pat, PatKind, Path, INVALID_NODE_ID,
     },
-    ast::display_ast::pretty_print_statement,
     ast::visit::Visitor,
     compiler::ty::{ty_empty, ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
     compiler::UnifyContext,
@@ -26,7 +25,7 @@ use crate::{
 use anyhow::{anyhow, bail, ensure, Result};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
-use super::{infer_types::id_to_var, ty::ty_bool};
+use super::{display_ast::pretty_print_statement, infer_types::id_to_var, ty::ty_bool};
 
 const EARLY_RETURN_FLAG_NODE: NodeId = NodeId::new(!0);
 

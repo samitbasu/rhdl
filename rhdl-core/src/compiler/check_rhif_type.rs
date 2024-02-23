@@ -3,14 +3,15 @@
 use std::collections::HashSet;
 
 use crate::{
-    compiler::ty::{self, ty_array, ty_bool, ty_named_field, ty_path, ty_unnamed_field, Bits, Ty},
-    path::{bit_range, sub_kind, Path},
-    rhif,
-    rhif::spec::{
-        AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum,
-        Exec, Index, OpCode, Repeat, Select, Slot, Struct, Tuple, Unary,
+    path::{sub_kind, Path, PathElement},
+    rhif::{
+        self,
+        spec::{
+            AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant,
+            Enum, Exec, Index, OpCode, Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
+        },
+        Object,
     },
-    rhif::{spec::Splice, Object},
     Kind,
 };
 use anyhow::{anyhow, bail};
@@ -31,6 +32,19 @@ impl Pass for TypeCheckPass {
         check_type_correctness(&input)?;
         Ok(input)
     }
+}
+
+// For type checking purposes, a dynamic path index
+// cannot change the types of any of the parts of the
+// expression.  So we replace all of the dynamic components
+// with 0.
+fn approximate_dynamic_paths(path: &Path) -> Path {
+    path.iter()
+        .map(|e| match e {
+            PathElement::DynamicIndex(_) => PathElement::Index(0),
+            _ => e.clone(),
+        })
+        .collect()
 }
 
 fn check_type_correctness(obj: &Object) -> Result<()> {
@@ -156,7 +170,10 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                 path,
                 subst,
             }) => {
-                eq_kinds(sub_kind(slot_type(lhs)?, path)?, slot_type(subst)?)?;
+                eq_kinds(
+                    sub_kind(slot_type(lhs)?, &approximate_dynamic_paths(path))?,
+                    slot_type(subst)?,
+                )?;
                 eq_kinds(slot_type(lhs)?, slot_type(orig)?)?;
             }
             OpCode::Tuple(Tuple { lhs, fields }) => {
@@ -165,7 +182,7 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
             }
             OpCode::Index(Index { lhs, arg, path }) => {
                 let ty = slot_type(arg)?;
-                let ty = sub_kind(ty, path)?;
+                let ty = sub_kind(ty, &approximate_dynamic_paths(path))?;
                 eq_kinds(ty, slot_type(lhs)?)?;
                 for slot in path.dynamic_slots() {
                     ensure!(slot_type(slot)?.is_unsigned(), "index must be unsigned");
@@ -178,7 +195,7 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                 template,
             }) => {
                 let ty = slot_type(lhs)?;
-                eq_kinds(ty.clone(), template.kind.clone().into())?;
+                eq_kinds(ty.clone(), template.kind.clone())?;
                 if let Some(rest) = rest {
                     let rest_ty = slot_type(rest)?;
                     eq_kinds(ty.clone(), rest_ty)?;
@@ -247,7 +264,7 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                             } else {
                                 discriminants.insert(constant.bits.clone());
                             }
-                            let constant_ty = constant.kind.clone().into();
+                            let constant_ty = constant.kind.clone();
                             eq_kinds(arg_ty.clone(), constant_ty)?;
                         }
                         CaseArgument::Wild => {}
@@ -265,9 +282,9 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
             OpCode::Exec(Exec { lhs, id, args }) => {
                 // Get the function signature.
                 let signature = obj.externals[id.0].signature.clone();
-                eq_kinds(slot_type(lhs)?, signature.ret.into())?;
+                eq_kinds(slot_type(lhs)?, signature.ret)?;
                 for (arg, param) in args.iter().zip(signature.arguments.iter()) {
-                    eq_kinds(slot_type(arg)?, param.clone().into())?;
+                    eq_kinds(slot_type(arg)?, param.clone())?;
                 }
                 ensure!(
                     args.len() == signature.arguments.len(),

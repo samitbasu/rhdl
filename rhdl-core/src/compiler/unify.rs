@@ -35,7 +35,7 @@ impl UnifyContext {
     pub fn get_parent(&self, child: TypeId) -> Option<TypeId> {
         self.cross_reference.get(&child).cloned()
     }
-    pub(crate) fn apply(&self, typ: Term) -> Term {
+    pub(super) fn apply(&self, typ: Term) -> Term {
         match typ {
             Term::Var(id) => {
                 if let Some(t) = self.map.get(&id) {
@@ -94,7 +94,7 @@ impl UnifyContext {
             Ok(())
         }
     }
-    pub(crate) fn unify(&mut self, x: Term, y: Term) -> Result<()> {
+    pub(super) fn unify(&mut self, x: Term, y: Term) -> Result<()> {
         if x == y {
             return Ok(());
         }
@@ -144,7 +144,7 @@ impl UnifyContext {
         }
         false
     }
-    pub(crate) fn get_named_field(&self, t: Ty, field: &str) -> Result<Ty> {
+    pub(super) fn get_named_field(&self, t: Ty, field: &str) -> Result<Ty> {
         let Ty::Var(id) = t else {
             bail!("Cannot get field of non-variable")
         };
@@ -153,7 +153,7 @@ impl UnifyContext {
         };
         ty_named_field(t, field)
     }
-    pub(crate) fn get_unnamed_field(&self, t: Ty, field: usize) -> Result<Ty> {
+    pub(super) fn get_unnamed_field(&self, t: Ty, field: usize) -> Result<Ty> {
         let Ty::Var(id) = t else {
             bail!("Cannot get field of non-variable")
         };
@@ -162,7 +162,7 @@ impl UnifyContext {
         };
         ty_unnamed_field(t, field)
     }
-    pub(crate) fn get_array_base(&self, t: Ty) -> Result<Ty> {
+    pub(super) fn get_array_base(&self, t: Ty) -> Result<Ty> {
         let Ty::Var(id) = t else {
             bail!("Cannot get field of non-variable")
         };
