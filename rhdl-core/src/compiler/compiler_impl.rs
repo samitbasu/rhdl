@@ -142,14 +142,6 @@ impl CompilerContext {
     }
     fn literal_from_type_and_int(&mut self, ty: &Ty, value: i32) -> Result<Slot> {
         let typed_bits = match ty {
-            Ty::Const(Bits::U128) => {
-                let x: u128 = value.try_into()?;
-                x.typed_bits()
-            }
-            Ty::Const(Bits::I128) => {
-                let x: i128 = value.into();
-                x.typed_bits()
-            }
             Ty::Const(Bits::Unsigned(n)) => {
                 let x: u128 = value.try_into()?;
                 x.typed_bits().unsigned_cast(*n)?

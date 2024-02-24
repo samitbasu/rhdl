@@ -26,8 +26,6 @@ impl From<crate::ast::ast_impl::NodeId> for TypeId {
 pub enum Bits {
     Signed(usize),
     Unsigned(usize),
-    I128,
-    U128,
     Usize,
     Empty,
 }
@@ -39,7 +37,6 @@ impl Bits {
     pub fn len(&self) -> usize {
         match self {
             Bits::Usize => std::mem::size_of::<usize>() * 8,
-            Bits::I128 | Bits::U128 => 128,
             Bits::Signed(width) | Bits::Unsigned(width) => *width,
             Bits::Empty => 0,
         }
@@ -83,10 +80,7 @@ impl Ty {
         self == &ty_empty()
     }
     pub fn is_unsigned(&self) -> bool {
-        matches!(
-            self,
-            Ty::Const(Bits::Unsigned(_)) | Ty::Const(Bits::U128) | Ty::Const(Bits::Usize)
-        )
+        matches!(self, Ty::Const(Bits::Unsigned(_)) | Ty::Const(Bits::Usize))
     }
     pub fn is_bool(&self) -> bool {
         matches!(self, Ty::Const(Bits::Unsigned(1)))
@@ -94,7 +88,6 @@ impl Ty {
     pub fn unsigned_bits(&self) -> Result<usize> {
         match self {
             Ty::Const(Bits::Unsigned(width)) => Ok(*width),
-            Ty::Const(Bits::U128) => Ok(128),
             Ty::Const(Bits::Usize) => Ok(std::mem::size_of::<usize>() * 8),
             _ => bail!("Ty - Expected unsigned type, got {:?}", self),
         }
@@ -102,7 +95,6 @@ impl Ty {
     pub fn signed_bits(&self) -> Result<usize> {
         match self {
             Ty::Const(Bits::Signed(width)) => Ok(*width),
-            Ty::Const(Bits::I128) => Ok(128),
             Ty::Integer => Ok(32),
             _ => bail!("Ty - Expected signed type, got {:?}", self),
         }
@@ -204,8 +196,6 @@ impl Display for Ty {
         match self {
             Ty::Var(id) => write!(f, "V{}", id.0),
             Ty::Const(bits) => match bits {
-                Bits::I128 => write!(f, "i128"),
-                Bits::U128 => write!(f, "u128"),
                 Bits::Usize => write!(f, "usize"),
                 Bits::Signed(width) => write!(f, "s{}", width),
                 Bits::Unsigned(width) => write!(f, "b{}", width),
@@ -262,8 +252,6 @@ impl Display for Ty {
 impl From<Kind> for Ty {
     fn from(value: Kind) -> Self {
         match value.clone() {
-            Kind::I128 => Ty::Const(Bits::I128),
-            Kind::U128 => Ty::Const(Bits::U128),
             Kind::Bits(width) => ty_bits(width),
             Kind::Signed(width) => ty_signed(width),
             Kind::Empty => ty_empty(),
@@ -317,8 +305,6 @@ impl TryFrom<Ty> for Kind {
         match value {
             Ty::Var(_) => bail!("Cannot convert Ty::Var to Kind"),
             Ty::Const(bits) => match bits {
-                Bits::I128 => Ok(Kind::I128),
-                Bits::U128 => Ok(Kind::U128),
                 Bits::Usize => Ok(Kind::Bits(std::mem::size_of::<usize>() * 8)),
                 Bits::Signed(width) => Ok(Kind::Signed(width)),
                 Bits::Unsigned(width) => Ok(Kind::Bits(width)),

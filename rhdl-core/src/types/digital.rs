@@ -145,7 +145,7 @@ impl Notable for usize {
 
 impl Digital for u128 {
     fn static_kind() -> Kind {
-        Kind::U128
+        Kind::make_bits(128)
     }
     fn bin(self) -> Vec<bool> {
         Bits::<128>::from(self).to_bools()
@@ -160,7 +160,7 @@ impl Notable for u128 {
 
 impl Digital for i128 {
     fn static_kind() -> Kind {
-        Kind::I128
+        Kind::make_signed(128)
     }
     fn bin(self) -> Vec<bool> {
         SignedBits::<128>::from(self).as_unsigned().to_bools()

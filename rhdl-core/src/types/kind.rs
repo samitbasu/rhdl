@@ -11,8 +11,6 @@ pub enum Kind {
     Enum(Enum),
     Bits(usize),
     Signed(usize),
-    U128,
-    I128,
     Empty,
 }
 
@@ -33,8 +31,6 @@ impl std::fmt::Display for Kind {
             Kind::Enum(e) => write!(f, "{}", e.name),
             Kind::Bits(digits) => write!(f, "b{}", digits),
             Kind::Signed(digits) => write!(f, "s{}", digits),
-            Kind::U128 => write!(f, "u128"),
-            Kind::I128 => write!(f, "i128"),
             Kind::Empty => write!(f, "()"),
         }
     }
@@ -186,8 +182,6 @@ impl Kind {
             }
             Kind::Bits(digits) => *digits,
             Kind::Signed(digits) => *digits,
-            Kind::U128 => 128,
-            Kind::I128 => 128,
             Kind::Empty => 0,
         }
     }
@@ -234,8 +228,6 @@ impl Kind {
             }
             Kind::Struct(s) => s.name.clone(),
             Kind::Enum(e) => e.name.clone(),
-            Kind::U128 => "u128".to_string(),
-            Kind::I128 => "i128".to_string(),
         }
     }
 
@@ -283,11 +275,11 @@ impl Kind {
     }
 
     pub fn is_signed(&self) -> bool {
-        matches!(self, Kind::Signed(_) | Kind::I128)
+        matches!(self, Kind::Signed(_))
     }
 
     pub fn is_unsigned(&self) -> bool {
-        matches!(self, Kind::Bits(_) | Kind::U128)
+        matches!(self, Kind::Bits(_))
     }
 
     pub fn is_bool(&self) -> bool {
@@ -317,22 +309,6 @@ fn generate_kind_layout(
                 depth: 1,
                 cols: offset_col..offset_col + digits,
                 name: format!("{name} b{digits}"),
-            }]
-        }
-        Kind::U128 => {
-            vec![KindLayout {
-                row: offset_row,
-                depth: 1,
-                cols: offset_col..offset_col + 128,
-                name: format!("{name} u128"),
-            }]
-        }
-        Kind::I128 => {
-            vec![KindLayout {
-                row: offset_row,
-                depth: 1,
-                cols: offset_col..offset_col + 128,
-                name: format!("{name} i128"),
             }]
         }
         Kind::Signed(digits) => {
