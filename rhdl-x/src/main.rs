@@ -212,6 +212,19 @@ fn test_dfg_analysis_of_kernel() {
         c: b4,
     }
 
+    #[derive(Copy, Clone, PartialEq, Digital)]
+    pub enum Bar {
+        A(b8),
+        B(Foo),
+        C { x: b4, y: b4 },
+    }
+
+    impl Default for Bar {
+        fn default() -> Self {
+            Bar::A(b8(0))
+        }
+    }
+
     #[kernel]
     fn concatenate_bits(x: b4, y: b4) -> (b4, b4) {
         let d = Foo {
@@ -220,7 +233,13 @@ fn test_dfg_analysis_of_kernel() {
             c: y,
         };
         let e = Foo { a: false, ..d };
-        (y - x, y + 3)
+        let f = Bar::B(e);
+        let g = Bar::C { x, y };
+        let z = match f {
+            Bar::B(b) => b.b,
+            _ => b4(0),
+        };
+        (y - x, y + 3 + z)
     }
 
     #[kernel]

@@ -326,8 +326,38 @@ impl<'a> ObjectAnalyzer<'a> {
         self.add_edge(cast.arg, node, Link::default())
     }
 
-    fn enumerate(&self, enumerate: Enum, location: SourceLocation) -> Result<()> {
-        todo!()
+    fn enumerate(&mut self, enumerate: Enum, location: SourceLocation) -> Result<()> {
+        let fields = enumerate
+            .fields
+            .iter()
+            .map(|f| {
+                let kind = self.kind(f.value)?;
+                let name = match &f.member {
+                    Member::Named(name) => name.to_string(),
+                    Member::Unnamed(ndx) => ndx.to_string(),
+                };
+                Ok(Field { name, kind })
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let input = Kind::make_struct("mk_enum", fields);
+        let output = self.kind(enumerate.lhs)?;
+        let node = self.add_node(
+            Component {
+                input,
+                output,
+                kind: ComponentKind::Enum,
+                location: Some(location),
+            },
+            enumerate.lhs,
+        );
+        for field in enumerate.fields.iter() {
+            self.add_edge(
+                field.value,
+                node,
+                Link::copy(Path::default().field(&field.member.to_string())),
+            )?;
+        }
+        Ok(())
     }
 
     fn discriminant(&mut self, discriminant: Discriminant, location: SourceLocation) -> Result<()> {
@@ -689,12 +719,6 @@ impl<'a> ObjectAnalyzer<'a> {
                 output_kind
             )
         }
-        Ok(())
-    }
-
-    fn add_edge_unchecked(&mut self, slot: Slot, node: NodeIndex<u32>, link: Link) -> Result<()> {
-        let ix = self.node(slot)?;
-        self.graph.add_edge(ix, node, link.clone());
         Ok(())
     }
 
