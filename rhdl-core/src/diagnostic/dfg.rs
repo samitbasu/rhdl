@@ -18,12 +18,14 @@ use crate::rhif::spec::Enum;
 use crate::rhif::spec::Exec;
 use crate::rhif::spec::ExternalFunctionCode;
 use crate::rhif::spec::Index;
+use crate::rhif::spec::Member;
 use crate::rhif::spec::Repeat;
 use crate::rhif::spec::Select;
 use crate::rhif::spec::Splice;
 use crate::rhif::spec::Struct;
 use crate::rhif::spec::Tuple;
 use crate::rhif::spec::Unary;
+use crate::types::kind::Field;
 use crate::Design;
 use crate::{
     rhif::{
@@ -63,7 +65,7 @@ impl Link {
 
 impl std::fmt::Display for Link {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} -> {}", self.src, self.dest)
+        write!(f, "{}:{}", self.src, self.dest)
     }
 }
 
@@ -206,7 +208,7 @@ impl<'a> ObjectAnalyzer<'a> {
             .cloned()
             .zip(self.object.opcode_map.iter().cloned())
         {
-            eprintln!("op: {:?} location: {:?}", op, location);
+            eprintln!("op: {} ", op);
             match op {
                 OpCode::Binary(binary) => self.binary(binary, location),
                 OpCode::Unary(unary) => self.unary(unary, location),
@@ -321,9 +323,7 @@ impl<'a> ObjectAnalyzer<'a> {
             },
             cast.lhs,
         );
-        // Not 100% sure this should be unchecked.
-        // TODO (sb)
-        self.add_edge_unchecked(cast.arg, node, Link::default())
+        self.add_edge(cast.arg, node, Link::default())
     }
 
     fn enumerate(&self, enumerate: Enum, location: SourceLocation) -> Result<()> {
@@ -393,8 +393,47 @@ impl<'a> ObjectAnalyzer<'a> {
         Ok(())
     }
 
-    fn mk_struct(&self, structure: Struct, location: SourceLocation) -> Result<()> {
-        todo!()
+    fn mk_struct(&mut self, structure: Struct, location: SourceLocation) -> Result<()> {
+        let mut fields = structure
+            .fields
+            .iter()
+            .map(|f| {
+                let kind = self.kind(f.value)?;
+                let name = match &f.member {
+                    Member::Named(name) => name.to_string(),
+                    Member::Unnamed(ndx) => ndx.to_string(),
+                };
+                Ok(Field { name, kind })
+            })
+            .collect::<Result<Vec<_>>>()?;
+        if structure.rest.is_some() {
+            fields.push(Field {
+                name: "$rest".to_string(),
+                kind: self.kind(structure.rest.unwrap())?,
+            });
+        }
+        let input = Kind::make_struct("mk_struct", fields);
+        let output = self.kind(structure.lhs)?;
+        let node = self.add_node(
+            Component {
+                input,
+                output,
+                kind: ComponentKind::Struct,
+                location: Some(location),
+            },
+            structure.lhs,
+        );
+        for field in structure.fields.iter() {
+            self.add_edge(
+                field.value,
+                node,
+                Link::copy(Path::default().field(&field.member.to_string())),
+            )?;
+        }
+        if let Some(rest) = structure.rest {
+            self.add_edge(rest, node, Link::copy(Path::default().field("$rest")))?;
+        }
+        Ok(())
     }
 
     fn case(&mut self, case: Case, location: SourceLocation) -> Result<()> {
@@ -444,11 +483,17 @@ impl<'a> ObjectAnalyzer<'a> {
         self.add_edge(repeat.value, node, Link::default())
     }
     fn splice(&mut self, splice: Splice, location: SourceLocation) -> Result<()> {
+        let dynamic_slot_kinds = splice
+            .path
+            .dynamic_slots()
+            .map(|x| self.kind(*x))
+            .collect::<Result<Vec<_>>>()?;
         let orig = self.kind(splice.orig)?;
         let subst = self.kind(splice.subst)?;
         let input = digital_struct!(splice {
             orig: orig,
-            subst: subst
+            subst: subst,
+            slots: Kind::make_tuple(dynamic_slot_kinds)
         });
         let output = self.kind(splice.lhs)?;
         let node = self.add_node(
@@ -460,8 +505,12 @@ impl<'a> ObjectAnalyzer<'a> {
             },
             splice.lhs,
         );
-        for slot in splice.path.dynamic_slots() {
-            self.add_edge(*slot, node, Link::default())?;
+        for (ndx, slot) in splice.path.dynamic_slots().enumerate() {
+            self.add_edge(
+                *slot,
+                node,
+                Link::copy(Path::default().field("slots").index(ndx)),
+            )?;
         }
         self.add_edge(splice.orig, node, Link::copy(Path::default().field("orig")))?;
         self.add_edge(
@@ -502,7 +551,17 @@ impl<'a> ObjectAnalyzer<'a> {
     }
 
     fn index(&mut self, index: Index, location: SourceLocation) -> Result<()> {
-        let input = self.kind(index.arg)?;
+        // Construct an input type that has the arg and slots for each
+        // of the dynamic indices.
+        let dynamic_slot_kinds = index
+            .path
+            .dynamic_slots()
+            .map(|x| self.kind(*x))
+            .collect::<Result<Vec<_>>>()?;
+        let input = digital_struct!(index {
+            arg: self.kind(index.arg)?,
+            slots: Kind::make_tuple(dynamic_slot_kinds)
+        });
         let output = self.kind(index.lhs)?;
         let node = self.add_node(
             Component {
@@ -513,10 +572,14 @@ impl<'a> ObjectAnalyzer<'a> {
             },
             index.lhs,
         );
-        for slot in index.path.dynamic_slots() {
-            self.add_edge(*slot, node, Link::default())?;
+        for (ndx, slot) in index.path.dynamic_slots().enumerate() {
+            self.add_edge(
+                *slot,
+                node,
+                Link::copy(Path::default().field("slots").index(ndx)),
+            )?;
         }
-        self.add_edge(index.arg, node, Link::default())
+        self.add_edge(index.arg, node, Link::copy(Path::default().field("arg")))
     }
 
     fn select(&mut self, select: Select, location: SourceLocation) -> Result<()> {

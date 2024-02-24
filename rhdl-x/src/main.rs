@@ -194,6 +194,15 @@ fn test_timing_note() {
 }
 
 #[test]
+fn test_tuple_struct() {
+    #[derive(Digital, Copy, Clone, PartialEq, Default)]
+    pub struct Foo(b8, b8);
+
+    let kind = Foo::static_kind();
+    eprintln!("{:?}", kind);
+}
+
+#[test]
 fn test_dfg_analysis_of_kernel() {
     use rhdl_std::UnsignedMethods;
     #[derive(Copy, Clone, PartialEq, Digital, Default)]
@@ -205,6 +214,12 @@ fn test_dfg_analysis_of_kernel() {
 
     #[kernel]
     fn concatenate_bits(x: b4, y: b4) -> (b4, b4) {
+        let d = Foo {
+            a: true,
+            b: x,
+            c: y,
+        };
+        let e = Foo { a: false, ..d };
         (y - x, y + 3)
     }
 
