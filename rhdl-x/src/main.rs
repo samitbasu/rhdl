@@ -13,6 +13,7 @@ use petgraph::dot::Dot;
 use rhdl_bits::alias::*;
 use rhdl_bits::bits;
 use rhdl_core::compile_design;
+use rhdl_core::diagnostic::dfg::build_dfg;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::note_db::note_time;
 use rhdl_core::note_init_db;
@@ -30,8 +31,6 @@ use rhdl_std::slice;
 use strobe::Strobe;
 use strobe::StrobeI;
 
-use crate::dfg::build_dfg;
-use crate::dfg::ObjectAnalyzer;
 //use translator::Translator;
 //use verilog::VerilogTranslator;
 
@@ -49,7 +48,6 @@ mod tristate;
 //mod traitx;
 //mod translator;
 //mod verilog;
-mod dfg;
 mod visit;
 
 #[test]
