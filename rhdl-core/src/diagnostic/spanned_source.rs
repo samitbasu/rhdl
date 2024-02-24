@@ -187,8 +187,6 @@ impl SpannedSourceBuilder {
             }
             Kind::Struct(kind) => self.push(&kind.name),
             Kind::Enum(kind) => self.push(&kind.name),
-            Kind::U128 => self.push("u128"),
-            Kind::I128 => self.push("i128"),
         }
     }
 

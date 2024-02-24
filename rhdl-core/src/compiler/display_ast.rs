@@ -206,8 +206,6 @@ impl<'a> PrettyPrinter<'a> {
                 Bits::Empty => self.push("()"),
                 Bits::Signed(n) => self.push(&format!("s{}", n)),
                 Bits::Unsigned(n) => self.push(&format!("b{}", n)),
-                Bits::I128 => self.push("i128"),
-                Bits::U128 => self.push("u128"),
                 Bits::Usize => self.push("usize"),
             },
             Ty::Integer => self.push("int"),
