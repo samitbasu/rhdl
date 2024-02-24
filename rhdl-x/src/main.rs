@@ -213,11 +213,11 @@ fn test_dfg_analysis_of_kernel() {
     #[kernel]
     fn add_stuff(x: b4, y: b4, z: Foo) -> b4 {
         let h = [b4(5); 16];
-        let c = slice::<4, 2>(h[0], 1);
+        let c = slice::<4, 4>(h[0], 1);
         let q = x + concatenate_bits(x, y).0 + z.b;
         match z.c.xor() {
             true => q + z.c,
-            false => q - z.c + h[z.b] - b4(5),
+            false => q - z.c + h[z.b] - b4(5) + c,
         }
     }
 
