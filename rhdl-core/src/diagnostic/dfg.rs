@@ -1,8 +1,11 @@
 use std::collections::HashMap;
+use std::fmt::Write;
+use std::hash::Hash;
 
 use anyhow::anyhow;
 use anyhow::bail;
 use anyhow::Result;
+use petgraph::dot::Dot;
 
 use crate::ast::ast_impl::FunctionId;
 use crate::kernel::ExternalKernelDef;
@@ -39,13 +42,45 @@ use petgraph::stable_graph::NodeIndex;
 use petgraph::Directed;
 use petgraph::Graph;
 
-type DFGType = Graph<Component, Link, Directed>;
+pub type DFGType = Graph<Component, Link, Directed>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct DFG {
     pub graph: DFGType,
     pub arguments: Vec<NodeIndex<u32>>,
     pub ret: NodeIndex<u32>,
+}
+
+pub type RelocationMap = HashMap<NodeIndex<u32>, NodeIndex<u32>>;
+
+impl DFG {
+    pub fn as_dot(&self) -> String {
+        let mut dot = String::new();
+        writeln!(dot, "{}", Dot::with_config(&self.graph, &[])).unwrap();
+        dot
+    }
+    pub fn buffer(&mut self, name: &str, kind: Kind) -> NodeIndex<u32> {
+        self.graph.add_node(Component {
+            input: kind.clone(),
+            output: kind,
+            kind: ComponentKind::Buffer(name.to_string()),
+            location: None,
+        })
+    }
+    pub fn merge(&mut self, other: &DFG) -> RelocationMap {
+        let mut relocation_map = HashMap::new();
+        for node in other.graph.node_indices() {
+            let new_node = self.graph.add_node(other.graph[node].clone());
+            relocation_map.insert(node, new_node);
+        }
+        for edge in other.graph.edge_indices() {
+            let (src, dest) = other.graph.edge_endpoints(edge).unwrap();
+            let src = relocation_map[&src];
+            let dest = relocation_map[&dest];
+            self.graph.add_edge(src, dest, other.graph[edge].clone());
+        }
+        relocation_map
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -106,6 +141,7 @@ pub enum ComponentKind {
     Enum,
     Cast,
     Constant,
+    DFF,
 }
 
 impl std::fmt::Display for ComponentKind {
@@ -127,6 +163,7 @@ impl std::fmt::Display for ComponentKind {
             ComponentKind::Enum => write!(f, "Enum"),
             ComponentKind::Cast => write!(f, "Cast"),
             ComponentKind::Constant => write!(f, "Constant"),
+            ComponentKind::DFF => write!(f, "DFF"),
         }
     }
 }
@@ -243,7 +280,7 @@ impl<'a> ObjectAnalyzer<'a> {
         })
     }
 
-    fn exec(&mut self, exec: Exec, location: SourceLocation) -> Result<()> {
+    fn exec(&mut self, exec: Exec, _location: SourceLocation) -> Result<()> {
         let func = &self.object.externals[exec.id.0];
         match &func.code {
             ExternalFunctionCode::Kernel(kernel) => self.exec_kernel(exec, kernel),

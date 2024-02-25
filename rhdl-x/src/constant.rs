@@ -1,7 +1,12 @@
 use anyhow::ensure;
 use anyhow::Result;
+use rhdl_core::diagnostic::dfg::Component;
+use rhdl_core::diagnostic::dfg::ComponentKind;
+use rhdl_core::diagnostic::dfg::DFG;
 use rhdl_core::CircuitIO;
+use rhdl_core::Kind;
 use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
+use rhdl_macro::Circuit;
 
 use crate::circuit::root_descriptor;
 use crate::circuit::HDLDescriptor;
@@ -11,6 +16,11 @@ use crate::circuit::{Circuit, CircuitDescriptor};
 #[derive(Clone)]
 pub struct Constant<T: Digital> {
     value: T,
+}
+
+impl<T: Digital> CircuitIO for Constant<T> {
+    type I = ();
+    type O = T;
 }
 
 impl<T: Digital> From<T> for Constant<T> {
@@ -23,11 +33,6 @@ impl<T: Digital> DigitalFn for Constant<T> {
     fn kernel_fn() -> Option<rhdl_core::KernelFnKind> {
         None
     }
-}
-
-impl<T: Digital> CircuitIO for Constant<T> {
-    type I = ();
-    type O = T;
 }
 
 impl<T: Digital> Circuit for Constant<T> {
@@ -52,7 +57,17 @@ impl<T: Digital> Circuit for Constant<T> {
     }
 
     fn descriptor(&self) -> CircuitDescriptor {
-        root_descriptor(self)
+        let mut desc = root_descriptor(self);
+        let mut dfg = DFG::default();
+        let o = dfg.graph.add_node(Component {
+            input: Self::I::static_kind(),
+            output: Kind::make_tuple(vec![Self::O::static_kind(), Kind::Empty]),
+            kind: ComponentKind::Constant,
+            location: None,
+        });
+        dfg.ret = o;
+        desc.update_dfg = Some(dfg);
+        desc
     }
 
     fn as_hdl(&self, kind: crate::circuit::HDLKind) -> anyhow::Result<HDLDescriptor> {

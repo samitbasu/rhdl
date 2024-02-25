@@ -1,7 +1,12 @@
 use anyhow::bail;
 use anyhow::ensure;
 use anyhow::Result;
+use rhdl_core::diagnostic::dfg::Component;
+use rhdl_core::diagnostic::dfg::ComponentKind;
+use rhdl_core::diagnostic::dfg::Link;
+use rhdl_core::diagnostic::dfg::DFG;
 use rhdl_core::note;
+use rhdl_core::Kind;
 use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
 use rhdl_macro::Digital;
 
@@ -76,7 +81,23 @@ impl<T: Digital> Circuit for DFF<T> {
     }
 
     fn descriptor(&self) -> crate::circuit::CircuitDescriptor {
-        root_descriptor(self)
+        let mut desc = root_descriptor(self);
+        let mut dfg = DFG::default();
+        // We want to add a DFF node
+        let i = dfg.buffer("i", Self::I::static_kind());
+        let q = dfg.buffer("q", Kind::Empty);
+        let output = Kind::make_tuple(vec![Self::O::static_kind(), Kind::Empty]);
+        let dff = dfg.graph.add_node(Component {
+            input: Self::I::static_kind(),
+            output,
+            kind: ComponentKind::DFF,
+            location: None,
+        });
+        dfg.graph.add_edge(i, dff, Link::default());
+        dfg.ret = dff;
+        dfg.arguments = vec![i, q];
+        desc.update_dfg = Some(dfg);
+        desc
     }
 }
 
