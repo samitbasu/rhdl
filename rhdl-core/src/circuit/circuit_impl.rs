@@ -1,4 +1,8 @@
-use crate::{Digital, DigitalFn};
+use crate::{
+    diagnostic::dfg::{Link, DFG},
+    path::Path,
+    Digital, DigitalFn,
+};
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
 

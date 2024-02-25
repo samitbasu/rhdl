@@ -62,6 +62,15 @@ pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
     (strobe, d)
 }
 
+#[test]
+fn test_strobe_dfg() {
+    let strobe = Strobe::<8>::new(bits::<8>(5));
+    let descriptor = Strobe::<8>::descriptor(&strobe);
+    let total_dfg = descriptor.dfg().unwrap();
+    let dot = total_dfg.as_dot();
+    std::fs::write("strobe.dot", dot).unwrap();
+}
+
 /*
 #[kernel]
 pub fn strobe<const N: usize>(

@@ -141,9 +141,12 @@ pub fn root_descriptor<C: Circuit>(circuit: &C) -> CircuitDescriptor {
         ),
         input_kind: C::I::static_kind(),
         output_kind: C::O::static_kind(),
+        d_kind: C::D::static_kind(),
+        q_kind: C::Q::static_kind(),
         num_tristate: C::Z::N,
         tristate_offset_in_parent: 0,
         children: Default::default(),
+        update_dfg: None,
     }
 }
 
