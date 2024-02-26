@@ -52,9 +52,17 @@ impl CircuitDescriptor {
         // Create a node for the output of the circuit
         let output_node = total_dfg.buffer("output", self.output_kind.clone());
         // Create a node for the D node of the circuit
-        let d_node = total_dfg.buffer("d", self.d_kind.clone());
+        let d_node = if self.d_kind.is_empty() {
+            None
+        } else {
+            Some(total_dfg.buffer("d", self.d_kind.clone()))
+        };
         // Create a node for the Q node of the circuit
-        let q_node = total_dfg.buffer("q", self.q_kind.clone());
+        let q_node = if self.q_kind.is_empty() {
+            None
+        } else {
+            Some(total_dfg.buffer("q", self.q_kind.clone()))
+        };
         total_dfg.arguments.push(input_node);
         total_dfg.ret = output_node;
         if let Some(update_dfg) = &self.update_dfg {
@@ -67,11 +75,13 @@ impl CircuitDescriptor {
                     Link::default(),
                 );
                 // Connect the second argument of the update function to the q node
-                total_dfg.graph.add_edge(
-                    q_node,
-                    update_relocation[&update_dfg.arguments[1]],
-                    Link::default(),
-                );
+                if let Some(q_node) = q_node {
+                    total_dfg.graph.add_edge(
+                        q_node,
+                        update_relocation[&update_dfg.arguments[1]],
+                        Link::default(),
+                    );
+                }
             }
             // Connect the first element of the output tuple from the update kernel
             // to the output buffer
@@ -85,14 +95,16 @@ impl CircuitDescriptor {
             );
             // Connect the second element of the output tuple from the update kernel
             // to the d buffer
-            total_dfg.graph.add_edge(
-                update_relocation[&update_dfg.ret],
-                d_node,
-                Link {
-                    src: Path::default().index(1),
-                    dest: Path::default(),
-                },
-            );
+            if let Some(d_node) = d_node {
+                total_dfg.graph.add_edge(
+                    update_relocation[&update_dfg.ret],
+                    d_node,
+                    Link {
+                        src: Path::default().index(1),
+                        dest: Path::default(),
+                    },
+                );
+            }
         }
         for (child_name, child_descriptor) in &self.children {
             if let Some(child_dfg) = child_descriptor.dfg() {
@@ -100,27 +112,31 @@ impl CircuitDescriptor {
                 if child_relocation.is_empty() {
                     continue;
                 }
-                // Connect the output of the child to the Q node
-                total_dfg.graph.add_edge(
-                    child_relocation[&child_dfg.ret],
-                    q_node,
-                    Link {
-                        src: Path::default(),
-                        dest: Path::default().field(child_name),
-                    },
-                );
+                if let Some(q_node) = q_node {
+                    // Connect the output of the child to the Q node
+                    total_dfg.graph.add_edge(
+                        child_relocation[&child_dfg.ret],
+                        q_node,
+                        Link {
+                            src: Path::default(),
+                            dest: Path::default().field(child_name),
+                        },
+                    );
+                }
                 if child_dfg.arguments.is_empty() {
                     continue;
                 }
-                // Connect the D node to the input of the child
-                total_dfg.graph.add_edge(
-                    d_node,
-                    child_relocation[&child_dfg.arguments[0]],
-                    Link {
-                        src: Path::default().field(child_name),
-                        dest: Path::default(),
-                    },
-                );
+                if let Some(d_node) = d_node {
+                    // Connect the D node to the input of the child
+                    total_dfg.graph.add_edge(
+                        d_node,
+                        child_relocation[&child_dfg.arguments[0]],
+                        Link {
+                            src: Path::default().field(child_name),
+                            dest: Path::default(),
+                        },
+                    );
+                }
             }
         }
         Some(total_dfg)

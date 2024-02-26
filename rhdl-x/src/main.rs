@@ -48,6 +48,7 @@ mod tristate;
 //mod traitx;
 //mod translator;
 //mod verilog;
+mod trace;
 mod visit;
 
 #[test]
