@@ -53,6 +53,9 @@ impl Path {
     pub fn iter(&self) -> impl Iterator<Item = &PathElement> {
         self.elements.iter()
     }
+    pub fn len(&self) -> usize {
+        self.elements.len()
+    }
     pub fn dynamic_slots(&self) -> impl Iterator<Item = &Slot> {
         self.elements.iter().filter_map(|e| match e {
             PathElement::DynamicIndex(slot) => Some(slot),
