@@ -3,12 +3,14 @@ use anyhow::Result;
 use petgraph::Direction;
 use rhdl_bits::alias::*;
 use rhdl_bits::{bits, Bits};
+use rhdl_core::compile_design;
 use rhdl_core::diagnostic::dfg::Component;
 use rhdl_core::diagnostic::dfg::ComponentKind;
 use rhdl_core::note;
 use rhdl_core::path::Path;
 use rhdl_core::CircuitIO;
 use rhdl_core::Digital;
+use rhdl_core::KernelFnKind;
 use rhdl_core::Tristate;
 use rhdl_macro::{kernel, Digital};
 
@@ -16,6 +18,8 @@ use crate::circuit::root_descriptor;
 use crate::circuit::root_hdl;
 use crate::circuit::BufZ;
 use crate::dff::DFFI;
+use crate::dfg::build_schematic;
+use crate::dfg::dot::write_dot;
 use crate::trace::trace;
 use crate::{circuit::Circuit, clock::Clock, constant::Constant, dff::DFF};
 use rhdl_macro::Circuit;
@@ -68,6 +72,19 @@ pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
 }
 
 #[test]
+fn test_schematic() {
+    use rhdl_core::DigitalFn;
+
+    let Some(KernelFnKind::Kernel(kernel)) = strobe::<8>::kernel_fn() else {
+        panic!("No kernel function");
+    };
+    let design = compile_design(kernel).unwrap();
+    let schematic = build_schematic(&design, design.top).unwrap();
+    let mut dot = std::fs::File::create("strobe_schematic.dot").unwrap();
+    write_dot(&schematic, &mut dot).unwrap();
+}
+
+#[test]
 fn test_strobe_dfg() {
     let strobe = Strobe::<8>::new(bits::<8>(5));
     let descriptor = Strobe::<8>::descriptor(&strobe);
@@ -95,7 +112,12 @@ fn test_strobe_dfg() {
         eprintln!("edge is {:?}", edge);
     }
     let clock_path = Path::default().field("clock");
-    trace(&total_dfg, dff_node, &clock_path).unwrap();
+    let mut subset = Default::default();
+    trace(&total_dfg, dff_node, &clock_path, &mut subset).unwrap();
+    eprintln!("subset is {:?}", subset);
+    let sub_graph = crate::trace::subgraph(&total_dfg, &subset);
+    let dot = sub_graph.as_dot();
+    std::fs::write("strobe_sub.dot", dot).unwrap();
 }
 
 /*

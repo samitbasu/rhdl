@@ -119,7 +119,11 @@ pub struct Component {
 
 impl std::fmt::Display for Component {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.kind)
+        write!(
+            f,
+            "{} input {} output {}",
+            self.kind, self.input, self.output
+        )
     }
 }
 
@@ -130,11 +134,11 @@ pub enum ComponentKind {
     Unary(AluUnary),
     Select,
     Index(Path),
-    Splice,
+    Splice(Path),
     Repeat,
     Struct,
     Tuple,
-    Case,
+    Case(usize),
     Exec(String),
     Array,
     Discriminant,
@@ -152,11 +156,11 @@ impl std::fmt::Display for ComponentKind {
             ComponentKind::Unary(op) => write!(f, "{:?}", op),
             ComponentKind::Select => write!(f, "Select"),
             ComponentKind::Index(path) => write!(f, "Index({})", path),
-            ComponentKind::Splice => write!(f, "Splice"),
+            ComponentKind::Splice(path) => write!(f, "Splice({})", path),
             ComponentKind::Repeat => write!(f, "Repeat"),
             ComponentKind::Struct => write!(f, "Struct"),
             ComponentKind::Tuple => write!(f, "Tuple"),
-            ComponentKind::Case => write!(f, "Case"),
+            ComponentKind::Case(_) => write!(f, "Case"),
             ComponentKind::Exec(name) => write!(f, "Exec({name})"),
             ComponentKind::Array => write!(f, "Array"),
             ComponentKind::Discriminant => write!(f, "Discriminant"),
@@ -515,7 +519,7 @@ impl<'a> ObjectAnalyzer<'a> {
             Component {
                 input,
                 output,
-                kind: ComponentKind::Case,
+                kind: ComponentKind::Case(case.table.len()),
                 location: Some(location),
             },
             case.lhs,
@@ -567,7 +571,7 @@ impl<'a> ObjectAnalyzer<'a> {
             Component {
                 input,
                 output,
-                kind: ComponentKind::Splice,
+                kind: ComponentKind::Splice(splice.path.clone()),
                 location: Some(location),
             },
             splice.lhs,

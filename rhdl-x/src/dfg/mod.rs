@@ -21,6 +21,7 @@ use rhdl_core::rhif::spec::Enum;
 use rhdl_core::rhif::spec::Exec;
 use rhdl_core::rhif::spec::ExternalFunctionCode;
 use rhdl_core::rhif::spec::Index;
+use rhdl_core::rhif::spec::Member;
 use rhdl_core::rhif::spec::Repeat;
 use rhdl_core::rhif::spec::Select;
 use rhdl_core::rhif::spec::Splice;
@@ -29,6 +30,7 @@ use rhdl_core::rhif::spec::Tuple;
 use rhdl_core::rhif::spec::Unary;
 use rhdl_core::Design;
 use rhdl_core::KernelFnKind;
+use rhdl_core::TypedBits;
 use rhdl_core::{
     rhif::{
         object::SourceLocation,
@@ -38,157 +40,71 @@ use rhdl_core::{
     Kind,
 };
 
-type DFGType = Graph<Component, Link, Directed>;
+use self::components::ArrayComponent;
+use self::components::BinaryComponent;
+use self::components::BufferComponent;
+use self::components::CaseComponent;
+use self::components::CastComponent;
+use self::components::ComponentKind;
+use self::components::ConstantComponent;
+use self::components::DiscriminantComponent;
+use self::components::EnumComponent;
+use self::components::ExecComponent;
+use self::components::FieldPin;
+use self::components::IndexComponent;
+use self::components::RepeatComponent;
+use self::components::SelectComponent;
+use self::components::SpliceComponent;
+use self::components::StructComponent;
+use self::components::TupleComponent;
+use self::components::UnaryComponent;
+use self::schematic::PinIx;
+use self::schematic::Schematic;
 
-#[derive(Clone, Debug)]
-pub struct DFG {
-    pub graph: DFGType,
-    pub arguments: Vec<NodeIndex<u32>>,
-    pub ret: NodeIndex<u32>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Link {
-    pub path: Path,
-}
-
-impl std::fmt::Display for Link {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.path)
-    }
-}
-
-// Todo
-// Support for struct and enum
-// Support for dynamic paths
-// Support for non-kernel external calls
-
-#[derive(Debug, Clone)]
-pub struct Component {
-    pub input: Kind,
-    pub output: Kind,
-    pub kind: ComponentKind,
-    pub location: Option<SourceLocation>,
-}
-
-impl std::fmt::Display for Component {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.kind)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum ComponentKind {
-    Buffer(String),
-    Binary(AluBinary),
-    Unary(AluUnary),
-    Select,
-    Index(Path),
-    Splice,
-    Repeat,
-    Struct,
-    Tuple,
-    Case,
-    Exec(String),
-    Array,
-    Discriminant,
-    Enum,
-    Cast,
-    Constant,
-}
-
-impl std::fmt::Display for ComponentKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ComponentKind::Buffer(reason) => write!(f, "Buffer({})", reason),
-            ComponentKind::Binary(op) => write!(f, "{:?}", op),
-            ComponentKind::Unary(op) => write!(f, "{:?}", op),
-            ComponentKind::Select => write!(f, "Select"),
-            ComponentKind::Index(path) => write!(f, "Index({})", path),
-            ComponentKind::Splice => write!(f, "Splice"),
-            ComponentKind::Repeat => write!(f, "Repeat"),
-            ComponentKind::Struct => write!(f, "Struct"),
-            ComponentKind::Tuple => write!(f, "Tuple"),
-            ComponentKind::Case => write!(f, "Case"),
-            ComponentKind::Exec(name) => write!(f, "Exec({name})"),
-            ComponentKind::Array => write!(f, "Array"),
-            ComponentKind::Discriminant => write!(f, "Discriminant"),
-            ComponentKind::Enum => write!(f, "Enum"),
-            ComponentKind::Cast => write!(f, "Cast"),
-            ComponentKind::Constant => write!(f, "Constant"),
-        }
-    }
-}
-
-// This is a macro by example that allows me to easily define ad hoc
-// structs using a simple syntax.  So
-//  digital_struct!( name {
-//      field1: expr1,
-//      field2: expr2,
-//  })
-// expands to
-//  Kind::make_struct("name", vec![Kind::make_field("field1", expr1), Kind::make_field("field2", expr2)])
-macro_rules! digital_struct {
-    ($name:ident { $($field:ident: $value:expr),* }) => {
-        Kind::make_struct(stringify!($name), vec![$(Kind::make_field(stringify!($field), $value)),*])
-    };
-}
+pub mod components;
+pub mod dot;
+pub mod schematic;
 
 #[derive(Debug)]
-pub struct ObjectAnalyzer<'a> {
+pub struct SchematicBuilder<'a> {
     design: &'a Design,
     object: &'a Object,
-    graph: DFGType,
-    slot_map: HashMap<Slot, NodeIndex<u32>>,
+    schematic: Schematic,
+    slot_map: HashMap<Slot, PinIx>,
 }
 
-pub fn build_dfg(design: &Design, function: FunctionId) -> Result<DFG> {
+pub fn build_schematic(design: &Design, function: FunctionId) -> Result<Schematic> {
     let object = design.objects.get(&function).ok_or(anyhow!(
         "Function {:?} not found in design {:?}",
         function,
         design
     ))?;
-    let analyzer = ObjectAnalyzer::new(design, object);
+    let analyzer = SchematicBuilder::new(design, object);
     analyzer.build()
 }
 
-impl<'a> ObjectAnalyzer<'a> {
-    pub fn new(design: &'a Design, object: &'a Object) -> Self {
+impl<'a> SchematicBuilder<'a> {
+    fn new(design: &'a Design, object: &'a Object) -> Self {
         Self {
             design,
             object,
-            graph: DFGType::new(),
+            schematic: Schematic::default(),
             slot_map: HashMap::new(),
         }
     }
 
-    pub fn build(mut self) -> Result<DFG> {
+    fn build(mut self) -> Result<Schematic> {
         for arg in &self.object.arguments {
             let kind = self.kind(*arg)?;
-            let location = self.location(*arg).ok();
-            self.add_node(
-                Component {
-                    input: kind.clone(),
-                    output: kind,
-                    kind: ComponentKind::Buffer(format!("Arg{:?}", arg)),
-                    location,
-                },
-                *arg,
-            );
+            let (ipin, opin) = self.make_buffer(format!("Arg{:?}", arg), kind);
+            self.schematic.inputs.push(ipin);
+            self.bind(*arg, opin);
         }
         for (ndx, literal) in self.object.literals.iter().enumerate() {
             let kind = literal.kind.clone();
             let slot = Slot::Literal(ndx);
-            let location = self.location(slot).ok();
-            self.add_node(
-                Component {
-                    input: Kind::Empty,
-                    output: kind,
-                    kind: ComponentKind::Constant,
-                    location,
-                },
-                slot,
-            );
+            let opin = self.make_constant(literal);
+            self.bind(slot, opin);
         }
         for (op, location) in self
             .object
@@ -198,378 +114,27 @@ impl<'a> ObjectAnalyzer<'a> {
             .zip(self.object.opcode_map.iter().cloned())
         {
             match op {
-                OpCode::Binary(binary) => self.binary(binary, location),
-                OpCode::Unary(unary) => self.unary(unary, location),
-                OpCode::Select(select) => self.select(select, location),
-                OpCode::Index(index) => self.index(index, location),
-                OpCode::Splice(splice) => self.splice(splice, location),
-                OpCode::Repeat(repeat) => self.repeat(repeat, location),
-                OpCode::Struct(structure) => self.mk_struct(structure, location),
-                OpCode::Tuple(tuple) => self.tuple(tuple, location),
-                OpCode::Case(case) => self.case(case, location),
-                OpCode::Array(array) => self.array(array, location),
-                OpCode::Discriminant(discriminant) => self.discriminant(discriminant, location),
-                OpCode::Enum(enumerate) => self.enumerate(enumerate, location),
-                OpCode::AsBits(cast) => self.cast(cast, location),
-                OpCode::AsSigned(cast) => self.cast(cast, location),
-                OpCode::Assign(assign) => self.assign(assign, location),
-                OpCode::Exec(exec) => self.exec(exec, location),
+                OpCode::Binary(binary) => self.make_binary(binary),
+                OpCode::Unary(unary) => self.make_unary(unary),
+                OpCode::Select(select) => self.make_select(select),
+                OpCode::Index(index) => self.make_index(index),
+                OpCode::Splice(splice) => self.make_splice(splice),
+                OpCode::Repeat(repeat) => self.make_repeat(repeat),
+                OpCode::Struct(structure) => self.make_struct(structure),
+                OpCode::Tuple(tuple) => self.make_tuple(tuple),
+                OpCode::Case(case) => self.make_case(case),
+                OpCode::Array(array) => self.make_array(array),
+                OpCode::Discriminant(discriminant) => self.make_discriminant(discriminant),
+                OpCode::Enum(enumerate) => self.make_enum(enumerate),
+                OpCode::AsBits(cast) | OpCode::AsSigned(cast) => self.make_cast(cast),
+                OpCode::Assign(assign) => self.make_assign(assign),
+                OpCode::Exec(exec) => self.make_exec(exec),
                 OpCode::Noop | OpCode::Comment(_) => Ok(()),
             }?
         }
-        let arguments = self
-            .object
-            .arguments
-            .iter()
-            .map(|arg| self.node(*arg).unwrap())
-            .collect();
-        let ret = self.node(self.object.return_slot)?;
-        Ok(DFG {
-            graph: self.graph,
-            arguments,
-            ret,
-        })
-    }
-
-    fn exec(&mut self, exec: Exec, location: SourceLocation) -> Result<()> {
-        let func = &self.object.externals[exec.id.0];
-        match &func.code {
-            ExternalFunctionCode::Kernel(kernel) => self.exec_kernel(exec, kernel),
-            ExternalFunctionCode::Extern(extern_fn) => self.exec_extern(exec, extern_fn),
-        }
-    }
-
-    fn exec_extern(&mut self, exec: Exec, extern_fn: &ExternalKernelDef) -> Result<()> {
-        let input = Kind::make_tuple(
-            exec.args
-                .iter()
-                .map(|arg| self.kind(*arg))
-                .collect::<Result<Vec<_>>>()?,
-        );
-        let output = self.kind(exec.lhs)?;
-        let node = self.add_node(
-            Component {
-                input,
-                output,
-                kind: ComponentKind::Exec(extern_fn.name.clone()),
-                location: None,
-            },
-            exec.lhs,
-        );
-        for (ndx, slot) in exec.args.iter().enumerate() {
-            self.add_edge(*slot, node, Path::default().index(ndx))?;
-        }
-        Ok(())
-    }
-
-    fn exec_kernel(&mut self, exec: Exec, kernel: &Kernel) -> Result<()> {
-        // Build a DFG for the callee.
-        let callee_dfg = build_dfg(self.design, kernel.inner().fn_id)?;
-        // Insert the callee's DFG into the current DFG, keeping track of
-        // the mapping for the node IDs from callee to caller.
-        let mut node_map = HashMap::new();
-        for nodes in callee_dfg.graph.node_indices() {
-            let node = callee_dfg.graph.node_weight(nodes).unwrap();
-            let new_index = self.graph.add_node(node.clone());
-            node_map.insert(nodes, new_index);
-        }
-        // Iterate over the edges, and add them to the current DFG, using the
-        // node_map to map the node indices from callee to caller.
-        for edges in callee_dfg.graph.edge_indices() {
-            let (source, target) = callee_dfg.graph.edge_endpoints(edges).unwrap();
-            let source = node_map.get(&source).unwrap();
-            let target = node_map.get(&target).unwrap();
-            let link = callee_dfg.graph.edge_weight(edges).unwrap();
-            self.graph.add_edge(*source, *target, link.clone());
-        }
-        // Link the arguments and the return
-        for (callee_arg, caller_arg) in callee_dfg.arguments.iter().zip(exec.args.iter()) {
-            let caller_arg_in_current_scope = self.node(*caller_arg)?;
-            let callee_arg_remapped = node_map.get(callee_arg).unwrap();
-            self.graph.add_edge(
-                caller_arg_in_current_scope,
-                *callee_arg_remapped,
-                Link {
-                    path: Path::default(),
-                },
-            );
-        }
-        let callee_ret_remapped = node_map.get(&callee_dfg.ret).unwrap();
-        let caller_ret = self.buffer(exec.lhs, "Exec".to_string())?;
-        self.graph.add_edge(
-            *callee_ret_remapped,
-            caller_ret,
-            Link {
-                path: Path::default(),
-            },
-        );
-        Ok(())
-    }
-
-    fn cast(&mut self, cast: Cast, location: SourceLocation) -> Result<()> {
-        let input = self.kind(cast.arg)?;
-        let output = self.kind(cast.lhs)?;
-        let node = self.add_node(
-            Component {
-                input,
-                output,
-                kind: ComponentKind::Cast,
-                location: Some(location),
-            },
-            cast.lhs,
-        );
-        self.add_edge(cast.arg, node, Path::default())
-    }
-
-    fn enumerate(&self, enumerate: Enum, location: SourceLocation) -> Result<()> {
-        todo!()
-    }
-
-    fn discriminant(&mut self, discriminant: Discriminant, location: SourceLocation) -> Result<()> {
-        let input = self.kind(discriminant.arg)?;
-        let output = self.kind(discriminant.lhs)?;
-        let node = self.add_node(
-            Component {
-                input,
-                output,
-                kind: ComponentKind::Discriminant,
-                location: Some(location),
-            },
-            discriminant.lhs,
-        );
-        self.add_edge(discriminant.arg, node, Path::default())
-    }
-
-    fn array(&mut self, array: Array, location: SourceLocation) -> Result<()> {
-        let input = Kind::make_tuple(
-            array
-                .elements
-                .iter()
-                .map(|arg| self.kind(*arg))
-                .collect::<Result<Vec<_>>>()?,
-        );
-        let output = self.kind(array.lhs)?;
-        let node = self.add_node(
-            Component {
-                input,
-                output,
-                kind: ComponentKind::Array,
-                location: Some(location),
-            },
-            array.lhs,
-        );
-        for (ndx, slot) in array.elements.iter().enumerate() {
-            self.add_edge(*slot, node, Path::default().index(ndx))?;
-        }
-        Ok(())
-    }
-
-    fn tuple(&mut self, tuple: Tuple, location: SourceLocation) -> Result<()> {
-        let input = Kind::make_tuple(
-            tuple
-                .fields
-                .iter()
-                .map(|arg| self.kind(*arg))
-                .collect::<Result<Vec<_>>>()?,
-        );
-        let output = self.kind(tuple.lhs)?;
-        let node = self.add_node(
-            Component {
-                input,
-                output,
-                kind: ComponentKind::Tuple,
-                location: Some(location),
-            },
-            tuple.lhs,
-        );
-        for (ndx, slot) in tuple.fields.iter().enumerate() {
-            self.add_edge(*slot, node, Path::default().index(ndx))?;
-        }
-        Ok(())
-    }
-
-    fn mk_struct(&self, structure: Struct, location: SourceLocation) -> Result<()> {
-        todo!()
-    }
-
-    fn case(&mut self, case: Case, location: SourceLocation) -> Result<()> {
-        let input_kind = self.kind(case.lhs)?;
-        let discriminant = self.kind(case.discriminant)?;
-        let input = digital_struct!(case {
-            discriminant: discriminant,
-            table: Kind::make_array(input_kind, case.table.len())
-        });
-        let output = self.kind(case.lhs)?;
-        let node = self.add_node(
-            Component {
-                input,
-                output,
-                kind: ComponentKind::Case,
-                location: Some(location),
-            },
-            case.lhs,
-        );
-        self.add_edge(
-            case.discriminant,
-            node,
-            Path::default().field("discriminant"),
-        )?;
-        for (ndx, (_, slot)) in case.table.iter().enumerate() {
-            self.add_edge(*slot, node, Path::default().field("table").index(ndx))?;
-        }
-        Ok(())
-    }
-
-    fn repeat(&mut self, repeat: Repeat, location: SourceLocation) -> Result<()> {
-        let input = self.kind(repeat.value)?;
-        let output = self.kind(repeat.lhs)?;
-        let node = self.add_node(
-            Component {
-                input,
-                output,
-                kind: ComponentKind::Repeat,
-                location: Some(location),
-            },
-            repeat.lhs,
-        );
-        self.add_edge(repeat.value, node, Path::default())
-    }
-    fn splice(&mut self, splice: Splice, location: SourceLocation) -> Result<()> {
-        let orig = self.kind(splice.orig)?;
-        let subst = self.kind(splice.subst)?;
-        let input = digital_struct!(splice {
-            orig: orig,
-            subst: subst
-        });
-        let output = self.kind(splice.lhs)?;
-        let node = self.add_node(
-            Component {
-                input,
-                output,
-                kind: ComponentKind::Splice,
-                location: Some(location),
-            },
-            splice.lhs,
-        );
-        for slot in splice.path.dynamic_slots() {
-            self.add_edge(*slot, node, Path::default())?;
-        }
-        self.add_edge(splice.orig, node, Path::default().field("orig"))?;
-        self.add_edge(splice.subst, node, Path::default().field("subst"))?;
-        Ok(())
-    }
-
-    fn buffer(&mut self, value: Slot, reason: String) -> Result<NodeIndex<u32>> {
-        let kind = self.kind(value)?;
-        let node = self.add_node(
-            Component {
-                input: kind.clone(),
-                output: kind,
-                kind: ComponentKind::Buffer(reason),
-                location: None,
-            },
-            value,
-        );
-        Ok(node)
-    }
-
-    fn assign(&mut self, assign: Assign, location: SourceLocation) -> Result<()> {
-        let input = self.kind(assign.rhs)?;
-        let output = self.kind(assign.lhs)?;
-        let node = self.add_node(
-            Component {
-                input,
-                output,
-                kind: ComponentKind::Buffer(format!("Assign{:?}", assign.lhs)),
-                location: Some(location),
-            },
-            assign.lhs,
-        );
-        self.add_edge(assign.rhs, node, Path::default())
-    }
-
-    fn index(&mut self, index: Index, location: SourceLocation) -> Result<()> {
-        let input = self.kind(index.arg)?;
-        let output = self.kind(index.lhs)?;
-        let node = self.add_node(
-            Component {
-                input,
-                output,
-                kind: ComponentKind::Index(index.path.clone()),
-                location: Some(location),
-            },
-            index.lhs,
-        );
-        for slot in index.path.dynamic_slots() {
-            self.add_edge(*slot, node, Path::default())?;
-        }
-        self.add_edge(index.arg, node, Path::default())
-    }
-
-    fn select(&mut self, select: Select, location: SourceLocation) -> Result<()> {
-        let cond = self.kind(select.cond)?;
-        let true_value = self.kind(select.true_value)?;
-        let false_value = self.kind(select.false_value)?;
-        let input = digital_struct!(select {
-            cond: cond,
-            true_value: true_value,
-            false_value: false_value
-        });
-        let output = self.kind(select.lhs)?;
-        let node = self.add_node(
-            Component {
-                input,
-                output,
-                kind: ComponentKind::Select,
-                location: Some(location),
-            },
-            select.lhs,
-        );
-        self.add_edge(select.cond, node, Path::default().field("cond"))?;
-        self.add_edge(select.true_value, node, Path::default().field("true_value"))?;
-        self.add_edge(
-            select.false_value,
-            node,
-            Path::default().field("false_value"),
-        )?;
-        Ok(())
-    }
-
-    fn binary(&mut self, binary: Binary, location: SourceLocation) -> Result<()> {
-        let arg1 = self.kind(binary.arg1)?;
-        let arg2 = self.kind(binary.arg2)?;
-        let input = Kind::make_tuple(vec![arg1, arg2]);
-        let output = self.kind(binary.lhs)?;
-        let kind = ComponentKind::Binary(binary.op);
-        let node = self.add_node(
-            Component {
-                input,
-                output,
-                kind,
-                location: Some(location),
-            },
-            binary.lhs,
-        );
-        self.add_edge(binary.arg1, node, Path::default().index(0))?;
-        self.add_edge(binary.arg2, node, Path::default().index(1))?;
-        Ok(())
-    }
-
-    fn unary(&mut self, unary: Unary, location: SourceLocation) -> Result<()> {
-        let input = self.kind(unary.arg1)?;
-        let output = self.kind(unary.lhs)?;
-        let kind = ComponentKind::Unary(unary.op);
-        let node = self.add_node(
-            Component {
-                input,
-                output,
-                kind,
-                location: Some(location),
-            },
-            unary.lhs,
-        );
-        self.add_edge(unary.arg1, node, Path::default())?;
-        Ok(())
+        let ret = self.lookup(self.object.return_slot)?;
+        self.schematic.outputs.push(ret);
+        Ok(self.schematic)
     }
 
     fn kind(&self, slot: Slot) -> Result<Kind> {
@@ -579,33 +144,370 @@ impl<'a> ObjectAnalyzer<'a> {
         Ok(ty.clone())
     }
 
-    fn node(&self, slot: Slot) -> Result<NodeIndex<u32>> {
-        let Some(ix) = self.slot_map.get(&slot) else {
-            bail!("Slot {:?} not found in slot_map {:?}", slot, self.slot_map)
-        };
-        Ok(*ix)
+    fn bind(&mut self, slot: Slot, pin: PinIx) {
+        self.slot_map.insert(slot, pin);
     }
 
-    fn add_edge(&mut self, slot: Slot, node: NodeIndex<u32>, path: Path) -> Result<()> {
-        let ix = self.node(slot)?;
-        self.graph.add_edge(ix, node, Link { path });
+    fn lookup(&self, slot: Slot) -> Result<PinIx> {
+        let Some(pin) = self.slot_map.get(&slot) else {
+            bail!("Slot {:?} not found in slot_map {:?}", slot, self.slot_map)
+        };
+        Ok(*pin)
+    }
+
+    fn make_output_pin(&mut self, slot: Slot) -> Result<PinIx> {
+        let kind = self.kind(slot)?;
+        let pin = self.schematic.make_pin(kind, format!("{:?}", slot));
+        self.bind(slot, pin);
+        Ok(pin)
+    }
+
+    fn make_buffer(&mut self, name: String, kind: Kind) -> (PinIx, PinIx) {
+        let input = self
+            .schematic
+            .make_pin(kind.clone(), format!("{}_in", name));
+        let output = self.schematic.make_pin(kind, format!("{}_out", name));
+        let component = self.schematic.make_component(
+            name,
+            ComponentKind::Buffer(BufferComponent { input, output }),
+        );
+        self.schematic.pin_mut(input).parent(component);
+        self.schematic.pin_mut(output).parent(component);
+        (input, output)
+    }
+
+    fn make_constant(&mut self, value: &TypedBits) -> PinIx {
+        let output = self
+            .schematic
+            .make_pin(value.kind.clone(), "constant".to_string());
+        let component = self.schematic.make_component(
+            "constant".to_string(),
+            ComponentKind::Constant(ConstantComponent {
+                value: value.clone(),
+                output,
+            }),
+        );
+        self.schematic.pin_mut(output).parent(component);
+        output
+    }
+
+    // Lookup the pin that drives the given slot, create a new
+    // pin of the same type, and tie the two together with a wire.
+    fn make_wired_pin(&mut self, slot: Slot) -> Result<PinIx> {
+        let kind = self.kind(slot)?;
+        let pin = self.schematic.make_pin(kind, format!("{:?}", slot));
+        let output = self.lookup(slot)?;
+        self.schematic.wire(output, pin);
+        Ok(pin)
+    }
+
+    fn make_binary(&mut self, binary: Binary) -> Result<()> {
+        let arg1 = self.make_wired_pin(binary.arg1)?;
+        let arg2 = self.make_wired_pin(binary.arg2)?;
+        let out = self.make_output_pin(binary.lhs)?;
+        let component = self.schematic.make_component(
+            format!("{:?}", binary.op),
+            ComponentKind::Binary(BinaryComponent {
+                op: binary.op,
+                input1: arg1,
+                input2: arg2,
+                output: out,
+            }),
+        );
+        self.schematic.pin_mut(arg1).parent(component);
+        self.schematic.pin_mut(arg2).parent(component);
+        self.schematic.pin_mut(out).parent(component);
         Ok(())
     }
 
-    fn add_node(&mut self, node: Component, slot: Slot) -> NodeIndex<u32> {
-        let ix = self.graph.add_node(node);
-        self.slot_map.insert(slot, ix);
-        ix
+    fn make_unary(&mut self, unary: Unary) -> Result<()> {
+        let arg1 = self.make_wired_pin(unary.arg1)?;
+        let out = self.make_output_pin(unary.lhs)?;
+        let component = self.schematic.make_component(
+            format!("{:?}", unary.op),
+            ComponentKind::Unary(UnaryComponent {
+                op: unary.op,
+                input: arg1,
+                output: out,
+            }),
+        );
+        self.schematic.pin_mut(arg1).parent(component);
+        self.schematic.pin_mut(out).parent(component);
+        Ok(())
     }
 
-    fn location(&self, slot: Slot) -> Result<SourceLocation> {
-        let Some(location) = self.object.slot_map.get(&slot) else {
-            bail!(
-                "Slot {:?} not found in slot_map {:?}",
-                slot,
-                self.object.slot_map
-            )
-        };
-        Ok(*location)
+    fn make_select(&mut self, select: Select) -> Result<()> {
+        let cond = self.make_wired_pin(select.cond)?;
+        let true_value = self.make_wired_pin(select.true_value)?;
+        let false_value = self.make_wired_pin(select.false_value)?;
+        let out = self.make_output_pin(select.lhs)?;
+        let component = self.schematic.make_component(
+            "Select".to_string(),
+            ComponentKind::Select(SelectComponent {
+                cond,
+                true_value,
+                false_value,
+                output: out,
+            }),
+        );
+        self.schematic.pin_mut(cond).parent(component);
+        self.schematic.pin_mut(true_value).parent(component);
+        self.schematic.pin_mut(false_value).parent(component);
+        self.schematic.pin_mut(out).parent(component);
+        Ok(())
+    }
+
+    fn make_index(&mut self, index: Index) -> Result<()> {
+        let arg = self.make_wired_pin(index.arg)?;
+        let out = self.make_output_pin(index.lhs)?;
+        let dynamic = index
+            .path
+            .dynamic_slots()
+            .map(|slot| self.make_wired_pin(*slot))
+            .collect::<Result<Vec<_>>>()?;
+        let component = self.schematic.make_component(
+            "Index".to_string(),
+            ComponentKind::Index(IndexComponent {
+                arg,
+                path: index.path.clone(),
+                output: out,
+                dynamic: dynamic.clone(),
+            }),
+        );
+        self.schematic.pin_mut(arg).parent(component);
+        self.schematic.pin_mut(out).parent(component);
+        for pin in dynamic {
+            self.schematic.pin_mut(pin).parent(component);
+        }
+        Ok(())
+    }
+
+    fn make_splice(&mut self, splice: Splice) -> Result<()> {
+        let orig = self.make_wired_pin(splice.orig)?;
+        let subst = self.make_wired_pin(splice.subst)?;
+        let out = self.make_output_pin(splice.lhs)?;
+        let dynamic = splice
+            .path
+            .dynamic_slots()
+            .map(|slot| self.make_wired_pin(*slot))
+            .collect::<Result<Vec<_>>>()?;
+        let component = self.schematic.make_component(
+            "Splice".to_string(),
+            ComponentKind::Splice(SpliceComponent {
+                orig,
+                subst,
+                output: out,
+                path: splice.path.clone(),
+                dynamic: dynamic.clone(),
+            }),
+        );
+        self.schematic.pin_mut(orig).parent(component);
+        self.schematic.pin_mut(subst).parent(component);
+        self.schematic.pin_mut(out).parent(component);
+        for pin in dynamic {
+            self.schematic.pin_mut(pin).parent(component);
+        }
+        Ok(())
+    }
+
+    fn make_repeat(&mut self, repeat: Repeat) -> Result<()> {
+        let value = self.make_wired_pin(repeat.value)?;
+        let out = self.make_output_pin(repeat.lhs)?;
+        let component = self.schematic.make_component(
+            "Repeat".to_string(),
+            ComponentKind::Repeat(RepeatComponent {
+                value,
+                output: out,
+                len: repeat.len,
+            }),
+        );
+        self.schematic.pin_mut(value).parent(component);
+        self.schematic.pin_mut(out).parent(component);
+        Ok(())
+    }
+
+    fn make_struct(&mut self, structure: Struct) -> Result<()> {
+        let fields = structure
+            .fields
+            .into_iter()
+            .map(|f| {
+                self.make_wired_pin(f.value).map(|pin| FieldPin {
+                    member: f.member,
+                    pin,
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let out = self.make_output_pin(structure.lhs)?;
+        let rest = structure.rest.map(|r| self.make_wired_pin(r)).transpose()?;
+        let component = self.schematic.make_component(
+            "Struct".to_string(),
+            ComponentKind::Struct(StructComponent {
+                fields: fields.clone(),
+                output: out,
+                rest,
+            }),
+        );
+        fields
+            .iter()
+            .for_each(|f| self.schematic.pin_mut(f.pin).parent(component));
+        if let Some(pin) = rest {
+            self.schematic.pin_mut(pin).parent(component);
+        }
+        self.schematic.pin_mut(out).parent(component);
+        Ok(())
+    }
+
+    fn make_tuple(&mut self, tuple: Tuple) -> Result<()> {
+        let fields = tuple
+            .fields
+            .into_iter()
+            .map(|f| self.make_wired_pin(f))
+            .collect::<Result<Vec<_>>>()?;
+        let out = self.make_output_pin(tuple.lhs)?;
+        let component = self.schematic.make_component(
+            "Tuple".to_string(),
+            ComponentKind::Tuple(TupleComponent {
+                fields: fields.clone(),
+                output: out,
+            }),
+        );
+        fields
+            .iter()
+            .for_each(|f| self.schematic.pin_mut(*f).parent(component));
+        self.schematic.pin_mut(out).parent(component);
+        Ok(())
+    }
+
+    fn make_case(&mut self, case: Case) -> Result<()> {
+        let discriminant = self.make_wired_pin(case.discriminant)?;
+        let table = case
+            .table
+            .into_iter()
+            .map(|(ndx, slot)| self.make_wired_pin(slot).map(|pin| (ndx, pin)))
+            .collect::<Result<Vec<_>>>()?;
+        let out = self.make_output_pin(case.lhs)?;
+        let component = self.schematic.make_component(
+            "Case".to_string(),
+            ComponentKind::Case(CaseComponent {
+                discriminant,
+                table: table.clone(),
+                output: out,
+            }),
+        );
+        self.schematic.pin_mut(discriminant).parent(component);
+        for (_, pin) in table {
+            self.schematic.pin_mut(pin).parent(component);
+        }
+        self.schematic.pin_mut(out).parent(component);
+        Ok(())
+    }
+
+    fn make_array(&mut self, array: Array) -> Result<()> {
+        let elements = array
+            .elements
+            .into_iter()
+            .map(|slot| self.make_wired_pin(slot))
+            .collect::<Result<Vec<_>>>()?;
+        let out = self.make_output_pin(array.lhs)?;
+        let component = self.schematic.make_component(
+            "Array".to_string(),
+            ComponentKind::Array(ArrayComponent {
+                elements: elements.clone(),
+                output: out,
+            }),
+        );
+        elements
+            .iter()
+            .for_each(|f| self.schematic.pin_mut(*f).parent(component));
+        self.schematic.pin_mut(out).parent(component);
+        Ok(())
+    }
+
+    fn make_discriminant(&mut self, discriminant: Discriminant) -> Result<()> {
+        let arg = self.make_wired_pin(discriminant.arg)?;
+        let out = self.make_output_pin(discriminant.lhs)?;
+        let component = self.schematic.make_component(
+            "Discriminant".to_string(),
+            ComponentKind::Discriminant(DiscriminantComponent { arg, output: out }),
+        );
+        self.schematic.pin_mut(arg).parent(component);
+        self.schematic.pin_mut(out).parent(component);
+        Ok(())
+    }
+
+    fn make_enum(&mut self, enumerate: Enum) -> Result<()> {
+        let fields = enumerate
+            .fields
+            .into_iter()
+            .map(|f| {
+                self.make_wired_pin(f.value).map(|pin| FieldPin {
+                    member: f.member,
+                    pin,
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let out = self.make_output_pin(enumerate.lhs)?;
+        let component = self.schematic.make_component(
+            "Enum".to_string(),
+            ComponentKind::Enum(EnumComponent {
+                fields: fields.clone(),
+                output: out,
+            }),
+        );
+        fields
+            .iter()
+            .for_each(|f| self.schematic.pin_mut(f.pin).parent(component));
+        self.schematic.pin_mut(out).parent(component);
+        Ok(())
+    }
+
+    fn make_cast(&mut self, cast: Cast) -> Result<()> {
+        let arg = self.make_wired_pin(cast.arg)?;
+        let out = self.make_output_pin(cast.lhs)?;
+        let component = self.schematic.make_component(
+            "Cast".to_string(),
+            ComponentKind::Cast(CastComponent {
+                input: arg,
+                output: out,
+            }),
+        );
+        self.schematic.pin_mut(arg).parent(component);
+        self.schematic.pin_mut(out).parent(component);
+        Ok(())
+    }
+
+    fn make_assign(&mut self, assign: Assign) -> Result<()> {
+        let arg = self.make_wired_pin(assign.rhs)?;
+        let out = self.make_output_pin(assign.lhs)?;
+        let component = self.schematic.make_component(
+            "Assign".to_string(),
+            ComponentKind::Buffer(BufferComponent {
+                input: arg,
+                output: out,
+            }),
+        );
+        self.schematic.pin_mut(arg).parent(component);
+        self.schematic.pin_mut(out).parent(component);
+        Ok(())
+    }
+
+    fn make_exec(&mut self, exec: Exec) -> Result<()> {
+        let args = exec
+            .args
+            .iter()
+            .map(|arg| self.make_wired_pin(*arg))
+            .collect::<Result<Vec<_>>>()?;
+        let out = self.make_output_pin(exec.lhs)?;
+        let component = self.schematic.make_component(
+            exec.id.0.to_string(),
+            ComponentKind::Exec(ExecComponent {
+                name: exec.id.0.to_string(),
+                args: args.clone(),
+                output: out,
+            }),
+        );
+        args.iter()
+            .for_each(|f| self.schematic.pin_mut(*f).parent(component));
+        Ok(())
     }
 }

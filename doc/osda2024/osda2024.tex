@@ -16,7 +16,6 @@
 \begin{document}
 
 
-
 \title{RustHDL - Rust as a Hardware Description Language}
 
 \author{\IEEEauthorblockN{Samit Basu}
@@ -113,14 +112,38 @@ presents conclusions.
 
 \section{Background}\label{sec:related}
 
-There are many modern approaches to HDL in development (see \cite{b1} and the references therein for example).  
+Taxonomy of RustHDL per DelSozza et al:
+
+Style: Imperative,
+Embedded Language: Rust,
+Output Language: Verilog,
+Parameterization: Supported,
+Polymorphism: Not Supported,
+Simulation: Supported,
+Other relevant Features: Multi-clock, BlackBox IPs, 
+
+
+
+There are many modern approaches to HDL in development (see \cite{b1} and the references therein 
+for example).  
+
+This paper cannot hope to adequately cover all of the existing HDLs, and the author
+has direct design experience with only a small subset of the possible technologies.  
+
+A number of
+modern HDLs appear to focus on the use of a high level programming language to ``construct'' the
+design.  
+
+
+
 This section will focus exclusively on HDLs that feature the Rust programming language as a basis.
-From a high level programming languages can influence HDLs in one of two ways:
+From a high level programming languages can influence HDLs in one of several ways.  An exhaustive 
+taxonomy is beyond the scope of this paper, but the following are some rough categories::
 
 \begin{itemize}
   \item Through grammar similarity.  A number of HDLs use syntaxes that are inspired or similar to
   programming languages in order to make the transition from software to hardware design easier.
-  For example, Chisel \cite{b2} uses a Scala-like syntax, and Spade \cite{b1} uses a Rust-like syntax.
+  For example, Google's XLS\cite{b4} and Spade \cite{b1} uses a Rust-like syntax.
   The underlying implementation language is irrelevant (it happens to be Rust in the case of Spade).
   What is important is that the background experience and knowledge of the developer can be brought 
   to bear when understanding hardware descriptions if they use syntax and patterns from a broadly
@@ -129,7 +152,12 @@ From a high level programming languages can influence HDLs in one of two ways:
     very similar in nature to a ``synthesizable subset'') is carved out of the broader programming language
     through some means, and then used to generate hardware designs within the context of the overall
     programming language.  An example here is MyHDL \cite{b3}, which uses Python as the host language, and 
-    designs are expressed in a subset of Python that is synthesizable into Verilog.
+    designs are expressed in a subset of Python that is synthesizable into Verilog.  The analogy may
+    not be perfect, as MyHDL 
+  \item Through construction of the design using constructs directly expressed in the host language.
+  In this case, a hardware unit such as a full adder is described using data structures and 
+  functions in the host language, and then translated into hardware descriptions.  Examples
+
 \end{itemize}
 
 In the first category, the most prominent examples are XLS \cite{b4} and Spade \cite{b1} and Veryl \cite{b5}.  
@@ -171,7 +199,8 @@ in order to orient the reader.  The core concepts of RustHDL are:
 While no one aspect of the above may be novel, in combination they present a 
 novel and powerful way to describe hardware designs.  In the following subsections, each of these 
 elements will be briefly touched upon and explained.  More thorough documentation is available on the
-RustHDL website \cite{b6}.
+RustHDL website \cite{b6}.  The code for RustHDL is published on 
+GitHub.\footnote{ See \url{https://github.com/samitbasu/rust-hdl}.}
 
 \subsection{Circuit Elements}
 
@@ -217,7 +246,8 @@ pub struct Strobe<const N: usize> {
 Signals have both a direction and a type.  The type of the
 signal can be any Rust type that implements the \verb|Synth| trait, and can include custom user
 types and structs.  The \verb|derive| macro is used to generate the necessary boilerplate to make the 
-\verb|Strobe| struct implement the \verb|Block| and \verb|Logic| traits.  The details of these implementations are
+\verb|Strobe| struct implement the \verb|Block| trait, which is required of all structures
+that describe circuitry in RustHDL.  The details of these implementations are
 unimportant, and the user can simply use the \verb|Strobe| struct as if it were a normal Rust struct. 
 The D-type flip flop (DFF), which is critical to synchronous designs, is simply another circuit element that
 is included in the internal structure of the \verb|Strobe| struct.  The RustHDL DFF is parameterized (or 
@@ -268,7 +298,10 @@ The \verb|update| function follows a few rules that are laid out in the document
   \item Signals have two endpoints.  A \verb|.val()| endpoint that represents their current value, and a \verb|.next| 
     endpoint that represents the value that the circuit is driving them to.
   \item Several (but not all) Rust flow control primitives are allowed, including \verb|match|, and  \verb|if| \emph{statements} 
-  and a very limited \verb|for| loop.  
+  and a very limited \verb|for| loop.\footnote{Note that in Rust, \verb|match| and \verb|if| are expressions, and not statements. As 
+  such, they return a value and can be used in any context where a value is expected.  This is a frequent idiom in Rust code that
+  is difficult to support via direct translation to Verilog.  RustHDL does not support \verb|match| and \verb|if| expressions, 
+  only the more C-like statements.}  
   \item Local variables are allowed, but they must be declared in the architecture of the circuit, like any other element.
   These signals have a type of \verb|Local|, and are declared as \verb|my_sig: Signal<Local, T>|.  The types of any local 
   variables must be expressed as part of the struct declaration.  There is no type inference.
@@ -479,7 +512,7 @@ support packages to RustHDL for different FPGAs, or augment the capabilities of 
 feedback from users getting started with the framework, the following items became clear:
 
 \begin{itemize}
-  \item Engineers coming to a Rust-based HDL environment are likely to be familiar with the Rust programming language (RPL),
+  \item Engineers coming to a Rust-based HDL environment are likely to be familiar with RPL,
   and have grown accustomed to patterns and language features that are not supported by RustHDL.  For example, the 
   use of \verb|match| \emph{expressions}, and the use of complex types with their need to employ pattern matching to destructure 
   them are all idiomatic in Rust, but not supported by RustHDL.  This lack of support stems from the close 
@@ -494,7 +527,7 @@ feedback from users getting started with the framework, the following items beca
   \item Testing is hard to grasp.  Testbenches are written in Rust, but require an understanding of the underlying
   event-based simulator that is used.  This makes testbenches difficult to write, and makes it difficult to use those
   testbenches in other environments (e.g., Verilog).
-  \item Backends for multiple HDLs are needed including FIRTL, VHDL and others.  Some of those backends support
+  \item Backends for multiple HDLs are needed including FIRRTL, VHDL and others.  Some of those backends support
   rich type information to be carried on signals, and so would benefit from propagating that typed information through
   to the HDL instead of simply generating bit vectors.
 \end{itemize}
