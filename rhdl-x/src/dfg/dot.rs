@@ -273,24 +273,67 @@ fn write_enum(ndx: usize, name: &str, enm: &EnumComponent, w: impl Write) -> Res
     write_cnode(ndx, &input_ports, &label, &output_ports, w)
 }
 
+fn escape_string(s: &str) -> String {
+    s.replace('{', "\\{")
+        .replace('}', "\\}")
+        .replace('<', "\\<")
+        .replace('>', "\\>")
+        .replace('\n', "\\n")
+}
+
+fn elide_string(s: &str) -> String {
+    if s.len() < 15 {
+        return s.to_string();
+    }
+    s.chars()
+        .take(15)
+        .chain(std::iter::repeat('.').take(3))
+        .collect()
+}
+
+fn indent_string(s: &str) -> String {
+    // Each left { increases the indent by 2 spaces
+    // Each right } decreases the indent by 2 spaces
+    let mut indent = 0;
+    let mut result = String::new();
+    for c in s.chars() {
+        if c == '{' {
+            indent += 2;
+            result.push(c);
+            result.push('\n');
+            result.push_str(&" ".repeat(indent));
+        } else if c == '}' {
+            indent -= 2;
+            result.push('\n');
+            result.push_str(&" ".repeat(indent));
+            result.push(c);
+        } else if c == ',' {
+            result.push(c);
+            result.push('\n');
+            result.push_str(&" ".repeat(indent));
+        } else {
+            result.push(c);
+        }
+    }
+    result
+}
+
 fn write_constant(
     ndx: usize,
     name: &str,
     constant: &ConstantComponent,
-    w: impl Write,
+    mut w: impl Write,
 ) -> Result<()> {
     let output_ports = format!("{{<{}> Y}}", constant.output);
-    let label = format!(
-        "{}\nconstant",
-        constant
-            .value
-            .to_string()
-            .replace('{', "\\{")
-            .replace('}', "\\}")
-            .replace('<', "\\<")
-            .replace('>', "\\>")
-    );
-    write_cnode(ndx, "", &label, &output_ports, w)
+    let value = escape_string(&elide_string(&constant.value.to_string()));
+    let tooltip = escape_string(&indent_string(&constant.value.to_string()));
+    let label = format!("{}\nconstant", value);
+    // Escape the backslashes
+    let label = escape_string(&label);
+    writeln!(
+        w,
+        "c{ndx} [ shape=record, label=\"{{  | {label} | {output_ports} }}\", tooltip=\"{tooltip}\"]",
+    )
 }
 
 fn write_cast(ndx: usize, name: &str, cast: &CastComponent, w: impl Write) -> Result<()> {
