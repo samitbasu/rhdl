@@ -27,7 +27,6 @@ use super::{components::Component, schematic::Schematic};
 pub fn write_dot(schematic: &Schematic, mut w: impl Write) -> Result<()> {
     writeln!(w, "digraph schematic {{")?;
     writeln!(w, "rankdir=\"LR\"")?;
-    writeln!(w, "splines=ortho")?;
     writeln!(w, "remincross=true;")?;
     // Allocate the input ports for the schematic
     schematic
@@ -180,9 +179,9 @@ fn write_structure(
     let mut input_ports = structure
         .fields
         .iter()
-        .map(|member| format!("| <{}> {}", member.pin, member.member.to_string()))
+        .map(|member| format!("<{}> {}", member.pin, member.member.to_string()))
         .collect::<Vec<String>>()
-        .join("");
+        .join("|");
     if let Some(rest) = structure.rest {
         input_ports.push_str(&format!("| <{}> ...", rest));
     }
@@ -196,12 +195,18 @@ fn write_tuple(ndx: usize, name: &str, tuple: &TupleComponent, w: impl Write) ->
         .fields
         .iter()
         .enumerate()
-        .map(|(ndx, pin)| format!("| <{}> .{ndx}", pin))
+        .map(|(ndx, pin)| format!("<{}> .{ndx}", pin))
         .collect::<Vec<String>>()
-        .join("");
+        .join("|");
     let output_ports = format!("{{<{}> Y}}", tuple.output);
     let label = format!("{name}\ntuple");
-    write_cnode(ndx, &input_ports, &label, &output_ports, w)
+    write_cnode(
+        ndx,
+        &format!("{{ {input_ports} }}"),
+        &label,
+        &output_ports,
+        w,
+    )
 }
 
 fn write_case(ndx: usize, name: &str, case: &CaseComponent, w: impl Write) -> Result<()> {
@@ -275,7 +280,16 @@ fn write_constant(
     w: impl Write,
 ) -> Result<()> {
     let output_ports = format!("{{<{}> Y}}", constant.output);
-    let label = format!("{name}\nconstant");
+    let label = format!(
+        "{}\nconstant",
+        constant
+            .value
+            .to_string()
+            .replace('{', "\\{")
+            .replace('}', "\\}")
+            .replace('<', "\\<")
+            .replace('>', "\\>")
+    );
     write_cnode(ndx, "", &label, &output_ports, w)
 }
 

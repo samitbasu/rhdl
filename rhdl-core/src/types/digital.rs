@@ -190,6 +190,21 @@ impl Notable for i32 {
     }
 }
 
+impl Digital for i8 {
+    fn static_kind() -> Kind {
+        Kind::Signed(8)
+    }
+    fn bin(self) -> Vec<bool> {
+        SignedBits::<8>::from(self as i128).as_unsigned().to_bools()
+    }
+}
+
+impl Notable for i8 {
+    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
+        writer.write_signed(key, *self as i128, 8);
+    }
+}
+
 impl Digital for i64 {
     fn static_kind() -> Kind {
         Kind::Signed(64)

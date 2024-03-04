@@ -8,11 +8,18 @@ use crate::dyn_bit_manip::{
     bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
 };
 use crate::util::binary_string;
+use crate::util::binary_string_nibbles;
 use crate::Digital;
 use crate::{
     path::{bit_range, Path},
     Kind,
 };
+
+use super::kind::Array;
+use super::kind::Enum;
+use super::kind::Field;
+use super::kind::Struct;
+use super::kind::Tuple;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Eq, Hash)]
 pub struct TypedBits {
@@ -452,13 +459,147 @@ impl std::cmp::PartialOrd for TypedBits {
 
 impl std::fmt::Display for TypedBits {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}b{:?}", binary_string(&self.bits), self.kind)
+        write_kind_with_bits(&self.kind, &self.bits, f)
     }
+}
+
+fn write_kind_with_bits(
+    kind: &Kind,
+    bits: &[bool],
+    f: &mut std::fmt::Formatter<'_>,
+) -> std::fmt::Result {
+    match kind {
+        Kind::Array(array) => write_array(array, bits, f),
+        Kind::Tuple(tuple) => write_tuple(tuple, bits, f),
+        Kind::Struct(structure) => write_struct(structure, bits, f),
+        Kind::Enum(enumerate) => write_enumerate(enumerate, bits, f),
+        Kind::Bits(_) => write_bits(bits, f),
+        Kind::Signed(_) => write_signed(bits, f),
+        Kind::Empty => write!(f, "()"),
+    }
+}
+
+fn interpret_bits_as_i64(bits: &[bool], signed: bool) -> i64 {
+    // If the value is signed, then we sign extend it to 128 bits
+    let value = if signed {
+        let sign = bits.last().copied().unwrap_or_default();
+        repeat(&sign)
+            .take(128 - bits.len())
+            .chain(bits.iter().rev())
+            .fold(0_i128, |acc, b| (acc << 1) | (*b as i128))
+    } else {
+        bits.iter()
+            .rev()
+            .fold(0_u128, |acc, b| (acc << 1) | (*b as u128)) as i128
+    };
+    value as i64
+}
+
+fn write_enumerate(
+    enumerate: &Enum,
+    bits: &[bool],
+    f: &mut std::fmt::Formatter<'_>,
+) -> std::fmt::Result {
+    let root_kind = Kind::Enum(enumerate.clone());
+    let (range, kind) = bit_range(root_kind.clone(), &Path::default().discriminant())
+        .map_err(|_| std::fmt::Error)?;
+    let discriminant_value = interpret_bits_as_i64(&bits[range], kind.is_signed());
+    // Get the variant for this discriminant
+    let variant = enumerate
+        .variants
+        .iter()
+        .find(|v| v.discriminant == discriminant_value)
+        .ok_or(std::fmt::Error)?;
+    write!(f, "{}::{}", enumerate.name, variant.name)?;
+    let (payload_range, payload_kind) = bit_range(
+        root_kind,
+        &Path::default().payload_by_value(discriminant_value),
+    )
+    .map_err(|_| std::fmt::Error)?;
+    let payload = &bits[payload_range];
+    write_kind_with_bits(&payload_kind, payload, f)
+}
+
+fn write_struct(
+    structure: &Struct,
+    bits: &[bool],
+    f: &mut std::fmt::Formatter<'_>,
+) -> std::fmt::Result {
+    write!(f, "{} {{", structure.name)?;
+    let root_kind = Kind::Struct(structure.clone());
+    for (ndx, field) in structure.fields.iter().enumerate() {
+        let (bit_range, sub_kind) =
+            bit_range(root_kind.clone(), &Path::default().field(&field.name))
+                .map_err(|_| std::fmt::Error)?;
+        let slice = &bits[bit_range];
+        write!(f, "{}: ", field.name)?;
+        write_kind_with_bits(&sub_kind, slice, f)?;
+        if ndx < structure.fields.len() - 1 {
+            write!(f, ", ")?;
+        }
+    }
+    write!(f, "}}")
+}
+
+fn write_array(array: &Array, bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "[")?;
+    let root_kind = Kind::Array(array.clone());
+    for ndx in 0..(array.size) {
+        let (bit_range, sub_kind) = bit_range(root_kind.clone(), &Path::default().index(ndx))
+            .map_err(|_| std::fmt::Error)?;
+        let slice = &bits[bit_range];
+        write_kind_with_bits(&sub_kind, slice, f)?;
+        if ndx < array.size - 1 {
+            write!(f, ", ")?;
+        }
+    }
+    write!(f, "]")
+}
+
+fn write_bits(bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    if bits.len() == 1 {
+        return write!(f, "{}", if bits[0] { "true" } else { "false" });
+    }
+    // We know that the bits array will fit into a u128.
+    let val = bits
+        .iter()
+        .rev()
+        .fold(0_u128, |acc, b| (acc << 1) | (*b as u128));
+    write!(f, "{:x}_b{}", val, bits.len())
+}
+
+fn write_signed(bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    if bits.len() == 1 {
+        return write!(f, "{}", if bits[0] { "-1" } else { "0" });
+    }
+    // We know that the bits array will fit into a i128.
+    let bit_len = bits.len();
+    let sign_bit = bits.last().cloned().unwrap_or_default();
+    let val = repeat(&sign_bit)
+        .take(128 - bit_len)
+        .chain(bits.iter().rev())
+        .fold(0_i128, |acc, b| (acc << 1_i128) | (*b as i128));
+    write!(f, "{}_s{}", val, bits.len())
+}
+
+fn write_tuple(tuple: &Tuple, bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "(")?;
+    let root_kind = Kind::Tuple(tuple.clone());
+    for ndx in 0..(tuple.elements.len()) {
+        let (bit_range, sub_kind) = bit_range(root_kind.clone(), &Path::default().index(ndx))
+            .map_err(|_| std::fmt::Error)?;
+        let slice = &bits[bit_range];
+        write_kind_with_bits(&sub_kind, slice, f)?;
+        if ndx < tuple.elements.len() - 1 {
+            write!(f, ", ")?;
+        }
+    }
+    write!(f, ")")
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::Digital;
+    use crate::{Digital, DiscriminantAlignment, DiscriminantType, Kind, Notable, TypedBits};
 
     #[test]
     fn test_typed_bits_add() {
@@ -470,5 +611,183 @@ mod tests {
         assert!(b >= a);
         let c = (a + b).unwrap();
         assert_eq!(c, 238_u8.typed_bits());
+    }
+
+    #[test]
+    fn test_display_typed_bits() {
+        #[derive(Debug, Clone, PartialEq, Copy)]
+        enum Baz {
+            A(Bar),
+            B { foo: Foo },
+            C(u8),
+        }
+
+        impl Default for Baz {
+            fn default() -> Self {
+                Self::A(Default::default())
+            }
+        }
+
+        impl Notable for Baz {
+            fn note(&self, key: impl crate::NoteKey, writer: impl crate::NoteWriter) {
+                todo!()
+            }
+        }
+
+        impl Digital for Baz {
+            fn static_kind() -> Kind {
+                Kind::make_enum(
+                    concat!(module_path!(), "::", stringify!(Baz)),
+                    vec![
+                        Kind::make_variant(
+                            stringify!(A),
+                            Kind::make_tuple(vec![<Bar as Digital>::static_kind()]),
+                            0i64,
+                        ),
+                        Kind::make_variant(
+                            stringify!(B),
+                            Kind::make_struct(
+                                stringify!(_Baz__B),
+                                vec![Kind::make_field(
+                                    stringify!(foo),
+                                    <Foo as Digital>::static_kind(),
+                                )],
+                            ),
+                            1i64,
+                        ),
+                        Kind::make_variant(
+                            stringify!(C),
+                            Kind::make_tuple(vec![<u8 as Digital>::static_kind()]),
+                            2i64,
+                        ),
+                    ],
+                    Kind::make_discriminant_layout(
+                        2usize,
+                        DiscriminantAlignment::Msb,
+                        DiscriminantType::Unsigned,
+                    ),
+                )
+            }
+            fn bin(self) -> Vec<bool> {
+                self.kind().pad(match self {
+                    Self::A(_0) => {
+                        let mut v = rhdl_bits::bits::<2usize>(0i64 as u128).to_bools();
+                        v.extend(_0.bin());
+                        v
+                    }
+                    Self::B { foo } => {
+                        let mut v = rhdl_bits::bits::<2usize>(1i64 as u128).to_bools();
+                        v.extend(foo.bin());
+                        v
+                    }
+                    Self::C(_0) => {
+                        let mut v = rhdl_bits::bits::<2usize>(2i64 as u128).to_bools();
+                        v.extend(_0.bin());
+                        v
+                    }
+                })
+            }
+            fn discriminant(self) -> TypedBits {
+                match self {
+                    Self::A(_0) => rhdl_bits::bits::<2usize>(0i64 as u128).typed_bits(),
+                    Self::B { foo } => rhdl_bits::bits::<2usize>(1i64 as u128).typed_bits(),
+                    Self::C(_0) => rhdl_bits::bits::<2usize>(2i64 as u128).typed_bits(),
+                }
+            }
+            fn variant_kind(self) -> Kind {
+                match self {
+                    Self::A(_0) => Kind::make_tuple(vec![<Bar as Digital>::static_kind()]),
+                    Self::B { foo } => Kind::make_struct(
+                        stringify!(_Baz__B),
+                        vec![Kind::make_field(
+                            stringify!(foo),
+                            <Foo as Digital>::static_kind(),
+                        )],
+                    ),
+                    Self::C(_0) => Kind::make_tuple(vec![<u8 as Digital>::static_kind()]),
+                }
+            }
+        }
+
+        #[derive(Debug, Clone, PartialEq, Copy, Default)]
+        struct Bar(u8, u8, bool);
+
+        impl Notable for Bar {
+            fn note(&self, key: impl crate::NoteKey, writer: impl crate::NoteWriter) {
+                todo!()
+            }
+        }
+
+        impl Digital for Bar {
+            fn static_kind() -> Kind {
+                Kind::make_struct(
+                    "Bar",
+                    vec![
+                        Kind::make_field("0", Kind::Bits(8)),
+                        Kind::make_field("1", Kind::Bits(8)),
+                        Kind::make_field("2", Kind::Bits(1)),
+                    ],
+                )
+            }
+            fn bin(self) -> Vec<bool> {
+                [self.0.bin(), self.1.bin(), self.2.bin()].concat()
+            }
+        }
+
+        #[derive(Debug, Clone, PartialEq, Copy, Default)]
+        struct Foo {
+            a: u8,
+            b: u8,
+            c: bool,
+        }
+        impl Notable for Foo {
+            fn note(&self, key: impl crate::NoteKey, writer: impl crate::NoteWriter) {
+                todo!()
+            }
+        }
+
+        impl Digital for Foo {
+            fn static_kind() -> Kind {
+                Kind::make_struct(
+                    "Foo",
+                    vec![
+                        Kind::make_field("a", Kind::Bits(8)),
+                        Kind::make_field("b", Kind::Bits(8)),
+                        Kind::make_field("c", Kind::Bits(1)),
+                    ],
+                )
+            }
+            fn bin(self) -> Vec<bool> {
+                [self.a.bin(), self.b.bin(), self.c.bin()].concat()
+            }
+        }
+
+        let a = 0x47_u8.typed_bits();
+        assert_eq!(format!("{}", a), "47_b8");
+        let c = (0x12_u8, 0x80_u8, false).typed_bits();
+        assert_eq!(format!("{}", c), "(12_b8, 80_b8, false)");
+        let b = (-0x53_i32).typed_bits();
+        assert_eq!(format!("{}", b), "-83_s32");
+        let d = [1_u8, 3_u8, 4_u8].typed_bits();
+        assert_eq!(format!("{}", d), "[1_b8, 3_b8, 4_b8]");
+        let e = Foo {
+            a: 0x47,
+            b: 0x80,
+            c: true,
+        }
+        .typed_bits();
+        assert_eq!(format!("{}", e), "Foo {a: 47_b8, b: 80_b8, c: true}");
+        let e = Bar(0x47, 0x80, true).typed_bits();
+        assert_eq!(format!("{}", e), "Bar {0: 47_b8, 1: 80_b8, 2: true}");
+        let d = [Bar(0x47, 0x80, true), Bar(0x42, 0x13, false)].typed_bits();
+        assert_eq!(
+            format!("{}", d),
+            "[Bar {0: 47_b8, 1: 80_b8, 2: true}, Bar {0: 42_b8, 1: 13_b8, 2: false}]"
+        );
+        let h = Baz::A(Bar(0x47, 0x80, true)).typed_bits();
+        assert_eq!(
+            format!("{}", h),
+            "rhdl_core::types::typed_bits::tests::Baz::A(Bar {0: 47_b8, 1: 80_b8, 2: true})"
+        );
     }
 }

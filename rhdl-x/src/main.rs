@@ -52,6 +52,29 @@ mod dfg;
 mod trace;
 mod visit;
 
+#[derive(Debug, Clone, PartialEq, Copy, Default, Digital)]
+struct Bar(u8, u8, bool);
+
+#[derive(Debug, Clone, PartialEq, Copy, Default, Digital)]
+struct Foo {
+    a: u8,
+    b: u8,
+    c: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Copy, Digital)]
+enum Baz {
+    A(Bar),
+    B { foo: Foo },
+    C(u8),
+}
+
+impl Default for Baz {
+    fn default() -> Self {
+        Baz::A(Bar::default())
+    }
+}
+
 #[test]
 fn test_dff() {
     let clock = clock::clock();
