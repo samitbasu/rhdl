@@ -57,7 +57,11 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
             .cloned()
             .ok_or(anyhow!("slot {:?} not found", slot))
     };
-    let eq_kinds = |a, b| -> Result<()> {
+    let eq_kinds = |a: Kind, b: Kind| -> Result<()> {
+        // Special case Empty == Tuple([])
+        if a.is_empty() && b.is_empty() {
+            return Ok(());
+        }
         if a == b {
             Ok(())
         } else {

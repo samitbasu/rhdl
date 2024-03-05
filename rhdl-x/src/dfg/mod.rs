@@ -342,6 +342,7 @@ impl<'a> SchematicBuilder<'a> {
         let component = self.schematic.make_component(
             "Struct".to_string(),
             ComponentKind::Struct(StructComponent {
+                kind: structure.template.kind,
                 fields: fields.clone(),
                 output: out,
                 rest,

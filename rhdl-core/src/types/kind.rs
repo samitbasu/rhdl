@@ -264,7 +264,11 @@ impl Kind {
     }
 
     pub fn is_empty(&self) -> bool {
-        matches!(self, Kind::Empty)
+        match self {
+            Kind::Empty => true,
+            Kind::Tuple(t) => t.elements.is_empty(),
+            _ => false,
+        }
     }
 
     pub fn is_composite(&self) -> bool {
