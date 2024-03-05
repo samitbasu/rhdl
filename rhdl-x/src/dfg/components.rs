@@ -1,7 +1,7 @@
 use rhdl_core::{
     path::Path,
     rhif::spec::{AluBinary, AluUnary, CaseArgument, Member},
-    TypedBits,
+    Kind, TypedBits,
 };
 
 use super::schematic::PinIx;
@@ -67,6 +67,7 @@ pub struct FieldPin {
 
 #[derive(Clone, Debug)]
 pub struct StructComponent {
+    pub kind: Kind,
     pub fields: Vec<FieldPin>,
     pub output: PinIx,
     pub rest: Option<PinIx>,

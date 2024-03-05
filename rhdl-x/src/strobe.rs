@@ -68,6 +68,10 @@ pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
     d.counter.data = counter_next;
     note("out", strobe);
     note("d", d);
+    let tmp = StrobeD::<{ N }> {
+        threshold: (),
+        counter: d.counter,
+    };
     (strobe, d)
 }
 
