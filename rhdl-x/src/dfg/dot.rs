@@ -36,7 +36,7 @@ pub fn write_dot(schematic: &Schematic, mut w: impl Write) -> Result<()> {
         .try_for_each(|(ix, pin)| {
             writeln!(
                 w,
-                "n{ix} [shape=octagon, label=\"{name}\", color=\"black\"];",
+                "a{ix} [shape=octagon, label=\"{name}\", color=\"black\"];",
                 name = schematic.pin(*pin).name
             )
         })?;
@@ -48,7 +48,7 @@ pub fn write_dot(schematic: &Schematic, mut w: impl Write) -> Result<()> {
         .try_for_each(|(ix, pin)| {
             writeln!(
                 w,
-                "n{ix} [shape=octagon, label=\"{name}\", color=\"black\"];",
+                "o{ix} [shape=octagon, label=\"{name}\", color=\"black\"];",
                 name = schematic.pin(*pin).name
             )
         })?;
@@ -67,6 +67,36 @@ pub fn write_dot(schematic: &Schematic, mut w: impl Write) -> Result<()> {
             src.parent, wire.source, dest.parent, wire.dest
         )
     })?;
+    // Add wires from the input schematic ports to the input buffer pins
+    schematic
+        .inputs
+        .iter()
+        .enumerate()
+        .try_for_each(|(ix, pin)| {
+            let pin_data = schematic.pin(*pin);
+            writeln!(
+                w,
+                "a{ix} -> {parent}:{pin};",
+                ix = ix,
+                parent = pin_data.parent,
+                pin = pin
+            )
+        })?;
+    // Add wires from the output schematic ports to the output buffer pins
+    schematic
+        .outputs
+        .iter()
+        .enumerate()
+        .try_for_each(|(ix, pin)| {
+            let pin_data = schematic.pin(*pin);
+            writeln!(
+                w,
+                "{parent}:{pin} -> o{ix};",
+                ix = ix,
+                parent = pin_data.parent,
+                pin = pin
+            )
+        })?;
     writeln!(w, "}}")
 }
 
@@ -238,12 +268,18 @@ fn write_exec(ndx: usize, name: &str, exec: &ExecComponent, w: impl Write) -> Re
         .args
         .iter()
         .enumerate()
-        .map(|(pin, ndx)| format!("| <{}> A{}", pin, ndx))
+        .map(|(ndx, pin)| format!("<{}> {}", pin, ndx))
         .collect::<Vec<String>>()
-        .join("");
+        .join("|");
     let output_ports = format!("{{<{}> Y}}", exec.output);
     let label = format!("{name}\nexec");
-    write_cnode(ndx, &input_ports, &label, &output_ports, w)
+    write_cnode(
+        ndx,
+        &format!("{{ {input_ports} }}"),
+        &label,
+        &output_ports,
+        w,
+    )
 }
 
 fn write_array(ndx: usize, array: &ArrayComponent, w: impl Write) -> Result<()> {

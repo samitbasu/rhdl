@@ -53,12 +53,22 @@ impl<const N: usize> CircuitIO for Strobe<N> {
 }
 
 #[kernel]
+pub fn add_enabled<const N: usize>(enable: bool, count: Bits<N>) -> Bits<N> {
+    if enable {
+        count + 1
+    } else {
+        count
+    }
+}
+
+#[kernel]
 pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
     let mut d = StrobeD::<N>::default();
     note("i", i);
     note("q", q);
     d.counter.clock = i.clock;
-    let counter_next = if i.enable { q.counter + 1 } else { q.counter };
+    //    let counter_next = if i.enable { q.counter + 1 } else { q.counter };
+    let counter_next = add_enabled::<{ N }>(i.enable, q.counter);
     let strobe = i.enable & (q.counter == q.threshold);
     let counter_next = if strobe {
         bits::<{ N }>(1)
