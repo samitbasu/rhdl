@@ -4,7 +4,7 @@ use rhdl_core::{
     Kind, TypedBits,
 };
 
-use super::schematic::PinIx;
+use super::schematic::{PinIx, Schematic};
 
 #[derive(Clone, Debug)]
 pub struct Component {
@@ -91,6 +91,7 @@ pub struct ExecComponent {
     pub name: String,
     pub args: Vec<PinIx>,
     pub output: PinIx,
+    pub sub_schematic: Option<Schematic>,
 }
 
 #[derive(Clone, Debug)]
