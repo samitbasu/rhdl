@@ -499,12 +499,21 @@ impl<'a> SchematicBuilder<'a> {
             .map(|arg| self.make_wired_pin(*arg))
             .collect::<Result<Vec<_>>>()?;
         let out = self.make_output_pin(exec.lhs)?;
+        let name = &self.object.externals[exec.id.0].path;
+        let code = &self.object.externals[exec.id.0].code;
+        let sub_schematic = match code {
+            ExternalFunctionCode::Kernel(kernel) => {
+                build_schematic(self.design, kernel.inner().fn_id).ok()
+            }
+            _ => None,
+        };
         let component = self.schematic.make_component(
             exec.id.0.to_string(),
             ComponentKind::Exec(ExecComponent {
-                name: exec.id.0.to_string(),
+                name: name.clone(),
                 args: args.clone(),
                 output: out,
+                sub_schematic,
             }),
         );
         args.iter()
