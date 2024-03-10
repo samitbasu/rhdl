@@ -8,18 +8,16 @@ use rhdl_core::diagnostic::dfg::Component;
 use rhdl_core::diagnostic::dfg::ComponentKind;
 use rhdl_core::note;
 use rhdl_core::path::Path;
+use rhdl_core::Circuit;
 use rhdl_core::CircuitIO;
 use rhdl_core::Digital;
 use rhdl_core::KernelFnKind;
 use rhdl_core::Tristate;
 use rhdl_macro::{kernel, Digital};
 
-use crate::circuit::root_descriptor;
-use crate::circuit::root_hdl;
-use crate::circuit::BufZ;
 use crate::dff::DFFI;
 use crate::trace::trace;
-use crate::{circuit::Circuit, clock::Clock, constant::Constant, dff::DFF};
+use crate::{clock::Clock, constant::Constant, dff::DFF};
 use rhdl_macro::Circuit;
 
 // Build a strobe
@@ -48,6 +46,48 @@ pub struct StrobeI {
 impl<const N: usize> CircuitIO for Strobe<N> {
     type I = StrobeI;
     type O = bool;
+}
+
+#[kernel]
+fn child_one(i: b4) -> b4 {
+    i
+}
+
+#[kernel]
+fn child_two(i: b8) -> b8 {
+    i
+}
+
+#[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
+pub struct DemoQ {
+    pub child_one: b4,
+    pub child_two: b8,
+}
+
+#[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
+pub struct DemoD {
+    pub child_one: b4,
+    pub child_two: b8,
+}
+
+#[kernel]
+fn update_me(i: b1, q: DemoQ) -> (b1, DemoD) {
+    (
+        i,
+        DemoD {
+            child_one: child_one(q.child_one),
+            child_two: child_two(q.child_two),
+        },
+    )
+}
+
+#[kernel]
+fn circuit(i: b1) -> b1 {
+    let mut q = DemoQ::default();
+    let (o, d) = update_me(i, q);
+    q.child_one = child_one(d.child_one);
+    q.child_two = child_two(d.child_two);
+    o
 }
 
 #[kernel]
@@ -84,6 +124,20 @@ pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
     note("out", strobe);
     note("d", d);
     (strobe, d)
+}
+
+#[test]
+fn test_circuit_schematic() {
+    use rhdl_core::DigitalFn;
+    let Some(KernelFnKind::Kernel(kernel)) = circuit::kernel_fn() else {
+        panic!("No kernel function");
+    };
+    let module = compile_design(kernel).unwrap();
+    let schematic = rhdl_core::schematic::builder::build_schematic(&module, module.top)
+        .unwrap()
+        .inlined();
+    let mut dot = std::fs::File::create("circuit_schematic.dot").unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, &mut dot).unwrap();
 }
 
 #[test]
@@ -153,6 +207,20 @@ fn test_schematic_inlined() {
             eprintln!("component {} path {:?}", ndx, c.path);
         });
     let mut dot = std::fs::File::create("strobe_schematic.dot").unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, &mut dot).unwrap();
+}
+
+#[test]
+fn test_strobe_schematic() {
+    let strobe = Strobe::<8>::new(bits::<8>(5));
+    let descriptor = Strobe::<8>::descriptor(&strobe);
+    let schematic = descriptor.schematic().unwrap();
+    eprintln!("schematic is {:?}", schematic);
+
+    let mut dot = std::fs::File::create("strobe.dot").unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, &mut dot).unwrap();
+    let schematic = schematic.inlined();
+    let mut dot = std::fs::File::create("strobe_inlined.dot").unwrap();
     rhdl_core::schematic::dot::write_dot(&schematic, &mut dot).unwrap();
 }
 

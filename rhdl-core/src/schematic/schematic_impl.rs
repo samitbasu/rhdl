@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::Kind;
 
-use super::components::{Component, ComponentKind};
+use super::components::{BufferComponent, Component, ComponentKind};
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
 pub struct PinIx(usize);
@@ -101,6 +101,14 @@ impl Schematic {
             parent: ORPHAN,
         });
         ix
+    }
+    pub fn make_buffer(&mut self, kind: Kind) -> (PinIx, PinIx) {
+        let input = self.make_pin(kind.clone(), "in".into());
+        let output = self.make_pin(kind, "out".into());
+        let buf = self.make_component(ComponentKind::Buffer(BufferComponent { input, output }));
+        self.pin_mut(input).parent(buf);
+        self.pin_mut(output).parent(buf);
+        (input, output)
     }
     pub fn make_component(&mut self, kind: ComponentKind) -> ComponentIx {
         let ix = ComponentIx(self.components.len());

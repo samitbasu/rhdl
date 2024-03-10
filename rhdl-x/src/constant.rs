@@ -3,14 +3,16 @@ use anyhow::Result;
 use rhdl_core::diagnostic::dfg::Component;
 use rhdl_core::diagnostic::dfg::ComponentKind;
 use rhdl_core::diagnostic::dfg::DFG;
+use rhdl_core::root_descriptor;
+use rhdl_core::Circuit;
+use rhdl_core::CircuitDescriptor;
 use rhdl_core::CircuitIO;
+use rhdl_core::HDLKind;
 use rhdl_core::Kind;
 use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
 use rhdl_macro::Circuit;
 
-use crate::circuit::root_descriptor;
-use crate::circuit::HDLDescriptor;
-use crate::circuit::{Circuit, CircuitDescriptor};
+use rhdl_core::circuit::hdl_descriptor::HDLDescriptor;
 
 // Constant block
 #[derive(Clone)]
@@ -70,8 +72,8 @@ impl<T: Digital> Circuit for Constant<T> {
         desc
     }
 
-    fn as_hdl(&self, kind: crate::circuit::HDLKind) -> anyhow::Result<HDLDescriptor> {
-        ensure!(kind == crate::circuit::HDLKind::Verilog);
+    fn as_hdl(&self, kind: HDLKind) -> anyhow::Result<HDLDescriptor> {
+        ensure!(kind == HDLKind::Verilog);
         Ok(self.as_verilog())
     }
 }

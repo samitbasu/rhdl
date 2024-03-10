@@ -6,15 +6,18 @@ use rhdl_core::diagnostic::dfg::ComponentKind;
 use rhdl_core::diagnostic::dfg::Link;
 use rhdl_core::diagnostic::dfg::DFG;
 use rhdl_core::note;
+use rhdl_core::root_descriptor;
+use rhdl_core::Circuit;
+use rhdl_core::CircuitDescriptor;
+use rhdl_core::HDLDescriptor;
+use rhdl_core::HDLKind;
 use rhdl_core::Kind;
 use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
 use rhdl_macro::Digital;
 
-use crate::circuit::root_descriptor;
-use crate::circuit::BufZ;
-use crate::circuit::HDLDescriptor;
-use crate::{circuit::Circuit, clock::Clock};
 use rhdl_core::CircuitIO;
+
+use crate::clock::Clock;
 
 #[derive(Default, Clone)]
 pub struct DFF<T: Digital> {
@@ -75,12 +78,12 @@ impl<T: Digital> Circuit for DFF<T> {
         "DFF"
     }
 
-    fn as_hdl(&self, kind: crate::circuit::HDLKind) -> Result<HDLDescriptor> {
-        ensure!(kind == crate::circuit::HDLKind::Verilog);
+    fn as_hdl(&self, kind: HDLKind) -> Result<HDLDescriptor> {
+        ensure!(kind == HDLKind::Verilog);
         Ok(self.as_verilog())
     }
 
-    fn descriptor(&self) -> crate::circuit::CircuitDescriptor {
+    fn descriptor(&self) -> CircuitDescriptor {
         let mut desc = root_descriptor(self);
         let mut dfg = DFG::default();
         // We want to add a DFF node
