@@ -29,7 +29,7 @@ use crate::rhif::spec::Struct;
 use crate::rhif::spec::Tuple;
 use crate::rhif::spec::Unary;
 use crate::types::kind::Field;
-use crate::Design;
+use crate::Module;
 use crate::{
     rhif::{
         object::SourceLocation,
@@ -188,13 +188,13 @@ macro_rules! digital_struct {
 
 #[derive(Debug)]
 pub struct ObjectAnalyzer<'a> {
-    design: &'a Design,
+    design: &'a Module,
     object: &'a Object,
     graph: DFGType,
     slot_map: HashMap<Slot, NodeIndex<u32>>,
 }
 
-pub fn build_dfg(design: &Design, function: FunctionId) -> Result<DFG> {
+pub fn build_dfg(design: &Module, function: FunctionId) -> Result<DFG> {
     let object = design.objects.get(&function).ok_or(anyhow!(
         "Function {:?} not found in design {:?}",
         function,
@@ -205,7 +205,7 @@ pub fn build_dfg(design: &Design, function: FunctionId) -> Result<DFG> {
 }
 
 impl<'a> ObjectAnalyzer<'a> {
-    pub fn new(design: &'a Design, object: &'a Object) -> Self {
+    pub fn new(design: &'a Module, object: &'a Object) -> Self {
         Self {
             design,
             object,

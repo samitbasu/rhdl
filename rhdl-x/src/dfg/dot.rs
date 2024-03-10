@@ -1,21 +1,20 @@
-use std::array;
+use std::collections::HashSet;
 use std::io::Result;
 use std::io::Write;
-
-use rhdl_core::rhif::spec::Case;
 
 use crate::dfg::components::ComponentKind;
 
 use super::components::ArrayComponent;
 use super::components::BinaryComponent;
+use super::components::BlackBoxComponent;
 use super::components::BufferComponent;
 use super::components::CaseComponent;
 use super::components::CastComponent;
 use super::components::ConstantComponent;
 use super::components::DiscriminantComponent;
 use super::components::EnumComponent;
-use super::components::ExecComponent;
 use super::components::IndexComponent;
+use super::components::KernelComponent;
 use super::components::RepeatComponent;
 use super::components::SelectComponent;
 use super::components::SpliceComponent;
@@ -25,22 +24,17 @@ use super::components::UnaryComponent;
 use super::{components::Component, schematic::Schematic};
 
 struct DotWriter<'a, 'b, W: Write> {
-    w: W,
+    w: &'b mut W,
     schematic: &'a Schematic,
-    base_offset: usize,
-    next_free: &'b mut usize,
 }
 
 pub fn write_dot(schematic: &Schematic, mut w: impl Write) -> Result<()> {
     writeln!(w, "digraph schematic {{")?;
     writeln!(w, "rankdir=\"LR\"")?;
     writeln!(w, "remincross=true;")?;
-    let mut next_free = schematic.components.len();
     let mut dot = DotWriter {
         w: &mut w,
         schematic,
-        base_offset: 0,
-        next_free: &mut next_free,
     };
     dot.write_schematic()?;
     writeln!(w, "}}")
@@ -57,36 +51,37 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
                 writeln!(
                     self.w,
                     "a{ix} [shape=octagon, label=\"{name}\", color=\"black\"];",
+                    ix = ix,
                     name = self.schematic.pin(*pin).name
                 )
             })?;
         // Allocate the output ports for the schematic
-        self.schematic
-            .outputs
-            .iter()
-            .enumerate()
-            .try_for_each(|(ix, pin)| {
-                writeln!(
-                    self.w,
-                    "o{ix} [shape=octagon, label=\"{name}\", color=\"black\"];",
-                    name = self.schematic.pin(*pin).name
-                )
-            })?;
+        writeln!(
+            self.w,
+            "o{ix} [shape=octagon, label=\"{name}\", color=\"black\"];",
+            ix = 0,
+            name = self.schematic.pin(self.schematic.output).name
+        )?;
         // Create nodes for each component in the schematic
-
-        for (ndx, component) in self.schematic.components.iter().enumerate() {
-            self.write_component(ndx + self.base_offset, component)?;
-        }
+        self.write_components(&[])?;
 
         self.schematic.wires.iter().try_for_each(|wire| {
             let src = self.schematic.pin(wire.source);
+            let src_component: usize = src.parent.into();
             let dest = self.schematic.pin(wire.dest);
+            let dest_component: usize = dest.parent.into();
+            if self.schematic.components[src_component].is_noop()
+                || self.schematic.components[dest_component].is_noop()
+            {
+                return Ok(());
+            }
             writeln!(
                 self.w,
-                "{}:{}:e -> {}:{}:w;",
-                src.parent, wire.source, dest.parent, wire.dest
+                "c{}:{}:e -> c{}:{}:w;",
+                src_component, wire.source, dest_component, wire.dest
             )
         })?;
+
         // Add wires from the input schematic ports to the input buffer pins
         self.schematic
             .inputs
@@ -94,51 +89,47 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             .enumerate()
             .try_for_each(|(ix, pin)| {
                 let pin_data = self.schematic.pin(*pin);
+                let parent_component: usize = pin_data.parent.into();
                 writeln!(
                     self.w,
-                    "a{ix} -> {parent}:{pin};",
+                    "a{ix}:e -> c{parent}:{pin}:w;",
                     ix = ix,
-                    parent = pin_data.parent,
+                    parent = parent_component,
                     pin = pin
                 )
             })?;
         // Add wires from the output schematic ports to the output buffer pins
-        self.schematic
-            .outputs
-            .iter()
-            .enumerate()
-            .try_for_each(|(ix, pin)| {
-                let pin_data = self.schematic.pin(*pin);
-                writeln!(
-                    self.w,
-                    "{parent}:{pin} -> o{ix};",
-                    ix = ix,
-                    parent = pin_data.parent,
-                    pin = pin
-                )
-            })
+        let pin_data = self.schematic.pin(self.schematic.output);
+        let parent_component: usize = pin_data.parent.into();
+        writeln!(
+            self.w,
+            "c{parent}:{pin}:e -> o{ix}:w;",
+            ix = 0,
+            parent = parent_component,
+            pin = self.schematic.output
+        )
     }
 
     fn write_component(&mut self, ndx: usize, component: &Component) -> Result<()> {
         match &component.kind {
-            ComponentKind::Buffer(buf) => self.write_buffer(ndx, &component.name, buf),
+            ComponentKind::Buffer(buf) => self.write_buffer(ndx, buf),
             ComponentKind::Binary(bin) => self.write_binary(ndx, bin),
             ComponentKind::Unary(unary) => self.write_unary(ndx, unary),
             ComponentKind::Select(select) => self.write_select(ndx, select),
             ComponentKind::Index(index) => self.write_index(ndx, index),
             ComponentKind::Splice(splice) => self.write_splice(ndx, splice),
             ComponentKind::Repeat(repeat) => self.write_repeat(ndx, repeat),
-            ComponentKind::Struct(structure) => {
-                self.write_structure(ndx, &component.name, structure)
-            }
+            ComponentKind::Struct(structure) => self.write_structure(ndx, structure),
             ComponentKind::Tuple(tuple) => self.write_tuple(ndx, tuple),
             ComponentKind::Case(case) => self.write_case(ndx, case),
-            ComponentKind::Exec(exec) => self.write_exec(ndx, exec),
+            ComponentKind::BlackBox(exec) => self.write_black_box(ndx, exec),
             ComponentKind::Array(array) => self.write_array(ndx, array),
             ComponentKind::Discriminant(disc) => self.write_discriminant(ndx, disc),
-            ComponentKind::Enum(enm) => self.write_enum(ndx, &component.name, enm),
+            ComponentKind::Enum(enm) => self.write_enum(ndx, enm),
             ComponentKind::Constant(constant) => self.write_constant(ndx, constant),
             ComponentKind::Cast(cast) => self.write_cast(ndx, cast),
+            ComponentKind::Kernel(kernel) => self.write_kernel(ndx, kernel),
+            ComponentKind::Noop => Ok(()),
         }
     }
 
@@ -157,10 +148,10 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
         )
     }
 
-    fn write_buffer(&mut self, ndx: usize, name: &str, buf: &BufferComponent) -> Result<()> {
+    fn write_buffer(&mut self, ndx: usize, buf: &BufferComponent) -> Result<()> {
         let input_ports = format!("{{<{}> A}}", buf.input);
         let output_ports = format!("{{<{}> Y}}", buf.output);
-        let label = format!("{name}\nBUF");
+        let label = format!("{kind}\nBuf", kind = &self.schematic.pin(buf.input).kind);
         self.write_cnode(ndx, &input_ports, &label, &output_ports)
     }
 
@@ -221,12 +212,7 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
         self.write_cnode(ndx, &input_ports, &label, &output_ports)
     }
 
-    fn write_structure(
-        &mut self,
-        ndx: usize,
-        name: &str,
-        structure: &StructComponent,
-    ) -> Result<()> {
+    fn write_structure(&mut self, ndx: usize, structure: &StructComponent) -> Result<()> {
         let mut input_ports = structure
             .fields
             .iter()
@@ -272,27 +258,29 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
         self.write_cnode(ndx, &input_ports, &label, &output_ports)
     }
 
-    fn write_exec(&mut self, ndx: usize, exec: &ExecComponent) -> Result<()> {
-        let input_ports = exec
+    fn write_black_box(&mut self, ndx: usize, black_box: &BlackBoxComponent) -> Result<()> {
+        let input_ports = black_box
             .args
             .iter()
             .enumerate()
             .map(|(ndx, pin)| format!("<{}> {}", pin, ndx))
             .collect::<Vec<String>>()
             .join("|");
-        let output_ports = format!("{{<{}> Y}}", exec.output);
-        let label = format!("{name}\nexec", name = exec.name);
-        if let Some(schematic) = &exec.sub_schematic {
-            let base = *self.next_free;
-            *self.next_free += schematic.components.len();
-            let mut dot = DotWriter {
-                w: &mut self.w,
-                schematic,
-                base_offset: base,
-                next_free: self.next_free,
-            };
-            dot.write_schematic()?;
-        }
+        let output_ports = format!("{{<{}> Y}}", black_box.output);
+        let label = format!("{name}\nblack_box", name = black_box.name);
+        self.write_cnode(ndx, &format!("{{ {input_ports} }}"), &label, &output_ports)
+    }
+
+    fn write_kernel(&mut self, ndx: usize, kernel: &KernelComponent) -> Result<()> {
+        let input_ports = kernel
+            .args
+            .iter()
+            .enumerate()
+            .map(|(ndx, pin)| format!("<{}> {}", pin, ndx))
+            .collect::<Vec<String>>()
+            .join("|");
+        let output_ports = format!("{{<{}> Y}}", kernel.output);
+        let label = format!("{name}\nkernel", name = kernel.name);
         self.write_cnode(ndx, &format!("{{ {input_ports} }}"), &label, &output_ports)
     }
 
@@ -316,7 +304,7 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
         self.write_cnode(ndx, &input_ports, &label, &output_ports)
     }
 
-    fn write_enum(&mut self, ndx: usize, name: &str, enm: &EnumComponent) -> Result<()> {
+    fn write_enum(&mut self, ndx: usize, enm: &EnumComponent) -> Result<()> {
         let input_ports = enm
             .fields
             .iter()
@@ -324,7 +312,7 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             .collect::<Vec<String>>()
             .join("");
         let output_ports = format!("{{<{}> Y}}", enm.output);
-        let label = format!("{name}\nenum");
+        let label = format!("{kind}\nenum", kind = &self.schematic.pin(enm.output).kind);
         self.write_cnode(ndx, &input_ports, &label, &output_ports)
     }
 
@@ -346,6 +334,35 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
         let output_ports = format!("{{<{}> Y}}", cast.output);
         let label = "cast";
         self.write_cnode(ndx, &input_ports, label, &output_ports)
+    }
+
+    // Write out the components in a hierarchical fashion.
+    fn write_components(&mut self, path: &[String]) -> Result<()> {
+        writeln!(self.w, "subgraph cluster_{path} {{", path = path.join("_"))?;
+        for (ndx, component) in self.schematic.components.iter().enumerate() {
+            if component.path == path {
+                self.write_component(ndx, component)?;
+            }
+        }
+        // Collect all immediate children of the current path
+        let children: HashSet<String> = self
+            .schematic
+            .components
+            .iter()
+            .filter_map(|component| {
+                if component.path.len() == path.len() + 1 && component.path.starts_with(path) {
+                    Some(component.path.last().unwrap().clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for child in children {
+            let child_path = &[path, &[child]].concat();
+            self.write_components(child_path)?;
+        }
+        writeln!(self.w, "}}")?;
+        Ok(())
     }
 }
 

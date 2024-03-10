@@ -5,7 +5,7 @@ use crate::rhif::spec::{
     AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum, Exec,
     Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
 };
-use crate::{ast::ast_impl::FunctionId, rhif::design::Design, TypedBits};
+use crate::{ast::ast_impl::FunctionId, rhif::module::Module, TypedBits};
 use crate::{Digital, Kind};
 
 use anyhow::Result;
@@ -17,7 +17,7 @@ use super::spec::{ExternalFunctionCode, Select, Splice};
 struct VMState<'a> {
     reg_stack: &'a mut [Option<TypedBits>],
     literals: &'a [TypedBits],
-    design: &'a Design,
+    design: &'a Module,
     obj: &'a Object,
 }
 
@@ -296,7 +296,7 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
     Ok(())
 }
 
-fn execute(design: &Design, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Result<TypedBits> {
+fn execute(design: &Module, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Result<TypedBits> {
     // Load the object for this function
     let obj = design
         .objects
@@ -351,6 +351,6 @@ fn execute(design: &Design, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
 
 // Given a set of arguments in the form of TypedBits, execute the function described by a Design
 // and then return the result as a TypedBits.
-pub fn execute_function(design: &Design, arguments: Vec<TypedBits>) -> Result<TypedBits> {
+pub fn execute_function(design: &Module, arguments: Vec<TypedBits>) -> Result<TypedBits> {
     execute(design, design.top, arguments)
 }
