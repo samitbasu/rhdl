@@ -3,14 +3,17 @@ use rhdl_bits::Bits;
 use rhdl_core::note;
 use rhdl_core::note_pop_path;
 use rhdl_core::note_push_path;
+use rhdl_core::root_descriptor;
+use rhdl_core::root_hdl;
+use rhdl_core::Circuit;
+use rhdl_core::CircuitDescriptor;
 use rhdl_core::CircuitIO;
 use rhdl_core::Digital;
+use rhdl_core::HDLDescriptor;
+use rhdl_core::HDLKind;
 use rhdl_macro::{kernel, Digital};
 
-use crate::circuit::root_descriptor;
-use crate::circuit::root_hdl;
 use crate::{
-    circuit::{Circuit, CircuitDescriptor},
     clock::Clock,
     dff::{DFF, DFFI},
 };
@@ -80,7 +83,7 @@ impl<const N: usize> Circuit for Counter<N> {
         ret
     }
 
-    fn as_hdl(&self, kind: crate::circuit::HDLKind) -> Result<crate::circuit::HDLDescriptor> {
+    fn as_hdl(&self, kind: HDLKind) -> Result<HDLDescriptor> {
         let mut ret = root_hdl(self, kind)?;
         ret.children
             .insert("count".to_string(), self.count.as_hdl(kind)?);
