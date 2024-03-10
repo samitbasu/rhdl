@@ -9,7 +9,7 @@ use crate::rhif::spec::{
 };
 use crate::test_module::VerilogDescriptor;
 use crate::util::binary_string;
-use crate::{ast::ast_impl::FunctionId, rhif::Object, Design, TypedBits};
+use crate::{ast::ast_impl::FunctionId, rhif::Object, Module, TypedBits};
 use anyhow::Result;
 use anyhow::{anyhow, ensure};
 
@@ -28,7 +28,7 @@ impl VerilogModule {
 struct TranslationContext<'a> {
     body: &'a mut String,
     kernels: Vec<VerilogModule>,
-    design: &'a Design,
+    design: &'a Module,
     obj: &'a Object,
 }
 
@@ -426,7 +426,7 @@ impl<'a> TranslationContext<'a> {
     }
 }
 
-fn translate(design: &Design, fn_id: FunctionId) -> Result<VerilogModule> {
+fn translate(design: &Module, fn_id: FunctionId) -> Result<VerilogModule> {
     let obj = design
         .objects
         .get(&fn_id)
@@ -519,7 +519,7 @@ fn decl(slot: &Slot, obj: &Object) -> Result<String> {
     Ok(format!("reg {} [{}:0] r{}", signed, width - 1, slot.reg()?))
 }
 
-pub fn generate_verilog(design: &Design) -> Result<VerilogDescriptor> {
+pub fn generate_verilog(design: &Module) -> Result<VerilogDescriptor> {
     let module = translate(design, design.top)?;
     let module = module.deduplicate()?;
     let body = module.functions.join("\n");

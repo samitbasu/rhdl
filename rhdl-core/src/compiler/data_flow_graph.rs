@@ -4,7 +4,7 @@ use crate::rhif::spec::{
     OpCode, Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
 };
 use crate::rhif::Object;
-use crate::Design;
+use crate::Module;
 use anyhow::anyhow;
 use anyhow::{bail, Result};
 use petgraph::dot::Dot;
@@ -49,10 +49,10 @@ struct DataFlowGraphContext<'a> {
     next_free: Relocation,
     base: Relocation,
     object: &'a Object,
-    design: &'a Design,
+    design: &'a Module,
 }
 
-pub fn make_data_flow(design: &Design) -> Result<DataFlowGraph> {
+pub fn make_data_flow(design: &Module) -> Result<DataFlowGraph> {
     let top = &design.objects[&design.top];
     let mut ctx = DataFlowGraphContext {
         dfg: Default::default(),

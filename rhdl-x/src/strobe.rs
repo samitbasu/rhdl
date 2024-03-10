@@ -18,8 +18,6 @@ use crate::circuit::root_descriptor;
 use crate::circuit::root_hdl;
 use crate::circuit::BufZ;
 use crate::dff::DFFI;
-use crate::dfg::build_schematic;
-use crate::dfg::dot::write_dot;
 use crate::trace::trace;
 use crate::{circuit::Circuit, clock::Clock, constant::Constant, dff::DFF};
 use rhdl_macro::Circuit;
@@ -53,9 +51,14 @@ impl<const N: usize> CircuitIO for Strobe<N> {
 }
 
 #[kernel]
+pub fn add_one<const N: usize>(count: Bits<N>) -> Bits<N> {
+    count + 1
+}
+
+#[kernel]
 pub fn add_enabled<const N: usize>(enable: bool, count: Bits<N>) -> Bits<N> {
     if enable {
-        count + 1
+        add_one::<{ N }>(count)
     } else {
         count
     }
@@ -75,13 +78,11 @@ pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
     } else {
         counter_next
     };
+    let jnk = add_enabled::<{ N }>(i.enable, q.counter);
+    let foo = add_one::<{ N }>(jnk);
     d.counter.data = counter_next;
     note("out", strobe);
     note("d", d);
-    let tmp = StrobeD::<{ N }> {
-        threshold: (),
-        counter: d.counter,
-    };
     (strobe, d)
 }
 
@@ -93,9 +94,66 @@ fn test_schematic() {
         panic!("No kernel function");
     };
     let design = compile_design(kernel).unwrap();
-    let schematic = build_schematic(&design, design.top).unwrap();
+    let schematic = rhdl_core::schematic::builder::build_schematic(&design, design.top).unwrap();
     let mut dot = std::fs::File::create("strobe_schematic.dot").unwrap();
-    write_dot(&schematic, &mut dot).unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, &mut dot).unwrap();
+}
+
+#[test]
+fn test_simple_schematic_inlined() {
+    use rhdl_core::DigitalFn;
+    let Some(KernelFnKind::Kernel(kernel)) = add_enabled::<8>::kernel_fn() else {
+        panic!("No kernel function");
+    };
+    let module = compile_design(kernel).unwrap();
+    let schematic = rhdl_core::schematic::builder::build_schematic(&module, module.top)
+        .unwrap()
+        .inlined();
+    schematic
+        .components
+        .iter()
+        .enumerate()
+        .for_each(|(ndx, c)| {
+            eprintln!("component {} kind {:?}", ndx, c.kind);
+        });
+    schematic.wires.iter().for_each(|w| {
+        eprintln!("wire {:?}", w);
+    });
+    let schematic = schematic.inlined();
+    schematic
+        .components
+        .iter()
+        .enumerate()
+        .for_each(|(ndx, c)| {
+            eprintln!("component {} kind {:?}", ndx, c.kind);
+        });
+    schematic.wires.iter().for_each(|w| {
+        eprintln!("wire {:?}", w);
+    });
+    let mut dot = std::fs::File::create("add_enabled_schematic.dot").unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, &mut dot).unwrap();
+}
+
+#[test]
+fn test_schematic_inlined() {
+    use rhdl_core::DigitalFn;
+
+    let Some(KernelFnKind::Kernel(kernel)) = strobe::<8>::kernel_fn() else {
+        panic!("No kernel function");
+    };
+    let design = compile_design(kernel).unwrap();
+    let schematic = rhdl_core::schematic::builder::build_schematic(&design, design.top)
+        .unwrap()
+        .inlined();
+    schematic
+        .components
+        .iter()
+        .enumerate()
+        .for_each(|(ndx, c)| {
+            eprintln!("component {} path {:?}", ndx, c.path);
+        });
+    let mut dot = std::fs::File::create("strobe_schematic.dot").unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, &mut dot).unwrap();
 }
 
 #[test]

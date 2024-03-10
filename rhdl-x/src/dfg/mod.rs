@@ -4,14 +4,9 @@ use anyhow::anyhow;
 use anyhow::bail;
 use anyhow::Result;
 
-use petgraph::stable_graph::DefaultIx;
-use petgraph::stable_graph::NodeIndex;
-use petgraph::Directed;
-use petgraph::Graph;
 use rhdl_core::ast::ast_impl::FunctionId;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::Kernel;
-use rhdl_core::path::Path;
 use rhdl_core::rhif::spec::Array;
 use rhdl_core::rhif::spec::Assign;
 use rhdl_core::rhif::spec::Case;
@@ -21,20 +16,17 @@ use rhdl_core::rhif::spec::Enum;
 use rhdl_core::rhif::spec::Exec;
 use rhdl_core::rhif::spec::ExternalFunctionCode;
 use rhdl_core::rhif::spec::Index;
-use rhdl_core::rhif::spec::Member;
 use rhdl_core::rhif::spec::Repeat;
 use rhdl_core::rhif::spec::Select;
 use rhdl_core::rhif::spec::Splice;
 use rhdl_core::rhif::spec::Struct;
 use rhdl_core::rhif::spec::Tuple;
 use rhdl_core::rhif::spec::Unary;
-use rhdl_core::Design;
-use rhdl_core::KernelFnKind;
+use rhdl_core::Module;
 use rhdl_core::TypedBits;
 use rhdl_core::{
     rhif::{
-        object::SourceLocation,
-        spec::{AluBinary, AluUnary, Binary, OpCode, Slot},
+        spec::{Binary, OpCode, Slot},
         Object,
     },
     Kind,
@@ -42,6 +34,7 @@ use rhdl_core::{
 
 use self::components::ArrayComponent;
 use self::components::BinaryComponent;
+use self::components::BlackBoxComponent;
 use self::components::BufferComponent;
 use self::components::CaseComponent;
 use self::components::CastComponent;
@@ -49,9 +42,9 @@ use self::components::ComponentKind;
 use self::components::ConstantComponent;
 use self::components::DiscriminantComponent;
 use self::components::EnumComponent;
-use self::components::ExecComponent;
 use self::components::FieldPin;
 use self::components::IndexComponent;
+use self::components::KernelComponent;
 use self::components::RepeatComponent;
 use self::components::SelectComponent;
 use self::components::SpliceComponent;
@@ -67,26 +60,26 @@ pub mod schematic;
 
 #[derive(Debug)]
 pub struct SchematicBuilder<'a> {
-    design: &'a Design,
+    module: &'a Module,
     object: &'a Object,
     schematic: Schematic,
     slot_map: HashMap<Slot, PinIx>,
 }
 
-pub fn build_schematic(design: &Design, function: FunctionId) -> Result<Schematic> {
-    let object = design.objects.get(&function).ok_or(anyhow!(
-        "Function {:?} not found in design {:?}",
+pub fn build_schematic(module: &Module, function: FunctionId) -> Result<Schematic> {
+    let object = module.objects.get(&function).ok_or(anyhow!(
+        "Function {:?} not found in module {:?}",
         function,
-        design
+        module
     ))?;
-    let analyzer = SchematicBuilder::new(design, object);
+    let analyzer = SchematicBuilder::new(module, object);
     analyzer.build()
 }
 
 impl<'a> SchematicBuilder<'a> {
-    fn new(design: &'a Design, object: &'a Object) -> Self {
+    fn new(module: &'a Module, object: &'a Object) -> Self {
         Self {
-            design,
+            module,
             object,
             schematic: Schematic::default(),
             slot_map: HashMap::new(),
@@ -132,8 +125,7 @@ impl<'a> SchematicBuilder<'a> {
                 OpCode::Noop | OpCode::Comment(_) => Ok(()),
             }?
         }
-        let ret = self.lookup(self.object.return_slot)?;
-        self.schematic.outputs.push(ret);
+        self.schematic.output = self.lookup(self.object.return_slot)?;
         Ok(self.schematic)
     }
 
@@ -167,10 +159,9 @@ impl<'a> SchematicBuilder<'a> {
             .schematic
             .make_pin(kind.clone(), format!("{}_in", name));
         let output = self.schematic.make_pin(kind, format!("{}_out", name));
-        let component = self.schematic.make_component(
-            name,
-            ComponentKind::Buffer(BufferComponent { input, output }),
-        );
+        let component = self
+            .schematic
+            .make_component(ComponentKind::Buffer(BufferComponent { input, output }));
         self.schematic.pin_mut(input).parent(component);
         self.schematic.pin_mut(output).parent(component);
         (input, output)
@@ -180,13 +171,12 @@ impl<'a> SchematicBuilder<'a> {
         let output = self
             .schematic
             .make_pin(value.kind.clone(), "constant".to_string());
-        let component = self.schematic.make_component(
-            "constant".to_string(),
-            ComponentKind::Constant(ConstantComponent {
+        let component = self
+            .schematic
+            .make_component(ComponentKind::Constant(ConstantComponent {
                 value: value.clone(),
                 output,
-            }),
-        );
+            }));
         self.schematic.pin_mut(output).parent(component);
         output
     }
@@ -205,15 +195,14 @@ impl<'a> SchematicBuilder<'a> {
         let arg1 = self.make_wired_pin(binary.arg1)?;
         let arg2 = self.make_wired_pin(binary.arg2)?;
         let out = self.make_output_pin(binary.lhs)?;
-        let component = self.schematic.make_component(
-            format!("{:?}", binary.op),
-            ComponentKind::Binary(BinaryComponent {
+        let component = self
+            .schematic
+            .make_component(ComponentKind::Binary(BinaryComponent {
                 op: binary.op,
                 input1: arg1,
                 input2: arg2,
                 output: out,
-            }),
-        );
+            }));
         self.schematic.pin_mut(arg1).parent(component);
         self.schematic.pin_mut(arg2).parent(component);
         self.schematic.pin_mut(out).parent(component);
@@ -223,14 +212,13 @@ impl<'a> SchematicBuilder<'a> {
     fn make_unary(&mut self, unary: Unary) -> Result<()> {
         let arg1 = self.make_wired_pin(unary.arg1)?;
         let out = self.make_output_pin(unary.lhs)?;
-        let component = self.schematic.make_component(
-            format!("{:?}", unary.op),
-            ComponentKind::Unary(UnaryComponent {
+        let component = self
+            .schematic
+            .make_component(ComponentKind::Unary(UnaryComponent {
                 op: unary.op,
                 input: arg1,
                 output: out,
-            }),
-        );
+            }));
         self.schematic.pin_mut(arg1).parent(component);
         self.schematic.pin_mut(out).parent(component);
         Ok(())
@@ -241,15 +229,14 @@ impl<'a> SchematicBuilder<'a> {
         let true_value = self.make_wired_pin(select.true_value)?;
         let false_value = self.make_wired_pin(select.false_value)?;
         let out = self.make_output_pin(select.lhs)?;
-        let component = self.schematic.make_component(
-            "Select".to_string(),
-            ComponentKind::Select(SelectComponent {
+        let component = self
+            .schematic
+            .make_component(ComponentKind::Select(SelectComponent {
                 cond,
                 true_value,
                 false_value,
                 output: out,
-            }),
-        );
+            }));
         self.schematic.pin_mut(cond).parent(component);
         self.schematic.pin_mut(true_value).parent(component);
         self.schematic.pin_mut(false_value).parent(component);
@@ -265,15 +252,14 @@ impl<'a> SchematicBuilder<'a> {
             .dynamic_slots()
             .map(|slot| self.make_wired_pin(*slot))
             .collect::<Result<Vec<_>>>()?;
-        let component = self.schematic.make_component(
-            "Index".to_string(),
-            ComponentKind::Index(IndexComponent {
+        let component = self
+            .schematic
+            .make_component(ComponentKind::Index(IndexComponent {
                 arg,
                 path: index.path.clone(),
                 output: out,
                 dynamic: dynamic.clone(),
-            }),
-        );
+            }));
         self.schematic.pin_mut(arg).parent(component);
         self.schematic.pin_mut(out).parent(component);
         for pin in dynamic {
@@ -291,16 +277,15 @@ impl<'a> SchematicBuilder<'a> {
             .dynamic_slots()
             .map(|slot| self.make_wired_pin(*slot))
             .collect::<Result<Vec<_>>>()?;
-        let component = self.schematic.make_component(
-            "Splice".to_string(),
-            ComponentKind::Splice(SpliceComponent {
+        let component = self
+            .schematic
+            .make_component(ComponentKind::Splice(SpliceComponent {
                 orig,
                 subst,
                 output: out,
                 path: splice.path.clone(),
                 dynamic: dynamic.clone(),
-            }),
-        );
+            }));
         self.schematic.pin_mut(orig).parent(component);
         self.schematic.pin_mut(subst).parent(component);
         self.schematic.pin_mut(out).parent(component);
@@ -313,14 +298,13 @@ impl<'a> SchematicBuilder<'a> {
     fn make_repeat(&mut self, repeat: Repeat) -> Result<()> {
         let value = self.make_wired_pin(repeat.value)?;
         let out = self.make_output_pin(repeat.lhs)?;
-        let component = self.schematic.make_component(
-            "Repeat".to_string(),
-            ComponentKind::Repeat(RepeatComponent {
+        let component = self
+            .schematic
+            .make_component(ComponentKind::Repeat(RepeatComponent {
                 value,
                 output: out,
                 len: repeat.len,
-            }),
-        );
+            }));
         self.schematic.pin_mut(value).parent(component);
         self.schematic.pin_mut(out).parent(component);
         Ok(())
@@ -339,15 +323,14 @@ impl<'a> SchematicBuilder<'a> {
             .collect::<Result<Vec<_>>>()?;
         let out = self.make_output_pin(structure.lhs)?;
         let rest = structure.rest.map(|r| self.make_wired_pin(r)).transpose()?;
-        let component = self.schematic.make_component(
-            "Struct".to_string(),
-            ComponentKind::Struct(StructComponent {
+        let component = self
+            .schematic
+            .make_component(ComponentKind::Struct(StructComponent {
                 kind: structure.template.kind,
                 fields: fields.clone(),
                 output: out,
                 rest,
-            }),
-        );
+            }));
         fields
             .iter()
             .for_each(|f| self.schematic.pin_mut(f.pin).parent(component));
@@ -365,13 +348,12 @@ impl<'a> SchematicBuilder<'a> {
             .map(|f| self.make_wired_pin(f))
             .collect::<Result<Vec<_>>>()?;
         let out = self.make_output_pin(tuple.lhs)?;
-        let component = self.schematic.make_component(
-            "Tuple".to_string(),
-            ComponentKind::Tuple(TupleComponent {
+        let component = self
+            .schematic
+            .make_component(ComponentKind::Tuple(TupleComponent {
                 fields: fields.clone(),
                 output: out,
-            }),
-        );
+            }));
         fields
             .iter()
             .for_each(|f| self.schematic.pin_mut(*f).parent(component));
@@ -387,14 +369,13 @@ impl<'a> SchematicBuilder<'a> {
             .map(|(ndx, slot)| self.make_wired_pin(slot).map(|pin| (ndx, pin)))
             .collect::<Result<Vec<_>>>()?;
         let out = self.make_output_pin(case.lhs)?;
-        let component = self.schematic.make_component(
-            "Case".to_string(),
-            ComponentKind::Case(CaseComponent {
+        let component = self
+            .schematic
+            .make_component(ComponentKind::Case(CaseComponent {
                 discriminant,
                 table: table.clone(),
                 output: out,
-            }),
-        );
+            }));
         self.schematic.pin_mut(discriminant).parent(component);
         for (_, pin) in table {
             self.schematic.pin_mut(pin).parent(component);
@@ -410,13 +391,12 @@ impl<'a> SchematicBuilder<'a> {
             .map(|slot| self.make_wired_pin(slot))
             .collect::<Result<Vec<_>>>()?;
         let out = self.make_output_pin(array.lhs)?;
-        let component = self.schematic.make_component(
-            "Array".to_string(),
-            ComponentKind::Array(ArrayComponent {
+        let component = self
+            .schematic
+            .make_component(ComponentKind::Array(ArrayComponent {
                 elements: elements.clone(),
                 output: out,
-            }),
-        );
+            }));
         elements
             .iter()
             .for_each(|f| self.schematic.pin_mut(*f).parent(component));
@@ -427,10 +407,12 @@ impl<'a> SchematicBuilder<'a> {
     fn make_discriminant(&mut self, discriminant: Discriminant) -> Result<()> {
         let arg = self.make_wired_pin(discriminant.arg)?;
         let out = self.make_output_pin(discriminant.lhs)?;
-        let component = self.schematic.make_component(
-            "Discriminant".to_string(),
-            ComponentKind::Discriminant(DiscriminantComponent { arg, output: out }),
-        );
+        let component =
+            self.schematic
+                .make_component(ComponentKind::Discriminant(DiscriminantComponent {
+                    arg,
+                    output: out,
+                }));
         self.schematic.pin_mut(arg).parent(component);
         self.schematic.pin_mut(out).parent(component);
         Ok(())
@@ -448,13 +430,12 @@ impl<'a> SchematicBuilder<'a> {
             })
             .collect::<Result<Vec<_>>>()?;
         let out = self.make_output_pin(enumerate.lhs)?;
-        let component = self.schematic.make_component(
-            "Enum".to_string(),
-            ComponentKind::Enum(EnumComponent {
+        let component = self
+            .schematic
+            .make_component(ComponentKind::Enum(EnumComponent {
                 fields: fields.clone(),
                 output: out,
-            }),
-        );
+            }));
         fields
             .iter()
             .for_each(|f| self.schematic.pin_mut(f.pin).parent(component));
@@ -465,13 +446,12 @@ impl<'a> SchematicBuilder<'a> {
     fn make_cast(&mut self, cast: Cast) -> Result<()> {
         let arg = self.make_wired_pin(cast.arg)?;
         let out = self.make_output_pin(cast.lhs)?;
-        let component = self.schematic.make_component(
-            "Cast".to_string(),
-            ComponentKind::Cast(CastComponent {
+        let component = self
+            .schematic
+            .make_component(ComponentKind::Cast(CastComponent {
                 input: arg,
                 output: out,
-            }),
-        );
+            }));
         self.schematic.pin_mut(arg).parent(component);
         self.schematic.pin_mut(out).parent(component);
         Ok(())
@@ -480,19 +460,26 @@ impl<'a> SchematicBuilder<'a> {
     fn make_assign(&mut self, assign: Assign) -> Result<()> {
         let arg = self.make_wired_pin(assign.rhs)?;
         let out = self.make_output_pin(assign.lhs)?;
-        let component = self.schematic.make_component(
-            "Assign".to_string(),
-            ComponentKind::Buffer(BufferComponent {
+        let component = self
+            .schematic
+            .make_component(ComponentKind::Buffer(BufferComponent {
                 input: arg,
                 output: out,
-            }),
-        );
+            }));
         self.schematic.pin_mut(arg).parent(component);
         self.schematic.pin_mut(out).parent(component);
         Ok(())
     }
 
     fn make_exec(&mut self, exec: Exec) -> Result<()> {
+        let code = &self.object.externals[exec.id.0].code;
+        match code {
+            ExternalFunctionCode::Kernel(kernel) => self.make_kernel(exec, kernel),
+            ExternalFunctionCode::Extern(edef) => self.make_black_box(exec, edef),
+        }
+    }
+
+    fn make_black_box(&mut self, exec: Exec, code: &ExternalKernelDef) -> Result<()> {
         let args = exec
             .args
             .iter()
@@ -500,22 +487,35 @@ impl<'a> SchematicBuilder<'a> {
             .collect::<Result<Vec<_>>>()?;
         let out = self.make_output_pin(exec.lhs)?;
         let name = &self.object.externals[exec.id.0].path;
-        let code = &self.object.externals[exec.id.0].code;
-        let sub_schematic = match code {
-            ExternalFunctionCode::Kernel(kernel) => {
-                build_schematic(self.design, kernel.inner().fn_id).ok()
-            }
-            _ => None,
-        };
-        let component = self.schematic.make_component(
-            exec.id.0.to_string(),
-            ComponentKind::Exec(ExecComponent {
+        let component = self
+            .schematic
+            .make_component(ComponentKind::BlackBox(BlackBoxComponent {
                 name: name.clone(),
                 args: args.clone(),
                 output: out,
+            }));
+        args.iter()
+            .for_each(|f| self.schematic.pin_mut(*f).parent(component));
+        self.schematic.pin_mut(out).parent(component);
+        Ok(())
+    }
+
+    fn make_kernel(&mut self, exec: Exec, kernel: &Kernel) -> Result<()> {
+        let args = exec
+            .args
+            .iter()
+            .map(|arg| self.make_wired_pin(*arg))
+            .collect::<Result<Vec<_>>>()?;
+        let out = self.make_output_pin(exec.lhs)?;
+        let sub_schematic = build_schematic(self.module, kernel.inner().fn_id)?;
+        let component = self
+            .schematic
+            .make_component(ComponentKind::Kernel(KernelComponent {
+                name: kernel.inner().name.clone(),
+                args: args.clone(),
+                output: out,
                 sub_schematic,
-            }),
-        );
+            }));
         args.iter()
             .for_each(|f| self.schematic.pin_mut(*f).parent(component));
         self.schematic.pin_mut(out).parent(component);

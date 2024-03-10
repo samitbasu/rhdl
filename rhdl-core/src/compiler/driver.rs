@@ -6,7 +6,7 @@ use crate::{
     },
     kernel::Kernel,
     rhif::{spec::ExternalFunctionCode, Object},
-    Design,
+    Module,
 };
 
 use anyhow::Result;
@@ -50,7 +50,7 @@ pub fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     Ok(obj)
 }
 
-fn elaborate_design(design: &mut Design) -> Result<()> {
+fn elaborate_design(design: &mut Module) -> Result<()> {
     // Check for any uncompiled kernels
     let external_kernels = design
         .objects
@@ -77,9 +77,9 @@ fn elaborate_design(design: &mut Design) -> Result<()> {
     Ok(())
 }
 
-pub fn compile_design(top: Kernel) -> Result<Design> {
+pub fn compile_design(top: Kernel) -> Result<Module> {
     let main = compile_kernel(top)?;
-    let mut design = Design {
+    let mut design = Module {
         objects: [(main.fn_id, main.clone())].into_iter().collect(),
         top: main.fn_id,
     };
