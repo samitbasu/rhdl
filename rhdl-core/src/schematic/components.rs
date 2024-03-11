@@ -154,6 +154,13 @@ pub struct ConstantComponent {
 }
 
 #[derive(Clone, Debug)]
+pub struct DigitalFlipFlopComponent {
+    pub clock: PinIx,
+    pub d: PinIx,
+    pub q: PinIx,
+}
+
+#[derive(Clone, Debug)]
 pub enum ComponentKind {
     Buffer(BufferComponent),
     Binary(BinaryComponent),
@@ -172,6 +179,7 @@ pub enum ComponentKind {
     Enum(EnumComponent),
     Constant(ConstantComponent),
     Cast(CastComponent),
+    DigitalFlipFlop(DigitalFlipFlopComponent),
     Noop,
 }
 
@@ -274,6 +282,12 @@ impl ComponentKind {
                 c.input = c.input.offset(offset);
                 c.output = c.output.offset(offset);
                 ComponentKind::Cast(c)
+            }
+            ComponentKind::DigitalFlipFlop(mut c) => {
+                c.clock = c.clock.offset(offset);
+                c.d = c.d.offset(offset);
+                c.q = c.q.offset(offset);
+                ComponentKind::DigitalFlipFlop(c)
             }
             ComponentKind::Noop => ComponentKind::Noop,
         }

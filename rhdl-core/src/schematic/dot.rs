@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::io::Result;
 use std::io::Write;
 
+use super::components::DigitalFlipFlopComponent;
 use super::{
     components::{
         ArrayComponent, BinaryComponent, BlackBoxComponent, BufferComponent, CaseComponent,
@@ -118,6 +119,7 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             ComponentKind::Constant(constant) => self.write_constant(ndx, constant),
             ComponentKind::Cast(cast) => self.write_cast(ndx, cast),
             ComponentKind::Kernel(kernel) => self.write_kernel(ndx, kernel),
+            ComponentKind::DigitalFlipFlop(dff) => self.write_dff(ndx, dff),
             ComponentKind::Noop => Ok(()),
         }
     }
@@ -156,6 +158,13 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
         let output_ports = format!("{{<{}> Y}}", unary.output);
         let label = format!("{}", unary.op);
         self.write_cnode(ndx, &input_ports, &label, &output_ports)
+    }
+
+    fn write_dff(&mut self, ndx: usize, dff: &DigitalFlipFlopComponent) -> Result<()> {
+        let input_ports = format!("{{<{}> D | <{}> C}}", dff.d, dff.clock);
+        let output_ports = format!("{{<{}> Q }}", dff.q);
+        let label = "dff";
+        self.write_cnode(ndx, &input_ports, label, &output_ports)
     }
 
     fn write_select(&mut self, ndx: usize, select: &SelectComponent) -> Result<()> {
