@@ -1,5 +1,4 @@
 use crate::circuit::circuit_impl::Tristate;
-use crate::diagnostic::dfg::{build_dfg, Link, DFG};
 use crate::path::Path;
 use crate::rhif::spec::Member;
 use crate::schematic::builder::build_schematic;
@@ -24,7 +23,6 @@ pub struct CircuitDescriptor {
     pub q_kind: Kind,
     pub num_tristate: usize,
     pub tristate_offset_in_parent: usize,
-    pub update_dfg: Option<DFG>,
     pub update_schematic: Option<Schematic>,
     pub children: HashMap<String, CircuitDescriptor>,
 }
@@ -185,114 +183,6 @@ impl CircuitDescriptor {
         schematic.output = output_buffer_out;
         Some(schematic)
     }
-
-    pub fn dfg(&self) -> Option<DFG> {
-        // We need to build a DFG for the entire circuit, which includes the children
-        // DFGs linked with the update function DFG already stored in the circuit descriptor
-        let mut total_dfg = DFG::default();
-        // Create a node for the input of the circuit
-        let input_node = total_dfg.buffer("input", self.input_kind.clone());
-        // Create a node for the output of the circuit
-        let output_node = total_dfg.buffer("output", self.output_kind.clone());
-        // Create a node for the D node of the circuit
-        let d_node = if self.d_kind.is_empty() {
-            None
-        } else {
-            Some(total_dfg.buffer("d", self.d_kind.clone()))
-        };
-        // Create a node for the Q node of the circuit
-        let q_node = if self.q_kind.is_empty() {
-            None
-        } else {
-            Some(total_dfg.buffer("q", self.q_kind.clone()))
-        };
-        total_dfg.arguments.push(input_node);
-        total_dfg.ret = output_node;
-        if let Some(update_dfg) = &self.update_dfg {
-            let update_relocation = total_dfg.merge(update_dfg);
-            if !update_dfg.arguments.is_empty() {
-                // Connect the first argument of the update function to the input buffer
-                total_dfg.graph.add_edge(
-                    input_node,
-                    update_relocation[&update_dfg.arguments[0]],
-                    Link::default(),
-                );
-                // Connect the second argument of the update function to the q node
-                if let Some(q_node) = q_node {
-                    total_dfg.graph.add_edge(
-                        q_node,
-                        update_relocation[&update_dfg.arguments[1]],
-                        Link::default(),
-                    );
-                }
-            }
-            // Connect the first element of the output tuple from the update kernel
-            // to the output buffer
-            total_dfg.graph.add_edge(
-                update_relocation[&update_dfg.ret],
-                output_node,
-                Link {
-                    src: Path::default().index(0),
-                    dest: Path::default(),
-                },
-            );
-            // Connect the second element of the output tuple from the update kernel
-            // to the d buffer
-            if let Some(d_node) = d_node {
-                total_dfg.graph.add_edge(
-                    update_relocation[&update_dfg.ret],
-                    d_node,
-                    Link {
-                        src: Path::default().index(1),
-                        dest: Path::default(),
-                    },
-                );
-            }
-        }
-        for (child_name, child_descriptor) in &self.children {
-            if let Some(child_dfg) = child_descriptor.dfg() {
-                let child_relocation = total_dfg.merge(&child_dfg);
-                if child_relocation.is_empty() {
-                    continue;
-                }
-                if let Some(q_node) = q_node {
-                    // Connect the output of the child to the Q node
-                    total_dfg.graph.add_edge(
-                        child_relocation[&child_dfg.ret],
-                        q_node,
-                        Link {
-                            src: Path::default(),
-                            dest: Path::default().field(child_name),
-                        },
-                    );
-                }
-                if child_dfg.arguments.is_empty() {
-                    continue;
-                }
-                if let Some(d_node) = d_node {
-                    // Connect the D node to the input of the child
-                    total_dfg.graph.add_edge(
-                        d_node,
-                        child_relocation[&child_dfg.arguments[0]],
-                        Link {
-                            src: Path::default().field(child_name),
-                            dest: Path::default(),
-                        },
-                    );
-                }
-            }
-        }
-        Some(total_dfg)
-    }
-}
-
-fn root_dfg<C: Circuit>() -> Option<DFG> {
-    if let Some(KernelFnKind::Kernel(kernel)) = C::Update::kernel_fn() {
-        let design = compile_design(kernel).ok()?;
-        build_dfg(&design, design.top).ok()
-    } else {
-        None
-    }
 }
 
 fn root_schematic<C: Circuit>() -> Option<Schematic> {
@@ -317,7 +207,6 @@ pub fn root_descriptor<C: Circuit>(circuit: &C) -> CircuitDescriptor {
         d_kind: C::D::static_kind(),
         q_kind: C::Q::static_kind(),
         num_tristate: C::Z::N,
-        update_dfg: root_dfg::<C>(),
         update_schematic: root_schematic::<C>(),
         tristate_offset_in_parent: 0,
         children: Default::default(),
