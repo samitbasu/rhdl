@@ -7,6 +7,7 @@ use rhdl_core::diagnostic::dfg::Link;
 use rhdl_core::diagnostic::dfg::DFG;
 use rhdl_core::note;
 use rhdl_core::root_descriptor;
+use rhdl_core::schematic::schematic_impl::Schematic;
 use rhdl_core::Circuit;
 use rhdl_core::CircuitDescriptor;
 use rhdl_core::HDLDescriptor;

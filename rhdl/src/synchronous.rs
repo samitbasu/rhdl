@@ -398,29 +398,6 @@ fn test_basic_data_flow_graph() {
         panic!("No kernel function found");
     };
     let design = compile_design(kernel).unwrap();
-    let source_map = design.source_map();
-    let dfg = rhdl_core::compiler::data_flow_graph::make_data_flow(&design).unwrap();
-    eprintln!("dfg: {:?}", dfg);
-    let ways = petgraph::algo::all_simple_paths::<Vec<_>, _>(
-        &dfg.graph,
-        dfg.inputs[0],
-        dfg.output,
-        0,
-        None,
-    )
-    .collect::<Vec<_>>();
-    eprintln!("ways: {:?}", ways);
-    for (num, way) in ways.iter().enumerate() {
-        eprintln!("Path {}: {:?}", num, way.len());
-        // Iterate over the edges in the path
-        for edges in way.windows(2) {
-            let edge = dfg.graph.find_edge(edges[0], edges[1]).unwrap();
-            let compute = &dfg.graph[edge];
-            if let Some(compute) = compute {
-                show_source_detail(&source_map, compute.source);
-            }
-        }
-    }
 }
 
 #[test]
@@ -439,23 +416,6 @@ fn get_blinker_data_flow_graph() {
         panic!("No kernel function found");
     };
     let design = compile_design(kernel).unwrap();
-    let dfg = rhdl_core::compiler::data_flow_graph::make_data_flow(&design).unwrap();
-    //eprintln!("dfg: {:?}", dfg);
-    let ways = petgraph::algo::all_simple_paths::<Vec<_>, _>(
-        &dfg.graph,
-        dfg.inputs[1],
-        dfg.output,
-        0,
-        None,
-    )
-    .collect::<Vec<_>>();
-    //    eprintln!("ways: {:?}", ways);
-    // Path lengths
-    for (num, way) in ways.iter().enumerate() {
-        eprintln!("Path {}: {:?}", num, way.len());
-    }
-
-    //std::fs::write("blinker.dot", dot).unwrap();
 }
 
 #[test]
