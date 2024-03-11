@@ -8,7 +8,6 @@ use dff::DFFI;
 use petgraph::dot::Dot;
 use rhdl_bits::alias::*;
 use rhdl_core::compile_design;
-use rhdl_core::diagnostic::dfg::build_dfg;
 use rhdl_core::note_db::note_time;
 use rhdl_core::note_init_db;
 use rhdl_core::note_pop_path;
@@ -45,7 +44,7 @@ mod tristate;
 //mod translator;
 //mod verilog;
 //mod dfg;
-mod trace;
+//mod trace;
 mod visit;
 
 #[derive(Debug, Clone, PartialEq, Copy, Default, Digital)]
@@ -278,10 +277,4 @@ fn test_dfg_analysis_of_kernel() {
         panic!("No kernel function found");
     };
     let design = compile_design(kernel).unwrap();
-    let mut dfg = build_dfg(&design, design.top).unwrap();
-    eprintln!("{:?}", dfg);
-    // Print out the DFG graph as a DOT file
-    let mut dot = String::new();
-    writeln!(dot, "{}", Dot::with_config(&dfg.graph, &[])).unwrap();
-    std::fs::write("dfg.dot", dot).unwrap();
 }

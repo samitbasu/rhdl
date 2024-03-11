@@ -4,8 +4,6 @@ use petgraph::Direction;
 use rhdl_bits::alias::*;
 use rhdl_bits::{bits, Bits};
 use rhdl_core::compile_design;
-use rhdl_core::diagnostic::dfg::Component;
-use rhdl_core::diagnostic::dfg::ComponentKind;
 use rhdl_core::note;
 use rhdl_core::path::Path;
 use rhdl_core::Circuit;
@@ -16,7 +14,6 @@ use rhdl_core::Tristate;
 use rhdl_macro::{kernel, Digital};
 
 use crate::dff::DFFI;
-use crate::trace::trace;
 use crate::{clock::Clock, constant::Constant, dff::DFF};
 use rhdl_macro::Circuit;
 
@@ -222,42 +219,6 @@ fn test_strobe_schematic() {
     let schematic = schematic.inlined();
     let mut dot = std::fs::File::create("strobe_inlined.dot").unwrap();
     rhdl_core::schematic::dot::write_dot(&schematic, &mut dot).unwrap();
-}
-
-#[test]
-fn test_strobe_dfg() {
-    let strobe = Strobe::<8>::new(bits::<8>(5));
-    let descriptor = Strobe::<8>::descriptor(&strobe);
-    let total_dfg = descriptor.dfg().unwrap();
-    let dot = total_dfg.as_dot();
-    std::fs::write("strobe.dot", dot).unwrap();
-    // Look for a DFF
-    let dff_node = total_dfg
-        .graph
-        .node_indices()
-        .find(|node| {
-            matches!(
-                total_dfg.graph.node_weight(*node).map(|x| &x.kind),
-                Some(ComponentKind::DFF)
-            )
-        })
-        .unwrap();
-    eprintln!("dff node is {:?}", dff_node);
-    let comp = total_dfg.graph.node_weight(dff_node).unwrap();
-    eprintln!("comp is {:?}", comp);
-    for edge in total_dfg
-        .graph
-        .edges_directed(dff_node, Direction::Incoming)
-    {
-        eprintln!("edge is {:?}", edge);
-    }
-    let clock_path = Path::default().field("clock");
-    let mut subset = Default::default();
-    trace(&total_dfg, dff_node, &clock_path, &mut subset).unwrap();
-    eprintln!("subset is {:?}", subset);
-    let sub_graph = crate::trace::subgraph(&total_dfg, &subset);
-    let dot = sub_graph.as_dot();
-    std::fs::write("strobe_sub.dot", dot).unwrap();
 }
 
 /*

@@ -1,9 +1,9 @@
 use anyhow::ensure;
 use anyhow::Result;
-use rhdl_core::diagnostic::dfg::Component;
-use rhdl_core::diagnostic::dfg::ComponentKind;
-use rhdl_core::diagnostic::dfg::DFG;
 use rhdl_core::root_descriptor;
+use rhdl_core::schematic::components::ComponentKind;
+use rhdl_core::schematic::components::ConstantComponent;
+use rhdl_core::schematic::schematic_impl::Schematic;
 use rhdl_core::Circuit;
 use rhdl_core::CircuitDescriptor;
 use rhdl_core::CircuitIO;
@@ -60,15 +60,17 @@ impl<T: Digital> Circuit for Constant<T> {
 
     fn descriptor(&self) -> CircuitDescriptor {
         let mut desc = root_descriptor(self);
-        let mut dfg = DFG::default();
-        let o = dfg.graph.add_node(Component {
-            input: Self::I::static_kind(),
-            output: Kind::make_tuple(vec![Self::O::static_kind(), Kind::Empty]),
-            kind: ComponentKind::Constant,
-            location: None,
-        });
-        dfg.ret = o;
-        desc.update_dfg = Some(dfg);
+        // Build a schematic with no input pin, and one output pin driven
+        // by a constant component.
+        let mut schematic = Schematic::default();
+        let out_pin = schematic.make_pin(desc.output_kind.clone(), "out".to_string());
+        let constant = schematic.make_component(ComponentKind::Constant(ConstantComponent {
+            value: self.value.typed_bits(),
+            output: out_pin,
+        }));
+        schematic.pin_mut(out_pin).parent(constant);
+        schematic.output = out_pin;
+        desc.update_schematic = Some(schematic);
         desc
     }
 
