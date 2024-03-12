@@ -253,7 +253,7 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
         let input_ports = format!("{{{discriminant_port}{table_ports}}}");
         let output_ports = format!("{{<{}> Y}}", case.output);
         let label = "case";
-        self.write_cnode(ndx, &input_ports, &label, &output_ports)
+        self.write_cnode(ndx, &input_ports, label, &output_ports)
     }
 
     fn write_black_box(&mut self, ndx: usize, black_box: &BlackBoxComponent) -> Result<()> {
@@ -292,14 +292,14 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             .join("");
         let output_ports = format!("{{<{}> Y}}", array.output);
         let label = "array";
-        self.write_cnode(ndx, &input_ports, &label, &output_ports)
+        self.write_cnode(ndx, &input_ports, label, &output_ports)
     }
 
     fn write_discriminant(&mut self, ndx: usize, disc: &DiscriminantComponent) -> Result<()> {
         let input_ports = format!("{{<{}> A}}", disc.arg);
         let output_ports = format!("{{<{}> Y}}", disc.output);
         let label = "discriminant";
-        self.write_cnode(ndx, &input_ports, &label, &output_ports)
+        self.write_cnode(ndx, &input_ports, label, &output_ports)
     }
 
     fn write_enum(&mut self, ndx: usize, enm: &EnumComponent) -> Result<()> {

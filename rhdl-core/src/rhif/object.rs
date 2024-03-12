@@ -24,10 +24,15 @@ impl From<(FunctionId, NodeId)> for SourceLocation {
 }
 
 #[derive(Debug, Clone)]
-pub struct Object {
-    pub source: Option<SpannedSource>,
+pub struct SymbolMap {
+    pub source: SpannedSource,
     pub slot_map: BTreeMap<Slot, SourceLocation>,
     pub opcode_map: Vec<SourceLocation>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Object {
+    pub symbols: SymbolMap,
     pub literals: Vec<TypedBits>,
     pub kind: BTreeMap<Slot, Kind>,
     pub return_slot: Slot,

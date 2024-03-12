@@ -29,7 +29,7 @@ impl Module {
     pub fn source_map(&self) -> HashMap<FunctionId, SpannedSource> {
         self.objects
             .iter()
-            .filter_map(|(fn_id, obj)| obj.source.as_ref().map(|source| (*fn_id, source.clone())))
+            .map(|(fn_id, obj)| (*fn_id, obj.symbols.source.clone()))
             .collect()
     }
 }
