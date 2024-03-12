@@ -1,6 +1,9 @@
 use crate::{
     path::Path,
-    rhif::spec::{AluBinary, AluUnary, CaseArgument, Member},
+    rhif::{
+        object::SourceLocation,
+        spec::{AluBinary, AluUnary, CaseArgument, Member},
+    },
     Kind, TypedBits,
 };
 
@@ -11,16 +14,18 @@ pub struct Component {
     // TODO - worry about the string allocation...
     pub path: Vec<String>,
     pub kind: ComponentKind,
+    pub location: Option<SourceLocation>,
 }
 
 impl Component {
-    pub fn offset(mut self, path: &str, offset: usize) -> Component {
+    pub fn offset(self, path: &str, offset: usize) -> Component {
         // prefix the path list with the new path
         let mut path = vec![path.to_string()];
         path.extend(self.path);
         Component {
             path,
             kind: self.kind.offset(offset),
+            location: self.location,
         }
     }
     pub fn is_noop(&self) -> bool {
@@ -243,7 +248,7 @@ impl ComponentKind {
             }
             ComponentKind::Case(mut c) => {
                 c.discriminant = c.discriminant.offset(offset);
-                c.table.iter_mut().for_each(|(a, p)| *p = p.offset(offset));
+                c.table.iter_mut().for_each(|(_, p)| *p = p.offset(offset));
                 c.output = c.output.offset(offset);
                 ComponentKind::Case(c)
             }

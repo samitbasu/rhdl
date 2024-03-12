@@ -63,11 +63,14 @@ impl<T: Digital> Circuit for Constant<T> {
         // Build a schematic with no input pin, and one output pin driven
         // by a constant component.
         let mut schematic = Schematic::default();
-        let out_pin = schematic.make_pin(desc.output_kind.clone(), "out".to_string());
-        let constant = schematic.make_component(ComponentKind::Constant(ConstantComponent {
-            value: self.value.typed_bits(),
-            output: out_pin,
-        }));
+        let out_pin = schematic.make_pin(desc.output_kind.clone(), "out".to_string(), None);
+        let constant = schematic.make_component(
+            ComponentKind::Constant(ConstantComponent {
+                value: self.value.typed_bits(),
+                output: out_pin,
+            }),
+            None,
+        );
         schematic.pin_mut(out_pin).parent(constant);
         schematic.output = out_pin;
         desc.update_schematic = Some(schematic);

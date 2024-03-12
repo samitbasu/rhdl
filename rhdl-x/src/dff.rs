@@ -87,41 +87,45 @@ impl<T: Digital> Circuit for DFF<T> {
     fn descriptor(&self) -> CircuitDescriptor {
         let mut desc = root_descriptor(self);
         let mut schematic = Schematic::default();
-        let (input_rx, input_tx) = schematic.make_buffer(DFFI::<T>::static_kind());
+        let (input_rx, input_tx) = schematic.make_buffer(DFFI::<T>::static_kind(), None);
         // The clock splitter
-        let i = schematic.make_pin(DFFI::<T>::static_kind(), "i".to_string());
-        let clock = schematic.make_pin(Clock::static_kind(), "clock".to_string());
-        let index = schematic.make_component(ComponentKind::Index(IndexComponent {
-            arg: i,
-            path: Path::default().field("clock"),
-            output: clock,
-            dynamic: vec![],
-        }));
+        let i = schematic.make_pin(DFFI::<T>::static_kind(), "i".to_string(), None);
+        let clock = schematic.make_pin(Clock::static_kind(), "clock".to_string(), None);
+        let index = schematic.make_component(
+            ComponentKind::Index(IndexComponent {
+                arg: i,
+                path: Path::default().field("clock"),
+                output: clock,
+                dynamic: vec![],
+            }),
+            None,
+        );
         schematic.pin_mut(i).parent(index);
         schematic.pin_mut(clock).parent(index);
         schematic.wire(input_tx, i);
         // the D splitter
-        let i = schematic.make_pin(DFFI::<T>::static_kind(), "i".to_string());
-        let d_pin = schematic.make_pin(T::static_kind(), "d".to_string());
-        let index = schematic.make_component(ComponentKind::Index(IndexComponent {
-            arg: i,
-            path: Path::default().field("data"),
-            output: d_pin,
-            dynamic: vec![],
-        }));
+        let i = schematic.make_pin(DFFI::<T>::static_kind(), "i".to_string(), None);
+        let d_pin = schematic.make_pin(T::static_kind(), "d".to_string(), None);
+        let index = schematic.make_component(
+            ComponentKind::Index(IndexComponent {
+                arg: i,
+                path: Path::default().field("data"),
+                output: d_pin,
+                dynamic: vec![],
+            }),
+            None,
+        );
         schematic.pin_mut(i).parent(index);
         schematic.pin_mut(d_pin).parent(index);
         schematic.wire(input_tx, i);
         // The DFF itself
-        let c = schematic.make_pin(Clock::static_kind(), "clock".to_string());
-        let d = schematic.make_pin(T::static_kind(), "d".to_string());
-        let q = schematic.make_pin(T::static_kind(), "q".to_string());
-        let dff =
-            schematic.make_component(ComponentKind::DigitalFlipFlop(DigitalFlipFlopComponent {
-                clock: c,
-                d,
-                q,
-            }));
+        let c = schematic.make_pin(Clock::static_kind(), "clock".to_string(), None);
+        let d = schematic.make_pin(T::static_kind(), "d".to_string(), None);
+        let q = schematic.make_pin(T::static_kind(), "q".to_string(), None);
+        let dff = schematic.make_component(
+            ComponentKind::DigitalFlipFlop(DigitalFlipFlopComponent { clock: c, d, q }),
+            None,
+        );
         schematic.pin_mut(c).parent(dff);
         schematic.pin_mut(d).parent(dff);
         schematic.pin_mut(q).parent(dff);

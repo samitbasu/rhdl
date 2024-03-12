@@ -42,7 +42,7 @@ impl Pass for RemoveExtraRegistersPass {
                     })
                     .collect();
                 // Delete the register from the register map
-                input.slot_map.remove(&assign.lhs);
+                input.symbols.slot_map.remove(&assign.lhs);
                 input.kind.remove(&assign.lhs);
                 // Check the output register
                 input.return_slot = input.return_slot.rename(assign.lhs, assign.rhs);

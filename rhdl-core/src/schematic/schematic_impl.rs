@@ -1,6 +1,10 @@
 use std::collections::HashMap;
 
-use crate::Kind;
+use crate::{
+    diagnostic::SpannedSource,
+    rhif::{object::SourceLocation, spec::FuncId},
+    Kind,
+};
 
 use super::components::{BufferComponent, Component, ComponentKind};
 
@@ -59,6 +63,7 @@ impl std::fmt::Display for ComponentIx {
 pub struct Pin {
     pub kind: Kind,
     pub name: String,
+    pub location: Option<SourceLocation>,
     pub parent: ComponentIx,
 }
 
@@ -90,29 +95,47 @@ pub struct Schematic {
     pub wires: Vec<Wire>,
     pub inputs: Vec<PinIx>,
     pub output: PinIx,
+    pub source: HashMap<FuncId, SpannedSource>,
 }
 
 impl Schematic {
-    pub fn make_pin(&mut self, kind: Kind, name: String) -> PinIx {
+    pub fn make_pin(
+        &mut self,
+        kind: Kind,
+        name: String,
+        location: Option<SourceLocation>,
+    ) -> PinIx {
         let ix = PinIx(self.pins.len());
         self.pins.push(Pin {
             kind,
             name,
             parent: ORPHAN,
+            location,
         });
         ix
     }
-    pub fn make_buffer(&mut self, kind: Kind) -> (PinIx, PinIx) {
-        let input = self.make_pin(kind.clone(), "in".into());
-        let output = self.make_pin(kind, "out".into());
-        let buf = self.make_component(ComponentKind::Buffer(BufferComponent { input, output }));
+    pub fn make_buffer(&mut self, kind: Kind, location: Option<SourceLocation>) -> (PinIx, PinIx) {
+        let input = self.make_pin(kind.clone(), "in".into(), location);
+        let output = self.make_pin(kind, "out".into(), location);
+        let buf = self.make_component(
+            ComponentKind::Buffer(BufferComponent { input, output }),
+            location,
+        );
         self.pin_mut(input).parent(buf);
         self.pin_mut(output).parent(buf);
         (input, output)
     }
-    pub fn make_component(&mut self, kind: ComponentKind) -> ComponentIx {
+    pub fn make_component(
+        &mut self,
+        kind: ComponentKind,
+        location: Option<SourceLocation>,
+    ) -> ComponentIx {
         let ix = ComponentIx(self.components.len());
-        self.components.push(Component { path: vec![], kind });
+        self.components.push(Component {
+            path: vec![],
+            kind,
+            location,
+        });
         ix
     }
     pub fn pin(&self, ix: PinIx) -> &Pin {
@@ -135,6 +158,7 @@ impl Schematic {
             wires: self.wires,
             inputs: self.inputs,
             output: self.output,
+            source: self.source,
             ..Default::default()
         };
         let mut relocation_offset = self.components.len();
@@ -183,6 +207,7 @@ impl Schematic {
                     output_schematic.components.push(Component {
                         path: vec![],
                         kind: ComponentKind::Noop,
+                        location: None,
                     });
                     let relocations = kernel
                         .args
@@ -199,6 +224,7 @@ impl Schematic {
                         .into_iter()
                         .map(|w| w.relocate(&relocations))
                         .collect();
+                    output_schematic.source.extend(sub_schematic.source);
                 }
                 _ => {
                     output_schematic.components.push(component);
