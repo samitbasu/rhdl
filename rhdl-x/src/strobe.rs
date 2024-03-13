@@ -116,7 +116,8 @@ pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
         counter_next
     };
     let jnk = add_enabled::<{ N }>(i.enable, q.counter);
-    let foo = add_one::<{ N }>(jnk);
+    let hoo = add_one::<{ N }>(jnk);
+    let jaz = if strobe { counter_next } else { counter_next };
     d.counter.data = counter_next;
     note("out", strobe);
     note("d", d);

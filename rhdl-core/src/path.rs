@@ -100,16 +100,13 @@ impl Path {
             .iter()
             .any(|e| matches!(e, PathElement::DynamicIndex(_)))
     }
-
-    pub(crate) fn rename_dyn_slots(self, old: Slot, new: Slot) -> Path {
+    pub fn remap_slots<F: FnMut(Slot) -> Slot>(self, mut f: F) -> Path {
         Path {
             elements: self
                 .elements
                 .into_iter()
                 .map(|e| match e {
-                    PathElement::DynamicIndex(slot) => {
-                        PathElement::DynamicIndex(slot.rename(old, new))
-                    }
+                    PathElement::DynamicIndex(slot) => PathElement::DynamicIndex(f(slot)),
                     _ => e,
                 })
                 .collect(),

@@ -2,7 +2,10 @@ use crate::{
     compiler::{
         ascii::render_ast_to_string, assign_node_ids, check_inference::check_inference,
         check_rhif_flow::DataFlowCheckPass, check_rhif_type::TypeCheckPass, compile, infer,
-        pass::Pass, remove_extra_registers::RemoveExtraRegistersPass,
+        pass::Pass, pre_cast_literals::PreCastLiterals,
+        remove_extra_registers::RemoveExtraRegistersPass,
+        remove_unneeded_muxes::RemoveUnneededMuxesPass,
+        remove_unused_literals::RemoveUnusedLiterals, remove_useless_casts::RemoveUselessCastsPass,
     },
     kernel::Kernel,
     rhif::{spec::ExternalFunctionCode, Object},
@@ -17,11 +20,17 @@ pub fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     let _ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
     //eprintln!("{}", ast_ascii);
     check_inference(&kernel, &ctx)?;
-    let obj = compile(kernel.inner(), ctx)?;
+    let mut obj = compile(kernel.inner(), ctx)?;
     //    let obj = LowerIndexToCopy::run(obj)?;
     eprintln!("{}", obj);
-    let obj = RemoveExtraRegistersPass::run(obj)?;
-    //eprintln!("{}", obj);
+    for _pass in 0..2 {
+        obj = RemoveExtraRegistersPass::run(obj)?;
+        obj = RemoveUnneededMuxesPass::run(obj)?;
+        obj = RemoveExtraRegistersPass::run(obj)?;
+        obj = RemoveUnusedLiterals::run(obj)?;
+        obj = PreCastLiterals::run(obj)?;
+        obj = RemoveUselessCastsPass::run(obj)?;
+    }
     let obj = TypeCheckPass::run(obj)?;
     let obj = DataFlowCheckPass::run(obj)?;
     eprintln!("{}", obj);

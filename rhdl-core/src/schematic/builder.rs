@@ -68,6 +68,9 @@ impl<'a> SchematicBuilder<'a> {
             self.bind(*arg, opin);
         }
         for (ndx, literal) in self.object.literals.iter().enumerate() {
+            if literal.bits.is_empty() {
+                continue;
+            }
             let slot = Slot::Literal(ndx);
             let source = self.slot_source(slot);
             let opin = self.make_constant(literal, source);
