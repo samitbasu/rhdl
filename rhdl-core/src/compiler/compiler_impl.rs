@@ -1095,6 +1095,11 @@ pub fn compile(func: &ast_impl::KernelFn, ctx: UnifyContext) -> Result<Object> {
         .map(|node| (compiler.fn_id, node).into())
         .collect();
     let source = build_spanned_source_for_kernel(func);
+    let literals = literals
+        .into_iter()
+        .enumerate()
+        .map(|(ndx, lit)| (Slot::Literal(ndx), lit))
+        .collect();
     Ok(Object {
         symbols: SymbolMap {
             slot_map,
