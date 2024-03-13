@@ -33,7 +33,7 @@ impl Pass for PreCastLiterals {
         for op in input.ops.iter_mut() {
             match op {
                 OpCode::AsBits(cast) => {
-                    if let Slot::Literal(ndx) = cast.arg {
+                    if cast.arg.is_literal() {
                         candidates.insert(CastCandidate {
                             slot: cast.arg,
                             len: cast.len,
@@ -42,7 +42,7 @@ impl Pass for PreCastLiterals {
                     }
                 }
                 OpCode::AsSigned(cast) => {
-                    if let Slot::Literal(ndx) = cast.arg {
+                    if cast.arg.is_literal() {
                         candidates.insert(CastCandidate {
                             slot: cast.arg,
                             len: cast.len,

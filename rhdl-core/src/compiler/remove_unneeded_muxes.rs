@@ -1,5 +1,5 @@
 use crate::rhif::{
-    spec::{Assign, OpCode, Slot},
+    spec::{Assign, OpCode},
     Object,
 };
 use anyhow::Result;
