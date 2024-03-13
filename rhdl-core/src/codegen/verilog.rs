@@ -474,14 +474,16 @@ fn translate(design: &Module, fn_id: FunctionId) -> Result<VerilogModule> {
     }
     func.push_str("    // Literals\n");
     // Allocate the literals
-    for (i, lit) in obj.literals.iter().enumerate() {
+    for (&slot, lit) in obj.literals.iter() {
         if lit.bits.is_empty() {
             continue;
         }
-        func.push_str(&format!(
-            "    localparam l{i} = {};\n",
-            as_verilog_literal(lit)
-        ));
+        if let Slot::Literal(i) = slot {
+            func.push_str(&format!(
+                "    localparam l{i} = {};\n",
+                as_verilog_literal(lit)
+            ));
+        }
     }
     func.push_str("    // Body\n");
     func.push_str("begin\n");

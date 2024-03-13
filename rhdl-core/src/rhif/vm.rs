@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::kernel::ExternalKernelDef;
 use crate::path::Path;
 use crate::rhif::object::Object;
@@ -16,7 +18,7 @@ use super::spec::{ExternalFunctionCode, Select, Splice};
 
 struct VMState<'a> {
     reg_stack: &'a mut [Option<TypedBits>],
-    literals: &'a [TypedBits],
+    literals: &'a BTreeMap<Slot, TypedBits>,
     design: &'a Module,
     obj: &'a Object,
 }
@@ -26,7 +28,7 @@ impl<'a> VMState<'a> {
         match slot {
             Slot::Literal(l) => self
                 .literals
-                .get(l)
+                .get(&Slot::Literal(l))
                 .cloned()
                 .ok_or(anyhow!("ICE Literal {l} not found in object")),
             Slot::Register(r) => self
@@ -351,7 +353,7 @@ fn execute(design: &Module, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
             .ok_or(anyhow!("ICE return slot is not initialized")),
         Slot::Literal(ndx) => obj
             .literals
-            .get(ndx)
+            .get(&Slot::Literal(ndx))
             .cloned()
             .ok_or(anyhow!("return literal not found")),
     }

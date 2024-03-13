@@ -19,8 +19,7 @@ impl Pass for RemoveUnneededMuxesPass {
     fn run(mut input: Object) -> Result<Object> {
         for op in input.ops.iter_mut() {
             if let OpCode::Select(select) = op.clone() {
-                if let Slot::Literal(n) = select.cond {
-                    let val = &input.literals[n];
+                if let Some(val) = input.literals.get(&select.cond) {
                     if val.as_bool()? {
                         *op = OpCode::Assign(Assign {
                             lhs: select.lhs,

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use crate::{
     rhif::{spec::Slot, Object},
@@ -28,19 +28,7 @@ impl Pass for RemoveUnusedLiterals {
                 slot
             });
         }
-        input.literals = input
-            .literals
-            .into_iter()
-            .enumerate()
-            .map(|(ndx, v)| (Slot::Literal(ndx), v))
-            .map(|(slot, v)| {
-                if used_set.contains(&slot) {
-                    v
-                } else {
-                    TypedBits::EMPTY
-                }
-            })
-            .collect();
+        input.literals.retain(|slot, val| used_set.contains(slot));
         Ok(input)
     }
 }
