@@ -1,9 +1,6 @@
 use std::collections::HashSet;
 
-use crate::{
-    rhif::{spec::Slot, Object},
-    TypedBits,
-};
+use crate::rhif::{spec::Slot, Object};
 use anyhow::Result;
 
 use super::{pass::Pass, utils::remap_slots};
@@ -28,7 +25,7 @@ impl Pass for RemoveUnusedLiterals {
                 slot
             });
         }
-        input.literals.retain(|slot, val| used_set.contains(slot));
+        input.literals.retain(|slot, _| used_set.contains(slot));
         Ok(input)
     }
 }

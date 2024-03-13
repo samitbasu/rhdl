@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use crate::rhif::{
-    spec::{Assign, OpCode, Slot},
+    spec::{Assign, OpCode},
     Object,
 };
 
