@@ -342,11 +342,19 @@ fn execute(design: &Module, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
         obj,
     };
     execute_block(&obj.ops, &mut state)?;
-    reg_stack
-        .get(obj.return_slot.reg()?)
-        .cloned()
-        .ok_or(anyhow!("return slot not found"))?
-        .ok_or(anyhow!("ICE return slot is not initialized"))
+    match obj.return_slot {
+        Slot::Empty => Ok(TypedBits::EMPTY),
+        Slot::Register(r) => reg_stack
+            .get(r)
+            .cloned()
+            .ok_or(anyhow!("return slot not found"))?
+            .ok_or(anyhow!("ICE return slot is not initialized")),
+        Slot::Literal(ndx) => obj
+            .literals
+            .get(ndx)
+            .cloned()
+            .ok_or(anyhow!("return literal not found")),
+    }
 }
 
 // Given a set of arguments in the form of TypedBits, execute the function described by a Design

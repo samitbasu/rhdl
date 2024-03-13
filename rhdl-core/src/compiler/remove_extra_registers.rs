@@ -1,6 +1,9 @@
-use crate::rhif::{
-    spec::{Assign, OpCode},
-    Object,
+use crate::{
+    compiler::utils::rename_read_register,
+    rhif::{
+        spec::{Assign, OpCode},
+        Object,
+    },
 };
 use anyhow::Result;
 
@@ -29,7 +32,21 @@ impl Pass for RemoveExtraRegistersPass {
                 input.ops = input
                     .ops
                     .into_iter()
-                    .map(|op| op.rename_read_register(assign.lhs, assign.rhs))
+                    .map(|op| {
+                        let old = assign.lhs;
+                        let new = assign.rhs;
+                        match op {
+                            OpCode::Assign(Assign { lhs, rhs }) => {
+                                let new_rhs = if rhs == old { new } else { rhs };
+                                if new_rhs == lhs {
+                                    OpCode::Noop
+                                } else {
+                                    OpCode::Assign(Assign { lhs, rhs: new_rhs })
+                                }
+                            }
+                            _ => rename_read_register(op, old, new),
+                        }
+                    })
                     .map(|op| match op {
                         OpCode::Assign(Assign { lhs, rhs: _ }) => {
                             if lhs != assign.lhs {

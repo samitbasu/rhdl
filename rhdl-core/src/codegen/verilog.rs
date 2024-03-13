@@ -475,6 +475,9 @@ fn translate(design: &Module, fn_id: FunctionId) -> Result<VerilogModule> {
     func.push_str("    // Literals\n");
     // Allocate the literals
     for (i, lit) in obj.literals.iter().enumerate() {
+        if lit.bits.is_empty() {
+            continue;
+        }
         func.push_str(&format!(
             "    localparam l{i} = {};\n",
             as_verilog_literal(lit)
