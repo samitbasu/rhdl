@@ -18,10 +18,8 @@ pub fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     assign_node_ids(&mut kernel)?;
     let ctx = infer(&kernel)?;
     let _ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-    //eprintln!("{}", ast_ascii);
     check_inference(&kernel, &ctx)?;
     let mut obj = compile(kernel.inner(), ctx)?;
-    //    let obj = LowerIndexToCopy::run(obj)?;
     eprintln!("{}", obj);
     for _pass in 0..2 {
         obj = RemoveExtraRegistersPass::run(obj)?;
@@ -33,29 +31,6 @@ pub fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     }
     let obj = TypeCheckPass::run(obj)?;
     let obj = DataFlowCheckPass::run(obj)?;
-    eprintln!("{}", obj);
-
-    /*     if let Some(source) = obj.source.as_ref() {
-           obj.opcode_map
-               .iter()
-               .zip(obj.ops.iter())
-               .for_each(|(location, opcode)| {
-                   if matches!(
-                       opcode,
-                       OpCode::Assign(_) | OpCode::Index(_) | OpCode::Splice(_),
-                   ) {
-                       eprintln!("opcode: {}", opcode);
-                       show_source(source, &opcode.to_string(), location.node);
-                   }
-               });
-       }
-    */
-    /*
-    if let Some(source) = obj.source.as_ref() {
-        for (reg, loc) in &obj.register_map {
-            show_source(source, &reg.to_string(), loc.node);
-        }
-    }*/
     Ok(obj)
 }
 

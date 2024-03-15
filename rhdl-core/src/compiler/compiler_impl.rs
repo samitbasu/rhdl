@@ -15,9 +15,8 @@ use crate::{
     rhif::{
         object::SymbolMap,
         rhif_builder::{
-            op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment,
-            op_discriminant, op_enum, op_exec, op_index, op_repeat, op_select, op_splice,
-            op_struct, op_tuple, op_unary,
+            op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
+            op_exec, op_index, op_repeat, op_select, op_splice, op_struct, op_tuple, op_unary,
         },
         spec::{
             self, AluBinary, AluUnary, CaseArgument, ExternalFunction, ExternalFunctionCode,
@@ -499,7 +498,14 @@ impl CompilerContext {
         let discriminant = if let Ty::Enum(enum_ty) = target_ty {
             let disc_reg =
                 self.reg_with_type_and_node(*enum_ty.discriminant.clone(), _match.expr.id)?;
-            self.op(op_discriminant(disc_reg, target), id);
+            self.op(
+                op_index(
+                    disc_reg,
+                    target,
+                    crate::path::Path::default().discriminant(),
+                ),
+                id,
+            );
             disc_reg
         } else {
             target

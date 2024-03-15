@@ -34,8 +34,6 @@ pub enum OpCode {
     Exec(Exec),
     // x <- [a, b, c, d]
     Array(Array),
-    // x <- tag where tag is the discriminant of the enum.
-    Discriminant(Discriminant),
     // x <- enum(discriminant, fields)
     Enum(Enum),
     // x <- a as bits::<len>
@@ -245,11 +243,6 @@ pub struct ExternalFunction {
     pub signature: DigitalSignature,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct Discriminant {
-    pub lhs: Slot,
-    pub arg: Slot,
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Enum {

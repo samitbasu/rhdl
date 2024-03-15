@@ -129,12 +129,6 @@ pub struct ArrayComponent {
 }
 
 #[derive(Clone, Debug)]
-pub struct DiscriminantComponent {
-    pub arg: PinIx,
-    pub output: PinIx,
-}
-
-#[derive(Clone, Debug)]
 pub struct EnumComponent {
     pub fields: Vec<FieldPin>,
     pub output: PinIx,
@@ -180,7 +174,6 @@ pub enum ComponentKind {
     BlackBox(BlackBoxComponent),
     Kernel(KernelComponent),
     Array(ArrayComponent),
-    Discriminant(DiscriminantComponent),
     Enum(EnumComponent),
     Constant(ConstantComponent),
     Cast(CastComponent),
@@ -266,11 +259,6 @@ impl ComponentKind {
                 c.elements = c.elements.iter().map(|p| p.offset(offset)).collect();
                 c.output = c.output.offset(offset);
                 ComponentKind::Array(c)
-            }
-            ComponentKind::Discriminant(mut c) => {
-                c.arg = c.arg.offset(offset);
-                c.output = c.output.offset(offset);
-                ComponentKind::Discriminant(c)
             }
             ComponentKind::Enum(mut c) => {
                 c.output = c.output.offset(offset);

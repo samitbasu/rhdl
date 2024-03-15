@@ -9,8 +9,8 @@ use crate::kernel::ExternalKernelDef;
 use crate::kernel::Kernel;
 use crate::rhif::object::SourceLocation;
 use crate::rhif::spec::{
-    Array, Assign, Case, Cast, Discriminant, Enum, Exec, ExternalFunctionCode, Index, Repeat,
-    Select, Splice, Struct, Tuple, Unary,
+    Array, Assign, Case, Cast, Enum, Exec, ExternalFunctionCode, Index, Repeat, Select, Splice,
+    Struct, Tuple, Unary,
 };
 use crate::Module;
 use crate::TypedBits;
@@ -25,9 +25,9 @@ use crate::{
 use super::components::UnaryComponent;
 use super::components::{
     ArrayComponent, BinaryComponent, BlackBoxComponent, BufferComponent, CaseComponent,
-    CastComponent, ComponentKind, ConstantComponent, DiscriminantComponent, EnumComponent,
-    FieldPin, IndexComponent, KernelComponent, RepeatComponent, SelectComponent, SpliceComponent,
-    StructComponent, TupleComponent,
+    CastComponent, ComponentKind, ConstantComponent, EnumComponent, FieldPin, IndexComponent,
+    KernelComponent, RepeatComponent, SelectComponent, SpliceComponent, StructComponent,
+    TupleComponent,
 };
 use super::schematic_impl::PinIx;
 use super::schematic_impl::Schematic;
@@ -93,9 +93,6 @@ impl<'a> SchematicBuilder<'a> {
                 OpCode::Tuple(tuple) => self.make_tuple(tuple, Some(location)),
                 OpCode::Case(case) => self.make_case(case, Some(location)),
                 OpCode::Array(array) => self.make_array(array, Some(location)),
-                OpCode::Discriminant(discriminant) => {
-                    self.make_discriminant(discriminant, Some(location))
-                }
                 OpCode::Enum(enumerate) => self.make_enum(enumerate, Some(location)),
                 OpCode::AsBits(cast) | OpCode::AsSigned(cast) => {
                     self.make_cast(cast, Some(location))
@@ -129,10 +126,6 @@ impl<'a> SchematicBuilder<'a> {
 
     fn slot_source(&self, slot: Slot) -> Option<SourceLocation> {
         self.object.symbols.slot_map.get(&slot).cloned()
-    }
-
-    fn op_source(&self, ndx: usize) -> Option<SourceLocation> {
-        self.object.symbols.opcode_map.get(ndx).cloned()
     }
 
     fn make_output_pin(&mut self, slot: Slot) -> Result<PinIx> {
@@ -409,22 +402,6 @@ impl<'a> SchematicBuilder<'a> {
         elements
             .iter()
             .for_each(|f| self.schematic.pin_mut(*f).parent(component));
-        self.schematic.pin_mut(out).parent(component);
-        Ok(())
-    }
-
-    fn make_discriminant(
-        &mut self,
-        discriminant: Discriminant,
-        location: Option<SourceLocation>,
-    ) -> Result<()> {
-        let arg = self.make_wired_pin(discriminant.arg)?;
-        let out = self.make_output_pin(discriminant.lhs)?;
-        let component = self.schematic.make_component(
-            ComponentKind::Discriminant(DiscriminantComponent { arg, output: out }),
-            location,
-        );
-        self.schematic.pin_mut(arg).parent(component);
         self.schematic.pin_mut(out).parent(component);
         Ok(())
     }

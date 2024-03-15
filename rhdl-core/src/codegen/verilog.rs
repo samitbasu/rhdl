@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use crate::kernel::ExternalKernelDef;
 use crate::path::{bit_range, Path, PathElement};
 use crate::rhif::spec::{
-    AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum, Exec,
+    AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
     ExternalFunctionCode, Index, Member, OpCode, Repeat, Select, Slot, Splice, Struct, Tuple,
     Unary,
 };
@@ -329,25 +329,6 @@ impl<'a> TranslationContext<'a> {
                         field.value
                     ));
                 }
-            }
-            OpCode::Discriminant(Discriminant { lhs, arg }) => {
-                let arg_ty = self
-                    .obj
-                    .kind
-                    .get(arg)
-                    .ok_or(anyhow!(
-                        "No type for slot {} in function {}",
-                        arg,
-                        self.obj.name
-                    ))?
-                    .clone();
-                let path = Path::default().discriminant();
-                let (bit_range, _) = bit_range(arg_ty, &path)?;
-                self.body.push_str(&format!(
-                    "    {lhs} = {arg}[{}:{}];\n",
-                    bit_range.end - 1,
-                    bit_range.start,
-                ));
             }
             OpCode::Case(Case {
                 lhs,
