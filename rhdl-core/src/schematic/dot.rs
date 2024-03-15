@@ -6,9 +6,9 @@ use super::components::DigitalFlipFlopComponent;
 use super::{
     components::{
         ArrayComponent, BinaryComponent, BlackBoxComponent, BufferComponent, CaseComponent,
-        CastComponent, Component, ComponentKind, ConstantComponent, DiscriminantComponent,
-        EnumComponent, IndexComponent, KernelComponent, RepeatComponent, SelectComponent,
-        SpliceComponent, StructComponent, TupleComponent, UnaryComponent,
+        CastComponent, Component, ComponentKind, ConstantComponent, EnumComponent, IndexComponent,
+        KernelComponent, RepeatComponent, SelectComponent, SpliceComponent, StructComponent,
+        TupleComponent, UnaryComponent,
     },
     schematic_impl::Schematic,
 };
@@ -114,7 +114,6 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             ComponentKind::Case(case) => self.write_case(ndx, case),
             ComponentKind::BlackBox(exec) => self.write_black_box(ndx, exec),
             ComponentKind::Array(array) => self.write_array(ndx, array),
-            ComponentKind::Discriminant(disc) => self.write_discriminant(ndx, disc),
             ComponentKind::Enum(enm) => self.write_enum(ndx, enm),
             ComponentKind::Constant(constant) => self.write_constant(ndx, constant),
             ComponentKind::Cast(cast) => self.write_cast(ndx, cast),
@@ -292,13 +291,6 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             .join("");
         let output_ports = format!("{{<{}> Y}}", array.output);
         let label = "array";
-        self.write_cnode(ndx, &input_ports, label, &output_ports)
-    }
-
-    fn write_discriminant(&mut self, ndx: usize, disc: &DiscriminantComponent) -> Result<()> {
-        let input_ports = format!("{{<{}> A}}", disc.arg);
-        let output_ports = format!("{{<{}> Y}}", disc.output);
-        let label = "discriminant";
         self.write_cnode(ndx, &input_ports, label, &output_ports)
     }
 

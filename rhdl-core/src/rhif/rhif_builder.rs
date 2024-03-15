@@ -1,8 +1,8 @@
 use crate::{
     path::Path,
     rhif::spec::{
-        AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum,
-        Exec, FieldValue, FuncId, Index, OpCode, Repeat, Slot, Struct, Tuple, Unary,
+        AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
+        FieldValue, FuncId, Index, OpCode, Repeat, Slot, Struct, Tuple, Unary,
     },
     TypedBits,
 };
@@ -84,10 +84,6 @@ pub fn op_exec(lhs: Slot, id: FuncId, args: Vec<Slot>) -> OpCode {
 
 pub fn op_array(lhs: Slot, elements: Vec<Slot>) -> OpCode {
     OpCode::Array(Array { lhs, elements })
-}
-
-pub fn op_discriminant(lhs: Slot, arg: Slot) -> OpCode {
-    OpCode::Discriminant(Discriminant { lhs, arg })
 }
 
 pub fn op_enum(lhs: Slot, fields: Vec<FieldValue>, template: TypedBits) -> OpCode {

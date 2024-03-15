@@ -4,8 +4,8 @@ use crate::kernel::ExternalKernelDef;
 use crate::path::Path;
 use crate::rhif::object::Object;
 use crate::rhif::spec::{
-    AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum, Exec,
-    Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
+    AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, Index,
+    Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
 };
 use crate::{ast::ast_impl::FunctionId, rhif::module::Module, TypedBits};
 use crate::{Digital, Kind};
@@ -230,11 +230,6 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
                     };
                     result = result.splice(&path, value)?;
                 }
-                state.write(*lhs, result)?;
-            }
-            OpCode::Discriminant(Discriminant { lhs, arg }) => {
-                let arg = state.read(*arg)?;
-                let result = arg.discriminant()?;
                 state.write(*lhs, result)?;
             }
             OpCode::Case(Case {

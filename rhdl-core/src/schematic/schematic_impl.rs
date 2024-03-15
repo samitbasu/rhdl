@@ -147,6 +147,9 @@ impl Schematic {
     pub fn wire(&mut self, source: PinIx, dest: PinIx) {
         self.wires.push(Wire { source, dest });
     }
+    pub fn component(&self, ix: ComponentIx) -> &Component {
+        &self.components[ix.0]
+    }
     // Inline all of the Components that are Kernel invocations into
     // this schematic by replacing the KernelComponent with the
     // sub_schematic.  This can be done recursively, but when the
