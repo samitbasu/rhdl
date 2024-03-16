@@ -4,8 +4,11 @@ use petgraph::Direction;
 use rhdl_bits::alias::*;
 use rhdl_bits::{bits, Bits};
 use rhdl_core::compile_design;
+use rhdl_core::krusty::follow_pin;
+use rhdl_core::krusty::PinPath;
 use rhdl_core::note;
 use rhdl_core::path::Path;
+use rhdl_core::schematic::components::ComponentKind;
 use rhdl_core::Circuit;
 use rhdl_core::CircuitIO;
 use rhdl_core::Digital;
@@ -213,11 +216,20 @@ fn test_strobe_schematic() {
     let strobe = Strobe::<8>::new(bits::<8>(5));
     let descriptor = Strobe::<8>::descriptor(&strobe);
     let schematic = descriptor.schematic().unwrap();
-    eprintln!("schematic is {:?}", schematic);
-
-    let mut dot = std::fs::File::create("strobe.dot").unwrap();
-    rhdl_core::schematic::dot::write_dot(&schematic, &mut dot).unwrap();
+    let clock_pin_path = PinPath {
+        pin: schematic.inputs[0],
+        path: Path::default().field("clock"),
+    };
     let schematic = schematic.inlined();
+    for sink in follow_pin(schematic.clone(), clock_pin_path).unwrap() {
+        eprintln!("sink is {:?}", sink);
+    }
+    let dff = schematic
+        .components
+        .iter()
+        .find(|c| matches!(c.kind, ComponentKind::DigitalFlipFlop(_)))
+        .unwrap();
+    eprintln!("dff is {:?}", dff);
     let mut dot = std::fs::File::create("strobe_inlined.dot").unwrap();
     rhdl_core::schematic::dot::write_dot(&schematic, &mut dot).unwrap();
 }

@@ -31,7 +31,7 @@ pub mod codegen;
 pub mod compiler;
 pub mod diagnostic;
 pub mod dyn_bit_manip;
-//pub mod krusty;
+pub mod krusty;
 pub mod note_db;
 pub mod path;
 pub mod schematic;
