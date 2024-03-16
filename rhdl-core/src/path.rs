@@ -112,6 +112,31 @@ impl Path {
                 .collect(),
         }
     }
+    pub fn canonical(self) -> Path {
+        Path {
+            elements: self
+                .elements
+                .into_iter()
+                .filter(|e| !matches!(e, PathElement::All))
+                .collect(),
+        }
+    }
+    pub fn is_prefix_of(&self, other: &Path) -> bool {
+        self.elements.len() <= other.elements.len()
+            && self
+                .elements
+                .iter()
+                .zip(other.elements.iter())
+                .all(|(a, b)| a == b)
+    }
+    pub fn strip_prefix(&self, prefix: &Path) -> Result<Path> {
+        if !prefix.is_prefix_of(self) {
+            bail!("Path is not a prefix of self")
+        }
+        Ok(Path {
+            elements: self.elements[prefix.elements.len()..].to_vec(),
+        })
+    }
 }
 
 impl From<Member> for Path {

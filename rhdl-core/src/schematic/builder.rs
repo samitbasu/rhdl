@@ -280,6 +280,7 @@ impl<'a> SchematicBuilder<'a> {
                 output: out,
                 path: splice.path.clone(),
                 dynamic: dynamic.clone(),
+                kind: self.schematic.pin(orig).kind.clone(),
             }),
             location,
         );
@@ -422,6 +423,7 @@ impl<'a> SchematicBuilder<'a> {
             ComponentKind::Enum(EnumComponent {
                 fields: fields.clone(),
                 output: out,
+                template: enumerate.template.clone(),
             }),
             location,
         );

@@ -71,6 +71,7 @@ pub struct SpliceComponent {
     pub output: PinIx,
     pub path: Path,
     pub dynamic: Vec<PinIx>,
+    pub kind: Kind,
 }
 
 #[derive(Clone, Debug)]
@@ -132,6 +133,7 @@ pub struct ArrayComponent {
 pub struct EnumComponent {
     pub fields: Vec<FieldPin>,
     pub output: PinIx,
+    pub template: TypedBits,
 }
 
 #[derive(Clone, Debug)]

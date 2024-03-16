@@ -282,6 +282,37 @@ fn test_struct_expr_not_adt() {
 }
 
 #[test]
+fn test_adt_use() {
+    #[derive(PartialEq, Copy, Clone, Digital)]
+    pub enum Foo {
+        Red(u8, bool),
+        Green(u8, bool),
+    }
+
+    impl Default for Foo {
+        fn default() -> Self {
+            Foo::Red(0, false)
+        }
+    }
+
+    #[kernel]
+    fn get_color(a: Foo, c: bool) -> bool {
+        c && match a {
+            Foo::Red(x, z) => z,
+            Foo::Green(x, z) => true,
+        }
+    }
+
+    test_kernel_vm_and_verilog::<get_color, _, _, _>(
+        get_color,
+        [(Foo::Red(3, true), false), (Foo::Green(4, true), true)]
+            .iter()
+            .cloned(),
+    )
+    .unwrap();
+}
+
+#[test]
 fn test_struct_expr_adt() {
     #[derive(PartialEq, Copy, Clone, Digital, Default)]
     pub enum Foo {
