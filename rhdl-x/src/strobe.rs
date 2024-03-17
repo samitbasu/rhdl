@@ -4,11 +4,10 @@ use petgraph::Direction;
 use rhdl_bits::alias::*;
 use rhdl_bits::{bits, Bits};
 use rhdl_core::compile_design;
-use rhdl_core::krusty::follow_pin;
-use rhdl_core::krusty::PinPath;
 use rhdl_core::note;
 use rhdl_core::path::Path;
 use rhdl_core::schematic::components::ComponentKind;
+use rhdl_core::schematic::schematic_impl::PinPath;
 use rhdl_core::Circuit;
 use rhdl_core::CircuitIO;
 use rhdl_core::Digital;
@@ -138,7 +137,7 @@ fn test_circuit_schematic() {
         .unwrap()
         .inlined();
     let mut dot = std::fs::File::create("circuit_schematic.dot").unwrap();
-    rhdl_core::schematic::dot::write_dot(&schematic, &mut dot).unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, &Default::default(), &mut dot).unwrap();
 }
 
 #[test]
@@ -151,7 +150,7 @@ fn test_schematic() {
     let design = compile_design(kernel).unwrap();
     let schematic = rhdl_core::schematic::builder::build_schematic(&design, design.top).unwrap();
     let mut dot = std::fs::File::create("strobe_schematic.dot").unwrap();
-    rhdl_core::schematic::dot::write_dot(&schematic, &mut dot).unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, &Default::default(), &mut dot).unwrap();
 }
 
 #[test]
@@ -186,7 +185,7 @@ fn test_simple_schematic_inlined() {
         eprintln!("wire {:?}", w);
     });
     let mut dot = std::fs::File::create("add_enabled_schematic.dot").unwrap();
-    rhdl_core::schematic::dot::write_dot(&schematic, &mut dot).unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, &Default::default(), &mut dot).unwrap();
 }
 
 #[test]
@@ -208,7 +207,7 @@ fn test_schematic_inlined() {
             eprintln!("component {} path {:?}", ndx, c.path);
         });
     let mut dot = std::fs::File::create("strobe_schematic.dot").unwrap();
-    rhdl_core::schematic::dot::write_dot(&schematic, &mut dot).unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, &Default::default(), &mut dot).unwrap();
 }
 
 #[test]
@@ -221,17 +220,35 @@ fn test_strobe_schematic() {
         path: Path::default().field("clock"),
     };
     let schematic = schematic.inlined();
-    for sink in follow_pin(schematic.clone(), clock_pin_path).unwrap() {
+    for sink in
+        rhdl_core::crusty::downstream::follow_pin_downstream(schematic.clone(), clock_pin_path)
+            .unwrap()
+    {
         eprintln!("sink is {:?}", sink);
     }
     let dff = schematic
         .components
         .iter()
-        .find(|c| matches!(c.kind, ComponentKind::DigitalFlipFlop(_)))
+        .find_map(|c| match &c.kind {
+            ComponentKind::DigitalFlipFlop(d) => Some(d),
+            _ => None,
+        })
         .unwrap();
     eprintln!("dff is {:?}", dff);
+    let dff_clock_pin = dff.clock;
+    let dff_source_path = rhdl_core::crusty::upstream::follow_pin_upstream(
+        schematic.clone(),
+        PinPath {
+            pin: dff_clock_pin,
+            path: Path::default(),
+        },
+    )
+    .unwrap();
+    for segment in &dff_source_path {
+        eprintln!("segment is {:?}", segment);
+    }
     let mut dot = std::fs::File::create("strobe_inlined.dot").unwrap();
-    rhdl_core::schematic::dot::write_dot(&schematic, &mut dot).unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, &dff_source_path, &mut dot).unwrap();
 }
 
 /*

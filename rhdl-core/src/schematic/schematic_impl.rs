@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     diagnostic::SpannedSource,
+    path::Path,
     rhif::{object::SourceLocation, spec::FuncId},
     Kind,
 };
@@ -238,3 +239,18 @@ impl Schematic {
         output_schematic
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct PinPath {
+    pub pin: PinIx,
+    pub path: Path,
+}
+
+#[derive(Debug, Clone)]
+pub struct WirePath {
+    pub source: PinIx,
+    pub dest: PinIx,
+    pub path: Path,
+}
+
+pub type Trace = Vec<WirePath>;
