@@ -3,6 +3,7 @@ use std::io::Result;
 use std::io::Write;
 
 use super::components::DigitalFlipFlopComponent;
+use super::schematic_impl::Trace;
 use super::{
     components::{
         ArrayComponent, BinaryComponent, BlackBoxComponent, BufferComponent, CaseComponent,
@@ -18,7 +19,7 @@ struct DotWriter<'a, 'b, W: Write> {
     schematic: &'a Schematic,
 }
 
-pub fn write_dot(schematic: &Schematic, mut w: impl Write) -> Result<()> {
+pub fn write_dot(schematic: &Schematic, trace: &Trace, mut w: impl Write) -> Result<()> {
     writeln!(w, "digraph schematic {{")?;
     writeln!(w, "rankdir=\"LR\"")?;
     writeln!(w, "remincross=true;")?;
@@ -26,12 +27,12 @@ pub fn write_dot(schematic: &Schematic, mut w: impl Write) -> Result<()> {
         w: &mut w,
         schematic,
     };
-    dot.write_schematic()?;
+    dot.write_schematic(trace)?;
     writeln!(w, "}}")
 }
 
 impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
-    fn write_schematic(&mut self) -> Result<()> {
+    fn write_schematic(&mut self, trace: &Trace) -> Result<()> {
         // Allocate the input ports for the schematic
         self.schematic
             .inputs
@@ -65,10 +66,18 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             {
                 return Ok(());
             }
+            let label = if let Some(t) = trace
+                .iter()
+                .find(|t| t.source == wire.source && t.dest == wire.dest)
+            {
+                format!("[label=\"{}\", color=\"red\"]", t.path)
+            } else {
+                "".to_string()
+            };
             writeln!(
                 self.w,
-                "c{}:{}:e -> c{}:{}:w;",
-                src_component, wire.source, dest_component, wire.dest
+                "c{}:{}:e -> c{}:{}:w {};",
+                src_component, wire.source, dest_component, wire.dest, label
             )
         })?;
 
