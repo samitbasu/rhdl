@@ -3,10 +3,9 @@ use crate::{
     rhif::spec::Member,
     schematic::{
         components::{
-            ArrayComponent, BinaryComponent, BufferComponent, CaseComponent, CastComponent,
-            ComponentKind, DigitalFlipFlopComponent, EnumComponent, IndexComponent,
-            RepeatComponent, SelectComponent, SpliceComponent, StructComponent, TupleComponent,
-            UnaryComponent,
+            ArrayComponent, BinaryComponent, BufferComponent, CaseComponent, ComponentKind,
+            EnumComponent, IndexComponent, RepeatComponent, SelectComponent, SpliceComponent,
+            StructComponent, TupleComponent, UnaryComponent,
         },
         dot::write_dot,
         schematic_impl::{PinPath, Schematic, Trace, WirePath},
@@ -21,7 +20,7 @@ fn upstream_array(array: &ArrayComponent, output: PinPath) -> Result<Vec<PinPath
         .elements
         .iter()
         .enumerate()
-        .find(|(ndx, &ix)| Path::default().index(*ndx).is_prefix_of(&output.path))
+        .find(|(ndx, _ix)| Path::default().index(*ndx).is_prefix_of(&output.path))
     {
         Ok(vec![PinPath {
             pin: *upstream.1,
@@ -64,10 +63,6 @@ fn upstream_case(case: &CaseComponent, output: PinPath) -> Result<Vec<PinPath>> 
             path: output.path.clone(),
         })
         .collect())
-}
-
-fn upstream_dff(dff: &DigitalFlipFlopComponent, output: PinPath) -> Result<Vec<PinPath>> {
-    Ok(vec![])
 }
 
 fn path_with_member(path: Path, member: &Member) -> Path {
@@ -189,7 +184,7 @@ fn upstream_tuple(t: &TupleComponent, output: PinPath) -> Result<Vec<PinPath>> {
         .fields
         .iter()
         .enumerate()
-        .find(|(ndx, pin)| Path::default().index(*ndx).is_prefix_of(&output.path))
+        .find(|(ndx, _pin)| Path::default().index(*ndx).is_prefix_of(&output.path))
     {
         Ok(vec![PinPath {
             pin: *field.1,
@@ -201,10 +196,6 @@ fn upstream_tuple(t: &TupleComponent, output: PinPath) -> Result<Vec<PinPath>> {
     } else {
         Ok(vec![])
     }
-}
-
-fn upstream_cast(c: &CastComponent, output: PinPath) -> Result<Vec<PinPath>> {
-    Ok(vec![])
 }
 
 fn upstream_unary(u: &UnaryComponent, output: PinPath) -> Result<Vec<PinPath>> {
@@ -228,8 +219,6 @@ fn get_upstream_pin_paths(is: &IndexedSchematic, output: PinPath) -> Result<Vec<
         ComponentKind::BlackBox(_) => Ok(vec![]),
         ComponentKind::Buffer(buffer) => upstream_buffer(buffer, output),
         ComponentKind::Case(case) => upstream_case(case, output),
-        ComponentKind::Cast(c) => upstream_cast(c, output),
-        ComponentKind::DigitalFlipFlop(dff) => upstream_dff(dff, output),
         ComponentKind::Enum(e) => upstream_enum(e, output),
         ComponentKind::Index(i) => upstream_index(i, output),
         ComponentKind::Kernel(_) => Ok(vec![]),
@@ -240,7 +229,9 @@ fn get_upstream_pin_paths(is: &IndexedSchematic, output: PinPath) -> Result<Vec<
         ComponentKind::Struct(s) => upstream_struct(s, output),
         ComponentKind::Tuple(t) => upstream_tuple(t, output),
         ComponentKind::Unary(u) => upstream_unary(u, output),
-        ComponentKind::Constant(_) => Ok(vec![]),
+        ComponentKind::Constant(_) | ComponentKind::Cast(_) | ComponentKind::DigitalFlipFlop(_) => {
+            Ok(vec![])
+        }
     }
 }
 
