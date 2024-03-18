@@ -1,16 +1,17 @@
 use crate::path::{bit_range, sub_kind, Path};
+use crate::schematic::components::ArrayComponent;
 use crate::schematic::components::{
-    BinaryComponent, BufferComponent, CaseComponent, CastComponent, ComponentKind,
-    DigitalFlipFlopComponent, EnumComponent, IndexComponent, RepeatComponent, SelectComponent,
-    SpliceComponent, StructComponent, TupleComponent, UnaryComponent,
+    BinaryComponent, BufferComponent, CaseComponent, CastComponent, ComponentKind, EnumComponent,
+    IndexComponent, RepeatComponent, SelectComponent, SpliceComponent, StructComponent,
+    TupleComponent, UnaryComponent,
 };
 use crate::schematic::dot::write_dot;
 use crate::schematic::schematic_impl::{PinPath, Trace, WirePath};
-use crate::schematic::{components::ArrayComponent, schematic_impl::Schematic};
 use anyhow::{anyhow, ensure};
 use anyhow::{bail, Result};
 
 use super::index::IndexedSchematic;
+use super::utils::path_with_member;
 
 fn downstream_array(array: &ArrayComponent, input: PinPath) -> Result<Vec<PinPath>> {
     let (ndx, ix) = array
@@ -50,18 +51,12 @@ fn downstream_case(case: &CaseComponent, input: PinPath) -> Result<Vec<PinPath>>
     })
 }
 
-fn downstream_dff(dff: &DigitalFlipFlopComponent, input: PinPath) -> Result<Vec<PinPath>> {
-    Ok(vec![])
+fn downstream_cast(c: &CastComponent, input: PinPath) -> Result<Vec<PinPath>> {
+    Ok(vec![PinPath {
+        pin: c.output,
+        path: input.path,
+    }])
 }
-
-// An EnumComponent is fed an enum template value.
-// So if we want the discriminant, then this block is a source, and the
-// search ends.
-//
-// On the other hand, if we want the payload, then we first remove the
-// payload part of the path.  If at that point, the path is empty, we have a
-// problem, since we do not know which of the inputs to use.  On the other
-// hand if the path
 
 fn downstream_enum(e: &EnumComponent, input: PinPath) -> Result<Vec<PinPath>> {
     let field = e
@@ -71,9 +66,10 @@ fn downstream_enum(e: &EnumComponent, input: PinPath) -> Result<Vec<PinPath>> {
         .ok_or(anyhow!("ICE - input pin not found in enum component"))?;
     Ok(vec![PinPath {
         pin: e.output,
-        path: Path::default()
-            .payload_by_value(e.template.discriminant()?.as_i64()?)
-            .field(&field.member.to_string()),
+        path: path_with_member(
+            Path::default().payload_by_value(e.template.discriminant()?.as_i64()?),
+            &field.member,
+        ),
     }])
 }
 
@@ -179,13 +175,6 @@ fn downstream_tuple(t: &TupleComponent, input: PinPath) -> Result<Vec<PinPath>> 
     }])
 }
 
-fn downstream_cast(c: &CastComponent, input: PinPath) -> Result<Vec<PinPath>> {
-    Ok(vec![PinPath {
-        pin: c.output,
-        path: input.path,
-    }])
-}
-
 fn downstream_unary(u: &UnaryComponent, input: PinPath) -> Result<Vec<PinPath>> {
     Ok(vec![PinPath {
         pin: u.output,
@@ -203,22 +192,24 @@ fn get_downstream_pin_paths(is: &IndexedSchematic, input: PinPath) -> Result<Vec
     match &component.kind {
         ComponentKind::Array(array) => downstream_array(array, input),
         ComponentKind::Binary(binary) => downstream_binary(binary, input),
-        ComponentKind::BlackBox(_) => Ok(vec![]),
         ComponentKind::Buffer(buffer) => downstream_buffer(buffer, input),
         ComponentKind::Case(case) => downstream_case(case, input),
         ComponentKind::Cast(c) => downstream_cast(c, input),
-        ComponentKind::DigitalFlipFlop(dff) => downstream_dff(dff, input),
         ComponentKind::Enum(e) => downstream_enum(e, input),
         ComponentKind::Index(i) => downstream_index(i, input),
-        ComponentKind::Kernel(_) => Ok(vec![]),
-        ComponentKind::Noop => Ok(vec![]),
+        ComponentKind::Kernel(_) => {
+            bail!("ICE! Kernel components are not supported in this context")
+        }
         ComponentKind::Repeat(r) => downstream_repeat(r, input),
         ComponentKind::Select(s) => downstream_select(s, input),
         ComponentKind::Splice(s) => downstream_splice(s, input),
         ComponentKind::Struct(s) => downstream_struct(s, input),
         ComponentKind::Tuple(t) => downstream_tuple(t, input),
         ComponentKind::Unary(u) => downstream_unary(u, input),
-        ComponentKind::Constant(_) => Ok(vec![]),
+        ComponentKind::BlackBox(_)
+        | ComponentKind::Constant(_)
+        | ComponentKind::DigitalFlipFlop(_)
+        | ComponentKind::Noop => Ok(vec![]),
     }
 }
 
