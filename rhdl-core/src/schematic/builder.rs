@@ -253,6 +253,7 @@ impl<'a> SchematicBuilder<'a> {
                 path: index.path.clone(),
                 output: out,
                 dynamic: dynamic.clone(),
+                kind: self.schematic.pin(arg).kind.clone(),
             }),
             location,
         );

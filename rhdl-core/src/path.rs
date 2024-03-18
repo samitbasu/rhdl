@@ -8,9 +8,8 @@ use crate::rhif::spec::Slot;
 use crate::DiscriminantAlignment;
 use crate::Kind;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PathElement {
-    All,
     Index(usize),
     Field(String),
     EnumDiscriminant,
@@ -19,7 +18,7 @@ pub enum PathElement {
     DynamicIndex(Slot),
 }
 
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct Path {
     pub elements: Vec<PathElement>,
 }
@@ -36,7 +35,6 @@ impl std::fmt::Display for Path {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for e in &self.elements {
             match e {
-                PathElement::All => write!(f, "")?,
                 PathElement::Index(i) => write!(f, "[{}]", i)?,
                 PathElement::Field(s) => write!(f, ".{}", s)?,
                 PathElement::EnumDiscriminant => write!(f, "#")?,
@@ -70,6 +68,13 @@ impl Path {
         self.elements.push(PathElement::Field(field.to_string()));
         self
     }
+    pub fn member(mut self, member: Member) -> Self {
+        match member {
+            Member::Named(name) => self.elements.push(PathElement::Field(name)),
+            Member::Unnamed(ndx) => self.elements.push(PathElement::Index(ndx as usize)),
+        }
+        self
+    }
     pub fn discriminant(mut self) -> Self {
         self.elements.push(PathElement::EnumDiscriminant);
         self
@@ -88,7 +93,7 @@ impl Path {
         self
     }
     pub fn is_empty(&self) -> bool {
-        self.elements.iter().all(|e| matches!(e, PathElement::All)) || self.elements.is_empty()
+        self.elements.is_empty()
     }
     pub fn payload_by_value(mut self, discriminant: i64) -> Self {
         self.elements
@@ -109,15 +114,6 @@ impl Path {
                     PathElement::DynamicIndex(slot) => PathElement::DynamicIndex(f(slot)),
                     _ => e,
                 })
-                .collect(),
-        }
-    }
-    pub fn canonical(self) -> Path {
-        Path {
-            elements: self
-                .elements
-                .into_iter()
-                .filter(|e| !matches!(e, PathElement::All))
                 .collect(),
         }
     }
@@ -152,6 +148,45 @@ impl From<Member> for Path {
     }
 }
 
+// Given a path and a kind, computes all possible paths that can be
+// generated from the base path using legal values for the dynamic
+// indices.
+pub fn path_star(kind: &Kind, path: &Path) -> Result<Vec<Path>> {
+    eprintln!("path star called with kind {} and path {}", kind, path);
+    if !path.any_dynamic() {
+        return Ok(vec![path.clone()]);
+    }
+    if let Some(element) = path.elements.first() {
+        match element {
+            PathElement::DynamicIndex(_) => {
+                let Kind::Array(array) = kind else {
+                    bail!("Dynamic index on non-array type")
+                };
+                let mut paths = Vec::new();
+                for i in 0..array.size {
+                    let mut path = path.clone();
+                    path.elements[0] = PathElement::Index(i);
+                    paths.extend(path_star(kind, &path)?);
+                }
+                return Ok(paths);
+            }
+            p => {
+                let prefix_path = Path {
+                    elements: vec![p.clone()],
+                };
+                let prefix_kind = sub_kind(kind.clone(), &prefix_path)?;
+                let suffix_path = path.strip_prefix(&prefix_path)?;
+                let suffix_star = path_star(&prefix_kind, &suffix_path)?;
+                return Ok(suffix_star
+                    .into_iter()
+                    .map(|suffix| prefix_path.clone().join(&suffix))
+                    .collect());
+            }
+        }
+    }
+    Ok(vec![path.clone()])
+}
+
 pub fn sub_kind(kind: Kind, path: &Path) -> Result<Kind> {
     bit_range(kind, path).map(|(_, kind)| kind)
 }
@@ -163,7 +198,6 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
     let mut kind = kind;
     for p in &path.elements {
         match p {
-            PathElement::All => (),
             PathElement::Index(i) => match &kind {
                 Kind::Array(array) => {
                     let element_size = array.base.bits();
@@ -288,4 +322,70 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
         }
     }
     Ok((range, kind))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{path::path_star, rhif::spec::Slot, Kind};
+
+    use super::Path;
+
+    #[test]
+    fn test_path_star() {
+        let base_struct = Kind::make_struct(
+            "base",
+            vec![
+                Kind::make_field("a", Kind::make_bits(8)),
+                Kind::make_field("b", Kind::make_array(Kind::make_bits(8), 3)),
+            ],
+        );
+        // Create a path with a struct, containing and array of structs
+        let kind = Kind::make_struct(
+            "foo",
+            vec![
+                Kind::make_field("c", base_struct.clone()),
+                Kind::make_field("d", Kind::make_array(base_struct.clone(), 4)),
+            ],
+        );
+        let path1 = Path::default().field("c").field("a");
+        assert_eq!(path_star(&kind, &path1).unwrap().len(), 1);
+        let path1 = Path::default().field("c").field("b");
+        assert_eq!(path_star(&kind, &path1).unwrap().len(), 1);
+        let path1 = Path::default().field("c").field("b").index(0);
+        assert_eq!(path_star(&kind, &path1).unwrap().len(), 1);
+        let path1 = Path::default()
+            .field("c")
+            .field("b")
+            .dynamic(Slot::Register(0));
+        let path1_star = path_star(&kind, &path1).unwrap();
+        assert_eq!(path1_star.len(), 3);
+        for path in path1_star {
+            assert_eq!(path.elements.len(), 3);
+            assert!(!path.any_dynamic());
+            eprintln!("{}", path);
+        }
+        let path2 = Path::default()
+            .field("d")
+            .dynamic(Slot::Register(0))
+            .field("b");
+        let path2_star = path_star(&kind, &path2).unwrap();
+        assert_eq!(path2_star.len(), 4);
+        for path in path2_star {
+            assert_eq!(path.elements.len(), 3);
+            assert!(!path.any_dynamic());
+            eprintln!("{}", path);
+        }
+        let path3 = Path::default()
+            .field("d")
+            .dynamic(Slot::Register(0))
+            .field("b")
+            .dynamic(Slot::Register(1));
+        let path3_star = path_star(&kind, &path3).unwrap();
+        assert_eq!(path3_star.len(), 12);
+        for path in path3_star {
+            assert_eq!(path.elements.len(), 4);
+            assert!(!path.any_dynamic());
+            eprintln!("{}", path);
+        }
+    }
 }

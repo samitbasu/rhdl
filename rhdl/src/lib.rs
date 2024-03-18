@@ -1,8 +1,12 @@
 pub mod bits;
 pub mod core;
 pub mod synchronous;
+
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod test_crusty;
 
 pub use crate::bits::Bits;
 pub use crate::bits::SignedBits;

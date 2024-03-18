@@ -60,6 +60,7 @@ pub struct SelectComponent {
 pub struct IndexComponent {
     pub arg: PinIx,
     pub path: Path,
+    pub kind: Kind,
     pub output: PinIx,
     pub dynamic: Vec<PinIx>,
 }

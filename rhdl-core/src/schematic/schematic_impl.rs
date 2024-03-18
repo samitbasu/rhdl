@@ -240,10 +240,14 @@ impl Schematic {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PinPath {
     pub pin: PinIx,
     pub path: Path,
+}
+
+pub fn pin_path(pin: PinIx, path: Path) -> PinPath {
+    PinPath { pin, path }
 }
 
 #[derive(Debug, Clone)]
@@ -253,4 +257,19 @@ pub struct WirePath {
     pub path: Path,
 }
 
-pub type Trace = Vec<WirePath>;
+#[derive(Debug, Clone)]
+pub struct Trace {
+    pub source: PinPath,
+    pub paths: Vec<WirePath>,
+    pub sinks: Vec<PinPath>,
+}
+
+impl From<PinPath> for Trace {
+    fn from(source: PinPath) -> Self {
+        Trace {
+            source,
+            paths: vec![],
+            sinks: vec![],
+        }
+    }
+}
