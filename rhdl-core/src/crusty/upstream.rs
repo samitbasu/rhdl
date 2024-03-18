@@ -216,22 +216,24 @@ fn get_upstream_pin_paths(is: &IndexedSchematic, output: PinPath) -> Result<Vec<
     match &component.kind {
         ComponentKind::Array(array) => upstream_array(array, output),
         ComponentKind::Binary(binary) => upstream_binary(binary, output),
-        ComponentKind::BlackBox(_) => Ok(vec![]),
         ComponentKind::Buffer(buffer) => upstream_buffer(buffer, output),
         ComponentKind::Case(case) => upstream_case(case, output),
         ComponentKind::Enum(e) => upstream_enum(e, output),
         ComponentKind::Index(i) => upstream_index(i, output),
-        ComponentKind::Kernel(_) => Ok(vec![]),
-        ComponentKind::Noop => Ok(vec![]),
+        ComponentKind::Kernel(_) => {
+            bail!("ICE! Kernel components should not appear in indexed schematics")
+        }
         ComponentKind::Repeat(r) => upstream_repeat(r, output),
         ComponentKind::Select(s) => upstream_select(s, output),
         ComponentKind::Splice(s) => upstream_splice(s, output),
         ComponentKind::Struct(s) => upstream_struct(s, output),
         ComponentKind::Tuple(t) => upstream_tuple(t, output),
         ComponentKind::Unary(u) => upstream_unary(u, output),
-        ComponentKind::Constant(_) | ComponentKind::Cast(_) | ComponentKind::DigitalFlipFlop(_) => {
-            Ok(vec![])
-        }
+        ComponentKind::BlackBox(_)
+        | ComponentKind::Noop
+        | ComponentKind::Constant(_)
+        | ComponentKind::Cast(_)
+        | ComponentKind::DigitalFlipFlop(_) => Ok(vec![]),
     }
 }
 
@@ -274,17 +276,13 @@ fn follow_upstream(is: &IndexedSchematic, sink: PinPath, trace: &mut Trace) -> R
     Ok(())
 }
 
-pub fn follow_pin_upstream(schematic: Schematic, pin_path: PinPath) -> Result<Trace> {
-    let is: IndexedSchematic = schematic.into();
+pub fn follow_pin_upstream(is: &IndexedSchematic, pin_path: PinPath) -> Result<Trace> {
     let pin_kind = is.schematic.pin(pin_path.pin).kind.clone();
     if let Err(err) = sub_kind(pin_kind.clone(), &pin_path.path) {
         bail!("Illegal path in query.  The specified path {} is not valid on the type of the given pin, which is {}. Error was {err}",
             pin_path.path, pin_kind);
     }
-    let mut w = vec![];
-    write_dot(&is.schematic, Default::default(), &mut w)?;
-    eprintln!("{}", String::from_utf8_lossy(&w));
     let mut trace = pin_path.clone().into();
-    follow_upstream(&is, pin_path, &mut trace)?;
+    follow_upstream(is, pin_path, &mut trace)?;
     Ok(trace)
 }

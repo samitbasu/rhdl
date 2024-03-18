@@ -1,13 +1,14 @@
-use crate::path::{bit_range, Path};
+use crate::path::{bit_range, sub_kind, Path};
 use crate::schematic::components::{
     BinaryComponent, BufferComponent, CaseComponent, CastComponent, ComponentKind,
     DigitalFlipFlopComponent, EnumComponent, IndexComponent, RepeatComponent, SelectComponent,
     SpliceComponent, StructComponent, TupleComponent, UnaryComponent,
 };
+use crate::schematic::dot::write_dot;
 use crate::schematic::schematic_impl::{PinPath, Trace, WirePath};
 use crate::schematic::{components::ArrayComponent, schematic_impl::Schematic};
-use anyhow::Result;
 use anyhow::{anyhow, ensure};
+use anyhow::{bail, Result};
 
 use super::index::IndexedSchematic;
 
@@ -222,34 +223,54 @@ fn get_downstream_pin_paths(is: &IndexedSchematic, input: PinPath) -> Result<Vec
 }
 
 fn follow_downstream(is: &IndexedSchematic, source: PinPath, trace: &mut Trace) -> Result<()> {
-    // First, find all of the downstream pins
-    let downstreams = get_downstream_pin_paths(is, source.clone())?;
-    if downstreams.is_empty() {
+    if is.schematic.output == source.pin {
         trace.sinks.push(source);
         return Ok(());
     }
-    for pin_path in &downstreams {
-        if let Some(children) = is.index.forward.get(&pin_path.pin) {
-            for child in children {
-                trace.paths.push(WirePath {
-                    source: source.pin,
-                    dest: *child,
-                    path: source.path.clone(),
-                });
-                let child_pin_path = PinPath {
-                    pin: *child,
-                    path: pin_path.path.clone(),
-                };
-                follow_downstream(is, child_pin_path, trace)?;
+    if let Some(children) = is.index.forward.get(&source.pin) {
+        for child in children {
+            trace.paths.push(WirePath {
+                source: source.pin,
+                dest: *child,
+                path: source.path.clone(),
+            });
+            let child_pin_path = PinPath {
+                pin: *child,
+                path: source.path.clone(),
+            };
+            let downstreams = get_downstream_pin_paths(is, child_pin_path.clone())?;
+            if downstreams.is_empty() {
+                trace.sinks.push(child_pin_path);
+            } else {
+                for downstream in downstreams {
+                    follow_downstream(is, downstream, trace)?;
+                }
+            }
+        }
+    } else {
+        let downstreams = get_downstream_pin_paths(is, source.clone())?;
+        if downstreams.is_empty() {
+            trace.sinks.push(source);
+            return Ok(());
+        } else {
+            for downstream in downstreams {
+                follow_downstream(is, downstream, trace)?;
             }
         }
     }
     Ok(())
 }
 
-pub fn follow_pin_downstream(schematic: Schematic, pin_path: PinPath) -> Result<Trace> {
-    let is: IndexedSchematic = schematic.into();
+pub fn follow_pin_downstream(is: &IndexedSchematic, pin_path: PinPath) -> Result<Trace> {
+    let pin_kind = is.schematic.pin(pin_path.pin).kind.clone();
+    if let Err(err) = sub_kind(pin_kind.clone(), &pin_path.path) {
+        bail!("Illegal path in query.  The specified path {} is not valid on the type of the given pin, which is {}. Error was {err}",
+        pin_path.path, pin_kind);
+    }
+    let mut w = vec![];
+    write_dot(&is.schematic, Default::default(), &mut w)?;
+    eprintln!("{}", String::from_utf8_lossy(&w));
     let mut trace = pin_path.clone().into();
-    follow_downstream(&is, pin_path, &mut trace)?;
+    follow_downstream(is, pin_path, &mut trace)?;
     Ok(trace)
 }

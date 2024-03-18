@@ -55,7 +55,7 @@ fn test_upstream_binary() {
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
     let trace = follow_pin_upstream(
-        schematic.clone(),
+        &schematic.clone().into(),
         pin_path(output_pin, Path::default().index(1)),
     )
     .unwrap();
@@ -72,8 +72,11 @@ fn test_upstream_array() {
     }
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
-    let trace =
-        follow_pin_upstream(schematic.clone(), pin_path(output_pin, Path::default())).unwrap();
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(output_pin, Path::default()),
+    )
+    .unwrap();
     assert!(trace_reached_inputs_or_constant(&schematic, &trace));
 }
 
@@ -87,8 +90,11 @@ fn test_upstream_array_repeated() {
     }
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
-    let trace =
-        follow_pin_upstream(schematic.clone(), pin_path(output_pin, Path::default())).unwrap();
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(output_pin, Path::default()),
+    )
+    .unwrap();
     assert!(trace_reached_inputs_or_constant(&schematic, &trace));
 }
 
@@ -103,8 +109,11 @@ fn test_upstream_case() {
     }
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
-    let trace =
-        follow_pin_upstream(schematic.clone(), pin_path(output_pin, Path::default())).unwrap();
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(output_pin, Path::default()),
+    )
+    .unwrap();
     assert!(trace_reached_inputs_or_constant(&schematic, &trace));
 }
 
@@ -154,8 +163,11 @@ fn test_upstream_enum() {
 
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
-    let trace =
-        follow_pin_upstream(schematic.clone(), pin_path(output_pin, Path::default())).unwrap();
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(output_pin, Path::default()),
+    )
+    .unwrap();
     write_dot(
         &schematic,
         Some(&trace),
@@ -174,8 +186,11 @@ fn test_upstream_index() {
 
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
-    let trace =
-        follow_pin_upstream(schematic.clone(), pin_path(output_pin, Path::default())).unwrap();
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(output_pin, Path::default()),
+    )
+    .unwrap();
     assert!(trace_reached_inputs_or_constant(&schematic, &trace));
 }
 
@@ -188,8 +203,11 @@ fn test_upstream_index_nested() {
 
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
-    let trace =
-        follow_pin_upstream(schematic.clone(), pin_path(output_pin, Path::default())).unwrap();
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(output_pin, Path::default()),
+    )
+    .unwrap();
     assert!(trace_reached_inputs_or_constant(&schematic, &trace));
 }
 
@@ -204,8 +222,11 @@ fn test_upstream_index_dynamic() {
 
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
-    let trace =
-        follow_pin_upstream(schematic.clone(), pin_path(output_pin, Path::default())).unwrap();
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(output_pin, Path::default()),
+    )
+    .unwrap();
     assert!(trace_reached_inputs_or_constant(&schematic, &trace));
 }
 
@@ -218,8 +239,11 @@ fn test_upstream_index_nested_dynamic() {
 
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
-    let trace =
-        follow_pin_upstream(schematic.clone(), pin_path(output_pin, Path::default())).unwrap();
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(output_pin, Path::default()),
+    )
+    .unwrap();
     assert!(trace_reached_inputs_or_constant(&schematic, &trace));
 }
 
@@ -232,8 +256,11 @@ fn test_upstream_index_double_nested_dynamic() {
 
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
-    let trace =
-        follow_pin_upstream(schematic.clone(), pin_path(output_pin, Path::default())).unwrap();
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(output_pin, Path::default()),
+    )
+    .unwrap();
     write_dot(
         &schematic,
         Some(&trace),
@@ -253,8 +280,11 @@ fn test_upstream_repeat() {
 
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
-    let trace =
-        follow_pin_upstream(schematic.clone(), pin_path(output_pin, Path::default())).unwrap();
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(output_pin, Path::default()),
+    )
+    .unwrap();
     assert!(trace_reached_inputs_or_constant(&schematic, &trace));
 }
 
@@ -271,8 +301,11 @@ fn test_upstream_select() {
 
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
-    let trace =
-        follow_pin_upstream(schematic.clone(), pin_path(output_pin, Path::default())).unwrap();
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(output_pin, Path::default()),
+    )
+    .unwrap();
     write_dot(
         &schematic,
         Some(&trace),
@@ -293,8 +326,11 @@ fn test_upstream_splice() {
 
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
-    let trace =
-        follow_pin_upstream(schematic.clone(), pin_path(output_pin, Path::default())).unwrap();
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(output_pin, Path::default()),
+    )
+    .unwrap();
     write_dot(
         &schematic,
         Some(&trace),
@@ -316,7 +352,7 @@ fn test_upstream_rejects_illegal_query() {
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
     assert!(follow_pin_upstream(
-        schematic.clone(),
+        &schematic.clone().into(),
         pin_path(output_pin, Path::default().index(0)),
     )
     .is_err());
@@ -333,8 +369,11 @@ fn test_upstream_splice_no_pass() {
 
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
-    let trace =
-        follow_pin_upstream(schematic.clone(), pin_path(output_pin, Path::default())).unwrap();
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(output_pin, Path::default()),
+    )
+    .unwrap();
     write_dot(
         &schematic,
         Some(&trace),
@@ -354,8 +393,11 @@ fn test_upstream_tuple() {
 
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
-    let trace =
-        follow_pin_upstream(schematic.clone(), pin_path(output_pin, Path::default())).unwrap();
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(output_pin, Path::default()),
+    )
+    .unwrap();
     write_dot(
         &schematic,
         Some(&trace),
@@ -373,8 +415,11 @@ fn test_upstream_unary() {
     }
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
-    let trace =
-        follow_pin_upstream(schematic.clone(), pin_path(output_pin, Path::default())).unwrap();
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(output_pin, Path::default()),
+    )
+    .unwrap();
     assert!(trace_reached_inputs_or_constant(&schematic, &trace));
 }
 
@@ -386,7 +431,10 @@ fn test_upstream_constant() {
     }
     let schematic = get_schematic::<func>();
     let output_pin = schematic.output;
-    let trace =
-        follow_pin_upstream(schematic.clone(), pin_path(output_pin, Path::default())).unwrap();
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(output_pin, Path::default()),
+    )
+    .unwrap();
     assert!(trace_reached_no_inputs(&schematic, &trace));
 }
