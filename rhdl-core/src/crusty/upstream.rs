@@ -1,19 +1,17 @@
 use crate::{
     path::{bit_range, path_star, sub_kind, Path},
-    rhif::spec::Member,
     schematic::{
         components::{
-            ArrayComponent, BinaryComponent, BufferComponent, CaseComponent, ComponentKind,
-            EnumComponent, IndexComponent, RepeatComponent, SelectComponent, SpliceComponent,
-            StructComponent, TupleComponent, UnaryComponent,
+            ArrayComponent, BinaryComponent, BufferComponent, CaseComponent, CastComponent,
+            ComponentKind, EnumComponent, IndexComponent, RepeatComponent, SelectComponent,
+            SpliceComponent, StructComponent, TupleComponent, UnaryComponent,
         },
-        dot::write_dot,
-        schematic_impl::{PinPath, Schematic, Trace, WirePath},
+        schematic_impl::{PinPath, Trace, WirePath},
     },
 };
 use anyhow::{bail, Result};
 
-use super::index::IndexedSchematic;
+use super::{index::IndexedSchematic, utils::path_with_member};
 
 fn upstream_array(array: &ArrayComponent, output: PinPath) -> Result<Vec<PinPath>> {
     if let Some(upstream) = array
@@ -65,11 +63,11 @@ fn upstream_case(case: &CaseComponent, output: PinPath) -> Result<Vec<PinPath>> 
         .collect())
 }
 
-fn path_with_member(path: Path, member: &Member) -> Path {
-    match member {
-        Member::Unnamed(ix) => path.index(*ix as usize),
-        Member::Named(f) => path.field(f),
-    }
+fn upstream_cast(cast: &CastComponent, output: PinPath) -> Result<Vec<PinPath>> {
+    Ok(vec![PinPath {
+        pin: cast.input,
+        path: output.path.clone(),
+    }])
 }
 
 fn upstream_enum(e: &EnumComponent, output: PinPath) -> Result<Vec<PinPath>> {
@@ -218,6 +216,7 @@ fn get_upstream_pin_paths(is: &IndexedSchematic, output: PinPath) -> Result<Vec<
         ComponentKind::Binary(binary) => upstream_binary(binary, output),
         ComponentKind::Buffer(buffer) => upstream_buffer(buffer, output),
         ComponentKind::Case(case) => upstream_case(case, output),
+        ComponentKind::Cast(cast) => upstream_cast(cast, output),
         ComponentKind::Enum(e) => upstream_enum(e, output),
         ComponentKind::Index(i) => upstream_index(i, output),
         ComponentKind::Kernel(_) => {
@@ -232,7 +231,6 @@ fn get_upstream_pin_paths(is: &IndexedSchematic, output: PinPath) -> Result<Vec<
         ComponentKind::BlackBox(_)
         | ComponentKind::Noop
         | ComponentKind::Constant(_)
-        | ComponentKind::Cast(_)
         | ComponentKind::DigitalFlipFlop(_) => Ok(vec![]),
     }
 }

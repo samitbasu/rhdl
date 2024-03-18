@@ -384,6 +384,59 @@ fn test_upstream_splice_no_pass() {
 }
 
 #[test]
+fn test_upstream_struct() {
+    #[kernel]
+    fn func(a: bool) -> bool {
+        let rest = Egg::default();
+        let c = Egg { b: a, ..rest };
+        c.b
+    }
+
+    let schematic = get_schematic::<func>();
+    let output_pin = schematic.output;
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(schematic.output, Path::default()),
+    )
+    .unwrap();
+
+    write_dot(
+        &schematic,
+        Some(&trace),
+        std::fs::File::create("upstream_struct_works.dot").unwrap(),
+    )
+    .unwrap();
+    assert!(trace_reached_inputs_or_constant(&schematic, &trace));
+}
+
+#[test]
+fn test_upstream_struct_via_rest() {
+    #[kernel]
+    fn func(a: bool) -> bool {
+        let rest = Egg::default();
+        let c = Egg { b: a, ..rest };
+        let d = Egg { a: rest.a, ..c };
+        d.b
+    }
+
+    let schematic = get_schematic::<func>();
+    let output_pin = schematic.output;
+    let trace = follow_pin_upstream(
+        &schematic.clone().into(),
+        pin_path(schematic.output, Path::default()),
+    )
+    .unwrap();
+
+    write_dot(
+        &schematic,
+        Some(&trace),
+        std::fs::File::create("upstream_struct_via_rest_works.dot").unwrap(),
+    )
+    .unwrap();
+    assert!(trace_reached_inputs_or_constant(&schematic, &trace));
+}
+
+#[test]
 fn test_upstream_tuple() {
     #[kernel]
     fn func(a: Bits<4>, b: Bits<4>) -> Bits<4> {

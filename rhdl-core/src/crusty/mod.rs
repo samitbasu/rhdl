@@ -1,6 +1,7 @@
 pub mod downstream;
 pub mod index;
 pub mod upstream;
+pub mod utils;
 
 /*
 fn check_dff_clock_routing_single(is: &IndexedSchematic, index: usize) -> Result<()> {
