@@ -37,7 +37,7 @@ impl Display for OpCode {
                 path,
                 subst: arg,
             }) => {
-                write!(f, "{} <- {}/[{}]{}", lhs, path, rhs, arg)
+                write!(f, "{} <- {}/{}/{}", lhs, arg, path, rhs)
             }
             OpCode::Select(Select {
                 lhs,

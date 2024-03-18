@@ -131,6 +131,7 @@ impl CircuitDescriptor {
                 path: Path::default().index(0),
                 output: outfeed_out_pin,
                 dynamic: vec![],
+                kind: update_output_kind.clone(),
             }),
             None,
         );
@@ -154,6 +155,7 @@ impl CircuitDescriptor {
                         path: Path::default().index(1).field(name),
                         output: index_to_child_pin,
                         dynamic: vec![],
+                        kind: child.input_kind.clone(),
                     }),
                     None,
                 );

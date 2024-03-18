@@ -19,7 +19,7 @@ struct DotWriter<'a, 'b, W: Write> {
     schematic: &'a Schematic,
 }
 
-pub fn write_dot(schematic: &Schematic, trace: &Trace, mut w: impl Write) -> Result<()> {
+pub fn write_dot(schematic: &Schematic, trace: Option<&Trace>, mut w: impl Write) -> Result<()> {
     writeln!(w, "digraph schematic {{")?;
     writeln!(w, "rankdir=\"LR\"")?;
     writeln!(w, "remincross=true;")?;
@@ -32,7 +32,7 @@ pub fn write_dot(schematic: &Schematic, trace: &Trace, mut w: impl Write) -> Res
 }
 
 impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
-    fn write_schematic(&mut self, trace: &Trace) -> Result<()> {
+    fn write_schematic(&mut self, trace: Option<&Trace>) -> Result<()> {
         // Allocate the input ports for the schematic
         self.schematic
             .inputs
@@ -66,10 +66,11 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             {
                 return Ok(());
             }
-            let label = if let Some(t) = trace
-                .iter()
-                .find(|t| t.source == wire.source && t.dest == wire.dest)
-            {
+            let label = if let Some(t) = trace.as_ref().and_then(|t| {
+                t.paths
+                    .iter()
+                    .find(|t| t.source == wire.source && t.dest == wire.dest)
+            }) {
                 format!("[label=\"{}\", color=\"red\"]", t.path)
             } else {
                 "".to_string()
@@ -89,23 +90,44 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             .try_for_each(|(ix, pin)| {
                 let pin_data = self.schematic.pin(*pin);
                 let parent_component: usize = pin_data.parent.into();
+                let label = if let Some(t) = trace
+                    .as_ref()
+                    .and_then(|t| t.sinks.iter().find(|t| t.pin == *pin))
+                {
+                    format!("[label=\"{}\", color=\"red\"]", t.path)
+                } else {
+                    "".to_string()
+                };
                 writeln!(
                     self.w,
-                    "a{ix}:e -> c{parent}:{pin}:w;",
+                    "a{ix}:e -> c{parent}:{pin}:w {label};",
                     ix = ix,
                     parent = parent_component,
-                    pin = pin
+                    pin = pin,
+                    label = label
                 )
             })?;
         // Add wires from the output schematic ports to the output buffer pins
         let pin_data = self.schematic.pin(self.schematic.output);
         let parent_component: usize = pin_data.parent.into();
+        let label = if let Some(t) = trace.as_ref().and_then(|t| {
+            if t.source.pin == self.schematic.output {
+                Some(&t.source.path)
+            } else {
+                None
+            }
+        }) {
+            format!("[label=\"{}\", color=\"red\"]", t)
+        } else {
+            "".to_string()
+        };
         writeln!(
             self.w,
-            "c{parent}:{pin}:e -> o{ix}:w;",
+            "c{parent}:{pin}:e -> o{ix}:w {label};",
             ix = 0,
             parent = parent_component,
-            pin = self.schematic.output
+            pin = self.schematic.output,
+            label = label
         )
     }
 

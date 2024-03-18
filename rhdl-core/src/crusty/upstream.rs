@@ -1,5 +1,6 @@
 use crate::{
-    path::{bit_range, Path},
+    path::{bit_range, path_star, sub_kind, Path},
+    rhif::spec::Member,
     schematic::{
         components::{
             ArrayComponent, BinaryComponent, BufferComponent, CaseComponent, CastComponent,
@@ -7,10 +8,11 @@ use crate::{
             RepeatComponent, SelectComponent, SpliceComponent, StructComponent, TupleComponent,
             UnaryComponent,
         },
+        dot::write_dot,
         schematic_impl::{PinPath, Schematic, Trace, WirePath},
     },
 };
-use anyhow::{ensure, Result};
+use anyhow::{bail, Result};
 
 use super::index::IndexedSchematic;
 
@@ -68,21 +70,28 @@ fn upstream_dff(dff: &DigitalFlipFlopComponent, output: PinPath) -> Result<Vec<P
     Ok(vec![])
 }
 
+fn path_with_member(path: Path, member: &Member) -> Path {
+    match member {
+        Member::Unnamed(ix) => path.index(*ix as usize),
+        Member::Named(f) => path.field(f),
+    }
+}
+
 fn upstream_enum(e: &EnumComponent, output: PinPath) -> Result<Vec<PinPath>> {
     let discriminant = e.template.discriminant()?.as_i64()?;
     if let Some(field) = e.fields.iter().find(|field| {
-        Path::default()
-            .payload_by_value(discriminant)
-            .field(&field.member.to_string())
-            .is_prefix_of(&output.path)
+        path_with_member(
+            Path::default().payload_by_value(discriminant),
+            &field.member,
+        )
+        .is_prefix_of(&output.path)
     }) {
         Ok(vec![PinPath {
             pin: field.pin,
-            path: output.path.clone().strip_prefix(
-                &Path::default()
-                    .payload_by_value(discriminant)
-                    .field(&field.member.to_string()),
-            )?,
+            path: output.path.clone().strip_prefix(&path_with_member(
+                Path::default().payload_by_value(discriminant),
+                &field.member,
+            ))?,
         }])
     } else {
         Ok(vec![])
@@ -90,10 +99,13 @@ fn upstream_enum(e: &EnumComponent, output: PinPath) -> Result<Vec<PinPath>> {
 }
 
 fn upstream_index(i: &IndexComponent, output: PinPath) -> Result<Vec<PinPath>> {
-    Ok(vec![PinPath {
-        pin: i.arg,
-        path: i.path.clone().join(&output.path),
-    }])
+    Ok(path_star(&i.kind, &i.path)?
+        .into_iter()
+        .map(|path| PinPath {
+            pin: i.arg,
+            path: path.join(&output.path),
+        })
+        .collect())
 }
 
 fn upstream_repeat(r: &RepeatComponent, output: PinPath) -> Result<Vec<PinPath>> {
@@ -125,41 +137,42 @@ fn upstream_select(s: &SelectComponent, output: PinPath) -> Result<Vec<PinPath>>
 }
 
 fn upstream_splice(s: &SpliceComponent, output: PinPath) -> Result<Vec<PinPath>> {
+    eprintln!("Upstream of splice {:?}", s);
+    eprintln!("Output path is {}", output.path);
     let (output_bit_range, _) = bit_range(s.kind.clone(), &output.path)?;
-    ensure!(
-        !output.path.any_dynamic(),
-        "Unsupported - dynamic path in splice",
-    );
-    ensure!(
-        !s.path.any_dynamic(),
-        "Unsupported - dynamic path in splice",
-    );
-    let (replace_bit_range, _) = bit_range(s.kind.clone(), &s.path)?;
-    let output_path_in_replacement = replace_bit_range.contains(&output_bit_range.start);
-    if output_path_in_replacement {
-        Ok(vec![PinPath {
-            pin: s.subst,
-            path: output.path.clone().strip_prefix(&s.path)?,
-        }])
-    } else {
-        Ok(vec![PinPath {
+    let mut upstreams = vec![];
+    for s_path in path_star(&s.kind, &s.path)? {
+        let (replace_bit_range, _) = bit_range(s.kind.clone(), &s_path)?;
+        let output_path_in_replacement = replace_bit_range.contains(&output_bit_range.start);
+        if output_path_in_replacement {
+            upstreams.push(PinPath {
+                pin: s.subst,
+                path: output.path.clone().strip_prefix(&s_path)?,
+            });
+        }
+    }
+    if upstreams.is_empty() {
+        eprintln!("No upstreams for splice {:?}", s);
+        eprintln!("Claiming upstream is {} {}", s.orig, output.path);
+        upstreams.push(PinPath {
             pin: s.orig,
             path: output.path.clone(),
-        }])
+        });
     }
+    Ok(upstreams)
 }
 
 fn upstream_struct(s: &StructComponent, output: PinPath) -> Result<Vec<PinPath>> {
-    if let Some(field) = s.fields.iter().find(|field| {
-        Path::default()
-            .field(&field.member.to_string())
-            .is_prefix_of(&output.path)
-    }) {
+    if let Some(field) = s
+        .fields
+        .iter()
+        .find(|field| path_with_member(Path::default(), &field.member).is_prefix_of(&output.path))
+    {
         Ok(vec![PinPath {
             pin: field.pin,
             path: output
                 .path
-                .strip_prefix(&Path::default().field(&field.member.to_string()))?,
+                .strip_prefix(&path_with_member(Path::default(), &field.member))?,
         }])
     } else if let Some(rest) = s.rest {
         Ok(vec![PinPath {
@@ -205,6 +218,10 @@ fn get_upstream_pin_paths(is: &IndexedSchematic, output: PinPath) -> Result<Vec<
     let pin = is.schematic.pin(output.pin);
     let cix = pin.parent;
     let component = is.schematic.component(cix);
+    eprintln!(
+        "get upstream of pin {} in component {:?}",
+        output.pin, component.kind
+    );
     match &component.kind {
         ComponentKind::Array(array) => upstream_array(array, output),
         ComponentKind::Binary(binary) => upstream_binary(binary, output),
@@ -227,10 +244,15 @@ fn get_upstream_pin_paths(is: &IndexedSchematic, output: PinPath) -> Result<Vec<
     }
 }
 
-fn follow_upstream(is: &IndexedSchematic, sink: PinPath, tracks: &mut Vec<WirePath>) -> Result<()> {
+fn follow_upstream(is: &IndexedSchematic, sink: PinPath, trace: &mut Trace) -> Result<()> {
+    if is.schematic.inputs.contains(&sink.pin) {
+        trace.sinks.push(sink);
+        return Ok(());
+    }
     if let Some(parents) = is.index.reverse.get(&sink.pin) {
         for parent in parents {
-            tracks.push(WirePath {
+            eprintln!("Add wire path from {} to {}", *parent, sink.pin);
+            trace.paths.push(WirePath {
                 source: *parent,
                 dest: sink.pin,
                 path: sink.path.clone(),
@@ -239,9 +261,22 @@ fn follow_upstream(is: &IndexedSchematic, sink: PinPath, tracks: &mut Vec<WirePa
                 pin: *parent,
                 path: sink.path.clone(),
             };
-            let upstreams = get_upstream_pin_paths(is, parent_pin_path)?;
+            let upstreams = get_upstream_pin_paths(is, parent_pin_path.clone())?;
+            if upstreams.is_empty() {
+                trace.sinks.push(parent_pin_path);
+            } else {
+                for upstream in upstreams {
+                    follow_upstream(is, upstream, trace)?
+                }
+            }
+        }
+    } else {
+        let upstreams = get_upstream_pin_paths(is, sink.clone())?;
+        if upstreams.is_empty() {
+            trace.sinks.push(sink);
+        } else {
             for upstream in upstreams {
-                follow_upstream(is, upstream, tracks)?
+                follow_upstream(is, upstream, trace)?
             }
         }
     }
@@ -250,7 +285,15 @@ fn follow_upstream(is: &IndexedSchematic, sink: PinPath, tracks: &mut Vec<WirePa
 
 pub fn follow_pin_upstream(schematic: Schematic, pin_path: PinPath) -> Result<Trace> {
     let is: IndexedSchematic = schematic.into();
-    let mut paths = vec![];
-    follow_upstream(&is, pin_path, &mut paths)?;
-    Ok(paths)
+    let pin_kind = is.schematic.pin(pin_path.pin).kind.clone();
+    if let Err(err) = sub_kind(pin_kind.clone(), &pin_path.path) {
+        bail!("Illegal path in query.  The specified path {} is not valid on the type of the given pin, which is {}. Error was {err}",
+            pin_path.path, pin_kind);
+    }
+    let mut w = vec![];
+    write_dot(&is.schematic, Default::default(), &mut w)?;
+    eprintln!("{}", String::from_utf8_lossy(&w));
+    let mut trace = pin_path.clone().into();
+    follow_upstream(&is, pin_path, &mut trace)?;
+    Ok(trace)
 }

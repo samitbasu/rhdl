@@ -77,10 +77,8 @@ fn downstream_enum(e: &EnumComponent, input: PinPath) -> Result<Vec<PinPath>> {
 }
 
 fn downstream_index(i: &IndexComponent, input: PinPath) -> Result<Vec<PinPath>> {
-    let canonical_input = input.path.canonical();
-    let canonical_index = i.path.clone().canonical();
-    if canonical_index.is_prefix_of(&canonical_input) {
-        let path = canonical_input.strip_prefix(&canonical_index)?;
+    if i.path.is_prefix_of(&input.path) {
+        let path = input.path.strip_prefix(&i.path)?;
         Ok(vec![PinPath {
             pin: i.output,
             path,
@@ -223,17 +221,17 @@ fn get_downstream_pin_paths(is: &IndexedSchematic, input: PinPath) -> Result<Vec
     }
 }
 
-fn follow_downstream(
-    is: &IndexedSchematic,
-    source: PinPath,
-    tracks: &mut Vec<WirePath>,
-) -> Result<()> {
+fn follow_downstream(is: &IndexedSchematic, source: PinPath, trace: &mut Trace) -> Result<()> {
     // First, find all of the downstream pins
     let downstreams = get_downstream_pin_paths(is, source.clone())?;
+    if downstreams.is_empty() {
+        trace.sinks.push(source);
+        return Ok(());
+    }
     for pin_path in &downstreams {
         if let Some(children) = is.index.forward.get(&pin_path.pin) {
             for child in children {
-                tracks.push(WirePath {
+                trace.paths.push(WirePath {
                     source: source.pin,
                     dest: *child,
                     path: source.path.clone(),
@@ -242,7 +240,7 @@ fn follow_downstream(
                     pin: *child,
                     path: pin_path.path.clone(),
                 };
-                follow_downstream(is, child_pin_path, tracks)?;
+                follow_downstream(is, child_pin_path, trace)?;
             }
         }
     }
@@ -251,7 +249,7 @@ fn follow_downstream(
 
 pub fn follow_pin_downstream(schematic: Schematic, pin_path: PinPath) -> Result<Trace> {
     let is: IndexedSchematic = schematic.into();
-    let mut paths = vec![];
-    follow_downstream(&is, pin_path, &mut paths)?;
-    Ok(paths)
+    let mut trace = pin_path.clone().into();
+    follow_downstream(&is, pin_path, &mut trace)?;
+    Ok(trace)
 }
