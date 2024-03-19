@@ -6,7 +6,13 @@ pub mod synchronous;
 mod tests;
 
 #[cfg(test)]
-mod test_crusty;
+mod test_utils;
+
+#[cfg(test)]
+mod test_upstream;
+
+#[cfg(test)]
+mod test_downstream;
 
 pub use crate::bits::Bits;
 pub use crate::bits::SignedBits;

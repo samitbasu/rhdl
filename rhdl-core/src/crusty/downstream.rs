@@ -1,4 +1,4 @@
-use crate::path::{bit_range, sub_kind, Path};
+use crate::path::{bit_range, path_star, sub_kind, Path};
 use crate::schematic::components::ArrayComponent;
 use crate::schematic::components::{
     BinaryComponent, BufferComponent, CaseComponent, CastComponent, ComponentKind, EnumComponent,
@@ -7,18 +7,18 @@ use crate::schematic::components::{
 };
 use crate::schematic::dot::write_dot;
 use crate::schematic::schematic_impl::{PinPath, Trace, WirePath};
-use anyhow::{anyhow, ensure};
+use anyhow::anyhow;
 use anyhow::{bail, Result};
 
 use super::index::IndexedSchematic;
 use super::utils::path_with_member;
 
 fn downstream_array(array: &ArrayComponent, input: PinPath) -> Result<Vec<PinPath>> {
-    let (ndx, ix) = array
+    let (ndx, _ix) = array
         .elements
         .iter()
         .enumerate()
-        .find(|(ndx, &ix)| ix == input.pin)
+        .find(|(_ndx, &ix)| ix == input.pin)
         .ok_or(anyhow!("ICE - input pin not found in array"))?;
     Ok(vec![PinPath {
         pin: array.output,
@@ -74,15 +74,15 @@ fn downstream_enum(e: &EnumComponent, input: PinPath) -> Result<Vec<PinPath>> {
 }
 
 fn downstream_index(i: &IndexComponent, input: PinPath) -> Result<Vec<PinPath>> {
-    if i.path.is_prefix_of(&input.path) {
-        let path = input.path.strip_prefix(&i.path)?;
-        Ok(vec![PinPath {
-            pin: i.output,
-            path,
-        }])
-    } else {
-        Ok(vec![])
+    for path in path_star(&i.kind, &i.path)? {
+        if path.is_prefix_of(&input.path) {
+            return Ok(vec![PinPath {
+                pin: i.output,
+                path: input.path.strip_prefix(&path)?,
+            }]);
+        }
     }
+    Ok(vec![])
 }
 
 fn downstream_repeat(r: &RepeatComponent, input: PinPath) -> Result<Vec<PinPath>> {
@@ -109,41 +109,38 @@ fn downstream_splice(s: &SpliceComponent, input: PinPath) -> Result<Vec<PinPath>
     if input.pin != s.orig && input.pin != s.subst {
         return Ok(vec![]);
     }
-    let (input_bit_range, _) = bit_range(s.kind.clone(), &input.path)?;
-    ensure!(
-        !input.path.any_dynamic(),
-        "Unsupported - dynamic path in splice"
-    );
-    ensure!(
-        !s.path.any_dynamic(),
-        "Unsupported - dynamic path in splice"
-    );
-    let (replace_bit_range, _) = bit_range(s.kind.clone(), &s.path)?;
-    let input_path_in_replacement = replace_bit_range.contains(&input_bit_range.start);
-    if input_path_in_replacement && input.pin == s.subst {
-        Ok(vec![PinPath {
-            pin: s.output,
-            path: s.path.clone().join(&input.path),
-        }])
-    } else if !input_path_in_replacement && input.pin == s.orig {
-        Ok(vec![PinPath {
+    if input.pin == s.orig {
+        let (input_bit_range, _) = bit_range(s.kind.clone(), &input.path)?;
+        for path in path_star(&s.kind, &s.path)? {
+            let (replace_bit_range, _) = bit_range(s.kind.clone(), &path)?;
+            let input_path_in_replacement = replace_bit_range.contains(&input_bit_range.start);
+            if input_path_in_replacement {
+                return Ok(vec![]);
+            }
+        }
+        return Ok(vec![PinPath {
             pin: s.output,
             path: input.path,
-        }])
-    } else {
-        Ok(vec![])
+        }]);
     }
+    // input feeds into the substitution pin.
+    let mut result = vec![];
+    for path in path_star(&s.kind, &s.path)? {
+        result.push(PinPath {
+            pin: s.output,
+            path: path.join(&input.path),
+        });
+    }
+    Ok(result)
 }
 
 fn downstream_struct(s: &StructComponent, input: PinPath) -> Result<Vec<PinPath>> {
     if let Some(field) = s.fields.iter().find(|field| field.pin == input.pin) {
         Ok(vec![PinPath {
             pin: s.output,
-            path: Path::default()
-                .field(&field.member.to_string())
-                .join(&input.path),
+            path: path_with_member(Path::default(), &field.member).join(&input.path),
         }])
-    } else if let Some(rest) = &s.rest {
+    } else if s.rest.is_some() {
         // Check if our value is replaced
         let (input_bit_range, _) = bit_range(s.kind.clone(), &input.path)?;
         if s.fields.iter().any(|f| {

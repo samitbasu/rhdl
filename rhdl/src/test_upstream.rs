@@ -11,40 +11,9 @@ use rhdl_core::{
 };
 use rhdl_macro::{kernel, Digital};
 
-fn get_schematic<T: DigitalFn>() -> Schematic {
-    let Some(KernelFnKind::Kernel(kernel)) = T::kernel_fn() else {
-        panic!("Kernel function not found");
-    };
-    let module = compile_design(kernel).unwrap();
-    build_schematic(&module, module.top).unwrap()
-}
-
-fn trace_reached_no_inputs(
-    schematic: &Schematic,
-    trace: &schematic::schematic_impl::Trace,
-) -> bool {
-    eprintln!("{:?}", trace);
-    trace.sinks.iter().all(|sink| {
-        matches!(
-            schematic.component(schematic.pin(sink.pin).parent).kind,
-            ComponentKind::Constant(_) | ComponentKind::Enum(_)
-        )
-    })
-}
-
-fn trace_reached_inputs_or_constant(
-    schematic: &Schematic,
-    trace: &schematic::schematic_impl::Trace,
-) -> bool {
-    eprintln!("{:?}", trace);
-    trace.sinks.iter().all(|sink| {
-        schematic.inputs.contains(&sink.pin)
-            || matches!(
-                schematic.component(schematic.pin(sink.pin).parent).kind,
-                ComponentKind::Constant(_) | ComponentKind::Enum(_)
-            )
-    })
-}
+use crate::test_utils::{
+    get_schematic, trace_reached_inputs_or_constant, trace_reached_no_inputs, Bar, Egg, Foo,
+};
 
 #[test]
 fn test_upstream_binary() {
@@ -115,37 +84,6 @@ fn test_upstream_case() {
     )
     .unwrap();
     assert!(trace_reached_inputs_or_constant(&schematic, &trace));
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Digital, Default)]
-enum Bar {
-    A(Bits<4>),
-    B(Bits<4>),
-    C(bool),
-    #[default]
-    D,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Digital, Default)]
-struct Egg {
-    a: [Bits<4>; 2],
-    b: bool,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Digital, Default)]
-struct Nested {
-    a: [Bits<4>; 2],
-    b: bool,
-    c: [Egg; 2],
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Digital, Default)]
-struct Foo {
-    a: Bits<4>,
-    b: Bits<4>,
-    c: bool,
-    d: Bar,
-    e: Nested,
 }
 
 #[test]
