@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::io::Result;
 use std::io::Write;
+use std::iter::once;
 
 use super::components::DigitalFlipFlopComponent;
 use super::schematic_impl::Trace;
@@ -90,10 +91,12 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             .try_for_each(|(ix, pin)| {
                 let pin_data = self.schematic.pin(*pin);
                 let parent_component: usize = pin_data.parent.into();
-                let label = if let Some(t) = trace
-                    .as_ref()
-                    .and_then(|t| t.sinks.iter().find(|t| t.pin == *pin))
-                {
+                let label = if let Some(t) = trace.as_ref().and_then(|t| {
+                    t.sinks
+                        .iter()
+                        .chain(once(&t.source))
+                        .find(|t| t.pin == *pin)
+                }) {
                     format!("[label=\"{}\", color=\"red\"]", t.path)
                 } else {
                     "".to_string()
@@ -111,13 +114,12 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
         let pin_data = self.schematic.pin(self.schematic.output);
         let parent_component: usize = pin_data.parent.into();
         let label = if let Some(t) = trace.as_ref().and_then(|t| {
-            if t.source.pin == self.schematic.output {
-                Some(&t.source.path)
-            } else {
-                None
-            }
+            t.sinks
+                .iter()
+                .chain(once(&t.source))
+                .find(|t| t.pin == self.schematic.output)
         }) {
-            format!("[label=\"{}\", color=\"red\"]", t)
+            format!("[label=\"{}\", color=\"red\"]", t.path)
         } else {
             "".to_string()
         };

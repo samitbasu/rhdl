@@ -2,7 +2,9 @@ use std::{collections::HashSet, iter::repeat};
 
 use inflections::Inflect;
 use quote::{format_ident, quote};
-use syn::{punctuated::Punctuated, spanned::Spanned, token::Comma, Ident, Pat, Path, Type};
+use syn::{
+    punctuated::Punctuated, spanned::Spanned, token::Comma, FnArg, Ident, Pat, PatType, Path, Type,
+};
 type TS = proc_macro2::TokenStream;
 type Result<T> = syn::Result<T>;
 
@@ -275,6 +277,29 @@ fn pattern_to_expr(pat: &syn::Pat) -> Result<TS> {
     }
 }
 
+fn strip_mutability(pat: &syn::Pat) -> syn::Pat {
+    let pat = pat.clone();
+    match pat {
+        syn::Pat::Ident(mut ident) => {
+            ident.mutability = None;
+            syn::Pat::Ident(ident)
+        }
+        syn::Pat::Tuple(tuple) => {
+            let elems = tuple
+                .elems
+                .iter()
+                .map(strip_mutability)
+                .collect::<Punctuated<_, Comma>>();
+            syn::Pat::Tuple(syn::PatTuple {
+                attrs: tuple.attrs.clone(),
+                paren_token: tuple.paren_token,
+                elems,
+            })
+        }
+        x => x,
+    }
+}
+
 // put the original function inside a wrapper function with the name of the original.
 // Call the wrapped function 'inner'
 // Capture the return of the wrapped function
@@ -301,6 +326,24 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
     let orig_name = &function.sig.ident;
     let (impl_generics, _ty_generics, where_clause) = function.sig.generics.split_for_impl();
     let args = &function.sig.inputs;
+    let outer_args = args
+        .iter()
+        .cloned()
+        .map(|x| match x {
+            FnArg::Typed(PatType {
+                attrs,
+                pat,
+                colon_token,
+                ty,
+            }) => FnArg::Typed(PatType {
+                attrs,
+                pat: Box::new(strip_mutability(&pat)),
+                colon_token,
+                ty,
+            }),
+            _ => x,
+        })
+        .collect::<Punctuated<_, Comma>>();
     let call_args = args
         .iter()
         .map(|arg| match arg {
@@ -317,7 +360,8 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
     let ret = &function.sig.output;
     let body = &function.block;
     Ok(quote! {
-            #vis fn #orig_name #impl_generics (#args) #ret #where_clause {
+
+            #vis fn #orig_name #impl_generics (#outer_args) #ret #where_clause {
                 #[forbid(non_snake_case)]
                 #[forbid(non_upper_case_globals)]
                 #[forbid(unreachable_patterns)]
