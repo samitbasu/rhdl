@@ -1,13 +1,27 @@
+use std::collections::HashMap;
+use std::ops::Range;
+
 use anyhow::bail;
 use anyhow::Result;
+use miette::LabeledSpan;
+use miette::MietteError;
+use miette::SourceCode;
+use miette::SourceSpan;
+use miette::SpanContents;
 use petgraph::Direction;
 use rhdl_bits::alias::*;
 use rhdl_bits::{bits, Bits};
+use rhdl_core::ast::ast_impl::FunctionId;
 use rhdl_core::compile_design;
+use rhdl_core::crusty::index::IndexedSchematic;
+use rhdl_core::diagnostic::SpannedSource;
 use rhdl_core::note;
 use rhdl_core::path::Path;
+use rhdl_core::rhif::object::SourceLocation;
+use rhdl_core::rhif::spec::FuncId;
 use rhdl_core::schematic::components::ComponentKind;
 use rhdl_core::schematic::schematic_impl::PinPath;
+use rhdl_core::schematic::schematic_impl::Trace;
 use rhdl_core::Circuit;
 use rhdl_core::CircuitIO;
 use rhdl_core::Digital;
@@ -137,7 +151,7 @@ fn test_circuit_schematic() {
         .unwrap()
         .inlined();
     let mut dot = std::fs::File::create("circuit_schematic.dot").unwrap();
-    rhdl_core::schematic::dot::write_dot(&schematic, &Default::default(), &mut dot).unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, None, &mut dot).unwrap();
 }
 
 #[test]
@@ -150,7 +164,7 @@ fn test_schematic() {
     let design = compile_design(kernel).unwrap();
     let schematic = rhdl_core::schematic::builder::build_schematic(&design, design.top).unwrap();
     let mut dot = std::fs::File::create("strobe_schematic.dot").unwrap();
-    rhdl_core::schematic::dot::write_dot(&schematic, &Default::default(), &mut dot).unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, None, &mut dot).unwrap();
 }
 
 #[test]
@@ -185,7 +199,7 @@ fn test_simple_schematic_inlined() {
         eprintln!("wire {:?}", w);
     });
     let mut dot = std::fs::File::create("add_enabled_schematic.dot").unwrap();
-    rhdl_core::schematic::dot::write_dot(&schematic, &Default::default(), &mut dot).unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, None, &mut dot).unwrap();
 }
 
 #[test]
@@ -207,7 +221,7 @@ fn test_schematic_inlined() {
             eprintln!("component {} path {:?}", ndx, c.path);
         });
     let mut dot = std::fs::File::create("strobe_schematic.dot").unwrap();
-    rhdl_core::schematic::dot::write_dot(&schematic, &Default::default(), &mut dot).unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, None, &mut dot).unwrap();
 }
 
 #[test]
@@ -220,9 +234,12 @@ fn test_strobe_schematic() {
         path: Path::default().field("clock"),
     };
     let schematic = schematic.inlined();
-    for sink in
-        rhdl_core::crusty::downstream::follow_pin_downstream(schematic.clone(), clock_pin_path)
-            .unwrap()
+    for sink in rhdl_core::crusty::downstream::follow_pin_downstream(
+        &schematic.clone().into(),
+        clock_pin_path,
+    )
+    .unwrap()
+    .sinks
     {
         eprintln!("sink is {:?}", sink);
     }
@@ -237,18 +254,102 @@ fn test_strobe_schematic() {
     eprintln!("dff is {:?}", dff);
     let dff_clock_pin = dff.clock;
     let dff_source_path = rhdl_core::crusty::upstream::follow_pin_upstream(
-        schematic.clone(),
+        &schematic.clone().into(),
         PinPath {
             pin: dff_clock_pin,
             path: Path::default(),
         },
     )
     .unwrap();
-    for segment in &dff_source_path {
+    let report = trace_diagnostic(&schematic.clone().into(), &dff_source_path);
+    eprintln!("report is {:?}", report);
+    for segment in &dff_source_path.paths {
         eprintln!("segment is {:?}", segment);
     }
     let mut dot = std::fs::File::create("strobe_inlined.dot").unwrap();
-    rhdl_core::schematic::dot::write_dot(&schematic, &dff_source_path, &mut dot).unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, Some(&dff_source_path), &mut dot).unwrap();
+}
+
+#[derive(Clone, Debug)]
+pub struct SourcePool {
+    pub source: HashMap<FunctionId, SpannedSource>,
+    pub ranges: HashMap<FunctionId, Range<usize>>,
+}
+
+impl SourcePool {
+    fn new(source: HashMap<FunctionId, SpannedSource>) -> Self {
+        let mut ranges = HashMap::new();
+        let mut offset = 0;
+        for (id, src) in &source {
+            let len = src.source.len();
+            ranges.insert(*id, offset..offset + len);
+            offset += len;
+        }
+        Self { source, ranges }
+    }
+
+    fn get_range_from_location(&self, location: SourceLocation) -> Option<Range<usize>> {
+        let range = self.ranges.get(&location.func)?;
+        let local_span = self
+            .source
+            .get(&location.func)?
+            .span_map
+            .get(&location.node)?;
+        let start = range.start + local_span.start;
+        let end = range.start + local_span.end;
+        Some(start..end)
+    }
+}
+
+impl SourceCode for SourcePool {
+    fn read_span<'a>(
+        &'a self,
+        span: &SourceSpan,
+        context_lines_before: usize,
+        context_lines_after: usize,
+    ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
+        let start = span.offset();
+        let len = span.len();
+        if let Some((function_id, function_range)) = self
+            .ranges
+            .iter()
+            .find(|(id, range)| range.contains(&start))
+        {
+            let local_offset = start - function_range.start;
+            let local_span = SourceSpan::new(local_offset.into(), len);
+            let source = self.source.get(function_id).unwrap();
+            let contents =
+                source
+                    .source
+                    .read_span(&local_span, context_lines_before, context_lines_after)?;
+            Ok(contents)
+        } else {
+            Err(MietteError::OutOfBounds)
+        }
+    }
+}
+
+fn trace_diagnostic(is: &IndexedSchematic, trace: &Trace) -> miette::Report {
+    let pool = SourcePool::new(is.schematic.source.clone());
+    let labels = trace.paths.iter().filter_map(|p| {
+        is.schematic
+            .pin(p.source)
+            .location
+            .and_then(|l| pool.get_range_from_location(l))
+            .map(|range| {
+                LabeledSpan::new(
+                    Some(format!("{}", p.source)),
+                    range.start,
+                    range.end - range.start,
+                )
+            })
+    });
+    let diagnostic = miette::MietteDiagnostic::new("Clock error")
+        .with_help("Check that the clock is connected to a clock source")
+        .with_code("clock_error")
+        .with_severity(miette::Severity::Warning)
+        .with_labels(labels);
+    miette::Report::new(diagnostic).with_source_code(pool)
 }
 
 /*

@@ -103,6 +103,12 @@ impl<'a> SchematicBuilder<'a> {
             }?
         }
         self.schematic.output = self.lookup(self.object.return_slot)?;
+        self.schematic.source = self
+            .module
+            .objects
+            .iter()
+            .map(|(k, v)| (*k, v.symbols.source.clone()))
+            .collect();
         Ok(self.schematic)
     }
 
