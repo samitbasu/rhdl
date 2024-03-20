@@ -1,9 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    diagnostic::SpannedSource,
-    path::Path,
-    rhif::{object::SourceLocation, spec::FuncId},
+    ast::ast_impl::FunctionId, diagnostic::SpannedSource, path::Path, rhif::object::SourceLocation,
     Kind,
 };
 
@@ -96,7 +94,7 @@ pub struct Schematic {
     pub wires: Vec<Wire>,
     pub inputs: Vec<PinIx>,
     pub output: PinIx,
-    pub source: HashMap<FuncId, SpannedSource>,
+    pub source: HashMap<FunctionId, SpannedSource>,
 }
 
 impl Schematic {
