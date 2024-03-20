@@ -318,10 +318,12 @@ impl SourceCode for SourcePool {
             let local_offset = start - function_range.start;
             let local_span = SourceSpan::new(local_offset.into(), len);
             let source = self.source.get(function_id).unwrap();
-            let contents =
-                source
+            let contents = Box::new(LabeledSpan::new_with_span(
+                Some(source.name.clone()),
+                *source
                     .source
-                    .read_span(&local_span, context_lines_before, context_lines_after)?;
+                    .read_span(&local_span, context_lines_before, context_lines_after)?,
+            ));
             Ok(contents)
         } else {
             Err(MietteError::OutOfBounds)
