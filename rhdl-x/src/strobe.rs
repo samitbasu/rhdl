@@ -5,6 +5,7 @@ use anyhow::bail;
 use anyhow::Result;
 use miette::LabeledSpan;
 use miette::MietteError;
+use miette::NamedSource;
 use miette::SourceCode;
 use miette::SourceSpan;
 use miette::SpanContents;
@@ -122,7 +123,7 @@ pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
     let mut d = StrobeD::<N>::default();
     note("i", i);
     note("q", q);
-    d.counter.clock = i.clock;
+    //d.counter.clock = i.clock;
     //    let counter_next = if i.enable { q.counter + 1 } else { q.counter };
     let counter_next = add_enabled::<{ N }>(i.enable, q.counter);
     let strobe = i.enable & (q.counter == q.threshold);
@@ -308,6 +309,7 @@ impl SourceCode for SourcePool {
         context_lines_before: usize,
         context_lines_after: usize,
     ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
+        eprintln!("read_span {:?}", span);
         let start = span.offset();
         let len = span.len();
         if let Some((function_id, function_range)) = self
@@ -315,29 +317,62 @@ impl SourceCode for SourcePool {
             .iter()
             .find(|(id, range)| range.contains(&start))
         {
+            eprintln!("function_id is {:?}", function_id);
+            eprintln!("function range is {:?}", function_range);
             let local_offset = start - function_range.start;
             let local_span = SourceSpan::new(local_offset.into(), len);
+            eprintln!("local_span is then {:?}", local_span);
             let source = self.source.get(function_id).unwrap();
-            let contents = Box::new(LabeledSpan::new_with_span(
-                Some(source.name.clone()),
-                *source
+            eprintln!("Source text len is {}", source.source.len());
+            let local =
+                source
                     .source
-                    .read_span(&local_span, context_lines_before, context_lines_after)?,
-            ));
-            Ok(contents)
+                    .read_span(&local_span, context_lines_before, context_lines_after)?;
+            let local_span = local.span();
+            let span = (local_span.offset() + function_range.start, local_span.len()).into();
+            Ok(Box::new(miette::MietteSpanContents::new_named(
+                source.name.clone(),
+                local.data(),
+                span,
+                local.line(),
+                local.column(),
+                local.line_count(),
+            )))
         } else {
             Err(MietteError::OutOfBounds)
         }
     }
 }
 
+// Notes to think about:
+// 1. Make schematic inlined always.
+// 2. Generate trace items using the operators as well.
+// So something like this:
+//   source -> pin -> "from here"
+//              -> op "via this op"
+//   dest -> pin -> "to here"
+
 fn trace_diagnostic(is: &IndexedSchematic, trace: &Trace) -> miette::Report {
     let pool = SourcePool::new(is.schematic.source.clone());
+    let source_locations = trace
+        .paths
+        .iter()
+        .filter_map(|p| is.schematic.pin(p.source).location)
+        .collect::<Vec<_>>();
+    for loc in source_locations {
+        let func = pool.source.get(&loc.func).unwrap();
+        eprintln!("Location: {:?}", loc);
+        eprintln!("span: {:?}", func.span(loc.node));
+        eprintln!("Text: {}", func.text(loc.node));
+    }
+
     let labels = trace.paths.iter().filter_map(|p| {
         is.schematic
             .pin(p.source)
             .location
+            .inspect(|x| eprintln!("location is {:?}", x))
             .and_then(|l| pool.get_range_from_location(l))
+            .inspect(|x| eprintln!("range is {:?}", x))
             .map(|range| {
                 LabeledSpan::new(
                     Some(format!("{}", p.source)),
@@ -345,6 +380,7 @@ fn trace_diagnostic(is: &IndexedSchematic, trace: &Trace) -> miette::Report {
                     range.end - range.start,
                 )
             })
+            .inspect(|x| eprintln!("label is {:?}", x))
     });
     let diagnostic = miette::MietteDiagnostic::new("Clock error")
         .with_help("Check that the clock is connected to a clock source")
