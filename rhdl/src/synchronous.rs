@@ -14,7 +14,7 @@ use anyhow::Result;
 use rhdl_bits::alias::b4;
 use rhdl_bits::{bits, Bits};
 use rhdl_core::ast::ast_impl::KernelFn;
-use rhdl_core::diagnostic::report::show_source_detail;
+//use rhdl_core::diagnostic::report::show_source_detail;
 use rhdl_core::{
     compile_design, generate_verilog, note, note_init_db, note_take, note_time,
     test_module::TestModule, Digital, DigitalFn,

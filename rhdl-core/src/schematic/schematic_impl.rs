@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{
-    ast::ast_impl::FunctionId, diagnostic::SpannedSource, path::Path, rhif::object::SourceLocation,
+    ast::ast_impl::FunctionId,
+    path::Path,
+    rhif::{object::SourceLocation, spanned_source::SpannedSource},
     Kind,
 };
 

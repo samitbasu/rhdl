@@ -4,12 +4,11 @@ use std::fmt::Write;
 
 use crate::{
     ast::ast_impl::{FunctionId, NodeId},
-    diagnostic::SpannedSource,
     rhif::spec::{ExternalFunction, Slot},
     Kind, TypedBits,
 };
 
-use super::spec::OpCode;
+use super::{spanned_source::SpannedSource, spec::OpCode};
 
 #[derive(Debug, Clone, Copy)]
 pub struct SourceLocation {

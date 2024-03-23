@@ -30,7 +30,7 @@ pub mod circuit;
 pub mod codegen;
 pub mod compiler;
 pub mod crusty;
-pub mod diagnostic;
+//pub mod diagnostic;
 pub mod dyn_bit_manip;
 pub mod note_db;
 pub mod path;

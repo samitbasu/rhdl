@@ -2,6 +2,8 @@ use fnv::{FnvHashMap, FnvHashSet};
 
 use crate::schematic::schematic_impl::{PinIx, Schematic};
 
+use super::source_pool::{SharedSourcePool, SourcePool};
+
 pub struct Index {
     pub forward: IndexType,
     pub reverse: IndexType,
@@ -22,12 +24,18 @@ fn make_index(schematic: &Schematic) -> Index {
 pub struct IndexedSchematic {
     pub schematic: Schematic,
     pub index: Index,
+    pub pool: SharedSourcePool,
 }
 
 impl From<Schematic> for IndexedSchematic {
     fn from(schematic: Schematic) -> Self {
         let schematic = schematic.inlined();
         let index = make_index(&schematic);
-        IndexedSchematic { schematic, index }
+        let pool = SharedSourcePool::from(SourcePool::new(schematic.source.clone()));
+        IndexedSchematic {
+            schematic,
+            index,
+            pool,
+        }
     }
 }
