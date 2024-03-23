@@ -185,7 +185,6 @@ impl<'a> PrettyPrinter<'a> {
             Kind::Enum(kind) => {
                 self.push(&kind.name);
             }
-            _ => todo!(),
         }
         Ok(())
     }

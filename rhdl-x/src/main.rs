@@ -1,26 +1,21 @@
 use std::iter::repeat;
 use std::time::Instant;
 
-use circuit::BufZ;
-use circuit::Circuit;
-use circuit::TristateBuf;
 use counter::Counter;
 use counter::CounterI;
 use dff::DFF;
 use dff::DFFI;
-use petgraph::dot::Config;
 use petgraph::dot::Dot;
 use rhdl_bits::alias::*;
-use rhdl_bits::bits;
 use rhdl_core::compile_design;
-use rhdl_core::diagnostic::dfg::build_dfg;
-use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::note_db::note_time;
 use rhdl_core::note_init_db;
 use rhdl_core::note_pop_path;
 use rhdl_core::note_push_path;
 use rhdl_core::note_take;
+use rhdl_core::Circuit;
 use rhdl_core::DigitalFn;
+use rhdl_core::HDLKind;
 use rhdl_core::KernelFnKind;
 use rhdl_core::{note, Digital};
 use rhdl_macro::kernel;
@@ -36,7 +31,7 @@ use strobe::StrobeI;
 
 use std::fmt::Write;
 //mod backend;
-mod circuit;
+//mod circuit;
 mod clock;
 mod constant;
 mod counter;
@@ -48,8 +43,8 @@ mod tristate;
 //mod traitx;
 //mod translator;
 //mod verilog;
-mod dfg;
-mod trace;
+//mod dfg;
+//mod trace;
 mod visit;
 
 #[derive(Debug, Clone, PartialEq, Copy, Default, Digital)]
@@ -122,7 +117,7 @@ fn test_strobe() {
 #[test]
 fn test_strobe_verilog() {
     let strobe = Strobe::<8>::new(b8(5));
-    let top = strobe.as_hdl(crate::circuit::HDLKind::Verilog).unwrap();
+    let top = strobe.as_hdl(HDLKind::Verilog).unwrap();
     let verilog = format!(
         "
     module top;
@@ -282,10 +277,4 @@ fn test_dfg_analysis_of_kernel() {
         panic!("No kernel function found");
     };
     let design = compile_design(kernel).unwrap();
-    let mut dfg = build_dfg(&design, design.top).unwrap();
-    eprintln!("{:?}", dfg);
-    // Print out the DFG graph as a DOT file
-    let mut dot = String::new();
-    writeln!(dot, "{}", Dot::with_config(&dfg.graph, &[])).unwrap();
-    std::fs::write("dfg.dot", dot).unwrap();
 }

@@ -1,23 +1,28 @@
 use crate::{
-    ast::ast_impl::{
-        self, ArmKind, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprLit, ExprTuple,
-        ExprTypedBits, FieldValue, FunctionId, Local, NodeId, Pat, PatKind, Path, INVALID_NODE_ID,
-    },
-    ast::visit::Visitor,
-    compiler::ty::{ty_empty, ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
-    compiler::UnifyContext,
-    diagnostic::build_spanned_source_for_kernel,
-    rhif::spec::{
-        self, AluBinary, AluUnary, CaseArgument, ExternalFunction, FuncId, Member, OpCode, Slot,
-    },
-    rhif::Object,
-    rhif::{
-        rhif_builder::{
-            op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment,
-            op_discriminant, op_enum, op_exec, op_index, op_repeat, op_select, op_splice,
-            op_struct, op_tuple, op_unary,
+    ast::{
+        ast_impl::{
+            self, ArmKind, BinOp, Expr, ExprBinary, ExprIf, ExprKind, ExprLit, ExprTuple,
+            ExprTypedBits, FieldValue, FunctionId, Local, NodeId, Pat, PatKind, Path,
+            INVALID_NODE_ID,
         },
-        spec::ExternalFunctionCode,
+        visit::Visitor,
+    },
+    compiler::{
+        ty::{ty_empty, ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
+        UnifyContext,
+    },
+    diagnostic::build_spanned_source_for_kernel,
+    rhif::{
+        object::SymbolMap,
+        rhif_builder::{
+            op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
+            op_exec, op_index, op_repeat, op_select, op_splice, op_struct, op_tuple, op_unary,
+        },
+        spec::{
+            self, AluBinary, AluUnary, CaseArgument, ExternalFunction, ExternalFunctionCode,
+            FuncId, Member, OpCode, Slot,
+        },
+        Object,
     },
     types::typed_bits::TypedBits,
     Digital, KernelFnKind, Kind,
@@ -493,7 +498,14 @@ impl CompilerContext {
         let discriminant = if let Ty::Enum(enum_ty) = target_ty {
             let disc_reg =
                 self.reg_with_type_and_node(*enum_ty.discriminant.clone(), _match.expr.id)?;
-            self.op(op_discriminant(disc_reg, target), id);
+            self.op(
+                op_index(
+                    disc_reg,
+                    target,
+                    crate::path::Path::default().discriminant(),
+                ),
+                id,
+            );
             disc_reg
         } else {
             target
@@ -1078,18 +1090,28 @@ pub fn compile(func: &ast_impl::KernelFn, ctx: UnifyContext) -> Result<Object> {
             kind.map(|r| (k, r))
         })
         .collect::<Result<_>>()?;
+    let slot_map = compiler
+        .context
+        .into_iter()
+        .map(|(slot, node)| (slot, (compiler.fn_id, node).into()))
+        .collect();
+    let opcode_map = compiler
+        .opcode_source_map
+        .into_iter()
+        .map(|node| (compiler.fn_id, node).into())
+        .collect();
+    let source = build_spanned_source_for_kernel(func);
+    let literals = literals
+        .into_iter()
+        .enumerate()
+        .map(|(ndx, lit)| (Slot::Literal(ndx), lit))
+        .collect();
     Ok(Object {
-        source: Some(build_spanned_source_for_kernel(func)),
-        slot_map: compiler
-            .context
-            .into_iter()
-            .map(|(slot, node)| (slot, (compiler.fn_id, node).into()))
-            .collect(),
-        opcode_map: compiler
-            .opcode_source_map
-            .into_iter()
-            .map(|node| (compiler.fn_id, node).into())
-            .collect(),
+        symbols: SymbolMap {
+            slot_map,
+            opcode_map,
+            source,
+        },
         literals,
         kind,
         ops: compiler.ops,

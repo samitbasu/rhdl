@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use crate::{
     rhif::spec::{
-        Array, Assign, Binary, Case, Cast, Discriminant, Enum, Exec, Index, OpCode, Repeat, Select,
-        Slot, Splice, Struct, Tuple, Unary,
+        Array, Assign, Binary, Case, Cast, Enum, Exec, Index, OpCode, Repeat, Select, Slot, Splice,
+        Struct, Tuple, Unary,
     },
     rhif::Object,
 };
@@ -176,10 +176,6 @@ fn check_flow(obj: &Object, mut init_set: InitSet) -> Result<InitSet> {
                 for (_, slot) in table {
                     init_set.read(slot)?;
                 }
-                init_set.write(lhs)?;
-            }
-            OpCode::Discriminant(Discriminant { lhs, arg }) => {
-                init_set.read(arg)?;
                 init_set.write(lhs)?;
             }
             OpCode::Exec(Exec { lhs, id: _, args }) => {

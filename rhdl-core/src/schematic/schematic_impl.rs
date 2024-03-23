@@ -1,9 +1,9 @@
-use std::{
-    collections::{HashMap, HashSet},
-    slice::SliceIndex,
-};
+use std::collections::HashMap;
 
-use rhdl_core::Kind;
+use crate::{
+    ast::ast_impl::FunctionId, diagnostic::SpannedSource, path::Path, rhif::object::SourceLocation,
+    Kind,
+};
 
 use super::components::{BufferComponent, Component, ComponentKind};
 
@@ -41,9 +41,9 @@ impl ComponentIx {
     }
 }
 
-impl Into<usize> for ComponentIx {
-    fn into(self) -> usize {
-        self.0
+impl From<ComponentIx> for usize {
+    fn from(val: ComponentIx) -> Self {
+        val.0
     }
 }
 
@@ -62,6 +62,7 @@ impl std::fmt::Display for ComponentIx {
 pub struct Pin {
     pub kind: Kind,
     pub name: String,
+    pub location: Option<SourceLocation>,
     pub parent: ComponentIx,
 }
 
@@ -93,21 +94,47 @@ pub struct Schematic {
     pub wires: Vec<Wire>,
     pub inputs: Vec<PinIx>,
     pub output: PinIx,
+    pub source: HashMap<FunctionId, SpannedSource>,
 }
 
 impl Schematic {
-    pub fn make_pin(&mut self, kind: Kind, name: String) -> PinIx {
+    pub fn make_pin(
+        &mut self,
+        kind: Kind,
+        name: String,
+        location: Option<SourceLocation>,
+    ) -> PinIx {
         let ix = PinIx(self.pins.len());
         self.pins.push(Pin {
             kind,
             name,
             parent: ORPHAN,
+            location,
         });
         ix
     }
-    pub fn make_component(&mut self, kind: ComponentKind) -> ComponentIx {
+    pub fn make_buffer(&mut self, kind: Kind, location: Option<SourceLocation>) -> (PinIx, PinIx) {
+        let input = self.make_pin(kind.clone(), "in".into(), location);
+        let output = self.make_pin(kind, "out".into(), location);
+        let buf = self.make_component(
+            ComponentKind::Buffer(BufferComponent { input, output }),
+            location,
+        );
+        self.pin_mut(input).parent(buf);
+        self.pin_mut(output).parent(buf);
+        (input, output)
+    }
+    pub fn make_component(
+        &mut self,
+        kind: ComponentKind,
+        location: Option<SourceLocation>,
+    ) -> ComponentIx {
         let ix = ComponentIx(self.components.len());
-        self.components.push(Component { path: vec![], kind });
+        self.components.push(Component {
+            path: vec![],
+            kind,
+            location,
+        });
         ix
     }
     pub fn pin(&self, ix: PinIx) -> &Pin {
@@ -118,6 +145,9 @@ impl Schematic {
     }
     pub fn wire(&mut self, source: PinIx, dest: PinIx) {
         self.wires.push(Wire { source, dest });
+    }
+    pub fn component(&self, ix: ComponentIx) -> &Component {
+        &self.components[ix.0]
     }
     // Inline all of the Components that are Kernel invocations into
     // this schematic by replacing the KernelComponent with the
@@ -130,12 +160,13 @@ impl Schematic {
             wires: self.wires,
             inputs: self.inputs,
             output: self.output,
+            source: self.source,
             ..Default::default()
         };
         let mut relocation_offset = self.components.len();
         let mut extra_components = vec![];
         let mut kernel_calls: HashMap<String, i32> = HashMap::new();
-        for (ndx, component) in self.components.into_iter().enumerate() {
+        for component in self.components {
             match component.kind {
                 ComponentKind::Kernel(kernel) => {
                     let sub_schematic = kernel.sub_schematic.inlined();
@@ -178,6 +209,7 @@ impl Schematic {
                     output_schematic.components.push(Component {
                         path: vec![],
                         kind: ComponentKind::Noop,
+                        location: None,
                     });
                     let relocations = kernel
                         .args
@@ -194,6 +226,7 @@ impl Schematic {
                         .into_iter()
                         .map(|w| w.relocate(&relocations))
                         .collect();
+                    output_schematic.source.extend(sub_schematic.source);
                 }
                 _ => {
                     output_schematic.components.push(component);
@@ -202,5 +235,39 @@ impl Schematic {
         }
         output_schematic.components.extend(extra_components);
         output_schematic
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PinPath {
+    pub pin: PinIx,
+    pub path: Path,
+}
+
+pub fn pin_path(pin: PinIx, path: Path) -> PinPath {
+    PinPath { pin, path }
+}
+
+#[derive(Debug, Clone)]
+pub struct WirePath {
+    pub source: PinIx,
+    pub dest: PinIx,
+    pub path: Path,
+}
+
+#[derive(Debug, Clone)]
+pub struct Trace {
+    pub source: PinPath,
+    pub paths: Vec<WirePath>,
+    pub sinks: Vec<PinPath>,
+}
+
+impl From<PinPath> for Trace {
+    fn from(source: PinPath) -> Self {
+        Trace {
+            source,
+            paths: vec![],
+            sinks: vec![],
+        }
     }
 }

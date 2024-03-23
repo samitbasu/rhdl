@@ -7,8 +7,6 @@ use crate::dyn_bit_manip::bits_shr_signed;
 use crate::dyn_bit_manip::{
     bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
 };
-use crate::util::binary_string;
-use crate::util::binary_string_nibbles;
 use crate::Digital;
 use crate::{
     path::{bit_range, Path},
@@ -17,7 +15,6 @@ use crate::{
 
 use super::kind::Array;
 use super::kind::Enum;
-use super::kind::Field;
 use super::kind::Struct;
 use super::kind::Tuple;
 

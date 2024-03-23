@@ -3,13 +3,13 @@ use std::collections::BTreeSet;
 use crate::kernel::ExternalKernelDef;
 use crate::path::{bit_range, Path, PathElement};
 use crate::rhif::spec::{
-    AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum, Exec,
+    AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
     ExternalFunctionCode, Index, Member, OpCode, Repeat, Select, Slot, Splice, Struct, Tuple,
     Unary,
 };
 use crate::test_module::VerilogDescriptor;
 use crate::util::binary_string;
-use crate::{ast::ast_impl::FunctionId, rhif::Object, Design, TypedBits};
+use crate::{ast::ast_impl::FunctionId, rhif::Object, Module, TypedBits};
 use anyhow::Result;
 use anyhow::{anyhow, ensure};
 
@@ -28,7 +28,7 @@ impl VerilogModule {
 struct TranslationContext<'a> {
     body: &'a mut String,
     kernels: Vec<VerilogModule>,
-    design: &'a Design,
+    design: &'a Module,
     obj: &'a Object,
 }
 
@@ -330,25 +330,6 @@ impl<'a> TranslationContext<'a> {
                     ));
                 }
             }
-            OpCode::Discriminant(Discriminant { lhs, arg }) => {
-                let arg_ty = self
-                    .obj
-                    .kind
-                    .get(arg)
-                    .ok_or(anyhow!(
-                        "No type for slot {} in function {}",
-                        arg,
-                        self.obj.name
-                    ))?
-                    .clone();
-                let path = Path::default().discriminant();
-                let (bit_range, _) = bit_range(arg_ty, &path)?;
-                self.body.push_str(&format!(
-                    "    {lhs} = {arg}[{}:{}];\n",
-                    bit_range.end - 1,
-                    bit_range.start,
-                ));
-            }
             OpCode::Case(Case {
                 lhs,
                 discriminant,
@@ -426,7 +407,7 @@ impl<'a> TranslationContext<'a> {
     }
 }
 
-fn translate(design: &Design, fn_id: FunctionId) -> Result<VerilogModule> {
+fn translate(design: &Module, fn_id: FunctionId) -> Result<VerilogModule> {
     let obj = design
         .objects
         .get(&fn_id)
@@ -474,11 +455,16 @@ fn translate(design: &Design, fn_id: FunctionId) -> Result<VerilogModule> {
     }
     func.push_str("    // Literals\n");
     // Allocate the literals
-    for (i, lit) in obj.literals.iter().enumerate() {
-        func.push_str(&format!(
-            "    localparam l{i} = {};\n",
-            as_verilog_literal(lit)
-        ));
+    for (&slot, lit) in obj.literals.iter() {
+        if lit.bits.is_empty() {
+            continue;
+        }
+        if let Slot::Literal(i) = slot {
+            func.push_str(&format!(
+                "    localparam l{i} = {};\n",
+                as_verilog_literal(lit)
+            ));
+        }
     }
     func.push_str("    // Body\n");
     func.push_str("begin\n");
@@ -519,7 +505,7 @@ fn decl(slot: &Slot, obj: &Object) -> Result<String> {
     Ok(format!("reg {} [{}:0] r{}", signed, width - 1, slot.reg()?))
 }
 
-pub fn generate_verilog(design: &Design) -> Result<VerilogDescriptor> {
+pub fn generate_verilog(design: &Module) -> Result<VerilogDescriptor> {
     let module = translate(design, design.top)?;
     let module = module.deduplicate()?;
     let body = module.functions.join("\n");

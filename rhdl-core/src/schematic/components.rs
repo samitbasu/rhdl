@@ -1,26 +1,31 @@
-use rhdl_core::{
+use crate::{
     path::Path,
-    rhif::spec::{AluBinary, AluUnary, CaseArgument, Member},
+    rhif::{
+        object::SourceLocation,
+        spec::{AluBinary, AluUnary, CaseArgument, Member},
+    },
     Kind, TypedBits,
 };
 
-use super::schematic::{PinIx, Schematic};
+use super::schematic_impl::{PinIx, Schematic};
 
 #[derive(Clone, Debug)]
 pub struct Component {
     // TODO - worry about the string allocation...
     pub path: Vec<String>,
     pub kind: ComponentKind,
+    pub location: Option<SourceLocation>,
 }
 
 impl Component {
-    pub fn offset(mut self, path: &str, offset: usize) -> Component {
+    pub fn offset(self, path: &str, offset: usize) -> Component {
         // prefix the path list with the new path
         let mut path = vec![path.to_string()];
         path.extend(self.path);
         Component {
             path,
             kind: self.kind.offset(offset),
+            location: self.location,
         }
     }
     pub fn is_noop(&self) -> bool {
@@ -55,6 +60,7 @@ pub struct SelectComponent {
 pub struct IndexComponent {
     pub arg: PinIx,
     pub path: Path,
+    pub kind: Kind,
     pub output: PinIx,
     pub dynamic: Vec<PinIx>,
 }
@@ -66,6 +72,7 @@ pub struct SpliceComponent {
     pub output: PinIx,
     pub path: Path,
     pub dynamic: Vec<PinIx>,
+    pub kind: Kind,
 }
 
 #[derive(Clone, Debug)]
@@ -124,15 +131,10 @@ pub struct ArrayComponent {
 }
 
 #[derive(Clone, Debug)]
-pub struct DiscriminantComponent {
-    pub arg: PinIx,
-    pub output: PinIx,
-}
-
-#[derive(Clone, Debug)]
 pub struct EnumComponent {
     pub fields: Vec<FieldPin>,
     pub output: PinIx,
+    pub template: TypedBits,
 }
 
 #[derive(Clone, Debug)]
@@ -154,6 +156,13 @@ pub struct ConstantComponent {
 }
 
 #[derive(Clone, Debug)]
+pub struct DigitalFlipFlopComponent {
+    pub clock: PinIx,
+    pub d: PinIx,
+    pub q: PinIx,
+}
+
+#[derive(Clone, Debug)]
 pub enum ComponentKind {
     Buffer(BufferComponent),
     Binary(BinaryComponent),
@@ -168,10 +177,10 @@ pub enum ComponentKind {
     BlackBox(BlackBoxComponent),
     Kernel(KernelComponent),
     Array(ArrayComponent),
-    Discriminant(DiscriminantComponent),
     Enum(EnumComponent),
     Constant(ConstantComponent),
     Cast(CastComponent),
+    DigitalFlipFlop(DigitalFlipFlopComponent),
     Noop,
 }
 
@@ -235,7 +244,7 @@ impl ComponentKind {
             }
             ComponentKind::Case(mut c) => {
                 c.discriminant = c.discriminant.offset(offset);
-                c.table.iter_mut().for_each(|(a, p)| *p = p.offset(offset));
+                c.table.iter_mut().for_each(|(_, p)| *p = p.offset(offset));
                 c.output = c.output.offset(offset);
                 ComponentKind::Case(c)
             }
@@ -254,11 +263,6 @@ impl ComponentKind {
                 c.output = c.output.offset(offset);
                 ComponentKind::Array(c)
             }
-            ComponentKind::Discriminant(mut c) => {
-                c.arg = c.arg.offset(offset);
-                c.output = c.output.offset(offset);
-                ComponentKind::Discriminant(c)
-            }
             ComponentKind::Enum(mut c) => {
                 c.output = c.output.offset(offset);
                 c.fields
@@ -274,6 +278,12 @@ impl ComponentKind {
                 c.input = c.input.offset(offset);
                 c.output = c.output.offset(offset);
                 ComponentKind::Cast(c)
+            }
+            ComponentKind::DigitalFlipFlop(mut c) => {
+                c.clock = c.clock.offset(offset);
+                c.d = c.d.offset(offset);
+                c.q = c.q.offset(offset);
+                ComponentKind::DigitalFlipFlop(c)
             }
             ComponentKind::Noop => ComponentKind::Noop,
         }
