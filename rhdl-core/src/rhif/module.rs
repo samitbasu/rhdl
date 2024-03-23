@@ -1,6 +1,8 @@
-use crate::{ast::ast_impl::FunctionId, diagnostic::SpannedSource, rhif::Object};
+use crate::{ast::ast_impl::FunctionId, rhif::Object};
 use anyhow::Result;
 use std::collections::HashMap;
+
+use super::spanned_source::SpannedSource;
 
 #[derive(Clone, Debug)]
 pub struct Module {

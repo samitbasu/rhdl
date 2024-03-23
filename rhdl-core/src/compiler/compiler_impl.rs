@@ -11,13 +11,13 @@ use crate::{
         ty::{ty_empty, ty_indexed_item, ty_named_field, ty_unnamed_field, Bits, Ty, TypeId},
         UnifyContext,
     },
-    diagnostic::build_spanned_source_for_kernel,
     rhif::{
         object::SymbolMap,
         rhif_builder::{
             op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
             op_exec, op_index, op_repeat, op_select, op_splice, op_struct, op_tuple, op_unary,
         },
+        spanned_source::build_spanned_source_for_kernel,
         spec::{
             self, AluBinary, AluUnary, CaseArgument, ExternalFunction, ExternalFunctionCode,
             FuncId, Member, OpCode, Slot,
