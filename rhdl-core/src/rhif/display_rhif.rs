@@ -2,9 +2,8 @@ use std::fmt::Display;
 
 use crate::{
     rhif::spec::{
-        AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum,
-        Exec, FieldValue, FuncId, Index, Member, OpCode, Repeat, Slot, Splice, Struct, Tuple,
-        Unary,
+        AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
+        FieldValue, FuncId, Index, Member, OpCode, Repeat, Slot, Splice, Struct, Tuple, Unary,
     },
     util::splice,
 };
@@ -38,7 +37,7 @@ impl Display for OpCode {
                 path,
                 subst: arg,
             }) => {
-                write!(f, "{} <- {}/[{}]{}", lhs, path, rhs, arg)
+                write!(f, "{} <- {}/{}/{}", lhs, arg, path, rhs)
             }
             OpCode::Select(Select {
                 lhs,
@@ -87,7 +86,6 @@ impl Display for OpCode {
                 write!(f, " {} <- [{}; {}]", lhs, value, len)
             }
             OpCode::Comment(s) => write!(f, " # {}", s.trim_end().replace('\n', "\n   # ")),
-            OpCode::Discriminant(Discriminant { lhs, arg }) => write!(f, " {} <- #[{}]", lhs, arg),
             OpCode::Enum(Enum {
                 lhs,
                 fields,

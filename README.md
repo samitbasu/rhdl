@@ -86,8 +86,8 @@ risk than a technical one.
 - [x] Write a compiler capable of handling multiple kernels
 - [x] Write a RHIF -> Verilog assembler
 - [x] Convert to SSA form
-- [ ] Add basic optimization passes
-- [ ] Build a data flow graph from the RHIF
+- [x] Add basic optimization passes
+- [x] Build a data flow graph from the RHIF
 - [ ] Identify registers with Rust source code to make human friendly diagnostics
 - [ ] Propogate the register details to the RHIF and Verilog codes.
 - [ ] Add timing estimator using longest path heuristics.
@@ -98,5 +98,5 @@ Some other topics I'm thinking about
 
 - [ ] Build a verilator bridge so that the Verilog code can be tested from Rust, using Verilator to simulate the Verilog
 - [x] Add support for zero-sized signals.  This is needed for black box modules and synchronous automatons (no non-clock inputs)
-- [ ] Make logging pure.  The global approach feels "weird".
-- [ ] Clean up the generated verilog, or clean up the RHIF so that the verilog is easier to read/understand.
+- [ ] ~~Make logging pure.  The global approach feels "weird"~~.
+- [x] Clean up the generated verilog, or clean up the RHIF so that the verilog is easier to read/understand.

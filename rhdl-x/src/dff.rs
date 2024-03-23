@@ -1,20 +1,24 @@
 use anyhow::bail;
 use anyhow::ensure;
 use anyhow::Result;
-use rhdl_core::diagnostic::dfg::Component;
-use rhdl_core::diagnostic::dfg::ComponentKind;
-use rhdl_core::diagnostic::dfg::Link;
-use rhdl_core::diagnostic::dfg::DFG;
 use rhdl_core::note;
+use rhdl_core::path::Path;
+use rhdl_core::root_descriptor;
+use rhdl_core::schematic::components::ComponentKind;
+use rhdl_core::schematic::components::DigitalFlipFlopComponent;
+use rhdl_core::schematic::components::IndexComponent;
+use rhdl_core::schematic::schematic_impl::Schematic;
+use rhdl_core::Circuit;
+use rhdl_core::CircuitDescriptor;
+use rhdl_core::HDLDescriptor;
+use rhdl_core::HDLKind;
 use rhdl_core::Kind;
 use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
 use rhdl_macro::Digital;
 
-use crate::circuit::root_descriptor;
-use crate::circuit::BufZ;
-use crate::circuit::HDLDescriptor;
-use crate::{circuit::Circuit, clock::Clock};
 use rhdl_core::CircuitIO;
+
+use crate::clock::Clock;
 
 #[derive(Default, Clone)]
 pub struct DFF<T: Digital> {
@@ -75,28 +79,63 @@ impl<T: Digital> Circuit for DFF<T> {
         "DFF"
     }
 
-    fn as_hdl(&self, kind: crate::circuit::HDLKind) -> Result<HDLDescriptor> {
-        ensure!(kind == crate::circuit::HDLKind::Verilog);
+    fn as_hdl(&self, kind: HDLKind) -> Result<HDLDescriptor> {
+        ensure!(kind == HDLKind::Verilog);
         Ok(self.as_verilog())
     }
 
-    fn descriptor(&self) -> crate::circuit::CircuitDescriptor {
+    fn descriptor(&self) -> CircuitDescriptor {
         let mut desc = root_descriptor(self);
-        let mut dfg = DFG::default();
-        // We want to add a DFF node
-        let i = dfg.buffer("i", Self::I::static_kind());
-        let q = dfg.buffer("q", Kind::Empty);
-        let output = Kind::make_tuple(vec![Self::O::static_kind(), Kind::Empty]);
-        let dff = dfg.graph.add_node(Component {
-            input: Self::I::static_kind(),
-            output,
-            kind: ComponentKind::DFF,
-            location: None,
-        });
-        dfg.graph.add_edge(i, dff, Link::default());
-        dfg.ret = dff;
-        dfg.arguments = vec![i, q];
-        desc.update_dfg = Some(dfg);
+        let mut schematic = Schematic::default();
+        let (input_rx, input_tx) = schematic.make_buffer(DFFI::<T>::static_kind(), None);
+        // The clock splitter
+        let i = schematic.make_pin(DFFI::<T>::static_kind(), "i".to_string(), None);
+        let clock = schematic.make_pin(Clock::static_kind(), "clock".to_string(), None);
+        let index = schematic.make_component(
+            ComponentKind::Index(IndexComponent {
+                arg: i,
+                path: Path::default().field("clock"),
+                output: clock,
+                kind: Clock::static_kind(),
+                dynamic: vec![],
+            }),
+            None,
+        );
+        schematic.pin_mut(i).parent(index);
+        schematic.pin_mut(clock).parent(index);
+        schematic.wire(input_tx, i);
+        // the D splitter
+        let i = schematic.make_pin(DFFI::<T>::static_kind(), "i".to_string(), None);
+        let d_pin = schematic.make_pin(T::static_kind(), "d".to_string(), None);
+        let index = schematic.make_component(
+            ComponentKind::Index(IndexComponent {
+                arg: i,
+                path: Path::default().field("data"),
+                output: d_pin,
+                kind: T::static_kind(),
+                dynamic: vec![],
+            }),
+            None,
+        );
+        schematic.pin_mut(i).parent(index);
+        schematic.pin_mut(d_pin).parent(index);
+        schematic.wire(input_tx, i);
+        // The DFF itself
+        let c = schematic.make_pin(Clock::static_kind(), "clock".to_string(), None);
+        let d = schematic.make_pin(T::static_kind(), "d".to_string(), None);
+        let q = schematic.make_pin(T::static_kind(), "q".to_string(), None);
+        let dff = schematic.make_component(
+            ComponentKind::DigitalFlipFlop(DigitalFlipFlopComponent { clock: c, d, q }),
+            None,
+        );
+        schematic.pin_mut(c).parent(dff);
+        schematic.pin_mut(d).parent(dff);
+        schematic.pin_mut(q).parent(dff);
+        schematic.wire(clock, c);
+        schematic.wire(d_pin, d);
+        schematic.inputs = vec![input_rx];
+        schematic.output = q;
+        desc.update_schematic = Some(schematic);
         desc
     }
 }

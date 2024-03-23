@@ -1,34 +1,26 @@
 use std::collections::HashSet;
 use std::io::Result;
 use std::io::Write;
+use std::iter::once;
 
-use crate::dfg::components::ComponentKind;
-
-use super::components::ArrayComponent;
-use super::components::BinaryComponent;
-use super::components::BlackBoxComponent;
-use super::components::BufferComponent;
-use super::components::CaseComponent;
-use super::components::CastComponent;
-use super::components::ConstantComponent;
-use super::components::DiscriminantComponent;
-use super::components::EnumComponent;
-use super::components::IndexComponent;
-use super::components::KernelComponent;
-use super::components::RepeatComponent;
-use super::components::SelectComponent;
-use super::components::SpliceComponent;
-use super::components::StructComponent;
-use super::components::TupleComponent;
-use super::components::UnaryComponent;
-use super::{components::Component, schematic::Schematic};
+use super::components::DigitalFlipFlopComponent;
+use super::schematic_impl::Trace;
+use super::{
+    components::{
+        ArrayComponent, BinaryComponent, BlackBoxComponent, BufferComponent, CaseComponent,
+        CastComponent, Component, ComponentKind, ConstantComponent, EnumComponent, IndexComponent,
+        KernelComponent, RepeatComponent, SelectComponent, SpliceComponent, StructComponent,
+        TupleComponent, UnaryComponent,
+    },
+    schematic_impl::Schematic,
+};
 
 struct DotWriter<'a, 'b, W: Write> {
     w: &'b mut W,
     schematic: &'a Schematic,
 }
 
-pub fn write_dot(schematic: &Schematic, mut w: impl Write) -> Result<()> {
+pub fn write_dot(schematic: &Schematic, trace: Option<&Trace>, mut w: impl Write) -> Result<()> {
     writeln!(w, "digraph schematic {{")?;
     writeln!(w, "rankdir=\"LR\"")?;
     writeln!(w, "remincross=true;")?;
@@ -36,12 +28,12 @@ pub fn write_dot(schematic: &Schematic, mut w: impl Write) -> Result<()> {
         w: &mut w,
         schematic,
     };
-    dot.write_schematic()?;
+    dot.write_schematic(trace)?;
     writeln!(w, "}}")
 }
 
 impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
-    fn write_schematic(&mut self) -> Result<()> {
+    fn write_schematic(&mut self, trace: Option<&Trace>) -> Result<()> {
         // Allocate the input ports for the schematic
         self.schematic
             .inputs
@@ -75,10 +67,19 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             {
                 return Ok(());
             }
+            let label = if let Some(t) = trace.as_ref().and_then(|t| {
+                t.paths
+                    .iter()
+                    .find(|t| t.source == wire.source && t.dest == wire.dest)
+            }) {
+                format!("[label=\"{}\", color=\"red\"]", t.path)
+            } else {
+                "".to_string()
+            };
             writeln!(
                 self.w,
-                "c{}:{}:e -> c{}:{}:w;",
-                src_component, wire.source, dest_component, wire.dest
+                "c{}:{}:e -> c{}:{}:w {};",
+                src_component, wire.source, dest_component, wire.dest, label
             )
         })?;
 
@@ -90,23 +91,45 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             .try_for_each(|(ix, pin)| {
                 let pin_data = self.schematic.pin(*pin);
                 let parent_component: usize = pin_data.parent.into();
+                let label = if let Some(t) = trace.as_ref().and_then(|t| {
+                    t.sinks
+                        .iter()
+                        .chain(once(&t.source))
+                        .find(|t| t.pin == *pin)
+                }) {
+                    format!("[label=\"{}\", color=\"red\"]", t.path)
+                } else {
+                    "".to_string()
+                };
                 writeln!(
                     self.w,
-                    "a{ix}:e -> c{parent}:{pin}:w;",
+                    "a{ix}:e -> c{parent}:{pin}:w {label};",
                     ix = ix,
                     parent = parent_component,
-                    pin = pin
+                    pin = pin,
+                    label = label
                 )
             })?;
         // Add wires from the output schematic ports to the output buffer pins
         let pin_data = self.schematic.pin(self.schematic.output);
         let parent_component: usize = pin_data.parent.into();
+        let label = if let Some(t) = trace.as_ref().and_then(|t| {
+            t.sinks
+                .iter()
+                .chain(once(&t.source))
+                .find(|t| t.pin == self.schematic.output)
+        }) {
+            format!("[label=\"{}\", color=\"red\"]", t.path)
+        } else {
+            "".to_string()
+        };
         writeln!(
             self.w,
-            "c{parent}:{pin}:e -> o{ix}:w;",
+            "c{parent}:{pin}:e -> o{ix}:w {label};",
             ix = 0,
             parent = parent_component,
-            pin = self.schematic.output
+            pin = self.schematic.output,
+            label = label
         )
     }
 
@@ -124,11 +147,11 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             ComponentKind::Case(case) => self.write_case(ndx, case),
             ComponentKind::BlackBox(exec) => self.write_black_box(ndx, exec),
             ComponentKind::Array(array) => self.write_array(ndx, array),
-            ComponentKind::Discriminant(disc) => self.write_discriminant(ndx, disc),
             ComponentKind::Enum(enm) => self.write_enum(ndx, enm),
             ComponentKind::Constant(constant) => self.write_constant(ndx, constant),
             ComponentKind::Cast(cast) => self.write_cast(ndx, cast),
             ComponentKind::Kernel(kernel) => self.write_kernel(ndx, kernel),
+            ComponentKind::DigitalFlipFlop(dff) => self.write_dff(ndx, dff),
             ComponentKind::Noop => Ok(()),
         }
     }
@@ -167,6 +190,13 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
         let output_ports = format!("{{<{}> Y}}", unary.output);
         let label = format!("{}", unary.op);
         self.write_cnode(ndx, &input_ports, &label, &output_ports)
+    }
+
+    fn write_dff(&mut self, ndx: usize, dff: &DigitalFlipFlopComponent) -> Result<()> {
+        let input_ports = format!("{{<{}> D | <{}> C}}", dff.d, dff.clock);
+        let output_ports = format!("{{<{}> Q }}", dff.q);
+        let label = "dff";
+        self.write_cnode(ndx, &input_ports, label, &output_ports)
     }
 
     fn write_select(&mut self, ndx: usize, select: &SelectComponent) -> Result<()> {
@@ -255,7 +285,7 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
         let input_ports = format!("{{{discriminant_port}{table_ports}}}");
         let output_ports = format!("{{<{}> Y}}", case.output);
         let label = "case";
-        self.write_cnode(ndx, &input_ports, &label, &output_ports)
+        self.write_cnode(ndx, &input_ports, label, &output_ports)
     }
 
     fn write_black_box(&mut self, ndx: usize, black_box: &BlackBoxComponent) -> Result<()> {
@@ -294,14 +324,7 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             .join("");
         let output_ports = format!("{{<{}> Y}}", array.output);
         let label = "array";
-        self.write_cnode(ndx, &input_ports, &label, &output_ports)
-    }
-
-    fn write_discriminant(&mut self, ndx: usize, disc: &DiscriminantComponent) -> Result<()> {
-        let input_ports = format!("{{<{}> A}}", disc.arg);
-        let output_ports = format!("{{<{}> Y}}", disc.output);
-        let label = "discriminant";
-        self.write_cnode(ndx, &input_ports, &label, &output_ports)
+        self.write_cnode(ndx, &input_ports, label, &output_ports)
     }
 
     fn write_enum(&mut self, ndx: usize, enm: &EnumComponent) -> Result<()> {

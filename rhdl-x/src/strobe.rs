@@ -1,27 +1,37 @@
+use std::collections::HashMap;
+use std::ops::Range;
+
 use anyhow::bail;
 use anyhow::Result;
+use miette::LabeledSpan;
+use miette::MietteError;
+use miette::NamedSource;
+use miette::SourceCode;
+use miette::SourceSpan;
+use miette::SpanContents;
 use petgraph::Direction;
 use rhdl_bits::alias::*;
 use rhdl_bits::{bits, Bits};
+use rhdl_core::ast::ast_impl::FunctionId;
 use rhdl_core::compile_design;
-use rhdl_core::diagnostic::dfg::Component;
-use rhdl_core::diagnostic::dfg::ComponentKind;
+use rhdl_core::crusty::index::IndexedSchematic;
+use rhdl_core::diagnostic::SpannedSource;
 use rhdl_core::note;
 use rhdl_core::path::Path;
+use rhdl_core::rhif::object::SourceLocation;
+use rhdl_core::rhif::spec::FuncId;
+use rhdl_core::schematic::components::ComponentKind;
+use rhdl_core::schematic::schematic_impl::PinPath;
+use rhdl_core::schematic::schematic_impl::Trace;
+use rhdl_core::Circuit;
 use rhdl_core::CircuitIO;
 use rhdl_core::Digital;
 use rhdl_core::KernelFnKind;
 use rhdl_core::Tristate;
 use rhdl_macro::{kernel, Digital};
 
-use crate::circuit::root_descriptor;
-use crate::circuit::root_hdl;
-use crate::circuit::BufZ;
 use crate::dff::DFFI;
-use crate::dfg::build_schematic;
-use crate::dfg::dot::write_dot;
-use crate::trace::trace;
-use crate::{circuit::Circuit, clock::Clock, constant::Constant, dff::DFF};
+use crate::{clock::Clock, constant::Constant, dff::DFF};
 use rhdl_macro::Circuit;
 
 // Build a strobe
@@ -53,9 +63,56 @@ impl<const N: usize> CircuitIO for Strobe<N> {
 }
 
 #[kernel]
+fn child_one(i: b4) -> b4 {
+    i
+}
+
+#[kernel]
+fn child_two(i: b8) -> b8 {
+    i
+}
+
+#[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
+pub struct DemoQ {
+    pub child_one: b4,
+    pub child_two: b8,
+}
+
+#[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
+pub struct DemoD {
+    pub child_one: b4,
+    pub child_two: b8,
+}
+
+#[kernel]
+fn update_me(i: b1, q: DemoQ) -> (b1, DemoD) {
+    (
+        i,
+        DemoD {
+            child_one: child_one(q.child_one),
+            child_two: child_two(q.child_two),
+        },
+    )
+}
+
+#[kernel]
+fn circuit(i: b1) -> b1 {
+    let mut q = DemoQ::default();
+    let (o, d) = update_me(i, q);
+    q.child_one = child_one(d.child_one);
+    q.child_two = child_two(d.child_two);
+    o
+}
+
+#[kernel]
+pub fn add_one<const N: usize>(count: Bits<N>) -> Bits<N> {
+    count + 1
+}
+
+#[kernel]
 pub fn add_enabled<const N: usize>(enable: bool, count: Bits<N>) -> Bits<N> {
     if enable {
-        count + 1
+        add_one::<{ N }>(count)
     } else {
         count
     }
@@ -66,7 +123,7 @@ pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
     let mut d = StrobeD::<N>::default();
     note("i", i);
     note("q", q);
-    d.counter.clock = i.clock;
+    //d.counter.clock = i.clock;
     //    let counter_next = if i.enable { q.counter + 1 } else { q.counter };
     let counter_next = add_enabled::<{ N }>(i.enable, q.counter);
     let strobe = i.enable & (q.counter == q.threshold);
@@ -75,14 +132,27 @@ pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
     } else {
         counter_next
     };
+    let jnk = add_enabled::<{ N }>(i.enable, q.counter);
+    let hoo = add_one::<{ N }>(jnk);
+    let jaz = if strobe { counter_next } else { counter_next };
     d.counter.data = counter_next;
     note("out", strobe);
     note("d", d);
-    let tmp = StrobeD::<{ N }> {
-        threshold: (),
-        counter: d.counter,
-    };
     (strobe, d)
+}
+
+#[test]
+fn test_circuit_schematic() {
+    use rhdl_core::DigitalFn;
+    let Some(KernelFnKind::Kernel(kernel)) = circuit::kernel_fn() else {
+        panic!("No kernel function");
+    };
+    let module = compile_design(kernel).unwrap();
+    let schematic = rhdl_core::schematic::builder::build_schematic(&module, module.top)
+        .unwrap()
+        .inlined();
+    let mut dot = std::fs::File::create("circuit_schematic.dot").unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, None, &mut dot).unwrap();
 }
 
 #[test]
@@ -93,45 +163,231 @@ fn test_schematic() {
         panic!("No kernel function");
     };
     let design = compile_design(kernel).unwrap();
-    let schematic = build_schematic(&design, design.top).unwrap();
+    let schematic = rhdl_core::schematic::builder::build_schematic(&design, design.top).unwrap();
     let mut dot = std::fs::File::create("strobe_schematic.dot").unwrap();
-    write_dot(&schematic, &mut dot).unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, None, &mut dot).unwrap();
 }
 
 #[test]
-fn test_strobe_dfg() {
+fn test_simple_schematic_inlined() {
+    use rhdl_core::DigitalFn;
+    let Some(KernelFnKind::Kernel(kernel)) = add_enabled::<8>::kernel_fn() else {
+        panic!("No kernel function");
+    };
+    let module = compile_design(kernel).unwrap();
+    let schematic = rhdl_core::schematic::builder::build_schematic(&module, module.top)
+        .unwrap()
+        .inlined();
+    schematic
+        .components
+        .iter()
+        .enumerate()
+        .for_each(|(ndx, c)| {
+            eprintln!("component {} kind {:?}", ndx, c.kind);
+        });
+    schematic.wires.iter().for_each(|w| {
+        eprintln!("wire {:?}", w);
+    });
+    let schematic = schematic.inlined();
+    schematic
+        .components
+        .iter()
+        .enumerate()
+        .for_each(|(ndx, c)| {
+            eprintln!("component {} kind {:?}", ndx, c.kind);
+        });
+    schematic.wires.iter().for_each(|w| {
+        eprintln!("wire {:?}", w);
+    });
+    let mut dot = std::fs::File::create("add_enabled_schematic.dot").unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, None, &mut dot).unwrap();
+}
+
+#[test]
+fn test_schematic_inlined() {
+    use rhdl_core::DigitalFn;
+
+    let Some(KernelFnKind::Kernel(kernel)) = strobe::<8>::kernel_fn() else {
+        panic!("No kernel function");
+    };
+    let design = compile_design(kernel).unwrap();
+    let schematic = rhdl_core::schematic::builder::build_schematic(&design, design.top)
+        .unwrap()
+        .inlined();
+    schematic
+        .components
+        .iter()
+        .enumerate()
+        .for_each(|(ndx, c)| {
+            eprintln!("component {} path {:?}", ndx, c.path);
+        });
+    let mut dot = std::fs::File::create("strobe_schematic.dot").unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, None, &mut dot).unwrap();
+}
+
+#[test]
+fn test_strobe_schematic() {
     let strobe = Strobe::<8>::new(bits::<8>(5));
     let descriptor = Strobe::<8>::descriptor(&strobe);
-    let total_dfg = descriptor.dfg().unwrap();
-    let dot = total_dfg.as_dot();
-    std::fs::write("strobe.dot", dot).unwrap();
-    // Look for a DFF
-    let dff_node = total_dfg
-        .graph
-        .node_indices()
-        .find(|node| {
-            matches!(
-                total_dfg.graph.node_weight(*node).map(|x| &x.kind),
-                Some(ComponentKind::DFF)
-            )
+    let schematic = descriptor.schematic().unwrap();
+    let clock_pin_path = PinPath {
+        pin: schematic.inputs[0],
+        path: Path::default().field("clock"),
+    };
+    let schematic = schematic.inlined();
+    for sink in rhdl_core::crusty::downstream::follow_pin_downstream(
+        &schematic.clone().into(),
+        clock_pin_path,
+    )
+    .unwrap()
+    .sinks
+    {
+        eprintln!("sink is {:?}", sink);
+    }
+    let dff = schematic
+        .components
+        .iter()
+        .find_map(|c| match &c.kind {
+            ComponentKind::DigitalFlipFlop(d) => Some(d),
+            _ => None,
         })
         .unwrap();
-    eprintln!("dff node is {:?}", dff_node);
-    let comp = total_dfg.graph.node_weight(dff_node).unwrap();
-    eprintln!("comp is {:?}", comp);
-    for edge in total_dfg
-        .graph
-        .edges_directed(dff_node, Direction::Incoming)
-    {
-        eprintln!("edge is {:?}", edge);
+    eprintln!("dff is {:?}", dff);
+    let dff_clock_pin = dff.clock;
+    let dff_source_path = rhdl_core::crusty::upstream::follow_pin_upstream(
+        &schematic.clone().into(),
+        PinPath {
+            pin: dff_clock_pin,
+            path: Path::default(),
+        },
+    )
+    .unwrap();
+    let report = trace_diagnostic(&schematic.clone().into(), &dff_source_path);
+    eprintln!("report is {:?}", report);
+    for segment in &dff_source_path.paths {
+        eprintln!("segment is {:?}", segment);
     }
-    let clock_path = Path::default().field("clock");
-    let mut subset = Default::default();
-    trace(&total_dfg, dff_node, &clock_path, &mut subset).unwrap();
-    eprintln!("subset is {:?}", subset);
-    let sub_graph = crate::trace::subgraph(&total_dfg, &subset);
-    let dot = sub_graph.as_dot();
-    std::fs::write("strobe_sub.dot", dot).unwrap();
+    let mut dot = std::fs::File::create("strobe_inlined.dot").unwrap();
+    rhdl_core::schematic::dot::write_dot(&schematic, Some(&dff_source_path), &mut dot).unwrap();
+}
+
+#[derive(Clone, Debug)]
+pub struct SourcePool {
+    pub source: HashMap<FunctionId, SpannedSource>,
+    pub ranges: HashMap<FunctionId, Range<usize>>,
+}
+
+impl SourcePool {
+    fn new(source: HashMap<FunctionId, SpannedSource>) -> Self {
+        let mut ranges = HashMap::new();
+        let mut offset = 0;
+        for (id, src) in &source {
+            let len = src.source.len();
+            ranges.insert(*id, offset..offset + len);
+            offset += len;
+        }
+        Self { source, ranges }
+    }
+
+    fn get_range_from_location(&self, location: SourceLocation) -> Option<Range<usize>> {
+        let range = self.ranges.get(&location.func)?;
+        let local_span = self
+            .source
+            .get(&location.func)?
+            .span_map
+            .get(&location.node)?;
+        let start = range.start + local_span.start;
+        let end = range.start + local_span.end;
+        Some(start..end)
+    }
+}
+
+impl SourceCode for SourcePool {
+    fn read_span<'a>(
+        &'a self,
+        span: &SourceSpan,
+        context_lines_before: usize,
+        context_lines_after: usize,
+    ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
+        eprintln!("read_span {:?}", span);
+        let start = span.offset();
+        let len = span.len();
+        if let Some((function_id, function_range)) = self
+            .ranges
+            .iter()
+            .find(|(id, range)| range.contains(&start))
+        {
+            eprintln!("function_id is {:?}", function_id);
+            eprintln!("function range is {:?}", function_range);
+            let local_offset = start - function_range.start;
+            let local_span = SourceSpan::new(local_offset.into(), len);
+            eprintln!("local_span is then {:?}", local_span);
+            let source = self.source.get(function_id).unwrap();
+            eprintln!("Source text len is {}", source.source.len());
+            let local =
+                source
+                    .source
+                    .read_span(&local_span, context_lines_before, context_lines_after)?;
+            let local_span = local.span();
+            let span = (local_span.offset() + function_range.start, local_span.len()).into();
+            Ok(Box::new(miette::MietteSpanContents::new_named(
+                source.name.clone(),
+                local.data(),
+                span,
+                local.line(),
+                local.column(),
+                local.line_count(),
+            )))
+        } else {
+            Err(MietteError::OutOfBounds)
+        }
+    }
+}
+
+// Notes to think about:
+// 1. Make schematic inlined always.
+// 2. Generate trace items using the operators as well.
+// So something like this:
+//   source -> pin -> "from here"
+//              -> op "via this op"
+//   dest -> pin -> "to here"
+
+fn trace_diagnostic(is: &IndexedSchematic, trace: &Trace) -> miette::Report {
+    let pool = SourcePool::new(is.schematic.source.clone());
+    let source_locations = trace
+        .paths
+        .iter()
+        .filter_map(|p| is.schematic.pin(p.source).location)
+        .collect::<Vec<_>>();
+    for loc in source_locations {
+        let func = pool.source.get(&loc.func).unwrap();
+        eprintln!("Location: {:?}", loc);
+        eprintln!("span: {:?}", func.span(loc.node));
+        eprintln!("Text: {}", func.text(loc.node));
+    }
+
+    let labels = trace.paths.iter().filter_map(|p| {
+        is.schematic
+            .pin(p.source)
+            .location
+            .inspect(|x| eprintln!("location is {:?}", x))
+            .and_then(|l| pool.get_range_from_location(l))
+            .inspect(|x| eprintln!("range is {:?}", x))
+            .map(|range| {
+                LabeledSpan::new(
+                    Some(format!("{}", p.source)),
+                    range.start,
+                    range.end - range.start,
+                )
+            })
+            .inspect(|x| eprintln!("label is {:?}", x))
+    });
+    let diagnostic = miette::MietteDiagnostic::new("Clock error")
+        .with_help("Check that the clock is connected to a clock source")
+        .with_code("clock_error")
+        .with_severity(miette::Severity::Warning)
+        .with_labels(labels);
+    miette::Report::new(diagnostic).with_source_code(pool)
 }
 
 /*

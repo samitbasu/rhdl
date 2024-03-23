@@ -1,31 +1,33 @@
 use anyhow::ensure;
 use rhdl_bits::alias::*;
 use rhdl_bits::Bits;
+use rhdl_core::circuit::circuit_impl::CircuitUpdateFn;
 use rhdl_core::note;
 use rhdl_core::note_init_db;
 use rhdl_core::note_pop_path;
 use rhdl_core::note_push_path;
 use rhdl_core::note_take;
 use rhdl_core::note_time;
+use rhdl_core::root_descriptor;
+use rhdl_core::root_hdl;
+use rhdl_core::BitZ;
+use rhdl_core::CircuitDescriptor;
 use rhdl_core::CircuitIO;
 use rhdl_core::Digital;
 use rhdl_core::DigitalFn;
+use rhdl_core::HDLDescriptor;
+use rhdl_core::HDLKind;
 use rhdl_core::Notable;
 use rhdl_core::NoteKey;
 use rhdl_core::NoteWriter;
+use rhdl_core::Tristate;
 use rhdl_macro::kernel;
 use rhdl_macro::Digital;
 
-use crate::circuit::root_descriptor;
-use crate::circuit::root_hdl;
-use crate::circuit::BitZ;
-use crate::circuit::BufZ;
-use crate::circuit::HDLDescriptor;
-use crate::circuit::Tristate;
-use crate::circuit::TristateBuf;
 use crate::clock::Clock;
 use crate::dff::DFF;
-use crate::{circuit::Circuit, constant::Constant, strobe::Strobe};
+use crate::{constant::Constant, strobe::Strobe};
+use rhdl_core::Circuit;
 use rhdl_macro::Circuit;
 
 #[derive(Default, Clone)]
@@ -44,7 +46,7 @@ impl<const N: usize> DigitalFn for ZDriver<N> {
 }
 
 impl<const N: usize> ZDriver<N> {
-    fn as_verilog(&self) -> crate::circuit::HDLDescriptor {
+    fn as_verilog(&self) -> HDLDescriptor {
         let module_name = self.descriptor().unique_name;
         let input_bits = N;
         let output_bits = N.saturating_sub(1);
@@ -96,16 +98,13 @@ impl<const N: usize> Circuit for ZDriver<N> {
         "ZDriver"
     }
 
-    fn as_hdl(
-        &self,
-        kind: crate::circuit::HDLKind,
-    ) -> anyhow::Result<crate::circuit::HDLDescriptor> {
-        ensure!(kind == crate::circuit::HDLKind::Verilog);
+    fn as_hdl(&self, kind: HDLKind) -> anyhow::Result<HDLDescriptor> {
+        ensure!(kind == HDLKind::Verilog);
         Ok(self.as_verilog())
     }
 
-    fn descriptor(&self) -> crate::circuit::CircuitDescriptor {
-        crate::circuit::root_descriptor(self)
+    fn descriptor(&self) -> CircuitDescriptor {
+        root_descriptor(self)
     }
 }
 
@@ -407,7 +406,7 @@ fn test_push_as_verilog() {
         side: DFF::from(Side::Left),
         latch: DFF::from(b8(0)),
     };
-    let top = push.as_hdl(crate::circuit::HDLKind::Verilog).unwrap();
+    let top = push.as_hdl(HDLKind::Verilog).unwrap();
     println!("{}", top);
 }
 
@@ -511,7 +510,7 @@ impl Circuit for PushPair {
 
     type Update = push_pair;
 
-    const UPDATE: crate::circuit::CircuitUpdateFn<Self> = push_pair;
+    const UPDATE: CircuitUpdateFn<Self> = push_pair;
 
     fn name(&self) -> &'static str {
         "PushPair"
@@ -525,7 +524,7 @@ impl Circuit for PushPair {
         )
     }
 
-    fn descriptor(&self) -> crate::circuit::CircuitDescriptor {
+    fn descriptor(&self) -> CircuitDescriptor {
         let mut ret = root_descriptor(self);
         ret.children
             .insert("left".to_string(), self.left.descriptor());
@@ -534,7 +533,7 @@ impl Circuit for PushPair {
         ret
     }
 
-    fn as_hdl(&self, kind: crate::circuit::HDLKind) -> anyhow::Result<HDLDescriptor> {
+    fn as_hdl(&self, kind: HDLKind) -> anyhow::Result<HDLDescriptor> {
         let mut ret = root_hdl(self, kind)?;
         ret.children
             .insert("left".to_string(), self.left.as_hdl(kind)?);

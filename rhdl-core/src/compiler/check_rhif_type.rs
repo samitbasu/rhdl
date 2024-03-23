@@ -7,8 +7,8 @@ use crate::{
     rhif::{
         self,
         spec::{
-            AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant,
-            Enum, Exec, Index, OpCode, Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
+            AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
+            Index, OpCode, Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
         },
         Object,
     },
@@ -273,14 +273,6 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                         }
                         CaseArgument::Wild => {}
                     }
-                }
-            }
-            OpCode::Discriminant(Discriminant { lhs, arg }) => {
-                let arg_ty = slot_type(arg)?;
-                if arg_ty.is_enum() {
-                    eq_kinds(slot_type(lhs)?, arg_ty.get_discriminant_kind()?)?;
-                } else {
-                    eq_kinds(slot_type(lhs)?, arg_ty)?;
                 }
             }
             OpCode::Exec(Exec { lhs, id, args }) => {

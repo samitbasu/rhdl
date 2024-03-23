@@ -1,11 +1,13 @@
+use std::collections::BTreeMap;
+
 use crate::kernel::ExternalKernelDef;
 use crate::path::Path;
 use crate::rhif::object::Object;
 use crate::rhif::spec::{
-    AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Discriminant, Enum, Exec,
-    Index, Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
+    AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, Index,
+    Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
 };
-use crate::{ast::ast_impl::FunctionId, rhif::design::Design, TypedBits};
+use crate::{ast::ast_impl::FunctionId, rhif::module::Module, TypedBits};
 use crate::{Digital, Kind};
 
 use anyhow::Result;
@@ -16,8 +18,8 @@ use super::spec::{ExternalFunctionCode, Select, Splice};
 
 struct VMState<'a> {
     reg_stack: &'a mut [Option<TypedBits>],
-    literals: &'a [TypedBits],
-    design: &'a Design,
+    literals: &'a BTreeMap<Slot, TypedBits>,
+    design: &'a Module,
     obj: &'a Object,
 }
 
@@ -26,7 +28,7 @@ impl<'a> VMState<'a> {
         match slot {
             Slot::Literal(l) => self
                 .literals
-                .get(l)
+                .get(&Slot::Literal(l))
                 .cloned()
                 .ok_or(anyhow!("ICE Literal {l} not found in object")),
             Slot::Register(r) => self
@@ -230,11 +232,6 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
                 }
                 state.write(*lhs, result)?;
             }
-            OpCode::Discriminant(Discriminant { lhs, arg }) => {
-                let arg = state.read(*arg)?;
-                let result = arg.discriminant()?;
-                state.write(*lhs, result)?;
-            }
             OpCode::Case(Case {
                 lhs,
                 discriminant,
@@ -296,7 +293,7 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
     Ok(())
 }
 
-fn execute(design: &Design, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Result<TypedBits> {
+fn execute(design: &Module, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Result<TypedBits> {
     // Load the object for this function
     let obj = design
         .objects
@@ -342,15 +339,23 @@ fn execute(design: &Design, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
         obj,
     };
     execute_block(&obj.ops, &mut state)?;
-    reg_stack
-        .get(obj.return_slot.reg()?)
-        .cloned()
-        .ok_or(anyhow!("return slot not found"))?
-        .ok_or(anyhow!("ICE return slot is not initialized"))
+    match obj.return_slot {
+        Slot::Empty => Ok(TypedBits::EMPTY),
+        Slot::Register(r) => reg_stack
+            .get(r)
+            .cloned()
+            .ok_or(anyhow!("return slot not found"))?
+            .ok_or(anyhow!("ICE return slot is not initialized")),
+        Slot::Literal(ndx) => obj
+            .literals
+            .get(&Slot::Literal(ndx))
+            .cloned()
+            .ok_or(anyhow!("return literal not found")),
+    }
 }
 
 // Given a set of arguments in the form of TypedBits, execute the function described by a Design
 // and then return the result as a TypedBits.
-pub fn execute_function(design: &Design, arguments: Vec<TypedBits>) -> Result<TypedBits> {
+pub fn execute_function(design: &Module, arguments: Vec<TypedBits>) -> Result<TypedBits> {
     execute(design, design.top, arguments)
 }

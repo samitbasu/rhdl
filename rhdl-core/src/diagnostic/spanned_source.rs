@@ -14,6 +14,16 @@ pub struct SpannedSource {
     pub span_map: HashMap<NodeId, Range<usize>>,
 }
 
+impl SpannedSource {
+    pub fn span(&self, id: NodeId) -> Range<usize> {
+        self.span_map[&id].clone()
+    }
+    pub fn text(&self, id: NodeId) -> &str {
+        let span = self.span(id);
+        &self.source[span]
+    }
+}
+
 #[derive(Default)]
 struct SpannedSourceBuilder {
     name: String,

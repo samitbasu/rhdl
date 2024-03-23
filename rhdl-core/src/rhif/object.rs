@@ -24,11 +24,16 @@ impl From<(FunctionId, NodeId)> for SourceLocation {
 }
 
 #[derive(Debug, Clone)]
-pub struct Object {
-    pub source: Option<SpannedSource>,
+pub struct SymbolMap {
+    pub source: SpannedSource,
     pub slot_map: BTreeMap<Slot, SourceLocation>,
     pub opcode_map: Vec<SourceLocation>,
-    pub literals: Vec<TypedBits>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Object {
+    pub symbols: SymbolMap,
+    pub literals: BTreeMap<Slot, TypedBits>,
     pub kind: BTreeMap<Slot, Kind>,
     pub return_slot: Slot,
     pub externals: Vec<ExternalFunction>,
@@ -40,10 +45,9 @@ pub struct Object {
 
 impl Object {
     pub fn literal(&self, slot: Slot) -> Result<&TypedBits> {
-        match slot {
-            Slot::Literal(l) => Ok(&self.literals[l]),
-            _ => Err(anyhow::anyhow!("Not a literal")),
-        }
+        self.literals
+            .get(&slot)
+            .ok_or_else(|| anyhow::anyhow!("Not a literal"))
     }
     pub fn reg_max_index(&self) -> usize {
         self.kind
@@ -78,14 +82,8 @@ impl std::fmt::Display for Object {
                 writeln!(f, "Reg r{} : {}", ndx, self.kind[regs])?;
             }
         }
-        for (ndx, literal) in self.literals.iter().enumerate() {
-            writeln!(
-                f,
-                "Literal l{} : {} = {}",
-                ndx,
-                self.kind[&Slot::Literal(ndx)],
-                literal
-            )?;
+        for (slot, literal) in self.literals.iter() {
+            writeln!(f, "Literal {} : {} = {}", slot, self.kind[slot], literal)?;
         }
         for (ndx, func) in self.externals.iter().enumerate() {
             writeln!(
