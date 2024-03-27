@@ -25,7 +25,7 @@ pub struct Counter<const N: usize> {
 }
 
 #[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
-pub struct CounterI<const N: usize> {
+pub struct CounterI {
     pub clock: Clock,
     pub enable: bool,
 }
@@ -41,7 +41,7 @@ pub struct CounterD<const N: usize> {
 }
 
 impl<const N: usize> CircuitIO for Counter<N> {
-    type I = CounterI<N>;
+    type I = CounterI;
     type O = Bits<N>;
 }
 
@@ -92,7 +92,7 @@ impl<const N: usize> Circuit for Counter<N> {
 }
 
 #[kernel]
-pub fn counter<const N: usize>(i: CounterI<N>, q: CounterQ<N>) -> (Bits<N>, CounterD<N>) {
+pub fn counter<const N: usize>(i: CounterI, q: CounterQ<N>) -> (Bits<N>, CounterD<N>) {
     let mut d = CounterD::<N>::default();
     d.count.clock = i.clock;
     d.count.data = q.count;

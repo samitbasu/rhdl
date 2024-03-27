@@ -45,6 +45,7 @@ mod tristate;
 //mod verilog;
 //mod dfg;
 //mod trace;
+mod chalk;
 mod visit;
 
 #[derive(Debug, Clone, PartialEq, Copy, Default, Digital)]

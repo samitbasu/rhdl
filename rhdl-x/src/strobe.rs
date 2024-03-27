@@ -14,8 +14,8 @@ use rhdl_bits::alias::*;
 use rhdl_bits::{bits, Bits};
 use rhdl_core::ast::ast_impl::FunctionId;
 use rhdl_core::compile_design;
+use rhdl_core::crusty;
 use rhdl_core::crusty::index::IndexedSchematic;
-use rhdl_core::diagnostic::SpannedSource;
 use rhdl_core::note;
 use rhdl_core::path::Path;
 use rhdl_core::rhif::object::SourceLocation;
@@ -30,6 +30,7 @@ use rhdl_core::KernelFnKind;
 use rhdl_core::Tristate;
 use rhdl_macro::{kernel, Digital};
 
+use crate::counter::Counter;
 use crate::dff::DFFI;
 use crate::{clock::Clock, constant::Constant, dff::DFF};
 use rhdl_macro::Circuit;
@@ -39,14 +40,16 @@ use rhdl_macro::Circuit;
 #[rhdl(kernel = strobe::<N>)]
 pub struct Strobe<const N: usize> {
     threshold: Constant<Bits<N>>,
-    counter: DFF<Bits<N>>,
+    counter_1: Counter<N>,
+    counter_2: Counter<N>,
 }
 
 impl<const N: usize> Strobe<N> {
     pub fn new(param: Bits<N>) -> Self {
         Self {
             threshold: param.into(),
-            counter: DFF::default(),
+            counter_1: Counter::default(),
+            counter_2: Counter::default(),
         }
     }
 }
@@ -125,17 +128,17 @@ pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
     note("q", q);
     //d.counter.clock = i.clock;
     //    let counter_next = if i.enable { q.counter + 1 } else { q.counter };
-    let counter_next = add_enabled::<{ N }>(i.enable, q.counter);
-    let strobe = i.enable & (q.counter == q.threshold);
+    let counter_next = add_enabled::<{ N }>(i.enable, q.counter_1);
+    let strobe = i.enable & (q.counter_1 == q.threshold);
     let counter_next = if strobe {
         bits::<{ N }>(1)
     } else {
         counter_next
     };
-    let jnk = add_enabled::<{ N }>(i.enable, q.counter);
-    let hoo = add_one::<{ N }>(jnk);
-    let jaz = if strobe { counter_next } else { counter_next };
-    d.counter.data = counter_next;
+    //d.counter.clock
+    d.counter_1.enable = i.enable;
+    d.counter_2.enable = i.enable;
+    d.counter_1.clock = i.clock;
     note("out", strobe);
     note("d", d);
     (strobe, d)
@@ -230,45 +233,11 @@ fn test_strobe_schematic() {
     let strobe = Strobe::<8>::new(bits::<8>(5));
     let descriptor = Strobe::<8>::descriptor(&strobe);
     let schematic = descriptor.schematic().unwrap();
-    let clock_pin_path = PinPath {
-        pin: schematic.inputs[0],
-        path: Path::default().field("clock"),
-    };
-    let schematic = schematic.inlined();
-    for sink in rhdl_core::crusty::downstream::follow_pin_downstream(
-        &schematic.clone().into(),
-        clock_pin_path,
-    )
-    .unwrap()
-    .sinks
-    {
-        eprintln!("sink is {:?}", sink);
+    let is = schematic.into();
+    let reports = crusty::checks::check_dffs_are_clocked(&is).unwrap();
+    for report in reports {
+        eprintln!("report is {:?}", report);
     }
-    let dff = schematic
-        .components
-        .iter()
-        .find_map(|c| match &c.kind {
-            ComponentKind::DigitalFlipFlop(d) => Some(d),
-            _ => None,
-        })
-        .unwrap();
-    eprintln!("dff is {:?}", dff);
-    let dff_clock_pin = dff.clock;
-    let dff_source_path = rhdl_core::crusty::upstream::follow_pin_upstream(
-        &schematic.clone().into(),
-        PinPath {
-            pin: dff_clock_pin,
-            path: Path::default(),
-        },
-    )
-    .unwrap();
-    let report = trace_diagnostic(&schematic.clone().into(), &dff_source_path);
-    eprintln!("report is {:?}", report);
-    for segment in &dff_source_path.paths {
-        eprintln!("segment is {:?}", segment);
-    }
-    let mut dot = std::fs::File::create("strobe_inlined.dot").unwrap();
-    rhdl_core::schematic::dot::write_dot(&schematic, Some(&dff_source_path), &mut dot).unwrap();
 }
 
 // Notes to think about:
@@ -279,6 +248,7 @@ fn test_strobe_schematic() {
 //              -> op "via this op"
 //   dest -> pin -> "to here"
 
+/*
 fn trace_diagnostic(is: &IndexedSchematic, trace: &Trace) -> miette::Report {
     let pool = SourcePool::new(is.schematic.source.clone());
     let source_locations = trace
@@ -316,7 +286,7 @@ fn trace_diagnostic(is: &IndexedSchematic, trace: &Trace) -> miette::Report {
         .with_labels(labels);
     miette::Report::new(diagnostic).with_source_code(pool)
 }
-
+*/
 /*
 #[kernel]
 pub fn strobe<const N: usize>(

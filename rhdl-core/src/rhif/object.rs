@@ -10,7 +10,7 @@ use crate::{
 
 use super::{spanned_source::SpannedSource, spec::OpCode};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
 pub struct SourceLocation {
     pub func: FunctionId,
     pub node: NodeId,

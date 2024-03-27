@@ -165,7 +165,7 @@ impl SpannedSourceBuilder {
             }
             StmtKind::Expr(expr) => {
                 self.expr(expr);
-                self.push(";\n");
+                self.push("\n");
             }
             StmtKind::Semi(expr) => {
                 self.expr(expr);
