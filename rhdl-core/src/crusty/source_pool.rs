@@ -42,6 +42,12 @@ pub struct SharedSourcePool {
     pub pool: Arc<SourcePool>,
 }
 
+impl SharedSourcePool {
+    pub(crate) fn get_range_from_location(&self, location: SourceLocation) -> Option<Range<usize>> {
+        self.pool.get_range_from_location(location)
+    }
+}
+
 impl From<SourcePool> for SharedSourcePool {
     fn from(pool: SourcePool) -> Self {
         Self {
@@ -69,7 +75,6 @@ impl SourceCode for SourcePool {
         context_lines_before: usize,
         context_lines_after: usize,
     ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
-        eprintln!("read_span {:?}", span);
         let start = span.offset();
         let len = span.len();
         if let Some((function_id, function_range)) = self
@@ -77,13 +82,9 @@ impl SourceCode for SourcePool {
             .iter()
             .find(|(id, range)| range.contains(&start))
         {
-            eprintln!("function_id is {:?}", function_id);
-            eprintln!("function range is {:?}", function_range);
             let local_offset = start - function_range.start;
             let local_span = SourceSpan::new(local_offset.into(), len);
-            eprintln!("local_span is then {:?}", local_span);
             let source = self.source.get(function_id).unwrap();
-            eprintln!("Source text len is {}", source.source.len());
             let local =
                 source
                     .source

@@ -923,6 +923,7 @@ impl CompilerContext {
                 let ty = self.ty(expr.id)?;
                 self.literals.push(lit.clone());
                 self.ty.insert(Slot::Literal(ndx), ty);
+                self.context.insert(Slot::Literal(ndx), expr.id);
                 Ok(Slot::Literal(ndx))
             }
             ExprKind::Field(field) => self.field(expr.id, field),
