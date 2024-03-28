@@ -175,26 +175,16 @@ impl CircuitDescriptor {
                 schematic.make_pin(child_descriptor.input_kind.clone(), name.clone(), None);
             let child_output_pin =
                 schematic.make_pin(child_descriptor.output_kind.clone(), name.clone(), None);
-            let child_component = if let Some(sub_schematic) = child_descriptor.schematic() {
-                schematic.make_component(
-                    ComponentKind::Kernel(KernelComponent {
-                        name: name.clone(),
-                        args: vec![child_input_pin],
-                        sub_schematic,
-                        output: child_output_pin,
-                    }),
-                    None,
-                )
-            } else {
-                schematic.make_component(
-                    ComponentKind::BlackBox(BlackBoxComponent {
-                        name: name.clone(),
-                        args: vec![child_input_pin],
-                        output: child_output_pin,
-                    }),
-                    None,
-                )
-            };
+            let sub_schematic = child_descriptor.schematic()?;
+            let child_component = schematic.make_component(
+                ComponentKind::Kernel(KernelComponent {
+                    name: name.clone(),
+                    args: vec![child_input_pin],
+                    sub_schematic,
+                    output: child_output_pin,
+                }),
+                None,
+            );
             schematic.pin_mut(child_input_pin).parent(child_component);
             schematic.pin_mut(child_output_pin).parent(child_component);
             schematic.wire(child_outfeed_ins[name], child_input_pin);

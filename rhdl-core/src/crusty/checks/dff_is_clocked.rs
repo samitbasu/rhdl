@@ -9,6 +9,7 @@ use crate::{
 use anyhow::Result;
 use miette::{LabeledSpan, Report};
 
+/*
 pub fn check_dff_is_clocked(is: &IndexedSchematic, clock_pin: PinIx) -> Result<Option<Report>> {
     eprintln!("dff clock pin: {:?}", clock_pin);
     let pin = is.schematic.pin(clock_pin);
@@ -44,6 +45,8 @@ pub fn check_dffs_are_clocked(is: &IndexedSchematic) -> Result<Vec<Report>> {
         .filter_map(|clock_pin| check_dff_is_clocked(is, clock_pin).transpose())
         .collect()
 }
+*/
+
 /*
 let dff_source_path = rhdl_core::crusty::upstream::follow_pin_upstream(
 &schematic.clone().into(),

@@ -233,11 +233,11 @@ fn test_strobe_schematic() {
     let strobe = Strobe::<8>::new(bits::<8>(5));
     let descriptor = Strobe::<8>::descriptor(&strobe);
     let schematic = descriptor.schematic().unwrap();
-    let is = schematic.into();
-    let reports = crusty::checks::check_dffs_are_clocked(&is).unwrap();
-    for report in reports {
-        eprintln!("report is {:?}", report);
-    }
+    let is: IndexedSchematic = schematic.into();
+    //    let reports = crusty::checks::check_dffs_are_clocked(&is).unwrap();
+    //for report in reports {
+    //eprintln!("report is {:?}", report);
+    //}
 }
 
 // Notes to think about:

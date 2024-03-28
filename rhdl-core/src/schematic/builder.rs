@@ -492,6 +492,8 @@ impl<'a> SchematicBuilder<'a> {
             .collect::<Result<Vec<_>>>()?;
         let out = self.make_output_pin(exec.lhs)?;
         let name = &self.object.externals[exec.id.0].path;
+        todo!();
+        /*
         let component = self.schematic.make_component(
             ComponentKind::BlackBox(BlackBoxComponent {
                 name: name.clone(),
@@ -504,6 +506,7 @@ impl<'a> SchematicBuilder<'a> {
             .for_each(|f| self.schematic.pin_mut(*f).parent(component));
         self.schematic.pin_mut(out).parent(component);
         Ok(())
+        */
     }
 
     fn make_kernel(
