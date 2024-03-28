@@ -6,8 +6,13 @@ use crate::{
     },
     Kind, TypedBits,
 };
+use anyhow::Result;
+use std::sync::Arc;
 
-use super::schematic_impl::{PinIx, Schematic};
+use super::{
+    constraints::Constraint,
+    schematic_impl::{PinIx, PinPath, Schematic},
+};
 
 #[derive(Clone, Debug)]
 pub struct Component {
@@ -110,18 +115,26 @@ pub struct CaseComponent {
 }
 
 #[derive(Clone, Debug)]
-pub struct BlackBoxComponent {
-    pub name: String,
-    pub args: Vec<PinIx>,
-    pub output: PinIx,
-}
-
-#[derive(Clone, Debug)]
 pub struct KernelComponent {
     pub name: String,
     pub args: Vec<PinIx>,
     pub output: PinIx,
     pub sub_schematic: Schematic,
+}
+
+#[derive(Clone)]
+pub struct BlackBoxComponent(pub Arc<dyn BlackBoxTrait>);
+
+impl<T: BlackBoxTrait + 'static> From<T> for BlackBoxComponent {
+    fn from(t: T) -> Self {
+        BlackBoxComponent(Arc::new(t))
+    }
+}
+
+impl std::fmt::Debug for BlackBoxComponent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -156,13 +169,6 @@ pub struct ConstantComponent {
 }
 
 #[derive(Clone, Debug)]
-pub struct DigitalFlipFlopComponent {
-    pub clock: PinIx,
-    pub d: PinIx,
-    pub q: PinIx,
-}
-
-#[derive(Clone, Debug)]
 pub enum ComponentKind {
     Buffer(BufferComponent),
     Binary(BinaryComponent),
@@ -180,7 +186,6 @@ pub enum ComponentKind {
     Enum(EnumComponent),
     Constant(ConstantComponent),
     Cast(CastComponent),
-    DigitalFlipFlop(DigitalFlipFlopComponent),
     Noop,
 }
 
@@ -249,9 +254,10 @@ impl ComponentKind {
                 ComponentKind::Case(c)
             }
             ComponentKind::BlackBox(mut c) => {
-                c.args = c.args.iter().map(|p| p.offset(offset)).collect();
-                c.output = c.output.offset(offset);
-                ComponentKind::BlackBox(c)
+                ComponentKind::BlackBox(c.0.offset(offset))
+                //                c.args = c.args.iter().map(|p| p.offset(offset)).collect();
+                //c.output = c.output.offset(offset);
+                //ComponentKind::BlackBox(c)
             }
             ComponentKind::Kernel(mut c) => {
                 c.args = c.args.iter().map(|p| p.offset(offset)).collect();
@@ -279,13 +285,22 @@ impl ComponentKind {
                 c.output = c.output.offset(offset);
                 ComponentKind::Cast(c)
             }
-            ComponentKind::DigitalFlipFlop(mut c) => {
-                c.clock = c.clock.offset(offset);
-                c.d = c.d.offset(offset);
-                c.q = c.q.offset(offset);
-                ComponentKind::DigitalFlipFlop(c)
-            }
             ComponentKind::Noop => ComponentKind::Noop,
         }
+    }
+}
+pub trait BlackBoxTrait: core::fmt::Debug {
+    fn name(&self) -> &str;
+    fn args(&self) -> Vec<PinIx>;
+    fn output(&self) -> PinIx;
+    fn upstream(&self, output: PinPath) -> Result<Vec<PinPath>> {
+        Ok(vec![])
+    }
+    fn downstream(&self, input: PinPath) -> Result<Vec<PinPath>> {
+        Ok(vec![])
+    }
+    fn offset(&self, shift: usize) -> BlackBoxComponent;
+    fn constraints(&self) -> Vec<Constraint> {
+        vec![]
     }
 }

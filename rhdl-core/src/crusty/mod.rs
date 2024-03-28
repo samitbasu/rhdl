@@ -1,3 +1,6 @@
+use crate::schematic::schematic_impl::PinPath;
+use anyhow::Result;
+
 pub mod checks;
 pub mod downstream;
 pub mod index;

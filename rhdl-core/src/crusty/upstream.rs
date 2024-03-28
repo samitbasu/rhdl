@@ -228,10 +228,8 @@ fn get_upstream_pin_paths(is: &IndexedSchematic, output: PinPath) -> Result<Vec<
         ComponentKind::Struct(s) => upstream_struct(s, output),
         ComponentKind::Tuple(t) => upstream_tuple(t, output),
         ComponentKind::Unary(u) => upstream_unary(u, output),
-        ComponentKind::BlackBox(_)
-        | ComponentKind::Noop
-        | ComponentKind::Constant(_)
-        | ComponentKind::DigitalFlipFlop(_) => Ok(vec![]),
+        ComponentKind::BlackBox(b) => b.0.upstream(output),
+        ComponentKind::Noop | ComponentKind::Constant(_) => Ok(vec![]),
     }
 }
 

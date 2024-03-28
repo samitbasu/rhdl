@@ -3,7 +3,6 @@ use std::io::Result;
 use std::io::Write;
 use std::iter::once;
 
-use super::components::DigitalFlipFlopComponent;
 use super::schematic_impl::Trace;
 use super::{
     components::{
@@ -151,7 +150,6 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             ComponentKind::Constant(constant) => self.write_constant(ndx, constant),
             ComponentKind::Cast(cast) => self.write_cast(ndx, cast),
             ComponentKind::Kernel(kernel) => self.write_kernel(ndx, kernel),
-            ComponentKind::DigitalFlipFlop(dff) => self.write_dff(ndx, dff),
             ComponentKind::Noop => Ok(()),
         }
     }
@@ -190,13 +188,6 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
         let output_ports = format!("{{<{}> Y}}", unary.output);
         let label = format!("{}", unary.op);
         self.write_cnode(ndx, &input_ports, &label, &output_ports)
-    }
-
-    fn write_dff(&mut self, ndx: usize, dff: &DigitalFlipFlopComponent) -> Result<()> {
-        let input_ports = format!("{{<{}> D | <{}> C}}", dff.d, dff.clock);
-        let output_ports = format!("{{<{}> Q }}", dff.q);
-        let label = "dff";
-        self.write_cnode(ndx, &input_ports, label, &output_ports)
     }
 
     fn write_select(&mut self, ndx: usize, select: &SelectComponent) -> Result<()> {
@@ -290,14 +281,15 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
 
     fn write_black_box(&mut self, ndx: usize, black_box: &BlackBoxComponent) -> Result<()> {
         let input_ports = black_box
-            .args
+            .0
+            .args()
             .iter()
             .enumerate()
             .map(|(ndx, pin)| format!("<{}> {}", pin, ndx))
             .collect::<Vec<String>>()
             .join("|");
-        let output_ports = format!("{{<{}> Y}}", black_box.output);
-        let label = format!("{name}\nblack_box", name = black_box.name);
+        let output_ports = format!("{{<{}> Y}}", black_box.0.output());
+        let label = format!("{name}", name = black_box.0.name());
         self.write_cnode(ndx, &format!("{{ {input_ports} }}"), &label, &output_ports)
     }
 

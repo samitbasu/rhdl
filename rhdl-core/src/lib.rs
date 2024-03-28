@@ -39,9 +39,6 @@ pub mod test_module;
 pub mod types;
 pub mod util;
 
-#[cfg(feature = "iverilog")]
-pub use test_module::test_with_iverilog;
-
 pub use codegen::verilog::as_verilog_literal;
 pub use codegen::verilog::generate_verilog;
 pub use codegen::verilog::VerilogModule;
@@ -53,7 +50,17 @@ pub use note_db::note_push_path;
 pub use note_db::note_take;
 pub use note_db::note_time;
 pub use note_db::NoteDB;
+pub use schematic::components::BlackBoxComponent;
+pub use schematic::components::BlackBoxTrait;
+pub use schematic::constraints::constraint_input_synchronous;
+pub use schematic::constraints::constraint_must_clock;
+pub use schematic::constraints::constraint_not_constant_valued;
+pub use schematic::constraints::constraint_output_synchronous;
+pub use schematic::constraints::Constraint;
+pub use schematic::constraints::EdgeType;
 pub use test_module::test_kernel_vm_and_verilog;
+#[cfg(feature = "iverilog")]
+pub use test_module::test_with_iverilog;
 pub use types::kind::DiscriminantType;
 pub use types::note::NoteKey;
 pub use types::note::NoteWriter;

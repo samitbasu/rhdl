@@ -1,28 +1,86 @@
+use std::sync::Arc;
+
 use anyhow::bail;
 use anyhow::ensure;
 use anyhow::Result;
+use rhdl_core::constraint_input_synchronous;
+use rhdl_core::constraint_must_clock;
+use rhdl_core::constraint_not_constant_valued;
+use rhdl_core::constraint_output_synchronous;
 use rhdl_core::note;
 use rhdl_core::path::Path;
 use rhdl_core::root_descriptor;
+use rhdl_core::schematic::components::BlackBoxComponent;
 use rhdl_core::schematic::components::ComponentKind;
-use rhdl_core::schematic::components::DigitalFlipFlopComponent;
 use rhdl_core::schematic::components::IndexComponent;
+use rhdl_core::schematic::schematic_impl::pin_path;
+use rhdl_core::schematic::schematic_impl::PinIx;
+use rhdl_core::schematic::schematic_impl::PinPath;
 use rhdl_core::schematic::schematic_impl::Schematic;
+use rhdl_core::BlackBoxTrait;
 use rhdl_core::Circuit;
 use rhdl_core::CircuitDescriptor;
+use rhdl_core::CircuitIO;
+use rhdl_core::Constraint;
+use rhdl_core::EdgeType;
 use rhdl_core::HDLDescriptor;
 use rhdl_core::HDLKind;
 use rhdl_core::Kind;
 use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
 use rhdl_macro::Digital;
 
-use rhdl_core::CircuitIO;
-
 use crate::clock::Clock;
 
 #[derive(Default, Clone)]
 pub struct DFF<T: Digital> {
     init: T,
+}
+
+#[derive(Clone, Debug)]
+pub struct DigitalFlipFlopComponent {
+    clock: PinIx,
+    d: PinIx,
+    q: PinIx,
+}
+
+impl BlackBoxTrait for DigitalFlipFlopComponent {
+    fn name(&self) -> &'static str {
+        "DFF"
+    }
+
+    fn args(&self) -> Vec<PinIx> {
+        vec![self.clock, self.d]
+    }
+
+    fn output(&self) -> PinIx {
+        self.q
+    }
+
+    fn offset(&self, shift: usize) -> BlackBoxComponent {
+        DigitalFlipFlopComponent {
+            clock: self.clock.offset(shift),
+            d: self.d.offset(shift),
+            q: self.q.offset(shift),
+        }
+        .into()
+    }
+
+    fn constraints(&self) -> Vec<Constraint> {
+        vec![
+            constraint_must_clock(pin_path(self.clock, Path::default())),
+            constraint_not_constant_valued(pin_path(self.d, Path::default())),
+            constraint_output_synchronous(
+                pin_path(self.q, Path::default()),
+                pin_path(self.clock, Path::default()),
+                EdgeType::Positive,
+            ),
+            constraint_input_synchronous(
+                pin_path(self.d, Path::default()),
+                pin_path(self.clock, Path::default()),
+                EdgeType::Positive,
+            ),
+        ]
+    }
 }
 
 impl<T: Digital> From<T> for DFF<T> {
@@ -125,7 +183,7 @@ impl<T: Digital> Circuit for DFF<T> {
         let d = schematic.make_pin(T::static_kind(), "d".to_string(), None);
         let q = schematic.make_pin(T::static_kind(), "q".to_string(), None);
         let dff = schematic.make_component(
-            ComponentKind::DigitalFlipFlop(DigitalFlipFlopComponent { clock: c, d, q }),
+            ComponentKind::BlackBox(DigitalFlipFlopComponent { clock: c, d, q }.into()),
             None,
         );
         schematic.pin_mut(c).parent(dff);
