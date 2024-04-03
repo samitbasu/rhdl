@@ -1,4 +1,3 @@
-use anyhow::Result;
 use std::collections::HashMap;
 
 use crate::{
@@ -272,5 +271,20 @@ impl From<PinPath> for Trace {
             paths: vec![],
             sinks: vec![],
         }
+    }
+}
+
+impl Trace {
+    pub fn all_pin_paths(&self) -> impl Iterator<Item = PinPath> + '_ {
+        self.paths
+            .iter()
+            .flat_map(|wp| {
+                vec![
+                    pin_path(wp.source, wp.path.clone()),
+                    pin_path(wp.dest, wp.path.clone()),
+                ]
+            })
+            .chain(std::iter::once(self.source.clone()))
+            .chain(self.sinks.iter().cloned())
     }
 }

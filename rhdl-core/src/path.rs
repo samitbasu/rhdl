@@ -1,3 +1,4 @@
+use std::iter::once;
 use std::ops::Range;
 
 use anyhow::bail;
@@ -145,6 +146,40 @@ impl From<Member> for Path {
                 elements: vec![PathElement::Index(ndx as usize)],
             },
         }
+    }
+}
+
+// Given a path and a kind, generate all leaf paths starting
+// at the given path - these are paths that terminate in
+// non-composite elements of a data structure.
+pub fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
+    match kind {
+        Kind::Array(array) => (0..array.size)
+            .flat_map(|i| leaf_paths(&array.base, base.clone().index(i)))
+            .collect(),
+        Kind::Tuple(tuple) => tuple
+            .elements
+            .iter()
+            .enumerate()
+            .flat_map(|(i, k)| leaf_paths(k, base.clone().index(i)))
+            .collect(),
+        Kind::Struct(structure) => structure
+            .fields
+            .iter()
+            .flat_map(|field| leaf_paths(&field.kind, base.clone().field(&field.name)))
+            .collect(),
+        Kind::Enum(enumeration) => enumeration
+            .variants
+            .iter()
+            .flat_map(|variant| {
+                leaf_paths(
+                    &variant.kind,
+                    base.clone().payload_by_value(variant.discriminant),
+                )
+            })
+            .chain(once(base.clone().discriminant()))
+            .collect(),
+        Kind::Bits(_) | Kind::Signed(_) | Kind::Empty => vec![base.clone()],
     }
 }
 
@@ -326,9 +361,48 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{path::path_star, rhif::spec::Slot, Kind};
+    use crate::{path::path_star, rhif::spec::Slot, types::kind::DiscriminantLayout, Kind};
 
-    use super::Path;
+    use super::{leaf_paths, Path};
+
+    #[test]
+    fn test_leaf_path() {
+        let base_struct = Kind::make_struct(
+            "base",
+            vec![
+                Kind::make_field("a", Kind::make_bits(8)),
+                Kind::make_field("b", Kind::make_array(Kind::make_bits(8), 3)),
+            ],
+        );
+        // Create a path with a struct, containing and array of structs
+        let lev2 = Kind::make_struct(
+            "foo",
+            vec![
+                Kind::make_field("c", base_struct.clone()),
+                Kind::make_field("d", Kind::make_array(base_struct.clone(), 4)),
+            ],
+        );
+        let kind = Kind::make_enum(
+            "bar",
+            vec![
+                Kind::make_variant("a", Kind::make_bits(8), 0),
+                Kind::make_variant("b", lev2.clone(), 1),
+            ],
+            DiscriminantLayout {
+                width: 8,
+                alignment: crate::DiscriminantAlignment::Lsb,
+                ty: crate::DiscriminantType::Unsigned,
+            },
+        );
+        let mut bit_mask = vec![false; kind.bits()];
+        for path in leaf_paths(&kind, Path::default()) {
+            let (range, _) = super::bit_range(kind.clone(), &path).unwrap();
+            for i in range {
+                bit_mask[i] = true;
+            }
+        }
+        assert!(bit_mask.iter().all(|b| *b));
+    }
 
     #[test]
     fn test_path_star() {
