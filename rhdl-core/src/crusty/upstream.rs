@@ -6,7 +6,7 @@ use crate::{
             ComponentKind, EnumComponent, IndexComponent, RepeatComponent, SelectComponent,
             SpliceComponent, StructComponent, TupleComponent, UnaryComponent,
         },
-        schematic_impl::{PinPath, Trace, WirePath},
+        schematic_impl::{pin_path, PinPath, Trace, WirePath},
     },
 };
 use anyhow::{bail, Result};
@@ -98,6 +98,7 @@ fn upstream_index(i: &IndexComponent, output: PinPath) -> Result<Vec<PinPath>> {
             pin: i.arg,
             path: path.join(&output.path),
         })
+        .chain(i.dynamic.iter().map(|p| pin_path(*p, Path::default())))
         .collect())
 }
 
@@ -151,6 +152,8 @@ fn upstream_splice(s: &SpliceComponent, output: PinPath) -> Result<Vec<PinPath>>
             pin: s.orig,
             path: output.path.clone(),
         });
+    } else {
+        upstreams.extend(s.dynamic.iter().map(|p| pin_path(*p, Path::default())));
     }
     Ok(upstreams)
 }

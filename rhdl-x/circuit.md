@@ -245,5 +245,57 @@ impl <
 }
 ```
 
+Still not clear on how to handle the issue of timing.
 
+New idea.
+
+1. Start with a complete timing spec for the input signals of the schematic.
+2. That means we have <pin, path> -> Timing for all paths.
+3. We then perform a topological sort of the schematic
+4. Visit each node in order.
+5. Apply the following rules:
+
+e.g., 
+
+For an AND gate 
+
+A        B           Y
+Async    *           Async
+Const    Const       Const
+SyncN    SyncN       SyncN
+Const    SyncN       SyncN
+SyncN    Const       SyncN
+SyncN    SyncM       Async
+
+This is the general rule for combinatorial mixing of any two signals.
+It can be generalized to N signals.  However, the application is somewhat
+tricky given that we have a timing set for each pin path.
+
+So if we have something like a select
+
+y = select(C, T, F)
+
+Then we need to have a timing set for T and a timing set for F.
+They must be the same types.
+Thus, their paths must be the same.
+
+Thus:
+
+For all paths P \in S{T} cap S{F} {
+   S{Y.P} <- Merge(C, T.P, F.P)
+}
+
+Could do it by bits.  Maybe easier instead of paths.
+
+Since |T| = |F| = |Y|, 
+
+Y = select(C, T, F)
+
+for all i in 0..|Y| {
+    Y%i <- Merge(C, T%i, F%i)
+}
+
+Merge(A, B, C) = Merge(Merge(A, B), C)
+
+What happens if we have undefined bits?  Not sure...
 

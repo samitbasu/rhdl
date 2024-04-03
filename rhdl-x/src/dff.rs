@@ -57,12 +57,11 @@ impl BlackBoxTrait for DigitalFlipFlopComponent {
     }
 
     fn offset(&self, shift: usize) -> BlackBoxComponent {
-        DigitalFlipFlopComponent {
+        BlackBoxComponent::new(DigitalFlipFlopComponent {
             clock: self.clock.offset(shift),
             d: self.d.offset(shift),
             q: self.q.offset(shift),
-        }
-        .into()
+        })
     }
 
     fn constraints(&self) -> Vec<Constraint> {
@@ -183,7 +182,11 @@ impl<T: Digital> Circuit for DFF<T> {
         let d = schematic.make_pin(T::static_kind(), "d".to_string(), None);
         let q = schematic.make_pin(T::static_kind(), "q".to_string(), None);
         let dff = schematic.make_component(
-            ComponentKind::BlackBox(DigitalFlipFlopComponent { clock: c, d, q }.into()),
+            ComponentKind::BlackBox(BlackBoxComponent::new(DigitalFlipFlopComponent {
+                clock: c,
+                d,
+                q,
+            })),
             None,
         );
         schematic.pin_mut(c).parent(dff);

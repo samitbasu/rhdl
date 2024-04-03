@@ -125,9 +125,33 @@ pub struct KernelComponent {
 #[derive(Clone)]
 pub struct BlackBoxComponent(pub Arc<dyn BlackBoxTrait>);
 
-impl<T: BlackBoxTrait + 'static> From<T> for BlackBoxComponent {
-    fn from(t: T) -> Self {
-        BlackBoxComponent(Arc::new(t))
+impl BlackBoxComponent {
+    pub fn new(bb: impl BlackBoxTrait + 'static) -> Self {
+        BlackBoxComponent(Arc::new(bb))
+    }
+}
+
+impl BlackBoxTrait for BlackBoxComponent {
+    fn name(&self) -> &str {
+        self.0.name()
+    }
+    fn args(&self) -> Vec<PinIx> {
+        self.0.args()
+    }
+    fn output(&self) -> PinIx {
+        self.0.output()
+    }
+    fn upstream(&self, output: PinPath) -> Result<Vec<PinPath>> {
+        self.0.upstream(output)
+    }
+    fn downstream(&self, input: PinPath) -> Result<Vec<PinPath>> {
+        self.0.downstream(input)
+    }
+    fn offset(&self, shift: usize) -> BlackBoxComponent {
+        BlackBoxComponent(Arc::new(self.0.offset(shift)))
+    }
+    fn constraints(&self) -> Vec<Constraint> {
+        self.0.constraints()
     }
 }
 

@@ -13,16 +13,16 @@ pub use circuit::hdl_descriptor::root_hdl;
 pub use circuit::hdl_descriptor::HDLDescriptor;
 pub use circuit::verilog::root_verilog;
 pub use clock_details::ClockDetails;
+pub use crusty::check_schematic;
 pub use types::digital::Digital;
 pub use types::digital_fn::DigitalFn;
 pub use types::kernel::KernelFnKind;
-pub use types::kind::DiscriminantAlignment;
-pub use types::note::Notable;
-
 #[cfg(feature = "svg")]
 pub use types::kind::kind_svg::svg_grid;
 #[cfg(feature = "svg")]
 pub use types::kind::kind_svg::svg_grid_vertical;
+pub use types::kind::DiscriminantAlignment;
+pub use types::note::Notable;
 
 pub use types::kind::text_grid;
 pub mod ast;

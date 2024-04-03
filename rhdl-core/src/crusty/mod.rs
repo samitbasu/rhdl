@@ -1,37 +1,50 @@
-use crate::schematic::schematic_impl::PinPath;
+use std::iter::empty;
+
+use crate::{
+    schematic::{
+        components::{Component, ComponentKind},
+        schematic_impl::PinPath,
+    },
+    BlackBoxTrait, Constraint,
+};
 use anyhow::Result;
+
+use self::index::IndexedSchematic;
 
 pub mod checks;
 pub mod downstream;
 pub mod index;
 pub mod source_pool;
+pub mod timing;
 pub mod upstream;
 pub mod utils;
 
-/*
-fn check_dff_clock_routing_single(is: &IndexedSchematic, index: usize) -> Result<()> {
-    // For the given flip flop component, get the corresponding clock pin
-    let ComponentKind::DigitalFlipFlop(component) = &is.schematic.components[index].kind else {
-        bail!("ICE - component index did not yield expeced DFF")
-    };
-    let clock_pin = component.clock;
-
-    Ok(())
-}
-
-pub fn check_dff_clock_routing(schematic: Schematic) -> Result<()> {
-    // First, we ensure the schematic is inlined.
-    let is = make_indexed_schematic(schematic);
-    // Next, we search through it to find flip flops.
-    let flip_flop_list = is
+pub fn check_schematic(is: &mut IndexedSchematic) -> Vec<miette::Report> {
+    let constraints = is
         .schematic
         .components
         .iter()
-        .enumerate()
-        .filter(|(_, comp)| matches!(comp.kind, ComponentKind::DigitalFlipFlop(_)))
+        .flat_map(|component| match &component.kind {
+            ComponentKind::BlackBox(bb) => bb.constraints(),
+            _ => vec![],
+        })
         .collect::<Vec<_>>();
-    // Now for each flip flop component, we find the clock pin.
-
-    Ok(())
+    constraints
+        .iter()
+        .flat_map(|constraint| {
+            match constraint {
+                Constraint::MustClock(c) => checks::pin_is_clocked::check_pin_is_clocked(is, c),
+                Constraint::NotConstantValued(c) => {
+                    checks::input_is_not_constant::check_input_is_not_constant(is, c)
+                }
+                Constraint::OutputSynchronous(c) => {
+                    checks::output_is_synchronous::check_output_is_synchronous(is, c)
+                }
+                Constraint::InputSynchronous(c) => {
+                    checks::input_is_synchronous::check_input_is_synchronous(is, c)
+                }
+            }
+            .err()
+        })
+        .collect()
 }
-*/

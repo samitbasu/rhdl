@@ -13,6 +13,7 @@ use petgraph::Direction;
 use rhdl_bits::alias::*;
 use rhdl_bits::{bits, Bits};
 use rhdl_core::ast::ast_impl::FunctionId;
+use rhdl_core::check_schematic;
 use rhdl_core::compile_design;
 use rhdl_core::crusty;
 use rhdl_core::crusty::index::IndexedSchematic;
@@ -21,6 +22,7 @@ use rhdl_core::path::Path;
 use rhdl_core::rhif::object::SourceLocation;
 use rhdl_core::rhif::spec::FuncId;
 use rhdl_core::schematic::components::ComponentKind;
+use rhdl_core::schematic::schematic_impl::pin_path;
 use rhdl_core::schematic::schematic_impl::PinPath;
 use rhdl_core::schematic::schematic_impl::Trace;
 use rhdl_core::Circuit;
@@ -126,7 +128,6 @@ pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
     let mut d = StrobeD::<N>::default();
     note("i", i);
     note("q", q);
-    //d.counter.clock = i.clock;
     //    let counter_next = if i.enable { q.counter + 1 } else { q.counter };
     let counter_next = add_enabled::<{ N }>(i.enable, q.counter_1);
     let strobe = i.enable & (q.counter_1 == q.threshold);
@@ -139,6 +140,7 @@ pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
     d.counter_1.enable = i.enable;
     d.counter_2.enable = i.enable;
     d.counter_1.clock = i.clock;
+    d.counter_2.clock = i.clock;
     note("out", strobe);
     note("d", d);
     (strobe, d)
@@ -233,7 +235,22 @@ fn test_strobe_schematic() {
     let strobe = Strobe::<8>::new(bits::<8>(5));
     let descriptor = Strobe::<8>::descriptor(&strobe);
     let schematic = descriptor.schematic().unwrap();
-    let is: IndexedSchematic = schematic.into();
+    let mut is: IndexedSchematic = schematic.into();
+    // Let's add a couple of timing constraints.
+    is.add_synchronous_source(
+        pin_path(is.schematic.inputs[0], Path::default().field("clock")),
+        0.into(),
+    )
+    .unwrap();
+    is.add_asynchronous_source(pin_path(
+        is.schematic.inputs[0],
+        Path::default().field("enable"),
+    ))
+    .unwrap();
+    let reports = check_schematic(&mut is);
+    for report in reports {
+        eprintln!("report is {:?}", report);
+    }
     //    let reports = crusty::checks::check_dffs_are_clocked(&is).unwrap();
     //for report in reports {
     //eprintln!("report is {:?}", report);
