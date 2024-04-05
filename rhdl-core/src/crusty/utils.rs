@@ -51,7 +51,6 @@ fn location_for_pin_path(
     is.schematic
         .pin(pin)
         .location
-        .inspect(|l| eprintln!("location: {:?}", l))
         .and_then(|l| is.pool.get_range_from_location(l))
         .map(|l| LabeledSourceLocation { location: l, label })
 }

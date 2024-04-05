@@ -40,7 +40,10 @@ use super::note::Notable;
 ///
 /// These are all supported in `RHDL`.
 ///
-pub trait Digital: Copy + PartialEq + Sized + Clone + Default + 'static + Notable {
+///
+///
+
+pub trait KindBits: Copy + PartialEq + Sized + Clone + 'static + Notable {
     fn static_kind() -> Kind;
     fn bits() -> usize {
         Self::static_kind().bits()
@@ -70,7 +73,11 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + Default + 'static + Notabl
     }
 }
 
-impl Digital for () {
+pub trait Digital: KindBits + Default {}
+
+pub trait Control: KindBits {}
+
+impl KindBits for () {
     fn static_kind() -> Kind {
         Kind::Empty
     }
@@ -79,11 +86,15 @@ impl Digital for () {
     }
 }
 
+impl Digital for () {}
+
+impl Control for () {}
+
 impl Notable for () {
     fn note(&self, _key: impl NoteKey, _writer: impl NoteWriter) {}
 }
 
-impl Digital for bool {
+impl KindBits for bool {
     fn static_kind() -> Kind {
         Kind::make_bits(1)
     }
@@ -98,7 +109,11 @@ impl Notable for bool {
     }
 }
 
-impl Digital for u8 {
+impl Digital for bool {}
+
+impl Control for bool {}
+
+impl KindBits for u8 {
     fn static_kind() -> Kind {
         Kind::make_bits(8)
     }
@@ -107,13 +122,15 @@ impl Digital for u8 {
     }
 }
 
+impl Digital for u8 {}
+
 impl Notable for u8 {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_bits(key, *self as u128, 8);
     }
 }
 
-impl Digital for u16 {
+impl KindBits for u16 {
     fn static_kind() -> Kind {
         Kind::make_bits(16)
     }
@@ -122,13 +139,15 @@ impl Digital for u16 {
     }
 }
 
+impl Digital for u16 {}
+
 impl Notable for u16 {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_bits(key, *self as u128, 16);
     }
 }
 
-impl Digital for usize {
+impl KindBits for usize {
     fn static_kind() -> Kind {
         Kind::make_bits(usize::BITS as usize)
     }
@@ -137,13 +156,15 @@ impl Digital for usize {
     }
 }
 
+impl Digital for usize {}
+
 impl Notable for usize {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_bits(key, *self as u128, usize::BITS as u8);
     }
 }
 
-impl Digital for u128 {
+impl KindBits for u128 {
     fn static_kind() -> Kind {
         Kind::make_bits(128)
     }
@@ -152,13 +173,15 @@ impl Digital for u128 {
     }
 }
 
+impl Digital for u128 {}
+
 impl Notable for u128 {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_bits(key, *self, 128);
     }
 }
 
-impl Digital for i128 {
+impl KindBits for i128 {
     fn static_kind() -> Kind {
         Kind::make_signed(128)
     }
@@ -167,13 +190,15 @@ impl Digital for i128 {
     }
 }
 
+impl Digital for i128 {}
+
 impl Notable for i128 {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_signed(key, *self, 128);
     }
 }
 
-impl Digital for i32 {
+impl KindBits for i32 {
     fn static_kind() -> Kind {
         Kind::Signed(32)
     }
@@ -184,13 +209,15 @@ impl Digital for i32 {
     }
 }
 
+impl Digital for i32 {}
+
 impl Notable for i32 {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_signed(key, *self as i128, 32);
     }
 }
 
-impl Digital for i8 {
+impl KindBits for i8 {
     fn static_kind() -> Kind {
         Kind::Signed(8)
     }
@@ -199,13 +226,15 @@ impl Digital for i8 {
     }
 }
 
+impl Digital for i8 {}
+
 impl Notable for i8 {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_signed(key, *self as i128, 8);
     }
 }
 
-impl Digital for i64 {
+impl KindBits for i64 {
     fn static_kind() -> Kind {
         Kind::Signed(64)
     }
@@ -216,13 +245,15 @@ impl Digital for i64 {
     }
 }
 
+impl Digital for i64 {}
+
 impl Notable for i64 {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_signed(key, *self as i128, 64);
     }
 }
 
-impl<const N: usize> Digital for Bits<N> {
+impl<const N: usize> KindBits for Bits<N> {
     fn static_kind() -> Kind {
         Kind::make_bits(N)
     }
@@ -231,13 +262,19 @@ impl<const N: usize> Digital for Bits<N> {
     }
 }
 
+impl<const N: usize> Digital for Bits<N> {}
+
+impl Control for Bits<0> {}
+
+impl Control for Bits<1> {}
+
 impl<const N: usize> Notable for Bits<N> {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_bits(key, self.raw(), N as u8);
     }
 }
 
-impl<const N: usize> Digital for SignedBits<N> {
+impl<const N: usize> KindBits for SignedBits<N> {
     fn static_kind() -> Kind {
         Kind::make_signed(N)
     }
@@ -246,6 +283,8 @@ impl<const N: usize> Digital for SignedBits<N> {
     }
 }
 
+impl<const N: usize> Digital for SignedBits<N> {}
+
 impl<const N: usize> Notable for SignedBits<N> {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_signed(key, self.raw(), N as u8);
@@ -253,7 +292,7 @@ impl<const N: usize> Notable for SignedBits<N> {
 }
 
 // Add blanket implementation for tuples up to size 4.
-impl<T0: Digital> Digital for (T0,) {
+impl<T0: KindBits> KindBits for (T0,) {
     fn static_kind() -> Kind {
         Kind::make_tuple(vec![T0::static_kind()])
     }
@@ -262,13 +301,17 @@ impl<T0: Digital> Digital for (T0,) {
     }
 }
 
+impl<T0: Digital> Digital for (T0,) {}
+
+impl<T0: Control> Control for (T0,) {}
+
 impl<T0: Notable> Notable for (T0,) {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         self.0.note((key, ".0"), &mut writer);
     }
 }
 
-impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
+impl<T0: KindBits, T1: KindBits> KindBits for (T0, T1) {
     fn static_kind() -> Kind {
         Kind::make_tuple(vec![T0::static_kind(), T1::static_kind()])
     }
@@ -279,6 +322,10 @@ impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
     }
 }
 
+impl<T0: Digital, T1: Digital> Digital for (T0, T1) {}
+
+impl<T0: Control, T1: Control> Control for (T0, T1) {}
+
 impl<T0: Notable, T1: Notable> Notable for (T0, T1) {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         self.0.note((key, ".0"), &mut writer);
@@ -286,7 +333,7 @@ impl<T0: Notable, T1: Notable> Notable for (T0, T1) {
     }
 }
 
-impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {
+impl<T0: KindBits, T1: KindBits, T2: KindBits> KindBits for (T0, T1, T2) {
     fn static_kind() -> Kind {
         Kind::make_tuple(vec![
             T0::static_kind(),
@@ -302,6 +349,10 @@ impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {
     }
 }
 
+impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {}
+
+impl<T0: Control, T1: Control, T2: Control> Control for (T0, T1, T2) {}
+
 impl<T0: Notable, T1: Notable, T2: Notable> Notable for (T0, T1, T2) {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         self.0.note((key, ".0"), &mut writer);
@@ -310,7 +361,7 @@ impl<T0: Notable, T1: Notable, T2: Notable> Notable for (T0, T1, T2) {
     }
 }
 
-impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2, T3) {
+impl<T0: KindBits, T1: KindBits, T2: KindBits, T3: KindBits> KindBits for (T0, T1, T2, T3) {
     fn static_kind() -> Kind {
         Kind::make_tuple(vec![
             T0::static_kind(),
@@ -327,6 +378,10 @@ impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2
         v
     }
 }
+
+impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2, T3) {}
+
+impl<T0: Control, T1: Control, T2: Control, T3: Control> Control for (T0, T1, T2, T3) {}
 
 impl<T0: Notable, T1: Notable, T2: Notable, T3: Notable> Notable for (T0, T1, T2, T3) {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
@@ -358,7 +413,7 @@ impl<T0: Notable, T1: Notable, T2: Notable, T3: Notable, T4: Notable> Notable
 macro_rules! impl_array {
     ($($N:literal),*) => {
         $(
-            impl<T: Digital> Digital for [T; $N] {
+            impl<T: KindBits> KindBits for [T; $N] {
                 fn static_kind() -> Kind {
                     Kind::make_array(T::static_kind(), $N)
                 }
@@ -370,6 +425,10 @@ macro_rules! impl_array {
                     v
                 }
             }
+
+            impl<T: Digital> Digital for [T; $N] {}
+
+            impl<T: Control> Control for [T; $N] {}
 
             impl<T: Notable> Notable for [T; $N] {
                 fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
@@ -408,7 +467,8 @@ mod test {
             },
         }
 
-        impl Digital for Mixed {
+        impl Digital for Mixed {}
+        impl KindBits for Mixed {
             fn static_kind() -> Kind {
                 Kind::make_enum(
                     "Mixed",
@@ -540,7 +600,9 @@ mod test {
             Stop,
             Boom,
         }
-        impl Digital for State {
+
+        impl Digital for State {}
+        impl KindBits for State {
             fn static_kind() -> Kind {
                 Kind::make_enum(
                     "State",

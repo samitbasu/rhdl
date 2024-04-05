@@ -7,7 +7,7 @@ use crate::dyn_bit_manip::bits_shr_signed;
 use crate::dyn_bit_manip::{
     bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
 };
-use crate::Digital;
+use crate::KindBits;
 use crate::{
     path::{bit_range, Path},
     Kind,
@@ -631,7 +631,9 @@ mod tests {
             }
         }
 
-        impl Digital for Baz {
+        impl Digital for Baz {}
+
+        impl KindBits for Baz {
             fn static_kind() -> Kind {
                 Kind::make_enum(
                     concat!(module_path!(), "::", stringify!(Baz)),

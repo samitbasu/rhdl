@@ -14,7 +14,9 @@ pub use circuit::hdl_descriptor::HDLDescriptor;
 pub use circuit::verilog::root_verilog;
 pub use clock_details::ClockDetails;
 pub use crusty::check_schematic;
+pub use types::digital::Control;
 pub use types::digital::Digital;
+pub use types::digital::KindBits;
 pub use types::digital_fn::DigitalFn;
 pub use types::kernel::KernelFnKind;
 #[cfg(feature = "svg")]
