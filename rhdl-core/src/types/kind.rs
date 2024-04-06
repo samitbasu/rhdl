@@ -3,6 +3,8 @@ use std::{iter::repeat, ops::Range};
 
 use anyhow::Result;
 
+use crate::TypedBits;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum Kind {
     Array(Array),
@@ -257,6 +259,56 @@ impl Kind {
                 e.name
             )),
         }
+    }
+
+    pub fn place_holder(&self) -> TypedBits {
+        TypedBits {
+            bits: repeat(false).take(self.bits()).collect(),
+            kind: self.clone(),
+        }
+    }
+
+    pub fn lookup_variant_by_name(&self, variant: &str) -> Result<Kind> {
+        let Kind::Enum(e) = &self else {
+            return Err(anyhow::anyhow!("Not an enum"));
+        };
+        let variant_kind = e.variants.iter().find(|x| x.name == variant);
+        match variant_kind {
+            Some(variant) => Ok(variant.kind.clone()),
+            None => Err(anyhow::anyhow!(
+                "No variant with name {} in enum {}",
+                variant,
+                e.name
+            )),
+        }
+    }
+
+    pub fn enum_template(&self, variant: &str) -> Result<TypedBits> {
+        // Create an empty template for a variant.
+        // Note that this would be `unsafe` in the sense that
+        // an all-zeros value for the payload is not necessarily valid.
+        // Thus, we assume that the caller will fill in the payload
+        // with valid values.
+        let Kind::Enum(e) = &self else {
+            return Err(anyhow::anyhow!("Not an enum"));
+        };
+        let Some(variant_kind) = e.variants.iter().find(|x| x.name == variant) else {
+            return Err(anyhow::anyhow!(
+                "No variant with name {} in enum {}",
+                variant,
+                e.name
+            ));
+        };
+        let discriminant: TypedBits = variant_kind.discriminant.into();
+        let discriminant_bits = match e.discriminant_layout.ty {
+            DiscriminantType::Signed => discriminant.signed_cast(e.discriminant_layout.width),
+            DiscriminantType::Unsigned => discriminant.unsigned_cast(e.discriminant_layout.width),
+        }?;
+        let all_bits = self.pad(discriminant_bits.bits);
+        Ok(TypedBits {
+            kind: self.clone(),
+            bits: all_bits,
+        })
     }
 
     pub fn is_enum(&self) -> bool {
@@ -727,6 +779,95 @@ pub mod kind_svg {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    fn make_enum_msb_signed_kind() -> Kind {
+        Kind::make_enum(
+            "Test",
+            vec![
+                Kind::make_variant("A", Kind::Empty, -1),
+                Kind::make_variant("B", Kind::Bits(8), 1),
+                Kind::make_variant(
+                    "C",
+                    Kind::make_tuple(vec![Kind::Bits(8), Kind::Bits(16)]),
+                    2,
+                ),
+                Kind::make_variant(
+                    "D",
+                    Kind::make_struct(
+                        "Test::D",
+                        vec![
+                            Kind::make_field("a", Kind::Bits(8)),
+                            Kind::make_field("b", Kind::Bits(16)),
+                        ],
+                    ),
+                    -3,
+                ),
+            ],
+            Kind::make_discriminant_layout(4, DiscriminantAlignment::Msb, DiscriminantType::Signed),
+        )
+    }
+
+    fn make_enum_kind() -> Kind {
+        Kind::make_enum(
+            "Test",
+            vec![
+                Kind::make_variant("A", Kind::Empty, 0),
+                Kind::make_variant("B", Kind::Bits(8), 1),
+                Kind::make_variant(
+                    "C",
+                    Kind::make_tuple(vec![Kind::Bits(8), Kind::Bits(16)]),
+                    2,
+                ),
+                Kind::make_variant(
+                    "D",
+                    Kind::make_struct(
+                        "Test::D",
+                        vec![
+                            Kind::make_field("a", Kind::Bits(8)),
+                            Kind::make_field("b", Kind::Bits(16)),
+                        ],
+                    ),
+                    3,
+                ),
+            ],
+            Kind::make_discriminant_layout(
+                4,
+                DiscriminantAlignment::Lsb,
+                DiscriminantType::Unsigned,
+            ),
+        )
+    }
+
+    #[test]
+    fn test_enum_template_is_correct() {
+        let kind = make_enum_kind();
+        let len = kind.bits();
+        let template = kind.enum_template("B").unwrap();
+        let disc: TypedBits = 1.into();
+        assert_eq!(template.bits, disc.unsigned_cast(len).unwrap().bits);
+        let template = kind.enum_template("C").unwrap();
+        let disc: TypedBits = 2.into();
+        assert_eq!(template.bits, disc.unsigned_cast(len).unwrap().bits);
+        let template = kind.enum_template("D").unwrap();
+        let disc: TypedBits = 3.into();
+        assert_eq!(template.bits, disc.unsigned_cast(len).unwrap().bits);
+    }
+
+    #[test]
+    fn test_enum_template_with_signed_msb_is_correct() {
+        let kind = make_enum_msb_signed_kind();
+        let len = kind.bits();
+        let template = kind.enum_template("A").unwrap();
+        let disc: TypedBits = (-1).into();
+        let disc = disc.signed_cast(4).unwrap();
+        let pad = kind.pad(disc.bits);
+        assert_eq!(template.bits, pad);
+        let template = kind.enum_template("B").unwrap();
+        let disc: TypedBits = 1.into();
+        let disc = disc.signed_cast(4).unwrap();
+        let pad = kind.pad(disc.bits);
+        assert_eq!(template.bits, pad);
+    }
 
     // Create a complex kind for testing that
     // has all allowed types.  It is equivalent to

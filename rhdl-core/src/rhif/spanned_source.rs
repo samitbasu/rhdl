@@ -62,7 +62,7 @@ impl SpannedSourceBuilder {
             self.push(", ");
         }
         self.push(") -> ");
-        self.kind(&kernel.ret.kind);
+        self.kind(&kernel.ret);
         self.push(" ");
         self.block(&kernel.body);
         self.span_map.insert(kernel.id, start..self.loc());

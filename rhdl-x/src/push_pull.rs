@@ -82,6 +82,8 @@ impl<const N: usize> Circuit for ZDriver<N> {
 
     type Update = rhdl_core::NoUpdateFn;
 
+    const UPDATE: CircuitUpdateFn<Self> = |_, _| (Bits::<N>::default(), ());
+
     type S = ();
 
     fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {

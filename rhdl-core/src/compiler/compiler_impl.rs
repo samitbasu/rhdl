@@ -1040,7 +1040,7 @@ impl Visitor for CompilerContext {
         // Initialize the return slot in the main block
         let init_return_slot = op_assign(
             self.resolve_local(node.id)?,
-            self.literal_from_typed_bits(&node.ret)?,
+            self.literal_from_typed_bits(&node.ret.place_holder())?,
         );
         // Initialize the arguments in the main block
         for (arg, slot) in node.inputs.iter().zip(arguments.iter()) {

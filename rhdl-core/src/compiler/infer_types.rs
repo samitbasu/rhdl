@@ -626,13 +626,13 @@ impl Visitor for TypeInference {
     }
     fn visit_kernel_fn(&mut self, node: &ast_impl::KernelFn) -> Result<()> {
         let my_ty = id_to_var(node.id)?;
-        self.unify(my_ty, node.ret.kind.clone().into())?;
-        self.ret = Some(node.ret.kind.clone().into());
+        self.unify(my_ty, node.ret.clone().into())?;
+        self.ret = Some(node.ret.clone().into());
         self.new_scope();
         for pat in &node.inputs {
             self.bind_pattern(pat)?;
         }
-        self.unify(id_to_var(node.body.id)?, node.ret.kind.clone().into())?;
+        self.unify(id_to_var(node.body.id)?, node.ret.clone().into())?;
         visit::visit_kernel_fn(self, node)?;
         self.end_scope();
         Ok(())

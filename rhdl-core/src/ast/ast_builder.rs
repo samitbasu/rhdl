@@ -413,7 +413,7 @@ pub fn expr_lit_typed_bits(value: TypedBits) -> ExprLit {
 pub fn kernel_fn(
     name: &str,
     inputs: Vec<Box<Pat>>,
-    ret: TypedBits,
+    ret: Kind,
     body: Box<Block>,
     fn_id: std::any::TypeId,
 ) -> KernelFnKind {

@@ -24,6 +24,20 @@ pub struct TypedBits {
     pub kind: Kind,
 }
 
+impl From<i64> for TypedBits {
+    fn from(mut val: i64) -> Self {
+        let mut bits = Vec::new();
+        for _ in 0..64 {
+            bits.push(val & 1 != 0);
+            val >>= 1;
+        }
+        TypedBits {
+            bits,
+            kind: Kind::make_signed(64),
+        }
+    }
+}
+
 impl TypedBits {
     pub const EMPTY: TypedBits = TypedBits {
         bits: Vec::new(),

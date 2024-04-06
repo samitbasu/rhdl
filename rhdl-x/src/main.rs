@@ -52,7 +52,7 @@ mod visit;
 #[derive(Debug, Clone, PartialEq, Copy, Default, Digital)]
 struct Bar(u8, u8, bool);
 
-#[derive(Debug, Clone, PartialEq, Copy, Default, Digital)]
+#[derive(Debug, Clone, PartialEq, Copy, Digital, Default)]
 struct Foo {
     a: u8,
     b: u8,
@@ -66,9 +66,18 @@ enum Baz {
     C(u8),
 }
 
-impl Default for Baz {
-    fn default() -> Self {
-        Baz::A(Bar::default())
+#[test]
+fn test_static_kind_from_adt() {
+    let kind = Baz::static_kind();
+    eprintln!("{:?}", kind);
+}
+
+#[kernel]
+fn debaz(a: Baz) -> u8 {
+    match a {
+        Baz::A(b) => b.0,
+        Baz::B { foo } => foo.a,
+        Baz::C(c) => c,
     }
 }
 

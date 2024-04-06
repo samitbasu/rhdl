@@ -982,14 +982,11 @@ fn test_macro_output() {
         c: [u8; 3],
     }
 
-    #[derive(PartialEq, Copy, Clone, Default, Digital)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub enum NooState {
-        #[default]
         Init,
         Run(u8, u8, u8),
-        Walk {
-            foo: u8,
-        },
+        Walk { foo: u8 },
         Boom,
     }
 
@@ -1049,13 +1046,13 @@ fn test_generics() {
 #[test]
 fn test_nested_generics() {
     #[derive(PartialEq, Copy, Clone, Digital, Default)]
-    struct Foo<T: Digital> {
+    struct Foo<T: Digital + Default> {
         a: T,
         b: T,
     }
 
     #[kernel]
-    fn do_stuff<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {
+    fn do_stuff<T: Digital + Default, S: Digital + Default>(x: Foo<T>, y: Foo<S>) -> bool {
         let c = x.a;
         let d = (x.a, y.b);
         let e = Foo::<T> { a: c, b: c };
@@ -1150,15 +1147,11 @@ fn test_for_loop() {
 
 #[test]
 fn test_rebind_compile() {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub enum SimpleEnum {
-        #[default]
         Init,
         Run(u8),
-        Point {
-            x: b4,
-            y: u8,
-        },
+        Point { x: b4, y: u8 },
         Boom,
     }
 

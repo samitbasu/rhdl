@@ -40,7 +40,7 @@ use super::note::Notable;
 ///
 /// These are all supported in `RHDL`.
 ///
-pub trait Digital: Copy + PartialEq + Sized + Clone + Default + 'static + Notable {
+pub trait Digital: Copy + PartialEq + Sized + Clone + 'static + Notable {
     fn static_kind() -> Kind;
     fn bits() -> usize {
         Self::static_kind().bits()

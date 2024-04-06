@@ -416,10 +416,10 @@ impl Context {
         }
         let block = self.block_inner(&function.block)?;
         let ret = match &function.sig.output {
-            syn::ReturnType::Default => quote! {rhdl_core::TypedBits::EMPTY},
+            syn::ReturnType::Default => quote! {rhdl_core::Kind::Empty},
             syn::ReturnType::Type(_, ty) => {
                 quote! {
-                    rhdl_core::Digital::typed_bits(<#ty as Default>::default())
+                    <#ty as rhdl_core::Digital>::static_kind()
                 }
             }
         };
@@ -737,12 +737,26 @@ impl Context {
             self.get_code(&func_path.path)?
         } else {
             // This is an enum tuple struct... build one.
-            let args_as_default = repeat(quote!(Default::default()))
-                .take(expr.args.len())
+            // To do so, we split the path into the base and the variant, assuming that
+            // the last segment is the variant.
+            let base = func_path
+                .path
+                .segments
+                .iter()
+                .map(|x| quote!(#x))
+                .take(func_path.path.segments.len() - 1)
                 .collect::<Vec<_>>();
-            let template = quote!(#func_path(#(#args_as_default),*));
+            let Some(variant) = func_path.path.segments.last() else {
+                return Err(syn::Error::new(
+                    func_path.path.span(),
+                    "Empty path in rhdl kernel function",
+                ));
+            };
+            let shell = quote! {
+                <#(#base)::* as rhdl_core::Digital>::static_kind().enum_template(stringify!(#variant)).unwrap()
+            };
             // This is a tuple struct constructor
-            quote!(Some(rhdl_core::KernelFnKind::EnumTupleStructConstructor(rhdl_core::Digital::typed_bits(#template))))
+            quote!(Some(rhdl_core::KernelFnKind::EnumTupleStructConstructor(#shell)))
         };
         let call_to_get_type = quote!(rhdl_core::digital_fn::inspect_digital(#func_path));
         let path = self.path_inner(&func_path.path)?;

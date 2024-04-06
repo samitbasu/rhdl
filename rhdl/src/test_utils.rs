@@ -51,12 +51,11 @@ pub(crate) fn trace_reached_output(
     trace.sinks.iter().any(|sink| schematic.output == sink.pin)
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Digital, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Digital)]
 pub(crate) enum Bar {
     A(Bits<4>),
     B(Bits<4>),
     C(bool),
-    #[default]
     D,
 }
 
@@ -73,11 +72,23 @@ pub(crate) struct Nested {
     pub(crate) c: [Egg; 2],
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Digital, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Digital)]
 pub(crate) struct Foo {
     pub(crate) a: Bits<4>,
     pub(crate) b: Bits<4>,
     pub(crate) c: bool,
     pub(crate) d: Bar,
     pub(crate) e: Nested,
+}
+
+impl Default for Foo {
+    fn default() -> Self {
+        Self {
+            a: Default::default(),
+            b: Default::default(),
+            c: false,
+            d: Bar::D,
+            e: Nested::default(),
+        }
+    }
 }

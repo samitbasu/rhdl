@@ -441,7 +441,7 @@ pub struct KernelFn {
     pub id: NodeId,
     pub name: String,
     pub inputs: Vec<Box<Pat>>,
-    pub ret: TypedBits,
+    pub ret: Kind,
     pub body: Box<Block>,
     pub fn_id: FunctionId,
 }
