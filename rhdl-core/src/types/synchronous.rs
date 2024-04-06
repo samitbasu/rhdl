@@ -12,7 +12,7 @@ use crate::{Digital, DigitalFn};
 pub trait Synchronous: Digital {
     type Input: Digital;
     type Output: Digital;
-    type State: Digital;
+    type State: Digital + Default;
     type Update: DigitalFn;
 
     const INITIAL_STATE: Self::State;

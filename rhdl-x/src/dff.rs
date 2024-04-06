@@ -99,7 +99,7 @@ impl<T: Digital> CircuitIO for DFF<T> {
     type O = T;
 }
 
-impl<T: Digital> Circuit for DFF<T> {
+impl<T: Digital + Default> Circuit for DFF<T> {
     type Q = ();
 
     type D = ();
@@ -207,7 +207,7 @@ impl<T: Digital> DigitalFn for DFF<T> {
     }
 }
 
-impl<T: Digital> DFF<T> {
+impl<T: Digital + Default> DFF<T> {
     fn as_verilog(&self) -> HDLDescriptor {
         let module_name = self.descriptor().unique_name;
         let input_bits = T::bits();

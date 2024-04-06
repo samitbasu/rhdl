@@ -48,7 +48,7 @@ impl<T: Digital> Circuit for Constant<T> {
 
     type Update = Self;
 
-    const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = |_, _| (T::default(), ());
+    const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = { panic!() };
 
     fn sim(&self, _: Self::I, _: &mut Self::S, _: &mut Self::Z) -> Self::O {
         self.value
