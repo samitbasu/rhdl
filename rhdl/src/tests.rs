@@ -17,14 +17,11 @@ use rhdl_std::UnsignedMethods;
 
 #[test]
 fn test_vcd_enum() {
-    #[derive(Clone, Copy, Debug, PartialEq, Default, Digital)]
+    #[derive(Clone, Copy, Debug, PartialEq, Digital)]
     enum Enum {
-        #[default]
         None,
         A(u8, u16),
-        B {
-            name: u8,
-        },
+        B { name: u8 },
         C(bool),
     }
 
@@ -54,7 +51,7 @@ fn test_vcd_enum() {
 
 #[test]
 fn test_vcd_basic() {
-    #[derive(Clone, Copy, PartialEq, Default, Digital)]
+    #[derive(Clone, Copy, PartialEq, Digital)]
     pub struct Simple {
         a: bool,
         b: Bits<8>,
@@ -83,15 +80,11 @@ fn test_vcd_basic() {
 #[allow(dead_code)]
 #[allow(clippy::just_underscores_and_digits)]
 fn test_derive() {
-    #[derive(Clone, Copy, PartialEq, Default, Digital)]
+    #[derive(Clone, Copy, PartialEq, Digital)]
     enum Test {
-        #[default]
         A,
         B(Bits<16>),
-        C {
-            a: Bits<32>,
-            b: Bits<8>,
-        },
+        C { a: Bits<32>, b: Bits<8> },
     }
     note("test", Test::A);
 }
@@ -99,9 +92,8 @@ fn test_derive() {
 #[test]
 #[allow(dead_code)]
 fn test_derive_no_payload() {
-    #[derive(Copy, Clone, PartialEq, Default, Digital)]
+    #[derive(Copy, Clone, PartialEq, Digital)]
     pub enum State {
-        #[default]
         Init,
         Boot,
         Running,
@@ -115,7 +107,7 @@ fn test_derive_no_payload() {
 fn test_derive_digital_simple_struct() {
     use rhdl_bits::alias::*;
 
-    #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
+    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
     struct Test {
         a: bool,
         b: b8,
@@ -145,15 +137,11 @@ fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
     use rhdl_bits::alias::*;
     use rhdl_core::path::*;
 
-    #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
+    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
     enum Test {
-        #[default]
         A,
         B(b2, b3),
-        C {
-            a: b8,
-            b: b8,
-        },
+        C { a: b8, b: b8 },
     }
 
     let foo = Test::B(b2::from(0b10), b3::from(0b101));
@@ -182,15 +170,11 @@ fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
 fn test_derive_digital_complex_enum() {
     use rhdl_bits::alias::*;
 
-    #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
+    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
     enum Test {
-        #[default]
         A,
         B(b2, b3),
-        C {
-            a: b8,
-            b: b8,
-        },
+        C { a: b8, b: b8 },
     }
 
     let foo_1 = Test::C {
@@ -222,16 +206,12 @@ fn test_derive_digital_complex_enum() {
 fn test_derive_enum_explicit_discriminant_width() {
     use rhdl_bits::alias::*;
 
-    #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
+    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
     #[rhdl(discriminant_width = 4)]
     enum Test {
-        #[default]
         A,
         B(b2, b3),
-        C {
-            a: b8,
-            b: b8,
-        },
+        C { a: b8, b: b8 },
     }
 
     let (range, kind) = bit_range(Test::static_kind(), &Path::default().discriminant()).unwrap();
@@ -243,16 +223,12 @@ fn test_derive_enum_explicit_discriminant_width() {
 fn test_derive_enum_alignment_lsb() {
     use rhdl_bits::alias::*;
 
-    #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
+    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
     #[rhdl(discriminant_align = "lsb")]
     enum Test {
-        #[default]
         A,
         B(b2, b3),
-        C {
-            a: b8,
-            b: b8,
-        },
+        C { a: b8, b: b8 },
     }
     let (range, kind) = bit_range(Test::static_kind(), &Path::default().discriminant()).unwrap();
     assert_eq!(range, 0..2);
@@ -261,7 +237,7 @@ fn test_derive_enum_alignment_lsb() {
 
 #[test]
 fn test_struct_expr_not_adt() {
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub struct Foo {
         a: u8,
         b: u16,
@@ -314,15 +290,11 @@ fn test_adt_use() {
 
 #[test]
 fn test_struct_expr_adt() {
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub enum Foo {
-        #[default]
         A,
         B(u8),
-        C {
-            a: u8,
-            b: u16,
-        },
+        C { a: u8, b: u16 },
     }
 
     #[kernel]
@@ -352,22 +324,21 @@ fn test_phi_if_consts() {
 #[test]
 fn test_ast_basic_func() {
     use rhdl_bits::alias::*;
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub struct Foo {
         a: u8,
         b: u16,
         c: [u8; 3],
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub enum State {
-        #[default]
         Init,
         Run(u8),
         Boom,
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub struct Bar(pub u8, pub u8);
 
     #[kernel]
@@ -442,7 +413,7 @@ fn test_method_call_syntax() {
 
 #[test]
 fn test_method_call_fails_with_roll_your_own() {
-    #[derive(Copy, Clone, PartialEq, Default, Digital)]
+    #[derive(Copy, Clone, PartialEq, Digital)]
     struct Baz {
         a: u8,
     }
@@ -500,30 +471,27 @@ fn test_struct_inference() {
     use rhdl_bits::alias::*;
     use rhdl_bits::bits;
 
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub struct Red {
         x: b4,
         y: b6,
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub struct Foo {
         a: b8,
         b: s4,
         c: Red,
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub struct Bar(pub u8, pub u8);
 
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub enum NooState {
-        #[default]
         Init,
         Run(b4, b5),
-        Walk {
-            foo: b5,
-        },
+        Walk { foo: b5 },
         Boom,
     }
 
@@ -623,15 +591,11 @@ fn test_ssa() {
 #[test]
 fn test_importing() {
     use rhdl_bits::alias::*;
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub enum Red {
-        #[default]
         A,
         B(b4),
-        C {
-            x: b4,
-            y: b6,
-        },
+        C { x: b4, y: b6 },
     }
 
     const MY_SPECIAL_NUMBER: b8 = bits(42);
@@ -656,32 +620,25 @@ fn test_adt_inference() {
     use rhdl_bits::bits;
     use rhdl_std::*;
 
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub enum Red {
-        #[default]
         A,
         B(b4),
-        C {
-            x: b4,
-            y: b6,
-        },
+        C { x: b4, y: b6 },
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub struct Foo {
         a: b8,
         b: s4,
         c: Red,
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub enum NooState {
-        #[default]
         Init,
         Run(b4, b5),
-        Walk {
-            foo: b5,
-        },
+        Walk { foo: b5 },
         Boom,
     }
 
@@ -771,14 +728,11 @@ fn test_adt_inference() {
 
 #[test]
 fn test_adt_shadow() {
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub enum NooState {
-        #[default]
         Init,
         Run(u8, u8, u8),
-        Walk {
-            foo: u8,
-        },
+        Walk { foo: u8 },
         Boom,
     }
 
@@ -820,21 +774,18 @@ fn test_adt_shadow() {
 #[test]
 fn test_compile() {
     use rhdl_bits::alias::*;
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub struct Foo {
         a: u8,
         b: u16,
         c: [u8; 3],
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub enum NooState {
-        #[default]
         Init,
         Run(u8, u8, u8),
-        Walk {
-            foo: u8,
-        },
+        Walk { foo: u8 },
         Boom,
     }
 
@@ -975,7 +926,7 @@ fn test_match_scrutinee_bits() {
 #[test]
 fn test_macro_output() {
     use rhdl_bits::alias::*;
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital)]
     pub struct Foo {
         a: u8,
         b: u16,
@@ -1045,14 +996,14 @@ fn test_generics() {
 
 #[test]
 fn test_nested_generics() {
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
-    struct Foo<T: Digital + Default> {
+    #[derive(PartialEq, Copy, Clone, Digital)]
+    struct Foo<T: Digital> {
         a: T,
         b: T,
     }
 
     #[kernel]
-    fn do_stuff<T: Digital + Default, S: Digital + Default>(x: Foo<T>, y: Foo<S>) -> bool {
+    fn do_stuff<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {
         let c = x.a;
         let d = (x.a, y.b);
         let e = Foo::<T> { a: c, b: c };
@@ -1183,35 +1134,27 @@ fn test_rebind_compile() {
 fn test_basic_compile() {
     use itertools::iproduct;
 
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo {
         a: b4,
         b: b4,
     }
 
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct TupStruct(b4, b4);
 
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub enum Bar {
-        #[default]
         A,
         B(b4),
-        C {
-            x: b4,
-            y: b4,
-        },
+        C { x: b4, y: b4 },
     }
 
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub enum SimpleEnum {
-        #[default]
         Init,
         Run(u8),
-        Point {
-            x: b4,
-            y: u8,
-        },
+        Point { x: b4, y: u8 },
         Boom,
     }
 
@@ -1283,15 +1226,11 @@ fn test_basic_compile() {
 
 #[test]
 fn test_enum_match() {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub enum SimpleEnum {
-        #[default]
         Init,
         Run(u8),
-        Point {
-            x: b4,
-            y: u8,
-        },
+        Point { x: b4, y: u8 },
         Boom,
     }
 
@@ -1320,17 +1259,13 @@ fn test_enum_match() {
 
 #[test]
 fn test_enum_match_signed_discriminant() {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     #[rhdl(discriminant_width = 4)]
     #[repr(i8)]
     pub enum SimpleEnum {
-        #[default]
         Init = 1,
         Run(u8) = 2,
-        Point {
-            x: b4,
-            y: u8,
-        } = 3,
+        Point { x: b4, y: u8 } = 3,
         Boom = -2,
     }
 
@@ -1389,7 +1324,7 @@ fn test_const_literal_captured_match() {
 
 #[test]
 fn test_struct_literal_match() {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo {
         a: u8,
         b: u8,
@@ -1450,13 +1385,13 @@ fn test_tuple_destructure_in_args() {
 
 #[test]
 fn test_tuple_struct_nested_init() {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo {
         a: u8,
         b: u8,
     }
 
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Bar {
         a: u8,
         b: Foo,
@@ -1480,7 +1415,7 @@ fn test_tuple_struct_nested_init() {
 
 #[test]
 fn test_tuplestruct_nested_init() {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Wrap(u8, (u8, u8), u8);
 
     #[kernel]
@@ -1496,17 +1431,14 @@ fn test_tuplestruct_nested_init() {
 fn test_link_to_bits_fn() {
     use rhdl_std::UnsignedMethods;
 
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     struct Tuplo(b4, s6);
 
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     enum NooState {
-        #[default]
         Init,
         Run(b4, s6),
-        Walk {
-            foo: b5,
-        },
+        Walk { foo: b5 },
         Boom,
     }
 
@@ -1795,7 +1727,7 @@ fn test_nested_tuple_indexing() {
 
 #[test]
 fn test_field_indexing() {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo {
         a: b8,
         b: b8,
@@ -1812,7 +1744,7 @@ fn test_field_indexing() {
 
 #[test]
 fn test_field_indexing_is_order_independent() {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo {
         a: b8,
         b: b8,
@@ -1829,7 +1761,7 @@ fn test_field_indexing_is_order_independent() {
 
 #[test]
 fn test_tuple_struct_construction() {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo(b8, b8);
 
     #[kernel]
@@ -1842,7 +1774,7 @@ fn test_tuple_struct_construction() {
 
 #[test]
 fn test_tuple_struct_indexing() {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo(b8, b8);
 
     #[kernel]
@@ -1856,7 +1788,7 @@ fn test_tuple_struct_indexing() {
 
 #[test]
 fn test_struct_field_indexing() {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo {
         a: (b8, b8),
         b: b8,
@@ -1874,7 +1806,7 @@ fn test_struct_field_indexing() {
 
 #[test]
 fn test_struct_rest_syntax() {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo {
         a: (b8, b8),
         b: b8,
@@ -1910,16 +1842,11 @@ fn test_array_indexing() {
 
 #[test]
 fn test_enum_basic() {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     enum Foo {
-        #[default]
         A,
         B(b8),
-        C {
-            red: b8,
-            green: b8,
-            blue: b8,
-        },
+        C { red: b8, green: b8, blue: b8 },
     }
 
     #[kernel]
@@ -1942,16 +1869,11 @@ fn test_enum_basic() {
 
 #[test]
 fn test_match_enum() {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     enum Foo {
-        #[default]
         A,
         B(b8),
-        C {
-            red: b8,
-            green: b8,
-            blue: b8,
-        },
+        C { red: b8, green: b8, blue: b8 },
     }
 
     #[kernel]
@@ -2123,7 +2045,7 @@ fn test_3d_array_dynamic_indexing() {
 
 #[test]
 fn test_complex_array_dynamic_indexing() {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo {
         a: bool,
         b: [b4; 4],
@@ -2133,16 +2055,14 @@ fn test_complex_array_dynamic_indexing() {
     fn rand_foo() -> Foo {
         // make a random Foo
         let mut rng = rand::thread_rng();
-        let mut foo = Foo::default();
-        foo.a = rng.gen();
-        for i in 0..3 {
-            foo.b[i] = rand_bits();
+        Foo {
+            a: rng.gen(),
+            b: [rand_bits(), rand_bits(), rand_bits(), rand_bits()],
+            c: rng.gen(),
         }
-        foo.c = rng.gen();
-        foo
     }
 
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Bar {
         a: b9,
         b: [Foo; 8],
@@ -2151,12 +2071,19 @@ fn test_complex_array_dynamic_indexing() {
     fn rand_bar() -> Bar {
         // make a random Bar
         let mut rng = rand::thread_rng();
-        let mut bar = Bar::default();
-        bar.a = b9(rng.gen::<u16>() as u128 % 512);
-        for i in 0..6 {
-            bar.b[i] = rand_foo();
+        Bar {
+            a: b9(rng.gen::<u16>() as u128 % 512),
+            b: [
+                rand_foo(),
+                rand_foo(),
+                rand_foo(),
+                rand_foo(),
+                rand_foo(),
+                rand_foo(),
+                rand_foo(),
+                rand_foo(),
+            ],
         }
-        bar
     }
 
     #[kernel]
