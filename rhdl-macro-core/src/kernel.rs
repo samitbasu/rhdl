@@ -1,7 +1,7 @@
 use std::{collections::HashSet, iter::repeat};
 
 use inflections::Inflect;
-use quote::{format_ident, quote};
+use quote::{format_ident, quote, quote_spanned};
 use syn::{
     punctuated::Punctuated, spanned::Spanned, token::Comma, FnArg, Ident, Pat, PatType, Path, Type,
 };
@@ -93,6 +93,31 @@ fn path_is_enum_tuple_struct_by_convention(path: &Path) -> bool {
     let second_to_last = &path.segments[0];
     ident_starts_with_capital_letter(&last.ident)
         && ident_starts_with_capital_letter(&second_to_last.ident)
+}
+
+fn split_path_into_base_and_variant(path: &Path) -> Result<(Path, Ident)> {
+    let base = path
+        .segments
+        .iter()
+        .map(|x| x.clone())
+        .take(path.segments.len() - 1)
+        .collect();
+    let variant = path
+        .segments
+        .last()
+        .ok_or(syn::Error::new(
+            path.span(),
+            "Empty path in rhdl kernel function",
+        ))?
+        .ident
+        .clone();
+    Ok((
+        Path {
+            leading_colon: None,
+            segments: base,
+        },
+        variant,
+    ))
 }
 
 fn rewrite_pattern_as_typed_bits(pat: &syn::Pat) -> syn::Result<TS> {
@@ -986,39 +1011,34 @@ impl Context {
         if structure.rest.is_some() {
             // The presence of a rest means we know that path -> struct
             let path = &structure.path;
-            let template = quote!(rhdl_core::Digital::typed_bits(< #path as Default>::default()));
+            let template = quote!(< #path as rhdl_core::Digital>::static_kind().place_holder());
             let discriminant = quote!(rhdl_core::TypedBits::EMPTY);
             let variant_kind = quote!(< #path as rhdl_core::Digital>::static_kind());
             Ok(
                 quote! {rhdl_core::ast_builder::struct_expr(#path_inner, vec![#(#fields),*], #rest, #template, #variant_kind, #discriminant)},
             )
-        } else {
-            let path = &structure.path;
-            // Could be either a struct or an enum.  So we have to construct one
-            // to find out.  And the only way to do that is to use the fields and
-            // fill defaults for them all.
-            let fields_with_default = structure
-                .fields
-                .iter()
-                .map(|x| self.default_field_value(x))
-                .collect::<Result<Vec<_>>>()?;
-            let obj = quote!(#path { #(#fields_with_default),* });
+        } else if path_is_enum_tuple_struct_by_convention(&structure.path) {
+            // This is an enum struct construction (we assume) since it has
+            // the form of Foo::Bar{}, and by convention in RHDL, this is an
+            // enum variant, and not a struct.
+            let (base, variant) = split_path_into_base_and_variant(&structure.path)?;
+            // Not sure what to do about the unwrap here.
+            let template = quote!(< #base as rhdl_core::Digital>::static_kind().enum_template(stringify!(#variant)).unwrap());
+            let variant_kind = quote!(< #base as rhdl_core::Digital>::static_kind().lookup_variant_by_name(stringify!(#variant)).unwrap());
+            let discriminant = quote!(< #base as rhdl_core::Digital>::static_kind().get_discriminant_for_variant_by_name(stringify!(#variant)).unwrap());
             Ok(quote! {
                 rhdl_core::ast_builder::struct_expr(#path_inner, vec![#(#fields),*], #rest,
-                rhdl_core::Digital::typed_bits(#obj),
-                rhdl_core::Digital::variant_kind(#obj),
-                rhdl_core::Digital::discriminant(#obj))
+                #template, #variant_kind, #discriminant
+            )
             })
-        }
-    }
-
-    fn default_field_value(&mut self, field: &syn::FieldValue) -> Result<TS> {
-        match &field.member {
-            syn::Member::Unnamed(_) => Err(syn::Error::new(
-                field.span(),
-                "Unsupported unnamed field in rhdl kernel function",
-            )),
-            syn::Member::Named(x) => Ok(quote!(#x: Default::default())),
+        } else {
+            let path = &structure.path;
+            let obj = quote!(<#path as rhdl_core::Digital>::static_kind().place_holder());
+            let kind = quote!(<#path as rhdl_core::Digital>::static_kind());
+            Ok(quote! {
+                rhdl_core::ast_builder::struct_expr(#path_inner, vec![#(#fields),*], #rest,
+                #obj, #kind, rhdl_core::TypedBits::EMPTY)
+            })
         }
     }
 

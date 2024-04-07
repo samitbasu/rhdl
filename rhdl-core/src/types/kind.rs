@@ -283,6 +283,24 @@ impl Kind {
         }
     }
 
+    pub fn get_discriminant_for_variant_by_name(&self, variant: &str) -> Result<TypedBits> {
+        let Kind::Enum(e) = &self else {
+            return Err(anyhow::anyhow!("Not an enum"));
+        };
+        let Some(variant_kind) = e.variants.iter().find(|x| x.name == variant) else {
+            return Err(anyhow::anyhow!(
+                "No variant with name {} in enum {}",
+                variant,
+                e.name
+            ));
+        };
+        let discriminant: TypedBits = variant_kind.discriminant.into();
+        match e.discriminant_layout.ty {
+            DiscriminantType::Signed => discriminant.signed_cast(e.discriminant_layout.width),
+            DiscriminantType::Unsigned => discriminant.unsigned_cast(e.discriminant_layout.width),
+        }
+    }
+
     pub fn enum_template(&self, variant: &str) -> Result<TypedBits> {
         // Create an empty template for a variant.
         // Note that this would be `unsafe` in the sense that
