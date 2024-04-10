@@ -46,6 +46,7 @@ mod tristate;
 //mod dfg;
 //mod trace;
 mod chalk;
+mod signal;
 mod timeset;
 mod visit;
 

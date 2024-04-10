@@ -145,6 +145,7 @@ impl UnifyContext {
         false
     }
     pub(super) fn get_named_field(&self, t: Ty, field: &str) -> Result<Ty> {
+        eprintln!("Getting field {} of {:?}", field, t);
         let Ty::Var(id) = t else {
             bail!("Cannot get field of non-variable")
         };
