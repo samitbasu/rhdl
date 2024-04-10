@@ -297,6 +297,8 @@ impl CompilerContext {
                 Ok(())
             }
             PatKind::Struct(_struct) => {
+                eprintln!("Struct pattern {:?}", pat);
+                eprintln!("Struct rhs {:?}", rhs);
                 let rhs_ty = self
                     .ty
                     .get(&rhs)
