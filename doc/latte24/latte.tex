@@ -45,13 +45,19 @@ relevant to hardware description include:
 The RHDL framework and its predecessor RustHDL took advantage of all of these features to
 create an environment for hardware description that is powerful, easy to use, extensible and
 open.  The end goal is to enable a wider class of engineers to develop high quality hardware
-by reusing their skills as Rust developers in the hardware domain, as well as to provide a natural path for existing C and Verilog developers to migrate to a safer language.  This paper briefly describes
+by reusing their skills as Rust developers in the hardware domain, as well as to provide a natural path for existing C and Verilog developers. 
+
+This paper briefly describes
 the RustHDL approach to developing FPGA firmware using the RPL, and then identifies the
 observed shortcomings and how they may be addressed in the upcoming RHDL framework.  
 Finally, I touch upon some of the unsolved problems in using Rust for hardware description.  Note 
 that I use the term ``hardware description'' here to mean FPGA firmware (or possibly ASIC designs), 
 as Rust is already established as a language for embedded systems programming (which is also often
-referred to as ``Firmware'').  
+referred to as ``Firmware'').  I think it's important to point out that the appeal of using Rust 
+as an HDL is it's familiarity to engineers coming from a C background.  The syntax is similar, and
+while functional programming concepts are supported, the language is multi-paradigm.  Given that 
+part of the objective of RustHDL and RHDL was to enable a wider class of engineers to develop
+hardware, this is a critical point.
 
 \section{Syntax}
 RustHDL is not a new language.  Instead it is a set of libraries and macros along with a 
@@ -74,9 +80,18 @@ and Chisel is embedded in Scala \cite{b2}.  The immediate implication is that:
   \item The Rust test framework can be used to test the designs directly.
 \end{itemize}
 Note that unlike MyHDL, RustHDL does not use a generator pattern and infer the required hardware.  Instead,
-the AST itself is transformed into the circuit description.  So, for example, a MUX is inferred from an `if` statement,
-not at run time, and not via construction.  This is also in contrast to a combinator style of hardware description, for example in \cite{b4b},
+the AST itself is transformed into the circuit description.  So, for example, the following AST fragment describes
+(behaviorally) a mux that selects between the current counter output \verb|counter.q| and \verb|counter.q+1|.  
+The description is not ``builder'' style, in which a MUX is explicitly instantiated.  The MUX is inferred from
+the imperative code.  This is also in contrast to a combinator style of hardware description, for example in \cite{b4b},
 where the language used is Rust, but hardware description is functional.
+
+\begin{minted}[fontsize=\scriptsize]{rust}
+  self.counter.d.next = self.counter.q.val();
+  if self.enable.val() {
+    self.counter.d.next = self.counter.q.val() + 1;
+  }
+\end{minted}
 
 The syntax should be fairly familiar to anyone comfortable with Rust.  The following is an example
 of a simple SPI master in RustHDL, generic over the transaction size \verb|N|, edited for brevity:
@@ -86,10 +101,11 @@ of a simple SPI master in RustHDL, generic over the transaction size \verb|N|, e
   pub struct SPIMaster<const N: usize> {
       pub clock: Signal<In, Clock>,
       pub data_outbound: Signal<In, Bits<N>>,
+      pub start_send: Signal<In, Bit>,
       pub data_inbound: Signal<Out, Bits<N>>,
       pub wires: SPIWiresMaster,
       local_signal: Signal<Local, Bit>,
-      state: DFF<SPIState>, 
+      state: DFF<SPIState>,
       cs_off: Constant<Bit>,
   }
 \end{minted}  
@@ -110,6 +126,7 @@ The \verb|DFF| is a flip-flop, and \verb|SPIState| is a C-style enum that repres
 of the controller.  By including it as a member of the struct, we request an instance of it be
 created in the generated design.
 
+
 As an example, an interface to an SDRAM chip with a \verb|D-bit| data bus and a 13 bit 
 address bus is defined as:
 
@@ -120,9 +137,11 @@ address bus is defined as:
       pub clk: Signal<In, Clock>,
       pub we_not: Signal<In, Bit>,
       pub cas_not: Signal<In, Bit>,
+      pub ras_not: Signal<In, Bit>,
       pub address: Signal<In, Bits<13>>,
       pub write_data: Signal<In, Bits<D>>,
       pub read_data: Signal<Out, Bits<D>>,
+      pub write_enable: Signal<In, Bit>,
   }
 \end{minted}
 
@@ -131,7 +150,6 @@ statement.  This significantly reduces the amount of error-prone wiring that mus
 by code or graphically.  The \verb|join| statement is used inside of an \verb|update| function as the
 following demonstration:
 
-\begin{minipage}{\linewidth*1/3}
 \begin{minted}[fontsize=\scriptsize]{rust}
 #[derive(LogicBlock)]
 struct I2CControllerTest {
@@ -141,26 +159,27 @@ struct I2CControllerTest {
     target_2: I2CTestTarget,
     test_bus: I2CTestBus<3>,
 }
-\end{minted}
-\end{minipage}
-\begin{minipage}{\linewidth*2/3}
-\begin{minted}[fontsize=\scriptsize]{rust}
+
 impl Logic for I2CControllerTest {
-  #[hdl_gen]
-  fn update(&mut self) {
-      I2CBusDriver::join(&mut self.controller.i2c, 
-        &mut self.test_bus.endpoints[0]);
-      I2CBusDriver::join(&mut self.target_1.i2c,
-        &mut self.test_bus.endpoints[1]);
-      I2CBusDriver::join(&mut self.target_2.i2c, 
-        &mut self.test_bus.endpoints[2]);
-  }
+    #[hdl_gen]
+    fn update(&mut self) {
+        clock!(self, clock, controller, target_1, target_2);
+        I2CBusDriver::join(&mut self.controller.i2c, 
+          &mut self.test_bus.endpoints[0]);
+        I2CBusDriver::join(&mut self.target_1.i2c,
+          &mut self.test_bus.endpoints[1]);
+        I2CBusDriver::join(&mut self.target_2.i2c, 
+          &mut self.test_bus.endpoints[2]);
+    }
 }
 \end{minted}
-\end{minipage}
 
 In this example, the controller, and 2 DUTs are connected to a bus.  Since all of the logic is simply
 connecting the interfaces together, it consists mainly of \verb|join| statements. 
+
+Back to the SPI controller example, an update function calculates the next value of the 
+signals (external and internal) based on the current state stored in the DFF \verb|state|,
+which itself is a C-style enum.  Rust ensures that the state machine match/case is exhaustive. 
 
 \section{Mental Model}
 RustHDL attempts to build on HDLs like Lucid\cite{b11} to provide a more understandable mental model for how 
@@ -169,27 +188,36 @@ read only endpoint \verb|x.val()| for signal \verb|x|, and a write endpoint \ver
 
 \begin{minted}[fontsize=\scriptsize]{rust}
 // Design is parametric over N - the size of the counter
-impl<const N: usize> Logic for Counter<N> {
+impl<const N: usize> Logic for Strobe<N> {
   #[hdl_gen]
   fn update(&mut self) {
-    self.counter.d.next = self.counter.q.val();       // Latch prevention
-    if self.enable.val() {                            // MUX
-      self.counter.d.next = self.counter.q.val() + 1; // Adder
+    if self.enable.val() {
+      self.counter.d.next = self.counter.q.val() + 1;
+    }
+    self.strobe.next = self.enable.val() & 
+      (self.counter.q.val() == self.threshold.val());
+    if self.strobe.val() {
+      self.counter.d.next = 1.into();
     }
   }
 } 
 \end{minted}
 
 Rust lacks write-only semantics, so the framework checks for read-before-write on the \verb|x.next| 
-endpoint.  This mental model is coupled with analysis passes that look (with the aid 
+endpoint.  Using this nomenclature, the idea of non-blocking assignments is replaced with a
+ conditional model - i.e., given the current value in the set of signals, what next value do I 
+want them to take?  This mental model is coupled with analysis passes that look (with the aid 
 of Yosys\cite{b12} in RustHDL) for latch inferences due to missing assignments and other such issues.
 
-The mental model of RustHDL is not ideal (and is replaced in RHDL).  A signal's \verb|.next| endpoint can be written 
+The mental model of RustHDL is not ideal (and is replaced in RHDL).  However, the main advantage it has
+is that it is understandable to a Rust programmer.  A signal's \verb|.next| endpoint can be written 
 to as many times as desired inside of an \verb|update| function.  Only the last value it takes will
 matter when the function completes.  In essence, the last successful write to a signal ``wins'', where
 success may be conditional (in this case, for example, the value of `self.counter.d.next' depends on 
 the value of `self.enable.val()`).  Similarly, local variables can be both written to and read, as long as 
-a write preceeds and subsequent reads or writes.
+a write preceeds and subsequent reads or writes.  Again, all of these (somewhat complex) rules are replaced
+in RHDL with a much simpler model.
+
 
 \section{Simulation}
 Testing of designs in RustHDL does not require the use of third party tools or tooling.  
@@ -248,7 +276,9 @@ technical difference to RustHDL is the introduction of an auxiliary compiler int
 This compiler works in tandem with \verb|rustc| to convert an AST of the code into a RTL-like
 HDL, and then transform and optimize that representation into a form that can be synthesized.  The 
 compiler is key to support of things like early returns, match and if expressions (as opposed to statements),
-and other Rust-isms that are not common in HDLs, but are common in Rust.  
+and other Rust-isms that are not common in HDLs, but are common in Rust.  The compiler also provides
+ADT support with control over the layout of the data, and easy composition of data types into structs
+of arbitrary complexity.  
 
 \section{Conclusions}
 I believe Rust is a promising basis for a hardware description language.  It offers many powerful tools
