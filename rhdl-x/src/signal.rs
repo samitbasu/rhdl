@@ -66,20 +66,62 @@ impl<T: Digital + std::ops::Add<Output = T>, C: ClockType> std::ops::Add<Signal<
     }
 }
 
-macro_rules! impl_add {
-    ($C1:ty, $C2:ty, $C3: ty) => {
-        impl<T: Digital + std::ops::Add<Output = T>> std::ops::Add<Signal<T, $C2>>
+macro_rules! impl_binop {
+    ($C1: ty, $C2: ty, $C3: ty, $trait: ident, $op: ident) => {
+        impl<T: Digital + std::ops::$trait<Output = T>> std::ops::$trait<Signal<T, $C2>>
             for Signal<T, $C1>
         {
             type Output = Signal<T, $C3>;
 
-            fn add(self, rhs: Signal<T, $C2>) -> Self::Output {
+            fn $op(self, rhs: Signal<T, $C2>) -> Self::Output {
                 Signal {
-                    val: self.val + rhs.val,
+                    val: std::ops::$trait::$op(self.val, rhs.val),
                     clock: std::marker::PhantomData,
                 }
             }
         }
+    };
+}
+
+macro_rules! impl_add {
+    ($C1:ty, $C2:ty, $C3: ty) => {
+        impl_binop! {$C1, $C2, $C3, Add, add}
+    };
+}
+
+macro_rules! impl_sub {
+    ($C1:ty, $C2:ty, $C3: ty) => {
+        impl_binop! {$C1, $C2, $C3, Sub, sub}
+    };
+}
+
+macro_rules! impl_bitand {
+    ($C1:ty, $C2:ty, $C3: ty) => {
+        impl_binop! {$C1, $C2, $C3, BitAnd, bitand}
+    };
+}
+
+macro_rules! impl_bitor {
+    ($C1:ty, $C2:ty, $C3: ty) => {
+        impl_binop! {$C1, $C2, $C3, BitOr, bitor}
+    };
+}
+
+macro_rules! impl_bitxor {
+    ($C1:ty, $C2:ty, $C3: ty) => {
+        impl_binop! {$C1, $C2, $C3, BitXor, bitxor}
+    };
+}
+
+macro_rules! impl_shl {
+    ($C1:ty, $C2:ty, $C3: ty) => {
+        impl_binop! {$C1, $C2, $C3, Shl, shl}
+    };
+}
+
+macro_rules! impl_shr {
+    ($C1:ty, $C2:ty, $C3: ty) => {
+        impl_binop! {$C1, $C2, $C3, Shr, shr}
     };
 }
 
@@ -100,26 +142,39 @@ macro_rules! clock_tree {
 
 clock_tree! {Const, Red, Orange, Yellow, Green, Blue, Indigo, Violet, Async}
 
+macro_rules! mix_clock {
+    ($name: ident, $clock: ty) => {
+        $name!(Const, $clock, $clock);
+        $name!($clock, Const, $clock);
+        $name!(Async, $clock, Async);
+        $name!($clock, Async, Async);
+    };
+}
+
 macro_rules! mix_clocks {
     ($name: ident) => {
-        $name!(Const, Const, Const);
+        mix_clock!($name, Red);
+        mix_clock!($name, Orange);
+        mix_clock!($name, Yellow);
+        mix_clock!($name, Green);
+        mix_clock!($name, Blue);
+        mix_clock!($name, Indigo);
+        mix_clock!($name, Violet);
+        $name!(Const, Async, Async);
+        $name!(Async, Const, Async);
     };
 }
 
 // Handle the case of mixing constant signals and
 // a single clock.
 
-impl_add!(Const, Red, Red);
-impl_add!(Red, Const, Red);
-
-impl_add!(Const, Orange, Orange);
-impl_add!(Orange, Const, Orange);
-
-impl_add!(Const, Yellow, Yellow);
-impl_add!(Yellow, Const, Yellow);
-
-impl_add!(Const, Green, Green);
-impl_add!(Green, Const, Green);
+mix_clocks!(impl_add);
+mix_clocks!(impl_sub);
+mix_clocks!(impl_bitxor);
+mix_clocks!(impl_bitand);
+mix_clocks!(impl_bitor);
+mix_clocks!(impl_shl);
+mix_clocks!(impl_shr);
 
 #[derive(Copy, Clone, PartialEq, Debug, Digital)]
 pub struct MySignals<C1: ClockType, C2: ClockType> {
