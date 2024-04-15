@@ -299,3 +299,16 @@ Merge(A, B, C) = Merge(Merge(A, B), C)
 
 What happens if we have undefined bits?  Not sure...
 
+
+
+
+Need to add an auxilliary function for ADTs... 
+
+Consider an ADT of type:
+
+enum Foo {
+    A,
+    B(u8)
+}
+
+There is no way to get information about this ADT without an instance of it.
