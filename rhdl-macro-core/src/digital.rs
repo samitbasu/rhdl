@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{spanned::Spanned, Data, DeriveInput};
+use syn::{spanned::Spanned, Attribute, Data, DeriveInput, Expr};
 
 use crate::digital_enum::derive_digital_enum;
 
@@ -30,6 +30,19 @@ fn derive_digital_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     }
 }
 
+fn parse_rhdl_skip_attribute(attrs: &[Attribute]) -> bool {
+    for attr in attrs {
+        if attr.path().is_ident("rhdl") {
+            if let Ok(Expr::Path(path)) = attr.parse_args() {
+                if path.path.is_ident("skip") {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
 //  Add the module path to the name
 
 fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
@@ -41,10 +54,16 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
             let fields = s
                 .fields
                 .iter()
+                .filter(|f| !parse_rhdl_skip_attribute(&f.attrs))
                 .enumerate()
                 .map(|(ndx, _)| syn::Index::from(ndx))
                 .collect::<Vec<_>>();
-            let field_types = s.fields.iter().map(|x| &x.ty).collect::<Vec<_>>();
+            let field_types = s
+                .fields
+                .iter()
+                .filter(|f| !parse_rhdl_skip_attribute(&f.attrs))
+                .map(|x| &x.ty)
+                .collect::<Vec<_>>();
             Ok(quote! {
                 impl #impl_generics rhdl_core::Digital for #struct_name #ty_generics #where_clause {
                     fn static_kind() -> rhdl_core::Kind {
@@ -91,9 +110,15 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
             let fields = s
                 .fields
                 .iter()
+                .filter(|f| !parse_rhdl_skip_attribute(&f.attrs))
                 .map(|field| &field.ident)
                 .collect::<Vec<_>>();
-            let field_types = s.fields.iter().map(|x| &x.ty).collect::<Vec<_>>();
+            let field_types = s
+                .fields
+                .iter()
+                .filter(|f| !parse_rhdl_skip_attribute(&f.attrs))
+                .map(|x| &x.ty)
+                .collect::<Vec<_>>();
             Ok(quote! {
                 impl #impl_generics rhdl_core::Digital for #struct_name #ty_generics #where_clause {
                     fn static_kind() -> rhdl_core::Kind {

@@ -7,6 +7,7 @@ pub trait ClockType: Copy + PartialEq + 'static {}
 #[derive(Copy, Clone, PartialEq, Debug, Digital)]
 pub struct Signal<T: Digital, C: ClockType> {
     val: T,
+    #[rhdl(skip)]
     clock: std::marker::PhantomData<C>,
 }
 /*
