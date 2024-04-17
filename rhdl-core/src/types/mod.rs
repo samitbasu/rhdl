@@ -1,3 +1,4 @@
+pub mod clock;
 pub mod digital;
 pub mod digital_fn;
 pub mod kernel;
