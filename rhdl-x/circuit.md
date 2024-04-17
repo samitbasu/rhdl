@@ -312,3 +312,41 @@ enum Foo {
 }
 
 There is no way to get information about this ADT without an instance of it.
+
+
+Suppose a circuit is constrained to a single clock.  We could then have 
+special circuits that can take two clocks.  Or more.  The current trait for
+a circuit looks like this:
+
+```rust
+pub trait Circuit: 'static + Sized + Clone + CircuitIO {
+    type D: Digital;
+    type Q: Digital;
+
+    // auto derived as the sum of NumZ of the children
+    type Z: Tristate;
+
+    type Update: DigitalFn;
+}
+```
+
+And then 
+```rust
+pub trait CircuitIO: 'static + Sized + Clone {
+    type I: Digital;
+    type O: Digital;
+}
+```
+
+So one idea would be to enforce the clock behavior at the interfaces, but
+not inside the update functions.  That would look something like:
+
+```rust
+pub trait Signal {
+    type T: Digital;
+    type C: Clock;
+}
+```
+
+
+

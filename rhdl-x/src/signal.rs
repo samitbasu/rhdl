@@ -176,6 +176,24 @@ mix_clocks!(impl_bitor);
 mix_clocks!(impl_shl);
 mix_clocks!(impl_shr);
 
+// How do you handle conditionals?
+
+/*
+
+Suppose we have something like:
+
+if sig1.val {
+    sig2
+} else {
+    sig3
+}
+
+Then if sig2 and sig3 are in the same clock domain, it will
+type check, but if sig1 is in a different clock domain, it will
+_still_ type check, but probably should not.
+
+*/
+
 #[derive(Copy, Clone, PartialEq, Debug, Digital)]
 pub struct MySignals<C1: ClockType, C2: ClockType> {
     pub input_stuff: Signal<b8, C1>,
@@ -219,3 +237,16 @@ fn test_dump_add_stuff() {
     };
     compile_design(kernel).unwrap();
 }
+
+// Another idea...
+//  1. Use Signal<T, C> to signal an input of type T with clock C.
+//  2. Allow a circuit to have multiple inputs, such as
+//      (Signal<T1, C1>, Signal<T2, C2>, Signal<T3, C3>) -> Signal<T4, C4>
+//  3. Within the kernel, all signals are coherent.  So no need to worry about
+//     mixing signals from different clocks.
+//
+// Could add the idea of a "Port" to a circuit, which consists of a clock,
+// inputs and outputs, all of which are synchronous to the given clock.
+//
+// Then we need to be able to feed the ports of sub-circuits using matching
+// clocks.  This is tricky....
