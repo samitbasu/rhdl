@@ -57,6 +57,7 @@ pub(super) struct TyEnum {
 }
 
 use crate::ast::ast_impl::NodeId;
+use crate::types::kind::ClockColor;
 use crate::types::kind::DiscriminantLayout;
 use crate::types::kind::DiscriminantType;
 use crate::Kind;
@@ -73,6 +74,7 @@ pub(super) enum Ty {
     Array(Vec<Ty>),
     Struct(TyMap),
     Enum(TyEnum),
+    Clock(ClockColor),
     Integer,
 }
 impl Ty {
@@ -195,6 +197,7 @@ impl Display for Ty {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Ty::Var(id) => write!(f, "V{}", id.0),
+            Ty::Clock(color) => write!(f, "c{:?}", color),
             Ty::Const(bits) => match bits {
                 Bits::Usize => write!(f, "usize"),
                 Bits::Signed(width) => write!(f, "s{}", width),
@@ -284,6 +287,7 @@ impl From<Kind> for Ty {
                 discriminant: Box::new(enum_.discriminant_layout.into()),
             }),
             Kind::Array(array) => ty_array((*array.base).into(), array.size),
+            Kind::Clock(color) => Ty::Clock(color),
         }
     }
 }
@@ -326,6 +330,7 @@ impl TryFrom<Ty> for Kind {
                 elems.len(),
             )),
             Ty::Enum(enum_) => Ok(enum_.payload.kind),
+            Ty::Clock(color) => Ok(Kind::Clock(color)),
             Ty::Integer => Ok(Kind::Signed(32)),
         }
     }

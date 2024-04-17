@@ -487,6 +487,7 @@ fn write_kind_with_bits(
         Kind::Bits(_) => write_bits(bits, f),
         Kind::Signed(_) => write_signed(bits, f),
         Kind::Empty => write!(f, "()"),
+        Kind::Clock(_) => Ok(()),
     }
 }
 

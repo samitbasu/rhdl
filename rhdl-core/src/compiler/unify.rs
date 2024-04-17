@@ -44,7 +44,7 @@ impl UnifyContext {
                     Term::Var(id)
                 }
             }
-            Term::Const { .. } | Term::Integer => typ,
+            Term::Clock(_) | Term::Const { .. } | Term::Integer => typ,
             Term::Tuple(fields) => Term::Tuple(fields.into_iter().map(|x| self.apply(x)).collect()),
             Term::Array(elems) => Term::Array(elems.into_iter().map(|x| self.apply(x)).collect()),
             Term::Struct(struct_) => Term::Struct(TermMap {

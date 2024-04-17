@@ -197,6 +197,7 @@ impl SpannedSourceBuilder {
             }
             Kind::Struct(kind) => self.push(&kind.name),
             Kind::Enum(kind) => self.push(&kind.name),
+            Kind::Clock(color) => self.push(&format!("c{:?}", color)),
         }
     }
 
