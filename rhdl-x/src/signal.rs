@@ -61,29 +61,46 @@ impl<T: Digital, C: ClockType> Digital for Signal<T, C> {
 // takes 2 clock types, and generates an impl for Signal<T, C1> + Signal<T, C2> -> Signal<T, C1>.
 
 // The generic case
-impl<T: Digital + std::ops::Add<Output = T>, C: ClockType> std::ops::Add<Signal<T, C>>
-    for Signal<T, C>
-{
-    type Output = Signal<T, C>;
-
-    fn add(self, rhs: Signal<T, C>) -> Self::Output {
-        Signal {
-            val: self.val + rhs.val,
-            clock: std::marker::PhantomData,
-        }
-    }
-}
 
 macro_rules! impl_binop {
-    ($C1: ty, $C2: ty, $C3: ty, $trait: ident, $op: ident) => {
-        impl<T: Digital + std::ops::$trait<Output = T>> std::ops::$trait<Signal<T, $C2>>
-            for Signal<T, $C1>
+    ($trait: ident, $op: ident) => {
+        // Case for signal + signal
+        impl<T: Digital + std::ops::$trait<Output = T>, C: ClockType> std::ops::$trait<Signal<T, C>>
+            for Signal<T, C>
         {
-            type Output = Signal<T, $C3>;
+            type Output = Signal<T, C>;
 
-            fn $op(self, rhs: Signal<T, $C2>) -> Self::Output {
+            fn $op(self, rhs: Signal<T, C>) -> Self::Output {
                 Signal {
                     val: std::ops::$trait::$op(self.val, rhs.val),
+                    clock: std::marker::PhantomData,
+                }
+            }
+        }
+
+        // Case for signal + constant
+        impl<T: Digital + std::ops::$trait<Output = T>, C: ClockType> std::ops::$trait<T>
+            for Signal<T, C>
+        {
+            type Output = Signal<T, C>;
+
+            fn $op(self, rhs: T) -> Self::Output {
+                Signal {
+                    val: std::ops::$trait::$op(self.val, rhs),
+                    clock: std::marker::PhantomData,
+                }
+            }
+        }
+
+        // Case for constant + signal
+        impl<T: Digital + std::ops::$trait<Output = T>, C: ClockType> std::ops::$trait<Signal<T, C>>
+            for T
+        {
+            type Output = Signal<T, C>;
+
+            fn $op(self, rhs: Signal<T, C>) -> Self::Output {
+                Signal {
+                    val: std::ops::$trait::$op(self, rhs.val),
                     clock: std::marker::PhantomData,
                 }
             }
@@ -91,102 +108,12 @@ macro_rules! impl_binop {
     };
 }
 
-macro_rules! impl_add {
-    ($C1:ty, $C2:ty, $C3: ty) => {
-        impl_binop! {$C1, $C2, $C3, Add, add}
-    };
-}
-
-macro_rules! impl_sub {
-    ($C1:ty, $C2:ty, $C3: ty) => {
-        impl_binop! {$C1, $C2, $C3, Sub, sub}
-    };
-}
-
-macro_rules! impl_bitand {
-    ($C1:ty, $C2:ty, $C3: ty) => {
-        impl_binop! {$C1, $C2, $C3, BitAnd, bitand}
-    };
-}
-
-macro_rules! impl_bitor {
-    ($C1:ty, $C2:ty, $C3: ty) => {
-        impl_binop! {$C1, $C2, $C3, BitOr, bitor}
-    };
-}
-
-macro_rules! impl_bitxor {
-    ($C1:ty, $C2:ty, $C3: ty) => {
-        impl_binop! {$C1, $C2, $C3, BitXor, bitxor}
-    };
-}
-
-macro_rules! impl_shl {
-    ($C1:ty, $C2:ty, $C3: ty) => {
-        impl_binop! {$C1, $C2, $C3, Shl, shl}
-    };
-}
-
-macro_rules! impl_shr {
-    ($C1:ty, $C2:ty, $C3: ty) => {
-        impl_binop! {$C1, $C2, $C3, Shr, shr}
-    };
-}
-
-// The clock tree - we also use a macro here, to generate the clock structs
-// The Macro takes a list of identifiers, and creates a struct and impl for
-// each one.
-
-macro_rules! clock_tree {
-    ($($name:ident),*) => {
-        $(
-            #[derive(Copy, Clone, PartialEq, Debug)]
-            pub struct $name;
-
-            impl ClockType for $name {
-                fn color() -> ClockColor {
-                    ClockColor::$name
-                }
-            }
-        )*
-    };
-}
-
-clock_tree! {Const, Red, Orange, Yellow, Green, Blue, Indigo, Violet, Async}
-
-macro_rules! mix_clock {
-    ($name: ident, $clock: ty) => {
-        $name!(Const, $clock, $clock);
-        $name!($clock, Const, $clock);
-        $name!(Async, $clock, Async);
-        $name!($clock, Async, Async);
-    };
-}
-
-macro_rules! mix_clocks {
-    ($name: ident) => {
-        mix_clock!($name, Red);
-        mix_clock!($name, Orange);
-        mix_clock!($name, Yellow);
-        mix_clock!($name, Green);
-        mix_clock!($name, Blue);
-        mix_clock!($name, Indigo);
-        mix_clock!($name, Violet);
-        $name!(Const, Async, Async);
-        $name!(Async, Const, Async);
-    };
-}
-
-// Handle the case of mixing constant signals and
-// a single clock.
-
-mix_clocks!(impl_add);
-mix_clocks!(impl_sub);
-mix_clocks!(impl_bitxor);
-mix_clocks!(impl_bitand);
-mix_clocks!(impl_bitor);
-mix_clocks!(impl_shl);
-mix_clocks!(impl_shr);
+impl_binop!(Add, add);
+impl_binop!(Sub, sub);
+impl_binop!(Mul, mul);
+impl_binop!(BitAnd, bitand);
+impl_binop!(BitOr, bitor);
+impl_binop!(BitXor, bitxor);
 
 // How do you handle conditionals?
 
