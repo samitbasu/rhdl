@@ -6,6 +6,17 @@ use anyhow::Result;
 use crate::TypedBits;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+pub enum ClockColor {
+    Red,
+    Orange,
+    Yellow,
+    Green,
+    Blue,
+    Indigo,
+    Violet,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum Kind {
     Array(Array),
     Tuple(Tuple),
@@ -13,6 +24,7 @@ pub enum Kind {
     Enum(Enum),
     Bits(usize),
     Signed(usize),
+    Clock(ClockColor),
     Empty,
 }
 
@@ -34,6 +46,7 @@ impl std::fmt::Display for Kind {
             Kind::Bits(digits) => write!(f, "b{}", digits),
             Kind::Signed(digits) => write!(f, "s{}", digits),
             Kind::Empty => write!(f, "()"),
+            Kind::Clock(color) => write!(f, "c{:?}", color),
         }
     }
 }
@@ -184,7 +197,7 @@ impl Kind {
             }
             Kind::Bits(digits) => *digits,
             Kind::Signed(digits) => *digits,
-            Kind::Empty => 0,
+            Kind::Empty | Kind::Clock(_) => 0,
         }
     }
     pub fn pad(&self, bits: Vec<bool>) -> Vec<bool> {
@@ -230,6 +243,7 @@ impl Kind {
             }
             Kind::Struct(s) => s.name.clone(),
             Kind::Enum(e) => e.name.clone(),
+            Kind::Clock(color) => format!("c{:?}", color),
         }
     }
 
@@ -376,7 +390,7 @@ fn generate_kind_layout(
     mut offset_col: usize,
 ) -> Vec<KindLayout> {
     match kind {
-        Kind::Empty => vec![],
+        Kind::Empty | Kind::Clock(_) => vec![],
         Kind::Bits(digits) => {
             vec![KindLayout {
                 row: offset_row,

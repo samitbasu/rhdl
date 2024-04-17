@@ -1,12 +1,17 @@
 use std::any::type_name;
 
 use rhdl_bits::{alias::*, Bits};
-use rhdl_core::{compile_design, Digital, DigitalFn, KernelFnKind, Kind, Notable, TypedBits};
+use rhdl_core::{
+    compile_design, types::kind::ClockColor, Digital, DigitalFn, KernelFnKind, Kind, Notable,
+    TypedBits,
+};
 use rhdl_macro::{kernel, Digital};
 
 use crate::clock;
 
-pub trait ClockType: Copy + PartialEq + 'static {}
+pub trait ClockType: Copy + PartialEq + 'static {
+    fn color() -> ClockColor;
+}
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Signal<T: Digital, C: ClockType> {
@@ -24,7 +29,10 @@ impl<T: Digital, C: ClockType> Digital for Signal<T, C> {
     fn static_kind() -> Kind {
         Kind::make_struct(
             type_name::<Self>(),
-            vec![Kind::make_field("val", T::static_kind())],
+            vec![
+                Kind::make_field("val", T::static_kind()),
+                Kind::make_field("clock", Kind::Clock(C::color())),
+            ],
         )
     }
     fn bits() -> usize {
@@ -135,7 +143,11 @@ macro_rules! clock_tree {
             #[derive(Copy, Clone, PartialEq, Debug)]
             pub struct $name;
 
-            impl ClockType for $name {}
+            impl ClockType for $name {
+                fn color() -> ClockColor {
+                    ClockColor::$name
+                }
+            }
         )*
     };
 }

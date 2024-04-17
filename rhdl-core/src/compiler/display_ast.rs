@@ -185,6 +185,9 @@ impl<'a> PrettyPrinter<'a> {
             Kind::Enum(kind) => {
                 self.push(&kind.name);
             }
+            Kind::Clock(color) => {
+                self.push(&format!("c{:?}", color));
+            }
         }
         Ok(())
     }
@@ -221,6 +224,9 @@ impl<'a> PrettyPrinter<'a> {
                     self.push(", ");
                 }
                 self.push(")");
+            }
+            Ty::Clock(ty) => {
+                self.push(&format!("c{:?}", ty));
             }
         }
         Ok(())
