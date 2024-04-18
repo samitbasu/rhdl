@@ -5,16 +5,7 @@ use anyhow::Result;
 
 use crate::TypedBits;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
-pub enum ClockColor {
-    Red,
-    Orange,
-    Yellow,
-    Green,
-    Blue,
-    Indigo,
-    Violet,
-}
+use super::clock::ClockColor;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum Kind {
