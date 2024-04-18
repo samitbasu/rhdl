@@ -56,8 +56,8 @@ pub(super) struct TyEnum {
     pub discriminant: Box<Ty>,
 }
 
+use crate::ClockColor;
 use crate::ast::ast_impl::NodeId;
-use crate::types::kind::ClockColor;
 use crate::types::kind::DiscriminantLayout;
 use crate::types::kind::DiscriminantType;
 use crate::Kind;

@@ -14,6 +14,8 @@ pub use circuit::hdl_descriptor::HDLDescriptor;
 pub use circuit::verilog::root_verilog;
 pub use clock_details::ClockDetails;
 pub use crusty::check_schematic;
+pub use types::clock::ClockColor;
+pub use types::clock::ClockType;
 pub use types::digital::Digital;
 pub use types::digital_fn::DigitalFn;
 pub use types::kernel::KernelFnKind;
