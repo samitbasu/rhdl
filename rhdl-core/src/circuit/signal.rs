@@ -11,6 +11,25 @@ pub struct Signal<T: Digital, C: ClockType> {
     clock: std::marker::PhantomData<C>,
 }
 
+impl<T: Digital, C: ClockType> Signal<T, C> {
+    ///
+    /// # Safety
+    ///
+    /// RHDL cannot ensure that a value taken out of
+    /// a signal is not used in a way that violates
+    /// the clocking rules of the circuit.
+    pub unsafe fn val(&self) -> T {
+        self.val
+    }
+
+    pub fn new(val: T) -> Self {
+        Self {
+            val,
+            clock: std::marker::PhantomData,
+        }
+    }
+}
+
 impl<T: Digital, C: ClockType> Notable for Signal<T, C> {
     fn note(&self, key: impl NoteKey, writer: impl NoteWriter) {
         self.val.note(key, writer);
@@ -52,6 +71,72 @@ macro_rules! impl_assign_op {
         impl<T: Digital + std::ops::$trait, C: ClockType> std::ops::$trait for Signal<T, C> {
             fn $op(&mut self, rhs: Signal<T, C>) {
                 std::ops::$trait::$op(&mut self.val, rhs.val);
+            }
+        }
+    };
+}
+
+macro_rules! impl_shift_assign_op {
+    ($trait: ident, $op: ident) => {
+        impl<T: Digital + std::ops::$trait, C: ClockType> std::ops::$trait<T> for Signal<T, C> {
+            fn $op(&mut self, rhs: T) {
+                std::ops::$trait::$op(&mut self.val, rhs);
+            }
+        }
+    };
+}
+
+macro_rules! impl_shiftop {
+    ($trait: ident, $op: ident) => {
+        // Case for signal << signal
+        impl<T: Digital + std::ops::$trait<Output = T>, C: ClockType> std::ops::$trait<Signal<T, C>>
+            for Signal<T, C>
+        {
+            type Output = Signal<T, C>;
+
+            fn $op(self, rhs: Signal<T, C>) -> Self::Output {
+                Signal {
+                    val: std::ops::$trait::$op(self.val, rhs.val),
+                    clock: std::marker::PhantomData,
+                }
+            }
+        }
+
+        // Case for signal << constant
+        impl<T: Digital + std::ops::$trait<Output = T>, C: ClockType> std::ops::$trait<T>
+            for Signal<T, C>
+        {
+            type Output = Signal<T, C>;
+
+            fn $op(self, rhs: T) -> Self::Output {
+                Signal {
+                    val: std::ops::$trait::$op(self.val, rhs),
+                    clock: std::marker::PhantomData,
+                }
+            }
+        }
+
+        // Case for constant << signal
+        impl<const N: usize, C: ClockType> std::ops::$trait<Signal<Bits<N>, C>> for Bits<N> {
+            type Output = Signal<Bits<N>, C>;
+
+            fn $op(self, rhs: Signal<Bits<N>, C>) -> Self::Output {
+                Signal {
+                    val: std::ops::$trait::$op(self, rhs.val),
+                    clock: std::marker::PhantomData,
+                }
+            }
+        }
+
+        // Case for signed << signal
+        impl<const N: usize, C: ClockType> std::ops::$trait<Signal<Bits<N>, C>> for SignedBits<N> {
+            type Output = Signal<SignedBits<N>, C>;
+
+            fn $op(self, rhs: Signal<Bits<N>, C>) -> Self::Output {
+                Signal {
+                    val: std::ops::$trait::$op(self, rhs.val),
+                    clock: std::marker::PhantomData,
+                }
             }
         }
     };
@@ -141,12 +226,12 @@ impl_binop!(Sub, sub);
 impl_binop!(BitAnd, bitand);
 impl_binop!(BitOr, bitor);
 impl_binop!(BitXor, bitxor);
-//impl_binop!(Shl, shl);
-//impl_binop!(Shr, shr);
+impl_shiftop!(Shl, shl);
+impl_shiftop!(Shr, shr);
 impl_assign_op!(AddAssign, add_assign);
 impl_assign_op!(SubAssign, sub_assign);
 impl_assign_op!(BitAndAssign, bitand_assign);
 impl_assign_op!(BitOrAssign, bitor_assign);
 impl_assign_op!(BitXorAssign, bitxor_assign);
-//impl_assign_op!(ShlAssign, shl_assign);
-//impl_assign_op!(ShrAssign, shr_assign);
+impl_shift_assign_op!(ShlAssign, shl_assign);
+impl_shift_assign_op!(ShrAssign, shr_assign);
