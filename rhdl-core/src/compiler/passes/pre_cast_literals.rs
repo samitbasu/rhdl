@@ -7,7 +7,8 @@ use crate::rhif::{
     Object,
 };
 
-use super::{pass::Pass, utils::remap_slots};
+use super::pass::Pass;
+use crate::compiler::utils::remap_slots;
 
 #[derive(Default, Debug, Clone)]
 pub struct PreCastLiterals {}
