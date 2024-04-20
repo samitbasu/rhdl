@@ -1,5 +1,4 @@
 use anyhow::ensure;
-use anyhow::Result;
 use rhdl_core::root_descriptor;
 use rhdl_core::schematic::components::ComponentKind;
 use rhdl_core::schematic::components::ConstantComponent;
@@ -8,9 +7,7 @@ use rhdl_core::Circuit;
 use rhdl_core::CircuitDescriptor;
 use rhdl_core::CircuitIO;
 use rhdl_core::HDLKind;
-use rhdl_core::Kind;
 use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
-use rhdl_macro::Circuit;
 
 use rhdl_core::circuit::hdl_descriptor::HDLDescriptor;
 

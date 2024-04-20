@@ -134,6 +134,10 @@ impl Path {
             elements: self.elements[prefix.elements.len()..].to_vec(),
         })
     }
+
+    pub fn is_magic_val_path(&self) -> bool {
+        self.elements.len() == 1 && (self.elements[0] == PathElement::Field("#val".to_string()))
+    }
 }
 
 impl From<Member> for Path {

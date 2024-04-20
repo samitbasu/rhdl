@@ -4,12 +4,7 @@ use std::ops::Range;
 use anyhow::bail;
 use anyhow::Result;
 use miette::LabeledSpan;
-use miette::MietteError;
-use miette::NamedSource;
-use miette::SourceCode;
-use miette::SourceSpan;
-use miette::SpanContents;
-use petgraph::Direction;
+
 use rhdl_bits::alias::*;
 use rhdl_bits::{bits, Bits};
 use rhdl_core::ast::ast_impl::FunctionId;
@@ -148,11 +143,7 @@ pub fn strobe<const N: usize>(i: StrobeI, q: StrobeQ<N>) -> (bool, StrobeD<N>) {
 
 #[test]
 fn test_circuit_schematic() {
-    use rhdl_core::DigitalFn;
-    let Some(KernelFnKind::Kernel(kernel)) = circuit::kernel_fn() else {
-        panic!("No kernel function");
-    };
-    let module = compile_design(kernel).unwrap();
+    let module = compile_design::<circuit>().unwrap();
     let schematic = rhdl_core::schematic::builder::build_schematic(&module, module.top)
         .unwrap()
         .inlined();
@@ -162,12 +153,7 @@ fn test_circuit_schematic() {
 
 #[test]
 fn test_schematic() {
-    use rhdl_core::DigitalFn;
-
-    let Some(KernelFnKind::Kernel(kernel)) = strobe::<8>::kernel_fn() else {
-        panic!("No kernel function");
-    };
-    let design = compile_design(kernel).unwrap();
+    let design = compile_design::<strobe<8>>().unwrap();
     let schematic = rhdl_core::schematic::builder::build_schematic(&design, design.top).unwrap();
     let mut dot = std::fs::File::create("strobe_schematic.dot").unwrap();
     rhdl_core::schematic::dot::write_dot(&schematic, None, &mut dot).unwrap();
@@ -175,11 +161,7 @@ fn test_schematic() {
 
 #[test]
 fn test_simple_schematic_inlined() {
-    use rhdl_core::DigitalFn;
-    let Some(KernelFnKind::Kernel(kernel)) = add_enabled::<8>::kernel_fn() else {
-        panic!("No kernel function");
-    };
-    let module = compile_design(kernel).unwrap();
+    let module = compile_design::<add_enabled<8>>().unwrap();
     let schematic = rhdl_core::schematic::builder::build_schematic(&module, module.top)
         .unwrap()
         .inlined();
@@ -210,12 +192,7 @@ fn test_simple_schematic_inlined() {
 
 #[test]
 fn test_schematic_inlined() {
-    use rhdl_core::DigitalFn;
-
-    let Some(KernelFnKind::Kernel(kernel)) = strobe::<8>::kernel_fn() else {
-        panic!("No kernel function");
-    };
-    let design = compile_design(kernel).unwrap();
+    let design = compile_design::<strobe<8>>().unwrap();
     let schematic = rhdl_core::schematic::builder::build_schematic(&design, design.top)
         .unwrap()
         .inlined();

@@ -1,6 +1,3 @@
-use std::sync::Arc;
-
-use anyhow::bail;
 use anyhow::ensure;
 use anyhow::Result;
 use rhdl_core::constraint_input_synchronous;
@@ -15,7 +12,6 @@ use rhdl_core::schematic::components::ComponentKind;
 use rhdl_core::schematic::components::IndexComponent;
 use rhdl_core::schematic::schematic_impl::pin_path;
 use rhdl_core::schematic::schematic_impl::PinIx;
-use rhdl_core::schematic::schematic_impl::PinPath;
 use rhdl_core::schematic::schematic_impl::Schematic;
 use rhdl_core::BlackBoxTrait;
 use rhdl_core::Circuit;
@@ -25,7 +21,6 @@ use rhdl_core::Constraint;
 use rhdl_core::EdgeType;
 use rhdl_core::HDLDescriptor;
 use rhdl_core::HDLKind;
-use rhdl_core::Kind;
 use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
 use rhdl_macro::Digital;
 
@@ -119,7 +114,7 @@ impl<T: Digital + Default> Circuit for DFF<T> {
         }
     }
 
-    fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
+    fn sim(&self, input: Self::I, state: &mut Self::S, _io: &mut Self::Z) -> Self::O {
         note("input", input);
         let output = if input.clock.0 && !state.clock.0 {
             input.data

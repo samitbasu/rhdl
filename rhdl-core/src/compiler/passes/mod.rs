@@ -1,3 +1,4 @@
+pub(crate) mod check_clock_coherence;
 pub(crate) mod check_inference;
 pub(crate) mod check_rhif_flow;
 pub(crate) mod check_rhif_type;
