@@ -1,11 +1,15 @@
 use crate::{
     compiler::{
-        ascii::render_ast_to_string, assign_node_ids, check_inference::check_inference,
-        check_rhif_flow::DataFlowCheckPass, check_rhif_type::TypeCheckPass, compile, infer,
-        pass::Pass, pre_cast_literals::PreCastLiterals,
-        remove_extra_registers::RemoveExtraRegistersPass,
-        remove_unneeded_muxes::RemoveUnneededMuxesPass,
-        remove_unused_literals::RemoveUnusedLiterals, remove_useless_casts::RemoveUselessCastsPass,
+        ascii::render_ast_to_string,
+        assign_node_ids, compile, infer,
+        passes::{
+            check_inference::check_inference, check_rhif_flow::DataFlowCheckPass,
+            check_rhif_type::TypeCheckPass, pass::Pass, pre_cast_literals::PreCastLiterals,
+            remove_extra_registers::RemoveExtraRegistersPass,
+            remove_unneeded_muxes::RemoveUnneededMuxesPass,
+            remove_unused_literals::RemoveUnusedLiterals,
+            remove_useless_casts::RemoveUselessCastsPass,
+        },
     },
     kernel::Kernel,
     rhif::{spec::ExternalFunctionCode, Object},
