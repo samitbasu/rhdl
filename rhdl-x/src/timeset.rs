@@ -49,7 +49,7 @@ pub fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
             })
             .chain(once(base.clone().discriminant()))
             .collect(),
-        Kind::Bits(_) | Kind::Signed(_) | Kind::Empty => vec![base.clone()],
+        Kind::Bits(_) | Kind::Signed(_) | Kind::Clock(_) | Kind::Empty => vec![base.clone()],
     }
 }
 
