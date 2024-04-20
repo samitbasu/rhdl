@@ -3,7 +3,8 @@ use std::collections::HashSet;
 use crate::rhif::{spec::Slot, Object};
 use anyhow::Result;
 
-use super::{pass::Pass, utils::remap_slots};
+use super::pass::Pass;
+use crate::compiler::utils::remap_slots;
 
 #[derive(Default, Debug, Clone)]
 pub struct RemoveUnusedLiterals {}

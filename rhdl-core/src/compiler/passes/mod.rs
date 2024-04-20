@@ -1,0 +1,10 @@
+pub(crate) mod check_inference;
+pub(crate) mod check_rhif_flow;
+pub(crate) mod check_rhif_type;
+pub(crate) mod lower_index_to_copy;
+pub(crate) mod pass;
+pub(crate) mod pre_cast_literals;
+pub(crate) mod remove_extra_registers;
+pub(crate) mod remove_unneeded_muxes;
+pub(crate) mod remove_unused_literals;
+pub(crate) mod remove_useless_casts;
