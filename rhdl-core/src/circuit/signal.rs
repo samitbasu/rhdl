@@ -1,24 +1,18 @@
 use std::{any::type_name, process::Output};
 
+use crate::{types::clock::ClockType, Digital, Kind, Notable, NoteKey, NoteWriter, TypedBits};
 use rhdl_bits::Bits;
 use rhdl_bits::SignedBits;
+use std::cmp::Ordering;
 
-use crate::{types::clock::ClockType, Digital, Kind, Notable, NoteKey, NoteWriter, TypedBits};
-
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct Signal<T: Digital, C: ClockType> {
     val: T,
     clock: std::marker::PhantomData<C>,
 }
 
 impl<T: Digital, C: ClockType> Signal<T, C> {
-    ///
-    /// # Safety
-    ///
-    /// RHDL cannot ensure that a value taken out of
-    /// a signal is not used in a way that violates
-    /// the clocking rules of the circuit.
-    pub unsafe fn val(&self) -> T {
+    pub fn val(&self) -> T {
         self.val
     }
 
@@ -81,6 +75,42 @@ macro_rules! impl_shift_assign_op {
         impl<T: Digital + std::ops::$trait, C: ClockType> std::ops::$trait<T> for Signal<T, C> {
             fn $op(&mut self, rhs: T) {
                 std::ops::$trait::$op(&mut self.val, rhs);
+            }
+        }
+    };
+}
+
+macro_rules! impl_cmpop {
+    ($trait: ident, $op: ident, $ret: ty) => {
+        // Case for signal == signal
+        impl<T: Digital + std::cmp::$trait, C: ClockType> std::cmp::$trait<Signal<T, C>>
+            for Signal<T, C>
+        {
+            fn $op(&self, rhs: &Signal<T, C>) -> $ret {
+                std::cmp::$trait::$op(&self.val, &rhs.val)
+            }
+        }
+
+        // Case for signal == constant
+        impl<T: Digital + std::cmp::$trait, C: ClockType> std::cmp::$trait<T> for Signal<T, C> {
+            fn $op(&self, rhs: &T) -> $ret {
+                std::cmp::$trait::$op(&self.val, rhs)
+            }
+        }
+
+        // Case for constant == signal
+        impl<const N: usize, C: ClockType> std::cmp::$trait<Signal<Bits<N>, C>> for Bits<N> {
+            fn $op(&self, rhs: &Signal<Bits<N>, C>) -> $ret {
+                std::cmp::$trait::$op(self, &rhs.val)
+            }
+        }
+
+        // Case for signed == signal
+        impl<const N: usize, C: ClockType> std::cmp::$trait<Signal<SignedBits<N>, C>>
+            for SignedBits<N>
+        {
+            fn $op(&self, rhs: &Signal<SignedBits<N>, C>) -> $ret {
+                std::cmp::$trait::$op(self, &rhs.val)
             }
         }
     };
@@ -235,3 +265,5 @@ impl_assign_op!(BitOrAssign, bitor_assign);
 impl_assign_op!(BitXorAssign, bitxor_assign);
 impl_shift_assign_op!(ShlAssign, shl_assign);
 impl_shift_assign_op!(ShrAssign, shr_assign);
+impl_cmpop!(PartialEq, eq, bool);
+impl_cmpop!(PartialOrd, partial_cmp, Option<Ordering>);
