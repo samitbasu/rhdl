@@ -27,7 +27,7 @@ macro_rules! decl_clock {
     };
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum ClockColor {
     Black,
     Brown,

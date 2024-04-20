@@ -1,11 +1,13 @@
+use std::any::type_name;
+
 use crate::{
     compiler::{
         ascii::render_ast_to_string,
         assign_node_ids, compile, infer,
         passes::{
-            check_inference::check_inference, check_rhif_flow::DataFlowCheckPass,
-            check_rhif_type::TypeCheckPass, pass::Pass, pre_cast_literals::PreCastLiterals,
-            remove_extra_registers::RemoveExtraRegistersPass,
+            check_clock_coherence::CheckClockCoherence, check_inference::check_inference,
+            check_rhif_flow::DataFlowCheckPass, check_rhif_type::TypeCheckPass, pass::Pass,
+            pre_cast_literals::PreCastLiterals, remove_extra_registers::RemoveExtraRegistersPass,
             remove_unneeded_muxes::RemoveUnneededMuxesPass,
             remove_unused_literals::RemoveUnusedLiterals,
             remove_useless_casts::RemoveUselessCastsPass,
@@ -13,12 +15,12 @@ use crate::{
     },
     kernel::Kernel,
     rhif::{spec::ExternalFunctionCode, Object},
-    Module,
+    DigitalFn, KernelFnKind, Module,
 };
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 
-pub fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
+fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     assign_node_ids(&mut kernel)?;
     let ctx = infer(&kernel)?;
     let _ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
@@ -35,6 +37,7 @@ pub fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     }
     let obj = TypeCheckPass::run(obj)?;
     let obj = DataFlowCheckPass::run(obj)?;
+    let obj = CheckClockCoherence::run(obj)?;
     Ok(obj)
 }
 
@@ -65,8 +68,11 @@ fn elaborate_design(design: &mut Module) -> Result<()> {
     Ok(())
 }
 
-pub fn compile_design(top: Kernel) -> Result<Module> {
-    let main = compile_kernel(top)?;
+pub fn compile_design<K: DigitalFn>() -> Result<Module> {
+    let Some(KernelFnKind::Kernel(kernel)) = K::kernel_fn() else {
+        bail!("No kernel function provided for {}", type_name::<K>());
+    };
+    let main = compile_kernel(kernel)?;
     let mut design = Module {
         objects: [(main.fn_id, main.clone())].into_iter().collect(),
         top: main.fn_id,

@@ -4,22 +4,19 @@
 
 use anyhow::{bail, Result};
 use fnv::FnvHashMap;
-use std::{collections::HashMap, iter::once};
+use std::iter::once;
 
-use rhdl_bits::alias::*;
 use rhdl_core::{
-    crusty::index::IndexedSchematic,
-    path::{bit_range, Path},
+    path::Path,
     schematic::{
         components::{
             BinaryComponent, BufferComponent, CaseComponent, CastComponent, TupleComponent,
             UnaryComponent,
         },
-        schematic_impl::{pin_path, PinIx, PinPath, Schematic},
+        schematic_impl::{pin_path, PinPath, Schematic},
     },
-    Digital, Kind,
+    Kind,
 };
-use rhdl_macro::Digital;
 
 // It seems like this should be doable with an impl Iterator type, but :shrug:
 pub fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
@@ -53,46 +50,6 @@ pub fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
     }
 }
 
-#[test]
-fn test_leaf_paths_for_kind() {
-    #[derive(Copy, Clone, PartialEq, Digital, Default)]
-    pub struct Foo {
-        a: bool,
-        b: (b4, b8),
-        c: [b4; 3],
-    }
-
-    #[derive(Copy, Clone, PartialEq, Digital, Default)]
-    pub struct Bar {
-        a: [(Foo, Foo); 2],
-        b: b4,
-    }
-
-    #[derive(Copy, Clone, PartialEq, Digital, Default)]
-    pub enum Baz {
-        #[default]
-        O,
-        A(b4),
-        B(Bar),
-        C {
-            x: b4,
-            y: b4,
-        },
-    }
-
-    let kind = Baz::static_kind();
-    let paths = leaf_paths(&kind, Path::default());
-    let mut bit_mask = vec![false; kind.bits()];
-    for path in paths {
-        eprintln!("{}", path);
-        let (bits, _) = bit_range(kind.clone(), &path).unwrap();
-        for i in bits {
-            bit_mask[i] = true;
-        }
-    }
-    assert!(bit_mask.iter().all(|&b| b));
-}
-
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ClockId(usize);
 
@@ -116,36 +73,6 @@ pub fn merge(t1: Timing, t2: Timing) -> Timing {
         (Timing::Sync(c1), Timing::Sync(c2)) if c1 == c2 => Timing::Sync(c1),
         _ => Timing::Async,
     }
-}
-
-#[test]
-fn test_merge() {
-    assert_eq!(merge(Timing::Async, Timing::Async), Timing::Async);
-    assert_eq!(merge(Timing::Const, Timing::Async), Timing::Async);
-    assert_eq!(merge(Timing::Async, Timing::Const), Timing::Async);
-    assert_eq!(merge(Timing::Const, Timing::Const), Timing::Const);
-    assert_eq!(merge(Timing::Sync(0.into()), Timing::Async), Timing::Async);
-    assert_eq!(merge(Timing::Async, Timing::Sync(0.into())), Timing::Async);
-    assert_eq!(
-        merge(Timing::Sync(0.into()), Timing::Const),
-        Timing::Sync(0.into())
-    );
-    assert_eq!(
-        merge(Timing::Const, Timing::Sync(0.into())),
-        Timing::Sync(0.into())
-    );
-    assert_eq!(
-        merge(Timing::Sync(0.into()), Timing::Sync(0.into())),
-        Timing::Sync(0.into())
-    );
-    assert_eq!(
-        merge(Timing::Sync(0.into()), Timing::Sync(1.into())),
-        Timing::Async
-    );
-    assert_eq!(
-        merge(Timing::Sync(1.into()), Timing::Sync(0.into())),
-        Timing::Async
-    );
 }
 
 #[derive(Default, Debug, Clone)]
@@ -254,4 +181,86 @@ fn time_case(schematic: &Schematic, case: &CaseComponent, db: &mut TimingDB) -> 
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use rhdl_bits::alias::*;
+    use rhdl_core::{
+        path::{bit_range, Path},
+        Digital,
+    };
+    use rhdl_macro::Digital;
+
+    use crate::timeset::{leaf_paths, merge, Timing};
+
+    #[test]
+    fn test_leaf_paths_for_kind() {
+        #[derive(Copy, Clone, PartialEq, Digital, Default)]
+        pub struct Foo {
+            a: bool,
+            b: (b4, b8),
+            c: [b4; 3],
+        }
+
+        #[derive(Copy, Clone, PartialEq, Digital, Default)]
+        pub struct Bar {
+            a: [(Foo, Foo); 2],
+            b: b4,
+        }
+
+        #[derive(Copy, Clone, PartialEq, Digital, Default)]
+        pub enum Baz {
+            #[default]
+            O,
+            A(b4),
+            B(Bar),
+            C {
+                x: b4,
+                y: b4,
+            },
+        }
+
+        let kind = Baz::static_kind();
+        let paths = leaf_paths(&kind, Path::default());
+        let mut bit_mask = vec![false; kind.bits()];
+        for path in paths {
+            eprintln!("{}", path);
+            let (bits, _) = bit_range(kind.clone(), &path).unwrap();
+            for i in bits {
+                bit_mask[i] = true;
+            }
+        }
+        assert!(bit_mask.iter().all(|&b| b));
+    }
+
+    #[test]
+    fn test_merge() {
+        assert_eq!(merge(Timing::Async, Timing::Async), Timing::Async);
+        assert_eq!(merge(Timing::Const, Timing::Async), Timing::Async);
+        assert_eq!(merge(Timing::Async, Timing::Const), Timing::Async);
+        assert_eq!(merge(Timing::Const, Timing::Const), Timing::Const);
+        assert_eq!(merge(Timing::Sync(0.into()), Timing::Async), Timing::Async);
+        assert_eq!(merge(Timing::Async, Timing::Sync(0.into())), Timing::Async);
+        assert_eq!(
+            merge(Timing::Sync(0.into()), Timing::Const),
+            Timing::Sync(0.into())
+        );
+        assert_eq!(
+            merge(Timing::Const, Timing::Sync(0.into())),
+            Timing::Sync(0.into())
+        );
+        assert_eq!(
+            merge(Timing::Sync(0.into()), Timing::Sync(0.into())),
+            Timing::Sync(0.into())
+        );
+        assert_eq!(
+            merge(Timing::Sync(0.into()), Timing::Sync(1.into())),
+            Timing::Async
+        );
+        assert_eq!(
+            merge(Timing::Sync(1.into()), Timing::Sync(0.into())),
+            Timing::Async
+        );
+    }
 }

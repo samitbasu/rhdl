@@ -9,10 +9,7 @@ use rhdl_core::{
 use rhdl_macro::Digital;
 
 pub(crate) fn get_schematic<T: DigitalFn>() -> Schematic {
-    let Some(KernelFnKind::Kernel(kernel)) = T::kernel_fn() else {
-        panic!("Kernel function not found");
-    };
-    let module = compile_design(kernel).unwrap();
+    let module = compile_design::<T>().unwrap();
     build_schematic(&module, module.top).unwrap()
 }
 

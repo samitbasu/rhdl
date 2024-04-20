@@ -1,52 +1,42 @@
 use rhdl_bits::alias::*;
-use rhdl_core::{
-    circuit::signal::Signal,
-    types::clock::{Blue, Red},
-    ClockType, Digital,
-};
+use rhdl_bits::Bits;
+use rhdl_core::{circuit::signal::Signal, ClockType};
+use rhdl_macro::kernel;
 
-// Create a macro that acts like an if expression, except that it calls
-// `unsafe (expr.val())` on the expression target of the if.  It should
-// also support else clauses, etc.
-macro_rules! signal_if {
-    ($cond:expr, $expr:expr) => {
-        if {unsafe $cond.val()} {
-            $expr
-        }
-    };
-    ($cond:expr, $expr:expr, $else:expr) => {
-        if {unsafe $cond.val()} {
-            $expr.val()
-        } else {
-            $else.val()
-        }
-    };
+#[kernel]
+fn add<C: ClockType, D: ClockType>(
+    x: Signal<b8, C>,
+    y: Signal<b8, C>,
+    z: Signal<b8, D>,
+    w: Signal<b8, D>,
+    ndx: b8,
+) -> Signal<b8, D> {
+    let c = x + y;
+    let d = x > y;
+    let e = d && (!d ^ d);
+    let q = z > w;
+    let x = [c, c, c];
+    let z2 = x[ndx];
+    let res = if q { w } else { z };
+    let h = z.val();
+    match h + 1 {
+        Bits::<8>(0) => z,
+        _ => w,
+    }
 }
 
-struct Unify<T1: Digital, T2: Digital, C: ClockType>(Signal<T1, C>, Signal<T2, C>);
+#[cfg(test)]
+mod tests {
 
-struct U2<T: Digital, C: ClockType>(Signal<T, C>, C);
-
-#[test]
-fn test_signal_if() {
-    let x: Signal<_, Red> = Signal::new(b4(0b1010));
-    let y: Signal<_, Red> = Signal::new(b4(0b0101));
-    let q: Signal<_, Blue> = Signal::new(b4(0b0000));
-    let w: Signal<_, Blue> = Signal::new(b4(0b1111));
-    let z = x > y;
-    let a = !z;
-    let b = a & z;
-    let b_c = Signal::new(b);
-    let c = if b { q } else { w };
-    let d = match z_c.val() {
-        true => q,
-        false => w,
+    use rhdl_core::{
+        compile_design,
+        types::clock::{Blue, Red},
     };
-    // We want to unify z with x and with y...  so we could do something like.
-    Unify(x, y);
-    Unify(x, z_c);
-    Unify(z_c, q);
-    Unify(z_c, w);
-}
 
-// If we have a match .val() or if then we
+    use super::*;
+
+    #[test]
+    fn test_signal_if() {
+        let add = compile_design::<add<Red, Blue>>().unwrap();
+    }
+}

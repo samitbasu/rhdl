@@ -8,15 +8,11 @@ use rhdl_core::root_hdl;
 use rhdl_core::Circuit;
 use rhdl_core::CircuitDescriptor;
 use rhdl_core::CircuitIO;
-use rhdl_core::Digital;
 use rhdl_core::HDLDescriptor;
 use rhdl_core::HDLKind;
 use rhdl_macro::{kernel, Digital};
 
-use crate::{
-    clock::Clock,
-    dff::{DFF, DFFI},
-};
+use crate::{clock::Clock, dff::DFF};
 
 // Next a counter with an enable signal
 #[derive(Default, Clone)]
@@ -60,7 +56,7 @@ impl<const N: usize> Circuit for Counter<N> {
     fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O {
         note("input", input);
         loop {
-            let prev_state = state.clone();
+            let prev_state = *state;
             let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
             note_push_path("count");
             state.0.count = self.count.sim(internal_inputs.count, &mut state.1, io);

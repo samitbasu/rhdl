@@ -202,13 +202,9 @@ impl CircuitDescriptor {
 }
 
 fn root_schematic<C: Circuit>() -> Option<Schematic> {
-    if let Some(KernelFnKind::Kernel(kernel)) = C::Update::kernel_fn() {
-        let module = compile_design(kernel).ok()?;
-        let schematic = build_schematic(&module, module.top).ok()?;
-        Some(schematic)
-    } else {
-        None
-    }
+    let module = compile_design::<C::Update>().ok()?;
+    let schematic = build_schematic(&module, module.top).ok()?;
+    Some(schematic)
 }
 
 pub fn root_descriptor<C: Circuit>(circuit: &C) -> CircuitDescriptor {

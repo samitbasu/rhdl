@@ -13,6 +13,8 @@ use crate::Kind;
 use anyhow::{bail, Result};
 use std::collections::HashMap;
 
+use super::ty::ty_named_field;
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 struct ScopeId(usize);
 
@@ -303,6 +305,12 @@ impl TypeInference {
             "as_unsigned" => {
                 if let Ty::Const(ty::Bits::Signed(len)) = target {
                     self.unify(my_ty, ty_bits(len))?;
+                }
+            }
+            "val" => {
+                if let Ty::Struct(struct_ty) = target {
+                    let val = ty_named_field(&Ty::Struct(struct_ty), "#val")?;
+                    self.unify(my_ty, val)?;
                 }
             }
             _ => {

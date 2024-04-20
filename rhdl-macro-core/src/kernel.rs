@@ -1,7 +1,7 @@
-use std::{collections::HashSet, iter::repeat};
+use std::collections::HashSet;
 
 use inflections::Inflect;
-use quote::{format_ident, quote, quote_spanned};
+use quote::{format_ident, quote};
 use syn::{
     punctuated::Punctuated, spanned::Spanned, token::Comma, FnArg, Ident, Pat, PatType, Path, Type,
 };
@@ -697,7 +697,8 @@ impl Context {
             .map(|x| self.expr(x))
             .collect::<Result<Vec<_>>>()?;
         let method = &expr.method;
-        if !["any", "all", "xor", "as_signed", "as_unsigned"].contains(&method.to_string().as_str())
+        if !["any", "all", "xor", "as_signed", "as_unsigned", "val"]
+            .contains(&method.to_string().as_str())
         {
             return Err(syn::Error::new(
                 expr.span(),

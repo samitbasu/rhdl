@@ -434,7 +434,7 @@ fn test_method_call_fails_with_roll_your_own() {
     let Some(KernelFnKind::Kernel(kernel)) = do_stuff::kernel_fn() else {
         panic!("Kernel not found");
     };
-    assert!(compile_design(kernel).is_err());
+    assert!(compile_design::<do_stuff>().is_err());
 }
 
 #[test]
@@ -1483,10 +1483,7 @@ fn test_vm_simple_function_with_invalid_args_causes_ice() {
     fn pass(a: u8) -> u8 {
         a
     }
-    let Some(KernelFnKind::Kernel(kernel)) = pass::kernel_fn() else {
-        panic!("expected kernel function");
-    };
-    let design = compile_design(kernel).unwrap();
+    let design = compile_design::<pass>().unwrap();
     eprintln!("design: {}", design);
     let res = execute_function(&design, vec![(42_u16).typed_bits()]);
     assert!(res.is_err());

@@ -59,10 +59,8 @@ pub fn root_verilog<C: Circuit>(t: &C) -> Result<HDLDescriptor> {
         .map(|(ndx, (local, desc))| component_decl::<C>(ndx, local, desc))
         .collect::<Result<Vec<_>>>()?
         .join("\n");
-    let Some(KernelFnKind::Kernel(kernel)) = C::Update::kernel_fn() else {
-        return Err(anyhow::anyhow!("No kernel function for {}", t.name()));
-    };
-    let verilog = generate_verilog(&compile_design(kernel)?)?;
+    let design = compile_design::<C::Update>()?;
+    let verilog = generate_verilog(&design)?;
     let fn_call = format!("assign od = {fn_name}(i, q);", fn_name = &verilog.name);
     let fn_body = &verilog.body;
     let o_bind = format!("assign o = od[{}:{}];", outputs.saturating_sub(1), 0);

@@ -694,6 +694,17 @@ impl CompilerContext {
         Ok(Slot::Empty)
     }
     fn method_call(&mut self, id: NodeId, method_call: &ast_impl::ExprMethodCall) -> Result<Slot> {
+        // The `val` method is a special case used to strip the clocking context
+        // from a signal.
+        if method_call.method.as_str() == "val" {
+            let lhs = self.reg(id)?;
+            let arg = self.expr(&method_call.receiver)?;
+            self.op(
+                op_index(lhs, arg, crate::path::Path::default().field("#val")),
+                id,
+            );
+            return Ok(lhs);
+        }
         // First handle unary ops only
         let op = match method_call.method.as_str() {
             "any" => AluUnary::Any,

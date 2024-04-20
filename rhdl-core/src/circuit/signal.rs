@@ -1,5 +1,6 @@
 use std::{any::type_name, process::Output};
 
+use crate::DigitalFn;
 use crate::{types::clock::ClockType, Digital, Kind, Notable, NoteKey, NoteWriter, TypedBits};
 use rhdl_bits::Bits;
 use rhdl_bits::SignedBits;
@@ -35,7 +36,7 @@ impl<T: Digital, C: ClockType> Digital for Signal<T, C> {
         Kind::make_struct(
             type_name::<Self>(),
             vec![
-                Kind::make_field("val", T::static_kind()),
+                Kind::make_field("#val", T::static_kind()),
                 Kind::make_field("clock", Kind::Clock(C::color())),
             ],
         )
@@ -248,6 +249,30 @@ impl<T: Digital + std::ops::Neg<Output = T>, C: ClockType> std::ops::Neg for Sig
             val: std::ops::Neg::neg(self.val),
             clock: std::marker::PhantomData,
         }
+    }
+}
+
+impl<T: Digital, const M: usize, const N: usize, C: ClockType> std::ops::Index<Signal<Bits<N>, C>>
+    for [T; M]
+where
+    [T; M]: Digital,
+{
+    type Output = T;
+
+    fn index(&self, index: Signal<Bits<N>, C>) -> &Self::Output {
+        &self[index.val]
+    }
+}
+
+impl<T: Digital, const M: usize, const N: usize, C: ClockType> std::ops::Index<Bits<N>>
+    for Signal<[T; M], C>
+where
+    [T; M]: Digital,
+{
+    type Output = T;
+
+    fn index(&self, index: Bits<N>) -> &Self::Output {
+        &self.val[index]
     }
 }
 

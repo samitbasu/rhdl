@@ -32,9 +32,3 @@ impl std::fmt::Display for Descriptions {
         self.print(0, f)
     }
 }
-
-#[derive(Clone, Debug)]
-pub struct DescriptionsTranslator {
-    root: Descriptions,
-    current: Descriptions,
-}
