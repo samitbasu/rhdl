@@ -178,9 +178,21 @@ impl<const N: usize> PartialEq<i128> for SignedBits<N> {
     }
 }
 
+impl<const N: usize> PartialEq<SignedBits<N>> for i128 {
+    fn eq(&self, other: &SignedBits<N>) -> bool {
+        &SignedBits::<N>::from(*self) == other
+    }
+}
+
 impl<const N: usize> PartialOrd<i128> for SignedBits<N> {
     fn partial_cmp(&self, other: &i128) -> Option<std::cmp::Ordering> {
         self.partial_cmp(&Self::from(*other))
+    }
+}
+
+impl<const N: usize> PartialOrd<SignedBits<N>> for i128 {
+    fn partial_cmp(&self, other: &SignedBits<N>) -> Option<std::cmp::Ordering> {
+        SignedBits::<N>::from(*self).partial_cmp(other)
     }
 }
 

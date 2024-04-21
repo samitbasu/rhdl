@@ -7,6 +7,8 @@ type Term = crate::compiler::ty::Ty;
 type TermMap = crate::compiler::ty::TyMap;
 use serde::{Deserialize, Serialize};
 
+use super::ty;
+
 #[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UnifyContext {
     map: HashMap<TypeId, Term>,
@@ -94,6 +96,16 @@ impl UnifyContext {
             Ok(())
         }
     }
+    // Allow for timed signals and constants to be unified by projecting
+    // through the timed signal to the underlying data field.
+    fn unify_timing(&mut self, x: TermMap, y: ty::Bits) -> Result<()> {
+        if let Some(t) = x.fields.get("#val") {
+            self.unify(t.clone(), Term::Const(y))
+        } else {
+            bail!("Cannot unify non-timed signal with constant")
+        }
+    }
+
     pub(super) fn unify(&mut self, x: Term, y: Term) -> Result<()> {
         if x == y {
             return Ok(());
@@ -106,6 +118,9 @@ impl UnifyContext {
                 self.unify_tuple_arrays(x, y)
             }
             (Term::Struct(x), Term::Struct(y)) => self.unify_maps(x, y),
+            (Term::Struct(x), Term::Const(y)) | (Term::Const(y), Term::Struct(x)) => {
+                self.unify_timing(x, y)
+            }
             (Term::Enum(x), Term::Enum(y)) => self.unify_maps(x.payload, y.payload),
             (x, y) => bail!("Cannot unify {:?} and {:?}", x, y),
         }

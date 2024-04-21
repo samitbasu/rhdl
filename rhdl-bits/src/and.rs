@@ -127,7 +127,7 @@ mod test {
                 let x: SignedBits<8> = (i as i128).into();
                 let y: SignedBits<8> = (j as i128).into();
                 let z = x & y;
-                assert_eq!(z.0, (i & j).into());
+                assert_eq!(z.0, (i & j) as i128);
             }
         }
     }
@@ -139,7 +139,7 @@ mod test {
                 let mut x: SignedBits<8> = (i as i128).into();
                 let y: SignedBits<8> = (j as i128).into();
                 x &= y;
-                assert_eq!(x.0, (i & j).into());
+                assert_eq!(x.0, (i & j) as i128);
             }
         }
     }

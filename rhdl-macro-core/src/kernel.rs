@@ -444,7 +444,7 @@ impl Context {
             syn::ReturnType::Default => quote! {rhdl_core::Kind::Empty},
             syn::ReturnType::Type(_, ty) => {
                 quote! {
-                    <#ty as rhdl_core::Digital>::static_kind()
+                    <#ty as rhdl_core::Timed>::static_kind()
                 }
             }
         };
@@ -460,7 +460,7 @@ impl Context {
                 syn::FnArg::Typed(pat) => {
                     let ty = &pat.ty;
                     let pat = self.pat(&pat.pat)?;
-                    let kind = quote! {<#ty as rhdl_core::Digital>::static_kind()};
+                    let kind = quote! {<#ty as rhdl_core::Timed>::static_kind()};
                     Ok(quote! { rhdl_core::ast_builder::type_pat(#pat, #kind)})
                 }
             })

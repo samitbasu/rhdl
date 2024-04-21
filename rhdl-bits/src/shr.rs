@@ -84,6 +84,9 @@ mod test {
         let bits: Bits<8> = 0b1101_1010.into();
         let result = bits >> 8;
         assert_eq!(result.0, 0);
+        let shift: Bits<8> = 4.into();
+        let result = 0b1101_1010_0000 >> shift;
+        assert_eq!(result.0, 0b1101_1010u128);
     }
 
     #[test]

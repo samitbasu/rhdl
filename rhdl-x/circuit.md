@@ -350,3 +350,90 @@ pub trait Signal {
 
 
 
+Suppose `Signal does not impl Digital`.  Then it could not be nested arbitrarily.  That would
+resolve the enum problem, since, we can't construct enums with signal elements.
+
+- make all the fields of Signal private
+- Do not allow signals to be constructed in kernels...
+
+Then how do we allow for multiple clock domains?
+
+Favorite idea...
+
+```rust
+struct Red<T: Digital> {
+    val: T
+}
+
+impl<T: Digital> Signal for Red<T> {
+
+}
+
+```
+
+Then a generic function would be like:
+
+```rust
+fn foo(inputs: impl Signal<Value=u8>)
+```
+
+which suggests an iterator like syntax.  Using zip-like syntax, we could do
+
+```rust
+fn foo(inputs: (impl Signal<Value=u8>, impl Signal<value=b4>))
+```
+
+Neat, but still clunky.
+
+Another best option is to have something like:
+
+```rust
+trait Timed {
+    fn static_timing() -> Timing;
+    fn timing(&self) -> Timing;
+}
+
+struct Signal<T, C> {
+    val: T,
+    clock: phantom_data<C>,
+}
+
+impl<T: Digital, C: Clock> Timed for Signal<T, C> {
+    // make pallette stuff...
+}
+
+#[derive(Timed)]
+struct Composite<R,D> {
+    reset: Signal<bool, R>,
+    clock: Signal<bool, D>,
+    data: Signal<b8, D>,
+}
+```
+
+In this case, the DFF input becomes
+
+```rust
+#[derive(Timed)]
+struct DFFI<T, C> {
+    clock: Signal<bool, C>,
+    input: Signal<T, C>,
+}
+```
+
+If we work with `Timed` instead of `Digital` inside the kernel, what happens?  All places where
+we would do `as Digital` become `as Timed`.  That means we need blanket `Timed` impls for all
+the base values.  Something like:
+
+```rust
+impl<T: Digital> Timed for T {
+    fn static_timing() -> Timing {
+        Timing::make_constant(T::static_kind())
+    }
+    fn timing(&self) -> Timing {
+        Timing::make_constant(T::static_kind())
+    }
+}
+```
+
+
+

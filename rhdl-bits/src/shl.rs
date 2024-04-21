@@ -99,10 +99,10 @@ mod test {
         for shift in 0..10 {
             let bits: SignedBits<8> = (-38).into();
             let result = bits << shift;
-            assert_eq!(result.0, ((-38_i128 << shift) as i8).into());
+            assert_eq!(result.0, ((-38_i128 << shift) as i8) as i128);
             let shift_as_bits: Bits<8> = shift.into();
             let result = bits << shift_as_bits;
-            assert_eq!(result.0, ((-38_i128 << shift) as i8).into());
+            assert_eq!(result.0, ((-38_i128 << shift) as i8) as i128);
         }
     }
 
@@ -114,11 +114,11 @@ mod test {
         for shift in 0..10 {
             let mut bits: SignedBits<8> = (-38).into();
             bits <<= shift;
-            assert_eq!(bits.0, ((-38_i128 << shift) as i8).into());
+            assert_eq!(bits.0, ((-38_i128 << shift) as i8) as i128);
             let shift_as_bits: Bits<8> = shift.into();
             let mut bits: SignedBits<8> = (-38).into();
             bits <<= shift_as_bits;
-            assert_eq!(bits.0, ((-38_i128 << shift) as i8).into());
+            assert_eq!(bits.0, ((-38_i128 << shift) as i8) as i128);
         }
     }
 }
