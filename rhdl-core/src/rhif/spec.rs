@@ -243,7 +243,6 @@ pub struct ExternalFunction {
     pub signature: DigitalSignature,
 }
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Enum {
     pub lhs: Slot,

@@ -5,4 +5,5 @@ pub mod kernel;
 pub mod kind;
 pub mod note;
 pub mod synchronous;
+pub mod timed;
 pub mod typed_bits;

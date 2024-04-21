@@ -140,9 +140,21 @@ impl<const N: usize> From<u128> for Bits<N> {
     }
 }
 
+impl<const N: usize> PartialEq<Bits<N>> for u128 {
+    fn eq(&self, other: &Bits<N>) -> bool {
+        other == &Bits::from(*self)
+    }
+}
+
 impl<const N: usize> PartialEq<u128> for Bits<N> {
     fn eq(&self, other: &u128) -> bool {
         self == &Self::from(*other)
+    }
+}
+
+impl<const N: usize> PartialOrd<Bits<N>> for u128 {
+    fn partial_cmp(&self, other: &Bits<N>) -> Option<std::cmp::Ordering> {
+        other.partial_cmp(&Bits::from(*self))
     }
 }
 

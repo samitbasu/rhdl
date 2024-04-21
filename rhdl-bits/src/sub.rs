@@ -45,6 +45,13 @@ impl<const N: usize> Sub<SignedBits<N>> for SignedBits<N> {
     }
 }
 
+impl<const N: usize> Sub<SignedBits<N>> for i128 {
+    type Output = SignedBits<N>;
+    fn sub(self, rhs: SignedBits<N>) -> Self::Output {
+        SignedBits::<N>::from(self) - rhs
+    }
+}
+
 impl<const N: usize> Sub<i128> for SignedBits<N> {
     type Output = Self;
     fn sub(self, rhs: i128) -> Self::Output {

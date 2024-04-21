@@ -78,12 +78,12 @@ mod test {
     fn test_or_signed_bits() {
         let bits: SignedBits<8> = (-38).into();
         let result = bits | bits;
-        assert_eq!(result.0, (-38).into());
+        assert_eq!(result.0, -38);
         for i in i8::MIN..i8::MAX {
             for j in i8::MIN..i8::MAX {
                 let bits: SignedBits<8> = (i as i128).into();
                 let result = bits | (j as i128);
-                assert_eq!(result.0, (i | j).into());
+                assert_eq!(result.0, (i | j) as i128);
             }
         }
     }
@@ -92,12 +92,12 @@ mod test {
     fn test_or_assign_signed_bits() {
         let mut bits: SignedBits<8> = (-38).into();
         bits |= bits;
-        assert_eq!(bits.0, (-38).into());
+        assert_eq!(bits.0, -38);
         for i in i8::MIN..i8::MAX {
             for j in i8::MIN..i8::MAX {
                 let mut bits: SignedBits<8> = (i as i128).into();
                 bits |= j as i128;
-                assert_eq!(bits.0, (i | j).into());
+                assert_eq!(bits.0, (i | j) as i128);
             }
         }
     }

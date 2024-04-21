@@ -25,6 +25,8 @@ pub use types::kind::kind_svg::svg_grid;
 pub use types::kind::kind_svg::svg_grid_vertical;
 pub use types::kind::DiscriminantAlignment;
 pub use types::note::Notable;
+pub use types::timed::Sig;
+pub use types::timed::Timed;
 
 pub use types::kind::text_grid;
 pub mod ast;
