@@ -15,7 +15,7 @@ pub enum Kind {
     Enum(Enum),
     Bits(usize),
     Signed(usize),
-    Clock(ClockColor),
+    Signal(Box<Kind>, ClockColor),
     Empty,
 }
 
@@ -37,7 +37,7 @@ impl std::fmt::Display for Kind {
             Kind::Bits(digits) => write!(f, "b{}", digits),
             Kind::Signed(digits) => write!(f, "s{}", digits),
             Kind::Empty => write!(f, "()"),
-            Kind::Clock(color) => write!(f, "c{:?}", color),
+            Kind::Signal(kind, color) => write!(f, "{}@{}", kind, color),
         }
     }
 }
@@ -172,6 +172,9 @@ impl Kind {
     pub fn make_signed(digits: usize) -> Self {
         Self::Signed(digits)
     }
+    pub fn make_signal(kind: Kind, color: ClockColor) -> Self {
+        Self::Signal(Box::new(kind), color)
+    }
     pub fn bits(&self) -> usize {
         match self {
             Kind::Array(array) => array.base.bits() * array.size,
@@ -188,7 +191,8 @@ impl Kind {
             }
             Kind::Bits(digits) => *digits,
             Kind::Signed(digits) => *digits,
-            Kind::Empty | Kind::Clock(_) => 0,
+            Kind::Signal(kind, _) => kind.bits(),
+            Kind::Empty => 0,
         }
     }
     pub fn pad(&self, bits: Vec<bool>) -> Vec<bool> {
@@ -234,7 +238,7 @@ impl Kind {
             }
             Kind::Struct(s) => s.name.clone(),
             Kind::Enum(e) => e.name.clone(),
-            Kind::Clock(color) => format!("c{:?}", color),
+            Kind::Signal(kind, color) => format!("Sig::<{},{}>", kind, color),
         }
     }
 
@@ -381,7 +385,8 @@ fn generate_kind_layout(
     mut offset_col: usize,
 ) -> Vec<KindLayout> {
     match kind {
-        Kind::Empty | Kind::Clock(_) => vec![],
+        Kind::Empty => vec![],
+        Kind::Signal(kind, _) => generate_kind_layout(kind, name, offset_row, offset_col),
         Kind::Bits(digits) => {
             vec![KindLayout {
                 row: offset_row,

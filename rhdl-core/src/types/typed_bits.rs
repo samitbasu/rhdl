@@ -7,6 +7,7 @@ use crate::dyn_bit_manip::bits_shr_signed;
 use crate::dyn_bit_manip::{
     bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
 };
+use crate::ClockColor;
 use crate::Digital;
 use crate::{
     path::{bit_range, Path},
@@ -251,6 +252,12 @@ impl TypedBits {
             kind: Kind::make_bits(count),
         })
     }
+    pub fn with_clock(self, color: ClockColor) -> TypedBits {
+        TypedBits {
+            bits: self.bits,
+            kind: Kind::make_signal(self.kind, color),
+        }
+    }
 }
 
 impl std::ops::Add<TypedBits> for TypedBits {
@@ -487,7 +494,10 @@ fn write_kind_with_bits(
         Kind::Bits(_) => write_bits(bits, f),
         Kind::Signed(_) => write_signed(bits, f),
         Kind::Empty => write!(f, "()"),
-        Kind::Clock(_) => Ok(()),
+        Kind::Signal(base, color) => {
+            write_kind_with_bits(base, bits, f)?;
+            write!(f, "@{}", color)
+        }
     }
 }
 

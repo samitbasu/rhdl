@@ -8,7 +8,7 @@ use crate::{
         self,
         spec::{
             AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
-            Index, OpCode, Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
+            Index, KindCast, OpCode, Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
         },
         Object,
     },
@@ -292,6 +292,9 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
             }
             OpCode::AsSigned(Cast { lhs, arg: _, len }) => {
                 eq_kinds(slot_type(lhs)?, Kind::make_signed(*len))?;
+            }
+            OpCode::AsKind(KindCast { lhs, arg: _, kind }) => {
+                eq_kinds(slot_type(lhs)?, kind.clone())?;
             }
         }
     }

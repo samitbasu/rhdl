@@ -8,6 +8,7 @@ use crate::ast::ast_impl::FunctionId;
 use crate::kernel::ExternalKernelDef;
 use crate::kernel::Kernel;
 use crate::rhif::object::SourceLocation;
+use crate::rhif::spec::KindCast;
 use crate::rhif::spec::{
     Array, Assign, Case, Cast, Enum, Exec, ExternalFunctionCode, Index, Repeat, Select, Splice,
     Struct, Tuple, Unary,
@@ -97,6 +98,7 @@ impl<'a> SchematicBuilder<'a> {
                 OpCode::AsBits(cast) | OpCode::AsSigned(cast) => {
                     self.make_cast(cast, Some(location))
                 }
+                OpCode::AsKind(cast) => self.make_retimed(cast, Some(location)),
                 OpCode::Assign(assign) => self.make_assign(assign, Some(location)),
                 OpCode::Exec(exec) => self.make_exec(exec, Some(location)),
                 OpCode::Noop | OpCode::Comment(_) => Ok(()),
@@ -442,6 +444,21 @@ impl<'a> SchematicBuilder<'a> {
     }
 
     fn make_cast(&mut self, cast: Cast, location: Option<SourceLocation>) -> Result<()> {
+        let arg = self.make_wired_pin(cast.arg)?;
+        let out = self.make_output_pin(cast.lhs)?;
+        let component = self.schematic.make_component(
+            ComponentKind::Cast(CastComponent {
+                input: arg,
+                output: out,
+            }),
+            location,
+        );
+        self.schematic.pin_mut(arg).parent(component);
+        self.schematic.pin_mut(out).parent(component);
+        Ok(())
+    }
+
+    fn make_retimed(&mut self, cast: KindCast, location: Option<SourceLocation>) -> Result<()> {
         let arg = self.make_wired_pin(cast.arg)?;
         let out = self.make_output_pin(cast.lhs)?;
         let component = self.schematic.make_component(

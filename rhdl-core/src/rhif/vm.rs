@@ -14,7 +14,7 @@ use anyhow::Result;
 
 use anyhow::{anyhow, bail};
 
-use super::spec::{ExternalFunctionCode, Select, Splice};
+use super::spec::{ExternalFunctionCode, KindCast, Select, Splice};
 
 struct VMState<'a> {
     reg_stack: &'a mut [Option<TypedBits>],
@@ -258,6 +258,11 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
                 let arg = state.read(*arg)?;
                 let result = arg.signed_cast(*len)?;
                 state.write(*lhs, result)?;
+            }
+            OpCode::AsKind(KindCast { lhs, arg, kind }) => {
+                let mut arg = state.read(*arg)?;
+                arg.kind = kind.clone();
+                state.write(*lhs, arg)?;
             }
             OpCode::Exec(Exec { lhs, id, args }) => {
                 let args = args

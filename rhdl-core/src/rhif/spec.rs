@@ -4,7 +4,7 @@ use anyhow::Result;
 use crate::{
     kernel::{ExternalKernelDef, Kernel},
     path::Path,
-    DigitalSignature, TypedBits,
+    DigitalSignature, Kind, TypedBits,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -40,6 +40,8 @@ pub enum OpCode {
     AsBits(Cast),
     // x <- a as signed::<len>
     AsSigned(Cast),
+    // x <- C::sig(a)
+    AsKind(KindCast),
     Comment(String),
 }
 
@@ -255,4 +257,11 @@ pub struct Cast {
     pub lhs: Slot,
     pub arg: Slot,
     pub len: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct KindCast {
+    pub lhs: Slot,
+    pub arg: Slot,
+    pub kind: Kind,
 }

@@ -30,13 +30,7 @@ impl<T: Digital, C: ClockType> Sig<T, C> {
 
 impl<T: Digital, C: ClockType> Timed for Sig<T, C> {
     fn static_kind() -> Kind {
-        Kind::make_struct(
-            type_name::<Self>(),
-            vec![
-                Kind::make_field("#val", T::static_kind()),
-                Kind::make_field("clock", Kind::Clock(C::color())),
-            ],
-        )
+        Kind::make_signal(T::static_kind(), C::color())
     }
 }
 

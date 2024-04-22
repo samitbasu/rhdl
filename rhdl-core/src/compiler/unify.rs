@@ -1,4 +1,6 @@
-use crate::compiler::ty::{ty_array_base, ty_named_field, ty_unnamed_field, TyEnum};
+use crate::compiler::ty::{
+    ty_array_base, ty_named_field, ty_signal, ty_unnamed_field, ty_var, TyEnum,
+};
 use crate::compiler::ty::{Ty, TypeId};
 use anyhow::bail;
 use anyhow::Result;
@@ -6,8 +8,6 @@ use std::{collections::HashMap, fmt::Display};
 type Term = crate::compiler::ty::Ty;
 type TermMap = crate::compiler::ty::TyMap;
 use serde::{Deserialize, Serialize};
-
-use super::ty;
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UnifyContext {
@@ -46,7 +46,10 @@ impl UnifyContext {
                     Term::Var(id)
                 }
             }
-            Term::Clock(_) | Term::Const { .. } | Term::Integer => typ,
+            Term::Const { .. } | Term::Integer => typ,
+            Term::Signal(base, color) => {
+                Term::Signal(Box::new(self.apply(*base)), Box::new(self.apply(*color)))
+            }
             Term::Tuple(fields) => Term::Tuple(fields.into_iter().map(|x| self.apply(x)).collect()),
             Term::Array(elems) => Term::Array(elems.into_iter().map(|x| self.apply(x)).collect()),
             Term::Struct(struct_) => Term::Struct(TermMap {
@@ -96,16 +99,6 @@ impl UnifyContext {
             Ok(())
         }
     }
-    // Allow for timed signals and constants to be unified by projecting
-    // through the timed signal to the underlying data field.
-    fn unify_timing(&mut self, x: TermMap, y: ty::Bits) -> Result<()> {
-        if let Some(t) = x.fields.get("#val") {
-            self.unify(t.clone(), Term::Const(y))
-        } else {
-            bail!("Cannot unify non-timed signal with constant")
-        }
-    }
-
     pub(super) fn unify(&mut self, x: Term, y: Term) -> Result<()> {
         if x == y {
             return Ok(());
@@ -118,8 +111,8 @@ impl UnifyContext {
                 self.unify_tuple_arrays(x, y)
             }
             (Term::Struct(x), Term::Struct(y)) => self.unify_maps(x, y),
-            (Term::Struct(x), Term::Const(y)) | (Term::Const(y), Term::Struct(x)) => {
-                self.unify_timing(x, y)
+            (Term::Signal(x, a), Term::Signal(y, b)) => {
+                self.unify(*x, *y).and_then(|_| self.unify(*a, *b))
             }
             (Term::Enum(x), Term::Enum(y)) => self.unify_maps(x.payload, y.payload),
             (x, y) => bail!("Cannot unify {:?} and {:?}", x, y),

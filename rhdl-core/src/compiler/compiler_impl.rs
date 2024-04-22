@@ -15,7 +15,8 @@ use crate::{
         object::SymbolMap,
         rhif_builder::{
             op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
-            op_exec, op_index, op_repeat, op_select, op_splice, op_struct, op_tuple, op_unary,
+            op_exec, op_index, op_repeat, op_retime, op_select, op_splice, op_struct, op_tuple,
+            op_unary,
         },
         spanned_source::build_spanned_source_for_kernel,
         spec::{
@@ -131,12 +132,16 @@ impl CompilerContext {
         self.reg_with_type_and_node(ty, id)
     }
     fn reg_with_type_and_node(&mut self, ty: Ty, id: NodeId) -> Result<Slot> {
+        let reg = self.anonymous_reg(ty)?;
+        self.context.insert(reg, id);
+        Ok(reg)
+    }
+    fn anonymous_reg(&mut self, ty: Ty) -> Result<Slot> {
         if ty.is_empty() {
             return Ok(Slot::Empty);
         }
         let reg = Slot::Register(self.reg_count);
         self.ty.insert(reg, ty);
-        self.context.insert(reg, id);
         self.reg_count += 1;
         Ok(reg)
     }
@@ -699,10 +704,12 @@ impl CompilerContext {
         if method_call.method.as_str() == "val" {
             let lhs = self.reg(id)?;
             let arg = self.expr(&method_call.receiver)?;
+            self.op(op_assign(lhs, arg), id);
+            /*
             self.op(
-                op_index(lhs, arg, crate::path::Path::default().field("#val")),
+                op_index(lhs, arg, crate::path::Path::default().signal_value()),
                 id,
-            );
+            );*/
             return Ok(lhs);
         }
         // First handle unary ops only
@@ -817,6 +824,28 @@ impl CompilerContext {
         }
         let lhs = self.expr(&bin.lhs)?;
         let rhs = self.expr(&bin.rhs)?;
+
+        // Check if we need to insert retiming ops
+        let lhs_ty = self.ty(bin.lhs.id)?;
+        let rhs_ty = self.ty(bin.rhs.id)?;
+        eprintln!("!!binop {} {} {}", lhs_ty, op, rhs_ty);
+        let lhs = if rhs_ty.is_signal() && !lhs_ty.is_signal() {
+            eprintln!("Retime lhs {} to match {}", lhs_ty, rhs_ty);
+            let temp = self.anonymous_reg(rhs_ty.clone())?;
+            self.op(op_retime(temp, lhs, rhs_ty.clone().try_into()?), id);
+            temp
+        } else {
+            lhs
+        };
+        let rhs = if lhs_ty.is_signal() && !rhs_ty.is_signal() {
+            eprintln!("Retime rhs {} to match {}", rhs_ty, lhs_ty);
+            let temp = self.anonymous_reg(lhs_ty.clone())?;
+            self.op(op_retime(temp, rhs, lhs_ty.try_into()?), id);
+            temp
+        } else {
+            rhs
+        };
+
         let result = self.reg(id)?;
         let alu = match op {
             BinOp::Add | BinOp::AddAssign => AluBinary::Add,
@@ -1075,6 +1104,12 @@ impl Visitor for CompilerContext {
 pub fn compile(func: &ast_impl::KernelFn, ctx: UnifyContext) -> Result<Object> {
     let mut compiler = CompilerContext::new(ctx);
     compiler.visit_kernel_fn(func)?;
+
+    // Print out the types of the slots
+    for (slot, ty) in &compiler.ty {
+        eprintln!("Slot {} has type {}", slot, ty);
+    }
+
     // Get the final name for the return value
     let return_slot = compiler.resolve_local(compiler.return_node)?;
     let literals = compiler
@@ -1138,6 +1173,24 @@ pub fn compile(func: &ast_impl::KernelFn, ctx: UnifyContext) -> Result<Object> {
 }
 
 fn cast_literal_to_inferred_type(t: ExprLit, ty: Ty) -> Result<TypedBits> {
+    eprintln!("Casting literal {:?} to type {}", t, ty);
+    if let ExprLit::TypedBits(t) = t {
+        let t_ty: Ty = t.value.kind.clone().into();
+        if t_ty != ty {
+            bail!(
+                "Literal with explicit type {:?} does not match inferred type {:?}",
+                t.value.kind,
+                ty
+            )
+        } else {
+            return Ok(t.value);
+        }
+    }
+    if let Ty::Signal(ty, color) = ty {
+        eprintln!("Casting literal {:?} to signal {:?}", t, ty);
+        let core_bits = cast_literal_to_inferred_type(t, *ty)?;
+        return Ok(core_bits.with_clock(color.try_clock()?));
+    }
     match t {
         ExprLit::TypedBits(t) => {
             if ty != t.value.kind.clone().into() {

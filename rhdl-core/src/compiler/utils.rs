@@ -1,6 +1,6 @@
 use crate::rhif::spec::{
-    Array, Assign, Binary, Case, Cast, Enum, Exec, FieldValue, Index, OpCode, Repeat, Select, Slot,
-    Splice, Struct, Tuple, Unary,
+    Array, Assign, Binary, Case, Cast, Enum, Exec, FieldValue, Index, KindCast, OpCode, Repeat,
+    Select, Slot, Splice, Struct, Tuple, Unary,
 };
 
 pub fn remap_slots<F: FnMut(Slot) -> Slot>(op: OpCode, mut f: F) -> OpCode {
@@ -123,6 +123,11 @@ pub fn remap_slots<F: FnMut(Slot) -> Slot>(op: OpCode, mut f: F) -> OpCode {
             lhs: f(lhs),
             arg: f(arg),
             len,
+        }),
+        OpCode::AsKind(KindCast { lhs, arg, kind }) => OpCode::AsKind(KindCast {
+            lhs: f(lhs),
+            arg: f(arg),
+            kind,
         }),
         _ => op,
     }
