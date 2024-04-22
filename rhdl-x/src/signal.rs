@@ -1,6 +1,6 @@
 use rhdl_bits::alias::*;
 use rhdl_bits::Bits;
-use rhdl_core::{circuit::signal::Signal, ClockType, Sig, Timed};
+use rhdl_core::{ClockType, Sig, Timed};
 use rhdl_macro::kernel;
 
 /*
@@ -10,21 +10,33 @@ Thoughts:
 
 */
 #[kernel]
-fn add_sig<C: ClockType, D: ClockType>(x: Sig<b8, C>, y: Sig<b8, C>, z: Sig<b8, D>) -> Sig<b8, C> {
+fn add_sig<C: ClockType, D: ClockType>(
+    x: Sig<b8, C>,
+    y: Sig<b8, C>,
+    z: Sig<b8, D>,
+    w: Sig<b8, D>,
+    e: b8,
+) -> Sig<b8, D> {
     let c = x - y;
-    let p = z.val();
-    let q = c + p;
-    x + y
+    let q = x + 3;
+    let h = x > e;
+    //let c = b8(4);
+    //let cmp = x > c;
+    if true {
+        z
+    } else {
+        w
+    }
 }
 
 #[kernel]
 fn add<C: ClockType, D: ClockType>(
-    x: Signal<b8, C>,
-    y: Signal<b8, C>,
-    z: Signal<b8, D>,
-    w: Signal<b8, D>,
+    x: Sig<b8, C>,
+    y: Sig<b8, C>,
+    z: Sig<b8, D>,
+    w: Sig<b8, D>,
     ndx: b8,
-) -> Signal<b8, D> {
+) -> Sig<b8, D> {
     let c = x + y;
     let d = x > y;
     let bx = x.val();

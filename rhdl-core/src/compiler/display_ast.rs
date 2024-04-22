@@ -185,8 +185,9 @@ impl<'a> PrettyPrinter<'a> {
             Kind::Enum(kind) => {
                 self.push(&kind.name);
             }
-            Kind::Clock(color) => {
-                self.push(&format!("c{:?}", color));
+            Kind::Signal(base, color) => {
+                self.print_kind(base)?;
+                self.push(&format!("@{}", color));
             }
         }
         Ok(())
@@ -209,6 +210,7 @@ impl<'a> PrettyPrinter<'a> {
                 Bits::Signed(n) => self.push(&format!("s{}", n)),
                 Bits::Unsigned(n) => self.push(&format!("b{}", n)),
                 Bits::Usize => self.push("usize"),
+                Bits::Clock(color) => self.push(&format!("@{}", color)),
             },
             Ty::Integer => self.push("int"),
             Ty::Enum(ty) => {
@@ -225,8 +227,9 @@ impl<'a> PrettyPrinter<'a> {
                 }
                 self.push(")");
             }
-            Ty::Clock(ty) => {
-                self.push(&format!("c{:?}", ty));
+            Ty::Signal(base, color) => {
+                self.print_type(base)?;
+                self.push(&format!("@{}", color));
             }
         }
         Ok(())

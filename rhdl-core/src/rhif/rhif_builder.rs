@@ -4,10 +4,10 @@ use crate::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
         FieldValue, FuncId, Index, OpCode, Repeat, Slot, Struct, Tuple, Unary,
     },
-    TypedBits,
+    Kind, TypedBits,
 };
 
-use super::spec::{Select, Splice};
+use super::spec::{KindCast, Select, Splice};
 
 pub fn op_binary(op: AluBinary, lhs: Slot, arg1: Slot, arg2: Slot) -> OpCode {
     OpCode::Binary(Binary {
@@ -16,6 +16,10 @@ pub fn op_binary(op: AluBinary, lhs: Slot, arg1: Slot, arg2: Slot) -> OpCode {
         arg1,
         arg2,
     })
+}
+
+pub fn op_retime(lhs: Slot, arg: Slot, kind: Kind) -> OpCode {
+    OpCode::AsKind(KindCast { lhs, arg, kind })
 }
 
 pub fn op_unary(op: AluUnary, lhs: Slot, arg1: Slot) -> OpCode {

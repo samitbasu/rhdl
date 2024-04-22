@@ -1,11 +1,11 @@
 use std::collections::HashSet;
 
-use crate::{
-    rhif::spec::{
-        Array, Assign, Binary, Case, Cast, Enum, Exec, Index, OpCode, Repeat, Select, Slot, Splice,
-        Struct, Tuple, Unary,
+use crate::rhif::{
+    spec::{
+        Array, Assign, Binary, Case, Cast, Enum, Exec, Index, KindCast, OpCode, Repeat, Select,
+        Slot, Splice, Struct, Tuple, Unary,
     },
-    rhif::Object,
+    Object,
 };
 
 use anyhow::{bail, Result};
@@ -183,7 +183,8 @@ fn check_flow(obj: &Object, mut init_set: InitSet) -> Result<InitSet> {
                 init_set.write(lhs)?;
             }
             OpCode::AsBits(Cast { lhs, arg, len: _ })
-            | OpCode::AsSigned(Cast { lhs, arg, len: _ }) => {
+            | OpCode::AsSigned(Cast { lhs, arg, len: _ })
+            | OpCode::AsKind(KindCast { lhs, arg, kind: _ }) => {
                 init_set.read(arg)?;
                 init_set.write(lhs)?;
             }

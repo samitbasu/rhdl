@@ -17,6 +17,7 @@ pub enum PathElement {
     EnumPayload(String),
     EnumPayloadByValue(i64),
     DynamicIndex(Slot),
+    SignalValue,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
@@ -42,6 +43,7 @@ impl std::fmt::Display for Path {
                 PathElement::EnumPayload(s) => write!(f, "#{}", s)?,
                 PathElement::EnumPayloadByValue(v) => write!(f, "#{}", v)?,
                 PathElement::DynamicIndex(slot) => write!(f, "[[{}]]", slot)?,
+                PathElement::SignalValue => write!(f, "@")?,
             }
         }
         Ok(())
@@ -67,6 +69,10 @@ impl Path {
     }
     pub fn field(mut self, field: &str) -> Self {
         self.elements.push(PathElement::Field(field.to_string()));
+        self
+    }
+    pub fn signal_value(mut self) -> Self {
+        self.elements.push(PathElement::SignalValue);
         self
     }
     pub fn member(mut self, member: Member) -> Self {
@@ -172,6 +178,10 @@ pub fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
             .iter()
             .flat_map(|field| leaf_paths(&field.kind, base.clone().field(&field.name)))
             .collect(),
+        Kind::Signal(root, clock) => leaf_paths(root, base.clone())
+            .into_iter()
+            .map(|path| path.signal_value())
+            .collect(),
         Kind::Enum(enumeration) => enumeration
             .variants
             .iter()
@@ -183,7 +193,7 @@ pub fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
             })
             .chain(once(base.clone().discriminant()))
             .collect(),
-        Kind::Bits(_) | Kind::Signed(_) | Kind::Empty | Kind::Clock(_) => vec![base.clone()],
+        Kind::Bits(_) | Kind::Signed(_) | Kind::Empty => vec![base.clone()],
     }
 }
 
@@ -237,6 +247,13 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
     let mut kind = kind;
     for p in &path.elements {
         match p {
+            PathElement::SignalValue => {
+                if let Kind::Signal(root, _) = kind {
+                    kind = *root.clone();
+                } else {
+                    bail!("Signal value not valid for non-signal type {kind}")
+                }
+            }
             PathElement::Index(i) => match &kind {
                 Kind::Array(array) => {
                     let element_size = array.base.bits();

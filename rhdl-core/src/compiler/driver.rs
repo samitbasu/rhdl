@@ -5,9 +5,13 @@ use crate::{
         ascii::render_ast_to_string,
         assign_node_ids, compile, infer,
         passes::{
-            check_clock_coherence::CheckClockCoherence, check_inference::check_inference,
-            check_rhif_flow::DataFlowCheckPass, check_rhif_type::TypeCheckPass, pass::Pass,
-            pre_cast_literals::PreCastLiterals, remove_extra_registers::RemoveExtraRegistersPass,
+            //check_clock_coherence::CheckClockCoherence,
+            check_inference::check_inference,
+            check_rhif_flow::DataFlowCheckPass,
+            check_rhif_type::TypeCheckPass,
+            pass::Pass,
+            pre_cast_literals::PreCastLiterals,
+            remove_extra_registers::RemoveExtraRegistersPass,
             remove_unneeded_muxes::RemoveUnneededMuxesPass,
             remove_unused_literals::RemoveUnusedLiterals,
             remove_useless_casts::RemoveUselessCastsPass,
@@ -37,7 +41,7 @@ fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     }
     let obj = TypeCheckPass::run(obj)?;
     let obj = DataFlowCheckPass::run(obj)?;
-    let obj = CheckClockCoherence::run(obj)?;
+    //let obj = CheckClockCoherence::run(obj)?;
     Ok(obj)
 }
 

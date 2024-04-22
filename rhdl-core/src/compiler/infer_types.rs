@@ -13,7 +13,7 @@ use crate::Kind;
 use anyhow::{bail, Result};
 use std::collections::HashMap;
 
-use super::ty::ty_named_field;
+use super::ty::ty_signal;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 struct ScopeId(usize);
@@ -308,10 +308,7 @@ impl TypeInference {
                 }
             }
             "val" => {
-                if let Ty::Struct(struct_ty) = target {
-                    let val = ty_named_field(&Ty::Struct(struct_ty), "#val")?;
-                    self.unify(my_ty, val)?;
-                }
+                self.unify(my_ty, target)?;
             }
             _ => {
                 bail!("Unsupported method call: {}", method_name);
@@ -383,8 +380,8 @@ impl Visitor for TypeInference {
                 lhs,
                 rhs,
             }) => {
-                self.unify(my_ty.clone(), id_to_var(lhs.id)?)?;
-                self.unify(my_ty, id_to_var(rhs.id)?)?;
+                //                self.unify(my_ty.clone(), id_to_var(lhs.id)?)?;
+                //self.unify(my_ty, id_to_var(rhs.id)?)?;
             }
             // x <- l && r --> tx = tl = tr = bool
             ExprKind::Binary(ExprBinary {
@@ -402,14 +399,14 @@ impl Visitor for TypeInference {
                 lhs,
                 rhs: _,
             }) => {
-                self.unify(my_ty.clone(), id_to_var(lhs.id)?)?;
+                //self.unify(my_ty.clone(), id_to_var(lhs.id)?)?;
             }
             // x <- (l <<= r) --> tx = {}
             ExprKind::Binary(ExprBinary {
                 op: BinOp::ShlAssign | BinOp::ShrAssign,
                 ..
             }) => {
-                self.unify(my_ty, ty_empty())?;
+                //self.unify(my_ty, ty_empty())?;
             }
             // x <- l == r --> tx = bool, tl = tr
             ExprKind::Binary(ExprBinary {
@@ -417,7 +414,7 @@ impl Visitor for TypeInference {
                 lhs,
                 rhs,
             }) => {
-                self.unify(id_to_var(lhs.id)?, id_to_var(rhs.id)?)?;
+                //                let _ = self.unify(id_to_var(lhs.id)?, id_to_var(rhs.id)?);
                 self.unify(my_ty, ty_bool())?;
             }
             // x <- l += r --> tx = {}, tl = tr
@@ -432,7 +429,7 @@ impl Visitor for TypeInference {
                 lhs,
                 rhs,
             }) => {
-                self.unify(id_to_var(lhs.id)?, id_to_var(rhs.id)?)?;
+                //self.unify(id_to_var(lhs.id)?, id_to_var(rhs.id)?)?;
                 self.unify(my_ty, ty_empty())?;
             }
             // x <- y = z --> tx = {}, ty = tz

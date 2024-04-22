@@ -8,7 +8,7 @@ use crate::{
     util::splice,
 };
 
-use super::spec::Select;
+use super::spec::{KindCast, Select};
 
 impl Display for OpCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -105,6 +105,9 @@ impl Display for OpCode {
             }
             OpCode::AsSigned(Cast { lhs, arg, len }) => {
                 write!(f, " {} <- {} as s{}", lhs, arg, len)
+            }
+            OpCode::AsKind(KindCast { lhs, arg, kind }) => {
+                write!(f, " {} <- {} as {}", lhs, arg, kind)
             }
         }
     }

@@ -24,6 +24,7 @@ impl From<crate::ast::ast_impl::NodeId> for TypeId {
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Bits {
+    Clock(ClockColor),
     Signed(usize),
     Unsigned(usize),
     Usize,
@@ -39,6 +40,7 @@ impl Bits {
             Bits::Usize => std::mem::size_of::<usize>() * 8,
             Bits::Signed(width) | Bits::Unsigned(width) => *width,
             Bits::Empty => 0,
+            Bits::Clock(_) => 0,
         }
     }
 }
@@ -56,10 +58,10 @@ pub(super) struct TyEnum {
     pub discriminant: Box<Ty>,
 }
 
-use crate::ClockColor;
 use crate::ast::ast_impl::NodeId;
 use crate::types::kind::DiscriminantLayout;
 use crate::types::kind::DiscriminantType;
+use crate::ClockColor;
 use crate::Kind;
 
 // Start simple, modelling as in the Eli Bendersky example.
@@ -74,7 +76,7 @@ pub(super) enum Ty {
     Array(Vec<Ty>),
     Struct(TyMap),
     Enum(TyEnum),
-    Clock(ClockColor),
+    Signal(Box<Ty>, Box<Ty>),
     Integer,
 }
 impl Ty {
@@ -86,6 +88,9 @@ impl Ty {
     }
     pub fn is_bool(&self) -> bool {
         matches!(self, Ty::Const(Bits::Unsigned(1)))
+    }
+    pub fn is_constant(&self) -> bool {
+        matches!(self, Ty::Const(_))
     }
     pub fn unsigned_bits(&self) -> Result<usize> {
         match self {
@@ -101,6 +106,15 @@ impl Ty {
             _ => bail!("Ty - Expected signed type, got {:?}", self),
         }
     }
+    pub fn is_signal(&self) -> bool {
+        matches!(self, Ty::Signal(_, _))
+    }
+    pub fn try_clock(&self) -> Result<ClockColor> {
+        match self {
+            Ty::Const(Bits::Clock(color)) => Ok(*color),
+            _ => bail!("Expected clock type, got {:?}", self),
+        }
+    }
 }
 
 pub(super) fn ty_bool() -> Ty {
@@ -109,6 +123,10 @@ pub(super) fn ty_bool() -> Ty {
 
 pub(super) fn ty_empty() -> Ty {
     Ty::Const(Bits::Empty)
+}
+
+pub(super) fn ty_clock(color: ClockColor) -> Ty {
+    Ty::Const(Bits::Clock(color))
 }
 
 pub(super) fn ty_bits(width: usize) -> Ty {
@@ -128,6 +146,10 @@ pub(super) fn ty_tuple(args: Vec<Ty>) -> Ty {
         return ty_empty();
     }
     Ty::Tuple(args)
+}
+
+pub(super) fn ty_signal(base: Ty, id: TypeId) -> Ty {
+    Ty::Signal(Box::new(base), Box::new(ty_var(id.0 + 10_000)))
 }
 
 pub(super) fn ty_var(id: usize) -> Ty {
@@ -197,12 +219,13 @@ impl Display for Ty {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Ty::Var(id) => write!(f, "V{}", id.0),
-            Ty::Clock(color) => write!(f, "c{:?}", color),
+            Ty::Signal(ty, color) => write!(f, "{}{}", ty, color),
             Ty::Const(bits) => match bits {
                 Bits::Usize => write!(f, "usize"),
                 Bits::Signed(width) => write!(f, "s{}", width),
                 Bits::Unsigned(width) => write!(f, "b{}", width),
                 Bits::Empty => write!(f, "{{}}"),
+                Bits::Clock(color) => write!(f, "@{}", color),
             },
             Ty::Struct(struct_) => {
                 write!(f, "{} {{", struct_.name)?;
@@ -287,7 +310,10 @@ impl From<Kind> for Ty {
                 discriminant: Box::new(enum_.discriminant_layout.into()),
             }),
             Kind::Array(array) => ty_array((*array.base).into(), array.size),
-            Kind::Clock(color) => Ty::Clock(color),
+            Kind::Signal(base, color) => {
+                let base: Ty = (*base).into();
+                Ty::Signal(Box::new(base), Box::new(ty_clock(color)))
+            }
         }
     }
 }
@@ -313,6 +339,7 @@ impl TryFrom<Ty> for Kind {
                 Bits::Signed(width) => Ok(Kind::Signed(width)),
                 Bits::Unsigned(width) => Ok(Kind::Bits(width)),
                 Bits::Empty => Ok(Kind::Empty),
+                Bits::Clock(_) => bail!("Cannot convert Ty::Clock to Kind"),
             },
             Ty::Struct(struct_) => Ok(struct_.kind),
             Ty::Tuple(fields) => Ok(Kind::make_tuple(
@@ -330,7 +357,10 @@ impl TryFrom<Ty> for Kind {
                 elems.len(),
             )),
             Ty::Enum(enum_) => Ok(enum_.payload.kind),
-            Ty::Clock(color) => Ok(Kind::Clock(color)),
+            Ty::Signal(base, color) => {
+                let base: Kind = (*base).try_into()?;
+                Ok(Kind::Signal(Box::new(base), color.try_clock()?))
+            }
             Ty::Integer => Ok(Kind::Signed(32)),
         }
     }
