@@ -98,6 +98,55 @@ pub struct SPIMaster<const N: usize> {
 ```
 
 ---
+---
+
+# Blinky!
+
+- Structure 
+```rust
+#[derive(LogicBlock)]
+pub struct Blinky {
+  pulser: Pulser,
+  clock: Signal<In, Clock>,
+  leds: Signal<Out, Bits<8>>,
+}
+```
+- Behavior
+```rust
+impl Logic for Blinky {
+  #[hdl_gen]
+  fn update(&mut self) {
+    self.pulser.enable.next = true;
+    self.pulser.clock.next = self.clock.val();
+    self.leds.next = 0x00.into();
+    if self.pulser.pulse.val() {
+      self.leds.next = 0xAA.into();
+    }
+  }
+}
+```
+- Construction
+```rust
+impl Default for Blinky {
+  fn default() -> Self {
+    let pulser = Pulser::new(CLOCK_SPEED_100MHZ.into(), 1.0, Duration::from_millis(250));
+    Blinky {
+      pulser,
+      clock: pins::clock(),
+      leds: pins::leds(),
+    }
+  }
+}
+```
+- Tooling
+```rust
+fn main() {
+    let uut = Blinky::default();
+    synth::generate_bitstream(uut, "firmware/blinky")
+}
+```
+
+---
 layout: two-cols
 ---
 
@@ -145,7 +194,7 @@ impl Default for Blinky {
 }
 ```
 
-- Toolchain
+- Synthesis
 ```rust
 fn main() {
     let uut = Blinky::default();
@@ -162,13 +211,10 @@ fn main() {
         wait_clock_cycles!(ep, clock, x, 4*CLOCK_SPEED_HZ);
         ep.done(x)
     });
-
     // v--- construct the circuit
     let uut = Blinky::default();
     // v--- run the simulation, with the output traced to a .vcd file
     sim.run_to_file(Box::new(uut), 5 * sim_time::ONE_SEC, "blinky.vcd").unwrap();
-    vcd_to_svg("blinky.vcd","blinky_all.svg",&["uut.clock", "uut.led"], 0, 4 * sim_time::ONE_SEC).unwrap();
-    vcd_to_svg("blinky.vcd","blinky_pulse.svg",&["uut.clock", "uut.led"], 900 * sim_time::ONE_MILLISECOND, 1500 * sim_time::ONE_MILLISECOND).unwrap();
 }
 ```
 
