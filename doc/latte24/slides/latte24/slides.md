@@ -101,6 +101,81 @@ pub struct SPIMaster<const N: usize> {
 layout: two-cols
 ---
 
+# Blinky!
+Working firmware on one slide.
+
+- Structure 
+```rust
+#[derive(LogicBlock)]
+pub struct Blinky {
+  pulser: Pulser,
+  clock: Signal<In, Clock>,
+  leds: Signal<Out, Bits<8>>,
+}
+```
+
+- Behavior
+```rust
+impl Logic for Blinky {
+  #[hdl_gen]
+  fn update(&mut self) {
+    self.pulser.enable.next = true;
+    self.pulser.clock.next = self.clock.val();
+    self.leds.next = 0x00.into();
+    if self.pulser.pulse.val() {
+      self.leds.next = 0xAA.into();
+    }
+  }
+}
+```
+
+::right::
+
+- Constructor
+```rust
+impl Default for Blinky {
+  fn default() -> Self {
+    let pulser = Pulser::new(CLOCK_SPEED_100MHZ.into(), 1.0, Duration::from_millis(250));
+    Blinky {
+      pulser,
+      clock: pins::clock(),
+      leds: pins::leds(),
+    }
+  }
+}
+```
+
+- Toolchain
+```rust
+fn main() {
+    let uut = Blinky::default();
+    synth::generate_bitstream(uut, "firmware/blinky")
+}
+```
+
+- Simulation
+```rust
+fn main() {
+    // v--- build a simple simulation (1 testbench, single clock)
+    let mut sim = simple_sim!(Blinky, clock, CLOCK_SPEED_HZ, ep, {
+        let mut x = ep.init()?;
+        wait_clock_cycles!(ep, clock, x, 4*CLOCK_SPEED_HZ);
+        ep.done(x)
+    });
+
+    // v--- construct the circuit
+    let uut = Blinky::default();
+    // v--- run the simulation, with the output traced to a .vcd file
+    sim.run_to_file(Box::new(uut), 5 * sim_time::ONE_SEC, "blinky.vcd").unwrap();
+    vcd_to_svg("blinky.vcd","blinky_all.svg",&["uut.clock", "uut.led"], 0, 4 * sim_time::ONE_SEC).unwrap();
+    vcd_to_svg("blinky.vcd","blinky_pulse.svg",&["uut.clock", "uut.led"], 900 * sim_time::ONE_MILLISECOND, 1500 * sim_time::ONE_MILLISECOND).unwrap();
+}
+```
+
+---
+layout: two-cols
+---
+
 # Interfaces
 
 - Logical grouping of signals
@@ -194,6 +269,7 @@ impl<const N: usize> Logic for Strobe<N> {
 
 
 ---
+layout: two-cols
 ---
 
 # Reuse
@@ -203,6 +279,39 @@ impl<const N: usize> Logic for Strobe<N> {
 - FPGA specific code split out into `board support packages`
 - Manages toolchain and constraint generation
 - Third party BSPs do exist on `crates.io`!
+
+::right::
+
+```rust
+#[derive(LogicBlock)]
+pub struct SDRAMFIFOController<
+    const R: usize, // Number of rows in the SDRAM
+    const C: usize, // Number of columns in the SDRAM
+    const L: u32,   // Line size (multiple of the SDRAM interface width) - rem(2^C, L) = 0
+    const D: usize, // Number of bits in the SDRAM interface width
+    const A: usize, // Number of address bits in the SDRAM (should be C + R + B)
+> {
+    // FPGA interface Clock
+    pub clock: Signal<In, Clock>,
+    // SDRAM interface - 10 signals
+    pub sdram: SDRAMDriver<D>,
+    // Clock for SDRAM
+    pub ram_clock: Signal<In, Clock>,
+    // FIFO interface
+    pub data_in: Signal<In, Bits<D>>,
+    pub write: Signal<In, Bit>,
+    pub full: Signal<Out, Bit>,
+    // ... snip ...
+    // SDRAM Bursty controller
+    controller: SDRAMBurstController<R, C, L, D>,
+    // Front and back porch FIFOs
+    fp: AsynchronousFIFO<Bits<D>, 5, 6, L>,
+    bp: AsynchronousFIFO<Bits<D>, 5, 6, L>,
+    // Read pointer for SDRAM
+    read_pointer: DFF<Bits<A>>,
+    // ..
+}
+```
 
 ---
 ---
