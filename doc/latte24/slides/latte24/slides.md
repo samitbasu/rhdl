@@ -1,6 +1,6 @@
 ---
 # try also 'default' to start simple
-theme: seriph
+theme: default
 # random image from a curated Unsplash collection by Anthony
 # like them? see https://unsplash.com/collections/94734566/slidev
 background: https://cover.sli.dev
@@ -41,8 +41,8 @@ The last comment block of each slide will be treated as slide notes. It will be 
 
 # Why Rust?
 
-- **Static typing** - capture errors at the compilation stage instead of on the bench.
-- **Functional** - use functional programming features to improve testing and express design intent.
+- **Static typing** - capture errors at the compilation stage instead of on the bench
+- **Functional** - use functional programming features to improve testing and express design intent
 - **Macros** - extend and reuse designs safely
 - **Cargo** - included package manager to ease reuse and modularity
 - **Crates.io** - established open-source ecosystem to share code and designs
@@ -54,24 +54,79 @@ type hints, etc.
 <br>
 <br>
 
-Official [website](https://www.rust-hdl.org/)
+Official website [www.rust-hdl.org](https://www.rust-hdl.org/)
 
 ---
 layout: two-cols
 ---
 
-# RustHDL (first attempt)
+# RustHDL (a first attempt)
 
 - Entirely open source core and libraries
-- Takes a subset of Rust and compiles it to Verilog
+- Takes a subset of Rust and transpiles it to Verilog
 - Includes an event-based simulator
-- No formal compiler - just a basic transpiler/code-rewriter
-- Medium scale designs developed 
-- Commercially deployed in a high speed data acquisition system
+- Uses AST transformations to generate HDL
+- Medium scale designs developed, tested, and deployed
+- Commercial use in a high speed data acquisition system
 - Moving from Xilinx --> Lattice ECP5 took ~2 weeks
-- Including time to build a soft-core SDRAM controller
+  - Including time to build a soft-core SDRAM controller
+  - And a new PC interface for data transfer
 
 ::right::
+
+```rust
+#[derive(LogicBlock)]
+pub struct Blinky {
+  pulser: Pulser,
+  clock: Signal<In, Clock>,
+  leds: Signal<Out, Bits<8>>,
+}
+
+impl Logic for Blinky {
+  #[hdl_gen]
+  fn update(&mut self) {
+    self.pulser.enable.next = true;
+    self.pulser.clock.next = self.clock.val();
+    self.leds.next = 0x00.into();
+    if self.pulser.pulse.val() {
+      self.leds.next = 0xAA.into();
+    }
+  }
+}
+
+impl Default for Blinky {
+  fn default() -> Self {
+    let pulser = Pulser::new(CLOCK_SPEED_100MHZ.into(), 1.0, Duration::from_millis(250));
+    Blinky {
+      pulser,
+      clock: pins::clock(),
+      leds: pins::leds(),
+    }
+  }
+}
+
+fn main() {
+    let uut = Blinky::default();
+    synth::generate_bitstream(uut, "firmware/blinky")
+    // v--- build a simple simulation (1 testbench, single clock)
+    let mut sim = simple_sim!(Blinky, clock, CLOCK_SPEED_HZ, ep, {
+        let mut x = ep.init()?;
+        wait_clock_cycles!(ep, clock, x, 4*CLOCK_SPEED_HZ);
+        ep.done(x)
+    });
+    // v--- construct the circuit
+    let uut = Blinky::default();
+    // v--- run the simulation, with the output traced to a .vcd file
+    sim.run_to_file(Box::new(uut), 5 * sim_time::ONE_SEC, "blinky.vcd").unwrap();
+}
+```
+
+---
+layout: two-cols
+---
+
+# Composition for Hardware
+
 
 ```rust
 #[derive(LogicBlock)]
@@ -102,119 +157,51 @@ pub struct SPIMaster<const N: usize> {
 
 # Blinky!
 
-- Structure 
-```rust
-#[derive(LogicBlock)]
-pub struct Blinky {
-  pulser: Pulser,
-  clock: Signal<In, Clock>,
-  leds: Signal<Out, Bits<8>>,
-}
-```
-- Behavior
-```rust
-impl Logic for Blinky {
-  #[hdl_gen]
-  fn update(&mut self) {
-    self.pulser.enable.next = true;
-    self.pulser.clock.next = self.clock.val();
-    self.leds.next = 0x00.into();
-    if self.pulser.pulse.val() {
-      self.leds.next = 0xAA.into();
-    }
-  }
-}
-```
-- Construction
-```rust
-impl Default for Blinky {
-  fn default() -> Self {
-    let pulser = Pulser::new(CLOCK_SPEED_100MHZ.into(), 1.0, Duration::from_millis(250));
-    Blinky {
-      pulser,
-      clock: pins::clock(),
-      leds: pins::leds(),
-    }
-  }
-}
-```
-- Tooling
-```rust
-fn main() {
-    let uut = Blinky::default();
-    synth::generate_bitstream(uut, "firmware/blinky")
-}
-```
 
 ---
 layout: two-cols
 ---
 
-# Blinky!
-Working firmware on one slide.
+# Mental Model
 
-- Structure 
-```rust
-#[derive(LogicBlock)]
-pub struct Blinky {
-  pulser: Pulser,
-  clock: Signal<In, Clock>,
-  leds: Signal<Out, Bits<8>>,
-}
-```
+- Signals
+  - Represent wires in the design
+  - Read from `.val()`
+  - Write to `.next` member
+- State encapsulated in D Flip Flops, BRAMs, etc.
+- **Code is valid Rust** 
+  - removing the `#[hdl_gen]` attribute does 
+  not change the code's meaning
+  - Simulations run the Rust directly
+  - You must make `rustc` happy!
+- Latch prevention done via `yosys` pass
+- Scopes and visibility are Rust-like
 
-- Behavior
-```rust
-impl Logic for Blinky {
-  #[hdl_gen]
-  fn update(&mut self) {
-    self.pulser.enable.next = true;
-    self.pulser.clock.next = self.clock.val();
-    self.leds.next = 0x00.into();
-    if self.pulser.pulse.val() {
-      self.leds.next = 0xAA.into();
-    }
-  }
-}
-```
 
 ::right::
 
-- Constructor
 ```rust
-impl Default for Blinky {
-  fn default() -> Self {
-    let pulser = Pulser::new(CLOCK_SPEED_100MHZ.into(), 1.0, Duration::from_millis(250));
-    Blinky {
-      pulser,
-      clock: pins::clock(),
-      leds: pins::leds(),
+// Design is parametric over N - the size of the counter
+impl<const N: usize> Logic for Strobe<N> {
+  // v-- Attribute to generate HDL
+  #[hdl_gen]
+  // v-- Update function is attached to any logic circuit
+  fn update(&mut self) {
+    // v-- latch prevention
+    self.counter.d.next = self.counter.q.val();
+    // v-- mux control signal
+    if self.enable.val() {
+      //  v-- value assigned if mux control is true
+      self.counter.d.next = self.counter.q.val() + 1;
+    }
+    // v-- combinatorial logic
+    self.strobe.next = self.enable.val() & 
+      (self.counter.q.val() == self.threshold.val());
+    // v-- higher priority mux for previous mux output
+    if self.strobe.val() {
+      self.counter.d.next = 1.into();
     }
   }
-}
-```
-
-- Synthesis
-```rust
-fn main() {
-    let uut = Blinky::default();
-    synth::generate_bitstream(uut, "firmware/blinky")
-}
-```
-
-- Simulation
-```rust
-fn main() {
-    // v--- build a simple simulation (1 testbench, single clock)
-    let mut sim = simple_sim!(Blinky, clock, CLOCK_SPEED_HZ, ep, {
-        let mut x = ep.init()?;
-        wait_clock_cycles!(ep, clock, x, 4*CLOCK_SPEED_HZ);
-        ep.done(x)
-    });
-    // v--- construct the circuit
-    let uut = Blinky::default();
-    // v--- run the simulation, with the output traced to a .vcd file
-    sim.run_to_file(Box::new(uut), 5 * sim_time::ONE_SEC, "blinky.vcd").unwrap();
 }
 ```
 
@@ -255,55 +242,6 @@ fn update(&mut self) {
 ```
 
 ---
-layout: two-cols
----
-
-# Mental Model
-
-- Signals
-  - Represent wires in the design
-  - Read from `.val()`
-  - Write to `.next` member
-- State encapsulated in D Flip Flops, BRAMs, etc.
-- **Code is valid Rust** 
-  - removing the `#[hdl_gen]` attribute does 
-  not change the code's meaning
-  - Simulations run the Rust directly
-  - You must make `rustc` happy!
-- Latch prevention done via `yosys` pass
-
-
-
-
-::right::
-
-```rust
-// Design is parametric over N - the size of the counter
-impl<const N: usize> Logic for Strobe<N> {
-  // v-- Attribute to generate HDL
-  #[hdl_gen]
-  // v-- Update function is attached to any logic circuit
-  fn update(&mut self) {
-    // v-- latch prevention
-    self.counter.d.next = self.counter.q.val();
-    // v-- mux control signal
-    if self.enable.val() {
-      //  v-- value assigned if mux control is true
-      self.counter.d.next = self.counter.q.val() + 1;
-    }
-    // v-- combinatorial logic
-    self.strobe.next = self.enable.val() & 
-      (self.counter.q.val() == self.threshold.val());
-    // v-- higher priority mux for previous mux output
-    if self.strobe.val() {
-      self.counter.d.next = 1.into();
-    }
-  }
-}
-```
-
-
----
 ---
 
 # Simulation And Testing
@@ -325,6 +263,9 @@ layout: two-cols
 - FPGA specific code split out into `board support packages`
 - Manages toolchain and constraint generation
 - Third party BSPs do exist on `crates.io`!
+- Reuse via structural composition of modules
+- Internal logic is encapsulated and hidden
+- Very similar to how schematics are built
 
 ::right::
 
@@ -355,7 +296,6 @@ pub struct SDRAMFIFOController<
     bp: AsynchronousFIFO<Bits<D>, 5, 6, L>,
     // Read pointer for SDRAM
     read_pointer: DFF<Bits<A>>,
-    // ..
 }
 ```
 
