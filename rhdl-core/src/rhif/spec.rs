@@ -2,6 +2,7 @@
 use anyhow::Result;
 
 use crate::{
+    ast_builder::BinOp,
     kernel::{ExternalKernelDef, Kernel},
     path::Path,
     DigitalSignature, Kind, TypedBits,
