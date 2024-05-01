@@ -4,7 +4,6 @@ use crate::compiler::ty::{
 use crate::compiler::ty::{Ty, TypeId};
 use anyhow::bail;
 use anyhow::Result;
-use std::collections::BTreeMap;
 use std::{collections::HashMap, fmt::Display};
 type Term = crate::compiler::ty::Ty;
 type TermMap = crate::compiler::ty::TyMap;
@@ -12,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UnifyContext {
-    map: BTreeMap<TypeId, Term>,
+    map: HashMap<TypeId, Term>,
     // The unify context also records the relationship between type variables
     // that are unified.  So if have an expression path that resolves to a binding
     // we record that cross reference here.  While this is not strictly the concern
@@ -32,11 +31,6 @@ impl Display for UnifyContext {
 }
 
 impl UnifyContext {
-    pub fn var(&mut self) -> Ty {
-        let id = TypeId(self.map.len());
-        self.map.insert(id, Ty::Var(id));
-        Ty::Var(id)
-    }
     pub fn bind(&mut self, parent: TypeId, child: TypeId) {
         self.cross_reference.insert(child, parent);
     }

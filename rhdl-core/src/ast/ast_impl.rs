@@ -328,7 +328,7 @@ pub enum Member {
     Unnamed(u32),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum BinOp {
     Add,
     Sub,
@@ -354,6 +354,22 @@ pub enum BinOp {
     BitOrAssign,
     ShlAssign,
     ShrAssign,
+}
+
+impl BinOp {
+    pub fn is_self_assign(&self) -> bool {
+        match &self {
+            BinOp::AddAssign
+            | BinOp::SubAssign
+            | BinOp::MulAssign
+            | BinOp::BitXorAssign
+            | BinOp::BitAndAssign
+            | BinOp::BitOrAssign
+            | BinOp::ShlAssign
+            | BinOp::ShrAssign => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

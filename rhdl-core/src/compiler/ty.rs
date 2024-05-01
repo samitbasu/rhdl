@@ -10,6 +10,24 @@ use std::fmt::Display;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd, Deserialize, Serialize)]
 pub struct TypeId(pub usize);
 
+impl std::fmt::Display for TypeId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "V{}", self.0)
+    }
+}
+
+impl From<TypeId> for crate::ast::ast_impl::NodeId {
+    fn from(value: TypeId) -> Self {
+        NodeId::new(value.0 as u32)
+    }
+}
+
+impl From<crate::ast::ast_impl::NodeId> for TypeId {
+    fn from(value: crate::ast::ast_impl::NodeId) -> Self {
+        TypeId(value.as_u32() as usize)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Bits {
     Clock(ClockColor),

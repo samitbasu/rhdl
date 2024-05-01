@@ -11,5 +11,6 @@ mod assign_node;
 pub(crate) use assign_node::assign_node_ids;
 mod ascii;
 mod display_ast;
+mod mir_pass;
 mod passes;
 mod utils;
