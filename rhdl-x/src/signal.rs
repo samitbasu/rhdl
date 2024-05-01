@@ -21,8 +21,8 @@ fn add_sig<C: ClockType, D: ClockType>(
     let q = x + 3;
     let h = x > e;
     //let c = b8(4);
-    //let cmp = x > c;
-    if true {
+    let cmp = x > c;
+    if cmp {
         z
     } else {
         w
@@ -54,6 +54,18 @@ fn add<C: ClockType, D: ClockType>(
     }
 }
 
+#[kernel]
+fn add1<C: ClockType, D: ClockType>(
+    x: Sig<b8, C>,
+    y: Sig<b8, C>,
+    z: Sig<b8, D>,
+    w: Sig<b8, D>,
+    ndx: b8,
+) -> b8 {
+    let c = x + y;
+    ndx
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -67,6 +79,11 @@ mod tests {
     #[test]
     fn test_signal_if() {
         let add = compile_design::<add<Red, Blue>>().unwrap();
+    }
+
+    #[test]
+    fn test_signal_if1() {
+        let add = compile_design::<add1<Red, Blue>>().unwrap();
     }
 
     #[test]
