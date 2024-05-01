@@ -115,6 +115,10 @@ impl Ty {
             _ => bail!("Expected clock type, got {:?}", self),
         }
     }
+
+    pub(crate) fn is_variable(&self) -> bool {
+        matches!(self, Ty::Var(_))
+    }
 }
 
 pub(super) fn ty_bool() -> Ty {

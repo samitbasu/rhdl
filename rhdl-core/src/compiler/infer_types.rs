@@ -11,7 +11,7 @@ use crate::compiler::UnifyContext;
 use crate::kernel::Kernel;
 use crate::Kind;
 use anyhow::{bail, Result};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use super::ty::ty_signal;
 
@@ -43,12 +43,37 @@ impl std::fmt::Display for Scope {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BinaryOpKind {
+    AddLike,
+    ShiftLike,
+    CompareLike,
+    AddAssignLike,
+    ShiftAssignLike,
+}
+
+// This struct represents a deferred unify operation
+// associated with a binomial operator.
+// So we have x = a + b, and we want to unify all
+// three. At the time that the binomial operator
+// is visited, we may not know enough about a or b to
+// infer the type of x.  So we revisit in a queue afterwards.
+
+#[derive(Debug, Clone)]
+pub struct BinomialInference {
+    op: BinaryOpKind,
+    lhs: Ty,
+    rhs: Ty,
+    target: Ty,
+}
+
 #[derive(Default)]
 pub struct TypeInference {
     scopes: Vec<Scope>,
     active_scope: ScopeId,
     context: UnifyContext,
     ret: Option<Ty>,
+    deferred: Vec<BinomialInference>,
 }
 
 impl TypeInference {
@@ -67,6 +92,7 @@ impl TypeInference {
         self.active_scope = self.scopes[self.active_scope.0].parent;
     }
     fn unify(&mut self, lhs: Ty, rhs: Ty) -> Result<()> {
+        eprintln!("Unifying {:?} = {:?}", lhs, rhs);
         if let Err(err) = self.context.unify(lhs, rhs) {
             bail!(
                 "Type error: {}, active_scope: {:?}, scopes: {}",
@@ -81,6 +107,87 @@ impl TypeInference {
         } else {
             Ok(())
         }
+    }
+    fn process_deferred_unification(
+        &mut self,
+        deferred: BinomialInference,
+    ) -> Result<Option<BinomialInference>> {
+        let lhs = self.context.apply(deferred.lhs.clone());
+        let rhs = self.context.apply(deferred.rhs.clone());
+        let target = self.context.apply(deferred.target.clone());
+        if lhs.is_variable() && rhs.is_variable() {
+            return Ok(Some(deferred));
+        }
+        match deferred.op {
+            BinaryOpKind::AddLike => {
+                eprintln!(
+                    "Processing deferred unification: {:?} + {:?} -> {:?}",
+                    lhs, rhs, target
+                );
+                if lhs.is_signal() {
+                    self.unify(target.clone(), lhs.clone())?;
+                }
+                if rhs.is_signal() {
+                    self.unify(target.clone(), rhs.clone())?;
+                }
+                if !lhs.is_signal() && !rhs.is_signal() {
+                    self.unify(target.clone(), lhs.clone())?;
+                    self.unify(target, rhs.clone())?;
+                }
+            }
+            BinaryOpKind::CompareLike => {
+                eprintln!(
+                    "Processing deferred unification: {:?} > {:?} -> {:?}",
+                    lhs, rhs, target
+                );
+                if let Ty::Var(target_id) = target {
+                    if lhs.is_signal() {
+                        self.unify(target.clone(), ty_signal(ty_bool(), target_id))?;
+                    }
+                    if rhs.is_signal() {
+                        self.unify(target.clone(), ty_signal(ty_bool(), target_id))?;
+                    }
+                    if !lhs.is_signal() && !rhs.is_signal() {
+                        self.unify(lhs.clone(), rhs.clone())?;
+                        self.unify(target, ty_bool())?;
+                    }
+                }
+            }
+            _ => {
+                unimplemented!()
+            } /*             BinaryOpKind::CompareLike => {
+                             if lhs.is_signal() {
+                                 self.unify(target, ty_signal(ty_bool()))?;
+                             }
+                             self.unify(deferred.lhs, deferred.rhs)?;
+                             self.unify(deferred.target, ty_bool())?;
+                         }
+                         BinaryOpKind::AddAssignLike => {
+                             self.unify(deferred.lhs, deferred.rhs)?;
+                             self.unify(deferred.target, ty_empty())?;
+                         }
+                         BinaryOpKind::AndAssignLike => {
+                             self.unify(deferred.lhs, ty_bool())?;
+                             self.unify(deferred.rhs, ty_bool())?;
+                             self.unify(deferred.target, ty_empty())?;
+                         }
+              */
+        }
+        Ok(None)
+    }
+    fn process_deferred_unifications(&mut self) -> Result<()> {
+        if self.deferred.is_empty() {
+            return Ok(());
+        }
+        eprintln!("Processing deferred unifications: {}", self.deferred.len());
+        let mut new_deferred = vec![];
+        for inference in self.deferred.clone() {
+            if let Some(inference) = self.process_deferred_unification(inference)? {
+                new_deferred.push(inference.clone());
+            }
+        }
+        self.deferred = new_deferred;
+        Ok(())
     }
     fn bind(&mut self, name: &str, id: NodeId) -> Result<()> {
         eprintln!("Binding {} to {:?}", name, id);
@@ -376,37 +483,49 @@ impl Visitor for TypeInference {
             // x <- l + r --> tx = tl = tr
             ExprKind::Binary(ExprBinary {
                 op:
-                    BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::BitXor | BinOp::BitAnd | BinOp::BitOr,
+                    BinOp::Add
+                    | BinOp::Sub
+                    | BinOp::Mul
+                    | BinOp::BitXor
+                    | BinOp::BitAnd
+                    | BinOp::BitOr
+                    | BinOp::And
+                    | BinOp::Or,
                 lhs,
                 rhs,
             }) => {
-                //                self.unify(my_ty.clone(), id_to_var(lhs.id)?)?;
-                //self.unify(my_ty, id_to_var(rhs.id)?)?;
-            }
-            // x <- l && r --> tx = tl = tr = bool
-            ExprKind::Binary(ExprBinary {
-                op: BinOp::And | BinOp::Or,
-                lhs,
-                rhs,
-            }) => {
-                self.unify(my_ty.clone(), id_to_var(lhs.id)?)?;
-                self.unify(my_ty.clone(), id_to_var(rhs.id)?)?;
-                self.unify(my_ty, ty_bool())?;
+                self.deferred.push(BinomialInference {
+                    op: BinaryOpKind::AddLike,
+                    lhs: id_to_var(lhs.id)?,
+                    rhs: id_to_var(rhs.id)?,
+                    target: my_ty.clone(),
+                });
             }
             // x <- l << r --> tx = tl
             ExprKind::Binary(ExprBinary {
                 op: BinOp::Shl | BinOp::Shr,
                 lhs,
-                rhs: _,
+                rhs,
             }) => {
-                //self.unify(my_ty.clone(), id_to_var(lhs.id)?)?;
+                self.deferred.push(BinomialInference {
+                    op: BinaryOpKind::ShiftLike,
+                    lhs: id_to_var(lhs.id)?,
+                    rhs: id_to_var(rhs.id)?,
+                    target: my_ty.clone(),
+                });
             }
             // x <- (l <<= r) --> tx = {}
             ExprKind::Binary(ExprBinary {
                 op: BinOp::ShlAssign | BinOp::ShrAssign,
-                ..
+                lhs,
+                rhs,
             }) => {
-                //self.unify(my_ty, ty_empty())?;
+                self.deferred.push(BinomialInference {
+                    op: BinaryOpKind::ShiftAssignLike,
+                    lhs: id_to_var(lhs.id)?,
+                    rhs: id_to_var(rhs.id)?,
+                    target: my_ty.clone(),
+                });
             }
             // x <- l == r --> tx = bool, tl = tr
             ExprKind::Binary(ExprBinary {
@@ -414,8 +533,12 @@ impl Visitor for TypeInference {
                 lhs,
                 rhs,
             }) => {
-                //                let _ = self.unify(id_to_var(lhs.id)?, id_to_var(rhs.id)?);
-                self.unify(my_ty, ty_bool())?;
+                self.deferred.push(BinomialInference {
+                    op: BinaryOpKind::CompareLike,
+                    lhs: id_to_var(lhs.id)?,
+                    rhs: id_to_var(rhs.id)?,
+                    target: my_ty.clone(),
+                });
             }
             // x <- l += r --> tx = {}, tl = tr
             ExprKind::Binary(ExprBinary {
@@ -429,8 +552,12 @@ impl Visitor for TypeInference {
                 lhs,
                 rhs,
             }) => {
-                //self.unify(id_to_var(lhs.id)?, id_to_var(rhs.id)?)?;
-                self.unify(my_ty, ty_empty())?;
+                self.deferred.push(BinomialInference {
+                    op: BinaryOpKind::AddAssignLike,
+                    lhs: id_to_var(lhs.id)?,
+                    rhs: id_to_var(rhs.id)?,
+                    target: my_ty.clone(),
+                });
             }
             // x <- y = z --> tx = {}, ty = tz
             ExprKind::Assign(ExprAssign { lhs, rhs }) => {
@@ -674,10 +801,21 @@ impl<'a> Visitor for InferenceForGenericIntegers<'a> {
 pub fn infer(root: &Kernel) -> Result<UnifyContext> {
     let mut inference_engine = TypeInference::default();
     inference_engine.visit_kernel_fn(root.inner())?;
-    inference_engine.visit_kernel_fn(root.inner())?;
+    eprintln!("defer count {:?}", inference_engine.deferred.len());
     let mut integer_fixup = InferenceForGenericIntegers {
         context: &mut inference_engine.context,
     };
     integer_fixup.visit_kernel_fn(root.inner())?;
+    let mut previous_number = 0;
+    while previous_number != inference_engine.deferred.len() {
+        previous_number = inference_engine.deferred.len();
+        inference_engine.process_deferred_unifications()?;
+    }
+    if !inference_engine.deferred.is_empty() {
+        bail!(
+            "Failed to resolve all type constraints {:?}",
+            inference_engine.deferred
+        );
+    }
     Ok(inference_engine.context)
 }
