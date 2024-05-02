@@ -9,14 +9,23 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
 
+use crate::ast::ast_impl;
 use crate::ast::ast_impl::Block;
 use crate::ast::ast_impl::ExprArray;
+use crate::ast::ast_impl::ExprAssign;
 use crate::ast::ast_impl::ExprBinary;
+use crate::ast::ast_impl::ExprCall;
+use crate::ast::ast_impl::ExprField;
 use crate::ast::ast_impl::ExprForLoop;
 use crate::ast::ast_impl::ExprIf;
 use crate::ast::ast_impl::ExprIndex;
+use crate::ast::ast_impl::ExprMethodCall;
+use crate::ast::ast_impl::ExprRepeat;
+use crate::ast::ast_impl::ExprRet;
+use crate::ast::ast_impl::ExprStruct;
 use crate::ast::ast_impl::ExprTuple;
 use crate::ast::ast_impl::ExprUnary;
+use crate::ast::ast_impl::FieldValue;
 use crate::ast::ast_impl::Local;
 use crate::ast::ast_impl::Pat;
 use crate::ast::ast_impl::PatKind;
@@ -24,17 +33,27 @@ use crate::ast::ast_impl::Stmt;
 use crate::ast::ast_impl::StmtKind;
 use crate::ast_builder::BinOp;
 use crate::ast_builder::UnOp;
+use crate::rhif;
 use crate::rhif::rhif_builder::op_array;
+use crate::rhif::rhif_builder::op_as_bits;
+use crate::rhif::rhif_builder::op_as_signed;
 use crate::rhif::rhif_builder::op_assign;
 use crate::rhif::rhif_builder::op_binary;
 use crate::rhif::rhif_builder::op_comment;
+use crate::rhif::rhif_builder::op_enum;
+use crate::rhif::rhif_builder::op_exec;
 use crate::rhif::rhif_builder::op_index;
+use crate::rhif::rhif_builder::op_repeat;
 use crate::rhif::rhif_builder::op_select;
 use crate::rhif::rhif_builder::op_splice;
+use crate::rhif::rhif_builder::op_struct;
 use crate::rhif::rhif_builder::op_tuple;
 use crate::rhif::rhif_builder::op_unary;
 use crate::rhif::spec::AluBinary;
 use crate::rhif::spec::AluUnary;
+use crate::rhif::spec::ExternalFunctionCode;
+use crate::rhif::spec::FuncId;
+use crate::KernelFnKind;
 use crate::Kind;
 use crate::{
     ast::ast_impl::{Expr, ExprKind, ExprLit, FunctionId, NodeId},
@@ -94,6 +113,15 @@ impl Default for ScopeId {
     }
 }
 
+fn collapse_path(path: &ast_impl::Path) -> String {
+    path.segments
+        .iter()
+        .map(|x| x.ident.to_string())
+        .collect::<Vec<_>>()
+        .join("::")
+}
+
+
 #[derive(Debug)]
 struct Scope {
     names: HashMap<String, NodeId>,
@@ -110,6 +138,8 @@ impl std::fmt::Display for Scope {
         writeln!(f, "}}")
     }
 }
+
+const EARLY_RETURN_FLAG_NODE: NodeId = NodeId::new(!0);
 
 type LocalsMap = BTreeMap<NodeId, Slot>;
 pub struct MirContext {
@@ -191,12 +221,18 @@ impl MirContext {
         self.reg_count += 1;
         reg
     }
-    fn literal_int(&mut self, id: NodeId, val: i32) -> Slot {
+    fn lit(&mut self, id: NodeId, lit: ExprLit) -> Slot {
         let ndx = self.literals.len();
         let slot = Slot::Literal(ndx);
-        self.literals.insert(slot, ExprLit::Int(val.to_string()));
+        self.literals.insert(slot, lit);
         self.context.insert(slot, id);
         slot
+    }
+    fn literal_int(&mut self, id: NodeId, val: i32) -> Slot {
+        self.lit(id, ExprLit::Int(val.to_string()))
+    }
+    fn literal_bool(&mut self, id: NodeId, val: bool) -> Slot {
+        self.lit(id, ExprLit::Bool(val))
     }
     fn resolve_local(&self, id: NodeId) -> Result<Slot> {
         self.locals
@@ -289,7 +325,11 @@ impl MirContext {
             _ => bail!("Pattern not supported"),
         }
     }
-
+    fn stash(&mut self, func: ExternalFunction) -> Result<FuncId> {
+        let ndx = self.stash.len();
+        self.stash.push(func);
+        Ok(FuncId(ndx))
+    }
     fn op(&mut self, op: OpCode, node: NodeId) {
         self.ops.push(OpCodeWithSource { op, source: node });
     }
@@ -298,6 +338,16 @@ impl MirContext {
         let elements = self.expr_list(&array.elems)?;
         self.op(op_array(lhs, elements), id);
         Ok(lhs)
+    }
+    fn assign(&mut self, id: NodeId, assign: &ExprAssign) -> Result<Slot> {
+        let rhs = self.expr(&assign.rhs)?;
+        let (rebind, path) = self.expr_lhs(&assign.lhs)?;
+        if path.is_empty() {
+            self.op(op_assign(rebind.to, rhs), id);
+        } else {
+            self.op(op_splice(rebind.to, rebind.from, path, rhs), id);
+        }
+        Ok(Slot::Empty)
     }
     fn assign_binop(&mut self, id: NodeId, bin: &ExprBinary) -> Result<Slot> {
         let lhs = self.expr(&bin.lhs)?;
@@ -397,6 +447,61 @@ impl MirContext {
             _ => bail!("Pattern not supported"),
         }
     }
+    fn call(&mut self, id: NodeId, call: &ExprCall) -> Result<Slot> {
+        let lhs = self.reg(id);
+        let path = collapse_path(&call.path);
+        let args = self.expr_list(&call.args)?;
+        let Some(code) = &call.code else {
+            bail!("No code for call {:?}", call)
+        };
+        // inline calls to bits and signed
+        match code {
+            KernelFnKind::BitConstructor(len) => self.op(op_as_bits(lhs, args[0], *len), id),
+            KernelFnKind::SignedBitsConstructor(len) => {
+                self.op(op_as_signed(lhs, args[0], *len), id)
+            }
+            KernelFnKind::TupleStructConstructor(tb) => {
+                let fields = args
+                    .iter()
+                    .enumerate()
+                    .map(|(ndx, x)| rhif::spec::FieldValue {
+                        value: *x,
+                        member: rhif::spec::Member::Unnamed(ndx as u32),
+                    })
+                    .collect();
+                self.op(op_struct(lhs, fields, None, tb.clone()), id);
+            }
+            KernelFnKind::EnumTupleStructConstructor(template) => {
+                let fields = args
+                    .iter()
+                    .enumerate()
+                    .map(|(ndx, x)| rhif::spec::FieldValue {
+                        value: *x,
+                        member: rhif::spec::Member::Unnamed(ndx as u32),
+                    })
+                    .collect();
+                self.op(op_enum(lhs, fields, template.clone()), id);
+            }
+            KernelFnKind::Kernel(kernel) => {
+                let func = self.stash(ExternalFunction {
+                    code: ExternalFunctionCode::Kernel(kernel.clone()),
+                    path: path.clone(),
+                    signature: call.signature.clone(),
+                })?;
+                self.op(op_exec(lhs, func, args), id);
+            }
+            KernelFnKind::Extern(code) => {
+                let func = self.stash(ExternalFunction {
+                    code: ExternalFunctionCode::Extern(code.clone()),
+                    path: path.clone(),
+                    signature: call.signature.clone(),
+                })?;
+                self.op(op_exec(lhs, func, args), id);
+            }
+        }
+        Ok(lhs)
+    }
+
     fn expr_list(&mut self, exprs: &[Box<Expr>]) -> Result<Vec<Slot>> {
         exprs.iter().map(|expr| self.expr(expr)).collect()
     }
@@ -410,14 +515,7 @@ impl MirContext {
             Ok(block_result)
         }
         ExprKind::If(if_expr) => self.if_expr(expr.id, if_expr),
-        ExprKind::Lit(lit) => {
-            let ndx = self.literals.len();
-            let ty = self.ty(expr.id)?;
-            self.literals.push(lit.clone());
-            self.ty.insert(Slot::Literal(ndx), ty);
-            self.context.insert(Slot::Literal(ndx), expr.id);
-            Ok(Slot::Literal(ndx))
-        }
+        ExprKind::Lit(lit) => Ok(self.lit(expr.id, lit.clone())),
         ExprKind::Field(field) => self.field(expr.id, field),
         ExprKind::Group(group) => self.expr(&group.expr),
         ExprKind::Index(index) => self.index(expr.id, index),
@@ -456,6 +554,20 @@ impl MirContext {
             }
         }
     }
+    fn field(&mut self, id: NodeId, field: &ExprField) -> Result<Slot> {
+        let lhs = self.reg(id);
+        let arg = self.expr(&field.expr)?;
+        let path = field.member.clone().into();
+        self.op(op_index(lhs, arg, path), id);
+        Ok(lhs)
+    }
+    fn field_value(&mut self, element: &FieldValue) -> Result<rhif::spec::FieldValue> {
+        let value = self.expr(&element.value)?;
+        Ok(rhif::spec::FieldValue {
+            member: element.member.clone().into(),
+            value,
+        })
+    }
     fn for_loop(&mut self, for_loop: &ExprForLoop) -> Result<Slot> {
         self.new_scope();
         self.bind_pattern(&for_loop.pat)?;
@@ -478,7 +590,7 @@ impl MirContext {
         let start_lit = start_lit.parse::<i32>()?;
         let end_lit = end_lit.parse::<i32>()?;
         for ndx in start_lit..end_lit {
-            let value = self.literal_int(ndx);
+            let value = self.literal_int(for_loop.pat.id, ndx);
             self.rebind(for_loop.pat.id)?;
             self.initialize_local(&for_loop.pat, value)?;
             self.block(Slot::Empty, &for_loop.body)?;
@@ -551,6 +663,94 @@ impl MirContext {
         }
         Ok(())
     }
+    fn method_call(&mut self, id: NodeId, method_call: &ExprMethodCall) -> Result<Slot> {
+        // The `val` method is a special case used to strip the clocking context
+        // from a signal.
+        if method_call.method.as_str() == "val" {
+            let lhs = self.reg(id);
+            let arg = self.expr(&method_call.receiver)?;
+            self.op(op_assign(lhs, arg), id);
+            /*
+            self.op(
+                op_index(lhs, arg, crate::path::Path::default().signal_value()),
+                id,
+            );*/
+            return Ok(lhs);
+        }
+        // First handle unary ops only
+        let op = match method_call.method.as_str() {
+            "any" => AluUnary::Any,
+            "all" => AluUnary::All,
+            "xor" => AluUnary::Xor,
+            "as_unsigned" => AluUnary::Unsigned,
+            "as_signed" => AluUnary::Signed,
+            _ => bail!("Unsupported method call {:?}", method_call),
+        };
+        let lhs = self.reg(id);
+        let arg = self.expr(&method_call.receiver)?;
+        self.op(op_unary(op, lhs, arg), id);
+        Ok(lhs)
+    }
+    fn repeat(&mut self, id: NodeId, repeat: &ExprRepeat) -> Result<Slot> {
+        let lhs = self.reg(id);
+        let len = self.expr(&repeat.len)?;
+        let len = self.slot_to_index(len)?;
+        let value = self.expr(&repeat.value)?;
+        self.op(op_repeat(lhs, value, len), id);
+        Ok(lhs)
+    }
+    fn return_expr(&mut self, id: NodeId, return_expr: &ExprRet) -> Result<Slot> {
+        // An early return of the type "return <expr>" is transformed
+        // into the following equivalent expression
+        // if !__early_return {
+        //    __early_return = true;
+        //    return_slot = <expr>
+        // }
+        // Because the function is pure, and has no side effects, the rest
+        // of the function can continue as normal.  We do need to make sure
+        // that a phi node is inserted at the end of this synthetic `if` statement
+        // to build a distributed priority encoder for the `__early_return` flag and
+        // for the return slot itself.
+
+        let literal_true = self.literal_bool(id, true);
+        let early_return_flag = self.rebind(EARLY_RETURN_FLAG_NODE)?;
+        let return_slot = self.rebind(self.return_node)?;
+        let early_return_expr = if let Some(return_expr) = &return_expr.expr {
+            self.expr(return_expr)?
+        } else {
+            Slot::Empty
+        };
+        // Next, we need to code the following:
+        //  if early_return_flag.from {
+        //     return_slot.to = return_slot.from
+        //     early_return_flag.to = early_return_flag.from
+        //  } else {
+        //     return_slot.to = <expr>
+        //     early_return_flag.to = true
+        //  }
+        // These need to be encoded into 2 select instructions as:
+        // return_slot.to = select(early_return_flag.from, return_slot.from, <expr>)
+        // early_return_flag.to = select(early_return_flag.from, early_return_flag.from, true)
+        self.op(
+            op_select(
+                return_slot.to,
+                early_return_flag.from,
+                return_slot.from,
+                early_return_expr,
+            ),
+            id,
+        );
+        self.op(
+            op_select(
+                early_return_flag.to,
+                early_return_flag.from,
+                early_return_flag.from,
+                literal_true,
+            ),
+            id,
+        );
+        Ok(Slot::Empty)
+    }
     fn stmt(&mut self, statement: &Stmt) -> Result<Slot> {
         let type_context = UnifyContext::default();
         let statement_text = pretty_print_statement(statement, &type_context)?;
@@ -567,13 +767,32 @@ impl MirContext {
             }
         }
     }
+    fn struct_expr(&mut self, id: NodeId, strukt: &ExprStruct) -> Result<Slot> {
+        eprintln!("Struct expr {:?} template: {}", strukt, strukt.template);
+        let lhs = self.reg(id);
+        let fields = strukt
+            .fields
+            .iter()
+            .map(|x| self.field_value(x))
+            .collect::<Result<_>>()?;
+        let rest = strukt.rest.as_ref().map(|x| self.expr(x)).transpose()?;
+        if let Kind::Enum(_enum) = &strukt.template.kind {
+            eprintln!("Emitting enum opcode");
+            self.op(op_enum(lhs, fields, strukt.template.clone()), id);
+        } else {
+            eprintln!("Emitting struct opcode");
+            self.op(op_struct(lhs, fields, rest, strukt.template.clone()), id);
+        }
+        Ok(lhs)
+
+    }
     fn tuple(&mut self, id: NodeId, tuple: &ExprTuple) -> Result<Slot> {
         let elements = self.expr_list(&tuple.elements)?;
         let result = self.reg(id);
         self.op(op_tuple(result, elements), id);
         Ok(result)
     }
-    fn unop(&mut self, id: NodeId, unary: ExprUnary) -> Result<Slot> {
+    fn unop(&mut self, id: NodeId, unary: &ExprUnary) -> Result<Slot> {
         let arg = self.expr(&unary.expr)?;
         let result = self.reg(id);
         let op = unary_op_to_alu(unary.op);
