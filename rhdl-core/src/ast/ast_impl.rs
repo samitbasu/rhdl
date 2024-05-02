@@ -372,7 +372,7 @@ impl BinOp {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum UnOp {
     Neg,
     Not,

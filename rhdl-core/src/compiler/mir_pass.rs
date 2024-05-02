@@ -10,47 +10,21 @@ use std::collections::BTreeSet;
 use std::collections::HashMap;
 
 use crate::ast::ast_impl;
-use crate::ast::ast_impl::Block;
-use crate::ast::ast_impl::ExprArray;
-use crate::ast::ast_impl::ExprAssign;
-use crate::ast::ast_impl::ExprBinary;
-use crate::ast::ast_impl::ExprCall;
-use crate::ast::ast_impl::ExprField;
-use crate::ast::ast_impl::ExprForLoop;
-use crate::ast::ast_impl::ExprIf;
-use crate::ast::ast_impl::ExprIndex;
-use crate::ast::ast_impl::ExprMethodCall;
-use crate::ast::ast_impl::ExprRepeat;
-use crate::ast::ast_impl::ExprRet;
-use crate::ast::ast_impl::ExprStruct;
-use crate::ast::ast_impl::ExprTuple;
-use crate::ast::ast_impl::ExprUnary;
-use crate::ast::ast_impl::FieldValue;
-use crate::ast::ast_impl::Local;
-use crate::ast::ast_impl::Pat;
-use crate::ast::ast_impl::PatKind;
-use crate::ast::ast_impl::Stmt;
-use crate::ast::ast_impl::StmtKind;
+use crate::ast::ast_impl::{
+    Arm, ArmKind, Block, ExprArray, ExprAssign, ExprBinary, ExprCall, ExprField, ExprForLoop,
+    ExprIf, ExprIndex, ExprMatch, ExprMethodCall, ExprPath, ExprRepeat, ExprRet, ExprStruct,
+    ExprTuple, ExprUnary, FieldValue, Local, Pat, PatKind, Stmt, StmtKind,
+};
 use crate::ast_builder::BinOp;
 use crate::ast_builder::UnOp;
 use crate::rhif;
-use crate::rhif::rhif_builder::op_array;
-use crate::rhif::rhif_builder::op_as_bits;
-use crate::rhif::rhif_builder::op_as_signed;
-use crate::rhif::rhif_builder::op_assign;
-use crate::rhif::rhif_builder::op_binary;
-use crate::rhif::rhif_builder::op_comment;
-use crate::rhif::rhif_builder::op_enum;
-use crate::rhif::rhif_builder::op_exec;
-use crate::rhif::rhif_builder::op_index;
-use crate::rhif::rhif_builder::op_repeat;
-use crate::rhif::rhif_builder::op_select;
-use crate::rhif::rhif_builder::op_splice;
-use crate::rhif::rhif_builder::op_struct;
-use crate::rhif::rhif_builder::op_tuple;
-use crate::rhif::rhif_builder::op_unary;
+use crate::rhif::rhif_builder::{
+    op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
+    op_exec, op_index, op_repeat, op_select, op_splice, op_struct, op_tuple, op_unary,
+};
 use crate::rhif::spec::AluBinary;
 use crate::rhif::spec::AluUnary;
+use crate::rhif::spec::CaseArgument;
 use crate::rhif::spec::ExternalFunctionCode;
 use crate::rhif::spec::FuncId;
 use crate::KernelFnKind;
@@ -61,7 +35,6 @@ use crate::{
 };
 
 use super::display_ast::pretty_print_statement;
-use super::ty::TypeId;
 use super::UnifyContext;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -121,10 +94,9 @@ fn collapse_path(path: &ast_impl::Path) -> String {
         .join("::")
 }
 
-
 #[derive(Debug)]
 struct Scope {
-    names: HashMap<String, NodeId>,
+    names: HashMap<String, Slot>,
     children: Vec<ScopeId>,
     parent: ScopeId,
 }
@@ -139,7 +111,8 @@ impl std::fmt::Display for Scope {
     }
 }
 
-const EARLY_RETURN_FLAG_NODE: NodeId = NodeId::new(!0);
+const EARLY_RETURN_FLAG_NAME: &str = "__early_return_flag";
+const RETURN_NAME: &str = "__return";
 
 type LocalsMap = BTreeMap<NodeId, Slot>;
 pub struct MirContext {
@@ -147,11 +120,11 @@ pub struct MirContext {
     ops: Vec<OpCodeWithSource>,
     reg_count: usize,
     literals: BTreeMap<Slot, ExprLit>,
-    context: BTreeMap<Slot, NodeId>,
+    reg_source_map: BTreeMap<Slot, NodeId>,
     locals: LocalsMap,
     ty: BTreeMap<Slot, Kind>,
     stash: Vec<ExternalFunction>,
-    return_node: NodeId,
+    return_slot: Slot,
     arguments: Vec<Slot>,
     fn_id: FunctionId,
     name: String,
@@ -193,23 +166,31 @@ impl MirContext {
     fn end_scope(&mut self) {
         self.active_scope = self.scopes[self.active_scope.0].parent;
     }
-    // Create a local variable binding to the given NodeId.
-    fn bind(&mut self, id: NodeId, name: &str) -> Result<()> {
+    // Create a local variable binding to the given name, and return the
+    // resulting register.
+    fn bind(&mut self, name: &str, id: NodeId) -> Result<()> {
         let reg = self.reg(id);
         eprintln!("Binding {}#{} to {:?}", name, id, reg);
-        if self.locals.insert(id, reg).is_some() {
+        if self.scopes[self.active_scope.0]
+            .names
+            .insert(name.to_string(), reg)
+            .is_some()
+        {
             bail!("ICE - duplicate local binding for {}", id);
         }
         Ok(())
     }
-    // Rebind a local variable to a new slot.
-    fn rebind(&mut self, id: NodeId) -> Result<Rebind> {
+    // Rebind a local variable to a new slot.  We need
+    // to know the previous name for the slot in this case.
+    fn rebind(&mut self, name: &str, id: NodeId) -> Result<Rebind> {
         let reg = self.reg(id);
-        let Some(prev) = self.locals.get(&id).copied() else {
-            bail!("ICE - rebind of unbound variable {}", id);
+        let Some(prev) = self.scopes[self.active_scope.0]
+            .names
+            .insert(name.to_string(), reg)
+        else {
+            bail!("ICE - rebind of unbound variable {}", name);
         };
-        eprintln!("Rebinding {}#{} to {:?}", id, prev, reg);
-        self.locals.insert(id, reg);
+        eprintln!("Rebound {} from {} to {}", name, prev, reg);
         Ok(Rebind {
             from: prev,
             to: reg,
@@ -217,7 +198,7 @@ impl MirContext {
     }
     fn reg(&mut self, id: NodeId) -> Slot {
         let reg = Slot::Register(self.reg_count);
-        self.context.insert(reg, id);
+        self.reg_source_map.insert(reg, id);
         self.reg_count += 1;
         reg
     }
@@ -225,7 +206,7 @@ impl MirContext {
         let ndx = self.literals.len();
         let slot = Slot::Literal(ndx);
         self.literals.insert(slot, lit);
-        self.context.insert(slot, id);
+        self.reg_source_map.insert(slot, id);
         slot
     }
     fn literal_int(&mut self, id: NodeId, val: i32) -> Slot {
@@ -234,13 +215,7 @@ impl MirContext {
     fn literal_bool(&mut self, id: NodeId, val: bool) -> Slot {
         self.lit(id, ExprLit::Bool(val))
     }
-    fn resolve_local(&self, id: NodeId) -> Result<Slot> {
-        self.locals
-            .get(&id)
-            .copied()
-            .ok_or(anyhow!("ICE - unbound local {}", id))
-    }
-    fn lookup_name(&self, path: &str) -> Option<NodeId> {
+    fn lookup_name(&self, path: &str) -> Option<Slot> {
         let mut scope = self.active_scope;
         loop {
             if let Some(id) = self.scopes[scope.0].names.get(path) {
@@ -255,7 +230,10 @@ impl MirContext {
     }
     fn slot_to_index(&self, slot: Slot) -> Result<usize> {
         let Some(value) = self.literals.get(&slot) else {
-            bail!("ICE - slot_to_index called with non-literal slot {:?}", slot);
+            bail!(
+                "ICE - slot_to_index called with non-literal slot {:?}",
+                slot
+            );
         };
         let ndx = match value {
             ExprLit::TypedBits(tb) => tb.value.as_i64()? as usize,
@@ -272,8 +250,8 @@ impl MirContext {
     }
     fn initialize_local(&mut self, pat: &Pat, rhs: Slot) -> Result<()> {
         match &pat.kind {
-            PatKind::Ident(_ident) => {
-                if let Ok(lhs) = self.resolve_local(pat.id) {
+            PatKind::Ident(ident) => {
+                if let Some(lhs) = self.lookup_name(&ident.name) {
                     self.op(op_assign(lhs, rhs), pat.id);
                 }
                 Ok(())
@@ -338,6 +316,39 @@ impl MirContext {
         let elements = self.expr_list(&array.elems)?;
         self.op(op_array(lhs, elements), id);
         Ok(lhs)
+    }
+    fn arm(&mut self, target: Slot, lhs: Slot, arm: &Arm) -> Result<CaseArgument> {
+        match &arm.kind {
+            ArmKind::Wild => {
+                self.wrap_expr_in_block(lhs, &arm.body)?;
+                Ok(CaseArgument::Wild)
+            }
+            ArmKind::Constant(constant) => {
+                self.wrap_expr_in_block(lhs, &arm.body)?;
+                let value = self.lit(arm.id, constant.value.clone());
+                Ok(CaseArgument::Slot(value))
+            }
+            ArmKind::Enum(arm_enum) => {
+                // Allocate the local bindings for the match pattern
+                self.bind_pattern(&arm_enum.pat)?;
+                let discriminant = arm_enum.template.discriminant()?;
+                let discriminant_slot = self.lit(
+                    arm.id,
+                    ExprLit::TypedBits(ast_impl::ExprTypedBits {
+                        path: Box::new(ast_impl::Path { segments: vec![] }),
+                        value: discriminant,
+                    }),
+                );
+                let disc_as_i64 = arm_enum.template.discriminant()?.as_i64()?;
+                let path = crate::path::Path::default().payload_by_value(disc_as_i64);
+                let payload = self.reg(arm_enum.pat.id);
+                self.op(op_index(payload, target, path), arm_enum.pat.id);
+                self.initialize_local(&arm_enum.pat, payload)?;
+                let result = self.expr(&arm.body)?;
+                self.op(op_assign(lhs, result), arm_enum.pat.id);
+                Ok(CaseArgument::Slot(discriminant_slot))
+            }
+        }
     }
     fn assign(&mut self, id: NodeId, assign: &ExprAssign) -> Result<Slot> {
         let rhs = self.expr(&assign.rhs)?;
@@ -416,7 +427,7 @@ impl MirContext {
     }
     fn bind_pattern(&mut self, pattern: &Pat) -> Result<()> {
         match &pattern.kind {
-            PatKind::Ident(ident) => self.bind(pattern.id, &ident.name),
+            PatKind::Ident(ident) => self.bind(&ident.name, pattern.id),
             PatKind::Tuple(tuple) => {
                 for element in &tuple.elements {
                     self.bind_pattern(element)?;
@@ -507,34 +518,34 @@ impl MirContext {
     }
     fn expr(&mut self, expr: &Expr) -> Result<Slot> {
         match &expr.kind {
-        ExprKind::Array(array) => self.array(expr.id, array),
-        ExprKind::Binary(bin) => self.binop(expr.id, bin),
-        ExprKind::Block(block) => {
-            let block_result = self.reg(expr.id);
-            self.block(block_result, &block.block)?;
-            Ok(block_result)
+            ExprKind::Array(array) => self.array(expr.id, array),
+            ExprKind::Binary(bin) => self.binop(expr.id, bin),
+            ExprKind::Block(block) => {
+                let block_result = self.reg(expr.id);
+                self.block(block_result, &block.block)?;
+                Ok(block_result)
+            }
+            ExprKind::If(if_expr) => self.if_expr(expr.id, if_expr),
+            ExprKind::Lit(lit) => Ok(self.lit(expr.id, lit.clone())),
+            ExprKind::Field(field) => self.field(expr.id, field),
+            ExprKind::Group(group) => self.expr(&group.expr),
+            ExprKind::Index(index) => self.index(expr.id, index),
+            ExprKind::Paren(paren) => self.expr(&paren.expr),
+            ExprKind::Path(path) => self.path(expr.id, path),
+            ExprKind::Struct(_struct) => self.struct_expr(expr.id, _struct),
+            ExprKind::Tuple(tuple) => self.tuple(expr.id, tuple),
+            ExprKind::Unary(unary) => self.unop(expr.id, unary),
+            ExprKind::Match(_match) => self.match_expr(expr.id, _match),
+            ExprKind::Ret(_return) => self.return_expr(expr.id, _return),
+            ExprKind::ForLoop(for_loop) => self.for_loop( for_loop),
+            ExprKind::Assign(assign) => self.assign(expr.id, assign),
+            ExprKind::Range(_) => bail!("Ranges are only supported in for loops"),
+            ExprKind::Let(_) => bail!("Fallible let expressions are not currently supported in rhdl.  Use a match instead"),
+            ExprKind::Repeat(repeat) => self.repeat(expr.id, repeat),
+            ExprKind::Call(call) => self.call(expr.id, call),
+            ExprKind::MethodCall(method) => self.method_call(expr.id, method),
+            ExprKind::Type(_) => Ok(Slot::Empty),
         }
-        ExprKind::If(if_expr) => self.if_expr(expr.id, if_expr),
-        ExprKind::Lit(lit) => Ok(self.lit(expr.id, lit.clone())),
-        ExprKind::Field(field) => self.field(expr.id, field),
-        ExprKind::Group(group) => self.expr(&group.expr),
-        ExprKind::Index(index) => self.index(expr.id, index),
-        ExprKind::Paren(paren) => self.expr(&paren.expr),
-        ExprKind::Path(_path) => self.resolve_parent(expr.id),
-        ExprKind::Struct(_struct) => self.struct_expr(expr.id, _struct),
-        ExprKind::Tuple(tuple) => self.tuple(expr.id, tuple),
-        ExprKind::Unary(unary) => self.unop(expr.id, unary),
-        ExprKind::Match(_match) => self.match_expr(expr.id, _match),
-        ExprKind::Ret(_return) => self.return_expr(expr.id, _return),
-        ExprKind::ForLoop(for_loop) => self.for_loop( for_loop),
-        ExprKind::Assign(assign) => self.assign(expr.id, assign),
-        ExprKind::Range(_) => bail!("Ranges are only supported in for loops"),
-        ExprKind::Let(_) => bail!("Fallible let expressions are not currently supported in rhdl.  Use a match instead"),
-        ExprKind::Repeat(repeat) => self.repeat(expr.id, repeat),
-        ExprKind::Call(call) => self.call(expr.id, call),
-        ExprKind::MethodCall(method) => self.method_call(expr.id, method),
-        ExprKind::Type(_) => Ok(Slot::Empty),
-    }
     }
     // We need three components
     //  - the original variable that holds the LHS
@@ -548,11 +559,7 @@ impl MirContext {
     //  - The place to store the result of splicing `a[n]<-b` in a
     // new binding of the name `a`.
     fn expr_lhs(&mut self, expr: &Expr) -> Result<(Rebind, crate::path::Path)> {
-        match &expr.kind {
-            ExprKind::Path(path) => {
-                let Some(parent_id) = self.
-            }
-        }
+        todo!()
     }
     fn field(&mut self, id: NodeId, field: &ExprField) -> Result<Slot> {
         let lhs = self.reg(id);
@@ -570,8 +577,10 @@ impl MirContext {
     }
     fn for_loop(&mut self, for_loop: &ExprForLoop) -> Result<Slot> {
         self.new_scope();
+        let PatKind::Ident(loop_var) = &for_loop.pat.kind else {
+            bail!("for loop with non-ident pattern is not supported");
+        };
         self.bind_pattern(&for_loop.pat)?;
-        let index_reg = self.resolve_local(for_loop.pat.id)?;
         let ExprKind::Range(range) = &for_loop.expr.kind else {
             bail!("for loop with non-range expression is not supported");
         };
@@ -581,17 +590,25 @@ impl MirContext {
         let Some(end) = &range.end else {
             bail!("for loop with no end value is not supported");
         };
-        let Expr { id: _, kind: ExprKind::Lit(ExprLit::Int(start_lit))} = start.as_ref() else {
+        let Expr {
+            id: _,
+            kind: ExprKind::Lit(ExprLit::Int(start_lit)),
+        } = start.as_ref()
+        else {
             bail!("for loop with non-integer start value is not supported");
         };
-        let Expr {id: _, kind: ExprKind::Lit(ExprLit::Int(end_lit))} = end.as_ref() else {
+        let Expr {
+            id: _,
+            kind: ExprKind::Lit(ExprLit::Int(end_lit)),
+        } = end.as_ref()
+        else {
             bail!("for loop with non-integer end value is not supported");
         };
         let start_lit = start_lit.parse::<i32>()?;
         let end_lit = end_lit.parse::<i32>()?;
         for ndx in start_lit..end_lit {
             let value = self.literal_int(for_loop.pat.id, ndx);
-            self.rebind(for_loop.pat.id)?;
+            self.rebind(&loop_var.name, for_loop.pat.id)?;
             self.initialize_local(&for_loop.pat, value)?;
             self.block(Slot::Empty, &for_loop.body)?;
         }
@@ -649,9 +666,15 @@ impl MirContext {
         let index = self.expr(&index.index)?;
         if index.is_literal() {
             let ndx = self.slot_to_index(index)?;
-            self.op(op_index(lhs, arg, crate::path::Path::default().index(ndx)), id);
+            self.op(
+                op_index(lhs, arg, crate::path::Path::default().index(ndx)),
+                id,
+            );
         } else {
-            self.op(op_index(lhs, arg, crate::path::Path::default().dynamic(index)), id);
+            self.op(
+                op_index(lhs, arg, crate::path::Path::default().dynamic(index)),
+                id,
+            );
         }
         Ok(lhs)
     }
@@ -662,6 +685,64 @@ impl MirContext {
             self.initialize_local(&local.pat, rhs)?;
         }
         Ok(())
+    }
+    fn match_expr(&mut self, id: NodeId, match_expr: &ExprMatch) -> Result<Slot> {
+        let lhs = self.reg(id);
+        let target = self.expr(&match_expr.expr)?;
+        let discriminant = self.reg(id);
+        self.op(
+            op_index(
+                discriminant,
+                target,
+                crate::path::Path::default().discriminant(),
+            ),
+            id,
+        );
+        // Need to handle local rebindings in the bodies of the arms.
+        let locals_prior_to_match = self.locals.clone();
+        let mut arguments = vec![];
+        let mut arm_locals = vec![];
+        let mut arm_lhs = vec![];
+        for arm in &match_expr.arms {
+            self.locals = locals_prior_to_match.clone();
+            let lhs = self.reg(id);
+            let disc = self.arm(target, lhs, arm)?;
+            arm_lhs.push(lhs);
+            arguments.push(disc);
+            arm_locals.push(self.locals.clone());
+        }
+        self.locals = locals_prior_to_match.clone();
+        let mut rebound_locals = BTreeSet::new();
+        for branch_locals in &arm_locals {
+            let branch_rebindings = get_locals_changed(&self.locals, branch_locals)?;
+            rebound_locals.extend(branch_rebindings);
+        }
+        // Next, for each local variable in rebindings, we need a new
+        // binding for that variable in the current scope.
+        let post_branch_bindings: BTreeMap<NodeId, Rebind> = rebound_locals
+            .iter()
+            .map(|x| self.rebind(*x).map(|r| (*x, r)))
+            .collect::<Result<_>>()?;
+        for (var, rebind) in &post_branch_bindings {
+            let arm_bindings = arm_locals
+                .iter()
+                .map(|x| {
+                    x.get(var).ok_or(anyhow!(
+                        "ICE - no local var found for binding {var:?} in arm branch"
+                    ))
+                })
+                .collect::<Result<Vec<_>>>()?;
+            let cases = arguments
+                .iter()
+                .cloned()
+                .zip(arm_bindings.into_iter().cloned())
+                .collect::<Vec<_>>();
+            let new_binding = rebind.to;
+            self.op(op_case(new_binding, discriminant, cases), id);
+        }
+        let match_expr_table = arguments.iter().cloned().zip(arm_lhs).collect::<Vec<_>>();
+        self.op(op_case(lhs, discriminant, match_expr_table), id);
+        Ok(lhs)
     }
     fn method_call(&mut self, id: NodeId, method_call: &ExprMethodCall) -> Result<Slot> {
         // The `val` method is a special case used to strip the clocking context
@@ -691,6 +772,14 @@ impl MirContext {
         self.op(op_unary(op, lhs, arg), id);
         Ok(lhs)
     }
+    fn path(&mut self, id: NodeId, path: &ExprPath) -> Result<Slot> {
+        if path.path.segments.len() == 1 && path.path.segments[0].arguments.is_empty() {
+            let name = &path.path.segments[0].ident;
+            self.lookup_name(name)
+                .ok_or(anyhow!("ICE - name not found: {}", name));
+        }
+        bail!("ICE - path with arguments not supported")
+    }
     fn repeat(&mut self, id: NodeId, repeat: &ExprRepeat) -> Result<Slot> {
         let lhs = self.reg(id);
         let len = self.expr(&repeat.len)?;
@@ -713,8 +802,8 @@ impl MirContext {
         // for the return slot itself.
 
         let literal_true = self.literal_bool(id, true);
-        let early_return_flag = self.rebind(EARLY_RETURN_FLAG_NODE)?;
-        let return_slot = self.rebind(self.return_node)?;
+        let early_return_flag = self.rebind(EARLY_RETURN_FLAG_NAME, id)?;
+        let return_slot = self.rebind(RETURN_NAME, id)?;
         let early_return_expr = if let Some(return_expr) = &return_expr.expr {
             self.expr(return_expr)?
         } else {
@@ -784,7 +873,6 @@ impl MirContext {
             self.op(op_struct(lhs, fields, rest, strukt.template.clone()), id);
         }
         Ok(lhs)
-
     }
     fn tuple(&mut self, id: NodeId, tuple: &ExprTuple) -> Result<Slot> {
         let elements = self.expr_list(&tuple.elements)?;
