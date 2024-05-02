@@ -271,6 +271,9 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                             let constant_ty = constant.kind.clone();
                             eq_kinds(arg_ty.clone(), constant_ty)?;
                         }
+                        CaseArgument::Slot(slot) => {
+                            todo!("CaseArgument::Slot")
+                        }
                         CaseArgument::Wild => {}
                     }
                 }

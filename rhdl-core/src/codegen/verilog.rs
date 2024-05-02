@@ -347,6 +347,12 @@ impl<'a> TranslationContext<'a> {
                                 .push_str(&format!("      {}: ", as_verilog_literal(c)));
                             self.body.push_str(&format!("{} = {};\n", lhs, slot));
                         }
+                        CaseArgument::Slot(s) => {
+                            let s = self.obj.literal(*s)?;
+                            self.body
+                                .push_str(&format!("      {}: ", as_verilog_literal(s)));
+                            self.body.push_str(&format!("{} = {};\n", lhs, slot));
+                        }
                         CaseArgument::Wild => {
                             self.body.push_str("      default: ");
                             self.body.push_str(&format!("{} = {};", lhs, slot));
