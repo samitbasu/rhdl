@@ -28,10 +28,9 @@ use anyhow::{bail, Result};
 fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     assign_node_ids(&mut kernel)?;
     compile_mir(kernel.inner())?;
-    todo!();
     let ctx = infer(&kernel)?;
-    let _ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-    check_inference(&kernel, &ctx)?;
+    //    let _ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
+    //    check_inference(&kernel, &ctx)?;
     let mut obj = compile(kernel.inner(), ctx)?;
     eprintln!("{}", obj);
     for _pass in 0..2 {

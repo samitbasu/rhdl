@@ -1,3 +1,7 @@
+use std::any::type_name;
+
+use crate::compiler::assign_node_ids;
+use crate::compiler::mir_pass::compile_mir;
 use crate::rhif::vm::execute_function;
 use crate::TypedBits;
 use crate::{
@@ -302,6 +306,13 @@ where
     K: DigitalFn,
     Args: TestArg,
 {
+    let Some(KernelFnKind::Kernel(mut kernel)) = K::kernel_fn() else {
+        bail!("No kernel function provided for {}", type_name::<K>());
+    };
+    assign_node_ids(&mut kernel)?;
+    compile_mir(kernel.inner())?;
+    return Ok(());
+
     let design = compile_design::<K>()?;
     let verilog = generate_verilog(&design)?;
     eprintln!("Verilog {}", verilog);

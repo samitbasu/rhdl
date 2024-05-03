@@ -3,7 +3,7 @@ use std::{iter::repeat, ops::Range};
 
 use anyhow::Result;
 
-use crate::TypedBits;
+use crate::{ast::ast_impl::Member, TypedBits};
 
 use super::clock::ClockColor;
 
@@ -214,10 +214,28 @@ impl Kind {
             _ => bits.collect(),
         }
     }
+    pub fn get_field_kind(&self, member: &Member) -> Result<Kind> {
+        match self {
+            Kind::Struct(s) => {
+                let field = s.fields.iter().find(|x| x.name == member.to_string());
+                match field {
+                    Some(field) => Ok(field.kind.clone()),
+                    None => Err(anyhow::anyhow!("No field with name {}", member)),
+                }
+            }
+            _ => Err(anyhow::anyhow!("Not a struct")),
+        }
+    }
     pub fn get_tuple_kind(&self, ndx: usize) -> Result<Kind> {
         match self {
             Kind::Tuple(tuple) => Ok(tuple.elements[ndx].clone()),
             _ => Err(anyhow::anyhow!("Not a tuple")),
+        }
+    }
+    pub fn get_base_kind(&self) -> Result<Kind> {
+        match self {
+            Kind::Array(array) => Ok(*array.base.clone()),
+            _ => Err(anyhow::anyhow!("Not an array")),
         }
     }
     // Return a rust type-like name for the kind

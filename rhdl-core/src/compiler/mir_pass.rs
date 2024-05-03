@@ -20,6 +20,7 @@ use svg::node::element;
 use crate::ast::ast_impl;
 use crate::ast::ast_impl::ExprTypedBits;
 use crate::ast::ast_impl::KernelFn;
+use crate::ast::ast_impl::Member;
 use crate::ast::ast_impl::{
     Arm, ArmKind, Block, ExprArray, ExprAssign, ExprBinary, ExprCall, ExprField, ExprForLoop,
     ExprIf, ExprIndex, ExprMatch, ExprMethodCall, ExprPath, ExprRepeat, ExprRet, ExprStruct,
@@ -185,6 +186,9 @@ impl std::fmt::Display for MirContext {
             "Kernel {}({})->{} ({})",
             self.name, arguments, self.return_slot, self.fn_id
         )?;
+        for (slot, kind) in &self.ty {
+            writeln!(f, "{} : {}", slot, kind)?;
+        }
         for (lit, expr) in &self.literals {
             writeln!(f, "{} -> {}", lit, expr)?;
         }
@@ -225,17 +229,12 @@ impl MirContext {
     }
     // Create a local variable binding to the given name, and return the
     // resulting register.
-    fn bind(&mut self, name: &str, id: NodeId) -> Result<()> {
+    fn bind(&mut self, name: &str, id: NodeId) {
         let reg = self.reg(id);
         eprintln!("Binding {}#{} to {:?}", name, id, reg);
-        if self.scopes[self.active_scope.0]
+        self.scopes[self.active_scope.0]
             .names
-            .insert(name.to_string(), reg)
-            .is_some()
-        {
-            bail!("ICE - duplicate local binding for {}", id);
-        }
-        Ok(())
+            .insert(name.to_string(), reg);
     }
     // Rebind a local variable to a new slot.  We need
     // to know the previous name for the slot in this case.
@@ -246,12 +245,10 @@ impl MirContext {
     //```
     fn rebind(&mut self, name: &str, id: NodeId) -> Result<Rebind> {
         let reg = self.reg(id);
-        let Some(prev) = self.scopes[self.active_scope.0]
-            .names
-            .insert(name.to_string(), reg)
-        else {
+        let Some((prev, scope)) = self.lookup_name(name) else {
             bail!("ICE - rebind of unbound variable {}", name);
         };
+        self.scopes[scope.0].names.insert(name.to_string(), reg);
         eprintln!("Rebound {} from {} to {}", name, prev, reg);
         Ok(Rebind {
             from: prev,
@@ -286,11 +283,11 @@ impl MirContext {
             }),
         )
     }
-    fn lookup_name(&self, path: &str) -> Option<Slot> {
+    fn lookup_name(&self, path: &str) -> Option<(Slot, ScopeId)> {
         let mut scope = self.active_scope;
         loop {
             if let Some(id) = self.scopes[scope.0].names.get(path) {
-                return Some(*id);
+                return Some((*id, scope));
             }
             if scope == ROOT_SCOPE {
                 break;
@@ -322,7 +319,7 @@ impl MirContext {
     fn initialize_local(&mut self, pat: &Pat, rhs: Slot) -> Result<()> {
         match &pat.kind {
             PatKind::Ident(ident) => {
-                let Some(lhs) = self.lookup_name(&ident.name) else {
+                let Some((lhs, _)) = self.lookup_name(&ident.name) else {
                     bail!(
                         "ICE - attempt to intiialize unbound local variable {}",
                         ident.name
@@ -396,7 +393,7 @@ impl MirContext {
         slot: Slot,
         early_return_name: &str,
     ) -> Result<()> {
-        let early_return_flag = self.lookup_name(EARLY_RETURN_FLAG_NAME).ok_or(anyhow!(
+        let (early_return_flag, _) = self.lookup_name(EARLY_RETURN_FLAG_NAME).ok_or(anyhow!(
             "ICE - no early return flag found in function {}",
             self.fn_id
         ))?;
@@ -526,9 +523,48 @@ impl MirContext {
         self.op(op_binary(alu, result, lhs, rhs), id);
         Ok(result)
     }
+    fn type_pattern(&mut self, pattern: &Pat, kind: &Kind) -> Result<()> {
+        match &pattern.kind {
+            PatKind::Ident(ident) => {
+                let (slot, _) = self.lookup_name(&ident.name).ok_or(anyhow!(
+                    "ICE - no local variable found for pattern {:?}",
+                    pattern
+                ))?;
+                self.ty.insert(slot, kind.clone());
+                Ok(())
+            }
+            PatKind::Tuple(tuple) => {
+                for (ndx, element) in tuple.elements.iter().enumerate() {
+                    self.type_pattern(element, &kind.get_tuple_kind(ndx)?)?;
+                }
+                Ok(())
+            }
+            PatKind::Struct(struct_pat) => {
+                for field in &struct_pat.fields {
+                    self.type_pattern(&field.pat, &kind.get_field_kind(&field.member)?)?;
+                }
+                Ok(())
+            }
+            PatKind::TupleStruct(tuple_struct) => {
+                for (ndx, field) in tuple_struct.elems.iter().enumerate() {
+                    self.type_pattern(field, &kind.get_field_kind(&Member::Unnamed(ndx as u32))?)?;
+                }
+                Ok(())
+            }
+            PatKind::Slice(slice) => {
+                for element in &slice.elems {
+                    self.type_pattern(element, &kind.get_base_kind()?)?;
+                }
+                Ok(())
+            }
+            PatKind::Paren(paren) => self.type_pattern(&paren.pat, kind),
+            PatKind::Wild => Ok(()),
+            _ => bail!("Pattern {:?} not supported for type_pattern", pattern),
+        }
+    }
     fn bind_pattern(&mut self, pattern: &Pat) -> Result<()> {
         match &pattern.kind {
-            PatKind::Ident(ident) => self.bind(&ident.name, pattern.id),
+            PatKind::Ident(ident) => Ok(self.bind(&ident.name, pattern.id)),
             PatKind::Tuple(tuple) => {
                 for element in &tuple.elements {
                     self.bind_pattern(element)?;
@@ -536,8 +572,8 @@ impl MirContext {
                 Ok(())
             }
             PatKind::Type(type_pat) => {
-                eprintln!("Need to add type info here.");
-                self.bind_pattern(&type_pat.pat)
+                self.bind_pattern(&type_pat.pat)?;
+                self.type_pattern(&type_pat.pat, &type_pat.kind)
             }
             PatKind::Struct(struct_pat) => {
                 for field in &struct_pat.fields {
@@ -751,12 +787,12 @@ impl MirContext {
         self.block(then_result, &if_expr.then_branch)?;
         let locals_after_then_branch = self.locals().clone();
         eprintln!("Locals after then branch {:?}", locals_after_then_branch);
-        *self.locals_mut() = locals_prior_to_branch.clone();
+        self.locals_mut().clone_from(&locals_prior_to_branch);
         if let Some(expr) = if_expr.else_branch.as_ref() {
             self.wrap_expr_in_block(else_result, expr)?;
         }
         let locals_after_else_branch = self.locals().clone();
-        *self.locals_mut() = locals_prior_to_branch.clone();
+        self.locals_mut().clone_from(&locals_prior_to_branch);
         // Linearize the if statement.
         // TODO - For now, inline this logic, but ultimately, we want
         // to be able to generalize to remove the `case` op.
@@ -903,6 +939,7 @@ impl MirContext {
             let name = &path.path.segments[0].ident;
             return self
                 .lookup_name(name)
+                .map(|x| x.0)
                 .ok_or(anyhow!("ICE - name not found: {}", name));
         }
         bail!("ICE - path with arguments not supported {:?}", path)
@@ -1031,7 +1068,7 @@ impl Visitor for MirContext {
             .iter()
             .map(|x| self.reg(x.id))
             .collect::<Vec<_>>();
-        self.arguments = arguments.clone();
+        self.arguments.clone_from(&arguments);
         let block_result = self.reg(node.id);
         self.return_slot = block_result;
         // We create 2 bindings (local vars) inside the function
@@ -1044,16 +1081,16 @@ impl Visitor for MirContext {
         // Each "return" statement must then be replaced with
         //    return x --> if !__early$exit { __early$exit = true; fn_name = x; }
         // The return slot is then used to return the value of the function.
-        self.bind(EARLY_RETURN_FLAG_NAME, node.id)?;
-        self.bind(&node.name, node.id)?;
+        self.bind(EARLY_RETURN_FLAG_NAME, node.id);
+        self.bind(&node.name, node.id);
         // Initialize the early exit flag in the main block
         let init_early_exit_op = op_assign(
-            self.lookup_name(EARLY_RETURN_FLAG_NAME).unwrap(),
+            self.lookup_name(EARLY_RETURN_FLAG_NAME).unwrap().0,
             self.literal_bool(node.id, false),
         );
         // Initialize the return slot in the main block
         let init_return_slot = op_assign(
-            self.lookup_name(&node.name).unwrap(),
+            self.lookup_name(&node.name).unwrap().0,
             self.literal_tb(node.id, &node.ret.place_holder()),
         );
         // Initialize the arguments in the main block
