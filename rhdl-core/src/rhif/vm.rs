@@ -242,6 +242,7 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
                     .iter()
                     .find(|(disc, _)| match disc {
                         CaseArgument::Constant(disc) => discriminant == *disc,
+                        CaseArgument::Slot(disc) => discriminant == state.read(*disc).unwrap(),
                         CaseArgument::Wild => true,
                     })
                     .ok_or(anyhow!("ICE Case was not exhaustive"))?
