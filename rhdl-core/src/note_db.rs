@@ -541,7 +541,7 @@ mod tests {
 
     use rhdl_bits::Bits;
 
-    use crate::{types::kind::Variant, Digital, DiscriminantAlignment, Kind};
+    use crate::{types::kind::Variant, util::id, Digital, DiscriminantAlignment, Kind};
 
     use super::*;
 
@@ -609,6 +609,7 @@ mod tests {
                                     Kind::make_field("a", Kind::make_bits(1)),
                                     Kind::make_field("b", Kind::make_bits(3)),
                                 ],
+                                id::<Mixed>().wrapping_add_signed(4i64),
                             ),
                         },
                     ],
@@ -617,6 +618,7 @@ mod tests {
                         DiscriminantAlignment::Lsb,
                         crate::types::kind::DiscriminantType::Unsigned,
                     ),
+                    id::<Mixed>(),
                 )
             }
             fn bin(self) -> Vec<bool> {

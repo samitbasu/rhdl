@@ -73,7 +73,9 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                             #(
                                 rhdl_core::Kind::make_field(stringify!(#fields), <#field_types as rhdl_core::Digital>::static_kind()),
                             )*
-                        ])
+                        ],
+                        rhdl_core::id::<Self>()
+                    )
                     }
                     fn bin(self) -> Vec<bool> {
                         let mut result = vec![];
@@ -128,7 +130,9 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                             #(
                                 rhdl_core::Kind::make_field(stringify!(#fields), <#field_types as rhdl_core::Digital>::static_kind()),
                             )*
-                        ])
+                        ],
+                        rhdl_core::id::<Self>()
+                    )
                     }
                     fn bin(self) -> Vec<bool> {
                         let mut result = vec![];
@@ -176,7 +180,7 @@ mod test {
                         rhdl_core::Kind::make_field(stringify!(nest_1), <bool as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(nest_2), <u8 as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(nest_3), <TwoBits as rhdl_core::Digital>::static_kind()),
-                    ])
+                    ], rhdl_core::id::<Self>())
                 }
                 fn bin(self) -> Vec<bool> {
                     let mut result = vec![];
@@ -216,7 +220,7 @@ mod test {
                         rhdl_core::Kind::make_field(stringify!(input), <u32 as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(write), <bool as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(read), <bool as rhdl_core::Digital>::static_kind()),
-                    ])
+                    ], rhdl_core::id::<Self>())
                 }
                 fn bin(self) -> Vec<bool> {
                     let mut result = vec![];
@@ -253,13 +257,13 @@ mod test {
                     rhdl_core::Kind::make_struct(
                         &vec![
                             module_path!().to_string(),"::".to_string(),
-                            stringify!(Inputs).to_string(), "<".to_string(), <T as rhdl_core::Digital>::static_kind().get_name(), ">".to_string()
+                            stringify!(Inputs).to_string(), "<".to_string(), std::any::type_name::<T>(), ">".to_string()
                         ].join(""),
                         vec![
                         rhdl_core::Kind::make_field(stringify!(input), <T as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(write), <bool as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(read), <bool as rhdl_core::Digital>::static_kind()),
-                    ])
+                    ], rhdl_core::id::<Self>())
                 }
                 fn bin(self) -> Vec<bool> {
                     let mut result = vec![];
@@ -299,7 +303,7 @@ mod test {
                         rhdl_core::Kind::make_field(stringify!(input), <u32 as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(write), <bool as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(read), <(bool, bool) as rhdl_core::Digital>::static_kind()),
-                    ])
+                    ], rhdl_core::id::<Self>())
                 }
                 fn bin(self) -> Vec<bool> {
                     let mut result = vec![];
@@ -335,7 +339,7 @@ mod test {
                         rhdl_core::Kind::make_field(stringify!(0), <u32 as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(1), <bool as rhdl_core::Digital>::static_kind()),
                         rhdl_core::Kind::make_field(stringify!(2), <bool as rhdl_core::Digital>::static_kind()),
-                    ])
+                    ], rhdl_core::id::<Self>())
                 }
                 fn bin(self) -> Vec<bool> {
                     let mut result = vec![];

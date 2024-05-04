@@ -389,7 +389,10 @@ mod test {
     use std::iter::repeat;
 
     use super::*;
-    use crate::types::kind::{DiscriminantAlignment, Variant};
+    use crate::{
+        types::kind::{DiscriminantAlignment, Variant},
+        util::id,
+    };
     use rhdl_bits::alias::*;
 
     #[test]
@@ -442,6 +445,7 @@ mod test {
                                     Kind::make_field("a", Kind::make_bits(1)),
                                     Kind::make_field("b", Kind::make_bits(3)),
                                 ],
+                                0,
                             ),
                         },
                     ],
@@ -450,6 +454,7 @@ mod test {
                         DiscriminantAlignment::Lsb,
                         crate::types::kind::DiscriminantType::Unsigned,
                     ),
+                    id::<Mixed>(),
                 )
             }
             fn bin(self) -> Vec<bool> {
@@ -576,6 +581,7 @@ mod test {
                         DiscriminantAlignment::Lsb,
                         crate::types::kind::DiscriminantType::Unsigned,
                     ),
+                    id::<State>(),
                 )
             }
             fn bin(self) -> Vec<bool> {
@@ -638,6 +644,7 @@ mod test {
                     DiscriminantAlignment::Lsb,
                     crate::types::kind::DiscriminantType::Unsigned,
                 ),
+                id::<State>()
             )
         );
     }

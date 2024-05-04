@@ -56,6 +56,7 @@ pub struct Tuple {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct Struct {
     pub name: String,
+    pub id: u64,
     pub fields: Vec<Field>,
 }
 
@@ -88,6 +89,7 @@ pub struct Enum {
     pub name: String,
     pub variants: Vec<Variant>,
     pub discriminant_layout: DiscriminantLayout,
+    pub id: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
@@ -135,9 +137,10 @@ impl Kind {
             kind,
         }
     }
-    pub fn make_struct(name: &str, fields: Vec<Field>) -> Self {
+    pub fn make_struct(name: &str, fields: Vec<Field>, id: u64) -> Self {
         Self::Struct(Struct {
             name: name.into(),
+            id,
             fields,
         })
     }
@@ -156,11 +159,13 @@ impl Kind {
         name: &str,
         variants: Vec<Variant>,
         discriminant_layout: DiscriminantLayout,
+        id: u64,
     ) -> Self {
         Self::Enum(Enum {
             name: name.into(),
             variants,
             discriminant_layout,
+            id,
         })
     }
     pub fn make_bool() -> Self {
@@ -845,11 +850,13 @@ mod test {
                             Kind::make_field("a", Kind::Bits(8)),
                             Kind::make_field("b", Kind::Bits(16)),
                         ],
+                        0,
                     ),
                     -3,
                 ),
             ],
             Kind::make_discriminant_layout(4, DiscriminantAlignment::Msb, DiscriminantType::Signed),
+            0,
         )
     }
 
@@ -872,6 +879,7 @@ mod test {
                             Kind::make_field("a", Kind::Bits(8)),
                             Kind::make_field("b", Kind::Bits(16)),
                         ],
+                        0,
                     ),
                     3,
                 ),
@@ -881,6 +889,7 @@ mod test {
                 DiscriminantAlignment::Lsb,
                 DiscriminantType::Unsigned,
             ),
+            0,
         )
     }
 
@@ -961,6 +970,7 @@ mod test {
                                 kind: Kind::make_bits(16),
                             },
                         ],
+                        0,
                     ),
                 },
                 Variant {
@@ -983,6 +993,7 @@ mod test {
                                 kind: Kind::make_array(Kind::make_bits(8), 4),
                             },
                         ],
+                        0,
                     ),
                 },
                 Variant {
@@ -1004,6 +1015,7 @@ mod test {
                                 kind: Kind::make_bits(16),
                             },
                         ],
+                        0,
                     ),
                 },
                 Variant {
@@ -1033,6 +1045,7 @@ mod test {
                             DiscriminantAlignment::Msb,
                             DiscriminantType::Unsigned,
                         ),
+                        0,
                     ),
                 },
             ],
@@ -1041,6 +1054,7 @@ mod test {
                 DiscriminantAlignment::Lsb,
                 DiscriminantType::Unsigned,
             ),
+            0,
         )
     }
 
@@ -1078,6 +1092,7 @@ mod test {
                     kind: Kind::make_bits(32),
                 },
             ],
+            0,
         );
         let layout = generate_kind_layout(&kind, "value", 0, 0);
         println!("{:#?}", layout);
@@ -1116,9 +1131,11 @@ mod test {
                                 kind: Kind::make_bits(16),
                             },
                         ],
+                        0,
                     ),
                 },
             ],
+            0,
         );
         let layout = generate_kind_layout(&kind, "value", 0, 0);
         println!("{:#?}", layout);
@@ -1157,6 +1174,7 @@ mod test {
                 DiscriminantAlignment::Lsb,
                 DiscriminantType::Unsigned,
             ),
+            0,
         );
         let layout = generate_kind_layout(&kind, "value", 0, 0);
         println!("{:#?}", layout);
