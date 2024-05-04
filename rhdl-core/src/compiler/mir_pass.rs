@@ -133,7 +133,6 @@ impl std::fmt::Display for Scope {
 }
 
 const EARLY_RETURN_FLAG_NAME: &str = "__$early_return_flag";
-const RETURN_NAME: &str = "__return";
 
 pub struct MirContext {
     scopes: Vec<Scope>,
@@ -967,7 +966,8 @@ impl MirContext {
 
         let literal_true = self.literal_bool(id, true);
         let early_return_flag = self.rebind(EARLY_RETURN_FLAG_NAME, id)?;
-        let return_slot = self.rebind(RETURN_NAME, id)?;
+        let name = self.name.clone();
+        let return_slot = self.rebind(&name, id)?;
         let early_return_expr = if let Some(return_expr) = &return_expr.expr {
             self.expr(return_expr)?
         } else {
@@ -1083,6 +1083,7 @@ impl Visitor for MirContext {
         // The return slot is then used to return the value of the function.
         self.bind(EARLY_RETURN_FLAG_NAME, node.id);
         self.bind(&node.name, node.id);
+        self.name = node.name.clone();
         // Initialize the early exit flag in the main block
         let init_early_exit_op = op_assign(
             self.lookup_name(EARLY_RETURN_FLAG_NAME).unwrap().0,
@@ -1102,7 +1103,6 @@ impl Visitor for MirContext {
         self.ops.insert(0, (init_early_exit_op, node.id).into());
         self.ops.insert(1, (init_return_slot, node.id).into());
         self.insert_implicit_return(node.body.id, block_result, &node.name)?;
-        self.name = node.name.clone();
         self.fn_id = node.fn_id;
         Ok(())
     }
