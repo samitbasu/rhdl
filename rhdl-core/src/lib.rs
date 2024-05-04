@@ -42,6 +42,7 @@ pub mod schematic;
 pub mod test_module;
 pub mod types;
 pub mod util;
+pub use util::id;
 
 pub use codegen::verilog::as_verilog_literal;
 pub use codegen::verilog::generate_verilog;

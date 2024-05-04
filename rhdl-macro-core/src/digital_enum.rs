@@ -168,7 +168,7 @@ fn allocate_discriminants(discriminants: &[Option<i64>]) -> Vec<i64> {
         .collect()
 }
 
-fn variant_kind_mapping(enum_name: &Ident, variant: &Variant) -> TokenStream {
+fn variant_kind_mapping(enum_name: &Ident, variant: &Variant, discriminant: i64) -> TokenStream {
     match &variant.fields {
         syn::Fields::Unit => quote! {rhdl_core::Kind::Empty},
         syn::Fields::Unnamed(fields) => {
@@ -188,7 +188,9 @@ fn variant_kind_mapping(enum_name: &Ident, variant: &Variant) -> TokenStream {
                     stringify!(#struct_name),
                     vec![#(
                     rhdl_core::Kind::make_field(stringify!(#field_names), <#field_types as rhdl_core::Digital>::static_kind())
-                ),*])
+                ),*],
+                rhdl_core::id::<Self>().wrapping_add_signed(#discriminant)
+            )
             }
         }
     }
@@ -365,11 +367,6 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         .iter()
         .map(variant_destructure_args)
         .collect::<Vec<_>>();
-    let kind_mapping = e
-        .variants
-        .iter()
-        .map(|v| variant_kind_mapping(enum_name, v));
-    let variant_kind_mapping = kind_mapping.clone();
     let discriminants: Vec<Option<i64>> = e
         .variants
         .iter()
@@ -382,6 +379,12 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         .map(|x| x.transpose())
         .collect::<Result<Vec<_>, _>>()?;
     let discriminants_values = allocate_discriminants(&discriminants);
+    let kind_mapping = e
+        .variants
+        .iter()
+        .zip(discriminants_values.iter())
+        .map(|(v, d)| variant_kind_mapping(enum_name, v, *d));
+    let variant_kind_mapping = kind_mapping.clone();
     let kind = discriminant_kind(&discriminants_values);
     let width_override = parse_discriminant_width_attribute(&decl.attrs)?;
     let kind = override_width(kind, width_override)?;
@@ -417,7 +420,8 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                         #width_bits,
                         #discriminant_alignment,
                         #discriminant_ty
-                    )
+                    ),
+                    rhdl_core::id::<Self>()
                 )
             }
             fn bin(self) -> Vec<bool> {

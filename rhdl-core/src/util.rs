@@ -96,3 +96,7 @@ pub fn hash_id(fn_id: std::any::TypeId) -> u64 {
     fn_id.hash(&mut hasher);
     hasher.finish()
 }
+
+pub fn id<T: 'static>() -> u64 {
+    hash_id(std::any::TypeId::of::<T>())
+}

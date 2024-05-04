@@ -15,7 +15,7 @@ use anyhow::Result;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
-use svg::node::element;
+use std::fmt::Write;
 
 use crate::ast::ast_impl;
 use crate::ast::ast_impl::ExprTypedBits;
@@ -29,6 +29,7 @@ use crate::ast::ast_impl::{
 use crate::ast::visit::Visitor;
 use crate::ast_builder::BinOp;
 use crate::ast_builder::UnOp;
+use crate::path::PathElement;
 use crate::rhif;
 use crate::rhif::rhif_builder::{
     op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
@@ -48,19 +49,9 @@ use crate::{
 };
 
 use super::display_ast::pretty_print_statement;
+use super::mir::Mir;
+use super::mir::OpCodeWithSource;
 use super::UnifyContext;
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct OpCodeWithSource {
-    op: OpCode,
-    source: NodeId,
-}
-
-impl From<(OpCode, NodeId)> for OpCodeWithSource {
-    fn from((op, source): (OpCode, NodeId)) -> Self {
-        OpCodeWithSource { op, source }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Rebind {
@@ -523,12 +514,14 @@ impl MirContext {
         Ok(result)
     }
     fn type_pattern(&mut self, pattern: &Pat, kind: &Kind) -> Result<()> {
+        eprintln!("Type pattern {:?} {:?}", pattern, kind);
         match &pattern.kind {
             PatKind::Ident(ident) => {
                 let (slot, _) = self.lookup_name(&ident.name).ok_or(anyhow!(
                     "ICE - no local variable found for pattern {:?}",
                     pattern
                 ))?;
+                eprintln!("Binding {:?} to {:?}", ident, kind);
                 self.ty.insert(slot, kind.clone());
                 Ok(())
             }
@@ -865,14 +858,14 @@ impl MirContext {
         let mut arm_locals = vec![];
         let mut arm_lhs = vec![];
         for arm in &match_expr.arms {
-            *self.locals_mut() = locals_prior_to_match.clone();
+            self.locals_mut().clone_from(&locals_prior_to_match);
             let lhs = self.reg(id);
             let disc = self.arm(target, lhs, arm)?;
             arm_lhs.push(lhs);
             arguments.push(disc);
             arm_locals.push(self.locals().clone());
         }
-        *self.locals_mut() = locals_prior_to_match.clone();
+        self.locals_mut().clone_from(&locals_prior_to_match);
         let mut rebound_locals = BTreeSet::new();
         for branch_locals in &arm_locals {
             let branch_rebindings = get_locals_changed(self.locals(), branch_locals)?;
@@ -1083,7 +1076,7 @@ impl Visitor for MirContext {
         // The return slot is then used to return the value of the function.
         self.bind(EARLY_RETURN_FLAG_NAME, node.id);
         self.bind(&node.name, node.id);
-        self.name = node.name.clone();
+        self.name.clone_from(&node.name);
         // Initialize the early exit flag in the main block
         let init_early_exit_op = op_assign(
             self.lookup_name(EARLY_RETURN_FLAG_NAME).unwrap().0,
@@ -1130,9 +1123,19 @@ fn get_locals_changed(from: &LocalsMap, to: &LocalsMap) -> Result<BTreeSet<Strin
         .collect()
 }
 
-pub fn compile_mir(func: &KernelFn) -> Result<()> {
+pub fn compile_mir(func: &KernelFn) -> Result<Mir> {
     let mut compiler = MirContext::default();
     compiler.visit_kernel_fn(func)?;
-    eprintln!("{}", compiler);
-    Ok(())
+    compiler.ty.insert(compiler.return_slot, func.ret.clone());
+    Ok(Mir {
+        ops: compiler.ops,
+        arguments: compiler.arguments,
+        literals: compiler.literals,
+        reg_source_map: compiler.reg_source_map,
+        return_slot: compiler.return_slot,
+        fn_id: compiler.fn_id,
+        ty: compiler.ty,
+        stash: compiler.stash,
+        name: compiler.name,
+    })
 }

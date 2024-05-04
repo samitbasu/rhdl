@@ -621,7 +621,9 @@ fn write_tuple(tuple: &Tuple, bits: &[bool], f: &mut std::fmt::Formatter<'_>) ->
 
 #[cfg(test)]
 mod tests {
-    use crate::{Digital, DiscriminantAlignment, DiscriminantType, Kind, Notable, TypedBits};
+    use crate::{
+        util::id, Digital, DiscriminantAlignment, DiscriminantType, Kind, Notable, TypedBits,
+    };
 
     #[test]
     fn test_typed_bits_add() {
@@ -674,6 +676,7 @@ mod tests {
                                     stringify!(foo),
                                     <Foo as Digital>::static_kind(),
                                 )],
+                                id::<Baz>().wrapping_add_signed(1i64),
                             ),
                             1i64,
                         ),
@@ -688,6 +691,7 @@ mod tests {
                         DiscriminantAlignment::Msb,
                         DiscriminantType::Unsigned,
                     ),
+                    id::<Baz>(),
                 )
             }
             fn bin(self) -> Vec<bool> {
@@ -725,6 +729,7 @@ mod tests {
                             stringify!(foo),
                             <Foo as Digital>::static_kind(),
                         )],
+                        id::<Baz>().wrapping_add_signed(1i64),
                     ),
                     Self::C(_0) => Kind::make_tuple(vec![<u8 as Digital>::static_kind()]),
                 }
@@ -749,6 +754,7 @@ mod tests {
                         Kind::make_field("1", Kind::Bits(8)),
                         Kind::make_field("2", Kind::Bits(1)),
                     ],
+                    id::<Bar>(),
                 )
             }
             fn bin(self) -> Vec<bool> {
@@ -777,6 +783,7 @@ mod tests {
                         Kind::make_field("b", Kind::Bits(8)),
                         Kind::make_field("c", Kind::Bits(1)),
                     ],
+                    id::<Foo>(),
                 )
             }
             fn bin(self) -> Vec<bool> {

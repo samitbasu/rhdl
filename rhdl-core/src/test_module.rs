@@ -2,6 +2,7 @@ use std::any::type_name;
 
 use crate::compiler::assign_node_ids;
 use crate::compiler::mir_pass::compile_mir;
+use crate::compiler::mir_type_check::infer;
 use crate::rhif::vm::execute_function;
 use crate::TypedBits;
 use crate::{
@@ -310,7 +311,8 @@ where
         bail!("No kernel function provided for {}", type_name::<K>());
     };
     assign_node_ids(&mut kernel)?;
-    compile_mir(kernel.inner())?;
+    let rfunc = compile_mir(kernel.inner())?;
+    infer(&rfunc)?;
     return Ok(());
 
     let design = compile_design::<K>()?;
