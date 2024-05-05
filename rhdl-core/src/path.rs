@@ -12,6 +12,7 @@ use crate::Kind;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PathElement {
     Index(usize),
+    TupleIndex(usize),
     Field(String),
     EnumDiscriminant,
     EnumPayload(String),
@@ -38,6 +39,7 @@ impl std::fmt::Display for Path {
         for e in &self.elements {
             match e {
                 PathElement::Index(i) => write!(f, "[{}]", i)?,
+                PathElement::TupleIndex(i) => write!(f, ".{}", i)?,
                 PathElement::Field(s) => write!(f, ".{}", s)?,
                 PathElement::EnumDiscriminant => write!(f, "#")?,
                 PathElement::EnumPayload(s) => write!(f, "#{}", s)?,
@@ -65,6 +67,10 @@ impl Path {
     }
     pub fn index(mut self, index: usize) -> Self {
         self.elements.push(PathElement::Index(index));
+        self
+    }
+    pub fn tuple_index(mut self, ndx: usize) -> Self {
+        self.elements.push(PathElement::TupleIndex(ndx));
         self
     }
     pub fn field(mut self, field: &str) -> Self {
@@ -153,7 +159,7 @@ impl From<Member> for Path {
                 elements: vec![PathElement::Field(name)],
             },
             Member::Unnamed(ndx) => Path {
-                elements: vec![PathElement::Index(ndx as usize)],
+                elements: vec![PathElement::TupleIndex(ndx as usize)],
             },
         }
     }
@@ -254,15 +260,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     bail!("Signal value not valid for non-signal type {kind}")
                 }
             }
-            PathElement::Index(i) => match &kind {
-                Kind::Array(array) => {
-                    let element_size = array.base.bits();
-                    if i >= &array.size {
-                        bail!("Array index out of bounds")
-                    }
-                    range = range.start + i * element_size..range.start + (i + 1) * element_size;
-                    kind = *array.base.clone();
-                }
+            PathElement::TupleIndex(i) => match &kind {
                 Kind::Tuple(tuple) => {
                     if i >= &tuple.elements.len() {
                         bail!("Tuple index out of bounds")
@@ -288,6 +286,17 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     let size = structure.fields[*i].kind.bits();
                     range = range.start + offset..range.start + offset + size;
                     kind = structure.fields[*i].kind.clone();
+                }
+                _ => bail!("Tuple indexing not allowed on this type {kind}"),
+            },
+            PathElement::Index(i) => match &kind {
+                Kind::Array(array) => {
+                    let element_size = array.base.bits();
+                    if i >= &array.size {
+                        bail!("Array index out of bounds")
+                    }
+                    range = range.start + i * element_size..range.start + (i + 1) * element_size;
+                    kind = *array.base.clone();
                 }
                 _ => bail!("Indexing non-indexable type {kind}"),
             },
