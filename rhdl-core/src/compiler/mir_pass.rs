@@ -15,7 +15,6 @@ use anyhow::Result;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
-use std::fmt::Write;
 
 use crate::ast::ast_impl;
 use crate::ast::ast_impl::ExprTypedBits;
@@ -29,7 +28,6 @@ use crate::ast::ast_impl::{
 use crate::ast::visit::Visitor;
 use crate::ast_builder::BinOp;
 use crate::ast_builder::UnOp;
-use crate::path::PathElement;
 use crate::rhif;
 use crate::rhif::rhif_builder::{
     op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
@@ -85,7 +83,7 @@ fn unary_op_to_alu(op: UnOp) -> AluUnary {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct ScopeId(usize);
 
 const ROOT_SCOPE: ScopeId = ScopeId(0);
@@ -104,11 +102,19 @@ fn collapse_path(path: &ast_impl::Path) -> String {
         .join("::")
 }
 
-type LocalsMap = HashMap<String, Slot>;
+// TODO = worry about the string clones later.
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct ScopeIndex {
+    scope: ScopeId,
+    name: String,
+}
+
+type LocalsMap = HashMap<ScopeIndex, Slot>;
 
 #[derive(Debug)]
 struct Scope {
-    names: LocalsMap,
+    names: HashMap<String, Slot>,
     children: Vec<ScopeId>,
     parent: ScopeId,
 }
@@ -211,11 +217,49 @@ impl MirContext {
     fn end_scope(&mut self) {
         self.active_scope = self.scopes[self.active_scope.0].parent;
     }
-    fn locals(&self) -> &LocalsMap {
-        &self.scopes[self.active_scope.0].names
+    // Walk the scope hierarchy, and return a list of all local variables
+    // visible from the current scope.  Some of these may not be accessible
+    // due to shadowing.
+    fn locals(&self) -> LocalsMap {
+        let mut locals = LocalsMap::new();
+        let mut scope = self.active_scope;
+        loop {
+            locals.extend(self.scopes[scope.0].names.iter().map(|(k, v)| {
+                (
+                    ScopeIndex {
+                        scope,
+                        name: k.clone(),
+                    },
+                    *v,
+                )
+            }));
+            if scope == ROOT_SCOPE {
+                break;
+            }
+            scope = self.scopes[scope.0].parent;
+        }
+        locals
     }
-    fn locals_mut(&mut self) -> &mut LocalsMap {
-        &mut self.scopes[self.active_scope.0].names
+    fn set_locals(&mut self, map: &LocalsMap) -> Result<()> {
+        for (ndx, slot) in map {
+            let ScopeIndex { scope, name } = ndx;
+            let Some(binding) = self.scopes[scope.0].names.get_mut(name) else {
+                bail!("ICE - attempt to set local variable that does not exist")
+            };
+            *binding = *slot;
+        }
+        Ok(())
+    }
+    fn unpack_arguments(&mut self, args: &[Box<Pat>]) -> Result<()> {
+        for arg in args {
+            let slot = self.reg(arg.id);
+            let PatKind::Type(ty) = &arg.kind else {
+                bail!("ICE - argument pattern not supported {:?}", arg)
+            };
+            self.ty.insert(slot, ty.kind.clone());
+            self.arguments.push(slot);
+        }
+        Ok(())
     }
     // Create a local variable binding to the given name, and return the
     // resulting register.
@@ -322,7 +366,11 @@ impl MirContext {
                 for (ndx, pat) in tuple.elements.iter().enumerate() {
                     let element_rhs = self.reg(pat.id);
                     self.op(
-                        op_index(element_rhs, rhs, crate::path::Path::default().index(ndx)),
+                        op_index(
+                            element_rhs,
+                            rhs,
+                            crate::path::Path::default().tuple_index(ndx),
+                        ),
                         pat.id,
                     );
                     self.initialize_local(pat, element_rhs)?;
@@ -342,7 +390,11 @@ impl MirContext {
                 for (ndx, pat) in tuple_struct_pat.elems.iter().enumerate() {
                     let element_rhs = self.reg(pat.id);
                     self.op(
-                        op_index(element_rhs, rhs, crate::path::Path::default().index(ndx)),
+                        op_index(
+                            element_rhs,
+                            rhs,
+                            crate::path::Path::default().tuple_index(ndx),
+                        ),
                         pat.id,
                     );
                     self.initialize_local(pat, element_rhs)?;
@@ -417,6 +469,7 @@ impl MirContext {
                 Ok(CaseArgument::Slot(value))
             }
             ArmKind::Enum(arm_enum) => {
+                self.new_scope();
                 // Allocate the local bindings for the match pattern
                 self.bind_pattern(&arm_enum.pat)?;
                 let discriminant = arm_enum.template.discriminant()?;
@@ -428,12 +481,17 @@ impl MirContext {
                     }),
                 );
                 let disc_as_i64 = arm_enum.template.discriminant()?.as_i64()?;
-                let path = crate::path::Path::default().payload_by_value(disc_as_i64);
+                let variant_name = arm_enum
+                    .template
+                    .kind
+                    .lookup_variant_name_by_discriminant(disc_as_i64)?;
+                let path = crate::path::Path::default().payload(variant_name);
                 let payload = self.reg(arm_enum.pat.id);
                 self.op(op_index(payload, target, path), arm_enum.pat.id);
                 self.initialize_local(&arm_enum.pat, payload)?;
                 let result = self.expr(&arm.body)?;
                 self.op(op_assign(lhs, result), arm_enum.pat.id);
+                self.end_scope();
                 Ok(CaseArgument::Slot(discriminant_slot))
             }
         }
@@ -479,11 +537,15 @@ impl MirContext {
     fn block(&mut self, block_result: Slot, block: &Block) -> Result<()> {
         let statement_count = block.stmts.len();
         self.new_scope();
-        for (ndx, statement) in block.stmts.iter().enumerate() {
-            let is_last = ndx == statement_count - 1;
-            let result = self.stmt(statement)?;
-            if is_last && (block_result != result) {
-                self.op(op_assign(block_result, result), statement.id);
+        if block.stmts.is_empty() {
+            self.op(op_assign(block_result, Slot::Empty), block.id);
+        } else {
+            for (ndx, statement) in block.stmts.iter().enumerate() {
+                let is_last = ndx == statement_count - 1;
+                let result = self.stmt(statement)?;
+                if is_last && (block_result != result) {
+                    self.op(op_assign(block_result, result), statement.id);
+                }
             }
         }
         self.end_scope();
@@ -556,7 +618,10 @@ impl MirContext {
     }
     fn bind_pattern(&mut self, pattern: &Pat) -> Result<()> {
         match &pattern.kind {
-            PatKind::Ident(ident) => Ok(self.bind(&ident.name, pattern.id)),
+            PatKind::Ident(ident) => {
+                self.bind(&ident.name, pattern.id);
+                Ok(())
+            }
             PatKind::Tuple(tuple) => {
                 for element in &tuple.elements {
                     self.bind_pattern(element)?;
@@ -601,6 +666,7 @@ impl MirContext {
         match code {
             KernelFnKind::BitConstructor(len) => self.op(op_as_bits(lhs, args[0], *len), id),
             KernelFnKind::SignedBitsConstructor(len) => {
+                self.ty.insert(args[0], Kind::make_signed(128));
                 self.op(op_as_signed(lhs, args[0], *len), id)
             }
             KernelFnKind::TupleStructConstructor(tb) => {
@@ -719,6 +785,7 @@ impl MirContext {
         let lhs = self.reg(id);
         let arg = self.expr(&field.expr)?;
         let path = field.member.clone().into();
+        eprintln!("field path {:?}", path);
         self.op(op_index(lhs, arg, path), id);
         Ok(lhs)
     }
@@ -774,17 +841,19 @@ impl MirContext {
         let then_result = self.reg(id);
         let else_result = self.reg(id);
         let cond = self.expr(&if_expr.cond)?;
-        let locals_prior_to_branch = self.locals().clone();
+        let locals_prior_to_branch = self.locals();
         eprintln!("Locals prior to branch {:?}", locals_prior_to_branch);
         self.block(then_result, &if_expr.then_branch)?;
         let locals_after_then_branch = self.locals().clone();
         eprintln!("Locals after then branch {:?}", locals_after_then_branch);
-        self.locals_mut().clone_from(&locals_prior_to_branch);
+        self.set_locals(&locals_prior_to_branch)?;
         if let Some(expr) = if_expr.else_branch.as_ref() {
             self.wrap_expr_in_block(else_result, expr)?;
+        } else {
+            self.op(op_assign(else_result, Slot::Empty), id);
         }
-        let locals_after_else_branch = self.locals().clone();
-        self.locals_mut().clone_from(&locals_prior_to_branch);
+        let locals_after_else_branch = self.locals();
+        self.set_locals(&locals_prior_to_branch)?;
         // Linearize the if statement.
         // TODO - For now, inline this logic, but ultimately, we want
         // to be able to generalize to remove the `case` op.
@@ -796,9 +865,9 @@ impl MirContext {
         )?);
         // Next, for each local variable in rebindings, we need a new
         // binding for that variable in the current scope.
-        let post_branch_bindings: BTreeMap<String, Rebind> = rebound_locals
+        let post_branch_bindings: BTreeMap<ScopeIndex, Rebind> = rebound_locals
             .iter()
-            .map(|x| self.rebind(x, id).map(|r| (x.clone(), r)))
+            .map(|x| self.rebind(&x.name, id).map(|r| (x.clone(), r)))
             .collect::<Result<_>>()?;
         eprintln!("post_branch bindings set {:?}", post_branch_bindings);
         for (var, rebind) in &post_branch_bindings {
@@ -858,24 +927,24 @@ impl MirContext {
         let mut arm_locals = vec![];
         let mut arm_lhs = vec![];
         for arm in &match_expr.arms {
-            self.locals_mut().clone_from(&locals_prior_to_match);
+            self.set_locals(&locals_prior_to_match)?;
             let lhs = self.reg(id);
             let disc = self.arm(target, lhs, arm)?;
             arm_lhs.push(lhs);
             arguments.push(disc);
             arm_locals.push(self.locals().clone());
         }
-        self.locals_mut().clone_from(&locals_prior_to_match);
+        self.set_locals(&locals_prior_to_match)?;
         let mut rebound_locals = BTreeSet::new();
         for branch_locals in &arm_locals {
-            let branch_rebindings = get_locals_changed(self.locals(), branch_locals)?;
+            let branch_rebindings = get_locals_changed(&self.locals(), branch_locals)?;
             rebound_locals.extend(branch_rebindings);
         }
         // Next, for each local variable in rebindings, we need a new
         // binding for that variable in the current scope.
-        let post_branch_bindings: BTreeMap<String, Rebind> = rebound_locals
+        let post_branch_bindings: BTreeMap<ScopeIndex, Rebind> = rebound_locals
             .iter()
-            .map(|x| self.rebind(x, id).map(|r| (x.clone(), r)))
+            .map(|x| self.rebind(&x.name, id).map(|r| (x.clone(), r)))
             .collect::<Result<_>>()?;
         for (var, rebind) in &post_branch_bindings {
             let arm_bindings = arm_locals
@@ -999,7 +1068,7 @@ impl MirContext {
     }
     fn stmt(&mut self, statement: &Stmt) -> Result<Slot> {
         let type_context = UnifyContext::default();
-        let statement_text = pretty_print_statement(statement, &type_context)?;
+        let statement_text = String::new(); // TODO - FIXME pretty_print_statement(statement, &type_context)?;
         self.op(op_comment(statement_text), statement.id);
         match &statement.kind {
             StmtKind::Local(local) => {
@@ -1055,13 +1124,7 @@ impl MirContext {
 
 impl Visitor for MirContext {
     fn visit_kernel_fn(&mut self, node: &ast_impl::KernelFn) -> Result<()> {
-        // Allocate a register for each argument.
-        let arguments = node
-            .inputs
-            .iter()
-            .map(|x| self.reg(x.id))
-            .collect::<Vec<_>>();
-        self.arguments.clone_from(&arguments);
+        self.unpack_arguments(&node.inputs)?;
         let block_result = self.reg(node.id);
         self.return_slot = block_result;
         // We create 2 bindings (local vars) inside the function
@@ -1088,7 +1151,7 @@ impl Visitor for MirContext {
             self.literal_tb(node.id, &node.ret.place_holder()),
         );
         // Initialize the arguments in the main block
-        for (arg, slot) in node.inputs.iter().zip(arguments.iter()) {
+        for (arg, slot) in node.inputs.iter().zip(self.arguments.clone().iter()) {
             self.bind_pattern(arg)?;
             self.initialize_local(arg, *slot)?;
         }
@@ -1101,7 +1164,7 @@ impl Visitor for MirContext {
     }
 }
 
-fn get_locals_changed(from: &LocalsMap, to: &LocalsMap) -> Result<BTreeSet<String>> {
+fn get_locals_changed(from: &LocalsMap, to: &LocalsMap) -> Result<BTreeSet<ScopeIndex>> {
     from.iter()
         .filter_map(|(id, slot)| {
             {

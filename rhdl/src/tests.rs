@@ -2,7 +2,9 @@ use itertools::iproduct;
 use rand::Rng;
 use rhdl_bits::{alias::*, bits, signed, Bits, SignedBits};
 use rhdl_core::{
+    ast::ast_impl::KernelFn,
     compile_design,
+    compiler::mir_pass::compile_mir,
     digital_fn::DigitalFn,
     kernel::{self, Kernel},
     note,
@@ -322,6 +324,18 @@ fn test_phi_if_consts() {
 }
 
 #[test]
+fn test_func_with_structured_args() {
+    #[kernel]
+    fn do_stuff((a, b): (b8, b8)) -> b8 {
+        let c = (a, b);
+        let d = c.0;
+        a + b
+    }
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, [((b8(0), b8(3)),)].into_iter())
+        .unwrap();
+}
+
+#[test]
 fn test_ast_basic_func() {
     use rhdl_bits::alias::*;
     #[derive(PartialEq, Copy, Clone, Digital)]
@@ -545,6 +559,34 @@ fn test_rebinding() {
         let q = bits::<12>(6);
         let q = bits::<16>(7);
         q
+    }
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
+}
+
+#[test]
+fn test_missing_register() {
+    #[kernel]
+    fn do_stuff(a: b1) -> b8 {
+        let mut c = bits::<8>(0);
+        match a {
+            Bits::<1>(0) => c = bits::<8>(2),
+            Bits::<1>(1) => c = bits::<8>(3),
+            _ => {}
+        }
+        c
+    }
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
+}
+
+#[test]
+fn test_phi_missing_register() {
+    #[kernel]
+    fn do_stuff(a: b1) -> b8 {
+        let mut c = bits::<8>(0);
+        if a.any() {
+            c = bits::<8>(1);
+        }
+        c
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
 }
@@ -1279,6 +1321,7 @@ fn test_enum_match_signed_discriminant() {
             SimpleEnum::Boom => 7,
         }
     }
+
     let samples = vec![
         SimpleEnum::Init,
         SimpleEnum::Run(1),

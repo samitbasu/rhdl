@@ -60,6 +60,12 @@ pub struct Struct {
     pub fields: Vec<Field>,
 }
 
+impl Struct {
+    pub fn is_tuple_struct(&self) -> bool {
+        self.fields.iter().any(|x| x.name.parse::<i32>().is_ok())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct Union {
     pub fields: Vec<Field>,
@@ -293,6 +299,24 @@ impl Kind {
         }
     }
 
+    pub fn lookup_variant_name_by_discriminant(&self, discriminant_value: i64) -> Result<&str> {
+        let Kind::Enum(e) = &self else {
+            return Err(anyhow::anyhow!("Not an enum"));
+        };
+        let variant = e
+            .variants
+            .iter()
+            .find(|x| x.discriminant == discriminant_value);
+        match variant {
+            Some(variant) => Ok(&variant.name),
+            None => Err(anyhow::anyhow!(
+                "No variant with discriminant {} in enum {}",
+                discriminant_value,
+                e.name
+            )),
+        }
+    }
+
     pub fn place_holder(&self) -> TypedBits {
         TypedBits {
             bits: repeat(false).take(self.bits()).collect(),
@@ -390,6 +414,18 @@ impl Kind {
 
     pub fn is_bool(&self) -> bool {
         matches!(self, Kind::Bits(1))
+    }
+
+    pub fn is_tuple(&self) -> bool {
+        matches!(self, Kind::Tuple(_))
+    }
+
+    pub fn is_tuple_struct(&self) -> bool {
+        if let Kind::Struct(s) = self {
+            s.fields.iter().all(|x| x.name.parse::<i32>().is_ok())
+        } else {
+            false
+        }
     }
 }
 

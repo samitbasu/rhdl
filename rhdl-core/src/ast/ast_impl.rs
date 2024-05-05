@@ -358,17 +358,17 @@ pub enum BinOp {
 
 impl BinOp {
     pub fn is_self_assign(&self) -> bool {
-        match &self {
+        matches!(
+            self,
             BinOp::AddAssign
-            | BinOp::SubAssign
-            | BinOp::MulAssign
-            | BinOp::BitXorAssign
-            | BinOp::BitAndAssign
-            | BinOp::BitOrAssign
-            | BinOp::ShlAssign
-            | BinOp::ShrAssign => true,
-            _ => false,
-        }
+                | BinOp::SubAssign
+                | BinOp::MulAssign
+                | BinOp::BitXorAssign
+                | BinOp::BitAndAssign
+                | BinOp::BitOrAssign
+                | BinOp::ShlAssign
+                | BinOp::ShrAssign
+        )
     }
 }
 
