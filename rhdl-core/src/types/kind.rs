@@ -427,6 +427,26 @@ impl Kind {
             false
         }
     }
+
+    pub fn is_signal(&self) -> bool {
+        matches!(self, Kind::Signal(_, _))
+    }
+
+    pub fn signal_kind(&self) -> Option<Kind> {
+        if let Kind::Signal(kind, _) = self {
+            Some(*kind.clone())
+        } else {
+            None
+        }
+    }
+
+    pub fn signal_clock(&self) -> Option<ClockColor> {
+        if let Kind::Signal(_, color) = self {
+            Some(*color)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
