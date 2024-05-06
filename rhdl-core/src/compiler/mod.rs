@@ -13,6 +13,7 @@ mod ascii;
 mod display_ast;
 mod mir;
 pub mod mir_pass;
+pub mod mir_ty;
 pub mod mir_type_check;
 mod passes;
 mod utils;
