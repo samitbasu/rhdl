@@ -1,5 +1,5 @@
 use syn::visit_mut::VisitMut;
-use syn::{parse_quote, Expr, Lit, LitInt};
+use syn::{parse_quote, Expr, Lit, LitInt, Pat};
 
 pub struct CustomSuffix;
 
@@ -24,7 +24,6 @@ impl VisitMut for CustomSuffix {
     }
     // TODO - Revisit in the future so that we can
     // match on values with a custom suffix.
-    /*
     fn visit_pat_mut(&mut self, node: &mut Pat) {
         let mut replaced = false;
         if let Pat::Lit(lit) = node {
@@ -35,9 +34,9 @@ impl VisitMut for CustomSuffix {
                 if let Ok(suffix_width_digits) = suffix_width.parse::<usize>() {
                     let suffix_width_digits = syn::Index::from(suffix_width_digits);
                     if suffix.starts_with('u') {
-                        *node = parse_quote!(rhdl_bits::Bits::<{#suffix_width_digits}>(#unsuffixed));
+                        *node = parse_quote!(rhdl_bits::Bits::<#suffix_width_digits>(#unsuffixed));
                     } else if suffix.starts_with('i') {
-                        *node = parse_quote!(rhdl_bits::SignedBits::<{#suffix_width_digits}>(#unsuffixed));
+                        *node = parse_quote!(rhdl_bits::SignedBits::<#suffix_width_digits>(#unsuffixed));
                     }
                     replaced = true;
                 }
@@ -45,13 +44,37 @@ impl VisitMut for CustomSuffix {
         }
         syn::visit_mut::visit_pat_mut(self, node);
     }
-    */
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use quote::quote;
+
+    #[test]
+    #[allow(unused)]
+    fn test_custom_suffix_in_match_pattern() {
+        let test_code = quote! {
+            fn update() {
+                let a = 54_234_i14;
+                let q = (1, (0, 5), 6);
+                match q {
+                    1_u7 => {
+                        a.a = 2 + 3 + q.1.0;
+                    }
+                    2_u7 => {
+                        a.a = 5;
+                    }
+                }
+            }
+        };
+        let mut item = syn::parse2::<syn::ItemFn>(test_code).unwrap();
+        CustomSuffix.visit_item_fn_mut(&mut item);
+        println!("{:#?}", item);
+        let new_code = quote! {#item};
+        let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
+        println!("{}", result);
+    }
 
     #[test]
     #[allow(unused)]
@@ -84,11 +107,11 @@ mod tests {
                     z = 5;
                 }
                 match z {
-                    Bits(1) => {
+                    1_u7 => {
                         z = 2_u4;
                         z = 0x432_u10;
                     }
-                    Bits(2) => {
+                    2_u7 => {
                         z = 5;
                     }
                 }

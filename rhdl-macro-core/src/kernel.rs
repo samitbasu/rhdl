@@ -5,8 +5,11 @@ use quote::{format_ident, quote};
 use syn::{
     punctuated::Punctuated, spanned::Spanned, token::Comma, FnArg, Ident, Pat, PatType, Path, Type,
 };
+
+use crate::suffix::CustomSuffix;
 type TS = proc_macro2::TokenStream;
 type Result<T> = syn::Result<T>;
+use syn::visit_mut::VisitMut;
 
 // We need the same kind of scope tracking that is used in `infer_types.rs`.
 // Basically, in any given scope, we need a list of the bindings that have
@@ -383,7 +386,8 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
         })
         .collect::<Result<Punctuated<_, Comma>>>()?;
     let ret = &function.sig.output;
-    let body = &function.block;
+    let mut body = function.block.clone();
+    CustomSuffix.visit_block_mut(&mut body);
     Ok(quote! {
 
             #vis fn #orig_name #impl_generics (#outer_args) #ret #where_clause {
