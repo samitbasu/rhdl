@@ -24,6 +24,7 @@ mod tristate;
 //mod verilog;
 //mod dfg;
 //mod trace;
+mod case;
 mod chalk;
 mod check;
 mod signal;

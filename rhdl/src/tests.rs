@@ -591,6 +591,7 @@ fn test_phi_missing_register() {
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
 }
 
+
 #[test]
 fn test_phi() {
     #[kernel]
