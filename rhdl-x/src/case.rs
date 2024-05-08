@@ -1,5 +1,6 @@
-use rhdl_bits::alias::{b4, s4};
-use rhdl_bits::Bits;
+use rhdl_bits::alias::{b4, b7, s4};
+use rhdl_bits::{bits, Bits};
+use rhdl_macro::kernel;
 use syn::token::{Brace, Comma, FatArrow};
 use syn::{
     braced,
@@ -121,9 +122,43 @@ fn test_case_macro() {
     assert_eq!(y, 1);
 }
 
+type k7 = rhdl_bits::Bits<7>;
+
+#[test]
+fn test_match_macro() {
+    #[kernel]
+    fn testit() -> b7 {
+        let x = b7(3);
+        let y = match x {
+            b7(1) => b7(1),
+            b7(2) => {
+                let z = b7(2);
+                z
+            }
+            _ => b7(3),
+        };
+        y
+    }
+}
+
 #[test]
 fn test_match_stuff() {
+    fn match_it(x: b4) -> b4 {
+        match x.raw() {
+            1 => b4(1),
+            2 => bits(2),
+            2 => bits(2),
+            _ => b4(3),
+        }
+    }
+
     let x = b4(4);
+    let y = match x.raw() {
+        1 => b4(1),
+        2 => bits(2),
+        2 => bits(2),
+        _ => b4(3),
+    };
     let y = case! {x ,
         1 => b4(1),
         2 => b4(2),

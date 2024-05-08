@@ -26,21 +26,17 @@ impl VisitMut for CustomSuffix {
     // match on values with a custom suffix.
     fn visit_pat_mut(&mut self, node: &mut Pat) {
         let mut replaced = false;
-        if let Pat::Lit(lit) = node {
-            if let Lit::Int(int) = &lit.lit {
-                let suffix = int.suffix().replace('_', "");
-                let unsuffixed: LitInt = syn::parse_str(int.base10_digits()).unwrap();
-                let suffix_width: String = suffix.chars().skip(1).collect();
-                if let Ok(suffix_width_digits) = suffix_width.parse::<usize>() {
-                    let suffix_width_digits = syn::Index::from(suffix_width_digits);
-                    if suffix.starts_with('u') {
-                        *node = parse_quote!(rhdl_bits::Bits::<#suffix_width_digits>(#unsuffixed));
-                    } else if suffix.starts_with('i') {
-                        *node = parse_quote!(rhdl_bits::SignedBits::<#suffix_width_digits>(#unsuffixed));
-                    }
+        eprintln!("Before Pat --> {:#?}", node);
+        if let Pat::TupleStruct(ts) = node {
+            if let Some(path) = ts.path.get_ident() {
+                if path == "b7" {
+                    ts.path = parse_quote!(rhdl_bits::Bits::<7>);
                     replaced = true;
                 }
             }
+        }
+        if replaced {
+            eprintln!("After Pat --> {:#?}", node);
         }
         syn::visit_mut::visit_pat_mut(self, node);
     }
@@ -59,18 +55,18 @@ mod tests {
                 let a = 54_234_i14;
                 let q = (1, (0, 5), 6);
                 match q {
-                    1_u7 => {
+                    b7(5) => {
                         a.a = 2 + 3 + q.1.0;
                     }
-                    2_u7 => {
-                        a.a = 5;
+                    rhdl_bits::Bits::<7>(7) => {
+                        a.a = 2 + 3 + q.1.0;
                     }
                 }
             }
         };
         let mut item = syn::parse2::<syn::ItemFn>(test_code).unwrap();
         CustomSuffix.visit_item_fn_mut(&mut item);
-        println!("{:#?}", item);
+        //println!("{:#?}", item);
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         println!("{}", result);
