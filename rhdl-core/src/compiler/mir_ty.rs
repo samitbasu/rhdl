@@ -1,81 +1,218 @@
+use id_arena::{Arena, Id};
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     fmt::{Display, Formatter},
 };
 
-use crate::{ClockColor, Kind};
+use crate::{
+    types::kind::{Array, Enum, Struct},
+    ClockColor, Kind,
+};
 use anyhow::{bail, Result};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct VarNum(u32);
 
-// TODO - worry about the clone cost
+struct TypeDB {
+    types: Arena<Type>,
+    var: VarNum,
+}
+
+type TypeId = Id<Type>;
+
+// These are types that are fundamental, i.e., not parameterized or
+// generic over any other types.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum Const {
+    Struct(Struct),
+    Enum(Enum),
+    Clock(ClockColor),
+    Length(usize),
+    Integer,
+    Usize,
+    Empty,
+}
+
+// These are types that are generic over one or more other types.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum AppTypeKind {
+    Bits,
+    Signed,
+    Signal,
+    Tuple,
+    Array,
+}
+
+// These are types that are generic over one or more other types.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct AppType {
+    kind: AppTypeKind,
+    args: Vec<TypeId>,
+}
+
+// The type system is more expressive than the Kind system.  The Kind
+// system defines types that are built at compile time, while the type
+// system defines types that are built at run time.  The type system
+// is necessarily more expressive, and as a result, can represent types
+// that do not mean anything in the Kind system.  For example, inference
+// variables are not part of the Kind system, but are part of the type
+// system.  Furthermore, the type system enforces type rules at run time
+// not at compile time.  So while a construct like Bits<Red> is not meaningful,
+// it can be constructed at run time.  As a result of this, conversion from
+// a Type -> Kind is fallible, while conversion from Kind -> Type is not.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Type {
     Var(VarNum),
-    Kind(Kind),
-    Tuple(Vec<Type>),
-    Bits(Box<Type>),
-    Signed(Box<Type>),
-    Signal(Box<Type>, Box<Type>),
-    Clock(ClockColor),
-    N(usize),
-    Integer,
-    Usize,
+    Const(Const),
+    App(AppType),
 }
 
-impl From<Kind> for Type {
-    fn from(k: Kind) -> Self {
-        Type::Kind(k)
+impl TypeDB {
+    fn new() -> Self {
+        let types: Arena<Type> = Arena::new();
+        let var = VarNum(0);
+        TypeDB { types, var }
     }
-}
 
-impl From<ClockColor> for Type {
-    fn from(c: ClockColor) -> Self {
-        Type::Clock(c)
+    fn ty_app(&mut self, kind: AppTypeKind, args: Vec<TypeId>) -> TypeId {
+        self.types.alloc(Type::App(AppType { kind, args }))
     }
-}
 
-impl Type {
-    pub fn is_empty(&self) -> bool {
-        match self {
-            Type::Kind(k) => k.is_empty(),
-            _ => false,
-        }
+    fn ty_const(&mut self, const_ty: Const) -> TypeId {
+        self.types.alloc(Type::Const(const_ty))
     }
-    pub fn is_bool(&self) -> bool {
-        match self {
-            Type::Kind(k) => k.is_bool(),
-            _ => false,
-        }
-    }
-    pub fn is_constant(&self) -> bool {
-        matches!(self, Type::Kind(_))
-    }
-    pub fn is_variable(&self) -> bool {
-        matches!(self, Type::Var(_))
-    }
-}
 
-impl Display for Type {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        match self {
-            Type::Var(v) => write!(f, "V{}", v.0),
-            Type::Kind(k) => write!(f, "{}", k),
-            Type::Tuple(t) => {
-                write!(f, "(")?;
-                for (i, t) in t.iter().enumerate() {
-                    write!(f, "{},", t)?;
-                }
-                write!(f, ")")
+    fn ty_const_len(&mut self, len: usize) -> TypeId {
+        self.ty_const(Const::Length(len))
+    }
+
+    fn ty_bits(&mut self, len: TypeId) -> TypeId {
+        self.ty_app(AppTypeKind::Bits, vec![len])
+    }
+
+    fn ty_signed(&mut self, len: TypeId) -> TypeId {
+        self.ty_app(AppTypeKind::Signed, vec![len])
+    }
+
+    fn ty_var(&mut self) -> TypeId {
+        let ty = self.types.alloc(Type::Var(self.var));
+        self.var.0 += 1;
+        ty
+    }
+
+    fn ty_array(&mut self, base: TypeId, len: TypeId) -> TypeId {
+        self.ty_app(AppTypeKind::Array, vec![base, len])
+    }
+
+    fn ty_struct(&mut self, strukt: Struct) -> TypeId {
+        self.ty_const(Const::Struct(strukt))
+    }
+
+    fn ty_enum(&mut self, enumerate: Enum) -> TypeId {
+        self.ty_const(Const::Enum(enumerate))
+    }
+
+    fn ty_tuple(&mut self, fields: Vec<TypeId>) -> TypeId {
+        self.ty_app(AppTypeKind::Tuple, fields)
+    }
+
+    fn ty_clock(&mut self, clock: ClockColor) -> TypeId {
+        self.ty_const(Const::Clock(clock))
+    }
+
+    fn ty_signal(&mut self, data: TypeId, clock: TypeId) -> TypeId {
+        self.ty_app(AppTypeKind::Signal, vec![data, clock])
+    }
+
+    fn ty_empty(&mut self) -> TypeId {
+        self.ty_const(Const::Empty)
+    }
+
+    fn ty_integer(&mut self) -> TypeId {
+        self.ty_const(Const::Integer)
+    }
+
+    fn ty_usize(&mut self) -> TypeId {
+        self.ty_const(Const::Usize)
+    }
+
+    fn from_kind(&mut self, kind: Kind) -> TypeId {
+        match kind {
+            Kind::Bits(n) => {
+                let n = self.ty_const_len(n);
+                self.ty_bits(n)
             }
-            Type::Integer => write!(f, "integer"),
-            Type::Usize => write!(f, "usize"),
-            Type::Bits(t) => write!(f, "b<{}>", t),
-            Type::Signed(t) => write!(f, "s<{}>", t),
-            Type::Signal(t1, t2) => write!(f, "signal<{}, {}>", t1, t2),
-            Type::Clock(c) => write!(f, "{}", c),
-            Type::N(n) => write!(f, "N{}", n),
+            Kind::Signed(n) => {
+                let n = self.ty_const_len(n);
+                self.ty_signed(n)
+            }
+            Kind::Empty => self.ty_empty(),
+            Kind::Struct(strukt) => self.ty_struct(strukt),
+            Kind::Tuple(fields) => {
+                let arg = fields
+                    .elements
+                    .into_iter()
+                    .map(|k| self.from_kind(k))
+                    .collect();
+                self.ty_tuple(arg)
+            }
+            Kind::Enum(enumerate) => self.ty_enum(enumerate),
+            Kind::Array(array) => {
+                let base = self.from_kind(*array.base);
+                let len = self.ty_const_len(array.size);
+                self.ty_array(base, len)
+            }
+            Kind::Signal(kind, clock) => {
+                let kind = self.from_kind(*kind);
+                let clock = self.ty_clock(clock);
+                self.ty_signal(kind, clock)
+            }
+        }
+    }
+
+    fn is_empty(&self, ty: TypeId) -> bool {
+        matches!(self.types[ty], Type::Const(Const::Empty))
+    }
+
+    fn is_var(&self, ty: TypeId) -> bool {
+        matches!(self.types[ty], Type::Var(_))
+    }
+
+    fn desc(&self, ty: TypeId) -> String {
+        match &self.types[ty] {
+            Type::Var(v) => format!("V{}", v.0),
+            Type::Const(c) => match c {
+                Const::Struct(s) => format!("struct {:?}", s),
+                Const::Enum(e) => format!("enum {:?}", e),
+                Const::Clock(c) => format!("clock {}", c),
+                Const::Length(n) => format!("length {}", n),
+                Const::Integer => "integer".to_string(),
+                Const::Usize => "usize".to_string(),
+                Const::Empty => "empty".to_string(),
+            },
+            Type::App(app) => match app.kind {
+                AppTypeKind::Bits => format!("bits<{}>", self.desc(app.args[0])),
+                AppTypeKind::Signed => format!("signed<{}>", self.desc(app.args[0])),
+                AppTypeKind::Signal => format!(
+                    "signal<{}, {}>",
+                    self.desc(app.args[0]),
+                    self.desc(app.args[1])
+                ),
+                AppTypeKind::Tuple => {
+                    let fields = app
+                        .args
+                        .iter()
+                        .map(|a| self.desc(*a))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    format!("tuple<{}>", fields)
+                }
+                AppTypeKind::Array => format!(
+                    "array<{}, {}>",
+                    self.desc(app.args[0]),
+                    self.desc(app.args[1])
+                ),
+            },
         }
     }
 }
