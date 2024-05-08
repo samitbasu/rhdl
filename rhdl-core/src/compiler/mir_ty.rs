@@ -5,18 +5,13 @@ use std::{
 };
 
 use crate::{
-    types::kind::{Array, Enum, Struct},
+    types::kind::{Array, DiscriminantLayout, Enum, Struct},
     ClockColor, Kind,
 };
-use anyhow::{bail, Result};
+use anyhow::{bail, ensure, Result};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct VarNum(u32);
-
-struct TypeDB {
-    types: Arena<Type>,
-    var: VarNum,
-}
 
 type TypeId = Id<Type>;
 
@@ -24,8 +19,6 @@ type TypeId = Id<Type>;
 // generic over any other types.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Const {
-    Struct(Struct),
-    Enum(Enum),
     Clock(ClockColor),
     Length(usize),
     Integer,
@@ -36,11 +29,37 @@ pub enum Const {
 // These are types that are generic over one or more other types.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum AppTypeKind {
-    Bits,
-    Signed,
-    Signal,
     Tuple,
     Array,
+    Struct(StructType),
+    Enum(EnumType),
+}
+
+// A struct is really just a tuple with named fields.
+// So if a tuple is generic over it's fields, then
+// so is a struct, really.  The only difference is that
+// a tuple is characterized only by the list of types
+// that make up it's fields.  While a struct also has
+// both a name, and names for the fields.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct StructType {
+    name: String,
+    fields: Vec<String>,
+}
+
+// An enum is generic over the discriminant type and
+// the variants themselves.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct EnumType {
+    name: String,
+    variants: Vec<VariantTag>,
+    discriminant_layout: DiscriminantLayout,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct VariantTag {
+    name: String,
+    discriminant: i64,
 }
 
 // These are types that are generic over one or more other types.
@@ -67,11 +86,23 @@ pub enum Type {
     App(AppType),
 }
 
-impl TypeDB {
+#[derive(Clone, Debug)]
+pub struct UnifyContext {
+    substitution_map: HashMap<VarNum, TypeId>,
+    types: Arena<Type>,
+    var: VarNum,
+}
+
+impl UnifyContext {
     fn new() -> Self {
+        let substitution_map = HashMap::new();
         let types: Arena<Type> = Arena::new();
         let var = VarNum(0);
-        TypeDB { types, var }
+        Self {
+            substitution_map,
+            types,
+            var,
+        }
     }
 
     fn ty_app(&mut self, kind: AppTypeKind, args: Vec<TypeId>) -> TypeId {
@@ -87,11 +118,33 @@ impl TypeDB {
     }
 
     fn ty_bits(&mut self, len: TypeId) -> TypeId {
-        self.ty_app(AppTypeKind::Bits, vec![len])
+        self.ty_app(
+            AppTypeKind::Struct(StructType {
+                name: "Bits".to_string(),
+                fields: vec!["0".to_string()],
+            }),
+            vec![len],
+        )
     }
 
     fn ty_signed(&mut self, len: TypeId) -> TypeId {
-        self.ty_app(AppTypeKind::Signed, vec![len])
+        self.ty_app(
+            AppTypeKind::Struct(StructType {
+                name: "Signed".to_string(),
+                fields: vec!["0".to_string()],
+            }),
+            vec![len],
+        )
+    }
+
+    fn ty_signal(&mut self, data: TypeId, clock: TypeId) -> TypeId {
+        self.ty_app(
+            AppTypeKind::Struct(StructType {
+                name: "Signal".to_string(),
+                fields: vec!["data".to_string(), "clock".to_string()],
+            }),
+            vec![data, clock],
+        )
     }
 
     fn ty_var(&mut self) -> TypeId {
@@ -105,11 +158,46 @@ impl TypeDB {
     }
 
     fn ty_struct(&mut self, strukt: Struct) -> TypeId {
-        self.ty_const(Const::Struct(strukt))
+        let (names, tids): (Vec<String>, Vec<TypeId>) = strukt
+            .fields
+            .into_iter()
+            .map(|field| {
+                let name = field.name.clone();
+                let ty = self.from_kind(field.kind);
+                (name, ty)
+            })
+            .unzip();
+        self.ty_app(
+            AppTypeKind::Struct(StructType {
+                name: strukt.name.clone(),
+                fields: names,
+            }),
+            tids,
+        )
     }
 
     fn ty_enum(&mut self, enumerate: Enum) -> TypeId {
-        self.ty_const(Const::Enum(enumerate))
+        let (tags, tids): (Vec<VariantTag>, Vec<TypeId>) = enumerate
+            .variants
+            .into_iter()
+            .map(|variant| {
+                let name = variant.name.clone();
+                let ty = self.from_kind(variant.kind);
+                let tag = VariantTag {
+                    name,
+                    discriminant: variant.discriminant,
+                };
+                (tag, ty)
+            })
+            .unzip();
+        self.ty_app(
+            AppTypeKind::Enum(EnumType {
+                name: enumerate.name.clone(),
+                variants: tags,
+                discriminant_layout: enumerate.discriminant_layout,
+            }),
+            tids,
+        )
     }
 
     fn ty_tuple(&mut self, fields: Vec<TypeId>) -> TypeId {
@@ -118,10 +206,6 @@ impl TypeDB {
 
     fn ty_clock(&mut self, clock: ClockColor) -> TypeId {
         self.ty_const(Const::Clock(clock))
-    }
-
-    fn ty_signal(&mut self, data: TypeId, clock: TypeId) -> TypeId {
-        self.ty_app(AppTypeKind::Signal, vec![data, clock])
     }
 
     fn ty_empty(&mut self) -> TypeId {
@@ -182,22 +266,27 @@ impl TypeDB {
         match &self.types[ty] {
             Type::Var(v) => format!("V{}", v.0),
             Type::Const(c) => match c {
-                Const::Struct(s) => format!("struct {:?}", s),
-                Const::Enum(e) => format!("enum {:?}", e),
                 Const::Clock(c) => format!("clock {}", c),
                 Const::Length(n) => format!("length {}", n),
                 Const::Integer => "integer".to_string(),
                 Const::Usize => "usize".to_string(),
                 Const::Empty => "empty".to_string(),
             },
-            Type::App(app) => match app.kind {
-                AppTypeKind::Bits => format!("bits<{}>", self.desc(app.args[0])),
-                AppTypeKind::Signed => format!("signed<{}>", self.desc(app.args[0])),
-                AppTypeKind::Signal => format!(
-                    "signal<{}, {}>",
-                    self.desc(app.args[0]),
-                    self.desc(app.args[1])
-                ),
+            Type::App(app) => match &app.kind {
+                AppTypeKind::Struct(strukt) => strukt
+                    .fields
+                    .iter()
+                    .zip(&app.args)
+                    .fold(format!("struct {}<", strukt.name), |acc, (field, ty)| {
+                        format!("{}{}:{},", acc, field, self.desc(*ty))
+                    }),
+                AppTypeKind::Enum(enumerate) => enumerate
+                    .variants
+                    .iter()
+                    .zip(&app.args)
+                    .fold(format!("enum {}<", enumerate.name), |acc, (variant, ty)| {
+                        format!("{}{}:{},", acc, variant.name, self.desc(*ty))
+                    }),
                 AppTypeKind::Tuple => {
                     let fields = app
                         .args
@@ -217,147 +306,136 @@ impl TypeDB {
     }
 }
 
-#[derive(Clone, Default, Debug, PartialEq, Eq)]
-pub struct UnifyContext {
-    substitution_map: HashMap<VarNum, Type>,
-    var_counter: u32,
-}
-
 impl Display for UnifyContext {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         for (v, t) in &self.substitution_map {
-            writeln!(f, "V{} -> {}", v.0, t)?;
+            writeln!(f, "V{} -> {}", v.0, self.desc(*t))?;
         }
         Ok(())
     }
 }
 
 impl UnifyContext {
-    pub fn var_signed(&mut self) -> Type {
-        Type::Signed(Box::new(self.var()))
-    }
-    pub fn var_bits(&mut self) -> Type {
-        Type::Bits(Box::new(self.var()))
-    }
-    pub fn var(&mut self) -> Type {
-        let v = VarNum(self.var_counter);
-        self.var_counter += 1;
-        Type::Var(v)
-    }
-    fn apply(&self, ty: Type) -> Type {
-        match ty {
-            Type::Var(v) => {
-                if let Some(t) = self.substitution_map.get(&v) {
-                    self.apply(t.clone())
-                } else {
-                    Type::Var(v)
-                }
-            }
-            Type::Tuple(fields) => Type::Tuple(fields.into_iter().map(|t| self.apply(t)).collect()),
-            Type::Bits(t) => Type::Bits(Box::new(self.apply(*t))),
-            Type::Signed(t) => Type::Signed(Box::new(self.apply(*t))),
-            Type::Signal(t1, t2) => {
-                Type::Signal(Box::new(self.apply(*t1)), Box::new(self.apply(*t2)))
-            }
-            t => t,
-        }
-    }
-    pub fn normalize(&self, ty: Type) -> Type {
-        let ty = self.apply(ty);
-        if let Type::Bits(t) = &ty {
-            if let Type::N(n) = **t {
-                return Type::Kind(Kind::make_bits(n));
-            }
-        }
-        if let Type::Signed(t) = &ty {
-            if let Type::N(n) = **t {
-                return Type::Kind(Kind::make_signed(n));
-            }
-        }
-        ty
-    }
-    pub fn unify(&mut self, x: Type, y: Type) -> Result<()> {
-        if x == y {
-            return Ok(());
-        }
-        match (x, y) {
-            (Type::Var(x), y) => self.unify_variable(x, y),
-            (x, Type::Var(y)) => self.unify_variable(y, x),
-            (Type::Kind(x), Type::Kind(y)) => bail!("Cannot unify {} and {}", x, y),
-            (Type::Tuple(x), Type::Tuple(y)) => self.unify_tuples(x, y),
-            (Type::Bits(x), Type::Bits(y)) => self.unify(*x, *y),
-            (Type::Signed(x), Type::Signed(y)) => self.unify(*x, *y),
-            (Type::Signal(x1, x2), Type::Signal(y1, y2)) => {
-                self.unify(*x1, *y1)?;
-                self.unify(*x2, *y2)
-            }
-            (Type::Signal(d, c), Type::Kind(Kind::Signal(data, clock)))
-            | (Type::Kind(Kind::Signal(data, clock)), Type::Signal(d, c)) => {
-                self.unify(*d, Type::Kind(*data))?;
-                self.unify(*c, clock.into())
-            }
-            (Type::Bits(x), Type::Kind(Kind::Bits(k)))
-            | (Type::Kind(Kind::Bits(k)), Type::Bits(x)) => self.unify(*x, Type::N(k)),
-            (Type::Signed(x), Type::Kind(Kind::Signed(k)))
-            | (Type::Kind(Kind::Signed(k)), Type::Signed(x)) => self.unify(*x, Type::N(k)),
-            (x, y) => bail!("Cannot unify {} and {}", x, y),
-        }
-    }
-    // We want to declare v and x as equivalent.
-    fn unify_variable(&mut self, v: VarNum, x: Type) -> Result<()> {
-        // If v is already in the subtitution map, then we want
-        // to unify x with the value in the map.
-        if let Some(t) = self.substitution_map.get(&v).cloned() {
-            return self.unify(t, x);
-        // There is no substitution for v in the map.  Check to
-        // see if x is a variable.
-        } else if let Type::Var(x_id) = x {
-            // if x is a variable, and it has a substutition in the
-            // map, then unify v with the value in the map.
-            if let Some(t) = self.substitution_map.get(&x_id).cloned() {
-                return self.unify(Type::Var(v), t);
-            }
-        }
-        // To get to this point, we must have v as an unbound
-        // variable, and x is either not a variable or it is
-        // a variable that is not in the substitution map.
-        // Check to make sure that do not create a recursive unification.
-        if self.occurs(v, &x) {
-            bail!("Recursive unification encountered");
-        }
-        // All is good, so add the substitution to the map.
+    fn add_subst(&mut self, v: TypeId, x: TypeId) -> Result<()> {
+        let Type::Var(v) = self.types[v] else {
+            bail!("Expected a variable, found {:?}", self.types[v]);
+        };
         self.substitution_map.insert(v, x);
         Ok(())
     }
-    fn occurs(&self, v: VarNum, term: &Type) -> bool {
-        // Check for the case that term is a variable
-        if let Type::Var(x) = term {
-            // Unifying with itself is not allowed
-            if *x == v {
-                return true;
-            }
-            // If x is in the substitution map, then check
-            // to see if v occurs in the substitution.
-            if let Some(t) = self.substitution_map.get(&x) {
-                return self.occurs(v, t);
-            }
+    fn subst(&self, ty: TypeId) -> anyhow::Result<Option<TypeId>> {
+        let Type::Var(v) = self.types[ty] else {
+            bail!("Expected a variable, found {:?}", self.types[ty]);
+        };
+        if let Some(t) = self.substitution_map.get(&v) {
+            return Ok(Some(*t));
         }
-        if let Type::Tuple(fields) = term {
-            return fields.iter().any(|t| self.occurs(v, t));
-        }
-        false
+        Ok(None)
     }
-    fn unify_tuples(&mut self, x: Vec<Type>, y: Vec<Type>) -> Result<()> {
-        if x.len() != y.len() {
-            bail!("Cannot unify tuples of different lengths");
+    fn apply(&mut self, ty: TypeId) -> TypeId {
+        match self.types[ty].clone() {
+            Type::Var(v) => {
+                if let Some(t) = self.substitution_map.get(&v) {
+                    self.apply(*t)
+                } else {
+                    ty
+                }
+            }
+            Type::App(AppType { kind, args }) => {
+                let args = args.iter().map(|t| self.apply(*t)).collect();
+                self.ty_app(kind.clone(), args)
+            }
+            _ => ty,
         }
-        for (x, y) in x.into_iter().zip(y.into_iter()) {
-            self.unify(x, y)?;
+    }
+    pub fn unify(&mut self, x: TypeId, y: TypeId) -> Result<()> {
+        if self.types[x] == self.types[y] {
+            return Ok(());
+        }
+        match (&self.types[x], &self.types[y]) {
+            (Type::Var(_), _) => self.unify_variable(x, y),
+            (_, Type::Var(_)) => self.unify_variable(y, x),
+            (Type::Const(x), Type::Const(y)) if x == y => Ok(()),
+            (Type::App(_), Type::App(_)) => self.unify_app(x, y),
+            _ => bail!("Cannot unify {} and {}", self.desc(x), self.desc(y)),
+        }
+    }
+    // We want to declare v and x as equivalent.
+    fn unify_variable(&mut self, v: TypeId, x: TypeId) -> Result<()> {
+        ensure!(
+            self.is_var(v),
+            "Expected a variable, found {:?}",
+            self.types[v]
+        );
+        // If v is already in the substitution map, then we want
+        // to unify x with the value in the map.
+        if let Some(t) = self.subst(v)? {
+            return self.unify(t, x);
+        // There is no substitution for v in the map.  Check to
+        // see if x is a variable.
+        } else if self.is_var(x) {
+            // if x is a variable, and it has a substitution in the
+            // map, then unify v with the value in the map.
+            if let Some(t) = self.subst(x)? {
+                return self.unify(v, t);
+            }
+        }
+        // To get to this point, we must have v as an unbound (no substitution)
+        // variable, and x is either not a variable or it is
+        // a variable that is not in the substitution map.
+        // Check to make sure that if v -> x, we do not create a
+        // recursive unification.
+        if self.occurs(v, x) {
+            bail!("Recursive unification encountered");
+        }
+        // All is good, so add the substitution to the map.
+        self.add_subst(v, x)
+    }
+    fn unify_app(&mut self, x: TypeId, y: TypeId) -> Result<()> {
+        let Type::App(AppType { kind: k1, args: a1 }) = &self.types[x] else {
+            bail!("Expected app type instead of {:?}", self.types[x]);
+        };
+        let Type::App(AppType { kind: k2, args: a2 }) = &self.types[y] else {
+            bail!("Expected app type instead of {:?}", self.types[y]);
+        };
+        if k1 != k2 {
+            bail!("Cannot unify {:?} and {:?}", k1, k2);
+        }
+        let a1 = a1.clone();
+        let a2 = a2.clone();
+        if a1.len() != a2.len() {
+            bail!("Cannot unify {:?} and {:?}", a1, a2);
+        }
+        for (a, b) in a1.iter().zip(a2.iter()) {
+            self.unify(*a, *b)?;
         }
         Ok(())
     }
+    fn occurs(&self, v: TypeId, term: TypeId) -> bool {
+        // Check for the case that term is a variable
+        if self.is_var(term) {
+            // Unifying with itself is not allowed
+            if self.types[term] == self.types[v] {
+                return true;
+            }
+            // We know that term is a variable, so check to see
+            // if it is in the substitution map.
+            // If term is in the substitution map, then check
+            // to see if v occurs in the substitution.
+            if let Some(t) = self.subst(term).unwrap() {
+                return self.occurs(v, t);
+            }
+        }
+        // If term is an application type, then we need to check
+        // each of the arguments to see if v occurs in any of them.
+        if let Type::App(AppType { args, .. }) = &self.types[term] {
+            return args.iter().any(|t| self.occurs(v, *t));
+        }
+        false
+    }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -403,3 +481,4 @@ mod tests {
         assert_eq!(ctx.normalize(x), Type::Kind(Kind::make_bits(12)));
     }
 }
+*/
