@@ -76,6 +76,7 @@ impl std::fmt::Display for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Object {}", self.name)?;
         writeln!(f, "  fn_id {}", self.fn_id)?;
+        writeln!(f, "  return_slot {}", self.return_slot)?;
         for regs in self.kind.keys() {
             if let Slot::Register(ndx) = regs {
                 writeln!(f, "Reg r{} : {}", ndx, self.kind[regs])?;

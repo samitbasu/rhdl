@@ -11,7 +11,7 @@ use crate::{
             check_rhif_type::TypeCheckPass,
             pass::Pass,
             pre_cast_literals::PreCastLiterals,
-            remove_discriminants_for_non_enum_types::RemoveDiscriminantsForNonEnumTypesPass,
+            precompute_discriminants::PrecomputeDiscriminantPass,
             remove_empty_cases::RemoveEmptyCasesPass,
             remove_extra_registers::RemoveExtraRegistersPass,
             remove_unneeded_muxes::RemoveUnneededMuxesPass,
@@ -34,8 +34,8 @@ fn compile_kernel(kernel: Kernel) -> Result<Object> {
     //    let _ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
     //    check_inference(&kernel, &ctx)?;
     //let mut obj = compile(kernel.inner(), ctx)?;
-    eprintln!("{}", obj);
     for _pass in 0..2 {
+        eprintln!("{}", obj);
         obj = RemoveExtraRegistersPass::run(obj)?;
         obj = RemoveUnneededMuxesPass::run(obj)?;
         obj = RemoveExtraRegistersPass::run(obj)?;
@@ -44,11 +44,11 @@ fn compile_kernel(kernel: Kernel) -> Result<Object> {
         obj = RemoveUselessCastsPass::run(obj)?;
         obj = RemoveEmptyCasesPass::run(obj)?;
         obj = RemoveUnusedRegistersPass::run(obj)?;
-        obj = RemoveDiscriminantsForNonEnumTypesPass::run(obj)?;
+        obj = PrecomputeDiscriminantPass::run(obj)?;
     }
     let obj = TypeCheckPass::run(obj)?;
     let obj = DataFlowCheckPass::run(obj)?;
-    eprintln!("{}", obj);
+    eprintln!("Final code:\n{}", obj);
     //let obj = CheckClockCoherence::run(obj)?;
     Ok(obj)
 }

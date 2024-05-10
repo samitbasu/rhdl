@@ -349,50 +349,33 @@ impl<T0: Notable, T1: Notable, T2: Notable, T3: Notable, T4: Notable> Notable
     }
 }
 
-// Because of the way Rust works, we cannot simply use a const-generic
-// array here.  Instead, we have to implement each size of array
-// separately.  This is unfortunate, but it is the only way to
-// make this work.
-
-// The following macro makes it easier
-macro_rules! impl_array {
-    ($($N:literal),*) => {
-        $(
-            impl<T: Digital> Digital for [T; $N] {
-                fn static_kind() -> Kind {
-                    Kind::make_array(T::static_kind(), $N)
-                }
-                fn bin(self) -> Vec<bool> {
-                    let mut v = Vec::new();
-                    for x in self.iter() {
-                        v.extend(x.bin());
-                    }
-                    v
-                }
-            }
-
-            impl<T: Notable> Notable for [T; $N] {
-                fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-                    for (i, x) in self.iter().enumerate() {
-                        x.note((key, i), &mut writer);
-                    }
-                }
-            }
-        )*
-    };
+impl<T: Digital, const N: usize> Digital for [T; N] {
+    fn static_kind() -> Kind {
+        Kind::make_array(T::static_kind(), N)
+    }
+    fn bin(self) -> Vec<bool> {
+        let mut v = Vec::new();
+        for x in self.iter() {
+            v.extend(x.bin());
+        }
+        v
+    }
 }
 
-impl_array!(1, 2, 3, 4, 5, 6, 7, 8);
+impl<T: Notable, const N: usize> Notable for [T; N] {
+    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
+        for (i, x) in self.iter().enumerate() {
+            x.note((key, i), &mut writer);
+        }
+    }
+}
 
 #[cfg(test)]
 mod test {
     use std::iter::repeat;
 
     use super::*;
-    use crate::{
-        types::kind::{DiscriminantAlignment, Variant},
-        util::id,
-    };
+    use crate::types::kind::{DiscriminantAlignment, Variant};
     use rhdl_bits::alias::*;
 
     #[test]

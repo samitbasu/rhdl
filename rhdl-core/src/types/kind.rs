@@ -227,16 +227,18 @@ impl Kind {
             _ => bits.collect(),
         }
     }
-    pub fn get_field_kind(&self, member: &Member) -> Result<Kind> {
+    pub fn get_field_kind(&self, member: impl ToString) -> Result<Kind> {
         match self {
             Kind::Struct(s) => {
                 let field = s.fields.iter().find(|x| x.name == member.to_string());
                 match field {
                     Some(field) => Ok(field.kind.clone()),
-                    None => Err(anyhow::anyhow!("No field with name {}", member)),
+                    None => Err(anyhow::anyhow!("No field with name {}", member.to_string())),
                 }
             }
-            _ => Err(anyhow::anyhow!("Not a struct")),
+            _ => Err(anyhow::anyhow!(
+                "Kind {self} is not a struct, and get_field_kind is not allowed"
+            )),
         }
     }
     pub fn get_tuple_kind(&self, ndx: usize) -> Result<Kind> {

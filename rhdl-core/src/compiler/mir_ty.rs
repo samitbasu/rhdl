@@ -5,10 +5,13 @@ use std::{
 };
 
 use crate::{
+    path::Path,
     types::kind::{Array, DiscriminantLayout, Enum, Field, Struct, Tuple},
-    ClockColor, Kind,
+    ClockColor, DiscriminantType, Kind,
 };
-use anyhow::{bail, ensure, Result};
+use anyhow::{anyhow, bail, ensure, Result};
+
+use super::ty::Ty;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct VarNum(u32);
@@ -182,6 +185,14 @@ impl UnifyContext {
         )
     }
 
+    fn ty_discriminant(&mut self, layout: DiscriminantLayout) -> TypeId {
+        let len = self.ty_const_len(layout.width);
+        match layout.ty {
+            DiscriminantType::Unsigned => self.ty_bits(len),
+            DiscriminantType::Signed => self.ty_signed(len),
+        }
+    }
+
     pub fn ty_enum(&mut self, enumerate: &Enum) -> TypeId {
         let (tags, tids): (Vec<VariantTag>, Vec<TypeId>) = enumerate
             .variants
@@ -208,6 +219,65 @@ impl UnifyContext {
 
     pub fn ty_tuple(&mut self, fields: Vec<TypeId>) -> TypeId {
         self.ty_app(AppTypeKind::Tuple, fields)
+    }
+
+    pub fn ty_index(&mut self, base: TypeId, index: usize) -> Result<TypeId> {
+        let Type::App(AppType { kind, args }) = &self.types[base] else {
+            bail!("Expected an application type, found {:?}", self.types[base]);
+        };
+        match kind {
+            AppTypeKind::Array => Ok(args[0]),
+            AppTypeKind::Tuple | AppTypeKind::Struct(_) => {
+                if index < args.len() {
+                    Ok(args[index])
+                } else {
+                    bail!("Index out of bounds");
+                }
+            }
+            _ => bail!("Expected an array, tuple, or struct, found {:?}", kind),
+        }
+    }
+
+    pub fn ty_variant(&mut self, base: TypeId, variant: &str) -> Result<TypeId> {
+        let Type::App(AppType {
+            kind: AppTypeKind::Enum(enumerate),
+            args,
+        }) = &self.types[base]
+        else {
+            bail!("Expected an enum type, found {:?}", self.types[base]);
+        };
+        let index = enumerate
+            .variants
+            .iter()
+            .position(|v| v.name == variant)
+            .ok_or_else(|| anyhow!("Variant not found"))?;
+        Ok(args[index])
+    }
+
+    pub fn ty_field(&mut self, base: TypeId, member: &str) -> Result<TypeId> {
+        let Type::App(AppType {
+            kind: AppTypeKind::Struct(strukt),
+            args,
+        }) = &self.types[base]
+        else {
+            bail!("Expected an a struct type, found {:?}", self.types[base]);
+        };
+        let index = strukt
+            .fields
+            .iter()
+            .position(|f| f == member)
+            .ok_or_else(|| anyhow!("Field not found"))?;
+        Ok(args[index])
+    }
+
+    pub fn ty_enum_discriminant(&mut self, base: TypeId) -> Result<TypeId> {
+        let Type::App(AppType { kind, args: _ }) = &self.types[base] else {
+            bail!("Expected an app type, found {:?}", self.types[base]);
+        };
+        match kind {
+            AppTypeKind::Enum(enumerate) => Ok(self.ty_discriminant(enumerate.discriminant_layout)),
+            _ => Ok(base),
+        }
     }
 
     pub fn ty_clock(&mut self, clock: ClockColor) -> TypeId {
@@ -475,6 +545,18 @@ impl UnifyContext {
         }) = &self.types[ty]
         {
             Some(args[1])
+        } else {
+            None
+        }
+    }
+    pub fn project_signal_value(&mut self, ty: TypeId) -> Option<TypeId> {
+        let ty = self.apply(ty);
+        if let Type::App(AppType { kind, args }) = &self.types[ty] {
+            if matches!(kind, AppTypeKind::Signal) {
+                Some(args[0])
+            } else {
+                Some(ty)
+            }
         } else {
             None
         }

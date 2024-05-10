@@ -51,6 +51,7 @@ use crate::{
 
 use super::assign_node::NodeIdGenerator;
 use super::assign_node_ids;
+use super::display_ast::pretty_print_kernel;
 use super::display_ast::pretty_print_statement;
 use super::mir::Mir;
 use super::mir::OpCodeWithSource;
@@ -912,9 +913,12 @@ impl MirContext {
         Ok(lhs)
     }
     fn local(&mut self, local: &Local) -> Result<()> {
-        self.bind_pattern(&local.pat)?;
+        let mut rhs = None;
         if let Some(init) = &local.init {
-            let rhs = self.expr(init)?;
+            rhs = Some(self.expr(init)?);
+        }
+        self.bind_pattern(&local.pat)?;
+        if let Some(rhs) = rhs {
             self.initialize_local(&local.pat, rhs)?;
         }
         Ok(())
@@ -1168,6 +1172,10 @@ impl Visitor for MirContext {
         self.ops.insert(0, (init_early_exit_op, node.id).into());
         self.ops.insert(1, (init_return_slot, node.id).into());
         self.insert_implicit_return(node.body.id, block_result, &node.name)?;
+        self.return_slot = self
+            .lookup_name(&node.name)
+            .ok_or(anyhow!("ICE - return slot not found"))?
+            .0;
         self.fn_id = node.fn_id;
         Ok(())
     }
@@ -1198,6 +1206,9 @@ fn get_locals_changed(from: &LocalsMap, to: &LocalsMap) -> Result<BTreeSet<Scope
 pub fn compile_mir(mut func: Kernel) -> Result<Mir> {
     let mut generator = NodeIdGenerator::default();
     generator.visit_mut_kernel_fn(func.inner_mut())?;
+    let context = Default::default();
+    let kernel_string = pretty_print_kernel(&func, &context)?;
+    eprintln!("Kernel string: {}", kernel_string);
     let mut compiler = MirContext::default();
     compiler.visit_kernel_fn(func.inner())?;
     compiler

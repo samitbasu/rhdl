@@ -73,7 +73,7 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
         }
     };
     for op in &obj.ops {
-        eprintln!("check op: {:?}", op);
+        eprintln!("check op: {}", op);
         match op {
             OpCode::Noop => {}
             OpCode::Binary(Binary {
@@ -236,7 +236,7 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                         rhif::spec::Member::Unnamed(index) => {
                             let ty = sub_kind(
                                 variant_kind.clone(),
-                                &Path::default().index(*index as usize),
+                                &Path::default().tuple_index(*index as usize),
                             )?;
                             eq_kinds(slot_type(&field.value)?, ty)?;
                         }
@@ -278,6 +278,9 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                             eq_kinds(arg_ty.clone(), constant_ty)?;
                         }
                         CaseArgument::Slot(slot) => {
+                            if !matches!(slot, Slot::Literal(_)) {
+                                bail!("Match contains a non-constant discriminant, which is not allowed in RHDL");
+                            }
                             eq_kinds(arg_ty.clone(), slot_type(slot)?)?;
                         }
                         CaseArgument::Wild => {}

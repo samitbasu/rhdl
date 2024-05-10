@@ -181,6 +181,12 @@ impl<'a> MirTypeInference<'a> {
                     self.unify(op.lhs, op.arg1)?;
                     self.unify(op.lhs, op.arg2)?;
                 }
+                if let (Some(arg1_data), Some(arg2_data)) = (
+                    self.ctx.project_signal_value(op.arg1),
+                    self.ctx.project_signal_value(op.arg2),
+                ) {
+                    self.unify(arg1_data, arg2_data)?;
+                }
             }
             AluBinary::Eq
             | AluBinary::Lt
@@ -202,11 +208,48 @@ impl<'a> MirTypeInference<'a> {
                     let lhs_var = self.ctx.ty_bool();
                     self.unify(op.lhs, lhs_var)?;
                 }
+                if let (Some(arg1_data), Some(arg2_data)) = (
+                    self.ctx.project_signal_value(op.arg1),
+                    self.ctx.project_signal_value(op.arg2),
+                ) {
+                    self.unify(arg1_data, arg2_data)?;
+                }
             }
             _ => bail!("Not implemented"),
         }
         Ok(())
     }
+
+    fn ty_path_project(&mut self, arg: TypeId, path: &Path) -> Result<TypeId> {
+        let mut arg = self.ctx.apply(arg);
+        for element in path.elements.iter() {
+            match element {
+                PathElement::Index(ndx) => {
+                    arg = self.ctx.ty_index(arg, *ndx)?;
+                }
+                PathElement::Field(member) => {
+                    arg = self.ctx.ty_field(arg, member)?;
+                }
+                PathElement::DynamicIndex(ndx) => {
+                    arg = self.ctx.ty_index(arg, 0)?;
+                }
+                PathElement::EnumDiscriminant => {
+                    arg = self.ctx.ty_enum_discriminant(arg)?;
+                }
+                PathElement::TupleIndex(ndx) => {
+                    arg = self.ctx.ty_index(arg, *ndx)?;
+                }
+                PathElement::EnumPayload(member) => {
+                    arg = self.ctx.ty_variant(arg, member)?;
+                }
+                _ => {
+                    bail!("Unsupported path element {:?} in path", element);
+                }
+            }
+        }
+        Ok(arg)
+    }
+
     fn try_index(&mut self, op: &TypeIndex) -> Result<()> {
         eprintln!(
             "Try to apply index to {} with path {}",
@@ -214,15 +257,12 @@ impl<'a> MirTypeInference<'a> {
             op.path
         );
         let arg = self.ctx.apply(op.arg);
-        if let Ok(arg_kind) = self.ctx.into_kind(arg) {
-            let path = approximate_dynamic_paths(&op.path);
-            eprintln!("Index base kind: {}", arg_kind);
-            let sub_kind = sub_kind(arg_kind, &path)?;
-            eprintln!("Sub-kind: {}", sub_kind);
-            let sub_kind_ty = self.ctx.from_kind(&sub_kind);
-            self.unify(op.lhs, sub_kind_ty)
-        } else {
-            Ok(())
+        match self.ty_path_project(arg, &op.path) {
+            Ok(ty) => self.unify(op.lhs, ty),
+            Err(err) => {
+                eprintln!("Error: {}", err);
+                Ok(())
+            }
         }
     }
     fn try_type_op(&mut self, op: &TypeOperation) -> Result<()> {
@@ -317,11 +357,26 @@ impl<'a> MirTypeInference<'a> {
                 }
                 OpCode::Enum(enumerate) => {
                     let lhs = self.slot_ty(enumerate.lhs);
-                    let Kind::Enum(enumerate) = &enumerate.template.kind else {
+                    let Kind::Enum(enum_k) = &enumerate.template.kind else {
                         bail!("Expected Enum kind");
                     };
-                    let lhs_ty = self.ctx.ty_enum(enumerate);
+                    let lhs_ty = self.ctx.ty_enum(enum_k);
                     self.unify(lhs, lhs_ty)?;
+                    let discriminant = enumerate.template.discriminant()?.as_i64()?;
+                    for field in &enumerate.fields {
+                        let path = match &field.member {
+                            crate::rhif::spec::Member::Named(name) => {
+                                Path::default().payload_by_value(discriminant).field(name)
+                            }
+                            crate::rhif::spec::Member::Unnamed(ndx) => Path::default()
+                                .payload_by_value(discriminant)
+                                .tuple_index(*ndx as usize),
+                        };
+                        let field_kind = sub_kind(enumerate.template.kind.clone(), &path)?;
+                        let field_ty = self.ctx.from_kind(&field_kind);
+                        let field_slot = self.slot_ty(field.value);
+                        self.unify(field_ty, field_slot)?;
+                    }
                 }
                 OpCode::Exec(exec) => {
                     let external_fn = &self.mir.stash[exec.id.0];
@@ -446,11 +501,17 @@ pub fn infer(mir: Mir) -> Result<Object> {
     let mut infer = MirTypeInference::new(&mir);
     infer.import_literals();
     infer.import_signature()?;
+    eprintln!("=================================");
+    eprintln!("Before inference");
     for (slot, ty) in &infer.slot_map {
         let ty = infer.ctx.apply(*ty);
         let ty = infer.ctx.desc(ty);
         eprintln!("Slot {} -> type {}", slot, ty);
     }
+    for op in mir.ops.iter() {
+        eprintln!("{}", op.op);
+    }
+    eprintln!("=================================");
     if let Err(e) = infer.process_ops() {
         eprintln!("Error: {}", e);
         for (slot, ty) in &infer.slot_map {
@@ -483,7 +544,20 @@ pub fn infer(mir: Mir) -> Result<Object> {
                 let ty = infer.ctx.desc(ty);
                 eprintln!("Slot {} -> type {}", slot, ty);
             }
-            bail!("Inference loop detected");
+            for op in mir.ops.iter() {
+                eprintln!("{}", op.op);
+            }
+
+            eprintln!("=================================");
+
+            for lit in mir.literals.keys() {
+                let ty = infer.slot_ty(*lit);
+                if infer.ctx.into_kind(ty).is_err() {
+                    eprintln!("Literal {} -> {}", lit, infer.ctx.desc(ty));
+                }
+            }
+
+            bail!("Inference failure detected");
         }
     }
     for (slot, ty) in &infer.slot_map {
