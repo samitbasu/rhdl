@@ -26,8 +26,10 @@ use crate::ast::ast_impl::{
     ExprTuple, ExprUnary, FieldValue, Local, Pat, PatKind, Stmt, StmtKind,
 };
 use crate::ast::visit::Visitor;
+use crate::ast::visit_mut::VisitorMut;
 use crate::ast_builder::BinOp;
 use crate::ast_builder::UnOp;
+use crate::kernel::Kernel;
 use crate::rhif;
 use crate::rhif::rhif_builder::{
     op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
@@ -46,6 +48,8 @@ use crate::{
     rhif::spec::{ExternalFunction, OpCode, Slot},
 };
 
+use super::assign_node::NodeIdGenerator;
+use super::assign_node_ids;
 use super::display_ast::pretty_print_statement;
 use super::mir::Mir;
 use super::mir::OpCodeWithSource;
@@ -466,7 +470,12 @@ impl MirContext {
             ArmKind::Constant(constant) => {
                 self.wrap_expr_in_block(lhs, &arm.body)?;
                 let value = self.lit(arm.id, constant.value.clone());
-                Ok(CaseArgument::Slot(value))
+                let disc = self.reg(arm.id);
+                self.op(
+                    op_index(disc, value, crate::path::Path::default().discriminant()),
+                    arm.id,
+                );
+                Ok(CaseArgument::Slot(disc))
             }
             ArmKind::Enum(arm_enum) => {
                 self.new_scope();
@@ -1186,10 +1195,14 @@ fn get_locals_changed(from: &LocalsMap, to: &LocalsMap) -> Result<BTreeSet<Scope
         .collect()
 }
 
-pub fn compile_mir(func: &KernelFn) -> Result<Mir> {
+pub fn compile_mir(mut func: Kernel) -> Result<Mir> {
+    let mut generator = NodeIdGenerator::default();
+    generator.visit_mut_kernel_fn(func.inner_mut())?;
     let mut compiler = MirContext::default();
-    compiler.visit_kernel_fn(func)?;
-    compiler.ty.insert(compiler.return_slot, func.ret.clone());
+    compiler.visit_kernel_fn(func.inner())?;
+    compiler
+        .ty
+        .insert(compiler.return_slot, func.inner().ret.clone());
     Ok(Mir {
         ops: compiler.ops,
         arguments: compiler.arguments,

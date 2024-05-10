@@ -5,6 +5,7 @@ use crate::{
         ascii::render_ast_to_string,
         assign_node_ids, compile, infer,
         mir_pass::compile_mir,
+        mir_type_infer,
         passes::{
             //check_clock_coherence::CheckClockCoherence,
             check_inference::check_inference,
@@ -27,7 +28,8 @@ use anyhow::{bail, Result};
 
 fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
     assign_node_ids(&mut kernel)?;
-    compile_mir(kernel.inner())?;
+    let mir = compile_mir(kernel.clone())?;
+    let ctx = mir_type_infer::infer(&mir)?;
     let ctx = infer(&kernel)?;
     //    let _ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
     //    check_inference(&kernel, &ctx)?;

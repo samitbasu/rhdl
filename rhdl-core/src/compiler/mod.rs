@@ -15,5 +15,6 @@ mod mir;
 pub mod mir_pass;
 pub mod mir_ty;
 pub mod mir_type_check;
+pub mod mir_type_infer;
 mod passes;
 mod utils;

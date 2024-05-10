@@ -2,12 +2,12 @@ use std::any::type_name;
 
 use crate::compiler::assign_node_ids;
 use crate::compiler::mir_pass::compile_mir;
-use crate::compiler::mir_type_check::infer;
+use crate::compiler::mir_type_infer::infer;
 use crate::rhif::vm::execute_function;
-use crate::TypedBits;
 use crate::{
     compile_design, generate_verilog, kernel::ExternalKernelDef, Digital, DigitalFn, KernelFnKind,
 };
+use crate::{Timed, TypedBits};
 use anyhow::Result;
 use anyhow::{bail, ensure};
 
@@ -310,8 +310,7 @@ where
     let Some(KernelFnKind::Kernel(mut kernel)) = K::kernel_fn() else {
         bail!("No kernel function provided for {}", type_name::<K>());
     };
-    assign_node_ids(&mut kernel)?;
-    let rfunc = compile_mir(kernel.inner())?;
+    let rfunc = compile_mir(kernel)?;
     infer(&rfunc)?;
     return Ok(());
 

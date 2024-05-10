@@ -9,15 +9,12 @@ use anyhow::Result;
 // NodeIds to all of the nodes in the tree.
 
 // NodeId generator for AST nodes.
+#[derive(Default)]
 pub struct NodeIdGenerator {
     id: u32,
 }
 
 impl NodeIdGenerator {
-    fn new() -> Self {
-        NodeIdGenerator { id: 0 }
-    }
-
     fn next(&mut self) -> ast_impl::NodeId {
         let id = self.id;
         self.id += 1;
@@ -63,6 +60,6 @@ impl VisitorMut for NodeIdGenerator {
 }
 
 pub fn assign_node_ids(root: &mut Kernel) -> Result<()> {
-    let mut generator = NodeIdGenerator::new();
+    let mut generator = NodeIdGenerator::default();
     generator.visit_mut_kernel_fn(root.inner_mut())
 }

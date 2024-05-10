@@ -144,7 +144,7 @@ pub struct FieldValue {
     pub value: Slot,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AluBinary {
     Add,
     Sub,
@@ -162,7 +162,7 @@ pub enum AluBinary {
     Gt,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AluUnary {
     Neg,
     Not,

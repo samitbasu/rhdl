@@ -339,7 +339,9 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                         Kind::make_bits(enumerate.discriminant_layout.width)
                     };
                 }
-                _ => bail!("Enum discriminant not valid for non-enum types"),
+                _ => {
+                    // For non-enum types, the discriminant is the value itself
+                }
             },
             PathElement::EnumPayload(name) => match &kind {
                 Kind::Enum(enumerate) => {
