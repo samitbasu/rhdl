@@ -4,7 +4,7 @@ use rhdl_bits::{alias::*, bits, signed, Bits, SignedBits};
 use rhdl_core::{
     ast::ast_impl::KernelFn,
     compile_design,
-    compiler::mir_pass::compile_mir,
+    compiler::{mir_pass::compile_mir, mir_type_infer::infer},
     digital_fn::DigitalFn,
     kernel::{self, Kernel},
     note,
@@ -12,7 +12,9 @@ use rhdl_core::{
     note_init_db, note_take,
     path::{bit_range, Path},
     rhif::vm::execute_function,
-    test_kernel_vm_and_verilog, Digital, KernelFnKind, Kind,
+    test_kernel_vm_and_verilog,
+    types::clock::{Green, Red},
+    ClockType, Digital, KernelFnKind, Kind, Sig,
 };
 use rhdl_macro::{kernel, Digital};
 use rhdl_std::UnsignedMethods;
@@ -452,6 +454,65 @@ fn test_method_call_fails_with_roll_your_own() {
 }
 
 #[test]
+fn test_signal_const_binop_inference() -> anyhow::Result<()> {
+    #[kernel]
+    fn do_stuff<C: ClockType>(a: Sig<b8, C>) -> Sig<b8, C> {
+        a + b8(4)
+    }
+    let Some(KernelFnKind::Kernel(kernel)) = do_stuff::<Red>::kernel_fn() else {
+        panic!("Kernel not found");
+    };
+    let rfunc = compile_mir(kernel)?;
+    infer(&rfunc)?;
+    Ok(())
+}
+
+#[test]
+fn test_signal_ops_inference() -> anyhow::Result<()> {
+    #[kernel]
+    fn add<C: ClockType, D: ClockType>(
+        x: Sig<b8, C>,
+        y: Sig<b8, C>,
+        z: Sig<b8, D>,
+        w: Sig<b8, D>,
+        ndx: b8,
+    ) -> Sig<b8, D> {
+        // c, x, y are C
+        let c = x + y;
+        // d is C
+        let d = x > y;
+        // bx is C
+        let bx = x.val();
+        // zz is C
+        let zz = 2 < bx;
+        // e is C
+        let e = d && (!d ^ d);
+        // q is D
+        let q = z > w;
+        // x is C
+        let x = [c, c, c];
+        // z2 is C
+        let z2 = x[ndx];
+        // res is D
+        let res = if q { w } else { z };
+        // h is D
+        let h = z.val();
+        // qq is Illegal!
+        //        let qq = h + y.val();
+        match (z + 1).val() {
+            Bits::<8>(0) => z,
+            _ => w,
+        }
+    }
+    let Some(KernelFnKind::Kernel(kernel)) = add::<Red, Green>::kernel_fn() else {
+        panic!("Kernel not found");
+    };
+    let rfunc = compile_mir(kernel)?;
+    infer(&rfunc)?;
+    Ok(())
+}
+
+#[test]
 fn test_simple_type_inference() {
     #[kernel]
     fn do_stuff(a: b12) -> b12 {
@@ -590,7 +651,6 @@ fn test_phi_missing_register() {
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
 }
-
 
 #[test]
 fn test_phi() {
@@ -1863,6 +1923,17 @@ fn test_struct_rest_syntax() {
         let c = Foo { a: (a, a), ..FOO };
         let Foo { a: (d, e), .. } = c;
         d + e + b
+    }
+
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
+}
+
+#[test]
+fn test_array_inference() {
+    #[kernel]
+    fn foo(a: b8, b: b8) -> [b8; 2] {
+        let c = [a, b];
+        c
     }
 
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();

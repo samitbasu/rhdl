@@ -64,6 +64,13 @@ impl Struct {
     pub fn is_tuple_struct(&self) -> bool {
         self.fields.iter().any(|x| x.name.parse::<i32>().is_ok())
     }
+    pub fn get_field_kind(&self, member: impl ToString) -> Result<Kind> {
+        let field = self.fields.iter().find(|x| x.name == member.to_string());
+        match field {
+            Some(field) => Ok(field.kind.clone()),
+            None => Err(anyhow::anyhow!("No field with name {}", member.to_string())),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
@@ -83,7 +90,7 @@ pub enum DiscriminantType {
     Unsigned,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct DiscriminantLayout {
     pub width: usize,
     pub alignment: DiscriminantAlignment,
