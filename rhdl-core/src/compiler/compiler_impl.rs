@@ -683,7 +683,6 @@ impl CompilerContext {
     fn repeat(&mut self, id: NodeId, repeat: &ast_impl::ExprRepeat) -> Result<Slot> {
         let lhs = self.reg(id)?;
         let len = self.expr(&repeat.len)?;
-        let len = self.slot_to_index(len)?;
         let value = self.expr(&repeat.value)?;
         self.op(op_repeat(lhs, value, len), id);
         Ok(lhs)

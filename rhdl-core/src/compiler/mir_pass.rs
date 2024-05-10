@@ -18,7 +18,6 @@ use std::collections::HashMap;
 
 use crate::ast::ast_impl;
 use crate::ast::ast_impl::ExprTypedBits;
-use crate::ast::ast_impl::KernelFn;
 use crate::ast::ast_impl::Member;
 use crate::ast::ast_impl::{
     Arm, ArmKind, Block, ExprArray, ExprAssign, ExprBinary, ExprCall, ExprField, ExprForLoop,
@@ -31,10 +30,12 @@ use crate::ast_builder::BinOp;
 use crate::ast_builder::UnOp;
 use crate::kernel::Kernel;
 use crate::rhif;
+use crate::rhif::object::SymbolMap;
 use crate::rhif::rhif_builder::{
     op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
     op_exec, op_index, op_repeat, op_select, op_splice, op_struct, op_tuple, op_unary,
 };
+use crate::rhif::spanned_source::build_spanned_source_for_kernel;
 use crate::rhif::spec::AluBinary;
 use crate::rhif::spec::AluUnary;
 use crate::rhif::spec::CaseArgument;
@@ -1017,7 +1018,6 @@ impl MirContext {
     fn repeat(&mut self, id: NodeId, repeat: &ExprRepeat) -> Result<Slot> {
         let lhs = self.reg(id);
         let len = self.expr(&repeat.len)?;
-        let len = self.slot_to_index(len)?;
         let value = self.expr(&repeat.value)?;
         self.op(op_repeat(lhs, value, len), id);
         Ok(lhs)
@@ -1203,11 +1203,26 @@ pub fn compile_mir(mut func: Kernel) -> Result<Mir> {
     compiler
         .ty
         .insert(compiler.return_slot, func.inner().ret.clone());
+    let source = build_spanned_source_for_kernel(func.inner());
+    let opcode_map = compiler
+        .ops
+        .iter()
+        .map(|x| (compiler.fn_id, x.source).into())
+        .collect();
+    let slot_map = compiler
+        .reg_source_map
+        .into_iter()
+        .map(|(slot, node)| (slot, (compiler.fn_id, node).into()))
+        .collect();
     Ok(Mir {
+        symbols: SymbolMap {
+            slot_map,
+            opcode_map,
+            source,
+        },
         ops: compiler.ops,
         arguments: compiler.arguments,
         literals: compiler.literals,
-        reg_source_map: compiler.reg_source_map,
         return_slot: compiler.return_slot,
         fn_id: compiler.fn_id,
         ty: compiler.ty,

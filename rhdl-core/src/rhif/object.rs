@@ -46,7 +46,7 @@ impl Object {
     pub fn literal(&self, slot: Slot) -> Result<&TypedBits> {
         self.literals
             .get(&slot)
-            .ok_or_else(|| anyhow::anyhow!("Not a literal"))
+            .ok_or_else(|| anyhow::anyhow!("Slot {slot} is not a literal"))
     }
     pub fn reg_max_index(&self) -> usize {
         self.kind

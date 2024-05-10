@@ -193,6 +193,7 @@ impl<'a> TranslationContext<'a> {
     }
 
     fn translate_op(&mut self, op: &OpCode) -> Result<()> {
+        eprintln!("Verilog translate of {op}");
         match op {
             OpCode::Noop => {}
             OpCode::Binary(Binary {
@@ -355,7 +356,7 @@ impl<'a> TranslationContext<'a> {
                         }
                         CaseArgument::Wild => {
                             self.body.push_str("      default: ");
-                            self.body.push_str(&format!("{} = {};", lhs, slot));
+                            self.body.push_str(&format!("{} = {};\n", lhs, slot));
                         }
                     }
                 }

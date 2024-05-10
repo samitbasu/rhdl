@@ -445,7 +445,6 @@ mod test {
                                     Kind::make_field("a", Kind::make_bits(1)),
                                     Kind::make_field("b", Kind::make_bits(3)),
                                 ],
-                                0,
                             ),
                         },
                     ],
@@ -454,7 +453,6 @@ mod test {
                         DiscriminantAlignment::Lsb,
                         crate::types::kind::DiscriminantType::Unsigned,
                     ),
-                    id::<Mixed>(),
                 )
             }
             fn bin(self) -> Vec<bool> {
@@ -581,7 +579,6 @@ mod test {
                         DiscriminantAlignment::Lsb,
                         crate::types::kind::DiscriminantType::Unsigned,
                     ),
-                    id::<State>(),
                 )
             }
             fn bin(self) -> Vec<bool> {
@@ -644,7 +641,6 @@ mod test {
                     DiscriminantAlignment::Lsb,
                     crate::types::kind::DiscriminantType::Unsigned,
                 ),
-                id::<State>()
             )
         );
     }

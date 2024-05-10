@@ -291,7 +291,8 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
             }
             OpCode::Repeat(Repeat { lhs, value, len }) => {
                 let value = state.read(*value)?;
-                let result = value.repeat(*len);
+                let len = state.read(*len)?.as_i64()? as usize;
+                let result = value.repeat(len);
                 state.write(*lhs, result)?;
             }
         }

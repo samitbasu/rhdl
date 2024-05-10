@@ -463,7 +463,7 @@ fn test_signal_const_binop_inference() -> anyhow::Result<()> {
         panic!("Kernel not found");
     };
     let rfunc = compile_mir(kernel)?;
-    infer(&rfunc)?;
+    infer(rfunc)?;
     Ok(())
 }
 
@@ -508,7 +508,7 @@ fn test_signal_ops_inference() -> anyhow::Result<()> {
         panic!("Kernel not found");
     };
     let rfunc = compile_mir(kernel)?;
-    infer(&rfunc)?;
+    infer(rfunc)?;
     Ok(())
 }
 

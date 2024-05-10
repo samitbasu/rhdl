@@ -294,7 +294,6 @@ impl UnifyContext {
                 AppTypeKind::Struct(strukt) => {
                     let strukt = Struct {
                         name: strukt.name.clone(),
-                        id: 0,
                         fields: app
                             .args
                             .iter()
@@ -313,7 +312,6 @@ impl UnifyContext {
                 AppTypeKind::Enum(enumerate) => {
                     let enumerate = Enum {
                         name: enumerate.name.clone(),
-                        id: 0,
                         variants: app
                             .args
                             .iter()
@@ -377,8 +375,8 @@ impl UnifyContext {
         match &self.types[ty] {
             Type::Var(v) => format!("V{}", v.0),
             Type::Const(c) => match c {
-                Const::Clock(c) => format!("clock {}", c),
-                Const::Length(n) => format!("length {}", n),
+                Const::Clock(c) => format!("{}", c),
+                Const::Length(n) => format!("{}", n),
                 Const::Signed(f) => {
                     if f.eq(&SignFlag::Signed) {
                         "s".to_string()
@@ -386,7 +384,7 @@ impl UnifyContext {
                         "b".to_string()
                     }
                 }
-                Const::Empty => "empty".to_string(),
+                Const::Empty => "()".to_string(),
             },
             Type::App(app) => match &app.kind {
                 AppTypeKind::Struct(strukt) => strukt
@@ -410,30 +408,21 @@ impl UnifyContext {
                         .map(|a| self.desc(*a))
                         .collect::<Vec<_>>()
                         .join(", ");
-                    format!("tuple<{}>", fields)
+                    format!("({})", fields)
                 }
-                AppTypeKind::Bits => format!(
-                    "bits<{},{}>",
-                    self.desc(app.args[0]),
-                    self.desc(app.args[1])
-                ),
+                AppTypeKind::Bits => {
+                    format!("{}{}", self.desc(app.args[0]), self.desc(app.args[1]))
+                }
                 AppTypeKind::Signal => format!(
                     "signal<{}, {}>",
                     self.desc(app.args[0]),
                     self.desc(app.args[1])
                 ),
-                AppTypeKind::Array => format!(
-                    "array<{}, {}>",
-                    self.desc(app.args[0]),
-                    self.desc(app.args[1])
-                ),
+                AppTypeKind::Array => {
+                    format!("[{}; {}]", self.desc(app.args[0]), self.desc(app.args[1]))
+                }
             },
         }
-    }
-
-    pub fn is_resolved(&mut self, ty: Id<Type>) -> bool {
-        let ty = self.apply(ty);
-        !matches!(&self.types[ty], Type::Var(_))
     }
 }
 
