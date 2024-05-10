@@ -298,6 +298,20 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     range = range.start + i * element_size..range.start + (i + 1) * element_size;
                     kind = *array.base.clone();
                 }
+                Kind::Struct(structure) => {
+                    if i >= &structure.fields.len() {
+                        bail!("Struct index out of bounds")
+                    }
+                    let offset = structure
+                        .fields
+                        .iter()
+                        .take(*i)
+                        .map(|f| f.kind.bits())
+                        .sum::<usize>();
+                    let size = structure.fields[*i].kind.bits();
+                    range = range.start + offset..range.start + offset + size;
+                    kind = structure.fields[*i].kind.clone();
+                }
                 _ => bail!("Indexing non-indexable type {kind}"),
             },
             PathElement::Field(field) => match &kind {
@@ -405,7 +419,6 @@ mod tests {
                 Kind::make_field("a", Kind::make_bits(8)),
                 Kind::make_field("b", Kind::make_array(Kind::make_bits(8), 3)),
             ],
-            0,
         );
         // Create a path with a struct, containing and array of structs
         let lev2 = Kind::make_struct(
@@ -414,7 +427,6 @@ mod tests {
                 Kind::make_field("c", base_struct.clone()),
                 Kind::make_field("d", Kind::make_array(base_struct.clone(), 4)),
             ],
-            1,
         );
         let kind = Kind::make_enum(
             "bar",
@@ -427,7 +439,6 @@ mod tests {
                 alignment: crate::DiscriminantAlignment::Lsb,
                 ty: crate::DiscriminantType::Unsigned,
             },
-            2,
         );
         let mut bit_mask = vec![false; kind.bits()];
         for path in leaf_paths(&kind, Path::default()) {
@@ -447,7 +458,6 @@ mod tests {
                 Kind::make_field("a", Kind::make_bits(8)),
                 Kind::make_field("b", Kind::make_array(Kind::make_bits(8), 3)),
             ],
-            0,
         );
         // Create a path with a struct, containing and array of structs
         let kind = Kind::make_struct(
@@ -456,7 +466,6 @@ mod tests {
                 Kind::make_field("c", base_struct.clone()),
                 Kind::make_field("d", Kind::make_array(base_struct.clone(), 4)),
             ],
-            1,
         );
         let path1 = Path::default().field("c").field("a");
         assert_eq!(path_star(&kind, &path1).unwrap().len(), 1);

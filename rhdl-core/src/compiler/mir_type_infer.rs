@@ -3,8 +3,11 @@ use std::collections::BTreeMap;
 use crate::{
     ast::ast_impl::ExprLit,
     path::{sub_kind, Path, PathElement},
-    rhif::spec::{AluBinary, AluUnary, CaseArgument, OpCode, Slot},
-    Kind,
+    rhif::{
+        spec::{AluBinary, AluUnary, CaseArgument, OpCode, Slot},
+        Object,
+    },
+    Digital, Kind, TypedBits,
 };
 use anyhow::bail;
 use anyhow::Result;
@@ -64,6 +67,47 @@ impl<'a> MirTypeInference<'a> {
             type_ops: Vec::new(),
         }
     }
+    fn cast_literal_to_inferred_type(&mut self, t: ExprLit, ty: TypeId) -> Result<TypedBits> {
+        let kind = self.ctx.into_kind(ty)?;
+        Ok(match t {
+            ExprLit::TypedBits(tb) => {
+                if tb.value.kind != kind {
+                    bail!(
+                        "Literal with explicit type {} is inferred as {} instead",
+                        tb.value.kind,
+                        kind
+                    );
+                }
+                tb.value
+            }
+            ExprLit::Int(x) => {
+                if kind.is_unsigned() {
+                    let x_as_u128 = if let Some(x) = x.strip_prefix("0b") {
+                        u128::from_str_radix(x, 2)?
+                    } else if let Some(x) = x.strip_prefix("0o") {
+                        u128::from_str_radix(x, 8)?
+                    } else if let Some(x) = x.strip_prefix("0x") {
+                        u128::from_str_radix(x, 16)?
+                    } else {
+                        x.parse::<u128>()?
+                    };
+                    x_as_u128.typed_bits().unsigned_cast(kind.bits())?
+                } else {
+                    let x_as_i128 = if let Some(x) = x.strip_prefix("0b") {
+                        i128::from_str_radix(x, 2)?
+                    } else if let Some(x) = x.strip_prefix("0o") {
+                        i128::from_str_radix(x, 8)?
+                    } else if let Some(x) = x.strip_prefix("0x") {
+                        i128::from_str_radix(x, 16)?
+                    } else {
+                        x.parse::<i128>()?
+                    };
+                    x_as_i128.typed_bits().signed_cast(kind.bits())?
+                }
+            }
+            ExprLit::Bool(b) => b.typed_bits(),
+        })
+    }
     fn unify(&mut self, lhs: TypeId, rhs: TypeId) -> Result<()> {
         eprintln!("Unifying {} and {}", self.ctx.desc(lhs), self.ctx.desc(rhs));
         self.ctx.unify(lhs, rhs)
@@ -94,6 +138,9 @@ impl<'a> MirTypeInference<'a> {
         Ok(())
     }
     fn slot_ty(&mut self, slot: Slot) -> TypeId {
+        if matches!(slot, Slot::Empty) {
+            return self.ctx.ty_empty();
+        }
         if let Some(ty) = self.slot_map.get(&slot) {
             *ty
         } else {
@@ -107,24 +154,30 @@ impl<'a> MirTypeInference<'a> {
     }
     fn all_slots_resolved(&mut self) -> bool {
         let slot_tys = self.slot_map.values().copied().collect::<Vec<_>>();
-        slot_tys.into_iter().all(|ty| self.ctx.is_resolved(ty))
+        slot_tys
+            .into_iter()
+            .all(|ty| self.ctx.into_kind(ty).is_ok())
     }
     fn try_binop(&mut self, op: &TypeBinOp) -> Result<()> {
+        let a1 = self.ctx.apply(op.arg1);
+        let a2 = self.ctx.apply(op.arg2);
         eprintln!(
             "Try to apply {} to {} and {}",
             op.op,
-            self.ctx.desc(op.arg1),
-            self.ctx.desc(op.arg2)
+            self.ctx.desc(a1),
+            self.ctx.desc(a2)
         );
         match &op.op {
             AluBinary::Add | AluBinary::BitAnd | AluBinary::BitOr | AluBinary::BitXor => {
-                if self.ctx.is_signal(op.arg1) {
+                let a1_is_signal = self.ctx.is_signal(op.arg1);
+                let a2_is_signal = self.ctx.is_signal(op.arg2);
+                if a1_is_signal {
                     self.unify(op.lhs, op.arg1)?;
                 }
-                if self.ctx.is_signal(op.arg2) {
+                if a2_is_signal {
                     self.unify(op.lhs, op.arg2)?;
                 }
-                if self.ctx.equal(op.arg1, op.arg2) {
+                if !a1_is_signal && !a2_is_signal {
                     self.unify(op.lhs, op.arg1)?;
                     self.unify(op.lhs, op.arg2)?;
                 }
@@ -161,13 +214,16 @@ impl<'a> MirTypeInference<'a> {
             op.path
         );
         let arg = self.ctx.apply(op.arg);
-        let arg_kind = self.ctx.into_kind(arg)?;
-        let path = approximate_dynamic_paths(&op.path);
-        eprintln!("Index base kind: {}", arg_kind);
-        let sub_kind = sub_kind(arg_kind, &path)?;
-        eprintln!("Sub-kind: {}", sub_kind);
-        let sub_kind_ty = self.ctx.from_kind(&sub_kind);
-        self.unify(op.lhs, sub_kind_ty)
+        if let Ok(arg_kind) = self.ctx.into_kind(arg) {
+            let path = approximate_dynamic_paths(&op.path);
+            eprintln!("Index base kind: {}", arg_kind);
+            let sub_kind = sub_kind(arg_kind, &path)?;
+            eprintln!("Sub-kind: {}", sub_kind);
+            let sub_kind_ty = self.ctx.from_kind(&sub_kind);
+            self.unify(op.lhs, sub_kind_ty)
+        } else {
+            Ok(())
+        }
     }
     fn try_type_op(&mut self, op: &TypeOperation) -> Result<()> {
         match op {
@@ -196,10 +252,14 @@ impl<'a> MirTypeInference<'a> {
                     self.unify(lhs, rhs)?;
                 }
                 OpCode::AsBits(as_bits) => {
+                    let arg = self.slot_ty(as_bits.arg);
                     let lhs = self.slot_ty(as_bits.lhs);
                     let len = self.ctx.ty_const_len(as_bits.len);
                     let lhs_ty = self.ctx.ty_bits(len);
                     self.unify(lhs, lhs_ty)?;
+                    let len_128 = self.ctx.ty_const_len(128);
+                    let arg_ty = self.ctx.ty_bits(len_128);
+                    self.unify(arg, arg_ty)?;
                 }
                 OpCode::AsKind(as_kind) => {
                     let lhs = self.slot_ty(as_kind.lhs);
@@ -207,10 +267,14 @@ impl<'a> MirTypeInference<'a> {
                     self.unify(lhs, kind)?;
                 }
                 OpCode::AsSigned(as_signed) => {
+                    let arg = self.slot_ty(as_signed.arg);
                     let lhs = self.slot_ty(as_signed.lhs);
                     let len = self.ctx.ty_const_len(as_signed.len);
                     let lhs_ty = self.ctx.ty_signed(len);
                     self.unify(lhs, lhs_ty)?;
+                    let len_128 = self.ctx.ty_const_len(128);
+                    let arg_ty = self.ctx.ty_signed(len_128);
+                    self.unify(arg, arg_ty)?;
                 }
                 OpCode::Binary(binary) => {
                     let lhs = self.slot_ty(binary.lhs);
@@ -281,8 +345,11 @@ impl<'a> MirTypeInference<'a> {
                 OpCode::Repeat(repeat) => {
                     let lhs = self.slot_ty(repeat.lhs);
                     let value = self.slot_ty(repeat.value);
-                    let len = self.ctx.ty_const_len(repeat.len);
-                    let lhs_ty = self.ctx.ty_array(value, len);
+                    let len_ty = self.slot_ty(repeat.len);
+                    let thirty_two = self.ctx.ty_const_len(32);
+                    let usize_ty = self.ctx.ty_bits(thirty_two);
+                    self.unify(len_ty, usize_ty)?;
+                    let lhs_ty = self.ctx.ty_array(value, len_ty);
                     self.unify(lhs, lhs_ty)?;
                 }
                 OpCode::Select(select) => {
@@ -375,10 +442,15 @@ impl<'a> MirTypeInference<'a> {
     }
 }
 
-pub fn infer(mir: &Mir) -> Result<BTreeMap<Slot, Kind>> {
-    let mut infer = MirTypeInference::new(mir);
+pub fn infer(mir: Mir) -> Result<Object> {
+    let mut infer = MirTypeInference::new(&mir);
     infer.import_literals();
     infer.import_signature()?;
+    for (slot, ty) in &infer.slot_map {
+        let ty = infer.ctx.apply(*ty);
+        let ty = infer.ctx.desc(ty);
+        eprintln!("Slot {} -> type {}", slot, ty);
+    }
     if let Err(e) = infer.process_ops() {
         eprintln!("Error: {}", e);
         for (slot, ty) in &infer.slot_map {
@@ -391,6 +463,11 @@ pub fn infer(mir: &Mir) -> Result<BTreeMap<Slot, Kind>> {
     infer.process_ops()?;
     let type_ops = infer.type_ops.clone();
     let mut loop_count = 0;
+    for (slot, ty) in &infer.slot_map {
+        let ty = infer.ctx.apply(*ty);
+        let ty = infer.ctx.desc(ty);
+        eprintln!("Slot {} -> type {}", slot, ty);
+    }
     loop {
         type_ops
             .iter()
@@ -400,7 +477,12 @@ pub fn infer(mir: &Mir) -> Result<BTreeMap<Slot, Kind>> {
             break;
         }
         loop_count += 1;
-        if loop_count > 10 {
+        if loop_count > 3 {
+            for (slot, ty) in &infer.slot_map {
+                let ty = infer.ctx.apply(*ty);
+                let ty = infer.ctx.desc(ty);
+                eprintln!("Slot {} -> type {}", slot, ty);
+            }
             bail!("Inference loop detected");
         }
     }
@@ -409,8 +491,42 @@ pub fn infer(mir: &Mir) -> Result<BTreeMap<Slot, Kind>> {
         let ty = infer.ctx.desc(ty);
         eprintln!("Slot {} -> type {}", slot, ty);
     }
+    let final_type_map: BTreeMap<Slot, TypeId> = infer
+        .slot_map
+        .clone()
+        .into_iter()
+        .map(|(slot, ty)| {
+            let ty = infer.ctx.apply(ty);
+            (slot, ty)
+        })
+        .collect();
+    let kind = final_type_map
+        .iter()
+        .map(|(slot, ty)| infer.ctx.into_kind(*ty).map(|val| (*slot, val)))
+        .collect::<Result<BTreeMap<_, _>>>()?;
     for op in mir.ops.iter() {
         eprintln!("{}", op.op);
     }
-    Ok(BTreeMap::new())
+    let literals = mir
+        .literals
+        .clone()
+        .into_iter()
+        .map(|(slot, lit)| {
+            infer
+                .cast_literal_to_inferred_type(lit, final_type_map[&slot])
+                .map(|value| (slot, value))
+        })
+        .collect::<Result<_>>()?;
+    let ops = mir.ops.into_iter().map(|op| op.op).collect();
+    Ok(Object {
+        symbols: mir.symbols,
+        ops,
+        literals,
+        kind,
+        arguments: mir.arguments.clone(),
+        return_slot: mir.return_slot,
+        externals: mir.stash,
+        name: mir.name,
+        fn_id: mir.fn_id,
+    })
 }

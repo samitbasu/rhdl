@@ -188,8 +188,7 @@ fn variant_kind_mapping(enum_name: &Ident, variant: &Variant, discriminant: i64)
                     stringify!(#struct_name),
                     vec![#(
                     rhdl_core::Kind::make_field(stringify!(#field_names), <#field_types as rhdl_core::Digital>::static_kind())
-                ),*],
-                rhdl_core::id::<Self>().wrapping_add_signed(#discriminant)
+                ),*]
             )
             }
         }
@@ -420,8 +419,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                         #width_bits,
                         #discriminant_alignment,
                         #discriminant_ty
-                    ),
-                    rhdl_core::id::<Self>()
+                    )
                 )
             }
             fn bin(self) -> Vec<bool> {

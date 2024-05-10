@@ -307,13 +307,6 @@ where
     K: DigitalFn,
     Args: TestArg,
 {
-    let Some(KernelFnKind::Kernel(mut kernel)) = K::kernel_fn() else {
-        bail!("No kernel function provided for {}", type_name::<K>());
-    };
-    let rfunc = compile_mir(kernel)?;
-    infer(&rfunc)?;
-    return Ok(());
-
     let design = compile_design::<K>()?;
     let verilog = generate_verilog(&design)?;
     eprintln!("Verilog {}", verilog);

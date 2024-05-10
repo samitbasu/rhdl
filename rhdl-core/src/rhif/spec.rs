@@ -94,7 +94,7 @@ pub struct Splice {
 pub struct Repeat {
     pub lhs: Slot,
     pub value: Slot,
-    pub len: usize,
+    pub len: Slot,
 }
 
 #[derive(Debug, Clone, PartialEq)]

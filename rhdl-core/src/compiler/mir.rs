@@ -2,7 +2,10 @@ use std::collections::BTreeMap;
 
 use crate::{
     ast::ast_impl::{ExprLit, FunctionId, NodeId},
-    rhif::spec::{ExternalFunction, OpCode, Slot},
+    rhif::{
+        object::SymbolMap,
+        spec::{ExternalFunction, OpCode, Slot},
+    },
     Kind,
 };
 
@@ -18,9 +21,9 @@ impl From<(OpCode, NodeId)> for OpCodeWithSource {
     }
 }
 pub struct Mir {
+    pub symbols: SymbolMap,
     pub ops: Vec<OpCodeWithSource>,
     pub literals: BTreeMap<Slot, ExprLit>,
-    pub reg_source_map: BTreeMap<Slot, NodeId>,
     pub ty: BTreeMap<Slot, Kind>,
     pub stash: Vec<ExternalFunction>,
     pub return_slot: Slot,

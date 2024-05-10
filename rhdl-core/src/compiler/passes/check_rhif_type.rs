@@ -248,8 +248,14 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                 let Kind::Array(array_ty) = &ty else {
                     bail!("expected array type")
                 };
+                eq_kinds(slot_type(len)?, Kind::make_bits(32))?;
                 eq_kinds(slot_type(value)?, *array_ty.base.clone())?;
-                eq_kinds(ty.clone(), Kind::make_array(*array_ty.base.clone(), *len))?;
+                let len = obj.literals.get(len).ok_or(anyhow!("len not found"))?;
+                let len = len.as_i64()?;
+                eq_kinds(
+                    ty.clone(),
+                    Kind::make_array(*array_ty.base.clone(), len as usize),
+                )?;
             }
             OpCode::Comment(_) => {}
             OpCode::Case(Case {
@@ -272,7 +278,7 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                             eq_kinds(arg_ty.clone(), constant_ty)?;
                         }
                         CaseArgument::Slot(slot) => {
-                            todo!("CaseArgument::Slot")
+                            eq_kinds(arg_ty.clone(), slot_type(slot)?)?;
                         }
                         CaseArgument::Wild => {}
                     }

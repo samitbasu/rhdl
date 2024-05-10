@@ -1,6 +1,6 @@
 use crate::rhif::spec::{
-    Array, Assign, Binary, Case, Cast, Enum, Exec, FieldValue, Index, KindCast, OpCode, Repeat,
-    Select, Slot, Splice, Struct, Tuple, Unary,
+    Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, FieldValue, Index, KindCast,
+    OpCode, Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
 };
 
 pub fn remap_slots<F: FnMut(Slot) -> Slot>(op: OpCode, mut f: F) -> OpCode {
@@ -87,7 +87,13 @@ pub fn remap_slots<F: FnMut(Slot) -> Slot>(op: OpCode, mut f: F) -> OpCode {
             discriminant: f(discriminant),
             table: table
                 .into_iter()
-                .map(|(arg, slot)| (arg, f(slot)))
+                .map(|(arg, slot)| {
+                    let arg = match arg {
+                        CaseArgument::Slot(slot) => CaseArgument::Slot(f(slot)),
+                        _ => arg,
+                    };
+                    (arg, f(slot))
+                })
                 .collect(),
         }),
         OpCode::Exec(Exec { lhs, id, args }) => OpCode::Exec(Exec {

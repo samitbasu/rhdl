@@ -51,13 +51,12 @@ fn test_enum_derive() {
                             rhdl_core::Kind::make_struct(stringify!(_Test__C), vec![rhdl_core::Kind::make_field(stringify!(a),
                             < Bits:: < 32 > as rhdl_core::Digital > ::static_kind()),
                             rhdl_core::Kind::make_field(stringify!(b), < Bits:: < 8 > as
-                            rhdl_core::Digital > ::static_kind())], rhdl_core::id::<Self>().wrapping_add_signed(3i64)), 3i64)
+                            rhdl_core::Digital > ::static_kind())]), 3i64)
                         ],
                         rhdl_core::Kind::make_discriminant_layout(
                         2usize,
                         rhdl_core::DiscriminantAlignment::Msb,
                         rhdl_core::DiscriminantType::Unsigned),
-                        rhdl_core::id::<Self>(),
                     )
                 }
                 fn bin(self) -> Vec<bool> {
@@ -106,8 +105,7 @@ fn test_enum_derive() {
                                     rhdl_core::Digital > ::static_kind()),
                                     rhdl_core::Kind::make_field(stringify!(b), < Bits:: < 8 > as
                                     rhdl_core::Digital > ::static_kind())
-                                ],
-                                rhdl_core::id::<Self>().wrapping_add_signed(3i64),
+                                ]
                             )
                         }
                     }
@@ -166,8 +164,7 @@ fn test_enum_no_payloads() {
                         3usize,
                         rhdl_core::DiscriminantAlignment::Msb,
                         rhdl_core::DiscriminantType::Unsigned,
-                    ),
-                    rhdl_core::id::<Self>(),
+                    )
                 )
             }
             fn bin(self) -> Vec<bool> {
@@ -264,8 +261,7 @@ fn test_enum_with_signed_discriminants() {
                     rhdl_core::Kind::make_discriminant_layout(
                     5usize,
                     rhdl_core::DiscriminantAlignment::Msb,
-                    rhdl_core::DiscriminantType::Signed),
-                    rhdl_core::id::<Self>(),
+                    rhdl_core::DiscriminantType::Signed)
                 )
             }
             fn bin(self) -> Vec<bool> {
@@ -339,7 +335,6 @@ fn test_enum_with_discriminants() {
                 rhdl_core::Kind::make_variant(stringify!(C), rhdl_core::Kind::Empty, 8i64)],
                 rhdl_core::Kind::make_discriminant_layout(
                 4usize, rhdl_core::DiscriminantAlignment::Msb, rhdl_core::DiscriminantType::Unsigned),
-                rhdl_core::id::<Self>(),
                 )
             }
             fn bin(self) -> Vec<bool> {

@@ -2,20 +2,21 @@ use std::any::type_name;
 
 use crate::{
     compiler::{
-        ascii::render_ast_to_string,
         assign_node_ids, compile, infer,
         mir_pass::compile_mir,
         mir_type_infer,
         passes::{
             //check_clock_coherence::CheckClockCoherence,
-            check_inference::check_inference,
             check_rhif_flow::DataFlowCheckPass,
             check_rhif_type::TypeCheckPass,
             pass::Pass,
             pre_cast_literals::PreCastLiterals,
+            remove_discriminants_for_non_enum_types::RemoveDiscriminantsForNonEnumTypesPass,
+            remove_empty_cases::RemoveEmptyCasesPass,
             remove_extra_registers::RemoveExtraRegistersPass,
             remove_unneeded_muxes::RemoveUnneededMuxesPass,
             remove_unused_literals::RemoveUnusedLiterals,
+            remove_unused_registers::RemoveUnusedRegistersPass,
             remove_useless_casts::RemoveUselessCastsPass,
         },
     },
@@ -26,14 +27,13 @@ use crate::{
 
 use anyhow::{bail, Result};
 
-fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
-    assign_node_ids(&mut kernel)?;
-    let mir = compile_mir(kernel.clone())?;
-    let ctx = mir_type_infer::infer(&mir)?;
-    let ctx = infer(&kernel)?;
+fn compile_kernel(kernel: Kernel) -> Result<Object> {
+    let mir = compile_mir(kernel)?;
+    let mut obj = mir_type_infer::infer(mir)?;
+    //    let ctx = infer(&kernel)?;
     //    let _ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
     //    check_inference(&kernel, &ctx)?;
-    let mut obj = compile(kernel.inner(), ctx)?;
+    //let mut obj = compile(kernel.inner(), ctx)?;
     eprintln!("{}", obj);
     for _pass in 0..2 {
         obj = RemoveExtraRegistersPass::run(obj)?;
@@ -42,9 +42,13 @@ fn compile_kernel(mut kernel: Kernel) -> Result<Object> {
         obj = RemoveUnusedLiterals::run(obj)?;
         obj = PreCastLiterals::run(obj)?;
         obj = RemoveUselessCastsPass::run(obj)?;
+        obj = RemoveEmptyCasesPass::run(obj)?;
+        obj = RemoveUnusedRegistersPass::run(obj)?;
+        obj = RemoveDiscriminantsForNonEnumTypesPass::run(obj)?;
     }
     let obj = TypeCheckPass::run(obj)?;
     let obj = DataFlowCheckPass::run(obj)?;
+    eprintln!("{}", obj);
     //let obj = CheckClockCoherence::run(obj)?;
     Ok(obj)
 }
