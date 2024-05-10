@@ -207,7 +207,7 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
                 for field in fields {
                     let value = state.read(field.value)?;
                     let path = match &field.member {
-                        Member::Unnamed(ndx) => Path::default().index(*ndx as usize),
+                        Member::Unnamed(ndx) => Path::default().tuple_index(*ndx as usize),
                         Member::Named(name) => Path::default().field(name),
                     };
                     result = result.splice(&path, value)?;
@@ -225,7 +225,7 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
                         Path::default().payload_by_value(template.discriminant()?.as_i64()?);
                     let value = state.read(field.value)?;
                     let path = match &field.member {
-                        Member::Unnamed(ndx) => base_path.index(*ndx as usize),
+                        Member::Unnamed(ndx) => base_path.tuple_index(*ndx as usize),
                         Member::Named(name) => base_path.field(name),
                     };
                     result = result.splice(&path, value)?;

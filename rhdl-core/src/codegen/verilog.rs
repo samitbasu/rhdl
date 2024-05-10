@@ -293,7 +293,7 @@ impl<'a> TranslationContext<'a> {
                 let kind = template.kind.clone();
                 for field in fields {
                     let path = match &field.member {
-                        Member::Unnamed(ndx) => Path::default().index(*ndx as usize),
+                        Member::Unnamed(ndx) => Path::default().tuple_index(*ndx as usize),
                         Member::Named(name) => Path::default().field(name),
                     };
                     let (bit_range, _) = bit_range(kind.clone(), &path)?;
@@ -319,7 +319,7 @@ impl<'a> TranslationContext<'a> {
                     let base_path =
                         Path::default().payload_by_value(template.discriminant()?.as_i64()?);
                     let path = match &field.member {
-                        Member::Unnamed(ndx) => base_path.index(*ndx as usize),
+                        Member::Unnamed(ndx) => base_path.tuple_index(*ndx as usize),
                         Member::Named(name) => base_path.field(name),
                     };
                     let (bit_range, _) = bit_range(kind.clone(), &path)?;
@@ -512,7 +512,12 @@ fn decl(slot: &Slot, obj: &Object) -> Result<String> {
         .ok_or(anyhow!("No type for slot {}", slot))?;
     let signed = if ty.is_signed() { "signed" } else { "" };
     let width = ty.bits();
-    Ok(format!("reg {} [{}:0] r{}", signed, width - 1, slot.reg()?))
+    Ok(format!(
+        "reg {} [{}:0] r{}",
+        signed,
+        width.saturating_sub(1),
+        slot.reg()?
+    ))
 }
 
 pub fn generate_verilog(design: &Module) -> Result<VerilogDescriptor> {

@@ -718,6 +718,86 @@ fn test_importing() {
 }
 
 #[test]
+fn test_adt_inference_subset() {
+    use rhdl_bits::alias::*;
+    use rhdl_bits::bits;
+    use rhdl_std::*;
+
+    #[derive(PartialEq, Copy, Clone, Digital)]
+    pub enum Red {
+        A,
+        B(b4),
+        C { x: b4, y: b6 },
+    }
+
+    #[derive(PartialEq, Copy, Clone, Digital)]
+    pub struct Foo {
+        a: b8,
+        b: s4,
+        c: Red,
+    }
+
+    #[derive(PartialEq, Copy, Clone, Digital)]
+    pub enum NooState {
+        Init,
+        Run(b4, b5),
+        Walk { foo: b5 },
+        Boom,
+    }
+
+    #[kernel]
+    fn fifo(b: b8, a: b4) -> b8 {
+        b
+    }
+
+    const MY_SPECIAL_NUMBER: b8 = bits(42);
+
+    #[kernel]
+    fn do_stuff(a: Foo, s: NooState) -> (NooState, b7) {
+        let z = (a.b, a.a + MY_SPECIAL_NUMBER);
+        let foo = bits::<12>(6);
+        let foo2 = foo + foo;
+        let c = a;
+        let q = signed::<4>(2);
+        let q = Foo {
+            a: bits::<8>(1),
+            b: q,
+            c: Red::A,
+        };
+        (NooState::Init, bits::<7>(3))
+    }
+
+    let foos = [
+        Foo {
+            a: bits::<8>(1),
+            b: signed::<4>(2),
+            c: Red::A,
+        },
+        Foo {
+            a: bits::<8>(1),
+            b: signed::<4>(2),
+            c: Red::B(bits::<4>(1)),
+        },
+        Foo {
+            a: bits::<8>(1),
+            b: signed::<4>(2),
+            c: Red::C {
+                x: bits::<4>(1),
+                y: bits::<6>(2),
+            },
+        },
+    ];
+    let noos = [
+        NooState::Init,
+        NooState::Boom,
+        NooState::Run(bits::<4>(1), bits::<5>(2)),
+        NooState::Walk { foo: bits::<5>(3) },
+    ];
+    let inputs = iproduct!(foos.into_iter(), noos.into_iter()).collect::<Vec<_>>();
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, inputs.into_iter()).unwrap();
+}
+
+#[test]
 fn test_adt_inference() {
     use rhdl_bits::alias::*;
     use rhdl_bits::bits;
@@ -2052,6 +2132,19 @@ fn test_exec_sub_kernel() {
     }
 
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
+}
+
+#[test]
+fn test_repeat_with_generic() {
+    #[kernel]
+    fn foo<const N: usize>(a: [b8; N]) -> [b8; N] {
+        let g = [a[1]; 3 + 2];
+        let c = [a[0]; N];
+        c
+    }
+    // Dump the AST for this
+    let design = compile_design::<foo<3>>().unwrap();
+    eprintln!("design: {}", design);
 }
 
 #[test]
