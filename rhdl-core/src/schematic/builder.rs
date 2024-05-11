@@ -305,7 +305,7 @@ impl<'a> SchematicBuilder<'a> {
     fn make_repeat(&mut self, repeat: Repeat, location: Option<SourceLocation>) -> Result<()> {
         let value = self.make_wired_pin(repeat.value)?;
         let out = self.make_output_pin(repeat.lhs)?;
-        let repeat = self.object.literals[&repeat.len].as_i64()? as usize;
+        let repeat = repeat.len;
         let component = self.schematic.make_component(
             ComponentKind::Repeat(RepeatComponent {
                 value,

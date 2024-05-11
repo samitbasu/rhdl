@@ -1,3 +1,7 @@
+#![allow(unused_variables)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+
 // A Synchronous design consists of the following pieces:
 //
 //  Input   - a Digital type that describes the input to the design

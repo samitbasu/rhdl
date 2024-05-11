@@ -89,7 +89,7 @@ fn downstream_repeat(r: &RepeatComponent, input: PinPath) -> Result<Vec<PinPath>
     Ok((0..r.len)
         .map(|ndx| PinPath {
             pin: r.output,
-            path: Path::default().index(ndx).join(&input.path),
+            path: Path::default().index(ndx as _).join(&input.path),
         })
         .collect())
 }

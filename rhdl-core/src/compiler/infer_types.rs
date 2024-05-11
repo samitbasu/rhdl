@@ -710,12 +710,14 @@ impl Visitor for TypeInference {
                 }
             },
             ExprKind::Repeat(repeat) => {
-                self.unify(id_to_var(repeat.len.id)?, ty_usize())?;
+                //self.unify(id_to_var(repeat.len.id)?, ty_usize())?;
+                /*
                 if let ExprKind::Lit(ExprLit::Int(len)) = &repeat.len.kind {
                     if let Ok(len) = len.parse::<usize>() {
                         self.unify(my_ty, ty_array(id_to_var(repeat.value.id)?, len))?;
                     }
                 }
+                */
             }
             ExprKind::MethodCall(call) => {
                 self.handle_method_call(my_ty, call)?;

@@ -52,7 +52,7 @@ pub fn op_splice(lhs: Slot, rhs: Slot, path: Path, arg: Slot) -> OpCode {
     })
 }
 
-pub fn op_repeat(lhs: Slot, value: Slot, len: Slot) -> OpCode {
+pub fn op_repeat(lhs: Slot, value: Slot, len: u64) -> OpCode {
     OpCode::Repeat(Repeat { lhs, value, len })
 }
 

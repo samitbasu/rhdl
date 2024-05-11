@@ -198,7 +198,6 @@ where
         }
         ExprKind::Repeat(expr) => {
             visitor.visit_mut_expr(&mut expr.value)?;
-            visitor.visit_mut_expr(&mut expr.len)?;
         }
         ExprKind::Struct(expr) => {
             for field in &mut expr.fields {

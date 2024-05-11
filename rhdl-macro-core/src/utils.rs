@@ -1,5 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
+use syn::spanned::Spanned;
 use syn::DeriveInput;
 
 pub(crate) fn get_fqdn(decl: &DeriveInput) -> TokenStream {
@@ -58,4 +59,15 @@ pub(crate) fn assert_frag_eq(
         &quote::quote!(fn foo() { #expected }),
         &quote::quote!(fn foo() { #actual }),
     );
+}
+
+pub(crate) fn evaluate_const_expression(expr: &syn::Expr) -> syn::Result<i64> {
+    let expr_as_string = quote!(#expr).to_string();
+    match evalexpr::eval_int(&expr_as_string) {
+        Ok(x) => Ok(x),
+        Err(err) => Err(syn::Error::new(
+            expr.span(),
+            format!("Failed to evaluate expression: {}", err),
+        )),
+    }
 }

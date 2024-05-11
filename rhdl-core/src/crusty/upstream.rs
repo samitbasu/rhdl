@@ -103,14 +103,15 @@ fn upstream_index(i: &IndexComponent, output: PinPath) -> Result<Vec<PinPath>> {
 }
 
 fn upstream_repeat(r: &RepeatComponent, output: PinPath) -> Result<Vec<PinPath>> {
-    if let Some(pin) = (0..r.len).find(|ndx| Path::default().index(*ndx).is_prefix_of(&output.path))
+    if let Some(pin) =
+        (0..r.len).find(|ndx| Path::default().index(*ndx as _).is_prefix_of(&output.path))
     {
         Ok(vec![PinPath {
             pin: r.value,
             path: output
                 .path
                 .clone()
-                .strip_prefix(&Path::default().index(pin))?,
+                .strip_prefix(&Path::default().index(pin as _))?,
         }])
     } else {
         Ok(vec![])
