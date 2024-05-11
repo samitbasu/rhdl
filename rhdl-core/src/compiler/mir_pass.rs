@@ -302,6 +302,7 @@ impl MirContext {
         reg
     }
     fn lit(&mut self, id: NodeId, lit: ExprLit) -> Slot {
+        eprintln!("Allocate literal {:?} for {}", lit, id);
         let ndx = self.literals.len();
         let slot = Slot::Literal(ndx);
         self.literals.insert(slot, lit);
@@ -898,18 +899,10 @@ impl MirContext {
         let lhs = self.reg(id);
         let arg = self.expr(&index.expr)?;
         let index = self.expr(&index.index)?;
-        if index.is_literal() {
-            let ndx = self.slot_to_index(index)?;
-            self.op(
-                op_index(lhs, arg, crate::path::Path::default().index(ndx)),
-                id,
-            );
-        } else {
-            self.op(
-                op_index(lhs, arg, crate::path::Path::default().dynamic(index)),
-                id,
-            );
-        }
+        self.op(
+            op_index(lhs, arg, crate::path::Path::default().dynamic(index)),
+            id,
+        );
         Ok(lhs)
     }
     fn local(&mut self, local: &Local) -> Result<()> {
@@ -1021,9 +1014,8 @@ impl MirContext {
     }
     fn repeat(&mut self, id: NodeId, repeat: &ExprRepeat) -> Result<Slot> {
         let lhs = self.reg(id);
-        let len = self.expr(&repeat.len)?;
         let value = self.expr(&repeat.value)?;
-        self.op(op_repeat(lhs, value, len), id);
+        self.op(op_repeat(lhs, value, repeat.len as _), id);
         Ok(lhs)
     }
     fn return_expr(&mut self, id: NodeId, return_expr: &ExprRet) -> Result<Slot> {
@@ -1206,9 +1198,6 @@ fn get_locals_changed(from: &LocalsMap, to: &LocalsMap) -> Result<BTreeSet<Scope
 pub fn compile_mir(mut func: Kernel) -> Result<Mir> {
     let mut generator = NodeIdGenerator::default();
     generator.visit_mut_kernel_fn(func.inner_mut())?;
-    let context = Default::default();
-    let kernel_string = pretty_print_kernel(&func, &context)?;
-    eprintln!("Kernel string: {}", kernel_string);
     let mut compiler = MirContext::default();
     compiler.visit_kernel_fn(func.inner())?;
     compiler

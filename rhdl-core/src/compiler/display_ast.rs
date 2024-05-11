@@ -365,9 +365,7 @@ impl<'a> PrettyPrinter<'a> {
             ExprKind::Repeat(expr) => {
                 self.push("[");
                 self.print_expr(&expr.value)?;
-                self.push("; ");
-                self.print_expr(&expr.len)?;
-                self.push("]");
+                self.push(&format!("; {}]", expr.len));
             }
             ExprKind::Ret(expr) => {
                 self.push("return ");
@@ -415,7 +413,7 @@ impl Display for ExprLit {
         match self {
             ExprLit::Int(int) => write!(f, "{}", int),
             ExprLit::Bool(bool) => write!(f, "{}", bool),
-            ExprLit::TypedBits(ty) => write!(f, "<typed_bits {}>", ty.path),
+            ExprLit::TypedBits(ty) => write!(f, "<typed_bits {} [{}]>", ty.path, ty.value.kind),
         }
     }
 }

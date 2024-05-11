@@ -138,6 +138,11 @@ impl UnifyContext {
         self.ty_bits(n)
     }
 
+    pub fn ty_usize(&mut self) -> TypeId {
+        let n = self.ty_const_len(64);
+        self.ty_bits(n)
+    }
+
     pub fn ty_sign_flag(&mut self, sign_flag: SignFlag) -> TypeId {
         self.ty_const(Const::Signed(sign_flag))
     }
@@ -292,11 +297,6 @@ impl UnifyContext {
         let len = self.ty_var();
         let sign = self.ty_var();
         self.ty_app(AppTypeKind::Bits, vec![sign, len])
-    }
-
-    fn ty_usize(&mut self) -> TypeId {
-        let len = self.ty_const_len(32);
-        self.ty_bits(len)
     }
 
     fn into_ty_sign_flag(&mut self, ty: TypeId) -> Result<SignFlag> {
@@ -526,6 +526,19 @@ impl UnifyContext {
         let x = self.apply(x);
         let y = self.apply(y);
         self.types[x] == self.types[y]
+    }
+    pub fn is_unresolved(&mut self, ty: TypeId) -> bool {
+        let ty = self.apply(ty);
+        matches!(self.types[ty], Type::Var(_))
+    }
+    pub fn is_generic_integer(&mut self, ty: TypeId) -> bool {
+        let ty = self.apply(ty);
+        if let Type::App(AppType { kind, args }) = &self.types[ty] {
+            if let AppTypeKind::Bits = kind {
+                return args.iter().all(|a| matches!(self.types[*a], Type::Var(_)));
+            }
+        }
+        false
     }
     pub fn is_signal(&mut self, ty: TypeId) -> bool {
         let ty = self.apply(ty);

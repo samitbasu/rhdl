@@ -6,7 +6,7 @@ use syn::{
     punctuated::Punctuated, spanned::Spanned, token::Comma, FnArg, Ident, Pat, PatType, Path, Type,
 };
 
-use crate::suffix::CustomSuffix;
+use crate::{suffix::CustomSuffix, utils::evaluate_const_expression};
 type TS = proc_macro2::TokenStream;
 type Result<T> = syn::Result<T>;
 use syn::visit_mut::VisitMut;
@@ -831,7 +831,8 @@ impl Context {
     }
 
     fn repeat(&mut self, expr: &syn::ExprRepeat) -> Result<TS> {
-        let len = self.expr(&expr.len)?;
+        let expr_len = &expr.len;
+        let len = quote!(<usize as rhdl_core::Digital>::typed_bits(#expr_len).as_i64().unwrap());
         let expr = self.expr(&expr.expr)?;
         Ok(quote! {
             rhdl_core::ast_builder::repeat_expr(#expr, #len)

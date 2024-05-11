@@ -25,8 +25,8 @@ impl VisitMut for CustomSuffix {
     // TODO - Revisit in the future so that we can
     // match on values with a custom suffix.
     fn visit_pat_mut(&mut self, node: &mut Pat) {
+        // FIXME - Need to parse the pattern properly
         let mut replaced = false;
-        eprintln!("Before Pat --> {:#?}", node);
         if let Pat::TupleStruct(ts) = node {
             if let Some(path) = ts.path.get_ident() {
                 if path == "b7" {
@@ -34,9 +34,6 @@ impl VisitMut for CustomSuffix {
                     replaced = true;
                 }
             }
-        }
-        if replaced {
-            eprintln!("After Pat --> {:#?}", node);
         }
         syn::visit_mut::visit_pat_mut(self, node);
     }

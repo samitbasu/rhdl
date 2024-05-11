@@ -11,6 +11,8 @@ use syn::Lit;
 use syn::Variant;
 use syn::{Data, DeriveInput};
 
+use crate::utils::evaluate_const_expression;
+
 // To determine the number of bits needed to represent the discriminant, we
 // need to consider the case where the discriminant is unsigned vs signed.
 // For an unsigned discriminant, we simply find the smallest power of two
@@ -137,17 +139,6 @@ fn discriminant_kind(discriminants: &[i64]) -> DiscriminantType {
             }
         }
         panic!("Discriminant is too large");
-    }
-}
-
-fn evaluate_const_expression(expr: &syn::Expr) -> syn::Result<i64> {
-    let expr_as_string = quote!(#expr).to_string();
-    match evalexpr::eval_int(&expr_as_string) {
-        Ok(x) => Ok(x),
-        Err(err) => Err(syn::Error::new(
-            expr.span(),
-            format!("Failed to evaluate expression: {}", err),
-        )),
     }
 }
 

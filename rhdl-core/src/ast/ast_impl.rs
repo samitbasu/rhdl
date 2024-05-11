@@ -288,7 +288,7 @@ pub struct ExprLet {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExprRepeat {
     pub value: Box<Expr>,
-    pub len: Box<Expr>,
+    pub len: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

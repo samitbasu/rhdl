@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use rhdl_bits::Bits;
 use rhdl_core::{
     compile_design,

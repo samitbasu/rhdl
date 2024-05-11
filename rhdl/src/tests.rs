@@ -1,12 +1,16 @@
+#![allow(unused_variables)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+#![allow(unreachable_code)]
+#![allow(unused_must_use)]
+#![allow(dead_code)]
 use itertools::iproduct;
 use rand::Rng;
 use rhdl_bits::{alias::*, bits, signed, Bits, SignedBits};
 use rhdl_core::{
-    ast::ast_impl::KernelFn,
     compile_design,
     compiler::{mir_pass::compile_mir, mir_type_infer::infer},
     digital_fn::DigitalFn,
-    kernel::{self, Kernel},
     note,
     note_db::note_time,
     note_init_db, note_take,
@@ -149,7 +153,7 @@ fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
     }
 
     let foo = Test::B(b2::from(0b10), b3::from(0b101));
-    let disc = Path::default().payload(stringify!(B)).index(1);
+    let disc = Path::default().payload(stringify!(B)).tuple_index(1);
     let index = bit_range(Test::static_kind(), &disc)?;
     println!("{:?}", index);
     let bits = foo.bin();
@@ -338,6 +342,7 @@ fn test_func_with_structured_args() {
 }
 
 #[test]
+#[allow(clippy::assign_op_pattern)]
 fn test_ast_basic_func() {
     use rhdl_bits::alias::*;
     #[derive(PartialEq, Copy, Clone, Digital)]
@@ -613,6 +618,7 @@ fn test_struct_inference() {
 }
 
 #[test]
+#[allow(clippy::let_and_return)]
 fn test_rebinding() {
     #[kernel]
     fn do_stuff(a: b8) -> b16 {
@@ -680,6 +686,7 @@ fn test_phi() {
 }
 
 #[test]
+#[allow(clippy::assign_op_pattern)]
 fn test_ssa() {
     #[kernel]
     fn do_stuff(a: b8) -> b8 {
@@ -721,7 +728,6 @@ fn test_importing() {
 fn test_adt_inference_subset() {
     use rhdl_bits::alias::*;
     use rhdl_bits::bits;
-    use rhdl_std::*;
 
     #[derive(PartialEq, Copy, Clone, Digital)]
     pub enum Red {
@@ -2135,6 +2141,18 @@ fn test_exec_sub_kernel() {
 }
 
 #[test]
+fn test_assign_with_computed_expression() {
+    #[kernel]
+    fn foo(mut a: [b8; 4]) -> [b8; 4] {
+        a[1 + 1] = b8(42);
+        a
+    }
+    let test_input = [([bits(1), bits(2), bits(3), bits(4)],)];
+
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, test_input.into_iter()).unwrap();
+}
+
+#[test]
 fn test_repeat_with_generic() {
     #[kernel]
     fn foo<const N: usize>(a: [b8; N]) -> [b8; N] {
@@ -2142,9 +2160,9 @@ fn test_repeat_with_generic() {
         let c = [a[0]; N];
         c
     }
-    // Dump the AST for this
-    let design = compile_design::<foo<3>>().unwrap();
-    eprintln!("design: {}", design);
+    let test_input = [([bits(1), bits(2), bits(3), bits(4)],)];
+
+    test_kernel_vm_and_verilog::<foo<4>, _, _, _>(foo, test_input.into_iter()).unwrap();
 }
 
 #[test]
@@ -2198,6 +2216,7 @@ fn test_flow_control_if_expression() {
 }
 
 #[test]
+#[allow(clippy::no_effect)]
 fn test_early_return_in_branch() {
     #[kernel]
     fn foo(a: b8, b: b8) -> b8 {

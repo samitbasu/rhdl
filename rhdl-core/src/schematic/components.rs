@@ -84,7 +84,7 @@ pub struct SpliceComponent {
 pub struct RepeatComponent {
     pub value: PinIx,
     pub output: PinIx,
-    pub len: usize,
+    pub len: u64,
 }
 
 #[derive(Clone, Debug)]

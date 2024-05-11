@@ -193,7 +193,7 @@ pub fn tuple_expr(elements: Vec<Box<Expr>>) -> Box<Expr> {
     })
 }
 
-pub fn repeat_expr(value: Box<Expr>, len: Box<Expr>) -> Box<Expr> {
+pub fn repeat_expr(value: Box<Expr>, len: i64) -> Box<Expr> {
     Box::new(Expr {
         id: INVALID_NODE_ID,
         kind: ExprKind::Repeat(ExprRepeat { value, len }),

@@ -330,9 +330,7 @@ impl SpannedSourceBuilder {
             ExprKind::Repeat(expr) => {
                 self.push("[");
                 self.expr(&expr.value);
-                self.push("; ");
-                self.expr(&expr.len);
-                self.push("]");
+                self.push(&format!("; {}]", expr.len));
             }
             ExprKind::Ret(expr) => {
                 self.push("return ");

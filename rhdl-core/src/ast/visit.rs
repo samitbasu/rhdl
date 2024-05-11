@@ -194,7 +194,6 @@ where
         }
         ExprKind::Repeat(expr) => {
             visitor.visit_expr(&expr.value)?;
-            visitor.visit_expr(&expr.len)?;
         }
         ExprKind::Struct(expr) => {
             for field in &expr.fields {

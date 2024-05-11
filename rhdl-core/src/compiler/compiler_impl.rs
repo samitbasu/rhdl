@@ -682,9 +682,8 @@ impl CompilerContext {
     }
     fn repeat(&mut self, id: NodeId, repeat: &ast_impl::ExprRepeat) -> Result<Slot> {
         let lhs = self.reg(id)?;
-        let len = self.expr(&repeat.len)?;
         let value = self.expr(&repeat.value)?;
-        self.op(op_repeat(lhs, value, len), id);
+        self.op(op_repeat(lhs, value, repeat.len as _), id);
         Ok(lhs)
     }
     fn assign(&mut self, id: NodeId, assign: &ast_impl::ExprAssign) -> Result<Slot> {
