@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
     ast::ast_impl::{ExprLit, FunctionId, NodeId},
@@ -25,6 +25,7 @@ pub struct Mir {
     pub ops: Vec<OpCodeWithSource>,
     pub literals: BTreeMap<Slot, ExprLit>,
     pub ty: BTreeMap<Slot, Kind>,
+    pub ty_equate: BTreeSet<(Slot, Slot)>,
     pub stash: Vec<ExternalFunction>,
     pub return_slot: Slot,
     pub arguments: Vec<Slot>,

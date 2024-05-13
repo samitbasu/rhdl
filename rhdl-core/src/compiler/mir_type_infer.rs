@@ -153,6 +153,14 @@ impl<'a> MirTypeInference<'a> {
         self.slot_map.insert(self.mir.return_slot, return_ty);
         Ok(())
     }
+    fn import_type_equality(&mut self) -> Result<()> {
+        for (lhs, rhs) in &self.mir.ty_equate {
+            let lhs_ty = self.slot_ty(*lhs);
+            let rhs_ty = self.slot_ty(*rhs);
+            self.unify(lhs_ty, rhs_ty)?;
+        }
+        Ok(())
+    }
     fn slot_ty(&mut self, slot: Slot) -> TypeId {
         if matches!(slot, Slot::Empty) {
             return self.ctx.ty_empty();
@@ -607,6 +615,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
     let mut infer = MirTypeInference::new(&mir);
     infer.import_literals();
     infer.import_signature()?;
+    infer.import_type_equality()?;
     eprintln!("=================================");
     eprintln!("Before inference");
     for (slot, ty) in &infer.slot_map {
