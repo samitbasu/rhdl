@@ -148,6 +148,7 @@ pub struct MirContext {
     literals: BTreeMap<Slot, ExprLit>,
     reg_source_map: BTreeMap<Slot, NodeId>,
     ty: BTreeMap<Slot, Kind>,
+    ty_equate: BTreeSet<(Slot, Slot)>,
     stash: Vec<ExternalFunction>,
     return_slot: Slot,
     arguments: Vec<Slot>,
@@ -169,6 +170,7 @@ impl Default for MirContext {
             literals: BTreeMap::new(),
             reg_source_map: BTreeMap::new(),
             ty: BTreeMap::new(),
+            ty_equate: BTreeSet::new(),
             stash: vec![],
             return_slot: Slot::Empty,
             arguments: vec![],
@@ -515,6 +517,7 @@ impl MirContext {
     fn assign(&mut self, id: NodeId, assign: &ExprAssign) -> Result<Slot> {
         let rhs = self.expr(&assign.rhs)?;
         let (rebind, path) = self.expr_lhs(&assign.lhs)?;
+        self.ty_equate.insert((rebind.to, rebind.from));
         if path.is_empty() {
             self.op(op_assign(rebind.to, rhs), id);
         } else {
@@ -542,6 +545,7 @@ impl MirContext {
             BinOp::ShrAssign => AluBinary::Shr,
             _ => bail!("ICE - self_assign_binop {:?}", op),
         };
+        self.ty_equate.insert((dest.to, dest.from));
         self.op(op_binary(alu, temp, lhs, rhs), id);
         if path.is_empty() {
             self.op(op_assign(dest.to, temp), id);
@@ -1241,6 +1245,7 @@ pub fn compile_mir(mut func: Kernel) -> Result<Mir> {
         return_slot: compiler.return_slot,
         fn_id: compiler.fn_id,
         ty: compiler.ty,
+        ty_equate: compiler.ty_equate,
         stash: compiler.stash,
         name: compiler.name,
     })
