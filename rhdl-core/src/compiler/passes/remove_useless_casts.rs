@@ -25,21 +25,25 @@ impl Pass for RemoveUselessCastsPass {
             match op.clone() {
                 OpCode::AsBits(cast) => {
                     if let Some(literal_val) = input.literals.get(&cast.arg) {
-                        if literal_val.kind.is_unsigned() && literal_val.bits.len() == cast.len {
-                            *op = OpCode::Assign(Assign {
-                                lhs: cast.lhs,
-                                rhs: cast.arg,
-                            })
+                        if let Some(len) = cast.len {
+                            if literal_val.kind.is_unsigned() && literal_val.bits.len() == len {
+                                *op = OpCode::Assign(Assign {
+                                    lhs: cast.lhs,
+                                    rhs: cast.arg,
+                                })
+                            }
                         }
                     }
                 }
                 OpCode::AsSigned(cast) => {
                     if let Some(literal_val) = input.literals.get(&cast.arg) {
-                        if literal_val.kind.is_signed() && literal_val.bits.len() == cast.len {
-                            *op = OpCode::Assign(Assign {
-                                lhs: cast.lhs,
-                                rhs: cast.arg,
-                            })
+                        if let Some(len) = cast.len {
+                            if literal_val.kind.is_signed() && literal_val.bits.len() == len {
+                                *op = OpCode::Assign(Assign {
+                                    lhs: cast.lhs,
+                                    rhs: cast.arg,
+                                })
+                            }
                         }
                     }
                 }

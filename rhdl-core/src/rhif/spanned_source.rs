@@ -1,6 +1,7 @@
 use crate::{
     ast::ast_impl::{
-        ArmKind, Block, Expr, ExprKind, KernelFn, Member, NodeId, Pat, PatKind, Stmt, StmtKind,
+        ArmKind, BitsKind, Block, Expr, ExprKind, KernelFn, Member, NodeId, Pat, PatKind, Stmt,
+        StmtKind,
     },
     util::IndentingFormatter,
     Kind,
@@ -368,6 +369,15 @@ impl SpannedSourceBuilder {
             }
             ExprKind::Type(expr) => {
                 self.kind(&expr.kind);
+            }
+            ExprKind::Bits(bits) => {
+                let func_name = match bits.kind {
+                    BitsKind::Unsigned => "bits",
+                    BitsKind::Signed => "signed",
+                };
+                self.push(&format!("{}(", func_name));
+                self.expr(&bits.arg);
+                self.push(")");
             }
         }
         self.span_map.insert(expr.id, start..self.loc());

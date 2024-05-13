@@ -57,11 +57,14 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
             .cloned()
             .ok_or(anyhow!("slot {:?} not found", slot))
     };
+    // Checks that two kinds are equal, but ignores clocking information
     let eq_kinds = |a: Kind, b: Kind| -> Result<()> {
         // Special case Empty == Tuple([])
         if a.is_empty() && b.is_empty() {
             return Ok(());
         }
+        let a = a.signal_data();
+        let b = b.signal_data();
         if a == b {
             Ok(())
         } else {
@@ -296,10 +299,12 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                 )
             }
             OpCode::AsBits(Cast { lhs, arg: _, len }) => {
-                eq_kinds(slot_type(lhs)?, Kind::make_bits(*len))?;
+                let len = len.ok_or(anyhow!("as_bits must have a length"))?;
+                eq_kinds(slot_type(lhs)?, Kind::make_bits(len))?;
             }
             OpCode::AsSigned(Cast { lhs, arg: _, len }) => {
-                eq_kinds(slot_type(lhs)?, Kind::make_signed(*len))?;
+                let len = len.ok_or(anyhow!("as_signed must have a length"))?;
+                eq_kinds(slot_type(lhs)?, Kind::make_signed(len))?;
             }
             OpCode::AsKind(KindCast { lhs, arg: _, kind }) => {
                 eq_kinds(slot_type(lhs)?, kind.clone())?;

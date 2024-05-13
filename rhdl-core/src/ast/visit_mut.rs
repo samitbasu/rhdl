@@ -218,6 +218,9 @@ where
                 visitor.visit_mut_expr(arg)?;
             }
         }
+        ExprKind::Bits(bits) => {
+            visitor.visit_mut_expr(&mut bits.arg)?;
+        }
         _ => {}
     }
     Ok(())

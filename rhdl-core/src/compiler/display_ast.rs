@@ -403,6 +403,18 @@ impl<'a> PrettyPrinter<'a> {
                 self.print_expr(&expr.expr)?;
             }
             ExprKind::Type(ty) => self.push(&format!("<{}>", ty.kind.get_name())),
+            ExprKind::Bits(bits) => {
+                self.push(&format!(
+                    "{}(",
+                    if matches!(bits.kind, BitsKind::Unsigned) {
+                        "bits"
+                    } else {
+                        "signed"
+                    }
+                ));
+                self.print_expr(&bits.arg)?;
+                self.push(")");
+            }
         }
         Ok(())
     }

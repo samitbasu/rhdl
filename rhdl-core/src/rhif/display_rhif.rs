@@ -101,10 +101,18 @@ impl Display for OpCode {
                 )
             }
             OpCode::AsBits(Cast { lhs, arg, len }) => {
-                write!(f, " {} <- {} as b{}", lhs, arg, len)
+                if let Some(len) = len {
+                    write!(f, " {} <- {} as b{}", lhs, arg, len)
+                } else {
+                    write!(f, " {} <- {} as bits", lhs, arg)
+                }
             }
             OpCode::AsSigned(Cast { lhs, arg, len }) => {
-                write!(f, " {} <- {} as s{}", lhs, arg, len)
+                if let Some(len) = len {
+                    write!(f, " {} <- {} as s{}", lhs, arg, len)
+                } else {
+                    write!(f, " {} <- {} as signed", lhs, arg)
+                }
             }
             OpCode::AsKind(KindCast { lhs, arg, kind }) => {
                 write!(f, " {} <- {} as {}", lhs, arg, kind)

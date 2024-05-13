@@ -99,11 +99,35 @@ pub fn op_enum(lhs: Slot, fields: Vec<FieldValue>, template: TypedBits) -> OpCod
 }
 
 pub fn op_as_bits(lhs: Slot, arg: Slot, len: usize) -> OpCode {
-    OpCode::AsBits(Cast { lhs, arg, len })
+    OpCode::AsBits(Cast {
+        lhs,
+        arg,
+        len: Some(len),
+    })
+}
+
+pub fn op_as_bits_inferred(lhs: Slot, arg: Slot) -> OpCode {
+    OpCode::AsBits(Cast {
+        lhs,
+        arg,
+        len: None,
+    })
 }
 
 pub fn op_as_signed(lhs: Slot, arg: Slot, len: usize) -> OpCode {
-    OpCode::AsSigned(Cast { lhs, arg, len })
+    OpCode::AsSigned(Cast {
+        lhs,
+        arg,
+        len: Some(len),
+    })
+}
+
+pub fn op_as_signed_inferred(lhs: Slot, arg: Slot) -> OpCode {
+    OpCode::AsSigned(Cast {
+        lhs,
+        arg,
+        len: None,
+    })
 }
 
 pub fn op_comment(comment: String) -> OpCode {

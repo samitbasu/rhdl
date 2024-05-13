@@ -17,6 +17,8 @@ use std::collections::BTreeSet;
 use std::collections::HashMap;
 
 use crate::ast::ast_impl;
+use crate::ast::ast_impl::BitsKind;
+use crate::ast::ast_impl::ExprBits;
 use crate::ast::ast_impl::ExprTypedBits;
 use crate::ast::ast_impl::Member;
 use crate::ast::ast_impl::{
@@ -31,6 +33,8 @@ use crate::ast_builder::UnOp;
 use crate::kernel::Kernel;
 use crate::rhif;
 use crate::rhif::object::SymbolMap;
+use crate::rhif::rhif_builder::op_as_bits_inferred;
+use crate::rhif::rhif_builder::op_as_signed_inferred;
 use crate::rhif::rhif_builder::{
     op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
     op_exec, op_index, op_repeat, op_select, op_splice, op_struct, op_tuple, op_unary,
@@ -667,6 +671,16 @@ impl MirContext {
             _ => bail!("Pattern not supported"),
         }
     }
+    // Handle the case of a bits or signed call with inferred length
+    fn bits(&mut self, id: NodeId, bits: &ExprBits) -> Result<Slot> {
+        let lhs = self.reg(id);
+        let arg = self.expr(&bits.arg)?;
+        match bits.kind {
+            BitsKind::Unsigned => self.op(op_as_bits_inferred(lhs, arg), id),
+            BitsKind::Signed => self.op(op_as_signed_inferred(lhs, arg), id),
+        };
+        Ok(lhs)
+    }
     fn call(&mut self, id: NodeId, call: &ExprCall) -> Result<Slot> {
         let lhs = self.reg(id);
         let path = collapse_path(&call.path);
@@ -755,6 +769,7 @@ impl MirContext {
             ExprKind::Call(call) => self.call(expr.id, call),
             ExprKind::MethodCall(method) => self.method_call(expr.id, method),
             ExprKind::Type(_) => Ok(Slot::Empty),
+            ExprKind::Bits(bits) => self.bits(expr.id, bits),
         }
     }
     // We need three components

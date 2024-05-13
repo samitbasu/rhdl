@@ -747,6 +747,12 @@ impl Context {
                 "Unsupported function call in rhdl kernel function (only paths allowed here)",
             ));
         };
+
+        // There are 5 special cases
+        // - note calls are removed since these do not generate any code
+        // - default calls are replaced with the literal value of the argument using TypedBits and the Digital trait
+        // - bits calls with no explicit size are forwarded as a special case and the sizes are inferred later (at run time)
+        // - signed calls with no explicit size are forwarded as a special case and the sizes are inferred later (at run time)
         if let Some(name) = func_path.path.segments.last() {
             if name.ident == "note" {
                 return Ok(quote! {
@@ -759,6 +765,16 @@ impl Context {
                             rhdl_core::Digital::typed_bits(#expr)
                         )
                     )
+                });
+            } else if name.ident == "bits" && name.arguments.is_empty() && expr.args.len() == 1 {
+                let args = self.expr(&expr.args[0])?;
+                return Ok(quote! {
+                    rhdl_core::ast_builder::expr_bits(#args)
+                });
+            } else if name.ident == "signed" && name.arguments.is_empty() && expr.args.len() == 1 {
+                let args = self.expr(&expr.args[0])?;
+                return Ok(quote! {
+                    rhdl_core::ast_builder::expr_signed(#args)
                 });
             }
         }
