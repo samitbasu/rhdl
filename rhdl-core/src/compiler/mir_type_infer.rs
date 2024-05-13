@@ -16,6 +16,12 @@ use super::{
     mir::Mir,
     mir_ty::{TypeId, UnifyContext},
 };
+#[derive(Debug, Clone)]
+pub struct TypeUnaryOp {
+    op: AluUnary,
+    lhs: TypeId,
+    arg1: TypeId,
+}
 
 #[derive(Debug, Clone)]
 pub struct TypeBinOp {
@@ -33,9 +39,19 @@ pub struct TypeIndex {
 }
 
 #[derive(Debug, Clone)]
+pub struct TypeSelect {
+    lhs: TypeId,
+    selector: TypeId,
+    true_value: TypeId,
+    false_value: TypeId,
+}
+
+#[derive(Debug, Clone)]
 pub enum TypeOperation {
+    UnaryOp(TypeUnaryOp),
     BinOp(TypeBinOp),
     Index(TypeIndex),
+    Select(TypeSelect),
 }
 
 // For type checking purposes, a dynamic path index
@@ -158,6 +174,27 @@ impl<'a> MirTypeInference<'a> {
             .into_iter()
             .all(|ty| self.ctx.into_kind(ty).is_ok())
     }
+    fn try_unary(&mut self, op: &TypeUnaryOp) -> Result<()> {
+        let a1 = self.ctx.apply(op.arg1);
+        match op.op {
+            AluUnary::All | AluUnary::Any | AluUnary::Xor => {
+                let bool_ty = self.ctx.ty_bool();
+                if self.ctx.is_signal(a1) {
+                    let clock_ty = self.ctx.ty_var();
+                    let bool_sig = self.ctx.ty_signal(bool_ty, clock_ty);
+                    self.unify(op.lhs, bool_sig)?;
+                    if let Some(a1_clock) = self.ctx.project_signal_clock(a1) {
+                        self.unify(clock_ty, a1_clock)?;
+                    }
+                } else {
+                    self.unify(op.lhs, bool_ty)?;
+                }
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
     fn try_binop(&mut self, op: &TypeBinOp) -> Result<()> {
         let a1 = self.ctx.apply(op.arg1);
         let a2 = self.ctx.apply(op.arg2);
@@ -301,10 +338,28 @@ impl<'a> MirTypeInference<'a> {
             }
         }
     }
+    fn enforce_clocks(&mut self, t: &[TypeId]) -> Result<()> {
+        for first in t.iter() {
+            for second in t.iter() {
+                if let (Some(clock1), Some(clock2)) = (
+                    self.ctx.project_signal_clock(*first),
+                    self.ctx.project_signal_clock(*second),
+                ) {
+                    self.unify(clock1, clock2)?;
+                }
+            }
+        }
+        Ok(())
+    }
+    fn try_select(&mut self, op: &TypeSelect) -> Result<()> {
+        self.enforce_clocks(&[op.selector, op.true_value, op.false_value])
+    }
     fn try_type_op(&mut self, op: &TypeOperation) -> Result<()> {
         match op {
             TypeOperation::BinOp(binop) => self.try_binop(binop),
             TypeOperation::Index(index) => self.try_index(index),
+            TypeOperation::UnaryOp(unary) => self.try_unary(unary),
+            TypeOperation::Select(select) => self.try_select(select),
         }
     }
     fn process_ops(&mut self) -> Result<()> {
@@ -330,7 +385,11 @@ impl<'a> MirTypeInference<'a> {
                 OpCode::AsBits(as_bits) => {
                     let arg = self.slot_ty(as_bits.arg);
                     let lhs = self.slot_ty(as_bits.lhs);
-                    let len = self.ctx.ty_const_len(as_bits.len);
+                    let len = if let Some(len) = as_bits.len {
+                        self.ctx.ty_const_len(len)
+                    } else {
+                        self.ctx.ty_var()
+                    };
                     let lhs_ty = self.ctx.ty_bits(len);
                     self.unify(lhs, lhs_ty)?;
                     let len_128 = self.ctx.ty_const_len(128);
@@ -345,7 +404,11 @@ impl<'a> MirTypeInference<'a> {
                 OpCode::AsSigned(as_signed) => {
                     let arg = self.slot_ty(as_signed.arg);
                     let lhs = self.slot_ty(as_signed.lhs);
-                    let len = self.ctx.ty_const_len(as_signed.len);
+                    let len = if let Some(len) = as_signed.len {
+                        self.ctx.ty_const_len(len)
+                    } else {
+                        self.ctx.ty_var()
+                    };
                     let lhs_ty = self.ctx.ty_signed(len);
                     self.unify(lhs, lhs_ty)?;
                     let len_128 = self.ctx.ty_const_len(128);
@@ -442,10 +505,17 @@ impl<'a> MirTypeInference<'a> {
                 }
                 OpCode::Select(select) => {
                     let lhs = self.slot_ty(select.lhs);
+                    let cond = self.slot_ty(select.cond);
                     let arg1 = self.slot_ty(select.true_value);
                     let arg2 = self.slot_ty(select.false_value);
                     self.unify(lhs, arg1)?;
                     self.unify(lhs, arg2)?;
+                    self.type_ops.push(TypeOperation::Select(TypeSelect {
+                        lhs,
+                        selector: cond,
+                        true_value: arg1,
+                        false_value: arg2,
+                    }));
                 }
                 OpCode::Splice(splice) => {
                     let lhs = self.slot_ty(splice.lhs);
@@ -504,8 +574,11 @@ impl<'a> MirTypeInference<'a> {
                             self.unify(arg1, signed_ty)?;
                         }
                         AluUnary::All | AluUnary::Any | AluUnary::Xor => {
-                            let bool_ty = self.ctx.ty_bool();
-                            self.unify(lhs, bool_ty)?;
+                            self.type_ops.push(TypeOperation::UnaryOp(TypeUnaryOp {
+                                op: unary.op,
+                                lhs,
+                                arg1,
+                            }));
                         }
                         AluUnary::Unsigned => {
                             let len = self.ctx.ty_var();

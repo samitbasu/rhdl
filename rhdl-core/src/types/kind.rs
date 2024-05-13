@@ -451,6 +451,14 @@ impl Kind {
             None
         }
     }
+
+    pub fn signal_data(&self) -> Kind {
+        if let Kind::Signal(kind, _) = self {
+            *kind.clone()
+        } else {
+            self.clone()
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

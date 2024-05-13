@@ -179,6 +179,7 @@ pub enum ExprKind {
     Call(ExprCall),
     MethodCall(ExprMethodCall),
     Type(ExprType),
+    Bits(ExprBits),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -299,6 +300,18 @@ pub struct ExprStruct {
     pub template: TypedBits,
     pub variant: Kind,
     pub discriminant: TypedBits,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExprBits {
+    pub kind: BitsKind,
+    pub arg: Box<Expr>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum BitsKind {
+    Unsigned,
+    Signed,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

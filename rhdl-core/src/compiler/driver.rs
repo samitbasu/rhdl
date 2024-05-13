@@ -9,6 +9,7 @@ use crate::{
             //check_clock_coherence::CheckClockCoherence,
             check_rhif_flow::DataFlowCheckPass,
             check_rhif_type::TypeCheckPass,
+            lower_inferred_casts::LowerInferredCastsPass,
             pass::Pass,
             pre_cast_literals::PreCastLiterals,
             precompute_discriminants::PrecomputeDiscriminantPass,
@@ -45,6 +46,7 @@ fn compile_kernel(kernel: Kernel) -> Result<Object> {
         obj = RemoveEmptyCasesPass::run(obj)?;
         obj = RemoveUnusedRegistersPass::run(obj)?;
         obj = PrecomputeDiscriminantPass::run(obj)?;
+        obj = LowerInferredCastsPass::run(obj)?;
     }
     let obj = TypeCheckPass::run(obj)?;
     let obj = DataFlowCheckPass::run(obj)?;

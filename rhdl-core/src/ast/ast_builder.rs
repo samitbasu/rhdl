@@ -440,3 +440,23 @@ pub fn expr_typed_bits(path: Box<Path>, value: TypedBits) -> Box<Expr> {
         kind: ExprKind::Lit(ExprLit::TypedBits(ExprTypedBits { path, value })),
     })
 }
+
+pub fn expr_bits(arg: Box<Expr>) -> Box<Expr> {
+    Box::new(Expr {
+        id: INVALID_NODE_ID,
+        kind: ExprKind::Bits(ExprBits {
+            kind: BitsKind::Unsigned,
+            arg,
+        }),
+    })
+}
+
+pub fn expr_signed(arg: Box<Expr>) -> Box<Expr> {
+    Box::new(Expr {
+        id: INVALID_NODE_ID,
+        kind: ExprKind::Bits(ExprBits {
+            kind: BitsKind::Signed,
+            arg,
+        }),
+    })
+}

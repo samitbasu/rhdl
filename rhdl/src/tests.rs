@@ -9,7 +9,7 @@ use rand::Rng;
 use rhdl_bits::{alias::*, bits, signed, Bits, SignedBits};
 use rhdl_core::{
     compile_design,
-    compiler::{mir_pass::compile_mir, mir_type_infer::infer},
+    compiler::{compile, mir_pass::compile_mir, mir_type_infer::infer},
     digital_fn::DigitalFn,
     note,
     note_db::note_time,
@@ -330,6 +330,16 @@ fn test_phi_if_consts() {
 }
 
 #[test]
+fn test_phi_if_consts_inferred_len() {
+    #[kernel]
+    fn do_stuff(a: b1) -> b8 {
+        let j = if a.any() { 3 } else { 7 };
+        bits(j)
+    }
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
+}
+
+#[test]
 fn test_func_with_structured_args() {
     #[kernel]
     fn do_stuff((a, b): (b8, b8)) -> b8 {
@@ -339,6 +349,82 @@ fn test_func_with_structured_args() {
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, [((b8(0), b8(3)),)].into_iter())
         .unwrap();
+}
+
+#[test]
+#[allow(clippy::assign_op_pattern)]
+fn test_ast_basic_func_inferred_bits() {
+    use rhdl_bits::alias::*;
+    #[derive(PartialEq, Copy, Clone, Digital)]
+    pub struct Foo {
+        a: u8,
+        b: u16,
+        c: [u8; 3],
+    }
+
+    #[derive(PartialEq, Copy, Clone, Digital)]
+    pub enum State {
+        Init,
+        Run(u8),
+        Boom,
+    }
+
+    #[derive(PartialEq, Copy, Clone, Digital)]
+    pub struct Bar(pub u8, pub u8);
+
+    #[kernel]
+    fn do_stuff(arg: b4) -> b8 {
+        let a = arg; // Straight local assignment
+        let b = !a; // Unary operator
+        let c = a + (b - 1); // Binary operator
+        let q = (a, b, c); // Tuple valued expression
+        let (a, b, c) = q; // Tuple destructuring
+        let h = Bar(1, 2); // Tuple struct literal
+        let i = h.0; // Tuple struct field access
+        let Bar(j, k) = h; // Tuple struct destructuring
+        let d = [1, 2, 3]; // Array literal
+        let d = Foo {
+            a: 1,
+            b: 2,
+            c: [1, 2, 3],
+        }; // Struct literal
+        let p = Foo { a: 4, ..d };
+        let h = {
+            let e = 3;
+            let f = 4;
+            b8(e) + b8(f)
+        }; // Statement expression
+        let Foo { a, b, .. } = d; // Struct destructuring
+        let g = d.c[1]; // Array indexing
+        let e = d.a; // Struct field access
+        let mut d: b8 = bits(7); // Mutable local
+        if d > bits(0) {
+            // if statement
+            d = d - bits(1);
+            // early return
+            return d;
+        }
+        // if-else statement (and a statement expression)
+        let j = if d < bits(3) { 7 } else { 9 };
+        // Enum literal
+        let k = State::Boom;
+        // Enum literal with a payload
+        let l = State::Run(3);
+        // Match expression with enum variants
+        let j = match l {
+            State::Init => b3(1),
+            State::Run(a) => b3(2),
+            State::Boom => b3(3),
+        };
+        // For loops
+        for ndx in 0..8 {
+            d = d + bits(ndx);
+        }
+        // block expression
+        bits(42)
+    }
+
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
 }
 
 #[test]
@@ -464,11 +550,22 @@ fn test_signal_const_binop_inference() -> anyhow::Result<()> {
     fn do_stuff<C: ClockType>(a: Sig<b8, C>) -> Sig<b8, C> {
         a + b8(4)
     }
-    let Some(KernelFnKind::Kernel(kernel)) = do_stuff::<Red>::kernel_fn() else {
-        panic!("Kernel not found");
-    };
-    let rfunc = compile_mir(kernel)?;
-    infer(rfunc)?;
+    compile_design::<do_stuff<Red>>()?;
+    Ok(())
+}
+
+#[test]
+fn test_signal_cross_clock_select_fails() -> anyhow::Result<()> {
+    #[kernel]
+    fn add<C: ClockType, D: ClockType>(x: Sig<b8, C>, y: Sig<b8, D>) -> Sig<b8, C> {
+        if y.val().any() {
+            x
+        } else {
+            x + 2
+        }
+    }
+    assert!(compile_design::<add::<Red, Red>>().is_ok());
+    assert!(compile_design::<add::<Red, Green>>().is_err());
     Ok(())
 }
 
@@ -503,17 +600,14 @@ fn test_signal_ops_inference() -> anyhow::Result<()> {
         // h is D
         let h = z.val();
         // qq is Illegal!
-        //        let qq = h + y.val();
+        let qq = h + y.val();
         match (z + 1).val() {
             Bits::<8>(0) => z,
             _ => w,
         }
     }
-    let Some(KernelFnKind::Kernel(kernel)) = add::<Red, Green>::kernel_fn() else {
-        panic!("Kernel not found");
-    };
-    let rfunc = compile_mir(kernel)?;
-    infer(rfunc)?;
+    assert!(compile_design::<add::<Red, Red>>().is_ok());
+    assert!(compile_design::<add::<Red, Green>>().is_err());
     Ok(())
 }
 
@@ -538,12 +632,83 @@ fn test_simple_type_inference() {
         let o = j;
         let l = {
             let a = b12(3);
-            let b = bits::<12>(4);
+            let b = bits(4);
             a + b
         };
         l + k
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
+}
+
+#[test]
+fn test_struct_inference_inferred_lengths() {
+    use rhdl_bits::alias::*;
+    use rhdl_bits::bits;
+
+    #[derive(PartialEq, Copy, Clone, Digital)]
+    pub struct Red {
+        x: b4,
+        y: b6,
+    }
+
+    #[derive(PartialEq, Copy, Clone, Digital)]
+    pub struct Foo {
+        a: b8,
+        b: s4,
+        c: Red,
+    }
+
+    #[derive(PartialEq, Copy, Clone, Digital)]
+    pub struct Bar(pub u8, pub u8);
+
+    #[derive(PartialEq, Copy, Clone, Digital)]
+    pub enum NooState {
+        Init,
+        Run(b4, b5),
+        Walk { foo: b5 },
+        Boom,
+    }
+
+    #[kernel]
+    fn do_stuff(a: Foo) -> (b8, b8, NooState, Foo) {
+        let z = (a.b, a.a);
+        let c = a;
+        let q = signed(-2);
+        let c = Red {
+            x: bits(1),
+            y: bits(2),
+        };
+        let d = Foo {
+            a: bits(1),
+            b: q,
+            c,
+        };
+        let Foo { a: ar, b, c: _ } = d;
+        let q = Bar(1, 2);
+        let x = NooState::Run(bits(1), bits(2));
+        let e = ar;
+        (e, ar, x, d)
+    }
+    let inputs = [
+        Foo {
+            a: bits::<8>(1),
+            b: signed::<4>(2),
+            c: Red {
+                x: bits::<4>(1),
+                y: bits::<6>(2),
+            },
+        },
+        Foo {
+            a: bits::<8>(1),
+            b: signed::<4>(2),
+            c: Red {
+                x: bits::<4>(1),
+                y: bits::<6>(2),
+            },
+        },
+    ];
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, inputs.into_iter().map(|x| (x,)))
+        .unwrap();
 }
 
 #[test]
@@ -631,6 +796,21 @@ fn test_rebinding() {
 }
 
 #[test]
+fn test_missing_register_inferred_types() {
+    #[kernel]
+    fn do_stuff(a: b1) -> b8 {
+        let mut c = bits(0);
+        match a {
+            Bits::<1>(0) => c = bits(2),
+            Bits::<1>(1) => c = bits(3),
+            _ => {}
+        }
+        c
+    }
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
+}
+
+#[test]
 fn test_missing_register() {
     #[kernel]
     fn do_stuff(a: b1) -> b8 {
@@ -646,6 +826,21 @@ fn test_missing_register() {
 }
 
 #[test]
+fn test_phi_missing_register_signed_inference() {
+    #[kernel]
+    fn do_stuff(a: b1) -> s8 {
+        let mut c = signed(0);
+        match a {
+            Bits::<1>(0) => c = signed(2),
+            Bits::<1>(1) => c = signed(3),
+            _ => {}
+        }
+        c
+    }
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
+}
+
+#[test]
 fn test_phi_missing_register() {
     #[kernel]
     fn do_stuff(a: b1) -> b8 {
@@ -653,6 +848,35 @@ fn test_phi_missing_register() {
         if a.any() {
             c = bits::<8>(1);
         }
+        c
+    }
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
+}
+
+#[test]
+fn test_phi_inferred_lengths() {
+    #[kernel]
+    fn do_stuff(a: b1) -> b8 {
+        let mut c = bits(0);
+        /*
+        match a {
+            Bits::<1>(0) => c = bits(2),
+            Bits::<1>(1) => c = bits(3),
+            _ => {}
+        }
+        */
+        let d = c;
+        if a.any() {
+            //            c = bits(1);
+            c = bits(2);
+        } else {
+            //c = bits(3);
+            c = bits(4);
+            /*             if a.all() {
+                c = bits(5);
+            }*/
+        }
+        let y = c;
         c
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
@@ -1181,6 +1405,17 @@ fn test_generics() {
     ];
     let inputs = iproduct!(a.iter().cloned(), a.iter().cloned()).collect::<Vec<_>>();
     test_kernel_vm_and_verilog::<do_stuff<s4>, _, _, _>(do_stuff, inputs.into_iter()).unwrap();
+}
+
+#[test]
+fn test_bit_inference_works() {
+    #[kernel]
+    fn do_stuff(a: b8) -> b8 {
+        let b = a + 1;
+        let c = bits(3);
+        b + c
+    }
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
 }
 
 #[test]

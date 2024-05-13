@@ -395,10 +395,12 @@ impl<'a> TranslationContext<'a> {
                     .push_str(&format!("    {lhs} = {{ {len} {{ {value} }} }};\n"));
             }
             OpCode::AsBits(Cast { lhs, arg, len }) => {
+                let len = len.ok_or(anyhow!("No length for as_bits"))?;
                 self.body
                     .push_str(&format!("    {lhs} = {arg}[{}:0];\n", len - 1));
             }
             OpCode::AsSigned(Cast { lhs, arg, len }) => {
+                let len = len.ok_or(anyhow!("No length for as_signed"))?;
                 self.body
                     .push_str(&format!("    {lhs} = $signed({arg}[{}:0]);\n", len - 1));
             }

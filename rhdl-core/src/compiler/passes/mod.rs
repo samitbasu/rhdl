@@ -3,6 +3,7 @@ pub(crate) mod check_inference;
 pub(crate) mod check_rhif_flow;
 pub(crate) mod check_rhif_type;
 pub(crate) mod lower_index_to_copy;
+pub(crate) mod lower_inferred_casts;
 pub(crate) mod pass;
 pub(crate) mod pre_cast_literals;
 pub(crate) mod precompute_discriminants;

@@ -252,12 +252,14 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
             }
             OpCode::AsBits(Cast { lhs, arg, len }) => {
                 let arg = state.read(*arg)?;
-                let result = arg.unsigned_cast(*len)?;
+                let len = len.ok_or(anyhow!("ICE Cast length not provided"))?;
+                let result = arg.unsigned_cast(len)?;
                 state.write(*lhs, result)?;
             }
             OpCode::AsSigned(Cast { lhs, arg, len }) => {
                 let arg = state.read(*arg)?;
-                let result = arg.signed_cast(*len)?;
+                let len = len.ok_or(anyhow!("ICE Cast length not provided"))?;
+                let result = arg.signed_cast(len)?;
                 state.write(*lhs, result)?;
             }
             OpCode::AsKind(KindCast { lhs, arg, kind }) => {

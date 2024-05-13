@@ -984,6 +984,7 @@ impl CompilerContext {
             ExprKind::Call(call) => self.call(expr.id, call),
             ExprKind::MethodCall(method) => self.method_call(expr.id, method),
             ExprKind::Type(_) => Ok(Slot::Empty),
+            ExprKind::Bits(_) => todo!(),
         }
     }
     fn wrap_expr_in_block(&mut self, block_result: Slot, expr: &Expr) -> Result<()> {

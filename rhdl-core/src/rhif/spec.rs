@@ -258,7 +258,7 @@ pub struct Enum {
 pub struct Cast {
     pub lhs: Slot,
     pub arg: Slot,
-    pub len: usize,
+    pub len: Option<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

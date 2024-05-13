@@ -214,6 +214,9 @@ where
                 visitor.visit_expr(arg)?;
             }
         }
+        ExprKind::Bits(bits) => {
+            visitor.visit_expr(&bits.arg)?;
+        }
         _ => {}
     }
     Ok(())
