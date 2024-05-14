@@ -763,7 +763,7 @@ impl CompilerContext {
                 let func = self.stash(ExternalFunction {
                     code: ExternalFunctionCode::Kernel(kernel.clone()),
                     path: path.clone(),
-                    signature: call.signature.clone(),
+                    signature: call.signature.clone().unwrap(),
                 })?;
                 self.op(op_exec(lhs, func, args), id);
             }
@@ -771,10 +771,11 @@ impl CompilerContext {
                 let func = self.stash(ExternalFunction {
                     code: ExternalFunctionCode::Extern(code.clone()),
                     path: path.clone(),
-                    signature: call.signature.clone(),
+                    signature: call.signature.clone().unwrap(),
                 })?;
                 self.op(op_exec(lhs, func, args), id);
             }
+            _ => todo!(),
         }
         Ok(lhs)
     }
@@ -827,23 +828,23 @@ impl CompilerContext {
         let lhs_ty = self.ty(bin.lhs.id)?;
         let rhs_ty = self.ty(bin.rhs.id)?;
         eprintln!("!!binop {} {} {}", lhs_ty, op, rhs_ty);
-        let lhs = if rhs_ty.is_signal() && !lhs_ty.is_signal() {
-            eprintln!("Retime lhs {} to match {}", lhs_ty, rhs_ty);
-            let temp = self.anonymous_reg(rhs_ty.clone())?;
-            self.op(op_retime(temp, lhs, rhs_ty.clone().try_into()?), id);
-            temp
-        } else {
-            lhs
-        };
-        let rhs = if lhs_ty.is_signal() && !rhs_ty.is_signal() {
-            eprintln!("Retime rhs {} to match {}", rhs_ty, lhs_ty);
-            let temp = self.anonymous_reg(lhs_ty.clone())?;
-            self.op(op_retime(temp, rhs, lhs_ty.try_into()?), id);
-            temp
-        } else {
-            rhs
-        };
-
+        /*         let lhs = if rhs_ty.is_signal() && !lhs_ty.is_signal() {
+                   eprintln!("Retime lhs {} to match {}", lhs_ty, rhs_ty);
+                   let temp = self.anonymous_reg(rhs_ty.clone())?;
+                   self.op(op_retime(temp, lhs, rhs_ty.clone().try_into()?), id);
+                   temp
+               } else {
+                   lhs
+               };
+               let rhs = if lhs_ty.is_signal() && !rhs_ty.is_signal() {
+                   eprintln!("Retime rhs {} to match {}", rhs_ty, lhs_ty);
+                   let temp = self.anonymous_reg(lhs_ty.clone())?;
+                   self.op(op_retime(temp, rhs, lhs_ty.try_into()?), id);
+                   temp
+               } else {
+                   rhs
+               };
+        */
         let result = self.reg(id)?;
         let alu = match op {
             BinOp::Add | BinOp::AddAssign => AluBinary::Add,

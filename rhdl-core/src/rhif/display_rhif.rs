@@ -8,7 +8,7 @@ use crate::{
     util::splice,
 };
 
-use super::spec::{KindCast, Select};
+use super::spec::{Retime, Select};
 
 impl Display for OpCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -114,8 +114,8 @@ impl Display for OpCode {
                     write!(f, " {} <- {} as signed", lhs, arg)
                 }
             }
-            OpCode::AsKind(KindCast { lhs, arg, kind }) => {
-                write!(f, " {} <- {} as {}", lhs, arg, kind)
+            OpCode::Retime(Retime { lhs, arg, color }) => {
+                write!(f, " {} <- {} retime {:?}", lhs, arg, color)
             }
         }
     }

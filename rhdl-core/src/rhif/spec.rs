@@ -5,7 +5,7 @@ use crate::{
     ast_builder::BinOp,
     kernel::{ExternalKernelDef, Kernel},
     path::Path,
-    DigitalSignature, Kind, TypedBits,
+    ClockColor, DigitalSignature, Kind, TypedBits,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -42,7 +42,7 @@ pub enum OpCode {
     // x <- a as signed::<len>
     AsSigned(Cast),
     // x <- C::sig(a)
-    AsKind(KindCast),
+    Retime(Retime),
     Comment(String),
 }
 
@@ -262,8 +262,8 @@ pub struct Cast {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct KindCast {
+pub struct Retime {
     pub lhs: Slot,
     pub arg: Slot,
-    pub kind: Kind,
+    pub color: Option<ClockColor>,
 }

@@ -318,7 +318,7 @@ pub enum BitsKind {
 pub struct ExprCall {
     pub path: Box<Path>,
     pub args: Vec<Box<Expr>>,
-    pub signature: DigitalSignature,
+    pub signature: Option<DigitalSignature>,
     pub code: Option<KernelFnKind>,
 }
 

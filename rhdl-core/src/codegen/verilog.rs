@@ -4,7 +4,7 @@ use crate::kernel::ExternalKernelDef;
 use crate::path::{bit_range, Path, PathElement};
 use crate::rhif::spec::{
     AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
-    ExternalFunctionCode, Index, KindCast, Member, OpCode, Repeat, Select, Slot, Splice, Struct,
+    ExternalFunctionCode, Index, Member, OpCode, Repeat, Retime, Select, Slot, Splice, Struct,
     Tuple, Unary,
 };
 use crate::test_module::VerilogDescriptor;
@@ -404,7 +404,7 @@ impl<'a> TranslationContext<'a> {
                 self.body
                     .push_str(&format!("    {lhs} = $signed({arg}[{}:0]);\n", len - 1));
             }
-            OpCode::AsKind(KindCast { lhs, arg, kind: _ }) => {
+            OpCode::Retime(Retime { lhs, arg, color: _ }) => {
                 self.body.push_str(&format!("    {lhs} = {arg};\n"));
             }
         }

@@ -2,8 +2,8 @@ use std::hash::{Hash, Hasher};
 
 use crate::kernel::KernelFnKind;
 use crate::types::typed_bits::TypedBits;
-use crate::DigitalSignature;
 use crate::{ast::ast_impl::*, Kind};
+use crate::{ClockColor, DigitalSignature};
 
 pub fn binary_expr(op: BinOp, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
     Box::new(Expr {
@@ -218,7 +218,7 @@ pub fn call_expr(
         kind: ExprKind::Call(ExprCall {
             path,
             args,
-            signature,
+            signature: Some(signature),
             code,
         }),
     })
@@ -457,6 +457,21 @@ pub fn expr_signed(arg: Box<Expr>) -> Box<Expr> {
         kind: ExprKind::Bits(ExprBits {
             kind: BitsKind::Signed,
             arg,
+        }),
+    })
+}
+
+pub fn expr_signal(arg: Box<Expr>, clock: Option<ClockColor>) -> Box<Expr> {
+    Box::new(Expr {
+        id: INVALID_NODE_ID,
+        kind: ExprKind::Call(ExprCall {
+            path: path(vec![PathSegment {
+                ident: "signal".to_string(),
+                arguments: vec![],
+            }]),
+            args: vec![arg],
+            signature: None,
+            code: Some(KernelFnKind::SignalConstructor(clock)),
         }),
     })
 }

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub trait ClockType: Copy + PartialEq + 'static {
+pub trait Clock: Copy + PartialEq + 'static {
     fn color() -> ClockColor;
 }
 
@@ -19,7 +19,7 @@ macro_rules! decl_clock {
         #[derive(Copy, Clone, PartialEq)]
         pub struct $name;
 
-        impl ClockType for $name {
+        impl Clock for $name {
             fn color() -> ClockColor {
                 ClockColor::$name
             }
