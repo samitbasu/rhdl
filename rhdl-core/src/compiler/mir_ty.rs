@@ -159,6 +159,11 @@ impl UnifyContext {
         self.ty_app(AppTypeKind::Signal, vec![data, clock])
     }
 
+    pub fn ty_maybe_signed(&mut self, len: TypeId) -> TypeId {
+        let sign_flag = self.ty_var();
+        self.ty_app(AppTypeKind::Bits, vec![sign_flag, len])
+    }
+
     pub fn ty_var(&mut self) -> TypeId {
         let ty = self.types.alloc(Type::Var(self.var));
         self.var.0 += 1;
@@ -535,6 +540,13 @@ impl UnifyContext {
         let ty = self.apply(ty);
         matches!(self.types[ty], Type::Var(_))
     }
+    pub fn is_unsized_integer(&mut self, ty: TypeId) -> bool {
+        let ty = self.apply(ty);
+        if let Type::App(AppType { kind, args }) = &self.types[ty] {
+            return self.is_var(args[1]);
+        }
+        false
+    }
     pub fn is_generic_integer(&mut self, ty: TypeId) -> bool {
         let ty = self.apply(ty);
         if let Type::App(AppType { kind, args }) = &self.types[ty] {
@@ -573,6 +585,18 @@ impl UnifyContext {
                 Some(args[0])
             } else {
                 Some(ty)
+            }
+        } else {
+            None
+        }
+    }
+    pub fn project_sign_flag(&mut self, ty: TypeId) -> Option<TypeId> {
+        let ty = self.apply(ty);
+        if let Type::App(AppType { kind, args }) = &self.types[ty] {
+            if matches!(kind, AppTypeKind::Bits) {
+                Some(args[0])
+            } else {
+                None
             }
         } else {
             None

@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::{
     ast::ast_impl::ExprLit,
+    compiler::mir_ty::SignFlag,
     path::{sub_kind, Path, PathElement},
     rhif::{
         spec::{AluBinary, AluUnary, CaseArgument, OpCode, Slot},
@@ -278,6 +279,14 @@ impl<'a> MirTypeInference<'a> {
                 }
             }
             AluBinary::Shl | AluBinary::Shr => {
+                if let Some(arg2) = self.ctx.project_signal_value(a2) {
+                    eprintln!("Project signal value flag for {}", self.ctx.desc(a2));
+                    if let Some(flag) = self.ctx.project_sign_flag(arg2) {
+                        eprintln!("Project sign flag for {}", self.ctx.desc(a2));
+                        let unsigned_flag = self.ctx.ty_sign_flag(SignFlag::Unsigned);
+                        self.unify(flag, unsigned_flag)?;
+                    }
+                }
                 if let (Some(lhs_data), Some(arg1_data)) = (
                     self.ctx.project_signal_value(op.lhs),
                     self.ctx.project_signal_value(op.arg1),
@@ -337,8 +346,10 @@ impl<'a> MirTypeInference<'a> {
             self.ctx.desc(op.arg),
             op.path
         );
-        let arg = self.ctx.apply(op.arg);
-        match self.ty_path_project(arg, &op.path) {
+        let mut all_slots = vec![op.lhs, op.arg];
+        all_slots.extend(op.path.dynamic_slots().map(|slot| self.slot_ty(*slot)));
+        self.enforce_clocks(&all_slots)?;
+        match self.ty_path_project(op.arg, &op.path) {
             Ok(ty) => self.unify(op.lhs, ty),
             Err(err) => {
                 eprintln!("Error: {}", err);
@@ -666,14 +677,14 @@ pub fn infer(mir: Mir) -> Result<Object> {
             break;
         }
     }
-    // Try to replace generic literals with i32s
+    // Try to replace generic literals with (b/s)32
     if !infer.all_slots_resolved() {
         for lit in mir.literals.keys() {
             let ty = infer.slot_ty(*lit);
-            if infer.ctx.is_generic_integer(ty) {
+            if infer.ctx.is_unsized_integer(ty) {
                 let i32_len = infer.ctx.ty_const_len(32);
-                let i32_ty = infer.ctx.ty_signed(i32_len);
-                infer.unify(ty, i32_ty)?;
+                let m32_ty = infer.ctx.ty_maybe_signed(i32_len);
+                infer.unify(ty, m32_ty)?;
             }
         }
     }

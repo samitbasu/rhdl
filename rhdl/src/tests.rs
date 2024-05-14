@@ -558,6 +558,18 @@ fn test_signal_const_binop_inference() -> anyhow::Result<()> {
 }
 
 #[test]
+fn test_bits_inference_with_type() {
+    #[kernel]
+    fn do_stuff(a: b8) -> b8 {
+        let y: b8 = bits(3);
+        let r = 3;
+        let z = y << r;
+        a
+    }
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
+}
+
+#[test]
 fn test_signal_cross_clock_select_fails() -> anyhow::Result<()> {
     #[kernel]
     fn add<C: Clock, D: Clock>(x: Sig<b8, C>, y: Sig<b8, D>) -> Sig<b8, C> {
@@ -591,6 +603,20 @@ fn test_signal_cast_cross_clocks_fails() -> anyhow::Result<()> {
         signal(x.val() + 3)
     }
     assert!(compile_design::<add<Red, Red>>().is_ok());
+    assert!(compile_design::<add::<Red, Green>>().is_err());
+    Ok(())
+}
+
+#[test]
+fn test_signal_cross_clock_shifting_fails() -> anyhow::Result<()> {
+    #[kernel]
+    fn add<C: Clock, D: Clock>(x: Sig<b8, C>) -> Sig<b8, D> {
+        let p = 4;
+        let y: b8 = bits(7);
+        let z = y << p;
+        signal(x.val() << 3)
+    }
+    compile_design::<add<Red, Red>>()?;
     assert!(compile_design::<add::<Red, Green>>().is_err());
     Ok(())
 }
