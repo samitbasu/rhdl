@@ -35,6 +35,7 @@ use crate::rhif;
 use crate::rhif::object::SymbolMap;
 use crate::rhif::rhif_builder::op_as_bits_inferred;
 use crate::rhif::rhif_builder::op_as_signed_inferred;
+use crate::rhif::rhif_builder::op_retime;
 use crate::rhif::rhif_builder::{
     op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
     op_exec, op_index, op_repeat, op_select, op_splice, op_struct, op_tuple, op_unary,
@@ -725,7 +726,7 @@ impl MirContext {
                 let func = self.stash(ExternalFunction {
                     code: ExternalFunctionCode::Kernel(kernel.clone()),
                     path: path.clone(),
-                    signature: call.signature.clone(),
+                    signature: call.signature.clone().unwrap(),
                 })?;
                 self.op(op_exec(lhs, func, args), id);
             }
@@ -733,9 +734,12 @@ impl MirContext {
                 let func = self.stash(ExternalFunction {
                     code: ExternalFunctionCode::Extern(code.clone()),
                     path: path.clone(),
-                    signature: call.signature.clone(),
+                    signature: call.signature.clone().unwrap(),
                 })?;
                 self.op(op_exec(lhs, func, args), id);
+            }
+            KernelFnKind::SignalConstructor(color) => {
+                self.op(op_retime(lhs, args[0], color.clone()), id);
             }
         }
         Ok(lhs)

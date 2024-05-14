@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{ast::ast_impl, TypedBits};
+use crate::{ast::ast_impl, ClockColor, Kind, TypedBits};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Kernel(Box<ast_impl::KernelFn>);
@@ -28,6 +28,7 @@ pub enum KernelFnKind {
     BitConstructor(usize),
     SignedBitsConstructor(usize),
     EnumTupleStructConstructor(TypedBits),
+    SignalConstructor(Option<ClockColor>),
 }
 
 impl std::fmt::Display for KernelFnKind {
@@ -51,6 +52,9 @@ impl std::fmt::Display for KernelFnKind {
             }
             KernelFnKind::EnumTupleStructConstructor(tb) => {
                 write!(f, "enum tuple struct constructor {}", tb)
+            }
+            KernelFnKind::SignalConstructor(color) => {
+                write!(f, "signal constructor {:?}", color)
             }
         }
     }

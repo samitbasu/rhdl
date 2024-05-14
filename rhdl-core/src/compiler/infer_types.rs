@@ -424,9 +424,10 @@ impl TypeInference {
         Ok(())
     }
     fn handle_call(&mut self, my_ty: Ty, call: &ast_impl::ExprCall) -> Result<()> {
-        self.unify(my_ty, call.signature.ret.clone().into())?;
-        if call.args.len() == call.signature.arguments.len() {
-            for (arg, ty) in call.args.iter().zip(&call.signature.arguments) {
+        let signature = call.signature.clone().unwrap();
+        self.unify(my_ty, signature.ret.clone().into())?;
+        if call.args.len() == signature.arguments.len() {
+            for (arg, ty) in call.args.iter().zip(&signature.arguments) {
                 self.unify(id_to_var(arg.id)?, ty.clone().into())?;
             }
         } else {

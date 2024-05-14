@@ -7,7 +7,7 @@ use crate::{
         spec::{AluBinary, AluUnary, CaseArgument, OpCode, Slot},
         Object,
     },
-    Digital, Kind, TypedBits,
+    ClockColor, Digital, Kind, TypedBits,
 };
 use anyhow::bail;
 use anyhow::Result;
@@ -404,11 +404,6 @@ impl<'a> MirTypeInference<'a> {
                     let arg_ty = self.ctx.ty_bits(len_128);
                     self.unify(arg, arg_ty)?;
                 }
-                OpCode::AsKind(as_kind) => {
-                    let lhs = self.slot_ty(as_kind.lhs);
-                    let kind = self.ctx.from_kind(&as_kind.kind);
-                    self.unify(lhs, kind)?;
-                }
                 OpCode::AsSigned(as_signed) => {
                     let arg = self.slot_ty(as_signed.arg);
                     let lhs = self.slot_ty(as_signed.lhs);
@@ -510,6 +505,24 @@ impl<'a> MirTypeInference<'a> {
                     let len = self.ctx.ty_const_len(repeat.len as usize);
                     let lhs_ty = self.ctx.ty_array(value, len);
                     self.unify(lhs, lhs_ty)?;
+                }
+                OpCode::Retime(retime) => {
+                    let lhs = self.slot_ty(retime.lhs);
+                    let arg = self.slot_ty(retime.arg);
+                    let color = retime.color;
+                    let sig_ty = self.ctx.ty_var();
+                    let sig_clock_lhs = self.ctx.ty_var();
+                    let sig = self.ctx.ty_signal(sig_ty, sig_clock_lhs);
+                    self.unify(lhs, sig)?;
+                    let sig_ty = self.ctx.ty_var();
+                    let sig_clock_rhs = self.ctx.ty_var();
+                    let sig = self.ctx.ty_signal(sig_ty, sig_clock_rhs);
+                    self.unify(arg, sig)?;
+                    self.unify(sig_clock_lhs, sig_clock_rhs)?;
+                    if let Some(color) = color {
+                        let clk = self.ctx.ty_clock(color);
+                        self.unify(sig_clock_lhs, clk)?;
+                    }
                 }
                 OpCode::Select(select) => {
                     let lhs = self.slot_ty(select.lhs);

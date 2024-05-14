@@ -102,8 +102,8 @@ fn split_path_into_base_and_variant(path: &Path) -> Result<(Path, Ident)> {
     let base = path
         .segments
         .iter()
-        .map(|x| x.clone())
         .take(path.segments.len() - 1)
+        .cloned()
         .collect();
     let variant = path
         .segments
@@ -776,6 +776,24 @@ impl Context {
                 return Ok(quote! {
                     rhdl_core::ast_builder::expr_signed(#args)
                 });
+            } else if name.ident == "signal" {
+                let args = self.expr(&expr.args[0])?;
+                if let syn::PathArguments::AngleBracketed(generics) = &name.arguments {
+                    let Some(clock) = generics.args.iter().nth(1) else {
+                        return Err(syn::Error::new(
+                            expr.span(),
+                            "Unsupported signal call in rhdl kernel function",
+                        ));
+                    };
+                    let clock = quote!(<#clock as rhdl_core::Clock>::color());
+                    return Ok(quote! {
+                        rhdl_core::ast_builder::expr_signal(#args, Some(#clock))
+                    });
+                } else {
+                    return Ok(quote! {
+                        rhdl_core::ast_builder::expr_signal(#args, None)
+                    });
+                }
             }
         }
         let code = if !path_is_enum_tuple_struct_by_convention(&func_path.path) {

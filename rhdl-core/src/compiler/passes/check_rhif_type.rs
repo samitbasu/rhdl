@@ -8,7 +8,7 @@ use crate::{
         self,
         spec::{
             AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
-            Index, KindCast, OpCode, Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
+            Index, OpCode, Repeat, Retime, Select, Slot, Splice, Struct, Tuple, Unary,
         },
         Object,
     },
@@ -306,8 +306,8 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                 let len = len.ok_or(anyhow!("as_signed must have a length"))?;
                 eq_kinds(slot_type(lhs)?, Kind::make_signed(len))?;
             }
-            OpCode::AsKind(KindCast { lhs, arg: _, kind }) => {
-                eq_kinds(slot_type(lhs)?, kind.clone())?;
+            OpCode::Retime(Retime { lhs, arg, color }) => {
+                eq_kinds(slot_type(lhs)?, slot_type(arg)?)?;
             }
         }
     }
