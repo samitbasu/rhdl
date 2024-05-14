@@ -9,7 +9,7 @@ use rand::Rng;
 use rhdl_bits::{alias::*, bits, signed, Bits, SignedBits};
 use rhdl_core::{
     compile_design,
-    compiler::{compile, mir_pass::compile_mir, mir_type_infer::infer},
+    compiler::{mir_pass::compile_mir, mir_type_infer::infer},
     digital_fn::DigitalFn,
     note,
     note_db::note_time,

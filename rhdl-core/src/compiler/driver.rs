@@ -2,7 +2,6 @@ use std::any::type_name;
 
 use crate::{
     compiler::{
-        assign_node_ids, compile, infer,
         mir_pass::compile_mir,
         mir_type_infer,
         passes::{

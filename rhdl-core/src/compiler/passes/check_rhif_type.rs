@@ -188,11 +188,14 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                 eq_kinds(slot_type(lhs)?, Kind::make_tuple(ty))?;
             }
             OpCode::Index(Index { lhs, arg, path }) => {
-                let ty = slot_type(arg)?;
+                let ty = slot_type(arg)?.signal_data();
                 let ty = sub_kind(ty, &approximate_dynamic_paths(path))?;
                 eq_kinds(ty, slot_type(lhs)?)?;
                 for slot in path.dynamic_slots() {
-                    ensure!(slot_type(slot)?.is_unsigned(), "index must be unsigned");
+                    ensure!(
+                        slot_type(slot)?.signal_data().is_unsigned(),
+                        "index must be unsigned"
+                    );
                 }
             }
             OpCode::Struct(Struct {

@@ -523,21 +523,20 @@ fn write_enumerate(
     f: &mut std::fmt::Formatter<'_>,
 ) -> std::fmt::Result {
     let root_kind = Kind::Enum(enumerate.clone());
-    let (range, kind) = bit_range(root_kind.clone(), &Path::default().discriminant())
-        .map_err(|_| std::fmt::Error)?;
+    let (range, kind) = bit_range(root_kind.clone(), &Path::default().discriminant()).unwrap();
     let discriminant_value = interpret_bits_as_i64(&bits[range], kind.is_signed());
     // Get the variant for this discriminant
     let variant = enumerate
         .variants
         .iter()
         .find(|v| v.discriminant == discriminant_value)
-        .ok_or(std::fmt::Error)?;
+        .unwrap();
     write!(f, "{}::{}", enumerate.name, variant.name)?;
     let (payload_range, payload_kind) = bit_range(
         root_kind,
         &Path::default().payload_by_value(discriminant_value),
     )
-    .map_err(|_| std::fmt::Error)?;
+    .unwrap();
     let payload = &bits[payload_range];
     write_kind_with_bits(&payload_kind, payload, f)
 }
@@ -551,8 +550,7 @@ fn write_struct(
     let root_kind = Kind::Struct(structure.clone());
     for (ndx, field) in structure.fields.iter().enumerate() {
         let (bit_range, sub_kind) =
-            bit_range(root_kind.clone(), &Path::default().field(&field.name))
-                .map_err(|_| std::fmt::Error)?;
+            bit_range(root_kind.clone(), &Path::default().field(&field.name)).unwrap();
         let slice = &bits[bit_range];
         write!(f, "{}: ", field.name)?;
         write_kind_with_bits(&sub_kind, slice, f)?;
@@ -567,8 +565,8 @@ fn write_array(array: &Array, bits: &[bool], f: &mut std::fmt::Formatter<'_>) ->
     write!(f, "[")?;
     let root_kind = Kind::Array(array.clone());
     for ndx in 0..(array.size) {
-        let (bit_range, sub_kind) = bit_range(root_kind.clone(), &Path::default().index(ndx))
-            .map_err(|_| std::fmt::Error)?;
+        let (bit_range, sub_kind) =
+            bit_range(root_kind.clone(), &Path::default().index(ndx)).unwrap();
         let slice = &bits[bit_range];
         write_kind_with_bits(&sub_kind, slice, f)?;
         if ndx < array.size - 1 {
@@ -608,8 +606,8 @@ fn write_tuple(tuple: &Tuple, bits: &[bool], f: &mut std::fmt::Formatter<'_>) ->
     write!(f, "(")?;
     let root_kind = Kind::Tuple(tuple.clone());
     for ndx in 0..(tuple.elements.len()) {
-        let (bit_range, sub_kind) = bit_range(root_kind.clone(), &Path::default().index(ndx))
-            .map_err(|_| std::fmt::Error)?;
+        let (bit_range, sub_kind) =
+            bit_range(root_kind.clone(), &Path::default().tuple_index(ndx)).unwrap();
         let slice = &bits[bit_range];
         write_kind_with_bits(&sub_kind, slice, f)?;
         if ndx < tuple.elements.len() - 1 {

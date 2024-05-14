@@ -41,6 +41,7 @@ use crate::rhif::rhif_builder::{
     op_exec, op_index, op_repeat, op_select, op_splice, op_struct, op_tuple, op_unary,
 };
 use crate::rhif::spanned_source::build_spanned_source_for_kernel;
+use crate::rhif::spec;
 use crate::rhif::spec::AluBinary;
 use crate::rhif::spec::AluUnary;
 use crate::rhif::spec::CaseArgument;
@@ -55,17 +56,23 @@ use crate::{
 };
 
 use super::assign_node::NodeIdGenerator;
-use super::assign_node_ids;
-use super::display_ast::pretty_print_kernel;
 use super::display_ast::pretty_print_statement;
 use super::mir::Mir;
 use super::mir::OpCodeWithSource;
-use super::UnifyContext;
 
 #[derive(Debug, Clone)]
 pub struct Rebind {
     from: Slot,
     to: Slot,
+}
+
+impl From<ast_impl::Member> for spec::Member {
+    fn from(member: ast_impl::Member) -> Self {
+        match member {
+            ast_impl::Member::Named(name) => spec::Member::Named(name),
+            ast_impl::Member::Unnamed(index) => spec::Member::Unnamed(index),
+        }
+    }
 }
 
 fn binop_to_alu(op: BinOp) -> AluBinary {
@@ -1095,8 +1102,7 @@ impl MirContext {
         Ok(Slot::Empty)
     }
     fn stmt(&mut self, statement: &Stmt) -> Result<Slot> {
-        let type_context = UnifyContext::default();
-        let statement_text = String::new(); // TODO - FIXME pretty_print_statement(statement, &type_context)?;
+        let statement_text = pretty_print_statement(statement)?;
         self.op(op_comment(statement_text), statement.id);
         match &statement.kind {
             StmtKind::Local(local) => {

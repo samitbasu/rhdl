@@ -11,8 +11,6 @@ use crate::{
 };
 use anyhow::{anyhow, bail, ensure, Result};
 
-use super::ty::Ty;
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct VarNum(u32);
 
@@ -238,6 +236,12 @@ impl UnifyContext {
                 } else {
                     bail!("Index out of bounds");
                 }
+            }
+            AppTypeKind::Signal => {
+                let clock = args[1];
+                let data = args[0];
+                let indexed = self.ty_index(data, index)?;
+                Ok(self.ty_signal(indexed, clock))
             }
             _ => bail!("Expected an array, tuple, or struct, found {:?}", kind),
         }
