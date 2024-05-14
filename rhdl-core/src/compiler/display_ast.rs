@@ -2,44 +2,36 @@ use std::fmt::{Display, Formatter};
 
 use crate::{
     ast::ast_impl::*,
-    compiler::UnifyContext,
     kernel::Kernel,
     util::{splice, IndentingFormatter},
     Kind,
 };
 use anyhow::Result;
 
-use super::{
-    infer_types::id_to_var,
-    ty::{Bits, Ty},
-};
-
-pub struct PrettyPrinter<'a> {
+#[derive(Default)]
+pub struct PrettyPrinter {
     buffer: IndentingFormatter,
-    ty: &'a UnifyContext,
 }
 
-pub fn pretty_print_kernel(kernel: &Kernel, ty: &UnifyContext) -> Result<String> {
+pub fn pretty_print_kernel(kernel: &Kernel) -> Result<String> {
     let mut printer = PrettyPrinter {
         buffer: Default::default(),
-        ty,
     };
     printer.print_kernel(kernel)?;
     let buffer = printer.buffer;
     Ok(buffer.buffer())
 }
 
-pub fn pretty_print_statement(stmt: &Stmt, ty: &UnifyContext) -> Result<String> {
+pub fn pretty_print_statement(stmt: &Stmt) -> Result<String> {
     let mut printer = PrettyPrinter {
         buffer: Default::default(),
-        ty,
     };
     printer.print_stmt(stmt)?;
     let buffer = printer.buffer;
     Ok(buffer.buffer())
 }
 
-impl<'a> PrettyPrinter<'a> {
+impl PrettyPrinter {
     pub fn print_kernel(&mut self, kernel: &Kernel) -> Result<()> {
         self.push(&format!("fn {}(", kernel.inner().name));
         for arg in &kernel.inner().inputs {
@@ -56,7 +48,6 @@ impl<'a> PrettyPrinter<'a> {
         self.buffer.write(s);
     }
     fn print_pattern(&mut self, pat: &Pat) -> Result<()> {
-        let term = self.ty.apply(id_to_var(pat.id)?);
         match &pat.kind {
             PatKind::Ident(ident) => {
                 self.push(&ident.name);
@@ -124,9 +115,6 @@ impl<'a> PrettyPrinter<'a> {
                 self.print_kind(&pat.kind)?;
             }
         }
-        self.push(" /* ");
-        self.print_type(&term)?;
-        self.push(" */");
         Ok(())
     }
     fn print_block(&mut self, block: &Block) -> Result<()> {
@@ -192,50 +180,7 @@ impl<'a> PrettyPrinter<'a> {
         }
         Ok(())
     }
-    fn print_type(&mut self, term: &Ty) -> Result<()> {
-        match term {
-            Ty::Var(_var) => {
-                self.push("??");
-            }
-            Ty::Array(ty) => {
-                self.push("[");
-                for t in ty {
-                    self.print_type(t)?;
-                    self.push(", ");
-                }
-                self.push("]");
-            }
-            Ty::Const(ty) => match ty {
-                Bits::Empty => self.push("()"),
-                Bits::Signed(n) => self.push(&format!("s{}", n)),
-                Bits::Unsigned(n) => self.push(&format!("b{}", n)),
-                Bits::Usize => self.push("usize"),
-                Bits::Clock(color) => self.push(&format!("@{}", color)),
-            },
-            Ty::Integer => self.push("int"),
-            Ty::Enum(ty) => {
-                self.push(&ty.payload.name);
-            }
-            Ty::Struct(ty) => {
-                self.push(&ty.name);
-            }
-            Ty::Tuple(ty) => {
-                self.push("(");
-                for t in ty {
-                    self.print_type(t)?;
-                    self.push(", ");
-                }
-                self.push(")");
-            }
-            Ty::Signal(base, color) => {
-                self.print_type(base)?;
-                self.push(&format!("@{}", color));
-            }
-        }
-        Ok(())
-    }
     fn print_expr(&mut self, expr: &Expr) -> Result<()> {
-        let my_id = id_to_var(expr.id)?;
         match &expr.kind {
             ExprKind::Array(expr) => {
                 self.push("[");
@@ -251,11 +196,7 @@ impl<'a> PrettyPrinter<'a> {
                 self.print_expr(&expr.rhs)?;
             }
             ExprKind::Assign(expr) => {
-                let term = self.ty.apply(id_to_var(expr.lhs.id)?);
                 self.print_expr(&expr.lhs)?;
-                self.push(" /*");
-                self.print_type(&term)?;
-                self.push("*/");
                 self.push(" = ");
                 self.print_expr(&expr.rhs)?;
             }
@@ -264,10 +205,6 @@ impl<'a> PrettyPrinter<'a> {
             }
             ExprKind::Call(expr) => {
                 self.push(&format!("{}", expr.path));
-                let term = self.ty.apply(my_id);
-                self.push("<");
-                self.print_type(&term)?;
-                self.push(">(");
                 for arg in &expr.args {
                     self.print_expr(arg)?;
                     self.push(", ");
