@@ -611,7 +611,7 @@ impl MirContext {
                     "ICE - no local variable found for pattern {:?}",
                     pattern
                 ))?;
-                eprintln!("Binding {:?} to {:?}", ident, kind);
+                eprintln!("Binding {:?} to {:?} via {}", ident, kind, slot);
                 self.ty.insert(slot, kind.clone());
                 Ok(())
             }
