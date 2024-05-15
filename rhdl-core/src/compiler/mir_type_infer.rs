@@ -220,6 +220,7 @@ impl<'a> MirTypeInference<'a> {
             self.ctx.desc(a1),
             self.ctx.desc(a2)
         );
+        self.enforce_clocks(&[a1, a2, op.lhs])?;
         match &op.op {
             AluBinary::Add
             | AluBinary::Mul
@@ -687,6 +688,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
             break;
         }
     }
+    eprintln!("Try to replace generic literals with ?32");
     // Try to replace generic literals with (b/s)32
     if !infer.all_slots_resolved() {
         for lit in mir.literals.keys() {
@@ -694,10 +696,17 @@ pub fn infer(mir: Mir) -> Result<Object> {
             if infer.ctx.is_unsized_integer(ty) {
                 let i32_len = infer.ctx.ty_const_len(32);
                 let m32_ty = infer.ctx.ty_maybe_signed(i32_len);
+                eprintln!(
+                    "Literal {} -> {} U {}",
+                    lit,
+                    infer.ctx.desc(ty),
+                    infer.ctx.desc(m32_ty)
+                );
                 infer.unify(ty, m32_ty)?;
             }
         }
     }
+    eprintln!("Recheck delayed inference rools");
     for loop_count in 0..3 {
         type_ops
             .iter()
@@ -707,14 +716,17 @@ pub fn infer(mir: Mir) -> Result<Object> {
             break;
         }
     }
+
+    eprintln!("Try to replace generic literals with i32");
     // Try to replace any generic literals with i32s
     if !infer.all_slots_resolved() {
         for lit in mir.literals.keys() {
             let ty = infer.slot_ty(*lit);
-            if infer.ctx.is_generic_integer(ty) {
-                let i32_len = infer.ctx.ty_const_len(32);
-                let i32_ty = infer.ctx.ty_signed(i32_len);
-                infer.unify(ty, i32_ty)?;
+            if let Some(ty_sign) = infer.ctx.project_sign_flag(ty) {
+                if infer.ctx.is_unresolved(ty_sign) {
+                    let sign_flag = infer.ctx.ty_sign_flag(SignFlag::Signed);
+                    infer.unify(ty_sign, sign_flag)?;
+                }
             }
         }
     }

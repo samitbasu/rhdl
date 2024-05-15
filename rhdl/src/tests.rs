@@ -614,7 +614,7 @@ fn test_signal_cross_clock_shifting_fails() -> anyhow::Result<()> {
         let p = 4;
         let y: b8 = bits(7);
         let z = y << p;
-        signal(x.val() << 3)
+        signal(x.val() << z)
     }
     compile_design::<add<Red, Red>>()?;
     assert!(compile_design::<add::<Red, Green>>().is_err());

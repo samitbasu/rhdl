@@ -490,7 +490,7 @@ impl UnifyContext {
                     format!("({})", fields)
                 }
                 AppTypeKind::Bits => {
-                    format!("{}{}", self.desc(app.args[0]), self.desc(app.args[1]))
+                    format!("{}_{}", self.desc(app.args[0]), self.desc(app.args[1]))
                 }
                 AppTypeKind::Signal => format!(
                     "signal<{}, {}>",
