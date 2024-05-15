@@ -154,6 +154,13 @@ impl<'a> MirTypeInference<'a> {
         self.slot_map.insert(self.mir.return_slot, return_ty);
         Ok(())
     }
+    fn import_type_declarations(&mut self) -> Result<()> {
+        for (slot, ty) in &self.mir.ty {
+            let ty = self.ctx.from_kind(ty);
+            self.slot_map.insert(*slot, ty);
+        }
+        Ok(())
+    }
     fn import_type_equality(&mut self) -> Result<()> {
         for (lhs, rhs) in &self.mir.ty_equate {
             let lhs_ty = self.slot_ty(*lhs);
@@ -292,6 +299,8 @@ impl<'a> MirTypeInference<'a> {
                     self.ctx.project_signal_value(op.arg1),
                 ) {
                     self.unify(lhs_data, arg1_data)?;
+                } else {
+                    self.unify(op.lhs, op.arg1)?;
                 }
             }
         }
@@ -640,6 +649,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
     infer.import_literals();
     infer.import_signature()?;
     infer.import_type_equality()?;
+    infer.import_type_declarations()?;
     eprintln!("=================================");
     eprintln!("Before inference");
     for (slot, ty) in &infer.slot_map {
@@ -685,6 +695,26 @@ pub fn infer(mir: Mir) -> Result<Object> {
                 let i32_len = infer.ctx.ty_const_len(32);
                 let m32_ty = infer.ctx.ty_maybe_signed(i32_len);
                 infer.unify(ty, m32_ty)?;
+            }
+        }
+    }
+    for loop_count in 0..3 {
+        type_ops
+            .iter()
+            .map(|op| infer.try_type_op(op))
+            .collect::<Result<Vec<_>>>()?;
+        if infer.all_slots_resolved() {
+            break;
+        }
+    }
+    // Try to replace any generic literals with i32s
+    if !infer.all_slots_resolved() {
+        for lit in mir.literals.keys() {
+            let ty = infer.slot_ty(*lit);
+            if infer.ctx.is_generic_integer(ty) {
+                let i32_len = infer.ctx.ty_const_len(32);
+                let i32_ty = infer.ctx.ty_signed(i32_len);
+                infer.unify(ty, i32_ty)?;
             }
         }
     }
