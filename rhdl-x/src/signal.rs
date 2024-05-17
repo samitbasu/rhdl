@@ -1,6 +1,9 @@
 use rhdl_bits::alias::*;
 use rhdl_bits::Bits;
-use rhdl_core::{ClockType, Sig, Timed};
+use rhdl_core::ClockColor;
+use rhdl_core::Digital;
+use rhdl_core::Kind;
+use rhdl_core::{Clock, Sig, Timed};
 use rhdl_macro::kernel;
 
 /*
@@ -9,8 +12,97 @@ Thoughts:
 
 
 */
+
+trait Clocked<T: Digital>: Copy + Sized + PartialEq + Eq {
+    fn color() -> ClockColor;
+    fn static_kind() -> Kind {
+        Kind::make_signal(T::static_kind(), Self::color())
+    }
+    fn kind(&self) -> Kind {
+        Self::static_kind()
+    }
+    fn retime(x: T) -> Self;
+    fn val(self) -> T;
+}
+
+pub struct Async<T: Digital> {
+    val: T,
+}
+
+pub struct Clk0<T: Digital> {
+    val: T,
+}
+
+pub struct Clk1<T: Digital> {
+    val: T,
+}
+
+impl<T: Digital> Clocked<T> for Clk0<T> {
+    fn color() -> ClockColor {
+        ClockColor::Red
+    }
+    fn val(self) -> T {
+        self.val
+    }
+    fn retime(x: T) -> Self {
+        Clk0 { val: x }
+    }
+}
+
+fn retime<C: Clocked<T>, T: Digital>(x: T) -> C {
+    C::retime(x)
+}
+
+fn run_it<C0: Clocked<b8>, C1: Clocked<b8>>(x: C0, y: C1) -> C0 {
+    let a = x.val();
+    let y = y.val();
+    let b = a + y;
+    retime(b)
+}
+
+// Can only tuples be used to express signals with multiple clocks?
+struct Pair<C0: Clocked<b8>, C1: Clocked<b8>> {
+    x: C0,
+    y: C1,
+}
+// Need another trait for this to work since we need to introspect the
+// pair to get the color and types of the clocks
+// This is already in the core - its called Timed.
+
+impl<C0, C1> Timed for Pair<C0, C1>
+where
+    C0: Clocked<b8>,
+    C1: Clocked<b8>,
+{
+    fn static_kind() -> Kind {
+        Kind::make_signal(b8::static_kind(), Self::color())
+    }
+    fn kind(&self) -> Kind {
+        Self::static_kind()
+    }
+}
+
+fn run_it_pair1<C0: Clocked<b8>, C1: Clocked<b8>>(x: Pair<C0, C1>) -> Pair<C0, C1> {
+    let a = x.x.val();
+    let y = x.y.val();
+    let b = a + y;
+    Pair {
+        x: retime(b),
+        y: retime(b),
+    }
+}
+
+fn run_it_pair<C0: Clocked<b8>, C1: Clocked<b8>>(x: C0, y: C1) -> (C0, C1) {
+    let a = x.val();
+    let y = y.val();
+    let b = a + y;
+    (retime(b), retime(b))
+}
+
+//impl<T: Digital>
+
 #[kernel]
-fn add_sig<C: ClockType, D: ClockType>(
+fn add_sig<C: Clock, D: Clock>(
     x: Sig<b8, C>,
     y: Sig<b8, C>,
     z: Sig<b8, D>,
@@ -30,7 +122,7 @@ fn add_sig<C: ClockType, D: ClockType>(
 }
 
 #[kernel]
-fn add<C: ClockType, D: ClockType>(
+fn add<C: Clock, D: Clock>(
     x: Sig<b8, C>,
     y: Sig<b8, C>,
     z: Sig<b8, D>,
@@ -55,7 +147,7 @@ fn add<C: ClockType, D: ClockType>(
 }
 
 #[kernel]
-fn add1<C: ClockType, D: ClockType>(
+fn add1<C: Clock, D: Clock>(
     x: Sig<b8, C>,
     y: Sig<b8, C>,
     z: Sig<b8, D>,
