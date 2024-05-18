@@ -8,10 +8,6 @@
 // ArmEnum
 // KernelFn (ret)
 
-use anyhow::anyhow;
-use anyhow::bail;
-use anyhow::ensure;
-use anyhow::Result;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
@@ -30,6 +26,9 @@ use crate::ast::visit::Visitor;
 use crate::ast::visit_mut::VisitorMut;
 use crate::ast_builder::BinOp;
 use crate::ast_builder::UnOp;
+use crate::compiler::assign_node::NodeIdGenerator;
+use crate::compiler::display_ast::pretty_print_statement;
+use crate::error::RHDLError;
 use crate::kernel::Kernel;
 use crate::rhif;
 use crate::rhif::object::SymbolMap;
@@ -55,10 +54,10 @@ use crate::{
     rhif::spec::{ExternalFunction, OpCode, Slot},
 };
 
-use super::assign_node::NodeIdGenerator;
-use super::display_ast::pretty_print_statement;
-use super::mir::Mir;
-use super::mir::OpCodeWithSource;
+use super::error::Syntax;
+use super::error::ICE;
+use super::mir_impl::Mir;
+use super::mir_impl::OpCodeWithSource;
 
 #[derive(Debug, Clone)]
 pub struct Rebind {
@@ -123,7 +122,7 @@ fn collapse_path(path: &ast_impl::Path) -> String {
 // TODO = worry about the string clones later.
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct ScopeIndex {
+pub struct ScopeIndex {
     scope: ScopeId,
     name: String,
 }
@@ -148,6 +147,8 @@ impl std::fmt::Display for Scope {
 }
 
 const EARLY_RETURN_FLAG_NAME: &str = "__$early_return_flag";
+
+type Result<T> = std::result::Result<T, RHDLError>;
 
 pub struct MirContext {
     scopes: Vec<Scope>,
@@ -264,7 +265,7 @@ impl MirContext {
         for (ndx, slot) in map {
             let ScopeIndex { scope, name } = ndx;
             let Some(binding) = self.scopes[scope.0].names.get_mut(name) else {
-                bail!("ICE - attempt to set local variable that does not exist")
+                return Err(ICE::LocalVariableDoesNotExist { name: name.clone() }.into());
             };
             *binding = *slot;
         }
@@ -274,7 +275,7 @@ impl MirContext {
         for arg in args {
             let slot = self.reg(arg.id);
             let PatKind::Type(ty) = &arg.kind else {
-                bail!("ICE - argument pattern not supported {:?}", arg)
+                return Err(ICE::UnsupportedArgumentPattern { arg: arg.clone() }.into());
             };
             self.ty.insert(slot, ty.kind.clone());
             self.arguments.push(slot);
@@ -300,7 +301,10 @@ impl MirContext {
     fn rebind(&mut self, name: &str, id: NodeId) -> Result<Rebind> {
         let reg = self.reg(id);
         let Some((prev, scope)) = self.lookup_name(name) else {
-            bail!("ICE - rebind of unbound variable {}", name);
+            return Err(ICE::RebindOfUnboundVariable {
+                name: name.to_string(),
+            }
+            .into());
         };
         self.scopes[scope.0].names.insert(name.to_string(), reg);
         eprintln!("Rebound {} from {} to {}", name, prev, reg);
@@ -353,10 +357,7 @@ impl MirContext {
     }
     fn slot_to_index(&self, slot: Slot) -> Result<usize> {
         let Some(value) = self.literals.get(&slot) else {
-            bail!(
-                "ICE - slot_to_index called with non-literal slot {:?}",
-                slot
-            );
+            return Err(ICE::SlotToIndexNonLiteralSlot { slot }.into());
         };
         let ndx = match value {
             ExprLit::TypedBits(tb) => tb.value.as_i64()? as usize,
@@ -375,10 +376,10 @@ impl MirContext {
         match &pat.kind {
             PatKind::Ident(ident) => {
                 let Some((lhs, _)) = self.lookup_name(&ident.name) else {
-                    bail!(
-                        "ICE - attempt to intiialize unbound local variable {}",
-                        ident.name
-                    );
+                    return Err(ICE::InitializeLocalOnUnboundVariable {
+                        name: ident.name.clone(),
+                    }
+                    .into());
                 };
                 self.op(op_assign(lhs, rhs), pat.id);
                 Ok(())
@@ -439,7 +440,10 @@ impl MirContext {
                 self.initialize_local(&type_pat.pat, rhs)
             }
             PatKind::Wild | PatKind::Lit(_) | PatKind::Path(_) => Ok(()),
-            _ => bail!("Pattern not supported"),
+            _ => Err(ICE::UnsupportedPatternInInitializeLocal {
+                pat: Box::new(pat.clone()),
+            }
+            .into()),
         }
     }
     fn stash(&mut self, func: ExternalFunction) -> Result<FuncId> {
@@ -456,10 +460,9 @@ impl MirContext {
         slot: Slot,
         early_return_name: &str,
     ) -> Result<()> {
-        let (early_return_flag, _) = self.lookup_name(EARLY_RETURN_FLAG_NAME).ok_or(anyhow!(
-            "ICE - no early return flag found in function {}",
-            self.fn_id
-        ))?;
+        let (early_return_flag, _) = self
+            .lookup_name(EARLY_RETURN_FLAG_NAME)
+            .ok_or(ICE::NoEarlyReturnFlagFound { func: self.fn_id })?;
         let early_return_slot = self.rebind(early_return_name, id)?;
         self.op(
             op_select(
@@ -540,7 +543,9 @@ impl MirContext {
         let temp = self.reg(bin.lhs.id);
         let result = Slot::Empty;
         let op = &bin.op;
-        ensure!(op.is_self_assign(), "ICE - self_assign_binop {:?}", op);
+        if !op.is_self_assign() {
+            return Err(ICE::NonSelfAssignBinop { op: *op }.into());
+        }
         let alu = binop_to_alu(*op);
         match op {
             BinOp::AddAssign => AluBinary::Add,
@@ -551,7 +556,7 @@ impl MirContext {
             BinOp::BitOrAssign => AluBinary::BitOr,
             BinOp::ShlAssign => AluBinary::Shl,
             BinOp::ShrAssign => AluBinary::Shr,
-            _ => bail!("ICE - self_assign_binop {:?}", op),
+            _ => return Err(ICE::UnexpectedBinopInSelfAssign { op: *op }.into()),
         };
         self.ty_equate.insert((dest.to, dest.from));
         self.op(op_binary(alu, temp, lhs, rhs), id);
@@ -607,10 +612,11 @@ impl MirContext {
         eprintln!("Type pattern {:?} {:?}", pattern, kind);
         match &pattern.kind {
             PatKind::Ident(ident) => {
-                let (slot, _) = self.lookup_name(&ident.name).ok_or(anyhow!(
-                    "ICE - no local variable found for pattern {:?}",
-                    pattern
-                ))?;
+                let (slot, _) = self.lookup_name(&ident.name).ok_or(
+                    ICE::NoLocalVariableFoundForTypedPattern {
+                        pat: Box::new(pattern.clone()),
+                    },
+                )?;
                 eprintln!("Binding {:?} to {:?} via {}", ident, kind, slot);
                 self.ty.insert(slot, kind.clone());
                 Ok(())
@@ -641,7 +647,10 @@ impl MirContext {
             }
             PatKind::Paren(paren) => self.type_pattern(&paren.pat, kind),
             PatKind::Wild => Ok(()),
-            _ => bail!("Pattern {:?} not supported for type_pattern", pattern),
+            _ => Err(ICE::UnsupportedPatternInTypePattern {
+                pat: Box::new(pattern.clone()),
+            }
+            .into()),
         }
     }
     fn bind_pattern(&mut self, pattern: &Pat) -> Result<()> {
@@ -680,7 +689,10 @@ impl MirContext {
             }
             PatKind::Paren(paren) => self.bind_pattern(&paren.pat),
             PatKind::Wild => Ok(()),
-            _ => bail!("Pattern not supported"),
+            _ => Err(ICE::UnsupportedPatternInBindPattern {
+                pat: Box::new(pattern.clone()),
+            }
+            .into()),
         }
     }
     // Handle the case of a bits or signed call with inferred length
@@ -698,7 +710,7 @@ impl MirContext {
         let path = collapse_path(&call.path);
         let args = self.expr_list(&call.args)?;
         let Some(code) = &call.code else {
-            bail!("No code for call {:?}", call)
+            return Err(ICE::CallToKernelWithNoCode { call: call.clone() }.into());
         };
         // inline calls to bits and signed
         match code {
@@ -770,16 +782,16 @@ impl MirContext {
             ExprKind::Group(group) => self.expr(&group.expr),
             ExprKind::Index(index) => self.index(expr.id, index),
             ExprKind::Paren(paren) => self.expr(&paren.expr),
-            ExprKind::Path(path) => self.path(path),
+            ExprKind::Path(path) => self.path(expr.id, path),
             ExprKind::Struct(_struct) => self.struct_expr(expr.id, _struct),
             ExprKind::Tuple(tuple) => self.tuple(expr.id, tuple),
             ExprKind::Unary(unary) => self.unop(expr.id, unary),
             ExprKind::Match(_match) => self.match_expr(expr.id, _match),
             ExprKind::Ret(_return) => self.return_expr(expr.id, _return),
-            ExprKind::ForLoop(for_loop) => self.for_loop( for_loop),
+            ExprKind::ForLoop(for_loop) => self.for_loop(for_loop),
             ExprKind::Assign(assign) => self.assign(expr.id, assign),
-            ExprKind::Range(_) => bail!("Ranges are only supported in for loops"),
-            ExprKind::Let(_) => bail!("Fallible let expressions are not currently supported in rhdl.  Use a match instead"),
+            ExprKind::Range(_) => Err(Syntax::RangesInForLoopsOnly(expr.id).into()),
+            ExprKind::Let(_) => Err(Syntax::FallibleLetExpr(expr.id).into()),
             ExprKind::Repeat(repeat) => self.repeat(expr.id, repeat),
             ExprKind::Call(call) => self.call(expr.id, call),
             ExprKind::MethodCall(method) => self.method_call(expr.id, method),
@@ -841,34 +853,38 @@ impl MirContext {
     fn for_loop(&mut self, for_loop: &ExprForLoop) -> Result<Slot> {
         self.new_scope();
         let PatKind::Ident(loop_var) = &for_loop.pat.kind else {
-            bail!("for loop with non-ident pattern is not supported");
+            return Err(Syntax::ForLoopNonIdentPattern(for_loop.pat.id).into());
         };
         self.bind_pattern(&for_loop.pat)?;
         let ExprKind::Range(range) = &for_loop.expr.kind else {
-            bail!("for loop with non-range expression is not supported");
+            return Err(Syntax::ForLoopNonRangeExpr(for_loop.expr.id).into());
         };
         let Some(start) = &range.start else {
-            bail!("for loop with no start value is not supported");
+            return Err(Syntax::ForLoopNoStartValue(for_loop.expr.id).into());
         };
         let Some(end) = &range.end else {
-            bail!("for loop with no end value is not supported");
+            return Err(Syntax::ForLoopNoEndValue(for_loop.expr.id).into());
         };
         let Expr {
             id: _,
             kind: ExprKind::Lit(ExprLit::Int(start_lit)),
         } = start.as_ref()
         else {
-            bail!("for loop with non-integer start value is not supported");
+            return Err(Syntax::ForLoopNonIntegerStartValue(start.id).into());
         };
         let Expr {
             id: _,
             kind: ExprKind::Lit(ExprLit::Int(end_lit)),
         } = end.as_ref()
         else {
-            bail!("for loop with non-integer end value is not supported");
+            return Err(Syntax::ForLoopNonIntegerEndValue(end.id).into());
         };
-        let start_lit = start_lit.parse::<i32>()?;
-        let end_lit = end_lit.parse::<i32>()?;
+        let Ok(start_lit) = start_lit.parse::<i32>() else {
+            return Err(Syntax::ForLoopNonIntegerStartValue(start.id).into());
+        };
+        let Ok(end_lit) = end_lit.parse::<i32>() else {
+            return Err(Syntax::ForLoopNonIntegerEndValue(end.id).into());
+        };
         for ndx in start_lit..end_lit {
             let value = self.literal_int(for_loop.pat.id, ndx);
             self.rebind(&loop_var.name, for_loop.pat.id)?;
@@ -913,12 +929,12 @@ impl MirContext {
             .collect::<Result<_>>()?;
         eprintln!("post_branch bindings set {:?}", post_branch_bindings);
         for (var, rebind) in &post_branch_bindings {
-            let then_binding = *locals_after_then_branch.get(var).ok_or(anyhow!(
-                "ICE - no local var found for binding {var:?} in then branch"
-            ))?;
-            let else_binding = *locals_after_else_branch.get(var).ok_or(anyhow!(
-                "ICE - no local var found for binding {var:?} in else branch"
-            ))?;
+            let then_binding = *locals_after_then_branch
+                .get(var)
+                .ok_or(ICE::MissingLocalVariableForBindingInThenBranch { var: var.clone() })?;
+            let else_binding = *locals_after_else_branch
+                .get(var)
+                .ok_or(ICE::MissingLocalVariableForBindingInElseBranch { var: var.clone() })?;
             let new_binding = rebind.to;
             self.op(op_select(new_binding, cond, then_binding, else_binding), id);
         }
@@ -987,9 +1003,9 @@ impl MirContext {
             let arm_bindings = arm_locals
                 .iter()
                 .map(|x| {
-                    x.get(var).ok_or(anyhow!(
-                        "ICE - no local var found for binding {var:?} in arm branch"
-                    ))
+                    x.get(var).ok_or(
+                        ICE::MissingLocalVariableForBindingInMatchArm { var: var.clone() }.into(),
+                    )
                 })
                 .collect::<Result<Vec<_>>>()?;
             let cases = arguments
@@ -1011,11 +1027,6 @@ impl MirContext {
             let lhs = self.reg(id);
             let arg = self.expr(&method_call.receiver)?;
             self.op(op_assign(lhs, arg), id);
-            /*
-            self.op(
-                op_index(lhs, arg, crate::path::Path::default().signal_value()),
-                id,
-            );*/
             return Ok(lhs);
         }
         // First handle unary ops only
@@ -1025,22 +1036,25 @@ impl MirContext {
             "xor" => AluUnary::Xor,
             "as_unsigned" => AluUnary::Unsigned,
             "as_signed" => AluUnary::Signed,
-            _ => bail!("Unsupported method call {:?}", method_call),
+            _ => return Err(Syntax::UnsupportedMethodCall(id).into()),
         };
         let lhs = self.reg(id);
         let arg = self.expr(&method_call.receiver)?;
         self.op(op_unary(op, lhs, arg), id);
         Ok(lhs)
     }
-    fn path(&mut self, path: &ExprPath) -> Result<Slot> {
+    fn path(&mut self, id: NodeId, path: &ExprPath) -> Result<Slot> {
         if path.path.segments.len() == 1 && path.path.segments[0].arguments.is_empty() {
             let name = &path.path.segments[0].ident;
-            return self
-                .lookup_name(name)
-                .map(|x| x.0)
-                .ok_or(anyhow!("ICE - name not found: {}", name));
+            return self.lookup_name(name).map(|x| x.0).ok_or(
+                ICE::NameNotFoundInPath {
+                    name: name.clone(),
+                    path: path.clone(),
+                }
+                .into(),
+            );
         }
-        bail!("ICE - path with arguments not supported {:?}", path)
+        Err(Syntax::UnsupportedPathWithArguments(id).into())
     }
     fn repeat(&mut self, id: NodeId, repeat: &ExprRepeat) -> Result<Slot> {
         let lhs = self.reg(id);
@@ -1195,7 +1209,9 @@ impl Visitor for MirContext {
         self.insert_implicit_return(node.body.id, block_result, &node.name)?;
         self.return_slot = self
             .lookup_name(&node.name)
-            .ok_or(anyhow!("ICE - return slot not found"))?
+            .ok_or(ICE::ReturnSlotNotFound {
+                name: node.name.clone(),
+            })?
             .0;
         self.fn_id = node.fn_id;
         Ok(())
@@ -1213,10 +1229,7 @@ fn get_locals_changed(from: &LocalsMap, to: &LocalsMap) -> Result<BTreeSet<Scope
                         None
                     })
                 } else {
-                    Err(anyhow!(
-                        "ICE - local variable {:?} not found in branch map",
-                        id
-                    ))
+                    Err(ICE::LocalVariableNotFoundInBranchMap { id: id.clone() }.into())
                 }
             }
             .transpose()

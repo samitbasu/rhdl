@@ -270,15 +270,6 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                 for (entry_test, entry_body) in table {
                     eq_kinds(slot_type(lhs)?, slot_type(entry_body)?)?;
                     match entry_test {
-                        CaseArgument::Constant(constant) => {
-                            if discriminants.contains(&constant.bits) {
-                                bail!("Match contains a duplicate discriminant {constant}, which is not allowed in RHDL");
-                            } else {
-                                discriminants.insert(constant.bits.clone());
-                            }
-                            let constant_ty = constant.kind.clone();
-                            eq_kinds(arg_ty.clone(), constant_ty)?;
-                        }
                         CaseArgument::Slot(slot) => {
                             if !matches!(slot, Slot::Literal(_)) {
                                 bail!("Match contains a non-constant discriminant, which is not allowed in RHDL");

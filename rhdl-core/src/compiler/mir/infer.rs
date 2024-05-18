@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::{
     ast::ast_impl::ExprLit,
-    compiler::mir_ty::SignFlag,
+    compiler::mir::ty::SignFlag,
     path::{sub_kind, Path, PathElement},
     rhif::{
         spec::{AluBinary, AluUnary, CaseArgument, OpCode, Slot},
@@ -14,8 +14,8 @@ use anyhow::bail;
 use anyhow::Result;
 
 use super::{
-    mir::Mir,
-    mir_ty::{TypeId, UnifyContext},
+    mir_impl::Mir,
+    ty::{TypeId, UnifyContext},
 };
 #[derive(Debug, Clone)]
 pub struct TypeUnaryOp {
@@ -455,7 +455,6 @@ impl<'a> MirTypeInference<'a> {
                     let disc = self.slot_ty(case.discriminant);
                     for (test, value) in case.table.iter() {
                         match test {
-                            CaseArgument::Constant(_) => bail!("Constant in case table"),
                             CaseArgument::Slot(slot) => {
                                 let ty = self.slot_ty(*slot);
                                 let free_var = self.ctx.ty_var();

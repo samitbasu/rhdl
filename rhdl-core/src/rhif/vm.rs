@@ -241,7 +241,6 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
                 let arm = table
                     .iter()
                     .find(|(disc, _)| match disc {
-                        CaseArgument::Constant(disc) => discriminant == *disc,
                         CaseArgument::Slot(disc) => discriminant == state.read(*disc).unwrap(),
                         CaseArgument::Wild => true,
                     })

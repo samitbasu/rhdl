@@ -1,8 +1,5 @@
 use std::any::type_name;
 
-use crate::compiler::assign_node_ids;
-use crate::compiler::mir_pass::compile_mir;
-use crate::compiler::mir_type_infer::infer;
 use crate::rhif::vm::execute_function;
 use crate::{
     compile_design, generate_verilog, kernel::ExternalKernelDef, Digital, DigitalFn, KernelFnKind,

@@ -1,9 +1,11 @@
 use crate::{
-    ast::ast_impl,
-    ast::visit_mut::{self, VisitorMut},
+    ast::{
+        ast_impl,
+        visit_mut::{self, VisitorMut},
+    },
+    error::RHDLError,
     kernel::Kernel,
 };
-use anyhow::Result;
 
 // Recursively traverse the AST, and assign
 // NodeIds to all of the nodes in the tree.
@@ -27,6 +29,8 @@ impl NodeIdGenerator {
         }
     }
 }
+
+type Result<T> = std::result::Result<T, RHDLError>;
 
 impl VisitorMut for NodeIdGenerator {
     fn visit_mut_stmt(&mut self, node: &mut ast_impl::Stmt) -> Result<()> {

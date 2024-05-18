@@ -343,11 +343,6 @@ impl<'a> TranslationContext<'a> {
                     .push_str(&format!("    case ({})\n", discriminant));
                 for (cond, slot) in table {
                     match cond {
-                        CaseArgument::Constant(c) => {
-                            self.body
-                                .push_str(&format!("      {}: ", as_verilog_literal(c)));
-                            self.body.push_str(&format!("{} = {};\n", lhs, slot));
-                        }
                         CaseArgument::Slot(s) => {
                             let s = self.obj.literal(*s)?;
                             self.body

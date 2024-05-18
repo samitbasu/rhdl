@@ -3,9 +3,9 @@
 // level walk_mut_ function.
 // This version allows you to mutate the ast as you traverse it.
 
-use crate::ast::ast_impl::*;
-use anyhow::Result;
+use crate::{ast::ast_impl::*, error::RHDLError};
 
+type Result<T> = std::result::Result<T, RHDLError>;
 pub trait VisitorMut {
     fn visit_mut_block(&mut self, node: &mut Block) -> Result<()> {
         visit_mut_block(self, node)

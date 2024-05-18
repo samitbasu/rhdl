@@ -80,3 +80,4 @@ pub use types::synchronous::Synchronous;
 pub use types::synchronous::UpdateFn;
 
 pub const MAX_ITERS: usize = 10;
+pub mod error;

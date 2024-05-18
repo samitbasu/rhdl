@@ -9,8 +9,8 @@ use rand::Rng;
 use rhdl_bits::{alias::*, bits, signed, Bits, SignedBits};
 use rhdl_core::{
     compile_design,
-    compiler::{mir_pass::compile_mir, mir_type_infer::infer},
     digital_fn::DigitalFn,
+    error::RHDLError,
     note,
     note_db::note_time,
     note_init_db, note_take,
@@ -1389,6 +1389,19 @@ fn test_custom_suffix() {
         let c = bits::<4>(3);
         a = b;
     }
+}
+
+#[test]
+fn test_error_about_for_loop() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff(mut a: b4) {
+        let c = 5;
+        for ndx in 0..c {
+            a = a + bits::<4>(ndx);
+        }
+    }
+    let foo = compile_design::<do_stuff>()?;
+    Ok(())
 }
 
 #[test]
