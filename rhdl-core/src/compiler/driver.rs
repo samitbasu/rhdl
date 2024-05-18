@@ -2,10 +2,10 @@ use std::any::type_name;
 
 use crate::{
     compiler::{
-        mir_pass::compile_mir,
-        mir_type_infer,
+        mir::{compiler::compile_mir, infer::infer},
         passes::{
             //check_clock_coherence::CheckClockCoherence,
+            check_clock_coherence::CheckClockCoherence,
             check_rhif_flow::DataFlowCheckPass,
             check_rhif_type::TypeCheckPass,
             lower_inferred_casts::LowerInferredCastsPass,
@@ -20,16 +20,19 @@ use crate::{
             remove_useless_casts::RemoveUselessCastsPass,
         },
     },
+    error::RHDLError,
     kernel::Kernel,
     rhif::{spec::ExternalFunctionCode, Object},
     DigitalFn, KernelFnKind, Module,
 };
 
-use anyhow::{bail, Result};
+use super::mir::error::ICE;
+
+type Result<T> = std::result::Result<T, RHDLError>;
 
 fn compile_kernel(kernel: Kernel) -> Result<Object> {
     let mir = compile_mir(kernel)?;
-    let mut obj = mir_type_infer::infer(mir)?;
+    let mut obj = infer(mir)?;
     //    let ctx = infer(&kernel)?;
     //    let _ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
     //    check_inference(&kernel, &ctx)?;
@@ -50,7 +53,7 @@ fn compile_kernel(kernel: Kernel) -> Result<Object> {
     let obj = TypeCheckPass::run(obj)?;
     let obj = DataFlowCheckPass::run(obj)?;
     eprintln!("Final code:\n{}", obj);
-    //let obj = CheckClockCoherence::run(obj)?;
+    let obj = CheckClockCoherence::run(obj)?;
     Ok(obj)
 }
 
@@ -83,7 +86,10 @@ fn elaborate_design(design: &mut Module) -> Result<()> {
 
 pub fn compile_design<K: DigitalFn>() -> Result<Module> {
     let Some(KernelFnKind::Kernel(kernel)) = K::kernel_fn() else {
-        bail!("No kernel function provided for {}", type_name::<K>());
+        return Err(ICE::MissingKernelFunction {
+            name: type_name::<K>().to_string(),
+        }
+        .into());
     };
     let main = compile_kernel(kernel)?;
     let mut design = Module {

@@ -133,7 +133,6 @@ pub struct Exec {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum CaseArgument {
-    Constant(TypedBits),
     Slot(Slot),
     Wild,
 }

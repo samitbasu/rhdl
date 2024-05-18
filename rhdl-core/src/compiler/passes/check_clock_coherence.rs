@@ -50,7 +50,7 @@ fn get_slot_color_for_kind(kind: &Kind) -> SlotColor {
                 .iter()
                 .map(|variant| get_slot_color_for_kind(&variant.kind)),
         ),
-        Kind::Clock(color) => SlotColor::Single(*color),
+        Kind::Signal(_, color) => SlotColor::Single(*color),
         Kind::Bits(_) | Kind::Signed(_) | Kind::Empty => SlotColor::Uncolored,
     }
 }

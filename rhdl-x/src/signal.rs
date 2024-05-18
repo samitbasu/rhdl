@@ -10,8 +10,9 @@ use rhdl_macro::kernel;
 
 Thoughts:
 
-
 */
+
+pub struct Sig<T: Digital, const C: char> {}
 
 trait Clocked<T: Digital>: Copy + Sized + PartialEq + Eq {
     fn color() -> ClockColor;

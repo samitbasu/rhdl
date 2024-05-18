@@ -2,8 +2,9 @@
 // To use this, impl Visitor on a data structure, and then pass it to the appropriate top
 // level walk_ function.
 
-use crate::ast::ast_impl::*;
-use anyhow::Result;
+use crate::{ast::ast_impl::*, error::RHDLError};
+
+type Result<T> = std::result::Result<T, RHDLError>;
 
 pub trait Visitor {
     fn visit_block(&mut self, node: &Block) -> Result<()> {
