@@ -4,12 +4,21 @@ use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
 use crate::{
-    ast::ast_impl::{ExprCall, ExprPath, FunctionId, NodeId, Pat},
+    ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
     ast_builder::BinOp,
     rhif::spec::Slot,
+    Kind,
 };
 
 use super::compiler::ScopeIndex;
+
+#[derive(Error, Debug, Diagnostic)]
+pub enum TypeCheck {
+    #[error("A request was made for .val() on something that is not a signal")]
+    ExpectedSignalValue,
+    #[error("Type inference failure")]
+    TypeInferenceFailure,
+}
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum ICE {
@@ -53,6 +62,10 @@ pub enum ICE {
     NameNotFoundInPath { name: String, path: ExprPath },
     #[error("Missing kernel function provided for {name}")]
     MissingKernelFunction { name: String },
+    #[error("Expected a struct template for this op instead of {kind}")]
+    ExpectedStructTemplate { kind: Kind },
+    #[error("Expected an enum template for this op instead of {kind}")]
+    ExpectedEnumTemplate { kind: Kind },
 }
 
 #[derive(Error, Debug, Diagnostic)]
@@ -122,6 +135,28 @@ pub struct RHDLCompileError {
 }
 
 impl Diagnostic for RHDLCompileError {
+    fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+        Some(&self.src)
+    }
+    fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+        self.cause.help()
+    }
+    fn labels<'a>(&'a self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + 'a>> {
+        Some(Box::new(std::iter::once(
+            miette::LabeledSpan::new_primary_with_span(Some(self.cause.to_string()), self.err_span),
+        )))
+    }
+}
+
+#[derive(Debug, Error)]
+#[error("RHDL Type Check Error")]
+pub struct RHDLTypeError {
+    pub cause: TypeCheck,
+    pub src: String,
+    pub err_span: SourceSpan,
+}
+
+impl Diagnostic for RHDLTypeError {
     fn source_code(&self) -> Option<&dyn miette::SourceCode> {
         Some(&self.src)
     }

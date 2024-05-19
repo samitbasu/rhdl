@@ -13,4 +13,7 @@ pub enum RHDLError {
     #[error("RHDL ICE")]
     #[diagnostic(transparent)]
     RHDLInternalCompilerError(#[from] crate::compiler::mir::error::RHDLCompileError),
+    #[error("RHDL Type Check Error")]
+    #[diagnostic(transparent)]
+    RHDLTypeError(#[from] crate::compiler::mir::error::RHDLTypeError),
 }
