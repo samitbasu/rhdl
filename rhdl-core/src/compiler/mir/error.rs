@@ -1,4 +1,6 @@
-use miette::Diagnostic;
+use std::fmt::Display;
+
+use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
 use crate::{
@@ -56,25 +58,79 @@ pub enum ICE {
 #[derive(Error, Debug, Diagnostic)]
 pub enum Syntax {
     #[error("Ranges are only supported in for loops")]
-    RangesInForLoopsOnly(NodeId),
+    #[diagnostic(help("You cannot use a range expression here in RHDL"))]
+    RangesInForLoopsOnly,
     #[error("Fallible let expressions currently unsupported")]
-    FallibleLetExpr(NodeId),
+    #[diagnostic(help("Use a match statement to handle fallible expressions"))]
+    FallibleLetExpr,
     #[error("For loop with non-ident pattern is unsupported")]
-    ForLoopNonIdentPattern(NodeId),
+    #[diagnostic(help("Use an ident pattern like `for x in 0..5`"))]
+    ForLoopNonIdentPattern,
     #[error("For loop with non-range expression is not supported")]
-    #[diagnostic(help("Use a range expression instead"))]
-    ForLoopNonRangeExpr(NodeId),
+    #[diagnostic(help("Use a literal integer range like 0..5 for the for loop range"))]
+    ForLoopNonRangeExpr,
     #[error("For loop without start value is not supported")]
-    ForLoopNoStartValue(NodeId),
+    #[diagnostic(help("Use a literal integer range like 0..5 for the for loop range"))]
+    ForLoopNoStartValue,
     #[error("For loop without end value is not supported")]
-    ForLoopNoEndValue(NodeId),
+    #[diagnostic(help("Use a literal integer range like 0..5 for the for loop range"))]
+    ForLoopNoEndValue,
     #[error("For loop with non-integer start value is not supported")]
-    ForLoopNonIntegerStartValue(NodeId),
+    #[diagnostic(help("Use a literal integer range like 0..5 for the for loop range"))]
+    ForLoopNonIntegerStartValue,
     #[error("For loop with non-integer end value is not supported")]
-    #[diagnostic(help("Use an integer expression for the end value"))]
-    ForLoopNonIntegerEndValue(NodeId),
+    #[diagnostic(help("Use a literal integer range like 0..5 for the for loop range"))]
+    ForLoopNonIntegerEndValue,
     #[error("Unsupported method call")]
-    UnsupportedMethodCall(NodeId),
+    #[diagnostic(help(
+        "Only .all(), .any(), .xor(), .as_unsigned() and .as_signed() are supported in kernels"
+    ))]
+    UnsupportedMethodCall,
     #[error("Unsupported path with arguments")]
-    UnsupportedPathWithArguments(NodeId),
+    #[diagnostic(help("Use a path without generic arguments here, if possible"))]
+    UnsupportedPathWithArguments,
+}
+
+#[derive(Debug, Error)]
+#[error("RHDL Syntax Error")]
+pub struct RHDLSyntaxError {
+    pub cause: Syntax,
+    pub src: String,
+    pub err_span: SourceSpan,
+}
+
+impl Diagnostic for RHDLSyntaxError {
+    fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+        Some(&self.src)
+    }
+    fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+        self.cause.help()
+    }
+    fn labels<'a>(&'a self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + 'a>> {
+        Some(Box::new(std::iter::once(
+            miette::LabeledSpan::new_primary_with_span(Some(self.cause.to_string()), self.err_span),
+        )))
+    }
+}
+
+#[derive(Debug, Error)]
+#[error("RHDL Internal Compile Error")]
+pub struct RHDLCompileError {
+    pub cause: ICE,
+    pub src: String,
+    pub err_span: SourceSpan,
+}
+
+impl Diagnostic for RHDLCompileError {
+    fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+        Some(&self.src)
+    }
+    fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+        self.cause.help()
+    }
+    fn labels<'a>(&'a self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + 'a>> {
+        Some(Box::new(std::iter::once(
+            miette::LabeledSpan::new_primary_with_span(Some(self.cause.to_string()), self.err_span),
+        )))
+    }
 }

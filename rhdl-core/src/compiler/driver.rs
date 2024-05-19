@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use std::any::type_name;
 
 use crate::{
@@ -25,8 +26,6 @@ use crate::{
     rhif::{spec::ExternalFunctionCode, Object},
     DigitalFn, KernelFnKind, Module,
 };
-
-use super::mir::error::ICE;
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
@@ -86,10 +85,7 @@ fn elaborate_design(design: &mut Module) -> Result<()> {
 
 pub fn compile_design<K: DigitalFn>() -> Result<Module> {
     let Some(KernelFnKind::Kernel(kernel)) = K::kernel_fn() else {
-        return Err(ICE::MissingKernelFunction {
-            name: type_name::<K>().to_string(),
-        }
-        .into());
+        return Err(anyhow!("Missing kernel function provided for {}", type_name::<K>()).into());
     };
     let main = compile_kernel(kernel)?;
     let mut design = Module {
