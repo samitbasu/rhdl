@@ -1401,6 +1401,7 @@ fn test_error_about_for_loop() -> miette::Result<()> {
         }
     }
     let foo = compile_design::<do_stuff>()?;
+    //eprintln!("{:?}", foo);
     Ok(())
 }
 
