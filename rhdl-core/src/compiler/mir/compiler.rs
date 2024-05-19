@@ -8,6 +8,7 @@
 // ArmEnum
 // KernelFn (ret)
 
+use miette::Diagnostic;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;

@@ -1,20 +1,22 @@
-use id_arena::{Arena, Id};
 use std::{
     collections::{BTreeMap, HashMap},
     fmt::{Display, Formatter},
 };
 
 use crate::{
+    ast::ast_impl::NodeId,
     path::Path,
     types::kind::{Array, DiscriminantLayout, Enum, Field, Struct, Tuple},
     ClockColor, DiscriminantType, Kind,
 };
 use anyhow::{anyhow, bail, ensure, Result};
 
+use super::interner::{Intern, InternKey};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct VarNum(u32);
 
-pub type TypeId = Id<Type>;
+pub type TypeKindId = InternKey<TypeKind>;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SignFlag {
@@ -87,104 +89,118 @@ pub struct AppType {
 // not at compile time.  So while a construct like Bits<Red> is not meaningful,
 // it can be constructed at run time.  As a result of this, conversion from
 // a Type -> Kind is fallible, while conversion from Kind -> Type is not.
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
+pub struct TypeId {
+    kind: TypeKindId,
+    id: NodeId,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum Type {
+pub enum TypeKind {
     Var(VarNum),
     Const(Const),
     App(AppType),
 }
 
-#[derive(Clone, Debug)]
 pub struct UnifyContext {
     substitution_map: HashMap<VarNum, TypeId>,
-    types: Arena<Type>,
+    types: Intern<TypeKind>,
     var: VarNum,
 }
 
 impl Default for UnifyContext {
     fn default() -> Self {
         let substitution_map = HashMap::new();
-        let types: Arena<Type> = Arena::new();
         let var = VarNum(0);
         Self {
             substitution_map,
-            types,
+            types: Default::default(),
             var,
         }
     }
 }
 
 impl UnifyContext {
-    pub fn ty(&self, ty: TypeId) -> &Type {
-        &self.types[ty]
+    pub fn ty(&self, ty: TypeId) -> &TypeKind {
+        &self.types[ty.kind]
     }
 
-    fn ty_app(&mut self, kind: AppTypeKind, args: Vec<TypeId>) -> TypeId {
-        self.types.alloc(Type::App(AppType { kind, args }))
+    fn ty_app(&mut self, id: NodeId, kind: AppTypeKind, args: Vec<TypeId>) -> TypeId {
+        TypeId {
+            id,
+            kind: self.types.alloc(TypeKind::App(AppType { kind, args })),
+        }
     }
 
-    pub fn ty_const(&mut self, const_ty: Const) -> TypeId {
-        self.types.alloc(Type::Const(const_ty))
+    pub fn ty_const(&mut self, id: NodeId, const_ty: Const) -> TypeId {
+        TypeId {
+            id,
+            kind: self.types.alloc(TypeKind::Const(const_ty)),
+        }
     }
 
-    pub fn ty_const_len(&mut self, len: usize) -> TypeId {
-        self.ty_const(Const::Length(len))
+    pub fn ty_const_len(&mut self, id: NodeId, len: usize) -> TypeId {
+        self.ty_const(id, Const::Length(len))
     }
 
-    pub fn ty_bool(&mut self) -> TypeId {
-        let n = self.ty_const_len(1);
-        self.ty_bits(n)
+    pub fn ty_bool(&mut self, id: NodeId) -> TypeId {
+        let n = self.ty_const_len(id, 1);
+        self.ty_bits(id, n)
     }
 
-    pub fn ty_usize(&mut self) -> TypeId {
-        let n = self.ty_const_len(64);
-        self.ty_bits(n)
+    pub fn ty_usize(&mut self, id: NodeId) -> TypeId {
+        let n = self.ty_const_len(id, 64);
+        self.ty_bits(id, n)
     }
 
-    pub fn ty_sign_flag(&mut self, sign_flag: SignFlag) -> TypeId {
-        self.ty_const(Const::Signed(sign_flag))
+    pub fn ty_sign_flag(&mut self, id: NodeId, sign_flag: SignFlag) -> TypeId {
+        self.ty_const(id, Const::Signed(sign_flag))
     }
 
-    pub fn ty_bits(&mut self, len: TypeId) -> TypeId {
-        let sign_flag = self.ty_sign_flag(SignFlag::Unsigned);
-        self.ty_app(AppTypeKind::Bits, vec![sign_flag, len])
+    pub fn ty_bits(&mut self, id: NodeId, len: TypeId) -> TypeId {
+        let sign_flag = self.ty_sign_flag(id, SignFlag::Unsigned);
+        self.ty_app(id, AppTypeKind::Bits, vec![sign_flag, len])
     }
 
-    pub fn ty_signed(&mut self, len: TypeId) -> TypeId {
-        let sign_flag = self.ty_sign_flag(SignFlag::Signed);
-        self.ty_app(AppTypeKind::Bits, vec![sign_flag, len])
+    pub fn ty_signed(&mut self, id: NodeId, len: TypeId) -> TypeId {
+        let sign_flag = self.ty_sign_flag(id, SignFlag::Signed);
+        self.ty_app(id, AppTypeKind::Bits, vec![sign_flag, len])
     }
 
-    pub fn ty_signal(&mut self, data: TypeId, clock: TypeId) -> TypeId {
-        self.ty_app(AppTypeKind::Signal, vec![data, clock])
+    pub fn ty_signal(&mut self, id: NodeId, data: TypeId, clock: TypeId) -> TypeId {
+        self.ty_app(id, AppTypeKind::Signal, vec![data, clock])
     }
 
-    pub fn ty_maybe_signed(&mut self, len: TypeId) -> TypeId {
-        let sign_flag = self.ty_var();
-        self.ty_app(AppTypeKind::Bits, vec![sign_flag, len])
+    pub fn ty_maybe_signed(&mut self, id: NodeId, len: TypeId) -> TypeId {
+        let sign_flag = self.ty_var(id);
+        self.ty_app(id, AppTypeKind::Bits, vec![sign_flag, len])
     }
 
-    pub fn ty_var(&mut self) -> TypeId {
-        let ty = self.types.alloc(Type::Var(self.var));
+    pub fn ty_var(&mut self, id: NodeId) -> TypeId {
+        let ty = TypeId {
+            id,
+            kind: self.types.alloc(TypeKind::Var(self.var)),
+        };
         self.var.0 += 1;
         ty
     }
 
-    pub fn ty_array(&mut self, base: TypeId, len: TypeId) -> TypeId {
-        self.ty_app(AppTypeKind::Array, vec![base, len])
+    pub fn ty_array(&mut self, id: NodeId, base: TypeId, len: TypeId) -> TypeId {
+        self.ty_app(id, AppTypeKind::Array, vec![base, len])
     }
 
-    pub fn ty_struct(&mut self, strukt: &Struct) -> TypeId {
+    pub fn ty_struct(&mut self, id: NodeId, strukt: &Struct) -> TypeId {
         let (names, tids): (Vec<String>, Vec<TypeId>) = strukt
             .fields
             .iter()
             .map(|field| {
                 let name = field.name.clone();
-                let ty = self.from_kind(&field.kind);
+                let ty = self.from_kind(id, &field.kind);
                 (name, ty)
             })
             .unzip();
         self.ty_app(
+            id,
             AppTypeKind::Struct(StructType {
                 name: strukt.name.clone(),
                 fields: names,
@@ -193,21 +209,21 @@ impl UnifyContext {
         )
     }
 
-    fn ty_discriminant(&mut self, layout: DiscriminantLayout) -> TypeId {
-        let len = self.ty_const_len(layout.width);
+    fn ty_discriminant(&mut self, id: NodeId, layout: DiscriminantLayout) -> TypeId {
+        let len = self.ty_const_len(id, layout.width);
         match layout.ty {
-            DiscriminantType::Unsigned => self.ty_bits(len),
-            DiscriminantType::Signed => self.ty_signed(len),
+            DiscriminantType::Unsigned => self.ty_bits(id, len),
+            DiscriminantType::Signed => self.ty_signed(id, len),
         }
     }
 
-    pub fn ty_enum(&mut self, enumerate: &Enum) -> TypeId {
+    pub fn ty_enum(&mut self, id: NodeId, enumerate: &Enum) -> TypeId {
         let (tags, tids): (Vec<VariantTag>, Vec<TypeId>) = enumerate
             .variants
             .iter()
             .map(|variant| {
                 let name = variant.name.clone();
-                let ty = self.from_kind(&variant.kind);
+                let ty = self.from_kind(id, &variant.kind);
                 let tag = VariantTag {
                     name,
                     discriminant: variant.discriminant,
@@ -216,6 +232,7 @@ impl UnifyContext {
             })
             .unzip();
         self.ty_app(
+            id,
             AppTypeKind::Enum(EnumType {
                 name: enumerate.name.clone(),
                 variants: tags,
@@ -225,13 +242,16 @@ impl UnifyContext {
         )
     }
 
-    pub fn ty_tuple(&mut self, fields: Vec<TypeId>) -> TypeId {
-        self.ty_app(AppTypeKind::Tuple, fields)
+    pub fn ty_tuple(&mut self, id: NodeId, fields: Vec<TypeId>) -> TypeId {
+        self.ty_app(id, AppTypeKind::Tuple, fields)
     }
 
     pub fn ty_index(&mut self, base: TypeId, index: usize) -> Result<TypeId> {
-        let Type::App(AppType { kind, args }) = &self.types[base] else {
-            bail!("Expected an application type, found {:?}", self.types[base]);
+        let TypeKind::App(AppType { kind, args }) = &self.types[base.kind] else {
+            bail!(
+                "Expected an application type, found {:?}",
+                self.types[base.kind]
+            );
         };
         match kind {
             AppTypeKind::Array => Ok(args[0]),
@@ -246,19 +266,19 @@ impl UnifyContext {
                 let clock = args[1];
                 let data = args[0];
                 let indexed = self.ty_index(data, index)?;
-                Ok(self.ty_signal(indexed, clock))
+                Ok(self.ty_signal(base.id, indexed, clock))
             }
             _ => bail!("Expected an array, tuple, or struct, found {:?}", kind),
         }
     }
 
     pub fn ty_variant(&mut self, base: TypeId, variant: &str) -> Result<TypeId> {
-        let Type::App(AppType {
+        let TypeKind::App(AppType {
             kind: AppTypeKind::Enum(enumerate),
             args,
-        }) = &self.types[base]
+        }) = &self.types[base.kind]
         else {
-            bail!("Expected an enum type, found {:?}", self.types[base]);
+            bail!("Expected an enum type, found {:?}", self.types[base.kind]);
         };
         let index = enumerate
             .variants
@@ -268,13 +288,32 @@ impl UnifyContext {
         Ok(args[index])
     }
 
+    pub(crate) fn ty_variant_by_value(&self, base: TypeId, value: i64) -> Result<TypeId> {
+        let TypeKind::App(AppType {
+            kind: AppTypeKind::Enum(enumerate),
+            args,
+        }) = &self.types[base.kind]
+        else {
+            bail!("Expected an enum type, found {:?}", self.types[base.kind]);
+        };
+        let index = enumerate
+            .variants
+            .iter()
+            .position(|v| v.discriminant == value)
+            .ok_or_else(|| anyhow!("Variant not found"))?;
+        Ok(args[index])
+    }
+
     pub fn ty_field(&mut self, base: TypeId, member: &str) -> Result<TypeId> {
-        let Type::App(AppType {
+        let TypeKind::App(AppType {
             kind: AppTypeKind::Struct(strukt),
             args,
-        }) = &self.types[base]
+        }) = &self.types[base.kind]
         else {
-            bail!("Expected an a struct type, found {:?}", self.types[base]);
+            bail!(
+                "Expected an a struct type, found {:?}",
+                self.types[base.kind]
+            );
         };
         let index = strukt
             .fields
@@ -285,65 +324,67 @@ impl UnifyContext {
     }
 
     pub fn ty_enum_discriminant(&mut self, base: TypeId) -> Result<TypeId> {
-        let Type::App(AppType { kind, args: _ }) = &self.types[base] else {
-            bail!("Expected an app type, found {:?}", self.types[base]);
+        let TypeKind::App(AppType { kind, args: _ }) = &self.types[base.kind] else {
+            bail!("Expected an app type, found {:?}", self.types[base.kind]);
         };
         match kind {
-            AppTypeKind::Enum(enumerate) => Ok(self.ty_discriminant(enumerate.discriminant_layout)),
+            AppTypeKind::Enum(enumerate) => {
+                Ok(self.ty_discriminant(base.id, enumerate.discriminant_layout))
+            }
             _ => Ok(base),
         }
     }
 
-    pub fn ty_clock(&mut self, clock: ClockColor) -> TypeId {
-        self.ty_const(Const::Clock(clock))
+    pub fn ty_clock(&mut self, id: NodeId, clock: ClockColor) -> TypeId {
+        self.ty_const(id, Const::Clock(clock))
     }
 
-    pub fn ty_empty(&mut self) -> TypeId {
-        self.ty_const(Const::Empty)
+    pub fn ty_empty(&mut self, id: NodeId) -> TypeId {
+        self.ty_const(id, Const::Empty)
     }
 
-    pub fn ty_integer(&mut self) -> TypeId {
-        let len = self.ty_var();
-        let sign = self.ty_var();
-        self.ty_app(AppTypeKind::Bits, vec![sign, len])
+    pub fn ty_integer(&mut self, id: NodeId) -> TypeId {
+        let len = self.ty_var(id);
+        let sign = self.ty_var(id);
+        self.ty_app(id, AppTypeKind::Bits, vec![sign, len])
     }
 
     fn into_ty_sign_flag(&mut self, ty: TypeId) -> Result<SignFlag> {
         let x = self.apply(ty);
-        if let Type::Const(Const::Signed(s)) = &self.types[x] {
+        if let TypeKind::Const(Const::Signed(s)) = &self.types[x.kind] {
             Ok(*s)
         } else {
-            bail!("Expected a sign flag, found {:?}", self.types[x]);
+            bail!("Expected a sign flag, found {:?}", self.types[x.kind]);
         }
     }
 
     fn into_ty_length(&mut self, ty: TypeId) -> Result<usize> {
         let x = self.apply(ty);
-        if let Type::Const(Const::Length(n)) = &self.types[x] {
+        if let TypeKind::Const(Const::Length(n)) = &self.types[x.kind] {
             Ok(*n)
         } else {
-            bail!("Expected a length, found {:?}", self.types[x]);
+            bail!("Expected a length, found {:?}", self.types[x.kind]);
         }
     }
 
     fn into_ty_clock(&mut self, ty: TypeId) -> Result<ClockColor> {
         let x = self.apply(ty);
-        if let Type::Const(Const::Clock(c)) = &self.types[x] {
+        if let TypeKind::Const(Const::Clock(c)) = &self.types[x.kind] {
             Ok(*c)
         } else {
-            bail!("Expected a clock, found {:?}", self.types[x]);
+            bail!("Expected a clock, found {:?}", self.types[x.kind]);
         }
     }
 
     pub fn into_kind(&mut self, ty: TypeId) -> Result<Kind> {
         let x = self.apply(ty);
-        match self.types[x].clone() {
-            Type::Var(x) => bail!("Unbound variable {:?}", x),
-            Type::Const(c) => match c {
+        match self.types[x.kind].clone() {
+            TypeKind::Var(x) => bail!("Unbound variable {:?}", x),
+            TypeKind::Const(c) => match c {
                 Const::Empty => Ok(Kind::Empty),
                 _ => bail!("Expected a constant, found {:?}", c),
             },
-            Type::App(app) => match app.kind {
+            TypeKind::App(app) => match app.kind {
                 AppTypeKind::Array => {
                     let base = Box::new(self.into_kind(app.args[0])?);
                     let len = self.into_ty_length(app.args[1])?;
@@ -412,48 +453,52 @@ impl UnifyContext {
         }
     }
 
-    pub fn from_kind(&mut self, kind: &Kind) -> TypeId {
+    pub fn from_kind(&mut self, id: NodeId, kind: &Kind) -> TypeId {
         match kind {
             Kind::Bits(n) => {
-                let n = self.ty_const_len(*n);
-                self.ty_bits(n)
+                let n = self.ty_const_len(id, *n);
+                self.ty_bits(id, n)
             }
             Kind::Signed(n) => {
-                let n = self.ty_const_len(*n);
-                self.ty_signed(n)
+                let n = self.ty_const_len(id, *n);
+                self.ty_signed(id, n)
             }
-            Kind::Empty => self.ty_empty(),
-            Kind::Struct(strukt) => self.ty_struct(strukt),
+            Kind::Empty => self.ty_empty(id),
+            Kind::Struct(strukt) => self.ty_struct(id, strukt),
             Kind::Tuple(fields) => {
-                let arg = fields.elements.iter().map(|k| self.from_kind(k)).collect();
-                self.ty_tuple(arg)
+                let arg = fields
+                    .elements
+                    .iter()
+                    .map(|k| self.from_kind(id, k))
+                    .collect();
+                self.ty_tuple(id, arg)
             }
-            Kind::Enum(enumerate) => self.ty_enum(enumerate),
+            Kind::Enum(enumerate) => self.ty_enum(id, enumerate),
             Kind::Array(array) => {
-                let base = self.from_kind(&array.base);
-                let len = self.ty_const_len(array.size);
-                self.ty_array(base, len)
+                let base = self.from_kind(id, &array.base);
+                let len = self.ty_const_len(id, array.size);
+                self.ty_array(id, base, len)
             }
             Kind::Signal(kind, clock) => {
-                let kind = self.from_kind(kind);
-                let clock = self.ty_clock(*clock);
-                self.ty_signal(kind, clock)
+                let kind = self.from_kind(id, kind);
+                let clock = self.ty_clock(id, *clock);
+                self.ty_signal(id, kind, clock)
             }
         }
     }
 
     fn is_empty(&self, ty: TypeId) -> bool {
-        matches!(self.types[ty], Type::Const(Const::Empty))
+        matches!(self.types[ty.kind], TypeKind::Const(Const::Empty))
     }
 
     fn is_var(&self, ty: TypeId) -> bool {
-        matches!(self.types[ty], Type::Var(_))
+        matches!(self.types[ty.kind], TypeKind::Var(_))
     }
 
     pub fn desc(&self, ty: TypeId) -> String {
-        match &self.types[ty] {
-            Type::Var(v) => format!("V{}", v.0),
-            Type::Const(c) => match c {
+        match &self.types[ty.kind] {
+            TypeKind::Var(v) => format!("V{}", v.0),
+            TypeKind::Const(c) => match c {
                 Const::Clock(c) => format!("{}", c),
                 Const::Length(n) => format!("{}", n),
                 Const::Signed(f) => {
@@ -465,7 +510,7 @@ impl UnifyContext {
                 }
                 Const::Empty => "()".to_string(),
             },
-            Type::App(app) => match &app.kind {
+            TypeKind::App(app) => match &app.kind {
                 AppTypeKind::Struct(strukt) => strukt
                     .fields
                     .iter()
@@ -516,15 +561,15 @@ impl Display for UnifyContext {
 
 impl UnifyContext {
     fn add_subst(&mut self, v: TypeId, x: TypeId) -> Result<()> {
-        let Type::Var(v) = self.types[v] else {
-            bail!("Expected a variable, found {:?}", self.types[v]);
+        let TypeKind::Var(v) = self.types[v.kind] else {
+            bail!("Expected a variable, found {:?}", self.types[v.kind]);
         };
         self.substitution_map.insert(v, x);
         Ok(())
     }
     fn subst(&self, ty: TypeId) -> anyhow::Result<Option<TypeId>> {
-        let Type::Var(v) = self.types[ty] else {
-            bail!("Expected a variable, found {:?}", self.types[ty]);
+        let TypeKind::Var(v) = self.types[ty.kind] else {
+            bail!("Expected a variable, found {:?}", self.types[ty.kind]);
         };
         if let Some(t) = self.substitution_map.get(&v) {
             return Ok(Some(*t));
@@ -534,24 +579,26 @@ impl UnifyContext {
     pub fn equal(&mut self, x: TypeId, y: TypeId) -> bool {
         let x = self.apply(x);
         let y = self.apply(y);
-        self.types[x] == self.types[y]
+        self.types[x.kind] == self.types[y.kind]
     }
     pub fn is_unresolved(&mut self, ty: TypeId) -> bool {
         let ty = self.apply(ty);
-        matches!(self.types[ty], Type::Var(_))
+        self.is_var(ty)
     }
     pub fn is_unsized_integer(&mut self, ty: TypeId) -> bool {
         let ty = self.apply(ty);
-        if let Type::App(AppType { kind, args }) = &self.types[ty] {
+        if let TypeKind::App(AppType { kind, args }) = &self.types[ty.kind] {
             return self.is_var(args[1]);
         }
         false
     }
     pub fn is_generic_integer(&mut self, ty: TypeId) -> bool {
         let ty = self.apply(ty);
-        if let Type::App(AppType { kind, args }) = &self.types[ty] {
+        if let TypeKind::App(AppType { kind, args }) = &self.types[ty.kind] {
             if let AppTypeKind::Bits = kind {
-                return args.iter().all(|a| matches!(self.types[*a], Type::Var(_)));
+                return args
+                    .iter()
+                    .all(|a| matches!(self.types[a.kind], TypeKind::Var(_)));
             }
         }
         false
@@ -559,8 +606,8 @@ impl UnifyContext {
     pub fn is_signal(&mut self, ty: TypeId) -> bool {
         let ty = self.apply(ty);
         matches!(
-            &self.types[ty],
-            Type::App(AppType {
+            &self.types[ty.kind],
+            TypeKind::App(AppType {
                 kind: AppTypeKind::Signal,
                 ..
             })
@@ -568,10 +615,10 @@ impl UnifyContext {
     }
     pub fn project_signal_clock(&mut self, ty: TypeId) -> Option<TypeId> {
         let ty = self.apply(ty);
-        if let Type::App(AppType {
+        if let TypeKind::App(AppType {
             kind: AppTypeKind::Signal,
             args,
-        }) = &self.types[ty]
+        }) = &self.types[ty.kind]
         {
             Some(args[1])
         } else {
@@ -580,7 +627,7 @@ impl UnifyContext {
     }
     pub fn project_signal_value(&mut self, ty: TypeId) -> Option<TypeId> {
         let ty = self.apply(ty);
-        if let Type::App(AppType { kind, args }) = &self.types[ty] {
+        if let TypeKind::App(AppType { kind, args }) = &self.types[ty.kind] {
             if matches!(kind, AppTypeKind::Signal) {
                 Some(args[0])
             } else {
@@ -592,7 +639,7 @@ impl UnifyContext {
     }
     pub fn project_sign_flag(&mut self, ty: TypeId) -> Option<TypeId> {
         let ty = self.apply(ty);
-        if let Type::App(AppType { kind, args }) = &self.types[ty] {
+        if let TypeKind::App(AppType { kind, args }) = &self.types[ty.kind] {
             if matches!(kind, AppTypeKind::Bits) {
                 Some(args[0])
             } else {
@@ -603,30 +650,30 @@ impl UnifyContext {
         }
     }
     pub fn apply(&mut self, ty: TypeId) -> TypeId {
-        match self.types[ty].clone() {
-            Type::Var(v) => {
+        match self.types[ty.kind].clone() {
+            TypeKind::Var(v) => {
                 if let Some(t) = self.substitution_map.get(&v) {
                     self.apply(*t)
                 } else {
                     ty
                 }
             }
-            Type::App(AppType { kind, args }) => {
+            TypeKind::App(AppType { kind, args }) => {
                 let args = args.iter().map(|t| self.apply(*t)).collect();
-                self.ty_app(kind.clone(), args)
+                self.ty_app(ty.id, kind.clone(), args)
             }
             _ => ty,
         }
     }
     pub fn unify(&mut self, x: TypeId, y: TypeId) -> Result<()> {
-        if self.types[x] == self.types[y] {
+        if self.types[x.kind] == self.types[y.kind] {
             return Ok(());
         }
-        match (&self.types[x], &self.types[y]) {
-            (Type::Var(_), _) => self.unify_variable(x, y),
-            (_, Type::Var(_)) => self.unify_variable(y, x),
-            (Type::Const(x), Type::Const(y)) if x == y => Ok(()),
-            (Type::App(_), Type::App(_)) => self.unify_app(x, y),
+        match (&self.types[x.kind], &self.types[y.kind]) {
+            (TypeKind::Var(_), _) => self.unify_variable(x, y),
+            (_, TypeKind::Var(_)) => self.unify_variable(y, x),
+            (TypeKind::Const(x), TypeKind::Const(y)) if x == y => Ok(()),
+            (TypeKind::App(_), TypeKind::App(_)) => self.unify_app(x, y),
             _ => bail!("Cannot unify {} and {}", self.desc(x), self.desc(y)),
         }
     }
@@ -635,7 +682,7 @@ impl UnifyContext {
         ensure!(
             self.is_var(v),
             "Expected a variable, found {:?}",
-            self.types[v]
+            self.types[v.kind]
         );
         // If v is already in the substitution map, then we want
         // to unify x with the value in the map.
@@ -662,11 +709,11 @@ impl UnifyContext {
         self.add_subst(v, x)
     }
     fn unify_app(&mut self, x: TypeId, y: TypeId) -> Result<()> {
-        let Type::App(AppType { kind: k1, args: a1 }) = &self.types[x] else {
-            bail!("Expected app type instead of {:?}", self.types[x]);
+        let TypeKind::App(AppType { kind: k1, args: a1 }) = &self.types[x.kind] else {
+            bail!("Expected app type instead of {:?}", self.types[x.kind]);
         };
-        let Type::App(AppType { kind: k2, args: a2 }) = &self.types[y] else {
-            bail!("Expected app type instead of {:?}", self.types[y]);
+        let TypeKind::App(AppType { kind: k2, args: a2 }) = &self.types[y.kind] else {
+            bail!("Expected app type instead of {:?}", self.types[y.kind]);
         };
         if k1 != k2 {
             bail!("Cannot unify {:?} and {:?}", k1, k2);
@@ -685,7 +732,7 @@ impl UnifyContext {
         // Check for the case that term is a variable
         if self.is_var(term) {
             // Unifying with itself is not allowed
-            if self.types[term] == self.types[v] {
+            if self.types[term.kind] == self.types[v.kind] {
                 return true;
             }
             // We know that term is a variable, so check to see
@@ -698,7 +745,7 @@ impl UnifyContext {
         }
         // If term is an application type, then we need to check
         // each of the arguments to see if v occurs in any of them.
-        if let Type::App(AppType { args, .. }) = &self.types[term] {
+        if let TypeKind::App(AppType { args, .. }) = &self.types[term.kind] {
             return args.iter().any(|t| self.occurs(v, *t));
         }
         false
@@ -712,14 +759,15 @@ mod tests {
     #[test]
     fn test_case_1() {
         let mut ctx = UnifyContext::default();
-        let x = ctx.ty_var();
-        let y = ctx.ty_var();
-        let z = ctx.ty_var();
-        let t = ctx.ty_tuple(vec![x, y, z]);
-        let a = ctx.ty_integer();
-        let b = ctx.ty_usize();
-        let c = ctx.from_kind(&Kind::Bits(128));
-        let u = ctx.ty_tuple(vec![a, b, c]);
+        let id = NodeId::new(0);
+        let x = ctx.ty_var(id);
+        let y = ctx.ty_var(id);
+        let z = ctx.ty_var(id);
+        let t = ctx.ty_tuple(id, vec![x, y, z]);
+        let a = ctx.ty_integer(id);
+        let b = ctx.ty_usize(id);
+        let c = ctx.from_kind(id, &Kind::Bits(128));
+        let u = ctx.ty_tuple(id, vec![a, b, c]);
         assert!(ctx.unify(t, u).is_ok());
         let x = ctx.apply(x);
         let y = ctx.apply(y);
@@ -732,11 +780,12 @@ mod tests {
     #[test]
     fn test_case_2() {
         let mut ctx = UnifyContext::default();
-        let n = ctx.ty_const_len(12);
-        let x = ctx.ty_bits(n);
-        let m = ctx.ty_var();
-        let y = ctx.ty_bits(m);
-        let z = ctx.ty_var();
+        let id = NodeId::new(0);
+        let n = ctx.ty_const_len(id, 12);
+        let x = ctx.ty_bits(id, n);
+        let m = ctx.ty_var(id);
+        let y = ctx.ty_bits(id, m);
+        let z = ctx.ty_var(id);
         assert!(ctx.unify(x, y).is_ok());
         assert!(ctx.unify(x, z).is_ok());
         eprintln!("{}", ctx);

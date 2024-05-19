@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    ast::ast_impl::ExprLit,
+    ast::ast_impl::{ExprLit, NodeId},
     compiler::mir::ty::SignFlag,
+    error::RHDLError,
     path::{sub_kind, Path, PathElement},
     rhif::{
         spec::{AluBinary, AluUnary, CaseArgument, OpCode, Slot},
@@ -10,10 +11,9 @@ use crate::{
     },
     ClockColor, Digital, Kind, TypedBits,
 };
-use anyhow::bail;
-use anyhow::Result;
 
 use super::{
+    error::{RHDLCompileError, RHDLTypeError, TypeCheck, ICE},
     mir_impl::Mir,
     ty::{TypeId, UnifyContext},
 };
@@ -48,24 +48,17 @@ pub struct TypeSelect {
 }
 
 #[derive(Debug, Clone)]
-pub enum TypeOperation {
+pub struct TypeOperation {
+    id: NodeId,
+    kind: TypeOperationKind,
+}
+
+#[derive(Debug, Clone)]
+pub enum TypeOperationKind {
     UnaryOp(TypeUnaryOp),
     BinOp(TypeBinOp),
     Index(TypeIndex),
     Select(TypeSelect),
-}
-
-// For type checking purposes, a dynamic path index
-// cannot change the types of any of the parts of the
-// expression.  So we replace all of the dynamic components
-// with 0.
-fn approximate_dynamic_paths(path: &Path) -> Path {
-    path.iter()
-        .map(|e| match e {
-            PathElement::DynamicIndex(_) => PathElement::Index(0),
-            _ => e.clone(),
-        })
-        .collect()
 }
 
 pub struct MirTypeInference<'a> {
@@ -75,6 +68,8 @@ pub struct MirTypeInference<'a> {
     type_ops: Vec<TypeOperation>,
 }
 
+type Result<T> = std::result::Result<T, RHDLError>;
+
 impl<'a> MirTypeInference<'a> {
     fn new(mir: &'a Mir) -> Self {
         Self {
@@ -82,6 +77,22 @@ impl<'a> MirTypeInference<'a> {
             ctx: UnifyContext::default(),
             slot_map: BTreeMap::default(),
             type_ops: Vec::new(),
+        }
+    }
+    fn raise_ice(&self, cause: ICE, id: NodeId) -> RHDLCompileError {
+        let source_span = self.mir.symbols.source.span(id);
+        RHDLCompileError {
+            cause,
+            src: self.mir.symbols.source.source.clone(),
+            err_span: source_span.into(),
+        }
+    }
+    fn raise_type_error(&self, cause: TypeCheck, id: NodeId) -> RHDLTypeError {
+        let source_span = self.mir.symbols.source.span(id);
+        RHDLTypeError {
+            cause,
+            src: self.mir.symbols.source.source.clone(),
+            err_span: source_span.into(),
         }
     }
     fn cast_literal_to_inferred_type(&mut self, t: ExprLit, ty: TypeId) -> Result<TypedBits> {
@@ -210,7 +221,6 @@ impl<'a> MirTypeInference<'a> {
         }
         Ok(())
     }
-
     fn try_binop(&mut self, op: &TypeBinOp) -> Result<()> {
         let a1 = self.ctx.apply(op.arg1);
         let a2 = self.ctx.apply(op.arg2);
@@ -308,7 +318,7 @@ impl<'a> MirTypeInference<'a> {
         Ok(())
     }
 
-    fn ty_path_project(&mut self, arg: TypeId, path: &Path) -> Result<TypeId> {
+    fn ty_path_project(&mut self, arg: TypeId, path: &Path, id: NodeId) -> Result<TypeId> {
         let mut arg = self.ctx.apply(arg);
         for element in path.elements.iter() {
             match element {
@@ -342,15 +352,21 @@ impl<'a> MirTypeInference<'a> {
                     }
                     arg = self.ctx.ty_index(arg, 0)?;
                 }
-                _ => {
-                    bail!("Unsupported path element {:?} in path", element);
+                PathElement::EnumPayloadByValue(value) => {
+                    arg = self.ctx.ty_variant_by_value(arg, *value)?;
+                }
+                PathElement::SignalValue => {
+                    arg = self
+                        .ctx
+                        .project_signal_value(arg)
+                        .ok_or(self.raise_type_error(TypeCheck::ExpectedSignalValue, id))?;
                 }
             }
         }
         Ok(arg)
     }
 
-    fn try_index(&mut self, op: &TypeIndex) -> Result<()> {
+    fn try_index(&mut self, op: &TypeIndex, id: NodeId) -> Result<()> {
         eprintln!(
             "Try to apply index to {} with path {}",
             self.ctx.desc(op.arg),
@@ -359,7 +375,7 @@ impl<'a> MirTypeInference<'a> {
         let mut all_slots = vec![op.lhs, op.arg];
         all_slots.extend(op.path.dynamic_slots().map(|slot| self.slot_ty(*slot)));
         self.enforce_clocks(&all_slots)?;
-        match self.ty_path_project(op.arg, &op.path) {
+        match self.ty_path_project(op.arg, &op.path, id) {
             Ok(ty) => self.unify(op.lhs, ty),
             Err(err) => {
                 eprintln!("Error: {}", err);
@@ -368,15 +384,12 @@ impl<'a> MirTypeInference<'a> {
         }
     }
     fn enforce_clocks(&mut self, t: &[TypeId]) -> Result<()> {
-        for first in t.iter() {
-            for second in t.iter() {
-                if let (Some(clock1), Some(clock2)) = (
-                    self.ctx.project_signal_clock(*first),
-                    self.ctx.project_signal_clock(*second),
-                ) {
-                    self.unify(clock1, clock2)?;
-                }
-            }
+        let clocks = t
+            .iter()
+            .filter_map(|ty| self.ctx.project_signal_clock(*ty))
+            .collect::<Vec<_>>();
+        for (first, second) in clocks.iter().zip(clocks.iter().skip(1)) {
+            self.unify(*first, *second)?;
         }
         Ok(())
     }
@@ -384,11 +397,11 @@ impl<'a> MirTypeInference<'a> {
         self.enforce_clocks(&[op.selector, op.true_value, op.false_value])
     }
     fn try_type_op(&mut self, op: &TypeOperation) -> Result<()> {
-        match op {
-            TypeOperation::BinOp(binop) => self.try_binop(binop),
-            TypeOperation::Index(index) => self.try_index(index),
-            TypeOperation::UnaryOp(unary) => self.try_unary(unary),
-            TypeOperation::Select(select) => self.try_select(select),
+        match &op.kind {
+            TypeOperationKind::BinOp(binop) => self.try_binop(binop),
+            TypeOperationKind::Index(index) => self.try_index(index, op.id),
+            TypeOperationKind::UnaryOp(unary) => self.try_unary(unary),
+            TypeOperationKind::Select(select) => self.try_select(select),
         }
     }
     fn process_ops(&mut self) -> Result<()> {
@@ -443,12 +456,15 @@ impl<'a> MirTypeInference<'a> {
                     let lhs = self.slot_ty(binary.lhs);
                     let arg1 = self.slot_ty(binary.arg1);
                     let arg2 = self.slot_ty(binary.arg2);
-                    self.type_ops.push(TypeOperation::BinOp(TypeBinOp {
-                        op: binary.op,
-                        lhs,
-                        arg1,
-                        arg2,
-                    }));
+                    self.type_ops.push(TypeOperation {
+                        id: op.source,
+                        kind: TypeOperationKind::BinOp(TypeBinOp {
+                            op: binary.op,
+                            lhs,
+                            arg1,
+                            arg2,
+                        }),
+                    });
                 }
                 OpCode::Case(case) => {
                     let lhs = self.slot_ty(case.lhs);
@@ -464,12 +480,15 @@ impl<'a> MirTypeInference<'a> {
                                     self.ctx.desc(disc),
                                     self.ctx.desc(ty)
                                 );
-                                self.type_ops.push(TypeOperation::BinOp(TypeBinOp {
-                                    op: AluBinary::Eq,
-                                    lhs: free_var,
-                                    arg1: disc,
-                                    arg2: ty,
-                                }));
+                                self.type_ops.push(TypeOperation {
+                                    id: op.source,
+                                    kind: TypeOperationKind::BinOp(TypeBinOp {
+                                        op: AluBinary::Eq,
+                                        lhs: free_var,
+                                        arg1: disc,
+                                        arg2: ty,
+                                    }),
+                                });
                             }
                             CaseArgument::Wild => {}
                         }
@@ -480,7 +499,14 @@ impl<'a> MirTypeInference<'a> {
                 OpCode::Enum(enumerate) => {
                     let lhs = self.slot_ty(enumerate.lhs);
                     let Kind::Enum(enum_k) = &enumerate.template.kind else {
-                        bail!("Expected Enum kind");
+                        return Err(self
+                            .raise_ice(
+                                ICE::ExpectedEnumTemplate {
+                                    kind: enumerate.template.kind.clone(),
+                                },
+                                op.source,
+                            )
+                            .into());
                     };
                     let lhs_ty = self.ctx.ty_enum(enum_k);
                     self.unify(lhs, lhs_ty)?;
@@ -516,8 +542,10 @@ impl<'a> MirTypeInference<'a> {
                     let arg = self.slot_ty(index.arg);
                     let lhs = self.slot_ty(index.lhs);
                     let path = index.path.clone();
-                    self.type_ops
-                        .push(TypeOperation::Index(TypeIndex { lhs, arg, path }));
+                    self.type_ops.push(TypeOperation {
+                        id: op.source,
+                        kind: TypeOperationKind::Index(TypeIndex { lhs, arg, path }),
+                    });
                 }
                 OpCode::Repeat(repeat) => {
                     let lhs = self.slot_ty(repeat.lhs);
@@ -551,12 +579,15 @@ impl<'a> MirTypeInference<'a> {
                     let arg2 = self.slot_ty(select.false_value);
                     self.unify(lhs, arg1)?;
                     self.unify(lhs, arg2)?;
-                    self.type_ops.push(TypeOperation::Select(TypeSelect {
-                        lhs,
-                        selector: cond,
-                        true_value: arg1,
-                        false_value: arg2,
-                    }));
+                    self.type_ops.push(TypeOperation {
+                        id: op.source,
+                        kind: TypeOperationKind::Select(TypeSelect {
+                            lhs,
+                            selector: cond,
+                            true_value: arg1,
+                            false_value: arg2,
+                        }),
+                    });
                 }
                 OpCode::Splice(splice) => {
                     let lhs = self.slot_ty(splice.lhs);
@@ -566,16 +597,26 @@ impl<'a> MirTypeInference<'a> {
                     self.unify(lhs, orig)?;
                     // Reflect the constraint that
                     // ty(subst) = ty(lhs[path])
-                    self.type_ops.push(TypeOperation::Index(TypeIndex {
-                        lhs: subst,
-                        arg: lhs,
-                        path: path.clone(),
-                    }));
+                    self.type_ops.push(TypeOperation {
+                        id: op.source,
+                        kind: TypeOperationKind::Index(TypeIndex {
+                            lhs: subst,
+                            arg: lhs,
+                            path: path.clone(),
+                        }),
+                    });
                 }
                 OpCode::Struct(structure) => {
                     let lhs = self.slot_ty(structure.lhs);
                     let Kind::Struct(strukt) = &structure.template.kind else {
-                        bail!("Expected Struct kind");
+                        return Err(self
+                            .raise_ice(
+                                ICE::ExpectedStructTemplate {
+                                    kind: structure.template.kind.clone(),
+                                },
+                                op.source,
+                            )
+                            .into());
                     };
                     let lhs_ty = self.ctx.ty_struct(strukt);
                     self.unify(lhs, lhs_ty)?;
@@ -615,11 +656,14 @@ impl<'a> MirTypeInference<'a> {
                             self.unify(arg1, signed_ty)?;
                         }
                         AluUnary::All | AluUnary::Any | AluUnary::Xor => {
-                            self.type_ops.push(TypeOperation::UnaryOp(TypeUnaryOp {
-                                op: unary.op,
-                                lhs,
-                                arg1,
-                            }));
+                            self.type_ops.push(TypeOperation {
+                                id: op.source,
+                                kind: TypeOperationKind::UnaryOp(TypeUnaryOp {
+                                    op: unary.op,
+                                    lhs,
+                                    arg1,
+                                }),
+                            });
                         }
                         AluUnary::Unsigned => {
                             let len = self.ctx.ty_var();
@@ -668,7 +712,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
             let ty = infer.ctx.desc(ty);
             eprintln!("Slot {} -> type {}", slot, ty);
         }
-        bail!("Type inference failed {e}");
+        return Err(e);
     }
     infer.process_ops()?;
     let type_ops = infer.type_ops.clone();
@@ -758,7 +802,6 @@ pub fn infer(mir: Mir) -> Result<Object> {
                 eprintln!("Literal {} -> {}", lit, infer.ctx.desc(ty));
             }
         }
-
         bail!("Inference failure detected");
     }
     for (slot, ty) in &infer.slot_map {
