@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use crate::{
     ast::ast_impl::{ExprLit, FunctionId, NodeId},
@@ -39,4 +39,27 @@ pub struct Mir {
     pub arguments: Vec<Slot>,
     pub fn_id: FunctionId,
     pub name: String,
+}
+
+impl Mir {
+    pub fn build_slot_equivalence_map(&self) -> HashMap<Slot, Slot> {
+        self.ops
+            .iter()
+            .filter_map(|op| {
+                if let OpCode::Assign(assign) = &op.op {
+                    Some((assign.lhs, assign.rhs))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+    pub fn find_root_for_slot(&self, slot: Slot) -> Slot {
+        let eq_map = self.build_slot_equivalence_map();
+        let mut slot = slot;
+        while let Some(&next) = eq_map.get(&slot) {
+            slot = next;
+        }
+        slot
+    }
 }

@@ -669,10 +669,13 @@ impl<'a> MirTypeInference<'a> {
                     }
                 }
                 OpCode::Select(select) => {
+                    let cond = self.mir.find_root_for_slot(select.cond);
+                    let true_value = self.mir.find_root_for_slot(select.true_value);
+                    let false_value = self.mir.find_root_for_slot(select.false_value);
                     let lhs = self.slot_ty(select.lhs);
-                    let cond = self.slot_ty(select.cond);
-                    let arg1 = self.slot_ty(select.true_value);
-                    let arg2 = self.slot_ty(select.false_value);
+                    let cond = self.slot_ty(cond);
+                    let arg1 = self.slot_ty(true_value);
+                    let arg2 = self.slot_ty(false_value);
                     self.unify(id, lhs, arg1)?;
                     self.unify(id, lhs, arg2)?;
                     self.type_ops.push(TypeOperation {
