@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use crate::{
     ast::ast_impl::{ExprLit, FunctionId, NodeId},
@@ -20,12 +20,20 @@ impl From<(OpCode, NodeId)> for OpCodeWithSource {
         OpCodeWithSource { op, source }
     }
 }
+
+#[derive(Clone, Debug, PartialEq, Hash, Eq)]
+pub struct TypeEquivalence {
+    pub lhs: Slot,
+    pub rhs: Slot,
+    pub id: NodeId,
+}
+
 pub struct Mir {
     pub symbols: SymbolMap,
     pub ops: Vec<OpCodeWithSource>,
     pub literals: BTreeMap<Slot, ExprLit>,
     pub ty: BTreeMap<Slot, Kind>,
-    pub ty_equate: BTreeSet<(Slot, Slot)>,
+    pub ty_equate: HashSet<TypeEquivalence>,
     pub stash: Vec<ExternalFunction>,
     pub return_slot: Slot,
     pub arguments: Vec<Slot>,

@@ -12,6 +12,7 @@ use miette::Diagnostic;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 use crate::ast::ast_impl;
 use crate::ast::ast_impl::BitsKind;
@@ -62,6 +63,7 @@ use super::error::Syntax;
 use super::error::ICE;
 use super::mir_impl::Mir;
 use super::mir_impl::OpCodeWithSource;
+use super::mir_impl::TypeEquivalence;
 
 #[derive(Debug, Clone)]
 pub struct Rebind {
@@ -161,7 +163,7 @@ pub struct MirContext<'a> {
     literals: BTreeMap<Slot, ExprLit>,
     reg_source_map: BTreeMap<Slot, NodeId>,
     ty: BTreeMap<Slot, Kind>,
-    ty_equate: BTreeSet<(Slot, Slot)>,
+    ty_equate: HashSet<TypeEquivalence>,
     stash: Vec<ExternalFunction>,
     return_slot: Slot,
     arguments: Vec<Slot>,
@@ -217,7 +219,7 @@ impl<'a> MirContext<'a> {
             literals: BTreeMap::new(),
             reg_source_map: BTreeMap::new(),
             ty: BTreeMap::new(),
-            ty_equate: BTreeSet::new(),
+            ty_equate: Default::default(),
             stash: vec![],
             return_slot: Slot::Empty,
             arguments: vec![],
@@ -594,7 +596,11 @@ impl<'a> MirContext<'a> {
     fn assign(&mut self, id: NodeId, assign: &ExprAssign) -> Result<Slot> {
         let rhs = self.expr(&assign.rhs)?;
         let (rebind, path) = self.expr_lhs(&assign.lhs)?;
-        self.ty_equate.insert((rebind.to, rebind.from));
+        self.ty_equate.insert(TypeEquivalence {
+            id,
+            lhs: rebind.to,
+            rhs: rebind.from,
+        });
         if path.is_empty() {
             self.op(op_assign(rebind.to, rhs), id);
         } else {
@@ -630,7 +636,11 @@ impl<'a> MirContext<'a> {
                     .into())
             }
         };
-        self.ty_equate.insert((dest.to, dest.from));
+        self.ty_equate.insert(TypeEquivalence {
+            id,
+            lhs: dest.to,
+            rhs: dest.from,
+        });
         self.op(op_binary(alu, temp, lhs, rhs), id);
         if path.is_empty() {
             self.op(op_assign(dest.to, temp), id);
@@ -999,8 +1009,9 @@ impl<'a> MirContext<'a> {
     }
     fn if_expr(&mut self, id: NodeId, if_expr: &ExprIf) -> Result<Slot> {
         let op_result = self.reg(id);
-        let then_result = self.reg(id);
-        let else_result = self.reg(id);
+        let then_result = self.reg(if_expr.then_branch.id);
+        let else_id = if_expr.else_branch.as_ref().map(|x| x.id).unwrap_or(id);
+        let else_result = self.reg(else_id);
         let cond = self.expr(&if_expr.cond)?;
         let locals_prior_to_branch = self.locals();
         eprintln!("Locals prior to branch {:?}", locals_prior_to_branch);
