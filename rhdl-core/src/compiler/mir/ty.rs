@@ -92,7 +92,7 @@ pub struct AppType {
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
 pub struct TypeId {
     kind: TypeKindId,
-    id: NodeId,
+    pub id: NodeId,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -102,10 +102,17 @@ pub enum TypeKind {
     App(AppType),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Copy)]
+pub struct ModificationState {
+    update_count: usize,
+    intern_size: usize,
+}
+
 pub struct UnifyContext {
     substitution_map: HashMap<VarNum, TypeId>,
     types: Intern<TypeKind>,
     var: VarNum,
+    update_count: usize,
 }
 
 impl Default for UnifyContext {
@@ -116,6 +123,7 @@ impl Default for UnifyContext {
             substitution_map,
             types: Default::default(),
             var,
+            update_count: 0,
         }
     }
 }
@@ -123,6 +131,13 @@ impl Default for UnifyContext {
 impl UnifyContext {
     pub fn ty(&self, ty: TypeId) -> &TypeKind {
         &self.types[ty.kind]
+    }
+
+    pub fn modification_state(&self) -> ModificationState {
+        ModificationState {
+            update_count: self.update_count,
+            intern_size: self.types.count(),
+        }
     }
 
     fn ty_app(&mut self, id: NodeId, kind: AppTypeKind, args: Vec<TypeId>) -> TypeId {
@@ -367,7 +382,7 @@ impl UnifyContext {
         }
     }
 
-    fn into_ty_clock(&mut self, ty: TypeId) -> Result<ClockColor> {
+    pub fn into_ty_clock(&mut self, ty: TypeId) -> Result<ClockColor> {
         let x = self.apply(ty);
         if let TypeKind::Const(Const::Clock(c)) = &self.types[x.kind] {
             Ok(*c)

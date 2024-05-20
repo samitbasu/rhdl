@@ -2,7 +2,10 @@ use std::collections::BTreeMap;
 
 use crate::{
     ast::ast_impl::{ExprLit, NodeId},
-    compiler::mir::ty::SignFlag,
+    compiler::mir::{
+        error::RHDLTypeCheckError,
+        ty::{self, SignFlag},
+    },
     error::RHDLError,
     path::{sub_kind, Path, PathElement},
     rhif::{
@@ -13,9 +16,9 @@ use crate::{
 };
 
 use super::{
-    error::{RHDLCompileError, RHDLTypeError, TypeCheck, ICE},
-    mir_impl::Mir,
-    ty::{TypeId, UnifyContext},
+    error::{RHDLClockCoherenceViolation, RHDLCompileError, RHDLTypeError, TypeCheck, ICE},
+    mir_impl::{Mir, TypeEquivalence},
+    ty::{ModificationState, TypeId, UnifyContext},
 };
 #[derive(Debug, Clone)]
 pub struct TypeUnaryOp {
@@ -100,11 +103,15 @@ impl<'a> MirTypeInference<'a> {
         Ok(match t {
             ExprLit::TypedBits(tb) => {
                 if tb.value.kind != kind {
-                    bail!(
-                        "Literal with explicit type {} is inferred as {} instead",
-                        tb.value.kind,
-                        kind
-                    );
+                    return Err(self
+                        .raise_type_error(
+                            TypeCheck::InferredLiteralTypeMismatch {
+                                typ: tb.value.kind.clone(),
+                                kind: kind.clone(),
+                            },
+                            ty.id,
+                        )
+                        .into());
                 }
                 tb.value
             }
@@ -136,58 +143,77 @@ impl<'a> MirTypeInference<'a> {
             ExprLit::Bool(b) => b.typed_bits(),
         })
     }
-    fn unify(&mut self, lhs: TypeId, rhs: TypeId) -> Result<()> {
+    fn unify(&mut self, id: NodeId, lhs: TypeId, rhs: TypeId) -> Result<()> {
         eprintln!("Unifying {} and {}", self.ctx.desc(lhs), self.ctx.desc(rhs));
-        self.ctx.unify(lhs, rhs)
+        if self.ctx.unify(lhs, rhs).is_err() {
+            let lhs_span = self.mir.symbols.source.span(lhs.id);
+            let rhs_span = self.mir.symbols.source.span(rhs.id);
+            let lhs_desc = self.ctx.desc(lhs);
+            let rhs_desc = self.ctx.desc(rhs);
+            let cause_span = self.mir.symbols.source.span(id);
+            let cause_description = format!("Because of this expression");
+            return Err(RHDLTypeCheckError {
+                src: self.mir.symbols.source.source.clone(),
+                lhs_type: lhs_desc,
+                lhs_span: lhs_span.into(),
+                rhs_type: rhs_desc,
+                rhs_span: rhs_span.into(),
+                cause_description,
+                cause_span: cause_span.into(),
+            }
+            .into());
+        }
+        Ok(())
     }
     fn import_literals(&mut self) {
         for (slot, lit) in &self.mir.literals {
+            let id = self.mir.symbols.slot_map[&slot].node;
             let ty = match lit {
-                ExprLit::TypedBits(tb) => self.ctx.from_kind(&tb.value.kind),
-                ExprLit::Int(_) => self.ctx.ty_integer(),
-                ExprLit::Bool(_) => self.ctx.ty_bool(),
+                ExprLit::TypedBits(tb) => self.ctx.from_kind(id, &tb.value.kind),
+                ExprLit::Int(_) => self.ctx.ty_integer(id),
+                ExprLit::Bool(_) => self.ctx.ty_bool(id),
             };
             self.slot_map.insert(*slot, ty);
         }
     }
     fn import_signature(&mut self) -> Result<()> {
         for slot in &self.mir.arguments {
-            let Some(ty) = self.mir.ty.get(slot) else {
-                bail!("Missing type for argument slot {}", slot);
-            };
-            let ty = self.ctx.from_kind(ty);
+            let id = self.mir.symbols.slot_map[&slot].node;
+            let kind = &self.mir.ty[slot];
+            let ty = self.ctx.from_kind(id, kind);
             self.slot_map.insert(*slot, ty);
         }
-        let Some(return_ty) = self.mir.ty.get(&self.mir.return_slot) else {
-            bail!("Missing type for return slot");
-        };
-        let return_ty = self.ctx.from_kind(return_ty);
+        let id = self.mir.symbols.slot_map[&self.mir.return_slot].node;
+        let return_kind = &self.mir.ty[&self.mir.return_slot];
+        let return_ty = self.ctx.from_kind(id, return_kind);
         self.slot_map.insert(self.mir.return_slot, return_ty);
         Ok(())
     }
     fn import_type_declarations(&mut self) -> Result<()> {
         for (slot, ty) in &self.mir.ty {
-            let ty = self.ctx.from_kind(ty);
+            let id = self.mir.symbols.slot_map[&slot].node;
+            let ty = self.ctx.from_kind(id, ty);
             self.slot_map.insert(*slot, ty);
         }
         Ok(())
     }
     fn import_type_equality(&mut self) -> Result<()> {
-        for (lhs, rhs) in &self.mir.ty_equate {
+        for TypeEquivalence { id, lhs, rhs } in &self.mir.ty_equate {
             let lhs_ty = self.slot_ty(*lhs);
             let rhs_ty = self.slot_ty(*rhs);
-            self.unify(lhs_ty, rhs_ty)?;
+            self.unify(*id, lhs_ty, rhs_ty)?;
         }
         Ok(())
     }
     fn slot_ty(&mut self, slot: Slot) -> TypeId {
+        let id = self.mir.symbols.slot_map[&slot].node;
         if matches!(slot, Slot::Empty) {
-            return self.ctx.ty_empty();
+            return self.ctx.ty_empty(id);
         }
         if let Some(ty) = self.slot_map.get(&slot) {
             *ty
         } else {
-            let var = self.ctx.ty_var();
+            let var = self.ctx.ty_var(id);
             self.slot_map.insert(slot, var);
             var
         }
@@ -196,32 +222,37 @@ impl<'a> MirTypeInference<'a> {
         slots.iter().map(|slot| self.slot_ty(*slot)).collect()
     }
     fn all_slots_resolved(&mut self) -> bool {
-        let slot_tys = self.slot_map.values().copied().collect::<Vec<_>>();
-        slot_tys
-            .into_iter()
-            .all(|ty| self.ctx.into_kind(ty).is_ok())
+        self.unresolved_slot_typeid().is_none()
     }
-    fn try_unary(&mut self, op: &TypeUnaryOp) -> Result<()> {
+    fn unresolved_slot_typeid(&mut self) -> Option<TypeId> {
+        for ty in self.slot_map.values() {
+            if self.ctx.into_kind(*ty).is_err() {
+                return Some(*ty);
+            }
+        }
+        None
+    }
+    fn try_unary(&mut self, id: NodeId, op: &TypeUnaryOp) -> Result<()> {
         let a1 = self.ctx.apply(op.arg1);
         match op.op {
             AluUnary::All | AluUnary::Any | AluUnary::Xor => {
-                let bool_ty = self.ctx.ty_bool();
+                let bool_ty = self.ctx.ty_bool(id);
                 if self.ctx.is_signal(a1) {
-                    let clock_ty = self.ctx.ty_var();
-                    let bool_sig = self.ctx.ty_signal(bool_ty, clock_ty);
-                    self.unify(op.lhs, bool_sig)?;
+                    let clock_ty = self.ctx.ty_var(id);
+                    let bool_sig = self.ctx.ty_signal(id, bool_ty, clock_ty);
+                    self.unify(id, op.lhs, bool_sig)?;
                     if let Some(a1_clock) = self.ctx.project_signal_clock(a1) {
-                        self.unify(clock_ty, a1_clock)?;
+                        self.unify(id, clock_ty, a1_clock)?;
                     }
                 } else {
-                    self.unify(op.lhs, bool_ty)?;
+                    self.unify(id, op.lhs, bool_ty)?;
                 }
             }
             _ => {}
         }
         Ok(())
     }
-    fn try_binop(&mut self, op: &TypeBinOp) -> Result<()> {
+    fn try_binop(&mut self, id: NodeId, op: &TypeBinOp) -> Result<()> {
         let a1 = self.ctx.apply(op.arg1);
         let a2 = self.ctx.apply(op.arg2);
         eprintln!(
@@ -230,7 +261,7 @@ impl<'a> MirTypeInference<'a> {
             self.ctx.desc(a1),
             self.ctx.desc(a2)
         );
-        self.enforce_clocks(&[a1, a2, op.lhs])?;
+        self.enforce_clocks(id, &[a1, a2, op.lhs])?;
         match &op.op {
             AluBinary::Add
             | AluBinary::Mul
@@ -241,32 +272,32 @@ impl<'a> MirTypeInference<'a> {
                 let a1_is_signal = self.ctx.is_signal(op.arg1);
                 let a2_is_signal = self.ctx.is_signal(op.arg2);
                 if a1_is_signal {
-                    self.unify(op.lhs, op.arg1)?;
+                    self.unify(id, op.lhs, op.arg1)?;
                 }
                 if a2_is_signal {
-                    self.unify(op.lhs, op.arg2)?;
+                    self.unify(id, op.lhs, op.arg2)?;
                 }
                 if !a1_is_signal && !a2_is_signal {
-                    self.unify(op.lhs, op.arg1)?;
-                    self.unify(op.lhs, op.arg2)?;
+                    self.unify(id, op.lhs, op.arg1)?;
+                    self.unify(id, op.lhs, op.arg2)?;
                 }
                 if let (Some(arg1_data), Some(arg2_data)) = (
                     self.ctx.project_signal_value(op.arg1),
                     self.ctx.project_signal_value(op.arg2),
                 ) {
-                    self.unify(arg1_data, arg2_data)?;
+                    self.unify(id, arg1_data, arg2_data)?;
                 }
                 if let (Some(lhs_data), Some(arg1_data)) = (
                     self.ctx.project_signal_value(op.lhs),
                     self.ctx.project_signal_value(op.arg1),
                 ) {
-                    self.unify(lhs_data, arg1_data)?;
+                    self.unify(id, lhs_data, arg1_data)?;
                 }
                 if let (Some(lhs_data), Some(arg2_data)) = (
                     self.ctx.project_signal_value(op.lhs),
                     self.ctx.project_signal_value(op.arg2),
                 ) {
-                    self.unify(lhs_data, arg2_data)?;
+                    self.unify(id, lhs_data, arg2_data)?;
                 }
             }
             AluBinary::Eq
@@ -276,24 +307,24 @@ impl<'a> MirTypeInference<'a> {
             | AluBinary::Ge
             | AluBinary::Gt => {
                 if let Some(arg1_clock) = self.ctx.project_signal_clock(op.arg1) {
-                    let lhs_var = self.ctx.ty_bool();
-                    let lhs_sig = self.ctx.ty_signal(lhs_var, arg1_clock);
-                    self.unify(op.lhs, lhs_sig)?;
+                    let lhs_var = self.ctx.ty_bool(id);
+                    let lhs_sig = self.ctx.ty_signal(id, lhs_var, arg1_clock);
+                    self.unify(id, op.lhs, lhs_sig)?;
                 }
                 if let Some(arg2_clock) = self.ctx.project_signal_clock(op.arg2) {
-                    let lhs_var = self.ctx.ty_bool();
-                    let lhs_sig = self.ctx.ty_signal(lhs_var, arg2_clock);
-                    self.unify(op.lhs, lhs_sig)?;
+                    let lhs_var = self.ctx.ty_bool(id);
+                    let lhs_sig = self.ctx.ty_signal(id, lhs_var, arg2_clock);
+                    self.unify(id, op.lhs, lhs_sig)?;
                 }
                 if !self.ctx.is_signal(op.arg1) && !self.ctx.is_signal(op.arg2) {
-                    let lhs_var = self.ctx.ty_bool();
-                    self.unify(op.lhs, lhs_var)?;
+                    let lhs_var = self.ctx.ty_bool(id);
+                    self.unify(id, op.lhs, lhs_var)?;
                 }
                 if let (Some(arg1_data), Some(arg2_data)) = (
                     self.ctx.project_signal_value(op.arg1),
                     self.ctx.project_signal_value(op.arg2),
                 ) {
-                    self.unify(arg1_data, arg2_data)?;
+                    self.unify(id, arg1_data, arg2_data)?;
                 }
             }
             AluBinary::Shl | AluBinary::Shr => {
@@ -301,17 +332,17 @@ impl<'a> MirTypeInference<'a> {
                     eprintln!("Project signal value flag for {}", self.ctx.desc(a2));
                     if let Some(flag) = self.ctx.project_sign_flag(arg2) {
                         eprintln!("Project sign flag for {}", self.ctx.desc(a2));
-                        let unsigned_flag = self.ctx.ty_sign_flag(SignFlag::Unsigned);
-                        self.unify(flag, unsigned_flag)?;
+                        let unsigned_flag = self.ctx.ty_sign_flag(id, SignFlag::Unsigned);
+                        self.unify(id, flag, unsigned_flag)?;
                     }
                 }
                 if let (Some(lhs_data), Some(arg1_data)) = (
                     self.ctx.project_signal_value(op.lhs),
                     self.ctx.project_signal_value(op.arg1),
                 ) {
-                    self.unify(lhs_data, arg1_data)?;
+                    self.unify(id, lhs_data, arg1_data)?;
                 } else {
-                    self.unify(op.lhs, op.arg1)?;
+                    self.unify(id, op.lhs, op.arg1)?;
                 }
             }
         }
@@ -339,15 +370,15 @@ impl<'a> MirTypeInference<'a> {
                 }
                 PathElement::DynamicIndex(slot) => {
                     let index = self.slot_ty(*slot);
-                    let usize_ty = self.ctx.ty_usize();
+                    let usize_ty = self.ctx.ty_usize(id);
                     if slot.is_literal() {
-                        self.ctx.unify(index, usize_ty)?;
+                        self.unify(id, index, usize_ty)?;
                     } else {
                         let reg_ty = self.ctx.apply(index);
                         if self.ctx.is_generic_integer(reg_ty) {
                             // For more clearly defined types, it is someone else's problem
                             // to ensure that the index is properly typed.
-                            self.ctx.unify(reg_ty, usize_ty)?;
+                            self.unify(id, reg_ty, usize_ty)?;
                         }
                     }
                     arg = self.ctx.ty_index(arg, 0)?;
@@ -366,7 +397,7 @@ impl<'a> MirTypeInference<'a> {
         Ok(arg)
     }
 
-    fn try_index(&mut self, op: &TypeIndex, id: NodeId) -> Result<()> {
+    fn try_index(&mut self, id: NodeId, op: &TypeIndex) -> Result<()> {
         eprintln!(
             "Try to apply index to {} with path {}",
             self.ctx.desc(op.arg),
@@ -374,90 +405,155 @@ impl<'a> MirTypeInference<'a> {
         );
         let mut all_slots = vec![op.lhs, op.arg];
         all_slots.extend(op.path.dynamic_slots().map(|slot| self.slot_ty(*slot)));
-        self.enforce_clocks(&all_slots)?;
+        self.enforce_clocks(id, &all_slots)?;
         match self.ty_path_project(op.arg, &op.path, id) {
-            Ok(ty) => self.unify(op.lhs, ty),
+            Ok(ty) => self.unify(id, op.lhs, ty),
             Err(err) => {
                 eprintln!("Error: {}", err);
                 Ok(())
             }
         }
     }
-    fn enforce_clocks(&mut self, t: &[TypeId]) -> Result<()> {
+    fn enforce_clocks(&mut self, id: NodeId, t: &[TypeId]) -> Result<()> {
         let clocks = t
             .iter()
             .filter_map(|ty| self.ctx.project_signal_clock(*ty))
             .collect::<Vec<_>>();
         for (first, second) in clocks.iter().zip(clocks.iter().skip(1)) {
-            self.unify(*first, *second)?;
+            self.unify(id, *first, *second)?;
         }
         Ok(())
     }
-    fn try_select(&mut self, op: &TypeSelect) -> Result<()> {
-        self.enforce_clocks(&[op.selector, op.true_value, op.false_value])
+    fn clock_domain_for_error(&mut self, ty: TypeId) -> String {
+        let Some(ty) = self.ctx.project_signal_clock(ty) else {
+            return "Const".to_string();
+        };
+        if let Ok(clock) = self.ctx.into_ty_clock(ty) {
+            format!("{:?}", clock)
+        } else {
+            "Const".to_string()
+        }
+    }
+    fn try_select(&mut self, id: NodeId, op: &TypeSelect) -> Result<()> {
+        if self
+            .enforce_clocks(id, &[op.selector, op.true_value, op.false_value])
+            .is_err()
+        {
+            eprintln!("{:?}", op);
+            return Err(Box::new(RHDLClockCoherenceViolation {
+                src: self.mir.symbols.source.source.clone(),
+                elements: vec![
+                    (
+                        format!(
+                            "Selector belongs to {} clock domain",
+                            self.clock_domain_for_error(op.selector)
+                        ),
+                        self.mir.symbols.source.span(op.selector.id).into(),
+                    ),
+                    (
+                        format!(
+                            "True value belongs to {} clock domain",
+                            self.clock_domain_for_error(op.true_value)
+                        ),
+                        self.mir.symbols.source.span(op.true_value.id).into(),
+                    ),
+                    (
+                        format!(
+                            "False value belongs to {} clock domain",
+                            self.clock_domain_for_error(op.false_value)
+                        ),
+                        self.mir.symbols.source.span(op.false_value.id).into(),
+                    ),
+                ],
+                cause_description:
+                    "Select operation requires all three belong to the same clock domain"
+                        .to_string(),
+                cause_span: self.mir.symbols.source.span(id).into(),
+            })
+            .into());
+        }
+        Ok(())
     }
     fn try_type_op(&mut self, op: &TypeOperation) -> Result<()> {
+        let id = op.id;
         match &op.kind {
-            TypeOperationKind::BinOp(binop) => self.try_binop(binop),
-            TypeOperationKind::Index(index) => self.try_index(index, op.id),
-            TypeOperationKind::UnaryOp(unary) => self.try_unary(unary),
-            TypeOperationKind::Select(select) => self.try_select(select),
+            TypeOperationKind::BinOp(binop) => self.try_binop(id, binop),
+            TypeOperationKind::Index(index) => self.try_index(id, index),
+            TypeOperationKind::UnaryOp(unary) => self.try_unary(id, unary),
+            TypeOperationKind::Select(select) => self.try_select(id, select),
         }
+    }
+    fn try_type_ops(&mut self, iteration_count: usize, ops: &[TypeOperation]) -> Result<()> {
+        for loop_count in 0..iteration_count {
+            eprintln!("Iteration {}", loop_count);
+            let mod_state = self.ctx.modification_state();
+            for op in ops {
+                self.try_type_op(op)?;
+            }
+            if self.ctx.modification_state() == mod_state {
+                break;
+            }
+            if self.all_slots_resolved() {
+                break;
+            }
+        }
+        Ok(())
     }
     fn process_ops(&mut self) -> Result<()> {
         for op in &self.mir.ops {
             eprintln!("Processing op {}", op.op);
+            let id = op.source;
             match &op.op {
                 OpCode::Array(array) => {
                     let lhs = self.slot_ty(array.lhs);
                     let rhs = self.slot_tys(&array.elements);
-                    let array_base = self.ctx.ty_var();
-                    let array_len = self.ctx.ty_const_len(rhs.len());
-                    let lhs_ty = self.ctx.ty_array(array_base, array_len);
-                    self.unify(lhs, lhs_ty)?;
+                    let array_base = self.ctx.ty_var(id);
+                    let array_len = self.ctx.ty_const_len(id, rhs.len());
+                    let lhs_ty = self.ctx.ty_array(id, array_base, array_len);
+                    self.unify(id, lhs, lhs_ty)?;
                     for element in rhs {
-                        self.unify(element, array_base)?;
+                        self.unify(id, element, array_base)?;
                     }
                 }
                 OpCode::Assign(assign) => {
                     let lhs = self.slot_ty(assign.lhs);
                     let rhs = self.slot_ty(assign.rhs);
-                    self.unify(lhs, rhs)?;
+                    self.unify(id, lhs, rhs)?;
                 }
                 OpCode::AsBits(as_bits) => {
                     let arg = self.slot_ty(as_bits.arg);
                     let lhs = self.slot_ty(as_bits.lhs);
                     let len = if let Some(len) = as_bits.len {
-                        self.ctx.ty_const_len(len)
+                        self.ctx.ty_const_len(id, len)
                     } else {
-                        self.ctx.ty_var()
+                        self.ctx.ty_var(id)
                     };
-                    let lhs_ty = self.ctx.ty_bits(len);
-                    self.unify(lhs, lhs_ty)?;
-                    let len_128 = self.ctx.ty_const_len(128);
-                    let arg_ty = self.ctx.ty_bits(len_128);
-                    self.unify(arg, arg_ty)?;
+                    let lhs_ty = self.ctx.ty_bits(id, len);
+                    self.unify(id, lhs, lhs_ty)?;
+                    let len_128 = self.ctx.ty_const_len(id, 128);
+                    let arg_ty = self.ctx.ty_bits(id, len_128);
+                    self.unify(id, arg, arg_ty)?;
                 }
                 OpCode::AsSigned(as_signed) => {
                     let arg = self.slot_ty(as_signed.arg);
                     let lhs = self.slot_ty(as_signed.lhs);
                     let len = if let Some(len) = as_signed.len {
-                        self.ctx.ty_const_len(len)
+                        self.ctx.ty_const_len(id, len)
                     } else {
-                        self.ctx.ty_var()
+                        self.ctx.ty_var(id)
                     };
-                    let lhs_ty = self.ctx.ty_signed(len);
-                    self.unify(lhs, lhs_ty)?;
-                    let len_128 = self.ctx.ty_const_len(128);
-                    let arg_ty = self.ctx.ty_signed(len_128);
-                    self.unify(arg, arg_ty)?;
+                    let lhs_ty = self.ctx.ty_signed(id, len);
+                    self.unify(id, lhs, lhs_ty)?;
+                    let len_128 = self.ctx.ty_const_len(id, 128);
+                    let arg_ty = self.ctx.ty_signed(id, len_128);
+                    self.unify(id, arg, arg_ty)?;
                 }
                 OpCode::Binary(binary) => {
                     let lhs = self.slot_ty(binary.lhs);
                     let arg1 = self.slot_ty(binary.arg1);
                     let arg2 = self.slot_ty(binary.arg2);
                     self.type_ops.push(TypeOperation {
-                        id: op.source,
+                        id,
                         kind: TypeOperationKind::BinOp(TypeBinOp {
                             op: binary.op,
                             lhs,
@@ -473,7 +569,7 @@ impl<'a> MirTypeInference<'a> {
                         match test {
                             CaseArgument::Slot(slot) => {
                                 let ty = self.slot_ty(*slot);
-                                let free_var = self.ctx.ty_var();
+                                let free_var = self.ctx.ty_var(id);
                                 eprintln!(
                                     "Adding constraint {} = {} == {}",
                                     self.ctx.desc(free_var),
@@ -493,7 +589,7 @@ impl<'a> MirTypeInference<'a> {
                             CaseArgument::Wild => {}
                         }
                         let val_ty = self.slot_ty(*value);
-                        self.unify(lhs, val_ty)?;
+                        self.unify(id, lhs, val_ty)?;
                     }
                 }
                 OpCode::Enum(enumerate) => {
@@ -508,8 +604,8 @@ impl<'a> MirTypeInference<'a> {
                             )
                             .into());
                     };
-                    let lhs_ty = self.ctx.ty_enum(enum_k);
-                    self.unify(lhs, lhs_ty)?;
+                    let lhs_ty = self.ctx.ty_enum(id, enum_k);
+                    self.unify(id, lhs, lhs_ty)?;
                     let discriminant = enumerate.template.discriminant()?.as_i64()?;
                     for field in &enumerate.fields {
                         let path = match &field.member {
@@ -521,9 +617,9 @@ impl<'a> MirTypeInference<'a> {
                                 .tuple_index(*ndx as usize),
                         };
                         let field_kind = sub_kind(enumerate.template.kind.clone(), &path)?;
-                        let field_ty = self.ctx.from_kind(&field_kind);
+                        let field_ty = self.ctx.from_kind(id, &field_kind);
                         let field_slot = self.slot_ty(field.value);
-                        self.unify(field_ty, field_slot)?;
+                        self.unify(id, field_ty, field_slot)?;
                     }
                 }
                 OpCode::Exec(exec) => {
@@ -531,45 +627,45 @@ impl<'a> MirTypeInference<'a> {
                     let signature = &external_fn.signature;
                     for (arg_kind, arg_slot) in signature.arguments.iter().zip(exec.args.iter()) {
                         let arg_ty = self.slot_ty(*arg_slot);
-                        let arg_kind = self.ctx.from_kind(arg_kind);
-                        self.unify(arg_ty, arg_kind)?;
+                        let arg_kind = self.ctx.from_kind(id, arg_kind);
+                        self.unify(id, arg_ty, arg_kind)?;
                     }
                     let ret_ty = self.slot_ty(exec.lhs);
-                    let ret_kind = self.ctx.from_kind(&signature.ret);
-                    self.unify(ret_ty, ret_kind)?;
+                    let ret_kind = self.ctx.from_kind(id, &signature.ret);
+                    self.unify(id, ret_ty, ret_kind)?;
                 }
                 OpCode::Index(index) => {
                     let arg = self.slot_ty(index.arg);
                     let lhs = self.slot_ty(index.lhs);
                     let path = index.path.clone();
                     self.type_ops.push(TypeOperation {
-                        id: op.source,
+                        id,
                         kind: TypeOperationKind::Index(TypeIndex { lhs, arg, path }),
                     });
                 }
                 OpCode::Repeat(repeat) => {
                     let lhs = self.slot_ty(repeat.lhs);
                     let value = self.slot_ty(repeat.value);
-                    let len = self.ctx.ty_const_len(repeat.len as usize);
-                    let lhs_ty = self.ctx.ty_array(value, len);
-                    self.unify(lhs, lhs_ty)?;
+                    let len = self.ctx.ty_const_len(id, repeat.len as usize);
+                    let lhs_ty = self.ctx.ty_array(id, value, len);
+                    self.unify(id, lhs, lhs_ty)?;
                 }
                 OpCode::Retime(retime) => {
                     let lhs = self.slot_ty(retime.lhs);
                     let arg = self.slot_ty(retime.arg);
                     let color = retime.color;
-                    let sig_ty = self.ctx.ty_var();
-                    let sig_clock_lhs = self.ctx.ty_var();
-                    let sig = self.ctx.ty_signal(sig_ty, sig_clock_lhs);
-                    self.unify(lhs, sig)?;
-                    let sig_ty = self.ctx.ty_var();
-                    let sig_clock_rhs = self.ctx.ty_var();
-                    let sig = self.ctx.ty_signal(sig_ty, sig_clock_rhs);
-                    self.unify(arg, sig)?;
-                    self.unify(sig_clock_lhs, sig_clock_rhs)?;
+                    let sig_ty = self.ctx.ty_var(id);
+                    let sig_clock_lhs = self.ctx.ty_var(id);
+                    let sig = self.ctx.ty_signal(id, sig_ty, sig_clock_lhs);
+                    self.unify(id, lhs, sig)?;
+                    let sig_ty = self.ctx.ty_var(id);
+                    let sig_clock_rhs = self.ctx.ty_var(id);
+                    let sig = self.ctx.ty_signal(id, sig_ty, sig_clock_rhs);
+                    self.unify(id, arg, sig)?;
+                    self.unify(id, sig_clock_lhs, sig_clock_rhs)?;
                     if let Some(color) = color {
-                        let clk = self.ctx.ty_clock(color);
-                        self.unify(sig_clock_lhs, clk)?;
+                        let clk = self.ctx.ty_clock(id, color);
+                        self.unify(id, sig_clock_lhs, clk)?;
                     }
                 }
                 OpCode::Select(select) => {
@@ -577,8 +673,8 @@ impl<'a> MirTypeInference<'a> {
                     let cond = self.slot_ty(select.cond);
                     let arg1 = self.slot_ty(select.true_value);
                     let arg2 = self.slot_ty(select.false_value);
-                    self.unify(lhs, arg1)?;
-                    self.unify(lhs, arg2)?;
+                    self.unify(id, lhs, arg1)?;
+                    self.unify(id, lhs, arg2)?;
                     self.type_ops.push(TypeOperation {
                         id: op.source,
                         kind: TypeOperationKind::Select(TypeSelect {
@@ -594,11 +690,11 @@ impl<'a> MirTypeInference<'a> {
                     let orig = self.slot_ty(splice.orig);
                     let subst = self.slot_ty(splice.subst);
                     let path = &splice.path;
-                    self.unify(lhs, orig)?;
+                    self.unify(id, lhs, orig)?;
                     // Reflect the constraint that
                     // ty(subst) = ty(lhs[path])
                     self.type_ops.push(TypeOperation {
-                        id: op.source,
+                        id,
                         kind: TypeOperationKind::Index(TypeIndex {
                             lhs: subst,
                             arg: lhs,
@@ -618,19 +714,19 @@ impl<'a> MirTypeInference<'a> {
                             )
                             .into());
                     };
-                    let lhs_ty = self.ctx.ty_struct(strukt);
-                    self.unify(lhs, lhs_ty)?;
+                    let lhs_ty = self.ctx.ty_struct(id, strukt);
+                    self.unify(id, lhs, lhs_ty)?;
                     for field in &structure.fields {
                         let field_kind = strukt.get_field_kind(&field.member)?;
-                        let field_ty = self.ctx.from_kind(&field_kind);
+                        let field_ty = self.ctx.from_kind(id, &field_kind);
                         let field_slot = self.slot_ty(field.value);
-                        self.unify(field_ty, field_slot)?;
+                        self.unify(id, field_ty, field_slot)?;
                     }
                     if let Some(rest) = structure.rest {
                         let rest_ty = self.slot_ty(rest);
-                        self.unify(lhs_ty, rest_ty)?;
+                        self.unify(id, lhs_ty, rest_ty)?;
                     }
-                    self.unify(lhs, lhs_ty)?;
+                    self.unify(id, lhs, lhs_ty)?;
                 }
                 OpCode::Tuple(tuple) => {
                     let lhs = self.slot_ty(tuple.lhs);
@@ -639,21 +735,21 @@ impl<'a> MirTypeInference<'a> {
                         .iter()
                         .map(|slot| self.slot_ty(*slot))
                         .collect();
-                    let lhs_ty = self.ctx.ty_tuple(tys);
-                    self.unify(lhs, lhs_ty)?;
+                    let lhs_ty = self.ctx.ty_tuple(id, tys);
+                    self.unify(id, lhs, lhs_ty)?;
                 }
                 OpCode::Unary(unary) => {
                     let lhs = self.slot_ty(unary.lhs);
                     let arg1 = self.slot_ty(unary.arg1);
                     match unary.op {
                         AluUnary::Not => {
-                            self.unify(lhs, arg1)?;
+                            self.unify(id, lhs, arg1)?;
                         }
                         AluUnary::Neg => {
-                            let len = self.ctx.ty_var();
-                            let signed_ty = self.ctx.ty_signed(len);
-                            self.unify(lhs, signed_ty)?;
-                            self.unify(arg1, signed_ty)?;
+                            let len = self.ctx.ty_var(id);
+                            let signed_ty = self.ctx.ty_signed(id, len);
+                            self.unify(id, lhs, signed_ty)?;
+                            self.unify(id, arg1, signed_ty)?;
                         }
                         AluUnary::All | AluUnary::Any | AluUnary::Xor => {
                             self.type_ops.push(TypeOperation {
@@ -666,18 +762,18 @@ impl<'a> MirTypeInference<'a> {
                             });
                         }
                         AluUnary::Unsigned => {
-                            let len = self.ctx.ty_var();
-                            let signed_ty = self.ctx.ty_signed(len);
-                            let unsigned_ty = self.ctx.ty_bits(len);
-                            self.unify(lhs, unsigned_ty)?;
-                            self.unify(arg1, signed_ty)?;
+                            let len = self.ctx.ty_var(id);
+                            let signed_ty = self.ctx.ty_signed(id, len);
+                            let unsigned_ty = self.ctx.ty_bits(id, len);
+                            self.unify(id, lhs, unsigned_ty)?;
+                            self.unify(id, arg1, signed_ty)?;
                         }
                         AluUnary::Signed => {
-                            let len = self.ctx.ty_var();
-                            let signed_ty = self.ctx.ty_signed(len);
-                            let unsigned_ty = self.ctx.ty_bits(len);
-                            self.unify(lhs, signed_ty)?;
-                            self.unify(arg1, unsigned_ty)?;
+                            let len = self.ctx.ty_var(id);
+                            let signed_ty = self.ctx.ty_signed(id, len);
+                            let unsigned_ty = self.ctx.ty_bits(id, len);
+                            self.unify(id, lhs, signed_ty)?;
+                            self.unify(id, arg1, unsigned_ty)?;
                         }
                     }
                 }
@@ -722,43 +818,27 @@ pub fn infer(mir: Mir) -> Result<Object> {
         let ty = infer.ctx.desc(ty);
         eprintln!("Slot {} -> type {}", slot, ty);
     }
-    for loop_count in 0..3 {
-        type_ops
-            .iter()
-            .map(|op| infer.try_type_op(op))
-            .collect::<Result<Vec<_>>>()?;
-        if infer.all_slots_resolved() {
-            break;
-        }
-    }
+    infer.try_type_ops(5, &type_ops)?;
     eprintln!("Try to replace generic literals with ?32");
     // Try to replace generic literals with (b/s)32
     if !infer.all_slots_resolved() {
         for lit in mir.literals.keys() {
             let ty = infer.slot_ty(*lit);
             if infer.ctx.is_unsized_integer(ty) {
-                let i32_len = infer.ctx.ty_const_len(32);
-                let m32_ty = infer.ctx.ty_maybe_signed(i32_len);
+                let i32_len = infer.ctx.ty_const_len(ty.id, 32);
+                let m32_ty = infer.ctx.ty_maybe_signed(ty.id, i32_len);
                 eprintln!(
                     "Literal {} -> {} U {}",
                     lit,
                     infer.ctx.desc(ty),
                     infer.ctx.desc(m32_ty)
                 );
-                infer.unify(ty, m32_ty)?;
+                infer.unify(ty.id, ty, m32_ty)?;
             }
         }
     }
     eprintln!("Recheck delayed inference rools");
-    for loop_count in 0..3 {
-        type_ops
-            .iter()
-            .map(|op| infer.try_type_op(op))
-            .collect::<Result<Vec<_>>>()?;
-        if infer.all_slots_resolved() {
-            break;
-        }
-    }
+    infer.try_type_ops(5, &type_ops)?;
 
     eprintln!("Try to replace generic literals with i32");
     // Try to replace any generic literals with i32s
@@ -767,22 +847,16 @@ pub fn infer(mir: Mir) -> Result<Object> {
             let ty = infer.slot_ty(*lit);
             if let Some(ty_sign) = infer.ctx.project_sign_flag(ty) {
                 if infer.ctx.is_unresolved(ty_sign) {
-                    let sign_flag = infer.ctx.ty_sign_flag(SignFlag::Signed);
-                    infer.unify(ty_sign, sign_flag)?;
+                    let sign_flag = infer.ctx.ty_sign_flag(ty.id, SignFlag::Signed);
+                    infer.unify(ty.id, ty_sign, sign_flag)?;
                 }
             }
         }
     }
-    for loop_count in 0..3 {
-        type_ops
-            .iter()
-            .map(|op| infer.try_type_op(op))
-            .collect::<Result<Vec<_>>>()?;
-        if infer.all_slots_resolved() {
-            break;
-        }
-    }
-    if !infer.all_slots_resolved() {
+    eprintln!("Recheck delayed inference rules");
+    infer.try_type_ops(5, &type_ops)?;
+
+    if let Some(ty) = infer.unresolved_slot_typeid() {
         eprintln!("=================================");
         eprintln!("Inference failed");
         for (slot, ty) in &infer.slot_map {
@@ -802,8 +876,11 @@ pub fn infer(mir: Mir) -> Result<Object> {
                 eprintln!("Literal {} -> {}", lit, infer.ctx.desc(ty));
             }
         }
-        bail!("Inference failure detected");
+        return Err(infer
+            .raise_type_error(TypeCheck::UnableToDetermineType, ty.id)
+            .into());
     }
+
     for (slot, ty) in &infer.slot_map {
         let ty = infer.ctx.apply(*ty);
         let ty = infer.ctx.desc(ty);
@@ -821,7 +898,8 @@ pub fn infer(mir: Mir) -> Result<Object> {
     let kind = final_type_map
         .iter()
         .map(|(slot, ty)| infer.ctx.into_kind(*ty).map(|val| (*slot, val)))
-        .collect::<Result<BTreeMap<_, _>>>()?;
+        .collect::<anyhow::Result<BTreeMap<_, _>>>()
+        .unwrap();
     for op in mir.ops.iter() {
         eprintln!("{}", op.op);
     }

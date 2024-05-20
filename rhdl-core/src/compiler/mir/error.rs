@@ -16,8 +16,11 @@ use super::compiler::ScopeIndex;
 pub enum TypeCheck {
     #[error("A request was made for .val() on something that is not a signal")]
     ExpectedSignalValue,
-    #[error("Type inference failure")]
-    TypeInferenceFailure,
+    #[error("Literal with explicit type {typ} is inferred as {kind} instead")]
+    InferredLiteralTypeMismatch { typ: Kind, kind: Kind },
+    #[error("Unable to determine type of this item")]
+    #[diagnostic(help("Please provide an explicit type annotation"))]
+    UnableToDetermineType,
 }
 
 #[derive(Error, Debug, Diagnostic)]
@@ -149,7 +152,7 @@ impl Diagnostic for RHDLCompileError {
 }
 
 #[derive(Debug, Error)]
-#[error("RHDL Type Check Error")]
+#[error("RHDL Type Error")]
 pub struct RHDLTypeError {
     pub cause: TypeCheck,
     pub src: String,
@@ -167,5 +170,76 @@ impl Diagnostic for RHDLTypeError {
         Some(Box::new(std::iter::once(
             miette::LabeledSpan::new_primary_with_span(Some(self.cause.to_string()), self.err_span),
         )))
+    }
+}
+
+#[derive(Debug, Error)]
+#[error("RHDL Clock Coherence Violation")]
+pub struct RHDLClockCoherenceViolation {
+    pub src: String,
+    pub elements: Vec<(String, SourceSpan)>,
+    pub cause_description: String,
+    pub cause_span: SourceSpan,
+}
+
+impl Diagnostic for RHDLClockCoherenceViolation {
+    fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+        Some(&self.src)
+    }
+    fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+        Some(Box::new("These elements are not coherent with the clock"))
+    }
+    fn labels<'a>(&'a self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + 'a>> {
+        Some(Box::new(
+            self.elements
+                .iter()
+                .map(|(name, span)| {
+                    miette::LabeledSpan::new_primary_with_span(Some(name.to_string()), *span)
+                })
+                .chain(std::iter::once(miette::LabeledSpan::new_with_span(
+                    Some(self.cause_description.to_string()),
+                    self.cause_span,
+                ))),
+        ))
+    }
+}
+
+#[derive(Debug, Error)]
+#[error("RHDL Type Check Error")]
+pub struct RHDLTypeCheckError {
+    pub src: String,
+    pub lhs_type: String,
+    pub lhs_span: SourceSpan,
+    pub rhs_type: String,
+    pub rhs_span: SourceSpan,
+    pub cause_description: String,
+    pub cause_span: SourceSpan,
+}
+
+impl Diagnostic for RHDLTypeCheckError {
+    fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+        Some(&self.src)
+    }
+    fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+        Some(Box::new("These two types are not compatible"))
+    }
+    fn labels<'a>(&'a self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + 'a>> {
+        Some(Box::new(
+            vec![
+                miette::LabeledSpan::new_primary_with_span(
+                    Some(self.lhs_type.to_string()),
+                    self.lhs_span,
+                ),
+                miette::LabeledSpan::new_primary_with_span(
+                    Some(self.rhs_type.to_string()),
+                    self.rhs_span,
+                ),
+                miette::LabeledSpan::new_with_span(
+                    Some(self.cause_description.to_string()),
+                    self.cause_span,
+                ),
+            ]
+            .into_iter(),
+        ))
     }
 }

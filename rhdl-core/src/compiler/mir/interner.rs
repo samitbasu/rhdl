@@ -32,6 +32,10 @@ impl<T: Hash + Eq + Clone> Default for Intern<T> {
 }
 
 impl<T: Hash + Eq + Clone> Intern<T> {
+    pub fn count(&self) -> usize {
+        self.vec.len()
+    }
+
     pub fn alloc(&mut self, value: T) -> InternKey<T> {
         if let Some(key) = self.map.get(&value) {
             return *key;

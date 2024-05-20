@@ -13,7 +13,15 @@ pub enum RHDLError {
     #[error("RHDL ICE")]
     #[diagnostic(transparent)]
     RHDLInternalCompilerError(#[from] crate::compiler::mir::error::RHDLCompileError),
-    #[error("RHDL Type Check Error")]
+    #[error("RHDL Type Error")]
     #[diagnostic(transparent)]
     RHDLTypeError(#[from] crate::compiler::mir::error::RHDLTypeError),
+    #[error("RHDL Type Check Error")]
+    #[diagnostic(transparent)]
+    RHDLTypeCheckError(#[from] crate::compiler::mir::error::RHDLTypeCheckError),
+    #[error("RHDL Clock Coherence Violation")]
+    #[diagnostic(transparent)]
+    RHDLClockCoherenceViolation(
+        #[from] Box<crate::compiler::mir::error::RHDLClockCoherenceViolation>,
+    ),
 }

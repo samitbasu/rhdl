@@ -585,6 +585,33 @@ fn test_signal_cross_clock_select_fails() -> anyhow::Result<()> {
 }
 
 #[test]
+fn test_signal_cross_clock_select_causes_type_check_error() -> miette::Result<()> {
+    #[kernel]
+    fn add<C: Clock, D: Clock>(x: Sig<b8, C>, y: Sig<b8, D>) -> Sig<b8, C> {
+        if y.val().any() {
+            x
+        } else {
+            x + 2
+        }
+    }
+    compile_design::<add<Red, Green>>()?;
+    Ok(())
+}
+
+#[test]
+fn test_signal_coherence_in_branches() -> miette::Result<()> {
+    #[kernel]
+    fn add<C: Clock, D: Clock>(x: Sig<b8, C>, y: Sig<b8, D>) -> Sig<b8, C> {
+        let x = x.val();
+        let y = y.val();
+        let z = if y.any() { y } else { x };
+        signal(z)
+    }
+    compile_design::<add<Red, Green>>()?;
+    Ok(())
+}
+
+#[test]
 fn test_signal_cast_works() -> anyhow::Result<()> {
     #[kernel]
     fn add<C: Clock>(x: Sig<b8, C>, y: Sig<b8, C>) -> Sig<b8, C> {
