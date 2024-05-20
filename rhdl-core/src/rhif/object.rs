@@ -1,5 +1,5 @@
 use anyhow::Result;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Write;
 
 use crate::{
@@ -69,6 +69,26 @@ impl Object {
             .max()
             .copied()
             .unwrap_or(0)
+    }
+    pub fn build_slot_equivalence_map(&self) -> HashMap<Slot, Slot> {
+        self.ops
+            .iter()
+            .filter_map(|op| {
+                if let OpCode::Assign(assign) = op {
+                    Some((assign.lhs, assign.rhs))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+    pub fn find_root_for_slot(&self, slot: Slot) -> Slot {
+        let eq_map = self.build_slot_equivalence_map();
+        let mut slot = slot;
+        while let Some(&next) = eq_map.get(&slot) {
+            slot = next;
+        }
+        slot
     }
 }
 
