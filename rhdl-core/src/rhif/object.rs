@@ -1,6 +1,7 @@
 use anyhow::Result;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Write;
+use std::ops::Range;
 
 use crate::{
     ast::ast_impl::{FunctionId, NodeId},
@@ -27,6 +28,17 @@ pub struct SymbolMap {
     pub source: SpannedSource,
     pub slot_map: BTreeMap<Slot, SourceLocation>,
     pub opcode_map: Vec<SourceLocation>,
+}
+
+impl SymbolMap {
+    pub fn slot_span(&self, slot: Slot) -> Option<Range<usize>> {
+        self.slot_map
+            .get(&slot)
+            .map(|loc| self.source.span(loc.node))
+    }
+    pub fn node_span(&self, node: NodeId) -> Range<usize> {
+        self.source.span(node)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -69,26 +81,6 @@ impl Object {
             .max()
             .copied()
             .unwrap_or(0)
-    }
-    pub fn build_slot_equivalence_map(&self) -> HashMap<Slot, Slot> {
-        self.ops
-            .iter()
-            .filter_map(|op| {
-                if let OpCode::Assign(assign) = op {
-                    Some((assign.lhs, assign.rhs))
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
-    pub fn find_root_for_slot(&self, slot: Slot) -> Slot {
-        let eq_map = self.build_slot_equivalence_map();
-        let mut slot = slot;
-        while let Some(&next) = eq_map.get(&slot) {
-            slot = next;
-        }
-        slot
     }
 }
 

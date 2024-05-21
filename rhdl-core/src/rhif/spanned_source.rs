@@ -23,6 +23,10 @@ impl SpannedSource {
         let span = self.span(id);
         &self.source[span]
     }
+    pub fn snippet(&self, id: NodeId) -> &str {
+        let span = self.span(id);
+        &self.source[span]
+    }
 }
 
 #[derive(Default)]
@@ -381,5 +385,6 @@ impl SpannedSourceBuilder {
             }
         }
         self.span_map.insert(expr.id, start..self.loc());
+        eprintln!("Span for expression {}: {:?}", expr.id, start..self.loc());
     }
 }

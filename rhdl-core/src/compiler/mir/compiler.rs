@@ -28,6 +28,7 @@ use crate::ast::visit::Visitor;
 use crate::ast::visit_mut::VisitorMut;
 use crate::ast_builder::BinOp;
 use crate::ast_builder::UnOp;
+use crate::compiler::ascii::render_statement_to_string;
 use crate::compiler::assign_node::NodeIdGenerator;
 use crate::compiler::display_ast::pretty_print_statement;
 use crate::error::RHDLError;
@@ -499,21 +500,21 @@ impl<'a> MirContext<'a> {
         );
         Ok(())
     }
-    fn raise_syntax_error(&self, cause: Syntax, id: NodeId) -> RHDLSyntaxError {
+    fn raise_syntax_error(&self, cause: Syntax, id: NodeId) -> Box<RHDLSyntaxError> {
         let source_span = self.spanned_source.span(id);
-        RHDLSyntaxError {
+        Box::new(RHDLSyntaxError {
             cause,
             src: self.spanned_source.source.clone(),
             err_span: source_span.into(),
-        }
+        })
     }
-    fn raise_ice(&self, cause: ICE, id: NodeId) -> RHDLCompileError {
+    fn raise_ice(&self, cause: ICE, id: NodeId) -> Box<RHDLCompileError> {
         let source_span = self.spanned_source.span(id);
-        RHDLCompileError {
+        Box::new(RHDLCompileError {
             cause,
             src: self.spanned_source.source.clone(),
             err_span: source_span.into(),
-        }
+        })
     }
     fn get_locals_changed(
         &self,
@@ -1169,18 +1170,19 @@ impl<'a> MirContext<'a> {
         Ok(lhs)
     }
     fn path(&mut self, id: NodeId, path: &ExprPath) -> Result<Slot> {
+        let lhs = self.reg(id);
         if path.path.segments.len() == 1 && path.path.segments[0].arguments.is_empty() {
             let name = &path.path.segments[0].ident;
-            return self.lookup_name(name).map(|x| x.0).ok_or(
-                self.raise_ice(
-                    ICE::NameNotFoundInPath {
-                        name: name.clone(),
-                        path: path.clone(),
-                    },
-                    id,
-                )
-                .into(),
-            );
+            let rhs = self.lookup_name(name).map(|x| x.0).ok_or(self.raise_ice(
+                ICE::NameNotFoundInPath {
+                    name: name.clone(),
+                    path: path.clone(),
+                },
+                id,
+            ))?;
+            self.op(op_assign(lhs, rhs), id);
+            self.ty_equate.insert(TypeEquivalence { id, lhs, rhs });
+            return Ok(lhs);
         }
         Err(self
             .raise_syntax_error(Syntax::UnsupportedPathWithArguments, id)
@@ -1246,7 +1248,8 @@ impl<'a> MirContext<'a> {
         Ok(Slot::Empty)
     }
     fn stmt(&mut self, statement: &Stmt) -> Result<Slot> {
-        let statement_text = pretty_print_statement(statement)?;
+        let statement_as_ascii_tree = render_statement_to_string(statement)?;
+        let statement_text = statement_as_ascii_tree + &pretty_print_statement(statement)?;
         self.op(op_comment(statement_text), statement.id);
         match &statement.kind {
             StmtKind::Local(local) => {
