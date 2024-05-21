@@ -82,21 +82,21 @@ impl<'a> MirTypeInference<'a> {
             type_ops: Vec::new(),
         }
     }
-    fn raise_ice(&self, cause: ICE, id: NodeId) -> RHDLCompileError {
+    fn raise_ice(&self, cause: ICE, id: NodeId) -> Box<RHDLCompileError> {
         let source_span = self.mir.symbols.source.span(id);
-        RHDLCompileError {
+        Box::new(RHDLCompileError {
             cause,
             src: self.mir.symbols.source.source.clone(),
             err_span: source_span.into(),
-        }
+        })
     }
-    fn raise_type_error(&self, cause: TypeCheck, id: NodeId) -> RHDLTypeError {
+    fn raise_type_error(&self, cause: TypeCheck, id: NodeId) -> Box<RHDLTypeError> {
         let source_span = self.mir.symbols.source.span(id);
-        RHDLTypeError {
+        Box::new(RHDLTypeError {
             cause,
             src: self.mir.symbols.source.source.clone(),
             err_span: source_span.into(),
-        }
+        })
     }
     fn cast_literal_to_inferred_type(&mut self, t: ExprLit, ty: TypeId) -> Result<TypedBits> {
         let kind = self.ctx.into_kind(ty)?;
@@ -152,7 +152,7 @@ impl<'a> MirTypeInference<'a> {
             let rhs_desc = self.ctx.desc(rhs);
             let cause_span = self.mir.symbols.source.span(id);
             let cause_description = format!("Because of this expression");
-            return Err(RHDLTypeCheckError {
+            return Err(Box::new(RHDLTypeCheckError {
                 src: self.mir.symbols.source.source.clone(),
                 lhs_type: lhs_desc,
                 lhs_span: lhs_span.into(),
@@ -160,7 +160,7 @@ impl<'a> MirTypeInference<'a> {
                 rhs_span: rhs_span.into(),
                 cause_description,
                 cause_span: cause_span.into(),
-            }
+            })
             .into());
         }
         Ok(())
@@ -440,6 +440,22 @@ impl<'a> MirTypeInference<'a> {
             .is_err()
         {
             eprintln!("{:?}", op);
+            eprintln!(
+                "Selector span: {:?}",
+                self.mir.symbols.source.span(op.selector.id)
+            );
+            eprintln!(
+                "True value span: {:?}",
+                self.mir.symbols.source.span(op.true_value.id)
+            );
+            eprintln!(
+                "False value span: {:?}",
+                self.mir.symbols.source.span(op.false_value.id)
+            );
+            eprintln!(
+                "True value snippet: '{}'",
+                self.mir.symbols.source.snippet(op.true_value.id)
+            );
             return Err(Box::new(RHDLClockCoherenceViolation {
                 src: self.mir.symbols.source.source.clone(),
                 elements: vec![
@@ -669,9 +685,9 @@ impl<'a> MirTypeInference<'a> {
                     }
                 }
                 OpCode::Select(select) => {
-                    let cond = self.mir.find_root_for_slot(select.cond);
-                    let true_value = self.mir.find_root_for_slot(select.true_value);
-                    let false_value = self.mir.find_root_for_slot(select.false_value);
+                    let cond = self.mir.find_root_for_slot(id, select.cond);
+                    let true_value = self.mir.find_root_for_slot(id, select.true_value);
+                    let false_value = self.mir.find_root_for_slot(id, select.false_value);
                     let lhs = self.slot_ty(select.lhs);
                     let cond = self.slot_ty(cond);
                     let arg1 = self.slot_ty(true_value);

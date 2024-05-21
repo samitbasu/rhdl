@@ -9,16 +9,16 @@ pub enum RHDLError {
     ParseIntError(#[from] std::num::ParseIntError),
     #[error("RHDL Syntax Error")]
     #[diagnostic(transparent)]
-    RHDLSyntaxError(#[from] crate::compiler::mir::error::RHDLSyntaxError),
+    RHDLSyntaxError(#[from] Box<crate::compiler::mir::error::RHDLSyntaxError>),
     #[error("RHDL ICE")]
     #[diagnostic(transparent)]
-    RHDLInternalCompilerError(#[from] crate::compiler::mir::error::RHDLCompileError),
+    RHDLInternalCompilerError(#[from] Box<crate::compiler::mir::error::RHDLCompileError>),
     #[error("RHDL Type Error")]
     #[diagnostic(transparent)]
-    RHDLTypeError(#[from] crate::compiler::mir::error::RHDLTypeError),
+    RHDLTypeError(#[from] Box<crate::compiler::mir::error::RHDLTypeError>),
     #[error("RHDL Type Check Error")]
     #[diagnostic(transparent)]
-    RHDLTypeCheckError(#[from] crate::compiler::mir::error::RHDLTypeCheckError),
+    RHDLTypeCheckError(#[from] Box<crate::compiler::mir::error::RHDLTypeCheckError>),
     #[error("RHDL Clock Coherence Violation")]
     #[diagnostic(transparent)]
     RHDLClockCoherenceViolation(

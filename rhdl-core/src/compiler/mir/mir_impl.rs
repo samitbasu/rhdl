@@ -54,12 +54,28 @@ impl Mir {
             })
             .collect()
     }
-    pub fn find_root_for_slot(&self, slot: Slot) -> Slot {
+    pub fn find_root_for_slot(&self, context: NodeId, slot: Slot) -> Slot {
+        let context_span = self.symbols.node_span(context);
+        eprintln!("Context span: {:?}", context_span);
         let eq_map = self.build_slot_equivalence_map();
         let mut slot = slot;
+        eprintln!("Initial slot: {:?}", slot);
+        eprintln!("Initial span: {:?}", self.symbols.slot_span(slot));
         while let Some(&next) = eq_map.get(&slot) {
-            slot = next;
+            eprintln!("Next slot: {:?}", next);
+            let Some(next_span) = self.symbols.slot_span(next) else {
+                break;
+            };
+            eprintln!("Next span: {:?}", next_span);
+            if context_span.contains(&next_span.start)
+                && context_span.contains(&next_span.end.saturating_sub(1))
+            {
+                slot = next;
+            } else {
+                break;
+            }
         }
+        eprintln!("Final slot: {:?}", slot);
         slot
     }
 }
