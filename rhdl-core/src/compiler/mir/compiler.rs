@@ -13,6 +13,7 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::iter::once;
 
 use crate::ast::ast_impl;
 use crate::ast::ast_impl::BitsKind;
@@ -1373,6 +1374,10 @@ pub fn compile_mir(mut func: Kernel) -> Result<Mir> {
         .reg_source_map
         .into_iter()
         .map(|(slot, node)| (slot, (compiler.fn_id, node).into()))
+        .chain(once((
+            Slot::Empty,
+            (compiler.fn_id, func.inner().id).into(),
+        )))
         .collect();
     Ok(Mir {
         symbols: SymbolMap {
