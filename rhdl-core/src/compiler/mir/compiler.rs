@@ -63,6 +63,8 @@ use super::error::RHDLCompileError;
 use super::error::RHDLSyntaxError;
 use super::error::Syntax;
 use super::error::ICE;
+use super::interner::Intern;
+use super::interner::InternKey;
 use super::mir_impl::Mir;
 use super::mir_impl::OpCodeWithSource;
 use super::mir_impl::TypeEquivalence;
@@ -127,12 +129,12 @@ fn collapse_path(path: &ast_impl::Path) -> String {
         .join("::")
 }
 
-// TODO = worry about the string clones later.
+type StringKey = InternKey<String>;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ScopeIndex {
     scope: ScopeId,
-    name: String,
+    name: StringKey,
 }
 
 type LocalsMap = HashMap<ScopeIndex, Slot>;
@@ -159,6 +161,7 @@ const EARLY_RETURN_FLAG_NAME: &str = "__$early_return_flag";
 type Result<T> = std::result::Result<T, RHDLError>;
 
 pub struct MirContext<'a> {
+    idents: Intern<String>,
     scopes: Vec<Scope>,
     ops: Vec<OpCodeWithSource>,
     reg_count: usize,
@@ -211,6 +214,7 @@ impl<'a> std::fmt::Display for MirContext<'a> {
 impl<'a> MirContext<'a> {
     fn new(spanned_source: &'a SpannedSource) -> Self {
         MirContext {
+            idents: Intern::default(),
             scopes: vec![Scope {
                 names: HashMap::new(),
                 children: vec![],
@@ -1249,8 +1253,7 @@ impl<'a> MirContext<'a> {
         Ok(Slot::Empty)
     }
     fn stmt(&mut self, statement: &Stmt) -> Result<Slot> {
-        let statement_as_ascii_tree = render_statement_to_string(statement)?;
-        let statement_text = statement_as_ascii_tree + &pretty_print_statement(statement)?;
+        let statement_text = pretty_print_statement(statement)?;
         self.op(op_comment(statement_text), statement.id);
         match &statement.kind {
             StmtKind::Local(local) => {

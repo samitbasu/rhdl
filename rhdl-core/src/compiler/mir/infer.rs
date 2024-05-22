@@ -12,13 +12,13 @@ use crate::{
         spec::{AluBinary, AluUnary, CaseArgument, OpCode, Slot},
         Object,
     },
-    ClockColor, Digital, Kind, TypedBits,
+    Digital, Kind, TypedBits,
 };
 
 use super::{
     error::{RHDLClockCoherenceViolation, RHDLCompileError, RHDLTypeError, TypeCheck, ICE},
     mir_impl::{Mir, TypeEquivalence},
-    ty::{ModificationState, TypeId, UnifyContext},
+    ty::{TypeId, UnifyContext},
 };
 #[derive(Debug, Clone)]
 pub struct TypeUnaryOp {
@@ -191,7 +191,7 @@ impl<'a> MirTypeInference<'a> {
     }
     fn import_type_declarations(&mut self) -> Result<()> {
         for (slot, ty) in &self.mir.ty {
-            let id = self.mir.symbols.slot_map[&slot].node;
+            let id = self.mir.symbols.slot_map[slot].node;
             let ty = self.ctx.from_kind(id, ty);
             self.slot_map.insert(*slot, ty);
         }

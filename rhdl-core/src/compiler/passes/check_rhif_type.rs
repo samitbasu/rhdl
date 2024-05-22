@@ -266,7 +266,6 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                 table,
             }) => {
                 let arg_ty = slot_type(expr)?;
-                let mut discriminants: HashSet<Vec<bool>> = Default::default();
                 for (entry_test, entry_body) in table {
                     eq_kinds(slot_type(lhs)?, slot_type(entry_body)?)?;
                     match entry_test {
