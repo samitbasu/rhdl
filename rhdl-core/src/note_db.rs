@@ -10,7 +10,7 @@
 //!
 //! ```
 //! use rhdl::{bits::bits, synchronous::{simulate, OneShot}};
-//! use rhdl_core::{note_init_db, note_take_vcd};
+//! use rhdl_core::{note_reset_db, note_take_vcd};
 //!
 //! // Simulate device
 //! let inputs = vec![false, true, false, false, false, false, false, false].into_iter();
@@ -25,9 +25,9 @@
 //! Use the notetaking functions outside of a simulation:
 //!
 //! ```
-//! use rhdl_core::{note, note_init_db, note_time, note_take_vcd};
+//! use rhdl_core::{note, note_reset_db, note_time, note_take_vcd};
 //! // Reset db
-//! note_init_db();
+//! note_reset_db();
 //!
 //! // Note some values
 //! note("a", false);
@@ -620,21 +620,21 @@ thread_local! {
 /// Reset the note database singleton:
 ///
 /// ```
-/// use rhdl_core::{note_init_db, note};
+/// use rhdl_core::{note_reset_db, note};
 ///
 /// // Note some values
 /// note("a", false);
 /// note("b", 6);
 ///
 /// // Reset the note database
-/// note_init_db();
+/// note_reset_db();
 ///
 /// // The note database is now empty again
 /// ```
 ///
 /// See [`note_db`](crate::note_db#examples) for more examples.
-pub fn note_init_db() {
-    DB.replace(NoteDB::default());
+pub fn note_reset_db() {
+    DB.take();
 }
 
 /// Add a path to path stack in the design hierarchy.
@@ -707,7 +707,7 @@ pub fn note(key: impl NoteKey, value: impl Notable) {
 
 /// Take and dump the note database singleton to a VCD file.
 ///
-/// This will dump the note database to a VCD file and replace it with a new empty note database. The VCD dump will contain all the values that have been noted since the last [`note_take_vcd`] or [`note_init_db`].
+/// This will dump the note database to a VCD file and replace it with a new empty note database. The VCD dump will contain all the values that have been noted since the last [`note_take_vcd`] or [`note_reset_db`].
 ///
 /// The `clocks` parameter can be used to add additional [`ClockDetails`] for reference.
 /// # Examples
@@ -733,7 +733,7 @@ pub fn note(key: impl NoteKey, value: impl Notable) {
 /// After calling `note_take_vcd`, the note database will be empty:
 ///
 /// ```
-/// use rhdl_core::{note, note_init_db, note_time, note_take_vcd};
+/// use rhdl_core::{note, note_reset_db, note_time, note_take_vcd};
 ///
 /// // Note some values
 /// note("a", false);
@@ -766,7 +766,7 @@ mod tests {
 
     #[test]
     fn test_vcd_write() {
-        note_init_db();
+        note_reset_db();
         for i in 0..1000 {
             note_time(i * 1000);
             note("a", i % 2 == 0);
@@ -904,7 +904,7 @@ mod tests {
             }
         }
 
-        note_init_db();
+        note_reset_db();
         note_time(0);
         note("a", Mixed::None);
         note_time(100);
@@ -931,7 +931,7 @@ mod tests {
 
     #[test]
     fn test_vcd_with_nested_paths() {
-        note_init_db();
+        note_reset_db();
         for i in 0..10 {
             note_time(i * 1000);
             note_push_path("fn1");

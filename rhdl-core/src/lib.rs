@@ -44,7 +44,7 @@ pub use codegen::verilog::generate_verilog;
 pub use codegen::verilog::VerilogModule;
 pub use compiler::compile_design;
 pub use note_db::note;
-pub use note_db::note_init_db;
+pub use note_db::note_reset_db;
 pub use note_db::note_pop_path;
 pub use note_db::note_push_path;
 pub use note_db::note_take_vcd;

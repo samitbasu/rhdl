@@ -9,9 +9,9 @@ use petgraph::dot::Dot;
 use rhdl_bits::alias::*;
 use rhdl_core::compile_design;
 use rhdl_core::note_db::note_time;
-use rhdl_core::note_init_db;
 use rhdl_core::note_pop_path;
 use rhdl_core::note_push_path;
+use rhdl_core::note_reset_db;
 use rhdl_core::note_take_vcd;
 use rhdl_core::Circuit;
 use rhdl_core::DigitalFn;
@@ -86,7 +86,7 @@ fn test_dff() {
     let clock = clock::clock();
     let data = (0..10).cycle();
     let inputs = clock.zip(data).map(|(clock, data)| DFFI { clock, data });
-    note_init_db();
+    note_reset_db();
     note_time(0);
     let dff = DFF::<u8>::default();
     let mut state = dff.init_state();
@@ -108,7 +108,7 @@ fn test_strobe() {
     let inputs = clock
         .zip(enable)
         .map(|(clock, enable)| StrobeI { clock, enable });
-    note_init_db();
+    note_reset_db();
     note_time(0);
     let strobe = Strobe::<8>::new(b8(5));
     let mut state = strobe.init_state();
@@ -166,7 +166,7 @@ fn main() {
     let inputs = clock
         .zip(enable)
         .map(|(clock, enable)| CounterI { clock, enable });
-    note_init_db();
+    note_reset_db();
     note_time(0);
     let counter = Counter::<8>::default();
     let mut state = counter.init_state();
@@ -190,7 +190,7 @@ fn test_timing_note() {
         B,
         C,
     };
-    note_init_db();
+    note_reset_db();
     note_time(0);
     let tic = Instant::now();
     for i in 0..1_000_000 {

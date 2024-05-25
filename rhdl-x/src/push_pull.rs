@@ -3,9 +3,9 @@ use rhdl_bits::alias::*;
 use rhdl_bits::Bits;
 use rhdl_core::circuit::circuit_impl::CircuitUpdateFn;
 use rhdl_core::note;
-use rhdl_core::note_init_db;
 use rhdl_core::note_pop_path;
 use rhdl_core::note_push_path;
+use rhdl_core::note_reset_db;
 use rhdl_core::note_take_vcd;
 use rhdl_core::note_time;
 use rhdl_core::root_descriptor;
@@ -423,7 +423,7 @@ fn test_simulate_push() {
     };
     let mut state = push.init_state();
     let mut io = <Push as Circuit>::Z::default();
-    note_init_db();
+    note_reset_db();
     note_time(0);
     note_push_path("top");
     for (ndx, input) in crate::clock::clock().take(1500).enumerate() {
@@ -599,7 +599,7 @@ fn test_simulate_push_pair() {
     };
     let mut state = push_pair.init_state();
     eprintln!("State: {:?}", state);
-    note_init_db();
+    note_reset_db();
     note_time(0);
     let mut io = <PushPair as Circuit>::Z::default();
     for (ndx, input) in crate::clock::clock().take(1500).enumerate() {

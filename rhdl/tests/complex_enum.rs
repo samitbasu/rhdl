@@ -1,6 +1,6 @@
 use rhdl_bits::alias::*;
 use rhdl_core::{
-    note, note_init_db, note_take_vcd, note_time,
+    note, note_reset_db, note_take_vcd, note_time,
     path::{Path, PathElement},
     Digital, Kind,
 };
@@ -203,7 +203,7 @@ fn test_documentation_svgs() {
 
 #[test]
 fn test_vcd_generation() {
-    note_init_db();
+    note_reset_db();
     note_time(0);
     note(
         "packet",
