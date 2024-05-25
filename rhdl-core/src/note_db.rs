@@ -1,3 +1,98 @@
+//! The note database is a log designed around time series of data values (like an oscilloscope). It can be exported to a VCD file.
+//!
+//! rhdl uses a global note database singleton to manage all the logged notes. You can access the singleton by using the functions provided by this module. The term _note_ refers to the value for a specific variable at a specific timestamp.
+//!
+//! Use [`note`] to log values to the note database. After you are done, call [`note_take_vcd`] to dump the note database to a [Value-Change Dump (VCD)](https://en.wikipedia.org/wiki/Value_change_dump) file and reset it.
+//!
+//! # Examples
+//!
+//! Dump the simulation of a synchronous module to a VCD file:
+//!
+//! ```
+//! use rhdl::{bits::bits, synchronous::{simulate, OneShot}};
+//! use rhdl_core::{note_reset_db, note_take_vcd};
+//!
+//! // Simulate device
+//! let inputs = vec![false, true, false, false, false, false, false, false].into_iter();
+//! let dut = OneShot::<26> { duration: bits(3) };
+//! simulate(dut, inputs).count();
+//!
+//! // Write notes to VCD file
+//! let mut vcd_file = std::fs::File::create("oneshot.vcd").unwrap();
+//! note_take_vcd(&[], &mut vcd_file).unwrap();
+//! ```
+//!
+//! Use the notetaking functions outside of a simulation:
+//!
+//! ```
+//! use rhdl_core::{note, note_reset_db, note_time, note_take_vcd};
+//! // Reset db
+//! note_reset_db();
+//!
+//! // Note some values
+//! note("a", false);
+//! note("b", 42);
+//! note_time(1000);
+//! note("a", true);
+//! note("b", 47);
+//!
+//! // Dump the note database to a VCD file
+//! let mut vcd_file = std::fs::File::create("dump.vcd").unwrap();
+//! note_take_vcd(&[], vcd_file).unwrap();
+//! ```
+//!
+//! Usage inside the kernel of a synchronous module:
+//!
+//! ```
+//! use rhdl::{kernel, Digital};
+//! use rhdl_core::{note, Synchronous};
+//!
+//! /// Adds the input to the sum of the previous inputs every clock cycle
+//! #[derive(Copy, Clone, PartialEq, Eq, Debug, Digital, Default)]
+//! struct SumAccumulator {}
+//!
+//! impl Synchronous for SumAccumulator {
+//!     type Input = u8;
+//!     type Output = u8;
+//!     type State = u8;
+//!     type Update = sum_accumulator_update;
+//!
+//!     const INITIAL_STATE: Self::State = 0;
+//!     const UPDATE: fn(Self, Self::State, Self::Input) -> (Self::State, Self::Output) =
+//!         sum_accumulator_update;
+//! }
+//!
+//! #[kernel]
+//! pub fn sum_accumulator_update(
+//!     _params: SumAccumulator,
+//!     state: u8,
+//!     input: u8,
+//! ) -> (u8, u8) {
+//!     // Take notes in the update function
+//!     note("input", input);
+//!     note("state", state);
+//!     let output = input + state;
+//!     note("output", output);
+//!     return (output, output);
+//! }
+//!
+//! #[cfg(test)]
+//! mod tests {
+//!     use rhdl::synchronous::simulate;
+//!     use rhdl_core::note_take_vcd;
+//!
+//!     use super::SumAccumulator;
+//!     #[test]
+//!     fn test_start_pulse_simulation() {
+//!         let inputs = vec![4, 6, 8, 12, 3].into_iter();
+//!         let dut = SumAccumulator {};
+//!         simulate(dut, inputs).count();
+//!
+//!         let mut vcd_file = std::fs::File::create("sum_accumulator.vcd").unwrap();
+//!         note_take_vcd(&[], &mut vcd_file).unwrap();
+//!     }
+//! }
+//! ```
 use crate::types::note::Notable;
 use crate::{ClockDetails, NoteKey, NoteWriter};
 use anyhow::bail;
@@ -5,13 +100,20 @@ use std::hash::Hash;
 use std::{cell::RefCell, hash::Hasher, io::Write};
 use vcd::IdCode;
 
+/// A timestamp in picoseconds since the start of the simulation.
+type Time = u64;
+
+/// A time series of values at different times.
 struct TimeSeries<T> {
-    values: Vec<(u64, T)>,
+    /// A list of time and value pairs.
+    values: Vec<(Time, T)>,
+    /// The width of the value in bits.
     width: u8,
 }
 
 impl<T> TimeSeries<T> {
-    fn new(time: u64, value: T, width: u8) -> Self {
+    /// Create a new time series with a single value.
+    fn new(time: Time, value: T, width: u8) -> Self {
         Self {
             values: vec![(time, value)],
             width,
@@ -159,7 +261,7 @@ impl TimeSeries<Tristate> {
 }
 
 impl<T: PartialEq> TimeSeries<T> {
-    fn push(&mut self, time: u64, value: T, width: u8) {
+    fn push(&mut self, time: Time, value: T, width: u8) {
         if let Some((_last_time, last_value)) = self.values.last() {
             if *last_value == value {
                 return;
@@ -201,20 +303,30 @@ fn bits_to_vcd(x: u128, width: usize, buffer: &mut [u8]) {
     })
 }
 
+/// A log for hardware designs that is designed around time series of data values (like an oscilloscope) than a text journal of log entries.
+///
+/// It keeps track of the module that is currently being noted, the current time, and the values of all time series.
+///
+/// rhdl uses a global note database singleton to store all the notes. You can access this singleton using the functions exported by [`crate::note_db``].
 #[derive(Default)]
-pub struct NoteDB {
+struct NoteDB {
+    /// The names for each time series of values.
+    details: fnv::FnvHashMap<String, TimeSeriesDetails>,
+    /// The picoseconds since start of the simulation.
+    time: Time,
+    /// The current path in the design hierarchy.
+    ///
+    /// The current value will be prepended to all noted keys. Can be adjusted with [`push_path`] and [`pop_path`]. The main idea is to push the current module name before noting values in that module, so that the VCD dump will have the full path to the signal.
+    path: Vec<&'static str>,
     db_bool: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<bool>>,
     db_bits: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<u128>>,
     db_signed: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<i128>>,
     db_string: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<&'static str>>,
     db_tristate: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<Tristate>>,
-    details: fnv::FnvHashMap<String, TimeSeriesDetails>,
-    path: Vec<&'static str>,
-    time: u64,
 }
 
 struct Cursor {
-    next_time: Option<u64>,
+    next_time: Option<Time>,
     hash: TimeSeriesHash,
     kind: TimeSeriesKind,
     ptr: usize,
@@ -222,6 +334,7 @@ struct Cursor {
     code_as_bytes: Vec<u8>,
 }
 
+/// Represents the possible value types of a time series.
 #[derive(Copy, Clone, Debug)]
 enum TimeSeriesKind {
     Bool,
@@ -231,6 +344,7 @@ enum TimeSeriesKind {
     Tristate,
 }
 
+/// Implementation for writing notes to the [`NoteDB`].
 impl NoteWriter for NoteDB {
     fn write_bool(&mut self, key: impl NoteKey, value: bool) {
         self.note_bool(key, value);
@@ -254,9 +368,11 @@ impl NoteWriter for NoteDB {
 }
 
 impl NoteDB {
+    /// See [`note_push_path`].
     fn push_path(&mut self, name: &'static str) {
         self.path.push(name);
     }
+    /// See [`note_pop_path`].
     fn pop_path(&mut self) {
         self.path.pop();
     }
@@ -421,7 +537,8 @@ impl NoteDB {
         }
     }
 
-    pub fn dump_vcd<W: Write>(&self, clocks: &[ClockDetails], w: W) -> anyhow::Result<()> {
+    /// See [`note_take_vcd`].
+    fn dump_vcd<W: Write>(&self, clocks: &[ClockDetails], w: W) -> anyhow::Result<()> {
         let mut writer = vcd::Writer::new(w);
         writer.timescale(1, vcd::TimescaleUnit::PS)?;
         writer.add_module("top")?;
@@ -488,51 +605,153 @@ impl NoteDB {
 }
 
 thread_local! {
-    static DB: RefCell<Option<NoteDB>> = RefCell::new(None);
+    /// The note database singleton.
+    ///
+    /// It will get initialized when you first use any of the [`note`] functions.
+    ///
+    /// Use the [`note_take_vcd`] function to get the database and dump it to a VCD file.
+    static DB: RefCell<NoteDB> = RefCell::new(NoteDB::default());
 }
 
-pub fn note_init_db() {
-    DB.replace(Some(NoteDB::default()));
+/// Reset the note database singleton to an empty state.
+///
+/// # Examples
+///
+/// Reset the note database singleton:
+///
+/// ```
+/// use rhdl_core::{note_reset_db, note};
+///
+/// // Note some values
+/// note("a", false);
+/// note("b", 6);
+///
+/// // Reset the note database
+/// note_reset_db();
+///
+/// // The note database is now empty again
+/// ```
+///
+/// See [`note_db`](crate::note_db#examples) for more examples.
+pub fn note_reset_db() {
+    DB.take();
 }
 
+/// Add a path to path stack in the design hierarchy.
+///
+/// The current path stack will be prepended to all noted keys.
+///
+/// If you are implementing [`crate::Circuit`] yourself, this should be called in the [`crate::Circuit::sim`] method, before calling sim on a child circuit. Remember to call [`note_pop_path`] to remove the path from the stack after simulating the child circuits.
 pub fn note_push_path(name: &'static str) {
     DB.with(|db| {
         let mut db = db.borrow_mut();
-        if let Some(db) = db.as_mut() {
-            db.push_path(name)
-        }
+        db.push_path(name);
     });
 }
 
+/// Remove a path from the path stack in the design hierarchy.
+///
+/// See [`note_push_path`] for more information.
 pub fn note_pop_path() {
     DB.with(|db| {
         let mut db = db.borrow_mut();
-        if let Some(db) = db.as_mut() {
-            db.pop_path()
-        }
+        db.pop_path();
     });
 }
 
-pub fn note_time(time: u64) {
+/// Set the current time.
+///
+/// The time that will be used for all notes written after this call.
+pub fn note_time(time: Time) {
     DB.with(|db| {
         let mut db = db.borrow_mut();
-        if let Some(db) = db.as_mut() {
-            db.time = time
-        }
+        db.time = time;
     });
 }
 
+/// Write a value for the key at the current time to the note database singleton.
+///
+/// The current path prefix (See [`note_push_path`], and [`note_pop_path`]) will be prepended to the key.
+///
+/// # Examples
+///
+/// Note a value for `input` to the note database singleton
+///
+/// ```
+/// use rhdl_core::{note};
+///
+/// note("input", 5);
+/// ```
+///
+/// Logging in a kernel:
+///
+/// ```
+/// use rhdl::kernel;
+/// use rhdl_core::note;
+///
+/// #[kernel]
+/// fn adder(a: u8, b: u8) -> u8 {
+///     note("a", a);
+///     note("b", b);
+///     return a + b;
+/// }
+/// ```
+///
+/// See [`note_db`](crate::note_db#examples) for more examples.
 pub fn note(key: impl NoteKey, value: impl Notable) {
     DB.with(|db| {
-        let mut db = db.borrow_mut();
-        if let Some(db) = db.as_mut() {
-            value.note(key, db)
-        }
+        let db: &mut NoteDB = &mut db.borrow_mut();
+        value.note(key, db);
     });
 }
 
-pub fn note_take() -> Option<NoteDB> {
-    DB.with(|db| db.borrow_mut().take())
+/// Take and dump the note database singleton to a VCD file.
+///
+/// This will dump the note database to a VCD file and replace it with a new empty note database. The VCD dump will contain all the values that have been noted since the last [`note_take_vcd`] or [`note_reset_db`].
+///
+/// The `clocks` parameter can be used to add additional [`ClockDetails`] for reference.
+/// # Examples
+///
+/// Dump the current note database to a VCD file:
+///
+/// ```
+/// use rhdl_core::{note_take_vcd};
+///
+/// let mut vcd_file = std::fs::File::create("dump.vcd").unwrap();
+/// note_take_vcd(&[], vcd_file).unwrap();
+/// ```
+///
+/// Dump VCD into a buffer:
+///
+/// ```
+/// use rhdl_core::{note_take_vcd};
+///
+/// let mut vcd_content = vec![];
+/// note_take_vcd(&[], &mut vcd_content).unwrap();
+/// ```
+///
+/// After calling `note_take_vcd`, the note database will be empty:
+///
+/// ```
+/// use rhdl_core::{note, note_reset_db, note_time, note_take_vcd};
+///
+/// // Note some values
+/// note("a", false);
+/// note("b", 5);
+///
+/// // This will create a VCD file with the notes
+/// let mut vcd_file = std::fs::File::create("dump.vcd").unwrap();
+/// note_take_vcd(&[], vcd_file).unwrap();
+///
+/// // This will now create an empty VCD file
+/// let mut vcd_file = std::fs::File::create("dump.vcd").unwrap();
+/// note_take_vcd(&[], vcd_file).unwrap();
+/// ```
+///
+/// See [`note_db`](crate::note_db#examples) for more examples.
+pub fn note_take_vcd<W: Write>(clocks: &[ClockDetails], writer: W) -> anyhow::Result<()> {
+    let db = DB.take();
+    db.dump_vcd(clocks, writer)
 }
 
 #[cfg(test)]
@@ -547,16 +766,15 @@ mod tests {
 
     #[test]
     fn test_vcd_write() {
-        note_init_db();
+        note_reset_db();
         for i in 0..1000 {
             note_time(i * 1000);
             note("a", i % 2 == 0);
             note("b", i % 2 == 1);
         }
         let mut vcd = vec![];
-        let db = note_take().unwrap();
         let clock = ClockDetails::new("clk", 5, 0, false);
-        db.dump_vcd(&[clock], &mut vcd).unwrap();
+        note_take_vcd(&[clock], &mut vcd).unwrap();
         std::fs::write("test.vcd", vcd).unwrap();
     }
 
@@ -686,7 +904,7 @@ mod tests {
             }
         }
 
-        note_init_db();
+        note_reset_db();
         note_time(0);
         note("a", Mixed::None);
         note_time(100);
@@ -707,14 +925,13 @@ mod tests {
 
         let clock = ClockDetails::new("clk", 100, 0, false);
         let mut vcd = vec![];
-        let db = note_take().unwrap();
-        db.dump_vcd(&[clock], &mut vcd).unwrap();
+        note_take_vcd(&[clock], &mut vcd).unwrap();
         std::fs::write("test_enum.vcd", vcd).unwrap();
     }
 
     #[test]
     fn test_vcd_with_nested_paths() {
-        note_init_db();
+        note_reset_db();
         for i in 0..10 {
             note_time(i * 1000);
             note_push_path("fn1");
@@ -726,8 +943,7 @@ mod tests {
         }
         let mut vcd = vec![];
         let clock = ClockDetails::new("clk", 500, 0, false);
-        let db = note_take().unwrap();
-        db.dump_vcd(&[clock], &mut vcd).unwrap();
+        note_take_vcd(&[clock], &mut vcd).unwrap();
         std::fs::write("test_nested_paths.vcd", vcd).unwrap();
     }
 }

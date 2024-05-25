@@ -1,11 +1,9 @@
-// Essentially like a log for hardware designs that is designed more
-// around time series of data values (like an oscilloscope) than a
-// text journal of log entries.  The use of the name `note` is to
-// suggest that it is _like_ a log, but not quite the same thing.
-// The user can _also_ use regular log stuff if they want.
-
+//! Traits used for logging values for debugging.
+//!
+//! See the [`crate::note_db`] module for more information on the logging system.
 use std::hash::Hash;
 
+/// Provides methods for logging key value pairs at the current simulation time.
 pub trait NoteWriter {
     fn write_bool(&mut self, key: impl NoteKey, value: bool);
     fn write_bits(&mut self, key: impl NoteKey, value: u128, size: u8);
@@ -32,22 +30,28 @@ impl<T: NoteWriter> NoteWriter for &mut T {
     }
 }
 
+/// A value that can be used as a signal name in the vcd dump.
+///
+/// Used by the [`note`](crate::note) function.
 pub trait NoteKey: Clone + Copy + Hash {
     fn as_string(&self) -> String;
 }
 
+/// A static string be used as is
 impl NoteKey for &'static str {
     fn as_string(&self) -> String {
         self.to_string()
     }
 }
 
+/// Numbers are converted to strings
 impl NoteKey for usize {
     fn as_string(&self) -> String {
         format!("{}", self)
     }
 }
 
+/// String arrays are be joined with `::`
 impl NoteKey for &[&'static str] {
     fn as_string(&self) -> String {
         self.iter()
@@ -57,13 +61,18 @@ impl NoteKey for &[&'static str] {
     }
 }
 
+/// Tuples of NoteKeys are joined with `::`
 impl<T: NoteKey, U: NoteKey> NoteKey for (T, U) {
     fn as_string(&self) -> String {
         format!("{}::{}", self.0.as_string(), self.1.as_string())
     }
 }
 
+/// A value that can be logged to a [`NoteWriter`].
+///
+/// Used by the [`note`](crate::note) function.
 pub trait Notable {
+    /// Write this value to the note writer. The key is used to identify the value.
     fn note(&self, key: impl NoteKey, writer: impl NoteWriter);
 }
 

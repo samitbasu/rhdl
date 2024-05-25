@@ -7,7 +7,7 @@ use rhdl_core::{
     kernel::{self, Kernel},
     note,
     note_db::note_time,
-    note_init_db, note_take,
+    note_reset_db, note_take_vcd,
     path::{bit_range, Path},
     rhif::vm::execute_function,
     test_kernel_vm_and_verilog, Digital, KernelFnKind, Kind,
@@ -25,7 +25,7 @@ fn test_vcd_enum() {
         C(bool),
     }
 
-    note_init_db();
+    note_reset_db();
     note_time(0);
     note("enum", Enum::None);
     note("color", bits::<8>(0b10101010));
@@ -46,7 +46,7 @@ fn test_vcd_enum() {
     note_time(8_000);
     note("enum", Enum::None);
     let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
-    note_take().unwrap().dump_vcd(&[], &mut vcd_file).unwrap();
+    note_take_vcd(&[], &mut vcd_file).unwrap();
 }
 
 #[test]
@@ -61,7 +61,7 @@ fn test_vcd_basic() {
         a: true,
         b: Bits::from(0b10101010),
     };
-    note_init_db();
+    note_reset_db();
     note_time(0);
     note("simple", simple);
     note_time(1_000);
@@ -73,7 +73,7 @@ fn test_vcd_basic() {
     note_time(2_000);
     note("simple", simple);
     let mut vcd_file = std::fs::File::create("test.vcd").unwrap();
-    note_take().unwrap().dump_vcd(&[], &mut vcd_file).unwrap();
+    note_take_vcd(&[], &mut vcd_file).unwrap();
 }
 
 #[test]
@@ -189,7 +189,7 @@ fn test_derive_digital_complex_enum() {
     println!("foo val: {}", foo_2.binary_string());
 
     let foo_3 = Test::A;
-    note_init_db();
+    note_reset_db();
     note_time(0);
     note("test", foo_1);
     note_time(1_000);
@@ -199,7 +199,7 @@ fn test_derive_digital_complex_enum() {
     note_time(3_000);
     note("test", foo_1);
     let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
-    note_take().unwrap().dump_vcd(&[], &mut vcd_file).unwrap();
+    note_take_vcd(&[], &mut vcd_file).unwrap();
 }
 
 #[test]
