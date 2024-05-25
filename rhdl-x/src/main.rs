@@ -12,7 +12,7 @@ use rhdl_core::note_db::note_time;
 use rhdl_core::note_init_db;
 use rhdl_core::note_pop_path;
 use rhdl_core::note_push_path;
-use rhdl_core::note_take;
+use rhdl_core::note_take_vcd;
 use rhdl_core::Circuit;
 use rhdl_core::DigitalFn;
 use rhdl_core::HDLKind;
@@ -97,9 +97,8 @@ fn test_dff() {
         let output = dff.sim(input, &mut state, &mut io);
         note("output", output);
     }
-    let db = note_take();
     let dff = std::fs::File::create("dff.vcd").unwrap();
-    db.dump_vcd(&[], dff).unwrap();
+    note_take_vcd(&[], dff).unwrap();
 }
 
 #[test]
@@ -120,9 +119,8 @@ fn test_strobe() {
         let output = strobe.sim(input, &mut state, &mut io);
         note("output", output);
     }
-    let db = note_take();
     let strobe = std::fs::File::create("strobe.vcd").unwrap();
-    db.dump_vcd(&[], strobe).unwrap();
+    note_take_vcd(&[], strobe).unwrap();
 }
 
 #[test]
@@ -179,9 +177,8 @@ fn main() {
         let output = counter.sim(input, &mut state, &mut io);
         note("output", output);
     }
-    let db = note_take();
     let dff = std::fs::File::create("counter.vcd").unwrap();
-    db.dump_vcd(&[], dff).unwrap();
+    note_take_vcd(&[], dff).unwrap();
 }
 
 #[test]

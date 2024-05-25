@@ -1,6 +1,6 @@
 use rhdl_bits::alias::*;
 use rhdl_core::{
-    note, note_init_db, note_take, note_time,
+    note, note_init_db, note_take_vcd, note_time,
     path::{Path, PathElement},
     Digital, Kind,
 };
@@ -241,5 +241,5 @@ fn test_vcd_generation() {
     note_time(6_000);
     note("packet", Packet::State(State::Running));
     let mut vcd_file = std::fs::File::create("packet.vcd").unwrap();
-    note_take().dump_vcd(&[], vcd_file).unwrap();
+    note_take_vcd(&[], vcd_file).unwrap();
 }

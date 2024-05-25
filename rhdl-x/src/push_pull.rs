@@ -6,7 +6,7 @@ use rhdl_core::note;
 use rhdl_core::note_init_db;
 use rhdl_core::note_pop_path;
 use rhdl_core::note_push_path;
-use rhdl_core::note_take;
+use rhdl_core::note_take_vcd;
 use rhdl_core::note_time;
 use rhdl_core::root_descriptor;
 use rhdl_core::root_hdl;
@@ -439,9 +439,8 @@ fn test_simulate_push() {
         note("bus", io);
     }
     note_pop_path();
-    let db = note_take();
     let push = std::fs::File::create("push.vcd").unwrap();
-    db.dump_vcd(&[], push).unwrap();
+    note_take_vcd(&[], push).unwrap();
 }
 
 /*
@@ -619,9 +618,8 @@ fn test_simulate_push_pair() {
         }
         note("bus", io);
     }
-    let db = note_take();
     let push = std::fs::File::create("push_pair.vcd").unwrap();
-    db.dump_vcd(&[], push).unwrap();
+    note_take_vcd(&[], push).unwrap();
 }
 
 pub fn fold_zbus(buf: &mut PushPairZ) {

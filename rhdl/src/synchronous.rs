@@ -16,7 +16,7 @@ use rhdl_bits::{bits, Bits};
 use rhdl_core::ast::ast_impl::KernelFn;
 //use rhdl_core::diagnostic::report::show_source_detail;
 use rhdl_core::{
-    compile_design, generate_verilog, note, note_init_db, note_take, note_time,
+    compile_design, generate_verilog, note, note_init_db, note_take_vcd, note_time,
     test_module::TestModule, Digital, DigitalFn,
 };
 use rhdl_core::{KernelFnKind, Synchronous, UpdateFn};
@@ -283,7 +283,7 @@ fn test_strobe_simulation() {
     let outputs = simulate(strobe, enable).filter(|x| *x).count();
     eprintln!("outputs: {}, elapsed {:?}", outputs, now.elapsed());
     let mut vcd_file = std::fs::File::create("strobe.vcd").unwrap();
-    note_take().dump_vcd(&[], &mut vcd_file).unwrap();
+    note_take_vcd(&[], &mut vcd_file).unwrap();
 }
 
 #[test]
@@ -294,7 +294,7 @@ fn test_start_pulse_simulation() {
     let outputs = simulate(pulse, input).filter(|x| *x).count();
     assert_eq!(outputs, 1);
     let mut vcd_file = std::fs::File::create("start_pulse.vcd").unwrap();
-    note_take().dump_vcd(&[], &mut vcd_file).unwrap();
+    note_take_vcd(&[], &mut vcd_file).unwrap();
 }
 
 #[test]
@@ -307,7 +307,7 @@ fn test_one_shot_simulation() {
     note_init_db();
     let outputs = simulate(one_shot, input).filter(|x| *x).count();
     let mut vcd_file = std::fs::File::create("one_shot.vcd").unwrap();
-    note_take().dump_vcd(&[], &mut vcd_file).unwrap();
+    note_take_vcd(&[], &mut vcd_file).unwrap();
 }
 
 #[test]
@@ -320,7 +320,7 @@ fn test_pulser_simulation() {
     note_init_db();
     let outputs = simulate(pulser, input).filter(|x| *x).count();
     let mut vcd_file = std::fs::File::create("pulser.vcd").unwrap();
-    note_take().dump_vcd(&[], &mut vcd_file).unwrap();
+    note_take_vcd(&[], &mut vcd_file).unwrap();
 }
 
 #[test]
