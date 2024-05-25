@@ -46,7 +46,7 @@ fn test_vcd_enum() {
     note_time(8_000);
     note("enum", Enum::None);
     let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
-    note_take().unwrap().dump_vcd(&[], &mut vcd_file).unwrap();
+    note_take().dump_vcd(&[], &mut vcd_file).unwrap();
 }
 
 #[test]
@@ -73,7 +73,7 @@ fn test_vcd_basic() {
     note_time(2_000);
     note("simple", simple);
     let mut vcd_file = std::fs::File::create("test.vcd").unwrap();
-    note_take().unwrap().dump_vcd(&[], &mut vcd_file).unwrap();
+    note_take().dump_vcd(&[], &mut vcd_file).unwrap();
 }
 
 #[test]
@@ -199,7 +199,7 @@ fn test_derive_digital_complex_enum() {
     note_time(3_000);
     note("test", foo_1);
     let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
-    note_take().unwrap().dump_vcd(&[], &mut vcd_file).unwrap();
+    note_take().dump_vcd(&[], &mut vcd_file).unwrap();
 }
 
 #[test]

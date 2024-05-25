@@ -439,7 +439,7 @@ fn test_simulate_push() {
         note("bus", io);
     }
     note_pop_path();
-    let db = note_take().unwrap();
+    let db = note_take();
     let push = std::fs::File::create("push.vcd").unwrap();
     db.dump_vcd(&[], push).unwrap();
 }
@@ -619,7 +619,7 @@ fn test_simulate_push_pair() {
         }
         note("bus", io);
     }
-    let db = note_take().unwrap();
+    let db = note_take();
     let push = std::fs::File::create("push_pair.vcd").unwrap();
     db.dump_vcd(&[], push).unwrap();
 }

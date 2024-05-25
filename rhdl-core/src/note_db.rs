@@ -2,7 +2,7 @@
 //!
 //! rhdl's notetaking system is designed around a note database singleton which can be accessed using the functions provided by this module. The term _note_ refers to the value for a specific variable at a specific timestamp.
 //!
-//! First you should use the [`note_init_db`] function to initialize the global note database. Then you can use [`note`] to add values. After you are done, call [`note_take`] to get the note database and dump it to a [Value-Change Dump (VCD)](https://en.wikipedia.org/wiki/Value_change_dump) file.
+//! Use [`note`] to log values to the note database. After you are done, call [`note_take`] to get the note database and dump it to a [Value-Change Dump (VCD)](https://en.wikipedia.org/wiki/Value_change_dump) file.
 //!
 //! # Examples
 //!
@@ -11,8 +11,6 @@
 //! ```
 //! use rhdl::{bits::bits, synchronous::{simulate, OneShot}};
 //! use rhdl_core::{note_init_db, note_take};
-//! // Reset db
-//! note_init_db();
 //!
 //! // Simulate device
 //! let inputs = vec![false, true, false, false, false, false, false, false].into_iter();
@@ -21,7 +19,7 @@
 //!
 //! // Write notes to VCD file
 //! let mut vcd_file = std::fs::File::create("oneshot.vcd").unwrap();
-//! note_take().unwrap().dump_vcd(&[], &mut vcd_file).unwrap();
+//! note_take().dump_vcd(&[], &mut vcd_file).unwrap();
 //! ```
 //!
 //! Use the notetaking functions outside of a simulation:
@@ -40,7 +38,7 @@
 //!
 //! // Dump the note database to a VCD file
 //! let mut vcd_file = std::fs::File::create("dump.vcd").unwrap();
-//! note_take().unwrap().dump_vcd(&[], vcd_file).unwrap();
+//! note_take().dump_vcd(&[], vcd_file).unwrap();
 //! ```
 //!
 //! Usage inside the kernel of a synchronous module:
@@ -81,19 +79,17 @@
 //! #[cfg(test)]
 //! mod tests {
 //!     use rhdl::synchronous::simulate;
-//!     use rhdl_core::{note_init_db, note_take};
+//!     use rhdl_core::note_take;
 //!
 //!     use super::SumAccumulator;
 //!     #[test]
 //!     fn test_start_pulse_simulation() {
-//!         note_init_db();
-//!
 //!         let inputs = vec![4, 6, 8, 12, 3].into_iter();
 //!         let dut = SumAccumulator {};
 //!         simulate(dut, inputs).count();
 //!
 //!         let mut vcd_file = std::fs::File::create("sum_accumulator.vcd").unwrap();
-//!         note_take().unwrap().dump_vcd(&[], &mut vcd_file).unwrap();
+//!         note_take().dump_vcd(&[], &mut vcd_file).unwrap();
 //!     }
 //! }
 //! ```
@@ -318,13 +314,14 @@ fn bits_to_vcd(x: u128, width: usize, buffer: &mut [u8]) {
 /// Dump the note database to a VCD file:
 ///
 /// ```
-/// # // Hidden, because the example assumes, you initialized the note database somewhere else
-/// # use rhdl_core::{note_init_db};
-/// # note_init_db();
-/// use rhdl_core::{note_take};
+/// use rhdl_core::{note_take, note};
+///
+/// // Write some notes
+/// note("a", false);
+/// note("b", 42);
 ///
 /// // Get the note database singleton
-/// let db = note_take().unwrap();
+/// let db = note_take();
 ///
 /// // Write the note database to a VCD file
 /// db.dump_vcd(&[], std::fs::File::create("dump.vcd").unwrap()).unwrap();
@@ -571,21 +568,19 @@ impl NoteDB {
     /// Dump the current state of the note database to a VCD file:
     ///
     /// ```
-    /// # use rhdl_core::{note_take, note_init_db};
-    /// # note_init_db();
-    /// #
+    /// use rhdl_core::{note_take};
+    ///
     /// let mut vcd_file = std::fs::File::create("dump.vcd").unwrap();
-    /// note_take().unwrap().dump_vcd(&[], vcd_file).unwrap();
+    /// note_take().dump_vcd(&[], vcd_file).unwrap();
     /// ```
     ///
     /// Dump VCD into a buffer:
     ///
     /// ```
-    /// # use rhdl_core::{note_take, note_init_db};
-    /// # note_init_db();
-    /// #
+    /// use rhdl_core::{note_take};
+    ///
     /// let mut vcd_content = vec![];
-    /// note_take().unwrap().dump_vcd(&[], &mut vcd_content).unwrap();
+    /// note_take().dump_vcd(&[], &mut vcd_content).unwrap();
     /// ```
     // TODO: Create a `note_dump_vcd` function to make this more ergonomic.
     pub fn dump_vcd<W: Write>(&self, clocks: &[ClockDetails], w: W) -> anyhow::Result<()> {
@@ -657,32 +652,20 @@ impl NoteDB {
 thread_local! {
     /// The note database singleton.
     ///
-    /// This is where all the traces are stored when using the [`note`] function.
+    /// It will get initialized when you first use any of the [`note`] functions.
     ///
-    /// Access this using the [`note_take`] function to get the database and dump it to a VCD file.
-    static DB: RefCell<Option<NoteDB>> = RefCell::new(None);
+    /// Use the [`note_take`] function to get the database and dump it to a VCD file.
+    static DB: RefCell<NoteDB> = RefCell::new(NoteDB::default());
 }
 
-/// Initialize/Reset the note database singleton.
-///
-/// After calling this function you can write notes using [`note`]. When you are done, you can take the note database using [`note_take`].
+/// Reset the note database singleton to an empty state.
 ///
 /// # Examples
-///
-/// Initialize the note database singleton:
-///
-/// ```
-/// use rhdl_core::{note_init_db};
-///
-/// note_init_db();
-/// ```
 ///
 /// Reset the note database singleton:
 ///
 /// ```
 /// use rhdl_core::{note_init_db, note};
-///
-/// note_init_db();
 ///
 /// // Note some values
 /// note("a", false);
@@ -696,7 +679,7 @@ thread_local! {
 ///
 /// See [`note_db`](crate::note_db#examples) for more examples.
 pub fn note_init_db() {
-    DB.replace(Some(NoteDB::default()));
+    DB.replace(NoteDB::default());
 }
 
 /// Add a path to path stack in the design hierarchy.
@@ -707,9 +690,7 @@ pub fn note_init_db() {
 pub fn note_push_path(name: &'static str) {
     DB.with(|db| {
         let mut db = db.borrow_mut();
-        if let Some(db) = db.as_mut() {
-            db.push_path(name)
-        }
+        db.push_path(name);
     });
 }
 
@@ -719,9 +700,7 @@ pub fn note_push_path(name: &'static str) {
 pub fn note_pop_path() {
     DB.with(|db| {
         let mut db = db.borrow_mut();
-        if let Some(db) = db.as_mut() {
-            db.pop_path()
-        }
+        db.pop_path();
     });
 }
 
@@ -731,15 +710,11 @@ pub fn note_pop_path() {
 pub fn note_time(time: Time) {
     DB.with(|db| {
         let mut db = db.borrow_mut();
-        if let Some(db) = db.as_mut() {
-            db.time = time
-        }
+        db.time = time;
     });
 }
 
 /// Write a value for the key at the current time to the note database singleton.
-///
-/// You should have initialized the note database [`note_init_db`] before calling this function.
 ///
 /// The current path prefix (See [`note_push_path`], and [`note_pop_path`]) will be prepended to the key.
 ///
@@ -756,8 +731,8 @@ pub fn note_time(time: Time) {
 /// Logging in a kernel:
 ///
 /// ```
-/// use rhdl::{kernel};
-/// use rhdl_core::{note, note_init_db, note_take};
+/// use rhdl::kernel;
+/// use rhdl_core::note;
 ///
 /// #[kernel]
 /// fn adder(a: u8, b: u8) -> u8 {
@@ -770,58 +745,47 @@ pub fn note_time(time: Time) {
 /// See [`note_db`](crate::note_db#examples) for more examples.
 pub fn note(key: impl NoteKey, value: impl Notable) {
     DB.with(|db| {
-        let mut db = db.borrow_mut();
-        if let Some(db) = db.as_mut() {
-            value.note(key, db)
-        }
+        let db: &mut NoteDB = &mut db.borrow_mut();
+        value.note(key, db);
     });
 }
 
 /// Take the note database singleton.
 ///
-/// This will leave the database singleton unset, you need to call [`note_init_db`] after this before noting more values.
+/// This will return the current note database and replace it with a new empty note database.
 ///
 /// # Examples
 ///
 /// Take the note database singleton and dump it to a VCD file.
 ///
 /// ```
-/// # // Hidden, because the example assumes, you initialized the note database somewhere else
-/// # use rhdl_core::{note_init_db};
-/// # note_init_db();
 /// use rhdl_core::{note_take};
 ///
 /// let mut vcd_file = std::fs::File::create("dump.vcd").unwrap();
-/// note_take().unwrap().dump_vcd(&[], vcd_file).unwrap();
+/// note_take().dump_vcd(&[], vcd_file).unwrap();
 /// ```
 ///
-/// Remember to call [`note_init_db`] again after taking the database.
+/// After calling note take, the note database will be empty:
 ///
-/// ```should_panic
+/// ```
 /// use rhdl_core::{note, note_init_db, note_time, note_take};
+///
+/// // Note some values
+/// note("a", false);
+/// note("b", 5);
 ///
 /// // Dump the note database to a VCD file
 /// let mut vcd_file = std::fs::File::create("dump.vcd").unwrap();
-/// note_take().unwrap().dump_vcd(&[], vcd_file).unwrap();
+/// note_take().dump_vcd(&[], vcd_file).unwrap();
 ///
-/// // Forget to call note_init_db again
-/// // note_init_db();
-///
-/// // Try to note some values
-/// note("a", false);
-/// note_time(1000);
-/// note("a", true);
-/// note_time(2000);
-/// note("a", false);
-///
-/// // Panic, because the note database is not initialized
+/// // This will create an empty VCD file
 /// let mut vcd_file = std::fs::File::create("dump.vcd").unwrap();
-/// note_take().unwrap().dump_vcd(&[], vcd_file).unwrap();
+/// note_take().dump_vcd(&[], vcd_file).unwrap();
 /// ```
 ///
 /// See [`note_db`](crate::note_db#examples) for more examples.
-pub fn note_take() -> Option<NoteDB> {
-    DB.with(|db| db.borrow_mut().take())
+pub fn note_take() -> NoteDB {
+    DB.replace(NoteDB::default())
 }
 
 #[cfg(test)]
@@ -843,7 +807,7 @@ mod tests {
             note("b", i % 2 == 1);
         }
         let mut vcd = vec![];
-        let db = note_take().unwrap();
+        let db = note_take();
         let clock = ClockDetails::new("clk", 5, 0, false);
         db.dump_vcd(&[clock], &mut vcd).unwrap();
         std::fs::write("test.vcd", vcd).unwrap();
@@ -996,7 +960,7 @@ mod tests {
 
         let clock = ClockDetails::new("clk", 100, 0, false);
         let mut vcd = vec![];
-        let db = note_take().unwrap();
+        let db = note_take();
         db.dump_vcd(&[clock], &mut vcd).unwrap();
         std::fs::write("test_enum.vcd", vcd).unwrap();
     }
@@ -1015,7 +979,7 @@ mod tests {
         }
         let mut vcd = vec![];
         let clock = ClockDetails::new("clk", 500, 0, false);
-        let db = note_take().unwrap();
+        let db = note_take();
         db.dump_vcd(&[clock], &mut vcd).unwrap();
         std::fs::write("test_nested_paths.vcd", vcd).unwrap();
     }

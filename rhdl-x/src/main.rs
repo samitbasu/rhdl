@@ -97,7 +97,7 @@ fn test_dff() {
         let output = dff.sim(input, &mut state, &mut io);
         note("output", output);
     }
-    let db = note_take().unwrap();
+    let db = note_take();
     let dff = std::fs::File::create("dff.vcd").unwrap();
     db.dump_vcd(&[], dff).unwrap();
 }
@@ -120,7 +120,7 @@ fn test_strobe() {
         let output = strobe.sim(input, &mut state, &mut io);
         note("output", output);
     }
-    let db = note_take().unwrap();
+    let db = note_take();
     let strobe = std::fs::File::create("strobe.vcd").unwrap();
     db.dump_vcd(&[], strobe).unwrap();
 }
@@ -179,7 +179,7 @@ fn main() {
         let output = counter.sim(input, &mut state, &mut io);
         note("output", output);
     }
-    let db = note_take().unwrap();
+    let db = note_take();
     let dff = std::fs::File::create("counter.vcd").unwrap();
     db.dump_vcd(&[], dff).unwrap();
 }
