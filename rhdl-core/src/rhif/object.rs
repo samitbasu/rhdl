@@ -28,6 +28,7 @@ pub struct SymbolMap {
     pub source: SpannedSource,
     pub slot_map: BTreeMap<Slot, SourceLocation>,
     pub opcode_map: Vec<SourceLocation>,
+    pub slot_names: BTreeMap<Slot, String>,
 }
 
 impl SymbolMap {
@@ -90,8 +91,14 @@ impl std::fmt::Display for Object {
         writeln!(f, "  fn_id {}", self.fn_id)?;
         writeln!(f, "  return_slot {}", self.return_slot)?;
         for regs in self.kind.keys() {
+            let slot_name = self
+                .symbols
+                .slot_names
+                .get(regs)
+                .map(|s| s.as_str())
+                .unwrap_or("");
             if let Slot::Register(ndx) = regs {
-                writeln!(f, "Reg r{} : {}", ndx, self.kind[regs])?;
+                writeln!(f, "Reg r{} : {} // {}", ndx, self.kind[regs], slot_name)?;
             }
         }
         for (slot, literal) in self.literals.iter() {

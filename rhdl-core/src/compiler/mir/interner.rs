@@ -42,7 +42,7 @@ impl<T: Hash + Eq + Clone> Intern<T> {
         self.vec.len()
     }
 
-    pub fn alloc(&mut self, value: &T) -> InternKey<T> {
+    pub fn intern(&mut self, value: &T) -> InternKey<T> {
         if let Some(key) = self.map.get(value) {
             return *key;
         }
@@ -80,6 +80,6 @@ mod tests {
         let mut interner = StringInterner::default();
         let p = "hello";
         let q = p.to_owned();
-        let key1 = interner.alloc(&"hello".into());
+        let key1 = interner.intern(&"hello".into());
     }
 }

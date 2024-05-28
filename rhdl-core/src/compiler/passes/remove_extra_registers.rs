@@ -12,10 +12,10 @@ use super::pass::Pass;
 #[derive(Default, Debug, Clone)]
 pub struct RemoveExtraRegistersPass {}
 
-fn find_assign_op(ops: &[OpCode]) -> Option<OpCode> {
+fn find_assign_op(ops: &[OpCode], mergeable: &[bool]) -> Option<usize> {
     ops.iter()
-        .find(|op| matches!(op, OpCode::Assign(_)))
-        .cloned()
+        .zip(mergeable.iter())
+        .position(|(op, flag)| *flag && matches!(op, OpCode::Assign(_)))
 }
 
 impl Pass for RemoveExtraRegistersPass {
@@ -26,9 +26,21 @@ impl Pass for RemoveExtraRegistersPass {
         "Remove extra registers (any instance of r3 <- r2, is replaced with renaming all instances of r3 to r2)"
     }
     fn run(mut input: Object) -> Result<Object> {
-        while let Some(op) = find_assign_op(&input.ops) {
+        let mut eligible = vec![true; input.ops.len()];
+        while let Some(op_ndx) = find_assign_op(&input.ops, &eligible) {
+            let op = input.ops[op_ndx].clone();
             eprintln!("Found assign op {}", op);
             if let OpCode::Assign(assign) = op {
+                let lhs_name = input.symbols.slot_names.get(&assign.lhs);
+                let rhs_name = input.symbols.slot_names.get(&assign.rhs);
+                if !can_merge_names(lhs_name, rhs_name) {
+                    eprintln!(
+                        "Cannot merge names {:?} {:?} for registers {} {}",
+                        lhs_name, rhs_name, assign.lhs, assign.rhs
+                    );
+                    eligible[op_ndx] = false;
+                    continue;
+                }
                 input.ops = input
                     .ops
                     .into_iter()
@@ -58,6 +70,12 @@ impl Pass for RemoveExtraRegistersPass {
                         _ => op,
                     })
                     .collect();
+                // Merge the names of the registers
+                let lhs_name = input.symbols.slot_names.get(&assign.lhs);
+                let rhs_name = input.symbols.slot_names.get(&assign.rhs);
+                if let Some(merged_name) = merge_names(lhs_name, rhs_name) {
+                    input.symbols.slot_names.insert(assign.rhs, merged_name);
+                }
                 // Delete the register from the register map
                 input.symbols.slot_map.remove(&assign.lhs);
                 input.kind.remove(&assign.lhs);
@@ -66,5 +84,24 @@ impl Pass for RemoveExtraRegistersPass {
             }
         }
         Ok(input)
+    }
+}
+
+fn merge_names(a: Option<&String>, b: Option<&String>) -> Option<String> {
+    match (a, b) {
+        (None, None) => None,
+        (Some(a), None) => Some(a.clone()),
+        (None, Some(b)) => Some(b.clone()),
+        (Some(a), Some(b)) if a == b => Some(a.clone()),
+        (Some(a), Some(b)) => Some(format!("{}_then_{}", b, a)),
+    }
+}
+
+fn can_merge_names(a: Option<&String>, b: Option<&String>) -> bool {
+    match (a, b) {
+        (None, None) => true,
+        (Some(a), None) => true,
+        (None, Some(b)) => true,
+        (Some(a), Some(b)) => a == b,
     }
 }

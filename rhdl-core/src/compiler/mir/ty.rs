@@ -143,14 +143,14 @@ impl UnifyContext {
     fn ty_app(&mut self, id: NodeId, kind: AppTypeKind, args: Vec<TypeId>) -> TypeId {
         TypeId {
             id,
-            kind: self.types.alloc(&TypeKind::App(AppType { kind, args })),
+            kind: self.types.intern(&TypeKind::App(AppType { kind, args })),
         }
     }
 
     pub fn ty_const(&mut self, id: NodeId, const_ty: Const) -> TypeId {
         TypeId {
             id,
-            kind: self.types.alloc(&TypeKind::Const(const_ty)),
+            kind: self.types.intern(&TypeKind::Const(const_ty)),
         }
     }
 
@@ -194,7 +194,7 @@ impl UnifyContext {
     pub fn ty_var(&mut self, id: NodeId) -> TypeId {
         let ty = TypeId {
             id,
-            kind: self.types.alloc(&TypeKind::Var(self.var)),
+            kind: self.types.intern(&TypeKind::Var(self.var)),
         };
         self.var.0 += 1;
         ty
