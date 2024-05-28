@@ -5,30 +5,20 @@ use crate::{kernel::KernelFnKind, types::typed_bits::TypedBits, DigitalSignature
 // Modeled after rustc's AST
 
 #[derive(Debug, Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord)]
-pub struct NodeId(Option<u32>);
+pub struct NodeId(u32);
 
 impl NodeId {
     pub const fn new(id: u32) -> Self {
-        NodeId(Some(id))
+        NodeId(id)
     }
-    // Panics for invalid node IDs!
     pub fn as_u32(self) -> u32 {
-        self.0.unwrap()
-    }
-    pub fn is_invalid(&self) -> bool {
-        self.0 == INVALID_NODE_ID.0
+        self.0
     }
 }
 
-pub const INVALID_NODE_ID: NodeId = NodeId(None);
-
 impl Display for NodeId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(x) = self.0 {
-            write!(f, "N{x}")
-        } else {
-            write!(f, "N<invalid>")
-        }
+        write!(f, "N{}", self.0)
     }
 }
 

@@ -30,7 +30,6 @@ use crate::ast::visit_mut::VisitorMut;
 use crate::ast_builder::BinOp;
 use crate::ast_builder::UnOp;
 use crate::compiler::ascii::render_statement_to_string;
-use crate::compiler::assign_node::NodeIdGenerator;
 use crate::compiler::display_ast::pretty_print_statement;
 use crate::error::RHDLError;
 use crate::kernel::Kernel;
@@ -1379,8 +1378,6 @@ impl<'a> Visitor for MirContext<'a> {
 }
 
 pub fn compile_mir(mut func: Kernel) -> Result<Mir> {
-    let mut generator = NodeIdGenerator::default();
-    generator.visit_mut_kernel_fn(func.inner_mut())?;
     let source = build_spanned_source_for_kernel(func.inner());
     let mut compiler = MirContext::new(&source);
     compiler.visit_kernel_fn(func.inner())?;
