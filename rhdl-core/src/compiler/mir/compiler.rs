@@ -169,7 +169,6 @@ const EARLY_RETURN_FLAG_NAME: &str = "__$early_return_flag";
 type Result<T> = std::result::Result<T, RHDLError>;
 
 pub struct MirContext<'a> {
-    idents: Intern<String>,
     kinds: Intern<Kind>,
     scopes: Vec<Scope>,
     ops: Vec<OpCodeWithSource>,
@@ -179,6 +178,7 @@ pub struct MirContext<'a> {
     ty: BTreeMap<Slot, KindKey>,
     ty_equate: HashSet<TypeEquivalence>,
     stash: Vec<ExternalFunction>,
+    slot_names: BTreeMap<Slot, String>,
     return_slot: Slot,
     arguments: Vec<Slot>,
     fn_id: FunctionId,
@@ -223,7 +223,6 @@ impl<'a> std::fmt::Display for MirContext<'a> {
 impl<'a> MirContext<'a> {
     fn new(spanned_source: &'a SpannedSource) -> Self {
         MirContext {
-            idents: Intern::default(),
             kinds: Intern::default(),
             scopes: vec![Scope {
                 names: HashMap::new(),
@@ -242,6 +241,7 @@ impl<'a> MirContext<'a> {
             fn_id: FunctionId::default(),
             name: "",
             active_scope: ROOT_SCOPE,
+            slot_names: BTreeMap::new(),
             spanned_source,
         }
     }
@@ -261,7 +261,7 @@ impl<'a> MirContext<'a> {
         self.active_scope = self.scopes[self.active_scope.0].parent;
     }
     fn bind_slot_to_type(&mut self, slot: Slot, kind: &Kind) {
-        let key = self.kinds.alloc(kind);
+        let key = self.kinds.intern(kind);
         self.ty.insert(slot, key);
     }
     // Walk the scope hierarchy, and return a list of all local variables
@@ -319,6 +319,7 @@ impl<'a> MirContext<'a> {
     fn bind(&mut self, name: &'static str, id: NodeId) {
         let reg = self.reg(id);
         eprintln!("Binding {}#{} to {:?}", name, id, reg);
+        self.slot_names.insert(reg, name.to_string());
         self.scopes[self.active_scope.0].names.insert(name, reg);
     }
     // Rebind a local variable to a new slot.  We need
@@ -340,6 +341,7 @@ impl<'a> MirContext<'a> {
                 )
                 .into());
         };
+        self.slot_names.insert(reg, name.to_string());
         self.scopes[scope.0].names.insert(name, reg);
         eprintln!("Rebound {} from {} to {}", name, prev, reg);
         Ok(Rebind {
@@ -1408,6 +1410,7 @@ pub fn compile_mir(mut func: Kernel) -> Result<Mir> {
             slot_map,
             opcode_map,
             source,
+            slot_names: compiler.slot_names,
         },
         ops: compiler.ops,
         arguments: compiler.arguments,
