@@ -1,8 +1,6 @@
-use serde::{Deserialize, Serialize};
-
 use crate::{ast::ast_impl, ClockColor, Kind, TypedBits};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Kernel(Box<ast_impl::KernelFn>);
 
 impl From<Box<ast_impl::KernelFn>> for Kernel {
@@ -20,7 +18,7 @@ impl Kernel {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub enum KernelFnKind {
     Kernel(Kernel),
     Extern(ExternalKernelDef),
@@ -62,10 +60,9 @@ impl std::fmt::Display for KernelFnKind {
 
 type VMFunction = fn(&[TypedBits]) -> anyhow::Result<TypedBits>;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct ExternalKernelDef {
     pub name: String,
     pub body: String,
-    #[serde(skip)]
     pub vm_stub: Option<VMFunction>,
 }

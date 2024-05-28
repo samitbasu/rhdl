@@ -372,7 +372,7 @@ impl Display for Path {
         let segments = self
             .segments
             .iter()
-            .map(|segment| segment.ident.as_str())
+            .map(|segment| segment.ident)
             .collect::<Vec<_>>();
         write!(f, "{}", splice(&segments, "::"))
     }

@@ -69,6 +69,8 @@ pub enum ICE {
     ExpectedStructTemplate { kind: Kind },
     #[error("Expected an enum template for this op instead of {kind}")]
     ExpectedEnumTemplate { kind: Kind },
+    #[error("Unexpected complex path where an identifier was expected {path:?}")]
+    UnexpectedComplexPath { path: ExprPath },
 }
 
 #[derive(Error, Debug, Diagnostic)]

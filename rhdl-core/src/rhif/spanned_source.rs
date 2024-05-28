@@ -71,7 +71,7 @@ impl SpannedSourceBuilder {
         self.push(" ");
         self.block(&kernel.body);
         self.span_map.insert(kernel.id, start..self.loc());
-        self.name = kernel.name.clone();
+        self.name = kernel.name.into();
     }
 
     fn pattern(&mut self, pat: &Pat) {

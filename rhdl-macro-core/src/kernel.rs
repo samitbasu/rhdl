@@ -568,7 +568,7 @@ impl Context {
                     ));
                 }
                 Ok(quote! {
-                    rhdl_core::ast_builder::ident_pat(stringify!(#name).to_string(),#mutability)
+                    rhdl_core::ast_builder::ident_pat(stringify!(#name),#mutability)
                 })
             }
             syn::Pat::TupleStruct(tuple) => {
@@ -713,7 +713,7 @@ impl Context {
             ));
         }
         Ok(quote! {
-            rhdl_core::ast_builder::method_expr(#receiver, vec![#(#args),*], stringify!(#method).to_string())
+            rhdl_core::ast_builder::method_expr(#receiver, vec![#(#args),*], stringify!(#method))
         })
     }
 
@@ -1110,7 +1110,7 @@ impl Context {
         let ident = &segment.ident;
         let args = self.path_arguments(&segment.arguments)?;
         Ok(quote! {
-            rhdl_core::ast_builder::path_segment(stringify!(#ident).to_string(), #args)
+            rhdl_core::ast_builder::path_segment(stringify!(#ident), #args)
         })
     }
 
@@ -1183,7 +1183,7 @@ impl Context {
     fn member(&mut self, member: &syn::Member) -> Result<TS> {
         Ok(match member {
             syn::Member::Named(ident) => quote! {
-                rhdl_core::ast_builder::member_named(stringify!(#ident).to_string())
+                rhdl_core::ast_builder::member_named(stringify!(#ident))
             },
             syn::Member::Unnamed(index) => {
                 let index = index.index;

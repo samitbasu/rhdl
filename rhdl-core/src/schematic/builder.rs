@@ -542,7 +542,7 @@ impl<'a> SchematicBuilder<'a> {
         let sub_schematic = build_schematic(self.module, kernel.inner().fn_id)?;
         let component = self.schematic.make_component(
             ComponentKind::Kernel(KernelComponent {
-                name: kernel.inner().name.clone(),
+                name: kernel.inner().name.to_owned(),
                 args: args.clone(),
                 output: out,
                 sub_schematic,
