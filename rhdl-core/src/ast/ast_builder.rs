@@ -95,7 +95,7 @@ pub fn generic_argument_type(kind: Kind) -> Box<Expr> {
     })
 }
 
-pub fn path_segment(ident: String, arguments: Vec<Box<Expr>>) -> PathSegment {
+pub fn path_segment(ident: &'static str, arguments: Vec<Box<Expr>>) -> PathSegment {
     PathSegment { ident, arguments }
 }
 
@@ -238,7 +238,7 @@ pub fn index_expr(expr: Box<Expr>, index: Box<Expr>) -> Box<Expr> {
     })
 }
 
-pub fn method_expr(receiver: Box<Expr>, args: Vec<Box<Expr>>, method: String) -> Box<Expr> {
+pub fn method_expr(receiver: Box<Expr>, args: Vec<Box<Expr>>, method: &'static str) -> Box<Expr> {
     Box::new(Expr {
         id: INVALID_NODE_ID,
         kind: ExprKind::MethodCall(ExprMethodCall {
@@ -330,7 +330,7 @@ pub fn tuple_struct_pat(
     })
 }
 
-pub fn ident_pat(name: String, mutable: bool) -> Box<Pat> {
+pub fn ident_pat(name: &'static str, mutable: bool) -> Box<Pat> {
     Box::new(Pat {
         id: INVALID_NODE_ID,
         kind: PatKind::Ident(PatIdent { name, mutable }),
@@ -384,7 +384,7 @@ pub fn range_limits_closed() -> RangeLimits {
     RangeLimits::Closed
 }
 
-pub fn member_named(name: String) -> Member {
+pub fn member_named(name: &'static str) -> Member {
     Member::Named(name)
 }
 
@@ -411,7 +411,7 @@ pub fn expr_lit_typed_bits(value: TypedBits) -> ExprLit {
 }
 
 pub fn kernel_fn(
-    name: &str,
+    name: &'static str,
     inputs: Vec<Box<Pat>>,
     ret: Kind,
     body: Box<Block>,
@@ -424,7 +424,7 @@ pub fn kernel_fn(
     KernelFnKind::Kernel(
         Box::new(KernelFn {
             id: INVALID_NODE_ID,
-            name: name.into(),
+            name,
             inputs,
             ret,
             body,
@@ -466,7 +466,7 @@ pub fn expr_signal(arg: Box<Expr>, clock: Option<ClockColor>) -> Box<Expr> {
         id: INVALID_NODE_ID,
         kind: ExprKind::Call(ExprCall {
             path: path(vec![PathSegment {
-                ident: "signal".to_string(),
+                ident: "signal",
                 arguments: vec![],
             }]),
             args: vec![arg],

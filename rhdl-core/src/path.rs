@@ -83,7 +83,7 @@ impl Path {
     }
     pub fn member(mut self, member: Member) -> Self {
         match member {
-            Member::Named(name) => self.elements.push(PathElement::Field(name)),
+            Member::Named(name) => self.elements.push(PathElement::Field(name.to_owned())),
             Member::Unnamed(ndx) => self.elements.push(PathElement::Index(ndx as usize)),
         }
         self
@@ -156,7 +156,7 @@ impl From<Member> for Path {
     fn from(member: Member) -> Self {
         match member {
             Member::Named(name) => Path {
-                elements: vec![PathElement::Field(name)],
+                elements: vec![PathElement::Field(name.to_owned())],
             },
             Member::Unnamed(ndx) => Path {
                 elements: vec![PathElement::TupleIndex(ndx as usize)],

@@ -53,6 +53,7 @@ use crate::rhif::spec::ExternalFunctionCode;
 use crate::rhif::spec::FuncId;
 use crate::KernelFnKind;
 use crate::Kind;
+use crate::NoteKey;
 use crate::TypedBits;
 use crate::{
     ast::ast_impl::{Expr, ExprKind, ExprLit, FunctionId, NodeId},
@@ -78,7 +79,7 @@ pub struct Rebind {
 impl From<ast_impl::Member> for spec::Member {
     fn from(member: ast_impl::Member) -> Self {
         match member {
-            ast_impl::Member::Named(name) => spec::Member::Named(name),
+            ast_impl::Member::Named(name) => spec::Member::Named(name.into()),
             ast_impl::Member::Unnamed(index) => spec::Member::Unnamed(index),
         }
     }
@@ -129,19 +130,27 @@ fn collapse_path(path: &ast_impl::Path) -> String {
         .join("::")
 }
 
-type StringKey = InternKey<String>;
+fn path_as_ident(path: &ast_impl::Path) -> Option<&'static str> {
+    if path.segments.len() == 1 {
+        Some(path.segments[0].ident)
+    } else {
+        None
+    }
+}
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+type KindKey = InternKey<Kind>;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ScopeIndex {
     scope: ScopeId,
-    name: StringKey,
+    name: &'static str,
 }
 
 type LocalsMap = HashMap<ScopeIndex, Slot>;
 
 #[derive(Debug)]
 struct Scope {
-    names: HashMap<String, Slot>,
+    names: HashMap<&'static str, Slot>,
     children: Vec<ScopeId>,
     parent: ScopeId,
 }
@@ -162,18 +171,19 @@ type Result<T> = std::result::Result<T, RHDLError>;
 
 pub struct MirContext<'a> {
     idents: Intern<String>,
+    kinds: Intern<Kind>,
     scopes: Vec<Scope>,
     ops: Vec<OpCodeWithSource>,
     reg_count: usize,
     literals: BTreeMap<Slot, ExprLit>,
     reg_source_map: BTreeMap<Slot, NodeId>,
-    ty: BTreeMap<Slot, Kind>,
+    ty: BTreeMap<Slot, KindKey>,
     ty_equate: HashSet<TypeEquivalence>,
     stash: Vec<ExternalFunction>,
     return_slot: Slot,
     arguments: Vec<Slot>,
     fn_id: FunctionId,
-    name: String,
+    name: &'static str,
     active_scope: ScopeId,
     spanned_source: &'a SpannedSource,
 }
@@ -192,7 +202,7 @@ impl<'a> std::fmt::Display for MirContext<'a> {
             self.name, arguments, self.return_slot, self.fn_id
         )?;
         for (slot, kind) in &self.ty {
-            writeln!(f, "{} : {}", slot, kind)?;
+            writeln!(f, "{} : {}", slot, self.kinds[kind])?;
         }
         for (lit, expr) in &self.literals {
             writeln!(f, "{} -> {}", lit, expr)?;
@@ -215,6 +225,7 @@ impl<'a> MirContext<'a> {
     fn new(spanned_source: &'a SpannedSource) -> Self {
         MirContext {
             idents: Intern::default(),
+            kinds: Intern::default(),
             scopes: vec![Scope {
                 names: HashMap::new(),
                 children: vec![],
@@ -230,7 +241,7 @@ impl<'a> MirContext<'a> {
             return_slot: Slot::Empty,
             arguments: vec![],
             fn_id: FunctionId::default(),
-            name: "".to_string(),
+            name: "",
             active_scope: ROOT_SCOPE,
             spanned_source,
         }
@@ -250,6 +261,10 @@ impl<'a> MirContext<'a> {
     fn end_scope(&mut self) {
         self.active_scope = self.scopes[self.active_scope.0].parent;
     }
+    fn bind_slot_to_type(&mut self, slot: Slot, kind: &Kind) {
+        let key = self.kinds.alloc(kind);
+        self.ty.insert(slot, key);
+    }
     // Walk the scope hierarchy, and return a list of all local variables
     // visible from the current scope.  Some of these may not be accessible
     // due to shadowing.
@@ -257,15 +272,12 @@ impl<'a> MirContext<'a> {
         let mut locals = LocalsMap::new();
         let mut scope = self.active_scope;
         loop {
-            locals.extend(self.scopes[scope.0].names.iter().map(|(k, v)| {
-                (
-                    ScopeIndex {
-                        scope,
-                        name: k.clone(),
-                    },
-                    *v,
-                )
-            }));
+            locals.extend(
+                self.scopes[scope.0]
+                    .names
+                    .iter()
+                    .map(|(k, v)| (ScopeIndex { scope, name: *k }, *v)),
+            );
             if scope == ROOT_SCOPE {
                 break;
             }
@@ -278,7 +290,12 @@ impl<'a> MirContext<'a> {
             let ScopeIndex { scope, name } = ndx;
             let Some(binding) = self.scopes[scope.0].names.get_mut(name) else {
                 return Err(self
-                    .raise_ice(ICE::LocalVariableDoesNotExist { name: name.clone() }, id)
+                    .raise_ice(
+                        ICE::LocalVariableDoesNotExist {
+                            name: (*name).to_owned(),
+                        },
+                        id,
+                    )
                     .into());
             };
             *binding = *slot;
@@ -293,19 +310,17 @@ impl<'a> MirContext<'a> {
                     .raise_ice(ICE::UnsupportedArgumentPattern { arg: arg.clone() }, id)
                     .into());
             };
-            self.ty.insert(slot, ty.kind.clone());
+            self.bind_slot_to_type(slot, &ty.kind);
             self.arguments.push(slot);
         }
         Ok(())
     }
     // Create a local variable binding to the given name, and return the
     // resulting register.
-    fn bind(&mut self, name: &str, id: NodeId) {
+    fn bind(&mut self, name: &'static str, id: NodeId) {
         let reg = self.reg(id);
         eprintln!("Binding {}#{} to {:?}", name, id, reg);
-        self.scopes[self.active_scope.0]
-            .names
-            .insert(name.to_string(), reg);
+        self.scopes[self.active_scope.0].names.insert(name, reg);
     }
     // Rebind a local variable to a new slot.  We need
     // to know the previous name for the slot in this case.
@@ -314,7 +329,7 @@ impl<'a> MirContext<'a> {
     //  let a = 5; //<-- original binding to name of "a"
     //  let a = 6; //<-- rebind of "a" to new slot
     //```
-    fn rebind(&mut self, name: &str, id: NodeId) -> Result<Rebind> {
+    fn rebind(&mut self, name: &'static str, id: NodeId) -> Result<Rebind> {
         let reg = self.reg(id);
         let Some((prev, scope)) = self.lookup_name(name) else {
             return Err(self
@@ -326,7 +341,7 @@ impl<'a> MirContext<'a> {
                 )
                 .into());
         };
-        self.scopes[scope.0].names.insert(name.to_string(), reg);
+        self.scopes[scope.0].names.insert(name, reg);
         eprintln!("Rebound {} from {} to {}", name, prev, reg);
         Ok(Rebind {
             from: prev,
@@ -401,7 +416,7 @@ impl<'a> MirContext<'a> {
                     return Err(self
                         .raise_ice(
                             ICE::InitializeLocalOnUnboundVariable {
-                                name: ident.name.clone(),
+                                name: ident.name.to_owned(),
                             },
                             pat.id,
                         )
@@ -488,7 +503,7 @@ impl<'a> MirContext<'a> {
         &mut self,
         id: NodeId,
         slot: Slot,
-        early_return_name: &str,
+        early_return_name: &'static str,
     ) -> Result<()> {
         let (early_return_flag, _) = self
             .lookup_name(EARLY_RETURN_FLAG_NAME)
@@ -707,7 +722,7 @@ impl<'a> MirContext<'a> {
                     pattern.id,
                 ))?;
                 eprintln!("Binding {:?} to {:?} via {}", ident, kind, slot);
-                self.ty.insert(slot, kind.clone());
+                self.bind_slot_to_type(slot, kind);
                 Ok(())
             }
             PatKind::Tuple(tuple) => {
@@ -815,7 +830,7 @@ impl<'a> MirContext<'a> {
         match code {
             KernelFnKind::BitConstructor(len) => self.op(op_as_bits(lhs, args[0], *len), id),
             KernelFnKind::SignedBitsConstructor(len) => {
-                self.ty.insert(args[0], Kind::make_signed(128));
+                self.bind_slot_to_type(args[0], &Kind::make_signed(128));
                 self.op(op_as_signed(lhs, args[0], *len), id)
             }
             KernelFnKind::TupleStructConstructor(tb) => {
@@ -916,8 +931,13 @@ impl<'a> MirContext<'a> {
     fn expr_lhs(&mut self, expr: &Expr) -> Result<(Rebind, crate::path::Path)> {
         match &expr.kind {
             ExprKind::Path(path) => {
-                let name = collapse_path(&path.path);
-                let rebind = self.rebind(&name, expr.id)?;
+                let name = path_as_ident(&path.path).ok_or(self.raise_ice(
+                    ICE::UnexpectedComplexPath {
+                        path: path.to_owned(),
+                    },
+                    expr.id,
+                ))?;
+                let rebind = self.rebind(name, expr.id)?;
                 Ok((rebind, crate::path::Path::default()))
             }
             ExprKind::Field(field) => {
@@ -1150,14 +1170,14 @@ impl<'a> MirContext<'a> {
     fn method_call(&mut self, id: NodeId, method_call: &ExprMethodCall) -> Result<Slot> {
         // The `val` method is a special case used to strip the clocking context
         // from a signal.
-        if method_call.method.as_str() == "val" {
+        if method_call.method == "val" {
             let lhs = self.reg(id);
             let arg = self.expr(&method_call.receiver)?;
             self.op(op_assign(lhs, arg), id);
             return Ok(lhs);
         }
         // First handle unary ops only
-        let op = match method_call.method.as_str() {
+        let op = match method_call.method {
             "any" => AluUnary::Any,
             "all" => AluUnary::All,
             "xor" => AluUnary::Xor,
@@ -1177,10 +1197,10 @@ impl<'a> MirContext<'a> {
     fn path(&mut self, id: NodeId, path: &ExprPath) -> Result<Slot> {
         let lhs = self.reg(id);
         if path.path.segments.len() == 1 && path.path.segments[0].arguments.is_empty() {
-            let name = &path.path.segments[0].ident;
+            let name = path.path.segments[0].ident;
             let rhs = self.lookup_name(name).map(|x| x.0).ok_or(self.raise_ice(
                 ICE::NameNotFoundInPath {
-                    name: name.clone(),
+                    name: name.into(),
                     path: path.clone(),
                 },
                 id,
@@ -1348,7 +1368,7 @@ impl<'a> Visitor for MirContext<'a> {
             .lookup_name(&node.name)
             .ok_or(self.raise_ice(
                 ICE::ReturnSlotNotFound {
-                    name: node.name.clone(),
+                    name: node.name.to_owned(),
                 },
                 node.id,
             ))?
@@ -1364,9 +1384,7 @@ pub fn compile_mir(mut func: Kernel) -> Result<Mir> {
     let source = build_spanned_source_for_kernel(func.inner());
     let mut compiler = MirContext::new(&source);
     compiler.visit_kernel_fn(func.inner())?;
-    compiler
-        .ty
-        .insert(compiler.return_slot, func.inner().ret.clone());
+    compiler.bind_slot_to_type(compiler.return_slot, &func.inner().ret);
     let source = build_spanned_source_for_kernel(func.inner());
     let opcode_map = compiler
         .ops
@@ -1382,6 +1400,12 @@ pub fn compile_mir(mut func: Kernel) -> Result<Mir> {
             (compiler.fn_id, func.inner().id).into(),
         )))
         .collect();
+    // Remove the interner... temporarily
+    let ty = compiler
+        .ty
+        .iter()
+        .map(|(k, v)| (*k, compiler.kinds[v].to_owned()))
+        .collect();
     Ok(Mir {
         symbols: SymbolMap {
             slot_map,
@@ -1393,9 +1417,9 @@ pub fn compile_mir(mut func: Kernel) -> Result<Mir> {
         literals: compiler.literals,
         return_slot: compiler.return_slot,
         fn_id: compiler.fn_id,
-        ty: compiler.ty,
+        ty,
         ty_equate: compiler.ty_equate,
         stash: compiler.stash,
-        name: compiler.name,
+        name: compiler.name.to_string(),
     })
 }

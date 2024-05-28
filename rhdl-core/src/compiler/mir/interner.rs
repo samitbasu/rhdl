@@ -17,6 +17,12 @@ impl<T> Clone for InternKey<T> {
 
 impl<T> Copy for InternKey<T> {}
 
+trait InternRef {
+    type Interned;
+    fn stored(&self) -> Self::Interned;
+    fn byref(&self) -> &Self::Interned;
+}
+
 pub struct Intern<T: Hash + Eq + Clone> {
     map: HashMap<T, InternKey<T>>,
     vec: Vec<T>,
@@ -36,8 +42,8 @@ impl<T: Hash + Eq + Clone> Intern<T> {
         self.vec.len()
     }
 
-    pub fn alloc(&mut self, value: T) -> InternKey<T> {
-        if let Some(key) = self.map.get(&value) {
+    pub fn alloc(&mut self, value: &T) -> InternKey<T> {
+        if let Some(key) = self.map.get(value) {
             return *key;
         }
         let key = InternKey {
@@ -45,7 +51,7 @@ impl<T: Hash + Eq + Clone> Intern<T> {
             _marker: std::marker::PhantomData,
         };
         self.vec.push(value.clone());
-        self.map.insert(value, key);
+        self.map.insert(value.clone(), key);
         key
     }
 }
@@ -54,5 +60,26 @@ impl<T: Hash + Eq + Clone> std::ops::Index<InternKey<T>> for Intern<T> {
     type Output = T;
     fn index(&self, key: InternKey<T>) -> &T {
         &self.vec[key.index as usize]
+    }
+}
+
+impl<T: Hash + Eq + Clone> std::ops::Index<&InternKey<T>> for Intern<T> {
+    type Output = T;
+    fn index(&self, key: &InternKey<T>) -> &T {
+        &self.vec[key.index as usize]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    type StringInterner = Intern<Box<str>>;
+
+    #[test]
+    fn string_interner() {
+        let mut interner = StringInterner::default();
+        let p = "hello";
+        let q = p.to_owned();
+        let key1 = interner.alloc(&"hello".into());
     }
 }
