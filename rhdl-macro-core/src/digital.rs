@@ -255,7 +255,7 @@ mod test {
                     rhdl_core::Kind::make_struct(
                         &vec![
                             module_path!().to_string(),"::".to_string(),
-                            stringify!(Inputs).to_string(), "<".to_string(), std::any::type_name::<T>(), ">".to_string()
+                            stringify!(Inputs).to_string(), "<".to_string(), std::any::type_name::<T>().to_string(), ">".to_string()
                         ].join(""),
                         vec![
                         rhdl_core::Kind::make_field(stringify!(input), <T as rhdl_core::Digital>::static_kind()),
