@@ -126,16 +126,14 @@ fn split_path_into_base_and_variant(path: &Path) -> Result<(Path, Ident)> {
 fn rewrite_pattern_as_typed_bits(pat: &syn::Pat) -> syn::Result<TS> {
     match pat {
         Pat::Lit(lit) => match &lit.lit {
-            syn::Lit::Bool(b) => Ok(quote! {rhdl_core::ast_builder::expr_lit_bool(#b)}),
-            syn::Lit::Int(i) => Ok(quote! {rhdl_core::ast_builder::expr_lit_int(stringify!(#i))}),
+            syn::Lit::Bool(b) => Ok(quote! {bob.expr_lit_bool(#b)}),
+            syn::Lit::Int(i) => Ok(quote! {bob.expr_lit_int(stringify!(#i))}),
             _ => Err(syn::Error::new(
                 lit.span(),
                 "Unsupported literal in rhdl kernel function",
             )),
         },
-        _ => Ok(
-            quote! { rhdl_core::ast_builder::expr_lit_typed_bits(rhdl_core::Digital::typed_bits(#pat)) },
-        ),
+        _ => Ok(quote! { bob.expr_lit_typed_bits(rhdl_core::Digital::typed_bits(#pat)) }),
     }
 }
 
@@ -465,7 +463,7 @@ impl Context {
                     let ty = &pat.ty;
                     let pat = self.pat(&pat.pat)?;
                     let kind = quote! {<#ty as rhdl_core::Timed>::static_kind()};
-                    Ok(quote! { rhdl_core::ast_builder::type_pat(#pat, #kind)})
+                    Ok(quote! { bob.type_pat(#pat, #kind)})
                 }
             })
             .collect::<Result<Vec<_>>>()?;
@@ -478,7 +476,8 @@ impl Context {
 
             impl #impl_generics rhdl_core::digital_fn::DigitalFn for #name #ty_generics #where_clause {
                 fn kernel_fn() -> Option<rhdl_core::digital_fn::KernelFnKind> {
-                    Some(rhdl_core::ast_builder::kernel_fn(
+                    let bob = rhdl_core::ast_builder::ASTBuilder::default();
+                    Some(bob.kernel_fn(
                         stringify!(#orig_name),
                         vec!{#(#args),*},
                         #ret,
@@ -495,7 +494,7 @@ impl Context {
         let block = self.block_inner(block)?;
         self.end_scope();
         Ok(quote! {
-            rhdl_core::ast_builder::block_expr(#block)
+            bob.block_expr(#block)
         })
     }
 
@@ -506,7 +505,7 @@ impl Context {
             .map(|x| self.stmt(x))
             .collect::<Result<Vec<_>>>()?;
         Ok(quote! {
-            rhdl_core::ast_builder::block(vec![#(#stmts),*],)
+            bob.block(vec![#(#stmts),*],)
         })
     }
 
@@ -517,11 +516,11 @@ impl Context {
                 let expr = self.expr(expr)?;
                 if semi.is_some() {
                     Ok(quote! {
-                        rhdl_core::ast_builder::semi_stmt(#expr)
+                        bob.semi_stmt(#expr)
                     })
                 } else {
                     Ok(quote! {
-                        rhdl_core::ast_builder::expr_stmt(#expr)
+                        bob.expr_stmt(#expr)
                     })
                 }
             }
@@ -543,7 +542,7 @@ impl Context {
             .map(|x| quote!(Some(#x)))
             .unwrap_or(quote! {None});
         Ok(quote! {
-                rhdl_core::ast_builder::local_stmt(#pattern, #local_init)
+                bob.local_stmt(#pattern, #local_init)
         })
     }
 
@@ -568,7 +567,7 @@ impl Context {
                     ));
                 }
                 Ok(quote! {
-                    rhdl_core::ast_builder::ident_pat(stringify!(#name),#mutability)
+                    bob.ident_pat(stringify!(#name),#mutability)
                 })
             }
             syn::Pat::TupleStruct(tuple) => {
@@ -581,7 +580,7 @@ impl Context {
                     .map(|x| self.pat(x))
                     .collect::<Result<Vec<_>>>()?;
                 Ok(quote! {
-                    rhdl_core::ast_builder::tuple_struct_pat(#path, vec![#(#elems),*], #signature)
+                    bob.tuple_struct_pat(#path, vec![#(#elems),*], #signature)
                 })
             }
             syn::Pat::Tuple(tuple) => {
@@ -591,7 +590,7 @@ impl Context {
                     .map(|x| self.pat(x))
                     .collect::<Result<Vec<_>>>()?;
                 Ok(quote! {
-                    rhdl_core::ast_builder::tuple_pat(vec![#(#elems),*])
+                    bob.tuple_pat(vec![#(#elems),*])
                 })
             }
             syn::Pat::Slice(slice) => {
@@ -601,13 +600,13 @@ impl Context {
                     .map(|x| self.pat(x))
                     .collect::<Result<Vec<_>>>()?;
                 Ok(quote! {
-                    rhdl_core::ast_builder::slice_pat(vec![#(#elems),*])
+                    bob.slice_pat(vec![#(#elems),*])
                 })
             }
             syn::Pat::Path(path) => {
                 let path = self.path_inner(&path.path)?;
                 Ok(quote! {
-                    rhdl_core::ast_builder::path_pat(#path)
+                    bob.path_pat(#path)
                 })
             }
             syn::Pat::Struct(structure) => {
@@ -625,7 +624,7 @@ impl Context {
                 }
                 let rest = structure.rest.is_some();
                 Ok(quote! {
-                    rhdl_core::ast_builder::struct_pat(#path, vec![#(#fields),*], #rest)
+                    bob.struct_pat(#path, vec![#(#fields),*], #rest)
                 })
             }
             syn::Pat::Type(pat) => {
@@ -633,17 +632,17 @@ impl Context {
                 let pat = self.pat(&pat.pat)?;
                 let kind = quote! {<#ty as rhdl_core::Digital>::static_kind()};
                 Ok(quote! {
-                    rhdl_core::ast_builder::type_pat(#pat, #kind)
+                    bob.type_pat(#pat, #kind)
                 })
             }
             syn::Pat::Lit(pat) => {
                 let lit = self.lit_inner(pat)?;
                 Ok(quote! {
-                    rhdl_core::ast_builder::lit_pat(#lit)
+                    bob.lit_pat(#lit)
                 })
             }
             syn::Pat::Wild(_) => Ok(quote! {
-                rhdl_core::ast_builder::wild_pat()
+                bob.wild_pat()
             }),
             _ => Err(syn::Error::new(pat.span(), "Unsupported pattern type")),
         }
@@ -653,7 +652,7 @@ impl Context {
         let member = self.member(&expr.member)?;
         let pat = self.pat(&expr.pat)?;
         Ok(quote! {
-            rhdl_core::ast_builder::field_pat(#member, #pat)
+            bob.field_pat(#member, #pat)
         })
     }
 
@@ -713,7 +712,7 @@ impl Context {
             ));
         }
         Ok(quote! {
-            rhdl_core::ast_builder::method_expr(#receiver, vec![#(#args),*], stringify!(#method))
+            bob.method_expr(#receiver, vec![#(#args),*], stringify!(#method))
         })
     }
 
@@ -721,7 +720,7 @@ impl Context {
         let index = self.expr(&expr.index)?;
         let expr = self.expr(&expr.expr)?;
         Ok(quote! {
-            rhdl_core::ast_builder::index_expr(#expr, #index)
+            bob.index_expr(#expr, #index)
         })
     }
 
@@ -732,7 +731,7 @@ impl Context {
             .map(|x| self.expr(x))
             .collect::<Result<Vec<_>>>()?;
         Ok(quote! {
-            rhdl_core::ast_builder::array_expr(vec![#(#elems),*])
+            bob.array_expr(vec![#(#elems),*])
         })
     }
 
@@ -756,12 +755,12 @@ impl Context {
         if let Some(name) = func_path.path.segments.last() {
             if name.ident == "note" {
                 return Ok(quote! {
-                    rhdl_core::ast_builder::block_expr(rhdl_core::ast_builder::block(vec![]))
+                    bob.block_expr(bob.block(vec![]))
                 });
             } else if name.ident == "default" {
                 return Ok(quote! {
-                    rhdl_core::ast_builder::lit_expr(
-                        rhdl_core::ast_builder::expr_lit_typed_bits(
+                    bob.lit_expr(
+                        bob.expr_lit_typed_bits(
                             rhdl_core::Digital::typed_bits(#expr)
                         )
                     )
@@ -769,12 +768,12 @@ impl Context {
             } else if name.ident == "bits" && name.arguments.is_empty() && expr.args.len() == 1 {
                 let args = self.expr(&expr.args[0])?;
                 return Ok(quote! {
-                    rhdl_core::ast_builder::expr_bits(#args)
+                    bob.expr_bits(#args)
                 });
             } else if name.ident == "signed" && name.arguments.is_empty() && expr.args.len() == 1 {
                 let args = self.expr(&expr.args[0])?;
                 return Ok(quote! {
-                    rhdl_core::ast_builder::expr_signed(#args)
+                    bob.expr_signed(#args)
                 });
             } else if name.ident == "signal" {
                 let args = self.expr(&expr.args[0])?;
@@ -787,11 +786,11 @@ impl Context {
                     };
                     let clock = quote!(<#clock as rhdl_core::Clock>::color());
                     return Ok(quote! {
-                        rhdl_core::ast_builder::expr_signal(#args, Some(#clock))
+                        bob.expr_signal(#args, Some(#clock))
                     });
                 } else {
                     return Ok(quote! {
-                        rhdl_core::ast_builder::expr_signal(#args, None)
+                        bob.expr_signal(#args, None)
                     });
                 }
             }
@@ -830,7 +829,7 @@ impl Context {
             .map(|x| self.expr(x))
             .collect::<Result<Vec<_>>>()?;
         Ok(quote! {
-            rhdl_core::ast_builder::call_expr(#path, vec![#(#args),*], #call_to_get_type, #code)
+            bob.call_expr(#path, vec![#(#args),*], #call_to_get_type, #code)
         })
     }
 
@@ -852,7 +851,7 @@ impl Context {
         let expr = self.expr(&expr.expr)?;
         self.end_scope();
         Ok(quote! {
-            rhdl_core::ast_builder::for_expr(#pat, #expr, #body)
+            bob.for_expr(#pat, #expr, #body)
         })
     }
 
@@ -869,7 +868,7 @@ impl Context {
         let len = quote!(<usize as rhdl_core::Digital>::typed_bits(#expr_len).as_i64().unwrap());
         let expr = self.expr(&expr.expr)?;
         Ok(quote! {
-            rhdl_core::ast_builder::repeat_expr(#expr, #len)
+            bob.repeat_expr(#expr, #len)
         })
     }
 
@@ -880,21 +879,21 @@ impl Context {
             .map(|x| self.expr(x))
             .collect::<Result<Vec<_>>>()?;
         Ok(quote! {
-            rhdl_core::ast_builder::tuple_expr(vec![#(#elems),*])
+            bob.tuple_expr(vec![#(#elems),*])
         })
     }
 
     fn group(&mut self, expr: &syn::ExprGroup) -> Result<TS> {
         let expr = self.expr(&expr.expr)?;
         Ok(quote! {
-            rhdl_core::ast_builder::group_expr(#expr)
+            bob.group_expr(#expr)
         })
     }
 
     fn paren(&mut self, expr: &syn::ExprParen) -> Result<TS> {
         let expr = self.expr(&expr.expr)?;
         Ok(quote! {
-            rhdl_core::ast_builder::paren_expr(#expr)
+            bob.paren_expr(#expr)
         })
     }
 
@@ -907,7 +906,7 @@ impl Context {
             .map(|x| quote! {Some(#x)})
             .unwrap_or_else(|| quote! {None});
         Ok(quote! {
-            rhdl_core::ast_builder::return_expr(#expr)
+            bob.return_expr(#expr)
         })
     }
 
@@ -935,12 +934,12 @@ impl Context {
             .unwrap_or_else(|| quote! {None});
         let limits = match expr.limits {
             syn::RangeLimits::HalfOpen(_) => {
-                quote!(rhdl_core::ast_builder::range_limits_half_open())
+                quote!(bob.range_limits_half_open())
             }
-            syn::RangeLimits::Closed(_) => quote!(rhdl_core::ast_builder::range_limits_closed()),
+            syn::RangeLimits::Closed(_) => quote!(bob.range_limits_closed()),
         };
         Ok(quote! {
-            rhdl_core::ast_builder::range_expr(#start, #limits, #end)
+            bob.range_expr(#start, #limits, #end)
         })
     }
 
@@ -952,7 +951,7 @@ impl Context {
             .collect::<Result<Vec<_>>>()?;
         let expr = self.expr(&expr.expr)?;
         Ok(quote! {
-            rhdl_core::ast_builder::match_expr(#expr, vec![#(#arms),*])
+            bob.match_expr(#expr, vec![#(#arms),*])
         })
     }
 
@@ -962,17 +961,17 @@ impl Context {
         let arm = if !pattern_has_bindings(pat) {
             let body = self.expr(&arm.body)?;
             if let syn::Pat::Wild(_) = &pat {
-                quote! {rhdl_core::ast_builder::arm_wild(#body)}
+                quote! {bob.arm_wild(#body)}
             } else {
                 let pat = rewrite_pattern_as_typed_bits(pat)?;
-                quote! {rhdl_core::ast_builder::arm_constant(#pat, #body)}
+                quote! {bob.arm_constant(#pat, #body)}
             }
         } else {
             self.add_scoped_binding(pat)?;
             let body = self.expr(&arm.body)?;
             let pat_as_expr = rewrite_pattern_to_use_defaults_for_bindings(pat);
             let inner = self.pat(pat)?;
-            quote! {rhdl_core::ast_builder::arm_enum(#inner, rhdl_core::Digital::typed_bits(#pat_as_expr), rhdl_core::Digital::variant_kind(#pat_as_expr), #body)}
+            quote! {bob.arm_enum(#inner, rhdl_core::Digital::typed_bits(#pat_as_expr), rhdl_core::Digital::variant_kind(#pat_as_expr), #body)}
         };
         self.end_scope();
         Ok(arm)
@@ -982,7 +981,7 @@ impl Context {
         let pattern = self.pat(&expr.pat)?;
         let value = self.expr(&expr.expr)?;
         Ok(quote! {
-            rhdl_core::ast_builder::let_expr(#pattern, #value)
+            bob.let_expr(#pattern, #value)
         })
     }
 
@@ -997,7 +996,7 @@ impl Context {
             .map(|x| quote! {Some(#x)})
             .unwrap_or(quote! {None});
         Ok(quote! {
-            rhdl_core::ast_builder::if_expr(#cond, #then, #else_)
+            bob.if_expr(#cond, #then, #else_)
         })
     }
 
@@ -1055,7 +1054,7 @@ impl Context {
             let discriminant = quote!(rhdl_core::TypedBits::EMPTY);
             let variant_kind = quote!(< #path as rhdl_core::Digital>::static_kind());
             Ok(
-                quote! {rhdl_core::ast_builder::struct_expr(#path_inner, vec![#(#fields),*], #rest, #template, #variant_kind, #discriminant)},
+                quote! {bob.struct_expr(#path_inner, vec![#(#fields),*], #rest, #template, #variant_kind, #discriminant)},
             )
         } else if path_is_enum_tuple_struct_by_convention(&structure.path) {
             // This is an enum struct construction (we assume) since it has
@@ -1067,7 +1066,7 @@ impl Context {
             let variant_kind = quote!(< #base as rhdl_core::Digital>::static_kind().lookup_variant_by_name(stringify!(#variant)).unwrap());
             let discriminant = quote!(< #base as rhdl_core::Digital>::static_kind().get_discriminant_for_variant_by_name(stringify!(#variant)).unwrap());
             Ok(quote! {
-                rhdl_core::ast_builder::struct_expr(#path_inner, vec![#(#fields),*], #rest,
+                bob.struct_expr(#path_inner, vec![#(#fields),*], #rest,
                 #template, #variant_kind, #discriminant
             )
             })
@@ -1076,7 +1075,7 @@ impl Context {
             let obj = quote!(<#path as rhdl_core::Digital>::static_kind().place_holder());
             let kind = quote!(<#path as rhdl_core::Digital>::static_kind());
             Ok(quote! {
-                rhdl_core::ast_builder::struct_expr(#path_inner, vec![#(#fields),*], #rest,
+                bob.struct_expr(#path_inner, vec![#(#fields),*], #rest,
                 #obj, #kind, rhdl_core::TypedBits::EMPTY)
             })
         }
@@ -1087,11 +1086,11 @@ impl Context {
         let inner = self.path_inner(path)?;
         if !self.is_scoped_binding(path) {
             return Ok(quote! {
-                rhdl_core::ast_builder::expr_typed_bits(#inner, rhdl_core::Digital::typed_bits(#path))
+                bob.expr_typed_bits(#inner, rhdl_core::Digital::typed_bits(#path))
             });
         }
         Ok(quote! {
-            rhdl_core::ast_builder::path_expr(#inner)
+            bob.path_expr(#inner)
         })
     }
 
@@ -1102,7 +1101,7 @@ impl Context {
             .map(|x| self.path_segment(x))
             .collect::<Result<Vec<_>>>()?;
         Ok(quote! {
-            rhdl_core::ast_builder::path(vec![#(#segments),*],)
+            bob.path(vec![#(#segments),*],)
         })
     }
 
@@ -1110,21 +1109,21 @@ impl Context {
         let ident = &segment.ident;
         let args = self.path_arguments(&segment.arguments)?;
         Ok(quote! {
-            rhdl_core::ast_builder::path_segment(stringify!(#ident), #args)
+            bob.path_segment(stringify!(#ident), #args)
         })
     }
 
     fn path_arguments(&mut self, arguments: &syn::PathArguments) -> Result<TS> {
         // We only allow Const arguments.
         let args = match arguments {
-            syn::PathArguments::None => quote! {rhdl_core::ast_builder::path_arguments_none()},
+            syn::PathArguments::None => quote! {bob.path_arguments_none()},
             syn::PathArguments::AngleBracketed(args) => {
                 let args = args
                     .args
                     .iter()
                     .map(|x| self.generic_argument(x))
                     .collect::<Result<Vec<_>>>()?;
-                quote! {rhdl_core::ast_builder::path_arguments_angle_bracketed(vec![#(#args),*])}
+                quote! {bob.path_arguments_angle_bracketed(vec![#(#args),*])}
             }
             _ => {
                 return Err(syn::Error::new(
@@ -1143,11 +1142,11 @@ impl Context {
             syn::GenericArgument::Const(expr) => {
                 let expr = self.expr(expr)?;
                 Ok(quote! {
-                    rhdl_core::ast_builder::generic_argument_const(#expr)
+                    bob.generic_argument_const(#expr)
                 })
             }
             syn::GenericArgument::Type(Type::Path(path)) => Ok(quote! {
-                rhdl_core::ast_builder::generic_argument_type(<#path as Digital>::static_kind())
+                bob.generic_argument_type(<#path as Digital>::static_kind())
             }),
             _ => Err(syn::Error::new(
                 argument.span(),
@@ -1160,7 +1159,7 @@ impl Context {
         let left = self.expr(&assign.left)?;
         let right = self.expr(&assign.right)?;
         Ok(quote! {
-            rhdl_core::ast_builder::assign_expr(#left, #right)
+            bob.assign_expr(#left, #right)
         })
     }
 
@@ -1168,7 +1167,7 @@ impl Context {
         let expr = self.expr(&field.base)?;
         let member = self.member(&field.member)?;
         Ok(quote! {
-            rhdl_core::ast_builder::field_expr(#expr, #member)
+            bob.field_expr(#expr, #member)
         })
     }
 
@@ -1176,19 +1175,19 @@ impl Context {
         let member = self.member(&field.member)?;
         let value = self.expr(&field.expr)?;
         Ok(quote! {
-            rhdl_core::ast_builder::field_value(#member, #value)
+            bob.field_value(#member, #value)
         })
     }
 
     fn member(&mut self, member: &syn::Member) -> Result<TS> {
         Ok(match member {
             syn::Member::Named(ident) => quote! {
-                rhdl_core::ast_builder::member_named(stringify!(#ident))
+                bob.member_named(stringify!(#ident))
             },
             syn::Member::Unnamed(index) => {
                 let index = index.index;
                 quote! {
-                    rhdl_core::ast_builder::member_unnamed(#index)
+                    bob.member_unnamed(#index)
                 }
             }
         })
@@ -1207,7 +1206,7 @@ impl Context {
         };
         let expr = self.expr(&unary.expr)?;
         Ok(quote! {
-            rhdl_core::ast_builder::unary_expr(#op, #expr)
+            bob.unary_expr(#op, #expr)
         })
     }
 
@@ -1247,14 +1246,14 @@ impl Context {
         let left = self.expr(&binary.left)?;
         let right = self.expr(&binary.right)?;
         Ok(quote! {
-            rhdl_core::ast_builder::binary_expr(#op, #left, #right)
+            bob.binary_expr(#op, #left, #right)
         })
     }
 
     fn lit(&mut self, lit: &syn::ExprLit) -> Result<TS> {
         let inner = self.lit_inner(lit)?;
         Ok(quote! {
-            rhdl_core::ast_builder::lit_expr(#inner)
+            bob.lit_expr(#inner)
         })
     }
 
@@ -1264,13 +1263,13 @@ impl Context {
             syn::Lit::Int(int) => {
                 let value = int.token();
                 Ok(quote! {
-                        rhdl_core::ast_builder::expr_lit_int(stringify!(#value))
+                        bob.expr_lit_int(stringify!(#value))
                 })
             }
             syn::Lit::Bool(boolean) => {
                 let value = boolean.value;
                 Ok(quote! {
-                        rhdl_core::ast_builder::expr_lit_bool(#value)
+                        bob.expr_lit_bool(#value)
                 })
             }
             _ => Err(syn::Error::new(
