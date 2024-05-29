@@ -51,7 +51,7 @@ impl PrettyPrinter {
     fn print_pattern(&mut self, pat: &Pat) -> Result<()> {
         match &pat.kind {
             PatKind::Ident(ident) => {
-                self.push(&ident.name);
+                self.push(ident.name);
             }
             PatKind::Wild => {
                 self.push("_");
@@ -205,10 +205,12 @@ impl PrettyPrinter {
                 self.print_block(&expr.block)?;
             }
             ExprKind::Call(expr) => {
-                self.push(&format!("{}", expr.path));
-                for arg in &expr.args {
+                self.push(&format!("{}(", expr.path));
+                for (ndx, arg) in expr.args.iter().enumerate() {
                     self.print_expr(arg)?;
-                    self.push(", ");
+                    if ndx < expr.args.len() - 1 {
+                        self.push(", ");
+                    }
                 }
                 self.push(")");
             }
@@ -289,6 +291,7 @@ impl PrettyPrinter {
                 self.push(")");
             }
             ExprKind::Path(expr) => {
+                eprintln!("path: {:?}", expr.path);
                 self.push(&format!("{}", expr.path));
             }
             ExprKind::Range(expr) => {
@@ -375,7 +378,7 @@ impl Display for Path {
             .iter()
             .map(|segment| segment.ident)
             .collect::<Vec<_>>();
-        write!(f, "{}", splice(&segments, "::"))
+        write!(f, "{}", segments.join("::"))
     }
 }
 
