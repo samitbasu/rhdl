@@ -2014,7 +2014,7 @@ fn test_vm_simple_function_with_invalid_args_causes_ice() {
         a
     }
     let design = compile_design::<pass>().unwrap();
-    eprintln!("design: {}", design);
+    eprintln!("design: {:?}", design);
     let res = execute_function(&design, vec![(42_u16).typed_bits()]);
     assert!(res.is_err());
 }

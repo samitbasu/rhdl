@@ -2,18 +2,18 @@ use std::collections::HashMap;
 
 use crate::{root_verilog, Circuit, HDLKind};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct HDLDescriptor {
     pub name: String,
     pub body: String,
     pub children: HashMap<String, HDLDescriptor>,
 }
 
-impl std::fmt::Display for HDLDescriptor {
+impl std::fmt::Debug for HDLDescriptor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "{}", self.body)?;
         for hdl in self.children.values() {
-            writeln!(f, "{}", hdl)?;
+            writeln!(f, "{:?}", hdl)?;
         }
         Ok(())
     }

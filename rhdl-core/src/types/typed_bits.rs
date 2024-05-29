@@ -19,7 +19,7 @@ use super::kind::Enum;
 use super::kind::Struct;
 use super::kind::Tuple;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Eq, Hash)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Eq, Hash)]
 pub struct TypedBits {
     pub bits: Vec<bool>,
     pub kind: Kind,
@@ -56,7 +56,7 @@ impl TypedBits {
         let (range, kind) = bit_range(self.kind.clone(), path)?;
         if kind != value.kind {
             bail!(
-                "Cannot update {} with {} because they have different types",
+                "Cannot update {:?} with {:?} because they have different types",
                 self,
                 value
             );
@@ -91,7 +91,7 @@ impl TypedBits {
         let (base, rest) = self.bits.split_at(bits);
         if rest.iter().any(|b| *b) {
             anyhow::bail!(
-                "Unsigned cast failed: {} is not representable in {} bits",
+                "Unsigned cast failed: {:?} is not representable in {} bits",
                 self,
                 bits
             );
@@ -119,7 +119,7 @@ impl TypedBits {
         let new_sign_bit = base.last().cloned().unwrap_or_default();
         if rest.iter().any(|b| *b != new_sign_bit) {
             anyhow::bail!(
-                "Signed cast failed: {} is not representable in {} bits",
+                "Signed cast failed: {:?} is not representable in {} bits",
                 self,
                 bits
             );
@@ -205,7 +205,7 @@ impl TypedBits {
     pub fn get_bit(&self, index: usize) -> Result<TypedBits> {
         if index >= self.bits.len() {
             bail!(
-                "Cannot get bit {} from {} because it only has {} bits",
+                "Cannot get bit {} from {:?} because it only has {} bits",
                 index,
                 self,
                 self.bits.len()
@@ -219,14 +219,14 @@ impl TypedBits {
     pub fn set_bit(&self, index: usize, val: bool) -> Result<TypedBits> {
         if index >= self.bits.len() {
             bail!(
-                "Cannot set bit {} in {} because it only has {} bits",
+                "Cannot set bit {} in {:?} because it only has {} bits",
                 index,
                 self,
                 self.bits.len()
             );
         }
         if self.kind.is_composite() {
-            bail!("Cannot set bit {} in composite {}", index, self);
+            bail!("Cannot set bit {} in composite {:?}", index, self);
         }
         let mut new_bits = self.bits.clone();
         new_bits[index] = val;
@@ -237,11 +237,11 @@ impl TypedBits {
     }
     pub fn slice(&self, offset: usize, count: usize) -> Result<TypedBits> {
         if self.kind.is_composite() {
-            bail!("Cannot slice composite {}", self);
+            bail!("Cannot slice composite {:?}", self);
         }
         if offset + count > self.bits.len() {
             bail!(
-                "Cannot slice {} bits from {} because it only has {} bits",
+                "Cannot slice {} bits from {:?} because it only has {} bits",
                 count,
                 self,
                 self.bits.len()
@@ -266,7 +266,7 @@ impl std::ops::Add<TypedBits> for TypedBits {
     fn add(self, rhs: TypedBits) -> Self::Output {
         if self.kind != rhs.kind {
             bail!(
-                "Cannot add {} and {} because they have different types",
+                "Cannot add {:?} and {:?} because they have different types",
                 self,
                 rhs
             );
@@ -284,7 +284,7 @@ impl std::ops::Sub<TypedBits> for TypedBits {
     fn sub(self, rhs: TypedBits) -> Self::Output {
         if self.kind != rhs.kind {
             bail!(
-                "Cannot subtract {} and {} because they have different types",
+                "Cannot subtract {:?} and {:?} because they have different types",
                 self,
                 rhs
             );
@@ -301,7 +301,7 @@ impl std::ops::Not for TypedBits {
 
     fn not(self) -> Self::Output {
         if self.kind.is_composite() {
-            bail!("Cannot negate composite {}", self);
+            bail!("Cannot negate composite {:?}", self);
         }
         Ok(TypedBits {
             bits: bit_not(&self.bits),
@@ -316,13 +316,13 @@ impl std::ops::BitXor for TypedBits {
     fn bitxor(self, rhs: TypedBits) -> Self::Output {
         if self.kind != rhs.kind {
             bail!(
-                "Cannot xor {} and {} because they have different types",
+                "Cannot xor {:?} and {:?} because they have different types",
                 self,
                 rhs
             );
         }
         if self.kind.is_composite() {
-            bail!("Cannot xor composite {}", self);
+            bail!("Cannot xor composite {:?}", self);
         }
         Ok(TypedBits {
             bits: bits_xor(&self.bits, &rhs.bits),
@@ -337,13 +337,13 @@ impl std::ops::BitAnd for TypedBits {
     fn bitand(self, rhs: TypedBits) -> Self::Output {
         if self.kind != rhs.kind {
             bail!(
-                "Cannot and {} and {} because they have different types",
+                "Cannot and {:?} and {:?} because they have different types",
                 self,
                 rhs
             );
         }
         if self.kind.is_composite() {
-            bail!("Cannot and composite {}", self);
+            bail!("Cannot and composite {:?}", self);
         }
         Ok(TypedBits {
             bits: bits_and(&self.bits, &rhs.bits),
@@ -358,13 +358,13 @@ impl std::ops::BitOr for TypedBits {
     fn bitor(self, rhs: TypedBits) -> Self::Output {
         if self.kind != rhs.kind {
             bail!(
-                "Cannot or {} and {} because they have different types",
+                "Cannot or {:?} and {:?} because they have different types",
                 self,
                 rhs
             );
         }
         if self.kind.is_composite() {
-            bail!("Cannot or composite {}", self);
+            bail!("Cannot or composite {:?}", self);
         }
         Ok(TypedBits {
             bits: bits_or(&self.bits, &rhs.bits),
@@ -378,7 +378,7 @@ impl std::ops::Neg for TypedBits {
 
     fn neg(self) -> Self::Output {
         if !self.kind.is_signed() {
-            bail!("Only signed values can be negated: {}", self);
+            bail!("Only signed values can be negated: {:?}", self);
         }
         Ok(TypedBits {
             bits: bit_neg(&self.bits),
@@ -392,15 +392,15 @@ impl std::ops::Shl<TypedBits> for TypedBits {
 
     fn shl(self, rhs: TypedBits) -> Self::Output {
         if self.kind.is_composite() {
-            bail!("Cannot shift composite {}", self);
+            bail!("Cannot shift composite {:?}", self);
         }
         if !rhs.kind.is_unsigned() {
-            bail!("Shift amount must be unsigned: {}", rhs);
+            bail!("Shift amount must be unsigned: {:?}", rhs);
         }
         let shift = rhs.as_i64()?;
         if shift >= self.bits.len() as i64 {
             bail!(
-                "Shift amount {} is greater than the number of bits in {}",
+                "Shift amount {} is greater than the number of bits in {:?}",
                 shift,
                 self
             );
@@ -417,15 +417,15 @@ impl std::ops::Shr<TypedBits> for TypedBits {
 
     fn shr(self, rhs: TypedBits) -> Self::Output {
         if self.kind.is_composite() {
-            bail!("Cannot shift composite {}", self);
+            bail!("Cannot shift composite {:?}", self);
         }
         if !rhs.kind.is_unsigned() {
-            bail!("Shift amount must be unsigned: {}", rhs);
+            bail!("Shift amount must be unsigned: {:?}", rhs);
         }
         let shift = rhs.as_i64()?;
         if shift >= self.bits.len() as i64 {
             bail!(
-                "Shift amount {} is greater than the number of bits in {}",
+                "Shift amount {} is greater than the number of bits in {:?}",
                 shift,
                 self
             );
@@ -475,7 +475,7 @@ impl std::cmp::PartialOrd for TypedBits {
     }
 }
 
-impl std::fmt::Display for TypedBits {
+impl std::fmt::Debug for TypedBits {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write_kind_with_bits(&self.kind, &self.bits, f)
     }
@@ -496,7 +496,7 @@ fn write_kind_with_bits(
         Kind::Empty => write!(f, "()"),
         Kind::Signal(base, color) => {
             write_kind_with_bits(base, bits, f)?;
-            write!(f, "@{}", color)
+            write!(f, "@{:?}", color)
         }
     }
 }
@@ -785,30 +785,30 @@ mod tests {
         }
 
         let a = 0x47_u8.typed_bits();
-        assert_eq!(format!("{}", a), "47_b8");
+        assert_eq!(format!("{:?}", a), "47_b8");
         let c = (0x12_u8, 0x80_u8, false).typed_bits();
-        assert_eq!(format!("{}", c), "(12_b8, 80_b8, false)");
+        assert_eq!(format!("{:?}", c), "(12_b8, 80_b8, false)");
         let b = (-0x53_i32).typed_bits();
-        assert_eq!(format!("{}", b), "-83_s32");
+        assert_eq!(format!("{:?}", b), "-83_s32");
         let d = [1_u8, 3_u8, 4_u8].typed_bits();
-        assert_eq!(format!("{}", d), "[1_b8, 3_b8, 4_b8]");
+        assert_eq!(format!("{:?}", d), "[1_b8, 3_b8, 4_b8]");
         let e = Foo {
             a: 0x47,
             b: 0x80,
             c: true,
         }
         .typed_bits();
-        assert_eq!(format!("{}", e), "Foo {a: 47_b8, b: 80_b8, c: true}");
+        assert_eq!(format!("{:?}", e), "Foo {a: 47_b8, b: 80_b8, c: true}");
         let e = Bar(0x47, 0x80, true).typed_bits();
-        assert_eq!(format!("{}", e), "Bar {0: 47_b8, 1: 80_b8, 2: true}");
+        assert_eq!(format!("{:?}", e), "Bar {0: 47_b8, 1: 80_b8, 2: true}");
         let d = [Bar(0x47, 0x80, true), Bar(0x42, 0x13, false)].typed_bits();
         assert_eq!(
-            format!("{}", d),
+            format!("{:?}", d),
             "[Bar {0: 47_b8, 1: 80_b8, 2: true}, Bar {0: 42_b8, 1: 13_b8, 2: false}]"
         );
         let h = Baz::A(Bar(0x47, 0x80, true)).typed_bits();
         assert_eq!(
-            format!("{}", h),
+            format!("{:?}", h),
             "rhdl_core::types::typed_bits::tests::Baz::A(Bar {0: 47_b8, 1: 80_b8, 2: true})"
         );
     }

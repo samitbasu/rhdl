@@ -18,7 +18,7 @@ impl Kernel {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum KernelFnKind {
     Kernel(Kernel),
     Extern(ExternalKernelDef),
@@ -29,27 +29,27 @@ pub enum KernelFnKind {
     SignalConstructor(Option<ClockColor>),
 }
 
-impl std::fmt::Display for KernelFnKind {
+impl std::fmt::Debug for KernelFnKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             KernelFnKind::Kernel(kernel) => {
                 write!(
                     f,
-                    "kernel {name} {fn_id}",
+                    "kernel {name} {fn_id:?}",
                     name = kernel.inner().name,
                     fn_id = kernel.inner().fn_id
                 )
             }
             KernelFnKind::Extern(extern_kernel) => write!(f, "extern {}", extern_kernel.name),
             KernelFnKind::TupleStructConstructor(tb) => {
-                write!(f, "tuple struct constructor {}", tb)
+                write!(f, "tuple struct constructor {:?}", tb)
             }
             KernelFnKind::BitConstructor(width) => write!(f, "bit constructor {}", width),
             KernelFnKind::SignedBitsConstructor(width) => {
                 write!(f, "signed bits constructor {}", width)
             }
             KernelFnKind::EnumTupleStructConstructor(tb) => {
-                write!(f, "enum tuple struct constructor {}", tb)
+                write!(f, "enum tuple struct constructor {:?}", tb)
             }
             KernelFnKind::SignalConstructor(color) => {
                 write!(f, "signal constructor {:?}", color)

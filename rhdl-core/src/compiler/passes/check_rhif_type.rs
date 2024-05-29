@@ -76,7 +76,7 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
         }
     };
     for op in &obj.ops {
-        eprintln!("check op: {}", op);
+        eprintln!("check op: {:?}", op);
         match op {
             OpCode::Noop => {}
             OpCode::Binary(Binary {

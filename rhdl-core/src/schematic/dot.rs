@@ -71,13 +71,13 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
                     .iter()
                     .find(|t| t.source == wire.source && t.dest == wire.dest)
             }) {
-                format!("[label=\"{}\", color=\"red\"]", t.path)
+                format!("[label=\"{:?}\", color=\"red\"]", t.path)
             } else {
                 "".to_string()
             };
             writeln!(
                 self.w,
-                "c{}:{}:e -> c{}:{}:w {};",
+                "c{}:{:?}:e -> c{}:{:?}:w {};",
                 src_component, wire.source, dest_component, wire.dest, label
             )
         })?;
@@ -96,13 +96,13 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
                         .chain(once(&t.source))
                         .find(|t| t.pin == *pin)
                 }) {
-                    format!("[label=\"{}\", color=\"red\"]", t.path)
+                    format!("[label=\"{:?}\", color=\"red\"]", t.path)
                 } else {
                     "".to_string()
                 };
                 writeln!(
                     self.w,
-                    "a{ix}:e -> c{parent}:{pin}:w {label};",
+                    "a{ix}:e -> c{parent}:{pin:?}:w {label};",
                     ix = ix,
                     parent = parent_component,
                     pin = pin,
@@ -118,13 +118,13 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
                 .chain(once(&t.source))
                 .find(|t| t.pin == self.schematic.output)
         }) {
-            format!("[label=\"{}\", color=\"red\"]", t.path)
+            format!("[label=\"{:?}\", color=\"red\"]", t.path)
         } else {
             "".to_string()
         };
         writeln!(
             self.w,
-            "c{parent}:{pin}:e -> o{ix}:w {label};",
+            "c{parent}:{pin:?}:e -> o{ix}:w {label};",
             ix = 0,
             parent = parent_component,
             pin = self.schematic.output,
@@ -170,32 +170,32 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
     }
 
     fn write_buffer(&mut self, ndx: usize, buf: &BufferComponent) -> Result<()> {
-        let input_ports = format!("{{<{}> A}}", buf.input);
-        let output_ports = format!("{{<{}> Y}}", buf.output);
-        let label = format!("{kind}\nBuf", kind = &self.schematic.pin(buf.input).kind);
+        let input_ports = format!("{{<{:?}> A}}", buf.input);
+        let output_ports = format!("{{<{:?}> Y}}", buf.output);
+        let label = format!("{kind:?}\nBuf", kind = &self.schematic.pin(buf.input).kind);
         self.write_cnode(ndx, &input_ports, &label, &output_ports)
     }
 
     fn write_binary(&mut self, ndx: usize, bin: &BinaryComponent) -> Result<()> {
-        let input_ports = format!("{{<{}> A | <{}> B}}", bin.input1, bin.input2);
-        let output_ports = format!("{{<{}> Y}}", bin.output);
-        let label = format!("{}", bin.op);
+        let input_ports = format!("{{<{:?}> A | <{:?}> B}}", bin.input1, bin.input2);
+        let output_ports = format!("{{<{:?}> Y}}", bin.output);
+        let label = format!("{:?}", bin.op);
         self.write_cnode(ndx, &input_ports, &label, &output_ports)
     }
 
     fn write_unary(&mut self, ndx: usize, unary: &UnaryComponent) -> Result<()> {
-        let input_ports = format!("{{<{}> A}}", unary.input);
-        let output_ports = format!("{{<{}> Y}}", unary.output);
-        let label = format!("{}", unary.op);
+        let input_ports = format!("{{<{:?}> A}}", unary.input);
+        let output_ports = format!("{{<{:?}> Y}}", unary.output);
+        let label = format!("{:?}", unary.op);
         self.write_cnode(ndx, &input_ports, &label, &output_ports)
     }
 
     fn write_select(&mut self, ndx: usize, select: &SelectComponent) -> Result<()> {
         let input_ports = format!(
-            "{{<{}> C | <{}> T | <{}> F}}",
+            "{{<{:?}> C | <{:?}> T | <{:?}> F}}",
             select.cond, select.true_value, select.false_value
         );
-        let output_ports = format!("{{<{}> Y}}", select.output);
+        let output_ports = format!("{{<{:?}> Y}}", select.output);
         let label = "mux";
         self.write_cnode(ndx, &input_ports, label, &output_ports)
     }
@@ -204,12 +204,12 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
         let dyn_ports = index
             .dynamic
             .iter()
-            .map(|pin| format!("| <{}> D", pin))
+            .map(|pin| format!("| <{:?}> D", pin))
             .collect::<Vec<String>>()
             .join("");
-        let input_ports = format!("{{<{}> A{dyn_ports}}}", index.arg);
-        let output_ports = format!("{{<{}> Y}}", index.output);
-        let label = format!("{}\nindex", index.path);
+        let input_ports = format!("{{<{:?}> A{dyn_ports}}}", index.arg);
+        let output_ports = format!("{{<{:?}> Y}}", index.output);
+        let label = format!("{:?}\nindex", index.path);
         self.write_cnode(ndx, &input_ports, &label, &output_ports)
     }
 
@@ -217,18 +217,21 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
         let dyn_ports = splice
             .dynamic
             .iter()
-            .map(|pin| format!("| <{}> D", pin))
+            .map(|pin| format!("| <{:?}> D", pin))
             .collect::<Vec<String>>()
             .join("");
-        let input_ports = format!("{{<{}> A|<{}> S{dyn_ports}}}", splice.orig, splice.subst);
-        let output_ports = format!("{{<{}> Y}}", splice.output);
-        let label = format!("{}\nsplice", splice.path);
+        let input_ports = format!(
+            "{{<{:?}> A|<{:?}> S{dyn_ports}}}",
+            splice.orig, splice.subst
+        );
+        let output_ports = format!("{{<{:?}> Y}}", splice.output);
+        let label = format!("{:?}\nsplice", splice.path);
         self.write_cnode(ndx, &input_ports, &label, &output_ports)
     }
 
     fn write_repeat(&mut self, ndx: usize, repeat: &RepeatComponent) -> Result<()> {
-        let input_ports = format!("{{<{}> A}}", repeat.value);
-        let output_ports = format!("{{<{}> Y}}", repeat.output);
+        let input_ports = format!("{{<{:?}> A}}", repeat.value);
+        let output_ports = format!("{{<{:?}> Y}}", repeat.output);
         let label = format!("repeat {}", repeat.len);
         self.write_cnode(ndx, &input_ports, &label, &output_ports)
     }
@@ -237,13 +240,13 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
         let mut input_ports = structure
             .fields
             .iter()
-            .map(|member| format!("<{}> {}", member.pin, member.member))
+            .map(|member| format!("<{:?}> {:?}", member.pin, member.member))
             .collect::<Vec<String>>()
             .join("|");
         if let Some(rest) = structure.rest {
-            input_ports.push_str(&format!("| <{}> ...", rest));
+            input_ports.push_str(&format!("| <{:?}> ...", rest));
         }
-        let output_ports = format!("{{<{}> Y}}", structure.output);
+        let output_ports = format!("{{<{:?}> Y}}", structure.output);
         let label = format!("{}\nstruct", structure.kind.get_name());
         self.write_cnode(ndx, &format!("{{ {input_ports} }}"), &label, &output_ports)
     }
@@ -253,10 +256,10 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             .fields
             .iter()
             .enumerate()
-            .map(|(ndx, pin)| format!("<{}> .{ndx}", pin))
+            .map(|(ndx, pin)| format!("<{:?}> .{ndx}", pin))
             .collect::<Vec<String>>()
             .join("|");
-        let output_ports = format!("{{<{}> Y}}", tuple.output);
+        let output_ports = format!("{{<{:?}> Y}}", tuple.output);
         let label = if tuple.fields.is_empty() {
             "()"
         } else {
@@ -266,15 +269,15 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
     }
 
     fn write_case(&mut self, ndx: usize, case: &CaseComponent) -> Result<()> {
-        let discriminant_port = format!("<{}> D", case.discriminant);
+        let discriminant_port = format!("<{:?}> D", case.discriminant);
         let table_ports = case
             .table
             .iter()
-            .map(|(arg, pin)| format!("| <{}> {}", pin, arg))
+            .map(|(arg, pin)| format!("| <{:?}> {:?}", pin, arg))
             .collect::<Vec<String>>()
             .join("");
         let input_ports = format!("{{{discriminant_port}{table_ports}}}");
-        let output_ports = format!("{{<{}> Y}}", case.output);
+        let output_ports = format!("{{<{:?}> Y}}", case.output);
         let label = "case";
         self.write_cnode(ndx, &input_ports, label, &output_ports)
     }
@@ -285,10 +288,10 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             .args()
             .iter()
             .enumerate()
-            .map(|(ndx, pin)| format!("<{}> {}", pin, ndx))
+            .map(|(ndx, pin)| format!("<{:?}> {}", pin, ndx))
             .collect::<Vec<String>>()
             .join("|");
-        let output_ports = format!("{{<{}> Y}}", black_box.0.output());
+        let output_ports = format!("{{<{:?}> Y}}", black_box.0.output());
         let label = format!("{name}", name = black_box.0.name());
         self.write_cnode(ndx, &format!("{{ {input_ports} }}"), &label, &output_ports)
     }
@@ -298,10 +301,10 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             .args
             .iter()
             .enumerate()
-            .map(|(ndx, pin)| format!("<{}> {}", pin, ndx))
+            .map(|(ndx, pin)| format!("<{:?}> {}", pin, ndx))
             .collect::<Vec<String>>()
             .join("|");
-        let output_ports = format!("{{<{}> Y}}", kernel.output);
+        let output_ports = format!("{{<{:?}> Y}}", kernel.output);
         let label = format!("{name}\nkernel", name = kernel.name);
         self.write_cnode(ndx, &format!("{{ {input_ports} }}"), &label, &output_ports)
     }
@@ -311,10 +314,10 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             .elements
             .iter()
             .enumerate()
-            .map(|(pin, ndx)| format!("| <{}> A{}", pin, ndx))
+            .map(|(pin, ndx)| format!("| <{:?}> A{:?}", pin, ndx))
             .collect::<Vec<String>>()
             .join("");
-        let output_ports = format!("{{<{}> Y}}", array.output);
+        let output_ports = format!("{{<{:?}> Y}}", array.output);
         let label = "array";
         self.write_cnode(ndx, &input_ports, label, &output_ports)
     }
@@ -323,18 +326,21 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
         let input_ports = enm
             .fields
             .iter()
-            .map(|member| format!("| <{}> {}", member.pin, member.member))
+            .map(|member| format!("| <{:?}> {:?}", member.pin, member.member))
             .collect::<Vec<String>>()
             .join("");
-        let output_ports = format!("{{<{}> Y}}", enm.output);
-        let label = format!("{kind}\nenum", kind = &self.schematic.pin(enm.output).kind);
+        let output_ports = format!("{{<{:?}> Y}}", enm.output);
+        let label = format!(
+            "{kind:?}\nenum",
+            kind = &self.schematic.pin(enm.output).kind
+        );
         self.write_cnode(ndx, &input_ports, &label, &output_ports)
     }
 
     fn write_constant(&mut self, ndx: usize, constant: &ConstantComponent) -> Result<()> {
-        let output_ports = format!("{{<{}> Y}}", constant.output);
-        let value = escape_string(&elide_string(&constant.value.to_string()));
-        let tooltip = escape_string(&indent_string(&constant.value.to_string()));
+        let output_ports = format!("{{<{:?}> Y}}", constant.output);
+        let value = escape_string(&elide_string(&format!("{:?}", constant.value)));
+        let tooltip = escape_string(&indent_string(&format!("{:?}", constant.value)));
         let label = format!("{}\nconstant", value);
         // Escape the backslashes
         let label = escape_string(&label);
@@ -345,8 +351,8 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
     }
 
     fn write_cast(&mut self, ndx: usize, cast: &CastComponent) -> Result<()> {
-        let input_ports = format!("{{<{}> A}}", cast.input);
-        let output_ports = format!("{{<{}> Y}}", cast.output);
+        let input_ports = format!("{{<{:?}> A}}", cast.input);
+        let output_ports = format!("{{<{:?}> Y}}", cast.output);
         let label = "cast";
         self.write_cnode(ndx, &input_ports, label, &output_ports)
     }

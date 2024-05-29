@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
-use crate::{kernel::KernelFnKind, types::typed_bits::TypedBits, DigitalSignature, Kind};
+use crate::{
+    kernel::KernelFnKind, rhif::spec::Member, types::typed_bits::TypedBits, DigitalSignature, Kind,
+};
 
 // Modeled after rustc's AST
 
@@ -323,12 +325,6 @@ pub struct FieldValue {
     pub value: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
-pub enum Member {
-    Named(&'static str),
-    Unnamed(u32),
-}
-
 #[derive(Debug, Clone, Copy)]
 pub enum BinOp {
     Add,
@@ -430,7 +426,7 @@ pub struct FieldPat {
     pub pat: Box<Pat>,
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, PartialOrd, Ord, Eq, Default)]
+#[derive(Clone, Copy, Hash, PartialEq, PartialOrd, Ord, Eq, Default)]
 pub struct FunctionId(u64);
 
 impl From<u64> for FunctionId {
@@ -439,7 +435,7 @@ impl From<u64> for FunctionId {
     }
 }
 
-impl std::fmt::Display for FunctionId {
+impl std::fmt::Debug for FunctionId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "FnID({:x})", self.0)
     }

@@ -256,7 +256,7 @@ impl<'a> MirTypeInference<'a> {
         let a1 = self.ctx.apply(op.arg1);
         let a2 = self.ctx.apply(op.arg2);
         eprintln!(
-            "Try to apply {} to {} and {}",
+            "Try to apply {:?} to {} and {}",
             op.op,
             self.ctx.desc(a1),
             self.ctx.desc(a2)
@@ -399,7 +399,7 @@ impl<'a> MirTypeInference<'a> {
 
     fn try_index(&mut self, id: NodeId, op: &TypeIndex) -> Result<()> {
         eprintln!(
-            "Try to apply index to {} with path {}",
+            "Try to apply index to {} with path {:?}",
             self.ctx.desc(op.arg),
             op.path
         );
@@ -517,7 +517,7 @@ impl<'a> MirTypeInference<'a> {
     }
     fn process_ops(&mut self) -> Result<()> {
         for op in &self.mir.ops {
-            eprintln!("Processing op {}", op.op);
+            eprintln!("Processing op {:?}", op.op);
             let id = op.source;
             match &op.op {
                 OpCode::Array(array) => {
@@ -814,10 +814,10 @@ pub fn infer(mir: Mir) -> Result<Object> {
     for (slot, ty) in &infer.slot_map {
         let ty = infer.ctx.apply(*ty);
         let ty = infer.ctx.desc(ty);
-        eprintln!("Slot {} -> type {}", slot, ty);
+        eprintln!("Slot {:?} -> type {}", slot, ty);
     }
     for op in mir.ops.iter() {
-        eprintln!("{}", op.op);
+        eprintln!("{:?}", op.op);
     }
     eprintln!("=================================");
     if let Err(e) = infer.process_ops() {
@@ -825,7 +825,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
         for (slot, ty) in &infer.slot_map {
             let ty = infer.ctx.apply(*ty);
             let ty = infer.ctx.desc(ty);
-            eprintln!("Slot {} -> type {}", slot, ty);
+            eprintln!("Slot {:?} -> type {}", slot, ty);
         }
         return Err(e);
     }
@@ -835,7 +835,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
     for (slot, ty) in &infer.slot_map {
         let ty = infer.ctx.apply(*ty);
         let ty = infer.ctx.desc(ty);
-        eprintln!("Slot {} -> type {}", slot, ty);
+        eprintln!("Slot {:?} -> type {}", slot, ty);
     }
     infer.try_type_ops(5, &type_ops)?;
     eprintln!("Try to replace generic literals with ?32");
@@ -847,7 +847,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
                 let i32_len = infer.ctx.ty_const_len(ty.id, 32);
                 let m32_ty = infer.ctx.ty_maybe_signed(ty.id, i32_len);
                 eprintln!(
-                    "Literal {} -> {} U {}",
+                    "Literal {:?} -> {} U {}",
                     lit,
                     infer.ctx.desc(ty),
                     infer.ctx.desc(m32_ty)
@@ -881,10 +881,10 @@ pub fn infer(mir: Mir) -> Result<Object> {
         for (slot, ty) in &infer.slot_map {
             let ty = infer.ctx.apply(*ty);
             let ty = infer.ctx.desc(ty);
-            eprintln!("Slot {} -> type {}", slot, ty);
+            eprintln!("Slot {:?} -> type {}", slot, ty);
         }
         for op in mir.ops.iter() {
-            eprintln!("{}", op.op);
+            eprintln!("{:?}", op.op);
         }
 
         eprintln!("=================================");
@@ -892,7 +892,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
         for lit in mir.literals.keys() {
             let ty = infer.slot_ty(*lit);
             if infer.ctx.into_kind(ty).is_err() {
-                eprintln!("Literal {} -> {}", lit, infer.ctx.desc(ty));
+                eprintln!("Literal {:?} -> {}", lit, infer.ctx.desc(ty));
             }
         }
         return Err(infer
@@ -903,7 +903,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
     for (slot, ty) in &infer.slot_map {
         let ty = infer.ctx.apply(*ty);
         let ty = infer.ctx.desc(ty);
-        eprintln!("Slot {} -> type {}", slot, ty);
+        eprintln!("Slot {:?} -> type {}", slot, ty);
     }
     let final_type_map: BTreeMap<Slot, TypeId> = infer
         .slot_map
@@ -920,7 +920,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
         .collect::<anyhow::Result<BTreeMap<_, _>>>()
         .unwrap();
     for op in mir.ops.iter() {
-        eprintln!("{}", op.op);
+        eprintln!("{:?}", op.op);
     }
     let literals = mir
         .literals

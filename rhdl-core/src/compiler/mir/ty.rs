@@ -514,7 +514,7 @@ impl UnifyContext {
         match &self.types[ty.kind] {
             TypeKind::Var(v) => format!("V{}", v.0),
             TypeKind::Const(c) => match c {
-                Const::Clock(c) => format!("{}", c),
+                Const::Clock(c) => format!("{:?}", c),
                 Const::Length(n) => format!("{}", n),
                 Const::Signed(f) => {
                     if f.eq(&SignFlag::Signed) {
@@ -805,6 +805,6 @@ mod tests {
         assert!(ctx.unify(x, z).is_ok());
         eprintln!("{}", ctx);
         let m = ctx.into_kind(z).unwrap();
-        println!("{}", m);
+        println!("{:?}", m);
     }
 }

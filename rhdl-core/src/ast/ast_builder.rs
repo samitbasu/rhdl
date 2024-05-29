@@ -4,6 +4,7 @@ use std::hash::{Hash, Hasher};
 pub use crate::ast::ast_impl::BinOp;
 pub use crate::ast::ast_impl::UnOp;
 use crate::kernel::KernelFnKind;
+use crate::rhif::spec::Member;
 use crate::types::typed_bits::TypedBits;
 use crate::{ast::ast_impl::*, Kind};
 use crate::{ClockColor, DigitalSignature};
@@ -448,7 +449,7 @@ impl ASTBuilder {
     }
 
     pub fn member_named(&self, name: &'static str) -> Member {
-        Member::Named(name)
+        Member::Named(name.to_string())
     }
 
     pub fn member_unnamed(&self, index: u32) -> Member {

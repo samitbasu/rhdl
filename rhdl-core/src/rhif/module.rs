@@ -4,15 +4,15 @@ use std::collections::HashMap;
 
 use super::spanned_source::SpannedSource;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Module {
     pub objects: HashMap<FunctionId, Object>,
     pub top: FunctionId,
 }
 
-impl std::fmt::Display for Module {
+impl std::fmt::Debug for Module {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Design {}", self.top)?;
+        write!(f, "Design {:?}", self.top)?;
         for obj in self.objects.values() {
             write!(f, "\n  Object {}", obj.name)?;
         }
@@ -25,7 +25,7 @@ impl Module {
         let obj = self
             .objects
             .get(&fn_id)
-            .ok_or(anyhow::anyhow!("Function {fn_id} not found"))?;
+            .ok_or(anyhow::anyhow!("Function {fn_id:?} not found"))?;
         Ok(format!("{}_{:x}", obj.name, fn_id))
     }
     pub fn source_map(&self) -> HashMap<FunctionId, SpannedSource> {

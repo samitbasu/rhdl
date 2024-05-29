@@ -3,11 +3,11 @@ use std::{iter::repeat, ops::Range};
 
 use anyhow::Result;
 
-use crate::{ast::ast_impl::Member, TypedBits};
+use crate::{rhif::spec::Member, TypedBits};
 
 use super::clock::ClockColor;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum Kind {
     Array(Array),
     Tuple(Tuple),
@@ -19,15 +19,15 @@ pub enum Kind {
     Empty,
 }
 
-impl std::fmt::Display for Kind {
+impl std::fmt::Debug for Kind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Kind::Array(array) => write!(f, "[{}; {}]", array.base, array.size),
+            Kind::Array(array) => write!(f, "[{:?}; {}]", array.base, array.size),
             Kind::Tuple(tuple) => {
                 let elements = tuple
                     .elements
                     .iter()
-                    .map(|x| format!("{}", x))
+                    .map(|x| format!("{:?}", x))
                     .collect::<Vec<_>>()
                     .join(", ");
                 write!(f, "({})", elements)
@@ -37,12 +37,12 @@ impl std::fmt::Display for Kind {
             Kind::Bits(digits) => write!(f, "b{}", digits),
             Kind::Signed(digits) => write!(f, "s{}", digits),
             Kind::Empty => write!(f, "()"),
-            Kind::Signal(kind, color) => write!(f, "{}@{}", kind, color),
+            Kind::Signal(kind, color) => write!(f, "{:?}@{:?}", kind, color),
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct Array {
     pub base: Box<Kind>,
     pub size: usize,
@@ -53,7 +53,7 @@ pub struct Tuple {
     pub elements: Vec<Kind>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct Struct {
     pub name: String,
     pub fields: Vec<Field>,
@@ -63,53 +63,57 @@ impl Struct {
     pub fn is_tuple_struct(&self) -> bool {
         self.fields.iter().any(|x| x.name.parse::<i32>().is_ok())
     }
-    pub fn get_field_kind(&self, member: impl ToString) -> Result<Kind> {
-        let field = self.fields.iter().find(|x| x.name == member.to_string());
+    pub fn get_field_kind(&self, member: &Member) -> Result<Kind> {
+        let field_name = match member {
+            Member::Named(name) => name.clone(),
+            Member::Unnamed(ndx) => ndx.to_string(),
+        };
+        let field = self.fields.iter().find(|x| x.name == field_name);
         match field {
             Some(field) => Ok(field.kind.clone()),
-            None => Err(anyhow::anyhow!("No field with name {}", member.to_string())),
+            None => Err(anyhow::anyhow!("No field with name {}", field_name)),
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct Union {
     pub fields: Vec<Field>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum DiscriminantAlignment {
     Msb,
     Lsb,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum DiscriminantType {
     Signed,
     Unsigned,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct DiscriminantLayout {
     pub width: usize,
     pub alignment: DiscriminantAlignment,
     pub ty: DiscriminantType,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct Enum {
     pub name: String,
     pub variants: Vec<Variant>,
     pub discriminant_layout: DiscriminantLayout,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct Field {
     pub name: String,
     pub kind: Kind,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct Variant {
     pub name: String,
     pub discriminant: i64,
@@ -227,17 +231,21 @@ impl Kind {
             _ => bits.collect(),
         }
     }
-    pub fn get_field_kind(&self, member: impl ToString) -> Result<Kind> {
+    pub fn get_field_kind(&self, member: &Member) -> Result<Kind> {
+        let field_name = match member {
+            Member::Named(name) => name.clone(),
+            Member::Unnamed(ndx) => ndx.to_string(),
+        };
         match self {
             Kind::Struct(s) => {
-                let field = s.fields.iter().find(|x| x.name == member.to_string());
+                let field = s.fields.iter().find(|x| x.name == field_name);
                 match field {
                     Some(field) => Ok(field.kind.clone()),
-                    None => Err(anyhow::anyhow!("No field with name {}", member.to_string())),
+                    None => Err(anyhow::anyhow!("No field with name {}", field_name)),
                 }
             }
             _ => Err(anyhow::anyhow!(
-                "Kind {self} is not a struct, and get_field_kind is not allowed"
+                "Kind {self:?} is not a struct, and get_field_kind is not allowed"
             )),
         }
     }
@@ -271,7 +279,7 @@ impl Kind {
             }
             Kind::Struct(s) => s.name.clone(),
             Kind::Enum(e) => e.name.clone(),
-            Kind::Signal(kind, color) => format!("Sig::<{},{}>", kind, color),
+            Kind::Signal(kind, color) => format!("Sig::<{:?},{:?}>", kind, color),
         }
     }
 

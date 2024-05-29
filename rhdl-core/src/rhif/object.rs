@@ -42,7 +42,7 @@ impl SymbolMap {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Object {
     pub symbols: SymbolMap,
     pub literals: BTreeMap<Slot, TypedBits>,
@@ -59,7 +59,7 @@ impl Object {
     pub fn literal(&self, slot: Slot) -> Result<&TypedBits> {
         self.literals
             .get(&slot)
-            .ok_or_else(|| anyhow::anyhow!("Slot {slot} is not a literal"))
+            .ok_or_else(|| anyhow::anyhow!("Slot {slot:?} is not a literal"))
     }
     pub fn reg_max_index(&self) -> usize {
         self.kind
@@ -85,11 +85,11 @@ impl Object {
     }
 }
 
-impl std::fmt::Display for Object {
+impl std::fmt::Debug for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Object {}", self.name)?;
-        writeln!(f, "  fn_id {}", self.fn_id)?;
-        writeln!(f, "  return_slot {}", self.return_slot)?;
+        writeln!(f, "  fn_id {:?}", self.fn_id)?;
+        writeln!(f, "  return_slot {:?}", self.return_slot)?;
         for regs in self.kind.keys() {
             let slot_name = self
                 .symbols
@@ -98,22 +98,26 @@ impl std::fmt::Display for Object {
                 .map(|s| s.as_str())
                 .unwrap_or("");
             if let Slot::Register(ndx) = regs {
-                writeln!(f, "Reg r{} : {} // {}", ndx, self.kind[regs], slot_name)?;
+                writeln!(f, "Reg r{} : {:?} // {}", ndx, self.kind[regs], slot_name)?;
             }
         }
         for (slot, literal) in self.literals.iter() {
-            writeln!(f, "Literal {} : {} = {}", slot, self.kind[slot], literal)?;
+            writeln!(
+                f,
+                "Literal {:?} : {:?} = {:?}",
+                slot, self.kind[slot], literal
+            )?;
         }
         for (ndx, func) in self.externals.iter().enumerate() {
             writeln!(
                 f,
-                "Function f{} name: {} code: {} signature: {}",
+                "Function f{} name: {} code: {:?} signature: {:?}",
                 ndx, func.path, func.code, func.signature
             )?;
         }
         let mut body_str = String::new();
         for op in &self.ops {
-            writeln!(body_str, "{}", op)?;
+            writeln!(body_str, "{:?}", op)?;
         }
         let mut indent = 0;
         for line in body_str.lines() {

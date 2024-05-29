@@ -44,7 +44,7 @@ impl InitSet {
             Slot::Empty | Slot::Literal(_) => {}
             Slot::Register(_) => {
                 if !self.set.contains(slot) {
-                    bail!("{} is not initialized", slot);
+                    bail!("{:?} is not initialized", slot);
                 }
             }
         }
@@ -58,7 +58,7 @@ impl InitSet {
             }
             Slot::Register(_) => {
                 if self.set.contains(slot) {
-                    bail!("{} is already initialized", slot);
+                    bail!("{:?} is already initialized", slot);
                 }
                 self.set.insert(*slot);
             }
@@ -78,7 +78,7 @@ fn check_rhif_flow(obj: &Object) -> Result<()> {
 
 fn check_flow(obj: &Object, mut init_set: InitSet) -> Result<InitSet> {
     for op in &obj.ops {
-        eprintln!("Check flow for {}", op);
+        eprintln!("Check flow for {:?}", op);
         match op {
             OpCode::Noop => {}
             OpCode::Binary(Binary {

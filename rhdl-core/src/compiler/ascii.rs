@@ -4,6 +4,7 @@
 
 use crate::ast::ast_impl::*;
 use crate::kernel::Kernel;
+use crate::rhif::spec::Member;
 use anyhow::Result;
 
 #[derive(Default)]
@@ -108,7 +109,7 @@ impl AsciiRenderer {
             }
             ArmKind::Enum(enum_arm) => {
                 self.render_pat(&enum_arm.pat)?;
-                self.push(&format!("#{}", &enum_arm.template));
+                self.push(&format!("#{:?}", &enum_arm.template));
             }
         }
         self.push(" => ");

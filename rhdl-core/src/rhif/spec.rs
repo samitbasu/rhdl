@@ -8,7 +8,7 @@ use crate::{
     ClockColor, DigitalSignature, Kind, TypedBits,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum OpCode {
     Noop,
     // lhs <- arg1 op arg2
@@ -131,19 +131,19 @@ pub struct Exec {
     pub args: Vec<Slot>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum CaseArgument {
     Slot(Slot),
     Wild,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct FieldValue {
     pub member: Member,
     pub value: Slot,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum AluBinary {
     Add,
     Sub,
@@ -161,7 +161,7 @@ pub enum AluBinary {
     Gt,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum AluUnary {
     Neg,
     Not,
@@ -172,12 +172,23 @@ pub enum AluUnary {
     Unsigned,
 }
 
-#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub enum Slot {
     Literal(usize),
     Register(usize),
     Empty,
 }
+
+impl std::fmt::Debug for Slot {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Slot::Literal(l) => write!(f, "l{}", l),
+            Slot::Register(r) => write!(f, "r{}", r),
+            Slot::Empty => write!(f, "()"),
+        }
+    }
+}
+
 impl Slot {
     pub fn reg(&self) -> Result<usize> {
         match self {
@@ -206,28 +217,28 @@ impl Slot {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum Member {
     Named(String),
     Unnamed(u32),
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct FuncId(pub usize);
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum ExternalFunctionCode {
     Kernel(Kernel),
     Extern(ExternalKernelDef),
 }
 
-impl std::fmt::Display for ExternalFunctionCode {
+impl std::fmt::Debug for ExternalFunctionCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ExternalFunctionCode::Kernel(kernel) => {
                 write!(
                     f,
-                    "kernel {name} {fn_id}",
+                    "kernel {name} {fn_id:?}",
                     name = kernel.inner().name,
                     fn_id = kernel.inner().fn_id
                 )
