@@ -25,7 +25,7 @@ pub fn make_constrained_verilog<M: Synchronous>(
 ) -> Result<ConstrainedVerilog> {
     let design = compile_design::<M::Update>()?;
     let verilog = generate_verilog(&design)?;
-    let module_code = format!("{}", verilog);
+    let module_code = verilog.code();
     let module = format!(
         "
 module top(input wire clk, input wire[{INPUT_BITS}:0] top_in, output reg[{OUTPUT_BITS}:0] top_out);

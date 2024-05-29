@@ -206,7 +206,7 @@ pub fn make_verilog_testbench<M: Synchronous>(
     // Given a synchronous object and an iterator of inputs, generate a Verilog testbench
     // that will simulate the object and print the results to the console.
     let verilog = generate_verilog(&compile_design::<M::Update>()?)?;
-    let module_code = format!("{}", verilog);
+    let module_code = verilog.code();
     let inputs = inputs.collect::<Vec<_>>();
     let outputs = simulate(obj, inputs.iter().copied()).collect::<Vec<_>>();
     let test_loop = inputs
@@ -328,8 +328,8 @@ fn test_pulser_simulation() {
 fn get_pulser_verilog() -> Result<()> {
     let design = compile_design::<pulser_update<16>>()?;
     let verilog = generate_verilog(&design)?;
-    eprintln!("Verilog {}", verilog);
-    std::fs::write("pulser.v", format!("{}", verilog))?;
+    eprintln!("Verilog {:?}", verilog);
+    std::fs::write("pulser.v", verilog.code())?;
     let input = std::iter::repeat(true).take(10_000);
     let pulser = Pulser::<16> {
         one_shot: OneShot::<16> { duration: bits(10) },

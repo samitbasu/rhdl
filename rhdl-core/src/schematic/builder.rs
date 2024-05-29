@@ -64,7 +64,7 @@ impl<'a> SchematicBuilder<'a> {
     fn build(mut self) -> Result<Schematic> {
         for arg in &self.object.arguments {
             let kind = self.kind(*arg)?;
-            let (ipin, opin) = self.make_buffer(format!("{}", arg), kind, self.slot_source(*arg));
+            let (ipin, opin) = self.make_buffer(format!("{:?}", arg), kind, self.slot_source(*arg));
             self.schematic.inputs.push(ipin);
             self.bind(*arg, opin);
         }
@@ -139,7 +139,9 @@ impl<'a> SchematicBuilder<'a> {
     fn make_output_pin(&mut self, slot: Slot) -> Result<PinIx> {
         let kind = self.kind(slot)?;
         let location = self.slot_source(slot);
-        let pin = self.schematic.make_pin(kind, format!("{}", slot), location);
+        let pin = self
+            .schematic
+            .make_pin(kind, format!("{:?}", slot), location);
         self.bind(slot, pin);
         Ok(pin)
     }
@@ -185,7 +187,7 @@ impl<'a> SchematicBuilder<'a> {
     fn make_wired_pin(&mut self, slot: Slot) -> Result<PinIx> {
         let kind = self.kind(slot)?;
         let source = self.slot_source(slot);
-        let pin = self.schematic.make_pin(kind, format!("{}", slot), source);
+        let pin = self.schematic.make_pin(kind, format!("{:?}", slot), source);
         let output = self.lookup(slot)?;
         self.schematic.wire(output, pin);
         Ok(pin)

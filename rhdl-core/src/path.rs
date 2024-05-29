@@ -4,7 +4,7 @@ use std::ops::Range;
 use anyhow::bail;
 use anyhow::Result;
 
-use crate::ast::ast_impl::Member;
+use crate::rhif::spec::Member;
 use crate::rhif::spec::Slot;
 use crate::DiscriminantAlignment;
 use crate::Kind;
@@ -21,7 +21,7 @@ pub enum PathElement {
     SignalValue,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, PartialEq, Eq, Hash, Default)]
 pub struct Path {
     pub elements: Vec<PathElement>,
 }
@@ -34,7 +34,7 @@ impl FromIterator<PathElement> for Path {
     }
 }
 
-impl std::fmt::Display for Path {
+impl std::fmt::Debug for Path {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for e in &self.elements {
             match e {
@@ -44,7 +44,7 @@ impl std::fmt::Display for Path {
                 PathElement::EnumDiscriminant => write!(f, "#")?,
                 PathElement::EnumPayload(s) => write!(f, "#{}", s)?,
                 PathElement::EnumPayloadByValue(v) => write!(f, "#{}", v)?,
-                PathElement::DynamicIndex(slot) => write!(f, "[[{}]]", slot)?,
+                PathElement::DynamicIndex(slot) => write!(f, "[[{:?}]]", slot)?,
                 PathElement::SignalValue => write!(f, "@")?,
             }
         }
@@ -81,10 +81,10 @@ impl Path {
         self.elements.push(PathElement::SignalValue);
         self
     }
-    pub fn member(mut self, member: Member) -> Self {
+    pub fn member(mut self, member: &Member) -> Self {
         match member {
             Member::Named(name) => self.elements.push(PathElement::Field(name.to_owned())),
-            Member::Unnamed(ndx) => self.elements.push(PathElement::Index(ndx as usize)),
+            Member::Unnamed(ndx) => self.elements.push(PathElement::Index(*ndx as usize)),
         }
         self
     }
@@ -207,7 +207,7 @@ pub fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
 // generated from the base path using legal values for the dynamic
 // indices.
 pub fn path_star(kind: &Kind, path: &Path) -> Result<Vec<Path>> {
-    eprintln!("path star called with kind {} and path {}", kind, path);
+    eprintln!("path star called with kind {:?} and path {:?}", kind, path);
     if !path.any_dynamic() {
         return Ok(vec![path.clone()]);
     }
@@ -257,7 +257,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                 if let Kind::Signal(root, _) = kind {
                     kind = *root.clone();
                 } else {
-                    bail!("Signal value not valid for non-signal type {kind}")
+                    bail!("Signal value not valid for non-signal type {kind:?}")
                 }
             }
             PathElement::TupleIndex(i) => match &kind {
@@ -287,7 +287,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     range = range.start + offset..range.start + offset + size;
                     kind = structure.fields[*i].kind.clone();
                 }
-                _ => bail!("Tuple indexing not allowed on this type {kind}"),
+                _ => bail!("Tuple indexing not allowed on this type {kind:?}"),
             },
             PathElement::Index(i) => match &kind {
                 Kind::Array(array) => {
@@ -312,7 +312,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     range = range.start + offset..range.start + offset + size;
                     kind = structure.fields[*i].kind.clone();
                 }
-                _ => bail!("Indexing non-indexable type {kind}"),
+                _ => bail!("Indexing non-indexable type {kind:?}"),
             },
             PathElement::Field(field) => match &kind {
                 Kind::Struct(structure) => {
@@ -335,7 +335,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     range = range.start + offset..range.start + offset + size;
                     kind = field.clone();
                 }
-                _ => bail!("Field indexing not allowed on this type {kind}"),
+                _ => bail!("Field indexing not allowed on this type {kind:?}"),
             },
             PathElement::EnumDiscriminant => match &kind {
                 Kind::Enum(enumerate) => {
@@ -482,7 +482,7 @@ mod tests {
         for path in path1_star {
             assert_eq!(path.elements.len(), 3);
             assert!(!path.any_dynamic());
-            eprintln!("{}", path);
+            eprintln!("{:?}", path);
         }
         let path2 = Path::default()
             .field("d")
@@ -493,7 +493,7 @@ mod tests {
         for path in path2_star {
             assert_eq!(path.elements.len(), 3);
             assert!(!path.any_dynamic());
-            eprintln!("{}", path);
+            eprintln!("{:?}", path);
         }
         let path3 = Path::default()
             .field("d")
@@ -505,7 +505,7 @@ mod tests {
         for path in path3_star {
             assert_eq!(path.elements.len(), 4);
             assert!(!path.any_dynamic());
-            eprintln!("{}", path);
+            eprintln!("{:?}", path);
         }
     }
 }

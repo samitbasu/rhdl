@@ -19,7 +19,6 @@ use crate::ast::ast_impl;
 use crate::ast::ast_impl::BitsKind;
 use crate::ast::ast_impl::ExprBits;
 use crate::ast::ast_impl::ExprTypedBits;
-use crate::ast::ast_impl::Member;
 use crate::ast::ast_impl::{
     Arm, ArmKind, Block, ExprArray, ExprAssign, ExprBinary, ExprCall, ExprField, ExprForLoop,
     ExprIf, ExprIndex, ExprMatch, ExprMethodCall, ExprPath, ExprRepeat, ExprRet, ExprStruct,
@@ -33,6 +32,7 @@ use crate::compiler::ascii::render_statement_to_string;
 use crate::compiler::display_ast::pretty_print_statement;
 use crate::error::RHDLError;
 use crate::kernel::Kernel;
+use crate::path::Path;
 use crate::rhif;
 use crate::rhif::object::SymbolMap;
 use crate::rhif::rhif_builder::op_as_bits_inferred;
@@ -50,6 +50,7 @@ use crate::rhif::spec::AluUnary;
 use crate::rhif::spec::CaseArgument;
 use crate::rhif::spec::ExternalFunctionCode;
 use crate::rhif::spec::FuncId;
+use crate::rhif::spec::Member;
 use crate::KernelFnKind;
 use crate::Kind;
 use crate::NoteKey;
@@ -73,15 +74,6 @@ use super::mir_impl::TypeEquivalence;
 pub struct Rebind {
     from: Slot,
     to: Slot,
-}
-
-impl From<ast_impl::Member> for spec::Member {
-    fn from(member: ast_impl::Member) -> Self {
-        match member {
-            ast_impl::Member::Named(name) => spec::Member::Named(name.into()),
-            ast_impl::Member::Unnamed(index) => spec::Member::Unnamed(index),
-        }
-    }
 }
 
 fn binop_to_alu(op: BinOp) -> AluBinary {
@@ -158,7 +150,7 @@ impl std::fmt::Display for Scope {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Scope {{")?;
         for (name, id) in &self.names {
-            writeln!(f, "  {} -> {}", name, id)?;
+            writeln!(f, "  {} -> {:?}", name, id)?;
         }
         writeln!(f, "}}")
     }
@@ -187,34 +179,34 @@ pub struct MirContext<'a> {
     spanned_source: &'a SpannedSource,
 }
 
-impl<'a> std::fmt::Display for MirContext<'a> {
+impl<'a> std::fmt::Debug for MirContext<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let arguments = self
             .arguments
             .iter()
-            .map(|x| x.to_string())
+            .map(|x| format!("{x:?}"))
             .collect::<Vec<_>>()
             .join(", ");
         writeln!(
             f,
-            "Kernel {}({})->{} ({})",
+            "Kernel {}({})->{:?} ({:?})",
             self.name, arguments, self.return_slot, self.fn_id
         )?;
         for (slot, kind) in &self.ty {
-            writeln!(f, "{} : {}", slot, self.kinds[kind])?;
+            writeln!(f, "{:?} : {:?}", slot, self.kinds[kind])?;
         }
         for (lit, expr) in &self.literals {
-            writeln!(f, "{} -> {}", lit, expr)?;
+            writeln!(f, "{:?} -> {}", lit, expr)?;
         }
         for (ndx, func) in self.stash.iter().enumerate() {
             writeln!(
                 f,
-                "Function f{} name: {} code: {} signature: {}",
+                "Function f{} name: {} code: {:?} signature: {:?}",
                 ndx, func.path, func.code, func.signature
             )?;
         }
         for op in &self.ops {
-            writeln!(f, "{}", op.op)?;
+            writeln!(f, "{:?}", op.op)?;
         }
         Ok(())
     }
@@ -343,7 +335,7 @@ impl<'a> MirContext<'a> {
         };
         self.slot_names.insert(reg, name.to_string());
         self.scopes[scope.0].names.insert(name, reg);
-        eprintln!("Rebound {} from {} to {}", name, prev, reg);
+        eprintln!("Rebound {} from {:?} to {:?}", name, prev, reg);
         Ok(Rebind {
             from: prev,
             to: reg,
@@ -444,7 +436,7 @@ impl<'a> MirContext<'a> {
             PatKind::Struct(struct_pat) => {
                 for field in &struct_pat.fields {
                     let element_rhs = self.reg(field.pat.id);
-                    let path = field.member.clone().into();
+                    let path = Path::default().member(&field.member);
                     self.op(op_index(element_rhs, rhs, path), field.pat.id);
                     self.initialize_local(&field.pat, element_rhs)?;
                 }
@@ -722,7 +714,7 @@ impl<'a> MirContext<'a> {
                     },
                     pattern.id,
                 ))?;
-                eprintln!("Binding {:?} to {:?} via {}", ident, kind, slot);
+                eprintln!("Binding {:?} to {:?} via {:?}", ident, kind, slot);
                 self.bind_slot_to_type(slot, kind);
                 Ok(())
             }
@@ -1289,7 +1281,7 @@ impl<'a> MirContext<'a> {
         }
     }
     fn struct_expr(&mut self, id: NodeId, strukt: &ExprStruct) -> Result<Slot> {
-        eprintln!("Struct expr {:?} template: {}", strukt, strukt.template);
+        eprintln!("Struct expr {:?} template: {:?}", strukt, strukt.template);
         let lhs = self.reg(id);
         let fields = strukt
             .fields

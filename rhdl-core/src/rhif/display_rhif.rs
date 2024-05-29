@@ -10,7 +10,7 @@ use crate::{
 
 use super::spec::{Retime, Select};
 
-impl Display for OpCode {
+impl std::fmt::Debug for OpCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             OpCode::Noop => write!(f, " NOP"),
@@ -20,16 +20,16 @@ impl Display for OpCode {
                 arg1,
                 arg2,
             }) => {
-                write!(f, " {} <- {} {} {}", lhs, arg1, op, arg2)
+                write!(f, " {:?} <- {:?} {:?} {:?}", lhs, arg1, op, arg2)
             }
             OpCode::Unary(Unary { op, lhs, arg1 }) => {
-                write!(f, " {} <- {}{}", lhs, op, arg1)
+                write!(f, " {:?} <- {:?}{:?}", lhs, op, arg1)
             }
             OpCode::Array(Array { lhs, elements }) => {
-                write!(f, " {} <- [{}]", lhs, splice(elements, ", "))
+                write!(f, " {:?} <- [{}]", lhs, splice(elements, ", "))
             }
             OpCode::Assign(Assign { lhs, rhs }) => {
-                write!(f, "{} <- {}", lhs, rhs)
+                write!(f, "{:?} <- {:?}", lhs, rhs)
             }
             OpCode::Splice(Splice {
                 lhs,
@@ -37,7 +37,7 @@ impl Display for OpCode {
                 path,
                 subst: arg,
             }) => {
-                write!(f, "{} <- {}/{}/{}", lhs, arg, path, rhs)
+                write!(f, "{:?} <- {:?}/{:?}/{:?}", lhs, arg, path, rhs)
             }
             OpCode::Select(Select {
                 lhs,
@@ -45,27 +45,31 @@ impl Display for OpCode {
                 true_value,
                 false_value,
             }) => {
-                write!(f, " {} <- {} ? {} : {}", lhs, cond, true_value, false_value)
+                write!(
+                    f,
+                    " {:?} <- {:?} ? {:?} : {:?}",
+                    lhs, cond, true_value, false_value
+                )
             }
             OpCode::Tuple(Tuple { lhs, fields }) => {
-                write!(f, " {} <- ({})", lhs, splice(fields, ", "))
+                write!(f, " {:?} <- ({})", lhs, splice(fields, ", "))
             }
             OpCode::Index(Index { lhs, arg, path }) => {
-                write!(f, " {} <- {}{}", lhs, arg, path)
+                write!(f, " {:?} <- {:?}{:?}", lhs, arg, path)
             }
             OpCode::Case(Case {
                 lhs,
                 discriminant: expr,
                 table,
             }) => {
-                writeln!(f, " {} <- case {} {{", lhs, expr)?;
+                writeln!(f, " {:?} <- case {:?} {{", lhs, expr)?;
                 for (cond, val) in table {
-                    writeln!(f, "         {} => {}", cond, val)?;
+                    writeln!(f, "         {:?} => {:?}", cond, val)?;
                 }
                 writeln!(f, " }}")
             }
             OpCode::Exec(Exec { lhs, id, args }) => {
-                write!(f, " {} <- {}({})", lhs, id, splice(args, ", "))
+                write!(f, " {:?} <- {:?}({})", lhs, id, splice(args, ", "))
             }
             OpCode::Struct(Struct {
                 lhs,
@@ -75,15 +79,15 @@ impl Display for OpCode {
             }) => {
                 write!(
                     f,
-                    " {} <- {} {{ {} {} }}",
+                    " {:?} <- {:?} {{ {:?} {:?} }}",
                     lhs,
                     template.kind.get_name(),
                     splice(fields, ", "),
-                    rest.map(|x| format!("..{}", x)).unwrap_or_default(),
+                    rest.map(|x| format!("..{:?}", x)).unwrap_or_default(),
                 )
             }
             OpCode::Repeat(Repeat { lhs, value, len }) => {
-                write!(f, " {} <- [{}; {}]", lhs, value, len)
+                write!(f, " {:?} <- [{:?}; {}]", lhs, value, len)
             }
             OpCode::Comment(s) => write!(f, " # {}", s.trim_end().replace('\n', "\n   # ")),
             OpCode::Enum(Enum {
@@ -93,7 +97,7 @@ impl Display for OpCode {
             }) => {
                 write!(
                     f,
-                    " {} <- {}#{}({})",
+                    " {:?} <- {:?}#{:?}({})",
                     lhs,
                     template.kind.get_name(),
                     template.discriminant().unwrap(),
@@ -102,47 +106,47 @@ impl Display for OpCode {
             }
             OpCode::AsBits(Cast { lhs, arg, len }) => {
                 if let Some(len) = len {
-                    write!(f, " {} <- {} as b{}", lhs, arg, len)
+                    write!(f, " {:?} <- {:?} as b{}", lhs, arg, len)
                 } else {
-                    write!(f, " {} <- {} as bits", lhs, arg)
+                    write!(f, " {:?} <- {:?} as bits", lhs, arg)
                 }
             }
             OpCode::AsSigned(Cast { lhs, arg, len }) => {
                 if let Some(len) = len {
-                    write!(f, " {} <- {} as s{}", lhs, arg, len)
+                    write!(f, " {:?} <- {:?} as s{}", lhs, arg, len)
                 } else {
-                    write!(f, " {} <- {} as signed", lhs, arg)
+                    write!(f, " {:?} <- {:?} as signed", lhs, arg)
                 }
             }
             OpCode::Retime(Retime { lhs, arg, color }) => {
-                write!(f, " {} <- {} retime {:?}", lhs, arg, color)
+                write!(f, " {:?} <- {:?} retime {:?}", lhs, arg, color)
             }
         }
     }
 }
 
-impl Display for FieldValue {
+impl std::fmt::Debug for FieldValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {}", self.member, self.value)
+        write!(f, "{:?}: {:?}", self.member, self.value)
     }
 }
 
-impl Display for CaseArgument {
+impl std::fmt::Debug for CaseArgument {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CaseArgument::Slot(s) => write!(f, "{}", s),
+            CaseArgument::Slot(s) => write!(f, "{:?}", s),
             CaseArgument::Wild => write!(f, "_"),
         }
     }
 }
 
-impl Display for FuncId {
+impl std::fmt::Debug for FuncId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "f{}", self.0)
     }
 }
 
-impl Display for Member {
+impl std::fmt::Debug for Member {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Member::Named(s) => write!(f, "{}", s),
@@ -151,7 +155,7 @@ impl Display for Member {
     }
 }
 
-impl Display for AluBinary {
+impl std::fmt::Debug for AluBinary {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             AluBinary::Add => write!(f, "+"),
@@ -172,7 +176,7 @@ impl Display for AluBinary {
     }
 }
 
-impl Display for AluUnary {
+impl std::fmt::Debug for AluUnary {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             AluUnary::Neg => write!(f, "-"),
@@ -182,17 +186,6 @@ impl Display for AluUnary {
             AluUnary::Xor => write!(f, "^"),
             AluUnary::Signed => write!(f, "signed "),
             AluUnary::Unsigned => write!(f, "unsigned "),
-        }
-    }
-}
-
-impl Display for Slot {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Slot::Literal(l) => write!(f, "l{}", l),
-            // Use 4 spaces for alignment
-            Slot::Register(usize) => write!(f, "r{}", usize),
-            Slot::Empty => write!(f, "()"),
         }
     }
 }

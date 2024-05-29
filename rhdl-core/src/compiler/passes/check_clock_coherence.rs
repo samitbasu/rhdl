@@ -83,7 +83,7 @@ impl ColorMap {
 impl Display for ColorMap {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         for (slot, color) in self.map.iter() {
-            writeln!(f, "{} -> {:?}", slot, color)?;
+            writeln!(f, "{:?} -> {:?}", slot, color)?;
         }
         Ok(())
     }

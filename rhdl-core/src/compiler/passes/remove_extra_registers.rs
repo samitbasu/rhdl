@@ -29,13 +29,13 @@ impl Pass for RemoveExtraRegistersPass {
         let mut eligible = vec![true; input.ops.len()];
         while let Some(op_ndx) = find_assign_op(&input.ops, &eligible) {
             let op = input.ops[op_ndx].clone();
-            eprintln!("Found assign op {}", op);
+            eprintln!("Found assign op {:?}", op);
             if let OpCode::Assign(assign) = op {
                 let lhs_name = input.symbols.slot_names.get(&assign.lhs);
                 let rhs_name = input.symbols.slot_names.get(&assign.rhs);
                 if !can_merge_names(lhs_name, rhs_name) {
                     eprintln!(
-                        "Cannot merge names {:?} {:?} for registers {} {}",
+                        "Cannot merge names {:?} {:?} for registers {:?} {:?}",
                         lhs_name, rhs_name, assign.lhs, assign.rhs
                     );
                     eligible[op_ndx] = false;

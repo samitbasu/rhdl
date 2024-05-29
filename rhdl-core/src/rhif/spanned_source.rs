@@ -1,12 +1,13 @@
 use crate::{
     ast::ast_impl::{
-        ArmKind, BitsKind, Block, Expr, ExprKind, KernelFn, Member, NodeId, Pat, PatKind, Stmt,
-        StmtKind,
+        ArmKind, BitsKind, Block, Expr, ExprKind, KernelFn, NodeId, Pat, PatKind, Stmt, StmtKind,
     },
     util::IndentingFormatter,
     Kind,
 };
 use std::{collections::HashMap, ops::Range};
+
+use super::spec::Member;
 
 #[derive(Clone, Debug)]
 pub struct SpannedSource {
@@ -247,7 +248,7 @@ impl SpannedSourceBuilder {
             }
             ExprKind::Field(expr) => {
                 self.expr(&expr.expr);
-                self.push(&format!(".{}", expr.member));
+                self.push(&format!(".{:?}", expr.member));
             }
             ExprKind::ForLoop(expr) => {
                 self.push("for ");

@@ -3,10 +3,10 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-pub fn splice<T: Display>(elems: &[T], sep: &str) -> String {
+pub fn splice<T: std::fmt::Debug>(elems: &[T], sep: &str) -> String {
     elems
         .iter()
-        .map(|x| x.to_string())
+        .map(|x| format!("{x:?}"))
         .collect::<Vec<_>>()
         .join(sep)
 }

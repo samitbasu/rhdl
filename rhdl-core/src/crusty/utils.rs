@@ -46,7 +46,7 @@ fn location_for_pin_path(
     } else if path.is_empty() {
         "via signal".to_string()
     } else {
-        format!("via {}", path)
+        format!("via {:?}", path)
     };
     is.schematic
         .pin(pin)

@@ -37,7 +37,7 @@ fn compile_kernel(kernel: Kernel) -> Result<Object> {
     //    check_inference(&kernel, &ctx)?;
     //let mut obj = compile(kernel.inner(), ctx)?;
     for _pass in 0..2 {
-        eprintln!("{}", obj);
+        eprintln!("{:?}", obj);
         obj = RemoveExtraRegistersPass::run(obj)?;
         obj = RemoveUnneededMuxesPass::run(obj)?;
         obj = RemoveExtraRegistersPass::run(obj)?;
@@ -51,7 +51,7 @@ fn compile_kernel(kernel: Kernel) -> Result<Object> {
     }
     let obj = TypeCheckPass::run(obj)?;
     let obj = DataFlowCheckPass::run(obj)?;
-    eprintln!("Final code:\n{}", obj);
+    eprintln!("Final code:\n{:?}", obj);
     let obj = CheckClockCoherence::run(obj)?;
     Ok(obj)
 }
@@ -75,7 +75,7 @@ fn elaborate_design(design: &mut Module) -> Result<()> {
         if let std::collections::hash_map::Entry::Vacant(e) =
             design.objects.entry(kernel.inner().fn_id)
         {
-            eprintln!("Compiling kernel {}", kernel.inner().fn_id);
+            eprintln!("Compiling kernel {:?}", kernel.inner().fn_id);
             let obj = compile_kernel(kernel.clone())?;
             e.insert(obj);
         }

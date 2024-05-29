@@ -16,7 +16,7 @@ use super::compiler::ScopeIndex;
 pub enum TypeCheck {
     #[error("A request was made for .val() on something that is not a signal")]
     ExpectedSignalValue,
-    #[error("Literal with explicit type {typ} is inferred as {kind} instead")]
+    #[error("Literal with explicit type {typ:?} is inferred as {kind:?} instead")]
     InferredLiteralTypeMismatch { typ: Kind, kind: Kind },
     #[error("Unable to determine type of this item")]
     #[diagnostic(help("Please provide an explicit type annotation"))]
@@ -31,13 +31,13 @@ pub enum ICE {
     UnsupportedArgumentPattern { arg: Box<Pat> },
     #[error("Rebind of unbound variable {name}")]
     RebindOfUnboundVariable { name: String },
-    #[error("Calling slot-to-index mapping on non-literal slot {slot}")]
+    #[error("Calling slot-to-index mapping on non-literal slot {slot:?}")]
     SlotToIndexNonLiteralSlot { slot: Slot },
     #[error("Attempt to initialize unbound local variable {name}")]
     InitializeLocalOnUnboundVariable { name: String },
     #[error("Unsupported pattern in initialize local {pat:?}")]
     UnsupportedPatternInInitializeLocal { pat: Box<Pat> },
-    #[error("No early return flag found in function {func}")]
+    #[error("No early return flag found in function {func:?}")]
     NoEarlyReturnFlagFound { func: FunctionId },
     #[error("Local variable {id:?} not found in branch map")]
     LocalVariableNotFoundInBranchMap { id: ScopeIndex },
@@ -65,9 +65,9 @@ pub enum ICE {
     NameNotFoundInPath { name: String, path: ExprPath },
     #[error("Missing kernel function provided for {name}")]
     MissingKernelFunction { name: String },
-    #[error("Expected a struct template for this op instead of {kind}")]
+    #[error("Expected a struct template for this op instead of {kind:?}")]
     ExpectedStructTemplate { kind: Kind },
-    #[error("Expected an enum template for this op instead of {kind}")]
+    #[error("Expected an enum template for this op instead of {kind:?}")]
     ExpectedEnumTemplate { kind: Kind },
     #[error("Unexpected complex path where an identifier was expected {path:?}")]
     UnexpectedComplexPath { path: ExprPath },

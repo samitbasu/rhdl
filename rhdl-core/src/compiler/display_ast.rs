@@ -3,6 +3,7 @@ use std::fmt::{Display, Formatter};
 use crate::{
     ast::ast_impl::*,
     kernel::Kernel,
+    rhif::spec::Member,
     util::{splice, IndentingFormatter},
     Kind,
 };
@@ -175,7 +176,7 @@ impl PrettyPrinter {
             }
             Kind::Signal(base, color) => {
                 self.print_kind(base)?;
-                self.push(&format!("@{}", color));
+                self.push(&format!("@{:?}", color));
             }
         }
         Ok(())
@@ -263,7 +264,7 @@ impl PrettyPrinter {
                         }
                         ArmKind::Enum(enum_arm) => {
                             self.print_pattern(&enum_arm.pat)?;
-                            self.push(&format!("#{}", enum_arm.template));
+                            self.push(&format!("#{:?}", enum_arm.template));
                         }
                     }
                     self.push(" => ");
@@ -362,7 +363,7 @@ impl Display for ExprLit {
         match self {
             ExprLit::Int(int) => write!(f, "{}", int),
             ExprLit::Bool(bool) => write!(f, "{}", bool),
-            ExprLit::TypedBits(ty) => write!(f, "<typed_bits {} [{}]>", ty.path, ty.value.kind),
+            ExprLit::TypedBits(ty) => write!(f, "<typed_bits {} [{:?}]>", ty.path, ty.value.kind),
         }
     }
 }

@@ -10,8 +10,8 @@ use crate::rhif::spec::{
 use crate::test_module::VerilogDescriptor;
 use crate::util::binary_string;
 use crate::{ast::ast_impl::FunctionId, rhif::Object, Module, TypedBits};
-use anyhow::Result;
 use anyhow::{anyhow, ensure};
+use anyhow::{bail, Result};
 
 #[derive(Default, Clone, Debug)]
 pub struct VerilogModule {
@@ -26,10 +26,11 @@ impl VerilogModule {
 }
 
 struct TranslationContext<'a> {
-    body: &'a mut String,
+    body: String,
     kernels: Vec<VerilogModule>,
     design: &'a Module,
     obj: &'a Object,
+    id: FunctionId,
 }
 
 fn compute_base_offset_path(path: &Path) -> Path {
@@ -77,7 +78,7 @@ impl<'a> TranslationContext<'a> {
             .kind
             .get(target)
             .ok_or(anyhow!(
-                "No type for slot {} in function {}",
+                "No type for slot {:?} in function {}",
                 target,
                 self.obj.name
             ))?
@@ -110,7 +111,11 @@ impl<'a> TranslationContext<'a> {
             .iter()
             .map(|x| x.0.start - base_range.0.start)
             .collect::<Vec<_>>();
-        let indexing_expression = dynamic_slots
+        let dynamic_slot_names = dynamic_slots
+            .iter()
+            .map(|x| self.reg_name(x))
+            .collect::<Result<Vec<_>>>()?;
+        let indexing_expression = dynamic_slot_names
             .iter()
             .zip(slot_strides.iter())
             .map(|(slot, stride)| format!("({} * {})", slot, stride))
@@ -131,7 +136,11 @@ impl<'a> TranslationContext<'a> {
         ensure!(path.any_dynamic());
         let index_expression = self.compute_dynamic_index_expression(orig, path)?;
         self.body.push_str(&format!(
-            "    {lhs} = {orig};\n    {lhs}[{index_expression}] = {subst};\n"
+            "    {lhs} = {orig};\n    {lhs}[{index_expression}] = {subst};\n",
+            lhs = self.reg_name(lhs)?,
+            orig = self.reg_name(orig)?,
+            index_expression = index_expression,
+            subst = self.reg_name(subst)?
         ));
         Ok(())
     }
@@ -139,8 +148,12 @@ impl<'a> TranslationContext<'a> {
     fn translate_dynamic_index(&mut self, lhs: &Slot, arg: &Slot, path: &Path) -> Result<()> {
         ensure!(path.any_dynamic());
         let index_expression = self.compute_dynamic_index_expression(arg, path)?;
-        self.body
-            .push_str(&format!("    {lhs} = {arg}[{index_expression}];\n",));
+        self.body.push_str(&format!(
+            "    {lhs} = {arg}[{index_expression}];\n",
+            lhs = self.reg_name(lhs)?,
+            arg = self.reg_name(arg)?,
+            index_expression = index_expression,
+        ));
         Ok(())
     }
 
@@ -151,16 +164,18 @@ impl<'a> TranslationContext<'a> {
             .kind
             .get(arg)
             .ok_or(anyhow!(
-                "No type for slot {} in function {}",
+                "No type for slot {:?} in function {}",
                 arg,
                 self.obj.name
             ))?
             .clone();
         let (bit_range, _) = bit_range(arg_ty, path)?;
         self.body.push_str(&format!(
-            "    {lhs} = {arg}[{}:{}];\n",
-            bit_range.end - 1,
-            bit_range.start
+            "    {lhs} = {arg}[{end}:{start}];\n",
+            lhs = self.reg_name(lhs)?,
+            arg = self.reg_name(arg)?,
+            end = bit_range.end - 1,
+            start = bit_range.start
         ));
         Ok(())
     }
@@ -178,22 +193,25 @@ impl<'a> TranslationContext<'a> {
             .kind
             .get(orig)
             .ok_or(anyhow!(
-                "No type for slot {} in function {}",
+                "No type for slot {:?} in function {}",
                 orig,
                 self.obj.name
             ))?
             .clone();
         let (bit_range, _) = bit_range(orig_ty, path)?;
         self.body.push_str(&format!(
-            "     {lhs} = {orig};\n    {lhs}[{}:{}] = {subst};\n",
-            bit_range.end - 1,
-            bit_range.start,
+            "     {lhs} = {orig};\n    {lhs}[{end}:{start}] = {subst};\n",
+            lhs = self.reg_name(lhs)?,
+            orig = self.reg_name(orig)?,
+            subst = self.reg_name(subst)?,
+            end = bit_range.end - 1,
+            start = bit_range.start,
         ));
         Ok(())
     }
 
     fn translate_op(&mut self, op: &OpCode) -> Result<()> {
-        eprintln!("Verilog translate of {op}");
+        eprintln!("Verilog translate of {op:?}");
         match op {
             OpCode::Noop => {}
             OpCode::Binary(Binary {
@@ -204,13 +222,18 @@ impl<'a> TranslationContext<'a> {
             }) => {
                 self.body.push_str(&format!(
                     "    {lhs} = {arg1} {op} {arg2};\n",
-                    op = verilog_binop(op)
+                    op = verilog_binop(op),
+                    lhs = self.reg_name(lhs)?,
+                    arg1 = self.reg_name(arg1)?,
+                    arg2 = self.reg_name(arg2)?,
                 ));
             }
             OpCode::Unary(Unary { op, lhs, arg1 }) => {
                 self.body.push_str(&format!(
                     "    {lhs} = {op}({arg1});\n",
-                    op = verilog_unop(op)
+                    op = verilog_unop(op),
+                    lhs = self.reg_name(lhs)?,
+                    arg1 = self.reg_name(arg1)?,
                 ));
             }
             OpCode::Select(Select {
@@ -222,6 +245,10 @@ impl<'a> TranslationContext<'a> {
                 if !lhs.is_empty() {
                     self.body.push_str(&format!(
                         "    {lhs} = {cond} ? {true_value} : {false_value};\n",
+                        lhs = self.reg_name(lhs)?,
+                        cond = self.reg_name(cond)?,
+                        true_value = self.reg_name(true_value)?,
+                        false_value = self.reg_name(false_value)?,
                     ));
                 }
             }
@@ -233,7 +260,11 @@ impl<'a> TranslationContext<'a> {
                 }
             }
             OpCode::Assign(Assign { lhs, rhs }) => {
-                self.body.push_str(&format!("    {lhs} = {rhs};\n",));
+                self.body.push_str(&format!(
+                    "    {lhs} = {rhs};\n",
+                    lhs = self.reg_name(lhs)?,
+                    rhs = self.reg_name(rhs)?
+                ));
             }
             OpCode::Splice(Splice {
                 lhs,
@@ -255,24 +286,26 @@ impl<'a> TranslationContext<'a> {
             }
             OpCode::Tuple(Tuple { lhs, fields }) => {
                 self.body.push_str(&format!(
-                    "    {lhs} = {{ {} }};\n",
-                    fields
+                    "    {lhs} = {{ {fields} }};\n",
+                    lhs = self.reg_name(lhs)?,
+                    fields = fields
                         .iter()
                         .rev()
                         .filter(|x| !x.is_empty())
-                        .map(|x| x.to_string())
-                        .collect::<Vec<_>>()
+                        .map(|x| self.reg_name(x))
+                        .collect::<Result<Vec<_>>>()?
                         .join(", ")
                 ));
             }
             OpCode::Array(Array { lhs, elements }) => {
                 self.body.push_str(&format!(
-                    "    {lhs} = {{ {} }};\n",
-                    elements
+                    "    {lhs} = {{ {elements} }};\n",
+                    lhs = self.reg_name(lhs)?,
+                    elements = elements
                         .iter()
                         .rev()
-                        .map(|x| x.to_string())
-                        .collect::<Vec<_>>()
+                        .map(|x| self.reg_name(x))
+                        .collect::<Result<Vec<_>>>()?
                         .join(", ")
                 ));
             }
@@ -283,12 +316,16 @@ impl<'a> TranslationContext<'a> {
                 template,
             }) => {
                 let initial = if let Some(rest) = rest {
-                    rest.to_string()
+                    self.reg_name(rest)?
                 } else {
                     as_verilog_literal(template)
                 };
                 // Assign LHS = initial
-                self.body.push_str(&format!("    {lhs} = {};\n", initial));
+                self.body.push_str(&format!(
+                    "    {lhs} = {initial};\n",
+                    lhs = self.reg_name(lhs)?,
+                    initial = initial
+                ));
                 // Now assign each of the fields
                 let kind = template.kind.clone();
                 for field in fields {
@@ -298,10 +335,11 @@ impl<'a> TranslationContext<'a> {
                     };
                     let (bit_range, _) = bit_range(kind.clone(), &path)?;
                     self.body.push_str(&format!(
-                        "    {lhs}[{}:{}] = {};\n",
-                        bit_range.end - 1,
-                        bit_range.start,
-                        field.value
+                        "    {lhs}[{end}:{start}] = {field};\n",
+                        lhs = self.reg_name(lhs)?,
+                        end = bit_range.end - 1,
+                        start = bit_range.start,
+                        field = self.reg_name(&field.value)?
                     ));
                 }
             }
@@ -312,7 +350,11 @@ impl<'a> TranslationContext<'a> {
             }) => {
                 let initial = as_verilog_literal(template);
                 // Assign LHS = initial
-                self.body.push_str(&format!("    {lhs} = {};\n", initial));
+                self.body.push_str(&format!(
+                    "    {lhs} = {initial};\n",
+                    lhs = self.reg_name(lhs)?,
+                    initial = initial
+                ));
                 // Now assign each of the fields
                 let kind = template.kind.clone();
                 for field in fields {
@@ -324,10 +366,11 @@ impl<'a> TranslationContext<'a> {
                     };
                     let (bit_range, _) = bit_range(kind.clone(), &path)?;
                     self.body.push_str(&format!(
-                        "    {lhs}[{}:{}] = {};\n",
-                        bit_range.end - 1,
-                        bit_range.start,
-                        field.value
+                        "    {lhs}[{end}:{start}] = {field};\n",
+                        lhs = self.reg_name(lhs)?,
+                        end = bit_range.end - 1,
+                        start = bit_range.start,
+                        field = self.reg_name(&field.value)?
                     ));
                 }
             }
@@ -340,18 +383,26 @@ impl<'a> TranslationContext<'a> {
                     return Ok(());
                 }
                 self.body
-                    .push_str(&format!("    case ({})\n", discriminant));
+                    .push_str(&format!("    case ({})\n", self.reg_name(discriminant)?));
                 for (cond, slot) in table {
                     match cond {
                         CaseArgument::Slot(s) => {
                             let s = self.obj.literal(*s)?;
                             self.body
                                 .push_str(&format!("      {}: ", as_verilog_literal(s)));
-                            self.body.push_str(&format!("{} = {};\n", lhs, slot));
+                            self.body.push_str(&format!(
+                                "{} = {};\n",
+                                self.reg_name(lhs)?,
+                                self.reg_name(slot)?
+                            ));
                         }
                         CaseArgument::Wild => {
                             self.body.push_str("      default: ");
-                            self.body.push_str(&format!("{} = {};\n", lhs, slot));
+                            self.body.push_str(&format!(
+                                "{} = {};\n",
+                                self.reg_name(lhs)?,
+                                self.reg_name(slot)?
+                            ));
                         }
                     }
                 }
@@ -361,24 +412,32 @@ impl<'a> TranslationContext<'a> {
                 let func = &self.obj.externals[id.0];
                 let args = args
                     .iter()
-                    .map(|x| x.to_string())
-                    .collect::<Vec<_>>()
+                    .map(|x| self.reg_name(x))
+                    .collect::<Result<Vec<_>>>()?
                     .join(", ");
                 match &func.code {
                     ExternalFunctionCode::Kernel(kernel) => {
                         let func_name = self.design.func_name(kernel.inner().fn_id)?;
                         let kernel = translate(self.design, kernel.inner().fn_id)?;
                         self.kernels.push(kernel);
-                        self.body
-                            .push_str(&format!("    {lhs} = {func_name}({args});\n"));
+                        self.body.push_str(&format!(
+                            "    {lhs} = {func_name}({args});\n",
+                            lhs = self.reg_name(lhs)?,
+                            func_name = func_name,
+                            args = args
+                        ));
                     }
                     ExternalFunctionCode::Extern(ExternalKernelDef {
                         name,
                         body,
                         vm_stub: _,
                     }) => {
-                        self.body
-                            .push_str(&format!("    {lhs} = {name}({args});\n"));
+                        self.body.push_str(&format!(
+                            "    {lhs} = {name}({args});\n",
+                            lhs = self.reg_name(lhs)?,
+                            name = name,
+                            args = args
+                        ));
                         self.kernels.push(VerilogModule {
                             functions: vec![body.clone()],
                         });
@@ -386,21 +445,37 @@ impl<'a> TranslationContext<'a> {
                 }
             }
             OpCode::Repeat(Repeat { lhs, value, len }) => {
-                self.body
-                    .push_str(&format!("    {lhs} = {{ {len} {{ {value} }} }};\n"));
+                self.body.push_str(&format!(
+                    "    {lhs} = {{ {len} {{ {value} }} }};\n",
+                    lhs = self.reg_name(lhs)?,
+                    len = len,
+                    value = self.reg_name(value)?,
+                ));
             }
             OpCode::AsBits(Cast { lhs, arg, len }) => {
                 let len = len.ok_or(anyhow!("No length for as_bits"))?;
-                self.body
-                    .push_str(&format!("    {lhs} = {arg}[{}:0];\n", len - 1));
+                self.body.push_str(&format!(
+                    "    {lhs} = {arg}[{len}:0];\n",
+                    lhs = self.reg_name(lhs)?,
+                    arg = self.reg_name(arg)?,
+                    len = len - 1
+                ));
             }
             OpCode::AsSigned(Cast { lhs, arg, len }) => {
                 let len = len.ok_or(anyhow!("No length for as_signed"))?;
-                self.body
-                    .push_str(&format!("    {lhs} = $signed({arg}[{}:0]);\n", len - 1));
+                self.body.push_str(&format!(
+                    "    {lhs} = $signed({arg}[{len}:0]);\n",
+                    lhs = self.reg_name(lhs)?,
+                    arg = self.reg_name(arg)?,
+                    len = len - 1
+                ));
             }
             OpCode::Retime(Retime { lhs, arg, color: _ }) => {
-                self.body.push_str(&format!("    {lhs} = {arg};\n"));
+                self.body.push_str(&format!(
+                    "    {lhs} = {arg};\n",
+                    lhs = self.reg_name(lhs)?,
+                    arg = self.reg_name(arg)?
+                ));
             }
         }
         Ok(())
@@ -412,109 +487,136 @@ impl<'a> TranslationContext<'a> {
         }
         Ok(())
     }
+
+    fn reg_name(&self, slot: &Slot) -> Result<String> {
+        let slot_alias = self.obj.symbols.slot_names.get(slot);
+        let root = match slot {
+            Slot::Empty => bail!("Empty slot not supported in Verilog back end"),
+            Slot::Register(x) => format!("r{x}"),
+            Slot::Literal(x) => format!("l{x}"),
+        };
+        if let Some(slot_alias) = slot_alias {
+            Ok(format!("{}_{}", root, slot_alias))
+        } else {
+            Ok(root)
+        }
+    }
+
+    fn decl(&self, slot: &Slot) -> Result<String> {
+        let ty = self
+            .obj
+            .kind
+            .get(slot)
+            .ok_or(anyhow!("No type for slot {:?}", slot))?;
+        let signed = if ty.is_signed() { "signed" } else { "" };
+        let width = ty.bits();
+        Ok(format!(
+            "reg {} [{}:0] {}",
+            signed,
+            width.saturating_sub(1),
+            self.reg_name(slot)?
+        ))
+    }
+
+    fn translate_kernel_for_object(mut self) -> Result<VerilogModule> {
+        // Determine the sizes of the arguments
+        let fn_id = self.id;
+        let arg_decls = self
+            .obj
+            .arguments
+            .iter()
+            .enumerate()
+            .map(|(ndx, a)| {
+                if a.is_empty() {
+                    Ok(format!("__empty{}", ndx))
+                } else {
+                    self.decl(a)
+                }
+            })
+            .collect::<Result<Vec<_>>>()?
+            .iter()
+            .map(|x| format!("input {}", x))
+            .collect::<Vec<_>>();
+        let ret_ty = self.obj.kind.get(&self.obj.return_slot).ok_or(anyhow!(
+            "No type for return slot {slot:?} in function {fn_id:?}",
+            slot = self.obj.return_slot,
+            fn_id = fn_id,
+        ))?;
+        let ret_size = ret_ty.bits();
+        let ret_signed = if ret_ty.is_signed() { "signed" } else { "" };
+        if ret_size == 0 {
+            return Err(anyhow!("Function {fn_id:?} has no return value"));
+        }
+        let func_name = self.design.func_name(fn_id)?;
+        self.body.push_str(&format!(
+            "\nfunction {ret_signed} [{}:0] {}({});\n",
+            ret_size - 1,
+            func_name,
+            arg_decls.join(", "),
+        ));
+        self.body.push_str("    // Registers\n");
+        for reg in self
+            .obj
+            .kind
+            .keys()
+            .filter(|x| !self.obj.arguments.contains(x))
+            .filter(|x| x.is_reg())
+        {
+            self.body.push_str(&format!("    {};\n", self.decl(reg)?));
+        }
+        self.body.push_str("    // Literals\n");
+        // Allocate the literals
+        for (&slot, lit) in self.obj.literals.iter() {
+            if lit.bits.is_empty() {
+                continue;
+            }
+            if let Slot::Literal(i) = slot {
+                self.body.push_str(&format!(
+                    "    localparam {} = {};\n",
+                    self.reg_name(&Slot::Literal(i))?,
+                    as_verilog_literal(lit)
+                ));
+            }
+        }
+        self.body.push_str("    // Body\n");
+        self.body.push_str("begin\n");
+        self.translate_block(&self.obj.ops)?;
+        let kernels = self.kernels.clone();
+        self.body.push_str(&format!(
+            "    {} = {};\n",
+            func_name,
+            self.reg_name(&self.obj.return_slot)?
+        ));
+        self.body.push_str("end\n");
+        self.body.push_str("endfunction\n");
+        let mut module = VerilogModule::default();
+        for kernel in kernels {
+            module.functions.extend(kernel.functions);
+        }
+        module.functions.push(self.body.to_string());
+        Ok(module)
+    }
 }
 
 fn translate(design: &Module, fn_id: FunctionId) -> Result<VerilogModule> {
     let obj = design
         .objects
         .get(&fn_id)
-        .ok_or(anyhow::anyhow!("Function {fn_id} not found"))?;
-    // Determine the sizes of the arguments
-    let arg_decls = obj
-        .arguments
-        .iter()
-        .enumerate()
-        .map(|(ndx, a)| {
-            if a.is_empty() {
-                Ok(format!("__empty{}", ndx))
-            } else {
-                decl(a, obj)
-            }
-        })
-        .collect::<Result<Vec<_>>>()?
-        .iter()
-        .map(|x| format!("input {}", x))
-        .collect::<Vec<_>>();
-    let ret_ty = obj.kind.get(&obj.return_slot).ok_or(anyhow!(
-        "No type for return slot {} in function {fn_id}",
-        obj.return_slot
-    ))?;
-    let ret_size = ret_ty.bits();
-    let ret_signed = if ret_ty.is_signed() { "signed" } else { "" };
-    if ret_size == 0 {
-        return Err(anyhow!("Function {fn_id} has no return value"));
-    }
-    let func_name = design.func_name(fn_id)?;
-    let mut func = format!(
-        "\nfunction {ret_signed} [{}:0] {}({});\n",
-        ret_size - 1,
-        func_name,
-        arg_decls.join(", "),
-    );
-    func.push_str("    // Registers\n");
-    for reg in obj
-        .kind
-        .keys()
-        .filter(|x| !obj.arguments.contains(x))
-        .filter(|x| x.is_reg())
-    {
-        func.push_str(&format!("    {};\n", decl(reg, obj)?));
-    }
-    func.push_str("    // Literals\n");
-    // Allocate the literals
-    for (&slot, lit) in obj.literals.iter() {
-        if lit.bits.is_empty() {
-            continue;
-        }
-        if let Slot::Literal(i) = slot {
-            func.push_str(&format!(
-                "    localparam l{i} = {};\n",
-                as_verilog_literal(lit)
-            ));
-        }
-    }
-    func.push_str("    // Body\n");
-    func.push_str("begin\n");
-    let kernels = {
-        let mut context = TranslationContext {
-            kernels: Vec::new(),
-            body: &mut func,
-            design,
-            obj,
-        };
-        context.translate_block(&obj.ops)?;
-        context.kernels
+        .ok_or(anyhow::anyhow!("Function {fn_id:?} not found"))?;
+    let context = TranslationContext {
+        kernels: Vec::new(),
+        body: Default::default(),
+        design,
+        obj,
+        id: fn_id,
     };
-    func.push_str(&format!("    {} = {};\n", func_name, obj.return_slot));
-    func.push_str("end\n");
-    func.push_str("endfunction\n");
-    let mut module = VerilogModule::default();
-    for kernel in kernels {
-        module.functions.extend(kernel.functions);
-    }
-    module.functions.push(func);
-    Ok(module)
+    context.translate_kernel_for_object()
 }
 
 pub fn as_verilog_literal(tb: &TypedBits) -> String {
     let signed = if tb.kind.is_signed() { "s" } else { "" };
     let width = tb.bits.len();
     format!("{}'{}b{}", width, signed, binary_string(&tb.bits))
-}
-
-fn decl(slot: &Slot, obj: &Object) -> Result<String> {
-    let ty = obj
-        .kind
-        .get(slot)
-        .ok_or(anyhow!("No type for slot {}", slot))?;
-    let signed = if ty.is_signed() { "signed" } else { "" };
-    let width = ty.bits();
-    Ok(format!(
-        "reg {} [{}:0] r{}",
-        signed,
-        width.saturating_sub(1),
-        slot.reg()?
-    ))
 }
 
 pub fn generate_verilog(design: &Module) -> Result<VerilogDescriptor> {

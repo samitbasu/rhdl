@@ -144,7 +144,7 @@ fn downstream_struct(s: &StructComponent, input: PinPath) -> Result<Vec<PinPath>
         // Check if our value is replaced
         let (input_bit_range, _) = bit_range(s.kind.clone(), &input.path)?;
         if s.fields.iter().any(|f| {
-            let field_path = Path::default().field(&f.member.to_string());
+            let field_path = Path::default().member(&f.member);
             let (field_bit_range, _) = bit_range(s.kind.clone(), &field_path).unwrap();
             field_bit_range.contains(&input_bit_range.start)
         }) {
@@ -250,7 +250,7 @@ fn follow_downstream(is: &IndexedSchematic, source: PinPath, trace: &mut Trace) 
 pub fn follow_pin_downstream(is: &IndexedSchematic, pin_path: PinPath) -> Result<Trace> {
     let pin_kind = is.schematic.pin(pin_path.pin).kind.clone();
     if let Err(err) = sub_kind(pin_kind.clone(), &pin_path.path) {
-        bail!("Illegal path in query.  The specified path {} is not valid on the type of the given pin, which is {}. Error was {err}",
+        bail!("Illegal path in query.  The specified path {:?} is not valid on the type of the given pin, which is {:?}. Error was {err}",
         pin_path.path, pin_kind);
     }
     let mut w = vec![];

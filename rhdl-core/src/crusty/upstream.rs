@@ -133,7 +133,7 @@ fn upstream_select(s: &SelectComponent, output: PinPath) -> Result<Vec<PinPath>>
 
 fn upstream_splice(s: &SpliceComponent, output: PinPath) -> Result<Vec<PinPath>> {
     eprintln!("Upstream of splice {:?}", s);
-    eprintln!("Output path is {}", output.path);
+    eprintln!("Output path is {:?}", output.path);
     let (output_bit_range, _) = bit_range(s.kind.clone(), &output.path)?;
     let mut upstreams = vec![];
     for s_path in path_star(&s.kind, &s.path)? {
@@ -148,7 +148,7 @@ fn upstream_splice(s: &SpliceComponent, output: PinPath) -> Result<Vec<PinPath>>
     }
     if upstreams.is_empty() {
         eprintln!("No upstreams for splice {:?}", s);
-        eprintln!("Claiming upstream is {} {}", s.orig, output.path);
+        eprintln!("Claiming upstream is {:?} {:?}", s.orig, output.path);
         upstreams.push(PinPath {
             pin: s.orig,
             path: output.path.clone(),
@@ -212,7 +212,7 @@ fn get_upstream_pin_paths(is: &IndexedSchematic, output: PinPath) -> Result<Vec<
     let cix = pin.parent;
     let component = is.schematic.component(cix);
     eprintln!(
-        "get upstream of pin {} in component {:?}",
+        "get upstream of pin {:?} in component {:?}",
         output.pin, component.kind
     );
     match &component.kind {
@@ -244,7 +244,7 @@ fn follow_upstream(is: &IndexedSchematic, sink: PinPath, trace: &mut Trace) -> R
     }
     if let Some(parents) = is.index.reverse.get(&sink.pin) {
         for parent in parents {
-            eprintln!("Add wire path from {} to {}", *parent, sink.pin);
+            eprintln!("Add wire path from {:?} to {:?}", *parent, sink.pin);
             trace.paths.push(WirePath {
                 source: *parent,
                 dest: sink.pin,
@@ -279,7 +279,7 @@ fn follow_upstream(is: &IndexedSchematic, sink: PinPath, trace: &mut Trace) -> R
 pub fn follow_pin_upstream(is: &IndexedSchematic, pin_path: PinPath) -> Result<Trace> {
     let pin_kind = is.schematic.pin(pin_path.pin).kind.clone();
     if let Err(err) = sub_kind(pin_kind.clone(), &pin_path.path) {
-        bail!("Illegal path in query.  The specified path {} is not valid on the type of the given pin, which is {}. Error was {err}",
+        bail!("Illegal path in query.  The specified path {:?} is not valid on the type of the given pin, which is {:?}. Error was {err}",
             pin_path.path, pin_kind);
     }
     let mut trace = pin_path.clone().into();

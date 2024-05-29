@@ -13,20 +13,20 @@ pub trait DigitalFn {
 
 // See: https://jsdw.me/posts/rust-fn-traits/
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct DigitalSignature {
     pub arguments: Vec<Kind>,
     pub ret: Kind,
 }
 
-impl std::fmt::Display for DigitalSignature {
+impl std::fmt::Debug for DigitalSignature {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "[{}] -> {}",
+            "[{}] -> {:?}",
             self.arguments
                 .iter()
-                .map(|k| k.to_string())
+                .map(|k| format!("{:?}", k))
                 .collect::<Vec<_>>()
                 .join(", "),
             self.ret

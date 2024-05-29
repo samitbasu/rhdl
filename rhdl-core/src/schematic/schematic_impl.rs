@@ -9,7 +9,7 @@ use crate::{
 
 use super::components::{BufferComponent, Component, ComponentKind};
 
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PinIx(usize);
 
 impl PinIx {
@@ -18,7 +18,7 @@ impl PinIx {
     }
 }
 
-impl std::fmt::Display for PinIx {
+impl std::fmt::Debug for PinIx {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "p{}", self.0)
     }
@@ -34,7 +34,7 @@ impl Default for PinIx {
 
 const ORPHAN: ComponentIx = ComponentIx(!0);
 
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ComponentIx(usize);
 
 impl ComponentIx {
@@ -49,7 +49,7 @@ impl From<ComponentIx> for usize {
     }
 }
 
-impl std::fmt::Display for ComponentIx {
+impl std::fmt::Debug for ComponentIx {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "c{}", self.0)
     }

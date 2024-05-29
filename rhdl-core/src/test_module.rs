@@ -229,7 +229,7 @@ const VERILOG_INDENT_INCREASERS: [&str; 3] = ["begin", "function", "case"];
 const VERILOG_INDENT_DECREASERS: [&str; 3] = ["end", "endfunction", "endcase"];
 
 impl VerilogDescriptor {
-    fn display(&self, f: &mut std::fmt::Formatter<'_>, line_numbers: bool) -> std::fmt::Result {
+    fn display(&self, mut f: impl std::io::Write, line_numbers: bool) -> std::io::Result<()> {
         // Print the verilog with line numbers
         // Indent the lines
         let mut indent = 0;
@@ -261,17 +261,19 @@ impl VerilogDescriptor {
         }
         Ok(())
     }
+    pub fn code(&self) -> String {
+        let mut s = Vec::new();
+        self.display(&mut s, false).unwrap();
+        String::from_utf8(s).unwrap()
+    }
 }
 
 impl std::fmt::Debug for VerilogDescriptor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.display(f, true)
-    }
-}
-
-impl std::fmt::Display for VerilogDescriptor {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.display(f, false)
+        let mut s = Vec::new();
+        self.display(&mut s, true).unwrap();
+        let s = String::from_utf8(s).unwrap();
+        write!(f, "{}", s)
     }
 }
 
@@ -306,7 +308,7 @@ where
 {
     let design = compile_design::<K>()?;
     let verilog = generate_verilog(&design)?;
-    eprintln!("Verilog {}", verilog);
+    eprintln!("Verilog {:?}", verilog);
     let vm_inputs = vals.clone();
     let mut vm_test_count = 0;
     for input in vm_inputs {
@@ -327,7 +329,7 @@ where
     tm.run_iverilog()
 }
 
-impl std::fmt::Display for TestModule {
+impl std::fmt::Debug for TestModule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.testbench.fmt(f)
     }
@@ -461,7 +463,7 @@ mod tests {
             kernel.try_into()?,
             nibbles_a.cartesian_product(nibbles_b),
         );
-        eprintln!("{module}");
+        eprintln!("{module:?}");
         #[cfg(feature = "iverilog")]
         module.run_iverilog()
     }
@@ -471,7 +473,7 @@ mod tests {
         let nibbles_a = (0..=15).map(bits);
         let kernel = xor::<4>::kernel_fn().unwrap();
         let module = TestModule::new(xor::<4>, kernel.try_into()?, nibbles_a.map(|x| (x,)));
-        eprintln!("{module}");
+        eprintln!("{module:?}");
         #[cfg(feature = "iverilog")]
         module.run_iverilog()
     }

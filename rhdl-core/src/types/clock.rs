@@ -27,7 +27,7 @@ macro_rules! decl_clock {
     };
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum ClockColor {
     Red,
     Orange,
@@ -38,7 +38,7 @@ pub enum ClockColor {
     Violet,
 }
 
-impl std::fmt::Display for ClockColor {
+impl std::fmt::Debug for ClockColor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Print only first letter in lower case
         match self {

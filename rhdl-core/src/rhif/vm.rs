@@ -308,10 +308,10 @@ fn execute(design: &Module, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
     let obj = design
         .objects
         .get(&fn_id)
-        .ok_or(anyhow::anyhow!("Function {fn_id} not found"))?;
+        .ok_or(anyhow::anyhow!("Function {fn_id:?} not found"))?;
     if obj.arguments.len() != arguments.len() {
         bail!(
-            "Function {fn_id} expected {expected} arguments, got {got}",
+            "Function {fn_id:?} expected {expected} arguments, got {got}",
             fn_id = fn_id,
             expected = obj.arguments.len(),
             got = arguments.len()
@@ -325,7 +325,7 @@ fn execute(design: &Module, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
             .ok_or(anyhow!("ICE argument {ndx} type not found in object"))?;
         if obj_kind != arg_kind {
             bail!(
-                "Function {fn_id} argument {ndx} expected {expected}, got {got}",
+                "Function {fn_id:?} argument {ndx} expected {expected:?}, got {got:?}",
                 fn_id = fn_id,
                 ndx = ndx,
                 expected = obj.kind.get(&obj.arguments[ndx]).unwrap(),
