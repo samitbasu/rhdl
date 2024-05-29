@@ -1,7 +1,4 @@
-use std::{
-    fmt::Display,
-    hash::{Hash, Hasher},
-};
+use std::hash::{Hash, Hasher};
 
 pub fn splice<T: std::fmt::Debug>(elems: &[T], sep: &str) -> String {
     elems

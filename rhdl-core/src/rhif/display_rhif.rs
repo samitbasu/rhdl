@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use crate::{
     rhif::spec::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,

@@ -48,7 +48,7 @@ impl AsciiRenderer {
     }
 
     fn render_block(&mut self, block: &crate::ast::ast_impl::Block) -> Result<()> {
-        self.push(&format!("block {}", block.id,));
+        self.push(&format!("block {:?}", block.id,));
         self.indent += 1;
         for stmt in &block.stmts {
             self.render_stmt(stmt)?;
@@ -57,11 +57,11 @@ impl AsciiRenderer {
         Ok(())
     }
     fn render_stmt(&mut self, stmt: &crate::ast::ast_impl::Stmt) -> Result<()> {
-        self.push(&format!("stmt {}", stmt.id,));
+        self.push(&format!("stmt {:?}", stmt.id,));
         self.indent += 1;
         match &stmt.kind {
             StmtKind::Local(local) => {
-                self.push(&format!("local {}", local.id,));
+                self.push(&format!("local {:?}", local.id,));
                 self.indent += 1;
                 self.render_pat(&local.pat)?;
                 if let Some(init) = &local.init {
@@ -118,7 +118,7 @@ impl AsciiRenderer {
         Ok(())
     }
     fn render_expr(&mut self, expr: &Expr) -> Result<()> {
-        self.push(&format!("expr {}", expr.id,));
+        self.push(&format!("expr {:?}", expr.id,));
         self.indent += 1;
 
         match &expr.kind {
@@ -282,7 +282,7 @@ impl AsciiRenderer {
         Ok(())
     }
     fn render_pat(&mut self, pat: &Pat) -> Result<()> {
-        self.push(&format!("pat {}", pat.id,));
+        self.push(&format!("pat {:?}", pat.id,));
         self.indent += 1;
 
         match &pat.kind {
@@ -324,7 +324,7 @@ impl AsciiRenderer {
         Ok(())
     }
     fn render_kernel(&mut self, kernel: &KernelFn) -> Result<()> {
-        self.push(&format!("kernel {}", kernel.id));
+        self.push(&format!("kernel {:?}", kernel.id));
         self.indent += 1;
         for input in &kernel.inputs {
             self.render_pat(input)?;
