@@ -983,7 +983,6 @@ mod test {
     #[test]
     fn test_enum_template_with_signed_msb_is_correct() {
         let kind = make_enum_msb_signed_kind();
-        let len = kind.bits();
         let template = kind.enum_template("A").unwrap();
         let disc: TypedBits = (-1).into();
         let disc = disc.signed_cast(4).unwrap();

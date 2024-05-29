@@ -3,8 +3,7 @@ use anyhow::Result;
 use crate::circuit::circuit_impl::Tristate;
 use crate::path::{bit_range, Path};
 use crate::types::digital::Digital;
-use crate::types::digital_fn::DigitalFn;
-use crate::{compile_design, generate_verilog, KernelFnKind};
+use crate::{compile_design, generate_verilog};
 
 use super::{
     circuit_descriptor::CircuitDescriptor, circuit_impl::Circuit, hdl_descriptor::HDLDescriptor,

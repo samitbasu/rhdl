@@ -17,12 +17,6 @@ impl<T> Clone for InternKey<T> {
 
 impl<T> Copy for InternKey<T> {}
 
-trait InternRef {
-    type Interned;
-    fn stored(&self) -> Self::Interned;
-    fn byref(&self) -> &Self::Interned;
-}
-
 pub struct Intern<T: Hash + Eq + Clone> {
     map: HashMap<T, InternKey<T>>,
     vec: Vec<T>,
@@ -78,8 +72,6 @@ mod tests {
     #[test]
     fn string_interner() {
         let mut interner = StringInterner::default();
-        let p = "hello";
-        let q = p.to_owned();
-        let key1 = interner.intern(&"hello".into());
+        let _key1 = interner.intern(&"hello".into());
     }
 }

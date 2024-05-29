@@ -1,7 +1,5 @@
 // Check a RHIF object for type correctness.
 
-use std::collections::HashSet;
-
 use crate::{
     path::{sub_kind, Path, PathElement},
     rhif::{
@@ -249,7 +247,7 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                     }
                 }
             }
-            OpCode::Repeat(Repeat { lhs, value, len }) => {
+            OpCode::Repeat(Repeat { lhs, value: _, len }) => {
                 let ty = slot_type(lhs)?;
                 let Kind::Array(array_ty) = &ty else {
                     bail!("expected array type")
@@ -299,7 +297,7 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                 let len = len.ok_or(anyhow!("as_signed must have a length"))?;
                 eq_kinds(slot_type(lhs)?, Kind::make_signed(len))?;
             }
-            OpCode::Retime(Retime { lhs, arg, color }) => {
+            OpCode::Retime(Retime { lhs, arg, color: _ }) => {
                 eq_kinds(slot_type(lhs)?, slot_type(arg)?)?;
             }
         }

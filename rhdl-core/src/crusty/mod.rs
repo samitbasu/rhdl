@@ -1,13 +1,4 @@
-use std::iter::empty;
-
-use crate::{
-    schematic::{
-        components::{Component, ComponentKind},
-        schematic_impl::PinPath,
-    },
-    BlackBoxTrait, Constraint,
-};
-use anyhow::Result;
+use crate::{schematic::components::ComponentKind, BlackBoxTrait, Constraint};
 
 use self::index::IndexedSchematic;
 

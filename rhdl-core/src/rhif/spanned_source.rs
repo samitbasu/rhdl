@@ -79,7 +79,7 @@ impl SpannedSourceBuilder {
         let start = self.loc();
         match &pat.kind {
             PatKind::Ident(ident) => {
-                self.push(&ident.name);
+                self.push(ident.name);
             }
             PatKind::Wild => {
                 self.push("_");

@@ -100,8 +100,8 @@ fn merge_names(a: Option<&String>, b: Option<&String>) -> Option<String> {
 fn can_merge_names(a: Option<&String>, b: Option<&String>) -> bool {
     match (a, b) {
         (None, None) => true,
-        (Some(a), None) => true,
-        (None, Some(b)) => true,
+        (Some(_), None) => true,
+        (None, Some(_)) => true,
         (Some(a), Some(b)) => a == b,
     }
 }

@@ -1,11 +1,8 @@
 use anyhow::Result;
 
-use crate::{
-    path::Path,
-    rhif::{
-        spec::{Assign, OpCode},
-        Object,
-    },
+use crate::rhif::{
+    spec::{Assign, OpCode},
+    Object,
 };
 
 use super::pass::Pass;

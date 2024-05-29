@@ -8,7 +8,6 @@
 // ArmEnum
 // KernelFn (ret)
 
-use miette::Diagnostic;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
@@ -25,10 +24,8 @@ use crate::ast::ast_impl::{
     ExprTuple, ExprUnary, FieldValue, Local, Pat, PatKind, Stmt, StmtKind,
 };
 use crate::ast::visit::Visitor;
-use crate::ast::visit_mut::VisitorMut;
 use crate::ast_builder::BinOp;
 use crate::ast_builder::UnOp;
-use crate::compiler::ascii::render_statement_to_string;
 use crate::compiler::display_ast::pretty_print_statement;
 use crate::error::RHDLError;
 use crate::kernel::Kernel;
@@ -44,7 +41,6 @@ use crate::rhif::rhif_builder::{
 };
 use crate::rhif::spanned_source::build_spanned_source_for_kernel;
 use crate::rhif::spanned_source::SpannedSource;
-use crate::rhif::spec;
 use crate::rhif::spec::AluBinary;
 use crate::rhif::spec::AluUnary;
 use crate::rhif::spec::CaseArgument;
@@ -53,7 +49,6 @@ use crate::rhif::spec::FuncId;
 use crate::rhif::spec::Member;
 use crate::KernelFnKind;
 use crate::Kind;
-use crate::NoteKey;
 use crate::TypedBits;
 use crate::{
     ast::ast_impl::{Expr, ExprKind, ExprLit, FunctionId, NodeId},
@@ -266,7 +261,7 @@ impl<'a> MirContext<'a> {
                 self.scopes[scope.0]
                     .names
                     .iter()
-                    .map(|(k, v)| (ScopeIndex { scope, name: *k }, *v)),
+                    .map(|(k, v)| (ScopeIndex { scope, name: k }, *v)),
             );
             if scope == ROOT_SCOPE {
                 break;
@@ -404,7 +399,7 @@ impl<'a> MirContext<'a> {
     fn initialize_local(&mut self, pat: &Pat, rhs: Slot) -> Result<()> {
         match &pat.kind {
             PatKind::Ident(ident) => {
-                let Some((lhs, _)) = self.lookup_name(&ident.name) else {
+                let Some((lhs, _)) = self.lookup_name(ident.name) else {
                     return Err(self
                         .raise_ice(
                             ICE::InitializeLocalOnUnboundVariable {
@@ -707,7 +702,7 @@ impl<'a> MirContext<'a> {
         eprintln!("Type pattern {:?} {:?}", pattern, kind);
         match &pattern.kind {
             PatKind::Ident(ident) => {
-                let (slot, _) = self.lookup_name(&ident.name).ok_or(self.raise_ice(
+                let (slot, _) = self.lookup_name(ident.name).ok_or(self.raise_ice(
                     ICE::NoLocalVariableFoundForTypedPattern {
                         pat: Box::new(pattern.clone()),
                     },
@@ -756,7 +751,7 @@ impl<'a> MirContext<'a> {
     fn bind_pattern(&mut self, pattern: &Pat) -> Result<()> {
         match &pattern.kind {
             PatKind::Ident(ident) => {
-                self.bind(&ident.name, pattern.id);
+                self.bind(ident.name, pattern.id);
                 Ok(())
             }
             PatKind::Tuple(tuple) => {
@@ -864,7 +859,7 @@ impl<'a> MirContext<'a> {
                 self.op(op_exec(lhs, func, args), id);
             }
             KernelFnKind::SignalConstructor(color) => {
-                self.op(op_retime(lhs, args[0], color.clone()), id);
+                self.op(op_retime(lhs, args[0], *color), id);
             }
         }
         Ok(lhs)
@@ -961,7 +956,7 @@ impl<'a> MirContext<'a> {
     fn field_value(&mut self, element: &FieldValue) -> Result<rhif::spec::FieldValue> {
         let value = self.expr(&element.value)?;
         Ok(rhif::spec::FieldValue {
-            member: element.member.clone().into(),
+            member: element.member.clone(),
             value,
         })
     }
@@ -1018,7 +1013,7 @@ impl<'a> MirContext<'a> {
         };
         for ndx in start_lit..end_lit {
             let value = self.literal_int(for_loop.pat.id, ndx);
-            self.rebind(&loop_var.name, for_loop.pat.id)?;
+            self.rebind(loop_var.name, for_loop.pat.id)?;
             self.initialize_local(&for_loop.pat, value)?;
             self.block(Slot::Empty, &for_loop.body)?;
         }
@@ -1058,7 +1053,7 @@ impl<'a> MirContext<'a> {
         // binding for that variable in the current scope.
         let post_branch_bindings: BTreeMap<ScopeIndex, Rebind> = rebound_locals
             .iter()
-            .map(|x| self.rebind(&x.name, id).map(|r| (x.clone(), r)))
+            .map(|x| self.rebind(x.name, id).map(|r| (x.clone(), r)))
             .collect::<Result<_>>()?;
         eprintln!("post_branch bindings set {:?}", post_branch_bindings);
         for (var, rebind) in &post_branch_bindings {
@@ -1132,7 +1127,7 @@ impl<'a> MirContext<'a> {
         // binding for that variable in the current scope.
         let post_branch_bindings: BTreeMap<ScopeIndex, Rebind> = rebound_locals
             .iter()
-            .map(|x| self.rebind(&x.name, id).map(|r| (x.clone(), r)))
+            .map(|x| self.rebind(x.name, id).map(|r| (x.clone(), r)))
             .collect::<Result<_>>()?;
         for (var, rebind) in &post_branch_bindings {
             let arm_bindings = arm_locals
@@ -1226,8 +1221,8 @@ impl<'a> MirContext<'a> {
 
         let literal_true = self.literal_bool(id, true);
         let early_return_flag = self.rebind(EARLY_RETURN_FLAG_NAME, id)?;
-        let name = self.name.clone();
-        let return_slot = self.rebind(&name, id)?;
+        let name = self.name;
+        let return_slot = self.rebind(name, id)?;
         let early_return_expr = if let Some(return_expr) = &return_expr.expr {
             self.expr(return_expr)?
         } else {
@@ -1335,7 +1330,7 @@ impl<'a> Visitor for MirContext<'a> {
         //    return x --> if !__early$exit { __early$exit = true; fn_name = x; }
         // The return slot is then used to return the value of the function.
         self.bind(EARLY_RETURN_FLAG_NAME, node.id);
-        self.bind(&node.name, node.id);
+        self.bind(node.name, node.id);
         self.name.clone_from(&node.name);
         // Initialize the early exit flag in the main block
         let init_early_exit_op = op_assign(
@@ -1344,7 +1339,7 @@ impl<'a> Visitor for MirContext<'a> {
         );
         // Initialize the return slot in the main block
         let init_return_slot = op_assign(
-            self.lookup_name(&node.name).unwrap().0,
+            self.lookup_name(node.name).unwrap().0,
             self.literal_tb(node.id, &node.ret.place_holder()),
         );
         // Initialize the arguments in the main block
@@ -1355,9 +1350,9 @@ impl<'a> Visitor for MirContext<'a> {
         self.block(block_result, &node.body)?;
         self.ops.insert(0, (init_early_exit_op, node.id).into());
         self.ops.insert(1, (init_return_slot, node.id).into());
-        self.insert_implicit_return(node.body.id, block_result, &node.name)?;
+        self.insert_implicit_return(node.body.id, block_result, node.name)?;
         self.return_slot = self
-            .lookup_name(&node.name)
+            .lookup_name(node.name)
             .ok_or(self.raise_ice(
                 ICE::ReturnSlotNotFound {
                     name: node.name.to_owned(),
@@ -1370,7 +1365,7 @@ impl<'a> Visitor for MirContext<'a> {
     }
 }
 
-pub fn compile_mir(mut func: Kernel) -> Result<Mir> {
+pub fn compile_mir(func: Kernel) -> Result<Mir> {
     let source = build_spanned_source_for_kernel(func.inner());
     let mut compiler = MirContext::new(&source);
     compiler.visit_kernel_fn(func.inner())?;

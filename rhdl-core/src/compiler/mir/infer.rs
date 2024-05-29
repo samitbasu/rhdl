@@ -2,10 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::{
     ast::ast_impl::{ExprLit, NodeId},
-    compiler::mir::{
-        error::RHDLTypeCheckError,
-        ty::{self, SignFlag},
-    },
+    compiler::mir::{error::RHDLTypeCheckError, ty::SignFlag},
     error::RHDLError,
     path::{sub_kind, Path, PathElement},
     rhif::{
@@ -44,7 +41,6 @@ pub struct TypeIndex {
 
 #[derive(Debug, Clone)]
 pub struct TypeSelect {
-    lhs: TypeId,
     selector: TypeId,
     true_value: TypeId,
     false_value: TypeId,
@@ -151,7 +147,7 @@ impl<'a> MirTypeInference<'a> {
             let lhs_desc = self.ctx.desc(lhs);
             let rhs_desc = self.ctx.desc(rhs);
             let cause_span = self.mir.symbols.source.span(id);
-            let cause_description = format!("Because of this expression");
+            let cause_description = "Because of this expression".to_owned();
             return Err(Box::new(RHDLTypeCheckError {
                 src: self.mir.symbols.source.source.clone(),
                 lhs_type: lhs_desc,
@@ -167,7 +163,7 @@ impl<'a> MirTypeInference<'a> {
     }
     fn import_literals(&mut self) {
         for (slot, lit) in &self.mir.literals {
-            let id = self.mir.symbols.slot_map[&slot].node;
+            let id = self.mir.symbols.slot_map[slot].node;
             let ty = match lit {
                 ExprLit::TypedBits(tb) => self.ctx.from_kind(id, &tb.value.kind),
                 ExprLit::Int(_) => self.ctx.ty_integer(id),
@@ -178,7 +174,7 @@ impl<'a> MirTypeInference<'a> {
     }
     fn import_signature(&mut self) -> Result<()> {
         for slot in &self.mir.arguments {
-            let id = self.mir.symbols.slot_map[&slot].node;
+            let id = self.mir.symbols.slot_map[slot].node;
             let kind = &self.mir.ty[slot];
             let ty = self.ctx.from_kind(id, kind);
             self.slot_map.insert(*slot, ty);
@@ -697,7 +693,6 @@ impl<'a> MirTypeInference<'a> {
                     self.type_ops.push(TypeOperation {
                         id: op.source,
                         kind: TypeOperationKind::Select(TypeSelect {
-                            lhs,
                             selector: cond,
                             true_value: arg1,
                             false_value: arg2,
@@ -831,7 +826,6 @@ pub fn infer(mir: Mir) -> Result<Object> {
     }
     infer.process_ops()?;
     let type_ops = infer.type_ops.clone();
-    let mut loop_count = 0;
     for (slot, ty) in &infer.slot_map {
         let ty = infer.ctx.apply(*ty);
         let ty = infer.ctx.desc(ty);

@@ -184,7 +184,7 @@ pub fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
             .iter()
             .flat_map(|field| leaf_paths(&field.kind, base.clone().field(&field.name)))
             .collect(),
-        Kind::Signal(root, clock) => leaf_paths(root, base.clone())
+        Kind::Signal(root, _) => leaf_paths(root, base.clone())
             .into_iter()
             .map(|path| path.signal_value())
             .collect(),

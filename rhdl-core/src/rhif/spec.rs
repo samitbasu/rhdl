@@ -2,10 +2,9 @@
 use anyhow::Result;
 
 use crate::{
-    ast_builder::BinOp,
     kernel::{ExternalKernelDef, Kernel},
     path::Path,
-    ClockColor, DigitalSignature, Kind, TypedBits,
+    ClockColor, DigitalSignature, TypedBits,
 };
 
 #[derive(Clone, PartialEq)]

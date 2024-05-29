@@ -619,9 +619,7 @@ fn write_tuple(tuple: &Tuple, bits: &[bool], f: &mut std::fmt::Formatter<'_>) ->
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        util::id, Digital, DiscriminantAlignment, DiscriminantType, Kind, Notable, TypedBits,
-    };
+    use crate::{Digital, DiscriminantAlignment, DiscriminantType, Kind, Notable, TypedBits};
 
     #[test]
     fn test_typed_bits_add() {
@@ -636,6 +634,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(dead_code)]
     fn test_display_typed_bits() {
         #[derive(Debug, Clone, PartialEq, Copy)]
         enum Baz {
@@ -651,7 +650,7 @@ mod tests {
         }
 
         impl Notable for Baz {
-            fn note(&self, key: impl crate::NoteKey, writer: impl crate::NoteWriter) {
+            fn note(&self, _: impl crate::NoteKey, _: impl crate::NoteWriter) {
                 todo!()
             }
         }
