@@ -1,12 +1,10 @@
-use std::fmt::Display;
-
 use crate::{
     kernel::KernelFnKind, rhif::spec::Member, types::typed_bits::TypedBits, DigitalSignature, Kind,
 };
 
 // Modeled after rustc's AST
 
-#[derive(Debug, Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord)]
 pub struct NodeId(u32);
 
 impl NodeId {
@@ -18,7 +16,7 @@ impl NodeId {
     }
 }
 
-impl Display for NodeId {
+impl std::fmt::Debug for NodeId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "N{}", self.0)
     }

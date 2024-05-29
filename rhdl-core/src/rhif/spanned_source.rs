@@ -386,6 +386,6 @@ impl SpannedSourceBuilder {
             }
         }
         self.span_map.insert(expr.id, start..self.loc());
-        eprintln!("Span for expression {}: {:?}", expr.id, start..self.loc());
+        eprintln!("Span for expression {:?}: {:?}", expr.id, start..self.loc());
     }
 }

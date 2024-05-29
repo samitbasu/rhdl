@@ -139,14 +139,13 @@ pub struct ScopeIndex {
 
 type LocalsMap = HashMap<ScopeIndex, Slot>;
 
-#[derive(Debug)]
 struct Scope {
     names: HashMap<&'static str, Slot>,
     children: Vec<ScopeId>,
     parent: ScopeId,
 }
 
-impl std::fmt::Display for Scope {
+impl std::fmt::Debug for Scope {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Scope {{")?;
         for (name, id) in &self.names {
@@ -310,7 +309,7 @@ impl<'a> MirContext<'a> {
     // resulting register.
     fn bind(&mut self, name: &'static str, id: NodeId) {
         let reg = self.reg(id);
-        eprintln!("Binding {}#{} to {:?}", name, id, reg);
+        eprintln!("Binding {}#{:?} to {:?}", name, id, reg);
         self.slot_names.insert(reg, name.to_string());
         self.scopes[self.active_scope.0].names.insert(name, reg);
     }
@@ -348,7 +347,7 @@ impl<'a> MirContext<'a> {
         reg
     }
     fn lit(&mut self, id: NodeId, lit: ExprLit) -> Slot {
-        eprintln!("Allocate literal {:?} for {}", lit, id);
+        eprintln!("Allocate literal {:?} for {:?}", lit, id);
         let ndx = self.literals.len();
         let slot = Slot::Literal(ndx);
         self.literals.insert(slot, lit);
