@@ -502,10 +502,6 @@ impl UnifyContext {
         }
     }
 
-    fn is_empty(&self, ty: TypeId) -> bool {
-        matches!(self.types[ty.kind], TypeKind::Const(Const::Empty))
-    }
-
     fn is_var(&self, ty: TypeId) -> bool {
         matches!(self.types[ty.kind], TypeKind::Var(_))
     }
@@ -602,19 +598,21 @@ impl UnifyContext {
     }
     pub fn is_unsized_integer(&mut self, ty: TypeId) -> bool {
         let ty = self.apply(ty);
-        if let TypeKind::App(AppType { kind, args }) = &self.types[ty.kind] {
+        if let TypeKind::App(AppType { kind: _, args }) = &self.types[ty.kind] {
             return self.is_var(args[1]);
         }
         false
     }
     pub fn is_generic_integer(&mut self, ty: TypeId) -> bool {
         let ty = self.apply(ty);
-        if let TypeKind::App(AppType { kind, args }) = &self.types[ty.kind] {
-            if let AppTypeKind::Bits = kind {
-                return args
-                    .iter()
-                    .all(|a| matches!(self.types[a.kind], TypeKind::Var(_)));
-            }
+        if let TypeKind::App(AppType {
+            kind: AppTypeKind::Bits,
+            args,
+        }) = &self.types[ty.kind]
+        {
+            return args
+                .iter()
+                .all(|a| matches!(self.types[a.kind], TypeKind::Var(_)));
         }
         false
     }

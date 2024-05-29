@@ -77,10 +77,8 @@ impl SourceCode for SourcePool {
     ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
         let start = span.offset();
         let len = span.len();
-        if let Some((function_id, function_range)) = self
-            .ranges
-            .iter()
-            .find(|(id, range)| range.contains(&start))
+        if let Some((function_id, function_range)) =
+            self.ranges.iter().find(|(_, range)| range.contains(&start))
         {
             let local_offset = start - function_range.start;
             let local_span = SourceSpan::new(local_offset.into(), len);

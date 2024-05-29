@@ -1,4 +1,4 @@
-use crate::{ast::ast_impl, ClockColor, Kind, TypedBits};
+use crate::{ast::ast_impl, ClockColor, TypedBits};
 
 #[derive(Debug, Clone)]
 pub struct Kernel(Box<ast_impl::KernelFn>);

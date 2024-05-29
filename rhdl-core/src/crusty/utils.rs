@@ -6,7 +6,7 @@ use miette::LabeledSpan;
 use crate::{
     path::Path,
     rhif::spec::Member,
-    schematic::schematic_impl::{PinIx, PinPath, Trace, WirePath},
+    schematic::schematic_impl::{PinIx, Trace, WirePath},
 };
 
 use super::index::IndexedSchematic;

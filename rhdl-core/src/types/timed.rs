@@ -1,6 +1,5 @@
 use crate::{Clock, Digital, Kind};
 use rhdl_bits::{Bits, SignedBits};
-use std::any::type_name;
 use std::cmp::Ordering;
 
 pub trait Timed: Copy + Sized + PartialEq + Clone + 'static {

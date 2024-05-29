@@ -25,10 +25,9 @@ use crate::{
 
 use super::components::UnaryComponent;
 use super::components::{
-    ArrayComponent, BinaryComponent, BlackBoxComponent, BufferComponent, CaseComponent,
-    CastComponent, ComponentKind, ConstantComponent, EnumComponent, FieldPin, IndexComponent,
-    KernelComponent, RepeatComponent, SelectComponent, SpliceComponent, StructComponent,
-    TupleComponent,
+    ArrayComponent, BinaryComponent, BufferComponent, CaseComponent, CastComponent, ComponentKind,
+    ConstantComponent, EnumComponent, FieldPin, IndexComponent, KernelComponent, RepeatComponent,
+    SelectComponent, SpliceComponent, StructComponent, TupleComponent,
 };
 use super::schematic_impl::PinIx;
 use super::schematic_impl::Schematic;

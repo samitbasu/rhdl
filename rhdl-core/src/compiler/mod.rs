@@ -1,6 +1,5 @@
 pub mod driver;
 pub use driver::compile_design;
-mod ascii;
 mod display_ast;
 pub mod mir;
 mod passes;

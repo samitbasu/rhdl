@@ -488,7 +488,7 @@ impl NoteDB {
 }
 
 thread_local! {
-    static DB: RefCell<Option<NoteDB>> = RefCell::new(None);
+    static DB: RefCell<Option<NoteDB>> = const { RefCell::new(None) };
 }
 
 pub fn note_init_db() {
@@ -541,7 +541,7 @@ mod tests {
 
     use rhdl_bits::Bits;
 
-    use crate::{types::kind::Variant, util::id, Digital, DiscriminantAlignment, Kind};
+    use crate::{types::kind::Variant, Digital, DiscriminantAlignment, Kind};
 
     use super::*;
 

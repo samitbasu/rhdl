@@ -2,10 +2,7 @@ use std::collections::HashSet;
 
 use crate::{
     compiler::utils::remap_slots,
-    rhif::{
-        spec::{OpCode, Slot},
-        Object,
-    },
+    rhif::{spec::Slot, Object},
 };
 use anyhow::Result;
 

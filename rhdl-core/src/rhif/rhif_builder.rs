@@ -4,7 +4,7 @@ use crate::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
         FieldValue, FuncId, Index, OpCode, Repeat, Slot, Struct, Tuple, Unary,
     },
-    ClockColor, Kind, TypedBits,
+    ClockColor, TypedBits,
 };
 
 use super::spec::{Retime, Select, Splice};

@@ -292,8 +292,8 @@ impl<'a, 'b, W: Write> DotWriter<'a, 'b, W> {
             .collect::<Vec<String>>()
             .join("|");
         let output_ports = format!("{{<{:?}> Y}}", black_box.0.output());
-        let label = format!("{name}", name = black_box.0.name());
-        self.write_cnode(ndx, &format!("{{ {input_ports} }}"), &label, &output_ports)
+        let label = black_box.0.name();
+        self.write_cnode(ndx, &format!("{{ {input_ports} }}"), label, &output_ports)
     }
 
     fn write_kernel(&mut self, ndx: usize, kernel: &KernelComponent) -> Result<()> {
