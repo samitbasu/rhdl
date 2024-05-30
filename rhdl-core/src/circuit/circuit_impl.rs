@@ -5,6 +5,8 @@ use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor
 pub type CircuitUpdateFn<C> =
     fn(<C as CircuitIO>::I, <C as Circuit>::Q) -> (<C as CircuitIO>::O, <C as Circuit>::D);
 
+pub type CircuitInitFn<C> = fn(<C as CircuitIO>::I) -> (<C as CircuitIO>::O, <C as Circuit>::D);
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum HDLKind {
     Verilog,
@@ -34,12 +36,22 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO {
 
     const UPDATE: CircuitUpdateFn<Self>; // = |_, _| (Default::default(), Default::default());
 
+    const INIT: CircuitInitFn<Self>; // = |_| (Default::default(), Default::default());
+
     // State for simulation - auto derived
     type S: PartialEq + Clone;
 
     // Simulation update - auto derived
+    // The simulation function will now be:
+    // This is the init tree
+    // let (o, d) = self.init(i);
+    // let q.a = self.a.init(d.a);
+    // let q.b = self.b.init(d.b);
+    // let mut state = (q, self.a.)
+    // Then we do the update thing
     fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O;
 
+    //
     fn init_state(&self) -> Self::S {
         Default::default()
     }
