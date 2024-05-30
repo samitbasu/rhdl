@@ -4,7 +4,7 @@ use crate::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
         FieldValue, FuncId, Index, OpCode, Repeat, Slot, Struct, Tuple, Unary,
     },
-    ClockColor, TypedBits,
+    Color, TypedBits,
 };
 
 use super::spec::{Retime, Select, Splice};
@@ -18,7 +18,7 @@ pub fn op_binary(op: AluBinary, lhs: Slot, arg1: Slot, arg2: Slot) -> OpCode {
     })
 }
 
-pub fn op_retime(lhs: Slot, arg: Slot, color: Option<ClockColor>) -> OpCode {
+pub fn op_retime(lhs: Slot, arg: Slot, color: Option<Color>) -> OpCode {
     OpCode::Retime(Retime { lhs, arg, color })
 }
 

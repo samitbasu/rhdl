@@ -9,7 +9,7 @@ use crate::{
         spec::{OpCode, Slot},
         Object,
     },
-    ClockColor, Kind,
+    Color, Kind,
 };
 use anyhow::Result;
 
@@ -18,7 +18,7 @@ use super::pass::Pass;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum SlotColor {
     Multicolor,
-    Single(ClockColor),
+    Single(Color),
     Uncolored,
 }
 

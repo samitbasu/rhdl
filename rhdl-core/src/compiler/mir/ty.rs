@@ -7,7 +7,7 @@ use crate::{
     ast::ast_impl::NodeId,
     path::Path,
     types::kind::{Array, DiscriminantLayout, Enum, Field, Struct, Tuple},
-    ClockColor, DiscriminantType, Kind,
+    Color, DiscriminantType, Kind,
 };
 use anyhow::{anyhow, bail, ensure, Result};
 
@@ -28,7 +28,7 @@ pub enum SignFlag {
 // generic over any other types.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Const {
-    Clock(ClockColor),
+    Clock(Color),
     Length(usize),
     Empty,
     Signed(SignFlag),
@@ -350,7 +350,7 @@ impl UnifyContext {
         }
     }
 
-    pub fn ty_clock(&mut self, id: NodeId, clock: ClockColor) -> TypeId {
+    pub fn ty_clock(&mut self, id: NodeId, clock: Color) -> TypeId {
         self.ty_const(id, Const::Clock(clock))
     }
 
@@ -382,7 +382,7 @@ impl UnifyContext {
         }
     }
 
-    pub fn into_ty_clock(&mut self, ty: TypeId) -> Result<ClockColor> {
+    pub fn into_ty_clock(&mut self, ty: TypeId) -> Result<Color> {
         let x = self.apply(ty);
         if let TypeKind::Const(Const::Clock(c)) = &self.types[x.kind] {
             Ok(*c)

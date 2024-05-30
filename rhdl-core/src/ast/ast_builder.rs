@@ -7,7 +7,7 @@ use crate::kernel::KernelFnKind;
 use crate::rhif::spec::Member;
 use crate::types::typed_bits::TypedBits;
 use crate::{ast::ast_impl::*, Kind};
-use crate::{ClockColor, DigitalSignature};
+use crate::{Color, DigitalSignature};
 
 #[derive(Default)]
 pub struct ASTBuilder {
@@ -527,7 +527,7 @@ impl ASTBuilder {
         })
     }
 
-    pub fn expr_signal(&self, arg: Box<Expr>, clock: Option<ClockColor>) -> Box<Expr> {
+    pub fn expr_signal(&self, arg: Box<Expr>, clock: Option<Color>) -> Box<Expr> {
         let path = self.path(vec![PathSegment {
             ident: "signal",
             arguments: vec![],
