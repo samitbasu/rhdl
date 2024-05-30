@@ -8,36 +8,42 @@ use rhdl_core::root_hdl;
 use rhdl_core::Circuit;
 use rhdl_core::CircuitDescriptor;
 use rhdl_core::CircuitIO;
+use rhdl_core::Clk;
+use rhdl_core::Clock;
 use rhdl_core::HDLDescriptor;
 use rhdl_core::HDLKind;
+use rhdl_core::Kind;
+use rhdl_core::Sig;
+use rhdl_core::Timed;
+use rhdl_macro::Timed;
 use rhdl_macro::{kernel, Digital};
 
-use crate::{clock::Clock, dff::DFF};
+use crate::dff::DFF;
 
 // Next a counter with an enable signal
 #[derive(Default, Clone)]
-pub struct Counter<const N: usize> {
-    count: DFF<Bits<N>>,
+pub struct Counter<C: Clock, const N: usize> {
+    count: DFF<Bits<N>, C>,
 }
 
-#[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
-pub struct CounterI {
-    pub clock: Clock,
-    pub enable: bool,
+#[derive(Debug, Clone, PartialEq, Copy, Timed)]
+pub struct CounterI<C: Clock> {
+    pub clock: Sig<Clk, C>,
+    pub enable: Sig<bool, C>,
 }
 
-#[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
-pub struct CounterQ<const N: usize> {
-    pub count: <DFF<Bits<N>> as CircuitIO>::O,
+#[derive(Debug, Clone, PartialEq, Default, Copy, Timed)]
+pub struct CounterQ<C: Clock, const N: usize> {
+    pub count: <DFF<Bits<N>, C> as CircuitIO>::O,
 }
 
-#[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
-pub struct CounterD<const N: usize> {
-    pub count: <DFF<Bits<N>> as CircuitIO>::I,
+#[derive(Debug, Clone, PartialEq, Timed, Default, Copy)]
+pub struct CounterD<C: Clock, const N: usize> {
+    pub count: <DFF<Bits<N>, C> as CircuitIO>::I,
 }
 
-impl<const N: usize> CircuitIO for Counter<N> {
-    type I = CounterI;
+impl<C: Clock, const N: usize> CircuitIO for Counter<C, N> {
+    type I = CounterI<C>;
     type O = Bits<N>;
 }
 

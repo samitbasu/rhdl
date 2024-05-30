@@ -70,6 +70,34 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static + Notable {
     }
 }
 
+#[derive(PartialEq, Clone, Copy, Debug)]
+pub struct Clk(bool);
+
+impl Clk {
+    pub fn raw(&self) -> bool {
+        self.0
+    }
+}
+
+pub fn clk(b: bool) -> Clk {
+    Clk(b)
+}
+
+impl Digital for Clk {
+    fn static_kind() -> Kind {
+        Kind::make_bool()
+    }
+    fn bin(self) -> Vec<bool> {
+        vec![self.0]
+    }
+}
+
+impl Notable for Clk {
+    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
+        writer.write_bool(key, self.0);
+    }
+}
+
 impl Digital for () {
     fn static_kind() -> Kind {
         Kind::Empty

@@ -635,6 +635,7 @@ mod tests {
 
     #[test]
     #[allow(dead_code)]
+    #[allow(clippy::just_underscores_and_digits)]
     fn test_display_typed_bits() {
         #[derive(Debug, Clone, PartialEq, Copy)]
         enum Baz {
@@ -711,14 +712,14 @@ mod tests {
             fn discriminant(self) -> TypedBits {
                 match self {
                     Self::A(_0) => rhdl_bits::bits::<2usize>(0i64 as u128).typed_bits(),
-                    Self::B { foo } => rhdl_bits::bits::<2usize>(1i64 as u128).typed_bits(),
+                    Self::B { foo: _ } => rhdl_bits::bits::<2usize>(1i64 as u128).typed_bits(),
                     Self::C(_0) => rhdl_bits::bits::<2usize>(2i64 as u128).typed_bits(),
                 }
             }
             fn variant_kind(self) -> Kind {
                 match self {
                     Self::A(_0) => Kind::make_tuple(vec![<Bar as Digital>::static_kind()]),
-                    Self::B { foo } => Kind::make_struct(
+                    Self::B { foo: _ } => Kind::make_struct(
                         stringify!(_Baz__B),
                         vec![Kind::make_field(
                             stringify!(foo),
@@ -734,7 +735,7 @@ mod tests {
         struct Bar(u8, u8, bool);
 
         impl Notable for Bar {
-            fn note(&self, key: impl crate::NoteKey, writer: impl crate::NoteWriter) {
+            fn note(&self, _key: impl crate::NoteKey, _writer: impl crate::NoteWriter) {
                 todo!()
             }
         }
@@ -762,7 +763,7 @@ mod tests {
             c: bool,
         }
         impl Notable for Foo {
-            fn note(&self, key: impl crate::NoteKey, writer: impl crate::NoteWriter) {
+            fn note(&self, _key: impl crate::NoteKey, _writer: impl crate::NoteWriter) {
                 todo!()
             }
         }

@@ -17,7 +17,7 @@ impl Descriptions {
         let indent = "  ".repeat(indent_level * 3);
         writeln!(
             f,
-            "{}{}/{}: {} -> {}",
+            "{}{}/{}: {:?} -> {:?}",
             indent, self.path, self.name, self.input_kind, self.output_kind
         )?;
         for child in &self.children {

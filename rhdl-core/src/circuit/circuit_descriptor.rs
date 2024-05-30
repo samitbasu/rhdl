@@ -7,7 +7,7 @@ use crate::schematic::components::{
     ComponentKind, FieldPin, IndexComponent, KernelComponent, StructComponent,
 };
 use crate::schematic::schematic_impl::Schematic;
-use crate::types::digital::Digital;
+use crate::types::timed::Timed;
 use crate::{util::hash_id, Kind};
 use std::collections::HashMap;
 

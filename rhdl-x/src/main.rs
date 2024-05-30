@@ -11,7 +11,7 @@ use rhdl_core::Circuit;
 
 //mod backend;
 //mod circuit;
-mod clock;
+//mod clock;
 mod constant;
 mod counter;
 mod descriptions;
@@ -27,7 +27,7 @@ mod tristate;
 mod case;
 mod chalk;
 mod check;
-mod signal;
+//mod signal;
 mod timeset;
 mod visit;
 
