@@ -5,7 +5,7 @@ use anyhow::Result;
 
 use crate::{rhif::spec::Member, TypedBits};
 
-use super::clock::ClockColor;
+use super::clock::Color;
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum Kind {
@@ -15,7 +15,7 @@ pub enum Kind {
     Enum(Enum),
     Bits(usize),
     Signed(usize),
-    Signal(Box<Kind>, ClockColor),
+    Signal(Box<Kind>, Color),
     Empty,
 }
 
@@ -189,7 +189,7 @@ impl Kind {
     pub fn make_signed(digits: usize) -> Self {
         Self::Signed(digits)
     }
-    pub fn make_signal(kind: Kind, color: ClockColor) -> Self {
+    pub fn make_signal(kind: Kind, color: Color) -> Self {
         Self::Signal(Box::new(kind), color)
     }
     pub fn bits(&self) -> usize {
@@ -452,7 +452,7 @@ impl Kind {
         }
     }
 
-    pub fn signal_clock(&self) -> Option<ClockColor> {
+    pub fn signal_clock(&self) -> Option<Color> {
         if let Kind::Signal(_, color) = self {
             Some(*color)
         } else {

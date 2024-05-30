@@ -21,7 +21,7 @@ use rhdl_core::{
         clock::{Green, Red},
         timed::signal,
     },
-    Clock, Digital, KernelFnKind, Kind, Sig,
+    Domain, Digital, KernelFnKind, Kind, Sig,
 };
 use rhdl_macro::{kernel, Digital};
 use rhdl_std::UnsignedMethods;
@@ -550,7 +550,7 @@ fn test_method_call_fails_with_roll_your_own() {
 #[test]
 fn test_signal_const_binop_inference() -> anyhow::Result<()> {
     #[kernel]
-    fn do_stuff<C: Clock>(a: Sig<b8, C>) -> Sig<b8, C> {
+    fn do_stuff<C: Domain>(a: Sig<b8, C>) -> Sig<b8, C> {
         a + b8(4)
     }
     compile_design::<do_stuff<Red>>()?;
@@ -572,7 +572,7 @@ fn test_bits_inference_with_type() {
 #[test]
 fn test_signal_cross_clock_select_fails() -> anyhow::Result<()> {
     #[kernel]
-    fn add<C: Clock, D: Clock>(x: Sig<b8, C>, y: Sig<b8, D>) -> Sig<b8, C> {
+    fn add<C: Domain, D: Domain>(x: Sig<b8, C>, y: Sig<b8, D>) -> Sig<b8, C> {
         if y.val().any() {
             x
         } else {
@@ -587,7 +587,7 @@ fn test_signal_cross_clock_select_fails() -> anyhow::Result<()> {
 #[test]
 fn test_signal_cross_clock_select_causes_type_check_error() -> miette::Result<()> {
     #[kernel]
-    fn add<C: Clock, D: Clock>(x: Sig<b8, C>, y: Sig<b8, D>) -> Sig<b8, C> {
+    fn add<C: Domain, D: Domain>(x: Sig<b8, C>, y: Sig<b8, D>) -> Sig<b8, C> {
         if y.val().any() {
             x
         } else {
@@ -601,7 +601,7 @@ fn test_signal_cross_clock_select_causes_type_check_error() -> miette::Result<()
 #[test]
 fn test_signal_coherence_in_branches() -> miette::Result<()> {
     #[kernel]
-    fn add<C: Clock, D: Clock>(x: Sig<b8, C>, y: Sig<b8, D>) -> Sig<b8, C> {
+    fn add<C: Domain, D: Domain>(x: Sig<b8, C>, y: Sig<b8, D>) -> Sig<b8, C> {
         let x = x.val();
         let y = y.val();
         let z = if y.any() { y } else { x };
@@ -614,7 +614,7 @@ fn test_signal_coherence_in_branches() -> miette::Result<()> {
 #[test]
 fn test_signal_cast_works() -> anyhow::Result<()> {
     #[kernel]
-    fn add<C: Clock>(x: Sig<b8, C>, y: Sig<b8, C>) -> Sig<b8, C> {
+    fn add<C: Domain>(x: Sig<b8, C>, y: Sig<b8, C>) -> Sig<b8, C> {
         let z = x + y;
         signal::<b8, C>(z.val())
     }
@@ -626,7 +626,7 @@ fn test_signal_cast_works() -> anyhow::Result<()> {
 #[test]
 fn test_signal_cast_cross_clocks_fails() -> anyhow::Result<()> {
     #[kernel]
-    fn add<C: Clock, D: Clock>(x: Sig<b8, C>) -> Sig<b8, D> {
+    fn add<C: Domain, D: Domain>(x: Sig<b8, C>) -> Sig<b8, D> {
         signal(x.val() + 3)
     }
     assert!(compile_design::<add<Red, Red>>().is_ok());
@@ -637,7 +637,7 @@ fn test_signal_cast_cross_clocks_fails() -> anyhow::Result<()> {
 #[test]
 fn test_signal_cross_clock_shifting_fails() -> anyhow::Result<()> {
     #[kernel]
-    fn add<C: Clock, D: Clock>(x: Sig<b8, C>) -> Sig<b8, D> {
+    fn add<C: Domain, D: Domain>(x: Sig<b8, C>) -> Sig<b8, D> {
         let p = 4;
         let y: b8 = bits(7);
         let z = y << p;
@@ -651,7 +651,7 @@ fn test_signal_cross_clock_shifting_fails() -> anyhow::Result<()> {
 #[test]
 fn test_signal_cross_clock_indexing_fails() -> anyhow::Result<()> {
     #[kernel]
-    fn add<C: Clock, D: Clock>(x: Sig<[b8; 8], C>, y: Sig<b3, D>) -> Sig<b8, C> {
+    fn add<C: Domain, D: Domain>(x: Sig<[b8; 8], C>, y: Sig<b3, D>) -> Sig<b8, C> {
         let z = x[y.val()];
         signal(z)
     }
@@ -663,7 +663,7 @@ fn test_signal_cross_clock_indexing_fails() -> anyhow::Result<()> {
 #[test]
 fn test_signal_ops_inference() -> anyhow::Result<()> {
     #[kernel]
-    fn add<C: Clock, D: Clock>(
+    fn add<C: Domain, D: Domain>(
         x: Sig<b8, C>,
         y: Sig<b8, C>,
         z: Sig<b8, D>,

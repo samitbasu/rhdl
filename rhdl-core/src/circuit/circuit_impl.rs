@@ -52,9 +52,10 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO {
     fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O;
 
     //
-    fn init_state(&self) -> Self::S {
-        Default::default()
-    }
+    fn init_state(&self) -> Self::S;
+    // {
+    //Default::default()
+    //}
 
     // auto derived
     fn name(&self) -> &'static str;

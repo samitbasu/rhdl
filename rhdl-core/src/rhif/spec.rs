@@ -4,7 +4,7 @@ use anyhow::Result;
 use crate::{
     kernel::{ExternalKernelDef, Kernel},
     path::Path,
-    ClockColor, DigitalSignature, TypedBits,
+    Color, DigitalSignature, TypedBits,
 };
 
 #[derive(Clone, PartialEq)]
@@ -274,5 +274,5 @@ pub struct Cast {
 pub struct Retime {
     pub lhs: Slot,
     pub arg: Slot,
-    pub color: Option<ClockColor>,
+    pub color: Option<Color>,
 }

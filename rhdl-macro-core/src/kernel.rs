@@ -784,7 +784,7 @@ impl Context {
                             "Unsupported signal call in rhdl kernel function",
                         ));
                     };
-                    let clock = quote!(<#clock as rhdl_core::Clock>::color());
+                    let clock = quote!(<#clock as rhdl_core::Domain>::color());
                     return Ok(quote! {
                         bob.expr_signal(#args, Some(#clock))
                     });

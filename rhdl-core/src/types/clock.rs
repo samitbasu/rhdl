@@ -1,34 +1,34 @@
 use serde::{Deserialize, Serialize};
 
-pub trait Clock: Copy + PartialEq + 'static {
-    fn color() -> ClockColor;
+pub trait Domain: Copy + PartialEq + 'static {
+    fn color() -> Color;
 }
 
 // Given a list of names, generates a clock for each
-macro_rules! decl_clocks {
+macro_rules! decl_domains {
     ($($name: ident),*) => {
-        $(decl_clock!($name);)*
+        $(decl_domain!($name);)*
     };
     () => {
 
     };
 }
 
-macro_rules! decl_clock {
+macro_rules! decl_domain {
     ($name: ident) => {
         #[derive(Copy, Clone, PartialEq)]
         pub struct $name;
 
-        impl Clock for $name {
-            fn color() -> ClockColor {
-                ClockColor::$name
+        impl Domain for $name {
+            fn color() -> Color {
+                Color::$name
             }
         }
     };
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
-pub enum ClockColor {
+pub enum Color {
     Red,
     Orange,
     Yellow,
@@ -38,19 +38,19 @@ pub enum ClockColor {
     Violet,
 }
 
-impl std::fmt::Debug for ClockColor {
+impl std::fmt::Debug for Color {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Print only first letter in lower case
         match self {
-            ClockColor::Red => write!(f, "r"),
-            ClockColor::Orange => write!(f, "o"),
-            ClockColor::Yellow => write!(f, "y"),
-            ClockColor::Green => write!(f, "g"),
-            ClockColor::Blue => write!(f, "b"),
-            ClockColor::Indigo => write!(f, "i"),
-            ClockColor::Violet => write!(f, "v"),
+            Color::Red => write!(f, "r"),
+            Color::Orange => write!(f, "o"),
+            Color::Yellow => write!(f, "y"),
+            Color::Green => write!(f, "g"),
+            Color::Blue => write!(f, "b"),
+            Color::Indigo => write!(f, "i"),
+            Color::Violet => write!(f, "v"),
         }
     }
 }
 
-decl_clocks!(Red, Orange, Yellow, Green, Blue, Indigo, Violet);
+decl_domains!(Red, Orange, Yellow, Green, Blue, Indigo, Violet);

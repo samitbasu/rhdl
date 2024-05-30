@@ -1,4 +1,4 @@
-use crate::{ast::ast_impl, ClockColor, TypedBits};
+use crate::{ast::ast_impl, Color, TypedBits};
 
 #[derive(Debug, Clone)]
 pub struct Kernel(Box<ast_impl::KernelFn>);
@@ -26,7 +26,7 @@ pub enum KernelFnKind {
     BitConstructor(usize),
     SignedBitsConstructor(usize),
     EnumTupleStructConstructor(TypedBits),
-    SignalConstructor(Option<ClockColor>),
+    SignalConstructor(Option<Color>),
 }
 
 impl std::fmt::Debug for KernelFnKind {
