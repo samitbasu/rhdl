@@ -1,9 +1,12 @@
-use crate::{Clock, Digital, Kind};
+use crate::{Clock, Digital, Kind, Notable};
 use rhdl_bits::{Bits, SignedBits};
 use std::cmp::Ordering;
 
-pub trait Timed: Copy + Sized + PartialEq + Clone + 'static {
+pub trait Timed: Copy + Sized + PartialEq + Clone + 'static + Notable {
     fn static_kind() -> Kind;
+    fn bits() -> usize {
+        Self::static_kind().bits()
+    }
     fn kind(&self) -> Kind {
         Self::static_kind()
     }
@@ -37,6 +40,12 @@ impl<T: Digital, C: Clock> Sig<T, C> {
 impl<T: Digital, C: Clock> Timed for Sig<T, C> {
     fn static_kind() -> Kind {
         Kind::make_signal(T::static_kind(), C::color())
+    }
+}
+
+impl<T: Digital, C: Clock> Notable for Sig<T, C> {
+    fn note(&self, key: impl crate::NoteKey, writer: impl crate::NoteWriter) {
+        self.val.note(key, writer);
     }
 }
 

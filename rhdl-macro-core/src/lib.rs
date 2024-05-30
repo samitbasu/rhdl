@@ -7,3 +7,5 @@ pub use kernel::hdl_kernel;
 mod circuit;
 mod suffix;
 pub use circuit::derive_circuit;
+mod timed;
+pub use timed::derive_timed;

@@ -1,5 +1,6 @@
 use anyhow::ensure;
 use anyhow::Result;
+use rhdl_core::clk;
 use rhdl_core::constraint_input_synchronous;
 use rhdl_core::constraint_must_clock;
 use rhdl_core::constraint_not_constant_valued;
@@ -13,22 +14,28 @@ use rhdl_core::schematic::components::IndexComponent;
 use rhdl_core::schematic::schematic_impl::pin_path;
 use rhdl_core::schematic::schematic_impl::PinIx;
 use rhdl_core::schematic::schematic_impl::Schematic;
+use rhdl_core::types::timed::signal;
 use rhdl_core::BlackBoxTrait;
 use rhdl_core::Circuit;
 use rhdl_core::CircuitDescriptor;
 use rhdl_core::CircuitIO;
+use rhdl_core::Clk;
+use rhdl_core::Clock;
 use rhdl_core::Constraint;
 use rhdl_core::EdgeType;
 use rhdl_core::HDLDescriptor;
 use rhdl_core::HDLKind;
+use rhdl_core::Kind;
+use rhdl_core::Notable;
+use rhdl_core::Sig;
+use rhdl_core::Timed;
 use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
-use rhdl_macro::Digital;
-
-use crate::clock::Clock;
+use rhdl_macro::Timed;
 
 #[derive(Default, Clone)]
-pub struct DFF<T: Digital> {
+pub struct DFF<T: Digital, C: Clock> {
     init: T,
+    clock: std::marker::PhantomData<C>,
 }
 
 #[derive(Clone, Debug)]
@@ -77,24 +84,28 @@ impl BlackBoxTrait for DigitalFlipFlopComponent {
     }
 }
 
-impl<T: Digital> From<T> for DFF<T> {
-    fn from(init: T) -> Self {
-        Self { init }
+#[derive(PartialEq, Clone, Copy, Debug, Timed)]
+struct DFFI<T: Digital + Default, C: Clock> {
+    data: Sig<T, C>,
+    clock: Sig<Clk, C>,
+}
+
+impl<T: Digital + Default, C: Clock> Default for DFFI<T, C> {
+    fn default() -> Self {
+        Self {
+            data: signal(Default::default()),
+            clock: signal(clk(false)),
+        }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Digital, Default, Copy)]
-pub struct DFFI<T: Digital> {
-    pub clock: Clock,
-    pub data: T,
+impl<T: Digital + Default, C: Clock> CircuitIO for DFF<T, C> {
+    type I = DFFI<T, C>;
+    type O = Sig<T, C>;
 }
 
-impl<T: Digital> CircuitIO for DFF<T> {
-    type I = DFFI<T>;
-    type O = T;
-}
-
-impl<T: Digital + Default> Circuit for DFF<T> {
+// TODO - remove this--v
+impl<T: Digital + Default, C: Clock> Circuit for DFF<T, C> {
     type Q = ();
 
     type D = ();
@@ -105,24 +116,21 @@ impl<T: Digital + Default> Circuit for DFF<T> {
 
     const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = |i, _| (i.data, ());
 
-    type S = DFFI<T>;
+    type S = DFFI<T, C>;
 
     fn init_state(&self) -> Self::S {
-        DFFI {
-            clock: Clock(true),
-            data: self.init,
-        }
+        Self::S::default()
     }
 
     fn sim(&self, input: Self::I, state: &mut Self::S, _io: &mut Self::Z) -> Self::O {
         note("input", input);
-        let output = if input.clock.0 && !state.clock.0 {
+        let output = if input.clock.val().raw() && !state.clock.val().raw() {
             input.data
         } else {
             state.data
         };
-        state.clock = input.clock;
         state.data = output;
+        state.clock = input.clock;
         note("output", output);
         output
     }
@@ -138,6 +146,7 @@ impl<T: Digital + Default> Circuit for DFF<T> {
 
     fn descriptor(&self) -> CircuitDescriptor {
         let mut desc = root_descriptor(self);
+        /*
         let mut schematic = Schematic::default();
         let (input_rx, input_tx) = schematic.make_buffer(DFFI::<T>::static_kind(), None);
         // The clock splitter
@@ -192,17 +201,18 @@ impl<T: Digital + Default> Circuit for DFF<T> {
         schematic.inputs = vec![input_rx];
         schematic.output = q;
         desc.update_schematic = Some(schematic);
+        */
         desc
     }
 }
 
-impl<T: Digital> DigitalFn for DFF<T> {
+impl<T: Digital, C: Clock> DigitalFn for DFF<T, C> {
     fn kernel_fn() -> Option<rhdl_core::KernelFnKind> {
         None
     }
 }
 
-impl<T: Digital + Default> DFF<T> {
+impl<T: Digital + Default, C: Clock> DFF<T, C> {
     fn as_verilog(&self) -> HDLDescriptor {
         let module_name = self.descriptor().unique_name;
         let input_bits = T::bits();

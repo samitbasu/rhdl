@@ -1,4 +1,4 @@
-use crate::{Digital, DigitalFn};
+use crate::{Digital, DigitalFn, Timed};
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
 
@@ -19,17 +19,13 @@ impl Tristate for () {
 }
 
 pub trait CircuitIO: 'static + Sized + Clone {
-    type I: Digital;
-    type O: Digital;
+    type I: Timed;
+    type O: Timed;
 }
 
-pub struct NoUpdateFn {}
-
-impl DigitalFn for NoUpdateFn {}
-
 pub trait Circuit: 'static + Sized + Clone + CircuitIO {
-    type D: Digital;
-    type Q: Digital;
+    type D: Timed;
+    type Q: Timed;
 
     // auto derived as the sum of NumZ of the children
     type Z: Tristate;
@@ -39,7 +35,7 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO {
     const UPDATE: CircuitUpdateFn<Self>; // = |_, _| (Default::default(), Default::default());
 
     // State for simulation - auto derived
-    type S: Default + PartialEq + Clone;
+    type S: PartialEq + Clone;
 
     // Simulation update - auto derived
     fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O;

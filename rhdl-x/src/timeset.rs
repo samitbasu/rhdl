@@ -229,7 +229,7 @@ mod tests {
         let paths = leaf_paths(&kind, Path::default());
         let mut bit_mask = vec![false; kind.bits()];
         for path in paths {
-            eprintln!("{}", path);
+            eprintln!("{:?}", path);
             let (bits, _) = bit_range(kind.clone(), &path).unwrap();
             for i in bits {
                 bit_mask[i] = true;
