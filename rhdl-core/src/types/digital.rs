@@ -3,6 +3,7 @@ use rhdl_bits::{Bits, SignedBits};
 use crate::{Kind, NoteKey, NoteWriter, TypedBits};
 
 use super::note::Notable;
+use rand::{random, thread_rng, Rng};
 
 /// This is the core trait for all of `RHDL` data elements.  If you
 /// want to use a data type in the hardware part of the design,
@@ -68,31 +69,66 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static + Notable {
             .map(|b| if *b { '1' } else { '0' })
             .collect()
     }
+    fn random() -> Self;
 }
 
 #[derive(PartialEq, Clone, Copy, Debug)]
-pub struct Clk(bool);
+pub struct Reset(bool);
 
-impl Clk {
+impl Reset {
     pub fn raw(&self) -> bool {
         self.0
     }
 }
 
-pub fn clk(b: bool) -> Clk {
-    Clk(b)
+pub fn reset(b: bool) -> Reset {
+    Reset(b)
 }
 
-impl Digital for Clk {
+impl Digital for Reset {
     fn static_kind() -> Kind {
         Kind::make_bool()
     }
     fn bin(self) -> Vec<bool> {
         vec![self.0]
     }
+    fn random() -> Self {
+        Reset(rand::thread_rng().gen::<bool>())
+    }
 }
 
-impl Notable for Clk {
+impl Notable for Reset {
+    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
+        writer.write_bool(key, self.0);
+    }
+}
+
+#[derive(PartialEq, Clone, Copy, Debug)]
+pub struct Clock(bool);
+
+impl Clock {
+    pub fn raw(&self) -> bool {
+        self.0
+    }
+}
+
+pub fn clock(b: bool) -> Clock {
+    Clock(b)
+}
+
+impl Digital for Clock {
+    fn static_kind() -> Kind {
+        Kind::make_bool()
+    }
+    fn bin(self) -> Vec<bool> {
+        vec![self.0]
+    }
+    fn random() -> Self {
+        Clock(rand::thread_rng().gen::<bool>())
+    }
+}
+
+impl Notable for Clock {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
         writer.write_bool(key, self.0);
     }
@@ -104,6 +140,9 @@ impl Digital for () {
     }
     fn bin(self) -> Vec<bool> {
         Vec::new()
+    }
+    fn random() -> Self {
+        ()
     }
 }
 
@@ -117,6 +156,9 @@ impl Digital for bool {
     }
     fn bin(self) -> Vec<bool> {
         vec![self]
+    }
+    fn random() -> Self {
+        rand::thread_rng().gen::<bool>()
     }
 }
 
@@ -133,6 +175,9 @@ impl Digital for u8 {
     fn bin(self) -> Vec<bool> {
         Bits::<8>::from(self as u128).to_bools()
     }
+    fn random() -> Self {
+        thread_rng().gen::<u8>()
+    }
 }
 
 impl Notable for u8 {
@@ -147,6 +192,9 @@ impl Digital for u16 {
     }
     fn bin(self) -> Vec<bool> {
         Bits::<16>::from(self as u128).to_bools()
+    }
+    fn random() -> Self {
+        thread_rng().gen::<u16>()
     }
 }
 
@@ -163,6 +211,9 @@ impl Digital for usize {
     fn bin(self) -> Vec<bool> {
         Bits::<{ usize::BITS as usize }>::from(self as u128).to_bools()
     }
+    fn random() -> Self {
+        thread_rng().gen::<usize>()
+    }
 }
 
 impl Notable for usize {
@@ -178,6 +229,9 @@ impl Digital for u128 {
     fn bin(self) -> Vec<bool> {
         Bits::<128>::from(self).to_bools()
     }
+    fn random() -> Self {
+        thread_rng().gen::<u128>()
+    }
 }
 
 impl Notable for u128 {
@@ -192,6 +246,9 @@ impl Digital for i128 {
     }
     fn bin(self) -> Vec<bool> {
         SignedBits::<128>::from(self).as_unsigned().to_bools()
+    }
+    fn random() -> Self {
+        thread_rng().gen::<i128>()
     }
 }
 
@@ -210,6 +267,9 @@ impl Digital for i32 {
             .as_unsigned()
             .to_bools()
     }
+    fn random() -> Self {
+        thread_rng().gen::<i32>()
+    }
 }
 
 impl Notable for i32 {
@@ -224,6 +284,9 @@ impl Digital for i8 {
     }
     fn bin(self) -> Vec<bool> {
         SignedBits::<8>::from(self as i128).as_unsigned().to_bools()
+    }
+    fn random() -> Self {
+        thread_rng().gen::<i8>()
     }
 }
 
@@ -242,6 +305,9 @@ impl Digital for i64 {
             .as_unsigned()
             .to_bools()
     }
+    fn random() -> Self {
+        thread_rng().gen::<i64>()
+    }
 }
 
 impl Notable for i64 {
@@ -257,6 +323,9 @@ impl<const N: usize> Digital for Bits<N> {
     fn bin(self) -> Vec<bool> {
         self.to_bools()
     }
+    fn random() -> Self {
+        Bits::from(thread_rng().gen::<u128>())
+    }
 }
 
 impl<const N: usize> Notable for Bits<N> {
@@ -271,6 +340,9 @@ impl<const N: usize> Digital for SignedBits<N> {
     }
     fn bin(self) -> Vec<bool> {
         self.as_unsigned().to_bools()
+    }
+    fn random() -> Self {
+        SignedBits::from(thread_rng().gen::<i128>())
     }
 }
 
@@ -288,6 +360,9 @@ impl<T0: Digital> Digital for (T0,) {
     fn bin(self) -> Vec<bool> {
         self.0.bin()
     }
+    fn random() -> Self {
+        (T0::random(),)
+    }
 }
 
 impl<T0: Notable> Notable for (T0,) {
@@ -304,6 +379,9 @@ impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
         let mut v = self.0.bin();
         v.extend(self.1.bin());
         v
+    }
+    fn random() -> Self {
+        (T0::random(), T1::random())
     }
 }
 
@@ -327,6 +405,9 @@ impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {
         v.extend(self.1.bin());
         v.extend(self.2.bin());
         v
+    }
+    fn random() -> Self {
+        (T0::random(), T1::random(), T2::random())
     }
 }
 
@@ -353,6 +434,9 @@ impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2
         v.extend(self.2.bin());
         v.extend(self.3.bin());
         v
+    }
+    fn random() -> Self {
+        (T0::random(), T1::random(), T2::random(), T3::random())
     }
 }
 
@@ -388,6 +472,9 @@ impl<T: Digital, const N: usize> Digital for [T; N] {
         }
         v
     }
+    fn random() -> Self {
+        [T::random(); N]
+    }
 }
 
 impl<T: Notable, const N: usize> Notable for [T; N] {
@@ -420,6 +507,8 @@ mod test {
                 a: bool,
                 b: Bits<3>,
             },
+            #[invalid]
+            Invalid,
         }
 
         impl Digital for Mixed {

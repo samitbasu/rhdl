@@ -32,6 +32,8 @@ fn test_enum_derive() {
             A = 1,
             B(Bits::<16>),
             C {a: Bits::<32>, b: Bits::<8>},
+            #[rhdl(unmatched)]
+            Unknown,
         }
     };
     let output = derive_digital_enum(input).unwrap();
@@ -51,10 +53,11 @@ fn test_enum_derive() {
                             rhdl_core::Kind::make_struct(stringify!(_Test__C), vec![rhdl_core::Kind::make_field(stringify!(a),
                             < Bits:: < 32 > as rhdl_core::Digital > ::static_kind()),
                             rhdl_core::Kind::make_field(stringify!(b), < Bits:: < 8 > as
-                            rhdl_core::Digital > ::static_kind())]), 3i64)
+                            rhdl_core::Digital > ::static_kind())]), 3i64),
+                            rhdl_core::Kind::make_variant(stringify!(Unknown), rhdl_core::Kind::Empty, 4i64)
                         ],
                         rhdl_core::Kind::make_discriminant_layout(
-                        2usize,
+                        3usize,
                         rhdl_core::DiscriminantAlignment::Msb,
                         rhdl_core::DiscriminantType::Unsigned),
                     )
@@ -63,30 +66,34 @@ fn test_enum_derive() {
                     self.kind()
                         .pad(
                             match self {
-                                Self::A => rhdl_bits::bits::<2usize>(1i64 as u128).to_bools(),
+                                Self::A => rhdl_bits::bits::<3usize>(1i64 as u128).to_bools(),
                                 Self::B(_0) => {
-                                    let mut v = rhdl_bits::bits::<2usize>(2i64 as u128)
+                                    let mut v = rhdl_bits::bits::<3usize>(2i64 as u128)
                                         .to_bools();
                                     v.extend(_0.bin());
                                     v
                                 }
                                 Self::C { a, b } => {
-                                    let mut v = rhdl_bits::bits::<2usize>(3i64 as u128)
+                                    let mut v = rhdl_bits::bits::<3usize>(3i64 as u128)
                                         .to_bools();
                                     v.extend(a.bin());
                                     v.extend(b.bin());
                                     v
+                                }
+                                Self::Unknown => {
+                                    rhdl_bits::bits::<3usize>(4i64 as u128).to_bools()
                                 }
                             },
                         )
                 }
                 fn discriminant(self) -> rhdl_core::TypedBits {
                     match self {
-                        Self::A => rhdl_bits::bits::<2usize>(1i64 as u128).typed_bits(),
-                        Self::B(_0) => rhdl_bits::bits::<2usize>(2i64 as u128).typed_bits(),
+                        Self::A => rhdl_bits::bits::<3usize>(1i64 as u128).typed_bits(),
+                        Self::B(_0) => rhdl_bits::bits::<3usize>(2i64 as u128).typed_bits(),
                         Self::C { a, b } => {
-                            rhdl_bits::bits::<2usize>(3i64 as u128).typed_bits()
+                            rhdl_bits::bits::<3usize>(3i64 as u128).typed_bits()
                         }
+                        Self::Unknown => rhdl_bits::bits::<3usize>(4i64 as u128).typed_bits(),
                     }
                 }
                 fn variant_kind(self) -> rhdl_core::Kind {
@@ -108,6 +115,7 @@ fn test_enum_derive() {
                                 ]
                             )
                         }
+                        Self::Unknown => rhdl_core::Kind::Empty,
                     }
                 }
             }
@@ -116,18 +124,22 @@ fn test_enum_derive() {
                     match self {
                         Self::A => {
                             writer.write_string(key, stringify!(A));
-                            writer.write_bits((key, ".__disc"), 1i64 as u128, 2u8);
+                            writer.write_bits((key, ".__disc"), 1i64 as u128, 3u8);
                         }
                         Self::B(_0) => {
                             writer.write_string(key, stringify!(B));
-                            writer.write_bits((key, ".__disc"), 2i64 as u128, 2u8);
+                            writer.write_bits((key, ".__disc"), 2i64 as u128, 3u8);
                             rhdl_core::Notable::note(_0, (key, 0usize), &mut writer);
                         }
                         Self::C { a, b } => {
                             writer.write_string(key, stringify!(C));
-                            writer.write_bits((key, ".__disc"), 3i64 as u128, 2u8);
+                            writer.write_bits((key, ".__disc"), 3i64 as u128, 3u8);
                             rhdl_core::Notable::note(a, (key, stringify!(a)), &mut writer);
                             rhdl_core::Notable::note(b, (key, stringify!(b)), &mut writer);
+                        }
+                        Self::Unknown => {
+                            writer.write_string(key, stringify!(Unknown));
+                            writer.write_bits((key, ".__disc"), 4i64 as u128, 3u8);
                         }
                     }
                 }
@@ -145,6 +157,8 @@ fn test_enum_no_payloads() {
             Running,
             Stop,
             Boom,
+            #[rhdl(unmatched)]
+            Unknown,
         }
     );
     let output = derive_digital_enum(syn::parse2(decl).unwrap()).unwrap();
@@ -158,7 +172,8 @@ fn test_enum_no_payloads() {
                         rhdl_core::Kind::make_variant(stringify!(Boot), rhdl_core::Kind::Empty, 1i64),
                         rhdl_core::Kind::make_variant(stringify!(Running), rhdl_core::Kind::Empty, 2i64),
                         rhdl_core::Kind::make_variant(stringify!(Stop), rhdl_core::Kind::Empty, 3i64),
-                        rhdl_core::Kind::make_variant(stringify!(Boom), rhdl_core::Kind::Empty, 4i64)
+                        rhdl_core::Kind::make_variant(stringify!(Boom), rhdl_core::Kind::Empty, 4i64),
+                        rhdl_core::Kind::make_variant(stringify!(Unknown), rhdl_core::Kind::Empty, 5i64)
                     ],
                     rhdl_core::Kind::make_discriminant_layout(
                         3usize,
@@ -186,6 +201,9 @@ fn test_enum_no_payloads() {
                             Self::Boom => {
                                 rhdl_bits::bits::<3usize>(4i64 as u128).to_bools()
                             }
+                            Self::Unknown => {
+                                rhdl_bits::bits::<3usize>(5i64 as u128).to_bools()
+                            }
                         },
                     )
             }
@@ -196,6 +214,7 @@ fn test_enum_no_payloads() {
                     Self::Running => rhdl_bits::bits::<3usize>(2i64 as u128).typed_bits(),
                     Self::Stop => rhdl_bits::bits::<3usize>(3i64 as u128).typed_bits(),
                     Self::Boom => rhdl_bits::bits::<3usize>(4i64 as u128).typed_bits(),
+                    Self::Unknown => rhdl_bits::bits::<3usize>(5i64 as u128).typed_bits(),
                 }
             }
             fn variant_kind(self) -> rhdl_core::Kind {
@@ -205,6 +224,7 @@ fn test_enum_no_payloads() {
                     Self::Running => rhdl_core::Kind::Empty,
                     Self::Stop => rhdl_core::Kind::Empty,
                     Self::Boom => rhdl_core::Kind::Empty,
+                    Self::Unknown => rhdl_core::Kind::Empty,
                 }
             }
         }
@@ -231,6 +251,10 @@ fn test_enum_no_payloads() {
                         writer.write_string(key, stringify!(Boom));
                         writer.write_bits((key, ".__disc"), 4i64 as u128, 3u8);
                     }
+                    Self::Unknown => {
+                        writer.write_string(key, stringify!(Unknown));
+                        writer.write_bits((key, ".__disc"), 5i64 as u128, 3u8);
+                    }
                 }
             }
         }
@@ -245,6 +269,8 @@ fn test_enum_with_signed_discriminants() {
             A = 1,
             B = 3 + 6,
             C = -8,
+            #[rhdl(unmatched)]
+            Unknown,
         }
     };
     let output = derive_digital_enum(syn::parse2(decl).unwrap()).unwrap();
@@ -256,7 +282,8 @@ fn test_enum_with_signed_discriminants() {
                     vec![
                         rhdl_core::Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
                         rhdl_core::Kind::make_variant(stringify!(B), rhdl_core::Kind::Empty, 9i64),
-                        rhdl_core::Kind::make_variant(stringify!(C), rhdl_core::Kind::Empty, -8i64)
+                        rhdl_core::Kind::make_variant(stringify!(C), rhdl_core::Kind::Empty, -8i64),
+                        rhdl_core::Kind::make_variant(stringify!(Unknown), rhdl_core::Kind::Empty, -7i64)
                     ],
                     rhdl_core::Kind::make_discriminant_layout(
                     5usize,
@@ -277,6 +304,9 @@ fn test_enum_with_signed_discriminants() {
                             Self::C => {
                                 rhdl_bits::signed::<5usize>(-8i64 as i128).to_bools()
                             }
+                            Self::Unknown => {
+                                rhdl_bits::signed::<5usize>(-7i64 as i128).to_bools()
+                            }
                         },
                     )
             }
@@ -285,6 +315,7 @@ fn test_enum_with_signed_discriminants() {
                     Self::A => rhdl_bits::signed::<5usize>(1i128).typed_bits(),
                     Self::B => rhdl_bits::signed::<5usize>(9i128).typed_bits(),
                     Self::C => rhdl_bits::signed::<5usize>(-8i128).typed_bits(),
+                    Self::Unknown => rhdl_bits::signed::<5usize>(-7i128).typed_bits(),
                 }
             }
             fn variant_kind(self) -> rhdl_core::Kind {
@@ -292,6 +323,7 @@ fn test_enum_with_signed_discriminants() {
                     Self::A => rhdl_core::Kind::Empty,
                     Self::B => rhdl_core::Kind::Empty,
                     Self::C => rhdl_core::Kind::Empty,
+                    Self::Unknown => rhdl_core::Kind::Empty,
                 }
             }
         }
@@ -310,6 +342,10 @@ fn test_enum_with_signed_discriminants() {
                         writer.write_string(key, stringify!(C));
                         writer.write_signed((key, ".__disc"), -8i64 as i128, 5u8);
                     }
+                    Self::Unknown => {
+                        writer.write_string(key, stringify!(Unknown));
+                        writer.write_signed((key, ".__disc"), -7i64 as i128, 5u8);
+                    }
                 }
             }
         }
@@ -324,6 +360,8 @@ fn test_enum_with_discriminants() {
             A = 1,
             B = 7-1,
             C = 8,
+            #[rhdl(unmatched)]
+            Unknown,
         }
     };
     let output = derive_digital_enum(syn::parse2(decl).unwrap()).unwrap();
@@ -332,7 +370,8 @@ fn test_enum_with_discriminants() {
             fn static_kind() -> rhdl_core::Kind {
                 rhdl_core::Kind::make_enum(concat!(module_path!(), "::", stringify!(Test)), vec![rhdl_core::Kind::make_variant(stringify!(A), rhdl_core::Kind::Empty, 1i64),
                 rhdl_core::Kind::make_variant(stringify!(B), rhdl_core::Kind::Empty, 6i64),
-                rhdl_core::Kind::make_variant(stringify!(C), rhdl_core::Kind::Empty, 8i64)],
+                rhdl_core::Kind::make_variant(stringify!(C), rhdl_core::Kind::Empty, 8i64),
+                rhdl_core::Kind::make_variant(stringify!(Unknown), rhdl_core::Kind::Empty, 9i64)],
                 rhdl_core::Kind::make_discriminant_layout(
                 4usize, rhdl_core::DiscriminantAlignment::Msb, rhdl_core::DiscriminantType::Unsigned),
                 )
@@ -350,6 +389,9 @@ fn test_enum_with_discriminants() {
                             Self::C => {
                                 rhdl_bits::bits::<4usize>(8i64 as u128).to_bools()
                             }
+                            Self::Unknown => {
+                                rhdl_bits::bits::<4usize>(9i64 as u128).to_bools()
+                            }
                         },
                     )
             }
@@ -358,6 +400,7 @@ fn test_enum_with_discriminants() {
                     Self::A => rhdl_bits::bits::<4usize>(1i64 as u128).typed_bits(),
                     Self::B => rhdl_bits::bits::<4usize>(6i64 as u128).typed_bits(),
                     Self::C => rhdl_bits::bits::<4usize>(8i64 as u128).typed_bits(),
+                    Self::Unknown => rhdl_bits::bits::<4usize>(9i64 as u128).typed_bits(),
                 }
             }
             fn variant_kind(self) -> rhdl_core::Kind {
@@ -365,6 +408,7 @@ fn test_enum_with_discriminants() {
                     Self::A => rhdl_core::Kind::Empty,
                     Self::B => rhdl_core::Kind::Empty,
                     Self::C => rhdl_core::Kind::Empty,
+                    Self::Unknown => rhdl_core::Kind::Empty,
                 }
             }
         }
@@ -382,6 +426,10 @@ fn test_enum_with_discriminants() {
                     Self::C => {
                         writer.write_string(key, stringify!(C));
                         writer.write_bits((key, ".__disc"), 8i64 as u128, 4u8);
+                    }
+                    Self::Unknown => {
+                        writer.write_string(key, stringify!(Unknown));
+                        writer.write_bits((key, ".__disc"), 9i64 as u128, 4u8);
                     }
                 }
             }
@@ -417,6 +465,115 @@ fn test_dicriminant_size_calculation() {
 }
 
 #[test]
+fn test_discriminant_cover_test() {
+    let decl = quote! {
+        #[derive(Digital)]
+        enum Test {
+            Start = 1,
+            Stop = 2,
+            Boom = 3,
+            Krack = 4,
+        }
+    };
+    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
+    let digital = derive_digital_enum(input);
+    assert!(digital.is_err());
+    let decl = quote! {
+        #[derive(Digital)]
+        enum Test {
+            Start = 1,
+            Stop = 2,
+            Boom = 3,
+        }
+    };
+    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
+    let digital = derive_digital_enum(input);
+    assert!(digital.is_err());
+    let decl = quote! {
+        #[derive(Digital)]
+        enum Test {
+            Krack = 0,
+            Start = 1,
+            Stop = 2,
+            Boom = 3,
+        }
+    };
+    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
+    let digital = derive_digital_enum(input);
+    assert!(digital.is_ok());
+    let decl = quote! {
+        #[derive(Digital)]
+        enum Test {
+            Krack = 0,
+            Start = 1,
+            Stop = 2,
+            Boom = 3,
+        }
+    };
+    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
+    let _digital = derive_digital_enum(input).unwrap();
+}
+
+#[test]
+fn test_invalid_variant_must_have_no_paylaod() {
+    let decl = quote! {
+        #[derive(Digital)]
+        enum Test {
+            Start = 1,
+            Stop = 2,
+            Boom = 3,
+            #[rhdl(unmatched)]
+            Unknown(u8),
+        }
+    };
+    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
+    let digital = derive_digital_enum(input);
+    assert!(digital.is_err());
+    let decl = quote! {
+        #[derive(Digital)]
+        enum Test {
+            Start = 1,
+            Stop = 2,
+            Boom = 3,
+            #[rhdl(unmatched)]
+            Unknown,
+        }
+    };
+    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
+    let digital = derive_digital_enum(input);
+    assert!(digital.is_ok());
+}
+
+#[test]
+fn test_invalid_test_with_signed_discriminant() {
+    let decl = quote! {
+        #[derive(Digital)]
+        enum Test {
+            Start = 1,
+            Stop = 2,
+            Boom = 3,
+            #[rhdl(unmatched)]
+            Unknown = -1,
+        }
+    };
+    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
+    let digital = derive_digital_enum(input);
+    assert!(digital.is_err());
+    let decl = quote! {
+        #[derive(Digital)]
+        enum Test {
+            Start = -2,
+            Stop = -1,
+            Boom = 0,
+            Finish = 1,
+        }
+    };
+    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
+    let digital = derive_digital_enum(input);
+    assert!(digital.is_ok());
+}
+
+#[test]
 fn test_parse_attributes() {
     let decl = quote! {
         #[derive(Digital)]
@@ -425,6 +582,7 @@ fn test_parse_attributes() {
             Start = 1,
             Stop = 2,
             Boom = 3,
+            Krack = 0,
         }
     };
     let input: syn::DeriveInput = syn::parse2(decl).unwrap();
@@ -437,6 +595,8 @@ fn test_parse_attributes() {
             Start = 1,
             Stop = 2,
             Boom = 3,
+            #[rhdl(unmatched)]
+            Unknown
         }
     };
     let input: syn::DeriveInput = syn::parse2(decl).unwrap();
@@ -452,10 +612,29 @@ fn test_width_override() {
         enum Test {
             Start = 1,
             Stop = 2,
-            Boom = 3
+            Boom = 3,
+            #[rhdl(unmatched)]
+            Unknown
         }
     };
     let input: syn::DeriveInput = syn::parse2(decl).unwrap();
     let digital = derive_digital_enum(input).unwrap();
     assert!(digital.to_string().contains("8usize"));
+}
+
+#[test]
+fn test_unmatched_fits_in_width() {
+    let decl = quote! {
+        #[derive(Digital)]
+        #[rhdl(discriminant_width = 3)]
+        enum Test {
+            Start = 1,
+            Stop = 2,
+            Boom = 3,
+            #[rhdl(unmatched)]
+            Unknown
+        }
+    };
+    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
+    let digital = derive_digital_enum(input).unwrap();
 }

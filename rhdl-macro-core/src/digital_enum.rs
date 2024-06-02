@@ -70,6 +70,19 @@ fn override_width(
     }
 }
 
+fn parse_unmatched_attribute(attrs: &[Attribute]) -> bool {
+    for attr in attrs {
+        if attr.path().is_ident("rhdl") {
+            if let Ok(Expr::Path(path)) = attr.parse_args::<Expr>() {
+                if path.path.is_ident("unmatched") {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
 fn parse_discriminant_alignment_attribute(
     attrs: &[Attribute],
 ) -> syn::Result<Option<DiscriminantAlignment>> {
@@ -342,6 +355,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
     let enum_name = &decl.ident;
     let fqdn = crate::utils::get_fqdn(&decl);
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
+    let span = decl.span();
     let Data::Enum(e) = decl.data else {
         return Err(syn::Error::new(decl.span(), "Only enums can be digital"));
     };
@@ -352,6 +366,24 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         DiscriminantAlignment::Msb => quote! { rhdl_core::DiscriminantAlignment::Msb },
     };
     let variant_names = e.variants.iter().map(|x| &x.ident).collect::<Vec<_>>();
+    let unmatched = e
+        .variants
+        .iter()
+        .find(|x| parse_unmatched_attribute(&x.attrs));
+    if let Some(unmatched_variant) = unmatched {
+        if unmatched_variant.fields != syn::Fields::Unit {
+            return Err(syn::Error::new(
+                unmatched_variant.span(),
+                "Only unit variants can be tagged as #[invalid]",
+            ));
+        }
+        if unmatched_variant.discriminant.is_some() {
+            return Err(syn::Error::new(
+                unmatched_variant.span(),
+                "Invalid variants cannot have a discriminant",
+            ));
+        }
+    }
     let variant_destructure_args = e
         .variants
         .iter()
@@ -384,6 +416,21 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         .zip(discriminants_values.iter())
         .map(|(variant, discriminant)| variant_note_case(variant, kind, discriminant));
     let width_bits = kind.bits();
+    if ((discriminants_values.len() as u128) < 2_u128.pow(width_bits as u32)) && unmatched.is_none()
+    {
+        return Err(syn::Error::new(
+            span,
+            "Discriminant width is too large for the number of variants, and no variant is tagged as #[rhdl(unmatched)].\nYou need to add a unit variant tagged as #[rhdl(unmatched)] to handle uninitialized cases.",
+        ));
+    }
+    if ((discriminants_values.len() as u128) == 2_u128.pow(width_bits.saturating_sub(1) as u32) + 1)
+        && unmatched.is_some()
+    {
+        return Err(syn::Error::new(
+            span,
+            "Adding an unmatched variant is unnecessary when the number of variants is 2^(n). \n Remove the #[rhdl(unmatched)] tag from the variant.",
+        ));
+    }
     let discriminants = discriminants_values.iter().map(|x| quote! { #x });
     let bin_fns = e
         .variants
