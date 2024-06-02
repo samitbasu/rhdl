@@ -5,7 +5,7 @@ use anyhow::Result;
 
 use crate::{rhif::spec::Member, TypedBits};
 
-use super::clock::Color;
+use super::domain::Color;
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum Kind {

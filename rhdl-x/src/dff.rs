@@ -14,14 +14,15 @@ use rhdl_core::schematic::components::IndexComponent;
 use rhdl_core::schematic::schematic_impl::pin_path;
 use rhdl_core::schematic::schematic_impl::PinIx;
 use rhdl_core::schematic::schematic_impl::Schematic;
+use rhdl_core::types::digital::Reset;
 use rhdl_core::types::timed::signal;
 use rhdl_core::BlackBoxTrait;
 use rhdl_core::Circuit;
 use rhdl_core::CircuitDescriptor;
 use rhdl_core::CircuitIO;
-use rhdl_core::Clk;
 use rhdl_core::Clock;
 use rhdl_core::Constraint;
+use rhdl_core::Domain;
 use rhdl_core::EdgeType;
 use rhdl_core::HDLDescriptor;
 use rhdl_core::HDLKind;
@@ -33,7 +34,7 @@ use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
 use rhdl_macro::Timed;
 
 #[derive(Default, Clone)]
-pub struct DFF<T: Digital, C: Clock> {
+pub struct DFF<T: Digital, C: Domain> {
     init: T,
     clock: std::marker::PhantomData<C>,
 }
@@ -85,27 +86,19 @@ impl BlackBoxTrait for DigitalFlipFlopComponent {
 }
 
 #[derive(PartialEq, Clone, Copy, Debug, Timed)]
-struct DFFI<T: Digital + Default, C: Clock> {
+struct DFFI<T: Digital, C: Domain> {
     data: Sig<T, C>,
-    clock: Sig<Clk, C>,
+    clock: Sig<Clock, C>,
+    reset: Sig<Reset, C>,
 }
 
-impl<T: Digital + Default, C: Clock> Default for DFFI<T, C> {
-    fn default() -> Self {
-        Self {
-            data: signal(Default::default()),
-            clock: signal(clk(false)),
-        }
-    }
-}
-
-impl<T: Digital + Default, C: Clock> CircuitIO for DFF<T, C> {
+impl<T: Digital + Default, C: Domain> CircuitIO for DFF<T, C> {
     type I = DFFI<T, C>;
     type O = Sig<T, C>;
 }
 
 // TODO - remove this--v
-impl<T: Digital + Default, C: Clock> Circuit for DFF<T, C> {
+impl<T: Digital, C: Domain> Circuit for DFF<T, C> {
     type Q = ();
 
     type D = ();
@@ -206,13 +199,13 @@ impl<T: Digital + Default, C: Clock> Circuit for DFF<T, C> {
     }
 }
 
-impl<T: Digital, C: Clock> DigitalFn for DFF<T, C> {
+impl<T: Digital, C: Domain> DigitalFn for DFF<T, C> {
     fn kernel_fn() -> Option<rhdl_core::KernelFnKind> {
         None
     }
 }
 
-impl<T: Digital + Default, C: Clock> DFF<T, C> {
+impl<T: Digital + Default, C: Domain> DFF<T, C> {
     fn as_verilog(&self) -> HDLDescriptor {
         let module_name = self.descriptor().unique_name;
         let input_bits = T::bits();

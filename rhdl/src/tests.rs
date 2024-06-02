@@ -18,10 +18,10 @@ use rhdl_core::{
     rhif::vm::execute_function,
     test_kernel_vm_and_verilog,
     types::{
-        clock::{Green, Red},
+        domain::{Green, Red},
         timed::signal,
     },
-    Domain, Digital, KernelFnKind, Kind, Sig,
+    Digital, Domain, KernelFnKind, Kind, Sig,
 };
 use rhdl_macro::{kernel, Digital};
 use rhdl_std::UnsignedMethods;

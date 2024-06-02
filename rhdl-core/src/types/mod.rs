@@ -1,6 +1,6 @@
-pub mod clock;
 pub mod digital;
 pub mod digital_fn;
+pub mod domain;
 pub mod kernel;
 pub mod kind;
 pub mod note;
