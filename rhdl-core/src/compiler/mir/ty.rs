@@ -7,7 +7,7 @@ use crate::{
     ast::ast_impl::NodeId,
     path::Path,
     types::kind::{Array, DiscriminantLayout, Enum, Field, Struct, Tuple},
-    Color, DiscriminantType, Kind,
+    Color, DiscriminantType, Kind, VariantType,
 };
 use anyhow::{anyhow, bail, ensure, Result};
 
@@ -70,6 +70,7 @@ pub struct EnumType {
 pub struct VariantTag {
     name: String,
     discriminant: i64,
+    ty: VariantType,
 }
 
 // These are types that are generic over one or more other types.
@@ -242,6 +243,7 @@ impl UnifyContext {
                 let tag = VariantTag {
                     name,
                     discriminant: variant.discriminant,
+                    ty: variant.ty,
                 };
                 (tag, ty)
             })
@@ -457,6 +459,7 @@ impl UnifyContext {
                                     name: v.name.clone(),
                                     kind,
                                     discriminant: v.discriminant,
+                                    ty: v.ty,
                                 })
                             })
                             .collect::<Result<_>>()?,

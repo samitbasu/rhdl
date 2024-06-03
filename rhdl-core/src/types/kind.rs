@@ -1,11 +1,13 @@
 use serde::{Deserialize, Serialize};
 use std::{iter::repeat, ops::Range};
 
-use anyhow::Result;
+use crate::{
+    error::{rhdl_error, RHDLError},
+    rhif::spec::Member,
+    TypedBits,
+};
 
-use crate::{rhif::spec::Member, TypedBits};
-
-use super::domain::Color;
+use super::{domain::Color, error::DynamicTypeError};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum Kind {
@@ -18,6 +20,8 @@ pub enum Kind {
     Signal(Box<Kind>, Color),
     Empty,
 }
+
+type Result<T> = std::result::Result<T, RHDLError>;
 
 impl std::fmt::Debug for Kind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -71,7 +75,10 @@ impl Struct {
         let field = self.fields.iter().find(|x| x.name == field_name);
         match field {
             Some(field) => Ok(field.kind.clone()),
-            None => Err(anyhow::anyhow!("No field with name {}", field_name)),
+            None => Err(rhdl_error(DynamicTypeError::NoFieldInStruct {
+                kind: Kind::Struct(self.clone()),
+                field_name,
+            })),
         }
     }
 }
@@ -100,7 +107,7 @@ pub struct DiscriminantLayout {
     pub ty: DiscriminantType,
 }
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
 pub struct Enum {
     pub name: String,
     pub variants: Vec<Variant>,
@@ -113,11 +120,18 @@ pub struct Field {
     pub kind: Kind,
 }
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash, Debug)]
+pub enum VariantType {
+    Normal,
+    Unmatched,
+}
+
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
 pub struct Variant {
     pub name: String,
     pub discriminant: i64,
     pub kind: Kind,
+    pub ty: VariantType,
 }
 
 impl Variant {
@@ -145,11 +159,12 @@ impl Kind {
             kind,
         }
     }
-    pub fn make_variant(name: &str, kind: Kind, discriminant: i64) -> Variant {
+    pub fn make_variant(name: &str, kind: Kind, discriminant: i64, ty: VariantType) -> Variant {
         Variant {
             name: name.to_string(),
             discriminant,
             kind,
+            ty,
         }
     }
     pub fn make_struct(name: &str, fields: Vec<Field>) -> Self {
@@ -174,6 +189,11 @@ impl Kind {
         variants: Vec<Variant>,
         discriminant_layout: DiscriminantLayout,
     ) -> Self {
+        // Validate the enum has an unmatched entry if needed.
+        let num_variants = variants.len();
+        let discriminant_bits = discriminant_layout.width;
+        let has_unmatched = variants.iter().any(|x| x.ty == VariantType::Unmatched);
+
         Self::Enum(Enum {
             name: name.into(),
             variants,
@@ -241,24 +261,31 @@ impl Kind {
                 let field = s.fields.iter().find(|x| x.name == field_name);
                 match field {
                     Some(field) => Ok(field.kind.clone()),
-                    None => Err(anyhow::anyhow!("No field with name {}", field_name)),
+                    None => Err(rhdl_error(DynamicTypeError::NoFieldInStruct {
+                        kind: self.clone(),
+                        field_name,
+                    })),
                 }
             }
-            _ => Err(anyhow::anyhow!(
-                "Kind {self:?} is not a struct, and get_field_kind is not allowed"
-            )),
+            _ => Err(rhdl_error(DynamicTypeError::NotAStruct {
+                kind: self.clone(),
+            })),
         }
     }
     pub fn get_tuple_kind(&self, ndx: usize) -> Result<Kind> {
         match self {
             Kind::Tuple(tuple) => Ok(tuple.elements[ndx].clone()),
-            _ => Err(anyhow::anyhow!("Not a tuple")),
+            _ => Err(rhdl_error(DynamicTypeError::NotATuple {
+                kind: self.clone(),
+            })),
         }
     }
     pub fn get_base_kind(&self) -> Result<Kind> {
         match self {
             Kind::Array(array) => Ok(*array.base.clone()),
-            _ => Err(anyhow::anyhow!("Not an array")),
+            _ => Err(rhdl_error(DynamicTypeError::NotAnArray {
+                kind: self.clone(),
+            })),
         }
     }
     // Return a rust type-like name for the kind
@@ -285,7 +312,9 @@ impl Kind {
 
     pub fn get_discriminant_kind(&self) -> Result<Kind> {
         let Kind::Enum(e) = &self else {
-            return Err(anyhow::anyhow!("Not an enum"));
+            return Err(rhdl_error(DynamicTypeError::NotAnEnum {
+                kind: self.clone(),
+            }));
         };
         match e.discriminant_layout.ty {
             DiscriminantType::Signed => Ok(Kind::Signed(e.discriminant_layout.width)),
@@ -295,7 +324,9 @@ impl Kind {
 
     pub fn lookup_variant(&self, discriminant_value: i64) -> Result<Kind> {
         let Kind::Enum(e) = &self else {
-            return Err(anyhow::anyhow!("Not an enum"));
+            return Err(rhdl_error(DynamicTypeError::NotAnEnum {
+                kind: self.clone(),
+            }));
         };
         let variant = e
             .variants
@@ -303,17 +334,18 @@ impl Kind {
             .find(|x| x.discriminant == discriminant_value);
         match variant {
             Some(variant) => Ok(variant.kind.clone()),
-            None => Err(anyhow::anyhow!(
-                "No variant with discriminant {} in enum {}",
-                discriminant_value,
-                e.name
-            )),
+            None => Err(rhdl_error(DynamicTypeError::NoVariantWithDiscriminant {
+                disc: discriminant_value,
+                kind: self.clone(),
+            })),
         }
     }
 
     pub fn lookup_variant_name_by_discriminant(&self, discriminant_value: i64) -> Result<&str> {
         let Kind::Enum(e) = &self else {
-            return Err(anyhow::anyhow!("Not an enum"));
+            return Err(rhdl_error(DynamicTypeError::NotAnEnum {
+                kind: self.clone(),
+            }));
         };
         let variant = e
             .variants
@@ -321,11 +353,10 @@ impl Kind {
             .find(|x| x.discriminant == discriminant_value);
         match variant {
             Some(variant) => Ok(&variant.name),
-            None => Err(anyhow::anyhow!(
-                "No variant with discriminant {} in enum {}",
-                discriminant_value,
-                e.name
-            )),
+            None => Err(rhdl_error(DynamicTypeError::NoVariantWithDiscriminant {
+                disc: discriminant_value,
+                kind: self.clone(),
+            })),
         }
     }
 
@@ -338,29 +369,31 @@ impl Kind {
 
     pub fn lookup_variant_by_name(&self, variant: &str) -> Result<Kind> {
         let Kind::Enum(e) = &self else {
-            return Err(anyhow::anyhow!("Not an enum"));
+            return Err(rhdl_error(DynamicTypeError::NotAnEnum {
+                kind: self.clone(),
+            }));
         };
         let variant_kind = e.variants.iter().find(|x| x.name == variant);
         match variant_kind {
             Some(variant) => Ok(variant.kind.clone()),
-            None => Err(anyhow::anyhow!(
-                "No variant with name {} in enum {}",
-                variant,
-                e.name
-            )),
+            None => Err(rhdl_error(DynamicTypeError::NoVariantInEnum {
+                name: variant.into(),
+                kind: self.clone(),
+            })),
         }
     }
 
     pub fn get_discriminant_for_variant_by_name(&self, variant: &str) -> Result<TypedBits> {
         let Kind::Enum(e) = &self else {
-            return Err(anyhow::anyhow!("Not an enum"));
+            return Err(rhdl_error(DynamicTypeError::NotAnEnum {
+                kind: self.clone(),
+            }));
         };
         let Some(variant_kind) = e.variants.iter().find(|x| x.name == variant) else {
-            return Err(anyhow::anyhow!(
-                "No variant with name {} in enum {}",
-                variant,
-                e.name
-            ));
+            return Err(rhdl_error(DynamicTypeError::NoVariantInEnum {
+                name: variant.to_owned(),
+                kind: self.clone(),
+            }));
         };
         let discriminant: TypedBits = variant_kind.discriminant.into();
         match e.discriminant_layout.ty {
@@ -376,14 +409,15 @@ impl Kind {
         // Thus, we assume that the caller will fill in the payload
         // with valid values.
         let Kind::Enum(e) = &self else {
-            return Err(anyhow::anyhow!("Not an enum"));
+            return Err(rhdl_error(DynamicTypeError::NotAnEnum {
+                kind: self.clone(),
+            }));
         };
         let Some(variant_kind) = e.variants.iter().find(|x| x.name == variant) else {
-            return Err(anyhow::anyhow!(
-                "No variant with name {} in enum {}",
-                variant,
-                e.name
-            ));
+            return Err(rhdl_error(DynamicTypeError::NoVariantInEnum {
+                name: variant.into(),
+                kind: self.clone(),
+            }));
         };
         let discriminant: TypedBits = variant_kind.discriminant.into();
         let discriminant_bits = match e.discriminant_layout.ty {
@@ -911,12 +945,13 @@ mod test {
         Kind::make_enum(
             "Test",
             vec![
-                Kind::make_variant("A", Kind::Empty, -1),
-                Kind::make_variant("B", Kind::Bits(8), 1),
+                Kind::make_variant("A", Kind::Empty, -1, VariantType::Normal),
+                Kind::make_variant("B", Kind::Bits(8), 1, VariantType::Normal),
                 Kind::make_variant(
                     "C",
                     Kind::make_tuple(vec![Kind::Bits(8), Kind::Bits(16)]),
                     2,
+                    VariantType::Normal,
                 ),
                 Kind::make_variant(
                     "D",
@@ -928,6 +963,7 @@ mod test {
                         ],
                     ),
                     -3,
+                    VariantType::Normal,
                 ),
             ],
             Kind::make_discriminant_layout(4, DiscriminantAlignment::Msb, DiscriminantType::Signed),
@@ -938,12 +974,13 @@ mod test {
         Kind::make_enum(
             "Test",
             vec![
-                Kind::make_variant("A", Kind::Empty, 0),
-                Kind::make_variant("B", Kind::Bits(8), 1),
+                Kind::make_variant("A", Kind::Empty, 0, VariantType::Normal),
+                Kind::make_variant("B", Kind::Bits(8), 1, VariantType::Normal),
                 Kind::make_variant(
                     "C",
                     Kind::make_tuple(vec![Kind::Bits(8), Kind::Bits(16)]),
                     2,
+                    VariantType::Normal,
                 ),
                 Kind::make_variant(
                     "D",
@@ -955,6 +992,7 @@ mod test {
                         ],
                     ),
                     3,
+                    VariantType::Normal,
                 ),
             ],
             Kind::make_discriminant_layout(
@@ -1015,16 +1053,19 @@ mod test {
                     name: "A".to_string(),
                     discriminant: 0,
                     kind: Kind::Empty,
+                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "B".to_string(),
                     discriminant: 1,
                     kind: Kind::make_bits(8),
+                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "C".to_string(),
                     discriminant: 2,
                     kind: Kind::make_tuple(vec![Kind::make_bits(8), Kind::make_bits(16)]),
+                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "D".to_string(),
@@ -1042,11 +1083,13 @@ mod test {
                             },
                         ],
                     ),
+                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "E".to_string(),
                     discriminant: 4,
                     kind: Kind::make_array(Kind::make_bits(8), 4),
+                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "F".to_string(),
@@ -1064,6 +1107,7 @@ mod test {
                             },
                         ],
                     ),
+                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "G".to_string(),
@@ -1085,10 +1129,12 @@ mod test {
                             },
                         ],
                     ),
+                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "H".to_string(),
                     discriminant: 8,
+                    ty: VariantType::Normal,
                     kind: Kind::make_enum(
                         "Crazy::H",
                         vec![
@@ -1096,16 +1142,25 @@ mod test {
                                 name: "A".to_string(),
                                 discriminant: 0,
                                 kind: Kind::Empty,
+                                ty: VariantType::Normal,
                             },
                             Variant {
                                 name: "B".to_string(),
                                 discriminant: 1,
                                 kind: Kind::Bits(4),
+                                ty: VariantType::Normal,
                             },
                             Variant {
                                 name: "C".to_string(),
                                 discriminant: 2,
                                 kind: Kind::Empty,
+                                ty: VariantType::Normal,
+                            },
+                            Variant {
+                                name: "Unknown".to_string(),
+                                discriminant: 3,
+                                kind: Kind::Empty,
+                                ty: VariantType::Unmatched,
                             },
                         ],
                         Kind::make_discriminant_layout(
@@ -1220,16 +1275,19 @@ mod test {
                     name: "A".to_string(),
                     discriminant: 0,
                     kind: Kind::Empty,
+                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "B".to_string(),
                     discriminant: 1,
                     kind: Kind::Empty,
+                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "C".to_string(),
                     discriminant: 2,
                     kind: Kind::Empty,
+                    ty: VariantType::Normal,
                 },
             ],
             Kind::make_discriminant_layout(

@@ -118,6 +118,17 @@ fn test_enum_derive() {
                         Self::Unknown => rhdl_core::Kind::Empty,
                     }
                 }
+                fn random() -> Self {
+                    match thread_rng().gen_range(0..=4) {
+                        0 => Self::A,
+                        1 => Self::B(Bits::random()),
+                        2 => Self::C {
+                            a: Bits::random(),
+                            b: Bits::random()
+                        },
+                        _ => Self::Unknown,
+                    }
+                }
             }
             impl rhdl_core::Notable for Test {
                 fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
@@ -227,6 +238,16 @@ fn test_enum_no_payloads() {
                     Self::Unknown => rhdl_core::Kind::Empty,
                 }
             }
+            fn random() -> Self {
+                match thread_rng().gen_range(0..=5) {
+                    0 => Self::Init,
+                    1 => Self::Boot,
+                    2 => Self::Running,
+                    3 => Self::Stop,
+                    4 => Self::Boom,
+                    _ => Self::Unknown,
+                }
+            }
         }
         impl rhdl_core::Notable for State {
             fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
@@ -326,6 +347,14 @@ fn test_enum_with_signed_discriminants() {
                     Self::Unknown => rhdl_core::Kind::Empty,
                 }
             }
+            fn random() -> Self {
+                match thread_rng().gen_range(-16..=15) {
+                    1 => Self::A,
+                    9 => Self::B,
+                    -8 => Self::C,
+                    _ => Self::Unknown,
+                }
+            }
         }
         impl rhdl_core::Notable for Test {
             fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
@@ -409,6 +438,14 @@ fn test_enum_with_discriminants() {
                     Self::B => rhdl_core::Kind::Empty,
                     Self::C => rhdl_core::Kind::Empty,
                     Self::Unknown => rhdl_core::Kind::Empty,
+                }
+            }
+            fn random() -> Self {
+                match thread_rng().gen_range(0..=15) {
+                    1 => Self::A,
+                    6 => Self::B,
+                    8 => Self::C,
+                    _ => Self::Unknown,
                 }
             }
         }
@@ -636,5 +673,5 @@ fn test_unmatched_fits_in_width() {
         }
     };
     let input: syn::DeriveInput = syn::parse2(decl).unwrap();
-    let digital = derive_digital_enum(input).unwrap();
+    let _digital = derive_digital_enum(input).unwrap();
 }

@@ -1,5 +1,3 @@
-use anyhow::bail;
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::iter::repeat;
 
@@ -7,6 +5,7 @@ use crate::dyn_bit_manip::bits_shr_signed;
 use crate::dyn_bit_manip::{
     bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
 };
+use crate::error::{rhdl_error, RHDLError};
 use crate::Color;
 use crate::Digital;
 use crate::{
@@ -14,10 +13,13 @@ use crate::{
     Kind,
 };
 
+use super::error::DynamicTypeError;
 use super::kind::Array;
 use super::kind::Enum;
 use super::kind::Struct;
 use super::kind::Tuple;
+
+type Result<T> = std::result::Result<T, RHDLError>;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Eq, Hash)]
 pub struct TypedBits {
@@ -45,21 +47,21 @@ impl TypedBits {
         kind: Kind::Empty,
     };
 
-    pub fn path(&self, path: &Path) -> anyhow::Result<TypedBits> {
+    pub fn path(&self, path: &Path) -> Result<TypedBits> {
         let (range, kind) = bit_range(self.kind.clone(), path)?;
         Ok(TypedBits {
             bits: self.bits[range].to_vec(),
             kind,
         })
     }
-    pub fn splice(&self, path: &Path, value: TypedBits) -> anyhow::Result<TypedBits> {
+    pub fn splice(&self, path: &Path, value: TypedBits) -> Result<TypedBits> {
         let (range, kind) = bit_range(self.kind.clone(), path)?;
         if kind != value.kind {
-            bail!(
-                "Cannot update {:?} with {:?} because they have different types",
-                self,
-                value
-            );
+            return Err(rhdl_error(DynamicTypeError::IllegalSplice {
+                value,
+                kind,
+                path: path.clone(),
+            }));
         }
         let mut new_bits = self.bits.clone();
         new_bits.splice(range, value.bits.iter().cloned());
@@ -68,14 +70,14 @@ impl TypedBits {
             kind: self.kind.clone(),
         })
     }
-    pub fn discriminant(&self) -> anyhow::Result<TypedBits> {
+    pub fn discriminant(&self) -> Result<TypedBits> {
         if self.kind.is_enum() {
             self.path(&Path::default().discriminant())
         } else {
             Ok(self.clone())
         }
     }
-    pub fn unsigned_cast(&self, bits: usize) -> anyhow::Result<TypedBits> {
+    pub fn unsigned_cast(&self, bits: usize) -> Result<TypedBits> {
         if bits > self.kind.bits() {
             return Ok(TypedBits {
                 bits: self
@@ -90,18 +92,17 @@ impl TypedBits {
         }
         let (base, rest) = self.bits.split_at(bits);
         if rest.iter().any(|b| *b) {
-            anyhow::bail!(
-                "Unsigned cast failed: {:?} is not representable in {} bits",
-                self,
-                bits
-            );
+            return Err(rhdl_error(DynamicTypeError::UnsignedCastWithWidthFailed {
+                value: self.clone(),
+                bits,
+            }));
         }
         Ok(TypedBits {
             bits: base.to_vec(),
             kind: Kind::make_bits(bits),
         })
     }
-    pub fn signed_cast(&self, bits: usize) -> anyhow::Result<TypedBits> {
+    pub fn signed_cast(&self, bits: usize) -> Result<TypedBits> {
         if bits > self.kind.bits() {
             let sign_bit = self.bits.last().cloned().unwrap_or_default();
             return Ok(TypedBits {
@@ -118,23 +119,24 @@ impl TypedBits {
         let (base, rest) = self.bits.split_at(bits);
         let new_sign_bit = base.last().cloned().unwrap_or_default();
         if rest.iter().any(|b| *b != new_sign_bit) {
-            anyhow::bail!(
-                "Signed cast failed: {:?} is not representable in {} bits",
-                self,
-                bits
-            );
+            return Err(rhdl_error(DynamicTypeError::SignedCastWithWidthFailed {
+                value: self.clone(),
+                bits,
+            }));
         }
         Ok(TypedBits {
             bits: base.to_vec(),
             kind: Kind::make_signed(bits),
         })
     }
-    pub fn as_i64(&self) -> anyhow::Result<i64> {
+    pub fn as_i64(&self) -> Result<i64> {
         let tb64 = match &self.kind {
             Kind::Bits(_) => self.unsigned_cast(64)?,
             Kind::Signed(_) => self.signed_cast(64)?,
             _ => {
-                bail!("Cannot cast {:?} to i64", self.kind)
+                return Err(rhdl_error(DynamicTypeError::UnableToInterpretAsI64 {
+                    kind: self.kind.clone(),
+                }))
             }
         };
         let mut ret: u64 = 0;
@@ -156,7 +158,9 @@ impl TypedBits {
                 kind: Kind::Signed(ndx),
             })
         } else {
-            bail!("Cannot cast {:?} to signed", self.kind)
+            Err(rhdl_error(DynamicTypeError::SignedCastFailed {
+                value: self.clone(),
+            }))
         }
     }
     pub fn as_unsigned(&self) -> Result<TypedBits> {
@@ -166,7 +170,9 @@ impl TypedBits {
                 kind: Kind::Bits(ndx),
             })
         } else {
-            bail!("Cannot cast {:?} to unsigned", self.kind)
+            Err(rhdl_error(DynamicTypeError::UnsignedCastFailed {
+                value: self.clone(),
+            }))
         }
     }
     pub fn sign_bit(&self) -> Result<TypedBits> {
@@ -176,7 +182,9 @@ impl TypedBits {
                 kind: Kind::make_bits(1),
             })
         } else {
-            bail!("Cannot get sign bit of {:?}", self.kind)
+            Err(rhdl_error(DynamicTypeError::CannotGetSignBit {
+                value: self.clone(),
+            }))
         }
     }
     pub fn xor(&self) -> TypedBits {
@@ -186,7 +194,9 @@ impl TypedBits {
         if self.kind.is_bool() {
             Ok(self.bits[0])
         } else {
-            bail!("Cannot cast {:?} to bool", self.kind)
+            Err(rhdl_error(DynamicTypeError::CannotCastToBool {
+                value: self.clone(),
+            }))
         }
     }
     pub fn repeat(&self, count: usize) -> TypedBits {
@@ -204,12 +214,10 @@ impl TypedBits {
     }
     pub fn get_bit(&self, index: usize) -> Result<TypedBits> {
         if index >= self.bits.len() {
-            bail!(
-                "Cannot get bit {} from {:?} because it only has {} bits",
-                index,
-                self,
-                self.bits.len()
-            );
+            return Err(rhdl_error(DynamicTypeError::CannotGetBit {
+                ndx: index,
+                value: self.clone(),
+            }));
         }
         Ok(TypedBits {
             bits: vec![self.bits[index]],
@@ -218,15 +226,16 @@ impl TypedBits {
     }
     pub fn set_bit(&self, index: usize, val: bool) -> Result<TypedBits> {
         if index >= self.bits.len() {
-            bail!(
-                "Cannot set bit {} in {:?} because it only has {} bits",
-                index,
-                self,
-                self.bits.len()
-            );
+            return Err(rhdl_error(DynamicTypeError::CannotSetBit {
+                ndx: index,
+                value: self.clone(),
+                bit: val,
+            }));
         }
         if self.kind.is_composite() {
-            bail!("Cannot set bit {} in composite {:?}", index, self);
+            return Err(rhdl_error(DynamicTypeError::CannotSetBitOnComposite {
+                value: self.clone(),
+            }));
         }
         let mut new_bits = self.bits.clone();
         new_bits[index] = val;
@@ -237,15 +246,16 @@ impl TypedBits {
     }
     pub fn slice(&self, offset: usize, count: usize) -> Result<TypedBits> {
         if self.kind.is_composite() {
-            bail!("Cannot slice composite {:?}", self);
+            return Err(rhdl_error(DynamicTypeError::CannotSliceComposite {
+                value: self.clone(),
+            }));
         }
         if offset + count > self.bits.len() {
-            bail!(
-                "Cannot slice {} bits from {:?} because it only has {} bits",
-                count,
-                self,
-                self.bits.len()
-            );
+            return Err(rhdl_error(DynamicTypeError::CannotSliceBits {
+                start: offset,
+                end: offset + count,
+                value: self.clone(),
+            }));
         }
         Ok(TypedBits {
             bits: self.bits[offset..offset + count].to_vec(),
@@ -265,11 +275,19 @@ impl std::ops::Add<TypedBits> for TypedBits {
 
     fn add(self, rhs: TypedBits) -> Self::Output {
         if self.kind != rhs.kind {
-            bail!(
-                "Cannot add {:?} and {:?} because they have different types",
-                self,
-                rhs
-            );
+            return Err(rhdl_error(
+                DynamicTypeError::BinaryOperationRequiresSameType {
+                    lhs: self.kind,
+                    rhs: rhs.kind,
+                },
+            ));
+        }
+        if self.kind.is_composite() {
+            return Err(rhdl_error(
+                DynamicTypeError::CannotApplyBinaryOperationToComposite {
+                    value: self.clone(),
+                },
+            ));
         }
         Ok(TypedBits {
             bits: full_add(&self.bits, &rhs.bits),
@@ -283,11 +301,12 @@ impl std::ops::Sub<TypedBits> for TypedBits {
 
     fn sub(self, rhs: TypedBits) -> Self::Output {
         if self.kind != rhs.kind {
-            bail!(
-                "Cannot subtract {:?} and {:?} because they have different types",
-                self,
-                rhs
-            );
+            return Err(rhdl_error(
+                DynamicTypeError::BinaryOperationRequiresSameType {
+                    lhs: self.kind,
+                    rhs: rhs.kind,
+                },
+            ));
         }
         Ok(TypedBits {
             bits: full_sub(&self.bits, &rhs.bits),
@@ -301,7 +320,9 @@ impl std::ops::Not for TypedBits {
 
     fn not(self) -> Self::Output {
         if self.kind.is_composite() {
-            bail!("Cannot negate composite {:?}", self);
+            return Err(rhdl_error(DynamicTypeError::CannotNegateComposite {
+                value: self.clone(),
+            }));
         }
         Ok(TypedBits {
             bits: bit_not(&self.bits),
@@ -315,14 +336,19 @@ impl std::ops::BitXor for TypedBits {
 
     fn bitxor(self, rhs: TypedBits) -> Self::Output {
         if self.kind != rhs.kind {
-            bail!(
-                "Cannot xor {:?} and {:?} because they have different types",
-                self,
-                rhs
-            );
+            return Err(rhdl_error(
+                DynamicTypeError::BinaryOperationRequiresSameType {
+                    lhs: self.kind,
+                    rhs: rhs.kind,
+                },
+            ));
         }
         if self.kind.is_composite() {
-            bail!("Cannot xor composite {:?}", self);
+            return Err(rhdl_error(
+                DynamicTypeError::CannotApplyBinaryOperationToComposite {
+                    value: self.clone(),
+                },
+            ));
         }
         Ok(TypedBits {
             bits: bits_xor(&self.bits, &rhs.bits),
@@ -336,14 +362,19 @@ impl std::ops::BitAnd for TypedBits {
 
     fn bitand(self, rhs: TypedBits) -> Self::Output {
         if self.kind != rhs.kind {
-            bail!(
-                "Cannot and {:?} and {:?} because they have different types",
-                self,
-                rhs
-            );
+            return Err(rhdl_error(
+                DynamicTypeError::BinaryOperationRequiresSameType {
+                    lhs: self.kind,
+                    rhs: rhs.kind,
+                },
+            ));
         }
         if self.kind.is_composite() {
-            bail!("Cannot and composite {:?}", self);
+            return Err(rhdl_error(
+                DynamicTypeError::CannotApplyBinaryOperationToComposite {
+                    value: self.clone(),
+                },
+            ));
         }
         Ok(TypedBits {
             bits: bits_and(&self.bits, &rhs.bits),
@@ -357,14 +388,19 @@ impl std::ops::BitOr for TypedBits {
 
     fn bitor(self, rhs: TypedBits) -> Self::Output {
         if self.kind != rhs.kind {
-            bail!(
-                "Cannot or {:?} and {:?} because they have different types",
-                self,
-                rhs
-            );
+            return Err(rhdl_error(
+                DynamicTypeError::BinaryOperationRequiresSameType {
+                    lhs: self.kind,
+                    rhs: rhs.kind,
+                },
+            ));
         }
         if self.kind.is_composite() {
-            bail!("Cannot or composite {:?}", self);
+            return Err(rhdl_error(
+                DynamicTypeError::CannotApplyBinaryOperationToComposite {
+                    value: self.clone(),
+                },
+            ));
         }
         Ok(TypedBits {
             bits: bits_or(&self.bits, &rhs.bits),
@@ -378,7 +414,9 @@ impl std::ops::Neg for TypedBits {
 
     fn neg(self) -> Self::Output {
         if !self.kind.is_signed() {
-            bail!("Only signed values can be negated: {:?}", self);
+            return Err(rhdl_error(DynamicTypeError::CannotNegateUnsigned {
+                value: self.clone(),
+            }));
         }
         Ok(TypedBits {
             bits: bit_neg(&self.bits),
@@ -392,18 +430,23 @@ impl std::ops::Shl<TypedBits> for TypedBits {
 
     fn shl(self, rhs: TypedBits) -> Self::Output {
         if self.kind.is_composite() {
-            bail!("Cannot shift composite {:?}", self);
+            return Err(rhdl_error(
+                DynamicTypeError::CannotApplyShiftOperationToComposite {
+                    value: self.clone(),
+                },
+            ));
         }
         if !rhs.kind.is_unsigned() {
-            bail!("Shift amount must be unsigned: {:?}", rhs);
+            return Err(rhdl_error(DynamicTypeError::ShiftAmountMustBeUnsigned {
+                value: rhs.clone(),
+            }));
         }
         let shift = rhs.as_i64()?;
         if shift >= self.bits.len() as i64 {
-            bail!(
-                "Shift amount {} is greater than the number of bits in {:?}",
-                shift,
-                self
-            );
+            return Err(rhdl_error(DynamicTypeError::ShiftAmountMustBeLessThan {
+                value: rhs.clone(),
+                max: self.bits.len(),
+            }));
         }
         Ok(TypedBits {
             bits: bits_shl(&self.bits, shift),
@@ -417,18 +460,23 @@ impl std::ops::Shr<TypedBits> for TypedBits {
 
     fn shr(self, rhs: TypedBits) -> Self::Output {
         if self.kind.is_composite() {
-            bail!("Cannot shift composite {:?}", self);
+            return Err(rhdl_error(
+                DynamicTypeError::CannotApplyShiftOperationToComposite {
+                    value: self.clone(),
+                },
+            ));
         }
         if !rhs.kind.is_unsigned() {
-            bail!("Shift amount must be unsigned: {:?}", rhs);
+            return Err(rhdl_error(DynamicTypeError::ShiftAmountMustBeUnsigned {
+                value: rhs.clone(),
+            }));
         }
         let shift = rhs.as_i64()?;
         if shift >= self.bits.len() as i64 {
-            bail!(
-                "Shift amount {} is greater than the number of bits in {:?}",
-                shift,
-                self
-            );
+            return Err(rhdl_error(DynamicTypeError::ShiftAmountMustBeLessThan {
+                value: rhs.clone(),
+                max: self.bits.len(),
+            }));
         }
         if self.kind.is_signed() {
             Ok(TypedBits {
@@ -619,6 +667,8 @@ fn write_tuple(tuple: &Tuple, bits: &[bool], f: &mut std::fmt::Formatter<'_>) ->
 
 #[cfg(test)]
 mod tests {
+    use rand::thread_rng;
+
     use crate::{Digital, DiscriminantAlignment, DiscriminantType, Kind, Notable, TypedBits};
 
     #[test]
@@ -665,6 +715,7 @@ mod tests {
                             stringify!(A),
                             Kind::make_tuple(vec![<Bar as Digital>::static_kind()]),
                             0i64,
+                            crate::VariantType::Normal,
                         ),
                         Kind::make_variant(
                             stringify!(B),
@@ -676,11 +727,13 @@ mod tests {
                                 )],
                             ),
                             1i64,
+                            crate::VariantType::Normal,
                         ),
                         Kind::make_variant(
                             stringify!(C),
                             Kind::make_tuple(vec![<u8 as Digital>::static_kind()]),
                             2i64,
+                            crate::VariantType::Normal,
                         ),
                     ],
                     Kind::make_discriminant_layout(
@@ -729,6 +782,17 @@ mod tests {
                     Self::C(_0) => Kind::make_tuple(vec![<u8 as Digital>::static_kind()]),
                 }
             }
+            fn random() -> Self {
+                use rand::Rng;
+                match rand::thread_rng().gen_range(0..3) {
+                    0 => Self::A(Default::default()),
+                    1 => Self::B {
+                        foo: Default::default(),
+                    },
+                    2 => Self::C(thread_rng().gen()),
+                    _ => unreachable!(),
+                }
+            }
         }
 
         #[derive(Debug, Clone, PartialEq, Copy, Default)]
@@ -753,6 +817,14 @@ mod tests {
             }
             fn bin(self) -> Vec<bool> {
                 [self.0.bin(), self.1.bin(), self.2.bin()].concat()
+            }
+            fn random() -> Self {
+                use rand::Rng;
+                Self {
+                    0: rand::thread_rng().gen(),
+                    1: rand::thread_rng().gen(),
+                    2: rand::thread_rng().gen(),
+                }
             }
         }
 
@@ -781,6 +853,14 @@ mod tests {
             }
             fn bin(self) -> Vec<bool> {
                 [self.a.bin(), self.b.bin(), self.c.bin()].concat()
+            }
+            fn random() -> Self {
+                use rand::Rng;
+                Self {
+                    a: rand::thread_rng().gen(),
+                    b: rand::thread_rng().gen(),
+                    c: rand::thread_rng().gen(),
+                }
             }
         }
 

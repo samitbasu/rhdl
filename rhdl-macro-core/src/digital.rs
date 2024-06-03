@@ -83,6 +83,13 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         )*
                         result
                     }
+                    fn random() -> Self {
+                        Self(
+                            #(
+                                <#field_types as rhdl_core::Digital>::random(),
+                            )*
+                        )
+                    }
                 }
                 impl #impl_generics rhdl_core::Notable for #struct_name #ty_generics #where_clause {
                     fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
@@ -138,6 +145,13 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                             result.extend(self.#fields.bin());
                         )*
                         result
+                    }
+                    fn random() -> Self {
+                        Self {
+                            #(
+                                #fields: <#field_types as rhdl_core::Digital>::random(),
+                            )*
+                        }
                     }
                 }
 

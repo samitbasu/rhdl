@@ -324,7 +324,7 @@ impl<const N: usize> Digital for Bits<N> {
         self.to_bools()
     }
     fn random() -> Self {
-        Bits::from(thread_rng().gen::<u128>())
+        Bits::from(thread_rng().gen::<u128>() & Bits::<N>::mask().0)
     }
 }
 
@@ -342,7 +342,7 @@ impl<const N: usize> Digital for SignedBits<N> {
         self.as_unsigned().to_bools()
     }
     fn random() -> Self {
-        SignedBits::from(thread_rng().gen::<i128>())
+        Bits::<N>::random().as_signed()
     }
 }
 
@@ -490,7 +490,7 @@ mod test {
     use std::iter::repeat;
 
     use super::*;
-    use crate::types::kind::{DiscriminantAlignment, Variant};
+    use crate::types::kind::{DiscriminantAlignment, Variant, VariantType};
     use rhdl_bits::alias::*;
 
     #[test]
@@ -507,7 +507,6 @@ mod test {
                 a: bool,
                 b: Bits<3>,
             },
-            #[invalid]
             Invalid,
         }
 
@@ -520,21 +519,25 @@ mod test {
                             name: "None".to_string(),
                             discriminant: 0,
                             kind: Kind::Empty,
+                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Bool".to_string(),
                             discriminant: 1,
                             kind: Kind::make_bits(1),
+                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Tuple".to_string(),
                             discriminant: 2,
                             kind: Kind::make_tuple(vec![Kind::make_bits(1), Kind::make_bits(3)]),
+                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Array".to_string(),
                             discriminant: 3,
                             kind: Kind::make_array(Kind::make_bits(1), 3),
+                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Strct".to_string(),
@@ -546,6 +549,13 @@ mod test {
                                     Kind::make_field("b", Kind::make_bits(3)),
                                 ],
                             ),
+                            ty: VariantType::Normal,
+                        },
+                        Variant {
+                            name: "Invalid".to_string(),
+                            discriminant: 5,
+                            kind: Kind::Empty,
+                            ty: VariantType::Unmatched,
                         },
                     ],
                     Kind::make_discriminant_layout(
@@ -582,12 +592,32 @@ mod test {
                         v.extend(b.bin());
                         v
                     }
+                    Self::Invalid => rhdl_bits::bits::<3>(5).to_bools(),
                 };
                 if raw.len() < self.kind().bits() {
                     let missing = self.kind().bits() - raw.len();
                     raw.into_iter().chain(repeat(false).take(missing)).collect()
                 } else {
                     raw
+                }
+            }
+            fn random() -> Self {
+                match thread_rng().gen_range(0..=5) {
+                    0 => Self::None,
+                    1 => Self::Bool(thread_rng().gen::<bool>()),
+                    2 => Self::Tuple(thread_rng().gen::<bool>(), Bits::<3>::random()),
+                    3 => {
+                        let mut a = [false; 3];
+                        for i in 0..3 {
+                            a[i] = thread_rng().gen::<bool>();
+                        }
+                        Self::Array(a)
+                    }
+                    4 => Self::Strct {
+                        a: thread_rng().gen::<bool>(),
+                        b: Bits::<3>::random(),
+                    },
+                    _ => Self::Invalid,
                 }
             }
         }
@@ -618,6 +648,9 @@ mod test {
                         a.note(key, &mut writer);
                         b.note(key, &mut writer);
                     }
+                    Self::Invalid => {
+                        writer.write_string(key, stringify!(Invalid));
+                    }
                 }
             }
         }
@@ -642,6 +675,7 @@ mod test {
             Running,
             Stop,
             Boom,
+            Invalid,
         }
         impl Digital for State {
             fn static_kind() -> Kind {
@@ -652,26 +686,37 @@ mod test {
                             name: "Init".to_string(),
                             discriminant: 0,
                             kind: Kind::Empty,
+                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Boot".to_string(),
                             discriminant: 1,
                             kind: Kind::Empty,
+                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Running".to_string(),
                             discriminant: 2,
                             kind: Kind::Empty,
+                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Stop".to_string(),
                             discriminant: 3,
                             kind: Kind::Empty,
+                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Boom".to_string(),
                             discriminant: 4,
                             kind: Kind::Empty,
+                            ty: VariantType::Normal,
+                        },
+                        Variant {
+                            name: "Invalid".to_string(),
+                            discriminant: 5,
+                            kind: Kind::Empty,
+                            ty: VariantType::Unmatched,
                         },
                     ],
                     Kind::make_discriminant_layout(
@@ -688,6 +733,17 @@ mod test {
                     Self::Running => rhdl_bits::bits::<3>(2).to_bools(),
                     Self::Stop => rhdl_bits::bits::<3>(3).to_bools(),
                     Self::Boom => rhdl_bits::bits::<3>(4).to_bools(),
+                    Self::Invalid => rhdl_bits::bits::<3>(5).to_bools(),
+                }
+            }
+            fn random() -> Self {
+                match thread_rng().gen_range(0..6) {
+                    0 => Self::Init,
+                    1 => Self::Boot,
+                    2 => Self::Running,
+                    3 => Self::Stop,
+                    4 => Self::Boom,
+                    _ => Self::Invalid,
                 }
             }
         }
@@ -700,6 +756,7 @@ mod test {
                     Self::Running => writer.write_string(key, stringify!(Running)),
                     Self::Stop => writer.write_string(key, stringify!(Stop)),
                     Self::Boom => writer.write_string(key, stringify!(Boom)),
+                    Self::Invalid => writer.write_string(key, stringify!(Invalid)),
                 }
             }
         }
@@ -714,26 +771,37 @@ mod test {
                         name: "Init".to_string(),
                         discriminant: 0,
                         kind: Kind::Empty,
+                        ty: VariantType::Normal,
                     },
                     Variant {
                         name: "Boot".to_string(),
                         discriminant: 1,
                         kind: Kind::Empty,
+                        ty: VariantType::Normal,
                     },
                     Variant {
                         name: "Running".to_string(),
                         discriminant: 2,
                         kind: Kind::Empty,
+                        ty: VariantType::Normal,
                     },
                     Variant {
                         name: "Stop".to_string(),
                         discriminant: 3,
                         kind: Kind::Empty,
+                        ty: VariantType::Normal,
                     },
                     Variant {
                         name: "Boom".to_string(),
                         discriminant: 4,
                         kind: Kind::Empty,
+                        ty: VariantType::Normal,
+                    },
+                    Variant {
+                        name: "Invalid".to_string(),
+                        discriminant: 5,
+                        kind: Kind::Empty,
+                        ty: VariantType::Unmatched,
                     },
                 ],
                 Kind::make_discriminant_layout(
