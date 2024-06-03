@@ -95,7 +95,12 @@ fn test_derive() {
     enum Test {
         A,
         B(Bits<16>),
-        C { a: Bits<32>, b: Bits<8> },
+        C {
+            a: Bits<32>,
+            b: Bits<8>,
+        },
+        #[rhdl(unmatched)]
+        D,
     }
     note("test", Test::A);
 }
@@ -110,6 +115,8 @@ fn test_derive_no_payload() {
         Running,
         Stop,
         Boom,
+        #[rhdl(unmatched)]
+        Unknown,
     }
     note("state", State::Running);
 }
@@ -152,7 +159,12 @@ fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
     enum Test {
         A,
         B(b2, b3),
-        C { a: b8, b: b8 },
+        C {
+            a: b8,
+            b: b8,
+        },
+        #[rhdl(unmatched)]
+        D,
     }
 
     let foo = Test::B(b2::from(0b10), b3::from(0b101));
@@ -185,7 +197,12 @@ fn test_derive_digital_complex_enum() {
     enum Test {
         A,
         B(b2, b3),
-        C { a: b8, b: b8 },
+        C {
+            a: b8,
+            b: b8,
+        },
+        #[rhdl(unmatched)]
+        D,
     }
 
     let foo_1 = Test::C {
@@ -222,7 +239,12 @@ fn test_derive_enum_explicit_discriminant_width() {
     enum Test {
         A,
         B(b2, b3),
-        C { a: b8, b: b8 },
+        C {
+            a: b8,
+            b: b8,
+        },
+        #[rhdl(unmatched)]
+        D,
     }
 
     let (range, kind) = bit_range(Test::static_kind(), &Path::default().discriminant()).unwrap();
@@ -239,7 +261,12 @@ fn test_derive_enum_alignment_lsb() {
     enum Test {
         A,
         B(b2, b3),
-        C { a: b8, b: b8 },
+        C {
+            a: b8,
+            b: b8,
+        },
+        #[rhdl(unmatched)]
+        D,
     }
     let (range, kind) = bit_range(Test::static_kind(), &Path::default().discriminant()).unwrap();
     assert_eq!(range, 0..2);
@@ -305,7 +332,12 @@ fn test_struct_expr_adt() {
     pub enum Foo {
         A,
         B(u8),
-        C { a: u8, b: u16 },
+        C {
+            a: u8,
+            b: u16,
+        },
+        #[rhdl(unmatched)]
+        D,
     }
 
     #[kernel]
@@ -370,6 +402,8 @@ fn test_ast_basic_func_inferred_bits() {
         Init,
         Run(u8),
         Boom,
+        #[rhdl(unmatched)]
+        Unknown,
     }
 
     #[derive(PartialEq, Copy, Clone, Digital)]
@@ -418,6 +452,7 @@ fn test_ast_basic_func_inferred_bits() {
             State::Init => b3(1),
             State::Run(a) => b3(2),
             State::Boom => b3(3),
+            State::Unknown => b3(4),
         };
         // For loops
         for ndx in 0..8 {
@@ -446,6 +481,8 @@ fn test_ast_basic_func() {
         Init,
         Run(u8),
         Boom,
+        #[rhdl(unmatched)]
+        Unknown,
     }
 
     #[derive(PartialEq, Copy, Clone, Digital)]
@@ -494,6 +531,7 @@ fn test_ast_basic_func() {
             State::Init => b3(1),
             State::Run(a) => b3(2),
             State::Boom => b3(3),
+            State::Unknown => b3(4),
         };
         // For loops
         for ndx in 0..8 {
@@ -1020,7 +1058,12 @@ fn test_importing() {
     pub enum Red {
         A,
         B(b4),
-        C { x: b4, y: b6 },
+        C {
+            x: b4,
+            y: b6,
+        },
+        #[rhdl(unmatched)]
+        D,
     }
 
     const MY_SPECIAL_NUMBER: b8 = bits(42);
@@ -1048,7 +1091,12 @@ fn test_adt_inference_subset() {
     pub enum Red {
         A,
         B(b4),
-        C { x: b4, y: b6 },
+        C {
+            x: b4,
+            y: b6,
+        },
+        #[rhdl(unmatched)]
+        D,
     }
 
     #[derive(PartialEq, Copy, Clone, Digital)]
@@ -1128,7 +1176,12 @@ fn test_adt_inference() {
     pub enum Red {
         A,
         B(b4),
-        C { x: b4, y: b6 },
+        C {
+            x: b4,
+            y: b6,
+        },
+        #[rhdl(unmatched)]
+        D,
     }
 
     #[derive(PartialEq, Copy, Clone, Digital)]
@@ -1676,7 +1729,12 @@ fn test_basic_compile() {
     pub enum Bar {
         A,
         B(b4),
-        C { x: b4, y: b4 },
+        C {
+            x: b4,
+            y: b4,
+        },
+        #[rhdl(unmatched)]
+        D,
     }
 
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
@@ -1794,8 +1852,13 @@ fn test_enum_match_signed_discriminant() {
     pub enum SimpleEnum {
         Init = 1,
         Run(u8) = 2,
-        Point { x: b4, y: u8 } = 3,
+        Point {
+            x: b4,
+            y: u8,
+        } = 3,
         Boom = -2,
+        #[rhdl(unmatched)]
+        Unmatched,
     }
 
     #[kernel]
@@ -1806,6 +1869,7 @@ fn test_enum_match_signed_discriminant() {
             SimpleEnum::Run(x) => x,
             SimpleEnum::Point { x, y } => y,
             SimpleEnum::Boom => 7,
+            SimpleEnum::Unmatched => 8,
         }
     }
 
@@ -2384,7 +2448,13 @@ fn test_enum_basic() {
     enum Foo {
         A,
         B(b8),
-        C { red: b8, green: b8, blue: b8 },
+        C {
+            red: b8,
+            green: b8,
+            blue: b8,
+        },
+        #[rhdl(unmatched)]
+        D,
     }
 
     #[kernel]
@@ -2411,7 +2481,13 @@ fn test_match_enum() {
     enum Foo {
         A,
         B(b8),
-        C { red: b8, green: b8, blue: b8 },
+        C {
+            red: b8,
+            green: b8,
+            blue: b8,
+        },
+        #[rhdl(unmatched)]
+        D,
     }
 
     #[kernel]
@@ -2425,6 +2501,7 @@ fn test_match_enum() {
             Foo::A => b8(1),
             Foo::B(x) => x,
             Foo::C { red, green, blue } => red + green + blue,
+            Foo::D => b8(4),
         }
     }
 

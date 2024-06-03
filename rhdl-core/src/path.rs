@@ -1,13 +1,50 @@
+use miette::Diagnostic;
 use std::iter::once;
 use std::ops::Range;
+use thiserror::Error;
 
-use anyhow::bail;
-use anyhow::Result;
-
+use crate::error::rhdl_error;
+use crate::error::RHDLError;
 use crate::rhif::spec::Member;
 use crate::rhif::spec::Slot;
 use crate::DiscriminantAlignment;
 use crate::Kind;
+
+#[derive(Error, Debug, Diagnostic)]
+pub enum PathError {
+    #[error("Path {prefix:?} is not a prefix of {path:?}")]
+    NotAPrefix { prefix: Path, path: Path },
+    #[error("Dynamic index {element:?} on non-array type {kind:?}")]
+    DynamicIndexOnNonArray { element: PathElement, kind: Kind },
+    #[error("Signal value not valid for non-signal type {kind:?}")]
+    SignalValueOnNonSignal { kind: Kind },
+    #[error("Tuple index {ndx} out of bounds for {kind:?}")]
+    TupleIndexOutOfBounds { ndx: usize, kind: Kind },
+    #[error("Struct index {ndx} out of bounds for {kind:?}")]
+    StructIndexOutOfBounds { ndx: usize, kind: Kind },
+    #[error("Tuple indexing not allowed on this type {kind:?}")]
+    TupleIndexingNotAllowed { kind: Kind },
+    #[error("Array index {ndx} out of bounds for {kind:?}")]
+    ArrayIndexOutOfBounds { ndx: usize, kind: Kind },
+    #[error("Indexing not allowed on this type {kind:?}")]
+    IndexingNotAllowed { kind: Kind },
+    #[error("Field {field} not found in {kind:?}")]
+    FieldNotFound { field: String, kind: Kind },
+    #[error("Field indexing not allowed on this type {kind:?}")]
+    FieldIndexingNotAllowed { kind: Kind },
+    #[error("Enum variant {name} payload not found for {kind:?}")]
+    EnumPayloadNotFound { name: String, kind: Kind },
+    #[error("Enum payload not valid for non-enum type {kind:?}")]
+    EnumPayloadNotValid { kind: Kind },
+    #[error("Enum payload not found for discriminant {disc} in {kind:?}")]
+    EnumPayloadByValueNotFound { disc: i64, kind: Kind },
+    #[error("Enum payload not valid for non-enum type {kind:?}")]
+    EnumPayloadByValueNotValid { kind: Kind },
+    #[error("Dynamic indices must be resolved {path:?} before calling bit_range")]
+    DynamicIndicesNotResolved { path: Path },
+}
+
+type Result<T> = std::result::Result<T, RHDLError>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PathElement {
@@ -140,7 +177,10 @@ impl Path {
     }
     pub fn strip_prefix(&self, prefix: &Path) -> Result<Path> {
         if !prefix.is_prefix_of(self) {
-            bail!("Path is not a prefix of self")
+            return Err(rhdl_error(PathError::NotAPrefix {
+                prefix: prefix.clone(),
+                path: self.clone(),
+            }));
         }
         Ok(Path {
             elements: self.elements[prefix.elements.len()..].to_vec(),
@@ -215,7 +255,10 @@ pub fn path_star(kind: &Kind, path: &Path) -> Result<Vec<Path>> {
         match element {
             PathElement::DynamicIndex(_) => {
                 let Kind::Array(array) = kind else {
-                    bail!("Dynamic index on non-array type")
+                    return Err(rhdl_error(PathError::DynamicIndexOnNonArray {
+                        element: element.clone(),
+                        kind: kind.clone(),
+                    }));
                 };
                 let mut paths = Vec::new();
                 for i in 0..array.size {
@@ -257,13 +300,18 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                 if let Kind::Signal(root, _) = kind {
                     kind = *root.clone();
                 } else {
-                    bail!("Signal value not valid for non-signal type {kind:?}")
+                    return Err(rhdl_error(PathError::SignalValueOnNonSignal {
+                        kind: kind.clone(),
+                    }));
                 }
             }
             PathElement::TupleIndex(i) => match &kind {
                 Kind::Tuple(tuple) => {
                     if i >= &tuple.elements.len() {
-                        bail!("Tuple index out of bounds")
+                        return Err(rhdl_error(PathError::TupleIndexOutOfBounds {
+                            ndx: *i,
+                            kind: kind.clone(),
+                        }));
                     }
                     let offset = tuple.elements[0..*i]
                         .iter()
@@ -275,7 +323,10 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                 }
                 Kind::Struct(structure) => {
                     if i >= &structure.fields.len() {
-                        bail!("Struct index out of bounds")
+                        return Err(rhdl_error(PathError::StructIndexOutOfBounds {
+                            ndx: *i,
+                            kind: kind.clone(),
+                        }));
                     }
                     let offset = structure
                         .fields
@@ -287,20 +338,30 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     range = range.start + offset..range.start + offset + size;
                     kind = structure.fields[*i].kind.clone();
                 }
-                _ => bail!("Tuple indexing not allowed on this type {kind:?}"),
+                _ => {
+                    return Err(rhdl_error(PathError::TupleIndexingNotAllowed {
+                        kind: kind.clone(),
+                    }))
+                }
             },
             PathElement::Index(i) => match &kind {
                 Kind::Array(array) => {
                     let element_size = array.base.bits();
                     if i >= &array.size {
-                        bail!("Array index out of bounds")
+                        return Err(rhdl_error(PathError::ArrayIndexOutOfBounds {
+                            ndx: *i,
+                            kind: kind.clone(),
+                        }));
                     }
                     range = range.start + i * element_size..range.start + (i + 1) * element_size;
                     kind = *array.base.clone();
                 }
                 Kind::Struct(structure) => {
                     if i >= &structure.fields.len() {
-                        bail!("Struct index out of bounds")
+                        return Err(rhdl_error(PathError::StructIndexOutOfBounds {
+                            ndx: *i,
+                            kind: kind.clone(),
+                        }));
                     }
                     let offset = structure
                         .fields
@@ -312,12 +373,19 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     range = range.start + offset..range.start + offset + size;
                     kind = structure.fields[*i].kind.clone();
                 }
-                _ => bail!("Indexing non-indexable type {kind:?}"),
+                _ => {
+                    return Err(rhdl_error(PathError::IndexingNotAllowed {
+                        kind: kind.clone(),
+                    }))
+                }
             },
             PathElement::Field(field) => match &kind {
                 Kind::Struct(structure) => {
                     if !structure.fields.iter().any(|f| &f.name == field) {
-                        bail!("Field not found")
+                        return Err(rhdl_error(PathError::FieldNotFound {
+                            field: field.clone(),
+                            kind: kind.clone(),
+                        }));
                     }
                     let offset = structure
                         .fields
@@ -335,7 +403,11 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     range = range.start + offset..range.start + offset + size;
                     kind = field.clone();
                 }
-                _ => bail!("Field indexing not allowed on this type {kind:?}"),
+                _ => {
+                    return Err(rhdl_error(PathError::FieldIndexingNotAllowed {
+                        kind: kind.clone(),
+                    }))
+                }
             },
             PathElement::EnumDiscriminant => match &kind {
                 Kind::Enum(enumerate) => {
@@ -363,7 +435,12 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                         .variants
                         .iter()
                         .find(|f| &f.name == name)
-                        .ok_or_else(|| anyhow::anyhow!("Enum payload not found"))?
+                        .ok_or_else(|| {
+                            rhdl_error(PathError::EnumPayloadNotFound {
+                                name: name.clone(),
+                                kind: kind.clone(),
+                            })
+                        })?
                         .kind
                         .clone();
                     range = match enumerate.discriminant_layout.alignment {
@@ -375,7 +452,11 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     };
                     kind = field;
                 }
-                _ => bail!("Enum payload not valid for non-enum types"),
+                _ => {
+                    return Err(rhdl_error(PathError::EnumPayloadNotValid {
+                        kind: kind.clone(),
+                    }))
+                }
             },
             PathElement::EnumPayloadByValue(disc) => match &kind {
                 Kind::Enum(enumerate) => {
@@ -383,7 +464,12 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                         .variants
                         .iter()
                         .find(|f| f.discriminant == *disc)
-                        .ok_or_else(|| anyhow::anyhow!("Enum payload not found"))?
+                        .ok_or_else(|| {
+                            rhdl_error(PathError::EnumPayloadByValueNotFound {
+                                disc: *disc,
+                                kind: kind.clone(),
+                            })
+                        })?
                         .kind
                         .clone();
                     range = match enumerate.discriminant_layout.alignment {
@@ -395,10 +481,16 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     };
                     kind = field;
                 }
-                _ => bail!("Enum payload not valid for non-enum types"),
+                _ => {
+                    return Err(rhdl_error(PathError::EnumPayloadByValueNotValid {
+                        kind: kind.clone(),
+                    }))
+                }
             },
             PathElement::DynamicIndex(_slot) => {
-                bail!("Dynamic indices must be resolved before calling bit_range")
+                return Err(rhdl_error(PathError::DynamicIndicesNotResolved {
+                    path: path.clone(),
+                }))
             }
         }
     }
@@ -407,7 +499,9 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{path::path_star, rhif::spec::Slot, types::kind::DiscriminantLayout, Kind};
+    use crate::{
+        path::path_star, rhif::spec::Slot, types::kind::DiscriminantLayout, Kind, VariantType,
+    };
 
     use super::{leaf_paths, Path};
 
@@ -431,8 +525,8 @@ mod tests {
         let kind = Kind::make_enum(
             "bar",
             vec![
-                Kind::make_variant("a", Kind::make_bits(8), 0),
-                Kind::make_variant("b", lev2.clone(), 1),
+                Kind::make_variant("a", Kind::make_bits(8), 0, VariantType::Normal),
+                Kind::make_variant("b", lev2.clone(), 1, VariantType::Normal),
             ],
             DiscriminantLayout {
                 width: 8,

@@ -9,11 +9,23 @@ use rhdl_macro::Digital;
 #[derive(Copy, Clone, PartialEq, Debug, Digital)]
 #[repr(i8)]
 enum Packet {
-    Color { r: b8, g: b8, b: b8 } = 1,
-    Size { w: b16, h: b16 } = 2,
+    Color {
+        r: b8,
+        g: b8,
+        b: b8,
+    } = 1,
+    Size {
+        w: b16,
+        h: b16,
+    } = 2,
     Position(b4, b4) = 4,
     State(State) = 8,
-    Log { msg: b32, level: LogLevel } = 16,
+    Log {
+        msg: b32,
+        level: LogLevel,
+    } = 16,
+    #[rhdl(unmatched)]
+    Invalid,
 }
 
 impl Default for Packet {
@@ -26,6 +38,14 @@ impl Default for Packet {
     }
 }
 
+#[test]
+fn test_packet_random() {
+    for _ in 0..10 {
+        let packet = Packet::random();
+        eprintln!("{:?}", packet);
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
 enum State {
     #[default]
@@ -34,6 +54,8 @@ enum State {
     Running,
     Stop,
     Boom = 2,
+    #[rhdl(unmatched)]
+    Invalid,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]

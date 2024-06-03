@@ -541,7 +541,7 @@ mod tests {
 
     use rhdl_bits::Bits;
 
-    use crate::{types::kind::Variant, Digital, DiscriminantAlignment, Kind};
+    use crate::{types::kind::Variant, Digital, DiscriminantAlignment, Kind, VariantType};
 
     use super::*;
 
@@ -584,21 +584,25 @@ mod tests {
                             name: "None".to_string(),
                             discriminant: 0,
                             kind: Kind::Empty,
+                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Bool".to_string(),
                             discriminant: 1,
                             kind: Kind::make_bits(1),
+                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Tuple".to_string(),
                             discriminant: 2,
                             kind: Kind::make_tuple(vec![Kind::make_bits(1), Kind::make_bits(3)]),
+                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Array".to_string(),
                             discriminant: 3,
                             kind: Kind::make_array(Kind::make_bits(1), 3),
+                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Strct".to_string(),
@@ -610,6 +614,7 @@ mod tests {
                                     Kind::make_field("b", Kind::make_bits(3)),
                                 ],
                             ),
+                            ty: VariantType::Normal,
                         },
                     ],
                     Kind::make_discriminant_layout(
@@ -652,6 +657,24 @@ mod tests {
                     raw.into_iter().chain(repeat(false).take(missing)).collect()
                 } else {
                     raw
+                }
+            }
+            fn random() -> Self {
+                use rand::Rng;
+                match rand::thread_rng().gen_range(0..5) {
+                    0 => Self::None,
+                    1 => Self::Bool(rand::thread_rng().gen()),
+                    2 => Self::Tuple(rand::thread_rng().gen(), rhdl_bits::bits(3)),
+                    3 => Self::Array([
+                        rand::thread_rng().gen(),
+                        rand::thread_rng().gen(),
+                        rand::thread_rng().gen(),
+                    ]),
+                    4 => Self::Strct {
+                        a: rand::thread_rng().gen(),
+                        b: rhdl_bits::bits(3),
+                    },
+                    _ => unreachable!(),
                 }
             }
         }
