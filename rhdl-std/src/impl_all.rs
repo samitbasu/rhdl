@@ -1,4 +1,5 @@
 use rhdl_bits::Bits;
+use rhdl_core::error::RHDLError;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
 use rhdl_core::DigitalFn;
@@ -11,7 +12,7 @@ pub fn all<const N: usize>(x: Bits<N>) -> bool {
 #[allow(non_camel_case_types)]
 pub struct all<const N: usize> {}
 
-fn vm_all(args: &[TypedBits]) -> anyhow::Result<TypedBits> {
+fn vm_all(args: &[TypedBits]) -> Result<TypedBits, RHDLError> {
     Ok(args[0].all())
 }
 

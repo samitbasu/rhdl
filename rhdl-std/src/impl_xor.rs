@@ -1,4 +1,5 @@
 use rhdl_bits::Bits;
+use rhdl_core::error::RHDLError;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
 use rhdl_core::DigitalFn;
@@ -14,7 +15,7 @@ pub fn xor<const N: usize>(x: Bits<N>) -> bool {
     x & 1 == 1
 }
 
-fn vm_xor(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedBits> {
+fn vm_xor(args: &[rhdl_core::TypedBits]) -> Result<rhdl_core::TypedBits, RHDLError> {
     Ok(args[0].xor())
 }
 

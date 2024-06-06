@@ -1,6 +1,7 @@
 use rhdl_bits::bits;
 use rhdl_bits::Bits;
 use rhdl_bits::SignedBits;
+use rhdl_core::error::RHDLError;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
 use rhdl_core::DigitalFn;
@@ -9,7 +10,7 @@ pub fn as_unsigned<const N: usize>(x: SignedBits<N>) -> Bits<N> {
     bits((x.0 as u128) & (Bits::<N>::mask().0))
 }
 
-fn vm_as_unsigned(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedBits> {
+fn vm_as_unsigned(args: &[rhdl_core::TypedBits]) -> Result<rhdl_core::TypedBits, RHDLError> {
     args[0].as_unsigned()
 }
 

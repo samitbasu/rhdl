@@ -1,4 +1,5 @@
 use rhdl_bits::Bits;
+use rhdl_core::error::RHDLError;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
 use rhdl_core::DigitalFn;
@@ -7,7 +8,7 @@ pub fn get_bit<const N: usize>(x: Bits<N>, i: u8) -> bool {
     (x.0 >> i) & 1 == 1
 }
 
-fn vm_get_bit(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedBits> {
+fn vm_get_bit(args: &[rhdl_core::TypedBits]) -> Result<rhdl_core::TypedBits, RHDLError> {
     args[0].get_bit(args[1].as_i64()? as usize)
 }
 

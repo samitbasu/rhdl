@@ -1,5 +1,6 @@
 use rhdl_bits::Bits;
 use rhdl_bits::SignedBits;
+use rhdl_core::error::RHDLError;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
 use rhdl_core::DigitalFn;
@@ -15,7 +16,7 @@ pub fn as_signed<const N: usize>(x: Bits<N>) -> SignedBits<N> {
     }
 }
 
-fn vm_as_signed(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedBits> {
+fn vm_as_signed(args: &[rhdl_core::TypedBits]) -> Result<rhdl_core::TypedBits, RHDLError> {
     args[0].as_signed()
 }
 
