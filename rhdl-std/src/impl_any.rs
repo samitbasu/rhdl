@@ -1,4 +1,5 @@
 use rhdl_bits::Bits;
+use rhdl_core::error::RHDLError;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
 use rhdl_core::DigitalFn;
@@ -7,7 +8,7 @@ pub fn any<const N: usize>(x: Bits<N>) -> bool {
     (x.0 & Bits::<N>::mask().0) != 0
 }
 
-pub fn vm_any(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedBits> {
+pub fn vm_any(args: &[rhdl_core::TypedBits]) -> Result<rhdl_core::TypedBits, RHDLError> {
     Ok(args[0].any())
 }
 

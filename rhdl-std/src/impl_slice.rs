@@ -1,4 +1,5 @@
 use rhdl_bits::Bits;
+use rhdl_core::error::RHDLError;
 use rhdl_core::kernel::ExternalKernelDef;
 use rhdl_core::kernel::KernelFnKind;
 use rhdl_core::DigitalFn;
@@ -8,7 +9,9 @@ pub fn slice<const N: usize, const M: usize>(x: Bits<N>, start: u128) -> Bits<M>
     Bits((x.0 >> start) & Bits::<M>::mask().0)
 }
 
-fn vm_slice<const M: usize>(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedBits> {
+fn vm_slice<const M: usize>(
+    args: &[rhdl_core::TypedBits],
+) -> Result<rhdl_core::TypedBits, RHDLError> {
     args[0].slice(args[1].as_i64()? as usize, M)
 }
 

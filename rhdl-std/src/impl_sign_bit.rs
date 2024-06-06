@@ -1,5 +1,6 @@
 use rhdl_bits::SignedBits;
 use rhdl_core::{
+    error::RHDLError,
     kernel::{ExternalKernelDef, KernelFnKind},
     DigitalFn,
 };
@@ -8,7 +9,7 @@ pub fn sign_bit<const N: usize>(x: SignedBits<N>) -> bool {
     (x.0 >> (N - 1)) & 1 == 1
 }
 
-fn vm_sign_bit(args: &[rhdl_core::TypedBits]) -> anyhow::Result<rhdl_core::TypedBits> {
+fn vm_sign_bit(args: &[rhdl_core::TypedBits]) -> Result<rhdl_core::TypedBits, RHDLError> {
     args[0].sign_bit()
 }
 

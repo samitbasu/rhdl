@@ -1,4 +1,4 @@
-use crate::{ast::ast_impl, Color, TypedBits};
+use crate::{ast::ast_impl, error::RHDLError, Color, TypedBits};
 
 #[derive(Debug, Clone)]
 pub struct Kernel(Box<ast_impl::KernelFn>);
@@ -58,7 +58,7 @@ impl std::fmt::Debug for KernelFnKind {
     }
 }
 
-type VMFunction = fn(&[TypedBits]) -> anyhow::Result<TypedBits>;
+type VMFunction = fn(&[TypedBits]) -> Result<TypedBits, RHDLError>;
 
 #[derive(Debug, Clone)]
 pub struct ExternalKernelDef {
