@@ -51,11 +51,14 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
         if matches!(*slot, Slot::Empty) {
             return Ok(Kind::Empty);
         }
-        obj.kind.get(slot).cloned().ok_or(TypeCheckPass::raise_ice(
-            obj,
-            ICE::SlotMissingInTypeMap { slot: *slot },
-            obj.symbols.slot_map[slot].node,
-        ))
+        eprintln!("Check type correctess for slot {:?}", slot);
+        obj.kind.get(slot).cloned().ok_or_else(|| {
+            TypeCheckPass::raise_ice(
+                obj,
+                ICE::SlotMissingInTypeMap { slot: *slot },
+                obj.symbols.slot_map[slot].node,
+            )
+        })
     };
     // Checks that two kinds are equal, but ignores clocking information
     let eq_kinds = |a: Kind, b: Kind, node: NodeId| -> Result<(), RHDLError> {
