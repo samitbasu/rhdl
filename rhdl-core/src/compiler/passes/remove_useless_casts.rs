@@ -1,8 +1,9 @@
-use anyhow::Result;
-
-use crate::rhif::{
-    spec::{Assign, OpCode},
-    Object,
+use crate::{
+    error::RHDLError,
+    rhif::{
+        spec::{Assign, OpCode},
+        Object,
+    },
 };
 
 use super::pass::Pass;
@@ -17,7 +18,7 @@ impl Pass for RemoveUselessCastsPass {
     fn description(&self) -> &'static str {
         "Remove useless casts"
     }
-    fn run(mut input: Object) -> Result<Object> {
+    fn run(mut input: Object) -> Result<Object, RHDLError> {
         for op in input.ops.iter_mut() {
             match op.clone() {
                 OpCode::AsBits(cast) => {

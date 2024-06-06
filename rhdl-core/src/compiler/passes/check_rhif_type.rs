@@ -1,6 +1,9 @@
 // Check a RHIF object for type correctness.
 
 use crate::{
+    ast::ast_impl::NodeId,
+    compiler::mir::error::ICE,
+    error::RHDLError,
     path::{sub_kind, Path, PathElement},
     rhif::{
         self,
@@ -12,8 +15,6 @@ use crate::{
     },
     Kind,
 };
-use anyhow::{anyhow, bail};
-use anyhow::{ensure, Result};
 
 use super::pass::Pass;
 
@@ -26,7 +27,7 @@ impl Pass for TypeCheckPass {
     fn description(&self) -> &'static str {
         "Check RHIF type correctness"
     }
-    fn run(input: Object) -> Result<Object> {
+    fn run(input: Object) -> Result<Object, RHDLError> {
         check_type_correctness(&input)?;
         Ok(input)
     }
@@ -45,18 +46,19 @@ fn approximate_dynamic_paths(path: &Path) -> Path {
         .collect()
 }
 
-fn check_type_correctness(obj: &Object) -> Result<()> {
-    let slot_type = |slot: &Slot| -> Result<Kind> {
+fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
+    let slot_type = |slot: &Slot| -> Result<Kind, RHDLError> {
         if matches!(*slot, Slot::Empty) {
             return Ok(Kind::Empty);
         }
-        obj.kind
-            .get(slot)
-            .cloned()
-            .ok_or(anyhow!("slot {:?} not found", slot))
+        obj.kind.get(slot).cloned().ok_or(TypeCheckPass::raise_ice(
+            obj,
+            ICE::SlotMissingInTypeMap { slot: *slot },
+            obj.symbols.slot_map[slot].node,
+        ))
     };
     // Checks that two kinds are equal, but ignores clocking information
-    let eq_kinds = |a: Kind, b: Kind| -> Result<()> {
+    let eq_kinds = |a: Kind, b: Kind, node: NodeId| -> Result<(), RHDLError> {
         // Special case Empty == Tuple([])
         if a.is_empty() && b.is_empty() {
             return Ok(());
@@ -66,15 +68,16 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
         if a == b {
             Ok(())
         } else {
-            Err(anyhow!(
-                "type mismatch while checking RHIF type correctness: {:?} != {:?}",
-                a,
-                b
+            Err(TypeCheckPass::raise_ice(
+                obj,
+                ICE::MismatchInDataTypes { lhs: a, rhs: b },
+                node,
             ))
         }
     };
-    for op in &obj.ops {
+    for (op, location) in obj.ops.iter().zip(obj.symbols.opcode_map.iter()) {
         eprintln!("check op: {:?}", op);
+        let id = location.node;
         match op {
             OpCode::Noop => {}
             OpCode::Binary(Binary {
@@ -89,8 +92,8 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                 arg1,
                 arg2,
             }) => {
-                eq_kinds(slot_type(lhs)?, slot_type(arg1)?)?;
-                eq_kinds(slot_type(lhs)?, slot_type(arg2)?)?;
+                eq_kinds(slot_type(lhs)?, slot_type(arg1)?, id)?;
+                eq_kinds(slot_type(lhs)?, slot_type(arg2)?, id)?;
             }
             OpCode::Binary(Binary {
                 op: AluBinary::Shl | AluBinary::Shr,
@@ -98,8 +101,14 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                 arg1,
                 arg2,
             }) => {
-                eq_kinds(slot_type(lhs)?, slot_type(arg1)?)?;
-                ensure!(slot_type(arg2)?.is_unsigned());
+                eq_kinds(slot_type(lhs)?, slot_type(arg1)?, id)?;
+                if !slot_type(arg2)?.is_unsigned() {
+                    return Err(TypeCheckPass::raise_ice(
+                        obj,
+                        ICE::ShiftOperatorRequiresUnsignedArgument,
+                        id,
+                    ));
+                }
             }
             OpCode::Binary(Binary {
                 op:
@@ -113,22 +122,22 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                 arg1,
                 arg2,
             }) => {
-                eq_kinds(slot_type(arg1)?, slot_type(arg2)?)?;
-                eq_kinds(slot_type(lhs)?, Kind::make_bool())?;
+                eq_kinds(slot_type(arg1)?, slot_type(arg2)?, id)?;
+                eq_kinds(slot_type(lhs)?, Kind::make_bool(), id)?;
             }
             OpCode::Unary(Unary {
                 op: AluUnary::Not | AluUnary::Neg,
                 lhs,
                 arg1,
             }) => {
-                eq_kinds(slot_type(lhs)?, slot_type(arg1)?)?;
+                eq_kinds(slot_type(lhs)?, slot_type(arg1)?, id)?;
             }
             OpCode::Unary(Unary {
                 op: AluUnary::All | AluUnary::Any | AluUnary::Xor,
                 lhs,
                 arg1: _,
             }) => {
-                eq_kinds(slot_type(lhs)?, Kind::make_bool())?;
+                eq_kinds(slot_type(lhs)?, Kind::make_bool(), id)?;
             }
             OpCode::Unary(Unary {
                 op: AluUnary::Signed,
@@ -137,9 +146,13 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
             }) => {
                 let arg1_ty = slot_type(arg1)?;
                 let Kind::Bits(x) = arg1_ty else {
-                    bail!("signed operator requires unsigned argument")
+                    return Err(TypeCheckPass::raise_ice(
+                        obj,
+                        ICE::SignedCastRequiresUnsignedArgument,
+                        id,
+                    ));
                 };
-                eq_kinds(slot_type(lhs)?, Kind::Signed(x))?;
+                eq_kinds(slot_type(lhs)?, Kind::Signed(x), id)?;
             }
             OpCode::Unary(Unary {
                 op: AluUnary::Unsigned,
@@ -148,13 +161,18 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
             }) => {
                 let arg1_ty = slot_type(arg1)?;
                 let Kind::Signed(x) = arg1_ty else {
-                    bail!("unsigned operator requires signed argument")
+                    return Err(TypeCheckPass::raise_ice(
+                        obj,
+                        ICE::UnsignedCastRequiresSignedArgument,
+                        id,
+                    ));
                 };
-                eq_kinds(slot_type(lhs)?, Kind::make_bits(x))?;
+                eq_kinds(slot_type(lhs)?, Kind::make_bits(x), id)?;
             }
             OpCode::Array(Array { lhs, elements }) => eq_kinds(
                 slot_type(lhs)?,
                 Kind::make_array(slot_type(&elements[0])?, elements.len()),
+                id,
             )?,
             OpCode::Select(Select {
                 lhs,
@@ -162,12 +180,12 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                 true_value,
                 false_value,
             }) => {
-                eq_kinds(slot_type(lhs)?, slot_type(true_value)?)?;
-                eq_kinds(slot_type(lhs)?, slot_type(false_value)?)?;
-                eq_kinds(slot_type(cond)?, Kind::make_bool())?;
+                eq_kinds(slot_type(lhs)?, slot_type(true_value)?, id)?;
+                eq_kinds(slot_type(lhs)?, slot_type(false_value)?, id)?;
+                eq_kinds(slot_type(cond)?, Kind::make_bool(), id)?;
             }
             OpCode::Assign(Assign { lhs, rhs }) => {
-                eq_kinds(slot_type(lhs)?, slot_type(rhs)?)?;
+                eq_kinds(slot_type(lhs)?, slot_type(rhs)?, id)?;
             }
             OpCode::Splice(Splice {
                 lhs,
@@ -178,22 +196,29 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                 eq_kinds(
                     sub_kind(slot_type(lhs)?, &approximate_dynamic_paths(path))?,
                     slot_type(subst)?,
+                    id,
                 )?;
-                eq_kinds(slot_type(lhs)?, slot_type(orig)?)?;
+                eq_kinds(slot_type(lhs)?, slot_type(orig)?, id)?;
             }
             OpCode::Tuple(Tuple { lhs, fields }) => {
-                let ty = fields.iter().map(slot_type).collect::<Result<Vec<_>>>()?;
-                eq_kinds(slot_type(lhs)?, Kind::make_tuple(ty))?;
+                let ty = fields
+                    .iter()
+                    .map(slot_type)
+                    .collect::<Result<Vec<_>, _>>()?;
+                eq_kinds(slot_type(lhs)?, Kind::make_tuple(ty), id)?;
             }
             OpCode::Index(Index { lhs, arg, path }) => {
                 let ty = slot_type(arg)?.signal_data();
                 let ty = sub_kind(ty, &approximate_dynamic_paths(path))?;
-                eq_kinds(ty, slot_type(lhs)?)?;
+                eq_kinds(ty, slot_type(lhs)?, id)?;
                 for slot in path.dynamic_slots() {
-                    ensure!(
-                        slot_type(slot)?.signal_data().is_unsigned(),
-                        "index must be unsigned"
-                    );
+                    if !slot_type(slot)?.signal_data().is_unsigned() {
+                        return Err(TypeCheckPass::raise_ice(
+                            obj,
+                            ICE::IndexValueMustBeUnsigned,
+                            obj.symbols.slot_map[slot].node,
+                        ));
+                    }
                 }
             }
             OpCode::Struct(Struct {
@@ -203,22 +228,22 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                 template,
             }) => {
                 let ty = slot_type(lhs)?;
-                eq_kinds(ty.clone(), template.kind.clone())?;
+                eq_kinds(ty.clone(), template.kind.clone(), id)?;
                 if let Some(rest) = rest {
                     let rest_ty = slot_type(rest)?;
-                    eq_kinds(ty.clone(), rest_ty)?;
+                    eq_kinds(ty.clone(), rest_ty, id)?;
                 }
                 for field in fields {
                     match &field.member {
                         rhif::spec::Member::Named(name) => {
                             let path = Path::default().field(name);
                             let ty = sub_kind(ty.clone(), &path)?;
-                            eq_kinds(slot_type(&field.value)?, ty)?;
+                            eq_kinds(slot_type(&field.value)?, ty, id)?;
                         }
                         rhif::spec::Member::Unnamed(index) => {
                             let path = Path::default().index(*index as usize);
                             let ty = sub_kind(ty.clone(), &path)?;
-                            eq_kinds(slot_type(&field.value)?, ty)?;
+                            eq_kinds(slot_type(&field.value)?, ty, id)?;
                         }
                     }
                 }
@@ -235,14 +260,14 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
                     match &field.member {
                         rhif::spec::Member::Named(name) => {
                             let ty = sub_kind(variant_kind.clone(), &Path::default().field(name))?;
-                            eq_kinds(slot_type(&field.value)?, ty)?;
+                            eq_kinds(slot_type(&field.value)?, ty, id)?;
                         }
                         rhif::spec::Member::Unnamed(index) => {
                             let ty = sub_kind(
                                 variant_kind.clone(),
                                 &Path::default().tuple_index(*index as usize),
                             )?;
-                            eq_kinds(slot_type(&field.value)?, ty)?;
+                            eq_kinds(slot_type(&field.value)?, ty, id)?;
                         }
                     }
                 }
@@ -250,11 +275,16 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
             OpCode::Repeat(Repeat { lhs, value: _, len }) => {
                 let ty = slot_type(lhs)?;
                 let Kind::Array(array_ty) = &ty else {
-                    bail!("expected array type")
+                    return Err(TypeCheckPass::raise_ice(
+                        obj,
+                        ICE::ExpectedArrayType { kind: ty },
+                        obj.symbols.slot_map[lhs].node,
+                    ));
                 };
                 eq_kinds(
                     ty.clone(),
                     Kind::make_array(*array_ty.base.clone(), *len as _),
+                    id,
                 )?;
             }
             OpCode::Comment(_) => {}
@@ -265,40 +295,59 @@ fn check_type_correctness(obj: &Object) -> Result<()> {
             }) => {
                 let arg_ty = slot_type(expr)?;
                 for (entry_test, entry_body) in table {
-                    eq_kinds(slot_type(lhs)?, slot_type(entry_body)?)?;
+                    eq_kinds(slot_type(lhs)?, slot_type(entry_body)?, id)?;
                     match entry_test {
                         CaseArgument::Slot(slot) => {
                             if !matches!(slot, Slot::Literal(_)) {
-                                bail!("Match contains a non-constant discriminant, which is not allowed in RHDL");
+                                return Err(TypeCheckPass::raise_ice(
+                                    obj,
+                                    ICE::MatchPatternValueMustBeLiteral,
+                                    obj.symbols.slot_map[slot].node,
+                                ));
                             }
-                            eq_kinds(arg_ty.clone(), slot_type(slot)?)?;
+                            eq_kinds(arg_ty.clone(), slot_type(slot)?, id)?;
                         }
                         CaseArgument::Wild => {}
                     }
                 }
             }
-            OpCode::Exec(Exec { lhs, id, args }) => {
+            OpCode::Exec(Exec {
+                lhs,
+                id: func_id,
+                args,
+            }) => {
                 // Get the function signature.
-                let signature = obj.externals[id.0].signature.clone();
-                eq_kinds(slot_type(lhs)?, signature.ret)?;
+                let signature = obj.externals[func_id.0].signature.clone();
+                eq_kinds(slot_type(lhs)?, signature.ret, id)?;
                 for (arg, param) in args.iter().zip(signature.arguments.iter()) {
-                    eq_kinds(slot_type(arg)?, param.clone())?;
+                    eq_kinds(slot_type(arg)?, param.clone(), id)?;
                 }
-                ensure!(
-                    args.len() == signature.arguments.len(),
-                    "wrong number of arguments"
-                )
+                if args.len() != signature.arguments.len() {
+                    return Err(TypeCheckPass::raise_ice(
+                        obj,
+                        ICE::ArgumentCountMismatchOnCall,
+                        id,
+                    ));
+                }
             }
             OpCode::AsBits(Cast { lhs, arg: _, len }) => {
-                let len = len.ok_or(anyhow!("as_bits must have a length"))?;
-                eq_kinds(slot_type(lhs)?, Kind::make_bits(len))?;
+                let len = len.ok_or(TypeCheckPass::raise_ice(
+                    obj,
+                    ICE::BitCastMissingRequiredLength,
+                    id,
+                ))?;
+                eq_kinds(slot_type(lhs)?, Kind::make_bits(len), id)?;
             }
             OpCode::AsSigned(Cast { lhs, arg: _, len }) => {
-                let len = len.ok_or(anyhow!("as_signed must have a length"))?;
-                eq_kinds(slot_type(lhs)?, Kind::make_signed(len))?;
+                let len = len.ok_or(TypeCheckPass::raise_ice(
+                    obj,
+                    ICE::BitCastMissingRequiredLength,
+                    id,
+                ))?;
+                eq_kinds(slot_type(lhs)?, Kind::make_signed(len), id)?;
             }
             OpCode::Retime(Retime { lhs, arg, color: _ }) => {
-                eq_kinds(slot_type(lhs)?, slot_type(arg)?)?;
+                eq_kinds(slot_type(lhs)?, slot_type(arg)?, id)?;
             }
         }
     }

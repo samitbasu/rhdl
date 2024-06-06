@@ -1,7 +1,11 @@
 use std::collections::BTreeSet;
 
+use crate::ast::ast_impl::NodeId;
+use crate::compiler::mir::error::{RHDLCompileError, ICE};
+use crate::error::RHDLError;
 use crate::kernel::ExternalKernelDef;
 use crate::path::{bit_range, Path, PathElement};
+use crate::rhif::object::SourceLocation;
 use crate::rhif::spec::{
     AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
     ExternalFunctionCode, Index, Member, OpCode, Repeat, Retime, Select, Slot, Splice, Struct,
@@ -10,8 +14,8 @@ use crate::rhif::spec::{
 use crate::test_module::VerilogDescriptor;
 use crate::util::binary_string;
 use crate::{ast::ast_impl::FunctionId, rhif::Object, Module, TypedBits};
-use anyhow::{anyhow, ensure};
-use anyhow::{bail, Result};
+
+type Result<T> = std::result::Result<T, RHDLError>;
 
 #[derive(Default, Clone, Debug)]
 pub struct VerilogModule {
@@ -67,22 +71,25 @@ fn compute_stride_path_for_slot(path: &Path, slot: &Slot) -> Path {
 }
 
 impl<'a> TranslationContext<'a> {
+    fn raise_ice(&self, cause: ICE, id: NodeId) -> RHDLError {
+        RHDLError::RHDLInternalCompilerError(Box::new(RHDLCompileError {
+            cause,
+            src: self.obj.symbols.source.source.clone(),
+            err_span: self.obj.symbols.node_span(id).into(),
+        }))
+    }
     fn compute_dynamic_index_expression(&self, target: &Slot, path: &Path) -> Result<String> {
-        ensure!(path.any_dynamic());
+        if !path.any_dynamic() {
+            return Err(self.raise_ice(
+                ICE::PathDoesNotContainDynamicIndices { path: path.clone() },
+                self.obj.symbols.slot_map[target].node,
+            ));
+        }
         // Collect the list of dynamic index registers
         let dynamic_slots: Vec<Slot> = path.dynamic_slots().copied().collect();
         // First, to get the base offset, we construct a path that
         // replaces all dynamic indices with 0
-        let arg_kind = self
-            .obj
-            .kind
-            .get(target)
-            .ok_or(anyhow!(
-                "No type for slot {:?} in function {}",
-                target,
-                self.obj.name
-            ))?
-            .clone();
+        let arg_kind = self.obj.kind[target].clone();
         let base_path = compute_base_offset_path(path);
         let base_range = bit_range(arg_kind.clone(), &base_path)?;
         // Next for each index register, we compute a range where only that index
@@ -96,14 +103,24 @@ impl<'a> TranslationContext<'a> {
             .collect::<Result<Vec<_>>>()?;
         // Now for validation.  All of the kinds should be the same.
         for slot_range in &slot_ranges {
-            ensure!(
-                slot_range.1 == base_range.1,
-                "Mismatched types arise from dynamic indexing! ICE"
-            );
-            ensure!(
-                slot_range.0.len() == base_range.0.len(),
-                "Mismatched bit widths arise from dynamic indexing! ICE"
-            );
+            if slot_range.1 != base_range.1 {
+                return Err(self.raise_ice(
+                    ICE::MismatchedTypesFromDynamicIndexing {
+                        base: base_range.1.clone(),
+                        slot: slot_range.1.clone(),
+                    },
+                    self.obj.symbols.slot_map[target].node,
+                ));
+            }
+            if slot_range.0.len() != base_range.0.len() {
+                return Err(self.raise_ice(
+                    ICE::MismatchedBitWidthsFromDynamicIndexing {
+                        base: base_range.0.len(),
+                        slot: slot_range.0.len(),
+                    },
+                    self.obj.symbols.slot_map[target].node,
+                ));
+            }
         }
         let base_offset = base_range.0.start;
         let base_length = base_range.0.len();
@@ -133,7 +150,12 @@ impl<'a> TranslationContext<'a> {
         path: &Path,
         subst: &Slot,
     ) -> Result<()> {
-        ensure!(path.any_dynamic());
+        if !path.any_dynamic() {
+            return Err(self.raise_ice(
+                ICE::PathDoesNotContainDynamicIndices { path: path.clone() },
+                self.obj.symbols.slot_map[lhs].node,
+            ));
+        }
         let index_expression = self.compute_dynamic_index_expression(orig, path)?;
         self.body.push_str(&format!(
             "    {lhs} = {orig};\n    {lhs}[{index_expression}] = {subst};\n",
@@ -146,7 +168,12 @@ impl<'a> TranslationContext<'a> {
     }
 
     fn translate_dynamic_index(&mut self, lhs: &Slot, arg: &Slot, path: &Path) -> Result<()> {
-        ensure!(path.any_dynamic());
+        if !path.any_dynamic() {
+            return Err(self.raise_ice(
+                ICE::PathDoesNotContainDynamicIndices { path: path.clone() },
+                self.obj.symbols.slot_map[lhs].node,
+            ));
+        }
         let index_expression = self.compute_dynamic_index_expression(arg, path)?;
         self.body.push_str(&format!(
             "    {lhs} = {arg}[{index_expression}];\n",
@@ -158,17 +185,13 @@ impl<'a> TranslationContext<'a> {
     }
 
     fn translate_index(&mut self, lhs: &Slot, arg: &Slot, path: &Path) -> Result<()> {
-        ensure!(!path.any_dynamic());
-        let arg_ty = self
-            .obj
-            .kind
-            .get(arg)
-            .ok_or(anyhow!(
-                "No type for slot {:?} in function {}",
-                arg,
-                self.obj.name
-            ))?
-            .clone();
+        if path.any_dynamic() {
+            return Err(self.raise_ice(
+                ICE::PathContainsDynamicIndices { path: path.clone() },
+                self.obj.symbols.slot_map[lhs].node,
+            ));
+        }
+        let arg_ty = self.obj.kind[arg].clone();
         let (bit_range, _) = bit_range(arg_ty, path)?;
         self.body.push_str(&format!(
             "    {lhs} = {arg}[{end}:{start}];\n",
@@ -187,17 +210,13 @@ impl<'a> TranslationContext<'a> {
         path: &Path,
         subst: &Slot,
     ) -> Result<()> {
-        ensure!(!path.any_dynamic());
-        let orig_ty = self
-            .obj
-            .kind
-            .get(orig)
-            .ok_or(anyhow!(
-                "No type for slot {:?} in function {}",
-                orig,
-                self.obj.name
-            ))?
-            .clone();
+        if path.any_dynamic() {
+            return Err(self.raise_ice(
+                ICE::PathContainsDynamicIndices { path: path.clone() },
+                self.obj.symbols.slot_map[lhs].node,
+            ));
+        }
+        let orig_ty = self.obj.kind[orig].clone();
         let (bit_range, _) = bit_range(orig_ty, path)?;
         self.body.push_str(&format!(
             "     {lhs} = {orig};\n    {lhs}[{end}:{start}] = {subst};\n",
@@ -210,7 +229,7 @@ impl<'a> TranslationContext<'a> {
         Ok(())
     }
 
-    fn translate_op(&mut self, op: &OpCode) -> Result<()> {
+    fn translate_op(&mut self, op: &OpCode, op_id: NodeId) -> Result<()> {
         eprintln!("Verilog translate of {op:?}");
         match op {
             OpCode::Noop => {}
@@ -453,7 +472,7 @@ impl<'a> TranslationContext<'a> {
                 ));
             }
             OpCode::AsBits(Cast { lhs, arg, len }) => {
-                let len = len.ok_or(anyhow!("No length for as_bits"))?;
+                let len = len.ok_or(self.raise_ice(ICE::BitCastMissingRequiredLength, op_id))?;
                 self.body.push_str(&format!(
                     "    {lhs} = {arg}[{len}:0];\n",
                     lhs = self.reg_name(lhs)?,
@@ -462,7 +481,7 @@ impl<'a> TranslationContext<'a> {
                 ));
             }
             OpCode::AsSigned(Cast { lhs, arg, len }) => {
-                let len = len.ok_or(anyhow!("No length for as_signed"))?;
+                let len = len.ok_or(self.raise_ice(ICE::BitCastMissingRequiredLength, op_id))?;
                 self.body.push_str(&format!(
                     "    {lhs} = $signed({arg}[{len}:0]);\n",
                     lhs = self.reg_name(lhs)?,
@@ -481,9 +500,9 @@ impl<'a> TranslationContext<'a> {
         Ok(())
     }
 
-    fn translate_block(&mut self, block: &[OpCode]) -> Result<()> {
-        for op in block {
-            self.translate_op(op)?;
+    fn translate_block(&mut self, block: &[OpCode], ids: &[SourceLocation]) -> Result<()> {
+        for (op, id) in block.iter().zip(ids.iter()) {
+            self.translate_op(op, id.node)?;
         }
         Ok(())
     }
@@ -491,7 +510,12 @@ impl<'a> TranslationContext<'a> {
     fn reg_name(&self, slot: &Slot) -> Result<String> {
         let slot_alias = self.obj.symbols.slot_names.get(slot);
         let root = match slot {
-            Slot::Empty => bail!("Empty slot not supported in Verilog back end"),
+            Slot::Empty => {
+                return Err(self.raise_ice(
+                    ICE::EmptySlotInVerilog,
+                    self.obj.symbols.slot_map[slot].node,
+                ))
+            }
             Slot::Register(x) => format!("r{x}"),
             Slot::Literal(x) => format!("l{x}"),
         };
@@ -503,11 +527,7 @@ impl<'a> TranslationContext<'a> {
     }
 
     fn decl(&self, slot: &Slot) -> Result<String> {
-        let ty = self
-            .obj
-            .kind
-            .get(slot)
-            .ok_or(anyhow!("No type for slot {:?}", slot))?;
+        let ty = &self.obj.kind[slot];
         let signed = if ty.is_signed() { "signed" } else { "" };
         let width = ty.bits();
         Ok(format!(
@@ -537,15 +557,14 @@ impl<'a> TranslationContext<'a> {
             .iter()
             .map(|x| format!("input {}", x))
             .collect::<Vec<_>>();
-        let ret_ty = self.obj.kind.get(&self.obj.return_slot).ok_or(anyhow!(
-            "No type for return slot {slot:?} in function {fn_id:?}",
-            slot = self.obj.return_slot,
-            fn_id = fn_id,
-        ))?;
+        let ret_ty = &self.obj.kind[&self.obj.return_slot];
         let ret_size = ret_ty.bits();
         let ret_signed = if ret_ty.is_signed() { "signed" } else { "" };
         if ret_size == 0 {
-            return Err(anyhow!("Function {fn_id:?} has no return value"));
+            return Err(self.raise_ice(
+                ICE::FunctionWithNoReturnInVerilog,
+                self.obj.symbols.slot_map[&self.obj.return_slot].node,
+            ));
         }
         let func_name = self.design.func_name(fn_id)?;
         self.body.push_str(&format!(
@@ -580,7 +599,7 @@ impl<'a> TranslationContext<'a> {
         }
         self.body.push_str("    // Body\n");
         self.body.push_str("begin\n");
-        self.translate_block(&self.obj.ops)?;
+        self.translate_block(&self.obj.ops, &self.obj.symbols.opcode_map)?;
         let kernels = self.kernels.clone();
         self.body.push_str(&format!(
             "    {} = {};\n",

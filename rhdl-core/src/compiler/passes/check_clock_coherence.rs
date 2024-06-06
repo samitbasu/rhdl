@@ -1,17 +1,17 @@
-use anyhow::{anyhow, bail};
 use std::{
     collections::BTreeMap,
     fmt::{Display, Formatter},
 };
 
 use crate::{
+    compiler::mir::error::ICE,
+    error::{rhdl_error, RHDLError},
     rhif::{
         spec::{OpCode, Slot},
         Object,
     },
     Color, Kind,
 };
-use anyhow::Result;
 
 use super::pass::Pass;
 
@@ -55,22 +55,30 @@ fn get_slot_color_for_kind(kind: &Kind) -> SlotColor {
     }
 }
 
-#[derive(Debug, Clone, Default)]
-struct ColorMap {
+#[derive(Debug)]
+struct ColorMap<'a> {
+    obj: &'a Object,
     map: BTreeMap<Slot, SlotColor>,
 }
 
-impl ColorMap {
-    fn get_color(&self, slot: Slot) -> Result<SlotColor> {
-        self.map
-            .get(&slot)
-            .cloned()
-            .ok_or_else(|| anyhow!("Slot {:?} not found", slot))
+impl<'a> ColorMap<'a> {
+    fn get_color(&self, slot: Slot) -> Result<SlotColor, RHDLError> {
+        self.map.get(&slot).cloned().ok_or_else(|| {
+            CheckClockCoherence::raise_ice(
+                &self.obj,
+                ICE::MissingSlotInColorMap { slot },
+                self.obj.symbols.slot_map[&slot].node,
+            )
+        })
     }
-    fn unify(&mut self, slot: Slot, color: SlotColor) -> Result<()> {
+    fn unify(&mut self, slot: Slot, color: SlotColor) -> Result<(), RHDLError> {
         if let Some(old_color) = self.map.insert(slot, color) {
             if color != get_merged_color([old_color, color]) {
-                bail!("Slot {:?} has conflicting colors", slot);
+                return Err(CheckClockCoherence::raise_ice(
+                    &self.obj,
+                    ICE::SlotHasConflictingColors { slot },
+                    self.obj.symbols.slot_map[&slot].node,
+                ));
             }
         }
         Ok(())
@@ -80,7 +88,7 @@ impl ColorMap {
     }
 }
 
-impl Display for ColorMap {
+impl<'a> Display for ColorMap<'a> {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         for (slot, color) in self.map.iter() {
             writeln!(f, "{:?} -> {:?}", slot, color)?;
@@ -98,14 +106,17 @@ impl Pass for CheckClockCoherence {
     fn description(&self) -> &'static str {
         "Check that all clocked signals are coherent"
     }
-    fn run(input: Object) -> Result<Object> {
+    fn run(input: Object) -> Result<Object, RHDLError> {
         check_clock_coherence(&input)?;
         Ok(input)
     }
 }
 
-fn check_clock_coherence(obj: &Object) -> Result<()> {
-    let mut map: ColorMap = Default::default();
+fn check_clock_coherence(obj: &Object) -> Result<(), RHDLError> {
+    let mut map = ColorMap {
+        obj,
+        map: BTreeMap::new(),
+    };
     // Next, populate the map with the information from the type map in the
     // object, by presuming that all registers have been properly typed
     for (slot, kind) in obj.kind.iter() {

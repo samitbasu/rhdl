@@ -1,10 +1,11 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use anyhow::Result;
-
-use crate::rhif::{
-    spec::{OpCode, Slot},
-    Object,
+use crate::{
+    error::RHDLError,
+    rhif::{
+        spec::{OpCode, Slot},
+        Object,
+    },
 };
 
 use super::pass::Pass;
@@ -27,7 +28,7 @@ impl Pass for PreCastLiterals {
     fn description(&self) -> &'static str {
         "Pre-cast literals to the requested length"
     }
-    fn run(mut input: Object) -> Result<Object> {
+    fn run(mut input: Object) -> Result<Object, RHDLError> {
         // Collect a candidate list of literals to cast
         let mut candidates: HashSet<CastCandidate> = Default::default();
         let mut use_count: HashMap<Slot, usize> = Default::default();
@@ -84,7 +85,7 @@ impl Pass for PreCastLiterals {
                 }
                 .map(|res| (slot, res))
             })
-            .collect::<Result<BTreeMap<_, _>>>()?;
+            .collect::<Result<BTreeMap<_, _>, _>>()?;
         input.kind = input
             .kind
             .into_iter()

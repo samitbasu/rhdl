@@ -1,19 +1,21 @@
 use std::collections::HashSet;
 
-use crate::rhif::{
-    spec::{
-        Array, Assign, Binary, Case, Cast, Enum, Exec, Index, OpCode, Repeat, Retime, Select, Slot,
-        Splice, Struct, Tuple, Unary,
+use super::pass::Pass;
+use crate::{
+    compiler::mir::error::ICE,
+    error::RHDLError,
+    rhif::{
+        spec::{
+            Array, Assign, Binary, Case, Cast, Enum, Exec, Index, OpCode, Repeat, Retime, Select,
+            Slot, Splice, Struct, Tuple, Unary,
+        },
+        Object,
     },
-    Object,
 };
 
-use anyhow::{bail, Result};
-
-use super::pass::Pass;
-
-#[derive(Default, Debug, Clone)]
-struct InitSet {
+#[derive(Debug)]
+struct InitSet<'a> {
+    obj: &'a Object,
     set: HashSet<Slot>,
 }
 
@@ -26,39 +28,51 @@ impl Pass for DataFlowCheckPass {
     fn description(&self) -> &'static str {
         "Check that all registers are initialized before use"
     }
-    fn run(input: Object) -> Result<Object> {
+    fn run(input: Object) -> Result<Object, RHDLError> {
         check_rhif_flow(&input)?;
         Ok(input)
     }
 }
 
-impl InitSet {
-    fn read_all(&self, slots: &[Slot]) -> Result<()> {
+impl<'a> InitSet<'a> {
+    fn read_all(&self, slots: &[Slot]) -> Result<(), RHDLError> {
         for slot in slots {
             self.read(slot)?;
         }
         Ok(())
     }
-    fn read(&self, slot: &Slot) -> Result<()> {
+    fn read(&self, slot: &Slot) -> Result<(), RHDLError> {
         match slot {
             Slot::Empty | Slot::Literal(_) => {}
             Slot::Register(_) => {
                 if !self.set.contains(slot) {
-                    bail!("{:?} is not initialized", slot);
+                    return Err(DataFlowCheckPass::raise_ice(
+                        &self.obj,
+                        ICE::SlotIsReadBeforeBeingWritten { slot: *slot },
+                        self.obj.symbols.slot_map[slot].node,
+                    ));
                 }
             }
         }
         Ok(())
     }
-    fn write(&mut self, slot: &Slot) -> Result<()> {
+    fn write(&mut self, slot: &Slot) -> Result<(), RHDLError> {
         match slot {
             Slot::Empty => {}
             Slot::Literal(ndx) => {
-                bail!("Cannot write to literal {}", ndx);
+                return Err(DataFlowCheckPass::raise_ice(
+                    &self.obj,
+                    ICE::CannotWriteToLiteral { ndx: *ndx },
+                    self.obj.symbols.slot_map[slot].node,
+                ));
             }
             Slot::Register(_) => {
                 if self.set.contains(slot) {
-                    bail!("{:?} is already initialized", slot);
+                    return Err(DataFlowCheckPass::raise_ice(
+                        &self.obj,
+                        ICE::SlotIsWrittenTwice { slot: *slot },
+                        self.obj.symbols.slot_map[slot].node,
+                    ));
                 }
                 self.set.insert(*slot);
             }
@@ -67,8 +81,11 @@ impl InitSet {
     }
 }
 
-fn check_rhif_flow(obj: &Object) -> Result<()> {
-    let mut init_set = InitSet::default();
+fn check_rhif_flow(obj: &Object) -> Result<(), RHDLError> {
+    let mut init_set = InitSet {
+        obj,
+        set: HashSet::new(),
+    };
     for arg in &obj.arguments {
         init_set.write(arg)?;
     }
@@ -76,7 +93,7 @@ fn check_rhif_flow(obj: &Object) -> Result<()> {
     Ok(())
 }
 
-fn check_flow(obj: &Object, mut init_set: InitSet) -> Result<InitSet> {
+fn check_flow<'a>(obj: &'a Object, mut init_set: InitSet<'a>) -> Result<InitSet<'a>, RHDLError> {
     for op in &obj.ops {
         eprintln!("Check flow for {:?}", op);
         match op {
