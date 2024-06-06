@@ -1,7 +1,9 @@
 use std::collections::HashSet;
 
-use crate::rhif::{spec::Slot, Object};
-use anyhow::Result;
+use crate::{
+    error::RHDLError,
+    rhif::{spec::Slot, Object},
+};
 
 use super::pass::Pass;
 use crate::compiler::utils::remap_slots;
@@ -16,7 +18,7 @@ impl Pass for RemoveUnusedLiterals {
     fn description(&self) -> &'static str {
         "Remove unused literals"
     }
-    fn run(mut input: Object) -> Result<Object> {
+    fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut used_set: HashSet<Slot> = Default::default();
         used_set.extend(input.arguments.iter());
         used_set.insert(input.return_slot);

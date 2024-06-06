@@ -1,11 +1,11 @@
 use crate::{
     compiler::utils::rename_read_register,
+    error::RHDLError,
     rhif::{
         spec::{Assign, OpCode},
         Object,
     },
 };
-use anyhow::Result;
 
 use super::pass::Pass;
 
@@ -25,7 +25,7 @@ impl Pass for RemoveExtraRegistersPass {
     fn description(&self) -> &'static str {
         "Remove extra registers (any instance of r3 <- r2, is replaced with renaming all instances of r3 to r2)"
     }
-    fn run(mut input: Object) -> Result<Object> {
+    fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut eligible = vec![true; input.ops.len()];
         while let Some(op_ndx) = find_assign_op(&input.ops, &eligible) {
             let op = input.ops[op_ndx].clone();

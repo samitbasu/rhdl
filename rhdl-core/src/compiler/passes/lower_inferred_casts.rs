@@ -1,8 +1,9 @@
-use anyhow::Result;
-
-use crate::rhif::{
-    spec::{Cast, OpCode},
-    Object,
+use crate::{
+    error::RHDLError,
+    rhif::{
+        spec::{Cast, OpCode},
+        Object,
+    },
 };
 
 use super::pass::Pass;
@@ -17,7 +18,7 @@ impl Pass for LowerInferredCastsPass {
     fn description(&self) -> &'static str {
         "Lower inferred casts to concrete casts"
     }
-    fn run(mut input: Object) -> Result<Object> {
+    fn run(mut input: Object) -> Result<Object, RHDLError> {
         for op in input.ops.iter_mut() {
             match op.clone() {
                 OpCode::AsBits(cast) => {

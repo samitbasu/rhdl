@@ -6,6 +6,7 @@ use thiserror::Error;
 use crate::{
     ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
     ast_builder::BinOp,
+    path::Path,
     rhif::spec::Slot,
     Kind,
 };
@@ -71,6 +72,48 @@ pub enum ICE {
     ExpectedEnumTemplate { kind: Kind },
     #[error("Unexpected complex path where an identifier was expected {path:?}")]
     UnexpectedComplexPath { path: ExprPath },
+    #[error("Missing slot {slot:?} in color map")]
+    MissingSlotInColorMap { slot: Slot },
+    #[error("Slot {slot:?} missing in type map")]
+    SlotMissingInTypeMap { slot: Slot },
+    #[error("Slot {slot:?} has conflicting colors")]
+    SlotHasConflictingColors { slot: Slot },
+    #[error("Slot {slot:?} is read before being written")]
+    SlotIsReadBeforeBeingWritten { slot: Slot },
+    #[error("Cannot write to a literal slot {ndx}")]
+    CannotWriteToLiteral { ndx: usize },
+    #[error("Slot {slot:?} is written twice")]
+    SlotIsWrittenTwice { slot: Slot },
+    #[error("Mismatch in data types (clock domain ignored)")]
+    MismatchInDataTypes { lhs: Kind, rhs: Kind },
+    #[error("Unsigned cast requires a signed argument")]
+    UnsignedCastRequiresSignedArgument,
+    #[error("Signed cast requires an unsigned argument")]
+    SignedCastRequiresUnsignedArgument,
+    #[error("Shift operator requires an unsigned argument")]
+    ShiftOperatorRequiresUnsignedArgument,
+    #[error("Index value must be unsigned")]
+    IndexValueMustBeUnsigned,
+    #[error("Expected an array type for this op instead of {kind:?}")]
+    ExpectedArrayType { kind: Kind },
+    #[error("Match patten value must be a literal")]
+    MatchPatternValueMustBeLiteral,
+    #[error("Argument count mismatch on call")]
+    ArgumentCountMismatchOnCall,
+    #[error("Bit cast missing required length")]
+    BitCastMissingRequiredLength,
+    #[error("Path contains dynamic indices {path:?}")]
+    PathContainsDynamicIndices { path: Path },
+    #[error("Path does not contain dynamic indices {path:?}")]
+    PathDoesNotContainDynamicIndices { path: Path },
+    #[error("Mismatched types from dynamic indexing {base:?} and {slot:?}")]
+    MismatchedTypesFromDynamicIndexing { base: Kind, slot: Kind },
+    #[error("Mismatched bit widths from dynamic indexing {base:?} and {slot:?}")]
+    MismatchedBitWidthsFromDynamicIndexing { base: usize, slot: usize },
+    #[error("Empty slots are not allowed in Verilog")]
+    EmptySlotInVerilog,
+    #[error("Functions with no return values not allowed in Verilog")]
+    FunctionWithNoReturnInVerilog,
 }
 
 #[derive(Error, Debug, Diagnostic)]

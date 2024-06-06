@@ -1,8 +1,10 @@
-use crate::rhif::{
-    spec::{Assign, OpCode},
-    Object,
+use crate::{
+    error::RHDLError,
+    rhif::{
+        spec::{Assign, OpCode},
+        Object,
+    },
 };
-use anyhow::Result;
 
 use super::pass::Pass;
 
@@ -16,7 +18,7 @@ impl Pass for RemoveUnneededMuxesPass {
     fn description(&self) -> &'static str {
         "Remove unneeded muxes (ones for which the two options are the same or ones with hardwired selectors)"
     }
-    fn run(mut input: Object) -> Result<Object> {
+    fn run(mut input: Object) -> Result<Object, RHDLError> {
         for op in input.ops.iter_mut() {
             if let OpCode::Select(select) = op.clone() {
                 if let Some(val) = input.literals.get(&select.cond) {

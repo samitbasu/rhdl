@@ -1,8 +1,10 @@
-use crate::rhif::{
-    spec::{Assign, OpCode},
-    Object,
+use crate::{
+    error::RHDLError,
+    rhif::{
+        spec::{Assign, OpCode},
+        Object,
+    },
 };
-use anyhow::Result;
 
 use super::pass::Pass;
 
@@ -15,7 +17,7 @@ impl Pass for LowerIndexToCopy {
     fn description(&self) -> &'static str {
         "Lower index operations with empty paths to copy operations"
     }
-    fn run(mut input: Object) -> Result<Object> {
+    fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut ops = Vec::new();
         for op in input.ops {
             match op {

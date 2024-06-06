@@ -1,6 +1,5 @@
-use anyhow::Result;
-
 use crate::{
+    error::RHDLError,
     path::Path,
     rhif::{
         spec::{Assign, OpCode, Slot},
@@ -20,7 +19,7 @@ impl Pass for PrecomputeDiscriminantPass {
     fn description(&self) -> &'static str {
         "Precompute discriminants"
     }
-    fn run(mut input: Object) -> Result<Object> {
+    fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut new_literals = vec![];
         let literals = input.literals.clone();
         let mut max_literal = input.literal_max_index();
