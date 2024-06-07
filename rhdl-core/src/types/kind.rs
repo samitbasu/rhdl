@@ -193,6 +193,9 @@ impl Kind {
         let num_variants = variants.len();
         let discriminant_bits = discriminant_layout.width;
         let has_unmatched = variants.iter().any(|x| x.ty == VariantType::Unmatched);
+        if num_variants != 2_usize.pow(discriminant_bits as u32) && !has_unmatched {
+            panic!("Enum {} does not have an unmatched variant", name);
+        }
 
         Self::Enum(Enum {
             name: name.into(),
