@@ -566,6 +566,13 @@ impl<'a> MirContext<'a> {
             }
             ArmKind::Constant(constant) => {
                 self.wrap_expr_in_block(lhs, &arm.body)?;
+                if let ExprLit::TypedBits(tb) = &constant.value {
+                    if tb.value.is_unmatched_variant()? {
+                        return Err(self
+                            .raise_syntax_error(Syntax::UseWildcardInstead, arm.id)
+                            .into());
+                    }
+                }
                 let value = self.lit(arm.id, constant.value.clone());
                 let disc = self.reg(arm.id);
                 self.op(
@@ -611,7 +618,9 @@ impl<'a> MirContext<'a> {
                     self.end_scope();
                     Ok(CaseArgument::Slot(discriminant_slot))
                 } else {
-                    Ok(CaseArgument::Wild)
+                    Err(self
+                        .raise_syntax_error(Syntax::UseWildcardInstead, arm_enum.pat.id)
+                        .into())
                 }
             }
         }

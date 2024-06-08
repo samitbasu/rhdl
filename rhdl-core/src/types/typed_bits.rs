@@ -6,12 +6,12 @@ use crate::dyn_bit_manip::{
     bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
 };
 use crate::error::{rhdl_error, RHDLError};
-use crate::Color;
 use crate::Digital;
 use crate::{
     path::{bit_range, Path},
     Kind,
 };
+use crate::{Color, VariantType};
 
 use super::error::DynamicTypeError;
 use super::kind::Array;
@@ -75,6 +75,14 @@ impl TypedBits {
             self.path(&Path::default().discriminant())
         } else {
             Ok(self.clone())
+        }
+    }
+    pub fn is_unmatched_variant(&self) -> Result<bool> {
+        let discriminant = self.discriminant()?.as_i64()?;
+        if let Some(variant) = self.kind.lookup_variant(discriminant) {
+            Ok(variant.ty == VariantType::Unmatched)
+        } else {
+            Ok(false)
         }
     }
     pub fn unsigned_cast(&self, bits: usize) -> Result<TypedBits> {
