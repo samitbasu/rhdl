@@ -50,6 +50,7 @@ use crate::rhif::spec::Member;
 use crate::KernelFnKind;
 use crate::Kind;
 use crate::TypedBits;
+use crate::VariantType;
 use crate::{
     ast::ast_impl::{Expr, ExprKind, ExprLit, FunctionId, NodeId},
     rhif::spec::{ExternalFunction, OpCode, Slot},
@@ -494,7 +495,7 @@ impl<'a> MirContext<'a> {
     ) -> Result<()> {
         let (early_return_flag, _) = self
             .lookup_name(EARLY_RETURN_FLAG_NAME)
-            .ok_or(self.raise_ice(ICE::NoEarlyReturnFlagFound { func: self.fn_id }, id))?;
+            .ok_or_else(|| self.raise_ice(ICE::NoEarlyReturnFlagFound { func: self.fn_id }, id))?;
         let early_return_slot = self.rebind(early_return_name, id)?;
         self.op(
             op_select(
@@ -586,18 +587,32 @@ impl<'a> MirContext<'a> {
                     }),
                 );
                 let disc_as_i64 = arm_enum.template.discriminant()?.as_i64()?;
-                let variant_name = arm_enum
+                let variant = arm_enum
                     .template
                     .kind
-                    .lookup_variant_name_by_discriminant(disc_as_i64)?;
-                let path = crate::path::Path::default().payload(variant_name);
-                let payload = self.reg(arm_enum.pat.id);
-                self.op(op_index(payload, target, path), arm_enum.pat.id);
-                self.initialize_local(&arm_enum.pat, payload)?;
-                let result = self.expr(&arm.body)?;
-                self.op(op_assign(lhs, result), arm_enum.pat.id);
-                self.end_scope();
-                Ok(CaseArgument::Slot(discriminant_slot))
+                    .lookup_variant(disc_as_i64)
+                    .ok_or_else(|| {
+                        self.raise_ice(
+                            ICE::VariantNotFoundInType {
+                                variant: disc_as_i64,
+                                ty: arm_enum.template.kind.clone(),
+                            },
+                            arm.id,
+                        )
+                    })?;
+                let variant_name = &variant.name;
+                if variant.ty == VariantType::Normal {
+                    let path = crate::path::Path::default().payload(variant_name);
+                    let payload = self.reg(arm_enum.pat.id);
+                    self.op(op_index(payload, target, path), arm_enum.pat.id);
+                    self.initialize_local(&arm_enum.pat, payload)?;
+                    let result = self.expr(&arm.body)?;
+                    self.op(op_assign(lhs, result), arm_enum.pat.id);
+                    self.end_scope();
+                    Ok(CaseArgument::Slot(discriminant_slot))
+                } else {
+                    Ok(CaseArgument::Wild)
+                }
             }
         }
     }
@@ -702,12 +717,14 @@ impl<'a> MirContext<'a> {
         eprintln!("Type pattern {:?} {:?}", pattern, kind);
         match &pattern.kind {
             PatKind::Ident(ident) => {
-                let (slot, _) = self.lookup_name(ident.name).ok_or(self.raise_ice(
-                    ICE::NoLocalVariableFoundForTypedPattern {
-                        pat: Box::new(pattern.clone()),
-                    },
-                    pattern.id,
-                ))?;
+                let (slot, _) = self.lookup_name(ident.name).ok_or_else(|| {
+                    self.raise_ice(
+                        ICE::NoLocalVariableFoundForTypedPattern {
+                            pat: Box::new(pattern.clone()),
+                        },
+                        pattern.id,
+                    )
+                })?;
                 eprintln!("Binding {:?} to {:?} via {:?}", ident, kind, slot);
                 self.bind_slot_to_type(slot, kind);
                 Ok(())
@@ -918,12 +935,14 @@ impl<'a> MirContext<'a> {
     fn expr_lhs(&mut self, expr: &Expr) -> Result<(Rebind, crate::path::Path)> {
         match &expr.kind {
             ExprKind::Path(path) => {
-                let name = path_as_ident(&path.path).ok_or(self.raise_ice(
-                    ICE::UnexpectedComplexPath {
-                        path: path.to_owned(),
-                    },
-                    expr.id,
-                ))?;
+                let name = path_as_ident(&path.path).ok_or_else(|| {
+                    self.raise_ice(
+                        ICE::UnexpectedComplexPath {
+                            path: path.to_owned(),
+                        },
+                        expr.id,
+                    )
+                })?;
                 let rebind = self.rebind(name, expr.id)?;
                 Ok((rebind, crate::path::Path::default()))
             }
@@ -1057,14 +1076,18 @@ impl<'a> MirContext<'a> {
             .collect::<Result<_>>()?;
         eprintln!("post_branch bindings set {:?}", post_branch_bindings);
         for (var, rebind) in &post_branch_bindings {
-            let then_binding = *locals_after_then_branch.get(var).ok_or(self.raise_ice(
-                ICE::MissingLocalVariableForBindingInThenBranch { var: var.clone() },
-                id,
-            ))?;
-            let else_binding = *locals_after_else_branch.get(var).ok_or(self.raise_ice(
-                ICE::MissingLocalVariableForBindingInElseBranch { var: var.clone() },
-                id,
-            ))?;
+            let then_binding = *locals_after_then_branch.get(var).ok_or_else(|| {
+                self.raise_ice(
+                    ICE::MissingLocalVariableForBindingInThenBranch { var: var.clone() },
+                    id,
+                )
+            })?;
+            let else_binding = *locals_after_else_branch.get(var).ok_or_else(|| {
+                self.raise_ice(
+                    ICE::MissingLocalVariableForBindingInElseBranch { var: var.clone() },
+                    id,
+                )
+            })?;
             let new_binding = rebind.to;
             self.op(op_select(new_binding, cond, then_binding, else_binding), id);
         }
@@ -1133,13 +1156,13 @@ impl<'a> MirContext<'a> {
             let arm_bindings = arm_locals
                 .iter()
                 .map(|x| {
-                    x.get(var).ok_or(
+                    x.get(var).ok_or_else(|| {
                         self.raise_ice(
                             ICE::MissingLocalVariableForBindingInMatchArm { var: var.clone() },
                             id,
                         )
-                        .into(),
-                    )
+                        .into()
+                    })
                 })
                 .collect::<Result<Vec<_>>>()?;
             let cases = arguments
@@ -1185,13 +1208,15 @@ impl<'a> MirContext<'a> {
         let lhs = self.reg(id);
         if path.path.segments.len() == 1 && path.path.segments[0].arguments.is_empty() {
             let name = path.path.segments[0].ident;
-            let rhs = self.lookup_name(name).map(|x| x.0).ok_or(self.raise_ice(
-                ICE::NameNotFoundInPath {
-                    name: name.into(),
-                    path: path.clone(),
-                },
-                id,
-            ))?;
+            let rhs = self.lookup_name(name).map(|x| x.0).ok_or_else(|| {
+                self.raise_ice(
+                    ICE::NameNotFoundInPath {
+                        name: name.into(),
+                        path: path.clone(),
+                    },
+                    id,
+                )
+            })?;
             self.op(op_assign(lhs, rhs), id);
             self.ty_equate.insert(TypeEquivalence { id, lhs, rhs });
             return Ok(lhs);
@@ -1353,12 +1378,14 @@ impl<'a> Visitor for MirContext<'a> {
         self.insert_implicit_return(node.body.id, block_result, node.name)?;
         self.return_slot = self
             .lookup_name(node.name)
-            .ok_or(self.raise_ice(
-                ICE::ReturnSlotNotFound {
-                    name: node.name.to_owned(),
-                },
-                node.id,
-            ))?
+            .ok_or_else(|| {
+                self.raise_ice(
+                    ICE::ReturnSlotNotFound {
+                        name: node.name.to_owned(),
+                    },
+                    node.id,
+                )
+            })?
             .0;
         self.fn_id = node.fn_id;
         Ok(())
