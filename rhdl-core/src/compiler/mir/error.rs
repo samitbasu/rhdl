@@ -152,6 +152,9 @@ pub enum Syntax {
     #[error("Unsupported path with arguments")]
     #[diagnostic(help("Use a path without generic arguments here, if possible"))]
     UnsupportedPathWithArguments,
+    #[error("Do not match on #[unmatched] variant.  Use a wildcard match")]
+    #[diagnostic(help("RHDL does not support matching on #[unmatched] variants.  You need to replace this with a Wildcard (_) match."))]
+    UseWildcardInstead,
 }
 
 #[derive(Debug, Error)]

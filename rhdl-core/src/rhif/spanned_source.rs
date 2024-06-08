@@ -18,6 +18,9 @@ pub struct SpannedSource {
 
 impl SpannedSource {
     pub fn span(&self, id: NodeId) -> Range<usize> {
+        if !self.span_map.contains_key(&id) {
+            panic!("No span for node {:?}", id);
+        }
         self.span_map[&id].clone()
     }
     pub fn text(&self, id: NodeId) -> &str {
@@ -38,8 +41,14 @@ struct SpannedSourceBuilder {
 }
 
 pub fn build_spanned_source_for_kernel(kernel: &KernelFn) -> SpannedSource {
+    eprintln!("Building spanned source for kernel {:?}", kernel.id);
     let mut builder = SpannedSourceBuilder::default();
     builder.kernel(kernel);
+    for node_id in 0..=kernel.id.as_u32() {
+        if !builder.span_map.contains_key(&NodeId::new(node_id)) {
+            panic!("No span for node {:?}", node_id);
+        }
+    }
     builder.build()
 }
 
