@@ -1063,7 +1063,7 @@ impl Context {
             let (base, variant) = split_path_into_base_and_variant(&structure.path)?;
             // Not sure what to do about the unwrap here.
             let template = quote!(< #base as rhdl_core::Digital>::static_kind().enum_template(stringify!(#variant)).unwrap());
-            let variant_kind = quote!(< #base as rhdl_core::Digital>::static_kind().lookup_variant_by_name(stringify!(#variant)).unwrap());
+            let variant_kind = quote!(< #base as rhdl_core::Digital>::static_kind().lookup_variant_kind_by_name(stringify!(#variant)).unwrap());
             let discriminant = quote!(< #base as rhdl_core::Digital>::static_kind().get_discriminant_for_variant_by_name(stringify!(#variant)).unwrap());
             Ok(quote! {
                 bob.struct_expr(#path_inner, vec![#(#fields),*], #rest,

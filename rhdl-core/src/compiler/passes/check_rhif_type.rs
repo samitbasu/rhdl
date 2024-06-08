@@ -258,7 +258,18 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
             }) => {
                 let ty = slot_type(lhs)?;
                 let discriminant_value = template.discriminant()?.as_i64()?;
-                let variant_kind = ty.lookup_variant(discriminant_value)?;
+                let variant_kind = ty
+                    .lookup_variant(discriminant_value)
+                    .ok_or(TypeCheckPass::raise_ice(
+                        obj,
+                        ICE::VariantNotFoundInType {
+                            variant: discriminant_value,
+                            ty: ty.clone(),
+                        },
+                        obj.symbols.slot_map[lhs].node,
+                    ))?
+                    .kind
+                    .clone();
                 for field in fields {
                     match &field.member {
                         rhif::spec::Member::Named(name) => {

@@ -114,6 +114,8 @@ pub enum ICE {
     EmptySlotInVerilog,
     #[error("Functions with no return values not allowed in Verilog")]
     FunctionWithNoReturnInVerilog,
+    #[error("Variant {variant} not found in type {ty:?}")]
+    VariantNotFoundInType { variant: i64, ty: Kind },
 }
 
 #[derive(Error, Debug, Diagnostic)]
