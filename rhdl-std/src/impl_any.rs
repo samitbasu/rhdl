@@ -51,7 +51,7 @@ mod tests {
     }
 
     #[test]
-    fn test_iverilog() -> anyhow::Result<()> {
+    fn test_iverilog() -> Result<(), RHDLError> {
         let test_values = (0..=255).map(bits).map(|x| (x,));
         test_with_iverilog(
             any::<8>,

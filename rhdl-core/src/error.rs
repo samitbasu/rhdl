@@ -1,7 +1,7 @@
 use miette::Diagnostic;
 use thiserror::Error;
 
-use crate::path::PathError;
+use crate::{path::PathError, KernelFnKind, TypedBits};
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum RHDLError {
@@ -32,6 +32,17 @@ pub enum RHDLError {
     #[error("RHDL Path Error")]
     #[diagnostic(transparent)]
     RHDLErrorPath(#[from] Box<PathError>),
+    #[error("IO Error")]
+    IOError(#[from] std::io::Error),
+    #[error("Verilog Verification Error: Expected {expected}, got {got}")]
+    VerilogVerificationError { expected: String, got: String },
+    #[error("Verilog Verification Error: Expected {expected:?} got {actual:?}")]
+    VerilogVerificationErrorTyped {
+        expected: TypedBits,
+        actual: TypedBits,
+    },
+    #[error("Cannot convert kernel function to Verilog descriptor {value:?}")]
+    CannotConvertKernelFunctionToVerilogDescriptor { value: Box<KernelFnKind> },
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

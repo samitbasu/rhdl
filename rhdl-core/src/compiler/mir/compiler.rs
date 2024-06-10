@@ -26,6 +26,7 @@ use crate::ast::ast_impl::{
 use crate::ast::visit::Visitor;
 use crate::ast_builder::BinOp;
 use crate::ast_builder::UnOp;
+use crate::compiler::ascii;
 use crate::compiler::display_ast::pretty_print_statement;
 use crate::error::RHDLError;
 use crate::kernel::Kernel;
@@ -191,7 +192,7 @@ impl<'a> std::fmt::Debug for MirContext<'a> {
             writeln!(f, "{:?} : {:?}", slot, self.kinds[kind])?;
         }
         for (lit, expr) in &self.literals {
-            writeln!(f, "{:?} -> {}", lit, expr)?;
+            writeln!(f, "{:?} -> {:?}", lit, expr)?;
         }
         for (ndx, func) in self.stash.iter().enumerate() {
             writeln!(
@@ -567,7 +568,7 @@ impl<'a> MirContext<'a> {
             ArmKind::Constant(constant) => {
                 self.wrap_expr_in_block(lhs, &arm.body)?;
                 if let ExprLit::TypedBits(tb) = &constant.value {
-                    if tb.value.is_unmatched_variant()? {
+                    if tb.value.is_unmatched_variant() {
                         return Err(self
                             .raise_syntax_error(Syntax::UseWildcardInstead, arm.id)
                             .into());
@@ -904,7 +905,15 @@ impl<'a> MirContext<'a> {
                 Ok(block_result)
             }
             ExprKind::If(if_expr) => self.if_expr(expr.id, if_expr),
-            ExprKind::Lit(lit) => Ok(self.lit(expr.id, lit.clone())),
+            ExprKind::Lit(lit) => {
+                if lit.is_unmatched_variant() {
+                    Err(self
+                        .raise_syntax_error(Syntax::UnmatchedVariantNotAllowedInExpression, expr.id)
+                        .into())
+                } else {
+                    Ok(self.lit(expr.id, lit.clone()))
+                }
+            }
             ExprKind::Field(field) => self.field(expr.id, field),
             ExprKind::Group(group) => self.expr(&group.expr),
             ExprKind::Index(index) => self.index(expr.id, index),
@@ -1403,6 +1412,13 @@ impl<'a> Visitor for MirContext<'a> {
 
 pub fn compile_mir(func: Kernel) -> Result<Mir> {
     let source = build_spanned_source_for_kernel(func.inner());
+    for id in 0..func.inner().id.as_u32() {
+        let node = NodeId::new(id);
+        if !source.span_map.contains_key(&node) {
+            eprintln!("AST: {}", ascii::render_ast_to_string(&func)?);
+            panic!("Missing span for node {:?}", node);
+        }
+    }
     let mut compiler = MirContext::new(&source);
     compiler.visit_kernel_fn(func.inner())?;
     compiler.bind_slot_to_type(compiler.return_slot, &func.inner().ret);

@@ -399,14 +399,22 @@ pub struct ArmEnum {
     pub payload_kind: Kind,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum ExprLit {
     TypedBits(ExprTypedBits),
     Int(String),
     Bool(bool),
 }
+impl ExprLit {
+    pub(crate) fn is_unmatched_variant(&self) -> bool {
+        match self {
+            ExprLit::TypedBits(ExprTypedBits { value, .. }) => value.is_unmatched_variant(),
+            _ => false,
+        }
+    }
+}
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ExprTypedBits {
     pub path: Box<Path>,
     pub value: TypedBits,

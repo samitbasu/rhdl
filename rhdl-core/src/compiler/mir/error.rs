@@ -155,6 +155,9 @@ pub enum Syntax {
     #[error("Do not match on #[unmatched] variant.  Use a wildcard match")]
     #[diagnostic(help("RHDL does not support matching on #[unmatched] variants.  You need to replace this with a Wildcard (_) match."))]
     UseWildcardInstead,
+    #[error("Unmatched variants are not allowed in expressions")]
+    #[diagnostic(help("You cannot use an unmatched variant in an expression in RHDL.  It is meant as a placeholder for invalid discriminants."))]
+    UnmatchedVariantNotAllowedInExpression,
 }
 
 #[derive(Debug, Error)]
@@ -237,7 +240,9 @@ impl Diagnostic for RHDLClockCoherenceViolation {
         Some(&self.src)
     }
     fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-        Some(Box::new("These elements are not coherent with the clock"))
+        Some(Box::new(
+            "These elements are not all coherent with the same clock domain.  You may need to add a clock domain crosser to your design.",
+        ))
     }
     fn labels<'a>(&'a self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + 'a>> {
         Some(Box::new(

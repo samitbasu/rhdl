@@ -77,12 +77,20 @@ impl TypedBits {
             Ok(self.clone())
         }
     }
-    pub fn is_unmatched_variant(&self) -> Result<bool> {
-        let discriminant = self.discriminant()?.as_i64()?;
+    pub fn is_unmatched_variant(&self) -> bool {
+        if !self.kind.is_enum() {
+            return false;
+        }
+        let Ok(discriminant) = self.discriminant() else {
+            return false;
+        };
+        let Ok(discriminant) = discriminant.as_i64() else {
+            return false;
+        };
         if let Some(variant) = self.kind.lookup_variant(discriminant) {
-            Ok(variant.ty == VariantType::Unmatched)
+            variant.ty == VariantType::Unmatched
         } else {
-            Ok(false)
+            false
         }
     }
     pub fn unsigned_cast(&self, bits: usize) -> Result<TypedBits> {
@@ -144,7 +152,7 @@ impl TypedBits {
             _ => {
                 return Err(rhdl_error(DynamicTypeError::UnableToInterpretAsI64 {
                     kind: self.kind.clone(),
-                }))
+                }));
             }
         };
         let mut ret: u64 = 0;
@@ -593,6 +601,9 @@ fn write_enumerate(
         &Path::default().payload_by_value(discriminant_value),
     )
     .unwrap();
+    if payload_range.is_empty() {
+        return Ok(());
+    }
     let payload = &bits[payload_range];
     write_kind_with_bits(&payload_kind, payload, f)
 }

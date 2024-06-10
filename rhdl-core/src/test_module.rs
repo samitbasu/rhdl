@@ -1,10 +1,9 @@
+use crate::error::RHDLError;
 use crate::rhif::vm::execute_function;
 use crate::TypedBits;
 use crate::{
     compile_design, generate_verilog, kernel::ExternalKernelDef, Digital, DigitalFn, KernelFnKind,
 };
-use anyhow::Result;
-use anyhow::{bail, ensure};
 
 pub trait TestArg {
     fn vec_tb(&self) -> Vec<TypedBits>;
@@ -297,7 +296,7 @@ impl TestModule {
 pub fn test_kernel_vm_and_verilog<K, F, Args, T0>(
     uut: F,
     vals: impl Iterator<Item = Args> + Clone,
-) -> Result<()>
+) -> Result<(), RHDLError>
 where
     F: Testable<Args, T0>,
     T0: Digital,
@@ -313,12 +312,9 @@ where
         let args_for_vm = input.vec_tb();
         let expected = uut.apply(input).typed_bits();
         let actual = execute_function(&design, args_for_vm)?;
-        ensure!(
-            expected == actual,
-            "VM test failed - expected {:?} but got {:?}",
-            expected,
-            actual
-        );
+        if expected != actual {
+            return Err(RHDLError::VerilogVerificationErrorTyped { expected, actual });
+        }
         vm_test_count += 1;
     }
     eprintln!("VM test passed {} cases OK", vm_test_count);
@@ -335,7 +331,7 @@ impl std::fmt::Debug for TestModule {
 
 #[cfg(feature = "iverilog")]
 impl TestModule {
-    pub fn run_iverilog(&self) -> anyhow::Result<()> {
+    pub fn run_iverilog(&self) -> Result<(), RHDLError> {
         let d = tempfile::tempdir()?;
         // Write the test bench to a file
         let d_path = d.path();
@@ -349,7 +345,7 @@ impl TestModule {
             .status()
             .expect("Icarus Verilog should be installed and in your PATH.");
         if !status.success() {
-            bail!("Failed to compile testbench with {}", status);
+            return Err(anyhow::anyhow!("Failed to compile testbench with {}", status).into());
         }
         let mut cmd = std::process::Command::new("vvp");
         cmd.arg(d_path.join("testbench"));
@@ -362,7 +358,10 @@ impl TestModule {
             let expected = case[0];
             let actual = case[1];
             if case[0] != case[1] {
-                bail!("Expected {} but got {}", expected, actual);
+                return Err(RHDLError::VerilogVerificationError {
+                    expected: expected.into(),
+                    got: actual.into(),
+                });
             }
         }
         eprintln!("iverilog test passed {} cases OK", self.num_cases);
@@ -377,7 +376,7 @@ pub fn test_with_iverilog<F, Args, T0>(
     uut: F,
     desc: VerilogDescriptor,
     vals: impl Iterator<Item = Args>,
-) -> anyhow::Result<()>
+) -> Result<(), RHDLError>
 where
     F: Testable<Args, T0>,
     T0: Digital,
@@ -386,12 +385,14 @@ where
 }
 
 impl TryFrom<KernelFnKind> for VerilogDescriptor {
-    type Error = anyhow::Error;
+    type Error = RHDLError;
 
     fn try_from(value: KernelFnKind) -> Result<Self, Self::Error> {
         match value {
             KernelFnKind::Extern(ExternalKernelDef { name, body, .. }) => Ok(Self { name, body }),
-            _ => bail!("Cannot convert kernel function to Verilog descriptor"),
+            _ => Err(RHDLError::CannotConvertKernelFunctionToVerilogDescriptor {
+                value: Box::new(value),
+            }),
         }
     }
 }
@@ -452,7 +453,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add() -> anyhow::Result<()> {
+    fn test_add() -> miette::Result<()> {
         let nibbles_a = (0..=15).map(bits);
         let nibbles_b = nibbles_a.clone();
         let kernel = add::kernel_fn().unwrap();
@@ -463,16 +464,18 @@ mod tests {
         );
         eprintln!("{module:?}");
         #[cfg(feature = "iverilog")]
-        module.run_iverilog()
+        module.run_iverilog()?;
+        Ok(())
     }
 
     #[test]
-    fn test_xor_generic() -> anyhow::Result<()> {
+    fn test_xor_generic() -> miette::Result<()> {
         let nibbles_a = (0..=15).map(bits);
         let kernel = xor::<4>::kernel_fn().unwrap();
         let module = TestModule::new(xor::<4>, kernel.try_into()?, nibbles_a.map(|x| (x,)));
         eprintln!("{module:?}");
         #[cfg(feature = "iverilog")]
-        module.run_iverilog()
+        module.run_iverilog()?;
+        Ok(())
     }
 }

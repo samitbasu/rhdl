@@ -72,14 +72,18 @@ impl<'a> ColorMap<'a> {
         })
     }
     fn unify(&mut self, slot: Slot, color: SlotColor) -> Result<(), RHDLError> {
-        if let Some(old_color) = self.map.insert(slot, color) {
-            if color != get_merged_color([old_color, color]) {
+        if let Some(prev_color) = self.map.get(&slot) {
+            let new_color = get_merged_color([*prev_color, color]);
+            if new_color == SlotColor::Multicolor {
                 return Err(CheckClockCoherence::raise_ice(
-                    &self.obj,
+                    self.obj,
                     ICE::SlotHasConflictingColors { slot },
                     self.obj.symbols.slot_map[&slot].node,
                 ));
             }
+            self.map.insert(slot, new_color);
+        } else {
+            self.map.insert(slot, color);
         }
         Ok(())
     }
