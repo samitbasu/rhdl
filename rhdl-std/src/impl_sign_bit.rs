@@ -42,7 +42,7 @@ mod tests {
     }
 
     #[test]
-    fn test_iverilog() -> anyhow::Result<()> {
+    fn test_iverilog() -> Result<(), RHDLError> {
         let test_values = (-128..=127).map(SignedBits::<8>::from).map(|x| (x,));
         rhdl_core::test_with_iverilog(
             sign_bit::<8>,

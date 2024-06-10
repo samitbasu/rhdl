@@ -18,6 +18,7 @@ use anyhow::Result;
 use rhdl_bits::alias::b4;
 use rhdl_bits::{bits, Bits};
 use rhdl_core::ast::ast_impl::KernelFn;
+use rhdl_core::error::RHDLError;
 //use rhdl_core::diagnostic::report::show_source_detail;
 use rhdl_core::{
     compile_design, generate_verilog, note, note_init_db, note_take, note_time,
@@ -202,7 +203,7 @@ pub fn simulate<M: Synchronous>(
 pub fn make_verilog_testbench<M: Synchronous>(
     obj: M,
     inputs: impl Iterator<Item = M::Input>,
-) -> Result<TestModule> {
+) -> Result<TestModule, RHDLError> {
     // Given a synchronous object and an iterator of inputs, generate a Verilog testbench
     // that will simulate the object and print the results to the console.
     let verilog = generate_verilog(&compile_design::<M::Update>()?)?;
@@ -325,7 +326,7 @@ fn test_pulser_simulation() {
 }
 
 #[test]
-fn get_pulser_verilog() -> Result<()> {
+fn get_pulser_verilog() -> Result<(), RHDLError> {
     let design = compile_design::<pulser_update<16>>()?;
     let verilog = generate_verilog(&design)?;
     eprintln!("Verilog {:?}", verilog);
@@ -336,7 +337,8 @@ fn get_pulser_verilog() -> Result<()> {
         strobe: Strobe::<16> { period: bits(100) },
     };
     let tb = make_verilog_testbench(pulser, input)?;
-    tb.run_iverilog()
+    tb.run_iverilog()?;
+    Ok(())
 }
 
 // To make a blinker, we want to blink at a rate of 1 Hz. The clock is 100 MHz, so we want to

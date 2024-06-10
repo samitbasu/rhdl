@@ -9,6 +9,7 @@ use rand::Rng;
 use rhdl_bits::{alias::*, bits, signed, Bits, SignedBits};
 use rhdl_core::{
     compile_design,
+    compiler::mir::error::{RHDLSyntaxError, Syntax},
     digital_fn::DigitalFn,
     error::RHDLError,
     note,
@@ -388,7 +389,7 @@ fn test_func_with_structured_args() {
 
 #[test]
 #[allow(clippy::assign_op_pattern)]
-fn test_ast_basic_func_inferred_bits() {
+fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
     use rhdl_bits::alias::*;
     #[derive(PartialEq, Copy, Clone, Digital)]
     pub struct Foo {
@@ -452,7 +453,7 @@ fn test_ast_basic_func_inferred_bits() {
             State::Init => b3(1),
             State::Run(a) => b3(2),
             State::Boom => b3(3),
-            State::Unknown => b3(4),
+            _ => b3(4),
         };
         // For loops
         for ndx in 0..8 {
@@ -462,12 +463,13 @@ fn test_ast_basic_func_inferred_bits() {
         bits(42)
     }
 
-    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive())?;
+    Ok(())
 }
 
 #[test]
 #[allow(clippy::assign_op_pattern)]
-fn test_ast_basic_func() {
+fn test_ast_basic_func() -> miette::Result<()> {
     use rhdl_bits::alias::*;
     #[derive(PartialEq, Copy, Clone, Digital)]
     pub struct Foo {
@@ -531,7 +533,7 @@ fn test_ast_basic_func() {
             State::Init => b3(1),
             State::Run(a) => b3(2),
             State::Boom => b3(3),
-            State::Unknown => b3(4),
+            _ => b3(4),
         };
         // For loops
         for ndx in 0..8 {
@@ -541,7 +543,8 @@ fn test_ast_basic_func() {
         bits::<8>(42)
     }
 
-    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive())?;
+    Ok(())
 }
 
 #[test]
@@ -632,7 +635,55 @@ fn test_signal_cross_clock_select_causes_type_check_error() -> miette::Result<()
             x + 2
         }
     }
+    let Err(RHDLError::RHDLClockCoherenceViolation(_)) = compile_design::<add<Red, Green>>() else {
+        panic!("Expected clock coherence violation");
+    };
+    Ok(())
+}
+
+#[test]
+fn test_signal_coherence_in_splice_operation() -> miette::Result<()> {
+    #[derive(Digital, Copy, Clone, PartialEq)]
+    struct Baz {
+        a: b8,
+        b: b8,
+    }
+
+    #[kernel]
+    fn add<C: Domain, D: Domain>(x: Sig<Baz, C>, y: Sig<b8, D>) -> Sig<Baz, C> {
+        let x = x.val();
+        let y = y.val();
+        let z = Baz { b: y, ..x };
+        signal(z)
+    }
+    assert!(compile_design::<add::<Red, Red>>().is_ok());
+    assert!(compile_design::<add::<Red, Green>>().is_err());
     compile_design::<add<Red, Green>>()?;
+    Ok(())
+}
+
+#[test]
+fn test_signal_coherence_in_dynamic_indexing() -> miette::Result<()> {
+    #[kernel]
+    fn add<C: Domain, D: Domain>(x: Sig<[b8; 8], C>, y: Sig<b3, D>) -> Sig<b8, C> {
+        let z = x[y.val()];
+        signal(z)
+    }
+    assert!(compile_design::<add::<Red, Red>>().is_ok());
+    assert!(compile_design::<add::<Red, Green>>().is_err());
+    Ok(())
+}
+
+#[test]
+fn test_signal_coherence_in_binary_ops() -> miette::Result<()> {
+    #[kernel]
+    fn add<C: Domain, D: Domain>(x: Sig<b8, C>, y: Sig<b8, D>) -> Sig<b8, C> {
+        let x = x.val();
+        let y = y.val();
+        let z = x + y;
+        signal(z)
+    }
+    assert!(compile_design::<add<Red, Green>>().is_err());
     Ok(())
 }
 
@@ -646,6 +697,32 @@ fn test_signal_coherence_in_branches() -> miette::Result<()> {
         signal(z)
     }
     compile_design::<add<Red, Green>>()?;
+    Ok(())
+}
+
+#[test]
+fn test_signal_coherence_with_const_in_binary_op() -> miette::Result<()> {
+    #[kernel]
+    fn add<C: Domain>(x: Sig<b8, C>) -> Sig<b8, C> {
+        let x = x.val();
+        let y = bits(3);
+        let z = x + y;
+        signal(z)
+    }
+    compile_design::<add<Red>>()?;
+    Ok(())
+}
+
+#[test]
+fn test_signal_coherence_with_consts_ok() -> miette::Result<()> {
+    #[kernel]
+    fn add<C: Domain>(x: Sig<b8, C>) -> Sig<b8, C> {
+        let x = x.val();
+        let y = bits(3);
+        let z = if x.any() { x } else { y };
+        signal(z)
+    }
+    compile_design::<add<Red>>()?;
     Ok(())
 }
 
@@ -841,7 +918,7 @@ fn test_struct_inference_inferred_lengths() {
 }
 
 #[test]
-fn test_struct_inference() {
+fn test_struct_inference() -> miette::Result<()> {
     use rhdl_bits::alias::*;
     use rhdl_bits::bits;
 
@@ -907,8 +984,8 @@ fn test_struct_inference() {
             },
         },
     ];
-    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, inputs.into_iter().map(|x| (x,)))
-        .unwrap();
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, inputs.into_iter().map(|x| (x,)))?;
+    Ok(())
 }
 
 #[test]
@@ -1083,7 +1160,7 @@ fn test_importing() {
 }
 
 #[test]
-fn test_adt_inference_subset() {
+fn test_adt_inference_subset() -> miette::Result<()> {
     use rhdl_bits::alias::*;
     use rhdl_bits::bits;
 
@@ -1163,7 +1240,8 @@ fn test_adt_inference_subset() {
         NooState::Walk { foo: bits::<5>(3) },
     ];
     let inputs = iproduct!(foos.into_iter(), noos.into_iter()).collect::<Vec<_>>();
-    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, inputs.into_iter()).unwrap();
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, inputs.into_iter())?;
+    Ok(())
 }
 
 #[test]
@@ -1477,11 +1555,13 @@ fn test_error_about_for_loop() -> miette::Result<()> {
     fn do_stuff(mut a: b4) {
         let c = 5;
         for ndx in 0..c {
-            a = a + bits::<4>(ndx);
+            a += bits::<4>(ndx);
         }
     }
-    let foo = compile_design::<do_stuff>()?;
-    //eprintln!("{:?}", foo);
+    let Err(RHDLError::RHDLSyntaxError(err)) = compile_design::<do_stuff>() else {
+        panic!("Expected syntax error");
+    };
+    assert!(matches!(err.cause, Syntax::ForLoopNonIntegerEndValue));
     Ok(())
 }
 
@@ -1845,7 +1925,35 @@ fn test_enum_match() {
 }
 
 #[test]
-fn test_enum_match_signed_discriminant() {
+fn test_enum_unmatched_variant_not_usable() -> miette::Result<()> {
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
+    enum SimpleEnum {
+        Init,
+        Run(u8),
+        Boom,
+        #[rhdl(unmatched)]
+        Unmatched,
+    }
+
+    #[kernel]
+    fn add(a: SimpleEnum) -> SimpleEnum {
+        SimpleEnum::Unmatched
+    }
+
+    let samples = vec![SimpleEnum::Unmatched];
+    let Err(err) =
+        test_kernel_vm_and_verilog::<add, _, _, _>(add, samples.into_iter().map(|x| (x,)))
+    else {
+        panic!("Expected error")
+    };
+    match err {
+        RHDLError::RHDLSyntaxError(_) => Ok(()),
+        _ => panic!("Unexpected err {err:?}"),
+    }
+}
+
+#[test]
+fn test_enum_match_signed_discriminant() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     #[rhdl(discriminant_width = 4)]
     #[repr(i8)]
@@ -1869,7 +1977,7 @@ fn test_enum_match_signed_discriminant() {
             SimpleEnum::Run(x) => x,
             SimpleEnum::Point { x, y } => y,
             SimpleEnum::Boom => 7,
-            SimpleEnum::Unmatched => 8,
+            _ => 8,
         }
     }
 
@@ -1882,7 +1990,8 @@ fn test_enum_match_signed_discriminant() {
         SimpleEnum::Point { x: bits(1), y: 9 },
         SimpleEnum::Boom,
     ];
-    test_kernel_vm_and_verilog::<add, _, _, _>(add, samples.into_iter().map(|x| (x,))).unwrap();
+    test_kernel_vm_and_verilog::<add, _, _, _>(add, samples.into_iter().map(|x| (x,)))?;
+    Ok(())
 }
 
 #[test]
@@ -1917,7 +2026,7 @@ fn test_const_literal_captured_match() {
 }
 
 #[test]
-fn test_struct_literal_match() {
+fn test_struct_literal_match() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo {
         a: u8,
@@ -1936,7 +2045,8 @@ fn test_struct_literal_match() {
     let test_vec = (0..4)
         .flat_map(|a| (0..4).map(move |b| (Foo { a, b },)))
         .collect::<Vec<_>>();
-    test_kernel_vm_and_verilog::<add, _, _, _>(add, test_vec.into_iter()).unwrap();
+    test_kernel_vm_and_verilog::<add, _, _, _>(add, test_vec.into_iter())?;
+    Ok(())
 }
 
 #[test]
@@ -2476,7 +2586,7 @@ fn test_enum_basic() {
 }
 
 #[test]
-fn test_match_enum() {
+fn test_match_enum() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     enum Foo {
         A,
@@ -2501,11 +2611,12 @@ fn test_match_enum() {
             Foo::A => b8(1),
             Foo::B(x) => x,
             Foo::C { red, green, blue } => red + green + blue,
-            Foo::D => b8(4),
+            _ => b8(4),
         }
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8())?;
+    Ok(())
 }
 
 #[test]

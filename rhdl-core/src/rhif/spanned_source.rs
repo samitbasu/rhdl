@@ -1,6 +1,7 @@
 use crate::{
     ast::ast_impl::{
-        ArmKind, BitsKind, Block, Expr, ExprKind, KernelFn, NodeId, Pat, PatKind, Stmt, StmtKind,
+        ArmKind, BitsKind, Block, Expr, ExprKind, KernelFn, NodeId, Pat, PatKind, Path,
+        PathSegment, Stmt, StmtKind,
     },
     util::IndentingFormatter,
     Kind,
@@ -18,9 +19,6 @@ pub struct SpannedSource {
 
 impl SpannedSource {
     pub fn span(&self, id: NodeId) -> Range<usize> {
-        if !self.span_map.contains_key(&id) {
-            panic!("No span for node {:?}", id);
-        }
         self.span_map[&id].clone()
     }
     pub fn text(&self, id: NodeId) -> &str {
@@ -41,14 +39,8 @@ struct SpannedSourceBuilder {
 }
 
 pub fn build_spanned_source_for_kernel(kernel: &KernelFn) -> SpannedSource {
-    eprintln!("Building spanned source for kernel {:?}", kernel.id);
     let mut builder = SpannedSourceBuilder::default();
     builder.kernel(kernel);
-    for node_id in 0..=kernel.id.as_u32() {
-        if !builder.span_map.contains_key(&NodeId::new(node_id)) {
-            panic!("No span for node {:?}", node_id);
-        }
-    }
     builder.build()
 }
 
@@ -84,6 +76,27 @@ impl SpannedSourceBuilder {
         self.name = kernel.name.into();
     }
 
+    fn path_segment(&mut self, segment: &PathSegment) {
+        self.push(segment.ident);
+        if !segment.arguments.is_empty() {
+            self.push("<");
+            for arg in &segment.arguments {
+                self.expr(arg);
+                self.push(", ");
+            }
+            self.push(">");
+        }
+    }
+
+    fn path(&mut self, path: &Path) {
+        for (i, seg) in path.segments.iter().enumerate() {
+            if i > 0 {
+                self.push("::");
+            }
+            self.path_segment(seg);
+        }
+    }
+
     fn pattern(&mut self, pat: &Pat) {
         let start = self.loc();
         match &pat.kind {
@@ -94,7 +107,7 @@ impl SpannedSourceBuilder {
                 self.push("_");
             }
             PatKind::Lit(lit) => {
-                self.push(&format!("{}", lit.lit));
+                self.push(&format!("{:?}", lit.lit));
             }
             PatKind::Or(pat) => {
                 for segment in &pat.segments {
@@ -108,7 +121,7 @@ impl SpannedSourceBuilder {
                 self.push(")");
             }
             PatKind::Path(pat) => {
-                self.push(&format!("{}", pat.path));
+                self.path(&pat.path);
             }
             PatKind::Slice(pat) => {
                 self.push("[");
@@ -119,7 +132,7 @@ impl SpannedSourceBuilder {
                 self.push("]");
             }
             PatKind::Struct(pat) => {
-                self.push(&format!("{}", pat.path));
+                self.path(&pat.path);
                 self.push(" {");
                 for field in &pat.fields {
                     if let Member::Named(name) = &field.member {
@@ -139,7 +152,7 @@ impl SpannedSourceBuilder {
                 self.push(")");
             }
             PatKind::TupleStruct(pat) => {
-                self.push(&format!("{}", pat.path));
+                self.path(&pat.path);
                 self.push("(");
                 for elem in &pat.elems {
                     self.pattern(elem);
@@ -177,6 +190,7 @@ impl SpannedSourceBuilder {
                     self.expr(init);
                 }
                 self.push(";\n");
+                self.span_map.insert(local.id, start..self.loc());
             }
             StmtKind::Expr(expr) => {
                 self.expr(expr);
@@ -247,7 +261,7 @@ impl SpannedSourceBuilder {
                 self.block(&expr.block);
             }
             ExprKind::Call(expr) => {
-                self.push(&format!("{}", expr.path));
+                self.path(&expr.path);
                 self.push("(");
                 for arg in &expr.args {
                     self.expr(arg);
@@ -293,22 +307,24 @@ impl SpannedSourceBuilder {
                 self.expr(&expr.value);
             }
             ExprKind::Lit(expr) => {
-                self.push(&format!("{}", expr));
+                self.push(&format!("{:?}", expr));
             }
             ExprKind::Match(expr) => {
                 self.push("match ");
                 self.expr(&expr.expr);
                 self.push(" {\n");
                 for arm in &expr.arms {
+                    let pos = self.loc();
                     match &arm.kind {
                         ArmKind::Wild => self.push("_"),
                         ArmKind::Constant(constant) => {
-                            self.push(&format!("{}", constant.value));
+                            self.push(&format!("{:?}", constant.value));
                         }
                         ArmKind::Enum(enum_arm) => {
                             self.pattern(&enum_arm.pat);
                         }
                     }
+                    self.span_map.insert(arm.id, pos..self.loc());
                     self.push(" => ");
                     self.expr(&arm.body);
                     self.push(",\n");
@@ -331,7 +347,7 @@ impl SpannedSourceBuilder {
                 self.push(")");
             }
             ExprKind::Path(expr) => {
-                self.push(&format!("{}", expr.path));
+                self.path(&expr.path);
             }
             ExprKind::Range(expr) => {
                 if let Some(start) = &expr.start {
@@ -354,7 +370,7 @@ impl SpannedSourceBuilder {
                 }
             }
             ExprKind::Struct(expr) => {
-                self.push(&format!("{}", expr.path));
+                self.path(&expr.path);
                 self.push(" {");
                 for field in &expr.fields {
                     if let Member::Named(name) = &field.member {

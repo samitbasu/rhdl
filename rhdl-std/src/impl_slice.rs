@@ -48,7 +48,7 @@ mod tests {
     }
 
     #[test]
-    fn test_iverilog() -> anyhow::Result<()> {
+    fn test_iverilog() -> Result<(), RHDLError> {
         let test_values = (0..=255).map(Bits::<8>::from).map(|x| (x, x.raw() % 5));
         rhdl_core::test_with_iverilog(
             slice::<8, 3>,

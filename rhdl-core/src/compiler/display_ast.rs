@@ -57,7 +57,7 @@ impl PrettyPrinter {
                 self.push("_");
             }
             PatKind::Lit(lit) => {
-                self.push(&format!("{}", lit.lit));
+                self.push(&format!("{:?}", lit.lit));
             }
             PatKind::Or(pat) => {
                 for segment in &pat.segments {
@@ -252,7 +252,7 @@ impl PrettyPrinter {
                 self.print_expr(&expr.value)?;
             }
             ExprKind::Lit(expr) => {
-                self.push(&format!("{}", expr));
+                self.push(&format!("{:?}", expr));
             }
             ExprKind::Match(expr) => {
                 self.push("match ");
@@ -262,7 +262,7 @@ impl PrettyPrinter {
                     match &arm.kind {
                         ArmKind::Wild => self.push("_"),
                         ArmKind::Constant(constant) => {
-                            self.push(&format!("const {}", constant.value))
+                            self.push(&format!("const {:?}", constant.value))
                         }
                         ArmKind::Enum(enum_arm) => {
                             self.print_pattern(&enum_arm.pat)?;
@@ -361,12 +361,12 @@ impl PrettyPrinter {
     }
 }
 
-impl Display for ExprLit {
+impl std::fmt::Debug for ExprLit {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             ExprLit::Int(int) => write!(f, "{}", int),
             ExprLit::Bool(bool) => write!(f, "{}", bool),
-            ExprLit::TypedBits(ty) => write!(f, "<typed_bits {} [{:?}]>", ty.path, ty.value.kind),
+            ExprLit::TypedBits(ty) => write!(f, "{:?}", ty.value),
         }
     }
 }
