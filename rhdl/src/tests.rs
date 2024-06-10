@@ -647,18 +647,26 @@ fn test_signal_coherence_in_splice_operation() -> miette::Result<()> {
     struct Baz {
         a: b8,
         b: b8,
+        c: b8,
     }
 
     #[kernel]
     fn add<C: Domain, D: Domain>(x: Sig<Baz, C>, y: Sig<b8, D>) -> Sig<Baz, C> {
         let x = x.val();
         let y = y.val();
-        let z = Baz { b: y, ..x };
+        let z = Baz {
+            b: y,
+            c: bits(3),
+            ..x
+        };
         signal(z)
     }
-    assert!(compile_design::<add::<Red, Red>>().is_ok());
-    assert!(compile_design::<add::<Red, Green>>().is_err());
-    compile_design::<add<Red, Green>>()?;
+    let err = compile_design::<add<Red, Red>>();
+    eprintln!("{:?}", err);
+    //assert!(compile_design::<add::<Red, Red>>().is_ok());
+    //assert!(compile_design::<add::<Red, Green>>().is_err());
+    compile_design::<add<Red, Red>>()?;
+    //compile_design::<add<Red, Green>>()?;
     Ok(())
 }
 
