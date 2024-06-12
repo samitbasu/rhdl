@@ -676,5 +676,6 @@ fn verilog_unop(op: &AluUnary) -> &'static str {
         AluUnary::Xor => "^",
         AluUnary::Signed => "$signed",
         AluUnary::Unsigned => "$unsigned",
+        AluUnary::Val => "",
     }
 }

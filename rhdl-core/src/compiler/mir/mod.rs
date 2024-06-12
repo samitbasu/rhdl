@@ -1,3 +1,4 @@
+//mod clock_check;
 pub mod compiler;
 pub mod error;
 pub mod infer;

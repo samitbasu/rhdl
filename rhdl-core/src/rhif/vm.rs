@@ -112,6 +112,7 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
                     AluUnary::Signed => arg1.as_signed()?,
                     AluUnary::Unsigned => arg1.as_unsigned()?,
                     AluUnary::Xor => arg1.xor(),
+                    AluUnary::Val => arg1.val(),
                 };
                 state.write(*lhs, result)?;
             }

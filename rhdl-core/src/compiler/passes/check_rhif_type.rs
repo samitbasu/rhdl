@@ -129,7 +129,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 eq_kinds(slot_type(lhs)?, Kind::make_bool(), id)?;
             }
             OpCode::Unary(Unary {
-                op: AluUnary::Not | AluUnary::Neg,
+                op: AluUnary::Not | AluUnary::Neg | AluUnary::Val,
                 lhs,
                 arg1,
             }) => {
