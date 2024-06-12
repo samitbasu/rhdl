@@ -467,6 +467,10 @@ impl Kind {
             self.clone()
         }
     }
+
+    pub fn val(&self) -> Kind {
+        self.signal_data()
+    }
 }
 
 #[derive(Clone, Debug)]

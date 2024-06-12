@@ -284,6 +284,13 @@ impl TypedBits {
             kind: Kind::make_signal(self.kind, color),
         }
     }
+
+    pub fn val(&self) -> TypedBits {
+        TypedBits {
+            bits: self.bits.clone(),
+            kind: self.kind.val(),
+        }
+    }
 }
 
 impl std::ops::Add<TypedBits> for TypedBits {

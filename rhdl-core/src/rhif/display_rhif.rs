@@ -184,6 +184,7 @@ impl std::fmt::Debug for AluUnary {
             AluUnary::Xor => write!(f, "^"),
             AluUnary::Signed => write!(f, "signed "),
             AluUnary::Unsigned => write!(f, "unsigned "),
+            AluUnary::Val => write!(f, "val "),
         }
     }
 }

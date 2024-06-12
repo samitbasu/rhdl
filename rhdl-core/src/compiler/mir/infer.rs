@@ -41,7 +41,6 @@ pub struct TypeIndex {
 
 #[derive(Debug, Clone)]
 pub struct TypeSelect {
-    selector: TypeId,
     true_value: TypeId,
     false_value: TypeId,
     lhs: TypeId,
@@ -69,6 +68,20 @@ pub struct MirTypeInference<'a> {
 }
 
 type Result<T> = std::result::Result<T, RHDLError>;
+
+/*
+ Some additional concerns:
+ 1. If you can strip clocking information from a signal, then you
+    can form types that have no Kind representation.  For example,
+    the array is assumed to be homogenous.  But we can do something like:
+    let x = x.val(); // x <- Red
+    let y = y.val(); // y <- Green
+    let z = [x, y]; // z <- [Red, Green] ??
+    Rust will not complain, as this is completely allowed.  But when we
+    try to reconstruct the timing
+
+
+*/
 
 impl<'a> MirTypeInference<'a> {
     fn new(mir: &'a Mir) -> Self {
@@ -253,34 +266,6 @@ impl<'a> MirTypeInference<'a> {
         Ok(())
     }
     fn try_binop(&mut self, id: NodeId, op: &TypeBinOp) -> Result<()> {
-        let a1 = op.arg1;
-        let a2 = op.arg2;
-        if self.enforce_clocks(id, &[a1, a2, op.lhs]).is_err() {
-            return Err(Box::new(RHDLClockCoherenceViolation {
-                src: self.mir.symbols.source.source.clone(),
-                elements: vec![
-                    (
-                        format!(
-                            "First argument belongs to {} clock domain",
-                            self.clock_domain_for_error(a1)
-                        ),
-                        self.mir.symbols.source.span(a1.id).into(),
-                    ),
-                    (
-                        format!(
-                            "Second argument belongs to {} clock domain",
-                            self.clock_domain_for_error(a2)
-                        ),
-                        self.mir.symbols.source.span(a2.id).into(),
-                    ),
-                ],
-                cause_description:
-                    "Binary operation requires both arguments belong to the same clock domain"
-                        .to_string(),
-                cause_span: self.mir.symbols.source.span(id).into(),
-            })
-            .into());
-        }
         match &op.op {
             AluBinary::Add
             | AluBinary::Mul
@@ -296,20 +281,9 @@ impl<'a> MirTypeInference<'a> {
             | AluBinary::Ne
             | AluBinary::Ge
             | AluBinary::Gt => {
-                if let Some(arg1_clock) = self.ctx.project_signal_clock(op.arg1) {
-                    let lhs_var = self.ctx.ty_bool(id);
-                    let lhs_sig = self.ctx.ty_signal(id, lhs_var, arg1_clock);
-                    self.unify(id, op.lhs, lhs_sig)?;
-                }
-                if let Some(arg2_clock) = self.ctx.project_signal_clock(op.arg2) {
-                    let lhs_var = self.ctx.ty_bool(id);
-                    let lhs_sig = self.ctx.ty_signal(id, lhs_var, arg2_clock);
-                    self.unify(id, op.lhs, lhs_sig)?;
-                }
-                if !self.ctx.is_signal(op.arg1) && !self.ctx.is_signal(op.arg2) {
-                    let lhs_var = self.ctx.ty_bool(id);
-                    self.unify(id, op.lhs, lhs_var)?;
-                }
+                // LHS of a comparison is always a boolean
+                let lhs_var = self.ctx.ty_bool(id);
+                self.unify(id, op.lhs, lhs_var)?;
                 if let (Some(arg1_data), Some(arg2_data)) = (
                     self.ctx.project_signal_value(op.arg1),
                     self.ctx.project_signal_value(op.arg2),
@@ -318,6 +292,8 @@ impl<'a> MirTypeInference<'a> {
                 }
             }
             AluBinary::Shl | AluBinary::Shr => {
+                self.unify(id, op.lhs, op.arg1)?;
+                /*
                 if let Some(arg2) = self.ctx.project_signal_value(a2) {
                     eprintln!("Project signal value flag for {}", self.ctx.desc(a2));
                     if let Some(flag) = self.ctx.project_sign_flag(arg2) {
@@ -334,6 +310,7 @@ impl<'a> MirTypeInference<'a> {
                 } else {
                     self.unify(id, op.lhs, op.arg1)?;
                 }
+                */
             }
         }
         Ok(())
@@ -395,34 +372,6 @@ impl<'a> MirTypeInference<'a> {
         );
         let mut all_slots = vec![op.lhs, op.arg];
         all_slots.extend(op.path.dynamic_slots().map(|slot| self.slot_ty(*slot)));
-        if self.enforce_clocks(id, &all_slots).is_err() {
-            let arg_domain = self.clock_domain_for_error(op.arg);
-            let arg_span = self.mir.symbols.source.span(op.arg.id);
-            return Err(Box::new(RHDLClockCoherenceViolation {
-                src: self.mir.symbols.source.source.clone(),
-                elements: op
-                    .path
-                    .dynamic_slots()
-                    .map(|slot| {
-                        let ty = self.slot_ty(*slot);
-                        (
-                            format!(
-                                "Index belongs to {} clock domain",
-                                self.clock_domain_for_error(ty)
-                            ),
-                            self.mir.symbols.source.span(ty.id).into(),
-                        )
-                    })
-                    .chain(std::iter::once((
-                        format!("Object being indexed belongs to {arg_domain} clock domain",),
-                        arg_span.into(),
-                    )))
-                    .collect(),
-                cause_description: "Index operation requires all slots to be coherent with the object being indexed".to_string(),
-                cause_span: self.mir.symbols.source.span(id).into(),
-            })
-            .into());
-        }
         match self.ty_path_project(op.arg, &op.path, id) {
             Ok(ty) => self.unify(id, op.lhs, ty),
             Err(err) => {
@@ -430,16 +379,6 @@ impl<'a> MirTypeInference<'a> {
                 Ok(())
             }
         }
-    }
-    fn enforce_clocks(&mut self, id: NodeId, t: &[TypeId]) -> Result<()> {
-        let clocks = t
-            .iter()
-            .filter_map(|ty| self.ctx.project_signal_clock(*ty))
-            .collect::<Vec<_>>();
-        for (first, second) in clocks.iter().zip(clocks.iter().skip(1)) {
-            self.unify(id, *first, *second)?;
-        }
-        Ok(())
     }
     // Given Y <- A op B, ensure that the data types of
     // Y, A, an B are all compatible.
@@ -498,42 +437,6 @@ impl<'a> MirTypeInference<'a> {
         }
     }
     fn try_select(&mut self, id: NodeId, op: &TypeSelect) -> Result<()> {
-        if self
-            .enforce_clocks(id, &[op.selector, op.true_value, op.false_value, op.lhs])
-            .is_err()
-        {
-            return Err(Box::new(RHDLClockCoherenceViolation {
-                src: self.mir.symbols.source.source.clone(),
-                elements: vec![
-                    (
-                        format!(
-                            "Selector belongs to {} clock domain",
-                            self.clock_domain_for_error(op.selector)
-                        ),
-                        self.mir.symbols.source.span(op.selector.id).into(),
-                    ),
-                    (
-                        format!(
-                            "True value belongs to {} clock domain",
-                            self.clock_domain_for_error(op.true_value)
-                        ),
-                        self.mir.symbols.source.span(op.true_value.id).into(),
-                    ),
-                    (
-                        format!(
-                            "False value belongs to {} clock domain",
-                            self.clock_domain_for_error(op.false_value)
-                        ),
-                        self.mir.symbols.source.span(op.false_value.id).into(),
-                    ),
-                ],
-                cause_description:
-                    "Select operation requires that all three be coherent to the same clock domain"
-                        .to_string(),
-                cause_span: self.mir.symbols.source.span(id).into(),
-            })
-            .into());
-        }
         self.enforce_data_types_binary(id, op.lhs, op.true_value, op.false_value)?;
         Ok(())
     }
@@ -632,22 +535,7 @@ impl<'a> MirTypeInference<'a> {
                         match test {
                             CaseArgument::Slot(slot) => {
                                 let ty = self.slot_ty(*slot);
-                                let free_var = self.ctx.ty_var(id);
-                                eprintln!(
-                                    "Adding constraint {} = {} == {}",
-                                    self.ctx.desc(free_var),
-                                    self.ctx.desc(disc),
-                                    self.ctx.desc(ty)
-                                );
-                                self.type_ops.push(TypeOperation {
-                                    id: op.source,
-                                    kind: TypeOperationKind::BinOp(TypeBinOp {
-                                        op: AluBinary::Eq,
-                                        lhs: free_var,
-                                        arg1: disc,
-                                        arg2: ty,
-                                    }),
-                                });
+                                self.unify(id, disc, ty)?;
                             }
                             CaseArgument::Wild => {}
                         }
@@ -721,32 +609,25 @@ impl<'a> MirTypeInference<'a> {
                     let sig_clock_lhs = self.ctx.ty_var(id);
                     let sig = self.ctx.ty_signal(id, sig_ty, sig_clock_lhs);
                     self.unify(id, lhs, sig)?;
-                    let sig_ty = self.ctx.ty_var(id);
-                    let sig_clock_rhs = self.ctx.ty_var(id);
-                    let sig = self.ctx.ty_signal(id, sig_ty, sig_clock_rhs);
-                    self.unify(id, arg, sig)?;
-                    self.unify(id, sig_clock_lhs, sig_clock_rhs)?;
+                    self.unify(id, arg, sig_ty)?;
                     if let Some(color) = color {
                         let clk = self.ctx.ty_clock(id, color);
                         self.unify(id, sig_clock_lhs, clk)?;
                     }
                 }
                 OpCode::Select(select) => {
-                    let cond = self.mir.find_root_for_slot(id, select.cond);
-                    let true_value = self.mir.find_root_for_slot(id, select.true_value);
-                    let false_value = self.mir.find_root_for_slot(id, select.false_value);
-                    let lhs = self.mir.find_root_for_slot(id, select.lhs);
-                    let lhs = self.slot_ty(lhs);
-                    let cond = self.slot_ty(cond);
-                    let arg1 = self.slot_ty(true_value);
-                    let arg2 = self.slot_ty(false_value);
+                    let cond = self.slot_ty(select.cond);
+                    let cond_ty = self.ctx.ty_bool(id);
+                    self.unify(id, cond, cond_ty)?;
+                    let lhs = self.slot_ty(select.lhs);
+                    let true_value = self.slot_ty(select.true_value);
+                    let false_value = self.slot_ty(select.false_value);
                     self.type_ops.push(TypeOperation {
                         id: op.source,
                         kind: TypeOperationKind::Select(TypeSelect {
                             lhs,
-                            selector: cond,
-                            true_value: arg1,
-                            false_value: arg2,
+                            true_value,
+                            false_value,
                         }),
                     });
                 }
@@ -839,6 +720,13 @@ impl<'a> MirTypeInference<'a> {
                             let unsigned_ty = self.ctx.ty_bits(id, len);
                             self.unify(id, lhs, signed_ty)?;
                             self.unify(id, arg1, unsigned_ty)?;
+                        }
+                        AluUnary::Val => {
+                            let sig_ty = self.ctx.ty_var(id);
+                            let sig_clock = self.ctx.ty_var(id);
+                            let sig = self.ctx.ty_signal(id, sig_ty, sig_clock);
+                            self.unify(id, lhs, sig_ty)?;
+                            self.unify(id, arg1, sig)?;
                         }
                     }
                 }

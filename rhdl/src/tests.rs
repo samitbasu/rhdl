@@ -747,12 +747,12 @@ fn test_signal_cast_works() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_signal_cast_cross_clocks_fails() -> anyhow::Result<()> {
+fn test_signal_cast_cross_clocks_fails() -> miette::Result<()> {
     #[kernel]
     fn add<C: Domain, D: Domain>(x: Sig<b8, C>) -> Sig<b8, D> {
         signal(x.val() + 3)
     }
-    assert!(compile_design::<add<Red, Red>>().is_ok());
+    compile_design::<add<Red, Red>>()?;
     assert!(compile_design::<add::<Red, Green>>().is_err());
     Ok(())
 }

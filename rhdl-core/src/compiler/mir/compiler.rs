@@ -1201,7 +1201,7 @@ impl<'a> MirContext<'a> {
         if method_call.method == "val" {
             let lhs = self.reg(id);
             let arg = self.expr(&method_call.receiver)?;
-            self.op(op_assign(lhs, arg), id);
+            self.op(op_unary(AluUnary::Val, lhs, arg), id);
             return Ok(lhs);
         }
         // First handle unary ops only
