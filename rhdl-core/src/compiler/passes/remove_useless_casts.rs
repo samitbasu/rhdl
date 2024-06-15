@@ -12,10 +12,10 @@ use super::pass::Pass;
 pub struct RemoveUselessCastsPass {}
 
 impl Pass for RemoveUselessCastsPass {
-    fn name(&self) -> &'static str {
+    fn name() -> &'static str {
         "remove_useless_casts"
     }
-    fn description(&self) -> &'static str {
+    fn description() -> &'static str {
         "Remove useless casts"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {

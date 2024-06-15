@@ -12,10 +12,10 @@ use super::pass::Pass;
 pub struct RemoveUnusedRegistersPass {}
 
 impl Pass for RemoveUnusedRegistersPass {
-    fn name(&self) -> &'static str {
+    fn name() -> &'static str {
         "remove_unused_registers"
     }
-    fn description(&self) -> &'static str {
+    fn description() -> &'static str {
         "Remove unused registers"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {

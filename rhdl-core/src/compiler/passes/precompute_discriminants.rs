@@ -13,10 +13,10 @@ use super::pass::Pass;
 pub struct PrecomputeDiscriminantPass {}
 
 impl Pass for PrecomputeDiscriminantPass {
-    fn name(&self) -> &'static str {
+    fn name() -> &'static str {
         "precompute_discriminants"
     }
-    fn description(&self) -> &'static str {
+    fn description() -> &'static str {
         "Precompute discriminants"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
@@ -33,11 +33,12 @@ impl Pass for PrecomputeDiscriminantPass {
                         });
                     } else if matches!(index.arg, Slot::Literal(_)) {
                         let literal_value = &literals[&index.arg];
+                        let loc = input.symbols.slot_map[&index.arg];
                         let discriminant = literal_value.discriminant()?;
                         // Get a new literal slot for the discriminant
                         let discriminant_slot = Slot::Literal(max_literal + 1);
                         max_literal += 1;
-                        new_literals.push((discriminant_slot, discriminant));
+                        new_literals.push((discriminant_slot, discriminant, loc));
                         *op = OpCode::Assign(Assign {
                             lhs: index.lhs,
                             rhs: discriminant_slot,
@@ -46,9 +47,10 @@ impl Pass for PrecomputeDiscriminantPass {
                 }
             }
         }
-        for (slot, value) in new_literals {
+        for (slot, value, loc) in new_literals {
             input.kind.insert(slot, value.kind.clone());
             input.literals.insert(slot, value);
+            input.symbols.slot_map.insert(slot, loc);
         }
         Ok(input)
     }

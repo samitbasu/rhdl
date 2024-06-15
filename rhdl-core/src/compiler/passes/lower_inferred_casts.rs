@@ -12,10 +12,10 @@ use super::pass::Pass;
 pub struct LowerInferredCastsPass {}
 
 impl Pass for LowerInferredCastsPass {
-    fn name(&self) -> &'static str {
+    fn name() -> &'static str {
         "lower_inferred_casts"
     }
-    fn description(&self) -> &'static str {
+    fn description() -> &'static str {
         "Lower inferred casts to concrete casts"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {

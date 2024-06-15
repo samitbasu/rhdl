@@ -11,10 +11,10 @@ use super::pass::Pass;
 pub struct LowerIndexToCopy {}
 
 impl Pass for LowerIndexToCopy {
-    fn name(&self) -> &'static str {
+    fn name() -> &'static str {
         "lower_index_to_copy"
     }
-    fn description(&self) -> &'static str {
+    fn description() -> &'static str {
         "Lower index operations with empty paths to copy operations"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {

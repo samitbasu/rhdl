@@ -116,6 +116,8 @@ pub enum ICE {
     FunctionWithNoReturnInVerilog,
     #[error("Variant {variant} not found in type {ty:?}")]
     VariantNotFoundInType { variant: i64, ty: Kind },
+    #[error("Symbol table has no entry for slot {slot:?}")]
+    SymbolTableIsIncomplete { slot: Slot },
 }
 
 #[derive(Error, Debug, Diagnostic)]
