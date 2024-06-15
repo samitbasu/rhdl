@@ -12,10 +12,10 @@ use super::pass::Pass;
 pub struct RemoveUnneededMuxesPass {}
 
 impl Pass for RemoveUnneededMuxesPass {
-    fn name(&self) -> &'static str {
+    fn name() -> &'static str {
         "remove_unneeded_muxes"
     }
-    fn description(&self) -> &'static str {
+    fn description() -> &'static str {
         "Remove unneeded muxes (ones for which the two options are the same or ones with hardwired selectors)"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {

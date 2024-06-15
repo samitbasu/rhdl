@@ -19,10 +19,10 @@ fn find_assign_op(ops: &[OpCode], mergeable: &[bool]) -> Option<usize> {
 }
 
 impl Pass for RemoveExtraRegistersPass {
-    fn name(&self) -> &'static str {
+    fn name() -> &'static str {
         "remove_extra_registers"
     }
-    fn description(&self) -> &'static str {
+    fn description() -> &'static str {
         "Remove extra registers (any instance of r3 <- r2, is replaced with renaming all instances of r3 to r2)"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {

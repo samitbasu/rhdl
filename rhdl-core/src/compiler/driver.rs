@@ -19,6 +19,7 @@ use crate::{
             remove_unused_literals::RemoveUnusedLiterals,
             remove_unused_registers::RemoveUnusedRegistersPass,
             remove_useless_casts::RemoveUselessCastsPass,
+            symbol_table_is_complete::SymbolTableIsComplete,
         },
     },
     error::RHDLError,
@@ -29,6 +30,13 @@ use crate::{
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
+fn wrap_pass<P: Pass>(obj: Object) -> Result<Object> {
+    eprintln!("Running pass: {}", P::name());
+    let obj = P::run(obj)?;
+    let obj = SymbolTableIsComplete::run(obj)?;
+    Ok(obj)
+}
+
 fn compile_kernel(kernel: Kernel) -> Result<Object> {
     let mir = compile_mir(kernel)?;
     let mut obj = infer(mir)?;
@@ -36,18 +44,19 @@ fn compile_kernel(kernel: Kernel) -> Result<Object> {
     //    let _ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
     //    check_inference(&kernel, &ctx)?;
     //let mut obj = compile(kernel.inner(), ctx)?;
+    let mut obj = SymbolTableIsComplete::run(obj)?;
     for _pass in 0..2 {
         eprintln!("{:?}", obj);
-        obj = RemoveExtraRegistersPass::run(obj)?;
-        obj = RemoveUnneededMuxesPass::run(obj)?;
-        obj = RemoveExtraRegistersPass::run(obj)?;
-        obj = RemoveUnusedLiterals::run(obj)?;
-        obj = PreCastLiterals::run(obj)?;
-        obj = RemoveUselessCastsPass::run(obj)?;
-        obj = RemoveEmptyCasesPass::run(obj)?;
-        obj = RemoveUnusedRegistersPass::run(obj)?;
-        obj = PrecomputeDiscriminantPass::run(obj)?;
-        obj = LowerInferredCastsPass::run(obj)?;
+        obj = wrap_pass::<RemoveUnusedRegistersPass>(obj.clone())?;
+        obj = wrap_pass::<RemoveUnneededMuxesPass>(obj.clone())?;
+        obj = wrap_pass::<RemoveExtraRegistersPass>(obj.clone())?;
+        obj = wrap_pass::<RemoveUnusedLiterals>(obj.clone())?;
+        obj = wrap_pass::<PreCastLiterals>(obj.clone())?;
+        obj = wrap_pass::<RemoveUselessCastsPass>(obj.clone())?;
+        obj = wrap_pass::<RemoveEmptyCasesPass>(obj.clone())?;
+        obj = wrap_pass::<RemoveUnusedRegistersPass>(obj.clone())?;
+        obj = wrap_pass::<PrecomputeDiscriminantPass>(obj.clone())?;
+        obj = wrap_pass::<LowerInferredCastsPass>(obj.clone())?;
     }
     let obj = TypeCheckPass::run(obj)?;
     let obj = DataFlowCheckPass::run(obj)?;

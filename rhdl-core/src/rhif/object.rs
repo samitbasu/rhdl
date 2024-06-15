@@ -73,7 +73,7 @@ impl Object {
             .unwrap_or(0)
     }
     pub fn literal_max_index(&self) -> usize {
-        self.kind
+        self.literals
             .keys()
             .filter_map(|slot| match slot {
                 Slot::Literal(ndx) => Some(ndx),
@@ -117,7 +117,9 @@ impl std::fmt::Debug for Object {
         }
         let mut body_str = String::new();
         for op in &self.ops {
-            writeln!(body_str, "{:?}", op)?;
+            if !matches!(op, OpCode::Noop) {
+                writeln!(body_str, "{:?}", op)?;
+            }
         }
         let mut indent = 0;
         for line in body_str.lines() {

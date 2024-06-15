@@ -13,7 +13,7 @@ use crate::{
 };
 
 use super::{
-    error::{RHDLClockCoherenceViolation, RHDLCompileError, RHDLTypeError, TypeCheck, ICE},
+    error::{RHDLCompileError, RHDLTypeError, TypeCheck, ICE},
     mir_impl::{Mir, TypeEquivalence},
     ty::{TypeId, UnifyContext},
 };

@@ -21,10 +21,10 @@ use super::pass::Pass;
 pub struct TypeCheckPass;
 
 impl Pass for TypeCheckPass {
-    fn name(&self) -> &'static str {
+    fn name() -> &'static str {
         "check_rhif_type"
     }
-    fn description(&self) -> &'static str {
+    fn description() -> &'static str {
         "Check RHIF type correctness"
     }
     fn run(input: Object) -> Result<Object, RHDLError> {

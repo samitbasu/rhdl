@@ -12,3 +12,4 @@ pub(crate) mod remove_unneeded_muxes;
 pub(crate) mod remove_unused_literals;
 pub(crate) mod remove_unused_registers;
 pub(crate) mod remove_useless_casts;
+pub(crate) mod symbol_table_is_complete;

@@ -19,7 +19,7 @@ use rhdl_core::{
     rhif::vm::execute_function,
     test_kernel_vm_and_verilog,
     types::{
-        domain::{Green, Red},
+        domain::{Blue, Green, Red},
         timed::signal,
     },
     Digital, Domain, KernelFnKind, Kind, Sig,
@@ -599,7 +599,7 @@ fn test_signal_const_binop_inference() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_bits_inference_with_type() {
+fn test_bits_inference_with_type() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: b8) -> b8 {
         let y: b8 = bits(3);
@@ -607,7 +607,8 @@ fn test_bits_inference_with_type() {
         let z = y << r;
         a
     }
-    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive())?;
+    Ok(())
 }
 
 #[test]
@@ -752,7 +753,7 @@ fn test_signal_cast_cross_clocks_fails() -> miette::Result<()> {
     fn add<C: Domain, D: Domain>(x: Sig<b8, C>) -> Sig<b8, D> {
         signal(x.val() + 3)
     }
-    compile_design::<add<Red, Red>>()?;
+    compile_design::<add<Red, Blue>>()?;
     assert!(compile_design::<add::<Red, Green>>().is_err());
     Ok(())
 }
@@ -1097,7 +1098,7 @@ fn test_phi_inferred_lengths() {
 }
 
 #[test]
-fn test_phi() {
+fn test_phi() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: b1) -> b8 {
         let mut c = bits::<8>(0);
@@ -1120,7 +1121,8 @@ fn test_phi() {
         let y = c;
         c
     }
-    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive()).unwrap();
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive())?;
+    Ok(())
 }
 
 #[test]
@@ -1253,7 +1255,7 @@ fn test_adt_inference_subset() -> miette::Result<()> {
 }
 
 #[test]
-fn test_adt_inference() {
+fn test_adt_inference() -> miette::Result<()> {
     use rhdl_bits::alias::*;
     use rhdl_bits::bits;
     use rhdl_std::*;
@@ -1366,7 +1368,8 @@ fn test_adt_inference() {
         NooState::Walk { foo: bits::<5>(3) },
     ];
     let inputs = iproduct!(foos.into_iter(), noos.into_iter()).collect::<Vec<_>>();
-    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, inputs.into_iter()).unwrap();
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, inputs.into_iter())?;
+    Ok(())
 }
 
 #[test]

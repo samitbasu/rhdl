@@ -22,10 +22,10 @@ struct InitSet<'a> {
 pub struct DataFlowCheckPass;
 
 impl Pass for DataFlowCheckPass {
-    fn name(&self) -> &'static str {
+    fn name() -> &'static str {
         "check_rhif_flow"
     }
-    fn description(&self) -> &'static str {
+    fn description() -> &'static str {
         "Check that all registers are initialized before use"
     }
     fn run(input: Object) -> Result<Object, RHDLError> {

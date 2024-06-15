@@ -344,9 +344,9 @@ impl<'a> MirContext<'a> {
         reg
     }
     fn lit(&mut self, id: NodeId, lit: ExprLit) -> Slot {
-        eprintln!("Allocate literal {:?} for {:?}", lit, id);
         let ndx = self.literals.len();
         let slot = Slot::Literal(ndx);
+        eprintln!("Allocate literal {:?} for {:?} -> {:?}", lit, id, slot);
         self.literals.insert(slot, lit);
         self.reg_source_map.insert(slot, id);
         slot
@@ -1196,21 +1196,15 @@ impl<'a> MirContext<'a> {
         Ok(lhs)
     }
     fn method_call(&mut self, id: NodeId, method_call: &ExprMethodCall) -> Result<Slot> {
-        // The `val` method is a special case used to strip the clocking context
-        // from a signal.
-        if method_call.method == "val" {
-            let lhs = self.reg(id);
-            let arg = self.expr(&method_call.receiver)?;
-            self.op(op_unary(AluUnary::Val, lhs, arg), id);
-            return Ok(lhs);
-        }
-        // First handle unary ops only
         let op = match method_call.method {
             "any" => AluUnary::Any,
             "all" => AluUnary::All,
             "xor" => AluUnary::Xor,
             "as_unsigned" => AluUnary::Unsigned,
             "as_signed" => AluUnary::Signed,
+            // The `val` method is a special case used to strip the clocking context
+            // from a signal.
+            "val" => AluUnary::Val,
             _ => {
                 return Err(self
                     .raise_syntax_error(Syntax::UnsupportedMethodCall, id)

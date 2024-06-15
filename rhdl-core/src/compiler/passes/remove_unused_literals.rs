@@ -12,10 +12,10 @@ use crate::compiler::utils::remap_slots;
 pub struct RemoveUnusedLiterals {}
 
 impl Pass for RemoveUnusedLiterals {
-    fn name(&self) -> &'static str {
+    fn name() -> &'static str {
         "remove_unused_literals"
     }
-    fn description(&self) -> &'static str {
+    fn description() -> &'static str {
         "Remove unused literals"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {

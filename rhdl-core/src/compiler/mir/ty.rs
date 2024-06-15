@@ -225,6 +225,23 @@ impl UnifyContext {
         )
     }
 
+    pub fn ty_dyn_struct(
+        &mut self,
+        id: NodeId,
+        name: String,
+        fields: Vec<(String, TypeId)>,
+    ) -> TypeId {
+        let (names, tids): (Vec<String>, Vec<TypeId>) = fields.into_iter().unzip();
+        self.ty_app(
+            id,
+            AppTypeKind::Struct(StructType {
+                name,
+                fields: names,
+            }),
+            tids,
+        )
+    }
+
     fn ty_discriminant(&mut self, id: NodeId, layout: DiscriminantLayout) -> TypeId {
         let len = self.ty_const_len(id, layout.width);
         match layout.ty {

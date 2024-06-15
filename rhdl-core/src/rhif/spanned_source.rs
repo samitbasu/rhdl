@@ -15,6 +15,7 @@ pub struct SpannedSource {
     pub source: String,
     pub name: String,
     pub span_map: HashMap<NodeId, Range<usize>>,
+    pub fallback: NodeId,
 }
 
 impl SpannedSource {
@@ -36,6 +37,7 @@ struct SpannedSourceBuilder {
     name: String,
     buffer: IndentingFormatter,
     span_map: HashMap<NodeId, Range<usize>>,
+    fallback: Option<NodeId>,
 }
 
 pub fn build_spanned_source_for_kernel(kernel: &KernelFn) -> SpannedSource {
@@ -50,6 +52,7 @@ impl SpannedSourceBuilder {
             name: self.name,
             source: self.buffer.buffer(),
             span_map: self.span_map,
+            fallback: self.fallback.unwrap(),
         }
     }
 
@@ -74,6 +77,7 @@ impl SpannedSourceBuilder {
         self.block(&kernel.body);
         self.span_map.insert(kernel.id, start..self.loc());
         self.name = kernel.name.into();
+        self.fallback = Some(kernel.id);
     }
 
     fn path_segment(&mut self, segment: &PathSegment) {

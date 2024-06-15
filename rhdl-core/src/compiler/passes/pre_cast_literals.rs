@@ -22,10 +22,10 @@ struct CastCandidate {
 }
 
 impl Pass for PreCastLiterals {
-    fn name(&self) -> &'static str {
+    fn name() -> &'static str {
         "pre_cast_literals"
     }
-    fn description(&self) -> &'static str {
+    fn description() -> &'static str {
         "Pre-cast literals to the requested length"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
