@@ -1,4 +1,3 @@
-use crate::path::{bit_range, path_star, sub_kind, Path};
 use crate::schematic::components::ArrayComponent;
 use crate::schematic::components::{
     BinaryComponent, BufferComponent, CaseComponent, CastComponent, ComponentKind, EnumComponent,
@@ -7,6 +6,7 @@ use crate::schematic::components::{
 };
 use crate::schematic::dot::write_dot;
 use crate::schematic::schematic_impl::{PinPath, Trace, WirePath};
+use crate::types::path::{bit_range, path_star, sub_kind, Path};
 use anyhow::anyhow;
 use anyhow::{bail, Result};
 

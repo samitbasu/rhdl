@@ -1,7 +1,7 @@
 use rhdl_bits::alias::*;
 use rhdl_core::{
     note, note_init_db, note_take, note_time,
-    path::{Path, PathElement},
+    types::path::{Path, PathElement},
     Digital, Kind,
 };
 use rhdl_macro::Digital;

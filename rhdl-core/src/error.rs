@@ -1,7 +1,7 @@
 use miette::Diagnostic;
 use thiserror::Error;
 
-use crate::{path::PathError, KernelFnKind, TypedBits};
+use crate::{types::path::PathError, KernelFnKind, TypedBits};
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum RHDLError {

@@ -15,16 +15,16 @@ use rhdl_core::{
     note,
     note_db::note_time,
     note_init_db, note_take,
-    path::{bit_range, Path},
     rhif::vm::execute_function,
     test_kernel_vm_and_verilog,
+    types::path::{bit_range, Path},
     types::{
         domain::{Blue, Green, Red},
-        timed::signal,
+        signal::signal,
     },
     Digital, Domain, KernelFnKind, Kind, Sig,
 };
-use rhdl_macro::{kernel, Digital};
+use rhdl_macro::{kernel, Digital, Timed};
 use rhdl_std::UnsignedMethods;
 
 #[test]
@@ -154,7 +154,7 @@ fn test_derive_digital_simple_struct() {
 #[allow(dead_code)]
 fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
     use rhdl_bits::alias::*;
-    use rhdl_core::path::*;
+    use rhdl_core::types::path::*;
 
     #[derive(Copy, Clone, PartialEq, Debug, Digital)]
     enum Test {
@@ -612,7 +612,7 @@ fn test_bits_inference_with_type() -> miette::Result<()> {
 }
 
 #[test]
-fn test_signal_cross_clock_select_fails() -> anyhow::Result<()> {
+fn test_signal_cross_clock_select_fails() -> miette::Result<()> {
     #[kernel]
     fn add<C: Domain, D: Domain>(x: Sig<b8, C>, y: Sig<b8, D>) -> Sig<b8, C> {
         if y.val().any() {
@@ -706,6 +706,50 @@ fn test_signal_coherence_in_branches() -> miette::Result<()> {
         signal(z)
     }
     compile_design::<add<Red, Green>>()?;
+    Ok(())
+}
+
+#[test]
+fn test_signal_coherence_with_timed() -> miette::Result<()> {
+    #[derive(Copy, Clone, Debug, PartialEq, Timed)]
+    struct Baz<C: Domain, D: Domain> {
+        a: Sig<b8, C>,
+        b: Sig<b8, D>,
+    }
+
+    #[derive(Copy, Clone, Debug, PartialEq, Timed)]
+    struct Container<C: Domain, D: Domain> {
+        x: Baz<C, D>,
+        y: Baz<C, D>,
+    }
+
+    #[kernel]
+    fn add<C: Domain, D: Domain>(x: Container<C, D>) -> Sig<b8, C> {
+        let val = x.y.b.val() + bits(1);
+        signal(val)
+    }
+    assert!(compile_design::<add<Red, Green>>().is_err());
+    compile_design::<add<Red, Red>>()?;
+    Ok(())
+}
+
+#[test]
+fn test_signal_carrying_struct() -> miette::Result<()> {
+    #[derive(Copy, Clone, Debug, PartialEq, Digital)]
+    struct Baz {
+        a: b8,
+        b: b8,
+        c: b8,
+    }
+
+    #[kernel]
+    fn add<C: Domain, D: Domain>(x: Sig<Baz, C>, y: Sig<b8, D>) -> Sig<b8, D> {
+        let x = x.val();
+        let y = x.b + 1;
+        signal(y)
+    }
+    assert!(compile_design::<add<Red, Green>>().is_err());
+    compile_design::<add<Red, Red>>()?;
     Ok(())
 }
 
@@ -1770,7 +1814,7 @@ fn test_for_loop() {
 }
 
 #[test]
-fn test_rebind_compile() {
+fn test_rebind_compile() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub enum SimpleEnum {
         Init,
@@ -1800,7 +1844,8 @@ fn test_rebind_compile() {
         SimpleEnum::Point { x: bits(7), y: 13 },
         SimpleEnum::Boom,
     ];
-    test_kernel_vm_and_verilog::<add, _, _, _>(add, inputs.into_iter().map(|x| (x,))).unwrap();
+    test_kernel_vm_and_verilog::<add, _, _, _>(add, inputs.into_iter().map(|x| (x,)))?;
+    Ok(())
 }
 
 #[test]

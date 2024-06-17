@@ -1,9 +1,9 @@
 use crate::{
-    path::Path,
     rhif::spec::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
         FieldValue, FuncId, Index, OpCode, Repeat, Slot, Struct, Tuple, Unary,
     },
+    types::path::Path,
     Color, TypedBits,
 };
 

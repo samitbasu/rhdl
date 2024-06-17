@@ -4,11 +4,11 @@ use crate::{
     ast::ast_impl::{ExprLit, NodeId},
     compiler::mir::{error::RHDLTypeCheckError, ty::SignFlag},
     error::RHDLError,
-    path::{sub_kind, Path, PathElement},
     rhif::{
         spec::{AluBinary, AluUnary, CaseArgument, OpCode, Slot},
         Object,
     },
+    types::path::{sub_kind, Path, PathElement},
     Digital, Kind, TypedBits,
 };
 
@@ -430,7 +430,7 @@ impl<'a> MirTypeInference<'a> {
         let Some(ty) = self.ctx.project_signal_clock(ty) else {
             return "Unresolved".to_string();
         };
-        if let Ok(clock) = self.ctx.into_ty_clock(ty) {
+        if let Ok(clock) = self.ctx.cast_ty_as_clock(ty) {
             format!("{:?}", clock)
         } else {
             "Const".to_string()

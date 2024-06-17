@@ -2,8 +2,8 @@
 use rhdl_bits::Bits;
 use rhdl_core::{
     crusty::downstream::follow_pin_downstream,
-    path::Path,
     schematic::{self, dot::write_dot, schematic_impl::pin_path},
+    types::path::Path,
 };
 use rhdl_macro::kernel;
 

@@ -3,7 +3,7 @@ use anyhow::Result;
 
 use crate::{
     kernel::{ExternalKernelDef, Kernel},
-    path::Path,
+    types::path::Path,
     Color, DigitalSignature, TypedBits,
 };
 

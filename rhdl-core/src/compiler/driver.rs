@@ -58,10 +58,10 @@ fn compile_kernel(kernel: Kernel) -> Result<Object> {
         obj = wrap_pass::<PrecomputeDiscriminantPass>(obj.clone())?;
         obj = wrap_pass::<LowerInferredCastsPass>(obj.clone())?;
     }
-    let obj = TypeCheckPass::run(obj)?;
-    let obj = DataFlowCheckPass::run(obj)?;
+    obj = CheckClockCoherence::run(obj)?;
+    obj = TypeCheckPass::run(obj)?;
+    obj = DataFlowCheckPass::run(obj)?;
     eprintln!("Final code:\n{:?}", obj);
-    let obj = CheckClockCoherence::run(obj)?;
     Ok(obj)
 }
 

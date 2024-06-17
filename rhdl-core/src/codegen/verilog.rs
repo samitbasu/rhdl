@@ -4,7 +4,6 @@ use crate::ast::ast_impl::NodeId;
 use crate::compiler::mir::error::{RHDLCompileError, ICE};
 use crate::error::RHDLError;
 use crate::kernel::ExternalKernelDef;
-use crate::path::{bit_range, Path, PathElement};
 use crate::rhif::object::SourceLocation;
 use crate::rhif::spec::{
     AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
@@ -12,6 +11,7 @@ use crate::rhif::spec::{
     Tuple, Unary,
 };
 use crate::test_module::VerilogDescriptor;
+use crate::types::path::{bit_range, Path, PathElement};
 use crate::util::binary_string;
 use crate::{ast::ast_impl::FunctionId, rhif::Object, Module, TypedBits};
 

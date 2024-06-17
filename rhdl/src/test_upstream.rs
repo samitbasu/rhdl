@@ -3,11 +3,11 @@ use rhdl_bits::Bits;
 use rhdl_core::{
     compile_design,
     crusty::upstream::follow_pin_upstream,
-    path::Path,
     schematic::{
         self, builder::build_schematic, components::ComponentKind, dot::write_dot,
         schematic_impl::pin_path, schematic_impl::Schematic,
     },
+    types::path::Path,
     DigitalFn, KernelFnKind,
 };
 use rhdl_macro::{kernel, Digital};

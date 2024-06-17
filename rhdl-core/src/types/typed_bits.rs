@@ -8,7 +8,7 @@ use crate::dyn_bit_manip::{
 use crate::error::{rhdl_error, RHDLError};
 use crate::Digital;
 use crate::{
-    path::{bit_range, Path},
+    types::path::{bit_range, Path},
     Kind,
 };
 use crate::{Color, VariantType};

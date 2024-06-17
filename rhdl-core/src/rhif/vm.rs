@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
 
 use crate::kernel::ExternalKernelDef;
-use crate::path::Path;
 use crate::rhif::object::Object;
 use crate::rhif::spec::{
     AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, Index,
     Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
 };
+use crate::types::path::Path;
 use crate::{ast::ast_impl::FunctionId, rhif::module::Module, TypedBits};
 use crate::{Digital, Kind};
 
@@ -60,7 +60,7 @@ impl<'a> VMState<'a> {
         let mut result = Path::default();
         for element in &path.elements {
             match element {
-                crate::path::PathElement::DynamicIndex(slot) => {
+                crate::types::path::PathElement::DynamicIndex(slot) => {
                     let slot = self.read(*slot)?;
                     let ndx = slot.as_i64()?;
                     result = result.index(ndx as usize);

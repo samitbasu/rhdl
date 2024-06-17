@@ -1,12 +1,12 @@
 use crate::circuit::circuit_impl::Tristate;
 use crate::compile_design;
-use crate::path::Path;
 use crate::rhif::spec::Member;
 use crate::schematic::builder::build_schematic;
 use crate::schematic::components::{
     ComponentKind, FieldPin, IndexComponent, KernelComponent, StructComponent,
 };
 use crate::schematic::schematic_impl::Schematic;
+use crate::types::path::Path;
 use crate::types::timed::Timed;
 use crate::{util::hash_id, Kind};
 use std::collections::HashMap;

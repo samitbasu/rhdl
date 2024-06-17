@@ -1,11 +1,10 @@
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::HashMap,
     fmt::{Display, Formatter},
 };
 
 use crate::{
     ast::ast_impl::NodeId,
-    path::Path,
     types::kind::{Array, DiscriminantLayout, Enum, Field, Struct, Tuple},
     Color, DiscriminantType, Kind, VariantType,
 };
@@ -361,8 +360,10 @@ impl UnifyContext {
         let TypeKind::App(AppType { kind, args: _ }) = &self.types[base.kind] else {
             bail!("Expected an app type, found {:?}", self.types[base.kind]);
         };
+        eprintln!("Enum discriminant {:?}", kind);
         match kind {
             AppTypeKind::Enum(enumerate) => {
+                eprintln!("Enum discriminant {:?}", enumerate);
                 Ok(self.ty_discriminant(base.id, enumerate.discriminant_layout))
             }
             _ => Ok(base),
@@ -383,7 +384,7 @@ impl UnifyContext {
         self.ty_app(id, AppTypeKind::Bits, vec![sign, len])
     }
 
-    fn into_ty_sign_flag(&mut self, ty: TypeId) -> Result<SignFlag> {
+    fn cast_ty_as_sign_flag(&mut self, ty: TypeId) -> Result<SignFlag> {
         let x = self.apply(ty);
         if let TypeKind::Const(Const::Signed(s)) = &self.types[x.kind] {
             Ok(*s)
@@ -392,7 +393,7 @@ impl UnifyContext {
         }
     }
 
-    fn into_ty_length(&mut self, ty: TypeId) -> Result<usize> {
+    fn cast_ty_as_bit_length(&mut self, ty: TypeId) -> Result<usize> {
         let x = self.apply(ty);
         if let TypeKind::Const(Const::Length(n)) = &self.types[x.kind] {
             Ok(*n)
@@ -401,7 +402,7 @@ impl UnifyContext {
         }
     }
 
-    pub fn into_ty_clock(&mut self, ty: TypeId) -> Result<Color> {
+    pub fn cast_ty_as_clock(&mut self, ty: TypeId) -> Result<Color> {
         let x = self.apply(ty);
         if let TypeKind::Const(Const::Clock(c)) = &self.types[x.kind] {
             Ok(*c)
@@ -421,7 +422,7 @@ impl UnifyContext {
             TypeKind::App(app) => match app.kind {
                 AppTypeKind::Array => {
                     let base = Box::new(self.into_kind(app.args[0])?);
-                    let len = self.into_ty_length(app.args[1])?;
+                    let len = self.cast_ty_as_bit_length(app.args[1])?;
                     Ok(Kind::Array(Array { base, size: len }))
                 }
                 AppTypeKind::Tuple => {
@@ -433,8 +434,8 @@ impl UnifyContext {
                     Ok(Kind::Tuple(Tuple { elements }))
                 }
                 AppTypeKind::Bits => {
-                    let sign_flag = self.into_ty_sign_flag(app.args[0])?;
-                    let len = self.into_ty_length(app.args[1])?;
+                    let sign_flag = self.cast_ty_as_sign_flag(app.args[0])?;
+                    let len = self.cast_ty_as_bit_length(app.args[1])?;
                     match sign_flag {
                         SignFlag::Signed => Ok(Kind::Signed(len)),
                         SignFlag::Unsigned => Ok(Kind::Bits(len)),
@@ -442,7 +443,7 @@ impl UnifyContext {
                 }
                 AppTypeKind::Signal => {
                     let kind = Box::new(self.into_kind(app.args[0])?);
-                    let clock = self.into_ty_clock(app.args[1])?;
+                    let clock = self.cast_ty_as_clock(app.args[1])?;
                     Ok(Kind::Signal(kind, clock))
                 }
                 AppTypeKind::Struct(strukt) => {
@@ -696,6 +697,22 @@ impl UnifyContext {
                 self.ty_app(ty.id, kind.clone(), args)
             }
             _ => ty,
+        }
+    }
+    pub fn project_clocks(&mut self, x: TypeId) -> Vec<TypeId> {
+        let x = self.apply(x);
+        match &self.types[x.kind] {
+            TypeKind::Const(Const::Clock(_)) => vec![x],
+            TypeKind::App(AppType {
+                kind: AppTypeKind::Signal,
+                args,
+            }) => vec![args[1]],
+            TypeKind::App(AppType { kind: _, args }) => args
+                .clone()
+                .into_iter()
+                .flat_map(|a| self.project_clocks(a))
+                .collect(),
+            _ => vec![],
         }
     }
     pub fn unify(&mut self, x: TypeId, y: TypeId) -> Result<()> {

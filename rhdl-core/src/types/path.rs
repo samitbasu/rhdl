@@ -500,7 +500,8 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        path::path_star, rhif::spec::Slot, types::kind::DiscriminantLayout, Kind, VariantType,
+        rhif::spec::Slot, types::kind::DiscriminantLayout, types::path::path_star, Kind,
+        VariantType,
     };
 
     use super::{leaf_paths, Path};
