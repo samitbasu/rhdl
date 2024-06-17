@@ -1,10 +1,10 @@
 use crate::{
     error::RHDLError,
-    path::Path,
     rhif::{
         spec::{Assign, OpCode, Slot},
         Object,
     },
+    types::path::Path,
 };
 
 use super::pass::Pass;

@@ -4,9 +4,9 @@ use itertools::Itertools;
 use miette::LabeledSpan;
 
 use crate::{
-    path::Path,
     rhif::spec::Member,
     schematic::schematic_impl::{PinIx, Trace, WirePath},
+    types::path::Path,
 };
 
 use super::index::IndexedSchematic;

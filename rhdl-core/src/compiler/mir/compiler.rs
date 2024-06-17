@@ -30,7 +30,6 @@ use crate::compiler::ascii;
 use crate::compiler::display_ast::pretty_print_statement;
 use crate::error::RHDLError;
 use crate::kernel::Kernel;
-use crate::path::Path;
 use crate::rhif;
 use crate::rhif::object::SymbolMap;
 use crate::rhif::rhif_builder::op_as_bits_inferred;
@@ -48,6 +47,7 @@ use crate::rhif::spec::CaseArgument;
 use crate::rhif::spec::ExternalFunctionCode;
 use crate::rhif::spec::FuncId;
 use crate::rhif::spec::Member;
+use crate::types::path::Path;
 use crate::KernelFnKind;
 use crate::Kind;
 use crate::TypedBits;
@@ -421,7 +421,7 @@ impl<'a> MirContext<'a> {
                         op_index(
                             element_rhs,
                             rhs,
-                            crate::path::Path::default().tuple_index(ndx),
+                            crate::types::path::Path::default().tuple_index(ndx),
                         ),
                         pat.id,
                     );
@@ -445,7 +445,7 @@ impl<'a> MirContext<'a> {
                         op_index(
                             element_rhs,
                             rhs,
-                            crate::path::Path::default().tuple_index(ndx),
+                            crate::types::path::Path::default().tuple_index(ndx),
                         ),
                         pat.id,
                     );
@@ -457,7 +457,11 @@ impl<'a> MirContext<'a> {
                 for (ndx, pat) in slice.elems.iter().enumerate() {
                     let element_rhs = self.reg(pat.id);
                     self.op(
-                        op_index(element_rhs, rhs, crate::path::Path::default().index(ndx)),
+                        op_index(
+                            element_rhs,
+                            rhs,
+                            crate::types::path::Path::default().index(ndx),
+                        ),
                         pat.id,
                     );
                     self.initialize_local(pat, element_rhs)?;
@@ -577,7 +581,11 @@ impl<'a> MirContext<'a> {
                 let value = self.lit(arm.id, constant.value.clone());
                 let disc = self.reg(arm.id);
                 self.op(
-                    op_index(disc, value, crate::path::Path::default().discriminant()),
+                    op_index(
+                        disc,
+                        value,
+                        crate::types::path::Path::default().discriminant(),
+                    ),
                     arm.id,
                 );
                 Ok(CaseArgument::Slot(disc))
@@ -610,7 +618,7 @@ impl<'a> MirContext<'a> {
                     })?;
                 let variant_name = &variant.name;
                 if variant.ty == VariantType::Normal {
-                    let path = crate::path::Path::default().payload(variant_name);
+                    let path = crate::types::path::Path::default().payload(variant_name);
                     let payload = self.reg(arm_enum.pat.id);
                     self.op(op_index(payload, target, path), arm_enum.pat.id);
                     self.initialize_local(&arm_enum.pat, payload)?;
@@ -950,7 +958,7 @@ impl<'a> MirContext<'a> {
     //  - The path corresponding to `[n]`
     //  - The place to store the result of splicing `a[n]<-b` in a
     // new binding of the name `a`.
-    fn expr_lhs(&mut self, expr: &Expr) -> Result<(Rebind, crate::path::Path)> {
+    fn expr_lhs(&mut self, expr: &Expr) -> Result<(Rebind, crate::types::path::Path)> {
         match &expr.kind {
             ExprKind::Path(path) => {
                 let name = path_as_ident(&path.path).ok_or_else(|| {
@@ -962,7 +970,7 @@ impl<'a> MirContext<'a> {
                     )
                 })?;
                 let rebind = self.rebind(name, expr.id)?;
-                Ok((rebind, crate::path::Path::default()))
+                Ok((rebind, crate::types::path::Path::default()))
             }
             ExprKind::Field(field) => {
                 let (rebind, path) = self.expr_lhs(&field.expr)?;
@@ -1117,7 +1125,7 @@ impl<'a> MirContext<'a> {
         let arg = self.expr(&index.expr)?;
         let index = self.expr(&index.index)?;
         self.op(
-            op_index(lhs, arg, crate::path::Path::default().dynamic(index)),
+            op_index(lhs, arg, crate::types::path::Path::default().dynamic(index)),
             id,
         );
         Ok(lhs)
@@ -1141,7 +1149,7 @@ impl<'a> MirContext<'a> {
             op_index(
                 discriminant,
                 target,
-                crate::path::Path::default().discriminant(),
+                crate::types::path::Path::default().discriminant(),
             ),
             id,
         );

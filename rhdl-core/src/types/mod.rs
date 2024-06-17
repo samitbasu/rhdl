@@ -5,6 +5,8 @@ pub mod error;
 pub mod kernel;
 pub mod kind;
 pub mod note;
+pub mod path;
+pub mod signal;
 pub mod synchronous;
 pub mod timed;
 pub mod typed_bits;

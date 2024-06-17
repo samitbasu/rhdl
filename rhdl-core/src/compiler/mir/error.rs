@@ -6,8 +6,8 @@ use thiserror::Error;
 use crate::{
     ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
     ast_builder::BinOp,
-    path::Path,
-    rhif::spec::Slot,
+    rhif::spec::{AluBinary, AluUnary, Slot},
+    types::path::Path,
     Kind,
 };
 
@@ -162,6 +162,35 @@ pub enum Syntax {
     UnmatchedVariantNotAllowedInExpression,
 }
 
+#[derive(Debug, Error, Diagnostic)]
+pub enum ClockError {
+    #[error("Clock domain mismatch in binary operation {op:?}")]
+    #[diagnostic(help(
+        "You cannot perform binary operations on signals from different clock domains"
+    ))]
+    BinaryOperationClockMismatch { op: AluBinary },
+    #[error("Clock domain mismatch in unary operation {op:?}")]
+    #[diagnostic(help(
+        "You cannot perform unary operation {op:?} on signals from different clock domains"
+    ))]
+    UnaryOperationClockMismatch { op: AluUnary },
+    #[error("Clock domain mismatch in assignment")]
+    #[diagnostic(help("You cannot assign signals from different clock domains"))]
+    AssignmentClockMismatch,
+    #[error("Clock domain mismatch in retime operation")]
+    #[diagnostic(help("You cannot retime signals from different clock domains"))]
+    RetimeClockMismatch,
+    #[error("Clock domain mismatch in select operation")]
+    #[diagnostic(help("A select operation (if) requires the selection signal and both branches to be in the same clock domain"))]
+    SelectClockMismatch,
+    #[error("Clock domain mismatch in index operation")]
+    #[diagnostic(help("You cannot index signals from different clock domains"))]
+    IndexClockMismatch,
+    #[error("Clock domain analysis failed to resolve the clock domain for this signal")]
+    #[diagnostic(help("You need to provide a clock domain for this signal"))]
+    UnresolvedClock,
+}
+
 #[derive(Debug, Error)]
 #[error("RHDL Syntax Error")]
 pub struct RHDLSyntaxError {
@@ -233,7 +262,7 @@ impl Diagnostic for RHDLTypeError {
 pub struct RHDLClockCoherenceViolation {
     pub src: String,
     pub elements: Vec<(String, SourceSpan)>,
-    pub cause_description: String,
+    pub cause: ClockError,
     pub cause_span: SourceSpan,
 }
 
@@ -242,9 +271,7 @@ impl Diagnostic for RHDLClockCoherenceViolation {
         Some(&self.src)
     }
     fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-        Some(Box::new(
-            "These elements are not all coherent with the same clock domain.  You may need to add a clock domain crosser to your design.",
-        ))
+        self.cause.help()
     }
     fn labels<'a>(&'a self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + 'a>> {
         Some(Box::new(
@@ -254,7 +281,7 @@ impl Diagnostic for RHDLClockCoherenceViolation {
                     miette::LabeledSpan::new_primary_with_span(Some(name.to_string()), *span)
                 })
                 .chain(std::iter::once(miette::LabeledSpan::new_with_span(
-                    Some(self.cause_description.to_string()),
+                    Some(self.cause.to_string()),
                     self.cause_span,
                 ))),
         ))

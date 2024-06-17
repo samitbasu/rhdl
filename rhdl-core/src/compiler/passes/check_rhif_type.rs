@@ -4,7 +4,6 @@ use crate::{
     ast::ast_impl::NodeId,
     compiler::mir::error::ICE,
     error::RHDLError,
-    path::{sub_kind, Path, PathElement},
     rhif::{
         self,
         spec::{
@@ -13,6 +12,7 @@ use crate::{
         },
         Object,
     },
+    types::path::{sub_kind, Path, PathElement},
     Kind,
 };
 

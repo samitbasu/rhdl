@@ -1,7 +1,7 @@
 use miette::Diagnostic;
 use thiserror::Error;
 
-use crate::{path::Path, Kind, TypedBits};
+use crate::{types::path::Path, Kind, TypedBits};
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum DynamicTypeError {

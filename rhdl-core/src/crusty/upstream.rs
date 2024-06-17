@@ -1,5 +1,4 @@
 use crate::{
-    path::{bit_range, path_star, sub_kind, Path},
     schematic::{
         components::{
             ArrayComponent, BinaryComponent, BufferComponent, CaseComponent, CastComponent,
@@ -8,6 +7,7 @@ use crate::{
         },
         schematic_impl::{pin_path, PinPath, Trace, WirePath},
     },
+    types::path::{bit_range, path_star, sub_kind, Path},
 };
 use anyhow::{bail, Result};
 

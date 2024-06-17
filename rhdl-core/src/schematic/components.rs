@@ -1,9 +1,9 @@
 use crate::{
-    path::Path,
     rhif::{
         object::SourceLocation,
         spec::{AluBinary, AluUnary, CaseArgument, Member},
     },
+    types::path::Path,
     Kind, TypedBits,
 };
 use anyhow::Result;
