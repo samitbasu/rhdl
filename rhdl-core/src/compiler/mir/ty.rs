@@ -72,6 +72,14 @@ pub struct VariantTag {
     ty: VariantType,
 }
 
+pub fn make_variant_tag(name: &str, discriminant: i64, ty: VariantType) -> VariantTag {
+    VariantTag {
+        name: name.to_string(),
+        discriminant,
+        ty,
+    }
+}
+
 // These are types that are generic over one or more other types.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct AppType {
@@ -247,6 +255,25 @@ impl UnifyContext {
             DiscriminantType::Unsigned => self.ty_bits(id, len),
             DiscriminantType::Signed => self.ty_signed(id, len),
         }
+    }
+
+    pub fn ty_dyn_enum(
+        &mut self,
+        id: NodeId,
+        name: String,
+        layout: DiscriminantLayout,
+        variants: Vec<(VariantTag, TypeId)>,
+    ) -> TypeId {
+        let (tags, tids): (Vec<VariantTag>, Vec<TypeId>) = variants.into_iter().unzip();
+        self.ty_app(
+            id,
+            AppTypeKind::Enum(EnumType {
+                name,
+                variants: tags,
+                discriminant_layout: layout,
+            }),
+            tids,
+        )
     }
 
     pub fn ty_enum(&mut self, id: NodeId, enumerate: &Enum) -> TypeId {
