@@ -9,7 +9,7 @@ use crate::{
     ast::ast_impl::NodeId,
     compiler::mir::{
         error::{ClockError, RHDLClockCoherenceViolation, ICE},
-        ty::{AppTypeKind, StructType, TypeId, UnifyContext},
+        ty::{make_variant_tag, AppTypeKind, StructType, TypeId, UnifyContext, VariantTag},
     },
     error::{rhdl_error, RHDLError},
     rhif::{
@@ -180,26 +180,25 @@ impl ClockCoherenceContext<'_> {
         let clock = self.ctx.ty_var(id);
         self.ctx.ty_signal(id, base, clock)
     }
-    // Converts a kind into a clock variable.  The logic is as follows:
-    //  Tuple -> recurse
-    //  struct -> recurse
-    //  enum -> single clock
-    //  array -> single clock
-    //  signal -> single clock
-    //  Bits/Signed/Empty -> single clock
-    // The logic is that struct and tuple can contain elements from multiple
-    // clock domains, but the rest cannot.  For the rest, we only want to track
-    // the clock domain of the overall collection of wires.  Any further subdivision
-    // will not change the clock domain.  The only way to combine these elements is
-    // with operators (which enforce clock coherence) or with a struct or tuple (which
-    // will be handled by the struct or tuple case).
-    fn convert_kind_to_clock_variables(&mut self, id: NodeId, kind: &Kind) -> TypeId {
+    // Here, domain is the clock domain for all of the fields in the kind that is being
+    // imported.
+    fn import_kind_with_single_domain(
+        &mut self,
+        id: NodeId,
+        kind: &Kind,
+        domain: TypeId,
+    ) -> TypeId {
         match kind {
+            Kind::Array(array) => {
+                let base = self.import_kind_with_single_domain(id, &array.base, domain);
+                let len = self.ctx.ty_const_len(id, array.size);
+                self.ctx.ty_array(id, base, len)
+            }
             Kind::Tuple(tuple) => {
                 let elements = tuple
                     .elements
                     .iter()
-                    .map(|kind| self.convert_kind_to_clock_variables(id, kind))
+                    .map(|kind| self.import_kind_with_single_domain(id, kind, domain))
                     .collect();
                 self.ctx.ty_tuple(id, elements)
             }
@@ -208,28 +207,76 @@ impl ClockCoherenceContext<'_> {
                     .fields
                     .iter()
                     .map(|field| {
-                        let tid = self.convert_kind_to_clock_variables(id, &field.kind);
+                        let tid = self.import_kind_with_single_domain(id, &field.kind, domain);
                         (field.name.clone(), tid)
                     })
                     .collect();
                 self.ctx.ty_dyn_struct(id, strukt.name.clone(), fields)
             }
-            Kind::Signal(_, color) => self.ctx.ty_clock(id, *color),
-            _ => self.ctx.ty_var(id),
+            Kind::Enum(enumerate) => {
+                let layout = enumerate.discriminant_layout;
+                let name = enumerate.name.clone();
+                let variants = enumerate
+                    .variants
+                    .iter()
+                    .map(|variant| {
+                        let ty = self.import_kind_with_single_domain(id, &variant.kind, domain);
+                        let tag = make_variant_tag(&variant.name, variant.discriminant, variant.ty);
+                        (tag, ty)
+                    })
+                    .collect();
+                self.ctx.ty_dyn_enum(id, name, layout, variants)
+            }
+            Kind::Bits(_) | Kind::Signed(_) | Kind::Empty => domain,
+            Kind::Signal(base, clock) => {
+                let clock = self.ctx.ty_clock(id, *clock);
+                self.import_kind_with_single_domain(id, &base, clock)
+            }
+        }
+    }
+    fn import_kind_with_unknown_domains(&mut self, id: NodeId, kind: &Kind) -> TypeId {
+        match kind {
+            Kind::Tuple(tuple) => {
+                let elements = tuple
+                    .elements
+                    .iter()
+                    .map(|kind| self.import_kind_with_unknown_domains(id, kind))
+                    .collect();
+                self.ctx.ty_tuple(id, elements)
+            }
+            Kind::Struct(strukt) => {
+                let fields = strukt
+                    .fields
+                    .iter()
+                    .map(|field| {
+                        let tid = self.import_kind_with_unknown_domains(id, &field.kind);
+                        (field.name.clone(), tid)
+                    })
+                    .collect();
+                self.ctx.ty_dyn_struct(id, strukt.name.clone(), fields)
+            }
+            Kind::Signal(base, color) => {
+                let domain = self.ctx.ty_clock(id, *color);
+                self.import_kind_with_single_domain(id, base, domain)
+            }
+            _ => {
+                let domain = self.ctx.ty_var(id);
+                self.import_kind_with_single_domain(id, kind, domain)
+            }
         }
     }
     fn import_literals(&mut self) {
         for (slot, literal) in &self.obj.literals {
             eprintln!("Importing literal {:?} {:?}", slot, literal.kind);
             let id = self.obj.symbols.slot_map[slot].node;
-            let ty = self.convert_kind_to_clock_variables(id, &literal.kind);
+            let ty = self.import_kind_with_unknown_domains(id, &literal.kind);
             self.slot_map.insert(*slot, ty);
         }
     }
     fn import_registers(&mut self) {
         for (slot, kind) in &self.obj.kind {
             let id = self.obj.symbols.slot_map[slot].node;
-            let ty = self.convert_kind_to_clock_variables(id, kind);
+            let ty = self.import_kind_with_unknown_domains(id, kind);
             self.slot_map.insert(*slot, ty);
         }
     }
@@ -272,13 +319,13 @@ impl ClockCoherenceContext<'_> {
                     arg = self.ctx.ty_field(arg, member)?;
                 }
                 PathElement::EnumDiscriminant => {
-                    //                    arg = self.ctx.ty_enum_discriminant(arg)?;
+                    arg = self.ctx.ty_enum_discriminant(arg)?;
                 }
                 PathElement::TupleIndex(ndx) => {
                     arg = self.ctx.ty_index(arg, *ndx)?;
                 }
                 PathElement::EnumPayload(member) => {
-                    //                    arg = self.ctx.ty_variant(arg, member)?;
+                    arg = self.ctx.ty_variant(arg, member)?;
                 }
                 PathElement::DynamicIndex(slot) => {
                     todo!()
