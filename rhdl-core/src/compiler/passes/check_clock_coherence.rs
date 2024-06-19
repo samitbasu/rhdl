@@ -304,11 +304,12 @@ impl ClockCoherenceContext<'_> {
 
     fn ty_path_project(
         &mut self,
-        arg: TypeId,
+        arg_slot: Slot,
         path: &Path,
         id: NodeId,
     ) -> Result<TypeId, RHDLError> {
-        let mut arg = self.ctx.apply(arg);
+        let arg_ty = self.slot_map[&arg_slot];
+        let mut arg = self.ctx.apply(arg_ty);
         for element in path.elements.iter() {
             eprintln!("Path project {:?} {:?}", arg, element);
             match element {
@@ -328,21 +329,8 @@ impl ClockCoherenceContext<'_> {
                     arg = self.ctx.ty_variant(arg, member)?;
                 }
                 PathElement::DynamicIndex(slot) => {
-                    todo!()
-                    /*                     let index = self.slot_ty(*slot);
-                                       let usize_ty = self.ctx.ty_usize(id);
-                                       if slot.is_literal() {
-                                           self.unify(id, index, usize_ty)?;
-                                       } else {
-                                           let reg_ty = self.ctx.apply(index);
-                                           if self.ctx.is_generic_integer(reg_ty) {
-                                               // For more clearly defined types, it is someone else's problem
-                                               // to ensure that the index is properly typed.
-                                               self.unify(id, reg_ty, usize_ty)?;
-                                           }
-                                       }
-                                       arg = self.ctx.ty_index(arg, 0)?;
-                    */
+                    self.unify_clocks(&[*slot, arg_slot], id, ClockError::IndexClockMismatch)?;
+                    arg = self.ctx.ty_index(arg, 0)?;
                 }
                 PathElement::EnumPayloadByValue(value) => {
                     arg = self.ctx.ty_variant_by_value(arg, *value)?;
@@ -410,8 +398,8 @@ impl ClockCoherenceContext<'_> {
                     )?;
                 }
                 OpCode::Index(index) => {
-                    let ty_arg = self.slot_map[&index.arg];
-                    let rhs_project = self.ty_path_project(ty_arg, &index.path, location.node)?;
+                    let rhs_project =
+                        self.ty_path_project(index.arg, &index.path, location.node)?;
                     let ty_lhs = self.slot_map[&index.lhs];
                     self.ctx.unify(rhs_project, ty_lhs).unwrap();
                     if self.ctx.unify(rhs_project, ty_lhs).is_err() {
