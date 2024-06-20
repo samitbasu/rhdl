@@ -9,7 +9,10 @@ use crate::{
     ast::ast_impl::NodeId,
     compiler::mir::{
         error::{ClockError, RHDLClockCoherenceViolation, ICE},
-        ty::{make_variant_tag, AppTypeKind, StructType, TypeId, UnifyContext, VariantTag},
+        ty::{
+            make_variant_tag, AppType, AppTypeKind, StructType, TypeId, TypeKind, UnifyContext,
+            VariantTag,
+        },
     },
     error::{rhdl_error, RHDLError},
     rhif::{
@@ -131,6 +134,13 @@ struct ClockCoherenceContext<'a> {
 
 impl ClockCoherenceContext<'_> {
     fn clock_domain_for_error(&mut self, ty: TypeId) -> &'static str {
+        if let TypeKind::App(AppType {
+            kind: AppTypeKind::Array,
+            args,
+        }) = self.ctx.ty(ty)
+        {
+            return self.clock_domain_for_error(args[0]);
+        }
         if let Ok(clock) = self.ctx.cast_ty_as_clock(ty) {
             match clock {
                 Color::Red => "Red",
@@ -151,6 +161,12 @@ impl ClockCoherenceContext<'_> {
         slots: &[Slot],
         cause: ClockError,
     ) -> Box<RHDLClockCoherenceViolation> {
+        // Print out the current state of the slot map
+        eprintln!("Slot map:");
+        for (slot, ty) in &self.slot_map {
+            let ty = self.ctx.apply(*ty);
+            eprintln!("{:?} -> {:?}", slot, self.ctx.desc(ty));
+        }
         let elements = slots
             .iter()
             .copied()
@@ -167,6 +183,8 @@ impl ClockCoherenceContext<'_> {
                 )
             })
             .collect();
+
+        eprintln!("cause span: {:?}", self.obj.symbols.node_span(id));
         Box::new(RHDLClockCoherenceViolation {
             src: self.obj.symbols.source.source.clone(),
             elements,
@@ -281,21 +299,16 @@ impl ClockCoherenceContext<'_> {
     fn unify_clocks(
         &mut self,
         slots: &[Slot],
-        id: NodeId,
+        cause_id: NodeId,
         cause: ClockError,
     ) -> Result<(), RHDLError> {
-        let ty_clock = self.ctx.ty_var(id);
+        let ty_clock = self.ctx.ty_var(cause_id);
         for slot in slots {
-            let id = self.obj.symbols.slot_map[slot].node;
             let ty_slot = self.slot_map[slot];
             if self.ctx.unify(ty_slot, ty_clock).is_err() {
-                // Print out the current state of the slot map
-                eprintln!("Slot map:");
-                for (slot, ty) in &self.slot_map {
-                    let ty = self.ctx.apply(*ty);
-                    eprintln!("{:?} -> {:?}", slot, self.ctx.desc(ty));
-                }
-                return Err(self.raise_clock_coherence_error(id, slots, cause).into());
+                return Err(self
+                    .raise_clock_coherence_error(cause_id, slots, cause)
+                    .into());
             }
         }
         Ok(())
@@ -328,8 +341,19 @@ impl ClockCoherenceContext<'_> {
                     arg = self.ctx.ty_variant(arg, member)?;
                 }
                 PathElement::DynamicIndex(slot) => {
-                    self.unify_clocks(&[*slot, arg_slot], id, ClockError::IndexClockMismatch)?;
+                    eprintln!("Dynamic index {:?} {:?}", slot, arg_slot);
+                    // First, index the argument type to get a base type
                     arg = self.ctx.ty_index(arg, 0)?;
+                    let slot_ty = self.slot_map[slot];
+                    if self.ctx.unify(arg, slot_ty).is_err() {
+                        return Err(self
+                            .raise_clock_coherence_error(
+                                id,
+                                &[arg_slot, *slot],
+                                ClockError::IndexClockMismatch,
+                            )
+                            .into());
+                    }
                 }
                 PathElement::EnumPayloadByValue(value) => {
                     arg = self.ctx.ty_variant_by_value(arg, *value)?;
@@ -385,6 +409,26 @@ impl ClockCoherenceContext<'_> {
                     )?;
                 }
                 OpCode::Select(select) => {
+                    eprintln!(
+                        "Location for select operation: {:?}",
+                        self.obj.symbols.node_span(location.node)
+                    );
+                    eprintln!(
+                        "Location for condition: {:?}",
+                        self.obj.symbols.slot_span(select.cond)
+                    );
+                    eprintln!(
+                        "Location for lhs: {:?}",
+                        self.obj.symbols.slot_span(select.lhs)
+                    );
+                    eprintln!(
+                        "Location for true value: {:?}",
+                        self.obj.symbols.slot_span(select.true_value)
+                    );
+                    eprintln!(
+                        "Location for false value: {:?}",
+                        self.obj.symbols.slot_span(select.false_value)
+                    );
                     self.unify_clocks(
                         &[
                             select.cond,
@@ -400,7 +444,6 @@ impl ClockCoherenceContext<'_> {
                     let rhs_project =
                         self.ty_path_project(index.arg, &index.path, location.node)?;
                     let ty_lhs = self.slot_map[&index.lhs];
-                    self.ctx.unify(rhs_project, ty_lhs).unwrap();
                     if self.ctx.unify(rhs_project, ty_lhs).is_err() {
                         return Err(self
                             .raise_clock_coherence_error(
@@ -421,21 +464,20 @@ impl ClockCoherenceContext<'_> {
             .into_iter()
             .map(|(k, v)| (k, self.ctx.apply(v)))
             .collect::<Vec<_>>();
-        for ty in &resolved_map {
-            let desc = self.ctx.desc(ty.1);
-            eprintln!("Slot {:?} has type {:?}", ty.0, desc);
-            for clock in self.ctx.project_clocks(ty.1) {
-                if self.ctx.is_unresolved(ty.1) {
-                    return Err(self
-                        .raise_clock_coherence_error(
-                            self.obj.symbols.source.fallback,
-                            &[ty.0],
-                            ClockError::UnresolvedClock,
-                        )
-                        .into());
-                }
-            }
-        }
+        /*         for ty in &resolved_map {
+                   let desc = self.ctx.desc(ty.1);
+                   eprintln!("Slot {:?} has type {:?}", ty.0, desc);
+                   if self.ctx.is_unresolved(ty.1) {
+                       return Err(self
+                           .raise_clock_coherence_error(
+                               self.obj.symbols.source.fallback,
+                               &[ty.0],
+                               ClockError::UnresolvedClock,
+                           )
+                           .into());
+                   }
+               }
+        */
         Ok(())
     }
 }

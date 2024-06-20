@@ -83,8 +83,8 @@ pub fn make_variant_tag(name: &str, discriminant: i64, ty: VariantType) -> Varia
 // These are types that are generic over one or more other types.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct AppType {
-    kind: AppTypeKind,
-    args: Vec<TypeId>,
+    pub kind: AppTypeKind,
+    pub args: Vec<TypeId>,
 }
 
 // The type system is more expressive than the Kind system.  The Kind
@@ -323,10 +323,10 @@ impl UnifyContext {
                 }
             }
             AppTypeKind::Signal => {
-                let clock = args[1];
                 let data = args[0];
+                eprintln!("Indexing signal {:?}", self.desc(data));
                 let indexed = self.ty_index(data, index)?;
-                Ok(self.ty_signal(base.id, indexed, clock))
+                Ok(indexed)
             }
             _ => bail!("Expected an array, tuple, or struct, found {:?}", kind),
         }
