@@ -612,6 +612,25 @@ fn test_bits_inference_with_type() -> miette::Result<()> {
 }
 
 #[test]
+fn test_signal_call_cross_clock_fails() -> miette::Result<()> {
+    #[kernel]
+    fn add(x: b8, y: b8) -> b8 {
+        x + y
+    }
+
+    #[kernel]
+    fn do_stuff<C: Domain, D: Domain>(a: Sig<b8, C>, b: Sig<b8, D>) -> Sig<b8, C> {
+        let c = add(a.val(), b.val());
+        signal(c)
+    }
+
+    compile_design::<do_stuff<Red, Red>>()?;
+    compile_design::<do_stuff<Red, Green>>()?;
+    assert!(compile_design::<do_stuff<Red, Green>>().is_err());
+    Ok(())
+}
+
+#[test]
 fn test_signal_cross_clock_select_fails() -> miette::Result<()> {
     #[kernel]
     fn add<C: Domain, D: Domain>(x: Sig<b8, C>, y: Sig<b8, D>) -> Sig<b8, C> {

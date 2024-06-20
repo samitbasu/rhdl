@@ -157,7 +157,7 @@ impl ClockCoherenceContext<'_> {
     }
     fn raise_clock_coherence_error(
         &mut self,
-        id: NodeId,
+        containing_id: NodeId,
         slots: &[Slot],
         cause: ClockError,
     ) -> Box<RHDLClockCoherenceViolation> {
@@ -166,6 +166,23 @@ impl ClockCoherenceContext<'_> {
         for (slot, ty) in &self.slot_map {
             let ty = self.ctx.apply(*ty);
             eprintln!("{:?} -> {:?}", slot, self.ctx.desc(ty));
+        }
+        let expression_span = self.obj.symbols.node_span(containing_id);
+        for mut slot in slots.iter().copied() {
+            eprintln!(
+                "Slot {:?} has range {:?}",
+                slot,
+                self.obj.symbols.slot_span(slot)
+            );
+            while let Some(equivalent) = self.obj.symbols.aliases.get(&slot).copied() {
+                eprintln!("Slot {:?} is equivalent to {:?}", slot, equivalent);
+                eprintln!(
+                    "Slot {:?} has range {:?}",
+                    equivalent,
+                    self.obj.symbols.slot_span(equivalent)
+                );
+                slot = equivalent;
+            }
         }
         let elements = slots
             .iter()
@@ -184,12 +201,15 @@ impl ClockCoherenceContext<'_> {
             })
             .collect();
 
-        eprintln!("cause span: {:?}", self.obj.symbols.node_span(id));
+        eprintln!(
+            "cause span: {:?}",
+            self.obj.symbols.node_span(containing_id)
+        );
         Box::new(RHDLClockCoherenceViolation {
             src: self.obj.symbols.source.source.clone(),
             elements,
             cause,
-            cause_span: self.obj.symbols.node_span(id).into(),
+            cause_span: self.obj.symbols.node_span(containing_id).into(),
         })
     }
     fn wrap_kind_in_signal(&mut self, base: TypeId, id: NodeId) -> TypeId {
@@ -464,19 +484,20 @@ impl ClockCoherenceContext<'_> {
             .into_iter()
             .map(|(k, v)| (k, self.ctx.apply(v)))
             .collect::<Vec<_>>();
-        /*         for ty in &resolved_map {
-                   let desc = self.ctx.desc(ty.1);
-                   eprintln!("Slot {:?} has type {:?}", ty.0, desc);
-                   if self.ctx.is_unresolved(ty.1) {
-                       return Err(self
-                           .raise_clock_coherence_error(
-                               self.obj.symbols.source.fallback,
-                               &[ty.0],
-                               ClockError::UnresolvedClock,
-                           )
-                           .into());
-                   }
-               }
+        /*
+                for ty in &resolved_map {
+                    let desc = self.ctx.desc(ty.1);
+                    eprintln!("Slot {:?} has type {:?}", ty.0, desc);
+                    if self.ctx.is_unresolved(ty.1) {
+                        return Err(self
+                            .raise_clock_coherence_error(
+                                self.obj.symbols.source.fallback,
+                                &[ty.0],
+                                ClockError::UnresolvedClock,
+                            )
+                            .into());
+                    }
+                }
         */
         Ok(())
     }

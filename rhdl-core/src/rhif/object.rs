@@ -29,6 +29,7 @@ pub struct SymbolMap {
     pub slot_map: BTreeMap<Slot, SourceLocation>,
     pub opcode_map: Vec<SourceLocation>,
     pub slot_names: BTreeMap<Slot, String>,
+    pub aliases: BTreeMap<Slot, Slot>,
 }
 
 impl SymbolMap {
@@ -39,6 +40,19 @@ impl SymbolMap {
     }
     pub fn node_span(&self, node: NodeId) -> Range<usize> {
         self.source.span(node)
+    }
+    pub fn best_span_for_slot_in_expression(&self, slot: Slot, expression: NodeId) -> Range<usize> {
+        let expression_span = self.node_span(expression);
+        eprintln!("Slot {:?} has range {:?}", slot, self.slot_span(slot));
+        while let Some(equivalent) = self.obj.symbols.aliases.get(&slot).copied() {
+            eprintln!("Slot {:?} is equivalent to {:?}", slot, equivalent);
+            eprintln!(
+                "Slot {:?} has range {:?}",
+                equivalent,
+                self.obj.symbols.slot_span(equivalent)
+            );
+            slot = equivalent;
+        }
     }
 }
 
