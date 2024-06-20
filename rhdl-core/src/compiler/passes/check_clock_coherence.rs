@@ -131,9 +131,6 @@ struct ClockCoherenceContext<'a> {
 
 impl ClockCoherenceContext<'_> {
     fn clock_domain_for_error(&mut self, ty: TypeId) -> &'static str {
-        let Some(ty) = self.ctx.project_signal_clock(ty) else {
-            return "Unresolved";
-        };
         if let Ok(clock) = self.ctx.cast_ty_as_clock(ty) {
             match clock {
                 Color::Red => "Red",
@@ -159,6 +156,7 @@ impl ClockCoherenceContext<'_> {
             .copied()
             .map(|slot| {
                 let ty = self.slot_map[&slot];
+                let ty = self.ctx.apply(ty);
                 let id = self.obj.symbols.slot_map[&slot].node;
                 (
                     format!(
@@ -294,7 +292,8 @@ impl ClockCoherenceContext<'_> {
                 // Print out the current state of the slot map
                 eprintln!("Slot map:");
                 for (slot, ty) in &self.slot_map {
-                    eprintln!("{:?} -> {:?}", slot, self.ctx.desc(*ty));
+                    let ty = self.ctx.apply(*ty);
+                    eprintln!("{:?} -> {:?}", slot, self.ctx.desc(ty));
                 }
                 return Err(self.raise_clock_coherence_error(id, slots, cause).into());
             }
