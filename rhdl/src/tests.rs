@@ -662,12 +662,9 @@ fn test_signal_coherence_in_splice_operation() -> miette::Result<()> {
         };
         signal(z)
     }
-    let err = compile_design::<add<Red, Red>>();
-    eprintln!("{:?}", err);
-    //assert!(compile_design::<add::<Red, Red>>().is_ok());
-    //assert!(compile_design::<add::<Red, Green>>().is_err());
     compile_design::<add<Red, Red>>()?;
-    //compile_design::<add<Red, Green>>()?;
+    //    compile_design::<add<Red, Green>>()?;
+    assert!(compile_design::<add<Green, Red>>().is_err());
     Ok(())
 }
 
@@ -678,7 +675,7 @@ fn test_signal_coherence_in_dynamic_indexing() -> miette::Result<()> {
         let z = x[y.val()];
         signal(z)
     }
-    assert!(compile_design::<add::<Red, Red>>().is_ok());
+    compile_design::<add<Red, Red>>()?;
     assert!(compile_design::<add::<Red, Green>>().is_err());
     Ok(())
 }
@@ -705,7 +702,9 @@ fn test_signal_coherence_in_branches() -> miette::Result<()> {
         let z = if y.any() { y } else { x };
         signal(z)
     }
-    compile_design::<add<Red, Green>>()?;
+    compile_design::<add<Green, Green>>()?;
+    compile_design::<add<Green, Red>>()?;
+    assert!(compile_design::<add<Red, Green>>().is_err());
     Ok(())
 }
 
@@ -1800,7 +1799,7 @@ fn test_fn_name_generic_stuff() {
 }
 
 #[test]
-fn test_for_loop() {
+fn test_for_loop() -> miette::Result<()> {
     #[kernel]
     fn looper(a: b8) -> bool {
         let mut ret: bool = false;
@@ -1810,7 +1809,8 @@ fn test_for_loop() {
         ret
     }
 
-    test_kernel_vm_and_verilog::<looper, _, _, _>(looper, tuple_exhaustive()).unwrap();
+    test_kernel_vm_and_verilog::<looper, _, _, _>(looper, tuple_exhaustive())?;
+    Ok(())
 }
 
 #[test]

@@ -370,8 +370,6 @@ impl<'a> MirTypeInference<'a> {
             self.ctx.desc(op.arg),
             op.path
         );
-        let mut all_slots = vec![op.lhs, op.arg];
-        all_slots.extend(op.path.dynamic_slots().map(|slot| self.slot_ty(*slot)));
         match self.ty_path_project(op.arg, &op.path, id) {
             Ok(ty) => self.unify(id, op.lhs, ty),
             Err(err) => {
