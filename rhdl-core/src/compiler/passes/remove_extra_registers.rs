@@ -77,10 +77,13 @@ impl Pass for RemoveExtraRegistersPass {
                     input.symbols.slot_names.insert(assign.rhs, merged_name);
                 }
                 // Delete the register from the register map
-                input.symbols.slot_map.remove(&assign.lhs);
+                //input.symbols.slot_map.remove(&assign.lhs);
                 input.kind.remove(&assign.lhs);
                 // Check the output register
                 input.return_slot = input.return_slot.rename(assign.lhs, assign.rhs);
+                // Record the alias in the symbol table
+                // This is used to find equivalent expressions when emitting error messages
+                input.symbols.aliases.insert(assign.rhs, assign.lhs);
             }
         }
         Ok(input)

@@ -1451,6 +1451,7 @@ pub fn compile_mir(func: Kernel) -> Result<Mir> {
             opcode_map,
             source,
             slot_names: compiler.slot_names,
+            aliases: Default::default(),
         },
         ops: compiler.ops,
         arguments: compiler.arguments,
