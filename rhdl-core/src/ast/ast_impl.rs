@@ -57,7 +57,7 @@ pub struct Pat {
 #[derive(Debug, Clone)]
 pub struct PathSegment {
     pub ident: &'static str,
-    pub arguments: Vec<Box<Expr>>,
+    pub arguments: Vec<&'static str>,
 }
 
 #[derive(Debug, Clone)]

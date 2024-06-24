@@ -385,12 +385,10 @@ impl UnifyContext {
 
     pub fn ty_enum_discriminant(&mut self, base: TypeId) -> Result<TypeId> {
         let TypeKind::App(AppType { kind, args: _ }) = &self.types[base.kind] else {
-            bail!("Expected an app type, found {:?}", self.types[base.kind]);
+            return Ok(base);
         };
-        eprintln!("Enum discriminant {:?}", kind);
         match kind {
             AppTypeKind::Enum(enumerate) => {
-                eprintln!("Enum discriminant {:?}", enumerate);
                 Ok(self.ty_discriminant(base.id, enumerate.discriminant_layout))
             }
             _ => Ok(base),
@@ -724,22 +722,6 @@ impl UnifyContext {
                 self.ty_app(ty.id, kind.clone(), args)
             }
             _ => ty,
-        }
-    }
-    pub fn project_clocks(&mut self, x: TypeId) -> Vec<TypeId> {
-        let x = self.apply(x);
-        match &self.types[x.kind] {
-            TypeKind::Const(Const::Clock(_)) => vec![x],
-            TypeKind::App(AppType {
-                kind: AppTypeKind::Signal,
-                args,
-            }) => vec![args[1]],
-            TypeKind::App(AppType { kind: _, args }) => args
-                .clone()
-                .into_iter()
-                .flat_map(|a| self.project_clocks(a))
-                .collect(),
-            _ => vec![],
         }
     }
     pub fn unify(&mut self, x: TypeId, y: TypeId) -> Result<()> {

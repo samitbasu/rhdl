@@ -520,7 +520,12 @@ impl std::cmp::PartialOrd for TypedBits {
         if self.kind != other.kind {
             return None;
         }
-        if self.kind.is_unsigned() {
+        let is_unsigned = if let Some(kind) = self.kind.signal_kind() {
+            kind.is_unsigned()
+        } else {
+            self.kind.is_unsigned()
+        };
+        if is_unsigned {
             let mut a_as_u128 = 0;
             let mut b_as_u128 = 0;
             for ndx in 0..self.bits.len() {
@@ -917,5 +922,14 @@ mod tests {
             format!("{:?}", h),
             "rhdl_core::types::typed_bits::tests::Baz::A(Bar {0: 47_b8, 1: 80_b8, 2: true})"
         );
+    }
+
+    #[test]
+    fn test_add_signals() {
+        let a = 42_u8.typed_bits().with_clock(crate::Color::Red);
+        let b = 196_u8.typed_bits().with_clock(crate::Color::Red);
+        let c = (a + b).unwrap();
+        assert_eq!(c.kind, Kind::make_signal(Kind::Bits(8), crate::Color::Red));
+        assert_eq!(c.bits, 238_u8.typed_bits().bits);
     }
 }

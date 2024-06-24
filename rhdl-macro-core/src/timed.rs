@@ -51,14 +51,6 @@ fn derive_timed_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                     )
                     }
                 }
-
-                impl #impl_generics rhdl_core::Notable for #struct_name #ty_generics #where_clause {
-                    fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
-                        #(
-                            rhdl_core::Notable::note(&self.#fields, (key, stringify!(#fields)), &mut writer);
-                        )*
-                    }
-                }
             })
         }
         _ => Err(syn::Error::new(decl.span(), "Only structs can be digital")),

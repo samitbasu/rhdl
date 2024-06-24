@@ -177,8 +177,11 @@ pub enum ClockError {
     #[error("Clock domain mismatch in assignment")]
     #[diagnostic(help("You cannot assign signals from different clock domains"))]
     AssignmentClockMismatch,
+    #[error("Clock domain mismatch in cast operation")]
+    #[diagnostic(help("You cannot cast signals from different clock domains"))]
+    CastClockMismatch,
     #[error("Clock domain mismatch in retime operation")]
-    #[diagnostic(help("You cannot retime signals from different clock domains"))]
+    #[diagnostic(help("You cannot retime signals from different clock domains.  You may need a clock domain crosser in your design."))]
     RetimeClockMismatch,
     #[error("Clock domain mismatch in select operation")]
     #[diagnostic(help("A select operation (if) requires the selection signal and both branches to be in the same clock domain"))]

@@ -101,27 +101,11 @@ impl ASTBuilder {
         })
     }
 
-    pub fn path_arguments_none(&self) -> Vec<Box<Expr>> {
+    pub fn path_arguments_none(&self) -> Vec<&'static str> {
         vec![]
     }
 
-    pub fn path_arguments_angle_bracketed(&self, args: Vec<Box<Expr>>) -> Vec<Box<Expr>> {
-        args
-    }
-
-    pub fn generic_argument_const(&self, expr: Box<Expr>) -> Box<Expr> {
-        expr
-    }
-
-    pub fn generic_argument_type(&self, kind: Kind) -> Box<Expr> {
-        let id = self.id();
-        Box::new(Expr {
-            id,
-            kind: ExprKind::Type(ExprType { kind }),
-        })
-    }
-
-    pub fn path_segment(&self, ident: &'static str, arguments: Vec<Box<Expr>>) -> PathSegment {
+    pub fn path_segment(&self, ident: &'static str, arguments: Vec<&'static str>) -> PathSegment {
         PathSegment { ident, arguments }
     }
 

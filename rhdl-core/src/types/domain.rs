@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::{Digital, Kind, Notable};
+
 pub trait Domain: Copy + PartialEq + 'static {
     fn color() -> Color;
 }

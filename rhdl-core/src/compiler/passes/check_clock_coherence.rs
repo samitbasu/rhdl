@@ -1,20 +1,12 @@
-use std::{
-    collections::BTreeMap,
-    fmt::{Display, Formatter},
-};
-
-use serde::de;
+use std::collections::{BTreeMap, HashSet};
 
 use crate::{
     ast::ast_impl::NodeId,
     compiler::mir::{
-        error::{ClockError, RHDLClockCoherenceViolation, ICE},
-        ty::{
-            make_variant_tag, AppType, AppTypeKind, StructType, TypeId, TypeKind, UnifyContext,
-            VariantTag,
-        },
+        error::{ClockError, RHDLClockCoherenceViolation},
+        ty::{make_variant_tag, AppType, AppTypeKind, Const, TypeId, TypeKind, UnifyContext},
     },
-    error::{rhdl_error, RHDLError},
+    error::RHDLError,
     rhif::{
         spec::{OpCode, Slot},
         Object,
@@ -24,92 +16,6 @@ use crate::{
 };
 
 use super::pass::Pass;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum SlotColor {
-    Multicolor,
-    Single(Color),
-    Uncolored,
-}
-
-fn get_merged_color(seq: impl IntoIterator<Item = SlotColor>) -> SlotColor {
-    seq.into_iter()
-        .fold(SlotColor::Uncolored, |acc, color| match (acc, color) {
-            (SlotColor::Uncolored, color) => color,
-            (color, SlotColor::Uncolored) => color,
-            (SlotColor::Single(color1), SlotColor::Single(color2)) if color1 == color2 => {
-                SlotColor::Single(color1)
-            }
-            _ => SlotColor::Multicolor,
-        })
-}
-
-fn get_slot_color_for_kind(kind: &Kind) -> SlotColor {
-    match kind {
-        Kind::Array(array) => get_slot_color_for_kind(&array.base),
-        Kind::Tuple(tuple) => get_merged_color(tuple.elements.iter().map(get_slot_color_for_kind)),
-        Kind::Struct(structure) => get_merged_color(
-            structure
-                .fields
-                .iter()
-                .map(|field| get_slot_color_for_kind(&field.kind)),
-        ),
-        Kind::Enum(enumerate) => get_merged_color(
-            enumerate
-                .variants
-                .iter()
-                .map(|variant| get_slot_color_for_kind(&variant.kind)),
-        ),
-        Kind::Signal(_, color) => SlotColor::Single(*color),
-        Kind::Bits(_) | Kind::Signed(_) | Kind::Empty => SlotColor::Uncolored,
-    }
-}
-
-#[derive(Debug)]
-struct ColorMap<'a> {
-    obj: &'a Object,
-    map: BTreeMap<Slot, SlotColor>,
-}
-
-impl<'a> ColorMap<'a> {
-    fn get_color(&self, slot: Slot) -> Result<SlotColor, RHDLError> {
-        self.map.get(&slot).cloned().ok_or_else(|| {
-            CheckClockCoherence::raise_ice(
-                &self.obj,
-                ICE::MissingSlotInColorMap { slot },
-                self.obj.symbols.slot_map[&slot].node,
-            )
-        })
-    }
-    fn unify(&mut self, slot: Slot, color: SlotColor) -> Result<(), RHDLError> {
-        if let Some(prev_color) = self.map.get(&slot) {
-            let new_color = get_merged_color([*prev_color, color]);
-            if new_color == SlotColor::Multicolor {
-                return Err(CheckClockCoherence::raise_ice(
-                    self.obj,
-                    ICE::SlotHasConflictingColors { slot },
-                    self.obj.symbols.slot_map[&slot].node,
-                ));
-            }
-            self.map.insert(slot, new_color);
-        } else {
-            self.map.insert(slot, color);
-        }
-        Ok(())
-    }
-    fn insert(&mut self, slot: Slot, color: SlotColor) -> Option<SlotColor> {
-        self.map.insert(slot, color)
-    }
-}
-
-impl<'a> Display for ColorMap<'a> {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        for (slot, color) in self.map.iter() {
-            writeln!(f, "{:?} -> {:?}", slot, color)?;
-        }
-        Ok(())
-    }
-}
 
 pub struct CheckClockCoherence {}
 
@@ -133,26 +39,42 @@ struct ClockCoherenceContext<'a> {
 }
 
 impl ClockCoherenceContext<'_> {
-    fn clock_domain_for_error(&mut self, ty: TypeId) -> &'static str {
-        if let TypeKind::App(AppType {
-            kind: AppTypeKind::Array,
-            args,
-        }) = self.ctx.ty(ty)
-        {
-            return self.clock_domain_for_error(args[0]);
+    fn collect_clock_domains(&mut self, ty: TypeId) -> Vec<TypeId> {
+        match self.ctx.ty(ty) {
+            TypeKind::Var(_) => vec![ty],
+            TypeKind::App(AppType { kind: _, args }) => args
+                .clone()
+                .into_iter()
+                .flat_map(|arg| self.collect_clock_domains(arg))
+                .collect(),
+            TypeKind::Const(Const::Clock(_)) => vec![ty],
+            _ => vec![],
         }
-        if let Ok(clock) = self.ctx.cast_ty_as_clock(ty) {
-            match clock {
-                Color::Red => "Red",
-                Color::Orange => "Orange",
-                Color::Yellow => "Yellow",
-                Color::Green => "Green",
-                Color::Blue => "Blue",
-                Color::Indigo => "Indigo",
-                Color::Violet => "Violet",
-            }
+    }
+    fn clock_domain_for_error(&mut self, ty: TypeId) -> &'static str {
+        let domains = self
+            .collect_clock_domains(ty)
+            .into_iter()
+            .map(|ty| {
+                if let Ok(clock) = self.ctx.cast_ty_as_clock(ty) {
+                    match clock {
+                        Color::Red => "Red",
+                        Color::Orange => "Orange",
+                        Color::Yellow => "Yellow",
+                        Color::Green => "Green",
+                        Color::Blue => "Blue",
+                        Color::Indigo => "Indigo",
+                        Color::Violet => "Violet",
+                    }
+                } else {
+                    "Unknown"
+                }
+            })
+            .collect::<HashSet<_>>();
+        if domains.len() == 1 {
+            domains.into_iter().next().unwrap()
         } else {
-            "Const"
+            "Multiple"
         }
     }
     fn raise_clock_coherence_error(
@@ -167,36 +89,21 @@ impl ClockCoherenceContext<'_> {
             let ty = self.ctx.apply(*ty);
             eprintln!("{:?} -> {:?}", slot, self.ctx.desc(ty));
         }
-        let expression_span = self.obj.symbols.node_span(containing_id);
-        for mut slot in slots.iter().copied() {
-            eprintln!(
-                "Slot {:?} has range {:?}",
-                slot,
-                self.obj.symbols.slot_span(slot)
-            );
-            while let Some(equivalent) = self.obj.symbols.aliases.get(&slot).copied() {
-                eprintln!("Slot {:?} is equivalent to {:?}", slot, equivalent);
-                eprintln!(
-                    "Slot {:?} has range {:?}",
-                    equivalent,
-                    self.obj.symbols.slot_span(equivalent)
-                );
-                slot = equivalent;
-            }
-        }
         let elements = slots
             .iter()
             .copied()
             .map(|slot| {
                 let ty = self.slot_map[&slot];
                 let ty = self.ctx.apply(ty);
-                let id = self.obj.symbols.slot_map[&slot].node;
                 (
                     format!(
                         "Expression belongs to {} clock domain",
                         self.clock_domain_for_error(ty)
                     ),
-                    self.obj.symbols.node_span(id).into(),
+                    self.obj
+                        .symbols
+                        .best_span_for_slot_in_expression(slot, containing_id)
+                        .into(),
                 )
             })
             .collect();
@@ -211,10 +118,6 @@ impl ClockCoherenceContext<'_> {
             cause,
             cause_span: self.obj.symbols.node_span(containing_id).into(),
         })
-    }
-    fn wrap_kind_in_signal(&mut self, base: TypeId, id: NodeId) -> TypeId {
-        let clock = self.ctx.ty_var(id);
-        self.ctx.ty_signal(id, base, clock)
     }
     // Here, domain is the clock domain for all of the fields in the kind that is being
     // imported.
@@ -266,7 +169,7 @@ impl ClockCoherenceContext<'_> {
             Kind::Bits(_) | Kind::Signed(_) | Kind::Empty => domain,
             Kind::Signal(base, clock) => {
                 let clock = self.ctx.ty_clock(id, *clock);
-                self.import_kind_with_single_domain(id, &base, clock)
+                self.import_kind_with_single_domain(id, base, clock)
             }
         }
     }
@@ -324,11 +227,13 @@ impl ClockCoherenceContext<'_> {
     ) -> Result<(), RHDLError> {
         let ty_clock = self.ctx.ty_var(cause_id);
         for slot in slots {
-            let ty_slot = self.slot_map[slot];
-            if self.ctx.unify(ty_slot, ty_clock).is_err() {
-                return Err(self
-                    .raise_clock_coherence_error(cause_id, slots, cause)
-                    .into());
+            if !slot.is_empty() {
+                let ty_slot = self.slot_map[slot];
+                if self.ctx.unify(ty_slot, ty_clock).is_err() {
+                    return Err(self
+                        .raise_clock_coherence_error(cause_id, slots, cause)
+                        .into());
+                }
             }
         }
         Ok(())
@@ -343,7 +248,7 @@ impl ClockCoherenceContext<'_> {
         let arg_ty = self.slot_map[&arg_slot];
         let mut arg = self.ctx.apply(arg_ty);
         for element in path.elements.iter() {
-            eprintln!("Path project {:?} {:?}", arg, element);
+            eprintln!("Path project {} {:?}", self.ctx.desc(arg), element);
             match element {
                 PathElement::Index(ndx) => {
                     arg = self.ctx.ty_index(arg, *ndx)?;
@@ -390,10 +295,26 @@ impl ClockCoherenceContext<'_> {
         }
         Ok(arg)
     }
-
+    fn dump_resolution(&mut self) {
+        let resolved_map = self
+            .slot_map
+            .clone()
+            .into_iter()
+            .map(|(k, v)| (k, self.ctx.apply(v)))
+            .collect::<Vec<_>>();
+        for ty in &resolved_map {
+            let desc = self.ctx.desc(ty.1);
+            eprintln!("Slot {:?} has type {:?}", ty.0, desc);
+        }
+    }
     fn check(&mut self) -> Result<(), RHDLError> {
+        eprintln!("Code before clock check: {:?}", self.obj);
         self.import_literals();
         self.import_registers();
+        self.dump_resolution();
+        let mut active_set = HashSet::new();
+        active_set.insert(self.obj.return_slot);
+        active_set.extend(self.obj.arguments.iter());
         for (op, location) in self.obj.ops.iter().zip(self.obj.symbols.opcode_map.iter()) {
             let id = location.node;
             if !matches!(op, OpCode::Noop) {
@@ -406,6 +327,8 @@ impl ClockCoherenceContext<'_> {
                         location.node,
                         ClockError::BinaryOperationClockMismatch { op: binary.op },
                     )?;
+                    active_set.insert(binary.arg1);
+                    active_set.insert(binary.arg2);
                 }
                 OpCode::Unary(unary) => {
                     self.unify_clocks(
@@ -413,6 +336,7 @@ impl ClockCoherenceContext<'_> {
                         location.node,
                         ClockError::UnaryOperationClockMismatch { op: unary.op },
                     )?;
+                    active_set.insert(unary.arg1);
                 }
                 OpCode::Assign(assign) => {
                     self.unify_clocks(
@@ -420,6 +344,15 @@ impl ClockCoherenceContext<'_> {
                         location.node,
                         ClockError::AssignmentClockMismatch,
                     )?;
+                    active_set.insert(assign.rhs);
+                }
+                OpCode::AsBits(cast) | OpCode::AsSigned(cast) => {
+                    self.unify_clocks(
+                        &[cast.arg, cast.lhs],
+                        location.node,
+                        ClockError::CastClockMismatch,
+                    )?;
+                    active_set.insert(cast.arg);
                 }
                 OpCode::Retime(retime) => {
                     self.unify_clocks(
@@ -427,38 +360,49 @@ impl ClockCoherenceContext<'_> {
                         location.node,
                         ClockError::RetimeClockMismatch,
                     )?;
+                    active_set.insert(retime.arg);
                 }
                 OpCode::Select(select) => {
-                    eprintln!(
-                        "Location for select operation: {:?}",
-                        self.obj.symbols.node_span(location.node)
+                    // Create a type with the clock of the condition slot, but with
+                    // the kind structure of the lhs.
+                    // The select argument must be a boolean scalar, which is mapped to a
+                    // single clock domain.
+                    let domain = self.slot_map[&select.cond];
+                    let lhs_id = self.obj.symbols.slot_map[&select.lhs].node;
+                    let lhs_ty = self.import_kind_with_single_domain(
+                        lhs_id,
+                        &self.obj.kind[&select.lhs],
+                        domain,
                     );
                     eprintln!(
-                        "Location for condition: {:?}",
-                        self.obj.symbols.slot_span(select.cond)
+                        "Unify select lhs {} and {}",
+                        self.ctx.desc(lhs_ty),
+                        self.ctx.desc(self.slot_map[&select.lhs])
                     );
-                    eprintln!(
-                        "Location for lhs: {:?}",
-                        self.obj.symbols.slot_span(select.lhs)
-                    );
-                    eprintln!(
-                        "Location for true value: {:?}",
-                        self.obj.symbols.slot_span(select.true_value)
-                    );
-                    eprintln!(
-                        "Location for false value: {:?}",
-                        self.obj.symbols.slot_span(select.false_value)
-                    );
-                    self.unify_clocks(
-                        &[
-                            select.cond,
-                            select.lhs,
-                            select.true_value,
-                            select.false_value,
-                        ],
-                        location.node,
-                        ClockError::SelectClockMismatch,
-                    )?;
+                    if self.ctx.unify(lhs_ty, self.slot_map[&select.lhs]).is_err()
+                        || self
+                            .ctx
+                            .unify(lhs_ty, self.slot_map[&select.true_value])
+                            .is_err()
+                        || self
+                            .ctx
+                            .unify(lhs_ty, self.slot_map[&select.false_value])
+                            .is_err()
+                    {
+                        return Err(self
+                            .raise_clock_coherence_error(
+                                location.node,
+                                &[
+                                    select.lhs,
+                                    select.cond,
+                                    select.true_value,
+                                    select.false_value,
+                                ],
+                                ClockError::SelectClockMismatch,
+                            )
+                            .into());
+                    }
+                    active_set.extend([select.cond, select.true_value, select.false_value].iter());
                 }
                 OpCode::Index(index) => {
                     let rhs_project =
@@ -473,32 +417,44 @@ impl ClockCoherenceContext<'_> {
                             )
                             .into());
                     }
+                    active_set.insert(index.arg);
+                    active_set.extend(index.path.dynamic_slots());
                 }
-                _ => {}
+                OpCode::Splice(_) => todo!(),
+                OpCode::Repeat(_) => todo!(),
+                OpCode::Struct(_) => todo!(),
+                OpCode::Tuple(_) => todo!(),
+                OpCode::Case(_) => todo!(),
+                OpCode::Exec(_) => todo!(),
+                OpCode::Array(_) => todo!(),
+                OpCode::Enum(_) => todo!(),
+                OpCode::Comment(_) | OpCode::Noop => {}
             }
         }
         eprintln!("*****Clock coherence check complete*****");
+        for slot in &active_set {
+            eprintln!("Active slot {:?}", slot);
+        }
         let resolved_map = self
             .slot_map
             .clone()
             .into_iter()
+            .filter(|(k, _)| active_set.contains(k))
             .map(|(k, v)| (k, self.ctx.apply(v)))
             .collect::<Vec<_>>();
-        /*
-                for ty in &resolved_map {
-                    let desc = self.ctx.desc(ty.1);
-                    eprintln!("Slot {:?} has type {:?}", ty.0, desc);
-                    if self.ctx.is_unresolved(ty.1) {
-                        return Err(self
-                            .raise_clock_coherence_error(
-                                self.obj.symbols.source.fallback,
-                                &[ty.0],
-                                ClockError::UnresolvedClock,
-                            )
-                            .into());
-                    }
-                }
-        */
+        for ty in &resolved_map {
+            let desc = self.ctx.desc(ty.1);
+            eprintln!("Slot {:?} has type {:?}", ty.0, desc);
+            if self.ctx.is_unresolved(ty.1) {
+                return Err(self
+                    .raise_clock_coherence_error(
+                        self.obj.symbols.source.fallback,
+                        &[ty.0],
+                        ClockError::UnresolvedClock,
+                    )
+                    .into());
+            }
+        }
         Ok(())
     }
 }

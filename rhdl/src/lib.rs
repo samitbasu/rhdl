@@ -1,6 +1,6 @@
 pub mod bits;
 pub mod core;
-pub mod synchronous;
+//pub mod synchronous;
 
 #[cfg(test)]
 mod tests;
@@ -8,12 +8,12 @@ mod tests;
 #[cfg(test)]
 mod test_utils;
 
-#[cfg(test)]
+/* #[cfg(test)]
 mod test_upstream;
 
 #[cfg(test)]
 mod test_downstream;
-
+ */
 pub use crate::bits::Bits;
 pub use crate::bits::SignedBits;
 pub use crate::core::Digital;

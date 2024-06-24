@@ -1,17 +1,15 @@
-use crate::{Digital, Kind, Notable};
+use crate::{Digital, Kind};
 
-pub trait Timed: Copy + Sized + PartialEq + Clone + 'static + Notable {
-    fn static_kind() -> Kind;
-    fn bits() -> usize {
-        Self::static_kind().bits()
-    }
-    fn kind(&self) -> Kind {
-        Self::static_kind()
-    }
-}
-
-impl<T: Digital> Timed for T {
+pub trait Timed: Digital {
     fn static_kind() -> Kind {
-        <T as Digital>::static_kind()
+        <Self as Digital>::static_kind()
     }
 }
+
+impl<T: Timed> Timed for (T,) {}
+
+impl<T0: Timed, T1: Timed> Timed for (T0, T1) {}
+
+impl<T0: Timed, T1: Timed, T2: Timed> Timed for (T0, T1, T2) {}
+
+impl<T0: Timed, T1: Timed, T2: Timed, T3: Timed> Timed for (T0, T1, T2, T3) {}

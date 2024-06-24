@@ -417,11 +417,19 @@ impl Kind {
     }
 
     pub fn is_signed(&self) -> bool {
-        matches!(self, Kind::Signed(_))
+        if self.is_signal() {
+            self.signal_data().is_signed()
+        } else {
+            matches!(self, Kind::Signed(_))
+        }
     }
 
     pub fn is_unsigned(&self) -> bool {
-        matches!(self, Kind::Bits(_))
+        if self.is_signal() {
+            self.signal_data().is_unsigned()
+        } else {
+            matches!(self, Kind::Bits(_))
+        }
     }
 
     pub fn is_bool(&self) -> bool {

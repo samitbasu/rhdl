@@ -1,5 +1,5 @@
 use anyhow::Result;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
 use std::ops::Range;
 
@@ -29,7 +29,7 @@ pub struct SymbolMap {
     pub slot_map: BTreeMap<Slot, SourceLocation>,
     pub opcode_map: Vec<SourceLocation>,
     pub slot_names: BTreeMap<Slot, String>,
-    pub aliases: BTreeMap<Slot, Slot>,
+    pub aliases: BTreeMap<Slot, BTreeSet<Slot>>,
 }
 
 impl SymbolMap {
@@ -43,16 +43,27 @@ impl SymbolMap {
     }
     pub fn best_span_for_slot_in_expression(&self, slot: Slot, expression: NodeId) -> Range<usize> {
         let expression_span = self.node_span(expression);
-        eprintln!("Slot {:?} has range {:?}", slot, self.slot_span(slot));
-        while let Some(equivalent) = self.obj.symbols.aliases.get(&slot).copied() {
-            eprintln!("Slot {:?} is equivalent to {:?}", slot, equivalent);
-            eprintln!(
-                "Slot {:?} has range {:?}",
-                equivalent,
-                self.obj.symbols.slot_span(equivalent)
-            );
-            slot = equivalent;
+        let mut best_range = self.slot_span(slot).unwrap_or(expression_span);
+        let mut best_range_len = best_range.len();
+        if let Some(equivalent) = self.aliases.get(&slot) {
+            for alias in equivalent {
+                let alias_range = self.best_span_for_slot_in_expression(*alias, expression);
+                let alias_range_len = alias_range.len();
+                if alias_range_len < best_range_len
+                    || (alias_range_len == best_range_len && alias_range.start > best_range.start)
+                {
+                    best_range = alias_range;
+                    best_range_len = alias_range_len;
+                }
+            }
         }
+        best_range
+    }
+    pub fn alias(&mut self, from_slot: Slot, to_slot: Slot) {
+        self.aliases
+            .entry(from_slot)
+            .or_insert_with(BTreeSet::new)
+            .insert(to_slot);
     }
 }
 

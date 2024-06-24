@@ -1,36 +1,36 @@
 use crate::error::RHDLError;
 use crate::rhif::vm::execute_function;
-use crate::TypedBits;
 use crate::{
     compile_design, generate_verilog, kernel::ExternalKernelDef, Digital, DigitalFn, KernelFnKind,
 };
+use crate::{Timed, TypedBits};
 
 pub trait TestArg {
     fn vec_tb(&self) -> Vec<TypedBits>;
 }
 
-impl<T0: Digital> TestArg for (T0,) {
+impl<T0: Timed> TestArg for (T0,) {
     fn vec_tb(&self) -> Vec<TypedBits> {
         let (t0,) = self;
         vec![t0.typed_bits()]
     }
 }
 
-impl<T0: Digital, T1: Digital> TestArg for (T0, T1) {
+impl<T0: Timed, T1: Timed> TestArg for (T0, T1) {
     fn vec_tb(&self) -> Vec<TypedBits> {
         let (t0, t1) = self;
         vec![t0.typed_bits(), t1.typed_bits()]
     }
 }
 
-impl<T0: Digital, T1: Digital, T2: Digital> TestArg for (T0, T1, T2) {
+impl<T0: Timed, T1: Timed, T2: Timed> TestArg for (T0, T1, T2) {
     fn vec_tb(&self) -> Vec<TypedBits> {
         let (t0, t1, t2) = self;
         vec![t0.typed_bits(), t1.typed_bits(), t2.typed_bits()]
     }
 }
 
-impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> TestArg for (T0, T1, T2, T3) {
+impl<T0: Timed, T1: Timed, T2: Timed, T3: Timed> TestArg for (T0, T1, T2, T3) {
     fn vec_tb(&self) -> Vec<TypedBits> {
         let (t0, t1, t2, t3) = self;
         vec![
@@ -42,9 +42,7 @@ impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> TestArg for (T0, T1, T2
     }
 }
 
-impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital, T4: Digital> TestArg
-    for (T0, T1, T2, T3, T4)
-{
+impl<T0: Timed, T1: Timed, T2: Timed, T3: Timed, T4: Timed> TestArg for (T0, T1, T2, T3, T4) {
     fn vec_tb(&self) -> Vec<TypedBits> {
         let (t0, t1, t2, t3, t4) = self;
         vec![
@@ -62,7 +60,7 @@ pub trait Testable<Args, T1> {
     fn apply(&self, args: Args) -> T1;
 }
 
-fn verilog_binary_string(x: impl Digital) -> String {
+fn verilog_binary_string(x: impl Timed) -> String {
     let q = x.binary_string();
     if q.is_empty() {
         "0".to_string()
@@ -74,8 +72,8 @@ fn verilog_binary_string(x: impl Digital) -> String {
 impl<F, Q, T0> Testable<(T0,), Q> for F
 where
     F: Fn(T0) -> Q,
-    T0: Digital,
-    Q: Digital,
+    T0: Timed,
+    Q: Timed,
 {
     fn test_string(&self, name: &str, args: (T0,)) -> String {
         let (t0,) = args;
@@ -92,9 +90,9 @@ where
 impl<F, Q, T0, T1> Testable<(T0, T1), Q> for F
 where
     F: Fn(T0, T1) -> Q,
-    T0: Digital,
-    T1: Digital,
-    Q: Digital,
+    T0: Timed,
+    T1: Timed,
+    Q: Timed,
 {
     fn test_string(&self, name: &str, args: (T0, T1)) -> String {
         let (t0, t1) = args;
@@ -112,10 +110,10 @@ where
 impl<F, Q, T0, T1, T2> Testable<(T0, T1, T2), Q> for F
 where
     F: Fn(T0, T1, T2) -> Q,
-    T0: Digital,
-    T1: Digital,
-    T2: Digital,
-    Q: Digital,
+    T0: Timed,
+    T1: Timed,
+    T2: Timed,
+    Q: Timed,
 {
     fn test_string(&self, name: &str, args: (T0, T1, T2)) -> String {
         let (t0, t1, t2) = args;
@@ -134,11 +132,11 @@ where
 impl<F, Q, T0, T1, T2, T3> Testable<(T0, T1, T2, T3), Q> for F
 where
     F: Fn(T0, T1, T2, T3) -> Q,
-    T0: Digital,
-    T1: Digital,
-    T2: Digital,
-    T3: Digital,
-    Q: Digital,
+    T0: Timed,
+    T1: Timed,
+    T2: Timed,
+    T3: Timed,
+    Q: Timed,
 {
     fn test_string(&self, name: &str, args: (T0, T1, T2, T3)) -> String {
         let (t0, t1, t2, t3) = args;
@@ -158,12 +156,12 @@ where
 impl<F, Q, T0, T1, T2, T3, T4> Testable<(T0, T1, T2, T3, T4), Q> for F
 where
     F: Fn(T0, T1, T2, T3, T4) -> Q,
-    T0: Digital,
-    T1: Digital,
-    T2: Digital,
-    T3: Digital,
-    T4: Digital,
-    Q: Digital,
+    T0: Timed,
+    T1: Timed,
+    T2: Timed,
+    T3: Timed,
+    T4: Timed,
+    Q: Timed,
 {
     fn test_string(&self, name: &str, args: (T0, T1, T2, T3, T4)) -> String {
         let (t0, t1, t2, t3, t4) = args;
@@ -188,7 +186,7 @@ fn test_module<F, Args, T0>(
 ) -> TestModule
 where
     F: Testable<Args, T0>,
-    T0: Digital,
+    T0: Timed,
 {
     let VerilogDescriptor { name, body } = desc;
     let mut num_cases = 0;
@@ -287,7 +285,7 @@ impl TestModule {
     ) -> TestModule
     where
         F: Testable<Args, T0>,
-        T0: Digital,
+        T0: Timed,
     {
         test_module(uut, desc, vals)
     }
@@ -299,7 +297,7 @@ pub fn test_kernel_vm_and_verilog<K, F, Args, T0>(
 ) -> Result<(), RHDLError>
 where
     F: Testable<Args, T0>,
-    T0: Digital,
+    T0: Timed,
     K: DigitalFn,
     Args: TestArg,
 {
@@ -312,7 +310,7 @@ where
         let args_for_vm = input.vec_tb();
         let expected = uut.apply(input).typed_bits();
         let actual = execute_function(&design, args_for_vm)?;
-        if expected != actual {
+        if expected.bits != actual.bits {
             return Err(RHDLError::VerilogVerificationErrorTyped { expected, actual });
         }
         vm_test_count += 1;
@@ -379,7 +377,7 @@ pub fn test_with_iverilog<F, Args, T0>(
 ) -> Result<(), RHDLError>
 where
     F: Testable<Args, T0>,
-    T0: Digital,
+    T0: Timed,
 {
     test_module(uut, desc, vals).run_iverilog()
 }
@@ -399,22 +397,25 @@ impl TryFrom<KernelFnKind> for VerilogDescriptor {
 
 #[cfg(test)]
 mod tests {
-    use crate::DigitalFn;
+    use crate::{
+        types::{domain::Red, signal::signal},
+        DigitalFn, Signal,
+    };
     use rhdl_bits::{alias::*, bits};
 
     use super::*;
     use itertools::Itertools;
     use rhdl_bits::Bits;
 
-    fn xor<const N: usize>(x: Bits<N>) -> bool {
-        let mut x = x.0;
+    fn xor<const N: usize>(x: Signal<Bits<N>, Red>) -> Signal<bool, Red> {
+        let mut x = x.val().0;
         x ^= x >> 1;
         x ^= x >> 2;
         x ^= x >> 4;
         x ^= x >> 8;
         x ^= x >> 16;
         x ^= x >> 32;
-        x & 1 == 1
+        signal(x & 1 == 1)
     }
 
     #[allow(non_camel_case_types)]
@@ -434,7 +435,7 @@ mod tests {
         }
     }
 
-    fn add(a: b4, b: b4) -> b4 {
+    fn add(a: Signal<b4, Red>, b: Signal<b4, Red>) -> Signal<b4, Red> {
         a + b
     }
 
@@ -454,7 +455,7 @@ mod tests {
 
     #[test]
     fn test_add() -> miette::Result<()> {
-        let nibbles_a = (0..=15).map(bits);
+        let nibbles_a = (0..=15).map(bits).map(signal);
         let nibbles_b = nibbles_a.clone();
         let kernel = add::kernel_fn().unwrap();
         let module = TestModule::new(
@@ -472,7 +473,11 @@ mod tests {
     fn test_xor_generic() -> miette::Result<()> {
         let nibbles_a = (0..=15).map(bits);
         let kernel = xor::<4>::kernel_fn().unwrap();
-        let module = TestModule::new(xor::<4>, kernel.try_into()?, nibbles_a.map(|x| (x,)));
+        let module = TestModule::new(
+            xor::<4>,
+            kernel.try_into()?,
+            nibbles_a.map(|x| (signal(x),)),
+        );
         eprintln!("{module:?}");
         #[cfg(feature = "iverilog")]
         module.run_iverilog()?;

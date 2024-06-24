@@ -110,6 +110,8 @@ impl Default for ScopeId {
     }
 }
 
+const UNARY_METHODS: &[&str] = &["any", "all", "xor", "as_unsigned", "as_signed", "val"];
+
 fn collapse_path(path: &ast_impl::Path) -> String {
     path.segments
         .iter()

@@ -85,7 +85,7 @@ impl SpannedSourceBuilder {
         if !segment.arguments.is_empty() {
             self.push("<");
             for arg in &segment.arguments {
-                self.expr(arg);
+                self.push(arg);
                 self.push(", ");
             }
             self.push(">");

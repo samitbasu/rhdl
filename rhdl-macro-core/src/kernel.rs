@@ -388,21 +388,21 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
     CustomSuffix.visit_block_mut(&mut body);
     Ok(quote! {
 
-            #vis fn #orig_name #impl_generics (#outer_args) #ret #where_clause {
-                #[forbid(non_snake_case)]
-                #[forbid(non_upper_case_globals)]
-                #[forbid(unreachable_patterns)]
-                //#[forbid(path_statements)]
-                //#[forbid(unused_variables)]
-                fn inner #impl_generics (#args) #ret #where_clause {
-                    #body
+                #vis fn #orig_name #impl_generics (#outer_args) #ret #where_clause {
+                    #[forbid(non_snake_case)]
+                    #[forbid(non_upper_case_globals)]
+                    #[forbid(unreachable_patterns)]
+                    //#[forbid(path_statements)]
+    //                #[forbid(unused_variables)]
+                    fn inner #impl_generics (#args) #ret #where_clause {
+                        #body
+                    }
+        //            rhdl_core::note_push_path(stringify!(#orig_name));
+                    let ret = inner(#call_args);
+        //            rhdl_core::note_pop_path();
+                    ret
                 }
-    //            rhdl_core::note_push_path(stringify!(#orig_name));
-                let ret = inner(#call_args);
-    //            rhdl_core::note_pop_path();
-                ret
-            }
-        })
+            })
 }
 
 impl Context {
@@ -1123,7 +1123,7 @@ impl Context {
                     .iter()
                     .map(|x| self.generic_argument(x))
                     .collect::<Result<Vec<_>>>()?;
-                quote! {bob.path_arguments_angle_bracketed(vec![#(#args),*])}
+                quote! {vec![#(#args),*]}
             }
             _ => {
                 return Err(syn::Error::new(
@@ -1139,14 +1139,11 @@ impl Context {
 
     fn generic_argument(&mut self, argument: &syn::GenericArgument) -> Result<TS> {
         match argument {
-            syn::GenericArgument::Const(expr) => {
-                let expr = self.expr(expr)?;
-                Ok(quote! {
-                    bob.generic_argument_const(#expr)
-                })
-            }
+            syn::GenericArgument::Const(expr) => Ok(quote! {
+                stringify!(#expr)
+            }),
             syn::GenericArgument::Type(Type::Path(path)) => Ok(quote! {
-                bob.generic_argument_type(<#path as Digital>::static_kind())
+                stringify!(#path)
             }),
             _ => Err(syn::Error::new(
                 argument.span(),
