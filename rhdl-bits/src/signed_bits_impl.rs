@@ -164,6 +164,22 @@ impl<const N: usize> SignedBits<N> {
     pub fn to_bools(self) -> Vec<bool> {
         self.as_unsigned().to_bools()
     }
+    pub fn any(self) -> bool {
+        (self.0 & Self::mask()) != 0
+    }
+    pub fn all(self) -> bool {
+        (self.0 & Self::mask()) == Self::mask().0
+    }
+    pub fn xor(self) -> bool {
+        let mut x = (self.0 & Self::mask()).0;
+        x ^= x >> 1;
+        x ^= x >> 2;
+        x ^= x >> 4;
+        x ^= x >> 8;
+        x ^= x >> 16;
+        x ^= x >> 32;
+        x & 1 == 1
+    }
 }
 
 impl<const N: usize> Default for SignedBits<N> {

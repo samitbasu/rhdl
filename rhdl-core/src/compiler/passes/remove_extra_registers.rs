@@ -83,7 +83,7 @@ impl Pass for RemoveExtraRegistersPass {
                 input.return_slot = input.return_slot.rename(assign.lhs, assign.rhs);
                 // Record the alias in the symbol table
                 // This is used to find equivalent expressions when emitting error messages
-                input.symbols.aliases.insert(assign.rhs, assign.lhs);
+                input.symbols.alias(assign.rhs, assign.lhs);
             }
         }
         Ok(input)

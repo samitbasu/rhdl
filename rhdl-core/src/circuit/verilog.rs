@@ -1,8 +1,8 @@
 use anyhow::Result;
 
 use crate::circuit::circuit_impl::Tristate;
+use crate::types::digital::Digital;
 use crate::types::path::{bit_range, Path};
-use crate::types::timed::Timed;
 use crate::{compile_design, generate_verilog};
 
 use super::{

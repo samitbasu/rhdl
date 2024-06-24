@@ -45,9 +45,19 @@ fn compile_kernel(kernel: Kernel) -> Result<Object> {
     //    check_inference(&kernel, &ctx)?;
     //let mut obj = compile(kernel.inner(), ctx)?;
     let mut obj = SymbolTableIsComplete::run(obj)?;
+    for _pass in 0..5 {
+        eprintln!("{:?}", obj);
+        obj = wrap_pass::<RemoveUnneededMuxesPass>(obj.clone())?;
+        obj = wrap_pass::<RemoveExtraRegistersPass>(obj.clone())?;
+        obj = wrap_pass::<RemoveUnusedLiterals>(obj.clone())?;
+        obj = wrap_pass::<PreCastLiterals>(obj.clone())?;
+        obj = wrap_pass::<RemoveUselessCastsPass>(obj.clone())?;
+        obj = wrap_pass::<RemoveEmptyCasesPass>(obj.clone())?;
+        obj = wrap_pass::<RemoveUnusedRegistersPass>(obj.clone())?;
+    }
+    obj = CheckClockCoherence::run(obj)?;
     for _pass in 0..2 {
         eprintln!("{:?}", obj);
-        obj = wrap_pass::<RemoveUnusedRegistersPass>(obj.clone())?;
         obj = wrap_pass::<RemoveUnneededMuxesPass>(obj.clone())?;
         obj = wrap_pass::<RemoveExtraRegistersPass>(obj.clone())?;
         obj = wrap_pass::<RemoveUnusedLiterals>(obj.clone())?;
@@ -58,7 +68,6 @@ fn compile_kernel(kernel: Kernel) -> Result<Object> {
         obj = wrap_pass::<PrecomputeDiscriminantPass>(obj.clone())?;
         obj = wrap_pass::<LowerInferredCastsPass>(obj.clone())?;
     }
-    obj = CheckClockCoherence::run(obj)?;
     obj = TypeCheckPass::run(obj)?;
     obj = DataFlowCheckPass::run(obj)?;
     eprintln!("Final code:\n{:?}", obj);

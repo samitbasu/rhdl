@@ -527,7 +527,7 @@ impl<'a> TranslationContext<'a> {
     }
 
     fn decl(&self, slot: &Slot) -> Result<String> {
-        let ty = &self.obj.kind[slot];
+        let ty = &self.obj.kind[slot].signal_data();
         let signed = if ty.is_signed() { "signed" } else { "" };
         let width = ty.bits();
         Ok(format!(

@@ -120,6 +120,22 @@ impl<const N: usize> Bits<N> {
         }
         v
     }
+    pub fn any(self) -> bool {
+        (self.0 & Self::mask()) != 0
+    }
+    pub fn all(self) -> bool {
+        (self.0 & Self::mask()) == Self::mask().0
+    }
+    pub fn xor(self) -> bool {
+        let mut x = (self.0 & Self::mask()).0;
+        x ^= x >> 1;
+        x ^= x >> 2;
+        x ^= x >> 4;
+        x ^= x >> 8;
+        x ^= x >> 16;
+        x ^= x >> 32;
+        x & 1 == 1
+    }
 }
 
 /// The default value for a [Bits] value is 0.
