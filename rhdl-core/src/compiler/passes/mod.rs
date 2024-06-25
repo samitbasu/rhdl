@@ -1,6 +1,7 @@
 pub(crate) mod check_clock_coherence;
 pub(crate) mod check_rhif_flow;
 pub(crate) mod check_rhif_type;
+pub(crate) mod dead_code_elimination;
 pub(crate) mod lower_index_to_copy;
 pub(crate) mod lower_inferred_casts;
 pub(crate) mod pass;

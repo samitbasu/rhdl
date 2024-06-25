@@ -5,12 +5,9 @@ use crate::{
     compiler::{
         mir::{compiler::compile_mir, infer::infer},
         passes::{
-            //check_clock_coherence::CheckClockCoherence,
-            check_clock_coherence::CheckClockCoherence,
-            check_rhif_flow::DataFlowCheckPass,
-            check_rhif_type::TypeCheckPass,
-            lower_inferred_casts::LowerInferredCastsPass,
-            pass::Pass,
+            check_clock_coherence::CheckClockCoherence, check_rhif_flow::DataFlowCheckPass,
+            check_rhif_type::TypeCheckPass, dead_code_elimination::DeadCodeEliminationPass,
+            lower_inferred_casts::LowerInferredCastsPass, pass::Pass,
             pre_cast_literals::PreCastLiterals,
             precompute_discriminants::PrecomputeDiscriminantPass,
             remove_empty_cases::RemoveEmptyCasesPass,
@@ -50,10 +47,10 @@ fn compile_kernel(kernel: Kernel) -> Result<Object> {
         obj = wrap_pass::<RemoveUnneededMuxesPass>(obj.clone())?;
         obj = wrap_pass::<RemoveExtraRegistersPass>(obj.clone())?;
         obj = wrap_pass::<RemoveUnusedLiterals>(obj.clone())?;
-        obj = wrap_pass::<PreCastLiterals>(obj.clone())?;
         obj = wrap_pass::<RemoveUselessCastsPass>(obj.clone())?;
         obj = wrap_pass::<RemoveEmptyCasesPass>(obj.clone())?;
         obj = wrap_pass::<RemoveUnusedRegistersPass>(obj.clone())?;
+        obj = wrap_pass::<DeadCodeEliminationPass>(obj.clone())?;
     }
     obj = CheckClockCoherence::run(obj)?;
     for _pass in 0..2 {
@@ -65,6 +62,7 @@ fn compile_kernel(kernel: Kernel) -> Result<Object> {
         obj = wrap_pass::<RemoveUselessCastsPass>(obj.clone())?;
         obj = wrap_pass::<RemoveEmptyCasesPass>(obj.clone())?;
         obj = wrap_pass::<RemoveUnusedRegistersPass>(obj.clone())?;
+        obj = wrap_pass::<DeadCodeEliminationPass>(obj.clone())?;
         obj = wrap_pass::<PrecomputeDiscriminantPass>(obj.clone())?;
         obj = wrap_pass::<LowerInferredCastsPass>(obj.clone())?;
     }
