@@ -424,16 +424,6 @@ impl<'a> MirTypeInference<'a> {
         }
         Ok(())
     }
-    fn clock_domain_for_error(&mut self, ty: TypeId) -> String {
-        let Some(ty) = self.ctx.project_signal_clock(ty) else {
-            return "Unresolved".to_string();
-        };
-        if let Ok(clock) = self.ctx.cast_ty_as_clock(ty) {
-            format!("{:?}", clock)
-        } else {
-            "Const".to_string()
-        }
-    }
     fn try_select(&mut self, id: NodeId, op: &TypeSelect) -> Result<()> {
         self.enforce_data_types_binary(id, op.lhs, op.true_value, op.false_value)?;
         Ok(())

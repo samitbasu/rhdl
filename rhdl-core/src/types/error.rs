@@ -57,8 +57,10 @@ pub enum DynamicTypeError {
         end: usize,
         value: TypedBits,
     },
-    #[error("Binary operation requires both arguments to have the same type {lhs:?} and {rhs:?}")]
-    BinaryOperationRequiresSameType { lhs: Kind, rhs: Kind },
+    #[error(
+        "Binary operation requires both arguments to have compatible types: {lhs:?} and {rhs:?}"
+    )]
+    BinaryOperationRequiresCompatibleType { lhs: Kind, rhs: Kind },
     #[error("Cannot negate composite value {value:?}")]
     CannotNegateComposite { value: TypedBits },
     #[error("Cannot apply binary operations to composite value {value:?}")]
