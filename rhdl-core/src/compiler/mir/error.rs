@@ -192,6 +192,12 @@ pub enum ClockError {
     #[error("Clock domain analysis failed to resolve the clock domain for this signal")]
     #[diagnostic(help("You need to provide a clock domain for this signal"))]
     UnresolvedClock,
+    #[error("Clock domain mismatch in tuple operation")]
+    #[diagnostic(help("This tuple operation is mapping signals from one clock domain to another, which is not allowed.  You can have multiple clock domains in a tuple."))]
+    TupleClockMismatch,
+    #[error("Clock domain mismatch in array operation")]
+    #[diagnostic(help("All elements of an array must be in a single clock domain.  Use a tuple if you want to hold multiple clock domains."))]
+    ArrayClockMismatch,
 }
 
 #[derive(Debug, Error)]

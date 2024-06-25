@@ -312,9 +312,6 @@ impl ClockCoherenceContext<'_> {
         self.import_literals();
         self.import_registers();
         self.dump_resolution();
-        let mut active_set = HashSet::new();
-        active_set.insert(self.obj.return_slot);
-        active_set.extend(self.obj.arguments.iter());
         for (op, location) in self.obj.ops.iter().zip(self.obj.symbols.opcode_map.iter()) {
             let id = location.node;
             if !matches!(op, OpCode::Noop) {
@@ -327,8 +324,6 @@ impl ClockCoherenceContext<'_> {
                         location.node,
                         ClockError::BinaryOperationClockMismatch { op: binary.op },
                     )?;
-                    active_set.insert(binary.arg1);
-                    active_set.insert(binary.arg2);
                 }
                 OpCode::Unary(unary) => {
                     self.unify_clocks(
@@ -336,7 +331,6 @@ impl ClockCoherenceContext<'_> {
                         location.node,
                         ClockError::UnaryOperationClockMismatch { op: unary.op },
                     )?;
-                    active_set.insert(unary.arg1);
                 }
                 OpCode::Assign(assign) => {
                     self.unify_clocks(
@@ -344,7 +338,6 @@ impl ClockCoherenceContext<'_> {
                         location.node,
                         ClockError::AssignmentClockMismatch,
                     )?;
-                    active_set.insert(assign.rhs);
                 }
                 OpCode::AsBits(cast) | OpCode::AsSigned(cast) => {
                     self.unify_clocks(
@@ -352,7 +345,6 @@ impl ClockCoherenceContext<'_> {
                         location.node,
                         ClockError::CastClockMismatch,
                     )?;
-                    active_set.insert(cast.arg);
                 }
                 OpCode::Retime(retime) => {
                     self.unify_clocks(
@@ -360,34 +352,13 @@ impl ClockCoherenceContext<'_> {
                         location.node,
                         ClockError::RetimeClockMismatch,
                     )?;
-                    active_set.insert(retime.arg);
                 }
                 OpCode::Select(select) => {
-                    // Create a type with the clock of the condition slot, but with
-                    // the kind structure of the lhs.
-                    // The select argument must be a boolean scalar, which is mapped to a
-                    // single clock domain.
-                    let domain = self.slot_map[&select.cond];
-                    let lhs_id = self.obj.symbols.slot_map[&select.lhs].node;
-                    let lhs_ty = self.import_kind_with_single_domain(
-                        lhs_id,
-                        &self.obj.kind[&select.lhs],
-                        domain,
-                    );
-                    eprintln!(
-                        "Unify select lhs {} and {}",
-                        self.ctx.desc(lhs_ty),
-                        self.ctx.desc(self.slot_map[&select.lhs])
-                    );
-                    if self.ctx.unify(lhs_ty, self.slot_map[&select.lhs]).is_err()
-                        || self
-                            .ctx
-                            .unify(lhs_ty, self.slot_map[&select.true_value])
-                            .is_err()
-                        || self
-                            .ctx
-                            .unify(lhs_ty, self.slot_map[&select.false_value])
-                            .is_err()
+                    let select_domain = self.slot_map[&select.cond];
+                    let lhs_domains = self.collect_clock_domains(self.slot_map[&select.lhs]);
+                    if lhs_domains
+                        .iter()
+                        .any(|domain| self.ctx.unify(*domain, select_domain).is_err())
                     {
                         return Err(self
                             .raise_clock_coherence_error(
@@ -402,7 +373,11 @@ impl ClockCoherenceContext<'_> {
                             )
                             .into());
                     }
-                    active_set.extend([select.cond, select.true_value, select.false_value].iter());
+                    self.unify_clocks(
+                        &[select.lhs, select.true_value, select.false_value],
+                        id,
+                        ClockError::SelectClockMismatch,
+                    )?;
                 }
                 OpCode::Index(index) => {
                     let rhs_project =
@@ -417,29 +392,70 @@ impl ClockCoherenceContext<'_> {
                             )
                             .into());
                     }
-                    active_set.insert(index.arg);
-                    active_set.extend(index.path.dynamic_slots());
                 }
                 OpCode::Splice(_) => todo!(),
-                OpCode::Repeat(_) => todo!(),
+                OpCode::Array(array) => {
+                    let ty_lhs = self.slot_map[&array.lhs];
+                    for element in &array.elements {
+                        let ty_len = self.ctx.ty_var(location.node);
+                        let ty_rhs = self.slot_map[element];
+                        let rhs = self.ctx.ty_array(location.node, ty_rhs, ty_len);
+                        if self.ctx.unify(ty_lhs, rhs).is_err() {
+                            return Err(self
+                                .raise_clock_coherence_error(
+                                    location.node,
+                                    &[array.lhs, *element],
+                                    ClockError::ArrayClockMismatch,
+                                )
+                                .into());
+                        }
+                    }
+                }
+                OpCode::Repeat(repeat) => {
+                    let ty_lhs = self.slot_map[&repeat.lhs];
+                    let ty_rhs = self.slot_map[&repeat.value];
+                    let ty_len = self.ctx.ty_const_len(location.node, repeat.len as usize);
+                    let rhs = self.ctx.ty_array(location.node, ty_rhs, ty_len);
+                    if self.ctx.unify(ty_lhs, rhs).is_err() {
+                        return Err(self
+                            .raise_clock_coherence_error(
+                                location.node,
+                                &[repeat.lhs, repeat.value],
+                                ClockError::ArrayClockMismatch,
+                            )
+                            .into());
+                    }
+                }
                 OpCode::Struct(_) => todo!(),
-                OpCode::Tuple(_) => todo!(),
+                OpCode::Tuple(tuple) => {
+                    let ty_lhs = self.slot_map[&tuple.lhs];
+                    let ty_rhs_elements = tuple
+                        .fields
+                        .iter()
+                        .map(|field| self.slot_map[field])
+                        .collect::<Vec<_>>();
+                    let ty_rhs = self.ctx.ty_tuple(location.node, ty_rhs_elements);
+                    if self.ctx.unify(ty_lhs, ty_rhs).is_err() {
+                        return Err(self
+                            .raise_clock_coherence_error(
+                                location.node,
+                                &[tuple.lhs],
+                                ClockError::TupleClockMismatch,
+                            )
+                            .into());
+                    }
+                }
                 OpCode::Case(_) => todo!(),
                 OpCode::Exec(_) => todo!(),
-                OpCode::Array(_) => todo!(),
                 OpCode::Enum(_) => todo!(),
                 OpCode::Comment(_) | OpCode::Noop => {}
             }
         }
         eprintln!("*****Clock coherence check complete*****");
-        for slot in &active_set {
-            eprintln!("Active slot {:?}", slot);
-        }
         let resolved_map = self
             .slot_map
             .clone()
             .into_iter()
-            .filter(|(k, _)| active_set.contains(k))
             .map(|(k, v)| (k, self.ctx.apply(v)))
             .collect::<Vec<_>>();
         for ty in &resolved_map {

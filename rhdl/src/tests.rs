@@ -822,7 +822,7 @@ fn test_signal_cast_cross_clocks_fails() -> miette::Result<()> {
     fn add<C: Domain, D: Domain>(x: Signal<b8, C>) -> Signal<b8, D> {
         signal(x.val() + 3)
     }
-    compile_design::<add<Red, Blue>>()?;
+    compile_design::<add<Red, Red>>()?;
     assert!(compile_design::<add::<Red, Green>>().is_err());
     Ok(())
 }
@@ -849,6 +849,40 @@ fn test_signal_cross_clock_indexing_fails() -> anyhow::Result<()> {
         signal(z)
     }
     assert!(compile_design::<add::<Red, Red>>().is_ok());
+    assert!(compile_design::<add::<Red, Green>>().is_err());
+    Ok(())
+}
+
+#[test]
+fn test_signal_tuple_crossing_fails() -> miette::Result<()> {
+    #[kernel]
+    fn add<C: Domain, D: Domain>(x: Signal<b8, C>, y: Signal<b8, D>) -> Signal<(b8, b8), C> {
+        let x = x.val();
+        let y = y.val();
+        let z = (x, y);
+        signal(z)
+    }
+    compile_design::<add<Red, Red>>()?;
+    assert!(compile_design::<add::<Red, Green>>().is_err());
+    Ok(())
+}
+
+#[test]
+fn test_signal_tuple_crossing_fails_second_test() -> miette::Result<()> {
+    #[kernel]
+    fn add<C: Domain, D: Domain>(
+        x: Signal<b8, C>,
+        y: Signal<b8, D>,
+    ) -> (Signal<b8, C>, Signal<b8, D>) {
+        let x = x.val();
+        let y = y.val();
+        let x = signal(x);
+        let y = signal(y);
+        let a = (y, x);
+        a
+    }
+    compile_design::<add<Red, Red>>()?;
+    compile_design::<add<Red, Green>>()?;
     assert!(compile_design::<add::<Red, Green>>().is_err());
     Ok(())
 }
@@ -1147,17 +1181,18 @@ fn test_phi_missing_register() {
 fn test_phi_inferred_lengths() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b1, Red>) -> Signal<b8, Red> {
+        let c: b6 = bits(0);
+        let d = c;
         let mut c = bits(0);
-        let _d = c;
         if a.val().any() {
             c = bits(2);
         } else {
             c = bits(4);
         }
         let y = c;
-        signal(y)
+        signal(c)
     }
-    //    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red())?;
     Ok(())
 }
 
@@ -2881,6 +2916,36 @@ fn test_repeat_op() {
     }
 
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+}
+
+#[test]
+fn test_cross_clock_domains_fails_with_repeat() -> miette::Result<()> {
+    #[kernel]
+    fn foo<C: Domain, D: Domain>(a: Signal<b8, C>, b: Signal<b8, D>) -> Signal<[b8; 3], C> {
+        let a = a.val();
+        let b = b.val();
+        signal([b; 3])
+    }
+
+    compile_design::<foo<Red, Red>>()?;
+    assert!(compile_design::<foo<Red, Green>>().is_err());
+    Ok(())
+}
+
+#[test]
+fn cannot_mix_clocks_in_an_array() -> miette::Result<()> {
+    #[kernel]
+    fn foo<C: Domain, D: Domain>(a: Signal<b8, C>, b: Signal<b8, D>) -> Signal<b8, C> {
+        let a = a.val();
+        let b = b.val();
+        let c = [a, b, a];
+        let d = c[0];
+        signal(d)
+    }
+    compile_design::<foo<Red, Red>>()?;
+    compile_design::<foo<Red, Green>>()?;
+    assert!(compile_design::<foo<Red, Green>>().is_err());
+    Ok(())
 }
 
 #[test]
