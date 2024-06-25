@@ -293,28 +293,36 @@ impl TypedBits {
     }
 }
 
+fn binop_kind(lhs: &Kind, rhs: &Kind) -> Result<Kind> {
+    if lhs.is_composite() || rhs.is_composite() {
+        return Err(rhdl_error(
+            DynamicTypeError::CannotApplyBinaryOperationToComposite {
+                value: TypedBits::EMPTY,
+            },
+        ));
+    }
+    if lhs == rhs {
+        return Ok(lhs.clone());
+    }
+    let signal_kind = lhs.signal_data();
+    let Some(clock) = lhs.signal_clock().or(rhs.signal_clock()) else {
+        return Err(rhdl_error(
+            DynamicTypeError::BinaryOperationRequiresCompatibleType {
+                lhs: lhs.clone(),
+                rhs: rhs.clone(),
+            },
+        ));
+    };
+    Ok(Kind::make_signal(signal_kind, clock))
+}
+
 impl std::ops::Add<TypedBits> for TypedBits {
     type Output = Result<TypedBits>;
 
     fn add(self, rhs: TypedBits) -> Self::Output {
-        if self.kind != rhs.kind {
-            return Err(rhdl_error(
-                DynamicTypeError::BinaryOperationRequiresSameType {
-                    lhs: self.kind,
-                    rhs: rhs.kind,
-                },
-            ));
-        }
-        if self.kind.is_composite() {
-            return Err(rhdl_error(
-                DynamicTypeError::CannotApplyBinaryOperationToComposite {
-                    value: self.clone(),
-                },
-            ));
-        }
         Ok(TypedBits {
             bits: full_add(&self.bits, &rhs.bits),
-            kind: self.kind,
+            kind: binop_kind(&self.kind, &rhs.kind)?,
         })
     }
 }
@@ -323,17 +331,9 @@ impl std::ops::Sub<TypedBits> for TypedBits {
     type Output = Result<TypedBits>;
 
     fn sub(self, rhs: TypedBits) -> Self::Output {
-        if self.kind != rhs.kind {
-            return Err(rhdl_error(
-                DynamicTypeError::BinaryOperationRequiresSameType {
-                    lhs: self.kind,
-                    rhs: rhs.kind,
-                },
-            ));
-        }
         Ok(TypedBits {
             bits: full_sub(&self.bits, &rhs.bits),
-            kind: self.kind,
+            kind: binop_kind(&self.kind, &rhs.kind)?,
         })
     }
 }
@@ -358,24 +358,9 @@ impl std::ops::BitXor for TypedBits {
     type Output = Result<TypedBits>;
 
     fn bitxor(self, rhs: TypedBits) -> Self::Output {
-        if self.kind != rhs.kind {
-            return Err(rhdl_error(
-                DynamicTypeError::BinaryOperationRequiresSameType {
-                    lhs: self.kind,
-                    rhs: rhs.kind,
-                },
-            ));
-        }
-        if self.kind.is_composite() {
-            return Err(rhdl_error(
-                DynamicTypeError::CannotApplyBinaryOperationToComposite {
-                    value: self.clone(),
-                },
-            ));
-        }
         Ok(TypedBits {
             bits: bits_xor(&self.bits, &rhs.bits),
-            kind: self.kind,
+            kind: binop_kind(&self.kind, &rhs.kind)?,
         })
     }
 }
@@ -384,24 +369,9 @@ impl std::ops::BitAnd for TypedBits {
     type Output = Result<TypedBits>;
 
     fn bitand(self, rhs: TypedBits) -> Self::Output {
-        if self.kind != rhs.kind {
-            return Err(rhdl_error(
-                DynamicTypeError::BinaryOperationRequiresSameType {
-                    lhs: self.kind,
-                    rhs: rhs.kind,
-                },
-            ));
-        }
-        if self.kind.is_composite() {
-            return Err(rhdl_error(
-                DynamicTypeError::CannotApplyBinaryOperationToComposite {
-                    value: self.clone(),
-                },
-            ));
-        }
         Ok(TypedBits {
             bits: bits_and(&self.bits, &rhs.bits),
-            kind: self.kind,
+            kind: binop_kind(&self.kind, &rhs.kind)?,
         })
     }
 }
@@ -410,24 +380,9 @@ impl std::ops::BitOr for TypedBits {
     type Output = Result<TypedBits>;
 
     fn bitor(self, rhs: TypedBits) -> Self::Output {
-        if self.kind != rhs.kind {
-            return Err(rhdl_error(
-                DynamicTypeError::BinaryOperationRequiresSameType {
-                    lhs: self.kind,
-                    rhs: rhs.kind,
-                },
-            ));
-        }
-        if self.kind.is_composite() {
-            return Err(rhdl_error(
-                DynamicTypeError::CannotApplyBinaryOperationToComposite {
-                    value: self.clone(),
-                },
-            ));
-        }
         Ok(TypedBits {
             bits: bits_or(&self.bits, &rhs.bits),
-            kind: self.kind,
+            kind: binop_kind(&self.kind, &rhs.kind)?,
         })
     }
 }
