@@ -930,7 +930,7 @@ fn test_signal_ops_inference() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_simple_type_inference() {
+fn test_unknown_clock_domain() -> miette::Result<()> {
     #[kernel]
     fn do_stuff<C: Domain>(a: Signal<b12, C>) -> Signal<b12, C> {
         let k = a;
@@ -955,7 +955,42 @@ fn test_simple_type_inference() {
         };
         l + k
     }
-    test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, tuple_exhaustive_red()).unwrap();
+    assert!(compile_design::<do_stuff<Red>>().is_err());
+    Ok(())
+}
+
+#[test]
+fn test_simple_type_inference() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff<C: Domain>(a: Signal<b12, C>) -> Signal<b12, C> {
+        let k = a;
+        let m = bits::<14>(7);
+        let c = k + 3;
+        let d = if c > k { c } else { k };
+        let e = (c, m);
+        let (f, g) = e;
+        let h0 = g + 1;
+        let k: b4 = bits::<4>(7);
+        let q = (bits::<2>(1), (bits::<5>(0), signed::<8>(5)), bits::<12>(6));
+        let b = q.1 .1;
+        let (q0, (q1, q1b), q2) = q; // Tuple destructuring
+        let z = q1b + 4;
+        let h = [d, c, f];
+        let [i, j, k] = h;
+        let o = j;
+        let l = {
+            let a = b12(3);
+            let b = bits(4);
+            a + b
+        };
+        if h0.any() {
+            l + k
+        } else {
+            l + k + 1
+        }
+    }
+    test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, tuple_exhaustive_red())?;
+    Ok(())
 }
 
 #[test]
@@ -2042,7 +2077,7 @@ fn test_basic_compile() -> miette::Result<()> {
 }
 
 #[test]
-fn test_enum_match() {
+fn test_enum_match() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub enum SimpleEnum {
         Init,
@@ -2074,8 +2109,8 @@ fn test_enum_match() {
     test_kernel_vm_and_verilog::<add<domain::Red>, _, _, _>(
         add,
         samples.into_iter().map(red).map(|x| (x,)),
-    )
-    .unwrap();
+    )?;
+    Ok(())
 }
 
 #[test]

@@ -8,7 +8,7 @@ use crate::{
     },
     error::RHDLError,
     rhif::{
-        spec::{OpCode, Slot},
+        spec::{CaseArgument, OpCode, Slot},
         Object,
     },
     types::path::{Path, PathElement},
@@ -164,6 +164,7 @@ impl ClockCoherenceContext<'_> {
                         (tag, ty)
                     })
                     .collect();
+                todo!("This should replace the discriminant with the domain provided.");
                 self.ctx.ty_dyn_enum(id, name, layout, variants)
             }
             Kind::Bits(_) | Kind::Signed(_) | Kind::Empty => domain,
@@ -238,7 +239,29 @@ impl ClockCoherenceContext<'_> {
         }
         Ok(())
     }
-
+    // Unify the clock domains present in the RHS with the domain given on the LHS.
+    // So, for example, if the LHS is Green, and RHS is struct<foo: V1, bar: V2>, then
+    // V1 and V2 must be Green.
+    fn unify_projected_clocks(
+        &mut self,
+        lhs: Slot,
+        rhs: Slot,
+        cause_id: NodeId,
+        cause: ClockError,
+    ) -> Result<(), RHDLError> {
+        let lhs_domains = self.collect_clock_domains(self.slot_map[&lhs]);
+        for lhs_domain in lhs_domains {
+            let rhs_domains = self.collect_clock_domains(self.slot_map[&rhs]);
+            for domain in rhs_domains {
+                if self.ctx.unify(lhs_domain, domain).is_err() {
+                    return Err(self
+                        .raise_clock_coherence_error(cause_id, &[lhs, rhs], cause)
+                        .into());
+                }
+            }
+        }
+        Ok(())
+    }
     fn ty_path_project(
         &mut self,
         arg_slot: Slot,
@@ -354,25 +377,12 @@ impl ClockCoherenceContext<'_> {
                     )?;
                 }
                 OpCode::Select(select) => {
-                    let select_domain = self.slot_map[&select.cond];
-                    let lhs_domains = self.collect_clock_domains(self.slot_map[&select.lhs]);
-                    if lhs_domains
-                        .iter()
-                        .any(|domain| self.ctx.unify(*domain, select_domain).is_err())
-                    {
-                        return Err(self
-                            .raise_clock_coherence_error(
-                                location.node,
-                                &[
-                                    select.lhs,
-                                    select.cond,
-                                    select.true_value,
-                                    select.false_value,
-                                ],
-                                ClockError::SelectClockMismatch,
-                            )
-                            .into());
-                    }
+                    self.unify_projected_clocks(
+                        select.cond,
+                        select.lhs,
+                        location.node,
+                        ClockError::SelectClockMismatch,
+                    )?;
                     self.unify_clocks(
                         &[select.lhs, select.true_value, select.false_value],
                         id,
@@ -445,9 +455,41 @@ impl ClockCoherenceContext<'_> {
                             .into());
                     }
                 }
-                OpCode::Case(_) => todo!(),
+                OpCode::Case(case) => {
+                    self.unify_projected_clocks(
+                        case.discriminant,
+                        case.lhs,
+                        location.node,
+                        ClockError::CaseClockMismatch,
+                    )?;
+                    for (argument, value) in &case.table {
+                        self.unify_projected_clocks(
+                            case.discriminant,
+                            *value,
+                            location.node,
+                            ClockError::CaseClockMismatch,
+                        )?;
+                        if let CaseArgument::Slot(slot) = argument {
+                            self.unify_projected_clocks(
+                                case.discriminant,
+                                *slot,
+                                location.node,
+                                ClockError::CaseClockMismatch,
+                            )?;
+                        }
+                    }
+                }
                 OpCode::Exec(_) => todo!(),
-                OpCode::Enum(_) => todo!(),
+                OpCode::Enum(enumerate) => {
+                    for variant in &enumerate.fields {
+                        self.unify_projected_clocks(
+                            enumerate.lhs,
+                            variant.value,
+                            location.node,
+                            ClockError::EnumClockMismatch,
+                        )?;
+                    }
+                }
                 OpCode::Comment(_) | OpCode::Noop => {}
             }
         }
