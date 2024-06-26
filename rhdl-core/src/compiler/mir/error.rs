@@ -198,6 +198,12 @@ pub enum ClockError {
     #[error("Clock domain mismatch in array operation")]
     #[diagnostic(help("All elements of an array must be in a single clock domain.  Use a tuple if you want to hold multiple clock domains."))]
     ArrayClockMismatch,
+    #[error("Clock domain mismatch in match statement")]
+    #[diagnostic(help("All branches of a match statement, the discriminant, and the result must be in the same clock domain"))]
+    CaseClockMismatch,
+    #[error("Clock domain mismatch in enum operation")]
+    #[diagnostic(help("All fields of an enum must be in the same clock domain"))]
+    EnumClockMismatch,
 }
 
 #[derive(Debug, Error)]
