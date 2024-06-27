@@ -327,7 +327,7 @@ impl<'a> MirTypeInference<'a> {
                     arg = self.ctx.ty_field(arg, member)?;
                 }
                 PathElement::EnumDiscriminant => {
-                    arg = self.ctx.ty_enum_discriminant(arg)?;
+                    arg = self.ctx.ty_enum_discriminant(arg);
                 }
                 PathElement::TupleIndex(ndx) => {
                     arg = self.ctx.ty_index(arg, *ndx)?;
