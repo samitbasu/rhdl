@@ -42,8 +42,8 @@ impl ClockCoherenceContext<'_> {
     fn collect_clock_domains(&mut self, ty: TypeId) -> Vec<TypeId> {
         match self.ctx.ty(ty) {
             TypeKind::Var(_) => vec![ty],
-            TypeKind::App(AppType { kind: _, args }) => args
-                .clone()
+            TypeKind::App(app) => app
+                .sub_types()
                 .into_iter()
                 .flat_map(|arg| self.collect_clock_domains(arg))
                 .collect(),
@@ -153,7 +153,6 @@ impl ClockCoherenceContext<'_> {
                 self.ctx.ty_dyn_struct(id, strukt.name.clone(), fields)
             }
             Kind::Enum(enumerate) => {
-                let layout = enumerate.discriminant_layout;
                 let name = enumerate.name.clone();
                 let variants = enumerate
                     .variants
@@ -164,8 +163,14 @@ impl ClockCoherenceContext<'_> {
                         (tag, ty)
                     })
                     .collect();
-                todo!("This should replace the discriminant with the domain provided.");
-                self.ctx.ty_dyn_enum(id, name, layout, variants)
+                let discriminant = domain;
+                self.ctx.ty_dyn_enum(
+                    id,
+                    name,
+                    discriminant,
+                    enumerate.discriminant_layout.alignment,
+                    variants,
+                )
             }
             Kind::Bits(_) | Kind::Signed(_) | Kind::Empty => domain,
             Kind::Signal(base, clock) => {
@@ -280,7 +285,7 @@ impl ClockCoherenceContext<'_> {
                     arg = self.ctx.ty_field(arg, member)?;
                 }
                 PathElement::EnumDiscriminant => {
-                    arg = self.ctx.ty_enum_discriminant(arg)?;
+                    arg = self.ctx.ty_enum_discriminant(arg);
                 }
                 PathElement::TupleIndex(ndx) => {
                     arg = self.ctx.ty_index(arg, *ndx)?;
