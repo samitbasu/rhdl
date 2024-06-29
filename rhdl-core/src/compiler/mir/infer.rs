@@ -284,7 +284,12 @@ impl<'a> MirTypeInference<'a> {
                 // LHS of a comparison is always a boolean
                 let lhs_var = self.ctx.ty_bool(id);
                 self.unify(id, op.lhs, lhs_var)?;
-                if let (Some(arg1_data), Some(arg2_data)) = (
+                let a1_is_signal = self.ctx.is_signal(op.arg1);
+                let a2_is_signal = self.ctx.is_signal(op.arg2);
+
+                if !a1_is_signal && !a2_is_signal {
+                    self.ctx.unify(op.arg1, op.arg2)?;
+                } else if let (Some(arg1_data), Some(arg2_data)) = (
                     self.ctx.project_signal_value(op.arg1),
                     self.ctx.project_signal_value(op.arg2),
                 ) {
@@ -758,30 +763,31 @@ pub fn infer(mir: Mir) -> Result<Object> {
         let ty = infer.ctx.desc(ty);
         eprintln!("Slot {:?} -> type {}", slot, ty);
     }
+    // TODO - remove fixed iteration count
     infer.try_type_ops(5, &type_ops)?;
-    eprintln!("Try to replace generic literals with ?32");
-    // Try to replace generic literals with (b/s)32
+    eprintln!("Try to replace generic literals with ?128");
+    // Try to replace generic literals with (b/s)128
     if !infer.all_slots_resolved() {
         for lit in mir.literals.keys() {
             let ty = infer.slot_ty(*lit);
             if infer.ctx.is_unsized_integer(ty) {
-                let i32_len = infer.ctx.ty_const_len(ty.id, 32);
-                let m32_ty = infer.ctx.ty_maybe_signed(ty.id, i32_len);
+                let i128_len = infer.ctx.ty_const_len(ty.id, 128);
+                let m128_ty = infer.ctx.ty_maybe_signed(ty.id, i128_len);
                 eprintln!(
                     "Literal {:?} -> {} U {}",
                     lit,
                     infer.ctx.desc(ty),
-                    infer.ctx.desc(m32_ty)
+                    infer.ctx.desc(m128_ty)
                 );
-                infer.unify(ty.id, ty, m32_ty)?;
+                infer.unify(ty.id, ty, m128_ty)?;
             }
         }
     }
     eprintln!("Recheck delayed inference rools");
     infer.try_type_ops(5, &type_ops)?;
 
-    eprintln!("Try to replace generic literals with i32");
-    // Try to replace any generic literals with i32s
+    eprintln!("Try to replace generic literals with i128");
+    // Try to replace any generic literals with i128s
     if !infer.all_slots_resolved() {
         for lit in mir.literals.keys() {
             let ty = infer.slot_ty(*lit);

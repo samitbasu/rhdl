@@ -8,10 +8,10 @@ use crate::{
     ast_builder::BinOp,
     rhif::spec::{AluBinary, AluUnary, Slot},
     types::path::Path,
-    Kind,
+    Kind, TypedBits,
 };
 
-use super::compiler::ScopeIndex;
+use super::{compiler::ScopeIndex, ty::SignFlag};
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum TypeCheck {
@@ -22,6 +22,14 @@ pub enum TypeCheck {
     #[error("Unable to determine type of this item")]
     #[diagnostic(help("Please provide an explicit type annotation"))]
     UnableToDetermineType,
+    #[error(
+        "Literal {literal:?} is outside the range of the inferred type {flag:?} {len} bit integer"
+    )]
+    LiteralOutsideInferredRange {
+        literal: TypedBits,
+        flag: SignFlag,
+        len: usize,
+    },
 }
 
 #[derive(Error, Debug, Diagnostic)]
@@ -84,7 +92,7 @@ pub enum ICE {
     CannotWriteToLiteral { ndx: usize },
     #[error("Slot {slot:?} is written twice")]
     SlotIsWrittenTwice { slot: Slot },
-    #[error("Mismatch in data types (clock domain ignored)")]
+    #[error("Mismatch in data types (clock domain ignored) {lhs:?} and {rhs:?}")]
     MismatchInDataTypes { lhs: Kind, rhs: Kind },
     #[error("Unsigned cast requires a signed argument")]
     UnsignedCastRequiresSignedArgument,
@@ -204,6 +212,14 @@ pub enum ClockError {
     #[error("Clock domain mismatch in enum operation")]
     #[diagnostic(help("All fields of an enum must be in the same clock domain"))]
     EnumClockMismatch,
+    #[error("Clock domain mismatch in struct operation")]
+    #[diagnostic(help(
+        "The supplied field in the struct does not match the expected clock domain for that field"
+    ))]
+    StructClockMismatch,
+    #[error("Clock domain mismatch in splice operation")]
+    #[diagnostic(help("In a splice, the original and resulting values must have matching clock domain structures, and the spliced data and the replaced data must also have matching clock domain structures"))]
+    SpliceClockMismatch,
 }
 
 #[derive(Debug, Error)]

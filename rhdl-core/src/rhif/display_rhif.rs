@@ -77,7 +77,7 @@ impl std::fmt::Debug for OpCode {
             }) => {
                 write!(
                     f,
-                    " {:?} <- {:?} {{ {:?} {:?} }}",
+                    " {:?} <- {} {{ {} {} }}",
                     lhs,
                     template.kind.get_name(),
                     splice(fields, ", "),
@@ -95,7 +95,7 @@ impl std::fmt::Debug for OpCode {
             }) => {
                 write!(
                     f,
-                    " {:?} <- {:?}#{:?}({})",
+                    " {:?} <- {}#{:?}({})",
                     lhs,
                     template.kind.get_name(),
                     template.discriminant().unwrap(),
