@@ -6,6 +6,7 @@ use std::{
 
 use crate::{
     ast::ast_impl::NodeId,
+    rhif::spec::Member,
     types::kind::{Array, DiscriminantLayout, Enum, Field, Struct, Tuple},
     Color, DiscriminantAlignment, DiscriminantType, Kind, VariantType,
 };
@@ -572,6 +573,13 @@ impl UnifyContext {
             .ok_or_else(|| anyhow!("Field not found"))
     }
 
+    pub fn ty_member(&mut self, base: TypeId, member: &Member) -> Result<TypeId> {
+        match member {
+            Member::Named(name) => self.ty_field(base, name),
+            Member::Unnamed(index) => self.ty_index(base, *index as usize),
+        }
+    }
+
     pub fn ty_enum_discriminant(&mut self, base: TypeId) -> TypeId {
         let TypeKind::App(AppType::Enum(enumerate)) = &self.types[base.kind] else {
             return base;
@@ -698,7 +706,7 @@ impl UnifyContext {
                 ),
                 AppType::Tuple(tuple) => {
                     format!(
-                        "{}",
+                        "({})",
                         tuple
                             .elements
                             .iter()

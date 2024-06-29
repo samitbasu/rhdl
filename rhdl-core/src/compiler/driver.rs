@@ -9,6 +9,7 @@ use crate::{
             check_rhif_type::TypeCheckPass, dead_code_elimination::DeadCodeEliminationPass,
             lower_inferred_casts::LowerInferredCastsPass, pass::Pass,
             pre_cast_literals::PreCastLiterals,
+            precast_integer_literals_in_binops::PrecastIntegerLiteralsInBinops,
             precompute_discriminants::PrecomputeDiscriminantPass,
             remove_empty_cases::RemoveEmptyCasesPass,
             remove_extra_registers::RemoveExtraRegistersPass,
@@ -65,6 +66,7 @@ fn compile_kernel(kernel: Kernel) -> Result<Object> {
         obj = wrap_pass::<DeadCodeEliminationPass>(obj.clone())?;
         obj = wrap_pass::<PrecomputeDiscriminantPass>(obj.clone())?;
         obj = wrap_pass::<LowerInferredCastsPass>(obj.clone())?;
+        obj = wrap_pass::<PrecastIntegerLiteralsInBinops>(obj.clone())?;
     }
     obj = TypeCheckPass::run(obj)?;
     obj = DataFlowCheckPass::run(obj)?;

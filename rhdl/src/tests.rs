@@ -274,7 +274,7 @@ fn test_derive_enum_alignment_lsb() {
 }
 
 #[test]
-fn test_struct_expr_not_adt() {
+fn test_struct_expr_not_adt() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Digital)]
     pub struct Foo {
         a: u8,
@@ -293,7 +293,103 @@ fn test_struct_expr_not_adt() {
         signal(d)
     }
 
-    test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, tuple_u8::<Red>()).unwrap();
+    test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, tuple_u8::<Red>())?;
+    Ok(())
+}
+
+#[test]
+fn test_struct_follows_clock_constraints() -> miette::Result<()> {
+    #[derive(PartialEq, Copy, Clone, Digital, Timed)]
+    struct Foo<C: Domain, D: Domain> {
+        a: Signal<b8, C>,
+        b: Signal<b8, D>,
+    }
+
+    #[kernel]
+    fn do_stuff<C: Domain, D: Domain>(s: Foo<C, D>) -> Foo<C, D> {
+        let a = s.a.val();
+        let b = s.b.val();
+        let c = Foo::<C, D> {
+            a: signal(a + 1),
+            b: signal(b + 1),
+        };
+        c
+    }
+
+    compile_design::<do_stuff<Red, Red>>()?;
+    compile_design::<do_stuff<Red, Green>>()?;
+    Ok(())
+}
+
+#[test]
+fn test_struct_with_splice_follows_clock_constraints() -> miette::Result<()> {
+    #[derive(PartialEq, Copy, Clone, Digital, Timed)]
+    struct Foo<C: Domain, D: Domain> {
+        a: Signal<b8, C>,
+        b: Signal<b8, D>,
+    }
+
+    #[kernel]
+    fn do_stuff<C: Domain, D: Domain>(mut s: Foo<C, D>) -> Foo<C, D> {
+        let a = s.a.val();
+        let b = s.b.val();
+        s.a = signal(b);
+        s
+    }
+
+    compile_design::<do_stuff<Red, Red>>()?;
+    assert!(compile_design::<do_stuff<Red, Green>>().is_err());
+    Ok(())
+}
+
+#[test]
+fn test_struct_follows_clock_constraints_fails() -> miette::Result<()> {
+    #[derive(PartialEq, Copy, Clone, Digital, Timed)]
+    struct Foo<C: Domain, D: Domain> {
+        a: Signal<b8, C>,
+        b: Signal<b8, D>,
+    }
+
+    #[kernel]
+    fn do_stuff<C: Domain, D: Domain>(s: Foo<C, D>) -> Foo<C, D> {
+        let a = s.a.val();
+        let b = s.b.val();
+        let c = Foo::<C, D> {
+            a: signal(b + 1),
+            b: signal(a + 1),
+        };
+        c
+    }
+
+    compile_design::<do_stuff<Red, Red>>()?;
+    assert!(compile_design::<do_stuff<Red, Green>>().is_err());
+    Ok(())
+}
+
+#[test]
+fn test_struct_cannot_cross_clock_domains() -> miette::Result<()> {
+    #[derive(PartialEq, Copy, Clone, Digital)]
+    struct Foo {
+        a: u8,
+        b: u16,
+        c: [u8; 3],
+    }
+
+    #[kernel]
+    fn do_stuff<C: Domain, D: Domain>(a: Signal<u8, C>, b: Signal<u8, D>) -> Signal<Foo, C> {
+        let a = b.val();
+        let d = Foo {
+            a,
+            b: 2,
+            c: [1, 2, 3],
+        }; // Struct literal
+        signal(d)
+    }
+
+    compile_design::<do_stuff<Red, Red>>()?;
+    compile_design::<do_stuff<Red, Green>>()?;
+    assert!(compile_design::<do_stuff<Red, Green>>().is_err());
+    Ok(())
 }
 
 #[test]
@@ -332,7 +428,7 @@ fn test_adt_use() {
 }
 
 #[test]
-fn test_struct_expr_adt() {
+fn test_struct_expr_adt() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Digital)]
     pub enum Foo {
         A,
@@ -357,7 +453,8 @@ fn test_struct_expr_adt() {
         })
     }
 
-    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_u8()).unwrap();
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_u8())?;
+    Ok(())
 }
 
 #[test]
@@ -2698,7 +2795,7 @@ fn test_tuple_struct_indexing() {
 }
 
 #[test]
-fn test_struct_field_indexing() {
+fn test_struct_field_indexing() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo {
         a: (b8, b8),
@@ -2714,7 +2811,8 @@ fn test_struct_field_indexing() {
         signal(c.a.0 + c.a.1 + c.b)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    Ok(())
 }
 
 #[test]
@@ -2978,7 +3076,6 @@ fn cannot_mix_clocks_in_an_array() -> miette::Result<()> {
         signal(d)
     }
     compile_design::<foo<Red, Red>>()?;
-    compile_design::<foo<Red, Green>>()?;
     assert!(compile_design::<foo<Red, Green>>().is_err());
     Ok(())
 }

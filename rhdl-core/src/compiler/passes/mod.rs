@@ -6,6 +6,7 @@ pub(crate) mod lower_index_to_copy;
 pub(crate) mod lower_inferred_casts;
 pub(crate) mod pass;
 pub(crate) mod pre_cast_literals;
+pub(crate) mod precast_integer_literals_in_binops;
 pub(crate) mod precompute_discriminants;
 pub(crate) mod remove_empty_cases;
 pub(crate) mod remove_extra_registers;

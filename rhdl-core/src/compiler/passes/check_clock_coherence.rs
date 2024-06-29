@@ -408,7 +408,30 @@ impl ClockCoherenceContext<'_> {
                             .into());
                     }
                 }
-                OpCode::Splice(_) => todo!(),
+                OpCode::Splice(splice) => {
+                    let lhs_ty = self.slot_map[&splice.lhs];
+                    let orig_ty = self.slot_map[&splice.orig];
+                    let subst_ty = self.slot_map[&splice.subst];
+                    let path_ty = self.ty_path_project(splice.orig, &splice.path, location.node)?;
+                    if self.ctx.unify(orig_ty, lhs_ty).is_err() {
+                        return Err(self
+                            .raise_clock_coherence_error(
+                                location.node,
+                                &[splice.lhs, splice.orig],
+                                ClockError::SpliceClockMismatch,
+                            )
+                            .into());
+                    }
+                    if self.ctx.unify(subst_ty, path_ty).is_err() {
+                        return Err(self
+                            .raise_clock_coherence_error(
+                                location.node,
+                                &[splice.subst, splice.orig],
+                                ClockError::SpliceClockMismatch,
+                            )
+                            .into());
+                    }
+                }
                 OpCode::Array(array) => {
                     let ty_lhs = self.slot_map[&array.lhs];
                     for element in &array.elements {
@@ -441,7 +464,22 @@ impl ClockCoherenceContext<'_> {
                             .into());
                     }
                 }
-                OpCode::Struct(_) => todo!(),
+                OpCode::Struct(strukt) => {
+                    let ty_lhs = self.slot_map[&strukt.lhs];
+                    for field in &strukt.fields {
+                        let ty_rhs = self.slot_map[&field.value];
+                        let ty_field = self.ctx.ty_member(ty_lhs, &field.member)?;
+                        if self.ctx.unify(ty_field, ty_rhs).is_err() {
+                            return Err(self
+                                .raise_clock_coherence_error(
+                                    location.node,
+                                    &[strukt.lhs, field.value],
+                                    ClockError::StructClockMismatch,
+                                )
+                                .into());
+                        }
+                    }
+                }
                 OpCode::Tuple(tuple) => {
                     let ty_lhs = self.slot_map[&tuple.lhs];
                     let ty_rhs_elements = tuple
