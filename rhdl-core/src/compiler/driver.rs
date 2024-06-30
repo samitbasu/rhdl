@@ -8,7 +8,8 @@ use crate::{
             check_clock_coherence::CheckClockCoherence,
             check_for_rolled_types::CheckForRolledTypesPass, check_rhif_flow::DataFlowCheckPass,
             check_rhif_type::TypeCheckPass, dead_code_elimination::DeadCodeEliminationPass,
-            lower_inferred_casts::LowerInferredCastsPass, pass::Pass,
+            lower_inferred_casts::LowerInferredCastsPass,
+            lower_inferred_retimes::LowerInferredRetimesPass, pass::Pass,
             pre_cast_literals::PreCastLiterals,
             precast_integer_literals_in_binops::PrecastIntegerLiteralsInBinops,
             precompute_discriminants::PrecomputeDiscriminantPass,
@@ -66,6 +67,7 @@ fn compile_kernel(kernel: Kernel) -> Result<Object> {
         obj = wrap_pass::<PrecomputeDiscriminantPass>(obj)?;
         obj = wrap_pass::<LowerInferredCastsPass>(obj)?;
         obj = wrap_pass::<PrecastIntegerLiteralsInBinops>(obj)?;
+        obj = wrap_pass::<LowerInferredRetimesPass>(obj)?;
     }
     obj = TypeCheckPass::run(obj)?;
     obj = DataFlowCheckPass::run(obj)?;

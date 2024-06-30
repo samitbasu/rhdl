@@ -131,19 +131,19 @@ fn test_size_case() {
 fn test_position_case() {
     let foo = Packet::Position(b4::from(0b1010), b4::from(0b1101)).typed_bits();
     assert_eq!(
-        foo.path(&Path::default().payload("Position").index(0))
+        foo.path(&Path::default().payload("Position").tuple_index(0))
             .unwrap()
             .bits,
         b4::from(0b1010).bin()
     );
     assert_eq!(
-        foo.path(&Path::default().payload("Position").index(0))
+        foo.path(&Path::default().payload("Position").tuple_index(0))
             .unwrap()
             .kind,
         Kind::make_bits(4)
     );
     assert_eq!(
-        foo.path(&Path::default().payload("Position").index(1))
+        foo.path(&Path::default().payload("Position").tuple_index(1))
             .unwrap()
             .bits,
         b4::from(0b1101).bin()
@@ -159,7 +159,12 @@ fn test_state_case() {
     let packet = Packet::State(State::Boom).typed_bits();
     assert_eq!(
         packet
-            .path(&Path::default().payload("State").index(0).discriminant())
+            .path(
+                &Path::default()
+                    .payload("State")
+                    .tuple_index(0)
+                    .discriminant()
+            )
             .unwrap()
             .bits,
         s3::from(2).bin()
@@ -171,7 +176,12 @@ fn test_state_case() {
     let packet = Packet::State(State::Init).typed_bits();
     assert_eq!(
         packet
-            .path(&Path::default().payload("State").index(0).discriminant())
+            .path(
+                &Path::default()
+                    .payload("State")
+                    .tuple_index(0)
+                    .discriminant()
+            )
             .unwrap()
             .bits,
         s3::from(-2).bin()
