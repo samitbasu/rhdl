@@ -22,9 +22,6 @@ impl Pass for RemoveExtraRegistersPass {
     fn name() -> &'static str {
         "remove_extra_registers"
     }
-    fn description() -> &'static str {
-        "Remove extra registers (any instance of r3 <- r2, is replaced with renaming all instances of r3 to r2)"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut eligible = vec![true; input.ops.len()];
         while let Some(op_ndx) = find_assign_op(&input.ops, &eligible) {

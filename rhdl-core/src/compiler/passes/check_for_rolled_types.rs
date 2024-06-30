@@ -41,9 +41,6 @@ impl Pass for CheckForRolledTypesPass {
     fn name() -> &'static str {
         "check_for_rolled_types"
     }
-    fn description() -> &'static str {
-        "Check for method calls on self-rolled types"
-    }
     fn run(obj: Object) -> Result<Object, RHDLError> {
         let slot_type = |slot: &Slot| -> Result<Kind, RHDLError> {
             if matches!(*slot, Slot::Empty) {

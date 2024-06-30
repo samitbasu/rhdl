@@ -81,7 +81,7 @@ fn elaborate_design(design: &mut Module) -> Result<()> {
         .objects
         .values()
         .flat_map(|obj| obj.externals.iter())
-        .filter_map(|(id, func)| {
+        .filter_map(|(_, func)| {
             if let ExternalFunctionCode::Kernel(kernel) = &func.code {
                 Some(kernel)
             } else {

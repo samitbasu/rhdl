@@ -15,9 +15,6 @@ impl Pass for LowerInferredCastsPass {
     fn name() -> &'static str {
         "lower_inferred_casts"
     }
-    fn description() -> &'static str {
-        "Lower inferred casts to concrete casts"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         for op in input.ops.iter_mut() {
             match op.clone() {

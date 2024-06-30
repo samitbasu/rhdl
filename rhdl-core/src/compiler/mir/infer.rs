@@ -302,6 +302,7 @@ impl<'a> MirTypeInference<'a> {
             AluBinary::Shl | AluBinary::Shr => {
                 self.unify(id, op.lhs, op.arg1)?;
                 /*
+                TODO - do I need this?
                 if let Some(arg2) = self.ctx.project_signal_value(a2) {
                     eprintln!("Project signal value flag for {}", self.ctx.desc(a2));
                     if let Some(flag) = self.ctx.project_sign_flag(arg2) {

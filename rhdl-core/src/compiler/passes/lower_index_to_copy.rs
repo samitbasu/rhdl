@@ -14,9 +14,6 @@ impl Pass for LowerIndexToCopy {
     fn name() -> &'static str {
         "lower_index_to_copy"
     }
-    fn description() -> &'static str {
-        "Lower index operations with empty paths to copy operations"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut ops = Vec::new();
         for op in input.ops {
