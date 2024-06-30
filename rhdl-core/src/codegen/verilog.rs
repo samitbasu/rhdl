@@ -428,7 +428,7 @@ impl<'a> TranslationContext<'a> {
                 self.body.push_str("    endcase\n");
             }
             OpCode::Exec(Exec { lhs, id, args }) => {
-                let func = &self.obj.externals[id.0];
+                let func = &self.obj.externals[id];
                 let args = args
                     .iter()
                     .map(|x| self.reg_name(x))

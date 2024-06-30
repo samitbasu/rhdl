@@ -2,7 +2,7 @@
 
 use crate::{
     ast::ast_impl::NodeId,
-    compiler::mir::error::ICE,
+    compiler::mir::error::{RHDLSyntaxError, RHDLTypeCheckError, Syntax, ICE},
     error::RHDLError,
     rhif::{
         self,
@@ -51,7 +51,6 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
         if matches!(*slot, Slot::Empty) {
             return Ok(Kind::Empty);
         }
-        eprintln!("Check type correctess for slot {:?}", slot);
         obj.kind.get(slot).cloned().ok_or_else(|| {
             TypeCheckPass::raise_ice(
                 obj,
@@ -128,6 +127,9 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 eq_kinds(slot_type(arg1)?, slot_type(arg2)?, id)?;
                 eq_kinds(slot_type(lhs)?, Kind::make_bool(), id)?;
             }
+            // The unary operators can sneak through to RHIF if the user defines
+            // them for their own types.  So we need to check that they are only
+            // applied to base types.
             OpCode::Unary(Unary {
                 op: AluUnary::Not | AluUnary::Neg | AluUnary::Val,
                 lhs,
@@ -331,7 +333,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 args,
             }) => {
                 // Get the function signature.
-                let signature = obj.externals[func_id.0].signature.clone();
+                let signature = obj.externals[&func_id].signature.clone();
                 eq_kinds(slot_type(lhs)?, signature.ret, id)?;
                 for (arg, param) in args.iter().zip(signature.arguments.iter()) {
                     eq_kinds(slot_type(arg)?, param.clone(), id)?;

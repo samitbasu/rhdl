@@ -1,19 +1,13 @@
-use std::{collections::BTreeMap, process::Output};
+use std::collections::BTreeMap;
 
 use super::pass::Pass;
 use crate::{
-    compiler::{
-        mir::{
-            error::{RHDLTypeError, TypeCheck},
-            ty::SignFlag,
-        },
-        utils::remap_slots,
+    compiler::mir::{
+        error::{RHDLTypeError, TypeCheck},
+        ty::SignFlag,
     },
     error::RHDLError,
-    rhif::{
-        spec::{OpCode, Slot},
-        Object,
-    },
+    rhif::{spec::OpCode, Object},
     Kind, TypedBits,
 };
 

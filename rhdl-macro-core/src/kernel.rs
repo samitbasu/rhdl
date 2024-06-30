@@ -1243,7 +1243,7 @@ impl Context {
         let left = self.expr(&binary.left)?;
         let right = self.expr(&binary.right)?;
         Ok(quote! {
-            bob.binary_expr(#op, #left, #right)
+                bob.binary_expr(#op, #left, #right)
         })
     }
 

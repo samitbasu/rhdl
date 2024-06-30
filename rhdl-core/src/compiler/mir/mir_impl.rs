@@ -4,7 +4,7 @@ use crate::{
     ast::ast_impl::{ExprLit, FunctionId, NodeId},
     rhif::{
         object::SymbolMap,
-        spec::{ExternalFunction, OpCode, Slot},
+        spec::{ExternalFunction, FuncId, OpCode, Slot},
     },
     Kind,
 };
@@ -34,7 +34,7 @@ pub struct Mir {
     pub literals: BTreeMap<Slot, ExprLit>,
     pub ty: BTreeMap<Slot, Kind>,
     pub ty_equate: HashSet<TypeEquivalence>,
-    pub stash: Vec<ExternalFunction>,
+    pub stash: BTreeMap<FuncId, ExternalFunction>,
     pub return_slot: Slot,
     pub arguments: Vec<Slot>,
     pub fn_id: FunctionId,

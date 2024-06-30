@@ -61,7 +61,7 @@ impl<'a> InitSet<'a> {
             Slot::Empty => {}
             Slot::Literal(ndx) => {
                 return Err(DataFlowCheckPass::raise_ice(
-                    &self.obj,
+                    self.obj,
                     ICE::CannotWriteToLiteral { ndx: *ndx },
                     self.obj.symbols.slot_map[slot].node,
                 ));
@@ -69,7 +69,7 @@ impl<'a> InitSet<'a> {
             Slot::Register(_) => {
                 if self.set.contains(slot) {
                     return Err(DataFlowCheckPass::raise_ice(
-                        &self.obj,
+                        self.obj,
                         ICE::SlotIsWrittenTwice { slot: *slot },
                         self.obj.symbols.slot_map[slot].node,
                     ));

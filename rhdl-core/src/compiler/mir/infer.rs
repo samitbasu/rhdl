@@ -2,7 +2,10 @@ use std::collections::BTreeMap;
 
 use crate::{
     ast::ast_impl::{ExprLit, NodeId},
-    compiler::mir::{error::RHDLTypeCheckError, ty::SignFlag},
+    compiler::mir::{
+        error::{RHDLSyntaxError, RHDLTypeCheckError, Syntax},
+        ty::SignFlag,
+    },
     error::RHDLError,
     rhif::{
         spec::{AluBinary, AluUnary, CaseArgument, OpCode, Slot},
@@ -567,7 +570,7 @@ impl<'a> MirTypeInference<'a> {
                     }
                 }
                 OpCode::Exec(exec) => {
-                    let external_fn = &self.mir.stash[exec.id.0];
+                    let external_fn = &self.mir.stash[&exec.id];
                     let signature = &external_fn.signature;
                     for (arg_kind, arg_slot) in signature.arguments.iter().zip(exec.args.iter()) {
                         let arg_ty = self.slot_ty(*arg_slot);
@@ -687,8 +690,17 @@ impl<'a> MirTypeInference<'a> {
                         AluUnary::Neg => {
                             let len = self.ctx.ty_var(id);
                             let signed_ty = self.ctx.ty_signed(id, len);
-                            self.unify(id, lhs, signed_ty)?;
-                            self.unify(id, arg1, signed_ty)?;
+                            if self.unify(id, lhs, signed_ty).is_err()
+                                || self.unify(id, arg1, signed_ty).is_err()
+                            {
+                                let source_span = self.mir.symbols.source.span(id);
+                                return Err(Box::new(RHDLSyntaxError {
+                                    src: self.mir.symbols.source.source.clone(),
+                                    cause: Syntax::RollYourOwnUnary { op: AluUnary::Neg },
+                                    err_span: source_span.into(),
+                                })
+                                .into());
+                            }
                         }
                         AluUnary::All | AluUnary::Any | AluUnary::Xor => {
                             self.type_ops.push(TypeOperation {
@@ -704,22 +716,53 @@ impl<'a> MirTypeInference<'a> {
                             let len = self.ctx.ty_var(id);
                             let signed_ty = self.ctx.ty_signed(id, len);
                             let unsigned_ty = self.ctx.ty_bits(id, len);
-                            self.unify(id, lhs, unsigned_ty)?;
-                            self.unify(id, arg1, signed_ty)?;
+                            if self.unify(id, lhs, unsigned_ty).is_err()
+                                || self.unify(id, arg1, signed_ty).is_err()
+                            {
+                                let source_span = self.mir.symbols.source.span(id);
+                                return Err(Box::new(RHDLSyntaxError {
+                                    src: self.mir.symbols.source.source.clone(),
+                                    cause: Syntax::RollYourOwnUnary {
+                                        op: AluUnary::Unsigned,
+                                    },
+                                    err_span: source_span.into(),
+                                })
+                                .into());
+                            }
                         }
                         AluUnary::Signed => {
                             let len = self.ctx.ty_var(id);
                             let signed_ty = self.ctx.ty_signed(id, len);
                             let unsigned_ty = self.ctx.ty_bits(id, len);
-                            self.unify(id, lhs, signed_ty)?;
-                            self.unify(id, arg1, unsigned_ty)?;
+                            if self.unify(id, lhs, signed_ty).is_err()
+                                || self.unify(id, arg1, unsigned_ty).is_err()
+                            {
+                                let source_span = self.mir.symbols.source.span(id);
+                                return Err(Box::new(RHDLSyntaxError {
+                                    src: self.mir.symbols.source.source.clone(),
+                                    cause: Syntax::RollYourOwnUnary {
+                                        op: AluUnary::Signed,
+                                    },
+                                    err_span: source_span.into(),
+                                })
+                                .into());
+                            }
                         }
                         AluUnary::Val => {
                             let sig_ty = self.ctx.ty_var(id);
                             let sig_clock = self.ctx.ty_var(id);
                             let sig = self.ctx.ty_signal(id, sig_ty, sig_clock);
-                            self.unify(id, lhs, sig_ty)?;
-                            self.unify(id, arg1, sig)?;
+                            if self.unify(id, lhs, sig_ty).is_err()
+                                || self.unify(id, arg1, sig).is_err()
+                            {
+                                let source_span = self.mir.symbols.source.span(id);
+                                return Err(Box::new(RHDLSyntaxError {
+                                    src: self.mir.symbols.source.source.clone(),
+                                    cause: Syntax::RollYourOwnUnary { op: AluUnary::Val },
+                                    err_span: source_span.into(),
+                                })
+                                .into());
+                            }
                         }
                     }
                 }

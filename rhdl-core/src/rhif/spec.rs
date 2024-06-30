@@ -223,8 +223,20 @@ pub enum Member {
     Unnamed(u32),
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
-pub struct FuncId(pub usize);
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct FuncId(usize);
+
+impl std::fmt::Debug for FuncId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "fid({})", self.0)
+    }
+}
+
+impl From<usize> for FuncId {
+    fn from(id: usize) -> Self {
+        FuncId(id)
+    }
+}
 
 #[derive(Clone)]
 pub enum ExternalFunctionCode {

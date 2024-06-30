@@ -168,6 +168,12 @@ pub enum Syntax {
     #[error("Unmatched variants are not allowed in expressions")]
     #[diagnostic(help("You cannot use an unmatched variant in an expression in RHDL.  It is meant as a placeholder for invalid discriminants."))]
     UnmatchedVariantNotAllowedInExpression,
+    #[error("RHDL does not support the use of unary operators on this type")]
+    #[diagnostic(help("You cannot roll your own {op:?} operator in RHDL.  You should write a kernel and call it as a regular function."))]
+    RollYourOwnUnary { op: AluUnary },
+    #[error("RHDL does not support the use of binary operators on this type")]
+    #[diagnostic(help("You cannot roll your own binary operator in RHDL.  You should write a kernel and call it as a regular function."))]
+    RollYourOwnBinary,
 }
 
 #[derive(Debug, Error, Diagnostic)]
@@ -198,7 +204,7 @@ pub enum ClockError {
     #[diagnostic(help("You cannot index signals from different clock domains"))]
     IndexClockMismatch,
     #[error("Clock domain analysis failed to resolve the clock domain for this signal")]
-    #[diagnostic(help("You need to provide a clock domain for this signal"))]
+    #[diagnostic(help("You need to provide a clock domain for this expression - rhdl cannot determine what clock domain it belongs to.  This usually indicates that the value is ultimately unused."))]
     UnresolvedClock,
     #[error("Clock domain mismatch in tuple operation")]
     #[diagnostic(help("This tuple operation is mapping signals from one clock domain to another, which is not allowed.  You can have multiple clock domains in a tuple."))]
@@ -220,6 +226,9 @@ pub enum ClockError {
     #[error("Clock domain mismatch in splice operation")]
     #[diagnostic(help("In a splice, the original and resulting values must have matching clock domain structures, and the spliced data and the replaced data must also have matching clock domain structures"))]
     SpliceClockMismatch,
+    #[error("Clock domain mismatch in call to external function")]
+    #[diagnostic(help("The clock domain of the input and output signals must match the clock domains of the inputs for the function"))]
+    ExternalClockMismatch,
 }
 
 #[derive(Debug, Error)]
