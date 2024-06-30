@@ -16,9 +16,6 @@ impl Pass for PrecomputeDiscriminantPass {
     fn name() -> &'static str {
         "precompute_discriminants"
     }
-    fn description() -> &'static str {
-        "Precompute discriminants"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut new_literals = vec![];
         let literals = input.literals.clone();

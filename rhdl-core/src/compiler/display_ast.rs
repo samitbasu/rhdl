@@ -1,12 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use crate::{
-    ast::ast_impl::*,
-    kernel::Kernel,
-    rhif::spec::Member,
-    util::{splice, IndentingFormatter},
-    Kind,
-};
+use crate::{ast::ast_impl::*, kernel::Kernel, rhif::spec::Member, util::IndentingFormatter, Kind};
 use anyhow::Result;
 
 #[derive(Default)]
@@ -14,11 +8,11 @@ pub struct PrettyPrinter {
     buffer: IndentingFormatter,
 }
 
-pub fn pretty_print_kernel(kernel: &Kernel) -> Result<String> {
+fn _pretty_print_kernel(kernel: &Kernel) -> Result<String> {
     let mut printer = PrettyPrinter {
         buffer: Default::default(),
     };
-    printer.print_kernel(kernel)?;
+    printer._print_kernel(kernel)?;
     let buffer = printer.buffer;
     Ok(buffer.buffer())
 }
@@ -33,7 +27,7 @@ pub fn pretty_print_statement(stmt: &Stmt) -> Result<String> {
 }
 
 impl PrettyPrinter {
-    pub fn print_kernel(&mut self, kernel: &Kernel) -> Result<()> {
+    fn _print_kernel(&mut self, kernel: &Kernel) -> Result<()> {
         self.push(&format!("fn {}(", kernel.inner().name));
         for arg in &kernel.inner().inputs {
             self.print_pattern(arg)?;

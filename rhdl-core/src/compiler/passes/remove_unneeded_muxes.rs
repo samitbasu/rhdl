@@ -15,9 +15,6 @@ impl Pass for RemoveUnneededMuxesPass {
     fn name() -> &'static str {
         "remove_unneeded_muxes"
     }
-    fn description() -> &'static str {
-        "Remove unneeded muxes (ones for which the two options are the same or ones with hardwired selectors)"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         for op in input.ops.iter_mut() {
             if let OpCode::Select(select) = op.clone() {

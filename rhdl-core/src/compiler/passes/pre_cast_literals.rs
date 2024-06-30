@@ -25,9 +25,6 @@ impl Pass for PreCastLiterals {
     fn name() -> &'static str {
         "pre_cast_literals"
     }
-    fn description() -> &'static str {
-        "Pre-cast literals to the requested length"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         // Collect a candidate list of literals to cast
         let mut candidates: HashSet<CastCandidate> = Default::default();

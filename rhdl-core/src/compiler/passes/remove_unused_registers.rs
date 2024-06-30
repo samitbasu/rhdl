@@ -15,9 +15,6 @@ impl Pass for RemoveUnusedRegistersPass {
     fn name() -> &'static str {
         "remove_unused_registers"
     }
-    fn description() -> &'static str {
-        "Remove unused registers"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut used_set: HashSet<Slot> = Default::default();
         used_set.extend(input.arguments.iter());

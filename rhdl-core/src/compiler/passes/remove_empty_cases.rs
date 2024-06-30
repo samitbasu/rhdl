@@ -12,9 +12,6 @@ impl Pass for RemoveEmptyCasesPass {
     fn name() -> &'static str {
         "remove_empty_cases"
     }
-    fn description() -> &'static str {
-        "Remove empty cases (ones for which the target register is empty)"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         for op in input.ops.iter_mut() {
             match op {

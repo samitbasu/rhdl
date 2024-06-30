@@ -16,9 +16,6 @@ impl Pass for LowerInferredRetimesPass {
     fn name() -> &'static str {
         "lower_inferred_retimes"
     }
-    fn description() -> &'static str {
-        "Lower inferred retimes to concrete retimes"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         for (op, location) in input.ops.iter_mut().zip(input.symbols.opcode_map.iter()) {
             if let OpCode::Retime(retime) = op {

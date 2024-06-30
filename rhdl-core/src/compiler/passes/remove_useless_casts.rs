@@ -15,9 +15,6 @@ impl Pass for RemoveUselessCastsPass {
     fn name() -> &'static str {
         "remove_useless_casts"
     }
-    fn description() -> &'static str {
-        "Remove useless casts"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         for op in input.ops.iter_mut() {
             match op.clone() {

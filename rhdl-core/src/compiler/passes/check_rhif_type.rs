@@ -2,7 +2,7 @@
 
 use crate::{
     ast::ast_impl::NodeId,
-    compiler::mir::error::{RHDLSyntaxError, RHDLTypeCheckError, Syntax, ICE},
+    compiler::mir::error::ICE,
     error::RHDLError,
     rhif::{
         self,
@@ -23,9 +23,6 @@ pub struct TypeCheckPass;
 impl Pass for TypeCheckPass {
     fn name() -> &'static str {
         "check_rhif_type"
-    }
-    fn description() -> &'static str {
-        "Check RHIF type correctness"
     }
     fn run(input: Object) -> Result<Object, RHDLError> {
         check_type_correctness(&input)?;
@@ -333,7 +330,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 args,
             }) => {
                 // Get the function signature.
-                let signature = obj.externals[&func_id].signature.clone();
+                let signature = obj.externals[func_id].signature.clone();
                 eq_kinds(slot_type(lhs)?, signature.ret, id)?;
                 for (arg, param) in args.iter().zip(signature.arguments.iter()) {
                     eq_kinds(slot_type(arg)?, param.clone(), id)?;

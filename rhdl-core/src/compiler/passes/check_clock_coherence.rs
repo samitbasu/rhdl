@@ -8,7 +8,7 @@ use crate::{
     },
     error::RHDLError,
     rhif::{
-        spec::{AluBinary, AluUnary, CaseArgument, OpCode, Slot},
+        spec::{AluUnary, CaseArgument, OpCode, Slot},
         Object,
     },
     types::path::{Path, PathElement},
@@ -22,9 +22,6 @@ pub struct CheckClockCoherence {}
 impl Pass for CheckClockCoherence {
     fn name() -> &'static str {
         "check_clock_coherence"
-    }
-    fn description() -> &'static str {
-        "Check that all clocked signals are coherent"
     }
     fn run(input: Object) -> Result<Object, RHDLError> {
         check_clock_coherence(&input)?;
