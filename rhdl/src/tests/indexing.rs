@@ -194,7 +194,7 @@ fn test_complex_array_dynamic_indexing() {
 }
 
 #[test]
-fn test_array_dynamic_indexing() {
+fn test_array_dynamic_indexing() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<[b8; 8], Red>, b: Signal<b3, Red>) -> Signal<b8, Red> {
         signal(a[b])
@@ -212,7 +212,8 @@ fn test_array_dynamic_indexing() {
     ];
     let b = exhaustive();
     let inputs = b.into_iter().map(|b| (red(a), red(b))).collect::<Vec<_>>();
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, inputs.into_iter()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, inputs.into_iter())?;
+    Ok(())
 }
 
 #[test]
@@ -293,7 +294,7 @@ fn test_simple_if_expression() -> miette::Result<()> {
 }
 
 #[test]
-fn test_link_to_bits_fn() {
+fn test_link_to_bits_fn() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     struct Tuplo(b4, s6);
 
@@ -325,8 +326,9 @@ fn test_link_to_bits_fn() {
         let h = Tuplo(c, d);
         let p = h.0;
         let q = NooState::Run(c, d);
-        c + add_one::<C>(signal(p))
+        c + add_one::<C>(signal(p)) + if h.1 > 0 { 1 } else { 2 }
     }
 
-    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_exhaustive_red()).unwrap();
+    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_exhaustive_red())?;
+    Ok(())
 }

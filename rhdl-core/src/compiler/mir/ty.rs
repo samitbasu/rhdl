@@ -810,6 +810,14 @@ impl UnifyContext {
             None
         }
     }
+    pub fn project_signal_data(&mut self, ty: TypeId) -> TypeId {
+        let ty = self.apply(ty);
+        if let TypeKind::App(AppType::Signal(signal)) = &self.types[ty.kind] {
+            signal.data
+        } else {
+            ty
+        }
+    }
     pub fn project_sign_flag(&mut self, ty: TypeId) -> Option<TypeId> {
         let ty = self.apply(ty);
         if let TypeKind::App(AppType::Bits(bits)) = &self.types[ty.kind] {

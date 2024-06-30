@@ -8,7 +8,7 @@ use crate::{
     },
     error::RHDLError,
     rhif::{
-        spec::{AluUnary, CaseArgument, OpCode, Slot},
+        spec::{AluBinary, AluUnary, CaseArgument, OpCode, Slot},
         Object,
     },
     types::path::{Path, PathElement},
@@ -298,14 +298,20 @@ impl ClockCoherenceContext<'_> {
                     // First, index the argument type to get a base type
                     arg = self.ctx.ty_index(arg, 0)?;
                     let slot_ty = self.slot_map[slot];
-                    if self.ctx.unify(arg, slot_ty).is_err() {
-                        return Err(self
-                            .raise_clock_coherence_error(
-                                id,
-                                &[arg_slot, *slot],
-                                ClockError::IndexClockMismatch,
-                            )
-                            .into());
+                    let slot_domains = self.collect_clock_domains(slot_ty);
+                    let arg_domains = self.collect_clock_domains(arg);
+                    for arg_domain in arg_domains {
+                        for slot_domain in &slot_domains {
+                            if self.ctx.unify(arg_domain, *slot_domain).is_err() {
+                                return Err(self
+                                    .raise_clock_coherence_error(
+                                        id,
+                                        &[arg_slot, *slot],
+                                        ClockError::IndexClockMismatch,
+                                    )
+                                    .into());
+                            }
+                        }
                     }
                 }
                 PathElement::EnumPayloadByValue(value) => {
@@ -347,11 +353,25 @@ impl ClockCoherenceContext<'_> {
             }
             match op {
                 OpCode::Binary(binary) => {
-                    self.unify_clocks(
-                        &[binary.arg1, binary.arg2, binary.lhs],
-                        location.node,
-                        ClockError::BinaryOperationClockMismatch { op: binary.op },
-                    )?;
+                    if !binary.op.is_comparison() {
+                        self.unify_clocks(
+                            &[binary.arg1, binary.arg2, binary.lhs],
+                            location.node,
+                            ClockError::BinaryOperationClockMismatch { op: binary.op },
+                        )?;
+                    } else {
+                        self.unify_clocks(
+                            &[binary.arg1, binary.arg2],
+                            location.node,
+                            ClockError::BinaryOperationClockMismatch { op: binary.op },
+                        )?;
+                        self.unify_projected_clocks(
+                            binary.arg1,
+                            binary.lhs,
+                            location.node,
+                            ClockError::BinaryOperationClockMismatch { op: binary.op },
+                        )?;
+                    }
                 }
                 OpCode::Unary(unary) => {
                     if matches!(unary.op, AluUnary::Neg | AluUnary::Not) {

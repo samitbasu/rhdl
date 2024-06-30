@@ -160,6 +160,20 @@ pub enum AluBinary {
     Gt,
 }
 
+impl AluBinary {
+    pub fn is_comparison(&self) -> bool {
+        matches!(
+            self,
+            AluBinary::Eq
+                | AluBinary::Lt
+                | AluBinary::Le
+                | AluBinary::Ne
+                | AluBinary::Ge
+                | AluBinary::Gt
+        )
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 pub enum AluUnary {
     Neg,

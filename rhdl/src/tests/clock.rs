@@ -1,4 +1,4 @@
-use rhdl_bits::{alias::*, bits};
+use rhdl_bits::{alias::*, bits, signed};
 use rhdl_core::{
     compile_design,
     error::RHDLError,
@@ -11,6 +11,7 @@ use rhdl_core::{
 use rhdl_macro::{kernel, Digital, Timed};
 
 #[test]
+#[allow(clippy::let_and_return)]
 fn test_struct_follows_clock_constraints() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Digital, Timed)]
     struct Foo<C: Domain, D: Domain> {
@@ -21,8 +22,8 @@ fn test_struct_follows_clock_constraints() -> miette::Result<()> {
     #[kernel]
     #[allow(clippy::let_and_return)]
     fn do_stuff<C: Domain, D: Domain>(s: Foo<C, D>) -> Foo<C, D> {
-        let a = s.a.val();
-        let b = s.b.val();
+        let a = s.b.val();
+        let b = s.a.val();
         let c = Foo::<C, D> {
             a: signal(a + 1),
             b: signal(b + 1),
@@ -31,7 +32,6 @@ fn test_struct_follows_clock_constraints() -> miette::Result<()> {
     }
 
     compile_design::<do_stuff<Red, Red>>()?;
-    compile_design::<do_stuff<Red, Green>>()?;
     assert!(compile_design::<do_stuff<Green, Red>>().is_err());
     Ok(())
 }
@@ -58,6 +58,7 @@ fn test_struct_with_splice_follows_clock_constraints() -> miette::Result<()> {
 }
 
 #[test]
+#[allow(clippy::let_and_return)]
 fn test_struct_follows_clock_constraints_fails() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Digital, Timed)]
     struct Foo<C: Domain, D: Domain> {
@@ -107,6 +108,7 @@ fn test_struct_cannot_cross_clock_domains() -> miette::Result<()> {
 }
 
 #[test]
+#[allow(clippy::let_and_return)]
 fn test_signal_call_cross_clock_fails() -> miette::Result<()> {
     #[kernel]
     fn add<C: Domain>(x: Signal<b8, C>, y: Signal<b8, C>) -> Signal<b8, C> {
@@ -354,6 +356,7 @@ fn test_signal_tuple_crossing_fails() -> miette::Result<()> {
 }
 
 #[test]
+#[allow(clippy::let_and_return)]
 fn test_signal_tuple_crossing_fails_second_test() -> miette::Result<()> {
     #[kernel]
     fn add<C: Domain, D: Domain>(
@@ -436,5 +439,68 @@ fn test_exec_sub_kernel_preserves_clocking() -> miette::Result<()> {
 
     compile_design::<do_stuff<Red, Red>>()?;
     assert!(compile_design::<do_stuff<Red, Green>>().is_err());
+    Ok(())
+}
+
+#[test]
+fn test_retime_of_comparison() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<bool, C> {
+        let a = a.val();
+        let b = b.val();
+        let c = a > b;
+        signal(c)
+    }
+
+    compile_design::<do_stuff<Red>>()?;
+    Ok(())
+}
+
+#[test]
+fn test_retime_of_comparison_with_structs() -> miette::Result<()> {
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
+    struct Foo {
+        a: b8,
+    }
+
+    #[kernel]
+    fn do_stuff<C: Domain>(a: Signal<Foo, C>, b: Signal<Foo, C>) -> Signal<bool, C> {
+        let a = a.val();
+        let b = b.val();
+        let c = a == b;
+        signal(c)
+    }
+
+    compile_design::<do_stuff<Red>>()?;
+    Ok(())
+}
+
+#[test]
+fn test_unknown_clock_domain() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff<C: Domain>(a: Signal<b12, C>) -> Signal<b12, C> {
+        let k = a;
+        let m = bits::<14>(7);
+        let c = k + 3;
+        let d = if c > k { c } else { k };
+        let e = (c, m);
+        let (f, g) = e;
+        let h = g + 1;
+        let k: b4 = bits::<4>(7);
+        let q = (bits::<2>(1), (bits::<5>(0), signed::<8>(5)), bits::<12>(6));
+        let b = q.1 .1;
+        let (q0, (q1, q1b), q2) = q; // Tuple destructuring
+        let z = q1b + 4;
+        let h = [d, c, f];
+        let [i, j, k] = h;
+        let o = j;
+        let l = {
+            let a = b12(3);
+            let b = bits(4);
+            a + b
+        };
+        l + k
+    }
+    assert!(compile_design::<do_stuff<Red>>().is_err());
     Ok(())
 }

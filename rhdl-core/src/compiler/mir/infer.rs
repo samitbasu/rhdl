@@ -402,6 +402,9 @@ impl<'a> MirTypeInference<'a> {
     ) -> Result<()> {
         let a1_is_signal = self.ctx.is_signal(arg1);
         let a2_is_signal = self.ctx.is_signal(arg2);
+        let a_data = self.ctx.project_signal_data(arg1);
+        let b_data = self.ctx.project_signal_data(arg2);
+        self.unify(id, a_data, b_data)?;
         if a1_is_signal {
             self.unify(id, lhs, arg1)?;
         }

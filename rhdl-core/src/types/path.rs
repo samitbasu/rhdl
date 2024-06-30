@@ -373,6 +373,22 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     range = range.start + offset..range.start + offset + size;
                     kind = structure.fields[*i].kind.clone();
                 }
+                Kind::Signal(root, _) if matches!(root.as_ref(), Kind::Array(_)) => {
+                    let Kind::Array(array) = root.as_ref() else {
+                        return Err(rhdl_error(PathError::IndexingNotAllowed {
+                            kind: *root.clone(),
+                        }));
+                    };
+                    let element_size = array.base.bits();
+                    if i >= &array.size {
+                        return Err(rhdl_error(PathError::ArrayIndexOutOfBounds {
+                            ndx: *i,
+                            kind: kind.clone(),
+                        }));
+                    }
+                    range = range.start + i * element_size..range.start + (i + 1) * element_size;
+                    kind = *array.base.clone();
+                }
                 _ => {
                     return Err(rhdl_error(PathError::IndexingNotAllowed {
                         kind: kind.clone(),
