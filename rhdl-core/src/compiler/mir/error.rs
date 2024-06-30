@@ -6,7 +6,7 @@ use thiserror::Error;
 use crate::{
     ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
     ast_builder::BinOp,
-    rhif::spec::{AluBinary, AluUnary, Slot},
+    rhif::spec::{AluBinary, AluUnary, OpCode, Slot},
     types::path::Path,
     Kind, TypedBits,
 };
@@ -126,6 +126,8 @@ pub enum ICE {
     VariantNotFoundInType { variant: i64, ty: Kind },
     #[error("Symbol table has no entry for slot {slot:?}")]
     SymbolTableIsIncomplete { slot: Slot },
+    #[error("Unable to infer clock domain for retime operation {op:?}")]
+    UnableToInferClockDomainForRetime { op: OpCode },
 }
 
 #[derive(Error, Debug, Diagnostic)]
