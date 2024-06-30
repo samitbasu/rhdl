@@ -4,7 +4,7 @@ use crate::{
     compiler::utils::remap_slots,
     error::RHDLError,
     rhif::{
-        spec::{CaseArgument, OpCode, Slot},
+        spec::{OpCode, Slot},
         Object,
     },
 };
@@ -93,7 +93,7 @@ impl Pass for DeadCodeEliminationPass {
         input.ops = input
             .ops
             .into_iter()
-            .zip(alive_ops.into_iter())
+            .zip(alive_ops)
             .map(|(op, alive)| if alive { op } else { OpCode::Noop })
             .collect();
         Ok(input)

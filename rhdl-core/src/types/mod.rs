@@ -6,6 +6,7 @@ pub mod kernel;
 pub mod kind;
 pub mod note;
 pub mod path;
+pub mod register;
 pub mod signal;
 pub mod synchronous;
 pub mod timed;

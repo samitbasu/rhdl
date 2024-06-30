@@ -138,12 +138,6 @@ impl std::fmt::Debug for CaseArgument {
     }
 }
 
-impl std::fmt::Debug for FuncId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "f{}", self.0)
-    }
-}
-
 impl std::fmt::Debug for Member {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

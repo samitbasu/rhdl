@@ -5,7 +5,8 @@ use crate::{
     compiler::{
         mir::{compiler::compile_mir, infer::infer},
         passes::{
-            check_clock_coherence::CheckClockCoherence, check_rhif_flow::DataFlowCheckPass,
+            check_clock_coherence::CheckClockCoherence,
+            check_for_rolled_types::CheckForRolledTypesPass, check_rhif_flow::DataFlowCheckPass,
             check_rhif_type::TypeCheckPass, dead_code_elimination::DeadCodeEliminationPass,
             lower_inferred_casts::LowerInferredCastsPass, pass::Pass,
             pre_cast_literals::PreCastLiterals,
@@ -38,35 +39,33 @@ fn wrap_pass<P: Pass>(obj: Object) -> Result<Object> {
 fn compile_kernel(kernel: Kernel) -> Result<Object> {
     let mir = compile_mir(kernel)?;
     let mut obj = infer(mir)?;
-    //    let ctx = infer(&kernel)?;
-    //    let _ast_ascii = render_ast_to_string(&kernel, &ctx).unwrap();
-    //    check_inference(&kernel, &ctx)?;
-    //let mut obj = compile(kernel.inner(), ctx)?;
-    let mut obj = SymbolTableIsComplete::run(obj)?;
+    obj = SymbolTableIsComplete::run(obj)?;
+    obj = wrap_pass::<CheckForRolledTypesPass>(obj)?;
+    // TODO - Remove the iteration count
     for _pass in 0..5 {
         eprintln!("{:?}", obj);
-        obj = wrap_pass::<RemoveUnneededMuxesPass>(obj.clone())?;
-        obj = wrap_pass::<RemoveExtraRegistersPass>(obj.clone())?;
-        obj = wrap_pass::<RemoveUnusedLiterals>(obj.clone())?;
-        obj = wrap_pass::<RemoveUselessCastsPass>(obj.clone())?;
-        obj = wrap_pass::<RemoveEmptyCasesPass>(obj.clone())?;
-        obj = wrap_pass::<RemoveUnusedRegistersPass>(obj.clone())?;
-        obj = wrap_pass::<DeadCodeEliminationPass>(obj.clone())?;
+        obj = wrap_pass::<RemoveUnneededMuxesPass>(obj)?;
+        obj = wrap_pass::<RemoveExtraRegistersPass>(obj)?;
+        obj = wrap_pass::<RemoveUnusedLiterals>(obj)?;
+        obj = wrap_pass::<RemoveUselessCastsPass>(obj)?;
+        obj = wrap_pass::<RemoveEmptyCasesPass>(obj)?;
+        obj = wrap_pass::<RemoveUnusedRegistersPass>(obj)?;
+        obj = wrap_pass::<DeadCodeEliminationPass>(obj)?;
     }
     obj = CheckClockCoherence::run(obj)?;
     for _pass in 0..2 {
         eprintln!("{:?}", obj);
-        obj = wrap_pass::<RemoveUnneededMuxesPass>(obj.clone())?;
-        obj = wrap_pass::<RemoveExtraRegistersPass>(obj.clone())?;
-        obj = wrap_pass::<RemoveUnusedLiterals>(obj.clone())?;
-        obj = wrap_pass::<PreCastLiterals>(obj.clone())?;
-        obj = wrap_pass::<RemoveUselessCastsPass>(obj.clone())?;
-        obj = wrap_pass::<RemoveEmptyCasesPass>(obj.clone())?;
-        obj = wrap_pass::<RemoveUnusedRegistersPass>(obj.clone())?;
-        obj = wrap_pass::<DeadCodeEliminationPass>(obj.clone())?;
-        obj = wrap_pass::<PrecomputeDiscriminantPass>(obj.clone())?;
-        obj = wrap_pass::<LowerInferredCastsPass>(obj.clone())?;
-        obj = wrap_pass::<PrecastIntegerLiteralsInBinops>(obj.clone())?;
+        obj = wrap_pass::<RemoveUnneededMuxesPass>(obj)?;
+        obj = wrap_pass::<RemoveExtraRegistersPass>(obj)?;
+        obj = wrap_pass::<RemoveUnusedLiterals>(obj)?;
+        obj = wrap_pass::<PreCastLiterals>(obj)?;
+        obj = wrap_pass::<RemoveUselessCastsPass>(obj)?;
+        obj = wrap_pass::<RemoveEmptyCasesPass>(obj)?;
+        obj = wrap_pass::<RemoveUnusedRegistersPass>(obj)?;
+        obj = wrap_pass::<DeadCodeEliminationPass>(obj)?;
+        obj = wrap_pass::<PrecomputeDiscriminantPass>(obj)?;
+        obj = wrap_pass::<LowerInferredCastsPass>(obj)?;
+        obj = wrap_pass::<PrecastIntegerLiteralsInBinops>(obj)?;
     }
     obj = TypeCheckPass::run(obj)?;
     obj = DataFlowCheckPass::run(obj)?;
@@ -80,7 +79,7 @@ fn elaborate_design(design: &mut Module) -> Result<()> {
         .objects
         .values()
         .flat_map(|obj| obj.externals.iter())
-        .filter_map(|func| {
+        .filter_map(|(id, func)| {
             if let ExternalFunctionCode::Kernel(kernel) = &func.code {
                 Some(kernel)
             } else {

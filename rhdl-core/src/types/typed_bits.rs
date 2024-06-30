@@ -806,11 +806,11 @@ mod tests {
             }
             fn random() -> Self {
                 use rand::Rng;
-                Self {
-                    0: rand::thread_rng().gen(),
-                    1: rand::thread_rng().gen(),
-                    2: rand::thread_rng().gen(),
-                }
+                Self(
+                    rand::thread_rng().gen(),
+                    rand::thread_rng().gen(),
+                    rand::thread_rng().gen(),
+                )
             }
         }
 

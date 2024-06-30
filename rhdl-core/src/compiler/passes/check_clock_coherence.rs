@@ -4,11 +4,11 @@ use crate::{
     ast::ast_impl::NodeId,
     compiler::mir::{
         error::{ClockError, RHDLClockCoherenceViolation},
-        ty::{make_variant_tag, AppType, AppTypeKind, Const, TypeId, TypeKind, UnifyContext},
+        ty::{make_variant_tag, AppTypeKind, Const, TypeId, TypeKind, UnifyContext},
     },
     error::RHDLError,
     rhif::{
-        spec::{CaseArgument, OpCode, Slot},
+        spec::{AluUnary, CaseArgument, OpCode, Slot},
         Object,
     },
     types::path::{Path, PathElement},
@@ -354,11 +354,20 @@ impl ClockCoherenceContext<'_> {
                     )?;
                 }
                 OpCode::Unary(unary) => {
-                    self.unify_clocks(
-                        &[unary.arg1, unary.lhs],
-                        location.node,
-                        ClockError::UnaryOperationClockMismatch { op: unary.op },
-                    )?;
+                    if matches!(unary.op, AluUnary::Neg | AluUnary::Not) {
+                        self.unify_clocks(
+                            &[unary.arg1, unary.lhs],
+                            location.node,
+                            ClockError::UnaryOperationClockMismatch { op: unary.op },
+                        )?;
+                    } else {
+                        self.unify_projected_clocks(
+                            unary.arg1,
+                            unary.lhs,
+                            location.node,
+                            ClockError::UnaryOperationClockMismatch { op: unary.op },
+                        )?;
+                    }
                 }
                 OpCode::Assign(assign) => {
                     self.unify_clocks(
@@ -522,7 +531,32 @@ impl ClockCoherenceContext<'_> {
                         }
                     }
                 }
-                OpCode::Exec(_) => todo!(),
+                OpCode::Exec(exec) => {
+                    let signature = &self.obj.externals[&exec.id].signature;
+                    let ret_ty =
+                        self.import_kind_with_unknown_domains(location.node, &signature.ret);
+                    if self.ctx.unify(ret_ty, self.slot_map[&exec.lhs]).is_err() {
+                        return Err(self
+                            .raise_clock_coherence_error(
+                                location.node,
+                                &[exec.lhs],
+                                ClockError::ExternalClockMismatch,
+                            )
+                            .into());
+                    }
+                    for (kind, slot) in signature.arguments.iter().zip(exec.args.iter()) {
+                        let arg_ty = self.import_kind_with_unknown_domains(location.node, kind);
+                        if self.ctx.unify(arg_ty, self.slot_map[slot]).is_err() {
+                            return Err(self
+                                .raise_clock_coherence_error(
+                                    location.node,
+                                    &[*slot],
+                                    ClockError::ExternalClockMismatch,
+                                )
+                                .into());
+                        }
+                    }
+                }
                 OpCode::Enum(enumerate) => {
                     for variant in &enumerate.fields {
                         self.unify_projected_clocks(

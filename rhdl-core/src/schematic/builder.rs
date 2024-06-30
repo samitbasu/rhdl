@@ -491,7 +491,7 @@ impl<'a> SchematicBuilder<'a> {
     }
 
     fn make_exec(&mut self, exec: Exec, location: Option<SourceLocation>) -> Result<()> {
-        let code = &self.object.externals[exec.id.0].code;
+        let code = &self.object.externals[&exec.id].code;
         match code {
             ExternalFunctionCode::Kernel(kernel) => self.make_kernel(exec, kernel, location),
             ExternalFunctionCode::Extern(edef) => self.make_black_box(exec, edef, location),
@@ -510,7 +510,7 @@ impl<'a> SchematicBuilder<'a> {
             .map(|arg| self.make_wired_pin(*arg))
             .collect::<Result<Vec<_>>>()?;
         let out = self.make_output_pin(exec.lhs)?;
-        let name = &self.object.externals[exec.id.0].path;
+        let name = &self.object.externals[&exec.id].path;
         todo!();
         /*
         let component = self.schematic.make_component(

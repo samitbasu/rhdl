@@ -9,6 +9,7 @@ use crate::{
     Kind, TypedBits,
 };
 
+use super::spec::FuncId;
 use super::{spanned_source::SpannedSource, spec::OpCode};
 
 #[derive(Debug, Clone, Copy, PartialEq, Hash)]
@@ -60,10 +61,7 @@ impl SymbolMap {
         best_range
     }
     pub fn alias(&mut self, from_slot: Slot, to_slot: Slot) {
-        self.aliases
-            .entry(from_slot)
-            .or_insert_with(BTreeSet::new)
-            .insert(to_slot);
+        self.aliases.entry(from_slot).or_default().insert(to_slot);
     }
 }
 
@@ -73,7 +71,7 @@ pub struct Object {
     pub literals: BTreeMap<Slot, TypedBits>,
     pub kind: BTreeMap<Slot, Kind>,
     pub return_slot: Slot,
-    pub externals: Vec<ExternalFunction>,
+    pub externals: BTreeMap<FuncId, ExternalFunction>,
     pub ops: Vec<OpCode>,
     pub arguments: Vec<Slot>,
     pub name: String,
@@ -133,10 +131,10 @@ impl std::fmt::Debug for Object {
                 slot, self.kind[slot], literal
             )?;
         }
-        for (ndx, func) in self.externals.iter().enumerate() {
+        for (ndx, func) in self.externals.iter() {
             writeln!(
                 f,
-                "Function f{} name: {} code: {:?} signature: {:?}",
+                "Function {:?} name: {} code: {:?} signature: {:?}",
                 ndx, func.path, func.code, func.signature
             )?;
         }

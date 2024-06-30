@@ -1,4 +1,5 @@
 pub(crate) mod check_clock_coherence;
+pub(crate) mod check_for_rolled_types;
 pub(crate) mod check_rhif_flow;
 pub(crate) mod check_rhif_type;
 pub(crate) mod dead_code_elimination;

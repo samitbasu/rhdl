@@ -27,6 +27,8 @@ pub use types::kind::text_grid;
 pub use types::kind::DiscriminantAlignment;
 pub use types::kind::VariantType;
 pub use types::note::Notable;
+pub use types::register::Register;
+pub use types::register::SignedRegister;
 pub use types::signal::Signal;
 pub use types::timed::Timed;
 pub mod ast;

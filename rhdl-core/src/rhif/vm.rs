@@ -274,7 +274,7 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
                     .iter()
                     .map(|x| state.read(*x))
                     .collect::<Result<Vec<_>>>()?;
-                let func = &state.obj.externals[id.0];
+                let func = &state.obj.externals[id];
                 let result = match &func.code {
                     ExternalFunctionCode::Kernel(kernel) => {
                         execute(state.design, kernel.inner().fn_id, args)?

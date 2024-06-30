@@ -1,8 +1,6 @@
 use crate::error::RHDLError;
 use crate::rhif::vm::execute_function;
-use crate::{
-    compile_design, generate_verilog, kernel::ExternalKernelDef, Digital, DigitalFn, KernelFnKind,
-};
+use crate::{compile_design, generate_verilog, kernel::ExternalKernelDef, DigitalFn, KernelFnKind};
 use crate::{Timed, TypedBits};
 
 pub trait TestArg {

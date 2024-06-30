@@ -3,7 +3,7 @@ use rhdl_bits::{Bits, SignedBits};
 use crate::{Kind, NoteKey, NoteWriter, TypedBits};
 
 use super::note::Notable;
-use rand::{random, thread_rng, Rng};
+use rand::{thread_rng, Rng};
 
 /// This is the core trait for all of `RHDL` data elements.  If you
 /// want to use a data type in the hardware part of the design,
@@ -141,9 +141,7 @@ impl Digital for () {
     fn bin(self) -> Vec<bool> {
         Vec::new()
     }
-    fn random() -> Self {
-        ()
-    }
+    fn random() -> Self {}
 }
 
 impl Notable for () {
@@ -608,9 +606,9 @@ mod test {
                     2 => Self::Tuple(thread_rng().gen::<bool>(), Bits::<3>::random()),
                     3 => {
                         let mut a = [false; 3];
-                        for i in 0..3 {
+                        (0..3).for_each(|i| {
                             a[i] = thread_rng().gen::<bool>();
-                        }
+                        });
                         Self::Array(a)
                     }
                     4 => Self::Strct {

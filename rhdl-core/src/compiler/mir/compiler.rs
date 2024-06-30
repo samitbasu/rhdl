@@ -110,8 +110,6 @@ impl Default for ScopeId {
     }
 }
 
-const UNARY_METHODS: &[&str] = &["any", "all", "xor", "as_unsigned", "as_signed", "val"];
-
 fn collapse_path(path: &ast_impl::Path) -> String {
     path.segments
         .iter()
@@ -167,7 +165,7 @@ pub struct MirContext<'a> {
     reg_source_map: BTreeMap<Slot, NodeId>,
     ty: BTreeMap<Slot, KindKey>,
     ty_equate: HashSet<TypeEquivalence>,
-    stash: Vec<ExternalFunction>,
+    stash: BTreeMap<FuncId, ExternalFunction>,
     slot_names: BTreeMap<Slot, String>,
     return_slot: Slot,
     arguments: Vec<Slot>,
@@ -196,11 +194,11 @@ impl<'a> std::fmt::Debug for MirContext<'a> {
         for (lit, expr) in &self.literals {
             writeln!(f, "{:?} -> {:?}", lit, expr)?;
         }
-        for (ndx, func) in self.stash.iter().enumerate() {
+        for (id, func) in self.stash.iter() {
             writeln!(
                 f,
-                "Function f{} name: {} code: {:?} signature: {:?}",
-                ndx, func.path, func.code, func.signature
+                "Function f{:?} name: {} code: {:?} signature: {:?}",
+                id, func.path, func.code, func.signature
             )?;
         }
         for op in &self.ops {
@@ -225,7 +223,7 @@ impl<'a> MirContext<'a> {
             reg_source_map: BTreeMap::new(),
             ty: BTreeMap::new(),
             ty_equate: Default::default(),
-            stash: vec![],
+            stash: Default::default(),
             return_slot: Slot::Empty,
             arguments: vec![],
             fn_id: FunctionId::default(),
@@ -487,9 +485,9 @@ impl<'a> MirContext<'a> {
         }
     }
     fn stash(&mut self, func: ExternalFunction) -> Result<FuncId> {
-        let ndx = self.stash.len();
-        self.stash.push(func);
-        Ok(FuncId(ndx))
+        let ndx = self.stash.len().into();
+        self.stash.insert(ndx, func);
+        Ok(ndx)
     }
     fn op(&mut self, op: OpCode, node: NodeId) {
         self.ops.push(OpCodeWithSource { op, source: node });
