@@ -279,6 +279,7 @@ fn test_adt_inference() -> miette::Result<()> {
 }
 
 #[test]
+#[allow(clippy::assign_op_pattern)]
 fn test_adt_shadow() {
     #[derive(PartialEq, Copy, Clone, Digital)]
     pub enum NooState {
@@ -433,6 +434,7 @@ fn test_enum_match_signed_discriminant() -> miette::Result<()> {
 }
 
 #[test]
+#[allow(clippy::comparison_chain)]
 fn test_enum_basic() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     enum Foo {

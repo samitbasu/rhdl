@@ -149,6 +149,8 @@ impl TypedBits {
         let tb64 = match &self.kind {
             Kind::Bits(_) => self.unsigned_cast(64)?,
             Kind::Signed(_) => self.signed_cast(64)?,
+            Kind::Signal(base, _) if base.is_unsigned() => self.unsigned_cast(64)?,
+            Kind::Signal(base, _) if base.is_signed() => self.signed_cast(64)?,
             _ => {
                 return Err(rhdl_error(DynamicTypeError::UnableToInterpretAsI64 {
                     kind: self.kind.clone(),

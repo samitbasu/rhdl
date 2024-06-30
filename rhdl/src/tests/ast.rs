@@ -1,12 +1,16 @@
-use crate::tests::{exhaustive, red, tuple_exhaustive_red, tuple_pair_b8_red};
-use rhdl_bits::{alias::*, bits, Bits};
+use crate::tests::{exhaustive, red, tuple_exhaustive_red, tuple_pair_b8_red, tuple_pair_s8_red};
+use itertools::iproduct;
+use rhdl_bits::{alias::*, bits, signed, Bits, SignedBits};
 use rhdl_core::{
+    compile_design,
+    compiler::mir::error::Syntax,
+    error::RHDLError,
     test_kernel_vm_and_verilog,
     types::{
         domain::{self, Red},
         signal::signal,
     },
-    Domain, Signal,
+    Digital, Domain, Signal,
 };
 use rhdl_macro::{kernel, Digital};
 
@@ -275,7 +279,7 @@ fn test_basic_compile() -> miette::Result<()> {
         let q = b[2];
         let p = [q; 3];
         let k = (q, q, q, q);
-        let mut p = k.2;
+        let mut p = k.2 + d;
         if p > 2 {
             return signal(p);
         }
@@ -330,36 +334,138 @@ fn test_basic_compile() -> miette::Result<()> {
 }
 
 #[test]
-fn test_rebind_compile() -> miette::Result<()> {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
-    pub enum SimpleEnum {
-        Init,
-        Run(u8),
-        Point { x: b4, y: u8 },
-        Boom,
+fn test_generics() {
+    #[kernel]
+    fn do_stuff<T: Digital, C: Domain>(a: Signal<T, C>, b: Signal<T, C>) -> Signal<bool, C> {
+        signal(a == b)
     }
 
-    const B6: b6 = bits(6);
+    let a = [
+        signed::<4>(1),
+        signed::<4>(2),
+        signed::<4>(3),
+        signed::<4>(-1),
+        signed::<4>(-3),
+    ];
+    let inputs =
+        iproduct!(a.iter().cloned().map(red), a.iter().cloned().map(red)).collect::<Vec<_>>();
+    test_kernel_vm_and_verilog::<do_stuff<s4, domain::Red>, _, _, _>(do_stuff, inputs.into_iter())
+        .unwrap();
+}
+
+#[test]
+fn test_nested_generics() -> miette::Result<()> {
+    #[derive(PartialEq, Copy, Clone, Digital)]
+    struct Foo<T: Digital> {
+        a: T,
+        b: T,
+    }
 
     #[kernel]
-    fn add(state: Signal<SimpleEnum, Red>) -> Signal<u8, Red> {
-        let x = state;
-        signal(match x.val() {
-            SimpleEnum::Init => 1,
-            SimpleEnum::Run(x) => x,
-            SimpleEnum::Point { x, y } => y,
-            SimpleEnum::Boom => 7,
-        })
+    fn do_stuff<T: Digital, S: Digital, C: Domain>(
+        x: Signal<Foo<T>, C>,
+        y: Signal<Foo<S>, C>,
+    ) -> Signal<bool, C> {
+        let x = x.val();
+        let y = y.val();
+        let c = x.a;
+        let d = (x.a, y.b);
+        let e = Foo::<T> { a: c, b: c };
+        signal(e == x)
     }
 
-    let inputs = [
-        SimpleEnum::Init,
-        SimpleEnum::Run(1),
-        SimpleEnum::Run(5),
-        SimpleEnum::Point { x: bits(7), y: 11 },
-        SimpleEnum::Point { x: bits(7), y: 13 },
-        SimpleEnum::Boom,
+    let a = [
+        signed::<4>(1),
+        signed::<4>(2),
+        signed::<4>(3),
+        signed::<4>(-1),
+        signed::<4>(-3),
     ];
-    test_kernel_vm_and_verilog::<add, _, _, _>(add, inputs.into_iter().map(red).map(|x| (x,)))?;
+    let b: Vec<b3> = exhaustive();
+    let inputs = iproduct!(
+        a.into_iter().map(|x| Foo { a: x, b: x }).map(red),
+        b.into_iter().map(|x| Foo { a: x, b: x }).map(red)
+    )
+    .collect::<Vec<_>>();
+    test_kernel_vm_and_verilog::<do_stuff<s4, b3, domain::Red>, _, _, _>(
+        do_stuff::<s4, b3, domain::Red>,
+        inputs.into_iter(),
+    )?;
     Ok(())
+}
+
+#[test]
+fn test_signed_match() {
+    #[kernel]
+    fn foo(a: Signal<s8, Red>, b: Signal<s8, Red>) -> Signal<s8, Red> {
+        match a.val() {
+            SignedBits::<8>(1) => b,
+            SignedBits::<8>(2) => a,
+            _ => signal(s8(3)),
+        }
+    }
+
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_s8_red()).unwrap();
+}
+
+#[test]
+fn test_assignment_of_if_expression() -> miette::Result<()> {
+    #[kernel]
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+        let mut c = a;
+        c = if a > b { a + 1 } else { b + 2 };
+        c
+    }
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    Ok(())
+}
+
+#[test]
+#[allow(clippy::needless_range_loop)]
+fn test_for_loop() -> miette::Result<()> {
+    #[kernel]
+    fn looper(a: Signal<[bool; 8], Red>) -> Signal<bool, Red> {
+        let a = a.val();
+        let mut ret: bool = false;
+        for i in 0..8 {
+            ret ^= a[i];
+        }
+        signal(ret)
+    }
+    let inputs = (0..256).map(|x| {
+        let mut a = [false; 8];
+        for i in 0..8 {
+            a[i] = (x >> i) & 1 == 1;
+        }
+        (signal(a),)
+    });
+    test_kernel_vm_and_verilog::<looper, _, _, _>(looper, inputs)?;
+    Ok(())
+}
+
+#[test]
+fn test_error_about_for_loop() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff(a: Signal<b4, Red>) {
+        let mut a = a.val();
+        let c = 5;
+        for ndx in 0..c {
+            a += bits::<4>(ndx);
+        }
+    }
+    let Err(RHDLError::RHDLSyntaxError(err)) = compile_design::<do_stuff>() else {
+        panic!("Expected syntax error");
+    };
+    assert!(matches!(err.cause, Syntax::ForLoopNonIntegerEndValue));
+    Ok(())
+}
+
+#[test]
+fn test_match_scrutinee_bits() {
+    let z = bits::<4>(0b1010);
+    match z {
+        rhdl_bits::Bits::<4>(0b0000) => {}
+        rhdl_bits::Bits::<4>(0b0001) => {}
+        _ => {}
+    }
 }
