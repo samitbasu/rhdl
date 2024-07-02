@@ -504,3 +504,15 @@ fn test_unknown_clock_domain() -> miette::Result<()> {
     assert!(compile_design::<do_stuff<Red>>().is_err());
     Ok(())
 }
+
+#[test]
+fn test_tuple_unused_variable() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff(a: Signal<b1, Red>) -> Signal<b1, Red> {
+        let c = (3, a.val()); // c is domain (?, Red)
+        signal(c.1)
+    }
+
+    compile_design::<do_stuff>()?;
+    Ok(())
+}

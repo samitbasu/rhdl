@@ -72,68 +72,6 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static + Notable {
     fn random() -> Self;
 }
 
-#[derive(PartialEq, Clone, Copy, Debug)]
-pub struct Reset(bool);
-
-impl Reset {
-    pub fn raw(&self) -> bool {
-        self.0
-    }
-}
-
-pub fn reset(b: bool) -> Reset {
-    Reset(b)
-}
-
-impl Digital for Reset {
-    fn static_kind() -> Kind {
-        Kind::make_bool()
-    }
-    fn bin(self) -> Vec<bool> {
-        vec![self.0]
-    }
-    fn random() -> Self {
-        Reset(rand::thread_rng().gen::<bool>())
-    }
-}
-
-impl Notable for Reset {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        writer.write_bool(key, self.0);
-    }
-}
-
-#[derive(PartialEq, Clone, Copy, Debug)]
-pub struct Clock(bool);
-
-impl Clock {
-    pub fn raw(&self) -> bool {
-        self.0
-    }
-}
-
-pub fn clock(b: bool) -> Clock {
-    Clock(b)
-}
-
-impl Digital for Clock {
-    fn static_kind() -> Kind {
-        Kind::make_bool()
-    }
-    fn bin(self) -> Vec<bool> {
-        vec![self.0]
-    }
-    fn random() -> Self {
-        Clock(rand::thread_rng().gen::<bool>())
-    }
-}
-
-impl Notable for Clock {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        writer.write_bool(key, self.0);
-    }
-}
-
 impl Digital for () {
     fn static_kind() -> Kind {
         Kind::Empty
