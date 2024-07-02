@@ -34,7 +34,7 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO {
 
     type Update: DigitalFn;
 
-    const UPDATE: CircuitUpdateFn<Self>; // = |_, _| (Default::default(), Default::default());
+    const UPDATE: CircuitUpdateFn<Self> = |_, _| unimplemented!();
 
     const INIT: CircuitInitFn<Self>; // = |_| (Default::default(), Default::default());
 

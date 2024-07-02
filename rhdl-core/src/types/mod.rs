@@ -1,3 +1,4 @@
+pub mod clock;
 pub mod digital;
 pub mod digital_fn;
 pub mod domain;
@@ -7,6 +8,7 @@ pub mod kind;
 pub mod note;
 pub mod path;
 pub mod register;
+pub mod reset;
 pub mod signal;
 pub mod synchronous;
 pub mod timed;

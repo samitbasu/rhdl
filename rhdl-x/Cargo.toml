@@ -17,6 +17,7 @@ paste = "1.0.14"
 petgraph = "0.6.4"
 proc-macro2 = "1.0.81"
 quote = "1.0.36"
+rand = "0.8.5"
 rhdl-bits = { path = "../rhdl-bits" }
 rhdl-core = { path = "../rhdl-core" }
 rhdl-macro = { path = "../rhdl-macro" }
