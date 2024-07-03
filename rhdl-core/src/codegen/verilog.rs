@@ -638,6 +638,10 @@ pub fn as_verilog_literal(tb: &TypedBits) -> String {
     format!("{}'{}b{}", width, signed, binary_string(&tb.bits))
 }
 
+pub fn as_verilog_decl(ty: &str, width: usize, name: &str) -> String {
+    format!("{ty}[{}:0] {name}", width.saturating_sub(1),)
+}
+
 pub fn generate_verilog(design: &Module) -> Result<VerilogDescriptor> {
     let module = translate(design, design.top)?;
     let module = module.deduplicate()?;

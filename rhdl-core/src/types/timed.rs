@@ -6,6 +6,8 @@ pub trait Timed: Digital {
     }
 }
 
+impl Timed for () {}
+
 impl<T: Timed> Timed for (T,) {}
 
 impl<T0: Timed, T1: Timed> Timed for (T0, T1) {}
