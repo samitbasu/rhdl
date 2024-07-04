@@ -6,33 +6,12 @@
 #![allow(dead_code)]
 
 use itertools::iproduct;
-use rand::Rng;
-use rhdl_bits::{alias::*, bits, Bits};
-use rhdl_core::{
-    compile_design, test_kernel_vm_and_verilog,
-    types::{
-        domain::{self, Red},
-        signal::signal,
-    },
-    Digital, Domain, Signal,
-};
-use rhdl_macro::{kernel, Digital};
+use rhdl::prelude::*;
 
-mod adt;
-mod ast;
-mod binding;
-mod clock;
-mod derive;
-mod indexing;
-mod inference;
-mod literals;
-mod phi;
-mod returns;
-mod strukt;
-mod tuple;
-mod type_rolling;
-mod vcd;
-mod vm;
+#[cfg(test)]
+mod common;
+#[cfg(test)]
+use common::*;
 
 #[test]
 fn test_missing_register() {
@@ -182,8 +161,8 @@ fn test_compile() -> miette::Result<()> {
     ];
     let inputs =
         iproduct!(foos.into_iter().map(red), noos.into_iter().map(red)).collect::<Vec<_>>();
-    compile_design::<do_stuff<domain::Red>>()?;
-    test_kernel_vm_and_verilog::<do_stuff<domain::Red>, _, _, _>(do_stuff, inputs.into_iter())?;
+    compile_design::<do_stuff<Red>>()?;
+    test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, inputs.into_iter())?;
     Ok(())
 }
 
@@ -195,40 +174,4 @@ fn test_custom_suffix() {
         let c = bits::<4>(3);
         a = b;
     }
-}
-
-fn exhaustive<const N: usize>() -> Vec<Bits<N>> {
-    (0..(1 << N)).map(bits).collect()
-}
-
-fn tuple_exhaustive_red<const N: usize>() -> impl Iterator<Item = (Signal<Bits<N>, Red>,)> + Clone {
-    exhaustive::<N>().into_iter().map(|x| (signal(x),))
-}
-
-fn tuple_u8<C: Domain>() -> impl Iterator<Item = (Signal<u8, C>,)> + Clone {
-    (0_u8..255_u8).map(|x| (signal(x),))
-}
-
-fn tuple_pair_b8_red() -> impl Iterator<Item = (Signal<b8, Red>, Signal<b8, Red>)> + Clone {
-    exhaustive::<8>()
-        .into_iter()
-        .flat_map(|x| exhaustive::<8>().into_iter().map(move |y| (red(x), red(y))))
-}
-
-fn tuple_pair_s8_red() -> impl Iterator<Item = (Signal<s8, Red>, Signal<s8, Red>)> + Clone {
-    exhaustive::<8>().into_iter().flat_map(|x| {
-        exhaustive::<8>()
-            .into_iter()
-            .map(move |y| (red(x.as_signed()), red(y.as_signed())))
-    })
-}
-
-fn red<T: Digital>(x: T) -> Signal<T, Red> {
-    signal(x)
-}
-
-fn rand_bits<const N: usize>() -> Bits<N> {
-    let mut rng = rand::thread_rng();
-    let val: u128 = rng.gen();
-    Bits::<N>(val & Bits::<N>::MASK.0)
 }

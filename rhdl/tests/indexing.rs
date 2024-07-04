@@ -1,13 +1,16 @@
-use rand::Rng;
-use rhdl_bits::{alias::*, bits, signed};
-use rhdl_core::{
-    test_kernel_vm_and_verilog,
-    types::{domain::Red, signal::signal},
-    Domain, Signal,
-};
-use rhdl_macro::{kernel, Digital};
+#![allow(unused_variables)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+#![allow(unreachable_code)]
+#![allow(unused_must_use)]
+#![allow(dead_code)]
 
-use crate::tests::{exhaustive, rand_bits, red, tuple_exhaustive_red, tuple_pair_b8_red};
+use rand::prelude::*;
+use rhdl::prelude::*;
+#[cfg(test)]
+mod common;
+#[cfg(test)]
+use common::*;
 
 #[test]
 fn test_tuple_struct_indexing() {
@@ -59,6 +62,11 @@ fn test_array_indexing() {
     }
 
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+}
+
+#[cfg(test)]
+fn rand_bits<const N: usize>() -> Bits<N> {
+    Bits::<N>::random()
 }
 
 #[test]

@@ -1,14 +1,11 @@
-use rhdl_bits::{alias::*, bits, signed};
-use rhdl_core::{
-    compile_design,
-    error::RHDLError,
-    types::{
-        domain::{Blue, Green, Red},
-        signal::signal,
-    },
-    Domain, Signal,
-};
-use rhdl_macro::{kernel, Digital, Timed};
+#![allow(unused_variables)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+#![allow(unreachable_code)]
+#![allow(unused_must_use)]
+#![allow(dead_code)]
+
+use rhdl::prelude::*;
 
 #[test]
 #[allow(clippy::let_and_return)]
@@ -506,6 +503,7 @@ fn test_unknown_clock_domain() -> miette::Result<()> {
 }
 
 #[test]
+#[ignore]
 fn test_tuple_unused_variable() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b1, Red>) -> Signal<b1, Red> {

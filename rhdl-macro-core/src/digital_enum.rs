@@ -174,12 +174,12 @@ fn allocate_discriminants(discriminants: &[Option<i64>]) -> Vec<i64> {
 
 fn variant_kind_mapping(enum_name: &Ident, variant: &Variant, discriminant: i64) -> TokenStream {
     match &variant.fields {
-        syn::Fields::Unit => quote! {rhdl_core::Kind::Empty},
+        syn::Fields::Unit => quote! {rhdl::core::Kind::Empty},
         syn::Fields::Unnamed(fields) => {
             let field_types = fields.unnamed.iter().map(|f| &f.ty);
             quote! {
-                rhdl_core::Kind::make_tuple(vec![#(
-                    <#field_types as rhdl_core::Digital>::static_kind()
+                rhdl::core::Kind::make_tuple(vec![#(
+                    <#field_types as rhdl::core::Digital>::static_kind()
                 ),*])
             }
         }
@@ -188,10 +188,10 @@ fn variant_kind_mapping(enum_name: &Ident, variant: &Variant, discriminant: i64)
             let field_types = fields.named.iter().map(|f| &f.ty);
             let struct_name = format_ident!("_{}__{}", enum_name, variant.ident);
             quote! {
-                rhdl_core::Kind::make_struct(
+                rhdl::core::Kind::make_struct(
                     stringify!(#struct_name),
                     vec![#(
-                    rhdl_core::Kind::make_field(stringify!(#field_names), <#field_types as rhdl_core::Digital>::static_kind())
+                    rhdl::core::Kind::make_field(stringify!(#field_names), <#field_types as rhdl::core::Digital>::static_kind())
                 ),*]
             )
             }
@@ -224,7 +224,7 @@ fn variant_random(variant: &Variant) -> TokenStream {
             let field_types = fields.unnamed.iter().map(|f| &f.ty);
             quote! {
                 Self::#ident(#(
-                    <#field_types as rhdl_core::Digital>::random()
+                    <#field_types as rhdl::core::Digital>::random()
                 ),*)
             }
         }
@@ -234,7 +234,7 @@ fn variant_random(variant: &Variant) -> TokenStream {
             quote! {
                 Self::#ident {
                     #(
-                        #field_names: <#field_types as rhdl_core::Digital>::random()
+                        #field_names: <#field_types as rhdl::core::Digital>::random()
                     ),*
                 }
             }
@@ -317,7 +317,7 @@ fn variant_note_case(variant: &Variant, kind: DiscriminantType, disc: &i64) -> T
             let field_numbers = fields.unnamed.iter().enumerate().map(|(i, _)| i);
             quote! {
                 #(
-                    rhdl_core::Notable::note(#field_names, (key, #field_numbers), &mut writer);
+                    rhdl::core::Notable::note(#field_names, (key, #field_numbers), &mut writer);
                 )*
             }
         }
@@ -325,7 +325,7 @@ fn variant_note_case(variant: &Variant, kind: DiscriminantType, disc: &i64) -> T
             let field_names = fields.named.iter().map(|f| &f.ident);
             quote! {
                 #(
-                    rhdl_core::Notable::note(#field_names, (key, stringify!(#field_names)), &mut writer);
+                    rhdl::core::Notable::note(#field_names, (key, stringify!(#field_names)), &mut writer);
                 )*
             }
         }
@@ -388,8 +388,8 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
     let discriminant_alignment = match parse_discriminant_alignment_attribute(&decl.attrs)?
         .unwrap_or(DiscriminantAlignment::Msb)
     {
-        DiscriminantAlignment::Lsb => quote! { rhdl_core::DiscriminantAlignment::Lsb },
-        DiscriminantAlignment::Msb => quote! { rhdl_core::DiscriminantAlignment::Msb },
+        DiscriminantAlignment::Lsb => quote! { rhdl::core::DiscriminantAlignment::Lsb },
+        DiscriminantAlignment::Msb => quote! { rhdl::core::DiscriminantAlignment::Msb },
     };
     let variant_names = e.variants.iter().map(|x| &x.ident).collect::<Vec<_>>();
     let variant_randoms = e.variants.iter().map(variant_random);
@@ -413,9 +413,9 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
     }
     let variant_ty = e.variants.iter().map(|x| {
         if parse_unmatched_attribute(&x.attrs) {
-            quote!(rhdl_core::VariantType::Unmatched)
+            quote!(rhdl::core::VariantType::Unmatched)
         } else {
-            quote!(rhdl_core::VariantType::Normal)
+            quote!(rhdl::core::VariantType::Normal)
         }
     });
     let fallthrough_case = if let Some(variant) = unmatched {
@@ -487,8 +487,8 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
     let discriminants_as_typed_bits =
         make_discriminant_values_into_typed_bits(kind, &discriminants_values);
     let discriminant_ty = match kind {
-        DiscriminantType::Unsigned(_) => quote! { rhdl_core::DiscriminantType::Unsigned },
-        DiscriminantType::Signed(_) => quote! { rhdl_core::DiscriminantType::Signed },
+        DiscriminantType::Unsigned(_) => quote! { rhdl::core::DiscriminantType::Unsigned },
+        DiscriminantType::Signed(_) => quote! { rhdl::core::DiscriminantType::Signed },
     };
     let min_discriminant = match kind {
         DiscriminantType::Unsigned(_) => 0_i64,
@@ -499,16 +499,16 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         DiscriminantType::Signed(_) => (2_i128.pow(width_bits as u32 - 1) - 1) as i64,
     };
     Ok(quote! {
-        impl #impl_generics rhdl_core::Digital for #enum_name #ty_generics #where_clause {
-            fn static_kind() -> rhdl_core::Kind {
-                rhdl_core::Kind::make_enum(
+        impl #impl_generics rhdl::core::Digital for #enum_name #ty_generics #where_clause {
+            fn static_kind() -> rhdl::core::Kind {
+                rhdl::core::Kind::make_enum(
                     #fqdn,
                     vec![
                         #(
-                            rhdl_core::Kind::make_variant(stringify!(#variant_names), #kind_mapping, #discriminants, #variant_ty)
+                            rhdl::core::Kind::make_variant(stringify!(#variant_names), #kind_mapping, #discriminants, #variant_ty)
                         ),*
                     ],
-                    rhdl_core::Kind::make_discriminant_layout(
+                    rhdl::core::Kind::make_discriminant_layout(
                         #width_bits,
                         #discriminant_alignment,
                         #discriminant_ty
@@ -523,14 +523,14 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                 })
 
             }
-            fn discriminant(self) -> rhdl_core::TypedBits {
+            fn discriminant(self) -> rhdl::core::TypedBits {
                 match self {
                     #(
                         Self::#variant_names #variant_destructure_args => {#discriminants_as_typed_bits}
                     )*
                 }
             }
-            fn variant_kind(self) -> rhdl_core::Kind {
+            fn variant_kind(self) -> rhdl::core::Kind {
                 match self {
                     #(
                         Self::#variant_names #variant_destructure_args => {#variant_kind_mapping}
@@ -547,8 +547,8 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                }
             }
         }
-        impl #impl_generics rhdl_core::Notable for #enum_name #ty_generics #where_clause {
-            fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
+        impl #impl_generics rhdl::core::Notable for #enum_name #ty_generics #where_clause {
+            fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
                 match self {
                     #(
                         Self::#variant_names #variant_destructure_args => {#note_fns},

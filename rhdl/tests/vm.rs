@@ -1,13 +1,16 @@
-use crate::tests::{red, tuple_exhaustive_red, tuple_pair_b8_red, tuple_pair_s8_red};
-use rhdl_bits::{alias::*, bits, signed};
-use rhdl_core::{
-    compile_design,
-    rhif::vm::execute_function,
-    test_kernel_vm_and_verilog,
-    types::{domain::Red, signal::signal},
-    Digital, Domain, Signal,
-};
-use rhdl_macro::kernel;
+#![allow(unused_variables)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+#![allow(unreachable_code)]
+#![allow(unused_must_use)]
+#![allow(dead_code)]
+
+use rhdl::prelude::*;
+
+#[cfg(test)]
+mod common;
+#[cfg(test)]
+use common::*;
 
 #[test]
 fn test_vm_simple_function() {

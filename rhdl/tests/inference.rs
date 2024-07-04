@@ -1,14 +1,16 @@
-use crate::tests::{tuple_exhaustive_red, tuple_pair_b8_red};
-use rhdl_bits::{alias::*, bits, signed, Bits};
-use rhdl_core::{
-    compile_design, test_kernel_vm_and_verilog,
-    types::{
-        domain::{self, Green, Red},
-        signal::signal,
-    },
-    Domain, Signal,
-};
-use rhdl_macro::{kernel, Digital};
+#![allow(unused_variables)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+#![allow(unreachable_code)]
+#![allow(unused_must_use)]
+#![allow(dead_code)]
+
+use rhdl::prelude::*;
+
+#[cfg(test)]
+mod common;
+#[cfg(test)]
+use common::*;
 
 #[test]
 #[allow(clippy::assign_op_pattern)]
@@ -195,7 +197,7 @@ fn test_struct_inference_inferred_lengths() {
     use rhdl_bits::bits;
 
     #[derive(PartialEq, Copy, Clone, Digital)]
-    pub struct Red {
+    pub struct Rad {
         x: b4,
         y: b6,
     }
@@ -204,7 +206,7 @@ fn test_struct_inference_inferred_lengths() {
     pub struct Foo {
         a: b8,
         b: s4,
-        c: Red,
+        c: Rad,
     }
 
     #[derive(PartialEq, Copy, Clone, Digital)]
@@ -219,11 +221,11 @@ fn test_struct_inference_inferred_lengths() {
     }
 
     #[kernel]
-    fn do_stuff(a: Signal<Foo, domain::Red>) -> Signal<(b8, b8, NooState, Foo), domain::Red> {
+    fn do_stuff(a: Signal<Foo, Red>) -> Signal<(b8, b8, NooState, Foo), Red> {
         let z = (a.val().b, a.val().a);
         let c = a;
         let q = signed(-2);
-        let c = Red {
+        let c = Rad {
             x: bits(1),
             y: bits(2),
         };
@@ -242,7 +244,7 @@ fn test_struct_inference_inferred_lengths() {
         Foo {
             a: bits::<8>(1),
             b: signed::<4>(2),
-            c: Red {
+            c: Rad {
                 x: bits::<4>(1),
                 y: bits::<6>(2),
             },
@@ -250,7 +252,7 @@ fn test_struct_inference_inferred_lengths() {
         Foo {
             a: bits::<8>(1),
             b: signed::<4>(2),
-            c: Red {
+            c: Rad {
                 x: bits::<4>(1),
                 y: bits::<6>(2),
             },
@@ -269,7 +271,7 @@ fn test_struct_inference() -> miette::Result<()> {
     use rhdl_bits::bits;
 
     #[derive(PartialEq, Copy, Clone, Digital)]
-    pub struct Red {
+    pub struct Rad {
         x: b4,
         y: b6,
     }
@@ -278,7 +280,7 @@ fn test_struct_inference() -> miette::Result<()> {
     pub struct Foo {
         a: b8,
         b: s4,
-        c: Red,
+        c: Rad,
     }
 
     #[derive(PartialEq, Copy, Clone, Digital)]
@@ -293,11 +295,11 @@ fn test_struct_inference() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn do_stuff(a: Signal<Foo, domain::Red>) -> Signal<(b8, b8, NooState, Foo), domain::Red> {
+    fn do_stuff(a: Signal<Foo, Red>) -> Signal<(b8, b8, NooState, Foo), Red> {
         let z = (a.val().b, a.val().a);
         let c = a;
         let q = signed::<4>(-2);
-        let c = Red {
+        let c = Rad {
             x: bits::<4>(1),
             y: bits::<6>(2),
         };
@@ -316,7 +318,7 @@ fn test_struct_inference() -> miette::Result<()> {
         Foo {
             a: bits::<8>(1),
             b: signed::<4>(2),
-            c: Red {
+            c: Rad {
                 x: bits::<4>(1),
                 y: bits::<6>(2),
             },
@@ -324,7 +326,7 @@ fn test_struct_inference() -> miette::Result<()> {
         Foo {
             a: bits::<8>(1),
             b: signed::<4>(2),
-            c: Red {
+            c: Rad {
                 x: bits::<4>(1),
                 y: bits::<6>(2),
             },

@@ -65,13 +65,13 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                 .map(|x| &x.ty)
                 .collect::<Vec<_>>();
             Ok(quote! {
-                impl #impl_generics rhdl_core::Digital for #struct_name #ty_generics #where_clause {
-                    fn static_kind() -> rhdl_core::Kind {
-                        rhdl_core::Kind::make_struct(
+                impl #impl_generics rhdl::core::Digital for #struct_name #ty_generics #where_clause {
+                    fn static_kind() -> rhdl::core::Kind {
+                        rhdl::core::Kind::make_struct(
                             #fqdn,
                             vec![
                             #(
-                                rhdl_core::Kind::make_field(stringify!(#fields), <#field_types as rhdl_core::Digital>::static_kind()),
+                                rhdl::core::Kind::make_field(stringify!(#fields), <#field_types as rhdl::core::Digital>::static_kind()),
                             )*
                         ]
                     )
@@ -86,21 +86,21 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                     fn random() -> Self {
                         Self(
                             #(
-                                <#field_types as rhdl_core::Digital>::random(),
+                                <#field_types as rhdl::core::Digital>::random(),
                             )*
                         )
                     }
                 }
-                impl #impl_generics rhdl_core::Notable for #struct_name #ty_generics #where_clause {
-                    fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
+                impl #impl_generics rhdl::core::Notable for #struct_name #ty_generics #where_clause {
+                    fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
                         #(
-                            rhdl_core::Notable::note(&self.#fields, (key, stringify!(#fields)), &mut writer);
+                            rhdl::core::Notable::note(&self.#fields, (key, stringify!(#fields)), &mut writer);
                         )*
                     }
                 }
-                impl #impl_generics rhdl_core::DigitalFn for #struct_name #ty_generics #where_clause {
-                    fn kernel_fn() -> Option<rhdl_core::KernelFnKind> {
-                        Some(rhdl_core::KernelFnKind::TupleStructConstructor(<Self as rhdl_core::Digital>::static_kind().place_holder()))
+                impl #impl_generics rhdl::core::DigitalFn for #struct_name #ty_generics #where_clause {
+                    fn kernel_fn() -> Option<rhdl::core::KernelFnKind> {
+                        Some(rhdl::core::KernelFnKind::TupleStructConstructor(<Self as rhdl::core::Digital>::static_kind().place_holder()))
                     }
                 }
             })
@@ -128,13 +128,13 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                 .map(|x| &x.ty)
                 .collect::<Vec<_>>();
             Ok(quote! {
-                impl #impl_generics rhdl_core::Digital for #struct_name #ty_generics #where_clause {
-                    fn static_kind() -> rhdl_core::Kind {
-                        rhdl_core::Kind::make_struct(
+                impl #impl_generics rhdl::core::Digital for #struct_name #ty_generics #where_clause {
+                    fn static_kind() -> rhdl::core::Kind {
+                        rhdl::core::Kind::make_struct(
                             #fqdn,
                             vec![
                             #(
-                                rhdl_core::Kind::make_field(stringify!(#fields), <#field_types as rhdl_core::Digital>::static_kind()),
+                                rhdl::core::Kind::make_field(stringify!(#fields), <#field_types as rhdl::core::Digital>::static_kind()),
                             )*
                         ],
                     )
@@ -149,16 +149,16 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                     fn random() -> Self {
                         Self {
                             #(
-                                #fields: <#field_types as rhdl_core::Digital>::random(),
+                                #fields: <#field_types as rhdl::core::Digital>::random(),
                             )*
                         }
                     }
                 }
 
-                impl #impl_generics rhdl_core::Notable for #struct_name #ty_generics #where_clause {
-                    fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
+                impl #impl_generics rhdl::core::Notable for #struct_name #ty_generics #where_clause {
+                    fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
                         #(
-                            rhdl_core::Notable::note(&self.#fields, (key, stringify!(#fields)), &mut writer);
+                            rhdl::core::Notable::note(&self.#fields, (key, stringify!(#fields)), &mut writer);
                         )*
                     }
                 }
@@ -184,14 +184,14 @@ mod test {
         );
         let output = derive_digital(decl).unwrap();
         let expected = quote! {
-            impl rhdl_core::Digital for NestedBits {
-                fn static_kind() -> rhdl_core::Kind {
-                    rhdl_core::Kind::make_struct(
+            impl rhdl::core::Digital for NestedBits {
+                fn static_kind() -> rhdl::core::Kind {
+                    rhdl::core::Kind::make_struct(
                         concat!(module_path!(), "::", stringify!(NestedBits)),
                         vec![
-                        rhdl_core::Kind::make_field(stringify!(nest_1), <bool as rhdl_core::Digital>::static_kind()),
-                        rhdl_core::Kind::make_field(stringify!(nest_2), <u8 as rhdl_core::Digital>::static_kind()),
-                        rhdl_core::Kind::make_field(stringify!(nest_3), <TwoBits as rhdl_core::Digital>::static_kind()),
+                        rhdl::core::Kind::make_field(stringify!(nest_1), <bool as rhdl::core::Digital>::static_kind()),
+                        rhdl::core::Kind::make_field(stringify!(nest_2), <u8 as rhdl::core::Digital>::static_kind()),
+                        rhdl::core::Kind::make_field(stringify!(nest_3), <TwoBits as rhdl::core::Digital>::static_kind()),
                     ])
                 }
                 fn bin(self) -> Vec<bool> {
@@ -202,11 +202,11 @@ mod test {
                     result
                 }
             }
-            impl rhdl_core::Notable for NestedBits {
-                fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
-                    rhdl_core::Notable::note(&self.nest_1, (key, stringify!(nest_1)), &mut writer);
-                    rhdl_core::Notable::note(&self.nest_2, (key, stringify!(nest_2)), &mut writer);
-                    rhdl_core::Notable::note(&self.nest_3, (key, stringify!(nest_3)), &mut writer);
+            impl rhdl::core::Notable for NestedBits {
+                fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
+                    rhdl::core::Notable::note(&self.nest_1, (key, stringify!(nest_1)), &mut writer);
+                    rhdl::core::Notable::note(&self.nest_2, (key, stringify!(nest_2)), &mut writer);
+                    rhdl::core::Notable::note(&self.nest_3, (key, stringify!(nest_3)), &mut writer);
                 }
             }
         };
@@ -224,14 +224,14 @@ mod test {
         );
         let output = derive_digital(decl).unwrap();
         let expected = quote! {
-            impl rhdl_core::Digital for Inputs {
-                fn static_kind() -> rhdl_core::Kind {
-                    rhdl_core::Kind::make_struct(
+            impl rhdl::core::Digital for Inputs {
+                fn static_kind() -> rhdl::core::Kind {
+                    rhdl::core::Kind::make_struct(
                         concat!(module_path!(), "::", stringify!(Inputs)),
                         vec![
-                        rhdl_core::Kind::make_field(stringify!(input), <u32 as rhdl_core::Digital>::static_kind()),
-                        rhdl_core::Kind::make_field(stringify!(write), <bool as rhdl_core::Digital>::static_kind()),
-                        rhdl_core::Kind::make_field(stringify!(read), <bool as rhdl_core::Digital>::static_kind()),
+                        rhdl::core::Kind::make_field(stringify!(input), <u32 as rhdl::core::Digital>::static_kind()),
+                        rhdl::core::Kind::make_field(stringify!(write), <bool as rhdl::core::Digital>::static_kind()),
+                        rhdl::core::Kind::make_field(stringify!(read), <bool as rhdl::core::Digital>::static_kind()),
                     ])
                 }
                 fn bin(self) -> Vec<bool> {
@@ -242,11 +242,11 @@ mod test {
                     result
                 }
             }
-            impl rhdl_core::Notable for Inputs {
-                fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
-                    rhdl_core::Notable::note(&self.input, (key, stringify!(input)), &mut writer);
-                    rhdl_core::Notable::note(&self.write, (key, stringify!(write)), &mut writer);
-                    rhdl_core::Notable::note(&self.read, (key, stringify!(read)), &mut writer);
+            impl rhdl::core::Notable for Inputs {
+                fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
+                    rhdl::core::Notable::note(&self.input, (key, stringify!(input)), &mut writer);
+                    rhdl::core::Notable::note(&self.write, (key, stringify!(write)), &mut writer);
+                    rhdl::core::Notable::note(&self.read, (key, stringify!(read)), &mut writer);
                 }
             }
         };
@@ -264,17 +264,17 @@ mod test {
         );
         let output = derive_digital(decl).unwrap();
         let expected = quote! {
-            impl<T: Digital> rhdl_core::Digital for Inputs<T> {
-                fn static_kind() -> rhdl_core::Kind {
-                    rhdl_core::Kind::make_struct(
+            impl<T: Digital> rhdl::core::Digital for Inputs<T> {
+                fn static_kind() -> rhdl::core::Kind {
+                    rhdl::core::Kind::make_struct(
                         &vec![
                             module_path!().to_string(),"::".to_string(),
                             stringify!(Inputs).to_string(), "<".to_string(), std::any::type_name::<T>().to_string(), ">".to_string()
                         ].join(""),
                         vec![
-                        rhdl_core::Kind::make_field(stringify!(input), <T as rhdl_core::Digital>::static_kind()),
-                        rhdl_core::Kind::make_field(stringify!(write), <bool as rhdl_core::Digital>::static_kind()),
-                        rhdl_core::Kind::make_field(stringify!(read), <bool as rhdl_core::Digital>::static_kind()),
+                        rhdl::core::Kind::make_field(stringify!(input), <T as rhdl::core::Digital>::static_kind()),
+                        rhdl::core::Kind::make_field(stringify!(write), <bool as rhdl::core::Digital>::static_kind()),
+                        rhdl::core::Kind::make_field(stringify!(read), <bool as rhdl::core::Digital>::static_kind()),
                     ])
                 }
                 fn bin(self) -> Vec<bool> {
@@ -285,11 +285,11 @@ mod test {
                     result
                 }
             }
-            impl<T: Digital> rhdl_core::Notable for Inputs<T> {
-                fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
-                    rhdl_core::Notable::note(&self.input, (key, stringify!(input)), &mut writer);
-                    rhdl_core::Notable::note(&self.write, (key, stringify!(write)), &mut writer);
-                    rhdl_core::Notable::note(&self.read, (key, stringify!(read)), &mut writer);
+            impl<T: Digital> rhdl::core::Notable for Inputs<T> {
+                fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
+                    rhdl::core::Notable::note(&self.input, (key, stringify!(input)), &mut writer);
+                    rhdl::core::Notable::note(&self.write, (key, stringify!(write)), &mut writer);
+                    rhdl::core::Notable::note(&self.read, (key, stringify!(read)), &mut writer);
                 }
             }
         };
@@ -307,14 +307,14 @@ mod test {
         );
         let output = derive_digital(decl).unwrap();
         let expected = quote! {
-            impl rhdl_core::Digital for Inputs {
-                fn static_kind() -> rhdl_core::Kind {
-                    rhdl_core::Kind::make_struct(
+            impl rhdl::core::Digital for Inputs {
+                fn static_kind() -> rhdl::core::Kind {
+                    rhdl::core::Kind::make_struct(
                         concat!(module_path!(), "::", stringify!(Inputs)),
                         vec![
-                        rhdl_core::Kind::make_field(stringify!(input), <u32 as rhdl_core::Digital>::static_kind()),
-                        rhdl_core::Kind::make_field(stringify!(write), <bool as rhdl_core::Digital>::static_kind()),
-                        rhdl_core::Kind::make_field(stringify!(read), <(bool, bool) as rhdl_core::Digital>::static_kind()),
+                        rhdl::core::Kind::make_field(stringify!(input), <u32 as rhdl::core::Digital>::static_kind()),
+                        rhdl::core::Kind::make_field(stringify!(write), <bool as rhdl::core::Digital>::static_kind()),
+                        rhdl::core::Kind::make_field(stringify!(read), <(bool, bool) as rhdl::core::Digital>::static_kind()),
                     ])
                 }
                 fn bin(self) -> Vec<bool> {
@@ -325,11 +325,11 @@ mod test {
                     result
                 }
             }
-            impl rhdl_core::Notable for Inputs {
-                fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
-                    rhdl_core::Notable::note(&self.input, (key, stringify!(input)), &mut writer);
-                    rhdl_core::Notable::note(&self.write, (key, stringify!(write)), &mut writer);
-                    rhdl_core::Notable::note(&self.read, (key, stringify!(read)), &mut writer);
+            impl rhdl::core::Notable for Inputs {
+                fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
+                    rhdl::core::Notable::note(&self.input, (key, stringify!(input)), &mut writer);
+                    rhdl::core::Notable::note(&self.write, (key, stringify!(write)), &mut writer);
+                    rhdl::core::Notable::note(&self.read, (key, stringify!(read)), &mut writer);
                 }
             }
         };
@@ -343,14 +343,14 @@ mod test {
         );
         let output = derive_digital(decl).unwrap();
         let expected = quote! {
-            impl rhdl_core::Digital for Inputs {
-                fn static_kind() -> rhdl_core::Kind {
-                    rhdl_core::Kind::make_struct(
+            impl rhdl::core::Digital for Inputs {
+                fn static_kind() -> rhdl::core::Kind {
+                    rhdl::core::Kind::make_struct(
                         concat!(module_path!(), "::", stringify!(Inputs)),
                         vec![
-                        rhdl_core::Kind::make_field(stringify!(0), <u32 as rhdl_core::Digital>::static_kind()),
-                        rhdl_core::Kind::make_field(stringify!(1), <bool as rhdl_core::Digital>::static_kind()),
-                        rhdl_core::Kind::make_field(stringify!(2), <bool as rhdl_core::Digital>::static_kind()),
+                        rhdl::core::Kind::make_field(stringify!(0), <u32 as rhdl::core::Digital>::static_kind()),
+                        rhdl::core::Kind::make_field(stringify!(1), <bool as rhdl::core::Digital>::static_kind()),
+                        rhdl::core::Kind::make_field(stringify!(2), <bool as rhdl::core::Digital>::static_kind()),
                     ])
                 }
                 fn bin(self) -> Vec<bool> {
@@ -361,16 +361,16 @@ mod test {
                     result
                 }
             }
-            impl rhdl_core::Notable for Inputs {
-                fn note(&self, key: impl rhdl_core::NoteKey, mut writer: impl rhdl_core::NoteWriter) {
-                    rhdl_core::Notable::note(&self.0, (key, stringify!(0)), &mut writer);
-                    rhdl_core::Notable::note(&self.1, (key, stringify!(1)), &mut writer);
-                    rhdl_core::Notable::note(&self.2, (key, stringify!(2)), &mut writer);
+            impl rhdl::core::Notable for Inputs {
+                fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
+                    rhdl::core::Notable::note(&self.0, (key, stringify!(0)), &mut writer);
+                    rhdl::core::Notable::note(&self.1, (key, stringify!(1)), &mut writer);
+                    rhdl::core::Notable::note(&self.2, (key, stringify!(2)), &mut writer);
                 }
             }
-            impl rhdl_core::DigitalFn for Inputs {
-                fn kernel_fn() -> Option<rhdl_core::KernelFnKind> {
-                    Some(rhdl_core::KernelFnKind::TupleStructConstructor(<Self as rhdl_core::Digital>::static_kind().place_holder()))
+            impl rhdl::core::DigitalFn for Inputs {
+                fn kernel_fn() -> Option<rhdl::core::KernelFnKind> {
+                    Some(rhdl::core::KernelFnKind::TupleStructConstructor(<Self as rhdl::core::Digital>::static_kind().place_holder()))
                 }
             }
         };

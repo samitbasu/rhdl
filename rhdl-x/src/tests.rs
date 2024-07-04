@@ -83,7 +83,7 @@ fn test_strobe() {
         note("output", output);
     }
     let db = note_take().unwrap();
-    let strobe = std::fs::File::create("").unwrap();
+    let strobe = std::fs::File::create("strobe.vcd").unwrap();
     db.dump_vcd(&[], strobe).unwrap();
 }
 

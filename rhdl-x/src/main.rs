@@ -1,14 +1,16 @@
+use rhdl::prelude::*;
+use std::iter;
 use std::iter::repeat;
 
 use anyhow::ensure;
-use rhdl_core::as_verilog_literal;
+/* use rhdl_core::as_verilog_literal;
 use rhdl_core::codegen::verilog::as_verilog_decl;
 use rhdl_core::prelude::*;
 use rhdl_core::root_descriptor;
 use rhdl_core::types::domain::Red;
 use rhdl_macro::Digital;
 use rhdl_macro::Timed;
-
+ */
 //use translator::Translator;
 //use verilog::VerilogTranslator;
 
@@ -18,7 +20,7 @@ use rhdl_macro::Timed;
 //mod constant;
 //mod counter;
 //mod descriptions;
-//mod dff;
+mod dff;
 //mod push_pull;
 //mod strobe;
 //mod tristate;
@@ -38,151 +40,93 @@ use rhdl_macro::Timed;
 
 // Let's start with the DFF.  For now, we will assume a reset is present.
 
-#[derive(PartialEq, Clone, Copy, Debug, Digital)]
-pub struct DFFI<T: Digital> {
-    pub data: T,
-    pub clock: Clock,
-    pub reset: Reset,
+pub struct TimedSample<T: Digital> {
+    pub value: T,
+    pub time: u64,
 }
 
-// The DFF itself has a reset value, and a clock domain.
-#[derive(Default, Clone)]
-pub struct DFF<T: Digital, C: Domain> {
-    reset: T,
-    clock: std::marker::PhantomData<C>,
+pub fn timed_sample<T: Digital>(value: T, time: u64) -> TimedSample<T> {
+    TimedSample { value, time }
 }
 
-impl<T: Digital, C: Domain> CircuitIO for DFF<T, C> {
-    type I = Signal<DFFI<T>, C>;
-    type O = Signal<T, C>;
+pub fn sim_clock(period: u64) -> impl Iterator<Item = TimedSample<Clock>> {
+    (0..).map(move |phase| TimedSample {
+        value: clock(phase % 2 == 0),
+        time: phase * period,
+    })
 }
 
-impl<T: Digital, C: Domain> Circuit for DFF<T, C> {
-    type Q = ();
-    type D = ();
-    type Z = ();
-
-    type Update = Self;
-
-    type S = DFFI<T>;
-
-    fn sim(&self, input: Self::I, state: &mut Self::S, _io: &mut Self::Z) -> Self::O {
-        note("input", input);
-        let output = if input.val().clock.raw() && !state.clock.raw() {
-            input.val().data
+pub fn sim_reset(
+    mut clock: impl Iterator<Item = TimedSample<Clock>>,
+) -> impl Iterator<Item = TimedSample<(Clock, Reset)>> {
+    let mut clock_count = 0;
+    iter::from_fn(move || {
+        if let Some(sample) = clock.next() {
+            clock_count += 1;
+            if clock_count < 4 {
+                Some(timed_sample((sample.value, reset(true)), sample.time))
+            } else {
+                Some(timed_sample((sample.value, reset(false)), sample.time))
+            }
         } else {
-            state.data
-        };
-        state.data = output;
-        state.clock = input.val().clock;
-        let output = if input.val().reset.raw() {
-            state.data = self.reset;
-            self.reset
-        } else {
-            output
-        };
-        note("output", output);
-        signal(output)
-    }
-
-    fn name(&self) -> &'static str {
-        "DFF"
-    }
-
-    fn as_hdl(&self, kind: HDLKind) -> anyhow::Result<HDLDescriptor> {
-        ensure!(kind == HDLKind::Verilog);
-        Ok(self.as_verilog())
-    }
-
-    fn descriptor(&self) -> CircuitDescriptor {
-        root_descriptor(self)
-    }
-}
-
-impl<T: Digital, C: Domain> DFF<T, C> {
-    fn as_verilog(&self) -> HDLDescriptor {
-        let module_name = self.descriptor().unique_name;
-        let input_bits = DFFI::<T>::bits();
-        let output_bits = T::bits();
-        let init = as_verilog_literal(&self.reset.typed_bits());
-        let input_wire = as_verilog_decl("wire", input_bits, "i");
-        let output_reg = as_verilog_decl("reg", output_bits, "o");
-        let d = as_verilog_decl("wire", T::bits(), "d");
-        let code = format!(
-            "
-module {module_name}(input {input_wire}, output {output_reg});
-   wire clk;
-   wire rst;
-   wire {d};
-   assign {{rst, clk, d}} = i;
-   initial begin
-        o = {init};
-   end
-   always @(posedge clk) begin 
-        if (rst) begin
-            o <= {init};
-        end else begin
-            o <= {d};
-        end
-    end
-endmodule
-            "
-        );
-        HDLDescriptor {
-            name: module_name,
-            body: code,
-            children: Default::default(),
+            None
         }
+    })
+}
+
+pub fn sim_samples<T: Digital>(
+    period: u64,
+) -> impl Iterator<Item = TimedSample<Signal<dff::I<T>, Red>>> {
+    let mut input = sim_reset(sim_clock(period));
+    let mut sig_value = T::random();
+    iter::from_fn(move || {
+        if let Some(sample) = input.next() {
+            if sample.value.0.raw() {
+                sig_value = T::random();
+            }
+            Some(timed_sample(
+                signal(dff::I {
+                    data: sig_value,
+                    clock: sample.value.0,
+                    reset: sample.value.1,
+                }),
+                sample.time,
+            ))
+        } else {
+            None
+        }
+    })
+}
+
+pub fn traced_simulation<T: Circuit>(
+    uut: T,
+    inputs: impl Iterator<Item = TimedSample<T::I>>,
+    vcd_filename: &str,
+) {
+    note_init_db();
+    note_time(0);
+    let mut state = <T as Circuit>::S::random();
+    let mut io = <T as Circuit>::Z::default();
+    for sample in inputs {
+        note_time(sample.time);
+        note("input", sample.value);
+        let output = uut.sim(sample.value, &mut state, &mut io);
+        note("output", output);
     }
-}
-
-impl<T: Digital, C: Domain> DigitalFn for DFF<T, C> {}
-
-pub fn sim_reset() -> impl Iterator<Item = Reset> {
-    repeat(reset(true)).take(4).chain(repeat(reset(false)))
-}
-
-pub fn sim_clock() -> impl Iterator<Item = Clock> {
-    std::iter::once(clock(true))
-        .chain(std::iter::once(clock(false)))
-        .cycle()
-}
-
-pub fn sim_samples<T: Digital>() -> impl Iterator<Item = Signal<DFFI<T>, Red>> {
-    sim_clock()
-        .zip(sim_reset())
-        .zip(std::iter::repeat(T::default()))
-        .map(|((clock, reset), data)| DFFI { data, clock, reset })
+    let db = note_take().unwrap();
+    let strobe = std::fs::File::create(vcd_filename).unwrap();
+    db.dump_vcd(&[], strobe).unwrap();
 }
 
 #[test]
 fn test_dff() {
-    let clock = clock::clock();
-    let enable = std::iter::repeat(true);
-    let inputs = clock
-        .zip(enable)
-        .map(|(clock, enable)| StrobeI { clock, enable });
-    note_init_db();
-    note_time(0);
-    let strobe = Strobe::<8>::new(b8(5));
-    let mut state = strobe.init_state();
-    let mut io = <Strobe<8> as Circuit>::Z::default();
-    for (time, input) in inputs.enumerate().take(2000) {
-        note_time(time as u64 * 100);
-        note("input", input);
-        let output = strobe.sim(input, &mut state, &mut io);
-        note("output", output);
-    }
-    let db = note_take().unwrap();
-    let strobe = std::fs::File::create("strobe.vcd").unwrap();
-    db.dump_vcd(&[], strobe).unwrap();
+    let inputs = sim_samples(1000).take(1000);
+    let uut: dff::U<b4, Red> = dff::U::new(b4::from(0b0000));
+    traced_simulation(uut, inputs, "dff.vcd");
 }
 
 fn main() -> anyhow::Result<()> {
-    let dff = DFF::<b4, Red> {
-        reset: b4::from(0b1010),
-        clock: Default::default(),
-    };
+    let dff: dff::U<b4, Red> = dff::U::new(b4::from(0b1010));
     let hdl = dff.as_hdl(HDLKind::Verilog)?;
     println!("{}", hdl.body);
     Ok(())

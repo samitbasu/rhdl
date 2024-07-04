@@ -1,6 +1,11 @@
-use rhdl_bits::{bits, Bits};
-use rhdl_core::{note, note_init_db, note_take, note_time};
-use rhdl_macro::Digital;
+#![allow(unused_variables)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+#![allow(unreachable_code)]
+#![allow(unused_must_use)]
+#![allow(dead_code)]
+
+use rhdl::prelude::*;
 
 #[test]
 fn test_vcd_enum() {

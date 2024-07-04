@@ -1,18 +1,16 @@
-use crate::tests::{exhaustive, red, tuple_exhaustive_red, tuple_pair_b8_red, tuple_pair_s8_red};
+#![allow(unused_variables)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+#![allow(unreachable_code)]
+#![allow(unused_must_use)]
+#![allow(dead_code)]
+
 use itertools::iproduct;
-use rhdl_bits::{alias::*, bits, signed, Bits, SignedBits};
-use rhdl_core::{
-    compile_design,
-    compiler::mir::error::Syntax,
-    error::RHDLError,
-    test_kernel_vm_and_verilog,
-    types::{
-        domain::{self, Red},
-        signal::signal,
-    },
-    Digital, Domain, Signal,
-};
-use rhdl_macro::{kernel, Digital};
+#[cfg(test)]
+mod common;
+#[cfg(test)]
+use common::*;
+use rhdl::prelude::*;
 
 #[test]
 fn test_func_with_structured_args() {
@@ -329,7 +327,7 @@ fn test_basic_compile() -> miette::Result<()> {
         state_set.into_iter().map(red)
     )
     .collect::<Vec<_>>();
-    test_kernel_vm_and_verilog::<add<domain::Red>, _, _, _>(add, inputs.into_iter())?;
+    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add, inputs.into_iter())?;
     Ok(())
 }
 
@@ -349,8 +347,7 @@ fn test_generics() {
     ];
     let inputs =
         iproduct!(a.iter().cloned().map(red), a.iter().cloned().map(red)).collect::<Vec<_>>();
-    test_kernel_vm_and_verilog::<do_stuff<s4, domain::Red>, _, _, _>(do_stuff, inputs.into_iter())
-        .unwrap();
+    test_kernel_vm_and_verilog::<do_stuff<s4, Red>, _, _, _>(do_stuff, inputs.into_iter()).unwrap();
 }
 
 #[test]
@@ -387,8 +384,8 @@ fn test_nested_generics() -> miette::Result<()> {
         b.into_iter().map(|x| Foo { a: x, b: x }).map(red)
     )
     .collect::<Vec<_>>();
-    test_kernel_vm_and_verilog::<do_stuff<s4, b3, domain::Red>, _, _, _>(
-        do_stuff::<s4, b3, domain::Red>,
+    test_kernel_vm_and_verilog::<do_stuff<s4, b3, Red>, _, _, _>(
+        do_stuff::<s4, b3, Red>,
         inputs.into_iter(),
     )?;
     Ok(())
@@ -456,7 +453,10 @@ fn test_error_about_for_loop() -> miette::Result<()> {
     let Err(RHDLError::RHDLSyntaxError(err)) = compile_design::<do_stuff>() else {
         panic!("Expected syntax error");
     };
-    assert!(matches!(err.cause, Syntax::ForLoopNonIntegerEndValue));
+    assert!(matches!(
+        err.cause,
+        rhdl::core::compiler::mir::error::Syntax::ForLoopNonIntegerEndValue
+    ));
     Ok(())
 }
 

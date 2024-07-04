@@ -1,11 +1,12 @@
-use rhdl_core::{
-    compile_design,
-    compiler::mir::error::Syntax,
-    error::RHDLError,
-    types::{domain::Red, signal::signal},
-    Signal,
-};
-use rhdl_macro::{kernel, Digital};
+#![allow(unused_variables)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+#![allow(unreachable_code)]
+#![allow(unused_must_use)]
+#![allow(dead_code)]
+
+use rhdl::prelude::*;
+use rhdl_core::compiler::mir::error::Syntax;
 
 #[test]
 fn test_roll_your_own_binop_fails() -> miette::Result<()> {
@@ -94,7 +95,10 @@ fn test_roll_your_own_not_fails() -> miette::Result<()> {
     let Err(RHDLError::RHDLSyntaxError(err)) = compile_design::<do_stuff_neg>() else {
         panic!("Expected syntax error");
     };
-    assert!(matches!(err.cause, Syntax::RollYourOwnUnary { op: _ }));
+    assert!(matches!(
+        err.cause,
+        rhdl_core::compiler::mir::error::Syntax::RollYourOwnUnary { op: _ }
+    ));
 
     Ok(())
 }

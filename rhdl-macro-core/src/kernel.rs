@@ -133,7 +133,7 @@ fn rewrite_pattern_as_typed_bits(pat: &syn::Pat) -> syn::Result<TS> {
                 "Unsupported literal in rhdl kernel function",
             )),
         },
-        _ => Ok(quote! { bob.expr_lit_typed_bits(rhdl_core::Digital::typed_bits(#pat)) }),
+        _ => Ok(quote! { bob.expr_lit_typed_bits(rhdl::core::Digital::typed_bits(#pat)) }),
     }
 }
 
@@ -397,9 +397,9 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
                     fn inner #impl_generics (#args) #ret #where_clause {
                         #body
                     }
-        //            rhdl_core::note_push_path(stringify!(#orig_name));
+        //            rhdl::core::note_push_path(stringify!(#orig_name));
                     let ret = inner(#call_args);
-        //            rhdl_core::note_pop_path();
+        //            rhdl::core::note_pop_path();
                     ret
                 }
             })
@@ -443,10 +443,10 @@ impl Context {
         }
         let block = self.block_inner(&function.block)?;
         let ret = match &function.sig.output {
-            syn::ReturnType::Default => quote! {rhdl_core::Kind::Empty},
+            syn::ReturnType::Default => quote! {rhdl::core::Kind::Empty},
             syn::ReturnType::Type(_, ty) => {
                 quote! {
-                    <#ty as rhdl_core::Timed>::static_kind()
+                    <#ty as rhdl::core::Timed>::static_kind()
                 }
             }
         };
@@ -462,7 +462,7 @@ impl Context {
                 syn::FnArg::Typed(pat) => {
                     let ty = &pat.ty;
                     let pat = self.pat(&pat.pat)?;
-                    let kind = quote! {<#ty as rhdl_core::Timed>::static_kind()};
+                    let kind = quote! {<#ty as rhdl::core::Timed>::static_kind()};
                     Ok(quote! { bob.type_pat(#pat, #kind)})
                 }
             })
@@ -474,9 +474,9 @@ impl Context {
             #[allow(non_camel_case_types)]
             #vis struct #name #impl_generics {#(#phantom_fields,)*}
 
-            impl #impl_generics rhdl_core::digital_fn::DigitalFn for #name #ty_generics #where_clause {
-                fn kernel_fn() -> Option<rhdl_core::digital_fn::KernelFnKind> {
-                    let bob = rhdl_core::ast_builder::ASTBuilder::default();
+            impl #impl_generics rhdl::core::digital_fn::DigitalFn for #name #ty_generics #where_clause {
+                fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+                    let bob = rhdl::core::ast_builder::ASTBuilder::default();
                     Some(bob.kernel_fn(
                         stringify!(#orig_name),
                         vec!{#(#args),*},
@@ -572,7 +572,7 @@ impl Context {
             }
             syn::Pat::TupleStruct(tuple) => {
                 let constructor = &tuple.path;
-                let signature = quote!(rhdl_core::digital_fn::inspect_digital(#constructor));
+                let signature = quote!(rhdl::core::digital_fn::inspect_digital(#constructor));
                 let path = self.path_inner(&tuple.path)?;
                 let elems = tuple
                     .elems
@@ -630,7 +630,7 @@ impl Context {
             syn::Pat::Type(pat) => {
                 let ty = &pat.ty;
                 let pat = self.pat(&pat.pat)?;
-                let kind = quote! {<#ty as rhdl_core::Digital>::static_kind()};
+                let kind = quote! {<#ty as rhdl::core::Digital>::static_kind()};
                 Ok(quote! {
                     bob.type_pat(#pat, #kind)
                 })
@@ -761,7 +761,7 @@ impl Context {
                 return Ok(quote! {
                     bob.lit_expr(
                         bob.expr_lit_typed_bits(
-                            rhdl_core::Digital::typed_bits(#expr)
+                            rhdl::core::Digital::typed_bits(#expr)
                         )
                     )
                 });
@@ -784,7 +784,7 @@ impl Context {
                             "Unsupported signal call in rhdl kernel function",
                         ));
                     };
-                    let clock = quote!(<#clock as rhdl_core::Domain>::color());
+                    let clock = quote!(<#clock as rhdl::core::Domain>::color());
                     return Ok(quote! {
                         bob.expr_signal(#args, Some(#clock))
                     });
@@ -816,12 +816,12 @@ impl Context {
                 ));
             };
             let shell = quote! {
-                <#(#base)::* as rhdl_core::Digital>::static_kind().enum_template(stringify!(#variant)).unwrap()
+                <#(#base)::* as rhdl::core::Digital>::static_kind().enum_template(stringify!(#variant)).unwrap()
             };
             // This is a tuple struct constructor
-            quote!(Some(rhdl_core::KernelFnKind::EnumTupleStructConstructor(#shell)))
+            quote!(Some(rhdl::core::KernelFnKind::EnumTupleStructConstructor(#shell)))
         };
-        let call_to_get_type = quote!(rhdl_core::digital_fn::inspect_digital(#func_path));
+        let call_to_get_type = quote!(rhdl::core::digital_fn::inspect_digital(#func_path));
         let path = self.path_inner(&func_path.path)?;
         let args = expr
             .args
@@ -840,7 +840,7 @@ impl Context {
                 "Empty path in rhdl kernel function",
             ));
         }
-        Ok(quote!(<#path as rhdl_core::digital_fn::DigitalFn>::kernel_fn()))
+        Ok(quote!(<#path as rhdl::core::digital_fn::DigitalFn>::kernel_fn()))
     }
 
     fn for_loop(&mut self, expr: &syn::ExprForLoop) -> Result<TS> {
@@ -865,7 +865,7 @@ impl Context {
 
     fn repeat(&mut self, expr: &syn::ExprRepeat) -> Result<TS> {
         let expr_len = &expr.len;
-        let len = quote!(<usize as rhdl_core::Digital>::typed_bits(#expr_len).as_i64().unwrap());
+        let len = quote!(<usize as rhdl::core::Digital>::typed_bits(#expr_len).as_i64().unwrap());
         let expr = self.expr(&expr.expr)?;
         Ok(quote! {
             bob.repeat_expr(#expr, #len)
@@ -971,7 +971,7 @@ impl Context {
             let body = self.expr(&arm.body)?;
             let pat_as_expr = rewrite_pattern_to_use_defaults_for_bindings(pat);
             let inner = self.pat(pat)?;
-            quote! {bob.arm_enum(#inner, rhdl_core::Digital::typed_bits(#pat_as_expr), rhdl_core::Digital::variant_kind(#pat_as_expr), #body)}
+            quote! {bob.arm_enum(#inner, rhdl::core::Digital::typed_bits(#pat_as_expr), rhdl::core::Digital::variant_kind(#pat_as_expr), #body)}
         };
         self.end_scope();
         Ok(arm)
@@ -1050,9 +1050,9 @@ impl Context {
         if structure.rest.is_some() {
             // The presence of a rest means we know that path -> struct
             let path = &structure.path;
-            let template = quote!(< #path as rhdl_core::Digital>::static_kind().place_holder());
-            let discriminant = quote!(rhdl_core::TypedBits::EMPTY);
-            let variant_kind = quote!(< #path as rhdl_core::Digital>::static_kind());
+            let template = quote!(< #path as rhdl::core::Digital>::static_kind().place_holder());
+            let discriminant = quote!(rhdl::core::TypedBits::EMPTY);
+            let variant_kind = quote!(< #path as rhdl::core::Digital>::static_kind());
             Ok(
                 quote! {bob.struct_expr(#path_inner, vec![#(#fields),*], #rest, #template, #variant_kind, #discriminant)},
             )
@@ -1062,9 +1062,9 @@ impl Context {
             // enum variant, and not a struct.
             let (base, variant) = split_path_into_base_and_variant(&structure.path)?;
             // Not sure what to do about the unwrap here.
-            let template = quote!(< #base as rhdl_core::Digital>::static_kind().enum_template(stringify!(#variant)).unwrap());
-            let variant_kind = quote!(< #base as rhdl_core::Digital>::static_kind().lookup_variant_kind_by_name(stringify!(#variant)).unwrap());
-            let discriminant = quote!(< #base as rhdl_core::Digital>::static_kind().get_discriminant_for_variant_by_name(stringify!(#variant)).unwrap());
+            let template = quote!(< #base as rhdl::core::Digital>::static_kind().enum_template(stringify!(#variant)).unwrap());
+            let variant_kind = quote!(< #base as rhdl::core::Digital>::static_kind().lookup_variant_kind_by_name(stringify!(#variant)).unwrap());
+            let discriminant = quote!(< #base as rhdl::core::Digital>::static_kind().get_discriminant_for_variant_by_name(stringify!(#variant)).unwrap());
             Ok(quote! {
                 bob.struct_expr(#path_inner, vec![#(#fields),*], #rest,
                 #template, #variant_kind, #discriminant
@@ -1072,11 +1072,11 @@ impl Context {
             })
         } else {
             let path = &structure.path;
-            let obj = quote!(<#path as rhdl_core::Digital>::static_kind().place_holder());
-            let kind = quote!(<#path as rhdl_core::Digital>::static_kind());
+            let obj = quote!(<#path as rhdl::core::Digital>::static_kind().place_holder());
+            let kind = quote!(<#path as rhdl::core::Digital>::static_kind());
             Ok(quote! {
                 bob.struct_expr(#path_inner, vec![#(#fields),*], #rest,
-                #obj, #kind, rhdl_core::TypedBits::EMPTY)
+                #obj, #kind, rhdl::core::TypedBits::EMPTY)
             })
         }
     }
@@ -1086,7 +1086,7 @@ impl Context {
         let inner = self.path_inner(path)?;
         if !self.is_scoped_binding(path) {
             return Ok(quote! {
-                bob.expr_typed_bits(#inner, rhdl_core::Digital::typed_bits(#path))
+                bob.expr_typed_bits(#inner, rhdl::core::Digital::typed_bits(#path))
             });
         }
         Ok(quote! {
@@ -1192,8 +1192,8 @@ impl Context {
 
     fn unary(&mut self, unary: &syn::ExprUnary) -> Result<TS> {
         let op = match unary.op {
-            syn::UnOp::Neg(_) => quote!(rhdl_core::ast_builder::UnOp::Neg),
-            syn::UnOp::Not(_) => quote!(rhdl_core::ast_builder::UnOp::Not),
+            syn::UnOp::Neg(_) => quote!(rhdl::core::ast_builder::UnOp::Neg),
+            syn::UnOp::Not(_) => quote!(rhdl::core::ast_builder::UnOp::Not),
             _ => {
                 return Err(syn::Error::new(
                     unary.span(),
@@ -1209,30 +1209,30 @@ impl Context {
 
     fn binary(&mut self, binary: &syn::ExprBinary) -> Result<TS> {
         let op = match binary.op {
-            syn::BinOp::Add(_) => quote!(rhdl_core::ast_builder::BinOp::Add),
-            syn::BinOp::Sub(_) => quote!(rhdl_core::ast_builder::BinOp::Sub),
-            syn::BinOp::Mul(_) => quote!(rhdl_core::ast_builder::BinOp::Mul),
-            syn::BinOp::And(_) => quote!(rhdl_core::ast_builder::BinOp::And),
-            syn::BinOp::Or(_) => quote!(rhdl_core::ast_builder::BinOp::Or),
-            syn::BinOp::BitXor(_) => quote!(rhdl_core::ast_builder::BinOp::BitXor),
-            syn::BinOp::BitAnd(_) => quote!(rhdl_core::ast_builder::BinOp::BitAnd),
-            syn::BinOp::BitOr(_) => quote!(rhdl_core::ast_builder::BinOp::BitOr),
-            syn::BinOp::Shl(_) => quote!(rhdl_core::ast_builder::BinOp::Shl),
-            syn::BinOp::Shr(_) => quote!(rhdl_core::ast_builder::BinOp::Shr),
-            syn::BinOp::Eq(_) => quote!(rhdl_core::ast_builder::BinOp::Eq),
-            syn::BinOp::Lt(_) => quote!(rhdl_core::ast_builder::BinOp::Lt),
-            syn::BinOp::Le(_) => quote!(rhdl_core::ast_builder::BinOp::Le),
-            syn::BinOp::Ne(_) => quote!(rhdl_core::ast_builder::BinOp::Ne),
-            syn::BinOp::Ge(_) => quote!(rhdl_core::ast_builder::BinOp::Ge),
-            syn::BinOp::Gt(_) => quote!(rhdl_core::ast_builder::BinOp::Gt),
-            syn::BinOp::AddAssign(_) => quote!(rhdl_core::ast_builder::BinOp::AddAssign),
-            syn::BinOp::SubAssign(_) => quote!(rhdl_core::ast_builder::BinOp::SubAssign),
-            syn::BinOp::MulAssign(_) => quote!(rhdl_core::ast_builder::BinOp::MulAssign),
-            syn::BinOp::BitXorAssign(_) => quote!(rhdl_core::ast_builder::BinOp::BitXorAssign),
-            syn::BinOp::BitAndAssign(_) => quote!(rhdl_core::ast_builder::BinOp::BitAndAssign),
-            syn::BinOp::BitOrAssign(_) => quote!(rhdl_core::ast_builder::BinOp::BitOrAssign),
-            syn::BinOp::ShlAssign(_) => quote!(rhdl_core::ast_builder::BinOp::ShlAssign),
-            syn::BinOp::ShrAssign(_) => quote!(rhdl_core::ast_builder::BinOp::ShrAssign),
+            syn::BinOp::Add(_) => quote!(rhdl::core::ast_builder::BinOp::Add),
+            syn::BinOp::Sub(_) => quote!(rhdl::core::ast_builder::BinOp::Sub),
+            syn::BinOp::Mul(_) => quote!(rhdl::core::ast_builder::BinOp::Mul),
+            syn::BinOp::And(_) => quote!(rhdl::core::ast_builder::BinOp::And),
+            syn::BinOp::Or(_) => quote!(rhdl::core::ast_builder::BinOp::Or),
+            syn::BinOp::BitXor(_) => quote!(rhdl::core::ast_builder::BinOp::BitXor),
+            syn::BinOp::BitAnd(_) => quote!(rhdl::core::ast_builder::BinOp::BitAnd),
+            syn::BinOp::BitOr(_) => quote!(rhdl::core::ast_builder::BinOp::BitOr),
+            syn::BinOp::Shl(_) => quote!(rhdl::core::ast_builder::BinOp::Shl),
+            syn::BinOp::Shr(_) => quote!(rhdl::core::ast_builder::BinOp::Shr),
+            syn::BinOp::Eq(_) => quote!(rhdl::core::ast_builder::BinOp::Eq),
+            syn::BinOp::Lt(_) => quote!(rhdl::core::ast_builder::BinOp::Lt),
+            syn::BinOp::Le(_) => quote!(rhdl::core::ast_builder::BinOp::Le),
+            syn::BinOp::Ne(_) => quote!(rhdl::core::ast_builder::BinOp::Ne),
+            syn::BinOp::Ge(_) => quote!(rhdl::core::ast_builder::BinOp::Ge),
+            syn::BinOp::Gt(_) => quote!(rhdl::core::ast_builder::BinOp::Gt),
+            syn::BinOp::AddAssign(_) => quote!(rhdl::core::ast_builder::BinOp::AddAssign),
+            syn::BinOp::SubAssign(_) => quote!(rhdl::core::ast_builder::BinOp::SubAssign),
+            syn::BinOp::MulAssign(_) => quote!(rhdl::core::ast_builder::BinOp::MulAssign),
+            syn::BinOp::BitXorAssign(_) => quote!(rhdl::core::ast_builder::BinOp::BitXorAssign),
+            syn::BinOp::BitAndAssign(_) => quote!(rhdl::core::ast_builder::BinOp::BitAndAssign),
+            syn::BinOp::BitOrAssign(_) => quote!(rhdl::core::ast_builder::BinOp::BitOrAssign),
+            syn::BinOp::ShlAssign(_) => quote!(rhdl::core::ast_builder::BinOp::ShlAssign),
+            syn::BinOp::ShrAssign(_) => quote!(rhdl::core::ast_builder::BinOp::ShrAssign),
             _ => {
                 return Err(syn::Error::new(
                     binary.span(),
@@ -1312,7 +1312,7 @@ mod test {
         let block = syn::parse2::<syn::Block>(test_code).unwrap();
         let result = Context::default().block(&block).unwrap();
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
-        let result = result.replace("rhdl_core :: ast :: ", "");
+        let result = result.replace("rhdl::core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
         println!("{}", result);
     }
@@ -1326,7 +1326,7 @@ mod test {
         let block = syn::parse2::<syn::Block>(test_code).unwrap();
         let result = Context::default().block(&block).unwrap();
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
-        let result = result.replace("rhdl_core :: ast :: ", "");
+        let result = result.replace("rhdl::core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
         println!("{}", result);
     }
@@ -1373,7 +1373,7 @@ mod test {
         let if_expr = syn::parse2::<syn::Block>(test_code).unwrap();
         let result = Context::default().block(&if_expr).unwrap();
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
-        let result = result.replace("rhdl_core :: ast :: ", "");
+        let result = result.replace("rhdl::core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
         println!("{}", result);
     }
@@ -1409,7 +1409,7 @@ mod test {
         let match_expr = syn::parse2::<syn::Block>(test_code).unwrap();
         let result = Context::default().block(&match_expr).unwrap();
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
-        //        let result = result.replace("rhdl_core :: ast :: ", "");
+        //        let result = result.replace("rhdl::core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
         println!("{}", result);
     }
@@ -1422,7 +1422,7 @@ mod test {
         let assign = syn::parse2::<syn::Stmt>(test_code).unwrap();
         let result = Context::default().stmt(&assign).unwrap();
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
-        //        let result = result.replace("rhdl_core :: ast :: ", "");
+        //        let result = result.replace("rhdl::core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
         println!("{}", result);
     }

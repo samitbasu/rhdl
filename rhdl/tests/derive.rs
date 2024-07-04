@@ -1,10 +1,11 @@
-use rhdl_bits::Bits;
-use rhdl_core::{
-    note, note_init_db, note_take, note_time,
-    types::path::{bit_range, Path},
-    Digital, Kind,
-};
-use rhdl_macro::Digital;
+#![allow(unused_variables)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+#![allow(unreachable_code)]
+#![allow(unused_must_use)]
+#![allow(dead_code)]
+
+use rhdl::prelude::*;
 
 #[test]
 #[allow(dead_code)]
@@ -50,19 +51,19 @@ fn test_derive_digital_simple_struct() {
         b: b8,
     }
 
-    let foo = Test {
+    let foo_test = Test {
         a: true,
         b: b8::from(0b10101011),
     };
 
-    println!("foo val: {}", foo.binary_string());
+    println!("foo val: {}", foo_test.binary_string());
     let test_kind = Test::static_kind();
     let (range, kind) = bit_range(test_kind, &Path::default().field("b")).unwrap();
     println!("range: {:?}", range);
     println!("kind: {:?}", kind);
     assert_eq!(range, 1..9);
     assert_eq!(kind, Kind::make_bits(8));
-    let bits = foo.bin();
+    let bits = foo_test.bin();
     let bits = &bits[range];
     assert_eq!(bits.len(), 8);
     assert_eq!(bits, [true, true, false, true, false, true, false, true]);
@@ -86,11 +87,11 @@ fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
         D,
     }
 
-    let foo = Test::B(b2::from(0b10), b3::from(0b101));
+    let foo_test = Test::B(b2::from(0b10), b3::from(0b101));
     let disc = Path::default().payload(stringify!(B)).tuple_index(1);
     let index = bit_range(Test::static_kind(), &disc)?;
     println!("{:?}", index);
-    let bits = foo.bin();
+    let bits = foo_test.bin();
     let bits = &bits[index.0];
     println!(
         "Extracted bits: {}",
@@ -102,7 +103,7 @@ fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
     let (disc_range, disc_kind) = bit_range(Test::static_kind(), &Path::default().discriminant())?;
     println!("{:?}", disc_range);
     println!("{:?}", disc_kind);
-    let disc_bits = foo.bin();
+    let disc_bits = foo_test.bin();
     let disc_bits = &disc_bits[disc_range];
     assert_eq!(disc_bits, [true, false]);
     Ok(())
