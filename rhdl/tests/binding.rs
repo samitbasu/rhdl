@@ -1,14 +1,15 @@
-use crate::tests::{red, tuple_exhaustive_red, tuple_pair_b8_red};
-use rhdl_bits::{alias::*, bits};
-use rhdl_core::{
-    test_kernel_vm_and_verilog,
-    types::{
-        domain::{self, Red},
-        signal::signal,
-    },
-    Domain, Signal,
-};
-use rhdl_macro::{kernel, Digital};
+#![allow(unused_variables)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+#![allow(unreachable_code)]
+#![allow(unused_must_use)]
+#![allow(dead_code)]
+
+use rhdl::prelude::*;
+#[cfg(test)]
+mod common;
+#[cfg(test)]
+use common::*;
 
 #[test]
 fn test_rebind_compile() -> miette::Result<()> {
@@ -49,7 +50,7 @@ fn test_rebind_compile() -> miette::Result<()> {
 fn test_importing() {
     use rhdl_bits::alias::*;
     #[derive(PartialEq, Copy, Clone, Digital)]
-    pub enum Red {
+    pub enum Rad {
         A,
         B(b4),
         C {
@@ -63,18 +64,17 @@ fn test_importing() {
     const MY_SPECIAL_NUMBER: b8 = bits(42);
 
     #[kernel]
-    fn do_stuff<C: Domain>(a: Signal<b4, C>) -> Signal<(Red, Red, Red, b8), C> {
-        let k = Red::A;
-        let l = Red::B(bits::<4>(1));
-        let c = Red::C {
+    fn do_stuff<C: Domain>(a: Signal<b4, C>) -> Signal<(Rad, Rad, Rad, b8), C> {
+        let k = Rad::A;
+        let l = Rad::B(bits::<4>(1));
+        let c = Rad::C {
             x: bits::<4>(1),
             y: bits::<6>(2),
         };
         let d = MY_SPECIAL_NUMBER;
         signal((k, l, c, d))
     }
-    test_kernel_vm_and_verilog::<do_stuff<domain::Red>, _, _, _>(do_stuff, tuple_exhaustive_red())
-        .unwrap();
+    test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, tuple_exhaustive_red()).unwrap();
 }
 
 #[test]

@@ -1,17 +1,17 @@
-use itertools::iproduct;
-use rhdl_bits::{alias::*, bits, signed, Bits};
-use rhdl_core::{
-    error::RHDLError,
-    test_kernel_vm_and_verilog,
-    types::{
-        domain::{self, Red},
-        signal::signal,
-    },
-    Domain, Signal,
-};
-use rhdl_macro::{kernel, Digital};
+#![allow(unused_variables)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+#![allow(unreachable_code)]
+#![allow(unused_must_use)]
+#![allow(dead_code)]
 
-use crate::tests::{red, tuple_pair_b8_red, tuple_u8};
+use itertools::iproduct;
+use rhdl::prelude::*;
+
+#[cfg(test)]
+mod common;
+#[cfg(test)]
+use common::*;
 
 #[test]
 fn test_adt_use() {
@@ -84,7 +84,7 @@ fn test_adt_inference_subset() -> miette::Result<()> {
     use rhdl_bits::bits;
 
     #[derive(PartialEq, Copy, Clone, Digital)]
-    pub enum Red {
+    pub enum Rad {
         A,
         B(b4),
         C {
@@ -99,7 +99,7 @@ fn test_adt_inference_subset() -> miette::Result<()> {
     pub struct Foo {
         a: b8,
         b: s4,
-        c: Red,
+        c: Rad,
     }
 
     #[derive(PartialEq, Copy, Clone, Digital)]
@@ -122,7 +122,7 @@ fn test_adt_inference_subset() -> miette::Result<()> {
         let q = Foo {
             a: bits::<8>(1),
             b: q,
-            c: Red::A,
+            c: Rad::A,
         };
         signal((NooState::Init, bits::<7>(3)))
     }
@@ -131,17 +131,17 @@ fn test_adt_inference_subset() -> miette::Result<()> {
         Foo {
             a: bits::<8>(1),
             b: signed::<4>(2),
-            c: Red::A,
+            c: Rad::A,
         },
         Foo {
             a: bits::<8>(1),
             b: signed::<4>(2),
-            c: Red::B(bits::<4>(1)),
+            c: Rad::B(bits::<4>(1)),
         },
         Foo {
             a: bits::<8>(1),
             b: signed::<4>(2),
-            c: Red::C {
+            c: Rad::C {
                 x: bits::<4>(1),
                 y: bits::<6>(2),
             },
@@ -155,7 +155,7 @@ fn test_adt_inference_subset() -> miette::Result<()> {
     ];
     let inputs =
         iproduct!(foos.into_iter().map(red), noos.into_iter().map(red)).collect::<Vec<_>>();
-    test_kernel_vm_and_verilog::<do_stuff<domain::Red>, _, _, _>(do_stuff, inputs.into_iter())?;
+    test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, inputs.into_iter())?;
     Ok(())
 }
 
@@ -165,7 +165,7 @@ fn test_adt_inference() -> miette::Result<()> {
     use rhdl_bits::bits;
 
     #[derive(PartialEq, Copy, Clone, Digital)]
-    pub enum Red {
+    pub enum Rad {
         A,
         B(b4),
         C {
@@ -180,7 +180,7 @@ fn test_adt_inference() -> miette::Result<()> {
     pub struct Foo {
         a: b8,
         b: s4,
-        c: Red,
+        c: Rad,
     }
 
     #[derive(PartialEq, Copy, Clone, Digital)]
@@ -209,9 +209,9 @@ fn test_adt_inference() -> miette::Result<()> {
         let q = Foo {
             a: bits::<8>(1),
             b: q,
-            c: Red::A,
+            c: Rad::A,
         };
-        let c = Red::A;
+        let c = Rad::A;
         let d = c;
         let z = fifo::<C>(signal(bits::<8>(3)), signal(bits::<4>(5)));
         let mut q = bits::<4>(1);
@@ -222,7 +222,7 @@ fn test_adt_inference() -> miette::Result<()> {
         if a.a > bits::<8>(12) {
             return signal((NooState::Boom, bits::<7>(3)));
         }
-        let e = Red::B(q);
+        let e = Rad::B(q);
         let x1 = bits::<4>(4);
         let y1 = bits::<6>(6);
         let mut ar = [bits::<4>(1), bits::<4>(1), bits::<4>(3)];
@@ -232,7 +232,7 @@ fn test_adt_inference() -> miette::Result<()> {
         let f: [b4; 5] = [bits::<4>(1); 5];
         let h = f[2];
         let k = NooState::Init;
-        let f = Red::C { y: y1, x: x1 };
+        let f = Rad::C { y: y1, x: x1 };
         let d = match s.val() {
             NooState::Init => NooState::Run(bits::<4>(1), bits::<5>(2)),
             NooState::Run(x, y) => NooState::Walk { foo: y + 3 },
@@ -250,17 +250,17 @@ fn test_adt_inference() -> miette::Result<()> {
         Foo {
             a: bits::<8>(1),
             b: signed::<4>(2),
-            c: Red::A,
+            c: Rad::A,
         },
         Foo {
             a: bits::<8>(1),
             b: signed::<4>(2),
-            c: Red::B(bits::<4>(1)),
+            c: Rad::B(bits::<4>(1)),
         },
         Foo {
             a: bits::<8>(1),
             b: signed::<4>(2),
-            c: Red::C {
+            c: Rad::C {
                 x: bits::<4>(1),
                 y: bits::<6>(2),
             },
@@ -274,7 +274,7 @@ fn test_adt_inference() -> miette::Result<()> {
     ];
     let inputs =
         iproduct!(foos.into_iter().map(red), noos.into_iter().map(red)).collect::<Vec<_>>();
-    test_kernel_vm_and_verilog::<do_stuff<domain::Red>, _, _, _>(do_stuff, inputs.into_iter())?;
+    test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, inputs.into_iter())?;
     Ok(())
 }
 
@@ -320,8 +320,8 @@ fn test_adt_shadow() {
         NooState::Run(1, 2, 3),
         NooState::Walk { foo: 4 },
     ];
-    test_kernel_vm_and_verilog::<do_stuff<domain::Red>, _, _, _>(
-        do_stuff::<domain::Red>,
+    test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(
+        do_stuff::<Red>,
         noos.into_iter().map(|x| (signal(x),)),
     )
     .unwrap();
@@ -357,7 +357,7 @@ fn test_enum_match() -> miette::Result<()> {
         SimpleEnum::Point { x: bits(1), y: 9 },
         SimpleEnum::Boom,
     ];
-    test_kernel_vm_and_verilog::<add<domain::Red>, _, _, _>(
+    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(
         add,
         samples.into_iter().map(red).map(|x| (x,)),
     )?;

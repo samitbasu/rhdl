@@ -39,13 +39,13 @@ fn derive_timed_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                 .collect::<Vec<_>>();
             let field_types = s.fields.iter().map(|x| &x.ty).collect::<Vec<_>>();
             Ok(quote! {
-                impl #impl_generics rhdl_core::Timed for #struct_name #ty_generics #where_clause {
-                    fn static_kind() -> rhdl_core::Kind {
-                        rhdl_core::Kind::make_struct(
+                impl #impl_generics rhdl::core::Timed for #struct_name #ty_generics #where_clause {
+                    fn static_kind() -> rhdl::core::Kind {
+                        rhdl::core::Kind::make_struct(
                             #fqdn,
                             vec![
                             #(
-                                rhdl_core::Kind::make_field(stringify!(#fields), <#field_types as rhdl_core::Timed>::static_kind()),
+                                rhdl::core::Kind::make_field(stringify!(#fields), <#field_types as rhdl::core::Timed>::static_kind()),
                             )*
                         ],
                     )

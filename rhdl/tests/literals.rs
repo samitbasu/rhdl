@@ -1,14 +1,8 @@
-use crate::tests::{red, tuple_exhaustive_red, tuple_pair_b8_red, tuple_pair_s8_red, tuple_u8};
-use rhdl_bits::{alias::*, bits};
-use rhdl_core::{
-    test_kernel_vm_and_verilog,
-    types::{
-        domain::{self, Red},
-        signal::signal,
-    },
-    Domain, Signal,
-};
-use rhdl_macro::{kernel, Digital};
+use rhdl::prelude::*;
+#[cfg(test)]
+mod common;
+#[cfg(test)]
+use common::*;
 
 #[test]
 fn test_const_literal_match() {
@@ -20,7 +14,7 @@ fn test_const_literal_match() {
             _ => 3,
         })
     }
-    test_kernel_vm_and_verilog::<add<domain::Red>, _, _, _>(add::<Red>, tuple_u8()).unwrap();
+    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_u8()).unwrap();
 }
 
 #[test]

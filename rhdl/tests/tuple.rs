@@ -1,11 +1,16 @@
-use crate::tests::{red, tuple_pair_b8_red, tuple_u8};
-use rhdl_bits::alias::*;
-use rhdl_core::{
-    test_kernel_vm_and_verilog,
-    types::{domain::Red, signal::signal},
-    Domain, Signal,
-};
-use rhdl_macro::{kernel, Digital};
+#![allow(unused_variables)]
+#![allow(unused_assignments)]
+#![allow(unused_mut)]
+#![allow(unreachable_code)]
+#![allow(unused_must_use)]
+#![allow(dead_code)]
+
+use rhdl::prelude::*;
+
+#[cfg(test)]
+mod common;
+#[cfg(test)]
+use common::*;
 
 #[test]
 fn test_tuple_destructure_in_args() {
