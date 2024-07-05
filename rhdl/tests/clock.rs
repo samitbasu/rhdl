@@ -7,6 +7,8 @@
 
 use rhdl::prelude::*;
 
+use rhdl_core::compiler::driver::CompilationMode::Asynchronous;
+
 #[test]
 #[allow(clippy::let_and_return)]
 fn test_struct_follows_clock_constraints() -> miette::Result<()> {
@@ -28,8 +30,8 @@ fn test_struct_follows_clock_constraints() -> miette::Result<()> {
         c
     }
 
-    compile_design::<do_stuff<Red, Red>>()?;
-    assert!(compile_design::<do_stuff<Green, Red>>().is_err());
+    compile_design::<do_stuff<Red, Red>>(Asynchronous)?;
+    assert!(compile_design::<do_stuff<Green, Red>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -49,8 +51,8 @@ fn test_struct_with_splice_follows_clock_constraints() -> miette::Result<()> {
         s
     }
 
-    compile_design::<do_stuff<Red, Red>>()?;
-    assert!(compile_design::<do_stuff<Red, Green>>().is_err());
+    compile_design::<do_stuff<Red, Red>>(Asynchronous)?;
+    assert!(compile_design::<do_stuff<Red, Green>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -74,8 +76,8 @@ fn test_struct_follows_clock_constraints_fails() -> miette::Result<()> {
         c
     }
 
-    compile_design::<do_stuff<Red, Red>>()?;
-    assert!(compile_design::<do_stuff<Red, Green>>().is_err());
+    compile_design::<do_stuff<Red, Red>>(Asynchronous)?;
+    assert!(compile_design::<do_stuff<Red, Green>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -99,8 +101,8 @@ fn test_struct_cannot_cross_clock_domains() -> miette::Result<()> {
         signal(d)
     }
 
-    compile_design::<do_stuff<Red, Red>>()?;
-    assert!(compile_design::<do_stuff<Red, Green>>().is_err());
+    compile_design::<do_stuff<Red, Red>>(Asynchronous)?;
+    assert!(compile_design::<do_stuff<Red, Green>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -118,8 +120,8 @@ fn test_signal_call_cross_clock_fails() -> miette::Result<()> {
         c
     }
 
-    compile_design::<do_stuff<Red, Red>>()?;
-    assert!(compile_design::<do_stuff<Red, Green>>().is_err());
+    compile_design::<do_stuff<Red, Red>>(Asynchronous)?;
+    assert!(compile_design::<do_stuff<Red, Green>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -133,8 +135,8 @@ fn test_signal_cross_clock_select_fails() -> miette::Result<()> {
             x + 2
         }
     }
-    assert!(compile_design::<add::<Red, Red>>().is_ok());
-    assert!(compile_design::<add::<Red, Green>>().is_err());
+    assert!(compile_design::<add::<Red, Red>>(Asynchronous).is_ok());
+    assert!(compile_design::<add::<Red, Green>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -148,7 +150,9 @@ fn test_signal_cross_clock_select_causes_type_check_error() -> miette::Result<()
             x + 2
         }
     }
-    let Err(RHDLError::RHDLClockCoherenceViolation(_)) = compile_design::<add<Red, Green>>() else {
+    let Err(RHDLError::RHDLClockCoherenceViolation(_)) =
+        compile_design::<add<Red, Green>>(Asynchronous)
+    else {
         panic!("Expected clock coherence violation");
     };
     Ok(())
@@ -174,9 +178,9 @@ fn test_signal_coherence_in_splice_operation() -> miette::Result<()> {
         };
         signal(z)
     }
-    compile_design::<add<Red, Red>>()?;
+    compile_design::<add<Red, Red>>(Asynchronous)?;
     //    compile_design::<add<Red, Green>>()?;
-    assert!(compile_design::<add<Green, Red>>().is_err());
+    assert!(compile_design::<add<Green, Red>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -187,8 +191,8 @@ fn test_signal_coherence_in_dynamic_indexing() -> miette::Result<()> {
         let z = x[y.val()];
         signal(z)
     }
-    compile_design::<add<Red, Red>>()?;
-    assert!(compile_design::<add::<Red, Green>>().is_err());
+    compile_design::<add<Red, Red>>(Asynchronous)?;
+    assert!(compile_design::<add::<Red, Green>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -201,7 +205,7 @@ fn test_signal_coherence_in_binary_ops() -> miette::Result<()> {
         let z = x + y;
         signal(z)
     }
-    assert!(compile_design::<add<Red, Green>>().is_err());
+    assert!(compile_design::<add<Red, Green>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -214,8 +218,8 @@ fn test_signal_coherence_in_branches() -> miette::Result<()> {
         let z = if y.any() { y } else { x };
         signal(z)
     }
-    compile_design::<add<Green, Green>>()?;
-    assert!(compile_design::<add<Red, Green>>().is_err());
+    compile_design::<add<Green, Green>>(Asynchronous)?;
+    assert!(compile_design::<add<Red, Green>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -238,8 +242,8 @@ fn test_signal_coherence_with_timed() -> miette::Result<()> {
         let val = x.y.b.val() + bits(1);
         signal(val)
     }
-    assert!(compile_design::<add<Red, Green>>().is_err());
-    compile_design::<add<Red, Red>>()?;
+    assert!(compile_design::<add<Red, Green>>(Asynchronous).is_err());
+    compile_design::<add<Red, Red>>(Asynchronous)?;
     Ok(())
 }
 
@@ -258,8 +262,8 @@ fn test_signal_carrying_struct() -> miette::Result<()> {
         let y = x.b + 1;
         signal(y)
     }
-    assert!(compile_design::<add<Red, Green>>().is_err());
-    compile_design::<add<Red, Red>>()?;
+    assert!(compile_design::<add<Red, Green>>(Asynchronous).is_err());
+    compile_design::<add<Red, Red>>(Asynchronous)?;
     Ok(())
 }
 
@@ -272,7 +276,7 @@ fn test_signal_coherence_with_const_in_binary_op() -> miette::Result<()> {
         let z = x + y;
         signal(z)
     }
-    compile_design::<add<Red>>()?;
+    compile_design::<add<Red>>(Asynchronous)?;
     Ok(())
 }
 
@@ -285,7 +289,7 @@ fn test_signal_coherence_with_consts_ok() -> miette::Result<()> {
         let z = if x.any() { x } else { y };
         signal(z)
     }
-    compile_design::<add<Red>>()?;
+    compile_design::<add<Red>>(Asynchronous)?;
     Ok(())
 }
 
@@ -296,7 +300,7 @@ fn test_signal_cast_works() -> anyhow::Result<()> {
         let z = x + y;
         signal::<b8, C>(z.val())
     }
-    let obj = compile_design::<add<Red>>()?;
+    let obj = compile_design::<add<Red>>(Asynchronous)?;
     eprintln!("{:?}", obj);
     Ok(())
 }
@@ -307,8 +311,8 @@ fn test_signal_cast_cross_clocks_fails() -> miette::Result<()> {
     fn add<C: Domain, D: Domain>(x: Signal<b8, C>) -> Signal<b8, D> {
         signal(x.val() + 3)
     }
-    compile_design::<add<Red, Red>>()?;
-    assert!(compile_design::<add::<Red, Green>>().is_err());
+    compile_design::<add<Red, Red>>(Asynchronous)?;
+    assert!(compile_design::<add::<Red, Green>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -321,8 +325,8 @@ fn test_signal_cross_clock_shifting_fails() -> anyhow::Result<()> {
         let z = y << p;
         signal(x.val() << z)
     }
-    compile_design::<add<Red, Red>>()?;
-    assert!(compile_design::<add::<Red, Green>>().is_err());
+    compile_design::<add<Red, Red>>(Asynchronous)?;
+    assert!(compile_design::<add::<Red, Green>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -333,8 +337,8 @@ fn test_signal_cross_clock_indexing_fails() -> anyhow::Result<()> {
         let z = x[y.val()];
         signal(z)
     }
-    assert!(compile_design::<add::<Red, Red>>().is_ok());
-    assert!(compile_design::<add::<Red, Green>>().is_err());
+    assert!(compile_design::<add::<Red, Red>>(Asynchronous).is_ok());
+    assert!(compile_design::<add::<Red, Green>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -347,8 +351,8 @@ fn test_signal_tuple_crossing_fails() -> miette::Result<()> {
         let z = (x, y);
         signal(z)
     }
-    compile_design::<add<Red, Red>>()?;
-    assert!(compile_design::<add::<Red, Green>>().is_err());
+    compile_design::<add<Red, Red>>(Asynchronous)?;
+    assert!(compile_design::<add::<Red, Green>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -367,8 +371,8 @@ fn test_signal_tuple_crossing_fails_second_test() -> miette::Result<()> {
         let a = (y, x);
         a
     }
-    compile_design::<add<Red, Red>>()?;
-    assert!(compile_design::<add::<Red, Green>>().is_err());
+    compile_design::<add<Red, Red>>(Asynchronous)?;
+    assert!(compile_design::<add::<Red, Green>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -388,8 +392,8 @@ fn test_enum_basic_cross_clocks() -> miette::Result<()> {
         signal(c)
     }
 
-    compile_design::<foo<Red, Red>>()?;
-    assert!(compile_design::<foo<Red, Blue>>().is_err());
+    compile_design::<foo<Red, Red>>(Asynchronous)?;
+    assert!(compile_design::<foo<Red, Blue>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -402,8 +406,8 @@ fn test_cross_clock_domains_fails_with_repeat() -> miette::Result<()> {
         signal([b; 3])
     }
 
-    compile_design::<foo<Red, Red>>()?;
-    assert!(compile_design::<foo<Red, Green>>().is_err());
+    compile_design::<foo<Red, Red>>(Asynchronous)?;
+    assert!(compile_design::<foo<Red, Green>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -417,8 +421,8 @@ fn cannot_mix_clocks_in_an_array() -> miette::Result<()> {
         let d = c[0];
         signal(d)
     }
-    compile_design::<foo<Red, Red>>()?;
-    assert!(compile_design::<foo<Red, Green>>().is_err());
+    compile_design::<foo<Red, Red>>(Asynchronous)?;
+    assert!(compile_design::<foo<Red, Green>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -434,8 +438,8 @@ fn test_exec_sub_kernel_preserves_clocking() -> miette::Result<()> {
         a + double::<C>(signal(b.val()))
     }
 
-    compile_design::<do_stuff<Red, Red>>()?;
-    assert!(compile_design::<do_stuff<Red, Green>>().is_err());
+    compile_design::<do_stuff<Red, Red>>(Asynchronous)?;
+    assert!(compile_design::<do_stuff<Red, Green>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -449,7 +453,7 @@ fn test_retime_of_comparison() -> miette::Result<()> {
         signal(c)
     }
 
-    compile_design::<do_stuff<Red>>()?;
+    compile_design::<do_stuff<Red>>(Asynchronous)?;
     Ok(())
 }
 
@@ -468,7 +472,7 @@ fn test_retime_of_comparison_with_structs() -> miette::Result<()> {
         signal(c)
     }
 
-    compile_design::<do_stuff<Red>>()?;
+    compile_design::<do_stuff<Red>>(Asynchronous)?;
     Ok(())
 }
 
@@ -498,7 +502,7 @@ fn test_unknown_clock_domain() -> miette::Result<()> {
         };
         l + k
     }
-    assert!(compile_design::<do_stuff<Red>>().is_err());
+    assert!(compile_design::<do_stuff<Red>>(Asynchronous).is_err());
     Ok(())
 }
 
@@ -511,6 +515,6 @@ fn test_tuple_unused_variable() -> miette::Result<()> {
         signal(c.1)
     }
 
-    compile_design::<do_stuff>()?;
+    compile_design::<do_stuff>(Asynchronous)?;
     Ok(())
 }

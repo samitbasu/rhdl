@@ -1,53 +1,42 @@
 use anyhow::ensure;
-use rhdl_core::root_descriptor;
-use rhdl_core::schematic::components::ComponentKind;
-use rhdl_core::schematic::components::ConstantComponent;
-use rhdl_core::schematic::schematic_impl::Schematic;
-use rhdl_core::Circuit;
-use rhdl_core::CircuitDescriptor;
-use rhdl_core::CircuitIO;
-use rhdl_core::HDLKind;
-use rhdl_core::{as_verilog_literal, Digital, DigitalFn};
+use rhdl::prelude::*;
 
-use rhdl_core::circuit::hdl_descriptor::HDLDescriptor;
-
-// Constant block
-#[derive(Clone)]
-pub struct Constant<T: Digital> {
+#[derive(Clone, Debug)]
+pub struct U<T: Digital> {
     value: T,
 }
 
-impl<T: Digital> CircuitIO for Constant<T> {
-    type I = ();
-    type O = T;
-}
-
-impl<T: Digital> From<T> for Constant<T> {
-    fn from(value: T) -> Self {
+impl<T: Digital> U<T> {
+    pub fn new(value: T) -> Self {
         Self { value }
     }
 }
 
-impl<T: Digital> DigitalFn for Constant<T> {
-    fn kernel_fn() -> Option<rhdl_core::KernelFnKind> {
-        None
-    }
+impl<T: Digital> SynchronousIO for U<T> {
+    type I = ();
+    type O = T;
 }
 
-impl<T: Digital> Circuit for Constant<T> {
-    type Q = ();
-
+impl<T: Digital> SynchronousDQ for U<T> {
     type D = ();
+    type Q = ();
+}
+
+impl<T: Digital> Synchronous for U<T> {
+    type Update = Self;
 
     type S = ();
 
     type Z = ();
 
-    type Update = Self;
-
-    const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = { panic!() };
-
-    fn sim(&self, _: Self::I, _: &mut Self::S, _: &mut Self::Z) -> Self::O {
+    fn sim(
+        &self,
+        _clock: Clock,
+        _reset: Reset,
+        _input: Self::I,
+        _state: &mut Self::S,
+        _io: &mut Self::Z,
+    ) -> Self::O {
         self.value
     }
 
@@ -55,39 +44,21 @@ impl<T: Digital> Circuit for Constant<T> {
         "Constant"
     }
 
-    fn descriptor(&self) -> CircuitDescriptor {
-        let mut desc = root_descriptor(self);
-        // Build a schematic with no input pin, and one output pin driven
-        // by a constant component.
-        let mut schematic = Schematic::default();
-        let out_pin = schematic.make_pin(desc.output_kind.clone(), "out".to_string(), None);
-        let constant = schematic.make_component(
-            ComponentKind::Constant(ConstantComponent {
-                value: self.value.typed_bits(),
-                output: out_pin,
-            }),
-            None,
-        );
-        schematic.pin_mut(out_pin).parent(constant);
-        schematic.output = out_pin;
-        desc.update_schematic = Some(schematic);
-        desc
-    }
-
-    fn as_hdl(&self, kind: HDLKind) -> anyhow::Result<HDLDescriptor> {
-        ensure!(kind == HDLKind::Verilog);
+    fn as_hdl(&self, kind: HDLKind) -> Result<HDLDescriptor, RHDLError> {
         Ok(self.as_verilog())
     }
 }
 
-impl<T: Digital> Constant<T> {
+impl<T: Digital> DigitalFn for U<T> {}
+
+impl<T: Digital> U<T> {
     fn as_verilog(&self) -> HDLDescriptor {
         let module_name = self.descriptor().unique_name;
         let output_bits = T::bits().saturating_sub(1);
-        let value = as_verilog_literal(&self.value.typed_bits());
+        let value = rhdl::core::as_verilog_literal(&self.value.typed_bits());
         let body = format!(
             "
-module {module_name}(input wire[0:0] i, output wire[{output_bits}:0] o);
+module {module_name}(input clock, input reset, input wire[0:0] i, output wire[{output_bits}:0] o);
     assign o = {value};
 endmodule
 "

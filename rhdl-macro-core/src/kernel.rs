@@ -6,7 +6,7 @@ use syn::{
     punctuated::Punctuated, spanned::Spanned, token::Comma, FnArg, Ident, Pat, PatType, Path, Type,
 };
 
-use crate::{suffix::CustomSuffix, utils::evaluate_const_expression};
+use crate::suffix::CustomSuffix;
 type TS = proc_macro2::TokenStream;
 type Result<T> = syn::Result<T>;
 use syn::visit_mut::VisitMut;
@@ -446,7 +446,7 @@ impl Context {
             syn::ReturnType::Default => quote! {rhdl::core::Kind::Empty},
             syn::ReturnType::Type(_, ty) => {
                 quote! {
-                    <#ty as rhdl::core::Timed>::static_kind()
+                    <#ty as rhdl::core::Digital>::static_kind()
                 }
             }
         };
@@ -462,7 +462,7 @@ impl Context {
                 syn::FnArg::Typed(pat) => {
                     let ty = &pat.ty;
                     let pat = self.pat(&pat.pat)?;
-                    let kind = quote! {<#ty as rhdl::core::Timed>::static_kind()};
+                    let kind = quote! {<#ty as rhdl::core::Digital>::static_kind()};
                     Ok(quote! { bob.type_pat(#pat, #kind)})
                 }
             })

@@ -1,10 +1,10 @@
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::{spanned::Spanned, Attribute, Data, DeriveInput, Expr, ExprPath};
 
-pub fn derive_circuit(input: TokenStream) -> syn::Result<TokenStream> {
+pub fn derive_synchronous(input: TokenStream) -> syn::Result<TokenStream> {
     let decl = syn::parse2::<syn::DeriveInput>(input)?;
-    derive_circuit_struct(decl)
+    derive_synchronous_struct(decl)
 }
 
 pub struct FieldSet<'a> {
@@ -20,7 +20,10 @@ impl<'a> TryFrom<&'a syn::Fields> for FieldSet<'a> {
         let mut component_ty = Vec::new();
         for field in fields.iter() {
             component_name.push(field.ident.clone().ok_or_else(|| {
-                syn::Error::new(field.span(), "Circuit components (fields) must have names")
+                syn::Error::new(
+                    field.span(),
+                    "Synchronous components (fields) must have names",
+                )
             })?);
             component_ty.push(&field.ty);
         }
@@ -35,8 +38,8 @@ fn define_descriptor_fn(field_set: &FieldSet) -> TokenStream {
     let component_name = &field_set.component_name;
     quote! {
         fn descriptor(&self) -> rhdl::core::CircuitDescriptor {
-            let mut ret = rhdl::core::root_descriptor(self);
-            #(ret.add_child(stringify!(#component_name), &self.#component_name);)*
+            let mut ret = rhdl::core::synchronous_root_descriptor(self);
+            #(ret.add_synchronous(stringify!(#component_name), &self.#component_name);)*
             ret
         }
     }
@@ -45,9 +48,9 @@ fn define_descriptor_fn(field_set: &FieldSet) -> TokenStream {
 fn define_hdl_fn(field_set: &FieldSet) -> TokenStream {
     let component_name = &field_set.component_name;
     quote! {
-        fn as_hdl(&self, kind: rhdl::core::HDLKind) -> anyhow::Result<rhdl::core::HDLDescriptor> {
-            let mut ret = rhdl::core::root_hdl(self, kind)?;
-            #(ret.add_child(stringify!(#component_name), &self.#component_name, kind)?;)*
+        fn as_hdl(&self, kind: rhdl::core::HDLKind) -> Result<rhdl::core::HDLDescriptor, rhdl::core::RHDLError> {
+            let mut ret = rhdl::core::root_synchronous_hdl(self, kind)?;
+            #(ret.add_synchronous(stringify!(#component_name), &self.#component_name, kind)?;)*
             Ok(ret)
         }
     }
@@ -59,15 +62,15 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
         .map(syn::Index::from)
         .collect::<Vec<_>>();
     quote! {
-        fn sim(&self, input: <Self as CircuitIO>::I, state: &mut Self::S , io: &mut Self::Z ) -> <Self as CircuitIO>::O {
+        fn sim(&self, clock: rhdl::core::Clock, reset: rhdl::core::Reset, input: <Self as SynchronousIO>::I, state: &mut Self::S , io: &mut Self::Z ) -> <Self as SynchronousIO>::O {
             rhdl::core::note("input", input);
             for _ in 0..rhdl::core::MAX_ITERS {
                 let prev_state = state.clone();
-                let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
+                let (outputs, internal_inputs) = Self::UPDATE(reset.raw(), input, state.0);
                 #(
                     rhdl::core::note_push_path(stringify!(#component_name));
                     state.0.#component_name =
-                    self.#component_name.sim(internal_inputs.#component_name, &mut state.#component_index, /*&mut io.#component_name*/);
+                    self.#component_name.sim(clock, reset, internal_inputs.#component_name, &mut state.#component_index, &mut io.#component_name);
                     rhdl::core::note_pop_path();
                 )*
                 if state == &prev_state {
@@ -80,47 +83,56 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
     }
 }
 
-fn extract_kernel_name_from_attributes(attrs: &[Attribute]) -> syn::Result<Option<ExprPath>> {
+fn is_auto_dq_from_attributes(attrs: &[Attribute]) -> bool {
     for attr in attrs {
         if attr.path().is_ident("rhdl") {
-            let Expr::Assign(assign) = attr.parse_args::<Expr>()? else {
-                return Err(syn::Error::new(
-                    attr.span(),
-                    "Expected rhdl attribute to be of the form #[rhdl(kernel = name)]",
-                ));
-            };
-            let Expr::Path(path) = *assign.left else {
-                return Err(syn::Error::new(
-                    assign.left.span(),
-                    "Expected rhdl attribute to be of the form #[rhdl(kernel = name)]",
-                ));
-            };
-            if !path.path.is_ident("kernel") {
-                return Err(syn::Error::new(
-                    path.span(),
-                    "Expected rhdl attribute to be of the form #[rhdl(kernel = name)]",
-                ));
+            if let Expr::Path(expr_path) = attr.parse_args::<Expr>().unwrap() {
+                if expr_path.path.is_ident("auto_dq") {
+                    return true;
+                }
             }
-            let Expr::Path(expr_path) = *assign.right else {
-                return Err(syn::Error::new(
-                    assign.right.span(),
-                    "Expected rhdl attribute to be of the form #[rhdl(kernel = name)]",
-                ));
-            };
+        }
+    }
+    false
+}
+
+fn kernel_name_from_attribute(attr: &Attribute) -> syn::Result<Option<ExprPath>> {
+    let Expr::Assign(assign) = attr.parse_args::<Expr>()? else {
+        return Ok(None);
+    };
+    let Expr::Path(path) = *assign.left else {
+        return Ok(None);
+    };
+    if !path.path.is_ident("kernel") {
+        return Ok(None);
+    }
+    let Expr::Path(expr_path) = *assign.right else {
+        return Err(syn::Error::new(
+            assign.right.span(),
+            "Expected rhdl attribute to be of the form #[rhdl(kernel = name)]",
+        ));
+    };
+    Ok(Some(expr_path))
+}
+
+fn extract_kernel_name_from_attributes(attrs: &[Attribute]) -> syn::Result<Option<ExprPath>> {
+    for attr in attrs {
+        if let Some(expr_path) = kernel_name_from_attribute(attr)? {
             return Ok(Some(expr_path));
         }
     }
     Ok(None)
 }
 
-fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
+fn derive_synchronous_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
+    let auto_dq = is_auto_dq_from_attributes(&decl.attrs);
     let kernel_name = extract_kernel_name_from_attributes(&decl.attrs)?;
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
     let Data::Struct(s) = &decl.data else {
         return Err(syn::Error::new(
             decl.span(),
-            "Circuit can only be derived for structs with named fields",
+            "Synchronous can only be derived for structs with named fields",
         ));
     };
     let field_set = FieldSet::try_from(&s.fields)?;
@@ -128,28 +140,24 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let component_name = &field_set.component_name;
     let generics = &decl.generics;
     // Create a new struct by appending a Q to the name of the struct, and for each field, map
-    // the type to <ty as rhdl::core::Circuit>::O,
-    let name_q = format_ident!("{}Q", struct_name);
+    // the type to <ty as rhdl::core::Synchronous>::O,
     let new_struct_q = quote! {
-        #[derive(Debug, Clone, PartialEq, Digital, Copy, Timed)]
-        pub struct #name_q #generics #where_clause {
-            #(#component_name: <#component_ty as rhdl::core::CircuitIO>::O),*
+        #[derive(Debug, Clone, PartialEq, Digital, Copy)]
+        pub struct Q #generics #where_clause {
+            #(#component_name: <#component_ty as rhdl::core::SynchronousIO>::O),*
         }
     };
-    // Repeat with D and ::I
-    let name_d = format_ident!("{}D", struct_name);
     let new_struct_d = quote! {
-        #[derive(Debug, Clone, PartialEq, Digital, Copy, Timed)]
-        pub struct #name_d #generics #where_clause {
-            #(#component_name: <#component_ty as rhdl::core::CircuitIO>::I),*
+        #[derive(Debug, Clone, PartialEq, Digital, Copy)]
+        pub struct D #generics #where_clause {
+            #(#component_name: <#component_ty as rhdl::core::SynchronousIO>::I),*
         }
     };
     // Repeat again with Z and ::Z
-    let name_z = format_ident!("{}Z", struct_name);
     let new_struct_z = quote!(
         #[derive(Debug, Clone, PartialEq, Copy, Default)]
-        pub struct #name_z #generics #where_clause {
-            #(#component_name: <#component_ty as rhdl::core::Circuit>::Z),*
+        pub struct Z #generics #where_clause {
+            #(#component_name: <#component_ty as rhdl::core::Synchronous>::Z),*
         }
     );
     // Add an implementation of Notable for the Z struct.
@@ -163,7 +171,7 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     // }
     let component_name = &field_set.component_name;
     let notable_z_impl = quote! {
-        impl #impl_generics rhdl::core::Notable for #name_z #ty_generics {
+        impl #impl_generics rhdl::core::Notable for Z #ty_generics {
             fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
                 #(self.#component_name.note((key, stringify!(#component_name)), &mut writer);)*
             }
@@ -177,12 +185,12 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     // }
     let component_ty = &field_set.component_ty;
     let tristate_z_impl = quote! {
-        impl #impl_generics rhdl::core::Tristate for #name_z #ty_generics {
-            const N: usize = #(<#component_ty as rhdl::core::Circuit>::Z::N +)* 0;
+        impl #impl_generics rhdl::core::Tristate for Z #ty_generics {
+            const N: usize = #(<#component_ty as rhdl::core::Synchronous>::Z::N +)* 0;
         }
     };
     // Add a tuple of the states of the components
-    let state_tuple = quote!((Self::Q, #(<#component_ty as rhdl::core::Circuit>::S),*));
+    let state_tuple = quote!((Self::Q, #(<#component_ty as rhdl::core::Synchronous>::S),*));
     let descriptor_fn = define_descriptor_fn(&field_set);
     let hdl_fn = define_hdl_fn(&field_set);
     let sim_fn = define_sim_fn(&field_set);
@@ -191,16 +199,27 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
             stringify!(#struct_name)
         }
     );
-    let circuit_impl = quote! {
-        impl #impl_generics rhdl::core::Circuit for #struct_name #ty_generics #where_clause {
-            type Q = #name_q #ty_generics;
-            type D = #name_d #ty_generics;
-            type Z = #name_z #ty_generics;
+    let dq_section = if !auto_dq {
+        quote! {}
+    } else {
+        quote! {
+            #new_struct_q
+            #new_struct_d
+
+            impl #impl_generics rhdl::core::SynchronousDQ for #struct_name #ty_generics #where_clause {
+                type Q = Q #ty_generics;
+                type D = D #ty_generics;
+            }
+        }
+    };
+    let synchronous_impl = quote! {
+        impl #impl_generics rhdl::core::Synchronous for #struct_name #ty_generics #where_clause {
             type S = #state_tuple;
+            type Z = Z #ty_generics;
 
             type Update = #kernel_name;
 
-            const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = #kernel_name;
+            const UPDATE: fn(bool, Self::I, Self::Q) -> (Self::O, Self::D) = #kernel_name;
 
             #name_fn
 
@@ -213,12 +232,11 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     };
 
     Ok(quote! {
-        #new_struct_q
-        #new_struct_d
+        #dq_section
         #new_struct_z
         #notable_z_impl
         #tristate_z_impl
-        #circuit_impl
+        #synchronous_impl
     })
 }
 
@@ -229,7 +247,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_template_circuit_derive() {
+    fn test_template_synchronous_derive() {
         let decl = quote!(
             #[rhdl(kernel = pushd::<N>)]
             pub struct Strobe<const N: usize> {
@@ -237,54 +255,38 @@ mod test {
                 value: Constant<Bits<N>>,
             }
         );
-        let output = derive_circuit(decl).unwrap();
+        let output = derive_synchronous(decl).unwrap();
         let expected = quote!(
             #[derive(Debug, Clone, PartialEq, Digital, Copy)]
-            pub struct StrobeQ<const N: usize> {
-                strobe: <DFF<Bits<N>> as rhdl::core::CircuitIO>::O,
-                value: <Constant<Bits<N>> as rhdl::core::CircuitIO>::O,
+            pub struct Q<const N: usize> {
+                strobe: <DFF<Bits<N>> as rhdl::core::SynchronousIO>::O,
+                value: <Constant<Bits<N>> as rhdl::core::SynchronousIO>::O,
             }
             #[derive(Debug, Clone, PartialEq, Digital, Copy)]
-            pub struct StrobeD<const N: usize> {
-                strobe: <DFF<Bits<N>> as rhdl::core::CircuitIO>::I,
-                value: <Constant<Bits<N>> as rhdl::core::CircuitIO>::I,
+            pub struct D<const N: usize> {
+                strobe: <DFF<Bits<N>> as rhdl::core::SynchronousIO>::I,
+                value: <Constant<Bits<N>> as rhdl::core::SynchronousIO>::I,
             }
-            #[derive(Debug, Clone, PartialEq, Copy)]
-            pub struct StrobeZ<const N: usize> {
-                strobe: <DFF<Bits<N>> as rhdl::core::Circuit>::Z,
-                value: <Constant<Bits<N>> as rhdl::core::Circuit>::Z,
-            }
-            impl<const N: usize> rhdl::core::Notable for StrobeZ<N> {
-                fn note(
-                    &self,
-                    key: impl rhdl::core::NoteKey,
-                    mut writer: impl rhdl::core::NoteWriter,
-                ) {
-                    self.strobe.note((key, stringify!(strobe)), &mut writer);
-                    self.value.note((key, stringify!(value)), &mut writer);
-                }
-            }
-            impl<const N: usize> rhdl::core::Tristate for StrobeZ<N> {
-                const N: usize = <DFF<Bits<N>> as rhdl::core::Circuit>::Z::N
-                    + <Constant<Bits<N>> as rhdl::core::Circuit>::Z::N
-                    + 0;
-            }
-            impl<const N: usize> rhdl::core::Circuit for Strobe<N> {
+            impl<const N: usize> rhdl::core::Synchronous for Strobe<N> {
                 type Q = StrobeQ<N>;
                 type D = StrobeD<N>;
-                type Z = StrobeZ<N>;
                 type S = (
                     Self::Q,
-                    <DFF<Bits<N>> as rhdl::core::Circuit>::S,
-                    <Constant<Bits<N>> as rhdl::core::Circuit>::S,
+                    <DFF<Bits<N>> as rhdl::core::Synchronous>::S,
+                    <Constant<Bits<N>> as rhdl::core::Synchronous>::S,
                 );
                 type Update = pushd<N>;
-                const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = pushd::<N>;
+                const UPDATE: fn(
+                    rhdl::core::Clock,
+                    rhdl::core::Reset,
+                    Self::I,
+                    Self::Q,
+                ) -> (Self::O, Self::D) = pushd::<N>;
                 fn name(&self) -> &'static str {
                     stringify!(Strobe)
                 }
                 fn descriptor(&self) -> rhdl::core::CircuitDescriptor {
-                    let mut ret = rhdl::core::root_descriptor(self);
+                    let mut ret = rhdl::core::synchronous_root_descriptor(self);
                     ret.add_child(stringify!(strobe), &self.strobe);
                     ret.add_child(stringify!(value), &self.value);
                     ret
@@ -292,7 +294,7 @@ mod test {
                 fn as_hdl(
                     &self,
                     kind: rhdl::core::HDLKind,
-                ) -> anyhow::Result<rhdl::core::HDLDescriptor> {
+                ) -> Result<rhdl::core::HDLDescriptor, rhdl::core::RHDLError> {
                     let mut ret = rhdl::core::root_hdl(self, kind)?;
                     ret.add_child(stringify!(strobe), &self.strobe, kind)?;
                     ret.add_child(stringify!(value), &self.value, kind)?;
@@ -300,23 +302,33 @@ mod test {
                 }
                 fn sim(
                     &self,
-                    input: <Self as CircuitIO>::I,
+                    clock: rhdl::core::Clock,
+                    reset: rhdl::core::Reset,
+                    input: <Self as SynchronousIO>::I,
                     state: &mut Self::S,
                     io: &mut Self::Z,
-                ) -> <Self as CircuitIO>::O {
+                ) -> <Self as SynchronousIO>::O {
                     rhdl::core::note("input", input);
                     for _ in 0..rhdl::core::MAX_ITERS {
                         let prev_state = state.clone();
                         let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
                         rhdl::core::note_push_path(stringify!(strobe));
-                        state.0.strobe =
-                            self.strobe
-                                .sim(internal_inputs.strobe, &mut state.1, &mut io.strobe);
+                        state.0.strobe = self.strobe.sim(
+                            clock,
+                            reset,
+                            internal_inputs.strobe,
+                            &mut state.1,
+                            &mut io.strobe,
+                        );
                         rhdl::core::note_pop_path();
                         rhdl::core::note_push_path(stringify!(value));
-                        state.0.value =
-                            self.value
-                                .sim(internal_inputs.value, &mut state.2, &mut io.value);
+                        state.0.value = self.value.sim(
+                            clock,
+                            reset,
+                            internal_inputs.value,
+                            &mut state.2,
+                            &mut io.value,
+                        );
                         rhdl::core::note_pop_path();
                         if state == &prev_state {
                             rhdl::core::note("outputs", outputs);
@@ -331,7 +343,7 @@ mod test {
     }
 
     #[test]
-    fn test_circuit_derive() {
+    fn test_synchronous_derive() {
         let decl = quote!(
             #[rhdl(kernel = pushd)]
             pub struct Push {
@@ -342,31 +354,31 @@ mod test {
                 latch: DFF<Bits<8>>,
             }
         );
-        let output = derive_circuit(decl).unwrap();
+        let output = derive_synchronous(decl).unwrap();
         let expected = quote!(
             #[derive(Debug, Clone, PartialEq, Digital,  Copy)]
             pub struct PushQ {
-                    strobe: <Strobe<32> as rhdl::core::CircuitIO>::O,
-                    value: <Constant<Bits<8>> as rhdl::core::CircuitIO>::O,
-                    buf_z: <ZDriver<8> as rhdl::core::CircuitIO>::O,
-                    side: <DFF<Side> as rhdl::core::CircuitIO>::O,
-                    latch: <DFF<Bits<8>> as rhdl::core::CircuitIO>::O,
+                    strobe: <Strobe<32> as rhdl::core::SynchronousIO>::O,
+                    value: <Constant<Bits<8>> as rhdl::core::SynchronousIO>::O,
+                    buf_z: <ZDriver<8> as rhdl::core::SynchronousIO>::O,
+                    side: <DFF<Side> as rhdl::core::SynchronousIO>::O,
+                    latch: <DFF<Bits<8>> as rhdl::core::SynchronousIO>::O,
                 }
                 #[derive(Debug, Clone, PartialEq, Digital, opy)]
                 pub struct PushD {
-                    strobe: <Strobe<32> as rhdl::core::CircuitIO>::I,
-                    value: <Constant<Bits<8>> as rhdl::core::CircuitIO>::I,
-                    buf_z: <ZDriver<8> as rhdl::core::CircuitIO>::I,
-                    side: <DFF<Side> as rhdl::core::CircuitIO>::I,
-                    latch: <DFF<Bits<8>> as rhdl::core::CircuitIO>::I,
+                    strobe: <Strobe<32> as rhdl::core::SynchronousIO>::I,
+                    value: <Constant<Bits<8>> as rhdl::core::SynchronousIO>::I,
+                    buf_z: <ZDriver<8> as rhdl::core::SynchronousIO>::I,
+                    side: <DFF<Side> as rhdl::core::SynchronousIO>::I,
+                    latch: <DFF<Bits<8>> as rhdl::core::SynchronousIO>::I,
                 }
                 #[derive(Debug, Clone, PartialEq, Copy)]
                 pub struct PushZ {
-                    strobe: <Strobe<32> as rhdl::core::Circuit>::Z,
-                    value: <Constant<Bits<8>> as rhdl::core::Circuit>::Z,
-                    buf_z: <ZDriver<8> as rhdl::core::Circuit>::Z,
-                    side: <DFF<Side> as rhdl::core::Circuit>::Z,
-                    latch: <DFF<Bits<8>> as rhdl::core::Circuit>::Z,
+                    strobe: <Strobe<32> as rhdl::core::Synchronous>::Z,
+                    value: <Constant<Bits<8>> as rhdl::core::Synchronous>::Z,
+                    buf_z: <ZDriver<8> as rhdl::core::Synchronous>::Z,
+                    side: <DFF<Side> as rhdl::core::Synchronous>::Z,
+                    latch: <DFF<Bits<8>> as rhdl::core::Synchronous>::Z,
                 }
                 impl rhdl::core::Notable for PushZ {
                     fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
@@ -378,24 +390,24 @@ mod test {
                     }
                 }
                 impl rhdl::core::Tristate for PushZ {
-                    const N: usize = <Strobe<32> as rhdl::core::Circuit>::Z::N +
-                     <Constant<Bits<8>> as rhdl::core::Circuit>::Z::N +
-                      <ZDriver<8> as rhdl::core::Circuit>::Z::N +
-                       <DFF<Side> as rhdl::core::Circuit>::Z::N +
-                        <DFF<Bits<8>> as rhdl::core::Circuit>::Z::N +
+                    const N: usize = <Strobe<32> as rhdl::core::Synchronous>::Z::N +
+                     <Constant<Bits<8>> as rhdl::core::Synchronous>::Z::N +
+                      <ZDriver<8> as rhdl::core::Synchronous>::Z::N +
+                       <DFF<Side> as rhdl::core::Synchronous>::Z::N +
+                        <DFF<Bits<8>> as rhdl::core::Synchronous>::Z::N +
                          0;
                 }
-                impl rhdl::core::Circuit for Push {
+                impl rhdl::core::Synchronous for Push {
                     type Q = PushQ;
                     type D = PushD;
                     type Z = PushZ;
                     type S = (
                         Self::Q,
-                        <Strobe<32> as rhdl::core::Circuit>::S,
-                        <Constant<Bits<8>> as rhdl::core::Circuit>::S,
-                        <ZDriver<8> as rhdl::core::Circuit>::S,
-                        <DFF<Side> as rhdl::core::Circuit>::S,
-                        <DFF<Bits<8>> as rhdl::core::Circuit>::S,
+                        <Strobe<32> as rhdl::core::Synchronous>::S,
+                        <Constant<Bits<8>> as rhdl::core::Synchronous>::S,
+                        <ZDriver<8> as rhdl::core::Synchronous>::S,
+                        <DFF<Side> as rhdl::core::Synchronous>::S,
+                        <DFF<Bits<8>> as rhdl::core::Synchronous>::S,
                     );
                     type Update = pushd;
                     const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = pushd;
@@ -414,7 +426,7 @@ mod test {
                 fn as_hdl(
                     &self,
                     kind: rhdl::core::HDLKind,
-                ) -> anyhow::Result<rhdl::core::HDLDescriptor> {
+                ) -> Result<rhdl::core::HDLDescriptor, rhdl::core::RHDLError> {
                     let mut ret = rhdl::core::root_hdl(self, kind)?;
                     ret.add_child(stringify!(strobe), &self.strobe, kind)?;
                     ret.add_child(stringify!(value), &self.value, kind)?;
@@ -425,10 +437,10 @@ mod test {
                 }
                 fn sim(
                     &self,
-                    input: <Self as CircuitIO>::I,
+                    input: <Self as SynchronousIO>::I,
                     state: &mut Self::S,
                     io: &mut Self::Z,
-                ) -> <Self as CircuitIO>::O {
+                ) -> <Self as SynchronousIO>::O {
                     rhdl::core::note("input", input);
                     for _ in 0..rhdl::core::MAX_ITERS {
                         let prev_state = state.clone();

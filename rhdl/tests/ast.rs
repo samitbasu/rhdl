@@ -450,7 +450,9 @@ fn test_error_about_for_loop() -> miette::Result<()> {
             a += bits::<4>(ndx);
         }
     }
-    let Err(RHDLError::RHDLSyntaxError(err)) = compile_design::<do_stuff>() else {
+    let Err(RHDLError::RHDLSyntaxError(err)) =
+        compile_design::<do_stuff>(rhdl_core::compiler::driver::CompilationMode::Asynchronous)
+    else {
         panic!("Expected syntax error");
     };
     assert!(matches!(

@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use crate::{root_verilog, Circuit, HDLKind};
+use crate::{error::RHDLError, root_verilog, Circuit, HDLKind, Synchronous};
+
+use super::synchronous_verilog::root_synchronous_verilog;
 
 #[derive(Clone)]
 pub struct HDLDescriptor {
@@ -25,14 +27,32 @@ impl HDLDescriptor {
         name: &str,
         circuit: &C,
         kind: HDLKind,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), RHDLError> {
         self.children.insert(name.into(), circuit.as_hdl(kind)?);
+        Ok(())
+    }
+    pub fn add_synchronous<S: Synchronous>(
+        &mut self,
+        name: &str,
+        synchronous: &S,
+        kind: HDLKind,
+    ) -> Result<(), RHDLError> {
+        self.children.insert(name.into(), synchronous.as_hdl(kind)?);
         Ok(())
     }
 }
 
-pub fn root_hdl<C: Circuit>(circuit: &C, kind: HDLKind) -> anyhow::Result<HDLDescriptor> {
+pub fn root_hdl<C: Circuit>(circuit: &C, kind: HDLKind) -> Result<HDLDescriptor, RHDLError> {
     match kind {
         HDLKind::Verilog => root_verilog(circuit),
+    }
+}
+
+pub fn root_synchronous_hdl<S: Synchronous>(
+    synchronous: &S,
+    kind: HDLKind,
+) -> Result<HDLDescriptor, RHDLError> {
+    match kind {
+        HDLKind::Verilog => root_synchronous_verilog(synchronous),
     }
 }
