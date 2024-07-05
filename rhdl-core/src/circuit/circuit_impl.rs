@@ -1,4 +1,6 @@
-use crate::{Digital, DigitalFn, Timed};
+use crate::{
+    error::RHDLError, root_descriptor, types::tristate::Tristate, Digital, DigitalFn, Timed,
+};
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
 
@@ -8,14 +10,6 @@ pub type CircuitUpdateFn<C> =
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum HDLKind {
     Verilog,
-}
-
-pub trait Tristate: Default + Clone + Copy {
-    const N: usize;
-}
-
-impl Tristate for () {
-    const N: usize = 0;
 }
 
 pub trait CircuitIO: 'static + Sized + Clone {
@@ -44,10 +38,12 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO {
     fn name(&self) -> &'static str;
 
     // auto derived
-    fn descriptor(&self) -> CircuitDescriptor;
+    fn descriptor(&self) -> CircuitDescriptor {
+        root_descriptor(self)
+    }
 
     // auto derived
-    fn as_hdl(&self, kind: HDLKind) -> anyhow::Result<HDLDescriptor>;
+    fn as_hdl(&self, kind: HDLKind) -> Result<HDLDescriptor, RHDLError>;
 
     // auto derived
     // First is 0, then 0 + c0::NumZ, then 0 + c0::NumZ + c1::NumZ, etc

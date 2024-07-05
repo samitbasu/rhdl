@@ -39,3 +39,11 @@ pub fn circuit(input: TokenStream) -> TokenStream {
         Err(err) => err.to_compile_error().into(),
     }
 }
+
+#[proc_macro_derive(Synchronous, attributes(rhdl))]
+pub fn synchronous(input: TokenStream) -> TokenStream {
+    match rhdl_macro_core::derive_synchronous(input.into()) {
+        Ok(output) => output.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}

@@ -37,7 +37,13 @@ fn wrap_pass<P: Pass>(obj: Object) -> Result<Object> {
     Ok(obj)
 }
 
-fn compile_kernel(kernel: Kernel) -> Result<Object> {
+#[derive(Debug, Clone, Copy)]
+pub enum CompilationMode {
+    Asynchronous,
+    Synchronous,
+}
+
+fn compile_kernel(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
     let mir = compile_mir(kernel)?;
     let mut obj = infer(mir)?;
     obj = SymbolTableIsComplete::run(obj)?;
@@ -53,7 +59,9 @@ fn compile_kernel(kernel: Kernel) -> Result<Object> {
         obj = wrap_pass::<RemoveUnusedRegistersPass>(obj)?;
         obj = wrap_pass::<DeadCodeEliminationPass>(obj)?;
     }
-    obj = CheckClockCoherence::run(obj)?;
+    if matches!(mode, CompilationMode::Asynchronous) {
+        obj = CheckClockCoherence::run(obj)?;
+    }
     for _pass in 0..2 {
         eprintln!("{:?}", obj);
         obj = wrap_pass::<RemoveUnneededMuxesPass>(obj)?;
@@ -75,7 +83,7 @@ fn compile_kernel(kernel: Kernel) -> Result<Object> {
     Ok(obj)
 }
 
-fn elaborate_design(design: &mut Module) -> Result<()> {
+fn elaborate_design(design: &mut Module, mode: CompilationMode) -> Result<()> {
     // Check for any uncompiled kernels
     let external_kernels = design
         .objects
@@ -95,25 +103,25 @@ fn elaborate_design(design: &mut Module) -> Result<()> {
             design.objects.entry(kernel.inner().fn_id)
         {
             eprintln!("Compiling kernel {:?}", kernel.inner().fn_id);
-            let obj = compile_kernel(kernel.clone())?;
+            let obj = compile_kernel(kernel.clone(), mode)?;
             e.insert(obj);
         }
     }
     Ok(())
 }
 
-pub fn compile_design<K: DigitalFn>() -> Result<Module> {
+pub fn compile_design<K: DigitalFn>(mode: CompilationMode) -> Result<Module> {
     let Some(KernelFnKind::Kernel(kernel)) = K::kernel_fn() else {
         return Err(anyhow!("Missing kernel function provided for {}", type_name::<K>()).into());
     };
-    let main = compile_kernel(kernel)?;
+    let main = compile_kernel(kernel, mode)?;
     let mut design = Module {
         objects: [(main.fn_id, main.clone())].into_iter().collect(),
         top: main.fn_id,
     };
     let mut object_count = design.objects.len();
     loop {
-        elaborate_design(&mut design)?;
+        elaborate_design(&mut design, mode)?;
         if design.objects.len() == object_count {
             break;
         }

@@ -299,7 +299,7 @@ where
     K: DigitalFn,
     Args: TestArg,
 {
-    let design = compile_design::<K>()?;
+    let design = compile_design::<K>(crate::compiler::driver::CompilationMode::Asynchronous)?;
     let verilog = generate_verilog(&design)?;
     eprintln!("Verilog {:?}", verilog);
     let vm_inputs = vals.clone();

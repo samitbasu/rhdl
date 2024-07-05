@@ -161,7 +161,7 @@ fn test_compile() -> miette::Result<()> {
     ];
     let inputs =
         iproduct!(foos.into_iter().map(red), noos.into_iter().map(red)).collect::<Vec<_>>();
-    compile_design::<do_stuff<Red>>()?;
+    compile_design::<do_stuff<Red>>(rhdl_core::compiler::driver::CompilationMode::Asynchronous)?;
     test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, inputs.into_iter())?;
     Ok(())
 }

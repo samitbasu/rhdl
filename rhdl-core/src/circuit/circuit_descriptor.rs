@@ -1,5 +1,4 @@
-use crate::circuit::circuit_impl::Tristate;
-use crate::compile_design;
+use super::circuit_impl::Circuit;
 use crate::rhif::spec::Member;
 use crate::schematic::builder::build_schematic;
 use crate::schematic::components::{
@@ -8,10 +7,10 @@ use crate::schematic::components::{
 use crate::schematic::schematic_impl::Schematic;
 use crate::types::digital::Digital;
 use crate::types::path::Path;
+use crate::types::tristate::Tristate;
+use crate::{compile_design, Synchronous};
 use crate::{util::hash_id, Kind};
 use std::collections::HashMap;
-
-use super::circuit_impl::Circuit;
 
 #[derive(Clone, Debug)]
 pub struct CircuitDescriptor {
@@ -28,6 +27,9 @@ pub struct CircuitDescriptor {
 
 impl CircuitDescriptor {
     pub fn add_child<C: Circuit>(&mut self, name: &str, circuit: &C) {
+        self.children.insert(name.into(), circuit.descriptor());
+    }
+    pub fn add_synchronous<S: Synchronous>(&mut self, name: &str, circuit: &S) {
         self.children.insert(name.into(), circuit.descriptor());
     }
     // This is a drawing of the circuit dfg construction
@@ -201,7 +203,8 @@ impl CircuitDescriptor {
 }
 
 fn root_schematic<C: Circuit>() -> Option<Schematic> {
-    let module = compile_design::<C::Update>().ok()?;
+    let module =
+        compile_design::<C::Update>(crate::compiler::driver::CompilationMode::Asynchronous).ok()?;
     let schematic = build_schematic(&module, module.top).ok()?;
     Some(schematic)
 }

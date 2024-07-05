@@ -111,7 +111,7 @@ fn test_signal_const_binop_inference() -> anyhow::Result<()> {
     fn do_stuff<C: Domain>(a: Signal<b8, C>) -> Signal<b8, C> {
         a + b8(4)
     }
-    compile_design::<do_stuff<Red>>()?;
+    compile_design::<do_stuff<Red>>(rhdl_core::compiler::driver::CompilationMode::Asynchronous)?;
     Ok(())
 }
 
@@ -152,8 +152,11 @@ fn test_signal_ops_inference() -> miette::Result<()> {
             _ => w,
         }
     }
-    compile_design::<add<Red, Red>>()?;
-    assert!(compile_design::<add::<Red, Green>>().is_err());
+    compile_design::<add<Red, Red>>(rhdl_core::compiler::driver::CompilationMode::Asynchronous)?;
+    assert!(compile_design::<add::<Red, Green>>(
+        rhdl_core::compiler::driver::CompilationMode::Asynchronous
+    )
+    .is_err());
     Ok(())
 }
 

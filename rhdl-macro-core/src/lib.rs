@@ -9,3 +9,5 @@ mod suffix;
 pub use circuit::derive_circuit;
 mod timed;
 pub use timed::derive_timed;
+mod synchronous;
+pub use synchronous::derive_synchronous;

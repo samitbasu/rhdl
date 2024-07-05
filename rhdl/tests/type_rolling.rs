@@ -29,7 +29,7 @@ fn test_roll_your_own_binop_fails() -> miette::Result<()> {
                 signal(j)
             }
 
-            let Err(RHDLError::RHDLSyntaxError(err)) = compile_design::<$kernel>() else {
+            let Err(RHDLError::RHDLSyntaxError(err)) = compile_design::<$kernel>(CompilationMode::Asynchronous) else {
                 panic!("Expected syntax error");
             };
 
@@ -80,7 +80,9 @@ fn test_roll_your_own_not_fails() -> miette::Result<()> {
     }
 
     // Assert that the compilation fails with a RHDL syntax error
-    let Err(RHDLError::RHDLSyntaxError(err)) = compile_design::<do_stuff>() else {
+    let Err(RHDLError::RHDLSyntaxError(err)) =
+        compile_design::<do_stuff>(CompilationMode::Asynchronous)
+    else {
         panic!("Expected syntax error");
     };
     assert!(matches!(err.cause, Syntax::RollYourOwnUnary { op: _ }));
@@ -92,7 +94,9 @@ fn test_roll_your_own_not_fails() -> miette::Result<()> {
         signal(j)
     }
     // Assert that the compilation fails with a RHDL syntax error
-    let Err(RHDLError::RHDLSyntaxError(err)) = compile_design::<do_stuff_neg>() else {
+    let Err(RHDLError::RHDLSyntaxError(err)) =
+        compile_design::<do_stuff_neg>(CompilationMode::Asynchronous)
+    else {
         panic!("Expected syntax error");
     };
     assert!(matches!(
@@ -124,7 +128,9 @@ fn test_roll_your_own_val_fails() -> miette::Result<()> {
     }
 
     // Assert that the compilation fails with a RHDL syntax error
-    let Err(RHDLError::RHDLSyntaxError(err)) = compile_design::<do_stuff>() else {
+    let Err(RHDLError::RHDLSyntaxError(err)) =
+        compile_design::<do_stuff>(CompilationMode::Asynchronous)
+    else {
         panic!("Expected syntax error");
     };
     Ok(())
@@ -201,27 +207,27 @@ fn test_method_call_fails_with_roll_your_own() -> miette::Result<()> {
     }
 
     assert!(matches!(
-        compile_design::<do_val>(),
+        compile_design::<do_val>(CompilationMode::Asynchronous),
         Err(RHDLError::RHDLSyntaxError(err))
     ));
     assert!(matches!(
-        compile_design::<do_signed>(),
+        compile_design::<do_signed>(CompilationMode::Asynchronous),
         Err(RHDLError::RHDLSyntaxError(err))
     ));
     assert!(matches!(
-        compile_design::<do_unsigned>(),
+        compile_design::<do_unsigned>(CompilationMode::Asynchronous),
         Err(RHDLError::RHDLSyntaxError(err))
     ));
     assert!(matches!(
-        compile_design::<do_xor>(),
+        compile_design::<do_xor>(CompilationMode::Asynchronous),
         Err(RHDLError::RHDLSyntaxError(err))
     ));
     assert!(matches!(
-        compile_design::<do_any>(),
+        compile_design::<do_any>(CompilationMode::Asynchronous),
         Err(RHDLError::RHDLSyntaxError(err))
     ));
     assert!(matches!(
-        compile_design::<do_all>(),
+        compile_design::<do_all>(CompilationMode::Asynchronous),
         Err(RHDLError::RHDLSyntaxError(err))
     ));
     Ok(())

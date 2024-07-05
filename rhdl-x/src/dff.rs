@@ -1,32 +1,24 @@
-use anyhow::ensure;
 use rhdl::prelude::*;
 
-#[derive(PartialEq, Clone, Copy, Debug, Digital)]
-pub struct I<T: Digital> {
-    pub data: T,
-    pub clock: Clock,
-    pub reset: Reset,
-}
-
-// The DFF itself has a reset value, and a clock domain.
 #[derive(Debug, Clone)]
-pub struct U<T: Digital, C: Domain> {
+pub struct U<T: Digital> {
     reset: T,
-    clock: std::marker::PhantomData<C>,
 }
 
-impl<T: Digital, C: Domain> U<T, C> {
+impl<T: Digital> U<T> {
     pub fn new(reset: T) -> Self {
-        Self {
-            reset,
-            clock: Default::default(),
-        }
+        Self { reset }
     }
 }
 
-impl<T: Digital, C: Domain> CircuitIO for U<T, C> {
-    type I = Signal<I<T>, C>;
-    type O = Signal<T, C>;
+impl<T: Digital> SynchronousIO for U<T> {
+    type I = T;
+    type O = T;
+}
+
+impl<T: Digital> SynchronousDQ for U<T> {
+    type D = ();
+    type Q = ();
 }
 
 #[derive(Debug, Clone, PartialEq, Copy, Digital)]
@@ -36,78 +28,73 @@ pub struct S<T: Digital> {
     state_next: T,
 }
 
-impl<T: Digital, C: Domain> Circuit for U<T, C> {
-    type Q = ();
-    type D = ();
-    type Z = ();
-
+impl<T: Digital> Synchronous for U<T> {
     type Update = Self;
 
     type S = S<T>;
 
-    fn sim(&self, input: Self::I, state: &mut Self::S, _io: &mut Self::Z) -> Self::O {
+    type Z = ();
+
+    fn sim(
+        &self,
+        clock: Clock,
+        reset: Reset,
+        input: Self::I,
+        state: &mut Self::S,
+        _io: &mut Self::Z,
+    ) -> Self::O {
         note("input", input);
         // Calculate the new state on a rising edge
-        let new_state = if input.val().clock.raw() && !state.clock.raw() {
+        let new_state = if clock.raw() && !state.clock.raw() {
             state.state_next
         } else {
             state.state
         };
-        let new_state_next = if !input.val().clock.raw() {
-            input.val().data
+        let new_state_next = if !clock.raw() {
+            input
         } else {
             state.state_next
         };
-        if input.val().reset.raw() {
+        if reset.raw() {
             state.state = self.reset;
             state.state_next = self.reset;
         } else {
             state.state = new_state;
             state.state_next = new_state_next;
         }
-        state.clock = input.val().clock;
+        state.clock = clock;
         note("output", new_state);
-        signal(new_state)
+        new_state
     }
 
     fn name(&self) -> &'static str {
         "DFF"
     }
 
-    fn as_hdl(&self, kind: HDLKind) -> anyhow::Result<HDLDescriptor> {
-        ensure!(kind == HDLKind::Verilog);
+    fn as_hdl(&self, _: HDLKind) -> Result<HDLDescriptor, RHDLError> {
         Ok(self.as_verilog())
-    }
-
-    fn descriptor(&self) -> CircuitDescriptor {
-        root_descriptor(self)
     }
 }
 
-impl<T: Digital, C: Domain> U<T, C> {
+impl<T: Digital> U<T> {
     fn as_verilog(&self) -> HDLDescriptor {
         let module_name = self.descriptor().unique_name;
-        let input_bits = I::<T>::bits();
+        let input_bits = T::bits();
         let output_bits = T::bits();
         let init = rhdl::core::as_verilog_literal(&self.reset.typed_bits());
         let input_wire = rhdl::core::codegen::verilog::as_verilog_decl("wire", input_bits, "i");
         let output_reg = rhdl::core::codegen::verilog::as_verilog_decl("reg", output_bits, "o");
-        let d = rhdl::core::codegen::verilog::as_verilog_decl("wire", T::bits(), "d");
         let code = format!(
             "
-module {module_name}(input {input_wire}, output {output_reg});
-   wire clk;
-   wire rst;
-   wire {d};
-   assign {{rst, clk, d}} = i;
+module {module_name}(input clock, input reset, input {input_wire}, output {output_reg});
    initial begin
         o = {init};
    end
-   always @(posedge clk) begin 
-        if (rst) begin
+   always @(posedge clock) begin 
+        if (reset) begin
             o <= {init};
         end else begin
-            o <= {d};
+            o <= i;
         end
     end
 endmodule
@@ -121,4 +108,4 @@ endmodule
     }
 }
 
-impl<T: Digital, C: Domain> DigitalFn for U<T, C> {}
+impl<T: Digital> DigitalFn for U<T> {}

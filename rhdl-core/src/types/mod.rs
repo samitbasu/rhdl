@@ -1,3 +1,4 @@
+pub mod bitz;
 pub mod clock;
 pub mod digital;
 pub mod digital_fn;
@@ -10,6 +11,6 @@ pub mod path;
 pub mod register;
 pub mod reset;
 pub mod signal;
-pub mod synchronous;
 pub mod timed;
+pub mod tristate;
 pub mod typed_bits;

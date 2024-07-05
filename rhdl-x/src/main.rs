@@ -1,6 +1,8 @@
+use clock_reset::ClockReset;
+use rhdl::core::types::timed;
 use rhdl::prelude::*;
-use std::iter;
 use std::iter::repeat;
+use std::{io, iter};
 
 use anyhow::ensure;
 /* use rhdl_core::as_verilog_literal;
@@ -17,8 +19,10 @@ use rhdl_macro::Timed;
 //mod backend;
 //mod circuit;
 //mod clock;
-//mod constant;
-//mod counter;
+mod clock_reset;
+mod constant;
+mod counter;
+mod strobe;
 //mod descriptions;
 mod dff;
 //mod push_pull;
@@ -56,42 +60,24 @@ pub fn sim_clock(period: u64) -> impl Iterator<Item = TimedSample<Clock>> {
     })
 }
 
-pub fn sim_reset(
+pub fn sim_clock_reset(
     mut clock: impl Iterator<Item = TimedSample<Clock>>,
-) -> impl Iterator<Item = TimedSample<(Clock, Reset)>> {
+) -> impl Iterator<Item = TimedSample<ClockReset>> {
     let mut clock_count = 0;
     iter::from_fn(move || {
         if let Some(sample) = clock.next() {
             clock_count += 1;
             if clock_count < 4 {
-                Some(timed_sample((sample.value, reset(true)), sample.time))
+                Some(timed_sample(
+                    clock_reset::clock_reset(sample.value, reset(true)),
+                    sample.time,
+                ))
             } else {
-                Some(timed_sample((sample.value, reset(false)), sample.time))
+                Some(timed_sample(
+                    clock_reset::clock_reset(sample.value, reset(false)),
+                    sample.time,
+                ))
             }
-        } else {
-            None
-        }
-    })
-}
-
-pub fn sim_samples<T: Digital>(
-    period: u64,
-) -> impl Iterator<Item = TimedSample<Signal<dff::I<T>, Red>>> {
-    let mut input = sim_reset(sim_clock(period));
-    let mut sig_value = T::random();
-    iter::from_fn(move || {
-        if let Some(sample) = input.next() {
-            if sample.value.0.raw() {
-                sig_value = T::random();
-            }
-            Some(timed_sample(
-                signal(dff::I {
-                    data: sig_value,
-                    clock: sample.value.0,
-                    reset: sample.value.1,
-                }),
-                sample.time,
-            ))
         } else {
             None
         }
@@ -118,15 +104,91 @@ pub fn traced_simulation<T: Circuit>(
     db.dump_vcd(&[], strobe).unwrap();
 }
 
-#[test]
-fn test_dff() {
-    let inputs = sim_samples(1000).take(1000);
-    let uut: dff::U<b4, Red> = dff::U::new(b4::from(0b0000));
-    traced_simulation(uut, inputs, "dff.vcd");
+pub fn traced_synchronous_simulation<S: Synchronous>(
+    uut: S,
+    mut inputs: impl Iterator<Item = S::I>,
+    vcd_filename: &str,
+) {
+    note_init_db();
+    note_time(0);
+    let clock_stream = sim_clock(100);
+    let reset_stream = sim_clock_reset(clock_stream);
+    let mut state = S::S::random();
+    let mut input = S::I::random();
+    let mut io = S::Z::default();
+    for cr in reset_stream {
+        if cr.value.clock.raw() && !cr.value.reset.raw() {
+            if let Some(sample) = inputs.next() {
+                input = sample;
+            } else {
+                break;
+            }
+        }
+        note_time(cr.time);
+        note("clock", cr.value.clock);
+        note("reset", cr.value.reset);
+        note("input", input);
+        let output = uut.sim(cr.value.clock, cr.value.reset, input, &mut state, &mut io);
+        if S::Z::N != 0 {
+            note("io", io);
+        }
+        note("output", output);
+    }
+    let db = note_take().unwrap();
+    let strobe = std::fs::File::create(vcd_filename).unwrap();
+    db.dump_vcd(&[], strobe).unwrap();
 }
 
-fn main() -> anyhow::Result<()> {
-    let dff: dff::U<b4, Red> = dff::U::new(b4::from(0b1010));
+#[test]
+fn test_dff() {
+    let inputs = (0..).map(|_| Bits::random()).take(1000);
+    let uut: dff::U<b4> = dff::U::new(b4::from(0b0000));
+    traced_synchronous_simulation(uut, inputs, "dff.vcd");
+}
+
+#[test]
+fn test_constant() {
+    let inputs = (0..).map(|_| ()).take(100);
+    let uut: constant::U<b4> = constant::U::new(b4::from(0b1010));
+    traced_synchronous_simulation(uut, inputs, "constant.vcd");
+}
+
+#[test]
+fn test_strobe() {
+    let inputs = (0..).map(|_| strobe::I { enable: true }).take(1000);
+    let uut: strobe::U<16> = strobe::U::new(bits(100));
+    traced_synchronous_simulation(uut, inputs, "strobe.vcd");
+}
+
+/* #[test]
+fn test_counter() {
+    let sim_clock = sim_clock(100);
+    let sim_cr = sim_clock_reset(sim_clock);
+    let inputs = sim_cr
+        .map(|x| {
+            timed_sample(
+                signal(counter::I {
+                    cr: x.value,
+                    enable: x.time >= 1000 && x.time <= 10000,
+                }),
+                x.time,
+            )
+        })
+        .take(1000);
+    let uut: counter::U<Red, 4> = counter::U::new();
+    traced_simulation(uut, inputs, "counter.vcd");
+}
+ */
+fn main() -> miette::Result<()> {
+    let counter: counter::U<4> = counter::U::new();
+    let hdl = counter.as_hdl(HDLKind::Verilog)?;
+    println!("{}", hdl.body);
+
+    let strobe: strobe::U<16> = strobe::U::new(bits(100));
+    let hdl = strobe.as_hdl(HDLKind::Verilog)?;
+    println!("{}", hdl.body);
+
+    let dff: dff::U<b4> = dff::U::new(b4::from(0b1010));
     let hdl = dff.as_hdl(HDLKind::Verilog)?;
     println!("{}", hdl.body);
     Ok(())
