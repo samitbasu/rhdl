@@ -28,7 +28,7 @@ fn test_vm_simple_function_with_invalid_args_causes_ice() {
     fn pass<C: Domain>(a: Signal<u8, C>) -> Signal<u8, C> {
         a
     }
-    let design = compile_design::<pass<Red>>().unwrap();
+    let design = compile_design::<pass<Red>>(CompilationMode::Asynchronous).unwrap();
     eprintln!("design: {:?}", design);
     let res = execute_function(&design, vec![(42_u16).typed_bits()]);
     assert!(res.is_err());

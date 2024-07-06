@@ -88,15 +88,16 @@ risk than a technical one.
 - [x] Convert to SSA form
 - [x] Add basic optimization passes
 - [x] Build a data flow graph from the RHIF
-- [ ] Identify registers with Rust source code to make human friendly diagnostics
-- [ ] Propogate the register details to the RHIF and Verilog codes.
+- [x] Identify registers with Rust source code to make human friendly diagnostics
+- [x] Propogate the register details to the RHIF and Verilog codes.
+- [x] Add logic to identify and flag clock crossings.
 - [ ] Add timing estimator using longest path heuristics.
 - [ ] Port the `RustHDL` widget library to `RHDL`
 - [ ] Port the various FPGA BSPs to `RustHDL` from `RHDL`.
 
 Some other topics I'm thinking about
 
-- [ ] Build a verilator bridge so that the Verilog code can be tested from Rust, using Verilator to simulate the Verilog
+- [ ] ~~Build a verilator bridge so that the Verilog code can be tested from Rust, using Verilator to simulate the Verilog~~
 - [x] Add support for zero-sized signals.  This is needed for black box modules and synchronous automatons (no non-clock inputs)
 - [ ] ~~Make logging pure.  The global approach feels "weird"~~.
 - [x] Clean up the generated verilog, or clean up the RHIF so that the verilog is easier to read/understand.
