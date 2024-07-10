@@ -1,6 +1,6 @@
 use crate::error::RHDLError;
 use crate::rhif::vm::execute_function;
-use crate::{compile_design, generate_verilog, kernel::ExternalKernelDef, DigitalFn, KernelFnKind};
+use crate::{compile_design, generate_verilog, DigitalFn, KernelFnKind};
 use crate::{Timed, TypedBits};
 
 pub trait TestArg {
@@ -378,107 +378,4 @@ where
     T0: Timed,
 {
     test_module(uut, desc, vals).run_iverilog()
-}
-
-impl TryFrom<KernelFnKind> for VerilogDescriptor {
-    type Error = RHDLError;
-
-    fn try_from(value: KernelFnKind) -> Result<Self, Self::Error> {
-        match value {
-            KernelFnKind::Extern(ExternalKernelDef { name, body, .. }) => Ok(Self { name, body }),
-            _ => Err(RHDLError::CannotConvertKernelFunctionToVerilogDescriptor {
-                value: Box::new(value),
-            }),
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{
-        types::{domain::Red, signal::signal},
-        DigitalFn, Signal,
-    };
-    use rhdl_bits::{alias::*, bits};
-
-    use super::*;
-    use itertools::Itertools;
-    use rhdl_bits::Bits;
-
-    fn xor<const N: usize>(x: Signal<Bits<N>, Red>) -> Signal<bool, Red> {
-        let mut x = x.val().0;
-        x ^= x >> 1;
-        x ^= x >> 2;
-        x ^= x >> 4;
-        x ^= x >> 8;
-        x ^= x >> 16;
-        x ^= x >> 32;
-        signal(x & 1 == 1)
-    }
-
-    #[allow(non_camel_case_types)]
-    struct xor<const N: usize> {}
-
-    impl<const N: usize> DigitalFn for xor<N> {
-        fn kernel_fn() -> Option<KernelFnKind> {
-            Some(KernelFnKind::Extern(ExternalKernelDef {
-                name: format!("xor_{N}"),
-                body: format!(
-                    "function [{}:0] xor_{N}(input [{}:0] a); xor_{N} = ^a; endfunction",
-                    N - 1,
-                    N - 1
-                ),
-                vm_stub: None,
-            }))
-        }
-    }
-
-    fn add(a: Signal<b4, Red>, b: Signal<b4, Red>) -> Signal<b4, Red> {
-        a + b
-    }
-
-    #[allow(non_camel_case_types)]
-    struct add {}
-
-    impl DigitalFn for add {
-        fn kernel_fn() -> Option<KernelFnKind> {
-            Some(KernelFnKind::Extern(ExternalKernelDef {
-                name: "add".to_string(),
-                body: "function [3:0] add(input [3:0] a, input [3:0] b); add = a + b; endfunction"
-                    .to_string(),
-                vm_stub: None,
-            }))
-        }
-    }
-
-    #[test]
-    fn test_add() -> miette::Result<()> {
-        let nibbles_a = (0..=15).map(bits).map(signal);
-        let nibbles_b = nibbles_a.clone();
-        let kernel = add::kernel_fn().unwrap();
-        let module = TestModule::new(
-            add,
-            kernel.try_into()?,
-            nibbles_a.cartesian_product(nibbles_b),
-        );
-        eprintln!("{module:?}");
-        #[cfg(feature = "iverilog")]
-        module.run_iverilog()?;
-        Ok(())
-    }
-
-    #[test]
-    fn test_xor_generic() -> miette::Result<()> {
-        let nibbles_a = (0..=15).map(bits);
-        let kernel = xor::<4>::kernel_fn().unwrap();
-        let module = TestModule::new(
-            xor::<4>,
-            kernel.try_into()?,
-            nibbles_a.map(|x| (signal(x),)),
-        );
-        eprintln!("{module:?}");
-        #[cfg(feature = "iverilog")]
-        module.run_iverilog()?;
-        Ok(())
-    }
 }

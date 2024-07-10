@@ -22,6 +22,7 @@ impl Pass for DeadCodeEliminationPass {
         // Start with an active set containing only the return slot
         let mut active_set: HashSet<Slot> = HashSet::new();
         active_set.insert(input.return_slot);
+        // Get the mapping from slots to opcodes
         let mut alive_ops: Vec<bool> = vec![false; input.ops.len()];
         // Iterate through the ops backwards
         for (alive_marker, op) in alive_ops.iter_mut().rev().zip(input.ops.iter().rev()) {

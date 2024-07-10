@@ -5,13 +5,11 @@ use anyhow::bail;
 use anyhow::Result;
 
 use crate::ast::ast_impl::FunctionId;
-use crate::kernel::ExternalKernelDef;
 use crate::kernel::Kernel;
 use crate::rhif::object::SourceLocation;
 use crate::rhif::spec::Retime;
 use crate::rhif::spec::{
-    Array, Assign, Case, Cast, Enum, Exec, ExternalFunctionCode, Index, Repeat, Select, Splice,
-    Struct, Tuple, Unary,
+    Array, Assign, Case, Cast, Enum, Exec, Index, Repeat, Select, Splice, Struct, Tuple, Unary,
 };
 use crate::Module;
 use crate::TypedBits;
@@ -492,40 +490,7 @@ impl<'a> SchematicBuilder<'a> {
 
     fn make_exec(&mut self, exec: Exec, location: Option<SourceLocation>) -> Result<()> {
         let code = &self.object.externals[&exec.id].code;
-        match code {
-            ExternalFunctionCode::Kernel(kernel) => self.make_kernel(exec, kernel, location),
-            ExternalFunctionCode::Extern(edef) => self.make_black_box(exec, edef, location),
-        }
-    }
-
-    fn make_black_box(
-        &mut self,
-        exec: Exec,
-        _code: &ExternalKernelDef,
-        location: Option<SourceLocation>,
-    ) -> Result<()> {
-        let args = exec
-            .args
-            .iter()
-            .map(|arg| self.make_wired_pin(*arg))
-            .collect::<Result<Vec<_>>>()?;
-        let out = self.make_output_pin(exec.lhs)?;
-        let name = &self.object.externals[&exec.id].path;
-        todo!();
-        /*
-        let component = self.schematic.make_component(
-            ComponentKind::BlackBox(BlackBoxComponent {
-                name: name.clone(),
-                args: args.clone(),
-                output: out,
-            }),
-            location,
-        );
-        args.iter()
-            .for_each(|f| self.schematic.pin_mut(*f).parent(component));
-        self.schematic.pin_mut(out).parent(component);
-        Ok(())
-        */
+        self.make_kernel(exec, code, location)
     }
 
     fn make_kernel(

@@ -3,12 +3,10 @@ use std::collections::BTreeSet;
 use crate::ast::ast_impl::NodeId;
 use crate::compiler::mir::error::{RHDLCompileError, ICE};
 use crate::error::RHDLError;
-use crate::kernel::ExternalKernelDef;
 use crate::rhif::object::SourceLocation;
 use crate::rhif::spec::{
-    AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
-    ExternalFunctionCode, Index, Member, OpCode, Repeat, Retime, Select, Slot, Splice, Struct,
-    Tuple, Unary,
+    AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, Index,
+    Member, OpCode, Repeat, Retime, Select, Slot, Splice, Struct, Tuple, Unary,
 };
 use crate::test_module::VerilogDescriptor;
 use crate::types::path::{bit_range, Path, PathElement};
@@ -434,34 +432,16 @@ impl<'a> TranslationContext<'a> {
                     .map(|x| self.reg_name(x))
                     .collect::<Result<Vec<_>>>()?
                     .join(", ");
-                match &func.code {
-                    ExternalFunctionCode::Kernel(kernel) => {
-                        let func_name = self.design.func_name(kernel.inner().fn_id)?;
-                        let kernel = translate(self.design, kernel.inner().fn_id)?;
-                        self.kernels.push(kernel);
-                        self.body.push_str(&format!(
-                            "    {lhs} = {func_name}({args});\n",
-                            lhs = self.reg_name(lhs)?,
-                            func_name = func_name,
-                            args = args
-                        ));
-                    }
-                    ExternalFunctionCode::Extern(ExternalKernelDef {
-                        name,
-                        body,
-                        vm_stub: _,
-                    }) => {
-                        self.body.push_str(&format!(
-                            "    {lhs} = {name}({args});\n",
-                            lhs = self.reg_name(lhs)?,
-                            name = name,
-                            args = args
-                        ));
-                        self.kernels.push(VerilogModule {
-                            functions: vec![body.clone()],
-                        });
-                    }
-                }
+                let kernel = &func.code;
+                let func_name = self.design.func_name(kernel.inner().fn_id)?;
+                let kernel = translate(self.design, kernel.inner().fn_id)?;
+                self.kernels.push(kernel);
+                self.body.push_str(&format!(
+                    "    {lhs} = {func_name}({args});\n",
+                    lhs = self.reg_name(lhs)?,
+                    func_name = func_name,
+                    args = args
+                ));
             }
             OpCode::Repeat(Repeat { lhs, value, len }) => {
                 self.body.push_str(&format!(

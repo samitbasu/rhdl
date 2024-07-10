@@ -1,0 +1,65 @@
+use petgraph::dot::Dot;
+use rhdl::prelude::*;
+use rhdl_core::rhif::spec::{AluUnary, Unary};
+
+struct TestComputer {}
+
+impl CostEstimator for TestComputer {
+    fn cost(&self, obj: &Object, opcode: usize) -> f64 {
+        if let OpCode::Unary(Unary {
+            op: AluUnary::Not,
+            lhs: _,
+            arg1: _,
+        }) = &obj.ops[opcode]
+        {
+            return -50.0; // Signal cost...
+        }
+        if matches!(obj.ops[opcode], OpCode::Binary(_) | OpCode::Select(_)) {
+            -1.0
+        } else {
+            0.0
+        }
+    }
+}
+
+#[test]
+fn test_timing_binary() -> miette::Result<()> {
+    #[derive(Copy, Clone, PartialEq, Eq, Digital)]
+    struct Far {
+        a: b4,
+        b: b4,
+    }
+
+    #[kernel]
+    fn boom(a: b4) -> b4 {
+        !a
+    }
+
+    #[kernel]
+    fn add(a: b4, b: b4) -> (b4, b4) {
+        (a + boom(b), b)
+    }
+
+    #[kernel]
+    fn func(a: Far, b: b4, q: bool) -> (b4, b4) {
+        let a = a.a;
+        let c = [a, a, a + 1];
+        let d = c[2];
+        let g = Far { a: d, b: d };
+        let d = g.b;
+        let Far { a: z, b: y } = g;
+        let e = d + b;
+        let e = if q { e + 1 } else { e };
+        let e = add(e, z).0 + y;
+        (e, b)
+    }
+    let module = compile_design::<func>(CompilationMode::Synchronous)?;
+    let path = Path::default().tuple_index(0);
+    let timing = compute_timing_graph(&module, module.top, &path, &TestComputer {})?;
+    std::fs::write(
+        "tests/timing_binary.dot",
+        format!("{:?}", Dot::with_config(&timing.graph, &[])),
+    )
+    .unwrap();
+    Ok(())
+}

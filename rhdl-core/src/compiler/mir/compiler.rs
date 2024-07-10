@@ -44,7 +44,6 @@ use crate::rhif::spanned_source::SpannedSource;
 use crate::rhif::spec::AluBinary;
 use crate::rhif::spec::AluUnary;
 use crate::rhif::spec::CaseArgument;
-use crate::rhif::spec::ExternalFunctionCode;
 use crate::rhif::spec::FuncId;
 use crate::rhif::spec::Member;
 use crate::types::path::Path;
@@ -879,15 +878,7 @@ impl<'a> MirContext<'a> {
             }
             KernelFnKind::Kernel(kernel) => {
                 let func = self.stash(ExternalFunction {
-                    code: ExternalFunctionCode::Kernel(kernel.clone()),
-                    path: path.clone(),
-                    signature: call.signature.clone().unwrap(),
-                })?;
-                self.op(op_exec(lhs, func, args), id);
-            }
-            KernelFnKind::Extern(code) => {
-                let func = self.stash(ExternalFunction {
-                    code: ExternalFunctionCode::Extern(code.clone()),
+                    code: kernel.clone(),
                     path: path.clone(),
                     signature: call.signature.clone().unwrap(),
                 })?;

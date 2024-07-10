@@ -5,6 +5,7 @@ use self::index::IndexedSchematic;
 pub mod checks;
 pub mod downstream;
 pub mod index;
+pub mod slot_to_opcode;
 pub mod source_pool;
 pub mod timing;
 pub mod upstream;

@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 
-use crate::kernel::ExternalKernelDef;
 use crate::rhif::object::Object;
 use crate::rhif::spec::{
     AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, Index,
@@ -14,7 +13,7 @@ use anyhow::Result;
 
 use anyhow::{anyhow, bail};
 
-use super::spec::{ExternalFunctionCode, Retime, Select, Splice};
+use super::spec::{Retime, Select, Splice};
 
 struct VMState<'a> {
     reg_stack: &'a mut [Option<TypedBits>],
@@ -275,22 +274,8 @@ fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
                     .map(|x| state.read(*x))
                     .collect::<Result<Vec<_>>>()?;
                 let func = &state.obj.externals[id];
-                let result = match &func.code {
-                    ExternalFunctionCode::Kernel(kernel) => {
-                        execute(state.design, kernel.inner().fn_id, args)?
-                    }
-                    ExternalFunctionCode::Extern(ExternalKernelDef {
-                        name,
-                        body: _,
-                        vm_stub,
-                    }) => {
-                        if let Some(stub) = vm_stub {
-                            stub(&args)?
-                        } else {
-                            bail!("No VM stub for {name}")
-                        }
-                    }
-                };
+                let kernel = &func.code;
+                let result = execute(state.design, kernel.inner().fn_id, args)?;
                 state.write(*lhs, result)?;
             }
             OpCode::Repeat(Repeat { lhs, value, len }) => {

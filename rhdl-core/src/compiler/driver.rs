@@ -24,7 +24,7 @@ use crate::{
     },
     error::RHDLError,
     kernel::Kernel,
-    rhif::{spec::ExternalFunctionCode, Object},
+    rhif::Object,
     DigitalFn, KernelFnKind, Module,
 };
 
@@ -89,14 +89,7 @@ fn elaborate_design(design: &mut Module, mode: CompilationMode) -> Result<()> {
         .objects
         .values()
         .flat_map(|obj| obj.externals.iter())
-        .filter_map(|(_, func)| {
-            if let ExternalFunctionCode::Kernel(kernel) = &func.code {
-                Some(kernel)
-            } else {
-                None
-            }
-        })
-        .cloned()
+        .map(|(_, func)| func.code.clone())
         .collect::<Vec<_>>();
     for kernel in external_kernels {
         if let std::collections::hash_map::Entry::Vacant(e) =
