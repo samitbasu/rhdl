@@ -21,7 +21,6 @@ impl Kernel {
 #[derive(Clone)]
 pub enum KernelFnKind {
     Kernel(Kernel),
-    Extern(ExternalKernelDef),
     TupleStructConstructor(TypedBits),
     BitConstructor(usize),
     SignedBitsConstructor(usize),
@@ -40,7 +39,6 @@ impl std::fmt::Debug for KernelFnKind {
                     fn_id = kernel.inner().fn_id
                 )
             }
-            KernelFnKind::Extern(extern_kernel) => write!(f, "extern {}", extern_kernel.name),
             KernelFnKind::TupleStructConstructor(tb) => {
                 write!(f, "tuple struct constructor {:?}", tb)
             }
@@ -56,13 +54,4 @@ impl std::fmt::Debug for KernelFnKind {
             }
         }
     }
-}
-
-type VMFunction = fn(&[TypedBits]) -> Result<TypedBits, RHDLError>;
-
-#[derive(Debug, Clone)]
-pub struct ExternalKernelDef {
-    pub name: String,
-    pub body: String,
-    pub vm_stub: Option<VMFunction>,
 }

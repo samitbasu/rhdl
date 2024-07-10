@@ -1,6 +1,6 @@
 use crate::{
-    error::RHDLError, types::reset::Reset, util::hash_id, CircuitDescriptor, Clock, Digital,
-    DigitalFn, HDLDescriptor, HDLKind, Tristate,
+    crusty::timing::CostGraph, error::RHDLError, types::reset::Reset, util::hash_id,
+    CircuitDescriptor, Clock, Digital, DigitalFn, HDLDescriptor, HDLKind, Tristate,
 };
 
 pub type SynchronousUpdateFn<C> = fn(
@@ -50,6 +50,8 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO + SynchronousDQ {
     fn z_offsets() -> impl Iterator<Item = usize> {
         std::iter::once(0)
     }
+    // Auto derived
+    //    fn timing(out_path: &crate::types::path::Path) -> CostGraph;
 }
 
 pub fn synchronous_root_descriptor<C: Synchronous>(circuit: &C) -> CircuitDescriptor {
