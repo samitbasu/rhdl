@@ -64,7 +64,7 @@ impl CostEstimator for TestComputer {
 fn test_counter_timing_root() -> miette::Result<()> {
     let uut: U<4> = U::new();
     let uut_module = compile_design::<<U<4> as Synchronous>::Update>(CompilationMode::Synchronous)?;
-    let top = uut_module.objects[&uut_module.top];
+    let top = &uut_module.objects[&uut_module.top];
     let path = rhdl::core::types::path::Path::default().tuple_index(1);
     let timing = compute_timing_graph(&uut_module, uut_module.top, &path, &TestComputer {})?;
     eprintln!("timing: {:?}", timing);
@@ -82,6 +82,10 @@ fn timing(path: &Path, computer: &'dyn CostEstimator) -> Result<CostGraph, RHDLE
     let target_argument = top.arguments[2]; // The arguments are Reset, Input, Q
     for input in timing.inputs {
         if input.slot == target_argument {
+            if Path::default().field("child1").is_prefix_of(&input.path) {
+                let path = path.strip_prefix("child1");
+                let child_timing = <Child1 as Synchronous>::timing(&path, computer)?
+            }
         }
     }
 }
