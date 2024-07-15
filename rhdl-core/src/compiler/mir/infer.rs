@@ -183,7 +183,7 @@ impl<'a> MirTypeInference<'a> {
     }
     fn import_literals(&mut self) {
         for (slot, lit) in &self.mir.literals {
-            let id = self.mir.symbols.slot_map[slot].node;
+            let id = self.mir.symbols.slot_map[slot];
             let ty = match lit {
                 ExprLit::TypedBits(tb) => self.ctx.from_kind(id, &tb.value.kind),
                 ExprLit::Int(_) => self.ctx.ty_integer(id),
@@ -194,12 +194,12 @@ impl<'a> MirTypeInference<'a> {
     }
     fn import_signature(&mut self) -> Result<()> {
         for slot in &self.mir.arguments {
-            let id = self.mir.symbols.slot_map[slot].node;
+            let id = self.mir.symbols.slot_map[slot];
             let kind = &self.mir.ty[slot];
             let ty = self.ctx.from_kind(id, kind);
             self.slot_map.insert(*slot, ty);
         }
-        let id = self.mir.symbols.slot_map[&self.mir.return_slot].node;
+        let id = self.mir.symbols.slot_map[&self.mir.return_slot];
         let return_kind = &self.mir.ty[&self.mir.return_slot];
         let return_ty = self.ctx.from_kind(id, return_kind);
         self.slot_map.insert(self.mir.return_slot, return_ty);
@@ -207,7 +207,7 @@ impl<'a> MirTypeInference<'a> {
     }
     fn import_type_declarations(&mut self) -> Result<()> {
         for (slot, ty) in &self.mir.ty {
-            let id = self.mir.symbols.slot_map[slot].node;
+            let id = self.mir.symbols.slot_map[slot];
             let ty = self.ctx.from_kind(id, ty);
             self.slot_map.insert(*slot, ty);
         }
@@ -222,7 +222,7 @@ impl<'a> MirTypeInference<'a> {
         Ok(())
     }
     fn slot_ty(&mut self, slot: Slot) -> TypeId {
-        let id = self.mir.symbols.slot_map[&slot].node;
+        let id = self.mir.symbols.slot_map[&slot];
         if matches!(slot, Slot::Empty) {
             return self.ctx.ty_empty(id);
         }

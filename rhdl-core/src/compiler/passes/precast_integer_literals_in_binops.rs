@@ -98,7 +98,7 @@ impl Pass for PrecastIntegerLiteralsInBinops {
                 };
                 match new_tb {
                     Err(_e) => {
-                        let node = input.symbols.slot_map[k].node;
+                        let node = input.symbols.slot_map[k];
                         return Err(RHDLError::RHDLTypeError(Box::new(RHDLTypeError {
                             src: input.symbols.source.source.clone(),
                             err_span: input.symbols.node_span(node).into(),

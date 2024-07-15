@@ -80,7 +80,7 @@ impl<'a> TranslationContext<'a> {
         if !path.any_dynamic() {
             return Err(self.raise_ice(
                 ICE::PathDoesNotContainDynamicIndices { path: path.clone() },
-                self.obj.symbols.slot_map[target].node,
+                self.obj.symbols.slot_map[target],
             ));
         }
         // Collect the list of dynamic index registers
@@ -107,7 +107,7 @@ impl<'a> TranslationContext<'a> {
                         base: base_range.1.clone(),
                         slot: slot_range.1.clone(),
                     },
-                    self.obj.symbols.slot_map[target].node,
+                    self.obj.symbols.slot_map[target],
                 ));
             }
             if slot_range.0.len() != base_range.0.len() {
@@ -116,7 +116,7 @@ impl<'a> TranslationContext<'a> {
                         base: base_range.0.len(),
                         slot: slot_range.0.len(),
                     },
-                    self.obj.symbols.slot_map[target].node,
+                    self.obj.symbols.slot_map[target],
                 ));
             }
         }
@@ -151,7 +151,7 @@ impl<'a> TranslationContext<'a> {
         if !path.any_dynamic() {
             return Err(self.raise_ice(
                 ICE::PathDoesNotContainDynamicIndices { path: path.clone() },
-                self.obj.symbols.slot_map[lhs].node,
+                self.obj.symbols.slot_map[lhs],
             ));
         }
         let index_expression = self.compute_dynamic_index_expression(orig, path)?;
@@ -169,7 +169,7 @@ impl<'a> TranslationContext<'a> {
         if !path.any_dynamic() {
             return Err(self.raise_ice(
                 ICE::PathDoesNotContainDynamicIndices { path: path.clone() },
-                self.obj.symbols.slot_map[lhs].node,
+                self.obj.symbols.slot_map[lhs],
             ));
         }
         let index_expression = self.compute_dynamic_index_expression(arg, path)?;
@@ -186,7 +186,7 @@ impl<'a> TranslationContext<'a> {
         if path.any_dynamic() {
             return Err(self.raise_ice(
                 ICE::PathContainsDynamicIndices { path: path.clone() },
-                self.obj.symbols.slot_map[lhs].node,
+                self.obj.symbols.slot_map[lhs],
             ));
         }
         let arg_ty = self.obj.kind[arg].clone();
@@ -211,7 +211,7 @@ impl<'a> TranslationContext<'a> {
         if path.any_dynamic() {
             return Err(self.raise_ice(
                 ICE::PathContainsDynamicIndices { path: path.clone() },
-                self.obj.symbols.slot_map[lhs].node,
+                self.obj.symbols.slot_map[lhs],
             ));
         }
         let orig_ty = self.obj.kind[orig].clone();
@@ -491,10 +491,7 @@ impl<'a> TranslationContext<'a> {
         let slot_alias = self.obj.symbols.slot_names.get(slot);
         let root = match slot {
             Slot::Empty => {
-                return Err(self.raise_ice(
-                    ICE::EmptySlotInVerilog,
-                    self.obj.symbols.slot_map[slot].node,
-                ))
+                return Err(self.raise_ice(ICE::EmptySlotInVerilog, self.obj.symbols.slot_map[slot]))
             }
             Slot::Register(x) => format!("r{x}"),
             Slot::Literal(x) => format!("l{x}"),
@@ -543,7 +540,7 @@ impl<'a> TranslationContext<'a> {
         if ret_size == 0 {
             return Err(self.raise_ice(
                 ICE::FunctionWithNoReturnInVerilog,
-                self.obj.symbols.slot_map[&self.obj.return_slot].node,
+                self.obj.symbols.slot_map[&self.obj.return_slot],
             ));
         }
         let func_name = self.design.func_name(fn_id)?;

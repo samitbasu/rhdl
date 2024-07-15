@@ -27,7 +27,7 @@ impl From<(FunctionId, NodeId)> for SourceLocation {
 #[derive(Debug, Clone)]
 pub struct SymbolMap {
     pub source: SpannedSource,
-    pub slot_map: BTreeMap<Slot, SourceLocation>,
+    pub slot_map: BTreeMap<Slot, NodeId>,
     pub opcode_map: Vec<SourceLocation>,
     pub slot_names: BTreeMap<Slot, String>,
     pub aliases: BTreeMap<Slot, BTreeSet<Slot>>,
@@ -35,9 +35,7 @@ pub struct SymbolMap {
 
 impl SymbolMap {
     pub fn slot_span(&self, slot: Slot) -> Option<Range<usize>> {
-        self.slot_map
-            .get(&slot)
-            .map(|loc| self.source.span(loc.node))
+        self.slot_map.get(&slot).map(|loc| self.source.span(*loc))
     }
     pub fn node_span(&self, node: NodeId) -> Range<usize> {
         self.source.span(node)

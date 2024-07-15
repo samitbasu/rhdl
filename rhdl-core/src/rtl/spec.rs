@@ -1,35 +1,37 @@
 use std::ops::Range;
 
-use crate::rhif::spec::{AluBinary, AluUnary};
+use crate::rhif::spec::{AluBinary, AluUnary, FuncId};
 
 #[derive(Clone, PartialEq)]
 pub enum OpCode {
+    // lhs <- unsigned(slot)
+    AsBits(Cast),
+    // lhs <- arg
+    Assign(Assign),
+    // lhs <- signed(slot)
+    AsSigned(Cast),
     // lhs <- arg1 op arg2
     Binary(Binary),
-    // lhs <- op arg1
-    Unary(Unary),
-    // lhs <- cond ? true_value : false_value
-    Select(Select),
+    // lhs <- table[slot]
+    Case(Case),
+    // Comment
+    Comment(String),
     // lhs <- {{ r1, r2, ... }}
     Concat(Concat),
     // lhs <- arg[base_offset + arg * stride +: len]
     DynamicIndex(DynamicIndex),
     // lhs <- arg; lhs[base_offset + arg * stride +: len] <- value
     DynamicSplice(DynamicSplice),
+    // lhs <- func(arg)
+    Exec(Exec),
     // lhs <- arg[bit_range]
     Index(Index),
+    // lhs <- cond ? true_value : false_value
+    Select(Select),
     // lhs <- arg; lhs[bit_range] <- value
     Splice(Splice),
-    // lhs <- arg
-    Assign(Assign),
-    // Comment
-    Comment(String),
-    // lhs <- table[slot]
-    Case(Case),
-    // lhs <- unsigned(slot)
-    AsBits(Cast),
-    // lhs <- signed(slot)
-    AsSigned(Cast),
+    // lhs <- op arg1
+    Unary(Unary),
 }
 
 #[derive(Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
@@ -133,4 +135,11 @@ pub struct Case {
 pub struct Cast {
     pub lhs: Operand,
     pub arg: Operand,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Exec {
+    pub lhs: Operand,
+    pub id: FuncId,
+    pub args: Vec<Operand>,
 }
