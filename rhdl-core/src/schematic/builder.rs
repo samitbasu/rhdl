@@ -130,7 +130,12 @@ impl<'a> SchematicBuilder<'a> {
     }
 
     fn slot_source(&self, slot: Slot) -> Option<SourceLocation> {
-        self.object.symbols.slot_map.get(&slot).cloned()
+        self.object
+            .symbols
+            .slot_map
+            .get(&slot)
+            .cloned()
+            .map(|x| (self.object.fn_id, x).into())
     }
 
     fn make_output_pin(&mut self, slot: Slot) -> Result<PinIx> {

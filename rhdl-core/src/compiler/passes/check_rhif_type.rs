@@ -52,7 +52,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
             TypeCheckPass::raise_ice(
                 obj,
                 ICE::SlotMissingInTypeMap { slot: *slot },
-                obj.symbols.slot_map[slot].node,
+                obj.symbols.slot_map[slot],
             )
         })
     };
@@ -218,7 +218,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                         return Err(TypeCheckPass::raise_ice(
                             obj,
                             ICE::IndexValueMustBeUnsigned,
-                            obj.symbols.slot_map[slot].node,
+                            obj.symbols.slot_map[slot],
                         ));
                     }
                 }
@@ -265,7 +265,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                             variant: discriminant_value,
                             ty: ty.clone(),
                         },
-                        obj.symbols.slot_map[lhs].node,
+                        obj.symbols.slot_map[lhs],
                     ))?
                     .kind
                     .clone();
@@ -291,7 +291,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                     return Err(TypeCheckPass::raise_ice(
                         obj,
                         ICE::ExpectedArrayType { kind: ty },
-                        obj.symbols.slot_map[lhs].node,
+                        obj.symbols.slot_map[lhs],
                     ));
                 };
                 eq_kinds(
@@ -315,7 +315,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                                 return Err(TypeCheckPass::raise_ice(
                                     obj,
                                     ICE::MatchPatternValueMustBeLiteral,
-                                    obj.symbols.slot_map[slot].node,
+                                    obj.symbols.slot_map[slot],
                                 ));
                             }
                             eq_kinds(arg_ty.clone(), slot_type(slot)?, id)?;

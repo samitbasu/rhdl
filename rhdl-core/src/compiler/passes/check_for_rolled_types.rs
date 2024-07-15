@@ -50,7 +50,7 @@ impl Pass for CheckForRolledTypesPass {
                 Self::raise_ice(
                     &obj,
                     ICE::SlotMissingInTypeMap { slot: *slot },
-                    obj.symbols.slot_map[slot].node,
+                    obj.symbols.slot_map[slot],
                 )
             })
         };
