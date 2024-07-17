@@ -516,8 +516,9 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        rhif::spec::Slot, types::kind::DiscriminantLayout, types::path::path_star, Kind,
-        VariantType,
+        rhif::spec::{RegisterId, Slot},
+        types::{kind::DiscriminantLayout, path::path_star},
+        Kind, VariantType,
     };
 
     use super::{leaf_paths, Path};
@@ -587,7 +588,7 @@ mod tests {
         let path1 = Path::default()
             .field("c")
             .field("b")
-            .dynamic(Slot::Register(0));
+            .dynamic(Slot::Register(RegisterId(0)));
         let path1_star = path_star(&kind, &path1).unwrap();
         assert_eq!(path1_star.len(), 3);
         for path in path1_star {
@@ -597,7 +598,7 @@ mod tests {
         }
         let path2 = Path::default()
             .field("d")
-            .dynamic(Slot::Register(0))
+            .dynamic(Slot::Register(RegisterId(0)))
             .field("b");
         let path2_star = path_star(&kind, &path2).unwrap();
         assert_eq!(path2_star.len(), 4);
@@ -608,9 +609,9 @@ mod tests {
         }
         let path3 = Path::default()
             .field("d")
-            .dynamic(Slot::Register(0))
+            .dynamic(Slot::Register(RegisterId(0)))
             .field("b")
-            .dynamic(Slot::Register(1));
+            .dynamic(Slot::Register(RegisterId(1)));
         let path3_star = path_star(&kind, &path3).unwrap();
         assert_eq!(path3_star.len(), 12);
         for path in path3_star {

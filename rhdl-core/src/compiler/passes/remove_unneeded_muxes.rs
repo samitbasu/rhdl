@@ -18,7 +18,8 @@ impl Pass for RemoveUnneededMuxesPass {
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         for op in input.ops.iter_mut() {
             if let OpCode::Select(select) = op.clone() {
-                if let Some(val) = input.literals.get(&select.cond) {
+                if let Ok(literal) = select.cond.as_literal() {
+                    let val = &input.literals[&literal];
                     if val.as_bool()? {
                         *op = OpCode::Assign(Assign {
                             lhs: select.lhs,

@@ -890,7 +890,14 @@ pub fn infer(mir: Mir) -> Result<Object> {
         .collect();
     let kind = final_type_map
         .iter()
-        .map(|(slot, ty)| infer.ctx.into_kind(*ty).map(|val| (*slot, val)))
+        .filter(|(slot, _)| slot.is_reg())
+        .map(|(slot, ty)| {
+            infer
+                .ctx
+                .into_kind(*ty)
+                .map(|val| (*slot, val))
+                .map(|(slot, val)| (slot.as_reg().unwrap(), val))
+        })
         .collect::<anyhow::Result<BTreeMap<_, _>>>()
         .unwrap();
     for op in mir.ops.iter() {
@@ -904,6 +911,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
             infer
                 .cast_literal_to_inferred_type(lit, final_type_map[&slot])
                 .map(|value| (slot, value))
+                .map(|(slot, value)| (slot.as_literal().unwrap(), value))
         })
         .collect::<Result<_>>()?;
     let ops = mir.ops.into_iter().map(|op| op.op).collect();
@@ -912,7 +920,11 @@ pub fn infer(mir: Mir) -> Result<Object> {
         ops,
         literals,
         kind,
-        arguments: mir.arguments.clone(),
+        arguments: mir
+            .arguments
+            .into_iter()
+            .map(|x| x.as_reg().unwrap())
+            .collect(),
         return_slot: mir.return_slot,
         externals: mir.stash,
         name: mir.name,

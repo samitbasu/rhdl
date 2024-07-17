@@ -20,7 +20,7 @@ impl Pass for LowerInferredRetimesPass {
         for (op, location) in input.ops.iter_mut().zip(input.symbols.opcode_map.iter()) {
             if let OpCode::Retime(retime) = op {
                 if retime.color.is_none() {
-                    let Some(dest_color) = input.kind[&retime.lhs].signal_clock() else {
+                    let Some(dest_color) = input.kind(retime.lhs).signal_clock() else {
                         let op = op.clone();
                         return Err(Self::raise_ice(
                             &input,

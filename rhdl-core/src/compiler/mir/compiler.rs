@@ -45,7 +45,9 @@ use crate::rhif::spec::AluBinary;
 use crate::rhif::spec::AluUnary;
 use crate::rhif::spec::CaseArgument;
 use crate::rhif::spec::FuncId;
+use crate::rhif::spec::LiteralId;
 use crate::rhif::spec::Member;
+use crate::rhif::spec::RegisterId;
 use crate::types::path::Path;
 use crate::KernelFnKind;
 use crate::Kind;
@@ -337,14 +339,14 @@ impl<'a> MirContext<'a> {
         })
     }
     fn reg(&mut self, id: NodeId) -> Slot {
-        let reg = Slot::Register(self.reg_count);
+        let reg = Slot::Register(RegisterId(self.reg_count));
         self.reg_source_map.insert(reg, id);
         self.reg_count += 1;
         reg
     }
     fn lit(&mut self, id: NodeId, lit: ExprLit) -> Slot {
         let ndx = self.literals.len();
-        let slot = Slot::Literal(ndx);
+        let slot = Slot::Literal(LiteralId(ndx));
         eprintln!("Allocate literal {:?} for {:?} -> {:?}", lit, id, slot);
         self.literals.insert(slot, lit);
         self.reg_source_map.insert(slot, id);

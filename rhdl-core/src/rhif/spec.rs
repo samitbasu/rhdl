@@ -184,25 +184,67 @@ pub enum AluUnary {
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub enum Slot {
-    Literal(usize),
-    Register(usize),
+    Literal(LiteralId),
+    Register(RegisterId),
     Empty,
+}
+
+#[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
+pub struct LiteralId(pub usize);
+
+impl Into<Slot> for LiteralId {
+    fn into(self) -> Slot {
+        Slot::Literal(self)
+    }
+}
+
+impl std::fmt::Debug for LiteralId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "l{}", self.0)
+    }
+}
+
+#[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
+pub struct RegisterId(pub usize);
+
+impl Into<Slot> for RegisterId {
+    fn into(self) -> Slot {
+        Slot::Register(self)
+    }
+}
+
+impl std::fmt::Debug for RegisterId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "r{}", self.0)
+    }
 }
 
 impl std::fmt::Debug for Slot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Slot::Literal(l) => write!(f, "l{}", l),
-            Slot::Register(r) => write!(f, "r{}", r),
+            Slot::Literal(l) => write!(f, "{:?}", l),
+            Slot::Register(r) => write!(f, "{:?}", r),
             Slot::Empty => write!(f, "()"),
         }
     }
 }
 
 impl Slot {
-    pub fn reg(&self) -> Result<usize> {
+    pub fn reg(&self) -> Result<RegisterId> {
         match self {
             Slot::Register(r) => Ok(*r),
+            _ => Err(anyhow::anyhow!("Not a register")),
+        }
+    }
+    pub fn as_literal(self) -> Result<LiteralId> {
+        match self {
+            Slot::Literal(l) => Ok(l),
+            _ => Err(anyhow::anyhow!("Not a literal")),
+        }
+    }
+    pub fn as_reg(self) -> Result<RegisterId> {
+        match self {
+            Slot::Register(r) => Ok(r),
             _ => Err(anyhow::anyhow!("Not a register")),
         }
     }

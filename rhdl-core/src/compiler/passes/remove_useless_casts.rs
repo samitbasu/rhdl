@@ -19,7 +19,8 @@ impl Pass for RemoveUselessCastsPass {
         for op in input.ops.iter_mut() {
             match op.clone() {
                 OpCode::AsBits(cast) => {
-                    if let Some(literal_val) = input.literals.get(&cast.arg) {
+                    if let Ok(literal) = cast.arg.as_literal() {
+                        let literal_val = &input.literals[&literal];
                         if let Some(len) = cast.len {
                             if literal_val.kind.is_unsigned() && literal_val.bits.len() == len {
                                 *op = OpCode::Assign(Assign {
@@ -31,7 +32,8 @@ impl Pass for RemoveUselessCastsPass {
                     }
                 }
                 OpCode::AsSigned(cast) => {
-                    if let Some(literal_val) = input.literals.get(&cast.arg) {
+                    if let Ok(literal) = cast.arg.as_literal() {
+                        let literal_val = &input.literals[&literal];
                         if let Some(len) = cast.len {
                             if literal_val.kind.is_signed() && literal_val.bits.len() == len {
                                 *op = OpCode::Assign(Assign {

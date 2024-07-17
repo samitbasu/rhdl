@@ -17,7 +17,7 @@ impl Pass for RemoveUnusedRegistersPass {
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut used_set: HashSet<Slot> = Default::default();
-        used_set.extend(input.arguments.iter());
+        used_set.extend(input.arguments.iter().map(|r| Slot::Register(*r)));
         used_set.insert(input.return_slot);
         for op in input.ops.iter() {
             remap_slots(op.clone(), |slot| {
@@ -25,7 +25,9 @@ impl Pass for RemoveUnusedRegistersPass {
                 slot
             });
         }
-        input.kind.retain(|slot, _| used_set.contains(slot));
+        input
+            .kind
+            .retain(|&reg_id, _| used_set.contains(&reg_id.into()));
         Ok(input)
     }
 }

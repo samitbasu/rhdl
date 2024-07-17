@@ -69,9 +69,9 @@ impl<'a> SchematicBuilder<'a> {
             if literal.bits.is_empty() {
                 continue;
             }
-            let source = self.slot_source(slot);
+            let source = self.slot_source(slot.into());
             let opin = self.make_constant(literal, source);
-            self.bind(slot, opin);
+            self.bind(slot.into(), opin);
         }
         for (op, location) in self
             .object

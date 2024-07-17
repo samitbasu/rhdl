@@ -17,7 +17,7 @@ impl Pass for SymbolTableIsComplete {
     }
     fn run(input: Object) -> Result<Object, RHDLError> {
         let mut used_set: HashSet<Slot> = Default::default();
-        used_set.extend(input.arguments.iter());
+        used_set.extend(input.arguments.iter().map(|r| Slot::Register(*r)));
         used_set.insert(input.return_slot);
         for op in input.ops.iter() {
             remap_slots(op.clone(), |slot| {

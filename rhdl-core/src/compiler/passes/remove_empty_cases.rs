@@ -16,12 +16,12 @@ impl Pass for RemoveEmptyCasesPass {
         for op in input.ops.iter_mut() {
             match op {
                 OpCode::Case(case) => {
-                    if input.kind[&case.lhs].is_empty() {
+                    if case.lhs.is_empty() {
                         *op = OpCode::Noop;
                     }
                 }
                 OpCode::Select(select) => {
-                    if input.kind[&select.lhs].is_empty() {
+                    if select.lhs.is_empty() {
                         *op = OpCode::Noop;
                     }
                 }
