@@ -13,11 +13,11 @@ use anyhow::Result;
 
 use anyhow::{anyhow, bail};
 
-use super::spec::{Retime, Select, Splice};
+use super::spec::{LiteralId, Retime, Select, Splice};
 
 struct VMState<'a> {
     reg_stack: &'a mut [Option<TypedBits>],
-    literals: &'a BTreeMap<Slot, TypedBits>,
+    literals: &'a BTreeMap<LiteralId, TypedBits>,
     design: &'a Module,
     obj: &'a Object,
 }
@@ -25,17 +25,10 @@ struct VMState<'a> {
 impl<'a> VMState<'a> {
     fn read(&self, slot: Slot) -> Result<TypedBits> {
         match slot {
-            Slot::Literal(l) => self
-                .literals
-                .get(&Slot::Literal(l))
-                .cloned()
-                .ok_or(anyhow!("ICE Literal {l} not found in object")),
-            Slot::Register(r) => self
-                .reg_stack
-                .get(r)
-                .ok_or(anyhow!("ICE Register {r} not found in register stack"))?
+            Slot::Literal(l) => Ok(self.literals[&l].clone()),
+            Slot::Register(r) => self.reg_stack[r.0]
                 .clone()
-                .ok_or(anyhow!("ICE Register {r} is not initialized")),
+                .ok_or(anyhow!("ICE Register {r:?} is not initialized")),
             Slot::Empty => Ok(TypedBits::EMPTY),
         }
     }
@@ -43,7 +36,7 @@ impl<'a> VMState<'a> {
         match slot {
             Slot::Literal(_) => bail!("ICE Cannot write to literal"),
             Slot::Register(r) => {
-                self.reg_stack[r] = Some(value);
+                self.reg_stack[r.0] = Some(value);
                 Ok(())
             }
             Slot::Empty => {
@@ -320,13 +313,12 @@ fn execute(design: &Module, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
         }
     }
     // Allocate registers for the function call.
-    let max_reg = obj.reg_max_index() + 1;
+    let max_reg = obj.reg_max_index().0 + 1;
     let mut reg_stack = vec![None; max_reg + 1];
     // Copy the arguments into the appropriate registers
     for (ndx, arg) in arguments.into_iter().enumerate() {
-        if let Slot::Register(r) = obj.arguments[ndx] {
-            reg_stack[r] = Some(arg);
-        }
+        let r = obj.arguments[ndx];
+        reg_stack[r.0] = Some(arg);
     }
     let mut state = VMState {
         reg_stack: &mut reg_stack,
@@ -338,15 +330,11 @@ fn execute(design: &Module, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Res
     match obj.return_slot {
         Slot::Empty => Ok(TypedBits::EMPTY),
         Slot::Register(r) => reg_stack
-            .get(r)
+            .get(r.0)
             .cloned()
             .ok_or(anyhow!("return slot not found"))?
             .ok_or(anyhow!("ICE return slot is not initialized")),
-        Slot::Literal(ndx) => obj
-            .literals
-            .get(&Slot::Literal(ndx))
-            .cloned()
-            .ok_or(anyhow!("return literal not found")),
+        Slot::Literal(ndx) => Ok(obj.literals[&ndx].clone()),
     }
 }
 

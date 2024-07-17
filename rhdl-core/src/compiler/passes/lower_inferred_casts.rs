@@ -20,7 +20,7 @@ impl Pass for LowerInferredCastsPass {
             match op.clone() {
                 OpCode::AsBits(cast) => {
                     if cast.len.is_none() {
-                        let dest_width = input.kind[&cast.lhs].bits();
+                        let dest_width = input.kind(cast.lhs).bits();
                         *op = OpCode::AsBits(Cast {
                             lhs: cast.lhs,
                             arg: cast.arg,
@@ -30,7 +30,7 @@ impl Pass for LowerInferredCastsPass {
                 }
                 OpCode::AsSigned(cast) => {
                     if cast.len.is_none() {
-                        let dest_width = input.kind[&cast.lhs].bits();
+                        let dest_width = input.kind(cast.lhs).bits();
                         *op = OpCode::AsSigned(Cast {
                             lhs: cast.lhs,
                             arg: cast.arg,

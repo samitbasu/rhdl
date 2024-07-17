@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use crate::{
     error::RHDLError,
     rhif::{
-        spec::{OpCode, Slot},
+        spec::{LiteralId, OpCode, Slot},
         Object,
     },
 };
@@ -16,7 +16,7 @@ pub struct PreCastLiterals {}
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 struct CastCandidate {
-    slot: Slot,
+    id: LiteralId,
     len: usize,
     signed: bool,
 }
@@ -33,9 +33,9 @@ impl Pass for PreCastLiterals {
             match op {
                 OpCode::AsBits(cast) => {
                     if let Some(len) = cast.len {
-                        if cast.arg.is_literal() {
+                        if let Ok(id) = cast.arg.as_literal() {
                             candidates.insert(CastCandidate {
-                                slot: cast.arg,
+                                id,
                                 len,
                                 signed: false,
                             });
@@ -44,9 +44,9 @@ impl Pass for PreCastLiterals {
                 }
                 OpCode::AsSigned(cast) => {
                     if let Some(len) = cast.len {
-                        if cast.arg.is_literal() {
+                        if let Ok(id) = cast.arg.as_literal() {
                             candidates.insert(CastCandidate {
-                                slot: cast.arg,
+                                id,
                                 len,
                                 signed: true,
                             });
@@ -61,10 +61,10 @@ impl Pass for PreCastLiterals {
             });
         }
         // Check that each candidate is referenced exactly once
-        let candidates: HashMap<Slot, CastCandidate> = candidates
+        let candidates: HashMap<LiteralId, CastCandidate> = candidates
             .into_iter()
-            .filter(|candidate| use_count.get(&candidate.slot) == Some(&1))
-            .map(|candidate| (candidate.slot, candidate))
+            .filter(|candidate| use_count.get(&Slot::Literal(candidate.id)) == Some(&1))
+            .map(|candidate| (candidate.id, candidate))
             .collect();
         // Because each literal is used exactly once, we can safely cast them
         input.literals = input
@@ -83,18 +83,6 @@ impl Pass for PreCastLiterals {
                 .map(|res| (slot, res))
             })
             .collect::<Result<BTreeMap<_, _>, _>>()?;
-        input.kind = input
-            .kind
-            .into_iter()
-            .map(|(k, v)| {
-                if let Some(val) = input.literals.get(&k) {
-                    (k, val.kind.clone())
-                } else {
-                    (k, v)
-                }
-            })
-            .collect();
-
         Ok(input)
     }
 }

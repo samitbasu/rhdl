@@ -1,7 +1,7 @@
 use crate::{
     error::RHDLError,
     rhif::{
-        spec::{Assign, OpCode, Slot},
+        spec::{Assign, LiteralId, OpCode, Slot},
         Object,
     },
     types::path::Path,
@@ -19,23 +19,24 @@ impl Pass for PrecomputeDiscriminantPass {
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut new_literals = vec![];
         let literals = input.literals.clone();
-        let mut max_literal = input.literal_max_index();
+        let mut max_literal = input.literal_max_index().0;
         for op in input.ops.iter_mut() {
             if let OpCode::Index(index) = op {
                 if index.path == Path::default().discriminant() {
-                    if !input.kind[&index.arg].is_enum() {
+                    if !input.kind(index.arg).is_enum() {
                         *op = OpCode::Assign(Assign {
                             lhs: index.lhs,
                             rhs: index.arg,
                         });
-                    } else if matches!(index.arg, Slot::Literal(_)) {
-                        let literal_value = &literals[&index.arg];
+                    } else if let Slot::Literal(lit_id) = index.arg {
+                        let literal_value = &literals[&lit_id];
                         let loc = input.symbols.slot_map[&index.arg];
                         let discriminant = literal_value.discriminant()?;
                         // Get a new literal slot for the discriminant
-                        let discriminant_slot = Slot::Literal(max_literal + 1);
+                        let discriminant_id = LiteralId(max_literal + 1);
+                        let discriminant_slot = Slot::Literal(discriminant_id);
                         max_literal += 1;
-                        new_literals.push((discriminant_slot, discriminant, loc));
+                        new_literals.push((discriminant_id, discriminant, loc));
                         *op = OpCode::Assign(Assign {
                             lhs: index.lhs,
                             rhs: discriminant_slot,
@@ -44,10 +45,9 @@ impl Pass for PrecomputeDiscriminantPass {
                 }
             }
         }
-        for (slot, value, loc) in new_literals {
-            input.kind.insert(slot, value.kind.clone());
-            input.literals.insert(slot, value);
-            input.symbols.slot_map.insert(slot, loc);
+        for (id, value, loc) in new_literals {
+            input.literals.insert(id, value);
+            input.symbols.slot_map.insert(id.into(), loc);
         }
         Ok(input)
     }

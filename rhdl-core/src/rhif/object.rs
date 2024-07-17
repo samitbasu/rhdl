@@ -9,7 +9,7 @@ use crate::{
     Kind, TypedBits,
 };
 
-use super::spec::FuncId;
+use super::spec::{FuncId, LiteralId, RegisterId};
 use super::{spanned_source::SpannedSource, spec::OpCode};
 
 #[derive(Debug, Clone, Copy, PartialEq, Hash)]
@@ -66,43 +66,29 @@ impl SymbolMap {
 #[derive(Clone)]
 pub struct Object {
     pub symbols: SymbolMap,
-    pub literals: BTreeMap<Slot, TypedBits>,
-    pub kind: BTreeMap<Slot, Kind>,
+    pub literals: BTreeMap<LiteralId, TypedBits>,
+    pub kind: BTreeMap<RegisterId, Kind>,
     pub return_slot: Slot,
     pub externals: BTreeMap<FuncId, ExternalFunction>,
     pub ops: Vec<OpCode>,
-    pub arguments: Vec<Slot>,
+    pub arguments: Vec<RegisterId>,
     pub name: String,
     pub fn_id: FunctionId,
 }
 
 impl Object {
-    pub fn literal(&self, slot: Slot) -> Result<&TypedBits> {
-        self.literals
-            .get(&slot)
-            .ok_or_else(|| anyhow::anyhow!("Slot {slot:?} is not a literal"))
+    pub fn reg_max_index(&self) -> RegisterId {
+        self.kind.keys().max().copied().unwrap_or(RegisterId(0))
     }
-    pub fn reg_max_index(&self) -> usize {
-        self.kind
-            .keys()
-            .filter_map(|slot| match slot {
-                Slot::Register(ndx) => Some(ndx),
-                _ => None,
-            })
-            .max()
-            .copied()
-            .unwrap_or(0)
+    pub fn literal_max_index(&self) -> LiteralId {
+        self.literals.keys().max().copied().unwrap_or(LiteralId(0))
     }
-    pub fn literal_max_index(&self) -> usize {
-        self.literals
-            .keys()
-            .filter_map(|slot| match slot {
-                Slot::Literal(ndx) => Some(ndx),
-                _ => None,
-            })
-            .max()
-            .copied()
-            .unwrap_or(0)
+    pub fn kind(&self, slot: Slot) -> Kind {
+        match slot {
+            Slot::Register(reg) => self.kind[&reg].clone(),
+            Slot::Literal(lit) => self.literals[&lit].kind.clone(),
+            Slot::Empty => Kind::Empty,
+        }
     }
 }
 
@@ -115,19 +101,13 @@ impl std::fmt::Debug for Object {
             let slot_name = self
                 .symbols
                 .slot_names
-                .get(regs)
+                .get(&Slot::Register(*regs))
                 .map(|s| s.as_str())
                 .unwrap_or("");
-            if let Slot::Register(ndx) = regs {
-                writeln!(f, "Reg r{} : {:?} // {}", ndx, self.kind[regs], slot_name)?;
-            }
+            writeln!(f, "Reg {:?} : {:?} // {}", regs, self.kind[regs], slot_name)?;
         }
         for (slot, literal) in self.literals.iter() {
-            writeln!(
-                f,
-                "Literal {:?} : {:?} = {:?}",
-                slot, self.kind[slot], literal
-            )?;
+            writeln!(f, "Literal {:?} : {:?} = {:?}", slot, literal.kind, literal)?;
         }
         for (ndx, func) in self.externals.iter() {
             writeln!(
