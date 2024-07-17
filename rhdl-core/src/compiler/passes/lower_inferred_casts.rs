@@ -16,7 +16,8 @@ impl Pass for LowerInferredCastsPass {
         "lower_inferred_casts"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
-        for op in input.ops.iter_mut() {
+        let mut ops = input.ops.clone();
+        for op in ops.iter_mut() {
             match op.clone() {
                 OpCode::AsBits(cast) => {
                     if cast.len.is_none() {
@@ -41,6 +42,7 @@ impl Pass for LowerInferredCastsPass {
                 _ => {}
             }
         }
+        input.ops = ops;
         Ok(input)
     }
 }

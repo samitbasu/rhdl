@@ -99,8 +99,12 @@ pub fn compute_timing_graph(
         .map
         .iter()
         .filter_map(|(node, ndx)| {
-            if analysis.object.arguments.contains(&node.slot) {
-                Some(*ndx)
+            if let Ok(reg_id) = node.slot.as_reg() {
+                if analysis.object.arguments.contains(&reg_id) {
+                    Some(*ndx)
+                } else {
+                    None
+                }
             } else {
                 None
             }
@@ -155,8 +159,10 @@ impl<'a> TimingAnalysis<'a> {
         }
         let ndx = cost_graph.graph.add_node(node.clone());
         cost_graph.map.insert(node, ndx);
-        if self.object.arguments.contains(&slot) {
-            return Ok(ndx);
+        if let Ok(reg_id) = slot.as_reg() {
+            if self.object.arguments.contains(&reg_id) {
+                return Ok(ndx);
+            }
         }
         if !self.slot_to_opcode.contains_key(&slot) {
             // This is a literal
@@ -252,7 +258,7 @@ impl<'a> TimingAnalysis<'a> {
                     let argument_index = kernel_rhif
                         .arguments
                         .iter()
-                        .position(|&arg| arg == node.slot)
+                        .position(|&arg| Slot::Register(arg) == node.slot)
                         .unwrap();
                     // This is now mapped to exec's list of slots
                     let arg = self.cost(exec.args[argument_index], &node.path, cost_graph)?;
@@ -264,7 +270,7 @@ impl<'a> TimingAnalysis<'a> {
                     let arg = self.cost(*dynamic, &Default::default(), cost_graph)?;
                     cost_graph.add_edge(arg, ndx, cost);
                 }
-                let kind = &self.object.kind[&index.arg];
+                let kind = &self.object.kind(index.arg);
                 for path in path_star(kind, &index.path)? {
                     let arg = self.cost(index.arg, &path, cost_graph)?;
                     cost_graph.add_edge(arg, ndx, cost);
@@ -305,7 +311,7 @@ impl<'a> TimingAnalysis<'a> {
                     let arg = self.cost(*dynamic, &Default::default(), cost_graph)?;
                     cost_graph.add_edge(arg, ndx, cost);
                 }
-                let kind = &self.object.kind[&splice.orig];
+                let kind = &self.object.kind(splice.orig);
                 let (output_bit_range, _) = bit_range(kind.clone(), output_path)?;
                 let mut any_upstream = false;
                 for s_path in path_star(kind, &splice.path)? {

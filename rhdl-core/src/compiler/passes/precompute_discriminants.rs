@@ -20,7 +20,8 @@ impl Pass for PrecomputeDiscriminantPass {
         let mut new_literals = vec![];
         let literals = input.literals.clone();
         let mut max_literal = input.literal_max_index().0;
-        for op in input.ops.iter_mut() {
+        let mut ops = input.ops.clone();
+        for op in ops.iter_mut() {
             if let OpCode::Index(index) = op {
                 if index.path == Path::default().discriminant() {
                     if !input.kind(index.arg).is_enum() {
@@ -49,6 +50,7 @@ impl Pass for PrecomputeDiscriminantPass {
             input.literals.insert(id, value);
             input.symbols.slot_map.insert(id.into(), loc);
         }
+        input.ops = ops;
         Ok(input)
     }
 }

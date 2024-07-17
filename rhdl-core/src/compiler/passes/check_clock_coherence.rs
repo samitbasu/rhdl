@@ -208,18 +208,18 @@ impl ClockCoherenceContext<'_> {
         }
     }
     fn import_literals(&mut self) {
-        for (slot, literal) in &self.obj.literals {
-            eprintln!("Importing literal {:?} {:?}", slot, literal.kind);
-            let id = self.obj.symbols.slot_map[slot];
+        for (&lit_id, literal) in &self.obj.literals {
+            eprintln!("Importing literal {:?} {:?}", lit_id, literal.kind);
+            let id = self.obj.symbols.slot_map[&lit_id.into()];
             let ty = self.import_kind_with_unknown_domains(id, &literal.kind);
-            self.slot_map.insert(*slot, ty);
+            self.slot_map.insert(lit_id.into(), ty);
         }
     }
     fn import_registers(&mut self) {
-        for (slot, kind) in &self.obj.kind {
-            let id = self.obj.symbols.slot_map[slot];
+        for (&reg_id, kind) in &self.obj.kind {
+            let id = self.obj.symbols.slot_map[&reg_id.into()];
             let ty = self.import_kind_with_unknown_domains(id, kind);
-            self.slot_map.insert(*slot, ty);
+            self.slot_map.insert(reg_id.into(), ty);
         }
     }
     fn unify_clocks(

@@ -60,10 +60,14 @@ impl<'a> SchematicBuilder<'a> {
 
     fn build(mut self) -> Result<Schematic> {
         for arg in &self.object.arguments {
-            let kind = self.kind(*arg)?;
-            let (ipin, opin) = self.make_buffer(format!("{:?}", arg), kind, self.slot_source(*arg));
+            let kind = self.kind(Slot::Register(*arg))?;
+            let (ipin, opin) = self.make_buffer(
+                format!("{:?}", arg),
+                kind,
+                self.slot_source(Slot::Register(*arg)),
+            );
             self.schematic.inputs.push(ipin);
-            self.bind(*arg, opin);
+            self.bind(Slot::Register(*arg), opin);
         }
         for (&slot, literal) in self.object.literals.iter() {
             if literal.bits.is_empty() {
@@ -112,10 +116,7 @@ impl<'a> SchematicBuilder<'a> {
     }
 
     fn kind(&self, slot: Slot) -> Result<Kind> {
-        let Some(ty) = self.object.kind.get(&slot) else {
-            bail!("Slot {:?} not found in object {:?}", slot, self.object)
-        };
-        Ok(ty.clone())
+        Ok(self.object.kind(slot))
     }
 
     fn bind(&mut self, slot: Slot, pin: PinIx) {

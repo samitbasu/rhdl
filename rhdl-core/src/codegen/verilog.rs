@@ -6,7 +6,7 @@ use crate::error::RHDLError;
 use crate::rhif::object::SourceLocation;
 use crate::rhif::spec::{
     AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, Index,
-    Member, OpCode, Repeat, Retime, Select, Slot, Splice, Struct, Tuple, Unary,
+    Member, OpCode, RegisterId, Repeat, Retime, Select, Slot, Splice, Struct, Tuple, Unary,
 };
 use crate::test_module::VerilogDescriptor;
 use crate::types::path::{bit_range, Path, PathElement};
@@ -87,7 +87,7 @@ impl<'a> TranslationContext<'a> {
         let dynamic_slots: Vec<Slot> = path.dynamic_slots().copied().collect();
         // First, to get the base offset, we construct a path that
         // replaces all dynamic indices with 0
-        let arg_kind = self.obj.kind[target].clone();
+        let arg_kind = self.obj.kind(*target);
         let base_path = compute_base_offset_path(path);
         let base_range = bit_range(arg_kind.clone(), &base_path)?;
         // Next for each index register, we compute a range where only that index
@@ -189,7 +189,7 @@ impl<'a> TranslationContext<'a> {
                 self.obj.symbols.slot_map[lhs],
             ));
         }
-        let arg_ty = self.obj.kind[arg].clone();
+        let arg_ty = self.obj.kind(*arg);
         let (bit_range, _) = bit_range(arg_ty, path)?;
         self.body.push_str(&format!(
             "    {lhs} = {arg}[{end}:{start}];\n",
@@ -214,7 +214,7 @@ impl<'a> TranslationContext<'a> {
                 self.obj.symbols.slot_map[lhs],
             ));
         }
-        let orig_ty = self.obj.kind[orig].clone();
+        let orig_ty = self.obj.kind(*orig);
         let (bit_range, _) = bit_range(orig_ty, path)?;
         self.body.push_str(&format!(
             "     {lhs} = {orig};\n    {lhs}[{end}:{start}] = {subst};\n",
@@ -404,7 +404,12 @@ impl<'a> TranslationContext<'a> {
                 for (cond, slot) in table {
                     match cond {
                         CaseArgument::Slot(s) => {
-                            let s = self.obj.literal(*s)?;
+                            let Slot::Literal(lit_id) = s else {
+                                return Err(
+                                    self.raise_ice(ICE::MatchPatternValueMustBeLiteral, op_id)
+                                );
+                            };
+                            let s = &self.obj.literals[lit_id];
                             self.body
                                 .push_str(&format!("      {}: ", as_verilog_literal(s)));
                             self.body.push_str(&format!(
@@ -493,8 +498,7 @@ impl<'a> TranslationContext<'a> {
             Slot::Empty => {
                 return Err(self.raise_ice(ICE::EmptySlotInVerilog, self.obj.symbols.slot_map[slot]))
             }
-            Slot::Register(x) => format!("r{x}"),
-            Slot::Literal(x) => format!("l{x}"),
+            x => format!("{x:?}"),
         };
         if let Some(slot_alias) = slot_alias {
             Ok(format!("{}_{}", root, slot_alias))
@@ -503,15 +507,15 @@ impl<'a> TranslationContext<'a> {
         }
     }
 
-    fn decl(&self, slot: &Slot) -> Result<String> {
-        let ty = &self.obj.kind[slot].signal_data();
+    fn decl(&self, reg_id: RegisterId) -> Result<String> {
+        let ty = &self.obj.kind[&reg_id].signal_data();
         let signed = if ty.is_signed() { "signed" } else { "" };
         let width = ty.bits();
         Ok(format!(
             "reg {} [{}:0] {}",
             signed,
             width.saturating_sub(1),
-            self.reg_name(slot)?
+            self.reg_name(&Slot::Register(reg_id))?
         ))
     }
 
@@ -523,18 +527,12 @@ impl<'a> TranslationContext<'a> {
             .arguments
             .iter()
             .enumerate()
-            .map(|(ndx, a)| {
-                if a.is_empty() {
-                    Ok(format!("__empty{}", ndx))
-                } else {
-                    self.decl(a)
-                }
-            })
+            .map(|(ndx, a)| self.decl(*a))
             .collect::<Result<Vec<_>>>()?
             .iter()
             .map(|x| format!("input {}", x))
             .collect::<Vec<_>>();
-        let ret_ty = &self.obj.kind[&self.obj.return_slot];
+        let ret_ty = &self.obj.kind(self.obj.return_slot);
         let ret_size = ret_ty.bits();
         let ret_signed = if ret_ty.is_signed() { "signed" } else { "" };
         if ret_size == 0 {
@@ -556,23 +554,20 @@ impl<'a> TranslationContext<'a> {
             .kind
             .keys()
             .filter(|x| !self.obj.arguments.contains(x))
-            .filter(|x| x.is_reg())
         {
-            self.body.push_str(&format!("    {};\n", self.decl(reg)?));
+            self.body.push_str(&format!("    {};\n", self.decl(*reg)?));
         }
         self.body.push_str("    // Literals\n");
         // Allocate the literals
-        for (&slot, lit) in self.obj.literals.iter() {
+        for (&lit_id, lit) in self.obj.literals.iter() {
             if lit.bits.is_empty() {
                 continue;
             }
-            if let Slot::Literal(i) = slot {
-                self.body.push_str(&format!(
-                    "    localparam {} = {};\n",
-                    self.reg_name(&Slot::Literal(i))?,
-                    as_verilog_literal(lit)
-                ));
-            }
+            self.body.push_str(&format!(
+                "    localparam {} = {};\n",
+                self.reg_name(&Slot::Literal(lit_id))?,
+                as_verilog_literal(lit)
+            ));
         }
         self.body.push_str("    // Body\n");
         self.body.push_str("begin\n");
