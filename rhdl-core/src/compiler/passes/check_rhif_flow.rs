@@ -83,8 +83,8 @@ fn check_rhif_flow(obj: &Object) -> Result<(), RHDLError> {
         obj,
         set: HashSet::new(),
     };
-    for arg in &obj.arguments {
-        init_set.write(arg)?;
+    for &arg in &obj.arguments {
+        init_set.write(&(arg.into()))?;
     }
     check_flow(obj, init_set)?;
     Ok(())

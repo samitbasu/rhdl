@@ -7,7 +7,10 @@ use crate::{
         ty::SignFlag,
     },
     error::RHDLError,
-    rhif::{spec::OpCode, Object},
+    rhif::{
+        spec::{OpCode, Slot},
+        Object,
+    },
     Kind, TypedBits,
 };
 
@@ -38,7 +41,7 @@ impl Pass for PrecastIntegerLiteralsInBinops {
             .filter_map(|(k, v)| {
                 if matches!(v.kind, Kind::Bits(128) | Kind::Signed(128)) {
                     Some((
-                        *k,
+                        Slot::Literal(*k),
                         CastCandidate {
                             literal: v.clone(),
                             cast_details: None,
@@ -59,13 +62,13 @@ impl Pass for PrecastIntegerLiteralsInBinops {
             if let OpCode::Binary(bin) = op {
                 let a_is_generic = generic_int_literals.contains_key(&bin.arg1);
                 let b_is_generic = generic_int_literals.contains_key(&bin.arg2);
-                let a_kind = &input.kind[&bin.arg1];
+                let a_kind = &input.kind(bin.arg1);
                 let a_sign_flag = if a_kind.is_signed() {
                     SignFlag::Signed
                 } else {
                     SignFlag::Unsigned
                 };
-                let b_kind = &input.kind[&bin.arg2];
+                let b_kind = &input.kind(bin.arg2);
                 let b_sign_flag = if b_kind.is_signed() {
                     SignFlag::Signed
                 } else {
@@ -110,7 +113,7 @@ impl Pass for PrecastIntegerLiteralsInBinops {
                         })));
                     }
                     Ok(new_tb) => {
-                        input.literals.insert(*k, new_tb);
+                        input.literals.insert(k.as_literal().unwrap(), new_tb);
                     }
                 }
             }

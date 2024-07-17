@@ -42,18 +42,7 @@ impl Pass for CheckForRolledTypesPass {
         "check_for_rolled_types"
     }
     fn run(obj: Object) -> Result<Object, RHDLError> {
-        let slot_type = |slot: &Slot| -> Result<Kind, RHDLError> {
-            if matches!(*slot, Slot::Empty) {
-                return Ok(Kind::Empty);
-            }
-            obj.kind.get(slot).cloned().ok_or_else(|| {
-                Self::raise_ice(
-                    &obj,
-                    ICE::SlotMissingInTypeMap { slot: *slot },
-                    obj.symbols.slot_map[slot],
-                )
-            })
-        };
+        let slot_type = |slot: &Slot| -> Kind { obj.kind(*slot) };
         let roll_error = |cause: Syntax, slot: Slot, id: NodeId| -> RHDLError {
             Box::new(RHDLSyntaxError {
                 src: obj.symbols.source.source.clone(),
@@ -83,9 +72,9 @@ impl Pass for CheckForRolledTypesPass {
                     check_register_like(
                         &obj,
                         &[
-                            (*lhs, slot_type(lhs)?),
-                            (*arg1, slot_type(arg1)?),
-                            (*arg2, slot_type(arg2)?),
+                            (*lhs, slot_type(lhs)),
+                            (*arg1, slot_type(arg1)),
+                            (*arg2, slot_type(arg2)),
                         ],
                         Syntax::RollYourOwnBinary,
                         id,
@@ -96,7 +85,7 @@ impl Pass for CheckForRolledTypesPass {
                     lhs: _,
                     arg1,
                 }) => {
-                    let kind = slot_type(arg1)?;
+                    let kind = slot_type(arg1);
                     if !kind.is_signal() {
                         return Err(roll_error(
                             Syntax::RollYourOwnUnary { op: AluUnary::Val },
@@ -110,7 +99,7 @@ impl Pass for CheckForRolledTypesPass {
                     lhs: _,
                     arg1,
                 }) => {
-                    let kind = slot_type(arg1)?.signal_data();
+                    let kind = slot_type(arg1).signal_data();
                     if !matches!(kind, Kind::Bits(_) | Kind::Empty) {
                         return Err(roll_error(
                             Syntax::RollYourOwnUnary {
@@ -126,7 +115,7 @@ impl Pass for CheckForRolledTypesPass {
                     lhs: _,
                     arg1,
                 }) => {
-                    let kind = slot_type(arg1)?.signal_data();
+                    let kind = slot_type(arg1).signal_data();
                     if !matches!(kind, Kind::Signed(_) | Kind::Empty) {
                         return Err(roll_error(
                             Syntax::RollYourOwnUnary {
@@ -140,7 +129,7 @@ impl Pass for CheckForRolledTypesPass {
                 OpCode::Unary(Unary { op, lhs, arg1 }) => {
                     check_register_like(
                         &obj,
-                        &[(*lhs, slot_type(lhs)?), (*arg1, slot_type(arg1)?)],
+                        &[(*lhs, slot_type(lhs)), (*arg1, slot_type(arg1))],
                         Syntax::RollYourOwnUnary { op: *op },
                         id,
                     )?;

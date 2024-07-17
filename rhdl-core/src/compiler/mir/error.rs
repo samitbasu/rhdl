@@ -6,7 +6,7 @@ use thiserror::Error;
 use crate::{
     ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
     ast_builder::BinOp,
-    rhif::spec::{AluBinary, AluUnary, OpCode, Slot},
+    rhif::spec::{AluBinary, AluUnary, LiteralId, OpCode, Slot},
     types::path::Path,
     Kind, TypedBits,
 };
@@ -88,8 +88,8 @@ pub enum ICE {
     SlotHasConflictingColors { slot: Slot },
     #[error("Slot {slot:?} is read before being written")]
     SlotIsReadBeforeBeingWritten { slot: Slot },
-    #[error("Cannot write to a literal slot {ndx}")]
-    CannotWriteToLiteral { ndx: usize },
+    #[error("Cannot write to a literal slot {ndx:?}")]
+    CannotWriteToLiteral { ndx: LiteralId },
     #[error("Slot {slot:?} is written twice")]
     SlotIsWrittenTwice { slot: Slot },
     #[error("Mismatch in data types (clock domain ignored) {lhs:?} and {rhs:?}")]

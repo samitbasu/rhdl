@@ -17,7 +17,8 @@ impl Pass for LowerInferredRetimesPass {
         "lower_inferred_retimes"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
-        for (op, location) in input.ops.iter_mut().zip(input.symbols.opcode_map.iter()) {
+        let mut ops = input.ops.clone();
+        for (op, location) in ops.iter_mut().zip(input.symbols.opcode_map.iter()) {
             if let OpCode::Retime(retime) = op {
                 if retime.color.is_none() {
                     let Some(dest_color) = input.kind(retime.lhs).signal_clock() else {
@@ -36,6 +37,7 @@ impl Pass for LowerInferredRetimesPass {
                 }
             }
         }
+        input.ops = ops;
         Ok(input)
     }
 }
