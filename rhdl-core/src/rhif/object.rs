@@ -68,6 +68,12 @@ pub struct LocatedOpCode {
     pub id: NodeId,
 }
 
+impl LocatedOpCode {
+    pub fn new(op: OpCode, id: NodeId) -> Self {
+        Self { op, id }
+    }
+}
+
 impl From<(OpCode, NodeId)> for LocatedOpCode {
     fn from((op, id): (OpCode, NodeId)) -> Self {
         Self { op, id }

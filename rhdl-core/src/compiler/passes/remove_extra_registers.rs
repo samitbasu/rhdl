@@ -2,6 +2,7 @@ use crate::{
     compiler::utils::rename_read_register,
     error::RHDLError,
     rhif::{
+        object::LocatedOpCode,
         spec::{Assign, OpCode},
         Object,
     },
@@ -12,10 +13,10 @@ use super::pass::Pass;
 #[derive(Default, Debug, Clone)]
 pub struct RemoveExtraRegistersPass {}
 
-fn find_assign_op(ops: &[OpCode], mergeable: &[bool]) -> Option<usize> {
+fn find_assign_op(ops: &[LocatedOpCode], mergeable: &[bool]) -> Option<usize> {
     ops.iter()
         .zip(mergeable.iter())
-        .position(|(op, flag)| *flag && matches!(op, OpCode::Assign(_)))
+        .position(|(lop, flag)| *flag && matches!(lop.op, OpCode::Assign(_)))
 }
 
 impl Pass for RemoveExtraRegistersPass {
@@ -25,7 +26,8 @@ impl Pass for RemoveExtraRegistersPass {
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut eligible = vec![true; input.ops.len()];
         while let Some(op_ndx) = find_assign_op(&input.ops, &eligible) {
-            let op = input.ops[op_ndx].clone();
+            let lop = input.ops[op_ndx].clone();
+            let op = &lop.op;
             eprintln!("Found assign op {:?}", op);
             if let OpCode::Assign(assign) = op {
                 let lhs_name = input.symbols.slot_names.get(&assign.lhs);
@@ -41,30 +43,37 @@ impl Pass for RemoveExtraRegistersPass {
                 input.ops = input
                     .ops
                     .into_iter()
-                    .map(|op| {
+                    .map(|lop| {
+                        let LocatedOpCode { op, id } = lop;
                         let old = assign.lhs;
                         let new = assign.rhs;
                         match op {
                             OpCode::Assign(Assign { lhs, rhs }) => {
                                 let new_rhs = if rhs == old { new } else { rhs };
                                 if new_rhs == lhs {
-                                    OpCode::Noop
+                                    LocatedOpCode::new(OpCode::Noop, id)
                                 } else {
-                                    OpCode::Assign(Assign { lhs, rhs: new_rhs })
+                                    LocatedOpCode::new(
+                                        OpCode::Assign(Assign { lhs, rhs: new_rhs }),
+                                        id,
+                                    )
                                 }
                             }
-                            _ => rename_read_register(op, old, new),
+                            _ => LocatedOpCode::new(rename_read_register(op, old, new), id),
                         }
                     })
-                    .map(|op| match op {
-                        OpCode::Assign(Assign { lhs, rhs: _ }) => {
-                            if lhs != assign.lhs {
-                                op
-                            } else {
-                                OpCode::Noop
+                    .map(|lop| {
+                        let LocatedOpCode { op, id } = lop;
+                        match op {
+                            OpCode::Assign(Assign { lhs, rhs: _ }) => {
+                                if lhs != assign.lhs {
+                                    (op, id).into()
+                                } else {
+                                    (OpCode::Noop, id).into()
+                                }
                             }
+                            _ => (op, id).into(),
                         }
-                        _ => op,
                     })
                     .collect();
                 // Merge the names of the registers

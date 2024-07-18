@@ -13,6 +13,7 @@ use anyhow::Result;
 
 use anyhow::{anyhow, bail};
 
+use super::object::LocatedOpCode;
 use super::spec::{LiteralId, Retime, Select, Splice};
 
 struct VMState<'a> {
@@ -64,8 +65,9 @@ impl<'a> VMState<'a> {
     }
 }
 
-fn execute_block(ops: &[OpCode], state: &mut VMState) -> Result<()> {
-    for op in ops {
+fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
+    for lop in ops {
+        let op = &lop.op;
         match op {
             OpCode::Noop => {}
             OpCode::Binary(Binary {

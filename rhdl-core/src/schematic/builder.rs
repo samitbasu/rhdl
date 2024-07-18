@@ -6,6 +6,7 @@ use anyhow::Result;
 
 use crate::ast::ast_impl::FunctionId;
 use crate::kernel::Kernel;
+use crate::rhif::object::LocatedOpCode;
 use crate::rhif::object::SourceLocation;
 use crate::rhif::spec::Retime;
 use crate::rhif::spec::{
@@ -77,13 +78,12 @@ impl<'a> SchematicBuilder<'a> {
             let opin = self.make_constant(literal, source);
             self.bind(slot.into(), opin);
         }
-        for (op, location) in self
-            .object
-            .ops
-            .iter()
-            .cloned()
-            .zip(self.object.symbols.opcode_map.iter().cloned())
-        {
+        for lop in self.object.ops.iter().cloned() {
+            let LocatedOpCode { op, id } = lop;
+            let location = SourceLocation {
+                func: self.object.fn_id,
+                node: id,
+            };
             match op {
                 OpCode::Binary(binary) => self.make_binary(binary, Some(location)),
                 OpCode::Unary(unary) => self.make_unary(unary, Some(location)),

@@ -171,7 +171,7 @@ impl<'a> TimingAnalysis<'a> {
         eprintln!("Compute timing cost for slot {:?}", slot);
         let opcode = self.slot_to_opcode[&slot];
         let cost = self.computer.cost(self.object, opcode);
-        let opcode = &self.object.ops[opcode];
+        let opcode = &self.object.ops[opcode].op;
         match opcode {
             OpCode::Array(array) => {
                 if let Some(upstream) = array
