@@ -68,9 +68,10 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
             ))
         }
     };
-    for (op, location) in obj.ops.iter().zip(obj.symbols.opcode_map.iter()) {
+    for lop in &obj.ops {
+        let op = &lop.op;
+        let id = lop.id;
         eprintln!("check op: {:?}", op);
-        let id = location.node;
         match op {
             OpCode::Noop => {}
             OpCode::Binary(Binary {

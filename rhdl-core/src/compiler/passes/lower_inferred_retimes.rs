@@ -18,18 +18,18 @@ impl Pass for LowerInferredRetimesPass {
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut ops = input.ops.clone();
-        for (op, location) in ops.iter_mut().zip(input.symbols.opcode_map.iter()) {
-            if let OpCode::Retime(retime) = op {
+        for lop in ops.iter_mut() {
+            if let OpCode::Retime(retime) = &lop.op {
                 if retime.color.is_none() {
                     let Some(dest_color) = input.kind(retime.lhs).signal_clock() else {
-                        let op = op.clone();
+                        let op = lop.op.clone();
                         return Err(Self::raise_ice(
                             &input,
                             ICE::UnableToInferClockDomainForRetime { op },
-                            location.node,
+                            lop.id,
                         ));
                     };
-                    *op = OpCode::Retime(Retime {
+                    lop.op = OpCode::Retime(Retime {
                         lhs: retime.lhs,
                         arg: retime.arg,
                         color: Some(dest_color),

@@ -13,16 +13,16 @@ impl Pass for RemoveEmptyCasesPass {
         "remove_empty_cases"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
-        for op in input.ops.iter_mut() {
-            match op {
+        for lop in input.ops.iter_mut() {
+            match &lop.op {
                 OpCode::Case(case) => {
                     if case.lhs.is_empty() {
-                        *op = OpCode::Noop;
+                        lop.op = OpCode::Noop;
                     }
                 }
                 OpCode::Select(select) => {
                     if select.lhs.is_empty() {
-                        *op = OpCode::Noop;
+                        lop.op = OpCode::Noop;
                     }
                 }
                 _ => {}

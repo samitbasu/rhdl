@@ -468,7 +468,7 @@ impl<'a> MirTypeInference<'a> {
     fn process_ops(&mut self) -> Result<()> {
         for op in &self.mir.ops {
             eprintln!("Processing op {:?}", op.op);
-            let id = op.source;
+            let id = op.id;
             match &op.op {
                 OpCode::Array(array) => {
                     let lhs = self.slot_ty(array.lhs);
@@ -551,7 +551,7 @@ impl<'a> MirTypeInference<'a> {
                                 ICE::ExpectedEnumTemplate {
                                     kind: enumerate.template.kind.clone(),
                                 },
-                                op.source,
+                                op.id,
                             )
                             .into());
                     };
@@ -623,7 +623,7 @@ impl<'a> MirTypeInference<'a> {
                     let true_value = self.slot_ty(select.true_value);
                     let false_value = self.slot_ty(select.false_value);
                     self.type_ops.push(TypeOperation {
-                        id: op.source,
+                        id: op.id,
                         kind: TypeOperationKind::Select(TypeSelect {
                             lhs,
                             true_value,
@@ -656,7 +656,7 @@ impl<'a> MirTypeInference<'a> {
                                 ICE::ExpectedStructTemplate {
                                     kind: structure.template.kind.clone(),
                                 },
-                                op.source,
+                                op.id,
                             )
                             .into());
                     };
@@ -708,7 +708,7 @@ impl<'a> MirTypeInference<'a> {
                         }
                         AluUnary::All | AluUnary::Any | AluUnary::Xor => {
                             self.type_ops.push(TypeOperation {
-                                id: op.source,
+                                id: op.id,
                                 kind: TypeOperationKind::UnaryOp(TypeUnaryOp {
                                     op: unary.op,
                                     lhs,
@@ -914,10 +914,9 @@ pub fn infer(mir: Mir) -> Result<Object> {
                 .map(|(slot, value)| (slot.as_literal().unwrap(), value))
         })
         .collect::<Result<_>>()?;
-    let ops = mir.ops.into_iter().map(|op| op.op).collect();
     Ok(Object {
         symbols: mir.symbols,
-        ops,
+        ops: mir.ops,
         literals,
         kind,
         arguments: mir

@@ -54,8 +54,9 @@ impl Pass for CheckForRolledTypesPass {
             })
             .into()
         };
-        for (op, location) in obj.ops.iter().zip(obj.symbols.opcode_map.iter()) {
-            let id = location.node;
+        for lop in &obj.ops {
+            let id = lop.id;
+            let op = &lop.op;
             match op {
                 OpCode::Binary(Binary {
                     op:

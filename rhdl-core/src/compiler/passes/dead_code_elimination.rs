@@ -25,17 +25,17 @@ impl Pass for DeadCodeEliminationPass {
         // Get the mapping from slots to opcodes
         let mut alive_ops: Vec<bool> = vec![false; input.ops.len()];
         // Iterate through the ops backwards
-        for (alive_marker, op) in alive_ops.iter_mut().rev().zip(input.ops.iter().rev()) {
+        for (alive_marker, lop) in alive_ops.iter_mut().rev().zip(input.ops.iter().rev()) {
             let mut mark_active = |lhs: &Slot| {
                 if active_set.contains(lhs) {
-                    remap_slots(op.clone(), |slot| {
+                    remap_slots(lop.op.clone(), |slot| {
                         active_set.insert(slot);
                         slot
                     });
                     *alive_marker = true;
                 }
             };
-            match op {
+            match &lop.op {
                 OpCode::Array(array) => {
                     mark_active(&array.lhs);
                 }
@@ -92,7 +92,13 @@ impl Pass for DeadCodeEliminationPass {
             .ops
             .into_iter()
             .zip(alive_ops)
-            .map(|(op, alive)| if alive { op } else { OpCode::Noop })
+            .map(|(op, alive)| {
+                if alive {
+                    op
+                } else {
+                    (OpCode::Noop, op.id).into()
+                }
+            })
             .collect();
         Ok(input)
     }

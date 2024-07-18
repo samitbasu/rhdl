@@ -58,7 +58,8 @@ impl Pass for PrecastIntegerLiteralsInBinops {
         }
         // Not all generic int literals are a problem.  Only those that hit the
         // operator overload for binary operations.
-        input.ops.iter().for_each(|op| {
+        input.ops.iter().for_each(|lop| {
+            let op = &lop.op;
             if let OpCode::Binary(bin) = op {
                 let a_is_generic = generic_int_literals.contains_key(&bin.arg1);
                 let b_is_generic = generic_int_literals.contains_key(&bin.arg2);
