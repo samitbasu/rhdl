@@ -6,7 +6,8 @@ use std::collections::HashMap;
 // index of the opcode that writes to it.
 pub fn slot_to_opcode(object: &Object) -> HashMap<Slot, usize> {
     let mut slot_to_opcode = HashMap::new();
-    for (ndx, op) in object.ops.iter().enumerate() {
+    for (ndx, lop) in object.ops.iter().enumerate() {
+        let op = &lop.op;
         match op {
             OpCode::Array(array) => {
                 slot_to_opcode.insert(array.lhs, ndx);

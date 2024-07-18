@@ -1,6 +1,6 @@
 use crate::{
     ast::ast_impl::NodeId,
-    compiler::mir::error::{RHDLSyntaxError, Syntax, ICE},
+    compiler::mir::error::{RHDLSyntaxError, Syntax},
     error::RHDLError,
     rhif::{
         spec::{AluBinary, AluUnary, Binary, OpCode, Slot, Unary},
