@@ -28,7 +28,6 @@ impl From<(FunctionId, NodeId)> for SourceLocation {
 pub struct SymbolMap {
     pub source: SpannedSource,
     pub slot_map: BTreeMap<Slot, NodeId>,
-    pub opcode_map: Vec<SourceLocation>,
     pub slot_names: BTreeMap<Slot, String>,
     pub aliases: BTreeMap<Slot, BTreeSet<Slot>>,
 }
@@ -63,6 +62,18 @@ impl SymbolMap {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct LocatedOpCode {
+    pub op: OpCode,
+    pub id: NodeId,
+}
+
+impl From<(OpCode, NodeId)> for LocatedOpCode {
+    fn from((op, id): (OpCode, NodeId)) -> Self {
+        Self { op, id }
+    }
+}
+
 #[derive(Clone)]
 pub struct Object {
     pub symbols: SymbolMap,
@@ -70,7 +81,7 @@ pub struct Object {
     pub kind: BTreeMap<RegisterId, Kind>,
     pub return_slot: Slot,
     pub externals: BTreeMap<FuncId, ExternalFunction>,
-    pub ops: Vec<OpCode>,
+    pub ops: Vec<LocatedOpCode>,
     pub arguments: Vec<RegisterId>,
     pub name: String,
     pub fn_id: FunctionId,
@@ -117,9 +128,9 @@ impl std::fmt::Debug for Object {
             )?;
         }
         let mut body_str = String::new();
-        for op in &self.ops {
-            if !matches!(op, OpCode::Noop) {
-                writeln!(body_str, "{:?}", op)?;
+        for lop in &self.ops {
+            if !matches!(lop.op, OpCode::Noop) {
+                writeln!(body_str, "{:?}", lop)?;
             }
         }
         let mut indent = 0;

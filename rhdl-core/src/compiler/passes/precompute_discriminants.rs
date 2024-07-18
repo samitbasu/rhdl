@@ -21,11 +21,11 @@ impl Pass for PrecomputeDiscriminantPass {
         let literals = input.literals.clone();
         let mut max_literal = input.literal_max_index().0;
         let mut ops = input.ops.clone();
-        for op in ops.iter_mut() {
-            if let OpCode::Index(index) = op {
+        for lop in ops.iter_mut() {
+            if let OpCode::Index(index) = &lop.op {
                 if index.path == Path::default().discriminant() {
                     if !input.kind(index.arg).is_enum() {
-                        *op = OpCode::Assign(Assign {
+                        lop.op = OpCode::Assign(Assign {
                             lhs: index.lhs,
                             rhs: index.arg,
                         });
@@ -38,7 +38,7 @@ impl Pass for PrecomputeDiscriminantPass {
                         let discriminant_slot = Slot::Literal(discriminant_id);
                         max_literal += 1;
                         new_literals.push((discriminant_id, discriminant, loc));
-                        *op = OpCode::Assign(Assign {
+                        lop.op = OpCode::Assign(Assign {
                             lhs: index.lhs,
                             rhs: discriminant_slot,
                         });

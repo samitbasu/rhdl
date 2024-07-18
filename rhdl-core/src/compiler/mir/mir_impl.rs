@@ -3,23 +3,11 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use crate::{
     ast::ast_impl::{ExprLit, FunctionId, NodeId},
     rhif::{
-        object::SymbolMap,
+        object::{LocatedOpCode, SymbolMap},
         spec::{ExternalFunction, FuncId, OpCode, Slot},
     },
     Kind,
 };
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct OpCodeWithSource {
-    pub op: OpCode,
-    pub source: NodeId,
-}
-
-impl From<(OpCode, NodeId)> for OpCodeWithSource {
-    fn from((op, source): (OpCode, NodeId)) -> Self {
-        OpCodeWithSource { op, source }
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Hash, Eq)]
 pub struct TypeEquivalence {
@@ -30,7 +18,7 @@ pub struct TypeEquivalence {
 
 pub struct Mir {
     pub symbols: SymbolMap,
-    pub ops: Vec<OpCodeWithSource>,
+    pub ops: Vec<LocatedOpCode>,
     pub literals: BTreeMap<Slot, ExprLit>,
     pub ty: BTreeMap<Slot, Kind>,
     pub ty_equate: HashSet<TypeEquivalence>,

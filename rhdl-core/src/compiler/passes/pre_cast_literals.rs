@@ -29,8 +29,8 @@ impl Pass for PreCastLiterals {
         // Collect a candidate list of literals to cast
         let mut candidates: HashSet<CastCandidate> = Default::default();
         let mut use_count: HashMap<Slot, usize> = Default::default();
-        for op in input.ops.iter_mut() {
-            match op {
+        for lop in input.ops.iter_mut() {
+            match &lop.op {
                 OpCode::AsBits(cast) => {
                     if let Some(len) = cast.len {
                         if let Ok(id) = cast.arg.as_literal() {
@@ -55,7 +55,7 @@ impl Pass for PreCastLiterals {
                 }
                 _ => {}
             }
-            remap_slots(op.clone(), |slot| {
+            remap_slots(lop.op.clone(), |slot| {
                 *use_count.entry(slot).or_default() += 1;
                 slot
             });

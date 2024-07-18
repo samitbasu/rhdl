@@ -192,9 +192,9 @@ pub enum Slot {
 #[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct LiteralId(pub usize);
 
-impl Into<Slot> for LiteralId {
-    fn into(self) -> Slot {
-        Slot::Literal(self)
+impl From<LiteralId> for Slot {
+    fn from(val: LiteralId) -> Self {
+        Slot::Literal(val)
     }
 }
 
@@ -207,9 +207,9 @@ impl std::fmt::Debug for LiteralId {
 #[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct RegisterId(pub usize);
 
-impl Into<Slot> for RegisterId {
-    fn into(self) -> Slot {
-        Slot::Register(self)
+impl From<RegisterId> for Slot {
+    fn from(val: RegisterId) -> Self {
+        Slot::Register(val)
     }
 }
 

@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use crate::ast::ast_impl::NodeId;
 use crate::compiler::mir::error::{RHDLCompileError, ICE};
 use crate::error::RHDLError;
-use crate::rhif::object::SourceLocation;
+use crate::rhif::object::{LocatedOpCode, SourceLocation};
 use crate::rhif::spec::{
     AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, Index,
     Member, OpCode, RegisterId, Repeat, Retime, Select, Slot, Splice, Struct, Tuple, Unary,
@@ -227,7 +227,9 @@ impl<'a> TranslationContext<'a> {
         Ok(())
     }
 
-    fn translate_op(&mut self, op: &OpCode, op_id: NodeId) -> Result<()> {
+    fn translate_op(&mut self, lop: &LocatedOpCode) -> Result<()> {
+        let LocatedOpCode { op, id } = lop;
+        let op_id = *id;
         eprintln!("Verilog translate of {op:?}");
         match op {
             OpCode::Noop => {}
@@ -485,11 +487,8 @@ impl<'a> TranslationContext<'a> {
         Ok(())
     }
 
-    fn translate_block(&mut self, block: &[OpCode], ids: &[SourceLocation]) -> Result<()> {
-        for (op, id) in block.iter().zip(ids.iter()) {
-            self.translate_op(op, id.node)?;
-        }
-        Ok(())
+    fn translate_block(&mut self, block: &[LocatedOpCode]) -> Result<()> {
+        block.iter().try_for_each(|lop| self.translate_op(lop))
     }
 
     fn reg_name(&self, slot: &Slot) -> Result<String> {
@@ -571,7 +570,7 @@ impl<'a> TranslationContext<'a> {
         }
         self.body.push_str("    // Body\n");
         self.body.push_str("begin\n");
-        self.translate_block(&self.obj.ops, &self.obj.symbols.opcode_map)?;
+        self.translate_block(&self.obj.ops)?;
         let kernels = self.kernels.clone();
         self.body.push_str(&format!(
             "    {} = {};\n",

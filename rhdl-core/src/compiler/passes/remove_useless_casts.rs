@@ -16,14 +16,14 @@ impl Pass for RemoveUselessCastsPass {
         "remove_useless_casts"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
-        for op in input.ops.iter_mut() {
-            match op.clone() {
+        for lop in input.ops.iter_mut() {
+            match lop.op.clone() {
                 OpCode::AsBits(cast) => {
                     if let Ok(literal) = cast.arg.as_literal() {
                         let literal_val = &input.literals[&literal];
                         if let Some(len) = cast.len {
                             if literal_val.kind.is_unsigned() && literal_val.bits.len() == len {
-                                *op = OpCode::Assign(Assign {
+                                lop.op = OpCode::Assign(Assign {
                                     lhs: cast.lhs,
                                     rhs: cast.arg,
                                 })
@@ -36,7 +36,7 @@ impl Pass for RemoveUselessCastsPass {
                         let literal_val = &input.literals[&literal];
                         if let Some(len) = cast.len {
                             if literal_val.kind.is_signed() && literal_val.bits.len() == len {
-                                *op = OpCode::Assign(Assign {
+                                lop.op = OpCode::Assign(Assign {
                                     lhs: cast.lhs,
                                     rhs: cast.arg,
                                 })

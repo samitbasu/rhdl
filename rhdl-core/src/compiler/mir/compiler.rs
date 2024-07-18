@@ -31,6 +31,7 @@ use crate::compiler::display_ast::pretty_print_statement;
 use crate::error::RHDLError;
 use crate::kernel::Kernel;
 use crate::rhif;
+use crate::rhif::object::LocatedOpCode;
 use crate::rhif::object::SymbolMap;
 use crate::rhif::rhif_builder::op_as_bits_inferred;
 use crate::rhif::rhif_builder::op_as_signed_inferred;
@@ -65,7 +66,6 @@ use super::error::ICE;
 use super::interner::Intern;
 use super::interner::InternKey;
 use super::mir_impl::Mir;
-use super::mir_impl::OpCodeWithSource;
 use super::mir_impl::TypeEquivalence;
 
 #[derive(Debug, Clone)]
@@ -160,7 +160,7 @@ type Result<T> = std::result::Result<T, RHDLError>;
 pub struct MirContext<'a> {
     kinds: Intern<Kind>,
     scopes: Vec<Scope>,
-    ops: Vec<OpCodeWithSource>,
+    ops: Vec<LocatedOpCode>,
     reg_count: usize,
     literals: BTreeMap<Slot, ExprLit>,
     reg_source_map: BTreeMap<Slot, NodeId>,
@@ -491,7 +491,7 @@ impl<'a> MirContext<'a> {
         Ok(ndx)
     }
     fn op(&mut self, op: OpCode, node: NodeId) {
-        self.ops.push(OpCodeWithSource { op, source: node });
+        self.ops.push((op, node).into());
     }
     fn insert_implicit_return(
         &mut self,
@@ -1418,11 +1418,6 @@ pub fn compile_mir(func: Kernel) -> Result<Mir> {
     compiler.visit_kernel_fn(func.inner())?;
     compiler.bind_slot_to_type(compiler.return_slot, &func.inner().ret);
     let source = build_spanned_source_for_kernel(func.inner());
-    let opcode_map = compiler
-        .ops
-        .iter()
-        .map(|x| (compiler.fn_id, x.source).into())
-        .collect();
     let slot_map = compiler
         .reg_source_map
         .into_iter()
@@ -1438,7 +1433,6 @@ pub fn compile_mir(func: Kernel) -> Result<Mir> {
     Ok(Mir {
         symbols: SymbolMap {
             slot_map,
-            opcode_map,
             source,
             slot_names: compiler.slot_names,
             aliases: Default::default(),

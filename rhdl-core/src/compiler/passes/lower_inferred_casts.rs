@@ -17,12 +17,12 @@ impl Pass for LowerInferredCastsPass {
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut ops = input.ops.clone();
-        for op in ops.iter_mut() {
-            match op.clone() {
+        for lop in ops.iter_mut() {
+            match lop.op.clone() {
                 OpCode::AsBits(cast) => {
                     if cast.len.is_none() {
                         let dest_width = input.kind(cast.lhs).bits();
-                        *op = OpCode::AsBits(Cast {
+                        lop.op = OpCode::AsBits(Cast {
                             lhs: cast.lhs,
                             arg: cast.arg,
                             len: Some(dest_width),
@@ -32,7 +32,7 @@ impl Pass for LowerInferredCastsPass {
                 OpCode::AsSigned(cast) => {
                     if cast.len.is_none() {
                         let dest_width = input.kind(cast.lhs).bits();
-                        *op = OpCode::AsSigned(Cast {
+                        lop.op = OpCode::AsSigned(Cast {
                             lhs: cast.lhs,
                             arg: cast.arg,
                             len: Some(dest_width),
