@@ -150,7 +150,7 @@ pub struct Assign {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum CaseArgument {
-    Literal(usize),
+    Literal(LiteralId),
     Wild,
 }
 
@@ -165,11 +165,12 @@ pub struct Case {
 pub struct Cast {
     pub lhs: Operand,
     pub arg: Operand,
+    pub len: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Exec {
     pub lhs: Operand,
     pub id: FuncId,
-    pub args: Vec<Operand>,
+    pub args: Vec<Option<Operand>>,
 }
