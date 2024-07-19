@@ -10,11 +10,11 @@ impl CostEstimator for TestComputer {
             op: AluUnary::Not,
             lhs: _,
             arg1: _,
-        }) = &obj.ops[opcode]
+        }) = &obj.ops[opcode].op
         {
             return -50.0; // Signal cost...
         }
-        if matches!(obj.ops[opcode], OpCode::Binary(_) | OpCode::Select(_)) {
+        if matches!(obj.ops[opcode].op, OpCode::Binary(_) | OpCode::Select(_)) {
             -1.0
         } else {
             0.0

@@ -128,6 +128,8 @@ pub enum ICE {
     SymbolTableIsIncomplete { slot: Slot },
     #[error("Unable to infer clock domain for retime operation {op:?}")]
     UnableToInferClockDomainForRetime { op: OpCode },
+    #[error("Empty slot passed to code generator in RTL")]
+    EmptySlotInRTL,
 }
 
 #[derive(Error, Debug, Diagnostic)]
