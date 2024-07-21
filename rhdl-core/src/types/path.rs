@@ -121,7 +121,7 @@ impl Path {
     pub fn member(mut self, member: &Member) -> Self {
         match member {
             Member::Named(name) => self.elements.push(PathElement::Field(name.to_owned())),
-            Member::Unnamed(ndx) => self.elements.push(PathElement::Index(*ndx as usize)),
+            Member::Unnamed(ndx) => self.elements.push(PathElement::TupleIndex(*ndx as usize)),
         }
         self
     }
@@ -189,6 +189,38 @@ impl Path {
 
     pub fn is_magic_val_path(&self) -> bool {
         self.elements.len() == 1 && (self.elements[0] == PathElement::Field("#val".to_string()))
+    }
+    // Replace all dynamic indices such as `x[[a]]` with
+    // simple indices `x[0]`.  Used to calculate the offset
+    // of a dynamic indexing expression.
+    pub fn zero_out_dynamic_indices(&self) -> Path {
+        Path {
+            elements: self
+                .elements
+                .iter()
+                .map(|e| match e {
+                    PathElement::DynamicIndex(_) => PathElement::Index(0),
+                    _ => e.clone(),
+                })
+                .collect(),
+        }
+    }
+    // Stride path - zero out all dynamic indices except the one
+    // with the given slot.  In that case, use an index of 1.
+    // This is equivalent to, um, differentiating the bit-range with
+    // respect to the given slot.
+    pub fn stride_path(&self, slot: Slot) -> Path {
+        Path {
+            elements: self
+                .elements
+                .iter()
+                .map(|e| match e {
+                    PathElement::DynamicIndex(s) if s == &slot => PathElement::Index(1),
+                    PathElement::DynamicIndex(_) => PathElement::Index(0),
+                    _ => e.clone(),
+                })
+                .collect(),
+        }
     }
 }
 

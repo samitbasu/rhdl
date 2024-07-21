@@ -986,13 +986,13 @@ mod test {
         let kind = make_enum_kind();
         let len = kind.bits();
         let template = kind.enum_template("B").unwrap();
-        let disc: TypedBits = 1.into();
+        let disc: TypedBits = 1_u64.into();
         assert_eq!(template.bits, disc.unsigned_cast(len).unwrap().bits);
         let template = kind.enum_template("C").unwrap();
-        let disc: TypedBits = 2.into();
+        let disc: TypedBits = 2_u64.into();
         assert_eq!(template.bits, disc.unsigned_cast(len).unwrap().bits);
         let template = kind.enum_template("D").unwrap();
-        let disc: TypedBits = 3.into();
+        let disc: TypedBits = 3_u64.into();
         assert_eq!(template.bits, disc.unsigned_cast(len).unwrap().bits);
     }
 
@@ -1000,12 +1000,12 @@ mod test {
     fn test_enum_template_with_signed_msb_is_correct() {
         let kind = make_enum_msb_signed_kind();
         let template = kind.enum_template("A").unwrap();
-        let disc: TypedBits = (-1).into();
+        let disc: TypedBits = (-1_i64).into();
         let disc = disc.signed_cast(4).unwrap();
         let pad = kind.pad(disc.bits);
         assert_eq!(template.bits, pad);
         let template = kind.enum_template("B").unwrap();
-        let disc: TypedBits = 1.into();
+        let disc: TypedBits = 1_i64.into();
         let disc = disc.signed_cast(4).unwrap();
         let pad = kind.pad(disc.bits);
         assert_eq!(template.bits, pad);

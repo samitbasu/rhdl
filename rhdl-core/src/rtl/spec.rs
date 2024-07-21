@@ -112,8 +112,7 @@ pub struct Concat {
 pub struct DynamicIndex {
     pub lhs: Operand,
     pub arg: Operand,
-    pub base_offset: usize,
-    pub stride: usize,
+    pub offset: Operand,
     pub len: usize,
 }
 
@@ -121,8 +120,7 @@ pub struct DynamicIndex {
 pub struct DynamicSplice {
     pub lhs: Operand,
     pub arg: Operand,
-    pub base_offset: usize,
-    pub stride: usize,
+    pub offset: Operand,
     pub len: usize,
     pub value: Operand,
 }

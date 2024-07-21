@@ -45,28 +45,21 @@ impl std::fmt::Debug for OpCode {
             OpCode::DynamicIndex(DynamicIndex {
                 lhs,
                 arg,
-                base_offset,
-                stride,
+                offset,
                 len,
             }) => {
-                write!(
-                    f,
-                    " {:?} <- {:?}[{:?} + ({:?} * {:?}) +: {:?}]",
-                    lhs, arg, base_offset, arg, stride, len
-                )
+                write!(f, " {:?} <- {:?}[{:?} +: {:?}]", lhs, arg, offset, len)
             }
             OpCode::DynamicSplice(DynamicSplice {
                 lhs,
                 arg,
-                base_offset,
-                stride,
+                offset,
                 len,
                 value,
             }) => {
                 write!(
                     f,
-                    " {:?} <- {:?}; {:?}[{:?} + ({:?} * {:?}) +: {:?}] <- {:?}",
-                    lhs, arg, lhs, base_offset, arg, stride, len, value
+                    " {lhs:?} <- {arg:?}; {lhs:?}[{offset:?} +: {len}] <- {value:?}"
                 )
             }
             OpCode::Exec(Exec { lhs, id, args }) => {
