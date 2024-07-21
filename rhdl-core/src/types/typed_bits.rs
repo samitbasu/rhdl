@@ -41,6 +41,20 @@ impl From<i64> for TypedBits {
     }
 }
 
+impl From<u64> for TypedBits {
+    fn from(mut val: u64) -> Self {
+        let mut bits = Vec::new();
+        for _ in 0..64 {
+            bits.push(val & 1 != 0);
+            val >>= 1;
+        }
+        TypedBits {
+            bits,
+            kind: Kind::make_bits(64),
+        }
+    }
+}
+
 impl TypedBits {
     pub const EMPTY: TypedBits = TypedBits {
         bits: Vec::new(),

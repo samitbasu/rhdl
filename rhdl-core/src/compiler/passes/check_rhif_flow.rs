@@ -92,7 +92,6 @@ fn check_rhif_flow(obj: &Object) -> Result<(), RHDLError> {
 
 fn check_flow<'a>(obj: &'a Object, mut init_set: InitSet<'a>) -> Result<InitSet<'a>, RHDLError> {
     for lop in &obj.ops {
-        eprintln!("Check flow for {:?}", lop);
         match &lop.op {
             OpCode::Noop => {}
             OpCode::Binary(Binary {

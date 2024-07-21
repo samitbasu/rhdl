@@ -62,7 +62,7 @@ impl SymbolMap {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct LocatedOpCode {
     pub op: OpCode,
     pub id: NodeId,
@@ -136,7 +136,7 @@ impl std::fmt::Debug for Object {
         let mut body_str = String::new();
         for lop in &self.ops {
             if !matches!(lop.op, OpCode::Noop) {
-                writeln!(body_str, "{:?}", lop)?;
+                writeln!(body_str, "{:?}", lop.op)?;
             }
         }
         let mut indent = 0;
