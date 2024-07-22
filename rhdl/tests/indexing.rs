@@ -50,6 +50,21 @@ fn test_struct_field_indexing() -> miette::Result<()> {
 }
 
 #[test]
+fn test_array_indexing_simple() {
+    #[kernel]
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<[b8; 2], Red> {
+        let a = a.val();
+        let b = b.val();
+        let mut c = [a, b];
+        c[1] = a;
+        c[0] = b;
+        signal(c)
+    }
+
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+}
+
+#[test]
 fn test_array_indexing() {
     #[kernel]
     fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<[b8; 2], Red> {
@@ -59,6 +74,19 @@ fn test_array_indexing() {
         c[1] = a;
         c[0] = b;
         signal([c[0] + c[1], c[1]])
+    }
+
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+}
+
+#[test]
+fn test_array_indexing_2() {
+    #[kernel]
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<[b8; 2], Red> {
+        let a = a.val();
+        let b = b.val();
+        let c = [a, b];
+        signal([c[0], c[1]])
     }
 
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();

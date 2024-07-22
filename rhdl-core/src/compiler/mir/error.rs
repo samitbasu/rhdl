@@ -4,11 +4,7 @@ use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
 use crate::{
-    ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
-    ast_builder::BinOp,
-    rhif::spec::{AluBinary, AluUnary, LiteralId, OpCode, Slot},
-    types::path::Path,
-    Kind, TypedBits,
+    ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat}, ast_builder::BinOp, rhif::spec::{AluBinary, AluUnary, LiteralId, OpCode, Slot}, rtl::spec::Operand, types::path::Path, Kind, TypedBits
 };
 
 use super::{compiler::ScopeIndex, ty::SignFlag};
@@ -130,6 +126,14 @@ pub enum ICE {
     UnableToInferClockDomainForRetime { op: OpCode },
     #[error("Empty slot passed to code generator in RTL")]
     EmptySlotInRTL,
+    #[error("Function {fn_id:?} not found in object map")]
+    MissingObject { fn_id: FunctionId },
+    #[error("Invalid signed cast in RTL {lhs:?} and {arg:?} with length {len}")]
+    InvalidSignedCast {
+        lhs: Operand,
+        arg: Operand,
+        len: usize,
+    },
 }
 
 #[derive(Error, Debug, Diagnostic)]

@@ -195,7 +195,7 @@ fn test_simple_type_inference() -> miette::Result<()> {
 }
 
 #[test]
-fn test_struct_inference_inferred_lengths() {
+fn test_struct_inference_inferred_lengths() -> miette::Result<()> {
     use rhdl_bits::alias::*;
     use rhdl_bits::bits;
 
@@ -264,8 +264,8 @@ fn test_struct_inference_inferred_lengths() {
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(
         do_stuff,
         inputs.into_iter().map(|x| (signal(x),)),
-    )
-    .unwrap();
+    )?;
+    Ok(())
 }
 
 #[test]

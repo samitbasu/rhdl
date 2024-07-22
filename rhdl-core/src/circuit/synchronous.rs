@@ -1,6 +1,6 @@
 use crate::{
-    crusty::timing::CostGraph, error::RHDLError, types::reset::Reset, util::hash_id,
-    CircuitDescriptor, Clock, Digital, DigitalFn, HDLDescriptor, HDLKind, Tristate,
+    error::RHDLError, types::reset::Reset, util::hash_id, CircuitDescriptor, Clock, Digital,
+    DigitalFn, HDLDescriptor, HDLKind, Tristate,
 };
 
 pub type SynchronousUpdateFn<C> = fn(

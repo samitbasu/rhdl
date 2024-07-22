@@ -39,7 +39,6 @@ pub use types::timed::Timed;
 pub use types::tristate::Tristate;
 pub mod ast;
 pub mod circuit;
-pub mod codegen;
 pub mod compiler;
 pub mod crusty;
 //pub mod diagnostic;
@@ -51,9 +50,6 @@ pub mod types;
 pub mod util;
 pub use util::id;
 
-pub use codegen::verilog::as_verilog_literal;
-pub use codegen::verilog::generate_verilog;
-pub use codegen::verilog::VerilogModule;
 pub use compiler::compile_design;
 pub use note_db::note;
 pub use note_db::note_init_db;

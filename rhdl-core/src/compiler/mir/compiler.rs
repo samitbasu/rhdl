@@ -1421,7 +1421,6 @@ pub fn compile_mir(func: Kernel) -> Result<Mir> {
     let slot_map = compiler
         .reg_source_map
         .into_iter()
-        .map(|(slot, node)| (slot, node))
         .chain(once((Slot::Empty, func.inner().id)))
         .collect();
     // Remove the interner... temporarily

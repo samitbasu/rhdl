@@ -28,8 +28,6 @@ use crate::{
     DigitalFn, KernelFnKind, Module,
 };
 
-use super::rtl::compile_rtl;
-
 type Result<T> = std::result::Result<T, RHDLError>;
 
 fn wrap_pass<P: Pass>(obj: Object) -> Result<Object> {
@@ -110,8 +108,6 @@ pub fn compile_design<K: DigitalFn>(mode: CompilationMode) -> Result<Module> {
         return Err(anyhow!("Missing kernel function provided for {}", type_name::<K>()).into());
     };
     let main = compile_kernel(kernel, mode)?;
-    let rtl = compile_rtl(&main)?;
-    //eprintln!("RTL:\n{:?}", rtl);
     let mut design = Module {
         objects: [(main.fn_id, main.clone())].into_iter().collect(),
         top: main.fn_id,
