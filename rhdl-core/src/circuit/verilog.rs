@@ -1,8 +1,9 @@
+use crate::compile_design;
+use crate::compiler::codegen::verilog::generate_verilog;
 use crate::error::RHDLError;
 use crate::types::digital::Digital;
 use crate::types::path::{bit_range, Path};
 use crate::types::tristate::Tristate;
-use crate::{compile_design, generate_verilog};
 
 use super::{
     circuit_descriptor::CircuitDescriptor, circuit_impl::Circuit, hdl_descriptor::HDLDescriptor,

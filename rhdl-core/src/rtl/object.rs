@@ -7,7 +7,8 @@ use crate::{
         object::SymbolMap,
         spec::{ExternalFunction, FuncId, Slot},
     },
-    Kind, TypedBits,
+    util::binary_string,
+    TypedBits,
 };
 
 use super::spec::{LiteralId, OpCode, Operand, RegisterId};
@@ -36,21 +37,39 @@ pub enum BitString {
     Unsigned(Vec<bool>),
 }
 
+impl BitString {
+    pub fn is_signed(&self) -> bool {
+        matches!(self, BitString::Signed(_))
+    }
+    pub fn is_unsigned(&self) -> bool {
+        matches!(self, BitString::Unsigned(_))
+    }
+    pub fn len(&self) -> usize {
+        match self {
+            BitString::Signed(bits) => bits.len(),
+            BitString::Unsigned(bits) => bits.len(),
+        }
+    }
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+    pub fn bits(&self) -> &[bool] {
+        match self {
+            BitString::Signed(bits) => bits,
+            BitString::Unsigned(bits) => bits,
+        }
+    }
+}
+
 impl std::fmt::Debug for BitString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             BitString::Signed(bits) => {
-                write!(f, "s")?;
-                for bit in bits {
-                    write!(f, "{}", if *bit { "1" } else { "0" })?;
-                }
+                write!(f, "s{}", binary_string(bits))?;
                 Ok(())
             }
             BitString::Unsigned(bits) => {
-                write!(f, "b")?;
-                for bit in bits {
-                    write!(f, "{}", if *bit { "1" } else { "0" })?;
-                }
+                write!(f, "b{}", binary_string(bits))?;
                 Ok(())
             }
         }
@@ -67,10 +86,37 @@ impl From<&TypedBits> for BitString {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum RegisterKind {
     Signed(usize),
     Unsigned(usize),
+}
+
+impl RegisterKind {
+    pub fn is_signed(&self) -> bool {
+        matches!(self, RegisterKind::Signed(_))
+    }
+    pub fn is_unsigned(&self) -> bool {
+        matches!(self, RegisterKind::Unsigned(_))
+    }
+    pub fn len(&self) -> usize {
+        match self {
+            RegisterKind::Signed(len) => *len,
+            RegisterKind::Unsigned(len) => *len,
+        }
+    }
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+impl From<&BitString> for RegisterKind {
+    fn from(bs: &BitString) -> Self {
+        match bs {
+            BitString::Signed(bits) => RegisterKind::Signed(bits.len()),
+            BitString::Unsigned(bits) => RegisterKind::Unsigned(bits.len()),
+        }
+    }
 }
 
 impl std::fmt::Debug for RegisterKind {
@@ -88,12 +134,32 @@ pub struct Object {
     pub literals: BTreeMap<LiteralId, BitString>,
     pub operand_map: BTreeMap<Operand, Slot>,
     pub register_kind: BTreeMap<RegisterId, RegisterKind>,
-    pub return_register: Option<Operand>,
+    pub return_register: Operand,
     pub externals: BTreeMap<FuncId, ExternalFunction>,
     pub ops: Vec<LocatedOpCode>,
     pub arguments: Vec<Option<RegisterId>>,
     pub name: String,
     pub fn_id: FunctionId,
+}
+
+impl Object {
+    pub fn op_name(&self, op: Operand) -> String {
+        if let Some(slot) = self.operand_map.get(&op) {
+            if let Some(name) = self.symbols.slot_names.get(slot) {
+                format!("{op:?}_{name}")
+            } else {
+                format!("{op:?}")
+            }
+        } else {
+            format!("{op:?}")
+        }
+    }
+    pub fn kind(&self, op: Operand) -> RegisterKind {
+        match op {
+            Operand::Register(reg) => self.register_kind[&reg],
+            Operand::Literal(lit) => (&self.literals[&lit]).into(),
+        }
+    }
 }
 
 impl std::fmt::Debug for Object {

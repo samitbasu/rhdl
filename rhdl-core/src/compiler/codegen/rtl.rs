@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::ast::ast_impl::NodeId;
-use crate::rhif::spec::{AluBinary, ExternalFunction, FuncId, Slot};
+use crate::rhif::spec::{AluBinary, Slot};
 use crate::rtl::object::{BitString, RegisterKind};
 use crate::rtl::spec::{LiteralId, Operand, RegisterId};
 use crate::types::path::{bit_range, Path};
@@ -12,7 +12,7 @@ use crate::{rtl, Kind};
 use crate::rhif::spec as hf;
 use crate::rtl::spec as tl;
 
-use super::mir::error::{RHDLCompileError, ICE};
+use crate::compiler::mir::error::{RHDLCompileError, ICE};
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
@@ -39,7 +39,6 @@ struct RTLCompiler<'a> {
     registers: BTreeMap<RegisterId, RegisterKind>,
     operand_map: BTreeMap<Operand, Slot>,
     reverse_operand_map: BTreeMap<Slot, Operand>,
-    externals: BTreeMap<FuncId, ExternalFunction>,
     ops: Vec<rtl::object::LocatedOpCode>,
     literal_count: usize,
     register_count: usize,
@@ -53,7 +52,6 @@ impl<'a> RTLCompiler<'a> {
             registers: Default::default(),
             operand_map: Default::default(),
             reverse_operand_map: Default::default(),
-            externals: Default::default(),
             ops: Default::default(),
             literal_count: 0,
             register_count: 0,
@@ -98,7 +96,6 @@ impl<'a> RTLCompiler<'a> {
         }
     }
     fn raise_ice(&self, cause: ICE, id: NodeId) -> RHDLError {
-        panic!("ICE: {:?}", cause);
         RHDLError::RHDLInternalCompilerError(Box::new(RHDLCompileError {
             cause,
             src: self.object.symbols.source.source.clone(),
@@ -256,7 +253,7 @@ impl<'a> RTLCompiler<'a> {
             return Ok(());
         }
         let lhs = self.operand(*lhs, id)?;
-        let elements = self.make_operand_list(&elements, id)?;
+        let elements = self.make_operand_list(elements, id)?;
         self.ops.push(
             (
                 tl::OpCode::Concat(tl::Concat {
@@ -729,18 +726,14 @@ pub fn compile_rtl(object: &rhif::object::Object) -> Result<rtl::object::Object>
             }
         })
         .collect();
-    let return_register = if object.return_slot.is_empty() {
-        None
-    } else {
-        Some(compiler.reverse_operand_map[&object.return_slot])
-    };
+    let return_register = compiler.reverse_operand_map[&object.return_slot];
     Ok(rtl::object::Object {
         symbols: object.symbols.clone(),
         literals: compiler.literals,
         operand_map: compiler.operand_map,
         return_register,
         register_kind: compiler.registers,
-        externals: compiler.externals,
+        externals: object.externals.clone(),
         ops: compiler.ops,
         arguments,
         name: object.name.clone(),

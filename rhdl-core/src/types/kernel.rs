@@ -1,4 +1,4 @@
-use crate::{ast::ast_impl, error::RHDLError, Color, TypedBits};
+use crate::{ast::ast_impl, Color, TypedBits};
 
 #[derive(Debug, Clone)]
 pub struct Kernel(Box<ast_impl::KernelFn>);

@@ -1,6 +1,7 @@
+use crate::compiler::codegen::verilog::generate_verilog;
 use crate::error::RHDLError;
 use crate::rhif::vm::execute_function;
-use crate::{compile_design, generate_verilog, DigitalFn, KernelFnKind};
+use crate::{compile_design, DigitalFn};
 use crate::{Timed, TypedBits};
 
 pub trait TestArg {
@@ -315,7 +316,7 @@ where
     }
     eprintln!("VM test passed {} cases OK", vm_test_count);
     let tm = test_module(uut, verilog, vals);
-    //eprintln!("{tm}");
+    //eprintln!("{}", tm.testbench);
     tm.run_iverilog()
 }
 

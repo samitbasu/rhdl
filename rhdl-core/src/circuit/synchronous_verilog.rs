@@ -1,8 +1,7 @@
 use crate::{
     compile_design,
-    compiler::driver::CompilationMode,
+    compiler::{codegen::verilog::generate_verilog, driver::CompilationMode},
     error::RHDLError,
-    generate_verilog,
     types::{
         digital::Digital,
         path::{bit_range, Path},
