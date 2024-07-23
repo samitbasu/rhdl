@@ -144,14 +144,17 @@ pub struct Object {
 
 impl Object {
     pub fn op_name(&self, op: Operand) -> String {
+        format!("{op:?}")
+    }
+    pub fn op_alias(&self, op: Operand) -> Option<String> {
         if let Some(slot) = self.operand_map.get(&op) {
             if let Some(name) = self.symbols.slot_names.get(slot) {
-                format!("{op:?}_{name}")
+                Some(format!("{slot:?}_{name}"))
             } else {
-                format!("{op:?}")
+                Some(format!("{slot:?}"))
             }
         } else {
-            format!("{op:?}")
+            None
         }
     }
     pub fn kind(&self, op: Operand) -> RegisterKind {

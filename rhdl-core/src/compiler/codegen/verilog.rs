@@ -345,7 +345,10 @@ impl<'a> TranslationContext<'a> {
             .keys()
             .filter(|x| !self.rtl.arguments.contains(&Some(**x)))
         {
-            let alias = self.rtl.op_name(Operand::Register(*reg));
+            let alias = self
+                .rtl
+                .op_alias(Operand::Register(*reg))
+                .unwrap_or_default();
             self.body.push_str(&format!(
                 "   {}; // {alias}\n",
                 reg_decl(
@@ -383,7 +386,9 @@ impl<'a> TranslationContext<'a> {
 
 fn translate(design: &Module, fn_id: FunctionId) -> Result<VerilogModule> {
     let obj = &design.objects[&fn_id];
+    eprintln!("RHIF: {:?}", obj);
     let rtl = compile_rtl(obj)?;
+    eprintln!("RTL: {:?}", rtl);
     let context = TranslationContext {
         kernels: Default::default(),
         body: Default::default(),

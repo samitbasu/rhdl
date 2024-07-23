@@ -363,6 +363,7 @@ fn test_enum_match() -> miette::Result<()> {
     )?;
     Ok(())
 }
+
 #[test]
 fn test_enum_unmatched_variant_not_usable() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
