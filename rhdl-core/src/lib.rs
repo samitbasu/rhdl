@@ -84,4 +84,6 @@ pub use types::kernel;
 pub const MAX_ITERS: usize = 10;
 pub mod error;
 pub use error::RHDLError;
+//pub mod netlist;
 pub mod rtl;
+pub mod timing;

@@ -3,12 +3,11 @@ use crate::{
         ArmKind, BitsKind, Block, Expr, ExprKind, KernelFn, NodeId, Pat, PatKind, Path,
         PathSegment, Stmt, StmtKind,
     },
+    rhif::spec::Member,
     util::IndentingFormatter,
     Kind,
 };
 use std::{collections::HashMap, ops::Range};
-
-use super::spec::Member;
 
 #[derive(Clone, Debug)]
 pub struct SpannedSource {
