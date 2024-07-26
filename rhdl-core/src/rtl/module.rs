@@ -1,9 +1,8 @@
-use crate::{
-    ast::{ast_impl::FunctionId, spanned_source::SpannedSource},
-    rhif::Object,
-};
+use crate::ast::{ast_impl::FunctionId, spanned_source::SpannedSource};
 use anyhow::Result;
 use std::collections::HashMap;
+
+use super::Object;
 
 #[derive(Clone)]
 pub struct Module {

@@ -1,16 +1,16 @@
-use anyhow::Result;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
 use std::ops::Range;
 
+use crate::ast::spanned_source::SpannedSource;
 use crate::{
     ast::ast_impl::{FunctionId, NodeId},
     rhif::spec::{ExternalFunction, Slot},
     Kind, TypedBits,
 };
 
+use super::spec::OpCode;
 use super::spec::{FuncId, LiteralId, RegisterId};
-use super::{spanned_source::SpannedSource, spec::OpCode};
 
 #[derive(Debug, Clone, Copy, PartialEq, Hash)]
 pub struct SourceLocation {

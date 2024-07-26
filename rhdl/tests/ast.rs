@@ -418,6 +418,18 @@ fn test_assignment_of_if_expression() -> miette::Result<()> {
 }
 
 #[test]
+fn test_precomputation() -> miette::Result<()> {
+    #[kernel]
+    fn foo(a: Signal<b8, Red>) -> Signal<b8, Red> {
+        let c = a.val();
+        let c = c + 5 + 3 - 1;
+        signal(c)
+    }
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_exhaustive_red())?;
+    Ok(())
+}
+
+#[test]
 #[allow(clippy::needless_range_loop)]
 fn test_for_loop() -> miette::Result<()> {
     #[kernel]

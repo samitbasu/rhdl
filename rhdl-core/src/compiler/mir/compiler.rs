@@ -23,6 +23,8 @@ use crate::ast::ast_impl::{
     ExprIf, ExprIndex, ExprMatch, ExprMethodCall, ExprPath, ExprRepeat, ExprRet, ExprStruct,
     ExprTuple, ExprUnary, FieldValue, Local, Pat, PatKind, Stmt, StmtKind,
 };
+use crate::ast::spanned_source::build_spanned_source_for_kernel;
+use crate::ast::spanned_source::SpannedSource;
 use crate::ast::visit::Visitor;
 use crate::ast_builder::BinOp;
 use crate::ast_builder::UnOp;
@@ -40,8 +42,6 @@ use crate::rhif::rhif_builder::{
     op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
     op_exec, op_index, op_repeat, op_select, op_splice, op_struct, op_tuple, op_unary,
 };
-use crate::rhif::spanned_source::build_spanned_source_for_kernel;
-use crate::rhif::spanned_source::SpannedSource;
 use crate::rhif::spec::AluBinary;
 use crate::rhif::spec::AluUnary;
 use crate::rhif::spec::CaseArgument;
