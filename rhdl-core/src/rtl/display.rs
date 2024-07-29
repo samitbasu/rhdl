@@ -1,8 +1,8 @@
 use crate::util::splice;
 
 use super::spec::{
-    Assign, Binary, Case, Cast, Concat, DynamicIndex, DynamicSplice, Exec, Index, OpCode, Select,
-    Splice, Unary,
+    Assign, Binary, Case, Cast, Concat, DynamicIndex, DynamicSplice, Index, OpCode, Select, Splice,
+    Unary,
 };
 
 impl std::fmt::Debug for OpCode {
@@ -61,9 +61,6 @@ impl std::fmt::Debug for OpCode {
                     f,
                     " {lhs:?} <- {arg:?}; {lhs:?}[{offset:?} +: {len}] <- {value:?}"
                 )
-            }
-            OpCode::Exec(Exec { lhs, id, args }) => {
-                write!(f, " {:?} <- {:?}({})", lhs, id, splice(args, ", "))
             }
             OpCode::Index(Index {
                 lhs,
