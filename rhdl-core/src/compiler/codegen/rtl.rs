@@ -1,8 +1,10 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
-use crate::ast::ast_impl::NodeId;
+use crate::ast::ast_impl::{FunctionId, NodeId};
+use crate::crusty::timing::Node;
+use crate::rhif::object::SymbolMap;
 use crate::rhif::spec::{AluBinary, Slot};
-use crate::rtl::object::{BitString, RegisterKind};
+use crate::rtl::object::{lop, BitString, LocatedOpCode, RegisterKind};
 use crate::rtl::spec::{LiteralId, Operand, RegisterId};
 use crate::types::path::{bit_range, Path};
 use crate::TypedBits;
@@ -34,20 +36,24 @@ fn test_clog2() {
 }
 
 struct RTLCompiler<'a> {
+    symbols: HashMap<FunctionId, SymbolMap>,
+    module: &'a rhif::module::Module,
     object: &'a rhif::object::Object,
     literals: BTreeMap<LiteralId, BitString>,
     registers: BTreeMap<RegisterId, RegisterKind>,
-    operand_map: BTreeMap<Operand, Slot>,
-    reverse_operand_map: BTreeMap<Slot, Operand>,
+    operand_map: BTreeMap<Operand, (FunctionId, Slot)>,
+    reverse_operand_map: BTreeMap<(FunctionId, Slot), Operand>,
     ops: Vec<rtl::object::LocatedOpCode>,
     literal_count: usize,
     register_count: usize,
 }
 
 impl<'a> RTLCompiler<'a> {
-    fn new(object: &'a rhif::object::Object) -> Self {
+    fn new(module: &'a rhif::module::Module, object: &'a rhif::object::Object) -> Self {
         Self {
+            module,
             object,
+            symbols: [(object.fn_id, object.symbols.clone())].into(),
             literals: Default::default(),
             registers: Default::default(),
             operand_map: Default::default(),
@@ -95,12 +101,15 @@ impl<'a> RTLCompiler<'a> {
             self.allocate_unsigned(len)
         }
     }
-    fn raise_ice(&self, cause: ICE, id: NodeId) -> RHDLError {
+    fn raise_ice(&self, cause: ICE, node_id: NodeId) -> RHDLError {
         RHDLError::RHDLInternalCompilerError(Box::new(RHDLCompileError {
             cause,
             src: self.object.symbols.source.source.clone(),
-            err_span: self.object.symbols.node_span(id).into(),
+            err_span: self.object.symbols.node_span(node_id).into(),
         }))
+    }
+    fn lop(&mut self, opcode: tl::OpCode, id: NodeId) {
+        self.ops.push((opcode, id, self.object.fn_id).into())
     }
     fn build_dynamic_index(
         &mut self,
@@ -169,51 +178,42 @@ impl<'a> RTLCompiler<'a> {
             let reg = self.allocate_register(&Kind::make_bits(index_bits));
             let arg = self.operand(*slot, node_id)?;
             // reg <- arg as L
-            self.ops.push(
-                (
-                    tl::OpCode::AsBits(tl::Cast {
-                        lhs: Operand::Register(reg),
-                        arg,
-                        len: index_bits,
-                    }),
-                    node_id,
-                )
-                    .into(),
+            self.lop(
+                tl::OpCode::AsBits(tl::Cast {
+                    lhs: Operand::Register(reg),
+                    arg,
+                    len: index_bits,
+                }),
+                node_id,
             );
             let prod = self.allocate_register(&Kind::make_bits(index_bits));
             // prod <- reg * stride
-            self.ops.push(
-                (
-                    tl::OpCode::Binary(tl::Binary {
-                        lhs: Operand::Register(prod),
-                        op: AluBinary::Mul,
-                        arg1: Operand::Register(reg),
-                        arg2: Operand::Literal(stride),
-                    }),
-                    node_id,
-                )
-                    .into(),
+            self.lop(
+                tl::OpCode::Binary(tl::Binary {
+                    lhs: Operand::Register(prod),
+                    op: AluBinary::Mul,
+                    arg1: Operand::Register(reg),
+                    arg2: Operand::Literal(stride),
+                }),
+                node_id,
             );
             let sum = self.allocate_register(&Kind::make_bits(index_bits));
             // sum <- sum + prod
-            self.ops.push(
-                (
-                    tl::OpCode::Binary(tl::Binary {
-                        lhs: Operand::Register(sum),
-                        op: AluBinary::Add,
-                        arg1: index_sum,
-                        arg2: Operand::Register(prod),
-                    }),
-                    node_id,
-                )
-                    .into(),
+            self.lop(
+                tl::OpCode::Binary(tl::Binary {
+                    lhs: Operand::Register(sum),
+                    op: AluBinary::Add,
+                    arg1: index_sum,
+                    arg2: Operand::Register(prod),
+                }),
+                node_id,
             );
             index_sum = Operand::Register(sum);
         }
         Ok((index_sum, base_range.len()))
     }
     fn operand(&mut self, slot: Slot, id: NodeId) -> Result<Operand> {
-        if let Some(operand) = self.reverse_operand_map.get(&slot) {
+        if let Some(operand) = self.reverse_operand_map.get(&(self.object.fn_id, slot)) {
             return Ok(*operand);
         }
         match slot {
@@ -221,16 +221,18 @@ impl<'a> RTLCompiler<'a> {
                 let bits = &self.object.literals[&literal_id];
                 let literal_id = self.allocate_literal(bits);
                 let operand = Operand::Literal(literal_id);
-                self.reverse_operand_map.insert(slot, operand);
-                self.operand_map.insert(operand, slot);
+                self.reverse_operand_map
+                    .insert((self.object.fn_id, slot), operand);
+                self.operand_map.insert(operand, (self.object.fn_id, slot));
                 Ok(operand)
             }
             Slot::Register(register_id) => {
                 let kind = &self.object.kind[&register_id];
                 let register_id = self.allocate_register(kind);
                 let operand = Operand::Register(register_id);
-                self.reverse_operand_map.insert(slot, operand);
-                self.operand_map.insert(operand, slot);
+                self.reverse_operand_map
+                    .insert((self.object.fn_id, slot), operand);
+                self.operand_map.insert(operand, (self.object.fn_id, slot));
                 Ok(operand)
             }
             Slot::Empty => Err(self.raise_ice(ICE::EmptySlotInRTL, id)),
@@ -254,15 +256,12 @@ impl<'a> RTLCompiler<'a> {
         }
         let lhs = self.operand(*lhs, id)?;
         let elements = self.make_operand_list(elements, id)?;
-        self.ops.push(
-            (
-                tl::OpCode::Concat(tl::Concat {
-                    lhs,
-                    args: elements,
-                }),
-                id,
-            )
-                .into(),
+        self.lop(
+            tl::OpCode::Concat(tl::Concat {
+                lhs,
+                args: elements,
+            }),
+            id,
         );
         Ok(())
     }
@@ -272,8 +271,7 @@ impl<'a> RTLCompiler<'a> {
         if !lhs.is_empty() && !arg.is_empty() {
             let lhs = self.operand(*lhs, id)?;
             let arg = self.operand(*arg, id)?;
-            self.ops
-                .push((tl::OpCode::AsBits(tl::Cast { lhs, arg, len }), id).into());
+            self.lop(tl::OpCode::AsBits(tl::Cast { lhs, arg, len }), id);
         }
         Ok(())
     }
@@ -283,8 +281,7 @@ impl<'a> RTLCompiler<'a> {
         if !lhs.is_empty() && !arg.is_empty() {
             let lhs = self.operand(*lhs, id)?;
             let arg = self.operand(*arg, id)?;
-            self.ops
-                .push((tl::OpCode::AsSigned(tl::Cast { lhs, arg, len }), id).into());
+            self.lop(tl::OpCode::AsSigned(tl::Cast { lhs, arg, len }), id);
         }
         Ok(())
     }
@@ -293,8 +290,7 @@ impl<'a> RTLCompiler<'a> {
         if !lhs.is_empty() && !rhs.is_empty() {
             let lhs = self.operand(*lhs, id)?;
             let rhs = self.operand(*rhs, id)?;
-            self.ops
-                .push((tl::OpCode::Assign(tl::Assign { lhs, rhs }), id).into());
+            self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), id);
         }
         Ok(())
     }
@@ -309,17 +305,14 @@ impl<'a> RTLCompiler<'a> {
             let lhs = self.operand(lhs, id)?;
             let arg1 = self.operand(arg1, id)?;
             let arg2 = self.operand(arg2, id)?;
-            self.ops.push(
-                (
-                    tl::OpCode::Binary(tl::Binary {
-                        lhs,
-                        op,
-                        arg1,
-                        arg2,
-                    }),
-                    id,
-                )
-                    .into(),
+            self.lop(
+                tl::OpCode::Binary(tl::Binary {
+                    lhs,
+                    op,
+                    arg1,
+                    arg2,
+                }),
+                id,
             );
         }
         Ok(())
@@ -362,16 +355,13 @@ impl<'a> RTLCompiler<'a> {
                 Ok((cond, val))
             })
             .collect::<Result<Vec<_>>>()?;
-        self.ops.push(
-            (
-                tl::OpCode::Case(tl::Case {
-                    lhs,
-                    discriminant,
-                    table,
-                }),
-                id,
-            )
-                .into(),
+        self.lop(
+            tl::OpCode::Case(tl::Case {
+                lhs,
+                discriminant,
+                table,
+            }),
+            id,
         );
         Ok(())
     }
@@ -389,18 +379,15 @@ impl<'a> RTLCompiler<'a> {
         let lhs = self.operand(*lhs, node_id)?;
         let orig = self.operand(*orig, node_id)?;
         let subst = self.operand(*subst, node_id)?;
-        self.ops.push(
-            (
-                tl::OpCode::DynamicSplice(tl::DynamicSplice {
-                    lhs,
-                    arg: orig,
-                    offset: index_reg,
-                    len,
-                    value: subst,
-                }),
-                node_id,
-            )
-                .into(),
+        self.lop(
+            tl::OpCode::DynamicSplice(tl::DynamicSplice {
+                lhs,
+                arg: orig,
+                offset: index_reg,
+                len,
+                value: subst,
+            }),
+            node_id,
         );
         Ok(())
     }
@@ -423,23 +410,19 @@ impl<'a> RTLCompiler<'a> {
                 .member(&field.member);
             let (field_range, _) = bit_range(kind.clone(), &path)?;
             let reg = Operand::Register(self.allocate_register(&kind));
-            self.ops.push(
-                (
-                    tl::OpCode::Splice(tl::Splice {
-                        lhs: reg,
-                        orig: rhs,
-                        bit_range: field_range,
-                        value: field_value,
-                    }),
-                    id,
-                )
-                    .into(),
+            self.lop(
+                tl::OpCode::Splice(tl::Splice {
+                    lhs: reg,
+                    orig: rhs,
+                    bit_range: field_range,
+                    value: field_value,
+                }),
+                id,
             );
             rhs = reg;
         }
         let lhs = self.operand(*lhs, id)?;
-        self.ops
-            .push((tl::OpCode::Assign(tl::Assign { lhs, rhs }), id).into());
+        self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), id);
         Ok(())
     }
     fn make_exec(&mut self, exec: &hf::Exec, node_id: NodeId) -> Result<()> {
@@ -452,8 +435,7 @@ impl<'a> RTLCompiler<'a> {
             .iter()
             .map(|x| self.operand(*x, node_id).ok())
             .collect();
-        self.ops
-            .push((tl::OpCode::Exec(tl::Exec { lhs, id: *id, args }), node_id).into());
+        self.lop(tl::OpCode::Exec(tl::Exec { lhs, id: *id, args }), node_id);
         Ok(())
     }
     fn make_dynamic_index(&mut self, index: &hf::Index, node_id: NodeId) -> Result<()> {
@@ -464,17 +446,14 @@ impl<'a> RTLCompiler<'a> {
         let (index_reg, len) = self.build_dynamic_index(*arg, path, node_id)?;
         let lhs = self.operand(*lhs, node_id)?;
         let arg = self.operand(*arg, node_id)?;
-        self.ops.push(
-            (
-                tl::OpCode::DynamicIndex(tl::DynamicIndex {
-                    lhs,
-                    arg,
-                    offset: index_reg,
-                    len,
-                }),
-                node_id,
-            )
-                .into(),
+        self.lop(
+            tl::OpCode::DynamicIndex(tl::DynamicIndex {
+                lhs,
+                arg,
+                offset: index_reg,
+                len,
+            }),
+            node_id,
         );
         Ok(())
     }
@@ -489,16 +468,13 @@ impl<'a> RTLCompiler<'a> {
         let (bit_range, _) = bit_range(arg_ty, &index.path)?;
         let lhs = self.operand(index.lhs, node_id)?;
         let arg = self.operand(index.arg, node_id)?;
-        self.ops.push(
-            (
-                tl::OpCode::Index(tl::Index {
-                    lhs,
-                    arg,
-                    bit_range,
-                }),
-                node_id,
-            )
-                .into(),
+        self.lop(
+            tl::OpCode::Index(tl::Index {
+                lhs,
+                arg,
+                bit_range,
+            }),
+            node_id,
         );
         Ok(())
     }
@@ -510,8 +486,7 @@ impl<'a> RTLCompiler<'a> {
         let lhs = self.operand(lhs, node_id)?;
         let arg = self.operand(value, node_id)?;
         let args = vec![arg; len as usize];
-        self.ops
-            .push((tl::OpCode::Concat(tl::Concat { lhs, args }), node_id).into());
+        self.lop(tl::OpCode::Concat(tl::Concat { lhs, args }), node_id);
         Ok(())
     }
     fn make_retime(&mut self, retime: &hf::Retime, node_id: NodeId) -> Result<()> {
@@ -521,8 +496,7 @@ impl<'a> RTLCompiler<'a> {
         }
         let lhs = self.operand(lhs, node_id)?;
         let rhs = self.operand(arg, node_id)?;
-        self.ops
-            .push((tl::OpCode::Assign(tl::Assign { lhs, rhs }), node_id).into());
+        self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), node_id);
         Ok(())
     }
     fn make_select(&mut self, select: &hf::Select, node_id: NodeId) -> Result<()> {
@@ -539,17 +513,14 @@ impl<'a> RTLCompiler<'a> {
         let cond = self.operand(cond, node_id)?;
         let true_value = self.operand(true_value, node_id)?;
         let false_value = self.operand(false_value, node_id)?;
-        self.ops.push(
-            (
-                tl::OpCode::Select(tl::Select {
-                    lhs,
-                    cond,
-                    true_value,
-                    false_value,
-                }),
-                node_id,
-            )
-                .into(),
+        self.lop(
+            tl::OpCode::Select(tl::Select {
+                lhs,
+                cond,
+                true_value,
+                false_value,
+            }),
+            node_id,
         );
         Ok(())
     }
@@ -571,17 +542,14 @@ impl<'a> RTLCompiler<'a> {
         let lhs = self.operand(*lhs, node_id)?;
         let orig = self.operand(*orig, node_id)?;
         let subst = self.operand(*subst, node_id)?;
-        self.ops.push(
-            (
-                tl::OpCode::Splice(tl::Splice {
-                    lhs,
-                    orig,
-                    bit_range,
-                    value: subst,
-                }),
-                node_id,
-            )
-                .into(),
+        self.lop(
+            tl::OpCode::Splice(tl::Splice {
+                lhs,
+                orig,
+                bit_range,
+                value: subst,
+            }),
+            node_id,
         );
         Ok(())
     }
@@ -607,22 +575,18 @@ impl<'a> RTLCompiler<'a> {
             let path = Path::default().member(&field.member);
             let (field_range, _) = bit_range(kind.clone(), &path)?;
             let reg = Operand::Register(self.allocate_register(&kind));
-            self.ops.push(
-                (
-                    tl::OpCode::Splice(tl::Splice {
-                        lhs: reg,
-                        orig: rhs,
-                        bit_range: field_range,
-                        value: field_value,
-                    }),
-                    node_id,
-                )
-                    .into(),
+            self.lop(
+                tl::OpCode::Splice(tl::Splice {
+                    lhs: reg,
+                    orig: rhs,
+                    bit_range: field_range,
+                    value: field_value,
+                }),
+                node_id,
             );
             rhs = reg;
         }
-        self.ops
-            .push((tl::OpCode::Assign(tl::Assign { lhs, rhs }), node_id).into());
+        self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), node_id);
         Ok(())
     }
     fn make_tuple(&mut self, tuple: &hf::Tuple, node_id: NodeId) -> Result<()> {
@@ -632,8 +596,7 @@ impl<'a> RTLCompiler<'a> {
         }
         let lhs = self.operand(*lhs, node_id)?;
         let args = self.make_operand_list(fields, node_id)?;
-        self.ops
-            .push((tl::OpCode::Concat(tl::Concat { lhs, args }), node_id).into());
+        self.lop(tl::OpCode::Concat(tl::Concat { lhs, args }), node_id);
         Ok(())
     }
     fn make_unary(&mut self, unary: &hf::Unary, node_id: NodeId) -> Result<()> {
@@ -643,8 +606,7 @@ impl<'a> RTLCompiler<'a> {
         }
         let lhs = self.operand(lhs, node_id)?;
         let arg1 = self.operand(arg1, node_id)?;
-        self.ops
-            .push((tl::OpCode::Unary(tl::Unary { lhs, op, arg1 }), node_id).into());
+        self.lop(tl::OpCode::Unary(tl::Unary { lhs, op, arg1 }), node_id);
         Ok(())
     }
     fn translate(mut self) -> Result<Self> {
@@ -669,8 +631,7 @@ impl<'a> RTLCompiler<'a> {
                     self.make_case(case, lop.id)?;
                 }
                 hf::OpCode::Comment(comment) => {
-                    self.ops
-                        .push((tl::OpCode::Comment(comment.clone()), lop.id).into());
+                    self.lop(tl::OpCode::Comment(comment.clone()), lop.id);
                 }
                 hf::OpCode::Enum(enumerate) => {
                     self.make_enum(enumerate, lop.id)?;
@@ -709,8 +670,9 @@ impl<'a> RTLCompiler<'a> {
     }
 }
 
-pub fn compile_rtl(object: &rhif::object::Object) -> Result<rtl::object::Object> {
-    let mut compiler = RTLCompiler::new(object).translate()?;
+fn compile_rtl(module: &rhif::module::Module, function: FunctionId) -> Result<rtl::object::Object> {
+    let object = &module.objects[&function];
+    let mut compiler = RTLCompiler::new(module, object).translate()?;
     let arguments = object
         .arguments
         .iter()
@@ -726,17 +688,20 @@ pub fn compile_rtl(object: &rhif::object::Object) -> Result<rtl::object::Object>
             }
         })
         .collect();
-    let return_register = compiler.reverse_operand_map[&object.return_slot];
+    let return_register = compiler.reverse_operand_map[&(object.fn_id, object.return_slot)];
     Ok(rtl::object::Object {
-        symbols: object.symbols.clone(),
+        symbols: compiler.symbols,
         literals: compiler.literals,
         operand_map: compiler.operand_map,
         return_register,
         register_kind: compiler.registers,
-        externals: object.externals.clone(),
         ops: compiler.ops,
         arguments,
         name: object.name.clone(),
         fn_id: object.fn_id,
     })
+}
+
+pub fn compile_top(module: &rhif::module::Module) -> Result<rtl::object::Object> {
+    compile_rtl(module, module.top)
 }

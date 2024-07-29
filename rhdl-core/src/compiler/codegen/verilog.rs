@@ -16,7 +16,7 @@ use crate::{
 
 use rtl::spec as tl;
 
-use super::compile_rtl;
+use super::compile_top;
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
@@ -88,11 +88,11 @@ fn verilog_unop(op: &AluUnary) -> &'static str {
 }
 
 impl<'a> TranslationContext<'a> {
-    fn raise_ice(&self, cause: ICE, id: NodeId) -> RHDLError {
+    fn raise_ice(&self, cause: ICE, id: (FunctionId, NodeId)) -> RHDLError {
         RHDLError::RHDLInternalCompilerError(Box::new(RHDLCompileError {
             cause,
-            src: self.rtl.symbols.source.source.clone(),
-            err_span: self.rtl.symbols.node_span(id).into(),
+            src: self.rtl.symbols[&id.0].source.source.clone(),
+            err_span: self.rtl.symbols[&id.0].node_span(id.1).into(),
         }))
     }
     fn translate_as_bits(&mut self, cast: &tl::Cast) -> Result<()> {
@@ -117,7 +117,7 @@ impl<'a> TranslationContext<'a> {
         }
         Ok(())
     }
-    fn translate_as_signed(&mut self, cast: &tl::Cast, id: NodeId) -> Result<()> {
+    fn translate_as_signed(&mut self, cast: &tl::Cast, id: (FunctionId, NodeId)) -> Result<()> {
         if cast.len > self.rtl.kind(cast.arg).len() {
             return Err(self.raise_ice(
                 ICE::InvalidSignedCast {
@@ -183,29 +183,6 @@ impl<'a> TranslationContext<'a> {
             }
         }
         self.body.push_str("    endcase\n");
-        Ok(())
-    }
-    fn translate_exec(&mut self, exec: &tl::Exec) -> Result<()> {
-        let tl::Exec { lhs, id, args } = exec;
-        let func = &self.rtl.externals[id];
-        let args = args
-            .iter()
-            .filter_map(|arg| {
-                if let Some(arg) = arg {
-                    Some(self.rtl.op_name(*arg))
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>()
-            .join(", ");
-        let kernel = &func.code;
-        let func_name = self.design.func_name(kernel.inner().fn_id)?;
-        let kernel = translate(self.design, kernel.inner().fn_id)?;
-        let lhs = self.rtl.op_name(*lhs);
-        self.kernels.push(kernel);
-        self.body
-            .push_str(&format!("    {lhs} = {func_name}({args});\n"));
         Ok(())
     }
     fn translate_concat(&mut self, concat: &tl::Concat) -> Result<()> {
@@ -293,7 +270,7 @@ impl<'a> TranslationContext<'a> {
         let op = &lop.op;
         match op {
             tl::OpCode::AsBits(cast) => self.translate_as_bits(cast),
-            tl::OpCode::AsSigned(cast) => self.translate_as_signed(cast, lop.id),
+            tl::OpCode::AsSigned(cast) => self.translate_as_signed(cast, (lop.func, lop.id)),
             tl::OpCode::Assign(assign) => self.translate_assign(assign),
             tl::OpCode::Binary(binary) => self.translate_binary(binary),
             tl::OpCode::Case(case) => self.translate_case(case),
@@ -301,7 +278,6 @@ impl<'a> TranslationContext<'a> {
             tl::OpCode::Concat(concat) => self.translate_concat(concat),
             tl::OpCode::DynamicIndex(index) => self.translate_dynamic_index(index),
             tl::OpCode::DynamicSplice(splice) => self.translate_dynamic_splice(splice),
-            tl::OpCode::Exec(exec) => self.translate_exec(exec),
             tl::OpCode::Index(index) => self.translate_index(index),
             tl::OpCode::Select(select) => self.translate_select(select),
             tl::OpCode::Splice(splice) => self.translate_splice(splice),
@@ -385,9 +361,7 @@ impl<'a> TranslationContext<'a> {
 }
 
 fn translate(design: &Module, fn_id: FunctionId) -> Result<VerilogModule> {
-    let obj = &design.objects[&fn_id];
-    eprintln!("RHIF: {:?}", obj);
-    let rtl = compile_rtl(obj)?;
+    let rtl = compile_top(design)?;
     eprintln!("RTL: {:?}", rtl);
     let context = TranslationContext {
         kernels: Default::default(),

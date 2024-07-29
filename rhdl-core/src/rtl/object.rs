@@ -1,12 +1,9 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write;
 
 use crate::{
     ast::ast_impl::{FunctionId, NodeId},
-    rhif::{
-        object::SymbolMap,
-        spec::{ExternalFunction, FuncId, Slot},
-    },
+    rhif::{object::SymbolMap, spec::Slot},
     util::binary_string,
     TypedBits,
 };
@@ -17,18 +14,23 @@ use super::spec::{LiteralId, OpCode, Operand, RegisterId};
 pub struct LocatedOpCode {
     pub op: OpCode,
     pub id: NodeId,
+    pub func: FunctionId,
 }
 
 impl LocatedOpCode {
-    pub fn new(op: OpCode, id: NodeId) -> Self {
-        Self { op, id }
+    pub fn new(op: OpCode, id: NodeId, func: FunctionId) -> Self {
+        Self { op, id, func }
     }
 }
 
-impl From<(OpCode, NodeId)> for LocatedOpCode {
-    fn from((op, id): (OpCode, NodeId)) -> Self {
-        Self::new(op, id)
+impl From<(OpCode, NodeId, FunctionId)> for LocatedOpCode {
+    fn from((op, id, func): (OpCode, NodeId, FunctionId)) -> Self {
+        Self::new(op, id, func)
     }
+}
+
+pub fn lop(op: OpCode, id: NodeId, func: FunctionId) -> LocatedOpCode {
+    LocatedOpCode::new(op, id, func)
 }
 
 #[derive(Clone)]
@@ -130,12 +132,11 @@ impl std::fmt::Debug for RegisterKind {
 
 #[derive(Clone)]
 pub struct Object {
-    pub symbols: SymbolMap,
+    pub symbols: HashMap<FunctionId, SymbolMap>,
     pub literals: BTreeMap<LiteralId, BitString>,
-    pub operand_map: BTreeMap<Operand, Slot>,
+    pub operand_map: BTreeMap<Operand, (FunctionId, Slot)>,
     pub register_kind: BTreeMap<RegisterId, RegisterKind>,
     pub return_register: Operand,
-    pub externals: BTreeMap<FuncId, ExternalFunction>,
     pub ops: Vec<LocatedOpCode>,
     pub arguments: Vec<Option<RegisterId>>,
     pub name: String,
@@ -147,8 +148,8 @@ impl Object {
         format!("{op:?}")
     }
     pub fn op_alias(&self, op: Operand) -> Option<String> {
-        if let Some(slot) = self.operand_map.get(&op) {
-            if let Some(name) = self.symbols.slot_names.get(slot) {
+        if let Some((func, slot)) = self.operand_map.get(&op) {
+            if let Some(name) = self.symbols[func].slot_names.get(slot) {
                 Some(format!("{slot:?}_{name}"))
             } else {
                 Some(format!("{slot:?}"))
@@ -175,13 +176,6 @@ impl std::fmt::Debug for Object {
         }
         for (id, literal) in &self.literals {
             writeln!(f, "Lit {id:?} : {literal:?}")?;
-        }
-        for (ndx, func) in self.externals.iter() {
-            writeln!(
-                f,
-                "Function {:?} name: {} code: {:?} signature: {:?}",
-                ndx, func.path, func.code, func.signature
-            )?;
         }
         let mut body_str = String::new();
         for lop in &self.ops {

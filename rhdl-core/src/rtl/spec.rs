@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::rhif::spec::{AluBinary, AluUnary, FuncId};
+use crate::rhif::spec::{AluBinary, AluUnary};
 
 #[derive(Clone, PartialEq)]
 pub enum OpCode {
@@ -22,8 +22,6 @@ pub enum OpCode {
     DynamicIndex(DynamicIndex),
     // lhs <- arg; lhs[base_offset + arg * stride +: len] <- value
     DynamicSplice(DynamicSplice),
-    // lhs <- func(arg)
-    Exec(Exec),
     // lhs <- arg[bit_range]
     Index(Index),
     // lhs <- cond ? true_value : false_value
@@ -164,11 +162,4 @@ pub struct Cast {
     pub lhs: Operand,
     pub arg: Operand,
     pub len: usize,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Exec {
-    pub lhs: Operand,
-    pub id: FuncId,
-    pub args: Vec<Option<Operand>>,
 }
