@@ -182,12 +182,12 @@ fn test_exec_sub_kernel() {
 
     #[kernel]
     fn add(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
-        double(a) + b
+        double(a) + double(b)
     }
 
     #[kernel]
     fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
-        let c = add(a, b);
+        let c = add(a, b) + double(b);
         c + a + b
     }
 

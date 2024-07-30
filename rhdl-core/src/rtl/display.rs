@@ -8,14 +8,8 @@ use super::spec::{
 impl std::fmt::Debug for OpCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            OpCode::AsBits(Cast { lhs, arg, len }) => {
-                write!(f, " {:?} <- {:?} as b{}", lhs, arg, len)
-            }
             OpCode::Assign(Assign { lhs, rhs }) => {
                 write!(f, " {:?} <- {:?}", lhs, rhs)
-            }
-            OpCode::AsSigned(Cast { lhs, arg, len }) => {
-                write!(f, " {:?} <- {:?} as s{}", lhs, arg, len)
             }
             OpCode::Binary(Binary {
                 op,
@@ -35,6 +29,21 @@ impl std::fmt::Debug for OpCode {
                     writeln!(f, "         {:?} => {:?}", cond, val)?;
                 }
                 write!(f, "}}")
+            }
+            OpCode::Cast(Cast {
+                lhs,
+                arg,
+                len,
+                signed,
+            }) => {
+                write!(
+                    f,
+                    " {:?} <- {:?} as {}{}",
+                    lhs,
+                    arg,
+                    if *signed { "s" } else { "u" },
+                    len
+                )
             }
             OpCode::Comment(comment) => {
                 write!(f, "// {}", comment)

@@ -5,16 +5,6 @@ use super::spec::{
 
 pub fn remap_operands<F: FnMut(Operand) -> Operand>(op: OpCode, mut f: F) -> OpCode {
     match op {
-        OpCode::AsBits(Cast { lhs, arg, len }) => OpCode::AsBits(Cast {
-            lhs: f(lhs),
-            arg: f(arg),
-            len,
-        }),
-        OpCode::AsSigned(Cast { lhs, arg, len }) => OpCode::AsSigned(Cast {
-            lhs: f(lhs),
-            arg: f(arg),
-            len,
-        }),
         OpCode::Assign(Assign { lhs, rhs }) => OpCode::Assign(Assign {
             lhs: f(lhs),
             rhs: f(rhs),
@@ -55,6 +45,17 @@ pub fn remap_operands<F: FnMut(Operand) -> Operand>(op: OpCode, mut f: F) -> OpC
                     )
                 })
                 .collect(),
+        }),
+        OpCode::Cast(Cast {
+            lhs,
+            arg,
+            len,
+            signed,
+        }) => OpCode::Cast(Cast {
+            lhs: f(lhs),
+            arg: f(arg),
+            len,
+            signed,
         }),
         OpCode::Comment(_) => op,
         OpCode::Concat(Concat { lhs, args }) => OpCode::Concat(Concat {
