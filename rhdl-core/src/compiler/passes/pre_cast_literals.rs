@@ -3,13 +3,13 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use crate::{
     error::RHDLError,
     rhif::{
+        remap::remap_slots,
         spec::{LiteralId, OpCode, Slot},
         Object,
     },
 };
 
 use super::pass::Pass;
-use crate::compiler::utils::remap_slots;
 
 #[derive(Default, Debug, Clone)]
 pub struct PreCastLiterals {}

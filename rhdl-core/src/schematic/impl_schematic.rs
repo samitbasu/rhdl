@@ -1,4 +1,4 @@
-use crate::rtl::{module::Module, object::RegisterKind};
+use crate::rtl::{object::RegisterKind, Object};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ComponentIx(usize);
@@ -51,7 +51,7 @@ pub struct BlackBoxComponent {}
 
 #[derive(Debug, Clone)]
 pub enum ComponentKind {
-    RTL(Module),
+    RTL(Object),
     BlackBox(BlackBoxComponent),
     Buffer,
     Concat,

@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
 use crate::{
-    compiler::utils::remap_slots,
     error::RHDLError,
     rhif::{
+        remap::remap_slots,
         spec::{OpCode, Slot},
         Object,
     },

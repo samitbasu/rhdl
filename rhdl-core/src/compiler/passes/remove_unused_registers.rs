@@ -1,9 +1,8 @@
 use std::collections::HashSet;
 
 use crate::{
-    compiler::utils::remap_slots,
     error::RHDLError,
-    rhif::{spec::Slot, Object},
+    rhif::{remap::remap_slots, spec::Slot, Object},
 };
 
 use super::pass::Pass;
