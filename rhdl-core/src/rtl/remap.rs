@@ -1,0 +1,125 @@
+use super::spec::{
+    Assign, Binary, Case, CaseArgument, Cast, Concat, DynamicIndex, DynamicSplice, Index, OpCode,
+    Operand, Select, Splice, Unary,
+};
+
+pub fn remap_operands<F: FnMut(Operand) -> Operand>(op: OpCode, mut f: F) -> OpCode {
+    match op {
+        OpCode::AsBits(Cast { lhs, arg, len }) => OpCode::AsBits(Cast {
+            lhs: f(lhs),
+            arg: f(arg),
+            len,
+        }),
+        OpCode::AsSigned(Cast { lhs, arg, len }) => OpCode::AsSigned(Cast {
+            lhs: f(lhs),
+            arg: f(arg),
+            len,
+        }),
+        OpCode::Assign(Assign { lhs, rhs }) => OpCode::Assign(Assign {
+            lhs: f(lhs),
+            rhs: f(rhs),
+        }),
+        OpCode::Binary(Binary {
+            op,
+            lhs,
+            arg1,
+            arg2,
+        }) => OpCode::Binary(Binary {
+            op,
+            lhs: f(lhs),
+            arg1: f(arg1),
+            arg2: f(arg2),
+        }),
+        OpCode::Case(Case {
+            lhs,
+            discriminant,
+            table,
+        }) => OpCode::Case(Case {
+            lhs: f(lhs),
+            discriminant: f(discriminant),
+            table: table
+                .into_iter()
+                .map(|(arg, result)| {
+                    (
+                        match arg {
+                            CaseArgument::Literal(lit) => {
+                                let fn_id = f(Operand::Literal(lit));
+                                let Operand::Literal(fn_lit) = fn_id else {
+                                    panic!("Expected literal, got {:?}", fn_id);
+                                };
+                                CaseArgument::Literal(fn_lit)
+                            }
+                            _ => arg,
+                        },
+                        f(result),
+                    )
+                })
+                .collect(),
+        }),
+        OpCode::Comment(_) => op,
+        OpCode::Concat(Concat { lhs, args }) => OpCode::Concat(Concat {
+            lhs: f(lhs),
+            args: args.into_iter().map(f).collect(),
+        }),
+        OpCode::DynamicIndex(DynamicIndex {
+            lhs,
+            arg,
+            offset,
+            len,
+        }) => OpCode::DynamicIndex(DynamicIndex {
+            lhs: f(lhs),
+            arg: f(arg),
+            offset: f(offset),
+            len,
+        }),
+        OpCode::DynamicSplice(DynamicSplice {
+            lhs,
+            arg,
+            offset,
+            len,
+            value,
+        }) => OpCode::DynamicSplice(DynamicSplice {
+            lhs: f(lhs),
+            arg: f(arg),
+            offset: f(offset),
+            len,
+            value: f(value),
+        }),
+        OpCode::Index(Index {
+            lhs,
+            arg,
+            bit_range,
+        }) => OpCode::Index(Index {
+            lhs: f(lhs),
+            arg: f(arg),
+            bit_range,
+        }),
+        OpCode::Select(Select {
+            lhs,
+            cond,
+            true_value,
+            false_value,
+        }) => OpCode::Select(Select {
+            lhs: f(lhs),
+            cond: f(cond),
+            true_value: f(true_value),
+            false_value: f(false_value),
+        }),
+        OpCode::Splice(Splice {
+            lhs,
+            orig,
+            bit_range,
+            value,
+        }) => OpCode::Splice(Splice {
+            lhs: f(lhs),
+            orig: f(orig),
+            bit_range,
+            value: f(value),
+        }),
+        OpCode::Unary(Unary { op, lhs, arg1 }) => OpCode::Unary(Unary {
+            op,
+            lhs: f(lhs),
+            arg1: f(arg1),
+        }),
+    }
+}

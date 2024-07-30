@@ -1,8 +1,8 @@
 use crate::{
-    compiler::utils::rename_read_register,
     error::RHDLError,
     rhif::{
         object::LocatedOpCode,
+        remap::rename_read_register,
         spec::{Assign, OpCode},
         Object,
     },

@@ -1,10 +1,10 @@
 use std::collections::{BTreeMap, HashMap};
 
 use crate::ast::ast_impl::{FunctionId, NodeId};
-use crate::crusty::timing::Node;
 use crate::rhif::object::SymbolMap;
 use crate::rhif::spec::{AluBinary, Slot};
-use crate::rtl::object::{lop, BitString, LocatedOpCode, RegisterKind};
+use crate::rtl::object::{lop, BitString, RegisterKind};
+use crate::rtl::remap::remap_operands;
 use crate::rtl::spec::{LiteralId, Operand, RegisterId};
 use crate::types::path::{bit_range, Path};
 use crate::TypedBits;
@@ -69,6 +69,12 @@ impl<'a> RTLCompiler<'a> {
         self.literals.insert(literal_id, bits.into());
         literal_id
     }
+    fn allocate_literal_from_bit_string(&mut self, bits: &BitString) -> LiteralId {
+        let literal_id = LiteralId(self.literal_count);
+        self.literal_count += 1;
+        self.literals.insert(literal_id, bits.clone());
+        literal_id
+    }
     fn allocate_literal_from_usize_and_length(
         &mut self,
         value: usize,
@@ -100,6 +106,12 @@ impl<'a> RTLCompiler<'a> {
         } else {
             self.allocate_unsigned(len)
         }
+    }
+    fn allocate_register_with_register_kind(&mut self, kind: &RegisterKind) -> RegisterId {
+        let register_id = RegisterId(self.register_count);
+        self.register_count += 1;
+        self.registers.insert(register_id, *kind);
+        register_id
     }
     fn raise_ice(&self, cause: ICE, node_id: NodeId) -> RHDLError {
         RHDLError::RHDLInternalCompilerError(Box::new(RHDLCompileError {
@@ -430,12 +442,73 @@ impl<'a> RTLCompiler<'a> {
         if lhs.is_empty() {
             return Ok(());
         }
+        // Look up the function ID from the external functions.
+        let func_id = self.object.externals[id].code.inner().fn_id;
+        // Compile it...
+        let func_rtl = compile_rtl(self.module, func_id)?;
+        // Inline it.
+        let mut register_translation = BTreeMap::new();
+        let mut literal_translation = BTreeMap::new();
+        // Rebind the arguments to local registers, and copy the values into them
+        for (fn_arg, arg) in func_rtl.arguments.iter().zip(args) {
+            if let Some(fn_reg) = fn_arg {
+                let fn_reg_in_our_space =
+                    self.allocate_register_with_register_kind(&func_rtl.register_kind[fn_reg]);
+                register_translation.insert(*fn_reg, fn_reg_in_our_space);
+                let arg = self.operand(*arg, node_id)?;
+                self.lop(
+                    tl::OpCode::Assign(tl::Assign {
+                        lhs: Operand::Register(fn_reg_in_our_space),
+                        rhs: arg,
+                    }),
+                    node_id,
+                );
+            }
+        }
+        let mut op_remap = |operand| match operand {
+            Operand::Literal(old_lit_id) => {
+                if let Some(new_lit_id) = literal_translation.get(&old_lit_id) {
+                    Operand::Literal(*new_lit_id)
+                } else {
+                    let old_lit = func_rtl.literals[&old_lit_id].clone();
+                    let new_lit_id = self.allocate_literal_from_bit_string(&old_lit);
+                    literal_translation.insert(old_lit_id, new_lit_id);
+                    Operand::Literal(new_lit_id)
+                }
+            }
+            Operand::Register(old_reg_id) => {
+                if let Some(new_reg_id) = register_translation.get(&old_reg_id) {
+                    Operand::Register(*new_reg_id)
+                } else {
+                    let kind = func_rtl.register_kind[&old_reg_id];
+                    let new_reg_id = self.allocate_register_with_register_kind(&kind);
+                    register_translation.insert(old_reg_id, new_reg_id);
+                    Operand::Register(new_reg_id)
+                }
+            }
+        };
+        let return_register = op_remap(func_rtl.return_register);
+        // Translate each operation and add it to the existing function (inline).
+        // Remap the operands of the opcode to allocate from the current function.
+        // Note that we need to ensure that if a register is allocated it is reused..
+        let translated = func_rtl
+            .ops
+            .into_iter()
+            .map(|old_lop| {
+                let op = remap_operands(old_lop.op, &mut op_remap);
+                lop(op, old_lop.id, old_lop.func)
+            })
+            .collect::<Vec<_>>();
+        self.ops.extend(translated);
         let lhs = self.operand(*lhs, node_id)?;
-        let args = args
-            .iter()
-            .map(|x| self.operand(*x, node_id).ok())
-            .collect();
-        self.lop(tl::OpCode::Exec(tl::Exec { lhs, id: *id, args }), node_id);
+        self.lop(
+            tl::OpCode::Assign(tl::Assign {
+                lhs,
+                rhs: return_register,
+            }),
+            node_id,
+        );
+        self.symbols.extend(func_rtl.symbols);
         Ok(())
     }
     fn make_dynamic_index(&mut self, index: &hf::Index, node_id: NodeId) -> Result<()> {
