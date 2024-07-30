@@ -4,16 +4,14 @@ use crate::rhif::spec::{AluBinary, AluUnary};
 
 #[derive(Clone, PartialEq)]
 pub enum OpCode {
-    // lhs <- unsigned(slot)
-    AsBits(Cast),
     // lhs <- arg
     Assign(Assign),
-    // lhs <- signed(slot)
-    AsSigned(Cast),
     // lhs <- arg1 op arg2
     Binary(Binary),
     // lhs <- table[slot]
     Case(Case),
+    // lhs <- cast(slot) as signed/unsigned
+    Cast(Cast),
     // Comment
     Comment(String),
     // lhs <- {{ r1, r2, ... }}
@@ -162,4 +160,5 @@ pub struct Cast {
     pub lhs: Operand,
     pub arg: Operand,
     pub len: usize,
+    pub signed: bool,
 }

@@ -191,10 +191,11 @@ impl<'a> RTLCompiler<'a> {
             let arg = self.operand(*slot, node_id)?;
             // reg <- arg as L
             self.lop(
-                tl::OpCode::AsBits(tl::Cast {
+                tl::OpCode::Cast(tl::Cast {
                     lhs: Operand::Register(reg),
                     arg,
                     len: index_bits,
+                    signed: false,
                 }),
                 node_id,
             );
@@ -283,7 +284,15 @@ impl<'a> RTLCompiler<'a> {
         if !lhs.is_empty() && !arg.is_empty() {
             let lhs = self.operand(*lhs, id)?;
             let arg = self.operand(*arg, id)?;
-            self.lop(tl::OpCode::AsBits(tl::Cast { lhs, arg, len }), id);
+            self.lop(
+                tl::OpCode::Cast(tl::Cast {
+                    lhs,
+                    arg,
+                    len,
+                    signed: false,
+                }),
+                id,
+            );
         }
         Ok(())
     }
@@ -293,7 +302,15 @@ impl<'a> RTLCompiler<'a> {
         if !lhs.is_empty() && !arg.is_empty() {
             let lhs = self.operand(*lhs, id)?;
             let arg = self.operand(*arg, id)?;
-            self.lop(tl::OpCode::AsSigned(tl::Cast { lhs, arg, len }), id);
+            self.lop(
+                tl::OpCode::Cast(tl::Cast {
+                    lhs,
+                    arg,
+                    len,
+                    signed: true,
+                }),
+                id,
+            );
         }
         Ok(())
     }

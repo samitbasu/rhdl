@@ -136,6 +136,13 @@ impl<'a> TranslationContext<'a> {
         ));
         Ok(())
     }
+    fn translate_cast(&mut self, cast: &tl::Cast, id: (FunctionId, NodeId)) -> Result<()> {
+        if cast.signed {
+            self.translate_as_signed(cast, id)
+        } else {
+            self.translate_as_bits(cast)
+        }
+    }
     fn translate_assign(&mut self, assign: &tl::Assign) -> Result<()> {
         self.body.push_str(&format!(
             "    {lhs} = {rhs};\n",
@@ -269,11 +276,10 @@ impl<'a> TranslationContext<'a> {
     fn translate_op(&mut self, lop: &LocatedOpCode) -> Result<()> {
         let op = &lop.op;
         match op {
-            tl::OpCode::AsBits(cast) => self.translate_as_bits(cast),
-            tl::OpCode::AsSigned(cast) => self.translate_as_signed(cast, (lop.func, lop.id)),
             tl::OpCode::Assign(assign) => self.translate_assign(assign),
             tl::OpCode::Binary(binary) => self.translate_binary(binary),
             tl::OpCode::Case(case) => self.translate_case(case),
+            tl::OpCode::Cast(cast) => self.translate_cast(cast, (self.id, lop.id)),
             tl::OpCode::Comment(_) => Ok(()),
             tl::OpCode::Concat(concat) => self.translate_concat(concat),
             tl::OpCode::DynamicIndex(index) => self.translate_dynamic_index(index),
