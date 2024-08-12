@@ -99,7 +99,7 @@ impl FlowGraph {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum EdgeKind {
     Arg(usize),
     Selector,
@@ -110,4 +110,20 @@ pub enum EdgeKind {
     CaseLiteral(BitString),
     CaseWild,
     Output,
+}
+
+impl std::fmt::Debug for EdgeKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Arg(arg0) => write!(f, "a{}", arg0),
+            Self::Selector => write!(f, "sel"),
+            Self::True => write!(f, "true"),
+            Self::False => write!(f, "false"),
+            Self::DynamicOffset => write!(f, "dyn_offset"),
+            Self::Splice => write!(f, "splice"),
+            Self::CaseLiteral(arg0) => write!(f, "{:?}", arg0),
+            Self::CaseWild => write!(f, "_"),
+            Self::Output => Ok(()),
+        }
+    }
 }
