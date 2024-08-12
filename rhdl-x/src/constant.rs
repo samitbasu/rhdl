@@ -55,7 +55,7 @@ impl<T: Digital> U<T> {
     fn as_verilog(&self) -> HDLDescriptor {
         let module_name = self.descriptor().unique_name;
         let output_bits = T::bits().saturating_sub(1);
-        let value = rhdl::core::as_verilog_literal(&self.value.typed_bits());
+        let value = self.value.typed_bits().as_verilog_literal();
         let body = format!(
             "
 module {module_name}(input clock, input reset, input wire[0:0] i, output wire[{output_bits}:0] o);

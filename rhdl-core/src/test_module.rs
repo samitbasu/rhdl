@@ -1,7 +1,8 @@
+use crate::compiler::codegen::compile_top;
 use crate::compiler::codegen::verilog::generate_verilog;
 use crate::error::RHDLError;
 use crate::rhif::vm::execute_function;
-use crate::{compile_design, DigitalFn};
+use crate::{build_rtl_flow_graph, compile_design, DigitalFn};
 use crate::{Timed, TypedBits};
 
 pub trait TestArg {
@@ -301,6 +302,8 @@ where
     Args: TestArg,
 {
     let design = compile_design::<K>(crate::compiler::driver::CompilationMode::Asynchronous)?;
+    let rtl = compile_top(&design)?;
+    let flow_graph = build_rtl_flow_graph(&rtl);
     let verilog = generate_verilog(&design)?;
     eprintln!("Verilog {:?}", verilog);
     let vm_inputs = vals.clone();

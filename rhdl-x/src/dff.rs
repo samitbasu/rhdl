@@ -76,14 +76,19 @@ impl<T: Digital> Synchronous for U<T> {
     }
 }
 
+fn as_verilog_decl(kind: &str, len: usize, name: &str) -> String {
+    let msb = len.saturating_sub(1);
+    format!("{kind} {name}[{msb}:0]")
+}
+
 impl<T: Digital> U<T> {
     fn as_verilog(&self) -> HDLDescriptor {
         let module_name = self.descriptor().unique_name;
         let input_bits = T::bits();
         let output_bits = T::bits();
-        let init = rhdl::core::as_verilog_literal(&self.reset.typed_bits());
-        let input_wire = rhdl::core::codegen::verilog::as_verilog_decl("wire", input_bits, "i");
-        let output_reg = rhdl::core::codegen::verilog::as_verilog_decl("reg", output_bits, "o");
+        let init = self.reset.typed_bits().as_verilog_literal();
+        let input_wire = as_verilog_decl("wire", input_bits, "i");
+        let output_reg = as_verilog_decl("reg", output_bits, "o");
         let code = format!(
             "
 module {module_name}(input clock, input reset, input {input_wire}, output {output_reg});

@@ -6,6 +6,7 @@ use crate::dyn_bit_manip::{
     bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
 };
 use crate::error::{rhdl_error, RHDLError};
+use crate::util::binary_string;
 use crate::Digital;
 use crate::{
     types::path::{bit_range, Path},
@@ -306,6 +307,16 @@ impl TypedBits {
             bits: self.bits.clone(),
             kind: self.kind.val(),
         }
+    }
+    pub fn as_verilog_literal(self) -> String {
+        let signed = if matches!(self.kind, Kind::Signed(_)) {
+            "s"
+        } else {
+            ""
+        };
+        let width = self.bits.len();
+        let bs = binary_string(&self.bits);
+        format!("{width}'{signed}b{bs}")
     }
 }
 
