@@ -1,6 +1,9 @@
-use rhdl::prelude::*;
-
 use crate::dff;
+use rhdl::{
+    core::{build_rtl_flow_graph, compiler::codegen::compile_top, flow_graph::dot::write_dot},
+    prelude::*,
+};
+use std::io::{stderr, Write};
 
 #[derive(PartialEq, Clone, Copy, Debug, Digital)]
 pub struct I {
@@ -52,11 +55,12 @@ struct TestComputer {}
 
 impl CostEstimator for TestComputer {
     fn cost(&self, obj: &Object, opcode: usize) -> f64 {
-        if matches!(obj.ops[opcode], OpCode::Binary(_) | OpCode::Select(_)) {
+        -1.0
+        /*         if matches!(obj.ops[opcode], OpCode::Binary(_) | OpCode::Select(_)) {
             -1.0
         } else {
             0.0
-        }
+        } */
     }
 }
 
@@ -68,6 +72,11 @@ fn test_counter_timing_root() -> miette::Result<()> {
     let path = rhdl::core::types::path::Path::default().tuple_index(1);
     let timing = compute_timing_graph(&uut_module, uut_module.top, &path, &TestComputer {})?;
     eprintln!("timing: {:?}", timing);
+    let rtl = compile_top(&uut_module)?;
+    eprintln!("rtl: {:?}", rtl);
+    let fg = build_rtl_flow_graph(&rtl);
+    let mut dot = std::fs::File::create("counter.dot").unwrap();
+    write_dot(&fg, &mut dot).unwrap();
     Ok(())
 }
 
