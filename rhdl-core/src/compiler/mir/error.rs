@@ -4,7 +4,12 @@ use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
 use crate::{
-    ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat}, ast_builder::BinOp, rhif::spec::{AluBinary, AluUnary, LiteralId, OpCode, Slot}, rtl::spec::Operand, types::path::Path, Kind, TypedBits
+    ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
+    ast_builder::BinOp,
+    rhif::spec::{AluBinary, AluUnary, LiteralId, OpCode, Slot},
+    rtl::spec::Operand,
+    types::path::Path,
+    Kind, TypedBits,
 };
 
 use super::{compiler::ScopeIndex, ty::SignFlag};
@@ -134,6 +139,8 @@ pub enum ICE {
         arg: Operand,
         len: usize,
     },
+    #[error("Malformed RTL flow graph returned")]
+    MalformedRTLFlowGraph,
 }
 
 #[derive(Error, Debug, Diagnostic)]

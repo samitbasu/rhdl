@@ -30,18 +30,18 @@ pub fn build_rtl_flow_graph(object: &Object) -> FlowGraph {
     object.ops.iter().for_each(|lop| bob.op(lop));
     // Link the arguments
     let location = (object.fn_id, object.symbols[&object.fn_id].source.fallback).into();
-    for (arg_index, reg_id) in object
+    object
         .arguments
         .iter()
-        .enumerate()
-        .filter_map(|(ndx, x)| x.map(|reg| (ndx, reg)))
-    {
-        let reg_operand = bob.operand(location, Operand::Register(reg_id));
-        bob.fg
-            .edge(reg_operand, bob.fg.inputs[arg_index], EdgeKind::Output);
-    }
+        .zip(bob.fg.inputs.clone())
+        .for_each(|(o, f)| {
+            if let (Some(reg), Some(node)) = (o, f) {
+                let reg_operand = bob.operand(location, Operand::Register(*reg));
+                bob.fg.edge(reg_operand, node, EdgeKind::Arg(0));
+            }
+        });
     let ret_operand = bob.operand(location, object.return_register);
-    bob.fg.edge(bob.fg.output, ret_operand, EdgeKind::Output);
+    bob.fg.edge(bob.fg.output, ret_operand, EdgeKind::Arg(0));
     bob.fg
 }
 
@@ -49,14 +49,15 @@ impl<'a> FlowGraphBuilder<'a> {
     fn new(object: &'a Object) -> Self {
         let mut fg = FlowGraph::default();
         // TODO - in the future, maybe tag the arguments and return with source locations?
-        let location = (object.fn_id, object.symbols[&object.fn_id].source.fallback).into();
+        let location = None;
         // Allocate input and output ports.
         let inputs = object
             .arguments
             .iter()
             .enumerate()
-            .filter_map(|(ndx, x)| x.map(|reg| (ndx, reg)))
-            .map(|(ndx, reg)| fg.buffer(object.register_kind[&reg], &format!("a{ndx}"), location))
+            .map(|(ndx, x)| {
+                x.map(|reg| fg.buffer(object.register_kind[&reg], &format!("a{ndx}"), location))
+            })
             .collect();
         let output_kind = object.kind(object.return_register);
         let output = fg.buffer(output_kind, "y", location);
@@ -126,9 +127,14 @@ impl<'a> FlowGraphBuilder<'a> {
         let arg1 = self.operand(loc, binary.arg1);
         let arg2 = self.operand(loc, binary.arg2);
         let lhs = self.operand(loc, binary.lhs);
-        let comp = self
-            .fg
-            .new_component(ComponentKind::Binary(Binary { op: binary.op }), loc);
+        let len = self.object.kind(binary.arg1).len();
+        let comp = self.fg.new_component(
+            ComponentKind::Binary(Binary {
+                op: binary.op,
+                width: len,
+            }),
+            loc,
+        );
         self.fg.lhs(comp, lhs);
         self.fg.arg(comp, arg1, 0);
         self.fg.arg(comp, arg2, 1);

@@ -1,5 +1,10 @@
-use anyhow::ensure;
-use rhdl::prelude::*;
+use rhdl::{
+    core::flow_graph::{
+        component::{ComponentKind, Constant},
+        FlowGraph,
+    },
+    prelude::*,
+};
 
 #[derive(Clone, Debug)]
 pub struct U<T: Digital> {
@@ -46,6 +51,30 @@ impl<T: Digital> Synchronous for U<T> {
 
     fn as_hdl(&self, kind: HDLKind) -> Result<HDLDescriptor, RHDLError> {
         Ok(self.as_verilog())
+    }
+
+    fn descriptor(&self) -> CircuitDescriptor {
+        let mut flow_graph = FlowGraph::default();
+        let driver = flow_graph.new_component_with_optional_location(
+            ComponentKind::Constant(Constant {
+                bs: self.value.typed_bits().into(),
+            }),
+            None,
+        );
+        flow_graph.inputs = vec![None, None, None];
+        flow_graph.output = driver;
+        CircuitDescriptor {
+            unique_name: format!("const_{:?}", self.value.typed_bits()),
+            input_kind: Kind::Empty,
+            output_kind: Self::O::static_kind(),
+            d_kind: Kind::Empty,
+            q_kind: Kind::Empty,
+            num_tristate: 0,
+            tristate_offset_in_parent: 0,
+            update_schematic: None,
+            update_flow_graph: flow_graph,
+            children: Default::default(),
+        }
     }
 }
 

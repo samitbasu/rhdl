@@ -1,6 +1,9 @@
 use crate::dff;
 use rhdl::{
-    core::{build_rtl_flow_graph, compiler::codegen::compile_top, flow_graph::dot::write_dot},
+    core::{
+        build_rtl_flow_graph, build_synchronous_flow_graph, compiler::codegen::compile_top,
+        flow_graph::dot::write_dot,
+    },
     prelude::*,
 };
 use std::io::{stderr, Write};
@@ -15,16 +18,6 @@ pub struct I {
 #[rhdl(auto_dq)]
 pub struct U<const N: usize> {
     count: dff::U<Bits<N>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Copy, Digital)]
-struct MyD<const N: usize> {
-    count: Bits<N>,
-}
-
-#[derive(Clone, Debug, PartialEq, Copy, Digital)]
-struct MyQ<const N: usize> {
-    count: Bits<N>,
 }
 
 impl<const N: usize> U<N> {
@@ -77,6 +70,9 @@ fn test_counter_timing_root() -> miette::Result<()> {
     let fg = build_rtl_flow_graph(&rtl);
     let mut dot = std::fs::File::create("counter.dot").unwrap();
     write_dot(&fg, &mut dot).unwrap();
+    let counter_uut = build_synchronous_flow_graph(&uut.descriptor());
+    let mut dot = std::fs::File::create("counter_fg.dot").unwrap();
+    write_dot(&counter_uut, &mut dot).unwrap();
     Ok(())
 }
 
