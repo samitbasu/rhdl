@@ -1,4 +1,4 @@
-use std::{iter::once, ops::Range};
+use std::ops::Range;
 
 use crate::{
     rhif::spec::{AluBinary, AluUnary},
@@ -19,6 +19,7 @@ pub struct Constant {
 #[derive(Debug, Clone)]
 pub struct Binary {
     pub op: AluBinary,
+    pub width: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -53,11 +54,16 @@ pub struct Cast {
 }
 
 #[derive(Debug, Clone)]
+pub struct BlackBox {
+    pub name: String,
+}
+
+#[derive(Debug, Clone)]
 pub enum ComponentKind {
     Assign,
     Buffer(Buffer),
     Binary(Binary),
-    BlackBox,
+    BlackBox(BlackBox),
     Case,
     Cast(Cast),
     Concat,

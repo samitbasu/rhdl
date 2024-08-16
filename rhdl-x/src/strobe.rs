@@ -1,3 +1,5 @@
+use rhdl::core::build_synchronous_flow_graph;
+use rhdl::core::flow_graph::dot::write_dot;
 use rhdl::prelude::*;
 
 use crate::constant;
@@ -63,4 +65,13 @@ pub fn strobe<const N: usize>(reset: bool, i: I, q: Q<N>) -> (bool, D<N>) {
     let count_next = if strobe || reset { bits(0) } else { count_next };
     d.counter = count_next;
     (strobe, d)
+}
+
+#[test]
+fn test_strobe_timing() -> miette::Result<()> {
+    let uut: U<4> = U::new(bits(12));
+    let counter_uut = build_synchronous_flow_graph(&uut.descriptor());
+    let mut dot = std::fs::File::create("strobe_fg.dot").unwrap();
+    write_dot(&counter_uut, &mut dot).unwrap();
+    Ok(())
 }

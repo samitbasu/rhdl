@@ -1,4 +1,5 @@
 use super::circuit_impl::Circuit;
+use crate::flow_graph::FlowGraph;
 use crate::rhif::spec::Member;
 use crate::schematic::builder::build_schematic;
 use crate::schematic::components::{
@@ -12,6 +13,13 @@ use crate::{compile_design, Synchronous};
 use crate::{util::hash_id, Kind};
 use std::collections::HashMap;
 
+// A few notes on the circuit descriptor struct
+// The idea here is to capture the details on the circuit in such
+// a way that it can be manipulated at run time.  This means that
+// information encoded in the type system must be lifted into the
+// runtime description.  And the repository for that information
+// is the CircuitDescriptor struct.  We cannot, for example, iterate
+// over the types that make up our children.
 #[derive(Clone, Debug)]
 pub struct CircuitDescriptor {
     pub unique_name: String,
@@ -22,6 +30,7 @@ pub struct CircuitDescriptor {
     pub num_tristate: usize,
     pub tristate_offset_in_parent: usize,
     pub update_schematic: Option<Schematic>,
+    pub update_flow_graph: FlowGraph,
     pub children: HashMap<String, CircuitDescriptor>,
 }
 
@@ -222,6 +231,7 @@ pub fn root_descriptor<C: Circuit>(circuit: &C) -> CircuitDescriptor {
         q_kind: C::Q::static_kind(),
         num_tristate: C::Z::N,
         update_schematic: root_schematic::<C>(),
+        update_flow_graph: FlowGraph::default(),
         tristate_offset_in_parent: 0,
         children: Default::default(),
     }

@@ -1,4 +1,14 @@
-use rhdl::prelude::*;
+use rhdl::{
+    core::{
+        flow_graph::{
+            component::{BlackBox, ComponentKind},
+            EdgeKind, FlowGraph,
+        },
+        rtl::object::RegisterKind,
+        util::hash_id,
+    },
+    prelude::*,
+};
 
 #[derive(Debug, Clone)]
 pub struct U<T: Digital> {
@@ -73,6 +83,41 @@ impl<T: Digital> Synchronous for U<T> {
 
     fn as_hdl(&self, _: HDLKind) -> Result<HDLDescriptor, RHDLError> {
         Ok(self.as_verilog())
+    }
+
+    fn descriptor(&self) -> CircuitDescriptor {
+        let mut fg = FlowGraph::default();
+        // Make the FG slightly nicer
+        let rst = fg.buffer(RegisterKind::Unsigned(1), "rst", None);
+        let d = fg.buffer(Self::I::static_kind().into(), "d", None);
+        let q = fg.buffer(Self::O::static_kind().into(), "q", None);
+        let bb = fg.new_component_with_optional_location(
+            ComponentKind::BlackBox(BlackBox {
+                name: format!("{}_{:?}", self.name(), Self::O::static_kind()),
+            }),
+            None,
+        );
+        fg.edge(bb, rst, EdgeKind::Arg(0));
+        fg.edge(bb, d, EdgeKind::Arg(1));
+        fg.edge(q, bb, EdgeKind::Arg(0));
+        fg.inputs = vec![Some(rst), Some(d), None];
+        fg.output = q;
+        CircuitDescriptor {
+            unique_name: format!(
+                "{}_{:x}",
+                self.name(),
+                hash_id(std::any::TypeId::of::<Self>())
+            ),
+            input_kind: Self::I::static_kind(),
+            output_kind: Self::O::static_kind(),
+            d_kind: Kind::Empty,
+            q_kind: Kind::Empty,
+            num_tristate: 0,
+            update_schematic: None,
+            tristate_offset_in_parent: 0,
+            children: Default::default(),
+            update_flow_graph: fg,
+        }
     }
 }
 

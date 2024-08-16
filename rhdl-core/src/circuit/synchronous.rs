@@ -1,7 +1,14 @@
 use crate::{
-    error::RHDLError, types::reset::Reset, util::hash_id, CircuitDescriptor, Clock, Digital,
-    DigitalFn, HDLDescriptor, HDLKind, Tristate,
+    build_rtl_flow_graph, compile_design,
+    compiler::{codegen::compile_top, driver::CompilationMode},
+    error::RHDLError,
+    flow_graph::FlowGraph,
+    types::reset::Reset,
+    util::hash_id,
+    CircuitDescriptor, Clock, Digital, DigitalFn, HDLDescriptor, HDLKind, Tristate,
 };
+
+use super::synchronous_flow_graph::{self, build_synchronous_flow_graph};
 
 pub type SynchronousUpdateFn<C> = fn(
     bool,
@@ -50,11 +57,13 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO + SynchronousDQ {
     fn z_offsets() -> impl Iterator<Item = usize> {
         std::iter::once(0)
     }
-    // Auto derived
-    //    fn timing(out_path: &crate::types::path::Path) -> CostGraph;
 }
 
 pub fn synchronous_root_descriptor<C: Synchronous>(circuit: &C) -> CircuitDescriptor {
+    eprintln!("Synchronous root descriptor for {}", circuit.name());
+    let module = compile_design::<C::Update>(CompilationMode::Synchronous).unwrap();
+    let rtl = compile_top(&module).unwrap();
+    let update_fg = build_rtl_flow_graph(&rtl);
     CircuitDescriptor {
         unique_name: format!(
             "{}_{:x}",
@@ -69,5 +78,6 @@ pub fn synchronous_root_descriptor<C: Synchronous>(circuit: &C) -> CircuitDescri
         update_schematic: None,
         tristate_offset_in_parent: 0,
         children: Default::default(),
+        update_flow_graph: update_fg,
     }
 }

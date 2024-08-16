@@ -1,12 +1,14 @@
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write;
 
+use crate::rhif::object::SourceLocation;
 use crate::{
     ast::ast_impl::{FunctionId, NodeId},
     rhif::{object::SymbolMap, spec::Slot},
     util::binary_string,
     TypedBits,
 };
+use crate::{Digital, Kind};
 
 use super::spec::{LiteralId, OpCode, Operand, RegisterId};
 
@@ -88,6 +90,12 @@ impl From<&TypedBits> for BitString {
     }
 }
 
+impl From<TypedBits> for BitString {
+    fn from(tb: TypedBits) -> Self {
+        (&tb).into()
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum RegisterKind {
     Signed(usize),
@@ -109,6 +117,27 @@ impl RegisterKind {
     }
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+    pub fn from_digital(t: impl Digital) -> Self {
+        match t.kind() {
+            Kind::Signed(len) => RegisterKind::Signed(len),
+            _ => RegisterKind::Unsigned(t.bin().len()),
+        }
+    }
+}
+
+impl From<&Kind> for RegisterKind {
+    fn from(value: &Kind) -> Self {
+        match value {
+            Kind::Signed(len) => RegisterKind::Signed(*len),
+            _ => RegisterKind::Unsigned(value.bits()),
+        }
+    }
+}
+
+impl From<Kind> for RegisterKind {
+    fn from(value: Kind) -> Self {
+        (&value).into()
     }
 }
 
@@ -163,6 +192,10 @@ impl Object {
             Operand::Register(reg) => self.register_kind[&reg],
             Operand::Literal(lit) => (&self.literals[&lit]).into(),
         }
+    }
+    pub fn op_loc(&self, op: Operand) -> SourceLocation {
+        let (fn_id, slot) = self.operand_map[&op];
+        (fn_id, self.symbols[&fn_id].slot_map[&slot]).into()
     }
 }
 
