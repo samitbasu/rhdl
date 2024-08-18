@@ -72,6 +72,8 @@ pub enum ComponentKind {
     DynamicSplice(DynamicSplice),
     Index(Index),
     Select,
+    Source(Buffer),
+    Sink(Buffer),
     Splice(Splice),
     Unary(Unary),
 }

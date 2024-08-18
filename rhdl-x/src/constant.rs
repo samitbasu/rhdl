@@ -50,10 +50,10 @@ impl<T: Digital> Synchronous for U<T> {
     }
 
     fn as_hdl(&self, kind: HDLKind) -> Result<HDLDescriptor, RHDLError> {
-        Ok(self.as_verilog())
+        self.as_verilog()
     }
 
-    fn descriptor(&self) -> CircuitDescriptor {
+    fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError> {
         let mut flow_graph = FlowGraph::default();
         let driver = flow_graph.new_component_with_optional_location(
             ComponentKind::Constant(Constant {
@@ -63,7 +63,7 @@ impl<T: Digital> Synchronous for U<T> {
         );
         flow_graph.inputs = vec![None, None, None];
         flow_graph.output = driver;
-        CircuitDescriptor {
+        Ok(CircuitDescriptor {
             unique_name: format!("const_{:?}", self.value.typed_bits()),
             input_kind: Kind::Empty,
             output_kind: Self::O::static_kind(),
@@ -74,15 +74,15 @@ impl<T: Digital> Synchronous for U<T> {
             update_schematic: None,
             update_flow_graph: flow_graph,
             children: Default::default(),
-        }
+        })
     }
 }
 
 impl<T: Digital> DigitalFn for U<T> {}
 
 impl<T: Digital> U<T> {
-    fn as_verilog(&self) -> HDLDescriptor {
-        let module_name = self.descriptor().unique_name;
+    fn as_verilog(&self) -> Result<HDLDescriptor, RHDLError> {
+        let module_name = self.descriptor()?.unique_name;
         let output_bits = T::bits().saturating_sub(1);
         let value = self.value.typed_bits().as_verilog_literal();
         let body = format!(
@@ -92,10 +92,10 @@ module {module_name}(input clock, input reset, input wire[0:0] i, output wire[{o
 endmodule
 "
         );
-        HDLDescriptor {
+        Ok(HDLDescriptor {
             name: module_name,
             body,
             children: Default::default(),
-        }
+        })
     }
 }

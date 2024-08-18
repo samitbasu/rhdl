@@ -159,7 +159,11 @@ impl<'a> MirTypeInference<'a> {
     fn unify(&mut self, id: NodeId, lhs: TypeId, rhs: TypeId) -> Result<()> {
         eprintln!("Unifying {} and {}", self.ctx.desc(lhs), self.ctx.desc(rhs));
         if self.ctx.unify(lhs, rhs).is_err() {
-            //panic!("Unification failed");
+            panic!(
+                "Unification failed {lhs:?} {rhs:?}",
+                lhs = self.ctx.ty(lhs),
+                rhs = self.ctx.ty(rhs)
+            );
             let lhs_span = self.mir.symbols.source.span(lhs.id);
             let rhs_span = self.mir.symbols.source.span(rhs.id);
             let lhs = self.ctx.apply(lhs);
@@ -454,6 +458,7 @@ impl<'a> MirTypeInference<'a> {
             eprintln!("Iteration {}", loop_count);
             let mod_state = self.ctx.modification_state();
             for op in ops {
+                eprintln!("Type op {:?}", op);
                 self.try_type_op(op)?;
             }
             if self.ctx.modification_state() == mod_state {

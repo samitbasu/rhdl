@@ -9,7 +9,7 @@ use crate::schematic::schematic_impl::Schematic;
 use crate::types::digital::Digital;
 use crate::types::path::Path;
 use crate::types::tristate::Tristate;
-use crate::{compile_design, Synchronous};
+use crate::{compile_design, RHDLError, Synchronous};
 use crate::{util::hash_id, Kind};
 use std::collections::HashMap;
 
@@ -38,8 +38,13 @@ impl CircuitDescriptor {
     pub fn add_child<C: Circuit>(&mut self, name: &str, circuit: &C) {
         self.children.insert(name.into(), circuit.descriptor());
     }
-    pub fn add_synchronous<S: Synchronous>(&mut self, name: &str, circuit: &S) {
-        self.children.insert(name.into(), circuit.descriptor());
+    pub fn add_synchronous<S: Synchronous>(
+        &mut self,
+        name: &str,
+        circuit: &S,
+    ) -> Result<(), RHDLError> {
+        self.children.insert(name.into(), circuit.descriptor()?);
+        Ok(())
     }
     // This is a drawing of the circuit dfg construction
     //

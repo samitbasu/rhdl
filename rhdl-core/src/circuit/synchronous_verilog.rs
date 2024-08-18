@@ -13,7 +13,7 @@ type Result<T> = std::result::Result<T, RHDLError>;
 
 pub fn root_synchronous_verilog<S: Synchronous>(t: &S) -> Result<HDLDescriptor> {
     // Start with the module declaration for the circuit.
-    let descriptor = t.descriptor();
+    let descriptor = t.descriptor()?;
     let input_bits = S::I::bits();
     let outputs = S::O::bits();
 

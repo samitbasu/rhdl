@@ -38,3 +38,27 @@ fn test_early_return_in_branch() {
 
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
 }
+
+#[test]
+fn test_early_return_with_empty_element() -> miette::Result<()> {
+    #[kernel]
+    fn foo(a: (bool, ())) -> (bool, ()) {
+        a
+    }
+
+    let module = compile_design::<foo>(CompilationMode::Synchronous)?;
+    Ok(())
+}
+
+#[test]
+fn test_early_return_empty_element_constructed() -> miette::Result<()> {
+    #[kernel]
+    fn foo(a: bool, _q: ()) -> (bool, ()) {
+        (!a, ())
+    }
+
+    let module = compile_design::<foo>(CompilationMode::Synchronous)?;
+    let rtl = compile_top(&module)?;
+    eprintln!("{rtl:?}");
+    Ok(())
+}

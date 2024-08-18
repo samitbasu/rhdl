@@ -70,7 +70,7 @@ fn test_counter_timing_root() -> miette::Result<()> {
     let fg = build_rtl_flow_graph(&rtl);
     let mut dot = std::fs::File::create("counter.dot").unwrap();
     write_dot(&fg, &mut dot).unwrap();
-    let counter_uut = build_synchronous_flow_graph(&uut.descriptor());
+    let counter_uut = build_synchronous_flow_graph(&uut.descriptor()?);
     let mut dot = std::fs::File::create("counter_fg.dot").unwrap();
     write_dot(&counter_uut, &mut dot).unwrap();
     Ok(())
