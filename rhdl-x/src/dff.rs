@@ -82,27 +82,18 @@ impl<T: Digital> Synchronous for U<T> {
     }
 
     fn as_hdl(&self, _: HDLKind) -> Result<HDLDescriptor, RHDLError> {
-        Ok(self.as_verilog())
+        self.as_verilog()
     }
 
-    fn descriptor(&self) -> CircuitDescriptor {
+    fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError> {
         let mut fg = FlowGraph::default();
         // Make the FG slightly nicer
-        let rst = fg.buffer(RegisterKind::Unsigned(1), "rst", None);
-        let d = fg.buffer(Self::I::static_kind().into(), "d", None);
-        let q = fg.buffer(Self::O::static_kind().into(), "q", None);
-        let bb = fg.new_component_with_optional_location(
-            ComponentKind::BlackBox(BlackBox {
-                name: format!("{}_{:?}", self.name(), Self::O::static_kind()),
-            }),
-            None,
-        );
-        fg.edge(bb, rst, EdgeKind::Arg(0));
-        fg.edge(bb, d, EdgeKind::Arg(1));
-        fg.edge(q, bb, EdgeKind::Arg(0));
+        let rst = fg.sink(RegisterKind::Unsigned(1), "rst", None);
+        let d = fg.sink(Self::I::static_kind().into(), "d", None);
+        let q = fg.source(Self::O::static_kind().into(), "q", None);
         fg.inputs = vec![Some(rst), Some(d), None];
         fg.output = q;
-        CircuitDescriptor {
+        Ok(CircuitDescriptor {
             unique_name: format!(
                 "{}_{:x}",
                 self.name(),
@@ -117,7 +108,7 @@ impl<T: Digital> Synchronous for U<T> {
             tristate_offset_in_parent: 0,
             children: Default::default(),
             update_flow_graph: fg,
-        }
+        })
     }
 }
 
@@ -127,8 +118,8 @@ fn as_verilog_decl(kind: &str, len: usize, name: &str) -> String {
 }
 
 impl<T: Digital> U<T> {
-    fn as_verilog(&self) -> HDLDescriptor {
-        let module_name = self.descriptor().unique_name;
+    fn as_verilog(&self) -> Result<HDLDescriptor, RHDLError> {
+        let module_name = self.descriptor()?.unique_name;
         let input_bits = T::bits();
         let output_bits = T::bits();
         let init = self.reset.typed_bits().as_verilog_literal();
@@ -150,11 +141,11 @@ module {module_name}(input clock, input reset, input {input_wire}, output {outpu
 endmodule
             "
         );
-        HDLDescriptor {
+        Ok(HDLDescriptor {
             name: module_name,
             body: code,
             children: Default::default(),
-        }
+        })
     }
 }
 

@@ -25,6 +25,8 @@ mod counter;
 mod strobe;
 //mod descriptions;
 mod dff;
+pub mod inverter;
+pub mod logic_loop;
 //mod push_pull;
 //mod strobe;
 //mod tristate;

@@ -2,13 +2,10 @@ use crate::{
     build_rtl_flow_graph, compile_design,
     compiler::{codegen::compile_top, driver::CompilationMode},
     error::RHDLError,
-    flow_graph::FlowGraph,
     types::reset::Reset,
     util::hash_id,
     CircuitDescriptor, Clock, Digital, DigitalFn, HDLDescriptor, HDLKind, Tristate,
 };
-
-use super::synchronous_flow_graph::{self, build_synchronous_flow_graph};
 
 pub type SynchronousUpdateFn<C> = fn(
     bool,
@@ -46,7 +43,7 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO + SynchronousDQ {
 
     fn name(&self) -> &'static str;
 
-    fn descriptor(&self) -> CircuitDescriptor {
+    fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError> {
         synchronous_root_descriptor(self)
     }
 
@@ -59,12 +56,14 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO + SynchronousDQ {
     }
 }
 
-pub fn synchronous_root_descriptor<C: Synchronous>(circuit: &C) -> CircuitDescriptor {
+pub fn synchronous_root_descriptor<C: Synchronous>(
+    circuit: &C,
+) -> Result<CircuitDescriptor, RHDLError> {
     eprintln!("Synchronous root descriptor for {}", circuit.name());
-    let module = compile_design::<C::Update>(CompilationMode::Synchronous).unwrap();
-    let rtl = compile_top(&module).unwrap();
+    let module = compile_design::<C::Update>(CompilationMode::Synchronous)?;
+    let rtl = compile_top(&module)?;
     let update_fg = build_rtl_flow_graph(&rtl);
-    CircuitDescriptor {
+    Ok(CircuitDescriptor {
         unique_name: format!(
             "{}_{:x}",
             circuit.name(),
@@ -79,5 +78,5 @@ pub fn synchronous_root_descriptor<C: Synchronous>(circuit: &C) -> CircuitDescri
         tristate_offset_in_parent: 0,
         children: Default::default(),
         update_flow_graph: update_fg,
-    }
+    })
 }

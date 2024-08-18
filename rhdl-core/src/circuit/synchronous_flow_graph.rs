@@ -35,7 +35,7 @@ use crate::{
 //     +--< Out    child 1     In <-+
 // Note - we don't want to build this in the proc-macro since the less logic we
 // put there, the better.
-pub fn build_synchronous_flow_graph(descriptor: &CircuitDescriptor) -> FlowGraph {
+fn build_synchronous_flow_graph_internal(descriptor: &CircuitDescriptor) -> FlowGraph {
     // A synchronous flow graph has separate clock and
     // reset inputs, but these don't really factor into
     // data flow, since the assumption is that all elements
@@ -102,7 +102,7 @@ pub fn build_synchronous_flow_graph(descriptor: &CircuitDescriptor) -> FlowGraph
         eprintln!("Output_kind {:?}", output_kind);
         let (child_input_range, _) = bit_range(descriptor.d_kind.clone(), &output_path).unwrap();
         let (child_output_range, _) = bit_range(descriptor.q_kind.clone(), &output_path).unwrap();
-        let child_flow_graph = build_synchronous_flow_graph(child_descriptor);
+        let child_flow_graph = build_synchronous_flow_graph_internal(child_descriptor);
         let child_remap = fg.merge(&child_flow_graph);
         if !child_input_range.is_empty() {
             let child_index = fg.new_component_with_optional_location(
@@ -152,5 +152,38 @@ pub fn build_synchronous_flow_graph(descriptor: &CircuitDescriptor) -> FlowGraph
     fg.edge(circuit_output_buffer, output_index, EdgeKind::Arg(0));
     fg.inputs = vec![reset_buffer, input_buffer];
     fg.output = circuit_output_buffer;
+    fg
+}
+
+pub fn build_synchronous_flow_graph(descriptor: &CircuitDescriptor) -> FlowGraph {
+    let internal_fg = build_synchronous_flow_graph_internal(descriptor);
+    // Create a new, top level FG with sources for the inputs and sinks for the
+    // outputs.
+    let mut fg = FlowGraph::default();
+    let remap = fg.merge(&internal_fg);
+    fg.inputs = internal_fg
+        .inputs
+        .iter()
+        .map(|input| {
+            if let Some(input) = input {
+                let component = &internal_fg.graph[*input];
+                let ComponentKind::Buffer(buffer) = &component.kind else {
+                    panic!("flow graph inputs must be buffers")
+                };
+                let input_source = fg.source(buffer.kind, &buffer.name, component.location);
+                fg.edge(remap[input], input_source, EdgeKind::Arg(0));
+                Some(input_source)
+            } else {
+                None
+            }
+        })
+        .collect();
+    let internal_output = &internal_fg.graph[internal_fg.output];
+    let ComponentKind::Buffer(buffer) = &internal_output.kind else {
+        panic!("flow graph outputs must be buffers")
+    };
+    let output_sink = fg.sink(buffer.kind, &buffer.name, internal_output.location);
+    fg.edge(output_sink, remap[&internal_fg.output], EdgeKind::Arg(0));
+    fg.output = output_sink;
     fg
 }

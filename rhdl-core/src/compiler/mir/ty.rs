@@ -504,7 +504,11 @@ impl UnifyContext {
     }
 
     pub fn ty_tuple(&mut self, id: NodeId, fields: Vec<TypeId>) -> TypeId {
-        self.ty_app(id, AppType::Tuple(AppTuple { elements: fields }))
+        if fields.is_empty() {
+            self.ty_empty(id)
+        } else {
+            self.ty_app(id, AppType::Tuple(AppTuple { elements: fields }))
+        }
     }
 
     pub fn ty_index(&mut self, base: TypeId, index: usize) -> Result<TypeId> {
@@ -851,7 +855,10 @@ impl UnifyContext {
             (_, TypeKind::Var(_)) => self.unify_variable(y, x),
             (TypeKind::Const(x), TypeKind::Const(y)) if x == y => Ok(()),
             (TypeKind::App(_), TypeKind::App(_)) => self.unify_app(x, y),
-            _ => bail!("Cannot unify {} and {}", self.desc(x), self.desc(y)),
+            _ => panic!(
+                "Cannot unify {:?} and {:?}",
+                self.types[x.kind], self.types[y.kind]
+            ),
         }
     }
     // We want to declare v and x as equivalent.

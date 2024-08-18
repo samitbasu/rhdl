@@ -43,6 +43,8 @@ impl std::fmt::Debug for Component {
                 write!(f, "{}..{}", index.bit_range.start, index.bit_range.end)
             }
             ComponentKind::Select => write!(f, "?"),
+            ComponentKind::Source(buffer) => write!(f, "src<{}>", buffer.name),
+            ComponentKind::Sink(buffer) => write!(f, "sink<{}>", buffer.name),
             ComponentKind::Splice(splice) => {
                 write!(f, "/{}..{}/", splice.bit_range.start, splice.bit_range.end)
             }
@@ -69,6 +71,34 @@ impl FlowGraph {
     ) -> FlowIx {
         self.graph.add_node(Component {
             kind: ComponentKind::Buffer(Buffer {
+                kind,
+                name: name.into(),
+            }),
+            location,
+        })
+    }
+    pub fn source(
+        &mut self,
+        kind: RegisterKind,
+        name: &str,
+        location: Option<SourceLocation>,
+    ) -> FlowIx {
+        self.graph.add_node(Component {
+            kind: ComponentKind::Source(Buffer {
+                kind,
+                name: name.into(),
+            }),
+            location,
+        })
+    }
+    pub fn sink(
+        &mut self,
+        kind: RegisterKind,
+        name: &str,
+        location: Option<SourceLocation>,
+    ) -> FlowIx {
+        self.graph.add_node(Component {
+            kind: ComponentKind::Sink(Buffer {
                 kind,
                 name: name.into(),
             }),
