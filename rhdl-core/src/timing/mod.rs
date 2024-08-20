@@ -1,10 +1,51 @@
-// We use recursion within a single object, but not between objects.
-use std::ops::Range;
+use std::collections::HashMap;
 
-use crate::{ast::ast_impl::FunctionId, rtl::object::Object};
+use petgraph::visit::EdgeRef;
 
-struct TimingWork<'a> {
-    fn_id: FunctionId,
-    module: &'a Object,
-    bit_range: Range<usize>,
+use crate::{
+    flow_graph::{
+        component::ComponentKind,
+        flow_graph_impl::{FlowGraph, FlowIx},
+    },
+    rhif::spec::AluBinary,
+};
+
+// Not a realistic model.  Just counts the number of non-trivial ops in the path.
+pub fn simplest_cost(node: FlowIx, fg: &FlowGraph, cost_map: &HashMap<FlowIx, f64>) -> f64 {
+    let component = &fg.graph[node];
+    let max_incoming = fg
+        .graph
+        .edges_directed(node, petgraph::Direction::Incoming)
+        .map(|edge| cost_map[&edge.source()])
+        .fold(0.0, f64::max);
+    match component.kind {
+        ComponentKind::Binary(_)
+        | ComponentKind::Case
+        | ComponentKind::DynamicIndex(_)
+        | ComponentKind::DynamicSplice(_)
+        | ComponentKind::Select
+        | ComponentKind::Unary(_) => max_incoming + 1.0,
+        _ => max_incoming,
+    }
+}
+
+pub fn compute_node_costs<F: FnMut(FlowIx, &FlowGraph, &HashMap<FlowIx, f64>) -> f64>(
+    fg: &mut FlowGraph,
+    mut cost: F,
+) {
+    // Visit the graph in topological order - we will start at the timing source
+    let mut cost_map = HashMap::new();
+    {
+        let mut topo = petgraph::visit::Topo::new(&fg.graph);
+        while let Some(ix) = topo.next(&fg.graph) {
+            // Get the cost for this node
+            let node_cost = cost(ix, fg, &cost_map);
+            cost_map.insert(ix, node_cost);
+        }
+    }
+    // Update the node weights with the computed cost
+    for ix in fg.graph.node_indices() {
+        let node = fg.graph.node_weight_mut(ix).unwrap();
+        node.cost = cost_map[&ix];
+    }
 }

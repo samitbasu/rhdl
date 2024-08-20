@@ -1,16 +1,12 @@
 use crate::{
-    build_rtl_flow_graph, compile_design,
-    compiler::{codegen::compile_top, driver::CompilationMode},
     flow_graph::{
         component::{ComponentKind, Constant, Index, Splice},
-        EdgeKind, FlowGraph,
+        edge_kind::EdgeKind,
+        flow_graph_impl::FlowGraph,
     },
-    rtl::{
-        object::{BitString, RegisterKind},
-        spec::Operand,
-    },
+    rtl::object::{BitString, RegisterKind},
     types::path::{bit_range, Path},
-    CircuitDescriptor, Digital, Kind, RHDLError, Synchronous,
+    CircuitDescriptor,
 };
 
 // Create a flow graph of the circuit.  It is modified by adding
@@ -161,29 +157,35 @@ pub fn build_synchronous_flow_graph(descriptor: &CircuitDescriptor) -> FlowGraph
     // outputs.
     let mut fg = FlowGraph::default();
     let remap = fg.merge(&internal_fg);
-    fg.inputs = internal_fg
-        .inputs
-        .iter()
-        .map(|input| {
-            if let Some(input) = input {
-                let component = &internal_fg.graph[*input];
-                let ComponentKind::Buffer(buffer) = &component.kind else {
-                    panic!("flow graph inputs must be buffers")
-                };
-                let input_source = fg.source(buffer.kind, &buffer.name, component.location);
-                fg.edge(remap[input], input_source, EdgeKind::Arg(0));
-                Some(input_source)
-            } else {
-                None
-            }
-        })
-        .collect();
+    let timing_start = fg.new_component_with_optional_location(ComponentKind::TimingStart, None);
+    let timing_end = fg.new_component_with_optional_location(ComponentKind::TimingEnd, None);
+    // Create sources for all of the inputs of the internal flow graph
+    internal_fg.inputs.iter().flatten().for_each(|input| {
+        let component = &internal_fg.graph[*input];
+        let ComponentKind::Buffer(buffer) = &component.kind else {
+            panic!("flow graph inputs must be buffers")
+        };
+        let input_source = fg.source(buffer.kind, &buffer.name, component.location);
+        fg.edge(remap[input], input_source, EdgeKind::Arg(0));
+    });
+    // Add a source for the output
     let internal_output = &internal_fg.graph[internal_fg.output];
     let ComponentKind::Buffer(buffer) = &internal_output.kind else {
         panic!("flow graph outputs must be buffers")
     };
     let output_sink = fg.sink(buffer.kind, &buffer.name, internal_output.location);
     fg.edge(output_sink, remap[&internal_fg.output], EdgeKind::Arg(0));
-    fg.output = output_sink;
+    // Next, iterate over all nodes of the graph, and connect each source to the timing start
+    // and each sink to the timing end.
+    for node in fg.graph.node_indices() {
+        let component = &fg.graph[node];
+        match &component.kind {
+            ComponentKind::Source(_) => fg.edge(node, timing_start, EdgeKind::Virtual),
+            ComponentKind::Sink(_) => fg.edge(timing_end, node, EdgeKind::Virtual),
+            _ => (),
+        }
+    }
+    fg.inputs = vec![Some(timing_start)];
+    fg.output = timing_end;
     fg
 }
