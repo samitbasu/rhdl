@@ -14,12 +14,13 @@ use super::{
         Binary, Buffer, Cast, ComponentKind, Constant, DynamicIndex, DynamicSplice, Index, Splice,
         Unary,
     },
-    EdgeKind, FlowGraph, FlowIx,
+    edge_kind::EdgeKind,
+    flow_graph_impl::{FlowGraph, FlowIx},
 };
 
 use crate::rtl::spec as tl;
 
-pub struct FlowGraphBuilder<'a> {
+struct FlowGraphBuilder<'a> {
     object: &'a Object,
     fg: FlowGraph,
     operand_map: HashMap<Operand, FlowIx>,

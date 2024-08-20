@@ -1,10 +1,4 @@
-use rhdl::{
-    core::flow_graph::{
-        component::{ComponentKind, Constant},
-        FlowGraph,
-    },
-    prelude::*,
-};
+use rhdl::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct U<T: Digital> {
@@ -56,7 +50,7 @@ impl<T: Digital> Synchronous for U<T> {
     fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError> {
         let mut flow_graph = FlowGraph::default();
         let driver = flow_graph.new_component_with_optional_location(
-            ComponentKind::Constant(Constant {
+            ComponentKind::Constant(rhdl::core::flow_graph::component::Constant {
                 bs: self.value.typed_bits().into(),
             }),
             None,

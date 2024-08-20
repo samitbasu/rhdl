@@ -1,12 +1,5 @@
 use rhdl::{
-    core::{
-        flow_graph::{
-            component::{BlackBox, ComponentKind},
-            EdgeKind, FlowGraph,
-        },
-        rtl::object::RegisterKind,
-        util::hash_id,
-    },
+    core::{rtl::object::RegisterKind, util::hash_id},
     prelude::*,
 };
 

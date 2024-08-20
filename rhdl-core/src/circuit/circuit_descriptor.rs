@@ -1,5 +1,5 @@
 use super::circuit_impl::Circuit;
-use crate::flow_graph::FlowGraph;
+use crate::flow_graph::flow_graph_impl::FlowGraph;
 use crate::rhif::spec::Member;
 use crate::schematic::builder::build_schematic;
 use crate::schematic::components::{
