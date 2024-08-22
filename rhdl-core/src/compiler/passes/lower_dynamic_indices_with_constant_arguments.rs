@@ -36,16 +36,22 @@ impl Pass for LowerDynamicIndicesWithConstantArguments {
             .ops
             .clone()
             .into_iter()
-            .map(|lop| {
-                if let OpCode::Index(mut index) = lop.op {
+            .map(|lop| match lop.op {
+                OpCode::Index(mut index) => {
                     index.path = simplify_path(index.path, &input);
                     LocatedOpCode {
                         op: OpCode::Index(index),
                         id: lop.id,
                     }
-                } else {
-                    lop
                 }
+                OpCode::Splice(mut splice) => {
+                    splice.path = simplify_path(splice.path, &input);
+                    LocatedOpCode {
+                        op: OpCode::Splice(splice),
+                        id: lop.id,
+                    }
+                }
+                _ => lop,
             })
             .collect();
         input.ops = ops;
