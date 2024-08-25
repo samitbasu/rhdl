@@ -7,6 +7,7 @@ use crate::{
             Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, Index, LiteralId, OpCode,
             Repeat, Retime, Select, Slot, Splice, Struct, Tuple, Unary,
         },
+        vm::execute,
         Object,
     },
     types::path::Path,
@@ -432,12 +433,31 @@ fn propogate_case(id: NodeId, params: Case, obj: &mut Object) -> Result<LocatedO
     }
 }
 
-fn propogate_exec(id: NodeId, params: Exec, obj: &mut Object) -> Result<LocatedOpCode, RHDLError> {
-    // TODO - need to handle recursion for this to work
-    Ok(LocatedOpCode {
-        op: OpCode::Exec(params),
-        id,
-    })
+fn propogate_exec(
+    node: NodeId,
+    params: Exec,
+    obj: &mut Object,
+) -> Result<LocatedOpCode, RHDLError> {
+    let Exec { lhs, id, args } = &params;
+    if args.iter().all(|x| x.is_literal()) {
+        let args = args
+            .iter()
+            .map(|x| obj.literals[&x.as_literal().unwrap()].clone())
+            .collect::<Vec<_>>();
+        let rhs = execute(&obj.externals[id], args)?;
+        Ok(LocatedOpCode {
+            op: OpCode::Assign(Assign {
+                lhs: *lhs,
+                rhs: assign_literal(node, rhs, obj),
+            }),
+            id: node,
+        })
+    } else {
+        Ok(LocatedOpCode {
+            op: OpCode::Exec(params),
+            id: node,
+        })
+    }
 }
 
 impl Pass for ConstantPropagation {
@@ -464,13 +484,9 @@ impl Pass for ConstantPropagation {
                 OpCode::Enum(enumerate) => propogate_enum(lop.id, enumerate, &mut input),
                 OpCode::Case(case) => propogate_case(lop.id, case, &mut input),
                 OpCode::Exec(exec) => propogate_exec(lop.id, exec, &mut input),
-                /*
-                               OpCode::Exec(_) => todo!(),
-                               OpCode::Assign(_) => todo!(),
-                               OpCode::Noop => todo!(),
-                               OpCode::Comment(_) => todo!(),
-                */
-                _ => Ok(lop),
+                OpCode::Assign(_) | OpCode::Noop | OpCode::Comment(_) | OpCode::Retime(_) => {
+                    Ok(lop)
+                }
             })
             .collect::<Result<Vec<_>, RHDLError>>()?;
         Ok(input)
