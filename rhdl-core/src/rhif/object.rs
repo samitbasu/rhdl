@@ -1,5 +1,8 @@
+use fnv::FnvHasher;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::ops::Range;
 
 use crate::ast::spanned_source::SpannedSource;
@@ -24,7 +27,7 @@ impl From<(FunctionId, NodeId)> for SourceLocation {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct SymbolMap {
     pub source: SpannedSource,
     pub slot_map: BTreeMap<Slot, NodeId>,
@@ -62,7 +65,7 @@ impl SymbolMap {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub struct LocatedOpCode {
     pub op: OpCode,
     pub id: NodeId,
@@ -80,7 +83,7 @@ impl From<(OpCode, NodeId)> for LocatedOpCode {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub struct Object {
     pub symbols: SymbolMap,
     pub literals: BTreeMap<LiteralId, TypedBits>,
@@ -106,6 +109,11 @@ impl Object {
             Slot::Literal(lit) => self.literals[&lit].kind.clone(),
             Slot::Empty => Kind::Empty,
         }
+    }
+    pub fn hash_value(&self) -> u64 {
+        let mut hasher = FnvHasher::default();
+        self.hash(&mut hasher);
+        hasher.finish()
     }
 }
 

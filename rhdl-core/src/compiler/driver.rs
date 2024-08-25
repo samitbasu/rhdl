@@ -50,9 +50,8 @@ fn compile_kernel(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
     let mut obj = infer(mir)?;
     obj = SymbolTableIsComplete::run(obj)?;
     obj = wrap_pass::<CheckForRolledTypesPass>(obj)?;
-    // TODO - Remove the iteration count
-    for _pass in 0..5 {
-        eprintln!("{:?}", obj);
+    let mut hash = obj.hash_value();
+    loop {
         obj = wrap_pass::<RemoveUnneededMuxesPass>(obj)?;
         obj = wrap_pass::<RemoveExtraRegistersPass>(obj)?;
         obj = wrap_pass::<RemoveUnusedLiterals>(obj)?;
@@ -60,12 +59,17 @@ fn compile_kernel(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
         obj = wrap_pass::<RemoveEmptyCasesPass>(obj)?;
         obj = wrap_pass::<RemoveUnusedRegistersPass>(obj)?;
         obj = wrap_pass::<DeadCodeEliminationPass>(obj)?;
+        let new_hash = obj.hash_value();
+        if new_hash == hash {
+            break;
+        }
+        hash = new_hash;
     }
     if matches!(mode, CompilationMode::Asynchronous) {
         obj = CheckClockCoherence::run(obj)?;
     }
-    for _pass in 0..2 {
-        eprintln!("{:?}", obj);
+    let mut hash = obj.hash_value();
+    loop {
         obj = wrap_pass::<RemoveUnneededMuxesPass>(obj)?;
         obj = wrap_pass::<RemoveExtraRegistersPass>(obj)?;
         obj = wrap_pass::<RemoveUnusedLiterals>(obj)?;
@@ -80,6 +84,11 @@ fn compile_kernel(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
         obj = wrap_pass::<LowerInferredRetimesPass>(obj)?;
         obj = wrap_pass::<LowerDynamicIndicesWithConstantArguments>(obj)?;
         obj = wrap_pass::<ConstantPropagation>(obj)?;
+        let new_hash = obj.hash_value();
+        if new_hash == hash {
+            break;
+        }
+        hash = new_hash;
     }
     obj = TypeCheckPass::run(obj)?;
     obj = DataFlowCheckPass::run(obj)?;

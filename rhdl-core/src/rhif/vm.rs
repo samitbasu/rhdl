@@ -14,6 +14,7 @@ use anyhow::Result;
 use anyhow::{anyhow, bail};
 
 use super::object::LocatedOpCode;
+use super::runtime_ops::{array, binary, tuple, unary};
 use super::spec::{LiteralId, Retime, Select, Splice};
 
 struct VMState<'a> {
@@ -78,36 +79,12 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
             }) => {
                 let arg1 = state.read(*arg1)?;
                 let arg2 = state.read(*arg2)?;
-                let result = match op {
-                    AluBinary::Add => (arg1 + arg2)?,
-                    AluBinary::Sub => (arg1 - arg2)?,
-                    AluBinary::BitXor => (arg1 ^ arg2)?,
-                    AluBinary::BitAnd => (arg1 & arg2)?,
-                    AluBinary::BitOr => (arg1 | arg2)?,
-                    AluBinary::Eq => (arg1 == arg2).typed_bits(),
-                    AluBinary::Ne => (arg1 != arg2).typed_bits(),
-                    AluBinary::Shl => (arg1 << arg2)?,
-                    AluBinary::Shr => (arg1 >> arg2)?,
-                    AluBinary::Lt => (arg1 < arg2).typed_bits(),
-                    AluBinary::Le => (arg1 <= arg2).typed_bits(),
-                    AluBinary::Gt => (arg1 > arg2).typed_bits(),
-                    AluBinary::Ge => (arg1 >= arg2).typed_bits(),
-                    _ => todo!(),
-                };
+                let result = binary(*op, arg1, arg2)?;
                 state.write(*lhs, result)?;
             }
             OpCode::Unary(Unary { op, lhs, arg1 }) => {
                 let arg1 = state.read(*arg1)?;
-                let result = match op {
-                    AluUnary::Not => (!arg1)?,
-                    AluUnary::Neg => (-arg1)?,
-                    AluUnary::All => arg1.all(),
-                    AluUnary::Any => arg1.any(),
-                    AluUnary::Signed => arg1.as_signed()?,
-                    AluUnary::Unsigned => arg1.as_unsigned()?,
-                    AluUnary::Xor => arg1.xor(),
-                    AluUnary::Val => arg1.val(),
-                };
+                let result = unary(*op, arg1)?;
                 state.write(*lhs, result)?;
             }
             OpCode::Comment(_) => {}
@@ -117,23 +94,9 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 true_value,
                 false_value,
             }) => {
-                /*                 eprintln!(
-                                   "Select: {cond:?} ? {true_value:?} : {false_value:?}",
-                                   cond = cond,
-                                   true_value = true_value,
-                                   false_value = false_value
-                               );
-                */
                 let cond = state.read(*cond)?;
                 let true_value = state.read(*true_value)?;
                 let false_value = state.read(*false_value)?;
-                /*                 eprintln!(
-                                   "    - Select: {cond} ? {true_value} : {false_value}",
-                                   cond = cond,
-                                   true_value = true_value,
-                                   false_value = false_value
-                               );
-                */
                 if cond.any().as_bool()? {
                     state.write(*lhs, true_value)?;
                 } else {
@@ -166,13 +129,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                     .iter()
                     .map(|x| state.read(*x))
                     .collect::<Result<Vec<_>>>()?;
-                let bits = fields
-                    .iter()
-                    .flat_map(|x| x.bits.iter().cloned())
-                    .collect::<Vec<_>>();
-                let kinds = fields.iter().map(|x| x.kind.clone()).collect::<Vec<_>>();
-                let kind = Kind::make_tuple(kinds);
-                let result = TypedBits { bits, kind };
+                let result = tuple(&fields);
                 state.write(*lhs, result)?;
             }
             OpCode::Array(Array { lhs, elements }) => {
@@ -180,12 +137,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                     .iter()
                     .map(|x| state.read(*x))
                     .collect::<Result<Vec<_>>>()?;
-                let bits = elements
-                    .iter()
-                    .flat_map(|x| x.bits.iter().cloned())
-                    .collect::<Vec<_>>();
-                let kind = Kind::make_array(elements[0].kind.clone(), elements.len());
-                let result = TypedBits { bits, kind };
+                let result = array(&elements);
                 state.write(*lhs, result)?;
             }
             OpCode::Struct(Struct {
@@ -284,7 +236,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
     Ok(())
 }
 
-fn execute(design: &Module, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Result<TypedBits> {
+pub fn execute(design: &Module, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Result<TypedBits> {
     // Load the object for this function
     let obj = design
         .objects

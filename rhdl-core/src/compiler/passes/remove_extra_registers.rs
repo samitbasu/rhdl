@@ -30,16 +30,6 @@ impl Pass for RemoveExtraRegistersPass {
             let op = &lop.op;
             eprintln!("Found assign op {:?}", op);
             if let OpCode::Assign(assign) = op {
-                let lhs_name = input.symbols.slot_names.get(&assign.lhs);
-                let rhs_name = input.symbols.slot_names.get(&assign.rhs);
-                if !can_merge_names(lhs_name, rhs_name) {
-                    eprintln!(
-                        "Cannot merge names {:?} {:?} for registers {:?} {:?}",
-                        lhs_name, rhs_name, assign.lhs, assign.rhs
-                    );
-                    eligible[op_ndx] = false;
-                    continue;
-                }
                 input.ops = input
                     .ops
                     .into_iter()
@@ -103,14 +93,5 @@ fn merge_names(a: Option<&String>, b: Option<&String>) -> Option<String> {
         (None, Some(b)) => Some(b.clone()),
         (Some(a), Some(b)) if a == b => Some(a.clone()),
         (Some(a), Some(b)) => Some(format!("{}_then_{}", b, a)),
-    }
-}
-
-fn can_merge_names(a: Option<&String>, b: Option<&String>) -> bool {
-    match (a, b) {
-        (None, None) => true,
-        (Some(_), None) => true,
-        (None, Some(_)) => true,
-        (Some(a), Some(b)) => a == b,
     }
 }

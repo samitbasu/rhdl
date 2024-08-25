@@ -22,50 +22,50 @@ impl std::fmt::Debug for NodeId {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Stmt {
     pub id: NodeId,
     pub kind: StmtKind,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum StmtKind {
     Local(Box<Local>),
     Expr(Box<Expr>),
     Semi(Box<Expr>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Block {
     pub id: NodeId,
     pub stmts: Vec<Box<Stmt>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Local {
     pub id: NodeId,
     pub pat: Box<Pat>,
     pub init: Option<Box<Expr>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Pat {
     pub id: NodeId,
     pub kind: PatKind,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct PathSegment {
     pub ident: &'static str,
     pub arguments: Vec<&'static str>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Path {
     pub segments: Vec<PathSegment>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum PatKind {
     Ident(PatIdent),
     Tuple(PatTuple),
@@ -80,69 +80,69 @@ pub enum PatKind {
     Wild,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct PatIdent {
     pub name: &'static str,
     pub mutable: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct PatTuple {
     pub elements: Vec<Box<Pat>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct PatSlice {
     pub elems: Vec<Box<Pat>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct PatTupleStruct {
     pub path: Box<Path>,
     pub elems: Vec<Box<Pat>>,
     pub signature: DigitalSignature,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct PatLit {
     pub lit: Box<ExprLit>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct PatOr {
     pub segments: Vec<Box<Pat>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct PatParen {
     pub pat: Box<Pat>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct PatPath {
     pub path: Box<Path>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct PatStruct {
     pub path: Box<Path>,
     pub fields: Vec<Box<FieldPat>>,
     pub rest: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct PatType {
     pub pat: Box<Pat>,
     pub kind: Kind,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Expr {
     pub id: NodeId,
     pub kind: ExprKind,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum ExprKind {
     Binary(ExprBinary),
     Unary(ExprUnary),
@@ -170,117 +170,117 @@ pub enum ExprKind {
     Bits(ExprBits),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprType {
     pub kind: Kind,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprBinary {
     pub op: BinOp,
     pub lhs: Box<Expr>,
     pub rhs: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprUnary {
     pub op: UnOp,
     pub expr: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprMatch {
     pub expr: Box<Expr>,
     pub arms: Vec<Box<Arm>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprRet {
     pub expr: Option<Box<Expr>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprIf {
     pub cond: Box<Expr>,
     pub then_branch: Box<Block>,
     pub else_branch: Option<Box<Expr>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprIndex {
     pub expr: Box<Expr>,
     pub index: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprParen {
     pub expr: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprTuple {
     pub elements: Vec<Box<Expr>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprForLoop {
     pub pat: Box<Pat>,
     pub expr: Box<Expr>,
     pub body: Box<Block>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprAssign {
     pub lhs: Box<Expr>,
     pub rhs: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprGroup {
     pub expr: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprField {
     pub expr: Box<Expr>,
     pub member: Member,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprBlock {
     pub block: Box<Block>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprArray {
     pub elems: Vec<Box<Expr>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprRange {
     pub start: Option<Box<Expr>>,
     pub limits: RangeLimits,
     pub end: Option<Box<Expr>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprPath {
     pub path: Box<Path>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprLet {
     pub pattern: Box<Pat>,
     pub value: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprRepeat {
     pub value: Box<Expr>,
     pub len: i64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprStruct {
     pub path: Box<Path>,
     pub fields: Vec<Box<FieldValue>>,
@@ -290,19 +290,19 @@ pub struct ExprStruct {
     pub discriminant: TypedBits,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprBits {
     pub kind: BitsKind,
     pub arg: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum BitsKind {
     Unsigned,
     Signed,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprCall {
     pub path: Box<Path>,
     pub args: Vec<Box<Expr>>,
@@ -310,20 +310,20 @@ pub struct ExprCall {
     pub code: Option<KernelFnKind>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExprMethodCall {
     pub receiver: Box<Expr>,
     pub args: Vec<Box<Expr>>,
     pub method: &'static str,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct FieldValue {
     pub member: Member,
     pub value: Box<Expr>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash)]
 pub enum BinOp {
     Add,
     Sub,
@@ -367,39 +367,39 @@ impl BinOp {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash)]
 pub enum UnOp {
     Neg,
     Not,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Arm {
     pub id: NodeId,
     pub kind: ArmKind,
     pub body: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum ArmKind {
     Wild,
     Constant(ArmConstant),
     Enum(ArmEnum),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ArmConstant {
     pub value: ExprLit,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ArmEnum {
     pub pat: Box<Pat>,
     pub template: TypedBits,
     pub payload_kind: Kind,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub enum ExprLit {
     TypedBits(ExprTypedBits),
     Int(String),
@@ -414,19 +414,19 @@ impl ExprLit {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub struct ExprTypedBits {
     pub path: Box<Path>,
     pub value: TypedBits,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum RangeLimits {
     HalfOpen,
     Closed,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct FieldPat {
     pub member: Member,
     pub pat: Box<Pat>,
@@ -453,7 +453,7 @@ impl std::fmt::LowerHex for FunctionId {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct KernelFn {
     pub id: NodeId,
     pub name: &'static str,

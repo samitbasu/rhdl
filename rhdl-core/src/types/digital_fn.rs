@@ -10,7 +10,7 @@ pub trait DigitalFn {
 
 // See: https://jsdw.me/posts/rust-fn-traits/
 
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Hash)]
 pub struct DigitalSignature {
     pub arguments: Vec<Kind>,
     pub ret: Kind,

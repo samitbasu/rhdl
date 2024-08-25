@@ -1,5 +1,4 @@
 use crate::{
-    compiler::mir::error::RHDLTypeError,
     error::RHDLError,
     rhif::{
         object::LocatedOpCode,
