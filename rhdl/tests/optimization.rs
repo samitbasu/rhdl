@@ -14,7 +14,7 @@ fn test_dynamic_vs_static_indexing_on_assign() -> miette::Result<()> {
         a[c]
     }
     let module = compile_design::<foo>(CompilationMode::Synchronous)?;
-    let rtl = compile_top(&module)?;
+    let rtl = compile_to_rtl(&module)?;
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -33,7 +33,7 @@ fn test_dynamic_vs_static_indexing() -> miette::Result<()> {
         a[c] // Should compile down to a static index.
     }
     let module = compile_design::<foo>(CompilationMode::Synchronous)?;
-    let rtl = compile_top(&module)?;
+    let rtl = compile_to_rtl(&module)?;
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -53,7 +53,7 @@ fn test_dynamic_indexing_lowers_with_multiple_dimensions() -> miette::Result<()>
         a[c][d] // Should compile down to a static index.
     }
     let module = compile_design::<foo>(CompilationMode::Synchronous)?;
-    let rtl = compile_top(&module)?;
+    let rtl = compile_to_rtl(&module)?;
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -73,7 +73,7 @@ fn test_dynamic_splice_lowers_with_multiple_dimensions() -> miette::Result<()> {
         a[c][d]
     }
     let module = compile_design::<foo>(CompilationMode::Synchronous)?;
-    let rtl = compile_top(&module)?;
+    let rtl = compile_to_rtl(&module)?;
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -91,7 +91,7 @@ fn test_shift_with_constant_argument() -> miette::Result<()> {
         a << 2 // Should compile down to a static shift.
     }
     let module = compile_design::<foo>(CompilationMode::Synchronous)?;
-    let rtl = compile_top(&module)?;
+    let rtl = compile_to_rtl(&module)?;
     eprintln!("{:?}", rtl);
     Ok(())
 }
@@ -104,7 +104,7 @@ fn test_constant_propagation_with_dynamic_indexing() -> miette::Result<()> {
         a[c + 1] // Should compile down to a static index.
     }
     let module = compile_design::<foo>(CompilationMode::Synchronous)?;
-    let rtl = compile_top(&module)?;
+    let rtl = compile_to_rtl(&module)?;
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -122,7 +122,7 @@ fn test_constant_propagation_with_array() -> miette::Result<()> {
         a[c[0] + c[1]] // Should compile down to a static index.
     }
     let module = compile_design::<foo>(CompilationMode::Synchronous)?;
-    let rtl = compile_top(&module)?;
+    let rtl = compile_to_rtl(&module)?;
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -141,7 +141,7 @@ fn test_constant_propagation_with_tuple() -> miette::Result<()> {
         a[d] // Should compile down to a static index.
     }
     let module = compile_design::<foo>(CompilationMode::Synchronous)?;
-    let rtl = compile_top(&module)?;
+    let rtl = compile_to_rtl(&module)?;
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -162,7 +162,7 @@ fn test_constant_propogation_with_select() -> miette::Result<()> {
         a[d] // Should compile down to a static splice.
     }
     let module = compile_design::<foo>(CompilationMode::Synchronous)?;
-    let rtl = compile_top(&module)?;
+    let rtl = compile_to_rtl(&module)?;
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -183,7 +183,7 @@ fn test_constant_propogation_with_splice() -> miette::Result<()> {
         a[d] // Should compile down to a static splice.
     }
     let module = compile_design::<foo>(CompilationMode::Synchronous)?;
-    let rtl = compile_top(&module)?;
+    let rtl = compile_to_rtl(&module)?;
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -212,7 +212,7 @@ fn test_constant_propogation_with_struct() -> miette::Result<()> {
         a[d] // Should compile down to a static splice.
     }
     let module = compile_design::<foo>(CompilationMode::Synchronous)?;
-    let rtl = compile_top(&module)?;
+    let rtl = compile_to_rtl(&module)?;
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -242,7 +242,7 @@ fn test_constant_propogation_with_struct_with_rest() -> miette::Result<()> {
         a[d] // Should compile down to a static splice.
     }
     let module = compile_design::<foo>(CompilationMode::Synchronous)?;
-    let rtl = compile_top(&module)?;
+    let rtl = compile_to_rtl(&module)?;
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -271,7 +271,7 @@ fn test_constant_propogation_with_enum() -> miette::Result<()> {
         a[d] // Should compile down to a static splice.
     }
     let module = compile_design::<foo>(CompilationMode::Synchronous)?;
-    let rtl = compile_top(&module)?;
+    let rtl = compile_to_rtl(&module)?;
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -292,7 +292,7 @@ fn test_constant_propagation_through_assigns() -> miette::Result<()> {
         a[d] // Should compile down to a static index.
     }
     let module = compile_design::<foo>(CompilationMode::Synchronous)?;
-    let rtl = compile_top(&module)?;
+    let rtl = compile_to_rtl(&module)?;
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -313,7 +313,7 @@ fn test_constant_propagation_through_loops() -> miette::Result<()> {
         a[c] // Should compile down to a static index.
     }
     let module = compile_design::<foo>(CompilationMode::Synchronous)?;
-    let rtl = compile_top(&module)?;
+    let rtl = compile_to_rtl(&module)?;
     eprintln!("{:?}", rtl);
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(

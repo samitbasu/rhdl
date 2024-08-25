@@ -1,7 +1,7 @@
-use crate::compiler::codegen::compile_top;
+use crate::compiler::codegen::compile_to_rtl;
 use crate::compiler::codegen::verilog::generate_verilog;
 use crate::error::RHDLError;
-use crate::rhif::vm::execute_function;
+use crate::rhif::vm::execute;
 use crate::{build_rtl_flow_graph, compile_design, DigitalFn};
 use crate::{Timed, TypedBits};
 
@@ -302,7 +302,7 @@ where
     Args: TestArg,
 {
     let design = compile_design::<K>(crate::compiler::driver::CompilationMode::Asynchronous)?;
-    let rtl = compile_top(&design)?;
+    let rtl = compile_to_rtl(&design)?;
     let flow_graph = build_rtl_flow_graph(&rtl);
     let verilog = generate_verilog(&design)?;
     eprintln!("Verilog {:?}", verilog);
@@ -311,7 +311,7 @@ where
     for input in vm_inputs {
         let args_for_vm = input.vec_tb();
         let expected = uut.apply(input).typed_bits();
-        let actual = execute_function(&design, args_for_vm)?;
+        let actual = execute(&design, args_for_vm)?;
         if expected.bits != actual.bits {
             return Err(RHDLError::VerilogVerificationErrorTyped { expected, actual });
         }

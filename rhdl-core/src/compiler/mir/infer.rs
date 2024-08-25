@@ -575,14 +575,14 @@ impl<'a> MirTypeInference<'a> {
                 }
                 OpCode::Exec(exec) => {
                     let external_fn = &self.mir.stash[&exec.id];
-                    let signature = &external_fn.signature;
-                    for (arg_kind, arg_slot) in signature.arguments.iter().zip(exec.args.iter()) {
+                    let sub_args = external_fn.arguments.iter().map(|x| &external_fn.kind[x]);
+                    for (arg_kind, arg_slot) in sub_args.zip(exec.args.iter()) {
                         let arg_ty = self.slot_ty(*arg_slot);
                         let arg_kind = self.ctx.from_kind(id, arg_kind);
                         self.unify(id, arg_ty, arg_kind)?;
                     }
                     let ret_ty = self.slot_ty(exec.lhs);
-                    let ret_kind = self.ctx.from_kind(id, &signature.ret);
+                    let ret_kind = self.ctx.from_kind(id, &external_fn.kind(external_fn.return_slot));
                     self.unify(id, ret_ty, ret_kind)?;
                 }
                 OpCode::Index(index) => {

@@ -12,7 +12,6 @@ use crate::rhif::spec::Retime;
 use crate::rhif::spec::{
     Array, Assign, Case, Cast, Enum, Exec, Index, Repeat, Select, Splice, Struct, Tuple, Unary,
 };
-use crate::Module;
 use crate::TypedBits;
 use crate::{
     rhif::{
@@ -33,26 +32,19 @@ use super::schematic_impl::Schematic;
 
 #[derive(Debug)]
 pub struct SchematicBuilder<'a> {
-    module: &'a Module,
     object: &'a Object,
     schematic: Schematic,
     slot_map: HashMap<Slot, PinIx>,
 }
 
-pub fn build_schematic(module: &Module, function: FunctionId) -> Result<Schematic> {
-    let object = module.objects.get(&function).ok_or(anyhow!(
-        "Function {:?} not found in module {:?}",
-        function,
-        module
-    ))?;
-    let analyzer = SchematicBuilder::new(module, object);
+pub fn build_schematic(object: &Object) -> Result<Schematic> {
+    let analyzer = SchematicBuilder::new(object);
     analyzer.build()
 }
 
 impl<'a> SchematicBuilder<'a> {
-    fn new(module: &'a Module, object: &'a Object) -> Self {
+    fn new(object: &'a Object) -> Self {
         Self {
-            module,
             object,
             schematic: Schematic::default(),
             slot_map: HashMap::new(),
@@ -106,12 +98,6 @@ impl<'a> SchematicBuilder<'a> {
             }?
         }
         self.schematic.output = self.lookup(self.object.return_slot)?;
-        self.schematic.source = self
-            .module
-            .objects
-            .iter()
-            .map(|(k, v)| (*k, v.symbols.source.clone()))
-            .collect();
         Ok(self.schematic)
     }
 
@@ -495,14 +481,14 @@ impl<'a> SchematicBuilder<'a> {
     }
 
     fn make_exec(&mut self, exec: Exec, location: Option<SourceLocation>) -> Result<()> {
-        let code = &self.object.externals[&exec.id].code;
+        let code = &self.object.externals[&exec.id];
         self.make_kernel(exec, code, location)
     }
 
     fn make_kernel(
         &mut self,
         exec: Exec,
-        kernel: &Kernel,
+        code: &Object,
         location: Option<SourceLocation>,
     ) -> Result<()> {
         let args = exec
@@ -511,10 +497,10 @@ impl<'a> SchematicBuilder<'a> {
             .map(|arg| self.make_wired_pin(*arg))
             .collect::<Result<Vec<_>>>()?;
         let out = self.make_output_pin(exec.lhs)?;
-        let sub_schematic = build_schematic(self.module, kernel.inner().fn_id)?;
+        let sub_schematic = build_schematic(code)?;
         let component = self.schematic.make_component(
             ComponentKind::Kernel(KernelComponent {
-                name: kernel.inner().name.to_owned(),
+                name: code.name.clone(),
                 args: args.clone(),
                 output: out,
                 sub_schematic,

@@ -5,6 +5,7 @@ use crate::{
     rhif::{
         object::{LocatedOpCode, SymbolMap},
         spec::{ExternalFunction, FuncId, OpCode, Slot},
+        Object,
     },
     Kind,
 };
@@ -22,7 +23,7 @@ pub struct Mir {
     pub literals: BTreeMap<Slot, ExprLit>,
     pub ty: BTreeMap<Slot, Kind>,
     pub ty_equate: HashSet<TypeEquivalence>,
-    pub stash: BTreeMap<FuncId, ExternalFunction>,
+    pub stash: BTreeMap<FuncId, Box<Object>>,
     pub return_slot: Slot,
     pub arguments: Vec<Slot>,
     pub fn_id: FunctionId,

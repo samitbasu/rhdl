@@ -11,12 +11,12 @@ use crate::{
     },
     test_module::VerilogDescriptor,
     util::binary_string,
-    Module, RHDLError,
+    RHDLError,
 };
 
 use rtl::spec as tl;
 
-use super::compile_top;
+use super::compile_to_rtl;
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
@@ -35,7 +35,6 @@ impl VerilogModule {
 struct TranslationContext<'a> {
     body: String,
     kernels: Vec<VerilogModule>,
-    design: &'a Module,
     rtl: &'a rtl::Object,
     id: FunctionId,
 }
@@ -313,7 +312,7 @@ impl<'a> TranslationContext<'a> {
             .collect::<Vec<_>>();
         let ret_kind = self.rtl.kind(self.rtl.return_register);
         let signed = if ret_kind.is_signed() { "signed " } else { "" };
-        let func_name = self.design.func_name(fn_id)?;
+        let func_name = &self.rtl.name;
         self.body.push_str(&format!(
             "\nfunction {signed} [{}:0] {}({});\n",
             ret_kind.len() - 1,
@@ -366,25 +365,24 @@ impl<'a> TranslationContext<'a> {
     }
 }
 
-fn translate(design: &Module, fn_id: FunctionId) -> Result<VerilogModule> {
-    let rtl = compile_top(design)?;
+fn translate(object: &crate::rhif::Object) -> Result<VerilogModule> {
+    let rtl = compile_to_rtl(object)?;
     eprintln!("RTL: {:?}", rtl);
     let context = TranslationContext {
         kernels: Default::default(),
         body: Default::default(),
-        design,
         rtl: &rtl,
-        id: fn_id,
+        id: object.fn_id,
     };
     context.translate_kernel_for_object()
 }
 
-pub fn generate_verilog(design: &Module) -> Result<VerilogDescriptor> {
-    let module = translate(design, design.top)?;
+pub fn generate_verilog(object: &crate::rhif::Object) -> Result<VerilogDescriptor> {
+    let module = translate(object)?;
     let module = module.deduplicate()?;
     let body = module.functions.join("\n");
     Ok(VerilogDescriptor {
-        name: design.func_name(design.top)?,
+        name: object.name.clone(),
         body,
     })
 }

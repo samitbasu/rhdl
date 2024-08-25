@@ -89,7 +89,7 @@ pub struct Object {
     pub literals: BTreeMap<LiteralId, TypedBits>,
     pub kind: BTreeMap<RegisterId, Kind>,
     pub return_slot: Slot,
-    pub externals: BTreeMap<FuncId, ExternalFunction>,
+    pub externals: BTreeMap<FuncId, Box<Object>>,
     pub ops: Vec<LocatedOpCode>,
     pub arguments: Vec<RegisterId>,
     pub name: String,
@@ -135,11 +135,7 @@ impl std::fmt::Debug for Object {
             writeln!(f, "Literal {:?} : {:?} = {:?}", slot, literal.kind, literal)?;
         }
         for (ndx, func) in self.externals.iter() {
-            writeln!(
-                f,
-                "Function {:?} name: {} code: {:?} signature: {:?}",
-                ndx, func.path, func.code, func.signature
-            )?;
+            writeln!(f, "Function {:?} object: {:?}", ndx, func)?;
         }
         let mut body_str = String::new();
         for lop in &self.ops {

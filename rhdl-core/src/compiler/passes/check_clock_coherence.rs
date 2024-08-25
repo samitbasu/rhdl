@@ -549,8 +549,9 @@ impl ClockCoherenceContext<'_> {
                     }
                 }
                 OpCode::Exec(exec) => {
-                    let signature = &self.obj.externals[&exec.id].signature;
-                    let ret_ty = self.import_kind_with_unknown_domains(lop.id, &signature.ret);
+                    let sub = &self.obj.externals[&exec.id];
+                    let ret_ty =
+                        self.import_kind_with_unknown_domains(lop.id, &sub.kind(sub.return_slot));
                     if self.ctx.unify(ret_ty, self.slot_map[&exec.lhs]).is_err() {
                         return Err(self
                             .raise_clock_coherence_error(
@@ -560,8 +561,13 @@ impl ClockCoherenceContext<'_> {
                             )
                             .into());
                     }
-                    for (kind, slot) in signature.arguments.iter().zip(exec.args.iter()) {
-                        let arg_ty = self.import_kind_with_unknown_domains(lop.id, kind);
+                    for (kind, slot) in sub
+                        .arguments
+                        .iter()
+                        .map(|x| sub.kind(Slot::Register(*x)))
+                        .zip(exec.args.iter())
+                    {
+                        let arg_ty = self.import_kind_with_unknown_domains(lop.id, &kind);
                         if self.ctx.unify(arg_ty, self.slot_map[slot]).is_err() {
                             return Err(self
                                 .raise_clock_coherence_error(
