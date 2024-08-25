@@ -37,7 +37,6 @@ fn test_clog2() {
 
 struct RTLCompiler<'a> {
     symbols: HashMap<FunctionId, SymbolMap>,
-    module: &'a rhif::module::Module,
     object: &'a rhif::object::Object,
     literals: BTreeMap<LiteralId, BitString>,
     registers: BTreeMap<RegisterId, RegisterKind>,
@@ -49,9 +48,8 @@ struct RTLCompiler<'a> {
 }
 
 impl<'a> RTLCompiler<'a> {
-    fn new(module: &'a rhif::module::Module, object: &'a rhif::object::Object) -> Self {
+    fn new(object: &'a rhif::object::Object) -> Self {
         Self {
-            module,
             object,
             symbols: [(object.fn_id, object.symbols.clone())].into(),
             literals: Default::default(),
@@ -460,9 +458,9 @@ impl<'a> RTLCompiler<'a> {
             return Ok(());
         }
         // Look up the function ID from the external functions.
-        let func_id = self.object.externals[id].code.inner().fn_id;
+        let func = &self.object.externals[id];
         // Compile it...
-        let func_rtl = compile_rtl(self.module, func_id)?;
+        let func_rtl = compile_rtl(func)?;
         // Inline it.
         let mut register_translation = BTreeMap::new();
         let mut literal_translation = BTreeMap::new();
@@ -760,9 +758,8 @@ impl<'a> RTLCompiler<'a> {
     }
 }
 
-fn compile_rtl(module: &rhif::module::Module, function: FunctionId) -> Result<rtl::object::Object> {
-    let object = &module.objects[&function];
-    let mut compiler = RTLCompiler::new(module, object).translate()?;
+fn compile_rtl(object: &rhif::Object) -> Result<rtl::object::Object> {
+    let mut compiler = RTLCompiler::new(object).translate()?;
     let arguments = object
         .arguments
         .iter()
@@ -792,6 +789,6 @@ fn compile_rtl(module: &rhif::module::Module, function: FunctionId) -> Result<rt
     })
 }
 
-pub fn compile_top(module: &rhif::module::Module) -> Result<rtl::object::Object> {
-    compile_rtl(module, module.top)
+pub fn compile_to_rtl(object: &rhif::object::Object) -> Result<rtl::object::Object> {
+    compile_rtl(object)
 }

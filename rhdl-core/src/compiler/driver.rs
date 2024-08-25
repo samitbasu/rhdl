@@ -27,7 +27,7 @@ use crate::{
     error::RHDLError,
     kernel::Kernel,
     rhif::Object,
-    DigitalFn, KernelFnKind, Module,
+    DigitalFn, KernelFnKind,
 };
 
 type Result<T> = std::result::Result<T, RHDLError>;
@@ -45,8 +45,8 @@ pub enum CompilationMode {
     Synchronous,
 }
 
-fn compile_kernel(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
-    let mir = compile_mir(kernel)?;
+pub fn compile_kernel(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
+    let mir = compile_mir(kernel, mode)?;
     let mut obj = infer(mir)?;
     obj = SymbolTableIsComplete::run(obj)?;
     obj = wrap_pass::<CheckForRolledTypesPass>(obj)?;
@@ -96,42 +96,9 @@ fn compile_kernel(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
     Ok(obj)
 }
 
-fn elaborate_design(design: &mut Module, mode: CompilationMode) -> Result<()> {
-    // Check for any uncompiled kernels
-    let external_kernels = design
-        .objects
-        .values()
-        .flat_map(|obj| obj.externals.iter())
-        .map(|(_, func)| func.code.clone())
-        .collect::<Vec<_>>();
-    for kernel in external_kernels {
-        if let std::collections::hash_map::Entry::Vacant(e) =
-            design.objects.entry(kernel.inner().fn_id)
-        {
-            eprintln!("Compiling kernel {:?}", kernel.inner().fn_id);
-            let obj = compile_kernel(kernel.clone(), mode)?;
-            e.insert(obj);
-        }
-    }
-    Ok(())
-}
-
-pub fn compile_design<K: DigitalFn>(mode: CompilationMode) -> Result<Module> {
+pub fn compile_design<K: DigitalFn>(mode: CompilationMode) -> Result<Object> {
     let Some(KernelFnKind::Kernel(kernel)) = K::kernel_fn() else {
         return Err(anyhow!("Missing kernel function provided for {}", type_name::<K>()).into());
     };
-    let main = compile_kernel(kernel, mode)?;
-    let mut design = Module {
-        objects: [(main.fn_id, main.clone())].into_iter().collect(),
-        top: main.fn_id,
-    };
-    let mut object_count = design.objects.len();
-    loop {
-        elaborate_design(&mut design, mode)?;
-        if design.objects.len() == object_count {
-            break;
-        }
-        object_count = design.objects.len();
-    }
-    Ok(design)
+    compile_kernel(kernel, mode)
 }

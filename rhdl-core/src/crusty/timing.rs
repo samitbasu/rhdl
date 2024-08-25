@@ -12,7 +12,7 @@ use crate::{
         Object,
     },
     types::path::{bit_range, path_star, Path},
-    Module, RHDLError,
+    RHDLError,
 };
 
 use super::{slot_to_opcode::slot_to_opcode, utils::path_with_member};

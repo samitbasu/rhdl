@@ -322,12 +322,13 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 args,
             }) => {
                 // Get the function signature.
-                let signature = obj.externals[func_id].signature.clone();
-                eq_kinds(slot_type(lhs), signature.ret, id)?;
-                for (arg, param) in args.iter().zip(signature.arguments.iter()) {
+                let sub = &obj.externals[func_id];
+                let sub_args = sub.arguments.iter().map(|x| sub.kind(Slot::Register(*x)));
+                eq_kinds(slot_type(lhs), sub.kind(sub.return_slot), id)?;
+                for (arg, param) in args.iter().zip(sub_args) {
                     eq_kinds(slot_type(arg), param.clone(), id)?;
                 }
-                if args.len() != signature.arguments.len() {
+                if args.len() != sub.arguments.len() {
                     return Err(TypeCheckPass::raise_ice(
                         obj,
                         ICE::ArgumentCountMismatchOnCall,

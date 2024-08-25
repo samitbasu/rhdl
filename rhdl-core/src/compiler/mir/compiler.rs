@@ -30,6 +30,8 @@ use crate::ast_builder::BinOp;
 use crate::ast_builder::UnOp;
 use crate::compiler::ascii;
 use crate::compiler::display_ast::pretty_print_statement;
+use crate::compiler::driver::compile_kernel;
+use crate::compiler::driver::CompilationMode;
 use crate::error::RHDLError;
 use crate::kernel::Kernel;
 use crate::rhif;
@@ -49,6 +51,7 @@ use crate::rhif::spec::FuncId;
 use crate::rhif::spec::LiteralId;
 use crate::rhif::spec::Member;
 use crate::rhif::spec::RegisterId;
+use crate::rhif::Object;
 use crate::types::path::Path;
 use crate::KernelFnKind;
 use crate::Kind;
@@ -166,7 +169,7 @@ pub struct MirContext<'a> {
     reg_source_map: BTreeMap<Slot, NodeId>,
     ty: BTreeMap<Slot, KindKey>,
     ty_equate: HashSet<TypeEquivalence>,
-    stash: BTreeMap<FuncId, ExternalFunction>,
+    stash: BTreeMap<FuncId, Box<Object>>,
     slot_names: BTreeMap<Slot, String>,
     return_slot: Slot,
     arguments: Vec<Slot>,
@@ -174,6 +177,7 @@ pub struct MirContext<'a> {
     name: &'static str,
     active_scope: ScopeId,
     spanned_source: &'a SpannedSource,
+    mode: CompilationMode,
 }
 
 impl<'a> std::fmt::Debug for MirContext<'a> {
@@ -196,11 +200,7 @@ impl<'a> std::fmt::Debug for MirContext<'a> {
             writeln!(f, "{:?} -> {:?}", lit, expr)?;
         }
         for (id, func) in self.stash.iter() {
-            writeln!(
-                f,
-                "Function f{:?} name: {} code: {:?} signature: {:?}",
-                id, func.path, func.code, func.signature
-            )?;
+            writeln!(f, "Function f{:?} {:?}", id, func)?;
         }
         for op in &self.ops {
             writeln!(f, "{:?}", op.op)?;
@@ -210,7 +210,7 @@ impl<'a> std::fmt::Debug for MirContext<'a> {
 }
 
 impl<'a> MirContext<'a> {
-    fn new(spanned_source: &'a SpannedSource) -> Self {
+    fn new(spanned_source: &'a SpannedSource, mode: CompilationMode) -> Self {
         MirContext {
             kinds: Intern::default(),
             scopes: vec![Scope {
@@ -232,6 +232,7 @@ impl<'a> MirContext<'a> {
             active_scope: ROOT_SCOPE,
             slot_names: BTreeMap::new(),
             spanned_source,
+            mode,
         }
     }
 
@@ -485,9 +486,10 @@ impl<'a> MirContext<'a> {
                 .into()),
         }
     }
-    fn stash(&mut self, func: ExternalFunction) -> Result<FuncId> {
+    fn stash(&mut self, kernel: &Kernel) -> Result<FuncId> {
         let ndx = self.stash.len().into();
-        self.stash.insert(ndx, func);
+        let object = compile_kernel(kernel.clone(), self.mode)?;
+        self.stash.insert(ndx, Box::new(object));
         Ok(ndx)
     }
     fn op(&mut self, op: OpCode, node: NodeId) {
@@ -879,11 +881,7 @@ impl<'a> MirContext<'a> {
                 self.op(op_enum(lhs, fields, template.clone()), id);
             }
             KernelFnKind::Kernel(kernel) => {
-                let func = self.stash(ExternalFunction {
-                    code: kernel.clone(),
-                    path: path.clone(),
-                    signature: call.signature.clone().unwrap(),
-                })?;
+                let func = self.stash(kernel)?;
                 self.op(op_exec(lhs, func, args), id);
             }
             KernelFnKind::SignalConstructor(color) => {
@@ -1405,7 +1403,7 @@ impl<'a> Visitor for MirContext<'a> {
     }
 }
 
-pub fn compile_mir(func: Kernel) -> Result<Mir> {
+pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
     let source = build_spanned_source_for_kernel(func.inner());
     for id in 0..func.inner().id.as_u32() {
         let node = NodeId::new(id);
@@ -1414,7 +1412,7 @@ pub fn compile_mir(func: Kernel) -> Result<Mir> {
             panic!("Missing span for node {:?}", node);
         }
     }
-    let mut compiler = MirContext::new(&source);
+    let mut compiler = MirContext::new(&source, mode);
     compiler.visit_kernel_fn(func.inner())?;
     compiler.bind_slot_to_type(compiler.return_slot, &func.inner().ret);
     let source = build_spanned_source_for_kernel(func.inner());

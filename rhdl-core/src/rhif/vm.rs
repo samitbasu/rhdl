@@ -6,7 +6,7 @@ use crate::rhif::spec::{
     Member, OpCode, Repeat, Slot, Struct, Tuple, Unary,
 };
 use crate::types::path::Path;
-use crate::{ast::ast_impl::FunctionId, rhif::module::Module, TypedBits};
+use crate::{ast::ast_impl::FunctionId, TypedBits};
 use crate::{Digital, Kind};
 
 use anyhow::Result;
@@ -20,7 +20,6 @@ use super::spec::{LiteralId, Retime, Select, Splice};
 struct VMState<'a> {
     reg_stack: &'a mut [Option<TypedBits>],
     literals: &'a BTreeMap<LiteralId, TypedBits>,
-    design: &'a Module,
     obj: &'a Object,
 }
 
@@ -221,8 +220,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                     .map(|x| state.read(*x))
                     .collect::<Result<Vec<_>>>()?;
                 let func = &state.obj.externals[id];
-                let kernel = &func.code;
-                let result = execute(state.design, kernel.inner().fn_id, args)?;
+                let result = execute(&func, args)?;
                 state.write(*lhs, result)?;
             }
             OpCode::Repeat(Repeat { lhs, value, len }) => {
@@ -236,16 +234,12 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
     Ok(())
 }
 
-pub fn execute(design: &Module, fn_id: FunctionId, arguments: Vec<TypedBits>) -> Result<TypedBits> {
+pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
     // Load the object for this function
-    let obj = design
-        .objects
-        .get(&fn_id)
-        .ok_or(anyhow::anyhow!("Function {fn_id:?} not found"))?;
     if obj.arguments.len() != arguments.len() {
         bail!(
-            "Function {fn_id:?} expected {expected} arguments, got {got}",
-            fn_id = fn_id,
+            "Function {fn_name} expected {expected} arguments, got {got}",
+            fn_name = obj.name,
             expected = obj.arguments.len(),
             got = arguments.len()
         );
@@ -258,8 +252,8 @@ pub fn execute(design: &Module, fn_id: FunctionId, arguments: Vec<TypedBits>) ->
             .ok_or(anyhow!("ICE argument {ndx} type not found in object"))?;
         if obj_kind != arg_kind {
             bail!(
-                "Function {fn_id:?} argument {ndx} expected {expected:?}, got {got:?}",
-                fn_id = fn_id,
+                "Function {fn_name} argument {ndx} expected {expected:?}, got {got:?}",
+                fn_name = obj.name,
                 ndx = ndx,
                 expected = obj.kind.get(&obj.arguments[ndx]).unwrap(),
                 got = arg_kind
@@ -277,7 +271,6 @@ pub fn execute(design: &Module, fn_id: FunctionId, arguments: Vec<TypedBits>) ->
     let mut state = VMState {
         reg_stack: &mut reg_stack,
         literals: &obj.literals,
-        design,
         obj,
     };
     execute_block(&obj.ops, &mut state)?;
@@ -290,10 +283,4 @@ pub fn execute(design: &Module, fn_id: FunctionId, arguments: Vec<TypedBits>) ->
             .ok_or(anyhow!("ICE return slot is not initialized")),
         Slot::Literal(ndx) => Ok(obj.literals[&ndx].clone()),
     }
-}
-
-// Given a set of arguments in the form of TypedBits, execute the function described by a Design
-// and then return the result as a TypedBits.
-pub fn execute_function(design: &Module, arguments: Vec<TypedBits>) -> Result<TypedBits> {
-    execute(design, design.top, arguments)
 }

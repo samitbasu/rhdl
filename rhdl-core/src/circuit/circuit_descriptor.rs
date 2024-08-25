@@ -217,9 +217,9 @@ impl CircuitDescriptor {
 }
 
 fn root_schematic<C: Circuit>() -> Option<Schematic> {
-    let module =
+    let object =
         compile_design::<C::Update>(crate::compiler::driver::CompilationMode::Asynchronous).ok()?;
-    let schematic = build_schematic(&module, module.top).ok()?;
+    let schematic = build_schematic(&object).ok()?;
     Some(schematic)
 }
 

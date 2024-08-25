@@ -75,7 +75,6 @@ pub use types::note::NoteWriter;
 pub use types::typed_bits::TypedBits;
 pub mod rhif;
 pub use ast::ast_builder;
-pub use rhif::module::Module;
 pub use types::clock;
 pub use types::digital_fn;
 pub use types::digital_fn::DigitalSignature;

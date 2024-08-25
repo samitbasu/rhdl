@@ -1,6 +1,6 @@
 use crate::{
     build_rtl_flow_graph, compile_design,
-    compiler::{codegen::compile_top, driver::CompilationMode},
+    compiler::{codegen::compile_to_rtl, driver::CompilationMode},
     error::RHDLError,
     types::reset::Reset,
     util::hash_id,
@@ -61,7 +61,7 @@ pub fn synchronous_root_descriptor<C: Synchronous>(
 ) -> Result<CircuitDescriptor, RHDLError> {
     eprintln!("Synchronous root descriptor for {}", circuit.name());
     let module = compile_design::<C::Update>(CompilationMode::Synchronous)?;
-    let rtl = compile_top(&module)?;
+    let rtl = compile_to_rtl(&module)?;
     let update_fg = build_rtl_flow_graph(&rtl);
     Ok(CircuitDescriptor {
         unique_name: format!(

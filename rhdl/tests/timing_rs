@@ -55,6 +55,8 @@ fn test_timing_binary() -> miette::Result<()> {
     }
     let module = compile_design::<func>(CompilationMode::Synchronous)?;
     let path = Path::default().tuple_index(0);
+    todo!();
+    /*
     let timing = compute_timing_graph(&module, module.top, &path, &TestComputer {})?;
     std::fs::write(
         "tests/timing_binary.dot",
@@ -62,4 +64,5 @@ fn test_timing_binary() -> miette::Result<()> {
     )
     .unwrap();
     Ok(())
+    */
 }
