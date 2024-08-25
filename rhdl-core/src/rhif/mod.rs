@@ -7,3 +7,4 @@ pub mod module;
 pub use module::Module;
 pub mod display_rhif;
 pub mod remap;
+pub mod runtime_ops;

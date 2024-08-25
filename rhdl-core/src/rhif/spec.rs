@@ -3,7 +3,7 @@ use anyhow::Result;
 
 use crate::{kernel::Kernel, types::path::Path, Color, DigitalSignature, TypedBits};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Hash)]
 pub enum OpCode {
     Noop,
     // lhs <- arg1 op arg2
@@ -41,7 +41,7 @@ pub enum OpCode {
     Comment(String),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Binary {
     pub op: AluBinary,
     pub lhs: Slot,
@@ -49,14 +49,14 @@ pub struct Binary {
     pub arg2: Slot,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Unary {
     pub op: AluUnary,
     pub lhs: Slot,
     pub arg1: Slot,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Select {
     pub lhs: Slot,
     pub cond: Slot,
@@ -64,20 +64,20 @@ pub struct Select {
     pub false_value: Slot,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Index {
     pub lhs: Slot,
     pub arg: Slot,
     pub path: Path,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Assign {
     pub lhs: Slot,
     pub rhs: Slot,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Splice {
     pub lhs: Slot,
     pub orig: Slot,
@@ -85,14 +85,14 @@ pub struct Splice {
     pub subst: Slot,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Repeat {
     pub lhs: Slot,
     pub value: Slot,
     pub len: u64,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Struct {
     pub lhs: Slot,
     pub fields: Vec<FieldValue>,
@@ -100,45 +100,45 @@ pub struct Struct {
     pub template: TypedBits,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Case {
     pub lhs: Slot,
     pub discriminant: Slot,
     pub table: Vec<(CaseArgument, Slot)>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Array {
     pub lhs: Slot,
     pub elements: Vec<Slot>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Tuple {
     pub lhs: Slot,
     pub fields: Vec<Slot>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Exec {
     pub lhs: Slot,
     pub id: FuncId,
     pub args: Vec<Slot>,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Hash)]
 pub enum CaseArgument {
     Slot(Slot),
     Wild,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Hash)]
 pub struct FieldValue {
     pub member: Member,
     pub value: Slot,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Hash)]
 pub enum AluBinary {
     Add,
     Sub,
@@ -170,7 +170,7 @@ impl AluBinary {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Hash)]
 pub enum AluUnary {
     Neg,
     Not,
@@ -269,7 +269,7 @@ impl Slot {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Hash)]
 pub enum Member {
     Named(String),
     Unnamed(u32),
@@ -290,28 +290,28 @@ impl From<usize> for FuncId {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct ExternalFunction {
     pub path: String,
     pub code: Kernel,
     pub signature: DigitalSignature,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Enum {
     pub lhs: Slot,
     pub fields: Vec<FieldValue>,
     pub template: TypedBits,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Cast {
     pub lhs: Slot,
     pub arg: Slot,
     pub len: Option<usize>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Retime {
     pub lhs: Slot,
     pub arg: Slot,

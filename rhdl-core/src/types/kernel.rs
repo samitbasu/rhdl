@@ -1,6 +1,6 @@
 use crate::{ast::ast_impl, Color, TypedBits};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Kernel(Box<ast_impl::KernelFn>);
 
 impl From<Box<ast_impl::KernelFn>> for Kernel {
@@ -18,7 +18,7 @@ impl Kernel {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub enum KernelFnKind {
     Kernel(Kernel),
     TupleStructConstructor(TypedBits),

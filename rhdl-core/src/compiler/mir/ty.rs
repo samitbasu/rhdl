@@ -855,9 +855,10 @@ impl UnifyContext {
             (_, TypeKind::Var(_)) => self.unify_variable(y, x),
             (TypeKind::Const(x), TypeKind::Const(y)) if x == y => Ok(()),
             (TypeKind::App(_), TypeKind::App(_)) => self.unify_app(x, y),
-            _ => panic!(
+            _ => bail!(
                 "Cannot unify {:?} and {:?}",
-                self.types[x.kind], self.types[y.kind]
+                self.types[x.kind],
+                self.types[y.kind]
             ),
         }
     }

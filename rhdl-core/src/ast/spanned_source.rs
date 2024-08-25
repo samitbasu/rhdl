@@ -7,7 +7,11 @@ use crate::{
     util::IndentingFormatter,
     Kind,
 };
-use std::{collections::HashMap, ops::Range};
+use std::{
+    collections::HashMap,
+    hash::{Hash, Hasher},
+    ops::Range,
+};
 
 #[derive(Clone, Debug)]
 pub struct SpannedSource {
@@ -28,6 +32,19 @@ impl SpannedSource {
     pub fn snippet(&self, id: NodeId) -> &str {
         let span = self.span(id);
         &self.source[span]
+    }
+}
+
+impl Hash for SpannedSource {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.source.hash(state);
+        self.name.hash(state);
+        for (id, val) in &self.span_map {
+            id.hash(state);
+            val.start.hash(state);
+            val.end.hash(state);
+        }
+        self.fallback.hash(state);
     }
 }
 
