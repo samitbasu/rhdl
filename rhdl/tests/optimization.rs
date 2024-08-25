@@ -323,3 +323,29 @@ fn test_constant_propagation_through_loops() -> miette::Result<()> {
     });
     Ok(())
 }
+
+#[test]
+fn test_constant_propagation_through_sub_kernels() -> miette::Result<()> {
+    #[kernel]
+    fn foo(a: [b4; 8]) -> b4 {
+        let c = bits(3);
+        let d = bar(c);
+        a[d]
+    }
+
+    #[kernel]
+    fn bar(a: b4) -> b4 {
+        a + 1
+    }
+
+    let module = compile_design::<foo>(CompilationMode::Synchronous)?;
+    let rtl = compile_to_rtl(&module)?;
+    eprintln!("{:?}", rtl);
+    rtl.ops.iter().for_each(|op| {
+        assert!(!matches!(
+            op.op,
+            rhdl_core::rtl::spec::OpCode::DynamicIndex(_)
+        ))
+    });
+    Ok(())
+}
