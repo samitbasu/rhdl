@@ -1,6 +1,6 @@
 use crate::{
     flow_graph::{
-        component::{ComponentKind, Constant, Index, Splice},
+        component::{ComponentKind},
         edge_kind::EdgeKind,
         flow_graph_impl::FlowGraph,
     },

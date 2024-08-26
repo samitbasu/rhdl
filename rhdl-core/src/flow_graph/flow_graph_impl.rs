@@ -8,7 +8,7 @@ use crate::{
 };
 
 use super::{
-    component::{Buffer, Component, ComponentKind},
+    component::{Component, ComponentKind},
     edge_kind::EdgeKind,
 };
 
@@ -34,7 +34,6 @@ impl FlowGraph {
                 name: name.into(),
             }),
             location,
-            cost: 0.0,
         })
     }
     pub fn source(
@@ -49,7 +48,6 @@ impl FlowGraph {
                 name: name.into(),
             }),
             location,
-            cost: 0.0,
         })
     }
     pub fn sink(
@@ -64,14 +62,12 @@ impl FlowGraph {
                 name: name.into(),
             }),
             location,
-            cost: 0.0,
         })
     }
     pub fn new_component(&mut self, kind: ComponentKind, location: SourceLocation) -> FlowIx {
         self.graph.add_node(Component {
             kind,
             location: Some(location),
-            cost: 0.0,
         })
     }
     pub fn new_component_with_optional_location(
@@ -79,11 +75,7 @@ impl FlowGraph {
         kind: ComponentKind,
         location: Option<SourceLocation>,
     ) -> FlowIx {
-        self.graph.add_node(Component {
-            kind,
-            location,
-            cost: 0.0,
-        })
+        self.graph.add_node(Component { kind, location })
     }
     pub fn lhs(&mut self, component: FlowIx, lhs: FlowIx) {
         self.graph.add_edge(component, lhs, EdgeKind::Arg(0));
@@ -95,14 +87,8 @@ impl FlowGraph {
         self.graph
             .add_edge(offset, component, EdgeKind::DynamicOffset);
     }
-    pub fn value(&mut self, component: FlowIx, value: FlowIx) {
-        self.graph.add_edge(value, component, EdgeKind::Splice);
-    }
     pub fn edge(&mut self, component: FlowIx, source: FlowIx, kind: EdgeKind) {
         self.graph.add_edge(source, component, kind);
-    }
-    pub fn selector(&mut self, component: FlowIx, selector: FlowIx) {
-        self.graph.add_edge(selector, component, EdgeKind::Selector);
     }
     pub fn case_literal(&mut self, component: FlowIx, case: FlowIx, literal: BitString) {
         self.graph
