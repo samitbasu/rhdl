@@ -3,11 +3,11 @@ use crate::rtl::object::BitString;
 #[derive(Clone)]
 pub enum EdgeKind {
     Arg(usize),
-    Selector,
+    ArgBit(usize, usize),
+    Selector(usize),
     True,
     False,
     DynamicOffset,
-    Splice,
     CaseLiteral(BitString),
     CaseWild,
     Virtual,
@@ -23,11 +23,13 @@ impl std::fmt::Debug for EdgeKind {
                     Ok(())
                 }
             }
-            Self::Selector => write!(f, "sel"),
+            Self::ArgBit(arg, bit) => {
+                write!(f, "a{}[{}]", arg, bit)
+            }
+            Self::Selector(ndx) => write!(f, "sel[{ndx}]"),
             Self::True => write!(f, "true"),
             Self::False => write!(f, "false"),
             Self::DynamicOffset => write!(f, "dyn_offset"),
-            Self::Splice => write!(f, "splice"),
             Self::CaseLiteral(arg0) => write!(f, "{:?}", arg0),
             Self::CaseWild => write!(f, "_"),
             Self::Virtual => write!(f, "virt"),

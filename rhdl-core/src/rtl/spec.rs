@@ -16,7 +16,7 @@ pub enum OpCode {
     Comment(String),
     // lhs <- {{ r1, r2, ... }}
     Concat(Concat),
-    // lhs <- arg[base_offset + arg * stride +: len]
+    // lhs <- arg[offset +: len]
     DynamicIndex(DynamicIndex),
     // lhs <- arg; lhs[base_offset + arg * stride +: len] <- value
     DynamicSplice(DynamicSplice),

@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use crate::{
-    rhif::object::SourceLocation,
+    rhif::{
+        object::SourceLocation,
+        spec::{AluBinary, AluUnary},
+    },
     rtl::{
         object::LocatedOpCode,
         spec::{OpCode, Operand},
@@ -10,10 +13,7 @@ use crate::{
 };
 
 use super::{
-    component::{
-        Binary, Buffer, Cast, ComponentKind, Constant, DynamicIndex, DynamicSplice, Index, Splice,
-        Unary,
-    },
+    component::{Binary, Case, CaseEntry, ComponentKind, DynamicIndex, DynamicSplice, Unary},
     edge_kind::EdgeKind,
     flow_graph_impl::{FlowGraph, FlowIx},
 };
@@ -23,7 +23,7 @@ use crate::rtl::spec as tl;
 struct FlowGraphBuilder<'a> {
     object: &'a Object,
     fg: FlowGraph,
-    operand_map: HashMap<Operand, FlowIx>,
+    operand_map: HashMap<Operand, Vec<FlowIx>>,
 }
 
 pub fn build_rtl_flow_graph(object: &Object) -> FlowGraph {
@@ -38,11 +38,15 @@ pub fn build_rtl_flow_graph(object: &Object) -> FlowGraph {
         .for_each(|(o, f)| {
             if let (Some(reg), Some(node)) = (o, f) {
                 let reg_operand = bob.operand(location, Operand::Register(*reg));
-                bob.fg.edge(reg_operand, node, EdgeKind::Arg(0));
+                for (ndx, reg) in reg_operand.iter().enumerate() {
+                    bob.fg.edge(*reg, node, EdgeKind::ArgBit(0, ndx));
+                }
             }
         });
     let ret_operand = bob.operand(location, object.return_register);
-    bob.fg.edge(bob.fg.output, ret_operand, EdgeKind::Arg(0));
+    for (ndx, reg) in ret_operand.iter().enumerate() {
+        bob.fg.edge(bob.fg.output, *reg, EdgeKind::ArgBit(0, ndx));
+    }
     bob.fg
 }
 
@@ -90,85 +94,113 @@ impl<'a> FlowGraphBuilder<'a> {
             OpCode::Unary(unary) => self.build_unary(loc, unary),
         }
     }
-    fn operand(&mut self, loc: SourceLocation, operand: Operand) -> FlowIx {
+    fn operand(&mut self, loc: SourceLocation, operand: Operand) -> Vec<FlowIx> {
         if let Some(port) = self.operand_map.get(&operand) {
-            return *port;
+            return port.clone();
         }
         match operand {
             Operand::Literal(literal_id) => {
                 let bs = &self.object.literals[&literal_id];
-                let comp = self
-                    .fg
-                    .new_component(ComponentKind::Constant(Constant { bs: bs.clone() }), loc);
-                self.operand_map.insert(operand, comp);
-                comp
+                let ndx = bs
+                    .bits()
+                    .iter()
+                    .map(|b| self.fg.new_component(ComponentKind::Constant(*b), loc))
+                    .collect::<Vec<_>>();
+                self.operand_map.insert(operand, ndx.clone());
+                ndx
             }
             Operand::Register(register_id) => {
                 let reg = self.object.register_kind[&register_id];
-                let comp = self.fg.new_component(
-                    ComponentKind::Buffer(Buffer {
-                        kind: reg,
-                        name: format!("{:?}", register_id),
-                    }),
-                    loc,
-                );
-                self.operand_map.insert(operand, comp);
-                comp
+                let ndx = (0..reg.len())
+                    .map(|_| self.fg.new_component(ComponentKind::Buffer, loc))
+                    .collect::<Vec<_>>();
+                self.operand_map.insert(operand, ndx.clone());
+                ndx
             }
         }
     }
     fn build_assign(&mut self, loc: SourceLocation, assign: &tl::Assign) {
         let rhs = self.operand(loc, assign.rhs);
         let lhs = self.operand(loc, assign.lhs);
-        let comp = self.fg.new_component(ComponentKind::Assign, loc);
-        self.fg.lhs(comp, lhs);
-        self.fg.arg(comp, rhs, 0);
+        for (lhs, rhs) in lhs.iter().zip(rhs.iter()) {
+            self.fg.graph.add_edge(*rhs, *lhs, EdgeKind::Arg(0));
+        }
     }
     fn build_binary(&mut self, loc: SourceLocation, binary: &tl::Binary) {
         let arg1 = self.operand(loc, binary.arg1);
         let arg2 = self.operand(loc, binary.arg2);
         let lhs = self.operand(loc, binary.lhs);
         let len = self.object.kind(binary.arg1).len();
-        let comp = self.fg.new_component(
-            ComponentKind::Binary(Binary {
-                op: binary.op,
-                width: len,
-            }),
-            loc,
-        );
-        self.fg.lhs(comp, lhs);
-        self.fg.arg(comp, arg1, 0);
-        self.fg.arg(comp, arg2, 1);
+        if is_bitwise_binary(binary.op) {
+            for (lhs, (arg1, arg2)) in lhs.iter().zip(arg1.iter().zip(arg2.iter())) {
+                let comp = self
+                    .fg
+                    .new_component(ComponentKind::Binary(Binary { op: binary.op }), loc);
+                self.fg.graph.add_edge(comp, *arg1, EdgeKind::Arg(0));
+                self.fg.graph.add_edge(comp, *arg2, EdgeKind::Arg(1));
+                self.fg.graph.add_edge(*lhs, comp, EdgeKind::Arg(0));
+            }
+        } else {
+            let comp = self
+                .fg
+                .new_component(ComponentKind::Binary(Binary { op: binary.op }), loc);
+            for (ndx, (lhs, (arg1, arg2))) in
+                lhs.iter().zip(arg1.iter().zip(arg2.iter())).enumerate()
+            {
+                self.fg
+                    .graph
+                    .add_edge(comp, *arg1, EdgeKind::ArgBit(0, ndx));
+                self.fg
+                    .graph
+                    .add_edge(comp, *arg2, EdgeKind::ArgBit(1, ndx));
+                self.fg.graph.add_edge(*lhs, comp, EdgeKind::ArgBit(0, ndx));
+            }
+        }
     }
     fn build_case(&mut self, loc: SourceLocation, case: &tl::Case) {
         let lhs = self.operand(loc, case.lhs);
         let discriminant = self.operand(loc, case.discriminant);
-        let comp = self.fg.new_component(ComponentKind::Case, loc);
-        self.fg.lhs(comp, lhs);
-        self.fg.selector(comp, discriminant);
-        for (test, value) in &case.table {
-            let value = self.operand(loc, *value);
-            match test {
-                tl::CaseArgument::Literal(lit_id) => {
-                    let bs = &self.object.literals[lit_id];
-                    self.fg.case_literal(comp, value, bs.clone());
+        let table = case
+            .table
+            .iter()
+            .map(|(x, _)| {
+                if let tl::CaseArgument::Literal(lit_id) = x {
+                    CaseEntry::Literal(self.object.literals[lit_id].clone())
+                } else {
+                    CaseEntry::WildCard
                 }
-                tl::CaseArgument::Wild => self.fg.case_wild(comp, value),
+            })
+            .collect::<Vec<_>>();
+        let arguments = case
+            .table
+            .iter()
+            .map(|(_, x)| self.operand(loc, *x))
+            .collect::<Vec<_>>();
+        let num_bits = lhs.len();
+        for bit in 0..num_bits {
+            let comp = self.fg.new_component(
+                ComponentKind::Case(Case {
+                    entries: table.clone(),
+                }),
+                loc,
+            );
+            for (ndx, disc) in discriminant.iter().enumerate() {
+                self.fg.graph.add_edge(comp, *disc, EdgeKind::Selector(ndx));
             }
+            for (ndx, arg) in arguments.iter().enumerate() {
+                self.fg
+                    .graph
+                    .add_edge(comp, arg[bit], EdgeKind::ArgBit(ndx, bit));
+            }
+            self.fg.graph.add_edge(lhs[bit], comp, EdgeKind::Arg(0));
         }
     }
     fn build_cast(&mut self, loc: SourceLocation, cast: &tl::Cast) {
         let lhs = self.operand(loc, cast.lhs);
         let arg = self.operand(loc, cast.arg);
-        let comp = self.fg.new_component(
-            ComponentKind::Cast(Cast {
-                len: cast.len,
-                signed: cast.signed,
-            }),
-            loc,
-        );
-        self.fg.lhs(comp, lhs);
-        self.fg.arg(comp, arg, 0);
+        for (lhs, rhs) in lhs.iter().zip(arg.iter()) {
+            self.fg.graph.add_edge(*rhs, *lhs, EdgeKind::Arg(0));
+        }
     }
     fn build_concat(&mut self, loc: SourceLocation, concat: &tl::Concat) {
         let lhs = self.operand(loc, concat.lhs);
@@ -177,11 +209,9 @@ impl<'a> FlowGraphBuilder<'a> {
             .iter()
             .map(|x| self.operand(loc, *x))
             .collect::<Vec<_>>();
-        let comp = self.fg.new_component(ComponentKind::Concat, loc);
-        for (ndx, arg) in args.iter().enumerate() {
-            self.fg.arg(comp, *arg, ndx);
+        for (lhs, rhs) in lhs.iter().zip(args.iter().flatten()) {
+            self.fg.graph.add_edge(*rhs, *lhs, EdgeKind::Arg(0));
         }
-        self.fg.lhs(comp, lhs);
     }
     fn build_dynamic_index(&mut self, loc: SourceLocation, dynamic_index: &tl::DynamicIndex) {
         let lhs = self.operand(loc, dynamic_index.lhs);
@@ -193,9 +223,11 @@ impl<'a> FlowGraphBuilder<'a> {
             }),
             loc,
         );
-        self.fg.lhs(comp, lhs);
-        self.fg.arg(comp, arg, 0);
-        self.fg.offset(comp, offset);
+        /*         self.fg.lhs(comp, lhs);
+               self.fg.arg(comp, arg, 0);
+               self.fg.offset(comp, offset);
+        */
+        todo!();
     }
     fn build_dynamic_splice(&mut self, loc: SourceLocation, dynamic_splice: &tl::DynamicSplice) {
         let lhs = self.operand(loc, dynamic_splice.lhs);
@@ -208,55 +240,75 @@ impl<'a> FlowGraphBuilder<'a> {
             }),
             loc,
         );
+        /*
         self.fg.lhs(comp, lhs);
         self.fg.arg(comp, arg, 0);
         self.fg.offset(comp, offset);
         self.fg.value(comp, value);
+        */
+        todo!();
     }
     fn build_index(&mut self, loc: SourceLocation, index: &tl::Index) {
         let lhs = self.operand(loc, index.lhs);
         let arg = self.operand(loc, index.arg);
-        let comp = self.fg.new_component(
-            ComponentKind::Index(Index {
-                bit_range: index.bit_range.clone(),
-            }),
-            loc,
-        );
-        self.fg.lhs(comp, lhs);
-        self.fg.arg(comp, arg, 0);
+        for (lhs, rhs) in lhs.iter().zip(arg.iter().skip(index.bit_range.start)) {
+            self.fg.graph.add_edge(*rhs, *lhs, EdgeKind::Arg(0));
+        }
     }
     fn build_select(&mut self, loc: SourceLocation, select: &tl::Select) {
         let lhs = self.operand(loc, select.lhs);
         let cond = self.operand(loc, select.cond);
         let true_value = self.operand(loc, select.true_value);
         let false_value = self.operand(loc, select.false_value);
-        let comp = self.fg.new_component(ComponentKind::Select, loc);
-        self.fg.lhs(comp, lhs);
-        self.fg.edge(comp, cond, EdgeKind::Selector);
-        self.fg.edge(comp, true_value, EdgeKind::True);
-        self.fg.edge(comp, false_value, EdgeKind::False);
+        for (lhs, (true_val, false_val)) in
+            lhs.iter().zip(true_value.iter().zip(false_value.iter()))
+        {
+            let comp = self.fg.new_component(ComponentKind::Select, loc);
+            self.fg.edge(comp, cond[0], EdgeKind::Selector(0));
+            self.fg.edge(comp, *true_val, EdgeKind::True);
+            self.fg.edge(comp, *false_val, EdgeKind::False);
+            self.fg.lhs(comp, *lhs);
+        }
     }
     fn build_splice(&mut self, loc: SourceLocation, splice: &tl::Splice) {
         let lhs = self.operand(loc, splice.lhs);
         let orig = self.operand(loc, splice.orig);
         let value = self.operand(loc, splice.value);
-        let comp = self.fg.new_component(
-            ComponentKind::Splice(Splice {
-                bit_range: splice.bit_range.clone(),
-            }),
-            loc,
-        );
-        self.fg.lhs(comp, lhs);
-        self.fg.arg(comp, orig, 0);
-        self.fg.value(comp, value);
+        let lsb_iter = orig.iter().take(splice.bit_range.start);
+        let center_iter = value.iter();
+        let msb_iter = orig.iter().skip(splice.bit_range.end);
+        let rhs = lsb_iter.chain(center_iter).chain(msb_iter);
+        for (lhs, rhs) in lhs.iter().zip(rhs) {
+            self.fg.graph.add_edge(*rhs, *lhs, EdgeKind::Arg(0));
+        }
     }
     fn build_unary(&mut self, loc: SourceLocation, unary: &tl::Unary) {
         let lhs = self.operand(loc, unary.lhs);
         let arg1 = self.operand(loc, unary.arg1);
-        let comp = self
-            .fg
-            .new_component(ComponentKind::Unary(Unary { op: unary.op }), loc);
-        self.fg.lhs(comp, lhs);
-        self.fg.arg(comp, arg1, 0);
+        if is_bitwise_unary(unary.op) {
+            for (lhs, rhs) in lhs.iter().zip(arg1.iter()) {
+                let comp = self
+                    .fg
+                    .new_component(ComponentKind::Unary(Unary { op: unary.op }), loc);
+                self.fg.graph.add_edge(comp, *rhs, EdgeKind::Arg(0));
+                self.fg.graph.add_edge(*lhs, comp, EdgeKind::Arg(0));
+            }
+        } else {
+            let comp = self
+                .fg
+                .new_component(ComponentKind::Unary(Unary { op: unary.op }), loc);
+            for (ndx, (lhs, rhs)) in lhs.iter().zip(arg1.iter()).enumerate() {
+                self.fg.graph.add_edge(comp, *rhs, EdgeKind::ArgBit(0, ndx));
+                self.fg.graph.add_edge(*lhs, comp, EdgeKind::ArgBit(0, ndx));
+            }
+        }
     }
+}
+
+fn is_bitwise_unary(op: AluUnary) -> bool {
+    matches!(op, AluUnary::Not | AluUnary::Signed | AluUnary::Unsigned)
+}
+
+fn is_bitwise_binary(op: AluBinary) -> bool {
+    matches!(op, AluBinary::BitAnd | AluBinary::BitOr | AluBinary::BitXor)
 }
