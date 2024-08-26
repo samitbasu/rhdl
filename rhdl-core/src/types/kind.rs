@@ -151,7 +151,11 @@ impl Kind {
         })
     }
     pub fn make_tuple(elements: Vec<Kind>) -> Self {
-        Self::Tuple(Tuple { elements })
+        if elements.is_empty() {
+            Kind::Empty
+        } else {
+            Self::Tuple(Tuple { elements })
+        }
     }
     pub fn make_field(name: &str, kind: Kind) -> Field {
         Field {

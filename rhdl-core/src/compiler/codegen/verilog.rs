@@ -293,7 +293,6 @@ impl<'a> TranslationContext<'a> {
         block.iter().try_for_each(|lop| self.translate_op(lop))
     }
     fn translate_kernel_for_object(mut self) -> Result<VerilogModule> {
-        let fn_id = self.id;
         let arg_decls = self
             .rtl
             .arguments

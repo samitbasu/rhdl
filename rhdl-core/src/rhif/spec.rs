@@ -290,13 +290,6 @@ impl From<usize> for FuncId {
     }
 }
 
-#[derive(Debug, Clone, Hash)]
-pub struct ExternalFunction {
-    pub path: String,
-    pub code: Kernel,
-    pub signature: DigitalSignature,
-}
-
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Enum {
     pub lhs: Slot,
