@@ -8,7 +8,7 @@ use std::ops::Range;
 use crate::ast::spanned_source::SpannedSource;
 use crate::{
     ast::ast_impl::{FunctionId, NodeId},
-    rhif::spec::{ExternalFunction, Slot},
+    rhif::spec::Slot,
     Kind, TypedBits,
 };
 

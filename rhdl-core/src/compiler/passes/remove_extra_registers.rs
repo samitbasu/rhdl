@@ -13,10 +13,9 @@ use super::pass::Pass;
 #[derive(Default, Debug, Clone)]
 pub struct RemoveExtraRegistersPass {}
 
-fn find_assign_op(ops: &[LocatedOpCode], mergeable: &[bool]) -> Option<usize> {
+fn find_assign_op(ops: &[LocatedOpCode]) -> Option<usize> {
     ops.iter()
-        .zip(mergeable.iter())
-        .position(|(lop, flag)| *flag && matches!(lop.op, OpCode::Assign(_)))
+        .position(|lop| matches!(lop.op, OpCode::Assign(_)))
 }
 
 impl Pass for RemoveExtraRegistersPass {
@@ -24,8 +23,7 @@ impl Pass for RemoveExtraRegistersPass {
         "remove_extra_registers"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
-        let mut eligible = vec![true; input.ops.len()];
-        while let Some(op_ndx) = find_assign_op(&input.ops, &eligible) {
+        while let Some(op_ndx) = find_assign_op(&input.ops) {
             let lop = input.ops[op_ndx].clone();
             let op = &lop.op;
             eprintln!("Found assign op {:?}", op);

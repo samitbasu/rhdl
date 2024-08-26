@@ -59,7 +59,7 @@ use crate::TypedBits;
 use crate::VariantType;
 use crate::{
     ast::ast_impl::{Expr, ExprKind, ExprLit, FunctionId, NodeId},
-    rhif::spec::{ExternalFunction, OpCode, Slot},
+    rhif::spec::{OpCode, Slot},
 };
 
 use super::error::RHDLCompileError;
@@ -112,14 +112,6 @@ impl Default for ScopeId {
     fn default() -> Self {
         ROOT_SCOPE
     }
-}
-
-fn collapse_path(path: &ast_impl::Path) -> String {
-    path.segments
-        .iter()
-        .map(|x| x.ident.to_string())
-        .collect::<Vec<_>>()
-        .join("::")
 }
 
 fn path_as_ident(path: &ast_impl::Path) -> Option<&'static str> {
@@ -844,7 +836,6 @@ impl<'a> MirContext<'a> {
     }
     fn call(&mut self, id: NodeId, call: &ExprCall) -> Result<Slot> {
         let lhs = self.reg(id);
-        let path = collapse_path(&call.path);
         let args = self.expr_list(&call.args)?;
         let Some(code) = &call.code else {
             return Err(self

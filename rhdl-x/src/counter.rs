@@ -1,12 +1,37 @@
 use crate::dff;
+use petgraph::{algo::is_cyclic_directed, visit::GraphProp};
 use rhdl::{
     core::{
-        build_rtl_flow_graph, build_synchronous_flow_graph, compiler::codegen::compile_top,
+        build_rtl_flow_graph, build_synchronous_flow_graph, compiler::codegen::compile_to_rtl,
         flow_graph::dot::write_dot,
     },
     prelude::*,
 };
 use std::io::{stderr, Write};
+
+mod comb_adder {
+    use rhdl::prelude::*;
+
+    #[derive(Clone, Debug, Default, Synchronous)]
+    #[rhdl(kernel=adder::<{N}>)]
+    pub struct U<const N: usize> {}
+
+    impl<const N: usize> SynchronousIO for U<N> {
+        type I = (Bits<N>, Bits<N>);
+        type O = Bits<N>;
+    }
+
+    impl<const N: usize> SynchronousDQ for U<N> {
+        type D = ();
+        type Q = ();
+    }
+
+    #[kernel]
+    pub fn adder<const N: usize>(reset: bool, i: (Bits<N>, Bits<N>), q: ()) -> (Bits<N>, ()) {
+        let a = i;
+        (a.0 + a.1, ())
+    }
+}
 
 #[derive(PartialEq, Clone, Copy, Debug, Digital)]
 pub struct I {
@@ -18,12 +43,14 @@ pub struct I {
 #[rhdl(auto_dq)]
 pub struct U<const N: usize> {
     count: dff::U<Bits<N>>,
+    adder: comb_adder::U<{ N }>,
 }
 
 impl<const N: usize> U<N> {
     pub fn new() -> Self {
         Self {
             count: dff::U::new(Bits::ZERO),
+            adder: Default::default(),
         }
     }
 }
@@ -35,25 +62,24 @@ impl<const N: usize> SynchronousIO for U<N> {
 
 #[kernel]
 pub fn counter<const N: usize>(reset: bool, i: I, q: Q<N>) -> (Bits<N>, D<N>) {
-    let next_count = if i.enable { q.count + 1 } else { q.count };
+    let next_count = if i.enable { q.adder } else { q.count };
     let output = q.count;
     if reset {
-        (bits(0), D::<{ N }> { count: bits(0) })
+        (
+            bits(0),
+            D::<{ N }> {
+                count: bits(0),
+                adder: (bits(0), bits(0)),
+            },
+        )
     } else {
-        (output, D::<{ N }> { count: next_count })
-    }
-}
-
-struct TestComputer {}
-
-impl CostEstimator for TestComputer {
-    fn cost(&self, obj: &Object, opcode: usize) -> f64 {
-        -1.0
-        /*         if matches!(obj.ops[opcode], OpCode::Binary(_) | OpCode::Select(_)) {
-            -1.0
-        } else {
-            0.0
-        } */
+        (
+            output,
+            D::<{ N }> {
+                count: next_count,
+                adder: (q.count, bits(1)),
+            },
+        )
     }
 }
 
@@ -61,16 +87,13 @@ impl CostEstimator for TestComputer {
 fn test_counter_timing_root() -> miette::Result<()> {
     let uut: U<4> = U::new();
     let uut_module = compile_design::<<U<4> as Synchronous>::Update>(CompilationMode::Synchronous)?;
-    let top = &uut_module.objects[&uut_module.top];
-    let path = rhdl::core::types::path::Path::default().tuple_index(1);
-    let timing = compute_timing_graph(&uut_module, uut_module.top, &path, &TestComputer {})?;
-    eprintln!("timing: {:?}", timing);
-    let rtl = compile_top(&uut_module)?;
+    let rtl = compile_to_rtl(&uut_module)?;
     eprintln!("rtl: {:?}", rtl);
     let fg = build_rtl_flow_graph(&rtl);
     let mut dot = std::fs::File::create("counter.dot").unwrap();
     write_dot(&fg, &mut dot).unwrap();
     let counter_uut = build_synchronous_flow_graph(&uut.descriptor()?);
+    assert!(!is_cyclic_directed(&counter_uut.graph));
     let mut dot = std::fs::File::create("counter_fg.dot").unwrap();
     write_dot(&counter_uut, &mut dot).unwrap();
     Ok(())

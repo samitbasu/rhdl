@@ -185,13 +185,17 @@ fn main() -> miette::Result<()> {
     let counter: counter::U<4> = counter::U::new();
     let hdl = counter.as_hdl(HDLKind::Verilog)?;
     println!("{}", hdl.body);
+    for (child, descriptor) in hdl.children {
+        println!("{child} {}", descriptor.body);
+    }
+    /*
+       let strobe: strobe::U<16> = strobe::U::new(bits(100));
+       let hdl = strobe.as_hdl(HDLKind::Verilog)?;
+       println!("{}", hdl.body);
 
-    let strobe: strobe::U<16> = strobe::U::new(bits(100));
-    let hdl = strobe.as_hdl(HDLKind::Verilog)?;
-    println!("{}", hdl.body);
-
-    let dff: dff::U<b4> = dff::U::new(b4::from(0b1010));
-    let hdl = dff.as_hdl(HDLKind::Verilog)?;
-    println!("{}", hdl.body);
+       let dff: dff::U<b4> = dff::U::new(b4::from(0b1010));
+       let hdl = dff.as_hdl(HDLKind::Verilog)?;
+       println!("{}", hdl.body);
+    */
     Ok(())
 }

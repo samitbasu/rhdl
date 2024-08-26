@@ -4,7 +4,7 @@ use crate::{
     ast::ast_impl::{ExprLit, FunctionId, NodeId},
     rhif::{
         object::{LocatedOpCode, SymbolMap},
-        spec::{ExternalFunction, FuncId, OpCode, Slot},
+        spec::{FuncId, OpCode, Slot},
         Object,
     },
     Kind,

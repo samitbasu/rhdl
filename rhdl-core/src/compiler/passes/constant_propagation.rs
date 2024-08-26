@@ -5,13 +5,13 @@ use crate::{
         runtime_ops::{array, binary, tuple, unary},
         spec::{
             Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, Index, LiteralId, OpCode,
-            Repeat, Retime, Select, Slot, Splice, Struct, Tuple, Unary,
+            Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
         },
         vm::execute,
         Object,
     },
     types::path::Path,
-    Kind, RHDLError, TypedBits,
+    RHDLError, TypedBits,
 };
 
 use super::pass::Pass;
@@ -172,30 +172,6 @@ fn propogate_as_signed(
     } else {
         Ok(LocatedOpCode {
             op: OpCode::AsSigned(params),
-            id,
-        })
-    }
-}
-
-fn propogate_retime(
-    id: NodeId,
-    params: Retime,
-    obj: &mut Object,
-) -> Result<LocatedOpCode, RHDLError> {
-    let Retime { lhs, arg, color } = params;
-    if let (Slot::Literal(arg_lit), Some(color)) = (arg, color) {
-        let mut arg_val = obj.literals[&arg_lit].clone();
-        arg_val.kind = Kind::make_signal(arg_val.kind, color);
-        Ok(LocatedOpCode {
-            op: OpCode::Assign(Assign {
-                lhs,
-                rhs: assign_literal(id, arg_val, obj),
-            }),
-            id,
-        })
-    } else {
-        Ok(LocatedOpCode {
-            op: OpCode::Retime(params),
             id,
         })
     }
