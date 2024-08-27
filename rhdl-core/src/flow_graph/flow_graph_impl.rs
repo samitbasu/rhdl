@@ -17,8 +17,8 @@ pub type FlowIx = petgraph::graph::NodeIndex;
 #[derive(Debug, Clone, Default)]
 pub struct FlowGraph {
     pub graph: Graph<Component, EdgeKind, Directed>,
-    pub inputs: Vec<Option<FlowIx>>,
-    pub output: FlowIx,
+    pub inputs: Vec<Vec<FlowIx>>,
+    pub output: Vec<FlowIx>,
 }
 
 impl FlowGraph {
@@ -27,42 +27,48 @@ impl FlowGraph {
         kind: RegisterKind,
         name: &str,
         location: Option<SourceLocation>,
-    ) -> FlowIx {
-        self.graph.add_node(Component {
-            kind: ComponentKind::Buffer(Buffer {
-                kind,
-                name: name.into(),
-            }),
-            location,
-        })
+    ) -> Vec<FlowIx> {
+        (0..kind.len())
+            .map(|bit| {
+                let name = format!("{}[{}]", name, bit);
+                self.graph.add_node(Component {
+                    kind: ComponentKind::Buffer(name),
+                    location,
+                })
+            })
+            .collect()
     }
     pub fn source(
         &mut self,
         kind: RegisterKind,
         name: &str,
         location: Option<SourceLocation>,
-    ) -> FlowIx {
-        self.graph.add_node(Component {
-            kind: ComponentKind::Source(Buffer {
-                kind,
-                name: name.into(),
-            }),
-            location,
-        })
+    ) -> Vec<FlowIx> {
+        (0..kind.len())
+            .map(|bit| {
+                let name = format!("{}[{}]", name, bit);
+                self.graph.add_node(Component {
+                    kind: ComponentKind::Source(name),
+                    location,
+                })
+            })
+            .collect()
     }
     pub fn sink(
         &mut self,
         kind: RegisterKind,
         name: &str,
         location: Option<SourceLocation>,
-    ) -> FlowIx {
-        self.graph.add_node(Component {
-            kind: ComponentKind::Sink(Buffer {
-                kind,
-                name: name.into(),
-            }),
-            location,
-        })
+    ) -> Vec<FlowIx> {
+        (0..kind.len())
+            .map(|bit| {
+                let name = format!("{}[{}]", name, bit);
+                self.graph.add_node(Component {
+                    kind: ComponentKind::Sink(name),
+                    location,
+                })
+            })
+            .collect()
     }
     pub fn new_component(&mut self, kind: ComponentKind, location: SourceLocation) -> FlowIx {
         self.graph.add_node(Component {
@@ -77,25 +83,8 @@ impl FlowGraph {
     ) -> FlowIx {
         self.graph.add_node(Component { kind, location })
     }
-    pub fn lhs(&mut self, component: FlowIx, lhs: FlowIx) {
-        self.graph.add_edge(component, lhs, EdgeKind::Arg(0));
-    }
-    pub fn arg(&mut self, component: FlowIx, arg: FlowIx, index: usize) {
-        self.graph.add_edge(arg, component, EdgeKind::Arg(index));
-    }
-    pub fn offset(&mut self, component: FlowIx, offset: FlowIx) {
-        self.graph
-            .add_edge(offset, component, EdgeKind::DynamicOffset);
-    }
-    pub fn edge(&mut self, component: FlowIx, source: FlowIx, kind: EdgeKind) {
-        self.graph.add_edge(source, component, kind);
-    }
-    pub fn case_literal(&mut self, component: FlowIx, case: FlowIx, literal: BitString) {
-        self.graph
-            .add_edge(case, component, EdgeKind::CaseLiteral(literal));
-    }
-    pub fn case_wild(&mut self, component: FlowIx, case: FlowIx) {
-        self.graph.add_edge(case, component, EdgeKind::CaseWild);
+    pub fn edge(&mut self, source: FlowIx, target: FlowIx, kind: EdgeKind) {
+        self.graph.add_edge(source, target, kind);
     }
     pub fn merge(&mut self, other: &FlowGraph) -> HashMap<FlowIx, FlowIx> {
         let ret: HashMap<FlowIx, FlowIx> = other

@@ -46,7 +46,11 @@ pub fn logic_loop(_reset: bool, i: bool, q: Q) -> (bool, D) {
 fn test_logic_loop() -> miette::Result<()> {
     let uut = U::default();
     let uut_fg = build_synchronous_flow_graph(&uut.descriptor()?);
+    let mut dot = std::fs::File::create("logic_loop.dot").unwrap();
+    write_dot(&uut_fg, &mut dot).unwrap();
+
     // Look for loops
+    assert!(is_cyclic_directed(&uut_fg.graph));
     if is_cyclic_directed(&uut_fg.graph) {
         let feedback = feedback_arc_set::greedy_feedback_arc_set(&uut_fg.graph);
         for edge in feedback {

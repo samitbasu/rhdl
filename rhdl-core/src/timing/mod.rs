@@ -20,7 +20,7 @@ pub fn simplest_cost(node: FlowIx, fg: &FlowGraph, cost_map: &HashMap<FlowIx, f6
         .fold(0.0, f64::max);
     match component.kind {
         ComponentKind::Binary(_)
-        | ComponentKind::Case
+        | ComponentKind::Case(_)
         | ComponentKind::DynamicIndex(_)
         | ComponentKind::DynamicSplice(_)
         | ComponentKind::Select
@@ -42,10 +42,5 @@ pub fn compute_node_costs<F: FnMut(FlowIx, &FlowGraph, &HashMap<FlowIx, f64>) ->
             let node_cost = cost(ix, fg, &cost_map);
             cost_map.insert(ix, node_cost);
         }
-    }
-    // Update the node weights with the computed cost
-    for ix in fg.graph.node_indices() {
-        let node = fg.graph.node_weight_mut(ix).unwrap();
-        node.cost = cost_map[&ix];
     }
 }

@@ -27,6 +27,7 @@ mod strobe;
 mod dff;
 pub mod inverter;
 pub mod logic_loop;
+pub mod single_bit;
 //mod push_pull;
 //mod strobe;
 //mod tristate;

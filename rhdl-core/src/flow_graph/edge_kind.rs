@@ -5,9 +5,11 @@ pub enum EdgeKind {
     Arg(usize),
     ArgBit(usize, usize),
     Selector(usize),
+    OutputBit(usize),
+    Splice(usize),
     True,
     False,
-    DynamicOffset,
+    DynamicOffset(usize),
     CaseLiteral(BitString),
     CaseWild,
     Virtual,
@@ -29,10 +31,12 @@ impl std::fmt::Debug for EdgeKind {
             Self::Selector(ndx) => write!(f, "sel[{ndx}]"),
             Self::True => write!(f, "true"),
             Self::False => write!(f, "false"),
-            Self::DynamicOffset => write!(f, "dyn_offset"),
+            Self::DynamicOffset(bit) => write!(f, "dyn[{}]", bit),
             Self::CaseLiteral(arg0) => write!(f, "{:?}", arg0),
             Self::CaseWild => write!(f, "_"),
             Self::Virtual => write!(f, "virt"),
+            Self::OutputBit(bit) => write!(f, "o[{}]", bit),
+            Self::Splice(bit) => write!(f, "splice[{}]", bit),
         }
     }
 }

@@ -36,16 +36,16 @@ pub fn build_rtl_flow_graph(object: &Object) -> FlowGraph {
         .iter()
         .zip(bob.fg.inputs.clone())
         .for_each(|(o, f)| {
-            if let (Some(reg), Some(node)) = (o, f) {
+            if let (Some(reg), node) = (o, f) {
                 let reg_operand = bob.operand(location, Operand::Register(*reg));
-                for (ndx, reg) in reg_operand.iter().enumerate() {
-                    bob.fg.edge(*reg, node, EdgeKind::ArgBit(0, ndx));
+                for (reg, node) in reg_operand.iter().zip(node.iter()) {
+                    bob.fg.edge(*node, *reg, EdgeKind::Arg(0));
                 }
             }
         });
     let ret_operand = bob.operand(location, object.return_register);
-    for (ndx, reg) in ret_operand.iter().enumerate() {
-        bob.fg.edge(bob.fg.output, *reg, EdgeKind::ArgBit(0, ndx));
+    for (reg, output) in ret_operand.iter().zip(bob.fg.output.clone().iter()) {
+        bob.fg.edge(*reg, *output, EdgeKind::Arg(0));
     }
     bob.fg
 }
@@ -61,7 +61,11 @@ impl<'a> FlowGraphBuilder<'a> {
             .iter()
             .enumerate()
             .map(|(ndx, x)| {
-                x.map(|reg| fg.buffer(object.register_kind[&reg], &format!("a{ndx}"), location))
+                if let Some(reg) = x {
+                    fg.buffer(object.register_kind[reg], &format!("a{ndx}"), location)
+                } else {
+                    vec![]
+                }
             })
             .collect();
         let output_kind = object.kind(object.return_register);
@@ -112,7 +116,10 @@ impl<'a> FlowGraphBuilder<'a> {
             Operand::Register(register_id) => {
                 let reg = self.object.register_kind[&register_id];
                 let ndx = (0..reg.len())
-                    .map(|_| self.fg.new_component(ComponentKind::Buffer, loc))
+                    .map(|_| {
+                        self.fg
+                            .new_component(ComponentKind::Buffer(format!("{:?}", operand)), loc)
+                    })
                     .collect::<Vec<_>>();
                 self.operand_map.insert(operand, ndx.clone());
                 ndx
@@ -123,22 +130,21 @@ impl<'a> FlowGraphBuilder<'a> {
         let rhs = self.operand(loc, assign.rhs);
         let lhs = self.operand(loc, assign.lhs);
         for (lhs, rhs) in lhs.iter().zip(rhs.iter()) {
-            self.fg.graph.add_edge(*rhs, *lhs, EdgeKind::Arg(0));
+            self.fg.edge(*lhs, *rhs, EdgeKind::Arg(0));
         }
     }
     fn build_binary(&mut self, loc: SourceLocation, binary: &tl::Binary) {
         let arg1 = self.operand(loc, binary.arg1);
         let arg2 = self.operand(loc, binary.arg2);
         let lhs = self.operand(loc, binary.lhs);
-        let len = self.object.kind(binary.arg1).len();
         if is_bitwise_binary(binary.op) {
             for (lhs, (arg1, arg2)) in lhs.iter().zip(arg1.iter().zip(arg2.iter())) {
                 let comp = self
                     .fg
                     .new_component(ComponentKind::Binary(Binary { op: binary.op }), loc);
-                self.fg.graph.add_edge(comp, *arg1, EdgeKind::Arg(0));
-                self.fg.graph.add_edge(comp, *arg2, EdgeKind::Arg(1));
-                self.fg.graph.add_edge(*lhs, comp, EdgeKind::Arg(0));
+                self.fg.edge(*arg1, comp, EdgeKind::Arg(0));
+                self.fg.edge(*arg2, comp, EdgeKind::Arg(1));
+                self.fg.edge(comp, *lhs, EdgeKind::OutputBit(0));
             }
         } else {
             let comp = self
@@ -147,13 +153,9 @@ impl<'a> FlowGraphBuilder<'a> {
             for (ndx, (lhs, (arg1, arg2))) in
                 lhs.iter().zip(arg1.iter().zip(arg2.iter())).enumerate()
             {
-                self.fg
-                    .graph
-                    .add_edge(comp, *arg1, EdgeKind::ArgBit(0, ndx));
-                self.fg
-                    .graph
-                    .add_edge(comp, *arg2, EdgeKind::ArgBit(1, ndx));
-                self.fg.graph.add_edge(*lhs, comp, EdgeKind::ArgBit(0, ndx));
+                self.fg.edge(*arg1, comp, EdgeKind::ArgBit(0, ndx));
+                self.fg.edge(*arg2, comp, EdgeKind::ArgBit(1, ndx));
+                self.fg.edge(comp, *lhs, EdgeKind::OutputBit(ndx));
             }
         }
     }
@@ -185,21 +187,19 @@ impl<'a> FlowGraphBuilder<'a> {
                 loc,
             );
             for (ndx, disc) in discriminant.iter().enumerate() {
-                self.fg.graph.add_edge(comp, *disc, EdgeKind::Selector(ndx));
+                self.fg.edge(*disc, comp, EdgeKind::Selector(ndx));
             }
             for (ndx, arg) in arguments.iter().enumerate() {
-                self.fg
-                    .graph
-                    .add_edge(comp, arg[bit], EdgeKind::ArgBit(ndx, bit));
+                self.fg.edge(arg[bit], comp, EdgeKind::ArgBit(ndx, bit));
             }
-            self.fg.graph.add_edge(lhs[bit], comp, EdgeKind::Arg(0));
+            self.fg.edge(comp, lhs[bit], EdgeKind::OutputBit(0));
         }
     }
     fn build_cast(&mut self, loc: SourceLocation, cast: &tl::Cast) {
         let lhs = self.operand(loc, cast.lhs);
         let arg = self.operand(loc, cast.arg);
         for (lhs, rhs) in lhs.iter().zip(arg.iter()) {
-            self.fg.graph.add_edge(*rhs, *lhs, EdgeKind::Arg(0));
+            self.fg.edge(*rhs, *lhs, EdgeKind::Arg(0));
         }
     }
     fn build_concat(&mut self, loc: SourceLocation, concat: &tl::Concat) {
@@ -210,7 +210,7 @@ impl<'a> FlowGraphBuilder<'a> {
             .map(|x| self.operand(loc, *x))
             .collect::<Vec<_>>();
         for (lhs, rhs) in lhs.iter().zip(args.iter().flatten()) {
-            self.fg.graph.add_edge(*rhs, *lhs, EdgeKind::Arg(0));
+            self.fg.edge(*rhs, *lhs, EdgeKind::Arg(0));
         }
     }
     fn build_dynamic_index(&mut self, loc: SourceLocation, dynamic_index: &tl::DynamicIndex) {
@@ -223,11 +223,15 @@ impl<'a> FlowGraphBuilder<'a> {
             }),
             loc,
         );
-        /*         self.fg.lhs(comp, lhs);
-               self.fg.arg(comp, arg, 0);
-               self.fg.offset(comp, offset);
-        */
-        todo!();
+        for (ndx, lhs) in lhs.iter().enumerate() {
+            self.fg.edge(comp, *lhs, EdgeKind::OutputBit(ndx));
+        }
+        for (ndx, offset) in offset.iter().enumerate() {
+            self.fg.edge(*offset, comp, EdgeKind::DynamicOffset(ndx));
+        }
+        for (ndx, arg) in arg.iter().enumerate() {
+            self.fg.edge(*arg, comp, EdgeKind::ArgBit(0, ndx));
+        }
     }
     fn build_dynamic_splice(&mut self, loc: SourceLocation, dynamic_splice: &tl::DynamicSplice) {
         let lhs = self.operand(loc, dynamic_splice.lhs);
@@ -240,19 +244,24 @@ impl<'a> FlowGraphBuilder<'a> {
             }),
             loc,
         );
-        /*
-        self.fg.lhs(comp, lhs);
-        self.fg.arg(comp, arg, 0);
-        self.fg.offset(comp, offset);
-        self.fg.value(comp, value);
-        */
-        todo!();
+        for (ndx, lhs) in lhs.iter().enumerate() {
+            self.fg.edge(comp, *lhs, EdgeKind::OutputBit(ndx));
+        }
+        for (ndx, offset) in offset.iter().enumerate() {
+            self.fg.edge(*offset, comp, EdgeKind::DynamicOffset(ndx));
+        }
+        for (ndx, arg) in arg.iter().enumerate() {
+            self.fg.edge(*arg, comp, EdgeKind::ArgBit(0, ndx));
+        }
+        for (ndx, value) in value.iter().enumerate() {
+            self.fg.edge(*value, comp, EdgeKind::Splice(ndx));
+        }
     }
     fn build_index(&mut self, loc: SourceLocation, index: &tl::Index) {
         let lhs = self.operand(loc, index.lhs);
         let arg = self.operand(loc, index.arg);
         for (lhs, rhs) in lhs.iter().zip(arg.iter().skip(index.bit_range.start)) {
-            self.fg.graph.add_edge(*rhs, *lhs, EdgeKind::Arg(0));
+            self.fg.edge(*rhs, *lhs, EdgeKind::Arg(0));
         }
     }
     fn build_select(&mut self, loc: SourceLocation, select: &tl::Select) {
@@ -264,10 +273,10 @@ impl<'a> FlowGraphBuilder<'a> {
             lhs.iter().zip(true_value.iter().zip(false_value.iter()))
         {
             let comp = self.fg.new_component(ComponentKind::Select, loc);
-            self.fg.edge(comp, cond[0], EdgeKind::Selector(0));
-            self.fg.edge(comp, *true_val, EdgeKind::True);
-            self.fg.edge(comp, *false_val, EdgeKind::False);
-            self.fg.lhs(comp, *lhs);
+            self.fg.edge(cond[0], comp, EdgeKind::Selector(0));
+            self.fg.edge(*true_val, comp, EdgeKind::True);
+            self.fg.edge(*false_val, comp, EdgeKind::False);
+            self.fg.edge(comp, *lhs, EdgeKind::OutputBit(0));
         }
     }
     fn build_splice(&mut self, loc: SourceLocation, splice: &tl::Splice) {
@@ -279,7 +288,7 @@ impl<'a> FlowGraphBuilder<'a> {
         let msb_iter = orig.iter().skip(splice.bit_range.end);
         let rhs = lsb_iter.chain(center_iter).chain(msb_iter);
         for (lhs, rhs) in lhs.iter().zip(rhs) {
-            self.fg.graph.add_edge(*rhs, *lhs, EdgeKind::Arg(0));
+            self.fg.edge(*rhs, *lhs, EdgeKind::Arg(0));
         }
     }
     fn build_unary(&mut self, loc: SourceLocation, unary: &tl::Unary) {
@@ -290,16 +299,16 @@ impl<'a> FlowGraphBuilder<'a> {
                 let comp = self
                     .fg
                     .new_component(ComponentKind::Unary(Unary { op: unary.op }), loc);
-                self.fg.graph.add_edge(comp, *rhs, EdgeKind::Arg(0));
-                self.fg.graph.add_edge(*lhs, comp, EdgeKind::Arg(0));
+                self.fg.edge(*rhs, comp, EdgeKind::Arg(0));
+                self.fg.edge(comp, *lhs, EdgeKind::Arg(0));
             }
         } else {
             let comp = self
                 .fg
                 .new_component(ComponentKind::Unary(Unary { op: unary.op }), loc);
             for (ndx, (lhs, rhs)) in lhs.iter().zip(arg1.iter()).enumerate() {
-                self.fg.graph.add_edge(comp, *rhs, EdgeKind::ArgBit(0, ndx));
-                self.fg.graph.add_edge(*lhs, comp, EdgeKind::ArgBit(0, ndx));
+                self.fg.edge(*rhs, comp, EdgeKind::ArgBit(0, ndx));
+                self.fg.edge(comp, *lhs, EdgeKind::OutputBit(ndx));
             }
         }
     }

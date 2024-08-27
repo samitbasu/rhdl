@@ -85,8 +85,8 @@ pub fn counter<const N: usize>(reset: bool, i: I, q: Q<N>) -> (Bits<N>, D<N>) {
 
 #[test]
 fn test_counter_timing_root() -> miette::Result<()> {
-    let uut: U<4> = U::new();
-    let uut_module = compile_design::<<U<4> as Synchronous>::Update>(CompilationMode::Synchronous)?;
+    let uut: U<2> = U::new();
+    let uut_module = compile_design::<<U<2> as Synchronous>::Update>(CompilationMode::Synchronous)?;
     let rtl = compile_to_rtl(&uut_module)?;
     eprintln!("rtl: {:?}", rtl);
     let fg = build_rtl_flow_graph(&rtl);
