@@ -1,4 +1,4 @@
-use rhdl::prelude::*;
+use rhdl::{core::compiler::codegen::verilog::generate_verilog, prelude::*};
 
 use crate::dff;
 
@@ -43,5 +43,8 @@ fn test_single_bit() -> miette::Result<()> {
     write_dot(&uut_fg, &mut dot).unwrap();
     eprintln!("************* RTL *************");
     eprintln!("RTL {:?}", rtl);
+    let verilog = uut.as_hdl(HDLKind::Verilog)?;
+    eprintln!("************* Verilog *************");
+    eprintln!("{:?}", generate_verilog(&uut)?);
     Ok(())
 }
