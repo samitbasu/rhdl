@@ -84,7 +84,7 @@ impl<T: Digital> Synchronous for U<T> {
         let rst = fg.sink(RegisterKind::Unsigned(1), "rst", None);
         let d = fg.sink(Self::I::static_kind().into(), "d", None);
         let q = fg.source(Self::O::static_kind().into(), "q", None);
-        fg.inputs = vec![Some(rst), Some(d), None];
+        fg.inputs = vec![rst, d, vec![]];
         fg.output = q;
         Ok(CircuitDescriptor {
             unique_name: format!(

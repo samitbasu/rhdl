@@ -1,8 +1,8 @@
 use crate::{
     flow_graph::{
-        component::{ComponentKind},
+        component::ComponentKind,
         edge_kind::EdgeKind,
-        flow_graph_impl::FlowGraph,
+        flow_graph_impl::{FlowGraph, FlowIx},
     },
     rtl::object::{BitString, RegisterKind},
     types::path::{bit_range, Path},
@@ -45,108 +45,61 @@ fn build_synchronous_flow_graph_internal(descriptor: &CircuitDescriptor) -> Flow
     let q_kind: RegisterKind = (&descriptor.q_kind).into();
     // Merge in the flow graph of the update function (and keep it's remap)
     let update_remap = fg.merge(&descriptor.update_flow_graph);
+    let remap_bits = |x: &[FlowIx]| x.iter().map(|y| update_remap[y]).collect::<Vec<_>>();
     // We need a reset buffer - it is mandatory.
-    let reset_buffer = descriptor.update_flow_graph.inputs[0].map(|node| update_remap[&node]);
+    let reset_buffer = remap_bits(&descriptor.update_flow_graph.inputs[0])[0];
     // We need an input buffer (if we have any inputs)
-    let input_buffer = descriptor.update_flow_graph.inputs[1].map(|node| update_remap[&node]);
-    let update_q_input = descriptor.update_flow_graph.inputs[2].map(|node| update_remap[&node]);
+    let input_buffer = remap_bits(&descriptor.update_flow_graph.inputs[1]);
+    let update_q_input = remap_bits(&descriptor.update_flow_graph.inputs[2]);
     // We need an output buffer, but we will need to split the output from the update map into it's two constituent components.
-    let update_output = descriptor.update_flow_graph.output;
+    let update_output = remap_bits(&descriptor.update_flow_graph.output);
     let output_buffer_location =
-        descriptor.update_flow_graph.graph[descriptor.update_flow_graph.output].location;
+        descriptor.update_flow_graph.graph[descriptor.update_flow_graph.output[0]].location;
     // This is the circuit output buffer (contains the circuit output)
     let circuit_output_buffer = fg.buffer(output_kind, "o", output_buffer_location);
-    // We need to split the output of the update function into (o, i_c0, i_c1, i_c2,...)
-    let output_index = fg.new_component_with_optional_location(
-        ComponentKind::Index(Index {
-            bit_range: 0..output_kind.len(),
-        }),
-        output_buffer_location,
-    );
-    // Connect this component to the update function's output
-    fg.edge(output_index, update_output, EdgeKind::Arg(0));
-    let d_index = if !d_kind.is_empty() {
-        let d_index = fg.new_component_with_optional_location(
-            ComponentKind::Index(Index {
-                bit_range: output_kind.len()..(output_kind.len() + d_kind.len()),
-            }),
-            output_buffer_location,
-        );
-        fg.edge(d_index, update_output, EdgeKind::Arg(0));
-        Some(d_index)
-    } else {
-        None
-    };
-    let mut q_buffer = if descriptor.q_kind.is_empty() {
-        None
-    } else {
-        let len = descriptor.q_kind.bits();
-        let bs = if descriptor.q_kind.is_signed() {
-            BitString::Signed(vec![false; len])
-        } else {
-            BitString::Unsigned(vec![false; len])
-        };
-        Some(
-            fg.new_component_with_optional_location(ComponentKind::Constant(Constant { bs }), None),
-        )
-    };
+    let mut update_output_bits = update_output.iter();
+    // Assign the output buffer to the output of the update function
+    for (circuit, output) in circuit_output_buffer.iter().zip(&mut update_output_bits) {
+        fg.edge(*output, *circuit, EdgeKind::Arg(0));
+    }
+    // Create a buffer to hold the "D" output of the update function
+    let circuit_d_buffer = fg.buffer(d_kind, "d", output_buffer_location);
+    for (d, output) in circuit_d_buffer.iter().zip(&mut update_output_bits) {
+        fg.edge(*output, *d, EdgeKind::Arg(0));
+    }
+    // Create a buffer to hold the "Q" input of the update function
+    let q_buffer = fg.buffer(q_kind, "q", output_buffer_location);
+    // Wire that buffer to the input of the update function
+    for (buffer, q) in q_buffer.iter().zip(&update_q_input) {
+        fg.edge(*buffer, *q, EdgeKind::Arg(0));
+    }
+    // Create two iterators.  One iterates over the d buffer to slice off inputs for the children,
+    // and the other iterates over the q buffer to slice off outputs from the children.
+    let mut d_iter = circuit_d_buffer.iter();
+    let mut q_iter = q_buffer.iter();
     // Create the inputs for the children by splitting bits off of the d_index
     for (child_name, child_descriptor) in &descriptor.children {
         // Compute the bit range for this child's input based on it's name
         // The tuple index of .1 is to get the D element of the output from the kernel
         let output_path = Path::default().field(child_name);
+        // TODO - get the bit ranges
         eprintln!("Output_kind {:?}", output_kind);
-        let (child_input_range, _) = bit_range(descriptor.d_kind.clone(), &output_path).unwrap();
-        let (child_output_range, _) = bit_range(descriptor.q_kind.clone(), &output_path).unwrap();
         let child_flow_graph = build_synchronous_flow_graph_internal(child_descriptor);
         let child_remap = fg.merge(&child_flow_graph);
-        if !child_input_range.is_empty() {
-            let child_index = fg.new_component_with_optional_location(
-                ComponentKind::Index(Index {
-                    bit_range: child_input_range,
-                }),
-                output_buffer_location,
-            );
-            fg.edge(child_index, d_index.unwrap(), EdgeKind::Arg(0));
-            fg.edge(
-                child_remap[&child_flow_graph.inputs[1].unwrap()],
-                child_index,
-                EdgeKind::Arg(0),
-            );
+        let remap_child = |x: &[FlowIx]| x.iter().map(|y| child_remap[y]).collect::<Vec<_>>();
+        let child_inputs = remap_child(&child_flow_graph.inputs[1]);
+        let child_output = remap_child(&child_flow_graph.output);
+        for (child_input, d_index) in child_inputs.iter().zip(&mut d_iter) {
+            fg.edge(*d_index, *child_input, EdgeKind::Arg(0));
+        }
+        for (child_output, q_index) in child_output.iter().zip(&mut q_iter) {
+            fg.edge(*child_output, *q_index, EdgeKind::Arg(0));
         }
         // Connect the reset line
-        if let Some(child_reset) = child_flow_graph.inputs[0] {
-            fg.edge(
-                child_remap[&child_reset],
-                reset_buffer.unwrap(),
-                EdgeKind::Arg(0),
-            );
-        }
-        if !child_output_range.is_empty() {
-            // Splice the child output into the q_buffer
-            let new_q = fg.new_component_with_optional_location(
-                ComponentKind::Splice(Splice {
-                    bit_range: child_output_range,
-                }),
-                None,
-            );
-            fg.edge(new_q, q_buffer.unwrap(), EdgeKind::Arg(0));
-            fg.edge(
-                new_q,
-                child_remap[&child_flow_graph.output],
-                EdgeKind::Splice,
-            );
-            q_buffer = Some(new_q);
-        }
+        let reset_line = remap_child(&child_flow_graph.inputs[0])[0];
+        fg.edge(reset_buffer, reset_line, EdgeKind::Arg(0));
     }
-    if let Some(q_buffer) = q_buffer {
-        // Add a named buffer to make it easier to understand
-        let q_named_buffer = fg.buffer(q_kind, "q", None);
-        fg.edge(q_named_buffer, q_buffer, EdgeKind::Arg(0));
-        fg.edge(update_q_input.unwrap(), q_named_buffer, EdgeKind::Arg(0));
-    }
-    fg.edge(circuit_output_buffer, output_index, EdgeKind::Arg(0));
-    fg.inputs = vec![reset_buffer, input_buffer];
+    fg.inputs = vec![vec![reset_buffer], input_buffer];
     fg.output = circuit_output_buffer;
     fg
 }
@@ -161,31 +114,21 @@ pub fn build_synchronous_flow_graph(descriptor: &CircuitDescriptor) -> FlowGraph
     let timing_end = fg.new_component_with_optional_location(ComponentKind::TimingEnd, None);
     // Create sources for all of the inputs of the internal flow graph
     internal_fg.inputs.iter().flatten().for_each(|input| {
-        let component = &internal_fg.graph[*input];
-        let ComponentKind::Buffer(buffer) = &component.kind else {
-            panic!("flow graph inputs must be buffers")
-        };
-        let input_source = fg.source(buffer.kind, &buffer.name, component.location);
-        fg.edge(remap[input], input_source, EdgeKind::Arg(0));
+        fg.edge(timing_start, remap[input], EdgeKind::Virtual);
     });
-    // Add a source for the output
-    let internal_output = &internal_fg.graph[internal_fg.output];
-    let ComponentKind::Buffer(buffer) = &internal_output.kind else {
-        panic!("flow graph outputs must be buffers")
-    };
-    let output_sink = fg.sink(buffer.kind, &buffer.name, internal_output.location);
-    fg.edge(output_sink, remap[&internal_fg.output], EdgeKind::Arg(0));
-    // Next, iterate over all nodes of the graph, and connect each source to the timing start
-    // and each sink to the timing end.
+    internal_fg.output.iter().for_each(|output| {
+        fg.edge(remap[output], timing_end, EdgeKind::Virtual);
+    });
+    // Create links from all of the internal sources to the timing start node
     for node in fg.graph.node_indices() {
-        let component = &fg.graph[node];
-        match &component.kind {
-            ComponentKind::Source(_) => fg.edge(node, timing_start, EdgeKind::Virtual),
-            ComponentKind::Sink(_) => fg.edge(timing_end, node, EdgeKind::Virtual),
-            _ => (),
+        if matches!(fg.graph[node].kind, ComponentKind::Source(_)) {
+            fg.edge(timing_start, node, EdgeKind::Virtual);
+        }
+        if matches!(fg.graph[node].kind, ComponentKind::Sink(_)) {
+            fg.edge(node, timing_end, EdgeKind::Virtual);
         }
     }
-    fg.inputs = vec![Some(timing_start)];
-    fg.output = timing_end;
+    fg.inputs = vec![vec![timing_start]];
+    fg.output = vec![timing_end];
     fg
 }

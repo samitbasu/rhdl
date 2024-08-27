@@ -48,7 +48,7 @@ pub enum CaseEntry {
 pub enum ComponentKind {
     Binary(Binary),
     BlackBox(BlackBox),
-    Buffer,
+    Buffer(String),
     Case(Case),
     Constant(bool),
     DynamicIndex(DynamicIndex),
@@ -72,7 +72,7 @@ impl std::fmt::Debug for Component {
         match &self.kind {
             ComponentKind::Binary(binary) => write!(f, "{:?}", binary.op),
             ComponentKind::BlackBox(blackbox) => write!(f, "{}", blackbox.name),
-            ComponentKind::Buffer => write!(f, "v"),
+            ComponentKind::Buffer(name) => write!(f, "{name}"),
             ComponentKind::Case(_) => write!(f, "Case"),
             ComponentKind::Constant(constant) => write!(f, "{}", if *constant { 1 } else { 0 }),
             ComponentKind::DynamicIndex(dynamic_index) => write!(f, "[[{}]]", dynamic_index.len),

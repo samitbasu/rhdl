@@ -49,14 +49,12 @@ impl<T: Digital> Synchronous for U<T> {
 
     fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError> {
         let mut flow_graph = FlowGraph::default();
-        let driver = flow_graph.new_component_with_optional_location(
-            ComponentKind::Constant(rhdl::core::flow_graph::component::Constant {
-                bs: self.value.typed_bits().into(),
-            }),
-            None,
-        );
-        flow_graph.inputs = vec![None, None, None];
-        flow_graph.output = driver;
+        let my_val = &self.value.typed_bits().bits;
+        let driver = my_val.iter().map(|b| {
+            flow_graph.new_component_with_optional_location(ComponentKind::Constant(*b), None)
+        });
+        flow_graph.output = driver.collect();
+        flow_graph.inputs = vec![vec![], vec![], vec![]];
         Ok(CircuitDescriptor {
             unique_name: format!("const_{:?}", self.value.typed_bits()),
             input_kind: Kind::Empty,
