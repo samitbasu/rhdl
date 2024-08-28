@@ -130,7 +130,7 @@ impl<'a> FlowGraphBuilder<'a> {
         let rhs = self.operand(loc, assign.rhs);
         let lhs = self.operand(loc, assign.lhs);
         for (lhs, rhs) in lhs.iter().zip(rhs.iter()) {
-            self.fg.edge(*lhs, *rhs, EdgeKind::Arg(0));
+            self.fg.edge(*rhs, *lhs, EdgeKind::Arg(0));
         }
     }
     fn build_binary(&mut self, loc: SourceLocation, binary: &tl::Binary) {
