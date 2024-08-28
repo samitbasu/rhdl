@@ -42,5 +42,6 @@ fn test_single_bit() -> miette::Result<()> {
     let uut_fg = build_synchronous_flow_graph(&uut.descriptor()?);
     let mut dot = std::fs::File::create("single_bit.dot").unwrap();
     write_dot(&uut_fg, &mut dot).unwrap();
+    eprintln!("RTL: {:?}", rtl);
     Ok(())
 }

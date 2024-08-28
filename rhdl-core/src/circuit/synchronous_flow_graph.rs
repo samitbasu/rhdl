@@ -50,10 +50,17 @@ fn build_synchronous_flow_graph_internal(descriptor: &CircuitDescriptor) -> Flow
     // We need a reset buffer - it is mandatory.
     let reset_buffer = fg.buffer(RegisterKind::Unsigned(1), "reset", None);
     // We also need an input buffer
-    let input_buffer = fg.buffer()
-    let reset_buffer = remap_bits(&descriptor.update_flow_graph.inputs[0])[0];
+    let input_buffer = fg.buffer(input_kind, "i", None);
+    let reset_from_update = remap_bits(&descriptor.update_flow_graph.inputs[0]);
     // We need an input buffer (if we have any inputs)
-    let input_buffer = remap_bits(&descriptor.update_flow_graph.inputs[1]);
+    let input_from_update = remap_bits(&descriptor.update_flow_graph.inputs[1]);
+    // Link the input and reset to their respective buffers
+    for (reset, reset_buffer) in reset_from_update.iter().zip(reset_buffer.iter()) {
+        fg.edge(*reset_buffer, *reset, EdgeKind::Arg(0));
+    }
+    for (input, input_buffer) in input_from_update.iter().zip(input_buffer.iter()) {
+        fg.edge(*input_buffer, *input, EdgeKind::Arg(0));
+    }
     let update_q_input = remap_bits(&descriptor.update_flow_graph.inputs[2]);
     // We need an output buffer, but we will need to split the output from the update map into it's two constituent components.
     let update_output = remap_bits(&descriptor.update_flow_graph.output);
@@ -105,10 +112,12 @@ fn build_synchronous_flow_graph_internal(descriptor: &CircuitDescriptor) -> Flow
             fg.edge(*child_output, *q_index, EdgeKind::Arg(0));
         }
         // Connect the reset line
-        let reset_line = remap_child(&child_flow_graph.inputs[0])[0];
-        fg.edge(reset_buffer, reset_line, EdgeKind::Arg(0));
+        let reset_line = remap_child(&child_flow_graph.inputs[0]);
+        for (reset_buffer, reset_line) in reset_buffer.iter().zip(reset_line.iter()) {
+            fg.edge(*reset_buffer, *reset_line, EdgeKind::Arg(0));
+        }
     }
-    fg.inputs = vec![vec![reset_buffer], input_buffer];
+    fg.inputs = vec![reset_buffer, input_buffer];
     fg.output = circuit_output_buffer;
     fg
 }

@@ -82,8 +82,8 @@ impl<T: Digital> Synchronous for U<T> {
         let mut fg = FlowGraph::default();
         // Make the FG slightly nicer
         let rst = fg.sink(RegisterKind::Unsigned(1), "rst", None);
-        let d = fg.sink(Self::I::static_kind().into(), "d", None);
-        let q = fg.source(Self::O::static_kind().into(), "q", None);
+        let d = fg.sink(Self::I::static_kind().into(), "ff_d", None);
+        let q = fg.source(Self::O::static_kind().into(), "ff_q", None);
         fg.inputs = vec![rst, d, vec![]];
         fg.output = q;
         Ok(CircuitDescriptor {
