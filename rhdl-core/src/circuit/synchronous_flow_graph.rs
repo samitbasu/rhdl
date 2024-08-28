@@ -43,10 +43,14 @@ fn build_synchronous_flow_graph_internal(descriptor: &CircuitDescriptor) -> Flow
     let output_kind: RegisterKind = (&descriptor.output_kind).into();
     let d_kind: RegisterKind = (&descriptor.d_kind).into();
     let q_kind: RegisterKind = (&descriptor.q_kind).into();
+    let input_kind: RegisterKind = (&descriptor.input_kind).into();
     // Merge in the flow graph of the update function (and keep it's remap)
     let update_remap = fg.merge(&descriptor.update_flow_graph);
     let remap_bits = |x: &[FlowIx]| x.iter().map(|y| update_remap[y]).collect::<Vec<_>>();
     // We need a reset buffer - it is mandatory.
+    let reset_buffer = fg.buffer(RegisterKind::Unsigned(1), "reset", None);
+    // We also need an input buffer
+    let input_buffer = fg.buffer()
     let reset_buffer = remap_bits(&descriptor.update_flow_graph.inputs[0])[0];
     // We need an input buffer (if we have any inputs)
     let input_buffer = remap_bits(&descriptor.update_flow_graph.inputs[1]);
@@ -84,10 +88,15 @@ fn build_synchronous_flow_graph_internal(descriptor: &CircuitDescriptor) -> Flow
         let output_path = Path::default().field(child_name);
         // TODO - get the bit ranges
         eprintln!("Output_kind {:?}", output_kind);
+        eprintln!("Child: {}", child_name);
         let child_flow_graph = build_synchronous_flow_graph_internal(child_descriptor);
         let child_remap = fg.merge(&child_flow_graph);
         let remap_child = |x: &[FlowIx]| x.iter().map(|y| child_remap[y]).collect::<Vec<_>>();
         let child_inputs = remap_child(&child_flow_graph.inputs[1]);
+        eprintln!("Child inputs: {:?}", child_inputs);
+        for input in child_inputs.iter() {
+            eprintln!("Input: {:?}", fg.graph[*input]);
+        }
         let child_output = remap_child(&child_flow_graph.output);
         for (child_input, d_index) in child_inputs.iter().zip(&mut d_iter) {
             fg.edge(*d_index, *child_input, EdgeKind::Arg(0));

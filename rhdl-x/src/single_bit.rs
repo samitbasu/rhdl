@@ -38,13 +38,9 @@ fn test_single_bit() -> miette::Result<()> {
     let uut = U::default();
     let module = compile_design::<single_bit>(CompilationMode::Synchronous)?;
     let rtl = compile_to_rtl(&module)?;
+    eprintln!("RTL: {:?}", rtl);
     let uut_fg = build_synchronous_flow_graph(&uut.descriptor()?);
     let mut dot = std::fs::File::create("single_bit.dot").unwrap();
     write_dot(&uut_fg, &mut dot).unwrap();
-    eprintln!("************* RTL *************");
-    eprintln!("RTL {:?}", rtl);
-    let verilog = uut.as_hdl(HDLKind::Verilog)?;
-    eprintln!("************* Verilog *************");
-    eprintln!("{:?}", generate_verilog(&uut)?);
     Ok(())
 }
