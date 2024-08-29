@@ -45,7 +45,7 @@ pub fn logic_loop(_reset: bool, i: bool, q: Q) -> (bool, D) {
 #[test]
 fn test_logic_loop() -> miette::Result<()> {
     let uut = U::default();
-    let uut_fg = build_synchronous_flow_graph(&uut.descriptor()?);
+    let uut_fg = build_synchronous_flow_graph(&uut.descriptor()?)?;
     let mut dot = std::fs::File::create("logic_loop.dot").unwrap();
     write_dot(&uut_fg, &mut dot).unwrap();
 

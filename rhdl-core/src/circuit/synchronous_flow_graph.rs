@@ -6,7 +6,7 @@ use crate::{
     },
     rtl::object::{BitString, RegisterKind},
     types::path::{bit_range, Path},
-    CircuitDescriptor,
+    CircuitDescriptor, RHDLError,
 };
 
 // Create a flow graph of the circuit.  It is modified by adding
@@ -31,7 +31,9 @@ use crate::{
 //     +--< Out    child 1     In <-+
 // Note - we don't want to build this in the proc-macro since the less logic we
 // put there, the better.
-fn build_synchronous_flow_graph_internal(descriptor: &CircuitDescriptor) -> FlowGraph {
+fn build_synchronous_flow_graph_internal(
+    descriptor: &CircuitDescriptor,
+) -> Result<FlowGraph, RHDLError> {
     // A synchronous flow graph has separate clock and
     // reset inputs, but these don't really factor into
     // data flow, since the assumption is that all elements
@@ -84,19 +86,18 @@ fn build_synchronous_flow_graph_internal(descriptor: &CircuitDescriptor) -> Flow
     for (buffer, q) in q_buffer.iter().zip(&update_q_input) {
         fg.edge(*buffer, *q, EdgeKind::Arg(0));
     }
-    // Create two iterators.  One iterates over the d buffer to slice off inputs for the children,
-    // and the other iterates over the q buffer to slice off outputs from the children.
-    let mut d_iter = circuit_d_buffer.iter();
-    let mut q_iter = q_buffer.iter();
     // Create the inputs for the children by splitting bits off of the d_index
     for (child_name, child_descriptor) in &descriptor.children {
         // Compute the bit range for this child's input based on it's name
         // The tuple index of .1 is to get the D element of the output from the kernel
         let output_path = Path::default().field(child_name);
+        let (output_bit_range, _) = bit_range(descriptor.d_kind.clone(), &output_path)?;
+        let input_path = Path::default().field(child_name);
+        let (input_bit_range, _) = bit_range(descriptor.q_kind.clone(), &input_path)?;
         // TODO - get the bit ranges
         eprintln!("Output_kind {:?}", output_kind);
         eprintln!("Child: {}", child_name);
-        let child_flow_graph = build_synchronous_flow_graph_internal(child_descriptor);
+        let child_flow_graph = build_synchronous_flow_graph_internal(child_descriptor)?;
         let child_remap = fg.merge(&child_flow_graph);
         let remap_child = |x: &[FlowIx]| x.iter().map(|y| child_remap[y]).collect::<Vec<_>>();
         let child_inputs = remap_child(&child_flow_graph.inputs[1]);
@@ -105,9 +106,11 @@ fn build_synchronous_flow_graph_internal(descriptor: &CircuitDescriptor) -> Flow
             eprintln!("Input: {:?}", fg.graph[*input]);
         }
         let child_output = remap_child(&child_flow_graph.output);
+        let mut d_iter = circuit_d_buffer.iter().skip(output_bit_range.start);
         for (child_input, d_index) in child_inputs.iter().zip(&mut d_iter) {
             fg.edge(*d_index, *child_input, EdgeKind::Arg(0));
         }
+        let mut q_iter = q_buffer.iter().skip(input_bit_range.start);
         for (child_output, q_index) in child_output.iter().zip(&mut q_iter) {
             fg.edge(*child_output, *q_index, EdgeKind::Arg(0));
         }
@@ -119,11 +122,13 @@ fn build_synchronous_flow_graph_internal(descriptor: &CircuitDescriptor) -> Flow
     }
     fg.inputs = vec![reset_buffer, input_buffer];
     fg.output = circuit_output_buffer;
-    fg
+    Ok(fg)
 }
 
-pub fn build_synchronous_flow_graph(descriptor: &CircuitDescriptor) -> FlowGraph {
-    let internal_fg = build_synchronous_flow_graph_internal(descriptor);
+pub fn build_synchronous_flow_graph(
+    descriptor: &CircuitDescriptor,
+) -> Result<FlowGraph, RHDLError> {
+    let internal_fg = build_synchronous_flow_graph_internal(descriptor)?;
     // Create a new, top level FG with sources for the inputs and sinks for the
     // outputs.
     let mut fg = FlowGraph::default();
@@ -148,5 +153,5 @@ pub fn build_synchronous_flow_graph(descriptor: &CircuitDescriptor) -> FlowGraph
     }
     fg.inputs = vec![vec![timing_start]];
     fg.output = vec![timing_end];
-    fg
+    Ok(fg)
 }

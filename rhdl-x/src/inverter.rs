@@ -23,7 +23,7 @@ pub fn inverter(_reset: bool, i: bool, _q: ()) -> (bool, ()) {
 fn test_inverter_flow_graph() -> miette::Result<()> {
     let uut = U::default();
     let descriptor = uut.descriptor()?;
-    let fg = build_synchronous_flow_graph(&descriptor);
+    let fg = build_synchronous_flow_graph(&descriptor)?;
     let mut file = std::fs::File::create("inverter.dot").unwrap();
     write_dot(&fg, &mut file).unwrap();
     Ok(())
