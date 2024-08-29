@@ -117,8 +117,10 @@ impl<'a> FlowGraphBuilder<'a> {
                 let reg = self.object.register_kind[&register_id];
                 let ndx = (0..reg.len())
                     .map(|_| {
-                        self.fg
-                            .new_component(ComponentKind::Buffer(format!("{:?}", operand)), loc)
+                        self.fg.new_component(
+                            ComponentKind::Buffer(format!("{}_{:?}", self.object.name, operand)),
+                            loc,
+                        )
                     })
                     .collect::<Vec<_>>();
                 self.operand_map.insert(operand, ndx.clone());
