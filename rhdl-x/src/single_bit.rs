@@ -1,6 +1,6 @@
-use rhdl::{core::compiler::codegen::verilog::generate_verilog, prelude::*};
-
 use crate::dff;
+use core::hash::Hasher;
+use rhdl::{core::compiler::codegen::verilog::generate_verilog, prelude::*};
 
 #[derive(Clone, Debug, Synchronous)]
 #[rhdl(kernel=single_bit)]
@@ -39,9 +39,16 @@ fn test_single_bit() -> miette::Result<()> {
     let module = compile_design::<single_bit>(CompilationMode::Synchronous)?;
     let rtl = compile_to_rtl(&module)?;
     eprintln!("RTL: {:?}", rtl);
-    let uut_fg = build_synchronous_flow_graph(&uut.descriptor()?);
+    let uut_fg = build_synchronous_flow_graph(&uut.descriptor()?)?;
+    let mut dot_string = vec![0_u8; 0];
+    write_dot(&uut_fg, &mut dot_string).unwrap();
+    // Calculate the fnv hash of the dot string
+    let mut hasher = fnv::FnvHasher::default();
+    hasher.write(&dot_string);
+    let hash = hasher.finish();
+    eprintln!("Dot hash: {:x}", hash);
     let mut dot = std::fs::File::create("single_bit.dot").unwrap();
     write_dot(&uut_fg, &mut dot).unwrap();
-    eprintln!("RTL: {:?}", rtl);
+    //eprintln!("RTL: {:?}", rtl);
     Ok(())
 }

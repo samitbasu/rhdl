@@ -71,7 +71,7 @@ pub fn strobe<const N: usize>(reset: bool, i: I, q: Q<N>) -> (bool, D<N>) {
 #[test]
 fn test_strobe_timing() -> miette::Result<()> {
     let uut: U<4> = U::new(bits(12));
-    let mut counter_uut = build_synchronous_flow_graph(&uut.descriptor()?);
+    let mut counter_uut = build_synchronous_flow_graph(&uut.descriptor()?)?;
     rhdl::core::timing::compute_node_costs(&mut counter_uut, simplest_cost);
     eprintln!("counter {:?}", counter_uut);
     let mut dot = std::fs::File::create("strobe_fg.dot").unwrap();

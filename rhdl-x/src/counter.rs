@@ -85,17 +85,24 @@ pub fn counter<const N: usize>(reset: bool, i: I, q: Q<N>) -> (Bits<N>, D<N>) {
 
 #[test]
 fn test_counter_timing_root() -> miette::Result<()> {
-    let uut: U<2> = U::new();
-    let uut_module = compile_design::<<U<2> as Synchronous>::Update>(CompilationMode::Synchronous)?;
+    use core::hash::Hasher;
+    let uut: U<4> = U::new();
+    let uut_module = compile_design::<<U<4> as Synchronous>::Update>(CompilationMode::Synchronous)?;
     let rtl = compile_to_rtl(&uut_module)?;
     eprintln!("rtl: {:?}", rtl);
     let fg = build_rtl_flow_graph(&rtl);
     let mut dot = std::fs::File::create("counter.dot").unwrap();
     write_dot(&fg, &mut dot).unwrap();
-    let counter_uut = build_synchronous_flow_graph(&uut.descriptor()?);
-    assert!(!is_cyclic_directed(&counter_uut.graph));
-    let mut dot = std::fs::File::create("counter_fg.dot").unwrap();
+    let counter_uut = build_synchronous_flow_graph(&uut.descriptor()?)?;
+    let mut dot = vec![0_u8; 0];
     write_dot(&counter_uut, &mut dot).unwrap();
+    let mut hasher = fnv::FnvHasher::default();
+    hasher.write(&dot);
+    let hash = hasher.finish();
+    eprintln!("Dot hash: {:x}", hash);
+    let mut dot = std::fs::File::create(format!("counter_{hash:x}.dot")).unwrap();
+    write_dot(&counter_uut, &mut dot).unwrap();
+    assert!(!is_cyclic_directed(&counter_uut.graph));
     Ok(())
 }
 
