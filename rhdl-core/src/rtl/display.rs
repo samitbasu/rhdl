@@ -96,7 +96,7 @@ impl std::fmt::Debug for OpCode {
                 bit_range,
                 value,
             }) => {
-                write!(f, " {:?} <- {:?}/{:?}/{:?}", lhs, value, bit_range, orig)
+                write!(f, " {:?} <- {:?}/{:?}/{:?}", lhs, orig, bit_range, value)
             }
             OpCode::Unary(Unary { op, lhs, arg1 }) => {
                 write!(f, " {:?} <- {:?}{:?}", lhs, op, arg1)

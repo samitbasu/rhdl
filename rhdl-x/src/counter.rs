@@ -103,6 +103,15 @@ fn test_counter_timing_root() -> miette::Result<()> {
     let mut dot = std::fs::File::create(format!("counter_{hash:x}.dot")).unwrap();
     write_dot(&counter_uut, &mut dot).unwrap();
     assert!(!is_cyclic_directed(&counter_uut.graph));
+    eprintln!("rtl: {:?}", rtl);
+    let uut = comb_adder::U::<4>::default();
+    type Adder = comb_adder::U<4>;
+    let uut = compile_design::<<Adder as Synchronous>::Update>(CompilationMode::Synchronous)?;
+    let rtl_adder = compile_to_rtl(&uut)?;
+    eprintln!("rtl: {:?}", rtl_adder);
+    eprintln!("******************************");
+    eprintln!("rtl: {:?}", rtl);
+    eprintln!("rhif: {:?}", uut_module);
     Ok(())
 }
 
