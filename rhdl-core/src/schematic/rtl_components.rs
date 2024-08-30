@@ -2,7 +2,7 @@ use std::{iter::once, ops::Range};
 
 use crate::{
     rhif::spec::{AluBinary, AluUnary},
-    rtl::object::BitString,
+    types::bit_string::BitString,
 };
 
 use super::{db::PinIx, rtl_schematic::Schematic};

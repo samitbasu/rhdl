@@ -2,10 +2,7 @@ use std::collections::HashMap;
 
 use petgraph::{Directed, Graph};
 
-use crate::{
-    rhif::object::SourceLocation,
-    rtl::object::{BitString, RegisterKind},
-};
+use crate::{rhif::object::SourceLocation, rtl::object::RegisterKind};
 
 use super::{
     component::{Component, ComponentKind},

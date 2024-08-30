@@ -1,4 +1,5 @@
 use crate::dyn_bit_manip::{from_bigint, from_biguint, to_bigint, to_biguint};
+use crate::error::rhdl_error;
 use crate::types::error::DynamicTypeError;
 use crate::{Digital, Kind, RHDLError, TypedBits};
 
@@ -7,12 +8,12 @@ use super::spec::{AluBinary, AluUnary};
 // Oh, the horrors.
 fn mul(a: TypedBits, b: TypedBits) -> Result<TypedBits, RHDLError> {
     if a.kind.is_signed() ^ b.kind.is_signed() {
-        return Err(RHDLError::RHDLDynamicTypeError(Box::new(
+        return Err(rhdl_error(
             DynamicTypeError::BinaryOperationRequiresCompatibleType {
                 lhs: a.kind,
                 rhs: b.kind,
             },
-        )));
+        ));
     }
     if a.kind.is_signed() {
         let a_bi = to_bigint(&a.bits);
