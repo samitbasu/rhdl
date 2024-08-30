@@ -278,7 +278,7 @@ impl<'a> TranslationContext<'a> {
             tl::OpCode::Assign(assign) => self.translate_assign(assign),
             tl::OpCode::Binary(binary) => self.translate_binary(binary),
             tl::OpCode::Case(case) => self.translate_case(case),
-            tl::OpCode::Cast(cast) => self.translate_cast(cast, (self.id, lop.id)),
+            tl::OpCode::Cast(cast) => self.translate_cast(cast, (self.id, lop.loc.node)),
             tl::OpCode::Comment(_) => Ok(()),
             tl::OpCode::Concat(concat) => self.translate_concat(concat),
             tl::OpCode::DynamicIndex(index) => self.translate_dynamic_index(index),

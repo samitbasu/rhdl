@@ -59,7 +59,7 @@ impl<'a> InitSet<'a> {
             Slot::Literal(ndx) => {
                 return Err(DataFlowCheckPass::raise_ice(
                     self.obj,
-                    ICE::CannotWriteToLiteral { ndx: *ndx },
+                    ICE::CannotWriteToLiteral { ndx: ndx.0 },
                     self.obj.symbols.slot_map[slot],
                 ));
             }

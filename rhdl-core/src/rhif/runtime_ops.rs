@@ -1,6 +1,37 @@
+use crate::dyn_bit_manip::{from_bigint, from_biguint, to_bigint, to_biguint};
+use crate::types::error::DynamicTypeError;
 use crate::{Digital, Kind, RHDLError, TypedBits};
 
 use super::spec::{AluBinary, AluUnary};
+
+// Oh, the horrors.
+fn mul(a: TypedBits, b: TypedBits) -> Result<TypedBits, RHDLError> {
+    if a.kind.is_signed() ^ b.kind.is_signed() {
+        return Err(RHDLError::RHDLDynamicTypeError(Box::new(
+            DynamicTypeError::BinaryOperationRequiresCompatibleType {
+                lhs: a.kind,
+                rhs: b.kind,
+            },
+        )));
+    }
+    if a.kind.is_signed() {
+        let a_bi = to_bigint(&a.bits);
+        let b_bi = to_bigint(&b.bits);
+        let result = a_bi * b_bi;
+        Ok(TypedBits {
+            bits: from_bigint(&result, a.bits.len() + b.bits.len()),
+            kind: Kind::Signed(a.bits.len() + b.bits.len()),
+        })
+    } else {
+        let a_bi = to_biguint(&a.bits);
+        let b_bi = to_biguint(&b.bits);
+        let result = a_bi * b_bi;
+        Ok(TypedBits {
+            bits: from_biguint(&result, a.bits.len() + b.bits.len()),
+            kind: Kind::Bits(a.bits.len() + b.bits.len()),
+        })
+    }
+}
 
 pub fn binary(op: AluBinary, arg1: TypedBits, arg2: TypedBits) -> Result<TypedBits, RHDLError> {
     match op {
@@ -17,7 +48,7 @@ pub fn binary(op: AluBinary, arg1: TypedBits, arg2: TypedBits) -> Result<TypedBi
         AluBinary::Le => Ok((arg1 <= arg2).typed_bits()),
         AluBinary::Gt => Ok((arg1 > arg2).typed_bits()),
         AluBinary::Ge => Ok((arg1 >= arg2).typed_bits()),
-        AluBinary::Mul => todo!(),
+        AluBinary::Mul => mul(arg1, arg2),
     }
 }
 
