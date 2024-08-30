@@ -7,7 +7,7 @@ use crate::{
     rtl::{
         self,
         object::{LocatedOpCode, RegisterKind},
-        spec::Operand,
+        spec::{CastKind, Operand},
     },
     test_module::VerilogDescriptor,
     util::binary_string,
@@ -136,7 +136,7 @@ impl<'a> TranslationContext<'a> {
         Ok(())
     }
     fn translate_cast(&mut self, cast: &tl::Cast, id: (FunctionId, NodeId)) -> Result<()> {
-        if cast.signed {
+        if matches!(cast.kind, CastKind::Signed) {
             self.translate_as_signed(cast, id)
         } else {
             self.translate_as_bits(cast)

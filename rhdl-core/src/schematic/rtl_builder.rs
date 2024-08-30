@@ -4,7 +4,7 @@ use crate::{
     rhif::object::SourceLocation,
     rtl::{
         object::LocatedOpCode,
-        spec::{OpCode, Operand},
+        spec::{CastKind, OpCode, Operand},
         Object,
     },
 };
@@ -156,7 +156,7 @@ impl<'a> SchematicBuilder<'a> {
                 lhs,
                 arg,
                 len: cast.len,
-                signed: cast.signed,
+                signed: matches!(cast.kind, CastKind::Signed),
             }),
             loc,
         );

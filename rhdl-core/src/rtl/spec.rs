@@ -160,5 +160,11 @@ pub struct Cast {
     pub lhs: Operand,
     pub arg: Operand,
     pub len: usize,
-    pub signed: bool,
+    pub kind: CastKind,
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub enum CastKind {
+    Signed,
+    Unsigned,
 }

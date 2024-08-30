@@ -28,7 +28,7 @@ fn get_shift(arg: &BitString) -> i64 {
 }
 
 pub fn binary(op: AluBinary, arg1: &BitString, arg2: &BitString) -> Result<BitString, RHDLError> {
-    if arg1.is_signed() ^ arg2.is_signed() {
+    if !op.is_shift() && (arg1.is_signed() ^ arg2.is_signed()) {
         return Err(RHDLError::RHDLDynamicTypeError(Box::new(
             DynamicTypeError::BinaryOperationRequiresCompatibleSign,
         )));
@@ -138,55 +138,83 @@ pub fn unary(op: AluUnary, arg1: BitString) -> Result<BitString, RHDLError> {
 
 #[cfg(test)]
 mod tests {
+    use crate::{Kind, TypedBits};
+
     use super::*;
 
     #[test]
-    fn test_binary() {
-        let a = BitString::Unsigned(vec![true, false, true, false]); // 5
-        let b = BitString::Unsigned(vec![true, true, false, false]); // 3
-        assert_eq!(
-            binary(AluBinary::Add, &a, &b).unwrap(),
-            BitString::Unsigned(vec![true, false, false, true, false])
-        );
-        assert_eq!(
-            binary(AluBinary::Sub, &a, &b).unwrap(),
-            BitString::Unsigned(vec![false, true, true, false, false])
-        );
-        assert_eq!(
-            binary(AluBinary::BitXor, &a, &b).unwrap(),
-            BitString::Unsigned(vec![false, true, true, true, false])
-        );
-        assert_eq!(
-            binary(AluBinary::BitAnd, &a, &b).unwrap(),
-            BitString::Unsigned(vec![true, false, false, false, false])
-        );
-        assert_eq!(
-            binary(AluBinary::BitOr, &a, &b).unwrap(),
-            BitString::Unsigned(vec![true, true, true, true, false])
-        );
-        assert_eq!(
-            binary(AluBinary::Eq, &a, &b).unwrap(),
-            BitString::Unsigned(vec![false])
-        );
-        assert_eq!(
-            binary(AluBinary::Ne, &a, &b).unwrap(),
-            BitString::Unsigned(vec![true])
-        );
-        assert_eq!(
-            binary(AluBinary::Shl, &a, &BitString::Unsigned(vec![true, false])).unwrap(),
-            BitString::Unsigned(vec![true, false, true, false, false])
-        );
-        assert_eq!(
-            binary(AluBinary::Shr, &a, &BitString::Unsigned(vec![true, false])).unwrap(),
-            BitString::Unsigned(vec![false, true, false, true])
-        );
-        assert_eq!(
-            binary(AluBinary::Lt, &a, &b).unwrap(),
-            BitString::Unsigned(vec![true])
-        );
-        assert_eq!(
-            binary(AluBinary::Le, &a, &b).unwrap(),
-            BitString::Unsigned(vec![true])
-        );
+    fn test_binary_unsigned() {
+        let a = TypedBits {
+            bits: vec![true, false, true, false],
+            kind: Kind::make_bits(4),
+        };
+        let a_bs = BitString::Unsigned(a.bits.clone());
+        let b = TypedBits {
+            bits: vec![true, true, false, false],
+            kind: Kind::make_bits(4),
+        };
+        let b_bs = BitString::Unsigned(b.bits.clone());
+        // Loop over each operation in AluBinary
+        for op in [
+            AluBinary::Add,
+            AluBinary::BitAnd,
+            AluBinary::BitOr,
+            AluBinary::BitXor,
+            AluBinary::Eq,
+            AluBinary::Ge,
+            AluBinary::Gt,
+            AluBinary::Le,
+            AluBinary::Lt,
+            AluBinary::Mul,
+            AluBinary::Ne,
+            AluBinary::Shl,
+            AluBinary::Shr,
+        ] {
+            let res1 = binary(op, &a_bs, &b_bs).unwrap();
+            let res2 = crate::rhif::runtime_ops::binary(op, a.clone(), b.clone()).unwrap();
+            assert_eq!(res1.bits(), &res2.bits);
+        }
+    }
+
+    #[test]
+    fn test_binary_signed() {
+        let a = TypedBits {
+            bits: vec![true, false, true, true],
+            kind: Kind::make_signed(4),
+        };
+        let a_bs = BitString::Signed(a.bits.clone());
+        let b = TypedBits {
+            bits: vec![false, true, false, false],
+            kind: Kind::make_signed(4),
+        };
+        let b_bs = BitString::Signed(b.bits.clone());
+        let c = TypedBits {
+            bits: vec![false, true, false, false],
+            kind: Kind::make_bits(4),
+        };
+        let c_bs = BitString::Unsigned(c.bits.clone());
+        // Loop over each operation in AluBinary
+        for op in [
+            AluBinary::Add,
+            AluBinary::BitAnd,
+            AluBinary::BitOr,
+            AluBinary::BitXor,
+            AluBinary::Eq,
+            AluBinary::Ge,
+            AluBinary::Gt,
+            AluBinary::Le,
+            AluBinary::Lt,
+            AluBinary::Mul,
+            AluBinary::Ne,
+        ] {
+            let res1 = binary(op, &a_bs, &b_bs).unwrap();
+            let res2 = crate::rhif::runtime_ops::binary(op, a.clone(), b.clone()).unwrap();
+            assert_eq!(res1.bits(), &res2.bits);
+        }
+        for op in [AluBinary::Shl, AluBinary::Shr] {
+            let res1 = binary(op, &a_bs, &c_bs).unwrap();
+            let res2 = crate::rhif::runtime_ops::binary(op, a.clone(), c.clone()).unwrap();
+            assert_eq!(res1.bits(), &res2.bits);
+        }
     }
 }

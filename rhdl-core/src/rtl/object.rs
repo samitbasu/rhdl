@@ -1,14 +1,17 @@
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write;
+use std::iter::repeat;
 
+use crate::error::rhdl_error;
 use crate::rhif::object::SourceLocation;
+use crate::types::error::DynamicTypeError;
 use crate::{
     ast::ast_impl::{FunctionId, NodeId},
     rhif::{object::SymbolMap, spec::Slot},
     util::binary_string,
     TypedBits,
 };
-use crate::{Digital, Kind};
+use crate::{Digital, Kind, RHDLError};
 
 use super::spec::{LiteralId, OpCode, Operand, RegisterId};
 
@@ -65,6 +68,48 @@ impl BitString {
             BitString::Unsigned(bits) => bits,
         }
     }
+    pub fn unsigned_cast(&self, len: usize) -> Result<BitString, RHDLError> {
+        if len > self.len() {
+            return Ok(BitString::Unsigned(
+                self.bits()
+                    .iter()
+                    .copied()
+                    .chain(repeat(false))
+                    .take(len)
+                    .collect(),
+            ));
+        }
+        let (base, rest) = self.bits().split_at(len);
+        if rest.iter().any(|b| *b) {
+            return Err(rhdl_error(DynamicTypeError::UnsignedCastWithWidthFailed {
+                value: self.into(),
+                bits: len,
+            }));
+        }
+        Ok(BitString::Unsigned(base.to_vec()))
+    }
+    pub fn signed_cast(&self, len: usize) -> Result<BitString, RHDLError> {
+        if len > self.len() {
+            let sign_bit = self.bits().last().copied().unwrap_or(false);
+            return Ok(BitString::Signed(
+                self.bits()
+                    .iter()
+                    .copied()
+                    .chain(repeat(sign_bit))
+                    .take(len)
+                    .collect(),
+            ));
+        }
+        let (base, rest) = self.bits().split_at(len);
+        let new_sign_bit = base.last().cloned().unwrap_or_default();
+        if rest.iter().any(|b| *b != new_sign_bit) {
+            return Err(rhdl_error(DynamicTypeError::SignedCastWithWidthFailed {
+                value: self.into(),
+                bits: len,
+            }));
+        }
+        Ok(BitString::Signed(base.to_vec()))
+    }
 }
 
 impl std::fmt::Debug for BitString {
@@ -79,6 +124,32 @@ impl std::fmt::Debug for BitString {
                 Ok(())
             }
         }
+    }
+}
+
+impl From<&BitString> for TypedBits {
+    fn from(bs: &BitString) -> Self {
+        if bs.is_signed() {
+            {
+                TypedBits {
+                    bits: bs.bits().to_owned(),
+                    kind: Kind::make_signed(bs.len()),
+                }
+            }
+        } else {
+            {
+                TypedBits {
+                    bits: bs.bits().to_owned(),
+                    kind: Kind::make_bits(bs.len()),
+                }
+            }
+        }
+    }
+}
+
+impl From<BitString> for TypedBits {
+    fn from(bs: BitString) -> Self {
+        (&bs).into()
     }
 }
 

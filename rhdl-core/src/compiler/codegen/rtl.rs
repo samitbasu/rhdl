@@ -5,7 +5,7 @@ use crate::rhif::object::SymbolMap;
 use crate::rhif::spec::{AluBinary, Slot};
 use crate::rtl::object::{lop, BitString, RegisterKind};
 use crate::rtl::remap::remap_operands;
-use crate::rtl::spec::{LiteralId, Operand, RegisterId};
+use crate::rtl::spec::{CastKind, LiteralId, Operand, RegisterId};
 use crate::types::path::{bit_range, Path};
 use crate::TypedBits;
 use crate::{rhif, RHDLError};
@@ -193,7 +193,7 @@ impl<'a> RTLCompiler<'a> {
                     lhs: Operand::Register(reg),
                     arg,
                     len: index_bits,
-                    signed: false,
+                    kind: CastKind::Unsigned,
                 }),
                 node_id,
             );
@@ -287,7 +287,7 @@ impl<'a> RTLCompiler<'a> {
                     lhs,
                     arg,
                     len,
-                    signed: false,
+                    kind: CastKind::Unsigned,
                 }),
                 id,
             );
@@ -305,7 +305,7 @@ impl<'a> RTLCompiler<'a> {
                     lhs,
                     arg,
                     len,
-                    signed: true,
+                    kind: CastKind::Signed,
                 }),
                 id,
             );
