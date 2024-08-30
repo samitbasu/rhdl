@@ -4,7 +4,7 @@ use crate::{
         edge_kind::EdgeKind,
         flow_graph_impl::{FlowGraph, FlowIx},
     },
-    rtl::object::{BitString, RegisterKind},
+    rtl::object::RegisterKind,
     types::path::{bit_range, Path},
     CircuitDescriptor, RHDLError,
 };

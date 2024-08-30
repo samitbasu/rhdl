@@ -1,11 +1,9 @@
-use std::ops::Range;
-
 use crate::{
     rhif::{
         object::SourceLocation,
         spec::{AluBinary, AluUnary},
     },
-    rtl::object::BitString,
+    types::bit_string::BitString,
 };
 
 #[derive(Debug, Clone)]

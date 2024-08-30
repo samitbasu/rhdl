@@ -1,11 +1,13 @@
 use std::collections::{BTreeMap, HashMap};
 
 use crate::ast::ast_impl::{FunctionId, NodeId};
+use crate::error::rhdl_error;
 use crate::rhif::object::SymbolMap;
 use crate::rhif::spec::{AluBinary, Slot};
-use crate::rtl::object::{lop, BitString, RegisterKind};
+use crate::rtl::object::{lop, RegisterKind};
 use crate::rtl::remap::remap_operands;
 use crate::rtl::spec::{CastKind, LiteralId, Operand, RegisterId};
+use crate::types::bit_string::BitString;
 use crate::types::path::{bit_range, Path};
 use crate::TypedBits;
 use crate::{rhif, RHDLError};
@@ -112,11 +114,11 @@ impl<'a> RTLCompiler<'a> {
         register_id
     }
     fn raise_ice(&self, cause: ICE, node_id: NodeId) -> RHDLError {
-        RHDLError::RHDLInternalCompilerError(Box::new(RHDLCompileError {
+        rhdl_error(RHDLCompileError {
             cause,
             src: self.object.symbols.source.source.clone(),
             err_span: self.object.symbols.node_span(node_id).into(),
-        }))
+        })
     }
     fn lop(&mut self, opcode: tl::OpCode, id: NodeId) {
         self.ops.push((opcode, id, self.object.fn_id).into())

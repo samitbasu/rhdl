@@ -6,7 +6,7 @@ use crate::{
         error::{RHDLTypeError, TypeCheck},
         ty::SignFlag,
     },
-    error::RHDLError,
+    error::{rhdl_error, RHDLError},
     rhif::{
         spec::{OpCode, Slot},
         Object,
@@ -103,7 +103,7 @@ impl Pass for PrecastIntegerLiteralsInBinops {
                 match new_tb {
                     Err(_e) => {
                         let node = input.symbols.slot_map[k];
-                        return Err(RHDLError::RHDLTypeError(Box::new(RHDLTypeError {
+                        return Err(rhdl_error(RHDLTypeError {
                             src: input.symbols.source.source.clone(),
                             err_span: input.symbols.node_span(node).into(),
                             cause: TypeCheck::LiteralOutsideInferredRange {
@@ -111,7 +111,7 @@ impl Pass for PrecastIntegerLiteralsInBinops {
                                 len,
                                 flag: sign_flag,
                             },
-                        })));
+                        }));
                     }
                     Ok(new_tb) => {
                         input.literals.insert(k.as_literal().unwrap(), new_tb);

@@ -3,6 +3,7 @@ use std::collections::BTreeSet;
 use crate::{
     ast::ast_impl::{FunctionId, NodeId},
     compiler::mir::error::{RHDLCompileError, ICE},
+    error::rhdl_error,
     rhif::spec::{AluBinary, AluUnary},
     rtl::{
         self,
@@ -10,6 +11,7 @@ use crate::{
         spec::{CastKind, Operand},
     },
     test_module::VerilogDescriptor,
+    types::bit_string::BitString,
     util::binary_string,
     RHDLError,
 };
@@ -47,7 +49,7 @@ fn reg_decl(name: &str, kind: RegisterKind) -> String {
     }
 }
 
-fn verilog_literal(bs: &rtl::object::BitString) -> String {
+fn verilog_literal(bs: &BitString) -> String {
     let signed = if bs.is_signed() { "s" } else { "" };
     let width = bs.len();
     let bs = binary_string(bs.bits());
@@ -88,11 +90,11 @@ fn verilog_unop(op: &AluUnary) -> &'static str {
 
 impl<'a> TranslationContext<'a> {
     fn raise_ice(&self, cause: ICE, id: (FunctionId, NodeId)) -> RHDLError {
-        RHDLError::RHDLInternalCompilerError(Box::new(RHDLCompileError {
+        rhdl_error(RHDLCompileError {
             cause,
             src: self.rtl.symbols[&id.0].source.source.clone(),
             err_span: self.rtl.symbols[&id.0].node_span(id.1).into(),
-        }))
+        })
     }
     fn translate_as_bits(&mut self, cast: &tl::Cast) -> Result<()> {
         // Check for the extension case

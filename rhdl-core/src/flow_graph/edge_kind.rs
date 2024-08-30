@@ -1,4 +1,4 @@
-use crate::rtl::object::BitString;
+use crate::types::bit_string::BitString;
 
 #[derive(Clone)]
 pub enum EdgeKind {

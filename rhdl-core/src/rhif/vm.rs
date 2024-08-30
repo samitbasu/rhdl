@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::ast::ast_impl::NodeId;
 use crate::compiler::mir::error::{RHDLCompileError, ICE};
+use crate::error::rhdl_error;
 use crate::rhif::object::Object;
 use crate::rhif::spec::{
     Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, Index, Member, OpCode, Repeat,
@@ -25,11 +26,11 @@ struct VMState<'a> {
 
 impl<'a> VMState<'a> {
     fn raise_ice(&self, cause: ICE, id: NodeId) -> RHDLError {
-        RHDLError::RHDLInternalCompilerError(Box::new(RHDLCompileError {
+        rhdl_error(RHDLCompileError {
             cause,
             src: self.obj.symbols.source.source.clone(),
             err_span: self.obj.symbols.node_span(id).into(),
-        }))
+        })
     }
     fn read(&self, slot: Slot, id: NodeId) -> Result<TypedBits> {
         match slot {
@@ -249,28 +250,24 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
 pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
     // Load the object for this function
     if obj.arguments.len() != arguments.len() {
-        return Err(RHDLError::RHDLInternalCompilerError(Box::new(
-            RHDLCompileError {
-                cause: ICE::ArgumentCountMismatchOnCall,
-                src: obj.symbols.source.source.clone(),
-                err_span: obj.symbols.node_span(obj.ops[0].id).into(),
-            },
-        )));
+        return Err(rhdl_error(RHDLCompileError {
+            cause: ICE::ArgumentCountMismatchOnCall,
+            src: obj.symbols.source.source.clone(),
+            err_span: obj.symbols.node_span(obj.ops[0].id).into(),
+        }));
     }
     for (ndx, arg) in arguments.iter().enumerate() {
         let arg_kind = &arg.kind;
         let obj_kind = &obj.kind[&obj.arguments[ndx]];
         if obj_kind != arg_kind {
-            return Err(RHDLError::RHDLInternalCompilerError(Box::new(
-                RHDLCompileError {
-                    cause: ICE::ArgumentTypeMismatchOnCall {
-                        arg: arg_kind.clone(),
-                        expected: obj_kind.clone(),
-                    },
-                    src: obj.symbols.source.source.clone(),
-                    err_span: obj.symbols.node_span(obj.ops[0].id).into(),
+            return Err(rhdl_error(RHDLCompileError {
+                cause: ICE::ArgumentTypeMismatchOnCall {
+                    arg: arg_kind.clone(),
+                    expected: obj_kind.clone(),
                 },
-            )));
+                src: obj.symbols.source.source.clone(),
+                err_span: obj.symbols.node_span(obj.ops[0].id).into(),
+            }));
         }
     }
     // Allocate registers for the function call.
@@ -292,22 +289,18 @@ pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
         Slot::Register(r) => reg_stack
             .get(r.0)
             .cloned()
-            .ok_or(RHDLError::RHDLInternalCompilerError(Box::new(
-                RHDLCompileError {
-                    cause: ICE::ReturnSlotNotFound {
-                        name: format!("{:?}", r),
-                    },
-                    src: obj.symbols.source.source.clone(),
-                    err_span: obj.symbols.node_span(obj.ops[0].id).into(),
+            .ok_or(rhdl_error(RHDLCompileError {
+                cause: ICE::ReturnSlotNotFound {
+                    name: format!("{:?}", r),
                 },
-            )))?
-            .ok_or(RHDLError::RHDLInternalCompilerError(Box::new(
-                RHDLCompileError {
-                    cause: ICE::ReturnSlotNotInitialized,
-                    src: obj.symbols.source.source.clone(),
-                    err_span: obj.symbols.node_span(obj.ops[0].id).into(),
-                },
-            ))),
+                src: obj.symbols.source.source.clone(),
+                err_span: obj.symbols.node_span(obj.ops[0].id).into(),
+            }))?
+            .ok_or(rhdl_error(RHDLCompileError {
+                cause: ICE::ReturnSlotNotInitialized,
+                src: obj.symbols.source.source.clone(),
+                err_span: obj.symbols.node_span(obj.ops[0].id).into(),
+            })),
         Slot::Literal(ndx) => Ok(obj.literals[&ndx].clone()),
     }
 }
