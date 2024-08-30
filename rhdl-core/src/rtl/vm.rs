@@ -4,6 +4,10 @@ use crate::{
     ast::ast_impl::NodeId,
     compiler::mir::error::{RHDLCompileError, ICE},
     rhif::object::SourceLocation,
+    rtl::{
+        runtime_ops::binary,
+        spec::{Case, CaseArgument, Cast, CastKind, Concat},
+    },
     RHDLError,
 };
 
@@ -55,7 +59,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
     for lop in ops {
         let loc = lop.loc;
         let op = &lop.op;
-        /* match op {
+        match op {
             OpCode::Assign(Assign { lhs, rhs }) => {
                 let rhs = state.read(*rhs, loc)?;
                 state.write(*lhs, rhs, loc)?;
@@ -68,10 +72,48 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
             }) => {
                 let arg1 = state.read(*arg1, loc)?;
                 let arg2 = state.read(*arg2, loc)?;
-                let result = binary(*op, arg1, arg2)?;
+                let result = binary(*op, &arg1, &arg2)?;
                 state.write(*lhs, result, loc)?;
             }
-        }*/
+            OpCode::Case(Case {
+                lhs,
+                discriminant,
+                table,
+            }) => {
+                let discriminant = state.read(*discriminant, loc)?;
+                let arm = table
+                    .iter()
+                    .find(|(disc, _)| match disc {
+                        CaseArgument::Literal(l) => discriminant == state.literals[l],
+                        CaseArgument::Wild => true,
+                    })
+                    .ok_or(state.raise_ice(
+                        ICE::NoMatchingArm {
+                            discriminant: discriminant.into(),
+                        },
+                        loc,
+                    ))?
+                    .1;
+                let arm = state.read(arm, loc)?;
+                state.write(*lhs, arm, loc)?;
+            }
+            OpCode::Cast(Cast {
+                lhs,
+                arg,
+                len,
+                kind,
+            }) => {
+                let arg = state.read(*arg, loc)?;
+                let result = match kind {
+                    CastKind::Signed => arg.signed_cast(*len),
+                    CastKind::Unsigned => arg.unsigned_cast(*len),
+                }?;
+                state.write(*lhs, result, loc)?;
+            }
+            OpCode::Comment(_) => {}
+            OpCode::Concat(Concat { lhs, args }) => todo!(),
+            _ => todo!(),
+        }
     }
     todo!()
 }

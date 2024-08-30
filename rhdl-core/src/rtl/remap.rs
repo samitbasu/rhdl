@@ -50,12 +50,12 @@ pub fn remap_operands<F: FnMut(Operand) -> Operand>(op: OpCode, mut f: F) -> OpC
             lhs,
             arg,
             len,
-            signed,
+            kind: signed,
         }) => OpCode::Cast(Cast {
             lhs: f(lhs),
             arg: f(arg),
             len,
-            signed,
+            kind: signed,
         }),
         OpCode::Comment(_) => op,
         OpCode::Concat(Concat { lhs, args }) => OpCode::Concat(Concat {

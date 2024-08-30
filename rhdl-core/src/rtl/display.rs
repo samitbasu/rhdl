@@ -1,4 +1,4 @@
-use crate::util::splice;
+use crate::{rtl::spec::CastKind, util::splice};
 
 use super::spec::{
     Assign, Binary, Case, Cast, Concat, DynamicIndex, DynamicSplice, Index, OpCode, Select, Splice,
@@ -34,14 +34,18 @@ impl std::fmt::Debug for OpCode {
                 lhs,
                 arg,
                 len,
-                signed,
+                kind,
             }) => {
                 write!(
                     f,
                     " {:?} <- {:?} as {}{}",
                     lhs,
                     arg,
-                    if *signed { "s" } else { "u" },
+                    if matches!(kind, CastKind::Signed) {
+                        "s"
+                    } else {
+                        "u"
+                    },
                     len
                 )
             }
