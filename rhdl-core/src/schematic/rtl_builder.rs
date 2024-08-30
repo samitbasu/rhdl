@@ -58,10 +58,7 @@ impl<'a> SchematicBuilder<'a> {
         }
     }
     fn op(&mut self, lop: &LocatedOpCode) {
-        let loc = SourceLocation {
-            func: lop.func,
-            node: lop.id,
-        };
+        let loc = lop.loc;
         match &lop.op {
             OpCode::Assign(assign) => self.build_assign(loc, assign),
             OpCode::Binary(binary) => self.build_binary(loc, binary),

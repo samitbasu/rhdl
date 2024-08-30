@@ -89,8 +89,8 @@ pub enum ICE {
     SlotHasConflictingColors { slot: Slot },
     #[error("Slot {slot:?} is read before being written")]
     SlotIsReadBeforeBeingWritten { slot: Slot },
-    #[error("Cannot write to a literal slot {ndx:?}")]
-    CannotWriteToLiteral { ndx: LiteralId },
+    #[error("Cannot write to a literal l{ndx:?}")]
+    CannotWriteToLiteral { ndx: usize },
     #[error("Slot {slot:?} is written twice")]
     SlotIsWrittenTwice { slot: Slot },
     #[error("Mismatch in data types (clock domain ignored) {lhs:?} and {rhs:?}")]
@@ -141,6 +141,16 @@ pub enum ICE {
     },
     #[error("Malformed RTL flow graph returned")]
     MalformedRTLFlowGraph,
+    #[error("VM encountered an uninitialized register {r}")]
+    UninitializedRegister { r: usize },
+    #[error("VM cannot write a non-empty value to an empty slot")]
+    CannotWriteNonEmptyValueToEmptySlot,
+    #[error("VM encountered a discriminant {discriminant:?} with no matching arm")]
+    NoMatchingArm { discriminant: TypedBits },
+    #[error("VM expected argument of type {expected:?} but found {arg:?}")]
+    ArgumentTypeMismatchOnCall { arg: Kind, expected: Kind },
+    #[error("VM return argument for function was not initialized")]
+    ReturnSlotNotInitialized,
 }
 
 #[derive(Error, Debug, Diagnostic)]

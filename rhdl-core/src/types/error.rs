@@ -61,6 +61,8 @@ pub enum DynamicTypeError {
         "Binary operation requires both arguments to have compatible types: {lhs:?} and {rhs:?}"
     )]
     BinaryOperationRequiresCompatibleType { lhs: Kind, rhs: Kind },
+    #[error("Cannot apply binary operation on values of different signs")]
+    BinaryOperationRequiresCompatibleSign,
     #[error("Cannot negate composite value {value:?}")]
     CannotNegateComposite { value: TypedBits },
     #[error("Cannot apply binary operations to composite value {value:?}")]

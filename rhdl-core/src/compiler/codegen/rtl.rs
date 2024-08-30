@@ -511,7 +511,7 @@ impl<'a> RTLCompiler<'a> {
             .into_iter()
             .map(|old_lop| {
                 let op = remap_operands(old_lop.op, &mut op_remap);
-                lop(op, old_lop.id, old_lop.func)
+                lop(op, old_lop.loc.node, old_lop.loc.func)
             })
             .collect::<Vec<_>>();
         self.ops.extend(translated);

@@ -15,13 +15,15 @@ use super::spec::{LiteralId, OpCode, Operand, RegisterId};
 #[derive(Clone)]
 pub struct LocatedOpCode {
     pub op: OpCode,
-    pub id: NodeId,
-    pub func: FunctionId,
+    pub loc: SourceLocation,
 }
 
 impl LocatedOpCode {
     pub fn new(op: OpCode, id: NodeId, func: FunctionId) -> Self {
-        Self { op, id, func }
+        Self {
+            op,
+            loc: SourceLocation { node: id, func },
+        }
     }
 }
 
@@ -35,7 +37,7 @@ pub fn lop(op: OpCode, id: NodeId, func: FunctionId) -> LocatedOpCode {
     LocatedOpCode::new(op, id, func)
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum BitString {
     Signed(Vec<bool>),
     Unsigned(Vec<bool>),
