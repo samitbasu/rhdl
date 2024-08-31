@@ -1,8 +1,8 @@
 use crate::compiler::codegen::compile_to_rtl;
 use crate::compiler::codegen::verilog::generate_verilog;
 use crate::error::RHDLError;
-use crate::rhif::vm::execute;
-use crate::{build_rtl_flow_graph, compile_design, DigitalFn};
+use crate::types::bit_string::BitString;
+use crate::{compile_design, DigitalFn};
 use crate::{Timed, TypedBits};
 
 pub trait TestArg {
@@ -303,21 +303,38 @@ where
 {
     let design = compile_design::<K>(crate::compiler::driver::CompilationMode::Asynchronous)?;
     let rtl = compile_to_rtl(&design)?;
-    let flow_graph = build_rtl_flow_graph(&rtl);
-    let verilog = generate_verilog(&design)?;
-    eprintln!("Verilog {:?}", verilog);
     let vm_inputs = vals.clone();
     let mut vm_test_count = 0;
+    eprintln!("RHIF {:?}", design);
     for input in vm_inputs {
         let args_for_vm = input.vec_tb();
         let expected = uut.apply(input).typed_bits();
-        let actual = execute(&design, args_for_vm)?;
+        let actual = crate::rhif::vm::execute(&design, args_for_vm)?;
         if expected.bits != actual.bits {
             return Err(RHDLError::VerilogVerificationErrorTyped { expected, actual });
         }
         vm_test_count += 1;
     }
     eprintln!("VM test passed {} cases OK", vm_test_count);
+    let rtl_inputs = vals.clone();
+    let mut rtl_test_count = 0;
+    eprintln!("RTL {:?}", rtl);
+    for input in rtl_inputs {
+        let args_for_rtl: Vec<BitString> = input
+            .vec_tb()
+            .into_iter()
+            .map(|x| x.into())
+            .collect::<Vec<_>>();
+        let expected: BitString = uut.apply(input).typed_bits().into();
+        let actual = crate::rtl::vm::execute(&rtl, args_for_rtl)?;
+        if expected.bits() != actual.bits() {
+            return Err(RHDLError::VerilogVerificationErrorRTL { expected, actual });
+        }
+        rtl_test_count += 1;
+    }
+    eprintln!("RTL test passed {} cases OK", rtl_test_count);
+    let verilog = generate_verilog(&design)?;
+    eprintln!("Verilog {:?}", verilog);
     let tm = test_module(uut, verilog, vals);
     //eprintln!("{}", tm.testbench);
     tm.run_iverilog()

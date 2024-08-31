@@ -118,6 +118,16 @@ pub struct Object {
 }
 
 impl Object {
+    pub fn reg_max_index(&self) -> RegisterId {
+        self.register_kind
+            .keys()
+            .max()
+            .copied()
+            .unwrap_or(RegisterId(0))
+    }
+    pub fn literal_max_index(&self) -> LiteralId {
+        self.literals.keys().max().copied().unwrap_or(LiteralId(0))
+    }
     pub fn op_name(&self, op: Operand) -> String {
         format!("{op:?}")
     }

@@ -4,4 +4,4 @@ pub mod ascii;
 pub mod codegen;
 mod display_ast;
 pub mod mir;
-mod passes;
+mod rhif_passes;

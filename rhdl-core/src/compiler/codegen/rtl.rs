@@ -199,14 +199,24 @@ impl<'a> RTLCompiler<'a> {
                 }),
                 node_id,
             );
-            let prod = self.allocate_register(&Kind::make_bits(index_bits));
-            // prod <- reg * stride
+            let prod_uncast = self.allocate_register(&Kind::make_bits(index_bits * 2));
             self.lop(
                 tl::OpCode::Binary(tl::Binary {
-                    lhs: Operand::Register(prod),
+                    lhs: Operand::Register(prod_uncast),
                     op: AluBinary::Mul,
                     arg1: Operand::Register(reg),
                     arg2: Operand::Literal(stride),
+                }),
+                node_id,
+            );
+            let prod = self.allocate_register(&Kind::make_bits(index_bits));
+            // prod <- (reg * stride) as L
+            self.lop(
+                tl::OpCode::Cast(tl::Cast {
+                    lhs: Operand::Register(prod),
+                    arg: Operand::Register(prod_uncast),
+                    len: index_bits,
+                    kind: CastKind::Unsigned,
                 }),
                 node_id,
             );
