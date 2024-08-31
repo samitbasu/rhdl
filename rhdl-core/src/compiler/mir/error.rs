@@ -9,7 +9,7 @@ use crate::{
     rhif::spec::{AluBinary, AluUnary, LiteralId, OpCode, Slot},
     rtl::spec::Operand,
     types::path::Path,
-    Kind, TypedBits,
+    Kind, RHDLError, TypedBits,
 };
 
 use super::{compiler::ScopeIndex, ty::SignFlag};
@@ -151,6 +151,12 @@ pub enum ICE {
     ArgumentTypeMismatchOnCall { arg: Kind, expected: Kind },
     #[error("VM return argument for function was not initialized")]
     ReturnSlotNotInitialized,
+    #[error("VM encountered a non-empty/empty value/argument conflict")]
+    NonemptyToEmptyArgumentMismatch,
+    #[error("VM encountered an error on a binary operation")]
+    BinaryOperatorError(Box<RHDLError>),
+    #[error("VM encountered an error on a unary operation")]
+    UnaryOperatorError(Box<RHDLError>),
 }
 
 #[derive(Error, Debug, Diagnostic)]

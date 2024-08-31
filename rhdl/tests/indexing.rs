@@ -13,7 +13,7 @@ mod common;
 use common::*;
 
 #[test]
-fn test_tuple_struct_indexing() {
+fn test_tuple_struct_indexing() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo(b8, b8);
 
@@ -25,7 +25,8 @@ fn test_tuple_struct_indexing() {
         signal(c.0 + c.1)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    Ok(())
 }
 
 #[test]
@@ -50,7 +51,7 @@ fn test_struct_field_indexing() -> miette::Result<()> {
 }
 
 #[test]
-fn test_array_indexing_simple() {
+fn test_array_indexing_simple() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<[b8; 2], Red> {
         let a = a.val();
@@ -61,11 +62,12 @@ fn test_array_indexing_simple() {
         signal(c)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    Ok(())
 }
 
 #[test]
-fn test_array_indexing() {
+fn test_array_indexing() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<[b8; 2], Red> {
         let a = a.val();
@@ -76,11 +78,12 @@ fn test_array_indexing() {
         signal([c[0] + c[1], c[1]])
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    Ok(())
 }
 
 #[test]
-fn test_array_indexing_2() {
+fn test_array_indexing_2() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<[b8; 2], Red> {
         let a = a.val();
@@ -89,7 +92,8 @@ fn test_array_indexing_2() {
         signal([c[0], c[1]])
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -145,7 +149,7 @@ fn test_3d_array_dynamic_indexing() -> miette::Result<()> {
 }
 
 #[test]
-fn test_complex_array_dynamic_indexing() {
+fn test_complex_array_dynamic_indexing() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo {
         a: bool,
@@ -198,7 +202,7 @@ fn test_complex_array_dynamic_indexing() {
     let test_cases = (0..100)
         .map(|_| (red(rand_bar()), red(rand_bits()), red(rand_bits())))
         .collect::<Vec<_>>();
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, test_cases.into_iter()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, test_cases.into_iter())?;
 
     #[kernel]
     fn bar(
@@ -226,7 +230,8 @@ fn test_complex_array_dynamic_indexing() {
             )
         })
         .collect::<Vec<_>>();
-    test_kernel_vm_and_verilog::<bar, _, _, _>(bar, test_cases.into_iter()).unwrap();
+    test_kernel_vm_and_verilog::<bar, _, _, _>(bar, test_cases.into_iter())?;
+    Ok(())
 }
 
 #[test]
@@ -253,7 +258,7 @@ fn test_array_dynamic_indexing() -> miette::Result<()> {
 }
 
 #[test]
-fn test_array_dynamic_indexing_on_write() {
+fn test_array_dynamic_indexing_on_write() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<[b8; 8], Red>, b: Signal<b3, Red>) -> Signal<[b8; 8], Red> {
         let b = b.val();
@@ -274,11 +279,12 @@ fn test_array_dynamic_indexing_on_write() {
     ];
     let b = exhaustive();
     let inputs = b.into_iter().map(|b| (red(a), red(b))).collect::<Vec<_>>();
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, inputs.into_iter()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, inputs.into_iter())?;
+    Ok(())
 }
 
 #[test]
-fn test_field_indexing_is_order_independent() {
+fn test_field_indexing_is_order_independent() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo {
         a: b8,
@@ -293,11 +299,12 @@ fn test_field_indexing_is_order_independent() {
         signal(c)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    Ok(())
 }
 
 #[test]
-fn test_field_indexing() {
+fn test_field_indexing() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo {
         a: b8,
@@ -312,7 +319,8 @@ fn test_field_indexing() {
         signal(c.a + c.b)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    Ok(())
 }
 
 #[test]

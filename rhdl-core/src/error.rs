@@ -1,7 +1,10 @@
 use miette::Diagnostic;
 use thiserror::Error;
 
-use crate::{types::path::PathError, KernelFnKind, TypedBits};
+use crate::{
+    types::{bit_string::BitString, path::PathError},
+    KernelFnKind, TypedBits,
+};
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum RHDLError {
@@ -43,6 +46,11 @@ pub enum RHDLError {
     },
     #[error("Cannot convert kernel function to Verilog descriptor {value:?}")]
     CannotConvertKernelFunctionToVerilogDescriptor { value: Box<KernelFnKind> },
+    #[error("Verilog Verification Error: Expected {expected:?} got {actual:?}")]
+    VerilogVerificationErrorRTL {
+        expected: BitString,
+        actual: BitString,
+    },
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

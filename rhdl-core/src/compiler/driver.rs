@@ -4,7 +4,7 @@ use std::any::type_name;
 use crate::{
     compiler::{
         mir::{compiler::compile_mir, infer::infer},
-        passes::{
+        rhif_passes::{
             check_clock_coherence::CheckClockCoherence,
             check_for_rolled_types::CheckForRolledTypesPass, check_rhif_flow::DataFlowCheckPass,
             check_rhif_type::TypeCheckPass, constant_propagation::ConstantPropagation,
