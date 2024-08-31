@@ -5,3 +5,8 @@ pub mod codegen;
 mod display_ast;
 pub mod mir;
 mod rhif_passes;
+mod rtl_passes;
+mod stage1;
+mod stage2;
+pub use stage1::CompilationMode;
+mod lower_rhif_to_rtl;

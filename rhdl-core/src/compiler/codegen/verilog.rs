@@ -18,8 +18,6 @@ use crate::{
 
 use rtl::spec as tl;
 
-use super::compile_to_rtl;
-
 type Result<T> = std::result::Result<T, RHDLError>;
 
 #[derive(Default, Clone, Debug)]
@@ -366,19 +364,17 @@ impl<'a> TranslationContext<'a> {
     }
 }
 
-fn translate(object: &crate::rhif::Object) -> Result<VerilogModule> {
-    let rtl = compile_to_rtl(object)?;
-    eprintln!("RTL: {:?}", rtl);
+fn translate(object: &crate::rtl::Object) -> Result<VerilogModule> {
     let context = TranslationContext {
         kernels: Default::default(),
         body: Default::default(),
-        rtl: &rtl,
+        rtl: &object,
         id: object.fn_id,
     };
     context.translate_kernel_for_object()
 }
 
-pub fn generate_verilog(object: &crate::rhif::Object) -> Result<VerilogDescriptor> {
+pub fn generate_verilog(object: &crate::rtl::Object) -> Result<VerilogDescriptor> {
     let module = translate(object)?;
     let module = module.deduplicate()?;
     let body = module.functions.join("\n");

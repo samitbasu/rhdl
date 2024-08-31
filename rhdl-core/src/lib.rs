@@ -88,4 +88,5 @@ pub mod netlist;
 pub mod rtl;
 pub mod timing;
 pub use circuit::build_synchronous_flow_graph;
+pub use compiler::CompilationMode;
 pub use flow_graph::build_rtl_flow_graph;

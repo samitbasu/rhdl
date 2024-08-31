@@ -36,8 +36,7 @@ pub fn single_bit(reset: bool, i: bool, q: Q) -> (bool, D) {
 #[test]
 fn test_single_bit() -> miette::Result<()> {
     let uut = U::default();
-    let module = compile_design::<single_bit>(CompilationMode::Synchronous)?;
-    let rtl = compile_to_rtl(&module)?;
+    let rtl = compile_design::<single_bit>(CompilationMode::Synchronous)?;
     eprintln!("RTL: {:?}", rtl);
     let uut_fg = build_synchronous_flow_graph(&uut.descriptor()?)?;
     let mut dot_string = vec![0_u8; 0];

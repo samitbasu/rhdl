@@ -1,10 +1,7 @@
 use crate::dff;
 use petgraph::{algo::is_cyclic_directed, visit::GraphProp};
 use rhdl::{
-    core::{
-        build_rtl_flow_graph, build_synchronous_flow_graph, compiler::codegen::compile_to_rtl,
-        flow_graph::dot::write_dot,
-    },
+    core::{build_rtl_flow_graph, build_synchronous_flow_graph, flow_graph::dot::write_dot},
     prelude::*,
 };
 use std::io::{stderr, Write};
@@ -87,8 +84,7 @@ pub fn counter<const N: usize>(reset: bool, i: I, q: Q<N>) -> (Bits<N>, D<N>) {
 fn test_counter_timing_root() -> miette::Result<()> {
     use core::hash::Hasher;
     let uut: U<4> = U::new();
-    let uut_module = compile_design::<<U<4> as Synchronous>::Update>(CompilationMode::Synchronous)?;
-    let rtl = compile_to_rtl(&uut_module)?;
+    let rtl = compile_design::<<U<4> as Synchronous>::Update>(CompilationMode::Synchronous)?;
     eprintln!("rtl: {:?}", rtl);
     let fg = build_rtl_flow_graph(&rtl);
     let mut dot = std::fs::File::create("counter.dot").unwrap();
@@ -104,14 +100,6 @@ fn test_counter_timing_root() -> miette::Result<()> {
     write_dot(&counter_uut, &mut dot).unwrap();
     assert!(!is_cyclic_directed(&counter_uut.graph));
     eprintln!("rtl: {:?}", rtl);
-    let uut = comb_adder::U::<4>::default();
-    type Adder = comb_adder::U<4>;
-    let uut = compile_design::<<Adder as Synchronous>::Update>(CompilationMode::Synchronous)?;
-    let rtl_adder = compile_to_rtl(&uut)?;
-    eprintln!("rtl: {:?}", rtl_adder);
-    eprintln!("******************************");
-    eprintln!("rtl: {:?}", rtl);
-    eprintln!("rhif: {:?}", uut_module);
     Ok(())
 }
 
