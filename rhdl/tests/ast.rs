@@ -463,7 +463,7 @@ fn test_error_about_for_loop() -> miette::Result<()> {
         }
     }
     let Err(RHDLError::RHDLSyntaxError(err)) =
-        compile_design::<do_stuff>(rhdl_core::compiler::driver::CompilationMode::Asynchronous)
+        compile_design::<do_stuff>(CompilationMode::Asynchronous)
     else {
         panic!("Expected syntax error");
     };

@@ -1,4 +1,5 @@
 use super::circuit_impl::Circuit;
+use crate::compiler::driver::compile_design_stage1;
 use crate::flow_graph::flow_graph_impl::FlowGraph;
 use crate::rhif::spec::Member;
 use crate::schematic::builder::build_schematic;
@@ -9,8 +10,8 @@ use crate::schematic::schematic_impl::Schematic;
 use crate::types::digital::Digital;
 use crate::types::path::Path;
 use crate::types::tristate::Tristate;
-use crate::{compile_design, RHDLError, Synchronous};
 use crate::{util::hash_id, Kind};
+use crate::{RHDLError, Synchronous};
 use std::collections::HashMap;
 
 // A few notes on the circuit descriptor struct
@@ -217,8 +218,7 @@ impl CircuitDescriptor {
 }
 
 fn root_schematic<C: Circuit>() -> Option<Schematic> {
-    let object =
-        compile_design::<C::Update>(crate::compiler::driver::CompilationMode::Asynchronous).ok()?;
+    let object = compile_design_stage1::<C::Update>(crate::CompilationMode::Asynchronous).ok()?;
     let schematic = build_schematic(&object).ok()?;
     Some(schematic)
 }

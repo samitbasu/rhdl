@@ -1,12 +1,12 @@
 use crate::{
     compile_design,
-    compiler::{codegen::verilog::generate_verilog, driver::CompilationMode},
+    compiler::codegen::verilog::generate_verilog,
     error::RHDLError,
     types::{
         digital::Digital,
         path::{bit_range, Path},
     },
-    CircuitDescriptor, HDLDescriptor, Synchronous,
+    CircuitDescriptor, CompilationMode, HDLDescriptor, Synchronous,
 };
 
 type Result<T> = std::result::Result<T, RHDLError>;

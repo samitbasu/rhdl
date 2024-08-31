@@ -1,8 +1,8 @@
-use crate::compiler::codegen::compile_to_rtl;
 use crate::compiler::codegen::verilog::generate_verilog;
+use crate::compiler::driver::{compile_design_stage1, compile_design_stage2};
 use crate::error::RHDLError;
 use crate::types::bit_string::BitString;
-use crate::{compile_design, DigitalFn};
+use crate::DigitalFn;
 use crate::{Timed, TypedBits};
 
 pub trait TestArg {
@@ -301,8 +301,8 @@ where
     K: DigitalFn,
     Args: TestArg,
 {
-    let design = compile_design::<K>(crate::compiler::driver::CompilationMode::Asynchronous)?;
-    let rtl = compile_to_rtl(&design)?;
+    let design = compile_design_stage1::<K>(crate::CompilationMode::Asynchronous)?;
+    let rtl = compile_design_stage2(design.clone())?;
     let vm_inputs = vals.clone();
     let mut vm_test_count = 0;
     eprintln!("RHIF {:?}", design);
@@ -333,7 +333,7 @@ where
         rtl_test_count += 1;
     }
     eprintln!("RTL test passed {} cases OK", rtl_test_count);
-    let verilog = generate_verilog(&design)?;
+    let verilog = generate_verilog(&rtl)?;
     eprintln!("Verilog {:?}", verilog);
     let tm = test_module(uut, verilog, vals);
     //eprintln!("{}", tm.testbench);

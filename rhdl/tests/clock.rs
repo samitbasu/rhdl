@@ -7,7 +7,7 @@
 
 use rhdl::prelude::*;
 
-use rhdl_core::compiler::driver::CompilationMode::Asynchronous;
+use CompilationMode::Asynchronous;
 
 #[test]
 #[allow(clippy::let_and_return)]

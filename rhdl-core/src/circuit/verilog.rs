@@ -60,8 +60,7 @@ pub fn root_verilog<C: Circuit>(t: &C) -> Result<HDLDescriptor> {
         .map(|(ndx, (local, desc))| component_decl::<C>(ndx, local, desc))
         .collect::<Result<Vec<_>>>()?
         .join("\n");
-    let design =
-        compile_design::<C::Update>(crate::compiler::driver::CompilationMode::Asynchronous)?;
+    let design = compile_design::<C::Update>(crate::CompilationMode::Asynchronous)?;
     let verilog = generate_verilog(&design)?;
     let fn_call = format!("assign od = {fn_name}(i, q);", fn_name = &verilog.name);
     let fn_body = &verilog.body;
