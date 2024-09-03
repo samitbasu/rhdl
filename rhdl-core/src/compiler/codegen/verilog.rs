@@ -4,7 +4,10 @@ use crate::{
     ast::ast_impl::{FunctionId, NodeId},
     compiler::mir::error::{RHDLCompileError, ICE},
     error::rhdl_error,
-    rhif::spec::{AluBinary, AluUnary},
+    rhif::{
+        object::SourceLocation,
+        spec::{AluBinary, AluUnary},
+    },
     rtl::{
         self,
         object::{LocatedOpCode, RegisterKind},
@@ -87,11 +90,11 @@ fn verilog_unop(op: &AluUnary) -> &'static str {
 }
 
 impl<'a> TranslationContext<'a> {
-    fn raise_ice(&self, cause: ICE, id: (FunctionId, NodeId)) -> RHDLError {
+    fn raise_ice(&self, cause: ICE, id: SourceLocation) -> RHDLError {
         rhdl_error(RHDLCompileError {
             cause,
-            src: self.rtl.symbols[&id.0].source.source.clone(),
-            err_span: self.rtl.symbols[&id.0].node_span(id.1).into(),
+            src: self.rtl.symbols.source(),
+            err_span: self.rtl.symbols.span(id).into(),
         })
     }
     fn translate_as_bits(&mut self, cast: &tl::Cast) -> Result<()> {
@@ -116,7 +119,7 @@ impl<'a> TranslationContext<'a> {
         }
         Ok(())
     }
-    fn translate_as_signed(&mut self, cast: &tl::Cast, id: (FunctionId, NodeId)) -> Result<()> {
+    fn translate_as_signed(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
         if cast.len > self.rtl.kind(cast.arg).len() {
             return Err(self.raise_ice(
                 ICE::InvalidSignedCast {
@@ -135,7 +138,7 @@ impl<'a> TranslationContext<'a> {
         ));
         Ok(())
     }
-    fn translate_cast(&mut self, cast: &tl::Cast, id: (FunctionId, NodeId)) -> Result<()> {
+    fn translate_cast(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
         if matches!(cast.kind, CastKind::Signed) {
             self.translate_as_signed(cast, id)
         } else {
@@ -279,7 +282,7 @@ impl<'a> TranslationContext<'a> {
             tl::OpCode::Assign(assign) => self.translate_assign(assign),
             tl::OpCode::Binary(binary) => self.translate_binary(binary),
             tl::OpCode::Case(case) => self.translate_case(case),
-            tl::OpCode::Cast(cast) => self.translate_cast(cast, (self.id, lop.loc.node)),
+            tl::OpCode::Cast(cast) => self.translate_cast(cast, lop.loc),
             tl::OpCode::Comment(_) => Ok(()),
             tl::OpCode::Concat(concat) => self.translate_concat(concat),
             tl::OpCode::DynamicIndex(index) => self.translate_dynamic_index(index),

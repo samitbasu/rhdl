@@ -8,13 +8,13 @@ use crate::types::bit_string::BitString;
 use crate::types::error::DynamicTypeError;
 use crate::{
     ast::ast_impl::{FunctionId, NodeId},
-    rhif::{object::SymbolMap, spec::Slot},
     util::binary_string,
     TypedBits,
 };
 use crate::{Digital, Kind, RHDLError};
 
 use super::spec::{LiteralId, OpCode, Operand, RegisterId};
+use super::symbols::SymbolMap;
 
 #[derive(Clone)]
 pub struct LocatedOpCode {
@@ -112,9 +112,8 @@ impl std::fmt::Debug for RegisterKind {
 
 #[derive(Clone)]
 pub struct Object {
-    pub symbols: HashMap<FunctionId, SymbolMap>,
+    pub symbols: SymbolMap,
     pub literals: BTreeMap<LiteralId, BitString>,
-    pub operand_map: BTreeMap<Operand, (FunctionId, Slot)>,
     pub register_kind: BTreeMap<RegisterId, RegisterKind>,
     pub return_register: Operand,
     pub ops: Vec<LocatedOpCode>,
@@ -138,25 +137,13 @@ impl Object {
         format!("{op:?}")
     }
     pub fn op_alias(&self, op: Operand) -> Option<String> {
-        if let Some((func, slot)) = self.operand_map.get(&op) {
-            if let Some(name) = self.symbols[func].slot_names.get(slot) {
-                Some(format!("{slot:?}_{name}"))
-            } else {
-                Some(format!("{slot:?}"))
-            }
-        } else {
-            None
-        }
+        self.symbols.operand_names.get(&op).cloned()
     }
     pub fn kind(&self, op: Operand) -> RegisterKind {
         match op {
             Operand::Register(reg) => self.register_kind[&reg],
             Operand::Literal(lit) => (&self.literals[&lit]).into(),
         }
-    }
-    pub fn op_loc(&self, op: Operand) -> SourceLocation {
-        let (fn_id, slot) = self.operand_map[&op];
-        (fn_id, self.symbols[&fn_id].slot_map[&slot]).into()
     }
 }
 

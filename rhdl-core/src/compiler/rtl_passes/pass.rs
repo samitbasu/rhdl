@@ -9,11 +9,11 @@ use crate::{
 pub trait Pass {
     fn name() -> &'static str;
     fn raise_ice(obj: &Object, cause: ICE, loc: SourceLocation) -> RHDLError {
-        let symbols = &obj.symbols[&loc.func];
+        let symbols = &obj.symbols;
         rhdl_error(RHDLCompileError {
             cause,
-            src: symbols.source.source.clone(),
-            err_span: symbols.node_span(loc.node).into(),
+            src: symbols.source(),
+            err_span: symbols.span(loc).into(),
         })
     }
     fn run(input: Object) -> Result<Object, RHDLError>;

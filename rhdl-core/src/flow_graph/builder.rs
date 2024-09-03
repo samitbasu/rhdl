@@ -30,7 +30,7 @@ pub fn build_rtl_flow_graph(object: &Object) -> FlowGraph {
     let mut bob = FlowGraphBuilder::new(object);
     object.ops.iter().for_each(|lop| bob.op(lop));
     // Link the arguments
-    let location = (object.fn_id, object.symbols[&object.fn_id].source.fallback).into();
+    let location = object.symbols.fallback(object.fn_id);
     object
         .arguments
         .iter()

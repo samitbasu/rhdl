@@ -31,11 +31,11 @@ struct VMState<'a> {
 
 impl<'a> VMState<'a> {
     fn raise_ice(&self, cause: ICE, loc: SourceLocation) -> RHDLError {
-        let symbols = &self.obj.symbols[&loc.func];
+        let symbols = &self.obj.symbols;
         RHDLError::RHDLInternalCompilerError(Box::new(RHDLCompileError {
             cause,
-            src: symbols.source.source.clone(),
-            err_span: symbols.node_span(loc.node).into(),
+            src: symbols.source(),
+            err_span: symbols.span(loc).into(),
         }))
     }
     fn binary(
@@ -264,22 +264,22 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
 }
 
 pub fn execute(obj: &Object, arguments: Vec<BitString>) -> Result<BitString> {
-    let symbols = &obj.symbols[&obj.fn_id];
-    let loc = obj.ops[0].loc;
+    let symbols = &obj.symbols;
+    let loc = symbols.fallback(obj.fn_id);
     // Load the object for this function
     if obj.arguments.len() != arguments.len() {
         return Err(rhdl_error(RHDLCompileError {
             cause: ICE::ArgumentCountMismatchOnCall,
-            src: symbols.source.source.clone(),
-            err_span: symbols.node_span(loc.node).into(),
+            src: symbols.source(),
+            err_span: symbols.span(loc).into(),
         }));
     }
     for (ndx, arg) in arguments.iter().enumerate() {
         if obj.arguments[ndx].is_none() ^ arg.is_empty() {
             return Err(rhdl_error(RHDLCompileError {
                 cause: ICE::NonemptyToEmptyArgumentMismatch,
-                src: symbols.source.source.clone(),
-                err_span: symbols.node_span(loc.node).into(),
+                src: symbols.source(),
+                err_span: symbols.span(loc).into(),
             }));
         }
     }
@@ -307,15 +307,15 @@ pub fn execute(obj: &Object, arguments: Vec<BitString>) -> Result<BitString> {
                     cause: ICE::ReturnSlotNotFound {
                         name: format!("{:?}", r),
                     },
-                    src: symbols.source.source.clone(),
-                    err_span: symbols.node_span(obj.ops[0].loc.node).into(),
+                    src: symbols.source(),
+                    err_span: symbols.span(loc).into(),
                 },
             )))?
             .ok_or(RHDLError::RHDLInternalCompilerError(Box::new(
                 RHDLCompileError {
                     cause: ICE::ReturnSlotNotInitialized,
-                    src: symbols.source.source.clone(),
-                    err_span: symbols.node_span(obj.ops[0].loc.node).into(),
+                    src: symbols.source(),
+                    err_span: symbols.span(loc).into(),
                 },
             ))),
         Operand::Literal(ndx) => Ok(obj.literals[&ndx].clone()),
