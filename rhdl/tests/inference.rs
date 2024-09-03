@@ -340,7 +340,7 @@ fn test_struct_inference() -> miette::Result<()> {
 }
 
 #[test]
-fn test_missing_register_inferred_types() {
+fn test_missing_register_inferred_types() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b1, Red>) -> Signal<b8, Red> {
         let mut c = bits(0);
@@ -351,7 +351,8 @@ fn test_missing_register_inferred_types() {
         }
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red()).unwrap();
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red())?;
+    Ok(())
 }
 
 #[test]
@@ -367,7 +368,7 @@ fn test_bit_inference_works() -> miette::Result<()> {
 }
 
 #[test]
-fn test_array_inference() {
+fn test_array_inference() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<[b8; 2], Red> {
         let a = a.val();
@@ -376,5 +377,6 @@ fn test_array_inference() {
         signal(c)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    Ok(())
 }

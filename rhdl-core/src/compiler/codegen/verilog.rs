@@ -275,6 +275,7 @@ impl<'a> TranslationContext<'a> {
     fn translate_op(&mut self, lop: &LocatedOpCode) -> Result<()> {
         let op = &lop.op;
         match op {
+            tl::OpCode::Noop => Ok(()),
             tl::OpCode::Assign(assign) => self.translate_assign(assign),
             tl::OpCode::Binary(binary) => self.translate_binary(binary),
             tl::OpCode::Case(case) => self.translate_case(case),

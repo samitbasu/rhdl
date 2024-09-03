@@ -5,6 +5,7 @@ use super::spec::{
 
 pub fn remap_operands<F: FnMut(Operand) -> Operand>(op: OpCode, mut f: F) -> OpCode {
     match op {
+        OpCode::Noop => op,
         OpCode::Assign(Assign { lhs, rhs }) => OpCode::Assign(Assign {
             lhs: f(lhs),
             rhs: f(rhs),
@@ -123,4 +124,8 @@ pub fn remap_operands<F: FnMut(Operand) -> Operand>(op: OpCode, mut f: F) -> OpC
             arg1: f(arg1),
         }),
     }
+}
+
+pub fn rename_read_operands(op: OpCode, old: Operand, new: Operand) -> OpCode {
+    remap_operands(op, |op| if op == old { new } else { op })
 }

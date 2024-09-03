@@ -8,6 +8,9 @@ use super::spec::{
 impl std::fmt::Debug for OpCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            OpCode::Noop => {
+                write!(f, "Noop")
+            }
             OpCode::Assign(Assign { lhs, rhs }) => {
                 write!(f, " {:?} <- {:?}", lhs, rhs)
             }
