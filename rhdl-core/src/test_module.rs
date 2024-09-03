@@ -302,7 +302,7 @@ where
     Args: TestArg,
 {
     let design = compile_design_stage1::<K>(crate::CompilationMode::Asynchronous)?;
-    let rtl = compile_design_stage2(design.clone())?;
+    let rtl = compile_design_stage2(&design)?;
     let vm_inputs = vals.clone();
     let mut vm_test_count = 0;
     eprintln!("RHIF {:?}", design);

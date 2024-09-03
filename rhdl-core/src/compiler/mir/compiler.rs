@@ -30,7 +30,7 @@ use crate::ast_builder::BinOp;
 use crate::ast_builder::UnOp;
 use crate::compiler::ascii;
 use crate::compiler::display_ast::pretty_print_statement;
-use crate::compiler::stage1::compile_kernel;
+use crate::compiler::stage1::compile;
 use crate::compiler::stage1::CompilationMode;
 use crate::error::RHDLError;
 use crate::kernel::Kernel;
@@ -480,7 +480,7 @@ impl<'a> MirContext<'a> {
     }
     fn stash(&mut self, kernel: &Kernel) -> Result<FuncId> {
         let ndx = self.stash.len().into();
-        let object = compile_kernel(kernel.clone(), self.mode)?;
+        let object = compile(kernel.clone(), self.mode)?;
         self.stash.insert(ndx, Box::new(object));
         Ok(ndx)
     }

@@ -81,6 +81,7 @@ impl<'a> FlowGraphBuilder<'a> {
     fn op(&mut self, lop: &LocatedOpCode) {
         let loc = lop.loc;
         match &lop.op {
+            OpCode::Noop => {}
             OpCode::Assign(assign) => self.build_assign(loc, assign),
             OpCode::Binary(binary) => self.build_binary(loc, binary),
             OpCode::Case(case) => self.build_case(loc, case),

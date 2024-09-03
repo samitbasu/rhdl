@@ -86,6 +86,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
         let loc = lop.loc;
         let op = &lop.op;
         match op {
+            OpCode::Noop => {}
             OpCode::Assign(Assign { lhs, rhs }) => {
                 let rhs = state.read(*rhs, loc)?;
                 state.write(*lhs, rhs, loc)?;

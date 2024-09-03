@@ -4,6 +4,7 @@ use crate::rhif::spec::{AluBinary, AluUnary};
 
 #[derive(Clone, PartialEq)]
 pub enum OpCode {
+    Noop,
     // lhs <- arg
     Assign(Assign),
     // lhs <- arg1 op arg2
@@ -34,6 +35,15 @@ pub enum OpCode {
 pub enum Operand {
     Literal(LiteralId),
     Register(RegisterId),
+}
+
+impl Operand {
+    pub fn as_register(&self) -> Option<RegisterId> {
+        match self {
+            Operand::Register(r) => Some(*r),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]

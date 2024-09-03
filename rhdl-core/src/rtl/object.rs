@@ -37,6 +37,12 @@ impl From<(OpCode, NodeId, FunctionId)> for LocatedOpCode {
     }
 }
 
+impl From<(OpCode, SourceLocation)> for LocatedOpCode {
+    fn from((op, loc): (OpCode, SourceLocation)) -> Self {
+        Self { op, loc }
+    }
+}
+
 pub fn lop(op: OpCode, id: NodeId, func: FunctionId) -> LocatedOpCode {
     LocatedOpCode::new(op, id, func)
 }

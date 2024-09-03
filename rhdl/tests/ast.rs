@@ -13,7 +13,7 @@ use common::*;
 use rhdl::prelude::*;
 
 #[test]
-fn test_func_with_structured_args() {
+fn test_func_with_structured_args() -> miette::Result<()> {
     #[kernel]
     fn do_stuff((a, b): (Signal<b8, Red>, Signal<b8, Red>)) -> Signal<b8, Red> {
         let c = (a, b);
@@ -23,8 +23,8 @@ fn test_func_with_structured_args() {
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(
         do_stuff,
         [((signal(b8(0)), signal(b8(3))),)].into_iter(),
-    )
-    .unwrap();
+    )?;
+    Ok(())
 }
 
 #[test]
@@ -108,7 +108,7 @@ fn test_ast_basic_func() -> miette::Result<()> {
 }
 
 #[test]
-fn test_method_call_syntax() {
+fn test_method_call_syntax() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b8, Red>) -> Signal<(bool, bool, bool, s8), Red> {
         let a = a.val();
@@ -118,11 +118,12 @@ fn test_method_call_syntax() {
         let s = a.as_signed();
         signal((any, all, xor, s))
     }
-    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red()).unwrap();
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red())?;
+    Ok(())
 }
 
 #[test]
-fn test_empty_kernel_args_accepted() {
+fn test_empty_kernel_args_accepted() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<(), Red>, b: Signal<b3, Red>, c: Signal<(), Red>) -> Signal<b3, Red> {
         b
@@ -131,22 +132,24 @@ fn test_empty_kernel_args_accepted() {
     let inputs = (0..8)
         .map(|x| (red(()), red(bits(x)), red(())))
         .collect::<Vec<_>>();
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, inputs.into_iter()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, inputs.into_iter())?;
+    Ok(())
 }
 
 #[test]
-fn test_empty_kernel_return_accepted() {
+fn test_empty_kernel_return_accepted() -> miette::Result<()> {
     #[kernel]
     fn foo(d: Signal<(), Red>, a: Signal<b3, Red>) -> (Signal<bool, Red>, Signal<(), Red>) {
         (signal(true), d)
     }
 
     let inputs = (0..8).map(|x| (red(()), red(bits(x)))).collect::<Vec<_>>();
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, inputs.into_iter()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, inputs.into_iter())?;
+    Ok(())
 }
 
 #[test]
-fn test_repeat_with_generic() {
+fn test_repeat_with_generic() -> miette::Result<()> {
     #[kernel]
     fn foo<const N: usize>(a: Signal<[b8; N], Red>) -> Signal<[b8; N], Red> {
         let a = a.val();
@@ -156,11 +159,12 @@ fn test_repeat_with_generic() {
     }
     let test_input = [(signal([bits(1), bits(2), bits(3), bits(4)]),)];
 
-    test_kernel_vm_and_verilog::<foo<4>, _, _, _>(foo, test_input.into_iter()).unwrap();
+    test_kernel_vm_and_verilog::<foo<4>, _, _, _>(foo, test_input.into_iter())?;
+    Ok(())
 }
 
 #[test]
-fn test_repeat_op() {
+fn test_repeat_op() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<([b8; 3], [b8; 4]), Red> {
         let a = a.val();
@@ -170,11 +174,12 @@ fn test_repeat_op() {
         signal((c, d))
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    Ok(())
 }
 
 #[test]
-fn test_exec_sub_kernel() {
+fn test_exec_sub_kernel() -> miette::Result<()> {
     #[kernel]
     fn double(a: Signal<b8, Red>) -> Signal<b8, Red> {
         a + a
@@ -191,11 +196,12 @@ fn test_exec_sub_kernel() {
         c + a + b
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    Ok(())
 }
 
 #[test]
-fn test_assign_with_computed_expression() {
+fn test_assign_with_computed_expression() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<[b8; 4], Red>) -> Signal<[b8; 4], Red> {
         let mut a = a.val();
@@ -204,11 +210,12 @@ fn test_assign_with_computed_expression() {
     }
     let test_input = [(signal([bits(1), bits(2), bits(3), bits(4)]),)];
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, test_input.into_iter()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, test_input.into_iter())?;
+    Ok(())
 }
 
 #[test]
-fn test_match_value() {
+fn test_match_value() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
         match a.val() {
@@ -218,7 +225,8 @@ fn test_match_value() {
         }
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    Ok(())
 }
 
 #[test]
@@ -332,7 +340,7 @@ fn test_basic_compile() -> miette::Result<()> {
 }
 
 #[test]
-fn test_generics() {
+fn test_generics() -> miette::Result<()> {
     #[kernel]
     fn do_stuff<T: Digital, C: Domain>(a: Signal<T, C>, b: Signal<T, C>) -> Signal<bool, C> {
         signal(a == b)
@@ -347,7 +355,8 @@ fn test_generics() {
     ];
     let inputs =
         iproduct!(a.iter().cloned().map(red), a.iter().cloned().map(red)).collect::<Vec<_>>();
-    test_kernel_vm_and_verilog::<do_stuff<s4, Red>, _, _, _>(do_stuff, inputs.into_iter()).unwrap();
+    test_kernel_vm_and_verilog::<do_stuff<s4, Red>, _, _, _>(do_stuff, inputs.into_iter())?;
+    Ok(())
 }
 
 #[test]
@@ -392,7 +401,7 @@ fn test_nested_generics() -> miette::Result<()> {
 }
 
 #[test]
-fn test_signed_match() {
+fn test_signed_match() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<s8, Red>, b: Signal<s8, Red>) -> Signal<s8, Red> {
         match a.val() {
@@ -402,7 +411,8 @@ fn test_signed_match() {
         }
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_s8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_s8_red())?;
+    Ok(())
 }
 
 #[test]
