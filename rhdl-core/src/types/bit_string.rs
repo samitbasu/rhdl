@@ -4,7 +4,7 @@ use crate::{error::rhdl_error, util::binary_string, Kind, RHDLError, TypedBits};
 
 use super::error::DynamicTypeError;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum BitString {
     Signed(Vec<bool>),
     Unsigned(Vec<bool>),

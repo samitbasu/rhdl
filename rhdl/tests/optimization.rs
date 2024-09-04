@@ -343,3 +343,135 @@ fn test_constant_propagation_through_sub_kernels() -> miette::Result<()> {
     });
     Ok(())
 }
+
+/*
+Object foo
+  fn_id FnID(d86f2bbbdf22045f)
+  arguments [Some(r1)]
+  return_register r4
+Reg r0 : b0
+Reg r1 : b1
+Reg r2 : b1
+Reg r3 : b0
+Reg r4 : b1
+// let (c, d, ) = a;
+
+r0 <- r1[0..0]
+r2 <- r1[0..1]
+// let q = (c, c, );
+
+r3 <- { r0, r0 }
+// (q, d, )
+
+r4 <- { r3, r2 }
+
+
+*/
+#[test]
+fn test_empty_expressions_dropped() -> miette::Result<()> {
+    #[kernel]
+    fn foo(a: ((), bool)) -> (((), ()), bool) {
+        let (c, d) = a;
+        let p = ();
+        let q = (c, p);
+        (q, d)
+    }
+
+    let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
+    eprintln!("{:?}", rtl);
+    assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
+    assert!(rtl.literals.values().all(|v| !v.is_empty()));
+    Ok(())
+}
+
+#[test]
+fn test_empty_splices_dropped() -> miette::Result<()> {
+    #[derive(Copy, Clone, PartialEq, Digital)]
+    struct Foo {
+        a: b1,
+        b: (),
+    }
+
+    #[kernel]
+    fn foo(mut a: Foo, c: ()) -> Foo {
+        a.b = c;
+        a
+    }
+
+    let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
+    assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
+    assert!(rtl.literals.values().all(|v| !v.is_empty()));
+    Ok(())
+}
+
+#[test]
+fn test_empty_index_dropped() -> miette::Result<()> {
+    #[kernel]
+    fn foo(a: ([(); 8], b1), b: b1) -> ((), b1) {
+        let c = a.0[3];
+        (c, b)
+    }
+
+    let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
+    eprintln!("{:?}", rtl);
+    assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
+    assert!(rtl.literals.values().all(|v| !v.is_empty()));
+    Ok(())
+}
+
+#[test]
+fn test_empty_indices_dropped() -> miette::Result<()> {
+    #[derive(Copy, Clone, PartialEq, Digital)]
+    struct Foo {
+        a: b1,
+        b: (),
+    }
+
+    #[kernel]
+    fn foo(a: Foo) -> b1 {
+        let () = a.b;
+        let c = (a.b, ());
+        a.a
+    }
+    let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
+    eprintln!("{:?}", rtl);
+    assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
+    assert!(rtl.literals.values().all(|v| !v.is_empty()));
+    Ok(())
+}
+
+#[test]
+fn test_empty_case_dropped() -> miette::Result<()> {
+    #[derive(Copy, Clone, PartialEq, Digital)]
+    enum Color {
+        Red,
+        Green,
+        Blue,
+        Black,
+    }
+
+    #[kernel]
+    fn foo(a: Color) -> b4 {
+        let mut ret = bits(0);
+        let mt = match a {
+            Color::Red => {
+                ret = bits(1);
+            }
+            Color::Green => {
+                ret = bits(2);
+            }
+            Color::Blue => {
+                ret = bits(3);
+            }
+            Color::Black => {
+                ret = bits(4);
+            }
+        };
+        ret
+    }
+    let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
+    eprintln!("{:?}", rtl);
+    assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
+    assert!(rtl.literals.values().all(|v| !v.is_empty()));
+    Ok(())
+}

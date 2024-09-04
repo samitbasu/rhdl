@@ -44,6 +44,7 @@ struct TranslationContext<'a> {
 
 // TODO - add check that len > 0 or redefine it as numbits - 1
 fn reg_decl(name: &str, kind: RegisterKind) -> String {
+    assert!(!kind.is_empty());
     match kind {
         RegisterKind::Signed(len) => format!("reg signed [{}:0] {}", len - 1, name),
         RegisterKind::Unsigned(len) => format!("reg [{}:0] {}", len - 1, name),

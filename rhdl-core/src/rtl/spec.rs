@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use crate::rhif::spec::{AluBinary, AluUnary};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Hash)]
 pub enum OpCode {
     Noop,
     // lhs <- arg
@@ -85,7 +85,7 @@ impl std::fmt::Debug for Operand {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Binary {
     pub op: AluBinary,
     pub lhs: Operand,
@@ -93,14 +93,14 @@ pub struct Binary {
     pub arg2: Operand,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Unary {
     pub op: AluUnary,
     pub lhs: Operand,
     pub arg1: Operand,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Select {
     pub lhs: Operand,
     pub cond: Operand,
@@ -108,13 +108,13 @@ pub struct Select {
     pub false_value: Operand,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Concat {
     pub lhs: Operand,
     pub args: Vec<Operand>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct DynamicIndex {
     pub lhs: Operand,
     pub arg: Operand,
@@ -122,7 +122,7 @@ pub struct DynamicIndex {
     pub len: usize,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct DynamicSplice {
     pub lhs: Operand,
     pub arg: Operand,
@@ -131,14 +131,14 @@ pub struct DynamicSplice {
     pub value: Operand,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Index {
     pub lhs: Operand,
     pub arg: Operand,
     pub bit_range: Range<usize>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Splice {
     pub lhs: Operand,
     pub orig: Operand,
@@ -146,26 +146,26 @@ pub struct Splice {
     pub value: Operand,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Assign {
     pub lhs: Operand,
     pub rhs: Operand,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Hash)]
 pub enum CaseArgument {
     Literal(LiteralId),
     Wild,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Case {
     pub lhs: Operand,
     pub discriminant: Operand,
     pub table: Vec<(CaseArgument, Operand)>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Cast {
     pub lhs: Operand,
     pub arg: Operand,
@@ -173,7 +173,7 @@ pub struct Cast {
     pub kind: CastKind,
 }
 
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq, Copy, Hash)]
 pub enum CastKind {
     Signed,
     Unsigned,
