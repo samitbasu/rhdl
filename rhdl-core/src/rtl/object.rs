@@ -1,6 +1,10 @@
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write;
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::iter::repeat;
+
+use fnv::FnvHasher;
 
 use crate::error::rhdl_error;
 use crate::rhif::object::SourceLocation;
@@ -16,7 +20,7 @@ use crate::{Digital, Kind, RHDLError};
 use super::spec::{LiteralId, OpCode, Operand, RegisterId};
 use super::symbols::SymbolMap;
 
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub struct LocatedOpCode {
     pub op: OpCode,
     pub loc: SourceLocation,
@@ -47,7 +51,7 @@ pub fn lop(op: OpCode, id: NodeId, func: FunctionId) -> LocatedOpCode {
     LocatedOpCode::new(op, id, func)
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash)]
 pub enum RegisterKind {
     Signed(usize),
     Unsigned(usize),
@@ -110,7 +114,7 @@ impl std::fmt::Debug for RegisterKind {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub struct Object {
     pub symbols: SymbolMap,
     pub literals: BTreeMap<LiteralId, BitString>,
@@ -144,6 +148,11 @@ impl Object {
             Operand::Register(reg) => self.register_kind[&reg],
             Operand::Literal(lit) => (&self.literals[&lit]).into(),
         }
+    }
+    pub fn hash_value(&self) -> u64 {
+        let mut hasher = FnvHasher::default();
+        self.hash(&mut hasher);
+        hasher.finish()
     }
 }
 

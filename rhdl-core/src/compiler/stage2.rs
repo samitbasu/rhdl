@@ -1,21 +1,40 @@
-use crate::{rtl, RHDLError};
-
-use super::{
-    lower_rhif_to_rtl::compile_to_rtl,
-    rtl_passes::{
-        lower_signal_casts::LowerSignalCasts, pass::Pass,
-        remove_extra_registers::RemoveExtraRegistersPass,
-        symbol_table_is_complete::SymbolTableIsComplete,
+use crate::{
+    compiler::{
+        lower_rhif_to_rtl::compile_to_rtl,
+        rtl_passes::{
+            dead_code_elimination::DeadCodeEliminationPass,
+            lower_empty_splice_to_copy::LowerEmptySpliceToCopy,
+            lower_signal_casts::LowerSignalCasts,
+            lower_single_concat_to_copy::LowerSingleConcatToCopy, pass::Pass,
+            remove_extra_registers::RemoveExtraRegistersPass,
+            remove_unused_operands::RemoveUnusedOperandsPass,
+            strip_empty_args_from_concat::StripEmptyArgsFromConcat,
+            symbol_table_is_complete::SymbolTableIsComplete,
+        },
     },
+    rtl, RHDLError,
 };
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
 pub(crate) fn compile(object: &crate::rhif::Object) -> Result<rtl::Object> {
-    let rtl = compile_to_rtl(object)?;
-    let rtl = LowerSignalCasts::run(rtl)?;
-    let rtl = RemoveExtraRegistersPass::run(rtl)?;
-    let rtl = SymbolTableIsComplete::run(rtl)?;
+    let mut rtl = compile_to_rtl(object)?;
+    let mut hash = rtl.hash_value();
+    loop {
+        rtl = LowerSignalCasts::run(rtl)?;
+        rtl = RemoveExtraRegistersPass::run(rtl)?;
+        rtl = SymbolTableIsComplete::run(rtl)?;
+        rtl = RemoveUnusedOperandsPass::run(rtl)?;
+        rtl = StripEmptyArgsFromConcat::run(rtl)?;
+        rtl = DeadCodeEliminationPass::run(rtl)?;
+        rtl = LowerEmptySpliceToCopy::run(rtl)?;
+        rtl = LowerSingleConcatToCopy::run(rtl)?;
+        let new_hash = rtl.hash_value();
+        if new_hash == hash {
+            break;
+        }
+        hash = new_hash;
+    }
     eprintln!("{rtl:?}");
     Ok(rtl)
 }
