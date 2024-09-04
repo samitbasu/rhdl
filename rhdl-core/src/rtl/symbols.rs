@@ -10,7 +10,7 @@ use crate::{
 
 use super::spec::Operand;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct SymbolMap {
     pub sources: BTreeMap<FunctionId, SpannedSource>,
     pub operand_map: BTreeMap<Operand, SourceLocation>,

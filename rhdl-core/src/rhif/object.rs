@@ -15,7 +15,7 @@ use crate::{
 use super::spec::OpCode;
 use super::spec::{FuncId, LiteralId, RegisterId};
 
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash, PartialOrd, Eq, Ord)]
 pub struct SourceLocation {
     pub func: FunctionId,
     pub node: NodeId,
