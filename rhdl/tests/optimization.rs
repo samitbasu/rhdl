@@ -420,6 +420,21 @@ fn test_empty_index_dropped() -> miette::Result<()> {
 }
 
 #[test]
+fn test_empty_dynamic_splices_dropped() -> miette::Result<()> {
+    #[kernel]
+    fn foo(mut a: ([(); 8], b1), b: b3) -> ([(); 8], b1) {
+        a.0[b] = ();
+        a
+    }
+
+    let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
+    eprintln!("{:?}", rtl);
+    assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
+    assert!(rtl.literals.values().all(|v| !v.is_empty()));
+    Ok(())
+}
+
+#[test]
 fn test_empty_dynamic_index_dropped() -> miette::Result<()> {
     #[kernel]
     fn foo(a: ([(); 8], b1), b: b3) -> ((), b1) {
