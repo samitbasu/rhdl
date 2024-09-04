@@ -5,6 +5,7 @@ use super::{
     rtl_passes::{
         lower_signal_casts::LowerSignalCasts, pass::Pass,
         remove_extra_registers::RemoveExtraRegistersPass,
+        symbol_table_is_complete::SymbolTableIsComplete,
     },
 };
 
@@ -14,6 +15,7 @@ pub(crate) fn compile(object: &crate::rhif::Object) -> Result<rtl::Object> {
     let rtl = compile_to_rtl(object)?;
     let rtl = LowerSignalCasts::run(rtl)?;
     let rtl = RemoveExtraRegistersPass::run(rtl)?;
+    let rtl = SymbolTableIsComplete::run(rtl)?;
     eprintln!("{rtl:?}");
     Ok(rtl)
 }

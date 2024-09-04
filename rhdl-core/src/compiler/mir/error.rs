@@ -157,6 +157,8 @@ pub enum ICE {
     BinaryOperatorError(Box<RHDLError>),
     #[error("VM encountered an error on a unary operation")]
     UnaryOperatorError(Box<RHDLError>),
+    #[error("RTL symbol table is incomplete for operand {operand:?}")]
+    RTLSymbolTableIsIncomplete { operand: Operand },
 }
 
 #[derive(Error, Debug, Diagnostic)]

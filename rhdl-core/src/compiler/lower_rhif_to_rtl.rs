@@ -2,18 +2,18 @@ use std::collections::{BTreeMap, HashMap};
 
 use crate::ast::ast_impl::{FunctionId, NodeId};
 use crate::error::rhdl_error;
-use crate::rhif::object::SymbolMap;
 use crate::rhif::spec::{AluBinary, Slot};
 use crate::rtl::object::{lop, RegisterKind};
 use crate::rtl::remap::remap_operands;
 use crate::rtl::spec::{CastKind, LiteralId, Operand, RegisterId};
+use crate::rtl::symbols::SymbolMap;
 use crate::types::bit_string::BitString;
 use crate::types::path::{bit_range, Path};
 use crate::TypedBits;
 use crate::{rhif, RHDLError};
 use crate::{rtl, Kind};
 
-use crate::rhif::spec as hf;
+use crate::rhif::{remap, spec as hf};
 use crate::rtl::spec as tl;
 
 use crate::compiler::mir::error::{RHDLCompileError, ICE};
@@ -38,7 +38,7 @@ fn test_clog2() {
 }
 
 struct RTLCompiler<'a> {
-    symbols: HashMap<FunctionId, SymbolMap>,
+    symbols: SymbolMap,
     object: &'a rhif::object::Object,
     literals: BTreeMap<LiteralId, BitString>,
     registers: BTreeMap<RegisterId, RegisterKind>,
@@ -51,9 +51,13 @@ struct RTLCompiler<'a> {
 
 impl<'a> RTLCompiler<'a> {
     fn new(object: &'a rhif::object::Object) -> Self {
+        let mut symbols = SymbolMap::default();
+        symbols
+            .sources
+            .insert(object.fn_id, object.symbols.source.clone());
         Self {
             object,
-            symbols: [(object.fn_id, object.symbols.clone())].into(),
+            symbols,
             literals: Default::default(),
             registers: Default::default(),
             operand_map: Default::default(),
@@ -63,55 +67,71 @@ impl<'a> RTLCompiler<'a> {
             register_count: 0,
         }
     }
-    fn allocate_literal(&mut self, bits: &TypedBits) -> LiteralId {
+    fn associate(&mut self, operand: Operand, id: NodeId) {
+        self.symbols
+            .operand_map
+            .insert(operand, (self.object.fn_id, id).into());
+    }
+    fn allocate_literal(&mut self, bits: &TypedBits, id: NodeId) -> Operand {
         let literal_id = LiteralId(self.literal_count);
         self.literal_count += 1;
         self.literals.insert(literal_id, bits.into());
-        literal_id
+        let literal = Operand::Literal(literal_id);
+        self.associate(literal, id);
+        literal
     }
-    fn allocate_literal_from_bit_string(&mut self, bits: &BitString) -> LiteralId {
+    fn allocate_literal_from_bit_string(&mut self, bits: &BitString, id: NodeId) -> Operand {
         let literal_id = LiteralId(self.literal_count);
         self.literal_count += 1;
         self.literals.insert(literal_id, bits.clone());
-        literal_id
+        let literal = Operand::Literal(literal_id);
+        self.associate(literal, id);
+        literal
     }
     fn allocate_literal_from_usize_and_length(
         &mut self,
         value: usize,
         bits: usize,
-    ) -> Result<LiteralId> {
+        id: NodeId,
+    ) -> Result<Operand> {
         let value = value as u64;
         let value: TypedBits = value.into();
         let value = value.unsigned_cast(bits)?;
-        Ok(self.allocate_literal(&value))
+        Ok(self.allocate_literal(&value, id))
     }
-    fn allocate_signed(&mut self, length: usize) -> RegisterId {
+    fn allocate_signed(&mut self, length: usize, id: NodeId) -> Operand {
         let register_id = RegisterId(self.register_count);
         self.register_count += 1;
         self.registers
             .insert(register_id, RegisterKind::Signed(length));
-        register_id
+        let register = Operand::Register(register_id);
+        self.associate(register, id);
+        register
     }
-    fn allocate_unsigned(&mut self, length: usize) -> RegisterId {
+    fn allocate_unsigned(&mut self, length: usize, id: NodeId) -> Operand {
         let register_id = RegisterId(self.register_count);
         self.register_count += 1;
         self.registers
             .insert(register_id, RegisterKind::Unsigned(length));
-        register_id
+        let register = Operand::Register(register_id);
+        self.associate(register, id);
+        register
     }
-    fn allocate_register(&mut self, kind: &Kind) -> RegisterId {
+    fn allocate_register(&mut self, kind: &Kind, id: NodeId) -> Operand {
         let len = kind.bits();
         if kind.is_signed() {
-            self.allocate_signed(len)
+            self.allocate_signed(len, id)
         } else {
-            self.allocate_unsigned(len)
+            self.allocate_unsigned(len, id)
         }
     }
-    fn allocate_register_with_register_kind(&mut self, kind: &RegisterKind) -> RegisterId {
+    fn allocate_register_with_register_kind(&mut self, kind: &RegisterKind, id: NodeId) -> Operand {
         let register_id = RegisterId(self.register_count);
         self.register_count += 1;
         self.registers.insert(register_id, *kind);
-        register_id
+        let register = Operand::Register(register_id);
+        self.associate(register, id);
+        register
     }
     fn raise_ice(&self, cause: ICE, node_id: NodeId) -> RHDLError {
         rhdl_error(RHDLCompileError {
@@ -183,55 +203,56 @@ impl<'a> RTLCompiler<'a> {
         // The sum is initialized with the offset of the base index
         let base_offset = base_range.start;
         let mut index_sum =
-            Operand::Literal(self.allocate_literal_from_usize_and_length(base_offset, index_bits)?);
+            self.allocate_literal_from_usize_and_length(base_offset, index_bits, node_id)?;
         for (slot, stride) in dynamic_slots.iter().zip(slot_strides.iter()) {
             // Store the stride in a literal
-            let stride = self.allocate_literal_from_usize_and_length(*stride, index_bits)?;
-            let reg = self.allocate_register(&Kind::make_bits(index_bits));
+            let stride =
+                self.allocate_literal_from_usize_and_length(*stride, index_bits, node_id)?;
+            let reg = self.allocate_register(&Kind::make_bits(index_bits), node_id);
             let arg = self.operand(*slot, node_id)?;
             // reg <- arg as L
             self.lop(
                 tl::OpCode::Cast(tl::Cast {
-                    lhs: Operand::Register(reg),
+                    lhs: reg,
                     arg,
                     len: index_bits,
                     kind: CastKind::Unsigned,
                 }),
                 node_id,
             );
-            let prod_uncast = self.allocate_register(&Kind::make_bits(index_bits * 2));
+            let prod_uncast = self.allocate_register(&Kind::make_bits(index_bits * 2), node_id);
             self.lop(
                 tl::OpCode::Binary(tl::Binary {
-                    lhs: Operand::Register(prod_uncast),
+                    lhs: prod_uncast,
                     op: AluBinary::Mul,
-                    arg1: Operand::Register(reg),
-                    arg2: Operand::Literal(stride),
+                    arg1: reg,
+                    arg2: stride,
                 }),
                 node_id,
             );
-            let prod = self.allocate_register(&Kind::make_bits(index_bits));
+            let prod = self.allocate_register(&Kind::make_bits(index_bits), node_id);
             // prod <- (reg * stride) as L
             self.lop(
                 tl::OpCode::Cast(tl::Cast {
-                    lhs: Operand::Register(prod),
-                    arg: Operand::Register(prod_uncast),
+                    lhs: prod,
+                    arg: prod_uncast,
                     len: index_bits,
                     kind: CastKind::Unsigned,
                 }),
                 node_id,
             );
-            let sum = self.allocate_register(&Kind::make_bits(index_bits));
+            let sum = self.allocate_register(&Kind::make_bits(index_bits), node_id);
             // sum <- sum + prod
             self.lop(
                 tl::OpCode::Binary(tl::Binary {
-                    lhs: Operand::Register(sum),
+                    lhs: sum,
                     op: AluBinary::Add,
                     arg1: index_sum,
-                    arg2: Operand::Register(prod),
+                    arg2: prod,
                 }),
                 node_id,
             );
-            index_sum = Operand::Register(sum);
+            index_sum = sum;
         }
         Ok((index_sum, base_range.len()))
     }
@@ -242,8 +263,11 @@ impl<'a> RTLCompiler<'a> {
         match slot {
             Slot::Literal(literal_id) => {
                 let bits = &self.object.literals[&literal_id];
-                let literal_id = self.allocate_literal(bits);
-                let operand = Operand::Literal(literal_id);
+                let operand = self.allocate_literal(bits, id);
+                let node = self.object.symbols.slot_map[&slot];
+                self.symbols
+                    .operand_map
+                    .insert(operand, (self.object.fn_id, node).into());
                 self.reverse_operand_map
                     .insert((self.object.fn_id, slot), operand);
                 self.operand_map.insert(operand, (self.object.fn_id, slot));
@@ -251,8 +275,11 @@ impl<'a> RTLCompiler<'a> {
             }
             Slot::Register(register_id) => {
                 let kind = &self.object.kind[&register_id];
-                let register_id = self.allocate_register(kind);
-                let operand = Operand::Register(register_id);
+                let operand = self.allocate_register(kind, id);
+                let node = self.object.symbols.slot_map[&slot];
+                self.symbols
+                    .operand_map
+                    .insert(operand, (self.object.fn_id, node).into());
                 self.reverse_operand_map
                     .insert((self.object.fn_id, slot), operand);
                 self.operand_map.insert(operand, (self.object.fn_id, slot));
@@ -441,14 +468,14 @@ impl<'a> RTLCompiler<'a> {
         }
         let kind = template.kind.clone();
         let discriminant = template.discriminant()?.as_i64()?;
-        let mut rhs = Operand::Literal(self.allocate_literal(template));
+        let mut rhs = self.allocate_literal(template, id);
         for field in fields {
             let field_value = self.operand(field.value, id)?;
             let path = Path::default()
                 .payload_by_value(discriminant)
                 .member(&field.member);
             let (field_range, _) = bit_range(kind.clone(), &path)?;
-            let reg = Operand::Register(self.allocate_register(&kind));
+            let reg = self.allocate_register(&kind, id);
             self.lop(
                 tl::OpCode::Splice(tl::Splice {
                     lhs: reg,
@@ -474,45 +501,39 @@ impl<'a> RTLCompiler<'a> {
         // Compile it...
         let func_rtl = compile_rtl(func)?;
         // Inline it.
-        let mut register_translation = BTreeMap::new();
-        let mut literal_translation = BTreeMap::new();
+        let mut operand_translation = BTreeMap::new();
         // Rebind the arguments to local registers, and copy the values into them
         for (fn_arg, arg) in func_rtl.arguments.iter().zip(args) {
             if let Some(fn_reg) = fn_arg {
-                let fn_reg_in_our_space =
-                    self.allocate_register_with_register_kind(&func_rtl.register_kind[fn_reg]);
-                register_translation.insert(*fn_reg, fn_reg_in_our_space);
+                let fn_reg_in_our_space = self
+                    .allocate_register_with_register_kind(&func_rtl.register_kind[fn_reg], node_id);
+                operand_translation.insert(Operand::Register(*fn_reg), fn_reg_in_our_space);
                 let arg = self.operand(*arg, node_id)?;
                 self.lop(
                     tl::OpCode::Assign(tl::Assign {
-                        lhs: Operand::Register(fn_reg_in_our_space),
+                        lhs: fn_reg_in_our_space,
                         rhs: arg,
                     }),
                     node_id,
                 );
             }
         }
-        let mut op_remap = |operand| match operand {
-            Operand::Literal(old_lit_id) => {
-                if let Some(new_lit_id) = literal_translation.get(&old_lit_id) {
-                    Operand::Literal(*new_lit_id)
-                } else {
+        let mut op_remap = |operand| {
+            if operand_translation.contains_key(&operand) {
+                return operand_translation[&operand];
+            }
+            let new_operand = match operand {
+                Operand::Literal(old_lit_id) => {
                     let old_lit = func_rtl.literals[&old_lit_id].clone();
-                    let new_lit_id = self.allocate_literal_from_bit_string(&old_lit);
-                    literal_translation.insert(old_lit_id, new_lit_id);
-                    Operand::Literal(new_lit_id)
+                    self.allocate_literal_from_bit_string(&old_lit, node_id)
                 }
-            }
-            Operand::Register(old_reg_id) => {
-                if let Some(new_reg_id) = register_translation.get(&old_reg_id) {
-                    Operand::Register(*new_reg_id)
-                } else {
+                Operand::Register(old_reg_id) => {
                     let kind = func_rtl.register_kind[&old_reg_id];
-                    let new_reg_id = self.allocate_register_with_register_kind(&kind);
-                    register_translation.insert(old_reg_id, new_reg_id);
-                    Operand::Register(new_reg_id)
+                    self.allocate_register_with_register_kind(&kind, node_id)
                 }
-            }
+            };
+            operand_translation.insert(operand, new_operand);
+            new_operand
         };
         let return_register = op_remap(func_rtl.return_register);
         // Translate each operation and add it to the existing function (inline).
@@ -535,7 +556,15 @@ impl<'a> RTLCompiler<'a> {
             }),
             node_id,
         );
-        self.symbols.extend(func_rtl.symbols);
+        for old_op in func_rtl.symbols.operand_map.keys() {
+            let new_op = operand_translation[old_op];
+            let loc = func_rtl.symbols.operand_map[old_op];
+            self.symbols.operand_map.insert(new_op, loc);
+            if let Some(name) = func_rtl.symbols.operand_names.get(old_op) {
+                self.symbols.operand_names.insert(new_op, name.clone());
+            }
+        }
+        self.symbols.sources.extend(func_rtl.symbols.sources);
         Ok(())
     }
     fn make_dynamic_index(&mut self, index: &hf::Index, node_id: NodeId) -> Result<()> {
@@ -668,13 +697,13 @@ impl<'a> RTLCompiler<'a> {
         let mut rhs = if let Some(rest) = rest {
             self.operand(*rest, node_id)?
         } else {
-            Operand::Literal(self.allocate_literal(template))
+            self.allocate_literal(template, node_id)
         };
         for field in fields {
             let field_value = self.operand(field.value, node_id)?;
             let path = Path::default().member(&field.member);
             let (field_range, _) = bit_range(kind.clone(), &path)?;
-            let reg = Operand::Register(self.allocate_register(&kind));
+            let reg = self.allocate_register(&kind, node_id);
             self.lop(
                 tl::OpCode::Splice(tl::Splice {
                     lhs: reg,
@@ -791,7 +820,6 @@ fn compile_rtl(object: &rhif::Object) -> Result<rtl::object::Object> {
     Ok(rtl::object::Object {
         symbols: compiler.symbols,
         literals: compiler.literals,
-        operand_map: compiler.operand_map,
         return_register,
         register_kind: compiler.registers,
         ops: compiler.ops,
