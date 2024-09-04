@@ -373,7 +373,7 @@ fn translate(object: &crate::rtl::Object) -> Result<VerilogModule> {
     let context = TranslationContext {
         kernels: Default::default(),
         body: Default::default(),
-        rtl: &object,
+        rtl: object,
         id: object.fn_id,
     };
     context.translate_kernel_for_object()
