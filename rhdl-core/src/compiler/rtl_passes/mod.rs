@@ -1,5 +1,6 @@
 pub(crate) mod dead_code_elimination;
 pub(crate) mod lower_empty_splice_to_copy;
+pub(crate) mod lower_index_all_to_copy;
 pub(crate) mod lower_signal_casts;
 pub(crate) mod lower_single_concat_to_copy;
 pub(crate) mod pass;
