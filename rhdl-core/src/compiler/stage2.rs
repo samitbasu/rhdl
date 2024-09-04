@@ -4,7 +4,7 @@ use crate::{
         rtl_passes::{
             dead_code_elimination::DeadCodeEliminationPass,
             lower_empty_splice_to_copy::LowerEmptySpliceToCopy,
-            lower_signal_casts::LowerSignalCasts,
+            lower_index_all_to_copy::LowerIndexAllToCopy, lower_signal_casts::LowerSignalCasts,
             lower_single_concat_to_copy::LowerSingleConcatToCopy, pass::Pass,
             remove_extra_registers::RemoveExtraRegistersPass,
             remove_unused_operands::RemoveUnusedOperandsPass,
@@ -29,6 +29,7 @@ pub(crate) fn compile(object: &crate::rhif::Object) -> Result<rtl::Object> {
         rtl = DeadCodeEliminationPass::run(rtl)?;
         rtl = LowerEmptySpliceToCopy::run(rtl)?;
         rtl = LowerSingleConcatToCopy::run(rtl)?;
+        rtl = LowerIndexAllToCopy::run(rtl)?;
         let new_hash = rtl.hash_value();
         if new_hash == hash {
             break;

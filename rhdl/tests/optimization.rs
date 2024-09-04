@@ -420,6 +420,24 @@ fn test_empty_index_dropped() -> miette::Result<()> {
 }
 
 #[test]
+fn test_empty_dynamic_index_dropped() -> miette::Result<()> {
+    #[kernel]
+    fn foo(a: ([(); 8], b1), b: b3) -> ((), b1) {
+        (a.0[b], a.1)
+    }
+
+    let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
+    eprintln!("{:?}", rtl);
+    assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
+    assert!(rtl.literals.values().all(|v| !v.is_empty()));
+    assert!(rtl
+        .ops
+        .iter()
+        .all(|op| matches!(op.op, rhdl_core::rtl::spec::OpCode::Comment(_))));
+    Ok(())
+}
+
+#[test]
 fn test_empty_indices_dropped() -> miette::Result<()> {
     #[derive(Copy, Clone, PartialEq, Digital)]
     struct Foo {
