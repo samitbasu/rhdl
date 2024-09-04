@@ -139,7 +139,7 @@
 //! * Both operands must be of the same width.
 //! * Both operands must be of the same type (e.g., [SignedBits] or [Bits]).
 //! * One of the operands may be a literal, in which case it will be converted to
-//! the appropriate type before the operator is applied.
+//!   the appropriate type before the operator is applied.
 //!
 //! These rules are entirely enforced in the Rust type system.  So there is nothing
 //! special about following these rules that you are not already accustomed to.  The
@@ -265,6 +265,7 @@
 //! - [And](std::ops::BitAnd) and [AndAssign](std::ops::BitAndAssign) for `&` and `&=`
 //! - [Xor](std::ops::BitXor) and [XorAssign](std::ops::BitXorAssign) for `^` and `^=`
 //! - [Not](std::ops::Not) for `!`
+//!
 //! Other, more exotic binary operators (like Xnor or Nand) are not supported.  If you need these,
 //! you will need to implement them in terms of these more basic operators.
 //!

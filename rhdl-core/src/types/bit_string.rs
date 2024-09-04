@@ -42,6 +42,12 @@ impl BitString {
         let bs = tb.signed_cast(len)?;
         Ok(bs.into())
     }
+    pub fn num_ones(&self) -> usize {
+        self.bits().iter().filter(|b| **b).count()
+    }
+    pub fn trailing_zeros(&self) -> usize {
+        self.bits().iter().take_while(|b| !*b).count()
+    }
 }
 
 impl std::fmt::Debug for BitString {
