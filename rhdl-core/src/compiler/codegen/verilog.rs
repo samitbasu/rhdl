@@ -302,15 +302,16 @@ impl<'a> TranslationContext<'a> {
             .rtl
             .arguments
             .iter()
-            .filter_map(|arg| {
+            .enumerate()
+            .map(|(ndx, arg)| {
                 if let Some(arg) = arg {
                     let kind = self.rtl.register_kind[arg];
-                    Some(format!(
+                    format!(
                         "input {}",
                         reg_decl(&self.rtl.op_name(Operand::Register(*arg)), kind)
-                    ))
+                    )
                 } else {
-                    None
+                    format!("input reg [0:0] unused_{}", ndx)
                 }
             })
             .collect::<Vec<_>>();
@@ -383,6 +384,7 @@ pub fn generate_verilog(object: &crate::rtl::Object) -> Result<VerilogDescriptor
     let module = translate(object)?;
     let module = module.deduplicate()?;
     let body = module.functions.join("\n");
+    eprintln!("{}", body);
     Ok(VerilogDescriptor {
         name: object.name.clone(),
         body,

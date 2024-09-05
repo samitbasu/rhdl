@@ -5,6 +5,7 @@ pub(crate) mod lower_multiply_to_shift;
 pub(crate) mod lower_signal_casts;
 pub(crate) mod lower_single_concat_to_copy;
 pub(crate) mod pass;
+pub(crate) mod remove_empty_function_arguments;
 pub(crate) mod remove_extra_registers;
 pub(crate) mod remove_unused_operands;
 pub(crate) mod strip_empty_args_from_concat;
