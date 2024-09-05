@@ -47,7 +47,16 @@ impl Operand {
 }
 
 #[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub struct LiteralId(pub usize);
+pub struct LiteralId(usize);
+
+impl LiteralId {
+    pub fn new(val: usize) -> Self {
+        LiteralId(val)
+    }
+    pub fn next(self) -> Self {
+        LiteralId(self.0 + 1)
+    }
+}
 
 impl From<LiteralId> for Operand {
     fn from(l: LiteralId) -> Self {
@@ -62,7 +71,19 @@ impl std::fmt::Debug for LiteralId {
 }
 
 #[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub struct RegisterId(pub usize);
+pub struct RegisterId(usize);
+
+impl RegisterId {
+    pub fn new(val: usize) -> Self {
+        RegisterId(val)
+    }
+    pub fn next(self) -> Self {
+        RegisterId(self.0 + 1)
+    }
+    pub fn raw(self) -> usize {
+        self.0
+    }
+}
 
 impl From<RegisterId> for Operand {
     fn from(r: RegisterId) -> Self {

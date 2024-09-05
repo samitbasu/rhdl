@@ -9,6 +9,7 @@ use crate::rtl::spec::{CastKind, LiteralId, Operand, RegisterId};
 use crate::rtl::symbols::SymbolMap;
 use crate::types::bit_string::BitString;
 use crate::types::path::{bit_range, Path};
+use crate::util::clog2;
 use crate::TypedBits;
 use crate::{rhif, RHDLError};
 use crate::{rtl, Kind};
@@ -19,23 +20,6 @@ use crate::rtl::spec as tl;
 use crate::compiler::mir::error::{RHDLCompileError, ICE};
 
 type Result<T> = std::result::Result<T, RHDLError>;
-
-fn clog2(x: usize) -> usize {
-    if x == 0 {
-        0
-    } else {
-        (x as f64).log2().ceil() as usize
-    }
-}
-
-#[test]
-fn test_clog2() {
-    assert_eq!(clog2(0), 0);
-    assert_eq!(clog2(1), 0);
-    assert_eq!(clog2(2), 1);
-    assert_eq!(clog2(3), 2);
-    assert_eq!(clog2(255), 8);
-}
 
 struct RTLCompiler<'a> {
     symbols: SymbolMap,
@@ -73,7 +57,7 @@ impl<'a> RTLCompiler<'a> {
             .insert(operand, (self.object.fn_id, id).into());
     }
     fn allocate_literal(&mut self, bits: &TypedBits, id: NodeId) -> Operand {
-        let literal_id = LiteralId(self.literal_count);
+        let literal_id = LiteralId::new(self.literal_count);
         self.literal_count += 1;
         self.literals.insert(literal_id, bits.into());
         let literal = Operand::Literal(literal_id);
@@ -81,7 +65,7 @@ impl<'a> RTLCompiler<'a> {
         literal
     }
     fn allocate_literal_from_bit_string(&mut self, bits: &BitString, id: NodeId) -> Operand {
-        let literal_id = LiteralId(self.literal_count);
+        let literal_id = LiteralId::new(self.literal_count);
         self.literal_count += 1;
         self.literals.insert(literal_id, bits.clone());
         let literal = Operand::Literal(literal_id);
@@ -100,7 +84,7 @@ impl<'a> RTLCompiler<'a> {
         Ok(self.allocate_literal(&value, id))
     }
     fn allocate_signed(&mut self, length: usize, id: NodeId) -> Operand {
-        let register_id = RegisterId(self.register_count);
+        let register_id = RegisterId::new(self.register_count);
         self.register_count += 1;
         self.registers
             .insert(register_id, RegisterKind::Signed(length));
@@ -109,7 +93,7 @@ impl<'a> RTLCompiler<'a> {
         register
     }
     fn allocate_unsigned(&mut self, length: usize, id: NodeId) -> Operand {
-        let register_id = RegisterId(self.register_count);
+        let register_id = RegisterId::new(self.register_count);
         self.register_count += 1;
         self.registers
             .insert(register_id, RegisterKind::Unsigned(length));
@@ -126,7 +110,7 @@ impl<'a> RTLCompiler<'a> {
         }
     }
     fn allocate_register_with_register_kind(&mut self, kind: &RegisterKind, id: NodeId) -> Operand {
-        let register_id = RegisterId(self.register_count);
+        let register_id = RegisterId::new(self.register_count);
         self.register_count += 1;
         self.registers.insert(register_id, *kind);
         let register = Operand::Register(register_id);

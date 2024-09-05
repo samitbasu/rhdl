@@ -89,8 +89,10 @@ pub enum ICE {
     SlotHasConflictingColors { slot: Slot },
     #[error("Slot {slot:?} is read before being written")]
     SlotIsReadBeforeBeingWritten { slot: Slot },
-    #[error("Cannot write to a literal l{ndx:?}")]
-    CannotWriteToLiteral { ndx: usize },
+    #[error("Cannot write to a literal {ndx:?}")]
+    CannotWriteToRHIFLiteral { ndx: crate::rhif::spec::LiteralId },
+    #[error("Cannot write to a RTL literal {ndx:?}")]
+    CannotWriteToRTLLiteral { ndx: crate::rtl::spec::LiteralId },
     #[error("Slot {slot:?} is written twice")]
     SlotIsWrittenTwice { slot: Slot },
     #[error("Mismatch in data types (clock domain ignored) {lhs:?} and {rhs:?}")]
@@ -141,8 +143,10 @@ pub enum ICE {
     },
     #[error("Malformed RTL flow graph returned")]
     MalformedRTLFlowGraph,
-    #[error("VM encountered an uninitialized register {r}")]
-    UninitializedRegister { r: usize },
+    #[error("VM encountered an uninitialized RHIF register {r:?}")]
+    UninitializedRegister { r: crate::rhif::spec::RegisterId },
+    #[error("VM encountered an uninitialized RTL register {r:?}")]
+    UninitializedRTLRegister { r: crate::rtl::spec::RegisterId },
     #[error("VM cannot write a non-empty value to an empty slot")]
     CannotWriteNonEmptyValueToEmptySlot,
     #[error("VM encountered a discriminant {discriminant:?} with no matching arm")]

@@ -28,7 +28,7 @@ impl Pass for RemoveEmptyFunctionArguments {
         if empty_args.is_empty() {
             return Ok(input);
         }
-        let my_empty = LiteralId(input.literal_max_index().0 + 1);
+        let my_empty = input.literal_max_index().next();
         input.literals.insert(my_empty, BitString::Unsigned(vec![]));
         let my_empty = Operand::Literal(my_empty);
         let fallback = input.symbols.fallback(input.fn_id);

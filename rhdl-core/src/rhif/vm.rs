@@ -37,13 +37,13 @@ impl<'a> VMState<'a> {
             Slot::Literal(l) => Ok(self.literals[&l].clone()),
             Slot::Register(r) => self.reg_stack[r.0]
                 .clone()
-                .ok_or(self.raise_ice(ICE::UninitializedRegister { r: r.0 }, id)),
+                .ok_or(self.raise_ice(ICE::UninitializedRegister { r }, id)),
             Slot::Empty => Ok(TypedBits::EMPTY),
         }
     }
     fn write(&mut self, slot: Slot, value: TypedBits, id: NodeId) -> Result<()> {
         match slot {
-            Slot::Literal(ndx) => Err(self.raise_ice(ICE::CannotWriteToLiteral { ndx: ndx.0 }, id)),
+            Slot::Literal(ndx) => Err(self.raise_ice(ICE::CannotWriteToRHIFLiteral { ndx }, id)),
             Slot::Register(r) => {
                 self.reg_stack[r.0] = Some(value);
                 Ok(())

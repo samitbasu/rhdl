@@ -132,10 +132,14 @@ impl Object {
             .keys()
             .max()
             .copied()
-            .unwrap_or(RegisterId(0))
+            .unwrap_or(RegisterId::new(0))
     }
     pub fn literal_max_index(&self) -> LiteralId {
-        self.literals.keys().max().copied().unwrap_or(LiteralId(0))
+        self.literals
+            .keys()
+            .max()
+            .copied()
+            .unwrap_or(LiteralId::new(0))
     }
     pub fn op_name(&self, op: Operand) -> String {
         format!("{op:?}")
