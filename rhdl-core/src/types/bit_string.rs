@@ -48,6 +48,10 @@ impl BitString {
     pub fn trailing_zeros(&self) -> usize {
         self.bits().iter().take_while(|b| !*b).count()
     }
+
+    pub(crate) fn is_zero(&self) -> bool {
+        self.bits().iter().all(|b| !*b)
+    }
 }
 
 impl std::fmt::Debug for BitString {

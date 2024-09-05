@@ -196,6 +196,7 @@ impl<'a> FlowGraphBuilder<'a> {
         }
     }
     fn build_cast(&mut self, loc: SourceLocation, cast: &tl::Cast) {
+        // FIXME!  signed casts should extend the MSB, and unsigned casts should fill with zero
         let lhs = self.operand(loc, cast.lhs);
         let arg = self.operand(loc, cast.arg);
         for (lhs, rhs) in lhs.iter().zip(arg.iter()) {

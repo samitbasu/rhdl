@@ -63,18 +63,16 @@ impl<'a> VMState<'a> {
     fn read(&self, operand: Operand, loc: SourceLocation) -> Result<BitString> {
         match operand {
             Operand::Literal(l) => Ok(self.literals[&l].clone()),
-            Operand::Register(r) => self.reg_stack[r.0]
+            Operand::Register(r) => self.reg_stack[r.raw()]
                 .clone()
-                .ok_or(self.raise_ice(ICE::UninitializedRegister { r: r.0 }, loc)),
+                .ok_or(self.raise_ice(ICE::UninitializedRTLRegister { r }, loc)),
         }
     }
     fn write(&mut self, operand: Operand, value: BitString, loc: SourceLocation) -> Result<()> {
         match operand {
-            Operand::Literal(ndx) => {
-                Err(self.raise_ice(ICE::CannotWriteToLiteral { ndx: ndx.0 }, loc))
-            }
+            Operand::Literal(ndx) => Err(self.raise_ice(ICE::CannotWriteToRTLLiteral { ndx }, loc)),
             Operand::Register(r) => {
-                self.reg_stack[r.0] = Some(value);
+                self.reg_stack[r.raw()] = Some(value);
                 Ok(())
             }
         }
@@ -284,12 +282,12 @@ pub fn execute(obj: &Object, arguments: Vec<BitString>) -> Result<BitString> {
         }
     }
     // Allocate registers for the function call.
-    let max_reg = obj.reg_max_index().0 + 1;
-    let mut reg_stack = vec![None; max_reg + 1];
+    let max_reg = obj.reg_max_index().next();
+    let mut reg_stack = vec![None; max_reg.raw() + 1];
     // Copy the arguments into the appropriate registers
     for (ndx, arg) in arguments.into_iter().enumerate() {
         if let Some(r) = obj.arguments[ndx] {
-            reg_stack[r.0] = Some(arg);
+            reg_stack[r.raw()] = Some(arg);
         }
     }
     let mut state = VMState {
@@ -300,7 +298,7 @@ pub fn execute(obj: &Object, arguments: Vec<BitString>) -> Result<BitString> {
     execute_block(&obj.ops, &mut state)?;
     match obj.return_register {
         Operand::Register(r) => reg_stack
-            .get(r.0)
+            .get(r.raw())
             .cloned()
             .ok_or(RHDLError::RHDLInternalCompilerError(Box::new(
                 RHDLCompileError {

@@ -30,7 +30,7 @@ fn test_vm_simple_function_with_invalid_args_causes_ice() {
     }
     let design = compile_design_stage1::<pass<Red>>(CompilationMode::Asynchronous).unwrap();
     eprintln!("design: {:?}", design);
-    let res = rhdl_core::rhif::vm::execute(&design, vec![(42_u16).typed_bits().into()]);
+    let res = rhdl_core::rhif::vm::execute(&design, vec![(42_u16).typed_bits()]);
     assert!(res.is_err());
 }
 

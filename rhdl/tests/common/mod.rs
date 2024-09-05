@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use rhdl::prelude::*;
 
 pub fn exhaustive<const N: usize>() -> Vec<Bits<N>> {

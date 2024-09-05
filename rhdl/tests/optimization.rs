@@ -1,8 +1,7 @@
 use rhdl::prelude::*;
+use rhdl_core::{rhif::spec::AluBinary, rtl::spec::Binary};
 #[cfg(test)]
 mod common;
-#[cfg(test)]
-use common::*;
 
 #[test]
 fn test_dynamic_vs_static_indexing_on_assign() -> miette::Result<()> {
@@ -152,7 +151,7 @@ fn test_constant_propogation_with_select() -> miette::Result<()> {
         let mut c = [3, 4];
         c[1] = 2;
         let d = c[0] + c[1];
-        let d = if (d > 5) { d } else { 4 };
+        let d = if d > 5 { d } else { 4 };
         a[d] // Should compile down to a static splice.
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
@@ -260,7 +259,7 @@ fn test_constant_propogation_with_enum() -> miette::Result<()> {
         let c = FooEnum::A;
         let d = match c {
             FooEnum::A => 3,
-            FooEnum::B(x) => 5,
+            FooEnum::B(_x) => 5,
         };
         a[d] // Should compile down to a static splice.
     }
@@ -277,6 +276,7 @@ fn test_constant_propogation_with_enum() -> miette::Result<()> {
 }
 
 #[test]
+#[allow(unused_assignments)]
 fn test_constant_propagation_through_assigns() -> miette::Result<()> {
     #[kernel]
     fn foo(a: [b4; 8]) -> b4 {
@@ -405,6 +405,7 @@ fn test_empty_splices_dropped() -> miette::Result<()> {
 }
 
 #[test]
+#[allow(clippy::let_unit_value)]
 fn test_empty_index_dropped() -> miette::Result<()> {
     #[kernel]
     fn foo(a: ([(); 8], b1), b: b1) -> ((), b1) {
@@ -453,6 +454,26 @@ fn test_empty_dynamic_index_dropped() -> miette::Result<()> {
 }
 
 #[test]
+fn test_lower_multiplies_to_shifts() -> miette::Result<()> {
+    #[kernel]
+    fn foo(a: [[bool; 8]; 8], b: b3, c: b3) -> bool {
+        a[b][c]
+    }
+
+    let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
+    eprintln!("{:?}", rtl);
+    assert!(rtl.ops.iter().all(|op| !matches!(
+        op.op,
+        rhdl_core::rtl::spec::OpCode::Binary(Binary {
+            op: AluBinary::Mul,
+            ..
+        })
+    )));
+    Ok(())
+}
+
+#[test]
+#[allow(unused_variables)]
 fn test_empty_indices_dropped() -> miette::Result<()> {
     #[derive(Copy, Clone, PartialEq, Digital)]
     struct Foo {
@@ -474,6 +495,8 @@ fn test_empty_indices_dropped() -> miette::Result<()> {
 }
 
 #[test]
+#[allow(clippy::let_unit_value)]
+#[allow(unused_variables)]
 fn test_empty_case_dropped() -> miette::Result<()> {
     #[derive(Copy, Clone, PartialEq, Digital)]
     enum Color {
@@ -485,7 +508,7 @@ fn test_empty_case_dropped() -> miette::Result<()> {
 
     #[kernel]
     fn foo(a: Color) -> b4 {
-        let mut ret = bits(0);
+        let ret;
         let mt = match a {
             Color::Red => {
                 ret = bits(1);

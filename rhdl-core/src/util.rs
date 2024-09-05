@@ -97,3 +97,27 @@ pub fn hash_id(fn_id: std::any::TypeId) -> u64 {
 pub fn id<T: 'static>() -> u64 {
     hash_id(std::any::TypeId::of::<T>())
 }
+
+// This should return the number of bits
+// required to hold a value of x.
+pub fn clog2(x: usize) -> usize {
+    if x == 0 {
+        return 0;
+    }
+    let mut y = x;
+    let mut n = 0;
+    while y > 0 {
+        y >>= 1;
+        n += 1;
+    }
+    n
+}
+
+#[test]
+fn test_clog2() {
+    assert_eq!(clog2(0), 0);
+    assert_eq!(clog2(1), 1);
+    assert_eq!(clog2(2), 2);
+    assert_eq!(clog2(3), 2);
+    assert_eq!(clog2(255), 8);
+}
