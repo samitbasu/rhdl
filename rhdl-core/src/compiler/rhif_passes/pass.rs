@@ -6,7 +6,6 @@ use crate::{
 };
 
 pub trait Pass {
-    fn name() -> &'static str;
     fn raise_ice(obj: &Object, cause: ICE, id: NodeId) -> RHDLError {
         rhdl_error(RHDLCompileError {
             cause,

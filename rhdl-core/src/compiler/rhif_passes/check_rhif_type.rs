@@ -21,9 +21,6 @@ use super::pass::Pass;
 pub struct TypeCheckPass;
 
 impl Pass for TypeCheckPass {
-    fn name() -> &'static str {
-        "check_rhif_type"
-    }
     fn run(input: Object) -> Result<Object, RHDLError> {
         check_type_correctness(&input)?;
         Ok(input)

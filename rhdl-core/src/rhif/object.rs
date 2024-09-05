@@ -15,18 +15,6 @@ use crate::{
 use super::spec::OpCode;
 use super::spec::{FuncId, LiteralId, RegisterId};
 
-#[derive(Debug, Clone, Copy, PartialEq, Hash, PartialOrd, Eq, Ord)]
-pub struct SourceLocation {
-    pub func: FunctionId,
-    pub node: NodeId,
-}
-
-impl From<(FunctionId, NodeId)> for SourceLocation {
-    fn from((func, node): (FunctionId, NodeId)) -> Self {
-        Self { func, node }
-    }
-}
-
 #[derive(Debug, Clone, Hash)]
 pub struct SymbolMap {
     pub source: SpannedSource,

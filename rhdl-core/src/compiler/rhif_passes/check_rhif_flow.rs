@@ -22,9 +22,6 @@ struct InitSet<'a> {
 pub struct DataFlowCheckPass;
 
 impl Pass for DataFlowCheckPass {
-    fn name() -> &'static str {
-        "check_rhif_flow"
-    }
     fn run(input: Object) -> Result<Object, RHDLError> {
         check_rhif_flow(&input)?;
         Ok(input)

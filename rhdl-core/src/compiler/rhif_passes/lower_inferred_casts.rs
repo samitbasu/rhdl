@@ -12,9 +12,6 @@ use super::pass::Pass;
 pub struct LowerInferredCastsPass {}
 
 impl Pass for LowerInferredCastsPass {
-    fn name() -> &'static str {
-        "lower_inferred_casts"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut ops = input.ops.clone();
         for lop in ops.iter_mut() {

@@ -29,7 +29,6 @@ use crate::{
 type Result<T> = std::result::Result<T, RHDLError>;
 
 fn wrap_pass<P: Pass>(obj: Object) -> Result<Object> {
-    eprintln!("Running pass: {}", P::name());
     let obj = P::run(obj)?;
     let obj = SymbolTableIsComplete::run(obj)?;
     Ok(obj)

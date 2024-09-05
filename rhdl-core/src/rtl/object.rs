@@ -1,21 +1,14 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::fmt::Write;
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::iter::repeat;
 
 use fnv::FnvHasher;
 
-use crate::error::rhdl_error;
-use crate::rhif::object::SourceLocation;
+use crate::ast::ast_impl::{FunctionId, NodeId};
+use crate::ast::source_location::SourceLocation;
 use crate::types::bit_string::BitString;
-use crate::types::error::DynamicTypeError;
-use crate::{
-    ast::ast_impl::{FunctionId, NodeId},
-    util::binary_string,
-    TypedBits,
-};
-use crate::{Digital, Kind, RHDLError};
+use crate::{Digital, Kind};
 
 use super::spec::{LiteralId, OpCode, Operand, RegisterId};
 use super::symbols::SymbolMap;

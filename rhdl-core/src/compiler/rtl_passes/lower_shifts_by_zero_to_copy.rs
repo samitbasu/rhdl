@@ -32,9 +32,6 @@ fn replace_shift_by_zero(input: &Object, lop: LocatedOpCode) -> LocatedOpCode {
 }
 
 impl Pass for LowerShiftsByZeroToCopy {
-    fn name() -> &'static str {
-        "lower_shifts_by_zero_to_copy"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let ops = std::mem::take(&mut input.ops);
         input.ops = ops

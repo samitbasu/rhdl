@@ -1,7 +1,7 @@
 use crate::{
     rtl::{
         object::LocatedOpCode,
-        spec::{Assign, LiteralId, OpCode, Operand},
+        spec::{Assign, OpCode, Operand},
         Object,
     },
     types::bit_string::BitString,
@@ -14,9 +14,6 @@ use super::pass::Pass;
 pub struct RemoveEmptyFunctionArguments {}
 
 impl Pass for RemoveEmptyFunctionArguments {
-    fn name() -> &'static str {
-        "remove_empty_function_arguments"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let empty_args = input
             .arguments

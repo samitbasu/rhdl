@@ -437,10 +437,6 @@ fn propogate_exec(
 }
 
 impl Pass for ConstantPropagation {
-    fn name() -> &'static str {
-        "constant_propagation"
-    }
-
     fn run(mut input: crate::rhif::Object) -> Result<crate::rhif::Object, crate::RHDLError> {
         let ops = input.ops.clone();
         input.ops = ops

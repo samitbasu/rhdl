@@ -12,9 +12,6 @@ use super::pass::Pass;
 pub struct RemoveUselessCastsPass {}
 
 impl Pass for RemoveUselessCastsPass {
-    fn name() -> &'static str {
-        "remove_useless_casts"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         for lop in input.ops.iter_mut() {
             match lop.op.clone() {

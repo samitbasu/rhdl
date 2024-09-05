@@ -20,9 +20,6 @@ use super::pass::Pass;
 pub struct CheckClockCoherence {}
 
 impl Pass for CheckClockCoherence {
-    fn name() -> &'static str {
-        "check_clock_coherence"
-    }
     fn run(input: Object) -> Result<Object, RHDLError> {
         check_clock_coherence(&input)?;
         Ok(input)

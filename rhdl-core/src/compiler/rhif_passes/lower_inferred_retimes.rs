@@ -13,9 +13,6 @@ use super::pass::Pass;
 pub struct LowerInferredRetimesPass {}
 
 impl Pass for LowerInferredRetimesPass {
-    fn name() -> &'static str {
-        "lower_inferred_retimes"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut ops = input.ops.clone();
         for lop in ops.iter_mut() {

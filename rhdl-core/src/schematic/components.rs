@@ -1,8 +1,6 @@
 use crate::{
-    rhif::{
-        object::SourceLocation,
-        spec::{AluBinary, AluUnary, CaseArgument, Member},
-    },
+    ast::source_location::SourceLocation,
+    rhif::spec::{AluBinary, AluUnary, CaseArgument, Member},
     types::path::Path,
     Kind, TypedBits,
 };

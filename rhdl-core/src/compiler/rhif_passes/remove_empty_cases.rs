@@ -9,9 +9,6 @@ use super::pass::Pass;
 pub struct RemoveEmptyCasesPass {}
 
 impl Pass for RemoveEmptyCasesPass {
-    fn name() -> &'static str {
-        "remove_empty_cases"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         for lop in input.ops.iter_mut() {
             match &lop.op {

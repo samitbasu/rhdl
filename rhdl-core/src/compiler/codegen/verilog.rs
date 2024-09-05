@@ -1,13 +1,10 @@
 use std::collections::BTreeSet;
 
 use crate::{
-    ast::ast_impl::{FunctionId, NodeId},
+    ast::source_location::SourceLocation,
     compiler::mir::error::{RHDLCompileError, ICE},
     error::rhdl_error,
-    rhif::{
-        object::SourceLocation,
-        spec::{AluBinary, AluUnary},
-    },
+    rhif::spec::{AluBinary, AluUnary},
     rtl::{
         self,
         object::{LocatedOpCode, RegisterKind},
@@ -39,7 +36,6 @@ struct TranslationContext<'a> {
     body: String,
     kernels: Vec<VerilogModule>,
     rtl: &'a rtl::Object,
-    id: FunctionId,
 }
 
 // TODO - add check that len > 0 or redefine it as numbits - 1
@@ -375,7 +371,6 @@ fn translate(object: &crate::rtl::Object) -> Result<VerilogModule> {
         kernels: Default::default(),
         body: Default::default(),
         rtl: object,
-        id: object.fn_id,
     };
     context.translate_kernel_for_object()
 }

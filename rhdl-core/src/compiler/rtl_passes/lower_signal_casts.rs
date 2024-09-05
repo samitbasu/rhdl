@@ -28,9 +28,6 @@ fn lower_cast(lop: LocatedOpCode) -> LocatedOpCode {
 }
 
 impl Pass for LowerSignalCasts {
-    fn name() -> &'static str {
-        "lower_signal_casts"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         input.ops = input.ops.into_iter().map(lower_cast).collect();
         Ok(input)

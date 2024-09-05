@@ -1,10 +1,8 @@
 use std::collections::HashMap;
 
 use crate::{
-    rhif::{
-        object::SourceLocation,
-        spec::{AluBinary, AluUnary},
-    },
+    ast::source_location::SourceLocation,
+    rhif::spec::{AluBinary, AluUnary},
     rtl::{
         object::LocatedOpCode,
         spec::{OpCode, Operand},

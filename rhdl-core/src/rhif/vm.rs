@@ -233,7 +233,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                     .map(|x| state.read(*x, id))
                     .collect::<Result<Vec<_>>>()?;
                 let func = &state.obj.externals[f_id];
-                let result = execute(&func, args)?;
+                let result = execute(func, args)?;
                 state.write(*lhs, result, id)?;
             }
             OpCode::Repeat(Repeat { lhs, value, len }) => {

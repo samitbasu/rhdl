@@ -1,12 +1,10 @@
 use std::collections::BTreeMap;
 
 use crate::{
+    ast::source_location::SourceLocation,
     compiler::mir::error::{RHDLCompileError, ICE},
     error::rhdl_error,
-    rhif::{
-        object::SourceLocation,
-        spec::{AluBinary, AluUnary},
-    },
+    rhif::spec::{AluBinary, AluUnary},
     rtl::spec::{
         Case, CaseArgument, Cast, CastKind, Concat, DynamicIndex, DynamicSplice, Index, Select,
         Splice, Unary,

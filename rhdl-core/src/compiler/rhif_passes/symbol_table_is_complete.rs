@@ -12,9 +12,6 @@ use super::pass::Pass;
 pub struct SymbolTableIsComplete {}
 
 impl Pass for SymbolTableIsComplete {
-    fn name() -> &'static str {
-        "symbol_table_is_complete"
-    }
     fn run(input: Object) -> Result<Object, RHDLError> {
         let mut used_set: HashSet<Slot> = Default::default();
         used_set.extend(input.arguments.iter().map(|r| Slot::Register(*r)));

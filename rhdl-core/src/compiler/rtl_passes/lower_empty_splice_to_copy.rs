@@ -12,9 +12,6 @@ use super::pass::Pass;
 pub struct LowerEmptySpliceToCopy {}
 
 impl Pass for LowerEmptySpliceToCopy {
-    fn name() -> &'static str {
-        "lower_empty_splice_to_copy"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut ops = std::mem::take(&mut input.ops);
         for lop in ops.iter_mut() {

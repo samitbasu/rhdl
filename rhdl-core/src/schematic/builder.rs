@@ -5,9 +5,9 @@ use anyhow::bail;
 use anyhow::Result;
 
 use crate::ast::ast_impl::FunctionId;
+use crate::ast::source_location::SourceLocation;
 use crate::kernel::Kernel;
 use crate::rhif::object::LocatedOpCode;
-use crate::rhif::object::SourceLocation;
 use crate::rhif::spec::Retime;
 use crate::rhif::spec::{
     Array, Assign, Case, Cast, Enum, Exec, Index, Repeat, Select, Splice, Struct, Tuple, Unary,

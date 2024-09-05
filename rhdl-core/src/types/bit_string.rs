@@ -1,8 +1,4 @@
-use std::iter::repeat;
-
-use crate::{error::rhdl_error, util::binary_string, Kind, RHDLError, TypedBits};
-
-use super::error::DynamicTypeError;
+use crate::{util::binary_string, Kind, RHDLError, TypedBits};
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum BitString {
