@@ -6,6 +6,7 @@ use crate::{
             lower_empty_splice_to_copy::LowerEmptySpliceToCopy,
             lower_index_all_to_copy::LowerIndexAllToCopy, lower_signal_casts::LowerSignalCasts,
             lower_single_concat_to_copy::LowerSingleConcatToCopy, pass::Pass,
+            remove_empty_function_arguments::RemoveEmptyFunctionArguments,
             remove_extra_registers::RemoveExtraRegistersPass,
             remove_unused_operands::RemoveUnusedOperandsPass,
             strip_empty_args_from_concat::StripEmptyArgsFromConcat,
@@ -30,6 +31,7 @@ pub(crate) fn compile(object: &crate::rhif::Object) -> Result<rtl::Object> {
         rtl = LowerEmptySpliceToCopy::run(rtl)?;
         rtl = LowerSingleConcatToCopy::run(rtl)?;
         rtl = LowerIndexAllToCopy::run(rtl)?;
+        rtl = RemoveEmptyFunctionArguments::run(rtl)?;
         let new_hash = rtl.hash_value();
         if new_hash == hash {
             break;
