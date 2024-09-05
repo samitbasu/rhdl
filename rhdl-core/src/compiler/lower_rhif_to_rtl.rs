@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use crate::ast::ast_impl::{FunctionId, NodeId};
 use crate::error::rhdl_error;
@@ -14,7 +14,7 @@ use crate::TypedBits;
 use crate::{rhif, RHDLError};
 use crate::{rtl, Kind};
 
-use crate::rhif::{remap, spec as hf};
+use crate::rhif::spec as hf;
 use crate::rtl::spec as tl;
 
 use crate::compiler::mir::error::{RHDLCompileError, ICE};

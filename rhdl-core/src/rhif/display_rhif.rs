@@ -1,7 +1,7 @@
 use crate::{
     rhif::spec::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
-        FieldValue, FuncId, Index, Member, OpCode, Repeat, Splice, Struct, Tuple, Unary,
+        FieldValue, Index, Member, OpCode, Repeat, Splice, Struct, Tuple, Unary,
     },
     util::splice,
 };

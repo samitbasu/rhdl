@@ -1,7 +1,7 @@
 // RHDL Intermediate Form (RHIF).
 use anyhow::Result;
 
-use crate::{kernel::Kernel, types::path::Path, Color, DigitalSignature, TypedBits};
+use crate::{types::path::Path, Color, TypedBits};
 
 #[derive(Clone, PartialEq, Hash)]
 pub enum OpCode {
@@ -167,10 +167,6 @@ impl AluBinary {
                 | AluBinary::Ge
                 | AluBinary::Gt
         )
-    }
-
-    pub(crate) fn is_shift(&self) -> bool {
-        matches!(self, AluBinary::Shl | AluBinary::Shr)
     }
 }
 

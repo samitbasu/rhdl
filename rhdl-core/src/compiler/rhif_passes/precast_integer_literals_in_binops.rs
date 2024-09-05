@@ -24,9 +24,6 @@ struct CastCandidate {
 }
 
 impl Pass for PrecastIntegerLiteralsInBinops {
-    fn name() -> &'static str {
-        "precast_integer_literals_in_binops"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         // We want to know the bit width assumed by the opcodes
         // for each literal.  Note that in Rust, this is handled

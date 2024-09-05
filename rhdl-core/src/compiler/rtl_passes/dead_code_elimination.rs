@@ -15,9 +15,6 @@ use super::pass::Pass;
 pub struct DeadCodeEliminationPass {}
 
 impl Pass for DeadCodeEliminationPass {
-    fn name() -> &'static str {
-        "dead_code_elimination"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         // Start with an active set containing only the return operand
         let mut active_set: HashSet<Operand> = HashSet::new();
@@ -79,7 +76,7 @@ impl Pass for DeadCodeEliminationPass {
         input.ops = input
             .ops
             .into_iter()
-            .zip(alive_ops.into_iter())
+            .zip(alive_ops)
             .filter_map(|(op, alive)| if alive { Some(op) } else { None })
             .collect();
         Ok(input)

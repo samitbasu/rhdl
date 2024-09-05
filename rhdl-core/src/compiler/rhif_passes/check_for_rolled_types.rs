@@ -38,9 +38,6 @@ fn check_register_like(
 }
 
 impl Pass for CheckForRolledTypesPass {
-    fn name() -> &'static str {
-        "check_for_rolled_types"
-    }
     fn run(obj: Object) -> Result<Object, RHDLError> {
         let slot_type = |slot: &Slot| -> Kind { obj.kind(*slot) };
         let roll_error = |cause: Syntax, slot: Slot, id: NodeId| -> RHDLError {

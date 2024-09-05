@@ -13,7 +13,7 @@ use super::pass::Pass;
 pub struct LowerDynamicIndicesWithConstantArguments {}
 
 fn simplify_path(path: Path, obj: &Object) -> Path {
-    path.into_iter()
+    path.elements()
         .map(|x| {
             if let PathElement::DynamicIndex(Slot::Literal(x)) = x {
                 let literal_value = obj.literals[&x].as_i64().unwrap();
@@ -27,9 +27,6 @@ fn simplify_path(path: Path, obj: &Object) -> Path {
 }
 
 impl Pass for LowerDynamicIndicesWithConstantArguments {
-    fn name() -> &'static str {
-        "lower_dynamic_indices_with_constant_arguments"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let ops = input
             .ops

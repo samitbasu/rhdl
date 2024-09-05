@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{rhif::object::SourceLocation, rtl::object::RegisterKind};
+use crate::{ast::source_location::SourceLocation, rtl::object::RegisterKind};
 
 use super::rtl_components::ComponentKind;
 

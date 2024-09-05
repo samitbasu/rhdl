@@ -6,7 +6,7 @@ use thiserror::Error;
 use crate::{
     ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
     ast_builder::BinOp,
-    rhif::spec::{AluBinary, AluUnary, LiteralId, OpCode, Slot},
+    rhif::spec::{AluBinary, AluUnary, OpCode, Slot},
     rtl::spec::Operand,
     types::path::Path,
     Kind, RHDLError, TypedBits,

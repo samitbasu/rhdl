@@ -15,9 +15,6 @@ use super::pass::Pass;
 pub struct DeadCodeEliminationPass {}
 
 impl Pass for DeadCodeEliminationPass {
-    fn name() -> &'static str {
-        "dead_code_elimination"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         // Start with an active set containing only the return slot
         let mut active_set: HashSet<Slot> = HashSet::new();

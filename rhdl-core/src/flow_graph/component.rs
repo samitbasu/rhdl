@@ -1,8 +1,6 @@
 use crate::{
-    rhif::{
-        object::SourceLocation,
-        spec::{AluBinary, AluUnary},
-    },
+    ast::source_location::SourceLocation,
+    rhif::spec::{AluBinary, AluUnary},
     types::bit_string::BitString,
 };
 

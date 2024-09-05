@@ -1,11 +1,10 @@
 use std::{
-    collections::{BTreeMap, BTreeSet, HashMap},
+    collections::{BTreeMap, BTreeSet},
     ops::Range,
 };
 
-use crate::{
-    ast::{ast_impl::FunctionId, spanned_source::SpannedSource},
-    rhif::object::SourceLocation,
+use crate::ast::{
+    ast_impl::FunctionId, source_location::SourceLocation, spanned_source::SpannedSource,
 };
 
 use super::spec::Operand;

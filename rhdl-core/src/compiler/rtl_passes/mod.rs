@@ -1,5 +1,5 @@
 use crate::{
-    rhif::object::SourceLocation,
+    ast::source_location::SourceLocation,
     rtl::{
         object::RegisterKind,
         spec::{LiteralId, Operand, RegisterId},

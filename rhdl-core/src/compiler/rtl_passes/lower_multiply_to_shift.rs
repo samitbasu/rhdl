@@ -1,5 +1,3 @@
-use core::alloc;
-
 use crate::{
     rhif::spec::AluBinary,
     rtl::{
@@ -18,9 +16,6 @@ use super::{allocate_literal, allocate_register, pass::Pass};
 pub struct LowerMultiplyToShift {}
 
 impl Pass for LowerMultiplyToShift {
-    fn name() -> &'static str {
-        "lower_multiply_to_shift"
-    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let ops = std::mem::take(&mut input.ops);
         for lop in ops {

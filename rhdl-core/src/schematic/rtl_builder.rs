@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    rhif::object::SourceLocation,
+    ast::source_location::SourceLocation,
     rtl::{
         object::LocatedOpCode,
         spec::{CastKind, OpCode, Operand},

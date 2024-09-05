@@ -1,13 +1,12 @@
 use crate::{
+    ast::source_location::SourceLocation,
     compiler::mir::error::{RHDLCompileError, ICE},
     error::rhdl_error,
-    rhif::object::SourceLocation,
     rtl::Object,
     RHDLError,
 };
 
 pub trait Pass {
-    fn name() -> &'static str;
     fn raise_ice(obj: &Object, cause: ICE, loc: SourceLocation) -> RHDLError {
         let symbols = &obj.symbols;
         rhdl_error(RHDLCompileError {

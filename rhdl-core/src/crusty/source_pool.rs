@@ -1,9 +1,8 @@
 use miette::{MietteError, SourceCode, SourceSpan, SpanContents};
 use std::{collections::HashMap, ops::Range, sync::Arc};
 
-use crate::{
-    ast::{ast_impl::FunctionId, spanned_source::SpannedSource},
-    rhif::object::SourceLocation,
+use crate::ast::{
+    ast_impl::FunctionId, source_location::SourceLocation, spanned_source::SpannedSource,
 };
 
 #[derive(Clone, Debug)]

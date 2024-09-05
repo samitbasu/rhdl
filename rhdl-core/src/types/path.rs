@@ -93,7 +93,7 @@ impl Path {
     pub fn iter(&self) -> impl Iterator<Item = &PathElement> {
         self.elements.iter()
     }
-    pub fn into_iter(self) -> impl Iterator<Item = PathElement> {
+    pub fn elements(self) -> impl Iterator<Item = PathElement> {
         self.elements.into_iter()
     }
     pub fn len(&self) -> usize {
