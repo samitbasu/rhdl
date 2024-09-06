@@ -6,6 +6,33 @@ use rhdl::{
 };
 use std::io::{stderr, Write};
 
+mod kernel_host {
+    use rhdl::prelude::*;
+
+    #[derive(Clone, Debug, Default, Synchronous)]
+    #[rhdl(kernel=my_kernel)]
+    pub struct U {}
+
+    impl SynchronousIO for U {
+        type I = b8;
+        type O = b16;
+    }
+
+    impl SynchronousDQ for U {
+        type D = ();
+        type Q = ();
+    }
+
+    #[kernel]
+    fn my_kernel(reset: bool, i: b8, q: ()) -> (b16, ()) {
+        if reset {
+            (b16::default(), ())
+        } else {
+            (sub(i), ())
+        }
+    }
+}
+
 mod comb_adder {
     use rhdl::prelude::*;
 

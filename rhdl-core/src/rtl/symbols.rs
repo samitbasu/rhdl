@@ -4,14 +4,16 @@ use std::{
 };
 
 use crate::ast::{
-    ast_impl::FunctionId, source_location::SourceLocation, spanned_source::SpannedSource,
+    ast_impl::FunctionId,
+    source_location::SourceLocation,
+    spanned_source::{SpannedSource, SpannedSourceSet},
 };
 
 use super::spec::Operand;
 
 #[derive(Debug, Clone, Default, Hash)]
 pub struct SymbolMap {
-    pub sources: BTreeMap<FunctionId, SpannedSource>,
+    pub source_set: SpannedSourceSet,
     pub operand_map: BTreeMap<Operand, SourceLocation>,
     pub operand_names: BTreeMap<Operand, String>,
     pub aliases: BTreeMap<Operand, BTreeSet<Operand>>,
@@ -19,25 +21,15 @@ pub struct SymbolMap {
 
 impl SymbolMap {
     pub fn source(&self) -> String {
-        self.sources
-            .values()
-            .fold(String::new(), |acc, src| acc + &src.source)
+        self.source_set.source()
     }
     pub fn span(&self, loc: SourceLocation) -> Range<usize> {
-        let mut offset = 0;
-        for (id, src) in &self.sources {
-            if *id == loc.func {
-                let span = src.span(loc.node);
-                return (span.start + offset)..(span.end + offset);
-            }
-            offset += src.source.len();
-        }
-        panic!("SourceLocation not found in SymbolMap");
+        self.source_set.span(loc)
     }
     pub fn alias(&mut self, op: Operand, alias: Operand) {
         self.aliases.entry(op).or_default().insert(alias);
     }
     pub fn fallback(&self, func: FunctionId) -> SourceLocation {
-        (func, self.sources[&func].fallback).into()
+        self.source_set.fallback(func)
     }
 }

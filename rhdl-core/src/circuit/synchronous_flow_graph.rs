@@ -3,6 +3,7 @@ use crate::{
         component::ComponentKind,
         edge_kind::EdgeKind,
         flow_graph_impl::{FlowGraph, FlowIx},
+        passes::{check_for_undriven::CheckForUndrivenPass, pass::Pass},
     },
     rtl::object::RegisterKind,
     types::path::{bit_range, Path},
@@ -153,5 +154,6 @@ pub fn build_synchronous_flow_graph(
     }
     fg.inputs = vec![vec![timing_start]];
     fg.output = vec![timing_end];
+    let fg = CheckForUndrivenPass::run(fg)?;
     Ok(fg)
 }

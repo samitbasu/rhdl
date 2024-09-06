@@ -8,10 +8,47 @@ use crate::{
     Kind,
 };
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     hash::{Hash, Hasher},
     ops::Range,
 };
+
+use super::{ast_impl::FunctionId, source_location::SourceLocation};
+
+#[derive(Clone, Debug, Default, Hash)]
+pub struct SpannedSourceSet {
+    pub sources: BTreeMap<FunctionId, SpannedSource>,
+}
+
+impl SpannedSourceSet {
+    pub fn source(&self) -> String {
+        self.sources
+            .values()
+            .fold(String::new(), |acc, src| acc + &src.source)
+    }
+    pub fn span(&self, loc: SourceLocation) -> Range<usize> {
+        let mut offset = 0;
+        for (id, src) in &self.sources {
+            if *id == loc.func {
+                let span = src.span(loc.node);
+                return (span.start + offset)..(span.end + offset);
+            }
+            offset += src.source.len();
+        }
+        panic!("SourceLocation not found in SpannedSourceSet");
+    }
+    pub fn fallback(&self, func: FunctionId) -> SourceLocation {
+        (func, self.sources[&func].fallback).into()
+    }
+}
+
+impl Extend<(FunctionId, SpannedSource)> for SpannedSourceSet {
+    fn extend<T: IntoIterator<Item = (FunctionId, SpannedSource)>>(&mut self, iter: T) {
+        for (id, src) in iter {
+            self.sources.insert(id, src);
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct SpannedSource {

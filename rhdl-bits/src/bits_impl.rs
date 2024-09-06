@@ -77,6 +77,39 @@ pub const fn bits<const N: usize>(value: u128) -> Bits<N> {
 
 pub struct bits<const N: usize> {}
 
+/// Helper function to cast an bits value to a different
+/// length using either truncation (if the new length is
+/// shorter) or zero extension (if the new length is longer).
+/// ```
+/// # use rhdl_bits::{Bits, bits};
+/// let value : Bits<8> = bits(0b1010_1010);
+/// let new_value : Bits<4> = bit_cast(value);
+/// assert_eq!(new_value, 0b1010);
+/// ```
+/// The function is generic over the input and output lengths
+/// and in some circumstances, you may need to provide these
+/// lengths explicitly.
+/// ```
+/// # use rhdl_bits::{Bits, bits};
+/// let value : Bits<8> = bits(0b1010_1010);
+/// let new_value : Bits<4> = bit_cast::<4, 8>(value);
+/// assert_eq!(new_value, 0b1010);
+/// ```
+/// The function is `const` and can be used in constant contexts.
+/// ```
+/// # use rhdl_bits::{Bits, bits};
+/// const VALUE : Bits<8> = bits(0b1010_1010);
+/// const NEW_VALUE : Bits<4> = bit_cast(VALUE);
+/// ```
+pub const fn bit_cast<const M: usize, const N: usize>(value: Bits<N>) -> Bits<M> {
+    assert!(M <= 128);
+    assert!(N <= 128);
+    let mask = Bits::<M>::mask();
+    bits(value.0 & mask.0)
+}
+
+pub struct bit_cast<const M: usize, const N: usize> {}
+
 impl<const N: usize> Bits<N> {
     /// Defines a constant Bits value with all bits set to 1.
     pub const MASK: Self = Self::mask();
@@ -97,7 +130,7 @@ impl<const N: usize> Bits<N> {
         }
     }
     /// Reinterpret the [Bits] value as a [SignedBits] value.
-    pub fn as_signed(self) -> SignedBits<N> {
+    pub const fn as_signed(self) -> SignedBits<N> {
         // Need to a sign extension here.
         if self.0 & (1_u128 << (N - 1)) != 0 {
             SignedBits((self.0 | !(Self::mask().0)) as i128)
@@ -226,5 +259,14 @@ mod tests {
             result,
             vec![false, true, false, true, true, false, true, true]
         );
+    }
+
+    #[test]
+    fn test_bit_cast() {
+        let bits: Bits<8> = 0b1101_1010.into();
+        let new_bits: Bits<4> = bit_cast(bits);
+        assert_eq!(new_bits, 0b1010);
+        let ext_bits: Bits<16> = bit_cast(bits);
+        assert_eq!(ext_bits, 0b0000_0000_1101_1010);
     }
 }
