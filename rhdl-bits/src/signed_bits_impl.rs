@@ -1,5 +1,5 @@
 #![allow(non_camel_case_types)]
-use crate::Bits;
+use crate::{bits_impl::bit_cast, Bits};
 use derive_more::{
     Binary, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Display, LowerHex,
     UpperHex,
@@ -82,6 +82,33 @@ pub const fn signed<const N: usize>(value: i128) -> SignedBits<N> {
 
 pub struct signed<const N: usize> {}
 
+/// Helper function to cast a signed bits value to a different
+/// length using either truncation (if the new length is
+/// shorter) or sign extension (if the new length is longer).
+/// ```
+/// # use rhdl_bits::{SignedBits, signed};
+/// let value : SignedBits<8> = signed(0b1010_1010);
+/// let extended : SignedBits<16> = signed_cast(value);
+/// assert_eq!(extended, -86);
+/// ```
+/// Note that the value is sign extended.
+/// ```
+/// # use rhdl_bits::{SignedBits, signed};
+/// let value : SignedBits<8> = signed(-86);
+/// let truncated : SignedBits<4> = signed_cast(value);
+/// assert_eq!(truncated, -6);
+/// ```
+/// Note that the value is truncated.
+pub const fn signed_cast<const M: usize, const N: usize>(value: SignedBits<N>) -> SignedBits<M> {
+    if M < N {
+        bit_cast::<M, N>(value.as_unsigned()).as_signed()
+    } else {
+        SignedBits::<M>(value.0)
+    }
+}
+
+pub struct signed_cast<const M: usize, const N: usize> {}
+
 impl<const N: usize> SignedBits<N> {
     /// Return a [SignedBits] value with all bits set to 1.
     pub const MASK: Self = Self::mask();
@@ -150,7 +177,7 @@ impl<const N: usize> SignedBits<N> {
     /// let y : Bits<8> = x.as_unsigned();
     /// assert_eq!(y, 0b1111_0010);
     /// ```
-    pub fn as_unsigned(self) -> Bits<N> {
+    pub const fn as_unsigned(self) -> Bits<N> {
         Bits(self.0 as u128 & Bits::<N>::mask().0)
     }
     /// Extract the raw signed `i128` backing this SignedBits
@@ -287,5 +314,20 @@ mod test {
     #[should_panic]
     fn test_underflow_causes_panic() {
         let _ = SignedBits::<8>::from(-129);
+    }
+
+    #[test]
+    fn test_signed_cast() {
+        let value = SignedBits::<8>::from(-14);
+        let extended = signed_cast::<16, 8>(value);
+        assert_eq!(extended, -14);
+        let value = SignedBits::<8>::from(-86);
+        let truncated = signed_cast::<4, 8>(value);
+        assert_eq!(truncated, -6);
+        let truncated = signed_cast::<5, 8>(value);
+        assert_eq!(truncated, 10);
+        let value = SignedBits::<8>::from(3);
+        let extended = signed_cast::<16, 8>(value);
+        assert_eq!(extended, 3);
     }
 }

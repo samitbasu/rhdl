@@ -51,6 +51,9 @@ pub enum RHDLError {
         expected: BitString,
         actual: BitString,
     },
+    #[error("Flow Graph Error")]
+    #[diagnostic(transparent)]
+    FlowGraphError(#[from] Box<crate::flow_graph::error::FlowGraphError>),
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

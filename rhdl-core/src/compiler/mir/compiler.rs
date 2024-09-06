@@ -878,6 +878,12 @@ impl<'a> MirContext<'a> {
             KernelFnKind::SignalConstructor(color) => {
                 self.op(op_retime(lhs, args[0], *color), id);
             }
+            KernelFnKind::BitCast(_from, to) => {
+                self.op(op_as_bits(lhs, args[0], *to), id);
+            }
+            KernelFnKind::SignedCast(_from, to) => {
+                self.op(op_as_signed(lhs, args[0], *to), id);
+            }
         }
         Ok(lhs)
     }

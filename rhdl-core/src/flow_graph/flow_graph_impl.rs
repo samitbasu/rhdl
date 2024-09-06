@@ -1,8 +1,15 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use petgraph::{Directed, Graph};
 
-use crate::{ast::source_location::SourceLocation, rtl::object::RegisterKind};
+use crate::{
+    ast::{
+        ast_impl::FunctionId,
+        source_location::SourceLocation,
+        spanned_source::{SpannedSource, SpannedSourceSet},
+    },
+    rtl::object::RegisterKind,
+};
 
 use super::{
     component::{Component, ComponentKind},
@@ -16,6 +23,7 @@ pub struct FlowGraph {
     pub graph: Graph<Component, EdgeKind, Directed>,
     pub inputs: Vec<Vec<FlowIx>>,
     pub output: Vec<FlowIx>,
+    pub code: SpannedSourceSet,
 }
 
 impl FlowGraph {
@@ -97,6 +105,7 @@ impl FlowGraph {
             let (src, dest) = other.graph.edge_endpoints(edge).unwrap();
             self.graph.add_edge(ret[&src], ret[&dest], kind);
         }
+        self.code.extend(other.code.sources.clone());
         ret
     }
 }

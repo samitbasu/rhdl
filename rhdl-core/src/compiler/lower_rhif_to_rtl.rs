@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::iter::once;
 
 use crate::ast::ast_impl::{FunctionId, NodeId};
 use crate::error::rhdl_error;
@@ -37,8 +38,8 @@ impl<'a> RTLCompiler<'a> {
     fn new(object: &'a rhif::object::Object) -> Self {
         let mut symbols = SymbolMap::default();
         symbols
-            .sources
-            .insert(object.fn_id, object.symbols.source.clone());
+            .source_set
+            .extend(once((object.fn_id, object.symbols.source.clone())));
         Self {
             object,
             symbols,
@@ -548,7 +549,9 @@ impl<'a> RTLCompiler<'a> {
                 self.symbols.operand_names.insert(new_op, name.clone());
             }
         }
-        self.symbols.sources.extend(func_rtl.symbols.sources);
+        self.symbols
+            .source_set
+            .extend(func_rtl.symbols.source_set.sources);
         Ok(())
     }
     fn make_dynamic_index(&mut self, index: &hf::Index, node_id: NodeId) -> Result<()> {

@@ -356,6 +356,31 @@ fn test_missing_register_inferred_types() -> miette::Result<()> {
 }
 
 #[test]
+fn test_bit_inference_with_explicit_length_works() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff(a: Signal<b8, Red>) -> Signal<b8, Red> {
+        let b = a + 1;
+        let c = bits::<3>(3);
+        let d = b.val() << c;
+        signal(d)
+    }
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red())?;
+    Ok(())
+}
+
+#[test]
+fn test_bit_cast_no_inference() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff(a: Signal<b8, Red>) -> Signal<b4, Red> {
+        let b = a + 1;
+        let c = bit_cast::<4, 8>(b.val());
+        signal(c)
+    }
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red())?;
+    Ok(())
+}
+
+#[test]
 fn test_bit_inference_works() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b8, Red>) -> Signal<b8, Red> {

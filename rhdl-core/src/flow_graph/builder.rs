@@ -50,7 +50,10 @@ pub fn build_rtl_flow_graph(object: &Object) -> FlowGraph {
 
 impl<'a> FlowGraphBuilder<'a> {
     fn new(object: &'a Object) -> Self {
-        let mut fg = FlowGraph::default();
+        let mut fg = FlowGraph {
+            code: object.symbols.source_set.clone(),
+            ..Default::default()
+        };
         // TODO - in the future, maybe tag the arguments and return with source locations?
         let location = None;
         // Allocate input and output ports.
