@@ -350,7 +350,7 @@ fn strip_mutability(pat: &syn::Pat) -> syn::Pat {
 fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
     let vis = &function.vis;
     let orig_name = &function.sig.ident;
-    let (impl_generics, _ty_generics, where_clause) = function.sig.generics.split_for_impl();
+    let (impl_generics, ty_generics, where_clause) = function.sig.generics.split_for_impl();
     let args = &function.sig.inputs;
     let outer_args = args
         .iter()
@@ -386,6 +386,7 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
     let ret = &function.sig.output;
     let mut body = function.block.clone();
     CustomSuffix.visit_block_mut(&mut body);
+    let ty_generics = ty_generics.as_turbofish();
     Ok(quote! {
 
                 #vis fn #orig_name #impl_generics (#outer_args) #ret #where_clause {
@@ -398,7 +399,7 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
                         #body
                     }
         //            rhdl::core::note_push_path(stringify!(#orig_name));
-                    let ret = inner(#call_args);
+                    let ret = inner #ty_generics (#call_args);
         //            rhdl::core::note_pop_path();
                     ret
                 }
@@ -719,8 +720,20 @@ impl Context {
                 ),
             ));
         }
+        let turbo = if let Some(x) = &expr.turbofish {
+            if (x.args.len() != 1) || (method != "resize") {
+                return Err(syn::Error::new(
+                    x.span(),
+                    "Unsupported turbofish in rhdl kernel function - only resize::<N>() is supported",
+                ));
+            }
+            let x = x.args.iter().next().unwrap();
+            quote!(Some({#x} as usize))
+        } else {
+            quote!(None)
+        };
         Ok(quote! {
-            bob.method_expr(#receiver, vec![#(#args),*], stringify!(#method))
+            bob.method_expr(#receiver, vec![#(#args),*], stringify!(#method), #turbo)
         })
     }
 

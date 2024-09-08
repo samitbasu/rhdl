@@ -39,6 +39,7 @@ use crate::rhif::object::LocatedOpCode;
 use crate::rhif::object::SymbolMap;
 use crate::rhif::rhif_builder::op_as_bits_inferred;
 use crate::rhif::rhif_builder::op_as_signed_inferred;
+use crate::rhif::rhif_builder::op_resize;
 use crate::rhif::rhif_builder::op_resize_inferred;
 use crate::rhif::rhif_builder::op_retime;
 use crate::rhif::spec::AluUnary;
@@ -1197,7 +1198,11 @@ impl<'a> MirContext<'a> {
         // First the inferred case...
         let lhs = self.reg(id);
         let arg = self.expr(&cast.receiver)?;
-        self.op(op_resize_inferred(lhs, arg), id);
+        if let Some(len) = cast.turbo {
+            self.op(op_resize(lhs, arg, len), id);
+        } else {
+            self.op(op_resize_inferred(lhs, arg), id);
+        }
         Ok(lhs)
     }
     fn method_call(&mut self, id: NodeId, method_call: &ExprMethodCall) -> Result<Slot> {

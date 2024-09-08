@@ -391,6 +391,9 @@ impl SpannedSourceBuilder {
             ExprKind::MethodCall(expr) => {
                 self.expr(&expr.receiver);
                 self.push(&format!(".{}", expr.method));
+                if let Some(len) = expr.turbo {
+                    self.push(&format!("::<{}>", len));
+                }
                 self.push("(");
                 for arg in &expr.args {
                     self.expr(arg);

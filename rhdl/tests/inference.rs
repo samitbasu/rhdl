@@ -400,6 +400,20 @@ fn test_resize_signed_inferred() -> miette::Result<()> {
 }
 
 #[test]
+fn test_resize_signed_explicit() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff<const N: usize>(a: Signal<s8, Red>, b: Signal<s8, Red>) -> Signal<s8, Red> {
+        let c = a + b;
+        let c = c.val().resize::<N>();
+        let c = c.resize();
+        signal(c)
+    }
+    test_kernel_vm_and_verilog::<do_stuff<12>, _, _, _>(do_stuff::<12>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<4>, _, _, _>(do_stuff::<4>, tuple_pair_s8_red())?;
+    Ok(())
+}
+
+#[test]
 fn test_bit_inference_works() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b8, Red>) -> Signal<b8, Red> {
