@@ -3,8 +3,6 @@ pub use rhdl_bits::bits;
 pub use rhdl_bits::signed;
 pub use rhdl_bits::Bits;
 pub use rhdl_bits::SignedBits;
-pub use rhdl_bits::bit_cast;
-pub use rhdl_bits::signed_cast;
 pub use rhdl_core::build_synchronous_flow_graph;
 pub use rhdl_core::circuit::circuit_descriptor::root_descriptor;
 pub use rhdl_core::circuit::circuit_descriptor::CircuitDescriptor;

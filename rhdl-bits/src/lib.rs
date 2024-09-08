@@ -434,11 +434,9 @@ pub mod alias {
     });
 }
 
-pub use bits_impl::bit_cast;
 pub use bits_impl::bits;
 pub use bits_impl::Bits;
 pub use signed_bits_impl::signed;
-pub use signed_bits_impl::signed_cast;
 pub use signed_bits_impl::SignedBits;
 
 #[cfg(test)]

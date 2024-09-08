@@ -106,6 +106,14 @@ pub fn op_as_bits(lhs: Slot, arg: Slot, len: usize) -> OpCode {
     })
 }
 
+pub fn op_resize_inferred(lhs: Slot, arg: Slot) -> OpCode {
+    OpCode::Resize(Cast {
+        lhs,
+        arg,
+        len: None,
+    })
+}
+
 pub fn op_as_bits_inferred(lhs: Slot, arg: Slot) -> OpCode {
     OpCode::AsBits(Cast {
         lhs,

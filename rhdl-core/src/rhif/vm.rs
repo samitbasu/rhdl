@@ -216,6 +216,12 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let result = arg.signed_cast(len)?;
                 state.write(*lhs, result, id)?;
             }
+            OpCode::Resize(Cast { lhs, arg, len }) => {
+                let arg = state.read(*arg, id)?;
+                let len = len.ok_or(state.raise_ice(ICE::BitCastMissingRequiredLength, id))?;
+                let result = arg.resize(len)?;
+                state.write(*lhs, result, id)?;
+            }
             OpCode::Retime(Retime { lhs, arg, color }) => {
                 let mut arg = state.read(*arg, id)?;
                 if let Some(color) = color {

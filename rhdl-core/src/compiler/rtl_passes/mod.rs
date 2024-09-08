@@ -8,6 +8,7 @@ use crate::{
     types::bit_string::BitString,
 };
 
+pub(crate) mod check_no_zero_resize;
 pub(crate) mod dead_code_elimination;
 pub(crate) mod lower_empty_splice_to_copy;
 pub(crate) mod lower_index_all_to_copy;

@@ -2,6 +2,7 @@ use crate::{
     compiler::{
         lower_rhif_to_rtl::compile_to_rtl,
         rtl_passes::{
+            check_no_zero_resize::CheckNoZeroResize,
             dead_code_elimination::DeadCodeEliminationPass,
             lower_empty_splice_to_copy::LowerEmptySpliceToCopy,
             lower_index_all_to_copy::LowerIndexAllToCopy,
@@ -25,6 +26,7 @@ pub(crate) fn compile(object: &crate::rhif::Object) -> Result<rtl::Object> {
     let mut rtl = compile_to_rtl(object)?;
     let mut hash = rtl.hash_value();
     loop {
+        rtl = CheckNoZeroResize::run(rtl)?;
         rtl = LowerSignalCasts::run(rtl)?;
         rtl = RemoveExtraRegistersPass::run(rtl)?;
         rtl = SymbolTableIsComplete::run(rtl)?;

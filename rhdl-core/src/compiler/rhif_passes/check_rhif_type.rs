@@ -349,6 +349,18 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 ))?;
                 eq_kinds(slot_type(lhs), Kind::make_signed(len), id)?;
             }
+            OpCode::Resize(Cast { lhs, arg, len }) => {
+                let len = len.ok_or(TypeCheckPass::raise_ice(
+                    obj,
+                    ICE::BitCastMissingRequiredLength,
+                    id,
+                ))?;
+                if slot_type(arg).is_signed() {
+                    eq_kinds(slot_type(lhs), Kind::make_signed(len), id)?;
+                } else {
+                    eq_kinds(slot_type(lhs), Kind::make_bits(len), id)?;
+                }
+            }
             OpCode::Retime(Retime { lhs, arg, color: _ }) => {
                 eq_kinds(slot_type(lhs), slot_type(arg), id)?;
             }

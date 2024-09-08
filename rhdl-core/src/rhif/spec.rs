@@ -36,6 +36,8 @@ pub enum OpCode {
     AsBits(Cast),
     // x <- a as signed::<len>
     AsSigned(Cast),
+    // x <- a.cast::<len>
+    Resize(Cast),
     // x <- C::sig(a)
     Retime(Retime),
     Comment(String),

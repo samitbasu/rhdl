@@ -95,6 +95,7 @@ impl<'a> SchematicBuilder<'a> {
                 OpCode::Assign(assign) => self.make_assign(assign, Some(location)),
                 OpCode::Exec(exec) => self.make_exec(exec, Some(location)),
                 OpCode::Noop | OpCode::Comment(_) => Ok(()),
+                OpCode::Resize(cast) => todo!(),
             }?
         }
         self.schematic.output = self.lookup(self.object.return_slot)?;

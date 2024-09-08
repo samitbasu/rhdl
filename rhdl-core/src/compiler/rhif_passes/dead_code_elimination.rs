@@ -36,7 +36,7 @@ impl Pass for DeadCodeEliminationPass {
                 OpCode::Array(array) => {
                     mark_active(&array.lhs);
                 }
-                OpCode::AsBits(cast) | OpCode::AsSigned(cast) => {
+                OpCode::AsBits(cast) | OpCode::AsSigned(cast) | OpCode::Resize(cast) => {
                     mark_active(&cast.lhs);
                 }
                 OpCode::Assign(assign) => {

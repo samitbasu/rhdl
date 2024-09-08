@@ -26,8 +26,8 @@ pub enum KernelFnKind {
     SignedBitsConstructor(usize),
     EnumTupleStructConstructor(TypedBits),
     SignalConstructor(Option<Color>),
-    BitCast(usize, usize),
-    SignedCast(usize, usize),
+    BitCast(usize),
+    SignedCast(usize),
 }
 
 impl std::fmt::Debug for KernelFnKind {
@@ -54,8 +54,8 @@ impl std::fmt::Debug for KernelFnKind {
             KernelFnKind::SignalConstructor(color) => {
                 write!(f, "signal constructor {:?}", color)
             }
-            KernelFnKind::BitCast(to, from) => write!(f, "bit cast {} -> {}", from, to),
-            KernelFnKind::SignedCast(to, from) => write!(f, "signed cast {} -> {}", from, to),
+            KernelFnKind::BitCast(width) => write!(f, "bit cast {}", width),
+            KernelFnKind::SignedCast(width) => write!(f, "signed cast {}", width),
         }
     }
 }

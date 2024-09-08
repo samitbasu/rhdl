@@ -369,14 +369,33 @@ fn test_bit_inference_with_explicit_length_works() -> miette::Result<()> {
 }
 
 #[test]
-fn test_bit_cast_no_inference() -> miette::Result<()> {
+fn test_resize_unsigned_inference() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff(a: Signal<b8, Red>) -> Signal<b4, Red> {
+    fn do_stuff<const M: usize>(a: Signal<b8, Red>) -> Signal<Bits<M>, Red> {
         let b = a + 1;
-        let c = bit_cast::<4, 8>(b.val());
+        let c = b.val().resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<12>, _, _, _>(do_stuff::<12>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<8>, _, _, _>(do_stuff::<8>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<4>, _, _, _>(do_stuff::<4>, tuple_exhaustive_red())?;
+    Ok(())
+}
+
+#[test]
+fn test_resize_signed_inferred() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff<const M: usize>(
+        a: Signal<s8, Red>,
+        b: Signal<s8, Red>,
+    ) -> Signal<SignedBits<M>, Red> {
+        let c = a + b;
+        let c = c.val().resize();
+        signal(c)
+    }
+    test_kernel_vm_and_verilog::<do_stuff<12>, _, _, _>(do_stuff::<12>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<4>, _, _, _>(do_stuff::<4>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<8>, _, _, _>(do_stuff::<8>, tuple_pair_s8_red())?;
     Ok(())
 }
 

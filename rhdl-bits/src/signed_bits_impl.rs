@@ -1,5 +1,5 @@
 #![allow(non_camel_case_types)]
-use crate::{bits_impl::bit_cast, Bits};
+use crate::Bits;
 use derive_more::{
     Binary, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Display, LowerHex,
     UpperHex,
@@ -82,33 +82,6 @@ pub const fn signed<const N: usize>(value: i128) -> SignedBits<N> {
 
 pub struct signed<const N: usize> {}
 
-/// Helper function to cast a signed bits value to a different
-/// length using either truncation (if the new length is
-/// shorter) or sign extension (if the new length is longer).
-/// ```
-/// # use rhdl_bits::{SignedBits, signed};
-/// let value : SignedBits<8> = signed(0b1010_1010);
-/// let extended : SignedBits<16> = signed_cast(value);
-/// assert_eq!(extended, -86);
-/// ```
-/// Note that the value is sign extended.
-/// ```
-/// # use rhdl_bits::{SignedBits, signed};
-/// let value : SignedBits<8> = signed(-86);
-/// let truncated : SignedBits<4> = signed_cast(value);
-/// assert_eq!(truncated, -6);
-/// ```
-/// Note that the value is truncated.
-pub const fn signed_cast<const M: usize, const N: usize>(value: SignedBits<N>) -> SignedBits<M> {
-    if M < N {
-        bit_cast::<M, N>(value.as_unsigned()).as_signed()
-    } else {
-        SignedBits::<M>(value.0)
-    }
-}
-
-pub struct signed_cast<const M: usize, const N: usize> {}
-
 impl<const N: usize> SignedBits<N> {
     /// Return a [SignedBits] value with all bits set to 1.
     pub const MASK: Self = Self::mask();
@@ -135,7 +108,7 @@ impl<const N: usize> SignedBits<N> {
     /// # use rhdl_bits::SignedBits;
     /// assert_eq!(SignedBits::<8>::max_value(), i8::MAX as i128);
     /// ```
-    pub fn max_value() -> i128 {
+    pub const fn max_value() -> i128 {
         ((Self::mask().0 as u128) >> 1) as i128
     }
     /// Return the smallest negative value that can be represented
@@ -144,7 +117,7 @@ impl<const N: usize> SignedBits<N> {
     /// # use rhdl_bits::SignedBits;
     /// assert_eq!(SignedBits::<8>::min_value(), i8::MIN as i128);
     /// ```
-    pub fn min_value() -> i128 {
+    pub const fn min_value() -> i128 {
         (-1) << (N - 1)
     }
     /// Test if the value is negative.
@@ -206,6 +179,15 @@ impl<const N: usize> SignedBits<N> {
         x ^= x >> 16;
         x ^= x >> 32;
         x & 1 == 1
+    }
+    pub const fn resize<const M: usize>(self) -> SignedBits<M> {
+        assert!(M <= 128);
+        assert!(N <= 128);
+        let mask = SignedBits::<M>::mask();
+        if M <= N {
+            return signed(self.0 & mask.0);
+        }
+        SignedBits(self.0)
     }
 }
 
@@ -319,15 +301,15 @@ mod test {
     #[test]
     fn test_signed_cast() {
         let value = SignedBits::<8>::from(-14);
-        let extended = signed_cast::<16, 8>(value);
+        let extended = value.resize::<16>();
         assert_eq!(extended, -14);
         let value = SignedBits::<8>::from(-86);
-        let truncated = signed_cast::<4, 8>(value);
+        let truncated = value.resize::<4>();
         assert_eq!(truncated, -6);
-        let truncated = signed_cast::<5, 8>(value);
+        let truncated = value.resize::<5>();
         assert_eq!(truncated, 10);
         let value = SignedBits::<8>::from(3);
-        let extended = signed_cast::<16, 8>(value);
+        let extended = value.resize::<16>();
         assert_eq!(extended, 3);
     }
 }

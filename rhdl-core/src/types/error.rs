@@ -75,4 +75,6 @@ pub enum DynamicTypeError {
     ShiftAmountMustBeUnsigned { value: TypedBits },
     #[error("Shift amount {value:?} must be less than {max}")]
     ShiftAmountMustBeLessThan { value: TypedBits, max: usize },
+    #[error("Reinterpret cast of {value:?} into len {len} failed")]
+    ReinterpretCastFailed { value: TypedBits, len: usize },
 }
