@@ -271,6 +271,7 @@ impl ASTBuilder {
         receiver: Box<Expr>,
         args: Vec<Box<Expr>>,
         method: &'static str,
+        turbo: Option<usize>,
     ) -> Box<Expr> {
         let id = self.id();
         Box::new(Expr {
@@ -279,6 +280,7 @@ impl ASTBuilder {
                 receiver,
                 args,
                 method,
+                turbo,
             }),
         })
     }

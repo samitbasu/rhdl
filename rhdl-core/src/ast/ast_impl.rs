@@ -315,6 +315,7 @@ pub struct ExprMethodCall {
     pub receiver: Box<Expr>,
     pub args: Vec<Box<Expr>>,
     pub method: &'static str,
+    pub turbo: Option<usize>,
 }
 
 #[derive(Debug, Clone, Hash)]
