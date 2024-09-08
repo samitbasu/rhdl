@@ -130,12 +130,17 @@ pub fn remap_slots<F: FnMut(Slot) -> Slot>(op: OpCode, mut f: F) -> OpCode {
             arg: f(arg),
             len,
         }),
+        OpCode::Resize(Cast { lhs, arg, len }) => OpCode::Resize(Cast {
+            lhs: f(lhs),
+            arg: f(arg),
+            len,
+        }),
         OpCode::Retime(Retime { lhs, arg, color }) => OpCode::Retime(Retime {
             lhs: f(lhs),
             arg: f(arg),
             color,
         }),
-        _ => op,
+        OpCode::Noop | OpCode::Comment(_) => op,
     }
 }
 

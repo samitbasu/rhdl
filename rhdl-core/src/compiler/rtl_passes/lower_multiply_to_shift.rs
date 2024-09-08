@@ -35,7 +35,6 @@ impl Pass for LowerMultiplyToShift {
                                 .into();
                             let shift = allocate_literal(&mut input, lop.loc, literal_bs);
                             let lhs_kind = input.kind(binary.lhs);
-                            let rhs_signed = input.kind(binary.arg1).is_signed();
                             // Allocate a register to hold the sign extended of the rhs
                             let r_extend = allocate_register(&mut input, lhs_kind, lop.loc);
                             input.ops.push(LocatedOpCode {
@@ -43,11 +42,7 @@ impl Pass for LowerMultiplyToShift {
                                     lhs: Operand::Register(r_extend),
                                     arg: binary.arg1,
                                     len: lhs_kind.len(),
-                                    kind: if rhs_signed {
-                                        CastKind::Signed
-                                    } else {
-                                        CastKind::Unsigned
-                                    },
+                                    kind: CastKind::Resize,
                                 }),
                                 loc: lop.loc,
                             });

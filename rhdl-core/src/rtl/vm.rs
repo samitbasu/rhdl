@@ -130,6 +130,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let result = match kind {
                     CastKind::Signed => arg.signed_cast(*len),
                     CastKind::Unsigned => arg.unsigned_cast(*len),
+                    CastKind::Resize => arg.resize(*len),
                 }?;
                 state.write(*lhs, result, loc)?;
             }

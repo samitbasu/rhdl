@@ -94,15 +94,3 @@ impl<const N: usize> DigitalFn for rhdl_bits::signed<N> {
         Some(KernelFnKind::SignedBitsConstructor(N))
     }
 }
-
-impl<const M: usize, const N: usize> DigitalFn for rhdl_bits::bit_cast<M, N> {
-    fn kernel_fn() -> Option<KernelFnKind> {
-        Some(KernelFnKind::BitCast(M, N))
-    }
-}
-
-impl<const M: usize, const N: usize> DigitalFn for rhdl_bits::signed_cast<M, N> {
-    fn kernel_fn() -> Option<KernelFnKind> {
-        Some(KernelFnKind::SignedCast(M, N))
-    }
-}

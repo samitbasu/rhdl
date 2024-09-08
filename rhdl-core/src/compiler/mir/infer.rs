@@ -582,7 +582,9 @@ impl<'a> MirTypeInference<'a> {
                         self.unify(id, arg_ty, arg_kind)?;
                     }
                     let ret_ty = self.slot_ty(exec.lhs);
-                    let ret_kind = self.ctx.from_kind(id, &external_fn.kind(external_fn.return_slot));
+                    let ret_kind = self
+                        .ctx
+                        .from_kind(id, &external_fn.kind(external_fn.return_slot));
                     self.unify(id, ret_ty, ret_kind)?;
                 }
                 OpCode::Index(index) => {
@@ -600,6 +602,21 @@ impl<'a> MirTypeInference<'a> {
                     let len = self.ctx.ty_const_len(id, repeat.len as usize);
                     let lhs_ty = self.ctx.ty_array(id, value, len);
                     self.unify(id, lhs, lhs_ty)?;
+                }
+                OpCode::Resize(cast) => {
+                    let arg = self.slot_ty(cast.arg);
+                    let lhs = self.slot_ty(cast.lhs);
+                    let len = if let Some(len) = cast.len {
+                        self.ctx.ty_const_len(id, len)
+                    } else {
+                        self.ctx.ty_var(id)
+                    };
+                    let sign = self.ctx.ty_var(id);
+                    let lhs_ty = self.ctx.ty_with_sign_and_len(id, sign, len);
+                    self.unify(id, lhs, lhs_ty)?;
+                    let arg_len = self.ctx.ty_var(id);
+                    let arg_ty = self.ctx.ty_with_sign_and_len(id, sign, arg_len);
+                    self.unify(id, arg, arg_ty)?;
                 }
                 OpCode::Retime(retime) => {
                     let lhs = self.slot_ty(retime.lhs);

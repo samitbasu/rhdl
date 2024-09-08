@@ -135,11 +135,72 @@ impl<'a> TranslationContext<'a> {
         ));
         Ok(())
     }
-    fn translate_cast(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
-        if matches!(cast.kind, CastKind::Signed) {
-            self.translate_as_signed(cast, id)
+    fn translate_resize_unsigned(&mut self, cast: &tl::Cast) {
+        let arg_kind = self.rtl.kind(cast.arg);
+        // Truncation case
+        if cast.len <= arg_kind.len() {
+            self.body.push_str(&format!(
+                "    {lhs} = {arg}[{len}:0];\n",
+                lhs = self.rtl.op_name(cast.lhs),
+                arg = self.rtl.op_name(cast.arg),
+                len = cast.len - 1
+            ));
         } else {
-            self.translate_as_bits(cast)
+            // zero extend
+            let num_z = cast.len - arg_kind.len();
+            self.body.push_str(&format!(
+                "    {lhs} = {{ {num_z}'b0, {arg} }};\n",
+                lhs = self.rtl.op_name(cast.lhs),
+                arg = self.rtl.op_name(cast.arg),
+                num_z = num_z
+            ));
+        }
+    }
+    fn translate_resize_signed(&mut self, cast: &tl::Cast) {
+        let arg_kind = self.rtl.kind(cast.arg);
+        // Truncation case
+        if cast.len <= arg_kind.len() {
+            self.body.push_str(&format!(
+                "    {lhs} = $signed({arg}[{len}:0]);\n",
+                lhs = self.rtl.op_name(cast.lhs),
+                arg = self.rtl.op_name(cast.arg),
+                len = cast.len - 1
+            ));
+        } else {
+            // sign extend
+            let num_s = cast.len - arg_kind.len();
+            self.body.push_str(&format!(
+                "    {lhs} = $signed({{ {{ {num_s}{{ {arg}[{arg_len}]}} }}, {arg} }});\n",
+                lhs = self.rtl.op_name(cast.lhs),
+                arg = self.rtl.op_name(cast.arg),
+                num_s = num_s,
+                arg_len = arg_kind.len() - 1
+            ));
+        }
+    }
+    fn translate_resize(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
+        if cast.len == 0 {
+            return Err(self.raise_ice(
+                ICE::InvalidResize {
+                    lhs: cast.lhs,
+                    arg: cast.arg,
+                    len: cast.len,
+                },
+                id,
+            ));
+        }
+        if self.rtl.kind(cast.arg).is_signed() {
+            self.translate_resize_signed(cast);
+        } else {
+            self.translate_resize_unsigned(cast);
+        }
+        Ok(())
+    }
+    fn translate_cast(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
+        match cast.kind {
+            CastKind::Signed => self.translate_as_signed(cast, id),
+            CastKind::Unsigned => self.translate_as_bits(cast),
+            CastKind::Resize => self.translate_resize(cast, id),
         }
     }
     fn translate_assign(&mut self, assign: &tl::Assign) -> Result<()> {

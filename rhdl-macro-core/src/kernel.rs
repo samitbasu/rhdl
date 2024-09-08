@@ -700,8 +700,16 @@ impl Context {
             .map(|x| self.expr(x))
             .collect::<Result<Vec<_>>>()?;
         let method = &expr.method;
-        if !["any", "all", "xor", "as_signed", "as_unsigned", "val"]
-            .contains(&method.to_string().as_str())
+        if ![
+            "any",
+            "all",
+            "xor",
+            "as_signed",
+            "as_unsigned",
+            "val",
+            "resize",
+        ]
+        .contains(&method.to_string().as_str())
         {
             return Err(syn::Error::new(
                 expr.span(),

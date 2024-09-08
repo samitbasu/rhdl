@@ -163,6 +163,12 @@ pub enum ICE {
     UnaryOperatorError(Box<RHDLError>),
     #[error("RTL symbol table is incomplete for operand {operand:?}")]
     RTLSymbolTableIsIncomplete { operand: Operand },
+    #[error("RTL Resize operation is invalid {lhs:?} and {arg:?} with length {len}")]
+    InvalidResize {
+        lhs: Operand,
+        arg: Operand,
+        len: usize,
+    },
 }
 
 #[derive(Error, Debug, Diagnostic)]

@@ -391,7 +391,7 @@ impl ClockCoherenceContext<'_> {
                         ClockError::AssignmentClockMismatch,
                     )?;
                 }
-                OpCode::AsBits(cast) | OpCode::AsSigned(cast) => {
+                OpCode::AsBits(cast) | OpCode::AsSigned(cast) | OpCode::Resize(cast) => {
                     self.unify_clocks(
                         &[cast.arg, cast.lhs],
                         lop.id,

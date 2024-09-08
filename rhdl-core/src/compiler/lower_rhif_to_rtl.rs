@@ -300,6 +300,24 @@ impl<'a> RTLCompiler<'a> {
         );
         Ok(())
     }
+    fn make_resize(&mut self, cast: &hf::Cast, id: NodeId) -> Result<()> {
+        let hf::Cast { lhs, arg, len } = cast;
+        let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, id))?;
+        if !lhs.is_empty() && !arg.is_empty() {
+            let lhs = self.operand(*lhs, id)?;
+            let op_arg = self.operand(*arg, id)?;
+            self.lop(
+                tl::OpCode::Cast(tl::Cast {
+                    lhs,
+                    arg: op_arg,
+                    len,
+                    kind: CastKind::Resize,
+                }),
+                id,
+            );
+        }
+        Ok(())
+    }
     fn make_as_bits(&mut self, cast: &hf::Cast, id: NodeId) -> Result<()> {
         let hf::Cast { lhs, arg, len } = cast;
         let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, id))?;
@@ -759,6 +777,9 @@ impl<'a> RTLCompiler<'a> {
                     self.make_index(index, lop.id)?;
                 }
                 hf::OpCode::Noop => {}
+                hf::OpCode::Resize(cast) => {
+                    self.make_resize(cast, lop.id)?;
+                }
                 hf::OpCode::Repeat(repeat) => {
                     self.make_repeat(repeat, lop.id)?;
                 }

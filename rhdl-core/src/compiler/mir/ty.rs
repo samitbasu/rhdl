@@ -403,6 +403,10 @@ impl UnifyContext {
         self.ty_app(id, AppType::Signal(AppSignal { data, clock }))
     }
 
+    pub fn ty_with_sign_and_len(&mut self, id: NodeId, sign_flag: TypeId, len: TypeId) -> TypeId {
+        self.ty_app(id, AppType::Bits(AppBits { sign_flag, len }))
+    }
+
     pub fn ty_maybe_signed(&mut self, id: NodeId, len: TypeId) -> TypeId {
         let sign_flag = self.ty_var(id);
         self.ty_app(id, AppType::Bits(AppBits { sign_flag, len }))

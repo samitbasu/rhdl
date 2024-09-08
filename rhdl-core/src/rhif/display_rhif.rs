@@ -116,6 +116,13 @@ impl std::fmt::Debug for OpCode {
                     write!(f, " {:?} <- {:?} as signed", lhs, arg)
                 }
             }
+            OpCode::Resize(Cast { lhs, arg, len }) => {
+                if let Some(len) = len {
+                    return write!(f, " {:?} <- {:?}.resize::<{}>", lhs, arg, len);
+                } else {
+                    return write!(f, " {:?} <- {:?}.resize", lhs, arg);
+                }
+            }
             OpCode::Retime(Retime { lhs, arg, color }) => {
                 write!(f, " {:?} <- {:?} retime {:?}", lhs, arg, color)
             }

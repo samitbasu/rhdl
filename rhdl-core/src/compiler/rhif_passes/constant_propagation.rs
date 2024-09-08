@@ -153,6 +153,30 @@ fn propogate_as_bits(
     }
 }
 
+fn propogate_resize(
+    id: NodeId,
+    params: Cast,
+    obj: &mut Object,
+) -> Result<LocatedOpCode, RHDLError> {
+    let Cast { lhs, arg, len } = params;
+    if let (Slot::Literal(arg_lit), Some(len)) = (arg, len) {
+        let arg_val = obj.literals[&arg_lit].clone();
+        let rhs = arg_val.resize(len)?;
+        Ok(LocatedOpCode {
+            op: OpCode::Assign(Assign {
+                lhs,
+                rhs: assign_literal(id, rhs, obj),
+            }),
+            id,
+        })
+    } else {
+        Ok(LocatedOpCode {
+            op: OpCode::Resize(params),
+            id,
+        })
+    }
+}
+
 fn propogate_as_signed(
     id: NodeId,
     params: Cast,
@@ -448,6 +472,7 @@ impl Pass for ConstantPropagation {
                 OpCode::Tuple(tuple) => propogate_tuple(lop.id, tuple, &mut input),
                 OpCode::AsBits(cast) => propogate_as_bits(lop.id, cast, &mut input),
                 OpCode::AsSigned(cast) => propogate_as_signed(lop.id, cast, &mut input),
+                OpCode::Resize(cast) => propogate_resize(lop.id, cast, &mut input),
                 OpCode::Repeat(repeat) => propogate_repeat(lop.id, repeat, &mut input),
                 OpCode::Index(index) => propogate_index(lop.id, index, &mut input),
                 OpCode::Splice(splice) => propogate_splice(lop.id, splice, &mut input),

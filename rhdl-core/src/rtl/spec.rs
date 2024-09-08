@@ -198,4 +198,5 @@ pub struct Cast {
 pub enum CastKind {
     Signed,
     Unsigned,
+    Resize,
 }

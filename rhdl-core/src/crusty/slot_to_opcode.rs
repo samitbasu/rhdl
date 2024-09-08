@@ -12,7 +12,7 @@ pub fn slot_to_opcode(object: &Object) -> HashMap<Slot, usize> {
             OpCode::Array(array) => {
                 slot_to_opcode.insert(array.lhs, ndx);
             }
-            OpCode::AsBits(cast) | OpCode::AsSigned(cast) => {
+            OpCode::AsBits(cast) | OpCode::AsSigned(cast) | OpCode::Resize(cast) => {
                 slot_to_opcode.insert(cast.lhs, ndx);
             }
             OpCode::Assign(assign) => {

@@ -38,6 +38,11 @@ impl BitString {
         let bs = tb.signed_cast(len)?;
         Ok(bs.into())
     }
+    pub fn resize(&self, len: usize) -> Result<BitString, RHDLError> {
+        let tb: TypedBits = self.into();
+        let bs = tb.resize(len)?;
+        Ok(bs.into())
+    }
     pub fn num_ones(&self) -> usize {
         self.bits().iter().filter(|b| **b).count()
     }

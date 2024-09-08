@@ -39,19 +39,21 @@ use crate::rhif::object::LocatedOpCode;
 use crate::rhif::object::SymbolMap;
 use crate::rhif::rhif_builder::op_as_bits_inferred;
 use crate::rhif::rhif_builder::op_as_signed_inferred;
+use crate::rhif::rhif_builder::op_resize_inferred;
 use crate::rhif::rhif_builder::op_retime;
-use crate::rhif::rhif_builder::{
-    op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
-    op_exec, op_index, op_repeat, op_select, op_splice, op_struct, op_tuple, op_unary,
-};
-use crate::rhif::spec::AluBinary;
 use crate::rhif::spec::AluUnary;
 use crate::rhif::spec::CaseArgument;
-use crate::rhif::spec::FuncId;
-use crate::rhif::spec::LiteralId;
 use crate::rhif::spec::Member;
 use crate::rhif::spec::RegisterId;
+use crate::rhif::spec::{FuncId, LiteralId};
 use crate::rhif::Object;
+use crate::rhif::{
+    rhif_builder::{
+        op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
+        op_exec, op_index, op_repeat, op_select, op_splice, op_struct, op_tuple, op_unary,
+    },
+    spec::AluBinary,
+};
 use crate::types::path::Path;
 use crate::KernelFnKind;
 use crate::Kind;
@@ -878,10 +880,10 @@ impl<'a> MirContext<'a> {
             KernelFnKind::SignalConstructor(color) => {
                 self.op(op_retime(lhs, args[0], *color), id);
             }
-            KernelFnKind::BitCast(_from, to) => {
+            KernelFnKind::BitCast(to) => {
                 self.op(op_as_bits(lhs, args[0], *to), id);
             }
-            KernelFnKind::SignedCast(_from, to) => {
+            KernelFnKind::SignedCast(to) => {
                 self.op(op_as_signed(lhs, args[0], *to), id);
             }
         }
@@ -1191,7 +1193,18 @@ impl<'a> MirContext<'a> {
         self.op(op_case(lhs, discriminant, match_expr_table), id);
         Ok(lhs)
     }
+    fn resize(&mut self, id: NodeId, cast: &ExprMethodCall) -> Result<Slot> {
+        // First the inferred case...
+        let lhs = self.reg(id);
+        let arg = self.expr(&cast.receiver)?;
+        self.op(op_resize_inferred(lhs, arg), id);
+        Ok(lhs)
+    }
     fn method_call(&mut self, id: NodeId, method_call: &ExprMethodCall) -> Result<Slot> {
+        // Special case the `cast` method calls
+        if method_call.method == "resize" {
+            return self.resize(id, method_call);
+        }
         let op = match method_call.method {
             "any" => AluUnary::Any,
             "all" => AluUnary::All,

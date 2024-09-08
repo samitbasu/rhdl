@@ -108,6 +108,53 @@ impl TypedBits {
             false
         }
     }
+    fn resize_unsigned(&self, bits: usize) -> TypedBits {
+        if bits <= self.bits.len() {
+            return TypedBits {
+                bits: self.bits[..bits].to_vec(),
+                kind: Kind::make_bits(bits),
+            };
+        }
+        TypedBits {
+            bits: self
+                .bits
+                .iter()
+                .copied()
+                .chain(repeat(false))
+                .take(bits)
+                .collect(),
+            kind: Kind::make_bits(bits),
+        }
+    }
+    fn resize_signed(&self, bits: usize) -> TypedBits {
+        if bits <= self.bits.len() {
+            return TypedBits {
+                bits: self.bits[..bits].to_vec(),
+                kind: Kind::make_signed(bits),
+            };
+        }
+        let sign_bit = self.bits.last().cloned().unwrap_or_default();
+        TypedBits {
+            bits: self
+                .bits
+                .iter()
+                .copied()
+                .chain(repeat(sign_bit))
+                .take(bits)
+                .collect(),
+            kind: Kind::make_signed(bits),
+        }
+    }
+    pub fn resize(&self, bits: usize) -> Result<TypedBits> {
+        match &self.kind {
+            Kind::Bits(_) => Ok(self.resize_unsigned(bits)),
+            Kind::Signed(_) => Ok(self.resize_signed(bits)),
+            _ => Err(rhdl_error(DynamicTypeError::ReinterpretCastFailed {
+                value: self.clone(),
+                len: bits,
+            })),
+        }
+    }
     pub fn unsigned_cast(&self, bits: usize) -> Result<TypedBits> {
         if bits > self.kind.bits() {
             return Ok(TypedBits {
@@ -123,6 +170,7 @@ impl TypedBits {
         }
         let (base, rest) = self.bits.split_at(bits);
         if rest.iter().any(|b| *b) {
+            panic!();
             return Err(rhdl_error(DynamicTypeError::UnsignedCastWithWidthFailed {
                 value: self.clone(),
                 bits,
