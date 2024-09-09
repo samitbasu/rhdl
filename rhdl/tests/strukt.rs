@@ -37,21 +37,22 @@ fn test_struct_expr_not_adt() -> miette::Result<()> {
 }
 
 #[test]
-fn test_tuplestruct_nested_init() {
+fn test_tuplestruct_nested_init() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
-    pub struct Wrap(u8, (u8, u8), u8);
+    pub struct Wrap(b8, (b8, b8), b8);
 
     #[kernel]
-    fn add(a: Signal<u8, Red>) -> Signal<u8, Red> {
-        let b = Wrap(1, (2, 3), 4);
+    fn add(a: Signal<b8, Red>) -> Signal<b8, Red> {
+        let b = Wrap(b8(1), (b8(2), b8(3)), b8(4));
         let Wrap(c, (d, e), f) = b;
         signal(c + d + e + f) + a
     }
-    test_kernel_vm_and_verilog::<add, _, _, _>(add, tuple_u8()).unwrap()
+    test_kernel_vm_and_verilog::<add, _, _, _>(add, tuple_exhaustive_red())?;
+    Ok(())
 }
 
 #[test]
-fn test_tuple_struct_construction() {
+fn test_tuple_struct_construction() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo(b8, b8);
 
@@ -62,11 +63,12 @@ fn test_tuple_struct_construction() {
         signal(Foo(a, b))
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    Ok(())
 }
 
 #[test]
-fn test_struct_rest_syntax() {
+fn test_struct_rest_syntax() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct Foo {
         a: (b8, b8),
@@ -87,5 +89,6 @@ fn test_struct_rest_syntax() {
         signal(d + e + b)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    Ok(())
 }
