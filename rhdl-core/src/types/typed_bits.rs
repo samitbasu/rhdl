@@ -170,7 +170,6 @@ impl TypedBits {
         }
         let (base, rest) = self.bits.split_at(bits);
         if rest.iter().any(|b| *b) {
-            panic!();
             return Err(rhdl_error(DynamicTypeError::UnsignedCastWithWidthFailed {
                 value: self.clone(),
                 bits,

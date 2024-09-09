@@ -1,8 +1,14 @@
 use crate::compiler::codegen::verilog::generate_verilog;
 use crate::compiler::driver::{compile_design_stage1, compile_design_stage2};
 use crate::error::RHDLError;
+use crate::flow_graph::component::ComponentKind;
+use crate::flow_graph::dot::write_dot;
+use crate::flow_graph::edge_kind::EdgeKind;
+use crate::flow_graph::flow_graph_impl::FlowGraph;
+use crate::flow_graph::passes::check_for_undriven::CheckForUndrivenPass;
+use crate::flow_graph::passes::pass::Pass;
 use crate::types::bit_string::BitString;
-use crate::DigitalFn;
+use crate::{build_rtl_flow_graph, DigitalFn};
 use crate::{Timed, TypedBits};
 
 pub trait TestArg {
@@ -291,6 +297,35 @@ impl TestModule {
     }
 }
 
+fn build_test_module_flowgraph(rtl: &crate::rtl::Object) -> FlowGraph {
+    let internal_fg = build_rtl_flow_graph(rtl);
+    // Create a new, top level FG with sources for the inputs and sinks for the
+    // outputs.
+    let mut fg = FlowGraph::default();
+    let remap = fg.merge(&internal_fg);
+    let timing_start = fg.new_component_with_optional_location(ComponentKind::TimingStart, None);
+    let timing_end = fg.new_component_with_optional_location(ComponentKind::TimingEnd, None);
+    // Create sources for all of the inputs of the internal flow graph
+    internal_fg.inputs.iter().flatten().for_each(|input| {
+        fg.edge(timing_start, remap[input], EdgeKind::Virtual);
+    });
+    internal_fg.output.iter().for_each(|output| {
+        fg.edge(remap[output], timing_end, EdgeKind::Virtual);
+    });
+    // Create links from all of the internal sources to the timing start node
+    for node in fg.graph.node_indices() {
+        if matches!(fg.graph[node].kind, ComponentKind::Source(_)) {
+            fg.edge(timing_start, node, EdgeKind::Virtual);
+        }
+        if matches!(fg.graph[node].kind, ComponentKind::Sink(_)) {
+            fg.edge(node, timing_end, EdgeKind::Virtual);
+        }
+    }
+    fg.inputs = vec![vec![timing_start]];
+    fg.output = vec![timing_end];
+    fg
+}
+
 pub fn test_kernel_vm_and_verilog<K, F, Args, T0>(
     uut: F,
     vals: impl Iterator<Item = Args> + Clone,
@@ -333,6 +368,10 @@ where
         rtl_test_count += 1;
     }
     eprintln!("RTL test passed {} cases OK", rtl_test_count);
+    let flow_graph = build_test_module_flowgraph(&rtl);
+    // Write the flow graph to a DOT file
+    write_dot(&flow_graph, std::fs::File::create("test_module.dot")?)?;
+    let flow_graph = CheckForUndrivenPass::run(flow_graph)?;
     let verilog = generate_verilog(&rtl)?;
     eprintln!("Verilog {:?}", verilog);
     let tm = test_module(uut, verilog, vals);
