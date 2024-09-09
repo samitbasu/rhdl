@@ -1,3 +1,5 @@
+use std::iter::repeat;
+
 use crate::{util::binary_string, Kind, RHDLError, TypedBits};
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -52,6 +54,10 @@ impl BitString {
 
     pub(crate) fn is_zero(&self) -> bool {
         self.bits().iter().all(|b| !*b)
+    }
+
+    pub(crate) fn zeros(shift_amount: usize) -> BitString {
+        BitString::Unsigned(repeat(false).take(shift_amount).collect())
     }
 }
 

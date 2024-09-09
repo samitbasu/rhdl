@@ -7,6 +7,7 @@ use crate::{
             lower_empty_splice_to_copy::LowerEmptySpliceToCopy,
             lower_index_all_to_copy::LowerIndexAllToCopy,
             lower_multiply_to_shift::LowerMultiplyToShift,
+            lower_shift_by_constant::LowerShiftByConstant,
             lower_shifts_by_zero_to_copy::LowerShiftsByZeroToCopy,
             lower_signal_casts::LowerSignalCasts,
             lower_single_concat_to_copy::LowerSingleConcatToCopy, pass::Pass,
@@ -37,6 +38,7 @@ pub(crate) fn compile(object: &crate::rhif::Object) -> Result<rtl::Object> {
         rtl = LowerIndexAllToCopy::run(rtl)?;
         rtl = RemoveEmptyFunctionArguments::run(rtl)?;
         rtl = LowerMultiplyToShift::run(rtl)?;
+        rtl = LowerShiftByConstant::run(rtl)?;
         rtl = LowerShiftsByZeroToCopy::run(rtl)?;
         let new_hash = rtl.hash_value();
         if new_hash == hash {

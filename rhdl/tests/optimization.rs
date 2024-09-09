@@ -3,6 +3,8 @@ use rhdl_core::{rhif::spec::AluBinary, rtl::spec::Binary};
 #[cfg(test)]
 mod common;
 
+use common::*;
+
 #[test]
 fn test_dynamic_vs_static_indexing_on_assign() -> miette::Result<()> {
     #[kernel]
@@ -82,11 +84,23 @@ fn test_dynamic_splice_lowers_with_multiple_dimensions() -> miette::Result<()> {
 #[test]
 fn test_shift_with_constant_argument() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: b4) -> b4 {
-        a << 2 // Should compile down to a static shift.
+    fn foo(a: Signal<b8, Red>) -> Signal<b8, Red> {
+        let a = a.val();
+        let a = a << 2; // Should compile down to an indexing operation.
+        signal(a)
     }
-    let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
+    let rtl = compile_design::<foo>(CompilationMode::Asynchronous)?;
     eprintln!("{:?}", rtl);
+    rtl.ops.iter().for_each(|op| {
+        assert!(!matches!(
+            op.op,
+            rhdl_core::rtl::spec::OpCode::Binary(Binary {
+                op: AluBinary::Shl,
+                ..
+            })
+        ))
+    });
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_exhaustive_red())?;
     Ok(())
 }
 
