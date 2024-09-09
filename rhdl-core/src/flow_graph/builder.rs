@@ -151,12 +151,14 @@ impl<'a> FlowGraphBuilder<'a> {
             let comp = self
                 .fg
                 .new_component(ComponentKind::Binary(Binary { op: binary.op }), loc);
-            for (ndx, (lhs, (arg1, arg2))) in
-                lhs.iter().zip(arg1.iter().zip(arg2.iter())).enumerate()
-            {
-                self.fg.edge(*arg1, comp, EdgeKind::ArgBit(0, ndx));
-                self.fg.edge(*arg2, comp, EdgeKind::ArgBit(1, ndx));
+            for (ndx, lhs) in lhs.iter().enumerate() {
                 self.fg.edge(comp, *lhs, EdgeKind::OutputBit(ndx));
+            }
+            for (ndx, arg1) in arg1.iter().enumerate() {
+                self.fg.edge(*arg1, comp, EdgeKind::ArgBit(0, ndx));
+            }
+            for (ndx, arg2) in arg2.iter().enumerate() {
+                self.fg.edge(*arg2, comp, EdgeKind::ArgBit(1, ndx));
             }
         }
     }
@@ -197,11 +199,24 @@ impl<'a> FlowGraphBuilder<'a> {
         }
     }
     fn build_cast(&mut self, loc: SourceLocation, cast: &tl::Cast) {
-        // FIXME!  signed casts should extend the MSB, and unsigned casts should fill with zero
         let lhs = self.operand(loc, cast.lhs);
         let arg = self.operand(loc, cast.arg);
         for (lhs, rhs) in lhs.iter().zip(arg.iter()) {
             self.fg.edge(*rhs, *lhs, EdgeKind::Arg(0));
+        }
+        let lhs_signed = self.object.kind(cast.lhs).is_signed();
+        let use_unsigned = matches!(cast.kind, tl::CastKind::Unsigned)
+            || (matches!(cast.kind, tl::CastKind::Resize) && !lhs_signed);
+        if use_unsigned {
+            let zero = self.fg.new_component(ComponentKind::Constant(false), loc);
+            for lhs in lhs.iter().skip(arg.len()) {
+                self.fg.edge(zero, *lhs, EdgeKind::Arg(0));
+            }
+        } else {
+            let msb = arg.last().unwrap();
+            for lhs in lhs.iter().skip(arg.len()) {
+                self.fg.edge(*msb, *lhs, EdgeKind::Arg(0));
+            }
         }
     }
     fn build_concat(&mut self, loc: SourceLocation, concat: &tl::Concat) {
