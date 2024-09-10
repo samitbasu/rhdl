@@ -66,7 +66,7 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
             rhdl::core::note("input", input);
             for _ in 0..rhdl::core::MAX_ITERS {
                 let prev_state = state.clone();
-                let (outputs, internal_inputs) = Self::UPDATE(reset.raw(), input, state.0);
+                let (outputs, internal_inputs) = Self::UPDATE(reset, input, state.0);
                 #(
                     rhdl::core::note_push_path(stringify!(#component_name));
                     state.0.#component_name =
@@ -219,7 +219,7 @@ fn derive_synchronous_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
 
             type Update = #kernel_name;
 
-            const UPDATE: fn(bool, Self::I, Self::Q) -> (Self::O, Self::D) = #kernel_name;
+            const UPDATE: fn(rhdl::core::Reset, Self::I, Self::Q) -> (Self::O, Self::D) = #kernel_name;
 
             #name_fn
 

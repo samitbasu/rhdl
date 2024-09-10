@@ -24,8 +24,13 @@ mod kernel_host {
     }
 
     #[kernel]
-    fn my_kernel(reset: bool, i: b8, q: ()) -> (b16, ()) {
-        if reset {
+    fn sub(i: b8) -> b16 {
+        i.resize()
+    }
+
+    #[kernel]
+    pub fn my_kernel(reset: Reset, i: b8, q: ()) -> (b16, ()) {
+        if reset.any() {
             (b16::default(), ())
         } else {
             (sub(i), ())
@@ -51,7 +56,7 @@ mod comb_adder {
     }
 
     #[kernel]
-    pub fn adder<const N: usize>(reset: bool, i: (Bits<N>, Bits<N>), q: ()) -> (Bits<N>, ()) {
+    pub fn adder<const N: usize>(reset: Reset, i: (Bits<N>, Bits<N>), q: ()) -> (Bits<N>, ()) {
         let a = i;
         (a.0 + a.1, ())
     }
@@ -85,10 +90,10 @@ impl<const N: usize> SynchronousIO for U<N> {
 }
 
 #[kernel]
-pub fn counter<const N: usize>(reset: bool, i: I, q: Q<N>) -> (Bits<N>, D<N>) {
+pub fn counter<const N: usize>(reset: Reset, i: I, q: Q<N>) -> (Bits<N>, D<N>) {
     let next_count = if i.enable { q.adder } else { q.count };
     let output = q.count;
-    if reset {
+    if reset.any() {
         (
             bits(0),
             D::<{ N }> {

@@ -15,7 +15,7 @@ impl SynchronousDQ for U {
 }
 
 #[kernel]
-pub fn inverter(_reset: bool, i: bool, _q: ()) -> (bool, ()) {
+pub fn inverter(_reset: Reset, i: bool, _q: ()) -> (bool, ()) {
     (!i, ())
 }
 
