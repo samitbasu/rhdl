@@ -44,10 +44,10 @@ impl std::fmt::Debug for OpCode {
                     " {:?} <- {:?} as {}{}",
                     lhs,
                     arg,
-                    if matches!(kind, CastKind::Signed) {
-                        "s"
-                    } else {
-                        "u"
+                    match kind {
+                        CastKind::Signed => "s",
+                        CastKind::Unsigned => "b",
+                        CastKind::Resize => "x",
                     },
                     len
                 )
