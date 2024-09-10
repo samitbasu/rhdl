@@ -101,8 +101,8 @@ pub enum ICE {
     UnsignedCastRequiresSignedArgument,
     #[error("Signed cast requires an unsigned argument")]
     SignedCastRequiresUnsignedArgument,
-    #[error("Shift operator requires an unsigned argument")]
-    ShiftOperatorRequiresUnsignedArgument,
+    #[error("Shift operator requires an unsigned argument instead of {kind:?}")]
+    ShiftOperatorRequiresUnsignedArgument { kind: Kind },
     #[error("Index value must be unsigned")]
     IndexValueMustBeUnsigned,
     #[error("Expected an array type for this op instead of {kind:?}")]
@@ -169,6 +169,8 @@ pub enum ICE {
         arg: Operand,
         len: usize,
     },
+    #[error("Shift operator requires an unsigned argument constant instead of {shift}")]
+    ShiftOperatorRequiresUnsignedArgumentConstant { shift: i64 },
 }
 
 #[derive(Error, Debug, Diagnostic)]

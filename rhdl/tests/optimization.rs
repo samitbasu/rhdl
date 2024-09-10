@@ -82,7 +82,30 @@ fn test_dynamic_splice_lowers_with_multiple_dimensions() -> miette::Result<()> {
 }
 
 #[test]
-fn test_shift_with_constant_argument() -> miette::Result<()> {
+fn test_left_signed_shift_with_constant_argument() -> miette::Result<()> {
+    #[kernel]
+    fn foo(a: Signal<s8, Red>) -> Signal<s8, Red> {
+        let a = a.val();
+        let a = a << 2; // Should compile down to an indexing operation.
+        signal(a)
+    }
+    let rtl = compile_design::<foo>(CompilationMode::Asynchronous)?;
+    eprintln!("{:?}", rtl);
+    rtl.ops.iter().for_each(|op| {
+        assert!(!matches!(
+            op.op,
+            rhdl_core::rtl::spec::OpCode::Binary(Binary {
+                op: AluBinary::Shl,
+                ..
+            })
+        ))
+    });
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, s8_red())?;
+    Ok(())
+}
+
+#[test]
+fn test_left_shift_with_constant_argument() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<b8, Red>) -> Signal<b8, Red> {
         let a = a.val();
@@ -101,6 +124,52 @@ fn test_shift_with_constant_argument() -> miette::Result<()> {
         ))
     });
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_exhaustive_red())?;
+    Ok(())
+}
+
+#[test]
+fn test_right_shift_with_constant_argument() -> miette::Result<()> {
+    #[kernel]
+    fn foo(a: Signal<b8, Red>) -> Signal<b8, Red> {
+        let a = a.val();
+        let a = a >> 2; // Should compile down to an indexing operation.
+        signal(a)
+    }
+    let rtl = compile_design::<foo>(CompilationMode::Asynchronous)?;
+    eprintln!("{:?}", rtl);
+    rtl.ops.iter().for_each(|op| {
+        assert!(!matches!(
+            op.op,
+            rhdl_core::rtl::spec::OpCode::Binary(Binary {
+                op: AluBinary::Shr,
+                ..
+            })
+        ))
+    });
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_exhaustive_red())?;
+    Ok(())
+}
+
+#[test]
+fn test_right_signed_shift_with_constant_argument() -> miette::Result<()> {
+    #[kernel]
+    fn foo(a: Signal<s8, Red>) -> Signal<s8, Red> {
+        let a = a.val();
+        let a = a >> 2; // Should compile down to an indexing operation.
+        signal(a)
+    }
+    let rtl = compile_design::<foo>(CompilationMode::Asynchronous)?;
+    eprintln!("{:?}", rtl);
+    rtl.ops.iter().for_each(|op| {
+        assert!(!matches!(
+            op.op,
+            rhdl_core::rtl::spec::OpCode::Binary(Binary {
+                op: AluBinary::Shr,
+                ..
+            })
+        ))
+    });
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, s8_red())?;
     Ok(())
 }
 

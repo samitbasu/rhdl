@@ -65,6 +65,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
             ))
         }
     };
+    eprintln!("Checking RHIF type correctness {:?}", obj);
     for lop in &obj.ops {
         let op = &lop.op;
         let id = lop.id;
@@ -96,7 +97,9 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 if !slot_type(arg2).is_unsigned() {
                     return Err(TypeCheckPass::raise_ice(
                         obj,
-                        ICE::ShiftOperatorRequiresUnsignedArgument,
+                        ICE::ShiftOperatorRequiresUnsignedArgument {
+                            kind: slot_type(arg2),
+                        },
                         id,
                     ));
                 }

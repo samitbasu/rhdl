@@ -170,6 +170,10 @@ impl AluBinary {
                 | AluBinary::Gt
         )
     }
+
+    pub(crate) fn is_shift(&self) -> bool {
+        matches!(self, AluBinary::Shl | AluBinary::Shr)
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Hash)]
