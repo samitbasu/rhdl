@@ -80,10 +80,18 @@ impl Pass for PrecastIntegerLiteralsInBinops {
                             .cast_details = Some((b_kind.bits(), b_sign_flag));
                     }
                     if b_is_generic {
-                        generic_int_literals
-                            .get_mut(&bin.arg2)
-                            .unwrap()
-                            .cast_details = Some((a_kind.bits(), a_sign_flag));
+                        if !bin.op.is_shift() {
+                            generic_int_literals
+                                .get_mut(&bin.arg2)
+                                .unwrap()
+                                .cast_details = Some((a_kind.bits(), a_sign_flag));
+                        } else {
+                            // Shifts are special.  The shift amount must be unsigned.
+                            generic_int_literals
+                                .get_mut(&bin.arg2)
+                                .unwrap()
+                                .cast_details = Some((a_kind.bits(), SignFlag::Unsigned));
+                        }
                     }
                 }
             }

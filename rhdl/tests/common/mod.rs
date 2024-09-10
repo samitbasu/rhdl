@@ -28,6 +28,10 @@ pub fn tuple_pair_s8_red() -> impl Iterator<Item = (Signal<s8, Red>, Signal<s8, 
     })
 }
 
+pub fn s8_red() -> impl Iterator<Item = (Signal<s8, Red>,)> + Clone {
+    exhaustive::<8>().into_iter().map(|x| (red(x.as_signed()),))
+}
+
 pub fn red<T: Digital>(x: T) -> Signal<T, Red> {
     signal(x)
 }

@@ -300,6 +300,11 @@ impl<'a> MirTypeInference<'a> {
             }
             AluBinary::Shl | AluBinary::Shr => {
                 self.unify(id, op.lhs, op.arg1)?;
+                if let Some(flag) = self.ctx.project_sign_flag(op.arg2) {
+                    let unsigned_flag = self.ctx.ty_sign_flag(id, SignFlag::Unsigned);
+                    self.unify(id, flag, unsigned_flag)?;
+                }
+
                 /*
                 TODO - do I need this?
                 if let Some(arg2) = self.ctx.project_signal_value(a2) {
