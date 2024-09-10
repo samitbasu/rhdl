@@ -5,7 +5,7 @@ use crate::{
 };
 
 pub type SynchronousUpdateFn<C> = fn(
-    bool,
+    Reset,
     <C as SynchronousIO>::I,
     <C as SynchronousDQ>::Q,
 ) -> (<C as SynchronousIO>::O, <C as SynchronousDQ>::D);

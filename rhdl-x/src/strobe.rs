@@ -59,11 +59,15 @@ impl<const N: usize> Default for D<N> {
 }
 
 #[kernel]
-pub fn strobe<const N: usize>(reset: bool, i: I, q: Q<N>) -> (bool, D<N>) {
+pub fn strobe<const N: usize>(reset: Reset, i: I, q: Q<N>) -> (bool, D<N>) {
     let mut d = D::<{ N }>::default();
     let count_next = if i.enable { q.counter + 1 } else { q.counter };
     let strobe = i.enable & (q.counter == q.threshold);
-    let count_next = if strobe || reset { bits(0) } else { count_next };
+    let count_next = if strobe || reset.any() {
+        bits(0)
+    } else {
+        count_next
+    };
     d.counter = count_next;
     (strobe, d)
 }

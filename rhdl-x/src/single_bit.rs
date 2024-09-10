@@ -23,10 +23,10 @@ impl SynchronousIO for U {
 }
 
 #[kernel]
-pub fn single_bit(reset: bool, i: bool, q: Q) -> (bool, D) {
+pub fn single_bit(reset: Reset, i: bool, q: Q) -> (bool, D) {
     let next_state = if i { !q.state } else { q.state };
     let output = q.state;
-    if reset {
+    if reset.any() {
         (false, D { state: false })
     } else {
         (output, D { state: next_state })

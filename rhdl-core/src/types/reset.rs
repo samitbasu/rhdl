@@ -9,6 +9,12 @@ impl Reset {
     pub fn raw(&self) -> bool {
         self.0
     }
+    pub fn any(self) -> bool {
+        self.0
+    }
+    pub fn all(self) -> bool {
+        self.0
+    }
 }
 
 pub fn reset(b: bool) -> Reset {

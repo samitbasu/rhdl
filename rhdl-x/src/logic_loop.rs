@@ -33,7 +33,7 @@ impl SynchronousDQ for U {
 }
 
 #[kernel]
-pub fn logic_loop(_reset: bool, i: bool, q: Q) -> (bool, D) {
+pub fn logic_loop(_reset: Reset, i: bool, q: Q) -> (bool, D) {
     let mut d = D::default();
     if i {
         d.left = q.right;
