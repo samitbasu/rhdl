@@ -63,7 +63,6 @@ impl<T: Digital> Synchronous for U<T> {
             q_kind: Kind::Empty,
             num_tristate: 0,
             tristate_offset_in_parent: 0,
-            update_schematic: None,
             update_flow_graph: flow_graph,
             children: Default::default(),
         })
