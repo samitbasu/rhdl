@@ -34,10 +34,10 @@ impl<'a> TryFrom<&'a syn::Fields> for FieldSet<'a> {
 fn define_descriptor_fn(field_set: &FieldSet) -> TokenStream {
     let component_name = &field_set.component_name;
     quote! {
-        fn descriptor(&self) -> rhdl::core::CircuitDescriptor {
-            let mut ret = rhdl::core::root_descriptor(self);
-            #(ret.add_child(stringify!(#component_name), &self.#component_name);)*
-            ret
+        fn descriptor(&self) -> Result<rhdl::core::CircuitDescriptor, rhdl::core::RHDLError> {
+            let mut ret = rhdl::core::root_descriptor(self)?;
+            #(ret.add_child(stringify!(#component_name), &self.#component_name)?;)*
+            Ok(ret)
         }
     }
 }
