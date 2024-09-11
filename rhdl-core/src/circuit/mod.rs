@@ -6,4 +6,5 @@ pub mod synchronous_flow_graph;
 pub mod synchronous_verilog;
 pub mod verilog;
 pub use synchronous_flow_graph::build_synchronous_flow_graph;
+pub mod adapter;
 pub mod circuit_flow_graph;
