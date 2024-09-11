@@ -70,7 +70,6 @@ pub fn synchronous_root_descriptor<C: Synchronous>(
         d_kind: C::D::static_kind(),
         q_kind: C::Q::static_kind(),
         num_tristate: C::Z::N,
-        update_schematic: None,
         tristate_offset_in_parent: 0,
         children: Default::default(),
         update_flow_graph: update_fg,

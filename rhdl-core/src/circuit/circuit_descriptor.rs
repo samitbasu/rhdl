@@ -2,11 +2,6 @@ use super::circuit_impl::Circuit;
 use crate::compiler::driver::compile_design_stage1;
 use crate::flow_graph::flow_graph_impl::FlowGraph;
 use crate::rhif::spec::Member;
-use crate::schematic::builder::build_schematic;
-use crate::schematic::components::{
-    ComponentKind, FieldPin, IndexComponent, KernelComponent, StructComponent,
-};
-use crate::schematic::schematic_impl::Schematic;
 use crate::types::digital::Digital;
 use crate::types::path::Path;
 use crate::types::tristate::Tristate;
@@ -30,7 +25,6 @@ pub struct CircuitDescriptor {
     pub q_kind: Kind,
     pub num_tristate: usize,
     pub tristate_offset_in_parent: usize,
-    pub update_schematic: Option<Schematic>,
     pub update_flow_graph: FlowGraph,
     pub children: HashMap<String, CircuitDescriptor>,
 }
@@ -235,7 +229,6 @@ pub fn root_descriptor<C: Circuit>(circuit: &C) -> CircuitDescriptor {
         d_kind: C::D::static_kind(),
         q_kind: C::Q::static_kind(),
         num_tristate: C::Z::N,
-        update_schematic: root_schematic::<C>(),
         update_flow_graph: FlowGraph::default(),
         tristate_offset_in_parent: 0,
         children: Default::default(),
