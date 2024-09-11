@@ -108,4 +108,32 @@ impl FlowGraph {
         self.code.extend(other.code.sources.clone());
         ret
     }
+    // Create a new, top level FG with sources for the inputs and sinks for the
+    // outputs.
+    pub fn sealed(self) -> FlowGraph {
+        let mut fg = FlowGraph::default();
+        let remap = fg.merge(&self);
+        let timing_start =
+            fg.new_component_with_optional_location(ComponentKind::TimingStart, None);
+        let timing_end = fg.new_component_with_optional_location(ComponentKind::TimingEnd, None);
+        // Create sources for all of the inputs of the internal flow graph
+        self.inputs.iter().flatten().for_each(|input| {
+            fg.edge(timing_start, remap[input], EdgeKind::Virtual);
+        });
+        self.output.iter().for_each(|output| {
+            fg.edge(remap[output], timing_end, EdgeKind::Virtual);
+        });
+        // Create links from all of the internal sources to the timing start node
+        for node in fg.graph.node_indices() {
+            if matches!(fg.graph[node].kind, ComponentKind::Source(_)) {
+                fg.edge(timing_start, node, EdgeKind::Virtual);
+            }
+            if matches!(fg.graph[node].kind, ComponentKind::Sink(_)) {
+                fg.edge(node, timing_end, EdgeKind::Virtual);
+            }
+        }
+        fg.inputs = vec![vec![timing_start]];
+        fg.output = vec![timing_end];
+        fg
+    }
 }

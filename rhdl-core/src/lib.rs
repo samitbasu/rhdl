@@ -72,7 +72,6 @@ pub const MAX_ITERS: usize = 10;
 pub mod error;
 pub use error::RHDLError;
 pub mod flow_graph;
-pub mod netlist;
 pub mod rtl;
 pub mod timing;
 pub use circuit::build_synchronous_flow_graph;

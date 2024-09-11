@@ -37,8 +37,8 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO {
     // auto derived
     fn name(&self) -> &'static str;
 
-    // auto derived
-    fn descriptor(&self) -> CircuitDescriptor {
+    // Default provides the root descriptor, but children are added via proc macro
+    fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError> {
         root_descriptor(self)
     }
 

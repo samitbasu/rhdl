@@ -89,7 +89,7 @@ fn build_synchronous_flow_graph_internal(
     }
     // Create the inputs for the children by splitting bits off of the d_index
     for (child_name, child_descriptor) in &descriptor.children {
-        // Compute the bit range for this child's input based on it's name
+        // Compute the bit range for this child's input based on its name
         // The tuple index of .1 is to get the D element of the output from the kernel
         let output_path = Path::default().field(child_name);
         let (output_bit_range, _) = bit_range(descriptor.d_kind.clone(), &output_path)?;
@@ -129,31 +129,7 @@ fn build_synchronous_flow_graph_internal(
 pub fn build_synchronous_flow_graph(
     descriptor: &CircuitDescriptor,
 ) -> Result<FlowGraph, RHDLError> {
-    let internal_fg = build_synchronous_flow_graph_internal(descriptor)?;
-    // Create a new, top level FG with sources for the inputs and sinks for the
-    // outputs.
-    let mut fg = FlowGraph::default();
-    let remap = fg.merge(&internal_fg);
-    let timing_start = fg.new_component_with_optional_location(ComponentKind::TimingStart, None);
-    let timing_end = fg.new_component_with_optional_location(ComponentKind::TimingEnd, None);
-    // Create sources for all of the inputs of the internal flow graph
-    internal_fg.inputs.iter().flatten().for_each(|input| {
-        fg.edge(timing_start, remap[input], EdgeKind::Virtual);
-    });
-    internal_fg.output.iter().for_each(|output| {
-        fg.edge(remap[output], timing_end, EdgeKind::Virtual);
-    });
-    // Create links from all of the internal sources to the timing start node
-    for node in fg.graph.node_indices() {
-        if matches!(fg.graph[node].kind, ComponentKind::Source(_)) {
-            fg.edge(timing_start, node, EdgeKind::Virtual);
-        }
-        if matches!(fg.graph[node].kind, ComponentKind::Sink(_)) {
-            fg.edge(node, timing_end, EdgeKind::Virtual);
-        }
-    }
-    fg.inputs = vec![vec![timing_start]];
-    fg.output = vec![timing_end];
+    let fg = build_synchronous_flow_graph_internal(descriptor)?.sealed();
     let fg = CheckForUndrivenPass::run(fg)?;
     Ok(fg)
 }
