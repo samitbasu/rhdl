@@ -98,7 +98,7 @@ fn test_array_indexing_2() -> miette::Result<()> {
 
 #[cfg(test)]
 fn rand_bits<const N: usize>() -> Bits<N> {
-    Bits::<N>::random()
+    Bits::<N>::uninit()
 }
 
 #[test]

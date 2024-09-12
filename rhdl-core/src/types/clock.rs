@@ -2,7 +2,7 @@ use rand::Rng;
 
 use crate::{Digital, Kind, Notable, NoteKey, NoteWriter};
 
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug, Default)]
 pub struct Clock(bool);
 
 impl Clock {
@@ -22,7 +22,7 @@ impl Digital for Clock {
     fn bin(self) -> Vec<bool> {
         vec![self.0]
     }
-    fn random() -> Self {
+    fn uninit() -> Self {
         Clock(rand::thread_rng().gen::<bool>())
     }
 }

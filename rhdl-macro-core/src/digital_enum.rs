@@ -216,7 +216,7 @@ fn make_discriminant_values_into_typed_bits(
     })
 }
 
-fn variant_random(variant: &Variant) -> TokenStream {
+fn variant_uninit(variant: &Variant) -> TokenStream {
     let ident = &variant.ident;
     match &variant.fields {
         syn::Fields::Unit => quote! { Self::#ident },
@@ -224,7 +224,7 @@ fn variant_random(variant: &Variant) -> TokenStream {
             let field_types = fields.unnamed.iter().map(|f| &f.ty);
             quote! {
                 Self::#ident(#(
-                    <#field_types as rhdl::core::Digital>::random()
+                    <#field_types as rhdl::core::Digital>::uninit()
                 ),*)
             }
         }
@@ -234,7 +234,7 @@ fn variant_random(variant: &Variant) -> TokenStream {
             quote! {
                 Self::#ident {
                     #(
-                        #field_names: <#field_types as rhdl::core::Digital>::random()
+                        #field_names: <#field_types as rhdl::core::Digital>::uninit()
                     ),*
                 }
             }
@@ -392,7 +392,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         DiscriminantAlignment::Msb => quote! { rhdl::core::DiscriminantAlignment::Msb },
     };
     let variant_names = e.variants.iter().map(|x| &x.ident).collect::<Vec<_>>();
-    let variant_randoms = e.variants.iter().map(variant_random);
+    let variant_uninits = e.variants.iter().map(variant_uninit);
     let unmatched = e
         .variants
         .iter()
@@ -537,11 +537,11 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                     )*
                 }
             }
-            fn random() -> Self {
+            fn uninit() -> Self {
                 use rand::Rng;
                 match rand::thread_rng().gen_range(#min_discriminant..=#max_discriminant) {
                     #(
-                        #discriminants => #variant_randoms,
+                        #discriminants => #variant_uninits,
                     )*
                     #fallthrough_case
                }

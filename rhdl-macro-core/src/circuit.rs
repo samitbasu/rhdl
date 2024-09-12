@@ -2,6 +2,8 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{spanned::Spanned, Attribute, Data, DeriveInput, Expr, ExprPath};
 
+use crate::utils::is_auto_dq_from_attributes;
+
 pub fn derive_circuit(input: TokenStream) -> syn::Result<TokenStream> {
     let decl = syn::parse2::<syn::DeriveInput>(input)?;
     derive_circuit_struct(decl)
@@ -45,7 +47,7 @@ fn define_descriptor_fn(field_set: &FieldSet) -> TokenStream {
 fn define_hdl_fn(field_set: &FieldSet) -> TokenStream {
     let component_name = &field_set.component_name;
     quote! {
-        fn as_hdl(&self, kind: rhdl::core::HDLKind) -> anyhow::Result<rhdl::core::HDLDescriptor> {
+        fn as_hdl(&self, kind: rhdl::core::HDLKind) -> Result<rhdl::core::HDLDescriptor, rhdl::core::RHDLError> {
             let mut ret = rhdl::core::root_hdl(self, kind)?;
             #(ret.add_child(stringify!(#component_name), &self.#component_name, kind)?;)*
             Ok(ret)
@@ -115,6 +117,7 @@ fn extract_kernel_name_from_attributes(attrs: &[Attribute]) -> syn::Result<Optio
 
 fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
+    let auto_dq = is_auto_dq_from_attributes(&decl.attrs);
     let kernel_name = extract_kernel_name_from_attributes(&decl.attrs)?;
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
     let Data::Struct(s) = &decl.data else {
@@ -129,18 +132,16 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let generics = &decl.generics;
     // Create a new struct by appending a Q to the name of the struct, and for each field, map
     // the type to <ty as rhdl::core::Circuit>::O,
-    let name_q = format_ident!("{}Q", struct_name);
     let new_struct_q = quote! {
         #[derive(Debug, Clone, PartialEq, Digital, Copy, Timed)]
-        pub struct #name_q #generics #where_clause {
+        pub struct Q #generics #where_clause {
             #(#component_name: <#component_ty as rhdl::core::CircuitIO>::O),*
         }
     };
     // Repeat with D and ::I
-    let name_d = format_ident!("{}D", struct_name);
     let new_struct_d = quote! {
         #[derive(Debug, Clone, PartialEq, Digital, Copy, Timed)]
-        pub struct #name_d #generics #where_clause {
+        pub struct D #generics #where_clause {
             #(#component_name: <#component_ty as rhdl::core::CircuitIO>::I),*
         }
     };
@@ -191,16 +192,30 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
             stringify!(#struct_name)
         }
     );
+    let dq_section = if !auto_dq {
+        quote! {}
+    } else {
+        quote! {
+            #new_struct_q
+            #new_struct_d
+
+            impl #impl_generics rhdl::core::CircuitDQ for #struct_name #ty_generics #where_clause {
+                type Q = Q #ty_generics;
+                type D = D #ty_generics;
+            }
+        }
+    };
     let circuit_impl = quote! {
         impl #impl_generics rhdl::core::Circuit for #struct_name #ty_generics #where_clause {
-            type Q = #name_q #ty_generics;
-            type D = #name_d #ty_generics;
             type Z = #name_z #ty_generics;
             type S = #state_tuple;
 
             type Update = #kernel_name;
 
-            const UPDATE: fn(Self::I, Self::Q) -> (Self::O, Self::D) = #kernel_name;
+            const UPDATE: fn(<Self as CircuitIO>::I,
+                <Self as CircuitDQ>::Q) -> (
+                    <Self as CircuitIO>::O,
+                    <Self as CircuitDQ>::D) = #kernel_name;
 
             #name_fn
 
@@ -213,8 +228,7 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     };
 
     Ok(quote! {
-        #new_struct_q
-        #new_struct_d
+        #dq_section
         #new_struct_z
         #notable_z_impl
         #tristate_z_impl

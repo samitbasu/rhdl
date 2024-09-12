@@ -659,7 +659,7 @@ mod tests {
                     raw
                 }
             }
-            fn random() -> Self {
+            fn uninit() -> Self {
                 use rand::Rng;
                 match rand::thread_rng().gen_range(0..5) {
                     0 => Self::None,
