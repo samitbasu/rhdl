@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::spanned::Spanned;
-use syn::DeriveInput;
+use syn::{Attribute, DeriveInput, Expr};
 
 pub(crate) fn get_fqdn(decl: &DeriveInput) -> TokenStream {
     let struct_name = &decl.ident;
@@ -70,4 +70,17 @@ pub(crate) fn evaluate_const_expression(expr: &syn::Expr) -> syn::Result<i64> {
             format!("Failed to evaluate expression: {}", err),
         )),
     }
+}
+
+pub(crate) fn is_auto_dq_from_attributes(attrs: &[Attribute]) -> bool {
+    for attr in attrs {
+        if attr.path().is_ident("rhdl") {
+            if let Expr::Path(expr_path) = attr.parse_args::<Expr>().unwrap() {
+                if expr_path.path.is_ident("auto_dq") {
+                    return true;
+                }
+            }
+        }
+    }
+    false
 }

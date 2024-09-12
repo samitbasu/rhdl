@@ -118,13 +118,13 @@ fn test_enum_derive() {
                         Self::Unknown => rhdl::core::Kind::Empty,
                     }
                 }
-                fn random() -> Self {
+                fn uninit() -> Self {
                     match thread_rng().gen_range(0..=4) {
                         0 => Self::A,
-                        1 => Self::B(Bits::random()),
+                        1 => Self::B(Bits::uninit()),
                         2 => Self::C {
-                            a: Bits::random(),
-                            b: Bits::random()
+                            a: Bits::uninit(),
+                            b: Bits::uninit()
                         },
                         _ => Self::Unknown,
                     }
@@ -238,7 +238,7 @@ fn test_enum_no_payloads() {
                     Self::Unknown => rhdl::core::Kind::Empty,
                 }
             }
-            fn random() -> Self {
+            fn uninit() -> Self {
                 match thread_rng().gen_range(0..=5) {
                     0 => Self::Init,
                     1 => Self::Boot,
@@ -347,7 +347,7 @@ fn test_enum_with_signed_discriminants() {
                     Self::Unknown => rhdl::core::Kind::Empty,
                 }
             }
-            fn random() -> Self {
+            fn uninit() -> Self {
                 match thread_rng().gen_range(-16..=15) {
                     1 => Self::A,
                     9 => Self::B,
@@ -440,7 +440,7 @@ fn test_enum_with_discriminants() {
                     Self::Unknown => rhdl::core::Kind::Empty,
                 }
             }
-            fn random() -> Self {
+            fn uninit() -> Self {
                 match thread_rng().gen_range(0..=15) {
                     1 => Self::A,
                     6 => Self::B,

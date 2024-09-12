@@ -5,7 +5,7 @@ use rhdl_bits::SignedBits;
 
 use crate::{Digital, Domain, Kind, Notable, Timed};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Signal<T: Digital, C: Domain> {
     val: T,
     domain: std::marker::PhantomData<C>,
@@ -22,6 +22,9 @@ impl<T: Digital, C: Domain> Signal<T, C> {
     pub fn val(&self) -> T {
         self.val
     }
+    pub fn val_mut(&mut self) -> &mut T {
+        &mut self.val
+    }
 }
 
 impl<T: Digital, C: Domain> Timed for Signal<T, C> {}
@@ -35,9 +38,9 @@ impl<T: Digital, C: Domain> Digital for Signal<T, C> {
         self.val.bin()
     }
 
-    fn random() -> Self {
+    fn uninit() -> Self {
         Self {
-            val: T::random(),
+            val: T::uninit(),
             domain: std::marker::PhantomData,
         }
     }

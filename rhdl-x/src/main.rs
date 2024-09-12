@@ -41,6 +41,7 @@ pub mod single_bit;
 //mod signal;
 //mod timeset;
 //mod visit;
+mod async_counter;
 
 //#[cfg(test)]
 //mod tests;

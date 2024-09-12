@@ -5,7 +5,7 @@ use crate::{
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
 
 pub type CircuitUpdateFn<C> =
-    fn(<C as CircuitIO>::I, <C as Circuit>::Q) -> (<C as CircuitIO>::O, <C as Circuit>::D);
+    fn(<C as CircuitIO>::I, <C as CircuitDQ>::Q) -> (<C as CircuitIO>::O, <C as CircuitDQ>::D);
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum HDLKind {
@@ -17,10 +17,12 @@ pub trait CircuitIO: 'static + Sized + Clone {
     type O: Timed;
 }
 
-pub trait Circuit: 'static + Sized + Clone + CircuitIO {
+pub trait CircuitDQ: 'static + Sized + Clone {
     type D: Timed;
     type Q: Timed;
+}
 
+pub trait Circuit: 'static + Sized + Clone + CircuitIO + CircuitDQ {
     // auto derived as the sum of NumZ of the children
     type Z: Tristate;
 

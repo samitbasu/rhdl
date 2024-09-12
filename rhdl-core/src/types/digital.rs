@@ -41,7 +41,7 @@ use rand::{thread_rng, Rng};
 ///
 /// These are all supported in `RHDL`.
 ///
-pub trait Digital: Copy + PartialEq + Sized + Clone + 'static + Notable {
+pub trait Digital: Copy + PartialEq + Sized + Clone + 'static + Notable + Default {
     fn static_kind() -> Kind;
     fn bits() -> usize {
         Self::static_kind().bits()
@@ -69,7 +69,7 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static + Notable {
             .map(|b| if *b { '1' } else { '0' })
             .collect()
     }
-    fn random() -> Self;
+    fn uninit() -> Self;
 }
 
 impl Digital for () {
@@ -79,7 +79,7 @@ impl Digital for () {
     fn bin(self) -> Vec<bool> {
         Vec::new()
     }
-    fn random() -> Self {}
+    fn uninit() -> Self {}
 }
 
 impl Notable for () {
@@ -93,7 +93,7 @@ impl Digital for bool {
     fn bin(self) -> Vec<bool> {
         vec![self]
     }
-    fn random() -> Self {
+    fn uninit() -> Self {
         rand::thread_rng().gen::<bool>()
     }
 }
@@ -111,7 +111,7 @@ impl Digital for u8 {
     fn bin(self) -> Vec<bool> {
         Bits::<8>::from(self as u128).to_bools()
     }
-    fn random() -> Self {
+    fn uninit() -> Self {
         thread_rng().gen::<u8>()
     }
 }
@@ -129,7 +129,7 @@ impl Digital for u16 {
     fn bin(self) -> Vec<bool> {
         Bits::<16>::from(self as u128).to_bools()
     }
-    fn random() -> Self {
+    fn uninit() -> Self {
         thread_rng().gen::<u16>()
     }
 }
@@ -147,7 +147,7 @@ impl Digital for usize {
     fn bin(self) -> Vec<bool> {
         Bits::<{ usize::BITS as usize }>::from(self as u128).to_bools()
     }
-    fn random() -> Self {
+    fn uninit() -> Self {
         thread_rng().gen::<usize>()
     }
 }
@@ -165,7 +165,7 @@ impl Digital for u128 {
     fn bin(self) -> Vec<bool> {
         Bits::<128>::from(self).to_bools()
     }
-    fn random() -> Self {
+    fn uninit() -> Self {
         thread_rng().gen::<u128>()
     }
 }
@@ -183,7 +183,7 @@ impl Digital for i128 {
     fn bin(self) -> Vec<bool> {
         SignedBits::<128>::from(self).as_unsigned().to_bools()
     }
-    fn random() -> Self {
+    fn uninit() -> Self {
         thread_rng().gen::<i128>()
     }
 }
@@ -203,7 +203,7 @@ impl Digital for i32 {
             .as_unsigned()
             .to_bools()
     }
-    fn random() -> Self {
+    fn uninit() -> Self {
         thread_rng().gen::<i32>()
     }
 }
@@ -221,7 +221,7 @@ impl Digital for i8 {
     fn bin(self) -> Vec<bool> {
         SignedBits::<8>::from(self as i128).as_unsigned().to_bools()
     }
-    fn random() -> Self {
+    fn uninit() -> Self {
         thread_rng().gen::<i8>()
     }
 }
@@ -241,7 +241,7 @@ impl Digital for i64 {
             .as_unsigned()
             .to_bools()
     }
-    fn random() -> Self {
+    fn uninit() -> Self {
         thread_rng().gen::<i64>()
     }
 }
@@ -259,7 +259,7 @@ impl<const N: usize> Digital for Bits<N> {
     fn bin(self) -> Vec<bool> {
         self.to_bools()
     }
-    fn random() -> Self {
+    fn uninit() -> Self {
         Bits::from(thread_rng().gen::<u128>() & Bits::<N>::mask().0)
     }
 }
@@ -277,8 +277,8 @@ impl<const N: usize> Digital for SignedBits<N> {
     fn bin(self) -> Vec<bool> {
         self.as_unsigned().to_bools()
     }
-    fn random() -> Self {
-        Bits::<N>::random().as_signed()
+    fn uninit() -> Self {
+        Bits::<N>::uninit().as_signed()
     }
 }
 
@@ -296,8 +296,8 @@ impl<T0: Digital> Digital for (T0,) {
     fn bin(self) -> Vec<bool> {
         self.0.bin()
     }
-    fn random() -> Self {
-        (T0::random(),)
+    fn uninit() -> Self {
+        (T0::uninit(),)
     }
 }
 
@@ -316,8 +316,8 @@ impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
         v.extend(self.1.bin());
         v
     }
-    fn random() -> Self {
-        (T0::random(), T1::random())
+    fn uninit() -> Self {
+        (T0::uninit(), T1::uninit())
     }
 }
 
@@ -342,8 +342,8 @@ impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {
         v.extend(self.2.bin());
         v
     }
-    fn random() -> Self {
-        (T0::random(), T1::random(), T2::random())
+    fn uninit() -> Self {
+        (T0::uninit(), T1::uninit(), T2::uninit())
     }
 }
 
@@ -371,8 +371,8 @@ impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2
         v.extend(self.3.bin());
         v
     }
-    fn random() -> Self {
-        (T0::random(), T1::random(), T2::random(), T3::random())
+    fn uninit() -> Self {
+        (T0::uninit(), T1::uninit(), T2::uninit(), T3::uninit())
     }
 }
 
@@ -397,29 +397,46 @@ impl<T0: Notable, T1: Notable, T2: Notable, T3: Notable, T4: Notable> Notable
     }
 }
 
-impl<T: Digital, const N: usize> Digital for [T; N] {
-    fn static_kind() -> Kind {
-        Kind::make_array(T::static_kind(), N)
-    }
-    fn bin(self) -> Vec<bool> {
-        let mut v = Vec::new();
-        for x in self.iter() {
-            v.extend(x.bin());
+// macro to add digital trait for array of size N
+// The following macro is used to generate the implementations for
+// arrays of size N.  This is done because Rust does not allow
+// for the implementation of traits for arrays of arbitrary size.
+macro_rules! impl_array {
+    ($N:expr) => {
+        impl<T: Digital> Digital for [T; $N] {
+            fn static_kind() -> Kind {
+                Kind::make_array(T::static_kind(), $N)
+            }
+            fn bin(self) -> Vec<bool> {
+                let mut v = Vec::new();
+                for x in self.iter() {
+                    v.extend(x.bin());
+                }
+                v
+            }
+            fn uninit() -> Self {
+                [T::uninit(); $N]
+            }
         }
-        v
-    }
-    fn random() -> Self {
-        [T::random(); N]
-    }
+
+        impl<T: Notable> Notable for [T; $N] {
+            fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
+                for (i, x) in self.iter().enumerate() {
+                    x.note((key, i), &mut writer);
+                }
+            }
+        }
+    };
 }
 
-impl<T: Notable, const N: usize> Notable for [T; N] {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        for (i, x) in self.iter().enumerate() {
-            x.note((key, i), &mut writer);
-        }
-    }
-}
+impl_array!(1);
+impl_array!(2);
+impl_array!(3);
+impl_array!(4);
+impl_array!(5);
+impl_array!(6);
+impl_array!(7);
+impl_array!(8);
 
 #[cfg(test)]
 mod test {
@@ -537,11 +554,11 @@ mod test {
                     raw
                 }
             }
-            fn random() -> Self {
+            fn uninit() -> Self {
                 match thread_rng().gen_range(0..=5) {
                     0 => Self::None,
                     1 => Self::Bool(thread_rng().gen::<bool>()),
-                    2 => Self::Tuple(thread_rng().gen::<bool>(), Bits::<3>::random()),
+                    2 => Self::Tuple(thread_rng().gen::<bool>(), Bits::<3>::uninit()),
                     3 => {
                         let mut a = [false; 3];
                         (0..3).for_each(|i| {
@@ -551,7 +568,7 @@ mod test {
                     }
                     4 => Self::Strct {
                         a: thread_rng().gen::<bool>(),
-                        b: Bits::<3>::random(),
+                        b: Bits::<3>::uninit(),
                     },
                     _ => Self::Invalid,
                 }
@@ -672,7 +689,7 @@ mod test {
                     Self::Invalid => rhdl_bits::bits::<3>(5).to_bools(),
                 }
             }
-            fn random() -> Self {
+            fn uninit() -> Self {
                 match thread_rng().gen_range(0..6) {
                     0 => Self::Init,
                     1 => Self::Boot,

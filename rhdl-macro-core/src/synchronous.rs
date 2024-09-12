@@ -2,6 +2,8 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{spanned::Spanned, Attribute, Data, DeriveInput, Expr, ExprPath};
 
+use crate::utils::is_auto_dq_from_attributes;
+
 pub fn derive_synchronous(input: TokenStream) -> syn::Result<TokenStream> {
     let decl = syn::parse2::<syn::DeriveInput>(input)?;
     derive_synchronous_struct(decl)
@@ -81,19 +83,6 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
             panic!("Simulation did not converge");
         }
     }
-}
-
-fn is_auto_dq_from_attributes(attrs: &[Attribute]) -> bool {
-    for attr in attrs {
-        if attr.path().is_ident("rhdl") {
-            if let Expr::Path(expr_path) = attr.parse_args::<Expr>().unwrap() {
-                if expr_path.path.is_ident("auto_dq") {
-                    return true;
-                }
-            }
-        }
-    }
-    false
 }
 
 fn kernel_name_from_attribute(attr: &Attribute) -> syn::Result<Option<ExprPath>> {

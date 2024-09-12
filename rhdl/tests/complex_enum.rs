@@ -42,7 +42,7 @@ impl Default for Packet {
 #[test]
 fn test_packet_random() {
     for _ in 0..10 {
-        let packet = Packet::random();
+        let packet = Packet::uninit();
         eprintln!("{:?}", packet);
     }
 }

@@ -8,6 +8,8 @@ pub trait DigitalFn {
     }
 }
 
+impl DigitalFn for () {}
+
 // See: https://jsdw.me/posts/rust-fn-traits/
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Hash)]
