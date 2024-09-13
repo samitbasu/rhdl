@@ -26,12 +26,10 @@ impl VisitMut for CustomSuffix {
     // match on values with a custom suffix.
     fn visit_pat_mut(&mut self, node: &mut Pat) {
         // FIXME - Need to parse the pattern properly
-        let mut replaced = false;
         if let Pat::TupleStruct(ts) = node {
             if let Some(path) = ts.path.get_ident() {
                 if path == "b7" {
                     ts.path = parse_quote!(rhdl_bits::Bits::<7>);
-                    replaced = true;
                 }
             }
         }

@@ -95,7 +95,7 @@ pub fn traced_simulation<T: Circuit>(
 ) {
     note_init_db();
     note_time(0);
-    let mut state = <T as Circuit>::S::random();
+    let mut state = <T as Circuit>::S::uninit();
     let mut io = <T as Circuit>::Z::default();
     for sample in inputs {
         note_time(sample.time);
@@ -117,8 +117,8 @@ pub fn traced_synchronous_simulation<S: Synchronous>(
     note_time(0);
     let clock_stream = sim_clock(100);
     let reset_stream = sim_clock_reset(clock_stream);
-    let mut state = S::S::random();
-    let mut input = S::I::random();
+    let mut state = S::S::uninit();
+    let mut input = S::I::uninit();
     let mut io = S::Z::default();
     for cr in reset_stream {
         if cr.value.clock.raw() && !cr.value.reset.raw() {
@@ -144,8 +144,30 @@ pub fn traced_synchronous_simulation<S: Synchronous>(
 }
 
 #[test]
+fn test_async_counter() {
+    let clock_stream = sim_clock(100);
+    let reset_stream = sim_clock_reset(clock_stream);
+    let inputs = reset_stream
+        .map(|x| {
+            timed_sample(
+                async_counter::I {
+                    clock: signal(x.value.clock),
+                    reset: signal(x.value.reset),
+                    enable: signal(counter::I {
+                        enable: x.time >= 1000 && x.time <= 10000,
+                    }),
+                },
+                x.time,
+            )
+        })
+        .take_while(|x| x.time < 20000);
+    let uut: async_counter::U = async_counter::U::default();
+    traced_simulation(uut, inputs, "async_counter.vcd")
+}
+
+#[test]
 fn test_dff() {
-    let inputs = (0..).map(|_| Bits::random()).take(1000);
+    let inputs = (0..).map(|_| Bits::uninit()).take(1000);
     let uut: dff::U<b4> = dff::U::new(b4::from(0b0000));
     traced_synchronous_simulation(uut, inputs, "dff.vcd");
 }

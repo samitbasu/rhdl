@@ -1,13 +1,9 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 use petgraph::{Directed, Graph};
 
 use crate::{
-    ast::{
-        ast_impl::FunctionId,
-        source_location::SourceLocation,
-        spanned_source::{SpannedSource, SpannedSourceSet},
-    },
+    ast::{source_location::SourceLocation, spanned_source::SpannedSourceSet},
     rtl::object::RegisterKind,
 };
 

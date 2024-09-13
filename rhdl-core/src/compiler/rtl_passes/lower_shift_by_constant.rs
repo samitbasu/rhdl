@@ -1,5 +1,3 @@
-use core::panic;
-
 use crate::{
     ast::source_location::SourceLocation,
     compiler::mir::error::ICE,

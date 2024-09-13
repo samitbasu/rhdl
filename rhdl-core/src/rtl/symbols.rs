@@ -4,9 +4,7 @@ use std::{
 };
 
 use crate::ast::{
-    ast_impl::FunctionId,
-    source_location::SourceLocation,
-    spanned_source::{SpannedSource, SpannedSourceSet},
+    ast_impl::FunctionId, source_location::SourceLocation, spanned_source::SpannedSourceSet,
 };
 
 use super::spec::Operand;

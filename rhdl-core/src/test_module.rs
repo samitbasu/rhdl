@@ -371,7 +371,7 @@ where
     let flow_graph = build_test_module_flowgraph(&rtl);
     // Write the flow graph to a DOT file
     write_dot(&flow_graph, std::fs::File::create("test_module.dot")?)?;
-    let flow_graph = CheckForUndrivenPass::run(flow_graph)?;
+    let _flow_graph = CheckForUndrivenPass::run(flow_graph)?;
     let verilog = generate_verilog(&rtl)?;
     eprintln!("Verilog {:?}", verilog);
     let tm = test_module(uut, verilog, vals);

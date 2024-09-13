@@ -41,7 +41,7 @@ use rand::{thread_rng, Rng};
 ///
 /// These are all supported in `RHDL`.
 ///
-pub trait Digital: Copy + PartialEq + Sized + Clone + 'static + Notable + Default {
+pub trait Digital: Copy + PartialEq + Sized + Clone + 'static + Notable {
     fn static_kind() -> Kind;
     fn bits() -> usize {
         Self::static_kind().bits()
@@ -401,7 +401,7 @@ impl<T0: Notable, T1: Notable, T2: Notable, T3: Notable, T4: Notable> Notable
 // The following macro is used to generate the implementations for
 // arrays of size N.  This is done because Rust does not allow
 // for the implementation of traits for arrays of arbitrary size.
-macro_rules! impl_array {
+/* macro_rules! impl_array {
     ($N:expr) => {
         impl<T: Digital> Digital for [T; $N] {
             fn static_kind() -> Kind {
@@ -437,6 +437,32 @@ impl_array!(5);
 impl_array!(6);
 impl_array!(7);
 impl_array!(8);
+
+ */
+
+impl<T: Digital, const N: usize> Digital for [T; N] {
+    fn static_kind() -> Kind {
+        Kind::make_array(T::static_kind(), N)
+    }
+    fn bin(self) -> Vec<bool> {
+        let mut v = Vec::new();
+        for x in self.iter() {
+            v.extend(x.bin());
+        }
+        v
+    }
+    fn uninit() -> Self {
+        [T::uninit(); N]
+    }
+}
+
+impl<T: Notable, const N: usize> Notable for [T; N] {
+    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
+        for (i, x) in self.iter().enumerate() {
+            x.note((key, i), &mut writer);
+        }
+    }
+}
 
 #[cfg(test)]
 mod test {
