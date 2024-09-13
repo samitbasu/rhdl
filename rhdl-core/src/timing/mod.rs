@@ -2,12 +2,9 @@ use std::collections::HashMap;
 
 use petgraph::visit::EdgeRef;
 
-use crate::{
-    flow_graph::{
-        component::ComponentKind,
-        flow_graph_impl::{FlowGraph, FlowIx},
-    },
-    rhif::spec::AluBinary,
+use crate::flow_graph::{
+    component::ComponentKind,
+    flow_graph_impl::{FlowGraph, FlowIx},
 };
 
 // Not a realistic model.  Just counts the number of non-trivial ops in the path.

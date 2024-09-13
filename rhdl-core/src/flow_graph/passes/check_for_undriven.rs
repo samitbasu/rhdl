@@ -3,8 +3,6 @@
 // 2. It is constant
 
 use crate::{
-    compiler::mir::error::ICE,
-    error::rhdl_error,
     flow_graph::{component::ComponentKind, error::FlowGraphICE, flow_graph_impl::FlowGraph},
     RHDLError,
 };

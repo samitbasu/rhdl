@@ -5,7 +5,7 @@ use rhdl_bits::SignedBits;
 
 use crate::{Digital, Domain, Kind, Notable, Timed};
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug)]
 pub struct Signal<T: Digital, C: Domain> {
     val: T,
     domain: std::marker::PhantomData<C>,
@@ -51,6 +51,38 @@ impl<T: Digital, C: Domain> Notable for Signal<T, C> {
         self.val.note(key, writer);
     }
 }
+
+/* macro_rules! impl_index {
+    ($M: expr) => {
+        impl<T: Digital, C: Domain, const N: usize> std::ops::Index<Signal<Bits<N>, C>>
+            for Signal<[T; $M], C>
+        {
+            type Output = T;
+
+            fn index(&self, index: Signal<Bits<N>, C>) -> &Self::Output {
+                &self.val[index.val]
+            }
+        }
+
+        impl<T: Digital, C: Domain, const N: usize> std::ops::IndexMut<Signal<Bits<N>, C>>
+            for Signal<[T; $M], C>
+        {
+            fn index_mut(&mut self, index: Signal<Bits<N>, C>) -> &mut Self::Output {
+                &mut self.val[index.val]
+            }
+        }
+    };
+}
+
+impl_index!(1);
+impl_index!(2);
+impl_index!(3);
+impl_index!(4);
+impl_index!(5);
+impl_index!(6);
+impl_index!(7);
+impl_index!(8);
+ */
 
 impl<T: Digital, C: Domain, const M: usize, const N: usize> std::ops::Index<Signal<Bits<N>, C>>
     for Signal<[T; M], C>

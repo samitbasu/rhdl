@@ -1,6 +1,5 @@
 use crate::{
     flow_graph::{
-        component::ComponentKind,
         edge_kind::EdgeKind,
         flow_graph_impl::{FlowGraph, FlowIx},
         passes::{check_for_undriven::CheckForUndrivenPass, pass::Pass},

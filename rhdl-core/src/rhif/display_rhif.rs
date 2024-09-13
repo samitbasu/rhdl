@@ -118,9 +118,9 @@ impl std::fmt::Debug for OpCode {
             }
             OpCode::Resize(Cast { lhs, arg, len }) => {
                 if let Some(len) = len {
-                    return write!(f, " {:?} <- {:?}.resize::<{}>", lhs, arg, len);
+                    write!(f, " {:?} <- {:?}.resize::<{}>", lhs, arg, len)
                 } else {
-                    return write!(f, " {:?} <- {:?}.resize", lhs, arg);
+                    write!(f, " {:?} <- {:?}.resize", lhs, arg)
                 }
             }
             OpCode::Retime(Retime { lhs, arg, color }) => {

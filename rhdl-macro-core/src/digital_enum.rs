@@ -172,7 +172,7 @@ fn allocate_discriminants(discriminants: &[Option<i64>]) -> Vec<i64> {
         .collect()
 }
 
-fn variant_kind_mapping(enum_name: &Ident, variant: &Variant, discriminant: i64) -> TokenStream {
+fn variant_kind_mapping(enum_name: &Ident, variant: &Variant) -> TokenStream {
     match &variant.fields {
         syn::Fields::Unit => quote! {rhdl::core::Kind::Empty},
         syn::Fields::Unnamed(fields) => {
@@ -448,8 +448,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
     let kind_mapping = e
         .variants
         .iter()
-        .zip(discriminants_values.iter())
-        .map(|(v, d)| variant_kind_mapping(enum_name, v, *d));
+        .map(|v| variant_kind_mapping(enum_name, v));
     let variant_kind_mapping = kind_mapping.clone();
     let kind = discriminant_kind(&discriminants_values);
     let width_override = parse_discriminant_width_attribute(&decl.attrs)?;

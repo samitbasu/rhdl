@@ -69,7 +69,7 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
                 #(
                     rhdl::core::note_push_path(stringify!(#component_name));
                     state.0.#component_name =
-                    self.#component_name.sim(internal_inputs.#component_name, &mut state.#component_index, /*&mut io.#component_name*/);
+                    self.#component_name.sim(internal_inputs.#component_name, &mut state.#component_index, &mut io.#component_name);
                     rhdl::core::note_pop_path();
                 )*
                 if state == &prev_state {
