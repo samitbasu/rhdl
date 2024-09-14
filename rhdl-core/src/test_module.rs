@@ -197,9 +197,8 @@ where
     let VerilogDescriptor { name, body } = desc;
     let mut num_cases = 0;
     let cases = vals
-        .map(|x| {
+        .inspect(|_| {
             num_cases += 1;
-            x
         })
         .map(|arg| uut.test_string(&name, arg))
         .collect::<String>();

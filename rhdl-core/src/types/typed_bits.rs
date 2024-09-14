@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use std::iter::repeat;
 
 use crate::dyn_bit_manip::bits_shr_signed;
@@ -6,14 +5,14 @@ use crate::dyn_bit_manip::{
     bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
 };
 use crate::error::{rhdl_error, RHDLError};
-use crate::util::binary_string;
-use crate::Digital;
+use crate::types::bitx::bitx_string;
 use crate::{
     types::path::{bit_range, Path},
     Kind,
 };
 use crate::{Color, VariantType};
 
+use super::bitx::BitX;
 use super::error::DynamicTypeError;
 use super::kind::Array;
 use super::kind::Enum;
@@ -22,9 +21,9 @@ use super::kind::Tuple;
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
-#[derive(Clone, PartialEq, Serialize, Deserialize, Eq, Hash)]
+#[derive(Clone, PartialEq, Hash)]
 pub struct TypedBits {
-    pub bits: Vec<bool>,
+    pub bits: Vec<BitX>,
     pub kind: Kind,
 }
 
@@ -32,7 +31,7 @@ impl From<i64> for TypedBits {
     fn from(mut val: i64) -> Self {
         let mut bits = Vec::new();
         for _ in 0..64 {
-            bits.push(val & 1 != 0);
+            bits.push((val & 1 != 0).into());
             val >>= 1;
         }
         TypedBits {
@@ -46,7 +45,7 @@ impl From<u64> for TypedBits {
     fn from(mut val: u64) -> Self {
         let mut bits = Vec::new();
         for _ in 0..64 {
-            bits.push(val & 1 != 0);
+            bits.push((val & 1 != 0).into());
             val >>= 1;
         }
         TypedBits {
@@ -61,7 +60,15 @@ impl TypedBits {
         bits: Vec::new(),
         kind: Kind::Empty,
     };
-
+    pub fn as_uninit(self) -> Self {
+        TypedBits {
+            bits: repeat(BitX::X).take(self.kind.bits()).collect(),
+            kind: self.kind,
+        }
+    }
+    pub fn is_initialized(&self) -> bool {
+        self.bits.iter().all(|x| x.is_init())
+    }
     pub fn path(&self, path: &Path) -> Result<TypedBits> {
         let (range, kind) = bit_range(self.kind.clone(), path)?;
         Ok(TypedBits {
@@ -120,7 +127,7 @@ impl TypedBits {
                 .bits
                 .iter()
                 .copied()
-                .chain(repeat(false))
+                .chain(repeat(BitX::Zero))
                 .take(bits)
                 .collect(),
             kind: Kind::make_bits(bits),
@@ -146,6 +153,12 @@ impl TypedBits {
         }
     }
     pub fn resize(&self, bits: usize) -> Result<TypedBits> {
+        if !self.is_initialized() {
+            return Err(rhdl_error(DynamicTypeError::ResizeUninitializedValue {
+                value: self.clone(),
+                len: bits,
+            }));
+        }
         match &self.kind {
             Kind::Bits(_) => Ok(self.resize_unsigned(bits)),
             Kind::Signed(_) => Ok(self.resize_signed(bits)),
@@ -156,20 +169,26 @@ impl TypedBits {
         }
     }
     pub fn unsigned_cast(&self, bits: usize) -> Result<TypedBits> {
+        if !self.is_initialized() {
+            return Err(rhdl_error(DynamicTypeError::ResizeUninitializedValue {
+                value: self.clone(),
+                len: bits,
+            }));
+        }
         if bits > self.kind.bits() {
             return Ok(TypedBits {
                 bits: self
                     .bits
                     .clone()
                     .into_iter()
-                    .chain(repeat(false))
+                    .chain(repeat(BitX::Zero))
                     .take(bits)
                     .collect(),
                 kind: Kind::make_bits(bits),
             });
         }
         let (base, rest) = self.bits.split_at(bits);
-        if rest.iter().any(|b| *b) {
+        if rest.iter().any(|b| b.maybe_one()) {
             return Err(rhdl_error(DynamicTypeError::UnsignedCastWithWidthFailed {
                 value: self.clone(),
                 bits,
@@ -181,6 +200,12 @@ impl TypedBits {
         })
     }
     pub fn signed_cast(&self, bits: usize) -> Result<TypedBits> {
+        if !self.is_initialized() {
+            return Err(rhdl_error(DynamicTypeError::ResizeUninitializedValue {
+                value: self.clone(),
+                len: bits,
+            }));
+        }
         if bits > self.kind.bits() {
             let sign_bit = self.bits.last().cloned().unwrap_or_default();
             return Ok(TypedBits {
@@ -208,6 +233,11 @@ impl TypedBits {
         })
     }
     pub fn as_i64(&self) -> Result<i64> {
+        if !self.is_initialized() {
+            return Err(rhdl_error(DynamicTypeError::UnableToInterpretAsI64 {
+                kind: self.kind.clone(),
+            }));
+        }
         let tb64 = match &self.kind {
             Kind::Bits(_) => self.unsigned_cast(64)?,
             Kind::Signed(_) => self.signed_cast(64)?,
@@ -226,12 +256,25 @@ impl TypedBits {
         Ok(ret as i64)
     }
     pub fn any(&self) -> TypedBits {
-        self.bits.iter().any(|b| *b).typed_bits()
+        let any = self.bits.iter().fold(BitX::Zero, |a, b| a | *b);
+        TypedBits {
+            bits: vec![any],
+            kind: Kind::make_bool(),
+        }
     }
     pub fn all(&self) -> TypedBits {
-        self.bits.iter().all(|b| *b).typed_bits()
+        let all = self.bits.iter().fold(BitX::One, |a, b| a & *b);
+        TypedBits {
+            bits: vec![all],
+            kind: Kind::make_bool(),
+        }
     }
     pub fn as_signed(&self) -> Result<TypedBits> {
+        if !self.is_initialized() {
+            return Err(rhdl_error(DynamicTypeError::SignedCastFailed {
+                value: self.clone(),
+            }));
+        }
         if let Kind::Bits(ndx) = self.kind {
             Ok(TypedBits {
                 bits: self.bits.clone(),
@@ -244,6 +287,11 @@ impl TypedBits {
         }
     }
     pub fn as_unsigned(&self) -> Result<TypedBits> {
+        if !self.is_initialized() {
+            return Err(rhdl_error(DynamicTypeError::UnsignedCastFailed {
+                value: self.clone(),
+            }));
+        }
         if let Kind::Signed(ndx) = self.kind {
             Ok(TypedBits {
                 bits: self.bits.clone(),
@@ -256,6 +304,11 @@ impl TypedBits {
         }
     }
     pub fn sign_bit(&self) -> Result<TypedBits> {
+        if !self.is_initialized() {
+            return Err(rhdl_error(DynamicTypeError::CannotGetSignBit {
+                value: self.clone(),
+            }));
+        }
         if self.kind.is_signed() {
             Ok(TypedBits {
                 bits: vec![self.bits.last().cloned().unwrap_or_default()],
@@ -268,11 +321,14 @@ impl TypedBits {
         }
     }
     pub fn xor(&self) -> TypedBits {
-        self.bits.iter().fold(false, |a, b| a ^ b).typed_bits()
+        TypedBits {
+            bits: vec![self.bits.iter().fold(BitX::Zero, |a, b| a ^ *b)],
+            kind: Kind::make_bool(),
+        }
     }
     pub fn as_bool(&self) -> Result<bool> {
         if self.kind.is_bool() {
-            Ok(self.bits[0])
+            self.bits[0].try_into()
         } else {
             Err(rhdl_error(DynamicTypeError::CannotCastToBool {
                 value: self.clone(),
@@ -291,38 +347,6 @@ impl TypedBits {
                 .collect(),
             kind: Kind::make_array(self.kind.clone(), count),
         }
-    }
-    pub fn get_bit(&self, index: usize) -> Result<TypedBits> {
-        if index >= self.bits.len() {
-            return Err(rhdl_error(DynamicTypeError::CannotGetBit {
-                ndx: index,
-                value: self.clone(),
-            }));
-        }
-        Ok(TypedBits {
-            bits: vec![self.bits[index]],
-            kind: Kind::make_bits(1),
-        })
-    }
-    pub fn set_bit(&self, index: usize, val: bool) -> Result<TypedBits> {
-        if index >= self.bits.len() {
-            return Err(rhdl_error(DynamicTypeError::CannotSetBit {
-                ndx: index,
-                value: self.clone(),
-                bit: val,
-            }));
-        }
-        if self.kind.is_composite() {
-            return Err(rhdl_error(DynamicTypeError::CannotSetBitOnComposite {
-                value: self.clone(),
-            }));
-        }
-        let mut new_bits = self.bits.clone();
-        new_bits[index] = val;
-        Ok(TypedBits {
-            bits: new_bits,
-            kind: self.kind.clone(),
-        })
     }
     pub fn slice(&self, offset: usize, count: usize) -> Result<TypedBits> {
         if self.kind.is_composite() {
@@ -362,7 +386,7 @@ impl TypedBits {
             ""
         };
         let width = self.bits.len();
-        let bs = binary_string(&self.bits);
+        let bs = bitx_string(&self.bits);
         format!("{width}'{signed}b{bs}")
     }
 }
@@ -588,7 +612,7 @@ impl std::fmt::Debug for TypedBits {
 
 fn write_kind_with_bits(
     kind: &Kind,
-    bits: &[bool],
+    bits: &[BitX],
     f: &mut std::fmt::Formatter<'_>,
 ) -> std::fmt::Result {
     match kind {
@@ -606,7 +630,11 @@ fn write_kind_with_bits(
     }
 }
 
-fn interpret_bits_as_i64(bits: &[bool], signed: bool) -> i64 {
+fn interpret_bits_as_i64(bits: &[BitX], signed: bool) -> Result<i64> {
+    let bits = bits
+        .iter()
+        .map(|&x| x.try_into())
+        .collect::<Result<Vec<bool>>>()?;
     // If the value is signed, then we sign extend it to 128 bits
     let value = if signed {
         let sign = bits.last().copied().unwrap_or_default();
@@ -619,17 +647,20 @@ fn interpret_bits_as_i64(bits: &[bool], signed: bool) -> i64 {
             .rev()
             .fold(0_u128, |acc, b| (acc << 1) | (*b as u128)) as i128
     };
-    value as i64
+    Ok(value as i64)
 }
 
 fn write_enumerate(
     enumerate: &Enum,
-    bits: &[bool],
+    bits: &[BitX],
     f: &mut std::fmt::Formatter<'_>,
 ) -> std::fmt::Result {
     let root_kind = Kind::Enum(enumerate.clone());
     let (range, kind) = bit_range(root_kind.clone(), &Path::default().discriminant()).unwrap();
-    let discriminant_value = interpret_bits_as_i64(&bits[range], kind.is_signed());
+    let discriminant_value = match interpret_bits_as_i64(&bits[range], kind.is_signed()) {
+        Ok(val) => val,
+        Err(_) => return write!(f, "{}::??", enumerate.name),
+    };
     // Get the variant for this discriminant
     let variant = enumerate
         .variants
@@ -651,7 +682,7 @@ fn write_enumerate(
 
 fn write_struct(
     structure: &Struct,
-    bits: &[bool],
+    bits: &[BitX],
     f: &mut std::fmt::Formatter<'_>,
 ) -> std::fmt::Result {
     write!(f, "{} {{", structure.name)?;
@@ -669,7 +700,7 @@ fn write_struct(
     write!(f, "}}")
 }
 
-fn write_array(array: &Array, bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+fn write_array(array: &Array, bits: &[BitX], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "[")?;
     let root_kind = Kind::Array(array.clone());
     for ndx in 0..(array.size) {
@@ -684,33 +715,55 @@ fn write_array(array: &Array, bits: &[bool], f: &mut std::fmt::Formatter<'_>) ->
     write!(f, "]")
 }
 
-fn write_bits(bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+fn write_bits(bits: &[BitX], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     if bits.len() == 1 {
-        return write!(f, "{}", if bits[0] { "true" } else { "false" });
+        return write!(
+            f,
+            "{}",
+            match bits[0] {
+                BitX::Zero => "false",
+                BitX::One => "true",
+                BitX::X => "x",
+            }
+        );
     }
-    // We know that the bits array will fit into a u128.
-    let val = bits
+    write!(f, "{}_b{}", bitx_string(bits), bits.len())
+}
+
+fn write_signed(bits: &[BitX], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    if bits.len() == 1 {
+        return write!(
+            f,
+            "{}",
+            if bits[0].is_one() {
+                "-1".to_string()
+            } else {
+                bits[0].to_string()
+            }
+        );
+    }
+    let bools = bits
         .iter()
-        .rev()
-        .fold(0_u128, |acc, b| (acc << 1) | (*b as u128));
-    write!(f, "{:x}_b{}", val, bits.len())
-}
-
-fn write_signed(bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    if bits.len() == 1 {
-        return write!(f, "{}", if bits[0] { "-1" } else { "0" });
+        .map(|&x| x.try_into())
+        .collect::<Result<Vec<bool>>>();
+    match bools {
+        Ok(bits) => {
+            // We know that the bits array will fit into a i128.
+            let bit_len = bits.len();
+            let sign_bit = bits.last().cloned().unwrap_or_default();
+            let val = repeat(&sign_bit)
+                .take(128 - bit_len)
+                .chain(bits.iter().rev())
+                .fold(0_i128, |acc, b| (acc << 1_i128) | (*b as i128));
+            write!(f, "{}_s{}", val, bits.len())
+        }
+        Err(_) => {
+            write!(f, "{}_s{}", bitx_string(bits), bits.len())
+        }
     }
-    // We know that the bits array will fit into a i128.
-    let bit_len = bits.len();
-    let sign_bit = bits.last().cloned().unwrap_or_default();
-    let val = repeat(&sign_bit)
-        .take(128 - bit_len)
-        .chain(bits.iter().rev())
-        .fold(0_i128, |acc, b| (acc << 1_i128) | (*b as i128));
-    write!(f, "{}_s{}", val, bits.len())
 }
 
-fn write_tuple(tuple: &Tuple, bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+fn write_tuple(tuple: &Tuple, bits: &[BitX], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "(")?;
     let root_kind = Kind::Tuple(tuple.clone());
     for ndx in 0..(tuple.elements.len()) {

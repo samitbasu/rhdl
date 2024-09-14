@@ -8,6 +8,7 @@ use crate::{
         spec::{OpCode, Operand},
         Object,
     },
+    types::bitx::BitX,
 };
 
 use super::{
@@ -208,7 +209,9 @@ impl<'a> FlowGraphBuilder<'a> {
         let use_unsigned = matches!(cast.kind, tl::CastKind::Unsigned)
             || (matches!(cast.kind, tl::CastKind::Resize) && !lhs_signed);
         if use_unsigned {
-            let zero = self.fg.new_component(ComponentKind::Constant(false), loc);
+            let zero = self
+                .fg
+                .new_component(ComponentKind::Constant(BitX::Zero), loc);
             for lhs in lhs.iter().skip(arg.len()) {
                 self.fg.edge(zero, *lhs, EdgeKind::Arg(0));
             }

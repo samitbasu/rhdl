@@ -160,6 +160,24 @@ fn test_adt_inference_subset() -> miette::Result<()> {
 }
 
 #[test]
+fn test_adt_equivalence() -> miette::Result<()> {
+    #[derive(PartialEq, Copy, Clone, Digital, Debug)]
+    pub enum NooState {
+        Init,
+        Run(b4, b5),
+        Walk { foo: b5 },
+        Boom,
+    }
+
+    let a = NooState::Walk { foo: bits(3) };
+    let b = NooState::Walk { foo: bits(3) };
+    eprintln!("{}", bitx_string(&a.typed_bits().bits));
+    eprintln!("{}", bitx_string(&b.typed_bits().bits));
+    assert_eq!(a, b);
+    Ok(())
+}
+
+#[test]
 fn test_adt_inference() -> miette::Result<()> {
     use rhdl_bits::alias::*;
     use rhdl_bits::bits;
@@ -435,6 +453,33 @@ fn test_enum_match_signed_discriminant() -> miette::Result<()> {
 }
 
 #[test]
+fn test_enum_bitx() -> miette::Result<()> {
+    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
+    enum Foo {
+        A,
+        B(b8),
+        C {
+            red: b8,
+            green: b8,
+            blue: b8,
+        },
+        #[rhdl(unmatched)]
+        D,
+    }
+
+    #[kernel]
+    fn foo(a: Signal<bool, Red>) -> Signal<Foo, Red> {
+        signal(if a.val() { Foo::A } else { Foo::B(bits(3)) })
+    }
+
+    test_kernel_vm_and_verilog::<foo, _, _, _>(
+        foo,
+        [(signal(true),), (signal(false),)].into_iter(),
+    )?;
+    Ok(())
+}
+
+#[test]
 #[allow(clippy::comparison_chain)]
 fn test_enum_basic() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
@@ -466,7 +511,6 @@ fn test_enum_basic() -> miette::Result<()> {
             }
         })
     }
-
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
     Ok(())
 }

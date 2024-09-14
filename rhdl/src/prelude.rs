@@ -31,6 +31,7 @@ pub use rhdl_core::rhif::spec::OpCode;
 pub use rhdl_core::rhif::Object;
 pub use rhdl_core::rtl::vm::execute;
 pub use rhdl_core::test_kernel_vm_and_verilog;
+pub use rhdl_core::types::bitx::bitx_string;
 pub use rhdl_core::types::bitz::BitZ;
 pub use rhdl_core::types::clock::clock;
 pub use rhdl_core::types::clock::Clock;

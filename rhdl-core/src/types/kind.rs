@@ -7,7 +7,7 @@ use crate::{
     TypedBits,
 };
 
-use super::{domain::Color, error::DynamicTypeError};
+use super::{bitx::BitX, domain::Color, error::DynamicTypeError};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum Kind {
@@ -258,6 +258,25 @@ impl Kind {
             _ => bits.collect(),
         }
     }
+    fn pad_x(&self, bits: Vec<BitX>) -> Vec<BitX> {
+        if bits.len() > self.bits() {
+            panic!("Too many bits for kind!");
+        }
+        let pad_len = self.bits() - bits.len();
+        let bits = bits.into_iter().chain(repeat(BitX::X).take(pad_len));
+        match self {
+            Kind::Enum(kind) => match kind.discriminant_layout.alignment {
+                DiscriminantAlignment::Lsb => bits.collect(),
+                DiscriminantAlignment::Msb => {
+                    let discriminant_width = kind.discriminant_layout.width;
+                    let discriminant = bits.clone().take(discriminant_width);
+                    let payload = bits.skip(discriminant_width);
+                    payload.chain(discriminant).collect()
+                }
+            },
+            _ => bits.collect(),
+        }
+    }
     pub fn get_field_kind(&self, member: &Member) -> Result<Kind> {
         let field_name = match member {
             Member::Named(name) => name.clone(),
@@ -348,7 +367,7 @@ impl Kind {
 
     pub fn place_holder(&self) -> TypedBits {
         TypedBits {
-            bits: repeat(false).take(self.bits()).collect(),
+            bits: repeat(BitX::X).take(self.bits()).collect(),
             kind: self.clone(),
         }
     }
@@ -394,7 +413,16 @@ impl Kind {
             DiscriminantType::Signed => discriminant.signed_cast(e.discriminant_layout.width),
             DiscriminantType::Unsigned => discriminant.unsigned_cast(e.discriminant_layout.width),
         }?;
-        let all_bits = self.pad(discriminant_bits.bits);
+        let all_bits = self.pad_x(discriminant_bits.bits);
+        // I am not sure about this.  The enum template will only have certain bits defined (the discriminant)
+        // and those bits of the variant that are defined by the discriminant.  The rest of the bits are don't
+        // cares.  While I could treat these as undefined, for now, I have decided to set them to zero.
+        // This is perhaps the least surprising assumption.  I can't see (at the moment) how this would cause
+        // issues in the hardware implementation of a design.
+        let all_bits = all_bits
+            .into_iter()
+            .map(|x| if x.is_x() { BitX::Zero } else { x })
+            .collect();
         Ok(TypedBits {
             kind: self.clone(),
             bits: all_bits,
@@ -1006,12 +1034,12 @@ mod test {
         let template = kind.enum_template("A").unwrap();
         let disc: TypedBits = (-1_i64).into();
         let disc = disc.signed_cast(4).unwrap();
-        let pad = kind.pad(disc.bits);
+        let pad = kind.pad_x(disc.bits);
         assert_eq!(template.bits, pad);
         let template = kind.enum_template("B").unwrap();
         let disc: TypedBits = 1_i64.into();
         let disc = disc.signed_cast(4).unwrap();
-        let pad = kind.pad(disc.bits);
+        let pad = kind.pad_x(disc.bits);
         assert_eq!(template.bits, pad);
     }
 

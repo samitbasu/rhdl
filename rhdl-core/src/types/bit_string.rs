@@ -1,11 +1,13 @@
 use std::iter::repeat;
 
-use crate::{util::binary_string, Kind, RHDLError, TypedBits};
+use crate::{Kind, RHDLError, TypedBits};
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+use super::bitx::{bitx_string, BitX};
+
+#[derive(Clone, PartialEq, Hash)]
 pub enum BitString {
-    Signed(Vec<bool>),
-    Unsigned(Vec<bool>),
+    Signed(Vec<BitX>),
+    Unsigned(Vec<BitX>),
 }
 
 impl BitString {
@@ -24,7 +26,7 @@ impl BitString {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    pub fn bits(&self) -> &[bool] {
+    pub fn bits(&self) -> &[BitX] {
         match self {
             BitString::Signed(bits) => bits,
             BitString::Unsigned(bits) => bits,
@@ -46,18 +48,18 @@ impl BitString {
         Ok(bs.into())
     }
     pub fn num_ones(&self) -> usize {
-        self.bits().iter().filter(|b| **b).count()
+        self.bits().iter().filter(|&b| b.is_one()).count()
     }
     pub fn trailing_zeros(&self) -> usize {
-        self.bits().iter().take_while(|b| !*b).count()
+        self.bits().iter().take_while(|b| b.is_zero()).count()
     }
 
     pub(crate) fn is_zero(&self) -> bool {
-        self.bits().iter().all(|b| !*b)
+        self.bits().iter().all(|b| b.is_zero())
     }
 
     pub(crate) fn zeros(shift_amount: usize) -> BitString {
-        BitString::Unsigned(repeat(false).take(shift_amount).collect())
+        BitString::Unsigned(repeat(BitX::Zero).take(shift_amount).collect())
     }
 }
 
@@ -65,11 +67,11 @@ impl std::fmt::Debug for BitString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             BitString::Signed(bits) => {
-                write!(f, "s{}", binary_string(bits))?;
+                write!(f, "s{}", bitx_string(bits))?;
                 Ok(())
             }
             BitString::Unsigned(bits) => {
-                write!(f, "b{}", binary_string(bits))?;
+                write!(f, "b{}", bitx_string(bits))?;
                 Ok(())
             }
         }

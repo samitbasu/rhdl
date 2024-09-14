@@ -6,6 +6,7 @@ use std::hash::Hasher;
 use std::ops::Range;
 
 use crate::ast::spanned_source::SpannedSource;
+use crate::types::bitx::bitx_string;
 use crate::{
     ast::ast_impl::{FunctionId, NodeId},
     rhif::spec::Slot,
@@ -120,7 +121,14 @@ impl std::fmt::Debug for Object {
             writeln!(f, "Reg {:?} : {:?} // {}", regs, self.kind[regs], slot_name)?;
         }
         for (slot, literal) in self.literals.iter() {
-            writeln!(f, "Literal {:?} : {:?} = {:?}", slot, literal.kind, literal)?;
+            writeln!(
+                f,
+                "Literal {:?} : {:?} = {:?} ({})",
+                slot,
+                literal.kind,
+                literal,
+                bitx_string(&literal.bits)
+            )?;
         }
         for (ndx, func) in self.externals.iter() {
             writeln!(f, "Function {:?} object: {:?}", ndx, func)?;

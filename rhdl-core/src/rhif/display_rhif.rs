@@ -93,12 +93,16 @@ impl std::fmt::Debug for OpCode {
                 fields,
                 template,
             }) => {
+                let discriminant = match template.discriminant() {
+                    Ok(d) => format!("#{:?}", d),
+                    Err(_) => "??".to_string(),
+                };
                 write!(
                     f,
-                    " {:?} <- {}#{:?}({})",
+                    " {:?} <- {}#{}({})",
                     lhs,
                     template.kind.get_name(),
-                    template.discriminant().unwrap(),
+                    discriminant,
                     splice(fields, ", ")
                 )
             }

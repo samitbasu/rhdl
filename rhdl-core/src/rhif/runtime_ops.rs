@@ -16,16 +16,16 @@ fn mul(a: TypedBits, b: TypedBits) -> Result<TypedBits, RHDLError> {
         ));
     }
     if a.kind.is_signed() {
-        let a_bi = to_bigint(&a.bits);
-        let b_bi = to_bigint(&b.bits);
+        let a_bi = to_bigint(&a.bits)?;
+        let b_bi = to_bigint(&b.bits)?;
         let result = a_bi * b_bi;
         Ok(TypedBits {
             bits: from_bigint(&result, a.bits.len() + b.bits.len()),
             kind: Kind::Signed(a.bits.len() + b.bits.len()),
         })
     } else {
-        let a_bi = to_biguint(&a.bits);
-        let b_bi = to_biguint(&b.bits);
+        let a_bi = to_biguint(&a.bits)?;
+        let b_bi = to_biguint(&b.bits)?;
         let result = a_bi * b_bi;
         Ok(TypedBits {
             bits: from_biguint(&result, a.bits.len() + b.bits.len()),

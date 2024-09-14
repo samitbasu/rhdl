@@ -54,6 +54,10 @@ impl BitX {
     pub fn is_zero(&self) -> bool {
         matches!(self, BitX::Zero)
     }
+
+    pub fn is_x(&self) -> bool {
+        matches!(self, BitX::X)
+    }
 }
 
 impl From<bool> for BitX {
@@ -155,5 +159,7 @@ impl std::fmt::Display for BitX {
 }
 
 pub fn bitx_string(x: &[BitX]) -> String {
-    x.iter().map(|x| format!("{}", x)).collect()
+    x.iter()
+        .rev()
+        .fold(String::new(), |acc, x| acc + &format!("{}", x))
 }

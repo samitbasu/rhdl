@@ -78,7 +78,7 @@ fn test_color_case() {
             .path(&Path::default().payload("Color").field("g"))
             .unwrap()
             .bits,
-        b8::from(0b11010101).bin()
+        b8::from(0b11010101).bitx()
     );
     assert_eq!(
         foo_test
@@ -92,11 +92,11 @@ fn test_color_case() {
             .path(&Path::default().payload("Color").field("r"))
             .unwrap()
             .bits,
-        b8::from(0b10101010).bin()
+        b8::from(0b10101010).bitx()
     );
     assert_eq!(
         foo_test.path(&Path::default().discriminant()).unwrap().bits,
-        b5::from(0b00001).bin()
+        b5::from(0b00001).bitx()
     );
 }
 
@@ -112,7 +112,7 @@ fn test_size_case() {
             .path(&Path::default().payload("Size").field("w"))
             .unwrap()
             .bits,
-        b16::from(0b1010101010101010).bin()
+        b16::from(0b1010101010101010).bitx()
     );
     assert_eq!(
         foo_test
@@ -126,11 +126,11 @@ fn test_size_case() {
             .path(&Path::default().payload("Size").field("h"))
             .unwrap()
             .bits,
-        b16::from(0b1101010110101010).bin()
+        b16::from(0b1101010110101010).bitx()
     );
     assert_eq!(
         foo_test.path(&Path::default().discriminant()).unwrap().bits,
-        b5::from(0b00010).bin()
+        b5::from(0b00010).bitx()
     );
 }
 
@@ -142,7 +142,7 @@ fn test_position_case() {
             .path(&Path::default().payload("Position").tuple_index(0))
             .unwrap()
             .bits,
-        b4::from(0b1010).bin()
+        b4::from(0b1010).bitx()
     );
     assert_eq!(
         foo_test
@@ -156,11 +156,11 @@ fn test_position_case() {
             .path(&Path::default().payload("Position").tuple_index(1))
             .unwrap()
             .bits,
-        b4::from(0b1101).bin()
+        b4::from(0b1101).bitx()
     );
     assert_eq!(
         foo_test.path(&Path::default().discriminant()).unwrap().bits,
-        b5::from(0b00100).bin()
+        b5::from(0b00100).bitx()
     );
 }
 
@@ -177,11 +177,11 @@ fn test_state_case() {
             )
             .unwrap()
             .bits,
-        s3::from(2).bin()
+        s3::from(2).bitx()
     );
     assert_eq!(
         packet.path(&Path::default().discriminant()).unwrap().bits,
-        b5::from(0b01000).bin()
+        b5::from(0b01000).bitx()
     );
     let packet = Packet::State(State::Init).typed_bits();
     assert_eq!(
@@ -194,7 +194,7 @@ fn test_state_case() {
             )
             .unwrap()
             .bits,
-        s3::from(-2).bin()
+        s3::from(-2).bitx()
     );
 }
 
@@ -213,7 +213,7 @@ fn test_nested_struct_case() {
             .path(&Path::default().payload("Log").field("msg"))
             .unwrap()
             .bits,
-        b32::from(0xDEAD_BEEF).bin()
+        b32::from(0xDEAD_BEEF).bitx()
     );
     assert_eq!(
         packet
@@ -225,14 +225,14 @@ fn test_nested_struct_case() {
             )
             .unwrap()
             .bits,
-        b1::from(1).bin()
+        b1::from(1).bitx()
     );
     assert_eq!(
         packet
             .path(&Path::default().payload("Log").field("level").field("level"))
             .unwrap()
             .bits,
-        b8::from(0xBA).bin()
+        b8::from(0xBA).bitx()
     )
 }
 

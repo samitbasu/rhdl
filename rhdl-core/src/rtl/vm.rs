@@ -144,7 +144,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                     .iter()
                     .flat_map(|x| x.bits())
                     .copied()
-                    .collect::<Vec<bool>>();
+                    .collect::<Vec<_>>();
                 match state.obj.kind(*lhs) {
                     RegisterKind::Signed(_) => {
                         state.write(*lhs, BitString::Signed(combined), loc)?;
@@ -223,7 +223,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let cond = state.read(*cond, loc)?;
                 let true_value = state.read(*true_value, loc)?;
                 let false_value = state.read(*false_value, loc)?;
-                let result = if cond.bits().iter().any(|x| *x) {
+                let result = if cond.bits().iter().any(|x| x.is_one()) {
                     true_value
                 } else {
                     false_value

@@ -39,14 +39,14 @@ pub enum RHDLError {
     IOError(#[from] std::io::Error),
     #[error("Verilog Verification Error: Expected {expected}, got {got}")]
     VerilogVerificationError { expected: String, got: String },
-    #[error("Verilog Verification Error: Expected {expected:?} got {actual:?}")]
+    #[error("Verilog Typed Verification Error: Expected {expected:?} got {actual:?}")]
     VerilogVerificationErrorTyped {
         expected: TypedBits,
         actual: TypedBits,
     },
     #[error("Cannot convert kernel function to Verilog descriptor {value:?}")]
     CannotConvertKernelFunctionToVerilogDescriptor { value: Box<KernelFnKind> },
-    #[error("Verilog Verification Error: Expected {expected:?} got {actual:?}")]
+    #[error("Verilog Verification Error in RTL: Expected {expected:?} got {actual:?}")]
     VerilogVerificationErrorRTL {
         expected: BitString,
         actual: BitString,

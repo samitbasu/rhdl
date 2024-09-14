@@ -2,7 +2,7 @@ use rhdl_bits::{Bits, SignedBits};
 
 use crate::{Kind, NoteKey, NoteWriter, TypedBits};
 
-use super::note::Notable;
+use super::{bitx::BitX, note::Notable};
 use rand::{thread_rng, Rng};
 
 /// This is the core trait for all of `RHDL` data elements.  If you
@@ -50,9 +50,12 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static + Notable {
         Self::static_kind()
     }
     fn bin(self) -> Vec<bool>;
+    fn bitx(self) -> Vec<BitX> {
+        self.bin().iter().map(|&x| x.into()).collect()
+    }
     fn typed_bits(self) -> TypedBits {
         TypedBits {
-            bits: self.bin(),
+            bits: self.bitx(),
             kind: self.kind(),
         }
     }

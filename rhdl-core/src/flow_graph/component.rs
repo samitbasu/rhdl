@@ -1,7 +1,7 @@
 use crate::{
     ast::source_location::SourceLocation,
     rhif::spec::{AluBinary, AluUnary},
-    types::bit_string::BitString,
+    types::{bit_string::BitString, bitx::BitX},
 };
 
 #[derive(Debug, Clone)]
@@ -46,7 +46,7 @@ pub enum ComponentKind {
     BlackBox(BlackBox),
     Buffer(String),
     Case(Case),
-    Constant(bool),
+    Constant(BitX),
     DynamicIndex(DynamicIndex),
     DynamicSplice(DynamicSplice),
     Select,
@@ -70,7 +70,7 @@ impl std::fmt::Debug for Component {
             ComponentKind::BlackBox(blackbox) => write!(f, "{}", blackbox.name),
             ComponentKind::Buffer(name) => write!(f, "{name}"),
             ComponentKind::Case(_) => write!(f, "Case"),
-            ComponentKind::Constant(constant) => write!(f, "{}", if *constant { 1 } else { 0 }),
+            ComponentKind::Constant(constant) => write!(f, "{constant}"),
             ComponentKind::DynamicIndex(dynamic_index) => write!(f, "[[{}]]", dynamic_index.len),
             ComponentKind::DynamicSplice(dynamic_splice) => write!(f, "//{}//", dynamic_splice.len),
             ComponentKind::Select => write!(f, "?"),

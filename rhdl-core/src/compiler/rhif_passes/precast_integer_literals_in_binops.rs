@@ -17,7 +17,7 @@ use crate::{
 #[derive(Default, Debug, Clone)]
 pub struct PrecastIntegerLiteralsInBinops {}
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, Hash, PartialEq)]
 struct CastCandidate {
     literal: TypedBits,
     cast_details: Option<(usize, SignFlag)>,

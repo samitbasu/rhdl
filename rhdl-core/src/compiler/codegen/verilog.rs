@@ -11,8 +11,7 @@ use crate::{
         spec::{CastKind, Operand},
     },
     test_module::VerilogDescriptor,
-    types::bit_string::BitString,
-    util::binary_string,
+    types::{bit_string::BitString, bitx::bitx_string},
     RHDLError,
 };
 
@@ -50,7 +49,7 @@ fn reg_decl(name: &str, kind: RegisterKind) -> String {
 fn verilog_literal(bs: &BitString) -> String {
     let signed = if bs.is_signed() { "s" } else { "" };
     let width = bs.len();
-    let bs = binary_string(bs.bits());
+    let bs = bitx_string(bs.bits());
     format!("{width}'{signed}b{bs}")
 }
 

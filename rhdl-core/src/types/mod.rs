@@ -1,4 +1,5 @@
 pub mod bit_string;
+pub mod bitx;
 pub mod bitz;
 pub mod clock;
 pub mod digital;

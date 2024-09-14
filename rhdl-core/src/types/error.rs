@@ -77,4 +77,10 @@ pub enum DynamicTypeError {
     ShiftAmountMustBeLessThan { value: TypedBits, max: usize },
     #[error("Reinterpret cast of {value:?} into len {len} failed")]
     ReinterpretCastFailed { value: TypedBits, len: usize },
+    #[error("An uninitialized value was used as a discriminant: {value:?}")]
+    UninitializedValueAsDiscriminant { value: TypedBits },
+    #[error("An uninitialized value was resized: {value:?} to length {len}")]
+    ResizeUninitializedValue { value: TypedBits, len: usize },
+    #[error("Attempted to convert an uninitialized value to a bool")]
+    CannotConvertXToBool,
 }
