@@ -95,7 +95,7 @@ pub fn traced_simulation<T: Circuit>(
 ) {
     note_init_db();
     note_time(0);
-    let mut state = <T as Circuit>::S::uninit();
+    let mut state = <T as Circuit>::S::init();
     let mut io = <T as Circuit>::Z::default();
     for sample in inputs {
         note_time(sample.time);
@@ -117,8 +117,8 @@ pub fn traced_synchronous_simulation<S: Synchronous>(
     note_time(0);
     let clock_stream = sim_clock(100);
     let reset_stream = sim_clock_reset(clock_stream);
-    let mut state = S::S::uninit();
-    let mut input = S::I::uninit();
+    let mut state = S::S::init();
+    let mut input = S::I::init();
     let mut io = S::Z::default();
     for cr in reset_stream {
         if cr.value.clock.raw() && !cr.value.reset.raw() {
@@ -167,7 +167,7 @@ fn test_async_counter() {
 
 #[test]
 fn test_dff() {
-    let inputs = (0..).map(|_| Bits::uninit()).take(1000);
+    let inputs = (0..).map(|_| Bits::init()).take(1000);
     let uut: dff::U<b4> = dff::U::new(b4::from(0b0000));
     traced_synchronous_simulation(uut, inputs, "dff.vcd");
 }
