@@ -778,11 +778,19 @@ impl Context {
                 return Ok(quote! {
                     bob.block_expr(bob.block(vec![]))
                 });
-            } else if name.ident == "default" || name.ident == "uninit" {
+            } else if name.ident == "default" {
                 return Ok(quote! {
                     bob.lit_expr(
                         bob.expr_lit_typed_bits(
                             rhdl::core::Digital::typed_bits(#expr)
+                        )
+                    )
+                });
+            } else if name.ident == "uninit" {
+                return Ok(quote! {
+                    bob.lit_expr(
+                        bob.expr_lit_typed_bits(
+                            rhdl::core::Digital::typed_bits(#expr).as_uninit()
                         )
                     )
                 });

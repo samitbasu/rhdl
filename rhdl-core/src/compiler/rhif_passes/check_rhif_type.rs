@@ -18,6 +18,7 @@ use crate::{
 
 use super::pass::Pass;
 
+#[derive(Default, Debug, Clone)]
 pub struct TypeCheckPass;
 
 impl Pass for TypeCheckPass {

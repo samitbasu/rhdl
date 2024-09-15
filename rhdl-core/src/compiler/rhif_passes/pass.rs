@@ -5,7 +5,7 @@ use crate::{
     rhif::Object,
 };
 
-pub trait Pass {
+pub trait Pass: Default + std::fmt::Debug {
     fn raise_ice(obj: &Object, cause: ICE, id: NodeId) -> RHDLError {
         rhdl_error(RHDLCompileError {
             cause,

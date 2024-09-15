@@ -17,6 +17,7 @@ use crate::{
 
 use super::pass::Pass;
 
+#[derive(Default, Debug, Clone)]
 pub struct CheckClockCoherence {}
 
 impl Pass for CheckClockCoherence {

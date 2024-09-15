@@ -10,6 +10,7 @@ use crate::{
 
 use super::pass::Pass;
 
+#[derive(Default, Debug, Clone)]
 pub struct LowerDynamicIndicesWithConstantArguments {}
 
 fn simplify_path(path: Path, obj: &Object) -> Path {

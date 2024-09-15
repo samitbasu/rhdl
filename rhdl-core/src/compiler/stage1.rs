@@ -31,6 +31,7 @@ type Result<T> = std::result::Result<T, RHDLError>;
 fn wrap_pass<P: Pass>(obj: Object) -> Result<Object> {
     let obj = P::run(obj)?;
     let obj = SymbolTableIsComplete::run(obj)?;
+    eprintln!("After pass:{:?}\n{:?}", P::default(), obj);
     Ok(obj)
 }
 

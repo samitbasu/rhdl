@@ -19,6 +19,7 @@ struct InitSet<'a> {
     set: HashSet<Slot>,
 }
 
+#[derive(Default, Debug, Clone)]
 pub struct DataFlowCheckPass;
 
 impl Pass for DataFlowCheckPass {

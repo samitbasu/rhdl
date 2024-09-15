@@ -16,6 +16,7 @@ use crate::{
 
 use super::pass::Pass;
 
+#[derive(Default, Debug, Clone)]
 pub struct ConstantPropagation {}
 
 fn assign_literal(id: NodeId, value: TypedBits, obj: &mut Object) -> Slot {
