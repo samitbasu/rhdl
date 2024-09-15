@@ -11,11 +11,11 @@ type CounterI = <Adapter<crate::counter::U<4>, Red> as CircuitIO>::I;
 
 #[kernel]
 pub fn async_counter(i: I, q: Q) -> (O, D) {
-    let mut d = D::uninit();
+    let mut d = D::init();
     d.counter.clock = i.clock;
     d.counter.reset = i.reset;
     d.counter.input = i.enable;
-    let mut o = O::uninit();
+    let mut o = O::init();
     o.count = q.counter;
     (o, d)
 }

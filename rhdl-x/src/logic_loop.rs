@@ -60,7 +60,8 @@ fn test_logic_loop() -> miette::Result<()> {
             let dest = &uut_fg.graph[dest];
             eprintln!("{:?} -> {:?}", source, dest);
         }
-        panic!("Logic loop detected");
+    } else {
+        panic!("No loop found");
     }
     let mut dot = std::fs::File::create("logic_loop.dot").unwrap();
     write_dot(&uut_fg, &mut dot).unwrap();
