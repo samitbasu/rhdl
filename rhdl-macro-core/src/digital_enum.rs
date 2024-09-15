@@ -70,19 +70,6 @@ fn override_width(
     }
 }
 
-fn parse_unmatched_attribute(attrs: &[Attribute]) -> bool {
-    for attr in attrs {
-        if attr.path().is_ident("rhdl") {
-            if let Ok(Expr::Path(path)) = attr.parse_args::<Expr>() {
-                if path.path.is_ident("unmatched") {
-                    return true;
-                }
-            }
-        }
-    }
-    false
-}
-
 fn parse_discriminant_alignment_attribute(
     attrs: &[Attribute],
 ) -> syn::Result<Option<DiscriminantAlignment>> {
@@ -214,32 +201,6 @@ fn make_discriminant_values_into_typed_bits(
             }
         }
     })
-}
-
-fn variant_uninit(variant: &Variant) -> TokenStream {
-    let ident = &variant.ident;
-    match &variant.fields {
-        syn::Fields::Unit => quote! { Self::#ident },
-        syn::Fields::Unnamed(fields) => {
-            let field_types = fields.unnamed.iter().map(|f| &f.ty);
-            quote! {
-                Self::#ident(#(
-                    <#field_types as rhdl::core::Digital>::uninit()
-                ),*)
-            }
-        }
-        syn::Fields::Named(fields) => {
-            let field_names = fields.named.iter().map(|f| &f.ident);
-            let field_types = fields.named.iter().map(|f| &f.ty);
-            quote! {
-                Self::#ident {
-                    #(
-                        #field_names: <#field_types as rhdl::core::Digital>::uninit()
-                    ),*
-                }
-            }
-        }
-    }
 }
 
 fn variant_payload_bin(
@@ -381,7 +342,6 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
     let enum_name = &decl.ident;
     let fqdn = crate::utils::get_fqdn(&decl);
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
-    let span = decl.span();
     let Data::Enum(e) = decl.data else {
         return Err(syn::Error::new(decl.span(), "Only enums can be digital"));
     };
@@ -392,42 +352,6 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         DiscriminantAlignment::Msb => quote! { rhdl::core::DiscriminantAlignment::Msb },
     };
     let variant_names = e.variants.iter().map(|x| &x.ident).collect::<Vec<_>>();
-    let variant_uninits = e.variants.iter().map(variant_uninit);
-    let unmatched = e
-        .variants
-        .iter()
-        .find(|x| parse_unmatched_attribute(&x.attrs));
-    if let Some(unmatched_variant) = unmatched {
-        if unmatched_variant.fields != syn::Fields::Unit {
-            return Err(syn::Error::new(
-                unmatched_variant.span(),
-                "Only unit variants can be tagged as #[invalid]",
-            ));
-        }
-        if unmatched_variant.discriminant.is_some() {
-            return Err(syn::Error::new(
-                unmatched_variant.span(),
-                "Invalid variants cannot have a discriminant",
-            ));
-        }
-    }
-    let variant_ty = e.variants.iter().map(|x| {
-        if parse_unmatched_attribute(&x.attrs) {
-            quote!(rhdl::core::VariantType::Unmatched)
-        } else {
-            quote!(rhdl::core::VariantType::Normal)
-        }
-    });
-    let fallthrough_case = if let Some(variant) = unmatched {
-        let ident = &variant.ident;
-        quote! {
-            _ => { Self::#ident }
-        }
-    } else {
-        quote! {
-            _ => { unreachable!() }
-        }
-    };
     let variant_destructure_args = e
         .variants
         .iter()
@@ -459,21 +383,6 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         .zip(discriminants_values.iter())
         .map(|(variant, discriminant)| variant_note_case(variant, kind, discriminant));
     let width_bits = kind.bits();
-    if ((discriminants_values.len() as u128) < 2_u128.pow(width_bits as u32)) && unmatched.is_none()
-    {
-        return Err(syn::Error::new(
-            span,
-            "Discriminant width is too large for the number of variants, and no variant is tagged as #[rhdl(unmatched)].\nYou need to add a unit variant tagged as #[rhdl(unmatched)] to handle uninitialized cases.",
-        ));
-    }
-    if ((discriminants_values.len() as u128) == 2_u128.pow(width_bits.saturating_sub(1) as u32) + 1)
-        && unmatched.is_some()
-    {
-        return Err(syn::Error::new(
-            span,
-            "Adding an unmatched variant is unnecessary when the number of variants is 2^(n). \n Remove the #[rhdl(unmatched)] tag from the variant.",
-        ));
-    }
     let discriminants = discriminants_values
         .iter()
         .map(|x| quote! { #x })
@@ -489,14 +398,6 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         DiscriminantType::Unsigned(_) => quote! { rhdl::core::DiscriminantType::Unsigned },
         DiscriminantType::Signed(_) => quote! { rhdl::core::DiscriminantType::Signed },
     };
-    let min_discriminant = match kind {
-        DiscriminantType::Unsigned(_) => 0_i64,
-        DiscriminantType::Signed(_) => -(2_i128.pow(width_bits as u32 - 1)) as i64,
-    };
-    let max_discriminant = match kind {
-        DiscriminantType::Unsigned(_) => (2_i128.pow(width_bits as u32) - 1) as i64,
-        DiscriminantType::Signed(_) => (2_i128.pow(width_bits as u32 - 1) - 1) as i64,
-    };
     Ok(quote! {
         impl #impl_generics rhdl::core::Digital for #enum_name #ty_generics #where_clause {
             fn static_kind() -> rhdl::core::Kind {
@@ -504,7 +405,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                     #fqdn,
                     vec![
                         #(
-                            rhdl::core::Kind::make_variant(stringify!(#variant_names), #kind_mapping, #discriminants, #variant_ty)
+                            rhdl::core::Kind::make_variant(stringify!(#variant_names), #kind_mapping, #discriminants)
                         ),*
                     ],
                     rhdl::core::Kind::make_discriminant_layout(
@@ -536,14 +437,8 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                     )*
                 }
             }
-            fn uninit() -> Self {
-                use rand::Rng;
-                match rand::thread_rng().gen_range(#min_discriminant..=#max_discriminant) {
-                    #(
-                        #discriminants => #variant_uninits,
-                    )*
-                    #fallthrough_case
-               }
+            fn init() -> Self {
+                <Self as Default>::default()
             }
         }
         impl #impl_generics rhdl::core::Notable for #enum_name #ty_generics #where_clause {

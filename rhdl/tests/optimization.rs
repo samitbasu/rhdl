@@ -331,8 +331,9 @@ fn test_constant_propogation_with_struct_with_rest() -> miette::Result<()> {
 
 #[test]
 fn test_constant_propogation_with_enum() -> miette::Result<()> {
-    #[derive(Copy, Clone, PartialEq, Digital)]
+    #[derive(Copy, Clone, PartialEq, Digital, Default)]
     enum FooEnum {
+        #[default]
         A,
         B(b4),
     }
@@ -581,8 +582,9 @@ fn test_empty_indices_dropped() -> miette::Result<()> {
 #[allow(clippy::let_unit_value)]
 #[allow(unused_variables)]
 fn test_empty_case_dropped() -> miette::Result<()> {
-    #[derive(Copy, Clone, PartialEq, Digital)]
+    #[derive(Copy, Clone, PartialEq, Digital, Default)]
     enum Color {
+        #[default]
         Red,
         Green,
         Blue,

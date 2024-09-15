@@ -39,7 +39,6 @@ pub use rhdl_core::types::digital_fn::DigitalFn;
 pub use rhdl_core::types::domain::Domain;
 pub use rhdl_core::types::domain::{Blue, Green, Indigo, Orange, Red, Violet, Yellow};
 pub use rhdl_core::types::kind::Kind;
-pub use rhdl_core::types::kind::VariantType;
 pub use rhdl_core::types::note::Notable;
 pub use rhdl_core::types::note::NoteKey;
 pub use rhdl_core::types::path::bit_range;

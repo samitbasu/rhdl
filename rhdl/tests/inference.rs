@@ -23,12 +23,12 @@ fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
         c: [u8; 3],
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(PartialEq, Copy, Clone, Default, Digital)]
     pub enum State {
         Init,
         Run(u8),
         Boom,
-        #[rhdl(unmatched)]
+        #[default]
         Unknown,
     }
 
@@ -212,11 +212,14 @@ fn test_struct_inference_inferred_lengths() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Digital)]
     pub struct Bar(pub u8, pub u8);
 
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(PartialEq, Copy, Clone, Default, Digital)]
     pub enum NooState {
+        #[default]
         Init,
         Run(b4, b5),
-        Walk { foo: b5 },
+        Walk {
+            foo: b5,
+        },
         Boom,
     }
 
@@ -286,11 +289,14 @@ fn test_struct_inference() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Digital)]
     pub struct Bar(pub u8, pub u8);
 
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(PartialEq, Copy, Clone, Default, Digital)]
     pub enum NooState {
+        #[default]
         Init,
         Run(b4, b5),
-        Walk { foo: b5 },
+        Walk {
+            foo: b5,
+        },
         Boom,
     }
 

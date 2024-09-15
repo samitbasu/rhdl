@@ -553,7 +553,7 @@ mod tests {
     use crate::{
         rhif::spec::{RegisterId, Slot},
         types::{kind::DiscriminantLayout, path::path_star},
-        Kind, VariantType,
+        Kind,
     };
 
     use super::{leaf_paths, Path};
@@ -578,8 +578,8 @@ mod tests {
         let kind = Kind::make_enum(
             "bar",
             vec![
-                Kind::make_variant("a", Kind::make_bits(8), 0, VariantType::Normal),
-                Kind::make_variant("b", lev2.clone(), 1, VariantType::Normal),
+                Kind::make_variant("a", Kind::make_bits(8), 0),
+                Kind::make_variant("b", lev2.clone(), 1),
             ],
             DiscriminantLayout {
                 width: 8,

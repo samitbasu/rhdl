@@ -7,12 +7,12 @@ use crate::dyn_bit_manip::{
 };
 use crate::error::{rhdl_error, RHDLError};
 use crate::util::binary_string;
+use crate::Color;
 use crate::Digital;
 use crate::{
     types::path::{bit_range, Path},
     Kind,
 };
-use crate::{Color, VariantType};
 
 use super::error::DynamicTypeError;
 use super::kind::Array;
@@ -90,22 +90,6 @@ impl TypedBits {
             self.path(&Path::default().discriminant())
         } else {
             Ok(self.clone())
-        }
-    }
-    pub fn is_unmatched_variant(&self) -> bool {
-        if !self.kind.is_enum() {
-            return false;
-        }
-        let Ok(discriminant) = self.discriminant() else {
-            return false;
-        };
-        let Ok(discriminant) = discriminant.as_i64() else {
-            return false;
-        };
-        if let Some(variant) = self.kind.lookup_variant(discriminant) {
-            variant.ty == VariantType::Unmatched
-        } else {
-            false
         }
     }
     fn resize_unsigned(&self, bits: usize) -> TypedBits {
@@ -775,7 +759,6 @@ mod tests {
                             stringify!(A),
                             Kind::make_tuple(vec![<Bar as Digital>::static_kind()]),
                             0i64,
-                            crate::VariantType::Normal,
                         ),
                         Kind::make_variant(
                             stringify!(B),
@@ -787,13 +770,11 @@ mod tests {
                                 )],
                             ),
                             1i64,
-                            crate::VariantType::Normal,
                         ),
                         Kind::make_variant(
                             stringify!(C),
                             Kind::make_tuple(vec![<u8 as Digital>::static_kind()]),
                             2i64,
-                            crate::VariantType::Normal,
                         ),
                     ],
                     Kind::make_discriminant_layout(
@@ -842,7 +823,7 @@ mod tests {
                     Self::C(_0) => Kind::make_tuple(vec![<u8 as Digital>::static_kind()]),
                 }
             }
-            fn uninit() -> Self {
+            fn init() -> Self {
                 use rand::Rng;
                 match rand::thread_rng().gen_range(0..3) {
                     0 => Self::A(Default::default()),
@@ -878,7 +859,7 @@ mod tests {
             fn bin(self) -> Vec<bool> {
                 [self.0.bin(), self.1.bin(), self.2.bin()].concat()
             }
-            fn uninit() -> Self {
+            fn init() -> Self {
                 use rand::Rng;
                 Self(
                     rand::thread_rng().gen(),
@@ -914,7 +895,7 @@ mod tests {
             fn bin(self) -> Vec<bool> {
                 [self.a.bin(), self.b.bin(), self.c.bin()].concat()
             }
-            fn uninit() -> Self {
+            fn init() -> Self {
                 use rand::Rng;
                 Self {
                     a: rand::thread_rng().gen(),

@@ -120,18 +120,11 @@ pub struct Field {
     pub kind: Kind,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash, Debug)]
-pub enum VariantType {
-    Normal,
-    Unmatched,
-}
-
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
 pub struct Variant {
     pub name: String,
     pub discriminant: i64,
     pub kind: Kind,
-    pub ty: VariantType,
 }
 
 impl Variant {
@@ -163,12 +156,11 @@ impl Kind {
             kind,
         }
     }
-    pub fn make_variant(name: &str, kind: Kind, discriminant: i64, ty: VariantType) -> Variant {
+    pub fn make_variant(name: &str, kind: Kind, discriminant: i64) -> Variant {
         Variant {
             name: name.to_string(),
             discriminant,
             kind,
-            ty,
         }
     }
     pub fn make_struct(name: &str, fields: Vec<Field>) -> Self {
@@ -193,14 +185,6 @@ impl Kind {
         variants: Vec<Variant>,
         discriminant_layout: DiscriminantLayout,
     ) -> Self {
-        // Validate the enum has an unmatched entry if needed.
-        let num_variants = variants.len();
-        let discriminant_bits = discriminant_layout.width;
-        let has_unmatched = variants.iter().any(|x| x.ty == VariantType::Unmatched);
-        if num_variants != 2_usize.pow(discriminant_bits as u32) && !has_unmatched {
-            panic!("Enum {} does not have an unmatched variant", name);
-        }
-
         Self::Enum(Enum {
             name: name.into(),
             variants,
@@ -927,13 +911,12 @@ mod test {
         Kind::make_enum(
             "Test",
             vec![
-                Kind::make_variant("A", Kind::Empty, -1, VariantType::Normal),
-                Kind::make_variant("B", Kind::Bits(8), 1, VariantType::Normal),
+                Kind::make_variant("A", Kind::Empty, -1),
+                Kind::make_variant("B", Kind::Bits(8), 1),
                 Kind::make_variant(
                     "C",
                     Kind::make_tuple(vec![Kind::Bits(8), Kind::Bits(16)]),
                     2,
-                    VariantType::Normal,
                 ),
                 Kind::make_variant(
                     "D",
@@ -945,7 +928,6 @@ mod test {
                         ],
                     ),
                     -3,
-                    VariantType::Normal,
                 ),
             ],
             Kind::make_discriminant_layout(4, DiscriminantAlignment::Msb, DiscriminantType::Signed),
@@ -956,13 +938,12 @@ mod test {
         Kind::make_enum(
             "Test",
             vec![
-                Kind::make_variant("A", Kind::Empty, 0, VariantType::Normal),
-                Kind::make_variant("B", Kind::Bits(8), 1, VariantType::Normal),
+                Kind::make_variant("A", Kind::Empty, 0),
+                Kind::make_variant("B", Kind::Bits(8), 1),
                 Kind::make_variant(
                     "C",
                     Kind::make_tuple(vec![Kind::Bits(8), Kind::Bits(16)]),
                     2,
-                    VariantType::Normal,
                 ),
                 Kind::make_variant(
                     "D",
@@ -974,7 +955,6 @@ mod test {
                         ],
                     ),
                     3,
-                    VariantType::Normal,
                 ),
             ],
             Kind::make_discriminant_layout(
@@ -1035,19 +1015,16 @@ mod test {
                     name: "A".to_string(),
                     discriminant: 0,
                     kind: Kind::Empty,
-                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "B".to_string(),
                     discriminant: 1,
                     kind: Kind::make_bits(8),
-                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "C".to_string(),
                     discriminant: 2,
                     kind: Kind::make_tuple(vec![Kind::make_bits(8), Kind::make_bits(16)]),
-                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "D".to_string(),
@@ -1065,13 +1042,11 @@ mod test {
                             },
                         ],
                     ),
-                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "E".to_string(),
                     discriminant: 4,
                     kind: Kind::make_array(Kind::make_bits(8), 4),
-                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "F".to_string(),
@@ -1089,7 +1064,6 @@ mod test {
                             },
                         ],
                     ),
-                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "G".to_string(),
@@ -1111,12 +1085,10 @@ mod test {
                             },
                         ],
                     ),
-                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "H".to_string(),
                     discriminant: 8,
-                    ty: VariantType::Normal,
                     kind: Kind::make_enum(
                         "Crazy::H",
                         vec![
@@ -1124,25 +1096,21 @@ mod test {
                                 name: "A".to_string(),
                                 discriminant: 0,
                                 kind: Kind::Empty,
-                                ty: VariantType::Normal,
                             },
                             Variant {
                                 name: "B".to_string(),
                                 discriminant: 1,
                                 kind: Kind::Bits(4),
-                                ty: VariantType::Normal,
                             },
                             Variant {
                                 name: "C".to_string(),
                                 discriminant: 2,
                                 kind: Kind::Empty,
-                                ty: VariantType::Normal,
                             },
                             Variant {
                                 name: "Unknown".to_string(),
                                 discriminant: 3,
                                 kind: Kind::Empty,
-                                ty: VariantType::Unmatched,
                             },
                         ],
                         Kind::make_discriminant_layout(
@@ -1257,19 +1225,16 @@ mod test {
                     name: "A".to_string(),
                     discriminant: 0,
                     kind: Kind::Empty,
-                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "B".to_string(),
                     discriminant: 1,
                     kind: Kind::Empty,
-                    ty: VariantType::Normal,
                 },
                 Variant {
                     name: "C".to_string(),
                     discriminant: 2,
                     kind: Kind::Empty,
-                    ty: VariantType::Normal,
                 },
             ],
             Kind::make_discriminant_layout(

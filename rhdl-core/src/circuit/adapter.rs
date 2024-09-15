@@ -66,11 +66,11 @@ impl<I: Digital, D: Domain> Digital for AdapterInput<I, D> {
         out.extend(self.input.bin());
         out
     }
-    fn uninit() -> Self {
+    fn init() -> Self {
         Self {
-            clock: Signal::uninit(),
-            reset: Signal::uninit(),
-            input: Signal::uninit(),
+            clock: Signal::init(),
+            reset: Signal::init(),
+            input: Signal::init(),
         }
     }
 }

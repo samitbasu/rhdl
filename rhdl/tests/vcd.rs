@@ -9,11 +9,14 @@ use rhdl::prelude::*;
 
 #[test]
 fn test_vcd_enum() {
-    #[derive(Clone, Copy, Debug, PartialEq, Digital)]
+    #[derive(Clone, Copy, Debug, PartialEq, Digital, Default)]
     enum Enum {
+        #[default]
         None,
         A(u8, u16),
-        B { name: u8 },
+        B {
+            name: u8,
+        },
         C(bool),
     }
 

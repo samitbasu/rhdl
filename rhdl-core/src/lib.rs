@@ -29,7 +29,6 @@ pub use types::kind::kind_svg::svg_grid;
 pub use types::kind::kind_svg::svg_grid_vertical;
 pub use types::kind::text_grid;
 pub use types::kind::DiscriminantAlignment;
-pub use types::kind::VariantType;
 pub use types::note::Notable;
 pub use types::register::Register;
 pub use types::register::SignedRegister;
