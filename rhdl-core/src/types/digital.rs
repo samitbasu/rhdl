@@ -3,7 +3,6 @@ use rhdl_bits::{Bits, SignedBits};
 use crate::{Kind, NoteKey, NoteWriter, TypedBits};
 
 use super::note::Notable;
-use rand::{thread_rng, Rng};
 
 /// This is the core trait for all of `RHDL` data elements.  If you
 /// want to use a data type in the hardware part of the design,
@@ -69,7 +68,7 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static + Notable {
             .map(|b| if *b { '1' } else { '0' })
             .collect()
     }
-    fn uninit() -> Self;
+    fn init() -> Self;
 }
 
 impl Digital for () {
@@ -79,7 +78,7 @@ impl Digital for () {
     fn bin(self) -> Vec<bool> {
         Vec::new()
     }
-    fn uninit() -> Self {}
+    fn init() -> Self {}
 }
 
 impl Notable for () {
@@ -93,8 +92,8 @@ impl Digital for bool {
     fn bin(self) -> Vec<bool> {
         vec![self]
     }
-    fn uninit() -> Self {
-        rand::thread_rng().gen::<bool>()
+    fn init() -> Self {
+        Self::default()
     }
 }
 
@@ -111,8 +110,8 @@ impl Digital for u8 {
     fn bin(self) -> Vec<bool> {
         Bits::<8>::from(self as u128).to_bools()
     }
-    fn uninit() -> Self {
-        thread_rng().gen::<u8>()
+    fn init() -> Self {
+        Self::default()
     }
 }
 
@@ -129,8 +128,8 @@ impl Digital for u16 {
     fn bin(self) -> Vec<bool> {
         Bits::<16>::from(self as u128).to_bools()
     }
-    fn uninit() -> Self {
-        thread_rng().gen::<u16>()
+    fn init() -> Self {
+        Self::default()
     }
 }
 
@@ -147,8 +146,8 @@ impl Digital for usize {
     fn bin(self) -> Vec<bool> {
         Bits::<{ usize::BITS as usize }>::from(self as u128).to_bools()
     }
-    fn uninit() -> Self {
-        thread_rng().gen::<usize>()
+    fn init() -> Self {
+        Self::default()
     }
 }
 
@@ -165,8 +164,8 @@ impl Digital for u128 {
     fn bin(self) -> Vec<bool> {
         Bits::<128>::from(self).to_bools()
     }
-    fn uninit() -> Self {
-        thread_rng().gen::<u128>()
+    fn init() -> Self {
+        Self::default()
     }
 }
 
@@ -183,8 +182,8 @@ impl Digital for i128 {
     fn bin(self) -> Vec<bool> {
         SignedBits::<128>::from(self).as_unsigned().to_bools()
     }
-    fn uninit() -> Self {
-        thread_rng().gen::<i128>()
+    fn init() -> Self {
+        Self::default()
     }
 }
 
@@ -203,8 +202,8 @@ impl Digital for i32 {
             .as_unsigned()
             .to_bools()
     }
-    fn uninit() -> Self {
-        thread_rng().gen::<i32>()
+    fn init() -> Self {
+        Self::default()
     }
 }
 
@@ -221,8 +220,8 @@ impl Digital for i8 {
     fn bin(self) -> Vec<bool> {
         SignedBits::<8>::from(self as i128).as_unsigned().to_bools()
     }
-    fn uninit() -> Self {
-        thread_rng().gen::<i8>()
+    fn init() -> Self {
+        Self::default()
     }
 }
 
@@ -241,8 +240,8 @@ impl Digital for i64 {
             .as_unsigned()
             .to_bools()
     }
-    fn uninit() -> Self {
-        thread_rng().gen::<i64>()
+    fn init() -> Self {
+        Self::default()
     }
 }
 
@@ -259,8 +258,8 @@ impl<const N: usize> Digital for Bits<N> {
     fn bin(self) -> Vec<bool> {
         self.to_bools()
     }
-    fn uninit() -> Self {
-        Bits::from(thread_rng().gen::<u128>() & Bits::<N>::mask().0)
+    fn init() -> Self {
+        Self::default()
     }
 }
 
@@ -277,8 +276,8 @@ impl<const N: usize> Digital for SignedBits<N> {
     fn bin(self) -> Vec<bool> {
         self.as_unsigned().to_bools()
     }
-    fn uninit() -> Self {
-        Bits::<N>::uninit().as_signed()
+    fn init() -> Self {
+        Self::default()
     }
 }
 
@@ -296,8 +295,8 @@ impl<T0: Digital> Digital for (T0,) {
     fn bin(self) -> Vec<bool> {
         self.0.bin()
     }
-    fn uninit() -> Self {
-        (T0::uninit(),)
+    fn init() -> Self {
+        (T0::init(),)
     }
 }
 
@@ -316,8 +315,8 @@ impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
         v.extend(self.1.bin());
         v
     }
-    fn uninit() -> Self {
-        (T0::uninit(), T1::uninit())
+    fn init() -> Self {
+        (T0::init(), T1::init())
     }
 }
 
@@ -342,8 +341,8 @@ impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {
         v.extend(self.2.bin());
         v
     }
-    fn uninit() -> Self {
-        (T0::uninit(), T1::uninit(), T2::uninit())
+    fn init() -> Self {
+        (T0::init(), T1::init(), T2::init())
     }
 }
 
@@ -371,8 +370,8 @@ impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2
         v.extend(self.3.bin());
         v
     }
-    fn uninit() -> Self {
-        (T0::uninit(), T1::uninit(), T2::uninit(), T3::uninit())
+    fn init() -> Self {
+        (T0::init(), T1::init(), T2::init(), T3::init())
     }
 }
 
@@ -418,14 +417,6 @@ impl<T0: Notable, T1: Notable, T2: Notable, T3: Notable, T4: Notable> Notable
                 [T::uninit(); $N]
             }
         }
-
-        impl<T: Notable> Notable for [T; $N] {
-            fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-                for (i, x) in self.iter().enumerate() {
-                    x.note((key, i), &mut writer);
-                }
-            }
-        }
     };
 }
 
@@ -437,7 +428,6 @@ impl_array!(5);
 impl_array!(6);
 impl_array!(7);
 impl_array!(8);
-
  */
 
 impl<T: Digital, const N: usize> Digital for [T; N] {
@@ -451,8 +441,8 @@ impl<T: Digital, const N: usize> Digital for [T; N] {
         }
         v
     }
-    fn uninit() -> Self {
-        [T::uninit(); N]
+    fn init() -> Self {
+        [T::init(); N]
     }
 }
 
@@ -469,7 +459,7 @@ mod test {
     use std::iter::repeat;
 
     use super::*;
-    use crate::types::kind::{DiscriminantAlignment, Variant, VariantType};
+    use crate::types::kind::{DiscriminantAlignment, Variant};
     use rhdl_bits::alias::*;
 
     #[test]
@@ -498,25 +488,21 @@ mod test {
                             name: "None".to_string(),
                             discriminant: 0,
                             kind: Kind::Empty,
-                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Bool".to_string(),
                             discriminant: 1,
                             kind: Kind::make_bits(1),
-                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Tuple".to_string(),
                             discriminant: 2,
                             kind: Kind::make_tuple(vec![Kind::make_bits(1), Kind::make_bits(3)]),
-                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Array".to_string(),
                             discriminant: 3,
                             kind: Kind::make_array(Kind::make_bits(1), 3),
-                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Strct".to_string(),
@@ -528,13 +514,11 @@ mod test {
                                     Kind::make_field("b", Kind::make_bits(3)),
                                 ],
                             ),
-                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Invalid".to_string(),
                             discriminant: 5,
                             kind: Kind::Empty,
-                            ty: VariantType::Unmatched,
                         },
                     ],
                     Kind::make_discriminant_layout(
@@ -580,24 +564,8 @@ mod test {
                     raw
                 }
             }
-            fn uninit() -> Self {
-                match thread_rng().gen_range(0..=5) {
-                    0 => Self::None,
-                    1 => Self::Bool(thread_rng().gen::<bool>()),
-                    2 => Self::Tuple(thread_rng().gen::<bool>(), Bits::<3>::uninit()),
-                    3 => {
-                        let mut a = [false; 3];
-                        (0..3).for_each(|i| {
-                            a[i] = thread_rng().gen::<bool>();
-                        });
-                        Self::Array(a)
-                    }
-                    4 => Self::Strct {
-                        a: thread_rng().gen::<bool>(),
-                        b: Bits::<3>::uninit(),
-                    },
-                    _ => Self::Invalid,
-                }
+            fn init() -> Self {
+                Self::default()
             }
         }
 
@@ -665,37 +633,31 @@ mod test {
                             name: "Init".to_string(),
                             discriminant: 0,
                             kind: Kind::Empty,
-                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Boot".to_string(),
                             discriminant: 1,
                             kind: Kind::Empty,
-                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Running".to_string(),
                             discriminant: 2,
                             kind: Kind::Empty,
-                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Stop".to_string(),
                             discriminant: 3,
                             kind: Kind::Empty,
-                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Boom".to_string(),
                             discriminant: 4,
                             kind: Kind::Empty,
-                            ty: VariantType::Normal,
                         },
                         Variant {
                             name: "Invalid".to_string(),
                             discriminant: 5,
                             kind: Kind::Empty,
-                            ty: VariantType::Unmatched,
                         },
                     ],
                     Kind::make_discriminant_layout(
@@ -715,15 +677,8 @@ mod test {
                     Self::Invalid => rhdl_bits::bits::<3>(5).to_bools(),
                 }
             }
-            fn uninit() -> Self {
-                match thread_rng().gen_range(0..6) {
-                    0 => Self::Init,
-                    1 => Self::Boot,
-                    2 => Self::Running,
-                    3 => Self::Stop,
-                    4 => Self::Boom,
-                    _ => Self::Invalid,
-                }
+            fn init() -> Self {
+                Self::default()
             }
         }
 
@@ -750,37 +705,31 @@ mod test {
                         name: "Init".to_string(),
                         discriminant: 0,
                         kind: Kind::Empty,
-                        ty: VariantType::Normal,
                     },
                     Variant {
                         name: "Boot".to_string(),
                         discriminant: 1,
                         kind: Kind::Empty,
-                        ty: VariantType::Normal,
                     },
                     Variant {
                         name: "Running".to_string(),
                         discriminant: 2,
                         kind: Kind::Empty,
-                        ty: VariantType::Normal,
                     },
                     Variant {
                         name: "Stop".to_string(),
                         discriminant: 3,
                         kind: Kind::Empty,
-                        ty: VariantType::Normal,
                     },
                     Variant {
                         name: "Boom".to_string(),
                         discriminant: 4,
                         kind: Kind::Empty,
-                        ty: VariantType::Normal,
                     },
                     Variant {
                         name: "Invalid".to_string(),
                         discriminant: 5,
                         kind: Kind::Empty,
-                        ty: VariantType::Unmatched,
                     },
                 ],
                 Kind::make_discriminant_layout(

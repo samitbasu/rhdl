@@ -59,7 +59,6 @@ use crate::types::path::Path;
 use crate::KernelFnKind;
 use crate::Kind;
 use crate::TypedBits;
-use crate::VariantType;
 use crate::{
     ast::ast_impl::{Expr, ExprKind, ExprLit, FunctionId, NodeId},
     rhif::spec::{OpCode, Slot},
@@ -569,13 +568,6 @@ impl<'a> MirContext<'a> {
             }
             ArmKind::Constant(constant) => {
                 self.wrap_expr_in_block(lhs, &arm.body)?;
-                if let ExprLit::TypedBits(tb) = &constant.value {
-                    if tb.value.is_unmatched_variant() {
-                        return Err(self
-                            .raise_syntax_error(Syntax::UseWildcardInstead, arm.id)
-                            .into());
-                    }
-                }
                 let value = self.lit(arm.id, constant.value.clone());
                 let disc = self.reg(arm.id);
                 self.op(
@@ -615,20 +607,14 @@ impl<'a> MirContext<'a> {
                         )
                     })?;
                 let variant_name = &variant.name;
-                if variant.ty == VariantType::Normal {
-                    let path = crate::types::path::Path::default().payload(variant_name);
-                    let payload = self.reg(arm_enum.pat.id);
-                    self.op(op_index(payload, target, path), arm_enum.pat.id);
-                    self.initialize_local(&arm_enum.pat, payload)?;
-                    let result = self.expr(&arm.body)?;
-                    self.op(op_assign(lhs, result), arm_enum.pat.id);
-                    self.end_scope();
-                    Ok(CaseArgument::Slot(discriminant_slot))
-                } else {
-                    Err(self
-                        .raise_syntax_error(Syntax::UseWildcardInstead, arm_enum.pat.id)
-                        .into())
-                }
+                let path = crate::types::path::Path::default().payload(variant_name);
+                let payload = self.reg(arm_enum.pat.id);
+                self.op(op_index(payload, target, path), arm_enum.pat.id);
+                self.initialize_local(&arm_enum.pat, payload)?;
+                let result = self.expr(&arm.body)?;
+                self.op(op_assign(lhs, result), arm_enum.pat.id);
+                self.end_scope();
+                Ok(CaseArgument::Slot(discriminant_slot))
             }
         }
     }
@@ -904,15 +890,7 @@ impl<'a> MirContext<'a> {
                 Ok(block_result)
             }
             ExprKind::If(if_expr) => self.if_expr(expr.id, if_expr),
-            ExprKind::Lit(lit) => {
-                if lit.is_unmatched_variant() {
-                    Err(self
-                        .raise_syntax_error(Syntax::UnmatchedVariantNotAllowedInExpression, expr.id)
-                        .into())
-                } else {
-                    Ok(self.lit(expr.id, lit.clone()))
-                }
-            }
+            ExprKind::Lit(lit) => Ok(self.lit(expr.id, lit.clone())),
             ExprKind::Field(field) => self.field(expr.id, field),
             ExprKind::Group(group) => self.expr(&group.expr),
             ExprKind::Index(index) => self.index(expr.id, index),

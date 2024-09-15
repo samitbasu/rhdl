@@ -8,7 +8,7 @@ use crate::{
     ast::ast_impl::NodeId,
     rhif::spec::Member,
     types::kind::{Array, DiscriminantLayout, Enum, Field, Struct, Tuple},
-    Color, DiscriminantAlignment, DiscriminantType, Kind, VariantType,
+    Color, DiscriminantAlignment, DiscriminantType, Kind,
 };
 use anyhow::{anyhow, bail, ensure, Result};
 
@@ -236,7 +236,6 @@ impl AppTypeKind for AppEnum {
                     name: v.name,
                     kind,
                     discriminant: v.discriminant,
-                    ty: v.ty,
                 })
             })
             .collect::<Result<Vec<_>>>()?;
@@ -285,14 +284,12 @@ impl AppTypeKind for AppTuple {
 pub struct VariantTag {
     name: String,
     discriminant: i64,
-    ty: VariantType,
 }
 
-pub fn make_variant_tag(name: &str, discriminant: i64, ty: VariantType) -> VariantTag {
+pub fn make_variant_tag(name: &str, discriminant: i64) -> VariantTag {
     VariantTag {
         name: name.to_string(),
         discriminant,
-        ty,
     }
 }
 
@@ -490,7 +487,6 @@ impl UnifyContext {
                 let tag = VariantTag {
                     name,
                     discriminant: variant.discriminant,
-                    ty: variant.ty,
                 };
                 (tag, ty)
             })

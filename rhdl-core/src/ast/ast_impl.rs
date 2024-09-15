@@ -406,14 +406,6 @@ pub enum ExprLit {
     Int(String),
     Bool(bool),
 }
-impl ExprLit {
-    pub(crate) fn is_unmatched_variant(&self) -> bool {
-        match self {
-            ExprLit::TypedBits(ExprTypedBits { value, .. }) => value.is_unmatched_variant(),
-            _ => false,
-        }
-    }
-}
 
 #[derive(Clone, Hash)]
 pub struct ExprTypedBits {

@@ -11,7 +11,7 @@ use rhdl::prelude::*;
 #[allow(dead_code)]
 #[allow(clippy::just_underscores_and_digits)]
 fn test_derive() {
-    #[derive(Clone, Copy, PartialEq, Digital)]
+    #[derive(Clone, Copy, PartialEq, Default, Digital)]
     enum Test {
         A,
         B(Bits<16>),
@@ -19,7 +19,7 @@ fn test_derive() {
             a: Bits<32>,
             b: Bits<8>,
         },
-        #[rhdl(unmatched)]
+        #[default]
         D,
     }
     note("test", Test::A);
@@ -28,14 +28,14 @@ fn test_derive() {
 #[test]
 #[allow(dead_code)]
 fn test_derive_no_payload() {
-    #[derive(Copy, Clone, PartialEq, Digital)]
+    #[derive(Copy, Clone, PartialEq, Default, Digital)]
     pub enum State {
         Init,
         Boot,
         Running,
         Stop,
         Boom,
-        #[rhdl(unmatched)]
+        #[default]
         Unknown,
     }
     note("state", State::Running);
@@ -75,7 +75,7 @@ fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
     use rhdl_bits::alias::*;
     use rhdl_core::types::path::*;
 
-    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+    #[derive(Copy, Clone, PartialEq, Debug, Default, Digital)]
     enum Test {
         A,
         B(b2, b3),
@@ -83,7 +83,7 @@ fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
             a: b8,
             b: b8,
         },
-        #[rhdl(unmatched)]
+        #[default]
         D,
     }
 
@@ -113,7 +113,7 @@ fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
 fn test_derive_digital_complex_enum() {
     use rhdl_bits::alias::*;
 
-    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+    #[derive(Copy, Clone, PartialEq, Debug, Default, Digital)]
     enum Test {
         A,
         B(b2, b3),
@@ -121,7 +121,7 @@ fn test_derive_digital_complex_enum() {
             a: b8,
             b: b8,
         },
-        #[rhdl(unmatched)]
+        #[default]
         D,
     }
 
@@ -154,7 +154,7 @@ fn test_derive_digital_complex_enum() {
 fn test_derive_enum_explicit_discriminant_width() {
     use rhdl_bits::alias::*;
 
-    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+    #[derive(Copy, Clone, PartialEq, Debug, Default, Digital)]
     #[rhdl(discriminant_width = 4)]
     enum Test {
         A,
@@ -163,7 +163,7 @@ fn test_derive_enum_explicit_discriminant_width() {
             a: b8,
             b: b8,
         },
-        #[rhdl(unmatched)]
+        #[default]
         D,
     }
 
@@ -176,7 +176,7 @@ fn test_derive_enum_explicit_discriminant_width() {
 fn test_derive_enum_alignment_lsb() {
     use rhdl_bits::alias::*;
 
-    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+    #[derive(Copy, Clone, PartialEq, Debug, Default, Digital)]
     #[rhdl(discriminant_align = "lsb")]
     enum Test {
         A,
@@ -185,7 +185,7 @@ fn test_derive_enum_alignment_lsb() {
             a: b8,
             b: b8,
         },
-        #[rhdl(unmatched)]
+        #[default]
         D,
     }
     let (range, kind) = bit_range(Test::static_kind(), &Path::default().discriminant()).unwrap();

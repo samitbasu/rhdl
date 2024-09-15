@@ -83,10 +83,10 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         )*
                         result
                     }
-                    fn uninit() -> Self {
+                    fn init() -> Self {
                         Self(
                             #(
-                                <#field_types as rhdl::core::Digital>::uninit(),
+                                <#field_types as rhdl::core::Digital>::init(),
                             )*
                         )
                     }
@@ -146,10 +146,10 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         )*
                         result
                     }
-                    fn uninit() -> Self {
+                    fn init() -> Self {
                         Self {
                             #(
-                                #fields: <#field_types as rhdl::core::Digital>::uninit(),
+                                #fields: <#field_types as rhdl::core::Digital>::init(),
                             )*
                         }
                     }

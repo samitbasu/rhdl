@@ -207,12 +207,6 @@ pub enum Syntax {
     #[error("Unsupported path with arguments")]
     #[diagnostic(help("Use a path without generic arguments here, if possible"))]
     UnsupportedPathWithArguments,
-    #[error("Do not match on #[unmatched] variant.  Use a wildcard match")]
-    #[diagnostic(help("RHDL does not support matching on #[unmatched] variants.  You need to replace this with a Wildcard (_) match."))]
-    UseWildcardInstead,
-    #[error("Unmatched variants are not allowed in expressions")]
-    #[diagnostic(help("You cannot use an unmatched variant in an expression in RHDL.  It is meant as a placeholder for invalid discriminants."))]
-    UnmatchedVariantNotAllowedInExpression,
     #[error("RHDL does not support the use of unary operators on this type")]
     #[diagnostic(help("You cannot roll your own {op:?} operator in RHDL.  You should write a kernel and call it as a regular function."))]
     RollYourOwnUnary { op: AluUnary },

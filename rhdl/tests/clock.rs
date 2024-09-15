@@ -378,8 +378,9 @@ fn test_signal_tuple_crossing_fails_second_test() -> miette::Result<()> {
 
 #[test]
 fn test_enum_basic_cross_clocks() -> miette::Result<()> {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
+    #[derive(PartialEq, Copy, Clone, Debug, Default, Digital)]
     enum Foo {
+        #[default]
         A,
         B(b8),
     }

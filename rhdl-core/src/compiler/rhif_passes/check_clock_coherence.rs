@@ -153,7 +153,7 @@ impl ClockCoherenceContext<'_> {
                     .iter()
                     .map(|variant| {
                         let ty = self.import_kind_with_single_domain(id, &variant.kind, domain);
-                        let tag = make_variant_tag(&variant.name, variant.discriminant, variant.ty);
+                        let tag = make_variant_tag(&variant.name, variant.discriminant);
                         (tag, ty)
                     })
                     .collect();

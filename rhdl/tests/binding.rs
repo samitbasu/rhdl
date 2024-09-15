@@ -13,11 +13,15 @@ use common::*;
 
 #[test]
 fn test_rebind_compile() -> miette::Result<()> {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
     pub enum SimpleEnum {
+        #[default]
         Init,
         Run(u8),
-        Point { x: b4, y: u8 },
+        Point {
+            x: b4,
+            y: u8,
+        },
         Boom,
     }
 
@@ -49,7 +53,7 @@ fn test_rebind_compile() -> miette::Result<()> {
 #[test]
 fn test_importing() {
     use rhdl_bits::alias::*;
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(PartialEq, Copy, Clone, Default, Digital)]
     pub enum Rad {
         A,
         B(b4),
@@ -57,7 +61,7 @@ fn test_importing() {
             x: b4,
             y: b6,
         },
-        #[rhdl(unmatched)]
+        #[default]
         D,
     }
 

@@ -40,11 +40,14 @@ fn test_compile() -> miette::Result<()> {
         c: [u8; 3],
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(PartialEq, Copy, Clone, Default, Digital)]
     pub enum NooState {
+        #[default]
         Init,
         Run(u8, u8, u8),
-        Walk { foo: u8 },
+        Walk {
+            foo: u8,
+        },
         Boom,
     }
 

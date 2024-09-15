@@ -38,9 +38,9 @@ impl<T: Digital, C: Domain> Digital for Signal<T, C> {
         self.val.bin()
     }
 
-    fn uninit() -> Self {
+    fn init() -> Self {
         Self {
-            val: T::uninit(),
+            val: T::init(),
             domain: std::marker::PhantomData,
         }
     }
@@ -82,7 +82,7 @@ impl_index!(5);
 impl_index!(6);
 impl_index!(7);
 impl_index!(8);
- */
+*/
 
 impl<T: Digital, C: Domain, const M: usize, const N: usize> std::ops::Index<Signal<Bits<N>, C>>
     for Signal<[T; M], C>

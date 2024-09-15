@@ -1,5 +1,3 @@
-use rand::Rng;
-
 use crate::{Digital, Kind, Notable, NoteKey, NoteWriter};
 
 #[derive(PartialEq, Clone, Copy, Debug, Default)]
@@ -22,8 +20,8 @@ impl Digital for Clock {
     fn bin(self) -> Vec<bool> {
         vec![self.0]
     }
-    fn uninit() -> Self {
-        Clock(rand::thread_rng().gen::<bool>())
+    fn init() -> Self {
+        Clock(false)
     }
 }
 

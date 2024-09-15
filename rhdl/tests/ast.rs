@@ -31,23 +31,23 @@ fn test_func_with_structured_args() -> miette::Result<()> {
 #[allow(clippy::assign_op_pattern)]
 fn test_ast_basic_func() -> miette::Result<()> {
     use rhdl_bits::alias::*;
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(PartialEq, Copy, Clone, Digital, Default)]
     pub struct Foo {
         a: u8,
         b: u16,
         c: [u8; 3],
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(PartialEq, Copy, Clone, Digital, Default)]
     pub enum State {
+        #[default]
         Init,
         Run(u8),
         Boom,
-        #[rhdl(unmatched)]
         Unknown,
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(PartialEq, Copy, Clone, Digital, Default)]
     pub struct Bar(pub u8, pub u8);
 
     #[kernel]
@@ -242,7 +242,7 @@ fn test_basic_compile() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     pub struct TupStruct(b4, b4);
 
-    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
+    #[derive(PartialEq, Copy, Clone, Debug, Default, Digital)]
     pub enum Bar {
         A,
         B(b4),
@@ -250,15 +250,19 @@ fn test_basic_compile() -> miette::Result<()> {
             x: b4,
             y: b4,
         },
-        #[rhdl(unmatched)]
+        #[default]
         D,
     }
 
-    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
+    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
     pub enum SimpleEnum {
+        #[default]
         Init,
         Run(u8),
-        Point { x: b4, y: u8 },
+        Point {
+            x: b4,
+            y: u8,
+        },
         Boom,
     }
 

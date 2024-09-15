@@ -1,5 +1,3 @@
-use rand::Rng;
-
 use crate::{Digital, Kind, Notable, NoteKey, NoteWriter};
 
 #[derive(PartialEq, Clone, Copy, Debug, Default)]
@@ -28,8 +26,8 @@ impl Digital for Reset {
     fn bin(self) -> Vec<bool> {
         vec![self.0]
     }
-    fn uninit() -> Self {
-        Reset(rand::thread_rng().gen::<bool>())
+    fn init() -> Self {
+        Reset(false)
     }
 }
 

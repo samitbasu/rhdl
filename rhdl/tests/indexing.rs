@@ -98,7 +98,7 @@ fn test_array_indexing_2() -> miette::Result<()> {
 
 #[cfg(test)]
 fn rand_bits<const N: usize>() -> Bits<N> {
-    Bits::<N>::uninit()
+    Bits::<N>::default()
 }
 
 #[test]
@@ -342,11 +342,14 @@ fn test_link_to_bits_fn() -> miette::Result<()> {
     #[derive(PartialEq, Copy, Clone, Debug, Digital)]
     struct Tuplo(b4, s6);
 
-    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
+    #[derive(PartialEq, Copy, Clone, Debug, Default, Digital)]
     enum NooState {
+        #[default]
         Init,
         Run(b4, s6),
-        Walk { foo: b5 },
+        Walk {
+            foo: b5,
+        },
         Boom,
     }
 
