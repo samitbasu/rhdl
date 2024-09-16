@@ -93,7 +93,7 @@ risk than a technical one.
 - [x] Add logic to identify and flag clock crossings.
 - [x] Add an intermediate RTL layer to bridge differences between HDLs and RHIF
 - [x] Build flow graphs for synchronous circuits and kernels
-- [ ] Build flow graphs for asynchronous circuits and kernels
+- [x] Build flow graphs for asynchronous circuits and kernels
 - [ ] Add a flow graph level simulator to verify correctness
 - [ ] Add timing estimator using longest path heuristics.
 - [ ] Port the `RustHDL` widget library to `RHDL`
