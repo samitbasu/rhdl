@@ -87,6 +87,15 @@ impl FlowGraph {
     pub fn edge(&mut self, source: FlowIx, target: FlowIx, kind: EdgeKind) {
         self.graph.add_edge(source, target, kind);
     }
+    pub fn zip(
+        &mut self,
+        source: impl Iterator<Item = FlowIx>,
+        target: impl Iterator<Item = FlowIx>,
+    ) {
+        source.zip(target).for_each(|(source, target)| {
+            self.edge(source, target, EdgeKind::Arg(0));
+        });
+    }
     pub fn merge(&mut self, other: &FlowGraph) -> HashMap<FlowIx, FlowIx> {
         let ret: HashMap<FlowIx, FlowIx> = other
             .graph

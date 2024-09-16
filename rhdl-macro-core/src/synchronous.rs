@@ -40,9 +40,10 @@ fn define_descriptor_fn(field_set: &FieldSet) -> TokenStream {
     let component_name = &field_set.component_name;
     quote! {
         fn descriptor(&self) -> Result<rhdl::core::CircuitDescriptor, rhdl::core::RHDLError> {
-            let mut ret = rhdl::core::synchronous_root_descriptor(self)?;
-            #(ret.add_synchronous(stringify!(#component_name), &self.#component_name)?;)*
-            Ok(ret)
+            use std::collections::BTreeMap;
+            let mut children: BTreeMap<String, CircuitDescriptor> = BTreeMap::new();
+            #(children.insert(stringify!(#component_name).to_string(), self.#component_name.descriptor()?);)*
+            rhdl::core::build_synchronous_descriptor(self, children)
         }
     }
 }
@@ -64,15 +65,15 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
         .map(syn::Index::from)
         .collect::<Vec<_>>();
     quote! {
-        fn sim(&self, clock: rhdl::core::Clock, reset: rhdl::core::Reset, input: <Self as SynchronousIO>::I, state: &mut Self::S , io: &mut Self::Z ) -> <Self as SynchronousIO>::O {
+        fn sim(&self, clock_reset: rhdl::core::ClockReset, input: <Self as SynchronousIO>::I, state: &mut Self::S , io: &mut Self::Z ) -> <Self as SynchronousIO>::O {
             rhdl::core::note("input", input);
             for _ in 0..rhdl::core::MAX_ITERS {
                 let prev_state = state.clone();
-                let (outputs, internal_inputs) = Self::UPDATE(reset, input, state.0);
+                let (outputs, internal_inputs) = Self::UPDATE(clock_reset, input, state.0);
                 #(
                     rhdl::core::note_push_path(stringify!(#component_name));
                     state.0.#component_name =
-                    self.#component_name.sim(clock, reset, internal_inputs.#component_name, &mut state.#component_index, &mut io.#component_name);
+                    self.#component_name.sim(clock_reset, internal_inputs.#component_name, &mut state.#component_index, &mut io.#component_name);
                     rhdl::core::note_pop_path();
                 )*
                 if state == &prev_state {
@@ -208,7 +209,7 @@ fn derive_synchronous_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
 
             type Update = #kernel_name;
 
-            const UPDATE: fn(rhdl::core::Reset, Self::I, Self::Q) -> (Self::O, Self::D) = #kernel_name;
+            const UPDATE: fn(rhdl::core::ClockReset, Self::I, Self::Q) -> (Self::O, Self::D) = #kernel_name;
 
             #name_fn
 
@@ -265,12 +266,8 @@ mod test {
                     <Constant<Bits<N>> as rhdl::core::Synchronous>::S,
                 );
                 type Update = pushd<N>;
-                const UPDATE: fn(
-                    rhdl::core::Clock,
-                    rhdl::core::Reset,
-                    Self::I,
-                    Self::Q,
-                ) -> (Self::O, Self::D) = pushd::<N>;
+                const UPDATE: fn(rhdl::core::ClockReset, Self::I, Self::Q) -> (Self::O, Self::D) =
+                    pushd::<N>;
                 fn name(&self) -> &'static str {
                     stringify!(Strobe)
                 }
@@ -291,8 +288,7 @@ mod test {
                 }
                 fn sim(
                     &self,
-                    clock: rhdl::core::Clock,
-                    reset: rhdl::core::Reset,
+                    clock: rhdl::core::ClockReset,
                     input: <Self as SynchronousIO>::I,
                     state: &mut Self::S,
                     io: &mut Self::Z,
@@ -303,8 +299,7 @@ mod test {
                         let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
                         rhdl::core::note_push_path(stringify!(strobe));
                         state.0.strobe = self.strobe.sim(
-                            clock,
-                            reset,
+                            clock_reset,
                             internal_inputs.strobe,
                             &mut state.1,
                             &mut io.strobe,
@@ -312,8 +307,7 @@ mod test {
                         rhdl::core::note_pop_path();
                         rhdl::core::note_push_path(stringify!(value));
                         state.0.value = self.value.sim(
-                            clock,
-                            reset,
+                            clock_reset,
                             internal_inputs.value,
                             &mut state.2,
                             &mut io.value,

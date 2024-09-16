@@ -26,7 +26,7 @@ impl<T: Digital> SynchronousDQ for U<T> {
 
 #[derive(Debug, Clone, PartialEq, Copy, Digital)]
 pub struct S<T: Digital> {
-    clock: Clock,
+    cr: ClockReset,
     state: T,
     state_next: T,
 }
@@ -40,15 +40,16 @@ impl<T: Digital> Synchronous for U<T> {
 
     fn sim(
         &self,
-        clock: Clock,
-        reset: Reset,
+        clock_reset: ClockReset,
         input: Self::I,
         state: &mut Self::S,
         _io: &mut Self::Z,
     ) -> Self::O {
         note("input", input);
+        let clock = clock_reset.clock;
+        let reset = clock_reset.reset;
         // Calculate the new state on a rising edge
-        let new_state = if clock.raw() && !state.clock.raw() {
+        let new_state = if clock.raw() && !state.cr.clock.raw() {
             state.state_next
         } else {
             state.state
@@ -65,7 +66,7 @@ impl<T: Digital> Synchronous for U<T> {
             state.state = new_state;
             state.state_next = new_state_next;
         }
-        state.clock = clock;
+        state.cr = clock_reset;
         note("output", new_state);
         new_state
     }
@@ -79,13 +80,13 @@ impl<T: Digital> Synchronous for U<T> {
     }
 
     fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError> {
-        let mut fg = FlowGraph::default();
+        let mut flow_graph = FlowGraph::default();
         // Make the FG slightly nicer
-        let rst = fg.sink(RegisterKind::Unsigned(1), "rst", None);
-        let d = fg.sink(Self::I::static_kind().into(), "ff_d", None);
-        let q = fg.source(Self::O::static_kind().into(), "ff_q", None);
-        fg.inputs = vec![rst, d, vec![]];
-        fg.output = q;
+        let rst = flow_graph.sink(RegisterKind::Unsigned(1), "rst", None);
+        let d = flow_graph.sink(Self::I::static_kind().into(), "ff_d", None);
+        let q = flow_graph.source(Self::O::static_kind().into(), "ff_q", None);
+        flow_graph.inputs = vec![rst, d, vec![]];
+        flow_graph.output = q;
         Ok(CircuitDescriptor {
             unique_name: format!(
                 "{}_{:x}",
@@ -99,7 +100,7 @@ impl<T: Digital> Synchronous for U<T> {
             num_tristate: 0,
             tristate_offset_in_parent: 0,
             children: Default::default(),
-            update_flow_graph: fg,
+            flow_graph,
         })
     }
 }

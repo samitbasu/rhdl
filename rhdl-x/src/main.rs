@@ -1,4 +1,3 @@
-use clock_reset::ClockReset;
 use rhdl::core::types::timed;
 use rhdl::prelude::*;
 use std::iter::repeat;
@@ -19,7 +18,6 @@ use rhdl_macro::Timed;
 //mod backend;
 //mod circuit;
 //mod clock;
-mod clock_reset;
 mod constant;
 mod counter;
 mod strobe;
@@ -73,12 +71,12 @@ pub fn sim_clock_reset(
             clock_count += 1;
             if clock_count < 4 {
                 Some(timed_sample(
-                    clock_reset::clock_reset(sample.value, reset(true)),
+                    clock_reset(sample.value, reset(true)),
                     sample.time,
                 ))
             } else {
                 Some(timed_sample(
-                    clock_reset::clock_reset(sample.value, reset(false)),
+                    clock_reset(sample.value, reset(false)),
                     sample.time,
                 ))
             }
@@ -132,7 +130,7 @@ pub fn traced_synchronous_simulation<S: Synchronous>(
         note("clock", cr.value.clock);
         note("reset", cr.value.reset);
         note("input", input);
-        let output = uut.sim(cr.value.clock, cr.value.reset, input, &mut state, &mut io);
+        let output = uut.sim(cr.value, input, &mut state, &mut io);
         if S::Z::N != 0 {
             note("io", io);
         }
@@ -151,8 +149,7 @@ fn test_async_counter() {
         .map(|x| {
             timed_sample(
                 async_counter::I {
-                    clock: signal(x.value.clock),
-                    reset: signal(x.value.reset),
+                    clock_reset: signal(x.value),
                     enable: signal(counter::I {
                         enable: x.time >= 1000 && x.time <= 10000,
                     }),
@@ -163,6 +160,25 @@ fn test_async_counter() {
         .take_while(|x| x.time < 20000);
     let uut: async_counter::U = async_counter::U::default();
     traced_simulation(uut, inputs, "async_counter.vcd")
+}
+
+#[test]
+fn test_async_counter_fg() -> miette::Result<()> {
+    let uut = async_counter::U::default();
+    let fg = &uut.descriptor()?.flow_graph.sealed();
+    let mut dot = std::fs::File::create("async_counter.dot").unwrap();
+    write_dot(&fg, &mut dot).unwrap();
+    Ok(())
+}
+
+#[test]
+fn test_adapter_fg() -> miette::Result<()> {
+    let counter = counter::U::new();
+    let uut = Adapter::<counter::U<2>, Red>::new(counter);
+    let fg = &uut.descriptor()?.flow_graph.sealed();
+    let mut dot = std::fs::File::create("adapter.dot").unwrap();
+    write_dot(&fg, &mut dot).unwrap();
+    Ok(())
 }
 
 #[test]
@@ -184,6 +200,15 @@ fn test_strobe() {
     let inputs = (0..).map(|_| strobe::I { enable: true }).take(1000);
     let uut: strobe::U<16> = strobe::U::new(bits(100));
     traced_synchronous_simulation(uut, inputs, "strobe.vcd");
+}
+
+#[test]
+fn test_strobe_fg() -> miette::Result<()> {
+    let uut: strobe::U<8> = strobe::U::new(bits(100));
+    let fg = &uut.descriptor()?.flow_graph.sealed();
+    let mut dot = std::fs::File::create("strobe.dot").unwrap();
+    write_dot(&fg, &mut dot).unwrap();
+    Ok(())
 }
 
 /* #[test]

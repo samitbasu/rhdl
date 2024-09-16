@@ -30,8 +30,7 @@ impl<T: Digital> Synchronous for U<T> {
 
     fn sim(
         &self,
-        _clock: Clock,
-        _reset: Reset,
+        _clock_reset: ClockReset,
         _input: Self::I,
         _state: &mut Self::S,
         _io: &mut Self::Z,
@@ -43,7 +42,7 @@ impl<T: Digital> Synchronous for U<T> {
         "Constant"
     }
 
-    fn as_hdl(&self, kind: HDLKind) -> Result<HDLDescriptor, RHDLError> {
+    fn as_hdl(&self, _kind: HDLKind) -> Result<HDLDescriptor, RHDLError> {
         self.as_verilog()
     }
 
@@ -54,7 +53,7 @@ impl<T: Digital> Synchronous for U<T> {
             flow_graph.new_component_with_optional_location(ComponentKind::Constant(*b), None)
         });
         flow_graph.output = driver.collect();
-        flow_graph.inputs = vec![vec![], vec![], vec![]];
+        flow_graph.inputs = vec![vec![], vec![]];
         Ok(CircuitDescriptor {
             unique_name: format!("const_{:?}", self.value.typed_bits()),
             input_kind: Kind::Empty,
@@ -63,7 +62,7 @@ impl<T: Digital> Synchronous for U<T> {
             q_kind: Kind::Empty,
             num_tristate: 0,
             tristate_offset_in_parent: 0,
-            update_flow_graph: flow_graph,
+            flow_graph,
             children: Default::default(),
         })
     }
