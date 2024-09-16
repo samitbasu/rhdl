@@ -7,7 +7,7 @@ use crate::types::path::{bit_range, Path};
 use crate::types::tristate::Tristate;
 use crate::{build_rtl_flow_graph, compile_design, CompilationMode, RHDLError, Synchronous};
 use crate::{util::hash_id, Kind};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 // A few notes on the circuit descriptor struct
 // The idea here is to capture the details on the circuit in such
@@ -217,7 +217,7 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         let (output_bit_range, _) = bit_range(C::D::static_kind(), &child_path)?;
         let (input_bit_range, _) = bit_range(C::Q::static_kind(), &child_path)?;
         let child_flow_graph = &child_descriptor.flow_graph;
-        let child_remap = fg.merge(&child_flow_graph);
+        let child_remap = fg.merge(child_flow_graph);
         let remap_child = |x: &[FlowIx]| x.iter().map(|y| child_remap[y]).collect::<Vec<_>>();
         let child_inputs = remap_child(&child_flow_graph.inputs[1]);
         let child_output = remap_child(&child_flow_graph.output);

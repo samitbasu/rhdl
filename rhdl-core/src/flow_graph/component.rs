@@ -1,3 +1,5 @@
+use std::fmt::write;
+
 use crate::{
     ast::source_location::SourceLocation,
     rhif::spec::{AluBinary, AluUnary},
@@ -46,9 +48,11 @@ pub enum ComponentKind {
     BlackBox(BlackBox),
     Buffer(String),
     Case(Case),
+    ClockPin,
     Constant(bool),
     DynamicIndex(DynamicIndex),
     DynamicSplice(DynamicSplice),
+    ResetPin,
     Select,
     Source(String),
     Sink(String),
@@ -79,6 +83,8 @@ impl std::fmt::Debug for Component {
             ComponentKind::TimingStart => write!(f, "timing_start"),
             ComponentKind::TimingEnd => write!(f, "timing_end"),
             ComponentKind::Unary(unary) => write!(f, "{:?}", unary.op),
+            ComponentKind::ClockPin => write!(f, "clk"),
+            ComponentKind::ResetPin => write!(f, "rst"),
         }?;
         writeln!(f)
     }

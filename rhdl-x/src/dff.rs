@@ -82,10 +82,11 @@ impl<T: Digital> Synchronous for U<T> {
     fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError> {
         let mut flow_graph = FlowGraph::default();
         // Make the FG slightly nicer
-        let rst = flow_graph.sink(RegisterKind::Unsigned(1), "rst", None);
+        let clock = flow_graph.clock();
+        let reset = flow_graph.reset();
         let d = flow_graph.sink(Self::I::static_kind().into(), "ff_d", None);
         let q = flow_graph.source(Self::O::static_kind().into(), "ff_q", None);
-        flow_graph.inputs = vec![rst, d, vec![]];
+        flow_graph.inputs = vec![vec![clock, reset], d, vec![]];
         flow_graph.output = q;
         Ok(CircuitDescriptor {
             unique_name: format!(
