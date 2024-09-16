@@ -316,10 +316,7 @@ fn build_test_module_flowgraph(rtl: &crate::rtl::Object) -> FlowGraph {
         if matches!(fg.graph[node].kind, ComponentKind::Source(_)) {
             fg.edge(timing_start, node, EdgeKind::Virtual);
         }
-        if matches!(
-            fg.graph[node].kind,
-            ComponentKind::Sink(_) | ComponentKind::ClockPin | ComponentKind::ResetPin
-        ) {
+        if matches!(fg.graph[node].kind, ComponentKind::Sink(_)) {
             fg.edge(node, timing_end, EdgeKind::Virtual);
         }
     }
