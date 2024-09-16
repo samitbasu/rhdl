@@ -1,5 +1,3 @@
-use std::fmt::write;
-
 use crate::{
     ast::source_location::SourceLocation,
     rhif::spec::{AluBinary, AluUnary},
@@ -48,17 +46,32 @@ pub enum ComponentKind {
     BlackBox(BlackBox),
     Buffer(String),
     Case(Case),
-    ClockPin,
     Constant(bool),
     DynamicIndex(DynamicIndex),
     DynamicSplice(DynamicSplice),
-    ResetPin,
     Select,
     Source(String),
-    Sink(String),
+    Sink(Sink),
     TimingStart,
     TimingEnd,
     Unary(Unary),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Sink {
+    Data(String),
+    Clock,
+    Reset,
+}
+
+impl std::fmt::Display for Sink {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Sink::Data(name) => write!(f, "{}", name),
+            Sink::Clock => write!(f, "clk"),
+            Sink::Reset => write!(f, "rst"),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -79,12 +92,10 @@ impl std::fmt::Debug for Component {
             ComponentKind::DynamicSplice(dynamic_splice) => write!(f, "//{}//", dynamic_splice.len),
             ComponentKind::Select => write!(f, "?"),
             ComponentKind::Source(name) => write!(f, "src<{}>", name),
-            ComponentKind::Sink(name) => write!(f, "sink<{}>", name),
+            ComponentKind::Sink(details) => write!(f, "sink<{}>", details),
             ComponentKind::TimingStart => write!(f, "timing_start"),
             ComponentKind::TimingEnd => write!(f, "timing_end"),
             ComponentKind::Unary(unary) => write!(f, "{:?}", unary.op),
-            ComponentKind::ClockPin => write!(f, "clk"),
-            ComponentKind::ResetPin => write!(f, "rst"),
         }?;
         writeln!(f)
     }

@@ -8,7 +8,7 @@ use crate::{
 };
 
 use super::{
-    component::{Component, ComponentKind},
+    component::{Component, ComponentKind, Sink},
     edge_kind::EdgeKind,
 };
 
@@ -65,7 +65,7 @@ impl FlowGraph {
             .map(|bit| {
                 let name = format!("{}[{}]", name, bit);
                 self.graph.add_node(Component {
-                    kind: ComponentKind::Sink(name),
+                    kind: ComponentKind::Sink(Sink::Data(name)),
                     location,
                 })
             })
@@ -133,10 +133,7 @@ impl FlowGraph {
             if matches!(fg.graph[node].kind, ComponentKind::Source(_)) {
                 fg.edge(timing_start, node, EdgeKind::Virtual);
             }
-            if matches!(
-                fg.graph[node].kind,
-                ComponentKind::Sink(_) | ComponentKind::ClockPin | ComponentKind::ResetPin
-            ) {
+            if matches!(fg.graph[node].kind, ComponentKind::Sink(_)) {
                 fg.edge(node, timing_end, EdgeKind::Virtual);
             }
         }
@@ -146,10 +143,10 @@ impl FlowGraph {
     }
 
     pub fn clock(&mut self) -> FlowIx {
-        self.new_component_with_optional_location(ComponentKind::ClockPin, None)
+        self.new_component_with_optional_location(ComponentKind::Sink(Sink::Clock), None)
     }
 
     pub fn reset(&mut self) -> FlowIx {
-        self.new_component_with_optional_location(ComponentKind::ResetPin, None)
+        self.new_component_with_optional_location(ComponentKind::Sink(Sink::Reset), None)
     }
 }
