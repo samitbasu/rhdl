@@ -1,7 +1,6 @@
 pub use types::kind::Kind;
 pub mod clock_details;
 
-pub use circuit::circuit_descriptor::root_descriptor;
 pub use circuit::circuit_descriptor::CircuitDescriptor;
 pub use circuit::circuit_impl::Circuit;
 pub use circuit::circuit_impl::CircuitDQ;
@@ -10,7 +9,6 @@ pub use circuit::circuit_impl::HDLKind;
 pub use circuit::hdl_descriptor::root_hdl;
 pub use circuit::hdl_descriptor::root_synchronous_hdl;
 pub use circuit::hdl_descriptor::HDLDescriptor;
-pub use circuit::synchronous::synchronous_root_descriptor;
 pub use circuit::synchronous::Synchronous;
 pub use circuit::synchronous::SynchronousDQ;
 pub use circuit::synchronous::SynchronousIO;
@@ -74,7 +72,10 @@ pub use error::RHDLError;
 pub mod flow_graph;
 pub mod rtl;
 pub mod timing;
-pub use circuit::build_synchronous_flow_graph;
+pub use circuit::circuit_descriptor::build_descriptor;
+pub use circuit::synchronous_flow_graph::build_synchronous_descriptor;
 pub use compiler::CompilationMode;
 pub use flow_graph::build_rtl_flow_graph;
 pub use flow_graph::flow_graph_impl::FlowGraph;
+pub use types::clock_reset::clock_reset;
+pub use types::clock_reset::ClockReset;

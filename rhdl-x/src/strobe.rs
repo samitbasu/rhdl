@@ -1,6 +1,3 @@
-use rhdl::core::build_synchronous_flow_graph;
-use rhdl::core::flow_graph::dot::write_dot;
-use rhdl::core::timing::simplest_cost;
 use rhdl::prelude::*;
 
 use crate::constant;
@@ -59,11 +56,11 @@ impl<const N: usize> Default for D<N> {
 }
 
 #[kernel]
-pub fn strobe<const N: usize>(reset: Reset, i: I, q: Q<N>) -> (bool, D<N>) {
+pub fn strobe<const N: usize>(cr: ClockReset, i: I, q: Q<N>) -> (bool, D<N>) {
     let mut d = D::<{ N }>::default();
     let count_next = if i.enable { q.counter + 1 } else { q.counter };
     let strobe = i.enable & (q.counter == q.threshold);
-    let count_next = if strobe || reset.any() {
+    let count_next = if strobe || cr.reset.any() {
         bits(0)
     } else {
         count_next
@@ -72,13 +69,20 @@ pub fn strobe<const N: usize>(reset: Reset, i: I, q: Q<N>) -> (bool, D<N>) {
     (strobe, d)
 }
 
-#[test]
-fn test_strobe_timing() -> miette::Result<()> {
-    let uut: U<4> = U::new(bits(12));
-    let mut counter_uut = build_synchronous_flow_graph(&uut.descriptor()?)?;
-    rhdl::core::timing::compute_node_costs(&mut counter_uut, simplest_cost);
-    eprintln!("counter {:?}", counter_uut);
-    let mut dot = std::fs::File::create("strobe_fg.dot").unwrap();
-    write_dot(&counter_uut, &mut dot).unwrap();
-    Ok(())
+#[cfg(test)]
+mod tests {
+    use rhdl::core::timing::simplest_cost;
+
+    use super::*;
+
+    #[test]
+    fn test_strobe_timing() -> miette::Result<()> {
+        let uut: U<4> = U::new(bits(12));
+        let mut counter_uut = uut.descriptor()?.flow_graph.clone();
+        rhdl::core::timing::compute_node_costs(&mut counter_uut, simplest_cost);
+        eprintln!("counter {:?}", counter_uut);
+        let mut dot = std::fs::File::create("strobe_fg.dot").unwrap();
+        write_dot(&counter_uut, &mut dot).unwrap();
+        Ok(())
+    }
 }

@@ -1,11 +1,10 @@
 use crate::{
-    build_rtl_flow_graph, compile_design, error::RHDLError, types::reset::Reset, util::hash_id,
-    CircuitDescriptor, Clock, CompilationMode, Digital, DigitalFn, HDLDescriptor, HDLKind,
+    error::RHDLError, CircuitDescriptor, ClockReset, Digital, DigitalFn, HDLDescriptor, HDLKind,
     Tristate,
 };
 
 pub type SynchronousUpdateFn<C> = fn(
-    Reset,
+    ClockReset,
     <C as SynchronousIO>::I,
     <C as SynchronousDQ>::Q,
 ) -> (<C as SynchronousIO>::O, <C as SynchronousDQ>::D);
@@ -31,8 +30,7 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO + SynchronousDQ {
 
     fn sim(
         &self,
-        clock: Clock,
-        reset: Reset,
+        clock_reset: ClockReset,
         input: Self::I,
         state: &mut Self::S,
         io: &mut Self::Z,
@@ -40,9 +38,7 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO + SynchronousDQ {
 
     fn name(&self) -> &'static str;
 
-    fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError> {
-        synchronous_root_descriptor(self)
-    }
+    fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError>;
 
     fn as_hdl(&self, kind: HDLKind) -> Result<HDLDescriptor, RHDLError>;
 
@@ -51,27 +47,4 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO + SynchronousDQ {
     fn z_offsets() -> impl Iterator<Item = usize> {
         std::iter::once(0)
     }
-}
-
-pub fn synchronous_root_descriptor<C: Synchronous>(
-    circuit: &C,
-) -> Result<CircuitDescriptor, RHDLError> {
-    eprintln!("Synchronous root descriptor for {}", circuit.name());
-    let module = compile_design::<C::Update>(CompilationMode::Synchronous)?;
-    let update_fg = build_rtl_flow_graph(&module);
-    Ok(CircuitDescriptor {
-        unique_name: format!(
-            "{}_{:x}",
-            circuit.name(),
-            hash_id(std::any::TypeId::of::<C>())
-        ),
-        input_kind: C::I::static_kind(),
-        output_kind: C::O::static_kind(),
-        d_kind: C::D::static_kind(),
-        q_kind: C::Q::static_kind(),
-        num_tristate: C::Z::N,
-        tristate_offset_in_parent: 0,
-        children: Default::default(),
-        update_flow_graph: update_fg,
-    })
 }

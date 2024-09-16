@@ -33,7 +33,7 @@ impl SynchronousDQ for U {
 }
 
 #[kernel]
-pub fn logic_loop(_reset: Reset, i: bool, q: Q) -> (bool, D) {
+pub fn logic_loop(_cr: ClockReset, i: bool, q: Q) -> (bool, D) {
     let mut d = D::default();
     if i {
         d.left = q.right;
@@ -42,28 +42,34 @@ pub fn logic_loop(_reset: Reset, i: bool, q: Q) -> (bool, D) {
     (q.left, d)
 }
 
-#[test]
-fn test_logic_loop() -> miette::Result<()> {
-    let uut = U::default();
-    let uut_fg = build_synchronous_flow_graph(&uut.descriptor()?)?;
-    let mut dot = std::fs::File::create("logic_loop.dot").unwrap();
-    write_dot(&uut_fg, &mut dot).unwrap();
+#[cfg(test)]
+mod tests {
 
-    // Look for loops
-    assert!(is_cyclic_directed(&uut_fg.graph));
-    if is_cyclic_directed(&uut_fg.graph) {
-        let feedback = feedback_arc_set::greedy_feedback_arc_set(&uut_fg.graph);
-        for edge in feedback {
-            let source = edge.source();
-            let dest = edge.target();
-            let source = &uut_fg.graph[source];
-            let dest = &uut_fg.graph[dest];
-            eprintln!("{:?} -> {:?}", source, dest);
+    use super::*;
+
+    #[test]
+    fn test_logic_loop() -> miette::Result<()> {
+        let uut = U::default();
+        let uut_fg = &uut.descriptor()?.flow_graph;
+        let mut dot = std::fs::File::create("logic_loop.dot").unwrap();
+        write_dot(&uut_fg, &mut dot).unwrap();
+
+        // Look for loops
+        assert!(is_cyclic_directed(&uut_fg.graph));
+        if is_cyclic_directed(&uut_fg.graph) {
+            let feedback = feedback_arc_set::greedy_feedback_arc_set(&uut_fg.graph);
+            for edge in feedback {
+                let source = edge.source();
+                let dest = edge.target();
+                let source = &uut_fg.graph[source];
+                let dest = &uut_fg.graph[dest];
+                eprintln!("{:?} -> {:?}", source, dest);
+            }
+        } else {
+            panic!("No loop found");
         }
-    } else {
-        panic!("No loop found");
+        let mut dot = std::fs::File::create("logic_loop.dot").unwrap();
+        write_dot(&uut_fg, &mut dot).unwrap();
+        Ok(())
     }
-    let mut dot = std::fs::File::create("logic_loop.dot").unwrap();
-    write_dot(&uut_fg, &mut dot).unwrap();
-    Ok(())
 }

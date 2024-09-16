@@ -115,9 +115,12 @@ impl<'a> FlowGraphBuilder<'a> {
             Operand::Register(register_id) => {
                 let reg = self.object.register_kind[&register_id];
                 let ndx = (0..reg.len())
-                    .map(|_| {
+                    .map(|ndx| {
                         self.fg.new_component(
-                            ComponentKind::Buffer(format!("{}_{:?}", self.object.name, operand)),
+                            ComponentKind::Buffer(format!(
+                                "{}_{:?}[{ndx}]",
+                                self.object.name, operand
+                            )),
                             loc,
                         )
                     })

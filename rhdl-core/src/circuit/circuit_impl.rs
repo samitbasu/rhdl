@@ -1,6 +1,4 @@
-use crate::{
-    error::RHDLError, root_descriptor, types::tristate::Tristate, Digital, DigitalFn, Timed,
-};
+use crate::{error::RHDLError, types::tristate::Tristate, Digital, DigitalFn, FlowGraph, Timed};
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
 
@@ -39,10 +37,8 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO + CircuitDQ {
     // auto derived
     fn name(&self) -> &'static str;
 
-    // Default provides the root descriptor, but children are added via proc macro
-    fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError> {
-        root_descriptor(self)
-    }
+    // auto derived
+    fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError>;
 
     // auto derived
     fn as_hdl(&self, kind: HDLKind) -> Result<HDLDescriptor, RHDLError>;

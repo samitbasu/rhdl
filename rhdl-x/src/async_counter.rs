@@ -1,4 +1,4 @@
-use rhdl::prelude::*;
+use rhdl::{core::ClockReset, prelude::*};
 
 #[derive(Clone, Circuit)]
 #[rhdl(kernel=async_counter)]
@@ -12,8 +12,7 @@ type CounterI = <Adapter<crate::counter::U<4>, Red> as CircuitIO>::I;
 #[kernel]
 pub fn async_counter(i: I, q: Q) -> (O, D) {
     let mut d = D::init();
-    d.counter.clock = i.clock;
-    d.counter.reset = i.reset;
+    d.counter.clock_reset = i.clock_reset;
     d.counter.input = i.enable;
     let mut o = O::init();
     o.count = q.counter;
@@ -22,9 +21,8 @@ pub fn async_counter(i: I, q: Q) -> (O, D) {
 
 #[derive(Clone, Copy, PartialEq, Debug, Digital, Timed)]
 pub struct I {
+    pub clock_reset: Signal<ClockReset, Red>,
     pub enable: Signal<crate::counter::I, Red>,
-    pub clock: Signal<Clock, Red>,
-    pub reset: Signal<Reset, Red>,
 }
 
 #[derive(Clone, Copy, PartialEq, Debug, Digital, Timed)]

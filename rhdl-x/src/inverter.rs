@@ -15,16 +15,20 @@ impl SynchronousDQ for U {
 }
 
 #[kernel]
-pub fn inverter(_reset: Reset, i: bool, _q: ()) -> (bool, ()) {
+pub fn inverter(_cr: ClockReset, i: bool, _q: ()) -> (bool, ()) {
     (!i, ())
 }
 
-#[test]
-fn test_inverter_flow_graph() -> miette::Result<()> {
-    let uut = U::default();
-    let descriptor = uut.descriptor()?;
-    let fg = build_synchronous_flow_graph(&descriptor)?;
-    let mut file = std::fs::File::create("inverter.dot").unwrap();
-    write_dot(&fg, &mut file).unwrap();
-    Ok(())
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    #[test]
+    fn test_inverter_flow_graph() -> miette::Result<()> {
+        let uut = U::default();
+        let fg = &uut.descriptor()?.flow_graph;
+        let mut file = std::fs::File::create("inverter.dot").unwrap();
+        write_dot(&fg, &mut file).unwrap();
+        Ok(())
+    }
 }

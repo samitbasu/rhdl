@@ -37,9 +37,10 @@ fn define_descriptor_fn(field_set: &FieldSet) -> TokenStream {
     let component_name = &field_set.component_name;
     quote! {
         fn descriptor(&self) -> Result<rhdl::core::CircuitDescriptor, rhdl::core::RHDLError> {
-            let mut ret = rhdl::core::root_descriptor(self)?;
-            #(ret.add_child(stringify!(#component_name), &self.#component_name)?;)*
-            Ok(ret)
+            use std::collections::BTreeMap;
+            let mut children : BTreeMap<String, rhdl::core::CircuitDescriptor> = BTreeMap::new();
+            #(children.insert(stringify!(#component_name).to_string(), self.#component_name.descriptor()?);)*
+            rhdl::core::build_descriptor(self, children)
         }
     }
 }
