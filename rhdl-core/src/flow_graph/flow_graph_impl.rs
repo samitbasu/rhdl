@@ -133,12 +133,23 @@ impl FlowGraph {
             if matches!(fg.graph[node].kind, ComponentKind::Source(_)) {
                 fg.edge(timing_start, node, EdgeKind::Virtual);
             }
-            if matches!(fg.graph[node].kind, ComponentKind::Sink(_)) {
+            if matches!(
+                fg.graph[node].kind,
+                ComponentKind::Sink(_) | ComponentKind::ClockPin | ComponentKind::ResetPin
+            ) {
                 fg.edge(node, timing_end, EdgeKind::Virtual);
             }
         }
         fg.inputs = vec![vec![timing_start]];
         fg.output = vec![timing_end];
         fg
+    }
+
+    pub fn clock(&mut self) -> FlowIx {
+        self.new_component_with_optional_location(ComponentKind::ClockPin, None)
+    }
+
+    pub fn reset(&mut self) -> FlowIx {
+        self.new_component_with_optional_location(ComponentKind::ResetPin, None)
     }
 }

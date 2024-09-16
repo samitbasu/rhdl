@@ -1,4 +1,4 @@
-use crate::{error::RHDLError, types::tristate::Tristate, Digital, DigitalFn, FlowGraph, Timed};
+use crate::{error::RHDLError, types::tristate::Tristate, Digital, DigitalFn, Timed};
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
 
