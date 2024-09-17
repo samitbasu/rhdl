@@ -10,10 +10,15 @@ use crate::{
 
 pub trait Pass {
     fn raise_ice(fg: &FlowGraph, cause: FlowGraphICE, loc: Option<SourceLocation>) -> RHDLError {
+        let elements = if let Some(loc) = loc {
+            vec![fg.code.span(loc).into()]
+        } else {
+            vec![]
+        };
         rhdl_error(FlowGraphError {
             cause,
             src: fg.code.source(),
-            err_span: loc.map(|x| fg.code.span(x).into()),
+            elements,
         })
     }
     fn run(input: FlowGraph) -> Result<FlowGraph, RHDLError>;

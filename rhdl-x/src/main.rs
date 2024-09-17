@@ -1,3 +1,5 @@
+use rhdl::core::flow_graph::passes::check_for_unconnected_clock_reset::CheckForUnconnectedClockReset;
+use rhdl::core::flow_graph::passes::pass::Pass;
 use rhdl::core::types::timed;
 use rhdl::prelude::*;
 use std::iter::repeat;
@@ -165,7 +167,8 @@ fn test_async_counter() {
 #[test]
 fn test_async_counter_fg() -> miette::Result<()> {
     let uut = async_counter::U::default();
-    let fg = &uut.descriptor()?.flow_graph.sealed();
+    let fg = uut.descriptor()?.flow_graph.sealed();
+    let fg = CheckForUnconnectedClockReset::run(fg)?;
     let mut dot = std::fs::File::create("async_counter.dot").unwrap();
     write_dot(&fg, &mut dot).unwrap();
     Ok(())
