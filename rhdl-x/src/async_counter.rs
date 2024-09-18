@@ -7,8 +7,6 @@ pub struct U {
     counter: Adapter<crate::counter::U<4>, Red>,
 }
 
-type CounterI = <Adapter<crate::counter::U<4>, Red> as CircuitIO>::I;
-
 #[kernel]
 pub fn async_counter(i: I, q: Q) -> (O, D) {
     let mut d = D::init();

@@ -450,10 +450,11 @@ impl ASTBuilder {
         ExprLit::Bool(value)
     }
 
-    pub fn expr_lit_typed_bits(&self, value: TypedBits) -> ExprLit {
+    pub fn expr_lit_typed_bits(&self, value: TypedBits, code: &str) -> ExprLit {
         ExprLit::TypedBits(ExprTypedBits {
             path: self.path(vec![]),
             value,
+            code: code.replace(' ', "").to_string(),
         })
     }
 
@@ -483,11 +484,15 @@ impl ASTBuilder {
         )
     }
 
-    pub fn expr_typed_bits(&self, path: Box<Path>, value: TypedBits) -> Box<Expr> {
+    pub fn expr_typed_bits(&self, path: Box<Path>, value: TypedBits, code: &str) -> Box<Expr> {
         let id = self.id();
         Box::new(Expr {
             id,
-            kind: ExprKind::Lit(ExprLit::TypedBits(ExprTypedBits { path, value })),
+            kind: ExprKind::Lit(ExprLit::TypedBits(ExprTypedBits {
+                path,
+                value,
+                code: code.to_string(),
+            })),
         })
     }
 

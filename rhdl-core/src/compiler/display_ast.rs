@@ -360,7 +360,7 @@ impl std::fmt::Debug for ExprLit {
         match self {
             ExprLit::Int(int) => write!(f, "{}", int),
             ExprLit::Bool(bool) => write!(f, "{}", bool),
-            ExprLit::TypedBits(ty) => write!(f, "{:?}", ty.value),
+            ExprLit::TypedBits(ty) => write!(f, "{}", ty.code),
         }
     }
 }

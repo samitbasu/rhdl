@@ -411,6 +411,7 @@ pub enum ExprLit {
 pub struct ExprTypedBits {
     pub path: Box<Path>,
     pub value: TypedBits,
+    pub code: String,
 }
 
 #[derive(Debug, Clone, Hash)]
