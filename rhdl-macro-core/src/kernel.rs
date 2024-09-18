@@ -1110,7 +1110,7 @@ impl Context {
         let inner = self.path_inner(path)?;
         if !self.is_scoped_binding(path) {
             return Ok(quote! {
-                bob.expr_typed_bits(#inner, rhdl::core::Digital::typed_bits(#path))
+                bob.expr_typed_bits(#inner, rhdl::core::Digital::typed_bits(#path), stringify!(#path))
             });
         }
         Ok(quote! {
