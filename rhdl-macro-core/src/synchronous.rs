@@ -52,9 +52,10 @@ fn define_hdl_fn(field_set: &FieldSet) -> TokenStream {
     let component_name = &field_set.component_name;
     quote! {
         fn as_hdl(&self, kind: rhdl::core::HDLKind) -> Result<rhdl::core::HDLDescriptor, rhdl::core::RHDLError> {
-            let mut ret = rhdl::core::root_synchronous_hdl(self, kind)?;
-            #(ret.add_synchronous(stringify!(#component_name), &self.#component_name, kind)?;)*
-            Ok(ret)
+            use std::collections::BTreeMap;
+            let mut children: BTreeMap<String, HDLDescriptor> = BTreeMap::new();
+            #(children.insert(stringify!(#component_name).to_string(), self.#component_name.as_hdl(kind)?);)*
+            rhdl::core::build_synchronous_hdl(self, children)
         }
     }
 }
