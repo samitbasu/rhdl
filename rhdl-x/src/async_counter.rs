@@ -10,7 +10,7 @@ pub struct U {
 #[kernel]
 pub fn async_counter(i: I, q: Q) -> (O, D) {
     let mut d = D::init();
-    //    d.counter.clock_reset = i.clock_reset;
+    d.counter.clock_reset = i.clock_reset;
     d.counter.input = i.enable;
     let mut o = O::init();
     o.count = q.counter;
