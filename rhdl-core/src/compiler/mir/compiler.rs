@@ -359,6 +359,7 @@ impl<'a> MirContext<'a> {
             ExprLit::TypedBits(ExprTypedBits {
                 path: Box::new(ast_impl::Path { segments: vec![] }),
                 value: place_holder.clone(),
+                code: String::new(),
             }),
         )
     }
@@ -590,6 +591,7 @@ impl<'a> MirContext<'a> {
                     ExprLit::TypedBits(ast_impl::ExprTypedBits {
                         path: Box::new(ast_impl::Path { segments: vec![] }),
                         value: discriminant,
+                        code: String::new(),
                     }),
                 );
                 let disc_as_i64 = arm_enum.template.discriminant()?.as_i64()?;

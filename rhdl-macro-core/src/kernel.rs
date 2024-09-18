@@ -133,7 +133,9 @@ fn rewrite_pattern_as_typed_bits(pat: &syn::Pat) -> syn::Result<TS> {
                 "Unsupported literal in rhdl kernel function",
             )),
         },
-        _ => Ok(quote! { bob.expr_lit_typed_bits(rhdl::core::Digital::typed_bits(#pat)) }),
+        _ => Ok(
+            quote! { bob.expr_lit_typed_bits(rhdl::core::Digital::typed_bits(#pat), stringify!(#pat)) },
+        ),
     }
 }
 
@@ -782,7 +784,8 @@ impl Context {
                 return Ok(quote! {
                     bob.lit_expr(
                         bob.expr_lit_typed_bits(
-                            rhdl::core::Digital::typed_bits(#expr)
+                            rhdl::core::Digital::typed_bits(#expr),
+                            stringify!(#expr)
                         )
                     )
                 });
