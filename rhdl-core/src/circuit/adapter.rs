@@ -134,6 +134,7 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
             num_tristate: C::Z::N,
             tristate_offset_in_parent: 0,
             flow_graph: fg,
+            rtl: None,
             children: Default::default(),
         })
     }
