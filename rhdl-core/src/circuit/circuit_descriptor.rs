@@ -2,6 +2,7 @@ use super::circuit_impl::Circuit;
 use crate::flow_graph::edge_kind::EdgeKind;
 use crate::flow_graph::flow_graph_impl::{FlowGraph, FlowIx};
 use crate::rtl::object::RegisterKind;
+use crate::rtl::Object;
 use crate::types::digital::Digital;
 use crate::types::path::{bit_range, Path};
 use crate::types::tristate::Tristate;
@@ -26,6 +27,7 @@ pub struct CircuitDescriptor {
     pub num_tristate: usize,
     pub tristate_offset_in_parent: usize,
     pub flow_graph: FlowGraph,
+    pub rtl: Option<Object>,
     pub children: BTreeMap<String, CircuitDescriptor>,
 }
 
@@ -123,6 +125,7 @@ pub fn build_descriptor<C: Circuit>(
         q_kind: C::Q::static_kind(),
         num_tristate: C::Z::N,
         flow_graph: fg,
+        rtl: Some(module),
         tristate_offset_in_parent: 0,
         children,
     })
@@ -250,6 +253,7 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         num_tristate: C::Z::N,
         tristate_offset_in_parent: 0,
         children,
+        rtl: Some(module),
         flow_graph: fg,
     })
 }
