@@ -36,7 +36,7 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO + SynchronousDQ {
         io: &mut Self::Z,
     ) -> Self::O;
 
-    fn name(&self) -> &'static str;
+    fn name(&self) -> String;
 
     fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError>;
 

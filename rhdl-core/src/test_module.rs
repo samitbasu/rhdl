@@ -8,6 +8,7 @@ use crate::flow_graph::flow_graph_impl::FlowGraph;
 use crate::flow_graph::passes::check_for_undriven::CheckForUndrivenPass;
 use crate::flow_graph::passes::pass::Pass;
 use crate::types::bit_string::BitString;
+use crate::util::delim_list_optional_strings;
 use crate::{build_rtl_flow_graph, DigitalFn};
 use crate::{Timed, TypedBits};
 
@@ -66,12 +67,12 @@ pub trait Testable<Args, T1> {
     fn apply(&self, args: Args) -> T1;
 }
 
-fn verilog_binary_string(x: impl Timed) -> String {
+fn verilog_binary_string(x: impl Timed) -> Option<String> {
     let q = x.binary_string();
     if q.is_empty() {
-        "0".to_string()
+        None
     } else {
-        format!("{x_bits}'b{q}", x_bits = q.len(), q = q)
+        Some(format!("{x_bits}'b{q}", x_bits = q.len(), q = q))
     }
 }
 
@@ -83,8 +84,8 @@ where
 {
     fn test_string(&self, name: &str, args: (T0,)) -> String {
         let (t0,) = args;
-        let q = verilog_binary_string((*self)(t0));
-        let t0 = verilog_binary_string(t0);
+        let q = verilog_binary_string((*self)(t0)).unwrap();
+        let t0 = verilog_binary_string(t0).unwrap_or_default();
         format!("$display(\"0x%0h 0x%0h\", {q}, {name}({t0}));\n")
     }
     fn apply(&self, args: (T0,)) -> Q {
@@ -102,10 +103,11 @@ where
 {
     fn test_string(&self, name: &str, args: (T0, T1)) -> String {
         let (t0, t1) = args;
-        let q = verilog_binary_string((*self)(t0, t1));
+        let q = verilog_binary_string((*self)(t0, t1)).unwrap();
         let t0 = verilog_binary_string(t0);
         let t1 = verilog_binary_string(t1);
-        format!("$display(\"0x%0h 0x%0h\", {q}, {name}({t0},{t1}));\n")
+        let arg = delim_list_optional_strings(&[t0, t1], ",");
+        format!("$display(\"0x%0h 0x%0h\", {q}, {name}({arg}));\n")
     }
     fn apply(&self, args: (T0, T1)) -> Q {
         let (t0, t1) = args;
@@ -123,11 +125,12 @@ where
 {
     fn test_string(&self, name: &str, args: (T0, T1, T2)) -> String {
         let (t0, t1, t2) = args;
-        let q = verilog_binary_string((*self)(t0, t1, t2));
+        let q = verilog_binary_string((*self)(t0, t1, t2)).unwrap();
         let t0 = verilog_binary_string(t0);
         let t1 = verilog_binary_string(t1);
         let t2 = verilog_binary_string(t2);
-        format!("$display(\"0x%0h 0x%0h\", {q}, {name}({t0},{t1},{t2}));\n")
+        let arg = delim_list_optional_strings(&[t0, t1, t2], ",");
+        format!("$display(\"0x%0h 0x%0h\", {q}, {name}({arg}));\n")
     }
     fn apply(&self, args: (T0, T1, T2)) -> Q {
         let (t0, t1, t2) = args;
@@ -146,12 +149,13 @@ where
 {
     fn test_string(&self, name: &str, args: (T0, T1, T2, T3)) -> String {
         let (t0, t1, t2, t3) = args;
-        let q = verilog_binary_string((*self)(t0, t1, t2, t3));
+        let q = verilog_binary_string((*self)(t0, t1, t2, t3)).unwrap();
         let t0 = verilog_binary_string(t0);
         let t1 = verilog_binary_string(t1);
         let t2 = verilog_binary_string(t2);
         let t3 = verilog_binary_string(t3);
-        format!("$display(\"0x%0h 0x%0h\", {q}, {name}({t0},{t1},{t2},{t3}));\n")
+        let arg = delim_list_optional_strings(&[t0, t1, t2, t3], ",");
+        format!("$display(\"0x%0h 0x%0h\", {q}, {name}({arg}));\n")
     }
     fn apply(&self, args: (T0, T1, T2, T3)) -> Q {
         let (t0, t1, t2, t3) = args;
@@ -171,13 +175,14 @@ where
 {
     fn test_string(&self, name: &str, args: (T0, T1, T2, T3, T4)) -> String {
         let (t0, t1, t2, t3, t4) = args;
-        let q = verilog_binary_string((*self)(t0, t1, t2, t3, t4));
+        let q = verilog_binary_string((*self)(t0, t1, t2, t3, t4)).unwrap();
         let t0 = verilog_binary_string(t0);
         let t1 = verilog_binary_string(t1);
         let t2 = verilog_binary_string(t2);
         let t3 = verilog_binary_string(t3);
         let t4 = verilog_binary_string(t4);
-        format!("$display(\"0x%0h 0x%0h\", {q}, {name}({t0},{t1},{t2},{t3},{t4}));\n")
+        let arg = delim_list_optional_strings(&[t0, t1, t2, t3, t4], ",");
+        format!("$display(\"0x%0h 0x%0h\", {q}, {name}({arg}));\n")
     }
     fn apply(&self, args: (T0, T1, T2, T3, T4)) -> Q {
         let (t0, t1, t2, t3, t4) = args;
@@ -369,12 +374,10 @@ where
     eprintln!("RTL test passed {} cases OK", rtl_test_count);
     let flow_graph = build_test_module_flowgraph(&rtl);
     // Write the flow graph to a DOT file
-    write_dot(&flow_graph, std::fs::File::create("test_module.dot")?)?;
     let _flow_graph = CheckForUndrivenPass::run(flow_graph)?;
     let verilog = generate_verilog(&rtl)?;
     eprintln!("Verilog {:?}", verilog);
     let tm = test_module(uut, verilog, vals);
-    //eprintln!("{}", tm.testbench);
     tm.run_iverilog()
 }
 

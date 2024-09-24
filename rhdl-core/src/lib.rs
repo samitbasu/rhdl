@@ -74,6 +74,8 @@ pub mod rtl;
 pub mod timing;
 pub use circuit::circuit_descriptor::build_descriptor;
 pub use circuit::circuit_descriptor::build_synchronous_descriptor;
+pub use circuit::hdl_backend::build_hdl;
+pub use circuit::hdl_backend::build_synchronous_hdl;
 pub use compiler::CompilationMode;
 pub use flow_graph::build_rtl_flow_graph;
 pub use flow_graph::flow_graph_impl::FlowGraph;

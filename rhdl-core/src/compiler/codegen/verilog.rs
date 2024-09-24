@@ -360,16 +360,12 @@ impl<'a> TranslationContext<'a> {
             .arguments
             .iter()
             .enumerate()
-            .map(|(ndx, arg)| {
-                if let Some(arg) = arg {
-                    let kind = self.rtl.register_kind[arg];
-                    format!(
-                        "input {}",
-                        reg_decl(&self.rtl.op_name(Operand::Register(*arg)), kind)
-                    )
-                } else {
-                    format!("input reg [0:0] unused_{}", ndx)
-                }
+            .flat_map(|(ndx, x)| x.map(|r| (ndx, r)))
+            .map(|(ndx, reg)| {
+                format!(
+                    "input {}",
+                    reg_decl(&format!("arg_{ndx}"), self.rtl.register_kind[&reg])
+                )
             })
             .collect::<Vec<_>>();
         let ret_kind = self.rtl.kind(self.rtl.return_register);
@@ -382,12 +378,7 @@ impl<'a> TranslationContext<'a> {
             arg_decls.join(", ")
         ));
         self.body.push_str("   // Registers\n");
-        for reg in self
-            .rtl
-            .register_kind
-            .keys()
-            .filter(|x| !self.rtl.arguments.contains(&Some(**x)))
-        {
+        for reg in self.rtl.register_kind.keys() {
             let alias = self
                 .rtl
                 .op_alias(Operand::Register(*reg))
@@ -410,6 +401,16 @@ impl<'a> TranslationContext<'a> {
         }
         self.body.push_str("    // Body\n");
         self.body.push_str("begin\n");
+        // Bind the argument registers
+        for (ndx, reg) in self.rtl.arguments.iter().enumerate() {
+            if let Some(reg) = reg {
+                self.body.push_str(&format!(
+                    "    {} = arg_{};\n",
+                    self.rtl.op_name(Operand::Register(*reg)),
+                    ndx
+                ));
+            }
+        }
         self.translate_block(&self.rtl.ops)?;
         self.body.push_str(&format!(
             "    {} = {};\n",

@@ -71,8 +71,8 @@ impl<T: Digital> Synchronous for U<T> {
         new_state
     }
 
-    fn name(&self) -> &'static str {
-        "DFF"
+    fn name(&self) -> String {
+        "DFF".into()
     }
 
     fn as_hdl(&self, _: HDLKind) -> Result<HDLDescriptor, RHDLError> {
@@ -102,13 +102,14 @@ impl<T: Digital> Synchronous for U<T> {
             tristate_offset_in_parent: 0,
             children: Default::default(),
             flow_graph,
+            rtl: None,
         })
     }
 }
 
 fn as_verilog_decl(kind: &str, len: usize, name: &str) -> String {
     let msb = len.saturating_sub(1);
-    format!("{kind} {name}[{msb}:0]")
+    format!("{kind}[{msb}:0] {name}")
 }
 
 impl<T: Digital> U<T> {
