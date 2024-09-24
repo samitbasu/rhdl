@@ -38,8 +38,8 @@ impl<T: Digital> Synchronous for U<T> {
         self.value
     }
 
-    fn name(&self) -> &'static str {
-        "Constant"
+    fn name(&self) -> String {
+        "Constant".into()
     }
 
     fn as_hdl(&self, _kind: HDLKind) -> Result<HDLDescriptor, RHDLError> {
@@ -64,6 +64,7 @@ impl<T: Digital> Synchronous for U<T> {
             tristate_offset_in_parent: 0,
             flow_graph,
             children: Default::default(),
+            rtl: None,
         })
     }
 }
@@ -77,7 +78,7 @@ impl<T: Digital> U<T> {
         let value = self.value.typed_bits().as_verilog_literal();
         let body = format!(
             "
-module {module_name}(input clock, input reset, input wire[0:0] i, output wire[{output_bits}:0] o);
+module {module_name}(input clock, input reset, output wire[{output_bits}:0] o);
     assign o = {value};
 endmodule
 "

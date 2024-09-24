@@ -123,6 +123,17 @@ fn test_method_call_syntax() -> miette::Result<()> {
 }
 
 #[test]
+fn test_empty_return_rejected() -> miette::Result<()> {
+    #[kernel]
+    fn foo(a: Signal<b8, Red>) {}
+    let Err(RHDLError::RHDLSyntaxError(err)) = compile_design::<foo>(CompilationMode::Asynchronous)
+    else {
+        panic!("Expected syntax error");
+    };
+    Ok(())
+}
+
+#[test]
 fn test_empty_kernel_args_accepted() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<(), Red>, b: Signal<b3, Red>, c: Signal<(), Red>) -> Signal<b3, Red> {

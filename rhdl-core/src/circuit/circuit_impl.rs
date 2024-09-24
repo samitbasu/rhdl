@@ -35,7 +35,7 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO + CircuitDQ {
     fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O;
 
     // auto derived
-    fn name(&self) -> &'static str;
+    fn name(&self) -> String;
 
     // auto derived
     fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError>;

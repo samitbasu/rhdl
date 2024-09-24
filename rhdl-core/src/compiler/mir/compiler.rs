@@ -32,6 +32,7 @@ use crate::compiler::ascii;
 use crate::compiler::display_ast::pretty_print_statement;
 use crate::compiler::stage1::compile;
 use crate::compiler::stage1::CompilationMode;
+use crate::error::rhdl_error;
 use crate::error::RHDLError;
 use crate::kernel::Kernel;
 use crate::rhif;
@@ -1349,6 +1350,11 @@ impl<'a> Visitor for MirContext<'a> {
     fn visit_kernel_fn(&mut self, node: &ast_impl::KernelFn) -> Result<()> {
         self.unpack_arguments(&node.inputs, node.id)?;
         let block_result = self.reg(node.id);
+        if block_result.is_empty() {
+            return Err(self
+                .raise_syntax_error(Syntax::EmptyReturnForFunction, node.id)
+                .into());
+        }
         self.return_slot = block_result;
         // We create 2 bindings (local vars) inside the function
         //   - the early return flag - a flag of type bool that we initialize to false
@@ -1410,17 +1416,23 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
     let mut compiler = MirContext::new(&source, mode);
     compiler.visit_kernel_fn(func.inner())?;
     compiler.bind_slot_to_type(compiler.return_slot, &func.inner().ret);
+    let ty: BTreeMap<Slot, Kind> = compiler
+        .ty
+        .iter()
+        .map(|(k, v)| (*k, compiler.kinds[v].to_owned()))
+        .collect();
+    if let Some(kind) = ty.get(&compiler.return_slot) {
+        if kind.is_empty() {
+            return Err(compiler
+                .raise_syntax_error(Syntax::EmptyReturnForFunction, func.inner().id)
+                .into());
+        }
+    }
     let source = build_spanned_source_for_kernel(func.inner());
     let slot_map = compiler
         .reg_source_map
         .into_iter()
         .chain(once((Slot::Empty, func.inner().id)))
-        .collect();
-    // Remove the interner... temporarily
-    let ty = compiler
-        .ty
-        .iter()
-        .map(|(k, v)| (*k, compiler.kinds[v].to_owned()))
         .collect();
     Ok(Mir {
         symbols: SymbolMap {

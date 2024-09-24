@@ -213,6 +213,9 @@ pub enum Syntax {
     #[error("RHDL does not support the use of binary operators on this type")]
     #[diagnostic(help("You cannot roll your own binary operator in RHDL.  You should write a kernel and call it as a regular function."))]
     RollYourOwnBinary,
+    #[error("RHDL does not support functions with empty return types")]
+    #[diagnostic(help("You cannot have a function with an empty return type in RHDL.  You should return a value or a tuple of values."))]
+    EmptyReturnForFunction,
 }
 
 #[derive(Debug, Error, Diagnostic)]

@@ -72,14 +72,14 @@ pub struct I {
 #[rhdl(auto_dq)]
 pub struct U<const N: usize> {
     count: dff::U<Bits<N>>,
-    adder: comb_adder::U<{ N }>,
+    //    adder: comb_adder::U<{ N }>,
 }
 
 impl<const N: usize> U<N> {
     pub fn new() -> Self {
         Self {
             count: dff::U::new(Bits::ZERO),
-            adder: Default::default(),
+            // adder: Default::default(),
         }
     }
 }
@@ -91,13 +91,12 @@ impl<const N: usize> SynchronousIO for U<N> {
 
 #[kernel]
 pub fn counter<const N: usize>(cr: ClockReset, i: I, q: Q<N>) -> (Bits<N>, D<N>) {
-    let next_count = if i.enable { q.adder } else { q.count };
+    let next_count = if i.enable { q.count + 1 } else { q.count };
     let mut output = Bits::<{ N }>::init();
     let mut d = D::<{ N }>::init();
     if !cr.reset.any() {
         output = q.count;
         d.count = next_count;
-        d.adder = (q.count, bits(1));
     }
     (output, d)
 }
@@ -106,6 +105,14 @@ pub fn counter<const N: usize>(cr: ClockReset, i: I, q: Q<N>) -> (Bits<N>, D<N>)
 mod tests {
 
     use super::*;
+
+    #[test]
+    fn test_verilog_generation() -> miette::Result<()> {
+        let uut: U<4> = U::new();
+        let hdl = uut.as_hdl(HDLKind::Verilog)?;
+        std::fs::write("counter.v", format!("{:?}", hdl)).unwrap();
+        Ok(())
+    }
 
     #[test]
     fn test_counter_timing_root() -> miette::Result<()> {

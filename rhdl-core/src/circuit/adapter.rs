@@ -139,7 +139,7 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         })
     }
 
-    fn name(&self) -> &'static str {
+    fn name(&self) -> String {
         self.circuit.name()
     }
 

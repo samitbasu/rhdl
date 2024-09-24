@@ -121,3 +121,25 @@ fn test_clog2() {
     assert_eq!(clog2(3), 2);
     assert_eq!(clog2(255), 8);
 }
+
+pub fn delim_list_optional_strings(args: &[Option<String>], delim: &str) -> String {
+    args.iter()
+        .flatten()
+        .cloned()
+        .collect::<Vec<_>>()
+        .join(delim)
+}
+
+pub fn terminate_list_optional_strings(args: &[Option<String>], term: &str) -> String {
+    let ret = args
+        .iter()
+        .flatten()
+        .cloned()
+        .collect::<Vec<_>>()
+        .join(term);
+    if !ret.is_empty() {
+        ret + term
+    } else {
+        ret
+    }
+}

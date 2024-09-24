@@ -190,8 +190,8 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let hdl_fn = define_hdl_fn(&field_set);
     let sim_fn = define_sim_fn(&field_set);
     let name_fn = quote!(
-        fn name(&self) -> &'static str {
-            stringify!(#struct_name)
+        fn name(&self) -> String {
+            concat!(module_path!(), "::", stringify!(#struct_name)).replace("::", "_")
         }
     );
     let dq_section = if !auto_dq {

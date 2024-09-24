@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use crate::{error::RHDLError, root_verilog, Circuit, HDLKind, Synchronous};
 
@@ -8,7 +8,7 @@ use super::synchronous_verilog::root_synchronous_verilog;
 pub struct HDLDescriptor {
     pub name: String,
     pub body: String,
-    pub children: HashMap<String, HDLDescriptor>,
+    pub children: BTreeMap<String, HDLDescriptor>,
 }
 
 impl std::fmt::Debug for HDLDescriptor {
