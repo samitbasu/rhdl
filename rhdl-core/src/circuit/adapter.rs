@@ -2,11 +2,15 @@ use crate::{
     flow_graph::edge_kind::EdgeKind,
     rtl::object::RegisterKind,
     types::{kind::Field, signal::signal},
+    util::delim_list_optional_strings,
     Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, ClockReset, Digital, DigitalFn, Domain,
     FlowGraph, Kind, Notable, NoteKey, NoteWriter, RHDLError, Signal, Synchronous, Timed, Tristate,
 };
 
-use super::circuit_impl::CircuitUpdateFn;
+use super::{
+    circuit_impl::CircuitUpdateFn,
+    hdl_backend::{maybe_decl, Direction},
+};
 
 // An adapter allows you to use a Synchronous circuit in an Asynchronous context.
 #[derive(Clone)]
@@ -143,8 +147,61 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         self.circuit.name()
     }
 
-    fn as_hdl(&self, _kind: crate::HDLKind) -> Result<crate::HDLDescriptor, RHDLError> {
-        todo!()
+    fn as_hdl(&self, kind: crate::HDLKind) -> Result<crate::HDLDescriptor, RHDLError> {
+        let descriptor = self.descriptor()?;
+        let module_name = &descriptor.unique_name;
+        let io_decl = maybe_decl(Some(Direction::Inout), Self::Z::N, "io");
+        let in_decl = maybe_decl(Some(Direction::Input), <Self as CircuitIO>::I::bits(), "i");
+        let out_decl = maybe_decl(Some(Direction::Output), <Self as CircuitIO>::O::bits(), "o");
+
+        let module_decl = format!(
+            "module {module_name}({decls});",
+            module_name = module_name,
+            decls = delim_list_optional_strings(&[io_decl, in_decl.clone(), out_decl], ",")
+        );
+
+        let child = self.circuit.descriptor()?;
+        let clock_bind = Some(".clock(i[0])".into());
+        let reset_bind = Some(".reset(i[1])".into());
+        let input_bind = if child.input_kind.is_empty() {
+            None
+        } else {
+            Some(format!(
+                ".i(i[{end}:2])",
+                end = (child.input_kind.bits() + 2).saturating_sub(1)
+            ))
+        };
+        let output_bind = Some(format!(
+            ".o(o[{end}:0])",
+            end = child.output_kind.bits().saturating_sub(1)
+        ));
+        let io_bind = if C::Z::N == 0 {
+            None
+        } else {
+            Some(format!(".io(io[{end}:0])", end = C::Z::N.saturating_sub(1)))
+        };
+        // Check to see if the child has any non-clock/reset inputs
+        let child_decl = format!(
+            "{component_name} c({args});",
+            component_name = child.unique_name,
+            args = delim_list_optional_strings(
+                &[clock_bind, reset_bind, input_bind, output_bind, io_bind],
+                ","
+            )
+        );
+        let code = format!(
+            "{module_decl}
+            
+            {child_decl}
+
+endmodule"
+        );
+        let child_hdl = self.circuit.as_hdl(kind)?;
+        Ok(crate::HDLDescriptor {
+            name: module_name.into(),
+            body: code,
+            children: [("c".into(), child_hdl)].into(),
+        })
     }
 }
 

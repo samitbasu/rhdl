@@ -81,3 +81,5 @@ pub use flow_graph::build_rtl_flow_graph;
 pub use flow_graph::flow_graph_impl::FlowGraph;
 pub use types::clock_reset::clock_reset;
 pub use types::clock_reset::ClockReset;
+
+pub mod sim;
