@@ -9,13 +9,13 @@ use crate::Digital;
 use crate::HDLKind;
 use crate::Tristate;
 use crate::{Circuit, HDLDescriptor, RHDLError, Synchronous};
-enum Direction {
+pub(crate) enum Direction {
     Input,
     Output,
     Inout,
 }
 
-fn maybe_decl(dir: Option<Direction>, num_bits: usize, name: &str) -> Option<String> {
+pub(crate) fn maybe_decl(dir: Option<Direction>, num_bits: usize, name: &str) -> Option<String> {
     let dir = match dir {
         Some(Direction::Input) => "input",
         Some(Direction::Output) => "output",
@@ -103,8 +103,8 @@ pub fn build_hdl<C: Circuit>(
         None
     } else {
         Some(format!(
-            "assign d = od[{}:{}];",
-            C::D::bits().saturating_sub(1),
+            "assign d = od[{}:{}]",
+            (C::D::bits() + outputs).saturating_sub(1),
             outputs
         ))
     };
@@ -211,7 +211,7 @@ pub fn build_synchronous_hdl<C: Synchronous>(
         None
     } else {
         Some(format!(
-            "assign d = od[{}:{}];",
+            "assign d = od[{}:{}]",
             (C::D::bits() + outputs).saturating_sub(1),
             outputs,
         ))
