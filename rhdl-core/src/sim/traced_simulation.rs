@@ -1,10 +1,10 @@
-use super::{sim_clock, sim_clock_reset, TimedSample};
+use super::TimedSample;
 use crate::types::digital::Digital;
 use crate::types::tristate::Tristate;
-use crate::{note, note_init_db, note_take, note_time, Circuit, Synchronous};
+use crate::{note, note_init_db, note_take, note_time, Circuit, ClockReset, Synchronous};
 
 pub fn traced_simulation<T: Circuit>(
-    uut: T,
+    uut: &T,
     inputs: impl Iterator<Item = TimedSample<T::I>>,
     vcd_filename: &str,
 ) {
@@ -24,30 +24,22 @@ pub fn traced_simulation<T: Circuit>(
 }
 
 pub fn traced_synchronous_simulation<S: Synchronous>(
-    uut: S,
-    mut inputs: impl Iterator<Item = S::I>,
+    uut: &S,
+    inputs: impl Iterator<Item = TimedSample<(ClockReset, S::I)>>,
     vcd_filename: &str,
 ) {
     note_init_db();
     note_time(0);
-    let clock_stream = sim_clock(100);
-    let reset_stream = sim_clock_reset(clock_stream);
     let mut state = S::S::init();
-    let mut input = S::I::init();
     let mut io = S::Z::default();
-    for cr in reset_stream {
-        if cr.value.clock.raw() && !cr.value.reset.raw() {
-            if let Some(sample) = inputs.next() {
-                input = sample;
-            } else {
-                break;
-            }
-        }
-        note_time(cr.time);
-        note("clock", cr.value.clock);
-        note("reset", cr.value.reset);
+    for timed_input in inputs {
+        note_time(timed_input.time);
+        let clock_reset = timed_input.value.0;
+        let input = timed_input.value.1;
+        note("clock", clock_reset.clock);
+        note("reset", clock_reset.reset);
         note("input", input);
-        let output = uut.sim(cr.value, input, &mut state, &mut io);
+        let output = uut.sim(clock_reset, input, &mut state, &mut io);
         if S::Z::N != 0 {
             note("io", io);
         }
