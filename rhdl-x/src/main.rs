@@ -93,7 +93,7 @@ fn test_async_counter() {
         })
         .take_while(|x| x.time < 20000);
     let uut: async_counter::U = async_counter::U::default();
-    traced_simulation(uut, inputs, "async_counter.vcd")
+    traced_simulation(&uut, inputs, "async_counter.vcd")
 }
 
 #[test]
@@ -151,25 +151,32 @@ fn test_adapter_fg() -> miette::Result<()> {
     Ok(())
 }
 
+#[cfg(test)]
+fn test_stream<T: Digital>(
+    inputs: impl Iterator<Item = T>,
+) -> impl Iterator<Item = TimedSample<(ClockReset, T)>> {
+    stream::clock_pos_edge(stream::reset_pulse(4).chain(stream::stream(inputs)), 100)
+}
+
 #[test]
 fn test_dff() {
     let inputs = (0..).map(|_| Bits::init()).take(1000);
     let uut: dff::U<b4> = dff::U::new(b4::from(0b0000));
-    traced_synchronous_simulation(uut, inputs, "dff.vcd");
+    traced_synchronous_simulation(&uut, test_stream(inputs), "dff.vcd");
 }
 
 #[test]
 fn test_constant() {
     let inputs = (0..).map(|_| ()).take(100);
     let uut: constant::U<b4> = constant::U::new(b4::from(0b1010));
-    traced_synchronous_simulation(uut, inputs, "constant.vcd");
+    traced_synchronous_simulation(&uut, test_stream(inputs), "constant.vcd");
 }
 
 #[test]
 fn test_strobe() {
     let inputs = (0..).map(|_| strobe::I { enable: true }).take(1000);
     let uut: strobe::U<16> = strobe::U::new(bits(100));
-    traced_synchronous_simulation(uut, inputs, "strobe.vcd");
+    traced_synchronous_simulation(&uut, test_stream(inputs), "strobe.vcd");
 }
 
 #[test]
@@ -187,7 +194,7 @@ fn test_counter_simulation() {
         .map(|x| x > 1000 && x < 10000)
         .map(|x| counter::I { enable: x });
     let uut: counter::U<4> = counter::U::new();
-    traced_synchronous_simulation(uut, inputs, "counter.vcd");
+    traced_synchronous_simulation(&uut, test_stream(inputs), "counter.vcd");
 }
 
 #[test]

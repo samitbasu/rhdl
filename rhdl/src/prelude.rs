@@ -29,6 +29,7 @@ pub use rhdl_core::rhif::Object;
 pub use rhdl_core::rtl::vm::execute;
 pub use rhdl_core::sim::sim_clock;
 pub use rhdl_core::sim::sim_clock_reset;
+pub use rhdl_core::sim::stream;
 pub use rhdl_core::sim::timed_sample;
 pub use rhdl_core::sim::traced_simulation::traced_simulation;
 pub use rhdl_core::sim::traced_simulation::traced_synchronous_simulation;

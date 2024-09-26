@@ -1,4 +1,4 @@
-use super::{sim_clock, sim_clock_reset, TimedSample};
+use super::TimedSample;
 use crate::types::digital::Digital;
 use crate::{Circuit, HDLKind, RHDLError, Synchronous};
 use std::io::Write;
