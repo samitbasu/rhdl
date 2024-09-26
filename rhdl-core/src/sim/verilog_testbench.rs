@@ -1,6 +1,5 @@
-use super::TimedSample;
 use crate::types::digital::Digital;
-use crate::{Circuit, HDLKind, RHDLError, Synchronous};
+use crate::{Circuit, ClockReset, HDLKind, RHDLError, Synchronous, TimedSample};
 use std::io::Write;
 
 pub fn write_testbench<C: Circuit>(
@@ -73,8 +72,7 @@ pub fn write_testbench<C: Circuit>(
 
 pub fn write_synchronous_testbench<S: Synchronous>(
     uut: &S,
-    mut inputs: impl Iterator<Item = S::I>,
-    period: u64,
+    mut inputs: impl Iterator<Item = TimedSample<(ClockReset, S::I)>>,
     v_filename: &str,
 ) -> Result<(), RHDLError> {
     let out_bits = S::O::bits();

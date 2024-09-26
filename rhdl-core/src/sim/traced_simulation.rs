@@ -1,7 +1,8 @@
-use super::TimedSample;
 use crate::types::digital::Digital;
 use crate::types::tristate::Tristate;
-use crate::{note, note_init_db, note_take, note_time, Circuit, ClockReset, Synchronous};
+use crate::{
+    note, note_init_db, note_take, note_time, Circuit, ClockReset, Synchronous, TimedSample,
+};
 
 pub fn traced_simulation<T: Circuit>(
     uut: &T,

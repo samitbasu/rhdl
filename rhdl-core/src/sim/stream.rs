@@ -1,8 +1,6 @@
 use std::iter::once;
 
-use crate::{clock::clock, clock_reset, types::reset::reset, ClockReset, Digital};
-
-use super::TimedSample;
+use crate::{clock::clock, clock_reset, types::reset::reset, ClockReset, Digital, TimedSample};
 
 #[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
 pub enum ResetData<T: Digital> {
@@ -45,7 +43,7 @@ pub fn clock_pos_edge<T: Digital>(
 mod tests {
     use std::iter::once;
 
-    use crate::sim::timed_sample;
+    use crate::timed_sample;
 
     use super::*;
 

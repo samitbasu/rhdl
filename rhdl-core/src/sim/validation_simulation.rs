@@ -1,6 +1,5 @@
-use super::TimedSample;
 use crate::types::digital::Digital;
-use crate::{Circuit, ClockReset, Synchronous};
+use crate::{Circuit, ClockReset, Reset, Synchronous, TimedSample};
 
 type ValidationError = Box<dyn std::error::Error>;
 type ValidationResult = Result<(), ValidationError>;
@@ -61,4 +60,10 @@ pub fn validate_synchronous<T: Synchronous>(
         validator.finish()?;
     }
     Ok(())
+}
+
+pub trait PosEdgeValidation<S: Synchronous> {
+    fn initialize(&self, c: &S) -> ValidationResult;
+    fn validate(&self, reset: Reset, input: S::I, output: S::O) -> ValidationResult;
+    fn finish(&self) -> ValidationResult;
 }
