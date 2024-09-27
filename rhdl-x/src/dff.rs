@@ -1,7 +1,4 @@
-use rhdl::{
-    core::{rtl::object::RegisterKind, util::hash_id},
-    prelude::*,
-};
+use rhdl::{core::util::hash_id, prelude::*};
 
 #[derive(Debug, Clone)]
 pub struct U<T: Digital> {
