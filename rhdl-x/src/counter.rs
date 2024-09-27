@@ -1,10 +1,5 @@
 use crate::dff;
-use petgraph::{algo::is_cyclic_directed, visit::GraphProp};
-use rhdl::{
-    core::{build_rtl_flow_graph, flow_graph::dot::write_dot},
-    prelude::*,
-};
-use std::io::{stderr, Write};
+use rhdl::prelude::*;
 
 mod kernel_host {
     use rhdl::prelude::*;
@@ -56,7 +51,7 @@ mod comb_adder {
     }
 
     #[kernel]
-    pub fn adder<const N: usize>(_cr: ClockReset, i: (Bits<N>, Bits<N>), q: ()) -> (Bits<N>, ()) {
+    pub fn adder<const N: usize>(_cr: ClockReset, i: (Bits<N>, Bits<N>), _q: ()) -> (Bits<N>, ()) {
         let a = i;
         (a.0 + a.1, ())
     }
@@ -105,6 +100,8 @@ pub fn counter<const N: usize>(cr: ClockReset, i: I, q: Q<N>) -> (Bits<N>, D<N>)
 #[cfg(test)]
 mod tests {
 
+    use petgraph::algo::is_cyclic_directed;
+
     use super::*;
 
     #[test]
@@ -126,13 +123,13 @@ mod tests {
         write_dot(&fg, &mut dot).unwrap();
         let counter_uut = &uut.descriptor()?.flow_graph;
         let mut dot = vec![0_u8; 0];
-        write_dot(&counter_uut, &mut dot).unwrap();
+        write_dot(counter_uut, &mut dot).unwrap();
         let mut hasher = fnv::FnvHasher::default();
         hasher.write(&dot);
         let hash = hasher.finish();
         eprintln!("Dot hash: {:x}", hash);
         let mut dot = std::fs::File::create(format!("counter_{hash:x}.dot")).unwrap();
-        write_dot(&counter_uut, &mut dot).unwrap();
+        write_dot(counter_uut, &mut dot).unwrap();
         assert!(!is_cyclic_directed(&counter_uut.graph));
         eprintln!("rtl: {:?}", rtl);
         Ok(())

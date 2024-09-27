@@ -1,5 +1,3 @@
-use petgraph::algo::{feedback_arc_set, is_cyclic_directed};
-use petgraph::visit::EdgeRef;
 // This component contains an intentional logic loop.
 use rhdl::prelude::*;
 
@@ -45,6 +43,11 @@ pub fn logic_loop(_cr: ClockReset, i: bool, q: Q) -> (bool, D) {
 #[cfg(test)]
 mod tests {
 
+    use petgraph::{
+        algo::{feedback_arc_set, is_cyclic_directed},
+        visit::EdgeRef,
+    };
+
     use super::*;
 
     #[test]
@@ -52,7 +55,7 @@ mod tests {
         let uut = U::default();
         let uut_fg = &uut.descriptor()?.flow_graph;
         let mut dot = std::fs::File::create("logic_loop.dot").unwrap();
-        write_dot(&uut_fg, &mut dot).unwrap();
+        write_dot(uut_fg, &mut dot).unwrap();
 
         // Look for loops
         assert!(is_cyclic_directed(&uut_fg.graph));
@@ -69,7 +72,7 @@ mod tests {
             panic!("No loop found");
         }
         let mut dot = std::fs::File::create("logic_loop.dot").unwrap();
-        write_dot(&uut_fg, &mut dot).unwrap();
+        write_dot(uut_fg, &mut dot).unwrap();
         Ok(())
     }
 }
