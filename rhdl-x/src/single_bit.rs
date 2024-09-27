@@ -1,5 +1,5 @@
 use crate::dff;
-use rhdl::{core::compiler::codegen::verilog::generate_verilog, prelude::*};
+use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Synchronous)]
 #[rhdl(kernel=single_bit)]
@@ -44,14 +44,14 @@ mod tests {
         eprintln!("RTL: {:?}", rtl);
         let uut_fg = &uut.descriptor()?.flow_graph;
         let mut dot_string = vec![0_u8; 0];
-        write_dot(&uut_fg, &mut dot_string).unwrap();
+        write_dot(uut_fg, &mut dot_string).unwrap();
         // Calculate the fnv hash of the dot string
         let mut hasher = fnv::FnvHasher::default();
         hasher.write(&dot_string);
         let hash = hasher.finish();
         eprintln!("Dot hash: {:x}", hash);
         let mut dot = std::fs::File::create("single_bit.dot").unwrap();
-        write_dot(&uut_fg, &mut dot).unwrap();
+        write_dot(uut_fg, &mut dot).unwrap();
         //eprintln!("RTL: {:?}", rtl);
         Ok(())
     }

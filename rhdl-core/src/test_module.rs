@@ -2,7 +2,6 @@ use crate::compiler::codegen::verilog::generate_verilog;
 use crate::compiler::driver::{compile_design_stage1, compile_design_stage2};
 use crate::error::RHDLError;
 use crate::flow_graph::component::ComponentKind;
-use crate::flow_graph::dot::write_dot;
 use crate::flow_graph::edge_kind::EdgeKind;
 use crate::flow_graph::flow_graph_impl::FlowGraph;
 use crate::flow_graph::passes::check_for_undriven::CheckForUndrivenPass;

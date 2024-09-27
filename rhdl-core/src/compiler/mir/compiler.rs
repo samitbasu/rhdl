@@ -32,7 +32,6 @@ use crate::compiler::ascii;
 use crate::compiler::display_ast::pretty_print_statement;
 use crate::compiler::stage1::compile;
 use crate::compiler::stage1::CompilationMode;
-use crate::error::rhdl_error;
 use crate::error::RHDLError;
 use crate::kernel::Kernel;
 use crate::rhif;

@@ -1,6 +1,8 @@
 use crate::types::digital::Digital;
-use crate::{Circuit, ClockReset, HDLKind, RHDLError, Synchronous, TimedSample};
+use crate::{Circuit, HDLKind, RHDLError, Synchronous, TimedSample};
 use std::io::Write;
+
+use super::stream::ResetData;
 
 pub fn write_testbench<C: Circuit>(
     uut: &C,
@@ -72,7 +74,8 @@ pub fn write_testbench<C: Circuit>(
 
 pub fn write_synchronous_testbench<S: Synchronous>(
     uut: &S,
-    mut inputs: impl Iterator<Item = TimedSample<(ClockReset, S::I)>>,
+    inputs: impl Iterator<Item = ResetData<S::I>>,
+    clock_period: u64,
     v_filename: &str,
 ) -> Result<(), RHDLError> {
     let out_bits = S::O::bits();
@@ -101,50 +104,47 @@ pub fn write_synchronous_testbench<S: Synchronous>(
     // Add a periodic clock.
     writeln!(writer, "initial begin").unwrap();
     writeln!(writer, "   clock = 1;").unwrap();
-    writeln!(writer, "   forever #{period} clock = ~clock;",).unwrap();
+    writeln!(writer, "   forever #{clock_period} clock = ~clock;",).unwrap();
     writeln!(writer, "end").unwrap();
     writeln!(writer, "initial begin").unwrap();
-    let clock_stream = sim_clock(period);
-    let reset_stream = sim_clock_reset(clock_stream);
-    let mut input = S::I::init();
+    let has_input = in_bits != 0;
     let mut prev_time = 0_u64;
-    let mut reset_prev = false;
-    let mut input_prev = S::I::init();
+    let mut elem_prev = ResetData::Data(S::I::init());
     let hdl = uut.as_hdl(HDLKind::Verilog)?;
-    for cr in reset_stream {
-        if cr.value.clock.raw() && !cr.value.reset.raw() {
-            if let Some(sample) = inputs.next() {
-                input = sample;
-            } else {
-                break;
-            }
-        }
-        let time = cr.time;
-        if cr.value.reset.raw() != reset_prev || prev_time == 0 {
+    for (ndx, elem) in inputs.enumerate() {
+        let time = ndx as u64 * clock_period * 2;
+        if elem != elem_prev || prev_time == 0 {
             if time != prev_time {
                 writeln!(writer, "#{};", time - prev_time).unwrap();
                 prev_time = time;
             }
-            writeln!(
-                writer,
-                "reset = {};",
-                if cr.value.reset.raw() { 1 } else { 0 }
-            )
-            .unwrap();
-            reset_prev = cr.value.reset.raw();
-        }
-        if in_bits != 0 && input != input_prev || prev_time == 0 {
-            if time != prev_time {
-                writeln!(writer, "#{};", time - prev_time).unwrap();
-                prev_time = time;
+            match elem {
+                ResetData::Reset => {
+                    writeln!(writer, "reset = 1;").unwrap();
+                    if has_input {
+                        writeln!(
+                            writer,
+                            "test_input = {}; ",
+                            S::I::init().typed_bits().as_verilog_literal()
+                        )
+                        .unwrap();
+                    }
+                }
+                ResetData::Data(data) => {
+                    if elem_prev == ResetData::Reset {
+                        writeln!(writer, "reset = 0;").unwrap();
+                    }
+                    if has_input {
+                        writeln!(
+                            writer,
+                            "test_input = {};",
+                            data.typed_bits().as_verilog_literal()
+                        )
+                        .unwrap();
+                    }
+                }
             }
-            writeln!(
-                writer,
-                "test_input = {};",
-                input.typed_bits().as_verilog_literal()
-            )
-            .unwrap();
-            input_prev = input;
+            elem_prev = elem;
         }
     }
     writeln!(writer, "end").unwrap();

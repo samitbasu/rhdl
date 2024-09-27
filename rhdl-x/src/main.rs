@@ -77,21 +77,19 @@ mod async_counter;
 
 #[test]
 fn test_async_counter() {
-    let clock_stream = sim_clock(100);
-    let reset_stream = sim_clock_reset(clock_stream);
-    let inputs = reset_stream
-        .map(|x| {
-            timed_sample(
-                async_counter::I {
-                    clock_reset: signal(x.value),
-                    enable: signal(counter::I {
-                        enable: x.time >= 1000 && x.time <= 10000,
-                    }),
-                },
-                x.time,
-            )
-        })
-        .take_while(|x| x.time < 20000);
+    let inputs = (0..1000)
+        .map(|x| x > 100 && x < 900)
+        .map(|x| counter::I { enable: x });
+    let inputs = test_stream(inputs);
+    let inputs = inputs.map(|x| {
+        timed_sample(
+            async_counter::I {
+                clock_reset: signal(x.value.0),
+                enable: signal(x.value.1),
+            },
+            x.time,
+        )
+    });
     let uut: async_counter::U = async_counter::U::default();
     traced_simulation(&uut, inputs, "async_counter.vcd")
 }
@@ -122,21 +120,19 @@ fn test_async_counter_hdl() -> miette::Result<()> {
 #[test]
 fn test_async_counter_tb() -> miette::Result<()> {
     let uut = async_counter::U::default();
-    let clock_stream = sim_clock(100);
-    let reset_stream = sim_clock_reset(clock_stream);
-    let inputs = reset_stream
-        .map(|x| {
-            timed_sample(
-                async_counter::I {
-                    clock_reset: signal(x.value),
-                    enable: signal(counter::I {
-                        enable: x.time >= 1000 && x.time <= 10000,
-                    }),
-                },
-                x.time,
-            )
-        })
-        .take_while(|x| x.time < 20000);
+    let inputs = (0..1000)
+        .map(|x| x > 100 && x < 900)
+        .map(|x| counter::I { enable: x });
+    let inputs = test_stream(inputs);
+    let inputs = inputs.map(|x| {
+        timed_sample(
+            async_counter::I {
+                clock_reset: signal(x.value.0),
+                enable: signal(x.value.1),
+            },
+            x.time,
+        )
+    });
     write_testbench(&uut, inputs, "async_counter_tb.v")?;
     Ok(())
 }
@@ -202,6 +198,7 @@ fn test_counter_testbench() -> miette::Result<()> {
     let inputs = (0..1000)
         .map(|x| x > 100 && x < 900)
         .map(|x| counter::I { enable: x });
+    let inputs = stream::reset_pulse(1).chain(stream::stream(inputs));
     let uut: counter::U<4> = counter::U::new();
     write_synchronous_testbench(&uut, inputs, 100, "counter_tb.v")?;
     Ok(())
