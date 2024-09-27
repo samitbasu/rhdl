@@ -28,7 +28,7 @@ mod tests {
         let uut = U::default();
         let fg = &uut.descriptor()?.flow_graph;
         let mut file = std::fs::File::create("inverter.dot").unwrap();
-        write_dot(&fg, &mut file).unwrap();
+        write_dot(fg, &mut file).unwrap();
         Ok(())
     }
 }
