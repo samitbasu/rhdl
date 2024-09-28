@@ -21,6 +21,7 @@ use rhdl_macro::Timed;
 //mod backend;
 //mod circuit;
 //mod clock;
+mod auto_counter;
 mod constant;
 mod counter;
 mod strobe;
@@ -97,12 +98,11 @@ fn test_async_counter() {
 #[test]
 fn test_async_counter_fg() -> miette::Result<()> {
     let uut = async_counter::U::default();
-    let fg = uut.descriptor()?.flow_graph.sealed();
-    let fg = CheckForUnconnectedClockReset::run(fg)?;
-    let mut dot = std::fs::File::create("async_counter.dot").unwrap();
-    write_dot(&fg, &mut dot).unwrap();
     let hdl = uut.as_hdl(HDLKind::Verilog)?;
     eprintln!("{:?}", hdl);
+    let fg = uut.flow_graph()?;
+    let mut dot = std::fs::File::create("async_counter.dot").unwrap();
+    write_dot(&fg, &mut dot).unwrap();
     Ok(())
 }
 
@@ -139,7 +139,7 @@ fn test_async_counter_tb() -> miette::Result<()> {
 
 #[test]
 fn test_adapter_fg() -> miette::Result<()> {
-    let counter = counter::U::new();
+    let counter = counter::U::default();
     let uut = Adapter::<counter::U<2>, Red>::new(counter);
     let fg = &uut.descriptor()?.flow_graph.sealed();
     let mut dot = std::fs::File::create("adapter.dot").unwrap();
@@ -189,7 +189,7 @@ fn test_counter_simulation() {
     let inputs = (0..5000)
         .map(|x| x > 1000 && x < 10000)
         .map(|x| counter::I { enable: x });
-    let uut: counter::U<4> = counter::U::new();
+    let uut: counter::U<4> = counter::U::default();
     traced_synchronous_simulation(&uut, test_stream(inputs), "counter.vcd");
 }
 
@@ -199,13 +199,22 @@ fn test_counter_testbench() -> miette::Result<()> {
         .map(|x| x > 100 && x < 900)
         .map(|x| counter::I { enable: x });
     let inputs = stream::reset_pulse(1).chain(stream::stream(inputs));
-    let uut: counter::U<4> = counter::U::new();
+    let uut: counter::U<4> = counter::U::default();
     write_synchronous_testbench(&uut, inputs, 100, "counter_tb.v")?;
     Ok(())
 }
 
+#[test]
+fn test_autocounter() -> miette::Result<()> {
+    let uut: auto_counter::U<4> = auto_counter::U::default();
+    let fg = uut.flow_graph()?;
+    let mut dot = std::fs::File::create("auto_counter.dot").unwrap();
+    write_dot(&fg, &mut dot).unwrap();
+    Ok(())
+}
+
 fn main() -> miette::Result<()> {
-    let counter: counter::U<4> = counter::U::new();
+    let counter: counter::U<4> = counter::U::default();
     let hdl = counter.as_hdl(HDLKind::Verilog)?;
     println!("{}", hdl.body);
     for (child, descriptor) in hdl.children {

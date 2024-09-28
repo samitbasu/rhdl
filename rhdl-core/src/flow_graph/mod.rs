@@ -6,3 +6,4 @@ pub mod flow_graph_impl;
 pub mod passes;
 pub use builder::build_rtl_flow_graph;
 pub mod error;
+pub mod optimization;

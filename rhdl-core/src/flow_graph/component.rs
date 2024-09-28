@@ -4,43 +4,43 @@ use crate::{
     types::bit_string::BitString,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Binary {
     pub op: AluBinary,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Unary {
     pub op: AluUnary,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct DynamicIndex {
     pub len: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct DynamicSplice {
     pub len: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct BlackBox {
     pub name: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Case {
     pub entries: Vec<CaseEntry>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum CaseEntry {
     Literal(BitString),
     WildCard,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum ComponentKind {
     Binary(Binary),
     BlackBox(BlackBox),
@@ -57,7 +57,7 @@ pub enum ComponentKind {
     Unary(Unary),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Sink {
     Data(String),
     Clock,
@@ -74,7 +74,7 @@ impl std::fmt::Display for Sink {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub struct Component {
     pub kind: ComponentKind,
     pub location: Option<SourceLocation>,
@@ -87,7 +87,9 @@ impl std::fmt::Debug for Component {
             ComponentKind::BlackBox(blackbox) => write!(f, "{}", blackbox.name),
             ComponentKind::Buffer(name) => write!(f, "{name}"),
             ComponentKind::Case(_) => write!(f, "Case"),
-            ComponentKind::Constant(constant) => write!(f, "{}", if *constant { 1 } else { 0 }),
+            ComponentKind::Constant(constant) => {
+                write!(f, "const({})", if *constant { 1 } else { 0 })
+            }
             ComponentKind::DynamicIndex(dynamic_index) => write!(f, "[[{}]]", dynamic_index.len),
             ComponentKind::DynamicSplice(dynamic_splice) => write!(f, "//{}//", dynamic_splice.len),
             ComponentKind::Select => write!(f, "?"),
