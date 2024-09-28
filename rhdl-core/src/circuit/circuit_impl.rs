@@ -1,4 +1,7 @@
-use crate::{error::RHDLError, types::tristate::Tristate, Digital, DigitalFn, Timed};
+use crate::{
+    error::RHDLError, flow_graph::optimization::optimize_flow_graph, types::tristate::Tristate,
+    Digital, DigitalFn, FlowGraph, Timed,
+};
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
 
@@ -47,5 +50,11 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO + CircuitDQ {
     // First is 0, then 0 + c0::NumZ, then 0 + c0::NumZ + c1::NumZ, etc
     fn z_offsets() -> impl Iterator<Item = usize> {
         std::iter::once(0)
+    }
+
+    // Return a top level flow graph for this circuit, optimized and sealed.
+    fn flow_graph(&self) -> Result<FlowGraph, RHDLError> {
+        let flow_graph = self.descriptor()?.flow_graph.sealed();
+        optimize_flow_graph(flow_graph)
     }
 }

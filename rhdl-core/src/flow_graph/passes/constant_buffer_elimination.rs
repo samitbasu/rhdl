@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use petgraph::visit::EdgeRef;
 
 use crate::{flow_graph::component::ComponentKind, FlowGraph, RHDLError};
@@ -10,35 +12,36 @@ pub struct ConstantBufferEliminationPass {}
 impl Pass for ConstantBufferEliminationPass {
     fn run(mut input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         let mut graph = std::mem::take(&mut input.graph);
-        // If we have a constant node A that drives a buffer node B, we can
-        // replace the buffer B with a constant and drop the constant node A.
-        graph.retain_nodes(|mut frozen, node| {
-            let component = frozen.node_weight(node).unwrap().clone();
-            if let ComponentKind::Constant(value) = component.kind {
-                let mut must_retain = false;
-                let downstreams = frozen
-                    .neighbors_directed(node, petgraph::Outgoing)
-                    .collect::<Vec<_>>();
-                for target_node in downstreams {
-                    frozen.node_weight_mut(target_node).map(|c| {
-                        if let ComponentKind::Buffer(_) = &c.kind {
-                            c.kind = ComponentKind::Constant(value);
-                        } else {
-                            must_retain = true;
+        // Do this in several passes.  The first pass, scans the graph and finds buffer nodes
+        // with a single input that is a constant node.
+        let buffer_nodes = graph
+            .node_indices()
+            .filter_map(|candidate| {
+                let weight = &graph[candidate];
+                if let ComponentKind::Buffer(_) = weight.kind {
+                    let mut edges = graph.edges_directed(candidate, petgraph::Incoming);
+                    if let Some(edge) = edges.next() {
+                        if edges.next().is_none() {
+                            let source = edge.source();
+                            let source_weight = &graph[source];
+                            if let ComponentKind::Constant(c) = source_weight.kind {
+                                return Some((candidate, c));
+                            }
                         }
-                    });
-                    /*
-                    if let Some(ComponentKind::Buffer(_)) = target_component.map(|c| &c.kind) {
-                        target_component.unwrap().kind = ComponentKind::Constant(value);
-                    } else {
-                        must_retain = true;
                     }
-                    */
                 }
-                must_retain
-            } else {
-                true
-            }
+                None
+            })
+            .collect::<HashMap<_, _>>();
+        eprintln!("Eliminating {} buffer nodes", buffer_nodes.len());
+        // Second pass, we rewrite the node weights of the buffer nodes to be constant nodes.
+        for (buffer_node, value) in &buffer_nodes {
+            graph[*buffer_node].kind = ComponentKind::Constant(*value);
+        }
+        // Third pass, we remove the edges that were leading to the buffer nodes.
+        graph.retain_edges(|graph, edge| {
+            let (_, target) = graph.edge_endpoints(edge).unwrap();
+            !buffer_nodes.contains_key(&target)
         });
         Ok(FlowGraph { graph, ..input })
     }

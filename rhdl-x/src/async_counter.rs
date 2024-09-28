@@ -36,7 +36,7 @@ impl CircuitIO for U {
 impl Default for U {
     fn default() -> Self {
         Self {
-            counter: Adapter::new(crate::counter::U::new()),
+            counter: Adapter::new(crate::counter::U::default()),
         }
     }
 }

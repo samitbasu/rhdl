@@ -70,8 +70,8 @@ pub struct U<const N: usize> {
     adder: comb_adder::U<{ N }>,
 }
 
-impl<const N: usize> U<N> {
-    pub fn new() -> Self {
+impl<const N: usize> Default for U<N> {
+    fn default() -> Self {
         Self {
             count: dff::U::new(Bits::ZERO),
             adder: Default::default(),
@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn test_verilog_generation() -> miette::Result<()> {
-        let uut: U<4> = U::new();
+        let uut: U<4> = U::default();
         let hdl = uut.as_hdl(HDLKind::Verilog)?;
         std::fs::write("counter.v", format!("{:?}", hdl)).unwrap();
         Ok(())
@@ -115,7 +115,7 @@ mod tests {
     #[test]
     fn test_counter_timing_root() -> miette::Result<()> {
         use core::hash::Hasher;
-        let uut: U<4> = U::new();
+        let uut: U<4> = U::default();
         let rtl = compile_design::<<U<4> as Synchronous>::Update>(CompilationMode::Synchronous)?;
         eprintln!("rtl: {:?}", rtl);
         let fg = build_rtl_flow_graph(&rtl);

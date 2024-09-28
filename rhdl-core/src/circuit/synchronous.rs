@@ -1,6 +1,6 @@
 use crate::{
-    error::RHDLError, CircuitDescriptor, ClockReset, Digital, DigitalFn, HDLDescriptor, HDLKind,
-    Tristate,
+    error::RHDLError, flow_graph::optimization::optimize_flow_graph, CircuitDescriptor, ClockReset,
+    Digital, DigitalFn, FlowGraph, HDLDescriptor, HDLKind, Tristate,
 };
 
 pub type SynchronousUpdateFn<C> = fn(
@@ -46,5 +46,10 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO + SynchronousDQ {
     // First is 0, then 0 + c0::NumZ, then 0 + c0::NumZ + c1::NumZ, etc
     fn z_offsets() -> impl Iterator<Item = usize> {
         std::iter::once(0)
+    }
+
+    fn flow_graph(&self) -> Result<FlowGraph, RHDLError> {
+        let flow_graph = self.descriptor()?.flow_graph.sealed();
+        optimize_flow_graph(flow_graph)
     }
 }
