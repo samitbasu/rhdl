@@ -19,6 +19,7 @@ pub type GraphType = StableDiGraph<Component, EdgeKind>;
 pub struct DFF {
     input: FlowIx,
     output: FlowIx,
+    reset_value: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -52,11 +53,10 @@ impl FlowGraph {
         (0..kind.len())
             .map(|bit_index| {
                 self.graph.add_node(Component {
-                    kind: ComponentKind::Input(Input {
-                        argument_index,
-                        bit_index,
-                        name: name.to_string(),
-                    }),
+                    kind: ComponentKind::Buffer(format!(
+                        "[{}]<-in<{}, {}>",
+                        name, argument_index, bit_index
+                    )),
                     width: 1,
                     location: None,
                 })
@@ -67,10 +67,7 @@ impl FlowGraph {
         (0..kind.len())
             .map(|bit_index| {
                 self.graph.add_node(Component {
-                    kind: ComponentKind::Output(Output {
-                        bit_index,
-                        name: name.to_string(),
-                    }),
+                    kind: ComponentKind::Buffer(format!("[{}]->out<{}>", name, bit_index)),
                     width: 1,
                     location: None,
                 })
@@ -80,6 +77,7 @@ impl FlowGraph {
     pub fn dff(
         &mut self,
         kind: RegisterKind,
+        init: &[bool],
         location: Option<SourceLocation>,
     ) -> (Vec<FlowIx>, Vec<FlowIx>) {
         let dff_input = (0..kind.len())
@@ -104,9 +102,11 @@ impl FlowGraph {
             dff_input
                 .iter()
                 .zip(dff_output.iter())
-                .map(|(input, output)| DFF {
+                .zip(init.iter())
+                .map(|((input, output), reset)| DFF {
                     input: *input,
                     output: *output,
+                    reset_value: *reset,
                 }),
         );
         (dff_input, dff_output)
@@ -164,6 +164,7 @@ impl FlowGraph {
         self.dffs.extend(other.dffs.iter().map(|dff| DFF {
             input: remap[&dff.input],
             output: remap[&dff.output],
+            reset_value: dff.reset_value,
         }));
         self.code.extend(other.code.sources.clone());
         remap

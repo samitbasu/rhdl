@@ -4,7 +4,7 @@ use crate::{
     ast::source_location::SourceLocation,
     compiler::mir::error::{RHDLCompileError, ICE},
     error::rhdl_error,
-    rhif::spec::{AluBinary, AluUnary},
+    rhif::spec::AluUnary,
     rtl::{
         self,
         object::{LocatedOpCode, RegisterKind},

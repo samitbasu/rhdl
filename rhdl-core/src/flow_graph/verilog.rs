@@ -101,6 +101,48 @@ fn make_select_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<Stri
     ))
 }
 
+fn make_dff_input_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<String, RHDLError> {
+    let component = &graph.graph[index];
+    let ComponentKind::DFFInput(_) = &component.kind else {
+        return Err(raise_ice(
+            FlowGraphICE::ExpectedDFFComponent,
+            graph,
+            component.location,
+        ));
+    };
+    let data_edge = graph
+        .graph
+        .edges_directed(index, petgraph::Direction::Incoming)
+        .find(|edge| {
+            matches!(
+                edge.weight(),
+                EdgeKind::OutputBit(_) | EdgeKind::ArgBit(_, _) | EdgeKind::Arg(_)
+            )
+        })
+        .ok_or(raise_ice(
+            FlowGraphICE::DFFInputDriverNotFound,
+            graph,
+            component.location,
+        ))?;
+    Ok(match data_edge.weight() {
+        EdgeKind::OutputBit(bit) => {
+            format!(
+                "assign node_{} = node_{}[{}];",
+                index.index(),
+                data_edge.source().index(),
+                bit
+            )
+        }
+        _ => {
+            format!(
+                "assign node_{} = node_{};",
+                index.index(),
+                data_edge.source().index()
+            )
+        }
+    })
+}
+
 fn make_buffer_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<String, RHDLError> {
     let component = &graph.graph[index];
     let ComponentKind::Buffer(name) = &component.kind else {
@@ -249,11 +291,13 @@ fn generate_assign_statement(
         ComponentKind::Select => Ok(Some(make_select_assign_statement(index, graph)?)),
         ComponentKind::Binary(_) => Ok(Some(make_binary_assign_statement(index, graph)?)),
         ComponentKind::Unary(_) => Ok(Some(make_unary_assign_statement(index, graph)?)),
-        _ => Ok(None), /*  panic!(
-                           "No assign implementation for {:?} index {}",
-                           component,
-                           index.index()
-                       ), */
+        ComponentKind::DFFInput(_) => Ok(Some(make_dff_input_assign_statement(index, graph)?)),
+        ComponentKind::DFFOutput(_) => Ok(None),
+        _ => todo!(
+            "No assign implementation for {:?} index {}",
+            component,
+            index.index()
+        ),
     }
 }
 
@@ -291,6 +335,7 @@ pub fn generate_verilog(module_name: &str, fg: &FlowGraph) -> Result<VerilogModu
         .node_indices()
         .filter_map(|ndx| generate_assign_statement(ndx, fg).transpose())
         .collect::<Result<Vec<_>, _>>()?;
+    let dff_stmts = generate_dff_statements(fg)?;
     let foo = format!(
         "{module_decl}\n{reg_decl}\n{assign_stmts}\nendmodule",
         reg_decl = reg_decls.join(""),

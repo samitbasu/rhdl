@@ -81,7 +81,7 @@ impl<T: Digital> Synchronous for U<T> {
 
     fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError> {
         let mut flow_graph = FlowGraph::default();
-        let (d, q) = flow_graph.dff(T::static_kind().into(), None);
+        let (d, q) = flow_graph.dff(T::static_kind().into(), &self.reset.typed_bits().bits, None);
         let clock = flow_graph.buffer(RegisterKind::Unsigned(1), "clk", None);
         let reset = flow_graph.buffer(RegisterKind::Unsigned(1), "rst", None);
         d.iter().for_each(|d| {

@@ -51,8 +51,6 @@ pub enum ComponentKind {
     DFFOutput(DFFOutput),
     DynamicIndex(DynamicIndex),
     DynamicSplice(DynamicSplice),
-    Input(Input),
-    Output(Output),
     Select,
     TimingStart,
     TimingEnd,
@@ -101,16 +99,6 @@ impl std::fmt::Debug for Component {
             }
             ComponentKind::DynamicIndex(dynamic_index) => write!(f, "[[{}]]", dynamic_index.len),
             ComponentKind::DynamicSplice(dynamic_splice) => write!(f, "//{}//", dynamic_splice.len),
-            ComponentKind::Input(input) => {
-                write!(
-                    f,
-                    "[{}]<-in<{}, {}>",
-                    input.name, input.argument_index, input.bit_index
-                )
-            }
-            ComponentKind::Output(output) => {
-                write!(f, "[{}]->out<{}>", output.name, output.bit_index)
-            }
             ComponentKind::Select => write!(f, "?"),
             ComponentKind::DFFInput(dff_input) => {
                 write!(f, "dff_in[{}]", dff_input.bit_index)

@@ -28,6 +28,10 @@ pub enum FlowGraphICE {
     ExpectedBinaryComponent,
     #[error("Expected a unary component")]
     ExpectedUnaryComponent,
+    #[error("Expected a dff component")]
+    ExpectedDFFComponent,
+    #[error("DFF input has no driver")]
+    DFFInputDriverNotFound,
     #[error("Buffer node has no parent")]
     BufferParentNotFound,
     #[error("Missing argument to component with index {index} and bit {bit}")]
