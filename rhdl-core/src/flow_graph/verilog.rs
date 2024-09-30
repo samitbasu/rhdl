@@ -164,7 +164,7 @@ fn collect_argument(
         .edges_directed(node, petgraph::Direction::Incoming)
         .filter_map(|edge| match edge.weight() {
             EdgeKind::ArgBit(ndx, bit) if *ndx == index => Some((*bit, edge.source())),
-            EdgeKind::Arg(ndx) if index == 0 => Some((0, edge.source())),
+            EdgeKind::Arg(ndx) if *ndx == index => Some((0, edge.source())),
             _ => None,
         })
         .collect::<Vec<_>>();
@@ -249,7 +249,11 @@ fn generate_assign_statement(
         ComponentKind::Select => Ok(Some(make_select_assign_statement(index, graph)?)),
         ComponentKind::Binary(_) => Ok(Some(make_binary_assign_statement(index, graph)?)),
         ComponentKind::Unary(_) => Ok(Some(make_unary_assign_statement(index, graph)?)),
-        _ => Ok(None),
+        _ => Ok(None), /*  panic!(
+                           "No assign implementation for {:?} index {}",
+                           component,
+                           index.index()
+                       ), */
     }
 }
 
