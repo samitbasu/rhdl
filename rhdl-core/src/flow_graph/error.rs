@@ -14,6 +14,24 @@ pub enum FlowGraphICE {
         "The flow graph includes these elements, but does not connect them to a valid clock source.  Check that the clock and reset signals are propagated through these elements"
     ))]
     UnconnectedClockReset,
+    #[error("Expected a select component")]
+    ExpectedSelectComponent,
+    #[error("Select node has no control node")]
+    SelectControlNodeNotFound,
+    #[error("Select node has no true node")]
+    SelectTrueNodeNotFound,
+    #[error("Select node has no false node")]
+    SelectFalseNodeNotFound,
+    #[error("Expected a buffer component")]
+    ExpectedBufferComponent,
+    #[error("Expected a binary component")]
+    ExpectedBinaryComponent,
+    #[error("Expected a unary component")]
+    ExpectedUnaryComponent,
+    #[error("Buffer node has no parent")]
+    BufferParentNotFound,
+    #[error("Missing argument to component with index {index} and bit {bit}")]
+    MissingArgument { index: usize, bit: usize },
 }
 
 #[derive(Debug, Error)]

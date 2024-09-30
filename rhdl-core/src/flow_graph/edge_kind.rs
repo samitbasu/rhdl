@@ -4,6 +4,8 @@ use crate::types::bit_string::BitString;
 pub enum EdgeKind {
     Arg(usize),
     ArgBit(usize, usize),
+    Clock,
+    Reset,
     Selector(usize),
     OutputBit(usize),
     Splice(usize),
@@ -37,6 +39,8 @@ impl std::fmt::Debug for EdgeKind {
             Self::Virtual => write!(f, "virt"),
             Self::OutputBit(bit) => write!(f, "o[{}]", bit),
             Self::Splice(bit) => write!(f, "splice[{}]", bit),
+            Self::Clock => write!(f, "clk"),
+            Self::Reset => write!(f, "rst"),
         }
     }
 }

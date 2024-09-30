@@ -49,7 +49,7 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO + SynchronousDQ {
     }
 
     fn flow_graph(&self) -> Result<FlowGraph, RHDLError> {
-        let flow_graph = self.descriptor()?.flow_graph.sealed();
+        let flow_graph = self.descriptor()?.flow_graph.clone();
         optimize_flow_graph(flow_graph)
     }
 }

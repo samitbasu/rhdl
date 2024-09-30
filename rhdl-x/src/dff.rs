@@ -1,4 +1,7 @@
-use rhdl::{core::util::hash_id, prelude::*};
+use rhdl::{
+    core::{flow_graph::edge_kind::EdgeKind, rtl::object::RegisterKind, util::hash_id},
+    prelude::*,
+};
 
 #[derive(Debug, Clone)]
 pub struct U<T: Digital> {
@@ -78,12 +81,18 @@ impl<T: Digital> Synchronous for U<T> {
 
     fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError> {
         let mut flow_graph = FlowGraph::default();
-        // Make the FG slightly nicer
-        let clock = flow_graph.clock();
-        let reset = flow_graph.reset();
-        let d = flow_graph.sink(Self::I::static_kind().into(), "ff_d", None);
-        let q = flow_graph.source(Self::O::static_kind().into(), "ff_q", None);
-        flow_graph.inputs = vec![vec![clock, reset], d, vec![]];
+        let (d, q) = flow_graph.dff(T::static_kind().into(), None);
+        let clock = flow_graph.buffer(RegisterKind::Unsigned(1), "clk", None);
+        let reset = flow_graph.buffer(RegisterKind::Unsigned(1), "rst", None);
+        d.iter().for_each(|d| {
+            flow_graph.edge(reset[0], *d, EdgeKind::Reset);
+            flow_graph.edge(clock[0], *d, EdgeKind::Clock);
+        });
+        q.iter().for_each(|q| {
+            flow_graph.edge(clock[0], *q, EdgeKind::Clock);
+            flow_graph.edge(reset[0], *q, EdgeKind::Reset);
+        });
+        flow_graph.inputs = vec![vec![clock[0], reset[0]], d, vec![]];
         flow_graph.output = q;
         Ok(CircuitDescriptor {
             unique_name: format!(

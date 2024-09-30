@@ -55,7 +55,7 @@ impl<'a> FlowGraphBuilder<'a> {
             ..Default::default()
         };
         // TODO - in the future, maybe tag the arguments and return with source locations?
-        let location = None;
+        let name = &object.name;
         // Allocate input and output ports.
         let inputs = object
             .arguments
@@ -63,14 +63,14 @@ impl<'a> FlowGraphBuilder<'a> {
             .enumerate()
             .map(|(ndx, x)| {
                 if let Some(reg) = x {
-                    fg.buffer(object.register_kind[reg], &format!("a{ndx}"), location)
+                    fg.input(object.register_kind[reg], ndx, name)
                 } else {
                     vec![]
                 }
             })
             .collect();
         let output_kind = object.kind(object.return_register);
-        let output = fg.buffer(output_kind, "y", location);
+        let output = fg.output(output_kind, name);
         fg.inputs = inputs;
         fg.output = output;
         Self {
@@ -107,7 +107,7 @@ impl<'a> FlowGraphBuilder<'a> {
                 let ndx = bs
                     .bits()
                     .iter()
-                    .map(|b| self.fg.new_component(ComponentKind::Constant(*b), loc))
+                    .map(|b| self.fg.new_component(ComponentKind::Constant(*b), 1, loc))
                     .collect::<Vec<_>>();
                 self.operand_map.insert(operand, ndx.clone());
                 ndx
@@ -121,6 +121,7 @@ impl<'a> FlowGraphBuilder<'a> {
                                 "{}_{:?}[{ndx}]",
                                 self.object.name, operand
                             )),
+                            1,
                             loc,
                         )
                     })
@@ -143,17 +144,19 @@ impl<'a> FlowGraphBuilder<'a> {
         let lhs = self.operand(loc, binary.lhs);
         if is_bitwise_binary(binary.op) {
             for (lhs, (arg1, arg2)) in lhs.iter().zip(arg1.iter().zip(arg2.iter())) {
-                let comp = self
-                    .fg
-                    .new_component(ComponentKind::Binary(Binary { op: binary.op }), loc);
+                let comp =
+                    self.fg
+                        .new_component(ComponentKind::Binary(Binary { op: binary.op }), 1, loc);
                 self.fg.edge(*arg1, comp, EdgeKind::Arg(0));
                 self.fg.edge(*arg2, comp, EdgeKind::Arg(1));
                 self.fg.edge(comp, *lhs, EdgeKind::OutputBit(0));
             }
         } else {
-            let comp = self
-                .fg
-                .new_component(ComponentKind::Binary(Binary { op: binary.op }), loc);
+            let comp = self.fg.new_component(
+                ComponentKind::Binary(Binary { op: binary.op }),
+                lhs.len(),
+                loc,
+            );
             for (ndx, lhs) in lhs.iter().enumerate() {
                 self.fg.edge(comp, *lhs, EdgeKind::OutputBit(ndx));
             }
@@ -190,6 +193,7 @@ impl<'a> FlowGraphBuilder<'a> {
                 ComponentKind::Case(Case {
                     entries: table.clone(),
                 }),
+                1,
                 loc,
             );
             for (ndx, disc) in discriminant.iter().enumerate() {
@@ -211,7 +215,9 @@ impl<'a> FlowGraphBuilder<'a> {
         let use_unsigned = matches!(cast.kind, tl::CastKind::Unsigned)
             || (matches!(cast.kind, tl::CastKind::Resize) && !lhs_signed);
         if use_unsigned {
-            let zero = self.fg.new_component(ComponentKind::Constant(false), loc);
+            let zero = self
+                .fg
+                .new_component(ComponentKind::Constant(false), lhs.len(), loc);
             for lhs in lhs.iter().skip(arg.len()) {
                 self.fg.edge(zero, *lhs, EdgeKind::Arg(0));
             }
@@ -241,6 +247,7 @@ impl<'a> FlowGraphBuilder<'a> {
             ComponentKind::DynamicIndex(DynamicIndex {
                 len: dynamic_index.len,
             }),
+            lhs.len(),
             loc,
         );
         for (ndx, lhs) in lhs.iter().enumerate() {
@@ -262,6 +269,7 @@ impl<'a> FlowGraphBuilder<'a> {
             ComponentKind::DynamicSplice(DynamicSplice {
                 len: dynamic_splice.len,
             }),
+            lhs.len(),
             loc,
         );
         for (ndx, lhs) in lhs.iter().enumerate() {
@@ -292,7 +300,7 @@ impl<'a> FlowGraphBuilder<'a> {
         for (lhs, (true_val, false_val)) in
             lhs.iter().zip(true_value.iter().zip(false_value.iter()))
         {
-            let comp = self.fg.new_component(ComponentKind::Select, loc);
+            let comp = self.fg.new_component(ComponentKind::Select, 1, loc);
             self.fg.edge(cond[0], comp, EdgeKind::Selector(0));
             self.fg.edge(*true_val, comp, EdgeKind::True);
             self.fg.edge(*false_val, comp, EdgeKind::False);
@@ -316,16 +324,16 @@ impl<'a> FlowGraphBuilder<'a> {
         let arg1 = self.operand(loc, unary.arg1);
         if is_bitwise_unary(unary.op) {
             for (lhs, rhs) in lhs.iter().zip(arg1.iter()) {
-                let comp = self
-                    .fg
-                    .new_component(ComponentKind::Unary(Unary { op: unary.op }), loc);
+                let comp =
+                    self.fg
+                        .new_component(ComponentKind::Unary(Unary { op: unary.op }), 1, loc);
                 self.fg.edge(*rhs, comp, EdgeKind::Arg(0));
                 self.fg.edge(comp, *lhs, EdgeKind::Arg(0));
             }
         } else {
-            let comp = self
-                .fg
-                .new_component(ComponentKind::Unary(Unary { op: unary.op }), loc);
+            let comp =
+                self.fg
+                    .new_component(ComponentKind::Unary(Unary { op: unary.op }), lhs.len(), loc);
             for (ndx, (lhs, rhs)) in lhs.iter().zip(arg1.iter()).enumerate() {
                 self.fg.edge(*rhs, comp, EdgeKind::ArgBit(0, ndx));
                 self.fg.edge(comp, *lhs, EdgeKind::OutputBit(ndx));

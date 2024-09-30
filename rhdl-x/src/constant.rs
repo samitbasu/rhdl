@@ -50,7 +50,7 @@ impl<T: Digital> Synchronous for U<T> {
         let mut flow_graph = FlowGraph::default();
         let my_val = &self.value.typed_bits().bits;
         let driver = my_val.iter().map(|b| {
-            flow_graph.new_component_with_optional_location(ComponentKind::Constant(*b), None)
+            flow_graph.new_component_with_optional_location(ComponentKind::Constant(*b), 1, None)
         });
         flow_graph.output = driver.collect();
         flow_graph.inputs = vec![vec![], vec![]];

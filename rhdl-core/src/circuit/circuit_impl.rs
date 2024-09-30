@@ -54,7 +54,7 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO + CircuitDQ {
 
     // Return a top level flow graph for this circuit, optimized and sealed.
     fn flow_graph(&self) -> Result<FlowGraph, RHDLError> {
-        let flow_graph = self.descriptor()?.flow_graph.sealed();
+        let flow_graph = self.descriptor()?.flow_graph.clone();
         optimize_flow_graph(flow_graph)
     }
 }

@@ -1,12 +1,9 @@
 use std::collections::HashMap;
 
-use petgraph::{graph::NodeIndex, visit::EdgeRef, Graph};
+use petgraph::{graph::NodeIndex, visit::EdgeRef};
 
 use crate::{
-    flow_graph::{
-        component::{Component, ComponentKind},
-        edge_kind::EdgeKind,
-    },
+    flow_graph::{component::ComponentKind, edge_kind::EdgeKind, flow_graph_impl::GraphType},
     FlowGraph, RHDLError,
 };
 
@@ -15,7 +12,7 @@ use super::pass::Pass;
 #[derive(Default, Debug, Clone)]
 pub struct RemoveHardwiredSelectsPass {}
 
-fn get_constant(graph: &Graph<Component, EdgeKind>, node: NodeIndex) -> Option<bool> {
+fn get_constant(graph: &GraphType, node: NodeIndex) -> Option<bool> {
     let weight = &graph[node];
     if let ComponentKind::Constant(value) = weight.kind {
         return Some(value);
@@ -23,7 +20,7 @@ fn get_constant(graph: &Graph<Component, EdgeKind>, node: NodeIndex) -> Option<b
     None
 }
 
-fn is_constant(graph: &Graph<Component, EdgeKind>, node: NodeIndex) -> bool {
+fn is_constant(graph: &GraphType, node: NodeIndex) -> bool {
     let weight = &graph[node];
     if let ComponentKind::Constant(_) = weight.kind {
         return true;
@@ -31,10 +28,7 @@ fn is_constant(graph: &Graph<Component, EdgeKind>, node: NodeIndex) -> bool {
     false
 }
 
-fn get_select_control_node(
-    graph: &Graph<Component, EdgeKind>,
-    node: NodeIndex,
-) -> Option<NodeIndex> {
+fn get_select_control_node(graph: &GraphType, node: NodeIndex) -> Option<NodeIndex> {
     graph
         .edges_directed(node, petgraph::Incoming)
         .find_map(|edge| match edge.weight() {
@@ -43,11 +37,7 @@ fn get_select_control_node(
         })
 }
 
-fn get_select_data_node(
-    graph: &Graph<Component, EdgeKind>,
-    node: NodeIndex,
-    select: bool,
-) -> Option<NodeIndex> {
+fn get_select_data_node(graph: &GraphType, node: NodeIndex, select: bool) -> Option<NodeIndex> {
     graph
         .edges_directed(node, petgraph::Incoming)
         .find_map(|edge| match edge.weight() {
@@ -57,7 +47,7 @@ fn get_select_data_node(
         })
 }
 
-fn is_select_with_hardwired_control(graph: &Graph<Component, EdgeKind>, node: NodeIndex) -> bool {
+fn is_select_with_hardwired_control(graph: &GraphType, node: NodeIndex) -> bool {
     let weight = &graph[node];
     if let ComponentKind::Select = weight.kind {
         if let Some(control_node) = get_select_control_node(graph, node) {

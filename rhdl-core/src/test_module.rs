@@ -306,8 +306,8 @@ fn build_test_module_flowgraph(rtl: &crate::rtl::Object) -> FlowGraph {
     // outputs.
     let mut fg = FlowGraph::default();
     let remap = fg.merge(&internal_fg);
-    let timing_start = fg.new_component_with_optional_location(ComponentKind::TimingStart, None);
-    let timing_end = fg.new_component_with_optional_location(ComponentKind::TimingEnd, None);
+    let timing_start = fg.new_component_with_optional_location(ComponentKind::TimingStart, 0, None);
+    let timing_end = fg.new_component_with_optional_location(ComponentKind::TimingEnd, 0, None);
     // Create sources for all of the inputs of the internal flow graph
     internal_fg.inputs.iter().flatten().for_each(|input| {
         fg.edge(timing_start, remap[input], EdgeKind::Virtual);
@@ -316,14 +316,22 @@ fn build_test_module_flowgraph(rtl: &crate::rtl::Object) -> FlowGraph {
         fg.edge(remap[output], timing_end, EdgeKind::Virtual);
     });
     // Create links from all of the internal sources to the timing start node
-    for node in fg.graph.node_indices() {
-        if matches!(fg.graph[node].kind, ComponentKind::Source(_)) {
-            fg.edge(timing_start, node, EdgeKind::Virtual);
-        }
-        if matches!(fg.graph[node].kind, ComponentKind::Sink(_)) {
-            fg.edge(node, timing_end, EdgeKind::Virtual);
-        }
-    }
+    let sources = fg
+        .graph
+        .node_indices()
+        .filter(|node| matches!(fg.graph[*node].kind, ComponentKind::DFFOutput(_)))
+        .collect::<Vec<_>>();
+    let sinks = fg
+        .graph
+        .node_indices()
+        .filter(|node| matches!(fg.graph[*node].kind, ComponentKind::DFFInput(_)))
+        .collect::<Vec<_>>();
+    sources.into_iter().for_each(|node| {
+        fg.edge(timing_start, node, EdgeKind::Virtual);
+    });
+    sinks.into_iter().for_each(|node| {
+        fg.edge(node, timing_end, EdgeKind::Virtual);
+    });
     fg.inputs = vec![vec![timing_start]];
     fg.output = vec![timing_end];
     fg

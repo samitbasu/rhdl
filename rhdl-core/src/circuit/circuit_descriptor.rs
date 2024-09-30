@@ -64,7 +64,8 @@ pub fn build_descriptor<C: Circuit>(
     let update_remap = fg.merge(&update_flow_graph);
     let remap_bits = |x: &[FlowIx]| x.iter().map(|y| update_remap[y]).collect::<Vec<_>>();
     // We need an input buffer
-    let input_buffer = fg.buffer(input_kind, "i", None);
+    let name = circuit.name();
+    let input_buffer = fg.input(input_kind, 0, &name);
     let input_from_update = remap_bits(&update_flow_graph.inputs[0]);
     // Link the input to its buffer
     for (input, input_buffer) in input_from_update.iter().zip(input_buffer.iter()) {
@@ -75,7 +76,7 @@ pub fn build_descriptor<C: Circuit>(
     let update_output = remap_bits(&update_flow_graph.output);
     let output_buffer_location = update_flow_graph.graph[update_flow_graph.output[0]].location;
     // This is the circuit output buffer (contains the circuit output)
-    let circuit_output_buffer = fg.buffer(output_kind, "o", output_buffer_location);
+    let circuit_output_buffer = fg.output(output_kind, &name);
     let mut update_output_bits = update_output.iter();
     // Assign the output buffer to the output of the update function
     for (circuit, output) in circuit_output_buffer.iter().zip(&mut update_output_bits) {
@@ -179,7 +180,8 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     // We need a cr buffer - it is mandatory.
     let cr_buffer = fg.buffer(RegisterKind::Unsigned(2), "cr", None);
     // We also need an input buffer
-    let input_buffer = fg.buffer(input_kind, "i", None);
+    let name = circuit.name();
+    let input_buffer = fg.input(input_kind, 0, &name);
     let cr_for_update = remap_bits(&update_flow_graph.inputs[0]);
     // We need an input buffer (if we have any inputs)
     let input_from_update = remap_bits(&update_flow_graph.inputs[1]);
@@ -195,7 +197,7 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     let update_output = remap_bits(&update_flow_graph.output);
     let output_buffer_location = update_flow_graph.graph[update_flow_graph.output[0]].location;
     // This is the circuit output buffer (contains the circuit output)
-    let circuit_output_buffer = fg.buffer(output_kind, "o", output_buffer_location);
+    let circuit_output_buffer = fg.output(output_kind, &name);
     let mut update_output_bits = update_output.iter();
     // Assign the output buffer to the output of the update function
     for (circuit, output) in circuit_output_buffer.iter().zip(&mut update_output_bits) {
