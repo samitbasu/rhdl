@@ -1,5 +1,6 @@
 use rhdl::core::flow_graph::passes::check_for_unconnected_clock_reset::CheckForUnconnectedClockReset;
 use rhdl::core::flow_graph::passes::pass::Pass;
+use rhdl::core::flow_graph::verilog::generate_verilog;
 use rhdl::core::types::timed;
 use rhdl::prelude::*;
 use std::io::Write;
@@ -178,7 +179,7 @@ fn test_strobe() {
 #[test]
 fn test_strobe_fg() -> miette::Result<()> {
     let uut: strobe::U<8> = strobe::U::new(bits(100));
-    let fg = &uut.descriptor()?.flow_graph.sealed();
+    let fg = &uut.flow_graph()?.sealed();
     let mut dot = std::fs::File::create("strobe.dot").unwrap();
     write_dot(fg, &mut dot).unwrap();
     Ok(())
@@ -208,6 +209,8 @@ fn test_counter_testbench() -> miette::Result<()> {
 fn test_autocounter() -> miette::Result<()> {
     let uut: auto_counter::U<4> = auto_counter::U::default();
     let fg = uut.flow_graph()?;
+    let vg = generate_verilog("top", &fg)?;
+    std::fs::write("auto_counter.v", &vg.functions[0]).unwrap();
     let mut dot = std::fs::File::create("auto_counter.dot").unwrap();
     write_dot(&fg, &mut dot).unwrap();
     Ok(())

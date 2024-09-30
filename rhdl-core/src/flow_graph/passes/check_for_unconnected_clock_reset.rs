@@ -4,7 +4,7 @@ use crate::{
     ast::source_location::SourceLocation,
     error::rhdl_error,
     flow_graph::{
-        component::{ComponentKind, Sink},
+        component::ComponentKind,
         error::{FlowGraphError, FlowGraphICE},
         flow_graph_impl::FlowIx,
     },
@@ -31,42 +31,43 @@ fn walk_incoming(graph: &FlowGraph, node: FlowIx, locations: &mut Vec<SourceLoca
 
 impl Pass for CheckForUnconnectedClockReset {
     fn run(input: FlowGraph) -> Result<FlowGraph, RHDLError> {
-        let need_connection = input.graph.node_indices().filter(|node| {
-            let component = input.graph.node_weight(*node).unwrap();
-            matches!(
-                component.kind,
-                ComponentKind::Sink(Sink::Clock) | ComponentKind::Sink(Sink::Reset)
-            )
-        });
-        if input.inputs.len() != 1
-            || input.inputs[0].len() != 1
-            || !matches!(
-                input.graph[input.inputs[0][0]].kind,
-                ComponentKind::TimingStart,
-            )
-        {
-            return Err(Self::raise_ice(
-                &input,
-                FlowGraphICE::UnSealedFlowGraph,
-                None,
-            ));
-        }
-        let timing_start = input.inputs[0][0];
-        for node in need_connection {
-            if !petgraph::algo::has_path_connecting(&input.graph, timing_start, node, None) {
-                // Collect the chain of nodes upstream from the node
-                let mut spans = vec![];
-                walk_incoming(&input, node, &mut spans);
-                return Err(rhdl_error(FlowGraphError {
-                    cause: FlowGraphICE::UnconnectedClockReset,
-                    src: input.code.source(),
-                    elements: spans
-                        .into_iter()
-                        .map(|span| input.code.span(span).into())
-                        .collect(),
-                }));
-            }
-        }
+        /*         let need_connection = input.graph.node_indices().filter(|node| {
+                   let component = input.graph.node_weight(*node).unwrap();
+                   matches!(
+                       component.kind,
+                       ComponentKind::Sink(Sink::Clock) | ComponentKind::Sink(Sink::Reset)
+                   )
+               });
+               if input.inputs.len() != 1
+                   || input.inputs[0].len() != 1
+                   || !matches!(
+                       input.graph[input.inputs[0][0]].kind,
+                       ComponentKind::TimingStart,
+                   )
+               {
+                   return Err(Self::raise_ice(
+                       &input,
+                       FlowGraphICE::UnSealedFlowGraph,
+                       None,
+                   ));
+               }
+               let timing_start = input.inputs[0][0];
+               for node in need_connection {
+                   if !petgraph::algo::has_path_connecting(&input.graph, timing_start, node, None) {
+                       // Collect the chain of nodes upstream from the node
+                       let mut spans = vec![];
+                       walk_incoming(&input, node, &mut spans);
+                       return Err(rhdl_error(FlowGraphError {
+                           cause: FlowGraphICE::UnconnectedClockReset,
+                           src: input.code.source(),
+                           elements: spans
+                               .into_iter()
+                               .map(|span| input.code.span(span).into())
+                               .collect(),
+                       }));
+                   }
+               }
+        */
         Ok(input)
     }
 }

@@ -54,38 +54,6 @@ fn verilog_literal(bs: &BitString) -> String {
     format!("{width}'{signed}b{bs}")
 }
 
-fn verilog_binop(op: &AluBinary) -> &'static str {
-    match op {
-        AluBinary::Add => "+",
-        AluBinary::Sub => "-",
-        AluBinary::Mul => "*",
-        AluBinary::BitAnd => "&",
-        AluBinary::BitOr => "|",
-        AluBinary::BitXor => "^",
-        AluBinary::Shl => "<<",
-        AluBinary::Shr => ">>>",
-        AluBinary::Eq => "==",
-        AluBinary::Ne => "!=",
-        AluBinary::Lt => "<",
-        AluBinary::Le => "<=",
-        AluBinary::Gt => ">",
-        AluBinary::Ge => ">=",
-    }
-}
-
-fn verilog_unop(op: &AluUnary) -> &'static str {
-    match op {
-        AluUnary::Neg => "-",
-        AluUnary::Not => "!",
-        AluUnary::All => "&",
-        AluUnary::Any => "|",
-        AluUnary::Xor => "^",
-        AluUnary::Signed => "$signed",
-        AluUnary::Unsigned => "$unsigned",
-        AluUnary::Val => "",
-    }
-}
-
 impl<'a> TranslationContext<'a> {
     fn raise_ice(&self, cause: ICE, id: SourceLocation) -> RHDLError {
         rhdl_error(RHDLCompileError {
@@ -214,7 +182,7 @@ impl<'a> TranslationContext<'a> {
     fn translate_binary(&mut self, binary: &tl::Binary) -> Result<()> {
         self.body.push_str(&format!(
             "    {lhs} = {arg1} {op} {arg2};\n",
-            op = verilog_binop(&binary.op),
+            op = binary.op.verilog_binop(),
             lhs = self.rtl.op_name(binary.lhs),
             arg1 = self.rtl.op_name(binary.arg1),
             arg2 = self.rtl.op_name(binary.arg2)
@@ -327,7 +295,7 @@ impl<'a> TranslationContext<'a> {
                     .push_str(&format!("    {lhs} = $unsigned({arg1});\n",));
             }
             _ => {
-                let op = verilog_unop(&unary.op);
+                let op = unary.op.verilog_unop();
                 self.body.push_str(&format!("    {lhs} = {op}{arg1};\n",));
             }
         }

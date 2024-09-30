@@ -47,36 +47,45 @@ pub enum ComponentKind {
     Buffer(String),
     Case(Case),
     Constant(bool),
+    DFFInput(DFFInput),
+    DFFOutput(DFFOutput),
     DynamicIndex(DynamicIndex),
     DynamicSplice(DynamicSplice),
+    Input(Input),
+    Output(Output),
     Select,
-    Source(String),
-    Sink(Sink),
     TimingStart,
     TimingEnd,
     Unary(Unary),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum Sink {
-    Data(String),
-    Clock,
-    Reset,
+#[derive(Debug, Clone, Hash)]
+pub struct Input {
+    pub argument_index: usize,
+    pub bit_index: usize,
+    pub name: String,
 }
 
-impl std::fmt::Display for Sink {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Sink::Data(name) => write!(f, "{}", name),
-            Sink::Clock => write!(f, "clk"),
-            Sink::Reset => write!(f, "rst"),
-        }
-    }
+#[derive(Debug, Clone, Hash)]
+pub struct Output {
+    pub bit_index: usize,
+    pub name: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct DFFInput {
+    pub bit_index: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct DFFOutput {
+    pub bit_index: usize,
 }
 
 #[derive(Clone, Hash)]
 pub struct Component {
     pub kind: ComponentKind,
+    pub width: usize,
     pub location: Option<SourceLocation>,
 }
 
@@ -92,9 +101,23 @@ impl std::fmt::Debug for Component {
             }
             ComponentKind::DynamicIndex(dynamic_index) => write!(f, "[[{}]]", dynamic_index.len),
             ComponentKind::DynamicSplice(dynamic_splice) => write!(f, "//{}//", dynamic_splice.len),
+            ComponentKind::Input(input) => {
+                write!(
+                    f,
+                    "[{}]<-in<{}, {}>",
+                    input.name, input.argument_index, input.bit_index
+                )
+            }
+            ComponentKind::Output(output) => {
+                write!(f, "[{}]->out<{}>", output.name, output.bit_index)
+            }
             ComponentKind::Select => write!(f, "?"),
-            ComponentKind::Source(name) => write!(f, "src<{}>", name),
-            ComponentKind::Sink(details) => write!(f, "sink<{}>", details),
+            ComponentKind::DFFInput(dff_input) => {
+                write!(f, "dff_in[{}]", dff_input.bit_index)
+            }
+            ComponentKind::DFFOutput(dff_output) => {
+                write!(f, "dff_out[{}]", dff_output.bit_index)
+            }
             ComponentKind::TimingStart => write!(f, "timing_start"),
             ComponentKind::TimingEnd => write!(f, "timing_end"),
             ComponentKind::Unary(unary) => write!(f, "{:?}", unary.op),
