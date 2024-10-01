@@ -85,3 +85,4 @@ pub use types::clock_reset::ClockReset;
 pub mod sim;
 pub use types::timed_sample::timed_sample;
 pub use types::timed_sample::TimedSample;
+pub mod verilog;
