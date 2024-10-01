@@ -13,6 +13,7 @@ use crate::{
     test_module::VerilogDescriptor,
     types::bit_string::BitString,
     util::binary_string,
+    verilog::ast::{declaration, input_reg, literal, Function, Kind},
     RHDLError,
 };
 
@@ -33,8 +34,7 @@ impl VerilogModule {
 }
 
 struct TranslationContext<'a> {
-    body: String,
-    kernels: Vec<VerilogModule>,
+    func: Function,
     rtl: &'a rtl::Object,
 }
 
@@ -66,7 +66,7 @@ impl<'a> TranslationContext<'a> {
         // Check for the extension case
         let arg_kind = self.rtl.kind(cast.arg);
         if cast.len <= arg_kind.len() {
-            self.body.push_str(&format!(
+            self.func.push_str(&format!(
                 "    {lhs} = {arg}[{len}:0];\n",
                 lhs = self.rtl.op_name(cast.lhs),
                 arg = self.rtl.op_name(cast.arg),
@@ -75,7 +75,7 @@ impl<'a> TranslationContext<'a> {
         } else {
             // zero extend
             let num_z = cast.len - arg_kind.len();
-            self.body.push_str(&format!(
+            self.func.push_str(&format!(
                 "    {lhs} = {{ {num_z}'b0, {arg} }};\n",
                 lhs = self.rtl.op_name(cast.lhs),
                 arg = self.rtl.op_name(cast.arg),
@@ -95,7 +95,7 @@ impl<'a> TranslationContext<'a> {
                 id,
             ));
         }
-        self.body.push_str(&format!(
+        self.func.push_str(&format!(
             "    {lhs} = $signed({arg}[{len}:0]);\n",
             lhs = self.rtl.op_name(cast.lhs),
             arg = self.rtl.op_name(cast.arg),
@@ -107,7 +107,7 @@ impl<'a> TranslationContext<'a> {
         let arg_kind = self.rtl.kind(cast.arg);
         // Truncation case
         if cast.len <= arg_kind.len() {
-            self.body.push_str(&format!(
+            self.func.push_str(&format!(
                 "    {lhs} = {arg}[{len}:0];\n",
                 lhs = self.rtl.op_name(cast.lhs),
                 arg = self.rtl.op_name(cast.arg),
@@ -116,7 +116,7 @@ impl<'a> TranslationContext<'a> {
         } else {
             // zero extend
             let num_z = cast.len - arg_kind.len();
-            self.body.push_str(&format!(
+            self.func.push_str(&format!(
                 "    {lhs} = {{ {num_z}'b0, {arg} }};\n",
                 lhs = self.rtl.op_name(cast.lhs),
                 arg = self.rtl.op_name(cast.arg),
@@ -128,7 +128,7 @@ impl<'a> TranslationContext<'a> {
         let arg_kind = self.rtl.kind(cast.arg);
         // Truncation case
         if cast.len <= arg_kind.len() {
-            self.body.push_str(&format!(
+            self.func.push_str(&format!(
                 "    {lhs} = $signed({arg}[{len}:0]);\n",
                 lhs = self.rtl.op_name(cast.lhs),
                 arg = self.rtl.op_name(cast.arg),
@@ -137,7 +137,7 @@ impl<'a> TranslationContext<'a> {
         } else {
             // sign extend
             let num_s = cast.len - arg_kind.len();
-            self.body.push_str(&format!(
+            self.func.push_str(&format!(
                 "    {lhs} = $signed({{ {{ {num_s}{{ {arg}[{arg_len}]}} }}, {arg} }});\n",
                 lhs = self.rtl.op_name(cast.lhs),
                 arg = self.rtl.op_name(cast.arg),
@@ -172,7 +172,7 @@ impl<'a> TranslationContext<'a> {
         }
     }
     fn translate_assign(&mut self, assign: &tl::Assign) -> Result<()> {
-        self.body.push_str(&format!(
+        self.func.push_str(&format!(
             "    {lhs} = {rhs};\n",
             lhs = self.rtl.op_name(assign.lhs),
             rhs = self.rtl.op_name(assign.rhs)
@@ -180,7 +180,7 @@ impl<'a> TranslationContext<'a> {
         Ok(())
     }
     fn translate_binary(&mut self, binary: &tl::Binary) -> Result<()> {
-        self.body.push_str(&format!(
+        self.func.push_str(&format!(
             "    {lhs} = {arg1} {op} {arg2};\n",
             op = binary.op.verilog_binop(),
             lhs = self.rtl.op_name(binary.lhs),
@@ -190,26 +190,26 @@ impl<'a> TranslationContext<'a> {
         Ok(())
     }
     fn translate_case(&mut self, case: &tl::Case) -> Result<()> {
-        self.body.push_str(&format!(
+        self.func.push_str(&format!(
             "    case ({sel})\n",
             sel = self.rtl.op_name(case.discriminant)
         ));
         for (val, block) in &case.table {
             match val {
                 tl::CaseArgument::Literal(lit) => {
-                    self.body.push_str(&format!(
+                    self.func.push_str(&format!(
                         "      {}: ",
                         verilog_literal(&self.rtl.literals[lit])
                     ));
-                    self.body.push_str(&format!(
+                    self.func.push_str(&format!(
                         "{} = {};\n",
                         self.rtl.op_name(case.lhs),
                         self.rtl.op_name(*block),
                     ));
                 }
                 tl::CaseArgument::Wild => {
-                    self.body.push_str("      default: ");
-                    self.body.push_str(&format!(
+                    self.func.push_str("      default: ");
+                    self.func.push_str(&format!(
                         "{} = {};\n",
                         self.rtl.op_name(case.lhs),
                         self.rtl.op_name(*block),
@@ -217,7 +217,7 @@ impl<'a> TranslationContext<'a> {
                 }
             }
         }
-        self.body.push_str("    endcase\n");
+        self.func.push_str("    endcase\n");
         Ok(())
     }
     fn translate_concat(&mut self, concat: &tl::Concat) -> Result<()> {
@@ -229,7 +229,7 @@ impl<'a> TranslationContext<'a> {
             .collect::<Vec<_>>()
             .join(", ");
         let lhs = self.rtl.op_name(concat.lhs);
-        self.body.push_str(&format!("    {lhs} = {{{args}}};\n",));
+        self.func.push_str(&format!("    {lhs} = {{{args}}};\n",));
         Ok(())
     }
     fn translate_dynamic_index(&mut self, index: &tl::DynamicIndex) -> Result<()> {
@@ -237,7 +237,7 @@ impl<'a> TranslationContext<'a> {
         let arg = self.rtl.op_name(index.arg);
         let offset = self.rtl.op_name(index.offset);
         let len = index.len;
-        self.body
+        self.func
             .push_str(&format!("    {lhs} = {arg}[{offset} +: {len}];\n",));
         Ok(())
     }
@@ -247,7 +247,7 @@ impl<'a> TranslationContext<'a> {
         let offset = self.rtl.op_name(splice.offset);
         let value = self.rtl.op_name(splice.value);
         let len = splice.len;
-        self.body.push_str(&format!(
+        self.func.push_str(&format!(
             "    {lhs} = {arg}; {lhs}[{offset} +: {len}] = {value};\n",
         ));
         Ok(())
@@ -257,7 +257,7 @@ impl<'a> TranslationContext<'a> {
         let arg = self.rtl.op_name(index.arg);
         let start = index.bit_range.start;
         let end = index.bit_range.end - 1;
-        self.body
+        self.func
             .push_str(&format!("    {lhs} = {arg}[{end}:{start}];\n",));
         Ok(())
     }
@@ -266,7 +266,7 @@ impl<'a> TranslationContext<'a> {
         let cond = self.rtl.op_name(select.cond);
         let true_value = self.rtl.op_name(select.true_value);
         let false_value = self.rtl.op_name(select.false_value);
-        self.body.push_str(&format!(
+        self.func.push_str(&format!(
             "    {lhs} = {cond} ? {true_value} : {false_value};\n",
         ));
         Ok(())
@@ -277,7 +277,7 @@ impl<'a> TranslationContext<'a> {
         let start = splice.bit_range.start;
         let end = splice.bit_range.end - 1;
         let value = self.rtl.op_name(splice.value);
-        self.body.push_str(&format!(
+        self.func.push_str(&format!(
             "    {lhs} = {orig}; {lhs}[{end}:{start}] = {value};\n",
         ));
         Ok(())
@@ -287,16 +287,16 @@ impl<'a> TranslationContext<'a> {
         let arg1 = self.rtl.op_name(unary.arg1);
         match &unary.op {
             AluUnary::Signed => {
-                self.body
+                self.func
                     .push_str(&format!("    {lhs} = $signed({arg1});\n",));
             }
             AluUnary::Unsigned => {
-                self.body
+                self.func
                     .push_str(&format!("    {lhs} = $unsigned({arg1});\n",));
             }
             _ => {
                 let op = unary.op.verilog_unop();
-                self.body.push_str(&format!("    {lhs} = {op}{arg1};\n",));
+                self.func.push_str(&format!("    {lhs} = {op}{arg1};\n",));
             }
         }
         Ok(())
@@ -329,50 +329,37 @@ impl<'a> TranslationContext<'a> {
             .iter()
             .enumerate()
             .flat_map(|(ndx, x)| x.map(|r| (ndx, r)))
-            .map(|(ndx, reg)| {
-                format!(
-                    "input {}",
-                    reg_decl(&format!("arg_{ndx}"), self.rtl.register_kind[&reg])
+            .map(|(ndx, reg)| input_reg(&format!("arg_{ndx}"), self.rtl.register_kind[&reg].into()))
+            .collect::<Vec<_>>();
+        self.func.arguments = arg_decls;
+        let reg_decls = self
+            .rtl
+            .register_kind
+            .keys()
+            .map(|reg| {
+                let alias = self.rtl.op_alias(Operand::Register(*reg));
+                declaration(
+                    Kind::Reg,
+                    &self.rtl.op_name(Operand::Register(*reg)),
+                    self.rtl.register_kind[reg].into(),
+                    alias,
                 )
             })
             .collect::<Vec<_>>();
-        let ret_kind = self.rtl.kind(self.rtl.return_register);
-        let signed = if ret_kind.is_signed() { "signed " } else { "" };
-        let func_name = &self.rtl.name;
-        self.body.push_str(&format!(
-            "\nfunction {signed} [{}:0] {}({});\n",
-            ret_kind.len() - 1,
-            func_name,
-            arg_decls.join(", ")
-        ));
-        self.body.push_str("   // Registers\n");
-        for reg in self.rtl.register_kind.keys() {
-            let alias = self
-                .rtl
-                .op_alias(Operand::Register(*reg))
-                .unwrap_or_default();
-            self.body.push_str(&format!(
-                "   {}; // {alias}\n",
-                reg_decl(
-                    &self.rtl.op_name(Operand::Register(*reg)),
-                    self.rtl.register_kind[reg]
-                )
-            ));
-        }
-        self.body.push_str("    // Literals\n");
-        for (lit, bs) in &self.rtl.literals {
-            self.body.push_str(&format!(
-                "    localparam {} = {};\n",
-                self.rtl.op_name(Operand::Literal(*lit)),
-                verilog_literal(bs)
-            ));
-        }
-        self.body.push_str("    // Body\n");
-        self.body.push_str("begin\n");
+        self.func.registers = reg_decls;
+        let literals = self
+            .rtl
+            .literals
+            .iter()
+            .map(|(lit, bs)| literal(&self.rtl.op_name(Operand::Literal(*lit)), bs))
+            .collect::<Vec<_>>();
+        self.func.literals = literals;
+        self.func.push_str("    // Body\n");
+        self.func.push_str("begin\n");
         // Bind the argument registers
         for (ndx, reg) in self.rtl.arguments.iter().enumerate() {
             if let Some(reg) = reg {
-                self.body.push_str(&format!(
+                self.func.push_str(&format!(
                     "    {} = arg_{};\n",
                     self.rtl.op_name(Operand::Register(*reg)),
                     ndx
@@ -380,38 +367,37 @@ impl<'a> TranslationContext<'a> {
             }
         }
         self.translate_block(&self.rtl.ops)?;
-        self.body.push_str(&format!(
+        self.func.push_str(&format!(
             "    {} = {};\n",
             func_name,
             self.rtl.op_name(self.rtl.return_register)
         ));
-        self.body.push_str("end\n");
-        self.body.push_str("endfunction\n");
+        self.func.push_str("end\n");
+        self.func.push_str("endfunction\n");
         let mut module = VerilogModule::default();
         for kernel in self.kernels {
             module.functions.extend(kernel.functions);
         }
-        module.functions.push(self.body.to_string());
+        module.functions.push(self.func.to_string());
         Ok(module)
     }
 }
 
-fn translate(object: &crate::rtl::Object) -> Result<VerilogModule> {
+fn translate(object: &crate::rtl::Object) -> Result<Function> {
     let context = TranslationContext {
-        kernels: Default::default(),
-        body: Default::default(),
+        func: Function {
+            name: object.name.clone(),
+            width: object.kind(object.return_register).into(),
+            arguments: vec![],
+            registers: vec![],
+            literals: vec![],
+            block: vec![],
+        },
         rtl: object,
     };
     context.translate_kernel_for_object()
 }
 
-pub fn generate_verilog(object: &crate::rtl::Object) -> Result<VerilogDescriptor> {
-    let module = translate(object)?;
-    let module = module.deduplicate()?;
-    let body = module.functions.join("\n");
-    eprintln!("{}", body);
-    Ok(VerilogDescriptor {
-        name: object.name.clone(),
-        body,
-    })
+pub fn generate_verilog(object: &crate::rtl::Object) -> Result<Function> {
+    translate(object)
 }

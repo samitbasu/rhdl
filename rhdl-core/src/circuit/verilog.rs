@@ -5,8 +5,8 @@ use crate::types::digital::Digital;
 use crate::types::path::{bit_range, Path};
 use crate::types::tristate::Tristate;
 use crate::verilog::ast::{
-    connection, declaration, id, index, index_range, port, unsigned_width, ComponentInstance,
-    Direction, Kind, Module, Statement,
+    connection, continuous_assignment, declaration, function_call, id, index, index_range, port,
+    unsigned_width, ComponentInstance, Direction, Kind, Module, Statement,
 };
 
 use super::{
@@ -79,14 +79,10 @@ pub fn root_verilog<C: Circuit>(t: &C) -> Result<HDLDescriptor> {
         .collect::<Result<Vec<_>>>()?;
     let design = compile_design::<C::Update>(crate::CompilationMode::Asynchronous)?;
     let verilog = generate_verilog(&design)?;
-    let fn_call = format!("assign od = {fn_name}(i, q);", fn_name = &verilog.name);
+    let fn_call = continuous_assignment("od", function_call(&verilog.name, vec![id("i"), id("q")]));
     let fn_body = &verilog.body;
-    let o_bind = format!("assign o = od[{}:{}];", outputs.saturating_sub(1), 0);
-    let d_bind = format!(
-        "assign d = od[{}:{}];",
-        C::D::bits().saturating_sub(1),
-        outputs
-    );
+    let o_bind = continuous_assignment("o", index_range(id("od"), 0..outputs));
+    let d_bind = continuous_assignment("d", index_range(id("od"), outputs..o_d_bits));
     let code = format!(
         "{module_decl}
 {od_decl}

@@ -1,5 +1,6 @@
 use crate::{
     rhif::spec::{AluBinary, AluUnary},
+    rtl::object::RegisterKind,
     types::bit_string::BitString,
 };
 
@@ -10,6 +11,8 @@ pub struct Module {
     pub declarations: Vec<Declaration>,
     pub statements: Vec<Statement>,
 }
+
+// function {signed} [width-1:0] name(args);
 
 #[derive(Debug, Clone, Hash)]
 pub struct Function {
@@ -27,10 +30,26 @@ pub struct Literals {
     pub value: BitString,
 }
 
+pub fn literal(name: &str, value: &BitString) -> Literals {
+    Literals {
+        name: name.to_string(),
+        value: value.clone(),
+    }
+}
+
 #[derive(Debug, Clone, Copy, Hash)]
 pub enum SignedWidth {
     Unsigned(usize),
     Signed(usize),
+}
+
+impl From<RegisterKind> for SignedWidth {
+    fn from(kind: RegisterKind) -> Self {
+        match kind {
+            RegisterKind::Signed(len) => SignedWidth::Signed(len),
+            RegisterKind::Unsigned(len) => SignedWidth::Unsigned(len),
+        }
+    }
 }
 
 pub fn signed_width(width: usize) -> SignedWidth {
@@ -79,19 +98,28 @@ pub struct Declaration {
     pub alias: Option<String>,
 }
 
-pub fn declaration(kind: Kind, name: &str, width: SignedWidth, alias: Option<&str>) -> Declaration {
+pub fn declaration(
+    kind: Kind,
+    name: &str,
+    width: SignedWidth,
+    alias: Option<String>,
+) -> Declaration {
     Declaration {
         kind,
         name: name.to_string(),
         width,
-        alias: alias.map(|s| s.to_string()),
+        alias,
     }
+}
+
+pub fn input_reg(name: &str, width: SignedWidth) -> Declaration {
+    declaration(Kind::Reg, name, width, None)
 }
 
 #[derive(Debug, Clone, Hash)]
 pub struct Assignment {
     pub target: String,
-    pub source: Expression,
+    pub source: Box<Expression>,
 }
 
 #[derive(Debug, Clone, Hash, Default)]
@@ -129,6 +157,13 @@ pub enum Expression {
     Index(Index),
 }
 
+pub fn function_call(name: &str, arguments: Vec<Box<Expression>>) -> Box<Expression> {
+    Box::new(Expression::FunctionCall(FunctionCall {
+        name: name.to_string(),
+        arguments,
+    }))
+}
+
 pub fn id(name: &str) -> Box<Expression> {
     Box::new(Expression::Identifier(name.to_string()))
 }
@@ -162,7 +197,7 @@ pub struct DynamicIndex {
 #[derive(Debug, Clone, Hash)]
 pub struct FunctionCall {
     pub name: String,
-    pub arguments: Vec<Expression>,
+    pub arguments: Vec<Box<Expression>>,
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -179,6 +214,13 @@ pub enum Statement {
     Assignment(Assignment),
     DynamicSplice(DynamicSplice),
     Initial(Initial),
+}
+
+pub fn continuous_assignment(target: &str, source: Box<Expression>) -> Statement {
+    Statement::ContinuousAssignment(Assignment {
+        target: target.to_string(),
+        source,
+    })
 }
 
 #[derive(Debug, Clone, Hash)]
