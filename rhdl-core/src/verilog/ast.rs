@@ -37,6 +37,13 @@ pub fn literal(name: &str, value: &BitString) -> Literals {
     }
 }
 
+fn verilog_literal(bs: &BitString) -> String {
+    let signed = if bs.is_signed() { "s" } else { "" };
+    let width = bs.len();
+    let bs = binary_string(bs.bits());
+    format!("{width}'{signed}b{bs}")
+}
+
 #[derive(Debug, Clone, Copy, Hash)]
 pub enum SignedWidth {
     Unsigned(usize),
@@ -98,6 +105,15 @@ pub struct Declaration {
     pub alias: Option<String>,
 }
 
+// TODO - add check that len > 0 or redefine it as numbits - 1
+fn reg_decl(name: &str, kind: RegisterKind) -> String {
+    assert!(!kind.is_empty());
+    match kind {
+        RegisterKind::Signed(len) => format!("reg signed [{}:0] {}", len - 1, name),
+        RegisterKind::Unsigned(len) => format!("reg [{}:0] {}", len - 1, name),
+    }
+}
+
 pub fn declaration(
     kind: Kind,
     name: &str,
@@ -120,6 +136,13 @@ pub fn input_reg(name: &str, width: SignedWidth) -> Declaration {
 pub struct Assignment {
     pub target: String,
     pub source: Box<Expression>,
+}
+
+pub fn assign(target: &str, source: Box<Expression>) -> Statement {
+    Statement::Assignment(Assignment {
+        target: target.to_string(),
+        source,
+    })
 }
 
 #[derive(Debug, Clone, Hash, Default)]
@@ -152,9 +175,29 @@ pub enum Expression {
     Splice(Splice),
     Select(Select),
     Binary(Binary),
-    Concat(Vec<Expression>),
+    Concat(Vec<Box<Expression>>),
     DynamicIndex(DynamicIndex),
     Index(Index),
+    Repeat(Repeat),
+    Const(bool),
+}
+
+pub fn concatenate(expressions: Vec<Box<Expression>>) -> Box<Expression> {
+    Box::new(Expression::Concat(expressions))
+}
+
+#[derive(Debug, Clone, Hash)]
+pub struct Repeat {
+    target: Box<Expression>,
+    count: usize,
+}
+
+pub fn constant(value: bool) -> Box<Expression> {
+    Box::new(Expression::Const(value))
+}
+
+pub fn repeat(target: Box<Expression>, count: usize) -> Box<Expression> {
+    Box::new(Expression::Repeat(Repeat { target, count }))
 }
 
 pub fn function_call(name: &str, arguments: Vec<Box<Expression>>) -> Box<Expression> {
@@ -171,20 +214,11 @@ pub fn id(name: &str) -> Box<Expression> {
 #[derive(Debug, Clone, Hash)]
 pub struct Index {
     pub target: Box<Expression>,
-    pub msb: Option<usize>,
-    pub lsb: usize,
+    pub range: std::ops::Range<usize>,
 }
 
-pub fn index(target: Box<Expression>, lsb: usize, msb: Option<usize>) -> Index {
-    Index { target, lsb, msb }
-}
-
-pub fn index_range(target: Box<Expression>, range: std::ops::Range<usize>) -> Box<Expression> {
-    Box::new(Expression::Index(Index {
-        target,
-        lsb: range.start,
-        msb: Some(range.end.saturating_sub(1)),
-    }))
+pub fn index(target: Box<Expression>, range: std::ops::Range<usize>) -> Box<Expression> {
+    Box::new(Expression::Index(Index { target, range }))
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -239,6 +273,10 @@ pub struct DynamicSplice {
 pub struct Unary {
     pub operator: AluUnary,
     pub operand: Box<Expression>,
+}
+
+pub fn unary(operator: AluUnary, operand: Box<Expression>) -> Box<Expression> {
+    Box::new(Expression::Unary(Unary { operator, operand }))
 }
 
 #[derive(Debug, Clone, Hash)]

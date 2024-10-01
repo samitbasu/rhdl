@@ -13,7 +13,10 @@ use crate::{
     test_module::VerilogDescriptor,
     types::bit_string::BitString,
     util::binary_string,
-    verilog::ast::{declaration, input_reg, literal, Function, Kind},
+    verilog::ast::{
+        self, assign, concatenate, constant, declaration, id, index, input_reg, literal, repeat,
+        unary, Function, Kind,
+    },
     RHDLError,
 };
 
@@ -21,37 +24,9 @@ use rtl::spec as tl;
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
-#[derive(Default, Clone, Debug)]
-pub struct VerilogModule {
-    pub functions: Vec<String>,
-}
-impl VerilogModule {
-    fn deduplicate(self) -> Result<VerilogModule> {
-        let functions: BTreeSet<String> = self.functions.into_iter().collect();
-        let functions: Vec<String> = functions.into_iter().collect();
-        Ok(VerilogModule { functions })
-    }
-}
-
 struct TranslationContext<'a> {
     func: Function,
     rtl: &'a rtl::Object,
-}
-
-// TODO - add check that len > 0 or redefine it as numbits - 1
-fn reg_decl(name: &str, kind: RegisterKind) -> String {
-    assert!(!kind.is_empty());
-    match kind {
-        RegisterKind::Signed(len) => format!("reg signed [{}:0] {}", len - 1, name),
-        RegisterKind::Unsigned(len) => format!("reg [{}:0] {}", len - 1, name),
-    }
-}
-
-fn verilog_literal(bs: &BitString) -> String {
-    let signed = if bs.is_signed() { "s" } else { "" };
-    let width = bs.len();
-    let bs = binary_string(bs.bits());
-    format!("{width}'{signed}b{bs}")
 }
 
 impl<'a> TranslationContext<'a> {
@@ -65,22 +40,19 @@ impl<'a> TranslationContext<'a> {
     fn translate_as_bits(&mut self, cast: &tl::Cast) -> Result<()> {
         // Check for the extension case
         let arg_kind = self.rtl.kind(cast.arg);
+        let lhs = self.rtl.op_name(cast.lhs);
+        let arg = self.rtl.op_name(cast.arg);
         if cast.len <= arg_kind.len() {
-            self.func.push_str(&format!(
-                "    {lhs} = {arg}[{len}:0];\n",
-                lhs = self.rtl.op_name(cast.lhs),
-                arg = self.rtl.op_name(cast.arg),
-                len = cast.len - 1
-            ));
+            self.func
+                .block
+                .push(assign(&lhs, index(id(&arg), 0..cast.len)));
         } else {
             // zero extend
             let num_z = cast.len - arg_kind.len();
-            self.func.push_str(&format!(
-                "    {lhs} = {{ {num_z}'b0, {arg} }};\n",
-                lhs = self.rtl.op_name(cast.lhs),
-                arg = self.rtl.op_name(cast.arg),
-                num_z = num_z
-            ));
+            let prefix = repeat(constant(false), num_z);
+            self.func
+                .block
+                .push(assign(&lhs, concatenate(vec![prefix, id(&arg)])));
         }
         Ok(())
     }
@@ -95,16 +67,17 @@ impl<'a> TranslationContext<'a> {
                 id,
             ));
         }
-        self.func.push_str(&format!(
-            "    {lhs} = $signed({arg}[{len}:0]);\n",
-            lhs = self.rtl.op_name(cast.lhs),
-            arg = self.rtl.op_name(cast.arg),
-            len = cast.len - 1
-        ));
+        let lhs = self.rtl.op_name(cast.lhs);
+        let arg = self.rtl.op_name(cast.arg);
+        let cast = index(ast::id(&arg), 0..cast.len);
+        let signed = unary(AluUnary::Signed, cast);
+        self.func.block.push(assign(&lhs, signed));
         Ok(())
     }
     fn translate_resize_unsigned(&mut self, cast: &tl::Cast) {
         let arg_kind = self.rtl.kind(cast.arg);
+        let lhs = self.rtl.op_name(cast.lhs);
+        let arg = self.rtl.op_name(cast.arg);
         // Truncation case
         if cast.len <= arg_kind.len() {
             self.func.push_str(&format!(
