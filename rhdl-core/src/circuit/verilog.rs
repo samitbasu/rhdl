@@ -4,6 +4,10 @@ use crate::error::RHDLError;
 use crate::types::digital::Digital;
 use crate::types::path::{bit_range, Path};
 use crate::types::tristate::Tristate;
+use crate::verilog::ast::{
+    connection, declaration, id, index, index_range, port, unsigned_width, ComponentInstance,
+    Direction, Kind, Module, Statement,
+};
 
 use super::{
     circuit_descriptor::CircuitDescriptor, circuit_impl::Circuit, hdl_descriptor::HDLDescriptor,
@@ -19,37 +23,49 @@ pub fn root_verilog<C: Circuit>(t: &C) -> Result<HDLDescriptor> {
 
     let module_name = &descriptor.unique_name;
     // module top(input wire clk, input wire[0:0] top_in, output reg[3:0] top_out);
-
-    let io_decl = if C::Z::N != 0 {
-        format!(
-            ", inout wire[{IO_BITS}:0] io",
-            IO_BITS = C::Z::N.saturating_sub(1)
-        )
-    } else {
-        Default::default()
-    };
-
-    let module_decl = format!(
-        "module {module_name}(input wire[{INPUT_BITS}:0] i, output wire[{OUTPUT_BITS}:0] o{io_decl});",
-        module_name = module_name,
-        INPUT_BITS = input_bits.saturating_sub(1),
-        OUTPUT_BITS = outputs.saturating_sub(1)
-    );
+    let mut module = Module::default();
+    module.name = module_name.clone();
+    module.ports.push(port(
+        "i",
+        Direction::Input,
+        Kind::Wire,
+        unsigned_width(input_bits),
+    ));
+    module.ports.push(port(
+        "o",
+        Direction::Output,
+        Kind::Wire,
+        unsigned_width(outputs),
+    ));
+    if C::Z::N != 0 {
+        module.ports.push(port(
+            "io",
+            Direction::Inout,
+            Kind::Wire,
+            unsigned_width(C::Z::N),
+        ));
+    }
 
     let o_d_bits = C::O::bits() + C::D::bits();
     // Next declare the D and Q wires
-    let od_decl = format!(
-        "wire[{OD_BITS}:0] od;",
-        OD_BITS = o_d_bits.saturating_sub(1)
-    );
-    let d_decl = format!(
-        "wire[{D_BITS}:0] d;",
-        D_BITS = C::D::bits().saturating_sub(1)
-    );
-    let q_decl = format!(
-        "wire[{Q_BITS}:0] q;",
-        Q_BITS = C::Q::bits().saturating_sub(1)
-    );
+    module.declarations.push(declaration(
+        Kind::Wire,
+        "od",
+        unsigned_width(o_d_bits),
+        None,
+    ));
+    module.declarations.push(declaration(
+        Kind::Wire,
+        "d",
+        unsigned_width(C::D::bits()),
+        None,
+    ));
+    module.declarations.push(declaration(
+        Kind::Wire,
+        "q",
+        unsigned_width(C::Q::bits()),
+        None,
+    ));
 
     // Next, for each sub-component, we need to determine it's input range from the Q and D types.
     // Loop over the components.
@@ -57,9 +73,10 @@ pub fn root_verilog<C: Circuit>(t: &C) -> Result<HDLDescriptor> {
         .children
         .iter()
         .enumerate()
-        .map(|(ndx, (local, desc))| component_decl::<C>(ndx, local, desc))
-        .collect::<Result<Vec<_>>>()?
-        .join("\n");
+        .map(|(ndx, (local, desc))| {
+            component_decl::<C>(ndx, local, desc).map(|x| Statement::ComponentInstance(x))
+        })
+        .collect::<Result<Vec<_>>>()?;
     let design = compile_design::<C::Update>(crate::CompilationMode::Asynchronous)?;
     let verilog = generate_verilog(&design)?;
     let fn_call = format!("assign od = {fn_name}(i, q);", fn_name = &verilog.name);
@@ -99,25 +116,21 @@ fn component_decl<C: Circuit>(
     ndx: usize,
     local_name: &str,
     desc: &CircuitDescriptor,
-) -> Result<String> {
+) -> Result<ComponentInstance> {
     // instantiate the component with name components.name.
     // give it a unique instance name of c{ndx}
     // wire the inputs to the range of d that corresponds to the name
     // wire the outputs to the range of q that corresponds to the name
     let d_kind = C::D::static_kind();
     let q_kind = C::Q::static_kind();
-    eprintln!("d_kind: {:?}", d_kind);
-    eprintln!("q_kind: {:?}", q_kind);
-    eprintln!("local_name: {local_name}");
     let (d_range, _) = bit_range(d_kind, &Path::default().field(local_name))?;
     let (q_range, _) = bit_range(q_kind, &Path::default().field(local_name))?;
-    Ok(format!(
-        "{component_name} c{ndx} (.i(d[{d_msb}:{d_lsb}]),.o(q[{q_msb}:{q_lsb}]));",
-        component_name = desc.unique_name,
-        ndx = ndx,
-        d_msb = d_range.end.saturating_sub(1),
-        d_lsb = d_range.start,
-        q_msb = q_range.end.saturating_sub(1),
-        q_lsb = q_range.start
-    ))
+    let mut instance = ComponentInstance::default();
+    instance.name = desc.unique_name.clone();
+    instance.instance_name = format!("c{}", ndx);
+    let d = index_range(id("d"), d_range);
+    let q = index_range(id("q"), q_range);
+    instance.connections.push(connection("i", d));
+    instance.connections.push(connection("o", q));
+    Ok(instance)
 }
