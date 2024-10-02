@@ -4,10 +4,10 @@ use petgraph::visit::EdgeRef;
 
 use crate::{
     ast::source_location::SourceLocation,
-    compiler::codegen::verilog::VerilogModule,
     error::rhdl_error,
     flow_graph::{edge_kind::EdgeKind, error::FlowGraphError},
     util::delim_list_optional_strings,
+    verilog::ast::Module,
     FlowGraph, RHDLError,
 };
 
@@ -301,7 +301,7 @@ fn generate_assign_statement(
     }
 }
 
-pub fn generate_verilog(module_name: &str, fg: &FlowGraph) -> Result<VerilogModule, RHDLError> {
+pub fn generate_verilog(module_name: &str, fg: &FlowGraph) -> Result<Module, RHDLError> {
     dbg!(&fg.inputs);
     let args = fg
         .inputs
@@ -335,13 +335,12 @@ pub fn generate_verilog(module_name: &str, fg: &FlowGraph) -> Result<VerilogModu
         .node_indices()
         .filter_map(|ndx| generate_assign_statement(ndx, fg).transpose())
         .collect::<Result<Vec<_>, _>>()?;
-    let dff_stmts = generate_dff_statements(fg)?;
+    //    let dff_stmts = generate_dff_statements(fg)?;
+    // FIXME
     let foo = format!(
         "{module_decl}\n{reg_decl}\n{assign_stmts}\nendmodule",
         reg_decl = reg_decls.join(""),
         assign_stmts = assign_stmts.join("\n"),
     );
-    Ok(VerilogModule {
-        functions: vec![foo],
-    })
+    Ok(Module::default())
 }
