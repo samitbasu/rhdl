@@ -1,4 +1,4 @@
-use crate::verilog::ast::Module;
+use crate::hdl::ast::Module;
 use std::collections::BTreeMap;
 
 #[derive(Clone)]

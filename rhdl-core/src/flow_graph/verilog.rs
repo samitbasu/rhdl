@@ -6,8 +6,8 @@ use crate::{
     ast::source_location::SourceLocation,
     error::rhdl_error,
     flow_graph::{edge_kind::EdgeKind, error::FlowGraphError},
+    hdl::ast::Module,
     util::delim_list_optional_strings,
-    verilog::ast::Module,
     FlowGraph, RHDLError,
 };
 

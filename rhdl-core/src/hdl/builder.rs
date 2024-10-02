@@ -2,15 +2,15 @@ use crate::{
     ast::source_location::SourceLocation,
     compiler::mir::error::{RHDLCompileError, ICE},
     error::rhdl_error,
+    hdl::ast::{
+        self, assign, concatenate, constant, declaration, dynamic_index, id, index, index_bit,
+        input_reg, literal, repeat, unary, CaseItem, Function, Kind,
+    },
     rhif::spec::AluUnary,
     rtl::{
         self,
         object::LocatedOpCode,
         spec::{CaseArgument, CastKind, Operand},
-    },
-    verilog::ast::{
-        self, assign, concatenate, constant, declaration, dynamic_index, id, index, index_bit,
-        input_reg, literal, repeat, unary, CaseItem, Function, Kind,
     },
     RHDLError,
 };

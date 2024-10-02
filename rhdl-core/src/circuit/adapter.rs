@@ -1,8 +1,8 @@
 use crate::{
     flow_graph::edge_kind::EdgeKind,
+    hdl::ast::{component_instance, connection, id, index, index_bit, Direction, Module},
     rtl::object::RegisterKind,
     types::{kind::Field, signal::signal},
-    verilog::ast::{component_instance, connection, id, index, index_bit, Direction, Module},
     Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, ClockReset, Digital, DigitalFn, Domain,
     FlowGraph, Kind, Notable, NoteKey, NoteWriter, RHDLError, Signal, Synchronous, Timed, Tristate,
 };
