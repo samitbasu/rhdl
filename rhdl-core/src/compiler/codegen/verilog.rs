@@ -47,7 +47,7 @@ impl<'a> TranslationContext<'a> {
         }
         let lhs = self.rtl.op_name(cast.lhs);
         let arg = self.rtl.op_name(cast.arg);
-        let cast = index(ast::id(&arg), 0..cast.len);
+        let cast = index(&arg, 0..cast.len);
         let signed = unary(AluUnary::Signed, cast);
         self.func.block.push(assign(&lhs, signed));
         Ok(())
@@ -59,9 +59,7 @@ impl<'a> TranslationContext<'a> {
         let arg = self.rtl.op_name(cast.arg);
         // Truncation case
         if cast.len <= arg_kind.len() {
-            self.func
-                .block
-                .push(assign(&lhs, index(id(&arg), 0..cast.len)));
+            self.func.block.push(assign(&lhs, index(&arg, 0..cast.len)));
         } else {
             // zero extend
             let num_z = cast.len - arg_kind.len();
@@ -80,12 +78,12 @@ impl<'a> TranslationContext<'a> {
         if cast.len <= arg_kind.len() {
             self.func.block.push(assign(
                 &lhs,
-                unary(AluUnary::Signed, index(id(&arg), 0..cast.len)),
+                unary(AluUnary::Signed, index(&arg, 0..cast.len)),
             ));
         } else {
             // sign extend
             let num_s = cast.len - arg_kind.len();
-            let sign_bit = index_bit(id(&arg), arg_kind.len());
+            let sign_bit = index_bit(&arg, arg_kind.len().saturating_sub(1));
             let prefix = repeat(sign_bit, num_s);
             self.func.block.push(assign(
                 &lhs,
@@ -114,7 +112,10 @@ impl<'a> TranslationContext<'a> {
     fn translate_cast(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
         match cast.kind {
             CastKind::Signed => self.translate_as_signed(cast, id),
-            CastKind::Unsigned => Ok(self.translate_resize_unsigned(cast)),
+            CastKind::Unsigned => {
+                self.translate_resize_unsigned(cast);
+                Ok(())
+            }
             CastKind::Resize => self.translate_resize(cast, id),
         }
     }
@@ -175,18 +176,18 @@ impl<'a> TranslationContext<'a> {
         let len = index.len;
         self.func
             .block
-            .push(assign(&lhs, dynamic_index(id(&arg), id(&offset), len)));
+            .push(assign(&lhs, dynamic_index(&arg, id(&offset), len)));
         Ok(())
     }
     fn translate_dynamic_splice(&mut self, splice: &tl::DynamicSplice) -> Result<()> {
         let lhs = self.rtl.op_name(splice.lhs);
-        let arg = self.rtl.op_name(splice.arg);
-        let offset = self.rtl.op_name(splice.offset);
-        let value = self.rtl.op_name(splice.value);
+        let arg = id(&self.rtl.op_name(splice.arg));
+        let offset = id(&self.rtl.op_name(splice.offset));
+        let value = id(&self.rtl.op_name(splice.value));
         let len = splice.len;
         self.func
             .block
-            .push(ast::dynamic_splice(&lhs, &arg, &offset, &value, len));
+            .push(ast::dynamic_splice(&lhs, arg, offset, value, len));
         Ok(())
     }
     fn translate_index(&mut self, index: &tl::Index) -> Result<()> {
@@ -194,7 +195,7 @@ impl<'a> TranslationContext<'a> {
         let arg = self.rtl.op_name(index.arg);
         self.func
             .block
-            .push(assign(&lhs, ast::index(id(&arg), index.bit_range.clone())));
+            .push(assign(&lhs, ast::index(&arg, index.bit_range.clone())));
         Ok(())
     }
     fn translate_select(&mut self, select: &tl::Select) -> Result<()> {

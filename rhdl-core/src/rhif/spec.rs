@@ -174,25 +174,6 @@ impl AluBinary {
     pub(crate) fn is_shift(&self) -> bool {
         matches!(self, AluBinary::Shl | AluBinary::Shr)
     }
-
-    pub(crate) fn verilog_binop(&self) -> &'static str {
-        match self {
-            AluBinary::Add => "+",
-            AluBinary::Sub => "-",
-            AluBinary::Mul => "*",
-            AluBinary::BitAnd => "&",
-            AluBinary::BitOr => "|",
-            AluBinary::BitXor => "^",
-            AluBinary::Shl => "<<",
-            AluBinary::Shr => ">>>",
-            AluBinary::Eq => "==",
-            AluBinary::Ne => "!=",
-            AluBinary::Lt => "<",
-            AluBinary::Le => "<=",
-            AluBinary::Gt => ">",
-            AluBinary::Ge => ">=",
-        }
-    }
 }
 
 #[derive(Clone, Copy, PartialEq, Hash)]

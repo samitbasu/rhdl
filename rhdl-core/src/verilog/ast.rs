@@ -2,7 +2,6 @@ use crate::{
     rhif::spec::{AluBinary, AluUnary},
     rtl::object::RegisterKind,
     types::bit_string::BitString,
-    util::binary_string,
 };
 
 #[derive(Debug, Clone, Hash, Default)]
@@ -37,13 +36,6 @@ pub fn literal(name: &str, value: &BitString) -> Literals {
         name: name.to_string(),
         value: value.clone(),
     }
-}
-
-fn verilog_literal(bs: &BitString) -> String {
-    let signed = if bs.is_signed() { "s" } else { "" };
-    let width = bs.len();
-    let bs = binary_string(bs.bits());
-    format!("{width}'{signed}b{bs}")
 }
 
 #[derive(Debug, Clone, Copy, Hash)]
@@ -105,15 +97,6 @@ pub struct Declaration {
     pub name: String,
     pub width: SignedWidth,
     pub alias: Option<String>,
-}
-
-// TODO - add check that len > 0 or redefine it as numbits - 1
-fn reg_decl(name: &str, kind: RegisterKind) -> String {
-    assert!(!kind.is_empty());
-    match kind {
-        RegisterKind::Signed(len) => format!("reg signed [{}:0] {}", len - 1, name),
-        RegisterKind::Unsigned(len) => format!("reg [{}:0] {}", len - 1, name),
-    }
 }
 
 pub fn declaration(
@@ -182,7 +165,6 @@ pub fn connection(target: &str, source: Box<Expression>) -> Connection {
 #[derive(Debug, Clone, Hash)]
 pub enum Expression {
     FunctionCall(FunctionCall),
-    BitRange(BitRange),
     Identifier(String),
     Literal(BitString),
     Unary(Unary),
@@ -209,8 +191,8 @@ pub fn concatenate(expressions: Vec<Box<Expression>>) -> Box<Expression> {
 
 #[derive(Debug, Clone, Hash)]
 pub struct Repeat {
-    target: Box<Expression>,
-    count: usize,
+    pub target: Box<Expression>,
+    pub count: usize,
 }
 
 pub fn constant(value: bool) -> Box<Expression> {
@@ -234,21 +216,24 @@ pub fn id(name: &str) -> Box<Expression> {
 
 #[derive(Debug, Clone, Hash)]
 pub struct Index {
-    pub target: Box<Expression>,
+    pub target: String,
     pub range: std::ops::Range<usize>,
 }
 
-pub fn index(target: Box<Expression>, range: std::ops::Range<usize>) -> Box<Expression> {
-    Box::new(Expression::Index(Index { target, range }))
+pub fn index(target: &str, range: std::ops::Range<usize>) -> Box<Expression> {
+    Box::new(Expression::Index(Index {
+        target: target.into(),
+        range,
+    }))
 }
 
-pub fn index_bit(target: Box<Expression>, bit: usize) -> Box<Expression> {
+pub fn index_bit(target: &str, bit: usize) -> Box<Expression> {
     index(target, bit..bit + 1)
 }
 
 #[derive(Debug, Clone, Hash)]
 pub struct DynamicIndex {
-    pub target: Box<Expression>,
+    pub target: String,
     pub offset: Box<Expression>,
     pub len: usize,
 }
@@ -258,13 +243,9 @@ pub struct DynamicIndex {
         .push_str(&format!("    {lhs} = {arg}[{offset} +: {len}];\n",));
 */
 
-pub fn dynamic_index(
-    target: Box<Expression>,
-    offset: Box<Expression>,
-    len: usize,
-) -> Box<Expression> {
+pub fn dynamic_index(target: &str, offset: Box<Expression>, len: usize) -> Box<Expression> {
     Box::new(Expression::DynamicIndex(DynamicIndex {
-        target,
+        target: target.into(),
         offset,
         len,
     }))
@@ -274,13 +255,6 @@ pub fn dynamic_index(
 pub struct FunctionCall {
     pub name: String,
     pub arguments: Vec<Box<Expression>>,
-}
-
-#[derive(Debug, Clone, Hash)]
-pub struct BitRange {
-    pub target: Box<Expression>,
-    pub start: Box<Expression>,
-    pub end: Box<Expression>,
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -307,18 +281,24 @@ pub struct Initial {}
 #[derive(Debug, Clone, Hash)]
 pub struct DynamicSplice {
     pub lhs: String,
-    pub arg: String,
-    pub offset: String,
-    pub value: String,
+    pub arg: Box<Expression>,
+    pub offset: Box<Expression>,
+    pub value: Box<Expression>,
     pub len: usize,
 }
 
-pub fn dynamic_splice(lhs: &str, arg: &str, offset: &str, value: &str, len: usize) -> Statement {
+pub fn dynamic_splice(
+    lhs: &str,
+    arg: Box<Expression>,
+    offset: Box<Expression>,
+    value: Box<Expression>,
+    len: usize,
+) -> Statement {
     Statement::DynamicSplice(DynamicSplice {
         lhs: lhs.to_string(),
-        arg: arg.to_string(),
-        offset: offset.to_string(),
-        value: value.to_string(),
+        arg,
+        offset,
+        value,
         len,
     })
 }
