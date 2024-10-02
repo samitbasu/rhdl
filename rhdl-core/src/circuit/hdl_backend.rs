@@ -1,22 +1,14 @@
 use std::collections::BTreeMap;
 
-use crate::compiler::codegen::verilog::generate_verilog;
+use crate::hdl::{
+    ast::{
+        component_instance, concatenate, connection, continuous_assignment, function_call, id,
+        index, unsigned_width, Declaration, Direction, Kind, Module, Port, Statement,
+    },
+    builder::generate_verilog,
+};
 use crate::types::path::bit_range;
 use crate::types::path::Path;
-use crate::verilog::ast::component_instance;
-use crate::verilog::ast::concatenate;
-use crate::verilog::ast::connection;
-use crate::verilog::ast::continuous_assignment;
-use crate::verilog::ast::function_call;
-use crate::verilog::ast::id;
-use crate::verilog::ast::index;
-use crate::verilog::ast::unsigned_width;
-use crate::verilog::ast::Declaration;
-use crate::verilog::ast::Direction;
-use crate::verilog::ast::Kind;
-use crate::verilog::ast::Module;
-use crate::verilog::ast::Port;
-use crate::verilog::ast::Statement;
 use crate::Digital;
 use crate::HDLKind;
 use crate::Tristate;

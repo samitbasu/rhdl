@@ -1,4 +1,3 @@
-use crate::compiler::codegen::verilog::generate_verilog;
 use crate::compiler::driver::{compile_design_stage1, compile_design_stage2};
 use crate::error::RHDLError;
 use crate::flow_graph::component::ComponentKind;
@@ -6,9 +5,10 @@ use crate::flow_graph::edge_kind::EdgeKind;
 use crate::flow_graph::flow_graph_impl::FlowGraph;
 use crate::flow_graph::passes::check_for_undriven::CheckForUndrivenPass;
 use crate::flow_graph::passes::pass::Pass;
+use crate::hdl::ast::Function;
+use crate::hdl::builder::generate_verilog;
 use crate::types::bit_string::BitString;
 use crate::util::delim_list_optional_strings;
-use crate::verilog::ast::Function;
 use crate::{build_rtl_flow_graph, DigitalFn};
 use crate::{Timed, TypedBits};
 
@@ -196,7 +196,7 @@ where
     T0: Timed,
 {
     let name = &desc.name;
-    let body = crate::verilog::formatter::function(&desc);
+    let body = crate::hdl::formatter::function(&desc);
     let mut num_cases = 0;
     let cases = vals
         .inspect(|_| {
