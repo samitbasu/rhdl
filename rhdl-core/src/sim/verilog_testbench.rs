@@ -68,7 +68,8 @@ pub fn write_testbench<C: Circuit>(
     writeln!(writer, "$finish;").unwrap();
     writeln!(writer, "end").unwrap();
     writeln!(writer, "endmodule").unwrap();
-    writeln!(writer, "{:?}", hdl).unwrap();
+    //    writeln!(writer, "{:?}", hdl).unwrap();
+    // FIXME
     Ok(())
 }
 
@@ -175,6 +176,7 @@ pub fn write_synchronous_testbench<S: Synchronous>(
     writeln!(writer, "$finish;").unwrap();
     writeln!(writer, "end").unwrap();
     writeln!(writer, "endmodule").unwrap();
-    writeln!(writer, "{:?}", hdl).unwrap();
+    //    writeln!(writer, "{:?}", hdl).unwrap();
+    // FIXME
     Ok(())
 }

@@ -2,6 +2,7 @@ use crate::{
     rhif::spec::{AluBinary, AluUnary},
     rtl::object::RegisterKind,
     types::bit_string::BitString,
+    util::binary_string,
 };
 
 #[derive(Debug, Clone, Hash, Default)]
@@ -10,6 +11,7 @@ pub struct Module {
     pub ports: Vec<Port>,
     pub declarations: Vec<Declaration>,
     pub statements: Vec<Statement>,
+    pub functions: Vec<Function>,
 }
 
 // function {signed} [width-1:0] name(args);
@@ -152,6 +154,18 @@ pub struct ComponentInstance {
     pub connections: Vec<Connection>,
 }
 
+pub fn component_instance(
+    name: &str,
+    instance_name: &str,
+    connections: Vec<Connection>,
+) -> Statement {
+    Statement::ComponentInstance(ComponentInstance {
+        name: name.to_string(),
+        instance_name: instance_name.to_string(),
+        connections,
+    })
+}
+
 #[derive(Debug, Clone, Hash)]
 pub struct Connection {
     pub target: String,
@@ -172,7 +186,6 @@ pub enum Expression {
     Identifier(String),
     Literal(BitString),
     Unary(Unary),
-    Splice(Splice),
     Select(Select),
     Binary(Binary),
     Concat(Vec<Box<Expression>>),
@@ -180,6 +193,14 @@ pub enum Expression {
     Index(Index),
     Repeat(Repeat),
     Const(bool),
+}
+
+pub fn binary(op: AluBinary, left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
+    Box::new(Expression::Binary(Binary {
+        operator: op,
+        left,
+        right,
+    }))
 }
 
 pub fn concatenate(expressions: Vec<Box<Expression>>) -> Box<Expression> {
@@ -221,11 +242,32 @@ pub fn index(target: Box<Expression>, range: std::ops::Range<usize>) -> Box<Expr
     Box::new(Expression::Index(Index { target, range }))
 }
 
+pub fn index_bit(target: Box<Expression>, bit: usize) -> Box<Expression> {
+    index(target, bit..bit + 1)
+}
+
 #[derive(Debug, Clone, Hash)]
 pub struct DynamicIndex {
     pub target: Box<Expression>,
     pub offset: Box<Expression>,
     pub len: usize,
+}
+
+/*
+    self.func
+        .push_str(&format!("    {lhs} = {arg}[{offset} +: {len}];\n",));
+*/
+
+pub fn dynamic_index(
+    target: Box<Expression>,
+    offset: Box<Expression>,
+    len: usize,
+) -> Box<Expression> {
+    Box::new(Expression::DynamicIndex(DynamicIndex {
+        target,
+        offset,
+        len,
+    }))
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -248,6 +290,8 @@ pub enum Statement {
     Assignment(Assignment),
     DynamicSplice(DynamicSplice),
     Initial(Initial),
+    Splice(Splice),
+    Case(Case),
 }
 
 pub fn continuous_assignment(target: &str, source: Box<Expression>) -> Statement {
@@ -269,11 +313,46 @@ pub struct DynamicSplice {
     pub len: usize,
 }
 
+pub fn dynamic_splice(lhs: &str, arg: &str, offset: &str, value: &str, len: usize) -> Statement {
+    Statement::DynamicSplice(DynamicSplice {
+        lhs: lhs.to_string(),
+        arg: arg.to_string(),
+        offset: offset.to_string(),
+        value: value.to_string(),
+        len,
+    })
+}
+/*
+        self.func.push_str(&format!(
+            "    {lhs} = {arg}; {lhs}[{offset} +: {len}] = {value};\n",
+        ));
+
+*/
+
 #[derive(Debug, Clone, Hash)]
 pub struct Unary {
     pub operator: AluUnary,
     pub operand: Box<Expression>,
 }
+
+/*
+
+        match &unary.op {
+            AluUnary::Signed => {
+                self.func
+                    .push_str(&format!("    {lhs} = $signed({arg1});\n",));
+            }
+            AluUnary::Unsigned => {
+                self.func
+                    .push_str(&format!("    {lhs} = $unsigned({arg1});\n",));
+            }
+            _ => {
+                let op = unary.op.verilog_unop();
+                self.func.push_str(&format!("    {lhs} = {op}{arg1};\n",));
+            }
+        }
+
+*/
 
 pub fn unary(operator: AluUnary, operand: Box<Expression>) -> Box<Expression> {
     Box::new(Expression::Unary(Unary { operator, operand }))
@@ -289,10 +368,23 @@ pub struct Binary {
 #[derive(Debug, Clone, Hash)]
 pub struct Splice {
     pub target: String,
-    pub source: String,
-    pub start: usize,
-    pub end: usize,
+    pub source: Box<Expression>,
+    pub replace_range: std::ops::Range<usize>,
     pub value: Box<Expression>,
+}
+
+pub fn splice(
+    target: &str,
+    source: Box<Expression>,
+    replace_range: std::ops::Range<usize>,
+    value: Box<Expression>,
+) -> Statement {
+    Statement::Splice(Splice {
+        target: target.to_string(),
+        source,
+        replace_range,
+        value,
+    })
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -302,10 +394,22 @@ pub struct Select {
     pub false_expr: Box<Expression>,
 }
 
+pub fn select(
+    condition: Box<Expression>,
+    true_expr: Box<Expression>,
+    false_expr: Box<Expression>,
+) -> Box<Expression> {
+    Box::new(Expression::Select(Select {
+        condition,
+        true_expr,
+        false_expr,
+    }))
+}
+
 #[derive(Debug, Clone, Hash)]
 pub struct Case {
     pub discriminant: Box<Expression>,
-    pub cases: Vec<(CaseItem, Assignment)>,
+    pub cases: Vec<(CaseItem, Statement)>,
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -314,18 +418,9 @@ pub enum CaseItem {
     Wild,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_module() {
-        let module = Module {
-            name: "test".to_string(),
-            ports: vec![],
-            declarations: vec![],
-            statements: vec![],
-        };
-        assert_eq!(module.name, "test");
-    }
+pub fn case(discriminant: Box<Expression>, cases: Vec<(CaseItem, Statement)>) -> Statement {
+    Statement::Case(Case {
+        discriminant,
+        cases,
+    })
 }
