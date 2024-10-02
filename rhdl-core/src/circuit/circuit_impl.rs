@@ -8,11 +8,6 @@ use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor
 pub type CircuitUpdateFn<C> =
     fn(<C as CircuitIO>::I, <C as CircuitDQ>::Q) -> (<C as CircuitIO>::O, <C as CircuitDQ>::D);
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum HDLKind {
-    Verilog,
-}
-
 pub trait CircuitIO: 'static + Sized + Clone {
     type I: Timed;
     type O: Timed;
@@ -44,7 +39,7 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO + CircuitDQ {
     fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError>;
 
     // auto derived
-    fn as_hdl(&self, kind: HDLKind) -> Result<HDLDescriptor, RHDLError>;
+    fn hdl(&self) -> Result<HDLDescriptor, RHDLError>;
 
     // auto derived
     // First is 0, then 0 + c0::NumZ, then 0 + c0::NumZ + c1::NumZ, etc

@@ -145,7 +145,7 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         self.circuit.name()
     }
 
-    fn as_hdl(&self, kind: crate::HDLKind) -> Result<crate::HDLDescriptor, RHDLError> {
+    fn hdl(&self) -> Result<crate::HDLDescriptor, RHDLError> {
         let descriptor = self.descriptor()?;
         let module_name = &descriptor.unique_name;
         let mut module = Module {
@@ -183,7 +183,7 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
             .collect(),
         );
         module.statements.push(child_decl);
-        let child_hdl = self.circuit.as_hdl(kind)?;
+        let child_hdl = self.circuit.hdl()?;
         Ok(crate::HDLDescriptor {
             name: module_name.into(),
             body: module,

@@ -10,7 +10,6 @@ use crate::hdl::{
 use crate::types::path::bit_range;
 use crate::types::path::Path;
 use crate::Digital;
-use crate::HDLKind;
 use crate::Tristate;
 use crate::{Circuit, HDLDescriptor, RHDLError, Synchronous};
 
@@ -35,7 +34,6 @@ pub(crate) fn maybe_decl_wire(num_bits: usize, name: &str) -> Option<Declaration
 pub fn build_hdl<C: Circuit>(
     circuit: &C,
     children: BTreeMap<String, HDLDescriptor>,
-    _kind: HDLKind,
 ) -> Result<HDLDescriptor, RHDLError> {
     let descriptor = circuit.descriptor()?;
     let outputs = C::O::bits();
