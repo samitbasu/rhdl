@@ -202,7 +202,7 @@ where
         .inspect(|_| {
             num_cases += 1;
         })
-        .map(|arg| uut.test_string(&name, arg))
+        .map(|arg| uut.test_string(name, arg))
         .collect::<String>();
     TestModule {
         testbench: format!(

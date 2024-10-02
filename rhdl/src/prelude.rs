@@ -7,7 +7,6 @@ pub use rhdl_core::circuit::adapter::Adapter;
 pub use rhdl_core::circuit::circuit_descriptor::CircuitDescriptor;
 pub use rhdl_core::circuit::circuit_impl::Circuit;
 pub use rhdl_core::circuit::circuit_impl::CircuitIO;
-pub use rhdl_core::circuit::circuit_impl::HDLKind;
 pub use rhdl_core::circuit::hdl_descriptor::HDLDescriptor;
 pub use rhdl_core::circuit::synchronous::Synchronous;
 pub use rhdl_core::circuit::synchronous::SynchronousDQ;

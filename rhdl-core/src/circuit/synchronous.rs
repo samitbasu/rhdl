@@ -1,6 +1,6 @@
 use crate::{
     error::RHDLError, flow_graph::optimization::optimize_flow_graph, CircuitDescriptor, ClockReset,
-    Digital, DigitalFn, FlowGraph, HDLDescriptor, HDLKind, Tristate,
+    Digital, DigitalFn, FlowGraph, HDLDescriptor, Tristate,
 };
 
 pub type SynchronousUpdateFn<C> = fn(
@@ -40,7 +40,7 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO + SynchronousDQ {
 
     fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError>;
 
-    fn as_hdl(&self, kind: HDLKind) -> Result<HDLDescriptor, RHDLError>;
+    fn hdl(&self) -> Result<HDLDescriptor, RHDLError>;
 
     // auto derived
     // First is 0, then 0 + c0::NumZ, then 0 + c0::NumZ + c1::NumZ, etc
