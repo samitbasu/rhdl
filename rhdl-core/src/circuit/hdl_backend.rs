@@ -22,7 +22,7 @@ use crate::HDLKind;
 use crate::Tristate;
 use crate::{Circuit, HDLDescriptor, RHDLError, Synchronous};
 
-fn maybe_port_wire(dir: Direction, num_bits: usize, name: &str) -> Option<Port> {
+pub(crate) fn maybe_port_wire(dir: Direction, num_bits: usize, name: &str) -> Option<Port> {
     (num_bits != 0).then(|| Port {
         direction: dir,
         kind: Kind::Wire,
@@ -31,7 +31,7 @@ fn maybe_port_wire(dir: Direction, num_bits: usize, name: &str) -> Option<Port> 
     })
 }
 
-fn maybe_decl_wire(num_bits: usize, name: &str) -> Option<Declaration> {
+pub(crate) fn maybe_decl_wire(num_bits: usize, name: &str) -> Option<Declaration> {
     (num_bits != 0).then(|| Declaration {
         kind: Kind::Wire,
         name: name.into(),
@@ -49,8 +49,10 @@ pub fn build_hdl<C: Circuit>(
     let outputs = C::O::bits();
 
     let module_name = &descriptor.unique_name;
-    let mut module = Module::default();
-    module.name = module_name.clone();
+    let mut module = Module {
+        name: module_name.clone(),
+        ..Default::default()
+    };
     module.ports = [
         maybe_port_wire(Direction::Input, C::I::bits(), "i"),
         maybe_port_wire(Direction::Output, C::O::bits(), "o"),
@@ -79,12 +81,12 @@ pub fn build_hdl<C: Circuit>(
             let (d_range, _) = bit_range(d_kind.clone(), &child_path)?;
             let (q_range, _) = bit_range(q_kind.clone(), &child_path)?;
             let input_binding =
-                (!d_range.is_empty()).then(|| connection("i", index(id("d"), d_range.clone())));
+                (!d_range.is_empty()).then(|| connection("i", index("d", d_range.clone())));
             let output_binding =
-                (!q_range.is_empty()).then(|| connection("o", index(id("q"), q_range.clone())));
+                (!q_range.is_empty()).then(|| connection("o", index("q", q_range.clone())));
             let component_name = &descriptor.unique_name;
             Ok(component_instance(
-                &component_name,
+                component_name,
                 &format!("c{ndx}"),
                 [input_binding, output_binding]
                     .into_iter()
@@ -102,9 +104,9 @@ pub fn build_hdl<C: Circuit>(
         vec![i_bind, q_bind].into_iter().flatten().collect(),
     );
     let fn_call = continuous_assignment("od", fn_call);
-    let o_bind = continuous_assignment("o", index(id("od"), 0..outputs));
+    let o_bind = continuous_assignment("o", index("od", 0..outputs));
     let d_bind = (C::D::bits() != 0)
-        .then(|| continuous_assignment("d", index(id("od"), outputs..(C::D::bits() + outputs))));
+        .then(|| continuous_assignment("d", index("od", outputs..(C::D::bits() + outputs))));
     module.statements.push(o_bind);
     module.statements.extend(child_decls);
     module.statements.push(fn_call);
@@ -129,8 +131,10 @@ pub fn build_synchronous_hdl<C: Synchronous>(
     let outputs = C::O::bits();
 
     let module_name = &descriptor.unique_name;
-    let mut module = Module::default();
-    module.name = module_name.clone();
+    let mut module = Module {
+        name: module_name.clone(),
+        ..Default::default()
+    };
     module.ports = [
         maybe_port_wire(Direction::Input, 1, "clock"),
         maybe_port_wire(Direction::Input, 1, "reset"),
@@ -163,18 +167,18 @@ pub fn build_synchronous_hdl<C: Synchronous>(
             let input_binding = if d_range.is_empty() {
                 None
             } else {
-                Some(connection("i", index(id("d"), d_range.clone())))
+                Some(connection("i", index("d", d_range.clone())))
             };
             let output_binding = if q_range.is_empty() {
                 None
             } else {
-                Some(connection("o", index(id("q"), q_range.clone())))
+                Some(connection("o", index("q", q_range.clone())))
             };
             let component_name = &descriptor.unique_name;
             let clock_binding = Some(connection("clock", id("clock")));
             let reset_binding = Some(connection("reset", id("reset")));
             Ok(component_instance(
-                &component_name,
+                component_name,
                 &format!("c{ndx}"),
                 [clock_binding, reset_binding, input_binding, output_binding]
                     .into_iter()
@@ -196,9 +200,9 @@ pub fn build_synchronous_hdl<C: Synchronous>(
             .collect(),
     );
     let fn_call = continuous_assignment("od", fn_call);
-    let o_bind = continuous_assignment("o", index(id("od"), 0..outputs));
+    let o_bind = continuous_assignment("o", index("od", 0..outputs));
     let d_bind = (C::D::bits() != 0)
-        .then(|| continuous_assignment("d", index(id("od"), outputs..(C::D::bits() + outputs))));
+        .then(|| continuous_assignment("d", index("od", outputs..(C::D::bits() + outputs))));
     module.statements.push(o_bind);
     module.statements.extend(child_decls);
     module.statements.push(fn_call);

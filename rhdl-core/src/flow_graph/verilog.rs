@@ -233,7 +233,7 @@ fn make_binary_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<Stri
             component.location,
         ));
     };
-    let op = op.op.verilog_binop();
+    let op = ""; // FIXME op.op.verilog_binop();
     let arg0 = collect_argument(index, 0, component.width, graph)?
         .iter()
         .rev()

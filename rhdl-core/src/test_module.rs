@@ -8,6 +8,7 @@ use crate::flow_graph::passes::check_for_undriven::CheckForUndrivenPass;
 use crate::flow_graph::passes::pass::Pass;
 use crate::types::bit_string::BitString;
 use crate::util::delim_list_optional_strings;
+use crate::verilog::ast::Function;
 use crate::{build_rtl_flow_graph, DigitalFn};
 use crate::{Timed, TypedBits};
 
@@ -189,16 +190,13 @@ where
     }
 }
 
-fn test_module<F, Args, T0>(
-    uut: F,
-    desc: VerilogDescriptor,
-    vals: impl Iterator<Item = Args>,
-) -> TestModule
+fn test_module<F, Args, T0>(uut: F, desc: Function, vals: impl Iterator<Item = Args>) -> TestModule
 where
     F: Testable<Args, T0>,
     T0: Timed,
 {
-    let VerilogDescriptor { name, body } = desc;
+    let name = &desc.name;
+    let body = crate::verilog::formatter::function(&desc);
     let mut num_cases = 0;
     let cases = vals
         .inspect(|_| {
@@ -287,11 +285,7 @@ pub struct TestModule {
 }
 
 impl TestModule {
-    pub fn new<F, Args, T0>(
-        uut: F,
-        desc: VerilogDescriptor,
-        vals: impl Iterator<Item = Args>,
-    ) -> TestModule
+    pub fn new<F, Args, T0>(uut: F, desc: Function, vals: impl Iterator<Item = Args>) -> TestModule
     where
         F: Testable<Args, T0>,
         T0: Timed,
@@ -383,7 +377,6 @@ where
     // Write the flow graph to a DOT file
     let _flow_graph = CheckForUndrivenPass::run(flow_graph)?;
     let verilog = generate_verilog(&rtl)?;
-    eprintln!("Verilog {:?}", verilog);
     let tm = test_module(uut, verilog, vals);
     tm.run_iverilog()
 }
@@ -397,6 +390,7 @@ impl std::fmt::Debug for TestModule {
 #[cfg(feature = "iverilog")]
 impl TestModule {
     pub fn run_iverilog(&self) -> Result<(), RHDLError> {
+        std::fs::write("testbench.v", &self.testbench)?;
         let d = tempfile::tempdir()?;
         // Write the test bench to a file
         let d_path = d.path();
@@ -439,7 +433,7 @@ impl TestModule {
 #[cfg(feature = "iverilog")]
 pub fn test_with_iverilog<F, Args, T0>(
     uut: F,
-    desc: VerilogDescriptor,
+    desc: Function,
     vals: impl Iterator<Item = Args>,
 ) -> Result<(), RHDLError>
 where
