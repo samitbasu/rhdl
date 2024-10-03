@@ -11,7 +11,7 @@ use super::ast::{
     Initial, Literals, Module, Port, Repeat, Select, SignedWidth, Splice, Statement, Unary,
 };
 
-const VERILOG_INDENT_INCREASERS: [&str; 4] = ["module", "begin", "function", "case"];
+const VERILOG_INDENT_INCREASERS: [&str; 4] = ["module ", "begin", "function ", "case "];
 const VERILOG_INDENT_DECREASERS: [&str; 4] = ["endmodule", "end", "endfunction", "endcase"];
 
 fn kind(ast: &HDLKind) -> &'static str {
@@ -98,12 +98,7 @@ fn connection(ast: &Connection) -> String {
 }
 
 fn component_instance(ast: &ComponentInstance) -> String {
-    let connections = ast
-        .connections
-        .iter()
-        .map(connection)
-        .collect::<Vec<_>>()
-        .join(",");
+    let connections = apply(&ast.connections, connection, ",");
     format!("{} {} ({});", ast.name, ast.instance_name, connections)
 }
 
@@ -137,12 +132,11 @@ fn case_item(ast: &CaseItem) -> String {
 }
 
 fn case(ast: &Case) -> String {
-    let case = ast
-        .cases
-        .iter()
-        .map(|(cond, stmt)| format!("{}: {}", case_item(cond), statement(stmt)))
-        .collect::<Vec<_>>()
-        .join("\n");
+    let case = apply(
+        &ast.cases,
+        |(cond, stmt)| format!("{}: {}", case_item(cond), statement(stmt)),
+        "\n",
+    );
     format!("case({})\n{}endcase\n", expression(&ast.discriminant), case)
 }
 
@@ -162,18 +156,8 @@ fn statement(ast: &Statement) -> String {
 }
 
 fn if_statement(ast: &If) -> String {
-    let true_expr = ast
-        .true_expr
-        .iter()
-        .map(statement)
-        .collect::<Vec<_>>()
-        .join("\n");
-    let false_expr = ast
-        .false_expr
-        .iter()
-        .map(statement)
-        .collect::<Vec<_>>()
-        .join("\n");
+    let true_expr = apply(&ast.true_expr, statement, "\n");
+    let false_expr = apply(&ast.false_expr, statement, "\n");
     format!(
         "if ({})\nbegin\n{}\nend\nelse\nbegin\n{}\nend",
         expression(&ast.condition),
@@ -189,26 +173,16 @@ fn always(ast: &Always) -> String {
         .map(|event| match event {
             Events::Posedge(signal) => format!("posedge {}", signal),
             Events::Negedge(signal) => format!("negedge {}", signal),
-            Events::Change(signal) => format!("{}", signal),
+            Events::Change(signal) => signal.to_string(),
         })
         .collect::<Vec<_>>()
         .join(" or ");
-    let statements = ast
-        .block
-        .iter()
-        .map(statement)
-        .collect::<Vec<_>>()
-        .join("\n");
+    let statements = apply(&ast.block, statement, "\n");
     format!("always @({}) begin\n{}\nend", sensitivity, statements)
 }
 
 fn initial(ast: &Initial) -> String {
-    let statements = ast
-        .block
-        .iter()
-        .map(statement)
-        .collect::<Vec<_>>()
-        .join("\n");
+    let statements = apply(&ast.block, statement, "\n");
     format!("initial begin\n{}\nend", statements)
 }
 
@@ -267,21 +241,12 @@ fn select(ast: &Select) -> String {
 }
 
 fn concatenate(ast: &[Box<Expression>]) -> String {
-    let expr = ast
-        .iter()
-        .map(|expr| expression(expr))
-        .collect::<Vec<_>>()
-        .join(",");
+    let expr = apply(ast, |x| expression(x), ",");
     format!("{{ {expr} }}",)
 }
 
 fn function_call(ast: &FunctionCall) -> String {
-    let args = ast
-        .arguments
-        .iter()
-        .map(|arg| expression(arg))
-        .collect::<Vec<_>>()
-        .join(",");
+    let args = apply(&ast.arguments, |x| expression(x), ",");
     format!("{}({args})", ast.name,)
 }
 
@@ -332,9 +297,9 @@ fn expression(ast: &Expression) -> String {
 
 fn reformat_verilog(txt: &str) -> String {
     let mut indent = 0;
-    let mut lines = txt.lines();
+    let lines = txt.lines();
     let mut result = String::new();
-    while let Some(line) = lines.next() {
+    for line in lines {
         let line = line.trim();
         if line.is_empty() {
             continue;
@@ -348,7 +313,7 @@ fn reformat_verilog(txt: &str) -> String {
         result.push('\n');
         if VERILOG_INDENT_INCREASERS
             .iter()
-            .any(|x| line.starts_with(*x))
+            .any(|x| line.starts_with(*x) || line.ends_with(*x))
         {
             indent += 1;
         }
@@ -356,59 +321,28 @@ fn reformat_verilog(txt: &str) -> String {
     result
 }
 
+fn apply<T, F: Fn(&T) -> String>(ast: &[T], f: F, sep: &str) -> String {
+    ast.iter().map(f).collect::<Vec<_>>().join(sep)
+}
+
 pub fn function(ast: &Function) -> String {
     let name = &ast.name;
     let signed_width = signed_width(&ast.width);
-    let args = ast
-        .arguments
-        .iter()
-        .map(|arg| argument(arg))
-        .collect::<Vec<_>>()
-        .join(",");
+    let args = apply(&ast.arguments, argument, ",");
     let header = format!("function {signed_width} {name}({args});");
-    let registers = ast
-        .registers
-        .iter()
-        .map(register)
-        .collect::<Vec<_>>()
-        .join("\n");
-    let literals = ast
-        .literals
-        .iter()
-        .map(literal)
-        .collect::<Vec<_>>()
-        .join("\n");
-    let statements = ast
-        .block
-        .iter()
-        .map(statement)
-        .collect::<Vec<_>>()
-        .join("\n");
+    let registers = apply(&ast.registers, register, "\n");
+    let literals = apply(&ast.literals, literal, "\n");
+    let statements = apply(&ast.block, statement, "\n");
     format!("{header}\n{registers}\n{literals}\nbegin\n{statements}\nend\nendfunction",)
 }
 
 pub fn module(ast: &Module) -> String {
     let name = &ast.name;
-    let ports = ast.ports.iter().map(port).collect::<Vec<_>>().join(",");
-    let declarations = ast
-        .declarations
-        .iter()
-        .map(|decl| register(decl))
-        .collect::<Vec<_>>()
-        .join("\n");
-    let statements = ast
-        .statements
-        .iter()
-        .map(statement)
-        .collect::<Vec<_>>()
-        .join("\n");
-    let functions = ast
-        .functions
-        .iter()
-        .map(function)
-        .collect::<Vec<_>>()
-        .join("\n");
+    let ports = apply(&ast.ports, port, ",");
+    let declarations = apply(&ast.declarations, register, "\n");
+    let statements = apply(&ast.statements, statement, "\n");
+    let functions = apply(&ast.functions, function, "\n");
     reformat_verilog(&format!(
-        "module {name}({ports});\n{declarations}\nbegin\n{statements}\nend\n{functions}\nendmodule\n",
+        "module {name}({ports});\n{declarations}\n{statements}\n{functions}\nendmodule\n",
     ))
 }

@@ -108,7 +108,7 @@ fn test_async_counter_fg() -> miette::Result<()> {
 }
 
 // TO check with yosys:
-// yosys -p "read -vlog95 async_counter.v; hierarchy -check -top rhdl_x_async_counter_U_fb5e6b876dbb9038; proc"
+// yosys -p "read -vlog95 async_counter.v; hierarchy -check -top rhdl_x_async_counter_U_fb5e6b876dbb9038; proc; write -vlog95 async_counter_yosys.v"
 #[test]
 fn test_async_counter_hdl() -> miette::Result<()> {
     let uut = async_counter::U::default();

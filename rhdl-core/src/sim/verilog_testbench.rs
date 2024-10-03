@@ -75,8 +75,7 @@ pub fn write_testbench<C: Circuit>(
     writeln!(writer, "$finish;").unwrap();
     writeln!(writer, "end").unwrap();
     writeln!(writer, "endmodule").unwrap();
-    //    writeln!(writer, "{:?}", hdl).unwrap();
-    // FIXME
+    writeln!(writer, "{}", hdl.as_verilog()).unwrap();
     Ok(())
 }
 
@@ -183,7 +182,6 @@ pub fn write_synchronous_testbench<S: Synchronous>(
     writeln!(writer, "$finish;").unwrap();
     writeln!(writer, "end").unwrap();
     writeln!(writer, "endmodule").unwrap();
-    //    writeln!(writer, "{:?}", hdl).unwrap();
-    // FIXME
+    writeln!(writer, "{}", hdl.as_verilog()).unwrap();
     Ok(())
 }
