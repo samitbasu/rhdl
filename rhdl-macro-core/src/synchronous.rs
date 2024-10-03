@@ -54,7 +54,7 @@ fn define_hdl_fn(field_set: &FieldSet) -> TokenStream {
         fn hdl(&self) -> Result<rhdl::core::HDLDescriptor, rhdl::core::RHDLError> {
             use std::collections::BTreeMap;
             let mut children: BTreeMap<String, HDLDescriptor> = BTreeMap::new();
-            #(children.insert(stringify!(#component_name).to_string(), self.#component_name.hdl(kind)?);)*
+            #(children.insert(stringify!(#component_name).to_string(), self.#component_name.hdl()?);)*
             rhdl::core::build_synchronous_hdl(self, children)
         }
     }
@@ -278,10 +278,7 @@ mod test {
                     ret.add_child(stringify!(value), &self.value);
                     ret
                 }
-                fn as_hdl(
-                    &self,
-                    kind: rhdl::core::HDLKind,
-                ) -> Result<rhdl::core::HDLDescriptor, rhdl::core::RHDLError> {
+                fn hdl(&self) -> Result<rhdl::core::HDLDescriptor, rhdl::core::RHDLError> {
                     let mut ret = rhdl::core::root_hdl(self, kind)?;
                     ret.add_child(stringify!(strobe), &self.strobe, kind)?;
                     ret.add_child(stringify!(value), &self.value, kind)?;

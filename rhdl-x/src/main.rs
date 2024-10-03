@@ -99,8 +99,8 @@ fn test_async_counter() {
 #[test]
 fn test_async_counter_fg() -> miette::Result<()> {
     let uut = async_counter::U::default();
-    let hdl = uut.as_hdl(HDLKind::Verilog)?;
-    eprintln!("{:?}", hdl);
+    let hdl = uut.hdl()?;
+    eprintln!("{}", hdl.as_verilog());
     let fg = uut.flow_graph()?;
     let mut dot = std::fs::File::create("async_counter.dot").unwrap();
     write_dot(&fg, &mut dot).unwrap();
@@ -112,9 +112,9 @@ fn test_async_counter_fg() -> miette::Result<()> {
 #[test]
 fn test_async_counter_hdl() -> miette::Result<()> {
     let uut = async_counter::U::default();
-    let hdl = uut.as_hdl(HDLKind::Verilog)?;
-    eprintln!("{:?}", hdl);
-    std::fs::write("async_counter.v", format!("{:?}", hdl)).unwrap();
+    let hdl = uut.hdl()?;
+    eprintln!("{}", hdl.as_verilog());
+    std::fs::write("async_counter.v", hdl.as_verilog()).unwrap();
     Ok(())
 }
 
@@ -210,7 +210,11 @@ fn test_autocounter() -> miette::Result<()> {
     let uut: auto_counter::U<4> = auto_counter::U::default();
     let fg = uut.flow_graph()?;
     let vg = generate_verilog("top", &fg)?;
-    std::fs::write("auto_counter.v", &vg.functions[0]).unwrap();
+    std::fs::write(
+        "auto_counter.v",
+        rhdl::core::hdl::formatter::function(&vg.functions[0]),
+    )
+    .unwrap();
     let mut dot = std::fs::File::create("auto_counter.dot").unwrap();
     write_dot(&fg, &mut dot).unwrap();
     Ok(())
@@ -218,10 +222,10 @@ fn test_autocounter() -> miette::Result<()> {
 
 fn main() -> miette::Result<()> {
     let counter: counter::U<4> = counter::U::default();
-    let hdl = counter.as_hdl(HDLKind::Verilog)?;
-    println!("{}", hdl.body);
+    let hdl = counter.hdl()?;
+    println!("{}", hdl.as_verilog());
     for (child, descriptor) in hdl.children {
-        println!("{child} {}", descriptor.body);
+        println!("{child} {}", descriptor.as_verilog());
     }
     /*
        let strobe: strobe::U<16> = strobe::U::new(bits(100));

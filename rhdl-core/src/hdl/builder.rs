@@ -4,7 +4,7 @@ use crate::{
     error::rhdl_error,
     hdl::ast::{
         self, assign, concatenate, constant, declaration, dynamic_index, id, index, index_bit,
-        input_reg, literal, repeat, unary, CaseItem, Function, Kind,
+        input_reg, literal, repeat, unary, CaseItem, Function, HDLKind,
     },
     rhif::spec::AluUnary,
     rtl::{
@@ -267,7 +267,7 @@ impl<'a> TranslationContext<'a> {
             .map(|reg| {
                 let alias = self.rtl.op_alias(Operand::Register(*reg));
                 declaration(
-                    Kind::Reg,
+                    HDLKind::Reg,
                     &self.rtl.op_name(Operand::Register(*reg)),
                     self.rtl.register_kind[reg].into(),
                     alias,

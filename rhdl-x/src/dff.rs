@@ -1,5 +1,14 @@
 use rhdl::{
-    core::{flow_graph::edge_kind::EdgeKind, rtl::object::RegisterKind, util::hash_id},
+    core::{
+        flow_graph::edge_kind::EdgeKind,
+        hdl::ast::{
+            always, assign, bit_string, id, if_statement, initial, non_blocking_assignment, port,
+            signed_width, unsigned_width, Direction, Events, HDLKind, Module,
+        },
+        rtl::object::RegisterKind,
+        types::bit_string::BitString,
+        util::hash_id,
+    },
     prelude::*,
 };
 
@@ -75,7 +84,7 @@ impl<T: Digital> Synchronous for U<T> {
         "DFF".into()
     }
 
-    fn as_hdl(&self, _: HDLKind) -> Result<HDLDescriptor, RHDLError> {
+    fn hdl(&self) -> Result<HDLDescriptor, RHDLError> {
         self.as_verilog()
     }
 
@@ -113,38 +122,59 @@ impl<T: Digital> Synchronous for U<T> {
     }
 }
 
-fn as_verilog_decl(kind: &str, len: usize, name: &str) -> String {
-    let msb = len.saturating_sub(1);
-    format!("{kind}[{msb}:0] {name}")
-}
-
 impl<T: Digital> U<T> {
     fn as_verilog(&self) -> Result<HDLDescriptor, RHDLError> {
         let module_name = self.descriptor()?.unique_name;
-        let input_bits = T::bits();
+        let mut module = Module {
+            name: module_name.clone(),
+            ..Default::default()
+        };
         let output_bits = T::bits();
-        let init = self.reset.typed_bits().as_verilog_literal();
-        let input_wire = as_verilog_decl("wire", input_bits, "i");
-        let output_reg = as_verilog_decl("reg", output_bits, "o");
-        let code = format!(
-            "
-module {module_name}(input clock, input reset, input {input_wire}, output {output_reg});
-   initial begin
-        o = {init};
-   end
-   always @(posedge clock) begin 
-        if (reset) begin
-            o <= {init};
-        end else begin
-            o <= i;
-        end
-    end
-endmodule
-            "
+        let init: BitString = self.reset.typed_bits().into();
+        let data_width = if T::static_kind().is_signed() {
+            signed_width(output_bits)
+        } else {
+            unsigned_width(output_bits)
+        };
+        module.ports = vec![
+            port("clock", Direction::Input, HDLKind::Wire, unsigned_width(1)),
+            port("reset", Direction::Input, HDLKind::Wire, unsigned_width(1)),
+            port("i", Direction::Input, HDLKind::Wire, data_width),
+            port("o", Direction::Output, HDLKind::Reg, data_width),
+        ];
+        module
+            .statements
+            .push(initial(vec![assign("o", bit_string(&init))]));
+        let dff = if_statement(
+            id("reset"),
+            vec![non_blocking_assignment("o", bit_string(&init))],
+            vec![non_blocking_assignment("o", id("i"))],
         );
+        let events = vec![Events::Posedge("clock".into())];
+        module.statements.push(always(events, vec![dff]));
+        /*
+                let input_wire = as_verilog_decl("wire", input_bits, "i");
+                let output_reg = as_verilog_decl("reg", output_bits, "o");
+                let code = format!(
+                    "
+        module {module_name}(input clock, input reset, input {input_wire}, output {output_reg});
+           initial begin
+                o = {init};
+           end
+           always @(posedge clock) begin
+                if (reset) begin
+                    o <= {init};
+                end else begin
+                    o <= i;
+                end
+            end
+        endmodule
+                    "
+                );
+         */
         Ok(HDLDescriptor {
             name: module_name,
-            body: code,
+            body: module,
             children: Default::default(),
         })
     }

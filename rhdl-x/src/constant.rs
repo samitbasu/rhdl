@@ -1,4 +1,13 @@
-use rhdl::prelude::*;
+use rhdl::{
+    core::{
+        hdl::ast::{
+            bit_string, continuous_assignment, port, signed_width, unsigned_width, Direction,
+            Module,
+        },
+        types::bit_string::BitString,
+    },
+    prelude::*,
+};
 
 #[derive(Clone, Debug)]
 pub struct U<T: Digital> {
@@ -42,7 +51,7 @@ impl<T: Digital> Synchronous for U<T> {
         "Constant".into()
     }
 
-    fn as_hdl(&self, _kind: HDLKind) -> Result<HDLDescriptor, RHDLError> {
+    fn hdl(&self) -> Result<HDLDescriptor, RHDLError> {
         self.as_verilog()
     }
 
@@ -74,18 +83,43 @@ impl<T: Digital> DigitalFn for U<T> {}
 impl<T: Digital> U<T> {
     fn as_verilog(&self) -> Result<HDLDescriptor, RHDLError> {
         let module_name = self.descriptor()?.unique_name;
+        let mut module = Module {
+            name: module_name.clone(),
+            ..Default::default()
+        };
         let output_bits = T::bits().saturating_sub(1);
-        let value = self.value.typed_bits().as_verilog_literal();
-        let body = format!(
-            "
-module {module_name}(input clock, input reset, output wire[{output_bits}:0] o);
-    assign o = {value};
-endmodule
-"
-        );
+        let output_width = if T::static_kind().is_signed() {
+            signed_width(output_bits)
+        } else {
+            unsigned_width(output_bits)
+        };
+        let bs: BitString = self.value.typed_bits().into();
+        module.ports = vec![
+            port(
+                "clock",
+                Direction::Input,
+                rhdl::core::hdl::ast::HDLKind::Wire,
+                unsigned_width(1),
+            ),
+            port(
+                "reset",
+                Direction::Input,
+                rhdl::core::hdl::ast::HDLKind::Wire,
+                unsigned_width(1),
+            ),
+            port(
+                "o",
+                Direction::Output,
+                rhdl::core::hdl::ast::HDLKind::Wire,
+                output_width,
+            ),
+        ];
+        module
+            .statements
+            .push(continuous_assignment("o", bit_string(&bs)));
         Ok(HDLDescriptor {
             name: module_name,
-            body,
+            body: module,
             children: Default::default(),
         })
     }
