@@ -65,11 +65,11 @@ pub fn unsigned_width(width: usize) -> SignedWidth {
 pub struct Port {
     pub name: String,
     pub direction: Direction,
-    pub kind: Kind,
+    pub kind: HDLKind,
     pub width: SignedWidth,
 }
 
-pub fn port(name: &str, direction: Direction, kind: Kind, width: SignedWidth) -> Port {
+pub fn port(name: &str, direction: Direction, kind: HDLKind, width: SignedWidth) -> Port {
     Port {
         name: name.to_string(),
         direction,
@@ -78,7 +78,7 @@ pub fn port(name: &str, direction: Direction, kind: Kind, width: SignedWidth) ->
     }
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, Copy)]
 pub enum Direction {
     Input,
     Output,
@@ -86,21 +86,21 @@ pub enum Direction {
 }
 
 #[derive(Debug, Clone, Hash)]
-pub enum Kind {
+pub enum HDLKind {
     Wire,
     Reg,
 }
 
 #[derive(Debug, Clone, Hash)]
 pub struct Declaration {
-    pub kind: Kind,
+    pub kind: HDLKind,
     pub name: String,
     pub width: SignedWidth,
     pub alias: Option<String>,
 }
 
 pub fn declaration(
-    kind: Kind,
+    kind: HDLKind,
     name: &str,
     width: SignedWidth,
     alias: Option<String>,
@@ -114,7 +114,7 @@ pub fn declaration(
 }
 
 pub fn input_reg(name: &str, width: SignedWidth) -> Declaration {
-    declaration(Kind::Reg, name, width, None)
+    declaration(HDLKind::Reg, name, width, None)
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -125,6 +125,13 @@ pub struct Assignment {
 
 pub fn assign(target: &str, source: Box<Expression>) -> Statement {
     Statement::Assignment(Assignment {
+        target: target.to_string(),
+        source,
+    })
+}
+
+pub fn non_blocking_assignment(target: &str, source: Box<Expression>) -> Statement {
+    Statement::NonblockingAssignment(Assignment {
         target: target.to_string(),
         source,
     })
@@ -175,6 +182,10 @@ pub enum Expression {
     Index(Index),
     Repeat(Repeat),
     Const(bool),
+}
+
+pub fn bit_string(value: &BitString) -> Box<Expression> {
+    Box::new(Expression::Literal(value.clone()))
 }
 
 pub fn binary(op: AluBinary, left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
@@ -266,6 +277,45 @@ pub enum Statement {
     Initial(Initial),
     Splice(Splice),
     Case(Case),
+    Always(Always),
+    NonblockingAssignment(Assignment),
+    If(If),
+}
+
+#[derive(Debug, Clone, Hash)]
+pub struct If {
+    pub condition: Box<Expression>,
+    pub true_expr: Vec<Statement>,
+    pub false_expr: Vec<Statement>,
+}
+
+pub fn if_statement(
+    condition: Box<Expression>,
+    true_expr: Vec<Statement>,
+    false_expr: Vec<Statement>,
+) -> Statement {
+    Statement::If(If {
+        condition,
+        true_expr,
+        false_expr,
+    })
+}
+
+#[derive(Debug, Clone, Hash)]
+pub struct Always {
+    pub sensitivity: Vec<Events>,
+    pub block: Vec<Statement>,
+}
+
+pub fn always(sensitivity: Vec<Events>, block: Vec<Statement>) -> Statement {
+    Statement::Always(Always { sensitivity, block })
+}
+
+#[derive(Debug, Clone, Hash)]
+pub enum Events {
+    Posedge(String),
+    Negedge(String),
+    Change(String),
 }
 
 pub fn continuous_assignment(target: &str, source: Box<Expression>) -> Statement {
@@ -276,7 +326,13 @@ pub fn continuous_assignment(target: &str, source: Box<Expression>) -> Statement
 }
 
 #[derive(Debug, Clone, Hash)]
-pub struct Initial {}
+pub struct Initial {
+    pub block: Vec<Statement>,
+}
+
+pub fn initial(block: Vec<Statement>) -> Statement {
+    Statement::Initial(Initial { block })
+}
 
 #[derive(Debug, Clone, Hash)]
 pub struct DynamicSplice {

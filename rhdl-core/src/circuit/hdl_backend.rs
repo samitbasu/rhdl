@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::hdl::{
     ast::{
         component_instance, concatenate, connection, continuous_assignment, function_call, id,
-        index, unsigned_width, Declaration, Direction, Kind, Module, Port, Statement,
+        index, unsigned_width, Declaration, Direction, HDLKind, Module, Port, Statement,
     },
     builder::generate_verilog,
 };
@@ -16,7 +16,7 @@ use crate::{Circuit, HDLDescriptor, RHDLError, Synchronous};
 pub(crate) fn maybe_port_wire(dir: Direction, num_bits: usize, name: &str) -> Option<Port> {
     (num_bits != 0).then(|| Port {
         direction: dir,
-        kind: Kind::Wire,
+        kind: HDLKind::Wire,
         name: name.into(),
         width: unsigned_width(num_bits),
     })
@@ -24,7 +24,7 @@ pub(crate) fn maybe_port_wire(dir: Direction, num_bits: usize, name: &str) -> Op
 
 pub(crate) fn maybe_decl_wire(num_bits: usize, name: &str) -> Option<Declaration> {
     (num_bits != 0).then(|| Declaration {
-        kind: Kind::Wire,
+        kind: HDLKind::Wire,
         name: name.into(),
         width: unsigned_width(num_bits),
         alias: None,

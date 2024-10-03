@@ -339,16 +339,17 @@ impl TypedBits {
             kind: self.kind.val(),
         }
     }
-    pub fn as_verilog_literal(self) -> String {
-        let signed = if matches!(self.kind, Kind::Signed(_)) {
-            "s"
-        } else {
-            ""
-        };
-        let width = self.bits.len();
-        let bs = binary_string(&self.bits);
-        format!("{width}'{signed}b{bs}")
-    }
+    /*     pub fn as_verilog_literal(self) -> String {
+           let signed = if matches!(self.kind, Kind::Signed(_)) {
+               "s"
+           } else {
+               ""
+           };
+           let width = self.bits.len();
+           let bs = binary_string(&self.bits);
+           format!("{width}'{signed}b{bs}")
+       }
+    */
 }
 
 fn binop_kind(lhs: &Kind, rhs: &Kind) -> Result<Kind> {

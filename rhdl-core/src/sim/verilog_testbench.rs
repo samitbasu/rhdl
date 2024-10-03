@@ -1,8 +1,15 @@
+use crate::hdl::formatter::bit_string;
+use crate::types::bit_string::BitString;
 use crate::types::digital::Digital;
-use crate::{Circuit, RHDLError, Synchronous, TimedSample};
+use crate::{Circuit, RHDLError, Synchronous, TimedSample, TypedBits};
 use std::io::Write;
 
 use super::stream::ResetData;
+
+fn verilog_literal(t: TypedBits) -> String {
+    let bs: BitString = t.into();
+    bit_string(&bs)
+}
 
 pub fn write_testbench<C: Circuit>(
     uut: &C,
@@ -43,7 +50,7 @@ pub fn write_testbench<C: Circuit>(
             writeln!(
                 writer,
                 "test_input = {};",
-                sample.value.typed_bits().as_verilog_literal()
+                verilog_literal(sample.value.typed_bits())
             )
             .unwrap();
             input_prev = sample.value;
@@ -126,7 +133,7 @@ pub fn write_synchronous_testbench<S: Synchronous>(
                         writeln!(
                             writer,
                             "test_input = {}; ",
-                            S::I::init().typed_bits().as_verilog_literal()
+                            verilog_literal(S::I::init().typed_bits())
                         )
                         .unwrap();
                     }
@@ -139,7 +146,7 @@ pub fn write_synchronous_testbench<S: Synchronous>(
                         writeln!(
                             writer,
                             "test_input = {};",
-                            data.typed_bits().as_verilog_literal()
+                            verilog_literal(data.typed_bits())
                         )
                         .unwrap();
                     }
