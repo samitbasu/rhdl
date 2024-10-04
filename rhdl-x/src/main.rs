@@ -1,6 +1,6 @@
 use rhdl::core::flow_graph::passes::check_for_unconnected_clock_reset::CheckForUnconnectedClockReset;
 use rhdl::core::flow_graph::passes::pass::Pass;
-use rhdl::core::flow_graph::verilog::generate_verilog;
+use rhdl::core::sim::verilog_testbench::write_testbench_module;
 use rhdl::core::types::timed;
 use rhdl::prelude::*;
 use std::io::Write;
@@ -209,12 +209,11 @@ fn test_counter_testbench() -> miette::Result<()> {
 fn test_autocounter() -> miette::Result<()> {
     let uut: auto_counter::U<4> = auto_counter::U::default();
     let fg = uut.flow_graph()?;
-    let vg = generate_verilog("top", &fg)?;
-    std::fs::write(
-        "auto_counter.v",
-        rhdl::core::hdl::formatter::function(&vg.functions[0]),
-    )
-    .unwrap();
+    let inputs = repeat(()).take(1000);
+    let stream = test_stream(inputs);
+    write_testbench_module(&fg.hdl("autocounter")?, stream, "autocounter_fg_tb.v", 4)?;
+    let vg = fg.hdl("top")?;
+    std::fs::write("auto_counter.v", vg.as_verilog()).unwrap();
     let mut dot = std::fs::File::create("auto_counter.dot").unwrap();
     write_dot(&fg, &mut dot).unwrap();
     Ok(())

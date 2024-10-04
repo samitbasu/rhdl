@@ -4,6 +4,8 @@ use crate::{
     types::bit_string::BitString,
 };
 
+use super::formatter;
+
 #[derive(Debug, Clone, Hash, Default)]
 pub struct Module {
     pub name: String,
@@ -11,6 +13,12 @@ pub struct Module {
     pub declarations: Vec<Declaration>,
     pub statements: Vec<Statement>,
     pub functions: Vec<Function>,
+}
+
+impl Module {
+    pub fn as_verilog(&self) -> String {
+        formatter::module(self)
+    }
 }
 
 // function {signed} [width-1:0] name(args);
@@ -23,6 +31,12 @@ pub struct Function {
     pub registers: Vec<Declaration>,
     pub literals: Vec<Literals>,
     pub block: Vec<Statement>,
+}
+
+impl Function {
+    pub fn as_verilog(&self) -> String {
+        formatter::function(self)
+    }
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -78,7 +92,7 @@ pub fn port(name: &str, direction: Direction, kind: HDLKind, width: SignedWidth)
     }
 }
 
-#[derive(Debug, Clone, Hash, Copy)]
+#[derive(Debug, Clone, Hash, Copy, PartialEq)]
 pub enum Direction {
     Input,
     Output,

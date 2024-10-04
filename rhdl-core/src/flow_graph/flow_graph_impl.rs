@@ -4,12 +4,15 @@ use petgraph::prelude::StableDiGraph;
 
 use crate::{
     ast::{source_location::SourceLocation, spanned_source::SpannedSourceSet},
+    hdl::ast::Module,
     rtl::object::RegisterKind,
+    RHDLError,
 };
 
 use super::{
     component::{Component, ComponentKind, DFFInput, DFFOutput, Input, Output},
     edge_kind::EdgeKind,
+    hdl::generate_hdl,
 };
 
 pub type FlowIx = petgraph::graph::NodeIndex;
@@ -17,9 +20,9 @@ pub type GraphType = StableDiGraph<Component, EdgeKind>;
 
 #[derive(Debug, Clone, Default)]
 pub struct DFF {
-    input: FlowIx,
-    output: FlowIx,
-    reset_value: bool,
+    pub input: FlowIx,
+    pub output: FlowIx,
+    pub reset_value: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -203,5 +206,8 @@ impl FlowGraph {
         fg.inputs = vec![vec![timing_start]];
         fg.output = vec![timing_end];
         fg
+    }
+    pub fn hdl(&self, name: &str) -> Result<Module, RHDLError> {
+        generate_hdl(name, self)
     }
 }
