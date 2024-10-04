@@ -1,3 +1,4 @@
+use crate::hdl::ast::{Direction, Module};
 use crate::hdl::formatter::bit_string;
 use crate::types::bit_string::BitString;
 use crate::types::digital::Digital;
@@ -62,6 +63,90 @@ pub fn write_testbench<C: Circuit>(
         writeln!(writer, "{} dut(.i(test_input), .o(test_output));", hdl.name).unwrap();
     } else {
         writeln!(writer, "{} dut(.o(test_output));", hdl.name).unwrap();
+    }
+    writeln!(writer, "initial begin").unwrap();
+    writeln!(
+        writer,
+        "$dumpfile(\"{}.vcd\");",
+        v_filename.replace(".", "_")
+    )
+    .unwrap();
+    writeln!(writer, "$dumpvars(0);").unwrap();
+    writeln!(writer, "#{};", prev_time).unwrap();
+    writeln!(writer, "$finish;").unwrap();
+    writeln!(writer, "end").unwrap();
+    writeln!(writer, "endmodule").unwrap();
+    writeln!(writer, "{}", hdl.as_verilog()).unwrap();
+    Ok(())
+}
+
+pub fn write_testbench_module<T: Digital>(
+    hdl: &Module,
+    inputs: impl Iterator<Item = TimedSample<T>>,
+    v_filename: &str,
+    out_bits: usize,
+) -> Result<(), RHDLError> {
+    let in_bits = T::bits();
+    let in_decl = if in_bits != 0 {
+        Some(format!(
+            "reg [{in_msb}:0] test_input",
+            in_msb = in_bits.saturating_sub(1)
+        ))
+    } else {
+        None
+    };
+    let out_decl = format!(
+        "wire [{out_msb}:0] test_output",
+        out_msb = out_bits.saturating_sub(1)
+    );
+    let file = std::fs::File::create(v_filename).unwrap();
+    let mut writer = std::io::BufWriter::new(file);
+    writeln!(writer, "module top;").unwrap();
+    if let Some(decl) = in_decl {
+        writeln!(writer, "{};", decl).unwrap();
+    }
+    writeln!(writer, "{};", out_decl).unwrap();
+    writeln!(writer, "initial begin").unwrap();
+    let mut prev_time = 0_u64;
+    let mut input_prev = T::init();
+    for sample in inputs {
+        let time = sample.time;
+        if sample.value != input_prev || prev_time == 0 {
+            if time != prev_time {
+                writeln!(writer, "#{};", time - prev_time).unwrap();
+                prev_time = time;
+            }
+            writeln!(
+                writer,
+                "test_input = {};",
+                verilog_literal(sample.value.typed_bits())
+            )
+            .unwrap();
+            input_prev = sample.value;
+        }
+    }
+    writeln!(writer, "end").unwrap();
+    let input_name = &hdl
+        .ports
+        .iter()
+        .find(|p| p.direction == Direction::Input)
+        .unwrap()
+        .name;
+    let output_name = &hdl
+        .ports
+        .iter()
+        .find(|p| p.direction == Direction::Output)
+        .unwrap()
+        .name;
+    if in_bits != 0 {
+        writeln!(
+            writer,
+            "{} dut(.{input_name}(test_input), .{output_name}(test_output));",
+            hdl.name
+        )
+        .unwrap();
+    } else {
+        writeln!(writer, "{} dut(.{output_name}(test_output));", hdl.name).unwrap();
     }
     writeln!(writer, "initial begin").unwrap();
     writeln!(

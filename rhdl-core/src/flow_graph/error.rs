@@ -36,6 +36,10 @@ pub enum FlowGraphICE {
     BufferParentNotFound,
     #[error("Missing argument to component with index {index} and bit {bit}")]
     MissingArgument { index: usize, bit: usize },
+    #[error("Clock for DFF not found")]
+    ClockNotFound,
+    #[error("Reset for DFF not found")]
+    ResetNotFound,
 }
 
 #[derive(Debug, Error)]
