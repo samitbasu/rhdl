@@ -1,24 +1,23 @@
 use std::iter::once;
 
-use petgraph::visit::EdgeRef;
+use petgraph::{stable_graph::EdgeReference, visit::EdgeRef};
 
 use crate::{
     ast::source_location::SourceLocation,
     error::rhdl_error,
-    flow_graph::{edge_kind::EdgeKind, error::FlowGraphError},
+    flow_graph::{component::CaseEntry, edge_kind::EdgeKind, error::FlowGraphError},
     hdl::ast::{
-        always, binary, concatenate, constant, continuous_assignment, declaration, id,
+        always, binary, case, concatenate, constant, continuous_assignment, declaration, id,
         if_statement, index_bit, non_blocking_assignment, port, select, unary, unsigned_width,
-        Declaration, Direction, Events, Expression, HDLKind, Module, Statement,
+        CaseItem, Declaration, Direction, Events, Expression, HDLKind, Module, Statement,
     },
-    util::delim_list_optional_strings,
     FlowGraph, RHDLError,
 };
 
 use super::{
-    component::{self, Component, ComponentKind},
+    component::{Component, ComponentKind},
     error::FlowGraphICE,
-    flow_graph_impl::{FlowIx, GraphType},
+    flow_graph_impl::FlowIx,
 };
 
 // Generate a register declaration for the given component.
@@ -188,21 +187,17 @@ fn make_buffer_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<Stat
     }
 }
 
-fn collect_argument(
+fn collect_argument<T: Fn(&EdgeKind) -> Option<usize>>(
     node: FlowIx,
-    index: usize,
     width: usize,
+    filter: T,
     graph: &FlowGraph,
 ) -> Result<Vec<FlowIx>, RHDLError> {
     let component = &graph.graph[node];
     let arg_incoming = graph
         .graph
         .edges_directed(node, petgraph::Direction::Incoming)
-        .filter_map(|edge| match edge.weight() {
-            EdgeKind::ArgBit(ndx, bit) if *ndx == index => Some((*bit, edge.source())),
-            EdgeKind::Arg(ndx) if *ndx == index => Some((0, edge.source())),
-            _ => None,
-        })
+        .filter_map(|x| filter(x.weight()).map(|ndx| (ndx, x.source())))
         .collect::<Vec<_>>();
     (0..width)
         .map(|bit| {
@@ -211,12 +206,20 @@ fn collect_argument(
                 .iter()
                 .find_map(|(b, ndx)| if *b == bit { Some(*ndx) } else { None })
                 .ok_or(raise_ice(
-                    FlowGraphICE::MissingArgument { index, bit },
+                    FlowGraphICE::MissingArgument { bit },
                     graph,
                     component.location,
                 ))
         })
         .collect()
+}
+
+fn arg_fun(index: usize, edge: &EdgeKind) -> Option<usize> {
+    match edge {
+        EdgeKind::ArgBit(ndx, bit) if *ndx == index => Some(*bit),
+        EdgeKind::Arg(ndx) if *ndx == 0 => Some(0),
+        _ => None,
+    }
 }
 
 fn make_binary_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<Statement, RHDLError> {
@@ -228,8 +231,18 @@ fn make_binary_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<Stat
             component.location,
         ));
     };
-    let arg0 = concatenate(nodes(collect_argument(index, 0, component.width, graph)?));
-    let arg1 = concatenate(nodes(collect_argument(index, 1, component.width, graph)?));
+    let arg0 = concatenate(nodes(collect_argument(
+        index,
+        component.width,
+        |x| arg_fun(0, x),
+        graph,
+    )?));
+    let arg1 = concatenate(nodes(collect_argument(
+        index,
+        component.width,
+        |x| arg_fun(1, x),
+        graph,
+    )?));
     Ok(continuous_assignment(
         &node(index),
         binary(op.op, arg0, arg1),
@@ -245,11 +258,65 @@ fn make_unary_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<State
             component.location,
         ));
     };
-    let arg = nodes(collect_argument(index, 0, component.width, graph)?);
+    let arg = nodes(collect_argument(
+        index,
+        component.width,
+        |x| arg_fun(0, x),
+        graph,
+    )?);
     Ok(continuous_assignment(
         &node(index),
         unary(op.op, concatenate(arg)),
     ))
+}
+
+fn make_case_statement(index: FlowIx, graph: &FlowGraph) -> Result<Statement, RHDLError> {
+    let component = &graph.graph[index];
+    let ComponentKind::Case(kase) = &component.kind else {
+        return Err(raise_ice(
+            FlowGraphICE::ExpectedCaseComponent,
+            graph,
+            component.location,
+        ));
+    };
+    let discriminant = nodes(collect_argument(
+        index,
+        kase.discriminant_width,
+        |x| match x {
+            EdgeKind::Selector(ndx) => Some(*ndx),
+            _ => None,
+        },
+        graph,
+    )?);
+    let lhs = &node(index);
+    let table = kase
+        .entries
+        .iter()
+        .map(|entry| match entry {
+            CaseEntry::Literal(value) => CaseItem::Literal(value.clone()),
+            CaseEntry::WildCard => CaseItem::Wild,
+        })
+        .enumerate()
+        .map(|(arg_ndx, item)| {
+            let arg = nodes(
+                collect_argument(
+                    index,
+                    1,
+                    |x| match x {
+                        EdgeKind::ArgBit(arg, _) if *arg == arg_ndx => Some(0),
+                        _ => None,
+                    },
+                    graph,
+                )
+                .unwrap_or_else(|_| panic!("Unable to find argument to table {index:?} {arg_ndx}")),
+            )[0]
+            .clone();
+            let statement = continuous_assignment(lhs, arg);
+            (item, statement)
+        })
+        .collect();
+    let discriminant = concatenate(discriminant);
+    Ok(case(discriminant, table))
 }
 
 fn generate_assign_statement(
@@ -267,16 +334,17 @@ fn generate_assign_statement(
         ComponentKind::Unary(_) => Ok(Some(make_unary_assign_statement(index, graph)?)),
         ComponentKind::DFFInput(_) => Ok(Some(make_dff_input_assign_statement(index, graph)?)),
         ComponentKind::DFFOutput(_) => Ok(None),
-        _ => todo!(
-            "No assign implementation for {:?} index {}",
-            component,
-            index.index()
-        ),
+        ComponentKind::BlackBox(black_box) => todo!(),
+        ComponentKind::Case(_) => Ok(Some(make_case_statement(index, graph)?)),
+        ComponentKind::DynamicIndex(dynamic_index) => todo!(),
+        ComponentKind::DynamicSplice(dynamic_splice) => todo!(),
+        ComponentKind::TimingStart => Ok(None),
+        ComponentKind::TimingEnd => Ok(None),
     }
 }
 
 pub(crate) fn generate_hdl(module_name: &str, fg: &FlowGraph) -> Result<Module, RHDLError> {
-    dbg!(&fg.inputs);
+    dbg!(&fg);
     let ports = fg
         .inputs
         .iter()

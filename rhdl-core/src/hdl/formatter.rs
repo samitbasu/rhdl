@@ -11,7 +11,7 @@ use super::ast::{
     Initial, Literals, Module, Port, Repeat, Select, SignedWidth, Splice, Statement, Unary,
 };
 
-const VERILOG_INDENT_INCREASERS: [&str; 4] = ["module ", "begin", "function ", "case "];
+const VERILOG_INDENT_INCREASERS: [&str; 4] = ["module", "begin", "function", "case"];
 const VERILOG_INDENT_DECREASERS: [&str; 4] = ["endmodule", "end", "endfunction", "endcase"];
 
 fn kind(ast: &HDLKind) -> &'static str {
@@ -159,7 +159,7 @@ fn if_statement(ast: &If) -> String {
     let true_expr = apply(&ast.true_expr, statement, "\n");
     let false_expr = apply(&ast.false_expr, statement, "\n");
     format!(
-        "if ({})\nbegin\n{}\nend\nelse\nbegin\n{}\nend",
+        "if ({})\nbegin\n{}\nend else begin\n{}\nend",
         expression(&ast.condition),
         true_expr,
         false_expr
@@ -295,8 +295,14 @@ fn expression(ast: &Expression) -> String {
     }
 }
 
+fn count_occurs(txt: &str, keys: &[&str]) -> usize {
+    txt.split_whitespace()
+        .map(|word| keys.contains(&word) as usize)
+        .sum()
+}
+
 fn reformat_verilog(txt: &str) -> String {
-    let mut indent = 0;
+    let mut indent: usize = 0;
     let lines = txt.lines();
     let mut result = String::new();
     for line in lines {
@@ -304,19 +310,13 @@ fn reformat_verilog(txt: &str) -> String {
         if line.is_empty() {
             continue;
         }
-        eprintln!("Processing line {line}");
-        if VERILOG_INDENT_DECREASERS.iter().any(|x| x == &line) {
-            indent -= 1;
-        }
+        let decreasers = count_occurs(line, &VERILOG_INDENT_DECREASERS);
+        indent = indent.saturating_sub(decreasers);
         result.push_str(&"    ".repeat(indent));
         result.push_str(line);
         result.push('\n');
-        if VERILOG_INDENT_INCREASERS
-            .iter()
-            .any(|x| line.starts_with(*x) || line.ends_with(*x))
-        {
-            indent += 1;
-        }
+        let increasers = count_occurs(line, &VERILOG_INDENT_INCREASERS);
+        indent += increasers;
     }
     result
 }

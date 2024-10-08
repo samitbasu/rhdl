@@ -12,8 +12,6 @@ pub enum EdgeKind {
     True,
     False,
     DynamicOffset(usize),
-    CaseLiteral(BitString),
-    CaseWild,
     Virtual,
 }
 
@@ -34,8 +32,6 @@ impl std::fmt::Debug for EdgeKind {
             Self::True => write!(f, "true"),
             Self::False => write!(f, "false"),
             Self::DynamicOffset(bit) => write!(f, "dyn[{}]", bit),
-            Self::CaseLiteral(arg0) => write!(f, "{:?}", arg0),
-            Self::CaseWild => write!(f, "_"),
             Self::Virtual => write!(f, "virt"),
             Self::OutputBit(bit) => write!(f, "o[{}]", bit),
             Self::Splice(bit) => write!(f, "splice[{}]", bit),

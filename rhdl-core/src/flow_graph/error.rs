@@ -34,12 +34,14 @@ pub enum FlowGraphICE {
     DFFInputDriverNotFound,
     #[error("Buffer node has no parent")]
     BufferParentNotFound,
-    #[error("Missing argument to component with index {index} and bit {bit}")]
-    MissingArgument { index: usize, bit: usize },
+    #[error("Missing argument to component with bit {bit}")]
+    MissingArgument { bit: usize },
     #[error("Clock for DFF not found")]
     ClockNotFound,
     #[error("Reset for DFF not found")]
     ResetNotFound,
+    #[error("Expected a case component")]
+    ExpectedCaseComponent,
 }
 
 #[derive(Debug, Error)]

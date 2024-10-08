@@ -192,6 +192,7 @@ impl<'a> FlowGraphBuilder<'a> {
             let comp = self.fg.new_component(
                 ComponentKind::Case(Case {
                     entries: table.clone(),
+                    discriminant_width: discriminant.len(),
                 }),
                 1,
                 loc,

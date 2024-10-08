@@ -1,8 +1,10 @@
 use crate::compiler::driver::{compile_design_stage1, compile_design_stage2};
 use crate::error::RHDLError;
 use crate::flow_graph::component::ComponentKind;
+use crate::flow_graph::dot;
 use crate::flow_graph::edge_kind::EdgeKind;
 use crate::flow_graph::flow_graph_impl::FlowGraph;
+use crate::flow_graph::hdl::generate_hdl;
 use crate::flow_graph::passes::check_for_undriven::CheckForUndrivenPass;
 use crate::flow_graph::passes::pass::Pass;
 use crate::hdl::ast::Function;
@@ -196,7 +198,7 @@ where
     T0: Timed,
 {
     let name = &desc.name;
-    let body = crate::hdl::formatter::function(&desc);
+    let body = desc.as_verilog();
     let mut num_cases = 0;
     let cases = vals
         .inspect(|_| {
@@ -219,63 +221,6 @@ endmodule
     "
         ),
         num_cases,
-    }
-}
-
-pub struct VerilogDescriptor {
-    pub name: String,
-    pub body: String,
-}
-
-const VERILOG_INDENT_INCREASERS: [&str; 3] = ["begin", "function", "case"];
-const VERILOG_INDENT_DECREASERS: [&str; 3] = ["end", "endfunction", "endcase"];
-
-impl VerilogDescriptor {
-    fn display(&self, mut f: impl std::io::Write, line_numbers: bool) -> std::io::Result<()> {
-        // Print the verilog with line numbers
-        // Indent the lines
-        let mut indent = 0;
-        for (i, line) in self.body.lines().enumerate() {
-            if line_numbers {
-                write!(f, "{:3} ", i + 1)?;
-            }
-            let line = line.trim();
-            if line.is_empty() {
-                writeln!(f)?;
-                continue;
-            }
-            if VERILOG_INDENT_DECREASERS
-                .iter()
-                .any(|x| line.starts_with(x))
-            {
-                indent -= 1;
-            }
-            for _ in 0..indent {
-                write!(f, "    ")?;
-            }
-            if VERILOG_INDENT_INCREASERS
-                .iter()
-                .any(|x| line.starts_with(x))
-            {
-                indent += 1;
-            }
-            writeln!(f, "{}", line)?;
-        }
-        Ok(())
-    }
-    pub fn code(&self) -> String {
-        let mut s = Vec::new();
-        self.display(&mut s, false).unwrap();
-        String::from_utf8(s).unwrap()
-    }
-}
-
-impl std::fmt::Debug for VerilogDescriptor {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut s = Vec::new();
-        self.display(&mut s, true).unwrap();
-        let s = String::from_utf8(s).unwrap();
-        write!(f, "{}", s)
     }
 }
 
@@ -373,12 +318,16 @@ where
         rtl_test_count += 1;
     }
     eprintln!("RTL test passed {} cases OK", rtl_test_count);
-    let flow_graph = build_test_module_flowgraph(&rtl);
-    // Write the flow graph to a DOT file
-    let _flow_graph = CheckForUndrivenPass::run(flow_graph)?;
     let verilog = generate_verilog(&rtl)?;
     let tm = test_module(uut, verilog, vals);
-    tm.run_iverilog()
+    tm.run_iverilog()?;
+    let flow_graph = build_rtl_flow_graph(&rtl);
+    // Write the flow graph to a DOT file
+    //    let flow_graph = CheckForUndrivenPass::run(flow_graph)?;
+    // Use write_dot to write the flow graph out to a file
+    std::fs::write("flow_graph.dot", flow_graph.dot()?)?;
+    eprintln!("{}", generate_hdl("top", &flow_graph)?.as_verilog());
+    Ok(())
 }
 
 impl std::fmt::Debug for TestModule {
