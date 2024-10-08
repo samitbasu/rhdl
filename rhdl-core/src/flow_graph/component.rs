@@ -32,6 +32,7 @@ pub struct BlackBox {
 #[derive(Debug, Clone, Hash)]
 pub struct Case {
     pub entries: Vec<CaseEntry>,
+    pub discriminant_width: usize,
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -55,19 +56,6 @@ pub enum ComponentKind {
     TimingStart,
     TimingEnd,
     Unary(Unary),
-}
-
-#[derive(Debug, Clone, Hash)]
-pub struct Input {
-    pub argument_index: usize,
-    pub bit_index: usize,
-    pub name: String,
-}
-
-#[derive(Debug, Clone, Hash)]
-pub struct Output {
-    pub bit_index: usize,
-    pub name: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

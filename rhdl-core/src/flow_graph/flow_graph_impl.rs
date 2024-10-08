@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::Write;
 
 use petgraph::prelude::StableDiGraph;
 
@@ -10,7 +11,7 @@ use crate::{
 };
 
 use super::{
-    component::{Component, ComponentKind, DFFInput, DFFOutput, Input, Output},
+    component::{Component, ComponentKind, DFFInput, DFFOutput},
     edge_kind::EdgeKind,
     hdl::generate_hdl,
 };
@@ -209,5 +210,10 @@ impl FlowGraph {
     }
     pub fn hdl(&self, name: &str) -> Result<Module, RHDLError> {
         generate_hdl(name, self)
+    }
+    pub fn dot(&self) -> Result<Vec<u8>, RHDLError> {
+        let mut s = vec![];
+        super::dot::write_dot(self, &mut s)?;
+        Ok(s)
     }
 }
