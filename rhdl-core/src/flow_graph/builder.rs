@@ -246,9 +246,10 @@ impl<'a> FlowGraphBuilder<'a> {
         let offset = self.operand(loc, dynamic_index.offset);
         let comp = self.fg.new_component(
             ComponentKind::DynamicIndex(DynamicIndex {
-                len: dynamic_index.len,
+                offset_len: offset.len(),
+                lhs_len: lhs.len(),
             }),
-            lhs.len(),
+            arg.len(),
             loc,
         );
         for (ndx, lhs) in lhs.iter().enumerate() {

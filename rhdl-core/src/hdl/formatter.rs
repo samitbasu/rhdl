@@ -283,7 +283,7 @@ fn function_call(ast: &FunctionCall) -> String {
 fn dynamic_index(ast: &DynamicIndex) -> String {
     format!(
         "{}[({}) +: {}]",
-        &ast.target,
+        &ast.argument,
         expression(&ast.offset),
         ast.len
     )

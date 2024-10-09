@@ -7,9 +7,7 @@ use crate::{
     error::rhdl_error,
     flow_graph::{component::CaseEntry, edge_kind::EdgeKind, error::FlowGraphError},
     hdl::ast::{
-        always, assign, binary, case, concatenate, constant, continuous_assignment, declaration,
-        id, if_statement, index_bit, non_blocking_assignment, port, select, unary, unsigned_width,
-        CaseItem, Declaration, Direction, Events, Expression, HDLKind, Module, Statement,
+        always, assign, binary, case, concatenate, constant, continuous_assignment, declaration, dynamic_index, id, if_statement, index_bit, non_blocking_assignment, port, select, unary, unsigned_width, CaseItem, Declaration, Direction, Events, Expression, HDLKind, Module, Statement
     },
     FlowGraph, RHDLError,
 };
@@ -43,177 +41,6 @@ fn generate_reg_declaration(index: FlowIx, component: &Component) -> Option<Decl
     }
 }
 
-fn raise_ice(
-    cause: FlowGraphICE,
-    graph: &FlowGraph,
-    location: Option<SourceLocation>,
-) -> RHDLError {
-    rhdl_error(FlowGraphError {
-        cause,
-        src: graph.code.source(),
-        elements: location
-            .map(|loc| graph.code.span(loc).into())
-            .into_iter()
-            .collect(),
-    })
-}
-
-fn make_select_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<Statement, RHDLError> {
-    let component = &graph.graph[index];
-    let ComponentKind::Select = &component.kind else {
-        return Err(raise_ice(
-            FlowGraphICE::ExpectedSelectComponent,
-            graph,
-            component.location,
-        ));
-    };
-    let control_node = graph
-        .graph
-        .edges_directed(index, petgraph::Direction::Incoming)
-        .find_map(|edge| match edge.weight() {
-            EdgeKind::Selector(0) => Some(edge.source()),
-            _ => None,
-        })
-        .ok_or(raise_ice(
-            FlowGraphICE::SelectControlNodeNotFound,
-            graph,
-            component.location,
-        ))?;
-    let true_node = graph
-        .graph
-        .edges_directed(index, petgraph::Direction::Incoming)
-        .find_map(|edge| match edge.weight() {
-            EdgeKind::True => Some(edge.source()),
-            _ => None,
-        })
-        .ok_or(raise_ice(
-            FlowGraphICE::SelectTrueNodeNotFound,
-            graph,
-            component.location,
-        ))?;
-    let false_node = graph
-        .graph
-        .edges_directed(index, petgraph::Direction::Incoming)
-        .find_map(|edge| match edge.weight() {
-            EdgeKind::False => Some(edge.source()),
-            _ => None,
-        })
-        .ok_or(raise_ice(
-            FlowGraphICE::SelectFalseNodeNotFound,
-            graph,
-            component.location,
-        ))?;
-    Ok(assign(
-        &node(index),
-        select(
-            id(&node(control_node)),
-            id(&node(true_node)),
-            id(&node(false_node)),
-        ),
-    ))
-}
-
-fn make_dff_input_assign_statement(
-    index: FlowIx,
-    graph: &FlowGraph,
-) -> Result<Statement, RHDLError> {
-    let component = &graph.graph[index];
-    let ComponentKind::DFFInput(_) = &component.kind else {
-        return Err(raise_ice(
-            FlowGraphICE::ExpectedDFFComponent,
-            graph,
-            component.location,
-        ));
-    };
-    let data_edge = graph
-        .graph
-        .edges_directed(index, petgraph::Direction::Incoming)
-        .find(|edge| {
-            matches!(
-                edge.weight(),
-                EdgeKind::OutputBit(_) | EdgeKind::ArgBit(_, _) | EdgeKind::Arg(_)
-            )
-        })
-        .ok_or(raise_ice(
-            FlowGraphICE::DFFInputDriverNotFound,
-            graph,
-            component.location,
-        ))?;
-    Ok(match data_edge.weight() {
-        EdgeKind::OutputBit(bit) => {
-            assign(&node(index), index_bit(&node(data_edge.source()), *bit))
-        }
-        _ => assign(&node(index), id(&node(data_edge.source()))),
-    })
-}
-
-fn make_buffer_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<Statement, RHDLError> {
-    let component = &graph.graph[index];
-    let ComponentKind::Buffer(name) = &component.kind else {
-        return Err(raise_ice(
-            FlowGraphICE::ExpectedBufferComponent,
-            graph,
-            component.location,
-        ));
-    };
-    // Check for an input buffer case
-    if let Some((arg_index, arg_bits)) = graph
-        .inputs
-        .iter()
-        .enumerate()
-        .find(|(_, x)| x.contains(&index))
-    {
-        let bit_pos = arg_bits.iter().position(|x| x == &index).unwrap();
-        Ok(assign(
-            &node(index),
-            index_bit(&format!("arg_{}", arg_index), bit_pos),
-        ))
-    } else {
-        let parent = graph
-            .graph
-            .edges_directed(index, petgraph::Direction::Incoming)
-            .next()
-            .ok_or(raise_ice(
-                FlowGraphICE::BufferParentNotFound,
-                graph,
-                component.location,
-            ))?;
-        Ok(match parent.weight() {
-            EdgeKind::OutputBit(bit) => {
-                assign(&node(index), index_bit(&node(parent.source()), *bit))
-            }
-            _ => assign(&node(index), id(&node(parent.source()))),
-        })
-    }
-}
-
-fn collect_argument<T: Fn(&EdgeKind) -> Option<usize>>(
-    node: FlowIx,
-    width: usize,
-    filter: T,
-    graph: &FlowGraph,
-) -> Result<Vec<FlowIx>, RHDLError> {
-    let component = &graph.graph[node];
-    let arg_incoming = graph
-        .graph
-        .edges_directed(node, petgraph::Direction::Incoming)
-        .filter_map(|x| filter(x.weight()).map(|ndx| (ndx, x.source())))
-        .collect::<Vec<_>>();
-    (0..width)
-        .map(|bit| {
-            let bit = width - 1 - bit;
-            arg_incoming
-                .iter()
-                .find_map(|(b, ndx)| if *b == bit { Some(*ndx) } else { None })
-                .ok_or(raise_ice(
-                    FlowGraphICE::MissingArgument { bit },
-                    graph,
-                    component.location,
-                ))
-        })
-        .collect()
-}
-
 fn arg_fun(index: usize, edge: &EdgeKind) -> Option<usize> {
     match edge {
         EdgeKind::ArgBit(ndx, bit) if *ndx == index => Some(*bit),
@@ -222,28 +49,251 @@ fn arg_fun(index: usize, edge: &EdgeKind) -> Option<usize> {
     }
 }
 
-fn make_binary_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<Statement, RHDLError> {
+struct FlowGraphHDLBuilder<'a> {
+    graph: &'a FlowGraph,
+    module: Module,
+}
+
+impl<'a> FlowGraphHDLBuilder<'a> {
+    fn new(name: &str, graph: &FlowGraph) -> Self {
+        Self {
+            graph,
+            module: Module {
+                name: name.to_string(),
+                ..Default::default()
+            },
+        }
+    }
+    fn raise_ice(
+        cause: FlowGraphICE,
+        location: Option<SourceLocation>,
+    ) -> RHDLError {
+        rhdl_error(FlowGraphError {
+            cause,
+            src: self.graph.code.source(),
+            elements: location
+                .map(|loc| self.graph.code.span(loc).into())
+                .into_iter()
+                .collect(),
+        })
+    }
+    fn collect_argument<T: Fn(&EdgeKind) -> Option<usize>>(
+        &self,
+        node: FlowIx,
+        width: usize,
+        filter: T,
+    ) -> Result<Vec<FlowIx>, RHDLError> {
+        let graph = self.graph;
+        let component = &graph.graph[node];
+        let arg_incoming = graph
+            .graph
+            .edges_directed(node, petgraph::Direction::Incoming)
+            .filter_map(|x| filter(x.weight()).map(|ndx| (ndx, x.source())))
+            .collect::<Vec<_>>();
+        (0..width)
+            .map(|bit| {
+                let bit = width - 1 - bit;
+                arg_incoming
+                    .iter()
+                    .find_map(|(b, ndx)| if *b == bit { Some(*ndx) } else { None })
+                    .ok_or(raise_ice(
+                        FlowGraphICE::MissingArgument { bit },
+                        graph,
+                        component.location,
+                    ))
+            })
+            .collect()
+    }    
+    fn stmt(&mut self, statement: Statement) {
+        self.module.statements.push(statement);
+    }
+    fn select_assign_statement(&mut self, index: FlowIx) -> Result<(), RHDLError> {
+        let graph = self.graph;
+        let component = &graph.graph[index];
+        let ComponentKind::Select = &component.kind else {
+            return Err(raise_ice(
+                FlowGraphICE::ExpectedSelectComponent,
+                graph,
+                component.location,
+            ));
+        };
+        let control_node = graph
+            .graph
+            .edges_directed(index, petgraph::Direction::Incoming)
+            .find_map(|edge| match edge.weight() {
+                EdgeKind::Selector(0) => Some(edge.source()),
+                _ => None,
+            })
+            .ok_or(raise_ice(
+                FlowGraphICE::SelectControlNodeNotFound,
+                graph,
+                component.location,
+            ))?;
+        let true_node = graph
+            .graph
+            .edges_directed(index, petgraph::Direction::Incoming)
+            .find_map(|edge| match edge.weight() {
+                EdgeKind::True => Some(edge.source()),
+                _ => None,
+            })
+            .ok_or(raise_ice(
+                FlowGraphICE::SelectTrueNodeNotFound,
+                graph,
+                component.location,
+            ))?;
+        let false_node = graph
+            .graph
+            .edges_directed(index, petgraph::Direction::Incoming)
+            .find_map(|edge| match edge.weight() {
+                EdgeKind::False => Some(edge.source()),
+                _ => None,
+            })
+            .ok_or(raise_ice(
+                FlowGraphICE::SelectFalseNodeNotFound,
+                graph,
+                component.location,
+            ))?;
+        self.stmt(assign(
+            &node(index),
+            select(
+                id(&node(control_node)),
+                id(&node(true_node)),
+                id(&node(false_node)),
+            ),
+        ));
+        Ok(())
+    }
+    fn dff_input_assign_statement(
+        &mut self,
+        index: FlowIx,
+    ) -> Result<(), RHDLError> {
+        let graph = self.graph;
+        let component = &graph.graph[index];
+        let ComponentKind::DFFInput(_) = &component.kind else {
+            return Err(raise_ice(
+                FlowGraphICE::ExpectedDFFComponent,
+                graph,
+                component.location,
+            ));
+        };
+        let data_edge = graph
+            .graph
+            .edges_directed(index, petgraph::Direction::Incoming)
+            .find(|edge| {
+                matches!(
+                    edge.weight(),
+                    EdgeKind::OutputBit(_) | EdgeKind::ArgBit(_, _) | EdgeKind::Arg(_)
+                )
+            })
+            .ok_or(raise_ice(
+                FlowGraphICE::DFFInputDriverNotFound,
+                graph,
+                component.location,
+            ))?;
+        self.stmt(match data_edge.weight() {
+            EdgeKind::OutputBit(bit) => {
+                assign(&node(index), index_bit(&node(data_edge.source()), *bit))
+            }
+            _ => assign(&node(index), id(&node(data_edge.source()))),
+        });
+        Ok(())
+    }
+    fn buffer_assign_statement(&mut self, index: FlowIx) -> Result<(), RHDLError> {
+        let component = &graph.graph[index];
+        let ComponentKind::Buffer(name) = &component.kind else {
+            return Err(raise_ice(
+                FlowGraphICE::ExpectedBufferComponent,
+                graph,
+                component.location,
+            ));
+        };
+        // Check for an input buffer case
+        if let Some((arg_index, arg_bits)) = graph
+            .inputs
+            .iter()
+            .enumerate()
+            .find(|(_, x)| x.contains(&index))
+        {
+            let bit_pos = arg_bits.iter().position(|x| x == &index).unwrap();
+            self.stmt(assign(
+                &node(index),
+                index_bit(&format!("arg_{}", arg_index), bit_pos),
+            ));
+        } else {
+            let parent = graph
+                .graph
+                .edges_directed(index, petgraph::Direction::Incoming)
+                .next()
+                .ok_or(raise_ice(
+                    FlowGraphICE::BufferParentNotFound,
+                    graph,
+                    component.location,
+                ))?;
+            self.stmt(match parent.weight() {
+                EdgeKind::OutputBit(bit) => {
+                    assign(&node(index), index_bit(&node(parent.source()), *bit))
+                }
+                _ => assign(&node(index), id(&node(parent.source()))),
+            });
+        }
+        Ok(())
+    }
+
+    fn binary_assign_statement(&mut self, index: FlowIx) -> Result<(), RHDLError> {
+        let graph = self.graph;
+        let component = &graph.graph[index];
+        let ComponentKind::Binary(op) = &component.kind else {
+            return Err(raise_ice(
+                FlowGraphICE::ExpectedBinaryComponent,
+                graph,
+                component.location,
+            ));
+        };
+        let arg0 = concatenate(nodes(self.collect_argument(
+            index,
+            component.width,
+            |x| arg_fun(0, x),
+        )?));
+        let arg1 = concatenate(nodes(self.collect_argument(
+            index,
+            component.width,
+            |x| arg_fun(1, x),
+        )?));
+        self.stmt(assign(&node(index), binary(op.op, arg0, arg1)));
+        Ok(())
+    }
+    
+}
+ 
+
+fn make_dynamic_index_assign_statement(
+    index: FlowIx,
+    graph: &FlowGraph,
+) -> Result<(Declaration, Vec<Statement>), RHDLError> {
     let component = &graph.graph[index];
-    let ComponentKind::Binary(op) = &component.kind else {
+    let ComponentKind::DynamicIndex(dyn_ndx) = &component.kind else {
         return Err(raise_ice(
             FlowGraphICE::ExpectedBinaryComponent,
             graph,
             component.location,
         ));
     };
-    let arg0 = concatenate(nodes(collect_argument(
+    let offset = nodes(collect_argument(
+        index,
+        dyn_ndx.offset_len,
+        |x| match x {
+            EdgeKind::DynamicOffset(ndx) => Some(*ndx),
+            _ => None,
+        },
+        graph,
+    )?);
+    let arg = nodes(collect_argument(
         index,
         component.width,
         |x| arg_fun(0, x),
         graph,
-    )?));
-    let arg1 = concatenate(nodes(collect_argument(
-        index,
-        component.width,
-        |x| arg_fun(1, x),
-        graph,
-    )?));
-    Ok(assign(&node(index), binary(op.op, arg0, arg1)))
+    )?);
+    Ok(dynamic_index(&node(index), concatenate(offset, )
 }
 
 fn make_unary_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<Statement, RHDLError> {
@@ -328,7 +378,9 @@ fn generate_assign_statement(
         ComponentKind::DFFOutput(_) => Ok(None),
         ComponentKind::BlackBox(black_box) => todo!(),
         ComponentKind::Case(_) => Ok(Some(make_case_statement(index, graph)?)),
-        ComponentKind::DynamicIndex(dynamic_index) => todo!(),
+        ComponentKind::DynamicIndex(_) => {
+            Ok(Some(make_dynamic_index_assign_statement(index, graph)?))
+        }
         ComponentKind::DynamicSplice(dynamic_splice) => todo!(),
         ComponentKind::TimingStart => Ok(None),
         ComponentKind::TimingEnd => Ok(None),
