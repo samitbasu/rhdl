@@ -176,6 +176,14 @@ impl FlowGraph {
     // Create a new, top level FG with sources for the inputs and sinks for the
     // outputs.
     pub fn sealed(self) -> FlowGraph {
+        if self.graph.node_weights().any(|node| {
+            matches!(
+                node.kind,
+                ComponentKind::TimingStart | ComponentKind::TimingEnd
+            )
+        }) {
+            return self;
+        }
         let mut fg = FlowGraph::default();
         let remap = fg.merge(&self);
         let timing_start =

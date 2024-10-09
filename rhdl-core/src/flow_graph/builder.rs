@@ -147,14 +147,14 @@ impl<'a> FlowGraphBuilder<'a> {
                 let comp =
                     self.fg
                         .new_component(ComponentKind::Binary(Binary { op: binary.op }), 1, loc);
-                self.fg.edge(*arg1, comp, EdgeKind::Arg(0));
-                self.fg.edge(*arg2, comp, EdgeKind::Arg(1));
+                self.fg.edge(*arg1, comp, EdgeKind::ArgBit(0, 0));
+                self.fg.edge(*arg2, comp, EdgeKind::ArgBit(1, 0));
                 self.fg.edge(comp, *lhs, EdgeKind::OutputBit(0));
             }
         } else {
             let comp = self.fg.new_component(
                 ComponentKind::Binary(Binary { op: binary.op }),
-                lhs.len(),
+                arg1.len(),
                 loc,
             );
             for (ndx, lhs) in lhs.iter().enumerate() {
@@ -332,11 +332,15 @@ impl<'a> FlowGraphBuilder<'a> {
                 self.fg.edge(comp, *lhs, EdgeKind::Arg(0));
             }
         } else {
-            let comp =
-                self.fg
-                    .new_component(ComponentKind::Unary(Unary { op: unary.op }), lhs.len(), loc);
-            for (ndx, (lhs, rhs)) in lhs.iter().zip(arg1.iter()).enumerate() {
+            let comp = self.fg.new_component(
+                ComponentKind::Unary(Unary { op: unary.op }),
+                arg1.len(),
+                loc,
+            );
+            for (ndx, rhs) in arg1.iter().enumerate() {
                 self.fg.edge(*rhs, comp, EdgeKind::ArgBit(0, ndx));
+            }
+            for (ndx, lhs) in lhs.iter().enumerate() {
                 self.fg.edge(comp, *lhs, EdgeKind::OutputBit(ndx));
             }
         }

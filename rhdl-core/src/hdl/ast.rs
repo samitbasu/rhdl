@@ -58,6 +58,16 @@ pub enum SignedWidth {
     Signed(usize),
 }
 
+impl SignedWidth {
+    pub fn is_empty(&self) -> bool {
+        match self {
+            SignedWidth::Unsigned(0) => true,
+            SignedWidth::Signed(0) => true,
+            _ => false,
+        }
+    }
+}
+
 impl From<RegisterKind> for SignedWidth {
     fn from(kind: RegisterKind) -> Self {
         match kind {
@@ -294,6 +304,42 @@ pub enum Statement {
     Always(Always),
     NonblockingAssignment(Assignment),
     If(If),
+    Delay(usize),
+    Display(Display),
+    Finish,
+    Assert(Assert),
+}
+
+#[derive(Debug, Clone, Hash)]
+pub struct Assert {
+    pub left: Box<Expression>,
+    pub right: Box<Expression>,
+    pub ndx: usize,
+}
+
+pub fn assert(left: Box<Expression>, right: Box<Expression>, ndx: usize) -> Statement {
+    Statement::Assert(Assert { left, right, ndx })
+}
+
+pub fn finish() -> Statement {
+    Statement::Finish
+}
+
+#[derive(Debug, Clone, Hash)]
+pub struct Display {
+    pub format: String,
+    pub args: Vec<Box<Expression>>,
+}
+
+pub fn display(format: &str, args: Vec<Box<Expression>>) -> Statement {
+    Statement::Display(Display {
+        format: format.to_string(),
+        args,
+    })
+}
+
+pub fn delay(time: usize) -> Statement {
+    Statement::Delay(time)
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -330,6 +376,7 @@ pub enum Events {
     Posedge(String),
     Negedge(String),
     Change(String),
+    Star,
 }
 
 pub fn continuous_assignment(target: &str, source: Box<Expression>) -> Statement {
