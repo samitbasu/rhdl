@@ -6,9 +6,10 @@ use crate::{
 };
 
 use super::ast::{
-    Always, Assignment, Binary, Case, CaseItem, ComponentInstance, Connection, Declaration,
-    Direction, DynamicIndex, DynamicSplice, Expression, Function, FunctionCall, HDLKind, If, Index,
-    Initial, Literals, Module, Port, Repeat, Select, SignedWidth, Splice, Statement, Unary,
+    Always, Assert, Assignment, Binary, Case, CaseItem, ComponentInstance, Connection, Declaration,
+    Direction, Display, DynamicIndex, DynamicSplice, Expression, Function, FunctionCall, HDLKind,
+    If, Index, Initial, Literals, Module, Port, Repeat, Select, SignedWidth, Splice, Statement,
+    Unary,
 };
 
 const VERILOG_INDENT_INCREASERS: [&str; 4] = ["module", "begin", "function", "case"];
@@ -137,7 +138,31 @@ fn case(ast: &Case) -> String {
         |(cond, stmt)| format!("{}: {}", case_item(cond), statement(stmt)),
         "\n",
     );
-    format!("case({})\n{}endcase\n", expression(&ast.discriminant), case)
+    format!(
+        "case ({})\n{}\nendcase\n",
+        expression(&ast.discriminant),
+        case
+    )
+}
+
+fn display_statement(ast: &Display) -> String {
+    format!(
+        "$display(\"{format}\", {args});",
+        format = ast.format,
+        args = apply(&ast.args, |x| expression(x), ", ")
+    )
+}
+
+fn assert_statement(ast: &Assert) -> String {
+    let signal = expression(&ast.left);
+    let value = expression(&ast.right);
+    let case = &ast.ndx;
+    format!(
+        "if ({signal} !== {value}) begin
+            $display(\"ASSERTION FAILED 0x%0h !== 0x%0h CASE {case}\", {signal}, {value});
+            $finish;
+        end",
+    )
 }
 
 fn statement(ast: &Statement) -> String {
@@ -152,6 +177,10 @@ fn statement(ast: &Statement) -> String {
         Statement::Always(ast) => always(ast),
         Statement::NonblockingAssignment(ast) => non_blocking_assignment(ast),
         Statement::If(ast) => if_statement(ast),
+        Statement::Delay(ast) => format!("#{ast};"),
+        Statement::Display(ast) => display_statement(ast),
+        Statement::Finish => "$finish;".to_string(),
+        Statement::Assert(ast) => assert_statement(ast),
     }
 }
 
@@ -174,6 +203,7 @@ fn always(ast: &Always) -> String {
             Events::Posedge(signal) => format!("posedge {}", signal),
             Events::Negedge(signal) => format!("negedge {}", signal),
             Events::Change(signal) => signal.to_string(),
+            Events::Star => "*".to_string(),
         })
         .collect::<Vec<_>>()
         .join(" or ");
@@ -241,12 +271,12 @@ fn select(ast: &Select) -> String {
 }
 
 fn concatenate(ast: &[Box<Expression>]) -> String {
-    let expr = apply(ast, |x| expression(x), ",");
+    let expr = apply(ast, |x| expression(x), ", ");
     format!("{{ {expr} }}",)
 }
 
 fn function_call(ast: &FunctionCall) -> String {
-    let args = apply(&ast.arguments, |x| expression(x), ",");
+    let args = apply(&ast.arguments, |x| expression(x), ", ");
     format!("{}({args})", ast.name,)
 }
 
@@ -328,7 +358,7 @@ fn apply<T, F: Fn(&T) -> String>(ast: &[T], f: F, sep: &str) -> String {
 pub fn function(ast: &Function) -> String {
     let name = &ast.name;
     let signed_width = signed_width(&ast.width);
-    let args = apply(&ast.arguments, argument, ",");
+    let args = apply(&ast.arguments, argument, ", ");
     let header = format!("function {signed_width} {name}({args});");
     let registers = apply(&ast.registers, register, "\n");
     let literals = apply(&ast.literals, literal, "\n");
@@ -338,7 +368,7 @@ pub fn function(ast: &Function) -> String {
 
 pub fn module(ast: &Module) -> String {
     let name = &ast.name;
-    let ports = apply(&ast.ports, port, ",");
+    let ports = apply(&ast.ports, port, ", ");
     let declarations = apply(&ast.declarations, register, "\n");
     let statements = apply(&ast.statements, statement, "\n");
     let functions = apply(&ast.functions, function, "\n");

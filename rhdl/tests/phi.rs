@@ -136,3 +136,13 @@ fn test_flow_control_if_expression() {
 
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
 }
+
+#[test]
+fn test_if_expression() {
+    #[kernel]
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<bool, Red> {
+        signal(a > b)
+    }
+
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+}

@@ -1,3 +1,7 @@
+use std::iter::once;
+
+use rhdl_bits::alias::b1;
+
 use crate::compiler::driver::{compile_design_stage1, compile_design_stage2};
 use crate::error::RHDLError;
 use crate::flow_graph::component::ComponentKind;
@@ -7,7 +11,10 @@ use crate::flow_graph::flow_graph_impl::FlowGraph;
 use crate::flow_graph::hdl::generate_hdl;
 use crate::flow_graph::passes::check_for_undriven::CheckForUndrivenPass;
 use crate::flow_graph::passes::pass::Pass;
-use crate::hdl::ast::Function;
+use crate::hdl::ast::{
+    assert, assign, bit_string, component_instance, connection, declaration, delay, display,
+    finish, id, initial, unsigned_width, Declaration, Function, HDLKind, Module, Statement,
+};
 use crate::hdl::builder::generate_verilog;
 use crate::types::bit_string::BitString;
 use crate::util::delim_list_optional_strings;
@@ -67,6 +74,8 @@ impl<T0: Timed, T1: Timed, T2: Timed, T3: Timed, T4: Timed> TestArg for (T0, T1,
 pub trait Testable<Args, T1> {
     fn test_string(&self, name: &str, args: Args) -> String;
     fn apply(&self, args: Args) -> T1;
+    fn declaration() -> Vec<Declaration>;
+    fn test_case(&self, args: Args, ndx: usize) -> Vec<Statement>;
 }
 
 fn verilog_binary_string(x: impl Timed) -> Option<String> {
@@ -76,6 +85,10 @@ fn verilog_binary_string(x: impl Timed) -> Option<String> {
     } else {
         Some(format!("{x_bits}'b{q}", x_bits = q.len(), q = q))
     }
+}
+
+fn maybe_assign(target: &str, value: &BitString) -> Option<Statement> {
+    (!value.is_empty()).then(|| assign(target, bit_string(value)))
 }
 
 impl<F, Q, T0> Testable<(T0,), Q> for F
@@ -93,6 +106,26 @@ where
     fn apply(&self, args: (T0,)) -> Q {
         let (t0,) = args;
         (*self)(t0)
+    }
+    fn declaration() -> Vec<Declaration> {
+        vec![
+            declaration(HDLKind::Wire, "out", unsigned_width(Q::bits()), None),
+            declaration(HDLKind::Reg, "arg_0", unsigned_width(T0::bits()), None),
+        ]
+    }
+    fn test_case(&self, args: (T0,), ndx: usize) -> Vec<Statement> {
+        let (t0,) = args;
+        let b0: BitString = t0.typed_bits().into();
+        let arg0 = maybe_assign("arg_0", &b0);
+        let q = self.apply(args);
+        let q: BitString = q.typed_bits().into();
+        let d1 = delay(1);
+        let assertion = assert(bit_string(&q), id("out"), ndx);
+        // Create a vector of statements, with arg0, d1, and assertion, if arg0 is non-empty.  Otherwise, leave it out.
+        arg0.into_iter()
+            .chain(once(d1))
+            .chain(once(assertion))
+            .collect()
     }
 }
 
@@ -114,6 +147,29 @@ where
     fn apply(&self, args: (T0, T1)) -> Q {
         let (t0, t1) = args;
         (*self)(t0, t1)
+    }
+    fn declaration() -> Vec<Declaration> {
+        vec![
+            declaration(HDLKind::Wire, "out", unsigned_width(Q::bits()), None),
+            declaration(HDLKind::Reg, "arg_0", unsigned_width(T0::bits()), None),
+            declaration(HDLKind::Reg, "arg_1", unsigned_width(T1::bits()), None),
+        ]
+    }
+    fn test_case(&self, args: (T0, T1), ndx: usize) -> Vec<Statement> {
+        let (t0, t1) = args;
+        let b0: BitString = t0.typed_bits().into();
+        let b1: BitString = t1.typed_bits().into();
+        let arg0 = maybe_assign("arg_0", &b0);
+        let arg1 = maybe_assign("arg_1", &b1);
+        let q = self.apply(args);
+        let q: BitString = q.typed_bits().into();
+        let d1 = delay(1);
+        let assertion = assert(bit_string(&q), id("out"), ndx);
+        arg0.into_iter()
+            .chain(arg1)
+            .chain(once(d1))
+            .chain(once(assertion))
+            .collect()
     }
 }
 
@@ -137,6 +193,33 @@ where
     fn apply(&self, args: (T0, T1, T2)) -> Q {
         let (t0, t1, t2) = args;
         (*self)(t0, t1, t2)
+    }
+    fn declaration() -> Vec<Declaration> {
+        vec![
+            declaration(HDLKind::Wire, "out", unsigned_width(Q::bits()), None),
+            declaration(HDLKind::Reg, "arg_0", unsigned_width(T0::bits()), None),
+            declaration(HDLKind::Reg, "arg_1", unsigned_width(T1::bits()), None),
+            declaration(HDLKind::Reg, "arg_2", unsigned_width(T2::bits()), None),
+        ]
+    }
+    fn test_case(&self, args: (T0, T1, T2), ndx: usize) -> Vec<Statement> {
+        let (t0, t1, t2) = args;
+        let b0: BitString = t0.typed_bits().into();
+        let b1: BitString = t1.typed_bits().into();
+        let b2: BitString = t2.typed_bits().into();
+        let arg0 = maybe_assign("arg_0", &b0);
+        let arg1 = maybe_assign("arg_1", &b1);
+        let arg2 = maybe_assign("arg_2", &b2);
+        let q = self.apply(args);
+        let q: BitString = q.typed_bits().into();
+        let d1 = delay(1);
+        let assertion = assert(bit_string(&q), id("out"), ndx);
+        arg0.into_iter()
+            .chain(arg1)
+            .chain(arg2)
+            .chain(once(d1))
+            .chain(once(assertion))
+            .collect()
     }
 }
 
@@ -162,6 +245,37 @@ where
     fn apply(&self, args: (T0, T1, T2, T3)) -> Q {
         let (t0, t1, t2, t3) = args;
         (*self)(t0, t1, t2, t3)
+    }
+    fn declaration() -> Vec<Declaration> {
+        vec![
+            declaration(HDLKind::Wire, "out", unsigned_width(Q::bits()), None),
+            declaration(HDLKind::Reg, "arg_0", unsigned_width(T0::bits()), None),
+            declaration(HDLKind::Reg, "arg_1", unsigned_width(T1::bits()), None),
+            declaration(HDLKind::Reg, "arg_2", unsigned_width(T2::bits()), None),
+            declaration(HDLKind::Reg, "arg_3", unsigned_width(T3::bits()), None),
+        ]
+    }
+    fn test_case(&self, args: (T0, T1, T2, T3), ndx: usize) -> Vec<Statement> {
+        let (t0, t1, t2, t3) = args;
+        let b0: BitString = t0.typed_bits().into();
+        let b1: BitString = t1.typed_bits().into();
+        let b2: BitString = t2.typed_bits().into();
+        let b3: BitString = t3.typed_bits().into();
+        let arg0 = maybe_assign("arg_0", &b0);
+        let arg1 = maybe_assign("arg_1", &b1);
+        let arg2 = maybe_assign("arg_2", &b2);
+        let arg3 = maybe_assign("arg_3", &b3);
+        let q = self.apply(args);
+        let q: BitString = q.typed_bits().into();
+        let d1 = delay(1);
+        let assertion = assert(bit_string(&q), id("out"), ndx);
+        arg0.into_iter()
+            .chain(arg1)
+            .chain(arg2)
+            .chain(arg3)
+            .chain(once(d1))
+            .chain(once(assertion))
+            .collect()
     }
 }
 
@@ -189,6 +303,41 @@ where
     fn apply(&self, args: (T0, T1, T2, T3, T4)) -> Q {
         let (t0, t1, t2, t3, t4) = args;
         (*self)(t0, t1, t2, t3, t4)
+    }
+    fn declaration() -> Vec<Declaration> {
+        vec![
+            declaration(HDLKind::Wire, "out", unsigned_width(Q::bits()), None),
+            declaration(HDLKind::Reg, "arg_0", unsigned_width(T0::bits()), None),
+            declaration(HDLKind::Reg, "arg_1", unsigned_width(T1::bits()), None),
+            declaration(HDLKind::Reg, "arg_2", unsigned_width(T2::bits()), None),
+            declaration(HDLKind::Reg, "arg_3", unsigned_width(T3::bits()), None),
+            declaration(HDLKind::Reg, "arg_4", unsigned_width(T4::bits()), None),
+        ]
+    }
+    fn test_case(&self, args: (T0, T1, T2, T3, T4), ndx: usize) -> Vec<Statement> {
+        let (t0, t1, t2, t3, t4) = args;
+        let b0: BitString = t0.typed_bits().into();
+        let b1: BitString = t1.typed_bits().into();
+        let b2: BitString = t2.typed_bits().into();
+        let b3: BitString = t3.typed_bits().into();
+        let b4: BitString = t4.typed_bits().into();
+        let arg0 = maybe_assign("arg_0", &b0);
+        let arg1 = maybe_assign("arg_1", &b1);
+        let arg2 = maybe_assign("arg_2", &b2);
+        let arg3 = maybe_assign("arg_3", &b3);
+        let arg4 = maybe_assign("arg_4", &b4);
+        let q = self.apply(args);
+        let q: BitString = q.typed_bits().into();
+        let d1 = delay(1);
+        let assertion = assert(bit_string(&q), id("out"), ndx);
+        arg0.into_iter()
+            .chain(arg1)
+            .chain(arg2)
+            .chain(arg3)
+            .chain(arg4)
+            .chain(once(d1))
+            .chain(once(assertion))
+            .collect()
     }
 }
 
@@ -220,6 +369,55 @@ $finish;
 endmodule
     "
         ),
+        num_cases,
+    }
+}
+
+// In general, a flow graph cannot be reduced to a pure function, as it may contain internal
+// state/etc.  However, in this context (for kernel testing), we can assume it is equivalent
+// to a function, and generate the test vectors that way.  This is not equivalent to a full test
+// module for the flow graph.  That has to go elsewhere.
+fn test_module_for_flowgraph<F, Args, T0>(
+    uut: F,
+    desc: Module,
+    vals: impl Iterator<Item = Args>,
+) -> TestModule
+where
+    F: Testable<Args, T0>,
+    T0: Timed,
+{
+    let name = &desc.name;
+    let body = desc.as_verilog();
+    let decls = F::declaration();
+    let instance = component_instance(
+        name,
+        "t",
+        decls
+            .iter()
+            .filter(|&decl| !decl.width.is_empty())
+            .map(|decl| connection(&decl.name, id(&decl.name)))
+            .collect(),
+    );
+    let mut statements = vec![];
+    let mut num_cases = 0;
+    statements.extend(
+        vals.inspect(|_| {
+            num_cases += 1;
+        })
+        .enumerate()
+        .flat_map(|(ndx, arg)| uut.test_case(arg, ndx)),
+    );
+    statements.push(display("TESTBENCH OK", vec![]));
+    statements.push(finish());
+    let top = Module {
+        name: "testbench".into(),
+        ports: vec![],
+        declarations: decls,
+        statements: vec![instance, initial(statements)],
+        functions: vec![],
+    };
+    TestModule {
+        testbench: top.as_verilog() + &body,
         num_cases,
     }
 }
@@ -318,15 +516,18 @@ where
         rtl_test_count += 1;
     }
     eprintln!("RTL test passed {} cases OK", rtl_test_count);
-    let verilog = generate_verilog(&rtl)?;
-    let tm = test_module(uut, verilog, vals);
-    tm.run_iverilog()?;
+    // let verilog = generate_verilog(&rtl)?;
+    // let tm = test_module(uut, verilog, vals.clone());
+    // tm.run_iverilog()?;
     let flow_graph = build_rtl_flow_graph(&rtl);
+    let desc = generate_hdl("dut", &flow_graph)?;
     // Write the flow graph to a DOT file
     //    let flow_graph = CheckForUndrivenPass::run(flow_graph)?;
     // Use write_dot to write the flow graph out to a file
-    std::fs::write("flow_graph.dot", flow_graph.dot()?)?;
-    eprintln!("{}", generate_hdl("top", &flow_graph)?.as_verilog());
+    //    std::fs::write("flow_graph.dot", flow_graph.dot()?)?;
+    // eprintln!("{}", generate_hdl("top", &flow_graph)?.as_verilog());
+    let tm = test_module_for_flowgraph(uut, desc, vals);
+    tm.run_iverilog()?;
     Ok(())
 }
 
@@ -358,22 +559,13 @@ impl TestModule {
         let mut cmd = std::process::Command::new("vvp");
         cmd.arg(d_path.join("testbench"));
         let output = cmd.output()?;
-        for case in String::from_utf8_lossy(&output.stdout)
-            .lines()
-            .take(self.num_cases)
-            .map(|line| line.split(' ').collect::<Vec<_>>())
-        {
-            let expected = case[0];
-            let actual = case[1];
-            if case[0] != case[1] {
-                return Err(RHDLError::VerilogVerificationError {
-                    expected: expected.into(),
-                    got: actual.into(),
-                });
-            }
+        match String::from_utf8_lossy(&output.stdout).lines().next() {
+            Some(s) if s.trim() == "TESTBENCH OK" => Ok(()),
+            Some(s) => Err(RHDLError::VerilogVerificationErrorString(s.into())),
+            None => Err(RHDLError::VerilogVerificationErrorString(
+                "No output".into(),
+            )),
         }
-        eprintln!("iverilog test passed {} cases OK", self.num_cases);
-        Ok(())
     }
 }
 

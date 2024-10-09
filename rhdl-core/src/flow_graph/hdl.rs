@@ -7,8 +7,8 @@ use crate::{
     error::rhdl_error,
     flow_graph::{component::CaseEntry, edge_kind::EdgeKind, error::FlowGraphError},
     hdl::ast::{
-        always, binary, case, concatenate, constant, continuous_assignment, declaration, id,
-        if_statement, index_bit, non_blocking_assignment, port, select, unary, unsigned_width,
+        always, assign, binary, case, concatenate, constant, continuous_assignment, declaration,
+        id, if_statement, index_bit, non_blocking_assignment, port, select, unary, unsigned_width,
         CaseItem, Declaration, Direction, Events, Expression, HDLKind, Module, Statement,
     },
     FlowGraph, RHDLError,
@@ -30,12 +30,12 @@ fn nodes(indices: Vec<FlowIx>) -> Vec<Box<Expression>> {
     indices.into_iter().map(|ndx| id(&node(ndx))).collect()
 }
 
-fn generate_wire_declaration(index: FlowIx, component: &Component) -> Option<Declaration> {
+fn generate_reg_declaration(index: FlowIx, component: &Component) -> Option<Declaration> {
     if component.width == 0 {
         None
     } else {
         Some(declaration(
-            HDLKind::Wire,
+            HDLKind::Reg,
             &node(index),
             unsigned_width(component.width),
             Some(format!("{:?}", component)),
@@ -103,7 +103,7 @@ fn make_select_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<Stat
             graph,
             component.location,
         ))?;
-    Ok(continuous_assignment(
+    Ok(assign(
         &node(index),
         select(
             id(&node(control_node)),
@@ -141,9 +141,9 @@ fn make_dff_input_assign_statement(
         ))?;
     Ok(match data_edge.weight() {
         EdgeKind::OutputBit(bit) => {
-            continuous_assignment(&node(index), index_bit(&node(data_edge.source()), *bit))
+            assign(&node(index), index_bit(&node(data_edge.source()), *bit))
         }
-        _ => continuous_assignment(&node(index), id(&node(data_edge.source()))),
+        _ => assign(&node(index), id(&node(data_edge.source()))),
     })
 }
 
@@ -164,7 +164,7 @@ fn make_buffer_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<Stat
         .find(|(_, x)| x.contains(&index))
     {
         let bit_pos = arg_bits.iter().position(|x| x == &index).unwrap();
-        Ok(continuous_assignment(
+        Ok(assign(
             &node(index),
             index_bit(&format!("arg_{}", arg_index), bit_pos),
         ))
@@ -180,9 +180,9 @@ fn make_buffer_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<Stat
             ))?;
         Ok(match parent.weight() {
             EdgeKind::OutputBit(bit) => {
-                continuous_assignment(&node(index), index_bit(&node(parent.source()), *bit))
+                assign(&node(index), index_bit(&node(parent.source()), *bit))
             }
-            _ => continuous_assignment(&node(index), id(&node(parent.source()))),
+            _ => assign(&node(index), id(&node(parent.source()))),
         })
     }
 }
@@ -243,10 +243,7 @@ fn make_binary_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<Stat
         |x| arg_fun(1, x),
         graph,
     )?));
-    Ok(continuous_assignment(
-        &node(index),
-        binary(op.op, arg0, arg1),
-    ))
+    Ok(assign(&node(index), binary(op.op, arg0, arg1)))
 }
 
 fn make_unary_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<Statement, RHDLError> {
@@ -264,10 +261,7 @@ fn make_unary_assign_statement(index: FlowIx, graph: &FlowGraph) -> Result<State
         |x| arg_fun(0, x),
         graph,
     )?);
-    Ok(continuous_assignment(
-        &node(index),
-        unary(op.op, concatenate(arg)),
-    ))
+    Ok(assign(&node(index), unary(op.op, concatenate(arg))))
 }
 
 fn make_case_statement(index: FlowIx, graph: &FlowGraph) -> Result<Statement, RHDLError> {
@@ -311,7 +305,7 @@ fn make_case_statement(index: FlowIx, graph: &FlowGraph) -> Result<Statement, RH
                 .unwrap_or_else(|_| panic!("Unable to find argument to table {index:?} {arg_ndx}")),
             )[0]
             .clone();
-            let statement = continuous_assignment(lhs, arg);
+            let statement = assign(lhs, arg);
             (item, statement)
         })
         .collect();
@@ -325,9 +319,7 @@ fn generate_assign_statement(
 ) -> Result<Option<Statement>, RHDLError> {
     let component = &graph.graph[index];
     match &component.kind {
-        ComponentKind::Constant(value) => {
-            Ok(Some(continuous_assignment(&node(index), constant(*value))))
-        }
+        ComponentKind::Constant(value) => Ok(Some(assign(&node(index), constant(*value)))),
         ComponentKind::Buffer(_) => Ok(Some(make_buffer_assign_statement(index, graph)?)),
         ComponentKind::Select => Ok(Some(make_select_assign_statement(index, graph)?)),
         ComponentKind::Binary(_) => Ok(Some(make_binary_assign_statement(index, graph)?)),
@@ -344,7 +336,6 @@ fn generate_assign_statement(
 }
 
 pub(crate) fn generate_hdl(module_name: &str, fg: &FlowGraph) -> Result<Module, RHDLError> {
-    dbg!(&fg);
     let ports = fg
         .inputs
         .iter()
@@ -362,20 +353,16 @@ pub(crate) fn generate_hdl(module_name: &str, fg: &FlowGraph) -> Result<Module, 
         .chain(once(port(
             "out",
             Direction::Output,
-            HDLKind::Wire,
+            HDLKind::Reg,
             unsigned_width(fg.output.len()),
         )))
         .collect();
     let mut declarations = fg
         .graph
         .node_indices()
-        .filter_map(|ndx| generate_wire_declaration(ndx, &fg.graph[ndx]))
+        .filter_map(|ndx| generate_reg_declaration(ndx, &fg.graph[ndx]))
         .collect::<Vec<_>>();
-    let mut statements = fg
-        .graph
-        .node_indices()
-        .filter_map(|ndx| generate_assign_statement(ndx, fg).transpose())
-        .collect::<Result<Vec<_>, _>>()?;
+    let mut statements = vec![];
     for (ndx, dff) in fg.dffs.iter().enumerate() {
         let reg_name = format!("dff_{}", ndx);
         // To create a DFF, we need a registers to hold the output of the DFF
@@ -423,7 +410,14 @@ pub(crate) fn generate_hdl(module_name: &str, fg: &FlowGraph) -> Result<Module, 
             )],
         );
         statements.push(block);
-        statements.push(continuous_assignment(&node(dff.output), id(&reg_name)));
+        statements.push(assign(&node(dff.output), id(&reg_name)));
+    }
+    let mut body = vec![];
+    let mut topo = petgraph::visit::Topo::new(&fg.graph);
+    while let Some(ndx) = topo.next(&fg.graph) {
+        if let Some(statement) = generate_assign_statement(ndx, fg)? {
+            body.push(statement);
+        }
     }
     let output_bits = concatenate(
         fg.output
@@ -432,7 +426,8 @@ pub(crate) fn generate_hdl(module_name: &str, fg: &FlowGraph) -> Result<Module, 
             .map(|ndx| id(&node(*ndx)))
             .collect::<Vec<_>>(),
     );
-    statements.push(continuous_assignment("out", output_bits));
+    body.push(assign("out", output_bits));
+    statements.push(always(vec![Events::Star], body));
     Ok(Module {
         name: module_name.to_string(),
         ports,
