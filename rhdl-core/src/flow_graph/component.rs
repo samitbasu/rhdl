@@ -16,7 +16,8 @@ pub struct Unary {
 
 #[derive(Debug, Clone, Hash)]
 pub struct DynamicIndex {
-    pub len: usize,
+    pub offset_len: usize,
+    pub lhs_len: usize,
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -85,7 +86,13 @@ impl std::fmt::Debug for Component {
             ComponentKind::Constant(constant) => {
                 write!(f, "const({})", if *constant { 1 } else { 0 })
             }
-            ComponentKind::DynamicIndex(dynamic_index) => write!(f, "[[{}]]", dynamic_index.len),
+            ComponentKind::DynamicIndex(dynamic_index) => {
+                write!(
+                    f,
+                    "[[{} +: {}]]",
+                    dynamic_index.offset_len, dynamic_index.lhs_len
+                )
+            }
             ComponentKind::DynamicSplice(dynamic_splice) => write!(f, "//{}//", dynamic_splice.len),
             ComponentKind::Select => write!(f, "?"),
             ComponentKind::DFFInput(dff_input) => {

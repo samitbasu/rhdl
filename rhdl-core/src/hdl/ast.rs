@@ -60,11 +60,7 @@ pub enum SignedWidth {
 
 impl SignedWidth {
     pub fn is_empty(&self) -> bool {
-        match self {
-            SignedWidth::Unsigned(0) => true,
-            SignedWidth::Signed(0) => true,
-            _ => false,
-        }
+        matches!(self, SignedWidth::Unsigned(0) | SignedWidth::Signed(0))
     }
 }
 
@@ -268,7 +264,7 @@ pub fn index_bit(target: &str, bit: usize) -> Box<Expression> {
 
 #[derive(Debug, Clone, Hash)]
 pub struct DynamicIndex {
-    pub target: String,
+    pub argument: String,
     pub offset: Box<Expression>,
     pub len: usize,
 }
@@ -278,9 +274,9 @@ pub struct DynamicIndex {
         .push_str(&format!("    {lhs} = {arg}[{offset} +: {len}];\n",));
 */
 
-pub fn dynamic_index(target: &str, offset: Box<Expression>, len: usize) -> Box<Expression> {
+pub fn dynamic_index(argument: &str, offset: Box<Expression>, len: usize) -> Box<Expression> {
     Box::new(Expression::DynamicIndex(DynamicIndex {
-        target: target.into(),
+        argument: argument.into(),
         offset,
         len,
     }))
