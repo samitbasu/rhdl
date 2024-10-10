@@ -56,6 +56,78 @@ fn test_vm_simple_binop_function() -> miette::Result<()> {
     Ok(())
 }
 
+// TODO - check SHL and SHR
+
+#[test]
+fn test_vm_unsigned_arith_function() -> miette::Result<()> {
+    #[kernel]
+    fn add<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<b8, C> {
+        a + b
+    }
+
+    #[kernel]
+    fn sub<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<b8, C> {
+        a - b
+    }
+
+    #[kernel]
+    fn and<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<b8, C> {
+        a & b
+    }
+
+    #[kernel]
+    fn or<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<b8, C> {
+        a | b
+    }
+
+    #[kernel]
+    fn xor<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<b8, C> {
+        a ^ b
+    }
+
+    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<sub<Red>, _, _, _>(sub::<Red>, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<and<Red>, _, _, _>(and::<Red>, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<or<Red>, _, _, _>(or::<Red>, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<xor<Red>, _, _, _>(xor::<Red>, tuple_pair_b8_red())?;
+    Ok(())
+}
+
+#[test]
+fn test_vm_signed_arith_function() -> miette::Result<()> {
+    #[kernel]
+    fn add<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<s8, C> {
+        a + b
+    }
+
+    #[kernel]
+    fn sub<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<s8, C> {
+        a - b
+    }
+
+    #[kernel]
+    fn and<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<s8, C> {
+        a & b
+    }
+
+    #[kernel]
+    fn or<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<s8, C> {
+        a | b
+    }
+
+    #[kernel]
+    fn xor<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<s8, C> {
+        a ^ b
+    }
+
+    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<sub<Red>, _, _, _>(sub::<Red>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<and<Red>, _, _, _>(and::<Red>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<or<Red>, _, _, _>(or::<Red>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<xor<Red>, _, _, _>(xor::<Red>, tuple_pair_s8_red())?;
+    Ok(())
+}
+
 #[test]
 fn test_vm_unsigned_binop_function() -> miette::Result<()> {
     #[kernel]

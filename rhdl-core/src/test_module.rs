@@ -9,6 +9,7 @@ use crate::flow_graph::dot;
 use crate::flow_graph::edge_kind::EdgeKind;
 use crate::flow_graph::flow_graph_impl::FlowGraph;
 use crate::flow_graph::hdl::generate_hdl;
+use crate::flow_graph::optimization::optimize_flow_graph;
 use crate::flow_graph::passes::check_for_undriven::CheckForUndrivenPass;
 use crate::flow_graph::passes::pass::Pass;
 use crate::hdl::ast::{
@@ -520,6 +521,7 @@ where
     // let tm = test_module(uut, verilog, vals.clone());
     // tm.run_iverilog()?;
     let flow_graph = build_rtl_flow_graph(&rtl);
+    let flow_graph = optimize_flow_graph(flow_graph)?;
     let desc = generate_hdl("dut", &flow_graph)?;
     // Write the flow graph to a DOT file
     //    let flow_graph = CheckForUndrivenPass::run(flow_graph)?;

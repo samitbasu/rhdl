@@ -5,3 +5,4 @@ pub mod constant_buffer_elimination;
 pub mod pass;
 pub mod remove_hardwired_selects;
 pub mod remove_orphan_constants;
+pub mod remove_unused_buffers;

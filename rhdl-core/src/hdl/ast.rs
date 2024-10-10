@@ -62,6 +62,15 @@ impl SignedWidth {
     pub fn is_empty(&self) -> bool {
         matches!(self, SignedWidth::Unsigned(0) | SignedWidth::Signed(0))
     }
+    pub fn len(&self) -> usize {
+        match self {
+            SignedWidth::Unsigned(len) => *len,
+            SignedWidth::Signed(len) => *len,
+        }
+    }
+    pub fn is_signed(&self) -> bool {
+        matches!(self, SignedWidth::Signed(_))
+    }
 }
 
 impl From<RegisterKind> for SignedWidth {
