@@ -16,6 +16,7 @@ impl Pass for ConstantBufferEliminationPass {
         // with a single input that is a constant node.
         let buffer_nodes = graph
             .node_indices()
+            .filter(|node| !input.output.contains(node))
             .filter_map(|candidate| {
                 let weight = &graph[candidate];
                 if let ComponentKind::Buffer(_) = weight.kind {

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     ast::source_location::SourceLocation,
+    hdl::ast::{unsigned_width, SignedWidth},
     rhif::spec::{AluBinary, AluUnary},
     rtl::{
         object::LocatedOpCode,
@@ -140,20 +141,32 @@ impl<'a> FlowGraphBuilder<'a> {
     }
     fn build_binary(&mut self, loc: SourceLocation, binary: &tl::Binary) {
         let arg1 = self.operand(loc, binary.arg1);
+        let arg1_len: SignedWidth = self.object.kind(binary.arg1).into();
         let arg2 = self.operand(loc, binary.arg2);
+        let arg2_len: SignedWidth = self.object.kind(binary.arg2).into();
         let lhs = self.operand(loc, binary.lhs);
         if is_bitwise_binary(binary.op) {
             for (lhs, (arg1, arg2)) in lhs.iter().zip(arg1.iter().zip(arg2.iter())) {
-                let comp =
-                    self.fg
-                        .new_component(ComponentKind::Binary(Binary { op: binary.op }), 1, loc);
+                let comp = self.fg.new_component(
+                    ComponentKind::Binary(Binary {
+                        op: binary.op,
+                        left_len: unsigned_width(1),
+                        right_len: unsigned_width(1),
+                    }),
+                    1,
+                    loc,
+                );
                 self.fg.edge(*arg1, comp, EdgeKind::ArgBit(0, 0));
                 self.fg.edge(*arg2, comp, EdgeKind::ArgBit(1, 0));
                 self.fg.edge(comp, *lhs, EdgeKind::OutputBit(0));
             }
         } else {
             let comp = self.fg.new_component(
-                ComponentKind::Binary(Binary { op: binary.op }),
+                ComponentKind::Binary(Binary {
+                    op: binary.op,
+                    left_len: arg1_len,
+                    right_len: arg2_len,
+                }),
                 arg1.len(),
                 loc,
             );
@@ -269,7 +282,8 @@ impl<'a> FlowGraphBuilder<'a> {
         let value = self.operand(loc, dynamic_splice.value);
         let comp = self.fg.new_component(
             ComponentKind::DynamicSplice(DynamicSplice {
-                len: dynamic_splice.len,
+                splice_len: dynamic_splice.len,
+                offset_len: offset.len(),
             }),
             lhs.len(),
             loc,

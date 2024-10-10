@@ -1,26 +1,39 @@
 $timescale 1 ps $end
 $scope module top $end
-$var wire 2 ! __test__0 $end
-$var wire 8 " __test__a $end
-$var wire 3 # __test__1 $end
-$var wire 2 $ __test__.__disc $end
-$var wire 0 % __test $end
-$var wire 8 & __test__b $end
+$var wire 16 ! __enum__1 $end
+$var wire 1 " __enum__0 $end
+$var wire 2 # __enum__.__disc $end
+$var wire 8 $ __enum__name $end
+$var wire 0 % __enum $end
+$var wire 8 & __color $end
 $upscope $end
 $enddefinitions $end
 #0
-b10101010 "
-b10 $
-sC %
-b11010111 &
+b00 #
+sNone %
+b10101010 &
 #1000
-b10 !
-b101 #
-b01 $
-sB %
-#2000
-b00 $
+b0000010000000000 !
+b01 #
 sA %
+#2000
+b10 #
+b01000011 $
+sB %
 #3000
-b10 $
+1"
+b11 #
 sC %
+#4000
+0"
+#5000
+b10 #
+b01000001 $
+sB %
+#6000
+b0000001000000000 !
+b01 #
+sA %
+#7000
+b00 #
+sNone %
