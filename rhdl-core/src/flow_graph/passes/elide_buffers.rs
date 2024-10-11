@@ -17,6 +17,13 @@ impl Pass for ElideBuffers {
         "elide_buffers"
     }
     fn run(input: FlowGraph) -> Result<FlowGraph, RHDLError> {
+        let mut graph = std::mem::take(&mut input.graph);
+        // First pass, find all buffers that have a single incoming edge and a single outgoing edge.
+        let buffer_nodes = graph.node_indices().filter(|node| {
+            matches!(graph[*node].kind, ComponentKind::Buffer(_)) && graph.edges_directed(*node, petgraph::Incoming).count() == 1 && graph.edges_directed(*node, petgraph::Outgoing).count() == 1
+        }).collect::<Vec<_>>();
+        // Second pass, 
+
         let mut subst_map = HashMap::new();
         let mut output_graph = Graph::new();
         let mut topo = petgraph::visit::Topo::new(&input.graph);
