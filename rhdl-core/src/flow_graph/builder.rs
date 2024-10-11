@@ -38,13 +38,13 @@ pub fn build_rtl_flow_graph(object: &Object) -> FlowGraph {
             if let (Some(reg), node) = (o, f) {
                 let reg_operand = bob.operand(location, Operand::Register(*reg));
                 for (reg, node) in reg_operand.iter().zip(node.iter()) {
-                    bob.fg.edge(*node, *reg, EdgeKind::Arg(0));
+                    bob.fg.edge(*node, *reg, EdgeKind::ArgBit(0, 0));
                 }
             }
         });
     let ret_operand = bob.operand(location, object.return_register);
     for (reg, output) in ret_operand.iter().zip(bob.fg.output.clone().iter()) {
-        bob.fg.edge(*reg, *output, EdgeKind::Arg(0));
+        bob.fg.edge(*reg, *output, EdgeKind::ArgBit(0, 0));
     }
     bob.fg
 }
@@ -136,7 +136,7 @@ impl<'a> FlowGraphBuilder<'a> {
         let rhs = self.operand(loc, assign.rhs);
         let lhs = self.operand(loc, assign.lhs);
         for (lhs, rhs) in lhs.iter().zip(rhs.iter()) {
-            self.fg.edge(*rhs, *lhs, EdgeKind::Arg(0));
+            self.fg.edge(*rhs, *lhs, EdgeKind::ArgBit(0, 0));
         }
     }
     fn build_binary(&mut self, loc: SourceLocation, binary: &tl::Binary) {
@@ -158,7 +158,7 @@ impl<'a> FlowGraphBuilder<'a> {
                 );
                 self.fg.edge(*arg1, comp, EdgeKind::ArgBit(0, 0));
                 self.fg.edge(*arg2, comp, EdgeKind::ArgBit(1, 0));
-                self.fg.edge(comp, *lhs, EdgeKind::OutputBit(0));
+                self.fg.edge(comp, *lhs, EdgeKind::ArgBit(0, 0));
             }
         } else {
             let comp = self.fg.new_component(
@@ -171,7 +171,8 @@ impl<'a> FlowGraphBuilder<'a> {
                 loc,
             );
             for (ndx, lhs) in lhs.iter().enumerate() {
-                self.fg.edge(comp, *lhs, EdgeKind::OutputBit(ndx));
+                let bit = self.fg.bit_select(comp, ndx);
+                self.fg.edge(bit, *lhs, EdgeKind::ArgBit(0, 0));
             }
             for (ndx, arg1) in arg1.iter().enumerate() {
                 self.fg.edge(*arg1, comp, EdgeKind::ArgBit(0, ndx));
@@ -216,14 +217,14 @@ impl<'a> FlowGraphBuilder<'a> {
             for (ndx, arg) in arguments.iter().enumerate() {
                 self.fg.edge(arg[bit], comp, EdgeKind::ArgBit(ndx, bit));
             }
-            self.fg.edge(comp, lhs[bit], EdgeKind::OutputBit(0));
+            self.fg.edge(comp, lhs[bit], EdgeKind::ArgBit(0, 0));
         }
     }
     fn build_cast(&mut self, loc: SourceLocation, cast: &tl::Cast) {
         let lhs = self.operand(loc, cast.lhs);
         let arg = self.operand(loc, cast.arg);
         for (lhs, rhs) in lhs.iter().zip(arg.iter()) {
-            self.fg.edge(*rhs, *lhs, EdgeKind::Arg(0));
+            self.fg.edge(*rhs, *lhs, EdgeKind::ArgBit(0, 0));
         }
         let lhs_signed = self.object.kind(cast.lhs).is_signed();
         let use_unsigned = matches!(cast.kind, tl::CastKind::Unsigned)
@@ -233,12 +234,12 @@ impl<'a> FlowGraphBuilder<'a> {
                 .fg
                 .new_component(ComponentKind::Constant(false), lhs.len(), loc);
             for lhs in lhs.iter().skip(arg.len()) {
-                self.fg.edge(zero, *lhs, EdgeKind::Arg(0));
+                self.fg.edge(zero, *lhs, EdgeKind::ArgBit(0, 0));
             }
         } else {
             let msb = arg.last().unwrap();
             for lhs in lhs.iter().skip(arg.len()) {
-                self.fg.edge(*msb, *lhs, EdgeKind::Arg(0));
+                self.fg.edge(*msb, *lhs, EdgeKind::ArgBit(0, 0));
             }
         }
     }
@@ -250,7 +251,7 @@ impl<'a> FlowGraphBuilder<'a> {
             .map(|x| self.operand(loc, *x))
             .collect::<Vec<_>>();
         for (lhs, rhs) in lhs.iter().zip(args.iter().flatten()) {
-            self.fg.edge(*rhs, *lhs, EdgeKind::Arg(0));
+            self.fg.edge(*rhs, *lhs, EdgeKind::ArgBit(0, 0));
         }
     }
     fn build_dynamic_index(&mut self, loc: SourceLocation, dynamic_index: &tl::DynamicIndex) {
@@ -266,7 +267,8 @@ impl<'a> FlowGraphBuilder<'a> {
             loc,
         );
         for (ndx, lhs) in lhs.iter().enumerate() {
-            self.fg.edge(comp, *lhs, EdgeKind::OutputBit(ndx));
+            let bit = self.fg.bit_select(comp, ndx);
+            self.fg.edge(bit, *lhs, EdgeKind::ArgBit(0, 0));
         }
         for (ndx, offset) in offset.iter().enumerate() {
             self.fg.edge(*offset, comp, EdgeKind::DynamicOffset(ndx));
@@ -289,7 +291,8 @@ impl<'a> FlowGraphBuilder<'a> {
             loc,
         );
         for (ndx, lhs) in lhs.iter().enumerate() {
-            self.fg.edge(comp, *lhs, EdgeKind::OutputBit(ndx));
+            let bit = self.fg.bit_select(comp, ndx);
+            self.fg.edge(bit, *lhs, EdgeKind::ArgBit(0, 0));
         }
         for (ndx, offset) in offset.iter().enumerate() {
             self.fg.edge(*offset, comp, EdgeKind::DynamicOffset(ndx));
@@ -305,7 +308,7 @@ impl<'a> FlowGraphBuilder<'a> {
         let lhs = self.operand(loc, index.lhs);
         let arg = self.operand(loc, index.arg);
         for (lhs, rhs) in lhs.iter().zip(arg.iter().skip(index.bit_range.start)) {
-            self.fg.edge(*rhs, *lhs, EdgeKind::Arg(0));
+            self.fg.edge(*rhs, *lhs, EdgeKind::ArgBit(0, 0));
         }
     }
     fn build_select(&mut self, loc: SourceLocation, select: &tl::Select) {
@@ -320,7 +323,7 @@ impl<'a> FlowGraphBuilder<'a> {
             self.fg.edge(cond[0], comp, EdgeKind::Selector(0));
             self.fg.edge(*true_val, comp, EdgeKind::True);
             self.fg.edge(*false_val, comp, EdgeKind::False);
-            self.fg.edge(comp, *lhs, EdgeKind::OutputBit(0));
+            self.fg.edge(comp, *lhs, EdgeKind::ArgBit(0, 0));
         }
     }
     fn build_splice(&mut self, loc: SourceLocation, splice: &tl::Splice) {
@@ -332,7 +335,7 @@ impl<'a> FlowGraphBuilder<'a> {
         let msb_iter = orig.iter().skip(splice.bit_range.end);
         let rhs = lsb_iter.chain(center_iter).chain(msb_iter);
         for (lhs, rhs) in lhs.iter().zip(rhs) {
-            self.fg.edge(*rhs, *lhs, EdgeKind::Arg(0));
+            self.fg.edge(*rhs, *lhs, EdgeKind::ArgBit(0, 0));
         }
     }
     fn build_unary(&mut self, loc: SourceLocation, unary: &tl::Unary) {
@@ -343,8 +346,8 @@ impl<'a> FlowGraphBuilder<'a> {
                 let comp =
                     self.fg
                         .new_component(ComponentKind::Unary(Unary { op: unary.op }), 1, loc);
-                self.fg.edge(*rhs, comp, EdgeKind::Arg(0));
-                self.fg.edge(comp, *lhs, EdgeKind::Arg(0));
+                self.fg.edge(*rhs, comp, EdgeKind::ArgBit(0, 0));
+                self.fg.edge(comp, *lhs, EdgeKind::ArgBit(0, 0));
             }
         } else {
             let comp = self.fg.new_component(
@@ -356,7 +359,8 @@ impl<'a> FlowGraphBuilder<'a> {
                 self.fg.edge(*rhs, comp, EdgeKind::ArgBit(0, ndx));
             }
             for (ndx, lhs) in lhs.iter().enumerate() {
-                self.fg.edge(comp, *lhs, EdgeKind::OutputBit(ndx));
+                let bit = self.fg.bit_select(comp, ndx);
+                self.fg.edge(bit, *lhs, EdgeKind::ArgBit(0, 0));
             }
         }
     }

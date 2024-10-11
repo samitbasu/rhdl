@@ -11,7 +11,7 @@ use crate::{
 };
 
 use super::{
-    component::{Component, ComponentKind, DFFInput, DFFOutput},
+    component::{BitSelect, Component, ComponentKind, DFFInput, DFFOutput},
     edge_kind::EdgeKind,
     hdl::generate_hdl,
 };
@@ -139,6 +139,15 @@ impl FlowGraph {
             location,
         })
     }
+    pub fn bit_select(&mut self, source: FlowIx, bit_index: usize) -> FlowIx {
+        let node = self.graph.add_node(Component {
+            kind: ComponentKind::BitSelect(BitSelect { bit_index }),
+            width: 1,
+            location: None,
+        });
+        self.graph.add_edge(source, node, EdgeKind::ArgBit(0, 0));
+        node
+    }
     pub fn edge(&mut self, source: FlowIx, target: FlowIx, kind: EdgeKind) {
         self.graph.add_edge(source, target, kind);
     }
@@ -148,7 +157,7 @@ impl FlowGraph {
         target: impl Iterator<Item = FlowIx>,
     ) {
         source.zip(target).for_each(|(source, target)| {
-            self.edge(source, target, EdgeKind::Arg(0));
+            self.edge(source, target, EdgeKind::ArgBit(0, 0));
         });
     }
     pub fn merge(&mut self, other: &FlowGraph) -> HashMap<FlowIx, FlowIx> {

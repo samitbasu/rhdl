@@ -119,11 +119,11 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         let parent_inputs = input_buffer.iter();
         for (parent_input, child_input) in parent_inputs.zip(child_inputs) {
             let child_input = child_remap[child_input];
-            fg.edge(*parent_input, child_input, EdgeKind::Arg(0));
+            fg.edge(*parent_input, child_input, EdgeKind::ArgBit(0, 0));
         }
         for (parent_output, child_output) in output_buffer.iter().zip(&child_fg.output) {
             let child_output = child_remap[child_output];
-            fg.edge(child_output, *parent_output, EdgeKind::Arg(0));
+            fg.edge(child_output, *parent_output, EdgeKind::ArgBit(0, 0));
         }
         fg.inputs = vec![input_buffer];
         fg.output = output_buffer;

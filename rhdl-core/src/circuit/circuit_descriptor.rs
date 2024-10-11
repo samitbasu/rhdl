@@ -69,7 +69,7 @@ pub fn build_descriptor<C: Circuit>(
     let input_from_update = remap_bits(&update_flow_graph.inputs[0]);
     // Link the input to its buffer
     for (input, input_buffer) in input_from_update.iter().zip(input_buffer.iter()) {
-        fg.edge(*input_buffer, *input, EdgeKind::Arg(0));
+        fg.edge(*input_buffer, *input, EdgeKind::ArgBit(0, 0));
     }
     let update_q_input = remap_bits(&update_flow_graph.inputs[1]);
     // We need an output buffer, but will need to split the output from the update map into its two constituent components.
@@ -80,17 +80,17 @@ pub fn build_descriptor<C: Circuit>(
     let mut update_output_bits = update_output.iter();
     // Assign the output buffer to the output of the update function
     for (circuit, output) in circuit_output_buffer.iter().zip(&mut update_output_bits) {
-        fg.edge(*output, *circuit, EdgeKind::Arg(0));
+        fg.edge(*output, *circuit, EdgeKind::ArgBit(0, 0));
     }
     // Create a buffer to hold the "D" output of the update function
     let circuit_d_buffer = fg.buffer(d_kind, "d", output_buffer_location);
     for (d, output) in circuit_d_buffer.iter().zip(&mut update_output_bits) {
-        fg.edge(*output, *d, EdgeKind::Arg(0));
+        fg.edge(*output, *d, EdgeKind::ArgBit(0, 0));
     }
     // Create a buffer to hold the "Q" input of the update function
     let q_buffer = fg.buffer(q_kind, "q", output_buffer_location);
     for (buffer, q) in q_buffer.iter().zip(&update_q_input) {
-        fg.edge(*buffer, *q, EdgeKind::Arg(0));
+        fg.edge(*buffer, *q, EdgeKind::ArgBit(0, 0));
     }
     // Create the inputs for the children by splitting bits off of the d_index
     for (child_name, child_descriptor) in &children {
@@ -105,11 +105,11 @@ pub fn build_descriptor<C: Circuit>(
         let child_output = remap_child(&child_flow_graph.output);
         let mut d_iter = circuit_d_buffer.iter().skip(output_bit_range.start);
         for (child_input, d_index) in child_inputs.iter().zip(&mut d_iter) {
-            fg.edge(*d_index, *child_input, EdgeKind::Arg(0));
+            fg.edge(*d_index, *child_input, EdgeKind::ArgBit(0, 0));
         }
         let mut q_iter = q_buffer.iter().skip(input_bit_range.start);
         for (child_output, q_index) in child_output.iter().zip(&mut q_iter) {
-            fg.edge(*child_output, *q_index, EdgeKind::Arg(0));
+            fg.edge(*child_output, *q_index, EdgeKind::ArgBit(0, 0));
         }
     }
     fg.inputs = vec![input_buffer];
@@ -187,10 +187,10 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     let input_from_update = remap_bits(&update_flow_graph.inputs[1]);
     // Link the input and reset to their respective buffers
     for (reset, reset_buffer) in cr_for_update.iter().zip(cr_buffer.iter()) {
-        fg.edge(*reset_buffer, *reset, EdgeKind::Arg(0));
+        fg.edge(*reset_buffer, *reset, EdgeKind::ArgBit(0, 0));
     }
     for (input, input_buffer) in input_from_update.iter().zip(input_buffer.iter()) {
-        fg.edge(*input_buffer, *input, EdgeKind::Arg(0));
+        fg.edge(*input_buffer, *input, EdgeKind::ArgBit(0, 0));
     }
     let update_q_input = remap_bits(&update_flow_graph.inputs[2]);
     // We need an output buffer, but we will need to split the output from the update map into it's two constituent components.
@@ -201,18 +201,18 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     let mut update_output_bits = update_output.iter();
     // Assign the output buffer to the output of the update function
     for (circuit, output) in circuit_output_buffer.iter().zip(&mut update_output_bits) {
-        fg.edge(*output, *circuit, EdgeKind::Arg(0));
+        fg.edge(*output, *circuit, EdgeKind::ArgBit(0, 0));
     }
     // Create a buffer to hold the "D" output of the update function
     let circuit_d_buffer = fg.buffer(d_kind, "d", output_buffer_location);
     for (d, output) in circuit_d_buffer.iter().zip(&mut update_output_bits) {
-        fg.edge(*output, *d, EdgeKind::Arg(0));
+        fg.edge(*output, *d, EdgeKind::ArgBit(0, 0));
     }
     // Create a buffer to hold the "Q" input of the update function
     let q_buffer = fg.buffer(q_kind, "q", output_buffer_location);
     // Wire that buffer to the input of the update function
     for (buffer, q) in q_buffer.iter().zip(&update_q_input) {
-        fg.edge(*buffer, *q, EdgeKind::Arg(0));
+        fg.edge(*buffer, *q, EdgeKind::ArgBit(0, 0));
     }
     // Create the inputs for the children by splitting bits off of the d_index
     for (child_name, child_descriptor) in &children {
@@ -228,16 +228,16 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         let child_output = remap_child(&child_flow_graph.output);
         let mut d_iter = circuit_d_buffer.iter().skip(output_bit_range.start);
         for (child_input, d_index) in child_inputs.iter().zip(&mut d_iter) {
-            fg.edge(*d_index, *child_input, EdgeKind::Arg(0));
+            fg.edge(*d_index, *child_input, EdgeKind::ArgBit(0, 0));
         }
         let mut q_iter = q_buffer.iter().skip(input_bit_range.start);
         for (child_output, q_index) in child_output.iter().zip(&mut q_iter) {
-            fg.edge(*child_output, *q_index, EdgeKind::Arg(0));
+            fg.edge(*child_output, *q_index, EdgeKind::ArgBit(0, 0));
         }
         // Connect the cr lines
         let cr_line = remap_child(&child_flow_graph.inputs[0]);
         for (reset_buffer, reset_line) in cr_buffer.iter().zip(cr_line.iter()) {
-            fg.edge(*reset_buffer, *reset_line, EdgeKind::Arg(0));
+            fg.edge(*reset_buffer, *reset_line, EdgeKind::ArgBit(0, 0));
         }
     }
     fg.inputs = vec![cr_buffer, input_buffer];

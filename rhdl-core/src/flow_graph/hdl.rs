@@ -47,7 +47,6 @@ fn generate_reg_declaration(index: FlowIx, component: &Component) -> Option<Decl
 fn arg_fun(index: usize, edge: &EdgeKind) -> Option<usize> {
     match edge {
         EdgeKind::ArgBit(ndx, bit) if *ndx == index => Some(*bit),
-        EdgeKind::Arg(ndx) if *ndx == 0 => Some(0),
         _ => None,
     }
 }
@@ -158,7 +157,7 @@ impl<'a> FlowGraphHDLBuilder<'a> {
             .find(|edge| {
                 matches!(
                     edge.weight(),
-                    EdgeKind::OutputBit(_) | EdgeKind::ArgBit(_, _) | EdgeKind::Arg(_)
+                    EdgeKind::OutputBit(_) | EdgeKind::ArgBit(_, _)
                 )
             })
             .ok_or(self.raise_ice(FlowGraphICE::DFFInputDriverNotFound, component.location))?;
