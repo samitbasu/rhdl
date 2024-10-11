@@ -82,7 +82,7 @@ impl Pass for RemoveHardwiredSelectsPass {
         });
         for (target, replacement) in remap {
             graph.node_weight_mut(target).unwrap().kind = ComponentKind::Buffer("opt_sel".into());
-            graph.add_edge(replacement, target, EdgeKind::Arg(0));
+            graph.add_edge(replacement, target, EdgeKind::ArgBit(0, 0));
         }
         Ok(FlowGraph { graph, ..input })
     }

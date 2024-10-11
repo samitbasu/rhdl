@@ -49,6 +49,7 @@ pub enum CaseEntry {
 #[derive(Debug, Clone, Hash)]
 pub enum ComponentKind {
     Binary(Binary),
+    BitSelect(BitSelect),
     BlackBox(BlackBox),
     Buffer(String),
     Case(Case),
@@ -61,6 +62,11 @@ pub enum ComponentKind {
     TimingStart,
     TimingEnd,
     Unary(Unary),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct BitSelect {
+    pub bit_index: usize,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -84,6 +90,7 @@ impl std::fmt::Debug for Component {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.kind {
             ComponentKind::Binary(binary) => write!(f, "{:?}", binary.op),
+            ComponentKind::BitSelect(bit_select) => write!(f, "[{}]", bit_select.bit_index),
             ComponentKind::BlackBox(blackbox) => write!(f, "{}", blackbox.name),
             ComponentKind::Buffer(name) => write!(f, "{name}"),
             ComponentKind::Case(_) => write!(f, "Case"),
