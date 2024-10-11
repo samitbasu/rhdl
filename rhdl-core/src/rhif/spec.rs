@@ -188,21 +188,6 @@ pub enum AluUnary {
     Val,
 }
 
-impl AluUnary {
-    pub(crate) fn verilog_unop(&self) -> &'static str {
-        match self {
-            AluUnary::Neg => "-",
-            AluUnary::Not => "!",
-            AluUnary::All => "&",
-            AluUnary::Any => "|",
-            AluUnary::Xor => "^",
-            AluUnary::Signed => "$signed",
-            AluUnary::Unsigned => "$unsigned",
-            AluUnary::Val => "",
-        }
-    }
-}
-
 #[derive(Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub enum Slot {
     Literal(LiteralId),

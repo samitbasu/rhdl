@@ -526,7 +526,7 @@ where
     // Write the flow graph to a DOT file
     //    let flow_graph = CheckForUndrivenPass::run(flow_graph)?;
     // Use write_dot to write the flow graph out to a file
-    //    std::fs::write("flow_graph.dot", flow_graph.dot()?)?;
+    std::fs::write("flow_graph.dot", flow_graph.dot()?)?;
     // eprintln!("{}", generate_hdl("top", &flow_graph)?.as_verilog());
     let tm = test_module_for_flowgraph(uut, desc, vals);
     tm.run_iverilog()?;
