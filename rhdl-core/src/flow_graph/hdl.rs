@@ -7,10 +7,10 @@ use crate::{
     error::rhdl_error,
     flow_graph::{component::CaseEntry, edge_kind::EdgeKind, error::FlowGraphError},
     hdl::ast::{
-        always, assign, binary, case, concatenate, constant, declaration, dynamic_index,
-        dynamic_splice, id, if_statement, index_bit, initial, non_blocking_assignment, port,
-        select, splice, unary, unsigned_width, CaseItem, Declaration, Direction, Events,
-        Expression, HDLKind, Module, Statement,
+        always, assign, binary, bit_string, case, concatenate, constant, declaration,
+        dynamic_index, dynamic_splice, id, if_statement, index_bit, initial,
+        non_blocking_assignment, port, select, splice, unary, unsigned_width, CaseItem,
+        Declaration, Direction, Events, Expression, HDLKind, Module, Statement,
     },
     FlowGraph, RHDLError,
 };
@@ -154,19 +154,9 @@ impl<'a> FlowGraphHDLBuilder<'a> {
         let data_edge = graph
             .graph
             .edges_directed(index, petgraph::Direction::Incoming)
-            .find(|edge| {
-                matches!(
-                    edge.weight(),
-                    EdgeKind::OutputBit(_) | EdgeKind::ArgBit(_, _)
-                )
-            })
+            .find(|edge| matches!(edge.weight(), EdgeKind::ArgBit(_, _)))
             .ok_or(self.raise_ice(FlowGraphICE::DFFInputDriverNotFound, component.location))?;
-        self.stmt(match data_edge.weight() {
-            EdgeKind::OutputBit(bit) => {
-                assign(&node(index), index_bit(&node(data_edge.source()), *bit))
-            }
-            _ => assign(&node(index), id(&node(data_edge.source()))),
-        });
+        self.stmt(assign(&node(index), id(&node(data_edge.source()))));
         Ok(())
     }
     fn buffer_assign_statement(&mut self, index: FlowIx) -> Result<(), RHDLError> {
@@ -193,12 +183,7 @@ impl<'a> FlowGraphHDLBuilder<'a> {
                 .edges_directed(index, petgraph::Direction::Incoming)
                 .next()
                 .ok_or(self.raise_ice(FlowGraphICE::BufferParentNotFound, component.location))?;
-            self.stmt(match parent.weight() {
-                EdgeKind::OutputBit(bit) => {
-                    assign(&node(index), index_bit(&node(parent.source()), *bit))
-                }
-                _ => assign(&node(index), id(&node(parent.source()))),
-            });
+            self.stmt(assign(&node(index), id(&node(parent.source()))));
         }
         Ok(())
     }
@@ -308,6 +293,26 @@ impl<'a> FlowGraphHDLBuilder<'a> {
         Ok(())
     }
 
+    fn bit_select(&mut self, index: FlowIx) -> Result<(), RHDLError> {
+        let graph = self.graph;
+        let component = &graph.graph[index];
+        let ComponentKind::BitSelect(bit_select) = &component.kind else {
+            return Err(self.raise_ice(FlowGraphICE::ExpectedUnaryComponent, component.location));
+        };
+        let arg = self
+            .graph
+            .graph
+            .edges_directed(index, petgraph::Direction::Incoming)
+            .next()
+            .unwrap();
+        let source = arg.source();
+        self.stmt(assign(
+            &node(index),
+            index_bit(&node(source), bit_select.bit_index),
+        ));
+        Ok(())
+    }
+
     fn case_statement(&mut self, index: FlowIx) -> Result<(), RHDLError> {
         let graph = self.graph;
         let component = &graph.graph[index];
@@ -355,6 +360,9 @@ impl<'a> FlowGraphHDLBuilder<'a> {
             ComponentKind::Constant(value) => {
                 self.stmt(assign(&node(index), constant(*value)));
             }
+            ComponentKind::BitString(bs) => {
+                self.stmt(assign(&node(index), bit_string(bs)));
+            }
             ComponentKind::Buffer(_) => self.buffer_assign_statement(index)?,
             ComponentKind::Select => self.select_assign_statement(index)?,
             ComponentKind::Binary(_) => self.binary_assign_statement(index)?,
@@ -365,6 +373,7 @@ impl<'a> FlowGraphHDLBuilder<'a> {
             ComponentKind::Case(_) => self.case_statement(index)?,
             ComponentKind::DynamicIndex(_) => self.dynamic_index_assign_statement(index)?,
             ComponentKind::DynamicSplice(_) => self.dynamic_splice(index)?,
+            ComponentKind::BitSelect(_) => self.bit_select(index)?,
             ComponentKind::TimingStart => {}
             ComponentKind::TimingEnd => {}
         }

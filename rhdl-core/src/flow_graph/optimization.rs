@@ -8,7 +8,8 @@ use crate::{
 };
 
 use super::passes::{
-    pass::Pass, remove_hardwired_selects::RemoveHardwiredSelectsPass,
+    constant_propagation::ConstantPropagationPass, pass::Pass,
+    remove_hardwired_selects::RemoveHardwiredSelectsPass,
     remove_unused_buffers::RemoveUnusedBuffers,
 };
 
@@ -19,6 +20,7 @@ pub fn optimize_flow_graph(mut flow_graph: FlowGraph) -> Result<FlowGraph, RHDLE
         flow_graph = RemoveOrphanConstantsPass::run(flow_graph)?;
         flow_graph = RemoveHardwiredSelectsPass::run(flow_graph)?;
         flow_graph = RemoveUnusedBuffers::run(flow_graph)?;
+        flow_graph = ConstantPropagationPass::run(flow_graph)?;
         if flow_graph.graph.node_count() == num_nodes {
             break;
         }

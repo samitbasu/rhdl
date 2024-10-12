@@ -4,6 +4,7 @@ use petgraph::{graph::NodeIndex, visit::EdgeRef};
 
 use crate::{
     flow_graph::{component::ComponentKind, edge_kind::EdgeKind, flow_graph_impl::GraphType},
+    types::bit_string::BitString,
     FlowGraph, RHDLError,
 };
 
@@ -14,8 +15,8 @@ pub struct RemoveHardwiredSelectsPass {}
 
 fn get_constant(graph: &GraphType, node: NodeIndex) -> Option<bool> {
     let weight = &graph[node];
-    if let ComponentKind::Constant(value) = weight.kind {
-        return Some(value);
+    if let ComponentKind::Constant(value) = &weight.kind {
+        return Some(*value);
     }
     None
 }

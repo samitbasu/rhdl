@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use petgraph::visit::EdgeRef;
 
 use crate::{
