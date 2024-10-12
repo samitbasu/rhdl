@@ -59,6 +59,10 @@ impl BitString {
     pub(crate) fn zeros(shift_amount: usize) -> BitString {
         BitString::Unsigned(repeat(false).take(shift_amount).collect())
     }
+
+    pub(crate) fn is_all_true(&self) -> bool {
+        self.bits().iter().all(|b| *b)
+    }
 }
 
 impl std::fmt::Debug for BitString {
@@ -115,5 +119,24 @@ impl From<&TypedBits> for BitString {
 impl From<TypedBits> for BitString {
     fn from(tb: TypedBits) -> Self {
         (&tb).into()
+    }
+}
+
+impl FromIterator<bool> for BitString {
+    fn from_iter<I: IntoIterator<Item = bool>>(iter: I) -> Self {
+        let bits: Vec<bool> = iter.into_iter().collect();
+        BitString::Unsigned(bits)
+    }
+}
+
+impl From<bool> for BitString {
+    fn from(b: bool) -> Self {
+        BitString::Unsigned(vec![b])
+    }
+}
+
+impl From<&bool> for BitString {
+    fn from(b: &bool) -> Self {
+        BitString::Unsigned(vec![*b])
     }
 }

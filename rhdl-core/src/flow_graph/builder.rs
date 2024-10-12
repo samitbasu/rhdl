@@ -232,7 +232,7 @@ impl<'a> FlowGraphBuilder<'a> {
         if use_unsigned {
             let zero = self
                 .fg
-                .new_component(ComponentKind::Constant(false), lhs.len(), loc);
+                .new_component(ComponentKind::Constant(false.into()), lhs.len(), loc);
             for lhs in lhs.iter().skip(arg.len()) {
                 self.fg.edge(zero, *lhs, EdgeKind::ArgBit(0, 0));
             }
@@ -343,16 +343,24 @@ impl<'a> FlowGraphBuilder<'a> {
         let arg1 = self.operand(loc, unary.arg1);
         if is_bitwise_unary(unary.op) {
             for (lhs, rhs) in lhs.iter().zip(arg1.iter()) {
-                let comp =
-                    self.fg
-                        .new_component(ComponentKind::Unary(Unary { op: unary.op }), 1, loc);
+                let comp = self.fg.new_component(
+                    ComponentKind::Unary(Unary {
+                        op: unary.op,
+                        arg_len: unsigned_width(1),
+                    }),
+                    1,
+                    loc,
+                );
                 self.fg.edge(*rhs, comp, EdgeKind::ArgBit(0, 0));
                 self.fg.edge(comp, *lhs, EdgeKind::ArgBit(0, 0));
             }
         } else {
             let comp = self.fg.new_component(
-                ComponentKind::Unary(Unary { op: unary.op }),
-                arg1.len(),
+                ComponentKind::Unary(Unary {
+                    op: unary.op,
+                    arg_len: self.object.kind(unary.arg1).into(),
+                }),
+                lhs.len(),
                 loc,
             );
             for (ndx, rhs) in arg1.iter().enumerate() {

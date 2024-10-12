@@ -15,6 +15,7 @@ pub struct Binary {
 #[derive(Debug, Clone, Hash)]
 pub struct Unary {
     pub op: AluUnary,
+    pub arg_len: SignedWidth,
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -50,6 +51,7 @@ pub enum CaseEntry {
 pub enum ComponentKind {
     Binary(Binary),
     BitSelect(BitSelect),
+    BitString(BitString),
     BlackBox(BlackBox),
     Buffer(String),
     Case(Case),
@@ -91,11 +93,12 @@ impl std::fmt::Debug for Component {
         match &self.kind {
             ComponentKind::Binary(binary) => write!(f, "{:?}", binary.op),
             ComponentKind::BitSelect(bit_select) => write!(f, "[{}]", bit_select.bit_index),
+            ComponentKind::BitString(bit_string) => write!(f, "{:?}", bit_string),
             ComponentKind::BlackBox(blackbox) => write!(f, "{}", blackbox.name),
             ComponentKind::Buffer(name) => write!(f, "{name}"),
             ComponentKind::Case(_) => write!(f, "Case"),
             ComponentKind::Constant(constant) => {
-                write!(f, "const({})", if *constant { 1 } else { 0 })
+                write!(f, "{}", *constant as u8)
             }
             ComponentKind::DynamicIndex(dynamic_index) => {
                 write!(
