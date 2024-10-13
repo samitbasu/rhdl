@@ -290,6 +290,9 @@ fn dynamic_index(ast: &DynamicIndex) -> String {
 }
 
 fn index(ast: &Index) -> String {
+    if (ast.range.start + 1) == ast.range.end {
+        return format!("{}[{}]", &ast.target, ast.range.start);
+    }
     let start = ast.range.start;
     let end = ast.range.end.saturating_sub(1);
     format!("{}[{}:{}]", &ast.target, end, start)
