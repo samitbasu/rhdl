@@ -11,6 +11,7 @@ use crate::{
     hdl::ast::SignedWidth,
     rhif::runtime_ops::{binary, unary},
     types::bit_string::BitString,
+    util::binary_string,
     FlowGraph, RHDLError, TypedBits,
 };
 
@@ -31,7 +32,6 @@ fn collect_argument<T: Fn(&EdgeKind) -> Option<usize>>(
         .collect::<Vec<_>>();
     let arg_bits = (0..width.len())
         .map(|bit| {
-            let bit = width.len() - 1 - bit;
             arg_incoming
                 .iter()
                 .find_map(|(b, ndx)| if *b == bit { Some(*ndx) } else { None })
@@ -64,7 +64,11 @@ fn arg_fun(index: usize, edge: &EdgeKind) -> Option<usize> {
 fn compute_binary(bin: &Binary, node: FlowIx, graph: &GraphType) -> Option<BitString> {
     let arg0: TypedBits = collect_argument(graph, node, bin.left_len, |x| arg_fun(0, x))?.into();
     let arg1: TypedBits = collect_argument(graph, node, bin.right_len, |x| arg_fun(1, x))?.into();
-    let result = binary(bin.op, arg0, arg1).ok()?;
+    let result = binary(bin.op, arg0.clone(), arg1.clone()).ok()?;
+    eprintln!(
+        "Constant prop {arg0:?} {op:?} {arg1:?} -> {result:?}",
+        op = bin.op
+    );
     Some(result.into())
 }
 
@@ -109,7 +113,12 @@ impl Pass for ConstantPropagationPass {
         // Rewrite the nodes to replace them with BitString components
         // containing the constant value.
         for (node, value) in values {
-            graph.node_weight_mut(node).unwrap().kind = ComponentKind::BitString(value);
+            if value.len() == 1 {
+                graph.node_weight_mut(node).unwrap().kind =
+                    ComponentKind::Constant(value.is_all_true());
+            } else {
+                graph.node_weight_mut(node).unwrap().kind = ComponentKind::BitString(value);
+            }
         }
         graph.retain_edges(|_, edge| !edges_to_drop.contains(&edge));
         Ok(FlowGraph { graph, ..input })

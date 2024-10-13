@@ -268,7 +268,7 @@ pub fn index(target: &str, range: std::ops::Range<usize>) -> Box<Expression> {
 }
 
 pub fn index_bit(target: &str, bit: usize) -> Box<Expression> {
-    index(target, bit..bit + 1)
+    index(target, bit..(bit + 1))
 }
 
 #[derive(Debug, Clone, Hash)]

@@ -285,11 +285,20 @@ impl<'a> FlowGraphHDLBuilder<'a> {
     fn unary_assign_statement(&mut self, index: FlowIx) -> Result<(), RHDLError> {
         let graph = self.graph;
         let component = &graph.graph[index];
-        let ComponentKind::Unary(op) = &component.kind else {
+        let ComponentKind::Unary(uny) = &component.kind else {
             return Err(self.raise_ice(FlowGraphICE::ExpectedUnaryComponent, component.location));
         };
-        let arg = nodes(self.collect_argument(index, component.width, |x| arg_fun(0, x))?);
-        self.stmt(assign(&node(index), unary(op.op, concatenate(arg))));
+        let arg = concatenate(nodes(self.collect_argument(
+            index,
+            uny.arg_len.len(),
+            |x| arg_fun(0, x),
+        )?));
+        let arg = if uny.arg_len.is_signed() {
+            unary(crate::rhif::spec::AluUnary::Signed, arg)
+        } else {
+            unary(crate::rhif::spec::AluUnary::Unsigned, arg)
+        };
+        self.stmt(assign(&node(index), unary(uny.op, arg)));
         Ok(())
     }
 
