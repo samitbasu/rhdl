@@ -11,7 +11,6 @@ use crate::{
     hdl::ast::SignedWidth,
     rhif::runtime_ops::{binary, unary},
     types::bit_string::BitString,
-    util::binary_string,
     FlowGraph, RHDLError, TypedBits,
 };
 

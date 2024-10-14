@@ -31,7 +31,12 @@ impl Pass for ConstantBufferEliminationPass {
                     if let Some(edge) = edges.next() {
                         let source = edge.source();
                         let source_weight = &graph[source];
-                        if !matches!(source_weight.kind, ComponentKind::Buffer(_)) {
+                        // We can eliminate a buffer if:
+                        //  - the source is not a buffer
+                        //  - the source is a top level input.
+                        if !matches!(source_weight.kind, ComponentKind::Buffer(_))
+                            || input.inputs.iter().flatten().any(|input| *input == source)
+                        {
                             return Some(Candidate {
                                 buffer: candidate,
                                 source,

@@ -19,7 +19,8 @@ use crate::hdl::ast::{
 use crate::hdl::builder::generate_verilog;
 use crate::types::bit_string::BitString;
 use crate::util::delim_list_optional_strings;
-use crate::{build_rtl_flow_graph, DigitalFn};
+use crate::Digital;
+use crate::{build_rtl_flow_graph, ClockReset, DigitalFn, Synchronous, TimedSample};
 use crate::{Timed, TypedBits};
 
 pub trait TestArg {
@@ -374,6 +375,135 @@ endmodule
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug)]
+enum ResetState {
+    Initial,
+    InReset,
+    ResetDone,
+}
+
+// This probably belongs elsewhere.  Need to figure out how to organize this.
+pub fn test_flowgraph_for_synchronous<S: Synchronous>(
+    uut: &S,
+    inputs: impl Iterator<Item = TimedSample<(ClockReset, S::I)>>,
+) -> Result<TestModule, RHDLError> {
+    let mut state = S::S::init();
+    let mut io = S::Z::default();
+    let fg = uut.flow_graph()?;
+    let desc = fg.hdl("uut")?;
+    let name = &desc.name;
+    let body = desc.as_verilog();
+    eprintln!("{body}");
+    let arg0_connection = Some(connection("arg_0", id("clock_reset")));
+    let arg1_connection = (S::I::bits() != 0).then(|| connection("arg_1", id("i")));
+    let arg2_connection = Some(connection("out", id("o")));
+    let instance = component_instance(
+        name,
+        "t",
+        vec![arg0_connection, arg1_connection, arg2_connection]
+            .into_iter()
+            .flatten()
+            .collect(),
+    );
+    let declarations = vec![
+        Some(declaration(
+            HDLKind::Reg,
+            "clock_reset",
+            unsigned_width(ClockReset::bits()),
+            None,
+        )),
+        (S::I::bits() != 0)
+            .then(|| declaration(HDLKind::Reg, "i", unsigned_width(S::I::bits()), None)),
+        Some(declaration(
+            HDLKind::Wire,
+            "o",
+            unsigned_width(S::O::bits()),
+            None,
+        )),
+        Some(declaration(
+            HDLKind::Reg,
+            "rust_out",
+            unsigned_width(S::O::bits()),
+            None,
+        )),
+    ];
+    let mut prev_time = 0;
+    let mut test_cases = vec![];
+    let mut reset_state = ResetState::Initial;
+    for (test_case_counter, timed_input) in inputs.enumerate() {
+        let time = timed_input.time;
+        if time != prev_time {
+            test_cases.push(delay((time - prev_time) as usize));
+            prev_time = time;
+        }
+        let clock_reset = timed_input.value.0;
+        let input = timed_input.value.1;
+        test_cases.push(assign(
+            "clock_reset",
+            bit_string(&clock_reset.typed_bits().into()),
+        ));
+        if S::I::bits() != 0 {
+            test_cases.push(assign("i", bit_string(&input.typed_bits().into())));
+        }
+        let output = uut.sim(clock_reset, input, &mut state, &mut io);
+        test_cases.push(assign("rust_out", bit_string(&output.typed_bits().into())));
+        let reset_bit_enabled = clock_reset.reset.any();
+        let reset_state = match (reset_state, reset_bit_enabled) {
+            (ResetState::Initial, true) => ResetState::InReset,
+            (ResetState::InReset, false) => ResetState::ResetDone,
+            (ResetState::ResetDone, true) => ResetState::InReset,
+            (ResetState::ResetDone, false) => ResetState::ResetDone,
+            _ => reset_state,
+        };
+        if reset_state == ResetState::ResetDone {
+            test_cases.push(assert(id("o"), id("rust_out"), test_case_counter));
+        }
+    }
+    test_cases.push(display("TESTBENCH OK", vec![]));
+    test_cases.push(finish());
+    let module = Module {
+        name: "testbench".into(),
+        ports: vec![],
+        declarations: declarations.into_iter().flatten().collect(),
+        statements: vec![instance, initial(test_cases)],
+        functions: vec![],
+    };
+    Ok(TestModule {
+        testbench: module.as_verilog() + &body,
+        num_cases: 0,
+    })
+}
+/*     pub fn traced_synchronous_simulation<S: Synchronous>(
+        uut: &S,
+        inputs: impl Iterator<Item = TimedSample<(ClockReset, S::I)>>,
+        vcd_filename: &str,
+    ) {
+        note_init_db();
+        note_time(0);
+        let mut state = S::S::init();
+        let mut io = S::Z::default();
+        for timed_input in inputs {
+            note_time(timed_input.time);
+            let clock_reset = timed_input.value.0;
+            let input = timed_input.value.1;
+            note("clock", clock_reset.clock);
+            note("reset", clock_reset.reset);
+            note("input", input);
+            let output = uut.sim(clock_reset, input, &mut state, &mut io);
+            if S::Z::N != 0 {
+                note("io", io);
+            }
+            note("output", output);
+        }
+        let db = note_take().unwrap();
+        let strobe = std::fs::File::create(vcd_filename).unwrap();
+        db.dump_vcd(&[], strobe).unwrap();
+    }
+
+)
+
+ */
+
 // In general, a flow graph cannot be reduced to a pure function, as it may contain internal
 // state/etc.  However, in this context (for kernel testing), we can assume it is equivalent
 // to a function, and generate the test vectors that way.  This is not equivalent to a full test
@@ -542,7 +672,6 @@ impl std::fmt::Debug for TestModule {
 #[cfg(feature = "iverilog")]
 impl TestModule {
     pub fn run_iverilog(&self) -> Result<(), RHDLError> {
-        std::fs::write("testbench.v", &self.testbench)?;
         let d = tempfile::tempdir()?;
         // Write the test bench to a file
         let d_path = d.path();
