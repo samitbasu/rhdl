@@ -232,7 +232,7 @@ impl<'a> FlowGraphBuilder<'a> {
         if use_unsigned {
             let zero = self
                 .fg
-                .new_component(ComponentKind::Constant(false.into()), lhs.len(), loc);
+                .new_component(ComponentKind::Constant(false), lhs.len(), loc);
             for lhs in lhs.iter().skip(arg.len()) {
                 self.fg.edge(zero, *lhs, EdgeKind::ArgBit(0, 0));
             }

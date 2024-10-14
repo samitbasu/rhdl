@@ -27,6 +27,8 @@ pub use rhdl_core::rhif::spec::OpCode;
 pub use rhdl_core::rhif::Object;
 pub use rhdl_core::rtl::vm::execute;
 pub use rhdl_core::sim::stream;
+pub use rhdl_core::sim::stream::clock_pos_edge;
+pub use rhdl_core::sim::stream::stream;
 pub use rhdl_core::sim::traced_simulation::traced_simulation;
 pub use rhdl_core::sim::traced_simulation::traced_synchronous_simulation;
 pub use rhdl_core::sim::verilog_testbench::write_synchronous_testbench;

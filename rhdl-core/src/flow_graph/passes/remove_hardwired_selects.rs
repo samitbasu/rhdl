@@ -4,7 +4,6 @@ use petgraph::{graph::NodeIndex, visit::EdgeRef};
 
 use crate::{
     flow_graph::{component::ComponentKind, edge_kind::EdgeKind, flow_graph_impl::GraphType},
-    types::bit_string::BitString,
     FlowGraph, RHDLError,
 };
 

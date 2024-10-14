@@ -1,5 +1,3 @@
-use crate::types::bit_string::BitString;
-
 #[derive(Clone, Hash)]
 pub enum EdgeKind {
     ArgBit(usize, usize),

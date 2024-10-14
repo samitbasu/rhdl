@@ -1,6 +1,6 @@
 use std::iter::once;
 
-use petgraph::{stable_graph::EdgeReference, visit::EdgeRef};
+use petgraph::visit::EdgeRef;
 
 use crate::{
     ast::source_location::SourceLocation,
