@@ -56,6 +56,8 @@ pub enum RHDLError {
     FlowGraphError(#[from] Box<crate::flow_graph::error::FlowGraphError>),
     #[error("Verilog verification error: {0}")]
     VerilogVerificationErrorString(String),
+    #[error("Testbench Construction Error: {0}")]
+    TestbenchConstructionError(String),
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

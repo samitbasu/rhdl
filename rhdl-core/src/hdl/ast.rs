@@ -52,7 +52,7 @@ pub fn literal(name: &str, value: &BitString) -> Literals {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq)]
 pub enum SignedWidth {
     Unsigned(usize),
     Signed(usize),
@@ -114,7 +114,7 @@ pub enum Direction {
     Inout,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, Copy, PartialEq)]
 pub enum HDLKind {
     Wire,
     Reg,
