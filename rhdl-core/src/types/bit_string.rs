@@ -9,6 +9,12 @@ pub enum BitString {
 }
 
 impl BitString {
+    pub fn signed(bits: Vec<bool>) -> BitString {
+        BitString::Signed(bits)
+    }
+    pub fn unsigned(bits: Vec<bool>) -> BitString {
+        BitString::Unsigned(bits)
+    }
     pub fn is_signed(&self) -> bool {
         matches!(self, BitString::Signed(_))
     }

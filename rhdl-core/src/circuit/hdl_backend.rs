@@ -126,8 +126,7 @@ pub fn build_synchronous_hdl<C: Synchronous>(
         ..Default::default()
     };
     module.ports = [
-        maybe_port_wire(Direction::Input, 1, "clock"),
-        maybe_port_wire(Direction::Input, 1, "reset"),
+        maybe_port_wire(Direction::Input, 2, "clock_reset"),
         maybe_port_wire(Direction::Input, C::I::bits(), "i"),
         maybe_port_wire(Direction::Output, C::O::bits(), "o"),
         maybe_port_wire(Direction::Inout, C::Z::N, "io"),
@@ -165,12 +164,11 @@ pub fn build_synchronous_hdl<C: Synchronous>(
                 Some(connection("o", index("q", q_range.clone())))
             };
             let component_name = &descriptor.unique_name;
-            let clock_binding = Some(connection("clock", id("clock")));
-            let reset_binding = Some(connection("reset", id("reset")));
+            let cr_binding = Some(connection("clock_reset", id("clock_reset")));
             Ok(component_instance(
                 component_name,
                 &format!("c{ndx}"),
-                [clock_binding, reset_binding, input_binding, output_binding]
+                [cr_binding, input_binding, output_binding]
                     .into_iter()
                     .flatten()
                     .collect(),
@@ -178,8 +176,8 @@ pub fn build_synchronous_hdl<C: Synchronous>(
         })
         .collect::<Result<Vec<Statement>, RHDLError>>()?;
     let verilog = generate_verilog(descriptor.rtl.as_ref().unwrap())?;
-    // Call the verilog function with (reset, i, q), if they exist.
-    let clock_reset = Some(concatenate(vec![id("clock"), id("reset")]));
+    // Call the verilog function with (clock_reset, i, q), if they exist.
+    let clock_reset = Some(id("clock_reset"));
     let i_bind = (C::I::bits() != 0).then(|| id("i"));
     let q_bind = (C::Q::bits() != 0).then(|| id("q"));
     let fn_call = function_call(

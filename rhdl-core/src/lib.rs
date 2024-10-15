@@ -35,10 +35,11 @@ pub mod circuit;
 pub mod compiler;
 pub mod dyn_bit_manip;
 pub mod note_db;
-pub mod test_module;
+//pub mod test_module;
 pub mod types;
 pub mod util;
 pub use util::id;
+pub mod testbench;
 
 pub use compiler::compile_design;
 pub use note_db::note;
@@ -48,9 +49,6 @@ pub use note_db::note_push_path;
 pub use note_db::note_take;
 pub use note_db::note_time;
 pub use note_db::NoteDB;
-pub use test_module::test_kernel_vm_and_verilog;
-#[cfg(feature = "iverilog")]
-pub use test_module::test_with_iverilog;
 pub use types::kind::DiscriminantType;
 pub use types::note::NoteKey;
 pub use types::note::NoteWriter;
@@ -82,3 +80,4 @@ pub mod sim;
 pub use types::timed_sample::timed_sample;
 pub use types::timed_sample::TimedSample;
 pub mod hdl;
+pub use sim::waveform::waveform_synchronous;
