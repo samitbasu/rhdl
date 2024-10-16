@@ -23,7 +23,6 @@ impl Pass for RemoveExtraRegistersPass {
         while let Some(op_ndx) = find_assign_op(&input.ops) {
             let lop = input.ops[op_ndx].clone();
             let op = &lop.op;
-            eprintln!("Found assign op {:?}", op);
             if let OpCode::Assign(assign) = op {
                 input.ops = input
                     .ops

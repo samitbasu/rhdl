@@ -64,17 +64,12 @@ fn compute_binary(bin: &Binary, node: FlowIx, graph: &GraphType) -> Option<BitSt
     let arg0: TypedBits = collect_argument(graph, node, bin.left_len, |x| arg_fun(0, x))?.into();
     let arg1: TypedBits = collect_argument(graph, node, bin.right_len, |x| arg_fun(1, x))?.into();
     let result = binary(bin.op, arg0.clone(), arg1.clone()).ok()?;
-    eprintln!(
-        "Constant prop {arg0:?} {op:?} {arg1:?} -> {result:?}",
-        op = bin.op
-    );
     Some(result.into())
 }
 
 fn compute_unary(uny: &Unary, node: FlowIx, graph: &GraphType) -> Option<BitString> {
     let arg0: TypedBits = collect_argument(graph, node, uny.arg_len, |x| arg_fun(0, x))?.into();
     let result = unary(uny.op, arg0.clone()).ok()?;
-    eprintln!("Constant prop {op:?} {arg0:?} -> {result:?}", op = uny.op);
     Some(result.into())
 }
 
@@ -87,7 +82,6 @@ fn compute_dynamic_index(
     let arg0: BitString = collect_argument(graph, node, unsigned_width(dyn_index.arg_len), |x| {
         arg_fun(0, x)
     })?;
-    eprintln!("constant dyn index: {arg0:?}");
     let offset: TypedBits = collect_argument(
         graph,
         node,
@@ -115,7 +109,6 @@ fn compute_bitselect(bitselect: &BitSelect, node: FlowIx, graph: &GraphType) -> 
         .filter(|x| matches!(x.weight(), EdgeKind::ArgBit(0, _)))
         .map(|x| x.source())
         .collect::<Vec<_>>();
-    eprintln!("constant bitselect: {arg_incoming:?} {bitselect:?}");
     if arg_incoming.len() != 1 {
         return None;
     }
@@ -127,10 +120,6 @@ fn compute_bitselect(bitselect: &BitSelect, node: FlowIx, graph: &GraphType) -> 
         return None;
     }
     let value = arg_value.bits()[bitselect.bit_index];
-    eprintln!(
-        "Constant prop bitselect {arg_value:?}[{bitselect}] -> {value}",
-        bitselect = bitselect.bit_index
-    );
     Some(BitString::Unsigned(vec![value]))
 }
 

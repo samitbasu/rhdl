@@ -47,7 +47,6 @@ impl Pass for ConstantBufferEliminationPass {
                 None
             })
             .collect::<Vec<_>>();
-        eprintln!("Eliminating {} buffer nodes", buffer_nodes.len());
         // Second pass, for each buffer, take the each outgoing edge and set the target of that
         // outgoing edge to the source of the incoming edge.
         for candidate in &buffer_nodes {
