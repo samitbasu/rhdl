@@ -133,6 +133,9 @@ fn compute_constant_equivalent(node: FlowIx, graph: &GraphType) -> Option<BitStr
         ComponentKind::DynamicIndex(dyn_index) => {
             compute_dynamic_index(dyn_index, component.width, node, graph)
         }
+        ComponentKind::Case(case) => todo!(),
+        ComponentKind::DynamicSplice(dynamic_splice) => todo!(),
+        ComponentKind::Select => todo!(),
         _ => None,
     }
 }
