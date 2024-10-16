@@ -230,19 +230,19 @@ impl<'a> FlowGraphHDLBuilder<'a> {
                 _ => None,
             })?,
         );
-        let arg = nodes(self.collect_argument(index, component.width, |x| arg_fun(0, x))?);
+        let arg = nodes(self.collect_argument(index, dyn_ndx.arg_len, |x| arg_fun(0, x))?);
         // Allocate a new register to hold the argument bits
         let reg_name = format!("dyn_ndx_{}", index.index());
         self.decls.push(declaration(
             HDLKind::Reg,
             &reg_name,
-            unsigned_width(component.width),
+            unsigned_width(dyn_ndx.arg_len),
             Some("Dynamic index temporary register".to_string()),
         ));
         self.stmt(assign(&reg_name, concatenate(arg)));
         self.stmt(assign(
             &node(index),
-            dynamic_index(&reg_name, concatenate(offset), dyn_ndx.lhs_len),
+            dynamic_index(&reg_name, concatenate(offset), component.width),
         ));
         Ok(())
     }

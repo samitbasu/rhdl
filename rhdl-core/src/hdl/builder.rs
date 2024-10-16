@@ -302,7 +302,7 @@ impl<'a> TranslationContext<'a> {
 fn translate(object: &crate::rtl::Object) -> Result<Function> {
     let context = TranslationContext {
         func: Function {
-            name: object.name.clone(),
+            name: format!("kernel_{}", object.name),
             width: object.kind(object.return_register).into(),
             arguments: vec![],
             registers: vec![],

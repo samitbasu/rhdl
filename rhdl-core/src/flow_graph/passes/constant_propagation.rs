@@ -4,11 +4,11 @@ use petgraph::{graph::EdgeIndex, visit::EdgeRef, Direction::Incoming};
 
 use crate::{
     flow_graph::{
-        component::{Binary, ComponentKind, Unary},
+        component::{Binary, BitSelect, ComponentKind, DynamicIndex, Unary},
         edge_kind::EdgeKind,
         flow_graph_impl::{FlowIx, GraphType},
     },
-    hdl::ast::SignedWidth,
+    hdl::ast::{unsigned_width, SignedWidth},
     rhif::runtime_ops::{binary, unary},
     types::bit_string::BitString,
     FlowGraph, RHDLError, TypedBits,
@@ -73,14 +73,77 @@ fn compute_binary(bin: &Binary, node: FlowIx, graph: &GraphType) -> Option<BitSt
 
 fn compute_unary(uny: &Unary, node: FlowIx, graph: &GraphType) -> Option<BitString> {
     let arg0: TypedBits = collect_argument(graph, node, uny.arg_len, |x| arg_fun(0, x))?.into();
-    let result = unary(uny.op, arg0).ok()?;
+    let result = unary(uny.op, arg0.clone()).ok()?;
+    eprintln!("Constant prop {op:?} {arg0:?} -> {result:?}", op = uny.op);
     Some(result.into())
 }
 
+fn compute_dynamic_index(
+    dyn_index: &DynamicIndex,
+    lhs_width: usize,
+    node: FlowIx,
+    graph: &GraphType,
+) -> Option<BitString> {
+    let arg0: BitString = collect_argument(graph, node, unsigned_width(dyn_index.arg_len), |x| {
+        arg_fun(0, x)
+    })?;
+    eprintln!("constant dyn index: {arg0:?}");
+    let offset: TypedBits = collect_argument(
+        graph,
+        node,
+        unsigned_width(dyn_index.offset_len),
+        |x| match x {
+            EdgeKind::DynamicOffset(ndx) => Some(*ndx),
+            _ => None,
+        },
+    )?
+    .into();
+    let offset = offset.as_i64().ok()? as usize;
+    let result = arg0
+        .bits()
+        .iter()
+        .skip(offset)
+        .take(lhs_width)
+        .copied()
+        .collect::<Vec<_>>();
+    Some(BitString::Unsigned(result))
+}
+
+fn compute_bitselect(bitselect: &BitSelect, node: FlowIx, graph: &GraphType) -> Option<BitString> {
+    let arg_incoming = graph
+        .edges_directed(node, petgraph::Direction::Incoming)
+        .filter(|x| matches!(x.weight(), EdgeKind::ArgBit(0, _)))
+        .map(|x| x.source())
+        .collect::<Vec<_>>();
+    eprintln!("constant bitselect: {arg_incoming:?} {bitselect:?}");
+    if arg_incoming.len() != 1 {
+        return None;
+    }
+    let arg = &graph[arg_incoming[0]];
+    let ComponentKind::BitString(arg_value) = &arg.kind else {
+        return None;
+    };
+    if arg_value.len() <= bitselect.bit_index {
+        return None;
+    }
+    let value = arg_value.bits()[bitselect.bit_index];
+    eprintln!(
+        "Constant prop bitselect {arg_value:?}[{bitselect}] -> {value}",
+        bitselect = bitselect.bit_index
+    );
+    Some(BitString::Unsigned(vec![value]))
+}
+
 fn compute_constant_equivalent(node: FlowIx, graph: &GraphType) -> Option<BitString> {
-    match &graph[node].kind {
+    let component = &graph[node];
+    eprintln!("Constant prop {:?}", component.kind);
+    match &component.kind {
         ComponentKind::Binary(binary) => compute_binary(binary, node, graph),
+        ComponentKind::BitSelect(bitselect) => compute_bitselect(bitselect, node, graph),
         ComponentKind::Unary(unary) => compute_unary(unary, node, graph),
+        ComponentKind::DynamicIndex(dyn_index) => {
+            compute_dynamic_index(dyn_index, component.width, node, graph)
+        }
         _ => None,
     }
 }
@@ -91,7 +154,12 @@ impl Pass for ConstantPropagationPass {
         let all_inputs_constant = |node| {
             graph
                 .edges_directed(node, petgraph::Direction::Incoming)
-                .all(|edge| matches!(graph[edge.source()].kind, ComponentKind::Constant(_)))
+                .all(|edge| {
+                    matches!(
+                        graph[edge.source()].kind,
+                        ComponentKind::Constant(_) | ComponentKind::BitString(_)
+                    )
+                })
         };
         let candidates = graph
             .node_indices()

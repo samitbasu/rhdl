@@ -4,10 +4,13 @@ use crate::{
     build_rtl_flow_graph,
     compiler::driver::{compile_design_stage1, compile_design_stage2},
     flow_graph::{hdl::generate_hdl, optimization::optimize_flow_graph},
-    hdl::ast::{
-        assert, assign, bit_string, component_instance, connection, continuous_assignment,
-        declaration, delay, display, finish, function_call, id, initial, unsigned_width,
-        Declaration, Function, HDLKind, Module, Statement,
+    hdl::{
+        ast::{
+            assert, assign, bit_string, component_instance, connection, continuous_assignment,
+            declaration, delay, display, finish, function_call, id, initial, unsigned_width,
+            Declaration, Function, HDLKind, Module, Statement,
+        },
+        builder::generate_verilog,
     },
     types::bit_string::BitString,
     DigitalFn, RHDLError, Timed, TypedBits,
@@ -281,20 +284,20 @@ where
     }
 }
 
-fn test_module<F, Args, T0>(uut: F, desc: Function, vals: impl Iterator<Item = Args>) -> TestModule
+fn test_module<F, Args, T0>(uut: &F, desc: Function, vals: impl Iterator<Item = Args>) -> TestModule
 where
     F: Testable<Args, T0>,
     T0: Timed,
 {
     let name = &desc.name;
-    let body = desc.as_verilog();
     let decls = F::declaration();
     let arguments = decls
         .iter()
         .filter(|x| x.kind == HDLKind::Reg)
+        .filter(|x| !x.width.is_empty())
         .map(|x| id(&x.name))
         .collect();
-    let instance = continuous_assignment("out", function_call(&name, arguments));
+    let instance = continuous_assignment("out", function_call(name, arguments));
     let mut num_cases = 0;
     let mut cases = vals
         .inspect(|_| {
@@ -313,7 +316,7 @@ where
         functions: vec![desc],
     };
     TestModule {
-        testbench: top.as_verilog() + &body,
+        testbench: top.as_verilog(),
         num_cases,
     }
 }
@@ -401,6 +404,10 @@ where
             return Err(RHDLError::VerilogVerificationErrorRTL { expected, actual });
         }
     }
+    let hdl = generate_verilog(&rtl)?;
+    let tm = test_module(&uut, hdl, vals.clone());
+    std::fs::write("testbench.v", tm.testbench.as_bytes())?;
+    tm.run_iverilog()?;
     let flow_graph = build_rtl_flow_graph(&rtl);
     let flow_graph = optimize_flow_graph(flow_graph)?;
     let desc = generate_hdl("dut", &flow_graph)?;
