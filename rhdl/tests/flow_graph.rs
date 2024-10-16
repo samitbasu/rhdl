@@ -1,5 +1,6 @@
 use common::exhaustive;
 use rhdl::prelude::*;
+use rhdl_core::flow_graph::dot;
 use stream::reset_pulse;
 
 pub mod common;
@@ -50,6 +51,31 @@ pub mod selector {
     pub fn selector(_cr: ClockReset, i: (bool, b4, b4), _q: ()) -> (b4, ()) {
         let (sel, a, b) = i;
         let out = if sel { a } else { b };
+        (out, ())
+    }
+}
+
+pub mod indexor {
+    use super::*;
+
+    #[derive(Clone, Debug, Synchronous, Default)]
+    #[rhdl(kernel = indexor)]
+    pub struct U {}
+
+    impl SynchronousIO for U {
+        type I = (b2, [b4; 4]);
+        type O = b4;
+    }
+
+    impl SynchronousDQ for U {
+        type D = ();
+        type Q = ();
+    }
+
+    #[kernel]
+    pub fn indexor(_cr: ClockReset, i: (b2, [b4; 4]), _q: ()) -> (b4, ()) {
+        let (ndx, arr) = i;
+        let out = arr[ndx];
         (out, ())
     }
 }
@@ -159,5 +185,41 @@ fn test_async_add() -> miette::Result<()> {
         .enumerate()
         .map(|(ndx, val)| timed_sample(val, (ndx * 100) as u64));
     test_asynchronous_hdl(&uut, inputs)?;
+    Ok(())
+}
+
+#[test]
+fn test_constant_propagates_through_indexing() -> miette::Result<()> {
+    mod parent {
+        use super::*;
+
+        #[derive(Clone, Debug, Synchronous, Default)]
+        #[rhdl(kernel = parent)]
+        #[rhdl(auto_dq)]
+        pub struct Parent {
+            indexor: indexor::U,
+        }
+
+        impl SynchronousIO for Parent {
+            type I = bool;
+            type O = b4;
+        }
+
+        #[kernel]
+        pub fn parent(_cr: ClockReset, i: bool, q: Q) -> (b4, D) {
+            let mut d = D::init();
+            let index = b2(3);
+            d.indexor = (index, [bits(1), bits(2), bits(3), bits(4)]);
+            let o = if i { q.indexor } else { bits(3) };
+            (o, d)
+        }
+    }
+
+    let uut = parent::Parent::default();
+    let inputs = reset_pulse(4).chain(stream([false, true].iter().copied()));
+    let inputs = clock_pos_edge(inputs, 100);
+    //    test_synchronous_hdl(&uut, inputs)?;
+    let fg = uut.flow_graph()?;
+    dot::write_dot(&fg, std::fs::File::create("cp.dot").unwrap()).unwrap();
     Ok(())
 }

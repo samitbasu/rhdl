@@ -261,9 +261,9 @@ impl<'a> FlowGraphBuilder<'a> {
         let comp = self.fg.new_component(
             ComponentKind::DynamicIndex(DynamicIndex {
                 offset_len: offset.len(),
-                lhs_len: lhs.len(),
+                arg_len: arg.len(),
             }),
-            arg.len(),
+            lhs.len(),
             loc,
         );
         for (ndx, lhs) in lhs.iter().enumerate() {

@@ -6,7 +6,6 @@ use crate::dyn_bit_manip::{
     bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
 };
 use crate::error::{rhdl_error, RHDLError};
-use crate::util::binary_string;
 use crate::Color;
 use crate::Digital;
 use crate::{
