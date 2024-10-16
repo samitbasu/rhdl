@@ -15,13 +15,13 @@ use super::passes::{
 
 pub fn optimize_flow_graph(mut flow_graph: FlowGraph) -> Result<FlowGraph, RHDLError> {
     loop {
-        let num_nodes = flow_graph.graph.node_count();
+        let hash_id = flow_graph.hash_value();
         flow_graph = ConstantBufferEliminationPass::run(flow_graph)?;
         flow_graph = RemoveOrphanConstantsPass::run(flow_graph)?;
         flow_graph = RemoveHardwiredSelectsPass::run(flow_graph)?;
         flow_graph = RemoveUnusedBuffers::run(flow_graph)?;
         flow_graph = ConstantPropagationPass::run(flow_graph)?;
-        if flow_graph.graph.node_count() == num_nodes {
+        if flow_graph.hash_value() == hash_id {
             break;
         }
     }

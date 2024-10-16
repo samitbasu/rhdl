@@ -1,6 +1,11 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    hash::{Hash, Hasher},
+};
 
+use fnv::FnvHasher;
 use petgraph::prelude::StableDiGraph;
+use svg::node;
 
 use crate::{
     ast::{source_location::SourceLocation, spanned_source::SpannedSourceSet},
@@ -18,7 +23,7 @@ use super::{
 pub type FlowIx = petgraph::graph::NodeIndex;
 pub type GraphType = StableDiGraph<Component, EdgeKind>;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Hash)]
 pub struct DFF {
     pub input: FlowIx,
     pub output: FlowIx,
@@ -231,5 +236,21 @@ impl FlowGraph {
         let mut s = vec![];
         super::dot::write_dot(self, &mut s)?;
         Ok(s)
+    }
+    pub fn hash_value(&self) -> u64 {
+        let mut hasher = FnvHasher::default();
+        for node in self.graph.node_indices() {
+            node.hash(&mut hasher);
+            self.graph[node].hash(&mut hasher);
+        }
+        for edge in self.graph.edge_indices() {
+            edge.hash(&mut hasher);
+            self.graph[edge].hash(&mut hasher);
+        }
+        self.inputs.hash(&mut hasher);
+        self.output.hash(&mut hasher);
+        self.code.hash(&mut hasher);
+        self.dffs.hash(&mut hasher);
+        hasher.finish()
     }
 }

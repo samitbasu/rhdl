@@ -218,8 +218,6 @@ fn test_constant_propagates_through_indexing() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = reset_pulse(4).chain(stream([false, true].iter().copied()));
     let inputs = clock_pos_edge(inputs, 100);
-    //    test_synchronous_hdl(&uut, inputs)?;
-    let fg = uut.flow_graph()?;
-    dot::write_dot(&fg, std::fs::File::create("cp.dot").unwrap()).unwrap();
+    test_synchronous_hdl(&uut, inputs)?;
     Ok(())
 }
