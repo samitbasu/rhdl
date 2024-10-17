@@ -21,7 +21,7 @@ pub fn traced_simulation<T: Circuit>(
     }
     let db = note_take().unwrap();
     let strobe = std::fs::File::create(vcd_filename).unwrap();
-    db.dump_vcd(&[], strobe).unwrap();
+    db.dump_vcd(strobe).unwrap();
 }
 
 pub fn traced_synchronous_simulation<S: Synchronous>(
@@ -48,5 +48,5 @@ pub fn traced_synchronous_simulation<S: Synchronous>(
     }
     let db = note_take().unwrap();
     let strobe = std::fs::File::create(vcd_filename).unwrap();
-    db.dump_vcd(&[], strobe).unwrap();
+    db.dump_vcd(strobe).unwrap();
 }

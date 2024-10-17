@@ -391,21 +391,21 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
     let ty_generics = ty_generics.as_turbofish();
     Ok(quote! {
 
-                #vis fn #orig_name #impl_generics (#outer_args) #ret #where_clause {
-                    #[forbid(non_snake_case)]
-                    #[forbid(non_upper_case_globals)]
-                    #[forbid(unreachable_patterns)]
-                    //#[forbid(path_statements)]
-    //                #[forbid(unused_variables)]
-                    fn inner #impl_generics (#args) #ret #where_clause {
-                        #body
-                    }
-        //            rhdl::core::note_push_path(stringify!(#orig_name));
-                    let ret = inner #ty_generics (#call_args);
-        //            rhdl::core::note_pop_path();
-                    ret
-                }
-            })
+        #vis fn #orig_name #impl_generics (#outer_args) #ret #where_clause {
+            #[forbid(non_snake_case)]
+            #[forbid(non_upper_case_globals)]
+            #[forbid(unreachable_patterns)]
+            //#[forbid(path_statements)]
+            //#[forbid(unused_variables)]
+            fn inner #impl_generics (#args) #ret #where_clause {
+                #body
+            }
+            rhdl::core::note_push_path(stringify!(#orig_name));
+            let ret = inner #ty_generics (#call_args);
+            rhdl::core::note_pop_path();
+            ret
+        }
+    })
 }
 
 impl Context {

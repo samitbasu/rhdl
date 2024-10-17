@@ -1,6 +1,10 @@
 use crate::types::note::Notable;
-use crate::{ClockDetails, NoteKey, NoteWriter};
+use crate::{NoteKey, NoteWriter};
 use anyhow::bail;
+use fnv::FnvHashMap;
+use petgraph::visit::Dfs;
+use petgraph::visit::EdgeRef;
+use std::collections::BTreeMap;
 use std::hash::Hash;
 use std::{cell::RefCell, hash::Hasher, io::Write};
 use vcd::IdCode;
@@ -175,6 +179,8 @@ type TimeSeriesHash = u32;
 struct TimeSeriesDetails {
     kind: TimeSeriesKind,
     hash: TimeSeriesHash,
+    path: Vec<&'static str>,
+    key: String,
 }
 
 fn tristate_to_vcd(x: u128, mask: u128, width: usize, buffer: &mut [u8]) {
@@ -208,7 +214,7 @@ pub struct NoteDB {
     db_signed: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<i128>>,
     db_string: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<&'static str>>,
     db_tristate: fnv::FnvHashMap<TimeSeriesHash, TimeSeries<Tristate>>,
-    details: fnv::FnvHashMap<String, TimeSeriesDetails>,
+    details: fnv::FnvHashMap<TimeSeriesHash, TimeSeriesDetails>,
     path: Vec<&'static str>,
     time: u64,
 }
@@ -260,97 +266,80 @@ impl NoteDB {
     fn pop_path(&mut self) {
         self.path.pop();
     }
-    fn note_bool(&mut self, key: impl NoteKey, value: bool) {
+    fn define_new_time_series(
+        &mut self,
+        key: &impl NoteKey,
+        kind: TimeSeriesKind,
+        key_hash: TimeSeriesHash,
+    ) {
+        eprintln!(
+            "Defining new time series: {path:?} {key} {kind:?}",
+            path = self.path,
+            key = key.as_string(),
+            kind = kind
+        );
+        self.details.insert(
+            key_hash,
+            TimeSeriesDetails {
+                kind,
+                hash: key_hash,
+                path: self.path.clone(),
+                key: key.as_string().to_string(),
+            },
+        );
+    }
+    fn key_hash(&self, key: &impl NoteKey) -> TimeSeriesHash {
         let mut hasher = fnv::FnvHasher::default();
         let key = (&self.path[..], key);
         key.hash(&mut hasher);
-        let key_hash = hasher.finish() as TimeSeriesHash;
+        hasher.finish() as TimeSeriesHash
+    }
+    fn note_bool(&mut self, key: impl NoteKey, value: bool) {
+        let key_hash = self.key_hash(&key);
         if let Some(values) = self.db_bool.get_mut(&key_hash) {
             values.push(self.time, value, 1);
         } else {
-            self.details.insert(
-                key.as_string().to_string(),
-                TimeSeriesDetails {
-                    kind: TimeSeriesKind::Bool,
-                    hash: key_hash,
-                },
-            );
+            self.define_new_time_series(&key, TimeSeriesKind::Bool, key_hash);
             self.db_bool
                 .insert(key_hash, TimeSeries::new(self.time, value, 1));
         }
     }
     fn note_u128(&mut self, key: impl NoteKey, value: u128, width: u8) {
-        let mut hasher = fnv::FnvHasher::default();
-        let key = (&self.path[..], key);
-        key.hash(&mut hasher);
-        let key_hash = hasher.finish() as TimeSeriesHash;
+        let key_hash = self.key_hash(&key);
         if let Some(values) = self.db_bits.get_mut(&key_hash) {
             values.push(self.time, value, width);
         } else {
-            self.details.insert(
-                key.as_string().to_string(),
-                TimeSeriesDetails {
-                    kind: TimeSeriesKind::Bits,
-                    hash: key_hash,
-                },
-            );
+            self.define_new_time_series(&key, TimeSeriesKind::Bits, key_hash);
             self.db_bits
                 .insert(key_hash, TimeSeries::new(self.time, value, width));
         }
     }
     fn note_i128(&mut self, key: impl NoteKey, value: i128, width: u8) {
-        let mut hasher = fnv::FnvHasher::default();
-        let key = (&self.path[..], key);
-        key.hash(&mut hasher);
-        let key_hash = hasher.finish() as TimeSeriesHash;
+        let key_hash = self.key_hash(&key);
         if let Some(values) = self.db_signed.get_mut(&key_hash) {
             values.push(self.time, value, width);
         } else {
-            self.details.insert(
-                key.as_string().to_string(),
-                TimeSeriesDetails {
-                    kind: TimeSeriesKind::Signed,
-                    hash: key_hash,
-                },
-            );
+            self.define_new_time_series(&key, TimeSeriesKind::Signed, key_hash);
             self.db_signed
                 .insert(key_hash, TimeSeries::new(self.time, value, width));
         }
     }
     fn note_string(&mut self, key: impl NoteKey, value: &'static str) {
-        let mut hasher = fnv::FnvHasher::default();
-        let key = (&self.path[..], key);
-        key.hash(&mut hasher);
-        let key_hash = hasher.finish() as TimeSeriesHash;
+        let key_hash = self.key_hash(&key);
         if let Some(values) = self.db_string.get_mut(&key_hash) {
             values.push(self.time, value, 0);
         } else {
-            self.details.insert(
-                key.as_string().to_string(),
-                TimeSeriesDetails {
-                    kind: TimeSeriesKind::String,
-                    hash: key_hash,
-                },
-            );
+            self.define_new_time_series(&key, TimeSeriesKind::String, key_hash);
             self.db_string
                 .insert(key_hash, TimeSeries::new(self.time, value, 0));
         }
     }
     fn note_tristate(&mut self, key: impl NoteKey, value: u128, mask: u128, width: u8) {
-        let mut hasher = fnv::FnvHasher::default();
-        let key = (&self.path[..], key);
-        key.hash(&mut hasher);
-        let key_hash = hasher.finish() as TimeSeriesHash;
+        let key_hash = self.key_hash(&key);
         if let Some(values) = self.db_tristate.get_mut(&key_hash) {
             values.push(self.time, Tristate { value, mask }, width);
         } else {
-            self.details.insert(
-                key.as_string().to_string(),
-                TimeSeriesDetails {
-                    kind: TimeSeriesKind::Tristate,
-                    hash: key_hash,
-                },
-            );
+            self.define_new_time_series(&key, TimeSeriesKind::Tristate, key_hash);
             self.db_tristate.insert(
                 key_hash,
                 TimeSeries::new(self.time, Tristate { value, mask }, width),
@@ -421,27 +410,24 @@ impl NoteDB {
         }
     }
 
-    pub fn dump_vcd<W: Write>(&self, clocks: &[ClockDetails], w: W) -> anyhow::Result<()> {
+    pub fn dump_vcd<W: Write>(&self, w: W) -> anyhow::Result<()> {
         let mut writer = vcd::Writer::new(w);
         writer.timescale(1, vcd::TimescaleUnit::PS)?;
         writer.add_module("top")?;
-        let clocks = clocks
-            .iter()
-            .map(|c| {
-                (
-                    c,
-                    writer
-                        .add_wire(1, &c.name)
-                        .unwrap()
-                        .to_string()
-                        .into_bytes(),
-                )
-            })
-            .collect::<Vec<_>>();
+        let details = self.details.iter().map(|(hash, details)| TSItem {
+            path: &details.path,
+            name: &details.key,
+            hash: *hash,
+        });
+        let root = hierarchical_walk(details);
+        dump("root", &root);
         let mut cursors: Vec<Cursor> = self
             .details
             .iter()
-            .filter_map(|(name, details)| self.setup_cursor(name, details, &mut writer))
+            .filter_map(|(name, details)| {
+                let name = format!("{:?}::{}", details.path, details.key);
+                self.setup_cursor(&name, details, &mut writer)
+            })
             .collect();
         writer.upscope()?;
         writer.enddefinitions()?;
@@ -451,18 +437,6 @@ impl NoteDB {
         while keep_running {
             keep_running = false;
             let mut next_time = !0;
-            for (clock, code) in &clocks {
-                if clock.pos_edge_at(current_time) {
-                    writer.writer().write_all(b"1")?;
-                    writer.writer().write_all(code)?;
-                    writer.writer().write_all(b"\n")?;
-                } else if clock.neg_edge_at(current_time) {
-                    writer.writer().write_all(b"0")?;
-                    writer.writer().write_all(code)?;
-                    writer.writer().write_all(b"\n")?;
-                }
-                next_time = next_time.min(clock.next_edge_after(current_time));
-            }
             let mut found_match = true;
             while found_match {
                 found_match = false;
@@ -535,6 +509,50 @@ pub fn note_take() -> Option<NoteDB> {
     DB.with(|db| db.borrow_mut().take())
 }
 
+// Every item has a name.  This is either the name of the scope or the signal
+// Scopes can contain other scopes or signals.
+// Signals are terminal (and connect to a hash)
+// The top level thing is a scope.
+
+#[derive(Default)]
+struct Scope {
+    children: BTreeMap<&'static str, Box<Scope>>,
+    signals: BTreeMap<String, TimeSeriesHash>,
+}
+
+struct TSItem<'a> {
+    path: &'a [&'static str],
+    name: &'a str,
+    hash: TimeSeriesHash,
+}
+
+fn hierarchical_walk<'a>(paths: impl Iterator<Item = TSItem<'a>>) -> Scope {
+    let mut root = Scope::default();
+    for ts_item in paths {
+        let mut folder = &mut root;
+        for item in ts_item.path {
+            if !folder.children.contains_key(item) {
+                let new_folder = Box::new(Scope::default());
+                folder.children.insert(item, new_folder);
+            }
+            folder = folder.children.get_mut(item).unwrap();
+        }
+        folder.signals.insert(ts_item.name.into(), ts_item.hash);
+    }
+    root
+}
+
+fn dump(name: &str, scope: &Scope) {
+    eprintln!("begin scope {}", name);
+    for (name, hash) in &scope.signals {
+        eprintln!("signal {} {}", name, hash);
+    }
+    for (name, child) in &scope.children {
+        dump(name, child);
+    }
+    eprintln!("end scope {}", name);
+}
+
 #[cfg(test)]
 mod tests {
     use std::iter::repeat;
@@ -555,8 +573,7 @@ mod tests {
         }
         let mut vcd = vec![];
         let db = note_take().unwrap();
-        let clock = ClockDetails::new("clk", 5, 0, false);
-        db.dump_vcd(&[clock], &mut vcd).unwrap();
+        db.dump_vcd(&mut vcd).unwrap();
         std::fs::write("test.vcd", vcd).unwrap();
     }
 
@@ -708,10 +725,9 @@ mod tests {
         note("a", Mixed::Tuple(true, rhdl_bits::bits(3)));
         note_time(500);
 
-        let clock = ClockDetails::new("clk", 100, 0, false);
         let mut vcd = vec![];
         let db = note_take().unwrap();
-        db.dump_vcd(&[clock], &mut vcd).unwrap();
+        db.dump_vcd(&mut vcd).unwrap();
         std::fs::write("test_enum.vcd", vcd).unwrap();
     }
 
@@ -728,9 +744,26 @@ mod tests {
             note_pop_path();
         }
         let mut vcd = vec![];
-        let clock = ClockDetails::new("clk", 500, 0, false);
         let db = note_take().unwrap();
-        db.dump_vcd(&[clock], &mut vcd).unwrap();
+        db.dump_vcd(&mut vcd).unwrap();
         std::fs::write("test_nested_paths.vcd", vcd).unwrap();
+    }
+
+    #[test]
+    fn test_hierarchical_walk() {
+        let paths = vec![
+            (vec![], "clock", 0),
+            (vec!["a"], "input", 1),
+            (vec!["a", "b"], "output", 2),
+            (vec!["d", "e"], "reset", 3),
+            (vec!["d", "e", "f"], "baz", 4),
+            (vec!["d"], "bar", 5),
+        ];
+        let scope = hierarchical_walk(paths.iter().map(|(path, name, hash)| TSItem {
+            path,
+            name,
+            hash: *hash,
+        }));
+        dump("top", &scope);
     }
 }
