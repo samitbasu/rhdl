@@ -38,7 +38,7 @@ pub struct BlackBox {
 #[derive(Debug, Clone, Hash)]
 pub struct Case {
     pub entries: Vec<CaseEntry>,
-    pub discriminant_width: usize,
+    pub discriminant_width: SignedWidth,
 }
 
 #[derive(Debug, Clone, Hash)]

@@ -36,7 +36,7 @@ fn build_test_module_from_waveform(
             "Input port mismatch".into(),
         ));
     }
-    if !has_nonempty_input && waveform.input_kind.bits() != hdl.ports[0].width.len() {
+    if has_nonempty_input && waveform.input_kind.bits() != hdl.ports[0].width.len() {
         return Err(RHDLError::TestbenchConstructionError(
             "Input port width mismatch".into(),
         ));

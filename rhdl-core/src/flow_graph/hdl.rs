@@ -321,7 +321,6 @@ impl<'a> FlowGraphHDLBuilder<'a> {
         ));
         Ok(())
     }
-
     fn case_statement(&mut self, index: FlowIx) -> Result<(), RHDLError> {
         let graph = self.graph;
         let component = &graph.graph[index];
@@ -330,7 +329,7 @@ impl<'a> FlowGraphHDLBuilder<'a> {
         };
         let discriminant =
             nodes(
-                self.collect_argument(index, kase.discriminant_width, |x| match x {
+                self.collect_argument(index, kase.discriminant_width.len(), |x| match x {
                     EdgeKind::Selector(ndx) => Some(*ndx),
                     _ => None,
                 })?,

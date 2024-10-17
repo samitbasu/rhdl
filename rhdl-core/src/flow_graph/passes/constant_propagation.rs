@@ -4,7 +4,9 @@ use petgraph::{graph::EdgeIndex, visit::EdgeRef, Direction::Incoming};
 
 use crate::{
     flow_graph::{
-        component::{Binary, BitSelect, ComponentKind, DynamicIndex, Unary},
+        component::{
+            Binary, BitSelect, Case, CaseEntry, ComponentKind, DynamicIndex, DynamicSplice, Unary,
+        },
         edge_kind::EdgeKind,
         flow_graph_impl::{FlowIx, GraphType},
     },
@@ -103,6 +105,45 @@ fn compute_dynamic_index(
     Some(BitString::Unsigned(result))
 }
 
+fn compute_dynamic_splice(
+    dyn_splice: &DynamicSplice,
+    lhs_width: usize,
+    node: FlowIx,
+    graph: &GraphType,
+) -> Option<BitString> {
+    let arg: BitString =
+        collect_argument(graph, node, unsigned_width(lhs_width), |x| arg_fun(0, x))?;
+    let offset: TypedBits = collect_argument(
+        graph,
+        node,
+        unsigned_width(dyn_splice.offset_len),
+        |x| match x {
+            EdgeKind::DynamicOffset(ndx) => Some(*ndx),
+            _ => None,
+        },
+    )?
+    .into();
+    let offset = offset.as_i64().ok()? as usize;
+    let value = collect_argument(
+        graph,
+        node,
+        unsigned_width(dyn_splice.splice_len),
+        |x| match x {
+            EdgeKind::Splice(ndx) => Some(*ndx),
+            _ => None,
+        },
+    )?;
+    let spliced_value = arg
+        .bits()
+        .iter()
+        .take(offset)
+        .chain(value.bits())
+        .chain(arg.bits().iter().skip(offset + dyn_splice.splice_len))
+        .copied()
+        .collect::<Vec<_>>();
+    Some(BitString::Unsigned(spliced_value))
+}
+
 fn compute_bitselect(bitselect: &BitSelect, node: FlowIx, graph: &GraphType) -> Option<BitString> {
     let arg_incoming = graph
         .edges_directed(node, petgraph::Direction::Incoming)
@@ -123,9 +164,24 @@ fn compute_bitselect(bitselect: &BitSelect, node: FlowIx, graph: &GraphType) -> 
     Some(BitString::Unsigned(vec![value]))
 }
 
+fn compute_case(case: &Case, node: FlowIx, graph: &GraphType) -> Option<BitString> {
+    let discriminant = collect_argument(graph, node, case.discriminant_width, |x| match x {
+        EdgeKind::Selector(ndx) => Some(*ndx),
+        _ => None,
+    })?;
+    let entry_ndx = case.entries.iter().position(|entry| match entry {
+        CaseEntry::Literal(value) => discriminant == *value,
+        CaseEntry::WildCard => true,
+    })?;
+    let input = collect_argument(graph, node, unsigned_width(1), |x| match x {
+        EdgeKind::ArgBit(ndx, _) if *ndx == entry_ndx => Some(0),
+        _ => None,
+    })?;
+    Some(input)
+}
+
 fn compute_constant_equivalent(node: FlowIx, graph: &GraphType) -> Option<BitString> {
     let component = &graph[node];
-    eprintln!("Constant prop {:?}", component.kind);
     match &component.kind {
         ComponentKind::Binary(binary) => compute_binary(binary, node, graph),
         ComponentKind::BitSelect(bitselect) => compute_bitselect(bitselect, node, graph),
@@ -133,9 +189,10 @@ fn compute_constant_equivalent(node: FlowIx, graph: &GraphType) -> Option<BitStr
         ComponentKind::DynamicIndex(dyn_index) => {
             compute_dynamic_index(dyn_index, component.width, node, graph)
         }
-        ComponentKind::Case(case) => todo!(),
-        ComponentKind::DynamicSplice(dynamic_splice) => todo!(),
-        ComponentKind::Select => todo!(),
+        ComponentKind::Case(case) => compute_case(case, node, graph),
+        ComponentKind::DynamicSplice(dyn_splice) => {
+            compute_dynamic_splice(dyn_splice, component.width, node, graph)
+        }
         _ => None,
     }
 }
