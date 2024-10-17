@@ -206,6 +206,15 @@ fn test_counter_testbench() -> miette::Result<()> {
 }
 
 #[test]
+fn test_autocounter_vcd() -> miette::Result<()> {
+    let uut: auto_counter::U<4> = auto_counter::U::default();
+    let inputs = repeat(()).take(1000);
+    let stream = test_stream(inputs);
+    traced_synchronous_simulation(&uut, stream, "autocounter.vcd");
+    Ok(())
+}
+
+#[test]
 fn test_autocounter() -> miette::Result<()> {
     let uut: auto_counter::U<4> = auto_counter::U::default();
     let fg = uut.flow_graph()?;
