@@ -17,6 +17,7 @@ use std::iter::once;
 use crate::ast::ast_impl;
 use crate::ast::ast_impl::BitsKind;
 use crate::ast::ast_impl::ExprBits;
+use crate::ast::ast_impl::ExprTry;
 use crate::ast::ast_impl::ExprTypedBits;
 use crate::ast::ast_impl::{
     Arm, ArmKind, Block, ExprArray, ExprAssign, ExprBinary, ExprCall, ExprField, ExprForLoop,
@@ -42,6 +43,7 @@ use crate::rhif::rhif_builder::op_as_signed_inferred;
 use crate::rhif::rhif_builder::op_resize;
 use crate::rhif::rhif_builder::op_resize_inferred;
 use crate::rhif::rhif_builder::op_retime;
+use crate::rhif::rhif_builder::op_unwrapped;
 use crate::rhif::spec::AluUnary;
 use crate::rhif::spec::CaseArgument;
 use crate::rhif::spec::Member;
@@ -1248,6 +1250,51 @@ impl<'a> MirContext<'a> {
         // 3.  If the result is good, we unwrap the value and return it as the result
         // 4.  Otherwise, we make the early return of the function equal to the
         //     error value.
+        // Start with the thing being evaluated.
+        let arg = self.expr(&try_expr.expr)?;
+        // The unwrap opcode takes a value that is either an option or a result,
+        // and then splits it into three pieces:
+        //  unwrap(val) -> (good, bad, selector)
+        // Where selector indicates which of the two values is valid.  The other
+        // value will be initialized to the init value of this type.
+        // This is a complicated operation, but we have an unwrapped op code for it.
+        let lhs = self.reg(id); // This holds the unwrapped value (which may be invalid)
+        let is_good = self.reg(id);
+        self.op(op_unwrapped(lhs, is_good, arg), id);
+        // Next, we duplicate the early return logic here, using the is_bad in the selection
+        let literal_true = self.literal_bool(id, true);
+        let early_return_flag = self.rebind(EARLY_RETURN_FLAG_NAME, id)?;
+        let name = self.name;
+        let return_slot = self.rebind(name, id)?;
+        let early_return_expr = arg;
+        // We want to overwrite the return slot if it the flag has not been set and
+        // our value is bad, i.e., !early_return_flag.from && is_bad
+        // Equivalently, we want to pass the existing return slot through
+        // if early_return_flag.from || is_good
+        let pass_flag = self.reg(id);
+        self.op(
+            op_binary(AluBinary::BitOr, pass_flag, early_return_flag.from, is_good),
+            id,
+        );
+        self.op(
+            op_select(
+                return_slot.to,
+                pass_flag,
+                return_slot.from,
+                early_return_expr,
+            ),
+            id,
+        );
+        self.op(
+            op_select(
+                early_return_flag.to,
+                pass_flag,
+                early_return_flag.from,
+                literal_true,
+            ),
+            id,
+        );
+        Ok(lhs)
     }
     fn return_expr(&mut self, id: NodeId, return_expr: &ExprRet) -> Result<Slot> {
         // An early return of the type "return <expr>" is transformed

@@ -27,6 +27,12 @@ pub struct TypedBits {
     pub kind: Kind,
 }
 
+#[derive(Clone, PartialEq, Serialize, Deserialize, Eq, Hash)]
+pub struct Unwrapped {
+    pub good: TypedBits,
+    pub is_good: TypedBits,
+}
+
 impl From<i64> for TypedBits {
     fn from(mut val: i64) -> Self {
         let mut bits = Vec::new();
@@ -338,6 +344,27 @@ impl TypedBits {
             kind: self.kind.val(),
         }
     }
+
+    pub fn unwrapped(self) -> Result<Unwrapped> {
+        let Kind::Enum(Enum {
+            discriminant_layout,
+            ..
+        }) = &self.kind
+        else {
+            return Err(rhdl_error(DynamicTypeError::CanOnlyUnwrapOptionOrResult {
+                value: self.clone(),
+            }));
+        };
+        if discriminant_layout.width != 1 {
+            return Err(rhdl_error(DynamicTypeError::CanOnlyUnwrapOptionOrResult {
+                value: self.clone(),
+            }));
+        }
+        let good = self.path(&Path::default().payload_by_value(1).tuple_index(0))?;
+        let is_good = self.path(&Path::default().discriminant())?;
+        Ok(Unwrapped { good, is_good })
+    }
+
     /*     pub fn as_verilog_literal(self) -> String {
            let signed = if matches!(self.kind, Kind::Signed(_)) {
                "s"
@@ -712,8 +739,24 @@ fn write_tuple(tuple: &Tuple, bits: &[bool], f: &mut std::fmt::Formatter<'_>) ->
 #[cfg(test)]
 mod tests {
     use rand::thread_rng;
+    use rhdl_bits::alias::b8;
 
     use crate::{Digital, DiscriminantAlignment, DiscriminantType, Kind, Notable, TypedBits};
+
+    #[test]
+    fn test_unwrap() {
+        let a = Option::<b8>::Some(b8(42)).typed_bits();
+        let unwrapped = a.unwrapped().unwrap();
+        assert_eq!(unwrapped.good, b8(42).typed_bits());
+        assert_eq!(unwrapped.is_good, true.typed_bits());
+        let a = Result::<b8, bool>::Ok(b8(42)).typed_bits();
+        let unwrapped = a.unwrapped().unwrap();
+        assert_eq!(unwrapped.good, b8(42).typed_bits());
+        assert_eq!(unwrapped.is_good, true.typed_bits());
+        let a = Result::<b8, bool>::Err(true).typed_bits();
+        let unwrapped = a.unwrapped().unwrap();
+        assert_eq!(unwrapped.is_good, false.typed_bits());
+    }
 
     #[test]
     fn test_typed_bits_add() {

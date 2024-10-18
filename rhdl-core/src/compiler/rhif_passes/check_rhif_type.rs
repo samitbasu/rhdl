@@ -8,7 +8,7 @@ use crate::{
         self,
         spec::{
             AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
-            Index, OpCode, Repeat, Retime, Select, Slot, Splice, Struct, Tuple, Unary,
+            Index, OpCode, Repeat, Retime, Select, Slot, Splice, Struct, Tuple, Unary, Unwrap,
         },
         Object,
     },
@@ -165,6 +165,13 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                     ));
                 };
                 eq_kinds(slot_type(lhs), Kind::make_bits(x), id)?;
+            }
+            OpCode::Unwrap(Unwrap {
+                good: _,
+                is_good: is_bad,
+                arg: _,
+            }) => {
+                eq_kinds(slot_type(is_bad), Kind::make_bool(), id)?;
             }
             OpCode::Array(Array { lhs, elements }) => eq_kinds(
                 slot_type(lhs),

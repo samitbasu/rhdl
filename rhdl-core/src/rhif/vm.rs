@@ -14,7 +14,7 @@ use crate::{Kind, RHDLError};
 
 use super::object::LocatedOpCode;
 use super::runtime_ops::{array, binary, tuple, unary};
-use super::spec::{LiteralId, Retime, Select, Splice};
+use super::spec::{LiteralId, Retime, Select, Splice, Unwrap};
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
@@ -94,6 +94,12 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let arg1 = state.read(*arg1, id)?;
                 let result = unary(*op, arg1)?;
                 state.write(*lhs, result, id)?;
+            }
+            OpCode::Unwrap(Unwrap { good, is_good, arg }) => {
+                let arg = state.read(*arg, id)?;
+                let unwrapped = arg.unwrapped()?;
+                state.write(*good, unwrapped.good, id)?;
+                state.write(*is_good, unwrapped.is_good, id)?;
             }
             OpCode::Comment(_) => {}
             OpCode::Select(Select {
