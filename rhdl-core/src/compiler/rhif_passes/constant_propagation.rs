@@ -481,7 +481,6 @@ impl Pass for ConstantPropagation {
                 OpCode::Enum(enumerate) => propogate_enum(lop.id, enumerate, &mut input),
                 OpCode::Case(case) => propogate_case(lop.id, case, &mut input),
                 OpCode::Exec(exec) => propogate_exec(lop.id, exec, &mut input),
-                OpCode::Unwrap(unwrap) => todo!("Unwrap"),
                 OpCode::Assign(_) | OpCode::Noop | OpCode::Comment(_) | OpCode::Retime(_) => {
                     Ok(lop)
                 }

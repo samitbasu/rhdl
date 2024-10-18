@@ -687,37 +687,6 @@ impl<'a> RTLCompiler<'a> {
         );
         Ok(())
     }
-    fn make_unwrap(&mut self, unwrap: &hf::Unwrap, node_id: NodeId) -> Result<()> {
-        let hf::Unwrap { good, is_good: is_bad, arg } = unwrap;
-        let arg_ty = self.object.kind(*arg);
-        let arg = self.operand(*arg, node_id)?;
-        let is_bad = self.operand(*is_bad, node_id)?;
-        let disc_path = Path::default().discriminant();
-        let (disc_bit_range, _) = bit_range(arg_ty.clone(), &disc_path)?;
-        self.lop(
-            tl::OpCode::Index(tl::Index {
-                lhs: is_bad,
-                arg,
-                bit_range: disc_bit_range,
-            }),
-            node_id,
-        );
-        if good.is_empty() {
-            return Ok(());
-        }
-        let good = self.operand(*good, node_id)?;
-        let good_path = Path::default().payload_by_value(1);
-        let (good_bit_range, _) = bit_range(arg_ty, &good_path)?;
-        self.lop(
-            tl::OpCode::Index(tl::Index {
-                lhs: good,
-                arg,
-                bit_range: good_bit_range,
-            }),
-            node_id,
-        );
-        Ok(())
-    }
     fn make_struct(&mut self, strukt: &hf::Struct, node_id: NodeId) -> Result<()> {
         let hf::Struct {
             lhs,
@@ -831,9 +800,6 @@ impl<'a> RTLCompiler<'a> {
                 }
                 hf::OpCode::Unary(unary) => {
                     self.make_unary(unary, lop.id)?;
-                }
-                hf::OpCode::Unwrap(unwrap) => {
-                    self.make_unwrap(unwrap, lop.id)?;
                 }
             }
         }

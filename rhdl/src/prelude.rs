@@ -35,6 +35,7 @@ pub use rhdl_core::sim::verilog_testbench::write_synchronous_testbench;
 pub use rhdl_core::sim::verilog_testbench::write_testbench;
 pub use rhdl_core::testbench::asynchronous::test_asynchronous_hdl;
 pub use rhdl_core::testbench::kernel::test_kernel_vm_and_verilog;
+pub use rhdl_core::testbench::kernel::test_kernel_vm_and_verilog_synchronous;
 pub use rhdl_core::testbench::synchronous::test_synchronous_hdl;
 pub use rhdl_core::types::bitz::BitZ;
 pub use rhdl_core::types::clock::clock;

@@ -6,7 +6,7 @@ use crate::{
     util::splice,
 };
 
-use super::spec::{Retime, Select, Unwrap};
+use super::spec::{Retime, Select};
 
 impl std::fmt::Debug for OpCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -22,9 +22,6 @@ impl std::fmt::Debug for OpCode {
             }
             OpCode::Unary(Unary { op, lhs, arg1 }) => {
                 write!(f, " {:?} <- {:?}{:?}", lhs, op, arg1)
-            }
-            OpCode::Unwrap(Unwrap { good, is_good, arg }) => {
-                write!(f, " ({:?}, {:?}) <- unwrap({:?})", good, is_good, arg)
             }
             OpCode::Array(Array { lhs, elements }) => {
                 write!(f, " {:?} <- [{}]", lhs, splice(elements, ", "))
