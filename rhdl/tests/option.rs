@@ -37,7 +37,7 @@ fn test_result_is_digital() -> miette::Result<()> {
 
     #[kernel]
     fn foo(i: b8) -> FWResult<b8> {
-        if i == b8(0b10101010) {
+        if i.any() {
             FWResult::<b8>::Ok(b8(0b01010101))
         } else {
             FWResult::<b8>::Err(Eflag::BadNumber)
@@ -49,12 +49,9 @@ fn test_result_is_digital() -> miette::Result<()> {
         let j = foo(i)?;
         FWResult::<b8>::Ok(j)
     }
-
-    #[kernel]
-    fn top(i: Signal<b8, Red>) -> Signal<FWResult<b8>, Red> {
-        signal(bar(i.val()))
-    }
-
-    test_kernel_vm_and_verilog::<top, _, _, _>(top, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog_synchronous::<bar, _, _, _>(
+        bar,
+        exhaustive().iter().map(|x| (*x,)),
+    )?;
     Ok(())
 }

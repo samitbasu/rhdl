@@ -78,10 +78,6 @@ impl Pass for DeadCodeEliminationPass {
                 OpCode::Unary(unary) => {
                     mark_active(&unary.lhs);
                 }
-                OpCode::Unwrap(unwrap) => {
-                    mark_active(&unwrap.good);
-                    mark_active(&unwrap.is_good);
-                }
                 OpCode::Noop | OpCode::Comment(_) => {
                     // Noop and Comment ops are always alive
                     *alive_marker = true;

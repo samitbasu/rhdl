@@ -43,7 +43,6 @@ use crate::rhif::rhif_builder::op_as_signed_inferred;
 use crate::rhif::rhif_builder::op_resize;
 use crate::rhif::rhif_builder::op_resize_inferred;
 use crate::rhif::rhif_builder::op_retime;
-use crate::rhif::rhif_builder::op_unwrapped;
 use crate::rhif::spec::AluUnary;
 use crate::rhif::spec::CaseArgument;
 use crate::rhif::spec::Member;
@@ -1260,7 +1259,24 @@ impl<'a> MirContext<'a> {
         // This is a complicated operation, but we have an unwrapped op code for it.
         let lhs = self.reg(id); // This holds the unwrapped value (which may be invalid)
         let is_good = self.reg(id);
-        self.op(op_unwrapped(lhs, is_good, arg), id);
+        self.op(
+            op_index(
+                lhs,
+                arg,
+                crate::types::path::Path::default()
+                    .payload_by_value(1)
+                    .tuple_index(0),
+            ),
+            id,
+        );
+        self.op(
+            op_index(
+                is_good,
+                arg,
+                crate::types::path::Path::default().discriminant(),
+            ),
+            id,
+        );
         // Next, we duplicate the early return logic here, using the is_bad in the selection
         let literal_true = self.literal_bool(id, true);
         let early_return_flag = self.rebind(EARLY_RETURN_FLAG_NAME, id)?;

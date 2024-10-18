@@ -13,7 +13,7 @@ use crate::{
         builder::generate_verilog,
     },
     types::bit_string::BitString,
-    DigitalFn, RHDLError, Timed, TypedBits,
+    Digital, DigitalFn, RHDLError, TypedBits,
 };
 
 use super::test_module::TestModule;
@@ -22,28 +22,28 @@ pub trait TestArg {
     fn vec_tb(&self) -> Vec<TypedBits>;
 }
 
-impl<T0: Timed> TestArg for (T0,) {
+impl<T0: Digital> TestArg for (T0,) {
     fn vec_tb(&self) -> Vec<TypedBits> {
         let (t0,) = self;
         vec![t0.typed_bits()]
     }
 }
 
-impl<T0: Timed, T1: Timed> TestArg for (T0, T1) {
+impl<T0: Digital, T1: Digital> TestArg for (T0, T1) {
     fn vec_tb(&self) -> Vec<TypedBits> {
         let (t0, t1) = self;
         vec![t0.typed_bits(), t1.typed_bits()]
     }
 }
 
-impl<T0: Timed, T1: Timed, T2: Timed> TestArg for (T0, T1, T2) {
+impl<T0: Digital, T1: Digital, T2: Digital> TestArg for (T0, T1, T2) {
     fn vec_tb(&self) -> Vec<TypedBits> {
         let (t0, t1, t2) = self;
         vec![t0.typed_bits(), t1.typed_bits(), t2.typed_bits()]
     }
 }
 
-impl<T0: Timed, T1: Timed, T2: Timed, T3: Timed> TestArg for (T0, T1, T2, T3) {
+impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> TestArg for (T0, T1, T2, T3) {
     fn vec_tb(&self) -> Vec<TypedBits> {
         let (t0, t1, t2, t3) = self;
         vec![
@@ -55,7 +55,9 @@ impl<T0: Timed, T1: Timed, T2: Timed, T3: Timed> TestArg for (T0, T1, T2, T3) {
     }
 }
 
-impl<T0: Timed, T1: Timed, T2: Timed, T3: Timed, T4: Timed> TestArg for (T0, T1, T2, T3, T4) {
+impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital, T4: Digital> TestArg
+    for (T0, T1, T2, T3, T4)
+{
     fn vec_tb(&self) -> Vec<TypedBits> {
         let (t0, t1, t2, t3, t4) = self;
         vec![
@@ -81,8 +83,8 @@ fn maybe_assign(target: &str, value: &BitString) -> Option<Statement> {
 impl<F, Q, T0> Testable<(T0,), Q> for F
 where
     F: Fn(T0) -> Q,
-    T0: Timed,
-    Q: Timed,
+    T0: Digital,
+    Q: Digital,
 {
     fn apply(&self, args: (T0,)) -> Q {
         let (t0,) = args;
@@ -113,9 +115,9 @@ where
 impl<F, Q, T0, T1> Testable<(T0, T1), Q> for F
 where
     F: Fn(T0, T1) -> Q,
-    T0: Timed,
-    T1: Timed,
-    Q: Timed,
+    T0: Digital,
+    T1: Digital,
+    Q: Digital,
 {
     fn apply(&self, args: (T0, T1)) -> Q {
         let (t0, t1) = args;
@@ -149,10 +151,10 @@ where
 impl<F, Q, T0, T1, T2> Testable<(T0, T1, T2), Q> for F
 where
     F: Fn(T0, T1, T2) -> Q,
-    T0: Timed,
-    T1: Timed,
-    T2: Timed,
-    Q: Timed,
+    T0: Digital,
+    T1: Digital,
+    T2: Digital,
+    Q: Digital,
 {
     fn apply(&self, args: (T0, T1, T2)) -> Q {
         let (t0, t1, t2) = args;
@@ -190,11 +192,11 @@ where
 impl<F, Q, T0, T1, T2, T3> Testable<(T0, T1, T2, T3), Q> for F
 where
     F: Fn(T0, T1, T2, T3) -> Q,
-    T0: Timed,
-    T1: Timed,
-    T2: Timed,
-    T3: Timed,
-    Q: Timed,
+    T0: Digital,
+    T1: Digital,
+    T2: Digital,
+    T3: Digital,
+    Q: Digital,
 {
     fn apply(&self, args: (T0, T1, T2, T3)) -> Q {
         let (t0, t1, t2, t3) = args;
@@ -236,12 +238,12 @@ where
 impl<F, Q, T0, T1, T2, T3, T4> Testable<(T0, T1, T2, T3, T4), Q> for F
 where
     F: Fn(T0, T1, T2, T3, T4) -> Q,
-    T0: Timed,
-    T1: Timed,
-    T2: Timed,
-    T3: Timed,
-    T4: Timed,
-    Q: Timed,
+    T0: Digital,
+    T1: Digital,
+    T2: Digital,
+    T3: Digital,
+    T4: Digital,
+    Q: Digital,
 {
     fn apply(&self, args: (T0, T1, T2, T3, T4)) -> Q {
         let (t0, t1, t2, t3, t4) = args;
@@ -287,7 +289,7 @@ where
 fn test_module<F, Args, T0>(uut: &F, desc: Function, vals: impl Iterator<Item = Args>) -> TestModule
 where
     F: Testable<Args, T0>,
-    T0: Timed,
+    T0: Digital,
 {
     let name = &desc.name;
     let decls = F::declaration();
@@ -332,7 +334,7 @@ fn test_module_for_flowgraph<F, Args, T0>(
 ) -> TestModule
 where
     F: Testable<Args, T0>,
-    T0: Timed,
+    T0: Digital,
 {
     let name = &desc.name;
     let body = desc.as_verilog();
@@ -370,17 +372,18 @@ where
     }
 }
 
-pub fn test_kernel_vm_and_verilog<K, F, Args, T0>(
+fn test_kernel_vm_and_verilog_with_mode<K, F, Args, T0>(
     uut: F,
     vals: impl Iterator<Item = Args> + Clone,
+    mode: crate::CompilationMode,
 ) -> Result<(), RHDLError>
 where
     F: Testable<Args, T0>,
-    T0: Timed,
+    T0: Digital,
     K: DigitalFn,
     Args: TestArg,
 {
-    let design = compile_design_stage1::<K>(crate::CompilationMode::Asynchronous)?;
+    let design = compile_design_stage1::<K>(mode)?;
     let rtl = compile_design_stage2(&design)?;
     let vm_inputs = vals.clone();
     for input in vm_inputs {
@@ -414,4 +417,38 @@ where
     let tm = test_module_for_flowgraph(uut, desc, vals);
     tm.run_iverilog()?;
     Ok(())
+}
+
+pub fn test_kernel_vm_and_verilog<K, F, Args, T0>(
+    uut: F,
+    vals: impl Iterator<Item = Args> + Clone,
+) -> Result<(), RHDLError>
+where
+    F: Testable<Args, T0>,
+    T0: Digital,
+    K: DigitalFn,
+    Args: TestArg,
+{
+    test_kernel_vm_and_verilog_with_mode::<K, F, Args, T0>(
+        uut,
+        vals,
+        crate::CompilationMode::Asynchronous,
+    )
+}
+
+pub fn test_kernel_vm_and_verilog_synchronous<K, F, Args, T0>(
+    uut: F,
+    vals: impl Iterator<Item = Args> + Clone,
+) -> Result<(), RHDLError>
+where
+    F: Testable<Args, T0>,
+    T0: Digital,
+    K: DigitalFn,
+    Args: TestArg,
+{
+    test_kernel_vm_and_verilog_with_mode::<K, F, Args, T0>(
+        uut,
+        vals,
+        crate::CompilationMode::Synchronous,
+    )
 }

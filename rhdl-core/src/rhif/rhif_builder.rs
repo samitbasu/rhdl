@@ -7,7 +7,7 @@ use crate::{
     Color, TypedBits,
 };
 
-use super::spec::{Retime, Select, Splice, Unwrap};
+use super::spec::{Retime, Select, Splice};
 
 pub fn op_binary(op: AluBinary, lhs: Slot, arg1: Slot, arg2: Slot) -> OpCode {
     OpCode::Binary(Binary {
@@ -54,10 +54,6 @@ pub fn op_splice(lhs: Slot, rhs: Slot, path: Path, arg: Slot) -> OpCode {
 
 pub fn op_repeat(lhs: Slot, value: Slot, len: u64) -> OpCode {
     OpCode::Repeat(Repeat { lhs, value, len })
-}
-
-pub fn op_unwrapped(good: Slot, is_good: Slot, arg: Slot) -> OpCode {
-    OpCode::Unwrap(Unwrap { good, is_good, arg })
 }
 
 pub fn op_struct(
