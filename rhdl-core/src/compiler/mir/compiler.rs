@@ -17,6 +17,7 @@ use std::iter::once;
 use crate::ast::ast_impl;
 use crate::ast::ast_impl::BitsKind;
 use crate::ast::ast_impl::ExprBits;
+use crate::ast::ast_impl::ExprOptionResult;
 use crate::ast::ast_impl::ExprTry;
 use crate::ast::ast_impl::ExprTypedBits;
 use crate::ast::ast_impl::{
@@ -826,6 +827,13 @@ impl<'a> MirContext<'a> {
         };
         Ok(lhs)
     }
+    fn option_result(&mut self, id: NodeId, opt_res: &ExprOptionResult) -> Result<Slot> {
+        let lhs = self.reg(id);
+        let arg = self.expr(&opt_res.arg)?;
+        self.op(op_case(lhs, arg), id);
+        Ok(lhs)
+    }
+
     fn call(&mut self, id: NodeId, call: &ExprCall) -> Result<Slot> {
         let lhs = self.reg(id);
         let args = self.expr_list(&call.args)?;
@@ -918,6 +926,7 @@ impl<'a> MirContext<'a> {
             ExprKind::Type(_) => Ok(Slot::Empty),
             ExprKind::Bits(bits) => self.bits(expr.id, bits),
             ExprKind::Try(tri) => self.try_expr(expr.id, tri),
+            ExprKind::OptionResult(opt_res) => self.option_result(expr.id, opt_res),
         }
     }
     // We need three components

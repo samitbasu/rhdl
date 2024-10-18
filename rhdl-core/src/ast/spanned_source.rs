@@ -1,7 +1,7 @@
 use crate::{
     ast::ast_impl::{
-        ArmKind, BitsKind, Block, Expr, ExprKind, KernelFn, NodeId, Pat, PatKind, Path,
-        PathSegment, Stmt, StmtKind,
+        ArmKind, BitsKind, Block, Expr, ExprKind, ExprOptionResult, KernelFn, NodeId, Pat, PatKind,
+        Path, PathSegment, Stmt, StmtKind,
     },
     rhif::spec::Member,
     util::IndentingFormatter,
@@ -472,6 +472,20 @@ impl SpannedSourceBuilder {
                 self.push(&format!("{}(", func_name));
                 self.expr(&bits.arg);
                 self.push(")");
+            }
+            ExprKind::OptionResult(expr) => {
+                let (func_name, arg) = match expr {
+                    ExprOptionResult::Err(expr) => ("Err", Some(expr)),
+                    ExprOptionResult::Ok(expr) => ("Ok", Some(expr)),
+                    ExprOptionResult::None => ("None", None),
+                    ExprOptionResult::Some(expr) => ("Some", Some(expr)),
+                };
+                self.push(func_name);
+                if let Some(arg) = arg {
+                    self.push("(");
+                    self.expr(arg);
+                    self.push(")");
+                }
             }
         }
         self.span_map.insert(expr.id, start..self.loc());

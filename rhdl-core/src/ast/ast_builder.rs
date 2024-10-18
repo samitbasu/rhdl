@@ -526,6 +526,38 @@ impl ASTBuilder {
         })
     }
 
+    pub fn expr_none(&self) -> Box<Expr> {
+        let id = self.id();
+        Box::new(Expr {
+            id,
+            kind: ExprKind::OptionResult(ExprOptionResult::None),
+        })
+    }
+
+    pub fn expr_some(&self, arg: Box<Expr>) -> Box<Expr> {
+        let id = self.id();
+        Box::new(Expr {
+            id,
+            kind: ExprKind::OptionResult(ExprOptionResult::Some(arg)),
+        })
+    }
+
+    pub fn expr_ok(&self, arg: Box<Expr>) -> Box<Expr> {
+        let id = self.id();
+        Box::new(Expr {
+            id,
+            kind: ExprKind::OptionResult(ExprOptionResult::Ok(arg)),
+        })
+    }
+
+    pub fn expr_err(&self, arg: Box<Expr>) -> Box<Expr> {
+        let id = self.id();
+        Box::new(Expr {
+            id,
+            kind: ExprKind::OptionResult(ExprOptionResult::Err(arg)),
+        })
+    }
+
     pub fn expr_signal(&self, arg: Box<Expr>, clock: Option<Color>) -> Box<Expr> {
         let path = self.path(vec![PathSegment {
             ident: "signal",
