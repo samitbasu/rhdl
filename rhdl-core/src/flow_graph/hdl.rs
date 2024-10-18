@@ -9,8 +9,8 @@ use crate::{
     hdl::ast::{
         always, assign, binary, bit_string, case, concatenate, constant, declaration,
         dynamic_index, dynamic_splice, id, if_statement, index_bit, initial,
-        non_blocking_assignment, port, select, splice, unary, unsigned_width, CaseItem,
-        Declaration, Direction, Events, Expression, HDLKind, Module, Statement,
+        non_blocking_assignment, port, select, unary, unsigned_width, CaseItem, Declaration,
+        Direction, Events, Expression, HDLKind, Module, Statement,
     },
     FlowGraph, RHDLError,
 };

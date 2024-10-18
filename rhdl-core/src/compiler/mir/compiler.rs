@@ -916,6 +916,7 @@ impl<'a> MirContext<'a> {
             ExprKind::MethodCall(method) => self.method_call(expr.id, method),
             ExprKind::Type(_) => Ok(Slot::Empty),
             ExprKind::Bits(bits) => self.bits(expr.id, bits),
+            ExprKind::Try(tri) => self.try_expr(expr.id, tri),
         }
     }
     // We need three components
@@ -1236,6 +1237,17 @@ impl<'a> MirContext<'a> {
         let value = self.expr(&repeat.value)?;
         self.op(op_repeat(lhs, value, repeat.len as _), id);
         Ok(lhs)
+    }
+    fn try_expr(&mut self, id: NodeId, try_expr: &ExprTry) -> Result<Slot> {
+        // The try operation is reduced to the following steps
+        // 1.  First, we evaluate the expression that is being tried
+        // 2.  Next, we need to check if the expression is an error - here, we
+        //     need to check if the discriminant of the expression is equal to
+        //     one - by convention, the Option and Result types use a discriminant
+        //           of 0 to mean "Bad"
+        // 3.  If the result is good, we unwrap the value and return it as the result
+        // 4.  Otherwise, we make the early return of the function equal to the
+        //     error value.
     }
     fn return_expr(&mut self, id: NodeId, return_expr: &ExprRet) -> Result<Slot> {
         // An early return of the type "return <expr>" is transformed

@@ -5,7 +5,6 @@ use std::{
 
 use fnv::FnvHasher;
 use petgraph::prelude::StableDiGraph;
-use svg::node;
 
 use crate::{
     ast::{source_location::SourceLocation, spanned_source::SpannedSourceSet},

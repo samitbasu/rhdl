@@ -1,8 +1,11 @@
-use rhdl_bits::{Bits, SignedBits};
+use rhdl_bits::{bits, Bits, SignedBits};
 
-use crate::{Kind, NoteKey, NoteWriter, TypedBits};
+use crate::{
+    compiler::mir::ty::make_variant_tag, DiscriminantAlignment, DiscriminantType, Kind, NoteKey,
+    NoteWriter, TypedBits,
+};
 
-use super::note::Notable;
+use super::{kind::DiscriminantLayout, note::Notable};
 
 /// This is the core trait for all of `RHDL` data elements.  If you
 /// want to use a data type in the hardware part of the design,
@@ -69,6 +72,125 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static + Notable {
             .collect()
     }
     fn init() -> Self;
+}
+
+impl<T: Digital> Digital for Option<T> {
+    fn static_kind() -> Kind {
+        Kind::make_enum(
+            &format!("Option::<{}>", std::any::type_name::<T>()),
+            vec![
+                Kind::make_variant("None", Kind::Empty, 0),
+                Kind::make_variant("Some", T::static_kind(), 1),
+            ],
+            DiscriminantLayout {
+                width: 1,
+                alignment: DiscriminantAlignment::Msb,
+                ty: DiscriminantType::Unsigned,
+            },
+        )
+    }
+    fn bin(self) -> Vec<bool> {
+        self.kind().pad(match self {
+            Self::None => bits::<1>(0).to_bools(),
+            Self::Some(t) => {
+                let mut v = bits::<1>(1).to_bools();
+                v.extend(t.bin());
+                v
+            }
+        })
+    }
+    fn discriminant(self) -> TypedBits {
+        match self {
+            Self::None => false.typed_bits(),
+            Self::Some(_) => true.typed_bits(),
+        }
+    }
+    fn variant_kind(self) -> Kind {
+        match self {
+            Self::None => Kind::Empty,
+            Self::Some(x) => x.kind(),
+        }
+    }
+    fn init() -> Self {
+        Self::None
+    }
+}
+
+impl<T: Digital> Notable for Option<T> {
+    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
+        match self {
+            Self::None => writer.write_string(key, "None"),
+            Self::Some(x) => {
+                writer.write_string(key, "Some");
+                x.note((key, 0), writer);
+            }
+        }
+    }
+}
+
+impl<O: Digital, E: Digital> Digital for Result<O, E> {
+    fn static_kind() -> Kind {
+        Kind::make_enum(
+            &format!(
+                "Result::<{}, {}>",
+                std::any::type_name::<O>(),
+                std::any::type_name::<E>()
+            ),
+            vec![
+                Kind::make_variant("Err", E::static_kind(), 0),
+                Kind::make_variant("Ok", O::static_kind(), 1),
+            ],
+            Kind::make_discriminant_layout(
+                1,
+                DiscriminantAlignment::Msb,
+                DiscriminantType::Unsigned,
+            ),
+        )
+    }
+    fn bin(self) -> Vec<bool> {
+        self.kind().pad(match self {
+            Self::Ok(o) => {
+                let mut v = bits::<1>(0).to_bools();
+                v.extend(o.bin());
+                v
+            }
+            Self::Err(e) => {
+                let mut v = bits::<1>(1).to_bools();
+                v.extend(e.bin());
+                v
+            }
+        })
+    }
+    fn discriminant(self) -> TypedBits {
+        match self {
+            Self::Ok(_) => false.typed_bits(),
+            Self::Err(_) => true.typed_bits(),
+        }
+    }
+    fn variant_kind(self) -> Kind {
+        match self {
+            Self::Ok(x) => x.kind(),
+            Self::Err(x) => x.kind(),
+        }
+    }
+    fn init() -> Self {
+        Self::Err(E::init())
+    }
+}
+
+impl<O: Digital, E: Digital> Notable for Result<O, E> {
+    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
+        match self {
+            Self::Ok(x) => {
+                writer.write_string(key, "Ok");
+                x.note((key, 0), writer);
+            }
+            Self::Err(x) => {
+                writer.write_string(key, "Err");
+                x.note((key, 1), writer);
+            }
+        }
+    }
 }
 
 impl Digital for () {

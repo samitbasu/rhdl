@@ -333,6 +333,10 @@ impl PrettyPrinter {
                 }
                 self.push(")");
             }
+            ExprKind::Try(tri) => {
+                self.print_expr(&tri.expr)?;
+                self.push("?");
+            }
             ExprKind::Unary(expr) => {
                 self.push(&format!("{}", expr.op));
                 self.print_expr(&expr.expr)?;

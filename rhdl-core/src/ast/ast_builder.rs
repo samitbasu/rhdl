@@ -458,6 +458,14 @@ impl ASTBuilder {
         })
     }
 
+    pub fn expr_try(&self, expr: Box<Expr>) -> Box<Expr> {
+        let id = self.id();
+        Box::new(Expr {
+            id,
+            kind: ExprKind::Try(ExprTry { expr }),
+        })
+    }
+
     pub fn kernel_fn(
         &self,
         name: &'static str,
