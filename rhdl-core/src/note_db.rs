@@ -1,9 +1,6 @@
 use crate::types::note::Notable;
 use crate::{NoteKey, NoteWriter};
 use anyhow::bail;
-use fnv::FnvHashMap;
-use petgraph::visit::Dfs;
-use petgraph::visit::EdgeRef;
 use std::collections::BTreeMap;
 use std::hash::Hash;
 use std::{cell::RefCell, hash::Hasher, io::Write};
@@ -409,27 +406,36 @@ impl NoteDB {
                 .write_vcd(cursor, writer),
         }
     }
-
+    fn setup_cursors<W: Write>(
+        &self,
+        name: &str,
+        scope: &Scope,
+        cursors: &mut Vec<Cursor>,
+        writer: &mut vcd::Writer<W>,
+    ) -> anyhow::Result<()> {
+        writer.add_module(name)?;
+        for (name, hash) in &scope.signals {
+            let details = self.details.get(hash).unwrap();
+            if let Some(cursor) = self.setup_cursor(name, details, writer) {
+                cursors.push(cursor);
+            }
+        }
+        for (name, child) in &scope.children {
+            self.setup_cursors(name, child, cursors, writer)?;
+        }
+        writer.upscope()?;
+        Ok(())
+    }
     pub fn dump_vcd<W: Write>(&self, w: W) -> anyhow::Result<()> {
         let mut writer = vcd::Writer::new(w);
         writer.timescale(1, vcd::TimescaleUnit::PS)?;
-        writer.add_module("top")?;
-        let details = self.details.iter().map(|(hash, details)| TSItem {
+        let root_scope = hierarchical_walk(self.details.iter().map(|(hash, details)| TSItem {
             path: &details.path,
             name: &details.key,
             hash: *hash,
-        });
-        let root = hierarchical_walk(details);
-        dump("root", &root);
-        let mut cursors: Vec<Cursor> = self
-            .details
-            .iter()
-            .filter_map(|(name, details)| {
-                let name = format!("{:?}::{}", details.path, details.key);
-                self.setup_cursor(&name, details, &mut writer)
-            })
-            .collect();
-        writer.upscope()?;
+        }));
+        let mut cursors = vec![];
+        self.setup_cursors("top", &root_scope, &mut cursors, &mut writer)?;
         writer.enddefinitions()?;
         writer.timestamp(0)?;
         let mut current_time = 0;
@@ -540,17 +546,6 @@ fn hierarchical_walk<'a>(paths: impl Iterator<Item = TSItem<'a>>) -> Scope {
         folder.signals.insert(ts_item.name.into(), ts_item.hash);
     }
     root
-}
-
-fn dump(name: &str, scope: &Scope) {
-    eprintln!("begin scope {}", name);
-    for (name, hash) in &scope.signals {
-        eprintln!("signal {} {}", name, hash);
-    }
-    for (name, child) in &scope.children {
-        dump(name, child);
-    }
-    eprintln!("end scope {}", name);
 }
 
 #[cfg(test)]
@@ -747,23 +742,5 @@ mod tests {
         let db = note_take().unwrap();
         db.dump_vcd(&mut vcd).unwrap();
         std::fs::write("test_nested_paths.vcd", vcd).unwrap();
-    }
-
-    #[test]
-    fn test_hierarchical_walk() {
-        let paths = vec![
-            (vec![], "clock", 0),
-            (vec!["a"], "input", 1),
-            (vec!["a", "b"], "output", 2),
-            (vec!["d", "e"], "reset", 3),
-            (vec!["d", "e", "f"], "baz", 4),
-            (vec!["d"], "bar", 5),
-        ];
-        let scope = hierarchical_walk(paths.iter().map(|(path, name, hash)| TSItem {
-            path,
-            name,
-            hash: *hash,
-        }));
-        dump("top", &scope);
     }
 }

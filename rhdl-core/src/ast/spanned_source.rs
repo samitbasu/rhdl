@@ -445,6 +445,10 @@ impl SpannedSourceBuilder {
                 }
                 self.push("}");
             }
+            ExprKind::Try(tri) => {
+                self.expr(&tri.expr);
+                self.push("?");
+            }
             ExprKind::Tuple(expr) => {
                 self.push("(");
                 for elem in &expr.elements {

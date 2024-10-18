@@ -168,6 +168,12 @@ pub enum ExprKind {
     MethodCall(ExprMethodCall),
     Type(ExprType),
     Bits(ExprBits),
+    Try(ExprTry),
+}
+
+#[derive(Debug, Clone, Hash)]
+pub struct ExprTry {
+    pub expr: Box<Expr>,
 }
 
 #[derive(Debug, Clone, Hash)]
