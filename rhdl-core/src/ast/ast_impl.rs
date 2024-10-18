@@ -169,6 +169,15 @@ pub enum ExprKind {
     Type(ExprType),
     Bits(ExprBits),
     Try(ExprTry),
+    OptionResult(ExprOptionResult),
+}
+
+#[derive(Debug, Clone, Hash)]
+pub enum ExprOptionResult {
+    Some(Box<Expr>),
+    None,
+    Ok(Box<Expr>),
+    Err(Box<Expr>),
 }
 
 #[derive(Debug, Clone, Hash)]

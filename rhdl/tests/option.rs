@@ -36,18 +36,27 @@ fn test_result_is_digital() -> miette::Result<()> {
     type FWResult<T> = Result<T, Eflag>;
 
     #[kernel]
+    fn validify(i: b8) -> Option<b8> {
+        if i.any() {
+            Some(i)
+        } else {
+            None
+        }
+    }
+
+    #[kernel]
     fn foo(i: b8) -> FWResult<b8> {
         if i.any() {
-            FWResult::<b8>::Ok(b8(0b01010101))
+            Ok(b8(0b01010101))
         } else {
-            FWResult::<b8>::Err(Eflag::BadNumber)
+            Err(Eflag::BadNumber)
         }
     }
 
     #[kernel]
     fn bar(i: b8) -> FWResult<b8> {
         let j = foo(i)?;
-        FWResult::<b8>::Ok(j)
+        Ok(j)
     }
     test_kernel_vm_and_verilog_synchronous::<bar, _, _, _>(
         bar,
