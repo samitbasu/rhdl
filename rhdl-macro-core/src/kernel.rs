@@ -935,10 +935,10 @@ impl Context {
     }
 
     fn try_ex(&mut self, expr: &syn::ExprTry) -> Result<TS> {
-        Err(syn::Error::new(
-            expr.span(),
-            "Unsupported try expression in rhdl kernel function",
-        ))
+        let expr = self.expr(&expr.expr)?;
+        Ok(quote! {
+            bob.expr_try(#expr)
+        })
     }
 
     fn range(&mut self, expr: &syn::ExprRange) -> Result<TS> {

@@ -1,4 +1,8 @@
 use rhdl::prelude::*;
+#[cfg(test)]
+mod common;
+#[cfg(test)]
+use common::*;
 
 #[test]
 fn test_option_is_digital() {
@@ -19,7 +23,7 @@ fn test_option_is_digital() {
 }
 
 #[test]
-fn test_result_is_digital() {
+fn test_result_is_digital() -> miette::Result<()> {
     #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
     enum Eflag {
         BadOpCode,
@@ -32,7 +36,7 @@ fn test_result_is_digital() {
     type FWResult<T> = Result<T, Eflag>;
 
     #[kernel]
-    fn foo(_cr: ClockReset, i: b8) -> FWResult<b8> {
+    fn foo(i: b8) -> FWResult<b8> {
         if i == b8(0b10101010) {
             FWResult::<b8>::Ok(b8(0b01010101))
         } else {
@@ -41,11 +45,16 @@ fn test_result_is_digital() {
     }
 
     #[kernel]
-    fn bar(_cr: ClockReset, i: b8) -> FWResult<b8> {
-        let j = match foo(_cr, i) {
-            FWResult::<b8>::Ok(j) => j,
-            FWResult::<b8>::Err(e) => return FWResult::<b8>::Err(e),
-        };
+    fn bar(i: b8) -> FWResult<b8> {
+        let j = foo(i)?;
         FWResult::<b8>::Ok(j)
     }
+
+    #[kernel]
+    fn top(i: Signal<b8, Red>) -> Signal<FWResult<b8>, Red> {
+        signal(bar(i.val()))
+    }
+
+    test_kernel_vm_and_verilog::<top, _, _, _>(top, tuple_exhaustive_red())?;
+    Ok(())
 }

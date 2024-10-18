@@ -80,7 +80,7 @@ impl<T: Digital> Digital for Option<T> {
             &format!("Option::<{}>", std::any::type_name::<T>()),
             vec![
                 Kind::make_variant("None", Kind::Empty, 0),
-                Kind::make_variant("Some", T::static_kind(), 1),
+                Kind::make_variant("Some", Kind::make_tuple(vec![T::static_kind()]), 1),
             ],
             DiscriminantLayout {
                 width: 1,
@@ -137,8 +137,8 @@ impl<O: Digital, E: Digital> Digital for Result<O, E> {
                 std::any::type_name::<E>()
             ),
             vec![
-                Kind::make_variant("Err", E::static_kind(), 0),
-                Kind::make_variant("Ok", O::static_kind(), 1),
+                Kind::make_variant("Err", Kind::make_tuple(vec![E::static_kind()]), 0),
+                Kind::make_variant("Ok", Kind::make_tuple(vec![O::static_kind()]), 1),
             ],
             Kind::make_discriminant_layout(
                 1,
@@ -150,12 +150,12 @@ impl<O: Digital, E: Digital> Digital for Result<O, E> {
     fn bin(self) -> Vec<bool> {
         self.kind().pad(match self {
             Self::Ok(o) => {
-                let mut v = bits::<1>(0).to_bools();
+                let mut v = bits::<1>(1).to_bools();
                 v.extend(o.bin());
                 v
             }
             Self::Err(e) => {
-                let mut v = bits::<1>(1).to_bools();
+                let mut v = bits::<1>(0).to_bools();
                 v.extend(e.bin());
                 v
             }

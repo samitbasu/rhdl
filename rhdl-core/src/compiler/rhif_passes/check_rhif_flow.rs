@@ -7,7 +7,7 @@ use crate::{
     rhif::{
         spec::{
             Array, Assign, Binary, Case, Cast, Enum, Exec, Index, OpCode, Repeat, Retime, Select,
-            Slot, Splice, Struct, Tuple, Unary,
+            Slot, Splice, Struct, Tuple, Unary, Unwrap,
         },
         Object,
     },
@@ -104,6 +104,11 @@ fn check_flow<'a>(obj: &'a Object, mut init_set: InitSet<'a>) -> Result<InitSet<
             OpCode::Unary(Unary { op: _, lhs, arg1 }) => {
                 init_set.read(arg1)?;
                 init_set.write(lhs)?;
+            }
+            OpCode::Unwrap(Unwrap { good, is_good: is_bad, arg }) => {
+                init_set.read(arg)?;
+                init_set.write(good)?;
+                init_set.write(is_bad)?;
             }
             OpCode::Array(Array { lhs, elements })
             | OpCode::Tuple(Tuple {

@@ -384,6 +384,13 @@ impl ClockCoherenceContext<'_> {
                         )?;
                     }
                 }
+                OpCode::Unwrap(unwrap) => {
+                    self.unify_clocks(
+                        &[unwrap.arg, unwrap.good, unwrap.is_good],
+                        lop.id,
+                        ClockError::UnwrapClockMismatch,
+                    )?;
+                }
                 OpCode::Assign(assign) => {
                     self.unify_clocks(
                         &[assign.rhs, assign.lhs],

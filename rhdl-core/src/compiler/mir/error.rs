@@ -271,6 +271,9 @@ pub enum ClockError {
     #[error("Clock domain mismatch in call to external function")]
     #[diagnostic(help("The clock domain of the input and output signals must match the clock domains of the inputs for the function"))]
     ExternalClockMismatch,
+    #[error("Clock domain mismatch in unwrap operation")]
+    #[diagnostic(help("The good and bad signals must be in the same clock domain"))]
+    UnwrapClockMismatch,
 }
 
 #[derive(Debug, Error)]

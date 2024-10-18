@@ -41,6 +41,15 @@ pub enum OpCode {
     // x <- C::sig(a)
     Retime(Retime),
     Comment(String),
+    // (s, good, bad) <- unwrap(x)
+    Unwrap(Unwrap),
+}
+
+#[derive(Debug, Clone, PartialEq, Hash)]
+pub struct Unwrap {
+    pub good: Slot,
+    pub is_good: Slot,
+    pub arg: Slot,
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]
