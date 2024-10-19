@@ -1,7 +1,7 @@
 // RHDL Intermediate Form (RHIF).
 use anyhow::Result;
 
-use crate::{types::path::Path, Color, TypedBits};
+use crate::{ast::ast_impl::WrapOp, types::path::Path, Color, Kind, TypedBits};
 
 #[derive(Clone, PartialEq, Hash)]
 pub enum OpCode {
@@ -40,7 +40,17 @@ pub enum OpCode {
     Resize(Cast),
     // x <- C::sig(a)
     Retime(Retime),
+    // x <- wrap(a), where wrap is either Result::Ok, Result::Err, Option::Some, Option::None
+    Wrap(Wrap),
     Comment(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Hash)]
+pub struct Wrap {
+    pub op: WrapOp,
+    pub lhs: Slot,
+    pub arg: Slot,
+    pub kind: Option<Kind>,
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]

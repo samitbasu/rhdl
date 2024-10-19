@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
-use std::iter::repeat;
+use std::iter::{once, repeat};
 
+use crate::ast::ast_impl::WrapOp;
 use crate::dyn_bit_manip::bits_shr_signed;
 use crate::dyn_bit_manip::{
     bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
@@ -9,7 +10,7 @@ use crate::error::{rhdl_error, RHDLError};
 use crate::Color;
 use crate::Digital;
 use crate::{
-    types::path::{bit_range, Path},
+    types::path::{bit_range, sub_kind, Path},
     Kind,
 };
 
@@ -331,24 +332,125 @@ impl TypedBits {
             kind: Kind::make_signal(self.kind, color),
         }
     }
-
     pub fn val(&self) -> TypedBits {
         TypedBits {
             bits: self.bits.clone(),
             kind: self.kind.val(),
         }
     }
-    /*     pub fn as_verilog_literal(self) -> String {
-           let signed = if matches!(self.kind, Kind::Signed(_)) {
-               "s"
-           } else {
-               ""
-           };
-           let width = self.bits.len();
-           let bs = binary_string(&self.bits);
-           format!("{width}'{signed}b{bs}")
-       }
-    */
+    pub fn wrap_some(self, option_kind: &Kind) -> Result<TypedBits> {
+        if !option_kind.is_option() {
+            return Err(rhdl_error(DynamicTypeError::CannotWrapOption {
+                value: self.clone(),
+                kind: option_kind.clone(),
+            }));
+        }
+        let some_kind = sub_kind(
+            option_kind.clone(),
+            &Path::default().payload("Some").tuple_index(0),
+        )?;
+        if some_kind != self.kind {
+            return Err(rhdl_error(DynamicTypeError::CannotWrapOption {
+                value: self.clone(),
+                kind: option_kind.clone(),
+            }));
+        }
+        let pad = option_kind.bits() - self.kind.bits() - 1;
+        Ok(TypedBits {
+            bits: self
+                .bits
+                .into_iter()
+                .chain(repeat(false).take(pad).chain(once(true)))
+                .collect(),
+            kind: option_kind.clone(),
+        })
+    }
+    pub fn wrap_none(self, option_kind: &Kind) -> Result<TypedBits> {
+        if !option_kind.is_option() {
+            return Err(rhdl_error(DynamicTypeError::CannotWrapOption {
+                value: self.clone(),
+                kind: option_kind.clone(),
+            }));
+        }
+        let none_kind = sub_kind(option_kind.clone(), &Path::default().payload("None"))?;
+        if none_kind != self.kind {
+            return Err(rhdl_error(DynamicTypeError::CannotWrapOption {
+                value: self.clone(),
+                kind: option_kind.clone(),
+            }));
+        }
+        let pad = option_kind.bits() - self.kind.bits() - 1;
+        Ok(TypedBits {
+            bits: self
+                .bits
+                .into_iter()
+                .chain(repeat(false).take(pad).chain(once(false)))
+                .collect(),
+            kind: option_kind.clone(),
+        })
+    }
+    pub fn wrap_err(self, result_kind: &Kind) -> Result<TypedBits> {
+        if !result_kind.is_result() {
+            return Err(rhdl_error(DynamicTypeError::CannotWrapResult {
+                value: self.clone(),
+                kind: result_kind.clone(),
+            }));
+        }
+        let err_kind = sub_kind(
+            result_kind.clone(),
+            &Path::default().payload("Err").tuple_index(0),
+        )?;
+        if err_kind != self.kind {
+            return Err(rhdl_error(DynamicTypeError::CannotWrapResult {
+                value: self.clone(),
+                kind: result_kind.clone(),
+            }));
+        }
+        let pad = result_kind.bits() - self.kind.bits() - 1;
+        Ok(TypedBits {
+            bits: self
+                .bits
+                .into_iter()
+                .chain(repeat(false).take(pad).chain(once(false)))
+                .collect(),
+            kind: result_kind.clone(),
+        })
+    }
+    pub fn wrap_ok(self, result_kind: &Kind) -> Result<TypedBits> {
+        if !result_kind.is_result() {
+            return Err(rhdl_error(DynamicTypeError::CannotWrapResult {
+                value: self.clone(),
+                kind: result_kind.clone(),
+            }));
+        }
+        let ok_kind = sub_kind(
+            result_kind.clone(),
+            &Path::default().payload("Ok").tuple_index(0),
+        )?;
+        if ok_kind != self.kind {
+            return Err(rhdl_error(DynamicTypeError::CannotWrapResult {
+                value: self.clone(),
+                kind: result_kind.clone(),
+            }));
+        }
+        let pad = result_kind.bits() - self.kind.bits() - 1;
+        Ok(TypedBits {
+            bits: self
+                .bits
+                .into_iter()
+                .chain(repeat(false).take(pad).chain(once(true)))
+                .collect(),
+            kind: result_kind.clone(),
+        })
+    }
+    pub fn wrap(self, op: WrapOp, kind: &Kind) -> Result<TypedBits> {
+        match op {
+            WrapOp::Some => self.wrap_some(kind),
+            WrapOp::None => self.wrap_none(kind),
+            WrapOp::Err => self.wrap_err(kind),
+            WrapOp::Ok => self.wrap_ok(kind),
+        }
+    }
 }
 
 fn binop_kind(lhs: &Kind, rhs: &Kind) -> Result<Kind> {
@@ -712,6 +814,7 @@ fn write_tuple(tuple: &Tuple, bits: &[bool], f: &mut std::fmt::Formatter<'_>) ->
 #[cfg(test)]
 mod tests {
     use rand::thread_rng;
+    use rhdl_bits::{alias::*, bits};
 
     use crate::{Digital, DiscriminantAlignment, DiscriminantType, Kind, Notable, TypedBits};
 
@@ -941,5 +1044,87 @@ mod tests {
         let c = (a + b).unwrap();
         assert_eq!(c.kind, Kind::make_signal(Kind::Bits(8), crate::Color::Red));
         assert_eq!(c.bits, 238_u8.typed_bits().bits);
+    }
+
+    #[test]
+    fn test_result_promotion() {
+        type MyR = std::result::Result<b4, b2>;
+        let a = MyR::Ok(bits(2)).typed_bits();
+        let b = b4(2).typed_bits().wrap_ok(&MyR::static_kind()).unwrap();
+        assert_eq!(a, b);
+        let c = MyR::Err(bits(2)).typed_bits();
+        let d = b2(2).typed_bits().wrap_err(&MyR::static_kind()).unwrap();
+        assert_eq!(c, d);
+    }
+
+    #[test]
+    fn test_result_empty_error() {
+        type MyR = std::result::Result<b4, ()>;
+        let a = MyR::Ok(bits(2)).typed_bits();
+        let b = b4(2).typed_bits().wrap_ok(&MyR::static_kind()).unwrap();
+        assert_eq!(a, b);
+        let c = MyR::Err(()).typed_bits();
+        let d = ().typed_bits().wrap_err(&MyR::static_kind()).unwrap();
+        assert_eq!(c, d);
+    }
+
+    #[test]
+    fn test_result_empty_value() {
+        type MyR = std::result::Result<(), b4>;
+        let a = MyR::Ok(()).typed_bits();
+        let b = ().typed_bits().wrap_ok(&MyR::static_kind()).unwrap();
+        assert_eq!(a, b);
+        let c = MyR::Err(bits(2)).typed_bits();
+        let d = b4(2).typed_bits().wrap_err(&MyR::static_kind()).unwrap();
+        assert_eq!(c, d);
+    }
+
+    #[test]
+    fn test_result_both_empty() {
+        type MyR = std::result::Result<(), ()>;
+        let a = MyR::Ok(()).typed_bits();
+        let b = ().typed_bits().wrap_ok(&MyR::static_kind()).unwrap();
+        assert_eq!(a, b);
+        let c = MyR::Err(()).typed_bits();
+        let d = ().typed_bits().wrap_err(&MyR::static_kind()).unwrap();
+        assert_eq!(c, d);
+    }
+
+    #[test]
+    fn test_result_fails_with_mismatched_result_kind() {
+        type MyR = std::result::Result<(), ()>;
+        let b = b4(3);
+        assert!(b.typed_bits().wrap_ok(&MyR::static_kind()).is_err());
+        assert!(b.typed_bits().wrap_err(&MyR::static_kind()).is_err());
+    }
+
+    #[test]
+    fn test_option_promotion() {
+        type MyO = std::option::Option<b4>;
+        let a = MyO::Some(bits(2)).typed_bits();
+        let b = b4(2).typed_bits().wrap_some(&MyO::static_kind()).unwrap();
+        assert_eq!(a, b);
+        let c = MyO::None.typed_bits();
+        let d = ().typed_bits().wrap_none(&MyO::static_kind()).unwrap();
+        assert_eq!(c, d);
+    }
+
+    #[test]
+    fn test_option_empty() {
+        type MyO = std::option::Option<()>;
+        let a = MyO::Some(()).typed_bits();
+        let b = ().typed_bits().wrap_some(&MyO::static_kind()).unwrap();
+        assert_eq!(a, b);
+        let c = MyO::None.typed_bits();
+        let d = ().typed_bits().wrap_none(&MyO::static_kind()).unwrap();
+        assert_eq!(c, d);
+    }
+
+    #[test]
+    fn test_option_fails_with_mismatched_option_kind() {
+        type MyO = std::option::Option<()>;
+        let b = b4(3);
+        assert!(b.typed_bits().wrap_some(&MyO::static_kind()).is_err());
+        assert!(b.typed_bits().wrap_none(&MyO::static_kind()).is_err());
     }
 }

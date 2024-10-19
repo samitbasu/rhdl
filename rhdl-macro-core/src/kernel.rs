@@ -758,6 +758,36 @@ impl Context {
         })
     }
 
+    fn special_case_call(&mut self, expr: &syn::ExprCall) -> Result<Option<TS>> {
+        let special_cases = [
+            ("bits", quote!(bob.expr_bits)),
+            ("signed", quote!(bob.expr_signed)),
+            ("Ok", quote!(bob.expr_ok)),
+            ("Err", quote!(bob.expr_err)),
+            ("Some", quote!(bob.expr_some)),
+            ("None", quote!(bob.expr_none)),
+        ];
+        let syn::Expr::Path(func_path) = expr.func.as_ref() else {
+            return Err(syn::Error::new(
+                expr.func.span(),
+                "Unsupported function call in rhdl kernel function (only paths allowed here)",
+            ));
+        };
+        let Some(name) = func_path.path.segments.last() else {
+            return Ok(None);
+        };
+        if !name.arguments.is_empty() || expr.args.len() != 1 {
+            return Ok(None);
+        }
+        if let Some((_, special_code)) = special_cases.iter().find(|(n, _)| name.ident == n) {
+            let args = self.expr(&expr.args[0])?;
+            return Ok(Some(quote! {
+                #special_code(#args)
+            }));
+        }
+        Ok(None)
+    }
+
     // A call expression like `a = Foo(...)` can be either a variant
     // constructor, a tuple struct constructor or an actual function
     // call.  Use the `inspect_digital` function
@@ -770,11 +800,14 @@ impl Context {
             ));
         };
 
-        // There are 5 special cases
+        if let Some(special_case) = self.special_case_call(expr)? {
+            return Ok(special_case);
+        }
+
+        // There are 3 special cases not handled above
         // - note calls are removed since these do not generate any code
         // - default calls are replaced with the literal value of the argument using TypedBits and the Digital trait
-        // - bits calls with no explicit size are forwarded as a special case and the sizes are inferred later (at run time)
-        // - signed calls with no explicit size are forwarded as a special case and the sizes are inferred later (at run time)
+        // - signal calls are replaced with a call to the appropriate form of the signal op
         if let Some(name) = func_path.path.segments.last() {
             if name.ident == "note" {
                 return Ok(quote! {
@@ -788,16 +821,6 @@ impl Context {
                             stringify!(#expr)
                         )
                     )
-                });
-            } else if name.ident == "bits" && name.arguments.is_empty() && expr.args.len() == 1 {
-                let args = self.expr(&expr.args[0])?;
-                return Ok(quote! {
-                    bob.expr_bits(#args)
-                });
-            } else if name.ident == "signed" && name.arguments.is_empty() && expr.args.len() == 1 {
-                let args = self.expr(&expr.args[0])?;
-                return Ok(quote! {
-                    bob.expr_signed(#args)
                 });
             } else if name.ident == "signal" {
                 let args = self.expr(&expr.args[0])?;
@@ -1106,6 +1129,11 @@ impl Context {
     }
 
     fn path(&mut self, path: &syn::Path) -> Result<TS> {
+        if path.is_ident("None") {
+            return Ok(quote! {
+                bob.expr_none()
+            });
+        }
         // Check for a locally defined path
         let inner = self.path_inner(path)?;
         if !self.is_scoped_binding(path) {

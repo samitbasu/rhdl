@@ -169,15 +169,6 @@ pub enum ExprKind {
     Type(ExprType),
     Bits(ExprBits),
     Try(ExprTry),
-    OptionResult(ExprOptionResult),
-}
-
-#[derive(Debug, Clone, Hash)]
-pub enum ExprOptionResult {
-    Some(Box<Expr>),
-    None,
-    Ok(Box<Expr>),
-    Err(Box<Expr>),
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -470,4 +461,12 @@ pub struct KernelFn {
     pub ret: Kind,
     pub body: Box<Block>,
     pub fn_id: FunctionId,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Hash)]
+pub enum WrapOp {
+    Ok,
+    Err,
+    Some,
+    None,
 }

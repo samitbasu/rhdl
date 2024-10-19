@@ -527,34 +527,70 @@ impl ASTBuilder {
     }
 
     pub fn expr_none(&self) -> Box<Expr> {
+        let path = self.path(vec![PathSegment {
+            ident: "None",
+            arguments: vec![],
+        }]);
         let id = self.id();
         Box::new(Expr {
             id,
-            kind: ExprKind::OptionResult(ExprOptionResult::None),
+            kind: ExprKind::Call(ExprCall {
+                path,
+                args: vec![],
+                signature: None,
+                code: Some(KernelFnKind::Wrap(WrapOp::None)),
+            }),
         })
     }
 
     pub fn expr_some(&self, arg: Box<Expr>) -> Box<Expr> {
+        let path = self.path(vec![PathSegment {
+            ident: "Some",
+            arguments: vec![],
+        }]);
         let id = self.id();
         Box::new(Expr {
             id,
-            kind: ExprKind::OptionResult(ExprOptionResult::Some(arg)),
+            kind: ExprKind::Call(ExprCall {
+                path,
+                args: vec![arg],
+                signature: None,
+                code: Some(KernelFnKind::Wrap(WrapOp::Some)),
+            }),
         })
     }
 
     pub fn expr_ok(&self, arg: Box<Expr>) -> Box<Expr> {
+        let path = self.path(vec![PathSegment {
+            ident: "Ok",
+            arguments: vec![],
+        }]);
         let id = self.id();
         Box::new(Expr {
             id,
-            kind: ExprKind::OptionResult(ExprOptionResult::Ok(arg)),
+            kind: ExprKind::Call(ExprCall {
+                path,
+                args: vec![arg],
+                signature: None,
+                code: Some(KernelFnKind::Wrap(WrapOp::Ok)),
+            }),
         })
     }
 
     pub fn expr_err(&self, arg: Box<Expr>) -> Box<Expr> {
+        let path = self.path(vec![PathSegment {
+            ident: "Err",
+            arguments: vec![],
+        }]);
         let id = self.id();
         Box::new(Expr {
             id,
-            kind: ExprKind::OptionResult(ExprOptionResult::Err(arg)),
+            kind: ExprKind::Call(ExprCall {
+                path,
+                args: vec![arg],
+                signature: None,
+                code: Some(KernelFnKind::Wrap(WrapOp::Err)),
+            }),
         })
     }
 

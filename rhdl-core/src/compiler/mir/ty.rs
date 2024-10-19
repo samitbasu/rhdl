@@ -27,12 +27,13 @@ pub enum SignFlag {
 
 // These are types that are fundamental, i.e., not parameterized or
 // generic over any other types.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Const {
     Clock(Color),
     Length(usize),
     Empty,
     Signed(SignFlag),
+    String(String),
 }
 
 // These are types that are generic over one or more other types.
@@ -203,7 +204,7 @@ impl AppTypeKind for AppStruct {
 // the variants themselves.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct AppEnum {
-    name: String,
+    name: TypeId,
     variants: Vec<(VariantTag, TypeId)>,
     discriminant: TypeId,
     alignment: DiscriminantAlignment,
@@ -217,6 +218,7 @@ impl AppTypeKind for AppEnum {
     }
     fn apply(self, context: &mut UnifyContext) -> Self {
         AppEnum {
+            name: context.apply(self.name),
             discriminant: context.apply(self.discriminant),
             variants: self
                 .variants
@@ -227,6 +229,7 @@ impl AppTypeKind for AppEnum {
         }
     }
     fn into_kind(self, context: &mut UnifyContext) -> anyhow::Result<Kind> {
+        let name = context.apply_string(self.name)?.to_owned();
         let variants = self
             .variants
             .into_iter()
@@ -241,7 +244,7 @@ impl AppTypeKind for AppEnum {
             .collect::<Result<Vec<_>>>()?;
         let discriminant_kind = context.into_kind(self.discriminant)?;
         Ok(Kind::make_enum(
-            &self.name,
+            &name,
             variants,
             DiscriminantLayout {
                 ty: if discriminant_kind.is_signed() {
@@ -400,6 +403,44 @@ impl UnifyContext {
         self.ty_app(id, AppType::Signal(AppSignal { data, clock }))
     }
 
+    pub fn ty_result(&mut self, id: NodeId, ok_ty: TypeId, err_ty: TypeId) -> TypeId {
+        let discriminant = self.ty_bool(id);
+        let name = self.ty_var(id);
+        let err_ty = self.ty_tuple(id, vec![err_ty]);
+        let ok_ty = self.ty_tuple(id, vec![ok_ty]);
+        self.ty_app(
+            id,
+            AppType::Enum(AppEnum {
+                name,
+                discriminant,
+                alignment: DiscriminantAlignment::Msb,
+                variants: vec![
+                    (make_variant_tag("Err", 0), err_ty),
+                    (make_variant_tag("Ok", 1), ok_ty),
+                ],
+            }),
+        )
+    }
+
+    pub fn ty_option(&mut self, id: NodeId, some_ty: TypeId) -> TypeId {
+        let discriminant = self.ty_bool(id);
+        let none_ty = self.ty_empty(id);
+        let name = self.ty_var(id);
+        let some_ty = self.ty_tuple(id, vec![some_ty]);
+        self.ty_app(
+            id,
+            AppType::Enum(AppEnum {
+                name,
+                discriminant,
+                alignment: DiscriminantAlignment::Msb,
+                variants: vec![
+                    (make_variant_tag("None", 0), none_ty),
+                    (make_variant_tag("Some", 1), some_ty),
+                ],
+            }),
+        )
+    }
+
     pub fn ty_with_sign_and_len(&mut self, id: NodeId, sign_flag: TypeId, len: TypeId) -> TypeId {
         self.ty_app(id, AppType::Bits(AppBits { sign_flag, len }))
     }
@@ -466,6 +507,7 @@ impl UnifyContext {
         alignment: DiscriminantAlignment,
         variants: Vec<(VariantTag, TypeId)>,
     ) -> TypeId {
+        let name = self.ty_const(id, Const::String(name));
         self.ty_app(
             id,
             AppType::Enum(AppEnum {
@@ -492,10 +534,11 @@ impl UnifyContext {
             })
             .collect();
         let discriminant = self.ty_discriminant(id, enumerate.discriminant_layout);
+        let name = self.ty_const(id, Const::String(enumerate.name.clone()));
         self.ty_app(
             id,
             AppType::Enum(AppEnum {
-                name: enumerate.name.clone(),
+                name,
                 variants,
                 discriminant,
                 alignment: enumerate.discriminant_layout.alignment,
@@ -508,6 +551,15 @@ impl UnifyContext {
             self.ty_empty(id)
         } else {
             self.ty_app(id, AppType::Tuple(AppTuple { elements: fields }))
+        }
+    }
+
+    fn apply_string(&mut self, ty: TypeId) -> Result<&str> {
+        let x = self.apply(ty);
+        if let TypeKind::Const(Const::String(s)) = &self.types[x.kind] {
+            Ok(s)
+        } else {
+            bail!("Expected a string, found {:?}", self.types[x.kind]);
         }
     }
 
@@ -695,6 +747,7 @@ impl UnifyContext {
                         "b".to_string()
                     }
                 }
+                Const::String(s) => format!("{}", s),
                 Const::Empty => "()".to_string(),
             },
             TypeKind::App(app) => match app {
@@ -721,7 +774,7 @@ impl UnifyContext {
                 }
                 AppType::Enum(enumerate) => format!(
                     "enum {}<{}>",
-                    enumerate.name,
+                    self.desc(enumerate.name),
                     enumerate
                         .variants
                         .iter()
@@ -922,9 +975,7 @@ impl UnifyContext {
         Ok(())
     }
     fn unify_enum(&mut self, x: &AppEnum, y: &AppEnum) -> Result<()> {
-        if x.name != y.name {
-            bail!("Cannot unify {:?} and {:?}", x, y);
-        }
+        self.unify(x.name, y.name)?;
         if x.variants.len() != y.variants.len() {
             bail!("Cannot unify {:?} and {:?}", x, y);
         }

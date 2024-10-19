@@ -467,6 +467,52 @@ impl Kind {
     pub fn val(&self) -> Kind {
         self.signal_data()
     }
+
+    pub fn is_result(&self) -> bool {
+        let Kind::Enum(enumerate) = self else {
+            return false;
+        };
+        if !enumerate.name.starts_with("Result::<")
+            || !enumerate.variants.len() == 2
+            || enumerate.variants[0].name != "Err"
+            || enumerate.variants[1].name != "Ok"
+        {
+            return false;
+        }
+        if enumerate.discriminant_layout
+            != Kind::make_discriminant_layout(
+                1,
+                crate::DiscriminantAlignment::Msb,
+                crate::DiscriminantType::Unsigned,
+            )
+        {
+            return false;
+        }
+        true
+    }
+
+    pub fn is_option(&self) -> bool {
+        let Kind::Enum(enumerate) = self else {
+            return false;
+        };
+        if !enumerate.name.starts_with("Option::<")
+            || !enumerate.variants.len() == 2
+            || enumerate.variants[0].name != "None"
+            || enumerate.variants[1].name != "Some"
+        {
+            return false;
+        }
+        if enumerate.discriminant_layout
+            != Kind::make_discriminant_layout(
+                1,
+                crate::DiscriminantAlignment::Msb,
+                crate::DiscriminantType::Unsigned,
+            )
+        {
+            return false;
+        }
+        true
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1252,5 +1298,15 @@ mod test {
             let svg = kind_svg::svg_grid_vertical(&kind, "value");
             svg::save("test_vertical.svg", &svg).unwrap();
         }
+    }
+
+    #[test]
+    fn test_result_recognized() {
+        use crate::Digital;
+        use rhdl_bits::alias::b4;
+        let a = std::result::Result::<u8, u8>::Ok(42).typed_bits();
+        assert!(a.kind.is_result());
+        let b = std::result::Result::<b4, ()>::Err(()).typed_bits();
+        assert!(b.kind.is_result());
     }
 }

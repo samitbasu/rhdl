@@ -6,7 +6,7 @@ use crate::{
     util::splice,
 };
 
-use super::spec::{Retime, Select};
+use super::spec::{Retime, Select, Wrap};
 
 impl std::fmt::Debug for OpCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -125,6 +125,13 @@ impl std::fmt::Debug for OpCode {
             }
             OpCode::Retime(Retime { lhs, arg, color }) => {
                 write!(f, " {:?} <- {:?} retime {:?}", lhs, arg, color)
+            }
+            OpCode::Wrap(Wrap { op, lhs, arg, kind }) => {
+                if let Some(kind) = kind {
+                    write!(f, " {:?} <- {:?}({:?}) as {:?}", lhs, op, arg, kind)
+                } else {
+                    write!(f, " {:?} <- {:?}({:?})", lhs, op, arg)
+                }
             }
         }
     }

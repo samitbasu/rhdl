@@ -3,6 +3,8 @@ use crate::rhif::spec::{
     Retime, Select, Slot, Splice, Struct, Tuple, Unary,
 };
 
+use super::spec::Wrap;
+
 pub fn remap_slots<F: FnMut(Slot) -> Slot>(op: OpCode, mut f: F) -> OpCode {
     match op {
         OpCode::Binary(Binary {
@@ -139,6 +141,12 @@ pub fn remap_slots<F: FnMut(Slot) -> Slot>(op: OpCode, mut f: F) -> OpCode {
             lhs: f(lhs),
             arg: f(arg),
             color,
+        }),
+        OpCode::Wrap(Wrap { op, lhs, arg, kind }) => OpCode::Wrap(Wrap {
+            op,
+            lhs: f(lhs),
+            arg: f(arg),
+            kind,
         }),
         OpCode::Noop | OpCode::Comment(_) => op,
     }

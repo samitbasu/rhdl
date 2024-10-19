@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::ast::ast_impl::NodeId;
+use crate::ast::ast_impl::{NodeId, WrapOp};
 use crate::compiler::mir::error::{RHDLCompileError, ICE};
 use crate::error::rhdl_error;
 use crate::rhif::object::Object;
@@ -14,7 +14,7 @@ use crate::{Kind, RHDLError};
 
 use super::object::LocatedOpCode;
 use super::runtime_ops::{array, binary, tuple, unary};
-use super::spec::{LiteralId, Retime, Select, Splice};
+use super::spec::{LiteralId, Retime, Select, Splice, Wrap};
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
@@ -228,6 +228,19 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                     arg.kind = Kind::make_signal(arg.kind, *color);
                 }
                 state.write(*lhs, arg, id)?;
+            }
+            OpCode::Wrap(Wrap { op, lhs, arg, kind }) => {
+                let arg = state.read(*arg, id)?;
+                let Some(kind) = kind else {
+                    return Err(state.raise_ice(ICE::WrapMissingKind, id));
+                };
+                let arg = match op {
+                    WrapOp::Ok => arg.wrap_ok(kind),
+                    WrapOp::Err => arg.wrap_err(kind),
+                    WrapOp::Some => arg.wrap_some(kind),
+                    WrapOp::None => arg.wrap_none(kind),
+                };
+                state.write(*lhs, arg?, id)?;
             }
             OpCode::Exec(Exec {
                 lhs,

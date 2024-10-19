@@ -1,14 +1,14 @@
 // Check a RHIF object for type correctness.
 
 use crate::{
-    ast::ast_impl::NodeId,
+    ast::ast_impl::{NodeId, WrapOp},
     compiler::mir::error::ICE,
     error::RHDLError,
     rhif::{
         self,
         spec::{
             AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
-            Index, OpCode, Repeat, Retime, Select, Slot, Splice, Struct, Tuple, Unary,
+            Index, OpCode, Repeat, Retime, Select, Slot, Splice, Struct, Tuple, Unary, Wrap,
         },
         Object,
     },
@@ -366,6 +366,41 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
             }
             OpCode::Retime(Retime { lhs, arg, color: _ }) => {
                 eq_kinds(slot_type(lhs), slot_type(arg), id)?;
+            }
+            OpCode::Wrap(Wrap { op, lhs, arg, kind }) => {
+                let Some(wrap_kind) = kind else {
+                    return Err(TypeCheckPass::raise_ice(obj, ICE::WrapMissingKind, id));
+                };
+                let wrap_kind = wrap_kind.clone();
+                match op {
+                    WrapOp::Err | WrapOp::Ok => {
+                        if !wrap_kind.is_result() {
+                            return Err(TypeCheckPass::raise_ice(
+                                obj,
+                                ICE::WrapRequiresResultKind { kind: wrap_kind },
+                                id,
+                            ));
+                        }
+                    }
+                    WrapOp::Some | WrapOp::None => {
+                        if !wrap_kind.is_option() {
+                            return Err(TypeCheckPass::raise_ice(
+                                obj,
+                                ICE::WrapRequiresOptionKind { kind: wrap_kind },
+                                id,
+                            ));
+                        }
+                    }
+                }
+                eq_kinds(slot_type(lhs), wrap_kind.clone(), id)?;
+                let payload_path = match op {
+                    WrapOp::Ok => Path::default().payload("Ok").tuple_index(0),
+                    WrapOp::Err => Path::default().payload("Err").tuple_index(0),
+                    WrapOp::Some => Path::default().payload("Some").tuple_index(0),
+                    WrapOp::None => Path::default().payload("None"),
+                };
+                let payload_ty = sub_kind(wrap_kind, &payload_path)?;
+                eq_kinds(slot_type(arg), payload_ty, id)?;
             }
         }
     }

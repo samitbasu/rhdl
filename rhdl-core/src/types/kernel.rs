@@ -1,4 +1,7 @@
-use crate::{ast::ast_impl, Color, TypedBits};
+use crate::{
+    ast::ast_impl::{self, WrapOp},
+    Color, TypedBits,
+};
 
 #[derive(Debug, Clone, Hash)]
 pub struct Kernel(Box<ast_impl::KernelFn>);
@@ -28,6 +31,7 @@ pub enum KernelFnKind {
     SignalConstructor(Option<Color>),
     BitCast(usize),
     SignedCast(usize),
+    Wrap(WrapOp),
 }
 
 impl std::fmt::Debug for KernelFnKind {
@@ -56,6 +60,7 @@ impl std::fmt::Debug for KernelFnKind {
             }
             KernelFnKind::BitCast(width) => write!(f, "bit cast {}", width),
             KernelFnKind::SignedCast(width) => write!(f, "signed cast {}", width),
+            KernelFnKind::Wrap(op) => write!(f, "wrap {:?}", op),
         }
     }
 }
