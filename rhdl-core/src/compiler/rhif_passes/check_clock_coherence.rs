@@ -311,14 +311,7 @@ impl ClockCoherenceContext<'_> {
                 PathElement::EnumPayloadByValue(value) => {
                     arg = self.ctx.ty_variant_by_value(arg, *value)?;
                 }
-                PathElement::SignalValue => {
-                    todo!()
-                    /*                     arg = self
-                                           .ctx
-                                           .project_signal_value(arg)
-                                           .ok_or(self.raise_type_error(TypeCheck::ExpectedSignalValue, id))?;
-                    */
-                }
+                PathElement::SignalValue => {}
             }
         }
         Ok(arg)
@@ -416,6 +409,13 @@ impl ClockCoherenceContext<'_> {
                         &[select.lhs, select.true_value, select.false_value],
                         id,
                         ClockError::SelectClockMismatch,
+                    )?;
+                }
+                OpCode::Wrap(wrap) => {
+                    self.unify_clocks(
+                        &[wrap.arg, wrap.lhs],
+                        lop.id,
+                        ClockError::WrapClockMismatch,
                     )?;
                 }
                 OpCode::Index(index) => {

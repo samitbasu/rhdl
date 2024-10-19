@@ -1,4 +1,5 @@
 use crate::{
+    ast::ast_impl::WrapOp,
     rhif::spec::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
         FieldValue, FuncId, Index, OpCode, Repeat, Slot, Struct, Tuple, Unary,
@@ -7,7 +8,7 @@ use crate::{
     Color, TypedBits,
 };
 
-use super::spec::{Retime, Select, Splice};
+use super::spec::{Retime, Select, Splice, Wrap};
 
 pub fn op_binary(op: AluBinary, lhs: Slot, arg1: Slot, arg2: Slot) -> OpCode {
     OpCode::Binary(Binary {
@@ -148,4 +149,13 @@ pub fn op_as_signed_inferred(lhs: Slot, arg: Slot) -> OpCode {
 
 pub fn op_comment(comment: String) -> OpCode {
     OpCode::Comment(comment)
+}
+
+pub fn op_wrap(lhs: Slot, arg: Slot, op: WrapOp) -> OpCode {
+    OpCode::Wrap(Wrap {
+        lhs,
+        arg,
+        op,
+        kind: None,
+    })
 }

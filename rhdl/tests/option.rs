@@ -34,16 +34,6 @@ fn test_result_is_digital() -> miette::Result<()> {
     }
 
     type FWResult<T> = Result<T, Eflag>;
-
-    #[kernel]
-    fn validify(i: b8) -> Option<b8> {
-        if i.any() {
-            Some(i)
-        } else {
-            None
-        }
-    }
-
     #[kernel]
     fn foo(i: b8) -> FWResult<b8> {
         if i.any() {
@@ -60,6 +50,23 @@ fn test_result_is_digital() -> miette::Result<()> {
     }
     test_kernel_vm_and_verilog_synchronous::<bar, _, _, _>(
         bar,
+        exhaustive().iter().map(|x| (*x,)),
+    )?;
+    Ok(())
+}
+
+#[test]
+fn test_option_is_kernel_ok() -> miette::Result<()> {
+    #[kernel]
+    fn validify(i: b8) -> Option<b8> {
+        if i.any() {
+            Some(i)
+        } else {
+            None
+        }
+    }
+    test_kernel_vm_and_verilog_synchronous::<validify, _, _, _>(
+        validify,
         exhaustive().iter().map(|x| (*x,)),
     )?;
     Ok(())

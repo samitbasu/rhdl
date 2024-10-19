@@ -171,6 +171,12 @@ pub enum ICE {
     },
     #[error("Shift operator requires an unsigned argument constant instead of {shift}")]
     ShiftOperatorRequiresUnsignedArgumentConstant { shift: i64 },
+    #[error("Wrap opcode is missing the inferred type")]
+    WrapMissingKind,
+    #[error("Wrap opcode requires a result kind, not {kind:?}")]
+    WrapRequiresResultKind { kind: Kind },
+    #[error("Wrap opcode requires an option kind, not {kind:?}")]
+    WrapRequiresOptionKind { kind: Kind },
 }
 
 #[derive(Error, Debug, Diagnostic)]
@@ -271,9 +277,11 @@ pub enum ClockError {
     #[error("Clock domain mismatch in call to external function")]
     #[diagnostic(help("The clock domain of the input and output signals must match the clock domains of the inputs for the function"))]
     ExternalClockMismatch,
-    #[error("Clock domain mismatch in unwrap operation")]
-    #[diagnostic(help("The good and bad signals must be in the same clock domain"))]
-    UnwrapClockMismatch,
+    #[error("Clock domain mismatch in wrap operation")]
+    #[diagnostic(help(
+        "The clock domain of the input signal must match the clock domain of the output signal"
+    ))]
+    WrapClockMismatch,
 }
 
 #[derive(Debug, Error)]

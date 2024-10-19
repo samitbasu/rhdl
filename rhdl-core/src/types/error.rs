@@ -77,6 +77,8 @@ pub enum DynamicTypeError {
     ShiftAmountMustBeLessThan { value: TypedBits, max: usize },
     #[error("Reinterpret cast of {value:?} into len {len} failed")]
     ReinterpretCastFailed { value: TypedBits, len: usize },
-    #[error("Cannot unwrap a non-enum value - only Result and Option are supported {value:?}")]
-    CanOnlyUnwrapOptionOrResult { value: TypedBits },
+    #[error("Cannot wrap {value:?} into {kind:?} - it is not a result")]
+    CannotWrapResult { value: TypedBits, kind: Kind },
+    #[error("Cannot wrap {value:?} into {kind:?} - it is not an option")]
+    CannotWrapOption { value: TypedBits, kind: Kind },
 }

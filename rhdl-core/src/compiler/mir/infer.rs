@@ -1,13 +1,14 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    ast::ast_impl::{ExprLit, NodeId},
+    ast::ast_impl::{ExprLit, NodeId, WrapOp},
     compiler::mir::{
         error::{RHDLSyntaxError, RHDLTypeCheckError, Syntax},
         ty::SignFlag,
     },
     error::RHDLError,
     rhif::{
+        object::LocatedOpCode,
         spec::{AluBinary, AluUnary, CaseArgument, OpCode, Slot},
         Object,
     },
@@ -792,7 +793,31 @@ impl<'a> MirTypeInference<'a> {
                         }
                     }
                 }
-                _ => {}
+                OpCode::Wrap(wrap) => {
+                    let arg_ty = self.slot_ty(wrap.arg);
+                    let lhs_ty = match wrap.op {
+                        WrapOp::Ok => {
+                            let err_ty = self.ctx.ty_var(id);
+                            self.ctx.ty_result(id, arg_ty, err_ty)
+                        }
+                        WrapOp::Err => {
+                            let ok_ty = self.ctx.ty_var(id);
+                            self.ctx.ty_result(id, ok_ty, arg_ty)
+                        }
+                        WrapOp::Some => self.ctx.ty_option(id, arg_ty),
+                        WrapOp::None => {
+                            let some_ty = self.ctx.ty_var(id);
+                            self.ctx.ty_option(id, some_ty)
+                        }
+                    };
+                    let lhs = self.slot_ty(wrap.lhs);
+                    self.unify(id, lhs, lhs_ty)?;
+                    if let Some(kind) = &wrap.kind {
+                        let kind = self.ctx.from_kind(id, kind);
+                        self.unify(id, lhs_ty, kind)?;
+                    }
+                }
+                OpCode::Noop | OpCode::Comment(_) => {}
             }
         }
         Ok(())
@@ -895,7 +920,6 @@ pub fn infer(mir: Mir) -> Result<Object> {
             .raise_type_error(TypeCheck::UnableToDetermineType, ty.id)
             .into());
     }
-
     for (slot, ty) in &infer.slot_map {
         let ty = infer.ctx.apply(*ty);
         let ty = infer.ctx.desc(ty);
@@ -936,9 +960,28 @@ pub fn infer(mir: Mir) -> Result<Object> {
                 .map(|(slot, value)| (slot.as_literal().unwrap(), value))
         })
         .collect::<Result<_>>()?;
+    let ops = mir
+        .ops
+        .iter()
+        .cloned()
+        .map(|lop| {
+            let id = lop.id;
+            if let OpCode::Wrap(mut wrap) = lop.op {
+                let ty = final_type_map[&wrap.lhs];
+                let lhs_kind = infer.ctx.into_kind(ty)?;
+                wrap.kind = Some(lhs_kind);
+                Ok(LocatedOpCode {
+                    id,
+                    op: OpCode::Wrap(wrap),
+                })
+            } else {
+                Ok(lop)
+            }
+        })
+        .collect::<anyhow::Result<Vec<_>>>()?;
     Ok(Object {
         symbols: mir.symbols,
-        ops: mir.ops,
+        ops,
         literals,
         kind,
         arguments: mir

@@ -17,9 +17,9 @@ use std::iter::once;
 use crate::ast::ast_impl;
 use crate::ast::ast_impl::BitsKind;
 use crate::ast::ast_impl::ExprBits;
-use crate::ast::ast_impl::ExprOptionResult;
 use crate::ast::ast_impl::ExprTry;
 use crate::ast::ast_impl::ExprTypedBits;
+use crate::ast::ast_impl::WrapOp;
 use crate::ast::ast_impl::{
     Arm, ArmKind, Block, ExprArray, ExprAssign, ExprBinary, ExprCall, ExprField, ExprForLoop,
     ExprIf, ExprIndex, ExprMatch, ExprMethodCall, ExprPath, ExprRepeat, ExprRet, ExprStruct,
@@ -44,6 +44,7 @@ use crate::rhif::rhif_builder::op_as_signed_inferred;
 use crate::rhif::rhif_builder::op_resize;
 use crate::rhif::rhif_builder::op_resize_inferred;
 use crate::rhif::rhif_builder::op_retime;
+use crate::rhif::rhif_builder::op_wrap;
 use crate::rhif::spec::AluUnary;
 use crate::rhif::spec::CaseArgument;
 use crate::rhif::spec::Member;
@@ -827,13 +828,6 @@ impl<'a> MirContext<'a> {
         };
         Ok(lhs)
     }
-    fn option_result(&mut self, id: NodeId, opt_res: &ExprOptionResult) -> Result<Slot> {
-        let lhs = self.reg(id);
-        let arg = self.expr(&opt_res.arg)?;
-        self.op(op_case(lhs, arg), id);
-        Ok(lhs)
-    }
-
     fn call(&mut self, id: NodeId, call: &ExprCall) -> Result<Slot> {
         let lhs = self.reg(id);
         let args = self.expr_list(&call.args)?;
@@ -884,6 +878,12 @@ impl<'a> MirContext<'a> {
             KernelFnKind::SignedCast(to) => {
                 self.op(op_as_signed(lhs, args[0], *to), id);
             }
+            KernelFnKind::Wrap(wrap_op) => {
+                match wrap_op {
+                    WrapOp::None => self.op(op_wrap(lhs, Slot::Empty, *wrap_op), id),
+                    _ => self.op(op_wrap(lhs, args[0], *wrap_op), id),
+                };
+            }
         }
         Ok(lhs)
     }
@@ -926,7 +926,6 @@ impl<'a> MirContext<'a> {
             ExprKind::Type(_) => Ok(Slot::Empty),
             ExprKind::Bits(bits) => self.bits(expr.id, bits),
             ExprKind::Try(tri) => self.try_expr(expr.id, tri),
-            ExprKind::OptionResult(opt_res) => self.option_result(expr.id, opt_res),
         }
     }
     // We need three components

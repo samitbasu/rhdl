@@ -5,7 +5,7 @@ use crate::{
         runtime_ops::{array, binary, tuple, unary},
         spec::{
             Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, Index, LiteralId, OpCode,
-            Repeat, Select, Slot, Splice, Struct, Tuple, Unary,
+            Repeat, Select, Slot, Splice, Struct, Tuple, Unary, Wrap,
         },
         vm::execute,
         Object,
@@ -124,6 +124,26 @@ fn propogate_tuple(
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Tuple(params),
+            id,
+        })
+    }
+}
+
+fn propogate_wrap(id: NodeId, wrap: Wrap, obj: &mut Object) -> Result<LocatedOpCode, RHDLError> {
+    let Wrap { lhs, op, arg, kind } = &wrap;
+    if let (Slot::Literal(arg_lit), Some(kind)) = (arg, kind) {
+        let arg_val = obj.literals[&arg_lit].clone();
+        let rhs = arg_val.wrap(*op, kind)?;
+        Ok(LocatedOpCode {
+            op: OpCode::Assign(Assign {
+                lhs: *lhs,
+                rhs: assign_literal(id, rhs, obj),
+            }),
+            id,
+        })
+    } else {
+        Ok(LocatedOpCode {
+            op: OpCode::Wrap(wrap),
             id,
         })
     }
@@ -481,6 +501,7 @@ impl Pass for ConstantPropagation {
                 OpCode::Enum(enumerate) => propogate_enum(lop.id, enumerate, &mut input),
                 OpCode::Case(case) => propogate_case(lop.id, case, &mut input),
                 OpCode::Exec(exec) => propogate_exec(lop.id, exec, &mut input),
+                OpCode::Wrap(wrap) => propogate_wrap(lop.id, wrap, &mut input),
                 OpCode::Assign(_) | OpCode::Noop | OpCode::Comment(_) | OpCode::Retime(_) => {
                     Ok(lop)
                 }

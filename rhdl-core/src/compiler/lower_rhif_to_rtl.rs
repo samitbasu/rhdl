@@ -1,16 +1,17 @@
 use std::collections::BTreeMap;
 use std::iter::once;
 
-use crate::ast::ast_impl::{FunctionId, NodeId};
+use crate::ast::ast_impl::{FunctionId, NodeId, WrapOp};
 use crate::error::rhdl_error;
 use crate::rhif::spec::{AluBinary, Slot};
 use crate::rtl::object::{lop, RegisterKind};
 use crate::rtl::remap::remap_operands;
-use crate::rtl::spec::{CastKind, LiteralId, Operand, RegisterId};
+use crate::rtl::spec::{CastKind, Concat, LiteralId, Operand, RegisterId};
 use crate::rtl::symbols::SymbolMap;
 use crate::types::bit_string::BitString;
 use crate::types::path::{bit_range, Path};
 use crate::util::clog2;
+use crate::Digital;
 use crate::TypedBits;
 use crate::{rhif, RHDLError};
 use crate::{rtl, Kind};
@@ -270,7 +271,7 @@ impl<'a> RTLCompiler<'a> {
                 self.operand_map.insert(operand, (self.object.fn_id, slot));
                 Ok(operand)
             }
-            Slot::Empty => Err(self.raise_ice(ICE::EmptySlotInRTL, id)),
+            Slot::Empty => panic!("empty slot"), //Err(self.raise_ice(ICE::EmptySlotInRTL, id)),
         }
     }
     fn make_operand_list(&mut self, args: &[Slot], id: NodeId) -> Result<Vec<Operand>> {
@@ -316,6 +317,52 @@ impl<'a> RTLCompiler<'a> {
                 id,
             );
         }
+        Ok(())
+    }
+    fn make_wrap(&mut self, wrap: &hf::Wrap, id: NodeId) -> Result<()> {
+        let hf::Wrap { lhs, op, arg, kind } = wrap;
+        let kind = kind
+            .clone()
+            .ok_or_else(|| self.raise_ice(ICE::WrapMissingKind, id))?;
+        let discriminant = match op {
+            WrapOp::Ok | WrapOp::Some => self.allocate_literal(&true.typed_bits(), id),
+            WrapOp::Err | WrapOp::None => self.allocate_literal(&false.typed_bits(), id),
+        };
+        let width = kind.bits() - 1;
+        let lhs = self.operand(*lhs, id)?;
+        if width != 0 {
+            let payload =
+                self.allocate_register_with_register_kind(&RegisterKind::Unsigned(width), id);
+            let arg = *arg;
+            let arg = match arg {
+                Slot::Empty => self.allocate_literal(&false.typed_bits(), id),
+                _ => self.operand(arg, id)?,
+            };
+            self.lop(
+                tl::OpCode::Cast(tl::Cast {
+                    lhs: payload,
+                    arg,
+                    len: width,
+                    kind: CastKind::Resize,
+                }),
+                id,
+            );
+            self.lop(
+                tl::OpCode::Concat(Concat {
+                    lhs,
+                    args: vec![payload, discriminant],
+                }),
+                id,
+            );
+        } else {
+            self.lop(
+                tl::OpCode::Assign(tl::Assign {
+                    lhs,
+                    rhs: discriminant,
+                }),
+                id,
+            );
+        };
         Ok(())
     }
     fn make_as_bits(&mut self, cast: &hf::Cast, id: NodeId) -> Result<()> {
@@ -800,6 +847,9 @@ impl<'a> RTLCompiler<'a> {
                 }
                 hf::OpCode::Unary(unary) => {
                     self.make_unary(unary, lop.id)?;
+                }
+                hf::OpCode::Wrap(wrap) => {
+                    self.make_wrap(wrap, lop.id)?;
                 }
             }
         }
