@@ -189,6 +189,14 @@ fn rewrite_pattern_to_use_defaults_for_bindings(pat: &syn::Pat) -> TS {
     }
 }
 
+fn pat_is_none(pat: &syn::Pat) -> bool {
+    if let syn::Pat::Ident(ident) = pat {
+        ident.ident == "None"
+    } else {
+        false
+    }
+}
+
 impl Context {
     fn new_scope(&mut self) -> ScopeId {
         let id = ScopeId(self.scopes.len());
@@ -574,8 +582,6 @@ impl Context {
                 })
             }
             syn::Pat::TupleStruct(tuple) => {
-                let constructor = &tuple.path;
-                let signature = quote!(rhdl::core::digital_fn::inspect_digital(#constructor));
                 let path = self.path_inner(&tuple.path)?;
                 let elems = tuple
                     .elems
@@ -583,7 +589,7 @@ impl Context {
                     .map(|x| self.pat(x))
                     .collect::<Result<Vec<_>>>()?;
                 Ok(quote! {
-                    bob.tuple_struct_pat(#path, vec![#(#elems),*], #signature)
+                    bob.tuple_struct_pat(#path, vec![#(#elems),*])
                 })
             }
             syn::Pat::Tuple(tuple) => {
@@ -1009,6 +1015,8 @@ impl Context {
             let body = self.expr(&arm.body)?;
             if let syn::Pat::Wild(_) = &pat {
                 quote! {bob.arm_wild(#body)}
+            } else if pat_is_none(pat) {
+                quote! {bob.arm_none(#body)}
             } else {
                 let pat = rewrite_pattern_as_typed_bits(pat)?;
                 quote! {bob.arm_constant(#pat, #body)}
@@ -1016,9 +1024,25 @@ impl Context {
         } else {
             self.add_scoped_binding(pat)?;
             let body = self.expr(&arm.body)?;
-            let pat_as_expr = rewrite_pattern_to_use_defaults_for_bindings(pat);
+            let mut discriminant = None;
+            if let syn::Pat::Path(path) = pat {
+                if path.path.is_ident("None") {
+                    discriminant = Some(quote!(false.typed_bits()));
+                }
+            }
+            if let syn::Pat::TupleStruct(path) = pat {
+                if path.path.is_ident("Err") {
+                    discriminant = Some(quote!(false.typed_bits()));
+                } else if path.path.is_ident("Some") || path.path.is_ident("Ok") {
+                    discriminant = Some(quote!(true.typed_bits()));
+                }
+            }
+            if discriminant.is_none() {
+                let pat_as_expr = rewrite_pattern_to_use_defaults_for_bindings(pat);
+                discriminant = Some(quote!(rhdl::core::Digital::discriminant(#pat_as_expr)));
+            }
             let inner = self.pat(pat)?;
-            quote! {bob.arm_enum(#inner, rhdl::core::Digital::typed_bits(#pat_as_expr), rhdl::core::Digital::variant_kind(#pat_as_expr), #body)}
+            quote! {bob.arm_enum(#inner, #discriminant, #body)}
         };
         self.end_scope();
         Ok(arm)
@@ -1098,11 +1122,7 @@ impl Context {
             // The presence of a rest means we know that path -> struct
             let path = &structure.path;
             let template = quote!(< #path as rhdl::core::Digital>::static_kind().place_holder());
-            let discriminant = quote!(rhdl::core::TypedBits::EMPTY);
-            let variant_kind = quote!(< #path as rhdl::core::Digital>::static_kind());
-            Ok(
-                quote! {bob.struct_expr(#path_inner, vec![#(#fields),*], #rest, #template, #variant_kind, #discriminant)},
-            )
+            Ok(quote! {bob.struct_expr(#path_inner, vec![#(#fields),*], #rest, #template)})
         } else if path_is_enum_tuple_struct_by_convention(&structure.path) {
             // This is an enum struct construction (we assume) since it has
             // the form of Foo::Bar{}, and by convention in RHDL, this is an
@@ -1110,20 +1130,14 @@ impl Context {
             let (base, variant) = split_path_into_base_and_variant(&structure.path)?;
             // Not sure what to do about the unwrap here.
             let template = quote!(< #base as rhdl::core::Digital>::static_kind().enum_template(stringify!(#variant)).unwrap());
-            let variant_kind = quote!(< #base as rhdl::core::Digital>::static_kind().lookup_variant_kind_by_name(stringify!(#variant)).unwrap());
-            let discriminant = quote!(< #base as rhdl::core::Digital>::static_kind().get_discriminant_for_variant_by_name(stringify!(#variant)).unwrap());
             Ok(quote! {
-                bob.struct_expr(#path_inner, vec![#(#fields),*], #rest,
-                #template, #variant_kind, #discriminant
-            )
+                bob.struct_expr(#path_inner, vec![#(#fields),*], #rest, #template)
             })
         } else {
             let path = &structure.path;
             let obj = quote!(<#path as rhdl::core::Digital>::static_kind().place_holder());
-            let kind = quote!(<#path as rhdl::core::Digital>::static_kind());
             Ok(quote! {
-                bob.struct_expr(#path_inner, vec![#(#fields),*], #rest,
-                #obj, #kind, rhdl::core::TypedBits::EMPTY)
+                bob.struct_expr(#path_inner, vec![#(#fields),*], #rest, #obj)
             })
         }
     }
