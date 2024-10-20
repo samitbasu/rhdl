@@ -645,6 +645,12 @@ impl<'a> MirTypeInference<'a> {
                     let lhs = self.slot_ty(select.lhs);
                     let true_value = self.slot_ty(select.true_value);
                     let false_value = self.slot_ty(select.false_value);
+                    eprintln!(
+                        "Queueing select operation lhs = {}, true = {}, false = {}",
+                        self.ctx.desc(lhs),
+                        self.ctx.desc(true_value),
+                        self.ctx.desc(false_value)
+                    );
                     self.type_ops.push(TypeOperation {
                         id: op.id,
                         kind: TypeOperationKind::Select(TypeSelect {

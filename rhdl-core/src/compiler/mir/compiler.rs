@@ -588,31 +588,17 @@ impl<'a> MirContext<'a> {
                 self.new_scope();
                 // Allocate the local bindings for the match pattern
                 self.bind_pattern(&arm_enum.pat)?;
-                let discriminant = arm_enum.template.discriminant()?;
+                let discriminant = arm_enum.discriminant.clone();
                 let discriminant_slot = self.lit(
                     arm.id,
                     ExprLit::TypedBits(ast_impl::ExprTypedBits {
                         path: Box::new(ast_impl::Path { segments: vec![] }),
-                        value: discriminant,
+                        value: discriminant.clone(),
                         code: String::new(),
                     }),
                 );
-                let disc_as_i64 = arm_enum.template.discriminant()?.as_i64()?;
-                let variant = arm_enum
-                    .template
-                    .kind
-                    .lookup_variant(disc_as_i64)
-                    .ok_or_else(|| {
-                        self.raise_ice(
-                            ICE::VariantNotFoundInType {
-                                variant: disc_as_i64,
-                                ty: arm_enum.template.kind.clone(),
-                            },
-                            arm.id,
-                        )
-                    })?;
-                let variant_name = &variant.name;
-                let path = crate::types::path::Path::default().payload(variant_name);
+                let disc_as_i64 = discriminant.as_i64()?;
+                let path = crate::types::path::Path::default().payload_by_value(disc_as_i64);
                 let payload = self.reg(arm_enum.pat.id);
                 self.op(op_index(payload, target, path), arm_enum.pat.id);
                 self.initialize_local(&arm_enum.pat, payload)?;

@@ -163,8 +163,8 @@ impl<O: Digital, E: Digital> Digital for Result<O, E> {
     }
     fn discriminant(self) -> TypedBits {
         match self {
-            Self::Ok(_) => false.typed_bits(),
-            Self::Err(_) => true.typed_bits(),
+            Self::Ok(_) => true.typed_bits(),
+            Self::Err(_) => false.typed_bits(),
         }
     }
     fn variant_kind(self) -> Kind {
@@ -884,4 +884,20 @@ mod test {
         let y = x.as_i64().unwrap();
         assert_eq!(y, -6);
     }
+
+    #[test]
+    fn test_result_discriminant() {
+        let x: Result<u8, u8> = Ok(5);
+        assert_eq!(x.discriminant().bits, vec![true]);
+        let x: Result<u8, u8> = Err(5);
+        assert_eq!(x.discriminant().bits, vec![false]);
+    }
+
+    #[test]
+    fn test_option_discriminant() {
+        let x: Option<u8> = Some(5);
+        assert_eq!(x.discriminant().bits, vec![true]);
+        let x: Option<u8> = None;
+        assert_eq!(x.discriminant().bits, vec![false]);
+    }   
 }

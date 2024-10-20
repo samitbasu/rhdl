@@ -100,7 +100,6 @@ pub struct PatSlice {
 pub struct PatTupleStruct {
     pub path: Box<Path>,
     pub elems: Vec<Box<Pat>>,
-    pub signature: DigitalSignature,
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -292,8 +291,6 @@ pub struct ExprStruct {
     pub fields: Vec<Box<FieldValue>>,
     pub rest: Option<Box<Expr>>,
     pub template: TypedBits,
-    pub variant: Kind,
-    pub discriminant: TypedBits,
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -402,8 +399,7 @@ pub struct ArmConstant {
 #[derive(Debug, Clone, Hash)]
 pub struct ArmEnum {
     pub pat: Box<Pat>,
-    pub template: TypedBits,
-    pub payload_kind: Kind,
+    pub discriminant: TypedBits,
 }
 
 #[derive(Clone, Hash)]

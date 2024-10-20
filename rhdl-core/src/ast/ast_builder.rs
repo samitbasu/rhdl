@@ -7,7 +7,7 @@ use crate::kernel::KernelFnKind;
 use crate::rhif::spec::Member;
 use crate::types::typed_bits::TypedBits;
 use crate::{ast::ast_impl::*, Kind};
-use crate::{Color, DigitalSignature};
+use crate::{Color, Digital, DigitalSignature};
 
 #[derive(Default)]
 pub struct ASTBuilder {
@@ -59,8 +59,6 @@ impl ASTBuilder {
         fields: Vec<Box<FieldValue>>,
         rest: Option<Box<Expr>>,
         template: TypedBits,
-        variant: Kind,
-        discriminant: TypedBits,
     ) -> Box<Expr> {
         let id = self.id();
         Box::new(Expr {
@@ -70,8 +68,6 @@ impl ASTBuilder {
                 fields,
                 rest,
                 template,
-                variant,
-                discriminant,
             }),
         })
     }
@@ -139,20 +135,22 @@ impl ASTBuilder {
         })
     }
 
-    pub fn arm_enum(
-        &self,
-        pat: Box<Pat>,
-        template: TypedBits,
-        payload_kind: Kind,
-        body: Box<Expr>,
-    ) -> Box<Arm> {
+    pub fn arm_enum(&self, pat: Box<Pat>, discriminant: TypedBits, body: Box<Expr>) -> Box<Arm> {
+        let id = self.id();
+        Box::new(Arm {
+            id,
+            kind: ArmKind::Enum(ArmEnum { pat, discriminant }),
+            body,
+        })
+    }
+
+    pub fn arm_none(&self, body: Box<Expr>) -> Box<Arm> {
         let id = self.id();
         Box::new(Arm {
             id,
             kind: ArmKind::Enum(ArmEnum {
-                pat,
-                template,
-                payload_kind,
+                pat: self.wild_pat(),
+                discriminant: false.typed_bits(),
             }),
             body,
         })
@@ -359,20 +357,11 @@ impl ASTBuilder {
         })
     }
 
-    pub fn tuple_struct_pat(
-        &self,
-        path: Box<Path>,
-        elems: Vec<Box<Pat>>,
-        signature: DigitalSignature,
-    ) -> Box<Pat> {
+    pub fn tuple_struct_pat(&self, path: Box<Path>, elems: Vec<Box<Pat>>) -> Box<Pat> {
         let id = self.id();
         Box::new(Pat {
             id,
-            kind: PatKind::TupleStruct(PatTupleStruct {
-                path,
-                elems,
-                signature,
-            }),
+            kind: PatKind::TupleStruct(PatTupleStruct { path, elems }),
         })
     }
 

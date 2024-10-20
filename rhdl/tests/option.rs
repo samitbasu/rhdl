@@ -46,7 +46,11 @@ fn test_result_is_digital() -> miette::Result<()> {
     #[kernel]
     fn bar(i: b8) -> FWResult<b8> {
         let j = foo(i)?;
-        Ok(j)
+        let p = match foo(j) {
+            Ok(k) => Err(Eflag::OutOfRange),
+            Err(e) => Ok(j),
+        };
+        p
     }
     test_kernel_vm_and_verilog_synchronous::<bar, _, _, _>(
         bar,
@@ -65,8 +69,18 @@ fn test_option_is_kernel_ok() -> miette::Result<()> {
             None
         }
     }
-    test_kernel_vm_and_verilog_synchronous::<validify, _, _, _>(
-        validify,
+
+    #[kernel]
+    fn opt(i: b8) -> Option<b8> {
+        let j = validify(i)?;
+        let p = match validify(j) {
+            Some(k) => None,
+            None => Some(j),
+        };
+        p
+    }
+    test_kernel_vm_and_verilog_synchronous::<opt, _, _, _>(
+        opt,
         exhaustive().iter().map(|x| (*x,)),
     )?;
     Ok(())

@@ -260,7 +260,7 @@ impl PrettyPrinter {
                         }
                         ArmKind::Enum(enum_arm) => {
                             self.print_pattern(&enum_arm.pat)?;
-                            self.push(&format!("#{:?}", enum_arm.template));
+                            self.push(&format!("#{:?}", enum_arm.discriminant));
                         }
                     }
                     self.push(" => ");
