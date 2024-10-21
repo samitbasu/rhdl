@@ -66,34 +66,34 @@ fn test_enum_derive() {
                     self.kind()
                         .pad(
                             match self {
-                                Self::A => rhdl_bits::bits::<3usize>(1i64 as u128).to_bools(),
+                                Self::A => rhdl::bits::bits::<3usize>(1i64 as u128).to_bools(),
                                 Self::B(_0) => {
-                                    let mut v = rhdl_bits::bits::<3usize>(2i64 as u128)
+                                    let mut v = rhdl::bits::bits::<3usize>(2i64 as u128)
                                         .to_bools();
                                     v.extend(_0.bin());
                                     v
                                 }
                                 Self::C { a, b } => {
-                                    let mut v = rhdl_bits::bits::<3usize>(3i64 as u128)
+                                    let mut v = rhdl::bits::bits::<3usize>(3i64 as u128)
                                         .to_bools();
                                     v.extend(a.bin());
                                     v.extend(b.bin());
                                     v
                                 }
                                 Self::Unknown => {
-                                    rhdl_bits::bits::<3usize>(4i64 as u128).to_bools()
+                                    rhdl::bits::bits::<3usize>(4i64 as u128).to_bools()
                                 }
                             },
                         )
                 }
                 fn discriminant(self) -> rhdl::core::TypedBits {
                     match self {
-                        Self::A => rhdl_bits::bits::<3usize>(1i64 as u128).typed_bits(),
-                        Self::B(_0) => rhdl_bits::bits::<3usize>(2i64 as u128).typed_bits(),
+                        Self::A => rhdl::bits::bits::<3usize>(1i64 as u128).typed_bits(),
+                        Self::B(_0) => rhdl::bits::bits::<3usize>(2i64 as u128).typed_bits(),
                         Self::C { a, b } => {
-                            rhdl_bits::bits::<3usize>(3i64 as u128).typed_bits()
+                            rhdl::bits::bits::<3usize>(3i64 as u128).typed_bits()
                         }
-                        Self::Unknown => rhdl_bits::bits::<3usize>(4i64 as u128).typed_bits(),
+                        Self::Unknown => rhdl::bits::bits::<3usize>(4i64 as u128).typed_bits(),
                     }
                 }
                 fn variant_kind(self) -> rhdl::core::Kind {
@@ -135,22 +135,22 @@ fn test_enum_derive() {
                     match self {
                         Self::A => {
                             writer.write_string(key, stringify!(A));
-                            writer.write_bits((key, ".__disc"), 1i64 as u128, 3u8);
+                            writer.write_bits((key, "__disc"), 1i64 as u128, 3u8);
                         }
                         Self::B(_0) => {
                             writer.write_string(key, stringify!(B));
-                            writer.write_bits((key, ".__disc"), 2i64 as u128, 3u8);
+                            writer.write_bits((key, "__disc"), 2i64 as u128, 3u8);
                             rhdl::core::Notable::note(_0, (key, 0usize), &mut writer);
                         }
                         Self::C { a, b } => {
                             writer.write_string(key, stringify!(C));
-                            writer.write_bits((key, ".__disc"), 3i64 as u128, 3u8);
+                            writer.write_bits((key, "__disc"), 3i64 as u128, 3u8);
                             rhdl::core::Notable::note(a, (key, stringify!(a)), &mut writer);
                             rhdl::core::Notable::note(b, (key, stringify!(b)), &mut writer);
                         }
                         Self::Unknown => {
                             writer.write_string(key, stringify!(Unknown));
-                            writer.write_bits((key, ".__disc"), 4i64 as u128, 3u8);
+                            writer.write_bits((key, "__disc"), 4i64 as u128, 3u8);
                         }
                     }
                 }
@@ -198,34 +198,34 @@ fn test_enum_no_payloads() {
                     .pad(
                         match self {
                             Self::Init => {
-                                rhdl_bits::bits::<3usize>(0i64 as u128).to_bools()
+                                rhdl::bits::bits::<3usize>(0i64 as u128).to_bools()
                             }
                             Self::Boot => {
-                                rhdl_bits::bits::<3usize>(1i64 as u128).to_bools()
+                                rhdl::bits::bits::<3usize>(1i64 as u128).to_bools()
                             }
                             Self::Running => {
-                                rhdl_bits::bits::<3usize>(2i64 as u128).to_bools()
+                                rhdl::bits::bits::<3usize>(2i64 as u128).to_bools()
                             }
                             Self::Stop => {
-                                rhdl_bits::bits::<3usize>(3i64 as u128).to_bools()
+                                rhdl::bits::bits::<3usize>(3i64 as u128).to_bools()
                             }
                             Self::Boom => {
-                                rhdl_bits::bits::<3usize>(4i64 as u128).to_bools()
+                                rhdl::bits::bits::<3usize>(4i64 as u128).to_bools()
                             }
                             Self::Unknown => {
-                                rhdl_bits::bits::<3usize>(5i64 as u128).to_bools()
+                                rhdl::bits::bits::<3usize>(5i64 as u128).to_bools()
                             }
                         },
                     )
             }
             fn discriminant(self) -> rhdl::core::TypedBits {
                 match self {
-                    Self::Init => rhdl_bits::bits::<3usize>(0i64 as u128).typed_bits(),
-                    Self::Boot => rhdl_bits::bits::<3usize>(1i64 as u128).typed_bits(),
-                    Self::Running => rhdl_bits::bits::<3usize>(2i64 as u128).typed_bits(),
-                    Self::Stop => rhdl_bits::bits::<3usize>(3i64 as u128).typed_bits(),
-                    Self::Boom => rhdl_bits::bits::<3usize>(4i64 as u128).typed_bits(),
-                    Self::Unknown => rhdl_bits::bits::<3usize>(5i64 as u128).typed_bits(),
+                    Self::Init => rhdl::bits::bits::<3usize>(0i64 as u128).typed_bits(),
+                    Self::Boot => rhdl::bits::bits::<3usize>(1i64 as u128).typed_bits(),
+                    Self::Running => rhdl::bits::bits::<3usize>(2i64 as u128).typed_bits(),
+                    Self::Stop => rhdl::bits::bits::<3usize>(3i64 as u128).typed_bits(),
+                    Self::Boom => rhdl::bits::bits::<3usize>(4i64 as u128).typed_bits(),
+                    Self::Unknown => rhdl::bits::bits::<3usize>(5i64 as u128).typed_bits(),
                 }
             }
             fn variant_kind(self) -> rhdl::core::Kind {
@@ -254,27 +254,27 @@ fn test_enum_no_payloads() {
                 match self {
                     Self::Init => {
                         writer.write_string(key, stringify!(Init));
-                        writer.write_bits((key, ".__disc"), 0i64 as u128, 3u8);
+                        writer.write_bits((key, "__disc"), 0i64 as u128, 3u8);
                     }
                     Self::Boot => {
                         writer.write_string(key, stringify!(Boot));
-                        writer.write_bits((key, ".__disc"), 1i64 as u128, 3u8);
+                        writer.write_bits((key, "__disc"), 1i64 as u128, 3u8);
                     }
                     Self::Running => {
                         writer.write_string(key, stringify!(Running));
-                        writer.write_bits((key, ".__disc"), 2i64 as u128, 3u8);
+                        writer.write_bits((key, "__disc"), 2i64 as u128, 3u8);
                     }
                     Self::Stop => {
                         writer.write_string(key, stringify!(Stop));
-                        writer.write_bits((key, ".__disc"), 3i64 as u128, 3u8);
+                        writer.write_bits((key, "__disc"), 3i64 as u128, 3u8);
                     }
                     Self::Boom => {
                         writer.write_string(key, stringify!(Boom));
-                        writer.write_bits((key, ".__disc"), 4i64 as u128, 3u8);
+                        writer.write_bits((key, "__disc"), 4i64 as u128, 3u8);
                     }
                     Self::Unknown => {
                         writer.write_string(key, stringify!(Unknown));
-                        writer.write_bits((key, ".__disc"), 5i64 as u128, 3u8);
+                        writer.write_bits((key, "__disc"), 5i64 as u128, 3u8);
                     }
                 }
             }
@@ -317,26 +317,26 @@ fn test_enum_with_signed_discriminants() {
                     .pad(
                         match self {
                             Self::A => {
-                                rhdl_bits::signed::<5usize>(1i64 as i128).to_bools()
+                                rhdl::bits::signed::<5usize>(1i64 as i128).to_bools()
                             }
                             Self::B => {
-                                rhdl_bits::signed::<5usize>(9i64 as i128).to_bools()
+                                rhdl::bits::signed::<5usize>(9i64 as i128).to_bools()
                             }
                             Self::C => {
-                                rhdl_bits::signed::<5usize>(-8i64 as i128).to_bools()
+                                rhdl::bits::signed::<5usize>(-8i64 as i128).to_bools()
                             }
                             Self::Unknown => {
-                                rhdl_bits::signed::<5usize>(-7i64 as i128).to_bools()
+                                rhdl::bits::signed::<5usize>(-7i64 as i128).to_bools()
                             }
                         },
                     )
             }
             fn discriminant(self) -> rhdl::core::TypedBits {
                 match self {
-                    Self::A => rhdl_bits::signed::<5usize>(1i128).typed_bits(),
-                    Self::B => rhdl_bits::signed::<5usize>(9i128).typed_bits(),
-                    Self::C => rhdl_bits::signed::<5usize>(-8i128).typed_bits(),
-                    Self::Unknown => rhdl_bits::signed::<5usize>(-7i128).typed_bits(),
+                    Self::A => rhdl::bits::signed::<5usize>(1i128).typed_bits(),
+                    Self::B => rhdl::bits::signed::<5usize>(9i128).typed_bits(),
+                    Self::C => rhdl::bits::signed::<5usize>(-8i128).typed_bits(),
+                    Self::Unknown => rhdl::bits::signed::<5usize>(-7i128).typed_bits(),
                 }
             }
             fn variant_kind(self) -> rhdl::core::Kind {
@@ -361,19 +361,19 @@ fn test_enum_with_signed_discriminants() {
                 match self {
                     Self::A => {
                         writer.write_string(key, stringify!(A));
-                        writer.write_signed((key, ".__disc"), 1i64 as i128, 5u8);
+                        writer.write_signed((key, "__disc"), 1i64 as i128, 5u8);
                     }
                     Self::B => {
                         writer.write_string(key, stringify!(B));
-                        writer.write_signed((key, ".__disc"), 9i64 as i128, 5u8);
+                        writer.write_signed((key, "__disc"), 9i64 as i128, 5u8);
                     }
                     Self::C => {
                         writer.write_string(key, stringify!(C));
-                        writer.write_signed((key, ".__disc"), -8i64 as i128, 5u8);
+                        writer.write_signed((key, "__disc"), -8i64 as i128, 5u8);
                     }
                     Self::Unknown => {
                         writer.write_string(key, stringify!(Unknown));
-                        writer.write_signed((key, ".__disc"), -7i64 as i128, 5u8);
+                        writer.write_signed((key, "__disc"), -7i64 as i128, 5u8);
                     }
                 }
             }
@@ -410,26 +410,26 @@ fn test_enum_with_discriminants() {
                     .pad(
                         match self {
                             Self::A => {
-                                rhdl_bits::bits::<4usize>(1i64 as u128).to_bools()
+                                rhdl::bits::bits::<4usize>(1i64 as u128).to_bools()
                             }
                             Self::B => {
-                                rhdl_bits::bits::<4usize>(6i64 as u128).to_bools()
+                                rhdl::bits::bits::<4usize>(6i64 as u128).to_bools()
                             }
                             Self::C => {
-                                rhdl_bits::bits::<4usize>(8i64 as u128).to_bools()
+                                rhdl::bits::bits::<4usize>(8i64 as u128).to_bools()
                             }
                             Self::Unknown => {
-                                rhdl_bits::bits::<4usize>(9i64 as u128).to_bools()
+                                rhdl::bits::bits::<4usize>(9i64 as u128).to_bools()
                             }
                         },
                     )
             }
             fn discriminant(self) -> rhdl::core::TypedBits {
                 match self {
-                    Self::A => rhdl_bits::bits::<4usize>(1i64 as u128).typed_bits(),
-                    Self::B => rhdl_bits::bits::<4usize>(6i64 as u128).typed_bits(),
-                    Self::C => rhdl_bits::bits::<4usize>(8i64 as u128).typed_bits(),
-                    Self::Unknown => rhdl_bits::bits::<4usize>(9i64 as u128).typed_bits(),
+                    Self::A => rhdl::bits::bits::<4usize>(1i64 as u128).typed_bits(),
+                    Self::B => rhdl::bits::bits::<4usize>(6i64 as u128).typed_bits(),
+                    Self::C => rhdl::bits::bits::<4usize>(8i64 as u128).typed_bits(),
+                    Self::Unknown => rhdl::bits::bits::<4usize>(9i64 as u128).typed_bits(),
                 }
             }
             fn variant_kind(self) -> rhdl::core::Kind {
@@ -454,19 +454,19 @@ fn test_enum_with_discriminants() {
                 match self {
                     Self::A => {
                         writer.write_string(key, stringify!(A));
-                        writer.write_bits((key, ".__disc"), 1i64 as u128, 4u8);
+                        writer.write_bits((key, "__disc"), 1i64 as u128, 4u8);
                     }
                     Self::B => {
                         writer.write_string(key, stringify!(B));
-                        writer.write_bits((key, ".__disc"), 6i64 as u128, 4u8);
+                        writer.write_bits((key, "__disc"), 6i64 as u128, 4u8);
                     }
                     Self::C => {
                         writer.write_string(key, stringify!(C));
-                        writer.write_bits((key, ".__disc"), 8i64 as u128, 4u8);
+                        writer.write_bits((key, "__disc"), 8i64 as u128, 4u8);
                     }
                     Self::Unknown => {
                         writer.write_string(key, stringify!(Unknown));
-                        writer.write_bits((key, ".__disc"), 9i64 as u128, 4u8);
+                        writer.write_bits((key, "__disc"), 9i64 as u128, 4u8);
                     }
                 }
             }

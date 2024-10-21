@@ -97,7 +97,7 @@ risk than a technical one.
 - [x] Constant propagation for flow graphs (and other simplifications)
 - [x] Replace Verilog string manipulation with a proper AST
 - [ ] Add validators for common cases (e.g., pos edge designs, etc.)
-- [ ] Fix naming of signals in the VCD traces
+- [x] Fix naming of signals in the VCD traces
 - [ ] Add checks for combinatorial inputs or outputs
 - [x] Add a flow graph level simulator to verify correctness
 - [ ] Add timing estimator using longest path heuristics.

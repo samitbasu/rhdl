@@ -67,7 +67,6 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
         .collect::<Vec<_>>();
     quote! {
         fn sim(&self, clock_reset: rhdl::core::ClockReset, input: <Self as SynchronousIO>::I, state: &mut Self::S , io: &mut Self::Z ) -> <Self as SynchronousIO>::O {
-            rhdl::core::note("input", input);
             for _ in 0..rhdl::core::MAX_ITERS {
                 let prev_state = state.clone();
                 let (outputs, internal_inputs) = Self::UPDATE(clock_reset, input, state.0);
@@ -78,7 +77,6 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
                     rhdl::core::note_pop_path();
                 )*
                 if state == &prev_state {
-                    rhdl::core::note("outputs", outputs);
                     return outputs;
                 }
             }
@@ -291,7 +289,6 @@ mod test {
                     state: &mut Self::S,
                     io: &mut Self::Z,
                 ) -> <Self as SynchronousIO>::O {
-                    rhdl::core::note("input", input);
                     for _ in 0..rhdl::core::MAX_ITERS {
                         let prev_state = state.clone();
                         let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
@@ -312,7 +309,6 @@ mod test {
                         );
                         rhdl::core::note_pop_path();
                         if state == &prev_state {
-                            rhdl::core::note("outputs", outputs);
                             return outputs;
                         }
                     }
@@ -422,7 +418,6 @@ mod test {
                     state: &mut Self::S,
                     io: &mut Self::Z,
                 ) -> <Self as SynchronousIO>::O {
-                    rhdl::core::note("input", input);
                     for _ in 0..rhdl::core::MAX_ITERS {
                         let prev_state = state.clone();
                         let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
@@ -460,7 +455,6 @@ mod test {
                             .sim(internal_inputs.latch, &mut state.5, &mut io.latch);
                         rhdl::core::note_pop_path();
                         if state == &prev_state {
-                            rhdl::core::note("outputs", outputs);
                             return outputs;
                         }
                     }
