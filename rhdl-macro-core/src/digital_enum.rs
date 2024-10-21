@@ -192,12 +192,12 @@ fn make_discriminant_values_into_typed_bits(
 ) -> impl Iterator<Item = TokenStream> + '_ {
     values.iter().map(move |x| match kind {
         DiscriminantType::Unsigned(width) => quote! {
-            rhdl_bits::bits::<#width>(#x as u128).typed_bits()
+            rhdl::bits::bits::<#width>(#x as u128).typed_bits()
         },
         DiscriminantType::Signed(width) => {
             let x = *x as i128;
             quote! {
-                rhdl_bits::signed::<#width>(#x).typed_bits()
+                rhdl::bits::signed::<#width>(#x).typed_bits()
             }
         }
     })
@@ -211,12 +211,12 @@ fn variant_payload_bin(
     let discriminant = match kind {
         DiscriminantType::Unsigned(x) => {
             quote! {
-                rhdl_bits::bits::<#x>(#discriminant as u128).to_bools()
+                rhdl::bits::bits::<#x>(#discriminant as u128).to_bools()
             }
         }
         DiscriminantType::Signed(x) => {
             quote! {
-                rhdl_bits::signed::<#x>(#discriminant as i128).to_bools()
+                rhdl::bits::signed::<#x>(#discriminant as i128).to_bools()
             }
         }
     };
@@ -257,13 +257,13 @@ fn variant_note_case(variant: &Variant, kind: DiscriminantType, disc: &i64) -> T
         DiscriminantType::Unsigned(x) => {
             let x = x as u8;
             quote! {
-                writer.write_bits((key,".__disc"), #disc as u128, #x);
+                writer.write_bits((key,"__disc"), #disc as u128, #x);
             }
         }
         DiscriminantType::Signed(x) => {
             let x = x as u8;
             quote! {
-                writer.write_signed((key,".__disc"), #disc as i128, #x);
+                writer.write_signed((key,"__disc"), #disc as i128, #x);
             }
         }
     };

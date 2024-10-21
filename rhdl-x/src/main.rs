@@ -31,6 +31,7 @@ mod dff;
 pub mod inverter;
 pub mod logic_loop;
 pub mod single_bit;
+pub mod state_cycler;
 //mod push_pull;
 //mod strobe;
 //mod tristate;
@@ -202,6 +203,18 @@ fn test_counter_testbench() -> miette::Result<()> {
     let inputs = stream::reset_pulse(1).chain(stream::stream(inputs));
     let uut: counter::U<4> = counter::U::default();
     write_synchronous_testbench(&uut, inputs, 100, "counter_tb.v")?;
+    Ok(())
+}
+
+#[test]
+fn test_state_cycler_vcd() -> miette::Result<()> {
+    let uut: state_cycler::U = state_cycler::U::default();
+    let disable = state_cycler::I { enable: false };
+    let enable = state_cycler::I { enable: true };
+    let inputs = repeat(repeat(disable).take(10).chain(repeat(enable).take(10))).take(3);
+    let inputs = inputs.flatten();
+    let inputs = test_stream(inputs);
+    traced_synchronous_simulation(&uut, inputs, "state_cycler.vcd");
     Ok(())
 }
 

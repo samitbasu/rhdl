@@ -4,7 +4,7 @@ use anyhow::bail;
 use std::collections::BTreeMap;
 use std::hash::Hash;
 use std::{cell::RefCell, hash::Hasher, io::Write};
-use vcd::IdCode;
+use vcd::{IdCode, VarType};
 
 struct TimeSeries<T> {
     values: Vec<(u64, T)>,
@@ -25,7 +25,13 @@ impl<T> TimeSeries<T> {
         writer: &mut vcd::Writer<W>,
     ) -> Option<Cursor> {
         let name_sanitized = name.replace("::", "__");
-        let code = writer.add_wire(self.width as u32, &name_sanitized).ok()?;
+        let code = if self.width != 0 {
+            writer.add_wire(self.width as u32, &name_sanitized).ok()?
+        } else {
+            writer
+                .add_var(VarType::String, 0, &name_sanitized, None)
+                .ok()?
+        };
         self.values.first().map(|x| Cursor {
             kind: details.kind,
             next_time: Some(x.0),
@@ -270,7 +276,7 @@ impl NoteDB {
         key_hash: TimeSeriesHash,
     ) {
         eprintln!(
-            "Defining new time series: {path:?} {key} {kind:?}",
+            "Defining new time series: {path:?} {key:?} {kind:?}",
             path = self.path,
             key = key.as_string(),
             kind = kind

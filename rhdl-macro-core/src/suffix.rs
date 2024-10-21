@@ -12,10 +12,9 @@ impl VisitMut for CustomSuffix {
                 let suffix_width: String = suffix.chars().skip(1).collect();
                 if let Ok(suffix_width_digits) = suffix_width.parse::<usize>() {
                     if suffix.starts_with('u') {
-                        *node = parse_quote!(rhdl_bits::Bits::<#suffix_width_digits>(#unsuffixed))
+                        *node = parse_quote!(rhdl::bits::Bits::<#suffix_width_digits>(#unsuffixed))
                     } else if suffix.starts_with('i') {
-                        *node =
-                            parse_quote!(rhdl_bits::SignedBits::<#suffix_width_digits>(#unsuffixed))
+                        *node = parse_quote!(rhdl::bits::SignedBits::<#suffix_width_digits>(#unsuffixed))
                     }
                 }
             }
@@ -29,7 +28,7 @@ impl VisitMut for CustomSuffix {
         if let Pat::TupleStruct(ts) = node {
             if let Some(path) = ts.path.get_ident() {
                 if path == "b7" {
-                    ts.path = parse_quote!(rhdl_bits::Bits::<7>);
+                    ts.path = parse_quote!(rhdl::bits::Bits::<7>);
                 }
             }
         }
@@ -53,7 +52,7 @@ mod tests {
                     b7(5) => {
                         a.a = 2 + 3 + q.1.0;
                     }
-                    rhdl_bits::Bits::<7>(7) => {
+                    rhdl::bits::Bits::<7>(7) => {
                         a.a = 2 + 3 + q.1.0;
                     }
                 }
