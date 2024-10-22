@@ -26,7 +26,6 @@ fn test_option_is_digital() {
 fn test_result_is_digital() -> miette::Result<()> {
     #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
     enum Eflag {
-        BadOpCode,
         BadNumber,
         OutOfRange,
         #[default]
@@ -46,11 +45,10 @@ fn test_result_is_digital() -> miette::Result<()> {
     #[kernel]
     fn bar(i: b8) -> FWResult<b8> {
         let j = foo(i)?;
-        let p = match foo(j) {
-            Ok(k) => Err(Eflag::OutOfRange),
-            Err(e) => Ok(j),
-        };
-        p
+        match foo(j) {
+            Ok(_k) => Err(Eflag::OutOfRange),
+            Err(_e) => Ok(j),
+        }
     }
     test_kernel_vm_and_verilog_synchronous::<bar, _, _, _>(
         bar,
@@ -73,11 +71,10 @@ fn test_option_is_kernel_ok() -> miette::Result<()> {
     #[kernel]
     fn opt(i: b8) -> Option<b8> {
         let j = validify(i)?;
-        let p = match validify(j) {
-            Some(k) => None,
+        match validify(j) {
+            Some(_k) => None,
             None => Some(j),
-        };
-        p
+        }
     }
     test_kernel_vm_and_verilog_synchronous::<opt, _, _, _>(
         opt,

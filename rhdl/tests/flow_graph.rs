@@ -1,6 +1,5 @@
 use common::exhaustive;
 use rhdl::prelude::*;
-use rhdl_core::flow_graph::dot;
 use stream::reset_pulse;
 
 pub mod common;
@@ -223,7 +222,7 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
         }
 
         #[kernel]
-        pub fn parent(_cr: ClockReset, i: (), q: Q) -> (bool, D) {
+        pub fn parent(_cr: ClockReset, _i: (), q: Q) -> (bool, D) {
             let mut d = D::init();
             d.anyer = bits(3);
             let o = q.anyer;
@@ -297,7 +296,7 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
         }
 
         #[kernel]
-        pub fn parent(_cr: ClockReset, i: (), q: Q) -> (b4, D) {
+        pub fn parent(_cr: ClockReset, _i: (), q: Q) -> (b4, D) {
             let (a, b) = (bits(3), bits(4));
             let mut d = D::init();
             d.adder = (a, b);
