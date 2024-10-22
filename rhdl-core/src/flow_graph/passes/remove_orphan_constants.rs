@@ -1,5 +1,3 @@
-use petgraph::visit::EdgeRef;
-
 use crate::{flow_graph::component::ComponentKind, FlowGraph, RHDLError};
 
 use super::pass::Pass;
