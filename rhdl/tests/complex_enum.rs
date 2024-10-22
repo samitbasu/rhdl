@@ -233,7 +233,7 @@ fn test_documentation_svgs() {
 
 #[test]
 fn test_vcd_generation() {
-    note_init_db();
+    let guard = note_init_db();
     note_time(0);
     note(
         "packet",
@@ -271,5 +271,5 @@ fn test_vcd_generation() {
     note_time(6_000);
     note("packet", Packet::State(State::Running));
     let mut vcd_file = std::fs::File::create("packet.vcd").unwrap();
-    note_take().unwrap().dump_vcd(vcd_file).unwrap();
+    guard.take().dump_vcd(vcd_file).unwrap();
 }

@@ -20,7 +20,7 @@ fn test_vcd_enum() {
         C(bool),
     }
 
-    note_init_db();
+    let guard = note_init_db();
     note_time(0);
     note("enum", Enum::None);
     note("color", bits::<8>(0b10101010));
@@ -41,7 +41,7 @@ fn test_vcd_enum() {
     note_time(8_000);
     note("enum", Enum::None);
     let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
-    note_take().unwrap().dump_vcd(&mut vcd_file).unwrap();
+    guard.take().dump_vcd(&mut vcd_file).unwrap();
 }
 
 #[test]
@@ -56,7 +56,7 @@ fn test_vcd_basic() {
         a: true,
         b: Bits::from(0b10101010),
     };
-    note_init_db();
+    let guard = note_init_db();
     note_time(0);
     note("simple", simple);
     note_time(1_000);
@@ -64,9 +64,11 @@ fn test_vcd_basic() {
         a: false,
         b: Bits::from(0b01010101),
     };
+    let mut snapshot = std::fs::File::create("snapshot.vcd").unwrap();
+    with_note_db(|db| db.dump_vcd(&mut snapshot).unwrap());
     note("simple", simple);
     note_time(2_000);
     note("simple", simple);
     let mut vcd_file = std::fs::File::create("test.vcd").unwrap();
-    note_take().unwrap().dump_vcd(&mut vcd_file).unwrap();
+    guard.take().dump_vcd(&mut vcd_file).unwrap();
 }

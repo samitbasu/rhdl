@@ -1,51 +1,51 @@
 $timescale 1 ps $end
 $scope module top $end
-$var wire 0 ! packet $end
-$var wire 5 " packet.__disc $end
-$var wire 0 # packet0 $end
-$var wire 3 $ packet0.__disc $end
-$var wire 4 % packet1 $end
-$var wire 8 & packetb $end
-$var wire 8 ' packetg $end
-$var wire 16 ( packeth $end
-$var wire 1 ) packetlevelactive $end
-$var wire 8 * packetlevellevel $end
-$var wire 32 + packetmsg $end
-$var wire 8 , packetr $end
-$var wire 16 - packetw $end
+$var string 0 ! packet $end
+$var string 0 " packet.0 $end
+$var wire 3 # packet.0.__disc $end
+$var wire 4 $ packet.1 $end
+$var wire 5 % packet.__disc $end
+$var wire 8 & packet.b $end
+$var wire 8 ' packet.g $end
+$var wire 16 ( packet.h $end
+$var wire 1 ) packet.level.active $end
+$var wire 8 * packet.level.level $end
+$var wire 32 + packet.msg $end
+$var wire 8 , packet.r $end
+$var wire 16 - packet.w $end
 $upscope $end
 $enddefinitions $end
 #0
 sColor !
-b00001 "
+b00001 %
 b11110000 &
 b11010101 '
 b10101010 ,
 #1000
 sSize !
-b00010 "
+b00010 %
 b1011111011101111 (
 b1101111010101101 -
 #2000
 sPosition !
-b00100 "
-b1101 %
+b1101 $
+b00100 %
 #3000
 sState !
-b01000 "
-sBoom #
-b010 $
+sBoom "
+b010 #
+b01000 %
 #4000
-sInit #
-b110 $
+sInit "
+b110 #
 #5000
 sLog !
-b10000 "
+b10000 %
 1)
 b10111010 *
 b11001010111111101011111011101111 +
 #6000
 sState !
-b01000 "
-sRunning #
-b000 $
+sRunning "
+b000 #
+b01000 %

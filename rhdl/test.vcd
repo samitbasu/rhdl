@@ -1,7 +1,7 @@
 $timescale 1 ps $end
 $scope module top $end
-$var wire 1 ! simplea $end
-$var wire 8 " simpleb $end
+$var wire 1 ! simple.a $end
+$var wire 8 " simple.b $end
 $upscope $end
 $enddefinitions $end
 #0
