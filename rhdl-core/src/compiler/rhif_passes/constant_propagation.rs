@@ -132,7 +132,7 @@ fn propogate_tuple(
 fn propogate_wrap(id: NodeId, wrap: Wrap, obj: &mut Object) -> Result<LocatedOpCode, RHDLError> {
     let Wrap { lhs, op, arg, kind } = &wrap;
     if let (Slot::Literal(arg_lit), Some(kind)) = (arg, kind) {
-        let arg_val = obj.literals[&arg_lit].clone();
+        let arg_val = obj.literals[arg_lit].clone();
         let rhs = arg_val.wrap(*op, kind)?;
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
