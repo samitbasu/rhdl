@@ -477,8 +477,38 @@ thread_local! {
     static DB: RefCell<Option<NoteDB>> = const { RefCell::new(None) };
 }
 
-pub fn note_init_db() {
+// This is not send or sync because it's not safe to share across threads.
+pub struct NoteDBGuard {}
+
+impl NoteDBGuard {
+    pub fn take(self) -> NoteDB {
+        let opt = DB.with(|db| db.borrow_mut().take());
+        opt.unwrap_or_default()
+    }
+}
+
+impl Drop for NoteDBGuard {
+    fn drop(&mut self) {
+        DB.with(|db| {
+            let mut db = db.borrow_mut();
+            *db = None;
+        });
+    }
+}
+
+#[must_use]
+pub fn note_init_db() -> NoteDBGuard {
     DB.replace(Some(NoteDB::default()));
+    NoteDBGuard {}
+}
+
+pub fn with_note_db<F: FnMut(&NoteDB)>(mut f: F) {
+    DB.with(|db| {
+        let db = db.borrow();
+        if let Some(db) = db.as_ref() {
+            f(db)
+        }
+    });
 }
 
 pub fn note_push_path(name: &'static str) {
@@ -515,10 +545,6 @@ pub fn note(key: impl NoteKey, value: impl Notable) {
             value.note(key, db)
         }
     });
-}
-
-pub fn note_take() -> Option<NoteDB> {
-    DB.with(|db| db.borrow_mut().take())
 }
 
 // Every item has a name.  This is either the name of the scope or the signal
@@ -566,14 +592,14 @@ mod tests {
 
     #[test]
     fn test_vcd_write() {
-        note_init_db();
+        let guard = note_init_db();
         for i in 0..1000 {
             note_time(i * 1000);
             note("a", i % 2 == 0);
             note("b", i % 2 == 1);
         }
         let mut vcd = vec![];
-        let db = note_take().unwrap();
+        let db = guard.take();
         db.dump_vcd(&mut vcd).unwrap();
         std::fs::write("test.vcd", vcd).unwrap();
     }
@@ -707,7 +733,7 @@ mod tests {
             }
         }
 
-        note_init_db();
+        let guard = note_init_db();
         note_time(0);
         note("a", Mixed::None);
         note_time(100);
@@ -727,14 +753,14 @@ mod tests {
         note_time(500);
 
         let mut vcd = vec![];
-        let db = note_take().unwrap();
+        let db = guard.take();
         db.dump_vcd(&mut vcd).unwrap();
         std::fs::write("test_enum.vcd", vcd).unwrap();
     }
 
     #[test]
     fn test_vcd_with_nested_paths() {
-        note_init_db();
+        let guard = note_init_db();
         for i in 0..10 {
             note_time(i * 1000);
             note_push_path("fn1");
@@ -745,7 +771,7 @@ mod tests {
             note_pop_path();
         }
         let mut vcd = vec![];
-        let db = note_take().unwrap();
+        let db = guard.take();
         db.dump_vcd(&mut vcd).unwrap();
         std::fs::write("test_nested_paths.vcd", vcd).unwrap();
     }

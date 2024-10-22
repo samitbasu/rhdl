@@ -46,7 +46,6 @@ pub use note_db::note;
 pub use note_db::note_init_db;
 pub use note_db::note_pop_path;
 pub use note_db::note_push_path;
-pub use note_db::note_take;
 pub use note_db::note_time;
 pub use note_db::NoteDB;
 pub use types::kind::DiscriminantType;

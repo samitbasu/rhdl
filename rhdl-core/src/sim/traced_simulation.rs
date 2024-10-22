@@ -1,15 +1,13 @@
 use crate::types::digital::Digital;
 use crate::types::tristate::Tristate;
-use crate::{
-    note, note_init_db, note_take, note_time, Circuit, ClockReset, Synchronous, TimedSample,
-};
+use crate::{note, note_init_db, note_time, Circuit, ClockReset, Synchronous, TimedSample};
 
 pub fn traced_simulation<T: Circuit>(
     uut: &T,
     inputs: impl Iterator<Item = TimedSample<T::I>>,
     vcd_filename: &str,
 ) {
-    note_init_db();
+    let guard = note_init_db();
     note_time(0);
     let mut state = <T as Circuit>::S::init();
     let mut io = <T as Circuit>::Z::default();
@@ -19,7 +17,7 @@ pub fn traced_simulation<T: Circuit>(
         let output = uut.sim(sample.value, &mut state, &mut io);
         note("output", output);
     }
-    let db = note_take().unwrap();
+    let db = guard.take();
     let strobe = std::fs::File::create(vcd_filename).unwrap();
     db.dump_vcd(strobe).unwrap();
 }
@@ -29,7 +27,7 @@ pub fn traced_synchronous_simulation<S: Synchronous>(
     inputs: impl Iterator<Item = TimedSample<(ClockReset, S::I)>>,
     vcd_filename: &str,
 ) {
-    note_init_db();
+    let guard = note_init_db();
     note_time(0);
     let mut state = S::S::init();
     let mut io = S::Z::default();
@@ -46,7 +44,7 @@ pub fn traced_synchronous_simulation<S: Synchronous>(
         }
         note("output", output);
     }
-    let db = note_take().unwrap();
+    let db = guard.take();
     let strobe = std::fs::File::create(vcd_filename).unwrap();
     db.dump_vcd(strobe).unwrap();
 }

@@ -93,16 +93,16 @@ mod tests {
         let rst = reset_pulse(1).chain(stream([1, 2, 3, 4].iter().copied()));
         let input = clock_pos_edge(rst, 10).collect::<Vec<_>>();
         let expected = vec![
-            timed_sample((clock_reset(clock(false), reset(true)), 0), 0),
-            timed_sample((clock_reset(clock(true), reset(true)), 0), 10),
-            timed_sample((clock_reset(clock(false), reset(false)), 1), 20),
-            timed_sample((clock_reset(clock(true), reset(false)), 1), 30),
-            timed_sample((clock_reset(clock(false), reset(false)), 2), 40),
-            timed_sample((clock_reset(clock(true), reset(false)), 2), 50),
-            timed_sample((clock_reset(clock(false), reset(false)), 3), 60),
-            timed_sample((clock_reset(clock(true), reset(false)), 3), 70),
-            timed_sample((clock_reset(clock(false), reset(false)), 4), 80),
-            timed_sample((clock_reset(clock(true), reset(false)), 4), 90),
+            timed_sample((clock_reset(clock(true), reset(true)), 0), 0),
+            timed_sample((clock_reset(clock(false), reset(true)), 0), 10),
+            timed_sample((clock_reset(clock(true), reset(false)), 1), 20),
+            timed_sample((clock_reset(clock(false), reset(false)), 1), 30),
+            timed_sample((clock_reset(clock(true), reset(false)), 2), 40),
+            timed_sample((clock_reset(clock(false), reset(false)), 2), 50),
+            timed_sample((clock_reset(clock(true), reset(false)), 3), 60),
+            timed_sample((clock_reset(clock(false), reset(false)), 3), 70),
+            timed_sample((clock_reset(clock(true), reset(false)), 4), 80),
+            timed_sample((clock_reset(clock(false), reset(false)), 4), 90),
         ];
         assert_eq!(input, expected);
     }

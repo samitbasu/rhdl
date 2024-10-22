@@ -137,7 +137,7 @@ fn test_derive_digital_complex_enum() {
     println!("foo val: {}", foo_2.binary_string());
 
     let foo_3 = Test::A;
-    note_init_db();
+    let guard = note_init_db();
     note_time(0);
     note("test", foo_1);
     note_time(1_000);
@@ -147,7 +147,7 @@ fn test_derive_digital_complex_enum() {
     note_time(3_000);
     note("test", foo_1);
     let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
-    note_take().unwrap().dump_vcd(&mut vcd_file).unwrap();
+    guard.take().dump_vcd(&mut vcd_file).unwrap();
 }
 
 #[test]
