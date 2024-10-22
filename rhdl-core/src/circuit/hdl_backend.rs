@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use crate::hdl::{
     ast::{
-        component_instance, concatenate, connection, continuous_assignment, function_call, id,
-        index, unsigned_width, Declaration, Direction, HDLKind, Module, Port, Statement,
+        component_instance, connection, continuous_assignment, function_call, id, index,
+        unsigned_width, Declaration, Direction, HDLKind, Module, Port, Statement,
     },
     builder::generate_verilog,
 };

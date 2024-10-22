@@ -747,7 +747,7 @@ impl UnifyContext {
                         "b".to_string()
                     }
                 }
-                Const::String(s) => format!("{}", s),
+                Const::String(s) => s.to_string(),
                 Const::Empty => "()".to_string(),
             },
             TypeKind::App(app) => match app {

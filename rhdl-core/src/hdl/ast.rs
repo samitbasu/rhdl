@@ -152,17 +152,17 @@ pub struct Assignment {
     pub source: Box<Expression>,
 }
 
-pub fn assign(target: &str, source: Box<Expression>) -> Statement {
+pub fn assign(target: &str, source: Expression) -> Statement {
     Statement::Assignment(Assignment {
         target: target.to_string(),
-        source,
+        source: Box::new(source),
     })
 }
 
-pub fn non_blocking_assignment(target: &str, source: Box<Expression>) -> Statement {
+pub fn non_blocking_assignment(target: &str, source: Expression) -> Statement {
     Statement::NonblockingAssignment(Assignment {
         target: target.to_string(),
-        source,
+        source: Box::new(source),
     })
 }
 
@@ -191,10 +191,10 @@ pub struct Connection {
     pub source: Box<Expression>,
 }
 
-pub fn connection(target: &str, source: Box<Expression>) -> Connection {
+pub fn connection(target: &str, source: Expression) -> Connection {
     Connection {
         target: target.to_string(),
-        source,
+        source: Box::new(source),
     }
 }
 
@@ -206,27 +206,27 @@ pub enum Expression {
     Unary(Unary),
     Select(Select),
     Binary(Binary),
-    Concat(Vec<Box<Expression>>),
+    Concat(Vec<Expression>),
     DynamicIndex(DynamicIndex),
     Index(Index),
     Repeat(Repeat),
     Const(bool),
 }
 
-pub fn bit_string(value: &BitString) -> Box<Expression> {
-    Box::new(Expression::Literal(value.clone()))
+pub fn bit_string(value: &BitString) -> Expression {
+    Expression::Literal(value.clone())
 }
 
-pub fn binary(op: AluBinary, left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
-    Box::new(Expression::Binary(Binary {
+pub fn binary(op: AluBinary, left: Expression, right: Expression) -> Expression {
+    Expression::Binary(Binary {
         operator: op,
-        left,
-        right,
-    }))
+        left: Box::new(left),
+        right: Box::new(right),
+    })
 }
 
-pub fn concatenate(expressions: Vec<Box<Expression>>) -> Box<Expression> {
-    Box::new(Expression::Concat(expressions))
+pub fn concatenate(expressions: Vec<Expression>) -> Expression {
+    Expression::Concat(expressions)
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -235,23 +235,26 @@ pub struct Repeat {
     pub count: usize,
 }
 
-pub fn constant(value: bool) -> Box<Expression> {
-    Box::new(Expression::Const(value))
+pub fn constant(value: bool) -> Expression {
+    Expression::Const(value)
 }
 
-pub fn repeat(target: Box<Expression>, count: usize) -> Box<Expression> {
-    Box::new(Expression::Repeat(Repeat { target, count }))
+pub fn repeat(target: Expression, count: usize) -> Expression {
+    Expression::Repeat(Repeat {
+        target: Box::new(target),
+        count,
+    })
 }
 
-pub fn function_call(name: &str, arguments: Vec<Box<Expression>>) -> Box<Expression> {
-    Box::new(Expression::FunctionCall(FunctionCall {
+pub fn function_call(name: &str, arguments: Vec<Expression>) -> Expression {
+    Expression::FunctionCall(FunctionCall {
         name: name.to_string(),
         arguments,
-    }))
+    })
 }
 
-pub fn id(name: &str) -> Box<Expression> {
-    Box::new(Expression::Identifier(name.to_string()))
+pub fn id(name: &str) -> Expression {
+    Expression::Identifier(name.to_string())
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -260,14 +263,14 @@ pub struct Index {
     pub range: std::ops::Range<usize>,
 }
 
-pub fn index(target: &str, range: std::ops::Range<usize>) -> Box<Expression> {
-    Box::new(Expression::Index(Index {
+pub fn index(target: &str, range: std::ops::Range<usize>) -> Expression {
+    Expression::Index(Index {
         target: target.into(),
         range,
-    }))
+    })
 }
 
-pub fn index_bit(target: &str, bit: usize) -> Box<Expression> {
+pub fn index_bit(target: &str, bit: usize) -> Expression {
     index(target, bit..(bit + 1))
 }
 
@@ -283,18 +286,18 @@ pub struct DynamicIndex {
         .push_str(&format!("    {lhs} = {arg}[{offset} +: {len}];\n",));
 */
 
-pub fn dynamic_index(argument: &str, offset: Box<Expression>, len: usize) -> Box<Expression> {
-    Box::new(Expression::DynamicIndex(DynamicIndex {
+pub fn dynamic_index(argument: &str, offset: Expression, len: usize) -> Expression {
+    Expression::DynamicIndex(DynamicIndex {
         argument: argument.into(),
-        offset,
+        offset: Box::new(offset),
         len,
-    }))
+    })
 }
 
 #[derive(Debug, Clone, Hash)]
 pub struct FunctionCall {
     pub name: String,
-    pub arguments: Vec<Box<Expression>>,
+    pub arguments: Vec<Expression>,
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -322,8 +325,12 @@ pub struct Assert {
     pub ndx: usize,
 }
 
-pub fn assert(left: Box<Expression>, right: Box<Expression>, ndx: usize) -> Statement {
-    Statement::Assert(Assert { left, right, ndx })
+pub fn assert(left: Expression, right: Expression, ndx: usize) -> Statement {
+    Statement::Assert(Assert {
+        left: Box::new(left),
+        right: Box::new(right),
+        ndx,
+    })
 }
 
 pub fn finish() -> Statement {
@@ -333,10 +340,10 @@ pub fn finish() -> Statement {
 #[derive(Debug, Clone, Hash)]
 pub struct Display {
     pub format: String,
-    pub args: Vec<Box<Expression>>,
+    pub args: Vec<Expression>,
 }
 
-pub fn display(format: &str, args: Vec<Box<Expression>>) -> Statement {
+pub fn display(format: &str, args: Vec<Expression>) -> Statement {
     Statement::Display(Display {
         format: format.to_string(),
         args,
@@ -355,12 +362,12 @@ pub struct If {
 }
 
 pub fn if_statement(
-    condition: Box<Expression>,
+    condition: Expression,
     true_expr: Vec<Statement>,
     false_expr: Vec<Statement>,
 ) -> Statement {
     Statement::If(If {
-        condition,
+        condition: Box::new(condition),
         true_expr,
         false_expr,
     })
@@ -384,10 +391,10 @@ pub enum Events {
     Star,
 }
 
-pub fn continuous_assignment(target: &str, source: Box<Expression>) -> Statement {
+pub fn continuous_assignment(target: &str, source: Expression) -> Statement {
     Statement::ContinuousAssignment(Assignment {
         target: target.to_string(),
-        source,
+        source: Box::new(source),
     })
 }
 
@@ -411,16 +418,16 @@ pub struct DynamicSplice {
 
 pub fn dynamic_splice(
     lhs: &str,
-    arg: Box<Expression>,
-    offset: Box<Expression>,
-    value: Box<Expression>,
+    arg: Expression,
+    offset: Expression,
+    value: Expression,
     len: usize,
 ) -> Statement {
     Statement::DynamicSplice(DynamicSplice {
         lhs: lhs.to_string(),
-        arg,
-        offset,
-        value,
+        arg: Box::new(arg),
+        offset: Box::new(offset),
+        value: Box::new(value),
         len,
     })
 }
@@ -456,8 +463,11 @@ pub struct Unary {
 
 */
 
-pub fn unary(operator: AluUnary, operand: Box<Expression>) -> Box<Expression> {
-    Box::new(Expression::Unary(Unary { operator, operand }))
+pub fn unary(operator: AluUnary, operand: Expression) -> Expression {
+    Expression::Unary(Unary {
+        operator,
+        operand: Box::new(operand),
+    })
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -477,15 +487,15 @@ pub struct Splice {
 
 pub fn splice(
     target: &str,
-    source: Box<Expression>,
+    source: Expression,
     replace_range: std::ops::Range<usize>,
-    value: Box<Expression>,
+    value: Expression,
 ) -> Statement {
     Statement::Splice(Splice {
         target: target.to_string(),
-        source,
+        source: Box::new(source),
         replace_range,
-        value,
+        value: Box::new(value),
     })
 }
 
@@ -496,16 +506,12 @@ pub struct Select {
     pub false_expr: Box<Expression>,
 }
 
-pub fn select(
-    condition: Box<Expression>,
-    true_expr: Box<Expression>,
-    false_expr: Box<Expression>,
-) -> Box<Expression> {
-    Box::new(Expression::Select(Select {
-        condition,
-        true_expr,
-        false_expr,
-    }))
+pub fn select(condition: Expression, true_expr: Expression, false_expr: Expression) -> Expression {
+    Expression::Select(Select {
+        condition: Box::new(condition),
+        true_expr: Box::new(true_expr),
+        false_expr: Box::new(false_expr),
+    })
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -520,9 +526,9 @@ pub enum CaseItem {
     Wild,
 }
 
-pub fn case(discriminant: Box<Expression>, cases: Vec<(CaseItem, Statement)>) -> Statement {
+pub fn case(discriminant: Expression, cases: Vec<(CaseItem, Statement)>) -> Statement {
     Statement::Case(Case {
-        discriminant,
+        discriminant: Box::new(discriminant),
         cases,
     })
 }
