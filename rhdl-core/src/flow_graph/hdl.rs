@@ -27,7 +27,7 @@ fn node(index: FlowIx) -> String {
     format!("node_{}", index.index())
 }
 
-fn nodes(indices: Vec<FlowIx>) -> Vec<Box<Expression>> {
+fn nodes(indices: Vec<FlowIx>) -> Vec<Expression> {
     indices.into_iter().map(|ndx| id(&node(ndx))).collect()
 }
 
@@ -377,7 +377,7 @@ impl<'a> FlowGraphHDLBuilder<'a> {
             ComponentKind::Unary(_) => self.unary_assign_statement(index)?,
             ComponentKind::DFFInput(_) => self.dff_input_assign_statement(index)?,
             ComponentKind::DFFOutput(_) => {}
-            ComponentKind::BlackBox(black_box) => todo!(),
+            ComponentKind::BlackBox(_black_box) => todo!(),
             ComponentKind::Case(_) => self.case_statement(index)?,
             ComponentKind::DynamicIndex(_) => self.dynamic_index_assign_statement(index)?,
             ComponentKind::DynamicSplice(_) => self.dynamic_splice(index)?,

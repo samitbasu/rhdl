@@ -149,7 +149,7 @@ fn display_statement(ast: &Display) -> String {
     format!(
         "$display(\"{format}\", {args});",
         format = ast.format,
-        args = apply(&ast.args, |x| expression(x), ", ")
+        args = apply(&ast.args, expression, ", ")
     )
 }
 
@@ -270,13 +270,13 @@ fn select(ast: &Select) -> String {
     )
 }
 
-fn concatenate(ast: &[Box<Expression>]) -> String {
-    let expr = apply(ast, |x| expression(x), ", ");
+fn concatenate(ast: &[Expression]) -> String {
+    let expr = apply(ast, expression, ", ");
     format!("{{ {expr} }}",)
 }
 
 fn function_call(ast: &FunctionCall) -> String {
-    let args = apply(&ast.arguments, |x| expression(x), ", ");
+    let args = apply(&ast.arguments, expression, ", ");
     format!("{}({args})", ast.name,)
 }
 
