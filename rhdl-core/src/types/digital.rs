@@ -1,9 +1,6 @@
 use rhdl_bits::{bits, Bits, SignedBits};
 
-use crate::{
-    compiler::mir::ty::make_variant_tag, DiscriminantAlignment, DiscriminantType, Kind, NoteKey,
-    NoteWriter, TypedBits,
-};
+use crate::{DiscriminantAlignment, DiscriminantType, Kind, NoteKey, NoteWriter, TypedBits};
 
 use super::{kind::DiscriminantLayout, note::Notable};
 
@@ -899,5 +896,5 @@ mod test {
         assert_eq!(x.discriminant().bits, vec![true]);
         let x: Option<u8> = None;
         assert_eq!(x.discriminant().bits, vec![false]);
-    }   
+    }
 }
