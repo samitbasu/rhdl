@@ -8,5 +8,5 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.79"
 
-rhdl-core = { path = "../rhdl-core" }
+rhdl = { path = "../rhdl" }
 strum = { version = "0.25.0", features = ["derive"] }

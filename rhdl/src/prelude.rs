@@ -19,6 +19,10 @@ pub use rhdl_core::flow_graph::component::Component;
 pub use rhdl_core::flow_graph::component::ComponentKind;
 pub use rhdl_core::flow_graph::dot::write_dot;
 pub use rhdl_core::flow_graph::flow_graph_impl::{FlowGraph, FlowIx};
+pub use rhdl_core::hdl::ast::{
+    always, assign, bit_string, continuous_assignment, id, if_statement, initial, port,
+};
+pub use rhdl_core::hdl::ast::{non_blocking_assignment, Direction, Events, HDLKind};
 pub use rhdl_core::note_db::note;
 pub use rhdl_core::note_db::note_init_db;
 pub use rhdl_core::note_db::note_time;
@@ -61,6 +65,13 @@ pub use rhdl_core::types::tristate::Tristate;
 pub use rhdl_core::CircuitDQ;
 pub use rhdl_core::ClockReset;
 pub use rhdl_core::CompilationMode;
+pub use rhdl_core::{
+    flow_graph::edge_kind::EdgeKind,
+    hdl::ast::{signed_width, unsigned_width, Module},
+    rtl::object::RegisterKind,
+    types::bit_string::BitString,
+    util::hash_id,
+};
 pub use rhdl_macro::hdl;
 pub use rhdl_macro::kernel;
 pub use rhdl_macro::Circuit;
