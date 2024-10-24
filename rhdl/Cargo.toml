@@ -15,8 +15,6 @@ authors = ["Samit Basu <basu.samit@gmail.com>"]
 rhdl-bits = { path = "../rhdl-bits" }
 rhdl-core = { path = "../rhdl-core", features = ["iverilog"] }
 rhdl-macro = { version = "0.0.2", path = "../rhdl-macro" }
-#rhdl-std = { path = "../rhdl-std" }
-rhdl-fpga = { path = "../rhdl-fpga" }
 anyhow = "1.0.75"
 svg = { version = "0.14.0", optional = true }
 serde_json = "1.0.64"

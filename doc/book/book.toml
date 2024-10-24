@@ -4,3 +4,4 @@ language = "en"
 multilingual = false
 src = "src"
 title = "RHDL Book"
+[preprocessor.pikchr]
