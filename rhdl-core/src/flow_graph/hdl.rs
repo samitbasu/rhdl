@@ -455,7 +455,10 @@ impl<'a> FlowGraphHDLBuilder<'a> {
                 )],
             );
             statements.push(block);
-            statements.push(assign(&node(dff.output), id(&reg_name)));
+            statements.push(always(
+                vec![Events::Star],
+                vec![assign(&node(dff.output), id(&reg_name))],
+            ));
         }
         let mut topo = petgraph::visit::Topo::new(&fg.graph);
         while let Some(ndx) = topo.next(&fg.graph) {
