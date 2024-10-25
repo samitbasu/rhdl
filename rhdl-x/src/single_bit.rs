@@ -42,7 +42,7 @@ mod tests {
         let uut = U::default();
         let rtl = compile_design::<single_bit>(CompilationMode::Synchronous)?;
         eprintln!("RTL: {:?}", rtl);
-        let uut_fg = &uut.descriptor()?.flow_graph;
+        let uut_fg = &uut.descriptor("uut")?.flow_graph;
         let mut dot_string = vec![0_u8; 0];
         write_dot(uut_fg, &mut dot_string).unwrap();
         // Calculate the fnv hash of the dot string

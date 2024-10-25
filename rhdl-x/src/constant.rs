@@ -47,15 +47,15 @@ impl<T: Digital> Synchronous for U<T> {
         self.value
     }
 
-    fn name(&self) -> String {
-        "Constant".into()
+    fn description(&self) -> String {
+        format!("Constant: {:?}", self.value.typed_bits())
     }
 
-    fn hdl(&self) -> Result<HDLDescriptor, RHDLError> {
-        self.as_verilog()
+    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
+        self.as_verilog(name)
     }
 
-    fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError> {
+    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
         let mut flow_graph = FlowGraph::default();
         let my_val = &self.value.typed_bits().bits;
         let driver = my_val.iter().map(|b| {
@@ -64,7 +64,7 @@ impl<T: Digital> Synchronous for U<T> {
         flow_graph.output = driver.collect();
         flow_graph.inputs = vec![vec![], vec![]];
         Ok(CircuitDescriptor {
-            unique_name: format!("const_{:?}", self.value.typed_bits()),
+            unique_name: format!("{name}_const_{:?}", self.value.typed_bits()),
             input_kind: Kind::Empty,
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
@@ -81,8 +81,8 @@ impl<T: Digital> Synchronous for U<T> {
 impl<T: Digital> DigitalFn for U<T> {}
 
 impl<T: Digital> U<T> {
-    fn as_verilog(&self) -> Result<HDLDescriptor, RHDLError> {
-        let module_name = self.descriptor()?.unique_name;
+    fn as_verilog(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
+        let module_name = self.descriptor(name)?.unique_name;
         let mut module = Module {
             name: module_name.clone(),
             ..Default::default()

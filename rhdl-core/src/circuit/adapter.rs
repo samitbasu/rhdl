@@ -145,9 +145,9 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
     }
 
     fn hdl(&self, name: &str) -> Result<crate::HDLDescriptor, RHDLError> {
-        let descriptor = self.descriptor(name)?;
         let mut module = Module {
             name: name.into(),
+            description: self.description(),
             ..Default::default()
         };
         module.ports = [

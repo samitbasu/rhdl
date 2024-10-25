@@ -9,6 +9,7 @@ use super::formatter;
 #[derive(Debug, Clone, Hash, Default)]
 pub struct Module {
     pub name: String,
+    pub description: String,
     pub ports: Vec<Port>,
     pub declarations: Vec<Declaration>,
     pub statements: Vec<Statement>,

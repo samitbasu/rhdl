@@ -53,7 +53,7 @@ mod tests {
     #[test]
     fn test_logic_loop() -> miette::Result<()> {
         let uut = U::default();
-        let uut_fg = &uut.descriptor()?.flow_graph;
+        let uut_fg = &uut.descriptor("uut")?.flow_graph;
         let mut dot = std::fs::File::create("logic_loop.dot").unwrap();
         write_dot(uut_fg, &mut dot).unwrap();
 

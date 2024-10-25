@@ -78,7 +78,7 @@ mod tests {
     #[test]
     fn test_strobe_timing() -> miette::Result<()> {
         let uut: U<4> = U::new(bits(12));
-        let mut counter_uut = uut.descriptor()?.flow_graph.clone();
+        let mut counter_uut = uut.descriptor("uut")?.flow_graph.clone();
         rhdl::core::timing::compute_node_costs(&mut counter_uut, simplest_cost);
         eprintln!("counter {:?}", counter_uut);
         let mut dot = std::fs::File::create("strobe_fg.dot").unwrap();

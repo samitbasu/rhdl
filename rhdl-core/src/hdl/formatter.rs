@@ -371,11 +371,12 @@ pub fn function(ast: &Function) -> String {
 
 pub fn module(ast: &Module) -> String {
     let name = &ast.name;
+    let description = &ast.description;
     let ports = apply(&ast.ports, port, ", ");
     let declarations = apply(&ast.declarations, register, "\n");
     let statements = apply(&ast.statements, statement, "\n");
     let functions = apply(&ast.functions, function, "\n");
     reformat_verilog(&format!(
-        "module {name}({ports});\n{declarations}\n{statements}\n{functions}\nendmodule\n",
+        "// {description}\nmodule {name}({ports});\n{declarations}\n{statements}\n{functions}\nendmodule\n",
     ))
 }

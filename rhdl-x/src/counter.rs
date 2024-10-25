@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn test_verilog_generation() -> miette::Result<()> {
         let uut: U<4> = U::default();
-        let hdl = uut.hdl()?;
+        let hdl = uut.hdl("uut")?;
         std::fs::write("counter.v", format!("{}", hdl.as_verilog())).unwrap();
         Ok(())
     }
@@ -121,7 +121,7 @@ mod tests {
         let fg = build_rtl_flow_graph(&rtl);
         let mut dot = std::fs::File::create("counter.dot").unwrap();
         write_dot(&fg, &mut dot).unwrap();
-        let counter_uut = &uut.descriptor()?.flow_graph;
+        let counter_uut = &uut.descriptor("uut")?.flow_graph;
         let mut dot = vec![0_u8; 0];
         write_dot(counter_uut, &mut dot).unwrap();
         let mut hasher = fnv::FnvHasher::default();
