@@ -1,3 +1,4 @@
+use rhdl::core::circuit::chain::Chain;
 use rhdl::core::flow_graph::passes::check_for_unconnected_clock_reset::CheckForUnconnectedClockReset;
 use rhdl::core::flow_graph::passes::pass::Pass;
 use rhdl::core::sim::verilog_testbench::write_testbench_module;
@@ -25,6 +26,7 @@ use rhdl_macro::Timed;
 mod auto_counter;
 mod constant;
 mod counter;
+mod doubler;
 mod strobe;
 //mod descriptions;
 mod dff;
@@ -245,6 +247,29 @@ fn test_autocounter() -> miette::Result<()> {
     std::fs::write("auto_counter.v", vg.as_verilog()).unwrap();
     let mut dot = std::fs::File::create("auto_counter.dot").unwrap();
     write_dot(&fg, &mut dot).unwrap();
+    Ok(())
+}
+
+#[test]
+fn test_auto_doubler() -> miette::Result<()> {
+    let c1: auto_counter::U<4> = auto_counter::U::default();
+    let c2: doubler::U<4> = doubler::U::default();
+    let uut = Chain::new(c1, c2);
+    let inputs = repeat(()).take(1000);
+    let stream = test_stream(inputs);
+    traced_synchronous_simulation(&uut, stream, "auto_double.vcd");
+    Ok(())
+}
+
+#[test]
+fn test_auto_doubler_hdl() -> miette::Result<()> {
+    let c1: auto_counter::U<4> = auto_counter::U::default();
+    let c2: doubler::U<4> = doubler::U::default();
+    let uut = Chain::new(c1, c2);
+    let fg = uut.flow_graph("top")?;
+    let inputs = repeat(()).take(1000);
+    let stream = test_stream(inputs);
+    write_testbench_module(&fg.hdl("autodoubler")?, stream, "autodoubler_tb.v", 4)?;
     Ok(())
 }
 
