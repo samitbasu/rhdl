@@ -26,7 +26,7 @@ mod tests {
     #[test]
     fn test_inverter_flow_graph() -> miette::Result<()> {
         let uut = U::default();
-        let fg = &uut.descriptor()?.flow_graph;
+        let fg = &uut.descriptor("uut")?.flow_graph;
         let mut file = std::fs::File::create("inverter.dot").unwrap();
         write_dot(fg, &mut file).unwrap();
         Ok(())

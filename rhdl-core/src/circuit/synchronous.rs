@@ -37,11 +37,7 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO + SynchronousDQ {
     ) -> Self::O;
 
     fn description(&self) -> String {
-        format!(
-            "synchronous circuit {}::{}",
-            module_path!(),
-            std::any::type_name::<Self>()
-        )
+        format!("synchronous circuit {}", std::any::type_name::<Self>())
     }
 
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError>;

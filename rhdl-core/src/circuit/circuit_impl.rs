@@ -34,11 +34,7 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO + CircuitDQ {
 
     // auto derived
     fn description(&self) -> String {
-        format!(
-            "circuit {}::{}",
-            module_path!(),
-            std::any::type_name::<Self>()
-        )
+        format!("circuit {}", std::any::type_name::<Self>())
     }
 
     // auto derived

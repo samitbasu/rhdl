@@ -136,6 +136,7 @@ fn build_test_module_from_synchronous_waveform(
     test_cases.push(finish());
     let module = Module {
         name: "testbench".into(),
+        description: "Testbench for synchronous module".into(),
         ports: vec![],
         declarations: declarations.into_iter().flatten().collect(),
         statements: vec![instance, initial(test_cases)],

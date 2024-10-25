@@ -42,6 +42,7 @@ pub fn build_hdl<C: Circuit>(
     let module_name = &descriptor.unique_name;
     let mut module = Module {
         name: module_name.clone(),
+        description: circuit.description(),
         ..Default::default()
     };
     module.ports = [
@@ -125,6 +126,7 @@ pub fn build_synchronous_hdl<C: Synchronous>(
     let module_name = &descriptor.unique_name;
     let mut module = Module {
         name: module_name.clone(),
+        description: circuit.description(),
         ..Default::default()
     };
     module.ports = [

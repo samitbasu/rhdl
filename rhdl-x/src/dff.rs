@@ -80,15 +80,19 @@ impl<T: Digital> Synchronous for U<T> {
         new_state
     }
 
-    fn name(&self) -> String {
-        "DFF".into()
+    fn description(&self) -> String {
+        format!(
+            "Positive edge triggered DFF holding value of type {:?}, with reset value of {:?}",
+            T::static_kind(),
+            self.reset.typed_bits()
+        )
     }
 
-    fn hdl(&self) -> Result<HDLDescriptor, RHDLError> {
-        self.as_verilog()
+    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
+        self.as_verilog(name)
     }
 
-    fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError> {
+    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
         let mut flow_graph = FlowGraph::default();
         let (d, q) = flow_graph.dff(T::static_kind().into(), &self.reset.typed_bits().bits, None);
         let clock = flow_graph.buffer(RegisterKind::Unsigned(1), "clk", None);
@@ -104,11 +108,7 @@ impl<T: Digital> Synchronous for U<T> {
         flow_graph.inputs = vec![vec![clock[0], reset[0]], d, vec![]];
         flow_graph.output = q;
         Ok(CircuitDescriptor {
-            unique_name: format!(
-                "{}_{:x}",
-                self.name(),
-                hash_id(std::any::TypeId::of::<Self>())
-            ),
+            unique_name: format!("{name}_dff"),
             input_kind: Self::I::static_kind(),
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
@@ -123,8 +123,8 @@ impl<T: Digital> Synchronous for U<T> {
 }
 
 impl<T: Digital> U<T> {
-    fn as_verilog(&self) -> Result<HDLDescriptor, RHDLError> {
-        let module_name = self.descriptor()?.unique_name;
+    fn as_verilog(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
+        let module_name = self.descriptor(name)?.unique_name;
         let mut module = Module {
             name: module_name.clone(),
             ..Default::default()
