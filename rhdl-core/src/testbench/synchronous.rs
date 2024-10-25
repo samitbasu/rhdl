@@ -159,12 +159,12 @@ pub fn test_synchronous_hdl<T: Synchronous>(
     // Get a waveform for this circuit
     let waveform = waveform_synchronous(uut, inputs);
     // Construct a RTL-based test bench
-    let rtl_mod = uut.hdl()?.as_modules();
+    let rtl_mod = uut.hdl("uut")?.as_modules();
     eprintln!("{}", crate::hdl::formatter::module(&rtl_mod[0]));
     let tm1 = build_test_module_from_synchronous_waveform(&rtl_mod, &waveform)?;
     tm1.run_iverilog()?;
     // Construct a flowgraph-based test bench
-    let fg = uut.flow_graph()?.hdl("uut")?;
+    let fg = uut.flow_graph("uut")?.hdl("uut")?;
     let tm1 = build_test_module_from_synchronous_waveform(&[fg], &waveform)?;
     tm1.run_iverilog()?;
     Ok(())

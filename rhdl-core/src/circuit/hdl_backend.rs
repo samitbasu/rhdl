@@ -33,9 +33,10 @@ pub(crate) fn maybe_decl_wire(num_bits: usize, name: &str) -> Option<Declaration
 
 pub fn build_hdl<C: Circuit>(
     circuit: &C,
+    name: &str,
     children: BTreeMap<String, HDLDescriptor>,
 ) -> Result<HDLDescriptor, RHDLError> {
-    let descriptor = circuit.descriptor()?;
+    let descriptor = circuit.descriptor(name)?;
     let outputs = C::O::bits();
 
     let module_name = &descriptor.unique_name;
@@ -115,9 +116,10 @@ pub fn build_hdl<C: Circuit>(
 // it should be possible to factor out the common bits and DRY up the code.
 pub fn build_synchronous_hdl<C: Synchronous>(
     circuit: &C,
+    name: &str,
     children: BTreeMap<String, HDLDescriptor>,
 ) -> Result<HDLDescriptor, RHDLError> {
-    let descriptor = circuit.descriptor()?;
+    let descriptor = circuit.descriptor(name)?;
     let outputs = C::O::bits();
 
     let module_name = &descriptor.unique_name;

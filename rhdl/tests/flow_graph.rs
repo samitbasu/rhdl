@@ -160,7 +160,7 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
     let inputs = reset_pulse(4).chain(stream(inputs));
     let inputs = clock_pos_edge(inputs, 100);
     test_synchronous_hdl(&uut, inputs)?;
-    let fg = uut.flow_graph()?;
+    let fg = uut.flow_graph("uut")?;
     assert!(!fg
         .graph
         .node_weights()
@@ -234,7 +234,7 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
     let inputs = reset_pulse(4).chain(stream(std::iter::once(())));
     let inputs = clock_pos_edge(inputs, 100);
     test_synchronous_hdl(&uut, inputs)?;
-    let fg = uut.flow_graph()?;
+    let fg = uut.flow_graph("uut")?;
     assert!(!fg
         .graph
         .node_weights()
@@ -309,7 +309,7 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
     let inputs = reset_pulse(4).chain(stream(std::iter::once(())));
     let inputs = clock_pos_edge(inputs, 100);
     test_synchronous_hdl(&uut, inputs)?;
-    let fg = uut.flow_graph()?;
+    let fg = uut.flow_graph("uut")?;
     assert!(!fg
         .graph
         .node_weights()
@@ -348,7 +348,7 @@ fn test_constant_propagates_through_indexing() -> miette::Result<()> {
     let inputs = reset_pulse(4).chain(stream([false, true].iter().copied()));
     let inputs = clock_pos_edge(inputs, 100);
     test_synchronous_hdl(&uut, inputs)?;
-    let fg = uut.flow_graph()?;
+    let fg = uut.flow_graph("uut")?;
     assert!(!fg
         .graph
         .node_weights()
@@ -388,7 +388,7 @@ fn test_constant_propagates_through_splicing() -> miette::Result<()> {
     let inputs = reset_pulse(4).chain(stream([false, true].iter().copied()));
     let inputs = clock_pos_edge(inputs, 100);
     test_synchronous_hdl(&uut, inputs)?;
-    let fg = uut.flow_graph()?;
+    let fg = uut.flow_graph("uut")?;
     assert!(!fg
         .graph
         .node_weights()

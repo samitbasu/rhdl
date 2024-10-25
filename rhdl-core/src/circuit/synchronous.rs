@@ -36,11 +36,17 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO + SynchronousDQ {
         io: &mut Self::Z,
     ) -> Self::O;
 
-    fn name(&self) -> String;
+    fn description(&self) -> String {
+        format!(
+            "synchronous circuit {}::{}",
+            module_path!(),
+            std::any::type_name::<Self>()
+        )
+    }
 
-    fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError>;
+    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError>;
 
-    fn hdl(&self) -> Result<HDLDescriptor, RHDLError>;
+    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError>;
 
     // auto derived
     // First is 0, then 0 + c0::NumZ, then 0 + c0::NumZ + c1::NumZ, etc
@@ -48,8 +54,8 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO + SynchronousDQ {
         std::iter::once(0)
     }
 
-    fn flow_graph(&self) -> Result<FlowGraph, RHDLError> {
-        let flow_graph = self.descriptor()?.flow_graph.clone();
+    fn flow_graph(&self, name: &str) -> Result<FlowGraph, RHDLError> {
+        let flow_graph = self.descriptor(name)?.flow_graph.clone();
         optimize_flow_graph(flow_graph)
     }
 }

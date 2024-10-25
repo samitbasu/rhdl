@@ -33,13 +33,19 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO + CircuitDQ {
     fn sim(&self, input: Self::I, state: &mut Self::S, io: &mut Self::Z) -> Self::O;
 
     // auto derived
-    fn name(&self) -> String;
+    fn description(&self) -> String {
+        format!(
+            "circuit {}::{}",
+            module_path!(),
+            std::any::type_name::<Self>()
+        )
+    }
 
     // auto derived
-    fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError>;
+    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError>;
 
     // auto derived
-    fn hdl(&self) -> Result<HDLDescriptor, RHDLError>;
+    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError>;
 
     // auto derived
     // First is 0, then 0 + c0::NumZ, then 0 + c0::NumZ + c1::NumZ, etc
@@ -48,8 +54,8 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO + CircuitDQ {
     }
 
     // Return a top level flow graph for this circuit, optimized and sealed.
-    fn flow_graph(&self) -> Result<FlowGraph, RHDLError> {
-        let flow_graph = self.descriptor()?.flow_graph.clone();
+    fn flow_graph(&self, name: &str) -> Result<FlowGraph, RHDLError> {
+        let flow_graph = self.descriptor(name)?.flow_graph.clone();
         optimize_flow_graph(flow_graph)
     }
 }
