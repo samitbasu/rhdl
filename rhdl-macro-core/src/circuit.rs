@@ -36,11 +36,15 @@ impl<'a> TryFrom<&'a syn::Fields> for FieldSet<'a> {
 fn define_descriptor_fn(field_set: &FieldSet) -> TokenStream {
     let component_name = &field_set.component_name;
     quote! {
-        fn descriptor(&self) -> Result<rhdl::core::CircuitDescriptor, rhdl::core::RHDLError> {
+        fn descriptor(&self, name: &str) -> Result<rhdl::core::CircuitDescriptor, rhdl::core::RHDLError> {
             use std::collections::BTreeMap;
             let mut children : BTreeMap<String, rhdl::core::CircuitDescriptor> = BTreeMap::new();
-            #(children.insert(stringify!(#component_name).to_string(), self.#component_name.descriptor()?);)*
-            rhdl::core::build_descriptor(self, children)
+            #(children.insert(stringify!(#component_name).to_string(),
+                self.#component_name.descriptor(
+                    &format!("{name}_{}", stringify!(#component_name))
+                )?
+            );)*
+            rhdl::core::build_descriptor::<Self>(name, children)
         }
     }
 }
@@ -48,11 +52,15 @@ fn define_descriptor_fn(field_set: &FieldSet) -> TokenStream {
 fn define_hdl_fn(field_set: &FieldSet) -> TokenStream {
     let component_name = &field_set.component_name;
     quote! {
-        fn hdl(&self) -> Result<rhdl::core::HDLDescriptor, rhdl::core::RHDLError> {
+        fn hdl(&self, name: &str) -> Result<rhdl::core::HDLDescriptor, rhdl::core::RHDLError> {
             use std::collections::BTreeMap;
             let mut children : BTreeMap<String, rhdl::core::HDLDescriptor> = BTreeMap::new();
-            #(children.insert(stringify!(#component_name).to_string(), self.#component_name.hdl()?);)*
-            rhdl::core::build_hdl(self, children)
+            #(children.insert(stringify!(#component_name).to_string(),
+                self.#component_name.hdl(
+                    &format!("{name}_{}", stringify!(#component_name))
+                )?
+            );)*
+            rhdl::core::build_hdl(self, name, children)
         }
     }
 }
@@ -187,11 +195,6 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let descriptor_fn = define_descriptor_fn(&field_set);
     let hdl_fn = define_hdl_fn(&field_set);
     let sim_fn = define_sim_fn(&field_set);
-    let name_fn = quote!(
-        fn name(&self) -> String {
-            concat!(module_path!(), "::", stringify!(#struct_name)).replace("::", "_")
-        }
-    );
     let dq_section = if !auto_dq {
         quote! {}
     } else {
@@ -216,8 +219,6 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                 <Self as CircuitDQ>::Q) -> (
                     <Self as CircuitIO>::O,
                     <Self as CircuitDQ>::D) = #kernel_name;
-
-            #name_fn
 
             #descriptor_fn
 

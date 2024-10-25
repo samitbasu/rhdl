@@ -119,10 +119,10 @@ pub fn test_asynchronous_hdl<T: Circuit>(
 ) -> Result<(), RHDLError> {
     // Get a waveform for this circuit
     let wav = waveform(uut, inputs);
-    let rtl_mod = uut.hdl()?.as_modules();
+    let rtl_mod = uut.hdl("uut")?.as_modules();
     let tm1 = build_test_module_from_waveform(&rtl_mod, &wav)?;
     tm1.run_iverilog()?;
-    let fg = uut.flow_graph()?.hdl("uut")?;
+    let fg = uut.flow_graph("uut")?.hdl("uut")?;
     let tm1 = build_test_module_from_waveform(&[fg], &wav)?;
     tm1.run_iverilog()?;
     Ok(())

@@ -58,7 +58,7 @@ pub fn write_testbench<C: Circuit>(
         }
     }
     writeln!(writer, "end").unwrap();
-    let hdl = uut.hdl()?;
+    let hdl = uut.hdl("uut")?;
     if in_bits != 0 {
         writeln!(writer, "{} dut(.i(test_input), .o(test_output));", hdl.name).unwrap();
     } else {
@@ -202,7 +202,7 @@ pub fn write_synchronous_testbench<S: Synchronous>(
     let has_input = in_bits != 0;
     let mut prev_time = 0_u64;
     let mut elem_prev = ResetData::Data(S::I::init());
-    let hdl = uut.hdl()?;
+    let hdl = uut.hdl("uut")?;
     for (ndx, elem) in inputs.enumerate() {
         let time = ndx as u64 * clock_period * 2;
         if elem != elem_prev || prev_time == 0 {

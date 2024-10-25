@@ -50,7 +50,7 @@ pub struct CircuitDescriptor {
 // circuit descriptor.  Because of the need to have the children present, we rely
 // on them being passed in as a map, with their descriptors already built.
 pub fn build_descriptor<C: Circuit>(
-    circuit: &C,
+    name: &str,
     children: BTreeMap<String, CircuitDescriptor>,
 ) -> Result<CircuitDescriptor, RHDLError> {
     let module = compile_design::<C::Update>(CompilationMode::Asynchronous)?;
@@ -64,7 +64,6 @@ pub fn build_descriptor<C: Circuit>(
     let update_remap = fg.merge(&update_flow_graph);
     let remap_bits = |x: &[FlowIx]| x.iter().map(|y| update_remap[y]).collect::<Vec<_>>();
     // We need an input buffer
-    let name = circuit.name();
     let input_buffer = fg.input(input_kind, 0, &name);
     let input_from_update = remap_bits(&update_flow_graph.inputs[0]);
     // Link the input to its buffer
@@ -115,11 +114,7 @@ pub fn build_descriptor<C: Circuit>(
     fg.inputs = vec![input_buffer];
     fg.output = circuit_output_buffer;
     Ok(CircuitDescriptor {
-        unique_name: format!(
-            "{}_{:x}",
-            circuit.name(),
-            hash_id(std::any::TypeId::of::<C>())
-        ),
+        unique_name: name.into(),
         input_kind: C::I::static_kind(),
         output_kind: C::O::static_kind(),
         d_kind: C::D::static_kind(),
@@ -155,7 +150,7 @@ pub fn build_descriptor<C: Circuit>(
 // Note - we don't want to build this in the proc-macro since the less logic we
 // put there, the better.
 pub fn build_synchronous_descriptor<C: Synchronous>(
-    circuit: &C,
+    name: &str,
     children: BTreeMap<String, CircuitDescriptor>,
 ) -> Result<CircuitDescriptor, RHDLError> {
     let module = compile_design::<C::Update>(CompilationMode::Synchronous)?;
@@ -180,7 +175,6 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     // We need a cr buffer - it is mandatory.
     let cr_buffer = fg.buffer(RegisterKind::Unsigned(2), "cr", None);
     // We also need an input buffer
-    let name = circuit.name();
     let input_buffer = fg.input(input_kind, 0, &name);
     let cr_for_update = remap_bits(&update_flow_graph.inputs[0]);
     // We need an input buffer (if we have any inputs)
@@ -243,11 +237,7 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     fg.inputs = vec![cr_buffer, input_buffer];
     fg.output = circuit_output_buffer;
     Ok(CircuitDescriptor {
-        unique_name: format!(
-            "{}_{:x}",
-            circuit.name(),
-            hash_id(std::any::TypeId::of::<C>())
-        ),
+        unique_name: name.into(),
         input_kind: C::I::static_kind(),
         output_kind: C::O::static_kind(),
         d_kind: C::D::static_kind(),

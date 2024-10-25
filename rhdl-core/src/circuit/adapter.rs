@@ -101,18 +101,17 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         signal(result)
     }
 
-    fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError> {
+    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
         // We build a custom flow graph to connect the input to the circuit and the circuit to the output.
         let mut fg = FlowGraph::default();
         // This includes the clock and reset signals
         // It should be [clock, reset, inputs...]
-        let name = self.circuit.name();
         let input_reg: RegisterKind = <Self::I as Timed>::static_kind().into();
         let input_buffer = fg.input(input_reg, 0, &name);
         let output_reg: RegisterKind = <Self::O as Timed>::static_kind().into();
         let output_buffer = fg.output(output_reg, &name);
         // Embed the flow graph for the child circuit
-        let child_descriptor = self.circuit.descriptor()?;
+        let child_descriptor = self.circuit.descriptor(&format!("{name}_inner"))?;
         let child_fg = &child_descriptor.flow_graph;
         let child_remap = fg.merge(child_fg);
         let child_inputs = child_fg.inputs[0].iter().chain(child_fg.inputs[1].iter());
@@ -128,7 +127,7 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         fg.inputs = vec![input_buffer];
         fg.output = output_buffer;
         Ok(CircuitDescriptor {
-            unique_name: format!("Adapter_{}", self.circuit.name()),
+            unique_name: name.into(),
             input_kind: <<Self as CircuitIO>::I as Timed>::static_kind(),
             output_kind: <<Self as CircuitIO>::O as Timed>::static_kind(),
             d_kind: <<Self as CircuitDQ>::D as Timed>::static_kind(),
@@ -141,15 +140,14 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         })
     }
 
-    fn name(&self) -> String {
-        self.circuit.name()
+    fn description(&self) -> String {
+        format!("Asynchronous adaptor for {}", self.circuit.description())
     }
 
-    fn hdl(&self) -> Result<crate::HDLDescriptor, RHDLError> {
-        let descriptor = self.descriptor()?;
-        let module_name = &descriptor.unique_name;
+    fn hdl(&self, name: &str) -> Result<crate::HDLDescriptor, RHDLError> {
+        let descriptor = self.descriptor(name)?;
         let mut module = Module {
-            name: module_name.clone(),
+            name: name.into(),
             ..Default::default()
         };
         module.ports = [
@@ -160,8 +158,8 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         .into_iter()
         .flatten()
         .collect();
-
-        let child = self.circuit.descriptor()?;
+        let child_name = &format!("{}_inner", name);
+        let child = self.circuit.descriptor(child_name)?;
         let clock_connection = Some(connection("clock", index_bit("i", 0)));
         let reset_connection = Some(connection("reset", index_bit("i", 1)));
         let input_connection = (!child.input_kind.is_empty())
@@ -183,9 +181,9 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
             .collect(),
         );
         module.statements.push(child_decl);
-        let child_hdl = self.circuit.hdl()?;
+        let child_hdl = self.circuit.hdl(child_name)?;
         Ok(crate::HDLDescriptor {
-            name: module_name.into(),
+            name: child_name.into(),
             body: module,
             children: [("c".into(), child_hdl)].into(),
         })
