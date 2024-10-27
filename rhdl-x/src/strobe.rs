@@ -38,6 +38,7 @@ pub struct Q<const N: usize> {
 impl<const N: usize> SynchronousIO for U<N> {
     type I = I;
     type O = bool;
+    type Kernel = strobe<N>;
 }
 
 impl<const N: usize> SynchronousDQ for U<N> {
@@ -52,10 +53,6 @@ impl<const N: usize> Default for D<N> {
             threshold: (),
         }
     }
-}
-
-impl<const N: usize> SynchronousKernel for U<N> {
-    type Kernel = strobe<N>;
 }
 
 #[kernel]

@@ -3,22 +3,19 @@ use crate::{
     CircuitDescriptor, ClockReset, Digital, DigitalFn, FlowGraph, HDLDescriptor, Tristate,
 };
 
-pub trait SynchronousIO: 'static + Sized + Clone {
-    type I: Digital;
-    type O: Digital;
-}
-
 pub trait SynchronousDQ: 'static + Sized + Clone {
     type D: Digital;
     type Q: Digital;
 }
 
-pub trait SynchronousKernel: 'static + Sized + Clone + SynchronousDQ + SynchronousIO {
+pub trait SynchronousIO: 'static + Sized + Clone + SynchronousDQ {
+    type I: Digital;
+    type O: Digital;
     type Kernel: DigitalFn
         + DigitalFn3<A0 = ClockReset, A1 = Self::I, A2 = Self::Q, O = (Self::O, Self::D)>;
 }
 
-pub trait Synchronous: 'static + Sized + Clone + SynchronousKernel {
+pub trait Synchronous: 'static + Sized + Clone + SynchronousIO {
     type Z: Tristate;
 
     type S: Digital;

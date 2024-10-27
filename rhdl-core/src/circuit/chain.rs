@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    digital_fn::DigitalFn3,
+    digital_fn::{DigitalFn3, NoKernel},
     flow_graph::edge_kind::EdgeKind,
     hdl::ast::{
         component_instance, connection, id, unsigned_width, Declaration, Direction, HDLKind, Module,
@@ -12,7 +12,7 @@ use crate::{
     SynchronousDQ, SynchronousIO, Tristate,
 };
 
-use super::{hdl_backend::maybe_port_wire, synchronous::SynchronousKernel};
+use super::hdl_backend::maybe_port_wire;
 
 #[derive(Clone)]
 pub struct Chain<A, B> {
@@ -29,29 +29,12 @@ impl<A, B> Chain<A, B> {
 impl<A: Synchronous, B: Synchronous> SynchronousIO for Chain<A, B> {
     type I = <A as SynchronousIO>::I;
     type O = <B as SynchronousIO>::O;
+    type Kernel = NoKernel<ClockReset, Self::I, (), (Self::O, ())>;
 }
 
 impl<A: Synchronous, B: Synchronous> SynchronousDQ for Chain<A, B> {
     type D = ();
-
     type Q = ();
-}
-
-impl<A: Synchronous, B: Synchronous> DigitalFn for Chain<A, B> {}
-
-impl<A: Synchronous, B: Synchronous> DigitalFn3 for Chain<A, B> {
-    type A0 = ClockReset;
-    type A1 = <Self as SynchronousIO>::I;
-    type A2 = ();
-    type O = (<Self as SynchronousIO>::O, ());
-
-    fn func() -> fn(Self::A0, Self::A1, Self::A2) -> Self::O {
-        unimplemented!("Chain::func")
-    }
-}
-
-impl<A: Synchronous, B: Synchronous> SynchronousKernel for Chain<A, B> {
-    type Kernel = Self;
 }
 
 impl<A: Synchronous, B: Synchronous, P: Digital> Synchronous for Chain<A, B>

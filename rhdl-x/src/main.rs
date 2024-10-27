@@ -312,7 +312,14 @@ fn test_auto_doubler_hdl() -> miette::Result<()> {
     let uut = Chain::new(c1, Chain::new(c2, Chain::new(c3, c4)));
     let inputs = repeat(()).take(1000);
     let stream = test_stream(inputs);
-    test_synchronous_hdl(&uut, stream, TraceMode::VCD("jnk.vcd".into()))?;
+    test_synchronous_hdl(
+        &uut,
+        stream,
+        TraceOptions {
+            vcd: Some("jnk.vcd".into()),
+            ..Default::default()
+        },
+    )?;
     //    write_testbench_module(&fg.hdl("autodoubler")?, stream, "autodoubler_tb.v", 4)?;
     Ok(())
 }

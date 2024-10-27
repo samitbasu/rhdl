@@ -26,6 +26,7 @@ impl<T: Digital> U<T> {
 impl<T: Digital> SynchronousIO for U<T> {
     type I = T;
     type O = T;
+    type Kernel = dummy<T>;
 }
 
 impl<T: Digital> SynchronousDQ for U<T> {
@@ -36,10 +37,6 @@ impl<T: Digital> SynchronousDQ for U<T> {
 #[kernel]
 pub fn dummy<T: Digital>(_cr: ClockReset, i: T, _q: ()) -> (T, ()) {
     (i, ())
-}
-
-impl<T: Digital> SynchronousKernel for U<T> {
-    type Kernel = dummy<T>;
 }
 
 #[derive(Debug, Clone, PartialEq, Copy, Digital)]

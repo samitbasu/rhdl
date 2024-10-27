@@ -13,15 +13,12 @@ pub mod anyer {
     impl SynchronousIO for U {
         type I = b4;
         type O = bool;
+        type Kernel = anyer;
     }
 
     impl SynchronousDQ for U {
         type D = ();
         type Q = ();
-    }
-
-    impl SynchronousKernel for U {
-        type Kernel = anyer;
     }
 
     #[kernel]
@@ -39,15 +36,12 @@ pub mod adder {
     impl SynchronousIO for U {
         type I = (b4, b4);
         type O = b4;
+        type Kernel = adder;
     }
 
     impl SynchronousDQ for U {
         type D = ();
         type Q = ();
-    }
-
-    impl SynchronousKernel for U {
-        type Kernel = adder;
     }
 
     #[kernel]
@@ -67,15 +61,12 @@ pub mod selector {
     impl SynchronousIO for U {
         type I = (bool, b4, b4);
         type O = b4;
+        type Kernel = selector;
     }
 
     impl SynchronousDQ for U {
         type D = ();
         type Q = ();
-    }
-
-    impl SynchronousKernel for U {
-        type Kernel = selector;
     }
 
     #[kernel]
@@ -95,15 +86,12 @@ pub mod indexor {
     impl SynchronousIO for U {
         type I = (b2, [b4; 4]);
         type O = b4;
+        type Kernel = indexor;
     }
 
     impl SynchronousDQ for U {
         type D = ();
         type Q = ();
-    }
-
-    impl SynchronousKernel for U {
-        type Kernel = indexor;
     }
 
     #[kernel]
@@ -123,15 +111,12 @@ pub mod splicer {
     impl SynchronousIO for U {
         type I = (b2, [b4; 4], b4);
         type O = [b4; 4];
+        type Kernel = splicer;
     }
 
     impl SynchronousDQ for U {
         type D = ();
         type Q = ();
-    }
-
-    impl SynchronousKernel for U {
-        type Kernel = splicer;
     }
 
     #[kernel]
@@ -155,9 +140,6 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
         impl SynchronousIO for Parent {
             type I = (b4, b4);
             type O = b4;
-        }
-
-        impl SynchronousKernel for Parent {
             type Kernel = parent;
         }
 
@@ -199,9 +181,6 @@ fn test_add_inline() -> miette::Result<()> {
         impl SynchronousIO for Parent {
             type I = (b4, b4);
             type O = b4;
-        }
-
-        impl SynchronousKernel for Parent {
             type Kernel = parent;
         }
 
@@ -246,9 +225,6 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
         impl SynchronousIO for Parent {
             type I = ();
             type O = bool;
-        }
-
-        impl SynchronousKernel for Parent {
             type Kernel = parent;
         }
 
@@ -323,9 +299,6 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
         impl SynchronousIO for Parent {
             type I = ();
             type O = b4;
-        }
-
-        impl SynchronousKernel for Parent {
             type Kernel = parent;
         }
 
@@ -365,9 +338,6 @@ fn test_constant_propagates_through_indexing() -> miette::Result<()> {
         impl SynchronousIO for Parent {
             type I = bool;
             type O = b4;
-        }
-
-        impl SynchronousKernel for Parent {
             type Kernel = parent;
         }
 
@@ -407,9 +377,6 @@ fn test_constant_propagates_through_splicing() -> miette::Result<()> {
         impl SynchronousIO for Parent {
             type I = bool;
             type O = [b4; 4];
-        }
-
-        impl SynchronousKernel for Parent {
             type Kernel = parent;
         }
 

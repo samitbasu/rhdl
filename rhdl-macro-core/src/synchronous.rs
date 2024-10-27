@@ -75,7 +75,7 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
         .collect::<Vec<_>>();
     quote! {
         fn sim(&self, clock_reset: rhdl::core::ClockReset, input: <Self as SynchronousIO>::I, state: &mut Self::S , io: &mut Self::Z ) -> <Self as SynchronousIO>::O {
-            let update_fn = <<Self as SynchronousKernel>::Kernel as DigitalFn3>::func();
+            let update_fn = <<Self as SynchronousIO>::Kernel as DigitalFn3>::func();
             for _ in 0..rhdl::core::MAX_ITERS {
                 let prev_state = state.clone();
                 let (outputs, internal_inputs) = update_fn(clock_reset, input, state.0);

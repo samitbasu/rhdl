@@ -1,6 +1,6 @@
 use crate::{
     build_rtl_flow_graph, compile_design,
-    digital_fn::{DigitalFn2, DigitalFn3},
+    digital_fn::{DigitalFn2, NoKernel},
     hdl::{
         ast::{continuous_assignment, function_call, id, Direction, Module},
         builder::generate_verilog,
@@ -10,7 +10,7 @@ use crate::{
     RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
 };
 
-use super::{hdl_backend::maybe_port_wire, synchronous::SynchronousKernel};
+use super::hdl_backend::maybe_port_wire;
 
 #[derive(Clone)]
 pub struct Func<I: Digital, O: Digital> {
@@ -21,28 +21,12 @@ pub struct Func<I: Digital, O: Digital> {
 impl<I: Digital, O: Digital> SynchronousIO for Func<I, O> {
     type I = I;
     type O = O;
+    type Kernel = NoKernel<ClockReset, I, (), (O, ())>;
 }
 
 impl<I: Digital, O: Digital> SynchronousDQ for Func<I, O> {
     type D = ();
     type Q = ();
-}
-
-impl<I: Digital, O: Digital> DigitalFn for Func<I, O> {}
-
-impl<I: Digital, O: Digital> DigitalFn3 for Func<I, O> {
-    type A0 = ClockReset;
-    type A1 = I;
-    type A2 = ();
-    type O = (O, ());
-
-    fn func() -> fn(Self::A0, Self::A1, Self::A2) -> Self::O {
-        unimplemented!("Func::func")
-    }
-}
-
-impl<I: Digital, O: Digital> SynchronousKernel for Func<I, O> {
-    type Kernel = Self;
 }
 
 impl<I: Digital, O: Digital> Func<I, O> {

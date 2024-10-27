@@ -1,5 +1,4 @@
 use super::circuit_impl::Circuit;
-use crate::circuit::synchronous::SynchronousKernel;
 use crate::flow_graph::edge_kind::EdgeKind;
 use crate::flow_graph::flow_graph_impl::{FlowGraph, FlowIx};
 use crate::rtl::object::RegisterKind;
