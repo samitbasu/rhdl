@@ -1,8 +1,7 @@
 use crate::counter;
 use rhdl::prelude::*;
 
-#[derive(Clone, Debug, Default, Synchronous)]
-#[rhdl(auto_dq)]
+#[derive(Clone, Debug, Default, Synchronous, SynchronousDQ)]
 pub struct U<const N: usize> {
     counter: counter::U<N>,
 }

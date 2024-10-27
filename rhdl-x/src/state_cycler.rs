@@ -23,7 +23,7 @@ pub enum O {
     Error,
 }
 
-#[derive(Clone, Debug, Synchronous)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 #[rhdl(auto_dq)]
 pub struct U {
     state: crate::dff::U<State>,

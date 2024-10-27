@@ -84,6 +84,8 @@ pub use rhdl_core::{
 pub use rhdl_macro::hdl;
 pub use rhdl_macro::kernel;
 pub use rhdl_macro::Circuit;
+pub use rhdl_macro::CircuitDQ;
 pub use rhdl_macro::Digital;
 pub use rhdl_macro::Synchronous;
+pub use rhdl_macro::SynchronousDQ;
 pub use rhdl_macro::Timed;

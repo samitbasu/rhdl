@@ -82,6 +82,13 @@ mod async_counter;
 */
 
 #[test]
+fn test_empty_mut() {
+    let mut a = ();
+    let b = &mut a;
+    *b = ();
+}
+
+#[test]
 #[allow(clippy::assign_op_pattern)]
 fn test_adt_shadow() {
     #[derive(PartialEq, Copy, Clone, Digital, Default)]

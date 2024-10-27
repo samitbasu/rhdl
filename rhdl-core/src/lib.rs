@@ -14,6 +14,8 @@ pub use types::bitz::BitZ;
 pub use types::clock::Clock;
 pub use types::digital::Digital;
 pub use types::digital_fn::DigitalFn;
+pub use types::digital_fn::DigitalFn2;
+pub use types::digital_fn::DigitalFn3;
 pub use types::domain::Color;
 pub use types::domain::Domain;
 pub use types::kernel::KernelFnKind;

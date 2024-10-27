@@ -62,8 +62,7 @@ pub struct I {
     pub enable: bool,
 }
 
-#[derive(Clone, Debug, Synchronous)]
-#[rhdl(auto_dq)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U<const N: usize> {
     count: dff::U<Bits<N>>,
     adder: comb_adder::U<{ N }>,

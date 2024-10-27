@@ -105,9 +105,9 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         // This includes the clock and reset signals
         // It should be [clock, reset, inputs...]
         let input_reg: RegisterKind = <Self::I as Timed>::static_kind().into();
-        let input_buffer = fg.input(input_reg, 0, &name);
+        let input_buffer = fg.input(input_reg, 0, name);
         let output_reg: RegisterKind = <Self::O as Timed>::static_kind().into();
-        let output_buffer = fg.output(output_reg, &name);
+        let output_buffer = fg.output(output_reg, name);
         // Embed the flow graph for the child circuit
         let child_descriptor = self.circuit.descriptor(&format!("{name}_inner"))?;
         let child_fg = &child_descriptor.flow_graph;

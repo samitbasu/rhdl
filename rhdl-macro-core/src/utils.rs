@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::spanned::Spanned;
-use syn::{Attribute, DeriveInput, Expr};
+use syn::DeriveInput;
 
 pub(crate) fn get_fqdn(decl: &DeriveInput) -> TokenStream {
     let struct_name = &decl.ident;
@@ -72,28 +72,29 @@ pub(crate) fn evaluate_const_expression(expr: &syn::Expr) -> syn::Result<i64> {
     }
 }
 
-pub(crate) fn is_auto_dq_from_attributes(attrs: &[Attribute]) -> bool {
-    for attr in attrs {
-        if attr.path().is_ident("rhdl") {
-            if let Expr::Path(expr_path) = attr.parse_args::<Expr>().unwrap() {
-                if expr_path.path.is_ident("auto_dq") {
-                    return true;
-                }
-            }
-        }
-    }
-    false
+pub struct FieldSet<'a> {
+    pub(crate) component_name: Vec<syn::Ident>,
+    pub(crate) component_ty: Vec<&'a syn::Type>,
 }
 
-pub(crate) fn is_no_dq_from_attributes(attrs: &[Attribute]) -> bool {
-    for attr in attrs {
-        if attr.path().is_ident("rhdl") {
-            if let Expr::Path(expr_path) = attr.parse_args::<Expr>().unwrap() {
-                if expr_path.path.is_ident("no_dq") {
-                    return true;
-                }
-            }
+impl<'a> TryFrom<&'a syn::Fields> for FieldSet<'a> {
+    type Error = syn::Error;
+
+    fn try_from(fields: &'a syn::Fields) -> syn::Result<Self> {
+        let mut component_name = Vec::new();
+        let mut component_ty = Vec::new();
+        for field in fields.iter() {
+            component_name.push(field.ident.clone().ok_or_else(|| {
+                syn::Error::new(
+                    field.span(),
+                    "Synchronous components (fields) must have names",
+                )
+            })?);
+            component_ty.push(&field.ty);
         }
+        Ok(FieldSet {
+            component_name,
+            component_ty,
+        })
     }
-    false
 }
