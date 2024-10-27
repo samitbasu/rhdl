@@ -40,9 +40,6 @@ impl Default for U {
 impl SynchronousIO for U {
     type I = I;
     type O = O;
-}
-
-impl SynchronousKernel for U {
     type Kernel = state_cycler;
 }
 

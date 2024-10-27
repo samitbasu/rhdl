@@ -11,9 +11,6 @@ impl SynchronousDQ for U {
 impl SynchronousIO for U {
     type I = bool;
     type O = bool;
-}
-
-impl SynchronousKernel for U {
     type Kernel = inverter;
 }
 

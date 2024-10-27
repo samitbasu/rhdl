@@ -10,10 +10,7 @@ pub struct U<const N: usize> {
 impl<const N: usize> SynchronousIO for U<N> {
     type I = ();
     type O = Bits<N>;
-}
-
-impl<const N: usize> SynchronousKernel for U<N> {
-    type Kernel = auto_counter<{ N }>;
+    type Kernel = auto_counter<N>;
 }
 
 #[kernel]

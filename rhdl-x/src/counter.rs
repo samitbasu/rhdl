@@ -10,15 +10,12 @@ mod kernel_host {
     impl SynchronousIO for U {
         type I = b8;
         type O = b16;
+        type Kernel = my_kernel;
     }
 
     impl SynchronousDQ for U {
         type D = ();
         type Q = ();
-    }
-
-    impl SynchronousKernel for U {
-        type Kernel = my_kernel;
     }
 
     #[kernel]
@@ -45,15 +42,12 @@ mod comb_adder {
     impl<const N: usize> SynchronousIO for U<N> {
         type I = (Bits<N>, Bits<N>);
         type O = Bits<N>;
+        type Kernel = adder<{ N }>;
     }
 
     impl<const N: usize> SynchronousDQ for U<N> {
         type D = ();
         type Q = ();
-    }
-
-    impl<const N: usize> SynchronousKernel for U<N> {
-        type Kernel = adder<{ N }>;
     }
 
     #[kernel]
@@ -87,9 +81,6 @@ impl<const N: usize> Default for U<N> {
 impl<const N: usize> SynchronousIO for U<N> {
     type I = I;
     type O = Bits<N>;
-}
-
-impl<const N: usize> SynchronousKernel for U<N> {
     type Kernel = counter<{ N }>;
 }
 

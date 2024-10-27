@@ -22,15 +22,12 @@ pub struct Q {
 impl SynchronousIO for U {
     type I = bool;
     type O = bool;
+    type Kernel = logic_loop;
 }
 
 impl SynchronousDQ for U {
     type D = D;
     type Q = Q;
-}
-
-impl SynchronousKernel for U {
-    type Kernel = logic_loop;
 }
 
 #[kernel]
