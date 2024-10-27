@@ -53,7 +53,7 @@ pub fn build_descriptor<C: Circuit>(
     name: &str,
     children: BTreeMap<String, CircuitDescriptor>,
 ) -> Result<CircuitDescriptor, RHDLError> {
-    let module = compile_design::<C::Update>(CompilationMode::Asynchronous)?;
+    let module = compile_design::<C::Kernel>(CompilationMode::Asynchronous)?;
     let update_flow_graph = build_rtl_flow_graph(&module);
     let mut fg = FlowGraph::default();
     let output_kind: RegisterKind = C::O::static_kind().into();

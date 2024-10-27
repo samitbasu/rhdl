@@ -1,16 +1,14 @@
 use crate::{
-    error::RHDLError, flow_graph::optimization::optimize_flow_graph, types::tristate::Tristate,
-    Digital, DigitalFn, FlowGraph, Timed,
+    digital_fn::DigitalFn2, error::RHDLError, flow_graph::optimization::optimize_flow_graph,
+    types::tristate::Tristate, Digital, DigitalFn, FlowGraph, Timed,
 };
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
 
-pub type CircuitUpdateFn<C> =
-    fn(<C as CircuitIO>::I, <C as CircuitDQ>::Q) -> (<C as CircuitIO>::O, <C as CircuitDQ>::D);
-
-pub trait CircuitIO: 'static + Sized + Clone {
+pub trait CircuitIO: 'static + Sized + Clone + CircuitDQ {
     type I: Timed;
     type O: Timed;
+    type Kernel: DigitalFn + DigitalFn2<A0 = Self::I, A1 = Self::Q, O = (Self::O, Self::D)>;
 }
 
 pub trait CircuitDQ: 'static + Sized + Clone {
@@ -21,10 +19,6 @@ pub trait CircuitDQ: 'static + Sized + Clone {
 pub trait Circuit: 'static + Sized + Clone + CircuitIO + CircuitDQ {
     // auto derived as the sum of NumZ of the children
     type Z: Tristate;
-
-    type Update: DigitalFn;
-
-    const UPDATE: CircuitUpdateFn<Self> = |_, _| unimplemented!();
 
     // State for simulation - auto derived
     type S: Digital;

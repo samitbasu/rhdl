@@ -1,6 +1,6 @@
 use crate::{
     build_rtl_flow_graph, compile_design,
-    digital_fn::{DigitalFn2, NoKernel},
+    digital_fn::{DigitalFn2, NoKernel3},
     hdl::{
         ast::{continuous_assignment, function_call, id, Direction, Module},
         builder::generate_verilog,
@@ -21,7 +21,7 @@ pub struct Func<I: Digital, O: Digital> {
 impl<I: Digital, O: Digital> SynchronousIO for Func<I, O> {
     type I = I;
     type O = O;
-    type Kernel = NoKernel<ClockReset, I, (), (O, ())>;
+    type Kernel = NoKernel3<ClockReset, I, (), (O, ())>;
 }
 
 impl<I: Digital, O: Digital> SynchronousDQ for Func<I, O> {
