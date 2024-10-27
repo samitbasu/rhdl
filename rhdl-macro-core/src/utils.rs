@@ -84,3 +84,16 @@ pub(crate) fn is_auto_dq_from_attributes(attrs: &[Attribute]) -> bool {
     }
     false
 }
+
+pub(crate) fn is_no_dq_from_attributes(attrs: &[Attribute]) -> bool {
+    for attr in attrs {
+        if attr.path().is_ident("rhdl") {
+            if let Expr::Path(expr_path) = attr.parse_args::<Expr>().unwrap() {
+                if expr_path.path.is_ident("no_dq") {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}

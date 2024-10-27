@@ -8,7 +8,6 @@ pub mod anyer {
     use super::*;
 
     #[derive(Clone, Debug, Synchronous, Default)]
-    #[rhdl(kernel = anyer)]
     pub struct U {}
 
     impl SynchronousIO for U {
@@ -21,6 +20,10 @@ pub mod anyer {
         type Q = ();
     }
 
+    impl SynchronousKernel for U {
+        type Kernel = anyer;
+    }
+
     #[kernel]
     pub fn anyer(_cr: ClockReset, i: b4, _q: ()) -> (bool, ()) {
         (i.any(), ())
@@ -31,7 +34,6 @@ pub mod adder {
     use super::*;
 
     #[derive(Clone, Debug, Synchronous, Default)]
-    #[rhdl(kernel = adder)]
     pub struct U {}
 
     impl SynchronousIO for U {
@@ -42,6 +44,10 @@ pub mod adder {
     impl SynchronousDQ for U {
         type D = ();
         type Q = ();
+    }
+
+    impl SynchronousKernel for U {
+        type Kernel = adder;
     }
 
     #[kernel]
@@ -56,7 +62,6 @@ pub mod selector {
     use super::*;
 
     #[derive(Clone, Debug, Synchronous, Default)]
-    #[rhdl(kernel = selector)]
     pub struct U {}
 
     impl SynchronousIO for U {
@@ -67,6 +72,10 @@ pub mod selector {
     impl SynchronousDQ for U {
         type D = ();
         type Q = ();
+    }
+
+    impl SynchronousKernel for U {
+        type Kernel = selector;
     }
 
     #[kernel]
@@ -81,7 +90,6 @@ pub mod indexor {
     use super::*;
 
     #[derive(Clone, Debug, Synchronous, Default)]
-    #[rhdl(kernel = indexor)]
     pub struct U {}
 
     impl SynchronousIO for U {
@@ -92,6 +100,10 @@ pub mod indexor {
     impl SynchronousDQ for U {
         type D = ();
         type Q = ();
+    }
+
+    impl SynchronousKernel for U {
+        type Kernel = indexor;
     }
 
     #[kernel]
@@ -106,7 +118,6 @@ pub mod splicer {
     use super::*;
 
     #[derive(Clone, Debug, Synchronous, Default)]
-    #[rhdl(kernel = splicer)]
     pub struct U {}
 
     impl SynchronousIO for U {
@@ -117,6 +128,10 @@ pub mod splicer {
     impl SynchronousDQ for U {
         type D = ();
         type Q = ();
+    }
+
+    impl SynchronousKernel for U {
+        type Kernel = splicer;
     }
 
     #[kernel]
@@ -132,7 +147,6 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
     mod parent {
         use super::*;
         #[derive(Clone, Debug, Synchronous, Default)]
-        #[rhdl(kernel = parent)]
         #[rhdl(auto_dq)]
         pub struct Parent {
             selector: selector::U,
@@ -141,6 +155,10 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
         impl SynchronousIO for Parent {
             type I = (b4, b4);
             type O = b4;
+        }
+
+        impl SynchronousKernel for Parent {
+            type Kernel = parent;
         }
 
         #[kernel]
@@ -159,7 +177,7 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
         .flat_map(|x| exhaustive::<4>().into_iter().map(move |y| (x, y)));
     let inputs = reset_pulse(4).chain(stream(inputs));
     let inputs = clock_pos_edge(inputs, 100);
-    test_synchronous_hdl(&uut, inputs)?;
+    test_synchronous_hdl(&uut, inputs, Default::default())?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg
         .graph
@@ -173,7 +191,6 @@ fn test_add_inline() -> miette::Result<()> {
     mod parent {
         use super::*;
         #[derive(Clone, Debug, Synchronous, Default)]
-        #[rhdl(kernel = parent)]
         #[rhdl(auto_dq)]
         pub struct Parent {
             adder: adder::U,
@@ -182,6 +199,10 @@ fn test_add_inline() -> miette::Result<()> {
         impl SynchronousIO for Parent {
             type I = (b4, b4);
             type O = b4;
+        }
+
+        impl SynchronousKernel for Parent {
+            type Kernel = parent;
         }
 
         #[kernel]
@@ -200,7 +221,14 @@ fn test_add_inline() -> miette::Result<()> {
         .flat_map(|x| exhaustive::<4>().into_iter().map(move |y| (x, y)));
     let inputs = reset_pulse(4).chain(stream(inputs));
     let inputs = clock_pos_edge(inputs, 100);
-    test_synchronous_hdl(&uut, inputs)?;
+    test_synchronous_hdl(
+        &uut,
+        inputs,
+        TraceOptions {
+            vcd: Some("add_inline".into()),
+            assertions_enabled: true,
+        },
+    )?;
     Ok(())
 }
 
@@ -210,7 +238,6 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
         use super::*;
 
         #[derive(Clone, Debug, Synchronous, Default)]
-        #[rhdl(kernel = parent)]
         #[rhdl(auto_dq)]
         pub struct Parent {
             anyer: anyer::U,
@@ -219,6 +246,10 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
         impl SynchronousIO for Parent {
             type I = ();
             type O = bool;
+        }
+
+        impl SynchronousKernel for Parent {
+            type Kernel = parent;
         }
 
         #[kernel]
@@ -233,7 +264,7 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = reset_pulse(4).chain(stream(std::iter::once(())));
     let inputs = clock_pos_edge(inputs, 100);
-    test_synchronous_hdl(&uut, inputs)?;
+    test_synchronous_hdl(&uut, inputs, Default::default())?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg
         .graph
@@ -284,7 +315,6 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
         use super::*;
 
         #[derive(Clone, Debug, Synchronous, Default)]
-        #[rhdl(kernel = parent)]
         #[rhdl(auto_dq)]
         pub struct Parent {
             adder: adder::U,
@@ -293,6 +323,10 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
         impl SynchronousIO for Parent {
             type I = ();
             type O = b4;
+        }
+
+        impl SynchronousKernel for Parent {
+            type Kernel = parent;
         }
 
         #[kernel]
@@ -308,7 +342,7 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = reset_pulse(4).chain(stream(std::iter::once(())));
     let inputs = clock_pos_edge(inputs, 100);
-    test_synchronous_hdl(&uut, inputs)?;
+    test_synchronous_hdl(&uut, inputs, Default::default())?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg
         .graph
@@ -323,7 +357,6 @@ fn test_constant_propagates_through_indexing() -> miette::Result<()> {
         use super::*;
 
         #[derive(Clone, Debug, Synchronous, Default)]
-        #[rhdl(kernel = parent)]
         #[rhdl(auto_dq)]
         pub struct Parent {
             indexor: indexor::U,
@@ -332,6 +365,10 @@ fn test_constant_propagates_through_indexing() -> miette::Result<()> {
         impl SynchronousIO for Parent {
             type I = bool;
             type O = b4;
+        }
+
+        impl SynchronousKernel for Parent {
+            type Kernel = parent;
         }
 
         #[kernel]
@@ -347,7 +384,7 @@ fn test_constant_propagates_through_indexing() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = reset_pulse(4).chain(stream([false, true].iter().copied()));
     let inputs = clock_pos_edge(inputs, 100);
-    test_synchronous_hdl(&uut, inputs)?;
+    test_synchronous_hdl(&uut, inputs, Default::default())?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg
         .graph
@@ -362,7 +399,6 @@ fn test_constant_propagates_through_splicing() -> miette::Result<()> {
         use super::*;
 
         #[derive(Clone, Debug, Synchronous, Default)]
-        #[rhdl(kernel = parent)]
         #[rhdl(auto_dq)]
         pub struct Parent {
             splicer: splicer::U,
@@ -371,6 +407,10 @@ fn test_constant_propagates_through_splicing() -> miette::Result<()> {
         impl SynchronousIO for Parent {
             type I = bool;
             type O = [b4; 4];
+        }
+
+        impl SynchronousKernel for Parent {
+            type Kernel = parent;
         }
 
         #[kernel]
@@ -387,7 +427,7 @@ fn test_constant_propagates_through_splicing() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = reset_pulse(4).chain(stream([false, true].iter().copied()));
     let inputs = clock_pos_edge(inputs, 100);
-    test_synchronous_hdl(&uut, inputs)?;
+    test_synchronous_hdl(&uut, inputs, Default::default())?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg
         .graph

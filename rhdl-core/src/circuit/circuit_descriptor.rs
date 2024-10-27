@@ -1,4 +1,5 @@
 use super::circuit_impl::Circuit;
+use crate::circuit::synchronous::SynchronousKernel;
 use crate::flow_graph::edge_kind::EdgeKind;
 use crate::flow_graph::flow_graph_impl::{FlowGraph, FlowIx};
 use crate::rtl::object::RegisterKind;
@@ -153,7 +154,7 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     name: &str,
     children: BTreeMap<String, CircuitDescriptor>,
 ) -> Result<CircuitDescriptor, RHDLError> {
-    let module = compile_design::<C::Update>(CompilationMode::Synchronous)?;
+    let module = compile_design::<C::Kernel>(CompilationMode::Synchronous)?;
     let update_flow_graph = build_rtl_flow_graph(&module);
     // A synchronous flow graph has separate clock and
     // reset inputs, but these don't really factor into

@@ -2,12 +2,12 @@ use rhdl::{
     core::{
         flow_graph::edge_kind::EdgeKind,
         hdl::ast::{
-            always, assign, bit_string, id, if_statement, initial, non_blocking_assignment, port,
-            signed_width, unsigned_width, Direction, Events, HDLKind, Module,
+            always, assign, bit_string, id, if_statement, index_bit, initial,
+            non_blocking_assignment, port, signed_width, unsigned_width, Declaration, Direction,
+            Events, HDLKind, Module,
         },
         rtl::object::RegisterKind,
         types::bit_string::BitString,
-        util::hash_id,
     },
     prelude::*,
 };
@@ -33,6 +33,15 @@ impl<T: Digital> SynchronousDQ for U<T> {
     type Q = ();
 }
 
+#[kernel]
+pub fn dummy<T: Digital>(_cr: ClockReset, i: T, _q: ()) -> (T, ()) {
+    (i, ())
+}
+
+impl<T: Digital> SynchronousKernel for U<T> {
+    type Kernel = dummy<T>;
+}
+
 #[derive(Debug, Clone, PartialEq, Copy, Digital)]
 pub struct S<T: Digital> {
     cr: ClockReset,
@@ -41,8 +50,6 @@ pub struct S<T: Digital> {
 }
 
 impl<T: Digital> Synchronous for U<T> {
-    type Update = Self;
-
     type S = S<T>;
 
     type Z = ();
@@ -108,7 +115,7 @@ impl<T: Digital> Synchronous for U<T> {
         flow_graph.inputs = vec![vec![clock[0], reset[0]], d, vec![]];
         flow_graph.output = q;
         Ok(CircuitDescriptor {
-            unique_name: format!("{name}_dff"),
+            unique_name: name.to_string(),
             input_kind: Self::I::static_kind(),
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
@@ -137,14 +144,36 @@ impl<T: Digital> U<T> {
             unsigned_width(output_bits)
         };
         module.ports = vec![
-            port("clock", Direction::Input, HDLKind::Wire, unsigned_width(1)),
-            port("reset", Direction::Input, HDLKind::Wire, unsigned_width(1)),
+            port(
+                "clock_reset",
+                Direction::Input,
+                HDLKind::Wire,
+                unsigned_width(2),
+            ),
             port("i", Direction::Input, HDLKind::Wire, data_width),
             port("o", Direction::Output, HDLKind::Reg, data_width),
         ];
+        module.declarations.push(Declaration {
+            kind: HDLKind::Wire,
+            name: "clock".into(),
+            width: unsigned_width(1),
+            alias: None,
+        });
+        module.declarations.push(Declaration {
+            kind: HDLKind::Wire,
+            name: "reset".into(),
+            width: unsigned_width(1),
+            alias: None,
+        });
         module
             .statements
             .push(initial(vec![assign("o", bit_string(&init))]));
+        module
+            .statements
+            .push(continuous_assignment("clock", index_bit("clock_reset", 0)));
+        module
+            .statements
+            .push(continuous_assignment("reset", index_bit("clock_reset", 1)));
         let dff = if_statement(
             id("reset"),
             vec![non_blocking_assignment("o", bit_string(&init))],
@@ -179,5 +208,3 @@ impl<T: Digital> U<T> {
         })
     }
 }
-
-impl<T: Digital> DigitalFn for U<T> {}

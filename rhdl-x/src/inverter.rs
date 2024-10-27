@@ -1,17 +1,20 @@
 use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Synchronous, Default)]
-#[rhdl(kernel=inverter)]
 pub struct U {}
+
+impl SynchronousDQ for U {
+    type D = ();
+    type Q = ();
+}
 
 impl SynchronousIO for U {
     type I = bool;
     type O = bool;
 }
 
-impl SynchronousDQ for U {
-    type D = ();
-    type Q = ();
+impl SynchronousKernel for U {
+    type Kernel = inverter;
 }
 
 #[kernel]

@@ -315,6 +315,7 @@ pub enum Statement {
     If(If),
     Delay(usize),
     Display(Display),
+    Custom(String),
     Finish,
     Assert(Assert),
 }
@@ -324,6 +325,14 @@ pub struct Assert {
     pub left: Box<Expression>,
     pub right: Box<Expression>,
     pub ndx: usize,
+}
+
+pub fn dump_file(name: &str) -> Statement {
+    Statement::Custom(format!("$dumpfile(\"{}\");", name))
+}
+
+pub fn dump_vars(time: usize) -> Statement {
+    Statement::Custom(format!("$dumpvars({});", time))
 }
 
 pub fn assert(left: Expression, right: Expression, ndx: usize) -> Statement {

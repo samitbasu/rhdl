@@ -3,6 +3,7 @@ use quote::{format_ident, quote};
 use syn::{spanned::Spanned, Attribute, Data, DeriveInput, Expr, ExprPath};
 
 use crate::utils::is_auto_dq_from_attributes;
+use crate::utils::is_no_dq_from_attributes;
 
 pub fn derive_circuit(input: TokenStream) -> syn::Result<TokenStream> {
     let decl = syn::parse2::<syn::DeriveInput>(input)?;
@@ -126,6 +127,7 @@ fn extract_kernel_name_from_attributes(attrs: &[Attribute]) -> syn::Result<Optio
 fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
     let auto_dq = is_auto_dq_from_attributes(&decl.attrs);
+    let no_dq = is_no_dq_from_attributes(&decl.attrs);
     let kernel_name = extract_kernel_name_from_attributes(&decl.attrs)?;
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
     let Data::Struct(s) = &decl.data else {
@@ -195,8 +197,15 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let descriptor_fn = define_descriptor_fn(&field_set);
     let hdl_fn = define_hdl_fn(&field_set);
     let sim_fn = define_sim_fn(&field_set);
-    let dq_section = if !auto_dq {
+    let dq_section = if !auto_dq && !no_dq {
         quote! {}
+    } else if no_dq {
+        quote! {
+            impl #impl_generics rhdl::core::CircuitDQ for #struct_name #ty_generics #where_clause {
+                type Q = ();
+                type D = ();
+            }
+        }
     } else {
         quote! {
             #new_struct_q
