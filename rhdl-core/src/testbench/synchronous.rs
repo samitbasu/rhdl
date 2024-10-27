@@ -3,7 +3,8 @@ use crate::{
     hdl::{
         ast::{
             assert, assign, bit_string, component_instance, connection, declaration, delay,
-            display, finish, id, initial, unsigned_width, Direction, HDLKind, Module,
+            display, dump_file, dump_vars, finish, id, initial, unsigned_width, Direction, HDLKind,
+            Module,
         },
         formatter,
     },
@@ -12,7 +13,7 @@ use crate::{
     waveform_synchronous, ClockReset, Digital, RHDLError, Synchronous, TimedSample,
 };
 
-use super::test_module::TestModule;
+use super::{test_module::TestModule, TraceOptions};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 enum ResetState {
@@ -24,6 +25,7 @@ enum ResetState {
 fn build_test_module_from_synchronous_waveform(
     modules: &[Module],
     waveform: &SynchronousWaveform,
+    options: &TraceOptions,
 ) -> Result<TestModule, RHDLError> {
     // All synchronous modules must have at least 2
     // ports (the first is clock + reset, the last is
@@ -103,7 +105,11 @@ fn build_test_module_from_synchronous_waveform(
             None,
         )),
     ];
-    let mut test_cases = vec![];
+    let mut test_cases = if let Some(filename) = &options.vcd {
+        vec![dump_file(filename), dump_vars(0)]
+    } else {
+        vec![]
+    };
     let mut reset_state = ResetState::Initial;
     for (test_case_counter, timed_entry) in waveform.entries.iter().enumerate() {
         test_cases.push(delay(timed_entry.delay as usize));
@@ -115,7 +121,6 @@ fn build_test_module_from_synchronous_waveform(
         }
         let output = timed_entry.output.clone();
         test_cases.push(assign("rust_out", bit_string(&BitString::unsigned(output))));
-        test_cases.push(delay(0));
         let reset_bit_enabled = cr.reset.any();
         reset_state = match (reset_state, reset_bit_enabled) {
             (ResetState::Initial, true) => ResetState::InReset,
@@ -124,7 +129,8 @@ fn build_test_module_from_synchronous_waveform(
             (ResetState::ResetDone, false) => ResetState::ResetDone,
             _ => reset_state,
         };
-        if reset_state == ResetState::ResetDone {
+        if (reset_state == ResetState::ResetDone) && !cr.clock.raw() && options.assertions_enabled {
+            test_cases.push(delay(0));
             test_cases.push(assert(id("o"), id("rust_out"), test_case_counter));
         }
     }
@@ -156,17 +162,18 @@ fn build_test_module_from_synchronous_waveform(
 pub fn test_synchronous_hdl<T: Synchronous>(
     uut: &T,
     inputs: impl Iterator<Item = TimedSample<(ClockReset, T::I)>>,
+    opts: TraceOptions,
 ) -> Result<(), RHDLError> {
     // Get a waveform for this circuit
     let waveform = waveform_synchronous(uut, inputs);
     // Construct a RTL-based test bench
     let rtl_mod = uut.hdl("uut")?.as_modules();
-    eprintln!("{}", crate::hdl::formatter::module(&rtl_mod[0]));
-    let tm1 = build_test_module_from_synchronous_waveform(&rtl_mod, &waveform)?;
+    let tm1 = build_test_module_from_synchronous_waveform(&rtl_mod, &waveform, &opts)?;
     tm1.run_iverilog()?;
     // Construct a flowgraph-based test bench
     let fg = uut.flow_graph("uut")?.hdl("uut")?;
-    let tm1 = build_test_module_from_synchronous_waveform(&[fg], &waveform)?;
+    let tm1 = build_test_module_from_synchronous_waveform(&[fg], &waveform, &opts)?;
     tm1.run_iverilog()?;
+
     Ok(())
 }

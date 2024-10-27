@@ -2,7 +2,6 @@ use crate::counter;
 use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Default, Synchronous)]
-#[rhdl(kernel=auto_counter::<{N}>)]
 #[rhdl(auto_dq)]
 pub struct U<const N: usize> {
     counter: counter::U<N>,
@@ -11,6 +10,10 @@ pub struct U<const N: usize> {
 impl<const N: usize> SynchronousIO for U<N> {
     type I = ();
     type O = Bits<N>;
+}
+
+impl<const N: usize> SynchronousKernel for U<N> {
+    type Kernel = auto_counter<{ N }>;
 }
 
 #[kernel]

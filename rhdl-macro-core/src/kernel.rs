@@ -3,7 +3,8 @@ use std::collections::HashSet;
 use inflections::Inflect;
 use quote::{format_ident, quote};
 use syn::{
-    punctuated::Punctuated, spanned::Spanned, token::Comma, FnArg, Ident, Pat, PatType, Path, Type,
+    punctuated::Punctuated, spanned::Spanned, token::Comma, FnArg, Ident, Pat, PatType, Path,
+    ReturnType, Type,
 };
 
 // use crate::suffix::CustomSuffix;
@@ -336,6 +337,75 @@ fn strip_mutability(pat: &syn::Pat) -> syn::Pat {
     }
 }
 
+fn impl_digital_fnk_trait(function: &syn::ItemFn) -> Result<TS> {
+    let orig_name = &function.sig.ident;
+    let (impl_generics, ty_generics, where_clause) = function.sig.generics.split_for_impl();
+    let args = &function.sig.inputs;
+    let outer_args = args
+        .iter()
+        .cloned()
+        .map(|x| match x {
+            FnArg::Typed(PatType {
+                attrs,
+                pat,
+                colon_token,
+                ty,
+            }) => FnArg::Typed(PatType {
+                attrs,
+                pat: Box::new(strip_mutability(&pat)),
+                colon_token,
+                ty,
+            }),
+            _ => x,
+        })
+        .collect::<Punctuated<_, Comma>>();
+    let type_sig = args
+        .iter()
+        .map(|x| match x {
+            FnArg::Typed(PatType { ty, .. }) => Ok(quote! {
+                #ty
+            }),
+            x => Err(syn::Error::new(
+                x.span(),
+                "Unsupported argument type in rhdl kernel function",
+            )),
+        })
+        .collect::<Result<Punctuated<_, Comma>>>()?;
+    let arg_count = outer_args.len();
+    let trait_name = format_ident!("DigitalFn{}", arg_count);
+    let ret = &function.sig.output;
+    let arg_maps = args
+        .iter()
+        .filter_map(|x| match x {
+            syn::FnArg::Receiver(_) => None,
+            syn::FnArg::Typed(pat) => Some(&pat.ty),
+        })
+        .enumerate()
+        .map(|(ndx, arg)| {
+            let ty_name = format_ident!("A{ndx}");
+            quote! {
+                type #ty_name = #arg;
+            }
+        });
+    let ret_ty = match &ret {
+        ReturnType::Default => quote! {()},
+        ReturnType::Type(_, ty) => quote! {#ty},
+    };
+    let output_ty = quote! {
+        type O = #ret_ty;
+    };
+    let ty_generics_as_turbo = ty_generics.as_turbofish();
+    Ok(quote! {
+        impl #impl_generics rhdl::core::digital_fn::#trait_name for #orig_name #ty_generics #where_clause {
+            #(#arg_maps)*
+            #output_ty
+            fn func() -> fn(#type_sig) #ret {
+                #orig_name #ty_generics_as_turbo
+            }
+        }
+    })
+}
+
 // put the original function inside a wrapper function with the name of the original.
 // Call the wrapped function 'inner'
 // Capture the return of the wrapped function
@@ -479,11 +549,14 @@ impl Context {
             })
             .collect::<Result<Vec<_>>>()?;
         let wrapped_function = note_wrap_function(&function)?;
+        let digital_fnk_impl = impl_digital_fnk_trait(&function)?;
         Ok(quote! {
             #wrapped_function
 
             #[allow(non_camel_case_types)]
             #vis struct #name #impl_generics {#(#phantom_fields,)*}
+
+            #digital_fnk_impl
 
             impl #impl_generics rhdl::core::digital_fn::DigitalFn for #name #ty_generics #where_clause {
                 fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {

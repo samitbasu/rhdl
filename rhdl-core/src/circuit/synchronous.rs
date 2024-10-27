@@ -1,13 +1,7 @@
 use crate::{
-    error::RHDLError, flow_graph::optimization::optimize_flow_graph, CircuitDescriptor, ClockReset,
-    Digital, DigitalFn, FlowGraph, HDLDescriptor, Tristate,
+    digital_fn::DigitalFn3, error::RHDLError, flow_graph::optimization::optimize_flow_graph,
+    CircuitDescriptor, ClockReset, Digital, DigitalFn, FlowGraph, HDLDescriptor, Tristate,
 };
-
-pub type SynchronousUpdateFn<C> = fn(
-    ClockReset,
-    <C as SynchronousIO>::I,
-    <C as SynchronousDQ>::Q,
-) -> (<C as SynchronousIO>::O, <C as SynchronousDQ>::D);
 
 pub trait SynchronousIO: 'static + Sized + Clone {
     type I: Digital;
@@ -19,12 +13,13 @@ pub trait SynchronousDQ: 'static + Sized + Clone {
     type Q: Digital;
 }
 
-pub trait Synchronous: 'static + Sized + Clone + SynchronousIO + SynchronousDQ {
+pub trait SynchronousKernel: 'static + Sized + Clone + SynchronousDQ + SynchronousIO {
+    type Kernel: DigitalFn
+        + DigitalFn3<A0 = ClockReset, A1 = Self::I, A2 = Self::Q, O = (Self::O, Self::D)>;
+}
+
+pub trait Synchronous: 'static + Sized + Clone + SynchronousKernel {
     type Z: Tristate;
-
-    type Update: DigitalFn;
-
-    const UPDATE: SynchronousUpdateFn<Self> = |_, _, _| unimplemented!();
 
     type S: Digital;
 

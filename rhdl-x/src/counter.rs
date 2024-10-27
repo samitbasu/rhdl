@@ -5,7 +5,6 @@ mod kernel_host {
     use rhdl::prelude::*;
 
     #[derive(Clone, Debug, Default, Synchronous)]
-    #[rhdl(kernel=my_kernel)]
     pub struct U {}
 
     impl SynchronousIO for U {
@@ -16,6 +15,10 @@ mod kernel_host {
     impl SynchronousDQ for U {
         type D = ();
         type Q = ();
+    }
+
+    impl SynchronousKernel for U {
+        type Kernel = my_kernel;
     }
 
     #[kernel]
@@ -37,7 +40,6 @@ mod comb_adder {
     use rhdl::prelude::*;
 
     #[derive(Clone, Debug, Default, Synchronous)]
-    #[rhdl(kernel=adder::<{N}>)]
     pub struct U<const N: usize> {}
 
     impl<const N: usize> SynchronousIO for U<N> {
@@ -48,6 +50,10 @@ mod comb_adder {
     impl<const N: usize> SynchronousDQ for U<N> {
         type D = ();
         type Q = ();
+    }
+
+    impl<const N: usize> SynchronousKernel for U<N> {
+        type Kernel = adder<{ N }>;
     }
 
     #[kernel]
@@ -63,7 +69,6 @@ pub struct I {
 }
 
 #[derive(Clone, Debug, Synchronous)]
-#[rhdl(kernel=counter::<{N}>)]
 #[rhdl(auto_dq)]
 pub struct U<const N: usize> {
     count: dff::U<Bits<N>>,
@@ -82,6 +87,10 @@ impl<const N: usize> Default for U<N> {
 impl<const N: usize> SynchronousIO for U<N> {
     type I = I;
     type O = Bits<N>;
+}
+
+impl<const N: usize> SynchronousKernel for U<N> {
+    type Kernel = counter<{ N }>;
 }
 
 #[kernel]
@@ -116,7 +125,7 @@ mod tests {
     fn test_counter_timing_root() -> miette::Result<()> {
         use core::hash::Hasher;
         let uut: U<4> = U::default();
-        let rtl = compile_design::<<U<4> as Synchronous>::Update>(CompilationMode::Synchronous)?;
+        let rtl = uut.descriptor("top")?.rtl.unwrap();
         eprintln!("rtl: {:?}", rtl);
         let fg = build_rtl_flow_graph(&rtl);
         let mut dot = std::fs::File::create("counter.dot").unwrap();

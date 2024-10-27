@@ -10,6 +10,62 @@ pub trait DigitalFn {
 
 impl DigitalFn for () {}
 
+pub trait DigitalFn0 {
+    type O: Digital;
+    fn func() -> fn() -> Self::O;
+}
+
+pub trait DigitalFn1 {
+    type A0: Digital;
+    type O: Digital;
+    fn func() -> fn(Self::A0) -> Self::O;
+}
+
+pub trait DigitalFn2 {
+    type A0: Digital;
+    type A1: Digital;
+    type O: Digital;
+    fn func() -> fn(Self::A0, Self::A1) -> Self::O;
+}
+
+pub trait DigitalFn3 {
+    type A0: Digital;
+    type A1: Digital;
+    type A2: Digital;
+    type O: Digital;
+    fn func() -> fn(Self::A0, Self::A1, Self::A2) -> Self::O;
+}
+
+pub trait DigitalFn4 {
+    type A0: Digital;
+    type A1: Digital;
+    type A2: Digital;
+    type A3: Digital;
+    type O: Digital;
+    fn func() -> fn(Self::A0, Self::A1, Self::A2, Self::A3) -> Self::O;
+}
+
+pub trait DigitalFn5 {
+    type A0: Digital;
+    type A1: Digital;
+    type A2: Digital;
+    type A3: Digital;
+    type A4: Digital;
+    type O: Digital;
+    fn func() -> fn(Self::A0, Self::A1, Self::A2, Self::A3, Self::A4) -> Self::O;
+}
+
+pub trait DigitalFn6 {
+    type A0: Digital;
+    type A1: Digital;
+    type A2: Digital;
+    type A3: Digital;
+    type A4: Digital;
+    type A5: Digital;
+    type O: Digital;
+    fn func() -> fn(Self::A0, Self::A1, Self::A2, Self::A3, Self::A4, Self::A5) -> Self::O;
+}
+
 // See: https://jsdw.me/posts/rust-fn-traits/
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Hash)]

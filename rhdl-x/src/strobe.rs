@@ -9,7 +9,6 @@ pub struct I {
 }
 
 #[derive(Clone, Debug, Synchronous)]
-#[rhdl(kernel=strobe::<{N}>)]
 pub struct U<const N: usize> {
     counter: dff::U<Bits<N>>,
     threshold: constant::U<Bits<N>>,
@@ -53,6 +52,10 @@ impl<const N: usize> Default for D<N> {
             threshold: (),
         }
     }
+}
+
+impl<const N: usize> SynchronousKernel for U<N> {
+    type Kernel = strobe<N>;
 }
 
 #[kernel]

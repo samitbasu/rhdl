@@ -2,7 +2,6 @@ use crate::dff;
 use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Synchronous)]
-#[rhdl(kernel=single_bit)]
 #[rhdl(auto_dq)]
 pub struct U {
     state: dff::U<bool>,
@@ -19,6 +18,10 @@ impl Default for U {
 impl SynchronousIO for U {
     type I = bool;
     type O = bool;
+}
+
+impl SynchronousKernel for U {
+    type Kernel = single_bit;
 }
 
 #[kernel]

@@ -48,6 +48,7 @@ pub mod state_cycler;
 //mod timeset;
 //mod visit;
 mod async_counter;
+//mod demo;
 
 //#[cfg(test)]
 //mod tests;
@@ -79,6 +80,47 @@ mod async_counter;
   endmodule
 
 */
+
+#[test]
+#[allow(clippy::assign_op_pattern)]
+fn test_adt_shadow() {
+    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    pub enum NooState {
+        #[default]
+        Init,
+        Run(u8, u8, u8),
+        Walk {
+            foo: u8,
+        },
+        Boom,
+    }
+
+    #[kernel]
+    fn do_stuff<C: Domain>(s: Signal<NooState, C>) -> Signal<(u8, NooState), C> {
+        let y = bits::<12>(72);
+        let foo = bits::<14>(32);
+        let mut a: u8 = 0;
+        let d = match s.val() {
+            NooState::Init => {
+                a = 1;
+                NooState::Run(1, 2, 3)
+            }
+            NooState::Walk { foo: x } => {
+                a = x;
+                NooState::Boom
+            }
+            NooState::Run(x, _, y) => {
+                a = x + y;
+                NooState::Walk { foo: 7 }
+            }
+            NooState::Boom => {
+                a = a + 3;
+                NooState::Init
+            }
+        };
+        signal((a, d))
+    }
+}
 
 #[test]
 fn test_async_counter() {
@@ -253,7 +295,7 @@ fn test_autocounter() -> miette::Result<()> {
 #[test]
 fn test_auto_doubler() -> miette::Result<()> {
     let c1: auto_counter::U<4> = auto_counter::U::default();
-    let c2: doubler::U<4> = doubler::U::default();
+    let c2 = Func::new::<doubler::doubler<4>>()?;
     let uut = Chain::new(c1, c2);
     let inputs = repeat(()).take(1000);
     let stream = test_stream(inputs);
@@ -264,12 +306,14 @@ fn test_auto_doubler() -> miette::Result<()> {
 #[test]
 fn test_auto_doubler_hdl() -> miette::Result<()> {
     let c1: auto_counter::U<4> = auto_counter::U::default();
-    let c2: doubler::U<4> = doubler::U::default();
-    let uut = Chain::new(c1, c2);
-    let fg = uut.flow_graph("top")?;
+    let c2 = Func::new::<doubler::doubler<4>>()?;
+    let c3: dff::U<b4> = dff::U::new(b4::from(0b0000));
+    let c4 = c2.clone();
+    let uut = Chain::new(c1, Chain::new(c2, Chain::new(c3, c4)));
     let inputs = repeat(()).take(1000);
     let stream = test_stream(inputs);
-    write_testbench_module(&fg.hdl("autodoubler")?, stream, "autodoubler_tb.v", 4)?;
+    test_synchronous_hdl(&uut, stream, TraceMode::VCD("jnk.vcd".into()))?;
+    //    write_testbench_module(&fg.hdl("autodoubler")?, stream, "autodoubler_tb.v", 4)?;
     Ok(())
 }
 

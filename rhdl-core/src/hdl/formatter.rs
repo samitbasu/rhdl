@@ -181,6 +181,7 @@ fn statement(ast: &Statement) -> String {
         Statement::Display(ast) => display_statement(ast),
         Statement::Finish => "$finish;".to_string(),
         Statement::Assert(ast) => assert_statement(ast),
+        Statement::Custom(ast) => ast.clone(),
     }
 }
 

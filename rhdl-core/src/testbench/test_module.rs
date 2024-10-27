@@ -33,12 +33,17 @@ impl TestModule {
         let mut cmd = std::process::Command::new("vvp");
         cmd.arg(d_path.join("testbench"));
         let output = cmd.output()?;
-        match String::from_utf8_lossy(&output.stdout).lines().next() {
-            Some(s) if s.trim() == "TESTBENCH OK" => Ok(()),
-            Some(s) => Err(RHDLError::VerilogVerificationErrorString(s.into())),
-            None => Err(RHDLError::VerilogVerificationErrorString(
-                "No output".into(),
-            )),
+        let output_stdout = String::from_utf8_lossy(&output.stdout);
+        for line in output_stdout.lines() {
+            if line.contains("FAILED") {
+                return Err(RHDLError::VerilogVerificationErrorString(line.into()));
+            }
+            if line.starts_with("TESTBENCH OK") {
+                return Ok(());
+            }
         }
+        Err(RHDLError::VerilogVerificationErrorString(
+            "No output".into(),
+        ))
     }
 }

@@ -2,7 +2,6 @@
 use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Synchronous, Default)]
-#[rhdl(kernel=logic_loop)]
 pub struct U {
     left: crate::inverter::U,
     right: crate::inverter::U,
@@ -28,6 +27,10 @@ impl SynchronousIO for U {
 impl SynchronousDQ for U {
     type D = D;
     type Q = Q;
+}
+
+impl SynchronousKernel for U {
+    type Kernel = logic_loop;
 }
 
 #[kernel]

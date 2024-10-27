@@ -24,7 +24,6 @@ pub enum O {
 }
 
 #[derive(Clone, Debug, Synchronous)]
-#[rhdl(kernel=state_cycler)]
 #[rhdl(auto_dq)]
 pub struct U {
     state: crate::dff::U<State>,
@@ -41,6 +40,10 @@ impl Default for U {
 impl SynchronousIO for U {
     type I = I;
     type O = O;
+}
+
+impl SynchronousKernel for U {
+    type Kernel = state_cycler;
 }
 
 #[kernel]
