@@ -1,4 +1,5 @@
 use crate::{
+    digital_fn::NoKernel2,
     flow_graph::edge_kind::EdgeKind,
     hdl::ast::{component_instance, connection, id, index, index_bit, Direction, Module},
     rtl::object::RegisterKind,
@@ -7,7 +8,7 @@ use crate::{
     FlowGraph, Kind, Notable, NoteKey, NoteWriter, RHDLError, Signal, Synchronous, Timed, Tristate,
 };
 
-use super::{circuit_impl::CircuitUpdateFn, hdl_backend::maybe_port_wire};
+use super::hdl_backend::maybe_port_wire;
 
 // An adapter allows you to use a Synchronous circuit in an Asynchronous context.
 #[derive(Clone)]
@@ -73,6 +74,7 @@ impl<I: Digital, D: Domain> Digital for AdapterInput<I, D> {
 impl<C: Synchronous, D: Domain> CircuitIO for Adapter<C, D> {
     type I = AdapterInput<C::I, D>;
     type O = Signal<C::O, D>;
+    type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
 }
 
 impl<C: Synchronous, D: Domain> CircuitDQ for Adapter<C, D> {
@@ -82,10 +84,6 @@ impl<C: Synchronous, D: Domain> CircuitDQ for Adapter<C, D> {
 
 impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
     type Z = C::Z;
-
-    type Update = ();
-
-    const UPDATE: CircuitUpdateFn<Self> = |_, _| unimplemented!();
 
     type S = Signal<C::S, D>;
 

@@ -28,6 +28,23 @@ pub trait DigitalFn2 {
     fn func() -> fn(Self::A0, Self::A1) -> Self::O;
 }
 
+pub struct NoKernel2<A0, A1, O> {
+    _a0: std::marker::PhantomData<A0>,
+    _a1: std::marker::PhantomData<A1>,
+    _o: std::marker::PhantomData<O>,
+}
+
+impl<A0, A1, O> DigitalFn for NoKernel2<A0, A1, O> {}
+impl<A0: Digital, A1: Digital, O: Digital> DigitalFn2 for NoKernel2<A0, A1, O> {
+    type A0 = A0;
+    type A1 = A1;
+    type O = O;
+
+    fn func() -> fn(Self::A0, Self::A1) -> Self::O {
+        unimplemented!()
+    }
+}
+
 pub trait DigitalFn3 {
     type A0: Digital;
     type A1: Digital;
@@ -36,15 +53,15 @@ pub trait DigitalFn3 {
     fn func() -> fn(Self::A0, Self::A1, Self::A2) -> Self::O;
 }
 
-pub struct NoKernel<A0, A1, A2, O> {
+pub struct NoKernel3<A0, A1, A2, O> {
     _a0: std::marker::PhantomData<A0>,
     _a1: std::marker::PhantomData<A1>,
     _a2: std::marker::PhantomData<A2>,
     _o: std::marker::PhantomData<O>,
 }
 
-impl<A0, A1, A2, O> DigitalFn for NoKernel<A0, A1, A2, O> {}
-impl<A0: Digital, A1: Digital, A2: Digital, O: Digital> DigitalFn3 for NoKernel<A0, A1, A2, O> {
+impl<A0, A1, A2, O> DigitalFn for NoKernel3<A0, A1, A2, O> {}
+impl<A0: Digital, A1: Digital, A2: Digital, O: Digital> DigitalFn3 for NoKernel3<A0, A1, A2, O> {
     type A0 = A0;
     type A1 = A1;
     type A2 = A2;

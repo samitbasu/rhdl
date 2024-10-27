@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    digital_fn::{DigitalFn3, NoKernel},
+    digital_fn::{DigitalFn3, NoKernel3},
     flow_graph::edge_kind::EdgeKind,
     hdl::ast::{
         component_instance, connection, id, unsigned_width, Declaration, Direction, HDLKind, Module,
@@ -29,7 +29,7 @@ impl<A, B> Chain<A, B> {
 impl<A: Synchronous, B: Synchronous> SynchronousIO for Chain<A, B> {
     type I = <A as SynchronousIO>::I;
     type O = <B as SynchronousIO>::O;
-    type Kernel = NoKernel<ClockReset, Self::I, (), (Self::O, ())>;
+    type Kernel = NoKernel3<ClockReset, Self::I, (), (Self::O, ())>;
 }
 
 impl<A: Synchronous, B: Synchronous> SynchronousDQ for Chain<A, B> {

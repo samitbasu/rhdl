@@ -94,34 +94,6 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
     }
 }
 
-fn kernel_name_from_attribute(attr: &Attribute) -> syn::Result<Option<ExprPath>> {
-    let Expr::Assign(assign) = attr.parse_args::<Expr>()? else {
-        return Ok(None);
-    };
-    let Expr::Path(path) = *assign.left else {
-        return Ok(None);
-    };
-    if !path.path.is_ident("kernel") {
-        return Ok(None);
-    }
-    let Expr::Path(expr_path) = *assign.right else {
-        return Err(syn::Error::new(
-            assign.right.span(),
-            "Expected rhdl attribute to be of the form #[rhdl(kernel = name)]",
-        ));
-    };
-    Ok(Some(expr_path))
-}
-
-fn extract_kernel_name_from_attributes(attrs: &[Attribute]) -> syn::Result<Option<ExprPath>> {
-    for attr in attrs {
-        if let Some(expr_path) = kernel_name_from_attribute(attr)? {
-            return Ok(Some(expr_path));
-        }
-    }
-    Ok(None)
-}
-
 fn derive_synchronous_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
     let auto_dq = is_auto_dq_from_attributes(&decl.attrs);

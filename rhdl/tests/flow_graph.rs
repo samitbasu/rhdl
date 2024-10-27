@@ -252,12 +252,12 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
 #[test]
 fn test_async_add() -> miette::Result<()> {
     #[derive(Clone, Debug, Circuit, Default)]
-    #[rhdl(kernel = async_add)]
     pub struct U {}
 
     impl CircuitIO for U {
         type I = Signal<(b8, b8), Red>;
         type O = Signal<b8, Red>;
+        type Kernel = async_add;
     }
 
     impl CircuitDQ for U {

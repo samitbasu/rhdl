@@ -72,10 +72,11 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
         .map(syn::Index::from)
         .collect::<Vec<_>>();
     quote! {
-        fn sim(&self, input: <Self as CircuitIO>::I, state: &mut Self::S , io: &mut Self::Z ) -> <Self as CircuitIO>::O {
+        fn sim(&self, input: <Self as rhdl::core::CircuitIO>::I, state: &mut Self::S , io: &mut Self::Z ) -> <Self as CircuitIO>::O {
+            let update_fn = <<Self as rhdl::core::CircuitIO>::Kernel as rhdl::core::DigitalFn2>::func();
             for _ in 0..rhdl::core::MAX_ITERS {
                 let prev_state = state.clone();
-                let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
+                let (outputs, internal_inputs) = update_fn(input, state.0);
                 #(
                     rhdl::core::note_push_path(stringify!(#component_name));
                     state.0.#component_name =
@@ -91,44 +92,10 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
     }
 }
 
-fn extract_kernel_name_from_attributes(attrs: &[Attribute]) -> syn::Result<Option<ExprPath>> {
-    for attr in attrs {
-        if attr.path().is_ident("rhdl") {
-            let Expr::Assign(assign) = attr.parse_args::<Expr>()? else {
-                return Err(syn::Error::new(
-                    attr.span(),
-                    "Expected rhdl attribute to be of the form #[rhdl(kernel = name)]",
-                ));
-            };
-            let Expr::Path(path) = *assign.left else {
-                return Err(syn::Error::new(
-                    assign.left.span(),
-                    "Expected rhdl attribute to be of the form #[rhdl(kernel = name)]",
-                ));
-            };
-            if !path.path.is_ident("kernel") {
-                return Err(syn::Error::new(
-                    path.span(),
-                    "Expected rhdl attribute to be of the form #[rhdl(kernel = name)]",
-                ));
-            }
-            let Expr::Path(expr_path) = *assign.right else {
-                return Err(syn::Error::new(
-                    assign.right.span(),
-                    "Expected rhdl attribute to be of the form #[rhdl(kernel = name)]",
-                ));
-            };
-            return Ok(Some(expr_path));
-        }
-    }
-    Ok(None)
-}
-
 fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
     let auto_dq = is_auto_dq_from_attributes(&decl.attrs);
     let no_dq = is_no_dq_from_attributes(&decl.attrs);
-    let kernel_name = extract_kernel_name_from_attributes(&decl.attrs)?;
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
     let Data::Struct(s) = &decl.data else {
         return Err(syn::Error::new(
@@ -221,13 +188,6 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
         impl #impl_generics rhdl::core::Circuit for #struct_name #ty_generics #where_clause {
             type Z = #name_z #ty_generics;
             type S = #state_tuple;
-
-            type Update = #kernel_name;
-
-            const UPDATE: fn(<Self as CircuitIO>::I,
-                <Self as CircuitDQ>::Q) -> (
-                    <Self as CircuitIO>::O,
-                    <Self as CircuitDQ>::D) = #kernel_name;
 
             #descriptor_fn
 
