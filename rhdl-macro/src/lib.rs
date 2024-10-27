@@ -40,9 +40,25 @@ pub fn circuit(input: TokenStream) -> TokenStream {
     }
 }
 
+#[proc_macro_derive(CircuitDQ)]
+pub fn circuit_dq(input: TokenStream) -> TokenStream {
+    match rhdl_macro_core::derive_circuit_dq(input.into()) {
+        Ok(output) => output.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
+
 #[proc_macro_derive(Synchronous, attributes(rhdl))]
 pub fn synchronous(input: TokenStream) -> TokenStream {
     match rhdl_macro_core::derive_synchronous(input.into()) {
+        Ok(output) => output.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
+
+#[proc_macro_derive(SynchronousDQ)]
+pub fn synchronous_dq(input: TokenStream) -> TokenStream {
+    match rhdl_macro_core::derive_synchronous_dq(input.into()) {
         Ok(output) => output.into(),
         Err(err) => err.to_compile_error().into(),
     }

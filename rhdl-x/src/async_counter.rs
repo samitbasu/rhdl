@@ -1,8 +1,6 @@
 use rhdl::{core::ClockReset, prelude::*};
 
-#[derive(Clone, Circuit)]
-#[rhdl(kernel=async_counter)]
-#[rhdl(auto_dq)]
+#[derive(Clone, Circuit, CircuitDQ)]
 pub struct U {
     counter: Adapter<crate::counter::U<4>, Red>,
 }
@@ -31,6 +29,7 @@ pub struct O {
 impl CircuitIO for U {
     type I = I;
     type O = O;
+    type Kernel = async_counter;
 }
 
 impl Default for U {

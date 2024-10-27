@@ -1,14 +1,14 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    digital_fn::{DigitalFn3, NoKernel3},
+    digital_fn::NoKernel3,
     flow_graph::edge_kind::EdgeKind,
     hdl::ast::{
         component_instance, connection, id, unsigned_width, Declaration, Direction, HDLKind, Module,
     },
     note_pop_path, note_push_path,
     rtl::object::RegisterKind,
-    CircuitDescriptor, ClockReset, Digital, DigitalFn, FlowGraph, HDLDescriptor, Kind, Synchronous,
+    CircuitDescriptor, ClockReset, Digital, FlowGraph, HDLDescriptor, Kind, Synchronous,
     SynchronousDQ, SynchronousIO, Tristate,
 };
 

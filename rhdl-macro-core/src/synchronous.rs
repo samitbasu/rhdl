@@ -1,40 +1,12 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{spanned::Spanned, Attribute, Data, DeriveInput, Expr, ExprPath};
+use syn::{spanned::Spanned, Data, DeriveInput};
 
-use crate::utils::is_auto_dq_from_attributes;
-use crate::utils::is_no_dq_from_attributes;
+use crate::utils::FieldSet;
 
 pub fn derive_synchronous(input: TokenStream) -> syn::Result<TokenStream> {
     let decl = syn::parse2::<syn::DeriveInput>(input)?;
     derive_synchronous_struct(decl)
-}
-
-pub struct FieldSet<'a> {
-    component_name: Vec<syn::Ident>,
-    component_ty: Vec<&'a syn::Type>,
-}
-
-impl<'a> TryFrom<&'a syn::Fields> for FieldSet<'a> {
-    type Error = syn::Error;
-
-    fn try_from(fields: &'a syn::Fields) -> syn::Result<Self> {
-        let mut component_name = Vec::new();
-        let mut component_ty = Vec::new();
-        for field in fields.iter() {
-            component_name.push(field.ident.clone().ok_or_else(|| {
-                syn::Error::new(
-                    field.span(),
-                    "Synchronous components (fields) must have names",
-                )
-            })?);
-            component_ty.push(&field.ty);
-        }
-        Ok(FieldSet {
-            component_name,
-            component_ty,
-        })
-    }
 }
 
 fn define_descriptor_fn(field_set: &FieldSet) -> TokenStream {
@@ -96,9 +68,6 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
 
 fn derive_synchronous_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
-    let auto_dq = is_auto_dq_from_attributes(&decl.attrs);
-    let no_dq = is_no_dq_from_attributes(&decl.attrs);
-    //let kernel_name = extract_kernel_name_from_attributes(&decl.attrs)?;
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
     let Data::Struct(s) = &decl.data else {
         return Err(syn::Error::new(
@@ -110,20 +79,6 @@ fn derive_synchronous_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let component_ty = &field_set.component_ty;
     let component_name = &field_set.component_name;
     let generics = &decl.generics;
-    // Create a new struct by appending a Q to the name of the struct, and for each field, map
-    // the type to <ty as rhdl::core::Synchronous>::O,
-    let new_struct_q = quote! {
-        #[derive(Debug, Clone, PartialEq, Digital, Copy)]
-        pub struct Q #generics #where_clause {
-            #(#component_name: <#component_ty as rhdl::core::SynchronousIO>::O),*
-        }
-    };
-    let new_struct_d = quote! {
-        #[derive(Debug, Clone, PartialEq, Digital, Copy)]
-        pub struct D #generics #where_clause {
-            #(#component_name: <#component_ty as rhdl::core::SynchronousIO>::I),*
-        }
-    };
     // Repeat again with Z and ::Z
     let new_struct_z = quote!(
         #[derive(Debug, Clone, PartialEq, Copy, Default)]
@@ -165,26 +120,6 @@ fn derive_synchronous_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let descriptor_fn = define_descriptor_fn(&field_set);
     let hdl_fn = define_hdl_fn(&field_set);
     let sim_fn = define_sim_fn(&field_set);
-    let dq_section = if !auto_dq && !no_dq {
-        quote! {}
-    } else if no_dq {
-        quote! {
-            impl #impl_generics rhdl::core::SynchronousDQ for #struct_name #ty_generics #where_clause {
-                type Q = ();
-                type D = ();
-            }
-        }
-    } else {
-        quote! {
-            #new_struct_q
-            #new_struct_d
-
-            impl #impl_generics rhdl::core::SynchronousDQ for #struct_name #ty_generics #where_clause {
-                type Q = Q #ty_generics;
-                type D = D #ty_generics;
-            }
-        }
-    };
     let synchronous_impl = quote! {
         impl #impl_generics rhdl::core::Synchronous for #struct_name #ty_generics #where_clause {
             type S = #state_tuple;
@@ -199,7 +134,6 @@ fn derive_synchronous_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     };
 
     Ok(quote! {
-        #dq_section
         #new_struct_z
         #notable_z_impl
         #tristate_z_impl

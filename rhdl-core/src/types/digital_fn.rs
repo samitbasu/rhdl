@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 use serde::{Deserialize, Serialize};
 
 pub use crate::{kernel::KernelFnKind, Digital, Kind};
