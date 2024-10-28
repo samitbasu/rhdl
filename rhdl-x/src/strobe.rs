@@ -41,9 +41,10 @@ impl<const N: usize> SynchronousIO for U<N> {
     type Kernel = strobe<N>;
 }
 
-impl<const N: usize> SynchronousDQ for U<N> {
+impl<const N: usize> SynchronousDQZ for U<N> {
     type D = D<N>;
     type Q = Q<N>;
+    type Z = ((), ());
 }
 
 impl<const N: usize> Default for D<N> {

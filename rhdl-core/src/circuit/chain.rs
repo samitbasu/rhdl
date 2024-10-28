@@ -9,7 +9,7 @@ use crate::{
     note_pop_path, note_push_path,
     rtl::object::RegisterKind,
     CircuitDescriptor, ClockReset, Digital, FlowGraph, HDLDescriptor, Kind, Synchronous,
-    SynchronousDQ, SynchronousIO, Tristate,
+    SynchronousDQZ, SynchronousIO, Tristate,
 };
 
 use super::hdl_backend::maybe_port_wire;
@@ -32,9 +32,10 @@ impl<A: Synchronous, B: Synchronous> SynchronousIO for Chain<A, B> {
     type Kernel = NoKernel3<ClockReset, Self::I, (), (Self::O, ())>;
 }
 
-impl<A: Synchronous, B: Synchronous> SynchronousDQ for Chain<A, B> {
+impl<A: Synchronous, B: Synchronous> SynchronousDQZ for Chain<A, B> {
     type D = ();
     type Q = ();
+    type Z = (A::Z, B::Z);
 }
 
 impl<A: Synchronous, B: Synchronous, P: Digital> Synchronous for Chain<A, B>
@@ -42,8 +43,6 @@ where
     A: SynchronousIO<O = P>,
     B: SynchronousIO<I = P>,
 {
-    type Z = (A::Z, B::Z);
-
     type S = (A::S, B::S);
 
     fn sim(
@@ -118,7 +117,7 @@ where
             output_kind: desc_b.output_kind.clone(),
             q_kind: Kind::Empty,
             d_kind: Kind::Empty,
-            num_tristate: Self::Z::N,
+            num_tristate: Self::Z::bits(),
             tristate_offset_in_parent: 0,
             flow_graph: fg,
             rtl: None,
@@ -139,7 +138,7 @@ where
             maybe_port_wire(Direction::Input, 2, "clock_reset"),
             maybe_port_wire(Direction::Input, <A as SynchronousIO>::I::bits(), "i"),
             maybe_port_wire(Direction::Output, <B as SynchronousIO>::O::bits(), "o"),
-            maybe_port_wire(Direction::Inout, Self::Z::N, "io"),
+            maybe_port_wire(Direction::Inout, Self::Z::bits(), "io"),
         ]
         .into_iter()
         .flatten()

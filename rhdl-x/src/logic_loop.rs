@@ -25,9 +25,10 @@ impl SynchronousIO for U {
     type Kernel = logic_loop;
 }
 
-impl SynchronousDQ for U {
+impl SynchronousDQZ for U {
     type D = D;
     type Q = Q;
+    type Z = ((), ());
 }
 
 #[kernel]

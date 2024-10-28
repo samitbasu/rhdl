@@ -4,7 +4,7 @@ use crate::{
     hdl::ast::{component_instance, connection, id, index, index_bit, Direction, Module},
     rtl::object::RegisterKind,
     types::{kind::Field, signal::signal},
-    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, ClockReset, Digital, DigitalFn, Domain,
+    Circuit, CircuitDQZ, CircuitDescriptor, CircuitIO, ClockReset, Digital, DigitalFn, Domain,
     FlowGraph, Kind, Notable, NoteKey, NoteWriter, RHDLError, Signal, Synchronous, Timed, Tristate,
 };
 
@@ -77,14 +77,13 @@ impl<C: Synchronous, D: Domain> CircuitIO for Adapter<C, D> {
     type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
 }
 
-impl<C: Synchronous, D: Domain> CircuitDQ for Adapter<C, D> {
+impl<C: Synchronous, D: Domain> CircuitDQZ for Adapter<C, D> {
     type D = ();
     type Q = ();
+    type Z = C::Z;
 }
 
 impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
-    type Z = C::Z;
-
     type S = Signal<C::S, D>;
 
     fn sim(
@@ -128,9 +127,9 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
             unique_name: name.into(),
             input_kind: <<Self as CircuitIO>::I as Timed>::static_kind(),
             output_kind: <<Self as CircuitIO>::O as Timed>::static_kind(),
-            d_kind: <<Self as CircuitDQ>::D as Timed>::static_kind(),
-            q_kind: <<Self as CircuitDQ>::Q as Timed>::static_kind(),
-            num_tristate: C::Z::N,
+            d_kind: <<Self as CircuitDQZ>::D as Timed>::static_kind(),
+            q_kind: <<Self as CircuitDQZ>::Q as Timed>::static_kind(),
+            num_tristate: C::Z::bits(),
             tristate_offset_in_parent: 0,
             flow_graph: fg,
             rtl: None,
@@ -149,7 +148,7 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
             ..Default::default()
         };
         module.ports = [
-            maybe_port_wire(Direction::Inout, Self::Z::N, "io"),
+            maybe_port_wire(Direction::Inout, Self::Z::bits(), "io"),
             maybe_port_wire(Direction::Input, <Self as CircuitIO>::I::bits(), "i"),
             maybe_port_wire(Direction::Output, <Self as CircuitIO>::O::bits(), "o"),
         ]
@@ -163,7 +162,7 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         let input_connection = (!child.input_kind.is_empty())
             .then(|| connection("i", index("i", 2..(2 + child.input_kind.bits()))));
         let output_connection = Some(connection("o", id("o")));
-        let io_connection = (C::Z::N != 0).then(|| connection("io", id("io")));
+        let io_connection = (C::Z::bits() != 0).then(|| connection("io", id("io")));
         let child_decl = component_instance(
             &child.unique_name,
             "c",

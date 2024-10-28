@@ -1,13 +1,64 @@
-use crate::Notable;
+use crate::{BitZ, Notable};
 
-pub trait Tristate: Clone + Copy + Default + Notable {
-    const N: usize;
+pub trait Tristate: Clone + Copy + Notable + Default {
+    fn bits() -> usize;
+}
+
+impl<const N: usize> Tristate for BitZ<N> {
+    fn bits() -> usize {
+        N
+    }
 }
 
 impl Tristate for () {
-    const N: usize = 0;
+    fn bits() -> usize {
+        0
+    }
 }
 
-impl<A: Tristate, B: Tristate> Tristate for (A, B) {
-    const N: usize = A::N + B::N;
+impl<T: Tristate> Tristate for (T,) {
+    fn bits() -> usize {
+        T::bits()
+    }
+}
+
+impl<T0: Tristate, T1: Tristate> Tristate for (T0, T1) {
+    fn bits() -> usize {
+        T0::bits() + T1::bits()
+    }
+}
+
+impl<T0: Tristate, T1: Tristate, T2: Tristate> Tristate for (T0, T1, T2) {
+    fn bits() -> usize {
+        T0::bits() + T1::bits() + T2::bits()
+    }
+}
+
+impl<T0: Tristate, T1: Tristate, T2: Tristate, T3: Tristate> Tristate for (T0, T1, T2, T3) {
+    fn bits() -> usize {
+        T0::bits() + T1::bits() + T2::bits() + T3::bits()
+    }
+}
+
+impl<T0: Tristate, T1: Tristate, T2: Tristate, T3: Tristate, T4: Tristate> Tristate
+    for (T0, T1, T2, T3, T4)
+{
+    fn bits() -> usize {
+        T0::bits() + T1::bits() + T2::bits() + T3::bits() + T4::bits()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rhdl_bits::alias::b4;
+
+    use crate::BitZ;
+
+    #[test]
+    fn test_bitz_notable() {
+        let a = BitZ {
+            value: b4(0b1010),
+            mask: b4(0b1111),
+        };
+    }
 }

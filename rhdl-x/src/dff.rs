@@ -29,9 +29,10 @@ impl<T: Digital> SynchronousIO for U<T> {
     type Kernel = dummy<T>;
 }
 
-impl<T: Digital> SynchronousDQ for U<T> {
+impl<T: Digital> SynchronousDQZ for U<T> {
     type D = ();
     type Q = ();
+    type Z = ();
 }
 
 #[kernel]
@@ -48,8 +49,6 @@ pub struct S<T: Digital> {
 
 impl<T: Digital> Synchronous for U<T> {
     type S = S<T>;
-
-    type Z = ();
 
     fn sim(
         &self,

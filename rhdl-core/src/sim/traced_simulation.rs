@@ -1,6 +1,7 @@
 use crate::types::digital::Digital;
-use crate::types::tristate::Tristate;
-use crate::{note, note_init_db, note_time, Circuit, ClockReset, Synchronous, TimedSample};
+use crate::{
+    note, note_init_db, note_time, Circuit, CircuitDQZ, ClockReset, Synchronous, TimedSample,
+};
 
 pub fn traced_simulation<T: Circuit>(
     uut: &T,
@@ -10,7 +11,7 @@ pub fn traced_simulation<T: Circuit>(
     let guard = note_init_db();
     note_time(0);
     let mut state = <T as Circuit>::S::init();
-    let mut io = <T as Circuit>::Z::default();
+    let mut io = <T as CircuitDQZ>::Z::default();
     for sample in inputs {
         note_time(sample.time);
         note("input", sample.value);
@@ -39,9 +40,7 @@ pub fn traced_synchronous_simulation<S: Synchronous>(
         note("reset", clock_reset.reset);
         note("input", input);
         let output = uut.sim(clock_reset, input, &mut state, &mut io);
-        if S::Z::N != 0 {
-            note("io", io);
-        }
+        note("io", io);
         note("output", output);
     }
     let db = guard.take();
