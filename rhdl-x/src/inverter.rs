@@ -3,9 +3,10 @@ use rhdl::prelude::*;
 #[derive(Clone, Debug, Synchronous, Default)]
 pub struct U {}
 
-impl SynchronousDQ for U {
+impl SynchronousDQZ for U {
     type D = ();
     type Q = ();
+    type Z = ();
 }
 
 impl SynchronousIO for U {

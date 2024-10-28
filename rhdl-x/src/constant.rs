@@ -26,9 +26,10 @@ impl<T: Digital> SynchronousIO for U<T> {
     type Kernel = dummy<T>;
 }
 
-impl<T: Digital> SynchronousDQ for U<T> {
+impl<T: Digital> SynchronousDQZ for U<T> {
     type D = ();
     type Q = ();
+    type Z = ();
 }
 
 #[kernel]
@@ -38,8 +39,6 @@ pub fn dummy<T: Digital>(_cr: ClockReset, _i: (), _q: ()) -> (T, ()) {
 
 impl<T: Digital> Synchronous for U<T> {
     type S = ();
-
-    type Z = ();
 
     fn sim(
         &self,

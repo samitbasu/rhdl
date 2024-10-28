@@ -28,6 +28,7 @@ mod constant;
 mod counter;
 mod doubler;
 mod strobe;
+mod zdriver;
 //mod descriptions;
 mod dff;
 pub mod inverter;

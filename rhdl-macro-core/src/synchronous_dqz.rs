@@ -4,12 +4,12 @@ use syn::{spanned::Spanned, Data, DeriveInput};
 
 use crate::utils::FieldSet;
 
-pub fn derive_synchronous_dq(input: TokenStream) -> syn::Result<TokenStream> {
+pub fn derive_synchronous_dqz(input: TokenStream) -> syn::Result<TokenStream> {
     let decl = syn::parse2::<syn::DeriveInput>(input)?;
-    derive_synchronous_dq_struct(decl)
+    derive_synchronous_dqz_struct(decl)
 }
 
-fn derive_synchronous_dq_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
+fn derive_synchronous_dqz_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
 
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
@@ -37,13 +37,18 @@ fn derive_synchronous_dq_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
             #(#component_name: <#component_ty as rhdl::core::SynchronousIO>::I),*
         }
     };
+    let ty_z = quote! {
+        (#(<#component_ty as rhdl::core::SynchronousDQZ>::Z,)*)
+    };
+
     Ok(quote! {
         #new_struct_q
         #new_struct_d
 
-        impl #impl_generics rhdl::core::SynchronousDQ for #struct_name #ty_generics #where_clause {
+        impl #impl_generics rhdl::core::SynchronousDQZ for #struct_name #ty_generics #where_clause {
             type Q = Q #ty_generics;
             type D = D #ty_generics;
+            type Z = #ty_z;
         }
     })
 }

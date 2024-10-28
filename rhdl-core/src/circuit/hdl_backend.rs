@@ -48,7 +48,7 @@ pub fn build_hdl<C: Circuit>(
     module.ports = [
         maybe_port_wire(Direction::Input, C::I::bits(), "i"),
         maybe_port_wire(Direction::Output, C::O::bits(), "o"),
-        maybe_port_wire(Direction::Inout, C::Z::N, "io"),
+        maybe_port_wire(Direction::Inout, C::Z::bits(), "io"),
     ]
     .into_iter()
     .flatten()
@@ -133,7 +133,7 @@ pub fn build_synchronous_hdl<C: Synchronous>(
         maybe_port_wire(Direction::Input, 2, "clock_reset"),
         maybe_port_wire(Direction::Input, C::I::bits(), "i"),
         maybe_port_wire(Direction::Output, C::O::bits(), "o"),
-        maybe_port_wire(Direction::Inout, C::Z::N, "io"),
+        maybe_port_wire(Direction::Inout, C::Z::bits(), "io"),
     ]
     .into_iter()
     .flatten()

@@ -13,9 +13,10 @@ mod kernel_host {
         type Kernel = my_kernel;
     }
 
-    impl SynchronousDQ for U {
+    impl SynchronousDQZ for U {
         type D = ();
         type Q = ();
+        type Z = ();
     }
 
     #[kernel]
@@ -45,9 +46,10 @@ mod comb_adder {
         type Kernel = adder<{ N }>;
     }
 
-    impl<const N: usize> SynchronousDQ for U<N> {
+    impl<const N: usize> SynchronousDQZ for U<N> {
         type D = ();
         type Q = ();
+        type Z = ();
     }
 
     #[kernel]
@@ -62,7 +64,7 @@ pub struct I {
     pub enable: bool,
 }
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQZ)]
 pub struct U<const N: usize> {
     count: dff::U<Bits<N>>,
     adder: comb_adder::U<{ N }>,

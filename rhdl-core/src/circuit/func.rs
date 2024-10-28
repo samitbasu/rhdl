@@ -7,7 +7,7 @@ use crate::{
     },
     rtl::Object,
     CircuitDescriptor, ClockReset, CompilationMode, Digital, DigitalFn, HDLDescriptor, Kind,
-    RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
+    RHDLError, Synchronous, SynchronousDQZ, SynchronousIO,
 };
 
 use super::hdl_backend::maybe_port_wire;
@@ -24,9 +24,10 @@ impl<I: Digital, O: Digital> SynchronousIO for Func<I, O> {
     type Kernel = NoKernel3<ClockReset, I, (), (O, ())>;
 }
 
-impl<I: Digital, O: Digital> SynchronousDQ for Func<I, O> {
+impl<I: Digital, O: Digital> SynchronousDQZ for Func<I, O> {
     type D = ();
     type Q = ();
+    type Z = ();
 }
 
 impl<I: Digital, O: Digital> Func<I, O> {
@@ -42,7 +43,6 @@ impl<I: Digital, O: Digital> Func<I, O> {
 }
 
 impl<I: Digital, O: Digital> Synchronous for Func<I, O> {
-    type Z = ();
     type S = ();
 
     fn sim(

@@ -1,4 +1,6 @@
-use crate::{Circuit, Clock, ClockReset, Digital, Kind, Reset, Synchronous, TimedSample};
+use crate::{
+    Circuit, CircuitDQZ, Clock, ClockReset, Digital, Kind, Reset, Synchronous, TimedSample,
+};
 
 #[derive(Clone, Debug)]
 pub struct AsynchronousEntry {
@@ -37,7 +39,7 @@ pub fn waveform<T: Circuit>(
     inputs: impl Iterator<Item = TimedSample<T::I>>,
 ) -> AsynchronousWaveform {
     let mut state = <T as Circuit>::S::init();
-    let mut io = <T as Circuit>::Z::default();
+    let mut io = <T as CircuitDQZ>::Z::default();
     let mut previous_time = 0;
     let mut entries = Vec::new();
     for sample in inputs {

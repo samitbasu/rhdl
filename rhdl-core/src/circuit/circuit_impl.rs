@@ -5,21 +5,19 @@ use crate::{
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
 
-pub trait CircuitIO: 'static + Sized + Clone + CircuitDQ {
+pub trait CircuitIO: 'static + Sized + Clone + CircuitDQZ {
     type I: Timed;
     type O: Timed;
     type Kernel: DigitalFn + DigitalFn2<A0 = Self::I, A1 = Self::Q, O = (Self::O, Self::D)>;
 }
 
-pub trait CircuitDQ: 'static + Sized + Clone {
+pub trait CircuitDQZ: 'static + Sized + Clone {
     type D: Timed;
     type Q: Timed;
+    type Z: Tristate;
 }
 
-pub trait Circuit: 'static + Sized + Clone + CircuitIO + CircuitDQ {
-    // auto derived as the sum of NumZ of the children
-    type Z: Tristate;
-
+pub trait Circuit: 'static + Sized + Clone + CircuitIO {
     // State for simulation - auto derived
     type S: Digital;
 

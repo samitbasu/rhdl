@@ -16,7 +16,7 @@ impl<T: Digital> SynchronousIO for U<T> {
     type O = T;
 }
 
-impl<T: Digital> SynchronousDQ for U<T> {
+impl<T: Digital> SynchronousDQZ for U<T> {
     type D = ();
     type Q = ();
 }

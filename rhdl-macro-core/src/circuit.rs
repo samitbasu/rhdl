@@ -1,5 +1,5 @@
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::{spanned::Spanned, Data, DeriveInput};
 
 use crate::utils::FieldSet;
@@ -46,6 +46,9 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
     let component_index = (1..=component_name.len())
         .map(syn::Index::from)
         .collect::<Vec<_>>();
+    let z_index = (0..component_name.len())
+        .map(syn::Index::from)
+        .collect::<Vec<_>>();
     quote! {
         fn sim(&self, input: <Self as rhdl::core::CircuitIO>::I, state: &mut Self::S , io: &mut Self::Z ) -> <Self as CircuitIO>::O {
             let update_fn = <<Self as rhdl::core::CircuitIO>::Kernel as rhdl::core::DigitalFn2>::func();
@@ -55,7 +58,7 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
                 #(
                     rhdl::core::note_push_path(stringify!(#component_name));
                     state.0.#component_name =
-                    self.#component_name.sim(internal_inputs.#component_name, &mut state.#component_index, &mut io.#component_name);
+                    self.#component_name.sim(internal_inputs.#component_name, &mut state.#component_index, &mut io.#z_index);
                     rhdl::core::note_pop_path();
                 )*
                 if state == &prev_state {
@@ -78,45 +81,6 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     };
     let field_set = FieldSet::try_from(&s.fields)?;
     let component_ty = &field_set.component_ty;
-    let component_name = &field_set.component_name;
-    let generics = &decl.generics;
-    // Repeat again with Z and ::Z
-    let name_z = format_ident!("{}Z", struct_name);
-    let new_struct_z = quote!(
-        #[derive(Debug, Clone, PartialEq, Copy, Default)]
-        pub struct #name_z #generics #where_clause {
-            #(#component_name: <#component_ty as rhdl::core::Circuit>::Z),*
-        }
-    );
-    // Add an implementation of Notable for the Z struct.
-    // Should be of the form:
-    // impl rhdl::core::Notable for StructZ {
-    // fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl NoteWriter) {
-    //     self.field1.note((key, stringify!(field1)), &mut writer);
-    //     self.field2.note((key, stringify!(field2)), &mut writer);
-    //     // ...
-    // }
-    // }
-    let component_name = &field_set.component_name;
-    let notable_z_impl = quote! {
-        impl #impl_generics rhdl::core::Notable for #name_z #ty_generics {
-            fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
-                #(self.#component_name.note((key, stringify!(#component_name)), &mut writer);)*
-            }
-        }
-    };
-    // Add an impl of rhdl::core::Tristate for the Z struct.  It should add the ::N constants of
-    // each field.
-    // Should be of the form:
-    // impl rhdl::core::Tristate for StructZ {
-    //     const N: usize = <Field1 as rhdl::core::Circuit>::Z::N + <Field2 as rhdl::core::Circuit>::Z::N + ...;
-    // }
-    let component_ty = &field_set.component_ty;
-    let tristate_z_impl = quote! {
-        impl #impl_generics rhdl::core::Tristate for #name_z #ty_generics {
-            const N: usize = #(<#component_ty as rhdl::core::Circuit>::Z::N +)* 0;
-        }
-    };
     // Add a tuple of the states of the components
     let state_tuple = quote!((Self::Q, #(<#component_ty as rhdl::core::Circuit>::S),*));
     let descriptor_fn = define_descriptor_fn(&field_set);
@@ -124,7 +88,6 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let sim_fn = define_sim_fn(&field_set);
     let circuit_impl = quote! {
         impl #impl_generics rhdl::core::Circuit for #struct_name #ty_generics #where_clause {
-            type Z = #name_z #ty_generics;
             type S = #state_tuple;
 
             #descriptor_fn
@@ -136,9 +99,6 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     };
 
     Ok(quote! {
-        #new_struct_z
-        #notable_z_impl
-        #tristate_z_impl
         #circuit_impl
     })
 }
