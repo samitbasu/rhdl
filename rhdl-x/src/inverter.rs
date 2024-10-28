@@ -19,6 +19,17 @@ pub fn inverter(_cr: ClockReset, i: bool, _q: ()) -> (bool, ()) {
     (!i, ())
 }
 
+#[kernel]
+pub fn func_inverter(_cr: ClockReset, i: bool) -> bool {
+    !i
+}
+
+pub type Uinv = Func<bool, bool>;
+
+pub fn new() -> Result<Uinv, RHDLError> {
+    Func::new::<func_inverter>()
+}
+
 #[cfg(test)]
 mod tests {
 
