@@ -1,11 +1,11 @@
 use rhdl::prelude::*;
 
-#[derive(PartialEq, Clone, Copy, Debug, Digital)]
+#[derive(PartialEq, Clone, Copy, Debug, Notable, Digital)]
 pub struct I {
     pub enable: bool,
 }
 
-#[derive(PartialEq, Clone, Copy, Debug, Default, Digital)]
+#[derive(PartialEq, Clone, Copy, Debug, Default, Notable, Digital)]
 pub enum State {
     #[default]
     Boot,
@@ -14,7 +14,7 @@ pub enum State {
     Done,
 }
 
-#[derive(PartialEq, Clone, Copy, Debug, Default, Digital)]
+#[derive(PartialEq, Clone, Copy, Debug, Default, Notable, Digital)]
 pub enum O {
     #[default]
     Idle,

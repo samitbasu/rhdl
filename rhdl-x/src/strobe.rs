@@ -3,7 +3,7 @@ use rhdl::prelude::*;
 use crate::constant;
 use crate::dff;
 
-#[derive(PartialEq, Clone, Copy, Debug, Digital)]
+#[derive(PartialEq, Clone, Copy, Debug, Notable, Digital)]
 pub struct I {
     pub enable: bool,
 }
@@ -23,13 +23,13 @@ impl<const N: usize> U<N> {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, Digital)]
+#[derive(Clone, Copy, PartialEq, Debug, Notable, Digital)]
 pub struct D<const N: usize> {
     counter: Bits<N>,
     threshold: (),
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, Digital)]
+#[derive(Clone, Copy, PartialEq, Debug, Notable, Digital)]
 pub struct Q<const N: usize> {
     counter: Bits<N>,
     threshold: Bits<N>,

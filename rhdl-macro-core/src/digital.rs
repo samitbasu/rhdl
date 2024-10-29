@@ -1,8 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{spanned::Spanned, Attribute, Data, DeriveInput, Expr};
+use syn::{spanned::Spanned, Data, DeriveInput};
 
-use crate::digital_enum::derive_digital_enum;
+use crate::{digital_enum::derive_digital_enum, utils::parse_rhdl_skip_attribute};
 
 pub fn derive_digital(input: TokenStream) -> syn::Result<TokenStream> {
     let decl = syn::parse2::<syn::DeriveInput>(input)?;
@@ -28,19 +28,6 @@ fn derive_digital_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
         },
         _ => Err(syn::Error::new(decl.span(), "Only structs can be digital")),
     }
-}
-
-fn parse_rhdl_skip_attribute(attrs: &[Attribute]) -> bool {
-    for attr in attrs {
-        if attr.path().is_ident("rhdl") {
-            if let Ok(Expr::Path(path)) = attr.parse_args() {
-                if path.path.is_ident("skip") {
-                    return true;
-                }
-            }
-        }
-    }
-    false
 }
 
 //  Add the module path to the name
@@ -89,13 +76,6 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                                 <#field_types as rhdl::core::Digital>::init(),
                             )*
                         )
-                    }
-                }
-                impl #impl_generics rhdl::core::Notable for #struct_name #ty_generics #where_clause {
-                    fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
-                        #(
-                            rhdl::core::Notable::note(&self.#fields, (key, stringify!(#fields)), &mut writer);
-                        )*
                     }
                 }
                 impl #impl_generics rhdl::core::DigitalFn for #struct_name #ty_generics #where_clause {
@@ -154,14 +134,6 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         }
                     }
                 }
-
-                impl #impl_generics rhdl::core::Notable for #struct_name #ty_generics #where_clause {
-                    fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
-                        #(
-                            rhdl::core::Notable::note(&self.#fields, (key, stringify!(#fields)), &mut writer);
-                        )*
-                    }
-                }
             })
         }
         _ => Err(syn::Error::new(decl.span(), "Only structs can be digital")),
@@ -202,13 +174,6 @@ mod test {
                     result
                 }
             }
-            impl rhdl::core::Notable for NestedBits {
-                fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
-                    rhdl::core::Notable::note(&self.nest_1, (key, stringify!(nest_1)), &mut writer);
-                    rhdl::core::Notable::note(&self.nest_2, (key, stringify!(nest_2)), &mut writer);
-                    rhdl::core::Notable::note(&self.nest_3, (key, stringify!(nest_3)), &mut writer);
-                }
-            }
         };
         assert_tokens_eq(&expected, &output);
     }
@@ -240,13 +205,6 @@ mod test {
                     result.extend(self.write.bin());
                     result.extend(self.read.bin());
                     result
-                }
-            }
-            impl rhdl::core::Notable for Inputs {
-                fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
-                    rhdl::core::Notable::note(&self.input, (key, stringify!(input)), &mut writer);
-                    rhdl::core::Notable::note(&self.write, (key, stringify!(write)), &mut writer);
-                    rhdl::core::Notable::note(&self.read, (key, stringify!(read)), &mut writer);
                 }
             }
         };
@@ -285,13 +243,6 @@ mod test {
                     result
                 }
             }
-            impl<T: Digital> rhdl::core::Notable for Inputs<T> {
-                fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
-                    rhdl::core::Notable::note(&self.input, (key, stringify!(input)), &mut writer);
-                    rhdl::core::Notable::note(&self.write, (key, stringify!(write)), &mut writer);
-                    rhdl::core::Notable::note(&self.read, (key, stringify!(read)), &mut writer);
-                }
-            }
         };
         assert_tokens_eq(&expected, &output);
     }
@@ -325,13 +276,6 @@ mod test {
                     result
                 }
             }
-            impl rhdl::core::Notable for Inputs {
-                fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
-                    rhdl::core::Notable::note(&self.input, (key, stringify!(input)), &mut writer);
-                    rhdl::core::Notable::note(&self.write, (key, stringify!(write)), &mut writer);
-                    rhdl::core::Notable::note(&self.read, (key, stringify!(read)), &mut writer);
-                }
-            }
         };
         assert_tokens_eq(&expected, &output);
     }
@@ -359,13 +303,6 @@ mod test {
                     result.extend(self.1.bin());
                     result.extend(self.2.bin());
                     result
-                }
-            }
-            impl rhdl::core::Notable for Inputs {
-                fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
-                    rhdl::core::Notable::note(&self.0, (key, stringify!(0)), &mut writer);
-                    rhdl::core::Notable::note(&self.1, (key, stringify!(1)), &mut writer);
-                    rhdl::core::Notable::note(&self.2, (key, stringify!(2)), &mut writer);
                 }
             }
             impl rhdl::core::DigitalFn for Inputs {

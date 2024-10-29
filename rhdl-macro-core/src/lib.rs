@@ -15,3 +15,6 @@ mod synchronous;
 pub use synchronous::derive_synchronous;
 mod synchronous_dqz;
 pub use synchronous_dqz::derive_synchronous_dqz;
+mod notable;
+mod notable_enum;
+pub use notable::derive_notable;

@@ -7,6 +7,8 @@ use rhdl::prelude::*;
 use std::io::Write;
 use std::iter::repeat;
 use std::{io, iter};
+mod trizsnd;
+use trizsnd::Cmd;
 
 use anyhow::ensure;
 /* use rhdl_core::as_verilog_literal;
@@ -49,6 +51,9 @@ pub mod state_cycler;
 //mod timeset;
 //mod visit;
 mod async_counter;
+mod bitz;
+mod busz;
+mod trizrcv;
 //mod demo;
 
 //#[cfg(test)]
@@ -83,6 +88,56 @@ mod async_counter;
 */
 
 #[test]
+fn test_triz_pair() {
+    #[derive(Clone, Debug, Synchronous, SynchronousDQZ, Default)]
+    pub struct Fixture {
+        pub snd: trizsnd::U,
+        pub rcv: trizrcv::U,
+    }
+
+    type I = Option<trizsnd::Cmd>;
+    type O = Option<Bits<8>>;
+
+    impl SynchronousIO for Fixture {
+        type I = I;
+        type O = O;
+        type Kernel = fixture;
+    }
+
+    #[kernel]
+    pub fn fixture(cr: ClockReset, i: I, q: Q) -> (O, D) {
+        let mut d = D::init();
+        d.rcv.bitz = q.snd.bitz;
+        d.rcv.state = q.snd.control;
+        d.snd.bitz = q.rcv;
+        d.snd.cmd = i;
+        (q.snd.data, d)
+    }
+
+    let cmd = [
+        None,
+        None,
+        Some(Cmd::Write(bits(0x15))),
+        None,
+        None,
+        Some(Cmd::Read),
+        None,
+        None,
+        None,
+        None,
+    ];
+    /*     let inputs = cmd.iter().map(|x| trizsnd::I {
+           bitz: Default::default(),
+           cmd: *x,
+       });
+    */
+    let inputs = cmd.into_iter();
+    let inputs = test_stream(inputs);
+    let uut = Fixture::default();
+    traced_synchronous_simulation(&uut, inputs, "trizsnd.vcd");
+}
+
+#[test]
 fn test_empty_mut() {
     let mut a = ();
     let b = &mut a;
@@ -92,7 +147,7 @@ fn test_empty_mut() {
 #[test]
 #[allow(clippy::assign_op_pattern)]
 fn test_adt_shadow() {
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Notable, Digital, Default)]
     pub enum NooState {
         #[default]
         Init,

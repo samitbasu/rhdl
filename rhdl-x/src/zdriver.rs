@@ -3,7 +3,7 @@ use rhdl::prelude::*;
 #[derive(Debug, Clone, Default)]
 pub struct ZDriver<const N: usize> {}
 
-#[derive(Debug, Clone, PartialEq, Copy, Digital)]
+#[derive(Debug, Clone, PartialEq, Copy, Notable, Digital)]
 pub struct ZDriverIn<const N: usize> {
     pub mask: Bits<N>,
     pub data: Bits<N>,

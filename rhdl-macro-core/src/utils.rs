@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::spanned::Spanned;
-use syn::DeriveInput;
+use syn::{Attribute, DeriveInput, Expr};
 
 pub(crate) fn get_fqdn(decl: &DeriveInput) -> TokenStream {
     let struct_name = &decl.ident;
@@ -97,4 +97,17 @@ impl<'a> TryFrom<&'a syn::Fields> for FieldSet<'a> {
             component_ty,
         })
     }
+}
+
+pub(crate) fn parse_rhdl_skip_attribute(attrs: &[Attribute]) -> bool {
+    for attr in attrs {
+        if attr.path().is_ident("rhdl") {
+            if let Ok(Expr::Path(path)) = attr.parse_args() {
+                if path.path.is_ident("skip") {
+                    return true;
+                }
+            }
+        }
+    }
+    false
 }
