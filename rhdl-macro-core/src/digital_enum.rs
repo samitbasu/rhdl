@@ -20,7 +20,7 @@ use crate::utils::evaluate_const_expression;
 // For a signed discriminant make sure we test both ends.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum DiscriminantType {
+pub(crate) enum DiscriminantType {
     Unsigned(usize),
     Signed(usize),
 }
@@ -35,12 +35,12 @@ impl DiscriminantType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum DiscriminantAlignment {
+pub(crate) enum DiscriminantAlignment {
     Lsb,
     Msb,
 }
 
-fn override_width(
+pub(crate) fn override_width(
     width: DiscriminantType,
     new_width: Option<(usize, Span)>,
 ) -> syn::Result<DiscriminantType> {
@@ -102,7 +102,9 @@ fn parse_discriminant_alignment_attribute(
     Ok(None)
 }
 
-fn parse_discriminant_width_attribute(attrs: &[Attribute]) -> syn::Result<Option<(usize, Span)>> {
+pub(crate) fn parse_discriminant_width_attribute(
+    attrs: &[Attribute],
+) -> syn::Result<Option<(usize, Span)>> {
     for attr in attrs {
         if attr.path().is_ident("rhdl") {
             if let Ok(Expr::Assign(assign)) = attr.parse_args::<Expr>() {
@@ -123,7 +125,7 @@ fn parse_discriminant_width_attribute(attrs: &[Attribute]) -> syn::Result<Option
     Ok(None)
 }
 
-fn discriminant_kind(discriminants: &[i64]) -> DiscriminantType {
+pub(crate) fn discriminant_kind(discriminants: &[i64]) -> DiscriminantType {
     let min = discriminants.iter().min().unwrap();
     let max = discriminants.iter().max().unwrap();
     if *min >= 0 {
@@ -142,7 +144,7 @@ fn discriminant_kind(discriminants: &[i64]) -> DiscriminantType {
     }
 }
 
-fn allocate_discriminants(discriminants: &[Option<i64>]) -> Vec<i64> {
+pub(crate) fn allocate_discriminants(discriminants: &[Option<i64>]) -> Vec<i64> {
     discriminants
         .iter()
         .scan(0, |state, x| {
@@ -251,56 +253,9 @@ fn variant_payload_bin(
     }
 }
 
-fn variant_note_case(variant: &Variant, kind: DiscriminantType, disc: &i64) -> TokenStream {
-    let variant_name = &variant.ident;
-    let discriminant = match kind {
-        DiscriminantType::Unsigned(x) => {
-            let x = x as u8;
-            quote! {
-                writer.write_bits((key,"__disc"), #disc as u128, #x);
-            }
-        }
-        DiscriminantType::Signed(x) => {
-            let x = x as u8;
-            quote! {
-                writer.write_signed((key,"__disc"), #disc as i128, #x);
-            }
-        }
-    };
-    let payloads = match &variant.fields {
-        syn::Fields::Unit => quote! {},
-        syn::Fields::Unnamed(fields) => {
-            let field_names = fields
-                .unnamed
-                .iter()
-                .enumerate()
-                .map(|(i, _)| format_ident!("_{}", i));
-            let field_numbers = fields.unnamed.iter().enumerate().map(|(i, _)| i);
-            quote! {
-                #(
-                    rhdl::core::Notable::note(#field_names, (key, #field_numbers), &mut writer);
-                )*
-            }
-        }
-        syn::Fields::Named(fields) => {
-            let field_names = fields.named.iter().map(|f| &f.ident);
-            quote! {
-                #(
-                    rhdl::core::Notable::note(#field_names, (key, stringify!(#field_names)), &mut writer);
-                )*
-            }
-        }
-    };
-    quote! {
-        writer.write_string(key, stringify!(#variant_name));
-        #discriminant
-        #payloads
-    }
-}
-
 // Generate the payload destructure arguments used in the
 // match
-fn variant_destructure_args(variant: &Variant) -> TokenStream {
+pub(crate) fn variant_destructure_args(variant: &Variant) -> TokenStream {
     match &variant.fields {
         syn::Fields::Unit => quote! {},
         syn::Fields::Unnamed(fields) => {
@@ -377,11 +332,6 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
     let kind = discriminant_kind(&discriminants_values);
     let width_override = parse_discriminant_width_attribute(&decl.attrs)?;
     let kind = override_width(kind, width_override)?;
-    let note_fns = e
-        .variants
-        .iter()
-        .zip(discriminants_values.iter())
-        .map(|(variant, discriminant)| variant_note_case(variant, kind, discriminant));
     let width_bits = kind.bits();
     let discriminants = discriminants_values
         .iter()
@@ -439,15 +389,6 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
             }
             fn init() -> Self {
                 <Self as Default>::default()
-            }
-        }
-        impl #impl_generics rhdl::core::Notable for #enum_name #ty_generics #where_clause {
-            fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
-                match self {
-                    #(
-                        Self::#variant_names #variant_destructure_args => {#note_fns},
-                    )*
-                }
             }
         }
     })

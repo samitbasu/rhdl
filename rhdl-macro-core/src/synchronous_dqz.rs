@@ -26,13 +26,13 @@ fn derive_synchronous_dqz_struct(decl: DeriveInput) -> syn::Result<TokenStream> 
     // Create a new struct by appending a Q to the name of the struct, and for each field, map
     // the type to <ty as rhdl::core::Synchronous>::O,
     let new_struct_q = quote! {
-        #[derive(Debug, Clone, PartialEq, Digital, Copy)]
+        #[derive(Debug, Clone, PartialEq, Digital, Notable, Copy)]
         pub struct Q #generics #where_clause {
             #(#component_name: <#component_ty as rhdl::core::SynchronousIO>::O),*
         }
     };
     let new_struct_d = quote! {
-        #[derive(Debug, Clone, PartialEq, Digital, Copy)]
+        #[derive(Debug, Clone, PartialEq, Digital, Notable, Copy)]
         pub struct D #generics #where_clause {
             #(#component_name: <#component_ty as rhdl::core::SynchronousIO>::I),*
         }

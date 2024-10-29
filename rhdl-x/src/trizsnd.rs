@@ -1,0 +1,114 @@
+use rhdl::prelude::*;
+
+use crate::bitz::Bitz;
+
+#[derive(PartialEq, Clone, Copy, Debug, Default, Notable, Digital)]
+pub enum State {
+    #[default]
+    Idle,
+    Write,
+    ReadReq,
+    ReadRcv,
+    ValueEmit,
+}
+
+#[derive(PartialEq, Clone, Copy, Debug, Default, Notable, Digital)]
+pub enum Cmd {
+    Write(b8),
+    #[default]
+    Read,
+}
+
+#[derive(PartialEq, Clone, Copy, Debug, Notable, Digital, Default)]
+pub enum LineState {
+    Write,
+    #[default]
+    Read,
+}
+
+#[derive(PartialEq, Clone, Copy, Debug, Notable, Digital)]
+pub struct I {
+    pub bitz: Bitz<8>,
+    pub cmd: Option<Cmd>,
+}
+
+#[derive(PartialEq, Clone, Copy, Debug, Notable, Digital, Default)]
+pub struct O {
+    pub bitz: Bitz<8>,
+    pub control: Option<LineState>,
+    pub data: Option<b8>,
+}
+
+#[derive(Clone, Debug, Synchronous, SynchronousDQZ)]
+pub struct U {
+    state: crate::dff::U<State>,
+    reg: crate::dff::U<b8>,
+}
+
+impl Default for U {
+    fn default() -> Self {
+        Self {
+            state: crate::dff::U::new(State::Idle),
+            reg: crate::dff::U::new(b8::default()),
+        }
+    }
+}
+
+impl SynchronousIO for U {
+    type I = I;
+    type O = O;
+    type Kernel = trizsnd;
+}
+
+#[kernel]
+pub fn trizsnd(cr: ClockReset, i: I, q: Q) -> (O, D) {
+    let mut d = D::init();
+    d.reg = q.reg;
+    let mut state = q.state;
+    let mut o = O::default();
+    note("input", i);
+    note("current_state", state);
+    if state == State::Write {
+        o.bitz.value = q.reg;
+        o.bitz.mask = bits::<8>(0xff);
+        o.control = Some(LineState::Write);
+    }
+    if state == State::ReadReq {
+        o.control = Some(LineState::Read);
+    }
+    if state == State::ReadRcv {
+        d.reg = i.bitz.value;
+    }
+    if state == State::ValueEmit {
+        o.data = Some(q.reg);
+    }
+    match state {
+        State::Idle => match i.cmd {
+            Some(Cmd::Write(data)) => {
+                state = State::Write;
+                d.reg = data;
+            }
+            Some(Cmd::Read) => {
+                state = State::ReadReq;
+            }
+            None => {}
+        },
+        State::Write => {
+            state = State::Idle;
+        }
+        State::ReadReq => {
+            state = State::ReadRcv;
+        }
+        State::ReadRcv => {
+            state = State::ValueEmit;
+        }
+        State::ValueEmit => {
+            state = State::Idle;
+        }
+    }
+    o.bitz.mask |= i.bitz.mask;
+    o.bitz.value |= i.bitz.value & i.bitz.mask;
+    d.state = state;
+    note("output", o);
+    (o, d)
+}
