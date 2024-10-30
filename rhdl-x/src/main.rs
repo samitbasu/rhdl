@@ -9,8 +9,9 @@ use std::iter::repeat;
 use std::{io, iter};
 mod trizsnd;
 use trizsnd::Cmd;
+mod bit4;
+mod bitvector;
 mod trace;
-
 use anyhow::ensure;
 /* use rhdl_core::as_verilog_literal;
 use rhdl_core::codegen::verilog::as_verilog_decl;

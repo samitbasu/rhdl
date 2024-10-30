@@ -12,7 +12,7 @@ use std::{
 use smallvec::SmallVec;
 use vcd::IdCode;
 
-use crate::{Digital, Kind, NoteKey};
+use crate::{bitvector::BitVector, Digital, Kind, NoteKey};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TraceBit {
@@ -382,6 +382,27 @@ fn test_micro_benchmark() {
 }
 
 #[test]
+fn test_bit_vector_time() {
+    let tic = std::time::Instant::now();
+    let mut total_bits = 0;
+    for i in 0..10_000_000 {
+        let val = (i % 57) as u64;
+        let mut bits = BitVector::default();
+        let num_bits = if i % 1000 == 0 { 48 } else { 16 };
+        for ndx in 0..num_bits {
+            if val & (1 << ndx) != 0 {
+                bits.push(true);
+            } else {
+                bits.push(false);
+            }
+        }
+        total_bits += bits.len();
+    }
+    let toc = std::time::Instant::now();
+    eprintln!("BitString: {:?} {total_bits}", toc - tic);
+}
+
+#[test]
 fn test_fast_serialization_time() {
     #[derive(Copy, Clone, PartialEq, Default, Digital, Notable)]
     enum Mixed {
@@ -401,8 +422,8 @@ fn test_fast_serialization_time() {
         _ => panic!("Not an enum"),
     };
     let self_bits = kind.bits();
-    //type BitV = SmallVec<[bool; 16]>;
-    type BitV = Vec<bool>;
+    type BitV = SmallVec<[bool; 16]>;
+    //type BitV = Vec<bool>;
     let pad = |bits: BitV| -> BitV {
         let pad_len = self_bits - bits.len();
         let bits = bits.into_iter().chain(repeat(false).take(pad_len));
