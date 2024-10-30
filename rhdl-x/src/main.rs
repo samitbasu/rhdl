@@ -9,6 +9,7 @@ use std::iter::repeat;
 use std::{io, iter};
 mod trizsnd;
 use trizsnd::Cmd;
+mod trace;
 
 use anyhow::ensure;
 /* use rhdl_core::as_verilog_literal;

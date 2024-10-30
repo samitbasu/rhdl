@@ -82,3 +82,4 @@ pub use types::timed_sample::timed_sample;
 pub use types::timed_sample::TimedSample;
 pub mod hdl;
 pub use sim::waveform::waveform_synchronous;
+pub mod trace;
