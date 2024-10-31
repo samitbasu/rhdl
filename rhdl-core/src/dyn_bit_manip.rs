@@ -113,9 +113,49 @@ pub(crate) fn bits_shr_signed(a: &[bool], b: i64) -> Vec<bool> {
         .collect()
 }
 
+pub fn move_nbits_to_msb(a: &[bool], n: usize) -> Vec<bool> {
+    let (left, right) = a.split_at(n);
+    [right, left].concat()
+}
+
+#[macro_export]
+macro_rules! const_max {
+    ($x: expr) => ($x);
+    ($x: expr, $($z: expr), +) => (
+        if $x > const_max!($($z), +) {
+            $x
+        } else {
+            const_max!($($z), +)
+        }
+    );
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn concat_test() {
+        let a = vec![true, false, true];
+        let b = [a.as_slice()].concat();
+        assert_eq!(b, vec![true, false, true]);
+    }
+
+    #[test]
+    fn test_const_max_macro() {
+        assert_eq!(const_max!(1, 2, 3, 4, 5), 5);
+        assert_eq!(const_max!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), 10);
+    }
+
+    #[test]
+    fn test_move_nbits_to_msb() {
+        let a: Vec<bool> = (0..200).map(|_| rand::random()).collect();
+        for n in 0..a.len() {
+            let b = move_nbits_to_msb(&a, n);
+            let c = a.iter().skip(n).chain(a.iter().take(n));
+            assert!(c.eq(b.iter()));
+        }
+    }
 
     #[test]
     fn test_bigint_conversion() {

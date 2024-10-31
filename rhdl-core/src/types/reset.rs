@@ -20,6 +20,7 @@ pub fn reset(b: bool) -> Reset {
 }
 
 impl Digital for Reset {
+    const BITS: usize = 1;
     fn static_kind() -> Kind {
         Kind::make_bool()
     }

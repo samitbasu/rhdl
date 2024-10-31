@@ -13,6 +13,7 @@ pub fn clock_reset(clock: Clock, reset: Reset) -> ClockReset {
 }
 
 impl Digital for ClockReset {
+    const BITS: usize = Clock::BITS + Reset::BITS;
     fn static_kind() -> Kind {
         Kind::make_struct(
             "ClockReset",

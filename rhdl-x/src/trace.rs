@@ -1,3 +1,4 @@
+use rand::random;
 use rhdl::{
     core::{note_pop_path, note_push_path, types::note, DiscriminantAlignment},
     prelude::*,
@@ -24,7 +25,8 @@ pub enum TraceBit {
 
 type TimeSeriesHash = u32;
 
-pub type TraceValue = SmallVec<[TraceBit; 8]>;
+//pub type TraceValue = SmallVec<[TraceBit; 16]>;
+pub type TraceValue = Vec<TraceBit>;
 
 fn bits_to_vcd(value: &TraceValue, buf: &mut SmallVec<[u8; 64]>) {
     value.iter().rev().for_each(|b| match b {
@@ -56,10 +58,9 @@ struct TimeSeriesDetails {
 
 impl TimeSeries {
     fn new(time: u64, value: TraceValue, kind: Kind) -> Self {
-        TimeSeries {
-            values: vec![(time, value)],
-            kind,
-        }
+        let mut values = Vec::with_capacity(1_000_000);
+        values.push((time, value));
+        TimeSeries { values, kind }
     }
     fn push_if_changed(&mut self, time: u64, value: TraceValue) {
         if let Some((_, last_value)) = self.values.last() {
@@ -122,6 +123,7 @@ pub struct TraceDB {
     details: fnv::FnvHashMap<TimeSeriesHash, TimeSeriesDetails>,
     path: Vec<&'static str>,
     time: u64,
+    dummy: u64,
 }
 
 impl TraceDB {
@@ -145,7 +147,7 @@ impl TraceDB {
         // TODO - placeholder until we have a dedicated trace method on Digital.
         let value_as_trace = value
             .bin()
-            .iter()
+            .into_iter()
             .map(|b| match b {
                 false => TraceBit::Zero,
                 true => TraceBit::One,
@@ -158,10 +160,11 @@ impl TraceDB {
             Entry::Vacant(entry) => {
                 let kind = value.kind();
                 eprintln!(
-                    "Defining new time series: {path:?} {key} {kind:?}",
+                    "Defining new time series: {path:?} {key} {kind:?} {bits}",
                     path = self.path,
                     key = key.as_string(),
-                    kind = kind
+                    kind = kind,
+                    bits = kind.bits(),
                 );
                 let details = TimeSeriesDetails {
                     hash,
@@ -298,7 +301,115 @@ fn test_trace_db() {
 }
 
 #[test]
-fn test_trace_with_enum_performance() {
+fn test_bit_shuffling_iter_chain_time() {
+    let tic = std::time::Instant::now();
+    let mut total_bits = 0;
+    let host_bits = (0..200).map(|_| rand::random::<bool>()).collect::<Vec<_>>();
+    for i in 0..10_000_000 {
+        let len = rand::random::<usize>() % 100 + 4;
+        let width = rand::random::<usize>() % len;
+        let mut orig = host_bits.iter().take(len).copied().collect::<Vec<_>>();
+        orig.resize(110, false);
+        let right = orig.iter().skip(width).take(len - width);
+        let left = orig.iter().take(width);
+        let bits = right.chain(left).copied().collect::<Vec<_>>();
+        if let Some(bit) = bits.last() {
+            if *bit {
+                total_bits += 1;
+            }
+        }
+    }
+    let toc = std::time::Instant::now();
+    eprintln!("BitShuffling Iter Chain: {:?} {total_bits}", toc - tic);
+}
+
+#[test]
+fn test_bit_shuffling_split_time() {
+    let tic = std::time::Instant::now();
+    let mut total_bits = 0;
+    let host_bits = (0..200).map(|_| rand::random::<bool>()).collect::<Vec<_>>();
+    for i in 0..10_000_000 {
+        let len = rand::random::<usize>() % 100 + 4;
+        let width = rand::random::<usize>() % len;
+        let mut orig = host_bits.iter().take(len).copied().collect::<Vec<_>>();
+        orig.resize(110, false);
+        let (left, right) = orig.split_at(width);
+        let bits = right.iter().chain(left.iter()).copied().collect::<Vec<_>>();
+        if let Some(bit) = bits.last() {
+            if *bit {
+                total_bits += 1;
+            }
+        }
+    }
+    let toc = std::time::Instant::now();
+    eprintln!("BitShuffling: {:?} {total_bits}", toc - tic);
+}
+
+#[test]
+fn test_bit_shuffling_move_time() {
+    let tic = std::time::Instant::now();
+    let mut total_bits = 0;
+    let host_bits = (0..200).map(|_| rand::random::<bool>()).collect::<Vec<_>>();
+    for i in 0..10_000_000 {
+        let len = rand::random::<usize>() % 100 + 4;
+        let width = rand::random::<usize>() % len;
+        let mut orig = host_bits.iter().take(len).copied().collect::<Vec<_>>();
+        orig.resize(110, false);
+        let (left, right) = orig.split_at(width);
+        let bits = [right, left].concat();
+        if let Some(bit) = bits.last() {
+            if *bit {
+                total_bits += 1;
+            }
+        }
+    }
+    let toc = std::time::Instant::now();
+    eprintln!("BitShuffling (MOVE): {:?} {total_bits}", toc - tic);
+}
+
+#[test]
+fn test_bit_shuffling_min_time() {
+    let tic = std::time::Instant::now();
+    let mut total_bits = 0;
+    let host_bits = (0..200).map(|_| rand::random::<bool>()).collect::<Vec<_>>();
+    for i in 0..10_000_000 {
+        let len = rand::random::<usize>() % 100 + 4;
+        let width = rand::random::<usize>() % len;
+        let mut orig = host_bits.iter().take(len).copied().collect::<Vec<_>>();
+        orig.resize(110, false);
+        if let Some(bit) = orig.last() {
+            if *bit {
+                total_bits += 1;
+            }
+        }
+    }
+    let toc = std::time::Instant::now();
+    eprintln!("BitShuffling (BIAS): {:?} {total_bits}", toc - tic);
+}
+
+#[test]
+fn test_bit_shuffling_extend_min_time() {
+    let tic = std::time::Instant::now();
+    let mut total_bits = 0;
+    let host_bits = (0..200).map(|_| rand::random::<bool>()).collect::<Vec<_>>();
+    for i in 0..10_000_000 {
+        let len = rand::random::<usize>() % 100 + 4;
+        let width = rand::random::<usize>() % len;
+        let mut orig = host_bits.iter().take(len).copied().collect::<Vec<_>>();
+        let pad = 110_usize.saturating_sub(len);
+        orig.extend(vec![false; pad]);
+        if let Some(bit) = orig.last() {
+            if *bit {
+                total_bits += 1;
+            }
+        }
+    }
+    let toc = std::time::Instant::now();
+    eprintln!("BitShuffling (BIAS 2): {:?} {total_bits}", toc - tic);
+}
+
+#[test]
+fn test_trace_with_enum_performance_serialization() {
     #[derive(Copy, Clone, PartialEq, Default, Digital, Notable)]
     enum Mixed {
         #[default]
@@ -522,7 +633,7 @@ fn test_serialization_time() {
 }
 
 #[test]
-fn test_new_tracedb_performance() {
+fn test_new_tracedb_performance_serialization() {
     #[derive(Copy, Clone, PartialEq, Default, Digital, Notable)]
     enum Mixed {
         #[default]

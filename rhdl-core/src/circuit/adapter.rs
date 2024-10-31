@@ -42,6 +42,7 @@ impl<I: Digital, D: Domain> Notable for AdapterInput<I, D> {
 }
 
 impl<I: Digital, D: Domain> Digital for AdapterInput<I, D> {
+    const BITS: usize = <Signal<ClockReset, D> as Digital>::BITS + <Signal<I, D> as Digital>::BITS;
     fn static_kind() -> crate::Kind {
         Kind::make_struct(
             "AdapterInput",

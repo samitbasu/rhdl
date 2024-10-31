@@ -118,7 +118,7 @@ impl<const N: usize> Bits<N> {
     /// Build a (dynamic, stack allocated) vector containing
     /// the bits that make up this value.  This will be slow.
     pub fn to_bools(self) -> Vec<bool> {
-        let mut v = Vec::new();
+        let mut v = Vec::with_capacity(N);
         let mut x = self.0;
         for _i in 0..N {
             v.push(x & 1 == 1);

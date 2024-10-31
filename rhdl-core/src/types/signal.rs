@@ -30,6 +30,7 @@ impl<T: Digital, C: Domain> Signal<T, C> {
 impl<T: Digital, C: Domain> Timed for Signal<T, C> {}
 
 impl<T: Digital, C: Domain> Digital for Signal<T, C> {
+    const BITS: usize = T::BITS;
     fn static_kind() -> Kind {
         Kind::make_signal(T::static_kind(), C::color())
     }

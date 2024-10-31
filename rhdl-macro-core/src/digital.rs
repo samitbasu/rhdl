@@ -53,6 +53,9 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                 .collect::<Vec<_>>();
             Ok(quote! {
                 impl #impl_generics rhdl::core::Digital for #struct_name #ty_generics #where_clause {
+                    const BITS: usize = #(
+                        <#field_types as rhdl::core::Digital>::BITS
+                    )+*;
                     fn static_kind() -> rhdl::core::Kind {
                         rhdl::core::Kind::make_struct(
                             #fqdn,
@@ -64,11 +67,11 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                     )
                     }
                     fn bin(self) -> Vec<bool> {
-                        let mut result = vec![];
+                        [
                         #(
-                            result.extend(self.#fields.bin());
+                            self.#fields.bin().as_slice(),
                         )*
-                        result
+                        ].concat()
                     }
                     fn init() -> Self {
                         Self(
@@ -109,6 +112,9 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                 .collect::<Vec<_>>();
             Ok(quote! {
                 impl #impl_generics rhdl::core::Digital for #struct_name #ty_generics #where_clause {
+                    const BITS: usize = #(
+                        <#field_types as rhdl::core::Digital>::BITS
+                    )+*;
                     fn static_kind() -> rhdl::core::Kind {
                         rhdl::core::Kind::make_struct(
                             #fqdn,
@@ -120,11 +126,11 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                     )
                     }
                     fn bin(self) -> Vec<bool> {
-                        let mut result = vec![];
+                        [
                         #(
-                            result.extend(self.#fields.bin());
+                            self.#fields.bin().as_slice(),
                         )*
-                        result
+                        ].concat()
                     }
                     fn init() -> Self {
                         Self {

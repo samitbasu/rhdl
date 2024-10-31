@@ -83,3 +83,4 @@ pub use types::timed_sample::TimedSample;
 pub mod hdl;
 pub use sim::waveform::waveform_synchronous;
 pub mod trace;
+pub use dyn_bit_manip::move_nbits_to_msb;
