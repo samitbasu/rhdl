@@ -188,6 +188,24 @@ fn variant_kind_mapping(enum_name: &Ident, variant: &Variant) -> TokenStream {
     }
 }
 
+fn variant_bits_mapping(variant: &Variant) -> TokenStream {
+    match &variant.fields {
+        syn::Fields::Unit => quote! {0_usize},
+        syn::Fields::Unnamed(fields) => {
+            let field_types = fields.unnamed.iter().map(|f| &f.ty);
+            quote! {
+                #(<#field_types as rhdl::core::Digital>::BITS)+*
+            }
+        }
+        syn::Fields::Named(fields) => {
+            let field_types = fields.named.iter().map(|f| &f.ty);
+            quote! {
+                #(<#field_types as rhdl::core::Digital>::BITS)+*
+            }
+        }
+    }
+}
+
 fn make_discriminant_values_into_typed_bits(
     kind: DiscriminantType,
     values: &[i64],
@@ -300,7 +318,9 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
     let Data::Enum(e) = decl.data else {
         return Err(syn::Error::new(decl.span(), "Only enums can be digital"));
     };
-    let discriminant_alignment = match parse_discriminant_alignment_attribute(&decl.attrs)?
+    let discriminant_alignment =
+        parse_discriminant_alignment_attribute(&decl.attrs)?.unwrap_or(DiscriminantAlignment::Msb);
+    let discriminant_alignment_expr = match parse_discriminant_alignment_attribute(&decl.attrs)?
         .unwrap_or(DiscriminantAlignment::Msb)
     {
         DiscriminantAlignment::Lsb => quote! { rhdl::core::DiscriminantAlignment::Lsb },
@@ -329,10 +349,16 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         .iter()
         .map(|v| variant_kind_mapping(enum_name, v));
     let variant_kind_mapping = kind_mapping.clone();
+    let variant_bits_mapping = e.variants.iter().map(variant_bits_mapping);
     let kind = discriminant_kind(&discriminants_values);
     let width_override = parse_discriminant_width_attribute(&decl.attrs)?;
     let kind = override_width(kind, width_override)?;
     let width_bits = kind.bits();
+    let swap_endian_fn = if discriminant_alignment == DiscriminantAlignment::Lsb {
+        quote!(raw)
+    } else {
+        quote!(rhdl::core::move_nbits_to_msb(&raw, #width_bits))
+    };
     let discriminants = discriminants_values
         .iter()
         .map(|x| quote! { #x })
@@ -350,6 +376,10 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
     };
     Ok(quote! {
         impl #impl_generics rhdl::core::Digital for #enum_name #ty_generics #where_clause {
+            // BITS is the width of the discriminant (#width_bits) plus the maximum width
+            // of the variant payloads.  This is calculated by taking the maximum width of
+            // all the variant payloads and adding #width_bits.
+            const BITS: usize = #width_bits + rhdl::core::const_max!(#(#variant_bits_mapping),*);
             fn static_kind() -> rhdl::core::Kind {
                 rhdl::core::Kind::make_enum(
                     #fqdn,
@@ -360,18 +390,21 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                     ],
                     rhdl::core::Kind::make_discriminant_layout(
                         #width_bits,
-                        #discriminant_alignment,
+                        #discriminant_alignment_expr,
                         #discriminant_ty
                     )
                 )
             }
             fn bin(self) -> Vec<bool> {
-                self.kind().pad(match self {
+                //self.kind().pad
+                let mut raw =
+                    match self {
                     #(
                         Self::#variant_names #variant_destructure_args => {#bin_fns}
                     )*
-                })
-
+                };
+                raw.resize(Self::BITS, false);
+                #swap_endian_fn
             }
             fn discriminant(self) -> rhdl::core::TypedBits {
                 match self {

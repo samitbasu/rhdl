@@ -854,6 +854,7 @@ mod tests {
         }
 
         impl Digital for Baz {
+            const BITS: usize = 19;
             fn static_kind() -> Kind {
                 Kind::make_enum(
                     concat!(module_path!(), "::", stringify!(Baz)),
@@ -949,6 +950,7 @@ mod tests {
         }
 
         impl Digital for Bar {
+            const BITS: usize = 17;
             fn static_kind() -> Kind {
                 Kind::make_struct(
                     "Bar",
@@ -985,6 +987,7 @@ mod tests {
         }
 
         impl Digital for Foo {
+            const BITS: usize = 17;
             fn static_kind() -> Kind {
                 Kind::make_struct(
                     "Foo",
@@ -1007,6 +1010,10 @@ mod tests {
                 }
             }
         }
+
+        assert_eq!(Baz::BITS, Baz::static_kind().bits());
+        assert_eq!(Foo::BITS, Foo::static_kind().bits());
+        assert_eq!(Bar::BITS, Bar::static_kind().bits());
 
         let a = 0x47_u8.typed_bits();
         assert_eq!(format!("{:?}", a), "47_b8");

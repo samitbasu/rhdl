@@ -14,6 +14,7 @@ pub use rhdl_core::circuit::synchronous::SynchronousDQZ;
 pub use rhdl_core::circuit::synchronous::SynchronousIO;
 pub use rhdl_core::compile_design;
 pub use rhdl_core::compiler::driver::compile_design_stage1;
+pub use rhdl_core::const_max;
 pub use rhdl_core::error::RHDLError;
 pub use rhdl_core::flow_graph::build_rtl_flow_graph;
 pub use rhdl_core::flow_graph::component::Component;

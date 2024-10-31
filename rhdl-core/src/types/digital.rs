@@ -1,6 +1,8 @@
 use rhdl_bits::{bits, Bits, SignedBits};
 
-use crate::{DiscriminantAlignment, DiscriminantType, Kind, NoteKey, NoteWriter, TypedBits};
+use crate::{
+    const_max, DiscriminantAlignment, DiscriminantType, Kind, NoteKey, NoteWriter, TypedBits,
+};
 
 use super::{kind::DiscriminantLayout, note::Notable};
 
@@ -41,6 +43,7 @@ use super::{kind::DiscriminantLayout, note::Notable};
 /// These are all supported in `RHDL`.
 ///
 pub trait Digital: Copy + PartialEq + Sized + Clone + 'static + Notable {
+    const BITS: usize;
     fn static_kind() -> Kind;
     fn bits() -> usize {
         Self::static_kind().bits()
@@ -72,6 +75,7 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static + Notable {
 }
 
 impl<T: Digital> Digital for Option<T> {
+    const BITS: usize = 1 + T::BITS;
     fn static_kind() -> Kind {
         Kind::make_enum(
             &format!("Option::<{}>", std::any::type_name::<T>()),
@@ -115,17 +119,30 @@ impl<T: Digital> Digital for Option<T> {
 
 impl<T: Digital> Notable for Option<T> {
     fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
+        let writer = &mut writer;
         match self {
             Self::None => writer.write_string(key, "None"),
             Self::Some(x) => {
                 writer.write_string(key, "Some");
-                x.note((key, 0), writer);
+                x.note((key, 0), &mut *writer);
             }
+        }
+        let raw = self.bin();
+        if raw.len() < 128 {
+            let mut val = 0u128;
+            for bit in raw.iter().rev() {
+                val <<= 1;
+                if *bit {
+                    val |= 1;
+                }
+            }
+            writer.write_bits((key, "raw"), val, raw.len() as u8);
         }
     }
 }
 
 impl<O: Digital, E: Digital> Digital for Result<O, E> {
+    const BITS: usize = 1 + const_max!(O::BITS, E::BITS);
     fn static_kind() -> Kind {
         Kind::make_enum(
             &format!(
@@ -191,6 +208,7 @@ impl<O: Digital, E: Digital> Notable for Result<O, E> {
 }
 
 impl Digital for () {
+    const BITS: usize = 0;
     fn static_kind() -> Kind {
         Kind::Empty
     }
@@ -205,6 +223,7 @@ impl Notable for () {
 }
 
 impl Digital for bool {
+    const BITS: usize = 1;
     fn static_kind() -> Kind {
         Kind::make_bits(1)
     }
@@ -223,6 +242,7 @@ impl Notable for bool {
 }
 
 impl Digital for u8 {
+    const BITS: usize = 8;
     fn static_kind() -> Kind {
         Kind::make_bits(8)
     }
@@ -241,6 +261,7 @@ impl Notable for u8 {
 }
 
 impl Digital for u16 {
+    const BITS: usize = 16;
     fn static_kind() -> Kind {
         Kind::make_bits(16)
     }
@@ -259,6 +280,7 @@ impl Notable for u16 {
 }
 
 impl Digital for usize {
+    const BITS: usize = usize::BITS as usize;
     fn static_kind() -> Kind {
         Kind::make_bits(usize::BITS as usize)
     }
@@ -277,6 +299,7 @@ impl Notable for usize {
 }
 
 impl Digital for u128 {
+    const BITS: usize = 128;
     fn static_kind() -> Kind {
         Kind::make_bits(128)
     }
@@ -295,6 +318,7 @@ impl Notable for u128 {
 }
 
 impl Digital for i128 {
+    const BITS: usize = 128;
     fn static_kind() -> Kind {
         Kind::make_signed(128)
     }
@@ -313,6 +337,7 @@ impl Notable for i128 {
 }
 
 impl Digital for i32 {
+    const BITS: usize = 32;
     fn static_kind() -> Kind {
         Kind::Signed(32)
     }
@@ -333,6 +358,7 @@ impl Notable for i32 {
 }
 
 impl Digital for i8 {
+    const BITS: usize = 8;
     fn static_kind() -> Kind {
         Kind::Signed(8)
     }
@@ -351,6 +377,7 @@ impl Notable for i8 {
 }
 
 impl Digital for i64 {
+    const BITS: usize = 64;
     fn static_kind() -> Kind {
         Kind::Signed(64)
     }
@@ -371,6 +398,7 @@ impl Notable for i64 {
 }
 
 impl<const N: usize> Digital for Bits<N> {
+    const BITS: usize = N;
     fn static_kind() -> Kind {
         Kind::make_bits(N)
     }
@@ -389,6 +417,7 @@ impl<const N: usize> Notable for Bits<N> {
 }
 
 impl<const N: usize> Digital for SignedBits<N> {
+    const BITS: usize = N;
     fn static_kind() -> Kind {
         Kind::make_signed(N)
     }
@@ -408,6 +437,7 @@ impl<const N: usize> Notable for SignedBits<N> {
 
 // Add blanket implementation for tuples up to size 4.
 impl<T0: Digital> Digital for (T0,) {
+    const BITS: usize = T0::BITS;
     fn static_kind() -> Kind {
         Kind::make_tuple(vec![T0::static_kind()])
     }
@@ -426,11 +456,13 @@ impl<T0: Notable> Notable for (T0,) {
 }
 
 impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
+    const BITS: usize = T0::BITS + T1::BITS;
     fn static_kind() -> Kind {
         Kind::make_tuple(vec![T0::static_kind(), T1::static_kind()])
     }
     fn bin(self) -> Vec<bool> {
-        let mut v = self.0.bin();
+        let mut v = Vec::with_capacity(Self::BITS);
+        v.extend(self.0.bin());
         v.extend(self.1.bin());
         v
     }
@@ -447,6 +479,7 @@ impl<T0: Notable, T1: Notable> Notable for (T0, T1) {
 }
 
 impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {
+    const BITS: usize = T0::BITS + T1::BITS + T2::BITS;
     fn static_kind() -> Kind {
         Kind::make_tuple(vec![
             T0::static_kind(),
@@ -455,7 +488,8 @@ impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {
         ])
     }
     fn bin(self) -> Vec<bool> {
-        let mut v = self.0.bin();
+        let mut v = Vec::with_capacity(Self::BITS);
+        v.extend(self.0.bin());
         v.extend(self.1.bin());
         v.extend(self.2.bin());
         v
@@ -474,6 +508,7 @@ impl<T0: Notable, T1: Notable, T2: Notable> Notable for (T0, T1, T2) {
 }
 
 impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2, T3) {
+    const BITS: usize = T0::BITS + T1::BITS + T2::BITS + T3::BITS;
     fn static_kind() -> Kind {
         Kind::make_tuple(vec![
             T0::static_kind(),
@@ -483,7 +518,8 @@ impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2
         ])
     }
     fn bin(self) -> Vec<bool> {
-        let mut v = self.0.bin();
+        let mut v = Vec::with_capacity(Self::BITS);
+        v.extend(self.0.bin());
         v.extend(self.1.bin());
         v.extend(self.2.bin());
         v.extend(self.3.bin());
@@ -550,11 +586,12 @@ impl_array!(8);
  */
 
 impl<T: Digital, const N: usize> Digital for [T; N] {
+    const BITS: usize = T::BITS * N;
     fn static_kind() -> Kind {
         Kind::make_array(T::static_kind(), N)
     }
     fn bin(self) -> Vec<bool> {
-        let mut v = Vec::new();
+        let mut v = Vec::with_capacity(Self::BITS);
         for x in self.iter() {
             v.extend(x.bin());
         }
@@ -599,6 +636,7 @@ mod test {
         }
 
         impl Digital for Mixed {
+            const BITS: usize = 7;
             fn static_kind() -> Kind {
                 Kind::make_enum(
                     "Mixed",
@@ -720,6 +758,7 @@ mod test {
                 }
             }
         }
+        assert_eq!(Mixed::BITS, Mixed::static_kind().bits());
         println!("{:?}", Mixed::None.bin());
         println!("{:?}", Mixed::Bool(true).bin());
         println!("{}", crate::text_grid(&Mixed::static_kind(), "val"));
@@ -744,6 +783,7 @@ mod test {
             Invalid,
         }
         impl Digital for State {
+            const BITS: usize = 3;
             fn static_kind() -> Kind {
                 Kind::make_enum(
                     "State",

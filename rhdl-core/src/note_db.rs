@@ -620,6 +620,7 @@ mod tests {
         }
 
         impl Digital for Mixed {
+            const BITS: usize = 7;
             fn static_kind() -> Kind {
                 Kind::make_enum(
                     "Mixed",
@@ -732,6 +733,8 @@ mod tests {
                 }
             }
         }
+
+        assert_eq!(Mixed::None.kind().bits(), Mixed::BITS);
 
         let guard = note_init_db();
         note_time(0);
