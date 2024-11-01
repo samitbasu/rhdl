@@ -35,7 +35,7 @@ impl<T: Digital> SynchronousDQZ for U<T> {
     type Z = ();
 }
 
-#[derive(Debug, Clone, PartialEq, Copy, Notable, Digital)]
+#[derive(Debug, Clone, PartialEq, Copy, Digital)]
 pub struct S<T: Digital> {
     cr: ClockReset,
     state: T,
@@ -52,7 +52,7 @@ impl<T: Digital> Synchronous for U<T> {
         state: &mut Self::S,
         _io: &mut Self::Z,
     ) -> Self::O {
-        note("input", input);
+        trace("input", &input);
         let clock = clock_reset.clock;
         let reset = clock_reset.reset;
         // Calculate the new state on a rising edge
@@ -74,7 +74,7 @@ impl<T: Digital> Synchronous for U<T> {
             state.state_next = new_state_next;
         }
         state.cr = clock_reset;
-        note("output", new_state);
+        trace("output", &new_state);
         new_state
     }
 

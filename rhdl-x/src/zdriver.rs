@@ -3,7 +3,7 @@ use rhdl::prelude::*;
 #[derive(Debug, Clone, Default)]
 pub struct ZDriver<const N: usize> {}
 
-#[derive(Debug, Clone, PartialEq, Copy, Notable, Digital)]
+#[derive(Debug, Clone, PartialEq, Copy, Digital)]
 pub struct ZDriverIn<const N: usize> {
     pub mask: Bits<N>,
     pub data: Bits<N>,
@@ -31,12 +31,12 @@ impl<const N: usize> Synchronous for ZDriver<N> {
         _state: &mut Self::S,
         io: &mut Self::Z,
     ) -> Self::O {
-        note("input", input);
+        trace("input", &input);
         io.value = input.data;
         io.mask = input.mask;
-        note("bus", *io);
+        trace("bus", io);
         let output = input.data;
-        note("output", output);
+        trace("output", &output);
         output
     }
 

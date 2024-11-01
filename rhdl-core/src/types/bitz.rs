@@ -14,7 +14,7 @@ pub struct BitZ<const N: usize> {
 }
 
 impl<const N: usize> Digital for BitZ<N> {
-    const BITS: usize = N;
+    const BITS: usize = 2 * N;
     fn static_kind() -> Kind {
         Kind::make_struct(
             "BitZ",
@@ -38,7 +38,7 @@ impl<const N: usize> Digital for BitZ<N> {
             self.value
                 .bin()
                 .into_iter()
-                .zip(self.mask.bin().into_iter())
+                .zip(self.mask.bin())
                 .map(|(v, m)| match (v, m) {
                     (_, false) => TraceBit::Z,
                     (false, true) => TraceBit::Zero,

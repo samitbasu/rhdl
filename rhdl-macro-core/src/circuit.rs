@@ -52,16 +52,18 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
     quote! {
         fn sim(&self, input: <Self as rhdl::core::CircuitIO>::I, state: &mut Self::S , io: &mut Self::Z ) -> <Self as CircuitIO>::O {
             let update_fn = <<Self as rhdl::core::CircuitIO>::Kernel as rhdl::core::DigitalFn2>::func();
+            rhdl::core::trace("input", &input);
             for _ in 0..rhdl::core::MAX_ITERS {
                 let prev_state = state.clone();
                 let (outputs, internal_inputs) = update_fn(input, state.0);
                 #(
-                    rhdl::core::note_push_path(stringify!(#component_name));
+                    rhdl::core::trace_push_path(stringify!(#component_name));
                     state.0.#component_name =
                     self.#component_name.sim(internal_inputs.#component_name, &mut state.#component_index, &mut io.#z_index);
-                    rhdl::core::note_pop_path();
+                    rhdl::core::trace_pop_path();
                 )*
                 if state == &prev_state {
+                    rhdl::core::trace("outputs", &outputs);
                     return outputs;
                 }
             }
@@ -178,16 +180,16 @@ mod test {
                     for _ in 0..rhdl::core::MAX_ITERS {
                         let prev_state = state.clone();
                         let (outputs, internal_inputs) = Self::UPDATE(input, state.0);
-                        rhdl::core::note_push_path(stringify!(strobe));
+                        rhdl::core::trace_push_path(stringify!(strobe));
                         state.0.strobe =
                             self.strobe
                                 .sim(internal_inputs.strobe, &mut state.1, &mut io.strobe);
-                        rhdl::core::note_pop_path();
-                        rhdl::core::note_push_path(stringify!(value));
+                        rhdl::core::trace_pop_path();
+                        rhdl::core::trace_push_path(stringify!(value));
                         state.0.value =
                             self.value
                                 .sim(internal_inputs.value, &mut state.2, &mut io.value);
-                        rhdl::core::note_pop_path();
+                        rhdl::core::trace_pop_path();
                         if state == &prev_state {
                             return outputs;
                         }

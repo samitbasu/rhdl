@@ -1,8 +1,6 @@
 use rhdl::prelude::*;
 
-use crate::bitz::Bitz;
-
-#[derive(PartialEq, Clone, Copy, Debug, Default, Notable, Digital)]
+#[derive(PartialEq, Clone, Copy, Debug, Default, Digital)]
 pub enum State {
     #[default]
     Idle,
@@ -12,29 +10,29 @@ pub enum State {
     ValueEmit,
 }
 
-#[derive(PartialEq, Clone, Copy, Debug, Default, Notable, Digital)]
+#[derive(PartialEq, Clone, Copy, Debug, Default, Digital)]
 pub enum Cmd {
     Write(b8),
     #[default]
     Read,
 }
 
-#[derive(PartialEq, Clone, Copy, Debug, Notable, Digital, Default)]
+#[derive(PartialEq, Clone, Copy, Debug, Digital, Default)]
 pub enum LineState {
     Write,
     #[default]
     Read,
 }
 
-#[derive(PartialEq, Clone, Copy, Debug, Notable, Digital)]
+#[derive(PartialEq, Clone, Copy, Debug, Digital)]
 pub struct I {
-    pub bitz: Bitz<8>,
+    pub bitz: BitZ<8>,
     pub cmd: Option<Cmd>,
 }
 
-#[derive(PartialEq, Clone, Copy, Debug, Notable, Digital, Default)]
+#[derive(PartialEq, Clone, Copy, Debug, Digital, Default)]
 pub struct O {
-    pub bitz: Bitz<8>,
+    pub bitz: BitZ<8>,
     pub control: Option<LineState>,
     pub data: Option<b8>,
 }
@@ -66,8 +64,8 @@ pub fn trizsnd(cr: ClockReset, i: I, q: Q) -> (O, D) {
     d.reg = q.reg;
     let mut state = q.state;
     let mut o = O::default();
-    note("input", i);
-    note("current_state", state);
+    trace("input", &i);
+    trace("current_state", &state);
     if state == State::Write {
         o.bitz.value = q.reg;
         o.bitz.mask = bits::<8>(0xff);
@@ -109,6 +107,6 @@ pub fn trizsnd(cr: ClockReset, i: I, q: Q) -> (O, D) {
     o.bitz.mask |= i.bitz.mask;
     o.bitz.value |= i.bitz.value & i.bitz.mask;
     d.state = state;
-    note("output", o);
+    trace("output", &o);
     (o, d)
 }
