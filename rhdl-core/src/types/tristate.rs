@@ -1,6 +1,6 @@
 use crate::{BitZ, Notable};
 
-pub trait Tristate: Clone + Copy + Notable + Default {
+pub trait Tristate: Clone + Copy + Default {
     fn bits() -> usize;
 }
 

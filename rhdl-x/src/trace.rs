@@ -4,6 +4,7 @@ use rhdl::{
     prelude::*,
 };
 use std::{
+    any::Any,
     collections::{hash_map::Entry, BTreeMap},
     hash::{Hash, Hasher},
     io::Write,
@@ -25,6 +26,53 @@ pub enum TraceBit {
 
 type TimeSeriesHash = u32;
 
+// This Trait object captures the interface back to the VCD writer.
+trait VCDWrite {
+    fn timescale(&mut self, magnitude: u32, unit: vcd::TimescaleUnit) -> std::io::Result<()>;
+    fn add_module(&mut self, name: &str) -> std::io::Result<()>;
+    fn upscope(&mut self) -> std::io::Result<()>;
+    fn enddefinitions(&mut self) -> std::io::Result<()>;
+    fn timestamp(&mut self, time: u64) -> std::io::Result<()>;
+    fn add_wire(&mut self, width: u32, name: &str) -> std::io::Result<IdCode>;
+    fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()>;
+}
+
+impl<W: Write> VCDWrite for vcd::Writer<W> {
+    fn timescale(&mut self, magnitude: u32, unit: vcd::TimescaleUnit) -> std::io::Result<()> {
+        self.timescale(magnitude, unit)
+    }
+    fn add_module(&mut self, name: &str) -> std::io::Result<()> {
+        self.add_module(name)
+    }
+    fn upscope(&mut self) -> std::io::Result<()> {
+        self.upscope()
+    }
+    fn enddefinitions(&mut self) -> std::io::Result<()> {
+        self.enddefinitions()
+    }
+    fn timestamp(&mut self, time: u64) -> std::io::Result<()> {
+        self.timestamp(time)
+    }
+    fn add_wire(&mut self, width: u32, name: &str) -> std::io::Result<IdCode> {
+        self.add_wire(width, name)
+    }
+    fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
+        self.writer().write_all(buf)
+    }
+}
+
+// This trait object captures those methods that are needed to walk the time series.
+trait TimeSeriesWalk {
+    fn cursor(
+        &self,
+        details: &TimeSeriesDetails,
+        name: &str,
+        writer: &mut dyn VCDWrite,
+    ) -> Option<Cursor>;
+    fn advance_cursor(&self, cursor: &mut Cursor);
+    fn write_vcd(&self, cursor: &mut Cursor, writer: &mut dyn VCDWrite) -> anyhow::Result<()>;
+}
+
 //pub type TraceValue = SmallVec<[TraceBit; 16]>;
 pub type TraceValue = Vec<TraceBit>;
 
@@ -45,8 +93,22 @@ struct Cursor {
     code_as_bytes: Vec<u8>,
 }
 
-struct TimeSeries {
-    values: Vec<(u64, TraceValue)>,
+trait AsAny {
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
+}
+
+impl<T: Digital> AsAny for TimeSeries<T> {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+}
+
+struct TimeSeries<T: Digital> {
+    values: Vec<(u64, T)>,
     kind: Kind,
 }
 
@@ -56,13 +118,13 @@ struct TimeSeriesDetails {
     key: String,
 }
 
-impl TimeSeries {
-    fn new(time: u64, value: TraceValue, kind: Kind) -> Self {
+impl<T: Digital> TimeSeries<T> {
+    fn new(time: u64, value: T, kind: Kind) -> Self {
         let mut values = Vec::with_capacity(1_000_000);
         values.push((time, value));
         TimeSeries { values, kind }
     }
-    fn push_if_changed(&mut self, time: u64, value: TraceValue) {
+    fn push_if_changed(&mut self, time: u64, value: T) {
         if let Some((_, last_value)) = self.values.last() {
             if last_value == &value {
                 return;
@@ -70,16 +132,24 @@ impl TimeSeries {
         }
         self.values.push((time, value));
     }
-    fn cursor<W: Write>(
+    fn as_walker(&self) -> &dyn TimeSeriesWalk {
+        self
+    }
+}
+
+trait AnyTimeSeries: AsAny + TimeSeriesWalk {}
+
+impl<T: Digital> AnyTimeSeries for TimeSeries<T> {}
+
+impl<T: Digital> TimeSeriesWalk for TimeSeries<T> {
+    fn cursor(
         &self,
         details: &TimeSeriesDetails,
         name: &str,
-        writer: &mut vcd::Writer<W>,
+        writer: &mut dyn VCDWrite,
     ) -> Option<Cursor> {
         let name_sanitized = name.replace("::", "__");
-        let code = writer
-            .add_wire(self.kind.bits() as u32, &name_sanitized)
-            .ok()?;
+        let code = writer.add_wire(T::BITS as u32, &name_sanitized).ok()?;
         self.values.first().map(|x| Cursor {
             next_time: Some(x.0),
             hash: details.hash,
@@ -96,19 +166,18 @@ impl TimeSeries {
             cursor.next_time = None;
         }
     }
-    fn write_vcd<W: Write>(
-        &self,
-        cursor: &mut Cursor,
-        writer: &mut vcd::Writer<W>,
-    ) -> anyhow::Result<()> {
+    fn write_vcd(&self, cursor: &mut Cursor, writer: &mut dyn VCDWrite) -> anyhow::Result<()> {
         let mut sbuf = SmallVec::<[u8; 64]>::new();
         if let Some((_time, value)) = self.values.get(cursor.ptr) {
             sbuf.push(b'b');
-            bits_to_vcd(value, &mut sbuf);
+            sbuf.extend(value.bin().into_iter().map(|b| match b {
+                true => b'1',
+                false => b'0',
+            }));
             sbuf.push(b' ');
-            writer.writer().write_all(&sbuf[..])?;
-            writer.writer().write_all(&cursor.code_as_bytes)?;
-            writer.writer().write_all(b"\n")?;
+            writer.write_all(&sbuf[..])?;
+            writer.write_all(&cursor.code_as_bytes)?;
+            writer.write_all(b"\n")?;
             self.advance_cursor(cursor);
             Ok(())
         } else {
@@ -119,7 +188,7 @@ impl TimeSeries {
 
 #[derive(Default)]
 pub struct TraceDB {
-    db: fnv::FnvHashMap<TimeSeriesHash, TimeSeries>,
+    db: fnv::FnvHashMap<TimeSeriesHash, Box<dyn AnyTimeSeries>>,
     details: fnv::FnvHashMap<TimeSeriesHash, TimeSeriesDetails>,
     path: Vec<&'static str>,
     time: u64,
@@ -144,18 +213,14 @@ impl TraceDB {
     }
     fn trace(&mut self, key: impl NoteKey, value: &impl Digital) {
         let hash = self.key_hash(&key);
-        // TODO - placeholder until we have a dedicated trace method on Digital.
-        let value_as_trace = value
-            .bin()
-            .into_iter()
-            .map(|b| match b {
-                false => TraceBit::Zero,
-                true => TraceBit::One,
-            })
-            .collect();
         match self.db.entry(hash) {
             Entry::Occupied(mut entry) => {
-                entry.get_mut().push_if_changed(self.time, value_as_trace)
+                entry
+                    .get_mut()
+                    .as_any_mut()
+                    .downcast_mut::<TimeSeries<_>>()
+                    .unwrap_or_else(|| panic!("Type mismatch for {}", key.as_string()))
+                    .push_if_changed(self.time, *value);
             }
             Entry::Vacant(entry) => {
                 let kind = value.kind();
@@ -172,7 +237,7 @@ impl TraceDB {
                     key: key.as_string().to_string(),
                 };
                 self.details.insert(hash, details);
-                entry.insert(TimeSeries::new(self.time, value_as_trace, kind));
+                entry.insert(Box::new(TimeSeries::new(self.time, *value, kind)));
             }
         }
     }
@@ -192,7 +257,8 @@ impl TraceDB {
         cursor: &mut Cursor,
         writer: &mut vcd::Writer<W>,
     ) -> anyhow::Result<()> {
-        self.db.get(&cursor.hash).unwrap().write_vcd(cursor, writer)
+        let series = self.db.get(&cursor.hash).unwrap();
+        series.write_vcd(cursor, writer)
     }
     fn setup_cursors<W: Write>(
         &self,
@@ -651,7 +717,7 @@ fn test_new_tracedb_performance_serialization() {
     for i in 0..10_000_000 {
         db.set_time(i * 1000);
         db.push_path("f1");
-        db.trace("empty", &Mixed::None);
+        db.trace("mpty", &Mixed::None);
         db.pop_path();
         db.push_path("f2");
         db.trace("boo", &Mixed::Bool(i % 15 == 0));
@@ -676,8 +742,10 @@ fn test_new_tracedb_performance_serialization() {
         db.pop_path();
     }
     let toc = std::time::Instant::now();
+    eprintln!("TraceDB: {:?}", toc - tic);
     let mut vcd = vec![];
     db.dump_vcd(&mut vcd).unwrap();
-    eprintln!("TraceDB: {:?}", toc - tic);
+    let tac = std::time::Instant::now();
+    eprintln!("VCD Dump: {:?}", tac - toc);
     std::fs::write("trace_enum_trace_new.vcd", vcd).unwrap();
 }
