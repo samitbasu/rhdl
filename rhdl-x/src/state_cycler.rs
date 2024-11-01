@@ -1,11 +1,11 @@
 use rhdl::prelude::*;
 
-#[derive(PartialEq, Clone, Copy, Debug, Notable, Digital)]
+#[derive(PartialEq, Clone, Copy, Debug, Digital)]
 pub struct I {
     pub enable: bool,
 }
 
-#[derive(PartialEq, Clone, Copy, Debug, Default, Notable, Digital)]
+#[derive(PartialEq, Clone, Copy, Debug, Default, Digital)]
 pub enum State {
     #[default]
     Boot,
@@ -14,7 +14,7 @@ pub enum State {
     Done,
 }
 
-#[derive(PartialEq, Clone, Copy, Debug, Default, Notable, Digital)]
+#[derive(PartialEq, Clone, Copy, Debug, Default, Digital)]
 pub enum O {
     #[default]
     Idle,
@@ -49,7 +49,7 @@ pub fn state_cycler(cr: ClockReset, i: I, q: Q) -> (O, D) {
     let mut d = D::init();
     let mut o = O::default();
     let mut state = q.state;
-    note("current_state", state);
+    trace("current_state", &state);
     d.driver.data = bits::<8>(0);
     d.driver.mask = bits::<8>(0);
     match state {
@@ -78,7 +78,7 @@ pub fn state_cycler(cr: ClockReset, i: I, q: Q) -> (O, D) {
             state = State::Idle;
         }
     }
-    note("next_state", state);
+    trace("next_state", &state);
     d.state = state;
     if cr.reset.any() {
         d.state = State::Boot;

@@ -409,8 +409,8 @@ fn impl_digital_fnk_trait(function: &syn::ItemFn) -> Result<TS> {
 // put the original function inside a wrapper function with the name of the original.
 // Call the wrapped function 'inner'
 // Capture the return of the wrapped function
-// Call note_push("function_name") before calling the wrapped function
-// call note_pop() after calling the wrapped function
+// Call trace_path_push("function_name") before calling the wrapped function
+// call trace_path_pop() after calling the wrapped function
 // So it should go from this:
 //
 //  fn my_func(args) -> Ret {
@@ -427,7 +427,7 @@ fn impl_digital_fnk_trait(function: &syn::ItemFn) -> Result<TS> {
 //      ret
 //  }
 //
-fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
+fn trace_wrap_function(function: &syn::ItemFn) -> Result<TS> {
     let vis = &function.vis;
     let orig_name = &function.sig.ident;
     let (impl_generics, ty_generics, where_clause) = function.sig.generics.split_for_impl();
@@ -548,7 +548,7 @@ impl Context {
                 }
             })
             .collect::<Result<Vec<_>>>()?;
-        let wrapped_function = note_wrap_function(&function)?;
+        let wrapped_function = trace_wrap_function(&function)?;
         let digital_fnk_impl = impl_digital_fnk_trait(&function)?;
         Ok(quote! {
             #wrapped_function
@@ -888,7 +888,7 @@ impl Context {
         // - default calls are replaced with the literal value of the argument using TypedBits and the Digital trait
         // - signal calls are replaced with a call to the appropriate form of the signal op
         if let Some(name) = func_path.path.segments.last() {
-            if name.ident == "note" {
+            if name.ident == "trace" {
                 return Ok(quote! {
                     bob.block_expr(bob.block(vec![]))
                 });

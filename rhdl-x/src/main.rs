@@ -11,7 +11,6 @@ mod trizsnd;
 use trizsnd::Cmd;
 mod bit4;
 mod bitvector;
-mod trace;
 use anyhow::ensure;
 /* use rhdl_core::as_verilog_literal;
 use rhdl_core::codegen::verilog::as_verilog_decl;
@@ -53,7 +52,6 @@ pub mod state_cycler;
 //mod timeset;
 //mod visit;
 mod async_counter;
-mod bitz;
 mod busz;
 mod trizrcv;
 //mod demo;
@@ -149,7 +147,7 @@ fn test_empty_mut() {
 #[test]
 #[allow(clippy::assign_op_pattern)]
 fn test_adt_shadow() {
-    #[derive(PartialEq, Copy, Clone, Notable, Digital, Default)]
+    #[derive(PartialEq, Copy, Clone, Digital, Default)]
     pub enum NooState {
         #[default]
         Init,

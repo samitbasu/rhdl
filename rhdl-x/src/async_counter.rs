@@ -15,13 +15,13 @@ pub fn async_counter(i: I, q: Q) -> (O, D) {
     (o, d)
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, Notable, Digital, Timed)]
+#[derive(Clone, Copy, PartialEq, Debug, Digital, Timed)]
 pub struct I {
     pub clock_reset: Signal<ClockReset, Red>,
     pub enable: Signal<crate::counter::I, Red>,
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, Notable, Digital, Timed)]
+#[derive(Clone, Copy, PartialEq, Debug, Digital, Timed)]
 pub struct O {
     pub count: Signal<Bits<4>, Red>,
 }

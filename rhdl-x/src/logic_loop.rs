@@ -7,13 +7,13 @@ pub struct U {
     right: crate::inverter::U,
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, Notable, Digital, Default)]
+#[derive(Clone, Copy, PartialEq, Debug, Digital, Default)]
 pub struct D {
     left: bool,
     right: bool,
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, Notable, Digital, Default)]
+#[derive(Clone, Copy, PartialEq, Debug, Digital, Default)]
 pub struct Q {
     left: bool,
     right: bool,

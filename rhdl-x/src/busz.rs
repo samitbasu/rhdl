@@ -1,7 +1,5 @@
 use rhdl::prelude::*;
 
-use crate::bitz::Bitz;
-
 #[derive(Debug, Clone)]
 pub struct U<const N: usize> {}
 
@@ -12,9 +10,9 @@ impl<const N: usize> Default for U<N> {
 }
 
 impl<const N: usize> SynchronousIO for U<N> {
-    type I = Bitz<N>;
-    type O = Bitz<N>;
-    type Kernel = NoKernel3<ClockReset, Bitz<N>, (), (Bitz<N>, ())>;
+    type I = BitZ<N>;
+    type O = BitZ<N>;
+    type Kernel = NoKernel3<ClockReset, BitZ<N>, (), (BitZ<N>, ())>;
 }
 
 impl<const N: usize> SynchronousDQZ for U<N> {
@@ -24,7 +22,7 @@ impl<const N: usize> SynchronousDQZ for U<N> {
 }
 
 impl<const N: usize> Synchronous for U<N> {
-    type S = Bitz<N>;
+    type S = BitZ<N>;
 
     fn sim(
         &self,
@@ -33,15 +31,15 @@ impl<const N: usize> Synchronous for U<N> {
         state: &mut Self::S,
         _io: &mut Self::Z,
     ) -> Self::O {
-        note("input", input);
+        trace("input", &input);
         *state = input;
         let output = state;
         let bitz = BitZ::<N> {
             value: input.value,
             mask: input.mask,
         };
-        note("bus", bitz);
-        note("output", *output);
+        trace("bus", &bitz);
+        trace("output", output);
         input
     }
 

@@ -1,8 +1,7 @@
-use crate::bitz::Bitz;
 use crate::trizsnd::LineState;
 use rhdl::prelude::*;
 
-#[derive(PartialEq, Clone, Copy, Debug, Default, Notable, Digital)]
+#[derive(PartialEq, Clone, Copy, Debug, Default, Digital)]
 pub enum State {
     #[default]
     Idle,
@@ -10,9 +9,9 @@ pub enum State {
     Read,
 }
 
-#[derive(PartialEq, Clone, Copy, Debug, Notable, Digital)]
+#[derive(PartialEq, Clone, Copy, Debug, Digital)]
 pub struct I {
-    pub bitz: Bitz<8>,
+    pub bitz: BitZ<8>,
     pub state: Option<LineState>,
 }
 
@@ -33,17 +32,17 @@ impl Default for U {
 
 impl SynchronousIO for U {
     type I = I;
-    type O = Bitz<8>;
+    type O = BitZ<8>;
     type Kernel = trizrcv;
 }
 
 #[kernel]
-pub fn trizrcv(cr: ClockReset, i: I, q: Q) -> (Bitz<8>, D) {
+pub fn trizrcv(cr: ClockReset, i: I, q: Q) -> (BitZ<8>, D) {
     let mut d = D::init();
     d.reg = q.reg;
     let mut state = q.state;
-    let mut o = Bitz::<8>::default();
-    note("current_state", state);
+    let mut o = BitZ::<8>::default();
+    trace("current_state", &state);
     match state {
         State::Idle => match i.state {
             Some(LineState::Write) => {
