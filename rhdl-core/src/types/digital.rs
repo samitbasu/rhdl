@@ -1,7 +1,8 @@
 use rhdl_bits::{bits, Bits, SignedBits};
 
 use crate::{
-    const_max, DiscriminantAlignment, DiscriminantType, Kind, NoteKey, NoteWriter, TypedBits,
+    const_max, trace::TraceBit, DiscriminantAlignment, DiscriminantType, Kind, NoteKey, NoteWriter,
+    TypedBits,
 };
 
 use super::{kind::DiscriminantLayout, note::Notable};
@@ -42,7 +43,7 @@ use super::{kind::DiscriminantLayout, note::Notable};
 ///
 /// These are all supported in `RHDL`.
 ///
-pub trait Digital: Copy + PartialEq + Sized + Clone + 'static + Notable {
+pub trait Digital: Copy + PartialEq + Sized + Clone + 'static {
     const BITS: usize;
     fn static_kind() -> Kind;
     fn bits() -> usize {
@@ -52,6 +53,9 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static + Notable {
         Self::static_kind()
     }
     fn bin(self) -> Vec<bool>;
+    fn trace(self) -> Vec<TraceBit> {
+        self.bin().into_iter().map(|x| x.into()).collect()
+    }
     fn typed_bits(self) -> TypedBits {
         TypedBits {
             bits: self.bin(),
@@ -117,30 +121,6 @@ impl<T: Digital> Digital for Option<T> {
     }
 }
 
-impl<T: Digital> Notable for Option<T> {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        let writer = &mut writer;
-        match self {
-            Self::None => writer.write_string(key, "None"),
-            Self::Some(x) => {
-                writer.write_string(key, "Some");
-                x.note((key, 0), &mut *writer);
-            }
-        }
-        let raw = self.bin();
-        if raw.len() < 128 {
-            let mut val = 0u128;
-            for bit in raw.iter().rev() {
-                val <<= 1;
-                if *bit {
-                    val |= 1;
-                }
-            }
-            writer.write_bits((key, "raw"), val, raw.len() as u8);
-        }
-    }
-}
-
 impl<O: Digital, E: Digital> Digital for Result<O, E> {
     const BITS: usize = 1 + const_max!(O::BITS, E::BITS);
     fn static_kind() -> Kind {
@@ -192,21 +172,6 @@ impl<O: Digital, E: Digital> Digital for Result<O, E> {
     }
 }
 
-impl<O: Digital, E: Digital> Notable for Result<O, E> {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        match self {
-            Self::Ok(x) => {
-                writer.write_string(key, "Ok");
-                x.note((key, 0), writer);
-            }
-            Self::Err(x) => {
-                writer.write_string(key, "Err");
-                x.note((key, 1), writer);
-            }
-        }
-    }
-}
-
 impl Digital for () {
     const BITS: usize = 0;
     fn static_kind() -> Kind {
@@ -216,10 +181,6 @@ impl Digital for () {
         Vec::new()
     }
     fn init() -> Self {}
-}
-
-impl Notable for () {
-    fn note(&self, _key: impl NoteKey, _writer: impl NoteWriter) {}
 }
 
 impl Digital for bool {
@@ -232,12 +193,6 @@ impl Digital for bool {
     }
     fn init() -> Self {
         Self::default()
-    }
-}
-
-impl Notable for bool {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        writer.write_bool(key, *self);
     }
 }
 
@@ -254,12 +209,6 @@ impl Digital for u8 {
     }
 }
 
-impl Notable for u8 {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        writer.write_bits(key, *self as u128, 8);
-    }
-}
-
 impl Digital for u16 {
     const BITS: usize = 16;
     fn static_kind() -> Kind {
@@ -270,12 +219,6 @@ impl Digital for u16 {
     }
     fn init() -> Self {
         Self::default()
-    }
-}
-
-impl Notable for u16 {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        writer.write_bits(key, *self as u128, 16);
     }
 }
 
@@ -292,12 +235,6 @@ impl Digital for usize {
     }
 }
 
-impl Notable for usize {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        writer.write_bits(key, *self as u128, usize::BITS as u8);
-    }
-}
-
 impl Digital for u128 {
     const BITS: usize = 128;
     fn static_kind() -> Kind {
@@ -311,12 +248,6 @@ impl Digital for u128 {
     }
 }
 
-impl Notable for u128 {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        writer.write_bits(key, *self, 128);
-    }
-}
-
 impl Digital for i128 {
     const BITS: usize = 128;
     fn static_kind() -> Kind {
@@ -327,12 +258,6 @@ impl Digital for i128 {
     }
     fn init() -> Self {
         Self::default()
-    }
-}
-
-impl Notable for i128 {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        writer.write_signed(key, *self, 128);
     }
 }
 
@@ -351,12 +276,6 @@ impl Digital for i32 {
     }
 }
 
-impl Notable for i32 {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        writer.write_signed(key, *self as i128, 32);
-    }
-}
-
 impl Digital for i8 {
     const BITS: usize = 8;
     fn static_kind() -> Kind {
@@ -367,12 +286,6 @@ impl Digital for i8 {
     }
     fn init() -> Self {
         Self::default()
-    }
-}
-
-impl Notable for i8 {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        writer.write_signed(key, *self as i128, 8);
     }
 }
 
@@ -391,12 +304,6 @@ impl Digital for i64 {
     }
 }
 
-impl Notable for i64 {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        writer.write_signed(key, *self as i128, 64);
-    }
-}
-
 impl<const N: usize> Digital for Bits<N> {
     const BITS: usize = N;
     fn static_kind() -> Kind {
@@ -410,12 +317,6 @@ impl<const N: usize> Digital for Bits<N> {
     }
 }
 
-impl<const N: usize> Notable for Bits<N> {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        writer.write_bits(key, self.raw(), N as u8);
-    }
-}
-
 impl<const N: usize> Digital for SignedBits<N> {
     const BITS: usize = N;
     fn static_kind() -> Kind {
@@ -426,12 +327,6 @@ impl<const N: usize> Digital for SignedBits<N> {
     }
     fn init() -> Self {
         Self::default()
-    }
-}
-
-impl<const N: usize> Notable for SignedBits<N> {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        writer.write_signed(key, self.raw(), N as u8);
     }
 }
 
@@ -449,12 +344,6 @@ impl<T0: Digital> Digital for (T0,) {
     }
 }
 
-impl<T0: Notable> Notable for (T0,) {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        self.0.note((key, ".0"), &mut writer);
-    }
-}
-
 impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
     const BITS: usize = T0::BITS + T1::BITS;
     fn static_kind() -> Kind {
@@ -468,13 +357,6 @@ impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
     }
     fn init() -> Self {
         (T0::init(), T1::init())
-    }
-}
-
-impl<T0: Notable, T1: Notable> Notable for (T0, T1) {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        self.0.note((key, ".0"), &mut writer);
-        self.1.note((key, ".1"), &mut writer);
     }
 }
 
@@ -499,14 +381,6 @@ impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {
     }
 }
 
-impl<T0: Notable, T1: Notable, T2: Notable> Notable for (T0, T1, T2) {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        self.0.note((key, ".0"), &mut writer);
-        self.1.note((key, ".1"), &mut writer);
-        self.2.note((key, ".2"), &mut writer);
-    }
-}
-
 impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2, T3) {
     const BITS: usize = T0::BITS + T1::BITS + T2::BITS + T3::BITS;
     fn static_kind() -> Kind {
@@ -527,27 +401,6 @@ impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2
     }
     fn init() -> Self {
         (T0::init(), T1::init(), T2::init(), T3::init())
-    }
-}
-
-impl<T0: Notable, T1: Notable, T2: Notable, T3: Notable> Notable for (T0, T1, T2, T3) {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        self.0.note((key, ".0"), &mut writer);
-        self.1.note((key, ".1"), &mut writer);
-        self.2.note((key, ".2"), &mut writer);
-        self.3.note((key, ".3"), &mut writer);
-    }
-}
-
-impl<T0: Notable, T1: Notable, T2: Notable, T3: Notable, T4: Notable> Notable
-    for (T0, T1, T2, T3, T4)
-{
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        self.0.note((key, ".0"), &mut writer);
-        self.1.note((key, ".1"), &mut writer);
-        self.2.note((key, ".2"), &mut writer);
-        self.3.note((key, ".3"), &mut writer);
-        self.4.note((key, ".4"), &mut writer);
     }
 }
 
@@ -599,14 +452,6 @@ impl<T: Digital, const N: usize> Digital for [T; N] {
     }
     fn init() -> Self {
         [T::init(); N]
-    }
-}
-
-impl<T: Notable, const N: usize> Notable for [T; N] {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        for (i, x) in self.iter().enumerate() {
-            x.note((key, i), &mut writer);
-        }
     }
 }
 
@@ -726,38 +571,6 @@ mod test {
             }
         }
 
-        impl Notable for Mixed {
-            fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-                match self {
-                    Self::None => {
-                        writer.write_string(key, stringify!(None));
-                    }
-                    Self::Bool(b) => {
-                        writer.write_string(key, stringify!(Bool));
-                        Notable::note(b, key, &mut writer);
-                    }
-                    Self::Tuple(b, c) => {
-                        writer.write_string(key, stringify!(Tuple));
-                        b.note((key, "b"), &mut writer);
-                        c.note((key, "c"), &mut writer);
-                    }
-                    Self::Array([b, c, d]) => {
-                        writer.write_string(key, stringify!(Array));
-                        b.note(key, &mut writer);
-                        c.note(key, &mut writer);
-                        d.note(key, &mut writer);
-                    }
-                    Self::Strct { a, b } => {
-                        writer.write_string(key, stringify!(Strct));
-                        a.note(key, &mut writer);
-                        b.note(key, &mut writer);
-                    }
-                    Self::Invalid => {
-                        writer.write_string(key, stringify!(Invalid));
-                    }
-                }
-            }
-        }
         assert_eq!(Mixed::BITS, Mixed::static_kind().bits());
         println!("{:?}", Mixed::None.bin());
         println!("{:?}", Mixed::Bool(true).bin());

@@ -47,12 +47,6 @@ impl<T: Digital, C: Domain> Digital for Signal<T, C> {
     }
 }
 
-impl<T: Digital, C: Domain> Notable for Signal<T, C> {
-    fn note(&self, key: impl crate::NoteKey, writer: impl crate::NoteWriter) {
-        self.val.note(key, writer);
-    }
-}
-
 /* macro_rules! impl_index {
     ($M: expr) => {
         impl<T: Digital, C: Domain, const N: usize> std::ops::Index<Signal<Bits<N>, C>>
