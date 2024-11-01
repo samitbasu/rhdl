@@ -478,9 +478,9 @@ fn note_wrap_function(function: &syn::ItemFn) -> Result<TS> {
             fn inner #impl_generics (#args) #ret #where_clause {
                 #body
             }
-            rhdl::core::note_push_path(stringify!(#orig_name));
+            rhdl::core::trace_push_path(stringify!(#orig_name));
             let ret = inner #ty_generics (#call_args);
-            rhdl::core::note_pop_path();
+            rhdl::core::trace_pop_path();
             ret
         }
     })

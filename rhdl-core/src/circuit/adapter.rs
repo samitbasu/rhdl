@@ -5,7 +5,7 @@ use crate::{
     rtl::object::RegisterKind,
     types::{kind::Field, signal::signal},
     Circuit, CircuitDQZ, CircuitDescriptor, CircuitIO, ClockReset, Digital, DigitalFn, Domain,
-    FlowGraph, Kind, Notable, NoteKey, NoteWriter, RHDLError, Signal, Synchronous, Timed, Tristate,
+    FlowGraph, Kind, RHDLError, Signal, Synchronous, Timed, Tristate,
 };
 
 use super::hdl_backend::maybe_port_wire;
@@ -33,13 +33,6 @@ pub struct AdapterInput<I: Digital, D: Domain> {
 }
 
 impl<I: Digital, D: Domain> Timed for AdapterInput<I, D> {}
-
-impl<I: Digital, D: Domain> Notable for AdapterInput<I, D> {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        self.clock_reset.note((key, "clock_reset"), &mut writer);
-        self.input.note((key, "input"), &mut writer);
-    }
-}
 
 impl<I: Digital, D: Domain> Digital for AdapterInput<I, D> {
     const BITS: usize = <Signal<ClockReset, D> as Digital>::BITS + <Signal<I, D> as Digital>::BITS;

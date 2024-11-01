@@ -1,4 +1,4 @@
-use crate::{Digital, Kind, Notable, NoteKey, NoteWriter};
+use crate::{Digital, Kind};
 
 #[derive(PartialEq, Clone, Copy, Debug, Default)]
 pub struct Clock(bool);
@@ -23,11 +23,5 @@ impl Digital for Clock {
     }
     fn init() -> Self {
         Clock(false)
-    }
-}
-
-impl Notable for Clock {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        writer.write_bool(key, self.0);
     }
 }

@@ -51,18 +51,18 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
     quote! {
         fn sim(&self, clock_reset: rhdl::core::ClockReset, input: <Self as SynchronousIO>::I, state: &mut Self::S , io: &mut <Self as SynchronousDQZ>::Z ) -> <Self as SynchronousIO>::O {
             let update_fn = <<Self as SynchronousIO>::Kernel as DigitalFn3>::func();
-            rhdl::core::note("input", input);
+            rhdl::core::trace("input", &input);
             for _ in 0..rhdl::core::MAX_ITERS {
                 let prev_state = state.clone();
                 let (outputs, internal_inputs) = update_fn(clock_reset, input, state.0);
                 #(
-                    rhdl::core::note_push_path(stringify!(#component_name));
+                    rhdl::core::trace_push_path(stringify!(#component_name));
                     state.0.#component_name =
                     self.#component_name.sim(clock_reset, internal_inputs.#component_name, &mut state.#component_index, &mut io.#z_index);
-                    rhdl::core::note_pop_path();
+                    rhdl::core::trace_pop_path();
                 )*
                 if state == &prev_state {
-                    rhdl::core::note("outputs", outputs);
+                    rhdl::core::trace("outputs", &outputs);
                     return outputs;
                 }
             }

@@ -8,7 +8,6 @@ pub mod domain;
 pub mod error;
 pub mod kernel;
 pub mod kind;
-pub mod note;
 pub mod path;
 pub mod register;
 pub mod reset;

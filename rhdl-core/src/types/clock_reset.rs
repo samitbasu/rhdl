@@ -1,4 +1,4 @@
-use crate::{Clock, Digital, Kind, Notable, NoteKey, NoteWriter, Reset};
+use crate::{Clock, Digital, Kind, Reset};
 
 use super::kind::Field;
 
@@ -30,22 +30,12 @@ impl Digital for ClockReset {
         )
     }
     fn bin(self) -> Vec<bool> {
-        let mut out = vec![];
-        out.extend(self.clock.bin());
-        out.extend(self.reset.bin());
-        out
+        [self.clock.bin().as_slice(), self.reset.bin().as_slice()].concat()
     }
     fn init() -> Self {
         Self {
             clock: Clock::init(),
             reset: Reset::init(),
         }
-    }
-}
-
-impl Notable for ClockReset {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        self.clock.note((key, "clock"), &mut writer);
-        self.reset.note((key, "reset"), &mut writer);
     }
 }

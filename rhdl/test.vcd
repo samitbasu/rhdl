@@ -1,12 +1,9 @@
 $timescale 1 ps $end
 $scope module top $end
-$var wire 1 ! simple.a $end
-$var wire 8 " simple.b $end
+$var wire 9 ! simple $end
 $upscope $end
 $enddefinitions $end
 #0
-1!
-b10101010 "
+b101010101 !
 #1000
-0!
-b01010101 "
+b010101010 !

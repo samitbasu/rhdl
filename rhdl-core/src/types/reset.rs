@@ -1,4 +1,4 @@
-use crate::{Digital, Kind, Notable, NoteKey, NoteWriter};
+use crate::{Digital, Kind};
 
 #[derive(PartialEq, Clone, Copy, Debug, Default)]
 pub struct Reset(bool);
@@ -29,11 +29,5 @@ impl Digital for Reset {
     }
     fn init() -> Self {
         Reset(false)
-    }
-}
-
-impl Notable for Reset {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        writer.write_bool(key, self.0);
     }
 }

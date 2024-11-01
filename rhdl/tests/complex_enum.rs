@@ -233,34 +233,34 @@ fn test_documentation_svgs() {
 
 #[test]
 fn test_vcd_generation() {
-    let guard = note_init_db();
-    note_time(0);
-    note(
+    let guard = trace_init_db();
+    trace_time(0);
+    trace(
         "packet",
-        Packet::Color {
+        &Packet::Color {
             r: b8::from(0b10101010),
             g: b8::from(0b11010101),
             b: b8::from(0b11110000),
         },
     );
-    note_time(1_000);
-    note(
+    trace_time(1_000);
+    trace(
         "packet",
-        Packet::Size {
+        &Packet::Size {
             w: 0xDEAD.into(),
             h: 0xBEEF.into(),
         },
     );
-    note_time(2_000);
-    note("packet", Packet::Position(0b1010.into(), 0b1101.into()));
-    note_time(3_000);
-    note("packet", Packet::State(State::Boom));
-    note_time(4_000);
-    note("packet", Packet::State(State::Init));
-    note_time(5_000);
-    note(
+    trace_time(2_000);
+    trace("packet", &Packet::Position(0b1010.into(), 0b1101.into()));
+    trace_time(3_000);
+    trace("packet", &Packet::State(State::Boom));
+    trace_time(4_000);
+    trace("packet", &Packet::State(State::Init));
+    trace_time(5_000);
+    trace(
         "packet",
-        Packet::Log {
+        &Packet::Log {
             msg: 0xCAFE_BEEF.into(),
             level: LogLevel {
                 level: 0xBA.into(),
@@ -268,8 +268,8 @@ fn test_vcd_generation() {
             },
         },
     );
-    note_time(6_000);
-    note("packet", Packet::State(State::Running));
+    trace_time(6_000);
+    trace("packet", &Packet::State(State::Running));
     let mut vcd_file = std::fs::File::create("packet.vcd").unwrap();
     guard.take().dump_vcd(vcd_file).unwrap();
 }

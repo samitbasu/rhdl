@@ -22,7 +22,7 @@ fn test_derive() {
         #[default]
         D,
     }
-    note("test", Test::A);
+    trace("test", &Test::A);
 }
 
 #[test]
@@ -38,7 +38,7 @@ fn test_derive_no_payload() {
         #[default]
         Unknown,
     }
-    note("state", State::Running);
+    trace("state", &State::Running);
 }
 
 #[test]
@@ -137,15 +137,15 @@ fn test_derive_digital_complex_enum() {
     println!("foo val: {}", foo_2.binary_string());
 
     let foo_3 = Test::A;
-    let guard = note_init_db();
-    note_time(0);
-    note("test", foo_1);
-    note_time(1_000);
-    note("test", foo_2);
-    note_time(2_000);
-    note("test", foo_3);
-    note_time(3_000);
-    note("test", foo_1);
+    let guard = trace_init_db();
+    trace_time(0);
+    trace("test", &foo_1);
+    trace_time(1_000);
+    trace("test", &foo_2);
+    trace_time(2_000);
+    trace("test", &foo_3);
+    trace_time(3_000);
+    trace("test", &foo_1);
     let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
     guard.take().dump_vcd(&mut vcd_file).unwrap();
 }

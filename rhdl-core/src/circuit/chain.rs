@@ -6,10 +6,9 @@ use crate::{
     hdl::ast::{
         component_instance, connection, id, unsigned_width, Declaration, Direction, HDLKind, Module,
     },
-    note_pop_path, note_push_path,
     rtl::object::RegisterKind,
-    CircuitDescriptor, ClockReset, Digital, FlowGraph, HDLDescriptor, Kind, Synchronous,
-    SynchronousDQZ, SynchronousIO, Tristate,
+    trace_pop_path, trace_push_path, CircuitDescriptor, ClockReset, Digital, FlowGraph,
+    HDLDescriptor, Kind, Synchronous, SynchronousDQZ, SynchronousIO, Tristate,
 };
 
 use super::hdl_backend::maybe_port_wire;
@@ -52,14 +51,14 @@ where
         state: &mut Self::S,
         io: &mut Self::Z,
     ) -> Self::O {
-        note_push_path("chain");
-        note_push_path("a");
+        trace_push_path("chain");
+        trace_push_path("a");
         let p = self.a.sim(clock_reset, input, &mut state.0, &mut io.0);
-        note_pop_path();
-        note_push_path("b");
+        trace_pop_path();
+        trace_push_path("b");
         let o = self.b.sim(clock_reset, p, &mut state.1, &mut io.1);
-        note_pop_path();
-        note_pop_path();
+        trace_pop_path();
+        trace_pop_path();
         o
     }
 

@@ -25,10 +25,6 @@ pub use rhdl_core::hdl::ast::{
     always, assign, bit_string, continuous_assignment, id, if_statement, initial, port,
 };
 pub use rhdl_core::hdl::ast::{non_blocking_assignment, Direction, Events, HDLKind};
-pub use rhdl_core::note_db::note;
-pub use rhdl_core::note_db::note_init_db;
-pub use rhdl_core::note_db::note_time;
-pub use rhdl_core::note_db::with_note_db;
 pub use rhdl_core::rhif::spec::OpCode;
 pub use rhdl_core::rtl::vm::execute;
 pub use rhdl_core::rtl::Object;
@@ -44,6 +40,10 @@ pub use rhdl_core::testbench::kernel::test_kernel_vm_and_verilog;
 pub use rhdl_core::testbench::kernel::test_kernel_vm_and_verilog_synchronous;
 pub use rhdl_core::testbench::synchronous::test_synchronous_hdl;
 pub use rhdl_core::testbench::TraceOptions;
+pub use rhdl_core::trace;
+pub use rhdl_core::trace::db::with_trace_db;
+pub use rhdl_core::trace_init_db;
+pub use rhdl_core::trace_time;
 pub use rhdl_core::types::bitz::BitZ;
 pub use rhdl_core::types::clock::clock;
 pub use rhdl_core::types::clock::Clock;
@@ -62,8 +62,6 @@ pub use rhdl_core::types::digital_fn::NoKernel3;
 pub use rhdl_core::types::domain::Domain;
 pub use rhdl_core::types::domain::{Blue, Green, Indigo, Orange, Red, Violet, Yellow};
 pub use rhdl_core::types::kind::Kind;
-pub use rhdl_core::types::note::Notable;
-pub use rhdl_core::types::note::NoteKey;
 pub use rhdl_core::types::path::bit_range;
 pub use rhdl_core::types::path::Path;
 pub use rhdl_core::types::reset::reset;
@@ -77,6 +75,7 @@ pub use rhdl_core::types::tristate::Tristate;
 pub use rhdl_core::CircuitDQZ;
 pub use rhdl_core::ClockReset;
 pub use rhdl_core::CompilationMode;
+pub use rhdl_core::TraceKey;
 pub use rhdl_core::{
     flow_graph::edge_kind::EdgeKind,
     hdl::ast::{signed_width, unsigned_width, Module},
@@ -89,7 +88,6 @@ pub use rhdl_macro::kernel;
 pub use rhdl_macro::Circuit;
 pub use rhdl_macro::CircuitDQZ;
 pub use rhdl_macro::Digital;
-pub use rhdl_macro::Notable;
 pub use rhdl_macro::Synchronous;
 pub use rhdl_macro::SynchronousDQZ;
 pub use rhdl_macro::Timed;

@@ -816,7 +816,7 @@ mod tests {
     use rand::thread_rng;
     use rhdl_bits::{alias::*, bits};
 
-    use crate::{Digital, DiscriminantAlignment, DiscriminantType, Kind, Notable, TypedBits};
+    use crate::{Digital, DiscriminantAlignment, DiscriminantType, Kind, TypedBits};
 
     #[test]
     fn test_typed_bits_add() {
@@ -844,12 +844,6 @@ mod tests {
         impl Default for Baz {
             fn default() -> Self {
                 Self::A(Default::default())
-            }
-        }
-
-        impl Notable for Baz {
-            fn note(&self, _: impl crate::NoteKey, _: impl crate::NoteWriter) {
-                todo!()
             }
         }
 
@@ -943,12 +937,6 @@ mod tests {
         #[derive(Debug, Clone, PartialEq, Copy, Default)]
         struct Bar(u8, u8, bool);
 
-        impl Notable for Bar {
-            fn note(&self, _key: impl crate::NoteKey, _writer: impl crate::NoteWriter) {
-                todo!()
-            }
-        }
-
         impl Digital for Bar {
             const BITS: usize = 17;
             fn static_kind() -> Kind {
@@ -979,11 +967,6 @@ mod tests {
             a: u8,
             b: u8,
             c: bool,
-        }
-        impl Notable for Foo {
-            fn note(&self, _key: impl crate::NoteKey, _writer: impl crate::NoteWriter) {
-                todo!()
-            }
         }
 
         impl Digital for Foo {
