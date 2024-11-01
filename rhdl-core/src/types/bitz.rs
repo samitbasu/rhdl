@@ -1,6 +1,11 @@
 use rhdl_bits::Bits;
 
-use crate::{Notable, NoteKey, NoteWriter};
+use crate::{
+    trace::bit::{TraceBit, TraceValue},
+    Digital, Kind,
+};
+
+use super::kind::Field;
 
 #[derive(Debug, Clone, PartialEq, Copy, Default)]
 pub struct BitZ<const N: usize> {
@@ -8,8 +13,44 @@ pub struct BitZ<const N: usize> {
     pub mask: Bits<N>,
 }
 
-impl<const N: usize> Notable for BitZ<N> {
-    fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-        writer.write_tristate(key, self.value.0, self.mask.0, N as u8);
+impl<const N: usize> Digital for BitZ<N> {
+    const BITS: usize = N;
+    fn static_kind() -> Kind {
+        Kind::make_struct(
+            "BitZ",
+            vec![
+                Field {
+                    name: "value".into(),
+                    kind: <Bits<N> as Digital>::static_kind(),
+                },
+                Field {
+                    name: "mask".into(),
+                    kind: <Bits<N> as Digital>::static_kind(),
+                },
+            ],
+        )
+    }
+    fn bin(self) -> Vec<bool> {
+        [self.value.bin().as_slice(), self.mask.bin().as_slice()].concat()
+    }
+    fn trace(self) -> TraceValue {
+        TraceValue::FourValued(
+            self.value
+                .bin()
+                .into_iter()
+                .zip(self.mask.bin().into_iter())
+                .map(|(v, m)| match (v, m) {
+                    (_, false) => TraceBit::Z,
+                    (false, true) => TraceBit::Zero,
+                    (true, true) => TraceBit::One,
+                })
+                .collect(),
+        )
+    }
+    fn init() -> Self {
+        Self {
+            value: Bits::init(),
+            mask: Bits::init(),
+        }
     }
 }

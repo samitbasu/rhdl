@@ -1,51 +1,19 @@
 $timescale 1 ps $end
 $scope module top $end
-$var string 0 ! packet $end
-$var string 0 " packet.0 $end
-$var wire 3 # packet.0.__disc $end
-$var wire 4 $ packet.1 $end
-$var wire 5 % packet.__disc $end
-$var wire 8 & packet.b $end
-$var wire 8 ' packet.g $end
-$var wire 16 ( packet.h $end
-$var wire 1 ) packet.level.active $end
-$var wire 8 * packet.level.level $end
-$var wire 32 + packet.msg $end
-$var wire 8 , packet.r $end
-$var wire 16 - packet.w $end
+$var wire 46 ! packet $end
 $upscope $end
 $enddefinitions $end
 #0
-sColor !
-b00001 %
-b11110000 &
-b11010101 '
-b10101010 ,
+b0101010110101011000011110000000000000000010000 !
 #1000
-sSize !
-b00010 %
-b1011111011101111 (
-b1101111010101101 -
+b1011010101111011111101110111110100000000001000 !
 #2000
-sPosition !
-b1101 $
-b00100 %
+b0101101100000000000000000000000000000000000100 !
 #3000
-sState !
-sBoom "
-b010 #
-b01000 %
+b0100000000000000000000000000000000000000000010 !
 #4000
-sInit "
-b110 #
+b0110000000000000000000000000000000000000000010 !
 #5000
-sLog !
-b10000 %
-1)
-b10111010 *
-b11001010111111101011111011101111 +
+b1111011101111101011111110101001101011101100001 !
 #6000
-sState !
-sRunning "
-b000 #
-b01000 %
+b0000000000000000000000000000000000000000000010 !

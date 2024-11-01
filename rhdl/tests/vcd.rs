@@ -20,26 +20,26 @@ fn test_vcd_enum() {
         C(bool),
     }
 
-    let guard = note_init_db();
-    note_time(0);
-    note("enum", Enum::None);
-    note("color", bits::<8>(0b10101010));
-    note_time(1_000);
-    note("enum", Enum::A(42, 1024));
-    note_time(2_000);
-    note("enum", Enum::B { name: 67 });
-    note_time(3_000);
-    note("enum", Enum::C(true));
-    note_time(4_000);
-    note("enum", Enum::C(false));
-    note_time(5_000);
-    note("enum", Enum::B { name: 65 });
-    note_time(6_000);
-    note("enum", Enum::A(21, 512));
-    note_time(7_000);
-    note("enum", Enum::None);
-    note_time(8_000);
-    note("enum", Enum::None);
+    let guard = trace_init_db();
+    trace_time(0);
+    trace("enum", &Enum::None);
+    trace("color", &bits::<8>(0b10101010));
+    trace_time(1_000);
+    trace("enum", &Enum::A(42, 1024));
+    trace_time(2_000);
+    trace("enum", &Enum::B { name: 67 });
+    trace_time(3_000);
+    trace("enum", &Enum::C(true));
+    trace_time(4_000);
+    trace("enum", &Enum::C(false));
+    trace_time(5_000);
+    trace("enum", &Enum::B { name: 65 });
+    trace_time(6_000);
+    trace("enum", &Enum::A(21, 512));
+    trace_time(7_000);
+    trace("enum", &Enum::None);
+    trace_time(8_000);
+    trace("enum", &Enum::None);
     let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
     guard.take().dump_vcd(&mut vcd_file).unwrap();
 }
@@ -56,19 +56,19 @@ fn test_vcd_basic() {
         a: true,
         b: Bits::from(0b10101010),
     };
-    let guard = note_init_db();
-    note_time(0);
-    note("simple", simple);
-    note_time(1_000);
+    let guard = trace_init_db();
+    trace_time(0);
+    trace("simple", &simple);
+    trace_time(1_000);
     let simple = Simple {
         a: false,
         b: Bits::from(0b01010101),
     };
     let mut snapshot = std::fs::File::create("snapshot.vcd").unwrap();
-    with_note_db(|db| db.dump_vcd(&mut snapshot).unwrap());
-    note("simple", simple);
-    note_time(2_000);
-    note("simple", simple);
+    with_trace_db(|db| db.dump_vcd(&mut snapshot).unwrap());
+    trace("simple", &simple);
+    trace_time(2_000);
+    trace("simple", &simple);
     let mut vcd_file = std::fs::File::create("test.vcd").unwrap();
     guard.take().dump_vcd(&mut vcd_file).unwrap();
 }

@@ -1,11 +1,10 @@
 use rhdl_bits::{bits, Bits, SignedBits};
 
 use crate::{
-    const_max, trace::TraceBit, DiscriminantAlignment, DiscriminantType, Kind, NoteKey, NoteWriter,
-    TypedBits,
+    const_max, trace::bit::TraceValue, DiscriminantAlignment, DiscriminantType, Kind, TypedBits,
 };
 
-use super::{kind::DiscriminantLayout, note::Notable};
+use super::kind::DiscriminantLayout;
 
 /// This is the core trait for all of `RHDL` data elements.  If you
 /// want to use a data type in the hardware part of the design,
@@ -53,8 +52,8 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static {
         Self::static_kind()
     }
     fn bin(self) -> Vec<bool>;
-    fn trace(self) -> Vec<TraceBit> {
-        self.bin().into_iter().map(|x| x.into()).collect()
+    fn trace(self) -> TraceValue {
+        TraceValue::TwoValued(self.bin())
     }
     fn typed_bits(self) -> TypedBits {
         TypedBits {
@@ -654,18 +653,6 @@ mod test {
             }
         }
 
-        impl Notable for State {
-            fn note(&self, key: impl NoteKey, mut writer: impl NoteWriter) {
-                match self {
-                    Self::Init => writer.write_string(key, stringify!(Init)),
-                    Self::Boot => writer.write_string(key, stringify!(Boot)),
-                    Self::Running => writer.write_string(key, stringify!(Running)),
-                    Self::Stop => writer.write_string(key, stringify!(Stop)),
-                    Self::Boom => writer.write_string(key, stringify!(Boom)),
-                    Self::Invalid => writer.write_string(key, stringify!(Invalid)),
-                }
-            }
-        }
         let val = State::Boom;
         assert_eq!(val.bin(), rhdl_bits::bits::<3>(4).to_bools());
         assert_eq!(

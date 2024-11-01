@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use rhdl_bits::Bits;
 use rhdl_bits::SignedBits;
 
-use crate::{Digital, Domain, Kind, Notable, Timed};
+use crate::{Digital, Domain, Kind, Timed};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Signal<T: Digital, C: Domain> {

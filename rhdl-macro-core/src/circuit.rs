@@ -135,16 +135,6 @@ mod test {
                 strobe: <DFF<Bits<N>> as rhdl::core::Circuit>::Z,
                 value: <Constant<Bits<N>> as rhdl::core::Circuit>::Z,
             }
-            impl<const N: usize> rhdl::core::Notable for StrobeZ<N> {
-                fn note(
-                    &self,
-                    key: impl rhdl::core::NoteKey,
-                    mut writer: impl rhdl::core::NoteWriter,
-                ) {
-                    self.strobe.note((key, stringify!(strobe)), &mut writer);
-                    self.value.note((key, stringify!(value)), &mut writer);
-                }
-            }
             impl<const N: usize> rhdl::core::Tristate for StrobeZ<N> {
                 const N: usize = <DFF<Bits<N>> as rhdl::core::Circuit>::Z::N
                     + <Constant<Bits<N>> as rhdl::core::Circuit>::Z::N
