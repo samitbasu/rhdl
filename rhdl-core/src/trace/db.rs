@@ -11,11 +11,7 @@ use vcd::IdCode;
 
 use crate::{Digital, Kind};
 
-use super::{
-    bit::{TraceBit, TraceValue},
-    key::TraceKey,
-    vcd::VCDWrite,
-};
+use super::{bit::TraceBit, key::TraceKey, vcd::VCDWrite};
 
 type TimeSeriesHash = u32;
 

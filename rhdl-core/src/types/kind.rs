@@ -83,11 +83,6 @@ impl Struct {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
-pub struct Union {
-    pub fields: Vec<Field>,
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum DiscriminantAlignment {
     Msb,

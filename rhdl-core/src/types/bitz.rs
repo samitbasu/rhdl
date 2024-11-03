@@ -1,9 +1,6 @@
 use rhdl_bits::Bits;
 
-use crate::{
-    trace::bit::{TraceBit, TraceValue},
-    Digital, Kind,
-};
+use crate::{trace::bit::TraceBit, Digital, Kind};
 
 use super::kind::Field;
 

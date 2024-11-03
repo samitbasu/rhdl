@@ -15,8 +15,3 @@ impl From<bool> for TraceBit {
         }
     }
 }
-
-pub enum TraceValue {
-    TwoValued(Vec<bool>),
-    FourValued(Vec<TraceBit>),
-}
