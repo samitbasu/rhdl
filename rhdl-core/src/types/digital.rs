@@ -1,7 +1,9 @@
 use rhdl_bits::{bits, Bits, SignedBits};
 
 use crate::{
-    const_max, trace::bit::TraceValue, DiscriminantAlignment, DiscriminantType, Kind, TypedBits,
+    const_max,
+    trace::bit::{TraceBit, TraceValue},
+    DiscriminantAlignment, DiscriminantType, Kind, TypedBits,
 };
 
 use super::kind::DiscriminantLayout;
@@ -44,6 +46,7 @@ use super::kind::DiscriminantLayout;
 ///
 pub trait Digital: Copy + PartialEq + Sized + Clone + 'static {
     const BITS: usize;
+    const TRACE_BITS: usize = Self::BITS;
     fn static_kind() -> Kind;
     fn bits() -> usize {
         Self::static_kind().bits()
@@ -52,8 +55,8 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static {
         Self::static_kind()
     }
     fn bin(self) -> Vec<bool>;
-    fn trace(self) -> TraceValue {
-        TraceValue::TwoValued(self.bin())
+    fn trace(self) -> Vec<TraceBit> {
+        self.bin().into_iter().map(|b| b.into()).collect()
     }
     fn typed_bits(self) -> TypedBits {
         TypedBits {

@@ -206,6 +206,24 @@ fn variant_bits_mapping(variant: &Variant) -> TokenStream {
     }
 }
 
+fn variant_trace_bits_mapping(variant: &Variant) -> TokenStream {
+    match &variant.fields {
+        syn::Fields::Unit => quote! {0_usize},
+        syn::Fields::Unnamed(fields) => {
+            let field_types = fields.unnamed.iter().map(|f| &f.ty);
+            quote! {
+                #(<#field_types as rhdl::core::Digital>::TRACE_BITS)+*
+            }
+        }
+        syn::Fields::Named(fields) => {
+            let field_types = fields.named.iter().map(|f| &f.ty);
+            quote! {
+                #(<#field_types as rhdl::core::Digital>::TRACE_BITS)+*
+            }
+        }
+    }
+}
+
 fn make_discriminant_values_into_typed_bits(
     kind: DiscriminantType,
     values: &[i64],
@@ -221,6 +239,54 @@ fn make_discriminant_values_into_typed_bits(
             }
         }
     })
+}
+
+fn variant_payload_trace(
+    variant: &Variant,
+    kind: DiscriminantType,
+    discriminant: i64,
+) -> TokenStream {
+    let discriminant = match kind {
+        DiscriminantType::Unsigned(x) => {
+            quote! {
+                rhdl::bits::bits::<#x>(#discriminant as u128).trace()
+            }
+        }
+        DiscriminantType::Signed(x) => {
+            quote! {
+                rhdl::bits::signed::<#x>(#discriminant as i128).trace()
+            }
+        }
+    };
+    match &variant.fields {
+        syn::Fields::Unit => quote! {
+            #discriminant
+        },
+        syn::Fields::Unnamed(fields) => {
+            let field_names = fields
+                .unnamed
+                .iter()
+                .enumerate()
+                .map(|(i, _)| format_ident!("_{}", i));
+            quote! {
+                let mut v = #discriminant;
+                #(
+                    v.extend(#field_names.trace());
+                )*
+                v
+            }
+        }
+        syn::Fields::Named(fields) => {
+            let field_names = fields.named.iter().map(|f| &f.ident);
+            quote! {
+                let mut v = #discriminant;
+                #(
+                    v.extend(#field_names.trace());
+                )*
+                v
+            }
+        }
+    }
 }
 
 fn variant_payload_bin(
@@ -350,6 +416,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         .map(|v| variant_kind_mapping(enum_name, v));
     let variant_kind_mapping = kind_mapping.clone();
     let variant_bits_mapping = e.variants.iter().map(variant_bits_mapping);
+    let variant_trace_bits_mapping = e.variants.iter().map(variant_trace_bits_mapping);
     let kind = discriminant_kind(&discriminants_values);
     let width_override = parse_discriminant_width_attribute(&decl.attrs)?;
     let kind = override_width(kind, width_override)?;
@@ -368,6 +435,11 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         .iter()
         .zip(discriminants_values.iter())
         .map(|(variant, discriminant)| variant_payload_bin(variant, kind, *discriminant));
+    let trace_bin_fns = e
+        .variants
+        .iter()
+        .zip(discriminants_values.iter())
+        .map(|(variant, discriminant)| variant_payload_trace(variant, kind, *discriminant));
     let discriminants_as_typed_bits =
         make_discriminant_values_into_typed_bits(kind, &discriminants_values);
     let discriminant_ty = match kind {
@@ -380,6 +452,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
             // of the variant payloads.  This is calculated by taking the maximum width of
             // all the variant payloads and adding #width_bits.
             const BITS: usize = #width_bits + rhdl::core::const_max!(#(#variant_bits_mapping),*);
+            const TRACE_BITS: usize = #width_bits + rhdl::core::const_max!(#(#variant_trace_bits_mapping),*);
             fn static_kind() -> rhdl::core::Kind {
                 rhdl::core::Kind::make_enum(
                     #fqdn,
@@ -404,6 +477,16 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                     )*
                 };
                 raw.resize(Self::BITS, false);
+                #swap_endian_fn
+            }
+            fn trace(self) -> Vec<rhdl::core::TraceBit> {
+                let mut raw =
+                match self {
+                    #(
+                        Self::#variant_names #variant_destructure_args => {#trace_bin_fns}
+                    )*
+                };
+                raw.resize(Self::TRACE_BITS, rhdl::core::TraceBit::X);
                 #swap_endian_fn
             }
             fn discriminant(self) -> rhdl::core::TypedBits {

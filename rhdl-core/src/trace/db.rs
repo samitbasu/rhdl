@@ -113,19 +113,12 @@ impl<T: Digital> TimeSeriesWalk for TimeSeries<T> {
         let mut sbuf = SmallVec::<[u8; 64]>::new();
         if let Some((_time, value)) = self.values.get(cursor.ptr) {
             sbuf.push(b'b');
-            match value.trace() {
-                TraceValue::TwoValued(v) => {
-                    sbuf.extend(v.into_iter().map(|v| if v { b'1' } else { b'0' }));
-                }
-                TraceValue::FourValued(v) => {
-                    sbuf.extend(v.into_iter().map(|v| match v {
-                        TraceBit::Zero => b'0',
-                        TraceBit::One => b'1',
-                        TraceBit::X => b'x',
-                        TraceBit::Z => b'z',
-                    }));
-                }
-            }
+            sbuf.extend(value.trace().into_iter().map(|v| match v {
+                TraceBit::Zero => b'0',
+                TraceBit::One => b'1',
+                TraceBit::X => b'x',
+                TraceBit::Z => b'z',
+            }));
             sbuf.push(b' ');
             writer.write_all(&sbuf[..])?;
             writer.write_all(&cursor.code_as_bytes)?;

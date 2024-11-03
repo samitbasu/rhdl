@@ -113,7 +113,7 @@ pub(crate) fn bits_shr_signed(a: &[bool], b: i64) -> Vec<bool> {
         .collect()
 }
 
-pub fn move_nbits_to_msb(a: &[bool], n: usize) -> Vec<bool> {
+pub fn move_nbits_to_msb<T: Copy>(a: &[T], n: usize) -> Vec<T> {
     let (left, right) = a.split_at(n);
     [right, left].concat()
 }

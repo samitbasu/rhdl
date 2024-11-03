@@ -1,9 +1,0 @@
-$timescale 1 ps $end
-$scope module top $end
-$var wire 9 ! simple $end
-$upscope $end
-$enddefinitions $end
-#0
-b101010101 !
-#1000
-b010101010 !
