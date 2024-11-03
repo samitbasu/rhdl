@@ -47,18 +47,3 @@ impl<T0: Tristate, T1: Tristate, T2: Tristate, T3: Tristate, T4: Tristate> Trist
         T0::bits() + T1::bits() + T2::bits() + T3::bits() + T4::bits()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use rhdl_bits::alias::b4;
-
-    use crate::BitZ;
-
-    #[test]
-    fn test_bitz_notable() {
-        let a = BitZ {
-            value: b4(0b1010),
-            mask: b4(0b1111),
-        };
-    }
-}

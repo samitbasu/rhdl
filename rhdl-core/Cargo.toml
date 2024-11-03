@@ -17,6 +17,7 @@ parking_lot = "0.12.1"
 petgraph = "0.6.4"
 prettyplease = "0.2.15"
 rhdl-bits = { path = "../rhdl-bits" }
+rhdl-trace-type = { version = "0.1.0", path = "../rhdl-trace-type" }
 seq-macro = "0.3.5"
 serde = { version = "^1", features = ["derive"] }
 smallvec = "1.13.2"
