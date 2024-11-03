@@ -56,6 +56,9 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                     const BITS: usize = #(
                         <#field_types as rhdl::core::Digital>::BITS
                     )+*;
+                    const TRACE_BITS: usize = #(
+                        <#field_types as rhdl::core::Digital>::TRACE_BITS
+                    )+*;
                     fn static_kind() -> rhdl::core::Kind {
                         rhdl::core::Kind::make_struct(
                             #fqdn,
@@ -70,6 +73,13 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         [
                         #(
                             self.#fields.bin().as_slice(),
+                        )*
+                        ].concat()
+                    }
+                    fn trace(self) -> Vec<rhdl::core::TraceBit> {
+                        [
+                        #(
+                            self.#fields.trace().as_slice(),
                         )*
                         ].concat()
                     }
@@ -115,6 +125,9 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                     const BITS: usize = #(
                         <#field_types as rhdl::core::Digital>::BITS
                     )+*;
+                    const TRACE_BITS: usize = #(
+                        <#field_types as rhdl::core::Digital>::TRACE_BITS
+                    )+*;
                     fn static_kind() -> rhdl::core::Kind {
                         rhdl::core::Kind::make_struct(
                             #fqdn,
@@ -129,6 +142,13 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         [
                         #(
                             self.#fields.bin().as_slice(),
+                        )*
+                        ].concat()
+                    }
+                    fn trace(self) -> Vec<rhdl::core::TraceBit> {
+                        [
+                        #(
+                            self.#fields.trace().as_slice(),
                         )*
                         ].concat()
                     }
