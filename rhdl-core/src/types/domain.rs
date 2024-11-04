@@ -1,5 +1,3 @@
-use serde::{Deserialize, Serialize};
-
 pub trait Domain: Copy + PartialEq + 'static + Default {
     fn color() -> Color;
 }
@@ -27,7 +25,7 @@ macro_rules! decl_domain {
     };
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Color {
     Red,
     Orange,

@@ -131,7 +131,7 @@ impl AppTypeKind for AppSignal {
     fn into_kind(self, context: &mut UnifyContext) -> anyhow::Result<Kind> {
         let data = context.into_kind(self.data)?;
         let clock = context.cast_ty_as_clock(self.clock)?;
-        Ok(Kind::Signal(Box::new(data), clock))
+        Ok(Kind::Signal(internment::Intern::new(data), clock))
     }
 }
 
@@ -152,9 +152,9 @@ impl AppTypeKind for AppArray {
         }
     }
     fn into_kind(self, context: &mut UnifyContext) -> anyhow::Result<Kind> {
-        let base = Box::new(context.into_kind(self.base)?);
+        let base = context.into_kind(self.base)?;
         let size = context.cast_ty_as_bit_length(self.len)?;
-        Ok(Kind::Array(Array { base, size }))
+        Ok(Kind::make_array(base, size))
     }
 }
 
@@ -193,10 +193,7 @@ impl AppTypeKind for AppStruct {
                 Ok(Field { name, kind })
             })
             .collect::<Result<_>>()?;
-        Ok(Kind::Struct(Struct {
-            name: self.name,
-            fields,
-        }))
+        Ok(Kind::make_struct(&self.name, fields))
     }
 }
 
@@ -279,7 +276,7 @@ impl AppTypeKind for AppTuple {
             .into_iter()
             .map(|t| context.into_kind(t))
             .collect::<Result<Vec<_>>>()?;
-        Ok(Kind::Tuple(Tuple { elements }))
+        Ok(Kind::make_tuple(elements))
     }
 }
 
