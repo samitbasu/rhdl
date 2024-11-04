@@ -1,7 +1,5 @@
 #![allow(clippy::type_complexity)]
 
-use serde::{Deserialize, Serialize};
-
 pub use crate::{kernel::KernelFnKind, Digital, Kind};
 
 pub trait DigitalFn {
@@ -106,7 +104,7 @@ pub trait DigitalFn6 {
 
 // See: https://jsdw.me/posts/rust-fn-traits/
 
-#[derive(Clone, PartialEq, Serialize, Deserialize, Hash)]
+#[derive(Clone, PartialEq, Hash)]
 pub struct DigitalSignature {
     pub arguments: Vec<Kind>,
     pub ret: Kind,

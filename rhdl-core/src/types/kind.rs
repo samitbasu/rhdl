@@ -1,5 +1,6 @@
-use serde::{Deserialize, Serialize};
 use std::{iter::repeat, ops::Range};
+
+use internment::Intern;
 
 use crate::{
     error::{rhdl_error, RHDLError},
@@ -9,15 +10,15 @@ use crate::{
 
 use super::{domain::Color, error::DynamicTypeError};
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Kind {
-    Array(Array),
-    Tuple(Tuple),
-    Struct(Struct),
-    Enum(Enum),
+    Array(Intern<Array>),
+    Tuple(Intern<Tuple>),
+    Struct(Intern<Struct>),
+    Enum(Intern<Enum>),
     Bits(usize),
     Signed(usize),
-    Signal(Box<Kind>, Color),
+    Signal(Intern<Kind>, Color),
     Empty,
 }
 
@@ -46,18 +47,18 @@ impl std::fmt::Debug for Kind {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Array {
     pub base: Box<Kind>,
     pub size: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Tuple {
     pub elements: Vec<Kind>,
 }
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Struct {
     pub name: String,
     pub fields: Vec<Field>,
@@ -76,46 +77,46 @@ impl Struct {
         match field {
             Some(field) => Ok(field.kind.clone()),
             None => Err(rhdl_error(DynamicTypeError::NoFieldInStruct {
-                kind: Kind::Struct(self.clone()),
+                kind: Kind::Struct(Intern::new(self.clone())),
                 field_name,
             })),
         }
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum DiscriminantAlignment {
     Msb,
     Lsb,
 }
 
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
 pub enum DiscriminantType {
     Signed,
     Unsigned,
 }
 
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
 pub struct DiscriminantLayout {
     pub width: usize,
     pub alignment: DiscriminantAlignment,
     pub ty: DiscriminantType,
 }
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Enum {
     pub name: String,
     pub variants: Vec<Variant>,
     pub discriminant_layout: DiscriminantLayout,
 }
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Field {
     pub name: String,
     pub kind: Kind,
 }
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Variant {
     pub name: String,
     pub discriminant: i64,
@@ -133,16 +134,16 @@ impl Variant {
 
 impl Kind {
     pub fn make_array(base: Kind, size: usize) -> Self {
-        Self::Array(Array {
+        Self::Array(Intern::new(Array {
             base: Box::new(base),
             size,
-        })
+        }))
     }
     pub fn make_tuple(elements: Vec<Kind>) -> Self {
         if elements.is_empty() {
             Kind::Empty
         } else {
-            Self::Tuple(Tuple { elements })
+            Self::Tuple(Intern::new(Tuple { elements }))
         }
     }
     pub fn make_field(name: &str, kind: Kind) -> Field {
@@ -159,10 +160,10 @@ impl Kind {
         }
     }
     pub fn make_struct(name: &str, fields: Vec<Field>) -> Self {
-        Self::Struct(Struct {
+        Self::Struct(Intern::new(Struct {
             name: name.into(),
             fields,
-        })
+        }))
     }
     pub fn make_discriminant_layout(
         width: usize,
@@ -180,11 +181,11 @@ impl Kind {
         variants: Vec<Variant>,
         discriminant_layout: DiscriminantLayout,
     ) -> Self {
-        Self::Enum(Enum {
+        Self::Enum(Intern::new(Enum {
             name: name.into(),
             variants,
             discriminant_layout,
-        })
+        }))
     }
     pub fn make_bool() -> Self {
         Self::Bits(1)
@@ -196,7 +197,7 @@ impl Kind {
         Self::Signed(digits)
     }
     pub fn make_signal(kind: Kind, color: Color) -> Self {
-        Self::Signal(Box::new(kind), color)
+        Self::Signal(Intern::new(kind), color)
     }
     pub fn bits(&self) -> usize {
         match self {

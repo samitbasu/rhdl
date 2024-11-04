@@ -1,5 +1,6 @@
-use serde::{Deserialize, Serialize};
 use std::iter::{once, repeat};
+
+use internment::Intern;
 
 use crate::ast::ast_impl::WrapOp;
 use crate::dyn_bit_manip::bits_shr_signed;
@@ -22,7 +23,7 @@ use super::kind::Tuple;
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
-#[derive(Clone, PartialEq, Serialize, Deserialize, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TypedBits {
     pub bits: Vec<bool>,
     pub kind: Kind,
@@ -713,7 +714,7 @@ fn write_enumerate(
     bits: &[bool],
     f: &mut std::fmt::Formatter<'_>,
 ) -> std::fmt::Result {
-    let root_kind = Kind::Enum(enumerate.clone());
+    let root_kind = Kind::Enum(Intern::new(enumerate.clone()));
     let (range, kind) = bit_range(root_kind.clone(), &Path::default().discriminant()).unwrap();
     let discriminant_value = interpret_bits_as_i64(&bits[range], kind.is_signed());
     // Get the variant for this discriminant
@@ -741,7 +742,7 @@ fn write_struct(
     f: &mut std::fmt::Formatter<'_>,
 ) -> std::fmt::Result {
     write!(f, "{} {{", structure.name)?;
-    let root_kind = Kind::Struct(structure.clone());
+    let root_kind = Kind::Struct(Intern::new(structure.clone()));
     for (ndx, field) in structure.fields.iter().enumerate() {
         let (bit_range, sub_kind) =
             bit_range(root_kind.clone(), &Path::default().field(&field.name)).unwrap();
@@ -757,7 +758,7 @@ fn write_struct(
 
 fn write_array(array: &Array, bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "[")?;
-    let root_kind = Kind::Array(array.clone());
+    let root_kind = Kind::Array(Intern::new(array.clone()));
     for ndx in 0..(array.size) {
         let (bit_range, sub_kind) =
             bit_range(root_kind.clone(), &Path::default().index(ndx)).unwrap();
@@ -798,7 +799,7 @@ fn write_signed(bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Res
 
 fn write_tuple(tuple: &Tuple, bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "(")?;
-    let root_kind = Kind::Tuple(tuple.clone());
+    let root_kind = Kind::Tuple(Intern::new(tuple.clone()));
     for ndx in 0..(tuple.elements.len()) {
         let (bit_range, sub_kind) =
             bit_range(root_kind.clone(), &Path::default().tuple_index(ndx)).unwrap();
