@@ -1,4 +1,4 @@
-use rhdl_trace_type::TraceType;
+use rhdl_trace_type::{DiscriminantAlignment, TraceType};
 
 use crate::Kind;
 
@@ -14,10 +14,52 @@ pub(crate) fn kind_to_trace(kind: &Kind) -> TraceType {
         Kind::Tuple(tuple) => kind_tuple_to_trace(tuple),
         Kind::Struct(strukt) => kind_struct_to_trace(strukt),
         Kind::Enum(enumerate) => kind_enum_to_trace(enumerate),
-        Kind::Bits(len) => Some(TraceType::Bits(*len)),
-        Kind::Signed(len) => Some(TraceType::Signed(*len)),
-        Kind::Signal(ky, _) => kind_to_trace(ky),
+        Kind::Bits(len) => TraceType::Bits(*len),
+        Kind::Signed(len) => TraceType::Signed(*len),
+        Kind::Signal(ky, color) => TraceType::Signal(Box::new(kind_to_trace(ky)), (*color).into()),
         Kind::Empty => TraceType::Empty,
+    }
+}
+
+impl From<kind::DiscriminantAlignment> for rtt::DiscriminantAlignment {
+    fn from(da: kind::DiscriminantAlignment) -> Self {
+        match da {
+            kind::DiscriminantAlignment::Msb => rtt::DiscriminantAlignment::Msb,
+            kind::DiscriminantAlignment::Lsb => rtt::DiscriminantAlignment::Lsb,
+        }
+    }
+}
+
+impl From<kind::DiscriminantType> for rtt::DiscriminantType {
+    fn from(dt: kind::DiscriminantType) -> Self {
+        match dt {
+            kind::DiscriminantType::Unsigned => rtt::DiscriminantType::Unsigned,
+            kind::DiscriminantType::Signed => rtt::DiscriminantType::Signed,
+        }
+    }
+}
+
+impl From<crate::Color> for rtt::Color {
+    fn from(color: crate::Color) -> Self {
+        match color {
+            crate::Color::Red => rtt::Color::Red,
+            crate::Color::Orange => rtt::Color::Orange,
+            crate::Color::Yellow => rtt::Color::Yellow,
+            crate::Color::Green => rtt::Color::Green,
+            crate::Color::Blue => rtt::Color::Blue,
+            crate::Color::Indigo => rtt::Color::Indigo,
+            crate::Color::Violet => rtt::Color::Violet,
+        }
+    }
+}
+
+impl From<kind::DiscriminantLayout> for rtt::DiscriminantLayout {
+    fn from(dl: kind::DiscriminantLayout) -> Self {
+        rtt::DiscriminantLayout {
+            width: dl.width,
+            alignment: dl.alignment.into(),
+            ty: dl.ty.into(),
+        }
     }
 }
 
@@ -42,10 +84,30 @@ fn kind_struct_to_trace(strukt: &kind::Struct) -> TraceType {
     let fields = strukt
         .fields
         .iter()
-        .map(|(name, kind)| (name.clone(), kind_to_trace(kind)))
+        .map(|field| rtt::Field {
+            name: field.name.clone(),
+            ty: kind_to_trace(&field.kind),
+        })
         .collect();
     TraceType::Struct(rtt::Struct {
         name: strukt.name.clone(),
         fields,
+    })
+}
+
+fn kind_enum_to_trace(enumerate: &kind::Enum) -> TraceType {
+    let variants = enumerate
+        .variants
+        .iter()
+        .map(|variant| rtt::Variant {
+            name: variant.name.clone(),
+            ty: kind_to_trace(&variant.kind),
+            discriminant: variant.discriminant,
+        })
+        .collect();
+    TraceType::Enum(rtt::Enum {
+        name: enumerate.name.clone(),
+        variants,
+        discriminant_layout: enumerate.discriminant_layout.into(),
     })
 }

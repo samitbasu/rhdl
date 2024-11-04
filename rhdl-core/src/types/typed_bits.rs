@@ -882,6 +882,9 @@ mod tests {
                     ),
                 )
             }
+            fn static_trace_type() -> rhdl_trace_type::TraceType {
+                crate::rtt::kind_to_trace(&Self::static_kind())
+            }
             fn bin(self) -> Vec<bool> {
                 self.kind().pad(match self {
                     Self::A(_0) => {
@@ -949,6 +952,9 @@ mod tests {
                     ],
                 )
             }
+            fn static_trace_type() -> rhdl_trace_type::TraceType {
+                crate::rtt::kind_to_trace(&Self::static_kind())
+            }
             fn bin(self) -> Vec<bool> {
                 [self.0.bin(), self.1.bin(), self.2.bin()].concat()
             }
@@ -980,6 +986,9 @@ mod tests {
                         Kind::make_field("c", Kind::Bits(1)),
                     ],
                 )
+            }
+            fn static_trace_type() -> rhdl_trace_type::TraceType {
+                crate::rtt::kind_to_trace(&Self::static_kind())
             }
             fn bin(self) -> Vec<bool> {
                 [self.a.bin(), self.b.bin(), self.c.bin()].concat()

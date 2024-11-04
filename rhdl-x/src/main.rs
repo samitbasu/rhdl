@@ -88,6 +88,44 @@ mod trizrcv;
 */
 
 #[test]
+fn test_static_kind_function() {
+    #[derive(Copy, Clone, PartialEq)]
+    struct Foo {}
+
+    impl Digital for Foo {
+        const BITS: usize = 0;
+
+        fn static_kind() -> Kind {
+            use std::sync::LazyLock;
+            static KIND: LazyLock<Kind> = LazyLock::new(|| Kind::make_struct("Foo", vec![]));
+            KIND.clone()
+        }
+
+        fn static_trace_type() -> rtt::TraceType {
+            todo!()
+        }
+
+        fn bin(self) -> Vec<bool> {
+            vec![]
+        }
+
+        fn init() -> Self {
+            Self {}
+        }
+    }
+
+    fn sk() -> &'static Kind {
+        use std::sync::LazyLock;
+        static KIND: LazyLock<Kind> = LazyLock::new(|| Kind::make_struct("Foo", vec![]));
+        &KIND
+    }
+
+    let k = Foo::static_kind();
+    let l = sk();
+    assert_eq!(k, *l);
+}
+
+#[test]
 fn test_triz_pair() {
     #[derive(Clone, Debug, Synchronous, SynchronousDQZ, Default)]
     pub struct Fixture {

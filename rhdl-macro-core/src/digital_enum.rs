@@ -161,6 +161,33 @@ pub(crate) fn allocate_discriminants(discriminants: &[Option<i64>]) -> Vec<i64> 
         .collect()
 }
 
+fn variant_trace_mapping(enum_name: &Ident, variant: &Variant) -> TokenStream {
+    match &variant.fields {
+        syn::Fields::Unit => quote! {rhdl::rtt::TraceType::Empty},
+        syn::Fields::Unnamed(fields) => {
+            let field_types = fields.unnamed.iter().map(|f| &f.ty);
+            quote! {
+                rhdl::rtt::make_tuple(vec![#(
+                    <#field_types as rhdl::core::Digital>::static_trace_type()
+                ),*])
+            }
+        }
+        syn::Fields::Named(fields) => {
+            let field_names = fields.named.iter().map(|f| &f.ident);
+            let field_types = fields.named.iter().map(|f| &f.ty);
+            let struct_name = format_ident!("_{}__{}", enum_name, variant.ident);
+            quote! {
+                rhdl::rtt::make_struct(
+                    stringify!(#struct_name),
+                    vec![#(
+                        rhdl::rtt::make_field(stringify!(#field_names), <#field_types as rhdl::core::Digital>::static_trace_type())
+                    ),*]
+                )
+            }
+        }
+    }
+}
+
 fn variant_kind_mapping(enum_name: &Ident, variant: &Variant) -> TokenStream {
     match &variant.fields {
         syn::Fields::Unit => quote! {rhdl::core::Kind::Empty},
@@ -414,6 +441,10 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         .variants
         .iter()
         .map(|v| variant_kind_mapping(enum_name, v));
+    let trace_mapping = e
+        .variants
+        .iter()
+        .map(|v| variant_trace_mapping(enum_name, v));
     let variant_kind_mapping = kind_mapping.clone();
     let variant_bits_mapping = e.variants.iter().map(variant_bits_mapping);
     let variant_trace_bits_mapping = e.variants.iter().map(variant_trace_bits_mapping);
@@ -465,6 +496,21 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                         #width_bits,
                         #discriminant_alignment_expr,
                         #discriminant_ty
+                    )
+                )
+            }
+            fn static_trace_type() -> rhdl::core::TraceType {
+                rhdl::rtt::make_enum(
+                    #fqdn,
+                    vec![
+                        #(
+                            rhdl::rtt::make_variant(stringify!(#variant_names), #trace_mapping, #discriminants)
+                        ),*
+                    ],
+                    rhdl::rtt::make_discriminant_layout(
+                        #width_bits,
+                        #discriminant_alignment_expr.into(),
+                        #discriminant_ty.into()
                     )
                 )
             }

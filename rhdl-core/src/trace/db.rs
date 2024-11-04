@@ -356,7 +356,7 @@ mod tests {
 
     use rhdl_bits::Bits;
 
-    use crate::{types::kind::Variant, Digital, DiscriminantAlignment, Kind};
+    use crate::{rtt::kind_to_trace, types::kind::Variant, Digital, DiscriminantAlignment, Kind};
 
     use super::*;
 
@@ -433,6 +433,9 @@ mod tests {
                         crate::types::kind::DiscriminantType::Unsigned,
                     ),
                 )
+            }
+            fn static_trace_type() -> rhdl_trace_type::TraceType {
+                kind_to_trace(&Self::static_kind())
             }
             fn bin(self) -> Vec<bool> {
                 let raw = match self {

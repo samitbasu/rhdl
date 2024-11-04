@@ -9,6 +9,7 @@ use crate::{
 };
 
 use super::hdl_backend::maybe_port_wire;
+use rhdl_trace_type as rtt;
 
 // An adapter allows you to use a Synchronous circuit in an Asynchronous context.
 #[derive(Clone)]
@@ -47,6 +48,21 @@ impl<I: Digital, D: Domain> Digital for AdapterInput<I, D> {
                 Field {
                     name: "input".into(),
                     kind: <Signal<I, D> as Digital>::static_kind(),
+                },
+            ],
+        )
+    }
+    fn static_trace_type() -> rhdl_trace_type::TraceType {
+        rtt::make_struct(
+            "AdapterInput",
+            vec![
+                rtt::Field {
+                    name: "clock_reset".into(),
+                    ty: <Signal<ClockReset, D> as Digital>::static_trace_type(),
+                },
+                rtt::Field {
+                    name: "input".into(),
+                    ty: <Signal<I, D> as Digital>::static_trace_type(),
                 },
             ],
         )

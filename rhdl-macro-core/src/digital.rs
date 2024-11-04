@@ -69,6 +69,16 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         ]
                     )
                     }
+                    fn static_trace_type() -> rhdl::rtt::TraceType {
+                        rhdl::rtt::make_struct(
+                            #fqdn,
+                            vec![
+                            #(
+                                rhdl::rtt::make_field(stringify!(#fields), <#field_types as rhdl::core::Digital>::static_trace_type()),
+                            )*
+                        ]
+                    )
+                    }
                     fn bin(self) -> Vec<bool> {
                         [
                         #(
@@ -136,7 +146,17 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                                 rhdl::core::Kind::make_field(stringify!(#fields), <#field_types as rhdl::core::Digital>::static_kind()),
                             )*
                         ],
-                    )
+                        )
+                    }
+                    fn static_trace_type() -> rhdl::core::TraceType {
+                        rhdl::rtt::make_struct(
+                            #fqdn,
+                            vec![
+                            #(
+                                rhdl::rtt::make_field(stringify!(#fields), <#field_types as rhdl::core::Digital>::static_trace_type()),
+                            )*
+                        ],
+                        )
                     }
                     fn bin(self) -> Vec<bool> {
                         [
