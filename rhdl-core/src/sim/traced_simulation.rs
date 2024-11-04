@@ -44,5 +44,9 @@ pub fn traced_synchronous_simulation<S: Synchronous>(
     }
     let db = guard.take();
     let strobe = std::fs::File::create(vcd_filename).unwrap();
+    let strobe = std::io::BufWriter::new(strobe);
     db.dump_vcd(strobe).unwrap();
+    let rtt = std::fs::File::create(format!("{}.rtt", vcd_filename)).unwrap();
+    let rtt = std::io::BufWriter::new(rtt);
+    db.dump_rtt(rtt).unwrap();
 }

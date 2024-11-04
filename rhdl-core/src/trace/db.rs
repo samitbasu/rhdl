@@ -6,6 +6,7 @@ use std::{
     io::Write,
 };
 
+use rhdl_trace_type::TraceType;
 use smallvec::SmallVec;
 use vcd::IdCode;
 
@@ -49,30 +50,28 @@ impl<T: Digital> AsAny for TimeSeries<T> {
     }
 }
 
-struct TimeSeries<T: Digital> {
-    values: Vec<(u64, T)>,
-    kind: Kind,
-}
+struct TimeSeries<T: Digital>(Vec<(u64, T)>);
 
 struct TimeSeriesDetails {
     hash: TimeSeriesHash,
+    trace_type: TraceType,
     path: Vec<&'static str>,
     key: String,
 }
 
 impl<T: Digital> TimeSeries<T> {
-    fn new(time: u64, value: T, kind: Kind) -> Self {
+    fn new(time: u64, value: T) -> Self {
         let mut values = Vec::with_capacity(1_000_000);
         values.push((time, value));
-        TimeSeries { values, kind }
+        TimeSeries(values)
     }
     fn push_if_changed(&mut self, time: u64, value: T) {
-        if let Some((_, last_value)) = self.values.last() {
+        if let Some((_, last_value)) = self.0.last() {
             if last_value == &value {
                 return;
             }
         }
-        self.values.push((time, value));
+        self.0.push((time, value));
     }
 }
 
@@ -89,7 +88,7 @@ impl<T: Digital> TimeSeriesWalk for TimeSeries<T> {
     ) -> Option<Cursor> {
         let name_sanitized = name.replace("::", "__");
         let code = writer.add_wire(T::BITS as u32, &name_sanitized).ok()?;
-        self.values.first().map(|x| Cursor {
+        self.0.first().map(|x| Cursor {
             next_time: Some(x.0),
             hash: details.hash,
             ptr: 0,
@@ -99,7 +98,7 @@ impl<T: Digital> TimeSeriesWalk for TimeSeries<T> {
     }
     fn advance_cursor(&self, cursor: &mut Cursor) {
         cursor.ptr += 1;
-        if let Some((time, _)) = self.values.get(cursor.ptr) {
+        if let Some((time, _)) = self.0.get(cursor.ptr) {
             cursor.next_time = Some(*time);
         } else {
             cursor.next_time = None;
@@ -107,7 +106,7 @@ impl<T: Digital> TimeSeriesWalk for TimeSeries<T> {
     }
     fn write_vcd(&self, cursor: &mut Cursor, writer: &mut dyn VCDWrite) -> anyhow::Result<()> {
         let mut sbuf = SmallVec::<[u8; 64]>::new();
-        if let Some((_time, value)) = self.values.get(cursor.ptr) {
+        if let Some((_time, value)) = self.0.get(cursor.ptr) {
             sbuf.push(b'b');
             sbuf.extend(value.trace().into_iter().map(|v| match v {
                 TraceBit::Zero => b'0',
@@ -160,14 +159,14 @@ impl TraceDB {
                     .push_if_changed(self.time, *value);
             }
             Entry::Vacant(entry) => {
-                let kind = value.kind();
                 let details = TimeSeriesDetails {
                     hash,
                     path: self.path.clone(),
                     key: key.as_string().to_string(),
+                    trace_type: value.trace_type(),
                 };
                 self.details.insert(hash, details);
-                entry.insert(Box::new(TimeSeries::new(self.time, *value, kind)));
+                entry.insert(Box::new(TimeSeries::new(self.time, *value)));
             }
         }
     }
@@ -246,6 +245,24 @@ impl TraceDB {
                 writer.timestamp(current_time)?;
             }
         }
+        Ok(())
+    }
+    pub fn dump_rtt<W: Write>(&self, w: W) -> anyhow::Result<()> {
+        // Collect a map from the IdCode to the trace type
+        let type_map: BTreeMap<String, TraceType> = self
+            .details
+            .values()
+            .map(|details| {
+                let name = format!(
+                    "{}.{}",
+                    [&["top"], &details.path[..]].concat().join("."),
+                    details.key
+                );
+                let ty = details.trace_type.clone();
+                (name, ty)
+            })
+            .collect();
+        ron::ser::to_writer_pretty(w, &type_map, Default::default())?;
         Ok(())
     }
 }
