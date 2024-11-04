@@ -25,6 +25,7 @@ pub use rhdl_core::hdl::ast::{
     always, assign, bit_string, continuous_assignment, id, if_statement, initial, port,
 };
 pub use rhdl_core::hdl::ast::{non_blocking_assignment, Direction, Events, HDLKind};
+pub use rhdl_core::rhdl_trace_type as rtt;
 pub use rhdl_core::rhif::spec::OpCode;
 pub use rhdl_core::rtl::vm::execute;
 pub use rhdl_core::rtl::Object;

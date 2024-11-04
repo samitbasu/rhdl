@@ -28,6 +28,9 @@ impl<const N: usize> Digital for BitZ<N> {
             ],
         )
     }
+    fn static_trace_type() -> rhdl_trace_type::TraceType {
+        rhdl_trace_type::TraceType::Bits(Self::TRACE_BITS)
+    }
     fn bin(self) -> Vec<bool> {
         [self.value.bin().as_slice(), self.mask.bin().as_slice()].concat()
     }

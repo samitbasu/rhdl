@@ -4,6 +4,7 @@ use rhdl_bits::Bits;
 use rhdl_bits::SignedBits;
 
 use crate::{Digital, Domain, Kind, Timed};
+use rhdl_trace_type as rtt;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Signal<T: Digital, C: Domain> {
@@ -33,6 +34,9 @@ impl<T: Digital, C: Domain> Digital for Signal<T, C> {
     const BITS: usize = T::BITS;
     fn static_kind() -> Kind {
         Kind::make_signal(T::static_kind(), C::color())
+    }
+    fn static_trace_type() -> rtt::TraceType {
+        rtt::make_signal(T::static_trace_type(), C::color().into())
     }
 
     fn bin(self) -> Vec<bool> {

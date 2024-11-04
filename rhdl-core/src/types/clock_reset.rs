@@ -29,6 +29,21 @@ impl Digital for ClockReset {
             ],
         )
     }
+    fn static_trace_type() -> rhdl_trace_type::TraceType {
+        rhdl_trace_type::TraceType::Struct(rhdl_trace_type::Struct {
+            name: "ClockReset".into(),
+            fields: vec![
+                rhdl_trace_type::Field {
+                    name: "clock".into(),
+                    ty: <Clock as Digital>::static_trace_type(),
+                },
+                rhdl_trace_type::Field {
+                    name: "reset".into(),
+                    ty: <Reset as Digital>::static_trace_type(),
+                },
+            ],
+        })
+    }
     fn bin(self) -> Vec<bool> {
         [self.clock.bin().as_slice(), self.reset.bin().as_slice()].concat()
     }
