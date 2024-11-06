@@ -87,7 +87,9 @@ impl<T: Digital> TimeSeriesWalk for TimeSeries<T> {
         writer: &mut dyn VCDWrite,
     ) -> Option<Cursor> {
         let name_sanitized = name.replace("::", "__");
-        let code = writer.add_wire(T::BITS as u32, &name_sanitized).ok()?;
+        let code = writer
+            .add_wire(T::TRACE_BITS as u32, &name_sanitized)
+            .ok()?;
         self.0.first().map(|x| Cursor {
             next_time: Some(x.0),
             hash: details.hash,
@@ -108,7 +110,7 @@ impl<T: Digital> TimeSeriesWalk for TimeSeries<T> {
         let mut sbuf = SmallVec::<[u8; 64]>::new();
         if let Some((_time, value)) = self.0.get(cursor.ptr) {
             sbuf.push(b'b');
-            sbuf.extend(value.trace().into_iter().map(|v| match v {
+            sbuf.extend(value.trace().into_iter().rev().map(|v| match v {
                 TraceBit::Zero => b'0',
                 TraceBit::One => b'1',
                 TraceBit::X => b'x',
