@@ -126,6 +126,74 @@ fn test_static_kind_function() {
 }
 
 #[test]
+fn test_struct_vcd() {
+    use rhdl::prelude::*;
+
+    #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
+    pub enum State {
+        #[default]
+        Idle,
+        Write,
+        Read,
+        Done,
+    }
+
+    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+    pub struct I {
+        pub enable: bool,
+        pub data: [b4; 3],
+        pub tuple: (b3, b3),
+        pub state: State,
+        pub inum: Option<b6>,
+    }
+
+    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+    pub struct O {
+        pub enable: bool,
+        pub data: [b4; 3],
+        pub tuple: (b3, b3),
+        pub state: State,
+        pub inum: Option<b6>,
+    }
+
+    #[kernel]
+    pub fn pass_through(cr: ClockReset, i: I) -> O {
+        O {
+            enable: !i.enable,
+            data: [i.data[2], i.data[1], i.data[0]],
+            tuple: (i.tuple.1, i.tuple.0),
+            state: match i.state {
+                State::Idle => State::Write,
+                State::Write => State::Read,
+                State::Read => State::Done,
+                State::Done => State::Idle,
+            },
+            inum: match i.inum {
+                Some(x) => Some(x + 1),
+                None => None,
+            },
+        }
+    }
+
+    let circuit = Func::new::<pass_through>().unwrap();
+    let inputs = (0..100).map(|x| I {
+        enable: x % 2 == 0,
+        data: [bits(x % 16), bits((x + 1) % 16), bits((x + 2) % 16)],
+        tuple: (bits((x + 3) % 8), bits((x + 4) % 8)),
+        state: match x % 4 {
+            0 => State::Idle,
+            1 => State::Write,
+            2 => State::Read,
+            3 => State::Done,
+            _ => unreachable!(),
+        },
+        inum: if x % 8 == 0 { None } else { Some(bits(x % 64)) },
+    });
+    let inputs = test_stream(inputs);
+    traced_synchronous_simulation(&circuit, inputs, "pass_through.vcd");
+}
+
+#[test]
 fn test_triz_pair() {
     #[derive(Clone, Debug, Synchronous, SynchronousDQZ, Default)]
     pub struct Fixture {
