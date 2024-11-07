@@ -14,5 +14,4 @@ pub mod reset;
 pub mod signal;
 pub mod timed;
 pub mod timed_sample;
-pub mod tristate;
 pub mod typed_bits;

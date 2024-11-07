@@ -16,10 +16,9 @@ pub mod anyer {
         type Kernel = anyer;
     }
 
-    impl SynchronousDQZ for U {
+    impl SynchronousDQ for U {
         type D = ();
         type Q = ();
-        type Z = ();
     }
 
     #[kernel]
@@ -40,10 +39,9 @@ pub mod adder {
         type Kernel = adder;
     }
 
-    impl SynchronousDQZ for U {
+    impl SynchronousDQ for U {
         type D = ();
         type Q = ();
-        type Z = ();
     }
 
     #[kernel]
@@ -66,10 +64,9 @@ pub mod selector {
         type Kernel = selector;
     }
 
-    impl SynchronousDQZ for U {
+    impl SynchronousDQ for U {
         type D = ();
         type Q = ();
-        type Z = ();
     }
 
     #[kernel]
@@ -92,10 +89,9 @@ pub mod indexor {
         type Kernel = indexor;
     }
 
-    impl SynchronousDQZ for U {
+    impl SynchronousDQ for U {
         type D = ();
         type Q = ();
-        type Z = ();
     }
 
     #[kernel]
@@ -118,10 +114,9 @@ pub mod splicer {
         type Kernel = splicer;
     }
 
-    impl SynchronousDQZ for U {
+    impl SynchronousDQ for U {
         type D = ();
         type Q = ();
-        type Z = ();
     }
 
     #[kernel]
@@ -136,7 +131,7 @@ pub mod splicer {
 fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
     mod parent {
         use super::*;
-        #[derive(Clone, Debug, Synchronous, SynchronousDQZ, Default)]
+        #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
         pub struct Parent {
             selector: selector::U,
         }
@@ -176,7 +171,7 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
 fn test_add_inline() -> miette::Result<()> {
     mod parent {
         use super::*;
-        #[derive(Clone, Debug, Synchronous, SynchronousDQZ, Default)]
+        #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
         pub struct Parent {
             adder: adder::U,
         }
@@ -219,7 +214,7 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
     mod parent {
         use super::*;
 
-        #[derive(Clone, Debug, Synchronous, SynchronousDQZ, Default)]
+        #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
         pub struct Parent {
             anyer: anyer::U,
         }
@@ -262,10 +257,9 @@ fn test_async_add() -> miette::Result<()> {
         type Kernel = async_add;
     }
 
-    impl CircuitDQZ for U {
+    impl CircuitDQ for U {
         type D = Signal<(), Red>;
         type Q = Signal<(), Red>;
-        type Z = ();
     }
 
     #[kernel]
@@ -293,7 +287,7 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
     mod parent {
         use super::*;
 
-        #[derive(Clone, Debug, Synchronous, SynchronousDQZ, Default)]
+        #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
         pub struct Parent {
             adder: adder::U,
         }
@@ -331,7 +325,7 @@ fn test_constant_propagates_through_indexing() -> miette::Result<()> {
     mod parent {
         use super::*;
 
-        #[derive(Clone, Debug, Synchronous, SynchronousDQZ, Default)]
+        #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
         pub struct Parent {
             indexor: indexor::U,
         }
@@ -369,7 +363,7 @@ fn test_constant_propagates_through_splicing() -> miette::Result<()> {
     mod parent {
         use super::*;
 
-        #[derive(Clone, Debug, Synchronous, SynchronousDQZ, Default)]
+        #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
         pub struct Parent {
             splicer: splicer::U,
         }

@@ -15,22 +15,15 @@ impl<const N: usize> SynchronousIO for U<N> {
     type Kernel = NoKernel3<ClockReset, BitZ<N>, (), (BitZ<N>, ())>;
 }
 
-impl<const N: usize> SynchronousDQZ for U<N> {
+impl<const N: usize> SynchronousDQ for U<N> {
     type D = ();
     type Q = ();
-    type Z = ();
 }
 
 impl<const N: usize> Synchronous for U<N> {
     type S = BitZ<N>;
 
-    fn sim(
-        &self,
-        _clock_reset: ClockReset,
-        input: Self::I,
-        state: &mut Self::S,
-        _io: &mut Self::Z,
-    ) -> Self::O {
+    fn sim(&self, _clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
         trace("input", &input);
         *state = input;
         let output = state;

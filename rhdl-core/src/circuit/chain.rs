@@ -8,7 +8,7 @@ use crate::{
     },
     rtl::object::RegisterKind,
     trace_pop_path, trace_push_path, CircuitDescriptor, ClockReset, Digital, FlowGraph,
-    HDLDescriptor, Kind, Synchronous, SynchronousDQZ, SynchronousIO, Tristate,
+    HDLDescriptor, Kind, Synchronous, SynchronousDQ, SynchronousIO,
 };
 
 use super::hdl_backend::maybe_port_wire;
@@ -31,10 +31,9 @@ impl<A: Synchronous, B: Synchronous> SynchronousIO for Chain<A, B> {
     type Kernel = NoKernel3<ClockReset, Self::I, (), (Self::O, ())>;
 }
 
-impl<A: Synchronous, B: Synchronous> SynchronousDQZ for Chain<A, B> {
+impl<A: Synchronous, B: Synchronous> SynchronousDQ for Chain<A, B> {
     type D = ();
     type Q = ();
-    type Z = (A::Z, B::Z);
 }
 
 impl<A: Synchronous, B: Synchronous, P: Digital> Synchronous for Chain<A, B>
@@ -44,19 +43,13 @@ where
 {
     type S = (A::S, B::S);
 
-    fn sim(
-        &self,
-        clock_reset: crate::ClockReset,
-        input: Self::I,
-        state: &mut Self::S,
-        io: &mut Self::Z,
-    ) -> Self::O {
+    fn sim(&self, clock_reset: crate::ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
         trace_push_path("chain");
         trace_push_path("a");
-        let p = self.a.sim(clock_reset, input, &mut state.0, &mut io.0);
+        let p = self.a.sim(clock_reset, input, &mut state.0);
         trace_pop_path();
         trace_push_path("b");
-        let o = self.b.sim(clock_reset, p, &mut state.1, &mut io.1);
+        let o = self.b.sim(clock_reset, p, &mut state.1);
         trace_pop_path();
         trace_pop_path();
         o
@@ -116,8 +109,6 @@ where
             output_kind: desc_b.output_kind.clone(),
             q_kind: Kind::Empty,
             d_kind: Kind::Empty,
-            num_tristate: Self::Z::bits(),
-            tristate_offset_in_parent: 0,
             flow_graph: fg,
             rtl: None,
             children: BTreeMap::from_iter(vec![(a_name, desc_a), (b_name, desc_b)]),
@@ -137,7 +128,6 @@ where
             maybe_port_wire(Direction::Input, 2, "clock_reset"),
             maybe_port_wire(Direction::Input, <A as SynchronousIO>::I::bits(), "i"),
             maybe_port_wire(Direction::Output, <B as SynchronousIO>::O::bits(), "o"),
-            maybe_port_wire(Direction::Inout, Self::Z::bits(), "io"),
         ]
         .into_iter()
         .flatten()

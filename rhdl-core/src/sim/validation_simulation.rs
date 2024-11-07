@@ -19,9 +19,8 @@ pub fn validate<T: Circuit>(
         validator.initialize(uut)?;
     }
     let mut state = T::S::init();
-    let mut io = T::Z::default();
     for sample in inputs {
-        let output = uut.sim(sample.value, &mut state, &mut io);
+        let output = uut.sim(sample.value, &mut state);
         for validator in validators {
             validator.validate(sample, output)?;
         }
@@ -47,11 +46,10 @@ pub fn validate_synchronous<T: Synchronous>(
         validator.initialize(uut)?;
     }
     let mut state = T::S::init();
-    let mut io = T::Z::default();
     for timed_input in inputs {
         let clock_reset = timed_input.value.0;
         let input = timed_input.value.1;
-        let output = uut.sim(clock_reset, input, &mut state, &mut io);
+        let output = uut.sim(clock_reset, input, &mut state);
         for validator in validators {
             validator.validate(timed_input, output)?;
         }

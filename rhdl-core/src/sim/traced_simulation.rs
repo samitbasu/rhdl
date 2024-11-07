@@ -1,7 +1,5 @@
 use crate::types::digital::Digital;
-use crate::{
-    trace, trace_init_db, trace_time, Circuit, CircuitDQZ, ClockReset, Synchronous, TimedSample,
-};
+use crate::{trace, trace_init_db, trace_time, Circuit, ClockReset, Synchronous, TimedSample};
 
 pub fn traced_simulation<T: Circuit>(
     uut: &T,
@@ -11,11 +9,10 @@ pub fn traced_simulation<T: Circuit>(
     let guard = trace_init_db();
     trace_time(0);
     let mut state = <T as Circuit>::S::init();
-    let mut io = <T as CircuitDQZ>::Z::default();
     for sample in inputs {
         trace_time(sample.time);
         trace("input", &sample.value);
-        let output = uut.sim(sample.value, &mut state, &mut io);
+        let output = uut.sim(sample.value, &mut state);
         trace("output", &output);
     }
     let db = guard.take();
@@ -35,7 +32,6 @@ pub fn traced_synchronous_simulation<S: Synchronous>(
     let guard = trace_init_db();
     trace_time(0);
     let mut state = S::S::init();
-    let mut io = S::Z::default();
     for timed_input in inputs {
         trace_time(timed_input.time);
         let clock_reset = timed_input.value.0;
@@ -43,7 +39,7 @@ pub fn traced_synchronous_simulation<S: Synchronous>(
         trace("clock", &clock_reset.clock);
         trace("reset", &clock_reset.reset);
         trace("input", &input);
-        let output = uut.sim(clock_reset, input, &mut state, &mut io);
+        let output = uut.sim(clock_reset, input, &mut state);
         trace("output", &output);
     }
     let db = guard.take();

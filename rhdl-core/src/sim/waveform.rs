@@ -1,6 +1,4 @@
-use crate::{
-    Circuit, CircuitDQZ, Clock, ClockReset, Digital, Kind, Reset, Synchronous, TimedSample,
-};
+use crate::{Circuit, Clock, ClockReset, Digital, Kind, Reset, Synchronous, TimedSample};
 
 #[derive(Clone, Debug)]
 pub struct AsynchronousEntry {
@@ -39,13 +37,12 @@ pub fn waveform<T: Circuit>(
     inputs: impl Iterator<Item = TimedSample<T::I>>,
 ) -> AsynchronousWaveform {
     let mut state = <T as Circuit>::S::init();
-    let mut io = <T as CircuitDQZ>::Z::default();
     let mut previous_time = 0;
     let mut entries = Vec::new();
     for sample in inputs {
         let time = sample.time;
         let input = sample.value;
-        let output = uut.sim(input, &mut state, &mut io);
+        let output = uut.sim(input, &mut state);
         let entry = AsynchronousEntry {
             delay: time - previous_time,
             input: input.bin(),
@@ -67,14 +64,13 @@ pub fn waveform_synchronous<T: Synchronous>(
     inputs: impl Iterator<Item = TimedSample<(ClockReset, T::I)>>,
 ) -> SynchronousWaveform {
     let mut state = T::S::init();
-    let mut io = T::Z::default();
     let mut previous_time = 0;
     let mut entries = Vec::new();
     for timed_input in inputs {
         let time = timed_input.time;
         let clock_reset = timed_input.value.0;
         let input = timed_input.value.1;
-        let output = uut.sim(clock_reset, input, &mut state, &mut io);
+        let output = uut.sim(clock_reset, input, &mut state);
         let entry = SynchronousEntry {
             delay: time - previous_time,
             clock: clock_reset.clock,

@@ -5,7 +5,6 @@ use crate::rtl::object::RegisterKind;
 use crate::rtl::Object;
 use crate::types::digital::Digital;
 use crate::types::path::{bit_range, Path};
-use crate::types::tristate::Tristate;
 use crate::Kind;
 use crate::{build_rtl_flow_graph, compile_design, CompilationMode, RHDLError, Synchronous};
 use std::collections::BTreeMap;
@@ -24,8 +23,6 @@ pub struct CircuitDescriptor {
     pub output_kind: Kind,
     pub d_kind: Kind,
     pub q_kind: Kind,
-    pub num_tristate: usize,
-    pub tristate_offset_in_parent: usize,
     pub flow_graph: FlowGraph,
     pub rtl: Option<Object>,
     pub children: BTreeMap<String, CircuitDescriptor>,
@@ -119,10 +116,8 @@ pub fn build_descriptor<C: Circuit>(
         output_kind: C::O::static_kind(),
         d_kind: C::D::static_kind(),
         q_kind: C::Q::static_kind(),
-        num_tristate: C::Z::bits(),
         flow_graph: fg,
         rtl: Some(module),
-        tristate_offset_in_parent: 0,
         children,
     })
 }
@@ -242,8 +237,6 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         output_kind: C::O::static_kind(),
         d_kind: C::D::static_kind(),
         q_kind: C::Q::static_kind(),
-        num_tristate: C::Z::bits(),
-        tristate_offset_in_parent: 0,
         children,
         rtl: Some(module),
         flow_graph: fg,

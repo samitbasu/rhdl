@@ -46,11 +46,8 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
     let component_index = (1..=component_name.len())
         .map(syn::Index::from)
         .collect::<Vec<_>>();
-    let z_index = (0..component_name.len())
-        .map(syn::Index::from)
-        .collect::<Vec<_>>();
     quote! {
-        fn sim(&self, input: <Self as rhdl::core::CircuitIO>::I, state: &mut Self::S , io: &mut Self::Z ) -> <Self as CircuitIO>::O {
+        fn sim(&self, input: <Self as rhdl::core::CircuitIO>::I, state: &mut Self::S ) -> <Self as CircuitIO>::O {
             let update_fn = <<Self as rhdl::core::CircuitIO>::Kernel as rhdl::core::DigitalFn2>::func();
             rhdl::core::trace("input", &input);
             for _ in 0..rhdl::core::MAX_ITERS {
@@ -59,7 +56,7 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
                 #(
                     rhdl::core::trace_push_path(stringify!(#component_name));
                     state.0.#component_name =
-                    self.#component_name.sim(internal_inputs.#component_name, &mut state.#component_index, &mut io.#z_index);
+                    self.#component_name.sim(internal_inputs.#component_name, &mut state.#component_index);
                     rhdl::core::trace_pop_path();
                 )*
                 if state == &prev_state {
