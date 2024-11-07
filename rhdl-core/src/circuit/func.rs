@@ -7,7 +7,7 @@ use crate::{
     },
     rtl::Object,
     CircuitDescriptor, ClockReset, CompilationMode, Digital, DigitalFn, HDLDescriptor, Kind,
-    RHDLError, Synchronous, SynchronousDQZ, SynchronousIO,
+    RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
 };
 
 use super::hdl_backend::maybe_port_wire;
@@ -24,10 +24,9 @@ impl<I: Digital, O: Digital> SynchronousIO for Func<I, O> {
     type Kernel = NoKernel3<ClockReset, I, (), (O, ())>;
 }
 
-impl<I: Digital, O: Digital> SynchronousDQZ for Func<I, O> {
+impl<I: Digital, O: Digital> SynchronousDQ for Func<I, O> {
     type D = ();
     type Q = ();
-    type Z = ();
 }
 
 impl<I: Digital, O: Digital> Func<I, O> {
@@ -45,13 +44,7 @@ impl<I: Digital, O: Digital> Func<I, O> {
 impl<I: Digital, O: Digital> Synchronous for Func<I, O> {
     type S = ();
 
-    fn sim(
-        &self,
-        clock_reset: ClockReset,
-        input: Self::I,
-        _state: &mut Self::S,
-        _io: &mut Self::Z,
-    ) -> Self::O {
+    fn sim(&self, clock_reset: ClockReset, input: Self::I, _state: &mut Self::S) -> Self::O {
         (self.update)(clock_reset, input)
     }
 
@@ -62,8 +55,6 @@ impl<I: Digital, O: Digital> Synchronous for Func<I, O> {
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            num_tristate: 0,
-            tristate_offset_in_parent: 0,
             flow_graph: build_rtl_flow_graph(&self.module),
             rtl: Some(self.module.clone()),
             children: Default::default(),

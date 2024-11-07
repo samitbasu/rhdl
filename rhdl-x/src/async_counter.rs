@@ -1,6 +1,6 @@
 use rhdl::{core::ClockReset, prelude::*};
 
-#[derive(Clone, Circuit, CircuitDQZ)]
+#[derive(Clone, Circuit, CircuitDQ)]
 pub struct U {
     counter: Adapter<crate::counter::U<4>, Red>,
 }

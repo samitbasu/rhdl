@@ -29,10 +29,9 @@ impl<T: Digital> SynchronousIO for U<T> {
     type Kernel = NoKernel3<ClockReset, T, (), (T, ())>;
 }
 
-impl<T: Digital> SynchronousDQZ for U<T> {
+impl<T: Digital> SynchronousDQ for U<T> {
     type D = ();
     type Q = ();
-    type Z = ();
 }
 
 #[derive(Debug, Clone, PartialEq, Copy, Digital)]
@@ -45,13 +44,7 @@ pub struct S<T: Digital> {
 impl<T: Digital> Synchronous for U<T> {
     type S = S<T>;
 
-    fn sim(
-        &self,
-        clock_reset: ClockReset,
-        input: Self::I,
-        state: &mut Self::S,
-        _io: &mut Self::Z,
-    ) -> Self::O {
+    fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
         trace("input", &input);
         let clock = clock_reset.clock;
         let reset = clock_reset.reset;
@@ -111,8 +104,6 @@ impl<T: Digital> Synchronous for U<T> {
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            num_tristate: 0,
-            tristate_offset_in_parent: 0,
             children: Default::default(),
             flow_graph,
             rtl: None,

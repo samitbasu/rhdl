@@ -5,39 +5,47 @@ pub struct ZDriver<const N: usize> {}
 
 #[derive(Debug, Clone, PartialEq, Copy, Digital)]
 pub struct ZDriverIn<const N: usize> {
+    pub bus: BitZ<N>,
     pub mask: Bits<N>,
     pub data: Bits<N>,
 }
 
-impl<const N: usize> SynchronousDQZ for ZDriver<N> {
+impl<const N: usize> SynchronousDQ for ZDriver<N> {
     type D = ();
     type Q = ();
-    type Z = BitZ<N>;
+}
+
+#[derive(Debug, Clone, PartialEq, Copy, Digital)]
+pub struct ZDriverOut<const N: usize> {
+    pub bus: BitZ<N>,
+    pub data: Bits<N>,
 }
 
 impl<const N: usize> SynchronousIO for ZDriver<N> {
     type I = ZDriverIn<N>;
-    type O = Bits<N>;
+    type O = ZDriverOut<N>;
     type Kernel = NoKernel3<ClockReset, Self::I, (), (Self::O, ())>;
+}
+
+#[kernel]
+pub fn tristate<const N: usize>(bus: BitZ<N>, mask: Bits<N>, data: Bits<N>) -> (BitZ<N>, Bits<N>) {
+    let mut out = bus;
+    out.mask |= mask;
+    out.value |= data & mask;
+    (out, out.value)
 }
 
 impl<const N: usize> Synchronous for ZDriver<N> {
     type S = ();
 
-    fn sim(
-        &self,
-        _clock_reset: ClockReset,
-        input: Self::I,
-        _state: &mut Self::S,
-        io: &mut Self::Z,
-    ) -> Self::O {
+    fn sim(&self, _clock_reset: ClockReset, input: Self::I, _state: &mut Self::S) -> Self::O {
         trace("input", &input);
-        io.value = input.data;
-        io.mask = input.mask;
-        trace("bus", io);
-        let output = input.data;
+        let output = tristate(input.bus, input.mask, input.data);
         trace("output", &output);
-        output
+        ZDriverOut {
+            bus: output.0,
+            data: output.1,
+        }
     }
 
     fn description(&self) -> String {

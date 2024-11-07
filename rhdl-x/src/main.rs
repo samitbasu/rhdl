@@ -195,7 +195,7 @@ fn test_struct_vcd() {
 
 #[test]
 fn test_triz_pair() {
-    #[derive(Clone, Debug, Synchronous, SynchronousDQZ, Default)]
+    #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
     pub struct Fixture {
         pub snd: trizsnd::U,
         pub rcv: trizrcv::U,

@@ -15,7 +15,7 @@ pub struct I {
     pub state: Option<LineState>,
 }
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQZ)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U {
     state: crate::dff::U<State>,
     reg: crate::dff::U<b8>,

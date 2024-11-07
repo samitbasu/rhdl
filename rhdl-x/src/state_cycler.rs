@@ -23,7 +23,7 @@ pub enum O {
     Error,
 }
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQZ)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U {
     state: crate::dff::U<State>,
     driver: crate::zdriver::ZDriver<8>,

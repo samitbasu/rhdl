@@ -1,7 +1,7 @@
 use crate::dff;
 use rhdl::prelude::*;
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQZ)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U {
     state: dff::U<bool>,
 }

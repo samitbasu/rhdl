@@ -37,7 +37,7 @@ pub struct O {
     pub data: Option<b8>,
 }
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQZ)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U {
     state: crate::dff::U<State>,
     reg: crate::dff::U<b8>,
