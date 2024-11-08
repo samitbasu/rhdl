@@ -40,4 +40,5 @@ pub fn compute_node_costs<F: FnMut(FlowIx, &FlowGraph, &HashMap<FlowIx, f64>) ->
             cost_map.insert(ix, node_cost);
         }
     }
+    eprintln!("Cost map: {:?}", cost_map);
 }
