@@ -6,9 +6,7 @@ use super::dff;
 // input enable signal is high.  It is parameterized by the number of
 // bits in the counter.  It will wrap around to zero when it reaches
 // all ones.
-#[derive(Clone, Debug, Synchronous)]
-#[rhdl(kernel=counter::<{N}>)]
-#[rhdl(auto_dq)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U<const N: usize> {
     count: dff::U<Bits<N>>,
 }
@@ -24,11 +22,13 @@ impl<const N: usize> Default for U<N> {
 impl<const N: usize> SynchronousIO for U<N> {
     type I = bool;
     type O = Bits<N>;
+    type Kernel = counter<N>;
 }
 
 #[kernel]
-pub fn counter<const N: usize>(_cr: ClockReset, enable: bool, q: Q<N>) -> (Bits<N>, D<N>) {
+pub fn counter<const N: usize>(cr: ClockReset, enable: bool, q: Q<N>) -> (Bits<N>, D<N>) {
     let next_count = if enable { q.count + 1 } else { q.count };
+    let next_count = if cr.reset.any() { bits(0) } else { next_count };
     (next_count, D::<{ N }> { count: next_count })
 }
 

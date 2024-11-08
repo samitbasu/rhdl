@@ -1,4 +1,7 @@
-use rhdl::prelude::*;
+use rhdl::{
+    core::hdl::ast::{index_bit, Declaration},
+    prelude::*,
+};
 
 #[derive(Debug, Clone)]
 pub struct U<T: Digital> {
@@ -14,9 +17,10 @@ impl<T: Digital> U<T> {
 impl<T: Digital> SynchronousIO for U<T> {
     type I = T;
     type O = T;
+    type Kernel = NoKernel3<ClockReset, T, (), (T, ())>;
 }
 
-impl<T: Digital> SynchronousDQZ for U<T> {
+impl<T: Digital> SynchronousDQ for U<T> {
     type D = ();
     type Q = ();
 }
@@ -29,20 +33,10 @@ pub struct S<T: Digital> {
 }
 
 impl<T: Digital> Synchronous for U<T> {
-    type Update = Self;
-
     type S = S<T>;
 
-    type Z = ();
-
-    fn sim(
-        &self,
-        clock_reset: ClockReset,
-        input: Self::I,
-        state: &mut Self::S,
-        _io: &mut Self::Z,
-    ) -> Self::O {
-        note("input", input);
+    fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
+        trace("input", &input);
         let clock = clock_reset.clock;
         let reset = clock_reset.reset;
         // Calculate the new state on a rising edge
@@ -64,19 +58,23 @@ impl<T: Digital> Synchronous for U<T> {
             state.state_next = new_state_next;
         }
         state.cr = clock_reset;
-        note("output", new_state);
+        trace("output", &new_state);
         new_state
     }
 
-    fn name(&self) -> String {
-        "DFF".into()
+    fn description(&self) -> String {
+        format!(
+            "Positive edge triggered DFF holding value of type {:?}, with reset value of {:?}",
+            T::static_kind(),
+            self.reset.typed_bits()
+        )
     }
 
-    fn hdl(&self) -> Result<HDLDescriptor, RHDLError> {
-        self.as_verilog()
+    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
+        self.as_verilog(name)
     }
 
-    fn descriptor(&self) -> Result<CircuitDescriptor, RHDLError> {
+    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
         let mut flow_graph = FlowGraph::default();
         let (d, q) = flow_graph.dff(T::static_kind().into(), &self.reset.typed_bits().bits, None);
         let clock = flow_graph.buffer(RegisterKind::Unsigned(1), "clk", None);
@@ -92,17 +90,11 @@ impl<T: Digital> Synchronous for U<T> {
         flow_graph.inputs = vec![vec![clock[0], reset[0]], d, vec![]];
         flow_graph.output = q;
         Ok(CircuitDescriptor {
-            unique_name: format!(
-                "{}_{:x}",
-                self.name(),
-                hash_id(std::any::TypeId::of::<Self>())
-            ),
+            unique_name: name.to_string(),
             input_kind: Self::I::static_kind(),
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            num_tristate: 0,
-            tristate_offset_in_parent: 0,
             children: Default::default(),
             flow_graph,
             rtl: None,
@@ -111,22 +103,8 @@ impl<T: Digital> Synchronous for U<T> {
 }
 
 impl<T: Digital> U<T> {
-    fn as_verilog(&self) -> Result<HDLDescriptor, RHDLError> {
-        /*
-           module {module_name}(input clock, input reset, input {input_wire}, output {output_reg});
-           initial begin
-                   o = {init};
-           end
-           always @(posedge clock) begin
-                   if (reset) begin
-                       o <= {init};
-                   end else begin
-                       o <= i;
-                   end
-               end
-           endmodule
-        */
-        let module_name = self.descriptor()?.unique_name;
+    fn as_verilog(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
+        let module_name = self.descriptor(name)?.unique_name;
         let mut module = Module {
             name: module_name.clone(),
             ..Default::default()
@@ -139,14 +117,36 @@ impl<T: Digital> U<T> {
             unsigned_width(output_bits)
         };
         module.ports = vec![
-            port("clock", Direction::Input, HDLKind::Wire, unsigned_width(1)),
-            port("reset", Direction::Input, HDLKind::Wire, unsigned_width(1)),
+            port(
+                "clock_reset",
+                Direction::Input,
+                HDLKind::Wire,
+                unsigned_width(2),
+            ),
             port("i", Direction::Input, HDLKind::Wire, data_width),
             port("o", Direction::Output, HDLKind::Reg, data_width),
         ];
+        module.declarations.push(Declaration {
+            kind: HDLKind::Wire,
+            name: "clock".into(),
+            width: unsigned_width(1),
+            alias: None,
+        });
+        module.declarations.push(Declaration {
+            kind: HDLKind::Wire,
+            name: "reset".into(),
+            width: unsigned_width(1),
+            alias: None,
+        });
         module
             .statements
             .push(initial(vec![assign("o", bit_string(&init))]));
+        module
+            .statements
+            .push(continuous_assignment("clock", index_bit("clock_reset", 0)));
+        module
+            .statements
+            .push(continuous_assignment("reset", index_bit("clock_reset", 1)));
         let dff = if_statement(
             id("reset"),
             vec![non_blocking_assignment("o", bit_string(&init))],
@@ -154,6 +154,26 @@ impl<T: Digital> U<T> {
         );
         let events = vec![Events::Posedge("clock".into())];
         module.statements.push(always(events, vec![dff]));
+        /*
+                let input_wire = as_verilog_decl("wire", input_bits, "i");
+                let output_reg = as_verilog_decl("reg", output_bits, "o");
+                let code = format!(
+                    "
+        module {module_name}(input clock, input reset, input {input_wire}, output {output_reg});
+           initial begin
+                o = {init};
+           end
+           always @(posedge clock) begin
+                if (reset) begin
+                    o <= {init};
+                end else begin
+                    o <= i;
+                end
+            end
+        endmodule
+                    "
+                );
+         */
         Ok(HDLDescriptor {
             name: module_name,
             body: module,
@@ -161,5 +181,3 @@ impl<T: Digital> U<T> {
         })
     }
 }
-
-impl<T: Digital> DigitalFn for U<T> {}
