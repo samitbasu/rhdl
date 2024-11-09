@@ -100,7 +100,7 @@ risk than a technical one.
 - [x] Fix naming of signals in the VCD traces
 - [ ] Add checks for combinatorial inputs or outputs
 - [x] Add a flow graph level simulator to verify correctness
-- [ ] Add timing estimator using longest path heuristics.
+- [x] Add timing estimator using longest path heuristics.
 - [ ] Port the `RustHDL` widget library to `RHDL`
 - [ ] Port the various FPGA BSPs to `RHDL` from `RustHDL`.
 
