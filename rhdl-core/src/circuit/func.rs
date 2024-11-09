@@ -44,6 +44,8 @@ impl<I: Digital, O: Digital> Func<I, O> {
 impl<I: Digital, O: Digital> Synchronous for Func<I, O> {
     type S = ();
 
+    fn init(&self) -> Self::S {}
+
     fn sim(&self, clock_reset: ClockReset, input: Self::I, _state: &mut Self::S) -> Self::O {
         (self.update)(clock_reset, input)
     }

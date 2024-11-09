@@ -23,6 +23,10 @@ impl<const N: usize> SynchronousDQ for U<N> {
 impl<const N: usize> Synchronous for U<N> {
     type S = BitZ<N>;
 
+    fn init(&self) -> Self::S {
+        BitZ::init()
+    }
+
     fn sim(&self, _clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
         trace("input", &input);
         *state = input;

@@ -43,6 +43,10 @@ where
 {
     type S = (A::S, B::S);
 
+    fn init(&self) -> Self::S {
+        (self.a.init(), self.b.init())
+    }
+
     fn sim(&self, clock_reset: crate::ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
         trace_push_path("chain");
         trace_push_path("a");

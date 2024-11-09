@@ -93,12 +93,16 @@ impl<C: Synchronous, D: Domain> CircuitDQ for Adapter<C, D> {
 }
 
 impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
-    type S = Signal<C::S, D>;
+    type S = C::S;
 
-    fn sim(&self, input: AdapterInput<C::I, D>, state: &mut Signal<C::S, D>) -> Signal<C::O, D> {
+    fn init(&self) -> Self::S {
+        self.circuit.init()
+    }
+
+    fn sim(&self, input: AdapterInput<C::I, D>, state: &mut C::S) -> Signal<C::O, D> {
         let clock_reset = input.clock_reset.val();
         let input = input.input.val();
-        let result = self.circuit.sim(clock_reset, input, state.val_mut());
+        let result = self.circuit.sim(clock_reset, input, state);
         signal(result)
     }
 

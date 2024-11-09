@@ -40,6 +40,18 @@ fn define_hdl_fn(field_set: &FieldSet) -> TokenStream {
     }
 }
 
+fn define_init_fn(field_set: &FieldSet) -> TokenStream {
+    let component_name = &field_set.component_name;
+    quote! {
+        fn init(&self) -> Self::S {
+            (
+                <<Self as rhdl::core::SynchronousDQ>::Q as rhdl::core::Digital>::init(),
+                #(self.#component_name.init(),)*
+            )
+        }
+    }
+}
+
 fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
     let component_name = &field_set.component_name;
     let component_index = (1..=component_name.len())
@@ -81,12 +93,15 @@ fn derive_synchronous_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let component_ty = &field_set.component_ty;
     // Add a tuple of the states of the components
     let state_tuple = quote!((Self::Q, #(<#component_ty as rhdl::core::Synchronous>::S),*));
+    let init_fn = define_init_fn(&field_set);
     let descriptor_fn = define_descriptor_fn(&field_set);
     let hdl_fn = define_hdl_fn(&field_set);
     let sim_fn = define_sim_fn(&field_set);
     let synchronous_impl = quote! {
         impl #impl_generics rhdl::core::Synchronous for #struct_name #ty_generics #where_clause {
             type S = #state_tuple;
+
+            #init_fn
 
             #descriptor_fn
 

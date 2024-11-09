@@ -8,7 +8,7 @@ pub fn traced_simulation<T: Circuit>(
 ) {
     let guard = trace_init_db();
     trace_time(0);
-    let mut state = <T as Circuit>::S::init();
+    let mut state = uut.init();
     for sample in inputs {
         trace_time(sample.time);
         trace("input", &sample.value);
@@ -31,7 +31,7 @@ pub fn traced_synchronous_simulation<S: Synchronous>(
 ) {
     let guard = trace_init_db();
     trace_time(0);
-    let mut state = S::S::init();
+    let mut state = uut.init();
     for timed_input in inputs {
         trace_time(timed_input.time);
         let clock_reset = timed_input.value.0;

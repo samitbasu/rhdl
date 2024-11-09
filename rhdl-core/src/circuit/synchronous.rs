@@ -16,7 +16,9 @@ pub trait SynchronousIO: 'static + Sized + Clone + SynchronousDQ {
 }
 
 pub trait Synchronous: 'static + Sized + Clone + SynchronousIO {
-    type S: Digital;
+    type S: PartialEq + Clone;
+
+    fn init(&self) -> Self::S;
 
     fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O;
 
