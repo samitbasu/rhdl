@@ -105,8 +105,8 @@ where
         fg.output = output_buffer;
         let desc = CircuitDescriptor {
             unique_name: name.into(),
-            input_kind: desc_a.input_kind.clone(),
-            output_kind: desc_b.output_kind.clone(),
+            input_kind: desc_a.input_kind,
+            output_kind: desc_b.output_kind,
             q_kind: Kind::Empty,
             d_kind: Kind::Empty,
             flow_graph: fg,

@@ -281,8 +281,8 @@ pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
         if obj_kind != arg_kind {
             return Err(rhdl_error(RHDLCompileError {
                 cause: ICE::ArgumentTypeMismatchOnCall {
-                    arg: arg_kind.clone(),
-                    expected: obj_kind.clone(),
+                    arg: *arg_kind,
+                    expected: *obj_kind,
                 },
                 src: obj.symbols.source.source.clone(),
                 err_span: obj.symbols.node_span(obj.ops[0].id).into(),

@@ -71,7 +71,7 @@ pub fn tuple(fields: &[TypedBits]) -> TypedBits {
         .iter()
         .flat_map(|x| x.bits.iter().cloned())
         .collect::<Vec<_>>();
-    let kinds = fields.iter().map(|x| x.kind.clone()).collect::<Vec<_>>();
+    let kinds = fields.iter().map(|x| x.kind).collect::<Vec<_>>();
     let kind = Kind::make_tuple(kinds);
     TypedBits { bits, kind }
 }
@@ -81,6 +81,6 @@ pub fn array(elements: &[TypedBits]) -> TypedBits {
         .iter()
         .flat_map(|x| x.bits.iter().cloned())
         .collect::<Vec<_>>();
-    let kind = Kind::make_array(elements[0].kind.clone(), elements.len());
+    let kind = Kind::make_array(elements[0].kind, elements.len());
     TypedBits { bits, kind }
 }

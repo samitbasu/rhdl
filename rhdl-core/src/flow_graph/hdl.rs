@@ -382,8 +382,6 @@ impl<'a> FlowGraphHDLBuilder<'a> {
             ComponentKind::DynamicIndex(_) => self.dynamic_index_assign_statement(index)?,
             ComponentKind::DynamicSplice(_) => self.dynamic_splice(index)?,
             ComponentKind::BitSelect(_) => self.bit_select(index)?,
-            ComponentKind::TimingStart => {}
-            ComponentKind::TimingEnd => {}
         }
         Ok(())
     }

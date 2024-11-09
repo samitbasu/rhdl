@@ -45,6 +45,7 @@ pub use rhdl_core::trace;
 pub use rhdl_core::trace::db::with_trace_db;
 pub use rhdl_core::trace_init_db;
 pub use rhdl_core::trace_time;
+pub use rhdl_core::trivial_cost;
 pub use rhdl_core::types::bitz::BitZ;
 pub use rhdl_core::types::clock::clock;
 pub use rhdl_core::types::clock::Clock;

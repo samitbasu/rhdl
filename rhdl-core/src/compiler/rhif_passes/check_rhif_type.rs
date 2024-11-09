@@ -222,21 +222,21 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 template,
             }) => {
                 let ty = slot_type(lhs);
-                eq_kinds(ty.clone(), template.kind.clone(), id)?;
+                eq_kinds(ty, template.kind, id)?;
                 if let Some(rest) = rest {
                     let rest_ty = slot_type(rest);
-                    eq_kinds(ty.clone(), rest_ty, id)?;
+                    eq_kinds(ty, rest_ty, id)?;
                 }
                 for field in fields {
                     match &field.member {
                         rhif::spec::Member::Named(name) => {
                             let path = Path::default().field(name);
-                            let ty = sub_kind(ty.clone(), &path)?;
+                            let ty = sub_kind(ty, &path)?;
                             eq_kinds(slot_type(&field.value), ty, id)?;
                         }
                         rhif::spec::Member::Unnamed(index) => {
                             let path = Path::default().index(*index as usize);
-                            let ty = sub_kind(ty.clone(), &path)?;
+                            let ty = sub_kind(ty, &path)?;
                             eq_kinds(slot_type(&field.value), ty, id)?;
                         }
                     }
@@ -255,21 +255,20 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                         obj,
                         ICE::VariantNotFoundInType {
                             variant: discriminant_value,
-                            ty: ty.clone(),
+                            ty,
                         },
                         obj.symbols.slot_map[lhs],
                     ))?
-                    .kind
-                    .clone();
+                    .kind;
                 for field in fields {
                     match &field.member {
                         rhif::spec::Member::Named(name) => {
-                            let ty = sub_kind(variant_kind.clone(), &Path::default().field(name))?;
+                            let ty = sub_kind(variant_kind, &Path::default().field(name))?;
                             eq_kinds(slot_type(&field.value), ty, id)?;
                         }
                         rhif::spec::Member::Unnamed(index) => {
                             let ty = sub_kind(
-                                variant_kind.clone(),
+                                variant_kind,
                                 &Path::default().tuple_index(*index as usize),
                             )?;
                             eq_kinds(slot_type(&field.value), ty, id)?;
@@ -286,11 +285,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                         obj.symbols.slot_map[lhs],
                     ));
                 };
-                eq_kinds(
-                    ty.clone(),
-                    Kind::make_array(*array_ty.base.clone(), *len as _),
-                    id,
-                )?;
+                eq_kinds(ty, Kind::make_array(*array_ty.base.clone(), *len as _), id)?;
             }
             OpCode::Comment(_) => {}
             OpCode::Case(Case {
@@ -310,7 +305,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                                     obj.symbols.slot_map[slot],
                                 ));
                             }
-                            eq_kinds(arg_ty.clone(), slot_type(slot), id)?;
+                            eq_kinds(arg_ty, slot_type(slot), id)?;
                         }
                         CaseArgument::Wild => {}
                     }
@@ -326,7 +321,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 let sub_args = sub.arguments.iter().map(|x| sub.kind(Slot::Register(*x)));
                 eq_kinds(slot_type(lhs), sub.kind(sub.return_slot), id)?;
                 for (arg, param) in args.iter().zip(sub_args) {
-                    eq_kinds(slot_type(arg), param.clone(), id)?;
+                    eq_kinds(slot_type(arg), param, id)?;
                 }
                 if args.len() != sub.arguments.len() {
                     return Err(TypeCheckPass::raise_ice(
@@ -371,13 +366,12 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 let Some(wrap_kind) = kind else {
                     return Err(TypeCheckPass::raise_ice(obj, ICE::WrapMissingKind, id));
                 };
-                let wrap_kind = wrap_kind.clone();
                 match op {
                     WrapOp::Err | WrapOp::Ok => {
                         if !wrap_kind.is_result() {
                             return Err(TypeCheckPass::raise_ice(
                                 obj,
-                                ICE::WrapRequiresResultKind { kind: wrap_kind },
+                                ICE::WrapRequiresResultKind { kind: *wrap_kind },
                                 id,
                             ));
                         }
@@ -386,20 +380,20 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                         if !wrap_kind.is_option() {
                             return Err(TypeCheckPass::raise_ice(
                                 obj,
-                                ICE::WrapRequiresOptionKind { kind: wrap_kind },
+                                ICE::WrapRequiresOptionKind { kind: *wrap_kind },
                                 id,
                             ));
                         }
                     }
                 }
-                eq_kinds(slot_type(lhs), wrap_kind.clone(), id)?;
+                eq_kinds(slot_type(lhs), *wrap_kind, id)?;
                 let payload_path = match op {
                     WrapOp::Ok => Path::default().payload("Ok").tuple_index(0),
                     WrapOp::Err => Path::default().payload("Err").tuple_index(0),
                     WrapOp::Some => Path::default().payload("Some").tuple_index(0),
                     WrapOp::None => Path::default().payload("None"),
                 };
-                let payload_ty = sub_kind(wrap_kind, &payload_path)?;
+                let payload_ty = sub_kind(*wrap_kind, &payload_path)?;
                 eq_kinds(slot_type(arg), payload_ty, id)?;
             }
         }

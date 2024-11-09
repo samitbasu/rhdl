@@ -71,18 +71,13 @@ pub fn strobe<const N: usize>(cr: ClockReset, i: I, q: Q<N>) -> (bool, D<N>) {
 
 #[cfg(test)]
 mod tests {
-    use rhdl::core::timing::simplest_cost;
-
     use super::*;
 
     #[test]
     fn test_strobe_timing() -> miette::Result<()> {
         let uut: U<4> = U::new(bits(12));
-        let mut counter_uut = uut.descriptor("uut")?.flow_graph.clone();
-        rhdl::core::timing::compute_node_costs(&mut counter_uut, simplest_cost);
-        eprintln!("counter {:?}", counter_uut);
-        let mut dot = std::fs::File::create("strobe_fg.dot").unwrap();
-        write_dot(&counter_uut, &mut dot).unwrap();
+        let fg = uut.flow_graph("top")?;
+        eprintln!("{:?}", fg.timing_reports(trivial_cost));
         Ok(())
     }
 }

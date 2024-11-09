@@ -363,7 +363,7 @@ fn test_async_counter_tb() -> miette::Result<()> {
 fn test_adapter_fg() -> miette::Result<()> {
     let counter = counter::U::default();
     let uut = Adapter::<counter::U<2>, Red>::new(counter);
-    let fg = &uut.descriptor("top")?.flow_graph.sealed();
+    let fg = &uut.flow_graph("top")?;
     let mut dot = std::fs::File::create("adapter.dot").unwrap();
     write_dot(fg, &mut dot).unwrap();
     Ok(())
@@ -400,7 +400,7 @@ fn test_strobe() {
 #[test]
 fn test_strobe_fg() -> miette::Result<()> {
     let uut: strobe::U<8> = strobe::U::new(bits(100));
-    let fg = &uut.flow_graph("uut")?.sealed();
+    let fg = &uut.flow_graph("uut")?;
     let mut dot = std::fs::File::create("strobe.dot").unwrap();
     write_dot(fg, &mut dot).unwrap();
     Ok(())

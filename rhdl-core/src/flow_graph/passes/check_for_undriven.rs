@@ -16,10 +16,7 @@ impl Pass for CheckForUndrivenPass {
     fn run(input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         for node in input.graph.node_indices() {
             let component = input.graph.node_weight(node).unwrap();
-            let no_drive_needed = matches!(
-                component.kind,
-                ComponentKind::TimingStart | ComponentKind::Constant(_)
-            );
+            let no_drive_needed = matches!(component.kind, ComponentKind::Constant(_));
             if !no_drive_needed {
                 let incoming_count = input
                     .graph
