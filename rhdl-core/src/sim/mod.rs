@@ -1,3 +1,4 @@
+pub mod final_output;
 pub mod stream;
 pub mod traced_simulation;
 pub mod validation_simulation;

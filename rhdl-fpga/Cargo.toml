@@ -10,3 +10,6 @@ anyhow = "1.0.79"
 
 rhdl = { path = "../rhdl" }
 strum = { version = "0.25.0", features = ["derive"] }
+
+[dev-dependencies]
+rand = "0.8.5"

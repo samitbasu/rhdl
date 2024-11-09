@@ -2,10 +2,9 @@ use rhdl::prelude::*;
 
 use super::dff;
 
-// A simple counter that increments by one each cycle when the
-// input enable signal is high.  It is parameterized by the number of
-// bits in the counter.  It will wrap around to zero when it reaches
-// all ones.
+// A simple counter that counts the number of boolean true
+// values it has seen.  It is parameterized by the number of
+// bits in the counter.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U<const N: usize> {
     count: dff::U<Bits<N>>,
@@ -34,8 +33,10 @@ pub fn counter<const N: usize>(cr: ClockReset, enable: bool, q: Q<N>) -> (Bits<N
 
 #[cfg(test)]
 mod tests {
+    use rand::random;
+
     use super::*;
-    use std::iter::repeat;
+    use std::iter::{once, repeat};
 
     #[test]
     fn test_counter() {
@@ -46,5 +47,23 @@ mod tests {
         let stream = clock_pos_edge(reset_0.chain(inputs_1.chain(reset_1.chain(inputs_2))), 100);
         let uut: U<16> = U::default();
         traced_synchronous_simulation(&uut, stream, "strobe.vcd");
+    }
+
+    #[test]
+    fn test_counter_counts_correctly() {
+        // To account for the delay, we need to end with a zero input
+        let rand_set = (0..100)
+            .map(|_| random::<bool>())
+            .chain(once(false))
+            .collect::<Vec<bool>>();
+        let ground_truth = rand_set
+            .iter()
+            .fold(0, |acc, x| acc + if *x { 1 } else { 0 });
+        let reset_0 = stream::reset_pulse(4);
+        let inputs_1 = stream::stream(rand_set.into_iter());
+        let stream = clock_pos_edge(reset_0.chain(inputs_1), 100);
+        let uut: U<16> = U::default();
+        let output = final_output_synchronous_simulation(&uut, stream);
+        assert_eq!(output, Some(bits(ground_truth)));
     }
 }

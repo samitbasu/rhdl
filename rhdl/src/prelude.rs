@@ -29,6 +29,8 @@ pub use rhdl_core::rhdl_trace_type as rtt;
 pub use rhdl_core::rhif::spec::OpCode;
 pub use rhdl_core::rtl::vm::execute;
 pub use rhdl_core::rtl::Object;
+pub use rhdl_core::sim::final_output::final_output_simulation;
+pub use rhdl_core::sim::final_output::final_output_synchronous_simulation;
 pub use rhdl_core::sim::stream;
 pub use rhdl_core::sim::stream::clock_pos_edge;
 pub use rhdl_core::sim::stream::stream;
