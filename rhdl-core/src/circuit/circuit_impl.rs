@@ -34,7 +34,7 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO {
     // auto derived
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError>;
 
-    // Return a top level flow graph for this circuit, optimized and sealed.
+    // Return a top level flow graph for this circuit, optimized
     fn flow_graph(&self, name: &str) -> Result<FlowGraph, RHDLError> {
         let flow_graph = self.descriptor(name)?.flow_graph.clone();
         optimize_flow_graph(flow_graph)

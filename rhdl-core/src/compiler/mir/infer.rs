@@ -120,8 +120,8 @@ impl<'a> MirTypeInference<'a> {
                     return Err(self
                         .raise_type_error(
                             TypeCheck::InferredLiteralTypeMismatch {
-                                typ: tb.value.kind.clone(),
-                                kind: kind.clone(),
+                                typ: tb.value.kind,
+                                kind,
                             },
                             ty.id,
                         )
@@ -555,7 +555,7 @@ impl<'a> MirTypeInference<'a> {
                         return Err(self
                             .raise_ice(
                                 ICE::ExpectedEnumTemplate {
-                                    kind: enumerate.template.kind.clone(),
+                                    kind: enumerate.template.kind,
                                 },
                                 op.id,
                             )
@@ -573,7 +573,7 @@ impl<'a> MirTypeInference<'a> {
                                 .payload_by_value(discriminant)
                                 .tuple_index(*ndx as usize),
                         };
-                        let field_kind = sub_kind(enumerate.template.kind.clone(), &path)?;
+                        let field_kind = sub_kind(enumerate.template.kind, &path)?;
                         let field_ty = self.ctx.from_kind(id, &field_kind);
                         let field_slot = self.slot_ty(field.value);
                         self.unify(id, field_ty, field_slot)?;
@@ -683,7 +683,7 @@ impl<'a> MirTypeInference<'a> {
                         return Err(self
                             .raise_ice(
                                 ICE::ExpectedStructTemplate {
-                                    kind: structure.template.kind.clone(),
+                                    kind: structure.template.kind,
                                 },
                                 op.id,
                             )

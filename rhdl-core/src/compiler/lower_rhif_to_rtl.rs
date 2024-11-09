@@ -140,14 +140,14 @@ impl<'a> RTLCompiler<'a> {
         // dynamic indices with 0
         let arg_kind = self.object.kind(arg);
         let base_path = path.zero_out_dynamic_indices();
-        let (base_range, base_kind) = bit_range(arg_kind.clone(), &base_path)?;
+        let (base_range, base_kind) = bit_range(arg_kind, &base_path)?;
         // Next for each index register, we compute a range where only that index
         // is advanced by one.
         let (slot_ranges, slot_kinds) = dynamic_slots
             .iter()
             .map(|slot| {
                 let stride_path = path.stride_path(*slot);
-                bit_range(arg_kind.clone(), &stride_path)
+                bit_range(arg_kind, &stride_path)
             })
             .collect::<Result<(Vec<_>, Vec<_>)>>()?;
         // Validation - all of the kinds should be the same
@@ -155,7 +155,7 @@ impl<'a> RTLCompiler<'a> {
             return Err(self.raise_ice(
                 ICE::MismatchedTypesFromDynamicIndexing {
                     base: base_kind,
-                    slot: kind.clone(),
+                    slot: *kind,
                 },
                 node_id,
             ));
@@ -321,9 +321,7 @@ impl<'a> RTLCompiler<'a> {
     }
     fn make_wrap(&mut self, wrap: &hf::Wrap, id: NodeId) -> Result<()> {
         let hf::Wrap { lhs, op, arg, kind } = wrap;
-        let kind = kind
-            .clone()
-            .ok_or_else(|| self.raise_ice(ICE::WrapMissingKind, id))?;
+        let kind = kind.ok_or_else(|| self.raise_ice(ICE::WrapMissingKind, id))?;
         let discriminant = match op {
             WrapOp::Ok | WrapOp::Some => self.allocate_literal(&true.typed_bits(), id),
             WrapOp::Err | WrapOp::None => self.allocate_literal(&false.typed_bits(), id),
@@ -516,7 +514,7 @@ impl<'a> RTLCompiler<'a> {
         if lhs.is_empty() {
             return Ok(());
         }
-        let kind = template.kind.clone();
+        let kind = template.kind;
         let discriminant = template.discriminant()?.as_i64()?;
         let mut rhs = self.allocate_literal(template, id);
         for field in fields {
@@ -524,7 +522,7 @@ impl<'a> RTLCompiler<'a> {
             let path = Path::default()
                 .payload_by_value(discriminant)
                 .member(&field.member);
-            let (field_range, _) = bit_range(kind.clone(), &path)?;
+            let (field_range, _) = bit_range(kind, &path)?;
             let reg = self.allocate_register(&kind, id);
             self.lop(
                 tl::OpCode::Splice(tl::Splice {
@@ -745,7 +743,7 @@ impl<'a> RTLCompiler<'a> {
             return Ok(());
         }
         let lhs = self.operand(*lhs, node_id)?;
-        let kind = template.kind.clone();
+        let kind = template.kind;
         let mut rhs = if let Some(rest) = rest {
             self.operand(*rest, node_id)?
         } else {
@@ -754,7 +752,7 @@ impl<'a> RTLCompiler<'a> {
         for field in fields {
             let field_value = self.operand(field.value, node_id)?;
             let path = Path::default().member(&field.member);
-            let (field_range, _) = bit_range(kind.clone(), &path)?;
+            let (field_range, _) = bit_range(kind, &path)?;
             let reg = self.allocate_register(&kind, node_id);
             self.lop(
                 tl::OpCode::Splice(tl::Splice {

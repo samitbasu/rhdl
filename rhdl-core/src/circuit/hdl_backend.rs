@@ -68,8 +68,8 @@ pub fn build_hdl<C: Circuit>(
         .enumerate()
         .map(|(ndx, (local_name, descriptor))| {
             let child_path = Path::default().field(local_name);
-            let (d_range, _) = bit_range(d_kind.clone(), &child_path)?;
-            let (q_range, _) = bit_range(q_kind.clone(), &child_path)?;
+            let (d_range, _) = bit_range(d_kind, &child_path)?;
+            let (q_range, _) = bit_range(q_kind, &child_path)?;
             let input_binding =
                 (!d_range.is_empty()).then(|| connection("i", index("d", d_range.clone())));
             let output_binding =
@@ -152,8 +152,8 @@ pub fn build_synchronous_hdl<C: Synchronous>(
         .enumerate()
         .map(|(ndx, (local_name, descriptor))| {
             let child_path = Path::default().field(local_name);
-            let (d_range, _) = bit_range(d_kind.clone(), &child_path)?;
-            let (q_range, _) = bit_range(q_kind.clone(), &child_path)?;
+            let (d_range, _) = bit_range(d_kind, &child_path)?;
+            let (q_range, _) = bit_range(q_kind, &child_path)?;
             let input_binding = if d_range.is_empty() {
                 None
             } else {

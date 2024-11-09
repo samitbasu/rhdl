@@ -8,9 +8,8 @@ use std::{
 
 use rhdl_trace_type::TraceType;
 use smallvec::SmallVec;
-use vcd::IdCode;
 
-use crate::{Digital, Kind};
+use crate::Digital;
 
 use super::{bit::TraceBit, key::TraceKey, vcd::VCDWrite};
 
@@ -32,19 +31,14 @@ struct Cursor {
     next_time: Option<u64>,
     hash: TimeSeriesHash,
     ptr: usize,
-    code: IdCode,
     code_as_bytes: Vec<u8>,
 }
 
 trait AsAny {
-    fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 impl<T: Digital> AsAny for TimeSeries<T> {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
@@ -94,7 +88,6 @@ impl<T: Digital> TimeSeriesWalk for TimeSeries<T> {
             next_time: Some(x.0),
             hash: details.hash,
             ptr: 0,
-            code,
             code_as_bytes: code.to_string().into_bytes(),
         })
     }

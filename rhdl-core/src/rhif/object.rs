@@ -93,8 +93,8 @@ impl Object {
     }
     pub fn kind(&self, slot: Slot) -> Kind {
         match slot {
-            Slot::Register(reg) => self.kind[&reg].clone(),
-            Slot::Literal(lit) => self.literals[&lit].kind.clone(),
+            Slot::Register(reg) => self.kind[&reg],
+            Slot::Literal(lit) => self.literals[&lit].kind,
             Slot::Empty => Kind::Empty,
         }
     }

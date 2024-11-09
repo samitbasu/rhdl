@@ -16,6 +16,7 @@ use crate::{
 use super::{
     component::{BitSelect, Component, ComponentKind, DFFInput, DFFOutput},
     edge_kind::EdgeKind,
+    flow_cost::{compute_flow_cost, FlowCost},
     hdl::generate_hdl,
 };
 
@@ -185,49 +186,6 @@ impl FlowGraph {
         self.code.extend(other.code.sources.clone());
         remap
     }
-    // Create a new, top level FG with sources for the inputs and sinks for the
-    // outputs.
-    pub fn sealed(self) -> FlowGraph {
-        if self.graph.node_weights().any(|node| {
-            matches!(
-                node.kind,
-                ComponentKind::TimingStart | ComponentKind::TimingEnd
-            )
-        }) {
-            return self;
-        }
-        let mut fg = FlowGraph::default();
-        let remap = fg.merge(&self);
-        let timing_start =
-            fg.new_component_with_optional_location(ComponentKind::TimingStart, 0, None);
-        let timing_end = fg.new_component_with_optional_location(ComponentKind::TimingEnd, 0, None);
-        // Create sources for all of the inputs of the internal flow graph
-        self.inputs.iter().flatten().for_each(|input| {
-            fg.edge(timing_start, remap[input], EdgeKind::Virtual);
-        });
-        self.output.iter().for_each(|output| {
-            fg.edge(remap[output], timing_end, EdgeKind::Virtual);
-        });
-        let sources = fg
-            .graph
-            .node_indices()
-            .filter(|node| matches!(fg.graph[*node].kind, ComponentKind::DFFOutput(_)))
-            .collect::<Vec<_>>();
-        let sinks = fg
-            .graph
-            .node_indices()
-            .filter(|node| matches!(fg.graph[*node].kind, ComponentKind::DFFInput(_)))
-            .collect::<Vec<_>>();
-        sources.iter().for_each(|node| {
-            fg.edge(timing_start, *node, EdgeKind::Virtual);
-        });
-        sinks.iter().for_each(|node| {
-            fg.edge(*node, timing_end, EdgeKind::Virtual);
-        });
-        fg.inputs = vec![vec![timing_start]];
-        fg.output = vec![timing_end];
-        fg
-    }
     pub fn hdl(&self, name: &str) -> Result<Module, RHDLError> {
         generate_hdl(name, self)
     }
@@ -251,5 +209,11 @@ impl FlowGraph {
         self.code.hash(&mut hasher);
         self.dffs.hash(&mut hasher);
         hasher.finish()
+    }
+    pub fn flow_cost<F: Fn(&Component) -> f64>(&self, cost: F) -> FlowCost {
+        compute_flow_cost(self, cost)
+    }
+    pub fn timing_reports<F: Fn(&Component) -> f64>(&self, cost: F) -> Vec<miette::Report> {
+        self.flow_cost(cost).timing_reports(self)
     }
 }

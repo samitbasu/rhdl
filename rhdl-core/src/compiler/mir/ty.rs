@@ -7,7 +7,7 @@ use std::{
 use crate::{
     ast::ast_impl::NodeId,
     rhif::spec::Member,
-    types::kind::{Array, DiscriminantLayout, Enum, Field, Struct, Tuple},
+    types::kind::{DiscriminantLayout, Enum, Field, Struct},
     Color, DiscriminantAlignment, DiscriminantType, Kind,
 };
 use anyhow::{anyhow, bail, ensure, Result};

@@ -75,7 +75,7 @@ impl Struct {
         };
         let field = self.fields.iter().find(|x| x.name == field_name);
         match field {
-            Some(field) => Ok(field.kind.clone()),
+            Some(field) => Ok(field.kind),
             None => Err(rhdl_error(DynamicTypeError::NoFieldInStruct {
                 kind: Kind::Struct(Intern::new(self.clone())),
                 field_name,
@@ -247,32 +247,26 @@ impl Kind {
             Kind::Struct(s) => {
                 let field = s.fields.iter().find(|x| x.name == field_name);
                 match field {
-                    Some(field) => Ok(field.kind.clone()),
+                    Some(field) => Ok(field.kind),
                     None => Err(rhdl_error(DynamicTypeError::NoFieldInStruct {
-                        kind: self.clone(),
+                        kind: *self,
                         field_name,
                     })),
                 }
             }
-            _ => Err(rhdl_error(DynamicTypeError::NotAStruct {
-                kind: self.clone(),
-            })),
+            _ => Err(rhdl_error(DynamicTypeError::NotAStruct { kind: *self })),
         }
     }
     pub fn get_tuple_kind(&self, ndx: usize) -> Result<Kind> {
         match self {
-            Kind::Tuple(tuple) => Ok(tuple.elements[ndx].clone()),
-            _ => Err(rhdl_error(DynamicTypeError::NotATuple {
-                kind: self.clone(),
-            })),
+            Kind::Tuple(tuple) => Ok(tuple.elements[ndx]),
+            _ => Err(rhdl_error(DynamicTypeError::NotATuple { kind: *self })),
         }
     }
     pub fn get_base_kind(&self) -> Result<Kind> {
         match self {
             Kind::Array(array) => Ok(*array.base.clone()),
-            _ => Err(rhdl_error(DynamicTypeError::NotAnArray {
-                kind: self.clone(),
-            })),
+            _ => Err(rhdl_error(DynamicTypeError::NotAnArray { kind: *self })),
         }
     }
     // Return a rust type-like name for the kind
@@ -299,9 +293,7 @@ impl Kind {
 
     pub fn get_discriminant_kind(&self) -> Result<Kind> {
         let Kind::Enum(e) = &self else {
-            return Err(rhdl_error(DynamicTypeError::NotAnEnum {
-                kind: self.clone(),
-            }));
+            return Err(rhdl_error(DynamicTypeError::NotAnEnum { kind: *self }));
         };
         match e.discriminant_layout.ty {
             DiscriminantType::Signed => Ok(Kind::Signed(e.discriminant_layout.width)),
@@ -323,26 +315,24 @@ impl Kind {
             return None;
         };
         let variant = e.variants.iter().find(|x| x.name == name)?;
-        Some(variant.kind.clone())
+        Some(variant.kind)
     }
 
     pub fn place_holder(&self) -> TypedBits {
         TypedBits {
             bits: repeat(false).take(self.bits()).collect(),
-            kind: self.clone(),
+            kind: *self,
         }
     }
 
     pub fn get_discriminant_for_variant_by_name(&self, variant: &str) -> Result<TypedBits> {
         let Kind::Enum(e) = &self else {
-            return Err(rhdl_error(DynamicTypeError::NotAnEnum {
-                kind: self.clone(),
-            }));
+            return Err(rhdl_error(DynamicTypeError::NotAnEnum { kind: *self }));
         };
         let Some(variant_kind) = e.variants.iter().find(|x| x.name == variant) else {
             return Err(rhdl_error(DynamicTypeError::NoVariantInEnum {
                 name: variant.to_owned(),
-                kind: self.clone(),
+                kind: *self,
             }));
         };
         let discriminant: TypedBits = variant_kind.discriminant.into();
@@ -359,14 +349,12 @@ impl Kind {
         // Thus, we assume that the caller will fill in the payload
         // with valid values.
         let Kind::Enum(e) = &self else {
-            return Err(rhdl_error(DynamicTypeError::NotAnEnum {
-                kind: self.clone(),
-            }));
+            return Err(rhdl_error(DynamicTypeError::NotAnEnum { kind: *self }));
         };
         let Some(variant_kind) = e.variants.iter().find(|x| x.name == variant) else {
             return Err(rhdl_error(DynamicTypeError::NoVariantInEnum {
                 name: variant.into(),
-                kind: self.clone(),
+                kind: *self,
             }));
         };
         let discriminant: TypedBits = variant_kind.discriminant.into();
@@ -376,7 +364,7 @@ impl Kind {
         }?;
         let all_bits = self.pad(discriminant_bits.bits);
         Ok(TypedBits {
-            kind: self.clone(),
+            kind: *self,
             bits: all_bits,
         })
     }
@@ -438,7 +426,7 @@ impl Kind {
 
     pub fn signal_kind(&self) -> Option<Kind> {
         if let Kind::Signal(kind, _) = self {
-            Some(*kind.clone())
+            Some(**kind)
         } else {
             None
         }
@@ -454,9 +442,9 @@ impl Kind {
 
     pub fn signal_data(&self) -> Kind {
         if let Kind::Signal(kind, _) = self {
-            *kind.clone()
+            **kind
         } else {
-            self.clone()
+            *self
         }
     }
 

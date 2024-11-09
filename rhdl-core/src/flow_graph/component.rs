@@ -61,8 +61,6 @@ pub enum ComponentKind {
     DynamicIndex(DynamicIndex),
     DynamicSplice(DynamicSplice),
     Select,
-    TimingStart,
-    TimingEnd,
     Unary(Unary),
 }
 
@@ -113,8 +111,6 @@ impl std::fmt::Debug for Component {
             ComponentKind::DFFOutput(dff_output) => {
                 write!(f, "dff_out[{}]", dff_output.bit_index)
             }
-            ComponentKind::TimingStart => write!(f, "timing_start"),
-            ComponentKind::TimingEnd => write!(f, "timing_end"),
             ComponentKind::Unary(unary) => write!(f, "{:?}", unary.op),
         }?;
         writeln!(f)
