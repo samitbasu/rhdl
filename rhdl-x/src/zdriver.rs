@@ -38,6 +38,8 @@ pub fn tristate<const N: usize>(bus: BitZ<N>, mask: Bits<N>, data: Bits<N>) -> (
 impl<const N: usize> Synchronous for ZDriver<N> {
     type S = ();
 
+    fn init(&self) -> Self::S {}
+
     fn sim(&self, _clock_reset: ClockReset, input: Self::I, _state: &mut Self::S) -> Self::O {
         trace("input", &input);
         let output = tristate(input.bus, input.mask, input.data);

@@ -36,7 +36,7 @@ pub fn waveform<T: Circuit>(
     uut: &T,
     inputs: impl Iterator<Item = TimedSample<T::I>>,
 ) -> AsynchronousWaveform {
-    let mut state = <T as Circuit>::S::init();
+    let mut state = uut.init();
     let mut previous_time = 0;
     let mut entries = Vec::new();
     for sample in inputs {
@@ -63,7 +63,7 @@ pub fn waveform_synchronous<T: Synchronous>(
     uut: &T,
     inputs: impl Iterator<Item = TimedSample<(ClockReset, T::I)>>,
 ) -> SynchronousWaveform {
-    let mut state = T::S::init();
+    let mut state = uut.init();
     let mut previous_time = 0;
     let mut entries = Vec::new();
     for timed_input in inputs {

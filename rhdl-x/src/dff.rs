@@ -44,6 +44,10 @@ pub struct S<T: Digital> {
 impl<T: Digital> Synchronous for U<T> {
     type S = S<T>;
 
+    fn init(&self) -> Self::S {
+        Self::S::init()
+    }
+
     fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
         trace("input", &input);
         let clock = clock_reset.clock;

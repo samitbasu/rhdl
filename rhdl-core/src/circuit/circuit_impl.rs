@@ -18,7 +18,10 @@ pub trait CircuitDQ: 'static + Sized + Clone {
 
 pub trait Circuit: 'static + Sized + Clone + CircuitIO {
     // State for simulation - auto derived
-    type S: Digital;
+    type S: Clone + PartialEq;
+
+    // Simulation initial state
+    fn init(&self) -> Self::S;
 
     // Simulation update - auto derived
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O;

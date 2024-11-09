@@ -69,6 +69,18 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
     }
 }
 
+fn define_init_fn(field_set: &FieldSet) -> TokenStream {
+    let component_name = &field_set.component_name;
+    quote! {
+        fn init(&self) -> Self::S {
+            (
+                <<Self as rhdl::core::CircuitDQ>::Q as rhdl::core::Digital>::init(),
+                #(self.#component_name.init(),)*
+            )
+        }
+    }
+}
+
 fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
@@ -85,9 +97,12 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let descriptor_fn = define_descriptor_fn(&field_set);
     let hdl_fn = define_hdl_fn(&field_set);
     let sim_fn = define_sim_fn(&field_set);
+    let init_fn = define_init_fn(&field_set);
     let circuit_impl = quote! {
         impl #impl_generics rhdl::core::Circuit for #struct_name #ty_generics #where_clause {
             type S = #state_tuple;
+
+            #init_fn
 
             #descriptor_fn
 
