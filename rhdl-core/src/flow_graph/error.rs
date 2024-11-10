@@ -42,6 +42,8 @@ pub enum FlowGraphICE {
     ResetNotFound,
     #[error("Expected a case component")]
     ExpectedCaseComponent,
+    #[error("Black box nodes are not supported")]
+    BlackBoxNotSupported,
 }
 
 #[derive(Debug, Error)]

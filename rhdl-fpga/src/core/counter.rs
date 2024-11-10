@@ -46,7 +46,7 @@ mod tests {
         let inputs_2 = stream::stream(repeat(true).take(100));
         let stream = clock_pos_edge(reset_0.chain(inputs_1.chain(reset_1.chain(inputs_2))), 100);
         let uut: U<16> = U::default();
-        traced_synchronous_simulation(&uut, stream, "strobe.vcd");
+        simple_traced_synchronous_run(&uut, stream, "strobe.vcd");
     }
 
     #[test]

@@ -2,7 +2,8 @@ use crate::{
     hdl::{
         ast::{
             assert, assign, bit_string, component_instance, connection, declaration, delay,
-            display, finish, id, initial, unsigned_width, Direction, HDLKind, Module,
+            display, dump_file, dump_vars, finish, id, initial, unsigned_width, Direction, HDLKind,
+            Module,
         },
         formatter,
     },
@@ -16,6 +17,7 @@ use super::test_module::TestModule;
 fn build_test_module_from_waveform(
     modules: &[Module],
     waveform: &AsynchronousWaveform,
+    config: TestModuleOptions,
 ) -> Result<TestModule, RHDLError> {
     // All synchronous modules must have at least 1
     // ports.  They may have 2 if hte circuit takes input signals.
@@ -82,15 +84,26 @@ fn build_test_module_from_waveform(
         )),
     ];
     let mut test_cases = vec![];
+    if let Some(vcd_file) = &config.vcd_file {
+        test_cases.push(dump_file(vcd_file));
+        test_cases.push(dump_vars(0));
+    }
+    let mut extra_delay = 0;
     for (test_case_counter, timed_entry) in waveform.entries.iter().enumerate() {
-        test_cases.push(delay(timed_entry.delay as usize));
+        test_cases.push(delay(
+            (timed_entry.delay as usize).saturating_sub(extra_delay),
+        ));
         let input = timed_entry.input.clone();
         if has_nonempty_input {
             test_cases.push(assign("i", bit_string(&BitString::unsigned(input))));
         }
         let output = timed_entry.output.clone();
         test_cases.push(assign("rust_out", bit_string(&BitString::unsigned(output))));
-        test_cases.push(delay(0));
+        test_cases.push(delay(config.hold_time as usize));
+        extra_delay = config.hold_time as usize;
+        if test_case_counter < config.skip_first_cases {
+            continue;
+        }
         test_cases.push(assert(id("o"), id("rust_out"), test_case_counter));
     }
     test_cases.push(display("TESTBENCH OK", vec![]));
@@ -121,10 +134,32 @@ pub fn test_asynchronous_hdl<T: Circuit>(
     // Get a waveform for this circuit
     let wav = waveform(uut, inputs);
     let rtl_mod = uut.hdl("uut")?.as_modules();
-    let tm1 = build_test_module_from_waveform(&rtl_mod, &wav)?;
+    let tm1 = build_test_module_from_waveform(&rtl_mod, &wav, Default::default())?;
     tm1.run_iverilog()?;
     let fg = uut.flow_graph("uut")?.hdl("uut")?;
-    let tm1 = build_test_module_from_waveform(&[fg], &wav)?;
+    let tm1 = build_test_module_from_waveform(&[fg], &wav, Default::default())?;
     tm1.run_iverilog()?;
     Ok(())
+}
+
+pub fn build_rtl_testmodule<T: Circuit>(
+    uut: &T,
+    inputs: impl Iterator<Item = TimedSample<T::I>>,
+    options: TestModuleOptions,
+) -> Result<TestModule, RHDLError> {
+    let wav = waveform(uut, inputs);
+    let module = if options.flow_graph_level {
+        &[uut.flow_graph("uut")?.hdl("uut")?]
+    } else {
+        &uut.hdl("uut")?.as_modules()[..]
+    };
+    build_test_module_from_waveform(module, &wav, options)
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TestModuleOptions {
+    pub vcd_file: Option<String>,
+    pub skip_first_cases: usize,
+    pub hold_time: u64,
+    pub flow_graph_level: bool,
 }

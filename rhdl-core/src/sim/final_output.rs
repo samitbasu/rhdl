@@ -1,5 +1,5 @@
 use crate::{Circuit, TimedSample};
-use crate::{ClockReset, Digital, Synchronous};
+use crate::{ClockReset, Synchronous};
 
 pub fn final_output_simulation<T: Circuit>(
     uut: &T,

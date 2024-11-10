@@ -377,7 +377,9 @@ impl<'a> FlowGraphHDLBuilder<'a> {
             ComponentKind::Unary(_) => self.unary_assign_statement(index)?,
             ComponentKind::DFFInput(_) => self.dff_input_assign_statement(index)?,
             ComponentKind::DFFOutput(_) => {}
-            ComponentKind::BlackBox(_black_box) => todo!(),
+            ComponentKind::BlackBox(_black_box) => {
+                return Err(self.raise_ice(FlowGraphICE::BlackBoxNotSupported, component.location))
+            }
             ComponentKind::Case(_) => self.case_statement(index)?,
             ComponentKind::DynamicIndex(_) => self.dynamic_index_assign_statement(index)?,
             ComponentKind::DynamicSplice(_) => self.dynamic_splice(index)?,

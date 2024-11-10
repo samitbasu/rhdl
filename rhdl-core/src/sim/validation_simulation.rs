@@ -1,72 +1,146 @@
-use crate::{Circuit, ClockReset, Reset, Synchronous, TimedSample};
-
-pub type ValidationError = Box<dyn std::error::Error>;
-pub type ValidationResult = Result<(), ValidationError>;
+use crate::{
+    trace::{db::trace, db::with_trace_db},
+    trace_init_db, trace_time, Circuit, ClockReset, Reset, Synchronous, TimedSample,
+};
 
 pub trait Validation<C: Circuit> {
-    fn initialize(&mut self, c: &C) -> ValidationResult {
-        Ok(())
+    fn initialize(&mut self, c: &C) {}
+    fn validate(&mut self, input: TimedSample<C::I>, output: C::O) {}
+    fn finish(&mut self) {}
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct ValidateOptions {
+    pub vcd_filename: Option<String>,
+    pub rtt_filename: Option<String>,
+}
+
+impl ValidateOptions {
+    fn needs_trace_db(&self) -> bool {
+        self.vcd_filename.is_some() || self.rtt_filename.is_some()
     }
-    fn validate(&mut self, input: TimedSample<C::I>, output: C::O) -> ValidationResult {
-        Ok(())
+    fn write_files(self) {
+        if let Some(vcd_filename) = self.vcd_filename {
+            with_trace_db(|db| {
+                let strobe = std::fs::File::create(&vcd_filename).unwrap();
+                let strobe = std::io::BufWriter::new(strobe);
+                db.dump_vcd(strobe).unwrap()
+            });
+        }
+        if let Some(rtt_filename) = self.rtt_filename {
+            with_trace_db(|db| {
+                let rtt = std::fs::File::create(&rtt_filename).unwrap();
+                let rtt = std::io::BufWriter::new(rtt);
+                db.dump_rtt(rtt).unwrap()
+            });
+        }
     }
-    fn finish(&mut self) -> ValidationResult {
-        Ok(())
+    pub fn vcd(self, name: &str) -> Self {
+        Self {
+            vcd_filename: Some(name.into()),
+            rtt_filename: Some(format!("{}.rtt", name)),
+        }
     }
+}
+
+pub fn simple_traced_run<T: Circuit>(
+    uut: &T,
+    inputs: impl Iterator<Item = TimedSample<T::I>>,
+    vcd_filename: &str,
+) {
+    validate(
+        uut,
+        inputs,
+        &mut [],
+        ValidateOptions::default().vcd(vcd_filename),
+    );
 }
 
 pub fn validate<T: Circuit>(
     uut: &T,
     inputs: impl Iterator<Item = TimedSample<T::I>>,
     validators: &mut [Box<dyn Validation<T>>],
-) -> ValidationResult {
+    config: ValidateOptions,
+) {
     for validator in validators.iter_mut() {
-        validator.initialize(uut)?;
+        validator.initialize(uut);
     }
+    let _guard = if config.needs_trace_db() {
+        Some(trace_init_db())
+    } else {
+        None
+    };
     let mut state = uut.init();
+    let mut time = 0;
     for sample in inputs {
+        assert!(sample.time >= time);
+        time = sample.time;
+        trace_time(time);
+        trace("input", &sample.value);
         let output = uut.sim(sample.value, &mut state);
+        trace("output", &output);
         for validator in validators.iter_mut() {
-            validator.validate(sample, output)?;
+            validator.validate(sample, output);
         }
     }
     for validator in validators {
-        validator.finish()?;
+        validator.finish();
     }
-    Ok(())
+    config.write_files();
 }
 
 pub trait SynchronousValidation<S: Synchronous> {
-    fn initialize(&self, c: &S) -> ValidationResult;
-    fn validate(&self, input: TimedSample<(ClockReset, S::I)>, output: S::O) -> ValidationResult;
-    fn finish(&self) -> ValidationResult;
+    fn initialize(&mut self, c: &S) {}
+    fn validate(&mut self, input: TimedSample<(ClockReset, S::I)>, output: S::O) {}
+    fn finish(&mut self) {}
 }
 
 pub fn validate_synchronous<T: Synchronous>(
     uut: &T,
     inputs: impl Iterator<Item = TimedSample<(ClockReset, T::I)>>,
-    validators: &[Box<dyn SynchronousValidation<T>>],
-) -> ValidationResult {
-    for validator in validators {
-        validator.initialize(uut)?;
+    validators: &mut [Box<dyn SynchronousValidation<T>>],
+    config: ValidateOptions,
+) {
+    for validator in validators.iter_mut() {
+        validator.initialize(uut);
     }
+    let _guard = if config.needs_trace_db() {
+        Some(trace_init_db())
+    } else {
+        None
+    };
     let mut state = uut.init();
+    let mut time = 0;
     for timed_input in inputs {
+        assert!(timed_input.time >= time);
+        time = timed_input.time;
+        trace_time(time);
         let clock_reset = timed_input.value.0;
         let input = timed_input.value.1;
+        trace("clock", &clock_reset.clock);
+        trace("reset", &clock_reset.reset);
+        trace("input", &input);
         let output = uut.sim(clock_reset, input, &mut state);
-        for validator in validators {
-            validator.validate(timed_input, output)?;
+        trace("output", &output);
+        for validator in validators.iter_mut() {
+            validator.validate(timed_input, output);
         }
     }
     for validator in validators {
-        validator.finish()?;
+        validator.finish();
     }
-    Ok(())
+    config.write_files();
 }
 
-pub trait PosEdgeValidation<S: Synchronous> {
-    fn initialize(&self, c: &S) -> ValidationResult;
-    fn validate(&self, reset: Reset, input: S::I, output: S::O) -> ValidationResult;
-    fn finish(&self) -> ValidationResult;
+pub fn simple_traced_synchronous_run<T: Synchronous>(
+    uut: &T,
+    inputs: impl Iterator<Item = TimedSample<(ClockReset, T::I)>>,
+    vcd_filename: &str,
+) {
+    validate_synchronous(
+        uut,
+        inputs,
+        &mut [],
+        ValidateOptions::default().vcd(vcd_filename),
+    );
 }
