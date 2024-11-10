@@ -212,6 +212,7 @@ pub enum Expression {
     Index(Index),
     Repeat(Repeat),
     Const(bool),
+    MemoryIndex(MemoryIndex),
 }
 
 pub fn bit_string(value: &BitString) -> Expression {
@@ -292,6 +293,19 @@ pub fn dynamic_index(argument: &str, offset: Expression, len: usize) -> Expressi
         argument: argument.into(),
         offset: Box::new(offset),
         len,
+    })
+}
+
+#[derive(Debug, Clone, Hash)]
+pub struct MemoryIndex {
+    pub target: String,
+    pub address: Box<Expression>,
+}
+
+pub fn memory_index(target: &str, address: Expression) -> Expression {
+    Expression::MemoryIndex(MemoryIndex {
+        target: target.into(),
+        address: Box::new(address),
     })
 }
 

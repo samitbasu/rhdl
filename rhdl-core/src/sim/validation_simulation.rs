@@ -1,27 +1,32 @@
-use crate::types::digital::Digital;
 use crate::{Circuit, ClockReset, Reset, Synchronous, TimedSample};
 
-type ValidationError = Box<dyn std::error::Error>;
-type ValidationResult = Result<(), ValidationError>;
+pub type ValidationError = Box<dyn std::error::Error>;
+pub type ValidationResult = Result<(), ValidationError>;
 
 pub trait Validation<C: Circuit> {
-    fn initialize(&self, c: &C) -> ValidationResult;
-    fn validate(&self, input: TimedSample<C::I>, output: C::O) -> ValidationResult;
-    fn finish(&self) -> ValidationResult;
+    fn initialize(&mut self, c: &C) -> ValidationResult {
+        Ok(())
+    }
+    fn validate(&mut self, input: TimedSample<C::I>, output: C::O) -> ValidationResult {
+        Ok(())
+    }
+    fn finish(&mut self) -> ValidationResult {
+        Ok(())
+    }
 }
 
 pub fn validate<T: Circuit>(
     uut: &T,
     inputs: impl Iterator<Item = TimedSample<T::I>>,
-    validators: &[Box<dyn Validation<T>>],
+    validators: &mut [Box<dyn Validation<T>>],
 ) -> ValidationResult {
-    for validator in validators {
+    for validator in validators.iter_mut() {
         validator.initialize(uut)?;
     }
     let mut state = uut.init();
     for sample in inputs {
         let output = uut.sim(sample.value, &mut state);
-        for validator in validators {
+        for validator in validators.iter_mut() {
             validator.validate(sample, output)?;
         }
     }

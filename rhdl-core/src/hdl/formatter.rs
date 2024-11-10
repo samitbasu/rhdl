@@ -187,6 +187,13 @@ fn statement(ast: &Statement) -> String {
 
 fn if_statement(ast: &If) -> String {
     let true_expr = apply(&ast.true_expr, statement, "\n");
+    if ast.false_expr.is_empty() {
+        return format!(
+            "if ({})\nbegin\n{}\nend",
+            expression(&ast.condition),
+            true_expr
+        );
+    }
     let false_expr = apply(&ast.false_expr, statement, "\n");
     format!(
         "if ({})\nbegin\n{}\nend else begin\n{}\nend",
@@ -325,6 +332,10 @@ fn expression(ast: &Expression) -> String {
             } else {
                 "1'b0".to_string()
             }
+        }
+        Expression::MemoryIndex(inner) => {
+            let index = expression(&inner.address);
+            format!("{}[{}]", inner.target, index)
         }
     }
 }

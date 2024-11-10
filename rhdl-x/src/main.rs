@@ -299,11 +299,11 @@ fn test_async_counter() {
     let inputs = test_stream(inputs);
     let inputs = inputs.map(|x| {
         timed_sample(
+            x.time,
             async_counter::I {
                 clock_reset: signal(x.value.0),
                 enable: signal(x.value.1),
             },
-            x.time,
         )
     });
     let uut: async_counter::U = async_counter::U::default();
@@ -348,11 +348,11 @@ fn test_async_counter_tb() -> miette::Result<()> {
     let inputs = test_stream(inputs);
     let inputs = inputs.map(|x| {
         timed_sample(
+            x.time,
             async_counter::I {
                 clock_reset: signal(x.value.0),
                 enable: signal(x.value.1),
             },
-            x.time,
         )
     });
     write_testbench(&uut, inputs, "async_counter_tb.v")?;

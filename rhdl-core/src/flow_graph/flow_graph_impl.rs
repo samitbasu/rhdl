@@ -14,7 +14,7 @@ use crate::{
 };
 
 use super::{
-    component::{BitSelect, Component, ComponentKind, DFFInput, DFFOutput},
+    component::{BitSelect, BlackBox, Component, ComponentKind, DFFInput, DFFOutput},
     edge_kind::EdgeKind,
     flow_cost::{compute_flow_cost, FlowCost},
     hdl::generate_hdl,
@@ -81,6 +81,15 @@ impl FlowGraph {
                 })
             })
             .collect()
+    }
+    pub fn black_box(&mut self, name: &str) -> FlowIx {
+        self.graph.add_node(Component {
+            kind: ComponentKind::BlackBox(BlackBox {
+                name: name.to_string(),
+            }),
+            width: 1,
+            location: None,
+        })
     }
     pub fn dff(
         &mut self,
@@ -162,6 +171,11 @@ impl FlowGraph {
     ) {
         source.zip(target).for_each(|(source, target)| {
             self.edge(source, target, EdgeKind::ArgBit(0, 0));
+        });
+    }
+    pub fn clock(&mut self, source: FlowIx, target: impl Iterator<Item = FlowIx>) {
+        target.for_each(|target| {
+            self.edge(source, target, EdgeKind::Clock);
         });
     }
     pub fn merge(&mut self, other: &FlowGraph) -> HashMap<FlowIx, FlowIx> {

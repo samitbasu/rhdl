@@ -25,6 +25,7 @@ pub use rhdl_core::hdl::ast::{
     always, assign, bit_string, continuous_assignment, id, if_statement, initial, port,
 };
 pub use rhdl_core::hdl::ast::{non_blocking_assignment, Direction, Events, HDLKind};
+pub use rhdl_core::merge;
 pub use rhdl_core::rhdl_trace_type as rtt;
 pub use rhdl_core::rhif::spec::OpCode;
 pub use rhdl_core::rtl::vm::execute;
@@ -36,6 +37,9 @@ pub use rhdl_core::sim::stream::clock_pos_edge;
 pub use rhdl_core::sim::stream::stream;
 pub use rhdl_core::sim::traced_simulation::traced_simulation;
 pub use rhdl_core::sim::traced_simulation::traced_synchronous_simulation;
+pub use rhdl_core::sim::validation_simulation::validate;
+pub use rhdl_core::sim::validator::glitch_check::glitch_check;
+pub use rhdl_core::sim::validator::value_check::value_check;
 pub use rhdl_core::sim::verilog_testbench::write_synchronous_testbench;
 pub use rhdl_core::sim::verilog_testbench::write_testbench;
 pub use rhdl_core::testbench::asynchronous::test_asynchronous_hdl;
