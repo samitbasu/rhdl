@@ -34,6 +34,8 @@ impl<T: Digital> SynchronousDQ for U<T> {
 impl<T: Digital> Synchronous for U<T> {
     type S = ();
 
+    fn init(&self) -> Self::S {}
+
     fn sim(&self, _clock_reset: ClockReset, _input: Self::I, _state: &mut Self::S) -> Self::O {
         self.value
     }

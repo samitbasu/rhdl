@@ -100,7 +100,7 @@ impl<T: Digital> Synchronous for U<T> {
             flow_graph.edge(clock[0], *q, EdgeKind::Clock);
             flow_graph.edge(reset[0], *q, EdgeKind::Reset);
         });
-        flow_graph.inputs = vec![vec![clock[0], reset[0]], d, vec![]];
+        flow_graph.inputs = vec![vec![clock[0], reset[0]], d];
         flow_graph.output = q;
         Ok(CircuitDescriptor {
             unique_name: name.to_string(),

@@ -12,4 +12,5 @@ rhdl = { path = "../rhdl" }
 strum = { version = "0.25.0", features = ["derive"] }
 
 [dev-dependencies]
+miette = "7.2.0"
 rand = "0.8.5"

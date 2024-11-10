@@ -277,7 +277,7 @@ fn test_async_add() -> miette::Result<()> {
         .flat_map(|x| exhaustive::<8>().into_iter().map(move |y| (x, y)))
         .map(signal::<_, Red>)
         .enumerate()
-        .map(|(ndx, val)| timed_sample(val, (ndx * 100) as u64));
+        .map(|(ndx, val)| timed_sample((ndx * 100) as u64, val));
     test_asynchronous_hdl(&uut, inputs)?;
     Ok(())
 }
