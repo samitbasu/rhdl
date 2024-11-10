@@ -190,7 +190,7 @@ fn test_struct_vcd() {
         inum: if x % 8 == 0 { None } else { Some(bits(x % 64)) },
     });
     let inputs = test_stream(inputs);
-    traced_synchronous_simulation(&circuit, inputs, "pass_through.vcd");
+    simple_traced_synchronous_run(&circuit, inputs, "pass_through.vcd");
 }
 
 #[test]
@@ -240,7 +240,7 @@ fn test_triz_pair() {
     let inputs = cmd.into_iter();
     let inputs = test_stream(inputs);
     let uut = Fixture::default();
-    traced_synchronous_simulation(&uut, inputs, "trizsnd.vcd");
+    simple_traced_synchronous_run(&uut, inputs, "trizsnd.vcd");
 }
 
 #[test]
@@ -307,7 +307,15 @@ fn test_async_counter() {
         )
     });
     let uut: async_counter::U = async_counter::U::default();
-    traced_simulation(&uut, inputs, "async_counter.vcd")
+    validate(
+        &uut,
+        inputs,
+        &mut [],
+        ValidateOptions {
+            vcd_filename: Some("async_counter.vcd".into()),
+            rtt_filename: Some("async_counter.vcd.rtt".into()),
+        },
+    )
 }
 
 #[test]
@@ -380,21 +388,21 @@ fn test_stream<T: Digital>(
 fn test_dff() {
     let inputs = (0..).map(|_| Bits::init()).take(1000);
     let uut: dff::U<b4> = dff::U::new(b4::from(0b0000));
-    traced_synchronous_simulation(&uut, test_stream(inputs), "dff.vcd");
+    simple_traced_synchronous_run(&uut, test_stream(inputs), "dff.vcd");
 }
 
 #[test]
 fn test_constant() {
     let inputs = (0..).map(|_| ()).take(100);
     let uut: constant::U<b4> = constant::U::new(b4::from(0b1010));
-    traced_synchronous_simulation(&uut, test_stream(inputs), "constant.vcd");
+    simple_traced_synchronous_run(&uut, test_stream(inputs), "constant.vcd");
 }
 
 #[test]
 fn test_strobe() {
     let inputs = (0..).map(|_| strobe::I { enable: true }).take(1000);
     let uut: strobe::U<16> = strobe::U::new(bits(100));
-    traced_synchronous_simulation(&uut, test_stream(inputs), "strobe.vcd");
+    simple_traced_synchronous_run(&uut, test_stream(inputs), "strobe.vcd");
 }
 
 #[test]
@@ -412,7 +420,7 @@ fn test_counter_simulation() {
         .map(|x| x > 1000 && x < 10000)
         .map(|x| counter::I { enable: x });
     let uut: counter::U<4> = counter::U::default();
-    traced_synchronous_simulation(&uut, test_stream(inputs), "counter.vcd");
+    simple_traced_synchronous_run(&uut, test_stream(inputs), "counter.vcd");
 }
 
 #[test]
@@ -434,7 +442,7 @@ fn test_state_cycler_vcd() -> miette::Result<()> {
     let inputs = repeat(repeat(disable).take(10).chain(repeat(enable).take(10))).take(3);
     let inputs = inputs.flatten();
     let inputs = test_stream(inputs);
-    traced_synchronous_simulation(&uut, inputs, "state_cycler.vcd");
+    simple_traced_synchronous_run(&uut, inputs, "state_cycler.vcd");
     Ok(())
 }
 
@@ -443,7 +451,7 @@ fn test_autocounter_vcd() -> miette::Result<()> {
     let uut: auto_counter::U<4> = auto_counter::U::default();
     let inputs = repeat(()).take(1000);
     let stream = test_stream(inputs);
-    traced_synchronous_simulation(&uut, stream, "autocounter.vcd");
+    simple_traced_synchronous_run(&uut, stream, "autocounter.vcd");
     Ok(())
 }
 
@@ -468,7 +476,7 @@ fn test_auto_doubler() -> miette::Result<()> {
     let uut = Chain::new(c1, c2);
     let inputs = repeat(()).take(1000);
     let stream = test_stream(inputs);
-    traced_synchronous_simulation(&uut, stream, "auto_double.vcd");
+    simple_traced_synchronous_run(&uut, stream, "auto_double.vcd");
     Ok(())
 }
 

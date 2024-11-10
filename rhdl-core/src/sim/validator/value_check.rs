@@ -1,6 +1,5 @@
 use crate::{
-    sim::validation_simulation::{Validation, ValidationResult},
-    Circuit, CircuitIO, Clock, Digital, TimedSample,
+    sim::validation_simulation::Validation, Circuit, CircuitIO, Clock, Digital, TimedSample,
 };
 
 #[derive(Debug, Default)]
@@ -18,28 +17,22 @@ where
     I: Iterator<Item = Option<<C as CircuitIO>::O>>,
     <C as CircuitIO>::O: std::fmt::Debug,
 {
-    fn validate(
-        &mut self,
-        input: TimedSample<<C as CircuitIO>::I>,
-        output: <C as CircuitIO>::O,
-    ) -> ValidationResult {
+    fn validate(&mut self, input: TimedSample<<C as CircuitIO>::I>, output: <C as CircuitIO>::O) {
         let clock = (self.func)(&input);
         if self.initialized {
             let pos_edge = clock.raw() && !self.clk.raw();
             if pos_edge {
                 if let Some(Some(val)) = self.expected.next() {
-                    if val != output {
-                        panic!(
-                            "Expected value {val:?} but got {output:?} at time: {time}",
-                            time = input.time
-                        );
-                    }
+                    assert_eq!(
+                        val, output,
+                        "Expected value {:?} but got {:?} at time: {}",
+                        val, output, input.time
+                    );
                 }
             }
         }
         self.initialized = true;
         self.clk = clock;
-        Ok(())
     }
 }
 

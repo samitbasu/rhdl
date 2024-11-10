@@ -336,8 +336,10 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N>
 
 #[cfg(test)]
 mod tests {
+    use rhdl::core::testbench::asynchronous::TestModuleOptions;
+
     use super::*;
-    use std::iter::{once, repeat};
+    use std::iter::repeat;
 
     fn get_scan_out_stream<const N: usize>(
         read_clock: u64,
@@ -385,7 +387,19 @@ mod tests {
             read: signal(r),
             write: signal(w),
         });
-        write_testbench(&uut, stream, "ram_tb.v")?;
+
+        //write_testbench(&uut, stream, "ram_tb_2.v")?;
+        //        test_asynchronous_hdl(&uut, stream)?;
+        let options = TestModuleOptions {
+            skip_first_cases: 2,
+            vcd_file: Some("ram.vcd".into()),
+            hold_time: 1,
+            ..Default::default()
+        };
+        let test_mod = build_rtl_testmodule(&uut, stream, options)?;
+        std::fs::write("ram_tb.v", &test_mod.testbench).unwrap();
+        test_mod.run_iverilog()?;
+
         Ok(())
     }
 
@@ -403,17 +417,18 @@ mod tests {
             None,
             Some((bits(15), bits(23))),
         ];
-        let stream_read = get_scan_out_stream(100, 34);
+        let stream_read = get_scan_out_stream(100, 32);
         let stream_write = get_write_stream(70, writes.into_iter());
         let stream = merge(stream_read, stream_write, |r, w| I {
             read: signal(r),
             write: signal(w),
         });
-        let expected = repeat(None).take(18).chain(
+        let expected = repeat(None).take(16).chain(
             vec![142, 0, 100, 0, 0, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23, 0]
                 .into_iter()
                 .map(|x| Some(signal(bits(x)))),
         );
+
         type UC = U<Bits<8>, Red, Green, 4>;
         validate(
             &uut,
@@ -422,8 +437,8 @@ mod tests {
                 glitch_check::<UC>(|i| i.value.read.val().clock),
                 value_check::<UC>(|i| i.value.read.val().clock, expected),
             ],
+            Default::default(),
         )
-        .unwrap()
     }
 
     #[test]
@@ -443,13 +458,8 @@ mod tests {
             read: signal(r),
             write: signal(w),
         });
-
         type UC = U<Bits<8>, Red, Green, 4>;
-
         let values = (0..16).map(|x| Some(signal(bits(15 - x)))).cycle();
-
-        //        traced_simulation(&uut, stream, "ram_rs.vcd");
-
         validate(
             &uut,
             stream,
@@ -457,7 +467,7 @@ mod tests {
                 glitch_check::<UC>(|i| i.value.read.val().clock),
                 value_check::<UC>(|i| i.value.read.val().clock, values),
             ],
+            Default::default(),
         )
-        .unwrap()
     }
 }

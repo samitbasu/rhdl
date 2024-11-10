@@ -1,6 +1,5 @@
 use crate::{
-    sim::validation_simulation::{Validation, ValidationResult},
-    Circuit, CircuitIO, Clock, Digital, TimedSample,
+    sim::validation_simulation::Validation, Circuit, CircuitIO, Clock, Digital, TimedSample,
 };
 
 #[derive(Debug, Default)]
@@ -16,11 +15,7 @@ where
     C: Circuit,
     F: Fn(&TimedSample<<C as CircuitIO>::I>) -> Clock,
 {
-    fn validate(
-        &mut self,
-        input: TimedSample<<C as CircuitIO>::I>,
-        output: <C as CircuitIO>::O,
-    ) -> ValidationResult {
+    fn validate(&mut self, input: TimedSample<<C as CircuitIO>::I>, output: <C as CircuitIO>::O) {
         let clock = (self.func)(&input);
         if self.initialized {
             let pos_edge = clock.raw() && !self.clk.raw();
@@ -32,7 +27,6 @@ where
         self.initialized = true;
         self.clk = clock;
         self.prev_val = output;
-        Ok(())
     }
 }
 
