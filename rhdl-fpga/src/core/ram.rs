@@ -151,80 +151,11 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N>
     }
 
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        // The inputs for the flow graph should match the signature of the
-        // kernel function: <I, (),
         let mut flow_graph = FlowGraph::default();
-        let i_kind = <<Self as CircuitIO>::I as Timed>::static_kind();
-        let o_kind = <<Self as CircuitIO>::O as Timed>::static_kind();
-        let input = flow_graph.input(RegisterKind::Unsigned(i_kind.bits()), 0, "i");
-        let output = flow_graph.output(RegisterKind::Unsigned(o_kind.bits()), "o");
-        let mut destructure = |name: &str, path: Path, width: usize| {
-            let buf = flow_graph.buffer(RegisterKind::Unsigned(width), name, None);
-            let source_bits = bit_range(i_kind, &path).unwrap().0;
-            for (tbit, ibit) in source_bits.enumerate() {
-                flow_graph.edge(input[ibit], buf[tbit], EdgeKind::ArgBit(0, 0));
-            }
-            buf
-        };
-        // Destructure the inputs.
-        let read_addr = destructure(
-            "read_addr",
-            Path::default().field("read").signal_value().field("addr"),
-            N,
-        );
-        let read_clk = destructure(
-            "read_clk",
-            Path::default().field("read").signal_value().field("clock"),
-            1,
-        );
-        let write_addr = destructure(
-            "write_addr",
-            Path::default().field("write").signal_value().field("addr"),
-            N,
-        );
-        let write_data = destructure(
-            "write_data",
-            Path::default().field("write").signal_value().field("data"),
-            T::bits(),
-        );
-        let write_enable = destructure(
-            "write_enable",
-            Path::default()
-                .field("write")
-                .signal_value()
-                .field("enable"),
-            1,
-        );
-        let write_clk = destructure(
-            "write_clk",
-            Path::default().field("write").signal_value().field("clock"),
-            1,
-        );
-        // The memory itself is not represented, but we need to model the registered
-        // inputs and outputs.  These we do with DFFs.  One logical DFF represents
-        // the read operation, which depends on the address input and the read clock.
-        // Each bit depends on both.
-        let (d, q) = flow_graph.dff(
-            RegisterKind::Unsigned(T::bits()),
-            &T::init().typed_bits().bits,
-            None,
-        );
-        flow_graph.clock(read_clk[0], q.iter().copied());
-        for dbit in &d {
-            for (ab, abit) in read_addr.iter().enumerate() {
-                flow_graph.edge(*abit, *dbit, EdgeKind::ArgBit(0, ab));
-            }
-        }
-        flow_graph.clock(read_clk[0], output.iter().copied());
-        flow_graph.zip(q.iter().copied(), output.iter().copied());
+        let hdl = self.hdl(name)?;
+        let (input, output) = flow_graph.circuit_black_box::<Self>(hdl);
         flow_graph.inputs = vec![input, vec![]];
         flow_graph.output = output;
-        // For the write side, we use a black box node to sink all the write signals
-        let bb = flow_graph.black_box("ram_write");
-        flow_graph.clock(write_clk[0], std::iter::once(bb));
-        flow_graph.zip(write_addr.iter().copied(), std::iter::repeat(bb));
-        flow_graph.zip(write_data.iter().copied(), std::iter::repeat(bb));
-        flow_graph.zip(write_enable.iter().copied(), std::iter::repeat(bb));
         Ok(CircuitDescriptor {
             unique_name: name.to_string(),
             flow_graph,
@@ -238,7 +169,7 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N>
     }
 
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
-        let module_name = self.descriptor(name)?.unique_name;
+        let module_name = name.to_owned();
         let mut module = Module {
             name: module_name.clone(),
             ..Default::default()

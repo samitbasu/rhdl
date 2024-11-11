@@ -1,5 +1,5 @@
-use crate::dff;
 use rhdl::prelude::*;
+use rhdl_fpga::core::dff;
 
 mod kernel_host {
     use rhdl::prelude::*;

@@ -1,7 +1,7 @@
 use crate::hdl::ast::Module;
 use std::{collections::BTreeMap, iter::once};
 
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub struct HDLDescriptor {
     pub name: String,
     pub body: Module,

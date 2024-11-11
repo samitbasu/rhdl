@@ -1,5 +1,12 @@
 use rhdl::{
-    core::hdl::ast::{index_bit, Declaration},
+    core::{
+        hdl::ast::{
+            always, assign, bit_string, id, if_statement, index_bit, initial,
+            non_blocking_assignment, port, signed_width, unsigned_width, Declaration, Direction,
+            Events, HDLKind, Module,
+        },
+        types::bit_string::BitString,
+    },
     prelude::*,
 };
 
@@ -36,7 +43,7 @@ impl<T: Digital> Synchronous for U<T> {
     type S = S<T>;
 
     fn init(&self) -> Self::S {
-        S::init()
+        Self::S::init()
     }
 
     fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
@@ -80,18 +87,9 @@ impl<T: Digital> Synchronous for U<T> {
 
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
         let mut flow_graph = FlowGraph::default();
-        let (d, q) = flow_graph.dff(T::static_kind().into(), &self.reset.typed_bits().bits, None);
-        let clock = flow_graph.buffer(RegisterKind::Unsigned(1), "clk", None);
-        let reset = flow_graph.buffer(RegisterKind::Unsigned(1), "rst", None);
-        d.iter().for_each(|d| {
-            flow_graph.edge(reset[0], *d, EdgeKind::Reset);
-            flow_graph.edge(clock[0], *d, EdgeKind::Clock);
-        });
-        q.iter().for_each(|q| {
-            flow_graph.edge(clock[0], *q, EdgeKind::Clock);
-            flow_graph.edge(reset[0], *q, EdgeKind::Reset);
-        });
-        flow_graph.inputs = vec![vec![clock[0], reset[0]], d, vec![]];
+        let module = self.hdl(name)?;
+        let (clock_reset, d, q) = flow_graph.synchronous_black_box::<Self>(module);
+        flow_graph.inputs = vec![clock_reset, d];
         flow_graph.output = q;
         Ok(CircuitDescriptor {
             unique_name: name.to_string(),
@@ -108,9 +106,8 @@ impl<T: Digital> Synchronous for U<T> {
 
 impl<T: Digital> U<T> {
     fn as_verilog(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
-        let module_name = self.descriptor(name)?.unique_name;
         let mut module = Module {
-            name: module_name.clone(),
+            name: name.into(),
             ..Default::default()
         };
         let output_bits = T::bits();
@@ -179,7 +176,7 @@ impl<T: Digital> U<T> {
                 );
          */
         Ok(HDLDescriptor {
-            name: module_name,
+            name: name.into(),
             body: module,
             children: Default::default(),
         })

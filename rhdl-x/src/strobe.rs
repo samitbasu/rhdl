@@ -1,7 +1,5 @@
 use rhdl::prelude::*;
-
-use crate::constant;
-use crate::dff;
+use rhdl_fpga::core::{constant, dff};
 
 #[derive(PartialEq, Clone, Copy, Debug, Digital)]
 pub struct I {

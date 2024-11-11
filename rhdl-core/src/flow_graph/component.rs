@@ -31,11 +31,6 @@ pub struct DynamicSplice {
 }
 
 #[derive(Debug, Clone, Hash)]
-pub struct BlackBox {
-    pub name: String,
-}
-
-#[derive(Debug, Clone, Hash)]
 pub struct Case {
     pub entries: Vec<CaseEntry>,
     pub discriminant_width: SignedWidth,
@@ -52,12 +47,11 @@ pub enum ComponentKind {
     Binary(Binary),
     BitSelect(BitSelect),
     BitString(BitString),
-    BlackBox(BlackBox),
     Buffer(String),
     Case(Case),
     Constant(bool),
-    DFFInput(DFFInput),
-    DFFOutput(DFFOutput),
+    BBInput(BBInput),
+    BBOutput(BBOutput),
     DynamicIndex(DynamicIndex),
     DynamicSplice(DynamicSplice),
     Select,
@@ -70,12 +64,14 @@ pub struct BitSelect {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct DFFInput {
+pub struct BBInput {
+    pub name: String,
     pub bit_index: usize,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct DFFOutput {
+pub struct BBOutput {
+    pub name: String,
     pub bit_index: usize,
 }
 
@@ -92,7 +88,6 @@ impl std::fmt::Debug for Component {
             ComponentKind::Binary(binary) => write!(f, "{:?}", binary.op),
             ComponentKind::BitSelect(bit_select) => write!(f, "[{}]", bit_select.bit_index),
             ComponentKind::BitString(bit_string) => write!(f, "{:?}", bit_string),
-            ComponentKind::BlackBox(blackbox) => write!(f, "{}", blackbox.name),
             ComponentKind::Buffer(name) => write!(f, "{name}"),
             ComponentKind::Case(_) => write!(f, "Case"),
             ComponentKind::Constant(constant) => {
@@ -105,11 +100,11 @@ impl std::fmt::Debug for Component {
                 write!(f, "//{}//", dynamic_splice.splice_len)
             }
             ComponentKind::Select => write!(f, "?"),
-            ComponentKind::DFFInput(dff_input) => {
-                write!(f, "dff_in[{}]", dff_input.bit_index)
+            ComponentKind::BBInput(dff_input) => {
+                write!(f, "{}[{}]", dff_input.name, dff_input.bit_index)
             }
-            ComponentKind::DFFOutput(dff_output) => {
-                write!(f, "dff_out[{}]", dff_output.bit_index)
+            ComponentKind::BBOutput(dff_output) => {
+                write!(f, "{}[{}]", dff_output.name, dff_output.bit_index)
             }
             ComponentKind::Unary(unary) => write!(f, "{:?}", unary.op),
         }?;

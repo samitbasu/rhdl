@@ -7,10 +7,10 @@ use crate::{
     error::rhdl_error,
     flow_graph::{component::CaseEntry, edge_kind::EdgeKind, error::FlowGraphError},
     hdl::ast::{
-        always, assign, binary, bit_string, case, concatenate, constant, declaration,
-        dynamic_index, dynamic_splice, id, if_statement, index_bit, initial,
-        non_blocking_assignment, port, select, unary, unsigned_width, CaseItem, Declaration,
-        Direction, Events, Expression, HDLKind, Module, Statement,
+        always, assign, binary, bit_string, case, component_instance, concatenate, connection,
+        constant, declaration, dynamic_index, dynamic_splice, id, index_bit, initial, port, select,
+        unary, unsigned_width, CaseItem, Declaration, Direction, Events, Expression, HDLKind,
+        Module, Statement,
     },
     FlowGraph, RHDLError,
 };
@@ -18,7 +18,7 @@ use crate::{
 use super::{
     component::{Component, ComponentKind},
     error::FlowGraphICE,
-    flow_graph_impl::FlowIx,
+    flow_graph_impl::{BlackBoxMode, FlowIx},
 };
 
 // Generate a register declaration for the given component.
@@ -35,8 +35,13 @@ fn generate_reg_declaration(index: FlowIx, component: &Component) -> Option<Decl
     if component.width == 0 {
         None
     } else {
+        let kind = if matches!(component.kind, ComponentKind::BBOutput(_)) {
+            HDLKind::Wire
+        } else {
+            HDLKind::Reg
+        };
         Some(declaration(
-            HDLKind::Reg,
+            kind,
             &node(index),
             unsigned_width(component.width),
             Some(format!("{:?}", component)),
@@ -148,7 +153,7 @@ impl<'a> FlowGraphHDLBuilder<'a> {
     fn dff_input_assign_statement(&mut self, index: FlowIx) -> Result<(), RHDLError> {
         let graph = self.graph;
         let component = &graph.graph[index];
-        let ComponentKind::DFFInput(_) = &component.kind else {
+        let ComponentKind::BBInput(_) = &component.kind else {
             return Err(self.raise_ice(FlowGraphICE::ExpectedDFFComponent, component.location));
         };
         let data_edge = graph
@@ -375,11 +380,8 @@ impl<'a> FlowGraphHDLBuilder<'a> {
             ComponentKind::Select => self.select_assign_statement(index)?,
             ComponentKind::Binary(_) => self.binary_assign_statement(index)?,
             ComponentKind::Unary(_) => self.unary_assign_statement(index)?,
-            ComponentKind::DFFInput(_) => self.dff_input_assign_statement(index)?,
-            ComponentKind::DFFOutput(_) => {}
-            ComponentKind::BlackBox(_black_box) => {
-                return Err(self.raise_ice(FlowGraphICE::BlackBoxNotSupported, component.location))
-            }
+            ComponentKind::BBInput(_) => self.dff_input_assign_statement(index)?,
+            ComponentKind::BBOutput(_) => {}
             ComponentKind::Case(_) => self.case_statement(index)?,
             ComponentKind::DynamicIndex(_) => self.dynamic_index_assign_statement(index)?,
             ComponentKind::DynamicSplice(_) => self.dynamic_splice(index)?,
@@ -416,49 +418,29 @@ impl<'a> FlowGraphHDLBuilder<'a> {
             .filter_map(|ndx| generate_reg_declaration(ndx, &fg.graph[ndx]))
             .collect::<Vec<_>>();
         let mut statements = vec![];
-        for (ndx, dff) in fg.dffs.iter().enumerate() {
-            let reg_name = format!("dff_{}", ndx);
-            // To create a DFF, we need a registers to hold the output of the DFF
-            declarations.push(declaration(
-                HDLKind::Reg,
-                &reg_name,
-                unsigned_width(1),
-                Some(format!("{:?}", fg.graph[dff.output])),
+        let mut submodules = vec![];
+        for (ndx, bb) in fg.black_boxes.iter().enumerate() {
+            // We need to instantiate the black box
+            // Connect the output of the black box
+            let mut connections = vec![connection(
+                "o",
+                concatenate(nodes(bb.outputs.iter().rev().copied().collect())),
+            )];
+            let inputs = bb
+                .inputs
+                .iter()
+                .map(|x| concatenate(nodes(x.iter().rev().copied().collect())))
+                .collect::<Vec<_>>();
+            if bb.mode == BlackBoxMode::Synchronous {
+                connections.push(connection("clock_reset", inputs[0].clone()));
+                connections.push(connection("i", inputs[1].clone()));
+            }
+            statements.push(component_instance(
+                &bb.code.name,
+                &format!("bb_{}", ndx),
+                connections,
             ));
-            // Get the clock wire
-            let clock = fg
-                .graph
-                .edges_directed(dff.input, petgraph::Direction::Incoming)
-                .find_map(|edge| match edge.weight() {
-                    EdgeKind::Clock => Some(edge.source()),
-                    _ => None,
-                })
-                .ok_or(self.raise_ice(FlowGraphICE::ClockNotFound, fg.graph[dff.input].location))?;
-            let reset = fg
-                .graph
-                .edges_directed(dff.input, petgraph::Direction::Incoming)
-                .find_map(|edge| match edge.weight() {
-                    EdgeKind::Reset => Some(edge.source()),
-                    _ => None,
-                })
-                .ok_or(self.raise_ice(FlowGraphICE::ResetNotFound, fg.graph[dff.input].location))?;
-            // Create an always block for the DFF
-            let block = always(
-                vec![Events::Posedge(node(clock))],
-                vec![if_statement(
-                    id(&node(reset)),
-                    vec![non_blocking_assignment(
-                        &reg_name,
-                        constant(dff.reset_value),
-                    )],
-                    vec![non_blocking_assignment(&reg_name, id(&node(dff.input)))],
-                )],
-            );
-            statements.push(block);
-            statements.push(always(
-                vec![Events::Star],
-                vec![assign(&node(dff.output), id(&reg_name))],
-            ));
+            submodules.extend(bb.code.as_modules());
         }
         let mut topo = petgraph::visit::Topo::new(&fg.graph);
         while let Some(ndx) = topo.next(&fg.graph) {
@@ -490,6 +472,7 @@ impl<'a> FlowGraphHDLBuilder<'a> {
             ports,
             declarations,
             statements,
+            submodules,
             ..Default::default()
         })
     }
