@@ -17,3 +17,11 @@ impl Default for TraceOptions {
         }
     }
 }
+
+#[derive(Debug, Clone, Default)]
+pub struct TestModuleOptions {
+    pub vcd_file: Option<String>,
+    pub skip_first_cases: usize,
+    pub hold_time: u64,
+    pub flow_graph_level: bool,
+}

@@ -1,8 +1,4 @@
-use std::{
-    cell::RefCell,
-    collections::{BTreeMap, HashMap},
-    rc::Rc,
-};
+use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 use rhdl::{
     core::hdl::ast::{index, memory_index, Declaration},
@@ -125,8 +121,10 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N>
         if !write_if.clock.raw() {
             state.write_prev = write_if;
         }
-        if write_if.clock.raw() && !state.write_prev.clock.raw() && write_if.enable {
-            state.contents.insert(write_if.addr, write_if.data);
+        if write_if.clock.raw() && !state.write_prev.clock.raw() && state.write_prev.enable {
+            let addr = state.write_prev.addr;
+            let data = state.write_prev.data;
+            state.contents.insert(addr, data);
         }
         // We need to handle the clock domain crossing stuff carefully
         // here.
@@ -267,7 +265,7 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N>
 
 #[cfg(test)]
 mod tests {
-    use rhdl::core::testbench::asynchronous::TestModuleOptions;
+    use rhdl::core::testbench::TestModuleOptions;
 
     use super::*;
     use std::iter::repeat;

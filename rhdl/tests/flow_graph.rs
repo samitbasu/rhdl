@@ -158,7 +158,7 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
         .flat_map(|x| exhaustive::<4>().into_iter().map(move |y| (x, y)));
     let inputs = reset_pulse(4).chain(stream(inputs));
     let inputs = clock_pos_edge(inputs, 100);
-    test_synchronous_hdl(&uut, inputs, Default::default())?;
+    test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg
         .graph
@@ -198,14 +198,7 @@ fn test_add_inline() -> miette::Result<()> {
         .flat_map(|x| exhaustive::<4>().into_iter().map(move |y| (x, y)));
     let inputs = reset_pulse(4).chain(stream(inputs));
     let inputs = clock_pos_edge(inputs, 100);
-    test_synchronous_hdl(
-        &uut,
-        inputs,
-        TraceOptions {
-            vcd: Some("add_inline".into()),
-            assertions_enabled: true,
-        },
-    )?;
+    test_synchronous_hdl(&uut, inputs)?;
     Ok(())
 }
 
@@ -237,7 +230,7 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = reset_pulse(4).chain(stream(std::iter::once(())));
     let inputs = clock_pos_edge(inputs, 100);
-    test_synchronous_hdl(&uut, inputs, Default::default())?;
+    test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg
         .graph
@@ -311,7 +304,7 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = reset_pulse(4).chain(stream(std::iter::once(())));
     let inputs = clock_pos_edge(inputs, 100);
-    test_synchronous_hdl(&uut, inputs, Default::default())?;
+    test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg
         .graph
@@ -349,7 +342,7 @@ fn test_constant_propagates_through_indexing() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = reset_pulse(4).chain(stream([false, true].iter().copied()));
     let inputs = clock_pos_edge(inputs, 100);
-    test_synchronous_hdl(&uut, inputs, Default::default())?;
+    test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg
         .graph
@@ -388,7 +381,7 @@ fn test_constant_propagates_through_splicing() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = reset_pulse(4).chain(stream([false, true].iter().copied()));
     let inputs = clock_pos_edge(inputs, 100);
-    test_synchronous_hdl(&uut, inputs, Default::default())?;
+    test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg
         .graph

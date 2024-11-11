@@ -12,12 +12,12 @@ use crate::{
     Circuit, RHDLError, TimedSample,
 };
 
-use super::test_module::TestModule;
+use super::{test_module::TestModule, TestModuleOptions};
 
 fn build_test_module_from_waveform(
     modules: &[Module],
     waveform: &AsynchronousWaveform,
-    config: TestModuleOptions,
+    config: &TestModuleOptions,
 ) -> Result<TestModule, RHDLError> {
     // All synchronous modules must have at least 1
     // ports.  They may have 2 if hte circuit takes input signals.
@@ -133,10 +133,10 @@ pub fn test_asynchronous_hdl<T: Circuit>(
     // Get a waveform for this circuit
     let wav = waveform(uut, inputs);
     let rtl_mod = uut.hdl("uut")?.as_modules();
-    let tm1 = build_test_module_from_waveform(&rtl_mod, &wav, Default::default())?;
+    let tm1 = build_test_module_from_waveform(&rtl_mod, &wav, &Default::default())?;
     tm1.run_iverilog()?;
     let fg = uut.flow_graph("uut")?.hdl("uut")?;
-    let tm1 = build_test_module_from_waveform(&[fg], &wav, Default::default())?;
+    let tm1 = build_test_module_from_waveform(&[fg], &wav, &Default::default())?;
     tm1.run_iverilog()?;
     Ok(())
 }
@@ -152,13 +152,5 @@ pub fn build_rtl_testmodule<T: Circuit>(
     } else {
         &uut.hdl("uut")?.as_modules()[..]
     };
-    build_test_module_from_waveform(module, &wav, options)
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct TestModuleOptions {
-    pub vcd_file: Option<String>,
-    pub skip_first_cases: usize,
-    pub hold_time: u64,
-    pub flow_graph_level: bool,
+    build_test_module_from_waveform(module, &wav, &options)
 }
