@@ -23,6 +23,12 @@ impl Module {
     }
 }
 
+impl std::fmt::Display for Module {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&super::formatter::module(self))
+    }
+}
+
 // function {signed} [width-1:0] name(args);
 
 #[derive(Debug, Clone, Hash)]

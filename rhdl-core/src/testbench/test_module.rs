@@ -1,24 +1,26 @@
-use crate::RHDLError;
+use crate::{hdl::ast::Module, RHDLError};
 
-pub struct TestModule {
-    pub testbench: String,
-    pub num_cases: usize,
+pub struct TestModule(Module);
+
+impl From<Module> for TestModule {
+    fn from(m: Module) -> Self {
+        Self(m)
+    }
 }
 
-impl std::fmt::Debug for TestModule {
+impl std::fmt::Display for TestModule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.testbench.fmt(f)
+        write!(f, "{}", self.0)
     }
 }
 
 #[cfg(feature = "iverilog")]
 impl TestModule {
     pub fn run_iverilog(&self) -> Result<(), RHDLError> {
-        std::fs::write("testbench.v", &self.testbench)?;
         let d = tempfile::tempdir()?;
         // Write the test bench to a file
         let d_path = d.path();
-        std::fs::write(d_path.join("testbench.v"), &self.testbench)?;
+        std::fs::write(d_path.join("testbench.v"), self.to_string())?;
         // Compile the test bench
         let mut cmd = std::process::Command::new("iverilog");
         cmd.arg("-o")

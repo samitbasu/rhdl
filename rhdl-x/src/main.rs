@@ -1,7 +1,6 @@
 use rhdl::core::circuit::chain::Chain;
 use rhdl::core::flow_graph::passes::check_for_unconnected_clock_reset::CheckForUnconnectedClockReset;
 use rhdl::core::flow_graph::passes::pass::Pass;
-use rhdl::core::sim::verilog_testbench::write_testbench_module;
 use rhdl::core::types::timed;
 use rhdl::prelude::*;
 use rhdl_fpga::core::{constant, dff};
@@ -13,16 +12,6 @@ use trizsnd::Cmd;
 mod bit4;
 mod bitvector;
 use anyhow::ensure;
-/* use rhdl_core::as_verilog_literal;
-use rhdl_core::codegen::verilog::as_verilog_decl;
-use rhdl_core::prelude::*;
-use rhdl_core::root_descriptor;
-use rhdl_core::types::domain::Red;
-use rhdl_macro::Digital;
-use rhdl_macro::Timed;
- */
-//use translator::Translator;
-//use verilog::VerilogTranslator;
 
 //mod backend;
 //mod circuit;
@@ -320,8 +309,6 @@ fn test_async_counter() {
 #[test]
 fn test_async_counter_fg() -> miette::Result<()> {
     let uut = async_counter::U::default();
-    let hdl = uut.hdl("top")?;
-    eprintln!("{}", hdl.as_verilog());
     let fg = uut.flow_graph("top")?;
     let mut dot = std::fs::File::create("async_counter.dot").unwrap();
     write_dot(&fg, &mut dot).unwrap();
@@ -341,8 +328,7 @@ fn test_dff_name() -> miette::Result<()> {
 fn test_async_counter_hdl() -> miette::Result<()> {
     let uut = async_counter::U::default();
     let hdl = uut.hdl("top")?;
-    eprintln!("{}", hdl.as_verilog());
-    std::fs::write("async_counter.v", hdl.as_verilog()).unwrap();
+    std::fs::write("async_counter.v", hdl.as_module().to_string()).unwrap();
     Ok(())
 }
 
@@ -362,7 +348,8 @@ fn test_async_counter_tb() -> miette::Result<()> {
             },
         )
     });
-    write_testbench(&uut, inputs, "async_counter_tb.v")?;
+    let module = build_rtl_testmodule(&uut, inputs, TestModuleOptions::default())?;
+    std::fs::write("async_counter_tb.v", module.to_string()).unwrap();
     Ok(())
 }
 
@@ -428,8 +415,10 @@ fn test_counter_testbench() -> miette::Result<()> {
         .map(|x| x > 100 && x < 900)
         .map(|x| counter::I { enable: x });
     let inputs = stream::reset_pulse(1).chain(stream::stream(inputs));
+    let inputs = stream::clock_pos_edge(inputs, 100);
     let uut: counter::U<4> = counter::U::default();
-    write_synchronous_testbench(&uut, inputs, 100, "counter_tb.v")?;
+    let tb = build_rtl_testmodule_synchronous(&uut, inputs, TestModuleOptions::default())?;
+    std::fs::write("counter_tb.v", tb.to_string()).unwrap();
     Ok(())
 }
 
@@ -457,12 +446,20 @@ fn test_autocounter_vcd() -> miette::Result<()> {
 #[test]
 fn test_autocounter() -> miette::Result<()> {
     let uut: auto_counter::U<4> = auto_counter::U::default();
-    let fg = uut.flow_graph("uut")?;
     let inputs = repeat(()).take(1000);
     let stream = test_stream(inputs);
-    write_testbench_module(&fg.hdl("autocounter")?, stream, "autocounter_fg_tb.v", 4)?;
+    let tb = build_rtl_testmodule_synchronous(
+        &uut,
+        stream,
+        TestModuleOptions {
+            flow_graph_level: true,
+            ..Default::default()
+        },
+    )?;
+    std::fs::write("autocounter_tb.v", tb.to_string()).unwrap();
+    let fg = uut.flow_graph("uut")?;
     let vg = fg.hdl("top")?;
-    std::fs::write("auto_counter.v", vg.as_verilog()).unwrap();
+    std::fs::write("auto_counter.v", vg.to_string());
     let mut dot = std::fs::File::create("auto_counter.dot").unwrap();
     write_dot(&fg, &mut dot).unwrap();
     Ok(())
@@ -488,15 +485,7 @@ fn test_auto_doubler_hdl() -> miette::Result<()> {
     let uut = Chain::new(c1, Chain::new(c2, Chain::new(c3, c4)));
     let inputs = repeat(()).take(1000);
     let stream = test_stream(inputs);
-    test_synchronous_hdl(
-        &uut,
-        stream,
-        TraceOptions {
-            vcd: Some("jnk.vcd".into()),
-            assertions_enabled: true,
-            ..Default::default()
-        },
-    )?;
+    test_synchronous_hdl(&uut, stream)?;
     //    write_testbench_module(&fg.hdl("autodoubler")?, stream, "autodoubler_tb.v", 4)?;
     Ok(())
 }
@@ -504,10 +493,7 @@ fn test_auto_doubler_hdl() -> miette::Result<()> {
 fn main() -> miette::Result<()> {
     let counter: counter::U<4> = counter::U::default();
     let hdl = counter.hdl("uut")?;
-    println!("{}", hdl.as_verilog());
-    for (child, descriptor) in hdl.children {
-        println!("{child} {}", descriptor.as_verilog());
-    }
+    println!("{}", hdl.as_module());
     /*
        let strobe: strobe::U<16> = strobe::U::new(bits(100));
        let hdl = strobe.as_hdl(HDLKind::Verilog)?;

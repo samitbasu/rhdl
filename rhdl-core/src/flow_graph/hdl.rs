@@ -440,7 +440,7 @@ impl<'a> FlowGraphHDLBuilder<'a> {
                 &format!("bb_{}", ndx),
                 connections,
             ));
-            submodules.extend(bb.code.as_modules());
+            submodules.extend([bb.code.as_module()]);
         }
         let mut topo = petgraph::visit::Topo::new(&fg.graph);
         while let Some(ndx) = topo.next(&fg.graph) {
