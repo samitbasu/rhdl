@@ -278,23 +278,42 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_hdl_output() -> miette::Result<()> {
-        type UC = U<b8, 4>;
-        let uut: UC = U::new((0..).map(|ndx| (bits(ndx), bits(0))));
+    fn random_command_stream(
+        len: usize,
+    ) -> impl Iterator<Item = TimedSample<(ClockReset, I<b8, 4>)>> {
         let inputs = (0..).map(|_| rand_cmd().into()).take(1000);
         let stream = stream(inputs);
         let stream = reset_pulse(1).chain(stream);
         let stream = clock_pos_edge(stream, 100);
+        stream
+    }
+
+    #[test]
+    fn test_hdl_output_flow_graph() -> miette::Result<()> {
+        type UC = U<b8, 4>;
+        let uut: UC = U::new((0..).map(|ndx| (bits(ndx), bits(0))));
         let options = TestModuleOptions {
-            skip_first_cases: !0,
             hold_time: 1,
             flow_graph_level: true,
-            vcd_file: Some("test_hdl_output.vcd".into()),
             ..Default::default()
         };
+        let stream = random_command_stream(1000);
         let test_mod = build_rtl_testmodule_synchronous(&uut, stream, options)?;
-        std::fs::write("test_hdl_output.v", test_mod.to_string()).unwrap();
+        test_mod.run_iverilog()?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_hdl_output_rtl() -> miette::Result<()> {
+        type UC = U<b8, 4>;
+        let uut: UC = U::new((0..).map(|ndx| (bits(ndx), bits(0))));
+        let options = TestModuleOptions {
+            hold_time: 1,
+            flow_graph_level: false,
+            ..Default::default()
+        };
+        let stream = random_command_stream(1000);
+        let test_mod = build_rtl_testmodule_synchronous(&uut, stream, options)?;
         test_mod.run_iverilog()?;
         Ok(())
     }
