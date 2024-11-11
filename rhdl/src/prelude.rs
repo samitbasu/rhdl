@@ -43,8 +43,6 @@ pub use rhdl_core::sim::validation_simulation::validate_synchronous;
 pub use rhdl_core::sim::validation_simulation::ValidateOptions;
 pub use rhdl_core::sim::validator::glitch_check::glitch_check;
 pub use rhdl_core::sim::validator::value_check::value_check;
-pub use rhdl_core::sim::verilog_testbench::write_synchronous_testbench;
-pub use rhdl_core::sim::verilog_testbench::write_testbench;
 pub use rhdl_core::testbench::asynchronous::build_rtl_testmodule;
 pub use rhdl_core::testbench::asynchronous::test_asynchronous_hdl;
 pub use rhdl_core::testbench::kernel::test_kernel_vm_and_verilog;

@@ -1,11 +1,11 @@
 use crate::{
     trace::{db::trace, db::with_trace_db},
-    trace_init_db, trace_time, Circuit, ClockReset, Reset, Synchronous, TimedSample,
+    trace_init_db, trace_time, Circuit, ClockReset, Synchronous, TimedSample,
 };
 
 pub trait Validation<C: Circuit> {
-    fn initialize(&mut self, c: &C) {}
-    fn validate(&mut self, input: TimedSample<C::I>, output: C::O) {}
+    fn initialize(&mut self, _c: &C) {}
+    fn validate(&mut self, _input: TimedSample<C::I>, _output: C::O) {}
     fn finish(&mut self) {}
 }
 
@@ -90,8 +90,8 @@ pub fn validate<T: Circuit>(
 }
 
 pub trait SynchronousValidation<S: Synchronous> {
-    fn initialize(&mut self, c: &S) {}
-    fn validate(&mut self, input: TimedSample<(ClockReset, S::I)>, output: S::O) {}
+    fn initialize(&mut self, _c: &S) {}
+    fn validate(&mut self, _input: TimedSample<(ClockReset, S::I)>, _output: S::O) {}
     fn finish(&mut self) {}
 }
 

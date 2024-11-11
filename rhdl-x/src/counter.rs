@@ -107,7 +107,7 @@ mod tests {
     fn test_verilog_generation() -> miette::Result<()> {
         let uut: U<4> = U::default();
         let hdl = uut.hdl("uut")?;
-        std::fs::write("counter.v", format!("{}", hdl.as_verilog())).unwrap();
+        std::fs::write("counter.v", format!("{}", hdl.as_module())).unwrap();
         Ok(())
     }
 

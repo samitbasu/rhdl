@@ -64,14 +64,14 @@ impl TypedBits {
     };
 
     pub fn path(&self, path: &Path) -> Result<TypedBits> {
-        let (range, kind) = bit_range(self.kind.clone(), path)?;
+        let (range, kind) = bit_range(self.kind, path)?;
         Ok(TypedBits {
             bits: self.bits[range].to_vec(),
             kind,
         })
     }
     pub fn splice(&self, path: &Path, value: TypedBits) -> Result<TypedBits> {
-        let (range, kind) = bit_range(self.kind.clone(), path)?;
+        let (range, kind) = bit_range(self.kind, path)?;
         if kind != value.kind {
             return Err(rhdl_error(DynamicTypeError::IllegalSplice {
                 value,
@@ -83,7 +83,7 @@ impl TypedBits {
         new_bits.splice(range, value.bits.iter().cloned());
         Ok(TypedBits {
             bits: new_bits,
-            kind: self.kind.clone(),
+            kind: self.kind,
         })
     }
     pub fn discriminant(&self) -> Result<TypedBits> {
@@ -200,7 +200,7 @@ impl TypedBits {
             Kind::Signal(base, _) if base.is_signed() => self.signed_cast(64)?,
             _ => {
                 return Err(rhdl_error(DynamicTypeError::UnableToInterpretAsI64 {
-                    kind: self.kind.clone(),
+                    kind: self.kind,
                 }));
             }
         };
@@ -274,7 +274,7 @@ impl TypedBits {
                 .cycle()
                 .take(count * my_len)
                 .collect(),
-            kind: Kind::make_array(self.kind.clone(), count),
+            kind: Kind::make_array(self.kind, count),
         }
     }
     pub fn get_bit(&self, index: usize) -> Result<TypedBits> {
@@ -306,7 +306,7 @@ impl TypedBits {
         new_bits[index] = val;
         Ok(TypedBits {
             bits: new_bits,
-            kind: self.kind.clone(),
+            kind: self.kind,
         })
     }
     pub fn slice(&self, offset: usize, count: usize) -> Result<TypedBits> {
@@ -343,17 +343,17 @@ impl TypedBits {
         if !option_kind.is_option() {
             return Err(rhdl_error(DynamicTypeError::CannotWrapOption {
                 value: self.clone(),
-                kind: option_kind.clone(),
+                kind: *option_kind,
             }));
         }
         let some_kind = sub_kind(
-            option_kind.clone(),
+            *option_kind,
             &Path::default().payload("Some").tuple_index(0),
         )?;
         if some_kind != self.kind {
             return Err(rhdl_error(DynamicTypeError::CannotWrapOption {
                 value: self.clone(),
-                kind: option_kind.clone(),
+                kind: *option_kind,
             }));
         }
         let pad = option_kind.bits() - self.kind.bits() - 1;
@@ -363,21 +363,21 @@ impl TypedBits {
                 .into_iter()
                 .chain(repeat(false).take(pad).chain(once(true)))
                 .collect(),
-            kind: option_kind.clone(),
+            kind: *option_kind,
         })
     }
     pub fn wrap_none(self, option_kind: &Kind) -> Result<TypedBits> {
         if !option_kind.is_option() {
             return Err(rhdl_error(DynamicTypeError::CannotWrapOption {
                 value: self.clone(),
-                kind: option_kind.clone(),
+                kind: *option_kind,
             }));
         }
-        let none_kind = sub_kind(option_kind.clone(), &Path::default().payload("None"))?;
+        let none_kind = sub_kind(*option_kind, &Path::default().payload("None"))?;
         if none_kind != self.kind {
             return Err(rhdl_error(DynamicTypeError::CannotWrapOption {
                 value: self.clone(),
-                kind: option_kind.clone(),
+                kind: *option_kind,
             }));
         }
         let pad = option_kind.bits() - self.kind.bits() - 1;
@@ -387,24 +387,21 @@ impl TypedBits {
                 .into_iter()
                 .chain(repeat(false).take(pad).chain(once(false)))
                 .collect(),
-            kind: option_kind.clone(),
+            kind: *option_kind,
         })
     }
     pub fn wrap_err(self, result_kind: &Kind) -> Result<TypedBits> {
         if !result_kind.is_result() {
             return Err(rhdl_error(DynamicTypeError::CannotWrapResult {
                 value: self.clone(),
-                kind: result_kind.clone(),
+                kind: *result_kind,
             }));
         }
-        let err_kind = sub_kind(
-            result_kind.clone(),
-            &Path::default().payload("Err").tuple_index(0),
-        )?;
+        let err_kind = sub_kind(*result_kind, &Path::default().payload("Err").tuple_index(0))?;
         if err_kind != self.kind {
             return Err(rhdl_error(DynamicTypeError::CannotWrapResult {
                 value: self.clone(),
-                kind: result_kind.clone(),
+                kind: *result_kind,
             }));
         }
         let pad = result_kind.bits() - self.kind.bits() - 1;
@@ -414,24 +411,21 @@ impl TypedBits {
                 .into_iter()
                 .chain(repeat(false).take(pad).chain(once(false)))
                 .collect(),
-            kind: result_kind.clone(),
+            kind: *result_kind,
         })
     }
     pub fn wrap_ok(self, result_kind: &Kind) -> Result<TypedBits> {
         if !result_kind.is_result() {
             return Err(rhdl_error(DynamicTypeError::CannotWrapResult {
                 value: self.clone(),
-                kind: result_kind.clone(),
+                kind: *result_kind,
             }));
         }
-        let ok_kind = sub_kind(
-            result_kind.clone(),
-            &Path::default().payload("Ok").tuple_index(0),
-        )?;
+        let ok_kind = sub_kind(*result_kind, &Path::default().payload("Ok").tuple_index(0))?;
         if ok_kind != self.kind {
             return Err(rhdl_error(DynamicTypeError::CannotWrapResult {
                 value: self.clone(),
-                kind: result_kind.clone(),
+                kind: *result_kind,
             }));
         }
         let pad = result_kind.bits() - self.kind.bits() - 1;
@@ -441,7 +435,7 @@ impl TypedBits {
                 .into_iter()
                 .chain(repeat(false).take(pad).chain(once(true)))
                 .collect(),
-            kind: result_kind.clone(),
+            kind: *result_kind,
         })
     }
     pub fn wrap(self, op: WrapOp, kind: &Kind) -> Result<TypedBits> {
@@ -463,14 +457,14 @@ fn binop_kind(lhs: &Kind, rhs: &Kind) -> Result<Kind> {
         ));
     }
     if lhs == rhs {
-        return Ok(lhs.clone());
+        return Ok(*lhs);
     }
     let signal_kind = lhs.signal_data();
     let Some(clock) = lhs.signal_clock().or(rhs.signal_clock()) else {
         return Err(rhdl_error(
             DynamicTypeError::BinaryOperationRequiresCompatibleType {
-                lhs: lhs.clone(),
-                rhs: rhs.clone(),
+                lhs: *lhs,
+                rhs: *rhs,
             },
         ));
     };
@@ -715,7 +709,7 @@ fn write_enumerate(
     f: &mut std::fmt::Formatter<'_>,
 ) -> std::fmt::Result {
     let root_kind = Kind::Enum(Intern::new(enumerate.clone()));
-    let (range, kind) = bit_range(root_kind.clone(), &Path::default().discriminant()).unwrap();
+    let (range, kind) = bit_range(root_kind, &Path::default().discriminant()).unwrap();
     let discriminant_value = interpret_bits_as_i64(&bits[range], kind.is_signed());
     // Get the variant for this discriminant
     let variant = enumerate
@@ -745,7 +739,7 @@ fn write_struct(
     let root_kind = Kind::Struct(Intern::new(structure.clone()));
     for (ndx, field) in structure.fields.iter().enumerate() {
         let (bit_range, sub_kind) =
-            bit_range(root_kind.clone(), &Path::default().field(&field.name)).unwrap();
+            bit_range(root_kind, &Path::default().field(&field.name)).unwrap();
         let slice = &bits[bit_range];
         write!(f, "{}: ", field.name)?;
         write_kind_with_bits(&sub_kind, slice, f)?;
@@ -760,8 +754,7 @@ fn write_array(array: &Array, bits: &[bool], f: &mut std::fmt::Formatter<'_>) ->
     write!(f, "[")?;
     let root_kind = Kind::Array(Intern::new(array.clone()));
     for ndx in 0..(array.size) {
-        let (bit_range, sub_kind) =
-            bit_range(root_kind.clone(), &Path::default().index(ndx)).unwrap();
+        let (bit_range, sub_kind) = bit_range(root_kind, &Path::default().index(ndx)).unwrap();
         let slice = &bits[bit_range];
         write_kind_with_bits(&sub_kind, slice, f)?;
         if ndx < array.size - 1 {
@@ -802,7 +795,7 @@ fn write_tuple(tuple: &Tuple, bits: &[bool], f: &mut std::fmt::Formatter<'_>) ->
     let root_kind = Kind::Tuple(Intern::new(tuple.clone()));
     for ndx in 0..(tuple.elements.len()) {
         let (bit_range, sub_kind) =
-            bit_range(root_kind.clone(), &Path::default().tuple_index(ndx)).unwrap();
+            bit_range(root_kind, &Path::default().tuple_index(ndx)).unwrap();
         let slice = &bits[bit_range];
         write_kind_with_bits(&sub_kind, slice, f)?;
         if ndx < tuple.elements.len() - 1 {

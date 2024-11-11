@@ -1,19 +1,15 @@
 use crate::{
     clock_reset,
-    hdl::{
-        ast::{
-            assert, assign, bit_string, component_instance, connection, declaration, delay,
-            display, dump_file, dump_vars, finish, id, initial, unsigned_width, Direction, HDLKind,
-            Module,
-        },
-        formatter,
+    hdl::ast::{
+        assert, assign, bit_string, component_instance, connection, declaration, delay, display,
+        dump_file, dump_vars, finish, id, initial, unsigned_width, Direction, HDLKind, Module,
     },
     sim::waveform::SynchronousWaveform,
     types::bit_string::BitString,
     waveform_synchronous, ClockReset, Digital, RHDLError, Synchronous, TimedSample,
 };
 
-use super::{test_module::TestModule, TestModuleOptions, TraceOptions};
+use super::{test_module::TestModule, TestModuleOptions};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 enum ResetState {
@@ -23,7 +19,7 @@ enum ResetState {
 }
 
 fn build_test_module_from_synchronous_waveform(
-    modules: &[Module],
+    hdl: &Module,
     waveform: &SynchronousWaveform,
     options: &TestModuleOptions,
 ) -> Result<TestModule, RHDLError> {
@@ -31,12 +27,6 @@ fn build_test_module_from_synchronous_waveform(
     // ports (the first is clock + reset, the last is
     // the output).  They may have 3 if the circuit takes
     // input signals.
-    if modules.is_empty() {
-        return Err(RHDLError::TestbenchConstructionError(
-            "No modules provided".into(),
-        ));
-    }
-    let hdl = &modules[0];
     let has_nonempty_input = hdl.ports.len() == 3;
     let output_port = if has_nonempty_input {
         &hdl.ports[2]
@@ -152,17 +142,10 @@ fn build_test_module_from_synchronous_waveform(
         description: "Testbench for synchronous module".into(),
         declarations: declarations.into_iter().flatten().collect(),
         statements: vec![instance, initial(test_cases)],
+        submodules: vec![hdl.clone()],
         ..Default::default()
     };
-    let modules_as_verilog = modules
-        .iter()
-        .map(formatter::module)
-        .collect::<Vec<String>>()
-        .join("\n");
-    Ok(TestModule {
-        testbench: module.as_verilog() + &modules_as_verilog,
-        num_cases: 0,
-    })
+    Ok(module.into())
 }
 
 pub fn test_synchronous_hdl<T: Synchronous>(
@@ -172,7 +155,7 @@ pub fn test_synchronous_hdl<T: Synchronous>(
     // Get a waveform for this circuit
     let waveform = waveform_synchronous(uut, inputs);
     // Construct a RTL-based test bench
-    let rtl_mod = uut.hdl("uut")?.as_modules();
+    let rtl_mod = uut.hdl("uut")?.as_module();
     let tm1 = build_test_module_from_synchronous_waveform(
         &rtl_mod,
         &waveform,
@@ -181,11 +164,8 @@ pub fn test_synchronous_hdl<T: Synchronous>(
     tm1.run_iverilog()?;
     // Construct a flowgraph-based test bench
     let fg = uut.flow_graph("uut")?.hdl("uut")?;
-    let tm1 = build_test_module_from_synchronous_waveform(
-        &[fg],
-        &waveform,
-        &TestModuleOptions::default(),
-    )?;
+    let tm1 =
+        build_test_module_from_synchronous_waveform(&fg, &waveform, &TestModuleOptions::default())?;
     tm1.run_iverilog()?;
 
     Ok(())
@@ -198,9 +178,9 @@ pub fn build_rtl_testmodule_synchronous<T: Synchronous>(
 ) -> Result<TestModule, RHDLError> {
     let wav = waveform_synchronous(uut, inputs);
     let module = if options.flow_graph_level {
-        &[uut.flow_graph("uut")?.hdl("uut")?]
+        &uut.flow_graph("uut")?.hdl("uut")?
     } else {
-        &uut.hdl("uut")?.as_modules()[..]
+        &uut.hdl("uut")?.as_module()
     };
     build_test_module_from_synchronous_waveform(module, &wav, &options)
 }
