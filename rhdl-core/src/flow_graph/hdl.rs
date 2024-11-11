@@ -380,7 +380,7 @@ impl<'a> FlowGraphHDLBuilder<'a> {
             ComponentKind::Select => self.select_assign_statement(index)?,
             ComponentKind::Binary(_) => self.binary_assign_statement(index)?,
             ComponentKind::Unary(_) => self.unary_assign_statement(index)?,
-            ComponentKind::BBInput(_) => {} //self.dff_input_assign_statement(index)?,
+            ComponentKind::BBInput(_) => self.dff_input_assign_statement(index)?,
             ComponentKind::BBOutput(_) => {}
             ComponentKind::Case(_) => self.case_statement(index)?,
             ComponentKind::DynamicIndex(_) => self.dynamic_index_assign_statement(index)?,
