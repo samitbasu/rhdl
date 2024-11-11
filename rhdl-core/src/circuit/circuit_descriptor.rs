@@ -16,7 +16,7 @@ use std::collections::BTreeMap;
 // runtime description.  And the repository for that information
 // is the CircuitDescriptor struct.  We cannot, for example, iterate
 // over the types that make up our children.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct CircuitDescriptor {
     pub unique_name: String,
     pub input_kind: Kind,

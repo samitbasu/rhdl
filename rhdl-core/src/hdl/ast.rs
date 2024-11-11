@@ -14,6 +14,7 @@ pub struct Module {
     pub declarations: Vec<Declaration>,
     pub statements: Vec<Statement>,
     pub functions: Vec<Function>,
+    pub submodules: Vec<Module>,
 }
 
 impl Module {

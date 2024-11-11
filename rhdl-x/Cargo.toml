@@ -19,6 +19,7 @@ proc-macro2 = "1.0.81"
 quote = "1.0.36"
 rand = "0.8.5"
 rhdl = { path = "../rhdl" }
+rhdl-fpga = { path = "../rhdl-fpga" }
 smallvec = "1.13.2"
 syn = { version = "2.0.61", features = ["full", "extra-traits"] }
 vcd = "0.7.0"

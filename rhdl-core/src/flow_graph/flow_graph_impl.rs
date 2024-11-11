@@ -10,11 +10,11 @@ use crate::{
     ast::{source_location::SourceLocation, spanned_source::SpannedSourceSet},
     hdl::ast::Module,
     rtl::object::RegisterKind,
-    RHDLError,
+    Circuit, Digital, HDLDescriptor, RHDLError, Synchronous,
 };
 
 use super::{
-    component::{BitSelect, BlackBox, Component, ComponentKind, DFFInput, DFFOutput},
+    component::{BBInput, BBOutput, BitSelect, Component, ComponentKind},
     edge_kind::EdgeKind,
     flow_cost::{compute_flow_cost, FlowCost},
     hdl::generate_hdl,
@@ -23,20 +23,27 @@ use super::{
 pub type FlowIx = petgraph::graph::NodeIndex;
 pub type GraphType = StableDiGraph<Component, EdgeKind>;
 
-#[derive(Debug, Clone, Default, Hash)]
-pub struct DFF {
-    pub input: FlowIx,
-    pub output: FlowIx,
-    pub reset_value: bool,
+#[derive(Clone, Hash, PartialEq, Copy, Debug)]
+pub enum BlackBoxMode {
+    Synchronous,
+    Asynchronous,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Hash)]
+pub struct BlackBox {
+    pub inputs: Vec<Vec<FlowIx>>,
+    pub outputs: Vec<FlowIx>,
+    pub code: HDLDescriptor,
+    pub mode: BlackBoxMode,
+}
+
+#[derive(Clone, Default)]
 pub struct FlowGraph {
     pub graph: GraphType,
     pub inputs: Vec<Vec<FlowIx>>,
     pub output: Vec<FlowIx>,
     pub code: SpannedSourceSet,
-    pub dffs: Vec<DFF>,
+    pub black_boxes: Vec<BlackBox>,
 }
 
 impl FlowGraph {
@@ -82,51 +89,66 @@ impl FlowGraph {
             })
             .collect()
     }
-    pub fn black_box(&mut self, name: &str) -> FlowIx {
-        self.graph.add_node(Component {
-            kind: ComponentKind::BlackBox(BlackBox {
-                name: name.to_string(),
-            }),
-            width: 1,
-            location: None,
-        })
+    fn bb_input(&mut self, name: &str, len: usize) -> Vec<FlowIx> {
+        (0..len)
+            .map(|bit_index| {
+                self.graph.add_node(Component {
+                    kind: ComponentKind::BBInput(BBInput {
+                        name: format!("{name}_{bit_index}"),
+                        bit_index,
+                    }),
+                    width: 1,
+                    location: None,
+                })
+            })
+            .collect()
     }
-    pub fn dff(
+    fn bb_output(&mut self, name: &str, len: usize) -> Vec<FlowIx> {
+        (0..len)
+            .map(|bit_index| {
+                self.graph.add_node(Component {
+                    kind: ComponentKind::BBOutput(BBOutput {
+                        name: format!("{name}_{bit_index}"),
+                        bit_index,
+                    }),
+                    width: 1,
+                    location: None,
+                })
+            })
+            .collect()
+    }
+    pub fn circuit_black_box<C: Circuit>(
         &mut self,
-        kind: RegisterKind,
-        init: &[bool],
-        location: Option<SourceLocation>,
+        code: HDLDescriptor,
     ) -> (Vec<FlowIx>, Vec<FlowIx>) {
-        let dff_input = (0..kind.len())
-            .map(|bit_index| {
-                self.graph.add_node(Component {
-                    kind: ComponentKind::DFFInput(DFFInput { bit_index }),
-                    width: 1,
-                    location,
-                })
-            })
-            .collect::<Vec<_>>();
-        let dff_output = (0..kind.len())
-            .map(|bit_index| {
-                self.graph.add_node(Component {
-                    kind: ComponentKind::DFFOutput(DFFOutput { bit_index }),
-                    width: 1,
-                    location,
-                })
-            })
-            .collect::<Vec<_>>();
-        self.dffs.extend(
-            dff_input
-                .iter()
-                .zip(dff_output.iter())
-                .zip(init.iter())
-                .map(|((input, output), reset)| DFF {
-                    input: *input,
-                    output: *output,
-                    reset_value: *reset,
-                }),
-        );
-        (dff_input, dff_output)
+        let input_len = C::I::BITS;
+        let output_len = C::O::BITS;
+        let inputs = self.bb_input(&code.name, input_len);
+        let outputs = self.bb_output(&code.name, output_len);
+        self.black_boxes.push(BlackBox {
+            inputs: vec![inputs.clone()],
+            outputs: outputs.clone(),
+            code,
+            mode: BlackBoxMode::Asynchronous,
+        });
+        (inputs, outputs)
+    }
+    pub fn synchronous_black_box<S: Synchronous>(
+        &mut self,
+        code: HDLDescriptor,
+    ) -> (Vec<FlowIx>, Vec<FlowIx>, Vec<FlowIx>) {
+        let input_len = S::I::BITS;
+        let output_len = S::O::BITS;
+        let inputs = self.bb_input(&code.name, input_len);
+        let outputs = self.bb_output(&code.name, output_len);
+        let clock_reset = self.bb_input(&format!("{}_cr", code.name), 2);
+        self.black_boxes.push(BlackBox {
+            inputs: vec![clock_reset.clone(), inputs.clone()],
+            outputs: outputs.clone(),
+            code,
+            mode: BlackBoxMode::Synchronous,
+        });
+        (clock_reset, inputs, outputs)
     }
     pub fn new_component(
         &mut self,
@@ -192,10 +214,16 @@ impl FlowGraph {
             let (src, dest) = other.graph.edge_endpoints(edge).unwrap();
             self.graph.add_edge(remap[&src], remap[&dest], kind);
         }
-        self.dffs.extend(other.dffs.iter().map(|dff| DFF {
-            input: remap[&dff.input],
-            output: remap[&dff.output],
-            reset_value: dff.reset_value,
+        self.black_boxes.extend(other.black_boxes.iter().map(|bb| {
+            BlackBox {
+                inputs: bb
+                    .inputs
+                    .iter()
+                    .map(|ix| ix.iter().map(|ix| remap[ix]).collect())
+                    .collect(),
+                outputs: bb.outputs.iter().map(|ix| remap[ix]).collect(),
+                ..bb.clone()
+            }
         }));
         self.code.extend(other.code.sources.clone());
         remap
@@ -221,7 +249,6 @@ impl FlowGraph {
         self.inputs.hash(&mut hasher);
         self.output.hash(&mut hasher);
         self.code.hash(&mut hasher);
-        self.dffs.hash(&mut hasher);
         hasher.finish()
     }
     pub fn flow_cost<F: Fn(&Component) -> f64>(&self, cost: F) -> FlowCost {

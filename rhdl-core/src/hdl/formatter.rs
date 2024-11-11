@@ -388,7 +388,13 @@ pub fn module(ast: &Module) -> String {
     let declarations = apply(&ast.declarations, register, "\n");
     let statements = apply(&ast.statements, statement, "\n");
     let functions = apply(&ast.functions, function, "\n");
+    let sub_modules = ast
+        .submodules
+        .iter()
+        .map(module)
+        .collect::<Vec<_>>()
+        .join("\n");
     reformat_verilog(&format!(
-        "// {description}\nmodule {name}({ports});\n{declarations}\n{statements}\n{functions}\nendmodule\n",
+        "// {description}\nmodule {name}({ports});\n{declarations}\n{statements}\n{functions}\nendmodule\n{sub_modules}\n",
     ))
 }

@@ -4,6 +4,7 @@ use rhdl::core::flow_graph::passes::pass::Pass;
 use rhdl::core::sim::verilog_testbench::write_testbench_module;
 use rhdl::core::types::timed;
 use rhdl::prelude::*;
+use rhdl_fpga::core::{constant, dff};
 use std::io::Write;
 use std::iter::repeat;
 use std::{io, iter};
@@ -27,13 +28,11 @@ use rhdl_macro::Timed;
 //mod circuit;
 //mod clock;
 mod auto_counter;
-mod constant;
 mod counter;
 mod doubler;
 mod strobe;
 mod zdriver;
 //mod descriptions;
-mod dff;
 pub mod inverter;
 pub mod logic_loop;
 pub mod single_bit;
@@ -494,6 +493,7 @@ fn test_auto_doubler_hdl() -> miette::Result<()> {
         stream,
         TraceOptions {
             vcd: Some("jnk.vcd".into()),
+            assertions_enabled: true,
             ..Default::default()
         },
     )?;

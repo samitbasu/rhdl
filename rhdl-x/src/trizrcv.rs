@@ -1,5 +1,6 @@
 use crate::trizsnd::LineState;
 use rhdl::prelude::*;
+use rhdl_fpga::core::dff;
 
 #[derive(PartialEq, Clone, Copy, Debug, Default, Digital)]
 pub enum State {
@@ -17,15 +18,15 @@ pub struct I {
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U {
-    state: crate::dff::U<State>,
-    reg: crate::dff::U<b8>,
+    state: dff::U<State>,
+    reg: dff::U<b8>,
 }
 
 impl Default for U {
     fn default() -> Self {
         Self {
-            state: crate::dff::U::new(State::Idle),
-            reg: crate::dff::U::new(b8::default()),
+            state: dff::U::new(State::Idle),
+            reg: dff::U::new(b8::default()),
         }
     }
 }
