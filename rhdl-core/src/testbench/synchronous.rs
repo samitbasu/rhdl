@@ -163,7 +163,7 @@ pub fn test_synchronous_hdl<T: Synchronous>(
     )?;
     tm1.run_iverilog()?;
     // Construct a flowgraph-based test bench
-    let fg = uut.flow_graph("uut")?.hdl("uut")?;
+    let fg = uut.flow_graph("ram")?.hdl("uut")?;
     let tm1 =
         build_test_module_from_synchronous_waveform(&fg, &waveform, &TestModuleOptions::default())?;
     tm1.run_iverilog()?;
@@ -178,7 +178,7 @@ pub fn build_rtl_testmodule_synchronous<T: Synchronous>(
 ) -> Result<TestModule, RHDLError> {
     let wav = waveform_synchronous(uut, inputs);
     let module = if options.flow_graph_level {
-        &uut.flow_graph("uut")?.hdl("uut")?
+        &uut.flow_graph("ram")?.hdl("uut")?
     } else {
         &uut.hdl("uut")?.as_module()
     };

@@ -302,6 +302,19 @@ mod tests {
     }
 
     #[test]
+    fn test_ram_flow_graph() -> miette::Result<()> {
+        let uut = U::<Bits<8>, Red, Green, 4>::new(
+            (0..)
+                .enumerate()
+                .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
+        );
+        let fg = uut.flow_graph("uut")?;
+        let hdl = fg.hdl("top")?;
+        std::fs::write("ram_fg.v", hdl.to_string()).unwrap();
+        Ok(())
+    }
+
+    #[test]
     fn test_ram_as_verilog() -> miette::Result<()> {
         let uut = U::<Bits<8>, Red, Green, 4>::new(
             (0..)
@@ -323,10 +336,11 @@ mod tests {
             skip_first_cases: 2,
             vcd_file: Some("ram.vcd".into()),
             hold_time: 1,
+            flow_graph_level: true,
             ..Default::default()
         };
         let test_mod = build_rtl_testmodule(&uut, stream, options)?;
-        std::fs::write("ram_tb.v", &test_mod.testbench).unwrap();
+        std::fs::write("ram_tb.v", test_mod.to_string()).unwrap();
         test_mod.run_iverilog()?;
 
         Ok(())
