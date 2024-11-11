@@ -127,7 +127,12 @@ impl<T: Digital, const N: usize> Synchronous for U<T, N> {
         let output_bits = unsigned_width(T::BITS);
         let input_bits = unsigned_width(<Self::I as Digital>::BITS);
         module.ports = vec![
-            port("cr", Direction::Input, HDLKind::Wire, unsigned_width(2)),
+            port(
+                "clock_reset",
+                Direction::Input,
+                HDLKind::Wire,
+                unsigned_width(2),
+            ),
             port("i", Direction::Input, HDLKind::Wire, input_bits),
             port("o", Direction::Output, HDLKind::Reg, output_bits),
         ];
@@ -171,7 +176,7 @@ impl<T: Digital, const N: usize> Synchronous for U<T, N> {
                 "write_enable",
                 Path::default().field("write").field("enable"),
             ),
-            continuous_assignment("clock", index_bit("cr", 0)),
+            continuous_assignment("clock", index_bit("clock_reset", 0)),
         ]);
         module.statements.push(always(
             vec![Events::Posedge("clock".into())],
@@ -282,11 +287,14 @@ mod tests {
         let stream = reset_pulse(1).chain(stream);
         let stream = clock_pos_edge(stream, 100);
         let options = TestModuleOptions {
-            skip_first_cases: 0,
+            skip_first_cases: !0,
             hold_time: 1,
+            flow_graph_level: true,
+            vcd_file: Some("test_hdl_output.vcd".into()),
             ..Default::default()
         };
         let test_mod = build_rtl_testmodule_synchronous(&uut, stream, options)?;
+        std::fs::write("test_hdl_output.v", test_mod.to_string()).unwrap();
         test_mod.run_iverilog()?;
         Ok(())
     }
