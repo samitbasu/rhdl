@@ -123,6 +123,8 @@ impl FlowGraph {
     ) -> (Vec<FlowIx>, Vec<FlowIx>) {
         let input_len = C::I::BITS;
         let output_len = C::O::BITS;
+        let arg0 = self.input(RegisterKind::Unsigned(input_len), 0, "i");
+        let out = self.output(RegisterKind::Unsigned(output_len), "o");
         let inputs = self.bb_input(&code.name, input_len);
         let outputs = self.bb_output(&code.name, output_len);
         self.black_boxes.push(BlackBox {
@@ -131,7 +133,9 @@ impl FlowGraph {
             code,
             mode: BlackBoxMode::Asynchronous,
         });
-        (inputs, outputs)
+        self.zip(arg0.clone().into_iter(), inputs.into_iter());
+        self.zip(outputs.into_iter(), out.clone().into_iter());
+        (arg0, out)
     }
     pub fn synchronous_black_box<S: Synchronous>(
         &mut self,
@@ -139,6 +143,9 @@ impl FlowGraph {
     ) -> (Vec<FlowIx>, Vec<FlowIx>, Vec<FlowIx>) {
         let input_len = S::I::BITS;
         let output_len = S::O::BITS;
+        let arg0 = self.input(RegisterKind::Unsigned(2), 0, "clock_reset");
+        let arg1 = self.input(RegisterKind::Unsigned(input_len), 1, "i");
+        let out = self.output(RegisterKind::Unsigned(output_len), "o");
         let inputs = self.bb_input(&code.name, input_len);
         let outputs = self.bb_output(&code.name, output_len);
         let clock_reset = self.bb_input(&format!("{}_cr", code.name), 2);
@@ -148,7 +155,10 @@ impl FlowGraph {
             code,
             mode: BlackBoxMode::Synchronous,
         });
-        (clock_reset, inputs, outputs)
+        self.zip(arg0.clone().into_iter(), clock_reset.into_iter());
+        self.zip(arg1.clone().into_iter(), inputs.into_iter());
+        self.zip(outputs.into_iter(), out.clone().into_iter());
+        (arg0, arg1, out)
     }
     pub fn new_component(
         &mut self,
