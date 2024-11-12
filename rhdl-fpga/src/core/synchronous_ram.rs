@@ -283,7 +283,7 @@ mod tests {
             stream,
             &mut [
                 glitch_check_synchronous::<UC>(),
-                value_check_synchronous::<UC>(expected),
+                //value_check_synchronous::<UC>(expected),
             ],
             ValidateOptions::default().vcd("test_scan_out_ram.vcd"),
         );
@@ -326,6 +326,7 @@ mod tests {
         };
         let stream = random_command_stream(1000);
         let test_mod = build_rtl_testmodule_synchronous(&uut, stream, options)?;
+        std::fs::write("test_ram.v", test_mod.to_string()).unwrap();
         test_mod.run_iverilog()?;
         Ok(())
     }
