@@ -102,7 +102,7 @@ impl<T: Digital, const N: usize> Synchronous for U<T, N> {
 
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
         let mut flow_graph = FlowGraph::default();
-        let hdl = self.hdl(name)?;
+        let hdl = self.hdl(&format!("{name}_inner"))?;
         let (clock_reset, input, output) = flow_graph.synchronous_black_box::<Self>(hdl);
         flow_graph.inputs = vec![clock_reset, input];
         flow_graph.output = output;
@@ -281,7 +281,7 @@ mod tests {
     fn random_command_stream(
         len: usize,
     ) -> impl Iterator<Item = TimedSample<(ClockReset, I<b8, 4>)>> {
-        let inputs = (0..).map(|_| rand_cmd().into()).take(1000);
+        let inputs = (0..).map(|_| rand_cmd().into()).take(len);
         let stream = stream(inputs);
         let stream = reset_pulse(1).chain(stream);
         let stream = clock_pos_edge(stream, 100);

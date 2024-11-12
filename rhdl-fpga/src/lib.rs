@@ -1,5 +1,6 @@
 pub mod bsp;
 pub mod core;
+pub mod fifo;
 pub mod pin;
 pub use anyhow::Result;
 /* pub use core::bga::bga_pin;
