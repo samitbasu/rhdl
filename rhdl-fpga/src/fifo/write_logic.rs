@@ -123,7 +123,7 @@ mod tests {
     }
 
     #[test]
-    fn test_write_enable_increments_write_address() {
+    fn test_write_enable_increments_next_write_address() {
         let cr = ClockReset::init();
         let i = I::<4> {
             read_address: bits(0b0000),
@@ -137,7 +137,7 @@ mod tests {
         assert!(!o.full);
         assert!(!o.almost_full);
         assert!(!o.overflow);
-        assert_eq!(o.write_address, bits(0b1101));
+        assert_eq!(o.write_address, bits(0b1100));
         assert_eq!(d.write_address, bits(0b1101));
         assert!(!d.overflow);
     }
