@@ -21,6 +21,14 @@ impl<T: Digital> U<T> {
     }
 }
 
+impl<T: Digital + Default> Default for U<T> {
+    fn default() -> Self {
+        Self {
+            reset: T::default(),
+        }
+    }
+}
+
 impl<T: Digital> SynchronousIO for U<T> {
     type I = T;
     type O = T;
