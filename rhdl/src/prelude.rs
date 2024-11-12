@@ -54,6 +54,8 @@ pub use rhdl_core::testbench::TraceOptions;
 pub use rhdl_core::trace;
 pub use rhdl_core::trace::db::with_trace_db;
 pub use rhdl_core::trace_init_db;
+pub use rhdl_core::trace_pop_path;
+pub use rhdl_core::trace_push_path;
 pub use rhdl_core::trace_time;
 pub use rhdl_core::trivial_cost;
 pub use rhdl_core::types::bitz::BitZ;

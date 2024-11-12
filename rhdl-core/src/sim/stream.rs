@@ -25,7 +25,7 @@ pub fn clock_pos_edge<T: Digital>(
     period: u64,
 ) -> impl Iterator<Item = TimedSample<(ClockReset, T)>> {
     stream
-        .flat_map(|x| once((clock(false), x)).chain(once((clock(true), x))))
+        .flat_map(|x| once((clock(true), x)).chain(once((clock(false), x))))
         .enumerate()
         .map(move |(ndx, (clock, data))| match data {
             ResetData::Reset => TimedSample {

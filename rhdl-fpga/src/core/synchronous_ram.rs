@@ -14,6 +14,14 @@ pub struct U<T: Digital, const N: usize> {
     initial: BTreeMap<Bits<N>, T>,
 }
 
+impl<T: Digital, const N: usize> Default for U<T, N> {
+    fn default() -> Self {
+        Self {
+            initial: BTreeMap::new(),
+        }
+    }
+}
+
 impl<T: Digital, const N: usize> U<T, N> {
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         let len = (1 << N) as usize;
@@ -78,6 +86,8 @@ impl<T: Digital, const N: usize> Synchronous for U<T, N> {
     }
 
     fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
+        trace_push_path("synchronous_ram");
+        trace("input", &input);
         let state = &mut state.borrow_mut();
         let clock = clock_reset.clock;
         if !clock.raw() {
@@ -97,6 +107,8 @@ impl<T: Digital, const N: usize> Synchronous for U<T, N> {
             state.output_current = state.output_next;
         }
         state.clock = clock;
+        trace("output", &state.output_current);
+        trace_pop_path();
         state.output_current
     }
 

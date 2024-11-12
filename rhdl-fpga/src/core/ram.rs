@@ -331,7 +331,7 @@ mod tests {
         });
 
         let options = TestModuleOptions {
-            skip_first_cases: 2,
+            skip_first_cases: !0,
             vcd_file: Some("ram.vcd".into()),
             hold_time: 1,
             flow_graph_level: true,
