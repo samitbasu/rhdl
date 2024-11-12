@@ -69,3 +69,11 @@ pub fn read_logic<const N: usize>(cr: ClockReset, i: I<N>, q: Q<N>) -> (O<N>, D<
     }
     (o, d)
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+}    
+}
