@@ -150,9 +150,9 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N>
 
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
         let mut flow_graph = FlowGraph::default();
-        let hdl = self.hdl(name)?;
+        let hdl = self.hdl(&format!("{name}_inner"))?;
         let (input, output) = flow_graph.circuit_black_box::<Self>(hdl);
-        flow_graph.inputs = vec![input, vec![]];
+        flow_graph.inputs = vec![input];
         flow_graph.output = output;
         Ok(CircuitDescriptor {
             unique_name: name.to_string(),
@@ -330,8 +330,6 @@ mod tests {
             write: signal(w),
         });
 
-        //write_testbench(&uut, stream, "ram_tb_2.v")?;
-        //        test_asynchronous_hdl(&uut, stream)?;
         let options = TestModuleOptions {
             skip_first_cases: 2,
             vcd_file: Some("ram.vcd".into()),

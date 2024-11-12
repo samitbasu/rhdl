@@ -434,6 +434,8 @@ impl<'a> FlowGraphHDLBuilder<'a> {
             if bb.mode == BlackBoxMode::Synchronous {
                 connections.push(connection("clock_reset", inputs[0].clone()));
                 connections.push(connection("i", inputs[1].clone()));
+            } else {
+                connections.push(connection("i", inputs[0].clone()));
             }
             statements.push(component_instance(
                 &bb.code.name,
