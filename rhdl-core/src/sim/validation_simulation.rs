@@ -12,12 +12,11 @@ pub trait Validation<C: Circuit> {
 #[derive(Default, Debug, Clone)]
 pub struct ValidateOptions {
     pub vcd_filename: Option<String>,
-    pub rtt_filename: Option<String>,
 }
 
 impl ValidateOptions {
     fn needs_trace_db(&self) -> bool {
-        self.vcd_filename.is_some() || self.rtt_filename.is_some()
+        self.vcd_filename.is_some()
     }
     fn write_files(self) {
         if let Some(vcd_filename) = self.vcd_filename {
@@ -27,18 +26,10 @@ impl ValidateOptions {
                 db.dump_vcd(strobe).unwrap()
             });
         }
-        if let Some(rtt_filename) = self.rtt_filename {
-            with_trace_db(|db| {
-                let rtt = std::fs::File::create(&rtt_filename).unwrap();
-                let rtt = std::io::BufWriter::new(rtt);
-                db.dump_rtt(rtt).unwrap()
-            });
-        }
     }
     pub fn vcd(self, name: &str) -> Self {
         Self {
             vcd_filename: Some(name.into()),
-            rtt_filename: Some(format!("{}.rtt", name)),
         }
     }
 }

@@ -6,7 +6,7 @@ use std::{
     io::Write,
 };
 
-use rhdl_trace_type::TraceType;
+use rhdl_trace_type::{TraceType, RTT};
 use smallvec::SmallVec;
 
 use crate::Digital;
@@ -203,9 +203,27 @@ impl TraceDB {
         writer.upscope()?;
         Ok(())
     }
+    fn collect_rtt_info(&self) -> RTT {
+        RTT::TraceInfo(
+            self.details
+                .values()
+                .map(|details| {
+                    let name = format!(
+                        "{}.{}",
+                        [&["top"], &details.path[..]].concat().join("."),
+                        details.key
+                    );
+                    let ty = details.trace_type.clone();
+                    (name, ty)
+                })
+                .collect(),
+        )
+    }
     pub fn dump_vcd<W: Write>(&self, w: W) -> anyhow::Result<()> {
         let mut writer = vcd::Writer::new(w);
         writer.timescale(1, vcd::TimescaleUnit::PS)?;
+        let rtt = self.collect_rtt_info();
+        writer.comment(&ron::ser::to_string(&rtt).unwrap())?;
         let root_scope = hierarchical_walk(self.details.iter().map(|(hash, details)| TSItem {
             path: &details.path,
             name: &details.key,
@@ -240,24 +258,6 @@ impl TraceDB {
                 writer.timestamp(current_time)?;
             }
         }
-        Ok(())
-    }
-    pub fn dump_rtt<W: Write>(&self, w: W) -> anyhow::Result<()> {
-        // Collect a map from the IdCode to the trace type
-        let type_map: BTreeMap<String, TraceType> = self
-            .details
-            .values()
-            .map(|details| {
-                let name = format!(
-                    "{}.{}",
-                    [&["top"], &details.path[..]].concat().join("."),
-                    details.key
-                );
-                let ty = details.trace_type.clone();
-                (name, ty)
-            })
-            .collect();
-        ron::ser::to_writer_pretty(w, &type_map, Default::default())?;
         Ok(())
     }
 }
