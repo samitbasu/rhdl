@@ -1,4 +1,11 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
+
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
+pub enum RTT {
+    TraceInfo(BTreeMap<String, TraceType>),
+}
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
 #[non_exhaustive]
