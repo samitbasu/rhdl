@@ -103,7 +103,7 @@ where
         let q = self.apply(args);
         let q: BitString = q.typed_bits().into();
         let d1 = delay(0);
-        let assertion = assert(bit_string(&q), id("out"), ndx);
+        let assertion = assert(bit_string(&q), id("out"), &ndx.to_string());
         // Create a vector of statements, with arg0, d1, and assertion, if arg0 is non-empty.  Otherwise, leave it out.
         arg0.into_iter()
             .chain(once(d1))
@@ -139,7 +139,7 @@ where
         let q = self.apply(args);
         let q: BitString = q.typed_bits().into();
         let d1 = delay(0);
-        let assertion = assert(bit_string(&q), id("out"), ndx);
+        let assertion = assert(bit_string(&q), id("out"), &ndx.to_string());
         arg0.into_iter()
             .chain(arg1)
             .chain(once(d1))
@@ -179,7 +179,7 @@ where
         let q = self.apply(args);
         let q: BitString = q.typed_bits().into();
         let d1 = delay(0);
-        let assertion = assert(bit_string(&q), id("out"), ndx);
+        let assertion = assert(bit_string(&q), id("out"), &ndx.to_string());
         arg0.into_iter()
             .chain(arg1)
             .chain(arg2)
@@ -224,7 +224,7 @@ where
         let q = self.apply(args);
         let q: BitString = q.typed_bits().into();
         let d1 = delay(0);
-        let assertion = assert(bit_string(&q), id("out"), ndx);
+        let assertion = assert(bit_string(&q), id("out"), &ndx.to_string());
         arg0.into_iter()
             .chain(arg1)
             .chain(arg2)
@@ -274,7 +274,7 @@ where
         let q = self.apply(args);
         let q: BitString = q.typed_bits().into();
         let d1 = delay(0);
-        let assertion = assert(bit_string(&q), id("out"), ndx);
+        let assertion = assert(bit_string(&q), id("out"), &ndx.to_string());
         arg0.into_iter()
             .chain(arg1)
             .chain(arg2)

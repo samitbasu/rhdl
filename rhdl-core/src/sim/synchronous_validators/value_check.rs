@@ -34,6 +34,9 @@ where
         self.initialized = true;
         self.clk = clock;
     }
+    fn finish(&mut self) {
+        assert_eq!(self.expected.next(), None);
+    }
 }
 
 pub fn value_check_synchronous<S: Synchronous>(

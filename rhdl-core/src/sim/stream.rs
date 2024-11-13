@@ -1,6 +1,8 @@
 use std::iter::once;
 
-use crate::{clock::clock, clock_reset, types::reset::reset, ClockReset, Digital, TimedSample};
+use crate::{
+    clock::clock, clock_reset, timed_sample, types::reset::reset, ClockReset, Digital, TimedSample,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
 pub enum ResetData<T: Digital> {
@@ -24,19 +26,21 @@ pub fn clock_pos_edge<T: Digital>(
     stream: impl Iterator<Item = ResetData<T>>,
     period: u64,
 ) -> impl Iterator<Item = TimedSample<(ClockReset, T)>> {
-    stream
-        .flat_map(|x| once((clock(true), x)).chain(once((clock(false), x))))
-        .enumerate()
-        .map(move |(ndx, (clock, data))| match data {
-            ResetData::Reset => TimedSample {
-                value: (clock_reset(clock, reset(true)), T::init()),
-                time: ndx as u64 * period,
-            },
-            ResetData::Data(data) => TimedSample {
-                value: (clock_reset(clock, reset(false)), data),
-                time: ndx as u64 * period,
-            },
-        })
+    // The data stream is shifted by hold tics relative to the clock edges.
+    let data_stream = once(timed_sample(0, (reset(true), T::init()))).chain(
+        stream.enumerate().map(move |(ndx, data)| match data {
+            ResetData::Reset => timed_sample(ndx as u64 * period * 2 + 1, (reset(true), T::init())),
+            ResetData::Data(data) => {
+                timed_sample(ndx as u64 * period * 2 + 1, (reset(false), data))
+            }
+        }),
+    );
+    // The clock stream is generated on the exact timing grid
+    let clock_stream = (0..).map(move |ndx| timed_sample(ndx as u64 * period, clock(ndx % 2 == 0)));
+    // To get the output thing, we merge the two streams
+    merge(clock_stream, data_stream, |clock, (reset, data)| {
+        (clock_reset(clock, reset), data)
+    })
 }
 
 pub struct Merge<A, B, S: Digital, T: Digital, F> {
@@ -84,13 +88,13 @@ where
             (Some(d1), None) => {
                 self.last1 = d1.value;
                 let d1 = d1.map(|x| (self.merge_fn)(x, self.last2));
-                self.data1 = self.stream1.next();
+                self.data1 = None;
                 Some(d1)
             }
             (None, Some(d2)) => {
                 self.last2 = d2.value;
                 let d2 = d2.map(|x| (self.merge_fn)(self.last1, x));
-                self.data2 = self.stream2.next();
+                self.data2 = None;
                 Some(d2)
             }
             (Some(d1), Some(d2)) if d1.time < d2.time => {
@@ -121,7 +125,7 @@ where
 mod tests {
     use std::iter::once;
 
-    use crate::timed_sample;
+    use crate::{clock, timed_sample};
 
     use super::*;
 
@@ -164,6 +168,13 @@ mod tests {
             ResetData::Reset,
         ];
         assert_eq!(rst.collect::<Vec<_>>(), expected);
+    }
+
+    #[test]
+    fn test_reset_clocking() {
+        let rst = reset_pulse(1).chain(stream([0].iter().copied()));
+        let input = clock_pos_edge(rst, 50).collect::<Vec<_>>();
+        println!("{:?}", input);
     }
 
     #[test]

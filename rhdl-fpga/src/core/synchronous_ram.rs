@@ -342,9 +342,10 @@ mod tests {
             TestItem(Cmd::Read(bits(0)), Some(bits(72))),
             TestItem(Cmd::Read(bits(1)), Some(bits(99))),
             TestItem(Cmd::Read(bits(2)), Some(bits(255))),
-            TestItem(Cmd::Read(bits(3)), Some(bits(0))),
+            TestItem(Cmd::Read(bits(3)), None),
         ];
         let inputs = test.iter().map(|item| item.0.into());
+        let (_, test) = test.split_last().unwrap();
         let expected = test.iter().map(|item| item.1).collect::<Vec<_>>();
         let stream = stream(inputs);
         let stream = reset_pulse(1).chain(stream);

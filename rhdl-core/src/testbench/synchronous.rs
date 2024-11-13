@@ -102,10 +102,12 @@ fn build_test_module_from_synchronous_waveform(
     }
     let mut reset_state = ResetState::Initial;
     let mut extra_delay = 0;
+    let mut absolute_time = 0;
     for (test_case_counter, timed_entry) in waveform.entries.iter().enumerate() {
         test_cases.push(delay(
             (timed_entry.delay as usize).saturating_sub(extra_delay),
         ));
+        absolute_time += timed_entry.delay as usize;
         let cr = clock_reset(timed_entry.clock, timed_entry.reset);
         test_cases.push(assign("clock_reset", bit_string(&cr.typed_bits().into())));
         let input = timed_entry.input.clone();
@@ -128,7 +130,11 @@ fn build_test_module_from_synchronous_waveform(
         {
             test_cases.push(delay(options.hold_time as usize));
             extra_delay = options.hold_time as usize;
-            test_cases.push(assert(id("o"), id("rust_out"), test_case_counter));
+            test_cases.push(assert(
+                id("o"),
+                id("rust_out"),
+                &format!("Test {test_case_counter} at time {absolute_time}"),
+            ));
         }
     }
     if reset_state != ResetState::Initial {
@@ -159,15 +165,19 @@ pub fn test_synchronous_hdl<T: Synchronous>(
     let tm1 = build_test_module_from_synchronous_waveform(
         &rtl_mod,
         &waveform,
-        &TestModuleOptions::default(),
+        &TestModuleOptions::default().vcd("rtl_tb.vcd"),
     )?;
+    std::fs::write("rtl_testbench.v", tm1.to_string())?;
     tm1.run_iverilog()?;
     // Construct a flowgraph-based test bench
-    let fg = uut.flow_graph("ram")?.hdl("uut")?;
-    let tm1 =
-        build_test_module_from_synchronous_waveform(&fg, &waveform, &TestModuleOptions::default())?;
+    let fg = uut.flow_graph("dut")?.hdl("uut")?;
+    let tm1 = build_test_module_from_synchronous_waveform(
+        &fg,
+        &waveform,
+        &TestModuleOptions::default().vcd("fg_tb.vcd").hold_time(1),
+    )?;
+    std::fs::write("fg_testbench.v", tm1.to_string())?;
     tm1.run_iverilog()?;
-
     Ok(())
 }
 

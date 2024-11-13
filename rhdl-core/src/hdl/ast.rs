@@ -345,7 +345,7 @@ pub enum Statement {
 pub struct Assert {
     pub left: Box<Expression>,
     pub right: Box<Expression>,
-    pub ndx: usize,
+    pub cause: String,
 }
 
 pub fn dump_file(name: &str) -> Statement {
@@ -356,11 +356,11 @@ pub fn dump_vars(time: usize) -> Statement {
     Statement::Custom(format!("$dumpvars({});", time))
 }
 
-pub fn assert(left: Expression, right: Expression, ndx: usize) -> Statement {
+pub fn assert(left: Expression, right: Expression, cause: &str) -> Statement {
     Statement::Assert(Assert {
         left: Box::new(left),
         right: Box::new(right),
-        ndx,
+        cause: cause.to_string(),
     })
 }
 

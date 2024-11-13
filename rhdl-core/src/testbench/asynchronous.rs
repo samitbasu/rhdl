@@ -79,10 +79,12 @@ fn build_test_module_from_waveform(
         test_cases.push(dump_vars(0));
     }
     let mut extra_delay = 0;
+    let mut absolute_time = 0;
     for (test_case_counter, timed_entry) in waveform.entries.iter().enumerate() {
         test_cases.push(delay(
             (timed_entry.delay as usize).saturating_sub(extra_delay),
         ));
+        absolute_time += timed_entry.delay as usize;
         let input = timed_entry.input.clone();
         if has_nonempty_input {
             test_cases.push(assign("i", bit_string(&BitString::unsigned(input))));
@@ -94,7 +96,11 @@ fn build_test_module_from_waveform(
         if test_case_counter < config.skip_first_cases {
             continue;
         }
-        test_cases.push(assert(id("o"), id("rust_out"), test_case_counter));
+        test_cases.push(assert(
+            id("o"),
+            id("rust_out"),
+            &format!("Test {test_case_counter} - time {absolute_time}"),
+        ));
     }
     test_cases.push(display("TESTBENCH OK", vec![]));
     test_cases.push(finish());
