@@ -43,8 +43,9 @@ impl<T: Digital> SynchronousDQ for U<T> {
 #[derive(Debug, Clone, PartialEq, Copy, Digital)]
 pub struct S<T: Digital> {
     cr: ClockReset,
-    state: T,
-    state_next: T,
+    reset: Reset,
+    current: T,
+    next: T,
 }
 
 impl<T: Digital> Synchronous for U<T> {
@@ -55,30 +56,25 @@ impl<T: Digital> Synchronous for U<T> {
     }
 
     fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
+        trace_push_path("dff");
         trace("input", &input);
         let clock = clock_reset.clock;
         let reset = clock_reset.reset;
-        // Calculate the new state on a rising edge
-        let new_state = if clock.raw() && !state.cr.clock.raw() {
-            state.state_next
-        } else {
-            state.state
-        };
-        let new_state_next = if !clock.raw() {
-            input
-        } else {
-            state.state_next
-        };
-        if reset.raw() {
-            state.state = self.reset;
-            state.state_next = self.reset;
-        } else {
-            state.state = new_state;
-            state.state_next = new_state_next;
+        if !clock.raw() {
+            state.next = input;
+            state.reset = reset;
+        }
+        if clock.raw() && !state.cr.clock.raw() {
+            if state.reset.raw() {
+                state.current = self.reset;
+            } else {
+                state.current = state.next;
+            }
         }
         state.cr = clock_reset;
-        trace("output", &new_state);
-        new_state
+        trace("output", &state.current);
+        trace_pop_path();
+        state.current
     }
 
     fn description(&self) -> String {

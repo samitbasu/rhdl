@@ -107,7 +107,7 @@ mod tests {
         validate_synchronous(
             &uut,
             stream,
-            //            &mut [glitch_check_synchronous::<UC>()],
+            //&mut [glitch_check_synchronous::<UC>()],
             &mut [],
             ValidateOptions::default().vcd("fifo.vcd"),
         );

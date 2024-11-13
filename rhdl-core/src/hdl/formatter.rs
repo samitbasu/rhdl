@@ -156,10 +156,10 @@ fn display_statement(ast: &Display) -> String {
 fn assert_statement(ast: &Assert) -> String {
     let signal = expression(&ast.left);
     let value = expression(&ast.right);
-    let case = &ast.ndx;
+    let cause = &ast.cause;
     format!(
         "if ({signal} !== {value}) begin
-            $display(\"ASSERTION FAILED 0x%0h !== 0x%0h CASE {case}\", {signal}, {value});
+            $display(\"ASSERTION FAILED 0x%0h !== 0x%0h CASE {cause}\", {signal}, {value});
             $finish;
         end",
     )
