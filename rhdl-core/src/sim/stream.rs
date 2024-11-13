@@ -26,7 +26,7 @@ pub fn clock_pos_edge<T: Digital>(
     stream: impl Iterator<Item = ResetData<T>>,
     period: u64,
 ) -> impl Iterator<Item = TimedSample<(ClockReset, T)>> {
-    // The data stream is shifted by hold tics relative to the clock edges.
+    // The data stream is shifted by one tic relative to the clock edges.
     let data_stream = once(timed_sample(0, (reset(true), T::init()))).chain(
         stream.enumerate().map(move |(ndx, data)| match data {
             ResetData::Reset => timed_sample(ndx as u64 * period * 2 + 1, (reset(true), T::init())),
@@ -174,6 +174,12 @@ mod tests {
     fn test_reset_clocking() {
         let rst = reset_pulse(1).chain(stream([0].iter().copied()));
         let input = clock_pos_edge(rst, 50).collect::<Vec<_>>();
+        println!("{:?}", input);
+    }
+
+    #[test]
+    fn test_no_reset_clocking() {
+        let input = clock_pos_edge(stream(std::iter::repeat(1).take(5)), 50).collect::<Vec<_>>();
         println!("{:?}", input);
     }
 

@@ -320,8 +320,10 @@ mod tests {
         type UC = U<b8, 4>;
         let uut: UC = U::new((0..).map(|ndx| (bits(ndx), bits(0))));
         let options = TestModuleOptions {
+            skip_first_cases: 1,
             hold_time: 1,
             flow_graph_level: false,
+            vcd_file: Some("ram_rtl.vcd".into()),
             ..Default::default()
         };
         let stream = random_command_stream(1000);

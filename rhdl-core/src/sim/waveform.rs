@@ -5,7 +5,6 @@ pub struct AsynchronousEntry {
     pub delay: u64,
     pub input: Vec<bool>,
     pub output: Vec<bool>,
-    pub io: Vec<bool>,
 }
 
 #[derive(Clone, Debug)]
@@ -15,7 +14,6 @@ pub struct SynchronousEntry {
     pub reset: Reset,
     pub input: Vec<bool>,
     pub output: Vec<bool>,
-    pub io: Vec<bool>,
 }
 
 #[derive(Clone, Debug)]
@@ -47,7 +45,6 @@ pub fn waveform<T: Circuit>(
             delay: time - previous_time,
             input: input.bin(),
             output: output.bin(),
-            io: vec![],
         };
         previous_time = time;
         entries.push(entry);
@@ -77,7 +74,6 @@ pub fn waveform_synchronous<T: Synchronous>(
             reset: clock_reset.reset,
             input: input.bin(),
             output: output.bin(),
-            io: vec![],
         };
         previous_time = time;
         entries.push(entry);
