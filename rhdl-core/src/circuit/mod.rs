@@ -1,4 +1,5 @@
 pub mod adapter;
+pub mod array_circuit;
 pub mod chain;
 pub mod circuit_descriptor;
 pub mod circuit_impl;
