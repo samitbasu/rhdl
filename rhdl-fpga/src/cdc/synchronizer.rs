@@ -1,12 +1,7 @@
 use rhdl::{
-    core::hdl::{
-        ast::{index, unsigned_reg_decl, unsigned_wire_decl, Declaration},
-        formatter::module,
-    },
+    core::hdl::ast::{index, unsigned_reg_decl, unsigned_wire_decl},
     prelude::*,
 };
-
-use super::counter::D;
 
 #[derive(Debug, Clone, Default)]
 pub struct U<R: Domain, W: Domain> {
@@ -140,5 +135,64 @@ impl<R: Domain, W: Domain> Circuit for U<R, W> {
         );
         let events = vec![Events::Posedge("clock".into())];
         module.statements.push(always(events, vec![reg1, reg2]));
+        Ok(HDLDescriptor {
+            name: name.into(),
+            body: module,
+            children: Default::default(),
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rand::random;
+
+    use super::*;
+
+    fn sync_stream() -> impl Iterator<Item = TimedSample<I<Red, Green>>> {
+        // Assume the green stuff comes on the edges of a clock
+        let green = stream((0..).map(|_| random::<bool>())).take(100);
+        let green = clock_pos_edge(green, 100);
+        let red = stream(std::iter::repeat(false));
+        let red = clock_pos_edge(red, 79);
+        merge(
+            green,
+            red,
+            |g: (ClockReset, bool), r: (ClockReset, bool)| I {
+                data: signal(g.1),
+                cr: signal(r.0),
+            },
+        )
+    }
+
+    #[test]
+    fn test_hdl_generation() -> miette::Result<()> {
+        let uut = U::<Red, Green>::default();
+        let options = TestModuleOptions {
+            skip_first_cases: 10,
+            vcd_file: Some("hdl.vcd".into()),
+            flow_graph_level: true,
+            hold_time: 1,
+        };
+        let stream = sync_stream();
+        let test_mod = build_rtl_testmodule(&uut, stream, options)?;
+        std::fs::write("synchronizer.v", test_mod.to_string()).unwrap();
+        test_mod.run_iverilog()?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_synchronizer_performance() {
+        let uut = U::<Red, Green>::default();
+        // Assume the green stuff comes on the edges of a clock
+        let input = sync_stream();
+        type UC = U<Red, Green>;
+
+        validate(
+            &uut,
+            input,
+            &mut [glitch_check::<UC>(|i| i.value.cr.val().clock)],
+            ValidateOptions::default().vcd("synchronizer.vcd"),
+        );
     }
 }
