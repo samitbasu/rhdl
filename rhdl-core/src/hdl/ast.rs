@@ -136,6 +136,14 @@ pub struct Declaration {
     pub alias: Option<String>,
 }
 
+pub fn unsigned_wire_decl(name: &str, width: usize) -> Declaration {
+    declaration(HDLKind::Wire, name, unsigned_width(width), None)
+}
+
+pub fn unsigned_reg_decl(name: &str, width: usize) -> Declaration {
+    declaration(HDLKind::Reg, name, unsigned_width(width), None)
+}
+
 pub fn declaration(
     kind: HDLKind,
     name: &str,

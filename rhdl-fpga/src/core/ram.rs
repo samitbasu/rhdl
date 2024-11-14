@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 use rhdl::{
-    core::hdl::ast::{index, memory_index, Declaration},
+    core::hdl::ast::{index, memory_index, unsigned_wire_decl, Declaration},
     prelude::*,
 };
 
@@ -178,19 +178,13 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N>
             port("i", Direction::Input, HDLKind::Wire, input_bits),
             port("o", Direction::Output, HDLKind::Reg, output_bits),
         ];
-        let wire_decl = |name: &str, width| Declaration {
-            kind: HDLKind::Wire,
-            name: name.into(),
-            width: unsigned_width(width),
-            alias: None,
-        };
         module.declarations.extend([
-            wire_decl("read_addr", N),
-            wire_decl("read_clk", 1),
-            wire_decl("write_addr", N),
-            wire_decl("write_data", T::bits()),
-            wire_decl("write_enable", 1),
-            wire_decl("write_clk", 1),
+            unsigned_wire_decl("read_addr", N),
+            unsigned_wire_decl("read_clk", 1),
+            unsigned_wire_decl("write_addr", N),
+            unsigned_wire_decl("write_data", T::bits()),
+            unsigned_wire_decl("write_enable", 1),
+            unsigned_wire_decl("write_clk", 1),
             Declaration {
                 kind: HDLKind::Reg,
                 name: format!("mem[{}:0]", (1 << N) - 1),
