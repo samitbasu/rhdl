@@ -8,11 +8,15 @@ use crate::{
 };
 
 use super::passes::{
-    constant_propagation::ConstantPropagationPass, pass::Pass,
+    constant_propagation::ConstantPropagationPass,
+    lower_any_with_single_argument::LowerAnyWithSingleArgument,
+    lower_select_to_buffer::LowerSelectToBufferPass,
+    lower_select_with_identical_args::LowerSelectWithIdenticalArgs, pass::Pass,
     remove_and_with_constant::RemoveAndWithConstantPass,
     remove_hardwired_selects::RemoveHardwiredSelectsPass,
     remove_or_with_constant::RemoveOrWithConstantPass, remove_unused_buffers::RemoveUnusedBuffers,
     remove_useless_selects::RemoveUselessSelectsPass,
+    remove_zeros_from_any::RemoveZerosFromAnyPass,
 };
 
 pub fn optimize_flow_graph(mut flow_graph: FlowGraph) -> Result<FlowGraph, RHDLError> {
@@ -26,6 +30,10 @@ pub fn optimize_flow_graph(mut flow_graph: FlowGraph) -> Result<FlowGraph, RHDLE
         flow_graph = RemoveUselessSelectsPass::run(flow_graph)?;
         flow_graph = RemoveOrWithConstantPass::run(flow_graph)?;
         flow_graph = RemoveAndWithConstantPass::run(flow_graph)?;
+        flow_graph = RemoveZerosFromAnyPass::run(flow_graph)?;
+        flow_graph = LowerAnyWithSingleArgument::run(flow_graph)?;
+        flow_graph = LowerSelectWithIdenticalArgs::run(flow_graph)?;
+        flow_graph = LowerSelectToBufferPass::run(flow_graph)?;
         if flow_graph.hash_value() == hash_id {
             break;
         }

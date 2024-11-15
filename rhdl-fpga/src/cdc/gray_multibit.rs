@@ -1,17 +1,23 @@
 use rhdl::prelude::*;
 
-use crate::gray::Gray;
+use crate::{core::dff, gray::Gray};
 
 use super::synchronizer;
 
-#[derive(Debug, Clone, Circuit, CircuitDQ)]
+#[derive(Clone, Circuit, CircuitDQ)]
 pub struct U<R: Domain, W: Domain, const N: usize> {
+    // This counter lives in the R domain, and
+    // counts the number of input pulses.
+    counter: Adapter<dff::U<Bits<N>>, R>,
+    // This is the vector of synchronizers, one per
+    // bit of the counter.
     syncs: [synchronizer::U<R, W>; N],
 }
 
 impl<R: Domain, W: Domain, const N: usize> Default for U<R, W, N> {
     fn default() -> Self {
         Self {
+            counter: Adapter::new(dff::U::default()),
             syncs: array_init::array_init(|_| synchronizer::U::default()),
         }
     }
@@ -19,27 +25,63 @@ impl<R: Domain, W: Domain, const N: usize> Default for U<R, W, N> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Digital, Timed)]
 pub struct I<R: Domain, W: Domain, const N: usize> {
-    pub data: Signal<Gray<N>, R>,
+    pub data: Signal<bool, R>,
+    pub data_cr: Signal<ClockReset, R>,
     pub cr: Signal<ClockReset, W>,
 }
 
 impl<R: Domain, W: Domain, const N: usize> CircuitIO for U<R, W, N> {
     type I = I<R, W, N>;
-    type O = Signal<Gray<N>, W>;
+    type O = Signal<Bits<N>, W>;
     type Kernel = gray_kernel<R, W, N>;
+}
+
+#[kernel]
+fn gray_code<const N: usize>(i: Bits<N>) -> Gray<N> {
+    Gray::<N>(i ^ (i >> 1))
+}
+
+#[kernel]
+pub fn gray_decode<const N: usize>(i: Gray<N>) -> Bits<N> {
+    let mut o = i.0;
+    o ^= o >> 1;
+    if ({ N } > 2) {
+        o ^= o >> 2;
+    }
+    if ({ N } > 4) {
+        o ^= o >> 4;
+    }
+    if ({ N } > 8) {
+        o ^= o >> 8;
+    }
+    if ({ N } > 16) {
+        o ^= o >> 16;
+    }
+    if ({ N } > 32) {
+        o ^= o >> 32;
+    }
+    if ({ N } > 64) {
+        o ^= o >> 64;
+    }
+    o
 }
 
 #[kernel]
 pub fn gray_kernel<R: Domain, W: Domain, const N: usize>(
     input: I<R, W, N>,
     q: Q<R, W, N>,
-) -> (Signal<Gray<N>, W>, D<R, W, N>) {
+) -> (Signal<Bits<N>, W>, D<R, W, N>) {
     let mut d = D::<R, W, { N }>::init();
-    // Connect each synchronizer to one bit of the input
-    let raw = input.data.val().0;
+    // The counter increments each time the input is high
+    d.counter.clock_reset = input.data_cr;
+    d.counter.input = signal(q.counter.val() + if input.data.val() { 1 } else { 0 });
+    // The current counter output is gray coded
+    let current_count = gray_code::<N>(q.counter.val()).0;
+    // Each synchronizer is fed a bit from the gray coded count
     for i in 0..N {
+        d.syncs[i].data = signal((current_count & (1 << i)) != 0);
+        // The clock to the synchronizer is the destination clock
         d.syncs[i].cr = input.cr;
-        d.syncs[i].data = signal((raw & (1 << i)) != 0);
     }
     // Connect each synchronizer output to one bit of the output
     let mut o = bits(0);
@@ -48,33 +90,32 @@ pub fn gray_kernel<R: Domain, W: Domain, const N: usize>(
             o |= bits(1 << i);
         }
     }
-    (signal(Gray::<N>(o)), d)
+    // Decode this signal back to a binary count
+    let o = gray_decode::<N>(Gray::<N>(o));
+    (signal(o), d)
 }
 
 #[cfg(test)]
 mod tests {
     use rand::random;
 
-    // TODO - fix this later...
-    fn gray_code<const N: usize>(i: Bits<N>) -> Gray<N> {
-        Gray::<N>(i ^ (i >> 1))
-    }
-
     use super::*;
 
     fn sync_stream() -> impl Iterator<Item = TimedSample<I<Red, Green, 8>>> {
-        // Start with a linear counter
-        let green = (0..).map(|x| bits(x % 256)).take(500);
-        // Convert to Gray code
-        let green = green.map(|x| gray_code::<8>(x));
+        // Start with a stream of pulses
+        let green = (0..).map(|_| random::<bool>()).take(500);
+        // Clock them on the green domain
         let green = clock_pos_edge(stream(green), 100);
+        // Create an empty stream on the red domain
         let red = stream(std::iter::repeat(false));
         let red = clock_pos_edge(red, 79);
+        // Merge them
         merge(
             green,
             red,
-            |g: (ClockReset, Gray<8>), r: (ClockReset, bool)| I {
+            |g: (ClockReset, bool), r: (ClockReset, bool)| I {
                 data: signal(g.1),
+                data_cr: signal(g.0),
                 cr: signal(r.0),
             },
         )
