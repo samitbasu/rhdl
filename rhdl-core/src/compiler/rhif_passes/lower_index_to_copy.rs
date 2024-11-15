@@ -23,12 +23,12 @@ impl Pass for LowerIndexToCopy {
                                     lhs: index.lhs,
                                     rhs: index.arg,
                                 }),
-                                lop.id,
+                                lop.loc,
                             )
                                 .into(),
                         );
                     } else {
-                        ops.push((OpCode::Index(index), lop.id).into());
+                        ops.push((OpCode::Index(index), lop.loc).into());
                     }
                 }
                 _ => ops.push(lop),

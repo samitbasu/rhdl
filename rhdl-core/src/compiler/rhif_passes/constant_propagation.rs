@@ -1,5 +1,5 @@
 use crate::{
-    ast::ast_impl::NodeId,
+    ast::source_location::SourceLocation,
     rhif::{
         object::LocatedOpCode,
         runtime_ops::{array, binary, tuple, unary},
@@ -18,14 +18,18 @@ use super::pass::Pass;
 
 pub struct ConstantPropagation {}
 
-fn assign_literal(id: NodeId, value: TypedBits, obj: &mut Object) -> Slot {
+fn assign_literal(loc: SourceLocation, value: TypedBits, obj: &mut Object) -> Slot {
     let literal = LiteralId(obj.literal_max_index().0 + 1);
     obj.literals.insert(literal, value);
-    obj.symbols.slot_map.insert(Slot::Literal(literal), id);
+    obj.symbols.slot_map.insert(Slot::Literal(literal), loc);
     Slot::Literal(literal)
 }
 
-fn propogate_array(id: NodeId, param: Array, obj: &mut Object) -> Result<LocatedOpCode, RHDLError> {
+fn propogate_array(
+    loc: SourceLocation,
+    param: Array,
+    obj: &mut Object,
+) -> Result<LocatedOpCode, RHDLError> {
     let Array { lhs, elements } = param;
     if elements.iter().all(|x| x.is_literal()) {
         let elements = elements
@@ -36,20 +40,20 @@ fn propogate_array(id: NodeId, param: Array, obj: &mut Object) -> Result<Located
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs,
-                rhs: assign_literal(id, rhs, obj),
+                rhs: assign_literal(loc, rhs, obj),
             }),
-            id,
+            loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Array(Array { lhs, elements }),
-            id,
+            loc,
         })
     }
 }
 
 fn propogate_unary(
-    id: NodeId,
+    loc: SourceLocation,
     params: Unary,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -60,20 +64,20 @@ fn propogate_unary(
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs,
-                rhs: assign_literal(id, rhs, obj),
+                rhs: assign_literal(loc, rhs, obj),
             }),
-            id,
+            loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Unary(params),
-            id,
+            loc,
         })
     }
 }
 
 fn propogate_binary(
-    id: NodeId,
+    loc: SourceLocation,
     params: Binary,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -90,20 +94,20 @@ fn propogate_binary(
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs,
-                rhs: assign_literal(id, rhs, obj),
+                rhs: assign_literal(loc, rhs, obj),
             }),
-            id,
+            loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Binary(params),
-            id,
+            loc,
         })
     }
 }
 
 fn propogate_tuple(
-    id: NodeId,
+    loc: SourceLocation,
     params: Tuple,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -117,19 +121,23 @@ fn propogate_tuple(
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs: *lhs,
-                rhs: assign_literal(id, rhs, obj),
+                rhs: assign_literal(loc, rhs, obj),
             }),
-            id,
+            loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Tuple(params),
-            id,
+            loc,
         })
     }
 }
 
-fn propogate_wrap(id: NodeId, wrap: Wrap, obj: &mut Object) -> Result<LocatedOpCode, RHDLError> {
+fn propogate_wrap(
+    loc: SourceLocation,
+    wrap: Wrap,
+    obj: &mut Object,
+) -> Result<LocatedOpCode, RHDLError> {
     let Wrap { lhs, op, arg, kind } = &wrap;
     if let (Slot::Literal(arg_lit), Some(kind)) = (arg, kind) {
         let arg_val = obj.literals[arg_lit].clone();
@@ -137,20 +145,20 @@ fn propogate_wrap(id: NodeId, wrap: Wrap, obj: &mut Object) -> Result<LocatedOpC
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs: *lhs,
-                rhs: assign_literal(id, rhs, obj),
+                rhs: assign_literal(loc, rhs, obj),
             }),
-            id,
+            loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Wrap(wrap),
-            id,
+            loc,
         })
     }
 }
 
 fn propogate_as_bits(
-    id: NodeId,
+    loc: SourceLocation,
     params: Cast,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -161,20 +169,20 @@ fn propogate_as_bits(
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs,
-                rhs: assign_literal(id, rhs, obj),
+                rhs: assign_literal(loc, rhs, obj),
             }),
-            id,
+            loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::AsBits(params),
-            id,
+            loc,
         })
     }
 }
 
 fn propogate_resize(
-    id: NodeId,
+    loc: SourceLocation,
     params: Cast,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -185,20 +193,20 @@ fn propogate_resize(
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs,
-                rhs: assign_literal(id, rhs, obj),
+                rhs: assign_literal(loc, rhs, obj),
             }),
-            id,
+            loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Resize(params),
-            id,
+            loc,
         })
     }
 }
 
 fn propogate_as_signed(
-    id: NodeId,
+    loc: SourceLocation,
     params: Cast,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -209,20 +217,20 @@ fn propogate_as_signed(
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs,
-                rhs: assign_literal(id, rhs, obj),
+                rhs: assign_literal(loc, rhs, obj),
             }),
-            id,
+            loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::AsSigned(params),
-            id,
+            loc,
         })
     }
 }
 
 fn propogate_repeat(
-    id: NodeId,
+    loc: SourceLocation,
     params: Repeat,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -233,20 +241,20 @@ fn propogate_repeat(
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs,
-                rhs: assign_literal(id, rhs, obj),
+                rhs: assign_literal(loc, rhs, obj),
             }),
-            id,
+            loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Repeat(params),
-            id,
+            loc,
         })
     }
 }
 
 fn propogate_index(
-    id: NodeId,
+    loc: SourceLocation,
     params: Index,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -257,20 +265,20 @@ fn propogate_index(
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs: *lhs,
-                rhs: assign_literal(id, rhs, obj),
+                rhs: assign_literal(loc, rhs, obj),
             }),
-            id,
+            loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Index(params),
-            id,
+            loc,
         })
     }
 }
 
 fn propogate_splice(
-    id: NodeId,
+    loc: SourceLocation,
     params: Splice,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -289,20 +297,20 @@ fn propogate_splice(
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs: *lhs,
-                rhs: assign_literal(id, rhs, obj),
+                rhs: assign_literal(loc, rhs, obj),
             }),
-            id,
+            loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Splice(params),
-            id,
+            loc,
         })
     }
 }
 
 fn propogate_select(
-    id: NodeId,
+    loc: SourceLocation,
     params: Select,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -326,20 +334,20 @@ fn propogate_select(
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs,
-                rhs: assign_literal(id, rhs, obj),
+                rhs: assign_literal(loc, rhs, obj),
             }),
-            id,
+            loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Select(params),
-            id,
+            loc,
         })
     }
 }
 
 fn propogate_struct(
-    id: NodeId,
+    loc: SourceLocation,
     params: Struct,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -364,19 +372,23 @@ fn propogate_struct(
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs: *lhs,
-                rhs: assign_literal(id, rhs, obj),
+                rhs: assign_literal(loc, rhs, obj),
             }),
-            id,
+            loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Struct(params),
-            id,
+            loc,
         })
     }
 }
 
-fn propogate_enum(id: NodeId, params: Enum, obj: &mut Object) -> Result<LocatedOpCode, RHDLError> {
+fn propogate_enum(
+    loc: SourceLocation,
+    params: Enum,
+    obj: &mut Object,
+) -> Result<LocatedOpCode, RHDLError> {
     let Enum {
         lhs,
         fields,
@@ -395,14 +407,14 @@ fn propogate_enum(id: NodeId, params: Enum, obj: &mut Object) -> Result<LocatedO
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs: *lhs,
-                rhs: assign_literal(id, rhs, obj),
+                rhs: assign_literal(loc, rhs, obj),
             }),
-            id,
+            loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Enum(params),
-            id,
+            loc,
         })
     }
 }
@@ -414,7 +426,11 @@ fn case_argument_is_literal(x: &CaseArgument) -> bool {
     }
 }
 
-fn propogate_case(id: NodeId, params: Case, obj: &mut Object) -> Result<LocatedOpCode, RHDLError> {
+fn propogate_case(
+    loc: SourceLocation,
+    params: Case,
+    obj: &mut Object,
+) -> Result<LocatedOpCode, RHDLError> {
     let Case {
         lhs,
         discriminant,
@@ -441,20 +457,20 @@ fn propogate_case(id: NodeId, params: Case, obj: &mut Object) -> Result<LocatedO
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs: *lhs,
-                rhs: assign_literal(id, rhs, obj),
+                rhs: assign_literal(loc, rhs, obj),
             }),
-            id,
+            loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Case(params),
-            id,
+            loc,
         })
     }
 }
 
 fn propogate_exec(
-    node: NodeId,
+    loc: SourceLocation,
     params: Exec,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -468,14 +484,14 @@ fn propogate_exec(
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs: *lhs,
-                rhs: assign_literal(node, rhs, obj),
+                rhs: assign_literal(loc, rhs, obj),
             }),
-            id: node,
+            loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Exec(params),
-            id: node,
+            loc,
         })
     }
 }
@@ -486,22 +502,22 @@ impl Pass for ConstantPropagation {
         input.ops = ops
             .into_iter()
             .map(|lop| match lop.op {
-                OpCode::Binary(binary) => propogate_binary(lop.id, binary, &mut input),
-                OpCode::Unary(unary) => propogate_unary(lop.id, unary, &mut input),
-                OpCode::Array(array) => propogate_array(lop.id, array, &mut input),
-                OpCode::Tuple(tuple) => propogate_tuple(lop.id, tuple, &mut input),
-                OpCode::AsBits(cast) => propogate_as_bits(lop.id, cast, &mut input),
-                OpCode::AsSigned(cast) => propogate_as_signed(lop.id, cast, &mut input),
-                OpCode::Resize(cast) => propogate_resize(lop.id, cast, &mut input),
-                OpCode::Repeat(repeat) => propogate_repeat(lop.id, repeat, &mut input),
-                OpCode::Index(index) => propogate_index(lop.id, index, &mut input),
-                OpCode::Splice(splice) => propogate_splice(lop.id, splice, &mut input),
-                OpCode::Select(select) => propogate_select(lop.id, select, &mut input),
-                OpCode::Struct(strukt) => propogate_struct(lop.id, strukt, &mut input),
-                OpCode::Enum(enumerate) => propogate_enum(lop.id, enumerate, &mut input),
-                OpCode::Case(case) => propogate_case(lop.id, case, &mut input),
-                OpCode::Exec(exec) => propogate_exec(lop.id, exec, &mut input),
-                OpCode::Wrap(wrap) => propogate_wrap(lop.id, wrap, &mut input),
+                OpCode::Binary(binary) => propogate_binary(lop.loc, binary, &mut input),
+                OpCode::Unary(unary) => propogate_unary(lop.loc, unary, &mut input),
+                OpCode::Array(array) => propogate_array(lop.loc, array, &mut input),
+                OpCode::Tuple(tuple) => propogate_tuple(lop.loc, tuple, &mut input),
+                OpCode::AsBits(cast) => propogate_as_bits(lop.loc, cast, &mut input),
+                OpCode::AsSigned(cast) => propogate_as_signed(lop.loc, cast, &mut input),
+                OpCode::Resize(cast) => propogate_resize(lop.loc, cast, &mut input),
+                OpCode::Repeat(repeat) => propogate_repeat(lop.loc, repeat, &mut input),
+                OpCode::Index(index) => propogate_index(lop.loc, index, &mut input),
+                OpCode::Splice(splice) => propogate_splice(lop.loc, splice, &mut input),
+                OpCode::Select(select) => propogate_select(lop.loc, select, &mut input),
+                OpCode::Struct(strukt) => propogate_struct(lop.loc, strukt, &mut input),
+                OpCode::Enum(enumerate) => propogate_enum(lop.loc, enumerate, &mut input),
+                OpCode::Case(case) => propogate_case(lop.loc, case, &mut input),
+                OpCode::Exec(exec) => propogate_exec(lop.loc, exec, &mut input),
+                OpCode::Wrap(wrap) => propogate_wrap(lop.loc, wrap, &mut input),
                 OpCode::Assign(_) | OpCode::Noop | OpCode::Comment(_) | OpCode::Retime(_) => {
                     Ok(lop)
                 }

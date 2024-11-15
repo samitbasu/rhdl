@@ -1,7 +1,10 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::{
-    ast::ast_impl::{ExprLit, FunctionId, NodeId},
+    ast::{
+        ast_impl::{ExprLit, FunctionId},
+        source_location::SourceLocation,
+    },
     rhif::{
         object::{LocatedOpCode, SymbolMap},
         spec::{FuncId, OpCode, Slot},
@@ -14,7 +17,7 @@ use crate::{
 pub struct TypeEquivalence {
     pub lhs: Slot,
     pub rhs: Slot,
-    pub id: NodeId,
+    pub loc: SourceLocation,
 }
 
 pub struct Mir {
@@ -43,8 +46,8 @@ impl Mir {
             })
             .collect()
     }
-    pub fn find_root_for_slot(&self, context: NodeId, slot: Slot) -> Slot {
-        let context_span = self.symbols.node_span(context);
+    pub fn find_root_for_slot(&self, context: SourceLocation, slot: Slot) -> Slot {
+        let context_span = self.symbols.span(context);
         eprintln!("Context span: {:?}", context_span);
         let eq_map = self.build_slot_equivalence_map();
         let mut slot = slot;

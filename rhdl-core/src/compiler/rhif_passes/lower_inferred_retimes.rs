@@ -23,7 +23,7 @@ impl Pass for LowerInferredRetimesPass {
                         return Err(Self::raise_ice(
                             &input,
                             ICE::UnableToInferClockDomainForRetime { op },
-                            lop.id,
+                            lop.loc,
                         ));
                     };
                     lop.op = OpCode::Retime(Retime {

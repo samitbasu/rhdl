@@ -1,16 +1,16 @@
 use crate::{
-    ast::ast_impl::NodeId,
+    ast::source_location::SourceLocation,
     compiler::mir::error::{RHDLCompileError, ICE},
     error::{rhdl_error, RHDLError},
     rhif::Object,
 };
 
 pub trait Pass {
-    fn raise_ice(obj: &Object, cause: ICE, id: NodeId) -> RHDLError {
+    fn raise_ice(obj: &Object, cause: ICE, loc: SourceLocation) -> RHDLError {
         rhdl_error(RHDLCompileError {
             cause,
-            src: obj.symbols.source_set.source.clone(),
-            err_span: obj.symbols.node_span(id).into(),
+            src: obj.symbols.source(),
+            err_span: obj.symbols.span(loc).into(),
         })
     }
     fn run(input: Object) -> Result<Object, RHDLError>;

@@ -28,35 +28,32 @@ impl Pass for RemoveExtraRegistersPass {
                     .ops
                     .into_iter()
                     .map(|lop| {
-                        let LocatedOpCode { op, id } = lop;
+                        let LocatedOpCode { op, loc } = lop;
                         let old = assign.lhs;
                         let new = assign.rhs;
                         match op {
                             OpCode::Assign(Assign { lhs, rhs }) => {
                                 let new_rhs = if rhs == old { new } else { rhs };
                                 if new_rhs == lhs {
-                                    LocatedOpCode::new(OpCode::Noop, id)
+                                    (OpCode::Noop, loc).into()
                                 } else {
-                                    LocatedOpCode::new(
-                                        OpCode::Assign(Assign { lhs, rhs: new_rhs }),
-                                        id,
-                                    )
+                                    (OpCode::Assign(Assign { lhs, rhs: new_rhs }), loc).into()
                                 }
                             }
-                            _ => LocatedOpCode::new(rename_read_register(op, old, new), id),
+                            _ => (rename_read_register(op, old, new), loc).into(),
                         }
                     })
                     .map(|lop| {
-                        let LocatedOpCode { op, id } = lop;
+                        let LocatedOpCode { op, loc } = lop;
                         match op {
                             OpCode::Assign(Assign { lhs, rhs: _ }) => {
                                 if lhs != assign.lhs {
-                                    (op, id).into()
+                                    (op, loc).into()
                                 } else {
-                                    (OpCode::Noop, id).into()
+                                    (OpCode::Noop, loc).into()
                                 }
                             }
-                            _ => (op, id).into(),
+                            _ => (op, loc).into(),
                         }
                     })
                     .collect();
