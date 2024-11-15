@@ -107,7 +107,7 @@ impl ClockCoherenceContext<'_> {
             self.obj.symbols.node_span(containing_id)
         );
         Box::new(RHDLClockCoherenceViolation {
-            src: self.obj.symbols.source.source.clone(),
+            src: self.obj.symbols.source_set.source.clone(),
             elements,
             cause,
             cause_span: self.obj.symbols.node_span(containing_id).into(),
@@ -624,7 +624,7 @@ impl ClockCoherenceContext<'_> {
             if self.ctx.is_unresolved(ty.1) {
                 return Err(self
                     .raise_clock_coherence_error(
-                        self.obj.symbols.source.fallback,
+                        self.obj.symbols.source_set.fallback,
                         &[ty.0],
                         ClockError::UnresolvedClock,
                     )

@@ -22,7 +22,7 @@ impl Pass for SymbolTableIsComplete {
                 slot
             });
         }
-        let id = input.symbols.source.fallback;
+        let id = input.symbols.source_set.fallback;
         for slot in used_set {
             if !input.symbols.slot_map.contains_key(&slot) {
                 return Err(Self::raise_ice(

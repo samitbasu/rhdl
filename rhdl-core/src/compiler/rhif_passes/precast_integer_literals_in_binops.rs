@@ -109,7 +109,7 @@ impl Pass for PrecastIntegerLiteralsInBinops {
                     Err(_e) => {
                         let node = input.symbols.slot_map[k];
                         return Err(rhdl_error(RHDLTypeError {
-                            src: input.symbols.source.source.clone(),
+                            src: input.symbols.source_set.source.clone(),
                             err_span: input.symbols.node_span(node).into(),
                             cause: TypeCheck::LiteralOutsideInferredRange {
                                 literal: v.literal.clone(),

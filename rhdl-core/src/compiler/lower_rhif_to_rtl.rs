@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::iter::once;
 
 use crate::ast::ast_impl::{FunctionId, NodeId, WrapOp};
+use crate::ast::source_location::SourceLocation;
 use crate::error::rhdl_error;
 use crate::rhif::spec::{AluBinary, Slot};
 use crate::rtl::object::{lop, RegisterKind};
@@ -38,9 +39,7 @@ struct RTLCompiler<'a> {
 impl<'a> RTLCompiler<'a> {
     fn new(object: &'a rhif::object::Object) -> Self {
         let mut symbols = SymbolMap::default();
-        symbols
-            .source_set
-            .extend(once((object.fn_id, object.symbols.source.clone())));
+        symbols.source_set = object.symbols.source_set.clone();
         Self {
             object,
             symbols,
@@ -53,87 +52,93 @@ impl<'a> RTLCompiler<'a> {
             register_count: 0,
         }
     }
-    fn associate(&mut self, operand: Operand, id: NodeId) {
-        self.symbols
-            .operand_map
-            .insert(operand, (self.object.fn_id, id).into());
+    fn associate(&mut self, operand: Operand, loc: SourceLocation) {
+        self.symbols.operand_map.insert(operand, loc);
     }
-    fn allocate_literal(&mut self, bits: &TypedBits, id: NodeId) -> Operand {
+    fn allocate_literal(&mut self, bits: &TypedBits, loc: SourceLocation) -> Operand {
         let literal_id = LiteralId::new(self.literal_count);
         self.literal_count += 1;
         self.literals.insert(literal_id, bits.into());
         let literal = Operand::Literal(literal_id);
-        self.associate(literal, id);
+        self.associate(literal, loc);
         literal
     }
-    fn allocate_literal_from_bit_string(&mut self, bits: &BitString, id: NodeId) -> Operand {
+    fn allocate_literal_from_bit_string(
+        &mut self,
+        bits: &BitString,
+        loc: SourceLocation,
+    ) -> Operand {
         let literal_id = LiteralId::new(self.literal_count);
         self.literal_count += 1;
         self.literals.insert(literal_id, bits.clone());
         let literal = Operand::Literal(literal_id);
-        self.associate(literal, id);
+        self.associate(literal, loc);
         literal
     }
     fn allocate_literal_from_usize_and_length(
         &mut self,
         value: usize,
         bits: usize,
-        id: NodeId,
+        loc: SourceLocation,
     ) -> Result<Operand> {
         let value = value as u64;
         let value: TypedBits = value.into();
         let value = value.unsigned_cast(bits)?;
-        Ok(self.allocate_literal(&value, id))
+        Ok(self.allocate_literal(&value, loc))
     }
-    fn allocate_signed(&mut self, length: usize, id: NodeId) -> Operand {
+    fn allocate_signed(&mut self, length: usize, loc: SourceLocation) -> Operand {
         let register_id = RegisterId::new(self.register_count);
         self.register_count += 1;
         self.registers
             .insert(register_id, RegisterKind::Signed(length));
         let register = Operand::Register(register_id);
-        self.associate(register, id);
+        self.associate(register, loc);
         register
     }
-    fn allocate_unsigned(&mut self, length: usize, id: NodeId) -> Operand {
+    fn allocate_unsigned(&mut self, length: usize, loc: SourceLocation) -> Operand {
         let register_id = RegisterId::new(self.register_count);
         self.register_count += 1;
         self.registers
             .insert(register_id, RegisterKind::Unsigned(length));
         let register = Operand::Register(register_id);
-        self.associate(register, id);
+        self.associate(register, loc);
         register
     }
-    fn allocate_register(&mut self, kind: &Kind, id: NodeId) -> Operand {
+    fn allocate_register(&mut self, kind: &Kind, loc: SourceLocation) -> Operand {
         let len = kind.bits();
         if kind.is_signed() {
-            self.allocate_signed(len, id)
+            self.allocate_signed(len, loc)
         } else {
-            self.allocate_unsigned(len, id)
+            self.allocate_unsigned(len, loc)
         }
     }
-    fn allocate_register_with_register_kind(&mut self, kind: &RegisterKind, id: NodeId) -> Operand {
+    fn allocate_register_with_register_kind(
+        &mut self,
+        kind: &RegisterKind,
+        loc: SourceLocation,
+    ) -> Operand {
         let register_id = RegisterId::new(self.register_count);
         self.register_count += 1;
         self.registers.insert(register_id, *kind);
         let register = Operand::Register(register_id);
-        self.associate(register, id);
+        self.associate(register, loc);
         register
     }
-    fn raise_ice(&self, cause: ICE, node_id: NodeId) -> RHDLError {
+    fn raise_ice(&self, cause: ICE, loc: SourceLocation) -> RHDLError {
         rhdl_error(RHDLCompileError {
             cause,
-            src: self.object.symbols.source.source.clone(),
-            err_span: self.object.symbols.node_span(node_id).into(),
+            src: self.object.symbols.source(),
+            err_span: self.object.symbols.span(loc).into(),
         })
     }
-    fn lop(&mut self, opcode: tl::OpCode, id: NodeId) {
-        self.ops.push((opcode, id, self.object.fn_id).into())
+    fn lop(&mut self, opcode: tl::OpCode, loc: SourceLocation) {
+        self.ops.push((opcode, loc).into())
     }
     fn build_dynamic_index(
         &mut self,
         arg: Slot,
         path: &Path,
-        node_id: NodeId,
+        loc: SourceLocation,
     ) -> Result<(Operand, usize)> {
         let dynamic_slots: Vec<Slot> = path.dynamic_slots().copied().collect();
         // First to get the base offset, we construct a path that replaces all
@@ -157,7 +162,7 @@ impl<'a> RTLCompiler<'a> {
                     base: base_kind,
                     slot: *kind,
                 },
-                node_id,
+                loc,
             ));
         }
         // Next validation - all of the bit ranges should be the same size
@@ -170,7 +175,7 @@ impl<'a> RTLCompiler<'a> {
                     base: base_range.len(),
                     slot: range.len(),
                 },
-                node_id,
+                loc,
             ));
         }
         let slot_strides = slot_ranges
@@ -189,13 +194,12 @@ impl<'a> RTLCompiler<'a> {
         // The sum is initialized with the offset of the base index
         let base_offset = base_range.start;
         let mut index_sum =
-            self.allocate_literal_from_usize_and_length(base_offset, index_bits, node_id)?;
+            self.allocate_literal_from_usize_and_length(base_offset, index_bits, loc)?;
         for (slot, stride) in dynamic_slots.iter().zip(slot_strides.iter()) {
             // Store the stride in a literal
-            let stride =
-                self.allocate_literal_from_usize_and_length(*stride, index_bits, node_id)?;
-            let reg = self.allocate_register(&Kind::make_bits(index_bits), node_id);
-            let arg = self.operand(*slot, node_id)?;
+            let stride = self.allocate_literal_from_usize_and_length(*stride, index_bits, loc)?;
+            let reg = self.allocate_register(&Kind::make_bits(index_bits), loc);
+            let arg = self.operand(*slot, loc)?;
             // reg <- arg as L
             self.lop(
                 tl::OpCode::Cast(tl::Cast {
@@ -204,9 +208,9 @@ impl<'a> RTLCompiler<'a> {
                     len: index_bits,
                     kind: CastKind::Unsigned,
                 }),
-                node_id,
+                loc,
             );
-            let prod_uncast = self.allocate_register(&Kind::make_bits(index_bits * 2), node_id);
+            let prod_uncast = self.allocate_register(&Kind::make_bits(index_bits * 2), loc);
             self.lop(
                 tl::OpCode::Binary(tl::Binary {
                     lhs: prod_uncast,
@@ -214,9 +218,9 @@ impl<'a> RTLCompiler<'a> {
                     arg1: reg,
                     arg2: stride,
                 }),
-                node_id,
+                loc,
             );
-            let prod = self.allocate_register(&Kind::make_bits(index_bits), node_id);
+            let prod = self.allocate_register(&Kind::make_bits(index_bits), loc);
             // prod <- (reg * stride) as L
             self.lop(
                 tl::OpCode::Cast(tl::Cast {
@@ -225,9 +229,9 @@ impl<'a> RTLCompiler<'a> {
                     len: index_bits,
                     kind: CastKind::Unsigned,
                 }),
-                node_id,
+                loc,
             );
-            let sum = self.allocate_register(&Kind::make_bits(index_bits), node_id);
+            let sum = self.allocate_register(&Kind::make_bits(index_bits), loc);
             // sum <- sum + prod
             self.lop(
                 tl::OpCode::Binary(tl::Binary {
@@ -236,24 +240,22 @@ impl<'a> RTLCompiler<'a> {
                     arg1: index_sum,
                     arg2: prod,
                 }),
-                node_id,
+                loc,
             );
             index_sum = sum;
         }
         Ok((index_sum, base_range.len()))
     }
-    fn operand(&mut self, slot: Slot, id: NodeId) -> Result<Operand> {
+    fn operand(&mut self, slot: Slot, loc: SourceLocation) -> Result<Operand> {
         if let Some(operand) = self.reverse_operand_map.get(&(self.object.fn_id, slot)) {
             return Ok(*operand);
         }
         match slot {
             Slot::Literal(literal_id) => {
                 let bits = &self.object.literals[&literal_id];
-                let operand = self.allocate_literal(bits, id);
-                let node = self.object.symbols.slot_map[&slot];
-                self.symbols
-                    .operand_map
-                    .insert(operand, (self.object.fn_id, node).into());
+                let operand = self.allocate_literal(bits, loc);
+                let loc = self.object.symbols.slot_map[&slot];
+                self.symbols.operand_map.insert(operand, loc);
                 self.reverse_operand_map
                     .insert((self.object.fn_id, slot), operand);
                 self.operand_map.insert(operand, (self.object.fn_id, slot));
@@ -261,11 +263,9 @@ impl<'a> RTLCompiler<'a> {
             }
             Slot::Register(register_id) => {
                 let kind = &self.object.kind[&register_id];
-                let operand = self.allocate_register(kind, id);
-                let node = self.object.symbols.slot_map[&slot];
-                self.symbols
-                    .operand_map
-                    .insert(operand, (self.object.fn_id, node).into());
+                let operand = self.allocate_register(kind, loc);
+                let loc = self.object.symbols.slot_map[&slot];
+                self.symbols.operand_map.insert(operand, loc);
                 self.reverse_operand_map
                     .insert((self.object.fn_id, slot), operand);
                 self.operand_map.insert(operand, (self.object.fn_id, slot));
@@ -274,39 +274,39 @@ impl<'a> RTLCompiler<'a> {
             Slot::Empty => panic!("empty slot"), //Err(self.raise_ice(ICE::EmptySlotInRTL, id)),
         }
     }
-    fn make_operand_list(&mut self, args: &[Slot], id: NodeId) -> Result<Vec<Operand>> {
+    fn make_operand_list(&mut self, args: &[Slot], loc: SourceLocation) -> Result<Vec<Operand>> {
         args.iter()
             .filter_map(|a| {
                 if a.is_empty() {
                     None
                 } else {
-                    Some(self.operand(*a, id))
+                    Some(self.operand(*a, loc))
                 }
             })
             .collect()
     }
-    fn make_array(&mut self, args: &hf::Array, id: NodeId) -> Result<()> {
+    fn make_array(&mut self, args: &hf::Array, loc: SourceLocation) -> Result<()> {
         let hf::Array { lhs, elements } = args;
         if lhs.is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(*lhs, id)?;
-        let elements = self.make_operand_list(elements, id)?;
+        let lhs = self.operand(*lhs, loc)?;
+        let elements = self.make_operand_list(elements, loc)?;
         self.lop(
             tl::OpCode::Concat(tl::Concat {
                 lhs,
                 args: elements,
             }),
-            id,
+            loc,
         );
         Ok(())
     }
-    fn make_resize(&mut self, cast: &hf::Cast, id: NodeId) -> Result<()> {
+    fn make_resize(&mut self, cast: &hf::Cast, loc: SourceLocation) -> Result<()> {
         let hf::Cast { lhs, arg, len } = cast;
-        let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, id))?;
+        let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, loc))?;
         if !lhs.is_empty() && !arg.is_empty() {
-            let lhs = self.operand(*lhs, id)?;
-            let op_arg = self.operand(*arg, id)?;
+            let lhs = self.operand(*lhs, loc)?;
+            let op_arg = self.operand(*arg, loc)?;
             self.lop(
                 tl::OpCode::Cast(tl::Cast {
                     lhs,
@@ -314,27 +314,27 @@ impl<'a> RTLCompiler<'a> {
                     len,
                     kind: CastKind::Resize,
                 }),
-                id,
+                loc,
             );
         }
         Ok(())
     }
-    fn make_wrap(&mut self, wrap: &hf::Wrap, id: NodeId) -> Result<()> {
+    fn make_wrap(&mut self, wrap: &hf::Wrap, loc: SourceLocation) -> Result<()> {
         let hf::Wrap { lhs, op, arg, kind } = wrap;
-        let kind = kind.ok_or_else(|| self.raise_ice(ICE::WrapMissingKind, id))?;
+        let kind = kind.ok_or_else(|| self.raise_ice(ICE::WrapMissingKind, loc))?;
         let discriminant = match op {
-            WrapOp::Ok | WrapOp::Some => self.allocate_literal(&true.typed_bits(), id),
-            WrapOp::Err | WrapOp::None => self.allocate_literal(&false.typed_bits(), id),
+            WrapOp::Ok | WrapOp::Some => self.allocate_literal(&true.typed_bits(), loc),
+            WrapOp::Err | WrapOp::None => self.allocate_literal(&false.typed_bits(), loc),
         };
         let width = kind.bits() - 1;
-        let lhs = self.operand(*lhs, id)?;
+        let lhs = self.operand(*lhs, loc)?;
         if width != 0 {
             let payload =
-                self.allocate_register_with_register_kind(&RegisterKind::Unsigned(width), id);
+                self.allocate_register_with_register_kind(&RegisterKind::Unsigned(width), loc);
             let arg = *arg;
             let arg = match arg {
-                Slot::Empty => self.allocate_literal(&false.typed_bits(), id),
-                _ => self.operand(arg, id)?,
+                Slot::Empty => self.allocate_literal(&false.typed_bits(), loc),
+                _ => self.operand(arg, loc)?,
             };
             self.lop(
                 tl::OpCode::Cast(tl::Cast {
@@ -343,14 +343,14 @@ impl<'a> RTLCompiler<'a> {
                     len: width,
                     kind: CastKind::Resize,
                 }),
-                id,
+                loc,
             );
             self.lop(
                 tl::OpCode::Concat(Concat {
                     lhs,
                     args: vec![payload, discriminant],
                 }),
-                id,
+                loc,
             );
         } else {
             self.lop(
@@ -358,17 +358,17 @@ impl<'a> RTLCompiler<'a> {
                     lhs,
                     rhs: discriminant,
                 }),
-                id,
+                loc,
             );
         };
         Ok(())
     }
-    fn make_as_bits(&mut self, cast: &hf::Cast, id: NodeId) -> Result<()> {
+    fn make_as_bits(&mut self, cast: &hf::Cast, loc: SourceLocation) -> Result<()> {
         let hf::Cast { lhs, arg, len } = cast;
-        let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, id))?;
+        let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, loc))?;
         if !lhs.is_empty() && !arg.is_empty() {
-            let lhs = self.operand(*lhs, id)?;
-            let arg = self.operand(*arg, id)?;
+            let lhs = self.operand(*lhs, loc)?;
+            let arg = self.operand(*arg, loc)?;
             self.lop(
                 tl::OpCode::Cast(tl::Cast {
                     lhs,
@@ -376,17 +376,17 @@ impl<'a> RTLCompiler<'a> {
                     len,
                     kind: CastKind::Unsigned,
                 }),
-                id,
+                loc,
             );
         }
         Ok(())
     }
-    fn make_as_signed(&mut self, cast: &hf::Cast, id: NodeId) -> Result<()> {
+    fn make_as_signed(&mut self, cast: &hf::Cast, loc: SourceLocation) -> Result<()> {
         let hf::Cast { lhs, arg, len } = cast;
-        let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, id))?;
+        let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, loc))?;
         if !lhs.is_empty() && !arg.is_empty() {
-            let lhs = self.operand(*lhs, id)?;
-            let arg = self.operand(*arg, id)?;
+            let lhs = self.operand(*lhs, loc)?;
+            let arg = self.operand(*arg, loc)?;
             self.lop(
                 tl::OpCode::Cast(tl::Cast {
                     lhs,
@@ -394,21 +394,21 @@ impl<'a> RTLCompiler<'a> {
                     len,
                     kind: CastKind::Signed,
                 }),
-                id,
+                loc,
             );
         }
         Ok(())
     }
-    fn make_assign(&mut self, assign: &hf::Assign, id: NodeId) -> Result<()> {
+    fn make_assign(&mut self, assign: &hf::Assign, loc: SourceLocation) -> Result<()> {
         let hf::Assign { lhs, rhs } = assign;
         if !lhs.is_empty() && !rhs.is_empty() {
-            let lhs = self.operand(*lhs, id)?;
-            let rhs = self.operand(*rhs, id)?;
-            self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), id);
+            let lhs = self.operand(*lhs, loc)?;
+            let rhs = self.operand(*rhs, loc)?;
+            self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), loc);
         }
         Ok(())
     }
-    fn make_binary(&mut self, binary: &hf::Binary, id: NodeId) -> Result<()> {
+    fn make_binary(&mut self, binary: &hf::Binary, loc: SourceLocation) -> Result<()> {
         let hf::Binary {
             lhs,
             op,
@@ -416,9 +416,9 @@ impl<'a> RTLCompiler<'a> {
             arg2,
         } = *binary;
         if !lhs.is_empty() {
-            let lhs = self.operand(lhs, id)?;
-            let arg1 = self.operand(arg1, id)?;
-            let arg2 = self.operand(arg2, id)?;
+            let lhs = self.operand(lhs, loc)?;
+            let arg1 = self.operand(arg1, loc)?;
+            let arg2 = self.operand(arg2, loc)?;
             self.lop(
                 tl::OpCode::Binary(tl::Binary {
                     lhs,
@@ -426,7 +426,7 @@ impl<'a> RTLCompiler<'a> {
                     arg1,
                     arg2,
                 }),
-                id,
+                loc,
             );
         }
         Ok(())
@@ -434,23 +434,23 @@ impl<'a> RTLCompiler<'a> {
     fn make_case_argument(
         &mut self,
         case_argument: &hf::CaseArgument,
-        id: NodeId,
+        loc: SourceLocation,
     ) -> Result<tl::CaseArgument> {
         match case_argument {
             hf::CaseArgument::Slot(slot) => {
                 if !slot.is_literal() {
-                    return Err(self.raise_ice(ICE::MatchPatternValueMustBeLiteral, id));
+                    return Err(self.raise_ice(ICE::MatchPatternValueMustBeLiteral, loc));
                 };
-                let operand = self.operand(*slot, id)?;
+                let operand = self.operand(*slot, loc)?;
                 let Operand::Literal(literal_id) = operand else {
-                    return Err(self.raise_ice(ICE::MatchPatternValueMustBeLiteral, id));
+                    return Err(self.raise_ice(ICE::MatchPatternValueMustBeLiteral, loc));
                 };
                 Ok(tl::CaseArgument::Literal(literal_id))
             }
             hf::CaseArgument::Wild => Ok(tl::CaseArgument::Wild),
         }
     }
-    fn make_case(&mut self, case: &hf::Case, id: NodeId) -> Result<()> {
+    fn make_case(&mut self, case: &hf::Case, loc: SourceLocation) -> Result<()> {
         let hf::Case {
             lhs,
             discriminant,
@@ -459,13 +459,13 @@ impl<'a> RTLCompiler<'a> {
         if lhs.is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(*lhs, id)?;
-        let discriminant = self.operand(*discriminant, id)?;
+        let lhs = self.operand(*lhs, loc)?;
+        let discriminant = self.operand(*discriminant, loc)?;
         let table = table
             .iter()
             .map(|(cond, val)| {
-                let cond = self.make_case_argument(cond, id)?;
-                let val = self.operand(*val, id)?;
+                let cond = self.make_case_argument(cond, loc)?;
+                let val = self.operand(*val, loc)?;
                 Ok((cond, val))
             })
             .collect::<Result<Vec<_>>>()?;
@@ -475,11 +475,11 @@ impl<'a> RTLCompiler<'a> {
                 discriminant,
                 table,
             }),
-            id,
+            loc,
         );
         Ok(())
     }
-    fn make_dynamic_splice(&mut self, splice: &hf::Splice, node_id: NodeId) -> Result<()> {
+    fn make_dynamic_splice(&mut self, splice: &hf::Splice, loc: SourceLocation) -> Result<()> {
         let hf::Splice {
             lhs,
             orig,
@@ -489,10 +489,10 @@ impl<'a> RTLCompiler<'a> {
         if lhs.is_empty() {
             return Ok(());
         }
-        let (index_reg, len) = self.build_dynamic_index(*orig, path, node_id)?;
-        let lhs = self.operand(*lhs, node_id)?;
-        let orig = self.operand(*orig, node_id)?;
-        let subst = self.operand(*subst, node_id)?;
+        let (index_reg, len) = self.build_dynamic_index(*orig, path, loc)?;
+        let lhs = self.operand(*lhs, loc)?;
+        let orig = self.operand(*orig, loc)?;
+        let subst = self.operand(*subst, loc)?;
         self.lop(
             tl::OpCode::DynamicSplice(tl::DynamicSplice {
                 lhs,
@@ -501,11 +501,11 @@ impl<'a> RTLCompiler<'a> {
                 len,
                 value: subst,
             }),
-            node_id,
+            loc,
         );
         Ok(())
     }
-    fn make_enum(&mut self, enumerate: &hf::Enum, id: NodeId) -> Result<()> {
+    fn make_enum(&mut self, enumerate: &hf::Enum, id: SourceLocation) -> Result<()> {
         let hf::Enum {
             lhs,
             fields,
@@ -539,7 +539,7 @@ impl<'a> RTLCompiler<'a> {
         self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), id);
         Ok(())
     }
-    fn make_exec(&mut self, exec: &hf::Exec, node_id: NodeId) -> Result<()> {
+    fn make_exec(&mut self, exec: &hf::Exec, loc: SourceLocation) -> Result<()> {
         let hf::Exec { lhs, id, args } = exec;
         if lhs.is_empty() {
             return Ok(());
@@ -553,16 +553,16 @@ impl<'a> RTLCompiler<'a> {
         // Rebind the arguments to local registers, and copy the values into them
         for (fn_arg, arg) in func_rtl.arguments.iter().zip(args) {
             if let Some(fn_reg) = fn_arg {
-                let fn_reg_in_our_space = self
-                    .allocate_register_with_register_kind(&func_rtl.register_kind[fn_reg], node_id);
+                let fn_reg_in_our_space =
+                    self.allocate_register_with_register_kind(&func_rtl.register_kind[fn_reg], loc);
                 operand_translation.insert(Operand::Register(*fn_reg), fn_reg_in_our_space);
-                let arg = self.operand(*arg, node_id)?;
+                let arg = self.operand(*arg, loc)?;
                 self.lop(
                     tl::OpCode::Assign(tl::Assign {
                         lhs: fn_reg_in_our_space,
                         rhs: arg,
                     }),
-                    node_id,
+                    loc,
                 );
             }
         }
@@ -573,11 +573,11 @@ impl<'a> RTLCompiler<'a> {
             let new_operand = match operand {
                 Operand::Literal(old_lit_id) => {
                     let old_lit = func_rtl.literals[&old_lit_id].clone();
-                    self.allocate_literal_from_bit_string(&old_lit, node_id)
+                    self.allocate_literal_from_bit_string(&old_lit, loc)
                 }
                 Operand::Register(old_reg_id) => {
                     let kind = func_rtl.register_kind[&old_reg_id];
-                    self.allocate_register_with_register_kind(&kind, node_id)
+                    self.allocate_register_with_register_kind(&kind, loc)
                 }
             };
             operand_translation.insert(operand, new_operand);
@@ -596,13 +596,13 @@ impl<'a> RTLCompiler<'a> {
             })
             .collect::<Vec<_>>();
         self.ops.extend(translated);
-        let lhs = self.operand(*lhs, node_id)?;
+        let lhs = self.operand(*lhs, loc)?;
         self.lop(
             tl::OpCode::Assign(tl::Assign {
                 lhs,
                 rhs: return_register,
             }),
-            node_id,
+            loc,
         );
         for old_op in func_rtl.symbols.operand_map.keys() {
             let new_op = operand_translation[old_op];
@@ -617,14 +617,14 @@ impl<'a> RTLCompiler<'a> {
             .extend(func_rtl.symbols.source_set.sources);
         Ok(())
     }
-    fn make_dynamic_index(&mut self, index: &hf::Index, node_id: NodeId) -> Result<()> {
+    fn make_dynamic_index(&mut self, index: &hf::Index, loc: SourceLocation) -> Result<()> {
         let hf::Index { lhs, arg, path } = index;
         if lhs.is_empty() {
             return Ok(());
         }
-        let (index_reg, len) = self.build_dynamic_index(*arg, path, node_id)?;
-        let lhs = self.operand(*lhs, node_id)?;
-        let arg = self.operand(*arg, node_id)?;
+        let (index_reg, len) = self.build_dynamic_index(*arg, path, loc)?;
+        let lhs = self.operand(*lhs, loc)?;
+        let arg = self.operand(*arg, loc)?;
         self.lop(
             tl::OpCode::DynamicIndex(tl::DynamicIndex {
                 lhs,
@@ -632,53 +632,53 @@ impl<'a> RTLCompiler<'a> {
                 offset: index_reg,
                 len,
             }),
-            node_id,
+            loc,
         );
         Ok(())
     }
-    fn make_index(&mut self, index: &hf::Index, node_id: NodeId) -> Result<()> {
+    fn make_index(&mut self, index: &hf::Index, loc: SourceLocation) -> Result<()> {
         if index.lhs.is_empty() {
             return Ok(());
         }
         if index.path.any_dynamic() {
-            return self.make_dynamic_index(index, node_id);
+            return self.make_dynamic_index(index, loc);
         }
         let arg_ty = self.object.kind(index.arg);
         let (bit_range, _) = bit_range(arg_ty, &index.path)?;
-        let lhs = self.operand(index.lhs, node_id)?;
-        let arg = self.operand(index.arg, node_id)?;
+        let lhs = self.operand(index.lhs, loc)?;
+        let arg = self.operand(index.arg, loc)?;
         self.lop(
             tl::OpCode::Index(tl::Index {
                 lhs,
                 arg,
                 bit_range,
             }),
-            node_id,
+            loc,
         );
         Ok(())
     }
-    fn make_repeat(&mut self, repeat: &hf::Repeat, node_id: NodeId) -> Result<()> {
+    fn make_repeat(&mut self, repeat: &hf::Repeat, loc: SourceLocation) -> Result<()> {
         let hf::Repeat { lhs, value, len } = *repeat;
         if lhs.is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(lhs, node_id)?;
-        let arg = self.operand(value, node_id)?;
+        let lhs = self.operand(lhs, loc)?;
+        let arg = self.operand(value, loc)?;
         let args = vec![arg; len as usize];
-        self.lop(tl::OpCode::Concat(tl::Concat { lhs, args }), node_id);
+        self.lop(tl::OpCode::Concat(tl::Concat { lhs, args }), loc);
         Ok(())
     }
-    fn make_retime(&mut self, retime: &hf::Retime, node_id: NodeId) -> Result<()> {
+    fn make_retime(&mut self, retime: &hf::Retime, loc: SourceLocation) -> Result<()> {
         let hf::Retime { lhs, arg, color: _ } = *retime;
         if lhs.is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(lhs, node_id)?;
-        let rhs = self.operand(arg, node_id)?;
-        self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), node_id);
+        let lhs = self.operand(lhs, loc)?;
+        let rhs = self.operand(arg, loc)?;
+        self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), loc);
         Ok(())
     }
-    fn make_select(&mut self, select: &hf::Select, node_id: NodeId) -> Result<()> {
+    fn make_select(&mut self, select: &hf::Select, loc: SourceLocation) -> Result<()> {
         let hf::Select {
             lhs,
             cond,
@@ -688,10 +688,10 @@ impl<'a> RTLCompiler<'a> {
         if lhs.is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(lhs, node_id)?;
-        let cond = self.operand(cond, node_id)?;
-        let true_value = self.operand(true_value, node_id)?;
-        let false_value = self.operand(false_value, node_id)?;
+        let lhs = self.operand(lhs, loc)?;
+        let cond = self.operand(cond, loc)?;
+        let true_value = self.operand(true_value, loc)?;
+        let false_value = self.operand(false_value, loc)?;
         self.lop(
             tl::OpCode::Select(tl::Select {
                 lhs,
@@ -699,16 +699,16 @@ impl<'a> RTLCompiler<'a> {
                 true_value,
                 false_value,
             }),
-            node_id,
+            loc,
         );
         Ok(())
     }
-    fn make_splice(&mut self, splice: &hf::Splice, node_id: NodeId) -> Result<()> {
+    fn make_splice(&mut self, splice: &hf::Splice, loc: SourceLocation) -> Result<()> {
         if splice.lhs.is_empty() {
             return Ok(());
         }
         if splice.path.any_dynamic() {
-            return self.make_dynamic_splice(splice, node_id);
+            return self.make_dynamic_splice(splice, loc);
         }
         let hf::Splice {
             lhs,
@@ -718,9 +718,9 @@ impl<'a> RTLCompiler<'a> {
         } = splice;
         let orig_ty = self.object.kind(*orig);
         let (bit_range, _) = bit_range(orig_ty, path)?;
-        let lhs = self.operand(*lhs, node_id)?;
-        let orig = self.operand(*orig, node_id)?;
-        let subst = self.operand(*subst, node_id)?;
+        let lhs = self.operand(*lhs, loc)?;
+        let orig = self.operand(*orig, loc)?;
+        let subst = self.operand(*subst, loc)?;
         self.lop(
             tl::OpCode::Splice(tl::Splice {
                 lhs,
@@ -728,11 +728,11 @@ impl<'a> RTLCompiler<'a> {
                 bit_range,
                 value: subst,
             }),
-            node_id,
+            loc,
         );
         Ok(())
     }
-    fn make_struct(&mut self, strukt: &hf::Struct, node_id: NodeId) -> Result<()> {
+    fn make_struct(&mut self, strukt: &hf::Struct, loc: SourceLocation) -> Result<()> {
         let hf::Struct {
             lhs,
             fields,
@@ -742,18 +742,18 @@ impl<'a> RTLCompiler<'a> {
         if lhs.is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(*lhs, node_id)?;
+        let lhs = self.operand(*lhs, loc)?;
         let kind = template.kind;
         let mut rhs = if let Some(rest) = rest {
-            self.operand(*rest, node_id)?
+            self.operand(*rest, loc)?
         } else {
-            self.allocate_literal(template, node_id)
+            self.allocate_literal(template, loc)
         };
         for field in fields {
-            let field_value = self.operand(field.value, node_id)?;
+            let field_value = self.operand(field.value, loc)?;
             let path = Path::default().member(&field.member);
             let (field_range, _) = bit_range(kind, &path)?;
-            let reg = self.allocate_register(&kind, node_id);
+            let reg = self.allocate_register(&kind, loc);
             self.lop(
                 tl::OpCode::Splice(tl::Splice {
                     lhs: reg,
@@ -761,93 +761,94 @@ impl<'a> RTLCompiler<'a> {
                     bit_range: field_range,
                     value: field_value,
                 }),
-                node_id,
+                loc,
             );
             rhs = reg;
         }
-        self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), node_id);
+        self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), loc);
         Ok(())
     }
-    fn make_tuple(&mut self, tuple: &hf::Tuple, node_id: NodeId) -> Result<()> {
+    fn make_tuple(&mut self, tuple: &hf::Tuple, loc: SourceLocation) -> Result<()> {
         let hf::Tuple { lhs, fields } = tuple;
         if lhs.is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(*lhs, node_id)?;
-        let args = self.make_operand_list(fields, node_id)?;
-        self.lop(tl::OpCode::Concat(tl::Concat { lhs, args }), node_id);
+        let lhs = self.operand(*lhs, loc)?;
+        let args = self.make_operand_list(fields, loc)?;
+        self.lop(tl::OpCode::Concat(tl::Concat { lhs, args }), loc);
         Ok(())
     }
-    fn make_unary(&mut self, unary: &hf::Unary, node_id: NodeId) -> Result<()> {
+    fn make_unary(&mut self, unary: &hf::Unary, loc: SourceLocation) -> Result<()> {
         let hf::Unary { lhs, op, arg1 } = *unary;
         if lhs.is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(lhs, node_id)?;
-        let arg1 = self.operand(arg1, node_id)?;
-        self.lop(tl::OpCode::Unary(tl::Unary { lhs, op, arg1 }), node_id);
+        let lhs = self.operand(lhs, loc)?;
+        let arg1 = self.operand(arg1, loc)?;
+        self.lop(tl::OpCode::Unary(tl::Unary { lhs, op, arg1 }), loc);
         Ok(())
     }
     fn translate(mut self) -> Result<Self> {
         for lop in &self.object.ops {
+            let loc = lop.loc;
             match &lop.op {
                 hf::OpCode::Array(array) => {
-                    self.make_array(array, lop.id)?;
+                    self.make_array(array, loc)?;
                 }
                 hf::OpCode::AsBits(cast) => {
-                    self.make_as_bits(cast, lop.id)?;
+                    self.make_as_bits(cast, loc)?;
                 }
                 hf::OpCode::AsSigned(cast) => {
-                    self.make_as_signed(cast, lop.id)?;
+                    self.make_as_signed(cast, loc)?;
                 }
                 hf::OpCode::Assign(assign) => {
-                    self.make_assign(assign, lop.id)?;
+                    self.make_assign(assign, loc)?;
                 }
                 hf::OpCode::Binary(binary) => {
-                    self.make_binary(binary, lop.id)?;
+                    self.make_binary(binary, loc)?;
                 }
                 hf::OpCode::Case(case) => {
-                    self.make_case(case, lop.id)?;
+                    self.make_case(case, loc)?;
                 }
                 hf::OpCode::Comment(comment) => {
-                    self.lop(tl::OpCode::Comment(comment.clone()), lop.id);
+                    self.lop(tl::OpCode::Comment(comment.clone()), loc);
                 }
                 hf::OpCode::Enum(enumerate) => {
-                    self.make_enum(enumerate, lop.id)?;
+                    self.make_enum(enumerate, loc)?;
                 }
                 hf::OpCode::Exec(exec) => {
-                    self.make_exec(exec, lop.id)?;
+                    self.make_exec(exec, loc)?;
                 }
                 hf::OpCode::Index(index) => {
-                    self.make_index(index, lop.id)?;
+                    self.make_index(index, loc)?;
                 }
                 hf::OpCode::Noop => {}
                 hf::OpCode::Resize(cast) => {
-                    self.make_resize(cast, lop.id)?;
+                    self.make_resize(cast, loc)?;
                 }
                 hf::OpCode::Repeat(repeat) => {
-                    self.make_repeat(repeat, lop.id)?;
+                    self.make_repeat(repeat, loc)?;
                 }
                 hf::OpCode::Retime(retime) => {
-                    self.make_retime(retime, lop.id)?;
+                    self.make_retime(retime, loc)?;
                 }
                 hf::OpCode::Select(select) => {
-                    self.make_select(select, lop.id)?;
+                    self.make_select(select, loc)?;
                 }
                 hf::OpCode::Splice(splice) => {
-                    self.make_splice(splice, lop.id)?;
+                    self.make_splice(splice, loc)?;
                 }
                 hf::OpCode::Struct(strukt) => {
-                    self.make_struct(strukt, lop.id)?;
+                    self.make_struct(strukt, loc)?;
                 }
                 hf::OpCode::Tuple(tuple) => {
-                    self.make_tuple(tuple, lop.id)?;
+                    self.make_tuple(tuple, loc)?;
                 }
                 hf::OpCode::Unary(unary) => {
-                    self.make_unary(unary, lop.id)?;
+                    self.make_unary(unary, loc)?;
                 }
                 hf::OpCode::Wrap(wrap) => {
-                    self.make_wrap(wrap, lop.id)?;
+                    self.make_wrap(wrap, loc)?;
                 }
             }
         }
@@ -857,6 +858,7 @@ impl<'a> RTLCompiler<'a> {
 
 fn compile_rtl(object: &rhif::Object) -> Result<rtl::object::Object> {
     let mut compiler = RTLCompiler::new(object).translate()?;
+    let fallback = object.symbols.source_set.fallback(object.fn_id);
     let arguments = object
         .arguments
         .iter()
@@ -864,7 +866,7 @@ fn compile_rtl(object: &rhif::Object) -> Result<rtl::object::Object> {
             if object.kind[x].is_empty() {
                 None
             } else if let Ok(Operand::Register(reg_id)) =
-                compiler.operand(Slot::Register(*x), object.symbols.source.fallback)
+                compiler.operand(Slot::Register(*x), fallback)
             {
                 Some(reg_id)
             } else {
