@@ -68,7 +68,10 @@ impl Pass for RemoveExtraRegistersPass {
                 }
                 // Delete the register from the register map
                 //input.symbols.slot_map.remove(&assign.lhs);
-                input.kind.remove(&assign.lhs.as_reg().unwrap());
+                eprintln!("Removing register {:?}", assign.lhs);
+                if assign.lhs.is_reg() {
+                    input.kind.remove(&assign.lhs.as_reg().unwrap());
+                }
                 // Check the output register
                 input.return_slot = input.return_slot.rename(assign.lhs, assign.rhs);
                 // Record the alias in the symbol table

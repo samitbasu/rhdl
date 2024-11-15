@@ -87,6 +87,5 @@ pub(crate) fn compile(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
     }
     obj = TypeCheckPass::run(obj)?;
     obj = DataFlowCheckPass::run(obj)?;
-    eprintln!("Final code:\n{:?}", obj);
     Ok(obj)
 }

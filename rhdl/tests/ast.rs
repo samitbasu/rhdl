@@ -455,6 +455,25 @@ fn test_precomputation() -> miette::Result<()> {
 }
 
 #[test]
+fn test_for_loop_const_generics() -> miette::Result<()> {
+    #[kernel]
+    fn sum_bits<const N: usize>(a: Signal<Bits<N>, Red>) -> Signal<bool, Red> {
+        let mut ret = false;
+        let a = a.val();
+        for i in 0..N {
+            if a & (1 << i) != 0 {
+                ret ^= true;
+            }
+        }
+        signal(ret)
+    }
+    let res = compile_design::<sum_bits<8>>(CompilationMode::Asynchronous)?;
+    let inputs = (0..256).map(|x| (signal(bits(x)),));
+    test_kernel_vm_and_verilog::<sum_bits<8>, _, _, _>(sum_bits::<8>, inputs)?;
+    Ok(())
+}
+
+#[test]
 #[allow(clippy::needless_range_loop)]
 fn test_for_loop() -> miette::Result<()> {
     #[kernel]

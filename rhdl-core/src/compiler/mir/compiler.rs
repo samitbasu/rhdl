@@ -127,6 +127,14 @@ fn path_as_ident(path: &ast_impl::Path) -> Option<&'static str> {
     }
 }
 
+fn coerce_literal_to_i32(val: &ExprLit) -> Result<i32> {
+    match val {
+        ExprLit::Int(i) => i.parse::<i32>().map_err(|err| err.into()),
+        ExprLit::Bool(b) => Ok(if *b { 1 } else { 0 }),
+        ExprLit::TypedBits(tb) => tb.value.as_i64().map(|x| x as i32),
+    }
+}
+
 type KindKey = InternKey<Kind>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -385,17 +393,7 @@ impl<'a> MirContext<'a> {
                 .raise_ice(ICE::SlotToIndexNonLiteralSlot { slot }, id)
                 .into());
         };
-        let ndx = match value {
-            ExprLit::TypedBits(tb) => tb.value.as_i64()? as usize,
-            ExprLit::Bool(b) => {
-                if *b {
-                    1
-                } else {
-                    0
-                }
-            }
-            ExprLit::Int(i) => i.parse::<usize>()?,
-        };
+        let ndx = coerce_literal_to_i32(value)? as usize;
         Ok(ndx)
     }
     fn initialize_local(&mut self, pat: &Pat, rhs: Slot) -> Result<()> {
@@ -997,7 +995,7 @@ impl<'a> MirContext<'a> {
         };
         let Expr {
             id: _,
-            kind: ExprKind::Lit(ExprLit::Int(start_lit)),
+            kind: ExprKind::Lit(start_expr),
         } = start.as_ref()
         else {
             return Err(self
@@ -1006,23 +1004,15 @@ impl<'a> MirContext<'a> {
         };
         let Expr {
             id: _,
-            kind: ExprKind::Lit(ExprLit::Int(end_lit)),
+            kind: ExprKind::Lit(end_expr),
         } = end.as_ref()
         else {
             return Err(self
                 .raise_syntax_error(Syntax::ForLoopNonIntegerEndValue, end.id)
                 .into());
         };
-        let Ok(start_lit) = start_lit.parse::<i32>() else {
-            return Err(self
-                .raise_syntax_error(Syntax::ForLoopNonIntegerStartValue, start.id)
-                .into());
-        };
-        let Ok(end_lit) = end_lit.parse::<i32>() else {
-            return Err(self
-                .raise_syntax_error(Syntax::ForLoopNonIntegerEndValue, end.id)
-                .into());
-        };
+        let start_lit = coerce_literal_to_i32(start_expr)?;
+        let end_lit = coerce_literal_to_i32(end_expr)?;
         for ndx in start_lit..end_lit {
             let value = self.literal_int(for_loop.pat.id, ndx);
             self.rebind(loop_var.name, for_loop.pat.id)?;
