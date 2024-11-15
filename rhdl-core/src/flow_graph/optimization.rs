@@ -9,8 +9,10 @@ use crate::{
 
 use super::passes::{
     constant_propagation::ConstantPropagationPass, pass::Pass,
+    remove_and_with_constant::RemoveAndWithConstantPass,
     remove_hardwired_selects::RemoveHardwiredSelectsPass,
-    remove_unused_buffers::RemoveUnusedBuffers,
+    remove_or_with_constant::RemoveOrWithConstantPass, remove_unused_buffers::RemoveUnusedBuffers,
+    remove_useless_selects::RemoveUselessSelectsPass,
 };
 
 pub fn optimize_flow_graph(mut flow_graph: FlowGraph) -> Result<FlowGraph, RHDLError> {
@@ -21,6 +23,9 @@ pub fn optimize_flow_graph(mut flow_graph: FlowGraph) -> Result<FlowGraph, RHDLE
         flow_graph = RemoveHardwiredSelectsPass::run(flow_graph)?;
         flow_graph = RemoveUnusedBuffers::run(flow_graph)?;
         flow_graph = ConstantPropagationPass::run(flow_graph)?;
+        flow_graph = RemoveUselessSelectsPass::run(flow_graph)?;
+        flow_graph = RemoveOrWithConstantPass::run(flow_graph)?;
+        flow_graph = RemoveAndWithConstantPass::run(flow_graph)?;
         if flow_graph.hash_value() == hash_id {
             break;
         }

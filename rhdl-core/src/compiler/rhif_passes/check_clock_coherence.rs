@@ -87,7 +87,7 @@ impl ClockCoherenceContext<'_> {
             .iter()
             .copied()
             .map(|slot| {
-                let ty = self.slot_map[&slot];
+                let ty = self.slot_type(&slot);
                 let ty = self.ctx.apply(ty);
                 (
                     format!(
@@ -204,14 +204,6 @@ impl ClockCoherenceContext<'_> {
             }
         }
     }
-    fn import_literals(&mut self) {
-        for (&lit_id, literal) in &self.obj.literals {
-            eprintln!("Importing literal {:?} {:?}", lit_id, literal.kind);
-            let id = self.obj.symbols.slot_map[&lit_id.into()];
-            let ty = self.import_kind_with_unknown_domains(id, &literal.kind);
-            self.slot_map.insert(lit_id.into(), ty);
-        }
-    }
     fn import_registers(&mut self) {
         for (&reg_id, kind) in &self.obj.kind {
             let id = self.obj.symbols.slot_map[&reg_id.into()];
@@ -228,7 +220,7 @@ impl ClockCoherenceContext<'_> {
         let ty_clock = self.ctx.ty_var(cause_id);
         for slot in slots {
             if !slot.is_empty() {
-                let ty_slot = self.slot_map[slot];
+                let ty_slot = self.slot_type(slot);
                 if self.ctx.unify(ty_slot, ty_clock).is_err() {
                     return Err(self
                         .raise_clock_coherence_error(cause_id, slots, cause)
@@ -248,9 +240,11 @@ impl ClockCoherenceContext<'_> {
         cause_id: NodeId,
         cause: ClockError,
     ) -> Result<(), RHDLError> {
-        let lhs_domains = self.collect_clock_domains(self.slot_map[&lhs]);
+        let lhs_ty = self.slot_type(&lhs);
+        let lhs_domains = self.collect_clock_domains(lhs_ty);
         for lhs_domain in lhs_domains {
-            let rhs_domains = self.collect_clock_domains(self.slot_map[&rhs]);
+            let rhs_ty = self.slot_type(&rhs);
+            let rhs_domains = self.collect_clock_domains(rhs_ty);
             for domain in rhs_domains {
                 if self.ctx.unify(lhs_domain, domain).is_err() {
                     return Err(self
@@ -267,31 +261,44 @@ impl ClockCoherenceContext<'_> {
         path: &Path,
         id: NodeId,
     ) -> Result<TypeId, RHDLError> {
-        let arg_ty = self.slot_map[&arg_slot];
+        let arg_ty = self.slot_type(&arg_slot);
         let mut arg = self.ctx.apply(arg_ty);
         for element in path.elements.iter() {
             eprintln!("Path project {} {:?}", self.ctx.desc(arg), element);
             match element {
                 PathElement::Index(ndx) => {
-                    arg = self.ctx.ty_index(arg, *ndx)?;
+                    arg = self
+                        .ctx
+                        .ty_index(arg, *ndx)
+                        .unwrap_or_else(|_| self.ctx.ty_var(id));
                 }
                 PathElement::Field(member) => {
-                    arg = self.ctx.ty_field(arg, member)?;
+                    arg = self
+                        .ctx
+                        .ty_field(arg, member)
+                        .unwrap_or_else(|_| self.ctx.ty_var(id));
                 }
-                PathElement::EnumDiscriminant => {
-                    arg = self.ctx.ty_enum_discriminant(arg);
-                }
+                PathElement::EnumDiscriminant => arg = self.ctx.ty_enum_discriminant(arg),
                 PathElement::TupleIndex(ndx) => {
-                    arg = self.ctx.ty_index(arg, *ndx)?;
+                    arg = self
+                        .ctx
+                        .ty_index(arg, *ndx)
+                        .unwrap_or_else(|_| self.ctx.ty_var(id));
                 }
                 PathElement::EnumPayload(member) => {
-                    arg = self.ctx.ty_variant(arg, member)?;
+                    arg = self
+                        .ctx
+                        .ty_variant(arg, member)
+                        .unwrap_or_else(|_| self.ctx.ty_var(id));
                 }
                 PathElement::DynamicIndex(slot) => {
                     eprintln!("Dynamic index {:?} {:?}", slot, arg_slot);
+                    let slot_ty = self.slot_type(slot);
+                    if self.ctx.is_unresolved(slot_ty) || self.ctx.is_unresolved(arg_ty) {
+                        return Ok(self.ctx.ty_var(id));
+                    }
                     // First, index the argument type to get a base type
                     arg = self.ctx.ty_index(arg, 0)?;
-                    let slot_ty = self.slot_map[slot];
                     let slot_domains = self.collect_clock_domains(slot_ty);
                     let arg_domains = self.collect_clock_domains(arg);
                     for arg_domain in arg_domains {
@@ -309,7 +316,10 @@ impl ClockCoherenceContext<'_> {
                     }
                 }
                 PathElement::EnumPayloadByValue(value) => {
-                    arg = self.ctx.ty_variant_by_value(arg, *value)?;
+                    arg = self
+                        .ctx
+                        .ty_variant_by_value(arg, *value)
+                        .unwrap_or_else(|_| self.ctx.ty_var(id));
                 }
                 PathElement::SignalValue => {}
             }
@@ -328,9 +338,19 @@ impl ClockCoherenceContext<'_> {
             eprintln!("Slot {:?} has type {:?}", ty.0, desc);
         }
     }
+    fn slot_type(&mut self, slot: &Slot) -> TypeId {
+        // If the slot is a literal or empty, just make up a new
+        // variable and return it.
+        match slot {
+            Slot::Empty | Slot::Literal(_) => {
+                let id = self.obj.symbols.slot_map[slot];
+                self.ctx.ty_var(id)
+            }
+            Slot::Register(_) => self.slot_map[slot],
+        }
+    }
     fn check(&mut self) -> Result<(), RHDLError> {
         eprintln!("Code before clock check: {:?}", self.obj);
-        self.import_literals();
         self.import_registers();
         self.dump_resolution();
         for lop in &self.obj.ops {
@@ -420,7 +440,7 @@ impl ClockCoherenceContext<'_> {
                 }
                 OpCode::Index(index) => {
                     let rhs_project = self.ty_path_project(index.arg, &index.path, lop.id)?;
-                    let ty_lhs = self.slot_map[&index.lhs];
+                    let ty_lhs = self.slot_type(&index.lhs);
                     if self.ctx.unify(rhs_project, ty_lhs).is_err() {
                         return Err(self
                             .raise_clock_coherence_error(
@@ -432,9 +452,9 @@ impl ClockCoherenceContext<'_> {
                     }
                 }
                 OpCode::Splice(splice) => {
-                    let lhs_ty = self.slot_map[&splice.lhs];
-                    let orig_ty = self.slot_map[&splice.orig];
-                    let subst_ty = self.slot_map[&splice.subst];
+                    let lhs_ty = self.slot_type(&splice.lhs);
+                    let orig_ty = self.slot_type(&splice.orig);
+                    let subst_ty = self.slot_type(&splice.subst);
                     let path_ty = self.ty_path_project(splice.orig, &splice.path, lop.id)?;
                     if self.ctx.unify(orig_ty, lhs_ty).is_err() {
                         return Err(self
@@ -456,10 +476,10 @@ impl ClockCoherenceContext<'_> {
                     }
                 }
                 OpCode::Array(array) => {
-                    let ty_lhs = self.slot_map[&array.lhs];
+                    let ty_lhs = self.slot_type(&array.lhs);
                     for element in &array.elements {
                         let ty_len = self.ctx.ty_var(lop.id);
-                        let ty_rhs = self.slot_map[element];
+                        let ty_rhs = self.slot_type(element);
                         let rhs = self.ctx.ty_array(lop.id, ty_rhs, ty_len);
                         if self.ctx.unify(ty_lhs, rhs).is_err() {
                             return Err(self
@@ -473,8 +493,8 @@ impl ClockCoherenceContext<'_> {
                     }
                 }
                 OpCode::Repeat(repeat) => {
-                    let ty_lhs = self.slot_map[&repeat.lhs];
-                    let ty_rhs = self.slot_map[&repeat.value];
+                    let ty_lhs = self.slot_type(&repeat.lhs);
+                    let ty_rhs = self.slot_type(&repeat.value);
                     let ty_len = self.ctx.ty_const_len(lop.id, repeat.len as usize);
                     let rhs = self.ctx.ty_array(lop.id, ty_rhs, ty_len);
                     if self.ctx.unify(ty_lhs, rhs).is_err() {
@@ -488,9 +508,9 @@ impl ClockCoherenceContext<'_> {
                     }
                 }
                 OpCode::Struct(strukt) => {
-                    let ty_lhs = self.slot_map[&strukt.lhs];
+                    let ty_lhs = self.slot_type(&strukt.lhs);
                     for field in &strukt.fields {
-                        let ty_rhs = self.slot_map[&field.value];
+                        let ty_rhs = self.slot_type(&field.value);
                         let ty_field = self.ctx.ty_member(ty_lhs, &field.member)?;
                         if self.ctx.unify(ty_field, ty_rhs).is_err() {
                             return Err(self
@@ -504,11 +524,11 @@ impl ClockCoherenceContext<'_> {
                     }
                 }
                 OpCode::Tuple(tuple) => {
-                    let ty_lhs = self.slot_map[&tuple.lhs];
+                    let ty_lhs = self.slot_type(&tuple.lhs);
                     let ty_rhs_elements = tuple
                         .fields
                         .iter()
-                        .map(|field| self.slot_map[field])
+                        .map(|field| self.slot_type(field))
                         .collect::<Vec<_>>();
                     let ty_rhs = self.ctx.ty_tuple(lop.id, ty_rhs_elements);
                     if self.ctx.unify(ty_lhs, ty_rhs).is_err() {
@@ -549,7 +569,8 @@ impl ClockCoherenceContext<'_> {
                     let sub = &self.obj.externals[&exec.id];
                     let ret_ty =
                         self.import_kind_with_unknown_domains(lop.id, &sub.kind(sub.return_slot));
-                    if self.ctx.unify(ret_ty, self.slot_map[&exec.lhs]).is_err() {
+                    let lhs_ty = self.slot_type(&exec.lhs);
+                    if self.ctx.unify(ret_ty, lhs_ty).is_err() {
                         return Err(self
                             .raise_clock_coherence_error(
                                 lop.id,
@@ -565,7 +586,8 @@ impl ClockCoherenceContext<'_> {
                         .zip(exec.args.iter())
                     {
                         let arg_ty = self.import_kind_with_unknown_domains(lop.id, &kind);
-                        if self.ctx.unify(arg_ty, self.slot_map[slot]).is_err() {
+                        let slot_ty = self.slot_type(slot);
+                        if self.ctx.unify(arg_ty, slot_ty).is_err() {
                             return Err(self
                                 .raise_clock_coherence_error(
                                     lop.id,
