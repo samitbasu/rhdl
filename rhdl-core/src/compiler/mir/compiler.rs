@@ -1495,7 +1495,7 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
     Ok(Mir {
         symbols: SymbolMap {
             slot_map,
-            source,
+            source_set: source,
             slot_names: compiler.slot_names,
             aliases: Default::default(),
         },

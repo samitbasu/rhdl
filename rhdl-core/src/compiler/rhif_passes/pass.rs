@@ -9,7 +9,7 @@ pub trait Pass {
     fn raise_ice(obj: &Object, cause: ICE, id: NodeId) -> RHDLError {
         rhdl_error(RHDLCompileError {
             cause,
-            src: obj.symbols.source.source.clone(),
+            src: obj.symbols.source_set.source.clone(),
             err_span: obj.symbols.node_span(id).into(),
         })
     }

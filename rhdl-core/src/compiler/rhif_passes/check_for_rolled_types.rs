@@ -24,7 +24,7 @@ fn check_register_like(
         let kind = kind.signal_data();
         if !matches!(kind, Kind::Bits(_) | Kind::Signed(_)) {
             return Err(Box::new(RHDLSyntaxError {
-                src: obj.symbols.source.source.clone(),
+                src: obj.symbols.source_set.source.clone(),
                 cause,
                 err_span: obj
                     .symbols
@@ -42,7 +42,7 @@ impl Pass for CheckForRolledTypesPass {
         let slot_type = |slot: &Slot| -> Kind { obj.kind(*slot) };
         let roll_error = |cause: Syntax, slot: Slot, id: NodeId| -> RHDLError {
             Box::new(RHDLSyntaxError {
-                src: obj.symbols.source.source.clone(),
+                src: obj.symbols.source_set.source.clone(),
                 cause,
                 err_span: obj
                     .symbols

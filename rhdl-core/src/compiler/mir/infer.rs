@@ -97,18 +97,18 @@ impl<'a> MirTypeInference<'a> {
         }
     }
     fn raise_ice(&self, cause: ICE, id: NodeId) -> Box<RHDLCompileError> {
-        let source_span = self.mir.symbols.source.span(id);
+        let source_span = self.mir.symbols.source_set.span(id);
         Box::new(RHDLCompileError {
             cause,
-            src: self.mir.symbols.source.source.clone(),
+            src: self.mir.symbols.source_set.source.clone(),
             err_span: source_span.into(),
         })
     }
     fn raise_type_error(&self, cause: TypeCheck, id: NodeId) -> Box<RHDLTypeError> {
-        let source_span = self.mir.symbols.source.span(id);
+        let source_span = self.mir.symbols.source_set.span(id);
         Box::new(RHDLTypeError {
             cause,
-            src: self.mir.symbols.source.source.clone(),
+            src: self.mir.symbols.source_set.source.clone(),
             err_span: source_span.into(),
         })
     }
@@ -160,16 +160,16 @@ impl<'a> MirTypeInference<'a> {
     fn unify(&mut self, id: NodeId, lhs: TypeId, rhs: TypeId) -> Result<()> {
         eprintln!("Unifying {} and {}", self.ctx.desc(lhs), self.ctx.desc(rhs));
         if self.ctx.unify(lhs, rhs).is_err() {
-            let lhs_span = self.mir.symbols.source.span(lhs.id);
-            let rhs_span = self.mir.symbols.source.span(rhs.id);
+            let lhs_span = self.mir.symbols.source_set.span(lhs.id);
+            let rhs_span = self.mir.symbols.source_set.span(rhs.id);
             let lhs = self.ctx.apply(lhs);
             let rhs = self.ctx.apply(rhs);
             let lhs_desc = self.ctx.desc(lhs);
             let rhs_desc = self.ctx.desc(rhs);
-            let cause_span = self.mir.symbols.source.span(id);
+            let cause_span = self.mir.symbols.source_set.span(id);
             let cause_description = "Because of this expression".to_owned();
             return Err(Box::new(RHDLTypeCheckError {
-                src: self.mir.symbols.source.source.clone(),
+                src: self.mir.symbols.source_set.source.clone(),
                 lhs_type: lhs_desc,
                 lhs_span: lhs_span.into(),
                 rhs_type: rhs_desc,
@@ -726,9 +726,9 @@ impl<'a> MirTypeInference<'a> {
                             if self.unify(id, lhs, signed_ty).is_err()
                                 || self.unify(id, arg1, signed_ty).is_err()
                             {
-                                let source_span = self.mir.symbols.source.span(id);
+                                let source_span = self.mir.symbols.source_set.span(id);
                                 return Err(Box::new(RHDLSyntaxError {
-                                    src: self.mir.symbols.source.source.clone(),
+                                    src: self.mir.symbols.source_set.source.clone(),
                                     cause: Syntax::RollYourOwnUnary { op: AluUnary::Neg },
                                     err_span: source_span.into(),
                                 })
@@ -752,9 +752,9 @@ impl<'a> MirTypeInference<'a> {
                             if self.unify(id, lhs, unsigned_ty).is_err()
                                 || self.unify(id, arg1, signed_ty).is_err()
                             {
-                                let source_span = self.mir.symbols.source.span(id);
+                                let source_span = self.mir.symbols.source_set.span(id);
                                 return Err(Box::new(RHDLSyntaxError {
-                                    src: self.mir.symbols.source.source.clone(),
+                                    src: self.mir.symbols.source_set.source.clone(),
                                     cause: Syntax::RollYourOwnUnary {
                                         op: AluUnary::Unsigned,
                                     },
@@ -770,9 +770,9 @@ impl<'a> MirTypeInference<'a> {
                             if self.unify(id, lhs, signed_ty).is_err()
                                 || self.unify(id, arg1, unsigned_ty).is_err()
                             {
-                                let source_span = self.mir.symbols.source.span(id);
+                                let source_span = self.mir.symbols.source_set.span(id);
                                 return Err(Box::new(RHDLSyntaxError {
-                                    src: self.mir.symbols.source.source.clone(),
+                                    src: self.mir.symbols.source_set.source.clone(),
                                     cause: Syntax::RollYourOwnUnary {
                                         op: AluUnary::Signed,
                                     },
@@ -788,9 +788,9 @@ impl<'a> MirTypeInference<'a> {
                             if self.unify(id, lhs, sig_ty).is_err()
                                 || self.unify(id, arg1, sig).is_err()
                             {
-                                let source_span = self.mir.symbols.source.span(id);
+                                let source_span = self.mir.symbols.source_set.span(id);
                                 return Err(Box::new(RHDLSyntaxError {
-                                    src: self.mir.symbols.source.source.clone(),
+                                    src: self.mir.symbols.source_set.source.clone(),
                                     cause: Syntax::RollYourOwnUnary { op: AluUnary::Val },
                                     err_span: source_span.into(),
                                 })

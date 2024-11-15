@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::ast::ast_impl::{NodeId, WrapOp};
+use crate::ast::source_location::SourceLocation;
 use crate::compiler::mir::error::{RHDLCompileError, ICE};
 use crate::error::rhdl_error;
 use crate::rhif::object::Object;
@@ -25,25 +26,26 @@ struct VMState<'a> {
 }
 
 impl<'a> VMState<'a> {
-    fn raise_ice(&self, cause: ICE, id: NodeId) -> RHDLError {
+    fn raise_ice(&self, cause: ICE, loc: SourceLocation) -> RHDLError {
+        let symbols = &self.obj.symbols;
         rhdl_error(RHDLCompileError {
             cause,
-            src: self.obj.symbols.source.source.clone(),
-            err_span: self.obj.symbols.node_span(id).into(),
+            src: symbols.source(),
+            err_span: symbols.span(loc).into(),
         })
     }
-    fn read(&self, slot: Slot, id: NodeId) -> Result<TypedBits> {
+    fn read(&self, slot: Slot, loc: SourceLocation) -> Result<TypedBits> {
         match slot {
             Slot::Literal(l) => Ok(self.literals[&l].clone()),
             Slot::Register(r) => self.reg_stack[r.0]
                 .clone()
-                .ok_or(self.raise_ice(ICE::UninitializedRegister { r }, id)),
+                .ok_or(self.raise_ice(ICE::UninitializedRegister { r }, loc)),
             Slot::Empty => Ok(TypedBits::EMPTY),
         }
     }
-    fn write(&mut self, slot: Slot, value: TypedBits, id: NodeId) -> Result<()> {
+    fn write(&mut self, slot: Slot, value: TypedBits, loc: SourceLocation) -> Result<()> {
         match slot {
-            Slot::Literal(ndx) => Err(self.raise_ice(ICE::CannotWriteToRHIFLiteral { ndx }, id)),
+            Slot::Literal(ndx) => Err(self.raise_ice(ICE::CannotWriteToRHIFLiteral { ndx }, loc)),
             Slot::Register(r) => {
                 self.reg_stack[r.0] = Some(value);
                 Ok(())
@@ -52,17 +54,17 @@ impl<'a> VMState<'a> {
                 if value.kind.is_empty() {
                     Ok(())
                 } else {
-                    Err(self.raise_ice(ICE::CannotWriteNonEmptyValueToEmptySlot, id))
+                    Err(self.raise_ice(ICE::CannotWriteNonEmptyValueToEmptySlot, loc))
                 }
             }
         }
     }
-    fn resolve_dynamic_paths(&mut self, path: &Path, id: NodeId) -> Result<Path> {
+    fn resolve_dynamic_paths(&mut self, path: &Path, loc: SourceLocation) -> Result<Path> {
         let mut result = Path::default();
         for element in &path.elements {
             match element {
                 crate::types::path::PathElement::DynamicIndex(slot) => {
-                    let slot = self.read(*slot, id)?;
+                    let slot = self.read(*slot, loc)?;
                     let ndx = slot.as_i64()?;
                     result = result.index(ndx as usize);
                 }
@@ -76,7 +78,7 @@ impl<'a> VMState<'a> {
 fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
     for lop in ops {
         let op = &lop.op;
-        let id = lop.id;
+        let loc = lop.loc;
         match op {
             OpCode::Noop => {}
             OpCode::Binary(Binary {
@@ -85,15 +87,15 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 arg1,
                 arg2,
             }) => {
-                let arg1 = state.read(*arg1, id)?;
-                let arg2 = state.read(*arg2, id)?;
+                let arg1 = state.read(*arg1, loc)?;
+                let arg2 = state.read(*arg2, loc)?;
                 let result = binary(*op, arg1, arg2)?;
-                state.write(*lhs, result, id)?;
+                state.write(*lhs, result, loc)?;
             }
             OpCode::Unary(Unary { op, lhs, arg1 }) => {
-                let arg1 = state.read(*arg1, id)?;
+                let arg1 = state.read(*arg1, loc)?;
                 let result = unary(*op, arg1)?;
-                state.write(*lhs, result, id)?;
+                state.write(*lhs, result, loc)?;
             }
             OpCode::Comment(_) => {}
             OpCode::Select(Select {
@@ -102,20 +104,20 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 true_value,
                 false_value,
             }) => {
-                let cond = state.read(*cond, id)?;
-                let true_value = state.read(*true_value, id)?;
-                let false_value = state.read(*false_value, id)?;
+                let cond = state.read(*cond, loc)?;
+                let true_value = state.read(*true_value, loc)?;
+                let false_value = state.read(*false_value, loc)?;
                 if cond.any().as_bool()? {
-                    state.write(*lhs, true_value, id)?;
+                    state.write(*lhs, true_value, loc)?;
                 } else {
-                    state.write(*lhs, false_value, id)?;
+                    state.write(*lhs, false_value, loc)?;
                 }
             }
             OpCode::Index(Index { lhs, arg, path }) => {
-                let arg = state.read(*arg, id)?;
-                let path = state.resolve_dynamic_paths(path, id)?;
+                let arg = state.read(*arg, loc)?;
+                let path = state.resolve_dynamic_paths(path, loc)?;
                 let result = arg.path(&path)?;
-                state.write(*lhs, result, id)?;
+                state.write(*lhs, result, loc)?;
             }
             OpCode::Splice(Splice {
                 lhs,
@@ -123,30 +125,30 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 path,
                 subst: arg,
             }) => {
-                let rhs_val = state.read(*rhs, id)?;
-                let path = state.resolve_dynamic_paths(path, id)?;
-                let arg_val = state.read(*arg, id)?;
+                let rhs_val = state.read(*rhs, loc)?;
+                let path = state.resolve_dynamic_paths(path, loc)?;
+                let arg_val = state.read(*arg, loc)?;
                 let result = rhs_val.splice(&path, arg_val)?;
-                state.write(*lhs, result, id)?;
+                state.write(*lhs, result, loc)?;
             }
             OpCode::Assign(Assign { lhs, rhs }) => {
-                state.write(*lhs, state.read(*rhs, id)?, id)?;
+                state.write(*lhs, state.read(*rhs, loc)?, loc)?;
             }
             OpCode::Tuple(Tuple { lhs, fields }) => {
                 let fields = fields
                     .iter()
-                    .map(|x| state.read(*x, id))
+                    .map(|x| state.read(*x, loc))
                     .collect::<Result<Vec<_>>>()?;
                 let result = tuple(&fields);
-                state.write(*lhs, result, id)?;
+                state.write(*lhs, result, loc)?;
             }
             OpCode::Array(Array { lhs, elements }) => {
                 let elements = elements
                     .iter()
-                    .map(|x| state.read(*x, id))
+                    .map(|x| state.read(*x, loc))
                     .collect::<Result<Vec<_>>>()?;
                 let result = array(&elements);
-                state.write(*lhs, result, id)?;
+                state.write(*lhs, result, loc)?;
             }
             OpCode::Struct(Struct {
                 lhs,
@@ -155,19 +157,19 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 template,
             }) => {
                 let mut result = if let Some(rest) = rest {
-                    state.read(*rest, id)?
+                    state.read(*rest, loc)?
                 } else {
                     template.clone()
                 };
                 for field in fields {
-                    let value = state.read(field.value, id)?;
+                    let value = state.read(field.value, loc)?;
                     let path = match &field.member {
                         Member::Unnamed(ndx) => Path::default().tuple_index(*ndx as usize),
                         Member::Named(name) => Path::default().field(name),
                     };
                     result = result.splice(&path, value)?;
                 }
-                state.write(*lhs, result, id)?;
+                state.write(*lhs, result, loc)?;
             }
             OpCode::Enum(Enum {
                 lhs,
@@ -178,61 +180,61 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 for field in fields {
                     let base_path =
                         Path::default().payload_by_value(template.discriminant()?.as_i64()?);
-                    let value = state.read(field.value, id)?;
+                    let value = state.read(field.value, loc)?;
                     let path = match &field.member {
                         Member::Unnamed(ndx) => base_path.tuple_index(*ndx as usize),
                         Member::Named(name) => base_path.field(name),
                     };
                     result = result.splice(&path, value)?;
                 }
-                state.write(*lhs, result, id)?;
+                state.write(*lhs, result, loc)?;
             }
             OpCode::Case(Case {
                 lhs,
                 discriminant,
                 table,
             }) => {
-                let discriminant = state.read(*discriminant, id)?;
+                let discriminant = state.read(*discriminant, loc)?;
                 let arm = table
                     .iter()
                     .find(|(disc, _)| match disc {
-                        CaseArgument::Slot(disc) => discriminant == state.read(*disc, id).unwrap(),
+                        CaseArgument::Slot(disc) => discriminant == state.read(*disc, loc).unwrap(),
                         CaseArgument::Wild => true,
                     })
-                    .ok_or(state.raise_ice(ICE::NoMatchingArm { discriminant }, id))?
+                    .ok_or(state.raise_ice(ICE::NoMatchingArm { discriminant }, loc))?
                     .1;
-                let arm = state.read(arm, id)?;
-                state.write(*lhs, arm, id)?;
+                let arm = state.read(arm, loc)?;
+                state.write(*lhs, arm, loc)?;
             }
             OpCode::AsBits(Cast { lhs, arg, len }) => {
-                let arg = state.read(*arg, id)?;
-                let len = len.ok_or(state.raise_ice(ICE::BitCastMissingRequiredLength, id))?;
+                let arg = state.read(*arg, loc)?;
+                let len = len.ok_or(state.raise_ice(ICE::BitCastMissingRequiredLength, loc))?;
                 let result = arg.unsigned_cast(len)?;
-                state.write(*lhs, result, id)?;
+                state.write(*lhs, result, loc)?;
             }
             OpCode::AsSigned(Cast { lhs, arg, len }) => {
-                let arg = state.read(*arg, id)?;
-                let len = len.ok_or(state.raise_ice(ICE::BitCastMissingRequiredLength, id))?;
+                let arg = state.read(*arg, loc)?;
+                let len = len.ok_or(state.raise_ice(ICE::BitCastMissingRequiredLength, loc))?;
                 let result = arg.signed_cast(len)?;
-                state.write(*lhs, result, id)?;
+                state.write(*lhs, result, loc)?;
             }
             OpCode::Resize(Cast { lhs, arg, len }) => {
-                let arg = state.read(*arg, id)?;
-                let len = len.ok_or(state.raise_ice(ICE::BitCastMissingRequiredLength, id))?;
+                let arg = state.read(*arg, loc)?;
+                let len = len.ok_or(state.raise_ice(ICE::BitCastMissingRequiredLength, loc))?;
                 let result = arg.resize(len)?;
-                state.write(*lhs, result, id)?;
+                state.write(*lhs, result, loc)?;
             }
             OpCode::Retime(Retime { lhs, arg, color }) => {
-                let mut arg = state.read(*arg, id)?;
+                let mut arg = state.read(*arg, loc)?;
                 if let Some(color) = color {
                     arg.kind = Kind::make_signal(arg.kind, *color);
                 }
-                state.write(*lhs, arg, id)?;
+                state.write(*lhs, arg, loc)?;
             }
             OpCode::Wrap(Wrap { op, lhs, arg, kind }) => {
-                let arg = state.read(*arg, id)?;
+                let arg = state.read(*arg, loc)?;
                 let Some(kind) = kind else {
-                    return Err(state.raise_ice(ICE::WrapMissingKind, id));
+                    return Err(state.raise_ice(ICE::WrapMissingKind, loc));
                 };
                 let arg = match op {
                     WrapOp::Ok => arg.wrap_ok(kind),
@@ -240,7 +242,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                     WrapOp::Some => arg.wrap_some(kind),
                     WrapOp::None => arg.wrap_none(kind),
                 };
-                state.write(*lhs, arg?, id)?;
+                state.write(*lhs, arg?, loc)?;
             }
             OpCode::Exec(Exec {
                 lhs,
@@ -249,17 +251,17 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
             }) => {
                 let args = args
                     .iter()
-                    .map(|x| state.read(*x, id))
+                    .map(|x| state.read(*x, loc))
                     .collect::<Result<Vec<_>>>()?;
                 let func = &state.obj.externals[f_id];
                 let result = execute(func, args)?;
-                state.write(*lhs, result, id)?;
+                state.write(*lhs, result, loc)?;
             }
             OpCode::Repeat(Repeat { lhs, value, len }) => {
-                let value = state.read(*value, id)?;
+                let value = state.read(*value, loc)?;
                 let len = *len as usize;
                 let result = value.repeat(len);
-                state.write(*lhs, result, id)?;
+                state.write(*lhs, result, loc)?;
             }
         }
     }
@@ -267,12 +269,14 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
 }
 
 pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
+    let symbols = &obj.symbols;
+    let loc = symbols.fallback(obj.fn_id);
     // Load the object for this function
     if obj.arguments.len() != arguments.len() {
         return Err(rhdl_error(RHDLCompileError {
             cause: ICE::ArgumentCountMismatchOnCall,
-            src: obj.symbols.source.source.clone(),
-            err_span: obj.symbols.node_span(obj.ops[0].id).into(),
+            src: symbols.source(),
+            err_span: symbols.span(loc).into(),
         }));
     }
     for (ndx, arg) in arguments.iter().enumerate() {
@@ -284,8 +288,8 @@ pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
                     arg: *arg_kind,
                     expected: *obj_kind,
                 },
-                src: obj.symbols.source.source.clone(),
-                err_span: obj.symbols.node_span(obj.ops[0].id).into(),
+                src: symbols.source(),
+                err_span: symbols.span(loc).into(),
             }));
         }
     }
@@ -312,13 +316,13 @@ pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
                 cause: ICE::ReturnSlotNotFound {
                     name: format!("{:?}", r),
                 },
-                src: obj.symbols.source.source.clone(),
-                err_span: obj.symbols.node_span(obj.ops[0].id).into(),
+                src: symbols.source(),
+                err_span: symbols.span(loc).into(),
             }))?
             .ok_or(rhdl_error(RHDLCompileError {
                 cause: ICE::ReturnSlotNotInitialized,
-                src: obj.symbols.source.source.clone(),
-                err_span: obj.symbols.node_span(obj.ops[0].id).into(),
+                src: symbols.source(),
+                err_span: symbols.span(loc).into(),
             })),
         Slot::Literal(ndx) => Ok(obj.literals[&ndx].clone()),
     }

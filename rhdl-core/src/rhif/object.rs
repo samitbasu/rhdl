@@ -5,7 +5,8 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::ops::Range;
 
-use crate::ast::spanned_source::SpannedSource;
+use crate::ast::source_location::SourceLocation;
+use crate::ast::spanned_source::SpannedSourceSet;
 use crate::{
     ast::ast_impl::{FunctionId, NodeId},
     rhif::spec::Slot,
@@ -17,21 +18,30 @@ use super::spec::{FuncId, LiteralId, RegisterId};
 
 #[derive(Debug, Clone, Hash)]
 pub struct SymbolMap {
-    pub source: SpannedSource,
-    pub slot_map: BTreeMap<Slot, NodeId>,
+    pub source_set: SpannedSourceSet,
+    pub slot_map: BTreeMap<Slot, SourceLocation>,
     pub slot_names: BTreeMap<Slot, String>,
     pub aliases: BTreeMap<Slot, BTreeSet<Slot>>,
 }
 
 impl SymbolMap {
+    pub fn source(&self) -> String {
+        self.source_set.source()
+    }
     pub fn slot_span(&self, slot: Slot) -> Option<Range<usize>> {
-        self.slot_map.get(&slot).map(|loc| self.source.span(*loc))
+        self.slot_map
+            .get(&slot)
+            .map(|loc| self.source_set.span(*loc))
     }
-    pub fn node_span(&self, node: NodeId) -> Range<usize> {
-        self.source.span(node)
+    pub fn span(&self, loc: SourceLocation) -> Range<usize> {
+        self.source_set.span(loc)
     }
-    pub fn best_span_for_slot_in_expression(&self, slot: Slot, expression: NodeId) -> Range<usize> {
-        let expression_span = self.node_span(expression);
+    pub fn best_span_for_slot_in_expression(
+        &self,
+        slot: Slot,
+        expression: SourceLocation,
+    ) -> Range<usize> {
+        let expression_span = self.span(expression);
         let mut best_range = self.slot_span(slot).unwrap_or(expression_span);
         let mut best_range_len = best_range.len();
         if let Some(equivalent) = self.aliases.get(&slot) {
@@ -51,23 +61,29 @@ impl SymbolMap {
     pub fn alias(&mut self, from_slot: Slot, to_slot: Slot) {
         self.aliases.entry(from_slot).or_default().insert(to_slot);
     }
+    pub fn fallback(&self, func: FunctionId) -> SourceLocation {
+        self.source_set.fallback(func)
+    }
 }
 
 #[derive(Clone, Hash)]
 pub struct LocatedOpCode {
     pub op: OpCode,
-    pub id: NodeId,
+    pub loc: SourceLocation,
 }
 
 impl LocatedOpCode {
-    pub fn new(op: OpCode, id: NodeId) -> Self {
-        Self { op, id }
+    pub fn new(op: OpCode, id: NodeId, func: FunctionId) -> Self {
+        Self {
+            op,
+            loc: SourceLocation { node: id, func },
+        }
     }
 }
 
-impl From<(OpCode, NodeId)> for LocatedOpCode {
-    fn from((op, id): (OpCode, NodeId)) -> Self {
-        Self { op, id }
+impl From<(OpCode, NodeId, FunctionId)> for LocatedOpCode {
+    fn from((op, id, func): (OpCode, NodeId, FunctionId)) -> Self {
+        Self::new(op, id, func)
     }
 }
 
