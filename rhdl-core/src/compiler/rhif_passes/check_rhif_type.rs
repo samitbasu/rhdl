@@ -1,7 +1,7 @@
 // Check a RHIF object for type correctness.
 
 use crate::{
-    ast::ast_impl::{NodeId, WrapOp},
+    ast::{ast_impl::WrapOp, source_location::SourceLocation},
     compiler::mir::error::ICE,
     error::RHDLError,
     rhif::{
@@ -48,7 +48,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
         obj.kind(*slot)
     };
     // Checks that two kinds are equal, but ignores clocking information
-    let eq_kinds = |a: Kind, b: Kind, node: NodeId| -> Result<(), RHDLError> {
+    let eq_kinds = |a: Kind, b: Kind, loc: SourceLocation| -> Result<(), RHDLError> {
         // Special case Empty == Tuple([])
         if a.is_empty() && b.is_empty() {
             return Ok(());
@@ -61,15 +61,14 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
             Err(TypeCheckPass::raise_ice(
                 obj,
                 ICE::MismatchInDataTypes { lhs: a, rhs: b },
-                node,
+                loc,
             ))
         }
     };
     eprintln!("Checking RHIF type correctness {:?}", obj);
     for lop in &obj.ops {
         let op = &lop.op;
-        let id = lop.id;
-        eprintln!("check op: {:?}", op);
+        let loc = lop.loc;
         match op {
             OpCode::Noop => {}
             OpCode::Binary(Binary {
@@ -84,8 +83,8 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 arg1,
                 arg2,
             }) => {
-                eq_kinds(slot_type(lhs), slot_type(arg1), id)?;
-                eq_kinds(slot_type(lhs), slot_type(arg2), id)?;
+                eq_kinds(slot_type(lhs), slot_type(arg1), loc)?;
+                eq_kinds(slot_type(lhs), slot_type(arg2), loc)?;
             }
             OpCode::Binary(Binary {
                 op: AluBinary::Shl | AluBinary::Shr,
@@ -93,14 +92,14 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 arg1,
                 arg2,
             }) => {
-                eq_kinds(slot_type(lhs), slot_type(arg1), id)?;
+                eq_kinds(slot_type(lhs), slot_type(arg1), loc)?;
                 if !slot_type(arg2).is_unsigned() {
                     return Err(TypeCheckPass::raise_ice(
                         obj,
                         ICE::ShiftOperatorRequiresUnsignedArgument {
                             kind: slot_type(arg2),
                         },
-                        id,
+                        loc,
                     ));
                 }
             }
@@ -116,8 +115,8 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 arg1,
                 arg2,
             }) => {
-                eq_kinds(slot_type(arg1), slot_type(arg2), id)?;
-                eq_kinds(slot_type(lhs), Kind::make_bool(), id)?;
+                eq_kinds(slot_type(arg1), slot_type(arg2), loc)?;
+                eq_kinds(slot_type(lhs), Kind::make_bool(), loc)?;
             }
             // The unary operators can sneak through to RHIF if the user defines
             // them for their own types.  So we need to check that they are only
@@ -127,14 +126,14 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 lhs,
                 arg1,
             }) => {
-                eq_kinds(slot_type(lhs), slot_type(arg1), id)?;
+                eq_kinds(slot_type(lhs), slot_type(arg1), loc)?;
             }
             OpCode::Unary(Unary {
                 op: AluUnary::All | AluUnary::Any | AluUnary::Xor,
                 lhs,
                 arg1: _,
             }) => {
-                eq_kinds(slot_type(lhs), Kind::make_bool(), id)?;
+                eq_kinds(slot_type(lhs), Kind::make_bool(), loc)?;
             }
             OpCode::Unary(Unary {
                 op: AluUnary::Signed,
@@ -146,10 +145,10 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                     return Err(TypeCheckPass::raise_ice(
                         obj,
                         ICE::SignedCastRequiresUnsignedArgument,
-                        id,
+                        loc,
                     ));
                 };
-                eq_kinds(slot_type(lhs), Kind::Signed(x), id)?;
+                eq_kinds(slot_type(lhs), Kind::Signed(x), loc)?;
             }
             OpCode::Unary(Unary {
                 op: AluUnary::Unsigned,
@@ -161,15 +160,15 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                     return Err(TypeCheckPass::raise_ice(
                         obj,
                         ICE::UnsignedCastRequiresSignedArgument,
-                        id,
+                        loc,
                     ));
                 };
-                eq_kinds(slot_type(lhs), Kind::make_bits(x), id)?;
+                eq_kinds(slot_type(lhs), Kind::make_bits(x), loc)?;
             }
             OpCode::Array(Array { lhs, elements }) => eq_kinds(
                 slot_type(lhs),
                 Kind::make_array(slot_type(&elements[0]), elements.len()),
-                id,
+                loc,
             )?,
             OpCode::Select(Select {
                 lhs,
@@ -177,12 +176,12 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 true_value,
                 false_value,
             }) => {
-                eq_kinds(slot_type(lhs), slot_type(true_value), id)?;
-                eq_kinds(slot_type(lhs), slot_type(false_value), id)?;
-                eq_kinds(slot_type(cond), Kind::make_bool(), id)?;
+                eq_kinds(slot_type(lhs), slot_type(true_value), loc)?;
+                eq_kinds(slot_type(lhs), slot_type(false_value), loc)?;
+                eq_kinds(slot_type(cond), Kind::make_bool(), loc)?;
             }
             OpCode::Assign(Assign { lhs, rhs }) => {
-                eq_kinds(slot_type(lhs), slot_type(rhs), id)?;
+                eq_kinds(slot_type(lhs), slot_type(rhs), loc)?;
             }
             OpCode::Splice(Splice {
                 lhs,
@@ -193,18 +192,18 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 eq_kinds(
                     sub_kind(slot_type(lhs), &approximate_dynamic_paths(path))?,
                     slot_type(subst),
-                    id,
+                    loc,
                 )?;
-                eq_kinds(slot_type(lhs), slot_type(orig), id)?;
+                eq_kinds(slot_type(lhs), slot_type(orig), loc)?;
             }
             OpCode::Tuple(Tuple { lhs, fields }) => {
                 let ty = fields.iter().map(slot_type).collect::<Vec<_>>();
-                eq_kinds(slot_type(lhs), Kind::make_tuple(ty), id)?;
+                eq_kinds(slot_type(lhs), Kind::make_tuple(ty), loc)?;
             }
             OpCode::Index(Index { lhs, arg, path }) => {
                 let ty = slot_type(arg).signal_data();
                 let ty = sub_kind(ty, &approximate_dynamic_paths(path))?;
-                eq_kinds(ty, slot_type(lhs), id)?;
+                eq_kinds(ty, slot_type(lhs), loc)?;
                 for slot in path.dynamic_slots() {
                     if !slot_type(slot).signal_data().is_unsigned() {
                         return Err(TypeCheckPass::raise_ice(
@@ -222,22 +221,22 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 template,
             }) => {
                 let ty = slot_type(lhs);
-                eq_kinds(ty, template.kind, id)?;
+                eq_kinds(ty, template.kind, loc)?;
                 if let Some(rest) = rest {
                     let rest_ty = slot_type(rest);
-                    eq_kinds(ty, rest_ty, id)?;
+                    eq_kinds(ty, rest_ty, loc)?;
                 }
                 for field in fields {
                     match &field.member {
                         rhif::spec::Member::Named(name) => {
                             let path = Path::default().field(name);
                             let ty = sub_kind(ty, &path)?;
-                            eq_kinds(slot_type(&field.value), ty, id)?;
+                            eq_kinds(slot_type(&field.value), ty, loc)?;
                         }
                         rhif::spec::Member::Unnamed(index) => {
                             let path = Path::default().index(*index as usize);
                             let ty = sub_kind(ty, &path)?;
-                            eq_kinds(slot_type(&field.value), ty, id)?;
+                            eq_kinds(slot_type(&field.value), ty, loc)?;
                         }
                     }
                 }
@@ -264,14 +263,14 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                     match &field.member {
                         rhif::spec::Member::Named(name) => {
                             let ty = sub_kind(variant_kind, &Path::default().field(name))?;
-                            eq_kinds(slot_type(&field.value), ty, id)?;
+                            eq_kinds(slot_type(&field.value), ty, loc)?;
                         }
                         rhif::spec::Member::Unnamed(index) => {
                             let ty = sub_kind(
                                 variant_kind,
                                 &Path::default().tuple_index(*index as usize),
                             )?;
-                            eq_kinds(slot_type(&field.value), ty, id)?;
+                            eq_kinds(slot_type(&field.value), ty, loc)?;
                         }
                     }
                 }
@@ -285,7 +284,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                         obj.symbols.slot_map[lhs],
                     ));
                 };
-                eq_kinds(ty, Kind::make_array(*array_ty.base.clone(), *len as _), id)?;
+                eq_kinds(ty, Kind::make_array(*array_ty.base.clone(), *len as _), loc)?;
             }
             OpCode::Comment(_) => {}
             OpCode::Case(Case {
@@ -295,7 +294,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
             }) => {
                 let arg_ty = slot_type(expr);
                 for (entry_test, entry_body) in table {
-                    eq_kinds(slot_type(lhs), slot_type(entry_body), id)?;
+                    eq_kinds(slot_type(lhs), slot_type(entry_body), loc)?;
                     match entry_test {
                         CaseArgument::Slot(slot) => {
                             if !matches!(slot, Slot::Literal(_)) {
@@ -305,7 +304,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                                     obj.symbols.slot_map[slot],
                                 ));
                             }
-                            eq_kinds(arg_ty, slot_type(slot), id)?;
+                            eq_kinds(arg_ty, slot_type(slot), loc)?;
                         }
                         CaseArgument::Wild => {}
                     }
@@ -319,15 +318,15 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 // Get the function signature.
                 let sub = &obj.externals[func_id];
                 let sub_args = sub.arguments.iter().map(|x| sub.kind(Slot::Register(*x)));
-                eq_kinds(slot_type(lhs), sub.kind(sub.return_slot), id)?;
+                eq_kinds(slot_type(lhs), sub.kind(sub.return_slot), loc)?;
                 for (arg, param) in args.iter().zip(sub_args) {
-                    eq_kinds(slot_type(arg), param, id)?;
+                    eq_kinds(slot_type(arg), param, loc)?;
                 }
                 if args.len() != sub.arguments.len() {
                     return Err(TypeCheckPass::raise_ice(
                         obj,
                         ICE::ArgumentCountMismatchOnCall,
-                        id,
+                        loc,
                     ));
                 }
             }
@@ -335,36 +334,36 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 let len = len.ok_or(TypeCheckPass::raise_ice(
                     obj,
                     ICE::BitCastMissingRequiredLength,
-                    id,
+                    loc,
                 ))?;
-                eq_kinds(slot_type(lhs), Kind::make_bits(len), id)?;
+                eq_kinds(slot_type(lhs), Kind::make_bits(len), loc)?;
             }
             OpCode::AsSigned(Cast { lhs, arg: _, len }) => {
                 let len = len.ok_or(TypeCheckPass::raise_ice(
                     obj,
                     ICE::BitCastMissingRequiredLength,
-                    id,
+                    loc,
                 ))?;
-                eq_kinds(slot_type(lhs), Kind::make_signed(len), id)?;
+                eq_kinds(slot_type(lhs), Kind::make_signed(len), loc)?;
             }
             OpCode::Resize(Cast { lhs, arg, len }) => {
                 let len = len.ok_or(TypeCheckPass::raise_ice(
                     obj,
                     ICE::BitCastMissingRequiredLength,
-                    id,
+                    loc,
                 ))?;
                 if slot_type(arg).is_signed() {
-                    eq_kinds(slot_type(lhs), Kind::make_signed(len), id)?;
+                    eq_kinds(slot_type(lhs), Kind::make_signed(len), loc)?;
                 } else {
-                    eq_kinds(slot_type(lhs), Kind::make_bits(len), id)?;
+                    eq_kinds(slot_type(lhs), Kind::make_bits(len), loc)?;
                 }
             }
             OpCode::Retime(Retime { lhs, arg, color: _ }) => {
-                eq_kinds(slot_type(lhs), slot_type(arg), id)?;
+                eq_kinds(slot_type(lhs), slot_type(arg), loc)?;
             }
             OpCode::Wrap(Wrap { op, lhs, arg, kind }) => {
                 let Some(wrap_kind) = kind else {
-                    return Err(TypeCheckPass::raise_ice(obj, ICE::WrapMissingKind, id));
+                    return Err(TypeCheckPass::raise_ice(obj, ICE::WrapMissingKind, loc));
                 };
                 match op {
                     WrapOp::Err | WrapOp::Ok => {
@@ -372,7 +371,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                             return Err(TypeCheckPass::raise_ice(
                                 obj,
                                 ICE::WrapRequiresResultKind { kind: *wrap_kind },
-                                id,
+                                loc,
                             ));
                         }
                     }
@@ -381,12 +380,12 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                             return Err(TypeCheckPass::raise_ice(
                                 obj,
                                 ICE::WrapRequiresOptionKind { kind: *wrap_kind },
-                                id,
+                                loc,
                             ));
                         }
                     }
                 }
-                eq_kinds(slot_type(lhs), *wrap_kind, id)?;
+                eq_kinds(slot_type(lhs), *wrap_kind, loc)?;
                 let payload_path = match op {
                     WrapOp::Ok => Path::default().payload("Ok").tuple_index(0),
                     WrapOp::Err => Path::default().payload("Err").tuple_index(0),
@@ -394,7 +393,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                     WrapOp::None => Path::default().payload("None"),
                 };
                 let payload_ty = sub_kind(*wrap_kind, &payload_path)?;
-                eq_kinds(slot_type(arg), payload_ty, id)?;
+                eq_kinds(slot_type(arg), payload_ty, loc)?;
             }
         }
     }

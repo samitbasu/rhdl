@@ -37,14 +37,14 @@ impl Pass for LowerDynamicIndicesWithConstantArguments {
                     index.path = simplify_path(index.path, &input);
                     LocatedOpCode {
                         op: OpCode::Index(index),
-                        id: lop.id,
+                        loc: lop.loc,
                     }
                 }
                 OpCode::Splice(mut splice) => {
                     splice.path = simplify_path(splice.path, &input);
                     LocatedOpCode {
                         op: OpCode::Splice(splice),
-                        id: lop.id,
+                        loc: lop.loc,
                     }
                 }
                 _ => lop,

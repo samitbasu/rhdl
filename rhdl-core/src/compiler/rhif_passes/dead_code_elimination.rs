@@ -96,7 +96,7 @@ impl Pass for DeadCodeEliminationPass {
                 if alive {
                     op
                 } else {
-                    (OpCode::Noop, op.id).into()
+                    (OpCode::Noop, op.loc).into()
                 }
             })
             .collect();

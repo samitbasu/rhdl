@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    ast::ast_impl::NodeId,
+    ast::source_location::SourceLocation,
     rhif::spec::Member,
     types::kind::{DiscriminantLayout, Enum, Field, Struct},
     Color, DiscriminantAlignment, DiscriminantType, Kind,
@@ -306,7 +306,7 @@ pub fn make_variant_tag(name: &str, discriminant: i64) -> VariantTag {
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
 pub struct TypeId {
     kind: TypeKindId,
-    pub id: NodeId,
+    pub loc: SourceLocation,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -354,59 +354,59 @@ impl UnifyContext {
         }
     }
 
-    fn ty_app(&mut self, id: NodeId, kind: AppType) -> TypeId {
+    fn ty_app(&mut self, loc: SourceLocation, kind: AppType) -> TypeId {
         TypeId {
-            id,
+            loc,
             kind: self.types.intern(&TypeKind::App(kind)),
         }
     }
 
-    pub fn ty_const(&mut self, id: NodeId, const_ty: Const) -> TypeId {
+    pub fn ty_const(&mut self, loc: SourceLocation, const_ty: Const) -> TypeId {
         TypeId {
-            id,
+            loc,
             kind: self.types.intern(&TypeKind::Const(const_ty)),
         }
     }
 
-    pub fn ty_const_len(&mut self, id: NodeId, len: usize) -> TypeId {
-        self.ty_const(id, Const::Length(len))
+    pub fn ty_const_len(&mut self, loc: SourceLocation, len: usize) -> TypeId {
+        self.ty_const(loc, Const::Length(len))
     }
 
-    pub fn ty_bool(&mut self, id: NodeId) -> TypeId {
-        let n = self.ty_const_len(id, 1);
-        self.ty_bits(id, n)
+    pub fn ty_bool(&mut self, loc: SourceLocation) -> TypeId {
+        let n = self.ty_const_len(loc, 1);
+        self.ty_bits(loc, n)
     }
 
-    pub fn ty_usize(&mut self, id: NodeId) -> TypeId {
-        let n = self.ty_const_len(id, 64);
-        self.ty_bits(id, n)
+    pub fn ty_usize(&mut self, loc: SourceLocation) -> TypeId {
+        let n = self.ty_const_len(loc, 64);
+        self.ty_bits(loc, n)
     }
 
-    pub fn ty_sign_flag(&mut self, id: NodeId, sign_flag: SignFlag) -> TypeId {
-        self.ty_const(id, Const::Signed(sign_flag))
+    pub fn ty_sign_flag(&mut self, loc: SourceLocation, sign_flag: SignFlag) -> TypeId {
+        self.ty_const(loc, Const::Signed(sign_flag))
     }
 
-    pub fn ty_bits(&mut self, id: NodeId, len: TypeId) -> TypeId {
-        let sign_flag = self.ty_sign_flag(id, SignFlag::Unsigned);
-        self.ty_app(id, AppType::Bits(AppBits { sign_flag, len }))
+    pub fn ty_bits(&mut self, loc: SourceLocation, len: TypeId) -> TypeId {
+        let sign_flag = self.ty_sign_flag(loc, SignFlag::Unsigned);
+        self.ty_app(loc, AppType::Bits(AppBits { sign_flag, len }))
     }
 
-    pub fn ty_signed(&mut self, id: NodeId, len: TypeId) -> TypeId {
-        let sign_flag = self.ty_sign_flag(id, SignFlag::Signed);
-        self.ty_app(id, AppType::Bits(AppBits { sign_flag, len }))
+    pub fn ty_signed(&mut self, loc: SourceLocation, len: TypeId) -> TypeId {
+        let sign_flag = self.ty_sign_flag(loc, SignFlag::Signed);
+        self.ty_app(loc, AppType::Bits(AppBits { sign_flag, len }))
     }
 
-    pub fn ty_signal(&mut self, id: NodeId, data: TypeId, clock: TypeId) -> TypeId {
-        self.ty_app(id, AppType::Signal(AppSignal { data, clock }))
+    pub fn ty_signal(&mut self, loc: SourceLocation, data: TypeId, clock: TypeId) -> TypeId {
+        self.ty_app(loc, AppType::Signal(AppSignal { data, clock }))
     }
 
-    pub fn ty_result(&mut self, id: NodeId, ok_ty: TypeId, err_ty: TypeId) -> TypeId {
-        let discriminant = self.ty_bool(id);
-        let name = self.ty_var(id);
-        let err_ty = self.ty_tuple(id, vec![err_ty]);
-        let ok_ty = self.ty_tuple(id, vec![ok_ty]);
+    pub fn ty_result(&mut self, loc: SourceLocation, ok_ty: TypeId, err_ty: TypeId) -> TypeId {
+        let discriminant = self.ty_bool(loc);
+        let name = self.ty_var(loc);
+        let err_ty = self.ty_tuple(loc, vec![err_ty]);
+        let ok_ty = self.ty_tuple(loc, vec![ok_ty]);
         self.ty_app(
-            id,
+            loc,
             AppType::Enum(AppEnum {
                 name,
                 discriminant,
@@ -419,13 +419,13 @@ impl UnifyContext {
         )
     }
 
-    pub fn ty_option(&mut self, id: NodeId, some_ty: TypeId) -> TypeId {
-        let discriminant = self.ty_bool(id);
-        let none_ty = self.ty_empty(id);
-        let name = self.ty_var(id);
-        let some_ty = self.ty_tuple(id, vec![some_ty]);
+    pub fn ty_option(&mut self, loc: SourceLocation, some_ty: TypeId) -> TypeId {
+        let discriminant = self.ty_bool(loc);
+        let none_ty = self.ty_empty(loc);
+        let name = self.ty_var(loc);
+        let some_ty = self.ty_tuple(loc, vec![some_ty]);
         self.ty_app(
-            id,
+            loc,
             AppType::Enum(AppEnum {
                 name,
                 discriminant,
@@ -438,40 +438,45 @@ impl UnifyContext {
         )
     }
 
-    pub fn ty_with_sign_and_len(&mut self, id: NodeId, sign_flag: TypeId, len: TypeId) -> TypeId {
-        self.ty_app(id, AppType::Bits(AppBits { sign_flag, len }))
+    pub fn ty_with_sign_and_len(
+        &mut self,
+        loc: SourceLocation,
+        sign_flag: TypeId,
+        len: TypeId,
+    ) -> TypeId {
+        self.ty_app(loc, AppType::Bits(AppBits { sign_flag, len }))
     }
 
-    pub fn ty_maybe_signed(&mut self, id: NodeId, len: TypeId) -> TypeId {
-        let sign_flag = self.ty_var(id);
-        self.ty_app(id, AppType::Bits(AppBits { sign_flag, len }))
+    pub fn ty_maybe_signed(&mut self, loc: SourceLocation, len: TypeId) -> TypeId {
+        let sign_flag = self.ty_var(loc);
+        self.ty_app(loc, AppType::Bits(AppBits { sign_flag, len }))
     }
 
-    pub fn ty_var(&mut self, id: NodeId) -> TypeId {
+    pub fn ty_var(&mut self, loc: SourceLocation) -> TypeId {
         let ty = TypeId {
-            id,
+            loc,
             kind: self.types.intern(&TypeKind::Var(self.var)),
         };
         self.var.0 += 1;
         ty
     }
 
-    pub fn ty_array(&mut self, id: NodeId, base: TypeId, len: TypeId) -> TypeId {
-        self.ty_app(id, AppType::Array(AppArray { base, len }))
+    pub fn ty_array(&mut self, loc: SourceLocation, base: TypeId, len: TypeId) -> TypeId {
+        self.ty_app(loc, AppType::Array(AppArray { base, len }))
     }
 
-    pub fn ty_struct(&mut self, id: NodeId, strukt: &Struct) -> TypeId {
+    pub fn ty_struct(&mut self, loc: SourceLocation, strukt: &Struct) -> TypeId {
         let fields: Vec<(String, TypeId)> = strukt
             .fields
             .iter()
             .map(|field| {
                 let name = field.name.clone();
-                let ty = self.from_kind(id, &field.kind);
+                let ty = self.from_kind(loc, &field.kind);
                 (name, ty)
             })
             .collect();
         self.ty_app(
-            id,
+            loc,
             AppType::Struct(AppStruct {
                 name: strukt.name.clone(),
                 fields,
@@ -481,32 +486,32 @@ impl UnifyContext {
 
     pub fn ty_dyn_struct(
         &mut self,
-        id: NodeId,
+        loc: SourceLocation,
         name: String,
         fields: Vec<(String, TypeId)>,
     ) -> TypeId {
-        self.ty_app(id, AppType::Struct(AppStruct { name, fields }))
+        self.ty_app(loc, AppType::Struct(AppStruct { name, fields }))
     }
 
-    fn ty_discriminant(&mut self, id: NodeId, layout: DiscriminantLayout) -> TypeId {
-        let len = self.ty_const_len(id, layout.width);
+    fn ty_discriminant(&mut self, loc: SourceLocation, layout: DiscriminantLayout) -> TypeId {
+        let len = self.ty_const_len(loc, layout.width);
         match layout.ty {
-            DiscriminantType::Unsigned => self.ty_bits(id, len),
-            DiscriminantType::Signed => self.ty_signed(id, len),
+            DiscriminantType::Unsigned => self.ty_bits(loc, len),
+            DiscriminantType::Signed => self.ty_signed(loc, len),
         }
     }
 
     pub fn ty_dyn_enum(
         &mut self,
-        id: NodeId,
+        loc: SourceLocation,
         name: String,
         discriminant: TypeId,
         alignment: DiscriminantAlignment,
         variants: Vec<(VariantTag, TypeId)>,
     ) -> TypeId {
-        let name = self.ty_const(id, Const::String(name));
+        let name = self.ty_const(loc, Const::String(name));
         self.ty_app(
-            id,
+            loc,
             AppType::Enum(AppEnum {
                 name,
                 variants,
@@ -516,13 +521,13 @@ impl UnifyContext {
         )
     }
 
-    pub fn ty_enum(&mut self, id: NodeId, enumerate: &Enum) -> TypeId {
+    pub fn ty_enum(&mut self, loc: SourceLocation, enumerate: &Enum) -> TypeId {
         let variants: Vec<(VariantTag, TypeId)> = enumerate
             .variants
             .iter()
             .map(|variant| {
                 let name = variant.name.clone();
-                let ty = self.from_kind(id, &variant.kind);
+                let ty = self.from_kind(loc, &variant.kind);
                 let tag = VariantTag {
                     name,
                     discriminant: variant.discriminant,
@@ -530,10 +535,10 @@ impl UnifyContext {
                 (tag, ty)
             })
             .collect();
-        let discriminant = self.ty_discriminant(id, enumerate.discriminant_layout);
-        let name = self.ty_const(id, Const::String(enumerate.name.clone()));
+        let discriminant = self.ty_discriminant(loc, enumerate.discriminant_layout);
+        let name = self.ty_const(loc, Const::String(enumerate.name.clone()));
         self.ty_app(
-            id,
+            loc,
             AppType::Enum(AppEnum {
                 name,
                 variants,
@@ -543,11 +548,11 @@ impl UnifyContext {
         )
     }
 
-    pub fn ty_tuple(&mut self, id: NodeId, fields: Vec<TypeId>) -> TypeId {
+    pub fn ty_tuple(&mut self, loc: SourceLocation, fields: Vec<TypeId>) -> TypeId {
         if fields.is_empty() {
-            self.ty_empty(id)
+            self.ty_empty(loc)
         } else {
-            self.ty_app(id, AppType::Tuple(AppTuple { elements: fields }))
+            self.ty_app(loc, AppType::Tuple(AppTuple { elements: fields }))
         }
     }
 
@@ -640,18 +645,18 @@ impl UnifyContext {
         enumerate.discriminant
     }
 
-    pub fn ty_clock(&mut self, id: NodeId, clock: Color) -> TypeId {
-        self.ty_const(id, Const::Clock(clock))
+    pub fn ty_clock(&mut self, loc: SourceLocation, clock: Color) -> TypeId {
+        self.ty_const(loc, Const::Clock(clock))
     }
 
-    pub fn ty_empty(&mut self, id: NodeId) -> TypeId {
-        self.ty_const(id, Const::Empty)
+    pub fn ty_empty(&mut self, loc: SourceLocation) -> TypeId {
+        self.ty_const(loc, Const::Empty)
     }
 
-    pub fn ty_integer(&mut self, id: NodeId) -> TypeId {
-        let len = self.ty_var(id);
-        let sign_flag = self.ty_var(id);
-        self.ty_app(id, AppType::Bits(AppBits { sign_flag, len }))
+    pub fn ty_integer(&mut self, loc: SourceLocation) -> TypeId {
+        let len = self.ty_var(loc);
+        let sign_flag = self.ty_var(loc);
+        self.ty_app(loc, AppType::Bits(AppBits { sign_flag, len }))
     }
 
     fn cast_ty_as_sign_flag(&mut self, ty: TypeId) -> Result<SignFlag> {
@@ -693,36 +698,36 @@ impl UnifyContext {
         }
     }
 
-    pub fn from_kind(&mut self, id: NodeId, kind: &Kind) -> TypeId {
+    pub fn from_kind(&mut self, loc: SourceLocation, kind: &Kind) -> TypeId {
         match kind {
             Kind::Bits(n) => {
-                let n = self.ty_const_len(id, *n);
-                self.ty_bits(id, n)
+                let n = self.ty_const_len(loc, *n);
+                self.ty_bits(loc, n)
             }
             Kind::Signed(n) => {
-                let n = self.ty_const_len(id, *n);
-                self.ty_signed(id, n)
+                let n = self.ty_const_len(loc, *n);
+                self.ty_signed(loc, n)
             }
-            Kind::Empty => self.ty_empty(id),
-            Kind::Struct(strukt) => self.ty_struct(id, strukt),
+            Kind::Empty => self.ty_empty(loc),
+            Kind::Struct(strukt) => self.ty_struct(loc, strukt),
             Kind::Tuple(fields) => {
                 let arg = fields
                     .elements
                     .iter()
-                    .map(|k| self.from_kind(id, k))
+                    .map(|k| self.from_kind(loc, k))
                     .collect();
-                self.ty_tuple(id, arg)
+                self.ty_tuple(loc, arg)
             }
-            Kind::Enum(enumerate) => self.ty_enum(id, enumerate),
+            Kind::Enum(enumerate) => self.ty_enum(loc, enumerate),
             Kind::Array(array) => {
-                let base = self.from_kind(id, &array.base);
-                let len = self.ty_const_len(id, array.size);
-                self.ty_array(id, base, len)
+                let base = self.from_kind(loc, &array.base);
+                let len = self.ty_const_len(loc, array.size);
+                self.ty_array(loc, base, len)
             }
             Kind::Signal(kind, clock) => {
-                let kind = self.from_kind(id, kind);
-                let clock = self.ty_clock(id, *clock);
-                self.ty_signal(id, kind, clock)
+                let kind = self.from_kind(loc, kind);
+                let clock = self.ty_clock(loc, *clock);
+                self.ty_signal(loc, kind, clock)
             }
         }
     }
@@ -891,7 +896,7 @@ impl UnifyContext {
             }
             TypeKind::App(app) => {
                 let app = app.apply(self);
-                self.ty_app(ty.id, app)
+                self.ty_app(ty.loc, app)
             }
             _ => ty,
         }
@@ -1035,12 +1040,17 @@ impl UnifyContext {
 
 #[cfg(test)]
 mod tests {
+    use crate::ast::ast_impl::NodeId;
+
     use super::*;
 
     #[test]
     fn test_case_1() {
         let mut ctx = UnifyContext::default();
-        let id = NodeId::new(0);
+        let id = NodeId {
+            func: 0.into(),
+            node: NodeId::new(0),
+        };
         let x = ctx.ty_var(id);
         let y = ctx.ty_var(id);
         let z = ctx.ty_var(id);
@@ -1061,7 +1071,10 @@ mod tests {
     #[test]
     fn test_case_2() {
         let mut ctx = UnifyContext::default();
-        let id = NodeId::new(0);
+        let id = NodeId {
+            func: 0.into(),
+            node: NodeId::new(0),
+        };
         let n = ctx.ty_const_len(id, 12);
         let x = ctx.ty_bits(id, n);
         let m = ctx.ty_var(id);

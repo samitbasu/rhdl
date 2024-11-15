@@ -73,7 +73,7 @@ pub struct LocatedOpCode {
 }
 
 impl LocatedOpCode {
-    pub fn new(op: OpCode, id: NodeId, func: FunctionId) -> Self {
+    pub fn new(op: OpCode, id: SourceLocation, func: FunctionId) -> Self {
         Self {
             op,
             loc: SourceLocation { node: id, func },
@@ -81,9 +81,15 @@ impl LocatedOpCode {
     }
 }
 
-impl From<(OpCode, NodeId, FunctionId)> for LocatedOpCode {
-    fn from((op, id, func): (OpCode, NodeId, FunctionId)) -> Self {
+impl From<(OpCode, SourceLocation, FunctionId)> for LocatedOpCode {
+    fn from((op, id, func): (OpCode, SourceLocation, FunctionId)) -> Self {
         Self::new(op, id, func)
+    }
+}
+
+impl From<(OpCode, SourceLocation)> for LocatedOpCode {
+    fn from((op, loc): (OpCode, SourceLocation)) -> Self {
+        Self { op, loc }
     }
 }
 

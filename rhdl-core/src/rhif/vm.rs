@@ -26,7 +26,7 @@ struct VMState<'a> {
 }
 
 impl<'a> VMState<'a> {
-    fn raise_ice(&self, cause: ICE, loc: SourceLocation) -> RHDLError {
+    fn raise_ice(&self, cause: ICE, loc: NodeId) -> RHDLError {
         let symbols = &self.obj.symbols;
         rhdl_error(RHDLCompileError {
             cause,
@@ -34,7 +34,7 @@ impl<'a> VMState<'a> {
             err_span: symbols.span(loc).into(),
         })
     }
-    fn read(&self, slot: Slot, loc: SourceLocation) -> Result<TypedBits> {
+    fn read(&self, slot: Slot, loc: NodeId) -> Result<TypedBits> {
         match slot {
             Slot::Literal(l) => Ok(self.literals[&l].clone()),
             Slot::Register(r) => self.reg_stack[r.0]
@@ -43,7 +43,7 @@ impl<'a> VMState<'a> {
             Slot::Empty => Ok(TypedBits::EMPTY),
         }
     }
-    fn write(&mut self, slot: Slot, value: TypedBits, loc: SourceLocation) -> Result<()> {
+    fn write(&mut self, slot: Slot, value: TypedBits, loc: NodeId) -> Result<()> {
         match slot {
             Slot::Literal(ndx) => Err(self.raise_ice(ICE::CannotWriteToRHIFLiteral { ndx }, loc)),
             Slot::Register(r) => {
@@ -59,7 +59,7 @@ impl<'a> VMState<'a> {
             }
         }
     }
-    fn resolve_dynamic_paths(&mut self, path: &Path, loc: SourceLocation) -> Result<Path> {
+    fn resolve_dynamic_paths(&mut self, path: &Path, loc: NodeId) -> Result<Path> {
         let mut result = Path::default();
         for element in &path.elements {
             match element {

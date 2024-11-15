@@ -1,5 +1,5 @@
 use crate::{
-    ast::ast_impl::NodeId,
+    ast::source_location::SourceLocation,
     compiler::mir::error::{RHDLSyntaxError, Syntax},
     error::RHDLError,
     rhif::{
@@ -18,17 +18,17 @@ fn check_register_like(
     obj: &Object,
     vals: &[(Slot, Kind)],
     cause: Syntax,
-    expression: NodeId,
+    expr_loc: SourceLocation,
 ) -> Result<(), RHDLError> {
     for (slot, kind) in vals {
         let kind = kind.signal_data();
         if !matches!(kind, Kind::Bits(_) | Kind::Signed(_)) {
             return Err(Box::new(RHDLSyntaxError {
-                src: obj.symbols.source_set.source.clone(),
+                src: obj.symbols.source(),
                 cause,
                 err_span: obj
                     .symbols
-                    .best_span_for_slot_in_expression(*slot, expression)
+                    .best_span_for_slot_in_expression(*slot, expr_loc)
                     .into(),
             })
             .into());
@@ -40,19 +40,19 @@ fn check_register_like(
 impl Pass for CheckForRolledTypesPass {
     fn run(obj: Object) -> Result<Object, RHDLError> {
         let slot_type = |slot: &Slot| -> Kind { obj.kind(*slot) };
-        let roll_error = |cause: Syntax, slot: Slot, id: NodeId| -> RHDLError {
+        let roll_error = |cause: Syntax, slot: Slot, loc: SourceLocation| -> RHDLError {
             Box::new(RHDLSyntaxError {
-                src: obj.symbols.source_set.source.clone(),
+                src: obj.symbols.source(),
                 cause,
                 err_span: obj
                     .symbols
-                    .best_span_for_slot_in_expression(slot, id)
+                    .best_span_for_slot_in_expression(slot, loc)
                     .into(),
             })
             .into()
         };
         for lop in &obj.ops {
-            let id = lop.id;
+            let loc = lop.loc;
             let op = &lop.op;
             match op {
                 OpCode::Binary(Binary {
@@ -75,7 +75,7 @@ impl Pass for CheckForRolledTypesPass {
                             (*arg2, slot_type(arg2)),
                         ],
                         Syntax::RollYourOwnBinary,
-                        id,
+                        loc,
                     )?;
                 }
                 OpCode::Unary(Unary {
@@ -88,7 +88,7 @@ impl Pass for CheckForRolledTypesPass {
                         return Err(roll_error(
                             Syntax::RollYourOwnUnary { op: AluUnary::Val },
                             *arg1,
-                            id,
+                            loc,
                         ));
                     }
                 }
@@ -104,7 +104,7 @@ impl Pass for CheckForRolledTypesPass {
                                 op: AluUnary::Signed,
                             },
                             *arg1,
-                            id,
+                            loc,
                         ));
                     }
                 }
@@ -120,7 +120,7 @@ impl Pass for CheckForRolledTypesPass {
                                 op: AluUnary::Unsigned,
                             },
                             *arg1,
-                            id,
+                            loc,
                         ));
                     }
                 }
@@ -129,7 +129,7 @@ impl Pass for CheckForRolledTypesPass {
                         &obj,
                         &[(*lhs, slot_type(lhs)), (*arg1, slot_type(arg1))],
                         Syntax::RollYourOwnUnary { op: *op },
-                        id,
+                        loc,
                     )?;
                 }
                 _ => {}

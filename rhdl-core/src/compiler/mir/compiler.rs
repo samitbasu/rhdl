@@ -279,7 +279,7 @@ impl<'a> MirContext<'a> {
         }
         locals
     }
-    fn set_locals(&mut self, map: &LocalsMap, id: NodeId) -> Result<()> {
+    fn set_locals(&mut self, map: &LocalsMap, loc: NodeId) -> Result<()> {
         for (ndx, slot) in map {
             let ScopeIndex { scope, name } = ndx;
             let Some(binding) = self.scopes[scope.0].names.get_mut(name) else {
@@ -288,7 +288,7 @@ impl<'a> MirContext<'a> {
                         ICE::LocalVariableDoesNotExist {
                             name: (*name).to_owned(),
                         },
-                        id,
+                        loc,
                     )
                     .into());
             };
@@ -520,8 +520,8 @@ impl<'a> MirContext<'a> {
             err_span: source_span.into(),
         })
     }
-    fn raise_ice(&self, cause: ICE, id: NodeId) -> Box<RHDLCompileError> {
-        let source_span = self.spanned_source.span(id);
+    fn raise_ice(&self, cause: ICE, loc: NodeId) -> Box<RHDLCompileError> {
+        let source_span = self.spanned_source.span(loc);
         Box::new(RHDLCompileError {
             cause,
             src: self.spanned_source.source.clone(),
@@ -611,7 +611,7 @@ impl<'a> MirContext<'a> {
         let rhs = self.expr(&assign.rhs)?;
         let (rebind, path) = self.expr_lhs(&assign.lhs)?;
         self.ty_equate.insert(TypeEquivalence {
-            id,
+            loc: id,
             lhs: rebind.to,
             rhs: rebind.from,
         });
@@ -651,7 +651,7 @@ impl<'a> MirContext<'a> {
             }
         };
         self.ty_equate.insert(TypeEquivalence {
-            id,
+            loc: id,
             lhs: dest.to,
             rhs: dest.from,
         });
@@ -1210,7 +1210,7 @@ impl<'a> MirContext<'a> {
                 )
             })?;
             self.op(op_assign(lhs, rhs), id);
-            self.ty_equate.insert(TypeEquivalence { id, lhs, rhs });
+            self.ty_equate.insert(TypeEquivalence { loc: id, lhs, rhs });
             return Ok(lhs);
         }
         Err(self
