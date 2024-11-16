@@ -135,7 +135,24 @@ mod tests {
     }
 
     #[test]
-    fn test_hdl_generation() -> miette::Result<()> {
+    fn test_hdl_generation_rtl() -> miette::Result<()> {
+        type UC = U<Red, Green, 8>;
+        let uut = UC::default();
+        let options = TestModuleOptions {
+            skip_first_cases: 10,
+            vcd_file: Some("gray_sync_rtl.vcd".into()),
+            flow_graph_level: false,
+            hold_time: 1,
+        };
+        let stream = sync_stream();
+        let test_mod = build_rtl_testmodule(&uut, stream, options)?;
+        std::fs::write("gray_sync_rtl.v", test_mod.to_string()).unwrap();
+        test_mod.run_iverilog()?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_hdl_generation_fg() -> miette::Result<()> {
         type UC = U<Red, Green, 8>;
         let uut = UC::default();
         let options = TestModuleOptions {

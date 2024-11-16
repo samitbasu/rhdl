@@ -82,6 +82,7 @@ impl<'a> FlowGraphHDLBuilder<'a> {
                 .collect(),
         })
     }
+    // Note that collect_argument is MSB -> LSB
     fn collect_argument<T: Fn(&EdgeKind) -> Option<usize>>(
         &self,
         node: FlowIx,

@@ -1,7 +1,9 @@
 use crate::{
     digital_fn::NoKernel2,
     flow_graph::edge_kind::EdgeKind,
-    hdl::ast::{component_instance, connection, id, index, index_bit, Direction, Module},
+    hdl::ast::{
+        component_instance, concatenate, connection, id, index, index_bit, Direction, Module,
+    },
     rtl::object::RegisterKind,
     types::{kind::Field, signal::signal},
     Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, ClockReset, Digital, DigitalFn, Domain,
@@ -162,23 +164,18 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         .collect();
         let child_name = &format!("{}_inner", name);
         let child = self.circuit.descriptor(child_name)?;
-        let clock_connection = Some(connection("clock", index_bit("i", 0)));
-        let reset_connection = Some(connection("reset", index_bit("i", 1)));
+        let clock_reset = concatenate(vec![index_bit("i", 1), index_bit("i", 0)]);
+        let cr_connection = Some(connection("clock_reset", clock_reset));
         let input_connection = (!child.input_kind.is_empty())
             .then(|| connection("i", index("i", 2..(2 + child.input_kind.bits()))));
         let output_connection = Some(connection("o", id("o")));
         let child_decl = component_instance(
             &child.unique_name,
             "c",
-            vec![
-                clock_connection,
-                reset_connection,
-                input_connection,
-                output_connection,
-            ]
-            .into_iter()
-            .flatten()
-            .collect(),
+            vec![cr_connection, input_connection, output_connection]
+                .into_iter()
+                .flatten()
+                .collect(),
         );
         module.statements.push(child_decl);
         let child_hdl = self.circuit.hdl(child_name)?;
