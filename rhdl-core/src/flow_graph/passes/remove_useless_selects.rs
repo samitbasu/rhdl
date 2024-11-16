@@ -1,9 +1,6 @@
 use std::collections::HashSet;
 
-use petgraph::{
-    graph::{self, EdgeIndex},
-    visit::{EdgeRef, NodeFilteredNodes},
-};
+use petgraph::{graph::EdgeIndex, visit::EdgeRef};
 
 use crate::{
     flow_graph::{

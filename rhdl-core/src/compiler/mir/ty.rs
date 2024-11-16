@@ -34,6 +34,7 @@ pub enum Const {
     Empty,
     Signed(SignFlag),
     String(String),
+    Unclocked,
 }
 
 // These are types that are generic over one or more other types.
@@ -751,6 +752,7 @@ impl UnifyContext {
                 }
                 Const::String(s) => s.to_string(),
                 Const::Empty => "()".to_string(),
+                Const::Unclocked => "*".to_string(),
             },
             TypeKind::App(app) => match app {
                 AppType::Struct(strukt) => format!(
@@ -1047,7 +1049,7 @@ mod tests {
     #[test]
     fn test_case_1() {
         let mut ctx = UnifyContext::default();
-        let id = NodeId {
+        let id = SourceLocation {
             func: 0.into(),
             node: NodeId::new(0),
         };
@@ -1071,7 +1073,7 @@ mod tests {
     #[test]
     fn test_case_2() {
         let mut ctx = UnifyContext::default();
-        let id = NodeId {
+        let id = SourceLocation {
             func: 0.into(),
             node: NodeId::new(0),
         };

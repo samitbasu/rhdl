@@ -444,6 +444,10 @@ impl ClockCoherenceContext<'_> {
                     let orig_ty = self.slot_type(&splice.orig);
                     let subst_ty = self.slot_type(&splice.subst);
                     let path_ty = self.ty_path_project(splice.orig, &splice.path, loc)?;
+                    eprintln!("lhs_ty: {:?}", self.ctx.desc(lhs_ty));
+                    eprintln!("orig_ty: {:?}", self.ctx.desc(orig_ty));
+                    eprintln!("subst_ty: {:?}", self.ctx.desc(subst_ty));
+                    eprintln!("path_ty: {:?}", self.ctx.desc(path_ty));
                     if self.ctx.unify(orig_ty, lhs_ty).is_err() {
                         return Err(self
                             .raise_clock_coherence_error(
@@ -462,6 +466,15 @@ impl ClockCoherenceContext<'_> {
                             )
                             .into());
                     }
+                    eprintln!("After unify");
+                    let lhs_ty = self.ctx.apply(lhs_ty);
+                    let orig_ty = self.ctx.apply(orig_ty);
+                    let subst_ty = self.ctx.apply(subst_ty);
+                    let path_ty = self.ctx.apply(path_ty);
+                    eprintln!("lhs_ty: {:?}", self.ctx.desc(lhs_ty));
+                    eprintln!("orig_ty: {:?}", self.ctx.desc(orig_ty));
+                    eprintln!("subst_ty: {:?}", self.ctx.desc(subst_ty));
+                    eprintln!("path_ty: {:?}", self.ctx.desc(path_ty));
                 }
                 OpCode::Array(array) => {
                     let ty_lhs = self.slot_type(&array.lhs);

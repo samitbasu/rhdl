@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::ast::ast_impl::{NodeId, WrapOp};
+use crate::ast::ast_impl::WrapOp;
 use crate::ast::source_location::SourceLocation;
 use crate::compiler::mir::error::{RHDLCompileError, ICE};
 use crate::error::rhdl_error;
@@ -26,7 +26,7 @@ struct VMState<'a> {
 }
 
 impl<'a> VMState<'a> {
-    fn raise_ice(&self, cause: ICE, loc: NodeId) -> RHDLError {
+    fn raise_ice(&self, cause: ICE, loc: SourceLocation) -> RHDLError {
         let symbols = &self.obj.symbols;
         rhdl_error(RHDLCompileError {
             cause,
@@ -34,7 +34,7 @@ impl<'a> VMState<'a> {
             err_span: symbols.span(loc).into(),
         })
     }
-    fn read(&self, slot: Slot, loc: NodeId) -> Result<TypedBits> {
+    fn read(&self, slot: Slot, loc: SourceLocation) -> Result<TypedBits> {
         match slot {
             Slot::Literal(l) => Ok(self.literals[&l].clone()),
             Slot::Register(r) => self.reg_stack[r.0]
@@ -43,7 +43,7 @@ impl<'a> VMState<'a> {
             Slot::Empty => Ok(TypedBits::EMPTY),
         }
     }
-    fn write(&mut self, slot: Slot, value: TypedBits, loc: NodeId) -> Result<()> {
+    fn write(&mut self, slot: Slot, value: TypedBits, loc: SourceLocation) -> Result<()> {
         match slot {
             Slot::Literal(ndx) => Err(self.raise_ice(ICE::CannotWriteToRHIFLiteral { ndx }, loc)),
             Slot::Register(r) => {
@@ -59,7 +59,7 @@ impl<'a> VMState<'a> {
             }
         }
     }
-    fn resolve_dynamic_paths(&mut self, path: &Path, loc: NodeId) -> Result<Path> {
+    fn resolve_dynamic_paths(&mut self, path: &Path, loc: SourceLocation) -> Result<Path> {
         let mut result = Path::default();
         for element in &path.elements {
             match element {

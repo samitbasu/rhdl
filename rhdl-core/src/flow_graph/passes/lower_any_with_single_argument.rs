@@ -1,6 +1,6 @@
 use crate::{
     flow_graph::component::{ComponentKind, Unary},
-    hdl::ast::{unsigned_width, SignedWidth},
+    hdl::ast::SignedWidth,
     rhif::spec::AluUnary,
     FlowGraph, RHDLError,
 };

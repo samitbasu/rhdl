@@ -210,7 +210,7 @@ impl Pass for ConstantPropagationPass {
                     )
                 })
         };
-        let mut candidates = graph
+        let candidates = graph
             .node_indices()
             .filter(|node| all_inputs_constant(*node))
             .collect::<Vec<_>>();
