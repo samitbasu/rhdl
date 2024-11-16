@@ -16,14 +16,14 @@ use super::symbols::SymbolMap;
 #[derive(Clone, Hash)]
 pub struct LocatedOpCode {
     pub op: OpCode,
-    pub loc: NodeId,
+    pub loc: SourceLocation,
 }
 
 impl LocatedOpCode {
     pub fn new(op: OpCode, id: NodeId, func: FunctionId) -> Self {
         Self {
             op,
-            loc: NodeId { node: id, func },
+            loc: SourceLocation { node: id, func },
         }
     }
 }
@@ -34,8 +34,8 @@ impl From<(OpCode, NodeId, FunctionId)> for LocatedOpCode {
     }
 }
 
-impl From<(OpCode, NodeId)> for LocatedOpCode {
-    fn from((op, loc): (OpCode, NodeId)) -> Self {
+impl From<(OpCode, SourceLocation)> for LocatedOpCode {
+    fn from((op, loc): (OpCode, SourceLocation)) -> Self {
         Self { op, loc }
     }
 }

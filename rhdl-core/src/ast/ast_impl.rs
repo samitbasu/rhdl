@@ -428,7 +428,7 @@ pub struct FieldPat {
     pub pat: Box<Pat>,
 }
 
-#[derive(Clone, Copy, Hash, PartialEq, PartialOrd, Ord, Eq, Default)]
+#[derive(Clone, Copy, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct FunctionId(u64);
 
 impl From<u64> for FunctionId {

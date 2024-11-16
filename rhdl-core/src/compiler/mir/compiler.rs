@@ -19,6 +19,7 @@ use crate::ast::ast_impl::BitsKind;
 use crate::ast::ast_impl::ExprBits;
 use crate::ast::ast_impl::ExprTry;
 use crate::ast::ast_impl::ExprTypedBits;
+use crate::ast::ast_impl::NodeId;
 use crate::ast::ast_impl::WrapOp;
 use crate::ast::ast_impl::{
     Arm, ArmKind, Block, ExprArray, ExprAssign, ExprBinary, ExprCall, ExprField, ExprForLoop,
@@ -63,7 +64,7 @@ use crate::KernelFnKind;
 use crate::Kind;
 use crate::TypedBits;
 use crate::{
-    ast::ast_impl::{Expr, ExprKind, ExprLit, FunctionId, NodeId},
+    ast::ast_impl::{Expr, ExprKind, ExprLit, FunctionId},
     rhif::spec::{OpCode, Slot},
 };
 
@@ -215,7 +216,7 @@ impl<'a> std::fmt::Debug for MirContext<'a> {
 }
 
 impl<'a> MirContext<'a> {
-    fn new(spanned_source: &'a SpannedSource, mode: CompilationMode) -> Self {
+    fn new(spanned_source: &'a SpannedSource, mode: CompilationMode, fn_id: FunctionId) -> Self {
         MirContext {
             kinds: Intern::default(),
             scopes: vec![Scope {
@@ -232,7 +233,7 @@ impl<'a> MirContext<'a> {
             stash: Default::default(),
             return_slot: Slot::Empty,
             arguments: vec![],
-            fn_id: FunctionId::default(),
+            fn_id,
             name: "",
             active_scope: ROOT_SCOPE,
             slot_names: BTreeMap::new(),
@@ -489,7 +490,7 @@ impl<'a> MirContext<'a> {
         Ok(ndx)
     }
     fn op(&mut self, op: OpCode, node: NodeId) {
-        self.ops.push((op, node).into());
+        self.ops.push((op, (self.fn_id, node).into()).into());
     }
     fn insert_implicit_return(
         &mut self,
@@ -611,7 +612,7 @@ impl<'a> MirContext<'a> {
         let rhs = self.expr(&assign.rhs)?;
         let (rebind, path) = self.expr_lhs(&assign.lhs)?;
         self.ty_equate.insert(TypeEquivalence {
-            loc: id,
+            loc: (self.fn_id, id).into(),
             lhs: rebind.to,
             rhs: rebind.from,
         });
@@ -651,7 +652,7 @@ impl<'a> MirContext<'a> {
             }
         };
         self.ty_equate.insert(TypeEquivalence {
-            loc: id,
+            loc: (self.fn_id, id).into(),
             lhs: dest.to,
             rhs: dest.from,
         });
@@ -1210,7 +1211,11 @@ impl<'a> MirContext<'a> {
                 )
             })?;
             self.op(op_assign(lhs, rhs), id);
-            self.ty_equate.insert(TypeEquivalence { loc: id, lhs, rhs });
+            self.ty_equate.insert(TypeEquivalence {
+                loc: (self.fn_id, id).into(),
+                lhs,
+                rhs,
+            });
             return Ok(lhs);
         }
         Err(self
@@ -1443,8 +1448,10 @@ impl<'a> Visitor for MirContext<'a> {
             self.initialize_local(arg, *slot)?;
         }
         self.block(block_result, &node.body)?;
-        self.ops.insert(0, (init_early_exit_op, node.id).into());
-        self.ops.insert(1, (init_return_slot, node.id).into());
+        self.ops
+            .insert(0, (init_early_exit_op, (self.fn_id, node.id).into()).into());
+        self.ops
+            .insert(1, (init_return_slot, (self.fn_id, node.id).into()).into());
         self.insert_implicit_return(node.body.id, block_result, node.name)?;
         self.return_slot = self
             .lookup_name(node.name)
@@ -1471,7 +1478,7 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
             panic!("Missing span for node {:?}", node);
         }
     }
-    let mut compiler = MirContext::new(&source, mode);
+    let mut compiler = MirContext::new(&source, mode, func.inner().fn_id);
     compiler.visit_kernel_fn(func.inner())?;
     compiler.bind_slot_to_type(compiler.return_slot, &func.inner().ret);
     let ty: BTreeMap<Slot, Kind> = compiler
@@ -1487,15 +1494,17 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
         }
     }
     let source = build_spanned_source_for_kernel(func.inner());
+    let fn_id = compiler.fn_id;
     let slot_map = compiler
         .reg_source_map
         .into_iter()
         .chain(once((Slot::Empty, func.inner().id)))
+        .map(|(slot, node)| (slot, (fn_id, node).into()))
         .collect();
     Ok(Mir {
         symbols: SymbolMap {
             slot_map,
-            source_set: source,
+            source_set: (fn_id, source).into(),
             slot_names: compiler.slot_names,
             aliases: Default::default(),
         },

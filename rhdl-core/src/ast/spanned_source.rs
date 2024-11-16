@@ -50,6 +50,14 @@ impl Extend<(FunctionId, SpannedSource)> for SpannedSourceSet {
     }
 }
 
+impl From<(FunctionId, SpannedSource)> for SpannedSourceSet {
+    fn from((id, src): (FunctionId, SpannedSource)) -> Self {
+        let mut set = SpannedSourceSet::default();
+        set.sources.insert(id, src);
+        set
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct SpannedSource {
     pub source: String,
