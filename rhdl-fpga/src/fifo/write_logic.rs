@@ -19,6 +19,12 @@ use rhdl::prelude::*;
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U<const N: usize> {
     write_address: dff::U<Bits<N>>,
+    // We delay the write address by one clock before sending
+    // it to the read side of the FIFO.  This is because it will
+    // take one clock for the write to actually happen, and we
+    // want to make sure the value is valid on the read side before
+    // "counting" the write.
+    write_address_delayed: dff::U<Bits<N>>,
     overflow: dff::U<bool>,
 }
 
@@ -57,13 +63,14 @@ pub fn write_logic<const N: usize>(cr: ClockReset, i: I<N>, q: Q<N>) -> (O<N>, D
     // If we will write, advance the write address
     let write_address = q.write_address + if will_write { 1 } else { 0 };
     let mut d = D::<{ N }>::init();
+    d.write_address_delayed = q.write_address;
     d.write_address = write_address;
     d.overflow = overflow;
     let mut o = O::<{ N }>::init();
     o.full = full;
     o.almost_full = almost_full;
-    // We output the current write address, not the future one
-    o.write_address = q.write_address;
+    // We output the current write address delayed by one clock, not the future one
+    o.write_address = q.write_address_delayed;
     o.overflow = overflow;
     // Handle the reset logic
     if cr.reset.any() {
@@ -91,6 +98,7 @@ mod tests {
         };
         let q = Q::<4> {
             write_address: bits(0b1111),
+            write_address_delayed: bits(0b1111),
             overflow: false,
         };
         let (o, d) = write_logic(cr, i, q);
@@ -111,6 +119,7 @@ mod tests {
         };
         let q = Q::<4> {
             write_address: bits(0b1110),
+            write_address_delayed: bits(0b1110),
             overflow: false,
         };
         let (o, d) = write_logic(cr, i, q);
@@ -131,6 +140,7 @@ mod tests {
         };
         let q = Q::<4> {
             write_address: bits(0b1100),
+            write_address_delayed: bits(0b1100),
             overflow: false,
         };
         let (o, d) = write_logic(cr, i, q);
@@ -151,6 +161,7 @@ mod tests {
         };
         let q = Q::<4> {
             write_address: bits(0b1111),
+            write_address_delayed: bits(0b1111),
             overflow: false,
         };
         let (o, d) = write_logic(cr, i, q);
@@ -171,6 +182,7 @@ mod tests {
         };
         let q = Q::<4> {
             write_address: bits(0b1111),
+            write_address_delayed: bits(0b1111),
             overflow: true,
         };
         let (o, d) = write_logic(cr, i, q);
@@ -191,6 +203,7 @@ mod tests {
         };
         let q = Q::<4> {
             write_address: bits(0b1100),
+            write_address_delayed: bits(0b1100),
             overflow: false,
         };
         let (o, d) = write_logic(cr, i, q);
@@ -211,6 +224,7 @@ mod tests {
         };
         let q = Q::<4> {
             write_address: bits(0b1111),
+            write_address_delayed: bits(0b1111),
             overflow: true,
         };
         let (o, d) = write_logic(cr, i, q);

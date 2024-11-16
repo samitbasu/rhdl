@@ -1,9 +1,29 @@
 use rhdl::prelude::*;
 
-use crate::{core::dff, gray::Gray};
+use crate::{
+    core::dff,
+    gray::{decode::gray_decode, encode::gray_code, Gray},
+};
 
 use super::synchronizer;
 
+/// This core provides a counter where the output of the
+/// counter is in one clock domain (W), while the pulses
+/// it counts are in a different clock domain (R).  The
+/// count is guaranteed not to exceed the true count unless
+/// the counter wraps.  In general, you can assume that that the
+/// count on the W clock domain will lag the count on the R clock domain.
+///
+/// SAFETY - this core uses a vector of 1-bit synchronizers, but
+/// with a Gray-coded counter.  This is safe because the first stage
+/// of registers in the synchronizers will sample the Gray-coded signal
+/// essentially simultaneously.  The Gray-coded signal is guaranteed to
+/// have at most one bit changing at any time point.  Thus, all bits
+/// will be correct when sampled with the possible exception of the
+/// bit that is changing at that time.  This bit may resolve to the correct
+/// value, or it may not.  If it does not, the transition will be missed
+/// and the counter will be off by one.  However, at the next sample point,
+/// this bit will be correct.  
 #[derive(Clone, Circuit, CircuitDQ)]
 pub struct U<R: Domain, W: Domain, const N: usize> {
     // This counter lives in the R domain, and
@@ -25,8 +45,11 @@ impl<R: Domain, W: Domain, const N: usize> Default for U<R, W, N> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Digital, Timed)]
 pub struct I<R: Domain, W: Domain, const N: usize> {
+    /// The input data pulses to be counter from the R clock domain
     pub data: Signal<bool, R>,
+    /// The clock and reset for the R clock domain
     pub data_cr: Signal<ClockReset, R>,
+    /// The clock and reset for the output clock domain W
     pub cr: Signal<ClockReset, W>,
 }
 
@@ -34,36 +57,6 @@ impl<R: Domain, W: Domain, const N: usize> CircuitIO for U<R, W, N> {
     type I = I<R, W, N>;
     type O = Signal<Bits<N>, W>;
     type Kernel = gray_kernel<R, W, N>;
-}
-
-#[kernel]
-fn gray_code<const N: usize>(i: Bits<N>) -> Gray<N> {
-    Gray::<N>(i ^ (i >> 1))
-}
-
-#[kernel]
-pub fn gray_decode<const N: usize>(i: Gray<N>) -> Bits<N> {
-    let mut o = i.0;
-    o ^= o >> 1;
-    if ({ N } > 2) {
-        o ^= o >> 2;
-    }
-    if ({ N } > 4) {
-        o ^= o >> 4;
-    }
-    if ({ N } > 8) {
-        o ^= o >> 8;
-    }
-    if ({ N } > 16) {
-        o ^= o >> 16;
-    }
-    if ({ N } > 32) {
-        o ^= o >> 32;
-    }
-    if ({ N } > 64) {
-        o ^= o >> 64;
-    }
-    o
 }
 
 #[kernel]

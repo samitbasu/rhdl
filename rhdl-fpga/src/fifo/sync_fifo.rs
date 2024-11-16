@@ -1,4 +1,3 @@
-use crate::core::dff;
 use crate::core::synchronous_ram;
 use rhdl::prelude::*;
 
@@ -18,8 +17,7 @@ pub struct U<T: Digital, const N: usize> {
 
 #[derive(Clone, Copy, Debug, PartialEq, Digital)]
 pub struct I<T: Digital> {
-    data: T,
-    write_enable: bool,
+    data: Option<T>,
     next: bool,
 }
 
@@ -51,16 +49,20 @@ pub fn fifo_kernel<T: Digital, const N: usize>(
     // so we just need to route the signals.
     let mut d = D::<T, N>::init();
     let mut o = O::<T>::init();
+    let (write_data, write_enable) = match i.data {
+        Some(data) => (data, true),
+        None => (T::init(), false),
+    };
     // Connect the read logic inputs
     d.read_logic.write_address = q.write_logic.write_address;
     d.read_logic.next = i.next;
     // Connect the write logic inputs
     d.write_logic.read_address = q.read_logic.read_address;
-    d.write_logic.write_enable = i.write_enable;
+    d.write_logic.write_enable = write_enable;
     // Connect the RAM inputs
     d.ram.write.addr = q.write_logic.write_address;
-    d.ram.write.value = i.data;
-    d.ram.write.enable = i.write_enable;
+    d.ram.write.value = write_data;
+    d.ram.write.enable = write_enable;
     d.ram.read_addr = q.read_logic.read_address;
     // Populate the outputs
     o.data = q.ram;
@@ -81,29 +83,32 @@ mod tests {
 
     fn write(data: b8) -> I<Bits<8>> {
         I {
-            data,
-            write_enable: true,
+            data: Some(data),
             next: false,
         }
     }
 
     fn read() -> I<Bits<8>> {
         I {
-            data: Bits::default(),
-            write_enable: false,
+            data: None,
             next: true,
         }
+    }
+
+    fn test_seq() -> impl Iterator<Item = TimedSample<(ClockReset, I<Bits<8>>)>> {
+        let write_seq = (0..7).map(|i| write(bits(i + 1)));
+        let read_seq = (0..7).map(|_| read());
+        let stream = stream(write_seq.chain(read_seq));
+        let stream = reset_pulse(1).chain(stream);
+        let stream = clock_pos_edge(stream, 100);
+        stream
     }
 
     #[test]
     fn basic_write_then_read_test() {
         type UC = U<Bits<8>, 3>;
         let uut = U::<Bits<8>, 3>::default();
-        let write_seq = (0..7).map(|i| write(bits(i + 1)));
-        let read_seq = (0..7).map(|_| read());
-        let stream = stream(write_seq.chain(read_seq));
-        let stream = reset_pulse(1).chain(stream);
-        let stream = clock_pos_edge(stream, 100);
+        let stream = test_seq();
         validate_synchronous(
             &uut,
             stream,
@@ -111,5 +116,38 @@ mod tests {
             &mut [],
             ValidateOptions::default().vcd("fifo.vcd"),
         );
+    }
+
+    #[test]
+    fn test_hdl_generation_rtl() -> miette::Result<()> {
+        type UC = U<Bits<8>, 3>;
+        let uut = U::<Bits<8>, 3>::default();
+        let options = TestModuleOptions {
+            skip_first_cases: !0,
+            vcd_file: Some("fifo_sync_rtl.vcd".into()),
+            hold_time: 1,
+            ..Default::default()
+        };
+        let stream = test_seq();
+        let test_mod = build_rtl_testmodule_synchronous(&uut, stream, options)?;
+        std::fs::write("fifo_sync_rtl.v", test_mod.to_string()).unwrap();
+        test_mod.run_iverilog()?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_hdl_generation_fg() -> miette::Result<()> {
+        type UC = U<Bits<8>, 3>;
+        let uut = UC::default();
+        let options = TestModuleOptions {
+            vcd_file: Some("fifo_sync_fg.vcd".into()),
+            flow_graph_level: true,
+            ..Default::default()
+        };
+        let stream = test_seq();
+        let test_mod = build_rtl_testmodule_synchronous(&uut, stream, options)?;
+        std::fs::write("fifo_sync_fg.v", test_mod.to_string()).unwrap();
+        test_mod.run_iverilog()?;
+        Ok(())
     }
 }
