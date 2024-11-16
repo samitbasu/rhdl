@@ -200,6 +200,13 @@ impl ClockCoherenceContext<'_> {
             }
         }
     }
+    fn import_literals(&mut self) {
+        for (&lit_id, _) in &self.obj.literals {
+            let id = self.obj.symbols.slot_map[&lit_id.into()];
+            let ty = self.ctx.ty_unclocked(id);
+            self.slot_map.insert(lit_id.into(), ty);
+        }
+    }
     fn import_registers(&mut self) {
         for (&reg_id, kind) in &self.obj.kind {
             let id = self.obj.symbols.slot_map[&reg_id.into()];
@@ -213,6 +220,7 @@ impl ClockCoherenceContext<'_> {
         cause_id: SourceLocation,
         cause: ClockError,
     ) -> Result<(), RHDLError> {
+        eprintln!("unify clocks {:?}", slots);
         let ty_clock = self.ctx.ty_var(cause_id);
         for slot in slots {
             if !slot.is_empty() {
@@ -223,6 +231,10 @@ impl ClockCoherenceContext<'_> {
                         .into());
                 }
             }
+        }
+        eprintln!("After unify clocks");
+        for slot in slots {
+            let ty_slot = self.slot_type(slot);
         }
         Ok(())
     }
@@ -338,15 +350,16 @@ impl ClockCoherenceContext<'_> {
         // If the slot is a literal or empty, just make up a new
         // variable and return it.
         match slot {
-            Slot::Empty | Slot::Literal(_) => {
+            Slot::Empty => {
                 let id = self.obj.symbols.slot_map[slot];
-                self.ctx.ty_var(id)
+                self.ctx.ty_unclocked(id)
             }
-            Slot::Register(_) => self.slot_map[slot],
+            Slot::Register(_) | Slot::Literal(_) => self.slot_map[slot],
         }
     }
     fn check(&mut self) -> Result<(), RHDLError> {
         eprintln!("Code before clock check: {:?}", self.obj);
+        self.import_literals();
         self.import_registers();
         self.dump_resolution();
         for lop in &self.obj.ops {
@@ -532,11 +545,17 @@ impl ClockCoherenceContext<'_> {
                         .map(|field| self.slot_type(field))
                         .collect::<Vec<_>>();
                     let ty_rhs = self.ctx.ty_tuple(loc, ty_rhs_elements);
+                    let tl = self.ctx.apply(ty_lhs);
+                    let tr = self.ctx.apply(ty_rhs);
+                    eprintln!("Tuple {:?} U {:?}", self.ctx.desc(tl), self.ctx.desc(tr));
                     if self.ctx.unify(ty_lhs, ty_rhs).is_err() {
+                        let slots = std::iter::once(tuple.lhs)
+                            .chain(tuple.fields.iter().copied())
+                            .collect::<Vec<_>>();
                         return Err(self
                             .raise_clock_coherence_error(
                                 loc,
-                                &[tuple.lhs],
+                                &slots,
                                 ClockError::TupleClockMismatch,
                             )
                             .into());

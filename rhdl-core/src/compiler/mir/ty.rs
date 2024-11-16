@@ -646,6 +646,10 @@ impl UnifyContext {
         enumerate.discriminant
     }
 
+    pub fn ty_unclocked(&mut self, loc: SourceLocation) -> TypeId {
+        self.ty_const(loc, Const::Unclocked)
+    }
+
     pub fn ty_clock(&mut self, loc: SourceLocation, clock: Color) -> TypeId {
         self.ty_const(loc, Const::Clock(clock))
     }
@@ -910,6 +914,10 @@ impl UnifyContext {
         match (&self.types[x.kind], &self.types[y.kind]) {
             (TypeKind::Var(_), _) => self.unify_variable(x, y),
             (_, TypeKind::Var(_)) => self.unify_variable(y, x),
+            (TypeKind::Const(Const::Unclocked), TypeKind::Const(Const::Clock(_)))
+            | (TypeKind::Const(Const::Clock(_)), TypeKind::Const(Const::Unclocked)) => Ok(()),
+            (TypeKind::App(_), TypeKind::Const(Const::Unclocked)) => self.unify_app_unclocked(x, y),
+            (TypeKind::Const(Const::Unclocked), TypeKind::App(_)) => self.unify_app_unclocked(y, x),
             (TypeKind::Const(x), TypeKind::Const(y)) if x == y => Ok(()),
             (TypeKind::App(_), TypeKind::App(_)) => self.unify_app(x, y),
             _ => bail!(
@@ -950,6 +958,15 @@ impl UnifyContext {
         // All is good, so add the substitution to the map.
         self.add_subst(v, x)
     }
+    fn unify_unclocked_tuple(&mut self, x: &AppTuple, y: TypeId) -> Result<()> {
+        if x.elements.is_empty() {
+            return Ok(());
+        }
+        for a in x.elements.iter() {
+            self.unify(*a, y)?;
+        }
+        Ok(())
+    }
     fn unify_tuple(&mut self, x: &AppTuple, y: &AppTuple) -> Result<()> {
         if x.elements.len() != y.elements.len() {
             bail!("Cannot unify {:?} and {:?}", x, y);
@@ -959,9 +976,18 @@ impl UnifyContext {
         }
         Ok(())
     }
+    fn unify_unclocked_array(&mut self, x: &AppArray, y: TypeId) -> Result<()> {
+        self.unify(x.base, y)
+    }
     fn unify_array(&mut self, x: &AppArray, y: &AppArray) -> Result<()> {
         self.unify(x.base, y.base)?;
         self.unify(x.len, y.len)
+    }
+    fn unify_unclocked_struct(&mut self, x: &AppStruct, y: TypeId) -> Result<()> {
+        for (_, t) in x.fields.iter() {
+            self.unify(*t, y)?;
+        }
+        Ok(())
     }
     fn unify_struct(&mut self, x: &AppStruct, y: &AppStruct) -> Result<()> {
         if x.name != y.name {
@@ -975,6 +1001,13 @@ impl UnifyContext {
                 bail!("Cannot unify {:?} and {:?}", a, b);
             }
             self.unify(a.1, b.1)?;
+        }
+        Ok(())
+    }
+    fn unify_unclocked_enum(&mut self, x: &AppEnum, y: TypeId) -> Result<()> {
+        self.unify(x.discriminant, y)?;
+        for (_, t) in x.variants.iter() {
+            self.unify(*t, y)?;
         }
         Ok(())
     }
@@ -1014,6 +1047,18 @@ impl UnifyContext {
             (AppType::Bits(b1), AppType::Bits(b2)) => self.unify_bits(b1, b2),
             (AppType::Signal(s1), AppType::Signal(s2)) => self.unify_signal(s1, s2),
             _ => bail!("Cannot unify {:?} and {:?}", app1, app2),
+        }
+    }
+    fn unify_app_unclocked(&mut self, x: TypeId, y: TypeId) -> Result<()> {
+        let TypeKind::App(app) = self.types[x.kind].clone() else {
+            bail!("Expected app type instead of {:?}", self.types[x.kind]);
+        };
+        match &app {
+            AppType::Tuple(t1) => self.unify_unclocked_tuple(t1, y),
+            AppType::Array(a1) => self.unify_unclocked_array(a1, y),
+            AppType::Struct(s1) => self.unify_unclocked_struct(s1, y),
+            AppType::Enum(e1) => self.unify_unclocked_enum(e1, y),
+            _ => bail!("Cannot unify {:?} and Unclocked", app),
         }
     }
     fn occurs(&self, v: TypeId, term: TypeId) -> bool {

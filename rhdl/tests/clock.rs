@@ -503,7 +503,7 @@ fn test_unknown_clock_domain() -> miette::Result<()> {
         };
         l + k
     }
-    assert!(compile_design::<do_stuff<Red>>(Asynchronous).is_err());
+    compile_design::<do_stuff<Red>>(Asynchronous)?;
     Ok(())
 }
 
