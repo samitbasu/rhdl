@@ -301,7 +301,6 @@ fn test_async_counter() {
         &mut [],
         ValidateOptions {
             vcd_filename: Some("async_counter.vcd".into()),
-            rtt_filename: Some("async_counter.vcd.rtt".into()),
         },
     )
 }

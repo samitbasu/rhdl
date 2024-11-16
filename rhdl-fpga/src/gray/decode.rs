@@ -6,10 +6,9 @@ use super::Gray;
 // this module will generate the binary number for that gray code.
 // Note that this is purely combinatorial, and thus may be too slow
 // for high speed applications.
-pub type U<const N: usize> = Func<Gray<N>, Bits<N>>;
 
 #[kernel]
-pub fn gray_decode<const N: usize>(_cr: ClockReset, i: Gray<N>) -> Bits<N> {
+pub fn gray_decode<const N: usize>(i: Gray<N>) -> Bits<N> {
     let mut o = i.0;
     o ^= o >> 1;
     if ({ N } > 2) {
@@ -33,10 +32,6 @@ pub fn gray_decode<const N: usize>(_cr: ClockReset, i: Gray<N>) -> Bits<N> {
     o
 }
 
-pub fn new<const N: usize>() -> Result<U<N>, RHDLError> {
-    Func::new::<gray_decode<N>>()
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -46,9 +41,8 @@ mod tests {
 
     fn test_gray_decode<const N: usize>(max_val: u128) {
         let values = (0..max_val).map(bits::<N>);
-        let cr = ClockReset::default();
-        let gray = values.clone().map(|x| gray_code(cr, x));
-        let bin = gray.map(|x| gray_decode(cr, x));
+        let gray = values.clone().map(gray_code);
+        let bin = gray.map(gray_decode);
         assert!(bin.eq(values));
     }
 
