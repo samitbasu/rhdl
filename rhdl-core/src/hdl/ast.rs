@@ -242,6 +242,7 @@ pub fn binary(op: AluBinary, left: Expression, right: Expression) -> Expression 
     })
 }
 
+// Note that this concatenation is MSB to LSB!
 pub fn concatenate(expressions: Vec<Expression>) -> Expression {
     Expression::Concat(expressions)
 }
