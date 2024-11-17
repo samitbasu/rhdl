@@ -104,3 +104,5 @@ pub use rhdl_macro::Digital;
 pub use rhdl_macro::Synchronous;
 pub use rhdl_macro::SynchronousDQ;
 pub use rhdl_macro::Timed;
+// Use the extension traits
+pub use rhdl_core::sim::timed_stream::*;

@@ -283,7 +283,7 @@ mod tests {
             stream,
             &mut [
                 glitch_check_synchronous::<UC>(),
-                //value_check_synchronous::<UC>(expected),
+                value_check_synchronous::<UC>(expected),
             ],
             ValidateOptions::default().vcd("test_scan_out_ram.vcd"),
         );

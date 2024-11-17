@@ -5,7 +5,7 @@ use super::read_logic;
 use super::write_logic;
 
 /// A simple synchronous FIFO.  This FIFO is designed to be as simple as possible
-/// while still being robust.  It is a two-port FIFO, with separate read and write
+/// and thus be robust.  It is a two-port FIFO, with separate read and write
 /// ports.  The FIFO is parameterized by the number of bits in each element.
 /// The depth of the FIFO is 2^N-1 elements.  You cannot fill the FIFO to 2^N elements.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
@@ -23,8 +23,7 @@ pub struct I<T: Digital> {
 
 #[derive(Clone, Copy, Debug, PartialEq, Digital)]
 pub struct O<T: Digital> {
-    data: T,
-    empty: bool,
+    data: Option<T>,
     full: bool,
     almost_empty: bool,
     almost_full: bool,
@@ -65,8 +64,11 @@ pub fn fifo_kernel<T: Digital, const N: usize>(
     d.ram.write.enable = write_enable;
     d.ram.read_addr = q.read_logic.read_address;
     // Populate the outputs
-    o.data = q.ram;
-    o.empty = q.read_logic.empty;
+    o.data = if q.read_logic.empty {
+        None
+    } else {
+        Some(q.ram)
+    };
     o.full = q.write_logic.full;
     o.almost_empty = q.read_logic.almost_empty;
     o.almost_full = q.write_logic.almost_full;
@@ -100,8 +102,7 @@ mod tests {
         let read_seq = (0..7).map(|_| read());
         let stream = stream(write_seq.chain(read_seq));
         let stream = reset_pulse(1).chain(stream);
-        let stream = clock_pos_edge(stream, 100);
-        stream
+        clock_pos_edge(stream, 100)
     }
 
     #[test]
@@ -112,7 +113,7 @@ mod tests {
         validate_synchronous(
             &uut,
             stream,
-            //&mut [glitch_check_synchronous::<UC>()],
+            //            &mut [glitch_check_synchronous::<UC>()],
             &mut [],
             ValidateOptions::default().vcd("fifo.vcd"),
         );

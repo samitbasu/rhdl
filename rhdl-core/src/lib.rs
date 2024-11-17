@@ -81,6 +81,5 @@ pub use dyn_bit_manip::move_nbits_to_msb;
 pub use flow_graph::flow_cost::trivial_cost;
 pub use rhdl_trace_type;
 pub use rhdl_trace_type::TraceType;
-pub use sim::stream::merge;
 pub use trace::bit::TraceBit;
 pub use trace::rtt;
