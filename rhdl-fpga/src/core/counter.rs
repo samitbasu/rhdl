@@ -40,13 +40,16 @@ mod tests {
 
     #[test]
     fn test_counter() {
-        let reset_0 = stream::reset_pulse(4);
-        let inputs_1 = stream::stream(repeat(true).take(100));
+        let inputs_1 = repeat(true).take(100).stream_after_reset(4);
         let reset_1 = stream::reset_pulse(4);
-        let inputs_2 = stream::stream(repeat(true).take(100));
-        let stream = clock_pos_edge(reset_0.chain(inputs_1.chain(reset_1.chain(inputs_2))), 100);
+        let inputs_2 = repeat(true).take(100).stream();
+        let stream = reset_0
+            .chain(inputs_1.chain(reset_1.chain(inputs_2)))
+            .clock_pos_edge(100);
         let uut: U<16> = U::default();
-        simple_traced_synchronous_run(&uut, stream, "strobe.vcd");
+        //let output = uut.run(stream);
+        let output = uut.run_traced(stream, "counter.vcd");
+        let _ = output.last();
     }
 
     #[test]
