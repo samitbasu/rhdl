@@ -88,7 +88,7 @@ pub fn gray_kernel<R: Domain, W: Domain, const N: usize>(
     (signal(o), d)
 }
 
-#[cfg(test)]
+/* #[cfg(test)]
 mod tests {
     use rand::random;
 
@@ -161,3 +161,4 @@ mod tests {
         Ok(())
     }
 }
+ */

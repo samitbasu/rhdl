@@ -98,25 +98,26 @@ where
             State::ClockLow => {
                 self.state = State::Hold;
                 self.time = self.next_time;
-                self.next_time = self.time + 1;
-                Some(self.this_sample(clock(true)))
+                self.next_time = self.time + self.period / 2;
+                Some(self.this_sample(clock(false)))
             }
             State::Hold => {
+                self.state = State::ClockHigh;
+                self.time = self.next_time;
+                self.next_time += 1;
+                Some(self.this_sample(clock(true)))
+            }
+            State::ClockHigh => {
                 if let Some(data) = self.input.next() {
                     self.sample = data;
-                    self.state = State::ClockHigh;
-                    self.next_time = self.time + self.period / 2 - 1;
+                    self.state = State::ClockLow;
+                    self.time = self.next_time;
+                    self.next_time += self.period / 2 - 1;
                     Some(self.this_sample(clock(true)))
                 } else {
                     self.state = State::Done;
                     None
                 }
-            }
-            State::ClockHigh => {
-                self.state = State::ClockLow;
-                self.time = self.next_time;
-                self.next_time = self.time + self.period / 2;
-                Some(self.this_sample(clock(false)))
             }
             State::Done => None,
         }
@@ -138,19 +139,58 @@ where
     }
 }
 
-pub trait ClockPosEdgeExt<Q>: Iterator
+pub trait ClockPosEdgeExt<Q>: IntoIterator + Sized
 where
     Q: Digital,
 {
-    fn clock_pos_edge(self, period: u64) -> impl Iterator<Item = TimedSample<(ClockReset, Q)>>;
+    fn clock_pos_edge(self, period: u64) -> ClockPosEdge<<Self as IntoIterator>::IntoIter, Q>;
 }
 
 impl<I, Q> ClockPosEdgeExt<Q> for I
 where
-    I: Iterator<Item = ResetOrData<Q>>,
+    I: IntoIterator<Item = ResetOrData<Q>>,
     Q: Digital,
 {
-    fn clock_pos_edge(self, period: u64) -> impl Iterator<Item = TimedSample<(ClockReset, Q)>> {
-        clock_pos_edge(self, period)
+    fn clock_pos_edge(self, period: u64) -> ClockPosEdge<Self::IntoIter, Q> {
+        clock_pos_edge(self.into_iter(), period)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    fn expected() -> Vec<TimedSample<(ClockReset, u64)>> {
+        vec![
+            timed_sample(0, (clock_reset(clock(false), reset(false)), 0)),
+            timed_sample(5, (clock_reset(clock(true), reset(false)), 0)),
+            timed_sample(6, (clock_reset(clock(true), reset(false)), 1)),
+            timed_sample(10, (clock_reset(clock(false), reset(false)), 1)),
+            timed_sample(15, (clock_reset(clock(true), reset(false)), 1)),
+            timed_sample(16, (clock_reset(clock(true), reset(false)), 2)),
+            timed_sample(20, (clock_reset(clock(false), reset(false)), 2)),
+            timed_sample(25, (clock_reset(clock(true), reset(false)), 2)),
+            timed_sample(26, (clock_reset(clock(true), reset(false)), 3)),
+            timed_sample(30, (clock_reset(clock(false), reset(false)), 3)),
+            timed_sample(35, (clock_reset(clock(true), reset(false)), 3)),
+        ]
+    }
+
+    #[test]
+    fn test_clock_pos_edge_on_iterator() {
+        let k = (0..4).map(ResetOrData::Data).clock_pos_edge(10);
+        let v = k.collect::<Vec<_>>();
+        assert_eq!(v, expected());
+    }
+
+    #[test]
+    fn test_clock_pos_edge_on_vector() {
+        let k = vec![0, 1, 2, 3]
+            .into_iter()
+            .map(ResetOrData::Data)
+            .clock_pos_edge(10);
+        let v = k.collect::<Vec<_>>();
+        assert_eq!(v, expected());
     }
 }

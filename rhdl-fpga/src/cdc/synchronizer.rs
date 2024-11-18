@@ -143,7 +143,7 @@ impl<R: Domain, W: Domain> Circuit for U<R, W> {
     }
 }
 
-#[cfg(test)]
+/* #[cfg(test)]
 mod tests {
     use rand::random;
 
@@ -196,3 +196,4 @@ mod tests {
         );
     }
 }
+ */

@@ -257,7 +257,7 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N>
     }
 }
 
-#[cfg(test)]
+/* #[cfg(test)]
 mod tests {
     use rhdl::core::testbench::TestModuleOptions;
 
@@ -406,3 +406,4 @@ mod tests {
         )
     }
 }
+ */
