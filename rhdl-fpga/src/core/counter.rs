@@ -36,20 +36,31 @@ mod tests {
     use rand::random;
 
     use super::*;
-    use std::iter::{once, repeat};
+    use std::{
+        iter::{once, repeat},
+        path::PathBuf,
+    };
 
     #[test]
-    fn test_counter() {
-        let inputs_1 = repeat(true).take(100).stream_after_reset(4);
-        let reset_1 = stream::reset_pulse(4);
-        let inputs_2 = repeat(true).take(100).stream();
-        let stream = reset_0
-            .chain(inputs_1.chain(reset_1.chain(inputs_2)))
-            .clock_pos_edge(100);
+    fn test_counter_on_vec() {
+        let inputs = (0..100).map(|_| random::<bool>()).collect::<Vec<_>>();
+        let inputs = inputs.stream_after_reset(4);
+        let inputs = inputs.clock_pos_edge(100);
+        let inputs = inputs.collect::<Vec<_>>();
         let uut: U<16> = U::default();
-        //let output = uut.run(stream);
-        let output = uut.run_traced(stream, "counter.vcd");
-        let _ = output.last();
+        let output = uut.run(inputs).count();
+        assert_eq!(output, 311);
+    }
+
+    #[test]
+    fn test_counter() -> std::io::Result<()> {
+        let inputs_1 = repeat(true).take(100).stream_after_reset(4);
+        let inputs_2 = inputs_1.clone();
+        let input = inputs_1.chain(inputs_2);
+        let input = input.clock_pos_edge(100);
+        let uut: U<16> = U::default();
+        let vcd: Vcd = uut.run(input).collect();
+        vcd.dump_to_file(&PathBuf::from("counter.vcd"))
     }
 
     #[test]
@@ -58,15 +69,13 @@ mod tests {
         let rand_set = (0..100)
             .map(|_| random::<bool>())
             .chain(once(false))
-            .collect::<Vec<bool>>();
+            .collect::<Vec<_>>();
         let ground_truth = rand_set
             .iter()
             .fold(0, |acc, x| acc + if *x { 1 } else { 0 });
-        let reset_0 = stream::reset_pulse(4);
-        let inputs_1 = stream::stream(rand_set.into_iter());
-        let stream = clock_pos_edge(reset_0.chain(inputs_1), 100);
+        let stream = rand_set.stream_after_reset(4).clock_pos_edge(100);
         let uut: U<16> = U::default();
-        let output = final_output_synchronous_simulation(&uut, stream);
+        let output = uut.run(stream).last().map(|x| x.value.2);
         assert_eq!(output, Some(bits(ground_truth)));
     }
 }

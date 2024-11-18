@@ -43,7 +43,7 @@ pub fn stream<I>(input: I) -> Stream<I> {
     }
 }
 
-pub fn stream_after_reset<I>(input: I, pulse: usize) -> impl Iterator<Item = ResetOrData<I::Item>>
+pub fn stream_after_reset<I>(input: I, pulse: usize) -> Stream<I>
 where
     I: Iterator,
     <I as Iterator>::Item: Digital,
@@ -54,26 +54,26 @@ where
     }
 }
 
-pub trait TimedStreamExt<Q>: Iterator
+pub trait TimedStreamExt<Q>: IntoIterator + Sized
 where
     Q: Digital,
 {
-    fn stream(self) -> impl Iterator<Item = ResetOrData<Q>>;
+    fn stream(self) -> Stream<<Self as IntoIterator>::IntoIter>;
 
-    fn stream_after_reset(self, pulse: usize) -> impl Iterator<Item = ResetOrData<Q>>;
+    fn stream_after_reset(self, pulse: usize) -> Stream<<Self as IntoIterator>::IntoIter>;
 }
 
 impl<I, Q> TimedStreamExt<Q> for I
 where
-    I: Iterator<Item = Q>,
+    I: IntoIterator<Item = Q>,
     Q: Digital,
 {
-    fn stream(self) -> impl Iterator<Item = ResetOrData<Q>> {
-        stream(self)
+    fn stream(self) -> Stream<I::IntoIter> {
+        stream(self.into_iter())
     }
 
-    fn stream_after_reset(self, pulse: usize) -> impl Iterator<Item = ResetOrData<Q>> {
-        stream_after_reset(self, pulse)
+    fn stream_after_reset(self, pulse: usize) -> Stream<I::IntoIter> {
+        stream_after_reset(self.into_iter(), pulse)
     }
 }
 
@@ -88,5 +88,19 @@ mod tests {
         let s = k.stream();
         let v = s.collect::<Vec<_>>();
         assert_eq!(v, (0..10).map(ResetOrData::Data).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn test_stream_on_vector() {
+        let k = vec![0, 1, 2, 3, 4];
+        let s = k.stream();
+        let v = s.collect::<Vec<_>>();
+        assert_eq!(
+            v,
+            vec![0, 1, 2, 3, 4]
+                .into_iter()
+                .map(ResetOrData::Data)
+                .collect::<Vec<_>>()
+        );
     }
 }

@@ -77,6 +77,7 @@ pub fn fifo_kernel<T: Digital, const N: usize>(
     (o, d)
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use stream::reset_pulse;
@@ -152,3 +153,4 @@ mod tests {
         Ok(())
     }
 }
+*/

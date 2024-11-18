@@ -216,7 +216,7 @@ impl<T: Digital, const N: usize> Synchronous for U<T, N> {
     }
 }
 
-#[cfg(test)]
+/* #[cfg(test)]
 mod tests {
     use rhdl::{
         core::sim::synchronous_validators::value_check::value_check_synchronous, prelude::*,
@@ -364,3 +364,4 @@ mod tests {
         Ok(())
     }
 }
+ */

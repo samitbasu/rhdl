@@ -4,6 +4,7 @@ use std::{
     collections::{hash_map::Entry, BTreeMap},
     hash::{Hash, Hasher},
     io::Write,
+    ops::RangeInclusive,
 };
 
 use rhdl_trace_type::{TraceType, RTT};
@@ -22,9 +23,10 @@ trait TimeSeriesWalk {
         details: &TimeSeriesDetails,
         name: &str,
         writer: &mut dyn VCDWrite,
+        start_time: u64,
     ) -> Option<Cursor>;
     fn advance_cursor(&self, cursor: &mut Cursor);
-    fn write_vcd(&self, cursor: &mut Cursor, writer: &mut dyn VCDWrite) -> anyhow::Result<()>;
+    fn write_vcd(&self, cursor: &mut Cursor, writer: &mut dyn VCDWrite) -> std::io::Result<()>;
 }
 
 struct Cursor {
@@ -79,17 +81,31 @@ impl<T: Digital> TimeSeriesWalk for TimeSeries<T> {
         details: &TimeSeriesDetails,
         name: &str,
         writer: &mut dyn VCDWrite,
+        start_time: u64,
     ) -> Option<Cursor> {
         let name_sanitized = name.replace("::", "__");
         let code = writer
             .add_wire(T::TRACE_BITS as u32, &name_sanitized)
             .ok()?;
-        self.0.first().map(|x| Cursor {
-            next_time: Some(x.0),
-            hash: details.hash,
-            ptr: 0,
-            code_as_bytes: code.to_string().into_bytes(),
-        })
+        self.0
+            .first()
+            .map(|x| Cursor {
+                next_time: Some(x.0),
+                hash: details.hash,
+                ptr: 0,
+                code_as_bytes: code.to_string().into_bytes(),
+            })
+            // Fast forward the cursor to the first time in the range
+            .and_then(|mut cursor| {
+                while let Some((time, _)) = self.0.get(cursor.ptr) {
+                    if start_time <= *time {
+                        cursor.next_time = Some(*time);
+                        return Some(cursor);
+                    }
+                    cursor.ptr += 1;
+                }
+                None
+            })
     }
     fn advance_cursor(&self, cursor: &mut Cursor) {
         cursor.ptr += 1;
@@ -99,7 +115,7 @@ impl<T: Digital> TimeSeriesWalk for TimeSeries<T> {
             cursor.next_time = None;
         }
     }
-    fn write_vcd(&self, cursor: &mut Cursor, writer: &mut dyn VCDWrite) -> anyhow::Result<()> {
+    fn write_vcd(&self, cursor: &mut Cursor, writer: &mut dyn VCDWrite) -> std::io::Result<()> {
         let mut sbuf = SmallVec::<[u8; 64]>::new();
         if let Some((_time, value)) = self.0.get(cursor.ptr) {
             sbuf.push(b'b');
@@ -116,7 +132,10 @@ impl<T: Digital> TimeSeriesWalk for TimeSeries<T> {
             self.advance_cursor(cursor);
             Ok(())
         } else {
-            Err(anyhow::anyhow!("No more values"))
+            Err(std::io::Error::new(
+                std::io::ErrorKind::UnexpectedEof,
+                "No more values",
+            ))
         }
     }
 }
@@ -170,18 +189,23 @@ impl TraceDB {
         name: &str,
         details: &TimeSeriesDetails,
         writer: &mut vcd::Writer<W>,
+        start_time: u64,
     ) -> Option<Cursor> {
         self.db
             .get(&details.hash)
-            .and_then(|series| series.cursor(details, name, writer))
+            .and_then(|series| series.cursor(details, name, writer, start_time))
     }
     fn write_advance_cursor<W: Write>(
         &self,
         cursor: &mut Cursor,
         writer: &mut vcd::Writer<W>,
-    ) -> anyhow::Result<()> {
+    ) -> std::io::Result<()> {
         let series = self.db.get(&cursor.hash).unwrap();
         series.write_vcd(cursor, writer)
+    }
+    fn advance_cursor(&self, cursor: &mut Cursor) {
+        let series = self.db.get(&cursor.hash).unwrap();
+        series.advance_cursor(cursor);
     }
     fn setup_cursors<W: Write>(
         &self,
@@ -189,16 +213,17 @@ impl TraceDB {
         scope: &Scope,
         cursors: &mut Vec<Cursor>,
         writer: &mut vcd::Writer<W>,
-    ) -> anyhow::Result<()> {
+        start_time: u64,
+    ) -> std::io::Result<()> {
         writer.add_module(name)?;
         for (name, hash) in &scope.signals {
             let details = self.details.get(hash).unwrap();
-            if let Some(cursor) = self.setup_cursor(name, details, writer) {
+            if let Some(cursor) = self.setup_cursor(name, details, writer, start_time) {
                 cursors.push(cursor);
             }
         }
         for (name, child) in &scope.children {
-            self.setup_cursors(name, child, cursors, writer)?;
+            self.setup_cursors(name, child, cursors, writer, start_time)?;
         }
         writer.upscope()?;
         Ok(())
@@ -219,7 +244,7 @@ impl TraceDB {
                 .collect(),
         )
     }
-    pub fn dump_vcd<W: Write>(&self, w: W) -> anyhow::Result<()> {
+    pub fn dump_vcd<W: Write>(&self, w: W, time_set: &fnv::FnvHashSet<u64>) -> std::io::Result<()> {
         let mut writer = vcd::Writer::new(w);
         writer.timescale(1, vcd::TimescaleUnit::PS)?;
         let rtt = self.collect_rtt_info();
@@ -230,7 +255,13 @@ impl TraceDB {
             hash: *hash,
         }));
         let mut cursors = vec![];
-        self.setup_cursors("top", &root_scope, &mut cursors, &mut writer)?;
+        self.setup_cursors(
+            "top",
+            &root_scope,
+            &mut cursors,
+            &mut writer,
+            time_set.iter().copied().min().unwrap_or(0),
+        )?;
         writer.enddefinitions()?;
         writer.timestamp(0)?;
         let mut current_time = 0;
@@ -243,7 +274,12 @@ impl TraceDB {
                 found_match = false;
                 for cursor in &mut cursors {
                     if cursor.next_time == Some(current_time) {
-                        self.write_advance_cursor(cursor, &mut writer)?;
+                        // TODO - make this smarter
+                        if time_set.contains(&current_time) {
+                            self.write_advance_cursor(cursor, &mut writer)?;
+                        } else {
+                            self.advance_cursor(cursor);
+                        }
                         found_match = true;
                     } else if let Some(time) = cursor.next_time {
                         next_time = next_time.min(time);
@@ -255,7 +291,9 @@ impl TraceDB {
             }
             if next_time != !0 {
                 current_time = next_time;
-                writer.timestamp(current_time)?;
+                if time_set.contains(&current_time) {
+                    writer.timestamp(current_time)?;
+                }
             }
         }
         Ok(())
@@ -375,14 +413,16 @@ mod tests {
     #[test]
     fn test_vcd_write() {
         let guard = trace_init_db();
+        let mut time_set = fnv::FnvHashSet::default();
         for i in 0..1000 {
+            time_set.insert(i * 1000);
             trace_time(i * 1000);
             trace("a", &(i % 2 == 0));
             trace("b", &(i % 2 == 1));
         }
         let mut vcd = vec![];
         let db = guard.take();
-        db.dump_vcd(&mut vcd).unwrap();
+        db.dump_vcd(&mut vcd, &time_set).unwrap();
         std::fs::write("test.vcd", vcd).unwrap();
     }
 
@@ -492,11 +532,15 @@ mod tests {
         assert_eq!(Mixed::None.kind().bits(), Mixed::BITS);
 
         let guard = trace_init_db();
+        let mut time_set = fnv::FnvHashSet::default();
         trace_time(0);
+        time_set.insert(0);
         trace("a", &Mixed::None);
         trace_time(100);
+        time_set.insert(100);
         trace("a", &Mixed::Array([true, false, true]));
         trace_time(200);
+        time_set.insert(200);
         trace(
             "a",
             &Mixed::Strct {
@@ -505,22 +549,27 @@ mod tests {
             },
         );
         trace_time(300);
+        time_set.insert(300);
         trace("a", &Mixed::Bool(false));
         trace_time(400);
+        time_set.insert(400);
         trace("a", &Mixed::Tuple(true, rhdl_bits::bits(3)));
         trace_time(500);
+        time_set.insert(500);
 
         let mut vcd = vec![];
         let db = guard.take();
-        db.dump_vcd(&mut vcd).unwrap();
+        db.dump_vcd(&mut vcd, &time_set).unwrap();
         std::fs::write("test_enum.vcd", vcd).unwrap();
     }
 
     #[test]
     fn test_vcd_with_nested_paths() {
         let guard = trace_init_db();
+        let mut time_set = fnv::FnvHashSet::default();
         for i in 0..10 {
             trace_time(i * 1000);
+            time_set.insert(i * 1000);
             trace_push_path("fn1");
             trace_push_path("fn2");
             trace("a", &true);
@@ -530,7 +579,7 @@ mod tests {
         }
         let mut vcd = vec![];
         let db = guard.take();
-        db.dump_vcd(&mut vcd).unwrap();
+        db.dump_vcd(&mut vcd, &time_set).unwrap();
         std::fs::write("test_nested_paths.vcd", vcd).unwrap();
     }
 }

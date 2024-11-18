@@ -99,27 +99,37 @@ where
     }
 }
 
-pub trait MergeExt<I, S, T> {
-    fn merge<F, U>(self, other: I, merge_fn: F) -> impl Iterator<Item = TimedSample<U>>
+pub trait MergeExt<I, S, T>: IntoIterator + Sized {
+    fn merge<F, U>(
+        self,
+        other: I,
+        merge_fn: F,
+    ) -> Merge<<Self as IntoIterator>::IntoIter, <I as IntoIterator>::IntoIter, S, T, F>
     where
-        I: Iterator,
+        I: IntoIterator,
         F: Fn(S, T) -> U,
+        S: Digital,
+        T: Digital,
         U: Digital;
 }
 
 impl<I, O, S, T> MergeExt<O, S, T> for I
 where
-    I: Iterator<Item = TimedSample<S>>,
-    O: Iterator<Item = TimedSample<T>>,
+    I: IntoIterator<Item = TimedSample<S>>,
+    O: IntoIterator<Item = TimedSample<T>>,
     S: Digital,
     T: Digital,
 {
-    fn merge<F, U>(self, other: O, merge_fn: F) -> impl Iterator<Item = TimedSample<U>>
+    fn merge<F, U>(
+        self,
+        other: O,
+        merge_fn: F,
+    ) -> Merge<<Self as IntoIterator>::IntoIter, <O as IntoIterator>::IntoIter, S, T, F>
     where
         F: Fn(S, T) -> U,
         U: Digital,
     {
-        merge(self, other, merge_fn)
+        merge(self.into_iter(), other.into_iter(), merge_fn)
     }
 }
 
@@ -211,8 +221,7 @@ mod tests {
             timed_sample(10, 0xb4),
         ];
         let merged = stream1
-            .into_iter()
-            .merge(stream2.into_iter(), |a: u8, b: u8| (a, b))
+            .merge(stream2, |a: u8, b: u8| (a, b))
             .collect::<Vec<_>>();
         let stream_merged: Vec<TimedSample<(u8, u8)>> = vec![
             timed_sample(0, (0xa0, 0)),

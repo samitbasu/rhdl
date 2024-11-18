@@ -243,6 +243,22 @@ impl Digital for bool {
     }
 }
 
+impl Digital for u64 {
+    const BITS: usize = 64;
+    fn static_kind() -> Kind {
+        Kind::make_bits(64)
+    }
+    fn static_trace_type() -> rhdl_trace_type::TraceType {
+        rtt::TraceType::Bits(64)
+    }
+    fn bin(self) -> Vec<bool> {
+        Bits::<64>::from(self as u128).to_bools()
+    }
+    fn init() -> Self {
+        Self::default()
+    }
+}
+
 impl Digital for u8 {
     const BITS: usize = 8;
     fn static_kind() -> Kind {
