@@ -59,7 +59,7 @@ pub fn fifo_kernel<T: Digital, const N: usize>(
     d.write_logic.read_address = q.read_logic.read_address;
     d.write_logic.write_enable = write_enable;
     // Connect the RAM inputs
-    d.ram.write.addr = q.write_logic.write_address;
+    d.ram.write.addr = q.write_logic.ram_write_address;
     d.ram.write.value = write_data;
     d.ram.write.enable = write_enable;
     d.ram.read_addr = q.read_logic.read_address;
@@ -77,10 +77,9 @@ pub fn fifo_kernel<T: Digital, const N: usize>(
     (o, d)
 }
 
-/*
 #[cfg(test)]
 mod tests {
-    use stream::reset_pulse;
+    use std::path::PathBuf;
 
     use super::*;
 
@@ -101,56 +100,91 @@ mod tests {
     fn test_seq() -> impl Iterator<Item = TimedSample<(ClockReset, I<Bits<8>>)>> {
         let write_seq = (0..7).map(|i| write(bits(i + 1)));
         let read_seq = (0..7).map(|_| read());
-        let stream = stream(write_seq.chain(read_seq));
-        let stream = reset_pulse(1).chain(stream);
-        clock_pos_edge(stream, 100)
+        write_seq
+            .chain(read_seq)
+            .stream_after_reset(1)
+            .clock_pos_edge(100)
+    }
+
+    #[test]
+    fn check_that_output_is_valid() {
+        let uut = U::<b8, 3>::default();
+        let stream = test_seq();
+        let output = uut
+            .run(stream)
+            .sample_at_pos_edge(|x| x.value.0.clock)
+            .map(|x| x.value.2.data);
+        let output = output.flatten().collect::<Vec<_>>();
+        assert!(output.iter().all(|x| *x != 0));
+        let ramp = output.iter().copied().skip_while(|x| *x == 1);
+        assert!(ramp.eq(2..=7));
     }
 
     #[test]
     fn basic_write_then_read_test() {
-        type UC = U<Bits<8>, 3>;
         let uut = U::<Bits<8>, 3>::default();
         let stream = test_seq();
-        validate_synchronous(
-            &uut,
-            stream,
-            //            &mut [glitch_check_synchronous::<UC>()],
-            &mut [],
-            ValidateOptions::default().vcd("fifo.vcd"),
-        );
+        let vcd = uut.run(stream).collect::<Vcd>();
+        vcd.dump_to_file(&PathBuf::from("fifo_sync.vcd")).unwrap();
     }
 
     #[test]
-    fn test_hdl_generation_rtl() -> miette::Result<()> {
-        type UC = U<Bits<8>, 3>;
+    fn test_hdl_generation_fifo() -> miette::Result<()> {
         let uut = U::<Bits<8>, 3>::default();
-        let options = TestModuleOptions {
-            skip_first_cases: !0,
-            vcd_file: Some("fifo_sync_rtl.vcd".into()),
-            hold_time: 1,
-            ..Default::default()
-        };
         let stream = test_seq();
-        let test_mod = build_rtl_testmodule_synchronous(&uut, stream, options)?;
-        std::fs::write("fifo_sync_rtl.v", test_mod.to_string()).unwrap();
-        test_mod.run_iverilog()?;
+        let test_bench = uut.run(stream).collect::<SynchronousTestBench<_, _>>();
+        let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
+        tm.run_iverilog()?;
+        let tm = test_bench.flow_graph(&uut, &TestBenchOptions::default())?;
+        tm.run_iverilog()?;
         Ok(())
     }
 
     #[test]
-    fn test_hdl_generation_fg() -> miette::Result<()> {
+    fn test_fifo_streaming() -> miette::Result<()> {
+        // First, allocate a large vector of random data to feed through the FIFO
+        let data = (0..10000)
+            .map(|_| bits(rand::random::<u8>() as u128))
+            .collect::<Vec<_>>();
+        // The writer will write data to the FIFO if it is not full, if there is data to write, and if a random
+        // value is true.  The random value determines how often the writer writes data to the FIFO.
+        let mut writer_iter = data.iter().copied().fuse();
+        // The reader will read data from the FIFO if it is not empty, and if a random value is true.  The random value
+        // determines how often the reader reads data from the FIFO.
         type UC = U<Bits<8>, 3>;
         let uut = UC::default();
-        let options = TestModuleOptions {
-            vcd_file: Some("fifo_sync_fg.vcd".into()),
-            flow_graph_level: true,
-            ..Default::default()
-        };
-        let stream = test_seq();
-        let test_mod = build_rtl_testmodule_synchronous(&uut, stream, options)?;
-        std::fs::write("fifo_sync_fg.v", test_mod.to_string()).unwrap();
-        test_mod.run_iverilog()?;
+        let mut output = <UC as SynchronousIO>::O::init();
+        let mut next_input = <UC as SynchronousIO>::I::init();
+        let mut writer_finished = false;
+        loop {
+            dbg!(output);
+            // Decide if the writer will write
+            if !output.full && rand::random::<u8>() > 50 {
+                next_input.data = writer_iter.next();
+                writer_finished = next_input.data.is_none();
+            } else {
+                next_input.data = None;
+            }
+            // Decide if the reader will read
+            if output.data.is_some() && rand::random::<u8>() > 50 {
+                next_input.next = true;
+                eprintln!("Reading data: {:?}", output.data);
+            } else {
+                next_input.next = false;
+            }
+            if writer_finished && output.data.is_none() {
+                break;
+            }
+            dbg!(next_input);
+            // Clock in this new input
+            output = uut
+                .run(std::iter::once(next_input).stream().clock_pos_edge(100))
+                .sample_at_pos_edge(|x| x.value.0.clock)
+                .next()
+                .unwrap()
+                .value
+                .2;
+        }
         Ok(())
     }
 }
-*/
