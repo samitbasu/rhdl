@@ -1,3 +1,3 @@
-pub mod before_pos_edge;
 pub mod ext;
-pub mod glitch_free;
+pub mod glitch_check;
+pub mod sample_at_pos_edge;

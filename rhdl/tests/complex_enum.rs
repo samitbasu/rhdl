@@ -271,5 +271,5 @@ fn test_vcd_generation() {
     trace_time(6_000);
     trace("packet", &Packet::State(State::Running));
     let mut vcd_file = std::fs::File::create("packet.vcd").unwrap();
-    guard.take().dump_vcd(vcd_file).unwrap();
+    guard.take().dump_vcd(vcd_file, None).unwrap();
 }

@@ -41,7 +41,7 @@ fn test_vcd_enum() {
     trace_time(8_000);
     trace("enum", &Enum::None);
     let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
-    guard.take().dump_vcd(&mut vcd_file).unwrap();
+    guard.take().dump_vcd(&mut vcd_file, None).unwrap();
 }
 
 #[test]
@@ -65,10 +65,10 @@ fn test_vcd_basic() {
         b: Bits::from(0b01010101),
     };
     let mut snapshot = std::fs::File::create("snapshot.vcd").unwrap();
-    with_trace_db(|db| db.dump_vcd(&mut snapshot).unwrap());
+    with_trace_db(|db| db.dump_vcd(&mut snapshot, None).unwrap());
     trace("simple", &simple);
     trace_time(2_000);
     trace("simple", &simple);
     let mut vcd_file = std::fs::File::create("test.vcd").unwrap();
-    guard.take().dump_vcd(&mut vcd_file).unwrap();
+    guard.take().dump_vcd(&mut vcd_file, None).unwrap();
 }

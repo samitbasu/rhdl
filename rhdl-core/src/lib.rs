@@ -37,7 +37,6 @@ pub mod dyn_bit_manip;
 pub mod types;
 pub mod util;
 pub use util::id;
-pub mod testbench;
 
 pub use compiler::compile_design;
 pub use trace::db::trace;
@@ -75,7 +74,6 @@ pub mod sim;
 pub use types::timed_sample::timed_sample;
 pub use types::timed_sample::TimedSample;
 pub mod hdl;
-pub use sim::waveform::waveform_synchronous;
 pub mod trace;
 pub use dyn_bit_manip::move_nbits_to_msb;
 pub use flow_graph::flow_cost::trivial_cost;

@@ -113,6 +113,7 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N>
     }
 
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O {
+        trace("input", &input);
         // Borrow the state mutably.
         let state = &mut state.borrow_mut();
         // We implement write-before-read semantics, but relying on this
@@ -145,6 +146,7 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N>
             state.output_current = state.output_next;
         }
         state.read_clock = read_if.clock;
+        trace("output", &state.output_current);
         signal(state.output_current)
     }
 
@@ -257,20 +259,18 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N>
     }
 }
 
-/* #[cfg(test)]
+#[cfg(test)]
 mod tests {
-    use rhdl::core::testbench::TestModuleOptions;
+    use std::path::PathBuf;
 
     use super::*;
-    use std::iter::repeat;
 
     fn get_scan_out_stream<const N: usize>(
         read_clock: u64,
         count: usize,
-    ) -> impl Iterator<Item = TimedSample<ReadI<N>>> {
+    ) -> impl Iterator<Item = TimedSample<ReadI<N>>> + Clone {
         let scan_addr = (0..(1 << N)).map(bits::<N>).cycle().take(count);
-        let stream_read = stream(scan_addr);
-        let stream_read = clock_pos_edge(stream_read, read_clock);
+        let stream_read = scan_addr.stream().clock_pos_edge(read_clock);
         stream_read.map(|t| {
             t.map(|(cr, val)| ReadI {
                 addr: val,
@@ -281,10 +281,9 @@ mod tests {
 
     fn get_write_stream<T: Digital, const N: usize>(
         write_clock: u64,
-        write_data: impl Iterator<Item = Option<(Bits<N>, T)>>,
-    ) -> impl Iterator<Item = TimedSample<WriteI<T, N>>> {
-        let stream_write = stream(write_data);
-        let stream_write = clock_pos_edge(stream_write, write_clock);
+        write_data: impl Iterator<Item = Option<(Bits<N>, T)>> + Clone,
+    ) -> impl Iterator<Item = TimedSample<WriteI<T, N>>> + Clone {
+        let stream_write = write_data.stream().clock_pos_edge(write_clock);
         stream_write.map(|t| {
             t.map(|(cr, val)| WriteI {
                 addr: val.map(|(a, _)| a).unwrap_or_else(|| bits(0)),
@@ -317,24 +316,19 @@ mod tests {
         );
         let stream_read = get_scan_out_stream(100, 34);
         // The write interface will be dormant
-        let stream_write = get_write_stream(70, repeat(None).take(50));
+        let stream_write = get_write_stream(70, std::iter::repeat(None).take(50));
         // Stitch the two streams together
-        let stream = merge(stream_read, stream_write, |r, w| I {
+        let stream = stream_read.merge(stream_write, |r, w| I {
             read: signal(r),
             write: signal(w),
         });
-
-        let options = TestModuleOptions {
-            skip_first_cases: 10,
-            vcd_file: Some("ram.vcd".into()),
-            hold_time: 1,
-            flow_graph_level: true,
-            ..Default::default()
-        };
-        let test_mod = build_rtl_testmodule(&uut, stream, options)?;
+        let test_bench = uut.run(stream).collect::<TestBench<_, _>>();
+        let test_mod = test_bench.rtl(
+            &uut,
+            &TestBenchOptions::default().skip(10).vcd("ram_tb_v.vcd"),
+        )?;
         std::fs::write("ram_tb.v", test_mod.to_string()).unwrap();
         test_mod.run_iverilog()?;
-
         Ok(())
     }
 
@@ -353,27 +347,25 @@ mod tests {
             Some((bits(15), bits(23))),
         ];
         let stream_read = get_scan_out_stream(100, 32);
-        let stream_write = get_write_stream(70, writes.into_iter());
-        let stream = merge(stream_read, stream_write, |r, w| I {
+        let stream_write = get_write_stream(70, writes.into_iter().chain(std::iter::repeat(None)));
+        let stream = stream_read.merge(stream_write, |r, w| I {
             read: signal(r),
             write: signal(w),
         });
-        let expected = repeat(None).take(16).chain(
-            vec![142, 0, 100, 0, 0, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23, 0]
-                .into_iter()
-                .map(|x| Some(signal(bits(x)))),
-        );
-
-        type UC = U<Bits<8>, Red, Green, 4>;
-        validate(
-            &uut,
-            stream,
-            &mut [
-                glitch_check::<UC>(|i| i.value.read.val().clock),
-                value_check::<UC>(|i| i.value.read.val().clock, expected),
-            ],
-            Default::default(),
-        )
+        let expected = vec![142, 0, 100, 0, 0, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23]
+            .into_iter()
+            .map(|x| signal(bits(x)));
+        let vcd = uut.run(stream.clone()).collect::<Vcd>();
+        vcd.dump_to_file(&PathBuf::from("ram_write.vcd")).unwrap();
+        let output = uut
+            .run(stream)
+            .glitch_check(|x| (x.value.0.read.val().clock, x.value.1.val()))
+            .sample_at_pos_edge(|x| x.value.0.read.val().clock)
+            .skip(17)
+            .map(|x| x.value.1);
+        let expected = expected.collect::<Vec<_>>();
+        let output = output.collect::<Vec<_>>();
+        assert_eq!(expected, output);
     }
 
     #[test]
@@ -387,23 +379,18 @@ mod tests {
         );
         let stream_read = get_scan_out_stream(100, 32);
         // The write interface will be dormant
-        let stream_write = get_write_stream(70, repeat(None).take(50));
+        let stream_write = get_write_stream(70, std::iter::repeat(None).take(50));
         // Stitch the two streams together
         let stream = merge(stream_read, stream_write, |r, w| I {
             read: signal(r),
             write: signal(w),
         });
-        type UC = U<Bits<8>, Red, Green, 4>;
-        let values = (0..16).map(|x| Some(signal(bits(15 - x)))).cycle();
-        validate(
-            &uut,
-            stream,
-            &mut [
-                glitch_check::<UC>(|i| i.value.read.val().clock),
-                value_check::<UC>(|i| i.value.read.val().clock, values),
-            ],
-            Default::default(),
-        )
+        let values = (0..16).map(|x| bits(15 - x)).cycle().take(32);
+        let samples = uut
+            .run(stream)
+            .sample_at_pos_edge(|i| i.value.0.read.val().clock)
+            .skip(1);
+        let output = samples.map(|x| x.value.1.val());
+        assert!(values.eq(output));
     }
 }
- */

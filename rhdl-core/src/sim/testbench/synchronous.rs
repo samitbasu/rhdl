@@ -1,20 +1,22 @@
 use crate::{
+    clock_reset,
     hdl::ast::{
-        component_instance, connection, declaration, dump_file, dump_vars, id, unsigned_width,
-        Direction, HDLKind, Module,
+        assert, assign, bit_string, component_instance, connection, declaration, delay, display,
+        dump_file, dump_vars, finish, id, initial, unsigned_width, Direction, HDLKind, Module,
     },
-    testbench::test_module::TestModule,
-    ClockReset, Digital, RHDLError, Synchronous, TimedSample,
+    sim::test_module::TestModule,
+    types::bit_string::BitString,
+    ClockReset, Digital, RHDLError, Synchronous, SynchronousIO, TimedSample,
 };
 
 use super::TestBenchOptions;
 
 #[derive(Clone)]
-pub struct TestBench<I: Digital, O: Digital> {
+pub struct SynchronousTestBench<I: Digital, O: Digital> {
     pub samples: Vec<TimedSample<(ClockReset, I, O)>>,
 }
 
-impl<I, O> FromIterator<TimedSample<(ClockReset, I, O)>> for TestBench<I, O>
+impl<I, O> FromIterator<TimedSample<(ClockReset, I, O)>> for SynchronousTestBench<I, O>
 where
     I: Digital,
     O: Digital,
@@ -24,18 +26,11 @@ where
         T: IntoIterator<Item = TimedSample<(ClockReset, I, O)>>,
     {
         let samples = iter.into_iter().collect();
-        TestBench { samples }
+        SynchronousTestBench { samples }
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
-enum ResetState {
-    Initial,
-    InReset,
-    ResetDone,
-}
-
-impl<I: Digital, O: Digital> TestBench<I, O> {
+impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
     fn build_test_module(
         &self,
         hdl: &Module,
@@ -110,48 +105,39 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
             test_cases.push(dump_file(vcd_file));
             test_cases.push(dump_vars(0));
         }
-        let mut reset_state = ResetState::Initial;
-        let mut extra_delay = 0;
         let mut absolute_time = 0;
         for (test_case_counter, timed_entry) in self.samples.iter().enumerate() {
-            test_cases.push(delay(
-                (timed_entry.delay as usize).saturating_sub(extra_delay),
-            ));
-            absolute_time += timed_entry.delay as usize;
-            let cr = clock_reset(timed_entry.clock, timed_entry.reset);
-            test_cases.push(assign("clock_reset", bit_string(&cr.typed_bits().into())));
-            let input = timed_entry.input.clone();
-            if has_nonempty_input {
-                test_cases.push(assign("i", bit_string(&BitString::unsigned(input))));
-            }
-            let output = timed_entry.output.clone();
-            test_cases.push(assign("rust_out", bit_string(&BitString::unsigned(output))));
-            let reset_bit_enabled = cr.reset.any();
-            reset_state = match (reset_state, reset_bit_enabled) {
-                (ResetState::Initial, true) => ResetState::InReset,
-                (ResetState::InReset, false) => ResetState::ResetDone,
-                (ResetState::ResetDone, true) => ResetState::InReset,
-                (ResetState::ResetDone, false) => ResetState::ResetDone,
-                _ => reset_state,
-            };
-            if (reset_state == ResetState::ResetDone)
-                && !cr.clock.raw()
+            let sample_time = timed_entry.time;
+            let (sample_cr, sample_i, sample_o) = timed_entry.value;
+            // First, we determine if at least the hold time has elapsed between the sample time and the previous recorded time
+            // and ensure that we actually have an expected output and that we have passed the number of test cases to skip
+            if sample_time.saturating_sub(absolute_time) > options.hold_time
+                && test_case_counter > 0
                 && test_case_counter >= options.skip_first_cases
             {
-                test_cases.push(delay(options.hold_time as usize));
-                extra_delay = options.hold_time as usize;
+                test_cases.push(delay(options.hold_time));
                 test_cases.push(assert(
                     id("o"),
                     id("rust_out"),
                     &format!("Test {test_case_counter} at time {absolute_time}"),
                 ));
+                absolute_time += options.hold_time;
             }
+            test_cases.push(delay(sample_time.saturating_sub(absolute_time)));
+            let cr = clock_reset(sample_cr.clock, sample_cr.reset);
+            test_cases.push(assign("clock_reset", bit_string(&cr.typed_bits().into())));
+            if has_nonempty_input {
+                test_cases.push(assign(
+                    "i",
+                    bit_string(&BitString::unsigned(sample_i.bin())),
+                ));
+            }
+            test_cases.push(assign(
+                "rust_out",
+                bit_string(&BitString::unsigned(sample_o.bin())),
+            ));
         }
-        if reset_state != ResetState::Initial {
-            test_cases.push(display("TESTBENCH OK", vec![]));
-        } else {
-            test_cases.push(display("TESTBENCH FAILED - NO RESET PROVIDED", vec![]));
-        }
+        test_cases.push(display("TESTBENCH OK", vec![]));
         test_cases.push(finish());
         let module = Module {
             name: "testbench".into(),
@@ -164,6 +150,24 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
         Ok(module.into())
     }
 
-    pub fn rtl<T: Synchronous>(self, uut: &T) -> Result<TestModule, RHDLError> {}
-    pub fn flowgraph<T: Synchronous>(self, uut: &T) -> Result<TestModule, RHDLError> {}
+    pub fn rtl<T>(&self, uut: &T, options: &TestBenchOptions) -> Result<TestModule, RHDLError>
+    where
+        T: Synchronous,
+        T: SynchronousIO<I = I, O = O>,
+    {
+        let module = uut.hdl("uut")?.as_module();
+        self.build_test_module(&module, options)
+    }
+    pub fn flow_graph<T>(
+        &self,
+        uut: &T,
+        options: &TestBenchOptions,
+    ) -> Result<TestModule, RHDLError>
+    where
+        T: Synchronous,
+        T: SynchronousIO<I = I, O = O>,
+    {
+        let module = uut.flow_graph("uut")?.hdl("dut")?;
+        self.build_test_module(&module, options)
+    }
 }

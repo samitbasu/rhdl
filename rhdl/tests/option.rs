@@ -3,6 +3,7 @@ use rhdl::prelude::*;
 mod common;
 #[cfg(test)]
 use common::*;
+use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog_synchronous;
 
 #[test]
 fn test_option_is_digital() {

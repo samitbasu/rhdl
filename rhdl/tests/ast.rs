@@ -11,6 +11,7 @@ mod common;
 #[cfg(test)]
 use common::*;
 use rhdl::prelude::*;
+use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 
 #[test]
 fn test_func_with_structured_args() -> miette::Result<()> {

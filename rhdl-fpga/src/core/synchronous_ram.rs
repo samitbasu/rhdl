@@ -216,15 +216,12 @@ impl<T: Digital, const N: usize> Synchronous for U<T, N> {
     }
 }
 
-/* #[cfg(test)]
+#[cfg(test)]
 mod tests {
-    use rhdl::{
-        core::sim::synchronous_validators::value_check::value_check_synchronous, prelude::*,
-    };
-    use stream::reset_pulse;
+    use rhdl::prelude::*;
 
     use super::*;
-    use std::iter::repeat;
+    use std::{iter::repeat, path::PathBuf};
 
     #[derive(Debug, Clone, PartialEq, Copy)]
     enum Cmd {
@@ -243,7 +240,7 @@ mod tests {
         }
     }
 
-    struct TestItem(Cmd, Option<b8>);
+    struct TestItem(Cmd, b8);
 
     impl From<Cmd> for I<b8, 4> {
         fn from(cmd: Cmd) -> Self {
@@ -272,21 +269,23 @@ mod tests {
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
         );
-        let test = (0..16).map(|ndx| TestItem(Cmd::Read(bits(ndx)), Some(bits(15 - ndx))));
+        let test = (0..16)
+            .cycle()
+            .map(|ndx| TestItem(Cmd::Read(bits(ndx)), bits(15 - ndx)))
+            .take(17);
         let inputs = test.clone().map(|item| item.0.into());
-        let expected = test.map(|item| item.1).collect::<Vec<_>>();
-        let stream = stream(inputs);
-        let stream = reset_pulse(1).chain(stream);
-        let stream = clock_pos_edge(stream, 100);
-        validate_synchronous(
-            &uut,
-            stream,
-            &mut [
-                glitch_check_synchronous::<UC>(),
-                value_check_synchronous::<UC>(expected),
-            ],
-            ValidateOptions::default().vcd("test_scan_out_ram.vcd"),
-        );
+        let expected = test.map(|item| item.1).take(16);
+        let stream = inputs.stream_after_reset(1).clock_pos_edge(100);
+        let sim = uut.run(stream);
+        let vcd = sim.clone().collect::<Vcd>();
+        vcd.dump_to_file(&PathBuf::from("test_scan_out_ram.vcd"))
+            .unwrap();
+        let values = sim
+            .glitch_check(|x| (x.value.0.clock, x.value.2))
+            .sample_at_pos_edge(|x| x.value.0.clock)
+            .skip(2)
+            .map(|x| x.value.2);
+        assert!(values.eq(expected));
         Ok(())
     }
 
@@ -294,41 +293,18 @@ mod tests {
         len: usize,
     ) -> impl Iterator<Item = TimedSample<(ClockReset, I<b8, 4>)>> {
         let inputs = (0..).map(|_| rand_cmd().into()).take(len);
-        let stream = stream(inputs);
-        let stream = reset_pulse(1).chain(stream);
-        let stream = clock_pos_edge(stream, 100);
-        stream
+        inputs.stream_after_reset(1).clock_pos_edge(100)
     }
 
     #[test]
-    fn test_hdl_output_flow_graph() -> miette::Result<()> {
+    fn test_hdl_output() -> miette::Result<()> {
         type UC = U<b8, 4>;
         let uut: UC = U::new((0..).map(|ndx| (bits(ndx), bits(0))));
-        let options = TestModuleOptions {
-            hold_time: 1,
-            flow_graph_level: true,
-            ..Default::default()
-        };
         let stream = random_command_stream(1000);
-        let test_mod = build_rtl_testmodule_synchronous(&uut, stream, options)?;
+        let test_bench = uut.run(stream).collect::<SynchronousTestBench<_, _>>();
+        let test_mod = test_bench.flow_graph(&uut, &TestBenchOptions::default().skip(2))?;
         test_mod.run_iverilog()?;
-        Ok(())
-    }
-
-    #[test]
-    fn test_hdl_output_rtl() -> miette::Result<()> {
-        type UC = U<b8, 4>;
-        let uut: UC = U::new((0..).map(|ndx| (bits(ndx), bits(0))));
-        let options = TestModuleOptions {
-            skip_first_cases: 1,
-            hold_time: 1,
-            flow_graph_level: false,
-            vcd_file: Some("ram_rtl.vcd".into()),
-            ..Default::default()
-        };
-        let stream = random_command_stream(1000);
-        let test_mod = build_rtl_testmodule_synchronous(&uut, stream, options)?;
-        std::fs::write("test_ram.v", test_mod.to_string()).unwrap();
+        let test_mod = test_bench.rtl(&uut, &TestBenchOptions::default().skip(2))?;
         test_mod.run_iverilog()?;
         Ok(())
     }
@@ -338,30 +314,28 @@ mod tests {
         type UC = U<b8, 4>;
         let uut: UC = U::new(repeat((Bits(0), b8::from(0))).take(16));
         let test = vec![
-            TestItem(Cmd::Write(bits(0), bits(72)), None),
-            TestItem(Cmd::Write(bits(1), bits(99)), None),
-            TestItem(Cmd::Write(bits(2), bits(255)), None),
-            TestItem(Cmd::Read(bits(0)), Some(bits(72))),
-            TestItem(Cmd::Read(bits(1)), Some(bits(99))),
-            TestItem(Cmd::Read(bits(2)), Some(bits(255))),
-            TestItem(Cmd::Read(bits(3)), None),
+            Cmd::Write(bits(0), bits(72)),
+            Cmd::Write(bits(1), bits(99)),
+            Cmd::Write(bits(2), bits(255)),
+            Cmd::Read(bits(0)),
+            Cmd::Read(bits(1)),
+            Cmd::Read(bits(2)),
+            Cmd::Read(bits(3)),
         ];
-        let inputs = test.iter().map(|item| item.0.into());
-        let (_, test) = test.split_last().unwrap();
-        let expected = test.iter().map(|item| item.1).collect::<Vec<_>>();
-        let stream = stream(inputs);
-        let stream = reset_pulse(1).chain(stream);
-        let stream = clock_pos_edge(stream, 100);
-        validate_synchronous(
-            &uut,
-            stream,
-            &mut [
-                glitch_check_synchronous::<UC>(),
-                value_check_synchronous::<UC>(expected),
-            ],
-            ValidateOptions::default().vcd("test_ram_write_then_read.vcd"),
-        );
+        let inputs = test
+            .into_iter()
+            .map(|x| x.into())
+            .stream_after_reset(1)
+            .clock_pos_edge(100);
+        let sim = uut.run(inputs);
+        let outputs = sim
+            .glitch_check(|x| (x.value.0.clock, x.value.2))
+            .sample_at_pos_edge(|x| x.value.0.clock)
+            .skip(5)
+            .take(3)
+            .map(|x| x.value.2)
+            .collect::<Vec<_>>();
+        assert_eq!(outputs, vec![b8::from(72), b8::from(99), b8::from(255)]);
         Ok(())
     }
 }
- */
