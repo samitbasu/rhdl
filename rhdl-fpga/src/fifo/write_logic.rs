@@ -39,6 +39,7 @@ pub struct O<const N: usize> {
     pub full: bool,
     pub almost_full: bool,
     pub overflow: bool,
+    pub ram_write_address: Bits<N>,
     pub write_address: Bits<N>,
 }
 
@@ -71,6 +72,7 @@ pub fn write_logic<const N: usize>(cr: ClockReset, i: I<N>, q: Q<N>) -> (O<N>, D
     o.almost_full = almost_full;
     // We output the current write address delayed by one clock, not the future one
     o.write_address = q.write_address_delayed;
+    o.ram_write_address = q.write_address;
     o.overflow = overflow;
     // Handle the reset logic
     if cr.reset.any() {
@@ -80,6 +82,7 @@ pub fn write_logic<const N: usize>(cr: ClockReset, i: I<N>, q: Q<N>) -> (O<N>, D
         // Note that this assumes the FIFO is at least 2 elements deep
         o.almost_full = false;
         o.write_address = bits(0);
+        o.ram_write_address = bits(0);
         o.overflow = false;
     }
     (o, d)
