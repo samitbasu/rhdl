@@ -1,6 +1,5 @@
 use common::exhaustive;
 use rhdl::prelude::*;
-use stream::reset_pulse;
 
 pub mod common;
 
@@ -127,6 +126,32 @@ pub mod splicer {
     }
 }
 
+fn test_synchronous_hdl<T, I>(uut: &T, inputs: I) -> miette::Result<()>
+where
+    T: Synchronous,
+    I: Iterator<Item = TimedSample<(ClockReset, T::I)>>,
+{
+    let test_bench = uut.run(inputs).collect::<SynchronousTestBench<_, _>>();
+    let tm_rtl = test_bench.rtl(uut, &TestBenchOptions::default())?;
+    tm_rtl.run_iverilog()?;
+    let tm_fg = test_bench.flow_graph(uut, &TestBenchOptions::default())?;
+    tm_fg.run_iverilog()?;
+    Ok(())
+}
+
+fn test_asynchronous_hdl<T, I>(uut: &T, inputs: I) -> miette::Result<()>
+where
+    T: Circuit,
+    I: Iterator<Item = TimedSample<T::I>>,
+{
+    let test_bench = uut.run(inputs).collect::<TestBench<_, _>>();
+    let tm_rtl = test_bench.rtl(uut, &TestBenchOptions::default())?;
+    tm_rtl.run_iverilog()?;
+    let tm_fg = test_bench.flow_graph(uut, &TestBenchOptions::default())?;
+    tm_fg.run_iverilog()?;
+    Ok(())
+}
+
 #[test]
 fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
     mod parent {
@@ -156,8 +181,7 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
     let inputs = exhaustive::<4>()
         .into_iter()
         .flat_map(|x| exhaustive::<4>().into_iter().map(move |y| (x, y)));
-    let inputs = reset_pulse(4).chain(stream(inputs));
-    let inputs = clock_pos_edge(inputs, 100);
+    let inputs = inputs.stream_after_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg
@@ -196,8 +220,7 @@ fn test_add_inline() -> miette::Result<()> {
     let inputs = exhaustive::<4>()
         .into_iter()
         .flat_map(|x| exhaustive::<4>().into_iter().map(move |y| (x, y)));
-    let inputs = reset_pulse(4).chain(stream(inputs));
-    let inputs = clock_pos_edge(inputs, 100);
+    let inputs = inputs.stream_after_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     Ok(())
 }
@@ -228,8 +251,9 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
     }
 
     let uut = parent::Parent::default();
-    let inputs = reset_pulse(4).chain(stream(std::iter::once(())));
-    let inputs = clock_pos_edge(inputs, 100);
+    let inputs = std::iter::once(())
+        .stream_after_reset(4)
+        .clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg
@@ -302,8 +326,9 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
     }
 
     let uut = parent::Parent::default();
-    let inputs = reset_pulse(4).chain(stream(std::iter::once(())));
-    let inputs = clock_pos_edge(inputs, 100);
+    let inputs = std::iter::once(())
+        .stream_after_reset(4)
+        .clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg
@@ -340,8 +365,7 @@ fn test_constant_propagates_through_indexing() -> miette::Result<()> {
     }
 
     let uut = parent::Parent::default();
-    let inputs = reset_pulse(4).chain(stream([false, true].iter().copied()));
-    let inputs = clock_pos_edge(inputs, 100);
+    let inputs = [false, true].stream_after_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg
@@ -379,8 +403,7 @@ fn test_constant_propagates_through_splicing() -> miette::Result<()> {
     }
 
     let uut = parent::Parent::default();
-    let inputs = reset_pulse(4).chain(stream([false, true].iter().copied()));
-    let inputs = clock_pos_edge(inputs, 100);
+    let inputs = [false, true].stream_after_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg

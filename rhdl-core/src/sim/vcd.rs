@@ -26,7 +26,7 @@ where
 impl Vcd {
     pub fn dump<W: Write>(self, writer: W) -> std::io::Result<()> {
         let db = self.guard.take();
-        db.dump_vcd(writer, &self.time_set)
+        db.dump_vcd(writer, Some(&self.time_set))
     }
     pub fn dump_to_file(self, path: &Path) -> std::io::Result<()> {
         let fs = std::fs::File::create(path)?;

@@ -244,7 +244,11 @@ impl TraceDB {
                 .collect(),
         )
     }
-    pub fn dump_vcd<W: Write>(&self, w: W, time_set: &fnv::FnvHashSet<u64>) -> std::io::Result<()> {
+    pub fn dump_vcd<W: Write>(
+        &self,
+        w: W,
+        time_set: Option<&fnv::FnvHashSet<u64>>,
+    ) -> std::io::Result<()> {
         let mut writer = vcd::Writer::new(w);
         writer.timescale(1, vcd::TimescaleUnit::PS)?;
         let rtt = self.collect_rtt_info();
@@ -255,13 +259,8 @@ impl TraceDB {
             hash: *hash,
         }));
         let mut cursors = vec![];
-        self.setup_cursors(
-            "top",
-            &root_scope,
-            &mut cursors,
-            &mut writer,
-            time_set.iter().copied().min().unwrap_or(0),
-        )?;
+        let min_time = time_set.and_then(|x| x.iter().copied().min()).unwrap_or(0);
+        self.setup_cursors("top", &root_scope, &mut cursors, &mut writer, min_time)?;
         writer.enddefinitions()?;
         writer.timestamp(0)?;
         let mut current_time = 0;
@@ -274,8 +273,7 @@ impl TraceDB {
                 found_match = false;
                 for cursor in &mut cursors {
                     if cursor.next_time == Some(current_time) {
-                        // TODO - make this smarter
-                        if time_set.contains(&current_time) {
+                        if time_set.map(|x| x.contains(&current_time)).unwrap_or(true) {
                             self.write_advance_cursor(cursor, &mut writer)?;
                         } else {
                             self.advance_cursor(cursor);
@@ -291,7 +289,7 @@ impl TraceDB {
             }
             if next_time != !0 {
                 current_time = next_time;
-                if time_set.contains(&current_time) {
+                if time_set.map(|x| x.contains(&current_time)).unwrap_or(true) {
                     writer.timestamp(current_time)?;
                 }
             }
@@ -413,16 +411,14 @@ mod tests {
     #[test]
     fn test_vcd_write() {
         let guard = trace_init_db();
-        let mut time_set = fnv::FnvHashSet::default();
         for i in 0..1000 {
-            time_set.insert(i * 1000);
             trace_time(i * 1000);
             trace("a", &(i % 2 == 0));
             trace("b", &(i % 2 == 1));
         }
         let mut vcd = vec![];
         let db = guard.take();
-        db.dump_vcd(&mut vcd, &time_set).unwrap();
+        db.dump_vcd(&mut vcd, None).unwrap();
         std::fs::write("test.vcd", vcd).unwrap();
     }
 
@@ -532,15 +528,11 @@ mod tests {
         assert_eq!(Mixed::None.kind().bits(), Mixed::BITS);
 
         let guard = trace_init_db();
-        let mut time_set = fnv::FnvHashSet::default();
         trace_time(0);
-        time_set.insert(0);
         trace("a", &Mixed::None);
         trace_time(100);
-        time_set.insert(100);
         trace("a", &Mixed::Array([true, false, true]));
         trace_time(200);
-        time_set.insert(200);
         trace(
             "a",
             &Mixed::Strct {
@@ -549,27 +541,22 @@ mod tests {
             },
         );
         trace_time(300);
-        time_set.insert(300);
         trace("a", &Mixed::Bool(false));
         trace_time(400);
-        time_set.insert(400);
         trace("a", &Mixed::Tuple(true, rhdl_bits::bits(3)));
         trace_time(500);
-        time_set.insert(500);
 
         let mut vcd = vec![];
         let db = guard.take();
-        db.dump_vcd(&mut vcd, &time_set).unwrap();
+        db.dump_vcd(&mut vcd, None).unwrap();
         std::fs::write("test_enum.vcd", vcd).unwrap();
     }
 
     #[test]
     fn test_vcd_with_nested_paths() {
         let guard = trace_init_db();
-        let mut time_set = fnv::FnvHashSet::default();
         for i in 0..10 {
             trace_time(i * 1000);
-            time_set.insert(i * 1000);
             trace_push_path("fn1");
             trace_push_path("fn2");
             trace("a", &true);
@@ -579,7 +566,7 @@ mod tests {
         }
         let mut vcd = vec![];
         let db = guard.take();
-        db.dump_vcd(&mut vcd, &time_set).unwrap();
+        db.dump_vcd(&mut vcd, None).unwrap();
         std::fs::write("test_nested_paths.vcd", vcd).unwrap();
     }
 }

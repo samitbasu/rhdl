@@ -28,7 +28,7 @@ impl<const N: usize> SynchronousIO for U<N> {
 pub fn counter<const N: usize>(cr: ClockReset, enable: bool, q: Q<N>) -> (Bits<N>, D<N>) {
     let next_count = if enable { q.count + 1 } else { q.count };
     let next_count = if cr.reset.any() { bits(0) } else { next_count };
-    (next_count, D::<{ N }> { count: next_count })
+    (q.count, D::<{ N }> { count: next_count })
 }
 
 #[cfg(test)]
@@ -64,7 +64,7 @@ mod tests {
     }
 
     #[test]
-    fn test_counter_counts_correctly() {
+    fn test_counter_counts_correctly() -> miette::Result<()> {
         // To account for the delay, we need to end with a zero input
         let rand_set = (0..100)
             .map(|_| random::<bool>())
@@ -75,7 +75,14 @@ mod tests {
             .fold(0, |acc, x| acc + if *x { 1 } else { 0 });
         let stream = rand_set.stream_after_reset(4).clock_pos_edge(100);
         let uut: U<16> = U::default();
-        let output = uut.run(stream).last().map(|x| x.value.2);
+        let out_stream = uut.run(stream);
+        let output = out_stream.clone().last().map(|x| x.value.2);
         assert_eq!(output, Some(bits(ground_truth)));
+        let tb = out_stream.collect::<SynchronousTestBench<_, _>>();
+        let tm = tb.rtl(&uut, &Default::default())?;
+        tm.run_iverilog()?;
+        let tm = tb.flow_graph(&uut, &Default::default())?;
+        tm.run_iverilog()?;
+        Ok(())
     }
 }

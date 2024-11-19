@@ -343,7 +343,7 @@ pub enum Statement {
     Always(Always),
     NonblockingAssignment(Assignment),
     If(If),
-    Delay(usize),
+    Delay(u64),
     Display(Display),
     Custom(String),
     Finish,
@@ -390,7 +390,7 @@ pub fn display(format: &str, args: Vec<Expression>) -> Statement {
     })
 }
 
-pub fn delay(time: usize) -> Statement {
+pub fn delay(time: u64) -> Statement {
     Statement::Delay(time)
 }
 

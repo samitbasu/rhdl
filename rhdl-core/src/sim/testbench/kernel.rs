@@ -12,11 +12,10 @@ use crate::{
         },
         builder::generate_verilog,
     },
+    sim::test_module::TestModule,
     types::bit_string::BitString,
     Digital, DigitalFn, RHDLError, TypedBits,
 };
-
-use super::test_module::TestModule;
 
 pub trait TestArg {
     fn vec_tb(&self) -> Vec<TypedBits>;

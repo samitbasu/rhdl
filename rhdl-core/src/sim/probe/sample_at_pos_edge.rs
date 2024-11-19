@@ -5,7 +5,7 @@ use crate::Clock;
 /// the clock signal from the stream that you want to sample.  When
 /// ever that clock signal experiences a positive edge, this probe will
 /// emit the _previous_ value for the stream.
-pub struct BeforePosEdge<S, F>
+pub struct SampleAtPosEdge<S, F>
 where
     S: Iterator,
 {
@@ -15,14 +15,14 @@ where
     last: Option<S::Item>,
 }
 
-impl<S, F> Clone for BeforePosEdge<S, F>
+impl<S, F> Clone for SampleAtPosEdge<S, F>
 where
     S: Clone + Iterator,
     F: Clone,
     <S as Iterator>::Item: Clone,
 {
     fn clone(&self) -> Self {
-        BeforePosEdge {
+        SampleAtPosEdge {
             stream: self.stream.clone(),
             clock_fn: self.clock_fn.clone(),
             clock: self.clock,
@@ -31,12 +31,12 @@ where
     }
 }
 
-pub fn before_pos_edge<S, F>(stream: S, clock_fn: F) -> BeforePosEdge<S, F>
+pub fn sample_at_pos_edge<S, F>(stream: S, clock_fn: F) -> SampleAtPosEdge<S, F>
 where
     S: Iterator,
     F: Fn(&S::Item) -> Clock,
 {
-    BeforePosEdge {
+    SampleAtPosEdge {
         stream,
         clock_fn,
         clock: Clock::default(),
@@ -44,7 +44,7 @@ where
     }
 }
 
-impl<S, F> Iterator for BeforePosEdge<S, F>
+impl<S, F> Iterator for SampleAtPosEdge<S, F>
 where
     S: Iterator,
     F: Fn(&S::Item) -> Clock,
@@ -79,7 +79,7 @@ mod tests {
     fn test_before_pos_edge() {
         let data = vec![0, 0, 1, 1, 3, 3, 2, 2, 0, 9];
         let stream = data.iter().copied().stream().clock_pos_edge(100);
-        let probe = stream.before_pos_edge(|x| x.value.0.clock);
+        let probe = stream.sample_at_pos_edge(|x| x.value.0.clock);
         let result: Vec<_> = probe.map(|t| t.value.1).collect();
         assert_eq!(result, data);
     }

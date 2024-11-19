@@ -147,7 +147,7 @@ fn test_derive_digital_complex_enum() {
     trace_time(3_000);
     trace("test", &foo_1);
     let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
-    guard.take().dump_vcd(&mut vcd_file).unwrap();
+    guard.take().dump_vcd(&mut vcd_file, None).unwrap();
 }
 
 #[test]

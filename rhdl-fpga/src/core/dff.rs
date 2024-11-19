@@ -159,26 +159,6 @@ impl<T: Digital> U<T> {
         );
         let events = vec![Events::Posedge("clock".into())];
         module.statements.push(always(events, vec![dff]));
-        /*
-                let input_wire = as_verilog_decl("wire", input_bits, "i");
-                let output_reg = as_verilog_decl("reg", output_bits, "o");
-                let code = format!(
-                    "
-        module {module_name}(input clock, input reset, input {input_wire}, output {output_reg});
-           initial begin
-                o = {init};
-           end
-           always @(posedge clock) begin
-                if (reset) begin
-                    o <= {init};
-                end else begin
-                    o <= i;
-                end
-            end
-        endmodule
-                    "
-                );
-         */
         Ok(HDLDescriptor {
             name: name.into(),
             body: module,
