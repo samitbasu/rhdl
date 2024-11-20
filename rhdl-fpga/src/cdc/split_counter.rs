@@ -73,11 +73,11 @@ pub struct O<W: Domain, R: Domain, const N: usize> {
 impl<W: Domain, R: Domain, const N: usize> CircuitIO for U<W, R, N> {
     type I = I<W, R, N>;
     type O = O<W, R, N>;
-    type Kernel = gray_kernel<W, R, N>;
+    type Kernel = split_count_kernel<W, R, N>;
 }
 
 #[kernel]
-pub fn gray_kernel<W: Domain, R: Domain, const N: usize>(
+pub fn split_count_kernel<W: Domain, R: Domain, const N: usize>(
     input: I<W, R, N>,
     q: Q<W, R, N>,
 ) -> (O<W, R, N>, D<W, R, N>) {
@@ -110,45 +110,56 @@ pub fn gray_kernel<W: Domain, R: Domain, const N: usize>(
     (o, d)
 }
 
-/* #[cfg(test)]
+#[cfg(test)]
 mod tests {
     use rand::random;
 
     use super::*;
 
-    fn sync_stream() -> impl Iterator<Item = TimedSample<I<Red, Green, 8>>> {
+    fn sync_stream() -> impl Iterator<Item = TimedSample<I<Red, Blue, 8>>> {
         // Start with a stream of pulses
-        let green = (0..).map(|_| random::<bool>()).take(500);
+        let red = (0..).map(|_| random::<bool>()).take(1500);
         // Clock them on the green domain
-        let green = clock_pos_edge(stream(green), 100);
+        let red = red.stream().clock_pos_edge(100);
         // Create an empty stream on the red domain
-        let red = stream(std::iter::repeat(false));
-        let red = clock_pos_edge(red, 79);
+        let blue = stream(std::iter::repeat(false));
+        let blue = blue.clock_pos_edge(79);
         // Merge them
-        merge(
-            green,
-            red,
-            |g: (ClockReset, bool), r: (ClockReset, bool)| I {
-                data: signal(g.1),
-                data_cr: signal(g.0),
-                cr: signal(r.0),
-            },
-        )
+        merge(red, blue, |r: (ClockReset, bool), b: (ClockReset, bool)| {
+            I {
+                data: signal(r.1),
+                data_cr: signal(r.0),
+                cr: signal(b.0),
+            }
+        })
     }
 
     #[test]
     fn test_performance() {
-        type UC = U<Red, Green, 8>;
+        type UC = U<Red, Blue, 8>;
         let uut = UC::default();
         let input = sync_stream();
-        validate(
-            &uut,
-            input,
-            &mut [glitch_check::<UC>(|i| i.value.cr.val().clock)],
-            ValidateOptions::default().vcd("gray_sync.vcd"),
-        )
+        let _ = uut
+            .run(input)
+            .glitch_check(|t| (t.value.0.cr.val().clock, t.value.1.r_count))
+            .glitch_check(|t| (t.value.0.data_cr.val().clock, t.value.1.w_count))
+            .last();
     }
 
+    #[test]
+    fn test_read_counter_always_behind_write_counter() {
+        type UC = U<Red, Blue, 8>;
+        let uut = UC::default();
+        let input = sync_stream();
+        uut.run(input).for_each(|t| {
+            assert!(
+                t.value.1.r_count.val() <= t.value.1.w_count.val(),
+                "read counter not behind write counter: {t:?}"
+            )
+        })
+    }
+
+    /*
     #[test]
     fn test_hdl_generation_rtl() -> miette::Result<()> {
         type UC = U<Red, Green, 8>;
@@ -182,5 +193,5 @@ mod tests {
         test_mod.run_iverilog()?;
         Ok(())
     }
+    */
 }
- */
