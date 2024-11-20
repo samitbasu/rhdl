@@ -1,8 +1,12 @@
+use std::path::Path;
+
 use crate::{Clock, Digital, TimedSample};
 
 use super::{
     glitch_check::{glitch_check, GlitchCheck},
     sample_at_pos_edge::{sample_at_pos_edge, SampleAtPosEdge},
+    vcd_file::vcd_file,
+    vcd_file::VCDFile,
 };
 
 pub trait ProbeExt<I, S> {
@@ -19,6 +23,11 @@ pub trait ProbeExt<I, S> {
         F: Fn(&TimedSample<S>) -> (Clock, T),
         S: Digital,
         T: Digital;
+    fn vcd_file(self, file: &Path) -> VCDFile<I>
+    where
+        Self: Sized,
+        I: Iterator<Item = TimedSample<S>>,
+        S: Digital;
 }
 
 impl<I, S> ProbeExt<I, S> for I
@@ -39,5 +48,9 @@ where
         T: Digital,
     {
         glitch_check(self, clock_fn)
+    }
+
+    fn vcd_file(self, file: &Path) -> VCDFile<I> {
+        vcd_file(self, file)
     }
 }

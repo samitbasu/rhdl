@@ -81,6 +81,8 @@ pub fn fifo_kernel<T: Digital, const N: usize>(
 mod tests {
     use std::path::PathBuf;
 
+    use rhdl::core::sim::ResetOrData;
+
     use super::*;
 
     fn write(data: b8) -> I<Bits<8>> {
@@ -143,7 +145,7 @@ mod tests {
     #[test]
     fn test_fifo_streaming() -> miette::Result<()> {
         // First, allocate a large vector of random data to feed through the FIFO
-        let data = (0..10000)
+        let data = (0..1000000)
             .map(|_| bits(rand::random::<u8>() as u128))
             .collect::<Vec<_>>();
         // The writer will write data to the FIFO if it is not full, if there is data to write, and if a random
@@ -153,38 +155,38 @@ mod tests {
         // determines how often the reader reads data from the FIFO.
         type UC = U<Bits<8>, 3>;
         let uut = UC::default();
-        let mut output = <UC as SynchronousIO>::O::init();
-        let mut next_input = <UC as SynchronousIO>::I::init();
         let mut writer_finished = false;
-        loop {
-            dbg!(output);
-            // Decide if the writer will write
-            if !output.full && rand::random::<u8>() > 50 {
-                next_input.data = writer_iter.next();
-                writer_finished = next_input.data.is_none();
-            } else {
-                next_input.data = None;
-            }
-            // Decide if the reader will read
-            if output.data.is_some() && rand::random::<u8>() > 50 {
-                next_input.next = true;
-                eprintln!("Reading data: {:?}", output.data);
-            } else {
-                next_input.next = false;
-            }
-            if writer_finished && output.data.is_none() {
-                break;
-            }
-            dbg!(next_input);
-            // Clock in this new input
-            output = uut
-                .run(std::iter::once(next_input).stream().clock_pos_edge(100))
-                .sample_at_pos_edge(|x| x.value.0.clock)
-                .next()
-                .unwrap()
-                .value
-                .2;
-        }
+        let mut need_reset = true;
+        let read_back = uut
+            .run_fn(
+                |output| {
+                    if need_reset {
+                        need_reset = false;
+                        return Some(ResetOrData::Reset);
+                    }
+                    let mut next_input = I {
+                        data: None,
+                        next: false,
+                    };
+                    if !output.full && rand::random::<u8>() > 50 {
+                        next_input.data = writer_iter.next();
+                        writer_finished = next_input.data.is_none();
+                    }
+                    if output.data.is_some() && rand::random::<u8>() > 50 {
+                        next_input.next = true;
+                    }
+                    if writer_finished && output.data.is_none() {
+                        return None;
+                    }
+                    Some(ResetOrData::Data(next_input))
+                },
+                100,
+            )
+            //.vcd_file(&PathBuf::from("fifo_streaming.vcd"))
+            .sample_at_pos_edge(|x| x.value.0.clock)
+            .filter_map(|x| if x.value.1.next { x.value.2.data } else { None })
+            .collect::<Vec<_>>();
+        assert_eq!(data, read_back);
         Ok(())
     }
 }
