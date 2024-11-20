@@ -90,6 +90,7 @@ pub use rhdl_core::sim::merge::merge;
 pub use rhdl_core::sim::merge::MergeExt;
 pub use rhdl_core::sim::probe::ext::ProbeExt;
 pub use rhdl_core::sim::run::asynchronous::RunExt;
+pub use rhdl_core::sim::run::sync_fn::RunSynchronousFeedbackExt;
 pub use rhdl_core::sim::run::synchronous::RunSynchronousExt;
 pub use rhdl_core::sim::stream::TimedStreamExt;
 pub use rhdl_core::sim::testbench::asynchronous::TestBench;

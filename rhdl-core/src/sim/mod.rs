@@ -10,7 +10,7 @@ pub mod testbench;
 pub mod vcd;
 
 #[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
-pub enum ResetOrData<T: Digital> {
+pub enum ResetOrData<T> {
     Reset,
     Data(T),
 }
