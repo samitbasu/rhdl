@@ -7,15 +7,17 @@ use crate::{
 
 use super::synchronizer;
 
-/// This core provides a counter where the output of the
-/// counter is in one clock domain (W), while the pulses
-/// it counts are in a different clock domain (R).  The
-/// count is guaranteed not to exceed the true count unless
-/// the counter wraps.  In general, you can assume that that the
-/// count on the W clock domain will lag the count on the R clock domain.
+/// This core provides a split counter where one count
+/// output is in the domain of the input pulses, and the
+/// other count output is in a different clock domain.
+/// The count in the output clock domain is guaranteed to
+/// lag behind the count in the input clock domain, provided
+/// that the input pulses do not cause the counter to wrap.
+/// That guarantee must be provided by the core user.  
 ///
 /// SAFETY - this core uses a vector of 1-bit synchronizers, but
-/// with a Gray-coded counter.  This is safe because the first stage
+/// with a Gray-coded counter to cross the clock domains.  
+/// This is safe because the first stage
 /// of registers in the synchronizers will sample the Gray-coded signal
 /// essentially simultaneously.  The Gray-coded signal is guaranteed to
 /// have at most one bit changing at any time point.  Thus, all bits
@@ -23,18 +25,25 @@ use super::synchronizer;
 /// bit that is changing at that time.  This bit may resolve to the correct
 /// value, or it may not.  If it does not, the transition will be missed
 /// and the counter will be off by one.  However, at the next sample point,
-/// this bit will be correct.  
+/// this bit will be correct.
+///
+/// The W domain is used for the "writer" to the counter, where the
+/// counter increments are provided, and the R domain is used for
+/// the "reader" of the counter, where the count is read.
 #[derive(Clone, Circuit, CircuitDQ)]
-pub struct U<R: Domain, W: Domain, const N: usize> {
-    // This counter lives in the R domain, and
+pub struct U<W: Domain, R: Domain, const N: usize> {
+    // This counter lives in the W domain, and
     // counts the number of input pulses.
-    counter: Adapter<dff::U<Bits<N>>, R>,
+    // The output is fed back to the W domain
+    counter: Adapter<dff::U<Bits<N>>, W>,
     // This is the vector of synchronizers, one per
-    // bit of the counter.
-    syncs: [synchronizer::U<R, W>; N],
+    // bit of the counter.  The synchronizers hold
+    // the value of the count in the read domain
+    // as a gray encoded value.
+    syncs: [synchronizer::U<W, R>; N],
 }
 
-impl<R: Domain, W: Domain, const N: usize> Default for U<R, W, N> {
+impl<W: Domain, R: Domain, const N: usize> Default for U<W, R, N> {
     fn default() -> Self {
         Self {
             counter: Adapter::new(dff::U::default()),
@@ -44,27 +53,35 @@ impl<R: Domain, W: Domain, const N: usize> Default for U<R, W, N> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Digital, Timed)]
-pub struct I<R: Domain, W: Domain, const N: usize> {
-    /// The input data pulses to be counter from the R clock domain
-    pub data: Signal<bool, R>,
-    /// The clock and reset for the R clock domain
-    pub data_cr: Signal<ClockReset, R>,
-    /// The clock and reset for the output clock domain W
-    pub cr: Signal<ClockReset, W>,
+pub struct I<W: Domain, R: Domain, const N: usize> {
+    /// The input data pulses to be counted from the W clock domain
+    pub data: Signal<bool, W>,
+    /// The clock and reset for the W clock domain
+    pub data_cr: Signal<ClockReset, W>,
+    /// The clock and reset for the output clock domain R
+    pub cr: Signal<ClockReset, R>,
 }
 
-impl<R: Domain, W: Domain, const N: usize> CircuitIO for U<R, W, N> {
-    type I = I<R, W, N>;
-    type O = Signal<Bits<N>, W>;
-    type Kernel = gray_kernel<R, W, N>;
+#[derive(Debug, Copy, Clone, PartialEq, Digital, Timed)]
+pub struct O<W: Domain, R: Domain, const N: usize> {
+    /// The count back in the W domain (registered internally)
+    pub w_count: Signal<Bits<N>, W>,
+    /// The count in the R domain (combinatorial decode of internal registers)
+    pub r_count: Signal<Bits<N>, R>,
+}
+
+impl<W: Domain, R: Domain, const N: usize> CircuitIO for U<W, R, N> {
+    type I = I<W, R, N>;
+    type O = O<W, R, N>;
+    type Kernel = gray_kernel<W, R, N>;
 }
 
 #[kernel]
-pub fn gray_kernel<R: Domain, W: Domain, const N: usize>(
-    input: I<R, W, N>,
-    q: Q<R, W, N>,
-) -> (Signal<Bits<N>, W>, D<R, W, N>) {
-    let mut d = D::<R, W, { N }>::init();
+pub fn gray_kernel<W: Domain, R: Domain, const N: usize>(
+    input: I<W, R, N>,
+    q: Q<W, R, N>,
+) -> (O<W, R, N>, D<W, R, N>) {
+    let mut d = D::<W, R, { N }>::init();
     // The counter increments each time the input is high
     d.counter.clock_reset = input.data_cr;
     d.counter.input = signal(q.counter.val() + if input.data.val() { 1 } else { 0 });
@@ -76,16 +93,21 @@ pub fn gray_kernel<R: Domain, W: Domain, const N: usize>(
         // The clock to the synchronizer is the destination clock
         d.syncs[i].cr = input.cr;
     }
-    // Connect each synchronizer output to one bit of the output
-    let mut o = bits(0);
+    // Connect each synchronizer output to one bit of the output on the read side
+    let mut read_o = bits(0);
     for i in 0..N {
         if q.syncs[i].val() {
-            o |= bits(1 << i);
+            read_o |= bits(1 << i);
         }
     }
     // Decode this signal back to a binary count
-    let o = gray_decode::<N>(Gray::<N>(o));
-    (signal(o), d)
+    let read_o = gray_decode::<N>(Gray::<N>(read_o));
+    // The read side of the output comes from o, the
+    // write side is simply the output of the internal counter
+    let mut o = O::<W, R, { N }>::init();
+    o.w_count = signal(q.counter.val());
+    o.r_count = signal(read_o);
+    (o, d)
 }
 
 /* #[cfg(test)]

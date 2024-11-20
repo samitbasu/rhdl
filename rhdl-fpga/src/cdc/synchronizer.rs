@@ -3,26 +3,28 @@ use rhdl::{
     prelude::*,
 };
 
+/// A simple two-register synchronizer for crossing
+/// a single bit from the W domain to the R domain
 #[derive(Debug, Clone, Default)]
-pub struct U<R: Domain, W: Domain> {
+pub struct U<W: Domain, R: Domain> {
     _w: std::marker::PhantomData<W>,
     _r: std::marker::PhantomData<R>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Digital, Timed)]
-pub struct I<R: Domain, W: Domain> {
-    pub data: Signal<bool, R>,
-    pub cr: Signal<ClockReset, W>,
+pub struct I<W: Domain, R: Domain> {
+    pub data: Signal<bool, W>,
+    pub cr: Signal<ClockReset, R>,
 }
 
-impl<R: Domain, W: Domain> CircuitDQ for U<R, W> {
+impl<W: Domain, R: Domain> CircuitDQ for U<W, R> {
     type D = ();
     type Q = ();
 }
 
-impl<R: Domain, W: Domain> CircuitIO for U<R, W> {
-    type I = I<R, W>;
-    type O = Signal<bool, W>;
+impl<W: Domain, R: Domain> CircuitIO for U<W, R> {
+    type I = I<W, R>;
+    type O = Signal<bool, R>;
     type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
 }
 
@@ -35,7 +37,7 @@ pub struct S {
     reg2_current: bool,
 }
 
-impl<R: Domain, W: Domain> Circuit for U<R, W> {
+impl<W: Domain, R: Domain> Circuit for U<W, R> {
     type S = S;
 
     fn init(&self) -> Self::S {
@@ -49,7 +51,7 @@ impl<R: Domain, W: Domain> Circuit for U<R, W> {
     }
 
     fn description(&self) -> String {
-        format!("Synchronizer from {:?}->{:?}", R::color(), W::color())
+        format!("Synchronizer from {:?}->{:?}", W::color(), R::color())
     }
 
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O {
@@ -143,39 +145,34 @@ impl<R: Domain, W: Domain> Circuit for U<R, W> {
     }
 }
 
-/* #[cfg(test)]
+#[cfg(test)]
 mod tests {
     use rand::random;
 
     use super::*;
 
     fn sync_stream() -> impl Iterator<Item = TimedSample<I<Red, Green>>> {
-        // Assume the green stuff comes on the edges of a clock
-        let green = stream((0..).map(|_| random::<bool>())).take(100);
-        let green = clock_pos_edge(green, 100);
-        let red = stream(std::iter::repeat(false));
-        let red = clock_pos_edge(red, 79);
-        merge(
-            green,
-            red,
-            |g: (ClockReset, bool), r: (ClockReset, bool)| I {
-                data: signal(g.1),
-                cr: signal(r.0),
-            },
-        )
+        // Assume the red stuff comes on the edges of a clock
+        let red = (0..)
+            .map(|_| random::<bool>())
+            .take(100)
+            .stream_after_reset(1)
+            .clock_pos_edge(100);
+        let green = std::iter::repeat(false)
+            .stream_after_reset(1)
+            .clock_pos_edge(79);
+        red.merge(green, |r, g| I {
+            data: signal(r.1),
+            cr: signal(g.0),
+        })
     }
 
     #[test]
     fn test_hdl_generation() -> miette::Result<()> {
         let uut = U::<Red, Green>::default();
-        let options = TestModuleOptions {
-            skip_first_cases: 10,
-            vcd_file: Some("hdl.vcd".into()),
-            flow_graph_level: true,
-            hold_time: 1,
-        };
         let stream = sync_stream();
-        let test_mod = build_rtl_testmodule(&uut, stream, options)?;
+        let test_bench = uut.run(stream).collect::<TestBench<_, _>>();
+        let test_mod = test_bench.rtl(&uut, &TestBenchOptions::default().vcd("hdl.vcd").skip(4))?;
         std::fs::write("synchronizer.v", test_mod.to_string()).unwrap();
         test_mod.run_iverilog()?;
         Ok(())
@@ -186,14 +183,9 @@ mod tests {
         let uut = U::<Red, Green>::default();
         // Assume the green stuff comes on the edges of a clock
         let input = sync_stream();
-        type UC = U<Red, Green>;
-
-        validate(
-            &uut,
-            input,
-            &mut [glitch_check::<UC>(|i| i.value.cr.val().clock)],
-            ValidateOptions::default().vcd("synchronizer.vcd"),
-        );
+        let _ = uut
+            .run(input)
+            .glitch_check(|i| (i.value.0.cr.val().clock, i.value.1.val()))
+            .last();
     }
 }
- */
