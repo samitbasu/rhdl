@@ -124,6 +124,7 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
                 absolute_time += options.hold_time;
             }
             test_cases.push(delay(sample_time.saturating_sub(absolute_time)));
+            absolute_time = sample_time;
             let cr = clock_reset(sample_cr.clock, sample_cr.reset);
             test_cases.push(assign("clock_reset", bit_string(&cr.typed_bits().into())));
             if has_nonempty_input {

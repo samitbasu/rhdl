@@ -57,6 +57,9 @@ impl<W: Domain, R: Domain> Circuit for U<W, R> {
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O {
         let clock = input.cr.val().clock;
         let reset = input.cr.val().reset;
+        trace("clock", &clock);
+        trace("reset", &reset);
+        trace("input", &input.data);
         if !clock.raw() {
             state.reg1_next = input.data.val();
             state.reg2_next = state.reg1_current;
@@ -70,6 +73,7 @@ impl<W: Domain, R: Domain> Circuit for U<W, R> {
             state.reg2_next = false;
         }
         state.clock = clock;
+        trace("output", &state.reg2_current);
         signal(state.reg2_current)
     }
 
@@ -148,31 +152,58 @@ impl<W: Domain, R: Domain> Circuit for U<W, R> {
 #[cfg(test)]
 mod tests {
     use rand::random;
+    use rhdl::core::sim::vcd;
 
     use super::*;
 
-    fn sync_stream() -> impl Iterator<Item = TimedSample<I<Red, Green>>> {
+    fn sync_stream() -> impl Iterator<Item = TimedSample<I<Red, Blue>>> {
         // Assume the red stuff comes on the edges of a clock
         let red = (0..)
             .map(|_| random::<bool>())
             .take(100)
             .stream_after_reset(1)
             .clock_pos_edge(100);
-        let green = std::iter::repeat(false)
+        let blue = std::iter::repeat(false)
             .stream_after_reset(1)
             .clock_pos_edge(79);
-        red.merge(green, |r, g| I {
+        red.merge(blue, |r, g| I {
             data: signal(r.1),
             cr: signal(g.0),
         })
     }
 
     #[test]
+    fn test_sync_stream_makes_sense() -> miette::Result<()> {
+        let stream = sync_stream();
+        for (ndx, val) in stream
+            .take(150)
+            .edge_time(|p| p.value.cr.val().clock)
+            .filter(|x| x.value.cr.val().clock.raw())
+            .enumerate()
+        {
+            let pred = 39 + 78 * ndx;
+            assert!(pred == val.time as usize);
+        }
+        let stream = sync_stream();
+        for (ndx, val) in stream
+            .take(150)
+            .edge_time(|p| p.value.cr.val().clock)
+            .filter(|x| !x.value.cr.val().clock.raw())
+            .enumerate()
+        {
+            let pred = 78 + 78 * ndx;
+            assert!(pred == val.time as usize);
+        }
+        Ok(())
+    }
+
+    #[test]
     fn test_hdl_generation() -> miette::Result<()> {
-        let uut = U::<Red, Green>::default();
+        let uut = U::<Red, Blue>::default();
         let stream = sync_stream();
         let test_bench = uut.run(stream).collect::<TestBench<_, _>>();
-        let test_mod = test_bench.rtl(&uut, &TestBenchOptions::default().vcd("hdl.vcd").skip(4))?;
+        let test_mod =
+            test_bench.rtl(&uut, &TestBenchOptions::default().vcd("hdl.vcd").skip(!0))?;
         std::fs::write("synchronizer.v", test_mod.to_string()).unwrap();
         test_mod.run_iverilog()?;
         Ok(())
@@ -180,12 +211,21 @@ mod tests {
 
     #[test]
     fn test_synchronizer_performance() {
-        let uut = U::<Red, Green>::default();
-        // Assume the green stuff comes on the edges of a clock
+        let uut = U::<Red, Blue>::default();
+        // Assume the Blue stuff comes on the edges of a clock
         let input = sync_stream();
         let _ = uut
             .run(input)
             .glitch_check(|i| (i.value.0.cr.val().clock, i.value.1.val()))
             .last();
+    }
+
+    #[test]
+    fn test_synchronizer_function() {
+        let uut = U::<Red, Blue>::default();
+        let input = sync_stream();
+        let vcd = uut.run(input).collect::<vcd::Vcd>();
+        vcd.dump_to_file(&std::path::PathBuf::from("synchronizer.vcd"))
+            .unwrap();
     }
 }

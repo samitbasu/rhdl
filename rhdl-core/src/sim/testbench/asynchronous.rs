@@ -4,7 +4,10 @@ use crate::{
     hdl::ast::{
         assert, assign, bit_string, component_instance, connection, declaration, delay, display,
         dump_file, dump_vars, finish, id, initial, unsigned_width, Direction, HDLKind, Module,
-    }, sim::test_module::TestModule, types::bit_string::BitString, Circuit, CircuitIO, Digital, RHDLError, TimedSample
+    },
+    sim::test_module::TestModule,
+    types::bit_string::BitString,
+    Circuit, CircuitIO, Digital, RHDLError, TimedSample,
 };
 
 use super::TestBenchOptions;
@@ -123,6 +126,7 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
                 absolute_time += options.hold_time;
             }
             test_cases.push(delay(sample_time.saturating_sub(absolute_time)));
+            absolute_time = sample_time;
             if has_nonempty_input {
                 test_cases.push(assign(
                     "i",
