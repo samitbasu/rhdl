@@ -112,18 +112,21 @@ pub fn split_count_kernel<W: Domain, R: Domain, const N: usize>(
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use rand::random;
 
     use super::*;
 
     fn sync_stream() -> impl Iterator<Item = TimedSample<I<Red, Blue, 8>>> {
         // Start with a stream of pulses
-        let red = (0..).map(|_| random::<bool>()).take(1500);
+        let red = (0..).map(|_| random::<bool>()).take(100);
         // Clock them on the green domain
-        let red = red.stream().clock_pos_edge(100);
+        let red = red.stream_after_reset(1).clock_pos_edge(100);
         // Create an empty stream on the red domain
-        let blue = stream(std::iter::repeat(false));
-        let blue = blue.clock_pos_edge(79);
+        let blue = std::iter::repeat(false)
+            .stream_after_reset(1)
+            .clock_pos_edge(79);
         // Merge them
         merge(red, blue, |r: (ClockReset, bool), b: (ClockReset, bool)| {
             I {
@@ -151,47 +154,36 @@ mod tests {
         type UC = U<Red, Blue, 8>;
         let uut = UC::default();
         let input = sync_stream();
-        uut.run(input).for_each(|t| {
-            assert!(
-                t.value.1.r_count.val() <= t.value.1.w_count.val(),
-                "read counter not behind write counter: {t:?}"
-            )
-        })
-    }
-
-    /*
-    #[test]
-    fn test_hdl_generation_rtl() -> miette::Result<()> {
-        type UC = U<Red, Green, 8>;
-        let uut = UC::default();
-        let options = TestModuleOptions {
-            skip_first_cases: 10,
-            vcd_file: Some("gray_sync_rtl.vcd".into()),
-            flow_graph_level: false,
-            hold_time: 1,
-        };
-        let stream = sync_stream();
-        let test_mod = build_rtl_testmodule(&uut, stream, options)?;
-        std::fs::write("gray_sync_rtl.v", test_mod.to_string()).unwrap();
-        test_mod.run_iverilog()?;
-        Ok(())
+        uut.run(input)
+            .vcd_file(&PathBuf::from("rw_counter.vcd"))
+            .for_each(|t| {
+                assert!(
+                    t.value.1.r_count.val() <= t.value.1.w_count.val(),
+                    "read counter not behind write counter: {t:?}"
+                )
+            })
     }
 
     #[test]
-    fn test_hdl_generation_fg() -> miette::Result<()> {
-        type UC = U<Red, Green, 8>;
+    fn test_hdl_generation() -> miette::Result<()> {
+        type UC = U<Red, Blue, 8>;
         let uut = UC::default();
-        let options = TestModuleOptions {
-            skip_first_cases: 10,
-            vcd_file: Some("gray_sync.vcd".into()),
-            flow_graph_level: true,
-            hold_time: 1,
-        };
-        let stream = sync_stream();
-        let test_mod = build_rtl_testmodule(&uut, stream, options)?;
-        std::fs::write("gray_sync.v", test_mod.to_string()).unwrap();
+        let input = sync_stream();
+        let test_bench = uut.run(input).collect::<TestBench<_, _>>();
+        let test_mod = test_bench.rtl(
+            &uut,
+            &TestBenchOptions::default()
+                .vcd("split_counter.vcd")
+                .skip(10),
+        )?;
+        test_mod.run_iverilog()?;
+        let test_mod = test_bench.flow_graph(
+            &uut,
+            &TestBenchOptions::default()
+                .vcd("split_counter_fg.vcd")
+                .skip(10),
+        )?;
         test_mod.run_iverilog()?;
         Ok(())
     }
-    */
 }

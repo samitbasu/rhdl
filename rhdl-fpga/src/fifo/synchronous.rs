@@ -56,13 +56,13 @@ pub fn fifo_kernel<T: Digital, const N: usize>(
     d.read_logic.write_address = q.write_logic.write_address;
     d.read_logic.next = i.next;
     // Connect the write logic inputs
-    d.write_logic.read_address = q.read_logic.read_address;
+    d.write_logic.read_address = q.read_logic.ram_read_address;
     d.write_logic.write_enable = write_enable;
     // Connect the RAM inputs
     d.ram.write.addr = q.write_logic.ram_write_address;
     d.ram.write.value = write_data;
     d.ram.write.enable = write_enable;
-    d.ram.read_addr = q.read_logic.read_address;
+    d.ram.read_addr = q.read_logic.ram_read_address;
     // Populate the outputs
     o.data = if q.read_logic.empty {
         None

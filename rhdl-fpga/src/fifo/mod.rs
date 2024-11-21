@@ -1,3 +1,4 @@
+pub mod asynchronous;
 pub mod read_logic;
-pub mod sync_fifo;
+pub mod synchronous;
 pub mod write_logic;
