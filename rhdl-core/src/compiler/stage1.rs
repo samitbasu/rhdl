@@ -2,9 +2,9 @@ use crate::{
     compiler::{
         mir::{compiler::compile_mir, infer::infer},
         rhif_passes::{
-            check_clock_coherence::CheckClockCoherence,
-            check_for_rolled_types::CheckForRolledTypesPass, check_rhif_flow::DataFlowCheckPass,
-            check_rhif_type::TypeCheckPass, constant_propagation::ConstantPropagation,
+            check_clock_domain::CheckClockDomain, check_for_rolled_types::CheckForRolledTypesPass,
+            check_rhif_flow::DataFlowCheckPass, check_rhif_type::TypeCheckPass,
+            constant_propagation::ConstantPropagation,
             dead_code_elimination::DeadCodeEliminationPass,
             lower_dynamic_indices_with_constant_arguments::LowerDynamicIndicesWithConstantArguments,
             lower_inferred_casts::LowerInferredCastsPass,
@@ -61,7 +61,7 @@ pub(crate) fn compile(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
         hash = new_hash;
     }
     if matches!(mode, CompilationMode::Asynchronous) {
-        obj = CheckClockCoherence::run(obj)?;
+        obj = CheckClockDomain::run(obj)?;
     }
     let mut hash = obj.hash_value();
     loop {

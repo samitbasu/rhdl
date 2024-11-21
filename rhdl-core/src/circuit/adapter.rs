@@ -29,6 +29,12 @@ impl<C: Synchronous, D: Domain> Adapter<C, D> {
     }
 }
 
+impl<C: Synchronous + Default, D: Domain> Default for Adapter<C, D> {
+    fn default() -> Self {
+        Self::new(C::default())
+    }
+}
+
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub struct AdapterInput<I: Digital, D: Domain> {
     pub clock_reset: Signal<ClockReset, D>,

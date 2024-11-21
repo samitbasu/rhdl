@@ -7,13 +7,11 @@ use crate::{
 
 use super::synchronizer;
 
-/// This core provides a split counter where one count
-/// output is in the domain of the input pulses, and the
-/// other count output is in a different clock domain.
-/// The count in the output clock domain is guaranteed to
-/// lag behind the count in the input clock domain, provided
-/// that the input pulses do not cause the counter to wrap.
-/// That guarantee must be provided by the core user.  
+/// This core provides a counter where the input pulses
+/// come from one clock domain, and the output count
+/// is in a different clock domain.  The count in the output
+/// clock domain is guaranteed to lag behind an equivalent count
+/// in the input clock domain.  
 ///
 /// SAFETY - this core uses a vector of 1-bit synchronizers, but
 /// with a Gray-coded counter to cross the clock domains.  
@@ -25,7 +23,8 @@ use super::synchronizer;
 /// bit that is changing at that time.  This bit may resolve to the correct
 /// value, or it may not.  If it does not, the transition will be missed
 /// and the counter will be off by one.  However, at the next sample point,
-/// this bit will be correct.
+/// this bit will be correct.  As the counter is monotonic, it will always
+/// lag behind the actual count.
 ///
 /// The W domain is used for the "writer" to the counter, where the
 /// counter increments are provided, and the R domain is used for
@@ -34,7 +33,6 @@ use super::synchronizer;
 pub struct U<W: Domain, R: Domain, const N: usize> {
     // This counter lives in the W domain, and
     // counts the number of input pulses.
-    // The output is fed back to the W domain
     counter: Adapter<dff::U<Bits<N>>, W>,
     // This is the vector of synchronizers, one per
     // bit of the counter.  The synchronizers hold
@@ -63,24 +61,22 @@ pub struct I<W: Domain, R: Domain, const N: usize> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Digital, Timed)]
-pub struct O<W: Domain, R: Domain, const N: usize> {
-    /// The count back in the W domain (registered internally)
-    pub w_count: Signal<Bits<N>, W>,
+pub struct O<R: Domain, const N: usize> {
     /// The count in the R domain (combinatorial decode of internal registers)
-    pub r_count: Signal<Bits<N>, R>,
+    pub count: Signal<Bits<N>, R>,
 }
 
 impl<W: Domain, R: Domain, const N: usize> CircuitIO for U<W, R, N> {
     type I = I<W, R, N>;
-    type O = O<W, R, N>;
-    type Kernel = split_count_kernel<W, R, N>;
+    type O = O<R, N>;
+    type Kernel = cross_counter_kernel<W, R, N>;
 }
 
 #[kernel]
-pub fn split_count_kernel<W: Domain, R: Domain, const N: usize>(
+pub fn cross_counter_kernel<W: Domain, R: Domain, const N: usize>(
     input: I<W, R, N>,
     q: Q<W, R, N>,
-) -> (O<W, R, N>, D<W, R, N>) {
+) -> (O<R, N>, D<W, R, N>) {
     let mut d = D::<W, R, { N }>::init();
     // The counter increments each time the input is high
     d.counter.clock_reset = input.data_cr;
@@ -104,9 +100,8 @@ pub fn split_count_kernel<W: Domain, R: Domain, const N: usize>(
     let read_o = gray_decode::<N>(Gray::<N>(read_o));
     // The read side of the output comes from o, the
     // write side is simply the output of the internal counter
-    let mut o = O::<W, R, { N }>::init();
-    o.w_count = signal(q.counter.val());
-    o.r_count = signal(read_o);
+    let mut o = O::<R, { N }>::init();
+    o.count = signal(read_o);
     (o, d)
 }
 
@@ -144,24 +139,24 @@ mod tests {
         let input = sync_stream();
         let _ = uut
             .run(input)
-            .glitch_check(|t| (t.value.0.cr.val().clock, t.value.1.r_count))
-            .glitch_check(|t| (t.value.0.data_cr.val().clock, t.value.1.w_count))
+            .glitch_check(|t| (t.value.0.cr.val().clock, t.value.1.count))
             .last();
     }
 
     #[test]
-    fn test_read_counter_always_behind_write_counter() {
+    fn test_read_counter_is_monotonic() {
         type UC = U<Red, Blue, 8>;
         let uut = UC::default();
         let input = sync_stream();
-        uut.run(input)
+        let outputs = uut
+            .run(input)
+            .sample_at_pos_edge(|t| t.value.0.cr.val().clock)
             .vcd_file(&PathBuf::from("rw_counter.vcd"))
-            .for_each(|t| {
-                assert!(
-                    t.value.1.r_count.val() <= t.value.1.w_count.val(),
-                    "read counter not behind write counter: {t:?}"
-                )
-            })
+            .map(|t| t.value.1.count.val())
+            .collect::<Vec<_>>();
+        outputs.windows(2).for_each(|w| {
+            assert!(w[0] <= w[1]);
+        });
     }
 
     #[test]

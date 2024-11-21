@@ -24,11 +24,9 @@ pub enum RHDLError {
     #[error("RHDL Type Check Error")]
     #[diagnostic(transparent)]
     RHDLTypeCheckError(#[from] Box<crate::compiler::mir::error::RHDLTypeCheckError>),
-    #[error("RHDL Clock Coherence Violation")]
+    #[error("RHDL Clock Domain Violation")]
     #[diagnostic(transparent)]
-    RHDLClockCoherenceViolation(
-        #[from] Box<crate::compiler::mir::error::RHDLClockCoherenceViolation>,
-    ),
+    RHDLClockDomainViolation(#[from] Box<crate::compiler::mir::error::RHDLClockDomainViolation>),
     #[error("RHDL Dynamic Type Error")]
     #[diagnostic(transparent)]
     RHDLDynamicTypeError(#[from] Box<crate::types::error::DynamicTypeError>),

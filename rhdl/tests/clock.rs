@@ -150,7 +150,7 @@ fn test_signal_cross_clock_select_causes_type_check_error() -> miette::Result<()
             x + 2
         }
     }
-    let Err(RHDLError::RHDLClockCoherenceViolation(_)) =
+    let Err(RHDLError::RHDLClockDomainViolation(_)) =
         compile_design::<add<Red, Green>>(Asynchronous)
     else {
         panic!("Expected clock coherence violation");
