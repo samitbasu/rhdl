@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, HashSet};
 use crate::{
     ast::source_location::SourceLocation,
     compiler::mir::{
-        error::{ClockError, RHDLClockCoherenceViolation},
+        error::{ClockError, RHDLClockDomainViolation},
         ty::{make_variant_tag, AppTypeKind, Const, TypeId, TypeKind, UnifyContext},
     },
     error::RHDLError,
@@ -17,22 +17,22 @@ use crate::{
 
 use super::pass::Pass;
 
-pub struct CheckClockCoherence {}
+pub struct CheckClockDomain {}
 
-impl Pass for CheckClockCoherence {
+impl Pass for CheckClockDomain {
     fn run(input: Object) -> Result<Object, RHDLError> {
-        check_clock_coherence(&input)?;
+        check_clock_domain(&input)?;
         Ok(input)
     }
 }
 
-struct ClockCoherenceContext<'a> {
+struct ClockDomainContext<'a> {
     obj: &'a Object,
     ctx: UnifyContext,
     slot_map: BTreeMap<Slot, TypeId>,
 }
 
-impl ClockCoherenceContext<'_> {
+impl ClockDomainContext<'_> {
     fn collect_clock_domains(&mut self, ty: TypeId) -> Vec<TypeId> {
         match self.ctx.ty(ty) {
             TypeKind::Var(_) => vec![ty],
@@ -71,12 +71,12 @@ impl ClockCoherenceContext<'_> {
             "Multiple"
         }
     }
-    fn raise_clock_coherence_error(
+    fn raise_clock_domain_error(
         &mut self,
         containing_id: SourceLocation,
         slots: &[Slot],
         cause: ClockError,
-    ) -> Box<RHDLClockCoherenceViolation> {
+    ) -> Box<RHDLClockDomainViolation> {
         // Print out the current state of the slot map
         eprintln!("Slot map:");
         for (slot, ty) in &self.slot_map {
@@ -102,7 +102,7 @@ impl ClockCoherenceContext<'_> {
             })
             .collect();
 
-        Box::new(RHDLClockCoherenceViolation {
+        Box::new(RHDLClockDomainViolation {
             src: self.obj.symbols.source(),
             elements,
             cause,
@@ -226,9 +226,7 @@ impl ClockCoherenceContext<'_> {
             if !slot.is_empty() {
                 let ty_slot = self.slot_type(slot);
                 if self.ctx.unify(ty_slot, ty_clock).is_err() {
-                    return Err(self
-                        .raise_clock_coherence_error(cause_id, slots, cause)
-                        .into());
+                    return Err(self.raise_clock_domain_error(cause_id, slots, cause).into());
                 }
             }
         }
@@ -256,7 +254,7 @@ impl ClockCoherenceContext<'_> {
             for domain in rhs_domains {
                 if self.ctx.unify(lhs_domain, domain).is_err() {
                     return Err(self
-                        .raise_clock_coherence_error(cause_id, &[lhs, rhs], cause)
+                        .raise_clock_domain_error(cause_id, &[lhs, rhs], cause)
                         .into());
                 }
             }
@@ -313,7 +311,7 @@ impl ClockCoherenceContext<'_> {
                         for slot_domain in &slot_domains {
                             if self.ctx.unify(arg_domain, *slot_domain).is_err() {
                                 return Err(self
-                                    .raise_clock_coherence_error(
+                                    .raise_clock_domain_error(
                                         id,
                                         &[arg_slot, *slot],
                                         ClockError::IndexClockMismatch,
@@ -366,7 +364,7 @@ impl ClockCoherenceContext<'_> {
             let op = &lop.op;
             let loc = lop.loc;
             if !matches!(op, OpCode::Noop) {
-                eprintln!("Check clock coherence for {:?}", op);
+                eprintln!("Check clock domain for {:?}", op);
             }
             match op {
                 OpCode::Binary(binary) => {
@@ -437,14 +435,19 @@ impl ClockCoherenceContext<'_> {
                     )?;
                 }
                 OpCode::Wrap(wrap) => {
-                    self.unify_clocks(&[wrap.arg, wrap.lhs], loc, ClockError::WrapClockMismatch)?;
+                    self.unify_projected_clocks(
+                        wrap.lhs,
+                        wrap.arg,
+                        loc,
+                        ClockError::WrapClockMismatch,
+                    )?;
                 }
                 OpCode::Index(index) => {
                     let rhs_project = self.ty_path_project(index.arg, &index.path, loc)?;
                     let ty_lhs = self.slot_type(&index.lhs);
                     if self.ctx.unify(rhs_project, ty_lhs).is_err() {
                         return Err(self
-                            .raise_clock_coherence_error(
+                            .raise_clock_domain_error(
                                 loc,
                                 &[index.arg, index.lhs],
                                 ClockError::IndexClockMismatch,
@@ -463,7 +466,7 @@ impl ClockCoherenceContext<'_> {
                     eprintln!("path_ty: {:?}", self.ctx.desc(path_ty));
                     if self.ctx.unify(orig_ty, lhs_ty).is_err() {
                         return Err(self
-                            .raise_clock_coherence_error(
+                            .raise_clock_domain_error(
                                 loc,
                                 &[splice.lhs, splice.orig],
                                 ClockError::SpliceClockMismatch,
@@ -472,7 +475,7 @@ impl ClockCoherenceContext<'_> {
                     }
                     if self.ctx.unify(subst_ty, path_ty).is_err() {
                         return Err(self
-                            .raise_clock_coherence_error(
+                            .raise_clock_domain_error(
                                 loc,
                                 &[splice.subst, splice.orig],
                                 ClockError::SpliceClockMismatch,
@@ -497,7 +500,7 @@ impl ClockCoherenceContext<'_> {
                         let rhs = self.ctx.ty_array(loc, ty_rhs, ty_len);
                         if self.ctx.unify(ty_lhs, rhs).is_err() {
                             return Err(self
-                                .raise_clock_coherence_error(
+                                .raise_clock_domain_error(
                                     loc,
                                     &[array.lhs, *element],
                                     ClockError::ArrayClockMismatch,
@@ -513,7 +516,7 @@ impl ClockCoherenceContext<'_> {
                     let rhs = self.ctx.ty_array(loc, ty_rhs, ty_len);
                     if self.ctx.unify(ty_lhs, rhs).is_err() {
                         return Err(self
-                            .raise_clock_coherence_error(
+                            .raise_clock_domain_error(
                                 loc,
                                 &[repeat.lhs, repeat.value],
                                 ClockError::ArrayClockMismatch,
@@ -528,7 +531,7 @@ impl ClockCoherenceContext<'_> {
                         let ty_field = self.ctx.ty_member(ty_lhs, &field.member)?;
                         if self.ctx.unify(ty_field, ty_rhs).is_err() {
                             return Err(self
-                                .raise_clock_coherence_error(
+                                .raise_clock_domain_error(
                                     loc,
                                     &[strukt.lhs, field.value],
                                     ClockError::StructClockMismatch,
@@ -553,11 +556,7 @@ impl ClockCoherenceContext<'_> {
                             .chain(tuple.fields.iter().copied())
                             .collect::<Vec<_>>();
                         return Err(self
-                            .raise_clock_coherence_error(
-                                loc,
-                                &slots,
-                                ClockError::TupleClockMismatch,
-                            )
+                            .raise_clock_domain_error(loc, &slots, ClockError::TupleClockMismatch)
                             .into());
                     }
                 }
@@ -592,7 +591,7 @@ impl ClockCoherenceContext<'_> {
                     let lhs_ty = self.slot_type(&exec.lhs);
                     if self.ctx.unify(ret_ty, lhs_ty).is_err() {
                         return Err(self
-                            .raise_clock_coherence_error(
+                            .raise_clock_domain_error(
                                 loc,
                                 &[exec.lhs],
                                 ClockError::ExternalClockMismatch,
@@ -609,7 +608,7 @@ impl ClockCoherenceContext<'_> {
                         let slot_ty = self.slot_type(slot);
                         if self.ctx.unify(arg_ty, slot_ty).is_err() {
                             return Err(self
-                                .raise_clock_coherence_error(
+                                .raise_clock_domain_error(
                                     loc,
                                     &[*slot],
                                     ClockError::ExternalClockMismatch,
@@ -631,7 +630,7 @@ impl ClockCoherenceContext<'_> {
                 OpCode::Comment(_) | OpCode::Noop => {}
             }
         }
-        eprintln!("*****Clock coherence check complete*****");
+        eprintln!("*****Clock domain check complete*****");
         let resolved_map = self
             .slot_map
             .clone()
@@ -643,7 +642,7 @@ impl ClockCoherenceContext<'_> {
             eprintln!("Slot {:?} has type {:?}", ty.0, desc);
             if self.ctx.is_unresolved(ty.1) {
                 return Err(self
-                    .raise_clock_coherence_error(
+                    .raise_clock_domain_error(
                         self.obj.symbols.fallback(self.obj.fn_id),
                         &[ty.0],
                         ClockError::UnresolvedClock,
@@ -655,8 +654,8 @@ impl ClockCoherenceContext<'_> {
     }
 }
 
-fn check_clock_coherence(obj: &Object) -> Result<(), RHDLError> {
-    ClockCoherenceContext {
+fn check_clock_domain(obj: &Object) -> Result<(), RHDLError> {
+    ClockDomainContext {
         obj,
         ctx: UnifyContext::default(),
         slot_map: BTreeMap::new(),

@@ -351,15 +351,15 @@ impl Diagnostic for RHDLTypeError {
 }
 
 #[derive(Debug, Error)]
-#[error("RHDL Clock Coherence Violation")]
-pub struct RHDLClockCoherenceViolation {
+#[error("RHDL Clock Domain Violation")]
+pub struct RHDLClockDomainViolation {
     pub src: String,
     pub elements: Vec<(String, SourceSpan)>,
     pub cause: ClockError,
     pub cause_span: SourceSpan,
 }
 
-impl Diagnostic for RHDLClockCoherenceViolation {
+impl Diagnostic for RHDLClockDomainViolation {
     fn source_code(&self) -> Option<&dyn miette::SourceCode> {
         Some(&self.src)
     }

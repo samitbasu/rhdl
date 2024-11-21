@@ -105,22 +105,8 @@ impl Pass for PrecastIntegerLiteralsInBinops {
                 } else {
                     v.literal.unsigned_cast(len)
                 };
-                match new_tb {
-                    Err(_e) => {
-                        let loc = input.symbols.slot_map[k];
-                        return Err(rhdl_error(RHDLTypeError {
-                            src: input.symbols.source(),
-                            err_span: input.symbols.span(loc).into(),
-                            cause: TypeCheck::LiteralOutsideInferredRange {
-                                literal: v.literal.clone(),
-                                len,
-                                flag: sign_flag,
-                            },
-                        }));
-                    }
-                    Ok(new_tb) => {
-                        input.literals.insert(k.as_literal().unwrap(), new_tb);
-                    }
+                if let Ok(new_tb) = new_tb {
+                    input.literals.insert(k.as_literal().unwrap(), new_tb);
                 }
             }
         }
