@@ -23,7 +23,7 @@ use rhdl::{
 /// provide the read output on the same clock as the read address).  But
 /// they are generally not portable.  If you need one of those, you should
 /// create a custom model for it.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct U<T: Digital, W: Domain, R: Domain, const N: usize> {
     initial: BTreeMap<Bits<N>, T>,
     _w: std::marker::PhantomData<W>,
@@ -81,7 +81,6 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> CircuitIO for U<T, W, R, 
     type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
 }
 
-// TODO - maybe put this into a mutex?
 #[derive(Debug, Clone, PartialEq)]
 pub struct S<T: Digital, const N: usize> {
     write_prev: WriteI<T, N>,
