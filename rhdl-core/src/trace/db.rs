@@ -85,7 +85,7 @@ impl<T: Digital> TimeSeriesWalk for TimeSeries<T> {
     ) -> Option<Cursor> {
         let name_sanitized = name.replace("::", "__");
         let code = writer
-            .add_wire(T::TRACE_BITS as u32, &name_sanitized)
+            .add_wire((T::TRACE_BITS as u32).max(1), &name_sanitized)
             .ok()?;
         self.0
             .first()
@@ -118,17 +118,19 @@ impl<T: Digital> TimeSeriesWalk for TimeSeries<T> {
     fn write_vcd(&self, cursor: &mut Cursor, writer: &mut dyn VCDWrite) -> std::io::Result<()> {
         let mut sbuf = SmallVec::<[u8; 64]>::new();
         if let Some((_time, value)) = self.0.get(cursor.ptr) {
-            sbuf.push(b'b');
-            sbuf.extend(value.trace().into_iter().rev().map(|v| match v {
-                TraceBit::Zero => b'0',
-                TraceBit::One => b'1',
-                TraceBit::X => b'x',
-                TraceBit::Z => b'z',
-            }));
-            sbuf.push(b' ');
-            writer.write_all(&sbuf[..])?;
-            writer.write_all(&cursor.code_as_bytes)?;
-            writer.write_all(b"\n")?;
+            if T::BITS != 0 {
+                sbuf.push(b'b');
+                sbuf.extend(value.trace().into_iter().rev().map(|v| match v {
+                    TraceBit::Zero => b'0',
+                    TraceBit::One => b'1',
+                    TraceBit::X => b'x',
+                    TraceBit::Z => b'z',
+                }));
+                sbuf.push(b' ');
+                writer.write_all(&sbuf[..])?;
+                writer.write_all(&cursor.code_as_bytes)?;
+                writer.write_all(b"\n")?;
+            }
             self.advance_cursor(cursor);
             Ok(())
         } else {

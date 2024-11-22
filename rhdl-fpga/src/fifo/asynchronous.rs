@@ -24,29 +24,29 @@ pub struct U<T: Digital, W: Domain, R: Domain, const N: usize> {
 #[derive(Clone, Copy, Debug, PartialEq, Digital, Timed)]
 pub struct I<T: Digital, W: Domain, R: Domain> {
     /// The data to be written to the FIFO in the W domain
-    data: Signal<Option<T>, W>,
+    pub data: Signal<Option<T>, W>,
     /// The next signal for the read logic in the R domain
-    next: Signal<bool, R>,
+    pub next: Signal<bool, R>,
     /// The clock and reset for the W domain
-    cr_w: Signal<ClockReset, W>,
+    pub cr_w: Signal<ClockReset, W>,
     /// The clock and reset for the R domain
-    cr_r: Signal<ClockReset, R>,
+    pub cr_r: Signal<ClockReset, R>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Digital, Timed)]
 pub struct O<T: Digital, W: Domain, R: Domain> {
     /// The data read from the FIFO in the R domain
-    data: Signal<Option<T>, R>,
+    pub data: Signal<Option<T>, R>,
     /// The almost empty flag in the R domain
-    almost_empty: Signal<bool, R>,
+    pub almost_empty: Signal<bool, R>,
     /// The underflow flag in the R domain
-    underflow: Signal<bool, R>,
+    pub underflow: Signal<bool, R>,
     /// The full flag in the W domain
-    full: Signal<bool, W>,
+    pub full: Signal<bool, W>,
     /// The almost full flag in the W domain
-    almost_full: Signal<bool, W>,
+    pub almost_full: Signal<bool, W>,
     /// The overflow flag in the W domain
-    overflow: Signal<bool, W>,
+    pub overflow: Signal<bool, W>,
 }
 
 impl<T: Digital, W: Domain, R: Domain, const N: usize> CircuitIO for U<T, W, R, N> {
