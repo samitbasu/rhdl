@@ -1,3 +1,5 @@
+use rhdl_trace_type::RTT;
+
 use crate::{
     clock_reset,
     hdl::ast::{
@@ -104,6 +106,25 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
         if let Some(vcd_file) = &options.vcd_file {
             test_cases.push(dump_file(vcd_file));
             test_cases.push(dump_vars(0));
+            // Also write out an RTT file for this VCD that can be loaded
+            // afterwards to provide type information for the VCD
+            let rtt = RTT::TraceInfo(
+                [
+                    (
+                        "testbench.clock_reset".to_string(),
+                        ClockReset::static_trace_type(),
+                    ),
+                    ("testbench.i".to_string(), I::static_trace_type()),
+                    ("testbench.o".to_string(), O::static_trace_type()),
+                    ("testbench.rust_out".to_string(), O::static_trace_type()),
+                ]
+                .into_iter()
+                .collect(),
+            );
+            std::fs::write(
+                vcd_file.clone() + ".rtt",
+                ron::ser::to_string(&rtt).unwrap(),
+            )?;
         }
         let mut absolute_time = 0;
         for (test_case_counter, timed_entry) in self.samples.iter().enumerate() {

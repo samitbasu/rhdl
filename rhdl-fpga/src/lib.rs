@@ -5,6 +5,7 @@ pub mod pin;
 pub use anyhow::Result;
 pub mod cdc;
 pub mod gray;
+pub mod rng;
 /* pub use core::bga::bga_pin;
 pub use core::bga::BGAPin;
 pub use core::bga::BGARow;

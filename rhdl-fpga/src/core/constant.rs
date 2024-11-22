@@ -78,7 +78,7 @@ impl<T: Digital> U<T> {
             name: module_name.clone(),
             ..Default::default()
         };
-        let output_bits = T::bits().saturating_sub(1);
+        let output_bits = T::bits();
         let output_width = if T::static_kind().is_signed() {
             signed_width(output_bits)
         } else {
@@ -87,16 +87,10 @@ impl<T: Digital> U<T> {
         let bs: BitString = self.value.typed_bits().into();
         module.ports = vec![
             port(
-                "clock",
+                "clock_reset",
                 Direction::Input,
                 rhdl::core::hdl::ast::HDLKind::Wire,
-                unsigned_width(1),
-            ),
-            port(
-                "reset",
-                Direction::Input,
-                rhdl::core::hdl::ast::HDLKind::Wire,
-                unsigned_width(1),
+                unsigned_width(2),
             ),
             port(
                 "o",

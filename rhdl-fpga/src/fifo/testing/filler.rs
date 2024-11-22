@@ -1,0 +1,106 @@
+use rhdl::prelude::*;
+
+use crate::core::{constant, dff, slice::lsbs};
+
+/// A bursty, random FIFO filler.  Uses a sequence of values from an XorShift128 to
+/// fill a FIFO.  The lowest N bits of the output number are used as the data.  Based
+/// on the random value, the filler will also decide to "sleep" for a number of clock
+/// cycles.  This is to simulate a bursty data source.  Note that the behavior is
+/// deterministic.  The number of sleep cycles is also fixed, so that a single parameter
+/// can be used to control the "burstiness" of the data.
+#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+pub struct U<const N: usize> {
+    rng: crate::rng::xorshift::U,
+    sleep_counter: dff::U<Bits<4>>,
+    sleep_len: constant::U<Bits<4>>,
+    write_probability: constant::U<Bits<32>>,
+}
+
+/// The default configuration will sleep for 4 counts, with a roughly 50% probability
+impl<const N: usize> Default for U<N> {
+    fn default() -> Self {
+        Self {
+            rng: crate::rng::xorshift::U::default(),
+            sleep_counter: dff::U::new(bits(0)),
+            sleep_len: constant::U::new(bits(4)),
+            write_probability: constant::U::new(bits(0x8000_0000)),
+        }
+    }
+}
+
+impl<const N: usize> U<N> {
+    pub fn new(sleep_len: u8, write_probability: u32) -> Self {
+        Self {
+            rng: crate::rng::xorshift::U::default(),
+            sleep_counter: dff::U::new(bits(0)),
+            sleep_len: constant::U::new(bits(sleep_len as u128)),
+            write_probability: constant::U::new(bits(write_probability as u128)),
+        }
+    }
+}
+
+impl<const N: usize> SynchronousIO for U<N> {
+    type I = bool;
+    type O = Option<Bits<N>>;
+    type Kernel = filler_kernel<N>;
+}
+
+#[kernel]
+pub fn filler_kernel<const N: usize>(
+    cr: ClockReset,
+    is_full: bool,
+    q: Q<N>,
+) -> (Option<Bits<N>>, D<N>) {
+    let mut d = D::<N>::init();
+    let mut o = None;
+    // If the fifo is not full, and we are not sleeping, then write the next value to the FIFO
+    if !is_full && q.sleep_counter == 0 {
+        o = Some(lsbs::<{ N }, 32>(q.rng));
+        d.rng = true;
+        d.sleep_counter = if q.rng < q.write_probability {
+            q.sleep_len
+        } else {
+            bits(0)
+        };
+    }
+    if q.sleep_counter != 0 {
+        d.sleep_counter = q.sleep_counter - 1;
+    }
+    if cr.reset.any() {
+        o = None;
+    }
+    (o, d)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_filler() {
+        let uut = U::<16>::default();
+        let input = std::iter::repeat(false)
+            .take(50)
+            .stream_after_reset(1)
+            .clock_pos_edge(100);
+        let vcd = uut.run(input).collect::<Vcd>();
+        vcd.dump_to_file(&std::path::PathBuf::from("filler.vcd"))
+            .unwrap();
+    }
+
+    #[test]
+    fn test_filler_testbench() -> miette::Result<()> {
+        let uut = U::<16>::default();
+        let input = std::iter::repeat(false)
+            .take(50)
+            .stream_after_reset(1)
+            .clock_pos_edge(100);
+        let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
+        let test_module = test_bench.rtl(&uut, &TestBenchOptions::default())?;
+        std::fs::write("filler.v", test_module.to_string()).unwrap();
+        test_module.run_iverilog()?;
+        let test_module = test_bench.flow_graph(&uut, &TestBenchOptions::default())?;
+        test_module.run_iverilog()?;
+        Ok(())
+    }
+}

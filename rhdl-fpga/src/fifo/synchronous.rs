@@ -17,18 +17,18 @@ pub struct U<T: Digital, const N: usize> {
 
 #[derive(Clone, Copy, Debug, PartialEq, Digital)]
 pub struct I<T: Digital> {
-    data: Option<T>,
-    next: bool,
+    pub data: Option<T>,
+    pub next: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Digital)]
 pub struct O<T: Digital> {
-    data: Option<T>,
-    full: bool,
-    almost_empty: bool,
-    almost_full: bool,
-    overflow: bool,
-    underflow: bool,
+    pub data: Option<T>,
+    pub full: bool,
+    pub almost_empty: bool,
+    pub almost_full: bool,
+    pub overflow: bool,
+    pub underflow: bool,
 }
 
 impl<T: Digital, const N: usize> SynchronousIO for U<T, N> {
