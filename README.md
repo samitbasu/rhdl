@@ -96,7 +96,7 @@ risk than a technical one.
 - [x] Build flow graphs for asynchronous circuits and kernels
 - [x] Constant propagation for flow graphs (and other simplifications)
 - [x] Replace Verilog string manipulation with a proper AST
-- [ ] Add validators for common cases (e.g., pos edge designs, etc.)
+- [x] Add validators for common cases (e.g., pos edge designs, etc.)
 - [x] Fix naming of signals in the VCD traces
 - [ ] Add checks for combinatorial inputs or outputs
 - [x] Add a flow graph level simulator to verify correctness
