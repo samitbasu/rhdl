@@ -3,6 +3,7 @@ pub mod core;
 pub mod fifo;
 pub mod pin;
 pub use anyhow::Result;
+pub mod axi4lite;
 pub mod cdc;
 pub mod gray;
 pub mod rng;

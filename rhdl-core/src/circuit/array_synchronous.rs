@@ -1,42 +1,42 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    digital_fn::NoKernel2,
-    flow_graph::flow_graph_impl::FlowIx,
-    hdl::ast::{component_instance, connection, index, Direction, Module, Statement},
+    digital_fn::NoKernel3,
+    flow_graph::{component, flow_graph_impl::FlowIx},
+    hdl::ast::{component_instance, connection, id, index, Direction, Module, Statement},
     rtl::object::RegisterKind,
-    trace_pop_path, trace_push_path,
+    trace, trace_pop_path, trace_push_path,
     types::path::{bit_range, Path},
-    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, Digital, FlowGraph, HDLDescriptor, Kind,
-    RHDLError,
+    CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, RHDLError, Synchronous,
+    SynchronousDQ, SynchronousIO,
 };
 
 use super::hdl_backend::maybe_port_wire;
 
-// Blanket implementation for an array of circuits.
-impl<T: CircuitIO, const N: usize> CircuitIO for [T; N] {
+// Blanket implementation for an array of synchronous circuits.
+impl<T: SynchronousIO, const N: usize> SynchronousIO for [T; N] {
     type I = [T::I; N];
     type O = [T::O; N];
-    type Kernel = NoKernel2<Self::I, Self::Q, (Self::O, Self::D)>;
+    type Kernel = NoKernel3<ClockReset, Self::I, Self::Q, (Self::O, Self::D)>;
 }
 
-impl<T: CircuitIO, const N: usize> CircuitDQ for [T; N] {
+impl<T: SynchronousIO, const N: usize> SynchronousDQ for [T; N] {
     type D = ();
     type Q = ();
 }
 
-impl<T: Circuit, const N: usize> Circuit for [T; N] {
+impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
     type S = [T::S; N];
 
     fn init(&self) -> Self::S {
         array_init::array_init(|i| self[i].init())
     }
 
-    fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O {
+    fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
         trace_push_path("array");
         let mut output = [T::O::init(); N];
         for i in 0..N {
-            output[i] = self[i].sim(input[i], &mut state[i]);
+            output[i] = self[i].sim(clock_reset, input[i], &mut state[i]);
         }
         trace_pop_path();
         output
@@ -49,13 +49,15 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
     // This requires a custom implementation because the default implementation
     // assumes that the children of the current circuit are named with field names
     // as part of a struct.
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        let mut fg = FlowGraph::default();
+    fn descriptor(&self, name: &str) -> Result<crate::CircuitDescriptor, crate::RHDLError> {
+        let mut fg = crate::FlowGraph::default();
+        let cr_kind: RegisterKind = ClockReset::static_kind().into();
         let input_kind: RegisterKind = Self::I::static_kind().into();
         let output_kind: RegisterKind = Self::O::static_kind().into();
+        let cr_buffer = fg.buffer(cr_kind, "cr", None);
         let input_buffer = fg.input(input_kind, 0, "i");
         let output_buffer = fg.output(output_kind, "o");
-        let mut children = BTreeMap::default();
+        let mut children = std::collections::BTreeMap::default();
         for i in 0..N {
             let child_path = Path::default().index(i);
             let (output_bit_range, _) = bit_range(Self::O::static_kind(), &child_path)?;
@@ -65,15 +67,17 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
             let child_flow_graph = &child_desc.flow_graph;
             let child_remap = fg.merge(&child_flow_graph);
             let remap_child = |x: &[FlowIx]| x.iter().map(|y| child_remap[y]).collect::<Vec<_>>();
-            let child_inputs = remap_child(&child_flow_graph.inputs[0]);
+            let child_cr = remap_child(&child_flow_graph.inputs[0]);
+            let child_inputs = remap_child(&child_flow_graph.inputs[1]);
             let child_output = remap_child(&child_flow_graph.output);
+            fg.zip(cr_buffer.iter().copied(), child_cr.into_iter());
             let mut i_iter = input_buffer.iter().skip(input_bit_range.start).copied();
             fg.zip(&mut i_iter, child_inputs.into_iter());
             let mut o_iter = output_buffer.iter().skip(output_bit_range.start).copied();
             fg.zip(child_output.into_iter(), &mut o_iter);
             children.insert(child_name, child_desc);
         }
-        fg.inputs = vec![input_buffer];
+        fg.inputs = vec![cr_buffer, input_buffer];
         fg.output = output_buffer;
         Ok(CircuitDescriptor {
             unique_name: name.into(),
@@ -104,13 +108,13 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
             })
             .collect::<Result<BTreeMap<String, HDLDescriptor>, RHDLError>>()?;
         module.ports = [
+            maybe_port_wire(Direction::Input, 2, "clock_reset"),
             maybe_port_wire(Direction::Input, Self::I::bits(), "i"),
             maybe_port_wire(Direction::Output, Self::O::bits(), "o"),
         ]
         .into_iter()
         .flatten()
         .collect();
-
         let i_kind = Self::I::static_kind();
         let o_kind = Self::O::static_kind();
         let child_decls = descriptor
@@ -121,6 +125,7 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
                 let child_path = Path::default().index(ndx);
                 let (i_range, _) = bit_range(i_kind, &child_path)?;
                 let (o_range, _) = bit_range(o_kind, &child_path)?;
+                let cr_binding = Some(connection("clock_reset", id("clock_reset")));
                 let input_binding =
                     (!i_range.is_empty()).then(|| connection("i", index("i", i_range.clone())));
                 let output_binding =
@@ -129,7 +134,7 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
                 Ok(component_instance(
                     component_name,
                     &format!("c{ndx}"),
-                    [input_binding, output_binding]
+                    [cr_binding, input_binding, output_binding]
                         .into_iter()
                         .flatten()
                         .collect(),
