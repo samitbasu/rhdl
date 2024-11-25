@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 
-use crate::axi4lite::channel::{receiver::pack, sender::unpack};
+use crate::core::option::{pack, unpack};
 
 use super::carloni;
 

@@ -60,4 +60,19 @@ mod tests {
         let last = uut.run(input).last().unwrap();
         assert!(last.value.2);
     }
+
+    #[test]
+    fn test_single_hdl() -> miette::Result<()> {
+        let uut = U::<16>::default();
+        let input = std::iter::repeat(())
+            .take(500)
+            .stream_after_reset(1)
+            .clock_pos_edge(100);
+        let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
+        let tm = test_bench.rtl(&uut, &Default::default())?;
+        tm.run_iverilog()?;
+        let tm = test_bench.flow_graph(&uut, &Default::default())?;
+        tm.run_iverilog()?;
+        Ok(())
+    }
 }
