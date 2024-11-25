@@ -25,11 +25,11 @@ pub fn fixture_kernel<const N: usize, const Z: usize>(
 ) -> (bool, D<N, Z>) {
     let mut d = D::<N, Z>::init();
     // The filler needs access to the full signal of the FIFO
-    d.filler = q.fifo.full;
+    d.filler.full = q.fifo.full;
     // The fifo input is connected to the filler output
-    d.fifo.data = q.filler;
+    d.fifo.data = q.filler.data;
     // The drainer is connected to the data output of the FIFO
-    d.drainer = q.fifo.data;
+    d.drainer.data = q.fifo.data;
     // The advance signal of the FIFO comes from the drainer output
     d.fifo.next = q.drainer.next;
     (q.drainer.valid, d)

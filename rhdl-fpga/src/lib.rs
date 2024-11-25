@@ -6,6 +6,7 @@ pub use anyhow::Result;
 pub mod axi4lite;
 pub mod cdc;
 pub mod gray;
+pub mod lid;
 pub mod rng;
 /* pub use core::bga::bga_pin;
 pub use core::bga::BGAPin;
