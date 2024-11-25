@@ -1,6 +1,9 @@
 use rhdl::prelude::*;
 
-use crate::core::{constant, dff, slice::lsbs};
+use crate::core::{
+    constant, dff,
+    slice::{lsbs, msbs},
+};
 
 /// A bursty, random FIFO filler.  Uses a sequence of values from an XorShift128 to
 /// fill a FIFO.  The lowest N bits of the output number are used as the data.  Based
@@ -13,7 +16,7 @@ pub struct U<const N: usize> {
     rng: crate::rng::xorshift::U,
     sleep_counter: dff::U<Bits<4>>,
     sleep_len: constant::U<Bits<4>>,
-    write_probability: constant::U<Bits<32>>,
+    write_probability: constant::U<Bits<16>>,
 }
 
 /// The default configuration will sleep for 4 counts, with a roughly 50% probability
@@ -23,13 +26,13 @@ impl<const N: usize> Default for U<N> {
             rng: crate::rng::xorshift::U::default(),
             sleep_counter: dff::U::new(bits(0)),
             sleep_len: constant::U::new(bits(4)),
-            write_probability: constant::U::new(bits(0x8000_0000)),
+            write_probability: constant::U::new(bits(0x8000)),
         }
     }
 }
 
 impl<const N: usize> U<N> {
-    pub fn new(sleep_len: u8, write_probability: u32) -> Self {
+    pub fn new(sleep_len: u8, write_probability: u16) -> Self {
         Self {
             rng: crate::rng::xorshift::U::default(),
             sleep_counter: dff::U::new(bits(0)),
@@ -39,25 +42,33 @@ impl<const N: usize> U<N> {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+pub struct I {
+    pub full: bool,
+}
+
+#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+pub struct O<const N: usize> {
+    pub data: Option<Bits<N>>,
+}
+
 impl<const N: usize> SynchronousIO for U<N> {
-    type I = bool;
-    type O = Option<Bits<N>>;
+    type I = I;
+    type O = O<N>;
     type Kernel = filler_kernel<N>;
 }
 
 #[kernel]
-pub fn filler_kernel<const N: usize>(
-    cr: ClockReset,
-    is_full: bool,
-    q: Q<N>,
-) -> (Option<Bits<N>>, D<N>) {
+pub fn filler_kernel<const N: usize>(cr: ClockReset, i: I, q: Q<N>) -> (O<N>, D<N>) {
     let mut d = D::<N>::init();
-    let mut o = None;
+    let mut o = O::<N>::init();
+    let is_full = i.full;
     // If the fifo is not full, and we are not sleeping, then write the next value to the FIFO
     if !is_full && q.sleep_counter == 0 {
-        o = Some(lsbs::<{ N }, 32>(q.rng));
+        o.data = Some(lsbs::<{ N }, 32>(q.rng));
         d.rng = true;
-        d.sleep_counter = if q.rng < q.write_probability {
+        let p = msbs::<16, 32>(q.rng);
+        d.sleep_counter = if p < q.write_probability {
             q.sleep_len
         } else {
             bits(0)
@@ -67,7 +78,7 @@ pub fn filler_kernel<const N: usize>(
         d.sleep_counter = q.sleep_counter - 1;
     }
     if cr.reset.any() {
-        o = None;
+        o.data = None;
     }
     (o, d)
 }
@@ -79,7 +90,7 @@ mod tests {
     #[test]
     fn test_filler() {
         let uut = U::<16>::default();
-        let input = std::iter::repeat(false)
+        let input = std::iter::repeat(I { full: false })
             .take(50)
             .stream_after_reset(1)
             .clock_pos_edge(100);
@@ -91,7 +102,7 @@ mod tests {
     #[test]
     fn test_filler_testbench() -> miette::Result<()> {
         let uut = U::<16>::default();
-        let input = std::iter::repeat(false)
+        let input = std::iter::repeat(I { full: false })
             .take(50)
             .stream_after_reset(1)
             .clock_pos_edge(100);

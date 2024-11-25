@@ -23,11 +23,11 @@ impl<const N: usize> SynchronousIO for U<N> {
 pub fn fixture_kernel<const N: usize>(_cr: ClockReset, _i: (), q: Q<N>) -> (bool, D<N>) {
     let mut d = D::<N>::init();
     // The filler needs access to the full signal of the sender
-    d.filler = q.sender.full;
+    d.filler.full = q.sender.full;
     // The sender input is connected to the filler output
-    d.sender.to_send = q.filler;
+    d.sender.to_send = q.filler.data;
     // The drainer is connected to the data output of the receiver
-    d.drainer = q.receiver.data;
+    d.drainer.data = q.receiver.data;
     // The advance signal of the sender comes from the drainer output
     d.receiver.next = q.drainer.next;
     // The receiver is connected to the sender output

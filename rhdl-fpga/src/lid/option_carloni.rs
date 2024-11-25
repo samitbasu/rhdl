@@ -1,0 +1,41 @@
+use rhdl::prelude::*;
+
+use crate::axi4lite::channel::{receiver::pack, sender::unpack};
+
+use super::carloni;
+
+#[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+pub struct U<T: Digital> {
+    inner: carloni::U<T>,
+}
+
+#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+pub struct I<T: Digital> {
+    pub data: Option<T>,
+    pub ready: bool,
+}
+
+#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+pub struct O<T: Digital> {
+    pub data: Option<T>,
+    pub ready: bool,
+}
+
+impl<T: Digital> SynchronousIO for U<T> {
+    type I = I<T>;
+    type O = O<T>;
+    type Kernel = option_carloni_kernel<T>;
+}
+
+#[kernel]
+pub fn option_carloni_kernel<T: Digital>(_cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
+    let mut d = D::<T>::init();
+    let (data_valid, data) = unpack::<T>(i.data);
+    d.inner.data_in = data;
+    d.inner.void_in = !data_valid;
+    d.inner.stop_in = !i.ready;
+    let mut o = O::<T>::init();
+    o.ready = !q.inner.stop_out;
+    o.data = pack::<T>(!q.inner.void_out, q.inner.data_out);
+    (o, d)
+}

@@ -27,14 +27,18 @@ pub fn fixture_kernel<W: Domain, R: Domain, const N: usize, const Z: usize>(
     let mut d = D::<W, R, N, Z>::init();
     // The filler needs access to the full signal of the FIFO
     d.filler.clock_reset = i.cr_w;
-    d.filler.input = q.fifo.full;
+    d.filler.input = signal(crate::fifo::testing::filler::I {
+        full: q.fifo.full.val(),
+    });
     // The fifo input is connected to the filler output
     d.fifo.cr_r = i.cr_r;
     d.fifo.cr_w = i.cr_w;
-    d.fifo.data = q.filler;
+    d.fifo.data = signal(q.filler.val().data);
     // The drainer is connected to the data output of the FIFO
     d.drainer.clock_reset = i.cr_r;
-    d.drainer.input = q.fifo.data;
+    d.drainer.input = signal(crate::fifo::testing::drainer::I::<N> {
+        data: q.fifo.data.val(),
+    });
     // The advance signal of the FIFO comes from the drainer output
     d.fifo.next = signal(q.drainer.val().next);
     (signal(q.drainer.val().valid), d)
@@ -47,7 +51,7 @@ mod tests {
     #[test]
     fn test_async_fifo_trace() {
         let uut = U::<Red, Blue, 16, 4> {
-            drainer: Adapter::new(crate::fifo::testing::drainer::U::<16>::new(5, 0xD000_0000)),
+            drainer: Adapter::new(crate::fifo::testing::drainer::U::<16>::new(5, 0xD000)),
             ..Default::default()
         };
         let red_input = std::iter::repeat(())
