@@ -16,7 +16,7 @@ use super::write_logic;
 pub struct U<T: Digital, W: Domain, R: Domain, const N: usize> {
     write_logic: Adapter<write_logic::U<N>, W>,
     read_logic: Adapter<read_logic::U<N>, R>,
-    ram: ram::U<T, W, R, N>,
+    ram: ram::asynchronous::U<T, W, R, N>,
     read_count_for_write_logic: cross_counter::U<R, W, N>,
     write_count_for_read_logic: cross_counter::U<W, R, N>,
 }
@@ -71,14 +71,14 @@ pub fn async_fifo_kernel<T: Digital, W: Domain, R: Domain, const N: usize>(
     // Create a struct to drive the inputs of the RAM on the
     // write side.  These signals are all clocked in the write
     // domain.
-    let mut ram_write = ram::WriteI::<T, N>::init();
+    let mut ram_write = ram::asynchronous::WriteI::<T, N>::init();
     ram_write.clock = i.cr_w.val().clock;
     ram_write.data = write_data;
     ram_write.enable = write_enable;
     ram_write.addr = q.write_logic.val().ram_write_address;
     d.ram.write = signal(ram_write);
     // Do the same thing for the read side of the RAM.
-    let mut ram_read = ram::ReadI::<N>::init();
+    let mut ram_read = ram::asynchronous::ReadI::<N>::init();
     ram_read.clock = i.cr_r.val().clock;
     ram_read.addr = q.read_logic.val().ram_read_address;
     d.ram.read = signal(ram_read);

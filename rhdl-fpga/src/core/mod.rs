@@ -5,4 +5,3 @@ pub mod dff;
 pub mod option;
 pub mod ram;
 pub mod slice;
-pub mod synchronous_ram;
