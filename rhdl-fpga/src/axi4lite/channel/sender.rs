@@ -2,7 +2,7 @@ use rhdl::prelude::*;
 
 use crate::{core::option::unpack, lid::option_carloni};
 
-use super::{ChannelMToS, ChannelSToM};
+use super::{ChannelRToS, ChannelSToR};
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U<T: Digital> {
@@ -11,13 +11,13 @@ pub struct U<T: Digital> {
 
 #[derive(Copy, Clone, PartialEq, Debug, Digital)]
 pub struct I<T: Digital> {
-    pub bus: ChannelSToM,
+    pub bus: ChannelRToS,
     pub to_send: Option<T>,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug, Digital)]
 pub struct O<T: Digital> {
-    pub bus: ChannelMToS<T>,
+    pub bus: ChannelSToR<T>,
     pub full: bool,
 }
 

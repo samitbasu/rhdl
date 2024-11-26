@@ -29,7 +29,7 @@ pub fn fixture_kernel<const N: usize>(_cr: ClockReset, _i: (), q: Q<N>) -> (bool
     // The drainer is connected to the data output of the receiver
     d.drainer.data = q.receiver.data;
     // The advance signal of the sender comes from the drainer output
-    d.receiver.next = q.drainer.next;
+    d.receiver.ready = q.drainer.next;
     // The receiver is connected to the sender output
     d.receiver.bus = q.sender.bus;
     // The sender is connected to the receiver output

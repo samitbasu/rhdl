@@ -88,7 +88,6 @@ pub fn carloni_kernel<T: Digital>(_cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D
             } else {
                 sel = true;
                 main_en = true;
-                aux_en = false;
                 stop_out = true;
                 d.state_ff = State::Run;
             }
