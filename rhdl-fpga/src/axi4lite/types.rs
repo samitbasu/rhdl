@@ -1,22 +1,18 @@
 // The data types that pass through the write address channel.
-
 // The valid and ready signals are handled by the channel.
-
-use std::fmt::Write;
-
 use rhdl::prelude::*;
 
 use super::channel::{ChannelRToS, ChannelSToR};
 
 #[derive(Copy, Clone, PartialEq, Debug, Digital)]
-pub struct WriteAddress<ID: Digital, const ADDR: usize> {
+pub struct Address<ID: Digital, const ADDR: usize> {
     /// The ID of the transaction.  Can be any digital type.
     pub id: ID,
     /// Address of the transaction (this is a byte address per the specification)
     pub addr: Bits<ADDR>,
 }
 
-impl<ID: Digital, const ADDR: usize> Default for WriteAddress<ID, ADDR> {
+impl<ID: Digital, const ADDR: usize> Default for Address<ID, ADDR> {
     fn default() -> Self {
         Self {
             id: ID::init(),
@@ -68,18 +64,50 @@ impl<ID: Digital> Default for WriteResponse<ID> {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+pub struct ReadResponse<ID: Digital, DATA: Digital> {
+    /// The ID of the transaction.  Can be any digital type.
+    pub id: ID,
+    /// The response to the transaction
+    pub resp: ResponseKind,
+    /// The data to return
+    pub data: DATA,
+}
+
+impl<ID: Digital, DATA: Digital> Default for ReadResponse<ID, DATA> {
+    fn default() -> Self {
+        Self {
+            id: ID::init(),
+            resp: ResponseKind::OKAY,
+            data: DATA::init(),
+        }
+    }
+}
+
 // We need inputs for the bus of each channel
 #[derive(Clone, Copy, Debug, PartialEq, Digital)]
-pub struct AddrWrite<ID: Digital, DATA: Digital, const ADDR: usize> {
-    pub addr: ChannelSToR<WriteAddress<ID, ADDR>>,
+pub struct WriteDownstream<ID: Digital, DATA: Digital, const ADDR: usize> {
+    pub addr: ChannelSToR<Address<ID, ADDR>>,
     pub data: ChannelSToR<DATA>,
     pub resp: ChannelRToS,
 }
 
 // We need outputs for each of the channels
 #[derive(Clone, Copy, Debug, PartialEq, Digital)]
-pub struct AddrRead<ID: Digital, const ADDR: usize> {
+pub struct WriteUpstream<ID: Digital, const ADDR: usize> {
     pub addr: ChannelRToS,
     pub data: ChannelRToS,
     pub resp: ChannelSToR<WriteResponse<ID>>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+pub struct ReadDownstream<ID: Digital, const ADDR: usize> {
+    pub addr: ChannelSToR<Address<ID, ADDR>>,
+    pub data: ChannelRToS,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+pub struct ReadUpstream<ID: Digital, DATA: Digital, const ADDR: usize> {
+    pub addr: ChannelRToS,
+    pub data: ChannelSToR<ReadResponse<ID, DATA>>,
 }
