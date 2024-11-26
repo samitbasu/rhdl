@@ -1,4 +1,4 @@
-use crate::core::synchronous_ram;
+use crate::core::ram;
 use rhdl::prelude::*;
 
 use super::read_logic;
@@ -12,7 +12,7 @@ use super::write_logic;
 pub struct U<T: Digital, const N: usize> {
     write_logic: write_logic::U<N>,
     read_logic: read_logic::U<N>,
-    ram: synchronous_ram::U<T, N>,
+    ram: ram::synchronous::U<T, N>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Digital)]
