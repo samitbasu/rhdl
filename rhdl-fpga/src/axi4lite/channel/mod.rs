@@ -10,17 +10,17 @@ pub mod sender;
 pub mod testing;
 
 #[derive(Clone, Copy, Debug, PartialEq, Digital, Default)]
-pub struct ChannelSToM {
+pub struct ChannelRToS {
     pub ready: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Digital)]
-pub struct ChannelMToS<T: Digital> {
+pub struct ChannelSToR<T: Digital> {
     pub data: T,
     pub valid: bool,
 }
 
-impl<T: Digital> Default for ChannelMToS<T> {
+impl<T: Digital> Default for ChannelSToR<T> {
     fn default() -> Self {
         Self {
             data: T::init(),
