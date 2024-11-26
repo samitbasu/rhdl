@@ -56,6 +56,8 @@ pub enum RHDLError {
     VerilogVerificationErrorString(String),
     #[error("Testbench Construction Error: {0}")]
     TestbenchConstructionError(String),
+    #[error("Circuits with no outputs are not synthesizable")]
+    NoOutputsError,
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

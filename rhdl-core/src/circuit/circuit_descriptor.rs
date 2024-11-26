@@ -54,6 +54,9 @@ pub fn build_descriptor<C: Circuit>(
     let update_flow_graph = build_rtl_flow_graph(&module);
     let mut fg = FlowGraph::default();
     let output_kind: RegisterKind = C::O::static_kind().into();
+    if output_kind.is_empty() {
+        return Err(RHDLError::NoOutputsError);
+    }
     let d_kind: RegisterKind = C::D::static_kind().into();
     let q_kind: RegisterKind = C::Q::static_kind().into();
     let input_kind: RegisterKind = C::I::static_kind().into();
@@ -161,6 +164,9 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     // (Update::O, Update::D)
     // The update_fg will have 3 arguments (rst,i,q) and 2 outputs (o,d)
     let output_kind: RegisterKind = C::O::static_kind().into();
+    if output_kind.is_empty() {
+        return Err(RHDLError::NoOutputsError);
+    }
     let d_kind: RegisterKind = C::D::static_kind().into();
     let q_kind: RegisterKind = C::Q::static_kind().into();
     let input_kind: RegisterKind = C::I::static_kind().into();
