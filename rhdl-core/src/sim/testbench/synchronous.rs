@@ -64,9 +64,12 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
             ));
         }
         if output_port.direction != Direction::Output || output_port.width.len() != O::BITS {
-            return Err(RHDLError::TestbenchConstructionError(
-                "Output port mismatch".into(),
-            ));
+            return Err(RHDLError::TestbenchConstructionError(format!(
+                "Output port mismatch: direction {dir:?} width {width} expected width {expected}",
+                dir = output_port.direction,
+                width = output_port.width.len(),
+                expected = O::BITS
+            )));
         }
         let arg0_connection = Some(connection(&hdl.ports[0].name, id("clock_reset")));
         let arg1_connection = (has_nonempty_input).then(|| connection(&hdl.ports[1].name, id("i")));

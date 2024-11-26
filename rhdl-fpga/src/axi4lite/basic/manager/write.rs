@@ -3,9 +3,9 @@ use crate::axi4lite::channel::sender;
 use crate::core::dff;
 use rhdl::prelude::*;
 
-use crate::axi4lite::types::AddrRead;
-use crate::axi4lite::types::AddrWrite;
-use crate::axi4lite::types::{BurstData, WriteAddress, WriteResponse};
+use crate::axi4lite::types::WriteDownstream;
+use crate::axi4lite::types::WriteUpstream;
+use crate::axi4lite::types::{Address, BurstData, WriteResponse};
 
 pub type ID = Bits<3>;
 pub const ADDR: usize = 8;
@@ -15,7 +15,7 @@ pub type DATA = Bits<32>;
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U {
     // We need a sender for the address information
-    addr: sender::U<WriteAddress<ID, ADDR>>,
+    addr: sender::U<Address<ID, ADDR>>,
     // We need a sender for the data information
     data: sender::U<DATA>,
     // We need a receiver for the response
@@ -26,26 +26,26 @@ pub struct U {
 
 #[derive(Clone, Copy, Debug, PartialEq, Digital)]
 pub struct I {
-    pub axi: AddrRead<ID, 8>,
+    pub axi: WriteUpstream<ID, ADDR>,
     pub run: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Digital)]
 pub struct O {
-    pub axi: AddrWrite<ID, DATA, ADDR>,
+    pub axi: WriteDownstream<ID, DATA, ADDR>,
 }
 
 impl SynchronousIO for U {
     type I = I;
     type O = O;
-    type Kernel = basic_manager_kernel;
+    type Kernel = basic_write_manager_kernel;
 }
 
-type WA = WriteAddress<ID, ADDR>;
+type WA = Address<ID, ADDR>;
 type BD = BurstData<DATA>;
 
 #[kernel]
-pub fn basic_manager_kernel(cr: ClockReset, i: I, q: Q) -> (O, D) {
+pub fn basic_write_manager_kernel(cr: ClockReset, i: I, q: Q) -> (O, D) {
     let mut d = D::init();
     let mut o = O::init();
     d.addr.bus = i.axi.addr;
