@@ -61,7 +61,6 @@ pub fn read_bridge_kernel<ID: Digital, DATA: Digital, const ADDR: usize>(
     let (addr_is_valid, addr) = unpack::<Address<ID, ADDR>>(q.addr.data);
     d.addr.ready = !addr_is_valid;
     d.id = None;
-
     let (transaction_is_pending, tid) = unpack::<ID>(q.id);
     d.data.to_send = None;
     if transaction_is_pending && !q.data.full {
@@ -72,12 +71,6 @@ pub fn read_bridge_kernel<ID: Digital, DATA: Digital, const ADDR: usize>(
         });
         d.id = None;
     }
-    // In the write case, we could make all of the assertions at once.  That the
-    // data was valid, that the address was valid, and that the
-    // response channel was not full.  In the read case, we need to check
-    // that the read channel will not be full in the next clock cycle.  Not
-    // the current one.  While this _could_ be done with some fancy logic,
-    // it is easier to just check that the response channel is not full now.
     if addr_is_valid && !q.data.full {
         o.read = Some(addr.addr);
         d.addr.ready = true;
