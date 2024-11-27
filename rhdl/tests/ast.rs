@@ -493,3 +493,23 @@ fn test_match_scrutinee_bits() {
         _ => {}
     }
 }
+
+#[test]
+fn test_cover_check() {
+    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+    struct TwoFields {
+        a: b8,
+        b: b4,
+    }
+
+    #[kernel]
+    fn foo(a: Signal<b8, Red>) -> Signal<TwoFields, Red> {
+        let a = a.val();
+        let mut b = TwoFields::init();
+        b.a = a;
+        signal(b)
+    }
+
+    let res = compile_design::<foo>(CompilationMode::Asynchronous);
+    assert!(res.is_err());
+}
