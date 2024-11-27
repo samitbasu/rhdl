@@ -11,7 +11,7 @@ use crate::axi4lite::types::ReadUpstream;
 use crate::axi4lite::types::{Address, ReadResponse};
 
 pub type ID = Bits<3>;
-pub const ADDR: usize = 8;
+pub const ADDR: usize = 16;
 pub type DATA = Bits<32>;
 
 // A basic read manager
@@ -58,7 +58,7 @@ pub fn basic_read_manager_kernel(cr: ClockReset, i: I, q: Q) -> (O, D) {
             id: bits(0),
             addr: q.counter,
         });
-        d.counter = q.counter + 1;
+        d.counter = q.counter + 8;
     }
     o.axi.addr = q.addr.bus;
     o.axi.data = q.data.bus;

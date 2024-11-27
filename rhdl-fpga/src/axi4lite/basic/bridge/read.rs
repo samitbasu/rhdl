@@ -1,10 +1,7 @@
-use std::io::Read;
-
 use crate::axi4lite::channel::receiver;
 use crate::axi4lite::channel::sender;
 use crate::axi4lite::types::ResponseKind;
 use crate::core::dff;
-use crate::core::option::pack;
 use crate::core::option::unpack;
 use rhdl::prelude::*;
 
@@ -15,7 +12,11 @@ use crate::axi4lite::types::{Address, ReadResponse};
 // Bridge for reads to a single cycle interface.
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U<ID: Digital, DATA: Digital, const ADDR: usize> {
+pub struct U<
+    ID: Digital,   // The transaction ID type
+    DATA: Digital, // The data type stored in the memory
+    const ADDR: usize = 32,
+> {
     // We need a receiver for the address information
     addr: receiver::U<Address<ID, ADDR>>,
     // We need a sender for the response
