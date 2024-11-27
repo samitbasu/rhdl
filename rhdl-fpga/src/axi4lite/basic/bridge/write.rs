@@ -10,14 +10,40 @@ use crate::axi4lite::types::{Address, WriteResponse};
 
 // Bridge for writes to a single cycle interface.
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U<ID: Digital, DATA: Digital, const ADDR: usize> {
+#[derive(Clone, Debug, Synchronous, Default)]
+pub struct U<
+    // Transaction ID type
+    ID: Digital,
+    // Data type stored in the memory
+    DATA: Digital,
+    // AXI address width
+    const ADDR: usize = 32,
+> {
     // We need a receiver for the address information
     addr: receiver::U<Address<ID, ADDR>>,
     // We need a receiver for the data information
     data: receiver::U<DATA>,
     // We need a sender for the response
     resp: sender::U<WriteResponse<ID>>,
+}
+
+#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+pub struct D<ID: Digital, DATA: Digital, const ADDR: usize> {
+    pub addr: receiver::I<Address<ID, ADDR>>,
+    pub data: receiver::I<DATA>,
+    pub resp: sender::I<WriteResponse<ID>>,
+}
+
+#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+pub struct Q<ID: Digital, DATA: Digital, const ADDR: usize> {
+    pub addr: receiver::O<Address<ID, ADDR>>,
+    pub data: receiver::O<DATA>,
+    pub resp: sender::O<WriteResponse<ID>>,
+}
+
+impl<ID: Digital, DATA: Digital, const ADDR: usize> SynchronousDQ for U<ID, DATA, ADDR> {
+    type D = D<ID, DATA, ADDR>;
+    type Q = Q<ID, DATA, ADDR>;
 }
 
 #[derive(Copy, Clone, PartialEq, Debug, Digital)]

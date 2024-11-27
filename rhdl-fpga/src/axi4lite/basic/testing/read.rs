@@ -8,13 +8,15 @@ use manager::read::ADDR;
 use manager::read::DATA;
 use manager::read::ID;
 
+const RAM_ADDR: usize = 8;
+
 // This is a simple test harness that connects a basic manager and subordinate
 // into a test fixture.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U {
     manager: manager::read::U,
     subordinate: bridge::read::U<ID, DATA, ADDR>,
-    memory: ram::synchronous::U<DATA, ADDR>,
+    memory: ram::synchronous::U<DATA, RAM_ADDR>,
 }
 
 impl Default for U {
@@ -53,7 +55,8 @@ pub fn basic_test_kernel(cr: ClockReset, i: I, q: Q) -> (O, D) {
     // The read bridge uses a read strobe, but we will ignore that
     // for this test case, since the RAM does not care how many times
     // we read it.
-    let (_, read_addr) = unpack::<Bits<ADDR>>(q.subordinate.read);
+    let (_, axi_addr) = unpack::<Bits<ADDR>>(q.subordinate.read);
+    let read_addr = (axi_addr >> 3).resize();
     let mut o = O {
         data: q.manager.data,
     };
@@ -98,6 +101,17 @@ mod tests {
             .collect::<Vec<_>>();
         let expected = (0..256).map(|n| bits(n << 8 | n)).collect::<Vec<_>>();
         assert_eq!(io, expected[0..io.len()]);
-        eprintln!("{:?}", io);
+    }
+
+    #[test]
+    fn test_hdl_generation() -> miette::Result<()> {
+        let uut = U::default();
+        let input = test_stream();
+        let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
+        let tm = test_bench.rtl(&uut, &Default::default())?;
+        tm.run_iverilog()?;
+        let tm = test_bench.flow_graph(&uut, &Default::default())?;
+        tm.run_iverilog()?;
+        Ok(())
     }
 }
