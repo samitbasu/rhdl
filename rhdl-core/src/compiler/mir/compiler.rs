@@ -31,6 +31,7 @@ use crate::ast::spanned_source::SpannedSource;
 use crate::ast::visit::Visitor;
 use crate::ast_builder::BinOp;
 use crate::ast_builder::UnOp;
+use crate::bitx::bitx_string;
 use crate::compiler::ascii;
 use crate::compiler::display_ast::pretty_print_statement;
 use crate::compiler::stage1::compile;
@@ -1370,7 +1371,7 @@ impl<'a> MirContext<'a> {
         }
     }
     fn struct_expr(&mut self, id: NodeId, strukt: &ExprStruct) -> Result<Slot> {
-        eprintln!("Struct expr {:?} template: {:?}", strukt, strukt.template);
+        eprintln!("Struct expr {:?}", strukt,);
         let lhs = self.reg(id);
         let fields = strukt
             .fields

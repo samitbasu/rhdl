@@ -80,6 +80,26 @@ fn test_struct_expr_adt() -> miette::Result<()> {
 }
 
 #[test]
+fn test_unit_enums_are_repr() -> miette::Result<()> {
+    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    pub enum Rad {
+        #[default]
+        A,
+        B(b4),
+        C {
+            x: b4,
+            y: b6,
+        },
+        D,
+    }
+
+    let x = Rad::D;
+    let x = x.bin();
+    eprintln!("{}", bitx_string(&x));
+    Ok(())
+}
+
+#[test]
 fn test_adt_inference_subset() -> miette::Result<()> {
     use rhdl_bits::alias::*;
     use rhdl_bits::bits;

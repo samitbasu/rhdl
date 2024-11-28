@@ -324,12 +324,12 @@ fn variant_payload_bin(
     let discriminant = match kind {
         DiscriminantType::Unsigned(x) => {
             quote! {
-                rhdl::bits::bits::<#x>(#discriminant as u128).to_bools()
+                rhdl::core::bitx_vec(&rhdl::bits::bits::<#x>(#discriminant as u128).to_bools())
             }
         }
         DiscriminantType::Signed(x) => {
             quote! {
-                rhdl::bits::signed::<#x>(#discriminant as i128).to_bools()
+                rhdl::core::bitx_vec(&rhdl::bits::signed::<#x>(#discriminant as i128).to_bools())
             }
         }
     };
@@ -514,7 +514,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                     )
                 )
             }
-            fn bin(self) -> Vec<bool> {
+            fn bin(self) -> Vec<rhdl::core::BitX> {
                 //self.kind().pad
                 let mut raw =
                     match self {
@@ -522,7 +522,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                         Self::#variant_names #variant_destructure_args => {#bin_fns}
                     )*
                 };
-                raw.resize(Self::BITS, false);
+                raw.resize(Self::BITS, rhdl::core::BitX::Zero);
                 #swap_endian_fn
             }
             fn trace(self) -> Vec<rhdl::core::TraceBit> {

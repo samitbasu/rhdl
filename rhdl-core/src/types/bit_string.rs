@@ -2,11 +2,10 @@ use std::iter::repeat;
 
 use crate::{
     bitx::{bitx_string, BitX},
-    util::binary_string,
     Kind, RHDLError, TypedBits,
 };
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Hash)]
 pub enum BitString {
     Signed(Vec<BitX>),
     Unsigned(Vec<BitX>),

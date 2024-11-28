@@ -92,7 +92,8 @@ impl std::fmt::Debug for Component {
             ComponentKind::Buffer(name) => write!(f, "{name}"),
             ComponentKind::Case(_) => write!(f, "Case"),
             ComponentKind::Constant(constant) => {
-                write!(f, "{}", *constant as u8)
+                let c: char = (*constant).into();
+                write!(f, "{c}")
             }
             ComponentKind::DynamicIndex(dynamic_index) => {
                 write!(f, "[[{} +: {}]]", dynamic_index.offset_len, self.width)

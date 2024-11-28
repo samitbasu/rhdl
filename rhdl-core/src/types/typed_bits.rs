@@ -3,11 +3,11 @@ use std::iter::{once, repeat};
 use internment::Intern;
 
 use crate::ast::ast_impl::WrapOp;
-use crate::bitx::BitX;
-use crate::dyn_bit_manip::bits_shr_signed;
-use crate::dyn_bit_manip::{
+use crate::bitx::dyn_bit_manip::bits_shr_signed;
+use crate::bitx::dyn_bit_manip::{
     bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
 };
+use crate::bitx::{bitx_string, BitX};
 use crate::error::{rhdl_error, RHDLError};
 use crate::Color;
 use crate::{
@@ -23,7 +23,7 @@ use super::kind::Tuple;
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Hash)]
 pub struct TypedBits {
     pub bits: Vec<BitX>,
     pub kind: Kind,
@@ -729,22 +729,25 @@ fn write_enumerate(
     let (range, kind) = bit_range(root_kind, &Path::default().discriminant()).unwrap();
     let discriminant_value = interpret_bits_as_i64(&bits[range], kind.is_signed());
     // Get the variant for this discriminant
-    let variant = enumerate
+    if let Some(variant) = enumerate
         .variants
         .iter()
         .find(|v| v.discriminant == discriminant_value)
+    {
+        write!(f, "{}::{}", enumerate.name, variant.name)?;
+        let (payload_range, payload_kind) = bit_range(
+            root_kind,
+            &Path::default().payload_by_value(discriminant_value),
+        )
         .unwrap();
-    write!(f, "{}::{}", enumerate.name, variant.name)?;
-    let (payload_range, payload_kind) = bit_range(
-        root_kind,
-        &Path::default().payload_by_value(discriminant_value),
-    )
-    .unwrap();
-    if payload_range.is_empty() {
-        return Ok(());
+        if payload_range.is_empty() {
+            return Ok(());
+        }
+        let payload = &bits[payload_range];
+        write_kind_with_bits(&payload_kind, payload, f)
+    } else {
+        write!(f, "{}", bitx_string(bits))
     }
-    let payload = &bits[payload_range];
-    write_kind_with_bits(&payload_kind, payload, f)
 }
 
 fn write_struct(

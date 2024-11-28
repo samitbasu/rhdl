@@ -2,10 +2,14 @@ use num_bigint::BigUint;
 use num_bigint::{BigInt, Sign};
 use std::iter::repeat;
 
-use crate::bitx::BitX;
+use crate::bitx::{bitx_vec, BitX};
 
-pub fn to_bigint(bits: &[bool]) -> BigInt {
-    if bits.last() != Some(&true) {
+pub fn to_bigint(bits: &[BitX]) -> Option<BigInt> {
+    let bits = bits
+        .into_iter()
+        .map(|x| x.to_bool())
+        .collect::<Option<Vec<_>>>()?;
+    Some(if bits.last() != Some(&true) {
         let bits = bits
             .iter()
             .map(|x| if *x { 1 } else { 0 })
@@ -17,29 +21,33 @@ pub fn to_bigint(bits: &[bool]) -> BigInt {
             .map(|x| if *x { 0 } else { 1 })
             .collect::<Vec<_>>();
         -(BigInt::from_radix_le(Sign::Plus, &bits, 2).unwrap() + 1_i32)
-    }
+    })
 }
 
-pub fn from_bigint(bi: &BigInt, len: usize) -> Vec<bool> {
+pub fn from_bigint(bi: &BigInt, len: usize) -> Vec<BitX> {
     if bi < &BigInt::ZERO {
         let bi = -bi - 1_i32;
         let bits = from_bigint(&bi, len);
-        bits.iter().map(|x| !x).collect::<Vec<_>>()
+        bits.into_iter().map(|x| !x).collect::<Vec<_>>()
     } else {
-        (0..len as u64).map(|pos| bi.bit(pos)).collect()
+        bitx_vec(&(0..len as u64).map(|pos| bi.bit(pos)).collect::<Vec<_>>())
     }
 }
 
-pub fn to_biguint(bits: &[bool]) -> BigUint {
+pub fn to_biguint(bits: &[BitX]) -> Option<BigUint> {
+    let bits = bits
+        .into_iter()
+        .map(|x| x.to_bool())
+        .collect::<Option<Vec<_>>>()?;
     let bits = bits
         .iter()
         .map(|x| if *x { 1 } else { 0 })
         .collect::<Vec<_>>();
-    BigUint::from_radix_le(&bits, 2).unwrap()
+    Some(BigUint::from_radix_le(&bits, 2).unwrap())
 }
 
-pub fn from_biguint(bi: &BigUint, len: usize) -> Vec<bool> {
-    (0..len as u64).map(|pos| bi.bit(pos)).collect()
+pub fn from_biguint(bi: &BigUint, len: usize) -> Vec<BitX> {
+    (0..len as u64).map(|pos| bi.bit(pos).into()).collect()
 }
 
 pub(crate) fn add_one(a: &[BitX]) -> Vec<BitX> {
@@ -161,13 +169,13 @@ mod tests {
 
     #[test]
     fn test_bigint_conversion() {
-        let bits = vec![true, false, true, false]; // 5
-        let bi = to_bigint(&bits);
+        let bits = bitx_vec(&vec![true, false, true, false]); // 5
+        let bi = to_bigint(&bits).unwrap();
         assert_eq!(bi, BigInt::from(5));
         let bits_regen = from_bigint(&bi, 4);
         assert_eq!(bits_regen, bits);
-        let bits = vec![true, true, false, true]; // -5
-        let bi = to_bigint(&bits);
+        let bits = bitx_vec(&vec![true, true, false, true]); // -5
+        let bi = to_bigint(&bits).unwrap();
         assert_eq!(bi, BigInt::from(-5));
         let bits_regen = from_bigint(&bi, 4);
         assert_eq!(bits_regen, bits);
@@ -175,12 +183,12 @@ mod tests {
 
     #[test]
     fn test_bigint_extend_behavior() {
-        let bits = vec![true, false, true, false]; // 5
-        let bi = to_bigint(&bits);
+        let bits = bitx_vec(&vec![true, false, true, false]); // 5
+        let bi = to_bigint(&bits).unwrap();
         let bits_regen = from_bigint(&bi, 8);
         assert_eq!(
             bits_regen,
-            vec![true, false, true, false, false, false, false, false]
+            bitx_vec(&vec![true, false, true, false, false, false, false, false])
         );
     }
 }
