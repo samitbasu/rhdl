@@ -25,7 +25,7 @@ impl<const N: usize> SynchronousIO for U<N> {
 
 #[kernel]
 pub fn single_kernel<const N: usize>(cr: ClockReset, i: (), q: Q<N>) -> (bool, D<N>) {
-    let mut d = D::<N>::init();
+    let mut d = D::<N>::maybe_init();
     d.relay.ready = q.drainer.next;
     d.drainer.data = q.relay.data;
     d.relay.data = q.filler.data;

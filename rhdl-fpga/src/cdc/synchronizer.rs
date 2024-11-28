@@ -42,7 +42,7 @@ impl<W: Domain, R: Domain> Circuit for U<W, R> {
 
     fn init(&self) -> Self::S {
         S {
-            clock: Clock::init(),
+            clock: Clock::maybe_init(),
             reg1_next: false,
             reg1_current: false,
             reg2_next: false,

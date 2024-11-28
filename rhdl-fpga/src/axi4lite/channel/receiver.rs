@@ -33,8 +33,8 @@ impl<T: Digital> SynchronousIO for U<T> {
 
 #[kernel]
 pub fn receiver_kernel<T: Digital>(_cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
-    let mut d = D::<T>::init();
-    let mut o = O::<T>::init();
+    let mut d = D::<T>::maybe_init();
+    let mut o = O::<T>::maybe_init();
     d.inner.ready = i.ready;
     d.inner.data = pack::<T>(i.bus.valid, i.bus.data);
     o.data = q.inner.data;

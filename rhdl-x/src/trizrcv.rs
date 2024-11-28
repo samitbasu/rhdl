@@ -39,7 +39,7 @@ impl SynchronousIO for U {
 
 #[kernel]
 pub fn trizrcv(cr: ClockReset, i: I, q: Q) -> (BitZ<8>, D) {
-    let mut d = D::init();
+    let mut d = D::maybe_init();
     d.reg = q.reg;
     let mut state = q.state;
     let mut o = BitZ::<8>::default();

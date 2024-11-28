@@ -71,9 +71,9 @@ impl<T: Digital, const N: usize> Synchronous for U<T, N> {
         Rc::new(RefCell::new(S {
             clock: Clock::default(),
             contents: self.initial.clone(),
-            output_current: T::init(),
-            output_next: T::init(),
-            write_prev: Write::init(),
+            output_current: T::maybe_init(),
+            output_next: T::maybe_init(),
+            write_prev: Write::maybe_init(),
         }))
     }
 
@@ -95,7 +95,7 @@ impl<T: Digital, const N: usize> Synchronous for U<T, N> {
                 .contents
                 .get(&input.read_addr)
                 .copied()
-                .unwrap_or(T::init());
+                .unwrap_or(T::maybe_init());
             state.write_prev = input.write;
         }
         if clock.raw() && !state.clock.raw() {
@@ -255,7 +255,7 @@ mod tests {
                 },
                 Cmd::Read(addr) => I {
                     read_addr: addr,
-                    write: Write::init(),
+                    write: Write::maybe_init(),
                 },
             }
         }

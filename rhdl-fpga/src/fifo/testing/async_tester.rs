@@ -24,7 +24,7 @@ pub fn fixture_kernel<W: Domain, R: Domain, const N: usize, const Z: usize>(
     i: I<W, R>,
     q: Q<W, R, N, Z>,
 ) -> (Signal<bool, R>, D<W, R, N, Z>) {
-    let mut d = D::<W, R, N, Z>::init();
+    let mut d = D::<W, R, N, Z>::maybe_init();
     // The filler needs access to the full signal of the FIFO
     d.filler.clock_reset = i.cr_w;
     d.filler.input = signal(crate::fifo::testing::filler::I {

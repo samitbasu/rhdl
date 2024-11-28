@@ -34,7 +34,7 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
 
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O {
         trace_push_path("array");
-        let mut output = [T::O::init(); N];
+        let mut output = [T::O::maybe_init(); N];
         for i in 0..N {
             output[i] = self[i].sim(input[i], &mut state[i]);
         }

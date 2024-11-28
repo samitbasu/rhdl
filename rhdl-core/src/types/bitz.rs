@@ -46,10 +46,10 @@ impl<const N: usize> Digital for BitZ<N> {
             })
             .collect()
     }
-    fn init() -> Self {
+    fn maybe_init() -> Self {
         Self {
-            value: Bits::init(),
-            mask: Bits::init(),
+            value: Bits::maybe_init(),
+            mask: Bits::maybe_init(),
         }
     }
 }

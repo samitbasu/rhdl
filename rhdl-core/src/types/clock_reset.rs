@@ -47,10 +47,10 @@ impl Digital for ClockReset {
     fn bin(self) -> Vec<bool> {
         [self.clock.bin().as_slice(), self.reset.bin().as_slice()].concat()
     }
-    fn init() -> Self {
+    fn maybe_init() -> Self {
         Self {
-            clock: Clock::init(),
-            reset: Reset::init(),
+            clock: Clock::maybe_init(),
+            reset: Reset::maybe_init(),
         }
     }
 }

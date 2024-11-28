@@ -86,8 +86,8 @@ impl<const N: usize> SynchronousIO for U<N> {
 #[kernel]
 pub fn counter<const N: usize>(cr: ClockReset, i: I, q: Q<N>) -> (Bits<N>, D<N>) {
     let next_count = if i.enable { q.adder } else { q.count };
-    let mut output = Bits::<{ N }>::init();
-    let mut d = D::<{ N }>::init();
+    let mut output = Bits::<{ N }>::maybe_init();
+    let mut d = D::<{ N }>::maybe_init();
     if !cr.reset.any() {
         output = q.count;
         d.count = next_count;

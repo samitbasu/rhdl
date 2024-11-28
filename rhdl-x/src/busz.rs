@@ -24,7 +24,7 @@ impl<const N: usize> Synchronous for U<N> {
     type S = BitZ<N>;
 
     fn init(&self) -> Self::S {
-        BitZ::init()
+        BitZ::maybe_init()
     }
 
     fn sim(&self, _clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {

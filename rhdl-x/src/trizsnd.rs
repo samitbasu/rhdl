@@ -61,7 +61,7 @@ impl SynchronousIO for U {
 
 #[kernel]
 pub fn trizsnd(cr: ClockReset, i: I, q: Q) -> (O, D) {
-    let mut d = D::init();
+    let mut d = D::maybe_init();
     d.reg = q.reg;
     let mut state = q.state;
     let mut o = O::default();

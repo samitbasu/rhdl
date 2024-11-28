@@ -97,7 +97,7 @@ fn test_static_kind_function() {
             vec![]
         }
 
-        fn init() -> Self {
+        fn maybe_init() -> Self {
             Self {}
         }
     }
@@ -200,7 +200,7 @@ fn test_triz_pair() {
 
     #[kernel]
     pub fn fixture(cr: ClockReset, i: I, q: Q) -> (O, D) {
-        let mut d = D::init();
+        let mut d = D::maybe_init();
         d.rcv.bitz = q.snd.bitz;
         d.rcv.state = q.snd.control;
         d.snd.bitz = q.rcv;
@@ -371,7 +371,7 @@ fn test_stream<T: Digital>(
 
 #[test]
 fn test_dff() {
-    let inputs = (0..).map(|_| Bits::init()).take(1000);
+    let inputs = (0..).map(|_| Bits::maybe_init()).take(1000);
     let uut: dff::U<b4> = dff::U::new(b4::from(0b0000));
     simple_traced_synchronous_run(&uut, test_stream(inputs), "dff.vcd");
 }

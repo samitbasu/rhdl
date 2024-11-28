@@ -60,8 +60,8 @@ impl<const N: usize> SynchronousIO for U<N> {
 
 #[kernel]
 pub fn filler_kernel<const N: usize>(cr: ClockReset, i: I, q: Q<N>) -> (O<N>, D<N>) {
-    let mut d = D::<N>::init();
-    let mut o = O::<N>::init();
+    let mut d = D::<N>::maybe_init();
+    let mut o = O::<N>::maybe_init();
     let is_full = i.full;
     // If the fifo is not full, and we are not sleeping, then write the next value to the FIFO
     if !is_full && q.sleep_counter == 0 {

@@ -46,7 +46,7 @@ impl SynchronousIO for U {
 
 #[kernel]
 pub fn state_cycler(cr: ClockReset, i: I, q: Q) -> (O, D) {
-    let mut d = D::init();
+    let mut d = D::maybe_init();
     let mut o = O::default();
     let mut state = q.state;
     trace("current_state", &state);
