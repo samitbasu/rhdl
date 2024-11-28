@@ -549,7 +549,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                     )*
                 }
             }
-            fn init() -> Self {
+            fn maybe_init() -> Self {
                 <Self as Default>::default()
             }
         }

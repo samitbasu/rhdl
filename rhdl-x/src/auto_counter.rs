@@ -14,7 +14,7 @@ impl<const N: usize> SynchronousIO for U<N> {
 
 #[kernel]
 pub fn auto_counter<const N: usize>(_cr: ClockReset, _i: (), q: Q<N>) -> (Bits<N>, D<N>) {
-    let mut d = D::<{ N }>::init();
+    let mut d = D::<{ N }>::maybe_init();
     d.counter.enable = true;
     (q.counter, d)
 }

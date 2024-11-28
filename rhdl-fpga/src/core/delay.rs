@@ -10,7 +10,7 @@ pub struct U<T: Digital, const N: usize> {
 impl<T: Digital, const N: usize> Default for U<T, N> {
     fn default() -> Self {
         Self {
-            dffs: array_init::array_init(|_| dff::U::new(T::init())),
+            dffs: array_init::array_init(|_| dff::U::new(T::maybe_init())),
         }
     }
 }
@@ -23,7 +23,7 @@ impl<T: Digital, const N: usize> SynchronousIO for U<T, N> {
 
 #[kernel]
 pub fn delay<T: Digital, const N: usize>(cr: ClockReset, i: T, q: Q<T, N>) -> (T, D<T, N>) {
-    let mut d = D::<T, N>::init();
+    let mut d = D::<T, N>::maybe_init();
     d.dffs[0] = i;
     for i in 1..N {
         d.dffs[i] = q.dffs[i - 1];

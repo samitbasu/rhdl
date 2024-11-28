@@ -33,7 +33,7 @@ impl<const N: usize> SynchronousIO for U<N> {
 //  ready d <-  q       d <-  q     d <-  q
 #[kernel]
 pub fn double_kernel<const N: usize>(cr: ClockReset, i: (), q: Q<N>) -> (bool, D<N>) {
-    let mut d = D::<N>::init();
+    let mut d = D::<N>::maybe_init();
     // Fill the data values
     d.relay1.data = q.filler.data;
     d.relay2.data = q.relay1.data;

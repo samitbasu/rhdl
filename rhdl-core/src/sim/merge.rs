@@ -48,8 +48,8 @@ where
         stream1,
         stream2,
         merge_fn,
-        last1: S::init(),
-        last2: T::init(),
+        last1: S::maybe_init(),
+        last2: T::maybe_init(),
     }
 }
 

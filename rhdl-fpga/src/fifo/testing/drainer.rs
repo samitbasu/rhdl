@@ -56,8 +56,8 @@ impl<const N: usize> SynchronousIO for U<N> {
 
 #[kernel]
 pub fn drain_kernel<const N: usize>(cr: ClockReset, input: I<N>, q: Q<N>) -> (O, D<N>) {
-    let mut d = D::<N>::init();
-    let mut o = O::init();
+    let mut d = D::<N>::maybe_init();
+    let mut o = O::maybe_init();
     // Compute an is-valid bit that is latching
     let was_valid = q.valid || cr.reset.any();
     // By default, the valid bit is latching

@@ -170,7 +170,7 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
         #[kernel]
         pub fn parent(_cr: ClockReset, i: (b4, b4), q: Q) -> (b4, D) {
             let (a, b) = i;
-            let mut d = D::init();
+            let mut d = D::maybe_init();
             d.selector = (true, a, b);
             let o = q.selector;
             (o, d)
@@ -209,7 +209,7 @@ fn test_add_inline() -> miette::Result<()> {
         #[kernel]
         pub fn parent(_cr: ClockReset, i: (b4, b4), q: Q) -> (b4, D) {
             let (a, b) = i;
-            let mut d = D::init();
+            let mut d = D::maybe_init();
             d.adder = (a, b);
             let o = q.adder;
             (o, d)
@@ -243,7 +243,7 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
 
         #[kernel]
         pub fn parent(_cr: ClockReset, _i: (), q: Q) -> (bool, D) {
-            let mut d = D::init();
+            let mut d = D::maybe_init();
             d.anyer = bits(3);
             let o = q.anyer;
             (o, d)
@@ -318,7 +318,7 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
         #[kernel]
         pub fn parent(_cr: ClockReset, _i: (), q: Q) -> (b4, D) {
             let (a, b) = (bits(3), bits(4));
-            let mut d = D::init();
+            let mut d = D::maybe_init();
             d.adder = (a, b);
             let o = q.adder;
             (o, d)
@@ -356,7 +356,7 @@ fn test_constant_propagates_through_indexing() -> miette::Result<()> {
 
         #[kernel]
         pub fn parent(_cr: ClockReset, i: bool, q: Q) -> (b4, D) {
-            let mut d = D::init();
+            let mut d = D::maybe_init();
             let index = b2(3);
             d.indexor = (index, [bits(1), bits(2), bits(3), bits(4)]);
             let o = if i { q.indexor } else { bits(3) };
@@ -393,7 +393,7 @@ fn test_constant_propagates_through_splicing() -> miette::Result<()> {
 
         #[kernel]
         pub fn parent(_cr: ClockReset, i: bool, q: Q) -> ([b4; 4], D) {
-            let mut d = D::init();
+            let mut d = D::maybe_init();
             let index = b2(3);
             let orig = [bits(1), bits(2), bits(3), bits(4)];
             d.splicer = (index, orig, bits(5));

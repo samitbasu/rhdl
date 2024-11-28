@@ -45,7 +45,7 @@ fn define_init_fn(field_set: &FieldSet) -> TokenStream {
     quote! {
         fn init(&self) -> Self::S {
             (
-                <<Self as rhdl::core::SynchronousDQ>::Q as rhdl::core::Digital>::init(),
+                <<Self as rhdl::core::SynchronousDQ>::Q as rhdl::core::Digital>::maybe_init(),
                 #(self.#component_name.init(),)*
             )
         }

@@ -918,7 +918,7 @@ mod tests {
                     Self::C(_0) => Kind::make_tuple(vec![<u8 as Digital>::static_kind()]),
                 }
             }
-            fn init() -> Self {
+            fn maybe_init() -> Self {
                 use rand::Rng;
                 match rand::thread_rng().gen_range(0..3) {
                     0 => Self::A(Default::default()),
@@ -952,7 +952,7 @@ mod tests {
             fn bin(self) -> Vec<bool> {
                 [self.0.bin(), self.1.bin(), self.2.bin()].concat()
             }
-            fn init() -> Self {
+            fn maybe_init() -> Self {
                 use rand::Rng;
                 Self(
                     rand::thread_rng().gen(),
@@ -987,7 +987,7 @@ mod tests {
             fn bin(self) -> Vec<bool> {
                 [self.a.bin(), self.b.bin(), self.c.bin()].concat()
             }
-            fn init() -> Self {
+            fn maybe_init() -> Self {
                 use rand::Rng;
                 Self {
                     a: rand::thread_rng().gen(),

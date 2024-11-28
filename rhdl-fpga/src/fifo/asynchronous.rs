@@ -62,23 +62,23 @@ pub fn async_fifo_kernel<T: Digital, W: Domain, R: Domain, const N: usize>(
 ) -> (O<T, W, R>, D<T, W, R, N>) {
     let (write_data, write_enable) = match i.data.val() {
         Some(data) => (data, true),
-        None => (T::init(), false),
+        None => (T::maybe_init(), false),
     };
-    let mut d = D::<T, W, R, N>::init();
+    let mut d = D::<T, W, R, N>::maybe_init();
     // Clock the various components
     d.write_logic.clock_reset = i.cr_w;
     d.read_logic.clock_reset = i.cr_r;
     // Create a struct to drive the inputs of the RAM on the
     // write side.  These signals are all clocked in the write
     // domain.
-    let mut ram_write = ram::asynchronous::WriteI::<T, N>::init();
+    let mut ram_write = ram::asynchronous::WriteI::<T, N>::maybe_init();
     ram_write.clock = i.cr_w.val().clock;
     ram_write.data = write_data;
     ram_write.enable = write_enable;
     ram_write.addr = q.write_logic.val().ram_write_address;
     d.ram.write = signal(ram_write);
     // Do the same thing for the read side of the RAM.
-    let mut ram_read = ram::asynchronous::ReadI::<N>::init();
+    let mut ram_read = ram::asynchronous::ReadI::<N>::maybe_init();
     ram_read.clock = i.cr_r.val().clock;
     ram_read.addr = q.read_logic.val().ram_read_address;
     d.ram.read = signal(ram_read);
@@ -103,7 +103,7 @@ pub fn async_fifo_kernel<T: Digital, W: Domain, R: Domain, const N: usize>(
     d.write_count_for_read_logic.data_cr = i.cr_w;
     d.write_count_for_read_logic.cr = i.cr_r;
     // Populate the output signals
-    let mut o = O::<T, W, R>::init();
+    let mut o = O::<T, W, R>::maybe_init();
     o.data = signal(if q.read_logic.val().empty {
         None
     } else {

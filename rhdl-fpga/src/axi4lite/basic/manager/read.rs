@@ -47,8 +47,8 @@ type RA = Address<ID, ADDR>;
 
 #[kernel]
 pub fn basic_read_manager_kernel(cr: ClockReset, i: I, q: Q) -> (O, D) {
-    let mut d = D::init();
-    let mut o = O::init();
+    let mut d = D::maybe_init();
+    let mut o = O::maybe_init();
     d.addr.bus = i.axi.addr;
     d.data.bus = i.axi.data;
     d.addr.to_send = None;

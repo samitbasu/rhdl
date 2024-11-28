@@ -30,7 +30,7 @@ impl Digital for Reset {
     fn bin(self) -> Vec<bool> {
         vec![self.0]
     }
-    fn init() -> Self {
+    fn maybe_init() -> Self {
         Reset(false)
     }
 }

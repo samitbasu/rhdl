@@ -84,7 +84,7 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static {
             .map(|b| if *b { '1' } else { '0' })
             .collect()
     }
-    fn init() -> Self;
+    fn maybe_init() -> Self;
 }
 
 impl<T: Digital> Digital for Option<T> {
@@ -139,7 +139,7 @@ impl<T: Digital> Digital for Option<T> {
             Self::Some(x) => x.kind(),
         }
     }
-    fn init() -> Self {
+    fn maybe_init() -> Self {
         Self::None
     }
 }
@@ -208,8 +208,8 @@ impl<O: Digital, E: Digital> Digital for Result<O, E> {
             Self::Err(x) => x.kind(),
         }
     }
-    fn init() -> Self {
-        Self::Err(E::init())
+    fn maybe_init() -> Self {
+        Self::Err(E::maybe_init())
     }
 }
 
@@ -224,7 +224,7 @@ impl Digital for () {
     fn bin(self) -> Vec<bool> {
         Vec::new()
     }
-    fn init() -> Self {}
+    fn maybe_init() -> Self {}
 }
 
 impl Digital for bool {
@@ -238,7 +238,7 @@ impl Digital for bool {
     fn bin(self) -> Vec<bool> {
         vec![self]
     }
-    fn init() -> Self {
+    fn maybe_init() -> Self {
         Self::default()
     }
 }
@@ -254,7 +254,7 @@ impl Digital for u64 {
     fn bin(self) -> Vec<bool> {
         Bits::<64>::from(self as u128).to_bools()
     }
-    fn init() -> Self {
+    fn maybe_init() -> Self {
         Self::default()
     }
 }
@@ -270,7 +270,7 @@ impl Digital for u8 {
     fn bin(self) -> Vec<bool> {
         Bits::<8>::from(self as u128).to_bools()
     }
-    fn init() -> Self {
+    fn maybe_init() -> Self {
         Self::default()
     }
 }
@@ -286,7 +286,7 @@ impl Digital for u16 {
     fn bin(self) -> Vec<bool> {
         Bits::<16>::from(self as u128).to_bools()
     }
-    fn init() -> Self {
+    fn maybe_init() -> Self {
         Self::default()
     }
 }
@@ -302,7 +302,7 @@ impl Digital for usize {
     fn bin(self) -> Vec<bool> {
         Bits::<{ usize::BITS as usize }>::from(self as u128).to_bools()
     }
-    fn init() -> Self {
+    fn maybe_init() -> Self {
         Self::default()
     }
 }
@@ -318,7 +318,7 @@ impl Digital for u128 {
     fn bin(self) -> Vec<bool> {
         Bits::<128>::from(self).to_bools()
     }
-    fn init() -> Self {
+    fn maybe_init() -> Self {
         Self::default()
     }
 }
@@ -334,7 +334,7 @@ impl Digital for i128 {
     fn bin(self) -> Vec<bool> {
         SignedBits::<128>::from(self).as_unsigned().to_bools()
     }
-    fn init() -> Self {
+    fn maybe_init() -> Self {
         Self::default()
     }
 }
@@ -352,7 +352,7 @@ impl Digital for i32 {
             .as_unsigned()
             .to_bools()
     }
-    fn init() -> Self {
+    fn maybe_init() -> Self {
         Self::default()
     }
 }
@@ -368,7 +368,7 @@ impl Digital for i8 {
     fn bin(self) -> Vec<bool> {
         SignedBits::<8>::from(self as i128).as_unsigned().to_bools()
     }
-    fn init() -> Self {
+    fn maybe_init() -> Self {
         Self::default()
     }
 }
@@ -386,7 +386,7 @@ impl Digital for i64 {
             .as_unsigned()
             .to_bools()
     }
-    fn init() -> Self {
+    fn maybe_init() -> Self {
         Self::default()
     }
 }
@@ -402,7 +402,7 @@ impl<const N: usize> Digital for Bits<N> {
     fn bin(self) -> Vec<bool> {
         self.to_bools()
     }
-    fn init() -> Self {
+    fn maybe_init() -> Self {
         Self::default()
     }
 }
@@ -418,7 +418,7 @@ impl<const N: usize> Digital for SignedBits<N> {
     fn bin(self) -> Vec<bool> {
         self.as_unsigned().to_bools()
     }
-    fn init() -> Self {
+    fn maybe_init() -> Self {
         Self::default()
     }
 }
@@ -435,8 +435,8 @@ impl<T0: Digital> Digital for (T0,) {
     fn bin(self) -> Vec<bool> {
         self.0.bin()
     }
-    fn init() -> Self {
-        (T0::init(),)
+    fn maybe_init() -> Self {
+        (T0::maybe_init(),)
     }
 }
 
@@ -454,8 +454,8 @@ impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
         v.extend(self.1.bin());
         v
     }
-    fn init() -> Self {
-        (T0::init(), T1::init())
+    fn maybe_init() -> Self {
+        (T0::maybe_init(), T1::maybe_init())
     }
 }
 
@@ -482,8 +482,8 @@ impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {
         v.extend(self.2.bin());
         v
     }
-    fn init() -> Self {
-        (T0::init(), T1::init(), T2::init())
+    fn maybe_init() -> Self {
+        (T0::maybe_init(), T1::maybe_init(), T2::maybe_init())
     }
 }
 
@@ -513,8 +513,13 @@ impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2
         v.extend(self.3.bin());
         v
     }
-    fn init() -> Self {
-        (T0::init(), T1::init(), T2::init(), T3::init())
+    fn maybe_init() -> Self {
+        (
+            T0::maybe_init(),
+            T1::maybe_init(),
+            T2::maybe_init(),
+            T3::maybe_init(),
+        )
     }
 }
 
@@ -567,8 +572,8 @@ impl<T: Digital, const N: usize> Digital for [T; N] {
         }
         v
     }
-    fn init() -> Self {
-        [T::init(); N]
+    fn maybe_init() -> Self {
+        [T::maybe_init(); N]
     }
 }
 
@@ -689,7 +694,7 @@ mod test {
                     raw
                 }
             }
-            fn init() -> Self {
+            fn maybe_init() -> Self {
                 Self::default()
             }
         }
@@ -775,7 +780,7 @@ mod test {
                     Self::Invalid => rhdl_bits::bits::<3>(5).to_bools(),
                 }
             }
-            fn init() -> Self {
+            fn maybe_init() -> Self {
                 Self::default()
             }
         }

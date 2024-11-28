@@ -34,7 +34,7 @@ where
         match self.sample {
             ResetOrData::Data(x) => timed_sample(self.time, (clock_reset(clock, reset(false)), x)),
             ResetOrData::Reset => {
-                timed_sample(self.time, (clock_reset(clock, reset(true)), S::init()))
+                timed_sample(self.time, (clock_reset(clock, reset(true)), S::maybe_init()))
             }
         }
     }

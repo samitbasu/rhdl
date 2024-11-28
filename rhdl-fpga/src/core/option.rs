@@ -3,7 +3,7 @@ use rhdl::prelude::*;
 #[kernel]
 pub fn unpack<T: Digital>(opt: Option<T>) -> (bool, T) {
     match opt {
-        None => (false, T::init()),
+        None => (false, T::maybe_init()),
         Some(t) => (true, t),
     }
 }

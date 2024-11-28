@@ -46,11 +46,11 @@ pub fn fifo_kernel<T: Digital, const N: usize>(
     // This is essentially a wiring exercise.  The clock
     // and reset are propagated to the sub-elements automatically
     // so we just need to route the signals.
-    let mut d = D::<T, N>::init();
-    let mut o = O::<T>::init();
+    let mut d = D::<T, N>::maybe_init();
+    let mut o = O::<T>::maybe_init();
     let (write_data, write_enable) = match i.data {
         Some(data) => (data, true),
-        None => (T::init(), false),
+        None => (T::maybe_init(), false),
     };
     // Connect the read logic inputs
     d.read_logic.write_address = q.write_logic.write_address;
