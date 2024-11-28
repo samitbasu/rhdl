@@ -1,4 +1,5 @@
 use crate::{
+    bitx::BitX,
     digital_fn::NoKernel2,
     flow_graph::edge_kind::EdgeKind,
     hdl::ast::{
@@ -75,7 +76,7 @@ impl<I: Digital, D: Domain> Digital for AdapterInput<I, D> {
             ],
         )
     }
-    fn bin(self) -> Vec<bool> {
+    fn bin(self) -> Vec<BitX> {
         let mut out = vec![];
         out.extend(self.clock_reset.bin());
         out.extend(self.input.bin());

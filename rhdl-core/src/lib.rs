@@ -81,3 +81,4 @@ pub use rhdl_trace_type;
 pub use rhdl_trace_type::TraceType;
 pub use trace::bit::TraceBit;
 pub use trace::rtt;
+pub mod bitx;

@@ -1,18 +1,22 @@
 use std::iter::repeat;
 
-use crate::{util::binary_string, Kind, RHDLError, TypedBits};
+use crate::{
+    bitx::{bitx_string, BitX},
+    util::binary_string,
+    Kind, RHDLError, TypedBits,
+};
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum BitString {
-    Signed(Vec<bool>),
-    Unsigned(Vec<bool>),
+    Signed(Vec<BitX>),
+    Unsigned(Vec<BitX>),
 }
 
 impl BitString {
-    pub fn signed(bits: Vec<bool>) -> BitString {
+    pub fn signed(bits: Vec<BitX>) -> BitString {
         BitString::Signed(bits)
     }
-    pub fn unsigned(bits: Vec<bool>) -> BitString {
+    pub fn unsigned(bits: Vec<BitX>) -> BitString {
         BitString::Unsigned(bits)
     }
     pub fn is_signed(&self) -> bool {
@@ -30,7 +34,7 @@ impl BitString {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    pub fn bits(&self) -> &[bool] {
+    pub fn bits(&self) -> &[BitX] {
         match self {
             BitString::Signed(bits) => bits,
             BitString::Unsigned(bits) => bits,
@@ -52,22 +56,22 @@ impl BitString {
         Ok(bs.into())
     }
     pub fn num_ones(&self) -> usize {
-        self.bits().iter().filter(|b| **b).count()
+        self.bits().iter().filter(|b| **b == BitX::One).count()
     }
     pub fn trailing_zeros(&self) -> usize {
-        self.bits().iter().take_while(|b| !*b).count()
+        self.bits().iter().take_while(|b| **b == BitX::Zero).count()
     }
 
     pub(crate) fn is_zero(&self) -> bool {
-        self.bits().iter().all(|b| !*b)
+        self.bits().iter().all(|b| *b == BitX::Zero)
     }
 
     pub(crate) fn zeros(shift_amount: usize) -> BitString {
-        BitString::Unsigned(repeat(false).take(shift_amount).collect())
+        BitString::Unsigned(repeat(BitX::Zero).take(shift_amount).collect())
     }
 
     pub(crate) fn is_all_true(&self) -> bool {
-        self.bits().iter().all(|b| *b)
+        self.bits().iter().all(|b| *b == BitX::One)
     }
 }
 
@@ -75,11 +79,11 @@ impl std::fmt::Debug for BitString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             BitString::Signed(bits) => {
-                write!(f, "s{}", binary_string(bits))?;
+                write!(f, "s{}", bitx_string(bits))?;
                 Ok(())
             }
             BitString::Unsigned(bits) => {
-                write!(f, "b{}", binary_string(bits))?;
+                write!(f, "b{}", bitx_string(bits))?;
                 Ok(())
             }
         }
@@ -128,21 +132,33 @@ impl From<TypedBits> for BitString {
     }
 }
 
-impl FromIterator<bool> for BitString {
-    fn from_iter<I: IntoIterator<Item = bool>>(iter: I) -> Self {
-        let bits: Vec<bool> = iter.into_iter().collect();
+impl FromIterator<BitX> for BitString {
+    fn from_iter<I: IntoIterator<Item = BitX>>(iter: I) -> Self {
+        let bits: Vec<BitX> = iter.into_iter().collect();
         BitString::Unsigned(bits)
     }
 }
 
 impl From<bool> for BitString {
     fn from(b: bool) -> Self {
+        BitString::Unsigned(vec![b.into()])
+    }
+}
+
+impl From<BitX> for BitString {
+    fn from(b: BitX) -> Self {
         BitString::Unsigned(vec![b])
     }
 }
 
 impl From<&bool> for BitString {
     fn from(b: &bool) -> Self {
+        BitString::Unsigned(vec![(*b).into()])
+    }
+}
+
+impl From<&BitX> for BitString {
+    fn from(b: &BitX) -> Self {
         BitString::Unsigned(vec![*b])
     }
 }

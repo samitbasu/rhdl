@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use petgraph::visit::EdgeRef;
 
 use crate::{
+    bitx::BitX,
     flow_graph::{
         component::ComponentKind,
         edge_kind::EdgeKind,
@@ -33,13 +34,13 @@ fn is_identity_select(node: FlowIx, graph: &GraphType) -> Option<Replacement> {
         .find(|edge| matches!(edge.weight(), EdgeKind::False))?;
     if !matches!(
         graph[true_path.source()].kind,
-        ComponentKind::Constant(true)
+        ComponentKind::Constant(BitX::One)
     ) {
         return None;
     }
     if !matches!(
         graph[false_path.source()].kind,
-        ComponentKind::Constant(false),
+        ComponentKind::Constant(BitX::Zero),
     ) {
         return None;
     }

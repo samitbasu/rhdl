@@ -528,3 +528,24 @@ fn test_match_scrutinee_bits() {
         _ => {}
     }
 }
+
+#[test]
+fn test_maybe_init_escape_causes_error() -> miette::Result<()> {
+    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+    struct Foo {
+        a: b4,
+        b: b4,
+    }
+
+    #[kernel]
+    fn do_stuff(a: Signal<b4, Red>) -> Signal<Foo, Red> {
+        let mut foo = Foo::maybe_init();
+        foo.a = a.val();
+        signal(foo)
+    }
+
+    let bar = compile_design::<do_stuff>(CompilationMode::Asynchronous)?;
+    let flow_graph = build_rtl_flow_graph(&bar);
+    std::fs::write("stuff.dot", flow_graph.dot()?).unwrap();
+    Ok(())
+}

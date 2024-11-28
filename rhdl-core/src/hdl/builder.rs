@@ -1,5 +1,6 @@
 use crate::{
     ast::source_location::SourceLocation,
+    bitx::BitX,
     compiler::mir::error::{RHDLCompileError, ICE},
     error::rhdl_error,
     hdl::ast::{
@@ -63,7 +64,7 @@ impl<'a> TranslationContext<'a> {
         } else {
             // zero extend
             let num_z = cast.len - arg_kind.len();
-            let prefix = repeat(constant(false), num_z);
+            let prefix = repeat(constant(BitX::Zero), num_z);
             self.func
                 .block
                 .push(assign(&lhs, concatenate(vec![prefix, id(&arg)])));

@@ -1,4 +1,5 @@
 use crate::{
+    bitx::BitX,
     rhif::spec::{AluBinary, AluUnary},
     rtl::object::RegisterKind,
     types::bit_string::BitString,
@@ -226,7 +227,7 @@ pub enum Expression {
     DynamicIndex(DynamicIndex),
     Index(Index),
     Repeat(Repeat),
-    Const(bool),
+    Const(BitX),
     MemoryIndex(MemoryIndex),
 }
 
@@ -253,7 +254,7 @@ pub struct Repeat {
     pub count: usize,
 }
 
-pub fn constant(value: bool) -> Expression {
+pub fn constant(value: BitX) -> Expression {
     Expression::Const(value)
 }
 

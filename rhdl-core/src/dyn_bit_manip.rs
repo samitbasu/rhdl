@@ -2,6 +2,8 @@ use num_bigint::BigUint;
 use num_bigint::{BigInt, Sign};
 use std::iter::repeat;
 
+use crate::bitx::BitX;
+
 pub fn to_bigint(bits: &[bool]) -> BigInt {
     if bits.last() != Some(&true) {
         let bits = bits
@@ -40,71 +42,71 @@ pub fn from_biguint(bi: &BigUint, len: usize) -> Vec<bool> {
     (0..len as u64).map(|pos| bi.bit(pos)).collect()
 }
 
-pub(crate) fn add_one(a: &[bool]) -> Vec<bool> {
+pub(crate) fn add_one(a: &[BitX]) -> Vec<BitX> {
     a.iter()
-        .scan(true, |carry, b| {
-            let sum = b ^ *carry;
-            *carry &= b;
+        .scan(BitX::One, |carry, b| {
+            let sum = *b ^ *carry;
+            *carry &= *b;
             Some(sum)
         })
         .collect()
 }
 
-pub(crate) fn full_add(a: &[bool], b: &[bool]) -> Vec<bool> {
+pub(crate) fn full_add(a: &[BitX], b: &[BitX]) -> Vec<BitX> {
     a.iter()
         .zip(b.iter())
-        .scan(false, |carry, (a, b)| {
-            let sum = a ^ b ^ *carry;
-            let new_carry = (a & b) | (a & *carry) | (b & *carry);
+        .scan(BitX::Zero, |carry, (a, b)| {
+            let sum = *a ^ *b ^ *carry;
+            let new_carry = (*a & *b) | (*a & *carry) | (*b & *carry);
             *carry = new_carry;
             Some(sum)
         })
         .collect()
 }
 
-pub(crate) fn bit_not(a: &[bool]) -> Vec<bool> {
-    a.iter().map(|b| !b).collect()
+pub(crate) fn bit_not(a: &[BitX]) -> Vec<BitX> {
+    a.iter().map(|b| !*b).collect()
 }
 
-pub(crate) fn bit_neg(a: &[bool]) -> Vec<bool> {
+pub(crate) fn bit_neg(a: &[BitX]) -> Vec<BitX> {
     add_one(&bit_not(a))
 }
 
-pub(crate) fn full_sub(a: &[bool], b: &[bool]) -> Vec<bool> {
+pub(crate) fn full_sub(a: &[BitX], b: &[BitX]) -> Vec<BitX> {
     full_add(a, &bit_neg(b))
 }
 
-pub(crate) fn bits_xor(a: &[bool], b: &[bool]) -> Vec<bool> {
-    a.iter().zip(b.iter()).map(|(a, b)| a ^ b).collect()
+pub(crate) fn bits_xor(a: &[BitX], b: &[BitX]) -> Vec<BitX> {
+    a.iter().zip(b.iter()).map(|(a, b)| *a ^ *b).collect()
 }
 
-pub(crate) fn bits_and(a: &[bool], b: &[bool]) -> Vec<bool> {
-    a.iter().zip(b.iter()).map(|(a, b)| a & b).collect()
+pub(crate) fn bits_and(a: &[BitX], b: &[BitX]) -> Vec<BitX> {
+    a.iter().zip(b.iter()).map(|(a, b)| *a & *b).collect()
 }
 
-pub(crate) fn bits_or(a: &[bool], b: &[bool]) -> Vec<bool> {
-    a.iter().zip(b.iter()).map(|(a, b)| a | b).collect()
+pub(crate) fn bits_or(a: &[BitX], b: &[BitX]) -> Vec<BitX> {
+    a.iter().zip(b.iter()).map(|(a, b)| *a | *b).collect()
 }
 
-pub(crate) fn bits_shl(a: &[bool], b: i64) -> Vec<bool> {
-    repeat(false)
+pub(crate) fn bits_shl(a: &[BitX], b: i64) -> Vec<BitX> {
+    repeat(BitX::Zero)
         .take(b as usize)
         .chain(a.iter().copied())
         .take(a.len())
         .collect()
 }
 
-pub(crate) fn bits_shr(a: &[bool], b: i64) -> Vec<bool> {
+pub(crate) fn bits_shr(a: &[BitX], b: i64) -> Vec<BitX> {
     a.iter()
         .copied()
         .skip(b as usize)
-        .chain(repeat(false).take(b as usize))
+        .chain(repeat(BitX::Zero).take(b as usize))
         .take(a.len())
         .collect()
 }
 
-pub(crate) fn bits_shr_signed(a: &[bool], b: i64) -> Vec<bool> {
-    let sign = a.last().copied().unwrap_or(false);
+pub(crate) fn bits_shr_signed(a: &[BitX], b: i64) -> Vec<BitX> {
+    let sign = a.last().copied().unwrap_or(BitX::Zero);
     a.iter()
         .copied()
         .skip(b as usize)

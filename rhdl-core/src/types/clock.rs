@@ -1,4 +1,4 @@
-use crate::{Digital, Kind};
+use crate::{bitx::BitX, Digital, Kind};
 
 #[derive(PartialEq, Clone, Copy, Debug, Default)]
 pub struct Clock(bool);
@@ -21,8 +21,8 @@ impl Digital for Clock {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rhdl_trace_type::TraceType::Clock
     }
-    fn bin(self) -> Vec<bool> {
-        vec![self.0]
+    fn bin(self) -> Vec<BitX> {
+        vec![self.0.into()]
     }
     fn maybe_init() -> Self {
         Clock(false)

@@ -1,6 +1,7 @@
 use petgraph::visit::EdgeRef;
 
 use crate::{
+    bitx::BitX,
     flow_graph::{
         component::{Binary, ComponentKind},
         edge_kind::EdgeKind,
@@ -24,7 +25,7 @@ struct Replacement {
 #[derive(Debug)]
 enum VarOrConstant {
     Variable,
-    Constant(bool),
+    Constant(BitX),
 }
 
 fn get_source_bit(node: FlowIx, graph: &GraphType) -> VarOrConstant {
@@ -52,10 +53,12 @@ fn get_useless_or_replacement(node: FlowIx, graph: &GraphType) -> Option<FlowIx>
     let left_voc = get_source_bit(left_input.source(), graph);
     let right_voc = get_source_bit(right_input.source(), graph);
     match (left_voc, right_voc) {
-        (VarOrConstant::Variable, VarOrConstant::Constant(false)) => Some(left_input.source()),
-        (VarOrConstant::Variable, VarOrConstant::Constant(true)) => Some(right_input.source()),
-        (VarOrConstant::Constant(false), VarOrConstant::Variable) => Some(right_input.source()),
-        (VarOrConstant::Constant(true), VarOrConstant::Variable) => Some(left_input.source()),
+        (VarOrConstant::Variable, VarOrConstant::Constant(BitX::Zero)) => Some(left_input.source()),
+        (VarOrConstant::Variable, VarOrConstant::Constant(BitX::One)) => Some(right_input.source()),
+        (VarOrConstant::Constant(BitX::Zero), VarOrConstant::Variable) => {
+            Some(right_input.source())
+        }
+        (VarOrConstant::Constant(BitX::One), VarOrConstant::Variable) => Some(left_input.source()),
         _ => None,
     }
 }

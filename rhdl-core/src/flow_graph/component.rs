@@ -1,5 +1,6 @@
 use crate::{
     ast::source_location::SourceLocation,
+    bitx::BitX,
     hdl::ast::SignedWidth,
     rhif::spec::{AluBinary, AluUnary},
     types::bit_string::BitString,
@@ -49,7 +50,7 @@ pub enum ComponentKind {
     BitString(BitString),
     Buffer(String),
     Case(Case),
-    Constant(bool),
+    Constant(BitX),
     BBInput(BBInput),
     BBOutput(BBOutput),
     DynamicIndex(DynamicIndex),

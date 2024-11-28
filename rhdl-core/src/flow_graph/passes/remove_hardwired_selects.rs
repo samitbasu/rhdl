@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use petgraph::{graph::NodeIndex, visit::EdgeRef};
 
 use crate::{
+    bitx::BitX,
     flow_graph::{component::ComponentKind, edge_kind::EdgeKind, flow_graph_impl::GraphType},
     FlowGraph, RHDLError,
 };
@@ -12,7 +13,7 @@ use super::pass::Pass;
 #[derive(Default, Debug, Clone)]
 pub struct RemoveHardwiredSelectsPass {}
 
-fn get_constant(graph: &GraphType, node: NodeIndex) -> Option<bool> {
+fn get_constant(graph: &GraphType, node: NodeIndex) -> Option<BitX> {
     let weight = &graph[node];
     if let ComponentKind::Constant(value) = &weight.kind {
         return Some(*value);
@@ -70,8 +71,11 @@ impl Pass for RemoveHardwiredSelectsPass {
             if let Some(control_node) = get_select_control_node(&graph, target) {
                 // Get the control value
                 if let Some(control_value) = get_constant(&graph, control_node) {
-                    if let Some(data_node) = get_select_data_node(&graph, target, control_value) {
-                        remap.insert(target, data_node);
+                    if let Some(control_value) = control_value.to_bool() {
+                        if let Some(data_node) = get_select_data_node(&graph, target, control_value)
+                        {
+                            remap.insert(target, data_node);
+                        }
                     }
                 }
             }

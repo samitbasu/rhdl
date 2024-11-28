@@ -406,7 +406,12 @@ mod tests {
 
     use rhdl_bits::Bits;
 
-    use crate::{rtt::kind_to_trace, types::kind::Variant, Digital, DiscriminantAlignment, Kind};
+    use crate::{
+        bitx::{bitx_vec, BitX},
+        rtt::kind_to_trace,
+        types::kind::Variant,
+        Digital, DiscriminantAlignment, Kind,
+    };
 
     use super::*;
 
@@ -487,29 +492,29 @@ mod tests {
             fn static_trace_type() -> rhdl_trace_type::TraceType {
                 kind_to_trace(&Self::static_kind())
             }
-            fn bin(self) -> Vec<bool> {
+            fn bin(self) -> Vec<BitX> {
                 let raw = match self {
-                    Self::None => rhdl_bits::bits::<3>(0).to_bools(),
+                    Self::None => bitx_vec(&rhdl_bits::bits::<3>(0).to_bools()),
                     Self::Bool(b) => {
-                        let mut v = rhdl_bits::bits::<3>(1).to_bools();
+                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(1).to_bools());
                         v.extend(b.bin());
                         v
                     }
                     Self::Tuple(b, c) => {
-                        let mut v = rhdl_bits::bits::<3>(2).to_bools();
+                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(2).to_bools());
                         v.extend(b.bin());
                         v.extend(c.bin());
                         v
                     }
                     Self::Array([b, c, d]) => {
-                        let mut v = rhdl_bits::bits::<3>(3).to_bools();
+                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(3).to_bools());
                         v.extend(b.bin());
                         v.extend(c.bin());
                         v.extend(d.bin());
                         v
                     }
                     Self::Strct { a, b } => {
-                        let mut v = rhdl_bits::bits::<3>(4).to_bools();
+                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(4).to_bools());
                         v.extend(a.bin());
                         v.extend(b.bin());
                         v
@@ -517,7 +522,9 @@ mod tests {
                 };
                 if raw.len() < self.kind().bits() {
                     let missing = self.kind().bits() - raw.len();
-                    raw.into_iter().chain(repeat(false).take(missing)).collect()
+                    raw.into_iter()
+                        .chain(repeat(BitX::Zero).take(missing))
+                        .collect()
                 } else {
                     raw
                 }

@@ -1,12 +1,19 @@
 use rhdl_bits::{bits, Bits, SignedBits};
 
 use crate::{
-    const_max, trace::bit::TraceBit, DiscriminantAlignment, DiscriminantType, Kind, TypedBits,
+    bitx::{bitx_vec, BitX},
+    const_max,
+    trace::bit::TraceBit,
+    DiscriminantAlignment, DiscriminantType, Kind, TypedBits,
 };
 
 use super::kind::DiscriminantLayout;
 
 use rhdl_trace_type as rtt;
+
+fn bits_to_bitx<const N: usize>(x: Bits<N>) -> Vec<BitX> {
+    x.to_bools().into_iter().map(|x| x.into()).collect()
+}
 
 /// This is the core trait for all of `RHDL` data elements.  If you
 /// want to use a data type in the hardware part of the design,
@@ -61,13 +68,13 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static {
     fn trace_type(&self) -> rhdl_trace_type::TraceType {
         Self::static_trace_type()
     }
-    fn bin(self) -> Vec<bool>;
+    fn bin(self) -> Vec<BitX>;
     fn trace(self) -> Vec<TraceBit> {
         self.bin().into_iter().map(|b| b.into()).collect()
     }
     fn typed_bits(self) -> TypedBits {
         TypedBits {
-            bits: self.bin(),
+            bits: self.bin().into_iter().map(|b| b.into()).collect(),
             kind: self.kind(),
         }
     }
@@ -81,7 +88,10 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static {
         self.bin()
             .iter()
             .rev()
-            .map(|b| if *b { '1' } else { '0' })
+            .map(|b| {
+                let b: char = (*b).into();
+                b
+            })
             .collect()
     }
     fn maybe_init() -> Self;
@@ -117,11 +127,11 @@ impl<T: Digital> Digital for Option<T> {
             },
         )
     }
-    fn bin(self) -> Vec<bool> {
+    fn bin(self) -> Vec<BitX> {
         self.kind().pad(match self {
-            Self::None => bits::<1>(0).to_bools(),
+            Self::None => vec![BitX::Zero],
             Self::Some(t) => {
-                let mut v = bits::<1>(1).to_bools();
+                let mut v = vec![BitX::One];
                 v.extend(t.bin());
                 v
             }
@@ -182,15 +192,15 @@ impl<O: Digital, E: Digital> Digital for Result<O, E> {
             },
         )
     }
-    fn bin(self) -> Vec<bool> {
+    fn bin(self) -> Vec<BitX> {
         self.kind().pad(match self {
             Self::Ok(o) => {
-                let mut v = bits::<1>(1).to_bools();
+                let mut v = vec![BitX::One];
                 v.extend(o.bin());
                 v
             }
             Self::Err(e) => {
-                let mut v = bits::<1>(0).to_bools();
+                let mut v = vec![BitX::Zero];
                 v.extend(e.bin());
                 v
             }
@@ -221,7 +231,7 @@ impl Digital for () {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rtt::TraceType::Empty
     }
-    fn bin(self) -> Vec<bool> {
+    fn bin(self) -> Vec<BitX> {
         Vec::new()
     }
     fn maybe_init() -> Self {}
@@ -235,8 +245,8 @@ impl Digital for bool {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rtt::TraceType::Bits(1)
     }
-    fn bin(self) -> Vec<bool> {
-        vec![self]
+    fn bin(self) -> Vec<BitX> {
+        vec![self.into()]
     }
     fn maybe_init() -> Self {
         Self::default()
@@ -251,8 +261,8 @@ impl Digital for u64 {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rtt::TraceType::Bits(64)
     }
-    fn bin(self) -> Vec<bool> {
-        Bits::<64>::from(self as u128).to_bools()
+    fn bin(self) -> Vec<BitX> {
+        bitx_vec(&Bits::<64>::from(self as u128).to_bools())
     }
     fn maybe_init() -> Self {
         Self::default()
@@ -267,8 +277,8 @@ impl Digital for u8 {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rtt::TraceType::Bits(8)
     }
-    fn bin(self) -> Vec<bool> {
-        Bits::<8>::from(self as u128).to_bools()
+    fn bin(self) -> Vec<BitX> {
+        bitx_vec(&Bits::<8>::from(self as u128).to_bools())
     }
     fn maybe_init() -> Self {
         Self::default()
@@ -283,8 +293,8 @@ impl Digital for u16 {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rtt::TraceType::Bits(16)
     }
-    fn bin(self) -> Vec<bool> {
-        Bits::<16>::from(self as u128).to_bools()
+    fn bin(self) -> Vec<BitX> {
+        bitx_vec(&Bits::<16>::from(self as u128).to_bools())
     }
     fn maybe_init() -> Self {
         Self::default()
@@ -299,8 +309,8 @@ impl Digital for usize {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rtt::TraceType::Bits(usize::BITS as usize)
     }
-    fn bin(self) -> Vec<bool> {
-        Bits::<{ usize::BITS as usize }>::from(self as u128).to_bools()
+    fn bin(self) -> Vec<BitX> {
+        bitx_vec(&Bits::<{ usize::BITS as usize }>::from(self as u128).to_bools())
     }
     fn maybe_init() -> Self {
         Self::default()
@@ -315,8 +325,8 @@ impl Digital for u128 {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rtt::TraceType::Bits(128)
     }
-    fn bin(self) -> Vec<bool> {
-        Bits::<128>::from(self).to_bools()
+    fn bin(self) -> Vec<BitX> {
+        bitx_vec(&Bits::<128>::from(self).to_bools())
     }
     fn maybe_init() -> Self {
         Self::default()
@@ -331,8 +341,8 @@ impl Digital for i128 {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rtt::TraceType::Signed(128)
     }
-    fn bin(self) -> Vec<bool> {
-        SignedBits::<128>::from(self).as_unsigned().to_bools()
+    fn bin(self) -> Vec<BitX> {
+        bitx_vec(&SignedBits::<128>::from(self).as_unsigned().to_bools())
     }
     fn maybe_init() -> Self {
         Self::default()
@@ -347,10 +357,12 @@ impl Digital for i32 {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rtt::TraceType::Signed(32)
     }
-    fn bin(self) -> Vec<bool> {
-        SignedBits::<32>::from(self as i128)
-            .as_unsigned()
-            .to_bools()
+    fn bin(self) -> Vec<BitX> {
+        bitx_vec(
+            &SignedBits::<32>::from(self as i128)
+                .as_unsigned()
+                .to_bools(),
+        )
     }
     fn maybe_init() -> Self {
         Self::default()
@@ -365,8 +377,8 @@ impl Digital for i8 {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rtt::TraceType::Signed(8)
     }
-    fn bin(self) -> Vec<bool> {
-        SignedBits::<8>::from(self as i128).as_unsigned().to_bools()
+    fn bin(self) -> Vec<BitX> {
+        bitx_vec(&SignedBits::<8>::from(self as i128).as_unsigned().to_bools())
     }
     fn maybe_init() -> Self {
         Self::default()
@@ -381,10 +393,12 @@ impl Digital for i64 {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rtt::TraceType::Signed(64)
     }
-    fn bin(self) -> Vec<bool> {
-        SignedBits::<64>::from(self as i128)
-            .as_unsigned()
-            .to_bools()
+    fn bin(self) -> Vec<BitX> {
+        bitx_vec(
+            &SignedBits::<64>::from(self as i128)
+                .as_unsigned()
+                .to_bools(),
+        )
     }
     fn maybe_init() -> Self {
         Self::default()
@@ -399,8 +413,8 @@ impl<const N: usize> Digital for Bits<N> {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rtt::TraceType::Bits(N)
     }
-    fn bin(self) -> Vec<bool> {
-        self.to_bools()
+    fn bin(self) -> Vec<BitX> {
+        bitx_vec(&self.to_bools())
     }
     fn maybe_init() -> Self {
         Self::default()
@@ -415,8 +429,8 @@ impl<const N: usize> Digital for SignedBits<N> {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rtt::TraceType::Signed(N)
     }
-    fn bin(self) -> Vec<bool> {
-        self.as_unsigned().to_bools()
+    fn bin(self) -> Vec<BitX> {
+        bitx_vec(&self.as_unsigned().to_bools())
     }
     fn maybe_init() -> Self {
         Self::default()
@@ -432,7 +446,7 @@ impl<T0: Digital> Digital for (T0,) {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rtt::make_tuple(vec![T0::static_trace_type()])
     }
-    fn bin(self) -> Vec<bool> {
+    fn bin(self) -> Vec<BitX> {
         self.0.bin()
     }
     fn maybe_init() -> Self {
@@ -448,7 +462,7 @@ impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rtt::make_tuple(vec![T0::static_trace_type(), T1::static_trace_type()])
     }
-    fn bin(self) -> Vec<bool> {
+    fn bin(self) -> Vec<BitX> {
         let mut v = Vec::with_capacity(Self::BITS);
         v.extend(self.0.bin());
         v.extend(self.1.bin());
@@ -475,7 +489,7 @@ impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {
             T2::static_trace_type(),
         ])
     }
-    fn bin(self) -> Vec<bool> {
+    fn bin(self) -> Vec<BitX> {
         let mut v = Vec::with_capacity(Self::BITS);
         v.extend(self.0.bin());
         v.extend(self.1.bin());
@@ -505,7 +519,7 @@ impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2
             T3::static_trace_type(),
         ])
     }
-    fn bin(self) -> Vec<bool> {
+    fn bin(self) -> Vec<BitX> {
         let mut v = Vec::with_capacity(Self::BITS);
         v.extend(self.0.bin());
         v.extend(self.1.bin());
@@ -565,7 +579,7 @@ impl<T: Digital, const N: usize> Digital for [T; N] {
     fn static_trace_type() -> rtt::TraceType {
         rtt::make_array(T::static_trace_type(), N)
     }
-    fn bin(self) -> Vec<bool> {
+    fn bin(self) -> Vec<BitX> {
         let mut v = Vec::with_capacity(Self::BITS);
         for x in self.iter() {
             v.extend(x.bin());
@@ -658,38 +672,40 @@ mod test {
             fn static_trace_type() -> rhdl_trace_type::TraceType {
                 kind_to_trace(&Self::static_kind())
             }
-            fn bin(self) -> Vec<bool> {
+            fn bin(self) -> Vec<BitX> {
                 let raw = match self {
-                    Self::None => rhdl_bits::bits::<3>(0).to_bools(),
+                    Self::None => bitx_vec(&rhdl_bits::bits::<3>(0).to_bools()),
                     Self::Bool(b) => {
-                        let mut v = rhdl_bits::bits::<3>(1).to_bools();
+                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(1).to_bools());
                         v.extend(b.bin());
                         v
                     }
                     Self::Tuple(b, c) => {
-                        let mut v = rhdl_bits::bits::<3>(2).to_bools();
+                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(2).to_bools());
                         v.extend(b.bin());
                         v.extend(c.bin());
                         v
                     }
                     Self::Array([b, c, d]) => {
-                        let mut v = rhdl_bits::bits::<3>(3).to_bools();
+                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(3).to_bools());
                         v.extend(b.bin());
                         v.extend(c.bin());
                         v.extend(d.bin());
                         v
                     }
                     Self::Strct { a, b } => {
-                        let mut v = rhdl_bits::bits::<3>(4).to_bools();
+                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(4).to_bools());
                         v.extend(a.bin());
                         v.extend(b.bin());
                         v
                     }
-                    Self::Invalid => rhdl_bits::bits::<3>(5).to_bools(),
+                    Self::Invalid => bitx_vec(&rhdl_bits::bits::<3>(5).to_bools()),
                 };
                 if raw.len() < self.kind().bits() {
                     let missing = self.kind().bits() - raw.len();
-                    raw.into_iter().chain(repeat(false).take(missing)).collect()
+                    raw.into_iter()
+                        .chain(repeat(BitX::Zero).take(missing))
+                        .collect()
                 } else {
                     raw
                 }
@@ -770,15 +786,15 @@ mod test {
             fn static_trace_type() -> rhdl_trace_type::TraceType {
                 kind_to_trace(&Self::static_kind())
             }
-            fn bin(self) -> Vec<bool> {
-                match self {
+            fn bin(self) -> Vec<BitX> {
+                bitx_vec(&match self {
                     Self::Init => rhdl_bits::bits::<3>(0).to_bools(),
                     Self::Boot => rhdl_bits::bits::<3>(1).to_bools(),
                     Self::Running => rhdl_bits::bits::<3>(2).to_bools(),
                     Self::Stop => rhdl_bits::bits::<3>(3).to_bools(),
                     Self::Boom => rhdl_bits::bits::<3>(4).to_bools(),
                     Self::Invalid => rhdl_bits::bits::<3>(5).to_bools(),
-                }
+                })
             }
             fn maybe_init() -> Self {
                 Self::default()
@@ -786,7 +802,7 @@ mod test {
         }
 
         let val = State::Boom;
-        assert_eq!(val.bin(), rhdl_bits::bits::<3>(4).to_bools());
+        assert_eq!(val.bin(), bitx_vec(&rhdl_bits::bits::<3>(4).to_bools()));
         assert_eq!(
             val.kind(),
             Kind::make_enum(
@@ -857,16 +873,16 @@ mod test {
     #[test]
     fn test_result_discriminant() {
         let x: Result<u8, u8> = Ok(5);
-        assert_eq!(x.discriminant().bits, vec![true]);
+        assert_eq!(x.discriminant().bits, vec![BitX::One]);
         let x: Result<u8, u8> = Err(5);
-        assert_eq!(x.discriminant().bits, vec![false]);
+        assert_eq!(x.discriminant().bits, vec![BitX::Zero]);
     }
 
     #[test]
     fn test_option_discriminant() {
         let x: Option<u8> = Some(5);
-        assert_eq!(x.discriminant().bits, vec![true]);
+        assert_eq!(x.discriminant().bits, vec![BitX::One]);
         let x: Option<u8> = None;
-        assert_eq!(x.discriminant().bits, vec![false]);
+        assert_eq!(x.discriminant().bits, vec![BitX::Zero]);
     }
 }
