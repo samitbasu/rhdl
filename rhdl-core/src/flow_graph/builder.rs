@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     ast::source_location::SourceLocation,
+    bitx::BitX,
     hdl::ast::{unsigned_width, SignedWidth},
     rhif::spec::{AluBinary, AluUnary},
     rtl::{
@@ -232,7 +233,7 @@ impl<'a> FlowGraphBuilder<'a> {
         if use_unsigned {
             let zero = self
                 .fg
-                .new_component(ComponentKind::Constant(false), lhs.len(), loc);
+                .new_component(ComponentKind::Constant(BitX::Zero), lhs.len(), loc);
             for lhs in lhs.iter().skip(arg.len()) {
                 self.fg.edge(zero, *lhs, EdgeKind::ArgBit(0, 0));
             }

@@ -892,11 +892,20 @@ impl Context {
                 return Ok(quote! {
                     bob.block_expr(bob.block(vec![]))
                 });
-            } else if name.ident == "default" || name.ident == "maybe_init" {
+            } else if name.ident == "default" {
                 return Ok(quote! {
                     bob.lit_expr(
                         bob.expr_lit_typed_bits(
                             rhdl::core::Digital::typed_bits(#expr),
+                            stringify!(#expr)
+                        )
+                    )
+                });
+            } else if name.ident == "maybe_init" {
+                return Ok(quote! {
+                    bob.lit_expr(
+                        bob.expr_lit_typed_bits(
+                            rhdl::core::Digital::typed_bits(#expr).maybe_init(),
                             stringify!(#expr)
                         )
                     )

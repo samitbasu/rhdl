@@ -81,4 +81,6 @@ pub enum DynamicTypeError {
     CannotWrapResult { value: TypedBits, kind: Kind },
     #[error("Cannot wrap {value:?} into {kind:?} - it is not an option")]
     CannotWrapOption { value: TypedBits, kind: Kind },
+    #[error("Cannot coerce {value:?} into a bool - it contains uninitialized bits")]
+    CannotCoerceUninitToBool { value: TypedBits },
 }

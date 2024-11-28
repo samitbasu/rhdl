@@ -3,6 +3,7 @@ use std::{iter::repeat, ops::Range};
 use internment::Intern;
 
 use crate::{
+    bitx::BitX,
     error::{rhdl_error, RHDLError},
     rhif::spec::Member,
     TypedBits,
@@ -219,12 +220,12 @@ impl Kind {
             Kind::Empty => 0,
         }
     }
-    pub fn pad(&self, bits: Vec<bool>) -> Vec<bool> {
+    pub fn pad(&self, bits: Vec<BitX>) -> Vec<BitX> {
         if bits.len() > self.bits() {
             panic!("Too many bits for kind!");
         }
         let pad_len = self.bits() - bits.len();
-        let bits = bits.into_iter().chain(repeat(false).take(pad_len));
+        let bits = bits.into_iter().chain(repeat(BitX::Zero).take(pad_len));
         match self {
             Kind::Enum(kind) => match kind.discriminant_layout.alignment {
                 DiscriminantAlignment::Lsb => bits.collect(),
@@ -320,7 +321,7 @@ impl Kind {
 
     pub fn place_holder(&self) -> TypedBits {
         TypedBits {
-            bits: repeat(false).take(self.bits()).collect(),
+            bits: repeat(BitX::X).take(self.bits()).collect(),
             kind: *self,
         }
     }

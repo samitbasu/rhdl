@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use petgraph::{graph::EdgeIndex, visit::EdgeRef, Direction::Incoming};
 
 use crate::{
+    bitx::BitX,
     flow_graph::{
         component::{
             Binary, BitSelect, Case, CaseEntry, ComponentKind, DynamicIndex, DynamicSplice, Unary,
@@ -38,7 +39,7 @@ fn collect_argument<T: Fn(&EdgeKind) -> Option<usize>>(
                 .find_map(|(b, ndx)| if *b == bit { Some(*ndx) } else { None })
         })
         .collect::<Option<Vec<_>>>()?;
-    let arg_values: Vec<bool> = arg_bits
+    let arg_values: Vec<BitX> = arg_bits
         .iter()
         .flat_map(|ndx| {
             if let ComponentKind::Constant(value) = &graph[*ndx].kind {
@@ -231,7 +232,7 @@ impl Pass for ConstantPropagationPass {
         for (node, value) in values {
             if value.len() == 1 {
                 graph.node_weight_mut(node).unwrap().kind =
-                    ComponentKind::Constant(value.is_all_true());
+                    ComponentKind::Constant(value.bits()[0]);
             } else {
                 graph.node_weight_mut(node).unwrap().kind = ComponentKind::BitString(value);
             }

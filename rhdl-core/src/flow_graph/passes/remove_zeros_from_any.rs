@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use petgraph::visit::EdgeRef;
 
 use crate::{
+    bitx::BitX,
     flow_graph::{
         component::{ComponentKind, Unary},
         edge_kind::EdgeKind,
@@ -21,7 +22,7 @@ pub struct RemoveZerosFromAnyPass {}
 #[derive(Debug)]
 enum VarOrConstant {
     Variable,
-    Constant(bool),
+    Constant(BitX),
 }
 
 #[derive(Debug)]
@@ -57,7 +58,7 @@ fn rewrite_any_operation(orig_node: FlowIx, graph: &GraphType) -> Option<Replace
     // If any of the arguments are true, we can drop all other arguments
     if let Some((true_node, _)) = arg_incoming
         .iter()
-        .find(|(_, voc)| matches!(voc, VarOrConstant::Constant(true)))
+        .find(|(_, voc)| matches!(voc, VarOrConstant::Constant(BitX::One)))
     {
         return Some(Replacement {
             node: orig_node,
@@ -68,7 +69,7 @@ fn rewrite_any_operation(orig_node: FlowIx, graph: &GraphType) -> Option<Replace
     let new_args = arg_incoming
         .iter()
         .filter_map(|(node, voc)| match voc {
-            VarOrConstant::Constant(false) => None,
+            VarOrConstant::Constant(BitX::Zero) => None,
             _ => Some(*node),
         })
         .collect::<Vec<_>>();

@@ -1,4 +1,5 @@
 use crate::{
+    bitx::{bitx_string, BitX},
     hdl::ast::Events,
     rhif::spec::{AluBinary, AluUnary},
     types::bit_string::BitString,
@@ -74,7 +75,7 @@ fn port(ast: &Port) -> String {
 pub fn bit_string(bs: &BitString) -> String {
     let signed = if bs.is_signed() { "s" } else { "" };
     let width = bs.len();
-    let bs = binary_string(bs.bits());
+    let bs = bitx_string(bs.bits());
     format!("{width}'{signed}b{bs}")
 }
 
@@ -326,13 +327,11 @@ fn expression(ast: &Expression) -> String {
         Expression::DynamicIndex(ast) => dynamic_index(ast),
         Expression::Index(ast) => index(ast),
         Expression::Repeat(ast) => repeat(ast),
-        Expression::Const(ast) => {
-            if *ast {
-                "1'b1".to_string()
-            } else {
-                "1'b0".to_string()
-            }
-        }
+        Expression::Const(ast) => match *ast {
+            BitX::Zero => "1'b0".to_string(),
+            BitX::One => "1'b1".to_string(),
+            BitX::X => "1'bx".to_string(),
+        },
         Expression::MemoryIndex(inner) => {
             let index = expression(&inner.address);
             format!("{}[{}]", inner.target, index)

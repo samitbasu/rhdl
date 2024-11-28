@@ -32,7 +32,7 @@ fn get_select_constant_replacement(node: FlowIx, graph: &GraphType) -> Option<bo
             return None;
         };
         if true_path == false_path {
-            return Some(true_path);
+            return true_path.to_bool();
         }
     }
     None
@@ -56,7 +56,7 @@ impl Pass for RemoveUselessSelectsPass {
             })
             .collect::<HashSet<EdgeIndex>>();
         for (node, replacement) in candidates {
-            graph.node_weight_mut(node).unwrap().kind = ComponentKind::Constant(replacement);
+            graph.node_weight_mut(node).unwrap().kind = ComponentKind::Constant(replacement.into());
         }
         graph.retain_edges(|_, edge| !edges_to_drop.contains(&edge));
         Ok(FlowGraph { graph, ..input })

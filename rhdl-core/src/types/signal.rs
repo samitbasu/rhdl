@@ -3,6 +3,7 @@ use std::cmp::Ordering;
 use rhdl_bits::Bits;
 use rhdl_bits::SignedBits;
 
+use crate::bitx::BitX;
 use crate::{Digital, Domain, Kind, Timed};
 use rhdl_trace_type as rtt;
 
@@ -39,7 +40,7 @@ impl<T: Digital, C: Domain> Digital for Signal<T, C> {
         rtt::make_signal(T::static_trace_type(), C::color().into())
     }
 
-    fn bin(self) -> Vec<bool> {
+    fn bin(self) -> Vec<BitX> {
         self.val.bin()
     }
 

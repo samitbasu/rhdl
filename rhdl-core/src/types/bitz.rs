@@ -1,6 +1,6 @@
 use rhdl_bits::Bits;
 
-use crate::{trace::bit::TraceBit, Digital, Kind};
+use crate::{bitx::BitX, trace::bit::TraceBit, Digital, Kind};
 
 use super::kind::Field;
 
@@ -31,7 +31,7 @@ impl<const N: usize> Digital for BitZ<N> {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rhdl_trace_type::TraceType::Bits(Self::TRACE_BITS)
     }
-    fn bin(self) -> Vec<bool> {
+    fn bin(self) -> Vec<BitX> {
         [self.value.bin().as_slice(), self.mask.bin().as_slice()].concat()
     }
     fn trace(self) -> Vec<TraceBit> {
@@ -40,9 +40,10 @@ impl<const N: usize> Digital for BitZ<N> {
             .into_iter()
             .zip(self.mask.bin())
             .map(|(v, m)| match (v, m) {
-                (_, false) => TraceBit::Z,
-                (false, true) => TraceBit::Zero,
-                (true, true) => TraceBit::One,
+                (BitX::X, _) | (_, BitX::X) => TraceBit::X,
+                (_, BitX::Zero) => TraceBit::Z,
+                (BitX::Zero, BitX::One) => TraceBit::Zero,
+                (BitX::One, BitX::One) => TraceBit::One,
             })
             .collect()
     }

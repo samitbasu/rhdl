@@ -1,4 +1,4 @@
-use crate::{Clock, Digital, Kind, Reset};
+use crate::{bitx::BitX, Clock, Digital, Kind, Reset};
 
 use super::kind::Field;
 
@@ -44,7 +44,7 @@ impl Digital for ClockReset {
             ],
         })
     }
-    fn bin(self) -> Vec<bool> {
+    fn bin(self) -> Vec<BitX> {
         [self.clock.bin().as_slice(), self.reset.bin().as_slice()].concat()
     }
     fn maybe_init() -> Self {

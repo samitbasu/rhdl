@@ -1,6 +1,7 @@
 use petgraph::visit::EdgeRef;
 
 use crate::{
+    bitx::BitX,
     flow_graph::{
         component::{Binary, ComponentKind},
         edge_kind::EdgeKind,
@@ -24,7 +25,7 @@ struct Replacement {
 #[derive(Debug)]
 enum VarOrConstant {
     Variable,
-    Constant(bool),
+    Constant(BitX),
 }
 
 fn get_source_bit(node: FlowIx, graph: &GraphType) -> VarOrConstant {
@@ -34,7 +35,7 @@ fn get_source_bit(node: FlowIx, graph: &GraphType) -> VarOrConstant {
     }
 }
 
-fn get_useless_or_replacement(node: FlowIx, graph: &GraphType) -> Option<FlowIx> {
+fn get_useless_and_replacement(node: FlowIx, graph: &GraphType) -> Option<FlowIx> {
     let ComponentKind::Binary(Binary {
         op: AluBinary::BitAnd,
         left_len: SignedWidth::Unsigned(1),
@@ -52,10 +53,12 @@ fn get_useless_or_replacement(node: FlowIx, graph: &GraphType) -> Option<FlowIx>
     let left_voc = get_source_bit(left_input.source(), graph);
     let right_voc = get_source_bit(right_input.source(), graph);
     match (left_voc, right_voc) {
-        (VarOrConstant::Variable, VarOrConstant::Constant(false)) => Some(right_input.source()),
-        (VarOrConstant::Variable, VarOrConstant::Constant(true)) => Some(left_input.source()),
-        (VarOrConstant::Constant(false), VarOrConstant::Variable) => Some(left_input.source()),
-        (VarOrConstant::Constant(true), VarOrConstant::Variable) => Some(right_input.source()),
+        (VarOrConstant::Variable, VarOrConstant::Constant(BitX::Zero)) => {
+            Some(right_input.source())
+        }
+        (VarOrConstant::Variable, VarOrConstant::Constant(BitX::One)) => Some(left_input.source()),
+        (VarOrConstant::Constant(BitX::Zero), VarOrConstant::Variable) => Some(left_input.source()),
+        (VarOrConstant::Constant(BitX::One), VarOrConstant::Variable) => Some(right_input.source()),
         _ => None,
     }
 }
@@ -67,7 +70,7 @@ impl Pass for RemoveAndWithConstantPass {
         let candidates = graph
             .node_indices()
             .flat_map(|node| {
-                get_useless_or_replacement(node, &graph).map(|x| Replacement {
+                get_useless_and_replacement(node, &graph).map(|x| Replacement {
                     original: node,
                     replacement: x,
                 })

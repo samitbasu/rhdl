@@ -3,13 +3,13 @@ use std::iter::{once, repeat};
 use internment::Intern;
 
 use crate::ast::ast_impl::WrapOp;
+use crate::bitx::BitX;
 use crate::dyn_bit_manip::bits_shr_signed;
 use crate::dyn_bit_manip::{
     bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
 };
 use crate::error::{rhdl_error, RHDLError};
 use crate::Color;
-use crate::Digital;
 use crate::{
     types::path::{bit_range, sub_kind, Path},
     Kind,
@@ -25,7 +25,7 @@ type Result<T> = std::result::Result<T, RHDLError>;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TypedBits {
-    pub bits: Vec<bool>,
+    pub bits: Vec<BitX>,
     pub kind: Kind,
 }
 
@@ -33,7 +33,7 @@ impl From<i64> for TypedBits {
     fn from(mut val: i64) -> Self {
         let mut bits = Vec::new();
         for _ in 0..64 {
-            bits.push(val & 1 != 0);
+            bits.push((val & 1 != 0).into());
             val >>= 1;
         }
         TypedBits {
@@ -47,7 +47,7 @@ impl From<u64> for TypedBits {
     fn from(mut val: u64) -> Self {
         let mut bits = Vec::new();
         for _ in 0..64 {
-            bits.push(val & 1 != 0);
+            bits.push((val & 1 != 0).into());
             val >>= 1;
         }
         TypedBits {
@@ -57,12 +57,26 @@ impl From<u64> for TypedBits {
     }
 }
 
+impl From<BitX> for TypedBits {
+    fn from(value: BitX) -> Self {
+        TypedBits {
+            bits: vec![value],
+            kind: Kind::make_bits(1),
+        }
+    }
+}
+
 impl TypedBits {
     pub const EMPTY: TypedBits = TypedBits {
         bits: Vec::new(),
         kind: Kind::Empty,
     };
-
+    pub fn maybe_init(self) -> Self {
+        Self {
+            bits: vec![BitX::X; self.bits.len()],
+            ..self
+        }
+    }
     pub fn path(&self, path: &Path) -> Result<TypedBits> {
         let (range, kind) = bit_range(self.kind, path)?;
         Ok(TypedBits {
@@ -105,7 +119,7 @@ impl TypedBits {
                 .bits
                 .iter()
                 .copied()
-                .chain(repeat(false))
+                .chain(repeat(BitX::Zero))
                 .take(bits)
                 .collect(),
             kind: Kind::make_bits(bits),
@@ -118,7 +132,7 @@ impl TypedBits {
                 kind: Kind::make_signed(bits),
             };
         }
-        let sign_bit = self.bits.last().cloned().unwrap_or_default();
+        let sign_bit = self.bits.last().cloned().unwrap_or(BitX::Zero);
         TypedBits {
             bits: self
                 .bits
@@ -147,14 +161,14 @@ impl TypedBits {
                     .bits
                     .clone()
                     .into_iter()
-                    .chain(repeat(false))
+                    .chain(repeat(BitX::Zero))
                     .take(bits)
                     .collect(),
                 kind: Kind::make_bits(bits),
             });
         }
         let (base, rest) = self.bits.split_at(bits);
-        if rest.iter().any(|b| *b) {
+        if rest.iter().fold(BitX::Zero, |acc, b| acc | *b) != BitX::Zero {
             return Err(rhdl_error(DynamicTypeError::UnsignedCastWithWidthFailed {
                 value: self.clone(),
                 bits,
@@ -167,7 +181,7 @@ impl TypedBits {
     }
     pub fn signed_cast(&self, bits: usize) -> Result<TypedBits> {
         if bits > self.kind.bits() {
-            let sign_bit = self.bits.last().cloned().unwrap_or_default();
+            let sign_bit = self.bits.last().cloned().unwrap_or(BitX::Zero);
             return Ok(TypedBits {
                 bits: self
                     .bits
@@ -180,7 +194,7 @@ impl TypedBits {
             });
         }
         let (base, rest) = self.bits.split_at(bits);
-        let new_sign_bit = base.last().cloned().unwrap_or_default();
+        let new_sign_bit = base.last().cloned().unwrap_or(BitX::Zero);
         if rest.iter().any(|b| *b != new_sign_bit) {
             return Err(rhdl_error(DynamicTypeError::SignedCastWithWidthFailed {
                 value: self.clone(),
@@ -211,10 +225,10 @@ impl TypedBits {
         Ok(ret as i64)
     }
     pub fn any(&self) -> TypedBits {
-        self.bits.iter().any(|b| *b).typed_bits()
+        self.bits.iter().fold(BitX::Zero, |a, b| a | *b).into()
     }
     pub fn all(&self) -> TypedBits {
-        self.bits.iter().all(|b| *b).typed_bits()
+        self.bits.iter().fold(BitX::One, |a, b| a & *b).into()
     }
     pub fn as_signed(&self) -> Result<TypedBits> {
         if let Kind::Bits(ndx) = self.kind {
@@ -242,10 +256,7 @@ impl TypedBits {
     }
     pub fn sign_bit(&self) -> Result<TypedBits> {
         if self.kind.is_signed() {
-            Ok(TypedBits {
-                bits: vec![self.bits.last().cloned().unwrap_or_default()],
-                kind: Kind::make_bits(1),
-            })
+            Ok(self.bits.last().cloned().unwrap_or(BitX::Zero).into())
         } else {
             Err(rhdl_error(DynamicTypeError::CannotGetSignBit {
                 value: self.clone(),
@@ -253,11 +264,17 @@ impl TypedBits {
         }
     }
     pub fn xor(&self) -> TypedBits {
-        self.bits.iter().fold(false, |a, b| a ^ b).typed_bits()
+        self.bits.iter().fold(BitX::Zero, |a, b| a ^ *b).into()
     }
     pub fn as_bool(&self) -> Result<bool> {
         if self.kind.is_bool() {
-            Ok(self.bits[0])
+            match self.bits[0] {
+                BitX::Zero => Ok(false),
+                BitX::One => Ok(true),
+                _ => Err(rhdl_error(DynamicTypeError::CannotCoerceUninitToBool {
+                    value: self.clone(),
+                })),
+            }
         } else {
             Err(rhdl_error(DynamicTypeError::CannotCastToBool {
                 value: self.clone(),
@@ -303,7 +320,7 @@ impl TypedBits {
             }));
         }
         let mut new_bits = self.bits.clone();
-        new_bits[index] = val;
+        new_bits[index] = val.into();
         Ok(TypedBits {
             bits: new_bits,
             kind: self.kind,
@@ -361,7 +378,7 @@ impl TypedBits {
             bits: self
                 .bits
                 .into_iter()
-                .chain(repeat(false).take(pad).chain(once(true)))
+                .chain(repeat(BitX::Zero).take(pad).chain(once(BitX::One)))
                 .collect(),
             kind: *option_kind,
         })
@@ -385,7 +402,7 @@ impl TypedBits {
             bits: self
                 .bits
                 .into_iter()
-                .chain(repeat(false).take(pad).chain(once(false)))
+                .chain(repeat(BitX::Zero).take(pad).chain(once(BitX::Zero)))
                 .collect(),
             kind: *option_kind,
         })
@@ -409,7 +426,7 @@ impl TypedBits {
             bits: self
                 .bits
                 .into_iter()
-                .chain(repeat(false).take(pad).chain(once(false)))
+                .chain(repeat(BitX::Zero).take(pad).chain(once(BitX::Zero)))
                 .collect(),
             kind: *result_kind,
         })
@@ -433,7 +450,7 @@ impl TypedBits {
             bits: self
                 .bits
                 .into_iter()
-                .chain(repeat(false).take(pad).chain(once(true)))
+                .chain(repeat(BitX::Zero).take(pad).chain(once(BitX::One)))
                 .collect(),
             kind: *result_kind,
         })
@@ -650,8 +667,8 @@ impl std::cmp::PartialOrd for TypedBits {
                 a_as_i128 |= (self.bits[ndx] as i128) << ndx;
                 b_as_i128 |= (other.bits[ndx] as i128) << ndx;
             }
-            let me_sign = self.bits.last().cloned().unwrap_or_default();
-            let other_sign = other.bits.last().cloned().unwrap_or_default();
+            let me_sign = self.bits.last().cloned().unwrap_or(BitX::Zero);
+            let other_sign = other.bits.last().cloned().unwrap_or(BitX::Zero);
             for ndx in self.bits.len()..128 {
                 a_as_i128 |= (me_sign as i128) << ndx;
                 b_as_i128 |= (other_sign as i128) << ndx;
@@ -669,7 +686,7 @@ impl std::fmt::Debug for TypedBits {
 
 fn write_kind_with_bits(
     kind: &Kind,
-    bits: &[bool],
+    bits: &[BitX],
     f: &mut std::fmt::Formatter<'_>,
 ) -> std::fmt::Result {
     match kind {
@@ -687,10 +704,10 @@ fn write_kind_with_bits(
     }
 }
 
-fn interpret_bits_as_i64(bits: &[bool], signed: bool) -> i64 {
+fn interpret_bits_as_i64(bits: &[BitX], signed: bool) -> i64 {
     // If the value is signed, then we sign extend it to 128 bits
     let value = if signed {
-        let sign = bits.last().copied().unwrap_or_default();
+        let sign = bits.last().copied().unwrap_or(BitX::Zero);
         repeat(&sign)
             .take(128 - bits.len())
             .chain(bits.iter().rev())
@@ -705,7 +722,7 @@ fn interpret_bits_as_i64(bits: &[bool], signed: bool) -> i64 {
 
 fn write_enumerate(
     enumerate: &Enum,
-    bits: &[bool],
+    bits: &[BitX],
     f: &mut std::fmt::Formatter<'_>,
 ) -> std::fmt::Result {
     let root_kind = Kind::Enum(Intern::new(enumerate.clone()));
@@ -732,7 +749,7 @@ fn write_enumerate(
 
 fn write_struct(
     structure: &Struct,
-    bits: &[bool],
+    bits: &[BitX],
     f: &mut std::fmt::Formatter<'_>,
 ) -> std::fmt::Result {
     write!(f, "{} {{", structure.name)?;
@@ -750,7 +767,7 @@ fn write_struct(
     write!(f, "}}")
 }
 
-fn write_array(array: &Array, bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+fn write_array(array: &Array, bits: &[BitX], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "[")?;
     let root_kind = Kind::Array(Intern::new(array.clone()));
     for ndx in 0..(array.size) {
@@ -764,9 +781,17 @@ fn write_array(array: &Array, bits: &[bool], f: &mut std::fmt::Formatter<'_>) ->
     write!(f, "]")
 }
 
-fn write_bits(bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+fn write_bits(bits: &[BitX], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     if bits.len() == 1 {
-        return write!(f, "{}", if bits[0] { "true" } else { "false" });
+        return write!(
+            f,
+            "{}",
+            match bits[0] {
+                BitX::Zero => "false",
+                BitX::One => "true",
+                BitX::X => "X",
+            }
+        );
     }
     // We know that the bits array will fit into a u128.
     let val = bits
@@ -776,13 +801,21 @@ fn write_bits(bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Resul
     write!(f, "{:x}_b{}", val, bits.len())
 }
 
-fn write_signed(bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+fn write_signed(bits: &[BitX], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     if bits.len() == 1 {
-        return write!(f, "{}", if bits[0] { "-1" } else { "0" });
+        return write!(
+            f,
+            "{}",
+            match bits[0] {
+                BitX::One => "-1",
+                BitX::Zero => "0",
+                BitX::X => "X",
+            }
+        );
     }
     // We know that the bits array will fit into a i128.
     let bit_len = bits.len();
-    let sign_bit = bits.last().cloned().unwrap_or_default();
+    let sign_bit = bits.last().cloned().unwrap_or(BitX::Zero);
     let val = repeat(&sign_bit)
         .take(128 - bit_len)
         .chain(bits.iter().rev())
@@ -790,7 +823,7 @@ fn write_signed(bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Res
     write!(f, "{}_s{}", val, bits.len())
 }
 
-fn write_tuple(tuple: &Tuple, bits: &[bool], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+fn write_tuple(tuple: &Tuple, bits: &[BitX], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "(")?;
     let root_kind = Kind::Tuple(Intern::new(tuple.clone()));
     for ndx in 0..(tuple.elements.len()) {
@@ -810,7 +843,10 @@ mod tests {
     use rand::thread_rng;
     use rhdl_bits::{alias::*, bits};
 
-    use crate::{Digital, DiscriminantAlignment, DiscriminantType, Kind, TypedBits};
+    use crate::{
+        bitx::{bitx_vec, BitX},
+        Digital, DiscriminantAlignment, DiscriminantType, Kind, TypedBits,
+    };
 
     #[test]
     fn test_typed_bits_add() {
@@ -879,20 +915,20 @@ mod tests {
             fn static_trace_type() -> rhdl_trace_type::TraceType {
                 crate::rtt::kind_to_trace(&Self::static_kind())
             }
-            fn bin(self) -> Vec<bool> {
+            fn bin(self) -> Vec<BitX> {
                 self.kind().pad(match self {
                     Self::A(_0) => {
-                        let mut v = rhdl_bits::bits::<2usize>(0i64 as u128).to_bools();
+                        let mut v = bitx_vec(&rhdl_bits::bits::<2usize>(0i64 as u128).to_bools());
                         v.extend(_0.bin());
                         v
                     }
                     Self::B { foo } => {
-                        let mut v = rhdl_bits::bits::<2usize>(1i64 as u128).to_bools();
+                        let mut v = bitx_vec(&rhdl_bits::bits::<2usize>(1i64 as u128).to_bools());
                         v.extend(foo.bin());
                         v
                     }
                     Self::C(_0) => {
-                        let mut v = rhdl_bits::bits::<2usize>(2i64 as u128).to_bools();
+                        let mut v = bitx_vec(&rhdl_bits::bits::<2usize>(2i64 as u128).to_bools());
                         v.extend(_0.bin());
                         v
                     }
@@ -949,7 +985,7 @@ mod tests {
             fn static_trace_type() -> rhdl_trace_type::TraceType {
                 crate::rtt::kind_to_trace(&Self::static_kind())
             }
-            fn bin(self) -> Vec<bool> {
+            fn bin(self) -> Vec<BitX> {
                 [self.0.bin(), self.1.bin(), self.2.bin()].concat()
             }
             fn maybe_init() -> Self {
@@ -984,7 +1020,7 @@ mod tests {
             fn static_trace_type() -> rhdl_trace_type::TraceType {
                 crate::rtt::kind_to_trace(&Self::static_kind())
             }
-            fn bin(self) -> Vec<bool> {
+            fn bin(self) -> Vec<BitX> {
                 [self.a.bin(), self.b.bin(), self.c.bin()].concat()
             }
             fn maybe_init() -> Self {
