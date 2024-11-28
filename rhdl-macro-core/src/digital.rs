@@ -79,7 +79,7 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         ]
                     )
                     }
-                    fn bin(self) -> Vec<bool> {
+                    fn bin(self) -> Vec<rhdl::core::BitX> {
                         [
                         #(
                             self.#fields.bin().as_slice(),
@@ -158,7 +158,7 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         ],
                         )
                     }
-                    fn bin(self) -> Vec<bool> {
+                    fn bin(self) -> Vec<rhdl::core::BitX> {
                         [
                         #(
                             self.#fields.bin().as_slice(),
@@ -212,7 +212,7 @@ mod test {
                         rhdl::core::Kind::make_field(stringify!(nest_3), <TwoBits as rhdl::core::Digital>::static_kind()),
                     ])
                 }
-                fn bin(self) -> Vec<bool> {
+                fn bin(self) -> Vec<rhdl::core::BitX> {
                     let mut result = vec![];
                     result.extend(self.nest_1.bin());
                     result.extend(self.nest_2.bin());
@@ -245,7 +245,7 @@ mod test {
                         rhdl::core::Kind::make_field(stringify!(read), <bool as rhdl::core::Digital>::static_kind()),
                     ])
                 }
-                fn bin(self) -> Vec<bool> {
+                fn bin(self) -> Vec<rhdl::core::BitX> {
                     let mut result = vec![];
                     result.extend(self.input.bin());
                     result.extend(self.write.bin());
@@ -281,7 +281,7 @@ mod test {
                         rhdl::core::Kind::make_field(stringify!(read), <bool as rhdl::core::Digital>::static_kind()),
                     ])
                 }
-                fn bin(self) -> Vec<bool> {
+                fn bin(self) -> Vec<rhdl::core::BitX> {
                     let mut result = vec![];
                     result.extend(self.input.bin());
                     result.extend(self.write.bin());
@@ -314,7 +314,7 @@ mod test {
                         rhdl::core::Kind::make_field(stringify!(read), <(bool, bool) as rhdl::core::Digital>::static_kind()),
                     ])
                 }
-                fn bin(self) -> Vec<bool> {
+                fn bin(self) -> Vec<rhdl::core::BitX> {
                     let mut result = vec![];
                     result.extend(self.input.bin());
                     result.extend(self.write.bin());
@@ -343,7 +343,7 @@ mod test {
                         rhdl::core::Kind::make_field(stringify!(2), <bool as rhdl::core::Digital>::static_kind()),
                     ])
                 }
-                fn bin(self) -> Vec<bool> {
+                fn bin(self) -> Vec<rhdl::core::BitX> {
                     let mut result = vec![];
                     result.extend(self.0.bin());
                     result.extend(self.1.bin());

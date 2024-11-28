@@ -85,6 +85,8 @@ pub use rhdl_macro::Synchronous;
 pub use rhdl_macro::SynchronousDQ;
 pub use rhdl_macro::Timed;
 // Use the extension traits
+pub use rhdl_core::bitx::bitx_string;
+pub use rhdl_core::bitx_vec;
 pub use rhdl_core::sim::clock_pos_edge::ClockPosEdgeExt;
 pub use rhdl_core::sim::merge::merge;
 pub use rhdl_core::sim::merge::MergeExt;
@@ -97,3 +99,4 @@ pub use rhdl_core::sim::testbench::asynchronous::TestBench;
 pub use rhdl_core::sim::testbench::synchronous::SynchronousTestBench;
 pub use rhdl_core::sim::testbench::TestBenchOptions;
 pub use rhdl_core::sim::vcd::Vcd;
+pub use rhdl_core::BitX;

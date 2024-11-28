@@ -66,7 +66,10 @@ fn test_derive_digital_simple_struct() {
     let bits = foo_test.bin();
     let bits = &bits[range];
     assert_eq!(bits.len(), 8);
-    assert_eq!(bits, [true, true, false, true, false, true, false, true]);
+    assert_eq!(
+        bits,
+        bitx_vec(&[true, true, false, true, false, true, false, true])
+    );
 }
 
 #[test]
@@ -93,19 +96,13 @@ fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
     println!("{:?}", index);
     let bits = foo_test.bin();
     let bits = &bits[index.0];
-    println!(
-        "Extracted bits: {}",
-        bits.iter()
-            .rev()
-            .map(|x| if *x { '1' } else { '0' })
-            .collect::<String>()
-    );
+    println!("Extracted bits: {}", bitx_string(bits));
     let (disc_range, disc_kind) = bit_range(Test::static_kind(), &Path::default().discriminant())?;
     println!("{:?}", disc_range);
     println!("{:?}", disc_kind);
     let disc_bits = foo_test.bin();
     let disc_bits = &disc_bits[disc_range];
-    assert_eq!(disc_bits, [true, false]);
+    assert_eq!(disc_bits, [BitX::One, BitX::Zero]);
     Ok(())
 }
 

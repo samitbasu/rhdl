@@ -6,9 +6,10 @@ use thiserror::Error;
 use crate::{
     ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
     ast_builder::BinOp,
+    bitx::BitX,
     rhif::spec::{AluBinary, AluUnary, OpCode, Slot},
     rtl::spec::Operand,
-    types::path::Path,
+    types::{bit_string::BitString, path::Path},
     Kind, RHDLError, TypedBits,
 };
 
@@ -177,6 +178,8 @@ pub enum ICE {
     WrapRequiresResultKind { kind: Kind },
     #[error("Wrap opcode requires an option kind, not {kind:?}")]
     WrapRequiresOptionKind { kind: Kind },
+    #[error("Attempted to select based on an uninitialized value")]
+    SelectOnUninitializedValue { value: BitString },
 }
 
 #[derive(Error, Debug, Diagnostic)]

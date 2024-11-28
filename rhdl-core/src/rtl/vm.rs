@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::{
     ast::source_location::SourceLocation,
+    bitx::BitX,
     compiler::mir::error::{RHDLCompileError, ICE},
     error::rhdl_error,
     rhif::spec::{AluBinary, AluUnary},
@@ -144,7 +145,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                     .iter()
                     .flat_map(|x| x.bits())
                     .copied()
-                    .collect::<Vec<bool>>();
+                    .collect::<Vec<BitX>>();
                 match state.obj.kind(*lhs) {
                     RegisterKind::Signed(_) => {
                         state.write(*lhs, BitString::Signed(combined), loc)?;
@@ -223,11 +224,10 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let cond = state.read(*cond, loc)?;
                 let true_value = state.read(*true_value, loc)?;
                 let false_value = state.read(*false_value, loc)?;
-                let result = if cond.bits().iter().any(|x| *x) {
-                    true_value
-                } else {
-                    false_value
-                };
+                let tb = cond.bits()[0].to_bool().ok_or_else(|| {
+                    state.raise_ice(ICE::SelectOnUninitializedValue { value: cond }, loc)
+                })?;
+                let result = if tb { true_value } else { false_value };
                 state.write(*lhs, result, loc)?;
             }
             OpCode::Splice(Splice {

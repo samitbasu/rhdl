@@ -62,7 +62,7 @@ fn test_enum_derive() {
                         rhdl::core::DiscriminantType::Unsigned),
                     )
                 }
-                fn bin(self) -> Vec<bool> {
+                fn bin(self) -> Vec<rhdl::core::BitX> {
                     self.kind()
                         .pad(
                             match self {
@@ -193,7 +193,7 @@ fn test_enum_no_payloads() {
                     )
                 )
             }
-            fn bin(self) -> Vec<bool> {
+            fn bin(self) -> Vec<rhdl::core::BitX> {
                 self.kind()
                     .pad(
                         match self {
@@ -312,7 +312,7 @@ fn test_enum_with_signed_discriminants() {
                     rhdl::core::DiscriminantType::Signed)
                 )
             }
-            fn bin(self) -> Vec<bool> {
+            fn bin(self) -> Vec<rhdl::core::BitX> {
                 self.kind()
                     .pad(
                         match self {
@@ -405,7 +405,7 @@ fn test_enum_with_discriminants() {
                 4usize, rhdl::core::DiscriminantAlignment::Msb, rhdl::core::DiscriminantType::Unsigned),
                 )
             }
-            fn bin(self) -> Vec<bool> {
+            fn bin(self) -> Vec<rhdl::core::BitX> {
                 self.kind()
                     .pad(
                         match self {
