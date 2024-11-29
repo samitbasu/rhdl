@@ -20,7 +20,7 @@ fn test_option_is_digital() {
 
     println!("foo val: {:?}", foo_test);
     assert_eq!(foo_test.a.bin(), b9::from(0b110101011).bin());
-    assert_eq!(foo_test.b.bin(), b9::from(0b000000000).bin());
+    assert_eq!(foo_test.b.bin(), bitx_parse("0xxxxxxxx").unwrap());
 }
 
 #[test]
@@ -53,6 +53,24 @@ fn test_result_is_digital() -> miette::Result<()> {
     }
     test_kernel_vm_and_verilog_synchronous::<bar, _, _, _>(
         bar,
+        exhaustive().iter().map(|x| (*x,)),
+    )?;
+    Ok(())
+}
+
+#[test]
+fn test_option_works() -> miette::Result<()> {
+    #[kernel]
+    fn opt(i: b8) -> Option<b8> {
+        if i.any() {
+            Some(i)
+        } else {
+            None
+        }
+    }
+
+    test_kernel_vm_and_verilog_synchronous::<opt, _, _, _>(
+        opt,
         exhaustive().iter().map(|x| (*x,)),
     )?;
     Ok(())

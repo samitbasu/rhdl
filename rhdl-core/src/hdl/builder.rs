@@ -110,6 +110,22 @@ impl<'a> TranslationContext<'a> {
         }
         Ok(())
     }
+    fn translate_dont_care(&mut self, cast: &tl::Cast) -> Result<()> {
+        let arg_kind = self.rtl.kind(cast.arg);
+        let lhs = self.rtl.op_name(cast.lhs);
+        let arg = self.rtl.op_name(cast.arg);
+        if cast.len <= arg_kind.len() {
+            self.func.block.push(assign(&lhs, index(&arg, 0..cast.len)));
+        } else {
+            // Dont care extension
+            let num_z = cast.len - arg_kind.len();
+            let prefix = repeat(constant(BitX::X), num_z);
+            self.func
+                .block
+                .push(assign(&lhs, concatenate(vec![prefix, id(&arg)])));
+        }
+        Ok(())
+    }
     fn translate_cast(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
         match cast.kind {
             CastKind::Signed => self.translate_as_signed(cast, id),
@@ -118,6 +134,7 @@ impl<'a> TranslationContext<'a> {
                 Ok(())
             }
             CastKind::Resize => self.translate_resize(cast, id),
+            CastKind::DontCare => self.translate_dont_care(cast),
         }
     }
     fn translate_assign(&mut self, assign: &tl::Assign) -> Result<()> {

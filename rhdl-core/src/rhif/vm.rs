@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::ast::ast_impl::WrapOp;
 use crate::ast::source_location::SourceLocation;
+use crate::bitx::bitx_string;
 use crate::compiler::mir::error::{RHDLCompileError, ICE};
 use crate::error::rhdl_error;
 use crate::rhif::object::Object;
@@ -10,7 +11,7 @@ use crate::rhif::spec::{
     Slot, Struct, Tuple, Unary,
 };
 use crate::types::path::Path;
-use crate::TypedBits;
+use crate::{BitX, TypedBits};
 use crate::{Kind, RHDLError};
 
 use super::object::LocatedOpCode;
@@ -107,10 +108,10 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let cond = state.read(*cond, loc)?;
                 let true_value = state.read(*true_value, loc)?;
                 let false_value = state.read(*false_value, loc)?;
-                if cond.any().as_bool()? {
-                    state.write(*lhs, true_value, loc)?;
-                } else {
-                    state.write(*lhs, false_value, loc)?;
+                match cond.bits[0] {
+                    BitX::Zero => state.write(*lhs, false_value, loc)?,
+                    BitX::One => state.write(*lhs, true_value, loc)?,
+                    BitX::X => state.write(*lhs, true_value.dont_care(), loc)?,
                 }
             }
             OpCode::Index(Index { lhs, arg, path }) => {
@@ -194,6 +195,8 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 discriminant,
                 table,
             }) => {
+                let lhs_kind = state.obj.kind(*lhs);
+                let lhs_dont_care = TypedBits::dont_care_from_kind(lhs_kind);
                 let discriminant = state.read(*discriminant, loc)?;
                 let arm = table
                     .iter()
@@ -201,9 +204,12 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                         CaseArgument::Slot(disc) => discriminant == state.read(*disc, loc).unwrap(),
                         CaseArgument::Wild => true,
                     })
-                    .ok_or(state.raise_ice(ICE::NoMatchingArm { discriminant }, loc))?
-                    .1;
-                let arm = state.read(arm, loc)?;
+                    .map(|x| x.1);
+                let arm = if let Some(arm) = arm {
+                    state.read(arm, loc)?
+                } else {
+                    lhs_dont_care
+                };
                 state.write(*lhs, arm, loc)?;
             }
             OpCode::AsBits(Cast { lhs, arg, len }) => {
@@ -236,13 +242,14 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let Some(kind) = kind else {
                     return Err(state.raise_ice(ICE::WrapMissingKind, loc));
                 };
+                let arg_copy = arg.clone();
                 let arg = match op {
                     WrapOp::Ok => arg.wrap_ok(kind),
                     WrapOp::Err => arg.wrap_err(kind),
                     WrapOp::Some => arg.wrap_some(kind),
                     WrapOp::None => arg.wrap_none(kind),
-                };
-                state.write(*lhs, arg?, loc)?;
+                }?;
+                state.write(*lhs, arg, loc)?;
             }
             OpCode::Exec(Exec {
                 lhs,

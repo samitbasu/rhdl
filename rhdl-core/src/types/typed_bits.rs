@@ -71,6 +71,12 @@ impl TypedBits {
         bits: Vec::new(),
         kind: Kind::Empty,
     };
+    pub fn dont_care_from_kind(kind: Kind) -> Self {
+        Self {
+            bits: vec![BitX::X; kind.bits()],
+            kind,
+        }
+    }
     pub fn dont_care(self) -> Self {
         Self {
             bits: vec![BitX::X; self.bits.len()],
@@ -271,7 +277,7 @@ impl TypedBits {
             match self.bits[0] {
                 BitX::Zero => Ok(false),
                 BitX::One => Ok(true),
-                _ => Err(rhdl_error(DynamicTypeError::CannotCoerceUninitToBool {
+                BitX::X => Err(rhdl_error(DynamicTypeError::CannotCoerceUninitToBool {
                     value: self.clone(),
                 })),
             }
@@ -378,7 +384,7 @@ impl TypedBits {
             bits: self
                 .bits
                 .into_iter()
-                .chain(repeat(BitX::Zero).take(pad).chain(once(BitX::One)))
+                .chain(repeat(BitX::X).take(pad).chain(once(BitX::One)))
                 .collect(),
             kind: *option_kind,
         })
@@ -402,7 +408,7 @@ impl TypedBits {
             bits: self
                 .bits
                 .into_iter()
-                .chain(repeat(BitX::Zero).take(pad).chain(once(BitX::Zero)))
+                .chain(repeat(BitX::X).take(pad).chain(once(BitX::Zero)))
                 .collect(),
             kind: *option_kind,
         })
@@ -426,7 +432,7 @@ impl TypedBits {
             bits: self
                 .bits
                 .into_iter()
-                .chain(repeat(BitX::Zero).take(pad).chain(once(BitX::Zero)))
+                .chain(repeat(BitX::X).take(pad).chain(once(BitX::Zero)))
                 .collect(),
             kind: *result_kind,
         })
@@ -450,7 +456,7 @@ impl TypedBits {
             bits: self
                 .bits
                 .into_iter()
-                .chain(repeat(BitX::Zero).take(pad).chain(once(BitX::One)))
+                .chain(repeat(BitX::X).take(pad).chain(once(BitX::One)))
                 .collect(),
             kind: *result_kind,
         })

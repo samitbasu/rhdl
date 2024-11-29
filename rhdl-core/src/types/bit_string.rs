@@ -2,6 +2,7 @@ use std::iter::repeat;
 
 use crate::{
     bitx::{bitx_string, BitX},
+    rtl::object::RegisterKind,
     Kind, RHDLError, TypedBits,
 };
 
@@ -71,6 +72,40 @@ impl BitString {
 
     pub(crate) fn is_all_true(&self) -> bool {
         self.bits().iter().all(|b| *b == BitX::One)
+    }
+
+    pub(crate) fn dont_care(&self) -> BitString {
+        match self {
+            BitString::Signed(bits) => BitString::Signed(bits.iter().map(|_| BitX::X).collect()),
+            BitString::Unsigned(bits) => {
+                BitString::Unsigned(bits.iter().map(|_| BitX::X).collect())
+            }
+        }
+    }
+    pub(crate) fn dont_care_from_kind(kind: RegisterKind) -> BitString {
+        match kind {
+            RegisterKind::Unsigned(len) => BitString::Unsigned(repeat(BitX::X).take(len).collect()),
+            RegisterKind::Signed(len) => BitString::Signed(repeat(BitX::X).take(len).collect()),
+        }
+    }
+
+    pub(crate) fn resize_dont_care(&self, len: usize) -> Result<BitString, RHDLError> {
+        match self {
+            BitString::Signed(orig) => Ok(BitString::Signed(
+                orig.iter()
+                    .copied()
+                    .chain(repeat(BitX::X))
+                    .take(len)
+                    .collect(),
+            )),
+            BitString::Unsigned(orig) => Ok(BitString::Unsigned(
+                orig.iter()
+                    .copied()
+                    .chain(repeat(BitX::X))
+                    .take(len)
+                    .collect(),
+            )),
+        }
     }
 }
 

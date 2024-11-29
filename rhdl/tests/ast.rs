@@ -12,7 +12,7 @@ mod common;
 use common::*;
 use rhdl::prelude::*;
 use rhdl_core::{
-    flow_graph::optimization::optimize_flow_graph,
+    flow_graph::{self, optimization::optimize_flow_graph},
     sim::testbench::kernel::test_kernel_vm_and_verilog,
 };
 
@@ -581,6 +581,33 @@ fn test_maybe_init_escape_causes_error() -> miette::Result<()> {
 
     let bar = compile_design::<do_stuff>(CompilationMode::Asynchronous)?;
     let flow_graph = build_rtl_flow_graph(&bar);
+    std::fs::write("stuff.dot", flow_graph.dot()?).unwrap();
+    Ok(())
+}
+
+#[test]
+fn test_maybe_init_with_enum() -> miette::Result<()> {
+    #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
+    enum Foo {
+        A,
+        B(b4),
+        C {
+            a: b4,
+            b: b4,
+        },
+        #[default]
+        D,
+    }
+
+    #[kernel]
+    fn do_stuff(a: Signal<b4, Red>) -> Signal<Foo, Red> {
+        let mut foo = Foo::D;
+        signal(foo)
+    }
+
+    let bar = compile_design::<do_stuff>(CompilationMode::Asynchronous)?;
+    let flow_graph = build_rtl_flow_graph(&bar);
+    let flow_graph = optimize_flow_graph(flow_graph)?;
     std::fs::write("stuff.dot", flow_graph.dot()?).unwrap();
     Ok(())
 }

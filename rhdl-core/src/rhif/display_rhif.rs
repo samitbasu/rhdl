@@ -128,7 +128,7 @@ impl std::fmt::Debug for OpCode {
             }
             OpCode::Wrap(Wrap { op, lhs, arg, kind }) => {
                 if let Some(kind) = kind {
-                    write!(f, " {:?} <- {:?}({:?}) as {:?}", lhs, op, arg, kind)
+                    write!(f, " {:?} <- {:?}({:?}) wrapped as {:?}", lhs, op, arg, kind)
                 } else {
                     write!(f, " {:?} <- {:?}({:?})", lhs, op, arg)
                 }
