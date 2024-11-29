@@ -9,6 +9,7 @@ use crate::{
 };
 
 pub(crate) mod check_no_zero_resize;
+pub(crate) mod constant_propagation;
 pub(crate) mod dead_code_elimination;
 pub(crate) mod lower_empty_splice_to_copy;
 pub(crate) mod lower_index_all_to_copy;
