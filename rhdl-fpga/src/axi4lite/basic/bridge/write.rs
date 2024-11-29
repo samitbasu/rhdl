@@ -70,8 +70,8 @@ pub fn write_bridge_kernel<ID: Digital, DATA: Digital, const ADDR: usize>(
     i: I<ID, DATA, ADDR>,
     q: Q<ID, DATA, ADDR>,
 ) -> (O<ID, DATA, ADDR>, D<ID, DATA, ADDR>) {
-    let mut d = D::<ID, DATA, ADDR>::maybe_init();
-    let mut o = O::<ID, DATA, ADDR>::maybe_init();
+    let mut d = D::<ID, DATA, ADDR>::dont_care();
+    let mut o = O::<ID, DATA, ADDR>::dont_care();
     d.addr.bus = i.axi.addr;
     d.data.bus = i.axi.data;
     d.resp.bus = i.axi.resp;

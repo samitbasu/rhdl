@@ -47,10 +47,10 @@ impl Digital for ClockReset {
     fn bin(self) -> Vec<BitX> {
         [self.clock.bin().as_slice(), self.reset.bin().as_slice()].concat()
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Self {
-            clock: Clock::maybe_init(),
-            reset: Reset::maybe_init(),
+            clock: Clock::dont_care(),
+            reset: Reset::dont_care(),
         }
     }
 }

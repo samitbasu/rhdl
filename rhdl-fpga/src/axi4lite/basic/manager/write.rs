@@ -46,8 +46,8 @@ type BD = BurstData<DATA>;
 
 #[kernel]
 pub fn basic_write_manager_kernel(cr: ClockReset, i: I, q: Q) -> (O, D) {
-    let mut d = D::maybe_init();
-    let mut o = O::maybe_init();
+    let mut d = D::dont_care();
+    let mut o = O::dont_care();
     d.addr.bus = i.axi.addr;
     d.data.bus = i.axi.data;
     d.resp.bus = i.axi.resp;

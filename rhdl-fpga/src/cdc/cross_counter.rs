@@ -77,7 +77,7 @@ pub fn cross_counter_kernel<W: Domain, R: Domain, const N: usize>(
     input: I<W, R, N>,
     q: Q<W, R, N>,
 ) -> (O<R, N>, D<W, R, N>) {
-    let mut d = D::<W, R, { N }>::maybe_init();
+    let mut d = D::<W, R, { N }>::dont_care();
     // The counter increments each time the input is high
     d.counter.clock_reset = input.data_cr;
     d.counter.input = signal(q.counter.val() + if input.data.val() { 1 } else { 0 });
@@ -100,7 +100,7 @@ pub fn cross_counter_kernel<W: Domain, R: Domain, const N: usize>(
     let read_o = gray_decode::<N>(Gray::<N>(read_o));
     // The read side of the output comes from o, the
     // write side is simply the output of the internal counter
-    let mut o = O::<R, { N }>::maybe_init();
+    let mut o = O::<R, { N }>::dont_care();
     o.count = signal(read_o);
     (o, d)
 }

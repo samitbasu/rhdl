@@ -23,7 +23,7 @@ pub struct ChannelSToR<T: Digital> {
 impl<T: Digital> Default for ChannelSToR<T> {
     fn default() -> Self {
         Self {
-            data: T::maybe_init(),
+            data: T::dont_care(),
             valid: false,
         }
     }

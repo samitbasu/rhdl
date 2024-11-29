@@ -95,9 +95,9 @@ where
                 let cr = clock_reset(clock, reset(true));
                 trace("clock", &cr.clock);
                 trace("reset", &cr.reset);
-                let o = self.uut.sim(cr, I::maybe_init(), uut_state);
+                let o = self.uut.sim(cr, I::dont_care(), uut_state);
                 self.last_output = Some(o);
-                timed_sample(self.time, (cr, I::maybe_init(), o))
+                timed_sample(self.time, (cr, I::dont_care(), o))
             }
         }
     }
@@ -116,7 +116,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         match self.state {
             State::Init => {
-                if let Some(data) = (self.input_fn)(O::maybe_init()) {
+                if let Some(data) = (self.input_fn)(O::dont_care()) {
                     self.sample = data;
                     self.state = State::Hold;
                     self.next_time = self.time + self.period / 2;
@@ -139,7 +139,7 @@ where
                 Some(self.this_sample(clock(true)))
             }
             State::ClockHigh => {
-                if let Some(data) = (self.input_fn)(self.last_output.unwrap_or(O::maybe_init())) {
+                if let Some(data) = (self.input_fn)(self.last_output.unwrap_or(O::dont_care())) {
                     self.sample = data;
                     self.state = State::ClockLow;
                     self.time = self.next_time;

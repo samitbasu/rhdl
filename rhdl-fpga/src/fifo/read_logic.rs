@@ -60,10 +60,10 @@ pub fn read_logic<const N: usize>(cr: ClockReset, i: I<N>, q: Q<N>) -> (O<N>, D<
     // combinatorially to ensure that by the next clock edge, the
     // next value is already on the bus.
     let read_address = q.ram_read_address + if will_advance { 1 } else { 0 };
-    let mut d = D::<{ N }>::maybe_init();
+    let mut d = D::<{ N }>::dont_care();
     d.ram_read_address = read_address;
     d.underflow = underflow;
-    let mut o = O::<{ N }>::maybe_init();
+    let mut o = O::<{ N }>::dont_care();
     o.empty = empty;
     o.almost_empty = almost_empty;
     o.ram_read_address = read_address;
@@ -96,7 +96,7 @@ mod tests {
             write_address: bits(0),
             next: false,
         };
-        let (o, d) = read_logic::<4>(ClockReset::maybe_init(), i, q);
+        let (o, d) = read_logic::<4>(ClockReset::dont_care(), i, q);
         assert!(o.empty);
         assert!(o.almost_empty);
         assert!(!o.underflow);
@@ -115,7 +115,7 @@ mod tests {
             write_address: bits(1),
             next: true,
         };
-        let (o, d) = read_logic::<4>(ClockReset::maybe_init(), i, q);
+        let (o, d) = read_logic::<4>(ClockReset::dont_care(), i, q);
         assert!(!o.empty);
         assert!(o.almost_empty);
         assert!(!o.underflow);
@@ -134,7 +134,7 @@ mod tests {
             write_address: bits(0),
             next: true,
         };
-        let (o, d) = read_logic::<4>(ClockReset::maybe_init(), i, q);
+        let (o, d) = read_logic::<4>(ClockReset::dont_care(), i, q);
         assert!(o.empty);
         assert!(o.almost_empty);
         assert!(o.underflow);
@@ -153,7 +153,7 @@ mod tests {
             write_address: bits(0),
             next: false,
         };
-        let (o, d) = read_logic::<4>(ClockReset::maybe_init(), i, q);
+        let (o, d) = read_logic::<4>(ClockReset::dont_care(), i, q);
         assert!(o.empty);
         assert!(o.almost_empty);
         assert!(o.underflow);
@@ -172,7 +172,7 @@ mod tests {
             write_address: bits(2),
             next: true,
         };
-        let (o, d) = read_logic::<4>(ClockReset::maybe_init(), i, q);
+        let (o, d) = read_logic::<4>(ClockReset::dont_care(), i, q);
         assert!(!o.empty);
         assert!(!o.almost_empty);
         assert!(!o.underflow);

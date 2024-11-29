@@ -35,7 +35,7 @@ where
 {
     GlitchCheck {
         clk: Clock::default(),
-        prev_val: T::maybe_init(),
+        prev_val: T::dont_care(),
         iter: stream,
         func: clock_fn,
         initialized: false,

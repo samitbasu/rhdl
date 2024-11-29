@@ -34,7 +34,7 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
 
     fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
         trace_push_path("array");
-        let mut output = [T::O::maybe_init(); N];
+        let mut output = [T::O::dont_care(); N];
         for i in 0..N {
             output[i] = self[i].sim(clock_reset, input[i], &mut state[i]);
         }

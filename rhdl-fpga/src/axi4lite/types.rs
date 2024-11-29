@@ -15,7 +15,7 @@ pub struct Address<ID: Digital, const ADDR: usize> {
 impl<ID: Digital, const ADDR: usize> Default for Address<ID, ADDR> {
     fn default() -> Self {
         Self {
-            id: ID::maybe_init(),
+            id: ID::dont_care(),
             addr: bits(0),
         }
     }
@@ -32,7 +32,7 @@ pub struct BurstData<DATA: Digital> {
 impl<DATA: Digital> Default for BurstData<DATA> {
     fn default() -> Self {
         Self {
-            data: DATA::maybe_init(),
+            data: DATA::dont_care(),
             last: false,
         }
     }
@@ -58,7 +58,7 @@ pub struct WriteResponse<ID: Digital> {
 impl<ID: Digital> Default for WriteResponse<ID> {
     fn default() -> Self {
         Self {
-            id: ID::maybe_init(),
+            id: ID::dont_care(),
             resp: ResponseKind::OKAY,
         }
     }
@@ -77,9 +77,9 @@ pub struct ReadResponse<ID: Digital, DATA: Digital> {
 impl<ID: Digital, DATA: Digital> Default for ReadResponse<ID, DATA> {
     fn default() -> Self {
         Self {
-            id: ID::maybe_init(),
+            id: ID::dont_care(),
             resp: ResponseKind::OKAY,
-            data: DATA::maybe_init(),
+            data: DATA::dont_care(),
         }
     }
 }

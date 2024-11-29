@@ -10,13 +10,15 @@ impl Pass for RemoveOrphanConstantsPass {
         let mut graph = std::mem::take(&mut input.graph);
         graph.retain_nodes(|graph, node| {
             let component = graph.node_weight(node).unwrap();
-            let outgoing = graph
+            let has_outgoing = graph
                 .edges_directed(node, petgraph::Direction::Outgoing)
-                .count();
-            !(matches!(
+                .count()
+                != 0;
+            let is_not_constant = !matches!(
                 component.kind,
                 ComponentKind::Constant(_) | ComponentKind::BitString(_)
-            ) && outgoing == 0)
+            );
+            has_outgoing || is_not_constant
         });
         Ok(FlowGraph { graph, ..input })
     }

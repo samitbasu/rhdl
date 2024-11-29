@@ -95,11 +95,11 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N>
 
     fn init(&self) -> Self::S {
         Rc::new(RefCell::new(S {
-            write_prev: WriteI::maybe_init(),
+            write_prev: WriteI::dont_care(),
             contents: self.initial.clone(),
             read_clock: Clock::default(),
-            output_current: T::maybe_init(),
-            output_next: T::maybe_init(),
+            output_current: T::dont_care(),
+            output_next: T::dont_care(),
         }))
     }
 
@@ -137,7 +137,7 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N>
                 .contents
                 .get(&read_if.addr)
                 .copied()
-                .unwrap_or_else(|| T::maybe_init());
+                .unwrap_or_else(|| T::dont_care());
         }
         // On the positive edge of the read clock, we update the
         // current address and output values
@@ -286,7 +286,7 @@ mod tests {
         stream_write.map(|t| {
             t.map(|(cr, val)| WriteI {
                 addr: val.map(|(a, _)| a).unwrap_or_else(|| bits(0)),
-                data: val.map(|(_, d)| d).unwrap_or_else(|| T::maybe_init()),
+                data: val.map(|(_, d)| d).unwrap_or_else(|| T::dont_care()),
                 enable: val.is_some(),
                 clock: cr.clock,
             })
