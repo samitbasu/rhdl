@@ -2,7 +2,7 @@ use crate::{
     compiler::{
         lower_rhif_to_rtl::compile_to_rtl,
         rtl_passes::{
-            check_no_zero_resize::CheckNoZeroResize,
+            check_no_zero_resize::CheckNoZeroResize, constant_propagation::ConstantPropagationPass,
             dead_code_elimination::DeadCodeEliminationPass,
             lower_empty_splice_to_copy::LowerEmptySpliceToCopy,
             lower_index_all_to_copy::LowerIndexAllToCopy,
@@ -42,6 +42,7 @@ pub(crate) fn compile(object: &crate::rhif::Object) -> Result<rtl::Object> {
         rtl = LowerShiftByConstant::run(rtl)?;
         rtl = LowerShiftsByZeroToCopy::run(rtl)?;
         rtl = LowerNotEqualZeroToAny::run(rtl)?;
+        rtl = ConstantPropagationPass::run(rtl)?;
         let new_hash = rtl.hash_value();
         if new_hash == hash {
             break;
