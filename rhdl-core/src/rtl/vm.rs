@@ -104,6 +104,8 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 discriminant,
                 table,
             }) => {
+                let lhs_kind = state.obj.kind(*lhs);
+                let lhs_dont_care = BitString::dont_care_from_kind(lhs_kind);
                 let discriminant = state.read(*discriminant, loc)?;
                 let arm = table
                     .iter()
@@ -111,14 +113,12 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                         CaseArgument::Literal(l) => discriminant == state.literals[l],
                         CaseArgument::Wild => true,
                     })
-                    .ok_or(state.raise_ice(
-                        ICE::NoMatchingArm {
-                            discriminant: discriminant.into(),
-                        },
-                        loc,
-                    ))?
-                    .1;
-                let arm = state.read(arm, loc)?;
+                    .map(|x| x.1);
+                let arm = if let Some(arm) = arm {
+                    state.read(arm, loc)?
+                } else {
+                    lhs_dont_care
+                };
                 state.write(*lhs, arm, loc)?;
             }
             OpCode::Cast(Cast {
@@ -132,6 +132,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                     CastKind::Signed => arg.signed_cast(*len),
                     CastKind::Unsigned => arg.unsigned_cast(*len),
                     CastKind::Resize => arg.resize(*len),
+                    CastKind::DontCare => arg.resize_dont_care(*len),
                 }?;
                 state.write(*lhs, result, loc)?;
             }
@@ -224,11 +225,11 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let cond = state.read(*cond, loc)?;
                 let true_value = state.read(*true_value, loc)?;
                 let false_value = state.read(*false_value, loc)?;
-                let tb = cond.bits()[0].to_bool().ok_or_else(|| {
-                    state.raise_ice(ICE::SelectOnUninitializedValue { value: cond }, loc)
-                })?;
-                let result = if tb { true_value } else { false_value };
-                state.write(*lhs, result, loc)?;
+                match cond.bits()[0] {
+                    BitX::Zero => state.write(*lhs, false_value, loc)?,
+                    BitX::One => state.write(*lhs, true_value, loc)?,
+                    BitX::X => state.write(*lhs, true_value.dont_care(), loc)?,
+                }
             }
             OpCode::Splice(Splice {
                 lhs,

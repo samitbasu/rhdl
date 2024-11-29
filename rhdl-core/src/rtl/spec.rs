@@ -202,4 +202,5 @@ pub enum CastKind {
     Signed,
     Unsigned,
     Resize,
+    DontCare,
 }

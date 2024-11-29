@@ -85,6 +85,7 @@ pub use rhdl_macro::Synchronous;
 pub use rhdl_macro::SynchronousDQ;
 pub use rhdl_macro::Timed;
 // Use the extension traits
+pub use rhdl_core::bitx::bitx_parse;
 pub use rhdl_core::bitx::bitx_string;
 pub use rhdl_core::bitx_vec;
 pub use rhdl_core::sim::clock_pos_edge::ClockPosEdgeExt;

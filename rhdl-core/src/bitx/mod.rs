@@ -1,29 +1,10 @@
 pub mod dyn_bit_manip;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum BitX {
     Zero,
     One,
     X,
-}
-
-impl std::hash::Hash for BitX {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        match self {
-            BitX::Zero => 0.hash(state),
-            BitX::One => 1.hash(state),
-            BitX::X => 2.hash(state),
-        }
-    }
-}
-
-impl PartialEq for BitX {
-    fn eq(&self, other: &Self) -> bool {
-        matches!(
-            (self, other),
-            (BitX::Zero, BitX::Zero) | (BitX::One, BitX::One)
-        )
-    }
 }
 
 pub fn bitx_vec(x: &[bool]) -> Vec<BitX> {
@@ -32,6 +13,18 @@ pub fn bitx_vec(x: &[bool]) -> Vec<BitX> {
 
 pub fn bitx_string(x: &[BitX]) -> String {
     x.iter().rev().map(|b| char::from(*b)).collect()
+}
+
+pub fn bitx_parse(x: &str) -> Option<Vec<BitX>> {
+    x.chars()
+        .map(|c| match c {
+            '0' => Some(BitX::Zero),
+            '1' => Some(BitX::One),
+            'x' => Some(BitX::X),
+            _ => None,
+        })
+        .rev()
+        .collect()
 }
 
 impl BitX {

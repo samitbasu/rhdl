@@ -225,7 +225,7 @@ impl Kind {
             panic!("Too many bits for kind!");
         }
         let pad_len = self.bits() - bits.len();
-        let bits = bits.into_iter().chain(repeat(BitX::Zero).take(pad_len));
+        let bits = bits.into_iter().chain(repeat(BitX::X).take(pad_len));
         match self {
             Kind::Enum(kind) => match kind.discriminant_layout.alignment {
                 DiscriminantAlignment::Lsb => bits.collect(),

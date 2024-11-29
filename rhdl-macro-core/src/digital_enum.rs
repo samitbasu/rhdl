@@ -515,14 +515,13 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                 )
             }
             fn bin(self) -> Vec<rhdl::core::BitX> {
-                //self.kind().pad
                 let mut raw =
                     match self {
                     #(
                         Self::#variant_names #variant_destructure_args => {#bin_fns}
                     )*
                 };
-                raw.resize(Self::BITS, rhdl::core::BitX::Zero);
+                raw.resize(Self::BITS, rhdl::core::BitX::X);
                 #swap_endian_fn
             }
             fn trace(self) -> Vec<rhdl::core::TraceBit> {
