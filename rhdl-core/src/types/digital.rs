@@ -11,10 +11,6 @@ use super::kind::DiscriminantLayout;
 
 use rhdl_trace_type as rtt;
 
-fn bits_to_bitx<const N: usize>(x: Bits<N>) -> Vec<BitX> {
-    x.to_bools().into_iter().map(|x| x.into()).collect()
-}
-
 /// This is the core trait for all of `RHDL` data elements.  If you
 /// want to use a data type in the hardware part of the design,
 /// it must implement this trait.  
@@ -94,7 +90,7 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static {
             })
             .collect()
     }
-    fn maybe_init() -> Self;
+    fn dont_care() -> Self;
 }
 
 impl<T: Digital> Digital for Option<T> {
@@ -149,7 +145,7 @@ impl<T: Digital> Digital for Option<T> {
             Self::Some(x) => x.kind(),
         }
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Self::None
     }
 }
@@ -218,8 +214,8 @@ impl<O: Digital, E: Digital> Digital for Result<O, E> {
             Self::Err(x) => x.kind(),
         }
     }
-    fn maybe_init() -> Self {
-        Self::Err(E::maybe_init())
+    fn dont_care() -> Self {
+        Self::Err(E::dont_care())
     }
 }
 
@@ -234,7 +230,7 @@ impl Digital for () {
     fn bin(self) -> Vec<BitX> {
         Vec::new()
     }
-    fn maybe_init() -> Self {}
+    fn dont_care() -> Self {}
 }
 
 impl Digital for bool {
@@ -248,7 +244,7 @@ impl Digital for bool {
     fn bin(self) -> Vec<BitX> {
         vec![self.into()]
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Self::default()
     }
 }
@@ -264,7 +260,7 @@ impl Digital for u64 {
     fn bin(self) -> Vec<BitX> {
         bitx_vec(&Bits::<64>::from(self as u128).to_bools())
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Self::default()
     }
 }
@@ -280,7 +276,7 @@ impl Digital for u8 {
     fn bin(self) -> Vec<BitX> {
         bitx_vec(&Bits::<8>::from(self as u128).to_bools())
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Self::default()
     }
 }
@@ -296,7 +292,7 @@ impl Digital for u16 {
     fn bin(self) -> Vec<BitX> {
         bitx_vec(&Bits::<16>::from(self as u128).to_bools())
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Self::default()
     }
 }
@@ -312,7 +308,7 @@ impl Digital for usize {
     fn bin(self) -> Vec<BitX> {
         bitx_vec(&Bits::<{ usize::BITS as usize }>::from(self as u128).to_bools())
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Self::default()
     }
 }
@@ -328,7 +324,7 @@ impl Digital for u128 {
     fn bin(self) -> Vec<BitX> {
         bitx_vec(&Bits::<128>::from(self).to_bools())
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Self::default()
     }
 }
@@ -344,7 +340,7 @@ impl Digital for i128 {
     fn bin(self) -> Vec<BitX> {
         bitx_vec(&SignedBits::<128>::from(self).as_unsigned().to_bools())
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Self::default()
     }
 }
@@ -364,7 +360,7 @@ impl Digital for i32 {
                 .to_bools(),
         )
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Self::default()
     }
 }
@@ -380,7 +376,7 @@ impl Digital for i8 {
     fn bin(self) -> Vec<BitX> {
         bitx_vec(&SignedBits::<8>::from(self as i128).as_unsigned().to_bools())
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Self::default()
     }
 }
@@ -400,7 +396,7 @@ impl Digital for i64 {
                 .to_bools(),
         )
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Self::default()
     }
 }
@@ -416,7 +412,7 @@ impl<const N: usize> Digital for Bits<N> {
     fn bin(self) -> Vec<BitX> {
         bitx_vec(&self.to_bools())
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Self::default()
     }
 }
@@ -432,7 +428,7 @@ impl<const N: usize> Digital for SignedBits<N> {
     fn bin(self) -> Vec<BitX> {
         bitx_vec(&self.as_unsigned().to_bools())
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Self::default()
     }
 }
@@ -449,8 +445,8 @@ impl<T0: Digital> Digital for (T0,) {
     fn bin(self) -> Vec<BitX> {
         self.0.bin()
     }
-    fn maybe_init() -> Self {
-        (T0::maybe_init(),)
+    fn dont_care() -> Self {
+        (T0::dont_care(),)
     }
 }
 
@@ -468,8 +464,8 @@ impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
         v.extend(self.1.bin());
         v
     }
-    fn maybe_init() -> Self {
-        (T0::maybe_init(), T1::maybe_init())
+    fn dont_care() -> Self {
+        (T0::dont_care(), T1::dont_care())
     }
 }
 
@@ -496,8 +492,8 @@ impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {
         v.extend(self.2.bin());
         v
     }
-    fn maybe_init() -> Self {
-        (T0::maybe_init(), T1::maybe_init(), T2::maybe_init())
+    fn dont_care() -> Self {
+        (T0::dont_care(), T1::dont_care(), T2::dont_care())
     }
 }
 
@@ -527,12 +523,12 @@ impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2
         v.extend(self.3.bin());
         v
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         (
-            T0::maybe_init(),
-            T1::maybe_init(),
-            T2::maybe_init(),
-            T3::maybe_init(),
+            T0::dont_care(),
+            T1::dont_care(),
+            T2::dont_care(),
+            T3::dont_care(),
         )
     }
 }
@@ -586,8 +582,8 @@ impl<T: Digital, const N: usize> Digital for [T; N] {
         }
         v
     }
-    fn maybe_init() -> Self {
-        [T::maybe_init(); N]
+    fn dont_care() -> Self {
+        [T::dont_care(); N]
     }
 }
 
@@ -710,7 +706,7 @@ mod test {
                     raw
                 }
             }
-            fn maybe_init() -> Self {
+            fn dont_care() -> Self {
                 Self::default()
             }
         }
@@ -796,7 +792,7 @@ mod test {
                     Self::Invalid => rhdl_bits::bits::<3>(5).to_bools(),
                 })
             }
-            fn maybe_init() -> Self {
+            fn dont_care() -> Self {
                 Self::default()
             }
         }

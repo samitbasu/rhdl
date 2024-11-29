@@ -498,7 +498,7 @@ fn propogate_exec(
 
 impl Pass for ConstantPropagation {
     fn run(mut input: crate::rhif::Object) -> Result<crate::rhif::Object, crate::RHDLError> {
-        let ops = input.ops.clone();
+        let ops = std::mem::take(&mut input.ops);
         input.ops = ops
             .into_iter()
             .map(|lop| match lop.op {

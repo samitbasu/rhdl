@@ -31,7 +31,7 @@ where
         iter: stream,
         func: data_fn,
         initialized: false,
-        prev_val: T::maybe_init(),
+        prev_val: T::dont_care(),
     }
 }
 

@@ -28,7 +28,7 @@ impl SynchronousIO for U {
 
 #[kernel]
 pub fn basic_test_kernel(cr: ClockReset, i: I, q: Q) -> (bool, D) {
-    let mut d = D::maybe_init();
+    let mut d = D::dont_care();
     d.manager.axi = q.subordinate.axi;
     d.subordinate.axi = q.manager.axi;
     d.manager.run = i.run;

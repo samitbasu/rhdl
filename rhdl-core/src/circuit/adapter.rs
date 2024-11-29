@@ -82,10 +82,10 @@ impl<I: Digital, D: Domain> Digital for AdapterInput<I, D> {
         out.extend(self.input.bin());
         out
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Self {
-            clock_reset: Signal::maybe_init(),
-            input: Signal::maybe_init(),
+            clock_reset: Signal::dont_care(),
+            input: Signal::dont_care(),
         }
     }
 }

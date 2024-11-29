@@ -36,8 +36,8 @@ impl<T: Digital> SynchronousIO for U<T> {
 
 #[kernel]
 pub fn sender_kernel<T: Digital>(cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
-    let mut d = D::<T>::maybe_init();
-    let mut o = O::<T>::maybe_init();
+    let mut d = D::<T>::dont_care();
+    let mut o = O::<T>::dont_care();
     // Forward the to_send to the inner module
     d.inner.data = i.to_send;
     d.inner.ready = i.bus.ready;

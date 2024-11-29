@@ -529,7 +529,7 @@ mod tests {
                     raw
                 }
             }
-            fn maybe_init() -> Self {
+            fn dont_care() -> Self {
                 <Self as Default>::default()
             }
         }

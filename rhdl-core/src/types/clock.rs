@@ -24,7 +24,7 @@ impl Digital for Clock {
     fn bin(self) -> Vec<BitX> {
         vec![self.0.into()]
     }
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Clock(false)
     }
 }

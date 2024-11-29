@@ -21,7 +21,7 @@ impl<const N: usize> SynchronousIO for U<N> {
 
 #[kernel]
 pub fn fixture_kernel<const N: usize>(_cr: ClockReset, _i: (), q: Q<N>) -> (bool, D<N>) {
-    let mut d = D::<N>::maybe_init();
+    let mut d = D::<N>::dont_care();
     // The filler needs access to the full signal of the sender
     d.filler.full = q.sender.full;
     // The sender input is connected to the filler output

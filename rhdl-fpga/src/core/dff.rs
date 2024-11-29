@@ -52,7 +52,7 @@ impl<T: Digital> Synchronous for U<T> {
     type S = S<T>;
 
     fn init(&self) -> Self::S {
-        Self::S::maybe_init()
+        Self::S::dont_care()
     }
 
     fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {

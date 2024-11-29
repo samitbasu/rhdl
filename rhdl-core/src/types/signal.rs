@@ -44,9 +44,9 @@ impl<T: Digital, C: Domain> Digital for Signal<T, C> {
         self.val.bin()
     }
 
-    fn maybe_init() -> Self {
+    fn dont_care() -> Self {
         Self {
-            val: T::maybe_init(),
+            val: T::dont_care(),
             domain: std::marker::PhantomData,
         }
     }

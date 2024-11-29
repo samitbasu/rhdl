@@ -63,11 +63,11 @@ pub fn write_logic<const N: usize>(cr: ClockReset, i: I<N>, q: Q<N>) -> (O<N>, D
     let will_write = !full && i.write_enable;
     // If we will write, advance the write address
     let write_address = q.write_address + if will_write { 1 } else { 0 };
-    let mut d = D::<{ N }>::maybe_init();
+    let mut d = D::<{ N }>::dont_care();
     d.write_address_delayed = q.write_address;
     d.write_address = write_address;
     d.overflow = overflow;
-    let mut o = O::<{ N }>::maybe_init();
+    let mut o = O::<{ N }>::dont_care();
     o.full = full;
     o.almost_full = almost_full;
     // We output the current write address delayed by one clock, not the future one
@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_full_condition() {
-        let cr = ClockReset::maybe_init();
+        let cr = ClockReset::dont_care();
         let i = I::<4> {
             read_address: bits(0b0000),
             write_enable: false,
@@ -115,7 +115,7 @@ mod tests {
 
     #[test]
     fn test_almost_full_condition() {
-        let cr = ClockReset::maybe_init();
+        let cr = ClockReset::dont_care();
         let i = I::<4> {
             read_address: bits(0b0000),
             write_enable: false,
@@ -136,7 +136,7 @@ mod tests {
 
     #[test]
     fn test_write_enable_increments_next_write_address() {
-        let cr = ClockReset::maybe_init();
+        let cr = ClockReset::dont_care();
         let i = I::<4> {
             read_address: bits(0b0000),
             write_enable: true,
@@ -157,7 +157,7 @@ mod tests {
 
     #[test]
     fn test_full_with_write_enable_leads_to_overflow() {
-        let cr = ClockReset::maybe_init();
+        let cr = ClockReset::dont_care();
         let i = I::<4> {
             read_address: bits(0b0000),
             write_enable: true,
@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn test_overflow_is_latching() {
-        let cr = ClockReset::maybe_init();
+        let cr = ClockReset::dont_care();
         let i = I::<4> {
             read_address: bits(0b0000),
             write_enable: false,
@@ -199,7 +199,7 @@ mod tests {
 
     #[test]
     fn test_almost_full_flag_is_clear_with_at_least_2_spots() {
-        let cr = ClockReset::maybe_init();
+        let cr = ClockReset::dont_care();
         let i = I::<4> {
             read_address: bits(0b0000),
             write_enable: false,

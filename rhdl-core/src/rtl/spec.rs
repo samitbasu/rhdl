@@ -44,6 +44,9 @@ impl Operand {
             _ => None,
         }
     }
+    pub fn is_literal(&self) -> bool {
+        matches!(self, Operand::Literal(_))
+    }
 }
 
 #[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]

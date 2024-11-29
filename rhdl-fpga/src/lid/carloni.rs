@@ -31,8 +31,8 @@ pub enum State {
 impl<T: Digital> Default for U<T> {
     fn default() -> Self {
         Self {
-            main_ff: dff::U::new(T::maybe_init()),
-            aux_ff: dff::U::new(T::maybe_init()),
+            main_ff: dff::U::new(T::dont_care()),
+            aux_ff: dff::U::new(T::dont_care()),
             void_ff: dff::U::new(true),
             state_ff: dff::U::new(State::Run),
         }
@@ -61,8 +61,8 @@ impl<T: Digital> SynchronousIO for U<T> {
 
 #[kernel]
 pub fn carloni_kernel<T: Digital>(_cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
-    let mut d = D::<T>::maybe_init();
-    let mut o = O::<T>::maybe_init();
+    let mut d = D::<T>::dont_care();
+    let mut o = O::<T>::dont_care();
     // There are 4 control signals
     let mut sel = false;
     let mut main_en = false;

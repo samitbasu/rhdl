@@ -71,7 +71,7 @@ impl TypedBits {
         bits: Vec::new(),
         kind: Kind::Empty,
     };
-    pub fn maybe_init(self) -> Self {
+    pub fn dont_care(self) -> Self {
         Self {
             bits: vec![BitX::X; self.bits.len()],
             ..self
@@ -957,7 +957,7 @@ mod tests {
                     Self::C(_0) => Kind::make_tuple(vec![<u8 as Digital>::static_kind()]),
                 }
             }
-            fn maybe_init() -> Self {
+            fn dont_care() -> Self {
                 use rand::Rng;
                 match rand::thread_rng().gen_range(0..3) {
                     0 => Self::A(Default::default()),
@@ -991,7 +991,7 @@ mod tests {
             fn bin(self) -> Vec<BitX> {
                 [self.0.bin(), self.1.bin(), self.2.bin()].concat()
             }
-            fn maybe_init() -> Self {
+            fn dont_care() -> Self {
                 use rand::Rng;
                 Self(
                     rand::thread_rng().gen(),
@@ -1026,7 +1026,7 @@ mod tests {
             fn bin(self) -> Vec<BitX> {
                 [self.a.bin(), self.b.bin(), self.c.bin()].concat()
             }
-            fn maybe_init() -> Self {
+            fn dont_care() -> Self {
                 use rand::Rng;
                 Self {
                     a: rand::thread_rng().gen(),

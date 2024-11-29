@@ -11,7 +11,10 @@ mod common;
 #[cfg(test)]
 use common::*;
 use rhdl::prelude::*;
-use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
+use rhdl_core::{
+    flow_graph::optimization::optimize_flow_graph,
+    sim::testbench::kernel::test_kernel_vm_and_verilog,
+};
 
 #[test]
 fn test_func_with_structured_args() -> miette::Result<()> {
@@ -530,6 +533,38 @@ fn test_match_scrutinee_bits() {
 }
 
 #[test]
+fn test_maybe_init_does_not_allow_select() -> miette::Result<()> {
+    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+    struct Foo {
+        a: b4,
+        b: b4,
+        c: bool,
+    }
+
+    #[kernel]
+    fn do_stuff(a: Signal<b4, Red>, b: Signal<b4, Red>) -> Signal<b4, Red> {
+        let mut foo = Foo::dont_care();
+        foo.a = a.val();
+        foo.b = b.val();
+        signal(if foo.c { foo.a } else { foo.b })
+    }
+    let obj = compile_design::<do_stuff>(CompilationMode::Asynchronous)?;
+    let flow_graph = build_rtl_flow_graph(&obj);
+    let flow_graph = optimize_flow_graph(flow_graph)?;
+    for node in flow_graph.graph.node_indices() {
+        let node_weight = flow_graph.graph.node_weight(node).unwrap();
+        let outgoing_edges = flow_graph
+            .graph
+            .edges_directed(node, petgraph::Direction::Outgoing)
+            .count();
+        eprintln!("{node:?} {:?} -> {}", node_weight.kind, outgoing_edges);
+    }
+    std::fs::write("junk.dot", flow_graph.dot()?).unwrap();
+    eprintln!("{:?}", obj);
+    Ok(())
+}
+
+#[test]
 fn test_maybe_init_escape_causes_error() -> miette::Result<()> {
     #[derive(Copy, Clone, PartialEq, Debug, Digital)]
     struct Foo {
@@ -539,7 +574,7 @@ fn test_maybe_init_escape_causes_error() -> miette::Result<()> {
 
     #[kernel]
     fn do_stuff(a: Signal<b4, Red>) -> Signal<Foo, Red> {
-        let mut foo = Foo::maybe_init();
+        let mut foo = Foo::dont_care();
         foo.a = a.val();
         signal(foo)
     }

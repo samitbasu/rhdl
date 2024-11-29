@@ -23,7 +23,7 @@ pub fn fixture_kernel<const N: usize, const Z: usize>(
     _i: (),
     q: Q<N, Z>,
 ) -> (bool, D<N, Z>) {
-    let mut d = D::<N, Z>::maybe_init();
+    let mut d = D::<N, Z>::dont_care();
     // The filler needs access to the full signal of the FIFO
     d.filler.full = q.fifo.full;
     // The fifo input is connected to the filler output

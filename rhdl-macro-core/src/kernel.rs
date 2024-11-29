@@ -901,11 +901,11 @@ impl Context {
                         )
                     )
                 });
-            } else if name.ident == "maybe_init" {
+            } else if name.ident == "dont_care" {
                 return Ok(quote! {
                     bob.lit_expr(
                         bob.expr_lit_typed_bits(
-                            rhdl::core::Digital::typed_bits(#expr).maybe_init(),
+                            rhdl::core::Digital::typed_bits(#expr).dont_care(),
                             stringify!(#expr)
                         )
                     )

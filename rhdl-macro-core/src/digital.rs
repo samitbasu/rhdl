@@ -93,10 +93,10 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         )*
                         ].concat()
                     }
-                    fn maybe_init() -> Self {
+                    fn dont_care() -> Self {
                         Self(
                             #(
-                                <#field_types as rhdl::core::Digital>::maybe_init(),
+                                <#field_types as rhdl::core::Digital>::dont_care(),
                             )*
                         )
                     }
@@ -172,10 +172,10 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         )*
                         ].concat()
                     }
-                    fn maybe_init() -> Self {
+                    fn dont_care() -> Self {
                         Self {
                             #(
-                                #fields: <#field_types as rhdl::core::Digital>::maybe_init(),
+                                #fields: <#field_types as rhdl::core::Digital>::dont_care(),
                             )*
                         }
                     }
