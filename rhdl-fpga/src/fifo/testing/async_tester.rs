@@ -49,7 +49,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_async_fifo_trace() {
+    fn test_async_fifo_trace() -> miette::Result<()> {
         let uut = U::<Red, Blue, 16, 4> {
             drainer: Adapter::new(crate::fifo::testing::drainer::U::<16>::new(5, 0xD000)),
             ..Default::default()
@@ -64,13 +64,14 @@ mod tests {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let vcd = uut.run(input.take(10000)).collect::<Vcd>();
+        let vcd = uut.run(input.take(10000))?.collect::<Vcd>();
         vcd.dump_to_file(&std::path::PathBuf::from("async_fifo_trace.vcd"))
             .unwrap();
+        Ok(())
     }
 
     #[test]
-    fn test_async_fifo_works_fast_reader() {
+    fn test_async_fifo_works_fast_reader() -> miette::Result<()> {
         let uut: U<Red, Blue, 16, 4> = Default::default();
         let red_input = std::iter::repeat(())
             .stream_after_reset(1)
@@ -82,12 +83,13 @@ mod tests {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let last = uut.run(input.take(10_000)).last().unwrap();
+        let last = uut.run(input.take(10_000))?.last().unwrap();
         assert!(last.value.1.val());
+        Ok(())
     }
 
     #[test]
-    fn test_async_fifo_works_slow_reader() {
+    fn test_async_fifo_works_slow_reader() -> miette::Result<()> {
         let uut: U<Red, Blue, 16, 4> = Default::default();
         let red_input = std::iter::repeat(())
             .stream_after_reset(1)
@@ -99,8 +101,9 @@ mod tests {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let last = uut.run(input.take(10_000)).last().unwrap();
+        let last = uut.run(input.take(10_000))?.last().unwrap();
         assert!(last.value.1.val());
+        Ok(())
     }
 
     #[test]
@@ -116,7 +119,7 @@ mod tests {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let test_bench = uut.run(input.take(1_000)).collect::<TestBench<_, _>>();
+        let test_bench = uut.run(input.take(1_000))?.collect::<TestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
         tm.run_iverilog()?;
         let tm = test_bench.flow_graph(&uut, &TestBenchOptions::default())?;

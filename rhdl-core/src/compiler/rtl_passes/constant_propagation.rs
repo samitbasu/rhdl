@@ -171,7 +171,6 @@ fn propagate_cast(
             CastKind::Signed => arg.signed_cast(*len),
             CastKind::Unsigned => arg.unsigned_cast(*len),
             CastKind::Resize => arg.resize(*len),
-            CastKind::DontCare => arg.resize_dont_care(*len),
         }?;
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {

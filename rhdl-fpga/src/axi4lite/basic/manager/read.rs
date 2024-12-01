@@ -53,6 +53,7 @@ pub fn basic_read_manager_kernel(cr: ClockReset, i: I, q: Q) -> (O, D) {
     d.data.bus = i.axi.data;
     d.addr.to_send = None;
     d.data.ready = true;
+    d.counter = q.counter;
     if !q.addr.full && i.run {
         d.addr.to_send = Some(RA {
             id: bits(0),

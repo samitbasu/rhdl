@@ -103,13 +103,13 @@ mod tests {
     }
 
     #[test]
-    fn test_uut() {
+    fn test_uut() -> miette::Result<()> {
         let uut = U::default();
         let input = std::iter::repeat(true)
             .stream_after_reset(1)
             .clock_pos_edge(100);
         let values = uut
-            .run(input)
+            .run(input)?
             .sample_at_pos_edge(|x| x.value.0.clock)
             .skip(1) // Skip the first value with is zero
             .map(|x| x.value.2);
@@ -117,5 +117,6 @@ mod tests {
         for (value, expected) in values.zip(validate.take(100)) {
             assert_eq!((value.0 & 0xFFFF_FFFF) as u32, expected);
         }
+        Ok(())
     }
 }

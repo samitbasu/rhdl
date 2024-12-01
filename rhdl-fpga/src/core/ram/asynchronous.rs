@@ -321,7 +321,7 @@ mod tests {
             read: signal(r),
             write: signal(w),
         });
-        let test_bench = uut.run(stream).collect::<TestBench<_, _>>();
+        let test_bench = uut.run(stream)?.collect::<TestBench<_, _>>();
         let test_mod = test_bench.rtl(
             &uut,
             &TestBenchOptions::default().skip(10).vcd("ram_tb_v.vcd"),
@@ -332,7 +332,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ram_write_behavior() {
+    fn test_ram_write_behavior() -> miette::Result<()> {
         let uut = U::<Bits<8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
@@ -354,10 +354,10 @@ mod tests {
         let expected = vec![142, 0, 100, 0, 0, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23]
             .into_iter()
             .map(|x| signal(bits(x)));
-        let vcd = uut.run(stream.clone()).collect::<Vcd>();
+        let vcd = uut.run(stream.clone())?.collect::<Vcd>();
         vcd.dump_to_file(&PathBuf::from("ram_write.vcd")).unwrap();
         let output = uut
-            .run(stream)
+            .run(stream)?
             .glitch_check(|x| (x.value.0.read.val().clock, x.value.1.val()))
             .sample_at_pos_edge(|x| x.value.0.read.val().clock)
             .skip(17)
@@ -365,10 +365,11 @@ mod tests {
         let expected = expected.collect::<Vec<_>>();
         let output = output.collect::<Vec<_>>();
         assert_eq!(expected, output);
+        Ok(())
     }
 
     #[test]
-    fn test_ram_read_only_behavior() {
+    fn test_ram_read_only_behavior() -> miette::Result<()> {
         // Let's start with a simple test where the RAM is pre-initialized,
         // and we just want to read it.
         let uut = U::<Bits<8>, Red, Green, 4>::new(
@@ -386,10 +387,11 @@ mod tests {
         });
         let values = (0..16).map(|x| bits(15 - x)).cycle().take(32);
         let samples = uut
-            .run(stream)
+            .run(stream)?
             .sample_at_pos_edge(|i| i.value.0.read.val().clock)
             .skip(1);
         let output = samples.map(|x| x.value.1.val());
         assert!(values.eq(output));
+        Ok(())
     }
 }

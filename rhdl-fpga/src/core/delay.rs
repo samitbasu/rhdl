@@ -47,19 +47,20 @@ mod tests {
     }
 
     #[test]
-    fn test_delay_trace() {
+    fn test_delay_trace() -> miette::Result<()> {
         let uut = U::<Option<Bits<8>>, 4>::default();
         let input = test_pulse();
-        let vcd = uut.run(input).collect::<Vcd>();
+        let vcd = uut.run(input)?.collect::<Vcd>();
         vcd.dump_to_file(&std::path::PathBuf::from("delay.vcd"))
             .unwrap();
+        Ok(())
     }
 
     #[test]
-    fn test_delay_works() {
+    fn test_delay_works() -> miette::Result<()> {
         let uut = U::<Option<Bits<8>>, 4>::default();
         let input = test_pulse();
-        let output = uut.run(input).sample_at_pos_edge(|x| x.value.0.clock);
+        let output = uut.run(input)?.sample_at_pos_edge(|x| x.value.0.clock);
         let count = output.clone().filter(|t| t.value.2.is_some()).count();
         assert!(count == 1);
         let start_delay = output
@@ -72,13 +73,14 @@ mod tests {
             .find_map(|(ndx, t)| t.value.2.map(|_| ndx))
             .unwrap();
         assert!(end_delay - start_delay == 4);
+        Ok(())
     }
 
     #[test]
     fn test_delay_hdl_works() -> miette::Result<()> {
         let uut = U::<Option<Bits<8>>, 4>::default();
         let input = test_pulse();
-        let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
+        let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;
         let tm = test_bench.flow_graph(&uut, &Default::default())?;

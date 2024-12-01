@@ -47,8 +47,7 @@ impl std::fmt::Debug for OpCode {
                     match kind {
                         CastKind::Signed => "s",
                         CastKind::Unsigned => "b",
-                        CastKind::Resize => "z",
-                        CastKind::DontCare => "x",
+                        CastKind::Resize => "x",
                     },
                     len
                 )

@@ -32,6 +32,11 @@ pub enum TypeCheck {
         flag: SignFlag,
         len: usize,
     },
+    #[error("Partially initialized value is used in an operation")]
+    #[diagnostic(help(
+        "You need to initialize all elements of a value before using it in an operation"
+    ))]
+    PartiallyInitializedValue,
 }
 
 #[derive(Error, Debug, Diagnostic)]
@@ -380,6 +385,39 @@ impl Diagnostic for RHDLClockDomainViolation {
                     Some(self.cause.to_string()),
                     self.cause_span,
                 ))),
+        ))
+    }
+}
+
+#[derive(Debug, Error)]
+#[error("RHDL Partial Initialization Error")]
+pub struct RHDLPartialInitializationError {
+    pub src: String,
+    pub err_span: SourceSpan,
+    pub fn_span: SourceSpan,
+    pub details: String,
+}
+
+impl Diagnostic for RHDLPartialInitializationError {
+    fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+        Some(&self.src)
+    }
+    fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+        Some(Box::new(format!(
+            "You need to initialize all elements of a value before using it in an operation:\n{}",
+            self.details
+        )))
+    }
+    fn labels<'a>(&'a self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + 'a>> {
+        Some(Box::new(
+            std::iter::once(miette::LabeledSpan::new_primary_with_span(
+                Some(self.details.to_string()),
+                self.err_span,
+            ))
+            .chain(std::iter::once(miette::LabeledSpan::new_with_span(
+                Some("Function definition".to_string()),
+                self.fn_span,
+            ))),
         ))
     }
 }

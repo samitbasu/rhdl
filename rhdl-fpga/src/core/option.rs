@@ -1,9 +1,9 @@
 use rhdl::prelude::*;
 
 #[kernel]
-pub fn unpack<T: Digital>(opt: Option<T>) -> (bool, T) {
+pub fn unpack<T: Digital + Default>(opt: Option<T>) -> (bool, T) {
     match opt {
-        None => (false, T::dont_care()),
+        None => (false, T::default()),
         Some(t) => (true, t),
     }
 }

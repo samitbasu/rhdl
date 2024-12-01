@@ -31,11 +31,11 @@ impl std::fmt::Debug for OpCode {
             }
             OpCode::Splice(Splice {
                 lhs,
-                orig: rhs,
+                orig,
                 path,
-                subst: arg,
+                subst,
             }) => {
-                write!(f, "{:?} <- {:?}/{:?}/{:?}", lhs, arg, path, rhs)
+                write!(f, "{:?} <- {:?}/{:?}/{:?}", lhs, orig, path, subst)
             }
             OpCode::Select(Select {
                 lhs,

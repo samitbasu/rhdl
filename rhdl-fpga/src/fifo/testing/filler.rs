@@ -62,6 +62,8 @@ impl<const N: usize> SynchronousIO for U<N> {
 pub fn filler_kernel<const N: usize>(cr: ClockReset, i: I, q: Q<N>) -> (O<N>, D<N>) {
     let mut d = D::<N>::dont_care();
     let mut o = O::<N>::dont_care();
+    d.rng = false;
+    o.data = None;
     let is_full = i.full;
     // If the fifo is not full, and we are not sleeping, then write the next value to the FIFO
     if !is_full && q.sleep_counter == 0 {
@@ -76,6 +78,8 @@ pub fn filler_kernel<const N: usize>(cr: ClockReset, i: I, q: Q<N>) -> (O<N>, D<
     }
     if q.sleep_counter != 0 {
         d.sleep_counter = q.sleep_counter - 1;
+    } else {
+        d.sleep_counter = bits(0);
     }
     if cr.reset.any() {
         o.data = None;
@@ -88,15 +92,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_filler() {
+    fn test_filler() -> miette::Result<()> {
         let uut = U::<16>::default();
         let input = std::iter::repeat(I { full: false })
             .take(50)
             .stream_after_reset(1)
             .clock_pos_edge(100);
-        let vcd = uut.run(input).collect::<Vcd>();
+        let vcd = uut.run(input)?.collect::<Vcd>();
         vcd.dump_to_file(&std::path::PathBuf::from("filler.vcd"))
             .unwrap();
+        Ok(())
     }
 
     #[test]
@@ -106,7 +111,7 @@ mod tests {
             .take(50)
             .stream_after_reset(1)
             .clock_pos_edge(100);
-        let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
+        let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let test_module = test_bench.rtl(&uut, &TestBenchOptions::default())?;
         std::fs::write("filler.v", test_module.to_string()).unwrap();
         test_module.run_iverilog()?;

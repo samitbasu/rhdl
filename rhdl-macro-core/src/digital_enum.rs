@@ -521,7 +521,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                         Self::#variant_names #variant_destructure_args => {#bin_fns}
                     )*
                 };
-                raw.resize(Self::BITS, rhdl::core::BitX::X);
+                raw.resize(Self::BITS, rhdl::core::BitX::Zero);
                 #swap_endian_fn
             }
             fn trace(self) -> Vec<rhdl::core::TraceBit> {
@@ -531,7 +531,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                         Self::#variant_names #variant_destructure_args => {#trace_bin_fns}
                     )*
                 };
-                raw.resize(Self::TRACE_BITS, rhdl::core::TraceBit::X);
+                raw.resize(Self::TRACE_BITS, rhdl::core::TraceBit::Zero);
                 #swap_endian_fn
             }
             fn discriminant(self) -> rhdl::core::TypedBits {

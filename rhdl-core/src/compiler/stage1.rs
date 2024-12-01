@@ -8,7 +8,8 @@ use crate::{
             dead_code_elimination::DeadCodeEliminationPass,
             lower_dynamic_indices_with_constant_arguments::LowerDynamicIndicesWithConstantArguments,
             lower_inferred_casts::LowerInferredCastsPass,
-            lower_inferred_retimes::LowerInferredRetimesPass, pass::Pass,
+            lower_inferred_retimes::LowerInferredRetimesPass,
+            partial_initialization_check::PartialInitializationCheck, pass::Pass,
             pre_cast_literals::PreCastLiterals,
             precast_integer_literals_in_binops::PrecastIntegerLiteralsInBinops,
             precompute_discriminants::PrecomputeDiscriminantPass,
@@ -87,5 +88,6 @@ pub(crate) fn compile(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
     }
     obj = TypeCheckPass::run(obj)?;
     obj = DataFlowCheckPass::run(obj)?;
+    obj = PartialInitializationCheck::run(obj)?;
     Ok(obj)
 }

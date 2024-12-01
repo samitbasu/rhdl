@@ -332,7 +332,7 @@ impl<'a> RTLCompiler<'a> {
                 self.allocate_register_with_register_kind(&RegisterKind::Unsigned(width), loc);
             let arg = *arg;
             let arg = match arg {
-                Slot::Empty => self.allocate_literal(&false.typed_bits().dont_care(), loc),
+                Slot::Empty => self.allocate_literal(&false.typed_bits(), loc),
                 _ => self.operand(arg, loc)?,
             };
             self.lop(
@@ -340,7 +340,7 @@ impl<'a> RTLCompiler<'a> {
                     lhs: payload,
                     arg,
                     len: width,
-                    kind: CastKind::DontCare,
+                    kind: CastKind::Resize,
                 }),
                 loc,
             );

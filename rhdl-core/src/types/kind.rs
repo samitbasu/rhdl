@@ -225,7 +225,7 @@ impl Kind {
             panic!("Too many bits for kind!");
         }
         let pad_len = self.bits() - bits.len();
-        let bits = bits.into_iter().chain(repeat(BitX::X).take(pad_len));
+        let bits = bits.into_iter().chain(repeat(BitX::Zero).take(pad_len));
         match self {
             Kind::Enum(kind) => match kind.discriminant_layout.alignment {
                 DiscriminantAlignment::Lsb => bits.collect(),
@@ -319,9 +319,11 @@ impl Kind {
         Some(variant.kind)
     }
 
+    // Note that we use Zero instead of X here because the partial initialization
+    // prover cannot handle the early return logic properly.
     pub fn place_holder(&self) -> TypedBits {
         TypedBits {
-            bits: repeat(BitX::X).take(self.bits()).collect(),
+            bits: repeat(BitX::Zero).take(self.bits()).collect(),
             kind: *self,
         }
     }
