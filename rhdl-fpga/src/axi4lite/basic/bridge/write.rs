@@ -13,9 +13,9 @@ use crate::axi4lite::types::{Address, WriteResponse};
 #[derive(Clone, Debug, Synchronous, Default)]
 pub struct U<
     // Transaction ID type
-    ID: Digital,
+    ID: Digital + Default,
     // Data type stored in the memory
-    DATA: Digital,
+    DATA: Digital + Default,
     // AXI address width
     const ADDR: usize = 32,
 > {
@@ -41,7 +41,9 @@ pub struct Q<ID: Digital, DATA: Digital, const ADDR: usize> {
     pub resp: sender::O<WriteResponse<ID>>,
 }
 
-impl<ID: Digital, DATA: Digital, const ADDR: usize> SynchronousDQ for U<ID, DATA, ADDR> {
+impl<ID: Digital + Default, DATA: Digital + Default, const ADDR: usize> SynchronousDQ
+    for U<ID, DATA, ADDR>
+{
     type D = D<ID, DATA, ADDR>;
     type Q = Q<ID, DATA, ADDR>;
 }
@@ -58,14 +60,16 @@ pub struct O<ID: Digital, DATA: Digital, const ADDR: usize> {
     pub write: Option<(Bits<ADDR>, DATA)>,
 }
 
-impl<ID: Digital, DATA: Digital, const ADDR: usize> SynchronousIO for U<ID, DATA, ADDR> {
+impl<ID: Digital + Default, DATA: Digital + Default, const ADDR: usize> SynchronousIO
+    for U<ID, DATA, ADDR>
+{
     type I = I<ID, DATA, ADDR>;
     type O = O<ID, DATA, ADDR>;
     type Kernel = write_bridge_kernel<ID, DATA, ADDR>;
 }
 
 #[kernel]
-pub fn write_bridge_kernel<ID: Digital, DATA: Digital, const ADDR: usize>(
+pub fn write_bridge_kernel<ID: Digital + Default, DATA: Digital + Default, const ADDR: usize>(
     cr: ClockReset,
     i: I<ID, DATA, ADDR>,
     q: Q<ID, DATA, ADDR>,

@@ -201,7 +201,7 @@ mod tests {
     fn test_hdl_generation() -> miette::Result<()> {
         let uut = U::<Red, Blue>::default();
         let stream = sync_stream();
-        let test_bench = uut.run(stream).collect::<TestBench<_, _>>();
+        let test_bench = uut.run(stream)?.collect::<TestBench<_, _>>();
         let test_mod =
             test_bench.rtl(&uut, &TestBenchOptions::default().vcd("hdl.vcd").skip(!0))?;
         std::fs::write("synchronizer.v", test_mod.to_string()).unwrap();
@@ -210,22 +210,24 @@ mod tests {
     }
 
     #[test]
-    fn test_synchronizer_performance() {
+    fn test_synchronizer_performance() -> miette::Result<()> {
         let uut = U::<Red, Blue>::default();
         // Assume the Blue stuff comes on the edges of a clock
         let input = sync_stream();
         let _ = uut
-            .run(input)
+            .run(input)?
             .glitch_check(|i| (i.value.0.cr.val().clock, i.value.1.val()))
             .last();
+        Ok(())
     }
 
     #[test]
-    fn test_synchronizer_function() {
+    fn test_synchronizer_function() -> miette::Result<()> {
         let uut = U::<Red, Blue>::default();
         let input = sync_stream();
-        let vcd = uut.run(input).collect::<vcd::Vcd>();
+        let vcd = uut.run(input)?.collect::<vcd::Vcd>();
         vcd.dump_to_file(&std::path::PathBuf::from("synchronizer.vcd"))
             .unwrap();
+        Ok(())
     }
 }

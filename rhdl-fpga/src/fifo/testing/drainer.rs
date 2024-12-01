@@ -73,6 +73,9 @@ pub fn drain_kernel<const N: usize>(cr: ClockReset, input: I<N>, q: Q<N>) -> (O,
     trace("data_matches", &data_matches);
     trace("will_read", &will_read);
     o.valid = was_valid;
+    o.next = false;
+    d.rng = false;
+    d.sleep_counter = q.sleep_counter;
     if will_read {
         d.rng = true;
         o.next = true;

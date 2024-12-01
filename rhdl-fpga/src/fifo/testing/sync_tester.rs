@@ -40,25 +40,27 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sync_fifo_trace() {
+    fn test_sync_fifo_trace() -> miette::Result<()> {
         let uut = U::<16, 6>::default();
         let input = std::iter::repeat(())
             .take(1000)
             .stream_after_reset(1)
             .clock_pos_edge(100);
-        let vcd = uut.run(input).collect::<Vcd>();
+        let vcd = uut.run(input)?.collect::<Vcd>();
         vcd.dump_to_file(&std::path::PathBuf::from("sync_fifo.vcd"))
             .unwrap();
+        Ok(())
     }
 
     #[test]
-    fn test_sync_fifo_valid() {
+    fn test_sync_fifo_valid() -> miette::Result<()> {
         let uut = U::<16, 6>::default();
         let input = std::iter::repeat(())
             .take(100_000)
             .stream_after_reset(1)
             .clock_pos_edge(100);
-        let last = uut.run(input).last().unwrap();
+        let last = uut.run(input)?.last().unwrap();
         assert!(last.value.2);
+        Ok(())
     }
 }

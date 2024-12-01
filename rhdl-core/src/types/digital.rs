@@ -70,7 +70,7 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static {
     }
     fn typed_bits(self) -> TypedBits {
         TypedBits {
-            bits: self.bin().into_iter().map(|b| b.into()).collect(),
+            bits: self.bin(),
             kind: self.kind(),
         }
     }

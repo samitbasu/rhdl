@@ -12,7 +12,7 @@ mod common;
 use common::*;
 use rhdl::prelude::*;
 use rhdl_core::{
-    flow_graph::{self, optimization::optimize_flow_graph},
+    flow_graph::optimization::optimize_flow_graph,
     sim::testbench::kernel::test_kernel_vm_and_verilog,
 };
 
@@ -548,19 +548,7 @@ fn test_maybe_init_does_not_allow_select() -> miette::Result<()> {
         foo.b = b.val();
         signal(if foo.c { foo.a } else { foo.b })
     }
-    let obj = compile_design::<do_stuff>(CompilationMode::Asynchronous)?;
-    let flow_graph = build_rtl_flow_graph(&obj);
-    let flow_graph = optimize_flow_graph(flow_graph)?;
-    for node in flow_graph.graph.node_indices() {
-        let node_weight = flow_graph.graph.node_weight(node).unwrap();
-        let outgoing_edges = flow_graph
-            .graph
-            .edges_directed(node, petgraph::Direction::Outgoing)
-            .count();
-        eprintln!("{node:?} {:?} -> {}", node_weight.kind, outgoing_edges);
-    }
-    std::fs::write("junk.dot", flow_graph.dot()?).unwrap();
-    eprintln!("{:?}", obj);
+    assert!(compile_design::<do_stuff>(CompilationMode::Asynchronous).is_err());
     Ok(())
 }
 
@@ -578,10 +566,7 @@ fn test_maybe_init_escape_causes_error() -> miette::Result<()> {
         foo.a = a.val();
         signal(foo)
     }
-
-    let bar = compile_design::<do_stuff>(CompilationMode::Asynchronous)?;
-    let flow_graph = build_rtl_flow_graph(&bar);
-    std::fs::write("stuff.dot", flow_graph.dot()?).unwrap();
+    assert!(compile_design::<do_stuff>(CompilationMode::Asynchronous).is_err());
     Ok(())
 }
 
@@ -605,9 +590,6 @@ fn test_maybe_init_with_enum() -> miette::Result<()> {
         signal(foo)
     }
 
-    let bar = compile_design::<do_stuff>(CompilationMode::Asynchronous)?;
-    let flow_graph = build_rtl_flow_graph(&bar);
-    let flow_graph = optimize_flow_graph(flow_graph)?;
-    std::fs::write("stuff.dot", flow_graph.dot()?).unwrap();
+    compile_design::<do_stuff>(CompilationMode::Asynchronous)?;
     Ok(())
 }

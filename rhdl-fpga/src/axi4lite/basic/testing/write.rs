@@ -51,19 +51,20 @@ mod tests {
     }
 
     #[test]
-    fn test_transaction_trace() {
+    fn test_transaction_trace() -> miette::Result<()> {
         let uut = U::default();
         let input = test_stream();
-        let vcd = uut.run(input).collect::<Vcd>();
+        let vcd = uut.run(input)?.collect::<Vcd>();
         vcd.dump_to_file(&std::path::PathBuf::from("basic_write_test.vcd"))
             .unwrap();
+        Ok(())
     }
 
     #[test]
     fn test_transaction_hdl() -> miette::Result<()> {
         let uut = U::default();
         let input = test_stream();
-        let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
+        let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;
         Ok(())

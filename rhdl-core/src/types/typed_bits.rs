@@ -384,7 +384,7 @@ impl TypedBits {
             bits: self
                 .bits
                 .into_iter()
-                .chain(repeat(BitX::X).take(pad).chain(once(BitX::One)))
+                .chain(repeat(BitX::Zero).take(pad).chain(once(BitX::One)))
                 .collect(),
             kind: *option_kind,
         })
@@ -408,7 +408,7 @@ impl TypedBits {
             bits: self
                 .bits
                 .into_iter()
-                .chain(repeat(BitX::X).take(pad).chain(once(BitX::Zero)))
+                .chain(repeat(BitX::Zero).take(pad).chain(once(BitX::Zero)))
                 .collect(),
             kind: *option_kind,
         })
@@ -432,7 +432,7 @@ impl TypedBits {
             bits: self
                 .bits
                 .into_iter()
-                .chain(repeat(BitX::X).take(pad).chain(once(BitX::Zero)))
+                .chain(repeat(BitX::Zero).take(pad).chain(once(BitX::Zero)))
                 .collect(),
             kind: *result_kind,
         })
@@ -456,7 +456,7 @@ impl TypedBits {
             bits: self
                 .bits
                 .into_iter()
-                .chain(repeat(BitX::X).take(pad).chain(once(BitX::One)))
+                .chain(repeat(BitX::Zero).take(pad).chain(once(BitX::One)))
                 .collect(),
             kind: *result_kind,
         })

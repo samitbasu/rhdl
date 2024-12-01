@@ -133,23 +133,24 @@ mod tests {
     }
 
     #[test]
-    fn test_performance() {
+    fn test_performance() -> miette::Result<()> {
         type UC = U<Red, Blue, 8>;
         let uut = UC::default();
         let input = sync_stream();
         let _ = uut
-            .run(input)
+            .run(input)?
             .glitch_check(|t| (t.value.0.cr.val().clock, t.value.1.count))
             .last();
+        Ok(())
     }
 
     #[test]
-    fn test_read_counter_is_monotonic() {
+    fn test_read_counter_is_monotonic() -> miette::Result<()> {
         type UC = U<Red, Blue, 8>;
         let uut = UC::default();
         let input = sync_stream();
         let outputs = uut
-            .run(input)
+            .run(input)?
             .sample_at_pos_edge(|t| t.value.0.cr.val().clock)
             .vcd_file(&PathBuf::from("rw_counter.vcd"))
             .map(|t| t.value.1.count.val())
@@ -157,6 +158,7 @@ mod tests {
         outputs.windows(2).for_each(|w| {
             assert!(w[0] <= w[1]);
         });
+        Ok(())
     }
 
     #[test]
@@ -164,7 +166,7 @@ mod tests {
         type UC = U<Red, Blue, 8>;
         let uut = UC::default();
         let input = sync_stream();
-        let test_bench = uut.run(input).collect::<TestBench<_, _>>();
+        let test_bench = uut.run(input)?.collect::<TestBench<_, _>>();
         let test_mod = test_bench.rtl(
             &uut,
             &TestBenchOptions::default()

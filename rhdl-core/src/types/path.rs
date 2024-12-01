@@ -252,7 +252,7 @@ pub fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
             .elements
             .iter()
             .enumerate()
-            .flat_map(|(i, k)| leaf_paths(k, base.clone().index(i)))
+            .flat_map(|(i, k)| leaf_paths(k, base.clone().tuple_index(i)))
             .collect(),
         Kind::Struct(structure) => structure
             .fields

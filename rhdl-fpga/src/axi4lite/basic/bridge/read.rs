@@ -13,8 +13,8 @@ use crate::axi4lite::types::{Address, ReadResponse};
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U<
-    ID: Digital,   // The transaction ID type
-    DATA: Digital, // The data type stored in the memory
+    ID: Digital + Default, // The transaction ID type
+    DATA: Digital,         // The data type stored in the memory
     const ADDR: usize = 32,
 > {
     // We need a receiver for the address information
@@ -37,14 +37,14 @@ pub struct O<ID: Digital, DATA: Digital, const ADDR: usize> {
     pub read: Option<Bits<ADDR>>,
 }
 
-impl<ID: Digital, DATA: Digital, const ADDR: usize> SynchronousIO for U<ID, DATA, ADDR> {
+impl<ID: Digital + Default, DATA: Digital, const ADDR: usize> SynchronousIO for U<ID, DATA, ADDR> {
     type I = I<ID, DATA, ADDR>;
     type O = O<ID, DATA, ADDR>;
     type Kernel = read_bridge_kernel<ID, DATA, ADDR>;
 }
 
 #[kernel]
-pub fn read_bridge_kernel<ID: Digital, DATA: Digital, const ADDR: usize>(
+pub fn read_bridge_kernel<ID: Digital + Default, DATA: Digital, const ADDR: usize>(
     cr: ClockReset,
     i: I<ID, DATA, ADDR>,
     q: Q<ID, DATA, ADDR>,

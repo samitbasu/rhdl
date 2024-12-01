@@ -42,25 +42,27 @@ mod tests {
     };
 
     #[test]
-    fn test_counter_on_vec() {
+    fn test_counter_on_vec() -> miette::Result<()> {
         let inputs = (0..100).map(|_| random::<bool>()).collect::<Vec<_>>();
         let inputs = inputs.stream_after_reset(4);
         let inputs = inputs.clock_pos_edge(100);
         let inputs = inputs.collect::<Vec<_>>();
         let uut: U<16> = U::default();
-        let output = uut.run(inputs).count();
+        let output = uut.run(inputs)?.count();
         assert_eq!(output, 311);
+        Ok(())
     }
 
     #[test]
-    fn test_counter() -> std::io::Result<()> {
+    fn test_counter() -> miette::Result<()> {
         let inputs_1 = repeat(true).take(100).stream_after_reset(4);
         let inputs_2 = inputs_1.clone();
         let input = inputs_1.chain(inputs_2);
         let input = input.clock_pos_edge(100);
         let uut: U<16> = U::default();
-        let vcd: Vcd = uut.run(input).collect();
-        vcd.dump_to_file(&PathBuf::from("counter.vcd"))
+        let vcd: Vcd = uut.run(input)?.collect();
+        vcd.dump_to_file(&PathBuf::from("counter.vcd")).unwrap();
+        Ok(())
     }
 
     #[test]
@@ -75,7 +77,7 @@ mod tests {
             .fold(0, |acc, x| acc + if *x { 1 } else { 0 });
         let stream = rand_set.stream_after_reset(4).clock_pos_edge(100);
         let uut: U<16> = U::default();
-        let out_stream = uut.run(stream);
+        let out_stream = uut.run(stream)?;
         let output = out_stream.clone().last().map(|x| x.value.2);
         assert_eq!(output, Some(bits(ground_truth)));
         let tb = out_stream.collect::<SynchronousTestBench<_, _>>();

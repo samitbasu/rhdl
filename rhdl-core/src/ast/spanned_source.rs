@@ -236,11 +236,13 @@ impl SpannedSourceBuilder {
 
     fn block(&mut self, block: &Block) {
         let start = self.loc();
-        self.push("{\n");
-        for stmt in &block.stmts {
-            self.stmt(stmt);
+        if !block.stmts.is_empty() {
+            self.push("{\n");
+            for stmt in &block.stmts {
+                self.stmt(stmt);
+            }
+            self.push("}\n");
         }
-        self.push("}\n");
         self.span_map.insert(block.id, start..self.loc());
     }
 
@@ -263,7 +265,9 @@ impl SpannedSourceBuilder {
             }
             StmtKind::Semi(expr) => {
                 self.expr(expr);
-                self.push(";\n");
+                if self.loc() != start {
+                    self.push(";\n");
+                }
             }
         }
         self.span_map.insert(stmt.id, start..self.loc());

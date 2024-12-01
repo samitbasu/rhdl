@@ -162,10 +162,10 @@ mod tests {
         });
         //        let input = test_stream();
         let uut = U::<Bits<8>, Red, Blue, 5>::default();
-        let vcd = uut.run(input.clone()).collect::<Vcd>();
+        let vcd = uut.run(input.clone())?.collect::<Vcd>();
         vcd.dump_to_file(&PathBuf::from("async_fifo_write_test.vcd"))
             .unwrap();
-        let test_bench = uut.run(input).collect::<TestBench<_, _>>();
+        let test_bench = uut.run(input)?.collect::<TestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
         tm.run_iverilog()?;
         let tm =

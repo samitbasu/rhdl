@@ -24,6 +24,11 @@ pub enum RHDLError {
     #[error("RHDL Type Check Error")]
     #[diagnostic(transparent)]
     RHDLTypeCheckError(#[from] Box<crate::compiler::mir::error::RHDLTypeCheckError>),
+    #[error("RHDL Partial Initialization Error")]
+    #[diagnostic(transparent)]
+    RHDLPartialInitializationError(
+        #[from] Box<crate::compiler::mir::error::RHDLPartialInitializationError>,
+    ),
     #[error("RHDL Clock Domain Violation")]
     #[diagnostic(transparent)]
     RHDLClockDomainViolation(#[from] Box<crate::compiler::mir::error::RHDLClockDomainViolation>),

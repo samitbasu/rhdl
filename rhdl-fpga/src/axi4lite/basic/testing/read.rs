@@ -48,6 +48,9 @@ impl SynchronousIO for U {
 #[kernel]
 pub fn basic_test_kernel(cr: ClockReset, i: I, q: Q) -> (O, D) {
     let mut d = D::dont_care();
+    d.memory.write.addr = Bits::<RAM_ADDR>::default();
+    d.memory.write.value = DATA::default();
+    d.memory.write.enable = false;
     d.manager.axi = q.subordinate.axi;
     d.subordinate.axi = q.manager.axi;
     d.manager.run = i.run;
@@ -82,32 +85,34 @@ mod tests {
     }
 
     #[test]
-    fn test_transaction_trace() {
+    fn test_transaction_trace() -> miette::Result<()> {
         let uut = U::default();
         let input = test_stream();
-        let vcd = uut.run(input).collect::<Vcd>();
+        let vcd = uut.run(input)?.collect::<Vcd>();
         vcd.dump_to_file(&std::path::PathBuf::from("basic_read_test.vcd"))
             .unwrap();
+        Ok(())
     }
 
     #[test]
-    fn test_that_reads_are_correct() {
+    fn test_that_reads_are_correct() -> miette::Result<()> {
         let uut = U::default();
         let input = test_stream();
-        let io = uut.run(input);
+        let io = uut.run(input)?;
         let io = io
             .sample_at_pos_edge(|x| x.value.0.clock)
             .flat_map(|x| x.value.2.data)
             .collect::<Vec<_>>();
         let expected = (0..256).map(|n| bits(n << 8 | n)).collect::<Vec<_>>();
         assert_eq!(io, expected[0..io.len()]);
+        Ok(())
     }
 
     #[test]
     fn test_hdl_generation() -> miette::Result<()> {
         let uut = U::default();
         let input = test_stream();
-        let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
+        let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;
         let tm = test_bench.flow_graph(&uut, &Default::default())?;

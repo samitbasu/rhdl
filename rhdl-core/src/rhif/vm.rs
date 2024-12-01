@@ -242,7 +242,6 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let Some(kind) = kind else {
                     return Err(state.raise_ice(ICE::WrapMissingKind, loc));
                 };
-                let arg_copy = arg.clone();
                 let arg = match op {
                     WrapOp::Ok => arg.wrap_ok(kind),
                     WrapOp::Err => arg.wrap_err(kind),

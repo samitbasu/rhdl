@@ -5,7 +5,7 @@ use crate::{core::option::pack, lid::option_carloni};
 use super::{ChannelRToS, ChannelSToR};
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U<T: Digital> {
+pub struct U<T: Digital + Default> {
     inner: option_carloni::U<T>,
 }
 
@@ -25,14 +25,14 @@ pub struct O<T: Digital> {
     pub bus: ChannelRToS,
 }
 
-impl<T: Digital> SynchronousIO for U<T> {
+impl<T: Digital + Default> SynchronousIO for U<T> {
     type I = I<T>;
     type O = O<T>;
     type Kernel = receiver_kernel<T>;
 }
 
 #[kernel]
-pub fn receiver_kernel<T: Digital>(_cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
+pub fn receiver_kernel<T: Digital + Default>(_cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
     let mut d = D::<T>::dont_care();
     let mut o = O::<T>::dont_care();
     d.inner.ready = i.ready;

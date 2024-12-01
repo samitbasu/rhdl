@@ -20,7 +20,7 @@ fn test_option_is_digital() {
 
     println!("foo val: {:?}", foo_test);
     assert_eq!(foo_test.a.bin(), b9::from(0b110101011).bin());
-    assert_eq!(foo_test.b.bin(), bitx_parse("0xxxxxxxx").unwrap());
+    assert_eq!(foo_test.b.bin(), bitx_parse("000000000").unwrap());
 }
 
 #[test]

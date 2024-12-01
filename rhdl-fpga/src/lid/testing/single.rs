@@ -39,26 +39,28 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_single_trace() {
+    fn test_single_trace() -> miette::Result<()> {
         let uut = U::<16>::default();
         let input = std::iter::repeat(())
             .take(5000)
             .stream_after_reset(1)
             .clock_pos_edge(100);
-        let vcd = uut.run(input).collect::<Vcd>();
+        let vcd = uut.run(input)?.collect::<Vcd>();
         vcd.dump_to_file(&std::path::PathBuf::from("single.vcd"))
             .unwrap();
+        Ok(())
     }
 
     #[test]
-    fn test_single_is_valid() {
+    fn test_single_is_valid() -> miette::Result<()> {
         let uut = U::<16>::default();
         let input = std::iter::repeat(())
             .take(100_000)
             .stream_after_reset(1)
             .clock_pos_edge(100);
-        let last = uut.run(input).last().unwrap();
+        let last = uut.run(input)?.last().unwrap();
         assert!(last.value.2);
+        Ok(())
     }
 
     #[test]
@@ -68,7 +70,7 @@ mod tests {
             .take(500)
             .stream_after_reset(1)
             .clock_pos_edge(100);
-        let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
+        let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;
         let tm = test_bench.flow_graph(&uut, &Default::default())?;
