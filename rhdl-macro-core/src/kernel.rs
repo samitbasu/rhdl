@@ -550,6 +550,12 @@ impl Context {
             .collect::<Result<Vec<_>>>()?;
         let wrapped_function = trace_wrap_function(&function)?;
         let digital_fnk_impl = impl_digital_fnk_trait(&function)?;
+        let file = syn::File {
+            shebang: None,
+            attrs: vec![],
+            items: vec![syn::Item::Fn(function.clone())],
+        };
+        let text = prettyplease::unparse(&file).to_string();
         Ok(quote! {
             #wrapped_function
 
@@ -567,6 +573,8 @@ impl Context {
                         #ret,
                         #block,
                         std::any::TypeId::of::<#name #ty_generics>(),
+                        #text,
+                        file!(),
                     ))
                 }
             }

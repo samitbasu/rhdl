@@ -469,6 +469,7 @@ fn test_for_loop_const_generics() -> miette::Result<()> {
                 ret ^= true;
             }
         }
+        trace("a", &a);
         signal(ret)
     }
     let res = compile_design::<sum_bits<8>>(CompilationMode::Asynchronous)?;

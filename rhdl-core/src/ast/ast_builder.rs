@@ -462,6 +462,8 @@ impl ASTBuilder {
         ret: Kind,
         body: Box<Block>,
         fn_id: std::any::TypeId,
+        text: &'static str,
+        file: &'static str,
     ) -> KernelFnKind {
         let id = self.id();
         // Hash the typeID into a 64 bit unsigned int
@@ -476,6 +478,8 @@ impl ASTBuilder {
                 ret,
                 body,
                 fn_id,
+                text,
+                file,
             })
             .into(),
         )

@@ -165,6 +165,7 @@ fn check_for_partial_initialization(map: &mut CoverageMap) -> Result<(), RHDLErr
                 map.declare_covered(inner.lhs);
             }
             OpCode::Select(inner) => {
+                map.ensure_covered(inner.cond, loc)?;
                 let mut true_cover = map.coverage(inner.true_value);
                 let false_cover = map.coverage(inner.false_value);
                 merge_cover(&mut true_cover, &false_cover);
