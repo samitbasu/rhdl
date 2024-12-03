@@ -457,6 +457,8 @@ pub struct KernelFn {
     pub ret: Kind,
     pub body: Box<Block>,
     pub fn_id: FunctionId,
+    pub text: &'static str,
+    pub file: &'static str,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Hash)]

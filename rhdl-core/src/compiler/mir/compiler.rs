@@ -26,8 +26,8 @@ use crate::ast::ast_impl::{
     ExprIf, ExprIndex, ExprMatch, ExprMethodCall, ExprPath, ExprRepeat, ExprRet, ExprStruct,
     ExprTuple, ExprUnary, FieldValue, Local, Pat, PatKind, Stmt, StmtKind,
 };
-use crate::ast::spanned_source::build_spanned_source_for_kernel;
 use crate::ast::spanned_source::SpannedSource;
+use crate::ast::syn_spanned_source::build_spanned_source_for_kernel;
 use crate::ast::visit::Visitor;
 use crate::ast_builder::BinOp;
 use crate::ast_builder::UnOp;
@@ -1471,7 +1471,7 @@ impl<'a> Visitor for MirContext<'a> {
 }
 
 pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
-    let source = build_spanned_source_for_kernel(func.inner());
+    let source = build_spanned_source_for_kernel(func.inner())?;
     for id in 0..func.inner().id.as_u32() {
         let node = NodeId::new(id);
         if !source.span_map.contains_key(&node) {
@@ -1479,6 +1479,7 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
             panic!("Missing span for node {:?}", node);
         }
     }
+    let copy_source = source.clone();
     let mut compiler = MirContext::new(&source, mode, func.inner().fn_id);
     compiler.visit_kernel_fn(func.inner())?;
     compiler.bind_slot_to_type(compiler.return_slot, &func.inner().ret);
@@ -1494,7 +1495,6 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
                 .into());
         }
     }
-    let source = build_spanned_source_for_kernel(func.inner());
     let fn_id = compiler.fn_id;
     let slot_map = compiler
         .reg_source_map
@@ -1505,7 +1505,7 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
     Ok(Mir {
         symbols: SymbolMap {
             slot_map,
-            source_set: (fn_id, source).into(),
+            source_set: (fn_id, copy_source).into(),
             slot_names: compiler.slot_names,
             aliases: Default::default(),
         },
