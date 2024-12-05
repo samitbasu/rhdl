@@ -1,5 +1,5 @@
 use crate::{
-    ast::source_location::SourceLocation,
+    ast::source::source_location::SourceLocation,
     rhif::{
         object::LocatedOpCode,
         runtime_ops::{array, binary, tuple, unary},

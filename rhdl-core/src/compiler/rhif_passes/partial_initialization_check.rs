@@ -1,8 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    ast::source_location::SourceLocation,
-    bitx::bitx_string,
+    ast::source::source_location::SourceLocation,
     compiler::mir::error::RHDLPartialInitializationError,
     error::rhdl_error,
     rhif::{
@@ -10,7 +9,6 @@ use crate::{
         Object,
     },
     types::path::{bit_range, leaf_paths, Path},
-    util::binary_string,
     BitX, RHDLError, TypedBits,
 };
 

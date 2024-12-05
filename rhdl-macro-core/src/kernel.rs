@@ -574,7 +574,7 @@ impl Context {
                         #block,
                         std::any::TypeId::of::<#name #ty_generics>(),
                         #text,
-                        file!(),
+                        concat!(file!(), ":", line!()),
                     ))
                 }
             }

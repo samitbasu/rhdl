@@ -1,5 +1,5 @@
 use crate::{
-    ast::source_location::SourceLocation,
+    ast::source::source_location::SourceLocation,
     rtl::{
         object::RegisterKind,
         spec::{LiteralId, Operand, RegisterId},

@@ -3,7 +3,7 @@ use std::iter::once;
 use petgraph::visit::EdgeRef;
 
 use crate::{
-    ast::source_location::SourceLocation,
+    ast::source::source_location::SourceLocation,
     error::rhdl_error,
     flow_graph::{component::CaseEntry, edge_kind::EdgeKind, error::FlowGraphError},
     hdl::ast::{

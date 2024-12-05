@@ -26,12 +26,11 @@ use crate::ast::ast_impl::{
     ExprIf, ExprIndex, ExprMatch, ExprMethodCall, ExprPath, ExprRepeat, ExprRet, ExprStruct,
     ExprTuple, ExprUnary, FieldValue, Local, Pat, PatKind, Stmt, StmtKind,
 };
-use crate::ast::spanned_source::SpannedSource;
-use crate::ast::syn_spanned_source::build_spanned_source_for_kernel;
+use crate::ast::source::builder::build_spanned_source_for_kernel;
+use crate::ast::source::spanned_source::SpannedSource;
 use crate::ast::visit::Visitor;
-use crate::ast_builder::BinOp;
-use crate::ast_builder::UnOp;
-use crate::bitx::bitx_string;
+use crate::builder::BinOp;
+use crate::builder::UnOp;
 use crate::compiler::ascii;
 use crate::compiler::display_ast::pretty_print_statement;
 use crate::compiler::stage1::compile;

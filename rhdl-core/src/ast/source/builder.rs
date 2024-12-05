@@ -3,12 +3,11 @@ use std::{collections::HashMap, ops::Range};
 use proc_macro2::Span;
 use syn::spanned::Spanned;
 
-use super::{
-    ast_impl::{KernelFn, NodeId},
-    spanned_source::SpannedSource,
-};
+use crate::ast::ast_impl::{KernelFn, NodeId};
 
-use super::ast_impl as ast;
+use crate::ast::ast_impl as ast;
+
+use super::spanned_source::SpannedSource;
 
 struct SpannedSourceBuilder<'a> {
     source: &'a str,

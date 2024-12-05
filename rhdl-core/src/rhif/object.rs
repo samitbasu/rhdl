@@ -5,8 +5,8 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::ops::Range;
 
-use crate::ast::source_location::SourceLocation;
-use crate::ast::spanned_source::SpannedSourceSet;
+use crate::ast::source::source_location::SourceLocation;
+use crate::ast::source::spanned_source_set::SpannedSourceSet;
 use crate::SourcePool;
 use crate::{
     ast::ast_impl::{FunctionId, NodeId},

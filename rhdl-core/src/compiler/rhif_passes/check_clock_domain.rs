@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashSet};
 
 use crate::{
-    ast::source_location::SourceLocation,
+    ast::source::source_location::SourceLocation,
     compiler::mir::{
         error::{ClockError, RHDLClockDomainViolation},
         ty::{make_variant_tag, AppTypeKind, Const, TypeId, TypeKind, UnifyContext},

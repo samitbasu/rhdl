@@ -5,7 +5,8 @@ use std::{
 
 use crate::{
     ast::{
-        ast_impl::FunctionId, source_location::SourceLocation, spanned_source::SpannedSourceSet,
+        ast_impl::FunctionId,
+        source::{source_location::SourceLocation, spanned_source_set::SpannedSourceSet},
     },
     SourcePool,
 };
