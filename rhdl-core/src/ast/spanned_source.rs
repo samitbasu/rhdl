@@ -114,7 +114,7 @@ impl From<(FunctionId, SpannedSource)> for SpannedSourceSet {
 
 #[derive(Clone, Debug)]
 pub struct SpannedSource {
-    source: String,
+    pub source: String,
     pub name: String,
     pub span_map: HashMap<NodeId, Range<usize>>,
     pub fallback: NodeId,
