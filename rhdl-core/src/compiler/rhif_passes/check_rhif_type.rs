@@ -1,7 +1,7 @@
 // Check a RHIF object for type correctness.
 
 use crate::{
-    ast::{ast_impl::WrapOp, source_location::SourceLocation},
+    ast::{ast_impl::WrapOp, source::source_location::SourceLocation},
     compiler::mir::error::ICE,
     error::RHDLError,
     rhif::{

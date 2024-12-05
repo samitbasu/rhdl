@@ -5,8 +5,7 @@ use thiserror::Error;
 
 use crate::{
     ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
-    ast_builder::BinOp,
-    bitx::BitX,
+    builder::BinOp,
     rhif::spec::{AluBinary, AluUnary, OpCode, Slot},
     rtl::spec::Operand,
     types::{bit_string::BitString, path::Path},
