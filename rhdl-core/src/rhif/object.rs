@@ -7,6 +7,7 @@ use std::ops::Range;
 
 use crate::ast::source_location::SourceLocation;
 use crate::ast::spanned_source::SpannedSourceSet;
+use crate::SourcePool;
 use crate::{
     ast::ast_impl::{FunctionId, NodeId},
     rhif::spec::Slot,
@@ -25,7 +26,7 @@ pub struct SymbolMap {
 }
 
 impl SymbolMap {
-    pub fn source(&self) -> String {
+    pub fn source(&self) -> SourcePool {
         self.source_set.source()
     }
     pub fn slot_span(&self, slot: Slot) -> Option<Range<usize>> {

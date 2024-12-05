@@ -3,6 +3,8 @@ use std::fmt::Display;
 use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
+use crate::SourcePool;
+
 #[derive(Error, Debug, Diagnostic)]
 pub enum FlowGraphICE {
     #[error("Flow graph contains an undriven node")]
@@ -49,7 +51,7 @@ pub enum FlowGraphICE {
 #[derive(Debug, Error)]
 pub struct FlowGraphError {
     pub cause: FlowGraphICE,
-    pub src: String,
+    pub src: SourcePool,
     pub elements: Vec<SourceSpan>,
 }
 

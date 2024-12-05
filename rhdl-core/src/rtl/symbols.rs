@@ -3,8 +3,11 @@ use std::{
     ops::Range,
 };
 
-use crate::ast::{
-    ast_impl::FunctionId, source_location::SourceLocation, spanned_source::SpannedSourceSet,
+use crate::{
+    ast::{
+        ast_impl::FunctionId, source_location::SourceLocation, spanned_source::SpannedSourceSet,
+    },
+    SourcePool,
 };
 
 use super::spec::Operand;
@@ -18,7 +21,7 @@ pub struct SymbolMap {
 }
 
 impl SymbolMap {
-    pub fn source(&self) -> String {
+    pub fn source(&self) -> SourcePool {
         self.source_set.source()
     }
     pub fn span(&self, loc: SourceLocation) -> Range<usize> {

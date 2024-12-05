@@ -518,7 +518,7 @@ impl<'a> MirContext<'a> {
         let source_span = self.spanned_source.span(id);
         Box::new(RHDLSyntaxError {
             cause,
-            src: self.spanned_source.source.clone(),
+            src: self.spanned_source.source(),
             err_span: source_span.into(),
         })
     }
@@ -526,7 +526,7 @@ impl<'a> MirContext<'a> {
         let source_span = self.spanned_source.span(loc);
         Box::new(RHDLCompileError {
             cause,
-            src: self.spanned_source.source.clone(),
+            src: self.spanned_source.source(),
             err_span: source_span.into(),
         })
     }

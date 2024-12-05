@@ -81,5 +81,6 @@ pub use rhdl_trace_type::TraceType;
 pub use trace::bit::TraceBit;
 pub use trace::rtt;
 pub mod bitx;
+pub use ast::spanned_source::SourcePool;
 pub use bitx::bitx_vec;
 pub use bitx::BitX;
