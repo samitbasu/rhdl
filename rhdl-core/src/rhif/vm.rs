@@ -2,7 +2,6 @@ use std::collections::BTreeMap;
 
 use crate::ast::ast_impl::WrapOp;
 use crate::ast::source_location::SourceLocation;
-use crate::bitx::bitx_string;
 use crate::compiler::mir::error::{RHDLCompileError, ICE};
 use crate::error::rhdl_error;
 use crate::rhif::object::Object;

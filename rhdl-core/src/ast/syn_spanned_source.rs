@@ -49,6 +49,8 @@ impl<'a> SpannedSourceBuilder<'a> {
             name: kernel.name.into(),
             span_map: self.span_map,
             fallback: kernel.id,
+            filename: kernel.file.into(),
+            function_id: kernel.fn_id,
         })
     }
     fn block(&mut self, syn_block: &syn::Block, ast_block: &ast::Block) -> syn::Result<()> {
