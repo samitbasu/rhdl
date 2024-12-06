@@ -8,6 +8,7 @@
 // ArmEnum
 // KernelFn (ret)
 
+use log::debug;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
@@ -315,7 +316,7 @@ impl<'a> MirContext<'a> {
     // resulting register.
     fn bind(&mut self, name: &'static str, id: NodeId) {
         let reg = self.reg(id);
-        eprintln!("Binding {}#{:?} to {:?}", name, id, reg);
+        debug!("Binding {}#{:?} to {:?}", name, id, reg);
         self.slot_names.insert(reg, name.to_string());
         self.scopes[self.active_scope.0].names.insert(name, reg);
     }
@@ -340,7 +341,7 @@ impl<'a> MirContext<'a> {
         };
         self.slot_names.insert(reg, name.to_string());
         self.scopes[scope.0].names.insert(name, reg);
-        eprintln!("Rebound {} from {:?} to {:?}", name, prev, reg);
+        debug!("Rebound {} from {:?} to {:?}", name, prev, reg);
         Ok(Rebind {
             from: prev,
             to: reg,
@@ -355,7 +356,7 @@ impl<'a> MirContext<'a> {
     fn lit(&mut self, id: NodeId, lit: ExprLit) -> Slot {
         let ndx = self.literals.len();
         let slot = Slot::Literal(LiteralId(ndx));
-        eprintln!("Allocate literal {:?} for {:?} -> {:?}", lit, id, slot);
+        debug!("Allocate literal {:?} for {:?} -> {:?}", lit, id, slot);
         self.literals.insert(slot, lit);
         self.reg_source_map.insert(slot, id);
         slot
@@ -707,7 +708,7 @@ impl<'a> MirContext<'a> {
         Ok(result)
     }
     fn type_pattern(&mut self, pattern: &Pat, kind: &Kind) -> Result<()> {
-        eprintln!("Type pattern {:?} {:?}", pattern, kind);
+        debug!("Type pattern {:?} {:?}", pattern, kind);
         match &pattern.kind {
             PatKind::Ident(ident) => {
                 let (slot, _) = self.lookup_name(ident.name).ok_or_else(|| {
@@ -718,7 +719,7 @@ impl<'a> MirContext<'a> {
                         pattern.id,
                     )
                 })?;
-                eprintln!("Binding {:?} to {:?} via {:?}", ident, kind, slot);
+                debug!("Binding {:?} to {:?} via {:?}", ident, kind, slot);
                 self.bind_slot_to_type(slot, kind);
                 Ok(())
             }
@@ -961,7 +962,7 @@ impl<'a> MirContext<'a> {
         let lhs = self.reg(id);
         let arg = self.expr(&field.expr)?;
         let path = field.member.clone().into();
-        eprintln!("field path {:?}", path);
+        debug!("field path {:?}", path);
         self.op(op_index(lhs, arg, path), id);
         Ok(lhs)
     }
@@ -1031,10 +1032,10 @@ impl<'a> MirContext<'a> {
         let else_result = self.reg(else_id);
         let cond = self.expr(&if_expr.cond)?;
         let locals_prior_to_branch = self.locals();
-        eprintln!("Locals prior to branch {:?}", locals_prior_to_branch);
+        debug!("Locals prior to branch {:?}", locals_prior_to_branch);
         self.block(then_result, &if_expr.then_branch)?;
         let locals_after_then_branch = self.locals().clone();
-        eprintln!("Locals after then branch {:?}", locals_after_then_branch);
+        debug!("Locals after then branch {:?}", locals_after_then_branch);
         self.set_locals(&locals_prior_to_branch, id)?;
         if let Some(expr) = if_expr.else_branch.as_ref() {
             self.wrap_expr_in_block(else_result, expr)?;
@@ -1059,7 +1060,7 @@ impl<'a> MirContext<'a> {
             .iter()
             .map(|x| self.rebind(x.name, id).map(|r| (x.clone(), r)))
             .collect::<Result<_>>()?;
-        eprintln!("post_branch bindings set {:?}", post_branch_bindings);
+        debug!("post_branch bindings set {:?}", post_branch_bindings);
         for (var, rebind) in &post_branch_bindings {
             let then_binding = *locals_after_then_branch.get(var).ok_or_else(|| {
                 self.raise_ice(
@@ -1371,7 +1372,7 @@ impl<'a> MirContext<'a> {
         }
     }
     fn struct_expr(&mut self, id: NodeId, strukt: &ExprStruct) -> Result<Slot> {
-        eprintln!("Struct expr {:?}", strukt,);
+        debug!("Struct expr {:?}", strukt,);
         let lhs = self.reg(id);
         let fields = strukt
             .fields
@@ -1380,10 +1381,10 @@ impl<'a> MirContext<'a> {
             .collect::<Result<_>>()?;
         let rest = strukt.rest.as_ref().map(|x| self.expr(x)).transpose()?;
         if let Kind::Enum(_enum) = &strukt.template.kind {
-            eprintln!("Emitting enum opcode");
+            debug!("Emitting enum opcode");
             self.op(op_enum(lhs, fields, strukt.template.clone()), id);
         } else {
-            eprintln!("Emitting struct opcode");
+            debug!("Emitting struct opcode");
             self.op(op_struct(lhs, fields, rest, strukt.template.clone()), id);
         }
         Ok(lhs)
@@ -1475,7 +1476,7 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
     for id in 0..func.inner().id.as_u32() {
         let node = NodeId::new(id);
         if !source.span_map.contains_key(&node) {
-            eprintln!("AST: {}", ascii::render_ast_to_string(&func)?);
+            debug!("AST: {}", ascii::render_ast_to_string(&func)?);
             panic!("Missing span for node {:?}", node);
         }
     }

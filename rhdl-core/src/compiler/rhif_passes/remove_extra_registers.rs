@@ -1,3 +1,4 @@
+use super::pass::Pass;
 use crate::{
     error::RHDLError,
     rhif::{
@@ -7,8 +8,7 @@ use crate::{
         Object,
     },
 };
-
-use super::pass::Pass;
+use log::debug;
 
 #[derive(Default, Debug, Clone)]
 pub struct RemoveExtraRegistersPass {}
@@ -65,7 +65,7 @@ impl Pass for RemoveExtraRegistersPass {
                 }
                 // Delete the register from the register map
                 //input.symbols.slot_map.remove(&assign.lhs);
-                eprintln!("Removing register {:?}", assign.lhs);
+                debug!("Removing register {:?}", assign.lhs);
                 if assign.lhs.is_reg() {
                     input.kind.remove(&assign.lhs.as_reg().unwrap());
                 }

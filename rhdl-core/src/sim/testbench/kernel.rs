@@ -1,7 +1,7 @@
+use log::debug;
 use std::iter::once;
 
 use crate::{
-    bitx::bitx_string,
     build_rtl_flow_graph,
     compiler::driver::{compile_design_stage1, compile_design_stage2},
     flow_graph::{hdl::generate_hdl, optimization::optimize_flow_graph},
@@ -381,8 +381,8 @@ where
     let design = compile_design_stage1::<K>(mode)?;
     let rtl = compile_design_stage2(&design)?;
     let vm_inputs = vals.clone();
-    eprintln!("Testing kernel function");
-    eprintln!("{:?}", design);
+    debug!("Testing kernel function");
+    debug!("{:?}", design);
     for input in vm_inputs {
         let args_for_vm = input.vec_tb();
         let expected = uut.apply(input).typed_bits();

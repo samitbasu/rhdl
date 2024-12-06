@@ -1,3 +1,4 @@
+use log::debug;
 use miette::Diagnostic;
 use std::iter::once;
 use std::ops::Range;
@@ -282,7 +283,7 @@ pub fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
 // generated from the base path using legal values for the dynamic
 // indices.
 pub fn path_star(kind: &Kind, path: &Path) -> Result<Vec<Path>> {
-    eprintln!("path star called with kind {:?} and path {:?}", kind, path);
+    debug!("path star called with kind {:?} and path {:?}", kind, path);
     if !path.any_dynamic() {
         return Ok(vec![path.clone()]);
     }

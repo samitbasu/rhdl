@@ -41,9 +41,12 @@ pub fn sender_kernel<T: Digital + Default>(cr: ClockReset, i: I<T>, q: Q<T>) -> 
     // Forward the to_send to the inner module
     d.inner.data = i.to_send;
     d.inner.ready = i.bus.ready;
-    let (is_valid, data) = unpack::<T>(q.inner.data);
-    o.bus.data = data;
-    o.bus.valid = is_valid;
+    o.bus.data = T::default();
+    o.bus.valid = false;
+    if let Some(data) = q.inner.data {
+        o.bus.data = data;
+        o.bus.valid = true;
+    }
     o.full = !q.inner.ready;
     (o, d)
 }

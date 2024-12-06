@@ -1,3 +1,4 @@
+use log::debug;
 use std::collections::BTreeMap;
 
 use super::pass::Pass;
@@ -47,8 +48,8 @@ impl Pass for PrecastIntegerLiteralsInBinops {
             })
             .collect::<BTreeMap<_, _>>();
         if !generic_int_literals.is_empty() {
-            eprintln!("Code: {:?}", input);
-            eprintln!("Generic ints: {:?}", generic_int_literals);
+            debug!("Code: {:?}", input);
+            debug!("Generic ints: {:?}", generic_int_literals);
         }
         // Not all generic int literals are a problem.  Only those that hit the
         // operator overload for binary operations.
