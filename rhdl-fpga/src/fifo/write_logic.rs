@@ -8,10 +8,10 @@ use rhdl::prelude::*;
 ///
 /// Critical assumption:
 ///  - We assume that the read address received from the read side of the FIFO
-/// is conservative, meaning that the real read location is at least as great
-/// as the read address provided - i.e., that the reader may have already read
-/// out the given memory location, but that the writer can safely write into the
-/// FIFO provided it does not reach the given address
+///     is conservative, meaning that the real read location is at least as great
+///     as the read address provided - i.e., that the reader may have already read
+///     out the given memory location, but that the writer can safely write into the
+///     FIFO provided it does not reach the given address
 ///
 /// Note that this design will waste a slot in the FIFO when the read and write
 /// addresses are equal, as it cannot otherwise distinguish between a full and

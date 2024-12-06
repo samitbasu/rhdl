@@ -5,7 +5,7 @@ use rhdl::prelude::*;
 
 use crate::axi4lite::types::WriteDownstream;
 use crate::axi4lite::types::WriteUpstream;
-use crate::axi4lite::types::{Address, BurstData, WriteResponse};
+use crate::axi4lite::types::{Address, WriteResponse};
 
 pub type ID = Bits<3>;
 pub const ADDR: usize = 8;
@@ -42,10 +42,9 @@ impl SynchronousIO for U {
 }
 
 type WA = Address<ID, ADDR>;
-type BD = BurstData<DATA>;
 
 #[kernel]
-pub fn basic_write_manager_kernel(cr: ClockReset, i: I, q: Q) -> (O, D) {
+pub fn basic_write_manager_kernel(_cr: ClockReset, i: I, q: Q) -> (O, D) {
     let mut d = D::dont_care();
     let mut o = O::dont_care();
     d.addr.bus = i.axi.addr;

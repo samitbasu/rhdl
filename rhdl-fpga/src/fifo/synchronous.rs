@@ -48,20 +48,17 @@ pub fn fifo_kernel<T: Digital + Default, const N: usize>(
     // so we just need to route the signals.
     let mut d = D::<T, N>::dont_care();
     let mut o = O::<T>::dont_care();
-    let (write_data, write_enable) = match i.data {
-        Some(data) => (data, true),
-        None => (T::dont_care(), false),
-    };
     // Connect the read logic inputs
     d.read_logic.write_address = q.write_logic.write_address;
     d.read_logic.next = i.next;
     // Connect the write logic inputs
     d.write_logic.read_address = q.read_logic.ram_read_address;
-    d.write_logic.write_enable = write_enable;
     // Connect the RAM inputs
-    d.ram.write = if write_enable {
-        Some((q.write_logic.ram_write_address, write_data))
+    d.ram.write = if let Some(data) = i.data {
+        d.write_logic.write_enable = true;
+        Some((q.write_logic.ram_write_address, data))
     } else {
+        d.write_logic.write_enable = false;
         None
     };
     d.ram.read_addr = q.read_logic.ram_read_address;
