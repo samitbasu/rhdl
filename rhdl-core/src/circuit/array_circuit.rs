@@ -56,14 +56,14 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
         let input_buffer = fg.input(input_kind, 0, "i");
         let output_buffer = fg.output(output_kind, "o");
         let mut children = BTreeMap::default();
-        for i in 0..N {
+        (0..N).try_for_each(|i| {
             let child_path = Path::default().index(i);
             let (output_bit_range, _) = bit_range(Self::O::static_kind(), &child_path)?;
             let (input_bit_range, _) = bit_range(Self::I::static_kind(), &child_path)?;
             let child_name = format!("{}_{}", name, i);
             let child_desc = self[i].descriptor(&child_name)?;
             let child_flow_graph = &child_desc.flow_graph;
-            let child_remap = fg.merge(&child_flow_graph);
+            let child_remap = fg.merge(child_flow_graph);
             let remap_child = |x: &[FlowIx]| x.iter().map(|y| child_remap[y]).collect::<Vec<_>>();
             let child_inputs = remap_child(&child_flow_graph.inputs[0]);
             let child_output = remap_child(&child_flow_graph.output);
@@ -72,7 +72,8 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
             let mut o_iter = output_buffer.iter().skip(output_bit_range.start).copied();
             fg.zip(child_output.into_iter(), &mut o_iter);
             children.insert(child_name, child_desc);
-        }
+            Ok::<(), RHDLError>(())
+        })?;
         fg.inputs = vec![input_buffer];
         fg.output = output_buffer;
         Ok(CircuitDescriptor {

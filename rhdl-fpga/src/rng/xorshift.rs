@@ -35,7 +35,7 @@ impl SynchronousIO for U {
 }
 
 #[kernel]
-pub fn lfsr_kernel(cr: ClockReset, strobe: bool, q: Q) -> (Bits<32>, D) {
+pub fn lfsr_kernel(_cr: ClockReset, strobe: bool, q: Q) -> (Bits<32>, D) {
     let mut d = D::dont_care();
     d.x = q.x;
     d.y = q.y;

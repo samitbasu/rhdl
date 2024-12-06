@@ -25,7 +25,7 @@ struct TranslationContext<'a> {
     rtl: &'a rtl::Object,
 }
 
-impl<'a> TranslationContext<'a> {
+impl TranslationContext<'_> {
     fn raise_ice(&self, cause: ICE, id: SourceLocation) -> RHDLError {
         rhdl_error(RHDLCompileError {
             cause,

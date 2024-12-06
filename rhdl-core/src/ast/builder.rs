@@ -459,6 +459,7 @@ impl ASTBuilder {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn kernel_fn(
         &self,
         name: &'static str,

@@ -1,4 +1,3 @@
-use log::debug;
 use std::{
     collections::HashMap,
     fmt::{Display, Formatter},
@@ -1088,6 +1087,8 @@ impl UnifyContext {
 
 #[cfg(test)]
 mod tests {
+    use log::debug;
+
     use crate::ast::ast_impl::NodeId;
 
     use super::*;

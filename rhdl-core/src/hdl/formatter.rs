@@ -3,7 +3,6 @@ use crate::{
     hdl::ast::Events,
     rhif::spec::{AluBinary, AluUnary},
     types::bit_string::BitString,
-    util::binary_string,
 };
 
 use super::ast::{

@@ -28,7 +28,7 @@ impl Pass for DataFlowCheckPass {
     }
 }
 
-impl<'a> InitSet<'a> {
+impl InitSet<'_> {
     fn read_all(&self, slots: &[Slot]) -> Result<(), RHDLError> {
         for slot in slots {
             self.read(slot)?;
