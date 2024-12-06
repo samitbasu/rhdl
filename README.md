@@ -101,7 +101,12 @@ risk than a technical one.
 - [ ] Add checks for combinatorial inputs or outputs
 - [x] Add a flow graph level simulator to verify correctness
 - [x] Add timing estimator using longest path heuristics.
-- [ ] Add checks for coverage of (o, d)
+- [x] Add checks for coverage of (o, d)
+- [x] Add if-let support
+- [x] Improve diagnostics output
+- [ ] Wrapping cores written in other languages
+- [ ] Wrapping RHDL cores for use by other languages
+- [ ] Add flags to control compiler output verbosity.
 - [ ] Add checks for zero outputs from synchronous blocks.
 - [ ] Port the `RustHDL` widget library to `RHDL`
 - [ ] Port the various FPGA BSPs to `RHDL` from `RustHDL`.

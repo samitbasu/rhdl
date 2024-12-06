@@ -21,6 +21,7 @@ use crate::{
     },
     rtl, RHDLError,
 };
+use log::debug;
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
@@ -50,6 +51,6 @@ pub(crate) fn compile(object: &crate::rhif::Object) -> Result<rtl::Object> {
         hash = new_hash;
     }
     rtl = CheckNoZeroResize::run(rtl)?;
-    eprintln!("{rtl:?}");
+    debug!("{rtl:?}");
     Ok(rtl)
 }

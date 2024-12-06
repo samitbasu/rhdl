@@ -1,3 +1,4 @@
+use log::debug;
 use std::collections::BTreeMap;
 
 use crate::{
@@ -161,7 +162,7 @@ impl<'a> MirTypeInference<'a> {
         })
     }
     fn unify(&mut self, loc: SourceLocation, lhs: TypeId, rhs: TypeId) -> Result<()> {
-        eprintln!("Unifying {} and {}", self.ctx.desc(lhs), self.ctx.desc(rhs));
+        debug!("Unifying {} and {}", self.ctx.desc(lhs), self.ctx.desc(rhs));
         if self.ctx.unify(lhs, rhs).is_err() {
             let lhs_span = self.mir.symbols.source_set.span(lhs.loc);
             let rhs_span = self.mir.symbols.source_set.span(rhs.loc);
@@ -312,9 +313,9 @@ impl<'a> MirTypeInference<'a> {
                 /*
                 TODO - do I need this?
                 if let Some(arg2) = self.ctx.project_signal_value(a2) {
-                    eprintln!("Project signal value flag for {}", self.ctx.desc(a2));
+                    debug!("Project signal value flag for {}", self.ctx.desc(a2));
                     if let Some(flag) = self.ctx.project_sign_flag(arg2) {
-                        eprintln!("Project sign flag for {}", self.ctx.desc(a2));
+                        debug!("Project sign flag for {}", self.ctx.desc(a2));
                         let unsigned_flag = self.ctx.ty_sign_flag(id, SignFlag::Unsigned);
                         self.unify(id, flag, unsigned_flag)?;
                     }
@@ -382,7 +383,7 @@ impl<'a> MirTypeInference<'a> {
     }
 
     fn try_index(&mut self, loc: SourceLocation, op: &TypeIndex) -> Result<()> {
-        eprintln!(
+        debug!(
             "Try to apply index to {} with path {:?}",
             self.ctx.desc(op.arg),
             op.path
@@ -390,7 +391,7 @@ impl<'a> MirTypeInference<'a> {
         match self.ty_path_project(op.arg, &op.path, loc) {
             Ok(ty) => self.unify(loc, op.lhs, ty),
             Err(err) => {
-                eprintln!("Error: {}", err);
+                debug!("Error: {}", err);
                 Ok(())
             }
         }
@@ -459,10 +460,10 @@ impl<'a> MirTypeInference<'a> {
     }
     fn try_type_ops(&mut self, iteration_count: usize, ops: &[TypeOperation]) -> Result<()> {
         for loop_count in 0..iteration_count {
-            eprintln!("Iteration {}", loop_count);
+            debug!("Iteration {}", loop_count);
             let mod_state = self.ctx.modification_state();
             for op in ops {
-                eprintln!("Type op {:?}", op);
+                debug!("Type op {:?}", op);
                 self.try_type_op(op)?;
             }
             if self.ctx.modification_state() == mod_state {
@@ -476,7 +477,7 @@ impl<'a> MirTypeInference<'a> {
     }
     fn process_ops(&mut self) -> Result<()> {
         for op in &self.mir.ops {
-            eprintln!("Processing op {:?}", op.op);
+            debug!("Processing op {:?}", op.op);
             let loc = op.loc;
             match &op.op {
                 OpCode::Array(array) => {
@@ -648,7 +649,7 @@ impl<'a> MirTypeInference<'a> {
                     let lhs = self.slot_ty(select.lhs);
                     let true_value = self.slot_ty(select.true_value);
                     let false_value = self.slot_ty(select.false_value);
-                    eprintln!(
+                    debug!(
                         "Queueing select operation lhs = {}, true = {}, false = {}",
                         self.ctx.desc(lhs),
                         self.ctx.desc(true_value),
@@ -839,23 +840,23 @@ pub fn infer(mir: Mir) -> Result<Object> {
     infer.import_signature()?;
     infer.import_type_equality()?;
     infer.import_type_declarations()?;
-    eprintln!("=================================");
-    eprintln!("Before inference");
+    debug!("=================================");
+    debug!("Before inference");
     for (slot, ty) in &infer.slot_map {
         let ty = infer.ctx.apply(*ty);
         let ty = infer.ctx.desc(ty);
-        eprintln!("Slot {:?} -> type {}", slot, ty);
+        debug!("Slot {:?} -> type {}", slot, ty);
     }
     for op in mir.ops.iter() {
-        eprintln!("{:?}", op.op);
+        debug!("{:?}", op.op);
     }
-    eprintln!("=================================");
+    debug!("=================================");
     if let Err(e) = infer.process_ops() {
-        eprintln!("Error: {}", e);
+        debug!("Error: {}", e);
         for (slot, ty) in &infer.slot_map {
             let ty = infer.ctx.apply(*ty);
             let ty = infer.ctx.desc(ty);
-            eprintln!("Slot {:?} -> type {}", slot, ty);
+            debug!("Slot {:?} -> type {}", slot, ty);
         }
         return Err(e);
     }
@@ -864,11 +865,11 @@ pub fn infer(mir: Mir) -> Result<Object> {
     for (slot, ty) in &infer.slot_map {
         let ty = infer.ctx.apply(*ty);
         let ty = infer.ctx.desc(ty);
-        eprintln!("Slot {:?} -> type {}", slot, ty);
+        debug!("Slot {:?} -> type {}", slot, ty);
     }
     // TODO - remove fixed iteration count
     infer.try_type_ops(5, &type_ops)?;
-    eprintln!("Try to replace generic literals with ?128");
+    debug!("Try to replace generic literals with ?128");
     // Try to replace generic literals with (b/s)128
     if !infer.all_slots_resolved() {
         for lit in mir.literals.keys() {
@@ -876,7 +877,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
             if infer.ctx.is_unsized_integer(ty) {
                 let i128_len = infer.ctx.ty_const_len(ty.loc, 128);
                 let m128_ty = infer.ctx.ty_maybe_signed(ty.loc, i128_len);
-                eprintln!(
+                debug!(
                     "Literal {:?} -> {} U {}",
                     lit,
                     infer.ctx.desc(ty),
@@ -886,10 +887,10 @@ pub fn infer(mir: Mir) -> Result<Object> {
             }
         }
     }
-    eprintln!("Recheck delayed inference rools");
+    debug!("Recheck delayed inference rools");
     infer.try_type_ops(5, &type_ops)?;
 
-    eprintln!("Try to replace generic literals with i128");
+    debug!("Try to replace generic literals with i128");
     // Try to replace any generic literals with i128s
     if !infer.all_slots_resolved() {
         for lit in mir.literals.keys() {
@@ -902,27 +903,27 @@ pub fn infer(mir: Mir) -> Result<Object> {
             }
         }
     }
-    eprintln!("Recheck delayed inference rules");
+    debug!("Recheck delayed inference rules");
     infer.try_type_ops(5, &type_ops)?;
 
     if let Some(ty) = infer.unresolved_slot_typeid() {
-        eprintln!("=================================");
-        eprintln!("Inference failed");
+        debug!("=================================");
+        debug!("Inference failed");
         for (slot, ty) in &infer.slot_map {
             let ty = infer.ctx.apply(*ty);
             let ty = infer.ctx.desc(ty);
-            eprintln!("Slot {:?} -> type {}", slot, ty);
+            debug!("Slot {:?} -> type {}", slot, ty);
         }
         for op in mir.ops.iter() {
-            eprintln!("{:?}", op.op);
+            debug!("{:?}", op.op);
         }
 
-        eprintln!("=================================");
+        debug!("=================================");
 
         for lit in mir.literals.keys() {
             let ty = infer.slot_ty(*lit);
             if infer.ctx.into_kind(ty).is_err() {
-                eprintln!("Literal {:?} -> {}", lit, infer.ctx.desc(ty));
+                debug!("Literal {:?} -> {}", lit, infer.ctx.desc(ty));
             }
         }
         return Err(infer
@@ -932,7 +933,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
     for (slot, ty) in &infer.slot_map {
         let ty = infer.ctx.apply(*ty);
         let ty = infer.ctx.desc(ty);
-        eprintln!("Slot {:?} -> type {}", slot, ty);
+        debug!("Slot {:?} -> type {}", slot, ty);
     }
     let final_type_map: BTreeMap<Slot, TypeId> = infer
         .slot_map
@@ -956,7 +957,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
         .collect::<anyhow::Result<BTreeMap<_, _>>>()
         .unwrap();
     for op in mir.ops.iter() {
-        eprintln!("{:?}", op.op);
+        debug!("{:?}", op.op);
     }
     let literals = mir
         .literals

@@ -1,4 +1,5 @@
 // Check a RHIF object for type correctness.
+use log::debug;
 
 use crate::{
     ast::{ast_impl::WrapOp, source_location::SourceLocation},
@@ -65,7 +66,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
             ))
         }
     };
-    eprintln!("Checking RHIF type correctness {:?}", obj);
+    debug!("Checking RHIF type correctness {:?}", obj);
     for lop in &obj.ops {
         let op = &lop.op;
         let loc = lop.loc;

@@ -1,3 +1,4 @@
+use log::debug;
 use std::{
     collections::HashMap,
     fmt::{Display, Formatter},
@@ -1129,7 +1130,7 @@ mod tests {
         let z = ctx.ty_var(id);
         assert!(ctx.unify(x, y).is_ok());
         assert!(ctx.unify(x, z).is_ok());
-        eprintln!("{}", ctx);
+        debug!("{}", ctx);
         let m = ctx.into_kind(z).unwrap();
         println!("{:?}", m);
     }

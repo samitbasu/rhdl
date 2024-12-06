@@ -1,3 +1,4 @@
+use log::debug;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::{
@@ -48,17 +49,17 @@ impl Mir {
     }
     pub fn find_root_for_slot(&self, context: SourceLocation, slot: Slot) -> Slot {
         let context_span = self.symbols.span(context);
-        eprintln!("Context span: {:?}", context_span);
+        debug!("Context span: {:?}", context_span);
         let eq_map = self.build_slot_equivalence_map();
         let mut slot = slot;
-        eprintln!("Initial slot: {:?}", slot);
-        eprintln!("Initial span: {:?}", self.symbols.slot_span(slot));
+        debug!("Initial slot: {:?}", slot);
+        debug!("Initial span: {:?}", self.symbols.slot_span(slot));
         while let Some(&next) = eq_map.get(&slot) {
-            eprintln!("Next slot: {:?}", next);
+            debug!("Next slot: {:?}", next);
             let Some(next_span) = self.symbols.slot_span(next) else {
                 break;
             };
-            eprintln!("Next span: {:?}", next_span);
+            debug!("Next span: {:?}", next_span);
             if context_span.contains(&next_span.start)
                 && context_span.contains(&next_span.end.saturating_sub(1))
             {
@@ -67,7 +68,7 @@ impl Mir {
                 break;
             }
         }
-        eprintln!("Final slot: {:?}", slot);
+        debug!("Final slot: {:?}", slot);
         slot
     }
 }
