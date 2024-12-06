@@ -11,6 +11,8 @@ use syn::Lit;
 use syn::Variant;
 use syn::{Data, DeriveInput};
 
+use crate::clone::derive_clone_from_inner;
+use crate::partial_eq::derive_partial_eq_from_inner;
 use crate::utils::evaluate_const_expression;
 
 // To determine the number of bits needed to represent the discriminant, we
@@ -405,6 +407,8 @@ pub const fn clog2(t: u128) -> usize {
 }
 
 pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
+    let clone = derive_clone_from_inner(decl.clone())?;
+    let partial_eq = derive_partial_eq_from_inner(decl.clone())?;
     let enum_name = &decl.ident;
     let fqdn = crate::utils::get_fqdn(&decl);
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
@@ -478,6 +482,12 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         DiscriminantType::Signed(_) => quote! { rhdl::core::DiscriminantType::Signed },
     };
     Ok(quote! {
+        impl #impl_generics core::marker::Copy for #enum_name #ty_generics #where_clause {}
+
+        #clone
+
+        #partial_eq
+
         impl #impl_generics rhdl::core::Digital for #enum_name #ty_generics #where_clause {
             // BITS is the width of the discriminant (#width_bits) plus the maximum width
             // of the variant payloads.  This is calculated by taking the maximum width of

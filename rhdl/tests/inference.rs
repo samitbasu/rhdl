@@ -17,14 +17,14 @@ use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 #[allow(clippy::assign_op_pattern)]
 fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
     use rhdl_bits::alias::*;
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(Digital)]
     pub struct Foo {
         a: u8,
         b: u16,
         c: [u8; 3],
     }
 
-    #[derive(PartialEq, Copy, Clone, Default, Digital)]
+    #[derive(Default, Digital)]
     pub enum State {
         Init,
         Run(u8),
@@ -33,7 +33,7 @@ fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
         Unknown,
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(Digital)]
     pub struct Bar(pub u8, pub u8);
 
     #[kernel]
@@ -197,23 +197,23 @@ fn test_struct_inference_inferred_lengths() -> miette::Result<()> {
     use rhdl_bits::alias::*;
     use rhdl_bits::bits;
 
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(Digital)]
     pub struct Rad {
         x: b4,
         y: b6,
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(Digital)]
     pub struct Foo {
         a: b8,
         b: s4,
         c: Rad,
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(Digital)]
     pub struct Bar(pub u8, pub u8);
 
-    #[derive(PartialEq, Copy, Clone, Default, Digital)]
+    #[derive(Default, Digital)]
     pub enum NooState {
         #[default]
         Init,
@@ -274,23 +274,23 @@ fn test_struct_inference() -> miette::Result<()> {
     use rhdl_bits::alias::*;
     use rhdl_bits::bits;
 
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(Digital)]
     pub struct Rad {
         x: b4,
         y: b6,
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(Digital)]
     pub struct Foo {
         a: b8,
         b: s4,
         c: Rad,
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(Digital)]
     pub struct Bar(pub u8, pub u8);
 
-    #[derive(PartialEq, Copy, Clone, Default, Digital)]
+    #[derive(Default, Digital)]
     pub enum NooState {
         #[default]
         Init,

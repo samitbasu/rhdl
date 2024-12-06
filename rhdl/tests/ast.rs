@@ -35,14 +35,14 @@ fn test_func_with_structured_args() -> miette::Result<()> {
 #[allow(clippy::assign_op_pattern)]
 fn test_ast_basic_func() -> miette::Result<()> {
     use rhdl_bits::alias::*;
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(Digital, Default)]
     pub struct Foo {
         a: u8,
         b: u16,
         c: [u8; 3],
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(Digital, Default)]
     pub enum State {
         #[default]
         Init,
@@ -51,7 +51,7 @@ fn test_ast_basic_func() -> miette::Result<()> {
         Unknown,
     }
 
-    #[derive(PartialEq, Copy, Clone, Digital, Default)]
+    #[derive(Digital, Default)]
     pub struct Bar(pub u8, pub u8);
 
     #[kernel]
@@ -180,7 +180,7 @@ fn test_repeat_with_generic() -> miette::Result<()> {
 
 #[test]
 fn test_if_let_syntax() -> miette::Result<()> {
-    #[derive(PartialEq, Copy, Clone, Debug, Default, Digital)]
+    #[derive(Debug, Default, Digital)]
     pub enum Foo {
         Bar(b8),
         #[default]
@@ -269,16 +269,16 @@ fn test_match_value() -> miette::Result<()> {
 fn test_basic_compile() -> miette::Result<()> {
     use itertools::iproduct;
 
-    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
+    #[derive(Debug, Digital)]
     pub struct Foo {
         a: b4,
         b: b4,
     }
 
-    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
+    #[derive(Debug, Digital)]
     pub struct TupStruct(b4, b4);
 
-    #[derive(PartialEq, Copy, Clone, Debug, Default, Digital)]
+    #[derive(Debug, Default, Digital)]
     pub enum Bar {
         A,
         B(b4),
@@ -290,7 +290,7 @@ fn test_basic_compile() -> miette::Result<()> {
         D,
     }
 
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(Debug, Digital, Default)]
     pub enum SimpleEnum {
         #[default]
         Init,
@@ -401,7 +401,7 @@ fn test_generics() -> miette::Result<()> {
 
 #[test]
 fn test_nested_generics() -> miette::Result<()> {
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(Digital)]
     struct Foo<T: Digital> {
         a: T,
         b: T,
@@ -556,7 +556,7 @@ fn test_match_scrutinee_bits() {
 
 #[test]
 fn test_maybe_init_does_not_allow_select() -> miette::Result<()> {
-    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+    #[derive(Debug, Digital)]
     struct Foo {
         a: b4,
         b: b4,
@@ -576,7 +576,7 @@ fn test_maybe_init_does_not_allow_select() -> miette::Result<()> {
 
 #[test]
 fn test_maybe_init_escape_causes_error() -> miette::Result<()> {
-    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+    #[derive(Debug, Digital)]
     struct Foo {
         a: b4,
         b: b4,
@@ -594,7 +594,7 @@ fn test_maybe_init_escape_causes_error() -> miette::Result<()> {
 
 #[test]
 fn test_maybe_init_with_enum() -> miette::Result<()> {
-    #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
+    #[derive(Debug, Digital, Default)]
     enum Foo {
         A,
         B(b4),
