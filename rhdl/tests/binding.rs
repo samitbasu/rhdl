@@ -14,7 +14,7 @@ use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 
 #[test]
 fn test_rebind_compile() -> miette::Result<()> {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital, Default)]
+    #[derive(Debug, Digital, Default)]
     pub enum SimpleEnum {
         #[default]
         Init,
@@ -54,7 +54,7 @@ fn test_rebind_compile() -> miette::Result<()> {
 #[test]
 fn test_importing() {
     use rhdl_bits::alias::*;
-    #[derive(PartialEq, Copy, Clone, Default, Digital)]
+    #[derive(Default, Digital)]
     pub enum Rad {
         A,
         B(b4),

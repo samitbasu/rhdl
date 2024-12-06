@@ -7,7 +7,7 @@ use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog_synchronous;
 
 #[test]
 fn test_option_is_digital() {
-    #[derive(Copy, Clone, PartialEq, Debug, Digital)]
+    #[derive(Debug, Digital)]
     struct Test {
         a: Option<b8>,
         b: Option<b8>,
@@ -25,7 +25,7 @@ fn test_option_is_digital() {
 
 #[test]
 fn test_result_is_digital() -> miette::Result<()> {
-    #[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
+    #[derive(Debug, Digital, Default)]
     enum Eflag {
         BadNumber,
         OutOfRange,

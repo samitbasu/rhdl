@@ -38,7 +38,7 @@ fn test_const_literal_captured_match() {
 
 #[test]
 fn test_struct_literal_match() -> miette::Result<()> {
-    #[derive(PartialEq, Copy, Clone, Debug, Digital)]
+    #[derive(Debug, Digital)]
     pub struct Foo {
         a: u8,
         b: u8,

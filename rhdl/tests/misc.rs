@@ -34,14 +34,14 @@ fn test_missing_register() {
 #[allow(clippy::no_effect)]
 fn test_compile() -> miette::Result<()> {
     use rhdl_bits::alias::*;
-    #[derive(PartialEq, Copy, Clone, Digital)]
+    #[derive(Digital)]
     pub struct Foo {
         a: u8,
         b: u16,
         c: [u8; 3],
     }
 
-    #[derive(PartialEq, Copy, Clone, Default, Digital)]
+    #[derive(Default, Digital)]
     pub enum NooState {
         #[default]
         Init,
