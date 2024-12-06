@@ -185,6 +185,24 @@ impl<'a> SpannedSourceBuilder<'a> {
         }
         self.expr(&syn.body, &ast.body)
     }
+    fn expr_if_let(&mut self, syn: &syn::ExprIf, ast: &ast::ExprIfLet) -> syn::Result<()> {
+        let syn::Expr::Let(syn_let) = syn.cond.as_ref() else {
+            return Err(syn::Error::new(syn.span(), "Mismatched if-let condition"));
+        };
+        if let ast::ArmKind::Enum(arm_pat) = &ast.kind {
+            self.pattern(&syn_let.pat, &arm_pat.pat)?;
+        }
+        self.expr(&syn_let.expr, &ast.test)?;
+        self.block(&syn.then_branch, &ast.then_block)?;
+        match (&syn.else_branch, &ast.else_branch) {
+            (Some((_, syn_else)), Some(ast_else)) => self.expr(syn_else, ast_else),
+            (None, None) => Ok(()),
+            _ => Err(syn::Error::new(
+                syn.span(),
+                "Mismatched number of else branches",
+            )),
+        }
+    }
     fn expr(&mut self, syn: &syn::Expr, ast: &ast::Expr) -> syn::Result<()> {
         self.span_map.insert(ast.id, syn.span().byte_range());
         match (syn, &ast.kind) {
@@ -230,6 +248,11 @@ impl<'a> SpannedSourceBuilder<'a> {
                         "Mismatched number of else branches",
                     )),
                 }
+            }
+            (syn::Expr::If(syn), ast::ExprKind::IfLet(ast))
+                if matches!(syn.cond.as_ref(), syn::Expr::Let(_)) =>
+            {
+                self.expr_if_let(syn, ast)
             }
             (syn::Expr::Index(syn), ast::ExprKind::Index(ast)) => {
                 self.expr(&syn.expr, &ast.expr)?;

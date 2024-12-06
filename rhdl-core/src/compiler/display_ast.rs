@@ -233,6 +233,26 @@ impl PrettyPrinter {
                     self.print_expr(else_branch)?;
                 }
             }
+            ExprKind::IfLet(expr) => {
+                self.push("if let ");
+                match &expr.kind {
+                    ArmKind::Wild => self.push("_"),
+                    ArmKind::Constant(constant) => {
+                        self.push(&format!("const {:?}", constant.value))
+                    }
+                    ArmKind::Enum(enum_arm) => {
+                        self.print_pattern(&enum_arm.pat)?;
+                        self.push(&format!("#{:?}", enum_arm.discriminant));
+                    }
+                }
+                self.push(" = ");
+                self.print_expr(&expr.test)?;
+                self.print_block(&expr.then_block)?;
+                if let Some(else_branch) = &expr.else_branch {
+                    self.push(" else ");
+                    self.print_expr(else_branch)?;
+                }
+            }
             ExprKind::Index(expr) => {
                 self.print_expr(&expr.expr)?;
                 self.push("[");
