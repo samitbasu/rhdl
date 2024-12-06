@@ -27,14 +27,14 @@ pub struct U<
     resp: sender::U<WriteResponse<ID>>,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+#[derive(Debug, Digital)]
 pub struct D<ID: Digital, DATA: Digital, const ADDR: usize> {
     pub addr: receiver::I<Address<ID, ADDR>>,
     pub data: receiver::I<DATA>,
     pub resp: sender::I<WriteResponse<ID>>,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+#[derive(Debug, Digital)]
 pub struct Q<ID: Digital, DATA: Digital, const ADDR: usize> {
     pub addr: receiver::O<Address<ID, ADDR>>,
     pub data: receiver::O<DATA>,
@@ -48,13 +48,13 @@ impl<ID: Digital + Default, DATA: Digital + Default, const ADDR: usize> Synchron
     type Q = Q<ID, DATA, ADDR>;
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+#[derive(Debug, Digital)]
 pub struct I<ID: Digital, DATA: Digital, const ADDR: usize> {
     pub axi: WriteDownstream<ID, DATA, ADDR>,
     pub full: bool,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+#[derive(Debug, Digital)]
 pub struct O<ID: Digital, DATA: Digital, const ADDR: usize> {
     pub axi: WriteUpstream<ID, ADDR>,
     pub write: Option<(Bits<ADDR>, DATA)>,

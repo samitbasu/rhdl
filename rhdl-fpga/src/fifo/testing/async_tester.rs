@@ -7,7 +7,7 @@ pub struct U<W: Domain, R: Domain, const N: usize, const Z: usize> {
     drainer: Adapter<crate::fifo::testing::drainer::U<N>, R>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital, Timed)]
+#[derive(Debug, Digital, Timed)]
 pub struct I<W: Domain, R: Domain> {
     pub cr_w: Signal<ClockReset, W>,
     pub cr_r: Signal<ClockReset, R>,

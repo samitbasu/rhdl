@@ -23,13 +23,13 @@ pub struct U<const N: usize> {
     underflow: dff::U<bool>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct I<const N: usize> {
     pub write_address: Bits<N>,
     pub next: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct O<const N: usize> {
     pub empty: bool,
     pub almost_empty: bool,

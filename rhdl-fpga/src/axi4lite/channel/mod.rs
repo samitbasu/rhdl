@@ -9,12 +9,12 @@ pub mod receiver;
 pub mod sender;
 pub mod testing;
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital, Default)]
+#[derive(Debug, Digital, Default)]
 pub struct ChannelRToS {
     pub ready: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct ChannelSToR<T: Digital> {
     pub data: T,
     pub valid: bool,

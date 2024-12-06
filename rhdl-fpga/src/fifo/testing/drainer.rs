@@ -37,12 +37,12 @@ impl<const N: usize> U<N> {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct I<const N: usize> {
     pub data: Option<Bits<N>>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct O {
     pub next: bool,
     pub valid: bool,

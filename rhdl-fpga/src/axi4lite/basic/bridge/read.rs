@@ -25,13 +25,13 @@ pub struct U<
     id: dff::U<Option<ID>>,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+#[derive(Debug, Digital)]
 pub struct I<ID: Digital, DATA: Digital, const ADDR: usize> {
     pub axi: ReadDownstream<ID, ADDR>,
     pub data: DATA,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+#[derive(Debug, Digital)]
 pub struct O<ID: Digital, DATA: Digital, const ADDR: usize> {
     pub axi: ReadUpstream<ID, DATA, ADDR>,
     pub read: Option<Bits<ADDR>>,

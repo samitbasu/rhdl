@@ -14,7 +14,7 @@ pub struct U {
     subordinate: bridge::write::U<ID, DATA, ADDR>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct I {
     pub run: bool,
     pub full: bool,

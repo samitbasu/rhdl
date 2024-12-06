@@ -13,15 +13,15 @@ use super::write_logic;
 /// synchronized to each other.  This means that the read and write ports
 /// can be in different clock domains.
 #[derive(Clone, Circuit, CircuitDQ, Default)]
-pub struct U<T: Digital, W: Domain, R: Domain, const N: usize> {
+pub struct U<T: Digital + Default, W: Domain, R: Domain, const N: usize> {
     write_logic: Adapter<write_logic::U<N>, W>,
     read_logic: Adapter<read_logic::U<N>, R>,
-    ram: ram::asynchronous::U<T, W, R, N>,
+    ram: ram::option_async::U<T, W, R, N>,
     read_count_for_write_logic: cross_counter::U<R, W, N>,
     write_count_for_read_logic: cross_counter::U<W, R, N>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital, Timed)]
+#[derive(Debug, Digital, Timed)]
 pub struct I<T: Digital, W: Domain, R: Domain> {
     /// The data to be written to the FIFO in the W domain
     pub data: Signal<Option<T>, W>,
@@ -33,7 +33,7 @@ pub struct I<T: Digital, W: Domain, R: Domain> {
     pub cr_r: Signal<ClockReset, R>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital, Timed)]
+#[derive(Debug, Digital, Timed)]
 pub struct O<T: Digital, W: Domain, R: Domain> {
     /// The data read from the FIFO in the R domain
     pub data: Signal<Option<T>, R>,
@@ -49,14 +49,14 @@ pub struct O<T: Digital, W: Domain, R: Domain> {
     pub overflow: Signal<bool, W>,
 }
 
-impl<T: Digital, W: Domain, R: Domain, const N: usize> CircuitIO for U<T, W, R, N> {
+impl<T: Digital + Default, W: Domain, R: Domain, const N: usize> CircuitIO for U<T, W, R, N> {
     type I = I<T, W, R>;
     type O = O<T, W, R>;
     type Kernel = async_fifo_kernel<T, W, R, N>;
 }
 
 #[kernel]
-pub fn async_fifo_kernel<T: Digital, W: Domain, R: Domain, const N: usize>(
+pub fn async_fifo_kernel<T: Digital + Default, W: Domain, R: Domain, const N: usize>(
     i: I<T, W, R>,
     q: Q<T, W, R, N>,
 ) -> (O<T, W, R>, D<T, W, R, N>) {
@@ -71,11 +71,14 @@ pub fn async_fifo_kernel<T: Digital, W: Domain, R: Domain, const N: usize>(
     // Create a struct to drive the inputs of the RAM on the
     // write side.  These signals are all clocked in the write
     // domain.
-    let mut ram_write = ram::asynchronous::WriteI::<T, N>::dont_care();
+    let mut ram_write = ram::option_async::WriteI::<T, N>::dont_care();
+    let ram_write_addr = q.write_logic.val().ram_write_address;
     ram_write.clock = i.cr_w.val().clock;
-    ram_write.data = write_data;
-    ram_write.enable = write_enable;
-    ram_write.addr = q.write_logic.val().ram_write_address;
+    ram_write.data = if write_enable {
+        Some((ram_write_addr, write_data))
+    } else {
+        None
+    };
     d.ram.write = signal(ram_write);
     // Do the same thing for the read side of the RAM.
     let mut ram_read = ram::asynchronous::ReadI::<N>::dont_care();

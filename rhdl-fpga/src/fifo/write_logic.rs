@@ -28,13 +28,13 @@ pub struct U<const N: usize> {
     overflow: dff::U<bool>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct I<const N: usize> {
     pub read_address: Bits<N>,
     pub write_enable: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct O<const N: usize> {
     pub full: bool,
     pub almost_full: bool,

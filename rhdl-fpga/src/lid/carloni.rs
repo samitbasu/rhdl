@@ -21,7 +21,7 @@ pub struct U<T: Digital> {
 }
 
 // The state is either Run or Stall
-#[derive(Copy, Clone, PartialEq, Debug, Digital, Default)]
+#[derive(Debug, Digital, Default)]
 pub enum State {
     #[default]
     Run,
@@ -39,14 +39,14 @@ impl<T: Digital> Default for U<T> {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+#[derive(Debug, Digital)]
 pub struct I<T: Digital> {
     pub data_in: T,
     pub void_in: bool,
     pub stop_in: bool,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+#[derive(Debug, Digital)]
 pub struct O<T: Digital> {
     pub data_out: T,
     pub void_out: bool,

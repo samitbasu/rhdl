@@ -50,7 +50,7 @@ impl<W: Domain, R: Domain, const N: usize> Default for U<W, R, N> {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Digital, Timed)]
+#[derive(Debug, Digital, Timed)]
 pub struct I<W: Domain, R: Domain, const N: usize> {
     /// The input data pulses to be counted from the W clock domain
     pub data: Signal<bool, W>,
@@ -60,7 +60,7 @@ pub struct I<W: Domain, R: Domain, const N: usize> {
     pub cr: Signal<ClockReset, R>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Digital, Timed)]
+#[derive(Debug, Digital, Timed)]
 pub struct O<R: Domain, const N: usize> {
     /// The count in the R domain (combinatorial decode of internal registers)
     pub count: Signal<Bits<N>, R>,

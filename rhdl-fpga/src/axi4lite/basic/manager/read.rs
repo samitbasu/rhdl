@@ -25,13 +25,13 @@ pub struct U {
     counter: dff::U<Bits<ADDR>>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct I {
     pub axi: ReadUpstream<ID, DATA, ADDR>,
     pub run: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct O {
     pub axi: ReadDownstream<ID, ADDR>,
     pub data: Option<DATA>,
