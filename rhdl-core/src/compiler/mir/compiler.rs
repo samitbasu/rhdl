@@ -17,6 +17,8 @@ use std::iter::once;
 use crate::ast::ast_impl;
 use crate::ast::ast_impl::BitsKind;
 use crate::ast::ast_impl::ExprBits;
+use crate::ast::ast_impl::ExprBlock;
+use crate::ast::ast_impl::ExprIfLet;
 use crate::ast::ast_impl::ExprTry;
 use crate::ast::ast_impl::ExprTypedBits;
 use crate::ast::ast_impl::NodeId;
@@ -664,6 +666,9 @@ impl<'a> MirContext<'a> {
         }
         Ok(result)
     }
+    fn empty_block(&self, id: NodeId) -> Block {
+        Block { id, stmts: vec![] }
+    }
     fn block(&mut self, block_result: Slot, block: &Block) -> Result<()> {
         let statement_count = block.stmts.len();
         self.new_scope();
@@ -911,6 +916,7 @@ impl<'a> MirContext<'a> {
             ExprKind::Type(_) => Ok(Slot::Empty),
             ExprKind::Bits(bits) => self.bits(expr.id, bits),
             ExprKind::Try(tri) => self.try_expr(expr.id, tri),
+            ExprKind::IfLet(if_let) => self.if_let_expr(expr.id, if_let),
         }
     }
     // We need three components
@@ -1022,6 +1028,39 @@ impl<'a> MirContext<'a> {
         }
         self.end_scope();
         Ok(Slot::Empty)
+    }
+    fn if_let_expr(&mut self, id: NodeId, if_let_expr: &ExprIfLet) -> Result<Slot> {
+        // Try a rewrite of if let -> match
+        // We have if let arm_kind = test { body} {else_branch}
+        // This should be equivalent to
+        //    match test {
+        //        arm_kind => {body}
+        //        _ => {else_branch}
+        //    }
+        //
+        let active_arm = Arm {
+            id,
+            kind: if_let_expr.kind.clone(),
+            body: Box::new(Expr {
+                id: if_let_expr.then_block.id,
+                kind: ExprKind::Block(ExprBlock {
+                    block: if_let_expr.then_block.clone(),
+                }),
+            }),
+        };
+        let else_arm = Arm {
+            id,
+            kind: ArmKind::Wild,
+            body: if_let_expr
+                .else_branch
+                .clone()
+                .unwrap_or(Box::new(self.wrap_block_in_expr(id, &self.empty_block(id)))),
+        };
+        let my_match = ExprMatch {
+            expr: if_let_expr.test.clone(),
+            arms: vec![Box::new(active_arm), Box::new(else_arm)],
+        };
+        self.match_expr(id, &my_match)
     }
     fn if_expr(&mut self, id: NodeId, if_expr: &ExprIf) -> Result<Slot> {
         let op_result = self.reg(id);
@@ -1400,6 +1439,14 @@ impl<'a> MirContext<'a> {
         self.op(op_unary(op, result, arg), id);
         Ok(result)
     }
+    fn wrap_block_in_expr(&self, id: NodeId, block: &Block) -> Expr {
+        Expr {
+            id,
+            kind: ExprKind::Block(ExprBlock {
+                block: Box::new(block.clone()),
+            }),
+        }
+    }
     fn wrap_expr_in_block(&mut self, block_result: Slot, expr: &Expr) -> Result<()> {
         let result = self.expr(expr)?;
         if block_result != result {
@@ -1409,7 +1456,7 @@ impl<'a> MirContext<'a> {
     }
 }
 
-impl<'a> Visitor for MirContext<'a> {
+impl Visitor for MirContext<'_> {
     fn visit_kernel_fn(&mut self, node: &ast_impl::KernelFn) -> Result<()> {
         self.unpack_arguments(&node.inputs, node.id)?;
         let block_result = self.reg(node.id);

@@ -148,6 +148,7 @@ pub enum ExprKind {
     Match(ExprMatch),
     Ret(ExprRet),
     If(ExprIf),
+    IfLet(ExprIfLet),
     Index(ExprIndex),
     Lit(ExprLit),
     Paren(ExprParen),
@@ -208,6 +209,14 @@ pub struct ExprRet {
 pub struct ExprIf {
     pub cond: Box<Expr>,
     pub then_branch: Box<Block>,
+    pub else_branch: Option<Box<Expr>>,
+}
+
+#[derive(Debug, Clone, Hash)]
+pub struct ExprIfLet {
+    pub test: Box<Expr>,
+    pub kind: ArmKind,
+    pub then_block: Box<Block>,
     pub else_branch: Option<Box<Expr>>,
 }
 
