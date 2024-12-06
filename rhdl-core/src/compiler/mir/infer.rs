@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use crate::{
     ast::{
         ast_impl::{ExprLit, WrapOp},
-        source_location::SourceLocation,
+        source::source_location::SourceLocation,
     },
     compiler::mir::{
         error::{RHDLSyntaxError, RHDLTypeCheckError, Syntax},

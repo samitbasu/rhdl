@@ -1,5 +1,5 @@
 use crate::{
-    ast::source_location::SourceLocation,
+    ast::source::source_location::SourceLocation,
     compiler::mir::error::{RHDLCompileError, ICE},
     error::{rhdl_error, RHDLError},
     rhif::Object,

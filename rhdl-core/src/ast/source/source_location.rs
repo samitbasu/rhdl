@@ -1,4 +1,4 @@
-use super::ast_impl::{FunctionId, NodeId};
+use crate::ast::ast_impl::{FunctionId, NodeId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Hash, PartialOrd, Eq, Ord)]
 pub struct SourceLocation {

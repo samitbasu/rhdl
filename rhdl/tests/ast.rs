@@ -179,6 +179,27 @@ fn test_repeat_with_generic() -> miette::Result<()> {
 }
 
 #[test]
+fn test_if_let_syntax() -> miette::Result<()> {
+    #[derive(PartialEq, Copy, Clone, Debug, Default, Digital)]
+    pub enum Foo {
+        Bar(b8),
+        #[default]
+        Baz,
+    }
+
+    #[kernel]
+    fn foo(a: Signal<Foo, Red>) -> Signal<b8, Red> {
+        let a = a.val();
+        let b = if let Foo::Bar(x) = a { x } else { b8(0) };
+        signal(b)
+    }
+
+    let test_input = [(signal(Foo::Bar(bits(3))),), (signal(Foo::Baz),)];
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, test_input.into_iter())?;
+    Ok(())
+}
+
+#[test]
 fn test_repeat_op() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<([b8; 3], [b8; 4]), Red> {
@@ -469,6 +490,7 @@ fn test_for_loop_const_generics() -> miette::Result<()> {
                 ret ^= true;
             }
         }
+        trace("a", &a);
         signal(ret)
     }
     let res = compile_design::<sum_bits<8>>(CompilationMode::Asynchronous)?;

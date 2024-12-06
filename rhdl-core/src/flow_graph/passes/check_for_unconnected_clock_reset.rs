@@ -1,14 +1,8 @@
 use petgraph::visit::EdgeRef;
 
 use crate::{
-    ast::source_location::SourceLocation,
-    error::rhdl_error,
-    flow_graph::{
-        component::ComponentKind,
-        error::{FlowGraphError, FlowGraphICE},
-        flow_graph_impl::FlowIx,
-    },
-    FlowGraph, RHDLError,
+    ast::source::source_location::SourceLocation, flow_graph::flow_graph_impl::FlowIx, FlowGraph,
+    RHDLError,
 };
 
 use super::pass::Pass;

@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::ast::ast_impl::{FunctionId, WrapOp};
-use crate::ast::source_location::SourceLocation;
+use crate::ast::source::source_location::SourceLocation;
 use crate::error::rhdl_error;
 use crate::rhif::spec::{AluBinary, Slot};
 use crate::rtl::object::{lop, RegisterKind};

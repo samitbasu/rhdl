@@ -63,6 +63,8 @@ pub enum RHDLError {
     TestbenchConstructionError(String),
     #[error("Circuits with no outputs are not synthesizable")]
     NoOutputsError,
+    #[error("syn parsing error: {0}")]
+    SynError(#[from] syn::Error),
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

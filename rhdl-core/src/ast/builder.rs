@@ -89,6 +89,25 @@ impl ASTBuilder {
         })
     }
 
+    pub fn if_let_expr(
+        &self,
+        test: Box<Expr>,
+        kind: ArmKind,
+        then_block: Box<Block>,
+        else_branch: Option<Box<Expr>>,
+    ) -> Box<Expr> {
+        let id = self.id();
+        Box::new(Expr {
+            id,
+            kind: ExprKind::IfLet(ExprIfLet {
+                test,
+                kind,
+                then_block,
+                else_branch,
+            }),
+        })
+    }
+
     pub fn let_expr(&self, pattern: Box<Pat>, value: Box<Expr>) -> Box<Expr> {
         let id = self.id();
         Box::new(Expr {
@@ -117,43 +136,28 @@ impl ASTBuilder {
         })
     }
 
-    pub fn arm_wild(&self, body: Box<Expr>) -> Box<Arm> {
-        let id = self.id();
-        Box::new(Arm {
-            id,
-            kind: ArmKind::Wild,
-            body,
+    pub fn arm_kind_wild(&self) -> ArmKind {
+        ArmKind::Wild
+    }
+
+    pub fn arm_kind_constant(&self, value: ExprLit) -> ArmKind {
+        ArmKind::Constant(ArmConstant { value })
+    }
+
+    pub fn arm_kind_enum(&self, pat: Box<Pat>, discriminant: TypedBits) -> ArmKind {
+        ArmKind::Enum(ArmEnum { pat, discriminant })
+    }
+
+    pub fn arm_kind_none(&self) -> ArmKind {
+        ArmKind::Enum(ArmEnum {
+            pat: self.wild_pat(),
+            discriminant: false.typed_bits(),
         })
     }
 
-    pub fn arm_constant(&self, value: ExprLit, body: Box<Expr>) -> Box<Arm> {
+    pub fn arm(&self, kind: ArmKind, body: Box<Expr>) -> Box<Arm> {
         let id = self.id();
-        Box::new(Arm {
-            id,
-            kind: ArmKind::Constant(ArmConstant { value }),
-            body,
-        })
-    }
-
-    pub fn arm_enum(&self, pat: Box<Pat>, discriminant: TypedBits, body: Box<Expr>) -> Box<Arm> {
-        let id = self.id();
-        Box::new(Arm {
-            id,
-            kind: ArmKind::Enum(ArmEnum { pat, discriminant }),
-            body,
-        })
-    }
-
-    pub fn arm_none(&self, body: Box<Expr>) -> Box<Arm> {
-        let id = self.id();
-        Box::new(Arm {
-            id,
-            kind: ArmKind::Enum(ArmEnum {
-                pat: self.wild_pat(),
-                discriminant: false.typed_bits(),
-            }),
-            body,
-        })
+        Box::new(Arm { id, kind, body })
     }
 
     pub fn field_expr(&self, expr: Box<Expr>, member: Member) -> Box<Expr> {
@@ -462,6 +466,8 @@ impl ASTBuilder {
         ret: Kind,
         body: Box<Block>,
         fn_id: std::any::TypeId,
+        text: &'static str,
+        file: &'static str,
     ) -> KernelFnKind {
         let id = self.id();
         // Hash the typeID into a 64 bit unsigned int
@@ -476,6 +482,8 @@ impl ASTBuilder {
                 ret,
                 body,
                 fn_id,
+                text,
+                file,
             })
             .into(),
         )

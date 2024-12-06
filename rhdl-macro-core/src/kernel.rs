@@ -550,6 +550,12 @@ impl Context {
             .collect::<Result<Vec<_>>>()?;
         let wrapped_function = trace_wrap_function(&function)?;
         let digital_fnk_impl = impl_digital_fnk_trait(&function)?;
+        let file = syn::File {
+            shebang: None,
+            attrs: vec![],
+            items: vec![syn::Item::Fn(function.clone())],
+        };
+        let text = prettyplease::unparse(&file).to_string();
         Ok(quote! {
             #wrapped_function
 
@@ -560,13 +566,15 @@ impl Context {
 
             impl #impl_generics rhdl::core::digital_fn::DigitalFn for #name #ty_generics #where_clause {
                 fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
-                    let bob = rhdl::core::ast_builder::ASTBuilder::default();
+                    let bob = rhdl::core::ast::builder::ASTBuilder::default();
                     Some(bob.kernel_fn(
                         stringify!(#orig_name),
                         vec!{#(#args),*},
                         #ret,
                         #block,
                         std::any::TypeId::of::<#name #ty_generics>(),
+                        #text,
+                        concat!(file!(), ":", line!()),
                     ))
                 }
             }
@@ -1082,30 +1090,29 @@ impl Context {
         let arms = expr
             .arms
             .iter()
-            .map(|x| self.arm(x))
+            .map(|x| self.arm(&x.pat, &x.body))
             .collect::<Result<Vec<_>>>()?;
         let expr = self.expr(&expr.expr)?;
         Ok(quote! {
             bob.match_expr(#expr, vec![#(#arms),*])
         })
     }
-
-    fn arm(&mut self, arm: &syn::Arm) -> Result<TS> {
+    fn arm(&mut self, pat: &syn::Pat, body: &syn::Expr) -> Result<TS> {
         self.new_scope();
-        let pat = &arm.pat;
         let arm = if !pattern_has_bindings(pat) {
-            let body = self.expr(&arm.body)?;
-            if let syn::Pat::Wild(_) = &pat {
-                quote! {bob.arm_wild(#body)}
+            let body = self.expr(body)?;
+            let kind = if let syn::Pat::Wild(_) = &pat {
+                quote! {bob.arm_kind_wild()}
             } else if pat_is_none(pat) {
-                quote! {bob.arm_none(#body)}
+                quote! {bob.arm_kind_none()}
             } else {
                 let pat = rewrite_pattern_as_typed_bits(pat)?;
-                quote! {bob.arm_constant(#pat, #body)}
-            }
+                quote! {bob.arm_kind_constant(#pat)}
+            };
+            quote! {bob.arm(#kind, #body)}
         } else {
             self.add_scoped_binding(pat)?;
-            let body = self.expr(&arm.body)?;
+            let body = self.expr(body)?;
             let mut discriminant = None;
             if let syn::Pat::Path(path) = pat {
                 if path.path.is_ident("None") {
@@ -1124,7 +1131,8 @@ impl Context {
                 discriminant = Some(quote!(rhdl::core::Digital::discriminant(#pat_as_expr)));
             }
             let inner = self.pat(pat)?;
-            quote! {bob.arm_enum(#inner, #discriminant, #body)}
+            let kind = quote! {bob.arm_kind_enum(#inner, #discriminant)};
+            quote! {bob.arm(#kind, #body)}
         };
         self.end_scope();
         Ok(arm)
@@ -1138,7 +1146,66 @@ impl Context {
         })
     }
 
+    fn if_let_ex(
+        &mut self,
+        let_expr: &syn::ExprLet,
+        then_branch: &syn::Block,
+        else_branch: Option<&syn::Expr>,
+    ) -> Result<TS> {
+        let test = self.expr(&let_expr.expr)?;
+        let pat = let_expr.pat.as_ref();
+        self.new_scope();
+        let (kind, body) = if !pattern_has_bindings(&let_expr.pat) {
+            let body = self.block_inner(then_branch)?;
+            let kind = if let syn::Pat::Wild(_) = pat {
+                quote! {bob.arm_kind_wild()}
+            } else if pat_is_none(pat) {
+                quote! {bob.arm_kind_none()}
+            } else {
+                let pat = rewrite_pattern_as_typed_bits(pat)?;
+                quote! {bob.arm_kind_constant(#pat)}
+            };
+            (kind, body)
+        } else {
+            self.add_scoped_binding(pat)?;
+            let body = self.block_inner(then_branch)?;
+            let mut discriminant = None;
+            if let syn::Pat::Path(path) = pat {
+                if path.path.is_ident("None") {
+                    discriminant = Some(quote!(false.typed_bits()));
+                }
+            }
+            if let syn::Pat::TupleStruct(path) = pat {
+                if path.path.is_ident("Err") {
+                    discriminant = Some(quote!(false.typed_bits()));
+                } else if path.path.is_ident("Some") || path.path.is_ident("Ok") {
+                    discriminant = Some(quote!(true.typed_bits()));
+                }
+            }
+            if discriminant.is_none() {
+                let pat_as_expr = rewrite_pattern_to_use_defaults_for_bindings(pat);
+                discriminant = Some(quote!(rhdl::core::Digital::discriminant(#pat_as_expr)));
+            }
+            let inner = self.pat(pat)?;
+            let kind = quote! {bob.arm_kind_enum(#inner, #discriminant)};
+            (kind, body)
+        };
+        let else_ = else_branch
+            .map(|x| self.expr(x))
+            .transpose()?
+            .map(|x| quote! {Some(#x)})
+            .unwrap_or(quote! {None});
+        self.end_scope();
+        Ok(quote! {
+            bob.if_let_expr(#test, #kind, #body, #else_)
+        })
+    }
+
     fn if_ex(&mut self, expr: &syn::ExprIf) -> Result<TS> {
+        if let syn::Expr::Let(let_expr) = expr.cond.as_ref() {
+            let else_branch = expr.else_branch.as_ref().map(|x| x.1.as_ref());
+            return self.if_let_ex(let_expr, &expr.then_branch, else_branch);
+        }
         let cond = self.expr(&expr.cond)?;
         let then = self.block_inner(&expr.then_branch)?;
         let else_ = expr
@@ -1340,8 +1407,8 @@ impl Context {
 
     fn unary(&mut self, unary: &syn::ExprUnary) -> Result<TS> {
         let op = match unary.op {
-            syn::UnOp::Neg(_) => quote!(rhdl::core::ast_builder::UnOp::Neg),
-            syn::UnOp::Not(_) => quote!(rhdl::core::ast_builder::UnOp::Not),
+            syn::UnOp::Neg(_) => quote!(rhdl::core::ast::builder::UnOp::Neg),
+            syn::UnOp::Not(_) => quote!(rhdl::core::ast::builder::UnOp::Not),
             _ => {
                 return Err(syn::Error::new(
                     unary.span(),
@@ -1357,30 +1424,30 @@ impl Context {
 
     fn binary(&mut self, binary: &syn::ExprBinary) -> Result<TS> {
         let op = match binary.op {
-            syn::BinOp::Add(_) => quote!(rhdl::core::ast_builder::BinOp::Add),
-            syn::BinOp::Sub(_) => quote!(rhdl::core::ast_builder::BinOp::Sub),
-            syn::BinOp::Mul(_) => quote!(rhdl::core::ast_builder::BinOp::Mul),
-            syn::BinOp::And(_) => quote!(rhdl::core::ast_builder::BinOp::And),
-            syn::BinOp::Or(_) => quote!(rhdl::core::ast_builder::BinOp::Or),
-            syn::BinOp::BitXor(_) => quote!(rhdl::core::ast_builder::BinOp::BitXor),
-            syn::BinOp::BitAnd(_) => quote!(rhdl::core::ast_builder::BinOp::BitAnd),
-            syn::BinOp::BitOr(_) => quote!(rhdl::core::ast_builder::BinOp::BitOr),
-            syn::BinOp::Shl(_) => quote!(rhdl::core::ast_builder::BinOp::Shl),
-            syn::BinOp::Shr(_) => quote!(rhdl::core::ast_builder::BinOp::Shr),
-            syn::BinOp::Eq(_) => quote!(rhdl::core::ast_builder::BinOp::Eq),
-            syn::BinOp::Lt(_) => quote!(rhdl::core::ast_builder::BinOp::Lt),
-            syn::BinOp::Le(_) => quote!(rhdl::core::ast_builder::BinOp::Le),
-            syn::BinOp::Ne(_) => quote!(rhdl::core::ast_builder::BinOp::Ne),
-            syn::BinOp::Ge(_) => quote!(rhdl::core::ast_builder::BinOp::Ge),
-            syn::BinOp::Gt(_) => quote!(rhdl::core::ast_builder::BinOp::Gt),
-            syn::BinOp::AddAssign(_) => quote!(rhdl::core::ast_builder::BinOp::AddAssign),
-            syn::BinOp::SubAssign(_) => quote!(rhdl::core::ast_builder::BinOp::SubAssign),
-            syn::BinOp::MulAssign(_) => quote!(rhdl::core::ast_builder::BinOp::MulAssign),
-            syn::BinOp::BitXorAssign(_) => quote!(rhdl::core::ast_builder::BinOp::BitXorAssign),
-            syn::BinOp::BitAndAssign(_) => quote!(rhdl::core::ast_builder::BinOp::BitAndAssign),
-            syn::BinOp::BitOrAssign(_) => quote!(rhdl::core::ast_builder::BinOp::BitOrAssign),
-            syn::BinOp::ShlAssign(_) => quote!(rhdl::core::ast_builder::BinOp::ShlAssign),
-            syn::BinOp::ShrAssign(_) => quote!(rhdl::core::ast_builder::BinOp::ShrAssign),
+            syn::BinOp::Add(_) => quote!(rhdl::core::ast::builder::BinOp::Add),
+            syn::BinOp::Sub(_) => quote!(rhdl::core::ast::builder::BinOp::Sub),
+            syn::BinOp::Mul(_) => quote!(rhdl::core::ast::builder::BinOp::Mul),
+            syn::BinOp::And(_) => quote!(rhdl::core::ast::builder::BinOp::And),
+            syn::BinOp::Or(_) => quote!(rhdl::core::ast::builder::BinOp::Or),
+            syn::BinOp::BitXor(_) => quote!(rhdl::core::ast::builder::BinOp::BitXor),
+            syn::BinOp::BitAnd(_) => quote!(rhdl::core::ast::builder::BinOp::BitAnd),
+            syn::BinOp::BitOr(_) => quote!(rhdl::core::ast::builder::BinOp::BitOr),
+            syn::BinOp::Shl(_) => quote!(rhdl::core::ast::builder::BinOp::Shl),
+            syn::BinOp::Shr(_) => quote!(rhdl::core::ast::builder::BinOp::Shr),
+            syn::BinOp::Eq(_) => quote!(rhdl::core::ast::builder::BinOp::Eq),
+            syn::BinOp::Lt(_) => quote!(rhdl::core::ast::builder::BinOp::Lt),
+            syn::BinOp::Le(_) => quote!(rhdl::core::ast::builder::BinOp::Le),
+            syn::BinOp::Ne(_) => quote!(rhdl::core::ast::builder::BinOp::Ne),
+            syn::BinOp::Ge(_) => quote!(rhdl::core::ast::builder::BinOp::Ge),
+            syn::BinOp::Gt(_) => quote!(rhdl::core::ast::builder::BinOp::Gt),
+            syn::BinOp::AddAssign(_) => quote!(rhdl::core::ast::builder::BinOp::AddAssign),
+            syn::BinOp::SubAssign(_) => quote!(rhdl::core::ast::builder::BinOp::SubAssign),
+            syn::BinOp::MulAssign(_) => quote!(rhdl::core::ast::builder::BinOp::MulAssign),
+            syn::BinOp::BitXorAssign(_) => quote!(rhdl::core::ast::builder::BinOp::BitXorAssign),
+            syn::BinOp::BitAndAssign(_) => quote!(rhdl::core::ast::builder::BinOp::BitAndAssign),
+            syn::BinOp::BitOrAssign(_) => quote!(rhdl::core::ast::builder::BinOp::BitOrAssign),
+            syn::BinOp::ShlAssign(_) => quote!(rhdl::core::ast::builder::BinOp::ShlAssign),
+            syn::BinOp::ShrAssign(_) => quote!(rhdl::core::ast::builder::BinOp::ShrAssign),
             _ => {
                 return Err(syn::Error::new(
                     binary.span(),
@@ -1524,6 +1591,23 @@ mod test {
         let result = result.replace("rhdl::core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
         println!("{}", result);
+    }
+
+    #[test]
+    fn test_if_let_expression() {
+        let test_code = quote! {
+            {
+                let a = Some(43);
+                if let Some(b) = a {
+                    b
+                } else {
+                    0
+                }
+            }
+        };
+
+        let if_let_expr = syn::parse2::<syn::Block>(test_code).unwrap();
+        println!("{:#?}", if_let_expr);
     }
 
     #[test]

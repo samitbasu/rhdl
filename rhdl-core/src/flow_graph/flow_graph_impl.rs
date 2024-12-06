@@ -7,7 +7,7 @@ use fnv::FnvHasher;
 use petgraph::prelude::StableDiGraph;
 
 use crate::{
-    ast::{source_location::SourceLocation, spanned_source::SpannedSourceSet},
+    ast::source::{source_location::SourceLocation, spanned_source_set::SpannedSourceSet},
     hdl::ast::Module,
     rtl::object::RegisterKind,
     Circuit, Digital, HDLDescriptor, RHDLError, Synchronous,

@@ -1,5 +1,5 @@
 use crate::{
-    ast::source_location::SourceLocation,
+    ast::source::source_location::SourceLocation,
     error::rhdl_error,
     flow_graph::{
         error::{FlowGraphError, FlowGraphICE},

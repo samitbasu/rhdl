@@ -2,10 +2,10 @@ use std::collections::BTreeMap;
 
 use crate::{
     digital_fn::NoKernel3,
-    flow_graph::{component, flow_graph_impl::FlowIx},
+    flow_graph::flow_graph_impl::FlowIx,
     hdl::ast::{component_instance, connection, id, index, Direction, Module, Statement},
     rtl::object::RegisterKind,
-    trace, trace_pop_path, trace_push_path,
+    trace_pop_path, trace_push_path,
     types::path::{bit_range, Path},
     CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, RHDLError, Synchronous,
     SynchronousDQ, SynchronousIO,

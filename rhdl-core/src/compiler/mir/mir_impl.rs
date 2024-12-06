@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use crate::{
     ast::{
         ast_impl::{ExprLit, FunctionId},
-        source_location::SourceLocation,
+        source::source_location::SourceLocation,
     },
     rhif::{
         object::{LocatedOpCode, SymbolMap},

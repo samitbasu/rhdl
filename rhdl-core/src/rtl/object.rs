@@ -6,7 +6,7 @@ use std::hash::Hasher;
 use fnv::FnvHasher;
 
 use crate::ast::ast_impl::{FunctionId, NodeId};
-use crate::ast::source_location::SourceLocation;
+use crate::ast::source::source_location::SourceLocation;
 use crate::types::bit_string::BitString;
 use crate::{Digital, Kind};
 

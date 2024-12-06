@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    ast::source_location::SourceLocation,
+    ast::source::source_location::SourceLocation,
     bitx::BitX,
     compiler::mir::error::{RHDLCompileError, ICE},
     error::rhdl_error,
