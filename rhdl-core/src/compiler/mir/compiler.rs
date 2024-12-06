@@ -189,7 +189,7 @@ pub struct MirContext<'a> {
     mode: CompilationMode,
 }
 
-impl<'a> std::fmt::Debug for MirContext<'a> {
+impl std::fmt::Debug for MirContext<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let arguments = self
             .arguments

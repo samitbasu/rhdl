@@ -1,5 +1,3 @@
-use crate::Digital;
-
 pub mod clock_pos_edge;
 pub mod merge;
 pub mod probe;

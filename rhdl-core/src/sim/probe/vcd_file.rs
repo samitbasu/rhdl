@@ -6,7 +6,7 @@ use crate::{
 };
 
 pub struct VCDFile<I> {
-    guard: TraceDBGuard,
+    _guard: TraceDBGuard,
     time_set: fnv::FnvHashSet<u64>,
     iter: I,
     file_name: PathBuf,
@@ -14,7 +14,7 @@ pub struct VCDFile<I> {
 
 pub fn vcd_file<I>(stream: I, file: &Path) -> VCDFile<I> {
     VCDFile {
-        guard: trace_init_db(),
+        _guard: trace_init_db(),
         time_set: fnv::FnvHashSet::default(),
         iter: stream,
         file_name: file.to_path_buf(),

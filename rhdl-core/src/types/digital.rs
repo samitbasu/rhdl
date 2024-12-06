@@ -1,4 +1,4 @@
-use rhdl_bits::{bits, Bits, SignedBits};
+use rhdl_bits::{Bits, SignedBits};
 
 use crate::{
     bitx::{bitx_vec, BitX},

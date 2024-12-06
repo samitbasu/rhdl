@@ -28,7 +28,7 @@ struct VMState<'a> {
     obj: &'a Object,
 }
 
-impl<'a> VMState<'a> {
+impl VMState<'_> {
     fn raise_ice(&self, cause: ICE, loc: SourceLocation) -> RHDLError {
         let symbols = &self.obj.symbols;
         RHDLError::RHDLInternalCompilerError(Box::new(RHDLCompileError {

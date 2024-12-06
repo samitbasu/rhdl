@@ -202,7 +202,7 @@ impl ClockDomainContext<'_> {
         }
     }
     fn import_literals(&mut self) {
-        for (&lit_id, _) in &self.obj.literals {
+        for &lit_id in self.obj.literals.keys() {
             let id = self.obj.symbols.slot_map[&lit_id.into()];
             let ty = self.ctx.ty_unclocked(id);
             self.slot_map.insert(lit_id.into(), ty);
@@ -230,10 +230,6 @@ impl ClockDomainContext<'_> {
                     return Err(self.raise_clock_domain_error(cause_id, slots, cause).into());
                 }
             }
-        }
-        debug!("After unify clocks");
-        for slot in slots {
-            let ty_slot = self.slot_type(slot);
         }
         Ok(())
     }

@@ -35,7 +35,7 @@ struct CoverageMap<'a> {
     map: BTreeMap<Slot, Vec<bool>>,
 }
 
-impl<'a> CoverageMap<'a> {
+impl CoverageMap<'_> {
     fn build_coverage_details(&self, slot: Slot) -> String {
         let kind = self.obj.kind(slot);
         let paths = leaf_paths(&kind, Path::default());

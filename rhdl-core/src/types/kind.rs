@@ -679,7 +679,7 @@ fn is_layout_valid(layout: &[KindLayout]) -> bool {
 fn get_chars_per_bit(layout: &[KindLayout]) -> usize {
     layout
         .iter()
-        .map(|x| (x.name.len() + x.cols.len() - 1) / x.cols.len())
+        .map(|x| x.name.len().div_ceil(x.cols.len()))
         .max()
         .unwrap_or(0)
 }
