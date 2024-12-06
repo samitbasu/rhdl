@@ -1,4 +1,4 @@
-use crate::utils::{assert_frag_eq, assert_tokens_eq};
+use expect_test::expect;
 
 use super::*;
 
@@ -36,127 +36,11 @@ fn test_enum_derive() {
             Unknown,
         }
     };
-    let output = derive_digital_enum(input).unwrap();
-    assert_frag_eq(
-        &output,
-        &quote! {
-            impl rhdl::core::Digital for Test {
-                fn static_kind() -> rhdl::core::Kind {
-                    rhdl::core::Kind::make_enum(
-                        concat!(module_path!(), "::", stringify!(Test)),
-                        vec![
-                            rhdl::core::Kind::make_variant(stringify!(A), rhdl::core::Kind::Empty, 1i64),
-                            rhdl::core::Kind::make_variant(stringify!(B),
-                            rhdl::core::Kind::make_tuple(vec![< Bits:: < 16 > as
-                            rhdl::core::Digital > ::static_kind()]), 2i64),
-                            rhdl::core::Kind::make_variant(stringify!(C),
-                            rhdl::core::Kind::make_struct(stringify!(_Test__C), vec![rhdl::core::Kind::make_field(stringify!(a),
-                            < Bits:: < 32 > as rhdl::core::Digital > ::static_kind()),
-                            rhdl::core::Kind::make_field(stringify!(b), < Bits:: < 8 > as
-                            rhdl::core::Digital > ::static_kind())]), 3i64),
-                            rhdl::core::Kind::make_variant(stringify!(Unknown), rhdl::core::Kind::Empty, 4i64)
-                        ],
-                        rhdl::core::Kind::make_discriminant_layout(
-                        3usize,
-                        rhdl::core::DiscriminantAlignment::Msb,
-                        rhdl::core::DiscriminantType::Unsigned),
-                    )
-                }
-                fn bin(self) -> Vec<rhdl::core::BitX> {
-                    self.kind()
-                        .pad(
-                            match self {
-                                Self::A => rhdl::bits::bits::<3usize>(1i64 as u128).to_bools(),
-                                Self::B(_0) => {
-                                    let mut v = rhdl::bits::bits::<3usize>(2i64 as u128)
-                                        .to_bools();
-                                    v.extend(_0.bin());
-                                    v
-                                }
-                                Self::C { a, b } => {
-                                    let mut v = rhdl::bits::bits::<3usize>(3i64 as u128)
-                                        .to_bools();
-                                    v.extend(a.bin());
-                                    v.extend(b.bin());
-                                    v
-                                }
-                                Self::Unknown => {
-                                    rhdl::bits::bits::<3usize>(4i64 as u128).to_bools()
-                                }
-                            },
-                        )
-                }
-                fn discriminant(self) -> rhdl::core::TypedBits {
-                    match self {
-                        Self::A => rhdl::bits::bits::<3usize>(1i64 as u128).typed_bits(),
-                        Self::B(_0) => rhdl::bits::bits::<3usize>(2i64 as u128).typed_bits(),
-                        Self::C { a, b } => {
-                            rhdl::bits::bits::<3usize>(3i64 as u128).typed_bits()
-                        }
-                        Self::Unknown => rhdl::bits::bits::<3usize>(4i64 as u128).typed_bits(),
-                    }
-                }
-                fn variant_kind(self) -> rhdl::core::Kind {
-                    match self {
-                        Self::A => rhdl::core::Kind::Empty,
-                        Self::B(_0) => {
-                            rhdl::core::Kind::make_tuple(
-                                vec![< Bits:: < 16 > as rhdl::core::Digital > ::static_kind()],
-                            )
-                        }
-                        Self::C { a, b } => {
-                            rhdl::core::Kind::make_struct(
-                                stringify!(_Test__C),
-                                vec![
-                                    rhdl::core::Kind::make_field(stringify!(a), < Bits:: < 32 > as
-                                    rhdl::core::Digital > ::static_kind()),
-                                    rhdl::core::Kind::make_field(stringify!(b), < Bits:: < 8 > as
-                                    rhdl::core::Digital > ::static_kind())
-                                ]
-                            )
-                        }
-                        Self::Unknown => rhdl::core::Kind::Empty,
-                    }
-                }
-                fn uninit() -> Self {
-                    match thread_rng().gen_range(0..=4) {
-                        0 => Self::A,
-                        1 => Self::B(Bits::uninit()),
-                        2 => Self::C {
-                            a: Bits::uninit(),
-                            b: Bits::uninit()
-                        },
-                        _ => Self::Unknown,
-                    }
-                }
-            }
-            impl rhdl::core::Notable for Test {
-                fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
-                    match self {
-                        Self::A => {
-                            writer.write_string(key, stringify!(A));
-                            writer.write_bits((key, "__disc"), 1i64 as u128, 3u8);
-                        }
-                        Self::B(_0) => {
-                            writer.write_string(key, stringify!(B));
-                            writer.write_bits((key, "__disc"), 2i64 as u128, 3u8);
-                            rhdl::core::Notable::note(_0, (key, 0usize), &mut writer);
-                        }
-                        Self::C { a, b } => {
-                            writer.write_string(key, stringify!(C));
-                            writer.write_bits((key, "__disc"), 3i64 as u128, 3u8);
-                            rhdl::core::Notable::note(a, (key, stringify!(a)), &mut writer);
-                            rhdl::core::Notable::note(b, (key, stringify!(b)), &mut writer);
-                        }
-                        Self::Unknown => {
-                            writer.write_string(key, stringify!(Unknown));
-                            writer.write_bits((key, "__disc"), 4i64 as u128, 3u8);
-                        }
-                    }
-                }
-            }
-        },
-    );
+    let output = derive_digital_enum(input).unwrap().to_string();
+    let expected = expect![[
+        r#"impl rhdl :: core :: Digital for Test { const BITS : usize = 3usize + rhdl :: core :: const_max ! (0_usize , < Bits :: < 16 > as rhdl :: core :: Digital > :: BITS , < Bits :: < 32 > as rhdl :: core :: Digital > :: BITS + < Bits :: < 8 > as rhdl :: core :: Digital > :: BITS , 0_usize) ; const TRACE_BITS : usize = 3usize + rhdl :: core :: const_max ! (0_usize , < Bits :: < 16 > as rhdl :: core :: Digital > :: TRACE_BITS , < Bits :: < 32 > as rhdl :: core :: Digital > :: TRACE_BITS + < Bits :: < 8 > as rhdl :: core :: Digital > :: TRACE_BITS , 0_usize) ; fn static_kind () -> rhdl :: core :: Kind { rhdl :: core :: Kind :: make_enum (concat ! (module_path ! () , "::" , stringify ! (Test)) , vec ! [rhdl :: core :: Kind :: make_variant (stringify ! (A) , rhdl :: core :: Kind :: Empty , 1i64) , rhdl :: core :: Kind :: make_variant (stringify ! (B) , rhdl :: core :: Kind :: make_tuple (vec ! [< Bits :: < 16 > as rhdl :: core :: Digital > :: static_kind ()]) , 2i64) , rhdl :: core :: Kind :: make_variant (stringify ! (C) , rhdl :: core :: Kind :: make_struct (stringify ! (_Test__C) , vec ! [rhdl :: core :: Kind :: make_field (stringify ! (a) , < Bits :: < 32 > as rhdl :: core :: Digital > :: static_kind ()) , rhdl :: core :: Kind :: make_field (stringify ! (b) , < Bits :: < 8 > as rhdl :: core :: Digital > :: static_kind ())]) , 3i64) , rhdl :: core :: Kind :: make_variant (stringify ! (Unknown) , rhdl :: core :: Kind :: Empty , 4i64)] , rhdl :: core :: Kind :: make_discriminant_layout (3usize , rhdl :: core :: DiscriminantAlignment :: Msb , rhdl :: core :: DiscriminantType :: Unsigned)) } fn static_trace_type () -> rhdl :: core :: TraceType { rhdl :: rtt :: make_enum (concat ! (module_path ! () , "::" , stringify ! (Test)) , vec ! [rhdl :: rtt :: make_variant (stringify ! (A) , rhdl :: rtt :: TraceType :: Empty , 1i64) , rhdl :: rtt :: make_variant (stringify ! (B) , rhdl :: rtt :: make_tuple (vec ! [< Bits :: < 16 > as rhdl :: core :: Digital > :: static_trace_type ()]) , 2i64) , rhdl :: rtt :: make_variant (stringify ! (C) , rhdl :: rtt :: make_struct (stringify ! (_Test__C) , vec ! [rhdl :: rtt :: make_field (stringify ! (a) , < Bits :: < 32 > as rhdl :: core :: Digital > :: static_trace_type ()) , rhdl :: rtt :: make_field (stringify ! (b) , < Bits :: < 8 > as rhdl :: core :: Digital > :: static_trace_type ())]) , 3i64) , rhdl :: rtt :: make_variant (stringify ! (Unknown) , rhdl :: rtt :: TraceType :: Empty , 4i64)] , rhdl :: rtt :: make_discriminant_layout (3usize , rhdl :: core :: DiscriminantAlignment :: Msb . into () , rhdl :: core :: DiscriminantType :: Unsigned . into ())) } fn bin (self) -> Vec < rhdl :: core :: BitX > { let mut raw = match self { Self :: A => { rhdl :: core :: bitx_vec (& rhdl :: bits :: bits :: < 3usize > (1i64 as u128) . to_bools ()) } Self :: B (_0) => { let mut v = rhdl :: core :: bitx_vec (& rhdl :: bits :: bits :: < 3usize > (2i64 as u128) . to_bools ()) ; v . extend (_0 . bin ()) ; v } Self :: C { a , b } => { let mut v = rhdl :: core :: bitx_vec (& rhdl :: bits :: bits :: < 3usize > (3i64 as u128) . to_bools ()) ; v . extend (a . bin ()) ; v . extend (b . bin ()) ; v } Self :: Unknown => { rhdl :: core :: bitx_vec (& rhdl :: bits :: bits :: < 3usize > (4i64 as u128) . to_bools ()) } } ; raw . resize (Self :: BITS , rhdl :: core :: BitX :: Zero) ; rhdl :: core :: move_nbits_to_msb (& raw , 3usize) } fn trace (self) -> Vec < rhdl :: core :: TraceBit > { let mut raw = match self { Self :: A => { rhdl :: bits :: bits :: < 3usize > (1i64 as u128) . trace () } Self :: B (_0) => { let mut v = rhdl :: bits :: bits :: < 3usize > (2i64 as u128) . trace () ; v . extend (_0 . trace ()) ; v } Self :: C { a , b } => { let mut v = rhdl :: bits :: bits :: < 3usize > (3i64 as u128) . trace () ; v . extend (a . trace ()) ; v . extend (b . trace ()) ; v } Self :: Unknown => { rhdl :: bits :: bits :: < 3usize > (4i64 as u128) . trace () } } ; raw . resize (Self :: TRACE_BITS , rhdl :: core :: TraceBit :: Zero) ; rhdl :: core :: move_nbits_to_msb (& raw , 3usize) } fn discriminant (self) -> rhdl :: core :: TypedBits { match self { Self :: A => { rhdl :: bits :: bits :: < 3usize > (1i64 as u128) . typed_bits () } Self :: B (_0) => { rhdl :: bits :: bits :: < 3usize > (2i64 as u128) . typed_bits () } Self :: C { a , b } => { rhdl :: bits :: bits :: < 3usize > (3i64 as u128) . typed_bits () } Self :: Unknown => { rhdl :: bits :: bits :: < 3usize > (4i64 as u128) . typed_bits () } } } fn variant_kind (self) -> rhdl :: core :: Kind { match self { Self :: A => { rhdl :: core :: Kind :: Empty } Self :: B (_0) => { rhdl :: core :: Kind :: make_tuple (vec ! [< Bits :: < 16 > as rhdl :: core :: Digital > :: static_kind ()]) } Self :: C { a , b } => { rhdl :: core :: Kind :: make_struct (stringify ! (_Test__C) , vec ! [rhdl :: core :: Kind :: make_field (stringify ! (a) , < Bits :: < 32 > as rhdl :: core :: Digital > :: static_kind ()) , rhdl :: core :: Kind :: make_field (stringify ! (b) , < Bits :: < 8 > as rhdl :: core :: Digital > :: static_kind ())]) } Self :: Unknown => { rhdl :: core :: Kind :: Empty } } } fn dont_care () -> Self { < Self as Default > :: default () } }"#
+    ]];
+    expected.assert_eq(&output);
 }
 
 #[test]
@@ -172,115 +56,13 @@ fn test_enum_no_payloads() {
             Unknown,
         }
     );
-    let output = derive_digital_enum(syn::parse2(decl).unwrap()).unwrap();
-    let expected = quote! {
-        impl rhdl::core::Digital for State {
-            fn static_kind() -> rhdl::core::Kind {
-                rhdl::core::Kind::make_enum(
-                    concat!(module_path!(), "::", stringify!(State)),
-                    vec![
-                        rhdl::core::Kind::make_variant(stringify!(Init), rhdl::core::Kind::Empty, 0i64),
-                        rhdl::core::Kind::make_variant(stringify!(Boot), rhdl::core::Kind::Empty, 1i64),
-                        rhdl::core::Kind::make_variant(stringify!(Running), rhdl::core::Kind::Empty, 2i64),
-                        rhdl::core::Kind::make_variant(stringify!(Stop), rhdl::core::Kind::Empty, 3i64),
-                        rhdl::core::Kind::make_variant(stringify!(Boom), rhdl::core::Kind::Empty, 4i64),
-                        rhdl::core::Kind::make_variant(stringify!(Unknown), rhdl::core::Kind::Empty, 5i64)
-                    ],
-                    rhdl::core::Kind::make_discriminant_layout(
-                        3usize,
-                        rhdl::core::DiscriminantAlignment::Msb,
-                        rhdl::core::DiscriminantType::Unsigned,
-                    )
-                )
-            }
-            fn bin(self) -> Vec<rhdl::core::BitX> {
-                self.kind()
-                    .pad(
-                        match self {
-                            Self::Init => {
-                                rhdl::bits::bits::<3usize>(0i64 as u128).to_bools()
-                            }
-                            Self::Boot => {
-                                rhdl::bits::bits::<3usize>(1i64 as u128).to_bools()
-                            }
-                            Self::Running => {
-                                rhdl::bits::bits::<3usize>(2i64 as u128).to_bools()
-                            }
-                            Self::Stop => {
-                                rhdl::bits::bits::<3usize>(3i64 as u128).to_bools()
-                            }
-                            Self::Boom => {
-                                rhdl::bits::bits::<3usize>(4i64 as u128).to_bools()
-                            }
-                            Self::Unknown => {
-                                rhdl::bits::bits::<3usize>(5i64 as u128).to_bools()
-                            }
-                        },
-                    )
-            }
-            fn discriminant(self) -> rhdl::core::TypedBits {
-                match self {
-                    Self::Init => rhdl::bits::bits::<3usize>(0i64 as u128).typed_bits(),
-                    Self::Boot => rhdl::bits::bits::<3usize>(1i64 as u128).typed_bits(),
-                    Self::Running => rhdl::bits::bits::<3usize>(2i64 as u128).typed_bits(),
-                    Self::Stop => rhdl::bits::bits::<3usize>(3i64 as u128).typed_bits(),
-                    Self::Boom => rhdl::bits::bits::<3usize>(4i64 as u128).typed_bits(),
-                    Self::Unknown => rhdl::bits::bits::<3usize>(5i64 as u128).typed_bits(),
-                }
-            }
-            fn variant_kind(self) -> rhdl::core::Kind {
-                match self {
-                    Self::Init => rhdl::core::Kind::Empty,
-                    Self::Boot => rhdl::core::Kind::Empty,
-                    Self::Running => rhdl::core::Kind::Empty,
-                    Self::Stop => rhdl::core::Kind::Empty,
-                    Self::Boom => rhdl::core::Kind::Empty,
-                    Self::Unknown => rhdl::core::Kind::Empty,
-                }
-            }
-            fn uninit() -> Self {
-                match thread_rng().gen_range(0..=5) {
-                    0 => Self::Init,
-                    1 => Self::Boot,
-                    2 => Self::Running,
-                    3 => Self::Stop,
-                    4 => Self::Boom,
-                    _ => Self::Unknown,
-                }
-            }
-        }
-        impl rhdl::core::Notable for State {
-            fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
-                match self {
-                    Self::Init => {
-                        writer.write_string(key, stringify!(Init));
-                        writer.write_bits((key, "__disc"), 0i64 as u128, 3u8);
-                    }
-                    Self::Boot => {
-                        writer.write_string(key, stringify!(Boot));
-                        writer.write_bits((key, "__disc"), 1i64 as u128, 3u8);
-                    }
-                    Self::Running => {
-                        writer.write_string(key, stringify!(Running));
-                        writer.write_bits((key, "__disc"), 2i64 as u128, 3u8);
-                    }
-                    Self::Stop => {
-                        writer.write_string(key, stringify!(Stop));
-                        writer.write_bits((key, "__disc"), 3i64 as u128, 3u8);
-                    }
-                    Self::Boom => {
-                        writer.write_string(key, stringify!(Boom));
-                        writer.write_bits((key, "__disc"), 4i64 as u128, 3u8);
-                    }
-                    Self::Unknown => {
-                        writer.write_string(key, stringify!(Unknown));
-                        writer.write_bits((key, "__disc"), 5i64 as u128, 3u8);
-                    }
-                }
-            }
-        }
-    };
-    assert_tokens_eq(&expected, &output);
+    let output = derive_digital_enum(syn::parse2(decl).unwrap())
+        .unwrap()
+        .to_string();
+    let expected = expect![[
+        r#"impl rhdl :: core :: Digital for State { const BITS : usize = 3usize + rhdl :: core :: const_max ! (0_usize , 0_usize , 0_usize , 0_usize , 0_usize , 0_usize) ; const TRACE_BITS : usize = 3usize + rhdl :: core :: const_max ! (0_usize , 0_usize , 0_usize , 0_usize , 0_usize , 0_usize) ; fn static_kind () -> rhdl :: core :: Kind { rhdl :: core :: Kind :: make_enum (concat ! (module_path ! () , "::" , stringify ! (State)) , vec ! [rhdl :: core :: Kind :: make_variant (stringify ! (Init) , rhdl :: core :: Kind :: Empty , 0i64) , rhdl :: core :: Kind :: make_variant (stringify ! (Boot) , rhdl :: core :: Kind :: Empty , 1i64) , rhdl :: core :: Kind :: make_variant (stringify ! (Running) , rhdl :: core :: Kind :: Empty , 2i64) , rhdl :: core :: Kind :: make_variant (stringify ! (Stop) , rhdl :: core :: Kind :: Empty , 3i64) , rhdl :: core :: Kind :: make_variant (stringify ! (Boom) , rhdl :: core :: Kind :: Empty , 4i64) , rhdl :: core :: Kind :: make_variant (stringify ! (Unknown) , rhdl :: core :: Kind :: Empty , 5i64)] , rhdl :: core :: Kind :: make_discriminant_layout (3usize , rhdl :: core :: DiscriminantAlignment :: Msb , rhdl :: core :: DiscriminantType :: Unsigned)) } fn static_trace_type () -> rhdl :: core :: TraceType { rhdl :: rtt :: make_enum (concat ! (module_path ! () , "::" , stringify ! (State)) , vec ! [rhdl :: rtt :: make_variant (stringify ! (Init) , rhdl :: rtt :: TraceType :: Empty , 0i64) , rhdl :: rtt :: make_variant (stringify ! (Boot) , rhdl :: rtt :: TraceType :: Empty , 1i64) , rhdl :: rtt :: make_variant (stringify ! (Running) , rhdl :: rtt :: TraceType :: Empty , 2i64) , rhdl :: rtt :: make_variant (stringify ! (Stop) , rhdl :: rtt :: TraceType :: Empty , 3i64) , rhdl :: rtt :: make_variant (stringify ! (Boom) , rhdl :: rtt :: TraceType :: Empty , 4i64) , rhdl :: rtt :: make_variant (stringify ! (Unknown) , rhdl :: rtt :: TraceType :: Empty , 5i64)] , rhdl :: rtt :: make_discriminant_layout (3usize , rhdl :: core :: DiscriminantAlignment :: Msb . into () , rhdl :: core :: DiscriminantType :: Unsigned . into ())) } fn bin (self) -> Vec < rhdl :: core :: BitX > { let mut raw = match self { Self :: Init => { rhdl :: core :: bitx_vec (& rhdl :: bits :: bits :: < 3usize > (0i64 as u128) . to_bools ()) } Self :: Boot => { rhdl :: core :: bitx_vec (& rhdl :: bits :: bits :: < 3usize > (1i64 as u128) . to_bools ()) } Self :: Running => { rhdl :: core :: bitx_vec (& rhdl :: bits :: bits :: < 3usize > (2i64 as u128) . to_bools ()) } Self :: Stop => { rhdl :: core :: bitx_vec (& rhdl :: bits :: bits :: < 3usize > (3i64 as u128) . to_bools ()) } Self :: Boom => { rhdl :: core :: bitx_vec (& rhdl :: bits :: bits :: < 3usize > (4i64 as u128) . to_bools ()) } Self :: Unknown => { rhdl :: core :: bitx_vec (& rhdl :: bits :: bits :: < 3usize > (5i64 as u128) . to_bools ()) } } ; raw . resize (Self :: BITS , rhdl :: core :: BitX :: Zero) ; rhdl :: core :: move_nbits_to_msb (& raw , 3usize) } fn trace (self) -> Vec < rhdl :: core :: TraceBit > { let mut raw = match self { Self :: Init => { rhdl :: bits :: bits :: < 3usize > (0i64 as u128) . trace () } Self :: Boot => { rhdl :: bits :: bits :: < 3usize > (1i64 as u128) . trace () } Self :: Running => { rhdl :: bits :: bits :: < 3usize > (2i64 as u128) . trace () } Self :: Stop => { rhdl :: bits :: bits :: < 3usize > (3i64 as u128) . trace () } Self :: Boom => { rhdl :: bits :: bits :: < 3usize > (4i64 as u128) . trace () } Self :: Unknown => { rhdl :: bits :: bits :: < 3usize > (5i64 as u128) . trace () } } ; raw . resize (Self :: TRACE_BITS , rhdl :: core :: TraceBit :: Zero) ; rhdl :: core :: move_nbits_to_msb (& raw , 3usize) } fn discriminant (self) -> rhdl :: core :: TypedBits { match self { Self :: Init => { rhdl :: bits :: bits :: < 3usize > (0i64 as u128) . typed_bits () } Self :: Boot => { rhdl :: bits :: bits :: < 3usize > (1i64 as u128) . typed_bits () } Self :: Running => { rhdl :: bits :: bits :: < 3usize > (2i64 as u128) . typed_bits () } Self :: Stop => { rhdl :: bits :: bits :: < 3usize > (3i64 as u128) . typed_bits () } Self :: Boom => { rhdl :: bits :: bits :: < 3usize > (4i64 as u128) . typed_bits () } Self :: Unknown => { rhdl :: bits :: bits :: < 3usize > (5i64 as u128) . typed_bits () } } } fn variant_kind (self) -> rhdl :: core :: Kind { match self { Self :: Init => { rhdl :: core :: Kind :: Empty } Self :: Boot => { rhdl :: core :: Kind :: Empty } Self :: Running => { rhdl :: core :: Kind :: Empty } Self :: Stop => { rhdl :: core :: Kind :: Empty } Self :: Boom => { rhdl :: core :: Kind :: Empty } Self :: Unknown => { rhdl :: core :: Kind :: Empty } } } fn dont_care () -> Self { < Self as Default > :: default () } }"#
+    ]];
+    expected.assert_eq(&output);
 }
 
 #[test]
@@ -294,92 +76,13 @@ fn test_enum_with_signed_discriminants() {
             Unknown,
         }
     };
-    let output = derive_digital_enum(syn::parse2(decl).unwrap()).unwrap();
-    let expected = quote! {
-        impl rhdl::core::Digital for Test {
-            fn static_kind() -> rhdl::core::Kind {
-                rhdl::core::Kind::make_enum(
-                    concat!(module_path!(), "::", stringify!(Test)),
-                    vec![
-                        rhdl::core::Kind::make_variant(stringify!(A), rhdl::core::Kind::Empty, 1i64),
-                        rhdl::core::Kind::make_variant(stringify!(B), rhdl::core::Kind::Empty, 9i64),
-                        rhdl::core::Kind::make_variant(stringify!(C), rhdl::core::Kind::Empty, -8i64),
-                        rhdl::core::Kind::make_variant(stringify!(Unknown), rhdl::core::Kind::Empty, -7i64)
-                    ],
-                    rhdl::core::Kind::make_discriminant_layout(
-                    5usize,
-                    rhdl::core::DiscriminantAlignment::Msb,
-                    rhdl::core::DiscriminantType::Signed)
-                )
-            }
-            fn bin(self) -> Vec<rhdl::core::BitX> {
-                self.kind()
-                    .pad(
-                        match self {
-                            Self::A => {
-                                rhdl::bits::signed::<5usize>(1i64 as i128).to_bools()
-                            }
-                            Self::B => {
-                                rhdl::bits::signed::<5usize>(9i64 as i128).to_bools()
-                            }
-                            Self::C => {
-                                rhdl::bits::signed::<5usize>(-8i64 as i128).to_bools()
-                            }
-                            Self::Unknown => {
-                                rhdl::bits::signed::<5usize>(-7i64 as i128).to_bools()
-                            }
-                        },
-                    )
-            }
-            fn discriminant(self) -> rhdl::core::TypedBits {
-                match self {
-                    Self::A => rhdl::bits::signed::<5usize>(1i128).typed_bits(),
-                    Self::B => rhdl::bits::signed::<5usize>(9i128).typed_bits(),
-                    Self::C => rhdl::bits::signed::<5usize>(-8i128).typed_bits(),
-                    Self::Unknown => rhdl::bits::signed::<5usize>(-7i128).typed_bits(),
-                }
-            }
-            fn variant_kind(self) -> rhdl::core::Kind {
-                match self {
-                    Self::A => rhdl::core::Kind::Empty,
-                    Self::B => rhdl::core::Kind::Empty,
-                    Self::C => rhdl::core::Kind::Empty,
-                    Self::Unknown => rhdl::core::Kind::Empty,
-                }
-            }
-            fn uninit() -> Self {
-                match thread_rng().gen_range(-16..=15) {
-                    1 => Self::A,
-                    9 => Self::B,
-                    -8 => Self::C,
-                    _ => Self::Unknown,
-                }
-            }
-        }
-        impl rhdl::core::Notable for Test {
-            fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
-                match self {
-                    Self::A => {
-                        writer.write_string(key, stringify!(A));
-                        writer.write_signed((key, "__disc"), 1i64 as i128, 5u8);
-                    }
-                    Self::B => {
-                        writer.write_string(key, stringify!(B));
-                        writer.write_signed((key, "__disc"), 9i64 as i128, 5u8);
-                    }
-                    Self::C => {
-                        writer.write_string(key, stringify!(C));
-                        writer.write_signed((key, "__disc"), -8i64 as i128, 5u8);
-                    }
-                    Self::Unknown => {
-                        writer.write_string(key, stringify!(Unknown));
-                        writer.write_signed((key, "__disc"), -7i64 as i128, 5u8);
-                    }
-                }
-            }
-        }
-    };
-    assert_tokens_eq(&expected, &output);
+    let output = derive_digital_enum(syn::parse2(decl).unwrap())
+        .unwrap()
+        .to_string();
+    let expected = expect![[
+        r#"impl rhdl :: core :: Digital for Test { const BITS : usize = 5usize + rhdl :: core :: const_max ! (0_usize , 0_usize , 0_usize , 0_usize) ; const TRACE_BITS : usize = 5usize + rhdl :: core :: const_max ! (0_usize , 0_usize , 0_usize , 0_usize) ; fn static_kind () -> rhdl :: core :: Kind { rhdl :: core :: Kind :: make_enum (concat ! (module_path ! () , "::" , stringify ! (Test)) , vec ! [rhdl :: core :: Kind :: make_variant (stringify ! (A) , rhdl :: core :: Kind :: Empty , 1i64) , rhdl :: core :: Kind :: make_variant (stringify ! (B) , rhdl :: core :: Kind :: Empty , 9i64) , rhdl :: core :: Kind :: make_variant (stringify ! (C) , rhdl :: core :: Kind :: Empty , - 8i64) , rhdl :: core :: Kind :: make_variant (stringify ! (Unknown) , rhdl :: core :: Kind :: Empty , - 7i64)] , rhdl :: core :: Kind :: make_discriminant_layout (5usize , rhdl :: core :: DiscriminantAlignment :: Msb , rhdl :: core :: DiscriminantType :: Signed)) } fn static_trace_type () -> rhdl :: core :: TraceType { rhdl :: rtt :: make_enum (concat ! (module_path ! () , "::" , stringify ! (Test)) , vec ! [rhdl :: rtt :: make_variant (stringify ! (A) , rhdl :: rtt :: TraceType :: Empty , 1i64) , rhdl :: rtt :: make_variant (stringify ! (B) , rhdl :: rtt :: TraceType :: Empty , 9i64) , rhdl :: rtt :: make_variant (stringify ! (C) , rhdl :: rtt :: TraceType :: Empty , - 8i64) , rhdl :: rtt :: make_variant (stringify ! (Unknown) , rhdl :: rtt :: TraceType :: Empty , - 7i64)] , rhdl :: rtt :: make_discriminant_layout (5usize , rhdl :: core :: DiscriminantAlignment :: Msb . into () , rhdl :: core :: DiscriminantType :: Signed . into ())) } fn bin (self) -> Vec < rhdl :: core :: BitX > { let mut raw = match self { Self :: A => { rhdl :: core :: bitx_vec (& rhdl :: bits :: signed :: < 5usize > (1i64 as i128) . to_bools ()) } Self :: B => { rhdl :: core :: bitx_vec (& rhdl :: bits :: signed :: < 5usize > (9i64 as i128) . to_bools ()) } Self :: C => { rhdl :: core :: bitx_vec (& rhdl :: bits :: signed :: < 5usize > (- 8i64 as i128) . to_bools ()) } Self :: Unknown => { rhdl :: core :: bitx_vec (& rhdl :: bits :: signed :: < 5usize > (- 7i64 as i128) . to_bools ()) } } ; raw . resize (Self :: BITS , rhdl :: core :: BitX :: Zero) ; rhdl :: core :: move_nbits_to_msb (& raw , 5usize) } fn trace (self) -> Vec < rhdl :: core :: TraceBit > { let mut raw = match self { Self :: A => { rhdl :: bits :: signed :: < 5usize > (1i64 as i128) . trace () } Self :: B => { rhdl :: bits :: signed :: < 5usize > (9i64 as i128) . trace () } Self :: C => { rhdl :: bits :: signed :: < 5usize > (- 8i64 as i128) . trace () } Self :: Unknown => { rhdl :: bits :: signed :: < 5usize > (- 7i64 as i128) . trace () } } ; raw . resize (Self :: TRACE_BITS , rhdl :: core :: TraceBit :: Zero) ; rhdl :: core :: move_nbits_to_msb (& raw , 5usize) } fn discriminant (self) -> rhdl :: core :: TypedBits { match self { Self :: A => { rhdl :: bits :: signed :: < 5usize > (1i128) . typed_bits () } Self :: B => { rhdl :: bits :: signed :: < 5usize > (9i128) . typed_bits () } Self :: C => { rhdl :: bits :: signed :: < 5usize > (- 8i128) . typed_bits () } Self :: Unknown => { rhdl :: bits :: signed :: < 5usize > (- 7i128) . typed_bits () } } } fn variant_kind (self) -> rhdl :: core :: Kind { match self { Self :: A => { rhdl :: core :: Kind :: Empty } Self :: B => { rhdl :: core :: Kind :: Empty } Self :: C => { rhdl :: core :: Kind :: Empty } Self :: Unknown => { rhdl :: core :: Kind :: Empty } } } fn dont_care () -> Self { < Self as Default > :: default () } }"#
+    ]];
+    expected.assert_eq(&output);
 }
 
 #[test]
@@ -393,86 +96,13 @@ fn test_enum_with_discriminants() {
             Unknown,
         }
     };
-    let output = derive_digital_enum(syn::parse2(decl).unwrap()).unwrap();
-    let expected = quote! {
-        impl rhdl::core::Digital for Test {
-            fn static_kind() -> rhdl::core::Kind {
-                rhdl::core::Kind::make_enum(concat!(module_path!(), "::", stringify!(Test)), vec![rhdl::core::Kind::make_variant(stringify!(A), rhdl::core::Kind::Empty, 1i64),
-                rhdl::core::Kind::make_variant(stringify!(B), rhdl::core::Kind::Empty, 6i64),
-                rhdl::core::Kind::make_variant(stringify!(C), rhdl::core::Kind::Empty, 8i64),
-                rhdl::core::Kind::make_variant(stringify!(Unknown), rhdl::core::Kind::Empty, 9i64)],
-                rhdl::core::Kind::make_discriminant_layout(
-                4usize, rhdl::core::DiscriminantAlignment::Msb, rhdl::core::DiscriminantType::Unsigned),
-                )
-            }
-            fn bin(self) -> Vec<rhdl::core::BitX> {
-                self.kind()
-                    .pad(
-                        match self {
-                            Self::A => {
-                                rhdl::bits::bits::<4usize>(1i64 as u128).to_bools()
-                            }
-                            Self::B => {
-                                rhdl::bits::bits::<4usize>(6i64 as u128).to_bools()
-                            }
-                            Self::C => {
-                                rhdl::bits::bits::<4usize>(8i64 as u128).to_bools()
-                            }
-                            Self::Unknown => {
-                                rhdl::bits::bits::<4usize>(9i64 as u128).to_bools()
-                            }
-                        },
-                    )
-            }
-            fn discriminant(self) -> rhdl::core::TypedBits {
-                match self {
-                    Self::A => rhdl::bits::bits::<4usize>(1i64 as u128).typed_bits(),
-                    Self::B => rhdl::bits::bits::<4usize>(6i64 as u128).typed_bits(),
-                    Self::C => rhdl::bits::bits::<4usize>(8i64 as u128).typed_bits(),
-                    Self::Unknown => rhdl::bits::bits::<4usize>(9i64 as u128).typed_bits(),
-                }
-            }
-            fn variant_kind(self) -> rhdl::core::Kind {
-                match self {
-                    Self::A => rhdl::core::Kind::Empty,
-                    Self::B => rhdl::core::Kind::Empty,
-                    Self::C => rhdl::core::Kind::Empty,
-                    Self::Unknown => rhdl::core::Kind::Empty,
-                }
-            }
-            fn uninit() -> Self {
-                match thread_rng().gen_range(0..=15) {
-                    1 => Self::A,
-                    6 => Self::B,
-                    8 => Self::C,
-                    _ => Self::Unknown,
-                }
-            }
-        }
-        impl rhdl::core::Notable for Test {
-            fn note(&self, key: impl rhdl::core::NoteKey, mut writer: impl rhdl::core::NoteWriter) {
-                match self {
-                    Self::A => {
-                        writer.write_string(key, stringify!(A));
-                        writer.write_bits((key, "__disc"), 1i64 as u128, 4u8);
-                    }
-                    Self::B => {
-                        writer.write_string(key, stringify!(B));
-                        writer.write_bits((key, "__disc"), 6i64 as u128, 4u8);
-                    }
-                    Self::C => {
-                        writer.write_string(key, stringify!(C));
-                        writer.write_bits((key, "__disc"), 8i64 as u128, 4u8);
-                    }
-                    Self::Unknown => {
-                        writer.write_string(key, stringify!(Unknown));
-                        writer.write_bits((key, "__disc"), 9i64 as u128, 4u8);
-                    }
-                }
-            }
-        }
-    };
-    assert_tokens_eq(&expected, &output);
+    let output = derive_digital_enum(syn::parse2(decl).unwrap())
+        .unwrap()
+        .to_string();
+    let expected = expect![[
+        r#"impl rhdl :: core :: Digital for Test { const BITS : usize = 4usize + rhdl :: core :: const_max ! (0_usize , 0_usize , 0_usize , 0_usize) ; const TRACE_BITS : usize = 4usize + rhdl :: core :: const_max ! (0_usize , 0_usize , 0_usize , 0_usize) ; fn static_kind () -> rhdl :: core :: Kind { rhdl :: core :: Kind :: make_enum (concat ! (module_path ! () , "::" , stringify ! (Test)) , vec ! [rhdl :: core :: Kind :: make_variant (stringify ! (A) , rhdl :: core :: Kind :: Empty , 1i64) , rhdl :: core :: Kind :: make_variant (stringify ! (B) , rhdl :: core :: Kind :: Empty , 6i64) , rhdl :: core :: Kind :: make_variant (stringify ! (C) , rhdl :: core :: Kind :: Empty , 8i64) , rhdl :: core :: Kind :: make_variant (stringify ! (Unknown) , rhdl :: core :: Kind :: Empty , 9i64)] , rhdl :: core :: Kind :: make_discriminant_layout (4usize , rhdl :: core :: DiscriminantAlignment :: Msb , rhdl :: core :: DiscriminantType :: Unsigned)) } fn static_trace_type () -> rhdl :: core :: TraceType { rhdl :: rtt :: make_enum (concat ! (module_path ! () , "::" , stringify ! (Test)) , vec ! [rhdl :: rtt :: make_variant (stringify ! (A) , rhdl :: rtt :: TraceType :: Empty , 1i64) , rhdl :: rtt :: make_variant (stringify ! (B) , rhdl :: rtt :: TraceType :: Empty , 6i64) , rhdl :: rtt :: make_variant (stringify ! (C) , rhdl :: rtt :: TraceType :: Empty , 8i64) , rhdl :: rtt :: make_variant (stringify ! (Unknown) , rhdl :: rtt :: TraceType :: Empty , 9i64)] , rhdl :: rtt :: make_discriminant_layout (4usize , rhdl :: core :: DiscriminantAlignment :: Msb . into () , rhdl :: core :: DiscriminantType :: Unsigned . into ())) } fn bin (self) -> Vec < rhdl :: core :: BitX > { let mut raw = match self { Self :: A => { rhdl :: core :: bitx_vec (& rhdl :: bits :: bits :: < 4usize > (1i64 as u128) . to_bools ()) } Self :: B => { rhdl :: core :: bitx_vec (& rhdl :: bits :: bits :: < 4usize > (6i64 as u128) . to_bools ()) } Self :: C => { rhdl :: core :: bitx_vec (& rhdl :: bits :: bits :: < 4usize > (8i64 as u128) . to_bools ()) } Self :: Unknown => { rhdl :: core :: bitx_vec (& rhdl :: bits :: bits :: < 4usize > (9i64 as u128) . to_bools ()) } } ; raw . resize (Self :: BITS , rhdl :: core :: BitX :: Zero) ; rhdl :: core :: move_nbits_to_msb (& raw , 4usize) } fn trace (self) -> Vec < rhdl :: core :: TraceBit > { let mut raw = match self { Self :: A => { rhdl :: bits :: bits :: < 4usize > (1i64 as u128) . trace () } Self :: B => { rhdl :: bits :: bits :: < 4usize > (6i64 as u128) . trace () } Self :: C => { rhdl :: bits :: bits :: < 4usize > (8i64 as u128) . trace () } Self :: Unknown => { rhdl :: bits :: bits :: < 4usize > (9i64 as u128) . trace () } } ; raw . resize (Self :: TRACE_BITS , rhdl :: core :: TraceBit :: Zero) ; rhdl :: core :: move_nbits_to_msb (& raw , 4usize) } fn discriminant (self) -> rhdl :: core :: TypedBits { match self { Self :: A => { rhdl :: bits :: bits :: < 4usize > (1i64 as u128) . typed_bits () } Self :: B => { rhdl :: bits :: bits :: < 4usize > (6i64 as u128) . typed_bits () } Self :: C => { rhdl :: bits :: bits :: < 4usize > (8i64 as u128) . typed_bits () } Self :: Unknown => { rhdl :: bits :: bits :: < 4usize > (9i64 as u128) . typed_bits () } } } fn variant_kind (self) -> rhdl :: core :: Kind { match self { Self :: A => { rhdl :: core :: Kind :: Empty } Self :: B => { rhdl :: core :: Kind :: Empty } Self :: C => { rhdl :: core :: Kind :: Empty } Self :: Unknown => { rhdl :: core :: Kind :: Empty } } } fn dont_care () -> Self { < Self as Default > :: default () } }"#
+    ]];
+    expected.assert_eq(&output);
 }
 
 #[test]
@@ -499,115 +129,6 @@ fn test_dicriminant_size_calculation() {
     assert_eq!(discriminant_kind(&[0, 3]), DiscriminantType::Unsigned(2));
     assert_eq!(discriminant_kind(&[1, 7]), DiscriminantType::Unsigned(3));
     assert_eq!(discriminant_kind(&[-8, 0]), DiscriminantType::Signed(4));
-}
-
-#[test]
-fn test_discriminant_cover_test() {
-    let decl = quote! {
-        #[derive(Digital)]
-        enum Test {
-            Start = 1,
-            Stop = 2,
-            Boom = 3,
-            Krack = 4,
-        }
-    };
-    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
-    let digital = derive_digital_enum(input);
-    assert!(digital.is_err());
-    let decl = quote! {
-        #[derive(Digital)]
-        enum Test {
-            Start = 1,
-            Stop = 2,
-            Boom = 3,
-        }
-    };
-    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
-    let digital = derive_digital_enum(input);
-    assert!(digital.is_err());
-    let decl = quote! {
-        #[derive(Digital)]
-        enum Test {
-            Krack = 0,
-            Start = 1,
-            Stop = 2,
-            Boom = 3,
-        }
-    };
-    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
-    let digital = derive_digital_enum(input);
-    assert!(digital.is_ok());
-    let decl = quote! {
-        #[derive(Digital)]
-        enum Test {
-            Krack = 0,
-            Start = 1,
-            Stop = 2,
-            Boom = 3,
-        }
-    };
-    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
-    let _digital = derive_digital_enum(input).unwrap();
-}
-
-#[test]
-fn test_invalid_variant_must_have_no_paylaod() {
-    let decl = quote! {
-        #[derive(Digital)]
-        enum Test {
-            Start = 1,
-            Stop = 2,
-            Boom = 3,
-            #[rhdl(unmatched)]
-            Unknown(u8),
-        }
-    };
-    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
-    let digital = derive_digital_enum(input);
-    assert!(digital.is_err());
-    let decl = quote! {
-        #[derive(Digital)]
-        enum Test {
-            Start = 1,
-            Stop = 2,
-            Boom = 3,
-            #[rhdl(unmatched)]
-            Unknown,
-        }
-    };
-    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
-    let digital = derive_digital_enum(input);
-    assert!(digital.is_ok());
-}
-
-#[test]
-fn test_invalid_test_with_signed_discriminant() {
-    let decl = quote! {
-        #[derive(Digital)]
-        enum Test {
-            Start = 1,
-            Stop = 2,
-            Boom = 3,
-            #[rhdl(unmatched)]
-            Unknown = -1,
-        }
-    };
-    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
-    let digital = derive_digital_enum(input);
-    assert!(digital.is_err());
-    let decl = quote! {
-        #[derive(Digital)]
-        enum Test {
-            Start = -2,
-            Stop = -1,
-            Boom = 0,
-            Finish = 1,
-        }
-    };
-    let input: syn::DeriveInput = syn::parse2(decl).unwrap();
-    let digital = derive_digital_enum(input);
-    assert!(digital.is_ok());
 }
 
 #[test]

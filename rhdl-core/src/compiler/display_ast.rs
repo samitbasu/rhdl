@@ -305,7 +305,6 @@ impl PrettyPrinter {
                 self.push(")");
             }
             ExprKind::Path(expr) => {
-                eprintln!("path: {:?}", expr.path);
                 self.push(&format!("{}", expr.path));
             }
             ExprKind::Range(expr) => {

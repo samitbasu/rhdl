@@ -50,17 +50,6 @@ pub(crate) fn assert_tokens_eq(
     }
 }
 
-#[cfg(test)]
-pub(crate) fn assert_frag_eq(
-    expected: &proc_macro2::TokenStream,
-    actual: &proc_macro2::TokenStream,
-) {
-    assert_tokens_eq(
-        &quote::quote!(fn foo() { #expected }),
-        &quote::quote!(fn foo() { #actual }),
-    );
-}
-
 pub(crate) fn evaluate_const_expression(expr: &syn::Expr) -> syn::Result<i64> {
     let expr_as_string = quote!(#expr).to_string();
     match evalexpr::eval_int(&expr_as_string) {
