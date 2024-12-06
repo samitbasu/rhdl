@@ -5,12 +5,11 @@ use thiserror::Error;
 
 use crate::{
     ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
-    ast_builder::BinOp,
-    bitx::BitX,
+    builder::BinOp,
     rhif::spec::{AluBinary, AluUnary, OpCode, Slot},
     rtl::spec::Operand,
     types::{bit_string::BitString, path::Path},
-    Kind, RHDLError, TypedBits,
+    Kind, RHDLError, SourcePool, TypedBits,
 };
 
 use super::{compiler::ScopeIndex, ty::SignFlag};
@@ -296,7 +295,7 @@ pub enum ClockError {
 #[error("RHDL Syntax Error")]
 pub struct RHDLSyntaxError {
     pub cause: Syntax,
-    pub src: String,
+    pub src: SourcePool,
     pub err_span: SourceSpan,
 }
 
@@ -318,7 +317,7 @@ impl Diagnostic for RHDLSyntaxError {
 #[error("RHDL Internal Compile Error")]
 pub struct RHDLCompileError {
     pub cause: ICE,
-    pub src: String,
+    pub src: SourcePool,
     pub err_span: SourceSpan,
 }
 
@@ -340,7 +339,7 @@ impl Diagnostic for RHDLCompileError {
 #[error("RHDL Type Error")]
 pub struct RHDLTypeError {
     pub cause: TypeCheck,
-    pub src: String,
+    pub src: SourcePool,
     pub err_span: SourceSpan,
 }
 
@@ -361,7 +360,7 @@ impl Diagnostic for RHDLTypeError {
 #[derive(Debug, Error)]
 #[error("RHDL Clock Domain Violation")]
 pub struct RHDLClockDomainViolation {
-    pub src: String,
+    pub src: SourcePool,
     pub elements: Vec<(String, SourceSpan)>,
     pub cause: ClockError,
     pub cause_span: SourceSpan,
@@ -392,7 +391,7 @@ impl Diagnostic for RHDLClockDomainViolation {
 #[derive(Debug, Error)]
 #[error("RHDL Partial Initialization Error")]
 pub struct RHDLPartialInitializationError {
-    pub src: String,
+    pub src: SourcePool,
     pub err_span: SourceSpan,
     pub fn_span: SourceSpan,
     pub details: String,
@@ -425,7 +424,7 @@ impl Diagnostic for RHDLPartialInitializationError {
 #[derive(Debug, Error)]
 #[error("RHDL Type Check Error")]
 pub struct RHDLTypeCheckError {
-    pub src: String,
+    pub src: SourcePool,
     pub lhs_type: String,
     pub lhs_span: SourceSpan,
     pub rhs_type: String,

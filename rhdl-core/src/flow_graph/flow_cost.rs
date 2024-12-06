@@ -4,9 +4,12 @@ use miette::{Diagnostic, SourceSpan};
 use petgraph::visit::EdgeRef;
 use thiserror::Error;
 
-use crate::flow_graph::{
-    component::{Component, ComponentKind},
-    flow_graph_impl::{FlowGraph, FlowIx},
+use crate::{
+    flow_graph::{
+        component::{Component, ComponentKind},
+        flow_graph_impl::{FlowGraph, FlowIx},
+    },
+    SourcePool,
 };
 
 use super::edge_kind::EdgeKind;
@@ -19,7 +22,7 @@ pub struct FlowCost {
 #[derive(Debug, Error)]
 #[error("RHDL Critical Timing Path")]
 pub struct CriticalPath {
-    pub src: String,
+    pub src: SourcePool,
     pub elements: Vec<SourceSpan>,
 }
 

@@ -1,8 +1,6 @@
 use crate::{
-    digital_fn::{DigitalFn2, NoKernel2},
-    error::RHDLError,
-    flow_graph::optimization::optimize_flow_graph,
-    trace_pop_path, trace_push_path, Digital, DigitalFn, FlowGraph, Timed,
+    digital_fn::DigitalFn2, error::RHDLError, flow_graph::optimization::optimize_flow_graph,
+    DigitalFn, FlowGraph, Timed,
 };
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};

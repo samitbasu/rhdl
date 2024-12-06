@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-    ast::source_location::SourceLocation,
+    ast::source::source_location::SourceLocation,
     rhif::spec::Member,
     types::kind::{DiscriminantLayout, Enum, Field, Struct},
     Color, DiscriminantAlignment, DiscriminantType, Kind,

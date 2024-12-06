@@ -2,7 +2,7 @@
 use log::debug;
 
 use crate::{
-    ast::{ast_impl::WrapOp, source_location::SourceLocation},
+    ast::{ast_impl::WrapOp, source::source_location::SourceLocation},
     compiler::mir::error::ICE,
     error::RHDLError,
     rhif::{
