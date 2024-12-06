@@ -14,7 +14,7 @@ impl<T: Digital + Default, const N: usize> U<T, N> {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+#[derive(Debug, Digital)]
 pub struct I<T: Digital + Default, const N: usize> {
     pub read_addr: Bits<N>,
     pub write: Option<(Bits<N>, T)>,

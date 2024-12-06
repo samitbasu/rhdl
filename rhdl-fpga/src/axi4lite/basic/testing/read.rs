@@ -29,12 +29,12 @@ impl Default for U {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct I {
     pub run: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct O {
     pub data: Option<DATA>,
 }

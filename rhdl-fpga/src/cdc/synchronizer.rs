@@ -11,7 +11,7 @@ pub struct U<W: Domain, R: Domain> {
     _r: std::marker::PhantomData<R>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Digital, Timed)]
+#[derive(Debug, Digital, Timed)]
 pub struct I<W: Domain, R: Domain> {
     pub data: Signal<bool, W>,
     pub cr: Signal<ClockReset, R>,
@@ -28,7 +28,7 @@ impl<W: Domain, R: Domain> CircuitIO for U<W, R> {
     type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
 }
 
-#[derive(Debug, Clone, PartialEq, Copy, Digital)]
+#[derive(Debug, Digital)]
 pub struct S {
     clock: Clock,
     reg1_next: bool,

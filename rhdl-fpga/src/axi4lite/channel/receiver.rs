@@ -9,7 +9,7 @@ pub struct U<T: Digital + Default> {
     inner: option_carloni::U<T>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct I<T: Digital> {
     // Connection to the bus
     pub bus: ChannelSToR<T>,
@@ -17,7 +17,7 @@ pub struct I<T: Digital> {
     pub ready: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct O<T: Digital> {
     // Data from the bus - None if there is no data
     pub data: Option<T>,

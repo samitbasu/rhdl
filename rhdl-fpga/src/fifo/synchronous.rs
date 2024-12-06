@@ -9,19 +9,19 @@ use super::write_logic;
 /// ports.  The FIFO is parameterized by the number of bits in each element.
 /// The depth of the FIFO is 2^N-1 elements.  You cannot fill the FIFO to 2^N elements.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U<T: Digital, const N: usize> {
+pub struct U<T: Digital + Default, const N: usize> {
     write_logic: write_logic::U<N>,
     read_logic: read_logic::U<N>,
-    ram: ram::synchronous::U<T, N>,
+    ram: ram::option_sync::U<T, N>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct I<T: Digital> {
     pub data: Option<T>,
     pub next: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct O<T: Digital> {
     pub data: Option<T>,
     pub full: bool,
@@ -31,14 +31,14 @@ pub struct O<T: Digital> {
     pub underflow: bool,
 }
 
-impl<T: Digital, const N: usize> SynchronousIO for U<T, N> {
+impl<T: Digital + Default, const N: usize> SynchronousIO for U<T, N> {
     type I = I<T>;
     type O = O<T>;
     type Kernel = fifo_kernel<T, N>;
 }
 
 #[kernel]
-pub fn fifo_kernel<T: Digital, const N: usize>(
+pub fn fifo_kernel<T: Digital + Default, const N: usize>(
     _cr: ClockReset,
     i: I<T>,
     q: Q<T, N>,
@@ -59,9 +59,11 @@ pub fn fifo_kernel<T: Digital, const N: usize>(
     d.write_logic.read_address = q.read_logic.ram_read_address;
     d.write_logic.write_enable = write_enable;
     // Connect the RAM inputs
-    d.ram.write.addr = q.write_logic.ram_write_address;
-    d.ram.write.value = write_data;
-    d.ram.write.enable = write_enable;
+    d.ram.write = if write_enable {
+        Some((q.write_logic.ram_write_address, write_data))
+    } else {
+        None
+    };
     d.ram.read_addr = q.read_logic.ram_read_address;
     // Populate the outputs
     o.data = if q.read_logic.empty {

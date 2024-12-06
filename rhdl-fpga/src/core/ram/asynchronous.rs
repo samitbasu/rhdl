@@ -44,10 +44,9 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> U<T, W, R, N> {
 /// For the input interface, we have write and read parts.  
 /// These are on different clock domains, so we need to split
 /// them out.
-
 /// The read input lines contain the current address and the
 /// clock signal.
-#[derive(Copy, Clone, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct ReadI<const N: usize> {
     pub addr: Bits<N>,
     pub clock: Clock,
@@ -56,7 +55,7 @@ pub struct ReadI<const N: usize> {
 /// The write input lines control the write side of the RAM.
 /// It contains the address to write to, the data, and the
 /// enable and clock signal.
-#[derive(Copy, Clone, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct WriteI<T: Digital, const N: usize> {
     pub addr: Bits<N>,
     pub data: T,
@@ -64,7 +63,7 @@ pub struct WriteI<T: Digital, const N: usize> {
     pub clock: Clock,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Digital, Timed)]
+#[derive(Debug, Digital, Timed)]
 pub struct I<T: Digital, W: Domain, R: Domain, const N: usize> {
     pub write: Signal<WriteI<T, N>, W>,
     pub read: Signal<ReadI<N>, R>,

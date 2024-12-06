@@ -23,14 +23,14 @@ impl<T: Digital, const N: usize> U<T, N> {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct Write<T: Digital, const N: usize> {
     pub addr: Bits<N>,
     pub value: T,
     pub enable: bool,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct I<T: Digital, const N: usize> {
     pub read_addr: Bits<N>,
     pub write: Write<T, N>,

@@ -24,13 +24,13 @@ pub struct U {
     counter: dff::U<DATA>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct I {
     pub axi: WriteUpstream<ID, ADDR>,
     pub run: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Digital)]
+#[derive(Debug, Digital)]
 pub struct O {
     pub axi: WriteDownstream<ID, DATA, ADDR>,
 }

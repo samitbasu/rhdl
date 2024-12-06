@@ -9,13 +9,13 @@ pub struct U<T: Digital + Default> {
     inner: option_carloni::U<T>,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+#[derive(Debug, Digital)]
 pub struct I<T: Digital> {
     pub bus: ChannelRToS,
     pub to_send: Option<T>,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Digital)]
+#[derive(Debug, Digital)]
 pub struct O<T: Digital> {
     pub bus: ChannelSToR<T>,
     pub full: bool,
