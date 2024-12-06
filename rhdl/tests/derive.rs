@@ -189,3 +189,13 @@ fn test_derive_enum_alignment_lsb() {
     assert_eq!(range, 0..2);
     assert_eq!(kind, Kind::make_bits(2));
 }
+
+#[test]
+fn test_template_circuit_derive() {
+    #[derive(Digital)]
+    pub struct Inputs<T: Digital> {
+        pub input: T,
+        pub write: bool,
+        pub read: bool,
+    }
+}

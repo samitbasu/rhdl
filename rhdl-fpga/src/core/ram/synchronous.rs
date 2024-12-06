@@ -9,17 +9,9 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 /// lines are implied with Synchronous circuits, they do not appear in the
 /// interface.
 ///
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct U<T: Digital, const N: usize> {
     initial: BTreeMap<Bits<N>, T>,
-}
-
-impl<T: Digital, const N: usize> Default for U<T, N> {
-    fn default() -> Self {
-        Self {
-            initial: BTreeMap::new(),
-        }
-    }
 }
 
 impl<T: Digital, const N: usize> U<T, N> {

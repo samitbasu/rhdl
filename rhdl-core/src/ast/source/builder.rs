@@ -1,5 +1,6 @@
 use std::{collections::HashMap, ops::Range};
 
+use log::debug;
 use proc_macro2::Span;
 use syn::spanned::Spanned;
 
@@ -111,7 +112,7 @@ impl<'a> SpannedSourceBuilder<'a> {
         Ok(())
     }
     fn pattern(&mut self, syn_pat: &syn::Pat, ast_pat: &ast::Pat) -> syn::Result<()> {
-        eprintln!("pattern: {:?} -> {:?}", ast_pat.id, syn_pat.span());
+        debug!("pattern: {:?} -> {:?}", ast_pat.id, syn_pat.span());
         self.span_map
             .insert(ast_pat.id, syn_pat.span().byte_range());
         match (&syn_pat, &ast_pat.kind) {
