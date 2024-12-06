@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 
-use crate::{core::option::unpack, lid::option_carloni};
+use crate::lid::option_carloni;
 
 use super::{ChannelRToS, ChannelSToR};
 
@@ -35,7 +35,7 @@ impl<T: Digital + Default> SynchronousIO for U<T> {
 //
 
 #[kernel]
-pub fn sender_kernel<T: Digital + Default>(cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
+pub fn sender_kernel<T: Digital + Default>(_cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
     let mut d = D::<T>::dont_care();
     let mut o = O::<T>::dont_care();
     // Forward the to_send to the inner module

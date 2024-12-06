@@ -22,7 +22,7 @@ impl<T: Digital, const N: usize> SynchronousIO for U<T, N> {
 }
 
 #[kernel]
-pub fn delay<T: Digital, const N: usize>(cr: ClockReset, i: T, q: Q<T, N>) -> (T, D<T, N>) {
+pub fn delay<T: Digital, const N: usize>(_cr: ClockReset, i: T, q: Q<T, N>) -> (T, D<T, N>) {
     let mut d = D::<T, N>::dont_care();
     d.dffs[0] = i;
     for i in 1..N {

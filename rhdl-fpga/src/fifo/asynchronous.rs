@@ -60,10 +60,6 @@ pub fn async_fifo_kernel<T: Digital + Default, W: Domain, R: Domain, const N: us
     i: I<T, W, R>,
     q: Q<T, W, R, N>,
 ) -> (O<T, W, R>, D<T, W, R, N>) {
-    let (write_data, write_enable) = match i.data.val() {
-        Some(data) => (data, true),
-        None => (T::dont_care(), false),
-    };
     let mut d = D::<T, W, R, N>::dont_care();
     // Clock the various components
     d.write_logic.clock_reset = i.cr_w;
@@ -74,8 +70,10 @@ pub fn async_fifo_kernel<T: Digital + Default, W: Domain, R: Domain, const N: us
     let mut ram_write = ram::option_async::WriteI::<T, N>::dont_care();
     let ram_write_addr = q.write_logic.val().ram_write_address;
     ram_write.clock = i.cr_w.val().clock;
-    ram_write.data = if write_enable {
-        Some((ram_write_addr, write_data))
+    let mut write_enable = false;
+    ram_write.data = if let Some(data) = i.data.val() {
+        write_enable = true;
+        Some((ram_write_addr, data))
     } else {
         None
     };
@@ -124,26 +122,6 @@ pub fn async_fifo_kernel<T: Digital + Default, W: Domain, R: Domain, const N: us
 mod tests {
     use super::*;
     use std::path::PathBuf;
-
-    fn test_stream() -> impl Iterator + Clone {
-        let write = (0..16)
-            .map(|x| Some(b8(x)))
-            .chain(std::iter::repeat(None))
-            .stream_after_reset(1)
-            .clock_pos_edge(100);
-        let read = std::iter::repeat(false)
-            .take(32)
-            .chain(std::iter::repeat(true).take(16))
-            .stream_after_reset(1)
-            .clock_pos_edge(75);
-        let input = write.merge(read, |w, r| I {
-            data: signal::<_, Red>(w.1),
-            next: signal::<_, Blue>(r.1),
-            cr_w: signal::<_, Red>(w.0),
-            cr_r: signal::<_, Blue>(r.0),
-        });
-        input
-    }
 
     #[test]
     fn basic_write_test() -> miette::Result<()> {

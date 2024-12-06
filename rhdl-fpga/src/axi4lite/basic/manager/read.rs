@@ -1,5 +1,3 @@
-use std::ops::Add;
-
 use crate::axi4lite::channel::receiver;
 use crate::axi4lite::channel::sender;
 use crate::core::dff;
@@ -46,7 +44,7 @@ impl SynchronousIO for U {
 type RA = Address<ID, ADDR>;
 
 #[kernel]
-pub fn basic_read_manager_kernel(cr: ClockReset, i: I, q: Q) -> (O, D) {
+pub fn basic_read_manager_kernel(_cr: ClockReset, i: I, q: Q) -> (O, D) {
     let mut d = D::dont_care();
     let mut o = O::dont_care();
     d.addr.bus = i.axi.addr;
