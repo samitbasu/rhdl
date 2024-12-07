@@ -922,7 +922,7 @@ mod tests {
                 )
             }
             fn static_trace_type() -> rhdl_trace_type::TraceType {
-                crate::rtt::kind_to_trace(&Self::static_kind())
+                crate::rtt::test::kind_to_trace(&Self::static_kind())
             }
             fn bin(self) -> Vec<BitX> {
                 self.kind().pad(match self {
@@ -992,7 +992,7 @@ mod tests {
                 )
             }
             fn static_trace_type() -> rhdl_trace_type::TraceType {
-                crate::rtt::kind_to_trace(&Self::static_kind())
+                crate::rtt::test::kind_to_trace(&Self::static_kind())
             }
             fn bin(self) -> Vec<BitX> {
                 [self.0.bin(), self.1.bin(), self.2.bin()].concat()
@@ -1027,7 +1027,7 @@ mod tests {
                 )
             }
             fn static_trace_type() -> rhdl_trace_type::TraceType {
-                crate::rtt::kind_to_trace(&Self::static_kind())
+                crate::rtt::test::kind_to_trace(&Self::static_kind())
             }
             fn bin(self) -> Vec<BitX> {
                 [self.a.bin(), self.b.bin(), self.c.bin()].concat()

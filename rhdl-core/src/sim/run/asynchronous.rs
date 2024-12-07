@@ -8,7 +8,7 @@ pub struct Run<'a, T, I, S> {
     time: u64,
 }
 
-impl<'a, T, I, S> Clone for Run<'a, T, I, S>
+impl<T, I, S> Clone for Run<'_, T, I, S>
 where
     I: Clone,
     S: Clone,
@@ -32,7 +32,7 @@ pub fn run<T, I, S>(uut: &T, inputs: I) -> Run<'_, T, I, S> {
     }
 }
 
-impl<'a, T, I, S> Iterator for Run<'a, T, I, S>
+impl<T, I, S> Iterator for Run<'_, T, I, S>
 where
     T: Circuit<S = S>,
     I: Iterator<Item = TimedSample<<T as CircuitIO>::I>>,

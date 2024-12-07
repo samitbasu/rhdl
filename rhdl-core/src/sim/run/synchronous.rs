@@ -8,7 +8,7 @@ pub struct RunSynchronous<'a, T, I, S> {
     time: u64,
 }
 
-impl<'a, T, I, S> Clone for RunSynchronous<'a, T, I, S>
+impl<T, I, S> Clone for RunSynchronous<'_, T, I, S>
 where
     I: Clone,
     S: Clone,
@@ -32,7 +32,7 @@ pub fn run_synchronous<T, I, S>(uut: &T, inputs: I) -> RunSynchronous<'_, T, I, 
     }
 }
 
-impl<'a, T, I, S> Iterator for RunSynchronous<'a, T, I, S>
+impl<T, I, S> Iterator for RunSynchronous<'_, T, I, S>
 where
     T: Synchronous<S = S>,
     I: Iterator<Item = TimedSample<(ClockReset, <T as SynchronousIO>::I)>>,

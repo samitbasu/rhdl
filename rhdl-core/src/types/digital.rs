@@ -593,7 +593,7 @@ mod test {
 
     use super::*;
     use crate::{
-        rtt::kind_to_trace,
+        rtt::test::kind_to_trace,
         types::kind::{DiscriminantAlignment, Variant},
     };
     use rhdl_bits::alias::*;

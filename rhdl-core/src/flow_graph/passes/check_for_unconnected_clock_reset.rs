@@ -10,7 +10,7 @@ use super::pass::Pass;
 #[derive(Default, Debug, Clone)]
 pub struct CheckForUnconnectedClockReset {}
 
-fn walk_incoming(graph: &FlowGraph, node: FlowIx, locations: &mut Vec<SourceLocation>) {
+fn _walk_incoming(graph: &FlowGraph, node: FlowIx, locations: &mut Vec<SourceLocation>) {
     if let Some(loc) = graph.graph[node].location {
         locations.push(loc);
     }
@@ -19,7 +19,7 @@ fn walk_incoming(graph: &FlowGraph, node: FlowIx, locations: &mut Vec<SourceLoca
         .edges_directed(node, petgraph::Direction::Incoming)
     {
         let source = edge.source();
-        walk_incoming(graph, source, locations);
+        _walk_incoming(graph, source, locations);
     }
 }
 

@@ -430,6 +430,7 @@ fn impl_digital_fnk_trait(function: &syn::ItemFn) -> Result<TS> {
 fn trace_wrap_function(function: &syn::ItemFn) -> Result<TS> {
     let vis = &function.vis;
     let orig_name = &function.sig.ident;
+    let attrs = &function.attrs;
     let (impl_generics, ty_generics, where_clause) = function.sig.generics.split_for_impl();
     let args = &function.sig.inputs;
     let outer_args = args
@@ -475,6 +476,7 @@ fn trace_wrap_function(function: &syn::ItemFn) -> Result<TS> {
             #[forbid(unreachable_patterns)]
             //#[forbid(path_statements)]
             //#[forbid(unused_variables)]
+            #( #attrs )*
             fn inner #impl_generics (#args) #ret #where_clause {
                 #body
             }

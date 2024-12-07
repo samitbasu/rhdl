@@ -44,6 +44,7 @@ impl SynchronousIO for U {
 type RA = Address<ID, ADDR>;
 
 #[kernel]
+#[allow(clippy::manual_map)]
 pub fn basic_read_manager_kernel(_cr: ClockReset, i: I, q: Q) -> (O, D) {
     let mut d = D::dont_care();
     let mut o = O::dont_care();
