@@ -6,7 +6,7 @@ use crate::bitx::{bitx_vec, BitX};
 
 pub fn to_bigint(bits: &[BitX]) -> Option<BigInt> {
     let bits = bits
-        .into_iter()
+        .iter()
         .map(|x| x.to_bool())
         .collect::<Option<Vec<_>>>()?;
     Some(if bits.last() != Some(&true) {
@@ -36,7 +36,7 @@ pub fn from_bigint(bi: &BigInt, len: usize) -> Vec<BitX> {
 
 pub fn to_biguint(bits: &[BitX]) -> Option<BigUint> {
     let bits = bits
-        .into_iter()
+        .iter()
         .map(|x| x.to_bool())
         .collect::<Option<Vec<_>>>()?;
     let bits = bits
@@ -169,12 +169,12 @@ mod tests {
 
     #[test]
     fn test_bigint_conversion() {
-        let bits = bitx_vec(&vec![true, false, true, false]); // 5
+        let bits = bitx_vec(&[true, false, true, false]); // 5
         let bi = to_bigint(&bits).unwrap();
         assert_eq!(bi, BigInt::from(5));
         let bits_regen = from_bigint(&bi, 4);
         assert_eq!(bits_regen, bits);
-        let bits = bitx_vec(&vec![true, true, false, true]); // -5
+        let bits = bitx_vec(&[true, true, false, true]); // -5
         let bi = to_bigint(&bits).unwrap();
         assert_eq!(bi, BigInt::from(-5));
         let bits_regen = from_bigint(&bi, 4);
@@ -183,12 +183,12 @@ mod tests {
 
     #[test]
     fn test_bigint_extend_behavior() {
-        let bits = bitx_vec(&vec![true, false, true, false]); // 5
+        let bits = bitx_vec(&[true, false, true, false]); // 5
         let bi = to_bigint(&bits).unwrap();
         let bits_regen = from_bigint(&bi, 8);
         assert_eq!(
             bits_regen,
-            bitx_vec(&vec![true, false, true, false, false, false, false, false])
+            bitx_vec(&[true, false, true, false, false, false, false, false])
         );
     }
 }

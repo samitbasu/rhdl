@@ -31,7 +31,7 @@ pub struct RunSynchronousFeedback<'a, T, F, S, I, O> {
     state: State,
 }
 
-impl<'a, T, F, S, I, O> Clone for RunSynchronousFeedback<'a, T, F, S, I, O>
+impl<T, F, S, I, O> Clone for RunSynchronousFeedback<'_, T, F, S, I, O>
 where
     F: Clone,
     S: Clone,
@@ -71,7 +71,7 @@ pub fn run_fn<T, F, S, I, O>(
     }
 }
 
-impl<'a, T, F, S, I, O> RunSynchronousFeedback<'a, T, F, S, I, O>
+impl<T, F, S, I, O> RunSynchronousFeedback<'_, T, F, S, I, O>
 where
     T: Synchronous<S = S>,
     I: Digital,
@@ -103,7 +103,7 @@ where
     }
 }
 
-impl<'a, T, F, S, I, O> Iterator for RunSynchronousFeedback<'a, T, F, S, I, O>
+impl<T, F, S, I, O> Iterator for RunSynchronousFeedback<'_, T, F, S, I, O>
 where
     T: Synchronous<S = S>,
     I: Digital,

@@ -4,7 +4,6 @@ use std::{
     collections::{hash_map::Entry, BTreeMap},
     hash::{Hash, Hasher},
     io::Write,
-    ops::RangeInclusive,
 };
 
 use rhdl_trace_type::{TraceType, RTT};
@@ -408,7 +407,7 @@ mod tests {
 
     use crate::{
         bitx::{bitx_vec, BitX},
-        rtt::kind_to_trace,
+        rtt::test::kind_to_trace,
         types::kind::Variant,
         Digital, DiscriminantAlignment, Kind,
     };
