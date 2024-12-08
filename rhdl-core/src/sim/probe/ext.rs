@@ -1,11 +1,12 @@
 use std::path::Path;
 
-use crate::{Clock, Digital, TimedSample};
+use crate::{Clock, ClockReset, Digital, TimedSample};
 
 use super::{
     edges::{edge_time, EdgeTime},
     glitch_check::{glitch_check, GlitchCheck},
     sample_at_pos_edge::{sample_at_pos_edge, SampleAtPosEdge},
+    synchronous_sample::{synchronous_sample, SynchronousSample},
     vcd_file::{vcd_file, VCDFile},
 };
 
@@ -66,5 +67,26 @@ where
         T: Digital,
     {
         edge_time(self, data_fn)
+    }
+}
+
+pub trait SynchronousProbeExt<I, P, O> {
+    fn synchronous_sample(self) -> SynchronousSample<I>
+    where
+        Self: Sized,
+        I: Iterator<Item = TimedSample<(ClockReset, P, O)>>,
+        P: Digital,
+        O: Digital;
+}
+
+impl<I, P, O> SynchronousProbeExt<I, P, O> for I {
+    fn synchronous_sample(self) -> SynchronousSample<I>
+    where
+        Self: Sized,
+        I: Iterator<Item = TimedSample<(ClockReset, P, O)>>,
+        P: Digital,
+        O: Digital,
+    {
+        synchronous_sample(self)
     }
 }

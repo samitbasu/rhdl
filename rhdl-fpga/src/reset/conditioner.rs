@@ -1,8 +1,5 @@
 use rhdl::{
-    core::{
-        flow_graph,
-        hdl::ast::{index, unsigned_reg_decl, unsigned_wire_decl},
-    },
+    core::hdl::ast::{index, unsigned_reg_decl, unsigned_wire_decl},
     prelude::*,
 };
 
@@ -100,7 +97,7 @@ impl<W: Domain, R: Domain> Circuit for U<W, R> {
             unique_name: name.to_string(),
             flow_graph,
             input_kind: <Self::I as Timed>::static_kind(),
-            output_kind: <Self::O as Digital>::static_kind(),
+            output_kind: <Self::O as Timed>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             children: Default::default(),
@@ -196,9 +193,9 @@ mod tests {
         let uut = U::<Red, Blue>::default();
         let input = sync_stream();
         let tb = uut.run(input)?.collect::<TestBench<_, _>>();
-        let hdl = tb.rtl(&uut, &TestBenchOptions::default().skip(!0).vcd("rtl.vcd"))?;
+        let hdl = tb.rtl(&uut, &TestBenchOptions::default().skip(10))?;
         hdl.run_iverilog()?;
-        let fg = tb.flow_graph(&uut, &TestBenchOptions::default())?;
+        let fg = tb.flow_graph(&uut, &TestBenchOptions::default().skip(10))?;
         fg.run_iverilog()?;
         Ok(())
     }

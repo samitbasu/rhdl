@@ -28,6 +28,7 @@ pub use types::kind::DiscriminantAlignment;
 pub use types::register::Register;
 pub use types::register::SignedRegister;
 pub use types::reset::Reset;
+pub use types::reset_n::ResetN;
 pub use types::signal::Signal;
 pub use types::timed::Timed;
 pub mod ast;

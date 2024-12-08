@@ -108,7 +108,7 @@ mod tests {
             .unwrap();
         let values = sim
             .glitch_check(|x| (x.value.0.clock, x.value.2))
-            .sample_at_pos_edge(|x| x.value.0.clock)
+            .synchronous_sample()
             .skip(2)
             .map(|x| x.value.2);
         assert!(values.eq(expected));
@@ -156,7 +156,7 @@ mod tests {
         let sim = uut.run(inputs)?;
         let outputs = sim
             .glitch_check(|x| (x.value.0.clock, x.value.2))
-            .sample_at_pos_edge(|x| x.value.0.clock)
+            .synchronous_sample()
             .skip(5)
             .take(3)
             .map(|x| x.value.2)

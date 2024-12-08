@@ -110,7 +110,7 @@ mod tests {
             .clock_pos_edge(100);
         let values = uut
             .run(input)?
-            .sample_at_pos_edge(|x| x.value.0.clock)
+            .synchronous_sample()
             .skip(1) // Skip the first value with is zero
             .map(|x| x.value.2);
         let validate = XorShift128::default();
