@@ -113,7 +113,7 @@ mod tests {
         let stream = test_seq();
         let output = uut
             .run(stream)?
-            .sample_at_pos_edge(|x| x.value.0.clock)
+            .synchronous_sample()
             .map(|x| x.value.2.data);
         let output = output.flatten().collect::<Vec<_>>();
         assert!(output.iter().all(|x| *x != 0));
@@ -184,7 +184,7 @@ mod tests {
                 100,
             )
             //.vcd_file(&PathBuf::from("fifo_streaming.vcd"))
-            .sample_at_pos_edge(|x| x.value.0.clock)
+            .synchronous_sample()
             .filter_map(|x| if x.value.1.next { x.value.2.data } else { None })
             .collect::<Vec<_>>();
         assert_eq!(data, read_back);

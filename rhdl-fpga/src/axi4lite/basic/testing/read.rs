@@ -100,7 +100,7 @@ mod tests {
         let input = test_stream();
         let io = uut.run(input)?;
         let io = io
-            .sample_at_pos_edge(|x| x.value.0.clock)
+            .synchronous_sample()
             .flat_map(|x| x.value.2.data)
             .collect::<Vec<_>>();
         let expected = (0..256).map(|n| bits(n << 8 | n)).collect::<Vec<_>>();

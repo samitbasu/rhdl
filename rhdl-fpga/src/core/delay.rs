@@ -60,7 +60,7 @@ mod tests {
     fn test_delay_works() -> miette::Result<()> {
         let uut = U::<Option<Bits<8>>, 4>::default();
         let input = test_pulse();
-        let output = uut.run(input)?.sample_at_pos_edge(|x| x.value.0.clock);
+        let output = uut.run(input)?.synchronous_sample();
         let count = output.clone().filter(|t| t.value.2.is_some()).count();
         assert!(count == 1);
         let start_delay = output

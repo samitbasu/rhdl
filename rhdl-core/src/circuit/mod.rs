@@ -1,6 +1,7 @@
 pub mod adapter;
 pub mod array_circuit;
 pub mod array_synchronous;
+pub mod async_func;
 pub mod chain;
 pub mod circuit_descriptor;
 pub mod circuit_impl;

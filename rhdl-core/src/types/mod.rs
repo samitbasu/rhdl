@@ -11,6 +11,7 @@ pub mod kind;
 pub mod path;
 pub mod register;
 pub mod reset;
+pub mod reset_n;
 pub mod signal;
 pub mod timed;
 pub mod timed_sample;

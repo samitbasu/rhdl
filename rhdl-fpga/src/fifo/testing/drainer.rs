@@ -134,7 +134,7 @@ mod tests {
                 100,
             )
             .take(100)
-            .sample_at_pos_edge(|x| x.value.0.clock)
+            .synchronous_sample()
             .map(|x| x.value.2.valid)
             .last()
             .unwrap();
@@ -163,7 +163,7 @@ mod tests {
                 100,
             )
             .take(100)
-            .sample_at_pos_edge(|x| x.value.0.clock)
+            .synchronous_sample()
             .map(|x| x.value.2.valid)
             .last()
             .unwrap();
