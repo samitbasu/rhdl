@@ -10,17 +10,17 @@ pub mod sender;
 pub mod testing;
 
 #[derive(Debug, Digital, Default)]
-pub struct ChannelRToS {
+pub struct Ready {
     pub ready: bool,
 }
 
 #[derive(Debug, Digital)]
-pub struct ChannelSToR<T: Digital> {
+pub struct DataValid<T: Digital> {
     pub data: T,
     pub valid: bool,
 }
 
-impl<T: Digital> Default for ChannelSToR<T> {
+impl<T: Digital> Default for DataValid<T> {
     fn default() -> Self {
         Self {
             data: T::dont_care(),

@@ -4,9 +4,6 @@ use crate::axi4lite::basic::bridge;
 use crate::axi4lite::basic::manager;
 use crate::core::option::unpack;
 use crate::core::ram;
-use manager::read::ADDR;
-use manager::read::DATA;
-use manager::read::ID;
 
 const RAM_ADDR: usize = 8;
 
@@ -15,8 +12,8 @@ const RAM_ADDR: usize = 8;
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U {
     manager: manager::read::U,
-    subordinate: bridge::read::U<ID, DATA, ADDR>,
-    memory: ram::synchronous::U<DATA, RAM_ADDR>,
+    subordinate: bridge::read::U,
+    memory: ram::synchronous::U<Bits<32>, RAM_ADDR>,
 }
 
 impl Default for U {
@@ -31,12 +28,13 @@ impl Default for U {
 
 #[derive(Debug, Digital)]
 pub struct I {
-    pub run: bool,
+    pub cmd: Option<b32>,
 }
 
 #[derive(Debug, Digital)]
 pub struct O {
-    pub data: Option<DATA>,
+    pub data: Option<Bits<32>>,
+    pub full: bool,
 }
 
 impl SynchronousIO for U {
@@ -49,19 +47,20 @@ impl SynchronousIO for U {
 pub fn basic_test_kernel(cr: ClockReset, i: I, q: Q) -> (O, D) {
     let mut d = D::dont_care();
     d.memory.write.addr = Bits::<RAM_ADDR>::default();
-    d.memory.write.value = DATA::default();
+    d.memory.write.value = bits(0);
     d.memory.write.enable = false;
     d.manager.axi = q.subordinate.axi;
     d.subordinate.axi = q.manager.axi;
-    d.manager.run = i.run;
+    d.manager.cmd = i.cmd;
     d.subordinate.data = q.memory;
     // The read bridge uses a read strobe, but we will ignore that
     // for this test case, since the RAM does not care how many times
     // we read it.
-    let (_, axi_addr) = unpack::<Bits<ADDR>>(q.subordinate.read);
+    let (_, axi_addr) = unpack::<Bits<32>>(q.subordinate.read);
     let read_addr = (axi_addr >> 3).resize();
     let mut o = O {
         data: q.manager.data,
+        full: q.manager.full,
     };
     if cr.reset.any() {
         o.data = None;
@@ -75,11 +74,11 @@ mod tests {
     use super::*;
 
     fn test_stream() -> impl Iterator<Item = TimedSample<(ClockReset, I)>> {
-        std::iter::repeat(false)
-            .take(5)
-            .chain(std::iter::repeat(true).take(25))
-            .chain(std::iter::repeat(false).take(100))
-            .map(|run| I { run })
+        (0..5)
+            .map(|n| Some(bits(n << 3)))
+            .chain(std::iter::repeat(None))
+            .map(|x| I { cmd: x })
+            .take(100)
             .stream_after_reset(1)
             .clock_pos_edge(100)
     }

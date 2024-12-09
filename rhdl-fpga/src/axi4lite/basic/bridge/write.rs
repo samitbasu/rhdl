@@ -1,106 +1,102 @@
 use crate::axi4lite::channel::receiver;
 use crate::axi4lite::channel::sender;
+use crate::axi4lite::types::response_codes;
 use crate::axi4lite::types::ResponseKind;
+use crate::axi4lite::types::WriteMISO;
+use crate::axi4lite::types::WriteMOSI;
 use crate::core::option::unpack;
 use rhdl::prelude::*;
-
-use crate::axi4lite::types::WriteDownstream;
-use crate::axi4lite::types::WriteUpstream;
-use crate::axi4lite::types::{Address, WriteResponse};
 
 // Bridge for writes to a single cycle interface.
 
 #[derive(Clone, Debug, Synchronous, Default)]
 pub struct U<
-    // Transaction ID type
-    ID: Digital + Default,
-    // Data type stored in the memory
-    DATA: Digital + Default,
+    // AXI data width
+    const DATA: usize = 32,
     // AXI address width
     const ADDR: usize = 32,
 > {
     // We need a receiver for the address information
-    addr: receiver::U<Address<ID, ADDR>>,
+    addr: receiver::U<Bits<ADDR>>,
     // We need a receiver for the data information
-    data: receiver::U<DATA>,
+    data: receiver::U<Bits<DATA>>,
     // We need a sender for the response
-    resp: sender::U<WriteResponse<ID>>,
+    resp: sender::U<ResponseKind>,
 }
 
 #[derive(Debug, Digital)]
-pub struct D<ID: Digital, DATA: Digital, const ADDR: usize> {
-    pub addr: receiver::I<Address<ID, ADDR>>,
-    pub data: receiver::I<DATA>,
-    pub resp: sender::I<WriteResponse<ID>>,
+pub struct D<const DATA: usize = 32, const ADDR: usize = 32> {
+    pub addr: receiver::I<Bits<ADDR>>,
+    pub data: receiver::I<Bits<DATA>>,
+    pub resp: sender::I<ResponseKind>,
 }
 
 #[derive(Debug, Digital)]
-pub struct Q<ID: Digital, DATA: Digital, const ADDR: usize> {
-    pub addr: receiver::O<Address<ID, ADDR>>,
-    pub data: receiver::O<DATA>,
-    pub resp: sender::O<WriteResponse<ID>>,
+pub struct Q<const DATA: usize, const ADDR: usize> {
+    pub addr: receiver::O<Bits<ADDR>>,
+    pub data: receiver::O<Bits<DATA>>,
+    pub resp: sender::O<ResponseKind>,
 }
 
-impl<ID: Digital + Default, DATA: Digital + Default, const ADDR: usize> SynchronousDQ
-    for U<ID, DATA, ADDR>
-{
-    type D = D<ID, DATA, ADDR>;
-    type Q = Q<ID, DATA, ADDR>;
+impl<const DATA: usize, const ADDR: usize> SynchronousDQ for U<DATA, ADDR> {
+    type D = D<DATA, ADDR>;
+    type Q = Q<DATA, ADDR>;
 }
 
 #[derive(Debug, Digital)]
-pub struct I<ID: Digital, DATA: Digital, const ADDR: usize> {
-    pub axi: WriteDownstream<ID, DATA, ADDR>,
+pub struct I<const DATA: usize, const ADDR: usize> {
+    pub axi: WriteMOSI<DATA, ADDR>,
     pub full: bool,
 }
 
 #[derive(Debug, Digital)]
-pub struct O<ID: Digital, DATA: Digital, const ADDR: usize> {
-    pub axi: WriteUpstream<ID, ADDR>,
-    pub write: Option<(Bits<ADDR>, DATA)>,
+pub struct O<const DATA: usize, const ADDR: usize> {
+    pub axi: WriteMISO,
+    pub write: Option<(Bits<ADDR>, Bits<DATA>)>,
 }
 
-impl<ID: Digital + Default, DATA: Digital + Default, const ADDR: usize> SynchronousIO
-    for U<ID, DATA, ADDR>
-{
-    type I = I<ID, DATA, ADDR>;
-    type O = O<ID, DATA, ADDR>;
-    type Kernel = write_bridge_kernel<ID, DATA, ADDR>;
+impl<const DATA: usize, const ADDR: usize> SynchronousIO for U<DATA, ADDR> {
+    type I = I<DATA, ADDR>;
+    type O = O<DATA, ADDR>;
+    type Kernel = write_bridge_kernel<DATA, ADDR>;
 }
 
 #[kernel]
-pub fn write_bridge_kernel<ID: Digital + Default, DATA: Digital + Default, const ADDR: usize>(
+pub fn write_bridge_kernel<const DATA: usize, const ADDR: usize>(
     cr: ClockReset,
-    i: I<ID, DATA, ADDR>,
-    q: Q<ID, DATA, ADDR>,
-) -> (O<ID, DATA, ADDR>, D<ID, DATA, ADDR>) {
-    let mut d = D::<ID, DATA, ADDR>::dont_care();
-    let mut o = O::<ID, DATA, ADDR>::dont_care();
-    d.addr.bus = i.axi.addr;
-    d.data.bus = i.axi.data;
-    d.resp.bus = i.axi.resp;
+    i: I<DATA, ADDR>,
+    q: Q<DATA, ADDR>,
+) -> (O<DATA, ADDR>, D<DATA, ADDR>) {
+    let mut d = D::<DATA, ADDR>::dont_care();
+    let mut o = O::<DATA, ADDR>::dont_care();
+    // Connect the address channel
+    d.addr.bus.data = i.axi.awaddr;
+    d.addr.bus.valid = i.axi.awvalid;
+    o.axi.awready = q.addr.bus.ready;
+    // Connect the data channel
+    d.data.bus.data = i.axi.wdata;
+    d.data.bus.valid = i.axi.wvalid;
+    o.axi.wready = q.data.bus.ready;
+    // Connect the response channel
+    d.resp.bus.ready = i.axi.bready;
+    o.axi.bresp = q.resp.bus.data;
+    o.axi.bvalid = q.resp.bus.valid;
     d.resp.to_send = None;
-    o.axi.addr = q.addr.bus;
-    o.axi.data = q.data.bus;
-    o.axi.resp = q.resp.bus;
     o.write = None;
     // Connect the ready signal so that we stop when
     // an address arrives.
-    let (addr_is_valid, addr) = unpack::<Address<ID, ADDR>>(q.addr.data);
+    let (addr_is_valid, addr) = unpack::<Bits<ADDR>>(q.addr.data);
     d.addr.ready = !addr_is_valid;
     // Same for the data
-    let (data_is_valid, data) = unpack::<DATA>(q.data.data);
+    let (data_is_valid, data) = unpack::<Bits<DATA>>(q.data.data);
     d.data.ready = !data_is_valid;
     // If both address and data are valid and the response channel is free, issue a write
     if addr_is_valid && data_is_valid && !q.resp.full && !i.full {
-        o.write = Some((addr.addr, data));
+        o.write = Some((addr, data));
         // We do not need to hold them any longer
         d.addr.ready = true;
         d.data.ready = true;
-        d.resp.to_send = Some(WriteResponse::<ID> {
-            id: addr.id,
-            resp: ResponseKind::OKAY,
-        })
+        d.resp.to_send = Some(response_codes::OKAY);
     }
     if cr.reset.any() {
         o.write = None;
