@@ -43,6 +43,8 @@ pub fn single_kernel<const REG_WIDTH: usize, const DATA: usize, const ADDR: usiz
     o.read = q.read_bridge.axi;
     // Connect the write bridge inputs and outputs to the bus
     d.write_bridge.axi = i.write;
+    // Never stall the write bridge
+    d.write_bridge.full = false;
     o.write = q.write_bridge.axi;
     // Connect the register
     d.reg = q.reg;
