@@ -2,7 +2,7 @@ use rhdl::prelude::*;
 
 use crate::lid::option_carloni;
 
-use super::{ChannelRToS, ChannelSToR};
+use super::{DataValid, Ready};
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U<T: Digital + Default> {
@@ -11,13 +11,13 @@ pub struct U<T: Digital + Default> {
 
 #[derive(Debug, Digital)]
 pub struct I<T: Digital> {
-    pub bus: ChannelRToS,
+    pub bus: Ready,
     pub to_send: Option<T>,
 }
 
 #[derive(Debug, Digital)]
 pub struct O<T: Digital> {
-    pub bus: ChannelSToR<T>,
+    pub bus: DataValid<T>,
     pub full: bool,
 }
 
@@ -35,7 +35,7 @@ impl<T: Digital + Default> SynchronousIO for U<T> {
 //
 
 #[kernel]
-pub fn sender_kernel<T: Digital + Default>(_cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
+pub fn sender_kernel<T: Digital + Default>(cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
     let mut d = D::<T>::dont_care();
     let mut o = O::<T>::dont_care();
     // Forward the to_send to the inner module
@@ -48,5 +48,8 @@ pub fn sender_kernel<T: Digital + Default>(_cr: ClockReset, i: I<T>, q: Q<T>) ->
         o.bus.valid = true;
     }
     o.full = !q.inner.ready;
+    if cr.reset.any() {
+        o.bus.valid = false;
+    }
     (o, d)
 }

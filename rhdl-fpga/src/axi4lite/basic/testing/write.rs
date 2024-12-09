@@ -2,21 +2,18 @@ use rhdl::prelude::*;
 
 use crate::axi4lite::basic::bridge;
 use crate::axi4lite::basic::manager;
-use manager::write::ADDR;
-use manager::write::DATA;
-use manager::write::ID;
 
 // This is a simple test harness that connects a basic manager and subordinate
 // into a test fixture.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U {
     manager: manager::write::U,
-    subordinate: bridge::write::U<ID, DATA, ADDR>,
+    subordinate: bridge::write::U,
 }
 
 #[derive(Debug, Digital)]
 pub struct I {
-    pub run: bool,
+    pub cmd: Option<(b32, b32)>,
     pub full: bool,
 }
 
@@ -31,7 +28,7 @@ pub fn basic_test_kernel(_cr: ClockReset, i: I, q: Q) -> (bool, D) {
     let mut d = D::dont_care();
     d.manager.axi = q.subordinate.axi;
     d.subordinate.axi = q.manager.axi;
-    d.manager.run = i.run;
+    d.manager.cmd = i.cmd;
     d.subordinate.full = i.full;
     (true, d)
 }
@@ -41,11 +38,14 @@ mod tests {
     use super::*;
 
     fn test_stream() -> impl Iterator<Item = TimedSample<(ClockReset, I)>> {
-        std::iter::repeat(false)
+        std::iter::repeat(None)
             .take(5)
-            .chain(std::iter::repeat(true).take(25))
-            .chain(std::iter::repeat(false).take(100))
-            .map(|run| I { run, full: false })
+            .chain((0..5).map(|n| Some((bits(n << 3), bits(n)))))
+            .chain(std::iter::repeat(None).take(10))
+            .map(|x| I {
+                cmd: x,
+                full: false,
+            })
             .stream_after_reset(1)
             .clock_pos_edge(100)
     }
@@ -66,6 +66,8 @@ mod tests {
         let input = test_stream();
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
+        tm.run_iverilog()?;
+        let tm = test_bench.flow_graph(&uut, &Default::default())?;
         tm.run_iverilog()?;
         Ok(())
     }

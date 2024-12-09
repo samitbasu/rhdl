@@ -1,38 +1,35 @@
 use crate::axi4lite::channel::receiver;
 use crate::axi4lite::channel::sender;
+use crate::axi4lite::types::ReadMISO;
+use crate::axi4lite::types::ReadMOSI;
 use crate::core::dff;
 
 use rhdl::prelude::*;
 
-use crate::axi4lite::types::ReadDownstream;
-use crate::axi4lite::types::ReadUpstream;
-use crate::axi4lite::types::{Address, ReadResponse};
-
-pub type ID = Bits<3>;
-pub const ADDR: usize = 16;
-pub type DATA = Bits<32>;
+use crate::axi4lite::types::ReadResponse;
 
 // A basic read manager
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U {
     // We need a sender for the address information
-    addr: sender::U<Address<ID, ADDR>>,
+    addr: sender::U<Bits<32>>,
     // we need a receiver for the response
-    data: receiver::U<ReadResponse<ID, DATA>>,
-    // Address generator
-    counter: dff::U<Bits<ADDR>>,
+    data: receiver::U<ReadResponse<32>>,
+    // Overflow flag
+    overflow: dff::U<bool>,
 }
 
 #[derive(Debug, Digital)]
 pub struct I {
-    pub axi: ReadUpstream<ID, DATA, ADDR>,
-    pub run: bool,
+    pub axi: ReadMISO,
+    pub cmd: Option<b32>,
 }
 
 #[derive(Debug, Digital)]
 pub struct O {
-    pub axi: ReadDownstream<ID, ADDR>,
-    pub data: Option<DATA>,
+    pub axi: ReadMOSI,
+    pub data: Option<b32>,
+    pub full: bool,
 }
 
 impl SynchronousIO for U {
@@ -41,30 +38,35 @@ impl SynchronousIO for U {
     type Kernel = basic_read_manager_kernel;
 }
 
-type RA = Address<ID, ADDR>;
-
 #[kernel]
 #[allow(clippy::manual_map)]
 pub fn basic_read_manager_kernel(_cr: ClockReset, i: I, q: Q) -> (O, D) {
     let mut d = D::dont_care();
     let mut o = O::dont_care();
-    d.addr.bus = i.axi.addr;
-    d.data.bus = i.axi.data;
+    // Wire up the address bus
+    d.addr.bus.ready = i.axi.arready;
+    o.axi.araddr = q.addr.bus.data;
+    o.axi.arvalid = q.addr.bus.valid;
+    // Wire up the data response bus
+    d.data.bus.data.data = i.axi.rdata;
+    d.data.bus.data.resp = i.axi.rresp;
+    d.data.bus.valid = i.axi.rvalid;
+    o.axi.rready = q.data.bus.ready;
     d.addr.to_send = None;
     d.data.ready = true;
-    d.counter = q.counter;
-    if !q.addr.full && i.run {
-        d.addr.to_send = Some(RA {
-            id: bits(0),
-            addr: q.counter,
-        });
-        d.counter = q.counter + 8;
+    d.overflow = q.overflow;
+    let is_full = q.overflow || q.addr.full;
+    if let Some(addr) = i.cmd {
+        if !is_full {
+            d.addr.to_send = Some(addr);
+        } else {
+            d.overflow = true;
+        }
     }
-    o.axi.addr = q.addr.bus;
-    o.axi.data = q.data.bus;
     o.data = match q.data.data {
         Some(response) => Some(response.data),
         None => None,
     };
+    o.full = is_full;
     (o, d)
 }
