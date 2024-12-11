@@ -36,6 +36,8 @@ pub fn single_kernel<const N: usize>(_cr: ClockReset, _i: (), q: Q<N>) -> (bool,
 
 #[cfg(test)]
 mod tests {
+    use expect_test::expect;
+
     use super::*;
 
     #[test]
@@ -46,8 +48,13 @@ mod tests {
             .stream_after_reset(1)
             .clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
-        vcd.dump_to_file(&std::path::PathBuf::from("single.vcd"))
-            .unwrap();
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("lid");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["0e5e76f3176adf6e5eea38c151f8749207de944e1dfd50481609463d8f1ce3f6"];
+        let digest = vcd.dump_to_file(&root.join("single.vcd")).unwrap();
+        expect.assert_eq(&digest);
         Ok(())
     }
 

@@ -1,3 +1,4 @@
+use expect_test::expect;
 use rhdl::prelude::*;
 use rhdl_fpga::core::dff;
 
@@ -44,8 +45,15 @@ fn test_trace() -> miette::Result<()> {
     let uut = U::default();
     let input = stream();
     let vcd = uut.run(input)?.collect::<Vcd>();
-    vcd.dump_to_file(&std::path::PathBuf::from("flow_graph_if_let.vcd"))
+    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("vcd")
+        .join("flow_graph_if_let");
+    std::fs::create_dir_all(&root).unwrap();
+    let expect = expect!["0aa56bb1666358898ac118949d1e288404069aaaadb343ccbf5854a0992ba9a8"];
+    let digest = vcd
+        .dump_to_file(&root.join("flow_graph_if_let.vcd"))
         .unwrap();
+    expect.assert_eq(&digest);
     Ok(())
 }
 

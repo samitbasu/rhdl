@@ -36,6 +36,8 @@ pub fn delay<T: Digital, const N: usize>(_cr: ClockReset, i: T, q: Q<T, N>) -> (
 mod tests {
     // Check that a single value propogates through the delay line
 
+    use expect_test::expect;
+
     use super::*;
 
     fn test_pulse() -> impl Iterator<Item = TimedSample<(ClockReset, Option<Bits<8>>)>> + Clone {
@@ -51,8 +53,13 @@ mod tests {
         let uut = U::<Option<Bits<8>>, 4>::default();
         let input = test_pulse();
         let vcd = uut.run(input)?.collect::<Vcd>();
-        vcd.dump_to_file(&std::path::PathBuf::from("delay.vcd"))
-            .unwrap();
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("delay");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["42d51db675648f83fd7aa81a700a198ca19e3612daa8d45b47768732461ebcdb"];
+        let digest = vcd.dump_to_file(&root.join("delay.vcd")).unwrap();
+        expect.assert_eq(&digest);
         Ok(())
     }
 

@@ -34,11 +34,14 @@ pub fn negating_conditioner_kernel<W: Domain, R: Domain>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::random;
+    use expect_test::expect;
+    use rand::{Rng, SeedableRng};
 
     fn istream() -> impl Iterator<Item = TimedSample<I<Red, Blue>>> {
+        // Use a seeded RNG to get repeatable results
+        let mut rng = rand::rngs::StdRng::seed_from_u64(0xdead_beef);
         let red = (0..)
-            .map(|_| random::<u8>() < 200)
+            .map(move |_| rng.gen::<u8>() < 200)
             .take(100)
             .stream()
             .clock_pos_edge(100);
@@ -54,8 +57,16 @@ mod tests {
         let uut = U::<Red, Blue>::default();
         let stream = istream();
         let vcd = uut.run(stream)?.collect::<Vcd>();
-        vcd.dump_to_file(&std::path::PathBuf::from("negating_conditioner.vcd"))
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("reset")
+            .join("negating_conditioner");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["6108deaca52187e32113fd96bc802605df7d2b9e1ad8967dc0ff8aa841d2ca3d"];
+        let digest = vcd
+            .dump_to_file(&root.join("negating_conditioner.vcd"))
             .unwrap();
+        expect.assert_eq(&digest);
         Ok(())
     }
 

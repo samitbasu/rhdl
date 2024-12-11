@@ -1,3 +1,4 @@
+use expect_test::expect;
 use rhdl::prelude::*;
 
 mod sub {
@@ -141,8 +142,13 @@ fn test_trace() -> miette::Result<()> {
     let uut = U::default();
     let input = test_input_stream();
     let vcd = uut.run(input)?.collect::<Vcd>();
-    vcd.dump_to_file(&std::path::PathBuf::from("twist.vcd"))
-        .unwrap();
+    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("vcd")
+        .join("lid");
+    std::fs::create_dir_all(&root).unwrap();
+    let expect = expect!["743de8300cb95e82ec2d28872d9d6ab70f2ecb18e4d8779c3d7095f057bdc18c"];
+    let digest = vcd.dump_to_file(&root.join("twist.vcd")).unwrap();
+    expect.assert_eq(&digest);
     Ok(())
 }
 

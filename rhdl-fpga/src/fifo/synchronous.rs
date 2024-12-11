@@ -80,6 +80,7 @@ pub fn fifo_kernel<T: Digital + Default, const N: usize>(
 mod tests {
     use std::path::PathBuf;
 
+    use expect_test::expect;
     use rhdl::core::sim::ResetOrData;
 
     use super::*;
@@ -127,7 +128,14 @@ mod tests {
         let uut = U::<Bits<8>, 3>::default();
         let stream = test_seq();
         let vcd = uut.run(stream)?.collect::<Vcd>();
-        vcd.dump_to_file(&PathBuf::from("fifo_sync.vcd")).unwrap();
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("fifo")
+            .join("synchronous");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["36e1d91e3bb5babcbae92a9893ac6f187be0ef34b4531dc6e8bfefc6181bf878"];
+        let digest = vcd.dump_to_file(&root.join("fifo.vcd")).unwrap();
+        expect.assert_eq(&digest);
         Ok(())
     }
 

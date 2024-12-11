@@ -2,8 +2,6 @@
 // The valid and ready signals are handled by the channel.
 use rhdl::prelude::*;
 
-use super::channel::{DataValid, Ready};
-
 pub type ResponseKind = Bits<2>;
 
 // The response kinds

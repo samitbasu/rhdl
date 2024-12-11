@@ -48,6 +48,7 @@ pub fn ram_kernel<T: Digital + Default, const N: usize>(
 
 #[cfg(test)]
 mod tests {
+    use expect_test::expect;
     use rhdl::prelude::*;
 
     use super::*;
@@ -104,8 +105,16 @@ mod tests {
         let stream = inputs.stream_after_reset(1).clock_pos_edge(100);
         let sim = uut.run(stream)?;
         let vcd = sim.clone().collect::<Vcd>();
-        vcd.dump_to_file(&PathBuf::from("test_scan_out_option_ram.vcd"))
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("ram")
+            .join("option_sync");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["1ece6de59fdbc859b9bb790a924f1082993cec62c05b2de72bab49287e83c0ab"];
+        let digest = vcd
+            .dump_to_file(&root.join("test_scan_out_option_ram.vcd"))
             .unwrap();
+        expect.assert_eq(&digest);
         let values = sim
             .glitch_check(|x| (x.value.0.clock, x.value.2))
             .synchronous_sample()

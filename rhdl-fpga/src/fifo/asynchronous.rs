@@ -120,6 +120,8 @@ pub fn async_fifo_kernel<T: Digital + Default, W: Domain, R: Domain, const N: us
 
 #[cfg(test)]
 mod tests {
+    use expect_test::expect;
+
     use super::*;
     use std::path::PathBuf;
 
@@ -144,13 +146,20 @@ mod tests {
         //        let input = test_stream();
         let uut = U::<Bits<8>, Red, Blue, 5>::default();
         let vcd = uut.run(input.clone())?.collect::<Vcd>();
-        vcd.dump_to_file(&PathBuf::from("async_fifo_write_test.vcd"))
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("fifo")
+            .join("asynchronous");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["a9c9560048aa1679b00baf08cd4aef35812bdf8055c3ff73af8a65593e7be087"];
+        let digest = vcd
+            .dump_to_file(&root.join("async_fifo_write_test.vcd"))
             .unwrap();
+        expect.assert_eq(&digest);
         let test_bench = uut.run(input)?.collect::<TestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
         tm.run_iverilog()?;
-        let tm =
-            test_bench.flow_graph(&uut, &TestBenchOptions::default().vcd("test_bench_fg.vcd"))?;
+        let tm = test_bench.flow_graph(&uut, &TestBenchOptions::default())?;
         tm.run_iverilog()?;
         Ok(())
     }

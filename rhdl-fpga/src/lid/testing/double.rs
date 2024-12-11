@@ -48,6 +48,8 @@ pub fn double_kernel<const N: usize>(_cr: ClockReset, _i: (), q: Q<N>) -> (bool,
 
 #[cfg(test)]
 mod tests {
+    use expect_test::expect;
+
     use super::*;
 
     #[test]
@@ -58,8 +60,13 @@ mod tests {
             .stream_after_reset(1)
             .clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
-        vcd.dump_to_file(&std::path::PathBuf::from("double.vcd"))
-            .unwrap();
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("lid");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["c0af30ed7e9effc55f05982dd06d11701eacf3b4175104b31f9c530c70de4d39"];
+        let digest = vcd.dump_to_file(&root.join("double.vcd")).unwrap();
+        expect.assert_eq(&digest);
         Ok(())
     }
 

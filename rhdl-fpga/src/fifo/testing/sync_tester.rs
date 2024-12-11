@@ -37,6 +37,8 @@ pub fn fixture_kernel<const N: usize, const Z: usize>(
 
 #[cfg(test)]
 mod tests {
+    use expect_test::expect;
+
     use super::*;
 
     #[test]
@@ -47,8 +49,13 @@ mod tests {
             .stream_after_reset(1)
             .clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
-        vcd.dump_to_file(&std::path::PathBuf::from("sync_fifo.vcd"))
-            .unwrap();
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("fifo");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["9b437582e949598d128ac9911204d50a7976c6ababd2ce879b447d921f5b49fc"];
+        let digest = vcd.dump_to_file(&root.join("sync_fifo.vcd")).unwrap();
+        expect.assert_eq(&digest);
         Ok(())
     }
 

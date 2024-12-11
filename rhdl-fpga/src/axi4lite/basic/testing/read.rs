@@ -71,6 +71,8 @@ pub fn basic_test_kernel(cr: ClockReset, i: I, q: Q) -> (O, D) {
 
 #[cfg(test)]
 mod tests {
+    use expect_test::expect;
+
     use super::*;
 
     fn test_stream() -> impl Iterator<Item = TimedSample<(ClockReset, I)>> {
@@ -88,8 +90,14 @@ mod tests {
         let uut = U::default();
         let input = test_stream();
         let vcd = uut.run(input)?.collect::<Vcd>();
-        vcd.dump_to_file(&std::path::PathBuf::from("basic_read_test.vcd"))
-            .unwrap();
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("axi4lite")
+            .join("basic");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["84072a32114264ba3c3316f65d2acfc7124b6ec1a0594bc482615d33cebe8864"];
+        let digest = vcd.dump_to_file(&root.join("basic_read_test.vcd")).unwrap();
+        expect.assert_eq(&digest);
         Ok(())
     }
 
