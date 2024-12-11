@@ -151,15 +151,17 @@ impl<W: Domain, R: Domain> Circuit for U<W, R> {
 
 #[cfg(test)]
 mod tests {
-    use rand::random;
+    use expect_test::expect;
+    use rand::{Rng, SeedableRng};
     use rhdl::core::sim::vcd;
 
     use super::*;
 
     fn sync_stream() -> impl Iterator<Item = TimedSample<I<Red, Blue>>> {
+        let mut rng = rand::rngs::StdRng::seed_from_u64(0xdead_beef);
         // Assume the red stuff comes on the edges of a clock
         let red = (0..)
-            .map(|_| random::<bool>())
+            .map(move |_| rng.gen::<bool>())
             .take(100)
             .stream_after_reset(1)
             .clock_pos_edge(100);
@@ -226,8 +228,13 @@ mod tests {
         let uut = U::<Red, Blue>::default();
         let input = sync_stream();
         let vcd = uut.run(input)?.collect::<vcd::Vcd>();
-        vcd.dump_to_file(&std::path::PathBuf::from("synchronizer.vcd"))
-            .unwrap();
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("synchronizer");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["6447afec090e6d976ed27898d22bfef13361bff6b78b6dbc7db1ada3bcd29252"];
+        let digest = vcd.dump_to_file(&root.join("synchronizer.vcd")).unwrap();
+        expect.assert_eq(&digest);
         Ok(())
     }
 }

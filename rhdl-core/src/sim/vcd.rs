@@ -1,5 +1,7 @@
 use std::{io::Write, path::Path};
 
+use sha2::Digest;
+
 use crate::{trace::db::TraceDBGuard, trace_init_db, Digital, TimedSample};
 
 pub struct Vcd {
@@ -28,9 +30,11 @@ impl Vcd {
         let db = self.guard.take();
         db.dump_vcd(writer, Some(&self.time_set))
     }
-    pub fn dump_to_file(self, path: &Path) -> std::io::Result<()> {
-        let fs = std::fs::File::create(path)?;
-        let mut buf = std::io::BufWriter::new(fs);
-        self.dump(&mut buf)
+    pub fn dump_to_file(self, path: &Path) -> std::io::Result<String> {
+        let mut buf = vec![];
+        self.dump(&mut buf)?;
+        let hash = sha2::Sha256::digest(&buf);
+        std::fs::write(path, &buf)?;
+        Ok(format!("{:x}", hash))
     }
 }

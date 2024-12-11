@@ -46,6 +46,8 @@ pub fn fixture_kernel<W: Domain, R: Domain, const N: usize, const Z: usize>(
 
 #[cfg(test)]
 mod tests {
+    use expect_test::expect;
+
     use super::*;
 
     #[test]
@@ -65,8 +67,15 @@ mod tests {
             cr_r: signal(b.0),
         });
         let vcd = uut.run(input.take(10000))?.collect::<Vcd>();
-        vcd.dump_to_file(&std::path::PathBuf::from("async_fifo_trace.vcd"))
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("fifo");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["b8e1e51f3c8dcad89f67b71fa2de263431aef6bfa546dcde4b93fe28b780738c"];
+        let digest = vcd
+            .dump_to_file(&root.join("async_fifo_trace.vcd"))
             .unwrap();
+        expect.assert_eq(&digest);
         Ok(())
     }
 

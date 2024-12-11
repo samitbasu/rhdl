@@ -261,6 +261,8 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N>
 mod tests {
     use std::path::PathBuf;
 
+    use expect_test::expect;
+
     use super::*;
 
     fn get_scan_out_stream<const N: usize>(
@@ -321,11 +323,7 @@ mod tests {
             write: signal(w),
         });
         let test_bench = uut.run(stream)?.collect::<TestBench<_, _>>();
-        let test_mod = test_bench.rtl(
-            &uut,
-            &TestBenchOptions::default().skip(10).vcd("ram_tb_v.vcd"),
-        )?;
-        std::fs::write("ram_tb.v", test_mod.to_string()).unwrap();
+        let test_mod = test_bench.rtl(&uut, &TestBenchOptions::default().skip(10))?;
         test_mod.run_iverilog()?;
         Ok(())
     }
@@ -354,7 +352,14 @@ mod tests {
             .into_iter()
             .map(|x| signal(bits(x)));
         let vcd = uut.run(stream.clone())?.collect::<Vcd>();
-        vcd.dump_to_file(&PathBuf::from("ram_write.vcd")).unwrap();
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("ram")
+            .join("asynchronous");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["ee3fdfccffbab7ba748b21150c6bbb15c1d63b355d2faa2a58156c38ca8d5163"];
+        let digest = vcd.dump_to_file(&root.join("ram_write.vcd")).unwrap();
+        expect.assert_eq(&digest);
         let output = uut
             .run(stream)?
             .glitch_check(|x| (x.value.0.read.val().clock, x.value.1.val()))

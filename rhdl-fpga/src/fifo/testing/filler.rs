@@ -89,6 +89,8 @@ pub fn filler_kernel<const N: usize>(cr: ClockReset, i: I, q: Q<N>) -> (O<N>, D<
 
 #[cfg(test)]
 mod tests {
+    use expect_test::expect;
+
     use super::*;
 
     #[test]
@@ -99,8 +101,14 @@ mod tests {
             .stream_after_reset(1)
             .clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
-        vcd.dump_to_file(&std::path::PathBuf::from("filler.vcd"))
-            .unwrap();
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("fifo")
+            .join("filler");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["558804e9e0a8ba067562d272e96c396a1dae592c9d42ccb71dfabf1d77fca9fd"];
+        let digest = vcd.dump_to_file(&root.join("filler.vcd")).unwrap();
+        expect.assert_eq(&digest);
         Ok(())
     }
 

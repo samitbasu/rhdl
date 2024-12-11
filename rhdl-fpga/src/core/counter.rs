@@ -33,6 +33,7 @@ pub fn counter<const N: usize>(cr: ClockReset, enable: bool, q: Q<N>) -> (Bits<N
 
 #[cfg(test)]
 mod tests {
+    use expect_test::expect;
     use rand::random;
 
     use super::*;
@@ -61,7 +62,13 @@ mod tests {
         let input = input.clock_pos_edge(100);
         let uut: U<16> = U::default();
         let vcd: Vcd = uut.run(input)?.collect();
-        vcd.dump_to_file(&PathBuf::from("counter.vcd")).unwrap();
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("counter");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["b5c35285b0d781b9385402ce769e6958bf0829f34c8db8fa8ebafea7e004056f"];
+        let digest = vcd.dump_to_file(&root.join("counter.vcd")).unwrap();
+        expect.assert_eq(&digest);
         Ok(())
     }
 

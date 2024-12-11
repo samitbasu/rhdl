@@ -47,6 +47,8 @@ pub fn test_kernel<const DATA: usize, const ADDR: usize>(
 
 #[cfg(test)]
 mod tests {
+    use expect_test::expect;
+
     use super::*;
 
     fn write_cmd<const DATA: usize, const ADDR: usize>(val: i32) -> I<DATA, ADDR> {
@@ -90,8 +92,14 @@ mod tests {
         let uut = U::<32, 32>::default();
         let input = test_stream().stream_after_reset(1).clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
-        vcd.dump_to_file(&std::path::PathBuf::from("register.vcd"))
-            .unwrap();
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("axi4lite")
+            .join("register");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["cf311a7e6421a4461c0e7115bd6410e3e8212e804b73ee2339a959de5cd600b2"];
+        let digest = vcd.dump_to_file(&root.join("register.vcd")).unwrap();
+        expect.assert_eq(&digest);
         Ok(())
     }
 

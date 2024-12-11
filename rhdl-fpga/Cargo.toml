@@ -13,5 +13,6 @@ rhdl = { path = "../rhdl" }
 strum = { version = "0.25.0", features = ["derive"] }
 
 [dev-dependencies]
+expect-test = "1.5.0"
 miette = "7.2.0"
 rand = "0.8.5"

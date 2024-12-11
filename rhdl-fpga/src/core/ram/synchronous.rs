@@ -210,6 +210,7 @@ impl<T: Digital, const N: usize> Synchronous for U<T, N> {
 
 #[cfg(test)]
 mod tests {
+    use expect_test::expect;
     use rhdl::prelude::*;
 
     use super::*;
@@ -270,8 +271,16 @@ mod tests {
         let stream = inputs.stream_after_reset(1).clock_pos_edge(100);
         let sim = uut.run(stream)?;
         let vcd = sim.clone().collect::<Vcd>();
-        vcd.dump_to_file(&PathBuf::from("test_scan_out_ram.vcd"))
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("ram")
+            .join("synchronous");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["eb530c1a42a5d7216b7a15cc69085c91c348109ce51cf60c4e32b486a660fd5f"];
+        let digest = vcd
+            .dump_to_file(&root.join("test_scan_out_ram.vcd"))
             .unwrap();
+        expect.assert_eq(&digest);
         let values = sim
             .glitch_check(|x| (x.value.0.clock, x.value.2))
             .synchronous_sample()

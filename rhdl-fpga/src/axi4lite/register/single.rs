@@ -6,9 +6,9 @@
 use crate::{
     axi4lite::{
         basic::bridge,
-        types::{ReadMISO, WriteMOSI, MISO, MOSI},
+        types::{MISO, MOSI},
     },
-    core::{dff, option::unpack},
+    core::dff,
 };
 use rhdl::prelude::*;
 
@@ -73,7 +73,9 @@ pub fn single_kernel<const REG_WIDTH: usize, const DATA: usize, const ADDR: usiz
 
 #[cfg(test)]
 mod tests {
-    use crate::axi4lite::types::ReadMOSI;
+    use expect_test::expect;
+
+    use crate::axi4lite::types::{ReadMOSI, WriteMOSI};
 
     use super::*;
 
@@ -136,8 +138,16 @@ mod tests {
             .stream_after_reset(1)
             .clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
-        vcd.dump_to_file(&std::path::PathBuf::from("single_register_test.vcd"))
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("axi4lite")
+            .join("register");
+        std::fs::create_dir_all(&root).unwrap();
+        let expect = expect!["3f2a2bba71815921707b6a4940545964164d7f5e807e19519b1e1f4bae45049a"];
+        let digest = vcd
+            .dump_to_file(&root.join("single_register_test.vcd"))
             .unwrap();
+        expect.assert_eq(&digest);
         Ok(())
     }
 
