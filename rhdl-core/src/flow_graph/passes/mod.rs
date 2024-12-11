@@ -1,8 +1,10 @@
+pub mod check_for_logic_loops;
 pub mod check_for_unconnected_clock_reset;
 pub mod check_for_undriven;
 pub mod constant_buffer_elimination;
 pub mod constant_propagation;
 pub mod lower_any_with_single_argument;
+pub mod lower_case_to_select;
 pub mod lower_select_to_buffer;
 pub mod lower_select_with_identical_args;
 pub mod pass;

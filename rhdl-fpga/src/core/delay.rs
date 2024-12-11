@@ -7,10 +7,10 @@ pub struct U<T: Digital, const N: usize> {
     dffs: [dff::U<T>; N],
 }
 
-impl<T: Digital, const N: usize> Default for U<T, N> {
+impl<T: Digital + Default, const N: usize> Default for U<T, N> {
     fn default() -> Self {
         Self {
-            dffs: array_init::array_init(|_| dff::U::new(T::dont_care())),
+            dffs: array_init::array_init(|_| dff::U::new(T::default())),
         }
     }
 }

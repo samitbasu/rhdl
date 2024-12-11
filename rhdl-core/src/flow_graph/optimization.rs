@@ -8,9 +8,10 @@ use crate::{
 };
 
 use super::passes::{
+    check_for_logic_loops::CheckForLogicLoops, check_for_undriven::CheckForUndrivenPass,
     constant_propagation::ConstantPropagationPass,
     lower_any_with_single_argument::LowerAnyWithSingleArgument,
-    lower_select_to_buffer::LowerSelectToBufferPass,
+    lower_case_to_select::LowerCaseToSelectPass, lower_select_to_buffer::LowerSelectToBufferPass,
     lower_select_with_identical_args::LowerSelectWithIdenticalArgs, pass::Pass,
     remove_and_with_constant::RemoveAndWithConstantPass,
     remove_hardwired_selects::RemoveHardwiredSelectsPass,
@@ -28,6 +29,7 @@ pub fn optimize_flow_graph(mut flow_graph: FlowGraph) -> Result<FlowGraph, RHDLE
         flow_graph = RemoveUnusedBuffers::run(flow_graph)?;
         flow_graph = ConstantPropagationPass::run(flow_graph)?;
         flow_graph = RemoveUselessSelectsPass::run(flow_graph)?;
+        flow_graph = LowerCaseToSelectPass::run(flow_graph)?;
         flow_graph = RemoveOrWithConstantPass::run(flow_graph)?;
         flow_graph = RemoveAndWithConstantPass::run(flow_graph)?;
         flow_graph = RemoveZerosFromAnyPass::run(flow_graph)?;
@@ -38,6 +40,7 @@ pub fn optimize_flow_graph(mut flow_graph: FlowGraph) -> Result<FlowGraph, RHDLE
             break;
         }
     }
-    //    flow_graph = CheckForUndrivenPass::run(flow_graph)?;
+    flow_graph = CheckForUndrivenPass::run(flow_graph)?;
+    flow_graph = CheckForLogicLoops::run(flow_graph)?;
     Ok(flow_graph)
 }

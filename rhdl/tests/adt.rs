@@ -15,7 +15,7 @@ use common::*;
 use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 
 #[test]
-fn test_adt_use() {
+fn test_adt_use() -> miette::Result<()> {
     #[derive(Digital)]
     pub enum Foo {
         Red(u8, bool),
@@ -45,8 +45,8 @@ fn test_adt_use() {
             .iter()
             .cloned()
             .map(|(a, b)| (signal(a), signal(b))),
-    )
-    .unwrap();
+    )?;
+    Ok(())
 }
 
 #[test]

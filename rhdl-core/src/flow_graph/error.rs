@@ -5,10 +5,17 @@ use thiserror::Error;
 
 use crate::SourcePool;
 
+use super::component::ComponentKind;
+
 #[derive(Error, Debug, Diagnostic)]
 pub enum FlowGraphICE {
-    #[error("Flow graph contains an undriven node")]
-    UndrivenNode,
+    #[error("Flow graph contains an undriven node of kind {kind:?}")]
+    UndrivenNode { kind: ComponentKind },
+    #[error("Flow graph contains a logic loop")]
+    #[diagnostic(help(
+        "The flow graph includes a loop of logic elements which is not allowed.  That loop includes some of the elements identified."
+    ))]
+    LogicLoop,
     #[error("Flow graph is not sealed")]
     UnSealedFlowGraph,
     #[error("Clock or reset signal is driven by a constant")]

@@ -90,7 +90,7 @@ impl std::fmt::Debug for Component {
             ComponentKind::BitSelect(bit_select) => write!(f, "[{}]", bit_select.bit_index),
             ComponentKind::BitString(bit_string) => write!(f, "{:?}", bit_string),
             ComponentKind::Buffer(name) => write!(f, "{name}"),
-            ComponentKind::Case(_) => write!(f, "Case"),
+            ComponentKind::Case(_) => write!(f, "Case {:?}", self.location),
             ComponentKind::Constant(constant) => {
                 let c: char = (*constant).into();
                 write!(f, "{c}")

@@ -41,6 +41,7 @@ pub fn receiver_kernel<T: Digital + Default>(cr: ClockReset, i: I<T>, q: Q<T>) -
     o.bus.ready = q.inner.ready;
     if cr.reset.any() {
         o.data = None;
+        o.bus.ready = false;
     }
     (o, d)
 }
