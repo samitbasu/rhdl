@@ -72,12 +72,12 @@ mod tests {
 
     fn test_stream<const DATA: usize, const ADDR: usize>() -> impl Iterator<Item = I<DATA, ADDR>> {
         [
-            write_cmd(1),
+            write_cmd(42),
             read_cmd(),
-            write_cmd(1),
+            write_cmd(43),
             read_cmd(),
-            write_cmd(1),
-            write_cmd(1),
+            write_cmd(45),
+            write_cmd(42),
             read_cmd(),
         ]
         .into_iter()
@@ -92,38 +92,6 @@ mod tests {
         let vcd = uut.run(input)?.collect::<Vcd>();
         vcd.dump_to_file(&std::path::PathBuf::from("register.vcd"))
             .unwrap();
-        Ok(())
-    }
-
-    /*
-
-
-    3425 -> 3270
-    3270 -> 3134
-    3134 -> 3178
-    3178 -> 3209
-    3209 -> 3211
-    3211 -> 3210
-    3210 -> 3216
-    3216 -> 3227
-    3227 -> 3238
-    3238 -> 3233
-    3233 -> 3243
-    3243 -> 3139
-    3139 -> 3260
-    3260 -> 2692
-    2692 -> 2255
-    2255 -> 2322
-    2322 -> 2356
-
-    */
-
-    #[test]
-    fn generate_dot() -> miette::Result<()> {
-        let uut = U::<1, 1>::default();
-        let fg = uut.flow_graph("top")?;
-        let mut file = std::fs::File::create("register.dot").unwrap();
-        write_dot(&fg, &mut file).unwrap();
         Ok(())
     }
 
@@ -149,7 +117,7 @@ mod tests {
 
     #[test]
     fn test_hdl_generation() -> miette::Result<()> {
-        let uut = U::<1, 1>::default();
+        let uut = U::<32, 32>::default();
         let input = test_stream().stream_after_reset(1).clock_pos_edge(100);
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;

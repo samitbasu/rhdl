@@ -15,7 +15,7 @@ use rhdl::prelude::*;
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U<const REG_WIDTH: usize = 32, const DATA: usize = 32, const ADDR: usize = 32> {
     // We need a read bridge
-    //    read_bridge: bridge::read::U<DATA, ADDR>,
+    read_bridge: bridge::read::U<DATA, ADDR>,
     // And a register to hold the value
     reg: dff::U<Bits<REG_WIDTH>>,
     // And a write bridge
@@ -50,9 +50,8 @@ pub fn single_kernel<const REG_WIDTH: usize, const DATA: usize, const ADDR: usiz
     let mut d = D::<REG_WIDTH, DATA, ADDR>::dont_care();
     let mut o = O::<REG_WIDTH, DATA, ADDR>::dont_care();
     // Connect the read bridge inputs and outputs to the bus
-    //    d.read_bridge.axi = i.axi.read;
-    //    o.axi.read = q.read_bridge.axi;
-    o.axi.read = ReadMISO::<DATA>::default();
+    d.read_bridge.axi = i.axi.read;
+    o.axi.read = q.read_bridge.axi;
     // Connect the write bridge inputs and outputs to the bus
     d.write_bridge.axi = i.axi.write;
     // Do not stop the write bridge
@@ -62,7 +61,7 @@ pub fn single_kernel<const REG_WIDTH: usize, const DATA: usize, const ADDR: usiz
     d.reg = q.reg;
     // Connect the read bridge's input to the register
     // The read bridge's address is ignored
-    //d.read_bridge.data = q.reg.resize();
+    d.read_bridge.data = q.reg.resize();
     // State of the register
     o.read_data = q.reg;
     // Connect the write bridge's output to the register
