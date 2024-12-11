@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
+    io::Write,
 };
 
 use fnv::FnvHasher;
@@ -245,6 +246,12 @@ impl FlowGraph {
         let mut s = vec![];
         super::dot::write_dot(self, &mut s)?;
         Ok(s)
+    }
+    pub fn write_dot(&self, t: impl AsRef<std::path::Path>) -> Result<(), RHDLError> {
+        let mut file = std::fs::File::create(t)?;
+        let s = self.dot()?;
+        file.write_all(&s)?;
+        Ok(())
     }
     pub fn hash_value(&self) -> u64 {
         let mut hasher = FnvHasher::default();

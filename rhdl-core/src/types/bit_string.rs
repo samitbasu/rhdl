@@ -66,6 +66,10 @@ impl BitString {
         self.bits().iter().all(|b| *b == BitX::Zero)
     }
 
+    pub(crate) fn is_ones(&self) -> bool {
+        self.bits().iter().all(|b| *b == BitX::One)
+    }
+
     pub(crate) fn zeros(shift_amount: usize) -> BitString {
         BitString::Unsigned(repeat(BitX::Zero).take(shift_amount).collect())
     }

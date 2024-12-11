@@ -28,7 +28,7 @@ impl<const DATA: usize> Default for ReadResponse<DATA> {
     fn default() -> Self {
         Self {
             resp: response_codes::OKAY,
-            data: Bits::dont_care(),
+            data: Bits::default(),
         }
     }
 }
@@ -56,7 +56,7 @@ pub struct ReadMOSI<const ADDR: usize = 32> {
     pub rready: bool,
 }
 
-#[derive(Debug, Digital)]
+#[derive(Debug, Digital, Default)]
 pub struct ReadMISO<const DATA: usize = 32> {
     /// Read Address ready
     pub arready: bool,
@@ -68,7 +68,7 @@ pub struct ReadMISO<const DATA: usize = 32> {
     pub rvalid: bool,
 }
 
-#[derive(Debug, Digital)]
+#[derive(Debug, Digital, Default)]
 pub struct WriteMOSI<const DATA: usize = 32, const ADDR: usize = 32> {
     /// Write Address
     pub awaddr: Bits<ADDR>,

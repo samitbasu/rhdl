@@ -77,6 +77,7 @@ where
         iter: I,
     ) -> Result<Run<'_, Self, <I as IntoIterator>::IntoIter, <Self as Circuit>::S>, RHDLError> {
         let _ = self.hdl("top")?;
+        let _ = self.flow_graph("name")?;
         Ok(run(self, iter.into_iter()))
     }
 }

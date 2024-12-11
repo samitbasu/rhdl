@@ -16,7 +16,13 @@ impl Pass for CheckForUndrivenPass {
     fn run(input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         for node in input.graph.node_indices() {
             let component = input.graph.node_weight(node).unwrap();
-            let no_drive_needed = matches!(component.kind, ComponentKind::Constant(_));
+            let no_drive_needed = matches!(
+                component.kind,
+                ComponentKind::Constant(_)
+                    | ComponentKind::BitString(_)
+                    | ComponentKind::Buffer(_)
+                    | ComponentKind::BBOutput(_)
+            );
             if !no_drive_needed {
                 let incoming_count = input
                     .graph
@@ -25,7 +31,9 @@ impl Pass for CheckForUndrivenPass {
                 if incoming_count == 0 {
                     return Err(Self::raise_ice(
                         &input,
-                        FlowGraphICE::UndrivenNode,
+                        FlowGraphICE::UndrivenNode {
+                            kind: component.kind.clone(),
+                        },
                         component.location,
                     ));
                 }

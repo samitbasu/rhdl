@@ -85,6 +85,7 @@ where
         RHDLError,
     > {
         let _ = self.hdl("top")?;
+        let _ = self.flow_graph("name")?;
         Ok(run_synchronous(self, iter.into_iter()))
     }
 }

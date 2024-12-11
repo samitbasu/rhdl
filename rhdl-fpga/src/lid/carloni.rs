@@ -9,7 +9,7 @@ use crate::core::dff;
 /// This is an implementation of the relay station as shown in Figure 4.
 ///
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
-pub struct U<T: Digital> {
+pub struct U<T: Digital + Default> {
     // The main FF
     main_ff: dff::U<T>,
     // The aux FF
@@ -28,11 +28,11 @@ pub enum State {
     Stall,
 }
 
-impl<T: Digital> Default for U<T> {
+impl<T: Digital + Default> Default for U<T> {
     fn default() -> Self {
         Self {
-            main_ff: dff::U::new(T::dont_care()),
-            aux_ff: dff::U::new(T::dont_care()),
+            main_ff: dff::U::new(T::default()),
+            aux_ff: dff::U::new(T::default()),
             void_ff: dff::U::new(true),
             state_ff: dff::U::new(State::Run),
         }
@@ -53,14 +53,14 @@ pub struct O<T: Digital> {
     pub stop_out: bool,
 }
 
-impl<T: Digital> SynchronousIO for U<T> {
+impl<T: Digital + Default> SynchronousIO for U<T> {
     type I = I<T>;
     type O = O<T>;
     type Kernel = carloni_kernel<T>;
 }
 
 #[kernel]
-pub fn carloni_kernel<T: Digital>(_cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
+pub fn carloni_kernel<T: Digital + Default>(_cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
     let mut d = D::<T>::dont_care();
     let mut o = O::<T>::dont_care();
     // There are 4 control signals

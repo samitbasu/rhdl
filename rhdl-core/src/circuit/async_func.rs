@@ -6,8 +6,8 @@ use crate::{
         builder::generate_verilog,
     },
     rtl::Object,
-    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, CompilationMode, Digital, DigitalFn,
-    HDLDescriptor, Kind, RHDLError, Timed,
+    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, CompilationMode, DigitalFn, HDLDescriptor,
+    Kind, RHDLError, Timed,
 };
 
 use super::hdl_backend::maybe_port_wire;

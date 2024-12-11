@@ -10,39 +10,43 @@ use crate::axi4lite::types::ReadResponse;
 
 // A basic read manager
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U {
+pub struct U<const DATA: usize = 32, const ADDR: usize = 32> {
     // We need a sender for the address information
-    addr: sender::U<Bits<32>>,
+    addr: sender::U<Bits<ADDR>>,
     // we need a receiver for the response
-    data: receiver::U<ReadResponse<32>>,
+    data: receiver::U<ReadResponse<DATA>>,
     // Overflow flag
     overflow: dff::U<bool>,
 }
 
 #[derive(Debug, Digital)]
-pub struct I {
-    pub axi: ReadMISO,
-    pub cmd: Option<b32>,
+pub struct I<const DATA: usize, const ADDR: usize> {
+    pub axi: ReadMISO<DATA>,
+    pub cmd: Option<Bits<ADDR>>,
 }
 
 #[derive(Debug, Digital)]
-pub struct O {
-    pub axi: ReadMOSI,
-    pub data: Option<b32>,
+pub struct O<const DATA: usize, const ADDR: usize> {
+    pub axi: ReadMOSI<ADDR>,
+    pub data: Option<Bits<DATA>>,
     pub full: bool,
 }
 
-impl SynchronousIO for U {
-    type I = I;
-    type O = O;
-    type Kernel = basic_read_manager_kernel;
+impl<const DATA: usize, const ADDR: usize> SynchronousIO for U<DATA, ADDR> {
+    type I = I<DATA, ADDR>;
+    type O = O<DATA, ADDR>;
+    type Kernel = basic_read_manager_kernel<DATA, ADDR>;
 }
 
 #[kernel]
 #[allow(clippy::manual_map)]
-pub fn basic_read_manager_kernel(_cr: ClockReset, i: I, q: Q) -> (O, D) {
-    let mut d = D::dont_care();
-    let mut o = O::dont_care();
+pub fn basic_read_manager_kernel<const DATA: usize, const ADDR: usize>(
+    _cr: ClockReset,
+    i: I<DATA, ADDR>,
+    q: Q<DATA, ADDR>,
+) -> (O<DATA, ADDR>, D<DATA, ADDR>) {
+    let mut d = D::<DATA, ADDR>::dont_care();
+    let mut o = O::<DATA, ADDR>::dont_care();
     // Wire up the address bus
     d.addr.bus.ready = i.axi.arready;
     o.axi.araddr = q.addr.bus.data;

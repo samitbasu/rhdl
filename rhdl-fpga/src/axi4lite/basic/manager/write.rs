@@ -9,11 +9,11 @@ use crate::axi4lite::types::ResponseKind;
 
 // A basic manager...
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U {
+pub struct U<const DATA: usize = 32, const ADDR: usize = 32> {
     // We need a sender for the address information
-    addr: sender::U<Bits<32>>,
+    addr: sender::U<Bits<ADDR>>,
     // We need a sender for the data information
-    data: sender::U<Bits<32>>,
+    data: sender::U<Bits<DATA>>,
     // We need a receiver for the response
     resp: receiver::U<ResponseKind>,
     // Overflow flag
@@ -21,27 +21,31 @@ pub struct U {
 }
 
 #[derive(Debug, Digital)]
-pub struct I {
+pub struct I<const DATA: usize, const ADDR: usize> {
     pub axi: WriteMISO,
-    pub cmd: Option<(b32, b32)>,
+    pub cmd: Option<(Bits<ADDR>, Bits<DATA>)>,
 }
 
 #[derive(Debug, Digital)]
-pub struct O {
-    pub axi: WriteMOSI,
+pub struct O<const DATA: usize, const ADDR: usize> {
+    pub axi: WriteMOSI<DATA, ADDR>,
     pub full: bool,
 }
 
-impl SynchronousIO for U {
-    type I = I;
-    type O = O;
-    type Kernel = basic_write_manager_kernel;
+impl<const DATA: usize, const ADDR: usize> SynchronousIO for U<DATA, ADDR> {
+    type I = I<DATA, ADDR>;
+    type O = O<DATA, ADDR>;
+    type Kernel = basic_write_manager_kernel<DATA, ADDR>;
 }
 
 #[kernel]
-pub fn basic_write_manager_kernel(_cr: ClockReset, i: I, q: Q) -> (O, D) {
-    let mut d = D::dont_care();
-    let mut o = O::dont_care();
+pub fn basic_write_manager_kernel<const DATA: usize, const ADDR: usize>(
+    _cr: ClockReset,
+    i: I<DATA, ADDR>,
+    q: Q<DATA, ADDR>,
+) -> (O<DATA, ADDR>, D<DATA, ADDR>) {
+    let mut d = D::<DATA, ADDR>::dont_care();
+    let mut o = O::<DATA, ADDR>::dont_care();
     // Wire up the address bus
     d.addr.bus.ready = i.axi.awready;
     o.axi.awaddr = q.addr.bus.data;

@@ -216,7 +216,7 @@ impl<'a> FlowGraphBuilder<'a> {
                 self.fg.edge(*disc, comp, EdgeKind::Selector(ndx));
             }
             for (ndx, arg) in arguments.iter().enumerate() {
-                self.fg.edge(arg[bit], comp, EdgeKind::ArgBit(ndx, bit));
+                self.fg.edge(arg[bit], comp, EdgeKind::ArgBit(ndx, 0));
             }
             self.fg.edge(comp, lhs[bit], EdgeKind::ArgBit(0, 0));
         }
