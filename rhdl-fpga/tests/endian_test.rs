@@ -75,7 +75,7 @@ mod master {
     }
 
     #[kernel]
-    pub fn master_kernel(cr: ClockReset, i: I, q: ()) -> (O, ()) {
+    pub fn master_kernel(cr: ClockReset, i: I, _q: ()) -> (O, ()) {
         let mut o = O::dont_care();
         o.ready = true;
         o.data = None;
