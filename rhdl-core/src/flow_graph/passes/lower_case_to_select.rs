@@ -1,7 +1,4 @@
-use petgraph::{
-    graph::{self, EdgeIndex},
-    visit::EdgeRef,
-};
+use petgraph::{graph::EdgeIndex, visit::EdgeRef};
 
 use crate::{
     flow_graph::{
@@ -19,7 +16,6 @@ pub struct LowerCaseToSelectPass {}
 
 struct Replacement {
     original: FlowIx,
-    select: FlowIx,
     true_value: EdgeIndex,
     false_value: EdgeIndex,
 }
@@ -48,43 +44,39 @@ fn is_select_like_case(node: FlowIx, graph: &GraphType) -> Option<Replacement> {
     match (arg0, arg1) {
         (CaseEntry::Literal(l0), CaseEntry::Literal(l1)) => {
             if l0.is_ones() && l1.is_zero() {
-                return Some(Replacement {
+                Some(Replacement {
                     original: node,
-                    select: arg0_path.source(),
                     true_value: arg0_path.id(),
                     false_value: arg1_path.id(),
-                });
+                })
             } else if l0.is_zero() && l1.is_ones() {
-                return Some(Replacement {
+                Some(Replacement {
                     original: node,
-                    select: arg0_path.source(),
                     true_value: arg1_path.id(),
                     false_value: arg0_path.id(),
-                });
+                })
             } else {
-                return None;
+                None
             }
         }
         (CaseEntry::Literal(l0), CaseEntry::WildCard) => {
             if l0.is_ones() {
-                return Some(Replacement {
+                Some(Replacement {
                     original: node,
-                    select: arg0_path.source(),
                     true_value: arg0_path.id(),
                     false_value: arg1_path.id(),
-                });
+                })
             } else if l0.is_zero() {
-                return Some(Replacement {
+                Some(Replacement {
                     original: node,
-                    select: arg0_path.source(),
                     true_value: arg1_path.id(),
                     false_value: arg0_path.id(),
-                });
+                })
             } else {
-                return None;
+                None
             }
         }
-        _ => return None,
+        _ => None,
     }
 }
 
