@@ -63,3 +63,11 @@ pub fn synchronous_dq(input: TokenStream) -> TokenStream {
         Err(err) => err.to_compile_error().into(),
     }
 }
+
+#[proc_macro]
+pub fn export(input: TokenStream) -> TokenStream {
+    match rhdl_macro_core::export_macro(input.into()) {
+        Ok(output) => output.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
