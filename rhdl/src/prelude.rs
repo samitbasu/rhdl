@@ -104,3 +104,4 @@ pub use rhdl_core::sim::testbench::synchronous::SynchronousTestBench;
 pub use rhdl_core::sim::testbench::TestBenchOptions;
 pub use rhdl_core::sim::vcd::Vcd;
 pub use rhdl_core::BitX;
+pub use rhdl_macro::export;
