@@ -373,6 +373,10 @@ impl PrettyPrinter {
                 self.print_expr(&bits.arg)?;
                 self.push(")");
             }
+            ExprKind::Cast(cast) => {
+                self.print_expr(&cast.expr)?;
+                self.push(&format!(" as b{}", cast.len));
+            }
         }
         Ok(())
     }

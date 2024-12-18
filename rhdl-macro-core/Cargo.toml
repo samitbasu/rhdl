@@ -16,7 +16,7 @@ inflections = "1.1.1"
 prettyplease = "0.2.15"
 proc-macro2 = "1.0.66"
 quote = "1.0.33"
-syn = { version = "2.0.31", features = ["full", "extra-traits", "visit-mut"] }
+syn = { version = "2.0.38", features = ["full", "extra-traits", "visit-mut"] }
 
 [dev-dependencies]
 expect-test = { version = "1" }

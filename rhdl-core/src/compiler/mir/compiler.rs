@@ -19,6 +19,7 @@ use crate::ast::ast_impl;
 use crate::ast::ast_impl::BitsKind;
 use crate::ast::ast_impl::ExprBits;
 use crate::ast::ast_impl::ExprBlock;
+use crate::ast::ast_impl::ExprCast;
 use crate::ast::ast_impl::ExprIfLet;
 use crate::ast::ast_impl::ExprTry;
 use crate::ast::ast_impl::ExprTypedBits;
@@ -45,6 +46,7 @@ use crate::rhif::object::LocatedOpCode;
 use crate::rhif::object::SymbolMap;
 use crate::rhif::rhif_builder::op_as_bits_inferred;
 use crate::rhif::rhif_builder::op_as_signed_inferred;
+use crate::rhif::rhif_builder::op_cast;
 use crate::rhif::rhif_builder::op_resize;
 use crate::rhif::rhif_builder::op_resize_inferred;
 use crate::rhif::rhif_builder::op_retime;
@@ -587,6 +589,7 @@ impl<'a> MirContext<'a> {
                 Ok(CaseArgument::Slot(disc))
             }
             ArmKind::Enum(arm_enum) => {
+                log::trace!("arm enum {:?}", arm_enum);
                 self.new_scope();
                 // Allocate the local bindings for the match pattern
                 self.bind_pattern(&arm_enum.pat)?;
@@ -918,7 +921,14 @@ impl<'a> MirContext<'a> {
             ExprKind::Bits(bits) => self.bits(expr.id, bits),
             ExprKind::Try(tri) => self.try_expr(expr.id, tri),
             ExprKind::IfLet(if_let) => self.if_let_expr(expr.id, if_let),
+            ExprKind::Cast(cast) => self.cast(expr.id, cast),
         }
+    }
+    fn cast(&mut self, id: NodeId, cast: &ExprCast) -> Result<Slot> {
+        let lhs = self.reg(id);
+        let rhs = self.expr(&cast.expr)?;
+        self.op(op_cast(lhs, rhs, cast.len), id);
+        Ok(lhs)
     }
     // We need three components
     //  - the original variable that holds the LHS

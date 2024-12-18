@@ -260,10 +260,7 @@ pub fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
             .iter()
             .flat_map(|field| leaf_paths(&field.kind, base.clone().field(&field.name)))
             .collect(),
-        Kind::Signal(root, _) => leaf_paths(root, base.clone())
-            .into_iter()
-            .map(|path| path.signal_value())
-            .collect(),
+        Kind::Signal(root, _) => leaf_paths(root, base.clone().signal_value()),
         Kind::Enum(enumeration) => enumeration
             .variants
             .iter()
@@ -372,7 +369,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     range = range.start + offset..range.start + offset + size;
                     kind = structure.fields[*i].kind;
                 }
-                _ => return Err(rhdl_error(PathError::TupleIndexingNotAllowed { kind })),
+                _ => panic!("tuple index?"), //return Err(rhdl_error(PathError::TupleIndexingNotAllowed { kind })),
             },
             PathElement::Index(i) => match &kind {
                 Kind::Array(array) => {

@@ -20,6 +20,7 @@ prettyplease = "0.2.15"
 proc-macro2 = { version = "1.0.92", default-features = false, features = [
     "span-locations",
 ] }
+quote = "1.0.37"
 rhdl-bits = { path = "../rhdl-bits" }
 rhdl-trace-type = { version = "0.1.0", path = "../rhdl-trace-type" }
 ron = "0.8.1"

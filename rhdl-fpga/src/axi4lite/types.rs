@@ -31,6 +31,15 @@ impl<const DATA: usize> Default for ReadResponse<DATA> {
     }
 }
 
+// An AXI4-Error Enum meant to capture the two cases of
+// SLVERR and DECERR
+#[derive(Debug, Digital, Default)]
+pub enum AXI4Error {
+    #[default]
+    SLVERR,
+    DECERR,
+}
+
 /*
 
   input  wire [AXI_ADDR_WIDTH-1:0]   s_axi_araddr,  // AXI4-Lite slave: Read address

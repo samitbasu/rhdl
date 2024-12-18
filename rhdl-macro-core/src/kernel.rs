@@ -230,6 +230,18 @@ impl Context {
         }
         false
     }
+    // Scoped bindings refer to something like:
+    //  match x {
+    //    Bar{a, b, c} => ...
+    //  }
+    // Here, the `a`, `b`, and `c` are scoped bindings.  They
+    // represent new bindings to the names `a`, `b`, and `c` that
+    // are scoped to the body of the match expression.  Other instances
+    // include the `for` loop variable, the `if let` match and
+    // `let Bar(x) = y` expressions.  There is a difference though.
+    // In the case of `let` and `for`, the bindings are infallible.  Which
+    // means there is no discriminant test.  For match, this is not quite
+    // true.
     fn add_scoped_binding(&mut self, pat: &Pat) -> Result<()> {
         match pat {
             Pat::Ident(ident) => {
@@ -774,6 +786,7 @@ impl Context {
             syn::Expr::Array(expr) => self.array(expr),
             syn::Expr::Index(expr) => self.index(expr),
             syn::Expr::MethodCall(expr) => self.method_call(expr),
+            syn::Expr::Cast(expr) => self.cast(expr),
             _ => Err(syn::Error::new(
                 expr.span(),
                 format!(
@@ -782,6 +795,15 @@ impl Context {
                 ),
             )),
         }
+    }
+
+    fn cast(&mut self, expr: &syn::ExprCast) -> Result<TS> {
+        let ty = &expr.ty;
+        let len = quote! {<#ty as rhdl::core::Digital>::BITS};
+        let expr = self.expr(&expr.expr)?;
+        Ok(quote! {
+            bob.expr_cast(#expr, #len)
+        })
     }
 
     fn method_call(&mut self, expr: &syn::ExprMethodCall) -> Result<TS> {
@@ -1496,6 +1518,8 @@ impl Context {
 
 #[cfg(test)]
 mod test {
+    use expect_test::expect;
+
     use super::*;
 
     #[test]
@@ -1509,7 +1533,64 @@ mod test {
         let item = Context::default().function(function).unwrap();
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
-        println!("{}", result);
+        let expect = expect![[r#"
+            fn update<T: Digital>(a: T, b: T) -> [T; 2] {
+                #[forbid(non_snake_case)]
+                #[forbid(non_upper_case_globals)]
+                #[forbid(unreachable_patterns)]
+                fn inner<T: Digital>(a: T, b: T) -> [T; 2] {
+                    { [a, b] }
+                }
+                rhdl::core::trace_push_path(stringify!(update));
+                let ret = inner::<T>(a, b);
+                rhdl::core::trace_pop_path();
+                ret
+            }
+            #[allow(non_camel_case_types)]
+            struct update<T: Digital> {
+                __phantom_0: std::marker::PhantomData<T>,
+            }
+            impl<T: Digital> rhdl::core::digital_fn::DigitalFn2 for update<T> {
+                type A0 = T;
+                type A1 = T;
+                type O = [T; 2];
+                fn func() -> fn(T, T) -> [T; 2] {
+                    update::<T>
+                }
+            }
+            impl<T: Digital> rhdl::core::digital_fn::DigitalFn for update<T> {
+                fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+                    let bob = rhdl::core::ast::builder::ASTBuilder::default();
+                    Some(
+                        bob
+                            .kernel_fn(
+                                stringify!(update),
+                                vec! {
+                                    bob.type_pat(bob.ident_pat(stringify!(a), false), < T as
+                                    rhdl::core::Digital > ::static_kind()), bob.type_pat(bob
+                                    .ident_pat(stringify!(b), false), < T as rhdl::core::Digital >
+                                    ::static_kind())
+                                },
+                                <[T; 2] as rhdl::core::Digital>::static_kind(),
+                                bob
+                                    .block(
+                                        vec![
+                                            bob.expr_stmt(bob.array_expr(vec![bob.path_expr(bob
+                                            .path(vec![bob.path_segment(stringify!(a), bob
+                                            .path_arguments_none())],)), bob.path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(b), bob
+                                            .path_arguments_none())],))]))
+                                        ],
+                                    ),
+                                std::any::TypeId::of::<update<T>>(),
+                                "fn update<T: Digital>(a: T, b: T) -> [T; 2] {\n    [a, b]\n}\n",
+                                concat!(file!(), ":", line!()),
+                            ),
+                    )
+                }
+            }
+        "#]];
+        expect.assert_eq(&result);
     }
 
     #[test]
@@ -1531,7 +1612,46 @@ mod test {
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         let result = result.replace("rhdl::core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
-        println!("{}", result);
+        let expect = expect![[r#"
+            fn jnk() -> Vec<Stmt> {
+                bob.block_expr(
+                    bob
+                        .block(
+                            vec![
+                                bob.local_stmt(bob.ident_pat(stringify!(a), false), Some(bob
+                                .lit_expr(bob.expr_lit_int(stringify!(1))))), bob.local_stmt(bob
+                                .ident_pat(stringify!(b), false), Some(bob.lit_expr(bob
+                                .expr_lit_int(stringify!(2))))), bob.local_stmt(bob
+                                .ident_pat(stringify!(q), false), Some(bob.lit_expr(bob
+                                .expr_lit_int(stringify!(0x1234_u32))))), bob.local_stmt(bob
+                                .ident_pat(stringify!(c), false), Some(bob
+                                .binary_expr(rhdl::core::ast::builder::BinOp::Add, bob.path_expr(bob
+                                .path(vec![bob.path_segment(stringify!(a), bob
+                                .path_arguments_none())],)), bob.path_expr(bob.path(vec![bob
+                                .path_segment(stringify!(b), bob.path_arguments_none())],))))), bob
+                                .local_stmt(bob.ident_pat(stringify!(d), true), Some(bob.lit_expr(bob
+                                .expr_lit_int(stringify!(3))))), bob.local_stmt(bob
+                                .ident_pat(stringify!(g), false), Some(bob.struct_expr(bob
+                                .path(vec![bob.path_segment(stringify!(Foo), bob
+                                .path_arguments_none())],), vec![bob.field_value(bob
+                                .member_named(stringify!(r)), bob.lit_expr(bob
+                                .expr_lit_int(stringify!(1)))), bob.field_value(bob
+                                .member_named(stringify!(g)), bob.lit_expr(bob
+                                .expr_lit_int(stringify!(120)))), bob.field_value(bob
+                                .member_named(stringify!(b)), bob.lit_expr(bob
+                                .expr_lit_int(stringify!(33))))], None, < Foo as rhdl::core::Digital
+                                > ::static_kind().place_holder()))), bob.local_stmt(bob
+                                .ident_pat(stringify!(h), false), Some(bob.field_expr(bob
+                                .path_expr(bob.path(vec![bob.path_segment(stringify!(g), bob
+                                .path_arguments_none())],)), bob.member_named(stringify!(r))))), bob
+                                .expr_stmt(bob.path_expr(bob.path(vec![bob
+                                .path_segment(stringify!(c), bob.path_arguments_none())],)))
+                            ],
+                        ),
+                )
+            }
+        "#]];
+        expect.assert_eq(&result);
     }
     #[test]
     fn test_precedence_parser() {
@@ -1545,7 +1665,23 @@ mod test {
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         let result = result.replace("rhdl::core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
-        println!("{}", result);
+        let expect = expect![[r#"
+            fn jnk() -> Vec<Stmt> {
+                bob.block_expr(
+                    bob
+                        .block(
+                            vec![
+                                bob.expr_stmt(bob.binary_expr(rhdl::core::ast::builder::BinOp::Add,
+                                bob.lit_expr(bob.expr_lit_int(stringify!(1))), bob
+                                .binary_expr(rhdl::core::ast::builder::BinOp::Mul, bob.lit_expr(bob
+                                .expr_lit_int(stringify!(3))), bob.lit_expr(bob
+                                .expr_lit_int(stringify!(9))))))
+                            ],
+                        ),
+                )
+            }
+        "#]];
+        expect.assert_eq(&result);
     }
 
     #[test]
@@ -1555,10 +1691,33 @@ mod test {
         };
         let local = syn::parse2::<syn::Stmt>(test_code).unwrap();
         let result = Context::default().stmt(&local).unwrap();
-        eprintln!("{}", result);
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
-        println!("{}", result);
+        let expect = expect![[r#"
+            fn jnk() -> Vec<Stmt> {
+                bob.local_stmt(
+                    bob.ident_pat(stringify!(d), false),
+                    Some(
+                        bob
+                            .struct_expr(
+                                bob
+                                    .path(
+                                        vec![bob.path_segment(stringify!(Foo), vec![stringify!(T)])],
+                                    ),
+                                vec![
+                                    bob.field_value(bob.member_named(stringify!(a)), bob.lit_expr(bob
+                                    .expr_lit_int(stringify!(1)))), bob.field_value(bob
+                                    .member_named(stringify!(b)), bob.lit_expr(bob
+                                    .expr_lit_int(stringify!(2))))
+                                ],
+                                None,
+                                <Foo<T> as rhdl::core::Digital>::static_kind().place_holder(),
+                            ),
+                    ),
+                )
+            }
+        "#]];
+        expect.assert_eq(&result);
     }
 
     #[test]
@@ -1571,10 +1730,29 @@ mod test {
         };
         let local = syn::parse2::<syn::Block>(test_code).unwrap();
         let result = Context::default().block(&local).unwrap();
-        eprintln!("{}", result);
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
-        println!("{}", result);
+        let expect = expect![[r#"
+            fn jnk() -> Vec<Stmt> {
+                bob.block_expr(
+                    bob
+                        .block(
+                            vec![
+                                bob.local_stmt(bob.ident_pat(stringify!(b), false), Some(bob
+                                .lit_expr(bob.expr_lit_int(stringify!(3))))), bob.local_stmt(bob
+                                .ident_pat(stringify!(d), false), Some(bob.struct_expr(bob
+                                .path(vec![bob.path_segment(stringify!(Foo), vec![stringify!(T)])],),
+                                vec![bob.field_value(bob.member_named(stringify!(a)), bob
+                                .lit_expr(bob.expr_lit_int(stringify!(1))))], Some(bob.path_expr(bob
+                                .path(vec![bob.path_segment(stringify!(b), bob
+                                .path_arguments_none())],))), < Foo:: < T > as rhdl::core::Digital >
+                                ::static_kind().place_holder())))
+                            ],
+                        ),
+                )
+            }
+        "#]];
+        expect.assert_eq(&result);
     }
 
     #[test]
@@ -1592,7 +1770,30 @@ mod test {
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
         let result = result.replace("rhdl::core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
-        println!("{}", result);
+        let expect = expect![[r#"
+            fn jnk() -> Vec<Stmt> {
+                bob.block_expr(
+                    bob
+                        .block(
+                            vec![
+                                bob.local_stmt(bob.ident_pat(stringify!(d), false), Some(bob
+                                .lit_expr(bob.expr_lit_int(stringify!(4))))), bob.expr_stmt(bob
+                                .if_expr(bob.binary_expr(rhdl::core::ast::builder::BinOp::Gt, bob
+                                .path_expr(bob.path(vec![bob.path_segment(stringify!(d), bob
+                                .path_arguments_none())],)), bob.lit_expr(bob
+                                .expr_lit_int(stringify!(0)))), bob.block(vec![bob.semi_stmt(bob
+                                .assign_expr(bob.path_expr(bob.path(vec![bob
+                                .path_segment(stringify!(d), bob.path_arguments_none())],)), bob
+                                .binary_expr(rhdl::core::ast::builder::BinOp::Sub, bob.path_expr(bob
+                                .path(vec![bob.path_segment(stringify!(d), bob
+                                .path_arguments_none())],)), bob.lit_expr(bob
+                                .expr_lit_int(stringify!(1))))))],), None))
+                            ],
+                        ),
+                )
+            }
+        "#]];
+        expect.assert_eq(&result);
     }
 
     #[test]
@@ -1609,7 +1810,161 @@ mod test {
         };
 
         let if_let_expr = syn::parse2::<syn::Block>(test_code).unwrap();
-        println!("{:#?}", if_let_expr);
+        let expect = expect![[r#"
+            Block {
+                brace_token: Brace,
+                stmts: [
+                    Stmt::Local {
+                        attrs: [],
+                        let_token: Let,
+                        pat: Pat::Ident {
+                            attrs: [],
+                            by_ref: None,
+                            mutability: None,
+                            ident: Ident(
+                                a,
+                            ),
+                            subpat: None,
+                        },
+                        init: Some(
+                            LocalInit {
+                                eq_token: Eq,
+                                expr: Expr::Call {
+                                    attrs: [],
+                                    func: Expr::Path {
+                                        attrs: [],
+                                        qself: None,
+                                        path: Path {
+                                            leading_colon: None,
+                                            segments: [
+                                                PathSegment {
+                                                    ident: Ident(
+                                                        Some,
+                                                    ),
+                                                    arguments: PathArguments::None,
+                                                },
+                                            ],
+                                        },
+                                    },
+                                    paren_token: Paren,
+                                    args: [
+                                        Expr::Lit {
+                                            attrs: [],
+                                            lit: Lit::Int {
+                                                token: 43,
+                                            },
+                                        },
+                                    ],
+                                },
+                                diverge: None,
+                            },
+                        ),
+                        semi_token: Semi,
+                    },
+                    Stmt::Expr(
+                        Expr::If {
+                            attrs: [],
+                            if_token: If,
+                            cond: Expr::Let {
+                                attrs: [],
+                                let_token: Let,
+                                pat: Pat::TupleStruct {
+                                    attrs: [],
+                                    qself: None,
+                                    path: Path {
+                                        leading_colon: None,
+                                        segments: [
+                                            PathSegment {
+                                                ident: Ident(
+                                                    Some,
+                                                ),
+                                                arguments: PathArguments::None,
+                                            },
+                                        ],
+                                    },
+                                    paren_token: Paren,
+                                    elems: [
+                                        Pat::Ident {
+                                            attrs: [],
+                                            by_ref: None,
+                                            mutability: None,
+                                            ident: Ident(
+                                                b,
+                                            ),
+                                            subpat: None,
+                                        },
+                                    ],
+                                },
+                                eq_token: Eq,
+                                expr: Expr::Path {
+                                    attrs: [],
+                                    qself: None,
+                                    path: Path {
+                                        leading_colon: None,
+                                        segments: [
+                                            PathSegment {
+                                                ident: Ident(
+                                                    a,
+                                                ),
+                                                arguments: PathArguments::None,
+                                            },
+                                        ],
+                                    },
+                                },
+                            },
+                            then_branch: Block {
+                                brace_token: Brace,
+                                stmts: [
+                                    Stmt::Expr(
+                                        Expr::Path {
+                                            attrs: [],
+                                            qself: None,
+                                            path: Path {
+                                                leading_colon: None,
+                                                segments: [
+                                                    PathSegment {
+                                                        ident: Ident(
+                                                            b,
+                                                        ),
+                                                        arguments: PathArguments::None,
+                                                    },
+                                                ],
+                                            },
+                                        },
+                                        None,
+                                    ),
+                                ],
+                            },
+                            else_branch: Some(
+                                (
+                                    Else,
+                                    Expr::Block {
+                                        attrs: [],
+                                        label: None,
+                                        block: Block {
+                                            brace_token: Brace,
+                                            stmts: [
+                                                Stmt::Expr(
+                                                    Expr::Lit {
+                                                        attrs: [],
+                                                        lit: Lit::Int {
+                                                            token: 0,
+                                                        },
+                                                    },
+                                                    None,
+                                                ),
+                                            ],
+                                        },
+                                    },
+                                ),
+                            ),
+                        },
+                        None,
+                    ),
+                ],
+            }
+        "#]];
+        expect.assert_debug_eq(&if_let_expr);
     }
 
     #[test]
@@ -1623,7 +1978,199 @@ mod test {
             }
         };
         let match_expr = syn::parse2::<syn::Stmt>(test_code).unwrap();
-        println!("{:#?}", match_expr);
+        let expect = expect![[r#"
+            Stmt::Expr(
+                Expr::Match {
+                    attrs: [],
+                    match_token: Match,
+                    expr: Expr::Path {
+                        attrs: [],
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments: [
+                                PathSegment {
+                                    ident: Ident(
+                                        l,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                            ],
+                        },
+                    },
+                    brace_token: Brace,
+                    arms: [
+                        Arm {
+                            attrs: [],
+                            pat: Pat::Path {
+                                attrs: [],
+                                qself: None,
+                                path: Path {
+                                    leading_colon: None,
+                                    segments: [
+                                        PathSegment {
+                                            ident: Ident(
+                                                State,
+                                            ),
+                                            arguments: PathArguments::None,
+                                        },
+                                        PathSep,
+                                        PathSegment {
+                                            ident: Ident(
+                                                Init,
+                                            ),
+                                            arguments: PathArguments::None,
+                                        },
+                                    ],
+                                },
+                            },
+                            guard: None,
+                            fat_arrow_token: FatArrow,
+                            body: Expr::Block {
+                                attrs: [],
+                                label: None,
+                                block: Block {
+                                    brace_token: Brace,
+                                    stmts: [],
+                                },
+                            },
+                            comma: None,
+                        },
+                        Arm {
+                            attrs: [],
+                            pat: Pat::TupleStruct {
+                                attrs: [],
+                                qself: None,
+                                path: Path {
+                                    leading_colon: None,
+                                    segments: [
+                                        PathSegment {
+                                            ident: Ident(
+                                                State,
+                                            ),
+                                            arguments: PathArguments::None,
+                                        },
+                                        PathSep,
+                                        PathSegment {
+                                            ident: Ident(
+                                                Run,
+                                            ),
+                                            arguments: PathArguments::None,
+                                        },
+                                    ],
+                                },
+                                paren_token: Paren,
+                                elems: [
+                                    Pat::Ident {
+                                        attrs: [],
+                                        by_ref: None,
+                                        mutability: None,
+                                        ident: Ident(
+                                            a,
+                                        ),
+                                        subpat: None,
+                                    },
+                                ],
+                            },
+                            guard: None,
+                            fat_arrow_token: FatArrow,
+                            body: Expr::Block {
+                                attrs: [],
+                                label: None,
+                                block: Block {
+                                    brace_token: Brace,
+                                    stmts: [],
+                                },
+                            },
+                            comma: None,
+                        },
+                        Arm {
+                            attrs: [],
+                            pat: Pat::Path {
+                                attrs: [],
+                                qself: None,
+                                path: Path {
+                                    leading_colon: None,
+                                    segments: [
+                                        PathSegment {
+                                            ident: Ident(
+                                                State,
+                                            ),
+                                            arguments: PathArguments::None,
+                                        },
+                                        PathSep,
+                                        PathSegment {
+                                            ident: Ident(
+                                                Boom,
+                                            ),
+                                            arguments: PathArguments::None,
+                                        },
+                                    ],
+                                },
+                            },
+                            guard: None,
+                            fat_arrow_token: FatArrow,
+                            body: Expr::Block {
+                                attrs: [],
+                                label: None,
+                                block: Block {
+                                    brace_token: Brace,
+                                    stmts: [],
+                                },
+                            },
+                            comma: None,
+                        },
+                        Arm {
+                            attrs: [],
+                            pat: Pat::TupleStruct {
+                                attrs: [],
+                                qself: None,
+                                path: Path {
+                                    leading_colon: None,
+                                    segments: [
+                                        PathSegment {
+                                            ident: Ident(
+                                                State,
+                                            ),
+                                            arguments: PathArguments::None,
+                                        },
+                                        PathSep,
+                                        PathSegment {
+                                            ident: Ident(
+                                                NotOk,
+                                            ),
+                                            arguments: PathArguments::None,
+                                        },
+                                    ],
+                                },
+                                paren_token: Paren,
+                                elems: [
+                                    Pat::Lit {
+                                        attrs: [],
+                                        lit: Lit::Int {
+                                            token: 3,
+                                        },
+                                    },
+                                ],
+                            },
+                            guard: None,
+                            fat_arrow_token: FatArrow,
+                            body: Expr::Block {
+                                attrs: [],
+                                label: None,
+                                block: Block {
+                                    brace_token: Brace,
+                                    stmts: [],
+                                },
+                            },
+                            comma: None,
+                        },
+                    ],
+                },
+                None,
+            )
+        "#]];
+        expect.assert_debug_eq(&match_expr);
     }
 
     #[test]
@@ -1643,9 +2190,38 @@ mod test {
         let match_expr = syn::parse2::<syn::Block>(test_code).unwrap();
         let result = Context::default().block(&match_expr).unwrap();
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
-        //        let result = result.replace("rhdl::core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
-        println!("{}", result);
+        let expect = expect![[r#"
+            fn jnk() -> Vec<Stmt> {
+                bob.block_expr(
+                    bob
+                        .block(
+                            vec![
+                                bob.local_stmt(bob.ident_pat(stringify!(l), false), Some(bob
+                                .lit_expr(bob.expr_lit_int(stringify!(3))))), bob.expr_stmt(bob
+                                .match_expr(bob.path_expr(bob.path(vec![bob
+                                .path_segment(stringify!(l), bob.path_arguments_none())],)), vec![bob
+                                .arm(bob.arm_kind_constant(bob
+                                .expr_lit_typed_bits(rhdl::core::Digital::typed_bits(State::Init),
+                                stringify!(State::Init))), bob.block_expr(bob.block(vec![],))), bob
+                                .arm(bob.arm_kind_enum(bob.tuple_struct_pat(bob.path(vec![bob
+                                .path_segment(stringify!(State), bob.path_arguments_none()), bob
+                                .path_segment(stringify!(Run), bob.path_arguments_none())],),
+                                vec![bob.ident_pat(stringify!(a), false)]),
+                                rhdl::core::Digital::discriminant(State::Run(Default::default()))),
+                                bob.block_expr(bob.block(vec![bob.semi_stmt(bob.assign_expr(bob
+                                .path_expr(bob.path(vec![bob.path_segment(stringify!(l), bob
+                                .path_arguments_none())],)), bob.path_expr(bob.path(vec![bob
+                                .path_segment(stringify!(a), bob.path_arguments_none())],))))],))),
+                                bob.arm(bob.arm_kind_constant(bob
+                                .expr_lit_typed_bits(rhdl::core::Digital::typed_bits(State::Boom),
+                                stringify!(State::Boom))), bob.block_expr(bob.block(vec![],)))]))
+                            ],
+                        ),
+                )
+            }
+        "#]];
+        expect.assert_eq(&result);
     }
 
     #[test]
@@ -1656,9 +2232,31 @@ mod test {
         let assign = syn::parse2::<syn::Stmt>(test_code).unwrap();
         let result = Context::default().stmt(&assign).unwrap();
         let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
-        //        let result = result.replace("rhdl::core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
-        println!("{}", result);
+        let expect = expect![[r#"
+            fn jnk() -> Vec<Stmt> {
+                bob.local_stmt(
+                    bob
+                        .tuple_pat(
+                            vec![
+                                bob.ident_pat(stringify!(a), false), bob.ident_pat(stringify!(b),
+                                false), bob.ident_pat(stringify!(c), false)
+                            ],
+                        ),
+                    Some(
+                        bob
+                            .tuple_expr(
+                                vec![
+                                    bob.lit_expr(bob.expr_lit_int(stringify!(3))), bob.lit_expr(bob
+                                    .expr_lit_int(stringify!(4))), bob.lit_expr(bob
+                                    .expr_lit_int(stringify!(5)))
+                                ],
+                            ),
+                    ),
+                )
+            }
+        "#]];
+        expect.assert_eq(&result);
     }
 
     #[test]
@@ -1694,7 +2292,157 @@ mod test {
         let item = Context::default().function(function).unwrap();
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
-        println!("{}", result);
+        let expect = expect![[r#"
+            fn update() {
+                #[forbid(non_snake_case)]
+                #[forbid(non_upper_case_globals)]
+                #[forbid(unreachable_patterns)]
+                fn inner() {
+                    {
+                        let b = 0x4313_u8;
+                        let j = 342;
+                        let i = 0x432_u8;
+                        let a = 54_234_i14;
+                        let p = 0o644_u12;
+                        let z = 2_u4;
+                        let h = 0b1010110_u_10;
+                        let p = 0b110011_i15;
+                        let q: u8 = 4;
+                        let z = a.c;
+                        let w = (a, a);
+                        a.c[1] = q + 3;
+                        a.c = [0; 3];
+                        a.c = [1, 2, 3];
+                        let q = (1, (0, 5), 6);
+                        let (q0, (q1, q1b), q2): (u8, (u8, u8), u16) = q;
+                        a.a = 2 + 3 + q1;
+                        let z;
+                        if 1 > 3 {
+                            z = 2_u4;
+                        } else {
+                            z = 5;
+                        }
+                    }
+                }
+                rhdl::core::trace_push_path(stringify!(update));
+                let ret = inner();
+                rhdl::core::trace_pop_path();
+                ret
+            }
+            #[allow(non_camel_case_types)]
+            struct update {}
+            impl rhdl::core::digital_fn::DigitalFn0 for update {
+                type O = ();
+                fn func() -> fn() {
+                    update
+                }
+            }
+            impl rhdl::core::digital_fn::DigitalFn for update {
+                fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+                    let bob = rhdl::core::ast::builder::ASTBuilder::default();
+                    Some(
+                        bob
+                            .kernel_fn(
+                                stringify!(update),
+                                vec! {},
+                                rhdl::core::Kind::Empty,
+                                bob
+                                    .block(
+                                        vec![
+                                            bob.local_stmt(bob.ident_pat(stringify!(b), false), Some(bob
+                                            .lit_expr(bob.expr_lit_int(stringify!(0x4313_u8))))), bob
+                                            .local_stmt(bob.ident_pat(stringify!(j), false), Some(bob
+                                            .lit_expr(bob.expr_lit_int(stringify!(342))))), bob
+                                            .local_stmt(bob.ident_pat(stringify!(i), false), Some(bob
+                                            .lit_expr(bob.expr_lit_int(stringify!(0x432_u8))))), bob
+                                            .local_stmt(bob.ident_pat(stringify!(a), false), Some(bob
+                                            .lit_expr(bob.expr_lit_int(stringify!(54_234_i14))))), bob
+                                            .local_stmt(bob.ident_pat(stringify!(p), false), Some(bob
+                                            .lit_expr(bob.expr_lit_int(stringify!(0o644_u12))))), bob
+                                            .local_stmt(bob.ident_pat(stringify!(z), false), Some(bob
+                                            .lit_expr(bob.expr_lit_int(stringify!(2_u4))))), bob
+                                            .local_stmt(bob.ident_pat(stringify!(h), false), Some(bob
+                                            .lit_expr(bob.expr_lit_int(stringify!(0b1010110_u_10))))),
+                                            bob.local_stmt(bob.ident_pat(stringify!(p), false), Some(bob
+                                            .lit_expr(bob.expr_lit_int(stringify!(0b110011_i15))))), bob
+                                            .local_stmt(bob.type_pat(bob.ident_pat(stringify!(q),
+                                            false), < u8 as rhdl::core::Digital > ::static_kind()),
+                                            Some(bob.lit_expr(bob.expr_lit_int(stringify!(4))))), bob
+                                            .local_stmt(bob.ident_pat(stringify!(z), false), Some(bob
+                                            .field_expr(bob.path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(a), bob.path_arguments_none())],)),
+                                            bob.member_named(stringify!(c))))), bob.local_stmt(bob
+                                            .ident_pat(stringify!(w), false), Some(bob
+                                            .tuple_expr(vec![bob.path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(a), bob.path_arguments_none())],)),
+                                            bob.path_expr(bob.path(vec![bob.path_segment(stringify!(a),
+                                            bob.path_arguments_none())],))]))), bob.semi_stmt(bob
+                                            .assign_expr(bob.index_expr(bob.field_expr(bob.path_expr(bob
+                                            .path(vec![bob.path_segment(stringify!(a), bob
+                                            .path_arguments_none())],)), bob
+                                            .member_named(stringify!(c))), bob.lit_expr(bob
+                                            .expr_lit_int(stringify!(1)))), bob
+                                            .binary_expr(rhdl::core::ast::builder::BinOp::Add, bob
+                                            .path_expr(bob.path(vec![bob.path_segment(stringify!(q), bob
+                                            .path_arguments_none())],)), bob.lit_expr(bob
+                                            .expr_lit_int(stringify!(3)))))), bob.semi_stmt(bob
+                                            .assign_expr(bob.field_expr(bob.path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(a), bob.path_arguments_none())],)),
+                                            bob.member_named(stringify!(c))), bob.repeat_expr(bob
+                                            .lit_expr(bob.expr_lit_int(stringify!(0))), < usize as
+                                            rhdl::core::Digital > ::typed_bits(3).as_i64().unwrap()))),
+                                            bob.semi_stmt(bob.assign_expr(bob.field_expr(bob
+                                            .path_expr(bob.path(vec![bob.path_segment(stringify!(a), bob
+                                            .path_arguments_none())],)), bob
+                                            .member_named(stringify!(c))), bob.array_expr(vec![bob
+                                            .lit_expr(bob.expr_lit_int(stringify!(1))), bob.lit_expr(bob
+                                            .expr_lit_int(stringify!(2))), bob.lit_expr(bob
+                                            .expr_lit_int(stringify!(3)))]))), bob.local_stmt(bob
+                                            .ident_pat(stringify!(q), false), Some(bob
+                                            .tuple_expr(vec![bob.lit_expr(bob
+                                            .expr_lit_int(stringify!(1))), bob.tuple_expr(vec![bob
+                                            .lit_expr(bob.expr_lit_int(stringify!(0))), bob.lit_expr(bob
+                                            .expr_lit_int(stringify!(5)))]), bob.lit_expr(bob
+                                            .expr_lit_int(stringify!(6)))]))), bob.local_stmt(bob
+                                            .type_pat(bob.tuple_pat(vec![bob.ident_pat(stringify!(q0),
+                                            false), bob.tuple_pat(vec![bob.ident_pat(stringify!(q1),
+                                            false), bob.ident_pat(stringify!(q1b), false)]), bob
+                                            .ident_pat(stringify!(q2), false)]), < (u8, (u8, u8), u16)
+                                            as rhdl::core::Digital > ::static_kind()), Some(bob
+                                            .path_expr(bob.path(vec![bob.path_segment(stringify!(q), bob
+                                            .path_arguments_none())],)))), bob.semi_stmt(bob
+                                            .assign_expr(bob.field_expr(bob.path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(a), bob.path_arguments_none())],)),
+                                            bob.member_named(stringify!(a))), bob
+                                            .binary_expr(rhdl::core::ast::builder::BinOp::Add, bob
+                                            .binary_expr(rhdl::core::ast::builder::BinOp::Add, bob
+                                            .lit_expr(bob.expr_lit_int(stringify!(2))), bob.lit_expr(bob
+                                            .expr_lit_int(stringify!(3)))), bob.path_expr(bob
+                                            .path(vec![bob.path_segment(stringify!(q1), bob
+                                            .path_arguments_none())],))))), bob.local_stmt(bob
+                                            .ident_pat(stringify!(z), false), None), bob.expr_stmt(bob
+                                            .if_expr(bob
+                                            .binary_expr(rhdl::core::ast::builder::BinOp::Gt, bob
+                                            .lit_expr(bob.expr_lit_int(stringify!(1))), bob.lit_expr(bob
+                                            .expr_lit_int(stringify!(3)))), bob.block(vec![bob
+                                            .semi_stmt(bob.assign_expr(bob.path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(z), bob.path_arguments_none())],)),
+                                            bob.lit_expr(bob.expr_lit_int(stringify!(2_u4)))))],),
+                                            Some(bob.block_expr(bob.block(vec![bob.semi_stmt(bob
+                                            .assign_expr(bob.path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(z), bob.path_arguments_none())],)),
+                                            bob.lit_expr(bob.expr_lit_int(stringify!(5)))))],)))))
+                                        ],
+                                    ),
+                                std::any::TypeId::of::<update>(),
+                                "fn update() {\n    let b = 0x4313_u8;\n    let j = 342;\n    let i = 0x432_u8;\n    let a = 54_234_i14;\n    let p = 0o644_u12;\n    let z = 2_u4;\n    let h = 0b1010110_u_10;\n    let p = 0b110011_i15;\n    let q: u8 = 4;\n    let z = a.c;\n    let w = (a, a);\n    a.c[1] = q + 3;\n    a.c = [0; 3];\n    a.c = [1, 2, 3];\n    let q = (1, (0, 5), 6);\n    let (q0, (q1, q1b), q2): (u8, (u8, u8), u16) = q;\n    a.a = 2 + 3 + q1;\n    let z;\n    if 1 > 3 {\n        z = 2_u4;\n    } else {\n        z = 5;\n    }\n}\n",
+                                concat!(file!(), ":", line!()),
+                            ),
+                    )
+                }
+            }
+        "#]];
+        expect.assert_eq(&result);
     }
 
     #[test]
@@ -1709,11 +2457,73 @@ mod test {
             }
         };
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
-        println!("{:?}", function);
         let item = Context::default().function(function).unwrap();
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
-        println!("{}", result);
+        let expect = expect![[r#"
+            fn update(z: u8) {
+                #[forbid(non_snake_case)]
+                #[forbid(non_upper_case_globals)]
+                #[forbid(unreachable_patterns)]
+                fn inner(z: u8) {
+                    {
+                        match z {
+                            1_u4 => {}
+                            2_u4 => {}
+                            CONST_VAL => {}
+                        }
+                    }
+                }
+                rhdl::core::trace_push_path(stringify!(update));
+                let ret = inner(z);
+                rhdl::core::trace_pop_path();
+                ret
+            }
+            #[allow(non_camel_case_types)]
+            struct update {}
+            impl rhdl::core::digital_fn::DigitalFn1 for update {
+                type A0 = u8;
+                type O = ();
+                fn func() -> fn(u8) {
+                    update
+                }
+            }
+            impl rhdl::core::digital_fn::DigitalFn for update {
+                fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+                    let bob = rhdl::core::ast::builder::ASTBuilder::default();
+                    Some(
+                        bob
+                            .kernel_fn(
+                                stringify!(update),
+                                vec! {
+                                    bob.type_pat(bob.ident_pat(stringify!(z), false), < u8 as
+                                    rhdl::core::Digital > ::static_kind())
+                                },
+                                rhdl::core::Kind::Empty,
+                                bob
+                                    .block(
+                                        vec![
+                                            bob.expr_stmt(bob.match_expr(bob.path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(z), bob.path_arguments_none())],)),
+                                            vec![bob.arm(bob.arm_kind_constant(bob
+                                            .expr_lit_int(stringify!(1_u4))), bob.block_expr(bob
+                                            .block(vec![],))), bob.arm(bob.arm_kind_constant(bob
+                                            .expr_lit_int(stringify!(2_u4))), bob.block_expr(bob
+                                            .block(vec![],))), bob.arm(bob.arm_kind_constant(bob
+                                            .expr_lit_typed_bits(rhdl::core::Digital::typed_bits(CONST_VAL),
+                                            stringify!(CONST_VAL))), bob.block_expr(bob
+                                            .block(vec![],)))]))
+                                        ],
+                                    ),
+                                std::any::TypeId::of::<update>(),
+                                "fn update(z: u8) {\n    match z {\n        1_u4 => {}\n        2_u4 => {}\n        CONST_VAL => {}\n    }\n}\n",
+                                concat!(file!(), ":", line!()),
+                            ),
+                    )
+                }
+            }
+        "#]];
+        expect.assert_eq(&result);
     }
 
     #[test]
@@ -1728,11 +2538,85 @@ mod test {
             }
         };
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
-        println!("{:?}", function);
         let item = Context::default().function(function).unwrap();
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
-        println!("{}", result);
+        let expect = expect![[r#"
+            fn update(z: Bar) {
+                #[forbid(non_snake_case)]
+                #[forbid(non_upper_case_globals)]
+                #[forbid(unreachable_patterns)]
+                fn inner(z: Bar) {
+                    {
+                        match z {
+                            Bar::A => {}
+                            Bar::B(x) => {}
+                            Bar::C { x, y } => {}
+                        }
+                    }
+                }
+                rhdl::core::trace_push_path(stringify!(update));
+                let ret = inner(z);
+                rhdl::core::trace_pop_path();
+                ret
+            }
+            #[allow(non_camel_case_types)]
+            struct update {}
+            impl rhdl::core::digital_fn::DigitalFn1 for update {
+                type A0 = Bar;
+                type O = ();
+                fn func() -> fn(Bar) {
+                    update
+                }
+            }
+            impl rhdl::core::digital_fn::DigitalFn for update {
+                fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+                    let bob = rhdl::core::ast::builder::ASTBuilder::default();
+                    Some(
+                        bob
+                            .kernel_fn(
+                                stringify!(update),
+                                vec! {
+                                    bob.type_pat(bob.ident_pat(stringify!(z), false), < Bar as
+                                    rhdl::core::Digital > ::static_kind())
+                                },
+                                rhdl::core::Kind::Empty,
+                                bob
+                                    .block(
+                                        vec![
+                                            bob.expr_stmt(bob.match_expr(bob.path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(z), bob.path_arguments_none())],)),
+                                            vec![bob.arm(bob.arm_kind_constant(bob
+                                            .expr_lit_typed_bits(rhdl::core::Digital::typed_bits(Bar::A),
+                                            stringify!(Bar::A))), bob.block_expr(bob.block(vec![],))),
+                                            bob.arm(bob.arm_kind_enum(bob.tuple_struct_pat(bob
+                                            .path(vec![bob.path_segment(stringify!(Bar), bob
+                                            .path_arguments_none()), bob.path_segment(stringify!(B), bob
+                                            .path_arguments_none())],), vec![bob
+                                            .ident_pat(stringify!(x), false)]),
+                                            rhdl::core::Digital::discriminant(Bar::B(Default::default()))),
+                                            bob.block_expr(bob.block(vec![],))), bob.arm(bob
+                                            .arm_kind_enum(bob.struct_pat(bob.path(vec![bob
+                                            .path_segment(stringify!(Bar), bob.path_arguments_none()),
+                                            bob.path_segment(stringify!(C), bob
+                                            .path_arguments_none())],), vec![bob.field_pat(bob
+                                            .member_named(stringify!(x)), bob.ident_pat(stringify!(x),
+                                            false)), bob.field_pat(bob.member_named(stringify!(y)), bob
+                                            .ident_pat(stringify!(y), false))], false),
+                                            rhdl::core::Digital::discriminant(Bar::C { x :
+                                            Default::default(), y : Default::default() })), bob
+                                            .block_expr(bob.block(vec![],)))]))
+                                        ],
+                                    ),
+                                std::any::TypeId::of::<update>(),
+                                "fn update(z: Bar) {\n    match z {\n        Bar::A => {}\n        Bar::B(x) => {}\n        Bar::C { x, y } => {}\n    }\n}\n",
+                                concat!(file!(), ":", line!()),
+                            ),
+                    )
+                }
+            }
+        "#]];
+        expect.assert_eq(&result);
     }
 
     #[test]
@@ -1747,10 +2631,95 @@ mod test {
         };
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
         let item = Context::default().function(function).unwrap();
-        println!("{}", item);
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
-        println!("{}", result);
+        let expect = expect![[r#"
+            fn do_stuff<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {
+                #[forbid(non_snake_case)]
+                #[forbid(non_upper_case_globals)]
+                #[forbid(unreachable_patterns)]
+                fn inner<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {
+                    {
+                        let c = x.a;
+                        let d = (x.a, y.b);
+                        let e = Foo::<T> { a: c, b: c };
+                        e == x
+                    }
+                }
+                rhdl::core::trace_push_path(stringify!(do_stuff));
+                let ret = inner::<T, S>(x, y);
+                rhdl::core::trace_pop_path();
+                ret
+            }
+            #[allow(non_camel_case_types)]
+            struct do_stuff<T: Digital, S: Digital> {
+                __phantom_0: std::marker::PhantomData<T>,
+                __phantom_1: std::marker::PhantomData<S>,
+            }
+            impl<T: Digital, S: Digital> rhdl::core::digital_fn::DigitalFn2 for do_stuff<T, S> {
+                type A0 = Foo<T>;
+                type A1 = Foo<S>;
+                type O = bool;
+                fn func() -> fn(Foo<T>, Foo<S>) -> bool {
+                    do_stuff::<T, S>
+                }
+            }
+            impl<T: Digital, S: Digital> rhdl::core::digital_fn::DigitalFn for do_stuff<T, S> {
+                fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+                    let bob = rhdl::core::ast::builder::ASTBuilder::default();
+                    Some(
+                        bob
+                            .kernel_fn(
+                                stringify!(do_stuff),
+                                vec! {
+                                    bob.type_pat(bob.ident_pat(stringify!(x), false), < Foo < T > as
+                                    rhdl::core::Digital > ::static_kind()), bob.type_pat(bob
+                                    .ident_pat(stringify!(y), false), < Foo < S > as
+                                    rhdl::core::Digital > ::static_kind())
+                                },
+                                <bool as rhdl::core::Digital>::static_kind(),
+                                bob
+                                    .block(
+                                        vec![
+                                            bob.local_stmt(bob.ident_pat(stringify!(c), false), Some(bob
+                                            .field_expr(bob.path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(x), bob.path_arguments_none())],)),
+                                            bob.member_named(stringify!(a))))), bob.local_stmt(bob
+                                            .ident_pat(stringify!(d), false), Some(bob
+                                            .tuple_expr(vec![bob.field_expr(bob.path_expr(bob
+                                            .path(vec![bob.path_segment(stringify!(x), bob
+                                            .path_arguments_none())],)), bob
+                                            .member_named(stringify!(a))), bob.field_expr(bob
+                                            .path_expr(bob.path(vec![bob.path_segment(stringify!(y), bob
+                                            .path_arguments_none())],)), bob
+                                            .member_named(stringify!(b)))]))), bob.local_stmt(bob
+                                            .ident_pat(stringify!(e), false), Some(bob.struct_expr(bob
+                                            .path(vec![bob.path_segment(stringify!(Foo),
+                                            vec![stringify!(T)])],), vec![bob.field_value(bob
+                                            .member_named(stringify!(a)), bob.path_expr(bob
+                                            .path(vec![bob.path_segment(stringify!(c), bob
+                                            .path_arguments_none())],))), bob.field_value(bob
+                                            .member_named(stringify!(b)), bob.path_expr(bob
+                                            .path(vec![bob.path_segment(stringify!(c), bob
+                                            .path_arguments_none())],)))], None, < Foo:: < T > as
+                                            rhdl::core::Digital > ::static_kind().place_holder()))), bob
+                                            .expr_stmt(bob
+                                            .binary_expr(rhdl::core::ast::builder::BinOp::Eq, bob
+                                            .path_expr(bob.path(vec![bob.path_segment(stringify!(e), bob
+                                            .path_arguments_none())],)), bob.path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(x), bob
+                                            .path_arguments_none())],))))
+                                        ],
+                                    ),
+                                std::any::TypeId::of::<do_stuff<T, S>>(),
+                                "fn do_stuff<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {\n    let c = x.a;\n    let d = (x.a, y.b);\n    let e = Foo::<T> { a: c, b: c };\n    e == x\n}\n",
+                                concat!(file!(), ":", line!()),
+                            ),
+                    )
+                }
+            }
+        "#]];
+        expect.assert_eq(&result);
     }
 
     #[test]
@@ -1765,10 +2734,342 @@ mod test {
             }
         };
         let expr = syn::parse2::<syn::ExprMatch>(test_code).unwrap();
-        expr.arms.iter().for_each(|arm| {
-            eprintln!("{:?}", arm);
-            eprintln!("pattern has bindings {:?}", pattern_has_bindings(&arm.pat));
-        });
+        let expect = expect![[r#"
+            [
+                Arm {
+                    attrs: [],
+                    pat: Pat::Struct {
+                        attrs: [],
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments: [
+                                PathSegment {
+                                    ident: Ident(
+                                        Foo,
+                                    ),
+                                    arguments: PathArguments::AngleBracketed {
+                                        colon2_token: Some(
+                                            PathSep,
+                                        ),
+                                        lt_token: Lt,
+                                        args: [
+                                            GenericArgument::Type(
+                                                Type::Path {
+                                                    qself: None,
+                                                    path: Path {
+                                                        leading_colon: None,
+                                                        segments: [
+                                                            PathSegment {
+                                                                ident: Ident(
+                                                                    T,
+                                                                ),
+                                                                arguments: PathArguments::None,
+                                                            },
+                                                        ],
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                        gt_token: Gt,
+                                    },
+                                },
+                            ],
+                        },
+                        brace_token: Brace,
+                        fields: [
+                            FieldPat {
+                                attrs: [],
+                                member: Member::Named(
+                                    Ident(
+                                        a,
+                                    ),
+                                ),
+                                colon_token: Some(
+                                    Colon,
+                                ),
+                                pat: Pat::Lit {
+                                    attrs: [],
+                                    lit: Lit::Int {
+                                        token: 1,
+                                    },
+                                },
+                            },
+                            Comma,
+                            FieldPat {
+                                attrs: [],
+                                member: Member::Named(
+                                    Ident(
+                                        b,
+                                    ),
+                                ),
+                                colon_token: Some(
+                                    Colon,
+                                ),
+                                pat: Pat::Lit {
+                                    attrs: [],
+                                    lit: Lit::Int {
+                                        token: 2,
+                                    },
+                                },
+                            },
+                        ],
+                        rest: None,
+                    },
+                    guard: None,
+                    fat_arrow_token: FatArrow,
+                    body: Expr::Block {
+                        attrs: [],
+                        label: None,
+                        block: Block {
+                            brace_token: Brace,
+                            stmts: [],
+                        },
+                    },
+                    comma: None,
+                },
+                Arm {
+                    attrs: [],
+                    pat: Pat::Struct {
+                        attrs: [],
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments: [
+                                PathSegment {
+                                    ident: Ident(
+                                        Foo,
+                                    ),
+                                    arguments: PathArguments::AngleBracketed {
+                                        colon2_token: Some(
+                                            PathSep,
+                                        ),
+                                        lt_token: Lt,
+                                        args: [
+                                            GenericArgument::Type(
+                                                Type::Path {
+                                                    qself: None,
+                                                    path: Path {
+                                                        leading_colon: None,
+                                                        segments: [
+                                                            PathSegment {
+                                                                ident: Ident(
+                                                                    T,
+                                                                ),
+                                                                arguments: PathArguments::None,
+                                                            },
+                                                        ],
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                        gt_token: Gt,
+                                    },
+                                },
+                            ],
+                        },
+                        brace_token: Brace,
+                        fields: [
+                            FieldPat {
+                                attrs: [],
+                                member: Member::Named(
+                                    Ident(
+                                        a,
+                                    ),
+                                ),
+                                colon_token: None,
+                                pat: Pat::Ident {
+                                    attrs: [],
+                                    by_ref: None,
+                                    mutability: None,
+                                    ident: Ident(
+                                        a,
+                                    ),
+                                    subpat: None,
+                                },
+                            },
+                            Comma,
+                            FieldPat {
+                                attrs: [],
+                                member: Member::Named(
+                                    Ident(
+                                        b,
+                                    ),
+                                ),
+                                colon_token: None,
+                                pat: Pat::Ident {
+                                    attrs: [],
+                                    by_ref: None,
+                                    mutability: None,
+                                    ident: Ident(
+                                        b,
+                                    ),
+                                    subpat: None,
+                                },
+                            },
+                        ],
+                        rest: None,
+                    },
+                    guard: None,
+                    fat_arrow_token: FatArrow,
+                    body: Expr::Block {
+                        attrs: [],
+                        label: None,
+                        block: Block {
+                            brace_token: Brace,
+                            stmts: [],
+                        },
+                    },
+                    comma: None,
+                },
+                Arm {
+                    attrs: [],
+                    pat: Pat::TupleStruct {
+                        attrs: [],
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments: [
+                                PathSegment {
+                                    ident: Ident(
+                                        Foo,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                            ],
+                        },
+                        paren_token: Paren,
+                        elems: [
+                            Pat::Ident {
+                                attrs: [],
+                                by_ref: None,
+                                mutability: None,
+                                ident: Ident(
+                                    CACHE,
+                                ),
+                                subpat: None,
+                            },
+                        ],
+                    },
+                    guard: None,
+                    fat_arrow_token: FatArrow,
+                    body: Expr::Block {
+                        attrs: [],
+                        label: None,
+                        block: Block {
+                            brace_token: Brace,
+                            stmts: [],
+                        },
+                    },
+                    comma: None,
+                },
+                Arm {
+                    attrs: [],
+                    pat: Pat::Struct {
+                        attrs: [],
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments: [
+                                PathSegment {
+                                    ident: Ident(
+                                        Foo,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                            ],
+                        },
+                        brace_token: Brace,
+                        fields: [
+                            FieldPat {
+                                attrs: [],
+                                member: Member::Named(
+                                    Ident(
+                                        a,
+                                    ),
+                                ),
+                                colon_token: Some(
+                                    Colon,
+                                ),
+                                pat: Pat::Ident {
+                                    attrs: [],
+                                    by_ref: None,
+                                    mutability: None,
+                                    ident: Ident(
+                                        x,
+                                    ),
+                                    subpat: None,
+                                },
+                            },
+                        ],
+                        rest: None,
+                    },
+                    guard: None,
+                    fat_arrow_token: FatArrow,
+                    body: Expr::Block {
+                        attrs: [],
+                        label: None,
+                        block: Block {
+                            brace_token: Brace,
+                            stmts: [],
+                        },
+                    },
+                    comma: None,
+                },
+                Arm {
+                    attrs: [],
+                    pat: Pat::TupleStruct {
+                        attrs: [],
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments: [
+                                PathSegment {
+                                    ident: Ident(
+                                        Bar,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                            ],
+                        },
+                        paren_token: Paren,
+                        elems: [
+                            Pat::Ident {
+                                attrs: [],
+                                by_ref: None,
+                                mutability: None,
+                                ident: Ident(
+                                    CACHE,
+                                ),
+                                subpat: None,
+                            },
+                            Comma,
+                            Pat::Ident {
+                                attrs: [],
+                                by_ref: None,
+                                mutability: None,
+                                ident: Ident(
+                                    x,
+                                ),
+                                subpat: None,
+                            },
+                        ],
+                    },
+                    guard: None,
+                    fat_arrow_token: FatArrow,
+                    body: Expr::Block {
+                        attrs: [],
+                        label: None,
+                        block: Block {
+                            brace_token: Brace,
+                            stmts: [],
+                        },
+                    },
+                    comma: None,
+                },
+            ]
+        "#]];
+        expect.assert_debug_eq(&expr.arms);
     }
 
     #[test]
@@ -1784,7 +3085,66 @@ mod test {
         let item = Context::default().function(function).unwrap();
         let new_code = quote! {#item};
         let new_code = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
-        println!("{}", new_code);
+        let expect = expect![[r#"
+            fn update(a: u8) -> u8 {
+                #[forbid(non_snake_case)]
+                #[forbid(non_upper_case_globals)]
+                #[forbid(unreachable_patterns)]
+                fn inner(mut a: u8) -> u8 {
+                    {
+                        let mut b = 3;
+                        b = a;
+                        b
+                    }
+                }
+                rhdl::core::trace_push_path(stringify!(update));
+                let ret = inner(a);
+                rhdl::core::trace_pop_path();
+                ret
+            }
+            #[allow(non_camel_case_types)]
+            struct update {}
+            impl rhdl::core::digital_fn::DigitalFn1 for update {
+                type A0 = u8;
+                type O = u8;
+                fn func() -> fn(u8) -> u8 {
+                    update
+                }
+            }
+            impl rhdl::core::digital_fn::DigitalFn for update {
+                fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+                    let bob = rhdl::core::ast::builder::ASTBuilder::default();
+                    Some(
+                        bob
+                            .kernel_fn(
+                                stringify!(update),
+                                vec! {
+                                    bob.type_pat(bob.ident_pat(stringify!(a), true), < u8 as
+                                    rhdl::core::Digital > ::static_kind())
+                                },
+                                <u8 as rhdl::core::Digital>::static_kind(),
+                                bob
+                                    .block(
+                                        vec![
+                                            bob.local_stmt(bob.ident_pat(stringify!(b), true), Some(bob
+                                            .lit_expr(bob.expr_lit_int(stringify!(3))))), bob
+                                            .semi_stmt(bob.assign_expr(bob.path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(b), bob.path_arguments_none())],)),
+                                            bob.path_expr(bob.path(vec![bob.path_segment(stringify!(a),
+                                            bob.path_arguments_none())],)))), bob.expr_stmt(bob
+                                            .path_expr(bob.path(vec![bob.path_segment(stringify!(b), bob
+                                            .path_arguments_none())],)))
+                                        ],
+                                    ),
+                                std::any::TypeId::of::<update>(),
+                                "fn update(mut a: u8) -> u8 {\n    let mut b = 3;\n    b = a;\n    b\n}\n",
+                                concat!(file!(), ":", line!()),
+                            ),
+                    )
+                }
+            }
+        "#]];
+        expect.assert_eq(&new_code);
     }
 
     #[test]
@@ -1798,7 +3158,63 @@ mod test {
         let item = Context::default().function(function).unwrap();
         let new_code = quote! {#item};
         let new_code = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
-        println!("{}", new_code);
+        let expect = expect![[r#"
+            fn update((a, b): (u8, u8)) -> (u8, u8) {
+                #[forbid(non_snake_case)]
+                #[forbid(non_upper_case_globals)]
+                #[forbid(unreachable_patterns)]
+                fn inner((a, b): (u8, u8)) -> (u8, u8) {
+                    { (a, a + b) }
+                }
+                rhdl::core::trace_push_path(stringify!(update));
+                let ret = inner((a, b));
+                rhdl::core::trace_pop_path();
+                ret
+            }
+            #[allow(non_camel_case_types)]
+            struct update {}
+            impl rhdl::core::digital_fn::DigitalFn1 for update {
+                type A0 = (u8, u8);
+                type O = (u8, u8);
+                fn func() -> fn((u8, u8)) -> (u8, u8) {
+                    update
+                }
+            }
+            impl rhdl::core::digital_fn::DigitalFn for update {
+                fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+                    let bob = rhdl::core::ast::builder::ASTBuilder::default();
+                    Some(
+                        bob
+                            .kernel_fn(
+                                stringify!(update),
+                                vec! {
+                                    bob.type_pat(bob.tuple_pat(vec![bob.ident_pat(stringify!(a),
+                                    false), bob.ident_pat(stringify!(b), false)]), < (u8, u8) as
+                                    rhdl::core::Digital > ::static_kind())
+                                },
+                                <(u8, u8) as rhdl::core::Digital>::static_kind(),
+                                bob
+                                    .block(
+                                        vec![
+                                            bob.expr_stmt(bob.tuple_expr(vec![bob.path_expr(bob
+                                            .path(vec![bob.path_segment(stringify!(a), bob
+                                            .path_arguments_none())],)), bob
+                                            .binary_expr(rhdl::core::ast::builder::BinOp::Add, bob
+                                            .path_expr(bob.path(vec![bob.path_segment(stringify!(a), bob
+                                            .path_arguments_none())],)), bob.path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(b), bob
+                                            .path_arguments_none())],)))]))
+                                        ],
+                                    ),
+                                std::any::TypeId::of::<update>(),
+                                "fn update((a, b): (u8, u8)) -> (u8, u8) {\n    (a, a + b)\n}\n",
+                                concat!(file!(), ":", line!()),
+                            ),
+                    )
+                }
+            }
+        "#]];
+        expect.assert_eq(&new_code);
     }
 
     #[test]
@@ -1820,7 +3236,107 @@ mod test {
         let item = Context::default().function(function).unwrap();
         let new_code = quote! {#item};
         let new_code = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
-        println!("{}", new_code);
+        let expect = expect![[r#"
+            fn counter<const N: usize>(
+                i: CounterIn<N>,
+                (count_q,): (Bits<N>,),
+            ) -> (Bits<N>, (DFFIn<Bits<N>>,)) {
+                #[forbid(non_snake_case)]
+                #[forbid(non_upper_case_globals)]
+                #[forbid(unreachable_patterns)]
+                fn inner<const N: usize>(
+                    i: CounterIn<N>,
+                    (count_q,): (Bits<N>,),
+                ) -> (Bits<N>, (DFFIn<Bits<N>>,)) {
+                    {
+                        let count_q = count_q.0;
+                        let next = if i.enable { count_q + 1 } else { count_q };
+                        (
+                            count_q,
+                            (
+                                DFFIn {
+                                    clock: i.clock,
+                                    data: next,
+                                },
+                            ),
+                        )
+                    }
+                }
+                rhdl::core::trace_push_path(stringify!(counter));
+                let ret = inner::<N>(i, (count_q,));
+                rhdl::core::trace_pop_path();
+                ret
+            }
+            #[allow(non_camel_case_types)]
+            struct counter<const N: usize> {}
+            impl<const N: usize> rhdl::core::digital_fn::DigitalFn2 for counter<N> {
+                type A0 = CounterIn<N>;
+                type A1 = (Bits<N>,);
+                type O = (Bits<N>, (DFFIn<Bits<N>>,));
+                fn func() -> fn(CounterIn<N>, (Bits<N>,)) -> (Bits<N>, (DFFIn<Bits<N>>,)) {
+                    counter::<N>
+                }
+            }
+            impl<const N: usize> rhdl::core::digital_fn::DigitalFn for counter<N> {
+                fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+                    let bob = rhdl::core::ast::builder::ASTBuilder::default();
+                    Some(
+                        bob
+                            .kernel_fn(
+                                stringify!(counter),
+                                vec! {
+                                    bob.type_pat(bob.ident_pat(stringify!(i), false), < CounterIn < N
+                                    > as rhdl::core::Digital > ::static_kind()), bob.type_pat(bob
+                                    .tuple_pat(vec![bob.ident_pat(stringify!(count_q), false)]), <
+                                    (Bits < N >,) as rhdl::core::Digital > ::static_kind())
+                                },
+                                <(Bits<N>, (DFFIn<Bits<N>>,)) as rhdl::core::Digital>::static_kind(),
+                                bob
+                                    .block(
+                                        vec![
+                                            bob.local_stmt(bob.ident_pat(stringify!(count_q), false),
+                                            Some(bob.field_expr(bob.path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(count_q), bob
+                                            .path_arguments_none())],)), bob.member_unnamed(0u32)))),
+                                            bob.local_stmt(bob.ident_pat(stringify!(next), false),
+                                            Some(bob.if_expr(bob.field_expr(bob.path_expr(bob
+                                            .path(vec![bob.path_segment(stringify!(i), bob
+                                            .path_arguments_none())],)), bob
+                                            .member_named(stringify!(enable))), bob.block(vec![bob
+                                            .expr_stmt(bob
+                                            .binary_expr(rhdl::core::ast::builder::BinOp::Add, bob
+                                            .path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(count_q), bob
+                                            .path_arguments_none())],)), bob.lit_expr(bob
+                                            .expr_lit_int(stringify!(1)))))],), Some(bob.block_expr(bob
+                                            .block(vec![bob.expr_stmt(bob.path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(count_q), bob
+                                            .path_arguments_none())],)))],)))))), bob.expr_stmt(bob
+                                            .tuple_expr(vec![bob.path_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(count_q), bob
+                                            .path_arguments_none())],)), bob.tuple_expr(vec![bob
+                                            .struct_expr(bob.path(vec![bob
+                                            .path_segment(stringify!(DFFIn), bob
+                                            .path_arguments_none())],), vec![bob.field_value(bob
+                                            .member_named(stringify!(clock)), bob.field_expr(bob
+                                            .path_expr(bob.path(vec![bob.path_segment(stringify!(i), bob
+                                            .path_arguments_none())],)), bob
+                                            .member_named(stringify!(clock)))), bob.field_value(bob
+                                            .member_named(stringify!(data)), bob.path_expr(bob
+                                            .path(vec![bob.path_segment(stringify!(next), bob
+                                            .path_arguments_none())],)))], None, < DFFIn as
+                                            rhdl::core::Digital > ::static_kind().place_holder())])]))
+                                        ],
+                                    ),
+                                std::any::TypeId::of::<counter<N>>(),
+                                "fn counter<const N: usize>(\n    i: CounterIn<N>,\n    (count_q,): (Bits<N>,),\n) -> (Bits<N>, (DFFIn<Bits<N>>,)) {\n    let count_q = count_q.0;\n    let next = if i.enable { count_q + 1 } else { count_q };\n    (\n        count_q,\n        (\n            DFFIn {\n                clock: i.clock,\n                data: next,\n            },\n        ),\n    )\n}\n",
+                                concat!(file!(), ":", line!()),
+                            ),
+                    )
+                }
+            }
+        "#]];
+        expect.assert_eq(&new_code);
     }
 
     #[test]
@@ -1850,11 +3366,261 @@ mod test {
             }
         };
         let expr = syn::parse2::<syn::ExprMatch>(test_code).unwrap();
-        expr.arms.iter().for_each(|arm| {
-            eprintln!("{:?}", arm);
-            eprintln!("pattern has bindings {:?}", pattern_has_bindings(&arm.pat));
-            let rewrite = rewrite_pattern_to_use_defaults_for_bindings(&arm.pat);
-            eprintln!("{}", rewrite);
-        });
+        let expect = expect![[r#"
+            [
+                Arm {
+                    attrs: [],
+                    pat: Pat::Path {
+                        attrs: [],
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments: [
+                                PathSegment {
+                                    ident: Ident(
+                                        Baz,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                                PathSep,
+                                PathSegment {
+                                    ident: Ident(
+                                        A,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                            ],
+                        },
+                    },
+                    guard: None,
+                    fat_arrow_token: FatArrow,
+                    body: Expr::Block {
+                        attrs: [],
+                        label: None,
+                        block: Block {
+                            brace_token: Brace,
+                            stmts: [],
+                        },
+                    },
+                    comma: None,
+                },
+                Arm {
+                    attrs: [],
+                    pat: Pat::TupleStruct {
+                        attrs: [],
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments: [
+                                PathSegment {
+                                    ident: Ident(
+                                        Baz,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                                PathSep,
+                                PathSegment {
+                                    ident: Ident(
+                                        B,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                            ],
+                        },
+                        paren_token: Paren,
+                        elems: [
+                            Pat::Lit {
+                                attrs: [],
+                                lit: Lit::Int {
+                                    token: 3,
+                                },
+                            },
+                        ],
+                    },
+                    guard: None,
+                    fat_arrow_token: FatArrow,
+                    body: Expr::Block {
+                        attrs: [],
+                        label: None,
+                        block: Block {
+                            brace_token: Brace,
+                            stmts: [],
+                        },
+                    },
+                    comma: None,
+                },
+                Arm {
+                    attrs: [],
+                    pat: Pat::Struct {
+                        attrs: [],
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments: [
+                                PathSegment {
+                                    ident: Ident(
+                                        Baz,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                                PathSep,
+                                PathSegment {
+                                    ident: Ident(
+                                        C,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                            ],
+                        },
+                        brace_token: Brace,
+                        fields: [
+                            FieldPat {
+                                attrs: [],
+                                member: Member::Named(
+                                    Ident(
+                                        x,
+                                    ),
+                                ),
+                                colon_token: Some(
+                                    Colon,
+                                ),
+                                pat: Pat::Lit {
+                                    attrs: [],
+                                    lit: Lit::Int {
+                                        token: 3,
+                                    },
+                                },
+                            },
+                            Comma,
+                            FieldPat {
+                                attrs: [],
+                                member: Member::Named(
+                                    Ident(
+                                        y,
+                                    ),
+                                ),
+                                colon_token: Some(
+                                    Colon,
+                                ),
+                                pat: Pat::Lit {
+                                    attrs: [],
+                                    lit: Lit::Int {
+                                        token: 4,
+                                    },
+                                },
+                            },
+                        ],
+                        rest: None,
+                    },
+                    guard: None,
+                    fat_arrow_token: FatArrow,
+                    body: Expr::Block {
+                        attrs: [],
+                        label: None,
+                        block: Block {
+                            brace_token: Brace,
+                            stmts: [],
+                        },
+                    },
+                    comma: None,
+                },
+                Arm {
+                    attrs: [],
+                    pat: Pat::Struct {
+                        attrs: [],
+                        qself: None,
+                        path: Path {
+                            leading_colon: None,
+                            segments: [
+                                PathSegment {
+                                    ident: Ident(
+                                        Baz,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                                PathSep,
+                                PathSegment {
+                                    ident: Ident(
+                                        C,
+                                    ),
+                                    arguments: PathArguments::None,
+                                },
+                            ],
+                        },
+                        brace_token: Brace,
+                        fields: [
+                            FieldPat {
+                                attrs: [],
+                                member: Member::Named(
+                                    Ident(
+                                        x,
+                                    ),
+                                ),
+                                colon_token: None,
+                                pat: Pat::Ident {
+                                    attrs: [],
+                                    by_ref: None,
+                                    mutability: None,
+                                    ident: Ident(
+                                        x,
+                                    ),
+                                    subpat: None,
+                                },
+                            },
+                            Comma,
+                            FieldPat {
+                                attrs: [],
+                                member: Member::Named(
+                                    Ident(
+                                        y,
+                                    ),
+                                ),
+                                colon_token: None,
+                                pat: Pat::Ident {
+                                    attrs: [],
+                                    by_ref: None,
+                                    mutability: None,
+                                    ident: Ident(
+                                        y,
+                                    ),
+                                    subpat: None,
+                                },
+                            },
+                        ],
+                        rest: None,
+                    },
+                    guard: None,
+                    fat_arrow_token: FatArrow,
+                    body: Expr::Block {
+                        attrs: [],
+                        label: None,
+                        block: Block {
+                            brace_token: Brace,
+                            stmts: [],
+                        },
+                    },
+                    comma: None,
+                },
+                Arm {
+                    attrs: [],
+                    pat: Pat::Wild {
+                        attrs: [],
+                        underscore_token: Underscore,
+                    },
+                    guard: None,
+                    fat_arrow_token: FatArrow,
+                    body: Expr::Block {
+                        attrs: [],
+                        label: None,
+                        block: Block {
+                            brace_token: Brace,
+                            stmts: [],
+                        },
+                    },
+                    comma: None,
+                },
+            ]
+        "#]];
+        expect.assert_debug_eq(&expr.arms);
     }
 }

@@ -74,9 +74,9 @@ mod tests {
     use crate::axi4lite::types::{ReadMOSI, WriteMOSI};
 
     use super::*;
-    use rhdl::{
-        core::hdl::ast::{component_instance, connection, declaration},
-        prelude::*,
+    use rhdl::core::hdl::{
+        ast::{component_instance, connection, declaration},
+        export::export_hdl_module,
     };
 
     fn axi_null_cmd() -> MOSI {
@@ -173,7 +173,7 @@ mod tests {
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["deba13492917f79b9a98b74cba94bee46a8aabcee29a81e5b6b54ca452bdd986"];
+        let expect = expect!["89e1fbb56baafbeabcea941f5620f763b437f7a30b546ef4e5c0ebdfd78c3d7a"];
         let digest = vcd
             .dump_to_file(&root.join("axi4lite_register.vcd"))
             .unwrap();
@@ -182,10 +182,8 @@ mod tests {
     }
 
     #[test]
-    fn test_export() -> miette::Result<()> {
+    fn test_export_fn() -> miette::Result<()> {
         let uut = U::<Red, Blue>::default();
-        let hdl = uut.hdl("axi_register")?;
-        let verilog = hdl.as_module();
         let i = I::<Red, Green, 32, 32>::dont_care();
         let o = O::<Green, 8, 32>::dont_care();
         let binds = export![
@@ -209,76 +207,8 @@ mod tests {
             input s_axi_rready => i.axi.val().read.rready,       // AXI4-Lite slave: Read data ready
             output data => o.read_data                          // Register read data
         ];
-        let ports = binds
-            .iter()
-            .map(|(dir, name, kind, path)| {
-                let (range, _) = bit_range(*kind, path).unwrap();
-                let width = unsigned_width(range.end - range.start);
-                port(name, *dir, HDLKind::Wire, width)
-            })
-            .collect::<Vec<_>>();
-        let mut i_cover = vec![false; i.kind().bits()];
-        let mut o_cover = vec![false; o.kind().bits()];
-        binds.iter().for_each(|(dir, _, kind, path)| {
-            let (range, _) = bit_range(*kind, path).unwrap();
-            match dir {
-                Direction::Input => {
-                    for bit in range {
-                        i_cover[bit] = true;
-                    }
-                }
-                Direction::Output => {
-                    for bit in range {
-                        o_cover[bit] = true;
-                    }
-                }
-                Direction::Inout => todo!(),
-            }
-        });
-        if i_cover.iter().any(|b| !b) {
-            panic!("Uncovered input bits: {:?}", i_cover);
-        }
-        if o_cover.iter().any(|b| !b) {
-            panic!("Uncovered output bits: {:?}", o_cover);
-        }
-        let declarations = vec![
-            declaration(HDLKind::Wire, "i", unsigned_width(i.kind().bits()), None),
-            declaration(HDLKind::Wire, "o", unsigned_width(o.kind().bits()), None),
-        ];
-        let mut statements = binds
-            .iter()
-            .map(|(dir, name, kind, path)| {
-                let (range, _) = bit_range(*kind, path).unwrap();
-                match dir {
-                    Direction::Input => rhdl::core::hdl::ast::Statement::Custom(format!(
-                        "assign i[{}:{}] = {name};",
-                        range.end.saturating_sub(1),
-                        range.start
-                    )),
-                    Direction::Output => rhdl::core::hdl::ast::Statement::Custom(format!(
-                        "assign {name} = o[{}:{}];",
-                        range.end.saturating_sub(1),
-                        range.start
-                    )),
-                    Direction::Inout => todo!(),
-                }
-            })
-            .collect::<Vec<_>>();
-        statements.push(component_instance(
-            &verilog.name,
-            "sub",
-            vec![connection("i", id("i")), connection("o", id("o"))],
-        ));
-        let wrapped = Module {
-            name: "axi_register_wrap".to_string(),
-            description: "AXI4-Lite register with a single register".to_string(),
-            ports,
-            declarations,
-            statements,
-            submodules: vec![verilog],
-            ..Default::default()
-        };
-        std::fs::write("axi_register.v", wrapped.to_string()).unwrap();
+        let module = export_hdl_module(&uut, "axi_reg_module", "AXI4 Lite register", binds)?;
+        std::fs::write("axi_reg_module.v", module.to_string()).unwrap();
         Ok(())
     }
 }

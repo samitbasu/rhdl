@@ -1,6 +1,7 @@
 use crate::axi4lite::channel::receiver;
 use crate::axi4lite::channel::sender;
 use crate::axi4lite::types::response_codes;
+use crate::axi4lite::types::AXI4Error;
 use crate::axi4lite::types::ReadMISO;
 use crate::axi4lite::types::ReadMOSI;
 use crate::axi4lite::types::ReadResponse;
@@ -23,7 +24,7 @@ pub struct U<const DATA: usize = 32, const ADDR: usize = 32> {
 #[derive(Debug, Digital)]
 pub struct I<const DATA: usize = 32, const ADDR: usize = 32> {
     pub axi: ReadMOSI<ADDR>,
-    pub data: Bits<DATA>,
+    pub data: Result<Bits<DATA>, AXI4Error>,
 }
 
 #[derive(Debug, Digital)]
@@ -66,10 +67,19 @@ pub fn read_bridge_kernel<const DATA: usize, const ADDR: usize>(
     };
     d.data.to_send = None;
     if transaction_is_pending && !q.data.full {
-        d.data.to_send = Some(ReadResponse::<DATA> {
-            data: i.data,
-            resp: response_codes::OKAY,
-        });
+        d.data.to_send = match i.data {
+            Ok(data) => Some(ReadResponse::<DATA> {
+                data,
+                resp: response_codes::OKAY,
+            }),
+            Err(e) => Some(ReadResponse::<DATA> {
+                data: bits(0),
+                resp: match e {
+                    AXI4Error::SLVERR => response_codes::SLVERR,
+                    AXI4Error::DECERR => response_codes::DECERR,
+                },
+            }),
+        };
         d.id = None;
     }
     if addr_is_valid && !q.data.full {

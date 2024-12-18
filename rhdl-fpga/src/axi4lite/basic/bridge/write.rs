@@ -1,6 +1,7 @@
 use crate::axi4lite::channel::receiver;
 use crate::axi4lite::channel::sender;
 use crate::axi4lite::types::response_codes;
+use crate::axi4lite::types::AXI4Error;
 use crate::axi4lite::types::ResponseKind;
 use crate::axi4lite::types::WriteMISO;
 use crate::axi4lite::types::WriteMOSI;
@@ -46,6 +47,7 @@ impl<const DATA: usize, const ADDR: usize> SynchronousDQ for U<DATA, ADDR> {
 #[derive(Debug, Digital)]
 pub struct I<const DATA: usize, const ADDR: usize> {
     pub axi: WriteMOSI<DATA, ADDR>,
+    pub response: Option<Result<(), AXI4Error>>,
     pub full: bool,
 }
 
@@ -91,13 +93,21 @@ pub fn write_bridge_kernel<const DATA: usize, const ADDR: usize>(
     let (data_is_valid, data) = unpack::<Bits<DATA>>(q.data.data);
     d.data.ready = !data_is_valid;
     // If both address and data are valid and the response channel is free, issue a write
-    if addr_is_valid && data_is_valid && !q.resp.full && !i.full {
+    if addr_is_valid && data_is_valid && !i.full {
         o.write = Some((addr, data));
         // We do not need to hold them any longer
         d.addr.ready = true;
         d.data.ready = true;
-        d.resp.to_send = Some(response_codes::OKAY);
     }
+    // Forward the response to the sender
+    d.resp.to_send = match i.response {
+        Some(Ok::<(), AXI4Error>(())) => Some(response_codes::OKAY),
+        Some(Err(e)) => match e {
+            AXI4Error::SLVERR => Some(response_codes::SLVERR),
+            AXI4Error::DECERR => Some(response_codes::DECERR),
+        },
+        None => None,
+    };
     if cr.reset.any() {
         o.write = None;
     }

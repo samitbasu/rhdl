@@ -182,7 +182,16 @@ fn statement(ast: &Statement) -> String {
         Statement::Finish => "$finish;".to_string(),
         Statement::Assert(ast) => assert_statement(ast),
         Statement::Custom(ast) => ast.clone(),
+        Statement::Comment(ast) => comment(ast),
     }
+}
+
+fn comment(ast: &str) -> String {
+    // Write a single line comment with `//` if there are no
+    // newlines in the comment text, otherwise write a block
+    // comment with `/*` and `*/`.
+    let ast = ast.replace("\n", "\n // ");
+    format!("// {}", ast)
 }
 
 fn if_statement(ast: &If) -> String {

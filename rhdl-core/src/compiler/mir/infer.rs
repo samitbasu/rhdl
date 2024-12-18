@@ -390,10 +390,9 @@ impl<'a> MirTypeInference<'a> {
         );
         match self.ty_path_project(op.arg, &op.path, loc) {
             Ok(ty) => self.unify(loc, op.lhs, ty),
-            Err(err) => {
-                debug!("Error: {}", err);
-                Ok(())
-            }
+            Err(_) => Err(self
+                .raise_type_error(TypeCheck::PathMismatchInTypeInference, loc)
+                .into()),
         }
     }
     // Given Y <- A op B, ensure that the data types of

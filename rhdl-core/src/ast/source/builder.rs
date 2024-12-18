@@ -2,6 +2,7 @@ use std::{collections::HashMap, ops::Range};
 
 use log::debug;
 use proc_macro2::Span;
+use quote::quote;
 use syn::spanned::Spanned;
 
 use crate::ast::ast_impl::{KernelFn, NodeId};
@@ -310,11 +311,28 @@ impl<'a> SpannedSourceBuilder<'a> {
                 self.expr_list(&syn.elems, &ast.elements, syn.span())
             }
             (syn::Expr::Unary(syn), ast::ExprKind::Unary(ast)) => self.expr(&syn.expr, &ast.expr),
+            (syn::Expr::Cast(syn), ast::ExprKind::Cast(ast)) => self.expr(&syn.expr, &ast.expr),
             (_, ast::ExprKind::Type(_)) => Ok(()),
             (syn::Expr::Path(_), ast::ExprKind::Call(_)) => Ok(()),
+            (syn::Expr::Block(syn), _kind) => {
+                // It's possible that quote inserted a block, where we expected a statement.
+                if syn.block.stmts.len() != 1 {
+                    return Err(syn::Error::new(
+                        syn.span(),
+                        "Expected a block statement, found multiple statements",
+                    ));
+                }
+                let syn::Stmt::Expr(syn_expr, _) = &syn.block.stmts[0] else {
+                    return Err(syn::Error::new(syn.span(), "Expected an expression statement"));
+                };
+                self.expr(syn_expr, ast)
+            }
             _ => Err(syn::Error::new(
                 syn.span(),
-                format!("Mismatched expression kinds {:#?} {:#?}", syn, ast,),
+                format!(
+                    "Mismatched expression kinds \n\n ----- \n {:?} \n ---- \n {:?} \n ----- \n {:?}\n",
+                    syn, quote!(#syn).to_string(), ast,
+                ),
             )),
         }
     }
