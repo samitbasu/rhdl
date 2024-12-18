@@ -52,7 +52,7 @@ pub fn basic_test_kernel(cr: ClockReset, i: I, q: Q) -> (O, D) {
     d.manager.axi = q.subordinate.axi;
     d.subordinate.axi = q.manager.axi;
     d.manager.cmd = i.cmd;
-    d.subordinate.data = q.memory;
+    d.subordinate.data = Ok(q.memory);
     // The read bridge uses a read strobe, but we will ignore that
     // for this test case, since the RAM does not care how many times
     // we read it.
@@ -95,7 +95,7 @@ mod tests {
             .join("axi4lite")
             .join("basic");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["84072a32114264ba3c3316f65d2acfc7124b6ec1a0594bc482615d33cebe8864"];
+        let expect = expect!["f8632367658ed519d15992c4a7b09e383b0dc75f192745b183fc666a7f2f3360"];
         let digest = vcd.dump_to_file(&root.join("basic_read_test.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

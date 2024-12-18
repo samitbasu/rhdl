@@ -97,7 +97,7 @@ mod tests {
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["cf311a7e6421a4461c0e7115bd6410e3e8212e804b73ee2339a959de5cd600b2"];
+        let expect = expect!["893e3056f79ee970c42d8c338ad68049f43526ad54a6850fa136f3a3e55d9523"];
         let digest = vcd.dump_to_file(&root.join("register.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -105,6 +105,7 @@ mod tests {
 
     #[test]
     fn test_compile_times() -> miette::Result<()> {
+        env_logger::init();
         let tic = std::time::Instant::now();
         let uut = U::<32, 32>::default();
         let _hdl = uut.flow_graph("top")?;

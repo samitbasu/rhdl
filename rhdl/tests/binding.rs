@@ -5,12 +5,171 @@
 #![allow(unused_must_use)]
 #![allow(dead_code)]
 
+use expect_test::expect;
 use rhdl::prelude::*;
 #[cfg(test)]
 mod common;
 #[cfg(test)]
 use common::*;
 use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
+
+#[test]
+fn test_nested_enum_match_in_if_let_fails() -> miette::Result<()> {
+    #[derive(Digital)]
+    pub struct Bar(b8, b8);
+
+    #[derive(Digital, Default)]
+    pub enum Foo {
+        Red(Bar),
+        Blue(b8),
+        #[default]
+        White,
+    }
+
+    #[kernel]
+    fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {
+        if let Some(Foo::Red(Bar(x, y))) = state.val() {
+            signal(x + y)
+        } else {
+            signal(bits(0))
+        }
+    }
+
+    let inputs = [
+        Some(Foo::Red(Bar(bits(3), bits(2)))),
+        Some(Foo::Red(Bar(bits(3), bits(4)))),
+        Some(Foo::Red(Bar(bits(3), bits(6)))),
+        Some(Foo::Red(Bar(bits(3), bits(8)))),
+        None,
+    ];
+
+    let expect_err = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(3cd4a75136c01d12): SpannedSource { source: "fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {\n    if let Some(Foo::Red(Bar(x, y))) = state.val() {\n        signal(x + y)\n    } else {\n        signal(bits(0))\n    }\n}\n", name: "add", span_map: {N6: 86..95, N19: 147..178, N0: 7..12, N5: 93..94, N20: 147..178, N15: 169..170, N8: 72..97, N12: 122..135, N1: 7..38, N23: 59..180, N7: 77..96, N17: 157..172, N21: 65..178, N9: 129..130, N18: 157..172, N24: 0..180, N4: 90..91, N3: 100..111, N10: 133..134, N22: 65..178, N2: 100..105, N13: 122..135, N11: 129..134, N14: 112..141, N16: 164..171}, fallback: N24, filename: "rhdl/tests/binding.rs:29", function_id: FnID(3cd4a75136c01d12) }}, ranges: {FnID(3cd4a75136c01d12): 0..181} }, err_span: SourceSpan { offset: SourceOffset(86), length: 9 } }))"#]];
+    let res = compile_design::<add>(CompilationMode::Asynchronous);
+    expect_err.assert_eq(&format!("{:?}", res));
+    Ok(())
+}
+
+#[test]
+fn test_nested_rebind_in_if_let() -> miette::Result<()> {
+    #[derive(Digital)]
+    pub struct Bar(b8, b8);
+
+    #[derive(Digital)]
+    pub struct Foo {
+        a: b8,
+        b: Bar,
+    }
+
+    #[kernel]
+    fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {
+        if let Some(Foo { a, b: Bar(x, y) }) = state.val() {
+            signal(a + y)
+        } else {
+            signal(bits(0))
+        }
+    }
+
+    let inputs = [
+        Some(Foo {
+            a: bits(1),
+            b: Bar(bits(3), bits(2)),
+        }),
+        Some(Foo {
+            a: bits(3),
+            b: Bar(bits(3), bits(4)),
+        }),
+        Some(Foo {
+            a: bits(5),
+            b: Bar(bits(3), bits(6)),
+        }),
+        Some(Foo {
+            a: bits(7),
+            b: Bar(bits(3), bits(8)),
+        }),
+        None,
+    ];
+
+    test_kernel_vm_and_verilog::<add, _, _, _>(add, inputs.into_iter().map(red).map(|x| (x,)))?;
+
+    Ok(())
+}
+
+#[test]
+fn test_nested_rebind_inlet() -> miette::Result<()> {
+    #[derive(Digital)]
+    pub struct Bar(b8, b8);
+
+    #[derive(Digital)]
+    pub struct Foo {
+        a: b8,
+        b: Bar,
+    }
+
+    #[kernel]
+    fn add(state: Signal<Foo, Red>) -> Signal<b8, Red> {
+        let Foo { a, b: Bar(x, y) } = state.val();
+        signal(a + y)
+    }
+
+    let inputs = [
+        Foo {
+            a: bits(1),
+            b: Bar(bits(3), bits(2)),
+        },
+        Foo {
+            a: bits(3),
+            b: Bar(bits(3), bits(4)),
+        },
+        Foo {
+            a: bits(5),
+            b: Bar(bits(3), bits(6)),
+        },
+        Foo {
+            a: bits(7),
+            b: Bar(bits(3), bits(8)),
+        },
+    ];
+
+    test_kernel_vm_and_verilog::<add, _, _, _>(add, inputs.into_iter().map(red).map(|x| (x,)))?;
+    Ok(())
+}
+
+#[test]
+fn test_rebind_in_let() -> miette::Result<()> {
+    #[derive(Digital)]
+    pub struct Foo {
+        a: b8,
+        b: b8,
+    }
+
+    #[kernel]
+    fn add(state: Signal<Foo, Red>) -> Signal<b8, Red> {
+        let Foo { a, b } = state.val();
+        signal(a + b)
+    }
+
+    let inputs = [
+        Foo {
+            a: bits(1),
+            b: bits(2),
+        },
+        Foo {
+            a: bits(3),
+            b: bits(4),
+        },
+        Foo {
+            a: bits(5),
+            b: bits(6),
+        },
+        Foo {
+            a: bits(7),
+            b: bits(8),
+        },
+    ];
+
+    test_kernel_vm_and_verilog::<add, _, _, _>(add, inputs.into_iter().map(red).map(|x| (x,)))?;
+    Ok(())
+}
 
 #[test]
 fn test_rebind_compile() -> miette::Result<()> {

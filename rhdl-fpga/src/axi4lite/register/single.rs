@@ -61,12 +61,14 @@ pub fn single_kernel<const REG_WIDTH: usize, const DATA: usize, const ADDR: usiz
     d.reg = q.reg;
     // Connect the read bridge's input to the register
     // The read bridge's address is ignored
-    d.read_bridge.data = q.reg.resize();
+    d.read_bridge.data = Ok(q.reg.resize());
     // State of the register
     o.read_data = q.reg;
     // Connect the write bridge's output to the register
+    d.write_bridge.response = None;
     if let Some((_addr, value)) = q.write_bridge.write {
         d.reg = value.resize();
+        d.write_bridge.response = Some(Ok(()));
     }
     (o, d)
 }
@@ -143,7 +145,7 @@ mod tests {
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["3f2a2bba71815921707b6a4940545964164d7f5e807e19519b1e1f4bae45049a"];
+        let expect = expect!["160aedd34b774db9f9199c3b341901c9fa47e0194c71597730798d46e9b03678"];
         let digest = vcd
             .dump_to_file(&root.join("single_register_test.vcd"))
             .unwrap();

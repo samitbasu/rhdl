@@ -490,6 +490,14 @@ impl ASTBuilder {
         )
     }
 
+    pub fn expr_cast(&self, expr: Box<Expr>, len: usize) -> Box<Expr> {
+        let id = self.id();
+        Box::new(Expr {
+            id,
+            kind: ExprKind::Cast(ExprCast { expr, len }),
+        })
+    }
+
     pub fn expr_typed_bits(&self, path: Box<Path>, value: TypedBits, code: &str) -> Box<Expr> {
         let id = self.id();
         Box::new(Expr {

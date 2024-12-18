@@ -349,6 +349,11 @@ pub enum Statement {
     Custom(String),
     Finish,
     Assert(Assert),
+    Comment(String),
+}
+
+pub fn comment(comment: &str) -> Statement {
+    Statement::Comment(comment.to_string())
 }
 
 #[derive(Debug, Clone, Hash)]

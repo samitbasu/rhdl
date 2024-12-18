@@ -36,6 +36,14 @@ pub enum TypeCheck {
         "You need to initialize all elements of a value before using it in an operation"
     ))]
     PartiallyInitializedValue,
+    #[error("Path mismatch in type inference")]
+    #[diagnostic(help(
+        "There is a type mismatch in the type inference step.  This is likely due 
+        the use of nested enums in pattern matching, like Some(Ok(x)).  RHDL can 
+        only destructure one level of enums at a time.  Replace with Some(y) and
+        use a nested match expression to further destructure the inner type."
+    ))]
+    PathMismatchInTypeInference,
 }
 
 #[derive(Error, Debug, Diagnostic)]

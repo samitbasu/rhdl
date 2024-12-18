@@ -60,7 +60,7 @@ pub struct PathSegment {
     pub arguments: Vec<&'static str>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, Default)]
 pub struct Path {
     pub segments: Vec<PathSegment>,
 }
@@ -169,6 +169,13 @@ pub enum ExprKind {
     Type(ExprType),
     Bits(ExprBits),
     Try(ExprTry),
+    Cast(ExprCast),
+}
+
+#[derive(Debug, Clone, Hash)]
+pub struct ExprCast {
+    pub expr: Box<Expr>,
+    pub len: usize,
 }
 
 #[derive(Debug, Clone, Hash)]

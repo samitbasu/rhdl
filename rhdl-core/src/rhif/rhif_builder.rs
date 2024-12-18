@@ -159,3 +159,11 @@ pub fn op_wrap(lhs: Slot, arg: Slot, op: WrapOp) -> OpCode {
         kind: None,
     })
 }
+
+pub fn op_cast(lhs: Slot, arg: Slot, len: usize) -> OpCode {
+    OpCode::Resize(Cast {
+        lhs,
+        arg,
+        len: Some(len),
+    })
+}

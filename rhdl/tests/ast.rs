@@ -29,6 +29,18 @@ fn test_func_with_structured_args() -> miette::Result<()> {
 }
 
 #[test]
+fn test_basic_cast() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff<const DATA: usize>(a: Signal<b8, Red>) -> Signal<b8, Red> {
+        let bytes_per_word: Bits<8> = bits(({ DATA } >> 3) as u128);
+        let b = a.val() + bytes_per_word;
+        signal(b)
+    }
+    test_kernel_vm_and_verilog::<do_stuff<32>, _, _, _>(do_stuff::<32>, tuple_exhaustive_red())?;
+    Ok(())
+}
+
+#[test]
 #[allow(clippy::assign_op_pattern)]
 fn test_ast_basic_func() -> miette::Result<()> {
     use rhdl_bits::alias::*;

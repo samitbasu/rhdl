@@ -70,6 +70,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
     for lop in &obj.ops {
         let op = &lop.op;
         let loc = lop.loc;
+        log::trace!("Checking {:?}", op);
         match op {
             OpCode::Noop => {}
             OpCode::Binary(Binary {
