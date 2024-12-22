@@ -193,7 +193,7 @@ fn test_option_result_match_func() -> miette::Result<()> {
         signal(d)
     }
 
-    let expect = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(c951a9c843e4dd5b): SpannedSource { source: "fn do_stuff(i: Signal<Option<Result>, Red>) -> Signal<Option<ResponseCode>, Red> {\n    let d = match i.val() {\n        Some(Result::Ok(())) => Some(ResponseCode::OKAY),\n        Some(Result::Err(e)) => Some(err_map(e)),\n        None => None,\n    };\n    signal(d)\n}\n", name: "do_stuff", span_map: {N1: 12..42, N18: 95..246, N13: 201..217, N19: 87..247, N9: 182..196, N8: 194..195, N24: 81..263, N15: 227..231, N11: 214..215, N2: 91..92, N5: 148..166, N6: 143..167, N3: 101..102, N14: 177..218, N7: 119..168, N25: 0..263, N0: 12..13, N12: 206..216, N17: 227..240, N16: 235..239, N20: 87..247, N23: 252..261, N21: 259..260, N22: 252..261, N10: 177..197, N4: 101..108}, fallback: N25, filename: "rhdl/tests/option.rs:186", function_id: FnID(c951a9c843e4dd5b) }}, ranges: {FnID(c951a9c843e4dd5b): 0..264} }, err_span: SourceSpan { offset: SourceOffset(194), length: 1 } }))"#]];
+    let expect = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(c951a9c843e4dd5b): SpannedSource { source: "fn do_stuff(i: Signal<Option<Result>, Red>) -> Signal<Option<ResponseCode>, Red> {\n    let d = match i.val() {\n        Some(Result::Ok(())) => Some(ResponseCode::OKAY),\n        Some(Result::Err(e)) => Some(err_map(e)),\n        None => None,\n    };\n    signal(d)\n}\n", name: "do_stuff", span_map: {N24: 259..260, N3: 101..102, N18: 227..231, N6: 124..138, N4: 101..108, N16: 201..217, N19: 235..239, N27: 81..263, N0: 12..13, N28: 0..263, N23: 87..247, N13: 177..197, N1: 12..42, N9: 143..167, N14: 214..215, N11: 194..195, N17: 177..218, N5: 135..137, N25: 252..261, N15: 206..216, N20: 227..240, N21: 95..246, N10: 119..168, N8: 148..166, N2: 91..92, N26: 252..261, N12: 182..196, N7: 119..139, N22: 87..247}, fallback: N28, filename: "rhdl/tests/option.rs:186", function_id: FnID(c951a9c843e4dd5b) }}, ranges: {FnID(c951a9c843e4dd5b): 0..264} }, err_span: SourceSpan { offset: SourceOffset(135), length: 2 } }))"#]];
     let res = compile_design::<do_stuff>(CompilationMode::Asynchronous);
     expect.assert_eq(&format!("{:?}", res));
     Ok(())
@@ -222,8 +222,8 @@ fn test_option_result_if_let() -> miette::Result<()> {
     fn do_stuff(i: Signal<Option<Result>, Red>) -> Signal<Option<ResponseCode>, Red> {
         let d = if let Some(resp) = i.val() {
             match resp {
-                Result::Ok(()) => Some(ResponseCode::OKAY),
-                Result::Err(e) => Some(match e {
+                Ok(()) => Some(ResponseCode::OKAY),
+                Err(e) => Some(match e {
                     AXI4Error::SLVERR => ResponseCode::SLVERR,
                     AXI4Error::DECERR => ResponseCode::DECERR,
                 }),
@@ -329,7 +329,7 @@ fn test_option_result_nested_option_result_destructure() -> miette::Result<()> {
         signal(d)
     }
 
-    let expect = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(b4f885acad2da549): SpannedSource { source: "fn do_stuff(i: Signal<Option<Result>, Red>) -> Signal<Option<ResponseCode>, Red> {\n    let resp = i.val();\n    let d = match resp {\n        Some(Result::Ok(())) => Some(ResponseCode::OKAY),\n        Some(Result::Err(e)) => {\n            Some(\n                match e {\n                    AXI4Error::SLVERR => ResponseCode::SLVERR,\n                    AXI4Error::DECERR => ResponseCode::DECERR,\n                },\n            )\n        }\n        None => None,\n    };\n    signal(d)\n}\n", name: "do_stuff", span_map: {N31: 470..479, N10: 164..188, N6: 87..106, N32: 81..481, N24: 453..457, N11: 140..189, N14: 198..218, N19: 351..393, N4: 98..105, N22: 198..436, N13: 203..217, N30: 470..479, N9: 169..187, N21: 236..426, N16: 309..329, N0: 12..13, N29: 477..478, N33: 0..481, N7: 115..116, N28: 111..465, N2: 91..95, N5: 87..106, N15: 264..265, N12: 215..216, N18: 372..392, N23: 445..449, N1: 12..42, N8: 125..129, N26: 119..464, N17: 288..330, N3: 98..99, N25: 445..458, N20: 258..411, N27: 111..465}, fallback: N33, filename: "rhdl/tests/option.rs:318", function_id: FnID(b4f885acad2da549) }}, ranges: {FnID(b4f885acad2da549): 0..482} }, err_span: SourceSpan { offset: SourceOffset(215), length: 1 } }))"#]];
+    let expect = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(b4f885acad2da549): SpannedSource { source: "fn do_stuff(i: Signal<Option<Result>, Red>) -> Signal<Option<ResponseCode>, Red> {\n    let resp = i.val();\n    let d = match resp {\n        Some(Result::Ok(())) => Some(ResponseCode::OKAY),\n        Some(Result::Err(e)) => {\n            Some(\n                match e {\n                    AXI4Error::SLVERR => ResponseCode::SLVERR,\n                    AXI4Error::DECERR => ResponseCode::DECERR,\n                },\n            )\n        }\n        None => None,\n    };\n    signal(d)\n}\n", name: "do_stuff", span_map: {N28: 445..458, N27: 453..457, N8: 125..129, N16: 203..217, N12: 169..187, N22: 351..393, N20: 288..330, N14: 140..189, N1: 12..42, N30: 111..465, N7: 115..116, N3: 98..99, N35: 81..481, N21: 372..392, N0: 12..13, N34: 470..479, N29: 119..464, N18: 264..265, N19: 309..329, N36: 0..481, N2: 91..95, N11: 140..160, N15: 215..216, N4: 98..105, N17: 198..218, N26: 445..449, N25: 198..436, N9: 156..158, N33: 470..479, N5: 87..106, N31: 111..465, N10: 145..159, N13: 164..188, N32: 477..478, N23: 258..411, N6: 87..106, N24: 236..426}, fallback: N36, filename: "rhdl/tests/option.rs:320", function_id: FnID(b4f885acad2da549) }}, ranges: {FnID(b4f885acad2da549): 0..482} }, err_span: SourceSpan { offset: SourceOffset(156), length: 2 } }))"#]];
     let res = compile_design::<do_stuff>(CompilationMode::Asynchronous);
     expect.assert_eq(&format!("{:?}", res));
     Ok(())
@@ -341,15 +341,12 @@ fn test_option_result_nested_option_result_destructure_simple() -> miette::Resul
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
-        DECERR = 1,
     }
 
     #[derive(Default, Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,
-        SLVERR = 1,
-        DECERR = 2,
     }
 
     type Result = std::result::Result<(), AXI4Error>;
@@ -365,7 +362,7 @@ fn test_option_result_nested_option_result_destructure_simple() -> miette::Resul
         signal(d)
     }
 
-    let expect_err = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(1024e163f0320f30): SpannedSource { source: "fn do_stuff(i: Signal<Option<Result>, Red>) -> Signal<Option<AXI4Error>, Red> {\n    let resp = i.val();\n    let d = match resp {\n        Some(Result::Ok(())) => Some(AXI4Error::SLVERR),\n        Some(Err(e)) => Some(e),\n        None => None,\n    };\n    signal(d)\n}\n", name: "do_stuff", span_map: {N27: 78..263, N1: 12..42, N5: 84..103, N2: 88..92, N11: 137..185, N8: 122..126, N0: 12..13, N17: 194..218, N20: 227..240, N18: 227..231, N6: 84..103, N25: 252..261, N26: 252..261, N7: 112..113, N10: 161..184, N28: 0..263, N19: 235..239, N12: 203..204, N24: 259..260, N21: 116..246, N4: 95..102, N9: 166..183, N3: 95..96, N14: 194..206, N23: 108..247, N22: 108..247, N13: 199..205, N15: 215..216, N16: 210..217}, fallback: N28, filename: "rhdl/tests/option.rs:357", function_id: FnID(1024e163f0320f30) }}, ranges: {FnID(1024e163f0320f30): 0..264} }, err_span: SourceSpan { offset: SourceOffset(203), length: 1 } }))"#]];
+    let expect_err = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(1024e163f0320f30): SpannedSource { source: "fn do_stuff(i: Signal<Option<Result>, Red>) -> Signal<Option<AXI4Error>, Red> {\n    let resp = i.val();\n    let d = match resp {\n        Some(Result::Ok(())) => Some(AXI4Error::SLVERR),\n        Some(Err(e)) => Some(e),\n        None => None,\n    };\n    signal(d)\n}\n", name: "do_stuff", span_map: {N30: 78..263, N10: 142..156, N22: 235..239, N7: 112..113, N28: 252..261, N16: 199..205, N0: 12..13, N15: 203..204, N18: 215..216, N14: 137..185, N20: 194..218, N3: 95..96, N12: 166..183, N31: 0..263, N26: 108..247, N27: 259..260, N25: 108..247, N5: 84..103, N2: 88..92, N9: 153..155, N21: 227..231, N1: 12..42, N17: 194..206, N24: 116..246, N19: 210..217, N6: 84..103, N4: 95..102, N11: 137..157, N13: 161..184, N29: 252..261, N23: 227..240, N8: 122..126}, fallback: N31, filename: "rhdl/tests/option.rs:358", function_id: FnID(1024e163f0320f30) }}, ranges: {FnID(1024e163f0320f30): 0..264} }, err_span: SourceSpan { offset: SourceOffset(153), length: 2 } }))"#]];
     let err = compile_design::<do_stuff>(CompilationMode::Asynchronous);
     expect_err.assert_eq(&format!("{:?}", err));
     Ok(())

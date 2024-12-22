@@ -6,14 +6,14 @@
 use crate::{
     axi4lite::{
         basic::bridge,
-        types::{MISO, MOSI},
+        types::{AXI4Error, MISO, MOSI},
     },
-    core::dff,
+    core::{dff, option::unpack},
 };
 use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U<const REG_WIDTH: usize = 32, const DATA: usize = 32, const ADDR: usize = 32> {
+pub struct U<const REG_WIDTH: usize, const DATA: usize, const ADDR: usize> {
     // We need a read bridge
     read_bridge: bridge::read::U<DATA, ADDR>,
     // And a register to hold the value
@@ -54,22 +54,41 @@ pub fn single_kernel<const REG_WIDTH: usize, const DATA: usize, const ADDR: usiz
     o.axi.read = q.read_bridge.axi;
     // Connect the write bridge inputs and outputs to the bus
     d.write_bridge.axi = i.axi.write;
-    // Do not stop the write bridge
-    d.write_bridge.full = false;
     o.axi.write = q.write_bridge.axi;
     // Connect the register
     d.reg = q.reg;
-    // Connect the read bridge's input to the register
-    // The read bridge's address is ignored
-    d.read_bridge.data = Ok(q.reg.resize());
-    // State of the register
-    o.read_data = q.reg;
-    // Connect the write bridge's output to the register
-    d.write_bridge.response = None;
-    if let Some((_addr, value)) = q.write_bridge.write {
-        d.reg = value.resize();
-        d.write_bridge.response = Some(Ok(()));
+    // Determine if a read was requested
+    let (read_requested, read_addr) = unpack::<Bits<ADDR>>(q.read_bridge.cmd);
+    // We can only accept new read commands if the reply sender is not full
+    d.read_bridge.cmd_next = false;
+    d.read_bridge.reply = None;
+    if !q.read_bridge.reply_full && read_requested {
+        // Ack the command
+        d.read_bridge.cmd_next = true;
+        if read_addr == 0 {
+            d.read_bridge.reply = Some(Ok(q.reg.resize()));
+        } else {
+            d.read_bridge.reply = Some(Err(AXI4Error::DECERR));
+        }
     }
+    // Determine if a write was requested
+    let (write_requested, (write_addr, write_data)) =
+        unpack::<(Bits<ADDR>, Bits<DATA>)>(q.write_bridge.cmd);
+    // We can only accept new write commands if the reply sender is not full
+    d.write_bridge.cmd_next = false;
+    d.write_bridge.reply = None;
+    if !q.write_bridge.reply_full && write_requested {
+        // Ack the command
+        d.write_bridge.cmd_next = true;
+        if write_addr == 0 {
+            d.reg = write_data.resize();
+            d.write_bridge.reply = Some(Ok(()));
+        } else {
+            d.write_bridge.reply = Some(Err(AXI4Error::DECERR));
+        }
+    }
+    // Copy out the register
+    o.read_data = q.reg;
     (o, d)
 }
 
@@ -145,7 +164,7 @@ mod tests {
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["160aedd34b774db9f9199c3b341901c9fa47e0194c71597730798d46e9b03678"];
+        let expect = expect!["6a465d35627788b15d2831b75d89c67c56cb3c1d193619ca82da89b0d99df38b"];
         let digest = vcd
             .dump_to_file(&root.join("single_register_test.vcd"))
             .unwrap();

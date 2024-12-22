@@ -15,7 +15,7 @@ pub mod response_codes {
 }
 
 #[derive(Debug, Digital)]
-pub struct ReadResponse<const DATA: usize = 32> {
+pub struct ReadResponse<const DATA: usize> {
     /// The response to the transaction
     pub resp: ResponseKind,
     /// The data to return
@@ -40,6 +40,61 @@ pub enum AXI4Error {
     DECERR,
 }
 
+#[kernel]
+pub fn read_response_to_result<const DATA: usize>(
+    resp: ReadResponse<DATA>,
+) -> Result<Bits<DATA>, AXI4Error> {
+    match resp.resp {
+        response_codes::OKAY => Ok(resp.data),
+        response_codes::EXOKAY => Ok(resp.data),
+        response_codes::DECERR => Err(AXI4Error::DECERR),
+        _ => Err(AXI4Error::SLVERR),
+    }
+}
+
+#[kernel]
+pub fn result_to_read_response<const DATA: usize>(
+    resp: Result<Bits<DATA>, AXI4Error>,
+) -> ReadResponse<DATA> {
+    match resp {
+        Ok(data) => ReadResponse::<DATA> {
+            resp: response_codes::OKAY,
+            data,
+        },
+        Err(e) => match e {
+            AXI4Error::SLVERR => ReadResponse::<DATA> {
+                resp: response_codes::SLVERR,
+                data: bits(0),
+            },
+            AXI4Error::DECERR => ReadResponse::<DATA> {
+                resp: response_codes::DECERR,
+                data: bits(0),
+            },
+        },
+    }
+}
+
+#[kernel]
+pub fn result_to_write_response(resp: Result<(), AXI4Error>) -> ResponseKind {
+    match resp {
+        Ok(_) => response_codes::OKAY,
+        Err(e) => match e {
+            AXI4Error::SLVERR => response_codes::SLVERR,
+            AXI4Error::DECERR => response_codes::DECERR,
+        },
+    }
+}
+
+#[kernel]
+pub fn write_response_to_result(resp: ResponseKind) -> Result<(), AXI4Error> {
+    match resp {
+        response_codes::OKAY => Ok(()),
+        response_codes::EXOKAY => Ok(()),
+        response_codes::DECERR => Err(AXI4Error::DECERR),
+        _ => Err(AXI4Error::SLVERR),
+    }
+}
+
 /*
 
   input  wire [AXI_ADDR_WIDTH-1:0]   s_axi_araddr,  // AXI4-Lite slave: Read address
@@ -54,7 +109,7 @@ pub enum AXI4Error {
 */
 
 #[derive(Debug, Digital)]
-pub struct ReadMOSI<const ADDR: usize = 32> {
+pub struct ReadMOSI<const ADDR: usize> {
     /// Read Address
     pub araddr: Bits<ADDR>,
     /// Read Address valid
@@ -64,7 +119,7 @@ pub struct ReadMOSI<const ADDR: usize = 32> {
 }
 
 #[derive(Debug, Digital, Default)]
-pub struct ReadMISO<const DATA: usize = 32> {
+pub struct ReadMISO<const DATA: usize> {
     /// Read Address ready
     pub arready: bool,
     /// Read Data
@@ -76,7 +131,7 @@ pub struct ReadMISO<const DATA: usize = 32> {
 }
 
 #[derive(Debug, Digital, Default)]
-pub struct WriteMOSI<const DATA: usize = 32, const ADDR: usize = 32> {
+pub struct WriteMOSI<const DATA: usize, const ADDR: usize> {
     /// Write Address
     pub awaddr: Bits<ADDR>,
     /// Write Address valid
@@ -102,13 +157,13 @@ pub struct WriteMISO {
 }
 
 #[derive(Debug, Digital)]
-pub struct MOSI<const DATA: usize = 32, const ADDR: usize = 32> {
+pub struct MOSI<const DATA: usize, const ADDR: usize> {
     pub read: ReadMOSI<ADDR>,
     pub write: WriteMOSI<DATA, ADDR>,
 }
 
 #[derive(Debug, Digital)]
-pub struct MISO<const DATA: usize = 32> {
+pub struct MISO<const DATA: usize> {
     pub read: ReadMISO<DATA>,
     pub write: WriteMISO,
 }

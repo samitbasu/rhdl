@@ -7,14 +7,14 @@ use crate::axi4lite::basic::manager;
 // into a test fixture.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U {
-    manager: manager::write::U,
-    subordinate: bridge::write::U,
+    manager: manager::write::U<32, 32>,
+    subordinate: bridge::write::U<32, 32>,
 }
 
 #[derive(Debug, Digital)]
 pub struct I {
     pub cmd: Option<(b32, b32)>,
-    pub full: bool,
+    pub ready: bool,
 }
 
 impl SynchronousIO for U {
@@ -29,7 +29,12 @@ pub fn basic_test_kernel(_cr: ClockReset, i: I, q: Q) -> (bool, D) {
     d.manager.axi = q.subordinate.axi;
     d.subordinate.axi = q.manager.axi;
     d.manager.cmd = i.cmd;
-    d.subordinate.full = i.full;
+    d.subordinate.cmd_ready = i.ready;
+    if let Some((_addr, _data)) = q.subordinate.cmd {
+        d.subordinate.reply = Some(Ok(()));
+    } else {
+        d.subordinate.reply = None;
+    }
     (true, d)
 }
 
@@ -46,7 +51,7 @@ mod tests {
             .chain(std::iter::repeat(None).take(10))
             .map(|x| I {
                 cmd: x,
-                full: false,
+                ready: true,
             })
             .stream_after_reset(1)
             .clock_pos_edge(100)
@@ -62,7 +67,7 @@ mod tests {
             .join("axi4lite")
             .join("basic");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["233e8466a78f93e5a213ed07b43f35c121a8fd9f3b82da404189e86cb6f744b0"];
+        let expect = expect!["8359e7752a82e662f067c13db2469d2b8fe1d52a0e3b17eb9bd4d48ff7fbe839"];
         let digest = vcd
             .dump_to_file(&root.join("basic_write_test.vcd"))
             .unwrap();

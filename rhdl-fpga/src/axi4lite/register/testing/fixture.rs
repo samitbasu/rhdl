@@ -8,9 +8,9 @@ use crate::axi4lite::types::{MISO, MOSI};
 pub struct U<
     W: Domain, // Clock domain for the reset signal
     R: Domain, // Clock domain for everything else
-    const REG_WIDTH: usize = 8,
-    const DATA: usize = 32,
-    const ADDR: usize = 32,
+    const REG_WIDTH: usize,
+    const DATA: usize,
+    const ADDR: usize,
 > {
     pub resetn_conditioner: crate::reset::negating_conditioner::U<W, R>,
     pub register: Adapter<crate::axi4lite::register::single::U<REG_WIDTH, DATA, ADDR>, R>,
@@ -74,12 +74,9 @@ mod tests {
     use crate::axi4lite::types::{ReadMOSI, WriteMOSI};
 
     use super::*;
-    use rhdl::core::hdl::{
-        ast::{component_instance, connection, declaration},
-        export::export_hdl_module,
-    };
+    use rhdl::core::hdl::export::export_hdl_module;
 
-    fn axi_null_cmd() -> MOSI {
+    fn axi_null_cmd() -> MOSI<32, 32> {
         MOSI {
             write: WriteMOSI {
                 awaddr: bits(0),
@@ -96,7 +93,7 @@ mod tests {
         }
     }
 
-    fn axi_write_cmd(addr: b32, data: b32) -> MOSI {
+    fn axi_write_cmd(addr: b32, data: b32) -> MOSI<32, 32> {
         MOSI {
             write: WriteMOSI {
                 awaddr: addr,
@@ -113,7 +110,7 @@ mod tests {
         }
     }
 
-    fn axi_read_cmd(addr: b32) -> MOSI {
+    fn axi_read_cmd(addr: b32) -> MOSI<32, 32> {
         MOSI {
             write: WriteMOSI {
                 awaddr: bits(0),
@@ -132,7 +129,7 @@ mod tests {
 
     // Create a test stream that writes 42, 47, 49 to address 0,
     // with reads after each one.
-    fn axi_test_seq() -> impl Iterator<Item = MOSI> {
+    fn axi_test_seq() -> impl Iterator<Item = MOSI<32, 32>> {
         [
             axi_null_cmd(),
             axi_null_cmd(),
@@ -165,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_trace() -> miette::Result<()> {
-        let uut = U::<Red, Blue>::default();
+        let uut = U::<Red, Blue, 32, 32, 32>::default();
         let stream = test_stream();
         let vcd = uut.run(stream)?.collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -173,7 +170,7 @@ mod tests {
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["89e1fbb56baafbeabcea941f5620f763b437f7a30b546ef4e5c0ebdfd78c3d7a"];
+        let expect = expect!["7c4085f90d6e9cf342af5761e64c7e4942d58e5da5dc11e72b79978850ec18cc"];
         let digest = vcd
             .dump_to_file(&root.join("axi4lite_register.vcd"))
             .unwrap();
@@ -183,7 +180,7 @@ mod tests {
 
     #[test]
     fn test_export_fn() -> miette::Result<()> {
-        let uut = U::<Red, Blue>::default();
+        let uut = U::<Red, Blue, 32, 32, 32>::default();
         let i = I::<Red, Green, 32, 32>::dont_care();
         let o = O::<Green, 8, 32>::dont_care();
         let binds = export![

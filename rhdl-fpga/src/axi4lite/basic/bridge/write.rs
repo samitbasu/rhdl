@@ -1,6 +1,6 @@
 use crate::axi4lite::channel::receiver;
 use crate::axi4lite::channel::sender;
-use crate::axi4lite::types::response_codes;
+use crate::axi4lite::types::result_to_write_response;
 use crate::axi4lite::types::AXI4Error;
 use crate::axi4lite::types::ResponseKind;
 use crate::axi4lite::types::WriteMISO;
@@ -13,9 +13,9 @@ use rhdl::prelude::*;
 #[derive(Clone, Debug, Synchronous, Default)]
 pub struct U<
     // AXI data width
-    const DATA: usize = 32,
+    const DATA: usize,
     // AXI address width
-    const ADDR: usize = 32,
+    const ADDR: usize,
 > {
     // We need a receiver for the address information
     addr: receiver::U<Bits<ADDR>>,
@@ -26,7 +26,7 @@ pub struct U<
 }
 
 #[derive(Debug, Digital)]
-pub struct D<const DATA: usize = 32, const ADDR: usize = 32> {
+pub struct D<const DATA: usize, const ADDR: usize> {
     pub addr: receiver::I<Bits<ADDR>>,
     pub data: receiver::I<Bits<DATA>>,
     pub resp: sender::I<ResponseKind>,
@@ -46,15 +46,25 @@ impl<const DATA: usize, const ADDR: usize> SynchronousDQ for U<DATA, ADDR> {
 
 #[derive(Debug, Digital)]
 pub struct I<const DATA: usize, const ADDR: usize> {
+    // AXI bus side of the write bridge
     pub axi: WriteMOSI<DATA, ADDR>,
-    pub response: Option<Result<(), AXI4Error>>,
-    pub full: bool,
+    // Provide a reply on this input for one cycle
+    // to send a response.  Illegal if reply_full is true.
+    pub reply: Option<Result<(), AXI4Error>>,
+    // Pulse this to accept the current cmd.
+    // Illegal if cmd is None.
+    pub cmd_next: bool,
 }
 
 #[derive(Debug, Digital)]
 pub struct O<const DATA: usize, const ADDR: usize> {
+    // AXI bus side of the write bridge
     pub axi: WriteMISO,
-    pub write: Option<(Bits<ADDR>, Bits<DATA>)>,
+    // The current command to be sent to the client
+    // Held until acked by the `cmd_next` signal.
+    pub cmd: Option<(Bits<ADDR>, Bits<DATA>)>,
+    // If true, you cannot send a reply
+    pub reply_full: bool,
 }
 
 impl<const DATA: usize, const ADDR: usize> SynchronousIO for U<DATA, ADDR> {
@@ -65,7 +75,7 @@ impl<const DATA: usize, const ADDR: usize> SynchronousIO for U<DATA, ADDR> {
 
 #[kernel]
 pub fn write_bridge_kernel<const DATA: usize, const ADDR: usize>(
-    cr: ClockReset,
+    _cr: ClockReset,
     i: I<DATA, ADDR>,
     q: Q<DATA, ADDR>,
 ) -> (O<DATA, ADDR>, D<DATA, ADDR>) {
@@ -83,33 +93,23 @@ pub fn write_bridge_kernel<const DATA: usize, const ADDR: usize>(
     d.resp.bus.ready = i.axi.bready;
     o.axi.bresp = q.resp.bus.data;
     o.axi.bvalid = q.resp.bus.valid;
-    d.resp.to_send = None;
-    o.write = None;
-    // Connect the ready signal so that we stop when
-    // an address arrives.
+    o.cmd = None;
     let (addr_is_valid, addr) = unpack::<Bits<ADDR>>(q.addr.data);
-    d.addr.ready = !addr_is_valid;
-    // Same for the data
     let (data_is_valid, data) = unpack::<Bits<DATA>>(q.data.data);
-    d.data.ready = !data_is_valid;
-    // If both address and data are valid and the response channel is free, issue a write
-    if addr_is_valid && data_is_valid && !i.full {
-        o.write = Some((addr, data));
-        // We do not need to hold them any longer
-        d.addr.ready = true;
-        d.data.ready = true;
+    // If the address is valid, and the data is valid, and the reply Q is not full,
+    // then we can issue a write
+    if addr_is_valid && data_is_valid {
+        o.cmd = Some((addr, data));
     }
-    // Forward the response to the sender
-    d.resp.to_send = match i.response {
-        Some(Ok::<(), AXI4Error>(())) => Some(response_codes::OKAY),
-        Some(Err(e)) => match e {
-            AXI4Error::SLVERR => Some(response_codes::SLVERR),
-            AXI4Error::DECERR => Some(response_codes::DECERR),
-        },
-        None => None,
+    // Let the client accept the command via the cmd_next signal
+    d.addr.next = i.cmd_next;
+    d.data.next = i.cmd_next;
+    // If the client has a response to send, send it
+    o.reply_full = q.resp.full;
+    d.resp.to_send = if let Some(response) = i.reply {
+        Some(result_to_write_response(response))
+    } else {
+        None
     };
-    if cr.reset.any() {
-        o.write = None;
-    }
     (o, d)
 }

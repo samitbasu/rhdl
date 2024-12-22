@@ -16,3 +16,11 @@ pub fn pack<T: Digital>(valid: bool, data: T) -> Option<T> {
         None
     }
 }
+
+#[kernel]
+pub fn is_some<T: Digital>(x: Option<T>) -> bool {
+    match x {
+        Some(_) => true,
+        None => false,
+    }
+}

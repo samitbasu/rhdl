@@ -1,20 +1,20 @@
 use rhdl::prelude::*;
 
-use crate::{core::option::pack, lid::option_carloni};
+use crate::{core::option::pack, lid::rv_to_fifo};
 
 use super::{DataValid, Ready};
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U<T: Digital + Default> {
-    inner: option_carloni::U<T>,
+    inner: rv_to_fifo::U<T>,
 }
 
 #[derive(Debug, Digital)]
 pub struct I<T: Digital> {
     // Connection to the bus
     pub bus: DataValid<T>,
-    // Signal to allow more data to arrive
-    pub ready: bool,
+    // Signal to consume the data
+    pub next: bool,
 }
 
 #[derive(Debug, Digital)]
@@ -35,7 +35,7 @@ impl<T: Digital + Default> SynchronousIO for U<T> {
 pub fn receiver_kernel<T: Digital + Default>(cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
     let mut d = D::<T>::dont_care();
     let mut o = O::<T>::dont_care();
-    d.inner.ready = i.ready;
+    d.inner.next = i.next;
     d.inner.data = pack::<T>(i.bus.valid, i.bus.data);
     o.data = q.inner.data;
     o.bus.ready = q.inner.ready;

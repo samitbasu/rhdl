@@ -69,6 +69,8 @@ impl<'a> SpannedSourceBuilder<'a> {
         Ok(())
     }
     fn stmt(&mut self, syn_stmt: &syn::Stmt, ast_stmt: &ast::Stmt) -> syn::Result<()> {
+        log::trace!("AST statement: (id: {:?}) {:?}", ast_stmt.id, ast_stmt);
+        log::trace!("Syn statement: {:?}", syn_stmt);
         self.span_map
             .insert(ast_stmt.id, syn_stmt.span().byte_range());
         match (&syn_stmt, &ast_stmt.kind) {
@@ -326,6 +328,30 @@ impl<'a> SpannedSourceBuilder<'a> {
                     return Err(syn::Error::new(syn.span(), "Expected an expression statement"));
                 };
                 self.expr(syn_expr, ast)
+            }
+            (syn, ast::ExprKind::Block(inner)) => {
+                // It's also possible that quote elided a block
+                if inner.block.stmts.len() != 1 {
+                    return Err(syn::Error::new(
+                        syn.span(),
+                        "Expected a block statement, found multiple statements",
+                    ));
+                }
+                let span = syn.span().byte_range();
+                self.span_map.insert(ast.id, span.clone());
+                self.span_map.insert(inner.block.id, span.clone());
+                self.span_map.insert(inner.block.stmts[0].id, span);
+                let ast_expr = match &inner.block.stmts[0].kind {
+                    ast::StmtKind::Expr(expr) => expr,
+                    ast::StmtKind::Semi(expr) => expr,
+                    _ => {
+                        return Err(syn::Error::new(
+                            syn.span(),
+                            "Expected an expression statement",
+                        ));
+                    }
+                };
+                self.expr(syn, ast_expr)
             }
             _ => Err(syn::Error::new(
                 syn.span(),
