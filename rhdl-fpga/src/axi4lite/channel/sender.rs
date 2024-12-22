@@ -1,12 +1,12 @@
 use rhdl::prelude::*;
 
-use crate::lid::option_carloni;
+use crate::lid::fifo_to_rv;
 
 use super::{DataValid, Ready};
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U<T: Digital + Default> {
-    inner: option_carloni::U<T>,
+    inner: fifo_to_rv::U<T>,
 }
 
 #[derive(Debug, Digital)]
@@ -31,7 +31,7 @@ impl<T: Digital + Default> SynchronousIO for U<T> {
 //  to_send -----> data ------> data/valid
 //        q        d   q        o
 //
-//    full <----- !ready <----- ready
+//    ready <----- ready <----- ready
 //
 
 #[kernel]
@@ -47,7 +47,7 @@ pub fn sender_kernel<T: Digital + Default>(cr: ClockReset, i: I<T>, q: Q<T>) -> 
         o.bus.data = data;
         o.bus.valid = true;
     }
-    o.full = !q.inner.ready;
+    o.full = q.inner.full;
     if cr.reset.any() {
         o.bus.valid = false;
     }

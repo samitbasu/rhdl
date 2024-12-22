@@ -1,5 +1,6 @@
 use std::iter::once;
 
+use miette::{SourceCode, SourceSpan};
 use petgraph::visit::EdgeRef;
 
 use crate::{
@@ -370,6 +371,15 @@ impl<'a> FlowGraphHDLBuilder<'a> {
     fn component(&mut self, index: FlowIx) -> Result<(), RHDLError> {
         let graph = self.graph;
         let component = &graph.graph[index];
+        if let Some(location) = component.location {
+            let source_text = self.graph.code.span(location);
+            let source_span: SourceSpan = source_text.into();
+            let pool = self.graph.code.source();
+            let source_text = pool.read_span(&source_span, 0, 0).unwrap();
+            let source_data = source_text.data();
+            let source_text = String::from_utf8_lossy(source_data);
+            self.stmt(Statement::Comment(source_text.to_string()));
+        }
         match &component.kind {
             ComponentKind::Constant(value) => {
                 self.stmt(assign(&node(index), constant(*value)));

@@ -4,7 +4,7 @@ use inflections::Inflect;
 use quote::{format_ident, quote};
 use syn::{
     punctuated::Punctuated, spanned::Spanned, token::Comma, FnArg, Ident, Pat, PatType, Path,
-    ReturnType, Type,
+    ReturnType,
 };
 
 // use crate::suffix::CustomSuffix;
@@ -122,6 +122,22 @@ fn split_path_into_base_and_variant(path: &Path) -> Result<(Path, Ident)> {
         },
         variant,
     ))
+}
+
+fn get_pattern_option_or_result_discriminant(pat: &syn::Pat) -> Option<bool> {
+    if let syn::Pat::Path(path) = pat {
+        if path.path.is_ident("None") {
+            return Some(false);
+        }
+    }
+    if let syn::Pat::TupleStruct(path) = pat {
+        if path.path.is_ident("Err") {
+            return Some(false);
+        } else if path.path.is_ident("Some") || path.path.is_ident("Ok") {
+            return Some(true);
+        }
+    }
+    None
 }
 
 fn rewrite_pattern_as_typed_bits(pat: &syn::Pat) -> syn::Result<TS> {
@@ -486,6 +502,7 @@ fn trace_wrap_function(function: &syn::ItemFn) -> Result<TS> {
             #[forbid(non_snake_case)]
             #[forbid(non_upper_case_globals)]
             #[forbid(unreachable_patterns)]
+            #[allow(clippy::manual_map)]
             //#[forbid(path_statements)]
             //#[forbid(unused_variables)]
             #( #attrs )*
@@ -1122,8 +1139,9 @@ impl Context {
         })
     }
     fn arm(&mut self, pat: &syn::Pat, body: &syn::Expr) -> Result<TS> {
+        let option_or_result_discriminant = get_pattern_option_or_result_discriminant(pat);
         self.new_scope();
-        let arm = if !pattern_has_bindings(pat) {
+        let arm = if !pattern_has_bindings(pat) && option_or_result_discriminant.is_none() {
             let body = self.expr(body)?;
             let kind = if let syn::Pat::Wild(_) = &pat {
                 quote! {bob.arm_kind_wild()}
@@ -1137,19 +1155,7 @@ impl Context {
         } else {
             self.add_scoped_binding(pat)?;
             let body = self.expr(body)?;
-            let mut discriminant = None;
-            if let syn::Pat::Path(path) = pat {
-                if path.path.is_ident("None") {
-                    discriminant = Some(quote!(false.typed_bits()));
-                }
-            }
-            if let syn::Pat::TupleStruct(path) = pat {
-                if path.path.is_ident("Err") {
-                    discriminant = Some(quote!(false.typed_bits()));
-                } else if path.path.is_ident("Some") || path.path.is_ident("Ok") {
-                    discriminant = Some(quote!(true.typed_bits()));
-                }
-            }
+            let mut discriminant = option_or_result_discriminant.map(|x| quote!(#x.typed_bits()));
             if discriminant.is_none() {
                 let pat_as_expr = rewrite_pattern_to_use_defaults_for_bindings(pat);
                 discriminant = Some(quote!(rhdl::core::Digital::discriminant(#pat_as_expr)));
@@ -1178,8 +1184,11 @@ impl Context {
     ) -> Result<TS> {
         let test = self.expr(&let_expr.expr)?;
         let pat = let_expr.pat.as_ref();
+        let option_or_result_discriminant = get_pattern_option_or_result_discriminant(pat);
         self.new_scope();
-        let (kind, body) = if !pattern_has_bindings(&let_expr.pat) {
+        let (kind, body) = if !pattern_has_bindings(&let_expr.pat)
+            && option_or_result_discriminant.is_none()
+        {
             let body = self.block_inner(then_branch)?;
             let kind = if let syn::Pat::Wild(_) = pat {
                 quote! {bob.arm_kind_wild()}
@@ -1193,19 +1202,7 @@ impl Context {
         } else {
             self.add_scoped_binding(pat)?;
             let body = self.block_inner(then_branch)?;
-            let mut discriminant = None;
-            if let syn::Pat::Path(path) = pat {
-                if path.path.is_ident("None") {
-                    discriminant = Some(quote!(false.typed_bits()));
-                }
-            }
-            if let syn::Pat::TupleStruct(path) = pat {
-                if path.path.is_ident("Err") {
-                    discriminant = Some(quote!(false.typed_bits()));
-                } else if path.path.is_ident("Some") || path.path.is_ident("Ok") {
-                    discriminant = Some(quote!(true.typed_bits()));
-                }
-            }
+            let mut discriminant = option_or_result_discriminant.map(|x| quote!(#x.typed_bits()));
             if discriminant.is_none() {
                 let pat_as_expr = rewrite_pattern_to_use_defaults_for_bindings(pat);
                 discriminant = Some(quote!(rhdl::core::Digital::discriminant(#pat_as_expr)));
@@ -1381,12 +1378,15 @@ impl Context {
             syn::GenericArgument::Const(expr) => Ok(quote! {
                 stringify!(#expr)
             }),
-            syn::GenericArgument::Type(Type::Path(path)) => Ok(quote! {
-                stringify!(#path)
+            syn::GenericArgument::Type(ty) => Ok(quote! {
+                stringify!(#ty)
             }),
             _ => Err(syn::Error::new(
                 argument.span(),
-                "Unsupported generic argument in rhdl kernel function",
+                format!(
+                    "Unsupported generic argument {} in rhdl kernel function",
+                    quote!(#argument)
+                ),
             )),
         }
     }

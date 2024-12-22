@@ -1,4 +1,4 @@
-// Create a fixture with a write manager and a read manager and a AXI register
+// Create a fixture with a write manager and a read manager and a AXI bank of registers
 use rhdl::prelude::*;
 
 use crate::{axi4lite::types::AXI4Error, core::option::is_some};
@@ -7,7 +7,7 @@ use crate::{axi4lite::types::AXI4Error, core::option::is_some};
 pub struct U<const DATA: usize, const ADDR: usize> {
     writer: crate::axi4lite::basic::manager::write::U<DATA, ADDR>,
     reader: crate::axi4lite::basic::manager::read::U<DATA, ADDR>,
-    register: crate::axi4lite::register::single::U<DATA, DATA, ADDR>,
+    bank: crate::axi4lite::register::bank::U<8, DATA, DATA, ADDR>,
 }
 
 #[derive(Digital)]
@@ -17,8 +17,10 @@ pub struct I<const DATA: usize, const ADDR: usize> {
 }
 
 #[derive(Digital)]
-pub struct O<const DATA: usize> {
-    pub read_data: Option<Result<Bits<DATA>, AXI4Error>>,
+pub struct O<const REG_WIDTH: usize> {
+    pub write_full: bool,
+    pub read_full: bool,
+    pub read_data: Option<Result<Bits<REG_WIDTH>, AXI4Error>>,
     pub write_resp: Option<Result<(), AXI4Error>>,
 }
 
@@ -39,17 +41,21 @@ pub fn test_kernel<const DATA: usize, const ADDR: usize>(
     d.writer.cmd = i.write;
     d.reader.cmd = i.read;
 
-    d.register.axi.read = q.reader.axi;
-    d.register.axi.write = q.writer.axi;
-    d.reader.axi = q.register.axi.read;
-    d.writer.axi = q.register.axi.write;
-
-    // Set up auto advance
-    d.reader.next = is_some::<Result<Bits<DATA>, AXI4Error>>(q.reader.data);
-    d.writer.next = is_some::<Result<(), AXI4Error>>(q.writer.resp);
+    d.bank.axi.read = q.reader.axi;
+    d.bank.axi.write = q.writer.axi;
+    d.reader.axi = q.bank.axi.read;
+    d.writer.axi = q.bank.axi.write;
 
     o.read_data = q.reader.data;
     o.write_resp = q.writer.resp;
+
+    // Connect the next signals so that they auto-advance
+    d.reader.next = is_some::<Result<Bits<DATA>, AXI4Error>>(q.reader.data);
+    d.writer.next = is_some::<Result<(), AXI4Error>>(q.writer.resp);
+
+    // Connect the full signals - ignored in the test
+    o.read_full = q.reader.full;
+    o.write_full = q.writer.full;
     (o, d)
 }
 
@@ -59,17 +65,17 @@ mod tests {
 
     use super::*;
 
-    fn write_cmd<const DATA: usize, const ADDR: usize>(val: i32) -> I<DATA, ADDR> {
+    fn write_cmd<const DATA: usize, const ADDR: usize>(addr: i32, val: i32) -> I<DATA, ADDR> {
         I {
-            write: Some((bits(0), bits(val as u128))),
+            write: Some((bits(addr as u128), bits(val as u128))),
             read: None,
         }
     }
 
-    fn read_cmd<const DATA: usize, const ADDR: usize>() -> I<DATA, ADDR> {
+    fn read_cmd<const DATA: usize, const ADDR: usize>(addr: i32) -> I<DATA, ADDR> {
         I {
             write: None,
-            read: Some(bits(0)),
+            read: Some(bits(addr as u128)),
         }
     }
 
@@ -82,17 +88,14 @@ mod tests {
 
     fn test_stream<const DATA: usize, const ADDR: usize>() -> impl Iterator<Item = I<DATA, ADDR>> {
         [
-            write_cmd(42),
-            read_cmd(),
-            write_cmd(43),
-            read_cmd(),
-            write_cmd(45),
-            write_cmd(42),
-            read_cmd(),
-            I {
-                write: None,
-                read: Some(bits(4)),
-            },
+            write_cmd(0, 42),
+            read_cmd(0),
+            write_cmd(4, 43),
+            read_cmd(4),
+            write_cmd(8, 45),
+            write_cmd(8, 42),
+            read_cmd(8),
+            read_cmd(80),
         ]
         .into_iter()
         .chain(std::iter::repeat(no_cmd()))
@@ -107,9 +110,9 @@ mod tests {
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("axi4lite")
-            .join("register");
+            .join("bank");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["eb8c025bb968439de1d70755bbf3d0b2797489aaf15e6e2c931bbca525aade7c"];
+        let expect = expect!["85d37e292d1a3d2f2f5202aed2994ae64b73d00c815ac9841e4ba554f584480e"];
         let digest = vcd.dump_to_file(&root.join("register.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -117,17 +120,17 @@ mod tests {
 
     #[test]
     fn test_compile_times() -> miette::Result<()> {
-        env_logger::init();
         let tic = std::time::Instant::now();
-        let uut = U::<32, 32>::default();
-        let _hdl = uut.flow_graph("top")?;
+        let uut = U::<8, 8>::default();
+        let fg = uut.flow_graph("top")?;
+        let _top = fg.hdl("top")?;
         let toc = tic.elapsed();
         println!("HDL generation took {:?}", toc);
         Ok(())
     }
 
     #[test]
-    fn test_register_works() -> miette::Result<()> {
+    fn test_bank_works() -> miette::Result<()> {
         let uut = U::<32, 32>::default();
         let input = test_stream().stream_after_reset(1).clock_pos_edge(100);
         let io = uut.run(input)?.synchronous_sample();
@@ -150,9 +153,12 @@ mod tests {
         let input = test_stream().stream_after_reset(1).clock_pos_edge(100);
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
+        std::fs::write("bank_rtl.v", tm.to_string()).unwrap();
         tm.run_iverilog()?;
-        let tm = test_bench.flow_graph(&uut, &TestBenchOptions::default())?;
-        tm.run_iverilog()?;
+        let tm =
+            test_bench.flow_graph(&uut, &TestBenchOptions::default().vcd("rbank.vcd").skip(!0))?;
+        std::fs::write("test_bench.v", tm.to_string()).unwrap();
+        //        tm.run_iverilog()?;
         Ok(())
     }
 }

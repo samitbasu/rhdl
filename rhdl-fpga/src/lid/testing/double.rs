@@ -3,6 +3,7 @@ use rhdl::prelude::*;
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U<const N: usize> {
     filler: crate::fifo::testing::filler::U<N>,
+    push_pull: crate::lid::fifo_to_rv::U<Bits<N>>,
     relay1: crate::lid::option_carloni::U<Bits<N>>,
     relay2: crate::lid::option_carloni::U<Bits<N>>,
     drainer: crate::fifo::testing::drainer::U<N>,
@@ -12,6 +13,7 @@ impl<const N: usize> Default for U<N> {
     fn default() -> Self {
         Self {
             filler: crate::fifo::testing::filler::U::<N>::new(4, 0x8000),
+            push_pull: crate::lid::fifo_to_rv::U::<Bits<N>>::default(),
             relay1: crate::lid::option_carloni::U::<Bits<N>>::default(),
             relay2: crate::lid::option_carloni::U::<Bits<N>>::default(),
             drainer: crate::fifo::testing::drainer::U::<N>::new(4, 0x8000),
@@ -35,13 +37,15 @@ impl<const N: usize> SynchronousIO for U<N> {
 pub fn double_kernel<const N: usize>(_cr: ClockReset, _i: (), q: Q<N>) -> (bool, D<N>) {
     let mut d = D::<N>::dont_care();
     // Fill the data values
-    d.relay1.data = q.filler.data;
+    d.push_pull.data = q.filler.data;
+    d.relay1.data = q.push_pull.data;
     d.relay2.data = q.relay1.data;
     d.drainer.data = q.relay2.data;
     // Fill the ready values
     d.relay2.ready = q.drainer.next;
     d.relay1.ready = q.relay2.ready;
-    d.filler.full = !q.relay1.ready;
+    d.push_pull.ready = q.relay1.ready;
+    d.filler.full = q.push_pull.full;
     let o = q.drainer.valid;
     (o, d)
 }
@@ -64,7 +68,7 @@ mod tests {
             .join("vcd")
             .join("lid");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["c0af30ed7e9effc55f05982dd06d11701eacf3b4175104b31f9c530c70de4d39"];
+        let expect = expect!["8e64ad1e878cca25f490cb92085d08cffc1b6d8996800383dd5d0f09ed344b1e"];
         let digest = vcd.dump_to_file(&root.join("double.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

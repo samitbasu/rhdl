@@ -3,7 +3,9 @@ use rhdl::prelude::*;
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U<const N: usize> {
     filler: crate::fifo::testing::filler::U<N>,
+    sender: crate::lid::fifo_to_rv::U<Bits<N>>,
     relay: crate::lid::option_carloni::U<Bits<N>>,
+    receiver: crate::lid::rv_to_fifo::U<Bits<N>>,
     drainer: crate::fifo::testing::drainer::U<N>,
 }
 
@@ -11,7 +13,9 @@ impl<const N: usize> Default for U<N> {
     fn default() -> Self {
         Self {
             filler: crate::fifo::testing::filler::U::<N>::new(4, 0x8000),
+            sender: crate::lid::fifo_to_rv::U::<Bits<N>>::default(),
             relay: crate::lid::option_carloni::U::<Bits<N>>::default(),
+            receiver: crate::lid::rv_to_fifo::U::<Bits<N>>::default(),
             drainer: crate::fifo::testing::drainer::U::<N>::new(4, 0x8000),
         }
     }
@@ -26,10 +30,18 @@ impl<const N: usize> SynchronousIO for U<N> {
 #[kernel]
 pub fn single_kernel<const N: usize>(_cr: ClockReset, _i: (), q: Q<N>) -> (bool, D<N>) {
     let mut d = D::<N>::dont_care();
-    d.relay.ready = q.drainer.next;
-    d.drainer.data = q.relay.data;
-    d.relay.data = q.filler.data;
-    d.filler.full = !q.relay.ready;
+    // Connect the drainer to the FIFO side of the receiver
+    d.receiver.next = q.drainer.next;
+    d.drainer.data = q.receiver.data;
+    // Connect the RV side of the receiver to the relay
+    d.relay.ready = q.receiver.ready;
+    d.receiver.data = q.relay.data;
+    // Connect the RV side of the relay to the sender
+    d.relay.data = q.sender.data;
+    d.sender.ready = q.relay.ready;
+    // Connect the FIFO side of the sender to the filler
+    d.sender.data = q.filler.data;
+    d.filler.full = q.sender.full;
     let o = q.drainer.valid;
     (o, d)
 }
@@ -52,7 +64,7 @@ mod tests {
             .join("vcd")
             .join("lid");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["0e5e76f3176adf6e5eea38c151f8749207de944e1dfd50481609463d8f1ce3f6"];
+        let expect = expect!["e9ce5f20368973fb205fa762aa00317719e315d4483d30789feb818c8ffbf09a"];
         let digest = vcd.dump_to_file(&root.join("single.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

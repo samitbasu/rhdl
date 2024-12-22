@@ -29,7 +29,7 @@ pub fn fixture_kernel<const N: usize>(_cr: ClockReset, _i: (), q: Q<N>) -> (bool
     // The drainer is connected to the data output of the receiver
     d.drainer.data = q.receiver.data;
     // The advance signal of the sender comes from the drainer output
-    d.receiver.ready = q.drainer.next;
+    d.receiver.next = q.drainer.next;
     // The receiver is connected to the sender output
     d.receiver.bus = q.sender.bus;
     // The sender is connected to the receiver output
@@ -55,7 +55,7 @@ mod tests {
             .join("vcd")
             .join("channel");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["32c2a5d38beb5d102186587c9fa95436a460b4fa4662d136d422cdb5e4e802f1"];
+        let expect = expect!["760965aa11a7f6940199b6dc2807f4ed4e4ae1148aa98f2f00cd8de05948151a"];
         let digest = vcd.dump_to_file(&root.join("channel.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

@@ -34,7 +34,7 @@ pub fn delay<T: Digital, const N: usize>(_cr: ClockReset, i: T, q: Q<T, N>) -> (
 
 #[cfg(test)]
 mod tests {
-    // Check that a single value propogates through the delay line
+    // Check that a single value propagates through the delay line
 
     use expect_test::expect;
 

@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 
-use crate::core::option::{pack, unpack};
+use crate::core::option::pack;
 
 use super::carloni;
 
@@ -34,7 +34,10 @@ pub fn option_carloni_kernel<T: Digital + Default>(
     q: Q<T>,
 ) -> (O<T>, D<T>) {
     let mut d = D::<T>::dont_care();
-    let (data_valid, data) = unpack::<T>(i.data);
+    let (data_valid, data) = match i.data {
+        Some(data) => (true, data),
+        None => (false, T::default()),
+    };
     d.inner.data_in = data;
     d.inner.void_in = !data_valid;
     d.inner.stop_in = !i.ready;

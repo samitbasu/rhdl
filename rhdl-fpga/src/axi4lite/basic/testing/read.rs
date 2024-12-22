@@ -2,6 +2,8 @@ use rhdl::prelude::*;
 
 use crate::axi4lite::basic::bridge;
 use crate::axi4lite::basic::manager;
+use crate::axi4lite::types::AXI4Error;
+use crate::core::dff;
 use crate::core::option::unpack;
 use crate::core::ram;
 
@@ -11,9 +13,10 @@ const RAM_ADDR: usize = 8;
 // into a test fixture.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U {
-    manager: manager::read::U,
-    subordinate: bridge::read::U,
+    manager: manager::read::U<32, 32>,
+    subordinate: bridge::read::U<32, 32>,
     memory: ram::synchronous::U<Bits<32>, RAM_ADDR>,
+    read_pending: dff::U<bool>,
 }
 
 impl Default for U {
@@ -22,6 +25,7 @@ impl Default for U {
             manager: manager::read::U::default(),
             subordinate: bridge::read::U::default(),
             memory: ram::synchronous::U::new((0..256).map(|n| (bits(n), bits(n << 8 | n)))),
+            read_pending: dff::U::default(),
         }
     }
 }
@@ -33,7 +37,7 @@ pub struct I {
 
 #[derive(Debug, Digital)]
 pub struct O {
-    pub data: Option<Bits<32>>,
+    pub data: Option<Result<Bits<32>, AXI4Error>>,
     pub full: bool,
 }
 
@@ -52,15 +56,28 @@ pub fn basic_test_kernel(cr: ClockReset, i: I, q: Q) -> (O, D) {
     d.manager.axi = q.subordinate.axi;
     d.subordinate.axi = q.manager.axi;
     d.manager.cmd = i.cmd;
-    d.subordinate.data = Ok(q.memory);
+    d.subordinate.cmd_full = false;
+    d.read_pending = q.read_pending;
+    d.subordinate.reply = None;
+    let will_reply = q.subordinate.reply_ready && q.read_pending;
+    if will_reply {
+        d.subordinate.reply = Some(Ok(q.memory));
+        d.read_pending = false;
+    }
+    let slot_will_be_free = !q.read_pending || will_reply;
     // The read bridge uses a read strobe, but we will ignore that
     // for this test case, since the RAM does not care how many times
     // we read it.
-    let (_, axi_addr) = unpack::<Bits<32>>(q.subordinate.read);
+    let (read_request, axi_addr) = unpack::<Bits<32>>(q.subordinate.cmd);
+    let will_issue_read_request = read_request && slot_will_be_free;
+    if will_issue_read_request {
+        d.read_pending = true;
+    }
+    let ready = slot_will_be_free || !read_request;
     let read_addr = (axi_addr >> 3).resize();
     let mut o = O {
         data: q.manager.data,
-        full: q.manager.full,
+        ready,
     };
     if cr.reset.any() {
         o.data = None;
@@ -95,7 +112,7 @@ mod tests {
             .join("axi4lite")
             .join("basic");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["f8632367658ed519d15992c4a7b09e383b0dc75f192745b183fc666a7f2f3360"];
+        let expect = expect!["052d0a5c9d9ae4604a4b210631bbfbd6419276a160263228e507a2cf5521f54a"];
         let digest = vcd.dump_to_file(&root.join("basic_read_test.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -110,7 +127,7 @@ mod tests {
             .synchronous_sample()
             .flat_map(|x| x.value.2.data)
             .collect::<Vec<_>>();
-        let expected = (0..256).map(|n| bits(n << 8 | n)).collect::<Vec<_>>();
+        let expected = (0..256).map(|n| Ok(bits(n << 8 | n))).collect::<Vec<_>>();
         assert_eq!(io, expected[0..io.len()]);
         Ok(())
     }
