@@ -13,8 +13,8 @@ const RAM_ADDR: usize = 8;
 // into a test fixture.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U {
-    manager: manager::read::U<32, 32>,
-    subordinate: bridge::read::U<32, 32>,
+    manager: manager::read::U,
+    subordinate: bridge::read::U,
     memory: ram::synchronous::U<Bits<32>, RAM_ADDR>,
     read_pending: dff::U<bool>,
 }

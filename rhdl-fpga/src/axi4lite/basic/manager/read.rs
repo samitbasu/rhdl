@@ -2,6 +2,8 @@ use crate::axi4lite::channel::receiver;
 use crate::axi4lite::channel::sender;
 use crate::axi4lite::types::read_response_to_result;
 use crate::axi4lite::types::AXI4Error;
+use crate::axi4lite::types::AxilAddr;
+use crate::axi4lite::types::AxilData;
 use crate::axi4lite::types::ReadMISO;
 use crate::axi4lite::types::ReadMOSI;
 
@@ -11,50 +13,46 @@ use crate::axi4lite::types::ReadResponse;
 
 // A basic read manager
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U<const DATA: usize, const ADDR: usize> {
+pub struct U {
     // We need a sender for the address information
-    addr: sender::U<Bits<ADDR>>,
+    addr: sender::U<AxilAddr>,
     // we need a receiver for the response
-    data: receiver::U<ReadResponse<DATA>>,
+    data: receiver::U<ReadResponse>,
 }
 
 #[derive(Debug, Digital)]
-pub struct I<const DATA: usize, const ADDR: usize> {
+pub struct I {
     // Bus side of the manager
-    pub axi: ReadMISO<DATA>,
+    pub axi: ReadMISO,
     // Provide a read command on this input for one cycle
     // if we are not full
-    pub cmd: Option<Bits<ADDR>>,
+    pub cmd: Option<AxilAddr>,
     // Accept the current reply on this cycle - valid
     // only if the reply is Some
     pub next: bool,
 }
 
 #[derive(Debug, Digital)]
-pub struct O<const DATA: usize, const ADDR: usize> {
+pub struct O {
     // Bus side of the manager
-    pub axi: ReadMOSI<ADDR>,
+    pub axi: ReadMOSI,
     // The current data reply provided by the client
-    pub data: Option<Result<Bits<DATA>, AXI4Error>>,
+    pub data: Option<Result<AxilData, AXI4Error>>,
     // If true, you cannot send a new read command to this manager
     pub full: bool,
 }
 
-impl<const DATA: usize, const ADDR: usize> SynchronousIO for U<DATA, ADDR> {
-    type I = I<DATA, ADDR>;
-    type O = O<DATA, ADDR>;
-    type Kernel = basic_read_manager_kernel<DATA, ADDR>;
+impl SynchronousIO for U {
+    type I = I;
+    type O = O;
+    type Kernel = basic_read_manager_kernel;
 }
 
 #[kernel]
 #[allow(clippy::manual_map)]
-pub fn basic_read_manager_kernel<const DATA: usize, const ADDR: usize>(
-    _cr: ClockReset,
-    i: I<DATA, ADDR>,
-    q: Q<DATA, ADDR>,
-) -> (O<DATA, ADDR>, D<DATA, ADDR>) {
-    let mut d = D::<DATA, ADDR>::dont_care();
-    let mut o = O::<DATA, ADDR>::dont_care();
+pub fn basic_read_manager_kernel(_cr: ClockReset, i: I, q: Q) -> (O, D) {
+    let mut d = D::dont_care();
+    let mut o = O::dont_care();
     // Wire up the address bus
     d.addr.bus.ready = i.axi.arready;
     o.axi.araddr = q.addr.bus.data;
@@ -71,7 +69,7 @@ pub fn basic_read_manager_kernel<const DATA: usize, const ADDR: usize>(
     // Connect the reply output to the receiver
     o.data = None;
     if let Some(response) = q.data.data {
-        o.data = Some(read_response_to_result::<DATA>(response));
+        o.data = Some(read_response_to_result(response));
     }
     // Allow the client to acknowledge the response
     d.data.next = i.next;

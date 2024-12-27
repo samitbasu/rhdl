@@ -1,43 +1,42 @@
 // Create a fixture with a write manager and a read manager and a AXI bank of registers
 use rhdl::prelude::*;
 
-use crate::{axi4lite::types::AXI4Error, core::option::is_some};
+use crate::{
+    axi4lite::types::{AXI4Error, AxilAddr, AxilData, WriteCommand},
+    core::option::is_some,
+};
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U<const DATA: usize, const ADDR: usize> {
-    writer: crate::axi4lite::basic::manager::write::U<DATA, ADDR>,
-    reader: crate::axi4lite::basic::manager::read::U<DATA, ADDR>,
-    bank: crate::axi4lite::register::bank::U<8, DATA, DATA, ADDR>,
+pub struct U {
+    writer: crate::axi4lite::basic::manager::write::U,
+    reader: crate::axi4lite::basic::manager::read::U,
+    bank: crate::axi4lite::register::bank::U<8>,
 }
 
 #[derive(Digital)]
-pub struct I<const DATA: usize, const ADDR: usize> {
-    pub write: Option<(Bits<ADDR>, Bits<DATA>)>,
-    pub read: Option<Bits<ADDR>>,
+pub struct I {
+    pub write: Option<WriteCommand>,
+    pub read: Option<AxilAddr>,
 }
 
 #[derive(Digital)]
-pub struct O<const REG_WIDTH: usize> {
+pub struct O {
     pub write_full: bool,
     pub read_full: bool,
-    pub read_data: Option<Result<Bits<REG_WIDTH>, AXI4Error>>,
+    pub read_data: Option<Result<AxilData, AXI4Error>>,
     pub write_resp: Option<Result<(), AXI4Error>>,
 }
 
-impl<const DATA: usize, const ADDR: usize> SynchronousIO for U<DATA, ADDR> {
-    type I = I<DATA, ADDR>;
-    type O = O<DATA>;
-    type Kernel = test_kernel<DATA, ADDR>;
+impl SynchronousIO for U {
+    type I = I;
+    type O = O;
+    type Kernel = test_kernel;
 }
 
 #[kernel]
-pub fn test_kernel<const DATA: usize, const ADDR: usize>(
-    _cr: ClockReset,
-    i: I<DATA, ADDR>,
-    q: Q<DATA, ADDR>,
-) -> (O<DATA>, D<DATA, ADDR>) {
-    let mut d = D::<DATA, ADDR>::dont_care();
-    let mut o = O::<DATA>::dont_care();
+pub fn test_kernel(_cr: ClockReset, i: I, q: Q) -> (O, D) {
+    let mut d = D::dont_care();
+    let mut o = O::dont_care();
     d.writer.cmd = i.write;
     d.reader.cmd = i.read;
 
@@ -50,7 +49,7 @@ pub fn test_kernel<const DATA: usize, const ADDR: usize>(
     o.write_resp = q.writer.resp;
 
     // Connect the next signals so that they auto-advance
-    d.reader.next = is_some::<Result<Bits<DATA>, AXI4Error>>(q.reader.data);
+    d.reader.next = is_some::<Result<AxilData, AXI4Error>>(q.reader.data);
     d.writer.next = is_some::<Result<(), AXI4Error>>(q.writer.resp);
 
     // Connect the full signals - ignored in the test
@@ -63,39 +62,55 @@ pub fn test_kernel<const DATA: usize, const ADDR: usize>(
 mod tests {
     use expect_test::expect;
 
+    use crate::axi4lite::types::StrobedData;
+
     use super::*;
 
-    fn write_cmd<const DATA: usize, const ADDR: usize>(addr: i32, val: i32) -> I<DATA, ADDR> {
+    fn write_cmd(addr: i32, strobe: u8, val: u32) -> I {
         I {
-            write: Some((bits(addr as u128), bits(val as u128))),
+            write: Some(WriteCommand {
+                addr: bits(addr as u128),
+                strobed_data: StrobedData {
+                    data: bits(val as u128),
+                    strobe: bits(strobe as u128),
+                },
+            }),
             read: None,
         }
     }
 
-    fn read_cmd<const DATA: usize, const ADDR: usize>(addr: i32) -> I<DATA, ADDR> {
+    fn read_cmd(addr: i32) -> I {
         I {
             write: None,
             read: Some(bits(addr as u128)),
         }
     }
 
-    fn no_cmd<const DATA: usize, const ADDR: usize>() -> I<DATA, ADDR> {
+    fn no_cmd() -> I {
         I {
             write: None,
             read: None,
         }
     }
 
-    fn test_stream<const DATA: usize, const ADDR: usize>() -> impl Iterator<Item = I<DATA, ADDR>> {
+    fn test_stream() -> impl Iterator<Item = I> {
         [
-            write_cmd(0, 42),
+            write_cmd(0, 0b1111, 0x42),
             read_cmd(0),
-            write_cmd(4, 43),
+            write_cmd(4, 0b1111, 0x43),
             read_cmd(4),
-            write_cmd(8, 45),
-            write_cmd(8, 42),
+            write_cmd(8, 0b1111, 0x45),
+            write_cmd(8, 0b1111, 0x42),
             read_cmd(8),
             read_cmd(80),
+            write_cmd(0, 0b1000, 0xCA55_AA55),
+            write_cmd(4, 0b0100, 0xAAFE_AA55),
+            write_cmd(8, 0b0010, 0x55AA_BA55),
+            write_cmd(12, 0b0001, 0x55AA_5ABE),
+            read_cmd(0),
+            read_cmd(4),
+            read_cmd(8),
+            read_cmd(12),
         ]
         .into_iter()
         .chain(std::iter::repeat(no_cmd()))
@@ -104,7 +119,7 @@ mod tests {
 
     #[test]
     fn test_register_trace() -> miette::Result<()> {
-        let uut = U::<32, 32>::default();
+        let uut = U::default();
         let input = test_stream().stream_after_reset(1).clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -112,7 +127,7 @@ mod tests {
             .join("axi4lite")
             .join("bank");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["85d37e292d1a3d2f2f5202aed2994ae64b73d00c815ac9841e4ba554f584480e"];
+        let expect = expect!["3dbbb8c8be6a44c3791a8a44314d9ec1516f0b79e49b743444607f28978e620c"];
         let digest = vcd.dump_to_file(&root.join("register.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -121,7 +136,7 @@ mod tests {
     #[test]
     fn test_compile_times() -> miette::Result<()> {
         let tic = std::time::Instant::now();
-        let uut = U::<8, 8>::default();
+        let uut = U::default();
         let fg = uut.flow_graph("top")?;
         let _top = fg.hdl("top")?;
         let toc = tic.elapsed();
@@ -131,17 +146,21 @@ mod tests {
 
     #[test]
     fn test_bank_works() -> miette::Result<()> {
-        let uut = U::<32, 32>::default();
+        let uut = U::default();
         let input = test_stream().stream_after_reset(1).clock_pos_edge(100);
         let io = uut.run(input)?.synchronous_sample();
         let io = io.filter_map(|x| x.value.2.read_data).collect::<Vec<_>>();
         assert_eq!(
             io,
             vec![
-                Ok(bits(42)),
-                Ok(bits(43)),
-                Ok(bits(42)),
-                Err(AXI4Error::DECERR)
+                Ok(bits(0x42)),
+                Ok(bits(0x43)),
+                Ok(bits(0x42)),
+                Err(AXI4Error::DECERR),
+                Ok(bits(0xCA00_0042)),
+                Ok(bits(0x00FE_0043)),
+                Ok(bits(0x0000_BA42)),
+                Ok(bits(0x0000_00BE)),
             ]
         );
         Ok(())
@@ -149,16 +168,13 @@ mod tests {
 
     #[test]
     fn test_hdl_generation() -> miette::Result<()> {
-        let uut = U::<32, 32>::default();
+        let uut = U::default();
         let input = test_stream().stream_after_reset(1).clock_pos_edge(100);
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
-        std::fs::write("bank_rtl.v", tm.to_string()).unwrap();
         tm.run_iverilog()?;
-        let tm =
-            test_bench.flow_graph(&uut, &TestBenchOptions::default().vcd("rbank.vcd").skip(!0))?;
-        std::fs::write("test_bench.v", tm.to_string()).unwrap();
-        //        tm.run_iverilog()?;
+        let tm = test_bench.flow_graph(&uut, &TestBenchOptions::default().vcd("rbank.vcd"))?;
+        tm.run_iverilog()?;
         Ok(())
     }
 }
