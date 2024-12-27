@@ -81,7 +81,7 @@ pub fn drain_kernel<const N: usize>(cr: ClockReset, input: I<N>, q: Q<N>) -> (O,
         o.next = true;
         d.valid = data_matches && was_valid;
         let p = lsbs::<16, 32>(q.rng);
-        d.sleep_counter = if p < q.read_probability {
+        d.sleep_counter = if p > q.read_probability {
             q.sleep_len
         } else {
             bits(0)

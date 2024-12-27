@@ -109,7 +109,7 @@ risk than a technical one.
 - [x] Add flags to control compiler output verbosity.
 - [x] Add checks for zero outputs from synchronous blocks.
 - [x] Add AXI4-Lite endpoint support (minimal)
-- [ ] Add AXI4-Stream support
+- [x] Add AXI4-Stream support
 - [ ] Port the `RustHDL` widget library to `RHDL`
 - [ ] Port the various FPGA BSPs to `RHDL` from `RustHDL`.
 

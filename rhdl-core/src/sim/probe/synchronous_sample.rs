@@ -68,7 +68,6 @@ where
 mod tests {
 
     use super::super::ext::SynchronousProbeExt;
-    use super::*;
     use crate::sim::{clock_pos_edge::ClockPosEdgeExt, stream::TimedStreamExt};
 
     #[test]
