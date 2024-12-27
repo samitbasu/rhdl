@@ -33,8 +33,8 @@ fn test_adt_use() -> miette::Result<()> {
         signal(
             c.val()
                 && match a.val() {
-                    Foo::Red(x, z) => z,
-                    Foo::Green(x, z) => true,
+                    Foo::Red(_x, z) => z,
+                    Foo::Green(_x, _z) => true,
                 },
         )
     }
@@ -137,13 +137,16 @@ fn test_adt_inference_subset() -> miette::Result<()> {
     const MY_SPECIAL_NUMBER: b8 = bits(42);
 
     #[kernel]
-    fn do_stuff<C: Domain>(a: Signal<Foo, C>, s: Signal<NooState, C>) -> Signal<(NooState, b7), C> {
-        let z = (a.val().b, a.val().a + MY_SPECIAL_NUMBER);
+    fn do_stuff<C: Domain>(
+        a: Signal<Foo, C>,
+        _s: Signal<NooState, C>,
+    ) -> Signal<(NooState, b7), C> {
+        let _z = (a.val().b, a.val().a + MY_SPECIAL_NUMBER);
         let foo = bits::<12>(6);
-        let foo2 = foo + foo;
-        let c = a;
+        let _foo2 = foo + foo;
+        let _c = a;
         let q = signed::<4>(2);
-        let q = Foo {
+        let _q = Foo {
             a: bits::<8>(1),
             b: q,
             c: Rad::A,
@@ -219,7 +222,7 @@ fn test_adt_inference() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn fifo<C: Domain>(b: Signal<b8, C>, a: Signal<b4, C>) -> Signal<b8, C> {
+    fn fifo<C: Domain>(b: Signal<b8, C>, _a: Signal<b4, C>) -> Signal<b8, C> {
         b
     }
 
@@ -228,43 +231,43 @@ fn test_adt_inference() -> miette::Result<()> {
     #[kernel]
     fn do_stuff<C: Domain>(a: Signal<Foo, C>, s: Signal<NooState, C>) -> Signal<(NooState, b7), C> {
         let a = a.val();
-        let z = (a.b, a.a + MY_SPECIAL_NUMBER);
+        let _z = (a.b, a.a + MY_SPECIAL_NUMBER);
         let foo = bits::<12>(6);
-        let foo2 = foo + foo;
-        let c = a;
+        let _foo2 = foo + foo;
+        let _c = a;
         let q = signed::<4>(2);
-        let q = Foo {
+        let _q = Foo {
             a: bits::<8>(1),
             b: q,
             c: Rad::A,
         };
         let c = Rad::A;
-        let d = c;
-        let z = fifo::<C>(signal(bits::<8>(3)), signal(bits::<4>(5)));
+        let _d = c;
+        let _z = fifo::<C>(signal(bits::<8>(3)), signal(bits::<4>(5)));
         let mut q = bits::<4>(1);
-        let l = q.any();
+        let _l = q.any();
         q |= bits(1 << 3);
-        let p = (q & bits(1 << 2)).any();
-        let p = q.as_signed();
+        let _p = (q & bits(1 << 2)).any();
+        let _p = q.as_signed();
         if a.a > bits::<8>(12) {
             return signal((NooState::Boom, bits::<7>(3)));
         }
-        let e = Rad::B(q);
+        let _e = Rad::B(q);
         let x1 = bits::<4>(4);
         let y1 = bits::<6>(6);
         let mut ar = [bits::<4>(1), bits::<4>(1), bits::<4>(3)];
         ar[1] = bits::<4>(2);
-        let z: [Bits<4>; 3] = ar;
-        let q = ar[1];
+        let _z: [Bits<4>; 3] = ar;
+        let _q = ar[1];
         let f: [b4; 5] = [bits::<4>(1); 5];
-        let h = f[2];
-        let k = NooState::Init;
-        let f = Rad::C { y: y1, x: x1 };
+        let _h = f[2];
+        let _k = NooState::Init;
+        let _f = Rad::C { y: y1, x: x1 };
         let d = match s.val() {
             NooState::Init => NooState::Run(bits::<4>(1), bits::<5>(2)),
-            NooState::Run(x, y) => NooState::Walk { foo: y + 3 },
+            NooState::Run(_x, y) => NooState::Walk { foo: y + 3 },
             NooState::Walk { foo: x } => {
-                let q = bits::<5>(1) + x;
+                let _q = bits::<5>(1) + x;
                 NooState::Boom
             }
             NooState::Boom => NooState::Init,
@@ -321,8 +324,8 @@ fn test_adt_shadow() {
 
     #[kernel]
     fn do_stuff<C: Domain>(mut s: Signal<NooState, C>) -> Signal<(u8, NooState), C> {
-        let y = bits::<12>(72);
-        let foo = bits::<14>(32);
+        let _y = bits::<12>(72);
+        let _foo = bits::<14>(32);
         let mut a: u8 = 0;
         let d = match s.val() {
             NooState::Init => {
@@ -377,7 +380,7 @@ fn test_enum_match() -> miette::Result<()> {
         signal(match x {
             SimpleEnum::Init => 1,
             SimpleEnum::Run(x) => x,
-            SimpleEnum::Point { x, y } => y,
+            SimpleEnum::Point { x: _, y } => y,
             SimpleEnum::Boom => 7,
         })
     }
@@ -411,7 +414,7 @@ fn test_enum_unmatched_variant_not_usable() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn add(a: Signal<SimpleEnum, Red>) -> Signal<SimpleEnum, Red> {
+    fn add(_a: Signal<SimpleEnum, Red>) -> Signal<SimpleEnum, Red> {
         signal(SimpleEnum::Unmatched)
     }
 
@@ -450,7 +453,7 @@ fn test_enum_match_signed_discriminant() -> miette::Result<()> {
         signal(match x {
             SimpleEnum::Init => 1,
             SimpleEnum::Run(x) => x,
-            SimpleEnum::Point { x, y } => y,
+            SimpleEnum::Point { x: _, y } => y,
             SimpleEnum::Boom => 7,
             _ => 8,
         })

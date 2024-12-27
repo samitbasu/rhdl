@@ -16,9 +16,9 @@ use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 #[test]
 fn test_early_return() {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b8, Red>, _b: Signal<b8, Red>) -> Signal<b8, Red> {
         return a;
-        b
+        _b
     }
 
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();

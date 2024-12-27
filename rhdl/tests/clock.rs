@@ -45,7 +45,7 @@ fn test_struct_with_splice_follows_clock_constraints() -> miette::Result<()> {
 
     #[kernel]
     fn do_stuff<C: Domain, D: Domain>(mut s: Foo<C, D>) -> Foo<C, D> {
-        let a = s.a.val();
+        let _a = s.a.val();
         let b = s.b.val();
         s.a = signal(b);
         s
@@ -91,7 +91,7 @@ fn test_struct_cannot_cross_clock_domains() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn do_stuff<C: Domain, D: Domain>(a: Signal<u8, C>, b: Signal<u8, D>) -> Signal<Foo, C> {
+    fn do_stuff<C: Domain, D: Domain>(_a: Signal<u8, C>, b: Signal<u8, D>) -> Signal<Foo, C> {
         let a = b.val();
         let d = Foo {
             a,
@@ -257,7 +257,7 @@ fn test_signal_carrying_struct() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn add<C: Domain, D: Domain>(x: Signal<Baz, C>, y: Signal<b8, D>) -> Signal<b8, D> {
+    fn add<C: Domain, D: Domain>(x: Signal<Baz, C>, _y: Signal<b8, D>) -> Signal<b8, D> {
         let x = x.val();
         let y = x.b + 1;
         signal(y)
@@ -402,7 +402,7 @@ fn test_enum_basic_cross_clocks() -> miette::Result<()> {
 fn test_cross_clock_domains_fails_with_repeat() -> miette::Result<()> {
     #[kernel]
     fn foo<C: Domain, D: Domain>(a: Signal<b8, C>, b: Signal<b8, D>) -> Signal<[b8; 3], C> {
-        let a = a.val();
+        let _a = a.val();
         let b = b.val();
         signal([b; 3])
     }
@@ -489,13 +489,17 @@ fn test_unknown_clock_domain() -> miette::Result<()> {
         let (f, g) = e;
         let h = g + 1;
         let k: b4 = bits::<4>(7);
+        trace("hk", &(h, k));
         let q = (bits::<2>(1), (bits::<5>(0), signed::<8>(5)), bits::<12>(6));
         let b = q.1 .1;
+        trace("b", &b);
         let (q0, (q1, q1b), q2) = q; // Tuple destructuring
+        trace("q", &(q0, q1, q1b, q2));
         let z = q1b + 4;
+        trace("z", &z);
         let h = [d, c, f];
-        let [i, j, k] = h;
-        let o = j;
+        let [_i, j, k] = h;
+        let _o = j;
         let l = {
             let a = b12(3);
             let b = bits(4);

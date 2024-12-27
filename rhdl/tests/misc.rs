@@ -55,22 +55,22 @@ fn test_compile() -> miette::Result<()> {
     const CONST_PATH: b4 = bits(4);
     #[kernel]
     fn do_stuff<C: Domain>(mut a: Signal<Foo, C>, mut s: Signal<NooState, C>) -> Signal<Foo, C> {
-        let k = {
+        let _k = {
             bits::<12>(4) + 6;
             bits::<12>(6)
         };
         let mut a: Foo = a.val();
         let mut s: NooState = s.val();
-        let q = if a.a > 0 {
+        let _q = if a.a > 0 {
             bits::<12>(3)
         } else {
             bits::<12>(0)
         };
         let y = bits::<12>(72);
-        let t2 = (y, y);
+        let _t2 = (y, y);
         let q: u8 = 4;
-        let z = a.c;
-        let w = (a, a);
+        let _z = a.c;
+        let _w = (a, a);
         a.c[1] = q + 3;
         a.c = [0; 3];
         a.c = [1, 2, 3];
@@ -98,9 +98,9 @@ fn test_compile() -> miette::Result<()> {
         };
         let g = 1 > 2;
         let h = 3 != 4;
-        let mut i = g && h;
+        let mut _i = g && h;
         if z == bits::<4>(3) {
-            i = false;
+            _i = false;
         }
         match a {
             Foo {
@@ -115,7 +115,7 @@ fn test_compile() -> miette::Result<()> {
             } => {}
             _ => {}
         }
-        let c = bits::<4>(match z {
+        let _c = bits::<4>(match z {
             CONST_PATH => 1,
             Bits::<4>(1) => 2,
             Bits::<4>(2) => 3,
@@ -125,7 +125,7 @@ fn test_compile() -> miette::Result<()> {
             }
             _ => 6,
         });
-        let d = match s {
+        let _d = match s {
             NooState::Init => {
                 a.a = 1;
                 NooState::Run(1, 2, 3)
@@ -134,7 +134,7 @@ fn test_compile() -> miette::Result<()> {
                 a.a = x;
                 NooState::Boom
             }
-            NooState::Run(x, t, y) => {
+            NooState::Run(x, _t, y) => {
                 a.a = x + y;
                 NooState::Walk { foo: 7 }
             }
@@ -175,7 +175,7 @@ fn test_custom_suffix() {
     #[kernel]
     fn do_stuff(mut a: Signal<b4, Red>) {
         let b = a + 1;
-        let c = bits::<4>(3);
+        let _c = bits::<4>(3);
         a = b;
     }
 }

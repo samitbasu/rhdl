@@ -67,14 +67,14 @@ fn test_phi_inferred_lengths() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b1, Red>) -> Signal<b8, Red> {
         let c: b6 = bits(0);
-        let d = c;
+        let _d = c;
         let mut c = bits(0);
         if a.val().any() {
             c = bits(2);
         } else {
             c = bits(4);
         }
-        let y = c;
+        let _y = c;
         signal(c)
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red())?;
@@ -92,7 +92,7 @@ fn test_phi() -> miette::Result<()> {
             Bits::<1>(1) => c = bits::<8>(3),
             _ => {}
         }
-        let d = c;
+        let _d = c;
         if a.any() {
             c = bits::<8>(1);
             c = bits::<8>(2);
@@ -103,7 +103,7 @@ fn test_phi() -> miette::Result<()> {
                 c = bits::<8>(5);
             }
         }
-        let y = c;
+        let _y = c;
         signal(c)
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red())?;
@@ -113,7 +113,7 @@ fn test_phi() -> miette::Result<()> {
 #[test]
 fn test_phi_mut_no_init() {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b8, Red>, _b: Signal<b8, Red>) -> Signal<b8, Red> {
         let a = a.val();
         let mut c: b8;
         if a.any() {
