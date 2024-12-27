@@ -62,3 +62,12 @@ fn test_early_return_empty_element_constructed() -> miette::Result<()> {
     eprintln!("{module:?}");
     Ok(())
 }
+
+#[test]
+fn test_empty_return_not_allowed() -> miette::Result<()> {
+    #[kernel]
+    fn foo(_a: bool) -> () {}
+
+    assert!(compile_design::<foo>(CompilationMode::Asynchronous).is_err());
+    Ok(())
+}
