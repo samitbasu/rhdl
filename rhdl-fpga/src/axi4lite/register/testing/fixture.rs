@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 
-use crate::axi4lite::types::{MISO, MOSI};
+use crate::axi4lite::types::{AxilData, MISO, MOSI};
 
 // The fixture allows you to take an AXI-interfaced synchronous core and
 // connect it an actual AXI bus with a clock and asynchronous negative reset.
@@ -8,48 +8,34 @@ use crate::axi4lite::types::{MISO, MOSI};
 pub struct U<
     W: Domain, // Clock domain for the reset signal
     R: Domain, // Clock domain for everything else
-    const REG_WIDTH: usize,
-    const DATA: usize,
-    const ADDR: usize,
 > {
     pub resetn_conditioner: crate::reset::negating_conditioner::U<W, R>,
-    pub register: Adapter<crate::axi4lite::register::single::U<REG_WIDTH, DATA, ADDR>, R>,
+    pub register: Adapter<crate::axi4lite::register::single::U, R>,
 }
 
 #[derive(Digital, Timed)]
-pub struct I<W: Domain, R: Domain, const DATA: usize, const ADDR: usize> {
+pub struct I<W: Domain, R: Domain> {
     pub reset_n: Signal<ResetN, W>,
     pub clock: Signal<Clock, R>,
-    pub axi: Signal<MOSI<DATA, ADDR>, R>,
+    pub axi: Signal<MOSI, R>,
 }
 
 #[derive(Digital, Timed)]
-pub struct O<R: Domain, const REG_WIDTH: usize, const DATA: usize> {
-    pub axi: Signal<MISO<DATA>, R>,
-    pub read_data: Signal<Bits<REG_WIDTH>, R>,
+pub struct O<R: Domain> {
+    pub axi: Signal<MISO, R>,
+    pub read_data: Signal<AxilData, R>,
 }
 
-impl<W: Domain, R: Domain, const REG_WIDTH: usize, const DATA: usize, const ADDR: usize> CircuitIO
-    for U<W, R, REG_WIDTH, DATA, ADDR>
-{
-    type I = I<W, R, DATA, ADDR>;
-    type O = O<R, REG_WIDTH, DATA>;
-    type Kernel = fixture_kernel<W, R, REG_WIDTH, DATA, ADDR>;
+impl<W: Domain, R: Domain> CircuitIO for U<W, R> {
+    type I = I<W, R>;
+    type O = O<R>;
+    type Kernel = fixture_kernel<W, R>;
 }
 
 #[kernel]
-pub fn fixture_kernel<
-    W: Domain,
-    R: Domain,
-    const REG_WIDTH: usize,
-    const DATA: usize,
-    const ADDR: usize,
->(
-    i: I<W, R, DATA, ADDR>,
-    q: Q<W, R, REG_WIDTH, DATA, ADDR>,
-) -> (O<R, REG_WIDTH, DATA>, D<W, R, REG_WIDTH, DATA, ADDR>) {
-    let mut d = D::<W, R, REG_WIDTH, DATA, ADDR>::dont_care();
-    let mut o = O::<R, REG_WIDTH, DATA>::dont_care();
+pub fn fixture_kernel<W: Domain, R: Domain>(i: I<W, R>, q: Q<W, R>) -> (O<R>, D<W, R>) {
+    let mut d = D::<W, R>::dont_care();
+    let mut o = O::<R>::dont_care();
     // Connect the reset conditioner
     d.resetn_conditioner.reset_n = i.reset_n;
     d.resetn_conditioner.clock = i.clock;
@@ -59,8 +45,7 @@ pub fn fixture_kernel<
         reset: q.resetn_conditioner.val(),
     });
     // Connect the register's axi bus inputs to the fixture's axi bus input
-    d.register.input =
-        signal(crate::axi4lite::register::single::I::<DATA, ADDR> { axi: i.axi.val() });
+    d.register.input = signal(crate::axi4lite::register::single::I { axi: i.axi.val() });
     // Connect the axi bus output signals
     o.axi = signal(q.register.val().axi);
     o.read_data = signal(q.register.val().read_data);
@@ -76,12 +61,13 @@ mod tests {
     use super::*;
     use rhdl::core::hdl::export::export_hdl_module;
 
-    fn axi_null_cmd() -> MOSI<32, 32> {
+    fn axi_null_cmd() -> MOSI {
         MOSI {
             write: WriteMOSI {
                 awaddr: bits(0),
                 awvalid: false,
                 wdata: bits(0),
+                wstrb: bits(0),
                 wvalid: false,
                 bready: true,
             },
@@ -93,12 +79,13 @@ mod tests {
         }
     }
 
-    fn axi_write_cmd(addr: b32, data: b32) -> MOSI<32, 32> {
+    fn axi_write_cmd(addr: b32, data: b32) -> MOSI {
         MOSI {
             write: WriteMOSI {
                 awaddr: addr,
                 awvalid: true,
                 wdata: data,
+                wstrb: bits(0b1111),
                 wvalid: true,
                 bready: true,
             },
@@ -110,12 +97,13 @@ mod tests {
         }
     }
 
-    fn axi_read_cmd(addr: b32) -> MOSI<32, 32> {
+    fn axi_read_cmd(addr: b32) -> MOSI {
         MOSI {
             write: WriteMOSI {
                 awaddr: bits(0),
                 awvalid: false,
                 wdata: bits(0),
+                wstrb: bits(0),
                 wvalid: false,
                 bready: true,
             },
@@ -129,7 +117,7 @@ mod tests {
 
     // Create a test stream that writes 42, 47, 49 to address 0,
     // with reads after each one.
-    fn axi_test_seq() -> impl Iterator<Item = MOSI<32, 32>> {
+    fn axi_test_seq() -> impl Iterator<Item = MOSI> {
         [
             axi_null_cmd(),
             axi_null_cmd(),
@@ -150,7 +138,7 @@ mod tests {
         .into_iter()
     }
 
-    fn test_stream() -> impl Iterator<Item = TimedSample<I<Red, Blue, 32, 32>>> {
+    fn test_stream() -> impl Iterator<Item = TimedSample<I<Red, Blue>>> {
         let red = (0..).stream_after_reset(1).clock_pos_edge(100);
         let blue = axi_test_seq().stream().clock_pos_edge(79);
         red.merge(blue, |r, b| I {
@@ -162,7 +150,7 @@ mod tests {
 
     #[test]
     fn test_trace() -> miette::Result<()> {
-        let uut = U::<Red, Blue, 32, 32, 32>::default();
+        let uut = U::<Red, Blue>::default();
         let stream = test_stream();
         let vcd = uut.run(stream)?.collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -170,7 +158,7 @@ mod tests {
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["7c4085f90d6e9cf342af5761e64c7e4942d58e5da5dc11e72b79978850ec18cc"];
+        let expect = expect!["01e97dc8d24a765dc44f754157d9c76a388fb08937e51b54092aff0ea5a36129"];
         let digest = vcd
             .dump_to_file(&root.join("axi4lite_register.vcd"))
             .unwrap();
@@ -180,9 +168,9 @@ mod tests {
 
     #[test]
     fn test_export_fn() -> miette::Result<()> {
-        let uut = U::<Red, Blue, 32, 32, 32>::default();
-        let i = I::<Red, Green, 32, 32>::dont_care();
-        let o = O::<Green, 8, 32>::dont_care();
+        let uut = U::<Red, Blue>::default();
+        let i = I::<Red, Green>::dont_care();
+        let o = O::<Green>::dont_care();
         let binds = export![
             input aclk => i.clock,                              // Master AXI4-Lite clock
             input aresetn => i.reset_n,                         // Master AXI4-Lite reset
@@ -190,6 +178,7 @@ mod tests {
             input s_axi_awvalid => i.axi.val().write.awvalid,   // AXI4-Lite slave: Write address valid
             output s_axi_awready => o.axi.val().write.awready,  // AXI4-Lite slave: Write address ready
             input s_axi_wdata => i.axi.val().write.wdata,       // AXI4-Lite slave: Write data
+            input s_axi_wstrb => i.axi.val().write.wstrb,       // AXI4-Lite slave: Write strobe
             input s_axi_wvalid => i.axi.val().write.wvalid,     // AXI4-Lite slave: Write data valid
             output s_axi_wready => o.axi.val().write.wready,    // AXI4-Lite slave: Write data ready
             output s_axi_bresp => o.axi.val().write.bresp,      // AXI4-Lite slave: Write response

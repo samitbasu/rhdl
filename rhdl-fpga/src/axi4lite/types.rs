@@ -14,21 +14,60 @@ pub mod response_codes {
     pub const DECERR: Bits<2> = bits(3);
 }
 
+pub type AxilData = Bits<32>;
+pub type AxilAddr = Bits<32>;
+pub type AxilStrobe = Bits<4>;
+
+#[derive(Debug, Digital, Default)]
+pub struct StrobedData {
+    /// The data to write
+    pub data: AxilData,
+    /// The strobe to use
+    pub strobe: AxilStrobe,
+}
+
 #[derive(Debug, Digital)]
-pub struct ReadResponse<const DATA: usize> {
+pub struct ReadResponse {
     /// The response to the transaction
     pub resp: ResponseKind,
     /// The data to return
-    pub data: Bits<DATA>,
+    pub data: AxilData,
 }
 
-impl<const DATA: usize> Default for ReadResponse<DATA> {
+impl Default for ReadResponse {
     fn default() -> Self {
         Self {
             resp: response_codes::OKAY,
             data: Bits::default(),
         }
     }
+}
+
+#[derive(Debug, Digital, Default)]
+pub struct WriteCommand {
+    /// The address to write to
+    pub addr: AxilAddr,
+    /// The data to write along with the strobe
+    pub strobed_data: StrobedData,
+}
+
+// convert a strobe into a mask
+#[kernel]
+pub fn strobe_to_mask(strobe: Bits<4>) -> Bits<32> {
+    let mut mask = bits(0);
+    if strobe & 1 != 0 {
+        mask |= bits(0xff);
+    }
+    if strobe & 2 != 0 {
+        mask |= bits(0xff00);
+    }
+    if strobe & 4 != 0 {
+        mask |= bits(0xff0000);
+    }
+    if strobe & 8 != 0 {
+        mask |= bits(0xff000000);
+    }
+    mask
 }
 
 // An AXI4-Error Enum meant to capture the two cases of
@@ -41,9 +80,7 @@ pub enum AXI4Error {
 }
 
 #[kernel]
-pub fn read_response_to_result<const DATA: usize>(
-    resp: ReadResponse<DATA>,
-) -> Result<Bits<DATA>, AXI4Error> {
+pub fn read_response_to_result(resp: ReadResponse) -> Result<AxilData, AXI4Error> {
     match resp.resp {
         response_codes::OKAY => Ok(resp.data),
         response_codes::EXOKAY => Ok(resp.data),
@@ -53,20 +90,18 @@ pub fn read_response_to_result<const DATA: usize>(
 }
 
 #[kernel]
-pub fn result_to_read_response<const DATA: usize>(
-    resp: Result<Bits<DATA>, AXI4Error>,
-) -> ReadResponse<DATA> {
+pub fn result_to_read_response(resp: Result<AxilData, AXI4Error>) -> ReadResponse {
     match resp {
-        Ok(data) => ReadResponse::<DATA> {
+        Ok(data) => ReadResponse {
             resp: response_codes::OKAY,
             data,
         },
         Err(e) => match e {
-            AXI4Error::SLVERR => ReadResponse::<DATA> {
+            AXI4Error::SLVERR => ReadResponse {
                 resp: response_codes::SLVERR,
                 data: bits(0),
             },
-            AXI4Error::DECERR => ReadResponse::<DATA> {
+            AXI4Error::DECERR => ReadResponse {
                 resp: response_codes::DECERR,
                 data: bits(0),
             },
@@ -109,9 +144,9 @@ pub fn write_response_to_result(resp: ResponseKind) -> Result<(), AXI4Error> {
 */
 
 #[derive(Debug, Digital)]
-pub struct ReadMOSI<const ADDR: usize> {
+pub struct ReadMOSI {
     /// Read Address
-    pub araddr: Bits<ADDR>,
+    pub araddr: AxilAddr,
     /// Read Address valid
     pub arvalid: bool,
     /// Read Data ready
@@ -119,11 +154,11 @@ pub struct ReadMOSI<const ADDR: usize> {
 }
 
 #[derive(Debug, Digital, Default)]
-pub struct ReadMISO<const DATA: usize> {
+pub struct ReadMISO {
     /// Read Address ready
     pub arready: bool,
     /// Read Data
-    pub rdata: Bits<DATA>,
+    pub rdata: AxilData,
     /// Read Data response
     pub rresp: Bits<2>,
     /// Read Data valid
@@ -131,13 +166,15 @@ pub struct ReadMISO<const DATA: usize> {
 }
 
 #[derive(Debug, Digital, Default)]
-pub struct WriteMOSI<const DATA: usize, const ADDR: usize> {
+pub struct WriteMOSI {
     /// Write Address
-    pub awaddr: Bits<ADDR>,
+    pub awaddr: AxilAddr,
     /// Write Address valid
     pub awvalid: bool,
     /// Write Data
-    pub wdata: Bits<DATA>,
+    pub wdata: AxilData,
+    /// Write byte strobe
+    pub wstrb: AxilStrobe,
     /// Write Data valid
     pub wvalid: bool,
     /// Write Response ready
@@ -157,13 +194,13 @@ pub struct WriteMISO {
 }
 
 #[derive(Debug, Digital)]
-pub struct MOSI<const DATA: usize, const ADDR: usize> {
-    pub read: ReadMOSI<ADDR>,
-    pub write: WriteMOSI<DATA, ADDR>,
+pub struct MOSI {
+    pub read: ReadMOSI,
+    pub write: WriteMOSI,
 }
 
 #[derive(Debug, Digital)]
-pub struct MISO<const DATA: usize> {
-    pub read: ReadMISO<DATA>,
+pub struct MISO {
+    pub read: ReadMISO,
     pub write: WriteMISO,
 }
