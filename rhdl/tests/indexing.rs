@@ -370,10 +370,10 @@ fn test_link_to_bits_fn() -> miette::Result<()> {
         let d = signed(11);
         let c = b + a;
         let c = c.val();
-        let k = c.any();
+        let _k = c.any();
         let h = Tuplo(c, d);
         let p = h.0;
-        let q = NooState::Run(c, d);
+        let _q = NooState::Run(c, d);
         c + add_one::<C>(signal(p)) + if h.1 > 0 { 1 } else { 2 }
     }
 

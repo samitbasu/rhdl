@@ -570,7 +570,7 @@ fn test_empty_indices_dropped() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Foo) -> b1 {
         let () = a.b;
-        let c = (a.b, ());
+        let _c = (a.b, ());
         a.a
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
@@ -596,7 +596,7 @@ fn test_empty_case_dropped() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Color) -> b4 {
         let ret;
-        let mt = match a {
+        let _mt = match a {
             Color::Red => {
                 ret = bits(1);
             }

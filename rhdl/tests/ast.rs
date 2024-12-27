@@ -18,7 +18,7 @@ fn test_func_with_structured_args() -> miette::Result<()> {
     #[kernel]
     fn do_stuff((a, b): (Signal<b8, Red>, Signal<b8, Red>)) -> Signal<b8, Red> {
         let c = (a, b);
-        let d = c.0;
+        let _d = c.0;
         a + b
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(
@@ -69,18 +69,18 @@ fn test_ast_basic_func() -> miette::Result<()> {
         let b = !a; // Unary operator
         let c = a + (b - 1); // Binary operator
         let q = (a, b, c); // Tuple valued expression
-        let (a, b, c) = q; // Tuple destructuring
+        let (_a, _b, _c) = q; // Tuple destructuring
         let h = Bar(1, 2); // Tuple struct literal
-        let i = h.0; // Tuple struct field access
-        let Bar(j, k) = h; // Tuple struct destructuring
-        let d = [1, 2, 3]; // Array literal
+        let _i = h.0; // Tuple struct field access
+        let Bar(_j, _k) = h; // Tuple struct destructuring
+        let _d = [1, 2, 3]; // Array literal
         let d = Foo {
             a: 1,
             b: 2,
             c: [1, 2, 3],
         }; // Struct literal
-        let p = Foo { a: 4, ..d };
-        let h = {
+        let _p = Foo { a: 4, ..d };
+        let _h = {
             let e = 3;
             let f = 4;
             b8(e) + b8(f)
@@ -88,6 +88,7 @@ fn test_ast_basic_func() -> miette::Result<()> {
         let Foo { a, b, .. } = d; // Struct destructuring
         let g = d.c[1]; // Array indexing
         let e = d.a; // Struct field access
+        trace("dump", &(a, b, e, g));
         let mut d: b8 = bits::<8>(7); // Mutable local
         if d > bits::<8>(0) {
             // if statement
@@ -96,7 +97,7 @@ fn test_ast_basic_func() -> miette::Result<()> {
             return signal(d);
         }
         // if-else statement (and a statement expression)
-        let j = if d < bits(3) { 7 } else { 9 };
+        let _j = if d < bits(3) { 7 } else { 9 };
         // Enum literal
         let k = State::Boom;
         // Enum literal with a payload
@@ -104,10 +105,11 @@ fn test_ast_basic_func() -> miette::Result<()> {
         // Match expression with enum variants
         let j = match l {
             State::Init => b3(1),
-            State::Run(a) => b3(2),
+            State::Run(_a) => b3(2),
             State::Boom => b3(3),
             _ => b3(4),
         };
+        trace("dump2", &(j, k));
         // For loops
         for ndx in 0..8 {
             d = d + bits::<8>(ndx);
@@ -138,7 +140,7 @@ fn test_method_call_syntax() -> miette::Result<()> {
 #[test]
 fn test_empty_return_rejected() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>) {}
+    fn foo(_a: Signal<b8, Red>) {}
     let Err(RHDLError::RHDLSyntaxError(err)) = compile_design::<foo>(CompilationMode::Asynchronous)
     else {
         panic!("Expected syntax error");
@@ -149,7 +151,7 @@ fn test_empty_return_rejected() -> miette::Result<()> {
 #[test]
 fn test_empty_kernel_args_accepted() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<(), Red>, b: Signal<b3, Red>, c: Signal<(), Red>) -> Signal<b3, Red> {
+    fn foo(_a: Signal<(), Red>, b: Signal<b3, Red>, _c: Signal<(), Red>) -> Signal<b3, Red> {
         b
     }
 
@@ -163,7 +165,7 @@ fn test_empty_kernel_args_accepted() -> miette::Result<()> {
 #[test]
 fn test_empty_kernel_return_accepted() -> miette::Result<()> {
     #[kernel]
-    fn foo(d: Signal<(), Red>, a: Signal<b3, Red>) -> (Signal<bool, Red>, Signal<(), Red>) {
+    fn foo(d: Signal<(), Red>, _a: Signal<b3, Red>) -> (Signal<bool, Red>, Signal<(), Red>) {
         (signal(true), d)
     }
 
@@ -177,7 +179,7 @@ fn test_repeat_with_generic() -> miette::Result<()> {
     #[kernel]
     fn foo<const N: usize>(a: Signal<[b8; N], Red>) -> Signal<[b8; N], Red> {
         let a = a.val();
-        let g = [a[1]; 3 + 2];
+        let _g = [a[1]; 3 + 2];
         let c = [a[0]; N];
         signal(c)
     }
@@ -329,10 +331,10 @@ fn test_basic_compile() -> miette::Result<()> {
         let a = a.val();
         let (d, c) = (1, 3);
         let p = a + c;
-        let q = p;
+        let _q = p;
         let b = b.val();
         let q = b[2];
-        let p = [q; 3];
+        let _p = [q; 3];
         let k = (q, q, q, q);
         let mut p = k.2 + d;
         if p > 2 {
@@ -346,21 +348,21 @@ fn test_basic_compile() -> miette::Result<()> {
         bb[2] = p;
         let z: b4 = p + nib_add::<C>(signal(x), signal(y)).val();
         let q = TupStruct(x, y);
-        let TupStruct(x, y) = q;
-        let h = Bar::A;
-        let h = Bar::B(p);
-        let h = Bar::C { x: p, y: p };
-        let k: Bar = Bar::A;
+        let TupStruct(x, _y) = q;
+        let _h = Bar::A;
+        let _h = Bar::B(p);
+        let _h = Bar::C { x: p, y: p };
+        let _k: Bar = Bar::A;
         match x {
             ONE => {}
             TWO => {}
             Bits::<4>(3) => {}
             _ => {}
         }
-        let count = match state.val() {
+        let _count = match state.val() {
             SimpleEnum::Init => 1,
             SimpleEnum::Run(x) => x,
-            SimpleEnum::Point { x, y } => y,
+            SimpleEnum::Point { x: _, y } => y,
             SimpleEnum::Boom => 7,
         };
         signal(a + c + z)
@@ -424,7 +426,7 @@ fn test_nested_generics() -> miette::Result<()> {
         let x = x.val();
         let y = y.val();
         let c = x.a;
-        let d = (x.a, y.b);
+        let _d = (x.a, y.b);
         let e = Foo::<T> { a: c, b: c };
         signal(e == x)
     }
@@ -616,7 +618,7 @@ fn test_maybe_init_with_enum() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn do_stuff(a: Signal<b4, Red>) -> Signal<Foo, Red> {
+    fn do_stuff(_a: Signal<b4, Red>) -> Signal<Foo, Red> {
         let mut foo = Foo::D;
         signal(foo)
     }

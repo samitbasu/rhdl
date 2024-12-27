@@ -42,7 +42,7 @@ fn test_tuple_struct_nested_init() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn add<C: Domain>(a: Signal<u8, C>) -> Signal<u8, C> {
+    fn add<C: Domain>(a0: Signal<u8, C>) -> Signal<u8, C> {
         let b = Bar {
             a: 1,
             b: Foo { a: 2, b: 3 },
@@ -51,7 +51,7 @@ fn test_tuple_struct_nested_init() -> miette::Result<()> {
             a,
             b: Foo { a: c, b: d },
         } = b;
-        signal(a + c + d)
+        signal(a + c + d + a0.val())
     }
 
     test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_u8())?;

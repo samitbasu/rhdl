@@ -503,8 +503,9 @@ fn trace_wrap_function(function: &syn::ItemFn) -> Result<TS> {
             #[forbid(non_upper_case_globals)]
             #[forbid(unreachable_patterns)]
             #[allow(clippy::manual_map)]
-            //#[forbid(path_statements)]
-            //#[forbid(unused_variables)]
+            #[allow(clippy::redundant_pattern_matching)]
+            #[forbid(path_statements)]
+            #[forbid(unused_variables)]
             #( #attrs )*
             fn inner #impl_generics (#args) #ret #where_clause {
                 #body

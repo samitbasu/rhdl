@@ -43,22 +43,26 @@ fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
         let c = a + (b - 1); // Binary operator
         let q = (a, b, c); // Tuple valued expression
         let (a, b, c) = q; // Tuple destructuring
+        trace("abc", &(a, b, c)); // Trace statement
         let h = Bar(1, 2); // Tuple struct literal
-        let i = h.0; // Tuple struct field access
-        let Bar(j, k) = h; // Tuple struct destructuring
-        let d = [1, 2, 3]; // Array literal
+        let _i = h.0; // Tuple struct field access
+        let Bar(_j, _k) = h; // Tuple struct destructuring
+        let _d = [1, 2, 3]; // Array literal
         let d = Foo {
             a: 1,
             b: 2,
             c: [1, 2, 3],
         }; // Struct literal
         let p = Foo { a: 4, ..d };
+        trace("p", &p);
         let h = {
             let e = 3;
             let f = 4;
             b8(e) + b8(f)
         }; // Statement expression
+        trace("h", &h);
         let Foo { a, b, .. } = d; // Struct destructuring
+        trace("ab", &(a, b));
         let g = d.c[1]; // Array indexing
         let e = d.a; // Struct field access
         let mut d: b8 = bits(7); // Mutable local
@@ -72,12 +76,13 @@ fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
         let j = if d < bits(3) { 7 } else { 9 };
         // Enum literal
         let k = State::Boom;
+        trace("gejk", &(g, e, j, k));
         // Enum literal with a payload
         let l = State::Run(3);
         // Match expression with enum variants
         let j = match l {
             State::Init => b3(1),
-            State::Run(a) => b3(2),
+            State::Run(_a) => b3(2),
             State::Boom => b3(3),
             _ => b3(4),
         };
@@ -86,7 +91,7 @@ fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
             d = d + bits(ndx);
         }
         // block expression
-        signal(bits(42))
+        signal(bits(42) + j.resize())
     }
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red())?;
@@ -100,6 +105,7 @@ fn test_bits_inference_with_type() -> miette::Result<()> {
         let y: b8 = bits(3);
         let r = 3;
         let z = y << r;
+        trace("z", &z);
         a
     }
     test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, tuple_exhaustive_red())?;
@@ -146,6 +152,7 @@ fn test_signal_ops_inference() -> miette::Result<()> {
         let res = if q { w } else { z };
         // h is D
         let h = z.val();
+        trace("vars", &(zz, e, z2, res));
         // qq is Illegal!
         let qq = h + y.val();
         match (z + 1 + qq).val() {
@@ -169,7 +176,7 @@ fn test_simple_type_inference() -> miette::Result<()> {
         let e = (c, m);
         let (f, g) = e;
         let h0 = g + 1;
-        let k: b4 = bits::<4>(7);
+        let _k: b4 = bits::<4>(7);
         let q = (bits::<2>(1), (bits::<5>(0), signed::<8>(5)), bits::<12>(6));
         let b = q.1 .1;
         let (q0, (q1, q1b), q2) = q; // Tuple destructuring
@@ -182,6 +189,8 @@ fn test_simple_type_inference() -> miette::Result<()> {
             let b = bits(4);
             a + b
         };
+        trace("dump", &(k, b, z, i));
+        trace("dump2", &(o, q0, q1, q2));
         if h0.any() {
             l + k
         } else {
@@ -226,8 +235,8 @@ fn test_struct_inference_inferred_lengths() -> miette::Result<()> {
 
     #[kernel]
     fn do_stuff(a: Signal<Foo, Red>) -> Signal<(b8, b8, NooState, Foo), Red> {
-        let z = (a.val().b, a.val().a);
-        let c = a;
+        let _z = (a.val().b, a.val().a);
+        let _c = a;
         let q = signed(-2);
         let c = Rad {
             x: bits(1),
@@ -238,8 +247,8 @@ fn test_struct_inference_inferred_lengths() -> miette::Result<()> {
             b: q,
             c,
         };
-        let Foo { a: ar, b, c: _ } = d;
-        let q = Bar(1, 2);
+        let Foo { a: ar, b: _, c: _ } = d;
+        let _q = Bar(1, 2);
         let x = NooState::Run(bits(1), bits(2));
         let e = ar;
         signal((e, ar, x, d))
@@ -304,7 +313,7 @@ fn test_struct_inference() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<Foo, Red>) -> Signal<(b8, b8, NooState, Foo), Red> {
         let z = (a.val().b, a.val().a);
-        let c = a;
+        let _c = a;
         let q = signed::<4>(-2);
         let c = Rad {
             x: bits::<4>(1),
@@ -317,6 +326,7 @@ fn test_struct_inference() -> miette::Result<()> {
         };
         let Foo { a: ar, b, c: _ } = d;
         let q = Bar(1, 2);
+        trace("dump", &(z, c, b, q));
         let x = NooState::Run(bits::<4>(1), bits::<5>(2));
         let e = ar;
         signal((e, ar, x, d))

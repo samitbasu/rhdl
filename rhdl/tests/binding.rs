@@ -43,7 +43,7 @@ fn test_nested_enum_match_in_if_let_fails() -> miette::Result<()> {
         None,
     ];
 
-    let expect_err = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(3cd4a75136c01d12): SpannedSource { source: "fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {\n    if let Some(Foo::Red(Bar(x, y))) = state.val() {\n        signal(x + y)\n    } else {\n        signal(bits(0))\n    }\n}\n", name: "add", span_map: {N3: 100..111, N5: 93..94, N15: 169..170, N19: 147..178, N9: 129..130, N13: 122..135, N17: 157..172, N23: 59..180, N21: 65..178, N8: 72..97, N2: 100..105, N10: 133..134, N7: 77..96, N12: 122..135, N22: 65..178, N6: 86..95, N14: 112..141, N0: 7..12, N11: 129..134, N24: 0..180, N1: 7..38, N4: 90..91, N20: 147..178, N18: 157..172, N16: 164..171}, fallback: N24, filename: "rhdl/tests/binding.rs:29", function_id: FnID(3cd4a75136c01d12) }}, ranges: {FnID(3cd4a75136c01d12): 0..181} }, err_span: SourceSpan { offset: SourceOffset(86), length: 9 } }))"#]];
+    let expect_err = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(3cd4a75136c01d12): SpannedSource { source: "fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {\n    if let Some(Foo::Red(Bar(x, y))) = state.val() {\n        signal(x + y)\n    } else {\n        signal(bits(0))\n    }\n}\n", name: "add", span_map: {N24: 0..180, N7: 77..96, N4: 90..91, N1: 7..38, N2: 100..105, N18: 157..172, N5: 93..94, N6: 86..95, N10: 133..134, N16: 164..171, N3: 100..111, N13: 122..135, N0: 7..12, N21: 65..178, N11: 129..134, N19: 147..178, N23: 59..180, N17: 157..172, N15: 169..170, N20: 147..178, N22: 65..178, N14: 112..141, N9: 129..130, N8: 72..97, N12: 122..135}, fallback: N24, filename: "rhdl/tests/binding.rs:29", function_id: FnID(3cd4a75136c01d12) }}, ranges: {FnID(3cd4a75136c01d12): 0..181} }, err_span: SourceSpan { offset: SourceOffset(86), length: 9 } }))"#]];
     let res = compile_design::<add>(CompilationMode::Asynchronous);
     expect_err.assert_eq(&format!("{:?}", res));
     Ok(())
@@ -62,7 +62,7 @@ fn test_nested_rebind_in_if_let() -> miette::Result<()> {
 
     #[kernel]
     fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {
-        if let Some(Foo { a, b: Bar(x, y) }) = state.val() {
+        if let Some(Foo { a, b: Bar(_x, y) }) = state.val() {
             signal(a + y)
         } else {
             signal(bits(0))
@@ -107,7 +107,7 @@ fn test_nested_rebind_inlet() -> miette::Result<()> {
 
     #[kernel]
     fn add(state: Signal<Foo, Red>) -> Signal<b8, Red> {
-        let Foo { a, b: Bar(x, y) } = state.val();
+        let Foo { a, b: Bar(_x, y) } = state.val();
         signal(a + y)
     }
 
@@ -193,7 +193,7 @@ fn test_rebind_compile() -> miette::Result<()> {
         signal(match x.val() {
             SimpleEnum::Init => 1,
             SimpleEnum::Run(x) => x,
-            SimpleEnum::Point { x, y } => y,
+            SimpleEnum::Point { x: _, y } => y,
             SimpleEnum::Boom => 7,
         })
     }
@@ -236,7 +236,7 @@ fn test_importing() {
             y: bits::<6>(2),
         };
         let d = MY_SPECIAL_NUMBER;
-        signal((k, l, c, d))
+        signal((k, l, c, d + a.val().resize()))
     }
     test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, tuple_exhaustive_red()).unwrap();
 }
@@ -271,10 +271,10 @@ fn test_ssa() {
 fn test_rebinding() {
     #[kernel]
     fn do_stuff(a: Signal<b8, Red>) -> Signal<b16, Red> {
-        let q = a;
-        let q = bits::<12>(6);
-        let q = bits::<16>(7);
-        signal(q)
+        let _q = a;
+        let _q = bits::<12>(6);
+        let _q = bits::<16>(7);
+        signal(_q)
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red()).unwrap();
 }
