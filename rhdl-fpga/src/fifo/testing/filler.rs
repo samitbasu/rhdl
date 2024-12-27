@@ -65,12 +65,13 @@ pub fn filler_kernel<const N: usize>(cr: ClockReset, i: I, q: Q<N>) -> (O<N>, D<
     d.rng = false;
     o.data = None;
     let is_full = i.full;
+    d.sleep_counter = q.sleep_counter;
     // If the fifo is not full, and we are not sleeping, then write the next value to the FIFO
     if !is_full && q.sleep_counter == 0 {
         o.data = Some(lsbs::<{ N }, 32>(q.rng));
         d.rng = true;
         let p = msbs::<16, 32>(q.rng);
-        d.sleep_counter = if p < q.write_probability {
+        d.sleep_counter = if p > q.write_probability {
             q.sleep_len
         } else {
             bits(0)
@@ -78,8 +79,6 @@ pub fn filler_kernel<const N: usize>(cr: ClockReset, i: I, q: Q<N>) -> (O<N>, D<
     }
     if q.sleep_counter != 0 {
         d.sleep_counter = q.sleep_counter - 1;
-    } else {
-        d.sleep_counter = bits(0);
     }
     if cr.reset.any() {
         o.data = None;
@@ -106,7 +105,7 @@ mod tests {
             .join("fifo")
             .join("filler");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["558804e9e0a8ba067562d272e96c396a1dae592c9d42ccb71dfabf1d77fca9fd"];
+        let expect = expect!["5dae5d555120bb169d3cf882d030bb291889c38963a71dfeea23f39f4324a30f"];
         let digest = vcd.dump_to_file(&root.join("filler.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
