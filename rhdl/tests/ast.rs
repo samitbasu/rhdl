@@ -586,6 +586,23 @@ fn test_maybe_init_does_not_allow_select() -> miette::Result<()> {
 }
 
 #[test]
+fn test_multiply() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b16, Red> {
+        let a = a.val();
+        let b = b.val();
+        let c = a * b;
+        signal(c)
+    }
+    env_logger::builder()
+        .is_test(true)
+        .filter_level(log::LevelFilter::Debug)
+        .init();
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_pair_b8_red())?;
+    Ok(())
+}
+
+#[test]
 fn test_maybe_init_escape_causes_error() -> miette::Result<()> {
     #[derive(Debug, Digital)]
     struct Foo {

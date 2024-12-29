@@ -382,7 +382,10 @@ where
     let rtl = compile_design_stage2(&design)?;
     let vm_inputs = vals.clone();
     debug!("Testing kernel function");
+    debug!("----- RHIF -----");
     debug!("{:?}", design);
+    debug!("----- RTL ------");
+    debug!("{:?}", rtl);
     for input in vm_inputs {
         let args_for_vm = input.vec_tb();
         let expected = uut.apply(input).typed_bits();
