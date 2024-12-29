@@ -389,6 +389,8 @@ pub mod and;
 #[doc(hidden)]
 pub mod bits_impl;
 #[doc(hidden)]
+pub mod mul;
+#[doc(hidden)]
 pub mod neg;
 #[doc(hidden)]
 pub mod not;

@@ -44,6 +44,8 @@ pub enum TypeCheck {
         use a nested match expression to further destructure the inner type."
     ))]
     PathMismatchInTypeInference,
+    #[error("Cannot determine the sign of this value")]
+    ExpectedSignFlag,
 }
 
 #[derive(Error, Debug, Diagnostic)]
@@ -192,6 +194,10 @@ pub enum ICE {
     WrapRequiresOptionKind { kind: Kind },
     #[error("Attempted to select based on an uninitialized value")]
     SelectOnUninitializedValue { value: BitString },
+    #[error("Invalid arguments to multiplication {a:?} and {b:?}")]
+    InvalidMulKind { a: Kind, b: Kind },
+    #[error("Result of a multiplication cannot be assigned to a literal")]
+    MulResultMustBeRegister,
 }
 
 #[derive(Error, Debug, Diagnostic)]

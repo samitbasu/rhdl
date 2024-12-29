@@ -673,7 +673,7 @@ impl UnifyContext {
         }
     }
 
-    fn cast_ty_as_bit_length(&mut self, ty: TypeId) -> Result<usize> {
+    pub fn cast_ty_as_bit_length(&mut self, ty: TypeId) -> Result<usize> {
         let x = self.apply(ty);
         if let TypeKind::Const(Const::Length(n)) = &self.types[x.kind] {
             Ok(*n)
@@ -881,6 +881,14 @@ impl UnifyContext {
             signal.data
         } else {
             ty
+        }
+    }
+    pub fn project_bit_length(&mut self, ty: TypeId) -> Option<TypeId> {
+        let ty = self.apply(ty);
+        if let TypeKind::App(AppType::Bits(bits)) = &self.types[ty.kind] {
+            Some(bits.len)
+        } else {
+            None
         }
     }
     pub fn project_sign_flag(&mut self, ty: TypeId) -> Option<TypeId> {

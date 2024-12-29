@@ -415,18 +415,57 @@ impl<'a> RTLCompiler<'a> {
             arg2,
         } = *binary;
         if !lhs.is_empty() {
-            let lhs = self.operand(lhs, loc)?;
-            let arg1 = self.operand(arg1, loc)?;
-            let arg2 = self.operand(arg2, loc)?;
-            self.lop(
-                tl::OpCode::Binary(tl::Binary {
-                    lhs,
-                    op,
-                    arg1,
-                    arg2,
-                }),
-                loc,
-            );
+            if op != AluBinary::Mul {
+                let lhs = self.operand(lhs, loc)?;
+                let arg1 = self.operand(arg1, loc)?;
+                let arg2 = self.operand(arg2, loc)?;
+                self.lop(
+                    tl::OpCode::Binary(tl::Binary {
+                        lhs,
+                        op,
+                        arg1,
+                        arg2,
+                    }),
+                    loc,
+                );
+            } else {
+                let lhs = self.operand(lhs, loc)?;
+                let arg1 = self.operand(arg1, loc)?;
+                let arg2 = self.operand(arg2, loc)?;
+                let Operand::Register(lhs_id) = lhs else {
+                    return Err(self.raise_ice(ICE::MulResultMustBeRegister, loc));
+                };
+                let lhs_reg_kind = self.registers[&lhs_id];
+                let arg1_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
+                let arg2_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
+                self.lop(
+                    tl::OpCode::Cast(tl::Cast {
+                        lhs: arg1_cast,
+                        arg: arg1,
+                        len: lhs_reg_kind.len(),
+                        kind: CastKind::Resize,
+                    }),
+                    loc,
+                );
+                self.lop(
+                    tl::OpCode::Cast(tl::Cast {
+                        lhs: arg2_cast,
+                        arg: arg2,
+                        len: lhs_reg_kind.len(),
+                        kind: CastKind::Resize,
+                    }),
+                    loc,
+                );
+                self.lop(
+                    tl::OpCode::Binary(tl::Binary {
+                        lhs,
+                        op,
+                        arg1: arg1_cast,
+                        arg2: arg2_cast,
+                    }),
+                    loc,
+                );
+            }
         }
         Ok(())
     }

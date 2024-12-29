@@ -46,7 +46,7 @@ impl VMState<'_> {
     ) -> Result<BitString> {
         let arg1: TypedBits = arg1.into();
         let arg2: TypedBits = arg2.into();
-        match crate::rhif::runtime_ops::binary(op, arg1, arg2) {
+        match crate::rhif::runtime_ops::binary_rtl(op, arg1, arg2) {
             Ok(result) => Ok(result.into()),
             Err(e) => Err(self.raise_ice(ICE::BinaryOperatorError(Box::new(e)), loc)),
         }

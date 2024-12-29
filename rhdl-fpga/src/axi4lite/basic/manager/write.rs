@@ -24,7 +24,7 @@ pub struct U {
 
 #[derive(Debug, Digital)]
 pub struct I {
-    // Bus side of the read manager
+    // Bus side of the write manager
     pub axi: WriteMISO,
     // Provide a write command on this input for one cycle
     // if we are not full

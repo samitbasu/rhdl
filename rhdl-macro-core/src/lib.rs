@@ -18,4 +18,6 @@ pub use synchronous_dq::derive_synchronous_dq;
 mod clone;
 mod export;
 pub use export::export_macro;
+pub mod mul_trait;
+pub use mul_trait::impl_mul_trait;
 mod partial_eq;

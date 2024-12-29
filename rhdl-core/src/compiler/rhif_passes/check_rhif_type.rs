@@ -41,6 +41,18 @@ fn approximate_dynamic_paths(path: &Path) -> Path {
         .collect()
 }
 
+fn mul_kind(obj: &Object, loc: SourceLocation, a: Kind, b: Kind) -> Result<Kind, RHDLError> {
+    match (a, b) {
+        (Kind::Bits(a), Kind::Bits(b)) => Ok(Kind::Bits(a + b)),
+        (Kind::Signed(a), Kind::Signed(b)) => Ok(Kind::Signed(a + b)),
+        _ => Err(TypeCheckPass::raise_ice(
+            obj,
+            ICE::InvalidMulKind { a, b },
+            loc,
+        )),
+    }
+}
+
 fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
     let slot_type = |slot: &Slot| -> Kind {
         if matches!(*slot, Slot::Empty) {
@@ -77,7 +89,6 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 op:
                     AluBinary::Add
                     | AluBinary::Sub
-                    | AluBinary::Mul
                     | AluBinary::BitAnd
                     | AluBinary::BitOr
                     | AluBinary::BitXor,
@@ -87,6 +98,17 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
             }) => {
                 eq_kinds(slot_type(lhs), slot_type(arg1), loc)?;
                 eq_kinds(slot_type(lhs), slot_type(arg2), loc)?;
+            }
+            OpCode::Binary(Binary {
+                op: AluBinary::Mul,
+                lhs,
+                arg1,
+                arg2,
+            }) => {
+                let arg1_ty = slot_type(arg1);
+                let arg2_ty = slot_type(arg2);
+                let result_ty = mul_kind(obj, loc, arg1_ty, arg2_ty)?;
+                eq_kinds(slot_type(lhs), result_ty, loc)?;
             }
             OpCode::Binary(Binary {
                 op: AluBinary::Shl | AluBinary::Shr,

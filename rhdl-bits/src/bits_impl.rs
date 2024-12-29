@@ -144,6 +144,20 @@ impl<const N: usize> Bits<N> {
     }
 }
 
+trait ExtendBy<const N: usize> {
+    type Output;
+
+    fn extend_by(self) -> Self::Output;
+}
+
+impl ExtendBy<1> for Bits<1> {
+    type Output = Bits<2>;
+
+    fn extend_by(self) -> Self::Output {
+        self.resize::<2>()
+    }
+}
+
 /// The default value for a [Bits] value is 0.
 impl<const N: usize> Default for Bits<N> {
     fn default() -> Self {

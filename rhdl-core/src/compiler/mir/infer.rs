@@ -1,4 +1,4 @@
-use log::debug;
+use log::{debug, trace};
 use std::collections::BTreeMap;
 
 use crate::{
@@ -162,7 +162,7 @@ impl<'a> MirTypeInference<'a> {
         })
     }
     fn unify(&mut self, loc: SourceLocation, lhs: TypeId, rhs: TypeId) -> Result<()> {
-        debug!("Unifying {} and {}", self.ctx.desc(lhs), self.ctx.desc(rhs));
+        trace!("Unifying {} and {}", self.ctx.desc(lhs), self.ctx.desc(rhs));
         if self.ctx.unify(lhs, rhs).is_err() {
             let lhs_span = self.mir.symbols.source_set.span(lhs.loc);
             let rhs_span = self.mir.symbols.source_set.span(rhs.loc);
@@ -275,12 +275,14 @@ impl<'a> MirTypeInference<'a> {
     fn try_binop(&mut self, loc: SourceLocation, op: &TypeBinOp) -> Result<()> {
         match &op.op {
             AluBinary::Add
-            | AluBinary::Mul
             | AluBinary::BitAnd
             | AluBinary::BitOr
             | AluBinary::BitXor
             | AluBinary::Sub => {
                 self.enforce_data_types_binary(loc, op.lhs, op.arg1, op.arg2)?;
+            }
+            AluBinary::Mul => {
+                self.try_mul(loc, op.lhs, op.arg1, op.arg2)?;
             }
             AluBinary::Eq
             | AluBinary::Lt
@@ -383,7 +385,7 @@ impl<'a> MirTypeInference<'a> {
     }
 
     fn try_index(&mut self, loc: SourceLocation, op: &TypeIndex) -> Result<()> {
-        debug!(
+        trace!(
             "Try to apply index to {} with path {:?}",
             self.ctx.desc(op.arg),
             op.path
@@ -394,6 +396,65 @@ impl<'a> MirTypeInference<'a> {
                 .raise_type_error(TypeCheck::PathMismatchInTypeInference, loc)
                 .into()),
         }
+    }
+    fn try_mul(
+        &mut self,
+        loc: SourceLocation,
+        lhs: TypeId,
+        arg1: TypeId,
+        arg2: TypeId,
+    ) -> Result<()> {
+        // LHS of a multiplication is always bit depth M+N, where
+        // X: Bits<M> and Y: Bits<N>, Z = X * Y
+        let lhs_sign_flag = self.ctx.ty_var(loc);
+        let lhs_len = self.ctx.ty_var(loc);
+        let a1_is_signal = self.ctx.is_signal(arg1);
+        let a2_is_signal = self.ctx.is_signal(arg2);
+        let a1_data = self.ctx.project_signal_data(arg1);
+        let a2_data = self.ctx.project_signal_data(arg2);
+        let Some(a1_sign) = self.ctx.project_sign_flag(a1_data) else {
+            return Ok(());
+        };
+        let Some(a2_sign) = self.ctx.project_sign_flag(a2_data) else {
+            return Ok(());
+        };
+        // The sign flag must be the same across all operands
+        self.unify(loc, a1_sign, lhs_sign_flag)?;
+        self.unify(loc, a2_sign, lhs_sign_flag)?;
+        // Get the bit length of the operands
+        let Some(a1_len) = self.ctx.project_bit_length(a1_data) else {
+            return Ok(());
+        };
+        let Some(a2_len) = self.ctx.project_bit_length(a2_data) else {
+            return Ok(());
+        };
+        let Ok(a1_len) = self.ctx.cast_ty_as_bit_length(a1_len) else {
+            return Ok(());
+        };
+        let Ok(a2_len) = self.ctx.cast_ty_as_bit_length(a2_len) else {
+            return Ok(());
+        };
+        let lhs_computed_len = self.ctx.ty_const_len(loc, a1_len + a2_len);
+        self.unify(loc, lhs_len, lhs_computed_len)?;
+        let lhs_data = self
+            .ctx
+            .ty_with_sign_and_len(loc, lhs_sign_flag, lhs_computed_len);
+        if !a1_is_signal && !a2_is_signal {
+            return self.unify(loc, lhs, lhs_data);
+        }
+        if let Some(a1_clock) = self.ctx.project_signal_clock(arg1) {
+            let lhs_clock = self.ctx.ty_var(loc);
+            self.unify(loc, lhs_clock, a1_clock)?;
+            let lhs_sig = self.ctx.ty_signal(loc, lhs_data, lhs_clock);
+            self.unify(loc, lhs, lhs_sig)?;
+        }
+        if let Some(a2_clock) = self.ctx.project_signal_clock(arg2) {
+            let lhs_clock = self.ctx.ty_var(loc);
+            self.unify(loc, lhs_clock, a2_clock)?;
+            let lhs_sig = self.ctx.ty_signal(loc, lhs_data, lhs_clock);
+            self.unify(loc, lhs, lhs_sig)?;
+        }
+        Ok(())
     }
     // Given Y <- A op B, ensure that the data types of
     // Y, A, an B are all compatible.
@@ -462,7 +523,7 @@ impl<'a> MirTypeInference<'a> {
             debug!("Iteration {}", loop_count);
             let mod_state = self.ctx.modification_state();
             for op in ops {
-                debug!("Type op {:?}", op);
+                trace!("Type op {:?}", op);
                 self.try_type_op(op)?;
             }
             if self.ctx.modification_state() == mod_state {
@@ -476,7 +537,7 @@ impl<'a> MirTypeInference<'a> {
     }
     fn process_ops(&mut self) -> Result<()> {
         for op in &self.mir.ops {
-            debug!("Processing op {:?}", op.op);
+            trace!("Processing op {:?}", op.op);
             let loc = op.loc;
             match &op.op {
                 OpCode::Array(array) => {
@@ -648,7 +709,7 @@ impl<'a> MirTypeInference<'a> {
                     let lhs = self.slot_ty(select.lhs);
                     let true_value = self.slot_ty(select.true_value);
                     let false_value = self.slot_ty(select.false_value);
-                    debug!(
+                    trace!(
                         "Queueing select operation lhs = {}, true = {}, false = {}",
                         self.ctx.desc(lhs),
                         self.ctx.desc(true_value),
