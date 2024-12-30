@@ -10,7 +10,7 @@ use crate::{
         flow_graph_impl::{FlowIx, GraphType},
     },
     hdl::ast::unsigned_width,
-    rhif::spec::AluUnary,
+    rtl::spec::AluUnary,
     FlowGraph, RHDLError,
 };
 

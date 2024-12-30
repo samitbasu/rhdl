@@ -397,6 +397,8 @@ pub mod not;
 #[doc(hidden)]
 pub mod or;
 #[doc(hidden)]
+pub mod pad;
+#[doc(hidden)]
 pub mod shl;
 #[doc(hidden)]
 pub mod shr;
@@ -438,6 +440,7 @@ pub mod alias {
 
 pub use bits_impl::bits;
 pub use bits_impl::Bits;
+pub use pad::Pad;
 pub use signed_bits_impl::signed;
 pub use signed_bits_impl::SignedBits;
 

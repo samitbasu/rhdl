@@ -198,6 +198,8 @@ pub enum ICE {
     InvalidMulKind { a: Kind, b: Kind },
     #[error("Result of a multiplication cannot be assigned to a literal")]
     MulResultMustBeRegister,
+    #[error("Argument of pad operation must be either a Bits or SignedBits value")]
+    InvalidPadKind { a: Kind },
 }
 
 #[derive(Error, Debug, Diagnostic)]
@@ -228,7 +230,7 @@ pub enum Syntax {
     ForLoopNonIntegerEndValue,
     #[error("Unsupported method call")]
     #[diagnostic(help(
-        "Only .all(), .any(), .xor(), .as_unsigned() and .as_signed() are supported in kernels"
+        "Only .all(), .any(), .xor(), .as_unsigned(), .as_signed(), .resize() and .pad() are supported in kernels"
     ))]
     UnsupportedMethodCall,
     #[error("Unsupported path with arguments")]

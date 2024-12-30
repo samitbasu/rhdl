@@ -79,3 +79,11 @@ pub fn mul_impl(input: TokenStream) -> TokenStream {
         Err(err) => err.to_compile_error().into(),
     }
 }
+
+#[proc_macro]
+pub fn pad_impl(input: TokenStream) -> TokenStream {
+    match rhdl_macro_core::impl_pad_trait(input.into()) {
+        Ok(output) => output.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}

@@ -12,7 +12,7 @@ use crate::{
         flow_graph_impl::{FlowIx, GraphType},
     },
     hdl::ast::{unsigned_width, SignedWidth},
-    rhif::runtime_ops::{binary, unary},
+    rhif::runtime_ops::{binary, unary, unary_rtl},
     types::bit_string::BitString,
     FlowGraph, RHDLError, TypedBits,
 };
@@ -72,7 +72,7 @@ fn compute_binary(bin: &Binary, node: FlowIx, graph: &GraphType) -> Option<BitSt
 
 fn compute_unary(uny: &Unary, node: FlowIx, graph: &GraphType) -> Option<BitString> {
     let arg0: TypedBits = collect_argument(graph, node, uny.arg_len, |x| arg_fun(0, x))?.into();
-    let result = unary(uny.op, arg0.clone()).ok()?;
+    let result = unary_rtl(uny.op, arg0.clone()).ok()?;
     Some(result.into())
 }
 

@@ -5,10 +5,10 @@ use crate::{
     bitx::BitX,
     compiler::mir::error::{RHDLCompileError, ICE},
     error::rhdl_error,
-    rhif::spec::{AluBinary, AluUnary},
+    rhif::spec::AluBinary,
     rtl::spec::{
-        Case, CaseArgument, Cast, CastKind, Concat, DynamicIndex, DynamicSplice, Index, Select,
-        Splice, Unary,
+        AluUnary, Case, CaseArgument, Cast, CastKind, Concat, DynamicIndex, DynamicSplice, Index,
+        Select, Splice, Unary,
     },
     types::bit_string::BitString,
     RHDLError, TypedBits,
@@ -54,7 +54,7 @@ impl VMState<'_> {
 
     fn unary(&self, op: AluUnary, arg1: BitString, loc: SourceLocation) -> Result<BitString> {
         let arg1: TypedBits = arg1.into();
-        match crate::rhif::runtime_ops::unary(op, arg1) {
+        match crate::rhif::runtime_ops::unary_rtl(op, arg1) {
             Ok(result) => Ok(result.into()),
             Err(e) => Err(self.raise_ice(ICE::UnaryOperatorError(Box::new(e)), loc)),
         }

@@ -207,9 +207,9 @@ impl<'a> FlowGraphHDLBuilder<'a> {
             |x| arg_fun(0, x),
         )?));
         let arg0 = if bin.left_len.is_signed() {
-            unary(crate::rhif::spec::AluUnary::Signed, arg0)
+            unary(crate::rtl::spec::AluUnary::Signed, arg0)
         } else {
-            unary(crate::rhif::spec::AluUnary::Unsigned, arg0)
+            unary(crate::rtl::spec::AluUnary::Unsigned, arg0)
         };
         let arg1 = concatenate(nodes(self.collect_argument(
             index,
@@ -217,9 +217,9 @@ impl<'a> FlowGraphHDLBuilder<'a> {
             |x| arg_fun(1, x),
         )?));
         let arg1 = if bin.right_len.is_signed() {
-            unary(crate::rhif::spec::AluUnary::Signed, arg1)
+            unary(crate::rtl::spec::AluUnary::Signed, arg1)
         } else {
-            unary(crate::rhif::spec::AluUnary::Unsigned, arg1)
+            unary(crate::rtl::spec::AluUnary::Unsigned, arg1)
         };
         self.stmt(assign(&node(index), binary(bin.op, arg0, arg1)));
         Ok(())
@@ -301,9 +301,9 @@ impl<'a> FlowGraphHDLBuilder<'a> {
             |x| arg_fun(0, x),
         )?));
         let arg = if uny.arg_len.is_signed() {
-            unary(crate::rhif::spec::AluUnary::Signed, arg)
+            unary(crate::rtl::spec::AluUnary::Signed, arg)
         } else {
-            unary(crate::rhif::spec::AluUnary::Unsigned, arg)
+            unary(crate::rtl::spec::AluUnary::Unsigned, arg)
         };
         self.stmt(assign(&node(index), unary(uny.op, arg)));
         Ok(())

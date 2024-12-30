@@ -268,6 +268,20 @@ impl<'a> MirTypeInference<'a> {
                     self.unify(loc, op.lhs, bool_ty)?;
                 }
             }
+            AluUnary::Pad => {
+                let Some(a1_len) = self.ctx.project_bit_length(a1) else {
+                    return Ok(());
+                };
+                let Ok(a1_len) = self.ctx.cast_ty_as_bit_length(a1_len) else {
+                    return Ok(());
+                };
+                let Some(a1_sign) = self.ctx.project_sign_flag(a1) else {
+                    return Ok(());
+                };
+                let len = self.ctx.ty_const_len(loc, a1_len + 1);
+                let lhs_ty = self.ctx.ty_with_sign_and_len(loc, a1_sign, len);
+                self.unify(loc, op.lhs, lhs_ty)?;
+            }
             _ => {}
         }
         Ok(())
@@ -799,7 +813,7 @@ impl<'a> MirTypeInference<'a> {
                                 .into());
                             }
                         }
-                        AluUnary::All | AluUnary::Any | AluUnary::Xor => {
+                        AluUnary::All | AluUnary::Any | AluUnary::Xor | AluUnary::Pad => {
                             self.type_ops.push(TypeOperation {
                                 loc: op.loc,
                                 kind: TypeOperationKind::UnaryOp(TypeUnaryOp {

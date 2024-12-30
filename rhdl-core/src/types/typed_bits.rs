@@ -160,6 +160,9 @@ impl TypedBits {
             })),
         }
     }
+    pub fn pad(&self) -> Result<TypedBits> {
+        self.resize(self.kind.bits() + 1)
+    }
     pub fn unsigned_cast(&self, bits: usize) -> Result<TypedBits> {
         if bits > self.kind.bits() {
             return Ok(TypedBits {

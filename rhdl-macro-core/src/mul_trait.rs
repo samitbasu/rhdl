@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{spanned::Spanned, Data, LitInt};
+use syn::LitInt;
 
 pub fn impl_mul_trait(input: TokenStream) -> syn::Result<TokenStream> {
     let bits = syn::parse2::<LitInt>(input)?;

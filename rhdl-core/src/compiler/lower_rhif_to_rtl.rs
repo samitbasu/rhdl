@@ -123,6 +123,12 @@ impl<'a> RTLCompiler<'a> {
         self.associate(register, loc);
         register
     }
+    fn operand_bit_width(&self, operand: Operand) -> usize {
+        match operand {
+            Operand::Literal(literal_id) => self.literals[&literal_id].len(),
+            Operand::Register(register_id) => self.registers[&register_id].len(),
+        }
+    }
     fn raise_ice(&self, cause: ICE, loc: SourceLocation) -> RHDLError {
         rhdl_error(RHDLCompileError {
             cause,
@@ -823,7 +829,31 @@ impl<'a> RTLCompiler<'a> {
         }
         let lhs = self.operand(lhs, loc)?;
         let arg1 = self.operand(arg1, loc)?;
-        self.lop(tl::OpCode::Unary(tl::Unary { lhs, op, arg1 }), loc);
+        if op == hf::AluUnary::Pad {
+            let arg1_len = self.operand_bit_width(arg1);
+            self.lop(
+                tl::OpCode::Cast(tl::Cast {
+                    lhs,
+                    arg: arg1,
+                    len: arg1_len + 1,
+                    kind: CastKind::Resize,
+                }),
+                loc,
+            );
+        } else {
+            let op = match op {
+                hf::AluUnary::Pad => unreachable!(),
+                hf::AluUnary::Neg => tl::AluUnary::Neg,
+                hf::AluUnary::Not => tl::AluUnary::Not,
+                hf::AluUnary::All => tl::AluUnary::All,
+                hf::AluUnary::Any => tl::AluUnary::Any,
+                hf::AluUnary::Xor => tl::AluUnary::Xor,
+                hf::AluUnary::Signed => tl::AluUnary::Signed,
+                hf::AluUnary::Unsigned => tl::AluUnary::Unsigned,
+                hf::AluUnary::Val => tl::AluUnary::Val,
+            };
+            self.lop(tl::OpCode::Unary(tl::Unary { lhs, op, arg1 }), loc);
+        }
         Ok(())
     }
     fn translate(mut self) -> Result<Self> {

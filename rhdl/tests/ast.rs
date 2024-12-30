@@ -594,11 +594,29 @@ fn test_multiply() -> miette::Result<()> {
         let c = a * b;
         signal(c)
     }
-    env_logger::builder()
-        .is_test(true)
-        .filter_level(log::LevelFilter::Debug)
-        .init();
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_pair_b8_red())?;
+    Ok(())
+}
+
+#[test]
+fn test_generic_pad() -> miette::Result<()> {
+    fn padify<const N: usize>(a: Bits<N>) -> Bits<N>
+    where
+        Bits<N>: Pad,
+    {
+        a.pad().as_signed()
+    }
+}
+
+#[test]
+fn test_pad() -> miette::Result<()> {
+    #[kernel]
+    fn do_pad(a: Signal<b8, Red>) -> Signal<s9, Red> {
+        let a = a.val();
+        let b = a.pad().as_signed();
+        signal(b)
+    }
+    test_kernel_vm_and_verilog::<do_pad, _, _, _>(do_pad, tuple_exhaustive_red())?;
     Ok(())
 }
 

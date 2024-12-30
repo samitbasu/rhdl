@@ -196,6 +196,7 @@ pub enum AluUnary {
     Signed,
     Unsigned,
     Val,
+    Pad,
 }
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
