@@ -68,7 +68,7 @@ fn propagate_unary(
     let Unary { lhs, op, arg1 } = params;
     if let Operand::Literal(arg1) = arg1 {
         let arg_val: TypedBits = obj.literals[&arg1].clone().into();
-        let result: BitString = crate::rhif::runtime_ops::unary(op, arg_val)?.into();
+        let result: BitString = crate::rhif::runtime_ops::unary_rtl(op, arg_val)?.into();
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs,

@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::rhif::spec::{AluBinary, AluUnary};
+use crate::rhif::spec::AluBinary;
 
 #[derive(Clone, PartialEq, Hash)]
 pub enum OpCode {
@@ -115,6 +115,33 @@ pub struct Binary {
     pub lhs: Operand,
     pub arg1: Operand,
     pub arg2: Operand,
+}
+
+#[derive(Clone, Copy, PartialEq, Debug, Hash)]
+pub enum AluUnary {
+    Neg,
+    Not,
+    All,
+    Any,
+    Xor,
+    Signed,
+    Unsigned,
+    Val,
+}
+
+impl From<AluUnary> for crate::rhif::spec::AluUnary {
+    fn from(op: AluUnary) -> Self {
+        match op {
+            AluUnary::Neg => crate::rhif::spec::AluUnary::Neg,
+            AluUnary::Not => crate::rhif::spec::AluUnary::Not,
+            AluUnary::All => crate::rhif::spec::AluUnary::All,
+            AluUnary::Any => crate::rhif::spec::AluUnary::Any,
+            AluUnary::Xor => crate::rhif::spec::AluUnary::Xor,
+            AluUnary::Signed => crate::rhif::spec::AluUnary::Signed,
+            AluUnary::Unsigned => crate::rhif::spec::AluUnary::Unsigned,
+            AluUnary::Val => crate::rhif::spec::AluUnary::Val,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]

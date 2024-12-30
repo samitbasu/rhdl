@@ -1,8 +1,8 @@
 use crate::{
-    rhif::spec::{AluBinary, AluUnary},
+    rhif::spec::AluBinary,
     rtl::{
         object::LocatedOpCode,
-        spec::{Binary, OpCode, Operand, Unary},
+        spec::{AluUnary, Binary, OpCode, Operand, Unary},
         Object,
     },
     RHDLError,

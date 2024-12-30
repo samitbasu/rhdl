@@ -193,6 +193,7 @@ impl std::fmt::Debug for AluUnary {
             AluUnary::Signed => write!(f, "signed "),
             AluUnary::Unsigned => write!(f, "unsigned "),
             AluUnary::Val => write!(f, "val "),
+            AluUnary::Pad => write!(f, "pad "),
         }
     }
 }

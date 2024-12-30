@@ -4,10 +4,10 @@ use crate::{
     ast::source::source_location::SourceLocation,
     bitx::BitX,
     hdl::ast::{unsigned_width, SignedWidth},
-    rhif::spec::{AluBinary, AluUnary},
+    rhif::spec::AluBinary,
     rtl::{
         object::LocatedOpCode,
-        spec::{OpCode, Operand},
+        spec::{AluUnary, OpCode, Operand},
         Object,
     },
 };

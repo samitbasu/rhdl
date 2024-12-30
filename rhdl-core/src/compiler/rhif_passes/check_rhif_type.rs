@@ -41,6 +41,18 @@ fn approximate_dynamic_paths(path: &Path) -> Path {
         .collect()
 }
 
+fn pad_kind(obj: &Object, loc: SourceLocation, a: Kind) -> Result<Kind, RHDLError> {
+    match a {
+        Kind::Bits(a) => Ok(Kind::Bits(a + 1)),
+        Kind::Signed(a) => Ok(Kind::Signed(a + 1)),
+        _ => Err(TypeCheckPass::raise_ice(
+            obj,
+            ICE::InvalidPadKind { a },
+            loc,
+        )),
+    }
+}
+
 fn mul_kind(obj: &Object, loc: SourceLocation, a: Kind, b: Kind) -> Result<Kind, RHDLError> {
     match (a, b) {
         (Kind::Bits(a), Kind::Bits(b)) => Ok(Kind::Bits(a + b)),
@@ -158,6 +170,13 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 arg1: _,
             }) => {
                 eq_kinds(slot_type(lhs), Kind::make_bool(), loc)?;
+            }
+            OpCode::Unary(Unary {
+                op: AluUnary::Pad,
+                lhs,
+                arg1,
+            }) => {
+                eq_kinds(slot_type(lhs), pad_kind(obj, loc, slot_type(arg1))?, loc)?;
             }
             OpCode::Unary(Unary {
                 op: AluUnary::Signed,

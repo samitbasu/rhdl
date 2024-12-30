@@ -36,15 +36,17 @@ pub struct O<const N: usize> {
 }
 
 //  Where A = M + 1, B = N + M + 1
-#[kernel]
+//#[kernel]
 pub fn lerp_kernel<const N: usize, const M: usize, const A: usize>(
     _cr: ClockReset,
     i: I<N, M>,
 ) -> O<N>
 where
     SignedBits<A>: std::ops::Mul<SignedBits<N>, Output = SignedBits<M>>,
+    SignedBits<N>: Pad,
 {
     let a: SignedBits<N> = i.a.resize();
+    let ax = a.pad();
     let b: SignedBits<N> = i.b.resize();
     let delt = b - a;
     let _a = a << (A as u128);

@@ -7,11 +7,10 @@ use crate::{
         self, assign, concatenate, constant, declaration, dynamic_index, id, index, index_bit,
         input_reg, literal, repeat, unary, CaseItem, Function, HDLKind,
     },
-    rhif::spec::AluUnary,
     rtl::{
         self,
         object::LocatedOpCode,
-        spec::{CaseArgument, CastKind, Operand},
+        spec::{AluUnary, CaseArgument, CastKind, Operand},
     },
     RHDLError,
 };

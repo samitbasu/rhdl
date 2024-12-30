@@ -115,7 +115,13 @@ pub fn unary(op: AluUnary, arg1: TypedBits) -> Result<TypedBits, RHDLError> {
         AluUnary::Unsigned => arg1.as_unsigned(),
         AluUnary::Xor => Ok(arg1.xor()),
         AluUnary::Val => Ok(arg1.val()),
+        AluUnary::Pad => arg1.pad(),
     }
+}
+
+pub fn unary_rtl(op: crate::rtl::spec::AluUnary, arg1: TypedBits) -> Result<TypedBits, RHDLError> {
+    let op = op.into();
+    unary(op, arg1)
 }
 
 pub fn tuple(fields: &[TypedBits]) -> TypedBits {

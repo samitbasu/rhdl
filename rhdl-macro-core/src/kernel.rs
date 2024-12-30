@@ -840,6 +840,7 @@ impl Context {
             "as_unsigned",
             "val",
             "resize",
+            "pad",
         ]
         .contains(&method.to_string().as_str())
         {
