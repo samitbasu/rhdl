@@ -12,3 +12,4 @@ keywords = ["fpga", "hdl", "hardware", "binary", "bitvec"]
 derive_more = "0.99.17"
 seq-macro = "0.3.5"
 rhdl-macro = { path = "../rhdl-macro" }
+typenum = { version = "1.17.0", features = ["const-generics"] }

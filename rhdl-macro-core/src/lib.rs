@@ -17,10 +17,11 @@ mod synchronous_dq;
 pub use synchronous_dq::derive_synchronous_dq;
 mod clone;
 mod export;
+pub mod typenum_traits;
 pub use export::export_macro;
-pub mod mul_trait;
-pub use mul_trait::impl_mul_trait;
-pub mod pad_trait;
-pub use pad_trait::impl_pad_trait;
-
+pub use typenum_traits::impl_add_trait;
+pub use typenum_traits::impl_log2_trait;
+pub use typenum_traits::impl_max_trait;
+pub use typenum_traits::impl_min_trait;
+pub use typenum_traits::impl_sub_trait;
 mod partial_eq;
