@@ -5,6 +5,8 @@ use derive_more::{
     UpperHex,
 };
 use seq_macro::seq;
+use typenum::consts::*;
+use typenum::{IsLessOrEqual, NonZero, Unsigned, U128};
 
 /// The [Bits] type is a fixed-sized bit vector.  It is meant to
 /// imitate the behavior of bit vectors in hardware.  Due to the
@@ -33,23 +35,32 @@ use seq_macro::seq;
     PartialOrd,
     Ord,
     Hash,
-    BitAnd,
-    BitAndAssign,
-    BitOr,
-    BitOrAssign,
-    BitXor,
-    BitXorAssign,
+    /*     BitAnd,
+       BitAndAssign,
+       BitOr,
+       BitOrAssign,
+       BitXor,
+       BitXorAssign,
     Display,
     LowerHex,
     UpperHex,
     Binary,
+    */
 )]
-#[repr(transparent)]
-pub struct Bits<const N: usize>(pub u128);
+//pub struct Bits<const N: usize>(pub u128);
+pub struct Bits<Len>
+where
+    Len: Unsigned,
+    Len: NonZero,
+    Len: IsLessOrEqual<U128>,
+{
+    marker: std::marker::PhantomData<Len>,
+    val: u128,
+}
 
 seq!(N in 1..=128 {
     #(
-        pub type b~N = Bits<N>;
+        pub type b~N = Bits<U~N>;
         pub fn b~N(value: u128) -> b~N {
             b~N::from(value)
         }
