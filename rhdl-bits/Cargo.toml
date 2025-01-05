@@ -9,7 +9,5 @@ repository = "https://github.com/samitbasu/rhdl"
 keywords = ["fpga", "hdl", "hardware", "binary", "bitvec"]
 
 [dependencies]
-derive_more = "0.99.17"
 seq-macro = "0.3.5"
-rhdl-macro = { path = "../rhdl-macro" }
-typenum = { version = "1.17.0", features = ["const-generics"] }
+rhdl-typenum = { path = "../rhdl-typenum" }

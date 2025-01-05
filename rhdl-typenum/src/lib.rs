@@ -7,6 +7,10 @@ pub trait BitWidth {
     const BITS: usize;
 }
 
+// Re-export the typenum types so that users of this crate
+// don't have to import them separately.
+pub use typenum::{Diff, Log2, Max, Maximum, Minimum, Sum, Unsigned};
+
 // These are the type numbers that represent widths of the
 // unsigned and signed bit types in RHDL.  I didn't use the
 // underlying typenum::U types because they tend to make the
@@ -24,18 +28,12 @@ seq!(N in 1..=128 {
         impl BitWidth for W~N {
             const BITS: usize = N;
         }
-    )*
-});
 
-// Define the add trait for bit widths that do not exceed
-// the maximum width of 128 bits.
-seq!(N in 1..=128 {
-    #(
-    add_impl!(N);
-    sub_impl!(N);
-    max_impl!(N);
-    min_impl!(N);
-    log2_impl!(N);
+        add_impl!(N);
+        sub_impl!(N);
+        max_impl!(N);
+        min_impl!(N);
+        log2_impl!(N);
     )*
 });
 
