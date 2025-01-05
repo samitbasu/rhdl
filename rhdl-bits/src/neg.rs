@@ -1,16 +1,21 @@
 use crate::signed_bits_impl::SignedBits;
+use rhdl_typenum::BitWidth;
 use std::ops::Neg;
 
-impl<const N: usize> Neg for SignedBits<N> {
+impl<N: BitWidth> Neg for SignedBits<N> {
     type Output = Self;
     fn neg(self) -> Self::Output {
-        !self + 1
+        Self {
+            val: self.val.wrapping_neg(),
+            marker: std::marker::PhantomData,
+        }
     }
 }
 
 #[cfg(test)]
 mod test {
     use crate::signed_bits_impl::SignedBits;
+    use rhdl_typenum::W8;
 
     #[test]
     fn test_neg_wrapping() {
@@ -24,9 +29,9 @@ mod test {
         for i in i8::MIN..i8::MAX {
             let x = i;
             let y = x.wrapping_neg();
-            let x_signed = SignedBits::<8>::from(x as i128);
+            let x_signed = SignedBits::<W8>::from(x as i128);
             let y_signed = -x_signed;
-            assert_eq!(y_signed.0, y as i128);
+            assert_eq!(y_signed.val, y as i128);
         }
     }
 }

@@ -389,7 +389,7 @@ pub mod and;
 #[doc(hidden)]
 pub mod bits_impl;
 #[doc(hidden)]
-pub mod mul;
+//pub mod mul;
 #[doc(hidden)]
 pub mod neg;
 #[doc(hidden)]
@@ -397,15 +397,15 @@ pub mod not;
 #[doc(hidden)]
 pub mod or;
 #[doc(hidden)]
-pub mod pad;
+//pub mod pad;
 #[doc(hidden)]
-pub mod shl;
+//pub mod shl;
 #[doc(hidden)]
-pub mod shr;
+//pub mod shr;
 #[doc(hidden)]
 pub mod signed_bits_impl;
 #[doc(hidden)]
-pub mod sub;
+//pub mod sub;
 #[doc(hidden)]
 pub mod xor;
 
@@ -440,21 +440,23 @@ pub mod alias {
 
 pub use bits_impl::bits;
 pub use bits_impl::Bits;
-pub use pad::Pad;
+//pub use pad::Pad;
 pub use signed_bits_impl::signed;
 pub use signed_bits_impl::SignedBits;
 
 #[cfg(test)]
 mod test {
+    use rhdl_typenum::BitWidth;
+
     use super::alias::*;
     use super::*;
 
-    pub(crate) fn set_bit<const N: usize>(x: Bits<N>, i: usize, value: bool) -> Bits<N> {
+    pub(crate) fn set_bit<N: BitWidth>(x: Bits<N>, i: usize, value: bool) -> Bits<N> {
         let selector = 1_u128 << i;
         let x = if value {
-            x.0 | selector
+            x.val | selector
         } else {
-            x.0 & !selector
+            x.val & !selector
         };
         bits(x)
     }
@@ -464,7 +466,7 @@ mod test {
         use std::time::Instant;
         let mut a = b120::default();
         let mut b = b120::default();
-        let mut c = b120::default();
+        let mut c = b121::default();
         let start = Instant::now();
         for _k in 0..100 {
             for i in 0..120 {
