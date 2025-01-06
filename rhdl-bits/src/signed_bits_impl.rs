@@ -1,4 +1,6 @@
 #![allow(non_camel_case_types)]
+use std::i128;
+
 use crate::{bits, Bits};
 use rhdl_typenum::*;
 use seq_macro::seq;
@@ -79,7 +81,7 @@ impl<Len: BitWidth> std::cmp::Eq for SignedBits<Len> {}
 
 impl<Len: BitWidth> std::cmp::PartialOrd for SignedBits<Len> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.val.partial_cmp(&other.val)
+        Some(self.val.cmp(&other.val))
     }
 }
 
@@ -151,12 +153,9 @@ seq!(N in 1..=128 {
 /// const VALUE : SignedBits<8> = signed(0b1010_1010);
 /// assert_eq!(VALUE, -86);
 /// ```
-pub const fn signed<N: BitWidth>(value: i128) -> SignedBits<N> {
-    let val = if (value & (1 << (N::BITS - 1))) != 0 {
-        value | !(SignedBits::<N>::mask().val)
-    } else {
-        value
-    };
+pub const fn signed<N: BitWidth>(val: i128) -> SignedBits<N> {
+    assert!(val <= SignedBits::<N>::max_value());
+    assert!(val >= SignedBits::<N>::min_value());
     SignedBits {
         marker: std::marker::PhantomData,
         val,
@@ -169,32 +168,10 @@ pub struct signed<N: BitWidth> {
 
 impl<N: BitWidth> SignedBits<N> {
     /// Return a [SignedBits] value with all bits set to 1.
-    pub const MASK: Self = Self::mask();
     pub const ZERO: Self = Self {
         marker: std::marker::PhantomData,
         val: 0,
     };
-    /// Return a [SignedBits] value with all bits set to 1.
-    /// ```
-    /// # use rhdl_bits::SignedBits;
-    /// let mask = SignedBits::<8>::mask();
-    /// assert_eq!(mask.as_unsigned(), 0xFF);
-    /// ```
-    /// Note that for a [SignedBits] value, the mask is the same
-    /// as a representation of -1.
-    pub const fn mask() -> Self {
-        // Do not compute this as you will potentially
-        // cause overflow.
-        let val = if N::BITS < 128 {
-            (1 << N::BITS) - 1
-        } else {
-            -1
-        };
-        Self {
-            marker: std::marker::PhantomData,
-            val,
-        }
-    }
     /// Return the largest positive value that can be represented
     /// by this sized [SignedBits] value.
     /// ```
@@ -202,7 +179,9 @@ impl<N: BitWidth> SignedBits<N> {
     /// assert_eq!(SignedBits::<8>::max_value(), i8::MAX as i128);
     /// ```
     pub const fn max_value() -> i128 {
-        ((Self::mask().val as u128) >> 1) as i128
+        // The maximum value for an i128 is 0x7FF..FF
+        // Each bit less in the representation reduces this by 2x
+        i128::MAX >> (128 - N::BITS)
     }
     /// Return the smallest negative value that can be represented
     /// by this sized [SignedBits] value.
@@ -211,7 +190,7 @@ impl<N: BitWidth> SignedBits<N> {
     /// assert_eq!(SignedBits::<8>::min_value(), i8::MIN as i128);
     /// ```
     pub const fn min_value() -> i128 {
-        (-1) << (N::BITS - 1)
+        i128::MIN >> (128 - N::BITS)
     }
     /// Test if the value is negative.
     /// ```
@@ -258,27 +237,31 @@ impl<N: BitWidth> SignedBits<N> {
         self.as_unsigned().to_bools()
     }
     pub fn any(self) -> bool {
-        (self.val & Self::mask().val) != 0
+        self.val != 0
     }
     pub fn all(self) -> bool {
-        (self.val & Self::mask().val) == Self::mask().val
+        self.val == -1
     }
     pub fn xor(self) -> bool {
-        let mut x = self.val & Self::mask().val;
+        let mut x = self.val;
         x ^= x >> 1;
         x ^= x >> 2;
         x ^= x >> 4;
         x ^= x >> 8;
         x ^= x >> 16;
         x ^= x >> 32;
+        x ^= x >> 64;
         x & 1 == 1
     }
     pub const fn resize<M: BitWidth>(self) -> SignedBits<M> {
-        let mask = SignedBits::<M>::mask();
-        if M::BITS <= N::BITS {
-            return signed(self.val & mask.val);
+        if M::BITS > N::BITS {
+            SignedBits {
+                marker: std::marker::PhantomData,
+                val: self.val,
+            }
+        } else {
+            self.as_unsigned().resize::<M>().as_signed()
         }
-        signed(self.val)
     }
 }
 

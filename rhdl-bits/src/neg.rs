@@ -1,14 +1,15 @@
-use crate::signed_bits_impl::SignedBits;
-use rhdl_typenum::BitWidth;
-use std::ops::Neg;
+use crate::{signed, signed_bits_impl::SignedBits};
+use rhdl_typenum::*;
+use std::ops::{Add, Neg};
 
-impl<N: BitWidth> Neg for SignedBits<N> {
-    type Output = Self;
+impl<N> Neg for SignedBits<N>
+where
+    N: BitWidth + Add<W1>,
+    Sum<N, W1>: BitWidth,
+{
+    type Output = SignedBits<Sum<N, W1>>;
     fn neg(self) -> Self::Output {
-        Self {
-            val: self.val.wrapping_neg(),
-            marker: std::marker::PhantomData,
-        }
+        signed(-self.val)
     }
 }
 
@@ -28,7 +29,7 @@ mod test {
     fn test_neg_operator() {
         for i in i8::MIN..i8::MAX {
             let x = i;
-            let y = x.wrapping_neg();
+            let y = -(x as i16);
             let x_signed = SignedBits::<W8>::from(x as i128);
             let y_signed = -x_signed;
             assert_eq!(y_signed.val, y as i128);

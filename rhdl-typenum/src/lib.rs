@@ -3,13 +3,13 @@
 use rhdl_macro::{add_impl, log2_impl, max_impl, min_impl, sub_impl};
 use seq_macro::seq;
 
-pub trait BitWidth {
+pub trait BitWidth: Copy {
     const BITS: usize;
 }
 
 // Re-export the typenum types so that users of this crate
 // don't have to import them separately.
-pub use typenum::{Diff, Log2, Max, Maximum, Minimum, Sum, Unsigned};
+pub use typenum::{Diff, Log2, Logarithm2, Max, Maximum, Minimum, Sum, Unsigned};
 
 // These are the type numbers that represent widths of the
 // unsigned and signed bit types in RHDL.  I didn't use the
@@ -79,6 +79,8 @@ mod tests {
     fn test_log2_of_8() {
         type A = Log2<W8>;
         assert_eq!(A::BITS, 3);
+        type B = Log2<W9>;
+        assert_eq!(B::BITS, 4);
     }
 
     #[test]

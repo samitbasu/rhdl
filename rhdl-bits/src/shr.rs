@@ -1,66 +1,93 @@
 use std::ops::Shr;
 use std::ops::ShrAssign;
 
+use crate::bits;
 use crate::bits_impl::Bits;
+use crate::signed;
 use crate::signed_bits_impl::SignedBits;
+use rhdl_typenum::*;
 
-impl<const N: usize> Shr<u128> for Bits<N> {
+impl<N> Shr<u128> for Bits<N>
+where
+    N: BitWidth,
+{
     type Output = Self;
     fn shr(self, rhs: u128) -> Self::Output {
-        self >> Bits::<8>::from(rhs)
+        bits(self.val.wrapping_shr(rhs as u32) & Self::mask().val)
     }
 }
 
-impl<const N: usize> Shr<Bits<N>> for u128 {
+impl<N> Shr<Bits<N>> for u128
+where
+    N: BitWidth,
+{
     type Output = Bits<N>;
     fn shr(self, rhs: Bits<N>) -> Self::Output {
-        assert!(N <= 8, "Shift amount must be less than 8 bits");
-        Bits::<N>::from(self) >> rhs
+        bits(self.wrapping_shr(rhs.val as u32) & Bits::<N>::mask().val)
     }
 }
 
-impl<const M: usize, const N: usize> Shr<Bits<M>> for Bits<N> {
+impl<N> Shr<Bits<Log2<N>>> for Bits<N>
+where
+    N: BitWidth + Logarithm2,
+{
     type Output = Self;
-    fn shr(self, rhs: Bits<M>) -> Self::Output {
-        assert!(M <= 8, "Shift amount must be less than 8 bits");
-        Self(u128::wrapping_shr(self.0, rhs.0 as u32) & Self::mask().0)
+    fn shr(self, rhs: Bits<Log2<N>>) -> Self::Output {
+        bits(u128::wrapping_shr(self.val, rhs.val as u32) & Self::mask().val)
     }
 }
 
-impl<const M: usize, const N: usize> ShrAssign<Bits<M>> for Bits<N> {
-    fn shr_assign(&mut self, rhs: Bits<M>) {
+impl<N> ShrAssign<Bits<Log2<N>>> for Bits<N>
+where
+    N: BitWidth + Logarithm2,
+{
+    fn shr_assign(&mut self, rhs: Bits<Log2<N>>) {
         *self = *self >> rhs;
     }
 }
 
-impl<const N: usize> ShrAssign<u128> for Bits<N> {
+impl<N> ShrAssign<u128> for Bits<N>
+where
+    N: BitWidth,
+{
     fn shr_assign(&mut self, rhs: u128) {
         *self = *self >> rhs;
     }
 }
 
-impl<const M: usize, const N: usize> Shr<Bits<M>> for SignedBits<N> {
+impl<N> Shr<Bits<Log2<N>>> for SignedBits<N>
+where
+    N: BitWidth + Logarithm2,
+{
     type Output = Self;
-    fn shr(self, rhs: Bits<M>) -> Self::Output {
-        assert!(M <= 8, "Shift amount must be less than 8 bits");
-        Self(i128::wrapping_shr(self.0, rhs.0 as u32))
+    fn shr(self, rhs: Bits<Log2<N>>) -> Self::Output {
+        signed(i128::wrapping_shr(self.val, rhs.val as u32))
     }
 }
 
-impl<const N: usize> Shr<u128> for SignedBits<N> {
+impl<N> Shr<u128> for SignedBits<N>
+where
+    N: BitWidth,
+{
     type Output = Self;
     fn shr(self, rhs: u128) -> Self::Output {
-        self >> Bits::<8>::from(rhs)
+        signed(self.val.wrapping_shr(rhs as u32))
     }
 }
 
-impl<const M: usize, const N: usize> ShrAssign<Bits<M>> for SignedBits<N> {
-    fn shr_assign(&mut self, rhs: Bits<M>) {
+impl<N> ShrAssign<Bits<Log2<N>>> for SignedBits<N>
+where
+    N: BitWidth + Logarithm2,
+{
+    fn shr_assign(&mut self, rhs: Bits<Log2<N>>) {
         *self = *self >> rhs;
     }
 }
 
-impl<const N: usize> ShrAssign<u128> for SignedBits<N> {
+impl<N> ShrAssign<u128> for SignedBits<N>
+where
+    N: BitWidth,
+{
     fn shr_assign(&mut self, rhs: u128) {
         *self = *self >> rhs;
     }
@@ -72,21 +99,21 @@ mod test {
 
     #[test]
     fn test_shr_bits() {
-        let bits: Bits<8> = 0b1101_1010.into();
+        let bits: Bits<W8> = 0b1101_1010.into();
         let result = bits >> 4;
-        assert_eq!(result.0, 0b0000_1101_u128);
-        let bits: Bits<16> = 0b1101_1010_0000_0000.into();
+        assert_eq!(result.val, 0b0000_1101_u128);
+        let bits: Bits<W16> = 0b1101_1010_0000_0000.into();
         let result = bits >> 8;
-        assert_eq!(result.0, 0b0000_0000_1101_1010_u128);
-        let shift: Bits<8> = 8.into();
+        assert_eq!(result.val, 0b0000_0000_1101_1010_u128);
+        let shift: Bits<W4> = 8.into();
         let result = bits >> shift;
-        assert_eq!(result.0, 0b0000_0000_1101_1010_u128);
-        let bits: Bits<8> = 0b1101_1010.into();
+        assert_eq!(result.val, 0b0000_0000_1101_1010_u128);
+        let bits: Bits<W8> = 0b1101_1010.into();
         let result = bits >> 8;
-        assert_eq!(result.0, 0);
-        let shift: Bits<8> = 4.into();
+        assert_eq!(result.val, 0);
+        let shift: Bits<W8> = 4.into();
         let result = 0b1101_1010_0000 >> shift;
-        assert_eq!(result.0, 0b1101_1010u128);
+        assert_eq!(result.val, 0b1101_1010u128);
     }
 
     #[test]
@@ -101,19 +128,19 @@ mod test {
     #[test]
     fn test_shr_signed() {
         for i in i8::MIN..i8::MAX {
-            for shift in 0..10_u32 {
-                let bits: SignedBits<8> = (i as i128).into();
+            for shift in 0..8_u32 {
+                let bits: SignedBits<W8> = (i as i128).into();
                 let result = bits >> (shift as u128);
                 assert_eq!(
-                    result.0,
+                    result.val,
                     i128::wrapping_shr(i as i128, shift),
                     "i = {:b}, shift = {}",
                     i,
                     shift
                 );
-                let shift_as_bits: Bits<8> = (shift as u128).into();
+                let shift_as_bits: Bits<W3> = (shift as u128).into();
                 let result = bits >> shift_as_bits;
-                assert_eq!(result.0, i128::wrapping_shr(i as i128, shift));
+                assert_eq!(result.val, i128::wrapping_shr(i as i128, shift));
             }
         }
     }
