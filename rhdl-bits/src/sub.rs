@@ -2,7 +2,6 @@ use std::ops::Add;
 use std::ops::Sub;
 
 use rhdl_typenum::*;
-use seq_macro::seq;
 
 use crate::bits_impl::Bits;
 use crate::signed;
