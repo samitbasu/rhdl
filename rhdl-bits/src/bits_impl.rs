@@ -153,6 +153,7 @@ pub struct bits<N: BitWidth> {
 impl<N: BitWidth> Bits<N> {
     /// Defines a constant Bits value with all bits set to 1.
     pub const MASK: Self = Self::mask();
+    pub const MAX: Self = Self::mask();
     pub const ZERO: Self = Self {
         marker: std::marker::PhantomData,
         val: 0,

@@ -1,5 +1,4 @@
 #![allow(non_camel_case_types)]
-use std::i128;
 
 use crate::{bits, Bits};
 use rhdl_typenum::*;
@@ -130,7 +129,7 @@ impl<Len: BitWidth> std::ops::BitXorAssign for SignedBits<Len> {
     }
 }
 
-seq!(N in 1..=128 {
+seq!(N in 2..=128 {
     #(
         pub type s~N = SignedBits<W~N>;
         pub fn s~N(value: i128) -> s~N {
@@ -167,6 +166,14 @@ pub struct signed<N: BitWidth> {
 }
 
 impl<N: BitWidth> SignedBits<N> {
+    pub const MAX: Self = Self {
+        marker: std::marker::PhantomData,
+        val: Self::max_value(),
+    };
+    pub const MIN: Self = Self {
+        marker: std::marker::PhantomData,
+        val: Self::min_value(),
+    };
     /// Return a [SignedBits] value with all bits set to 1.
     pub const ZERO: Self = Self {
         marker: std::marker::PhantomData,
