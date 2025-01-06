@@ -81,24 +81,29 @@ where
 mod tests {
 
     use super::*;
+    use rhdl_bits::alias::*;
 
     #[test]
     fn test_stream_on_iterator() {
         let k = 0..10;
-        let s = k.stream();
+        let s = k.map(b8).stream();
         let v = s.collect::<Vec<_>>();
-        assert_eq!(v, (0..10).map(ResetOrData::Data).collect::<Vec<_>>());
+        assert_eq!(
+            v,
+            (0..10).map(b8).map(ResetOrData::Data).collect::<Vec<_>>()
+        );
     }
 
     #[test]
     fn test_stream_on_vector() {
         let k = vec![0, 1, 2, 3, 4];
-        let s = k.stream();
+        let s = k.into_iter().map(b8).stream();
         let v = s.collect::<Vec<_>>();
         assert_eq!(
             v,
             vec![0, 1, 2, 3, 4]
                 .into_iter()
+                .map(b8)
                 .map(ResetOrData::Data)
                 .collect::<Vec<_>>()
         );

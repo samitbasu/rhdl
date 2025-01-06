@@ -73,11 +73,12 @@ mod tests {
 
     use super::super::ext::ProbeExt;
     use crate::sim::{clock_pos_edge::ClockPosEdgeExt, stream::TimedStreamExt};
+    use rhdl_bits::alias::*;
 
     #[test]
     fn test_before_pos_edge() {
         let data = vec![0, 0, 1, 1, 3, 3, 2, 2, 0, 9];
-        let stream = data.iter().copied().stream().clock_pos_edge(100);
+        let stream = data.iter().copied().map(b8).stream().clock_pos_edge(100);
         let probe = stream.sample_at_pos_edge(|x| x.value.0.clock);
         let result: Vec<_> = probe.map(|t| t.value.1).collect();
         assert_eq!(result, data);

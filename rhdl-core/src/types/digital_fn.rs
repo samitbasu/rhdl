@@ -1,6 +1,7 @@
 #![allow(clippy::type_complexity)]
 
 pub use crate::{kernel::KernelFnKind, Digital, Kind};
+pub use rhdl_typenum::*;
 
 pub trait DigitalFn {
     fn kernel_fn() -> Option<KernelFnKind> {
@@ -165,26 +166,38 @@ where
     F::describe()
 }
 
-impl<const N: usize> DigitalFn for rhdl_bits::Bits<N> {
+impl<N> DigitalFn for rhdl_bits::Bits<N>
+where
+    N: BitWidth,
+{
     fn kernel_fn() -> Option<KernelFnKind> {
-        Some(KernelFnKind::BitConstructor(N))
+        Some(KernelFnKind::BitConstructor(N::BITS))
     }
 }
 
-impl<const N: usize> DigitalFn for rhdl_bits::SignedBits<N> {
+impl<N> DigitalFn for rhdl_bits::SignedBits<N>
+where
+    N: BitWidth,
+{
     fn kernel_fn() -> Option<KernelFnKind> {
-        Some(KernelFnKind::SignedBitsConstructor(N))
+        Some(KernelFnKind::SignedBitsConstructor(N::BITS))
     }
 }
 
-impl<const N: usize> DigitalFn for rhdl_bits::bits<N> {
+impl<N> DigitalFn for rhdl_bits::bits<N>
+where
+    N: BitWidth,
+{
     fn kernel_fn() -> Option<KernelFnKind> {
-        Some(KernelFnKind::BitConstructor(N))
+        Some(KernelFnKind::BitConstructor(N::BITS))
     }
 }
 
-impl<const N: usize> DigitalFn for rhdl_bits::signed<N> {
+impl<N> DigitalFn for rhdl_bits::signed<N>
+where
+    N: BitWidth,
+{
     fn kernel_fn() -> Option<KernelFnKind> {
-        Some(KernelFnKind::SignedBitsConstructor(N))
+        Some(KernelFnKind::SignedBitsConstructor(N::BITS))
     }
 }

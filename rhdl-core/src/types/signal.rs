@@ -2,12 +2,13 @@ use std::cmp::Ordering;
 
 use rhdl_bits::Bits;
 use rhdl_bits::SignedBits;
+use rhdl_typenum::*;
 
 use crate::bitx::BitX;
 use crate::{Digital, Domain, Kind, Timed};
 use rhdl_trace_type as rtt;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Signal<T: Digital, C: Domain> {
     val: T,
     domain: std::marker::PhantomData<C>,
@@ -54,7 +55,7 @@ impl<T: Digital, C: Domain> Digital for Signal<T, C> {
 
 /* macro_rules! impl_index {
     ($M: expr) => {
-        impl<T: Digital, C: Domain, const N: usize> std::ops::Index<Signal<Bits<N>, C>>
+        impl<T: Digital, C: Domain, N: BitWidth> std::ops::Index<Signal<Bits<N>, C>>
             for Signal<[T; $M], C>
         {
             type Output = T;
@@ -64,7 +65,7 @@ impl<T: Digital, C: Domain> Digital for Signal<T, C> {
             }
         }
 
-        impl<T: Digital, C: Domain, const N: usize> std::ops::IndexMut<Signal<Bits<N>, C>>
+        impl<T: Digital, C: Domain, N: BitWidth> std::ops::IndexMut<Signal<Bits<N>, C>>
             for Signal<[T; $M], C>
         {
             fn index_mut(&mut self, index: Signal<Bits<N>, C>) -> &mut Self::Output {
@@ -84,7 +85,7 @@ impl_index!(7);
 impl_index!(8);
 */
 
-impl<T: Digital, C: Domain, const M: usize, const N: usize> std::ops::Index<Signal<Bits<N>, C>>
+impl<T: Digital, C: Domain, N: BitWidth, const M: usize> std::ops::Index<Signal<Bits<N>, C>>
     for Signal<[T; M], C>
 {
     type Output = T;
@@ -94,7 +95,7 @@ impl<T: Digital, C: Domain, const M: usize, const N: usize> std::ops::Index<Sign
     }
 }
 
-impl<T: Digital, C: Domain, const M: usize, const N: usize> std::ops::IndexMut<Signal<Bits<N>, C>>
+impl<T: Digital, C: Domain, N: BitWidth, const M: usize> std::ops::IndexMut<Signal<Bits<N>, C>>
     for Signal<[T; M], C>
 {
     fn index_mut(&mut self, index: Signal<Bits<N>, C>) -> &mut Self::Output {
@@ -134,28 +135,28 @@ macro_rules! impl_cmpop {
         }
 
         // Case for Signal == literal (unsigned)
-        impl<const N: usize, C: Domain> std::cmp::$trait<u128> for Signal<Bits<N>, C> {
+        impl<N: BitWidth, C: Domain> std::cmp::$trait<u128> for Signal<Bits<N>, C> {
             fn $op(&self, rhs: &u128) -> $ret {
                 std::cmp::$trait::$op(&self.val, rhs)
             }
         }
 
         // Case for Signal == literal (signed)
-        impl<const N: usize, C: Domain> std::cmp::$trait<i128> for Signal<SignedBits<N>, C> {
+        impl<N: BitWidth, C: Domain> std::cmp::$trait<i128> for Signal<SignedBits<N>, C> {
             fn $op(&self, rhs: &i128) -> $ret {
                 std::cmp::$trait::$op(&self.val, rhs)
             }
         }
 
         // Case for literal == Signal (unsigned)
-        impl<const N: usize, C: Domain> std::cmp::$trait<Signal<Bits<N>, C>> for u128 {
+        impl<N: BitWidth, C: Domain> std::cmp::$trait<Signal<Bits<N>, C>> for u128 {
             fn $op(&self, rhs: &Signal<Bits<N>, C>) -> $ret {
                 std::cmp::$trait::$op(self, &rhs.val)
             }
         }
 
         // Case for literal == Signal (signed)
-        impl<const N: usize, C: Domain> std::cmp::$trait<Signal<SignedBits<N>, C>> for i128 {
+        impl<N: BitWidth, C: Domain> std::cmp::$trait<Signal<SignedBits<N>, C>> for i128 {
             fn $op(&self, rhs: &Signal<SignedBits<N>, C>) -> $ret {
                 std::cmp::$trait::$op(self, &rhs.val)
             }
@@ -169,16 +170,14 @@ macro_rules! impl_cmpop {
         }
 
         // Case for constant == Sig
-        impl<const N: usize, C: Domain> std::cmp::$trait<Signal<Bits<N>, C>> for Bits<N> {
+        impl<N: BitWidth, C: Domain> std::cmp::$trait<Signal<Bits<N>, C>> for Bits<N> {
             fn $op(&self, rhs: &Signal<Bits<N>, C>) -> $ret {
                 std::cmp::$trait::$op(self, &rhs.val)
             }
         }
 
         // Case for signed == Sig
-        impl<const N: usize, C: Domain> std::cmp::$trait<Signal<SignedBits<N>, C>>
-            for SignedBits<N>
-        {
+        impl<N: BitWidth, C: Domain> std::cmp::$trait<Signal<SignedBits<N>, C>> for SignedBits<N> {
             fn $op(&self, rhs: &Signal<SignedBits<N>, C>) -> $ret {
                 std::cmp::$trait::$op(self, &rhs.val)
             }
@@ -203,7 +202,7 @@ macro_rules! impl_shiftop {
         }
 
         // Case for Signal << literal
-        impl<const N: usize, C: Domain> std::ops::$trait<u128> for Signal<Bits<N>, C> {
+        impl<N: BitWidth, C: Domain> std::ops::$trait<u128> for Signal<Bits<N>, C> {
             type Output = Signal<Bits<N>, C>;
 
             fn $op(self, rhs: u128) -> Self::Output {
@@ -229,10 +228,14 @@ macro_rules! impl_shiftop {
         }
 
         // Case for constant << Sig
-        impl<const N: usize, C: Domain> std::ops::$trait<Signal<Bits<N>, C>> for Bits<N> {
+        impl<N, C: Domain> std::ops::$trait<Signal<Bits<Log2<N>>, C>> for Bits<N>
+        where
+            N: BitWidth + Logarithm2,
+            Log2<N>: BitWidth,
+        {
             type Output = Signal<Bits<N>, C>;
 
-            fn $op(self, rhs: Signal<Bits<N>, C>) -> Self::Output {
+            fn $op(self, rhs: Signal<Bits<Log2<N>>, C>) -> Self::Output {
                 Signal {
                     val: std::ops::$trait::$op(self, rhs.val),
                     domain: std::marker::PhantomData,
@@ -241,10 +244,14 @@ macro_rules! impl_shiftop {
         }
 
         // Case for signed << Sig
-        impl<const N: usize, C: Domain> std::ops::$trait<Signal<Bits<N>, C>> for SignedBits<N> {
+        impl<N, C: Domain> std::ops::$trait<Signal<Bits<Log2<N>>, C>> for SignedBits<N>
+        where
+            N: BitWidth + Logarithm2,
+            Log2<N>: BitWidth,
+        {
             type Output = Signal<SignedBits<N>, C>;
 
-            fn $op(self, rhs: Signal<Bits<N>, C>) -> Self::Output {
+            fn $op(self, rhs: Signal<Bits<Log2<N>>, C>) -> Self::Output {
                 Signal {
                     val: std::ops::$trait::$op(self, rhs.val),
                     domain: std::marker::PhantomData,
@@ -271,7 +278,7 @@ macro_rules! impl_binop {
         }
 
         // Case for Signal + literal
-        impl<const N: usize, C: Domain> std::ops::$trait<u128> for Signal<Bits<N>, C> {
+        impl<N: BitWidth, C: Domain> std::ops::$trait<u128> for Signal<Bits<N>, C> {
             type Output = Signal<Bits<N>, C>;
 
             fn $op(self, rhs: u128) -> Self::Output {
@@ -283,7 +290,7 @@ macro_rules! impl_binop {
         }
 
         // Case for Signal + literal (signed)
-        impl<const N: usize, C: Domain> std::ops::$trait<i128> for Signal<SignedBits<N>, C> {
+        impl<N: BitWidth, C: Domain> std::ops::$trait<i128> for Signal<SignedBits<N>, C> {
             type Output = Signal<SignedBits<N>, C>;
 
             fn $op(self, rhs: i128) -> Self::Output {
@@ -295,7 +302,7 @@ macro_rules! impl_binop {
         }
 
         // Case for literal + Signal (unsigned)
-        impl<const N: usize, C: Domain> std::ops::$trait<Signal<Bits<N>, C>> for u128 {
+        impl<N: BitWidth, C: Domain> std::ops::$trait<Signal<Bits<N>, C>> for u128 {
             type Output = Signal<Bits<N>, C>;
 
             fn $op(self, rhs: Signal<Bits<N>, C>) -> Self::Output {
@@ -307,7 +314,7 @@ macro_rules! impl_binop {
         }
 
         // Case for literal + Signal (signed)
-        impl<const N: usize, C: Domain> std::ops::$trait<Signal<SignedBits<N>, C>> for i128 {
+        impl<N: BitWidth, C: Domain> std::ops::$trait<Signal<SignedBits<N>, C>> for i128 {
             type Output = Signal<SignedBits<N>, C>;
 
             fn $op(self, rhs: Signal<SignedBits<N>, C>) -> Self::Output {
@@ -333,7 +340,7 @@ macro_rules! impl_binop {
         }
 
         // Case for constant + Sig
-        impl<const N: usize, C: Domain> std::ops::$trait<Signal<Bits<N>, C>> for Bits<N> {
+        impl<N: BitWidth, C: Domain> std::ops::$trait<Signal<Bits<N>, C>> for Bits<N> {
             type Output = Signal<Bits<N>, C>;
 
             fn $op(self, rhs: Signal<Bits<N>, C>) -> Self::Output {
@@ -344,9 +351,7 @@ macro_rules! impl_binop {
             }
         }
 
-        impl<const N: usize, C: Domain> std::ops::$trait<Signal<SignedBits<N>, C>>
-            for SignedBits<N>
-        {
+        impl<N: BitWidth, C: Domain> std::ops::$trait<Signal<SignedBits<N>, C>> for SignedBits<N> {
             type Output = Signal<SignedBits<N>, C>;
 
             fn $op(self, rhs: Signal<SignedBits<N>, C>) -> Self::Output {
@@ -381,7 +386,7 @@ impl<T: Digital + std::ops::Neg<Output = T>, C: Domain> std::ops::Neg for Signal
     }
 }
 
-impl<T: Digital, const M: usize, const N: usize, C: Domain> std::ops::Index<Signal<Bits<N>, C>>
+impl<T: Digital, const M: usize, N: BitWidth, C: Domain> std::ops::Index<Signal<Bits<N>, C>>
     for [T; M]
 where
     [T; M]: Digital,
@@ -393,7 +398,7 @@ where
     }
 }
 
-impl<T: Digital, const M: usize, const N: usize, C: Domain> std::ops::Index<Bits<N>>
+impl<T: Digital, const M: usize, N: BitWidth, C: Domain> std::ops::Index<Bits<N>>
     for Signal<[T; M], C>
 where
     [T; M]: Digital,
@@ -405,6 +410,7 @@ where
     }
 }
 
+/*
 impl_binop!(Add, add);
 impl_binop!(Sub, sub);
 impl_binop!(BitAnd, bitand);
@@ -421,3 +427,4 @@ impl_shift_assign_op!(ShlAssign, shl_assign);
 impl_shift_assign_op!(ShrAssign, shr_assign);
 impl_cmpop!(PartialEq, eq, bool);
 impl_cmpop!(PartialOrd, partial_cmp, Option<Ordering>);
+*/
