@@ -248,6 +248,7 @@ impl Digital for bool {
         Self::default()
     }
 }
+/*
 
 impl Digital for u64 {
     const BITS: usize = 64;
@@ -400,7 +401,7 @@ impl Digital for i64 {
         Self::default()
     }
 }
-
+*/
 impl<const N: usize> Digital for Bits<N> {
     const BITS: usize = N;
     fn static_kind() -> Kind {

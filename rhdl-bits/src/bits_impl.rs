@@ -164,16 +164,9 @@ impl<N: BitWidth> Bits<N> {
     /// assert_eq!(bits, 0xFF);
     /// ```
     pub const fn mask() -> Self {
-        // Do not compute this as you will potentially
-        // cause overflow.
-        let val = if N::BITS < 128 {
-            (1 << N::BITS) - 1
-        } else {
-            u128::MAX
-        };
         Self {
             marker: std::marker::PhantomData,
-            val,
+            val: u128::MAX >> (128 - N::BITS),
         }
     }
     pub const fn resize<M: BitWidth>(self) -> Bits<M> {
@@ -218,6 +211,7 @@ impl<N: BitWidth> Bits<N> {
         x ^= x >> 8;
         x ^= x >> 16;
         x ^= x >> 32;
+        x ^= x >> 64;
         x & 1 == 1
     }
 }
@@ -319,7 +313,7 @@ mod tests {
         let bits: Bits<W8> = 0b1101_1010.into();
         let new_bits: Bits<W8> = bits.resize();
         assert_eq!(new_bits, 0b1101_1010);
-        let new_bits = bits.resize::<W14>();
+        let new_bits = bits.resize::<W4>();
         assert_eq!(new_bits, 0b1010);
         let new_bits = bits.resize::<W16>();
         assert_eq!(new_bits, 0b0000_0000_1101_1010);

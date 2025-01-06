@@ -401,11 +401,11 @@ pub mod or;
 #[doc(hidden)]
 //pub mod shl;
 #[doc(hidden)]
-//pub mod shr;
+pub mod shr;
 #[doc(hidden)]
 pub mod signed_bits_impl;
 #[doc(hidden)]
-//pub mod sub;
+pub mod sub;
 #[doc(hidden)]
 pub mod xor;
 
@@ -473,7 +473,7 @@ mod test {
                 for j in 0..120 {
                     a = set_bit(a, i, true);
                     b = set_bit(b, j, true);
-                    c += a + b;
+                    c = (c + a + b).resize();
                     a = set_bit(a, i, false);
                     b = set_bit(b, j, false);
                 }
