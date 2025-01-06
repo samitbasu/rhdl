@@ -21,10 +21,16 @@ use seq_macro::seq;
 /// Note also that the [Bits] kind is treated as an unsigned value for
 /// the purposes of comparisons.  If you need signed comparisons, you
 /// will need the [SignedBits] type.
-#[derive(Clone, Debug, Copy)]
+#[derive(Clone, Copy)]
 pub struct Bits<Len> {
     pub(crate) marker: std::marker::PhantomData<Len>,
     pub(crate) val: u128,
+}
+
+impl<Len: BitWidth> std::fmt::Debug for Bits<Len> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}_b{}", self.val, Len::BITS)
+    }
 }
 
 impl<Len: BitWidth> std::fmt::Display for Bits<Len> {

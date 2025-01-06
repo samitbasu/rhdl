@@ -1290,8 +1290,8 @@ mod test {
     #[test]
     fn test_result_recognized() {
         use crate::Digital;
-        use rhdl_bits::alias::b4;
-        let a = std::result::Result::<u8, u8>::Ok(42).typed_bits();
+        use rhdl_bits::alias::*;
+        let a = std::result::Result::<b8, b8>::Ok(b8(42)).typed_bits();
         assert!(a.kind.is_result());
         let b = std::result::Result::<b4, ()>::Err(()).typed_bits();
         assert!(b.kind.is_result());

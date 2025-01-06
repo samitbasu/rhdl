@@ -160,26 +160,27 @@ where
 mod tests {
 
     use super::*;
+    use rhdl_bits::alias::*;
 
-    fn expected() -> Vec<TimedSample<(ClockReset, u64)>> {
+    fn expected() -> Vec<TimedSample<(ClockReset, b8)>> {
         vec![
-            timed_sample(0, (clock_reset(clock(false), reset(false)), 0)),
-            timed_sample(5, (clock_reset(clock(true), reset(false)), 0)),
-            timed_sample(6, (clock_reset(clock(true), reset(false)), 1)),
-            timed_sample(10, (clock_reset(clock(false), reset(false)), 1)),
-            timed_sample(15, (clock_reset(clock(true), reset(false)), 1)),
-            timed_sample(16, (clock_reset(clock(true), reset(false)), 2)),
-            timed_sample(20, (clock_reset(clock(false), reset(false)), 2)),
-            timed_sample(25, (clock_reset(clock(true), reset(false)), 2)),
-            timed_sample(26, (clock_reset(clock(true), reset(false)), 3)),
-            timed_sample(30, (clock_reset(clock(false), reset(false)), 3)),
-            timed_sample(35, (clock_reset(clock(true), reset(false)), 3)),
+            timed_sample(0, (clock_reset(clock(false), reset(false)), b8(0))),
+            timed_sample(5, (clock_reset(clock(true), reset(false)), b8(0))),
+            timed_sample(6, (clock_reset(clock(true), reset(false)), b8(1))),
+            timed_sample(10, (clock_reset(clock(false), reset(false)), b8(1))),
+            timed_sample(15, (clock_reset(clock(true), reset(false)), b8(1))),
+            timed_sample(16, (clock_reset(clock(true), reset(false)), b8(2))),
+            timed_sample(20, (clock_reset(clock(false), reset(false)), b8(2))),
+            timed_sample(25, (clock_reset(clock(true), reset(false)), b8(2))),
+            timed_sample(26, (clock_reset(clock(true), reset(false)), b8(3))),
+            timed_sample(30, (clock_reset(clock(false), reset(false)), b8(3))),
+            timed_sample(35, (clock_reset(clock(true), reset(false)), b8(3))),
         ]
     }
 
     #[test]
     fn test_clock_pos_edge_on_iterator() {
-        let k = (0..4).map(ResetOrData::Data).clock_pos_edge(10);
+        let k = (0..4).map(b8).map(ResetOrData::Data).clock_pos_edge(10);
         let v = k.collect::<Vec<_>>();
         assert_eq!(v, expected());
     }
@@ -188,6 +189,7 @@ mod tests {
     fn test_clock_pos_edge_on_vector() {
         let k = vec![0, 1, 2, 3]
             .into_iter()
+            .map(b8)
             .map(ResetOrData::Data)
             .clock_pos_edge(10);
         let v = k.collect::<Vec<_>>();

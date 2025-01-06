@@ -403,6 +403,7 @@ pub fn trace(key: impl TraceKey, value: &impl Digital) {
 mod tests {
     use std::iter::repeat;
 
+    use rhdl_bits::alias::*;
     use rhdl_bits::Bits;
 
     use crate::{
@@ -435,11 +436,11 @@ mod tests {
             #[default]
             None,
             Bool(bool),
-            Tuple(bool, Bits<3>),
+            Tuple(bool, b3),
             Array([bool; 3]),
             Strct {
                 a: bool,
-                b: Bits<3>,
+                b: b3,
             },
         }
 
@@ -493,27 +494,27 @@ mod tests {
             }
             fn bin(self) -> Vec<BitX> {
                 let raw = match self {
-                    Self::None => bitx_vec(&rhdl_bits::bits::<3>(0).to_bools()),
+                    Self::None => bitx_vec(&b3(0).to_bools()),
                     Self::Bool(b) => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(1).to_bools());
+                        let mut v = bitx_vec(&b3(1).to_bools());
                         v.extend(b.bin());
                         v
                     }
                     Self::Tuple(b, c) => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(2).to_bools());
+                        let mut v = bitx_vec(&b3(2).to_bools());
                         v.extend(b.bin());
                         v.extend(c.bin());
                         v
                     }
                     Self::Array([b, c, d]) => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(3).to_bools());
+                        let mut v = bitx_vec(&b3(3).to_bools());
                         v.extend(b.bin());
                         v.extend(c.bin());
                         v.extend(d.bin());
                         v
                     }
                     Self::Strct { a, b } => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(4).to_bools());
+                        let mut v = bitx_vec(&b3(4).to_bools());
                         v.extend(a.bin());
                         v.extend(b.bin());
                         v
@@ -569,7 +570,7 @@ mod tests {
             trace_push_path("fn2");
             trace("a", &true);
             trace_pop_path();
-            trace("a", &rhdl_bits::bits::<6>(i as u128));
+            trace("a", &b6(i as u128));
             trace_pop_path();
         }
         let mut vcd = vec![];

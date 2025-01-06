@@ -69,11 +69,12 @@ mod tests {
 
     use super::super::ext::SynchronousProbeExt;
     use crate::sim::{clock_pos_edge::ClockPosEdgeExt, stream::TimedStreamExt};
+    use rhdl_bits::alias::*;
 
     #[test]
     fn test_before_pos_edge() {
-        let data: Vec<i32> = vec![0, 0, 1, 1, 3, 3, 2, 2, 0, 9];
-        let stream = data.iter().copied().stream().clock_pos_edge(100);
+        let data: Vec<_> = vec![0, 0, 1, 1, 3, 3, 2, 2, 0, 9];
+        let stream = data.iter().copied().map(b8).stream().clock_pos_edge(100);
         let output = stream.map(|t| t.map(|v| (v.0, v.1, v.1)));
         let probe = output.synchronous_sample();
         let result: Vec<_> = probe.map(|t| t.value.1).collect();

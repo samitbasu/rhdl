@@ -1,3 +1,5 @@
+use rhdl_bits::alias::b8;
+
 use crate::{
     rhif::spec::AluBinary,
     rtl::{
@@ -28,7 +30,7 @@ impl Pass for LowerMultiplyToShift {
                         let trailing_zeros = literal.trailing_zeros();
                         if num_ones == 1 {
                             let literal_bits = clog2(trailing_zeros);
-                            let literal_bs: BitString = (trailing_zeros as u8)
+                            let literal_bs: BitString = b8(trailing_zeros as u128)
                                 .typed_bits()
                                 .unsigned_cast(literal_bits)
                                 .unwrap()

@@ -1,18 +1,19 @@
 use rhdl_bits::Bits;
+use rhdl_typenum::*;
 
 use crate::{bitx::BitX, trace::bit::TraceBit, Digital, Kind};
 
 use super::kind::Field;
 
 #[derive(Debug, Clone, PartialEq, Copy, Default)]
-pub struct BitZ<const N: usize> {
+pub struct BitZ<N: BitWidth> {
     pub value: Bits<N>,
     pub mask: Bits<N>,
 }
 
-impl<const N: usize> Digital for BitZ<N> {
-    const BITS: usize = 2 * N;
-    const TRACE_BITS: usize = N;
+impl<N: BitWidth> Digital for BitZ<N> {
+    const BITS: usize = 2 * N::BITS;
+    const TRACE_BITS: usize = N::BITS;
     fn static_kind() -> Kind {
         Kind::make_struct(
             "BitZ",

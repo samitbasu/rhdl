@@ -852,8 +852,8 @@ fn write_tuple(tuple: &Tuple, bits: &[BitX], f: &mut std::fmt::Formatter<'_>) ->
 
 #[cfg(test)]
 mod tests {
-    use rand::thread_rng;
     use rhdl_bits::{alias::*, bits};
+    use rhdl_typenum::*;
 
     use crate::{
         bitx::{bitx_vec, BitX},
@@ -862,14 +862,14 @@ mod tests {
 
     #[test]
     fn test_typed_bits_add() {
-        let a = 42_u8.typed_bits();
-        let b = 196_u8.typed_bits();
+        let a = b8(42).typed_bits();
+        let b = b8(196).typed_bits();
         assert!(a < b);
         assert!(a <= b);
         assert!(b > a);
         assert!(b >= a);
         let c = (a + b).unwrap();
-        assert_eq!(c, 238_u8.typed_bits());
+        assert_eq!(c, b8(238).typed_bits());
     }
 
     #[test]
@@ -880,7 +880,7 @@ mod tests {
         enum Baz {
             A(Bar),
             B { foo: Foo },
-            C(u8),
+            C(b8),
         }
 
         impl Default for Baz {
@@ -913,7 +913,7 @@ mod tests {
                         ),
                         Kind::make_variant(
                             stringify!(C),
-                            Kind::make_tuple(vec![<u8 as Digital>::static_kind()]),
+                            Kind::make_tuple(vec![<b8 as Digital>::static_kind()]),
                             2i64,
                         ),
                     ],
@@ -930,17 +930,17 @@ mod tests {
             fn bin(self) -> Vec<BitX> {
                 self.kind().pad(match self {
                     Self::A(_0) => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<2usize>(0i64 as u128).to_bools());
+                        let mut v = bitx_vec(&rhdl_bits::bits::<W2>(0i64 as u128).to_bools());
                         v.extend(_0.bin());
                         v
                     }
                     Self::B { foo } => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<2usize>(1i64 as u128).to_bools());
+                        let mut v = bitx_vec(&rhdl_bits::bits::<W2>(1i64 as u128).to_bools());
                         v.extend(foo.bin());
                         v
                     }
                     Self::C(_0) => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<2usize>(2i64 as u128).to_bools());
+                        let mut v = bitx_vec(&rhdl_bits::bits::<W2>(2i64 as u128).to_bools());
                         v.extend(_0.bin());
                         v
                     }
@@ -948,9 +948,9 @@ mod tests {
             }
             fn discriminant(self) -> TypedBits {
                 match self {
-                    Self::A(_0) => rhdl_bits::bits::<2usize>(0i64 as u128).typed_bits(),
-                    Self::B { foo: _ } => rhdl_bits::bits::<2usize>(1i64 as u128).typed_bits(),
-                    Self::C(_0) => rhdl_bits::bits::<2usize>(2i64 as u128).typed_bits(),
+                    Self::A(_0) => rhdl_bits::bits::<W2>(0i64 as u128).typed_bits(),
+                    Self::B { foo: _ } => rhdl_bits::bits::<W2>(1i64 as u128).typed_bits(),
+                    Self::C(_0) => rhdl_bits::bits::<W2>(2i64 as u128).typed_bits(),
                 }
             }
             fn variant_kind(self) -> Kind {
@@ -963,7 +963,7 @@ mod tests {
                             <Foo as Digital>::static_kind(),
                         )],
                     ),
-                    Self::C(_0) => Kind::make_tuple(vec![<u8 as Digital>::static_kind()]),
+                    Self::C(_0) => Kind::make_tuple(vec![<b8 as Digital>::static_kind()]),
                 }
             }
             fn dont_care() -> Self {
@@ -973,14 +973,14 @@ mod tests {
                     1 => Self::B {
                         foo: Default::default(),
                     },
-                    2 => Self::C(thread_rng().gen()),
+                    2 => Self::C(<b8 as Digital>::dont_care()),
                     _ => unreachable!(),
                 }
             }
         }
 
         #[derive(Debug, Clone, PartialEq, Copy, Default)]
-        struct Bar(u8, u8, bool);
+        struct Bar(b8, b8, bool);
 
         impl Digital for Bar {
             const BITS: usize = 17;
@@ -1001,19 +1001,18 @@ mod tests {
                 [self.0.bin(), self.1.bin(), self.2.bin()].concat()
             }
             fn dont_care() -> Self {
-                use rand::Rng;
                 Self(
-                    rand::thread_rng().gen(),
-                    rand::thread_rng().gen(),
-                    rand::thread_rng().gen(),
+                    <b8 as Digital>::dont_care(),
+                    <b8 as Digital>::dont_care(),
+                    <bool as Digital>::dont_care(),
                 )
             }
         }
 
         #[derive(Debug, Clone, PartialEq, Copy, Default)]
         struct Foo {
-            a: u8,
-            b: u8,
+            a: b8,
+            b: b8,
             c: bool,
         }
 
@@ -1036,11 +1035,10 @@ mod tests {
                 [self.a.bin(), self.b.bin(), self.c.bin()].concat()
             }
             fn dont_care() -> Self {
-                use rand::Rng;
                 Self {
-                    a: rand::thread_rng().gen(),
-                    b: rand::thread_rng().gen(),
-                    c: rand::thread_rng().gen(),
+                    a: <b8 as Digital>::dont_care(),
+                    b: <b8 as Digital>::dont_care(),
+                    c: <bool as Digital>::dont_care(),
                 }
             }
         }
@@ -1049,42 +1047,37 @@ mod tests {
         assert_eq!(Foo::BITS, Foo::static_kind().bits());
         assert_eq!(Bar::BITS, Bar::static_kind().bits());
 
-        let a = 0x47_u8.typed_bits();
+        let a = b8(0x47).typed_bits();
         assert_eq!(format!("{:?}", a), "47_b8");
-        let c = (0x12_u8, 0x80_u8, false).typed_bits();
+        let c = (b8(0x12), b8(0x80), false).typed_bits();
         assert_eq!(format!("{:?}", c), "(12_b8, 80_b8, false)");
-        let b = (-0x53_i32).typed_bits();
+        let b = (s32(-0x53)).typed_bits();
         assert_eq!(format!("{:?}", b), "-83_s32");
-        let d = [1_u8, 3_u8, 4_u8].typed_bits();
+        let d = [b8(1), b8(3), b8(4)].typed_bits();
         assert_eq!(format!("{:?}", d), "[1_b8, 3_b8, 4_b8]");
         let e = Foo {
-            a: 0x47,
-            b: 0x80,
+            a: b8(0x47),
+            b: b8(0x80),
             c: true,
         }
         .typed_bits();
         assert_eq!(format!("{:?}", e), "Foo {a: 47_b8, b: 80_b8, c: true}");
-        let e = Bar(0x47, 0x80, true).typed_bits();
+        let e = Bar(b8(0x47), b8(0x80), true).typed_bits();
         assert_eq!(format!("{:?}", e), "Bar {0: 47_b8, 1: 80_b8, 2: true}");
-        let d = [Bar(0x47, 0x80, true), Bar(0x42, 0x13, false)].typed_bits();
+        let d = [
+            Bar(b8(0x47), b8(0x80), true),
+            Bar(b8(0x42), b8(0x13), false),
+        ]
+        .typed_bits();
         assert_eq!(
             format!("{:?}", d),
             "[Bar {0: 47_b8, 1: 80_b8, 2: true}, Bar {0: 42_b8, 1: 13_b8, 2: false}]"
         );
-        let h = Baz::A(Bar(0x47, 0x80, true)).typed_bits();
+        let h = Baz::A(Bar(b8(0x47), b8(0x80), true)).typed_bits();
         assert_eq!(
             format!("{:?}", h),
             "rhdl_core::types::typed_bits::tests::Baz::A(Bar {0: 47_b8, 1: 80_b8, 2: true})"
         );
-    }
-
-    #[test]
-    fn test_add_signals() {
-        let a = 42_u8.typed_bits().with_clock(crate::Color::Red);
-        let b = 196_u8.typed_bits().with_clock(crate::Color::Red);
-        let c = (a + b).unwrap();
-        assert_eq!(c.kind, Kind::make_signal(Kind::Bits(8), crate::Color::Red));
-        assert_eq!(c.bits, 238_u8.typed_bits().bits);
     }
 
     #[test]

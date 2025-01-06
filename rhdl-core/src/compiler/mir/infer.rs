@@ -1,4 +1,5 @@
 use log::{debug, trace};
+use rhdl_bits::alias::{b128, s128};
 use std::collections::BTreeMap;
 
 use crate::{
@@ -144,7 +145,7 @@ impl<'a> MirTypeInference<'a> {
                     } else {
                         x.parse::<u128>()?
                     };
-                    x_as_u128.typed_bits().unsigned_cast(kind.bits())?
+                    b128(x_as_u128).typed_bits().unsigned_cast(kind.bits())?
                 } else {
                     let x_as_i128 = if let Some(x) = x.strip_prefix("0b") {
                         i128::from_str_radix(x, 2)?
@@ -155,7 +156,7 @@ impl<'a> MirTypeInference<'a> {
                     } else {
                         x.parse::<i128>()?
                     };
-                    x_as_i128.typed_bits().signed_cast(kind.bits())?
+                    s128(x_as_i128).typed_bits().signed_cast(kind.bits())?
                 }
             }
             ExprLit::Bool(b) => b.typed_bits(),
