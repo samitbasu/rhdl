@@ -1,11 +1,7 @@
-use std::cmp::Ordering;
-
 use rhdl_bits::Bits;
-use rhdl_bits::SignedBits;
 use rhdl_typenum::*;
 
-use crate::bitx::BitX;
-use crate::{Digital, Domain, Kind, Timed};
+use crate::{BitX, Digital, Domain, Kind, Timed};
 use rhdl_trace_type as rtt;
 
 #[derive(Clone, Copy, Debug, PartialEq)]

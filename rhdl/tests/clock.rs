@@ -7,6 +7,7 @@
 
 use rhdl::prelude::*;
 
+use rhdl_core::types::signal;
 use CompilationMode::Asynchronous;
 
 #[test]
@@ -24,8 +25,8 @@ fn test_struct_follows_clock_constraints() -> miette::Result<()> {
         let a = s.b.val();
         let b = s.a.val();
         let c = Foo::<C, D> {
-            a: signal(a + 1),
-            b: signal(b + 1),
+            a: signal((a + 1).resize()),
+            b: signal((b + 1).resize()),
         };
         c
     }
@@ -70,8 +71,8 @@ fn test_struct_follows_clock_constraints_fails() -> miette::Result<()> {
         let a = s.a.val();
         let b = s.b.val();
         let c = Foo::<C, D> {
-            a: signal(b + 1),
-            b: signal(a + 1),
+            a: signal((b + 1).resize()),
+            b: signal((a + 1).resize()),
         };
         c
     }
@@ -85,18 +86,18 @@ fn test_struct_follows_clock_constraints_fails() -> miette::Result<()> {
 fn test_struct_cannot_cross_clock_domains() -> miette::Result<()> {
     #[derive(Digital)]
     struct Foo {
-        a: u8,
-        b: u16,
-        c: [u8; 3],
+        a: b8,
+        b: b16,
+        c: [b8; 3],
     }
 
     #[kernel]
-    fn do_stuff<C: Domain, D: Domain>(_a: Signal<u8, C>, b: Signal<u8, D>) -> Signal<Foo, C> {
+    fn do_stuff<C: Domain, D: Domain>(_a: Signal<b8, C>, b: Signal<b8, D>) -> Signal<Foo, C> {
         let a = b.val();
         let d = Foo {
             a,
-            b: 2,
-            c: [1, 2, 3],
+            b: bits(2),
+            c: [bits(1), bits(2), bits(3)],
         }; // Struct literal
         signal(d)
     }
@@ -110,12 +111,12 @@ fn test_struct_cannot_cross_clock_domains() -> miette::Result<()> {
 #[allow(clippy::let_and_return)]
 fn test_signal_call_cross_clock_fails() -> miette::Result<()> {
     #[kernel]
-    fn add<C: Domain>(x: Signal<b8, C>, y: Signal<b8, C>) -> Signal<b8, C> {
-        x + y
+    fn add<C: Domain>(x: Signal<b8, C>, y: Signal<b8, C>) -> Signal<b9, C> {
+        signal(x.val() + y.val())
     }
 
     #[kernel]
-    fn do_stuff<C: Domain, D: Domain>(a: Signal<b8, C>, b: Signal<b8, D>) -> Signal<b8, C> {
+    fn do_stuff<C: Domain, D: Domain>(a: Signal<b8, C>, b: Signal<b8, D>) -> Signal<b9, C> {
         let c = add::<C>(signal(a.val()), signal(b.val()));
         c
     }
@@ -129,11 +130,8 @@ fn test_signal_call_cross_clock_fails() -> miette::Result<()> {
 fn test_signal_cross_clock_select_fails() -> miette::Result<()> {
     #[kernel]
     fn add<C: Domain, D: Domain>(x: Signal<b8, C>, y: Signal<b8, D>) -> Signal<b8, C> {
-        if y.val().any() {
-            x
-        } else {
-            x + 2
-        }
+        let x = x.val();
+        signal(if y.val().any() { x } else { (x + 2).resize() })
     }
     assert!(compile_design::<add::<Red, Red>>(Asynchronous).is_ok());
     assert!(compile_design::<add::<Red, Green>>(Asynchronous).is_err());
@@ -144,11 +142,9 @@ fn test_signal_cross_clock_select_fails() -> miette::Result<()> {
 fn test_signal_cross_clock_select_causes_type_check_error() -> miette::Result<()> {
     #[kernel]
     fn add<C: Domain, D: Domain>(x: Signal<b8, C>, y: Signal<b8, D>) -> Signal<b8, C> {
-        if y.val().any() {
-            x
-        } else {
-            x + 2
-        }
+        let x = x.val();
+        let z = if y.val().any() { x } else { (x + 2).resize() };
+        signal(z)
     }
     let Err(RHDLError::RHDLClockDomainViolation(_)) =
         compile_design::<add<Red, Green>>(Asynchronous)
@@ -203,7 +199,7 @@ fn test_signal_coherence_in_binary_ops() -> miette::Result<()> {
         let x = x.val();
         let y = y.val();
         let z = x + y;
-        signal(z)
+        signal(z.resize())
     }
     assert!(compile_design::<add<Red, Green>>(Asynchronous).is_err());
     Ok(())
@@ -238,8 +234,8 @@ fn test_signal_coherence_with_timed() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn add<C: Domain, D: Domain>(x: Container<C, D>) -> Signal<b8, C> {
-        let val = x.y.b.val() + bits(1);
+    fn add<C: Domain, D: Domain>(x: Container<C, D>) -> Signal<b9, C> {
+        let val = x.y.b.val() + b8(1);
         signal(val)
     }
     assert!(compile_design::<add<Red, Green>>(Asynchronous).is_err());
@@ -257,7 +253,7 @@ fn test_signal_carrying_struct() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn add<C: Domain, D: Domain>(x: Signal<Baz, C>, _y: Signal<b8, D>) -> Signal<b8, D> {
+    fn add<C: Domain, D: Domain>(x: Signal<Baz, C>, _y: Signal<b8, D>) -> Signal<b9, D> {
         let x = x.val();
         let y = x.b + 1;
         signal(y)
@@ -272,9 +268,9 @@ fn test_signal_coherence_with_const_in_binary_op() -> miette::Result<()> {
     #[kernel]
     fn add<C: Domain>(x: Signal<b8, C>) -> Signal<b8, C> {
         let x = x.val();
-        let y = bits(3);
+        let y = b8(3);
         let z = x + y;
-        signal(z)
+        signal(z.resize())
     }
     compile_design::<add<Red>>(Asynchronous)?;
     Ok(())
@@ -297,8 +293,10 @@ fn test_signal_coherence_with_consts_ok() -> miette::Result<()> {
 fn test_signal_cast_works() -> anyhow::Result<()> {
     #[kernel]
     fn add<C: Domain>(x: Signal<b8, C>, y: Signal<b8, C>) -> Signal<b8, C> {
+        let x = x.val();
+        let y = y.val();
         let z = x + y;
-        signal::<b8, C>(z.val())
+        signal::<b8, C>(z.resize())
     }
     let obj = compile_design::<add<Red>>(Asynchronous)?;
     eprintln!("{:?}", obj);
@@ -308,7 +306,7 @@ fn test_signal_cast_works() -> anyhow::Result<()> {
 #[test]
 fn test_signal_cast_cross_clocks_fails() -> miette::Result<()> {
     #[kernel]
-    fn add<C: Domain, D: Domain>(x: Signal<b8, C>) -> Signal<b8, D> {
+    fn add<C: Domain, D: Domain>(x: Signal<b8, C>) -> Signal<b9, D> {
         signal(x.val() + 3)
     }
     compile_design::<add<Red, Red>>(Asynchronous)?;
@@ -322,7 +320,7 @@ fn test_signal_cross_clock_shifting_fails() -> anyhow::Result<()> {
     fn add<C: Domain, D: Domain>(x: Signal<b8, C>) -> Signal<b8, D> {
         let p = 4;
         let y: b8 = bits(7);
-        let z = y << p;
+        let z: b3 = (y << p).resize();
         signal(x.val() << z)
     }
     compile_design::<add<Red, Red>>(Asynchronous)?;
@@ -431,12 +429,12 @@ fn cannot_mix_clocks_in_an_array() -> miette::Result<()> {
 fn test_exec_sub_kernel_preserves_clocking() -> miette::Result<()> {
     #[kernel]
     fn double<C: Domain>(a: Signal<b8, C>) -> Signal<b8, C> {
-        a + a
+        signal((a.val() + a.val()).resize())
     }
 
     #[kernel]
-    fn do_stuff<C: Domain, D: Domain>(a: Signal<b8, C>, b: Signal<b8, D>) -> Signal<b8, C> {
-        a + double::<C>(signal(b.val()))
+    fn do_stuff<C: Domain, D: Domain>(a: Signal<b8, C>, b: Signal<b8, D>) -> Signal<b9, C> {
+        signal(a.val() + double::<C>(signal(b.val())).val())
     }
 
     compile_design::<do_stuff<Red, Red>>(Asynchronous)?;
@@ -481,16 +479,17 @@ fn test_retime_of_comparison_with_structs() -> miette::Result<()> {
 fn test_unknown_clock_domain() -> miette::Result<()> {
     #[kernel]
     fn do_stuff<C: Domain>(a: Signal<b12, C>) -> Signal<b12, C> {
+        let a = a.val();
         let k = a;
-        let m = bits::<14>(7);
-        let c = k + 3;
+        let m = b14(7);
+        let c: b12 = (k + 3).resize();
         let d = if c > k { c } else { k };
         let e = (c, m);
         let (f, g) = e;
         let h = g + 1;
-        let k: b4 = bits::<4>(7);
+        let k: b4 = b4(7);
         trace("hk", &(h, k));
-        let q = (bits::<2>(1), (bits::<5>(0), signed::<8>(5)), bits::<12>(6));
+        let q = (b2(1), (b5(0), s8(5)), b12(6));
         let b = q.1 .1;
         trace("b", &b);
         let (q0, (q1, q1b), q2) = q; // Tuple destructuring
@@ -502,10 +501,10 @@ fn test_unknown_clock_domain() -> miette::Result<()> {
         let _o = j;
         let l = {
             let a = b12(3);
-            let b = bits(4);
+            let b = b3(4);
             a + b
         };
-        l + k
+        signal((l + k).resize())
     }
     compile_design::<do_stuff<Red>>(Asynchronous)?;
     Ok(())

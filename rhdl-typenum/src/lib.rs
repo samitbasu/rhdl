@@ -3,7 +3,7 @@
 use rhdl_macro::{add_impl, log2_impl, max_impl, min_impl, sub_impl};
 use seq_macro::seq;
 
-pub trait BitWidth: Copy + Eq + Default + 'static {
+pub trait BitWidth: Copy + Clone + PartialEq + Eq + Default + 'static {
     const BITS: usize;
 }
 

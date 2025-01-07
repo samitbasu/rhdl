@@ -1,3 +1,4 @@
+use core::num;
 use std::collections::HashSet;
 
 use inflections::Inflect;
@@ -840,7 +841,7 @@ impl Context {
             "as_unsigned",
             "val",
             "resize",
-            "pad",
+            "raw",
         ]
         .contains(&method.to_string().as_str())
         {
@@ -860,7 +861,7 @@ impl Context {
                 ));
             }
             let x = x.args.iter().next().unwrap();
-            quote!(Some({#x} as usize))
+            quote!(Some(<#x as rhdl_typenum::BitWidth>::BITS))
         } else {
             quote!(None)
         };
@@ -908,6 +909,24 @@ impl Context {
         };
         if !name.arguments.is_empty() || expr.args.len() != 1 {
             return Ok(None);
+        }
+        // Check for the name being equal to `b{num}` where num is a number from 1 to 128.  If that is the
+        // case, then capture the number, and use the expr_bits_with_length function.
+        if let Some(num) = name.ident.to_string().strip_prefix("b") {
+            if let Ok(num) = num.parse::<usize>() {
+                let args = self.expr(&expr.args[0])?;
+                return Ok(Some(quote! {
+                    bob.expr_bits_with_length(#args, #num)
+                }));
+            }
+        }
+        if let Some(num) = name.ident.to_string().strip_prefix("s") {
+            if let Ok(num) = num.parse::<usize>() {
+                let args = self.expr(&expr.args[0])?;
+                return Ok(Some(quote! {
+                    bob.expr_signed_with_length(#args, #num)
+                }));
+            }
         }
         if let Some((_, special_code)) = special_cases.iter().find(|(n, _)| name.ident == n) {
             let args = self.expr(&expr.args[0])?;
@@ -1540,6 +1559,10 @@ mod test {
                 #[forbid(non_snake_case)]
                 #[forbid(non_upper_case_globals)]
                 #[forbid(unreachable_patterns)]
+                #[allow(clippy::manual_map)]
+                #[allow(clippy::redundant_pattern_matching)]
+                #[forbid(path_statements)]
+                #[forbid(unused_variables)]
                 fn inner<T: Digital>(a: T, b: T) -> [T; 2] {
                     { [a, b] }
                 }
@@ -2299,6 +2322,10 @@ mod test {
                 #[forbid(non_snake_case)]
                 #[forbid(non_upper_case_globals)]
                 #[forbid(unreachable_patterns)]
+                #[allow(clippy::manual_map)]
+                #[allow(clippy::redundant_pattern_matching)]
+                #[forbid(path_statements)]
+                #[forbid(unused_variables)]
                 fn inner() {
                     {
                         let b = 0x4313_u8;
@@ -2467,6 +2494,10 @@ mod test {
                 #[forbid(non_snake_case)]
                 #[forbid(non_upper_case_globals)]
                 #[forbid(unreachable_patterns)]
+                #[allow(clippy::manual_map)]
+                #[allow(clippy::redundant_pattern_matching)]
+                #[forbid(path_statements)]
+                #[forbid(unused_variables)]
                 fn inner(z: u8) {
                     {
                         match z {
@@ -2548,6 +2579,10 @@ mod test {
                 #[forbid(non_snake_case)]
                 #[forbid(non_upper_case_globals)]
                 #[forbid(unreachable_patterns)]
+                #[allow(clippy::manual_map)]
+                #[allow(clippy::redundant_pattern_matching)]
+                #[forbid(path_statements)]
+                #[forbid(unused_variables)]
                 fn inner(z: Bar) {
                     {
                         match z {
@@ -2640,6 +2675,10 @@ mod test {
                 #[forbid(non_snake_case)]
                 #[forbid(non_upper_case_globals)]
                 #[forbid(unreachable_patterns)]
+                #[allow(clippy::manual_map)]
+                #[allow(clippy::redundant_pattern_matching)]
+                #[forbid(path_statements)]
+                #[forbid(unused_variables)]
                 fn inner<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {
                     {
                         let c = x.a;
@@ -3092,6 +3131,10 @@ mod test {
                 #[forbid(non_snake_case)]
                 #[forbid(non_upper_case_globals)]
                 #[forbid(unreachable_patterns)]
+                #[allow(clippy::manual_map)]
+                #[allow(clippy::redundant_pattern_matching)]
+                #[forbid(path_statements)]
+                #[forbid(unused_variables)]
                 fn inner(mut a: u8) -> u8 {
                     {
                         let mut b = 3;
@@ -3165,6 +3208,10 @@ mod test {
                 #[forbid(non_snake_case)]
                 #[forbid(non_upper_case_globals)]
                 #[forbid(unreachable_patterns)]
+                #[allow(clippy::manual_map)]
+                #[allow(clippy::redundant_pattern_matching)]
+                #[forbid(path_statements)]
+                #[forbid(unused_variables)]
                 fn inner((a, b): (u8, u8)) -> (u8, u8) {
                     { (a, a + b) }
                 }
@@ -3246,6 +3293,10 @@ mod test {
                 #[forbid(non_snake_case)]
                 #[forbid(non_upper_case_globals)]
                 #[forbid(unreachable_patterns)]
+                #[allow(clippy::manual_map)]
+                #[allow(clippy::redundant_pattern_matching)]
+                #[forbid(path_statements)]
+                #[forbid(unused_variables)]
                 fn inner<const N: usize>(
                     i: CounterIn<N>,
                     (count_q,): (Bits<N>,),

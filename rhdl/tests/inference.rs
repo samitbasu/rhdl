@@ -19,41 +19,42 @@ fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
     use rhdl_bits::alias::*;
     #[derive(Digital)]
     pub struct Foo {
-        a: u8,
-        b: u16,
-        c: [u8; 3],
+        a: b8,
+        b: b16,
+        c: [b8; 3],
     }
 
     #[derive(Default, Digital)]
     pub enum State {
         Init,
-        Run(u8),
+        Run(b8),
         Boom,
         #[default]
         Unknown,
     }
 
     #[derive(Digital)]
-    pub struct Bar(pub u8, pub u8);
+    pub struct Bar(pub b8, pub b8);
 
     #[kernel]
     fn do_stuff(arg: Signal<b4, Red>) -> Signal<b8, Red> {
+        let arg = arg.val();
         let a = arg; // Straight local assignment
         let b = !a; // Unary operator
-        let c = a + (b - 1); // Binary operator
+        let c = a + (b - 1).as_unsigned(); // Binary operator
         let q = (a, b, c); // Tuple valued expression
         let (a, b, c) = q; // Tuple destructuring
         trace("abc", &(a, b, c)); // Trace statement
-        let h = Bar(1, 2); // Tuple struct literal
+        let h = Bar(bits(1), bits(2)); // Tuple struct literal
         let _i = h.0; // Tuple struct field access
         let Bar(_j, _k) = h; // Tuple struct destructuring
         let _d = [1, 2, 3]; // Array literal
         let d = Foo {
-            a: 1,
-            b: 2,
-            c: [1, 2, 3],
+            a: bits(1),
+            b: bits(2),
+            c: [bits(1), bits(2), bits(3)],
         }; // Struct literal
-        let p = Foo { a: 4, ..d };
+        let p = Foo { a: bits(4), ..d };
         trace("p", &p);
         let h = {
             let e = 3;
@@ -68,17 +69,17 @@ fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
         let mut d: b8 = bits(7); // Mutable local
         if d > bits(0) {
             // if statement
-            d = d - bits(1);
+            d = (d - 1).as_unsigned().resize();
             // early return
             return signal(d);
         }
         // if-else statement (and a statement expression)
-        let j = if d < bits(3) { 7 } else { 9 };
+        let j = if d < bits(3) { b4(7) } else { b4(9) };
         // Enum literal
         let k = State::Boom;
         trace("gejk", &(g, e, j, k));
         // Enum literal with a payload
-        let l = State::Run(3);
+        let l = State::Run(bits(3));
         // Match expression with enum variants
         let j = match l {
             State::Init => b3(1),
@@ -88,10 +89,10 @@ fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
         };
         // For loops
         for ndx in 0..8 {
-            d = d + bits(ndx);
+            d = (d + b8(ndx)).resize();
         }
         // block expression
-        signal(bits(42) + j.resize())
+        signal((b8(42) + j).resize())
     }
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red())?;
@@ -115,8 +116,9 @@ fn test_bits_inference_with_type() -> miette::Result<()> {
 #[test]
 fn test_signal_const_binop_inference() -> anyhow::Result<()> {
     #[kernel]
-    fn do_stuff<C: Domain>(a: Signal<b8, C>) -> Signal<b8, C> {
-        a + b8(4)
+    fn do_stuff<C: Domain>(a: Signal<b8, C>) -> Signal<b9, C> {
+        let a = a.val();
+        signal(a + b8(4))
     }
     compile_design::<do_stuff<Red>>(CompilationMode::Asynchronous)?;
     Ok(())
@@ -132,12 +134,17 @@ fn test_signal_ops_inference() -> miette::Result<()> {
         w: Signal<b8, D>,
         ndx: Signal<b8, C>,
     ) -> Signal<b8, D> {
+        let x = x.val();
+        let y = y.val();
+        let z = z.val();
+        let w = w.val();
+        let ndx = ndx.val();
         // c, x, y are C
         let c = x + y;
         // d is C
         let d = x > y;
         // bx is C
-        let bx = x.val();
+        let bx = x;
         // zz is C
         let zz = 2 < bx;
         // e is C
@@ -151,14 +158,14 @@ fn test_signal_ops_inference() -> miette::Result<()> {
         // res is D
         let res = if q { w } else { z };
         // h is D
-        let h = z.val();
+        let h = z;
         trace("vars", &(zz, e, z2, res));
         // qq is Illegal!
-        let qq = h + y.val();
-        match (z + 1 + qq).val() {
-            Bits::<8>(0) => z,
+        let qq = h + y;
+        signal(match (z + 1 + qq).raw() {
+            0 => z,
             _ => w,
-        }
+        })
     }
     compile_design::<add<Red, Red>>(CompilationMode::Asynchronous)?;
     assert!(compile_design::<add::<Red, Green>>(CompilationMode::Asynchronous).is_err());
@@ -168,16 +175,17 @@ fn test_signal_ops_inference() -> miette::Result<()> {
 #[test]
 fn test_simple_type_inference() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff<C: Domain>(a: Signal<b12, C>) -> Signal<b12, C> {
+    fn do_stuff<C: Domain>(a: Signal<b12, C>) -> Signal<b14, C> {
+        let a = a.val();
         let k = a;
-        let m = bits::<14>(7);
-        let c = k + 3;
+        let m = b14(7);
+        let c: b12 = (k + 3).resize();
         let d = if c > k { c } else { k };
         let e = (c, m);
         let (f, g) = e;
         let h0 = g + 1;
-        let _k: b4 = bits::<4>(7);
-        let q = (bits::<2>(1), (bits::<5>(0), signed::<8>(5)), bits::<12>(6));
+        let _k: b4 = b4(7);
+        let q = (b2(1), (b5(0), s8(5)), b12(6));
         let b = q.1 .1;
         let (q0, (q1, q1b), q2) = q; // Tuple destructuring
         let z = q1b + 4;
@@ -186,16 +194,12 @@ fn test_simple_type_inference() -> miette::Result<()> {
         let o = j;
         let l = {
             let a = b12(3);
-            let b = bits(4);
+            let b = b12(4);
             a + b
         };
         trace("dump", &(k, b, z, i));
         trace("dump2", &(o, q0, q1, q2));
-        if h0.any() {
-            l + k
-        } else {
-            l + k + 1
-        }
+        signal((if h0.any() { l + k + 0 } else { l + k + 1 }).resize())
     }
     test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, tuple_exhaustive_red())?;
     Ok(())
@@ -220,7 +224,7 @@ fn test_struct_inference_inferred_lengths() -> miette::Result<()> {
     }
 
     #[derive(Digital)]
-    pub struct Bar(pub u8, pub u8);
+    pub struct Bar(pub b8, pub b8);
 
     #[derive(Default, Digital)]
     pub enum NooState {
@@ -248,27 +252,21 @@ fn test_struct_inference_inferred_lengths() -> miette::Result<()> {
             c,
         };
         let Foo { a: ar, b: _, c: _ } = d;
-        let _q = Bar(1, 2);
+        let _q = Bar(bits(1), bits(2));
         let x = NooState::Run(bits(1), bits(2));
         let e = ar;
         signal((e, ar, x, d))
     }
     let inputs = [
         Foo {
-            a: bits::<8>(1),
-            b: signed::<4>(2),
-            c: Rad {
-                x: bits::<4>(1),
-                y: bits::<6>(2),
-            },
+            a: b8(1),
+            b: s4(2),
+            c: Rad { x: b4(1), y: b6(2) },
         },
         Foo {
-            a: bits::<8>(1),
-            b: signed::<4>(2),
-            c: Rad {
-                x: bits::<4>(1),
-                y: bits::<6>(2),
-            },
+            a: b8(1),
+            b: s4(2),
+            c: Rad { x: b4(1), y: b6(2) },
         },
     ];
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(
@@ -297,7 +295,7 @@ fn test_struct_inference() -> miette::Result<()> {
     }
 
     #[derive(Digital)]
-    pub struct Bar(pub u8, pub u8);
+    pub struct Bar(pub b8, pub b8);
 
     #[derive(Default, Digital)]
     pub enum NooState {
@@ -314,39 +312,26 @@ fn test_struct_inference() -> miette::Result<()> {
     fn do_stuff(a: Signal<Foo, Red>) -> Signal<(b8, b8, NooState, Foo), Red> {
         let z = (a.val().b, a.val().a);
         let _c = a;
-        let q = signed::<4>(-2);
-        let c = Rad {
-            x: bits::<4>(1),
-            y: bits::<6>(2),
-        };
-        let d = Foo {
-            a: bits::<8>(1),
-            b: q,
-            c,
-        };
+        let q = s4(-2);
+        let c = Rad { x: b4(1), y: b6(2) };
+        let d = Foo { a: b8(1), b: q, c };
         let Foo { a: ar, b, c: _ } = d;
-        let q = Bar(1, 2);
+        let q = Bar(bits(1), bits(2));
         trace("dump", &(z, c, b, q));
-        let x = NooState::Run(bits::<4>(1), bits::<5>(2));
+        let x = NooState::Run(b4(1), b5(2));
         let e = ar;
         signal((e, ar, x, d))
     }
     let inputs = [
         Foo {
-            a: bits::<8>(1),
-            b: signed::<4>(2),
-            c: Rad {
-                x: bits::<4>(1),
-                y: bits::<6>(2),
-            },
+            a: b8(1),
+            b: s4(2),
+            c: Rad { x: b4(1), y: b6(2) },
         },
         Foo {
-            a: bits::<8>(1),
-            b: signed::<4>(2),
-            c: Rad {
-                x: bits::<4>(1),
-                y: bits::<6>(2),
-            },
+            a: b8(1),
+            b: s4(2),
+            c: Rad { x: b4(1), y: b6(2) },
         },
     ];
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(
@@ -361,9 +346,9 @@ fn test_missing_register_inferred_types() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b1, Red>) -> Signal<b8, Red> {
         let mut c = bits(0);
-        match a.val() {
-            Bits::<1>(0) => c = bits(2),
-            Bits::<1>(1) => c = bits(3),
+        match a.val().raw() {
+            0 => c = bits(2),
+            1 => c = bits(3),
             _ => {}
         }
         signal(c)
@@ -375,10 +360,11 @@ fn test_missing_register_inferred_types() -> miette::Result<()> {
 #[test]
 fn test_bit_inference_with_explicit_length_works() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff(a: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn do_stuff(a: Signal<b8, Red>) -> Signal<b9, Red> {
+        let a = a.val();
         let b = a + 1;
-        let c = bits::<3>(3);
-        let d = b.val() << c;
+        let c = b4(3);
+        let d = b << c;
         signal(d)
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red())?;
@@ -388,45 +374,45 @@ fn test_bit_inference_with_explicit_length_works() -> miette::Result<()> {
 #[test]
 fn test_resize_unsigned_inference() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff<const M: usize>(a: Signal<b8, Red>) -> Signal<Bits<M>, Red> {
+    fn do_stuff<M: BitWidth>(a: Signal<b8, Red>) -> Signal<Bits<M>, Red> {
+        let a = a.val();
         let b = a + 1;
-        let c = b.val().resize();
+        let c = b.resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff<12>, _, _, _>(do_stuff::<12>, tuple_exhaustive_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<8>, _, _, _>(do_stuff::<8>, tuple_exhaustive_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<4>, _, _, _>(do_stuff::<4>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<W12>, _, _, _>(do_stuff::<W12>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<W8>, _, _, _>(do_stuff::<W8>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<W4>, _, _, _>(do_stuff::<W4>, tuple_exhaustive_red())?;
     Ok(())
 }
 
 #[test]
 fn test_resize_signed_inferred() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff<const M: usize>(
-        a: Signal<s8, Red>,
-        b: Signal<s8, Red>,
-    ) -> Signal<SignedBits<M>, Red> {
+    fn do_stuff<M: BitWidth>(a: Signal<s8, Red>, b: Signal<s8, Red>) -> Signal<SignedBits<M>, Red> {
+        let (a, b) = (a.val(), b.val());
         let c = a + b;
-        let c = c.val().resize();
+        let c = c.resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff<12>, _, _, _>(do_stuff::<12>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<4>, _, _, _>(do_stuff::<4>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<8>, _, _, _>(do_stuff::<8>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<W12>, _, _, _>(do_stuff::<W12>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<W4>, _, _, _>(do_stuff::<W4>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<W8>, _, _, _>(do_stuff::<W8>, tuple_pair_s8_red())?;
     Ok(())
 }
 
 #[test]
 fn test_resize_signed_explicit() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff<const N: usize>(a: Signal<s8, Red>, b: Signal<s8, Red>) -> Signal<s8, Red> {
+    fn do_stuff<N: BitWidth>(a: Signal<s8, Red>, b: Signal<s8, Red>) -> Signal<s8, Red> {
+        let (a, b) = (a.val(), b.val());
         let c = a + b;
-        let c = c.val().resize::<N>();
+        let c = c.resize::<N>();
         let c = c.resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff<12>, _, _, _>(do_stuff::<12>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<4>, _, _, _>(do_stuff::<4>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<W12>, _, _, _>(do_stuff::<W12>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<W4>, _, _, _>(do_stuff::<W4>, tuple_pair_s8_red())?;
     Ok(())
 }
 
@@ -434,9 +420,10 @@ fn test_resize_signed_explicit() -> miette::Result<()> {
 fn test_bit_inference_works() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b8, Red>) -> Signal<b8, Red> {
+        let a = a.val();
         let b = a + 1;
-        let c = bits(3);
-        b + c
+        let c = b4(3);
+        signal((b + c).resize())
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red())?;
     Ok(())

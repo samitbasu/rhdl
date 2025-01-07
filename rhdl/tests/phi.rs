@@ -18,7 +18,7 @@ fn test_phi_if_consts() {
     fn do_stuff<C: Domain>(a: Signal<b1, C>) -> Signal<b8, C> {
         let a = a.val();
         let j = if a.any() { 3 } else { 7 };
-        signal(bits::<8>(j))
+        signal(b8(j))
     }
     test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, tuple_exhaustive_red()).unwrap();
 }
@@ -39,9 +39,9 @@ fn test_phi_missing_register_signed_inference() {
     #[kernel]
     fn do_stuff(a: Signal<b1, Red>) -> Signal<s8, Red> {
         let mut c = signed(0);
-        match a.val() {
-            Bits::<1>(0) => c = signed(2),
-            Bits::<1>(1) => c = signed(3),
+        match a.val().raw() {
+            0 => c = signed(2),
+            1 => c = signed(3),
             _ => {}
         }
         signal(c)
@@ -53,9 +53,9 @@ fn test_phi_missing_register_signed_inference() {
 fn test_phi_missing_register() {
     #[kernel]
     fn do_stuff(a: Signal<b1, Red>) -> Signal<b8, Red> {
-        let mut c = bits::<8>(0);
+        let mut c = b8(0);
         if a.val().any() {
-            c = bits::<8>(1);
+            c = b8(1);
         }
         signal(c)
     }
@@ -86,21 +86,21 @@ fn test_phi() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b1, Red>) -> Signal<b8, Red> {
         let a = a.val();
-        let mut c = bits::<8>(0);
-        match a {
-            Bits::<1>(0) => c = bits::<8>(2),
-            Bits::<1>(1) => c = bits::<8>(3),
+        let mut c = b8(0);
+        match a.raw() {
+            0 => c = b8(2),
+            1 => c = b8(3),
             _ => {}
         }
         let _d = c;
         if a.any() {
-            c = bits::<8>(1);
-            c = bits::<8>(2);
+            c = b8(1);
+            c = b8(2);
         } else {
-            c = bits::<8>(3);
-            c = bits::<8>(4);
+            c = b8(3);
+            c = b8(4);
             if a.all() {
-                c = bits::<8>(5);
+                c = b8(5);
             }
         }
         let _y = c;
@@ -130,9 +130,11 @@ fn test_phi_mut_no_init() {
 #[test]
 fn test_flow_control_if_expression() {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b10, Red> {
+        let a = a.val();
+        let b = b.val();
         let c = if a > b { a + 1 } else { b + 2 };
-        c + 1
+        signal(c + 1)
     }
 
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
@@ -142,7 +144,7 @@ fn test_flow_control_if_expression() {
 fn test_if_expression() {
     #[kernel]
     fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<bool, Red> {
-        signal(a > b)
+        signal(a.val() > b.val())
     }
 
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();

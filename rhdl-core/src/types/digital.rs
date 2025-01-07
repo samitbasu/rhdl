@@ -299,53 +299,7 @@ impl Digital for u16 {
     }
 }
 
-impl Digital for usize {
-    const BITS: usize = usize::BITS as usize;
-    fn static_kind() -> Kind {
-        Kind::make_bits(usize::BITS as usize)
-    }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Bits(usize::BITS as usize)
-    }
-    fn bin(self) -> Vec<BitX> {
-        bitx_vec(&Bits::<{ usize::BITS as usize }>::from(self as u128).to_bools())
-    }
-    fn dont_care() -> Self {
-        Self::default()
-    }
-}
 
-impl Digital for u128 {
-    const BITS: usize = 128;
-    fn static_kind() -> Kind {
-        Kind::make_bits(128)
-    }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Bits(128)
-    }
-    fn bin(self) -> Vec<BitX> {
-        bitx_vec(&Bits::<128>::from(self).to_bools())
-    }
-    fn dont_care() -> Self {
-        Self::default()
-    }
-}
-
-impl Digital for i128 {
-    const BITS: usize = 128;
-    fn static_kind() -> Kind {
-        Kind::make_signed(128)
-    }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Signed(128)
-    }
-    fn bin(self) -> Vec<BitX> {
-        bitx_vec(&SignedBits::<128>::from(self).as_unsigned().to_bools())
-    }
-    fn dont_care() -> Self {
-        Self::default()
-    }
-}
 
 impl Digital for i32 {
     const BITS: usize = 32;
@@ -403,6 +357,59 @@ impl Digital for i64 {
     }
 }
 */
+
+impl Digital for u128 {
+    const BITS: usize = 128;
+    fn static_kind() -> Kind {
+        Kind::make_bits(128)
+    }
+    fn static_trace_type() -> rhdl_trace_type::TraceType {
+        rtt::TraceType::Bits(128)
+    }
+    fn bin(self) -> Vec<BitX> {
+        bitx_vec(&Bits::<W128>::from(self).to_bools())
+    }
+    fn dont_care() -> Self {
+        Self::default()
+    }
+}
+
+impl Digital for i128 {
+    const BITS: usize = 128;
+    fn static_kind() -> Kind {
+        Kind::make_signed(128)
+    }
+    fn static_trace_type() -> rhdl_trace_type::TraceType {
+        rtt::TraceType::Signed(128)
+    }
+    fn bin(self) -> Vec<BitX> {
+        bitx_vec(&SignedBits::<W128>::from(self).as_unsigned().to_bools())
+    }
+    fn dont_care() -> Self {
+        Self::default()
+    }
+}
+
+impl Digital for usize {
+    const BITS: usize = usize::BITS as usize;
+    fn static_kind() -> Kind {
+        Kind::make_bits(usize::BITS as usize)
+    }
+    fn static_trace_type() -> rhdl_trace_type::TraceType {
+        rtt::TraceType::Bits(usize::BITS as usize)
+    }
+    fn bin(self) -> Vec<BitX> {
+        match usize::BITS {
+            32 => bitx_vec(&Bits::<W32>::from(self as u128).to_bools()),
+            64 => bitx_vec(&Bits::<W64>::from(self as u128).to_bools()),
+            _ => panic!("Unsupported usize bit width"),
+        }
+    }
+    fn dont_care() -> Self {
+        Self::default()
+    }
+}
+
 impl<N: BitWidth> Digital for Bits<N> {
     const BITS: usize = N::BITS;
     fn static_kind() -> Kind {

@@ -19,7 +19,7 @@ fn test_tuple_struct_indexing() -> miette::Result<()> {
     pub struct Foo(b8, b8);
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b9, Red> {
         let a = a.val();
         let b = b.val();
         let c = Foo(a, b);
@@ -39,7 +39,7 @@ fn test_struct_field_indexing() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b10, Red> {
         let a = a.val();
         let b = b.val();
         let mut c = Foo { a: (a, a), b };
@@ -76,7 +76,7 @@ fn test_array_indexing() -> miette::Result<()> {
         let mut c = [a, b];
         c[1] = a;
         c[0] = b;
-        signal([c[0] + c[1], c[1]])
+        signal([(c[0] + c[1]).resize(), c[1]])
     }
 
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
@@ -98,7 +98,7 @@ fn test_array_indexing_2() -> miette::Result<()> {
 }
 
 #[cfg(test)]
-fn rand_bits<const N: usize>() -> Bits<N> {
+fn rand_bits<N: BitWidth>() -> Bits<N> {
     Bits::<N>::default()
 }
 
@@ -313,7 +313,7 @@ fn test_field_indexing() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b9, Red> {
         let a = a.val();
         let b = b.val();
         let c = Foo { a, b };
@@ -327,12 +327,9 @@ fn test_field_indexing() -> miette::Result<()> {
 #[test]
 fn test_simple_if_expression() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
-        if a > b {
-            a + 1
-        } else {
-            b + 2
-        }
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b9, Red> {
+        let (a, b) = (a.val(), b.val());
+        signal(if a > b { a + 1 } else { b + 2 })
     }
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
     Ok(())
@@ -355,26 +352,27 @@ fn test_link_to_bits_fn() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn add_two<C: Domain>(a: Signal<b4, C>) -> Signal<b4, C> {
-        a + 2
+    fn add_two<C: Domain>(a: Signal<b4, C>) -> Signal<b5, C> {
+        signal(a.val() + 2)
     }
 
     #[kernel]
-    fn add_one<C: Domain>(a: Signal<b4, C>) -> Signal<b4, C> {
+    fn add_one<C: Domain>(a: Signal<b4, C>) -> Signal<b5, C> {
         add_two::<C>(a)
     }
 
     #[kernel]
     fn add<C: Domain>(a: Signal<b4, C>) -> Signal<b4, C> {
-        let b = bits(3);
+        let a = a.val();
+        let b = b4(3);
         let d = signed(11);
         let c = b + a;
-        let c = c.val();
+        let c = c.resize();
         let _k = c.any();
         let h = Tuplo(c, d);
         let p = h.0;
         let _q = NooState::Run(c, d);
-        c + add_one::<C>(signal(p)) + if h.1 > 0 { 1 } else { 2 }
+        signal((c + add_one::<C>(signal(p)).val() + if h.1 > 0 { 1 } else { 2 }).resize())
     }
 
     test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_exhaustive_red())?;

@@ -30,6 +30,26 @@ pub struct SignedBits<Len> {
     pub(crate) val: i128,
 }
 
+impl<Len: BitWidth> std::cmp::PartialEq for SignedBits<Len> {
+    fn eq(&self, other: &Self) -> bool {
+        self.val == other.val
+    }
+}
+
+impl<Len: BitWidth> std::cmp::Eq for SignedBits<Len> {}
+
+impl<Len: BitWidth> std::cmp::PartialOrd for SignedBits<Len> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.val.cmp(&other.val))
+    }
+}
+
+impl<Len: BitWidth> std::cmp::Ord for SignedBits<Len> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.val.cmp(&other.val)
+    }
+}
+
 impl<Len: BitWidth> std::fmt::Display for SignedBits<Len> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.val < 0 {
@@ -67,26 +87,6 @@ impl<Len: BitWidth> std::fmt::Binary for SignedBits<Len> {
         } else {
             write!(f, "{}'sb{:b}", Len::BITS, self.val)
         }
-    }
-}
-
-impl<Len: BitWidth> std::cmp::PartialEq for SignedBits<Len> {
-    fn eq(&self, other: &Self) -> bool {
-        self.val == other.val
-    }
-}
-
-impl<Len: BitWidth> std::cmp::Eq for SignedBits<Len> {}
-
-impl<Len: BitWidth> std::cmp::PartialOrd for SignedBits<Len> {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.val.cmp(&other.val))
-    }
-}
-
-impl<Len: BitWidth> std::cmp::Ord for SignedBits<Len> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.val.cmp(&other.val)
     }
 }
 
@@ -292,13 +292,15 @@ impl<N: BitWidth> PartialEq<SignedBits<N>> for i128 {
 
 impl<N: BitWidth> PartialOrd<i128> for SignedBits<N> {
     fn partial_cmp(&self, other: &i128) -> Option<std::cmp::Ordering> {
-        self.partial_cmp(&signed(*other))
+        let other_as_bits = signed::<N>(*other);
+        self.val.partial_cmp(&other_as_bits.val)
     }
 }
 
 impl<N: BitWidth> PartialOrd<SignedBits<N>> for i128 {
     fn partial_cmp(&self, other: &SignedBits<N>) -> Option<std::cmp::Ordering> {
-        signed(*self).partial_cmp(other)
+        let self_as_bits = signed::<N>(*self);
+        self_as_bits.val.partial_cmp(&other.val)
     }
 }
 
@@ -391,5 +393,12 @@ mod test {
         let value = signed::<W8>(3);
         let extended = value.resize::<W16>();
         assert_eq!(extended, 3);
+    }
+
+    #[test]
+    fn test_comparison_signed() {
+        let a1 = s8(-32);
+        let b1 = s8(-24);
+        assert!(a1 < b1);
     }
 }

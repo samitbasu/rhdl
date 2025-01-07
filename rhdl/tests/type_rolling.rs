@@ -12,7 +12,7 @@ use rhdl_core::compiler::mir::error::Syntax;
 fn test_roll_your_own_binop_fails() -> miette::Result<()> {
     #[derive(Digital)]
     struct Baz {
-        a: u8,
+        a: b8,
     }
     macro_rules! impl_binop {
         ($trait:ident, $method:ident, $op:tt, $kernel:ident) => {
@@ -49,7 +49,7 @@ fn test_roll_your_own_binop_fails() -> miette::Result<()> {
 fn test_roll_your_own_not_fails() -> miette::Result<()> {
     #[derive(Digital)]
     struct Baz {
-        a: u8,
+        a: b8,
     }
 
     impl std::ops::Not for Baz {
@@ -111,7 +111,7 @@ fn test_roll_your_own_not_fails() -> miette::Result<()> {
 fn test_roll_your_own_val_fails() -> miette::Result<()> {
     #[derive(Digital)]
     struct Baz {
-        a: u8,
+        a: b8,
     }
 
     impl Baz {
@@ -140,7 +140,7 @@ fn test_roll_your_own_val_fails() -> miette::Result<()> {
 fn test_method_call_fails_with_roll_your_own() -> miette::Result<()> {
     #[derive(Digital)]
     struct Baz {
-        a: u8,
+        a: b8,
     }
 
     impl Baz {

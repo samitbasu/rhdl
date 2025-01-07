@@ -27,21 +27,23 @@ where
     }
 }
 
-impl<N> Shr<Bits<Log2<N>>> for Bits<N>
+impl<N, M> Shr<Bits<M>> for Bits<N>
 where
-    N: BitWidth + Logarithm2,
+    N: BitWidth,
+    M: BitWidth,
 {
     type Output = Self;
-    fn shr(self, rhs: Bits<Log2<N>>) -> Self::Output {
+    fn shr(self, rhs: Bits<M>) -> Self::Output {
         bits(u128::wrapping_shr(self.val, rhs.val as u32) & Self::mask().val)
     }
 }
 
-impl<N> ShrAssign<Bits<Log2<N>>> for Bits<N>
+impl<N, M> ShrAssign<Bits<M>> for Bits<N>
 where
-    N: BitWidth + Logarithm2,
+    N: BitWidth,
+    M: BitWidth,
 {
-    fn shr_assign(&mut self, rhs: Bits<Log2<N>>) {
+    fn shr_assign(&mut self, rhs: Bits<M>) {
         *self = *self >> rhs;
     }
 }
@@ -55,12 +57,13 @@ where
     }
 }
 
-impl<N> Shr<Bits<Log2<N>>> for SignedBits<N>
+impl<N, M> Shr<Bits<M>> for SignedBits<N>
 where
-    N: BitWidth + Logarithm2,
+    N: BitWidth,
+    M: BitWidth,
 {
     type Output = Self;
-    fn shr(self, rhs: Bits<Log2<N>>) -> Self::Output {
+    fn shr(self, rhs: Bits<M>) -> Self::Output {
         signed(i128::wrapping_shr(self.val, rhs.val as u32))
     }
 }
@@ -75,11 +78,12 @@ where
     }
 }
 
-impl<N> ShrAssign<Bits<Log2<N>>> for SignedBits<N>
+impl<N, M> ShrAssign<Bits<M>> for SignedBits<N>
 where
-    N: BitWidth + Logarithm2,
+    N: BitWidth,
+    M: BitWidth,
 {
-    fn shr_assign(&mut self, rhs: Bits<Log2<N>>) {
+    fn shr_assign(&mut self, rhs: Bits<M>) {
         *self = *self >> rhs;
     }
 }

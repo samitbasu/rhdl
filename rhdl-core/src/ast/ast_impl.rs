@@ -312,6 +312,7 @@ pub struct ExprStruct {
 #[derive(Debug, Clone, Hash)]
 pub struct ExprBits {
     pub kind: BitsKind,
+    pub len: Option<usize>,
     pub arg: Box<Expr>,
 }
 

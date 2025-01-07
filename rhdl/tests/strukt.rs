@@ -17,23 +17,23 @@ use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 fn test_struct_expr_not_adt() -> miette::Result<()> {
     #[derive(Digital)]
     pub struct Foo {
-        a: u8,
-        b: u16,
-        c: [u8; 3],
+        a: b8,
+        b: b16,
+        c: [b8; 3],
     }
 
     #[kernel]
-    fn do_stuff<C: Domain>(a: Signal<u8, C>) -> Signal<Foo, C> {
+    fn do_stuff<C: Domain>(a: Signal<b8, C>) -> Signal<Foo, C> {
         let a = a.val();
         let d = Foo {
             a,
-            b: 2,
-            c: [1, 2, 3],
+            b: bits(2),
+            c: [bits(1), bits(2), bits(3)],
         }; // Struct literal
         signal(d)
     }
 
-    test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, tuple_u8::<Red>())?;
+    test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, tuple_b8::<Red>())?;
     Ok(())
 }
 
@@ -43,10 +43,10 @@ fn test_tuplestruct_nested_init() -> miette::Result<()> {
     pub struct Wrap(b8, (b8, b8), b8);
 
     #[kernel]
-    fn add(a: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn add(a: Signal<b8, Red>) -> Signal<b12, Red> {
         let b = Wrap(b8(1), (b8(2), b8(3)), b8(4));
         let Wrap(c, (d, e), f) = b;
-        signal(c + d + e + f) + a
+        signal(c + d + e + f + a.val())
     }
     test_kernel_vm_and_verilog::<add, _, _, _>(add, tuple_exhaustive_red())?;
     Ok(())
@@ -82,7 +82,7 @@ fn test_struct_rest_syntax() -> miette::Result<()> {
     };
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b10, Red> {
         let a = a.val();
         let b = b.val();
         let c = Foo { a: (a, a), ..FOO };

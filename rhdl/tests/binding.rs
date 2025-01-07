@@ -29,7 +29,7 @@ fn test_nested_enum_match_in_if_let_fails() -> miette::Result<()> {
     #[kernel]
     fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {
         if let Some(Foo::Red(Bar(x, y))) = state.val() {
-            signal(x + y)
+            signal((x + y).resize())
         } else {
             signal(bits(0))
         }
@@ -43,7 +43,9 @@ fn test_nested_enum_match_in_if_let_fails() -> miette::Result<()> {
         None,
     ];
 
-    let expect_err = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(707dfc356030d590): SpannedSource { source: "fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {\n    if let Some(Foo::Red(Bar(x, y))) = state.val() {\n        signal(x + y)\n    } else {\n        signal(bits(0))\n    }\n}\n", name: "add", span_map: {N24: 0..180, N9: 129..130, N7: 77..96, N11: 129..134, N3: 100..111, N17: 157..172, N4: 90..91, N19: 147..178, N13: 122..135, N22: 65..178, N1: 7..38, N8: 72..97, N6: 86..95, N23: 59..180, N21: 65..178, N0: 7..12, N5: 93..94, N2: 100..105, N20: 147..178, N12: 122..135, N10: 133..134, N18: 157..172, N16: 164..171, N14: 112..141, N15: 169..170}, fallback: N24, filename: "rhdl/tests/binding.rs:29", function_id: FnID(707dfc356030d590) }}, ranges: {FnID(707dfc356030d590): 0..181} }, err_span: SourceSpan { offset: SourceOffset(86), length: 9 } }))"#]];
+    let expect_err = expect![[
+        r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(707dfc356030d590): SpannedSource { source: "fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {\n    if let Some(Foo::Red(Bar(x, y))) = state.val() {\n        signal(x + y)\n    } else {\n        signal(bits(0))\n    }\n}\n", name: "add", span_map: {N24: 0..180, N9: 129..130, N7: 77..96, N11: 129..134, N3: 100..111, N17: 157..172, N4: 90..91, N19: 147..178, N13: 122..135, N22: 65..178, N1: 7..38, N8: 72..97, N6: 86..95, N23: 59..180, N21: 65..178, N0: 7..12, N5: 93..94, N2: 100..105, N20: 147..178, N12: 122..135, N10: 133..134, N18: 157..172, N16: 164..171, N14: 112..141, N15: 169..170}, fallback: N24, filename: "rhdl/tests/binding.rs:29", function_id: FnID(707dfc356030d590) }}, ranges: {FnID(707dfc356030d590): 0..181} }, err_span: SourceSpan { offset: SourceOffset(86), length: 9 } }))"#
+    ]];
     let res = compile_design::<add>(CompilationMode::Asynchronous);
     expect_err.assert_eq(&format!("{:?}", res));
     Ok(())
@@ -63,7 +65,7 @@ fn test_nested_rebind_in_if_let() -> miette::Result<()> {
     #[kernel]
     fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {
         if let Some(Foo { a, b: Bar(_x, y) }) = state.val() {
-            signal(a + y)
+            signal((a + y).resize())
         } else {
             signal(bits(0))
         }
@@ -108,7 +110,7 @@ fn test_nested_rebind_inlet() -> miette::Result<()> {
     #[kernel]
     fn add(state: Signal<Foo, Red>) -> Signal<b8, Red> {
         let Foo { a, b: Bar(_x, y) } = state.val();
-        signal(a + y)
+        signal((a + y).resize())
     }
 
     let inputs = [
@@ -145,7 +147,7 @@ fn test_rebind_in_let() -> miette::Result<()> {
     #[kernel]
     fn add(state: Signal<Foo, Red>) -> Signal<b8, Red> {
         let Foo { a, b } = state.val();
-        signal(a + b)
+        signal((a + b).resize())
     }
 
     let inputs = [
@@ -177,10 +179,10 @@ fn test_rebind_compile() -> miette::Result<()> {
     pub enum SimpleEnum {
         #[default]
         Init,
-        Run(u8),
+        Run(b8),
         Point {
             x: b4,
-            y: u8,
+            y: b8,
         },
         Boom,
     }
@@ -188,22 +190,28 @@ fn test_rebind_compile() -> miette::Result<()> {
     const B6: b6 = bits(6);
 
     #[kernel]
-    fn add(state: Signal<SimpleEnum, Red>) -> Signal<u8, Red> {
+    fn add(state: Signal<SimpleEnum, Red>) -> Signal<b8, Red> {
         let x = state;
         signal(match x.val() {
-            SimpleEnum::Init => 1,
+            SimpleEnum::Init => bits(1),
             SimpleEnum::Run(x) => x,
             SimpleEnum::Point { x: _, y } => y,
-            SimpleEnum::Boom => 7,
+            SimpleEnum::Boom => bits(7),
         })
     }
 
     let inputs = [
         SimpleEnum::Init,
-        SimpleEnum::Run(1),
-        SimpleEnum::Run(5),
-        SimpleEnum::Point { x: bits(7), y: 11 },
-        SimpleEnum::Point { x: bits(7), y: 13 },
+        SimpleEnum::Run(bits(1)),
+        SimpleEnum::Run(bits(5)),
+        SimpleEnum::Point {
+            x: bits(7),
+            y: bits(11),
+        },
+        SimpleEnum::Point {
+            x: bits(7),
+            y: bits(13),
+        },
         SimpleEnum::Boom,
     ];
     test_kernel_vm_and_verilog::<add, _, _, _>(add, inputs.into_iter().map(red).map(|x| (x,)))?;
@@ -230,13 +238,10 @@ fn test_importing() {
     #[kernel]
     fn do_stuff<C: Domain>(a: Signal<b4, C>) -> Signal<(Rad, Rad, Rad, b8), C> {
         let k = Rad::A;
-        let l = Rad::B(bits::<4>(1));
-        let c = Rad::C {
-            x: bits::<4>(1),
-            y: bits::<6>(2),
-        };
+        let l = Rad::B(b4(1));
+        let c = Rad::C { x: b4(1), y: b6(2) };
         let d = MY_SPECIAL_NUMBER;
-        signal((k, l, c, d + a.val().resize()))
+        signal((k, l, c, (d + a.val()).resize()))
     }
     test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, tuple_exhaustive_red()).unwrap();
 }
@@ -258,10 +263,11 @@ fn test_assignment() {
 fn test_ssa() {
     #[kernel]
     fn do_stuff(a: Signal<b8, Red>) -> Signal<b8, Red> {
+        let a = a.val();
         let mut q = a;
-        q = q + a;
+        q = (q + a).resize();
         q = a;
-        q
+        signal(q)
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red()).unwrap();
 }
@@ -272,8 +278,8 @@ fn test_rebinding() {
     #[kernel]
     fn do_stuff(a: Signal<b8, Red>) -> Signal<b16, Red> {
         let _q = a;
-        let _q = bits::<12>(6);
-        let _q = bits::<16>(7);
+        let _q = b12(6);
+        let _q = b16(7);
         signal(_q)
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red()).unwrap();
