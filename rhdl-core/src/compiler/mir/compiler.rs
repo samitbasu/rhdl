@@ -816,9 +816,16 @@ impl<'a> MirContext<'a> {
     fn bits(&mut self, id: NodeId, bits: &ExprBits) -> Result<Slot> {
         let lhs = self.reg(id);
         let arg = self.expr(&bits.arg)?;
-        match bits.kind {
-            BitsKind::Unsigned => self.op(op_as_bits_inferred(lhs, arg), id),
-            BitsKind::Signed => self.op(op_as_signed_inferred(lhs, arg), id),
+        if let Some(len) = bits.len {
+            match bits.kind {
+                BitsKind::Unsigned => self.op(op_as_bits(lhs, arg, len), id),
+                BitsKind::Signed => self.op(op_as_signed(lhs, arg, len), id),
+            }
+        } else {
+            match bits.kind {
+                BitsKind::Unsigned => self.op(op_as_bits_inferred(lhs, arg), id),
+                BitsKind::Signed => self.op(op_as_signed_inferred(lhs, arg), id),
+            }
         };
         Ok(lhs)
     }

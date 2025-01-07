@@ -18,10 +18,10 @@ use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 fn test_missing_register() {
     #[kernel]
     fn do_stuff(a: Signal<b1, Red>) -> Signal<b8, Red> {
-        let mut c = bits::<8>(0);
-        match a.val() {
-            Bits::<1>(0) => c = bits::<8>(2),
-            Bits::<1>(1) => c = bits::<8>(3),
+        let mut c = b8(0);
+        match a.val().raw() {
+            0 => c = b8(2),
+            1 => c = b8(3),
             _ => {}
         }
         signal(c)
@@ -36,110 +36,92 @@ fn test_compile() -> miette::Result<()> {
     use rhdl_bits::alias::*;
     #[derive(Digital)]
     pub struct Foo {
-        a: u8,
-        b: u16,
-        c: [u8; 3],
+        a: b8,
+        b: b16,
+        c: [b8; 3],
     }
 
     #[derive(Default, Digital)]
     pub enum NooState {
         #[default]
         Init,
-        Run(u8, u8, u8),
+        Run(b8, b8, b8),
         Walk {
-            foo: u8,
+            foo: b8,
         },
         Boom,
     }
 
-    const CONST_PATH: b4 = bits(4);
     #[kernel]
     fn do_stuff<C: Domain>(mut a: Signal<Foo, C>, mut s: Signal<NooState, C>) -> Signal<Foo, C> {
         let _k = {
-            bits::<12>(4) + 6;
-            bits::<12>(6)
+            b12(4) + 6;
+            b12(6)
         };
         let mut a: Foo = a.val();
         let mut s: NooState = s.val();
-        let _q = if a.a > 0 {
-            bits::<12>(3)
-        } else {
-            bits::<12>(0)
-        };
-        let y = bits::<12>(72);
+        let _q = if a.a > 0 { b12(3) } else { b12(0) };
+        let y = b12(72);
         let _t2 = (y, y);
-        let q: u8 = 4;
+        let q: b8 = bits(4);
         let _z = a.c;
         let _w = (a, a);
-        a.c[1] = q + 3;
-        a.c = [0; 3];
-        a.c = [1, 2, 3];
-        let q = (1, (0, 5), 6);
-        let (q0, (q1, q1b), q2): (u8, (u8, u8), u16) = q; // Tuple destructuring
-        a.a = 2 + 3 + q1 + q0 + q1b + if q2 != 0 { 1 } else { 0 };
+        a.c[1] = (q + 3).resize();
+        a.c = [bits(0); 3];
+        a.c = [bits(1), bits(2), bits(3)];
+        let q = (bits(1), (bits(0), bits(5)), bits(6));
+        let (q0, (q1, q1b), q2): (b8, (b8, b8), b16) = q; // Tuple destructuring
+        a.a = (2 + 3 + q1 + q0 + q1b + if q2 != 0 { 1 } else { 0 }).resize();
         let z;
         if 1 > 3 {
-            z = bits::<4>(2);
+            z = b4(2);
         } else {
-            z = bits::<4>(5);
+            z = b4(5);
         }
         a.b = {
             7 + 9;
-            5 + !8
+            bits(5 + !8)
         };
         a.a = if 1 > 3 {
-            7
+            bits(7)
         } else {
             {
-                a.b = 1;
-                a.b = 4;
+                a.b = bits(1);
+                a.b = bits(4);
             }
-            9
+            bits(9)
         };
         let g = 1 > 2;
         let h = 3 != 4;
         let mut _i = g && h;
-        if z == bits::<4>(3) {
+        if z == b4(3) {
             _i = false;
         }
-        match a {
-            Foo {
-                a: 1,
-                b: 2,
-                c: [1, 2, 3],
-            } => {}
-            Foo {
-                a: 3,
-                b: 4,
-                c: [1, 2, 3],
-            } => {}
-            _ => {}
-        }
-        let _c = bits::<4>(match z {
-            CONST_PATH => 1,
-            Bits::<4>(1) => 2,
-            Bits::<4>(2) => 3,
-            Bits::<4>(3) => {
-                a.a = 4;
+        let _c = b4(match z.raw() {
+            4 => 1,
+            1 => 2,
+            2 => 3,
+            3 => {
+                a.a = bits(4);
                 4
             }
             _ => 6,
         });
         let _d = match s {
             NooState::Init => {
-                a.a = 1;
-                NooState::Run(1, 2, 3)
+                a.a = bits(1);
+                NooState::Run(bits(1), bits(2), bits(3))
             }
             NooState::Walk { foo: x } => {
                 a.a = x;
                 NooState::Boom
             }
             NooState::Run(x, _t, y) => {
-                a.a = x + y;
-                NooState::Walk { foo: 7 }
+                a.a = (x + y).resize();
+                NooState::Walk { foo: bits(7) }
             }
             NooState::Boom => {
-                a.a += 3;
+                a.a = (a.a + 3).resize();
                 NooState::Init
             }
         };
@@ -147,21 +129,21 @@ fn test_compile() -> miette::Result<()> {
     }
     let foos = [
         Foo {
-            a: 1,
-            b: 2,
-            c: [1, 2, 3],
+            a: bits(1),
+            b: bits(2),
+            c: [bits(1), bits(2), bits(3)],
         },
         Foo {
-            a: 4,
-            b: 5,
-            c: [4, 5, 6],
+            a: bits(4),
+            b: bits(5),
+            c: [bits(4), bits(5), bits(6)],
         },
     ];
     let noos = [
         NooState::Init,
         NooState::Boom,
-        NooState::Run(1, 2, 3),
-        NooState::Walk { foo: 4 },
+        NooState::Run(bits(1), bits(2), bits(3)),
+        NooState::Walk { foo: bits(4) },
     ];
     let inputs =
         iproduct!(foos.into_iter().map(red), noos.into_iter().map(red)).collect::<Vec<_>>();
@@ -174,8 +156,8 @@ fn test_compile() -> miette::Result<()> {
 fn test_custom_suffix() {
     #[kernel]
     fn do_stuff(mut a: Signal<b4, Red>) {
-        let b = a + 1;
-        let _c = bits::<4>(3);
-        a = b;
+        let b = a.val() + 1;
+        let _c = b4(3);
+        a = signal(b.resize());
     }
 }

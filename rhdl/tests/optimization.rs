@@ -414,7 +414,7 @@ fn test_constant_propagation_through_sub_kernels() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn bar(a: b4) -> b4 {
+    fn bar(a: b4) -> b5 {
         a + 1
     }
 

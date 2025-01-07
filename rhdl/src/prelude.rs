@@ -87,7 +87,6 @@ pub use rhdl_macro::Synchronous;
 pub use rhdl_macro::SynchronousDQ;
 pub use rhdl_macro::Timed;
 // Use the extension traits
-pub use rhdl_bits::Pad;
 pub use rhdl_core::bitx::bitx_parse;
 pub use rhdl_core::bitx::bitx_string;
 pub use rhdl_core::bitx_vec;
@@ -106,3 +105,4 @@ pub use rhdl_core::sim::testbench::TestBenchOptions;
 pub use rhdl_core::sim::vcd::Vcd;
 pub use rhdl_core::BitX;
 pub use rhdl_macro::export;
+pub use rhdl_typenum::*;

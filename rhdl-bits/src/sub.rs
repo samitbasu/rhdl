@@ -49,18 +49,6 @@ where
     }
 }
 
-impl<N> Sub<u128> for Bits<N>
-where
-    N: BitWidth + Add<W1>,
-    Sum<N, W1>: BitWidth,
-{
-    type Output = SignedBits<Sum<N, W1>>;
-    fn sub(self, rhs: u128) -> Self::Output {
-        assert!(rhs <= Self::MASK.val);
-        signed(self.val as i128 - rhs as i128)
-    }
-}
-
 impl<N> Sub<Bits<N>> for i32
 where
     N: BitWidth + Add<W1>,
@@ -117,7 +105,7 @@ mod test {
         bits = (bits - bits_m_1).resize().as_unsigned();
         assert_eq!(bits.val, 1_u128);
         let mut bits: Bits<W8> = 0b1101_1010.into();
-        bits = (bits - 1_u128).resize().as_unsigned();
+        bits = (bits - 1).resize().as_unsigned();
         assert_eq!(bits.val, 0b1101_1001_u128);
     }
 

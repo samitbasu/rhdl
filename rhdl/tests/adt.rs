@@ -18,13 +18,13 @@ use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 fn test_adt_use() -> miette::Result<()> {
     #[derive(Digital)]
     pub enum Foo {
-        Red(u8, bool),
-        Green(u8, bool),
+        Red(b8, bool),
+        Green(b8, bool),
     }
 
     impl Default for Foo {
         fn default() -> Self {
-            Foo::Red(0, false)
+            Foo::Red(bits(0), false)
         }
     }
 
@@ -41,10 +41,13 @@ fn test_adt_use() -> miette::Result<()> {
 
     test_kernel_vm_and_verilog::<get_color, _, _, _>(
         get_color,
-        [(Foo::Red(3, true), false), (Foo::Green(4, true), true)]
-            .iter()
-            .cloned()
-            .map(|(a, b)| (signal(a), signal(b))),
+        [
+            (Foo::Red(bits(3), true), false),
+            (Foo::Green(bits(4), true), true),
+        ]
+        .iter()
+        .cloned()
+        .map(|(a, b)| (signal(a), signal(b))),
     )?;
     Ok(())
 }
@@ -54,28 +57,28 @@ fn test_struct_expr_adt() -> miette::Result<()> {
     #[derive(Default, Digital)]
     pub enum Foo {
         A,
-        B(u8),
+        B(b8),
         C {
-            a: u8,
-            b: u16,
+            a: b8,
+            b: b16,
         },
         #[default]
         D,
     }
 
     #[kernel]
-    fn do_stuff(a: Signal<u8, Red>) -> Signal<Foo, Red> {
+    fn do_stuff(a: Signal<b8, Red>) -> Signal<Foo, Red> {
         let a = a.val();
         signal(if a < 10 {
             Foo::A
         } else if a < 20 {
             Foo::B(a)
         } else {
-            Foo::C { a, b: 0 }
+            Foo::C { a, b: bits(0) }
         })
     }
 
-    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_u8())?;
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_b8())?;
     Ok(())
 }
 
@@ -142,43 +145,40 @@ fn test_adt_inference_subset() -> miette::Result<()> {
         _s: Signal<NooState, C>,
     ) -> Signal<(NooState, b7), C> {
         let _z = (a.val().b, a.val().a + MY_SPECIAL_NUMBER);
-        let foo = bits::<12>(6);
+        let foo = b12(6);
         let _foo2 = foo + foo;
         let _c = a;
-        let q = signed::<4>(2);
+        let q = s4(2);
         let _q = Foo {
-            a: bits::<8>(1),
+            a: b8(1),
             b: q,
             c: Rad::A,
         };
-        signal((NooState::Init, bits::<7>(3)))
+        signal((NooState::Init, b7(3)))
     }
 
     let foos = [
         Foo {
-            a: bits::<8>(1),
-            b: signed::<4>(2),
+            a: b8(1),
+            b: s4(2),
             c: Rad::A,
         },
         Foo {
-            a: bits::<8>(1),
-            b: signed::<4>(2),
-            c: Rad::B(bits::<4>(1)),
+            a: b8(1),
+            b: s4(2),
+            c: Rad::B(b4(1)),
         },
         Foo {
-            a: bits::<8>(1),
-            b: signed::<4>(2),
-            c: Rad::C {
-                x: bits::<4>(1),
-                y: bits::<6>(2),
-            },
+            a: b8(1),
+            b: s4(2),
+            c: Rad::C { x: b4(1), y: b6(2) },
         },
     ];
     let noos = [
         NooState::Init,
         NooState::Boom,
-        NooState::Run(bits::<4>(1), bits::<5>(2)),
-        NooState::Walk { foo: bits::<5>(3) },
+        NooState::Run(b4(1), b5(2)),
+        NooState::Walk { foo: b5(3) },
     ];
     let inputs =
         iproduct!(foos.into_iter().map(red), noos.into_iter().map(red)).collect::<Vec<_>>();
@@ -232,75 +232,74 @@ fn test_adt_inference() -> miette::Result<()> {
     fn do_stuff<C: Domain>(a: Signal<Foo, C>, s: Signal<NooState, C>) -> Signal<(NooState, b7), C> {
         let a = a.val();
         let _z = (a.b, a.a + MY_SPECIAL_NUMBER);
-        let foo = bits::<12>(6);
+        let foo = b12(6);
         let _foo2 = foo + foo;
         let _c = a;
-        let q = signed::<4>(2);
+        let q = s4(2);
         let _q = Foo {
-            a: bits::<8>(1),
+            a: b8(1),
             b: q,
             c: Rad::A,
         };
         let c = Rad::A;
         let _d = c;
-        let _z = fifo::<C>(signal(bits::<8>(3)), signal(bits::<4>(5)));
-        let mut q = bits::<4>(1);
+        let _z = fifo::<C>(signal(b8(3)), signal(b4(5)));
+        let mut q = b4(1);
         let _l = q.any();
         q |= bits(1 << 3);
         let _p = (q & bits(1 << 2)).any();
         let _p = q.as_signed();
-        if a.a > bits::<8>(12) {
-            return signal((NooState::Boom, bits::<7>(3)));
+        if a.a > b8(12) {
+            return signal((NooState::Boom, b7(3)));
         }
         let _e = Rad::B(q);
-        let x1 = bits::<4>(4);
-        let y1 = bits::<6>(6);
-        let mut ar = [bits::<4>(1), bits::<4>(1), bits::<4>(3)];
-        ar[1] = bits::<4>(2);
-        let _z: [Bits<4>; 3] = ar;
+        let x1 = b4(4);
+        let y1 = b6(6);
+        let mut ar = [b4(1), b4(1), b4(3)];
+        ar[1] = b4(2);
+        let _z: [Bits<W4>; 3] = ar;
         let _q = ar[1];
-        let f: [b4; 5] = [bits::<4>(1); 5];
+        let f: [b4; 5] = [b4(1); 5];
         let _h = f[2];
         let _k = NooState::Init;
         let _f = Rad::C { y: y1, x: x1 };
         let d = match s.val() {
-            NooState::Init => NooState::Run(bits::<4>(1), bits::<5>(2)),
-            NooState::Run(_x, y) => NooState::Walk { foo: y + 3 },
+            NooState::Init => NooState::Run(b4(1), b5(2)),
+            NooState::Run(_x, y) => NooState::Walk {
+                foo: (y + 3).resize(),
+            },
             NooState::Walk { foo: x } => {
-                let _q = bits::<5>(1) + x;
+                let _q = b5(1) + x;
                 NooState::Boom
             }
             NooState::Boom => NooState::Init,
         };
         let k = 42;
-        signal((d, bits::<7>(k)))
+        signal((d, b7(k)))
     }
 
     let foos = [
         Foo {
-            a: bits::<8>(1),
-            b: signed::<4>(2),
+            a: b8(1),
+            b: s4(2),
             c: Rad::A,
         },
         Foo {
-            a: bits::<8>(1),
-            b: signed::<4>(2),
-            c: Rad::B(bits::<4>(1)),
+            a: b8(1),
+            b: s4(2),
+            c: Rad::B(b4(1)),
         },
         Foo {
-            a: bits::<8>(1),
-            b: signed::<4>(2),
-            c: Rad::C {
-                x: bits::<4>(1),
-                y: bits::<6>(2),
-            },
+            a: b8(1),
+            b: s4(2),
+            c: Rad::C { x: b4(1), y: b6(2) },
         },
     ];
     let noos = [
         NooState::Init,
         NooState::Boom,
-        NooState::Run(bits::<4>(1), bits::<5>(2)),
-        NooState::Walk { foo: bits::<5>(3) },
+        NooState::Run(b4(1), b5(2)),
+        NooState::Walk { foo: b5(3) },
     ];
     let inputs =
         iproduct!(foos.into_iter().map(red), noos.into_iter().map(red)).collect::<Vec<_>>();
@@ -315,33 +314,33 @@ fn test_adt_shadow() {
     pub enum NooState {
         #[default]
         Init,
-        Run(u8, u8, u8),
+        Run(b8, b8, b8),
         Walk {
-            foo: u8,
+            foo: b8,
         },
         Boom,
     }
 
     #[kernel]
-    fn do_stuff<C: Domain>(mut s: Signal<NooState, C>) -> Signal<(u8, NooState), C> {
-        let _y = bits::<12>(72);
-        let _foo = bits::<14>(32);
-        let mut a: u8 = 0;
+    fn do_stuff<C: Domain>(mut s: Signal<NooState, C>) -> Signal<(b8, NooState), C> {
+        let _y = b12(72);
+        let _foo = b14(32);
+        let mut a: b8 = bits(0);
         let d = match s.val() {
             NooState::Init => {
-                a = 1;
-                NooState::Run(1, 2, 3)
+                a = bits(1);
+                NooState::Run(bits(1), bits(2), bits(3))
             }
             NooState::Walk { foo: x } => {
                 a = x;
                 NooState::Boom
             }
             NooState::Run(x, _, y) => {
-                a = x + y;
-                NooState::Walk { foo: 7 }
+                a = (x + y).resize();
+                NooState::Walk { foo: bits(7) }
             }
             NooState::Boom => {
-                a = a + 3;
+                a = (a + 3).resize();
                 NooState::Init
             }
         };
@@ -350,8 +349,8 @@ fn test_adt_shadow() {
     let noos = [
         NooState::Init,
         NooState::Boom,
-        NooState::Run(1, 2, 3),
-        NooState::Walk { foo: 4 },
+        NooState::Run(bits(1), bits(2), bits(3)),
+        NooState::Walk { foo: bits(4) },
     ];
     test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(
         do_stuff::<Red>,
@@ -366,32 +365,38 @@ fn test_enum_match() -> miette::Result<()> {
     pub enum SimpleEnum {
         #[default]
         Init,
-        Run(u8),
+        Run(b8),
         Point {
             x: b4,
-            y: u8,
+            y: b8,
         },
         Boom,
     }
 
     #[kernel]
-    fn add<C: Domain>(state: Signal<SimpleEnum, C>) -> Signal<u8, C> {
+    fn add<C: Domain>(state: Signal<SimpleEnum, C>) -> Signal<b8, C> {
         let x = state.val();
         signal(match x {
-            SimpleEnum::Init => 1,
+            SimpleEnum::Init => bits(1),
             SimpleEnum::Run(x) => x,
             SimpleEnum::Point { x: _, y } => y,
-            SimpleEnum::Boom => 7,
+            SimpleEnum::Boom => bits(7),
         })
     }
 
     let samples = vec![
         SimpleEnum::Init,
-        SimpleEnum::Run(1),
-        SimpleEnum::Run(2),
-        SimpleEnum::Run(3),
-        SimpleEnum::Point { x: bits(1), y: 2 },
-        SimpleEnum::Point { x: bits(1), y: 9 },
+        SimpleEnum::Run(bits(1)),
+        SimpleEnum::Run(bits(2)),
+        SimpleEnum::Run(bits(3)),
+        SimpleEnum::Point {
+            x: bits(1),
+            y: bits(2),
+        },
+        SimpleEnum::Point {
+            x: bits(1),
+            y: bits(9),
+        },
         SimpleEnum::Boom,
     ];
     test_kernel_vm_and_verilog::<add<Red>, _, _, _>(
@@ -408,7 +413,7 @@ fn test_enum_unmatched_variant_not_usable() -> miette::Result<()> {
     enum SimpleEnum {
         #[default]
         Init,
-        Run(u8),
+        Run(b8),
         Boom,
         Unmatched,
     }
@@ -432,15 +437,15 @@ fn test_enum_unmatched_variant_not_usable() -> miette::Result<()> {
 
 #[test]
 fn test_enum_match_signed_discriminant() -> miette::Result<()> {
-    #[derive(Debug, Digital, Default)]
+    #[derive(Digital, Default)]
     #[rhdl(discriminant_width = 4)]
     #[repr(i8)]
     pub enum SimpleEnum {
         Init = 1,
-        Run(u8) = 2,
+        Run(b8) = 2,
         Point {
             x: b4,
-            y: u8,
+            y: b8,
         } = 3,
         Boom = -2,
         #[default]
@@ -448,24 +453,30 @@ fn test_enum_match_signed_discriminant() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn add(state: Signal<SimpleEnum, Red>) -> Signal<u8, Red> {
+    fn add(state: Signal<SimpleEnum, Red>) -> Signal<b8, Red> {
         let x = state.val();
         signal(match x {
-            SimpleEnum::Init => 1,
+            SimpleEnum::Init => bits(1),
             SimpleEnum::Run(x) => x,
             SimpleEnum::Point { x: _, y } => y,
-            SimpleEnum::Boom => 7,
-            _ => 8,
+            SimpleEnum::Boom => bits(7),
+            _ => bits(8),
         })
     }
 
     let samples = vec![
         SimpleEnum::Init,
-        SimpleEnum::Run(1),
-        SimpleEnum::Run(2),
-        SimpleEnum::Run(3),
-        SimpleEnum::Point { x: bits(1), y: 2 },
-        SimpleEnum::Point { x: bits(1), y: 9 },
+        SimpleEnum::Run(bits(1)),
+        SimpleEnum::Run(bits(2)),
+        SimpleEnum::Run(bits(3)),
+        SimpleEnum::Point {
+            x: bits(1),
+            y: bits(2),
+        },
+        SimpleEnum::Point {
+            x: bits(1),
+            y: bits(9),
+        },
         SimpleEnum::Boom,
     ];
     test_kernel_vm_and_verilog::<add, _, _, _>(add, samples.into_iter().map(red).map(|x| (x,)))?;
@@ -479,7 +490,7 @@ fn test_enum_basic() -> miette::Result<()> {
     enum Foo {
         #[default]
         A,
-        B(b8),
+        B(b9),
         C {
             red: b8,
             green: b8,
@@ -536,7 +547,7 @@ fn test_match_enum() -> miette::Result<()> {
         signal(match c {
             Foo::A => b8(1),
             Foo::B(x) => x,
-            Foo::C { red, green, blue } => red + green + blue,
+            Foo::C { red, green, blue } => (red + green + blue).resize(),
             _ => b8(4),
         })
     }

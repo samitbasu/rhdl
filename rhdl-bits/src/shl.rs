@@ -3,7 +3,6 @@ use std::ops::ShlAssign;
 
 use crate::bits;
 use crate::bits_impl::Bits;
-use crate::signed;
 use crate::signed_bits_impl::SignedBits;
 use rhdl_typenum::*;
 
@@ -30,21 +29,23 @@ where
     }
 }
 
-impl<N> Shl<Bits<Log2<N>>> for Bits<N>
+impl<N, M> Shl<Bits<M>> for Bits<N>
 where
-    N: BitWidth + Logarithm2,
+    N: BitWidth,
+    M: BitWidth,
 {
     type Output = Self;
-    fn shl(self, rhs: Bits<Log2<N>>) -> Self::Output {
+    fn shl(self, rhs: Bits<M>) -> Self::Output {
         bits(u128::wrapping_shl(self.val, rhs.val as u32) & Self::mask().val)
     }
 }
 
-impl<N> ShlAssign<Bits<Log2<N>>> for Bits<N>
+impl<N, M> ShlAssign<Bits<M>> for Bits<N>
 where
-    N: BitWidth + Logarithm2,
+    N: BitWidth,
+    M: BitWidth,
 {
-    fn shl_assign(&mut self, rhs: Bits<Log2<N>>) {
+    fn shl_assign(&mut self, rhs: Bits<M>) {
         *self = *self << rhs;
     }
 }
@@ -58,12 +59,13 @@ where
     }
 }
 
-impl<N> Shl<Bits<Log2<N>>> for SignedBits<N>
+impl<N, M> Shl<Bits<M>> for SignedBits<N>
 where
-    N: BitWidth + Logarithm2,
+    N: BitWidth,
+    M: BitWidth,
 {
     type Output = Self;
-    fn shl(self, rhs: Bits<Log2<N>>) -> Self::Output {
+    fn shl(self, rhs: Bits<M>) -> Self::Output {
         (self.as_unsigned() << rhs).as_signed()
     }
 }
@@ -78,11 +80,12 @@ where
     }
 }
 
-impl<N> ShlAssign<Bits<Log2<N>>> for SignedBits<N>
+impl<N, M> ShlAssign<Bits<M>> for SignedBits<N>
 where
-    N: BitWidth + Logarithm2,
+    N: BitWidth,
+    M: BitWidth,
 {
-    fn shl_assign(&mut self, rhs: Bits<Log2<N>>) {
+    fn shl_assign(&mut self, rhs: Bits<M>) {
         *self = *self << rhs;
     }
 }

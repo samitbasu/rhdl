@@ -29,7 +29,7 @@ fn test_early_return() {
 fn test_early_return_in_branch() {
     #[kernel]
     fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
-        if a > b {
+        if a.val() > b.val() {
             let d = 5;
             d + 3;
             return a;

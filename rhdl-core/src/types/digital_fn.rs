@@ -1,6 +1,7 @@
 #![allow(clippy::type_complexity)]
 
 pub use crate::{kernel::KernelFnKind, Digital, Kind};
+use rhdl_bits::{alias::*, Bits, SignedBits};
 pub use rhdl_typenum::*;
 
 pub trait DigitalFn {

@@ -258,11 +258,15 @@ fn make_discriminant_values_into_typed_bits(
     values: &[i64],
 ) -> impl Iterator<Item = TokenStream> + '_ {
     values.iter().map(move |x| match kind {
-        DiscriminantType::Unsigned(width) => quote! {
-            rhdl::bits::bits::<#width>(#x as u128).typed_bits()
-        },
+        DiscriminantType::Unsigned(width) => {
+            let width = format_ident!("W{width}");
+            quote! {
+                rhdl::bits::bits::<#width>(#x as u128).typed_bits()
+            }
+        }
         DiscriminantType::Signed(width) => {
             let x = *x as i128;
+            let width = format_ident!("W{width}");
             quote! {
                 rhdl::bits::signed::<#width>(#x).typed_bits()
             }
@@ -277,11 +281,13 @@ fn variant_payload_trace(
 ) -> TokenStream {
     let discriminant = match kind {
         DiscriminantType::Unsigned(x) => {
+            let x = format_ident!("W{x}");
             quote! {
                 rhdl::bits::bits::<#x>(#discriminant as u128).trace()
             }
         }
         DiscriminantType::Signed(x) => {
+            let x = format_ident!("W{x}");
             quote! {
                 rhdl::bits::signed::<#x>(#discriminant as i128).trace()
             }
@@ -325,11 +331,13 @@ fn variant_payload_bin(
 ) -> TokenStream {
     let discriminant = match kind {
         DiscriminantType::Unsigned(x) => {
+            let x = format_ident!("W{x}");
             quote! {
                 rhdl::core::bitx_vec(&rhdl::bits::bits::<#x>(#discriminant as u128).to_bools())
             }
         }
         DiscriminantType::Signed(x) => {
+            let x = format_ident!("W{x}");
             quote! {
                 rhdl::core::bitx_vec(&rhdl::bits::signed::<#x>(#discriminant as i128).to_bools())
             }

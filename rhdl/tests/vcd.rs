@@ -4,7 +4,6 @@
 #![allow(unreachable_code)]
 #![allow(unused_must_use)]
 #![allow(dead_code)]
-
 use rhdl::prelude::*;
 
 #[test]
@@ -13,9 +12,9 @@ fn test_vcd_enum() {
     enum Enum {
         #[default]
         None,
-        A(u8, u16),
+        A(b8, b16),
         B {
-            name: u8,
+            name: b8,
         },
         C(bool),
     }
@@ -23,19 +22,19 @@ fn test_vcd_enum() {
     let guard = trace_init_db();
     trace_time(0);
     trace("enum", &Enum::None);
-    trace("color", &bits::<8>(0b10101010));
+    trace("color", &b8(0b10101010));
     trace_time(1_000);
-    trace("enum", &Enum::A(42, 1024));
+    trace("enum", &Enum::A(bits(42), bits(1024)));
     trace_time(2_000);
-    trace("enum", &Enum::B { name: 67 });
+    trace("enum", &Enum::B { name: bits(67) });
     trace_time(3_000);
     trace("enum", &Enum::C(true));
     trace_time(4_000);
     trace("enum", &Enum::C(false));
     trace_time(5_000);
-    trace("enum", &Enum::B { name: 65 });
+    trace("enum", &Enum::B { name: bits(65) });
     trace_time(6_000);
-    trace("enum", &Enum::A(21, 512));
+    trace("enum", &Enum::A(bits(21), bits(512)));
     trace_time(7_000);
     trace("enum", &Enum::None);
     trace_time(8_000);
@@ -49,7 +48,7 @@ fn test_vcd_basic() {
     #[derive(Digital)]
     pub struct Simple {
         a: bool,
-        b: Bits<8>,
+        b: Bits<W8>,
     }
 
     let simple = Simple {

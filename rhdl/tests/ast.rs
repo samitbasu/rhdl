@@ -16,10 +16,10 @@ use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 #[test]
 fn test_func_with_structured_args() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff((a, b): (Signal<b8, Red>, Signal<b8, Red>)) -> Signal<b8, Red> {
+    fn do_stuff((a, b): (Signal<b8, Red>, Signal<b8, Red>)) -> Signal<b9, Red> {
         let c = (a, b);
         let _d = c.0;
-        a + b
+        signal(a.val() + b.val())
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(
         do_stuff,
@@ -31,12 +31,12 @@ fn test_func_with_structured_args() -> miette::Result<()> {
 #[test]
 fn test_basic_cast() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff<const DATA: usize>(a: Signal<b8, Red>) -> Signal<b8, Red> {
-        let bytes_per_word: Bits<8> = bits(({ DATA } >> 3) as u128);
+    fn do_stuff<DATA: BitWidth>(a: Signal<b8, Red>) -> Signal<b8, Red> {
+        let bytes_per_word: Bits<W8> = bits(({ DATA::BITS } >> 3) as u128);
         let b = a.val() + bytes_per_word;
-        signal(b)
+        signal(b.resize())
     }
-    test_kernel_vm_and_verilog::<do_stuff<32>, _, _, _>(do_stuff::<32>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<W32>, _, _, _>(do_stuff::<W32>, tuple_exhaustive_red())?;
     Ok(())
 }
 
@@ -46,40 +46,40 @@ fn test_ast_basic_func() -> miette::Result<()> {
     use rhdl_bits::alias::*;
     #[derive(Digital, Default)]
     pub struct Foo {
-        a: u8,
-        b: u16,
-        c: [u8; 3],
+        a: b8,
+        b: b16,
+        c: [b8; 3],
     }
 
     #[derive(Digital, Default)]
     pub enum State {
         #[default]
         Init,
-        Run(u8),
+        Run(b8),
         Boom,
         Unknown,
     }
 
     #[derive(Digital, Default)]
-    pub struct Bar(pub u8, pub u8);
+    pub struct Bar(pub b8, pub b8);
 
     #[kernel]
     fn do_stuff(arg: Signal<b4, Red>) -> Signal<b8, Red> {
-        let a = arg; // Straight local assignment
+        let a = arg.val(); // Straight local assignment
         let b = !a; // Unary operator
-        let c = a + (b - 1); // Binary operator
+        let c = a + (b - 1).as_unsigned(); // Binary operator
         let q = (a, b, c); // Tuple valued expression
         let (_a, _b, _c) = q; // Tuple destructuring
-        let h = Bar(1, 2); // Tuple struct literal
+        let h = Bar(bits(1), bits(2)); // Tuple struct literal
         let _i = h.0; // Tuple struct field access
         let Bar(_j, _k) = h; // Tuple struct destructuring
         let _d = [1, 2, 3]; // Array literal
         let d = Foo {
-            a: 1,
-            b: 2,
-            c: [1, 2, 3],
+            a: bits(1),
+            b: bits(2),
+            c: [bits(1), bits(2), bits(3)],
         }; // Struct literal
-        let _p = Foo { a: 4, ..d };
+        let _p = Foo { a: bits(4), ..d };
         let _h = {
             let e = 3;
             let f = 4;
@@ -89,10 +89,10 @@ fn test_ast_basic_func() -> miette::Result<()> {
         let g = d.c[1]; // Array indexing
         let e = d.a; // Struct field access
         trace("dump", &(a, b, e, g));
-        let mut d: b8 = bits::<8>(7); // Mutable local
-        if d > bits::<8>(0) {
+        let mut d: b8 = b8(7); // Mutable local
+        if d > b8(0) {
             // if statement
-            d = d - bits::<8>(1);
+            d = (d - b8(1)).as_unsigned().resize();
             // early return
             return signal(d);
         }
@@ -101,7 +101,7 @@ fn test_ast_basic_func() -> miette::Result<()> {
         // Enum literal
         let k = State::Boom;
         // Enum literal with a payload
-        let l = State::Run(3);
+        let l = State::Run(bits(3));
         // Match expression with enum variants
         let j = match l {
             State::Init => b3(1),
@@ -112,10 +112,10 @@ fn test_ast_basic_func() -> miette::Result<()> {
         trace("dump2", &(j, k));
         // For loops
         for ndx in 0..8 {
-            d = d + bits::<8>(ndx);
+            d = (d + b8(ndx)).resize();
         }
         // block expression
-        signal(bits::<8>(42))
+        signal(b8(42))
     }
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red())?;
@@ -228,19 +228,19 @@ fn test_repeat_op() -> miette::Result<()> {
 #[test]
 fn test_exec_sub_kernel() -> miette::Result<()> {
     #[kernel]
-    fn double(a: Signal<b8, Red>) -> Signal<b8, Red> {
-        a + a
+    fn double(a: Signal<b8, Red>) -> Signal<b9, Red> {
+        signal(a.val() + a.val())
     }
 
     #[kernel]
     fn add(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
-        double(a) + double(b)
+        signal((double(a).val() + double(b).val()).resize())
     }
 
     #[kernel]
     fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
-        let c = add(a, b) + double(b);
-        c + a + b
+        let c = add(a, b).val() + double(b).val();
+        signal((c + a.val() + b.val()).resize())
     }
 
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
@@ -265,9 +265,9 @@ fn test_assign_with_computed_expression() -> miette::Result<()> {
 fn test_match_value() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
-        match a.val() {
-            Bits::<8>(1) => b,
-            Bits::<8>(2) => a,
+        match a.val().raw() {
+            1 => b,
+            2 => a,
             _ => signal(b8(3)),
         }
     }
@@ -305,22 +305,23 @@ fn test_basic_compile() -> miette::Result<()> {
     pub enum SimpleEnum {
         #[default]
         Init,
-        Run(u8),
+        Run(b8),
         Point {
             x: b4,
-            y: u8,
+            y: b8,
         },
         Boom,
     }
 
     #[kernel]
     fn nib_add<C: Domain>(a: Signal<b4, C>, b: Signal<b4, C>) -> Signal<b4, C> {
-        a + b
+        signal((a.val() + b.val()).resize())
     }
 
     const ONE: b4 = bits(1);
     const TWO: b4 = bits(2);
-    const MOMO: u8 = 15;
+    const THREE: b4 = bits(3);
+    const MOMO: b8 = bits(15);
 
     #[kernel]
     fn add<C: Domain>(
@@ -336,36 +337,36 @@ fn test_basic_compile() -> miette::Result<()> {
         let q = b[2];
         let _p = [q; 3];
         let k = (q, q, q, q);
-        let mut p = k.2 + d;
+        let mut p: b4 = (k.2 + d).resize();
         if p > 2 {
-            return signal(p);
+            return signal(p.resize());
         }
-        p = a - 1;
+        p = (a - 1).as_unsigned().resize();
         let mut q = Foo { a, b: b[2] };
         let Foo { a: x, b: y } = q;
-        q.a += p;
+        q.a = (q.a + p).resize();
         let mut bb = b;
-        bb[2] = p;
-        let z: b4 = p + nib_add::<C>(signal(x), signal(y)).val();
+        bb[2] = p.resize();
+        let z: b4 = (p + nib_add::<C>(signal(x), signal(y)).val()).resize();
         let q = TupStruct(x, y);
         let TupStruct(x, _y) = q;
         let _h = Bar::A;
         let _h = Bar::B(p);
         let _h = Bar::C { x: p, y: p };
         let _k: Bar = Bar::A;
-        match x {
-            ONE => {}
-            TWO => {}
-            Bits::<4>(3) => {}
+        match x.raw() {
+            1 => {}
+            2 => {}
+            3 => {}
             _ => {}
         }
         let _count = match state.val() {
-            SimpleEnum::Init => 1,
+            SimpleEnum::Init => bits(1),
             SimpleEnum::Run(x) => x,
             SimpleEnum::Point { x: _, y } => y,
-            SimpleEnum::Boom => 7,
+            SimpleEnum::Boom => bits(7),
         };
-        signal(a + c + z)
+        signal((a + c + z).resize())
     }
 
     let a_set = exhaustive();
@@ -374,10 +375,16 @@ fn test_basic_compile() -> miette::Result<()> {
         .collect();
     let state_set = [
         SimpleEnum::Init,
-        SimpleEnum::Run(1),
-        SimpleEnum::Run(5),
-        SimpleEnum::Point { x: bits(7), y: 11 },
-        SimpleEnum::Point { x: bits(7), y: 13 },
+        SimpleEnum::Run(bits(1)),
+        SimpleEnum::Run(bits(5)),
+        SimpleEnum::Point {
+            x: bits(7),
+            y: bits(11),
+        },
+        SimpleEnum::Point {
+            x: bits(7),
+            y: bits(13),
+        },
         SimpleEnum::Boom,
     ];
     let inputs = iproduct!(
@@ -397,13 +404,7 @@ fn test_generics() -> miette::Result<()> {
         signal(a == b)
     }
 
-    let a = [
-        signed::<4>(1),
-        signed::<4>(2),
-        signed::<4>(3),
-        signed::<4>(-1),
-        signed::<4>(-3),
-    ];
+    let a = [s4(1), s4(2), s4(3), s4(-1), s4(-3)];
     let inputs =
         iproduct!(a.iter().cloned().map(red), a.iter().cloned().map(red)).collect::<Vec<_>>();
     test_kernel_vm_and_verilog::<do_stuff<s4, Red>, _, _, _>(do_stuff, inputs.into_iter())?;
@@ -431,13 +432,7 @@ fn test_nested_generics() -> miette::Result<()> {
         signal(e == x)
     }
 
-    let a = [
-        signed::<4>(1),
-        signed::<4>(2),
-        signed::<4>(3),
-        signed::<4>(-1),
-        signed::<4>(-3),
-    ];
+    let a = [s4(1), s4(2), s4(3), s4(-1), s4(-3)];
     let b: Vec<b3> = exhaustive();
     let inputs = iproduct!(
         a.into_iter().map(|x| Foo { a: x, b: x }).map(red),
@@ -455,9 +450,9 @@ fn test_nested_generics() -> miette::Result<()> {
 fn test_signed_match() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<s8, Red>, b: Signal<s8, Red>) -> Signal<s8, Red> {
-        match a.val() {
-            SignedBits::<8>(1) => b,
-            SignedBits::<8>(2) => a,
+        match a.val().raw() {
+            1 => b,
+            2 => a,
             _ => signal(s8(3)),
         }
     }
@@ -470,9 +465,11 @@ fn test_signed_match() -> miette::Result<()> {
 fn test_assignment_of_if_expression() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+        let a = a.val();
+        let b = b.val();
         let mut c = a;
-        c = if a > b { a + 1 } else { b + 2 };
-        c
+        c = (if a > b { a + 1 } else { b + 2 }).resize();
+        signal(c)
     }
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
     Ok(())
@@ -484,7 +481,7 @@ fn test_precomputation() -> miette::Result<()> {
     fn foo(a: Signal<b8, Red>) -> Signal<b8, Red> {
         let c = a.val();
         let c = c + 5 + 3 - 1;
-        signal(c)
+        signal(c.as_unsigned().resize())
     }
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_exhaustive_red())?;
     Ok(())
@@ -493,10 +490,10 @@ fn test_precomputation() -> miette::Result<()> {
 #[test]
 fn test_for_loop_const_generics() -> miette::Result<()> {
     #[kernel]
-    fn sum_bits<const N: usize>(a: Signal<Bits<N>, Red>) -> Signal<bool, Red> {
+    fn sum_bits<N: BitWidth>(a: Signal<Bits<N>, Red>) -> Signal<bool, Red> {
         let mut ret = false;
         let a = a.val();
-        for i in 0..N {
+        for i in 0..N::BITS {
             if a & (1 << i) != 0 {
                 ret ^= true;
             }
@@ -504,9 +501,9 @@ fn test_for_loop_const_generics() -> miette::Result<()> {
         trace("a", &a);
         signal(ret)
     }
-    let res = compile_design::<sum_bits<8>>(CompilationMode::Asynchronous)?;
+    let res = compile_design::<sum_bits<W8>>(CompilationMode::Asynchronous)?;
     let inputs = (0..256).map(|x| (signal(bits(x)),));
-    test_kernel_vm_and_verilog::<sum_bits<8>, _, _, _>(sum_bits::<8>, inputs)?;
+    test_kernel_vm_and_verilog::<sum_bits<W8>, _, _, _>(sum_bits::<W8>, inputs)?;
     Ok(())
 }
 
@@ -540,7 +537,7 @@ fn test_error_about_for_loop() -> miette::Result<()> {
         let mut a = a.val();
         let c = 5;
         for ndx in 0..c {
-            a += bits::<4>(ndx);
+            a = (a + b4(ndx)).resize();
         }
     }
     let Err(RHDLError::RHDLSyntaxError(err)) =
@@ -557,10 +554,10 @@ fn test_error_about_for_loop() -> miette::Result<()> {
 
 #[test]
 fn test_match_scrutinee_bits() {
-    let z = bits::<4>(0b1010);
-    match z {
-        rhdl_bits::Bits::<4>(0b0000) => {}
-        rhdl_bits::Bits::<4>(0b0001) => {}
+    let z = b4(0b1010);
+    match z.raw() {
+        0b0000 => {}
+        0b0001 => {}
         _ => {}
     }
 }
@@ -595,28 +592,6 @@ fn test_multiply() -> miette::Result<()> {
         signal(c)
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_pair_b8_red())?;
-    Ok(())
-}
-
-#[test]
-fn test_generic_pad() -> miette::Result<()> {
-    fn padify<const N: usize>(a: Bits<N>) -> Bits<N>
-    where
-        Bits<N>: Pad,
-    {
-        a.pad().as_signed()
-    }
-}
-
-#[test]
-fn test_pad() -> miette::Result<()> {
-    #[kernel]
-    fn do_pad(a: Signal<b8, Red>) -> Signal<s9, Red> {
-        let a = a.val();
-        let b = a.pad().as_signed();
-        signal(b)
-    }
-    test_kernel_vm_and_verilog::<do_pad, _, _, _>(do_pad, tuple_exhaustive_red())?;
     Ok(())
 }
 

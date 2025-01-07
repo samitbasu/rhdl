@@ -8,14 +8,14 @@ use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 #[test]
 fn test_const_literal_match() {
     #[kernel]
-    fn add<C: Domain>(a: Signal<u8, C>) -> Signal<u8, C> {
-        signal(match a.val() {
+    fn add<C: Domain>(a: Signal<b8, C>) -> Signal<b8, C> {
+        signal(b8(match a.val().raw() {
             1 => 1,
             2 => 2,
             _ => 3,
-        })
+        }))
     }
-    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_u8()).unwrap();
+    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_b8()).unwrap();
 }
 
 #[test]
@@ -26,9 +26,9 @@ fn test_const_literal_captured_match() {
 
     #[kernel]
     fn do_stuff(a: Signal<b4, Red>) -> Signal<b4, Red> {
-        signal(match a.val() {
-            ONE => TWO,
-            TWO => ONE,
+        signal(match a.val().raw() {
+            1 => TWO,
+            2 => ONE,
             _ => ZERO,
         })
     }
@@ -36,25 +36,39 @@ fn test_const_literal_captured_match() {
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red()).unwrap();
 }
 
+// This test is disabled until we either adopt custom suffixes or do some other thing
+// to re-enable the ability to use literals in match arms.
+#[cfg(future)]
 #[test]
 fn test_struct_literal_match() -> miette::Result<()> {
     #[derive(Debug, Digital)]
     pub struct Foo {
-        a: u8,
-        b: u8,
+        a: b8,
+        b: b8,
     }
 
     #[kernel]
-    fn add(a: Signal<Foo, Red>) -> Signal<u8, Red> {
-        signal(match a.val() {
-            Foo { a: 1, b: 2 } => 1,
-            Foo { a: 3, b: 4 } => 2,
+    fn add(a: Signal<Foo, Red>) -> Signal<b8, Red> {
+        let res = match a.val() {
+            Foo {
+                a: Bits::<W8> { val: 1, .. },
+                b: Bits::<W8> { val: 2, .. },
+            } => 1,
+            Foo {
+                a: Bits::<W8> { val: 3, .. },
+                b: Bits::<W8> { val: 4, .. },
+            } => 2,
             _ => 3,
+        };
+
+        signal(match a.val() {
+            Foo { a, b: _ } => a,
         })
     }
 
     let test_vec = (0..4)
-        .flat_map(|a| (0..4).map(move |b| (red(Foo { a, b }),)))
+        .map(b8)
+        .flat_map(|a| (0..4).map(b8).map(move |b| (red(Foo { a, b }),)))
         .collect::<Vec<_>>();
     test_kernel_vm_and_verilog::<add, _, _, _>(add, test_vec.into_iter())?;
     Ok(())
@@ -64,7 +78,7 @@ fn test_struct_literal_match() -> miette::Result<()> {
 fn test_plain_literals() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
-        a + 2 + b
+        signal((a.val() + 2 + b.val()).resize())
     }
 
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
@@ -74,8 +88,8 @@ fn test_plain_literals() -> miette::Result<()> {
 #[test]
 fn test_plain_literals_signed_context() {
     #[kernel]
-    fn foo(a: Signal<s8, Red>, b: Signal<s8, Red>) -> Signal<s8, Red> {
-        a + 2 + b
+    fn foo(a: Signal<s8, Red>, b: Signal<s8, Red>) -> Signal<s10, Red> {
+        signal(a.val() + 2 + b.val())
     }
 
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_s8_red()).unwrap();

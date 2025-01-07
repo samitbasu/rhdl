@@ -34,7 +34,7 @@ pub mod adder {
 
     impl SynchronousIO for U {
         type I = (b4, b4);
-        type O = b4;
+        type O = b5;
         type Kernel = adder;
     }
 
@@ -44,7 +44,7 @@ pub mod adder {
     }
 
     #[kernel]
-    pub fn adder(_cr: ClockReset, i: (b4, b4), _q: ()) -> (b4, ()) {
+    pub fn adder(_cr: ClockReset, i: (b4, b4), _q: ()) -> (b5, ()) {
         let (a, b) = i;
         let sum = a + b;
         (sum, ())
@@ -178,9 +178,9 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
     }
 
     let uut = parent::Parent::default();
-    let inputs = exhaustive::<4>()
+    let inputs = exhaustive::<W4>()
         .into_iter()
-        .flat_map(|x| exhaustive::<4>().into_iter().map(move |y| (x, y)));
+        .flat_map(|x| exhaustive::<W4>().into_iter().map(move |y| (x, y)));
     let inputs = inputs.stream_after_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
@@ -202,12 +202,12 @@ fn test_add_inline() -> miette::Result<()> {
 
         impl SynchronousIO for Parent {
             type I = (b4, b4);
-            type O = b4;
+            type O = b5;
             type Kernel = parent;
         }
 
         #[kernel]
-        pub fn parent(_cr: ClockReset, i: (b4, b4), q: Q) -> (b4, D) {
+        pub fn parent(_cr: ClockReset, i: (b4, b4), q: Q) -> (b5, D) {
             let (a, b) = i;
             let mut d = D::dont_care();
             d.adder = (a, b);
@@ -217,9 +217,9 @@ fn test_add_inline() -> miette::Result<()> {
     }
 
     let uut = parent::Parent::default();
-    let inputs = exhaustive::<4>()
+    let inputs = exhaustive::<W4>()
         .into_iter()
-        .flat_map(|x| exhaustive::<4>().into_iter().map(move |y| (x, y)));
+        .flat_map(|x| exhaustive::<W4>().into_iter().map(move |y| (x, y)));
     let inputs = inputs.stream_after_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     Ok(())
@@ -270,7 +270,7 @@ fn test_async_add() -> miette::Result<()> {
 
     impl CircuitIO for U {
         type I = Signal<(b8, b8), Red>;
-        type O = Signal<b8, Red>;
+        type O = Signal<b9, Red>;
         type Kernel = async_add;
     }
 
@@ -283,15 +283,15 @@ fn test_async_add() -> miette::Result<()> {
     pub fn async_add(
         i: Signal<(b8, b8), Red>,
         q: Signal<(), Red>,
-    ) -> (Signal<b8, Red>, Signal<(), Red>) {
+    ) -> (Signal<b9, Red>, Signal<(), Red>) {
         let (a, b) = i.val();
         (signal(a + b), q)
     }
 
     let uut = U::default();
-    let inputs = exhaustive::<8>()
+    let inputs = exhaustive::<W8>()
         .into_iter()
-        .flat_map(|x| exhaustive::<8>().into_iter().map(move |y| (x, y)))
+        .flat_map(|x| exhaustive::<W8>().into_iter().map(move |y| (x, y)))
         .map(signal::<_, Red>)
         .enumerate()
         .map(|(ndx, val)| timed_sample((ndx * 100) as u64, val));
@@ -311,12 +311,12 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
 
         impl SynchronousIO for Parent {
             type I = ();
-            type O = b4;
+            type O = b5;
             type Kernel = parent;
         }
 
         #[kernel]
-        pub fn parent(_cr: ClockReset, _i: (), q: Q) -> (b4, D) {
+        pub fn parent(_cr: ClockReset, _i: (), q: Q) -> (b5, D) {
             let (a, b) = (bits(3), bits(4));
             let mut d = D::dont_care();
             d.adder = (a, b);

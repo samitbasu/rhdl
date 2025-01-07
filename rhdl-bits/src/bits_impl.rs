@@ -24,7 +24,27 @@ use seq_macro::seq;
 #[derive(Clone, Copy)]
 pub struct Bits<Len> {
     pub(crate) marker: std::marker::PhantomData<Len>,
-    pub(crate) val: u128,
+    pub val: u128,
+}
+
+impl<Len: BitWidth> std::cmp::PartialEq for Bits<Len> {
+    fn eq(&self, other: &Self) -> bool {
+        self.val == other.val
+    }
+}
+
+impl<Len: BitWidth> std::cmp::Eq for Bits<Len> {}
+
+impl<Len: BitWidth> std::cmp::PartialOrd for Bits<Len> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.val.cmp(&other.val))
+    }
+}
+
+impl<Len: BitWidth> std::cmp::Ord for Bits<Len> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.val.cmp(&other.val)
+    }
 }
 
 impl<Len: BitWidth> std::fmt::Debug for Bits<Len> {
@@ -54,26 +74,6 @@ impl<Len: BitWidth> std::fmt::UpperHex for Bits<Len> {
 impl<Len: BitWidth> std::fmt::Binary for Bits<Len> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}'b{:b}", Len::BITS, self.val)
-    }
-}
-
-impl<Len: BitWidth> std::cmp::PartialEq for Bits<Len> {
-    fn eq(&self, other: &Self) -> bool {
-        self.val == other.val
-    }
-}
-
-impl<Len: BitWidth> std::cmp::Eq for Bits<Len> {}
-
-impl<Len: BitWidth> std::cmp::PartialOrd for Bits<Len> {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.val.cmp(&other.val))
-    }
-}
-
-impl<Len: BitWidth> std::cmp::Ord for Bits<Len> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.val.cmp(&other.val)
     }
 }
 
@@ -257,13 +257,15 @@ impl<N: BitWidth> PartialEq<u128> for Bits<N> {
 
 impl<N: BitWidth> PartialOrd<Bits<N>> for u128 {
     fn partial_cmp(&self, other: &Bits<N>) -> Option<std::cmp::Ordering> {
-        other.partial_cmp(&bits(*self))
+        let self_as_bits = bits::<N>(*self);
+        self_as_bits.val.partial_cmp(&other.val)
     }
 }
 
 impl<N: BitWidth> PartialOrd<u128> for Bits<N> {
     fn partial_cmp(&self, other: &u128) -> Option<std::cmp::Ordering> {
-        self.partial_cmp(&Self::from(*other))
+        let other_as_bits = bits::<N>(*other);
+        self.val.partial_cmp(&other_as_bits.val)
     }
 }
 
@@ -324,5 +326,28 @@ mod tests {
         assert_eq!(new_bits, 0b1010);
         let new_bits = bits.resize::<W16>();
         assert_eq!(new_bits, 0b0000_0000_1101_1010);
+    }
+
+    #[test]
+    fn test_match() {
+        let bits: Bits<W8> = 0b1101_1010.into();
+        match bits.raw() {
+            42 => {
+                eprintln!("Matched");
+            }
+            36 => {
+                panic!("Did not match");
+            }
+            _ => {
+                panic!("Did not match");
+            }
+        }
+    }
+
+    #[test]
+    fn test_cmp() {
+        let a = b8(32);
+        let b = b8(64);
+        assert!(a < b);
     }
 }

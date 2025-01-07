@@ -510,12 +510,37 @@ impl ASTBuilder {
         })
     }
 
+    pub fn expr_bits_with_length(&self, arg: Box<Expr>, len: usize) -> Box<Expr> {
+        let id = self.id();
+        Box::new(Expr {
+            id,
+            kind: ExprKind::Bits(ExprBits {
+                kind: BitsKind::Unsigned,
+                len: Some(len),
+                arg,
+            }),
+        })
+    }
+
     pub fn expr_bits(&self, arg: Box<Expr>) -> Box<Expr> {
         let id = self.id();
         Box::new(Expr {
             id,
             kind: ExprKind::Bits(ExprBits {
                 kind: BitsKind::Unsigned,
+                len: None,
+                arg,
+            }),
+        })
+    }
+
+    pub fn expr_signed_with_length(&self, arg: Box<Expr>, len: usize) -> Box<Expr> {
+        let id = self.id();
+        Box::new(Expr {
+            id,
+            kind: ExprKind::Bits(ExprBits {
+                kind: BitsKind::Signed,
+                len: Some(len),
                 arg,
             }),
         })
@@ -527,6 +552,7 @@ impl ASTBuilder {
             id,
             kind: ExprKind::Bits(ExprBits {
                 kind: BitsKind::Signed,
+                len: None,
                 arg,
             }),
         })
