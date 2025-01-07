@@ -1,7 +1,7 @@
 use std::ops::Shl;
 use std::ops::ShlAssign;
 
-use crate::bits;
+use crate::bits_impl::bits_masked;
 use crate::bits_impl::Bits;
 use crate::signed_bits_impl::SignedBits;
 use rhdl_typenum::*;
@@ -15,7 +15,7 @@ where
 {
     type Output = Self;
     fn shl(self, rhs: u128) -> Self::Output {
-        bits(self.val.wrapping_shl(rhs as u32) & Self::mask().val)
+        bits_masked(self.val.wrapping_shl(rhs as u32))
     }
 }
 
@@ -25,7 +25,7 @@ where
 {
     type Output = Bits<N>;
     fn shl(self, rhs: Bits<N>) -> Self::Output {
-        bits(self.wrapping_shl(rhs.val as u32) & Bits::<N>::mask().val)
+        bits_masked(self.wrapping_shl(rhs.val as u32))
     }
 }
 
@@ -36,7 +36,7 @@ where
 {
     type Output = Self;
     fn shl(self, rhs: Bits<M>) -> Self::Output {
-        bits(u128::wrapping_shl(self.val, rhs.val as u32) & Self::mask().val)
+        bits_masked(u128::wrapping_shl(self.val, rhs.val as u32))
     }
 }
 

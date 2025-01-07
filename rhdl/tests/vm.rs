@@ -62,12 +62,12 @@ fn test_vm_simple_binop_function() -> miette::Result<()> {
 #[test]
 fn test_vm_unsigned_arith_function() -> miette::Result<()> {
     #[kernel]
-    fn add<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<b9, C> {
+    fn add<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<b8, C> {
         signal(a.val() + b.val())
     }
 
     #[kernel]
-    fn sub<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<s9, C> {
+    fn sub<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<b8, C> {
         signal(a.val() - b.val())
     }
 
@@ -97,12 +97,12 @@ fn test_vm_unsigned_arith_function() -> miette::Result<()> {
 #[test]
 fn test_vm_signed_arith_function() -> miette::Result<()> {
     #[kernel]
-    fn add<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<s9, C> {
+    fn add<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<s8, C> {
         signal(a.val() + b.val())
     }
 
     #[kernel]
-    fn sub<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<s9, C> {
+    fn sub<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<s8, C> {
         signal(a.val() - b.val())
     }
 

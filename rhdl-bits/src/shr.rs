@@ -1,7 +1,7 @@
 use std::ops::Shr;
 use std::ops::ShrAssign;
 
-use crate::bits;
+use crate::bits_impl::bits_masked;
 use crate::bits_impl::Bits;
 use crate::signed;
 use crate::signed_bits_impl::SignedBits;
@@ -13,7 +13,7 @@ where
 {
     type Output = Self;
     fn shr(self, rhs: u128) -> Self::Output {
-        bits(self.val.wrapping_shr(rhs as u32) & Self::mask().val)
+        bits_masked(self.val.wrapping_shr(rhs as u32))
     }
 }
 
@@ -23,7 +23,7 @@ where
 {
     type Output = Bits<N>;
     fn shr(self, rhs: Bits<N>) -> Self::Output {
-        bits(self.wrapping_shr(rhs.val as u32) & Bits::<N>::mask().val)
+        bits_masked(self.wrapping_shr(rhs.val as u32))
     }
 }
 
@@ -34,7 +34,7 @@ where
 {
     type Output = Self;
     fn shr(self, rhs: Bits<M>) -> Self::Output {
-        bits(u128::wrapping_shr(self.val, rhs.val as u32) & Self::mask().val)
+        bits_masked(u128::wrapping_shr(self.val, rhs.val as u32))
     }
 }
 

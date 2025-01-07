@@ -111,12 +111,12 @@ fn test_struct_cannot_cross_clock_domains() -> miette::Result<()> {
 #[allow(clippy::let_and_return)]
 fn test_signal_call_cross_clock_fails() -> miette::Result<()> {
     #[kernel]
-    fn add<C: Domain>(x: Signal<b8, C>, y: Signal<b8, C>) -> Signal<b9, C> {
+    fn add<C: Domain>(x: Signal<b8, C>, y: Signal<b8, C>) -> Signal<b8, C> {
         signal(x.val() + y.val())
     }
 
     #[kernel]
-    fn do_stuff<C: Domain, D: Domain>(a: Signal<b8, C>, b: Signal<b8, D>) -> Signal<b9, C> {
+    fn do_stuff<C: Domain, D: Domain>(a: Signal<b8, C>, b: Signal<b8, D>) -> Signal<b8, C> {
         let c = add::<C>(signal(a.val()), signal(b.val()));
         c
     }
@@ -234,8 +234,8 @@ fn test_signal_coherence_with_timed() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn add<C: Domain, D: Domain>(x: Container<C, D>) -> Signal<b9, C> {
-        let val = x.y.b.val() + b8(1);
+    fn add<C: Domain, D: Domain>(x: Container<C, D>) -> Signal<b8, C> {
+        let val = x.y.b.val() + 1;
         signal(val)
     }
     assert!(compile_design::<add<Red, Green>>(Asynchronous).is_err());
@@ -253,7 +253,7 @@ fn test_signal_carrying_struct() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn add<C: Domain, D: Domain>(x: Signal<Baz, C>, _y: Signal<b8, D>) -> Signal<b9, D> {
+    fn add<C: Domain, D: Domain>(x: Signal<Baz, C>, _y: Signal<b8, D>) -> Signal<b8, D> {
         let x = x.val();
         let y = x.b + 1;
         signal(y)
@@ -306,7 +306,7 @@ fn test_signal_cast_works() -> anyhow::Result<()> {
 #[test]
 fn test_signal_cast_cross_clocks_fails() -> miette::Result<()> {
     #[kernel]
-    fn add<C: Domain, D: Domain>(x: Signal<b8, C>) -> Signal<b9, D> {
+    fn add<C: Domain, D: Domain>(x: Signal<b8, C>) -> Signal<b8, D> {
         signal(x.val() + 3)
     }
     compile_design::<add<Red, Red>>(Asynchronous)?;
@@ -429,11 +429,11 @@ fn cannot_mix_clocks_in_an_array() -> miette::Result<()> {
 fn test_exec_sub_kernel_preserves_clocking() -> miette::Result<()> {
     #[kernel]
     fn double<C: Domain>(a: Signal<b8, C>) -> Signal<b8, C> {
-        signal((a.val() + a.val()).resize())
+        signal(a.val() + a.val())
     }
 
     #[kernel]
-    fn do_stuff<C: Domain, D: Domain>(a: Signal<b8, C>, b: Signal<b8, D>) -> Signal<b9, C> {
+    fn do_stuff<C: Domain, D: Domain>(a: Signal<b8, C>, b: Signal<b8, D>) -> Signal<b8, C> {
         signal(a.val() + double::<C>(signal(b.val())).val())
     }
 
@@ -501,10 +501,10 @@ fn test_unknown_clock_domain() -> miette::Result<()> {
         let _o = j;
         let l = {
             let a = b12(3);
-            let b = b3(4);
+            let b = 4;
             a + b
         };
-        signal((l + k).resize())
+        signal(l + k)
     }
     compile_design::<do_stuff<Red>>(Asynchronous)?;
     Ok(())

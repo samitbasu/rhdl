@@ -41,7 +41,7 @@ fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
         let arg = arg.val();
         let a = arg; // Straight local assignment
         let b = !a; // Unary operator
-        let c = a + (b - 1).as_unsigned(); // Binary operator
+        let c = a + b - 1; // Binary operator
         let q = (a, b, c); // Tuple valued expression
         let (a, b, c) = q; // Tuple destructuring
         trace("abc", &(a, b, c)); // Trace statement
@@ -69,7 +69,7 @@ fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
         let mut d: b8 = bits(7); // Mutable local
         if d > bits(0) {
             // if statement
-            d = (d - 1).as_unsigned().resize();
+            d -= 1;
             // early return
             return signal(d);
         }
@@ -82,17 +82,17 @@ fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
         let l = State::Run(bits(3));
         // Match expression with enum variants
         let j = match l {
-            State::Init => b3(1),
-            State::Run(_a) => b3(2),
-            State::Boom => b3(3),
-            _ => b3(4),
+            State::Init => 1,
+            State::Run(_a) => 2,
+            State::Boom => 3,
+            _ => 4,
         };
         // For loops
         for ndx in 0..8 {
-            d = (d + b8(ndx)).resize();
+            d += ndx;
         }
         // block expression
-        signal((b8(42) + j).resize())
+        signal(42 + b8(j))
     }
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red())?;
@@ -116,9 +116,9 @@ fn test_bits_inference_with_type() -> miette::Result<()> {
 #[test]
 fn test_signal_const_binop_inference() -> anyhow::Result<()> {
     #[kernel]
-    fn do_stuff<C: Domain>(a: Signal<b8, C>) -> Signal<b9, C> {
+    fn do_stuff<C: Domain>(a: Signal<b8, C>) -> Signal<b8, C> {
         let a = a.val();
-        signal(a + b8(4))
+        signal(a + 4)
     }
     compile_design::<do_stuff<Red>>(CompilationMode::Asynchronous)?;
     Ok(())
@@ -360,7 +360,7 @@ fn test_missing_register_inferred_types() -> miette::Result<()> {
 #[test]
 fn test_bit_inference_with_explicit_length_works() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff(a: Signal<b8, Red>) -> Signal<b9, Red> {
+    fn do_stuff(a: Signal<b8, Red>) -> Signal<b8, Red> {
         let a = a.val();
         let b = a + 1;
         let c = b4(3);
@@ -422,8 +422,8 @@ fn test_bit_inference_works() -> miette::Result<()> {
     fn do_stuff(a: Signal<b8, Red>) -> Signal<b8, Red> {
         let a = a.val();
         let b = a + 1;
-        let c = b4(3);
-        signal((b + c).resize())
+        let c = 3;
+        signal(b + c)
     }
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_exhaustive_red())?;
     Ok(())

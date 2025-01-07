@@ -119,8 +119,8 @@ impl<Len: BitWidth> std::ops::BitXorAssign for Bits<Len> {
 seq!(N in 1..=128 {
     #(
         pub type b~N = Bits<W~N>;
-        pub fn b~N(value: u128) -> b~N {
-            b~N::from(value)
+        pub const fn b~N(value: u128) -> b~N {
+            bits::<W~N>(value)
         }
     )*
 });
@@ -128,15 +128,15 @@ seq!(N in 1..=128 {
 /// Helper function for creating a bits value from
 /// a constant.
 /// ```
-/// # use rhdl_bits::{Bits, bits};
-/// let value : Bits<8> = bits(0b1010_1010);
+/// # use rhdl_bits::{W8, Bits, bits};
+/// let value : Bits<W8> = bits(0b1010_1010);
 /// assert_eq!(value, 0b1010_1010);
 /// ```
 /// Because the function is `const`, you can use it a constant
 /// context:
 /// ```
-/// # use rhdl_bits::{Bits, bits};
-/// const VALUE : Bits<8> = bits(0b1010_1010);
+/// # use rhdl_bits::{W8, Bits, bits};
+/// const VALUE : Bits<W8> = bits(0b1010_1010);
 /// ```
 pub const fn bits<N: BitWidth>(value: u128) -> Bits<N> {
     assert!(value <= Bits::<N>::mask().val);
@@ -166,8 +166,8 @@ impl<N: BitWidth> Bits<N> {
     };
     /// Return a [Bits] value with all bits set to 1.
     /// ```
-    /// # use rhdl_bits::Bits;
-    /// let bits = Bits::<8>::mask();
+    /// # use rhdl_bits::{W8, Bits};
+    /// let bits = Bits::<W8>::mask();
     /// assert_eq!(bits, 0xFF);
     /// ```
     pub const fn mask() -> Self {
@@ -332,7 +332,7 @@ mod tests {
     fn test_match() {
         let bits: Bits<W8> = 0b1101_1010.into();
         match bits.raw() {
-            42 => {
+            218 => {
                 eprintln!("Matched");
             }
             36 => {

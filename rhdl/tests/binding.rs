@@ -241,7 +241,7 @@ fn test_importing() {
         let l = Rad::B(b4(1));
         let c = Rad::C { x: b4(1), y: b6(2) };
         let d = MY_SPECIAL_NUMBER;
-        signal((k, l, c, (d + a.val()).resize()))
+        signal((k, l, c, (d + a.val().resize())))
     }
     test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, tuple_exhaustive_red()).unwrap();
 }

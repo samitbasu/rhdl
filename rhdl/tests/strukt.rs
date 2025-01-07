@@ -43,7 +43,7 @@ fn test_tuplestruct_nested_init() -> miette::Result<()> {
     pub struct Wrap(b8, (b8, b8), b8);
 
     #[kernel]
-    fn add(a: Signal<b8, Red>) -> Signal<b12, Red> {
+    fn add(a: Signal<b8, Red>) -> Signal<b8, Red> {
         let b = Wrap(b8(1), (b8(2), b8(3)), b8(4));
         let Wrap(c, (d, e), f) = b;
         signal(c + d + e + f + a.val())
@@ -82,7 +82,7 @@ fn test_struct_rest_syntax() -> miette::Result<()> {
     };
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b10, Red> {
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
         let a = a.val();
         let b = b.val();
         let c = Foo { a: (a, a), ..FOO };
