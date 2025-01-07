@@ -34,7 +34,7 @@ pub mod adder {
 
     impl SynchronousIO for U {
         type I = (b4, b4);
-        type O = b5;
+        type O = b4;
         type Kernel = adder;
     }
 
@@ -44,7 +44,7 @@ pub mod adder {
     }
 
     #[kernel]
-    pub fn adder(_cr: ClockReset, i: (b4, b4), _q: ()) -> (b5, ()) {
+    pub fn adder(_cr: ClockReset, i: (b4, b4), _q: ()) -> (b4, ()) {
         let (a, b) = i;
         let sum = a + b;
         (sum, ())
@@ -202,12 +202,12 @@ fn test_add_inline() -> miette::Result<()> {
 
         impl SynchronousIO for Parent {
             type I = (b4, b4);
-            type O = b5;
+            type O = b4;
             type Kernel = parent;
         }
 
         #[kernel]
-        pub fn parent(_cr: ClockReset, i: (b4, b4), q: Q) -> (b5, D) {
+        pub fn parent(_cr: ClockReset, i: (b4, b4), q: Q) -> (b4, D) {
             let (a, b) = i;
             let mut d = D::dont_care();
             d.adder = (a, b);
@@ -270,7 +270,7 @@ fn test_async_add() -> miette::Result<()> {
 
     impl CircuitIO for U {
         type I = Signal<(b8, b8), Red>;
-        type O = Signal<b9, Red>;
+        type O = Signal<b8, Red>;
         type Kernel = async_add;
     }
 
@@ -283,7 +283,7 @@ fn test_async_add() -> miette::Result<()> {
     pub fn async_add(
         i: Signal<(b8, b8), Red>,
         q: Signal<(), Red>,
-    ) -> (Signal<b9, Red>, Signal<(), Red>) {
+    ) -> (Signal<b8, Red>, Signal<(), Red>) {
         let (a, b) = i.val();
         (signal(a + b), q)
     }
@@ -311,12 +311,12 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
 
         impl SynchronousIO for Parent {
             type I = ();
-            type O = b5;
+            type O = b4;
             type Kernel = parent;
         }
 
         #[kernel]
-        pub fn parent(_cr: ClockReset, _i: (), q: Q) -> (b5, D) {
+        pub fn parent(_cr: ClockReset, _i: (), q: Q) -> (b4, D) {
             let (a, b) = (bits(3), bits(4));
             let mut d = D::dont_care();
             d.adder = (a, b);

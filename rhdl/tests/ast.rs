@@ -16,7 +16,7 @@ use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 #[test]
 fn test_func_with_structured_args() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff((a, b): (Signal<b8, Red>, Signal<b8, Red>)) -> Signal<b9, Red> {
+    fn do_stuff((a, b): (Signal<b8, Red>, Signal<b8, Red>)) -> Signal<b8, Red> {
         let c = (a, b);
         let _d = c.0;
         signal(a.val() + b.val())
@@ -67,7 +67,7 @@ fn test_ast_basic_func() -> miette::Result<()> {
     fn do_stuff(arg: Signal<b4, Red>) -> Signal<b8, Red> {
         let a = arg.val(); // Straight local assignment
         let b = !a; // Unary operator
-        let c = a + (b - 1).as_unsigned(); // Binary operator
+        let c = a + b - 1; // Binary operator
         let q = (a, b, c); // Tuple valued expression
         let (_a, _b, _c) = q; // Tuple destructuring
         let h = Bar(bits(1), bits(2)); // Tuple struct literal
@@ -92,7 +92,7 @@ fn test_ast_basic_func() -> miette::Result<()> {
         let mut d: b8 = b8(7); // Mutable local
         if d > b8(0) {
             // if statement
-            d = (d - b8(1)).as_unsigned().resize();
+            d -= 1;
             // early return
             return signal(d);
         }
@@ -228,7 +228,7 @@ fn test_repeat_op() -> miette::Result<()> {
 #[test]
 fn test_exec_sub_kernel() -> miette::Result<()> {
     #[kernel]
-    fn double(a: Signal<b8, Red>) -> Signal<b9, Red> {
+    fn double(a: Signal<b8, Red>) -> Signal<b8, Red> {
         signal(a.val() + a.val())
     }
 
@@ -341,7 +341,7 @@ fn test_basic_compile() -> miette::Result<()> {
         if p > 2 {
             return signal(p.resize());
         }
-        p = (a - 1).as_unsigned().resize();
+        p = a - 1;
         let mut q = Foo { a, b: b[2] };
         let Foo { a: x, b: y } = q;
         q.a = (q.a + p).resize();
@@ -481,7 +481,7 @@ fn test_precomputation() -> miette::Result<()> {
     fn foo(a: Signal<b8, Red>) -> Signal<b8, Red> {
         let c = a.val();
         let c = c + 5 + 3 - 1;
-        signal(c.as_unsigned().resize())
+        signal(c)
     }
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_exhaustive_red())?;
     Ok(())

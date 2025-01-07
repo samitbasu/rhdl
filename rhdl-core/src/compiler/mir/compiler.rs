@@ -1234,6 +1234,12 @@ impl<'a> MirContext<'a> {
         if method_call.method == "resize" {
             return self.resize(id, method_call);
         }
+        let lhs = self.reg(id);
+        let arg = self.expr(&method_call.receiver)?;
+        if method_call.method == "raw" {
+            self.op(op_assign(lhs, arg), id);
+            return Ok(lhs);
+        }
         let op = match method_call.method {
             "any" => AluUnary::Any,
             "all" => AluUnary::All,
@@ -1250,8 +1256,6 @@ impl<'a> MirContext<'a> {
                     .into())
             }
         };
-        let lhs = self.reg(id);
-        let arg = self.expr(&method_call.receiver)?;
         self.op(op_unary(op, lhs, arg), id);
         Ok(lhs)
     }

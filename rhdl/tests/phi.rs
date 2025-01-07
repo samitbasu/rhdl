@@ -130,7 +130,7 @@ fn test_phi_mut_no_init() {
 #[test]
 fn test_flow_control_if_expression() {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b10, Red> {
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
         let a = a.val();
         let b = b.val();
         let c = if a > b { a + 1 } else { b + 2 };

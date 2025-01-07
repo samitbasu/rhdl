@@ -19,7 +19,7 @@ fn test_tuple_struct_indexing() -> miette::Result<()> {
     pub struct Foo(b8, b8);
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b9, Red> {
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
         let a = a.val();
         let b = b.val();
         let c = Foo(a, b);
@@ -39,7 +39,7 @@ fn test_struct_field_indexing() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b10, Red> {
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
         let a = a.val();
         let b = b.val();
         let mut c = Foo { a: (a, a), b };
@@ -313,7 +313,7 @@ fn test_field_indexing() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b9, Red> {
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
         let a = a.val();
         let b = b.val();
         let c = Foo { a, b };
@@ -327,7 +327,7 @@ fn test_field_indexing() -> miette::Result<()> {
 #[test]
 fn test_simple_if_expression() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b9, Red> {
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
         let (a, b) = (a.val(), b.val());
         signal(if a > b { a + 1 } else { b + 2 })
     }
@@ -352,12 +352,12 @@ fn test_link_to_bits_fn() -> miette::Result<()> {
     }
 
     #[kernel]
-    fn add_two<C: Domain>(a: Signal<b4, C>) -> Signal<b5, C> {
+    fn add_two<C: Domain>(a: Signal<b4, C>) -> Signal<b4, C> {
         signal(a.val() + 2)
     }
 
     #[kernel]
-    fn add_one<C: Domain>(a: Signal<b4, C>) -> Signal<b5, C> {
+    fn add_one<C: Domain>(a: Signal<b4, C>) -> Signal<b4, C> {
         add_two::<C>(a)
     }
 
@@ -372,7 +372,7 @@ fn test_link_to_bits_fn() -> miette::Result<()> {
         let h = Tuplo(c, d);
         let p = h.0;
         let _q = NooState::Run(c, d);
-        signal((c + add_one::<C>(signal(p)).val() + if h.1 > 0 { 1 } else { 2 }).resize())
+        signal(c + add_one::<C>(signal(p)).val() + if h.1 > 0 { 1 } else { 2 })
     }
 
     test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_exhaustive_red())?;

@@ -1,86 +1,89 @@
 use std::ops::Add;
+use std::ops::AddAssign;
 
 use rhdl_typenum::BitWidth;
-use rhdl_typenum::Max;
-use rhdl_typenum::Maximum;
-use rhdl_typenum::Sum;
-use rhdl_typenum::W1;
 
-use crate::bits;
 use crate::bits_impl::bits_masked;
 use crate::bits_impl::Bits;
-use crate::signed;
+use crate::signed_bits_impl::signed_wrapped;
 use crate::signed_bits_impl::SignedBits;
 
-impl<N> Add<u128> for Bits<N>
-where
-    N: BitWidth + Add<W1>,
-    Sum<N, W1>: BitWidth,
-{
-    type Output = Bits<Sum<N, W1>>;
+// By default, all add operations are wrapping.
+
+impl<N: BitWidth> Add<u128> for Bits<N> {
+    type Output = Bits<N>;
     fn add(self, rhs: u128) -> Self::Output {
         assert!(rhs <= Self::MASK.val);
-        bits(self.val.wrapping_add(rhs))
+        bits_masked(self.val.wrapping_add(rhs))
     }
 }
 
-impl<N> Add<Bits<N>> for u128
-where
-    N: BitWidth + Add<W1>,
-    Sum<N, W1>: BitWidth,
-{
-    type Output = Bits<Sum<N, W1>>;
+impl<N: BitWidth> Add<Bits<N>> for u128 {
+    type Output = Bits<N>;
     fn add(self, rhs: Bits<N>) -> Self::Output {
         assert!(self <= Bits::<N>::MASK.val);
-        bits(self.wrapping_add(rhs.val))
+        bits_masked(self.wrapping_add(rhs.val))
     }
 }
 
-impl<N, M> Add<Bits<M>> for Bits<N>
-where
-    N: BitWidth + Max<M>,
-    M: BitWidth,
-    Maximum<N, M>: Add<W1>,
-    Sum<Maximum<N, M>, W1>: BitWidth,
-{
-    type Output = Bits<Sum<Maximum<N, M>, W1>>;
-    fn add(self, rhs: Bits<M>) -> Self::Output {
+impl<N: BitWidth> Add for Bits<N> {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
         bits_masked(u128::wrapping_add(self.val, rhs.val))
     }
 }
 
-impl<N> Add<i128> for SignedBits<N>
-where
-    N: BitWidth + Add<W1>,
-    Sum<N, W1>: BitWidth,
-{
-    type Output = SignedBits<Sum<N, W1>>;
+impl<N: BitWidth> AddAssign for Bits<N> {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+
+impl<N: BitWidth> AddAssign<u128> for Bits<N> {
+    fn add_assign(&mut self, rhs: u128) {
+        *self = *self + rhs;
+    }
+}
+
+impl<N: BitWidth> Add<i128> for SignedBits<N> {
+    type Output = SignedBits<N>;
     fn add(self, rhs: i128) -> Self::Output {
-        signed(self.val + rhs)
+        signed_wrapped(self.val.wrapping_add(rhs))
     }
 }
 
-impl<N> Add<SignedBits<N>> for i128
+impl<N: BitWidth> Add<SignedBits<N>> for i128
 where
-    N: BitWidth + Add<W1>,
-    Sum<N, W1>: BitWidth,
+    N: BitWidth,
 {
-    type Output = SignedBits<Sum<N, W1>>;
+    type Output = SignedBits<N>;
     fn add(self, rhs: SignedBits<N>) -> Self::Output {
-        signed(self + rhs.val)
+        signed_wrapped(self.wrapping_add(rhs.val))
     }
 }
 
-impl<N, M> Add<SignedBits<M>> for SignedBits<N>
-where
-    N: BitWidth + Max<M>,
-    M: BitWidth,
-    Maximum<N, M>: Add<W1>,
-    Sum<Maximum<N, M>, W1>: BitWidth,
-{
-    type Output = SignedBits<Sum<Maximum<N, M>, W1>>;
-    fn add(self, rhs: SignedBits<M>) -> Self::Output {
-        signed(self.val.wrapping_add(rhs.val))
+impl<N: BitWidth> Add for SignedBits<N> {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        signed_wrapped(self.val.wrapping_add(rhs.val))
+    }
+}
+
+impl<N: BitWidth> AddAssign for SignedBits<N> {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+
+impl<N: BitWidth> AddAssign<i128> for SignedBits<N> {
+    fn add_assign(&mut self, rhs: i128) {
+        *self = *self + rhs;
+    }
+}
+
+impl<N: BitWidth> AddAssign<SignedBits<N>> for i128 {
+    fn add_assign(&mut self, rhs: SignedBits<N>) {
+        *self = *self + rhs.val;
     }
 }
 
@@ -94,9 +97,9 @@ mod test {
         let bits: Bits<W8> = 0b1101_1010.into();
         let b_val = bits.val;
         let result = bits + bits;
-        assert_eq!(result.val, 2 * b_val);
+        assert_eq!(result.val, (b_val as u8).wrapping_mul(2) as u128);
         let result = bits + bits + bits;
-        assert_eq!(result.val, 3 * b_val);
+        assert_eq!(result.val, (b_val as u8).wrapping_mul(3) as u128);
         let mut bits: Bits<W124> = 0.into();
         bits = crate::test::set_bit(bits, 123, true);
         bits = (bits + bits).resize();

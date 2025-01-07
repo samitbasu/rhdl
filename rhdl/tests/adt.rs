@@ -490,7 +490,7 @@ fn test_enum_basic() -> miette::Result<()> {
     enum Foo {
         #[default]
         A,
-        B(b9),
+        B(b8),
         C {
             red: b8,
             green: b8,

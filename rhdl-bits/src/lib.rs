@@ -70,8 +70,8 @@
 //! There are several ways to construct a [Bits] value.  The simplest is to use the
 //! [From] trait, and convert from integer literals.  For example:
 //! ```
-//! use rhdl_bits::{Bits, alias::*};
-//! let bits: Bits<8> = 0b1101_1010.into(); // Long form
+//! use rhdl_bits::{Bits, W8, alias::*};
+//! let bits: Bits<W8> = 0b1101_1010.into(); // Long form
 //! let bits: b8 = 0b1101_1010.into(); // Short form (not the same as u8)
 //! ```
 //! This will work for any integer literal that is in the range of the [Bits] type.
@@ -79,8 +79,8 @@
 //!
 //! You can also construct a [Bits] value from a [u128] value:
 //! ```
-//! # use rhdl_bits::{Bits, alias::*};
-//! let bits: Bits<8> = 0b1101_1010_u128.into(); // Long form
+//! # use rhdl_bits::{W8, Bits, alias::*};
+//! let bits: Bits<W8> = 0b1101_1010_u128.into(); // Long form
 //! let bits: b8 = 0b1101_1010_u128.into(); // Short form (not the same as u8)
 //! ```
 //!
@@ -96,15 +96,15 @@
 //! The [SignedBits] type can be constructed in the same way as the [Bits] type.  The
 //! only difference is that the [SignedBits] type can be constructed from a [i128] value:
 //! ```
-//! # use rhdl_bits::{SignedBits, alias::*};
-//! let bits: SignedBits<8> = 0b0101_1010_i128.into(); // Long form
+//! # use rhdl_bits::{W8, SignedBits, alias::*};
+//! let bits: SignedBits<W8> = 0b0101_1010_i128.into(); // Long form
 //! let bits: s8 = 0b0101_1010_i128.into(); // Short form
 //! ```
 //!
 //! Likewise, you can construct a [SignedBits] from a signed literal
 //! ```
-//! # use rhdl_bits::{SignedBits, alias::*};
-//! let bits: SignedBits<8> = (-42).into(); // Long form
+//! # use rhdl_bits::{W8, SignedBits, alias::*};
+//! let bits: SignedBits<W8> = (-42).into(); // Long form
 //! let bits: s8 = (-42).into(); // Short form
 //! ```
 //! *Note the parenthesis!*  Because of the order of operations, the negation has a lower
@@ -119,8 +119,8 @@
 //! of the _same width_, or you can use integer literals, which will be converted to
 //! [Bits] types of the appropriate width.  For example:
 //! ```
-//! # use rhdl_bits::{Bits, alias::*};
-//! let bits: Bits<8> = 0b1101_1010.into();  // Long form
+//! # use rhdl_bits::{W8, Bits, alias::*};
+//! let bits: Bits<W8> = 0b1101_1010.into();  // Long form
 //! let result = bits & 0b1111_0000;
 //! assert_eq!(result, 0b1101_0000);
 //! let bits: b8 = 0b1101_1010.into();  // Short form
@@ -147,8 +147,8 @@
 //!
 //! ```compile_fail
 //! # use rust_hdl_bits::Bits;
-//! let x: Bits<20> = 0x1234.into();
-//! let y: Bits<21> = 0x5123.into();
+//! let x: Bits<W0> = 0x1234.into();
+//! let y: Bits<W1> = 0x5123.into();
 //! let z = x + y; // This will fail to compile.
 //! ```
 //!
@@ -194,8 +194,8 @@
 //! overflow, you will need to implement that yourself.
 //!
 //! ```
-//! # use rhdl_bits::Bits;
-//! let mut x: Bits<8> = 0b1111_1111.into();
+//! # use rhdl_bits::{W8, Bits};
+//! let mut x: Bits<W8> = 0b1111_1111.into();
 //! x += 1;
 //! assert_eq!(x, 0);
 //! ```
@@ -216,10 +216,10 @@
 //! circumstances.
 //!
 //! ```
-//! # use rhdl_bits::Bits;
-//! let x: Bits<8> = 0b0000_0001.into();
-//! let y: Bits<8> = 0b0000_0010.into();
-//! let z: Bits<8> = x - y; // 1 - 2 = -1
+//! # use rhdl_bits::{W8, Bits};
+//! let x: Bits<W8> = 0b0000_0001.into();
+//! let y: Bits<W8> = 0b0000_0010.into();
+//! let z: Bits<W8> = x - y; // 1 - 2 = -1
 //! assert_eq!(z, 0b1111_1111);
 //! ```
 //!
@@ -250,8 +250,8 @@
 //! The [SubAssign](std::ops::SubAssign) trait is implemented for both [Bits] and [SignedBits],
 //! so you can use the `-=` operator as well:
 //! ```
-//! # use rhdl_bits::Bits;
-//! let mut x: Bits<8> = 0b0000_0001.into();
+//! # use rhdl_bits::{W8, Bits};
+//! let mut x: Bits<W8> = 0b0000_0001.into();
 //! x -= 1;
 //! assert_eq!(x, 0);
 //! ```
@@ -271,16 +271,16 @@
 //!
 //! Here is an example of the binary operators in action:
 //! ```
-//! # use rhdl_bits::Bits;
-//! let x: Bits<8> = 0b1101_1010.into();
-//! let y: Bits<8> = 0b1111_0000.into();
-//! let z: Bits<8> = x | y;
+//! # use rhdl_bits::{W8, Bits};
+//! let x: Bits<W8> = 0b1101_1010.into();
+//! let y: Bits<W8> = 0b1111_0000.into();
+//! let z: Bits<W8> = x | y;
 //! assert_eq!(z, 0b1111_1010);
-//! let z: Bits<8> = x & y;
+//! let z: Bits<W8> = x & y;
 //! assert_eq!(z, 0b1101_0000);
-//! let z: Bits<8> = x ^ y;
+//! let z: Bits<W8> = x ^ y;
 //! assert_eq!(z, 0b0010_1010);
-//! let z: Bits<8> = !x;
+//! let z: Bits<W8> = !x;
 //! assert_eq!(z, 0b0010_0101);
 //! ```
 //!
@@ -321,18 +321,18 @@
 //! In order to model this, the shift operators are generic over both the number of bits in the value
 //! being shifted, _and_ the number of bits in the value that controls the shift.  For example:
 //! ```
-//! # use rhdl_bits::Bits;
-//! let x: Bits<8> = 0b1101_1010.into();
-//! let y: Bits<3> = 0b101.into();
-//! let z: Bits<8> = x >> y;
+//! # use rhdl_bits::{W3, W8, Bits};
+//! let x: Bits<W8> = 0b1101_1010.into();
+//! let y: Bits<W3> = 0b101.into();
+//! let z: Bits<W8> = x >> y;
 //! assert_eq!(z, 0b0000_0110);
 //! ```
 //!
 //! You can also use an integer literal to control the shift amount
 //! ```
-//! # use rhdl_bits::Bits;
-//! let x: Bits<8> = 0b1101_1010.into();
-//! let z: Bits<8> = x >> 3;
+//! # use rhdl_bits::{W8, Bits};
+//! let x: Bits<W8> = 0b1101_1010.into();
+//! let z: Bits<W8> = x >> 3;
 //! assert_eq!(z, 0b0001_1011);
 //! ```
 //!
@@ -351,9 +351,9 @@
 //! in RHDL.
 //!
 //! ```
-//! # use rhdl_bits::Bits;
-//! let x: Bits<8> = 0b1101_1010.into();
-//! let z: Bits<8> = x >> 10;
+//! # use rhdl_bits::{W8, Bits};
+//! let x: Bits<W8> = 0b1101_1010.into();
+//! let z: Bits<W8> = x >> 10;
 //! assert_eq!(z, 0);
 //! ```
 //!
@@ -368,9 +368,9 @@
 //! unsigned arithmetic for [Bits].  This is the same behavior that you would see in hardware designs.
 //! For example, with [Bits]:
 //! ```
-//! # use rhdl_bits::Bits;
-//! let x: Bits<8> = 0b1111_1111.into();
-//! let y: Bits<8> = 0b0000_0000.into();
+//! # use rhdl_bits::{W8, Bits};
+//! let x: Bits<W8> = 0b1111_1111.into();
+//! let y: Bits<W8> = 0b0000_0000.into();
 //! assert!(x > y);
 //! ```
 //! On the other hand with [SignedBits]:
@@ -446,6 +446,8 @@ pub use bits_impl::Bits;
 pub use signed_bits_impl::signed;
 pub use signed_bits_impl::SignedBits;
 
+pub use rhdl_typenum::*;
+
 #[cfg(test)]
 mod test {
     use rhdl_typenum::BitWidth;
@@ -468,7 +470,7 @@ mod test {
         use std::time::Instant;
         let mut a = b120::default();
         let mut b = b120::default();
-        let mut c = b121::default();
+        let mut c = b120::default();
         let start = Instant::now();
         for _k in 0..100 {
             for i in 0..120 {

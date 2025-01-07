@@ -89,7 +89,7 @@ fn test_tuple_indexing() -> miette::Result<()> {
 #[test]
 fn test_tuple_construct_and_deconstruct() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b9, Red> {
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
         let c = (a, b);
         let (d, e) = c;
         signal(d.val() + e.val())
@@ -102,7 +102,7 @@ fn test_tuple_construct_and_deconstruct() -> miette::Result<()> {
 #[test]
 fn test_nested_tuple_indexing() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b9, Red> {
+    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
         let c = (a, (b, a));
         signal(c.1 .0.val() + c.1 .1.val())
     }

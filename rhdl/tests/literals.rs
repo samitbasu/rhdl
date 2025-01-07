@@ -88,7 +88,7 @@ fn test_plain_literals() -> miette::Result<()> {
 #[test]
 fn test_plain_literals_signed_context() {
     #[kernel]
-    fn foo(a: Signal<s8, Red>, b: Signal<s8, Red>) -> Signal<s10, Red> {
+    fn foo(a: Signal<s8, Red>, b: Signal<s8, Red>) -> Signal<s8, Red> {
         signal(a.val() + 2 + b.val())
     }
 
