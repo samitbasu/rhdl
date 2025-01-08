@@ -22,12 +22,12 @@ pub struct U {
     write_bridge: bridge::write::U,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I {
     pub axi: MOSI,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct O {
     pub axi: MISO,
     pub read_data: AxilData,
@@ -160,7 +160,7 @@ mod tests {
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["2415f116570e15f510c6ced487c1183ea2b6a7323c32a805c1d488c96a85033d"];
+        let expect = expect!["c065083aea043d40ebe47310aa6825260cae0eb68838930e29342297b2c2c9df"];
         let digest = vcd
             .dump_to_file(&root.join("single_register_test.vcd"))
             .unwrap();

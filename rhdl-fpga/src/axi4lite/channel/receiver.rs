@@ -9,7 +9,7 @@ pub struct U<T: Digital + Default> {
     inner: rv_to_fifo::U<T>,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I<T: Digital> {
     // Connection to the bus
     pub bus: DataValid<T>,
@@ -17,7 +17,7 @@ pub struct I<T: Digital> {
     pub next: bool,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct O<T: Digital> {
     // Data from the bus - None if there is no data
     pub data: Option<T>,

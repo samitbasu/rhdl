@@ -11,7 +11,7 @@ use rhdl::prelude::*;
 #[allow(dead_code)]
 #[allow(clippy::just_underscores_and_digits)]
 fn test_derive() {
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     enum Test {
         A,
         B(Bits<W16>),
@@ -28,7 +28,7 @@ fn test_derive() {
 #[test]
 #[allow(dead_code)]
 fn test_derive_no_payload() {
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     pub enum State {
         Init,
         Boot,
@@ -45,7 +45,7 @@ fn test_derive_no_payload() {
 fn test_derive_digital_simple_struct() {
     use rhdl_bits::alias::*;
 
-    #[derive(Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital)]
     struct Test {
         a: bool,
         b: b8,
@@ -78,7 +78,7 @@ fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
     use rhdl_bits::alias::*;
     use rhdl_core::types::path::*;
 
-    #[derive(Debug, Default, Digital)]
+    #[derive(PartialEq, Debug, Default, Digital)]
     enum Test {
         A,
         B(b2, b3),
@@ -110,7 +110,7 @@ fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
 fn test_derive_digital_complex_enum() {
     use rhdl_bits::alias::*;
 
-    #[derive(Debug, Default, Digital)]
+    #[derive(PartialEq, Debug, Default, Digital)]
     enum Test {
         A,
         B(b2, b3),
@@ -151,7 +151,7 @@ fn test_derive_digital_complex_enum() {
 fn test_derive_enum_explicit_discriminant_width() {
     use rhdl_bits::alias::*;
 
-    #[derive(Debug, Default, Digital)]
+    #[derive(PartialEq, Debug, Default, Digital)]
     #[rhdl(discriminant_width = 4)]
     enum Test {
         A,
@@ -173,7 +173,7 @@ fn test_derive_enum_explicit_discriminant_width() {
 fn test_derive_enum_alignment_lsb() {
     use rhdl_bits::alias::*;
 
-    #[derive(Debug, Default, Digital)]
+    #[derive(PartialEq, Debug, Default, Digital)]
     #[rhdl(discriminant_align = "lsb")]
     enum Test {
         A,

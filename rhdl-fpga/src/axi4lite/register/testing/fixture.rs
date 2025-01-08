@@ -13,14 +13,14 @@ pub struct U<
     pub register: Adapter<crate::axi4lite::register::single::U, R>,
 }
 
-#[derive(Digital, Timed)]
+#[derive(PartialEq, Digital, Timed)]
 pub struct I<W: Domain, R: Domain> {
     pub reset_n: Signal<ResetN, W>,
     pub clock: Signal<Clock, R>,
     pub axi: Signal<MOSI, R>,
 }
 
-#[derive(Digital, Timed)]
+#[derive(PartialEq, Digital, Timed)]
 pub struct O<R: Domain> {
     pub axi: Signal<MISO, R>,
     pub read_data: Signal<AxilData, R>,
@@ -158,7 +158,7 @@ mod tests {
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["01e97dc8d24a765dc44f754157d9c76a388fb08937e51b54092aff0ea5a36129"];
+        let expect = expect!["8478ac7032b38a163ddedb2cd26f5c1ea2518d8bbdeeeff0c394c607b68321f0"];
         let digest = vcd
             .dump_to_file(&root.join("axi4lite_register.vcd"))
             .unwrap();

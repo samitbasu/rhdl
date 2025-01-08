@@ -19,7 +19,7 @@ use rhdl::prelude::*;
 pub struct U {}
 */
 
-#[derive(Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Default)]
 pub struct I<N: BitWidth, const M: usize> {
     /// The value taken when the interpolant is 0
     pub a: SignedBits<N>,
@@ -29,7 +29,7 @@ pub struct I<N: BitWidth, const M: usize> {
     pub x: Bits<M>,
 }
 
-#[derive(Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Default)]
 pub struct O<N: BitWidth> {
     /// The interpolated value
     pub y: SignedBits<N>,

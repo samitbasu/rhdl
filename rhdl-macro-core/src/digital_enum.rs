@@ -416,7 +416,7 @@ pub const fn clog2(t: u128) -> usize {
 
 pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
     let clone = derive_clone_from_inner(decl.clone())?;
-    let partial_eq = derive_partial_eq_from_inner(decl.clone())?;
+    //let partial_eq = derive_partial_eq_from_inner(decl.clone())?;
     let enum_name = &decl.ident;
     let fqdn = crate::utils::get_fqdn(&decl);
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
@@ -494,7 +494,7 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
 
         #clone
 
-        #partial_eq
+        //#partial_eq
 
         impl #impl_generics rhdl::core::Digital for #enum_name #ty_generics #where_clause {
             // BITS is the width of the discriminant (#width_bits) plus the maximum width

@@ -9,7 +9,7 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 /// lines are implied with Synchronous circuits, they do not appear in the
 /// interface.
 ///
-#[derive(Debug, Clone, Default)]
+#[derive(PartialEq, Debug, Clone, Default)]
 pub struct U<T: Digital, N: BitWidth> {
     initial: BTreeMap<Bits<N>, T>,
 }
@@ -23,14 +23,14 @@ impl<T: Digital, N: BitWidth> U<T, N> {
     }
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct Write<T: Digital, N: BitWidth> {
     pub addr: Bits<N>,
     pub value: T,
     pub enable: bool,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I<T: Digital, N: BitWidth> {
     pub read_addr: Bits<N>,
     pub write: Write<T, N>,
@@ -47,7 +47,7 @@ impl<T: Digital, N: BitWidth> SynchronousIO for U<T, N> {
     type Kernel = NoKernel3<ClockReset, Self::I, (), (Self::O, ())>;
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct S<T: Digital, N: BitWidth> {
     clock: Clock,
     contents: BTreeMap<Bits<N>, T>,
@@ -164,7 +164,7 @@ impl<T: Digital, N: BitWidth> Synchronous for U<T, N> {
                 .iter()
                 .map(|(addr, val)| {
                     let val: BitString = val.typed_bits().into();
-                    assign(&format!("mem[{}]", addr.0), bit_string(&val))
+                    assign(&format!("mem[{}]", addr.raw()), bit_string(&val))
                 })
                 .collect(),
         ));
@@ -216,7 +216,7 @@ mod tests {
     use super::*;
     use std::{iter::repeat, path::PathBuf};
 
-    #[derive(Debug, Clone, PartialEq, Copy)]
+    #[derive(PartialEq, Debug, Clone, Copy)]
     enum Cmd {
         Write(b4, b8),
         Read(b4),
@@ -276,7 +276,7 @@ mod tests {
             .join("ram")
             .join("synchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["eb530c1a42a5d7216b7a15cc69085c91c348109ce51cf60c4e32b486a660fd5f"];
+        let expect = expect!["e3c0e81854651e4586bd61b33b86f809412bb3568b2f1bddde8d817f1a1216c6"];
         let digest = vcd
             .dump_to_file(&root.join("test_scan_out_ram.vcd"))
             .unwrap();

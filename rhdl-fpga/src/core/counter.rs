@@ -48,7 +48,7 @@ mod tests {
         let inputs = inputs.stream_after_reset(4);
         let inputs = inputs.clock_pos_edge(100);
         let inputs = inputs.collect::<Vec<_>>();
-        let uut: U<16> = U::default();
+        let uut: U<W6> = U::default();
         let output = uut.run(inputs)?.count();
         assert_eq!(output, 311);
         Ok(())
@@ -60,13 +60,13 @@ mod tests {
         let inputs_2 = inputs_1.clone();
         let input = inputs_1.chain(inputs_2);
         let input = input.clock_pos_edge(100);
-        let uut: U<16> = U::default();
+        let uut: U<W6> = U::default();
         let vcd: Vcd = uut.run(input)?.collect();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("counter");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["b5c35285b0d781b9385402ce769e6958bf0829f34c8db8fa8ebafea7e004056f"];
+        let expect = expect!["c4eaeed085952d1bddf969d706befee53583cd65545171da0f83892a269f8111"];
         let digest = vcd.dump_to_file(&root.join("counter.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -83,7 +83,7 @@ mod tests {
             .iter()
             .fold(0, |acc, x| acc + if *x { 1 } else { 0 });
         let stream = rand_set.stream_after_reset(4).clock_pos_edge(100);
-        let uut: U<16> = U::default();
+        let uut: U<W6> = U::default();
         let out_stream = uut.run(stream)?;
         let output = out_stream.clone().last().map(|x| x.value.2);
         assert_eq!(output, Some(bits(ground_truth)));

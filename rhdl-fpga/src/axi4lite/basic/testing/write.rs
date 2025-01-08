@@ -11,7 +11,7 @@ pub struct U {
     subordinate: bridge::write::U<32, 32>,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I {
     pub cmd: Option<(b32, b32)>,
     pub ready: bool,

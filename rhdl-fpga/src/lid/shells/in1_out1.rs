@@ -24,14 +24,14 @@ pub struct U<
     ready_in_ff: dff::U<bool>,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I<X: Digital, Y: Digital> {
     pub data_in: Option<X>,
     pub ready_in: bool,
     pub pearl_out: Y,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct O<X: Digital, Y: Digital> {
     pub data_out: Option<Y>,
     pub ready_out: bool,

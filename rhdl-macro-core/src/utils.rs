@@ -73,13 +73,13 @@ impl<'a> TryFrom<&'a syn::Fields> for FieldSet<'a> {
         let mut component_name = Vec::new();
         let mut component_ty = Vec::new();
         for field in fields.iter() {
-            component_name.push(field.ident.clone().ok_or_else(|| {
-                syn::Error::new(
-                    field.span(),
-                    "Synchronous components (fields) must have names",
-                )
-            })?);
-            component_ty.push(&field.ty);
+            if parse_rhdl_skip_attribute(&field.attrs) {
+                continue;
+            }
+            if let Some(name) = &field.ident {
+                component_name.push(name.clone());
+                component_ty.push(&field.ty);
+            }
         }
         Ok(FieldSet {
             component_name,

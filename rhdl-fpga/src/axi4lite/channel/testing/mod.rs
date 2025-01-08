@@ -45,7 +45,7 @@ mod tests {
 
     #[test]
     fn test_channel_trace() -> miette::Result<()> {
-        let uut = U::<16>::default();
+        let uut = U::<W6>::default();
         let input = std::iter::repeat(())
             .take(1000)
             .stream_after_reset(1)
@@ -55,7 +55,7 @@ mod tests {
             .join("vcd")
             .join("channel");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["8d31c012a485d5c73ef6d41a0703ca91a9b459bc01b084066b5c165d4ed7bb01"];
+        let expect = expect!["de467eedef6bacea0b039cc1fe7be3dd4a6420df18a330e6510c4c63e6584ca3"];
         let digest = vcd.dump_to_file(&root.join("channel.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn test_channel_is_valid() -> miette::Result<()> {
-        let uut = U::<16>::default();
+        let uut = U::<W6>::default();
         let input = std::iter::repeat(())
             .take(100_000)
             .stream_after_reset(1)
@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_channel_hdl() -> miette::Result<()> {
-        let uut = U::<16>::default();
+        let uut = U::<W6>::default();
         let input = std::iter::repeat(())
             .take(100)
             .stream_after_reset(1)

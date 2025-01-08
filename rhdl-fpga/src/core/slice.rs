@@ -30,9 +30,9 @@ mod tests {
     fn test_msbs_works() {
         let n = 0xDEAD_BEEF_u128;
         let n = b32(n);
-        let h = msbs::<16, 32>(n);
+        let h = msbs::<W16, W32>(n);
         assert_eq!(h, 0xDEAD);
-        let l = lsbs::<16, 32>(n);
+        let l = lsbs::<W16, W32>(n);
         assert_eq!(l, 0xBEEF);
     }
 }

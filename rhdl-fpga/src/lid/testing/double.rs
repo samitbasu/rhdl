@@ -58,7 +58,7 @@ mod tests {
 
     #[test]
     fn test_double_trace() -> miette::Result<()> {
-        let uut = U::<16>::default();
+        let uut = U::<W6>::default();
         let input = std::iter::repeat(())
             .take(5000)
             .stream_after_reset(1)
@@ -68,7 +68,7 @@ mod tests {
             .join("vcd")
             .join("lid");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["adce38d8472fcfcda3629b05a6d6ea501dd1a7f43a6a190a0431a3db3066ec9a"];
+        let expect = expect!["a06509cbb17ac977a4a75a1900c5df49c595c4d58be3a8bb9614bfc2a4c9dc6f"];
         let digest = vcd.dump_to_file(&root.join("double.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -76,7 +76,7 @@ mod tests {
 
     #[test]
     fn test_double_is_valid() -> miette::Result<()> {
-        let uut = U::<16>::default();
+        let uut = U::<W6>::default();
         let input = std::iter::repeat(())
             .take(100_000)
             .stream_after_reset(1)
@@ -88,7 +88,7 @@ mod tests {
 
     #[test]
     fn test_double_hdl() -> miette::Result<()> {
-        let uut = U::<16>::default();
+        let uut = U::<W6>::default();
         let input = std::iter::repeat(())
             .take(500)
             .stream_after_reset(1)

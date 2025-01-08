@@ -2,7 +2,7 @@ use rhdl::prelude::*;
 
 use super::dff;
 
-#[derive(Debug, Clone, Synchronous, SynchronousDQ)]
+#[derive(PartialEq, Debug, Clone, Synchronous, SynchronousDQ)]
 pub struct U<T: Digital, const N: usize> {
     dffs: [dff::U<T>; N],
 }
@@ -57,7 +57,7 @@ mod tests {
             .join("vcd")
             .join("delay");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["42d51db675648f83fd7aa81a700a198ca19e3612daa8d45b47768732461ebcdb"];
+        let expect = expect!["d2da6d6962f274e015ab5c88bc8fca50fe1ccc6bb6c3ac1fa8842a34429d84dd"];
         let digest = vcd.dump_to_file(&root.join("delay.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

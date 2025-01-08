@@ -15,13 +15,13 @@ pub struct U<T: Digital + Default, N: BitWidth> {
     ram: ram::option_sync::U<T, N>,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I<T: Digital> {
     pub data: Option<T>,
     pub next: bool,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct O<T: Digital> {
     pub data: Option<T>,
     pub full: bool,
@@ -110,7 +110,7 @@ mod tests {
 
     #[test]
     fn check_that_output_is_valid() -> miette::Result<()> {
-        let uut = U::<b8, 3>::default();
+        let uut = U::<b8, W3>::default();
         let stream = test_seq();
         let output = uut
             .run(stream)?
@@ -125,7 +125,7 @@ mod tests {
 
     #[test]
     fn basic_write_then_read_test() -> miette::Result<()> {
-        let uut = U::<Bits<W8>, 3>::default();
+        let uut = U::<Bits<W8>, W3>::default();
         let stream = test_seq();
         let vcd = uut.run(stream)?.collect::<Vcd>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -133,7 +133,7 @@ mod tests {
             .join("fifo")
             .join("synchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["36e1d91e3bb5babcbae92a9893ac6f187be0ef34b4531dc6e8bfefc6181bf878"];
+        let expect = expect!["df11fe18b1cbe161cd6e0a4cc92d02be6e07aa580a2e272d6826aba68d36f1e8"];
         let digest = vcd.dump_to_file(&root.join("fifo.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -141,7 +141,7 @@ mod tests {
 
     #[test]
     fn test_hdl_generation_fifo() -> miette::Result<()> {
-        let uut = U::<Bits<W8>, 3>::default();
+        let uut = U::<Bits<W8>, W3>::default();
         let stream = test_seq();
         let test_bench = uut.run(stream)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;

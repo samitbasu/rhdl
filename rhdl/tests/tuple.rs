@@ -31,13 +31,13 @@ fn test_tuple_destructure_in_args() -> miette::Result<()> {
 
 #[test]
 fn test_tuple_struct_nested_init() -> miette::Result<()> {
-    #[derive(Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital)]
     pub struct Foo {
         a: b8,
         b: b8,
     }
 
-    #[derive(Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital)]
     pub struct Bar {
         a: b8,
         b: Foo,

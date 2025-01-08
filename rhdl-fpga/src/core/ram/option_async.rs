@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 
-#[derive(Debug, Clone, Default, Circuit, CircuitDQ)]
+#[derive(PartialEq, Debug, Clone, Default, Circuit, CircuitDQ)]
 pub struct U<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> {
     inner: super::asynchronous::U<T, W, R, N>,
 }
@@ -15,13 +15,13 @@ impl<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> U<T, W, R, N> {
 
 type ReadI<N: BitWidth> = super::asynchronous::ReadI<N>;
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct WriteI<T: Digital + Default, N: BitWidth> {
     pub clock: Clock,
     pub data: Option<(Bits<N>, T)>,
 }
 
-#[derive(Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Timed)]
 pub struct I<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> {
     pub write: Signal<WriteI<T, N>, W>,
     pub read: Signal<ReadI<N>, R>,
@@ -96,7 +96,7 @@ mod tests {
 
     #[test]
     fn test_ram_flow_graph() -> miette::Result<()> {
-        let uut = U::<Bits<W8>, Red, Green, 4>::new(
+        let uut = U::<Bits<W8>, Red, Green, W4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn test_ram_as_verilog() -> miette::Result<()> {
-        let uut = U::<Bits<W8>, Red, Green, 4>::new(
+        let uut = U::<Bits<W8>, Red, Green, W4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -130,7 +130,7 @@ mod tests {
 
     #[test]
     fn test_ram_write_behavior() -> miette::Result<()> {
-        let uut = U::<Bits<W8>, Red, Green, 4>::new(
+        let uut = U::<Bits<W8>, Red, Green, W4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits(0))),
@@ -157,7 +157,7 @@ mod tests {
             .join("ram")
             .join("option_async");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["b80c662b12a686b5556e8ec4cfcfe6b25b29d1c5459d42af4c4b2cff9e236838"];
+        let expect = expect!["88097a6ec53c27a08eb4fe7a616971aac03d8e515ca4c0cdfacc42528bc944aa"];
         let digest = vcd.dump_to_file(&root.join("ram_write.vcd")).unwrap();
         expect.assert_eq(&digest);
         let output = uut
@@ -176,7 +176,7 @@ mod tests {
     fn test_ram_read_only_behavior() -> miette::Result<()> {
         // Let's start with a simple test where the RAM is pre-initialized,
         // and we just want to read it.
-        let uut = U::<Bits<W8>, Red, Green, 4>::new(
+        let uut = U::<Bits<W8>, Red, Green, W4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),

@@ -10,7 +10,7 @@ use rhdl::{
     prelude::*,
 };
 
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct U<T: Digital> {
     reset: T,
 }
@@ -40,7 +40,7 @@ impl<T: Digital> SynchronousDQ for U<T> {
     type Q = ();
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct S<T: Digital> {
     cr: ClockReset,
     reset: Reset,

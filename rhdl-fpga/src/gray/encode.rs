@@ -14,7 +14,7 @@ mod tests {
     #[test]
     fn test_gray_code() {
         let values = (0..128).map(bits);
-        let gray = values.map(gray_code::<7>);
+        let gray = values.map(gray_code::<W7>);
         let gray = gray.collect::<Vec<_>>();
         assert!(gray.windows(2).all(|x| {
             let a = x[0].0;

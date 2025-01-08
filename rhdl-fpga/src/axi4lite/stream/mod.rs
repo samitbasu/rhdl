@@ -4,7 +4,7 @@ pub mod sink;
 pub mod source;
 pub mod testing;
 
-#[derive(Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Default)]
 pub struct StreamMOSI<T: Digital + Default> {
     /// The data to be sent
     pub tdata: T,
@@ -12,7 +12,7 @@ pub struct StreamMOSI<T: Digital + Default> {
     pub tvalid: bool,
 }
 
-#[derive(Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Default)]
 pub struct StreamMISO {
     /// The ready flag from the consumer
     pub tready: bool,

@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn test_single_trace() -> miette::Result<()> {
-        let uut = U::<16>::default();
+        let uut = U::<W6>::default();
         let input = std::iter::repeat(())
             .take(5000)
             .stream_after_reset(1)
@@ -64,7 +64,7 @@ mod tests {
             .join("vcd")
             .join("lid");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["6dafb358adaa1c2bca429cd0a088acec86513ab3b1fa846e1219848bc8340116"];
+        let expect = expect!["7bfbc935c2e1490860a6a6ee6977ee123f544a0d69c17ecb629631127274598b"];
         let digest = vcd.dump_to_file(&root.join("single.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_single_is_valid() -> miette::Result<()> {
-        let uut = U::<16>::default();
+        let uut = U::<W6>::default();
         let input = std::iter::repeat(())
             .take(100_000)
             .stream_after_reset(1)
@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn test_single_hdl() -> miette::Result<()> {
-        let uut = U::<16>::default();
+        let uut = U::<W6>::default();
         let input = std::iter::repeat(())
             .take(500)
             .stream_after_reset(1)

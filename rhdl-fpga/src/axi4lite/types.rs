@@ -8,17 +8,17 @@ pub type ResponseKind = Bits<W2>;
 pub mod response_codes {
     use rhdl::prelude::*;
 
-    pub const OKAY: Bits<W2> = bits(0);
-    pub const EXOKAY: Bits<W2> = bits(1);
-    pub const SLVERR: Bits<W2> = bits(2);
-    pub const DECERR: Bits<W2> = bits(3);
+    pub const OKAY: u128 = 0;
+    pub const EXOKAY: u128 = 1;
+    pub const SLVERR: u128 = 2;
+    pub const DECERR: u128 = 3;
 }
 
 pub type AxilData = Bits<W32>;
 pub type AxilAddr = Bits<W32>;
 pub type AxilStrobe = Bits<W4>;
 
-#[derive(Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Default)]
 pub struct StrobedData {
     /// The data to write
     pub data: AxilData,
@@ -26,7 +26,7 @@ pub struct StrobedData {
     pub strobe: AxilStrobe,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct ReadResponse {
     /// The response to the transaction
     pub resp: ResponseKind,
@@ -37,13 +37,13 @@ pub struct ReadResponse {
 impl Default for ReadResponse {
     fn default() -> Self {
         Self {
-            resp: response_codes::OKAY,
+            resp: bits(response_codes::OKAY),
             data: Bits::default(),
         }
     }
 }
 
-#[derive(Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Default)]
 pub struct WriteCommand {
     /// The address to write to
     pub addr: AxilAddr,
@@ -72,7 +72,7 @@ pub fn strobe_to_mask(strobe: Bits<W4>) -> Bits<W32> {
 
 // An AXI4-Error Enum meant to capture the two cases of
 // SLVERR and DECERR
-#[derive(Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Default)]
 pub enum AXI4Error {
     #[default]
     SLVERR,
@@ -81,7 +81,7 @@ pub enum AXI4Error {
 
 #[kernel]
 pub fn read_response_to_result(resp: ReadResponse) -> Result<AxilData, AXI4Error> {
-    match resp.resp {
+    match resp.resp.raw() {
         response_codes::OKAY => Ok(resp.data),
         response_codes::EXOKAY => Ok(resp.data),
         response_codes::DECERR => Err(AXI4Error::DECERR),
@@ -93,16 +93,16 @@ pub fn read_response_to_result(resp: ReadResponse) -> Result<AxilData, AXI4Error
 pub fn result_to_read_response(resp: Result<AxilData, AXI4Error>) -> ReadResponse {
     match resp {
         Ok(data) => ReadResponse {
-            resp: response_codes::OKAY,
+            resp: bits(response_codes::OKAY),
             data,
         },
         Err(e) => match e {
             AXI4Error::SLVERR => ReadResponse {
-                resp: response_codes::SLVERR,
+                resp: bits(response_codes::SLVERR),
                 data: bits(0),
             },
             AXI4Error::DECERR => ReadResponse {
-                resp: response_codes::DECERR,
+                resp: bits(response_codes::DECERR),
                 data: bits(0),
             },
         },
@@ -111,18 +111,18 @@ pub fn result_to_read_response(resp: Result<AxilData, AXI4Error>) -> ReadRespons
 
 #[kernel]
 pub fn result_to_write_response(resp: Result<(), AXI4Error>) -> ResponseKind {
-    match resp {
+    bits(match resp {
         Ok(_) => response_codes::OKAY,
         Err(e) => match e {
             AXI4Error::SLVERR => response_codes::SLVERR,
             AXI4Error::DECERR => response_codes::DECERR,
         },
-    }
+    })
 }
 
 #[kernel]
 pub fn write_response_to_result(resp: ResponseKind) -> Result<(), AXI4Error> {
-    match resp {
+    match resp.raw() {
         response_codes::OKAY => Ok(()),
         response_codes::EXOKAY => Ok(()),
         response_codes::DECERR => Err(AXI4Error::DECERR),
@@ -143,7 +143,7 @@ pub fn write_response_to_result(resp: ResponseKind) -> Result<(), AXI4Error> {
 
 */
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct ReadMOSI {
     /// Read Address
     pub araddr: AxilAddr,
@@ -153,7 +153,7 @@ pub struct ReadMOSI {
     pub rready: bool,
 }
 
-#[derive(Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Default)]
 pub struct ReadMISO {
     /// Read Address ready
     pub arready: bool,
@@ -165,7 +165,7 @@ pub struct ReadMISO {
     pub rvalid: bool,
 }
 
-#[derive(Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Default)]
 pub struct WriteMOSI {
     /// Write Address
     pub awaddr: AxilAddr,
@@ -181,7 +181,7 @@ pub struct WriteMOSI {
     pub bready: bool,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct WriteMISO {
     /// Write Address ready
     pub awready: bool,
@@ -193,13 +193,13 @@ pub struct WriteMISO {
     pub bvalid: bool,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct MOSI {
     pub read: ReadMOSI,
     pub write: WriteMOSI,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct MISO {
     pub read: ReadMISO,
     pub write: WriteMISO,

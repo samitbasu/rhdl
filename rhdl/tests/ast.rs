@@ -44,14 +44,14 @@ fn test_basic_cast() -> miette::Result<()> {
 #[allow(clippy::assign_op_pattern)]
 fn test_ast_basic_func() -> miette::Result<()> {
     use rhdl_bits::alias::*;
-    #[derive(Digital, Default)]
+    #[derive(PartialEq, Digital, Default)]
     pub struct Foo {
         a: b8,
         b: b16,
         c: [b8; 3],
     }
 
-    #[derive(Digital, Default)]
+    #[derive(PartialEq, Digital, Default)]
     pub enum State {
         #[default]
         Init,
@@ -60,7 +60,7 @@ fn test_ast_basic_func() -> miette::Result<()> {
         Unknown,
     }
 
-    #[derive(Digital, Default)]
+    #[derive(PartialEq, Digital, Default)]
     pub struct Bar(pub b8, pub b8);
 
     #[kernel]
@@ -191,7 +191,7 @@ fn test_repeat_with_generic() -> miette::Result<()> {
 
 #[test]
 fn test_if_let_syntax() -> miette::Result<()> {
-    #[derive(Debug, Default, Digital)]
+    #[derive(PartialEq, Debug, Default, Digital)]
     pub enum Foo {
         Bar(b8),
         #[default]
@@ -263,11 +263,13 @@ fn test_assign_with_computed_expression() -> miette::Result<()> {
 
 #[test]
 fn test_match_value() -> miette::Result<()> {
+    const ONE: b8 = bits(1);
+    const TWO: b8 = bits(2);
     #[kernel]
     fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
-        match a.val().raw() {
-            1 => b,
-            2 => a,
+        match a.val() {
+            ONE => b,
+            TWO => a,
             _ => signal(b8(3)),
         }
     }
@@ -280,16 +282,16 @@ fn test_match_value() -> miette::Result<()> {
 fn test_basic_compile() -> miette::Result<()> {
     use itertools::iproduct;
 
-    #[derive(Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital)]
     pub struct Foo {
         a: b4,
         b: b4,
     }
 
-    #[derive(Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital)]
     pub struct TupStruct(b4, b4);
 
-    #[derive(Debug, Default, Digital)]
+    #[derive(PartialEq, Debug, Default, Digital)]
     pub enum Bar {
         A,
         B(b4),
@@ -301,7 +303,7 @@ fn test_basic_compile() -> miette::Result<()> {
         D,
     }
 
-    #[derive(Debug, Digital, Default)]
+    #[derive(PartialEq, Debug, Digital, Default)]
     pub enum SimpleEnum {
         #[default]
         Init,
@@ -354,10 +356,10 @@ fn test_basic_compile() -> miette::Result<()> {
         let _h = Bar::B(p);
         let _h = Bar::C { x: p, y: p };
         let _k: Bar = Bar::A;
-        match x.raw() {
-            1 => {}
-            2 => {}
-            3 => {}
+        match x {
+            ONE => {}
+            TWO => {}
+            THREE => {}
             _ => {}
         }
         let _count = match state.val() {
@@ -413,7 +415,7 @@ fn test_generics() -> miette::Result<()> {
 
 #[test]
 fn test_nested_generics() -> miette::Result<()> {
-    #[derive(Digital)]
+    #[derive(PartialEq, Digital)]
     struct Foo<T: Digital> {
         a: T,
         b: T,
@@ -448,11 +450,14 @@ fn test_nested_generics() -> miette::Result<()> {
 
 #[test]
 fn test_signed_match() -> miette::Result<()> {
+    const ONE: s8 = s8(1);
+    const TWO: s8 = s8(2);
+
     #[kernel]
     fn foo(a: Signal<s8, Red>, b: Signal<s8, Red>) -> Signal<s8, Red> {
-        match a.val().raw() {
-            1 => b,
-            2 => a,
+        match a.val() {
+            ONE => b,
+            TWO => a,
             _ => signal(s8(3)),
         }
     }
@@ -564,7 +569,7 @@ fn test_match_scrutinee_bits() {
 
 #[test]
 fn test_maybe_init_does_not_allow_select() -> miette::Result<()> {
-    #[derive(Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital)]
     struct Foo {
         a: b4,
         b: b4,
@@ -597,7 +602,7 @@ fn test_multiply() -> miette::Result<()> {
 
 #[test]
 fn test_maybe_init_escape_causes_error() -> miette::Result<()> {
-    #[derive(Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital)]
     struct Foo {
         a: b4,
         b: b4,
@@ -615,7 +620,7 @@ fn test_maybe_init_escape_causes_error() -> miette::Result<()> {
 
 #[test]
 fn test_maybe_init_with_enum() -> miette::Result<()> {
-    #[derive(Debug, Digital, Default)]
+    #[derive(PartialEq, Debug, Digital, Default)]
     enum Foo {
         A,
         B(b4),

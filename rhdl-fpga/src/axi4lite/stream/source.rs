@@ -15,7 +15,7 @@ pub struct U<T: Digital + Default> {
     pub data: sender::U<T>,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I<T: Digital + Default> {
     /// The ready signal from the downstream component
     pub axi: StreamMISO,
@@ -23,7 +23,7 @@ pub struct I<T: Digital + Default> {
     pub data: Option<T>,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct O<T: Digital + Default> {
     /// The data signal to the downstream component
     pub axi: StreamMOSI<T>,

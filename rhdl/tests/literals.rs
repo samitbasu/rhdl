@@ -26,9 +26,9 @@ fn test_const_literal_captured_match() {
 
     #[kernel]
     fn do_stuff(a: Signal<b4, Red>) -> Signal<b4, Red> {
-        signal(match a.val().raw() {
-            1 => TWO,
-            2 => ONE,
+        signal(match a.val() {
+            ONE => TWO,
+            TWO => ONE,
             _ => ZERO,
         })
     }
@@ -38,32 +38,32 @@ fn test_const_literal_captured_match() {
 
 // This test is disabled until we either adopt custom suffixes or do some other thing
 // to re-enable the ability to use literals in match arms.
-#[cfg(future)]
 #[test]
 fn test_struct_literal_match() -> miette::Result<()> {
-    #[derive(Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital)]
     pub struct Foo {
         a: b8,
         b: b8,
     }
 
+    const FOO1: Foo = Foo {
+        a: bits(1),
+        b: bits(2),
+    };
+
+    const FOO2: Foo = Foo {
+        a: bits(3),
+        b: bits(4),
+    };
+
     #[kernel]
     fn add(a: Signal<Foo, Red>) -> Signal<b8, Red> {
         let res = match a.val() {
-            Foo {
-                a: Bits::<W8> { val: 1, .. },
-                b: Bits::<W8> { val: 2, .. },
-            } => 1,
-            Foo {
-                a: Bits::<W8> { val: 3, .. },
-                b: Bits::<W8> { val: 4, .. },
-            } => 2,
+            FOO1 => 1,
+            FOO2 => 2,
             _ => 3,
         };
-
-        signal(match a.val() {
-            Foo { a, b: _ } => a,
-        })
+        signal(bits(res))
     }
 
     let test_vec = (0..4)

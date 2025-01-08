@@ -1,19 +1,25 @@
 use rhdl::prelude::*;
 
 #[derive(Clone, Circuit, CircuitDQ, Default)]
-pub struct U<W: Domain, R: Domain, N: BitWidth, const Z: usize> {
+pub struct U<W: Domain, R: Domain, N: BitWidth, const Z: usize>
+where
+    Const<Z>: ToBitWidth,
+{
     filler: Adapter<crate::fifo::testing::filler::U<N>, W>,
     fifo: crate::fifo::asynchronous::U<Bits<N>, W, R, Z>,
     drainer: Adapter<crate::fifo::testing::drainer::U<N>, R>,
 }
 
-#[derive(Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Timed)]
 pub struct I<W: Domain, R: Domain> {
     pub cr_w: Signal<ClockReset, W>,
     pub cr_r: Signal<ClockReset, R>,
 }
 
-impl<W: Domain, R: Domain, N: BitWidth, const Z: usize> CircuitIO for U<W, R, N, Z> {
+impl<W: Domain, R: Domain, N: BitWidth, const Z: usize> CircuitIO for U<W, R, N, Z>
+where
+    Const<Z>: ToBitWidth,
+{
     type I = I<W, R>;
     type O = Signal<bool, R>;
     type Kernel = fixture_kernel<W, R, N, Z>;
@@ -23,7 +29,10 @@ impl<W: Domain, R: Domain, N: BitWidth, const Z: usize> CircuitIO for U<W, R, N,
 pub fn fixture_kernel<W: Domain, R: Domain, N: BitWidth, const Z: usize>(
     i: I<W, R>,
     q: Q<W, R, N, Z>,
-) -> (Signal<bool, R>, D<W, R, N, Z>) {
+) -> (Signal<bool, R>, D<W, R, N, Z>)
+where
+    Const<Z>: ToBitWidth,
+{
     let mut d = D::<W, R, N, Z>::dont_care();
     // The filler needs access to the full signal of the FIFO
     d.filler.clock_reset = i.cr_w;
@@ -52,8 +61,8 @@ mod tests {
 
     #[test]
     fn test_async_fifo_trace() -> miette::Result<()> {
-        let uut = U::<Red, Blue, 16, 4> {
-            drainer: Adapter::new(crate::fifo::testing::drainer::U::<16>::new(5, 0xD000)),
+        let uut = U::<Red, Blue, W16, 4> {
+            drainer: Adapter::new(crate::fifo::testing::drainer::U::<W16>::new(5, 0xD000)),
             ..Default::default()
         };
         let red_input = std::iter::repeat(())
@@ -71,7 +80,7 @@ mod tests {
             .join("vcd")
             .join("fifo");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["5f95853dde16b5cf627b0b49432d34eae35b8f5084bc20bef1899ce899b19f99"];
+        let expect = expect!["29197aaeebe0e46b29919b99a89088b7f462ce939563d89ab66e911845918f89"];
         let digest = vcd
             .dump_to_file(&root.join("async_fifo_trace.vcd"))
             .unwrap();
@@ -81,7 +90,7 @@ mod tests {
 
     #[test]
     fn test_async_fifo_works_fast_reader() -> miette::Result<()> {
-        let uut: U<Red, Blue, 16, 4> = Default::default();
+        let uut: U<Red, Blue, W16, 4> = Default::default();
         let red_input = std::iter::repeat(())
             .stream_after_reset(1)
             .clock_pos_edge(50);
@@ -99,7 +108,7 @@ mod tests {
 
     #[test]
     fn test_async_fifo_works_slow_reader() -> miette::Result<()> {
-        let uut: U<Red, Blue, 16, 4> = Default::default();
+        let uut: U<Red, Blue, W16, 4> = Default::default();
         let red_input = std::iter::repeat(())
             .stream_after_reset(1)
             .clock_pos_edge(50);
@@ -117,7 +126,7 @@ mod tests {
 
     #[test]
     fn test_async_fifo_test_hdl() -> miette::Result<()> {
-        let uut: U<Red, Blue, 16, 4> = Default::default();
+        let uut: U<Red, Blue, W16, 4> = Default::default();
         let red_input = std::iter::repeat(())
             .stream_after_reset(1)
             .clock_pos_edge(50);

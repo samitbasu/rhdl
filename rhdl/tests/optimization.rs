@@ -274,7 +274,7 @@ fn test_constant_propogation_with_splice() -> miette::Result<()> {
 
 #[test]
 fn test_constant_propogation_with_struct() -> miette::Result<()> {
-    #[derive(Digital)]
+    #[derive(PartialEq, Digital)]
     struct FooStruct {
         a: b4,
         b: b4,
@@ -303,7 +303,7 @@ fn test_constant_propogation_with_struct() -> miette::Result<()> {
 
 #[test]
 fn test_constant_propogation_with_struct_with_rest() -> miette::Result<()> {
-    #[derive(Digital)]
+    #[derive(PartialEq, Digital)]
     struct FooStruct {
         a: b4,
         b: b4,
@@ -333,7 +333,7 @@ fn test_constant_propogation_with_struct_with_rest() -> miette::Result<()> {
 
 #[test]
 fn test_constant_propogation_with_enum() -> miette::Result<()> {
-    #[derive(Digital, Default)]
+    #[derive(PartialEq, Digital, Default)]
     enum FooEnum {
         #[default]
         A,
@@ -472,7 +472,7 @@ fn test_empty_expressions_dropped() -> miette::Result<()> {
 
 #[test]
 fn test_empty_splices_dropped() -> miette::Result<()> {
-    #[derive(Digital)]
+    #[derive(PartialEq, Digital)]
     struct Foo {
         a: b1,
         b: (),
@@ -561,7 +561,7 @@ fn test_lower_multiplies_to_shifts() -> miette::Result<()> {
 #[test]
 #[allow(unused_variables)]
 fn test_empty_indices_dropped() -> miette::Result<()> {
-    #[derive(Digital)]
+    #[derive(PartialEq, Digital)]
     struct Foo {
         a: b1,
         b: (),
@@ -584,7 +584,7 @@ fn test_empty_indices_dropped() -> miette::Result<()> {
 #[allow(clippy::let_unit_value)]
 #[allow(unused_variables)]
 fn test_empty_case_dropped() -> miette::Result<()> {
-    #[derive(Digital, Default)]
+    #[derive(PartialEq, Digital, Default)]
     enum Color {
         #[default]
         Red,

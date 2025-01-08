@@ -24,13 +24,13 @@ fn derive_circuit_dq_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let component_name = &field_set.component_name;
     let generics = &decl.generics;
     let new_struct_q = quote! {
-        #[derive(Digital, Timed)]
+        #[derive(PartialEq, Digital, Timed)]
         pub struct Q #generics #where_clause {
             #(#component_name: <#component_ty as rhdl::core::CircuitIO>::O),*
         }
     };
     let new_struct_d = quote! {
-        #[derive(Digital, Timed)]
+        #[derive(PartialEq, Digital, Timed)]
         pub struct D #generics #where_clause {
             #(#component_name: <#component_ty as rhdl::core::CircuitIO>::I),*
         }

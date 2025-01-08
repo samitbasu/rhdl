@@ -15,7 +15,7 @@ use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 
 #[test]
 fn test_tuple_struct_indexing() -> miette::Result<()> {
-    #[derive(Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital)]
     pub struct Foo(b8, b8);
 
     #[kernel]
@@ -32,7 +32,7 @@ fn test_tuple_struct_indexing() -> miette::Result<()> {
 
 #[test]
 fn test_struct_field_indexing() -> miette::Result<()> {
-    #[derive(Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital)]
     pub struct Foo {
         a: (b8, b8),
         b: b8,
@@ -104,7 +104,7 @@ fn rand_bits<N: BitWidth>() -> Bits<N> {
 
 #[test]
 fn test_3d_array_dynamic_indexing() -> miette::Result<()> {
-    #[derive(Debug, Digital, Default)]
+    #[derive(PartialEq, Debug, Digital, Default)]
     pub struct VolumeBits {
         data: [[[b1; 8]; 8]; 8],
     }
@@ -151,7 +151,7 @@ fn test_3d_array_dynamic_indexing() -> miette::Result<()> {
 
 #[test]
 fn test_complex_array_dynamic_indexing() -> miette::Result<()> {
-    #[derive(Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital)]
     pub struct Foo {
         a: bool,
         b: [b4; 4],
@@ -168,7 +168,7 @@ fn test_complex_array_dynamic_indexing() -> miette::Result<()> {
         }
     }
 
-    #[derive(Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital)]
     pub struct Bar {
         a: b9,
         b: [Foo; 8],
@@ -286,7 +286,7 @@ fn test_array_dynamic_indexing_on_write() -> miette::Result<()> {
 
 #[test]
 fn test_field_indexing_is_order_independent() -> miette::Result<()> {
-    #[derive(Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital)]
     pub struct Foo {
         a: b8,
         b: b8,
@@ -306,7 +306,7 @@ fn test_field_indexing_is_order_independent() -> miette::Result<()> {
 
 #[test]
 fn test_field_indexing() -> miette::Result<()> {
-    #[derive(Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital)]
     pub struct Foo {
         a: b8,
         b: b8,
@@ -337,10 +337,10 @@ fn test_simple_if_expression() -> miette::Result<()> {
 
 #[test]
 fn test_link_to_bits_fn() -> miette::Result<()> {
-    #[derive(Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital)]
     struct Tuplo(b4, s6);
 
-    #[derive(Debug, Default, Digital)]
+    #[derive(PartialEq, Debug, Default, Digital)]
     enum NooState {
         #[default]
         Init,

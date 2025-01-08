@@ -13,6 +13,7 @@ use crate::core::{
 /// can be used to control the "burstiness" of the data.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U<N: BitWidth> {
+    _marker: constant::U<Bits<N>>,
     rng: crate::rng::xorshift::U,
     sleep_counter: dff::U<Bits<W4>>,
     sleep_len: constant::U<Bits<W4>>,
@@ -23,6 +24,7 @@ pub struct U<N: BitWidth> {
 impl<N: BitWidth> Default for U<N> {
     fn default() -> Self {
         Self {
+            _marker: constant::U::new(bits(0)),
             rng: crate::rng::xorshift::U::default(),
             sleep_counter: dff::U::new(bits(0)),
             sleep_len: constant::U::new(bits(4)),
@@ -34,20 +36,20 @@ impl<N: BitWidth> Default for U<N> {
 impl<N: BitWidth> U<N> {
     pub fn new(sleep_len: u8, write_probability: u16) -> Self {
         Self {
-            rng: crate::rng::xorshift::U::default(),
             sleep_counter: dff::U::new(bits(0)),
             sleep_len: constant::U::new(bits(sleep_len as u128)),
             write_probability: constant::U::new(bits(write_probability as u128)),
+            ..Default::default()
         }
     }
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I {
     pub full: bool,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct O<N: BitWidth> {
     pub data: Option<Bits<N>>,
 }
@@ -68,9 +70,9 @@ pub fn filler_kernel<N: BitWidth>(cr: ClockReset, i: I, q: Q<N>) -> (O<N>, D<N>)
     d.sleep_counter = q.sleep_counter;
     // If the fifo is not full, and we are not sleeping, then write the next value to the FIFO
     if !is_full && q.sleep_counter == 0 {
-        o.data = Some(lsbs::<{ N }, 32>(q.rng));
+        o.data = Some(lsbs::<N, W32>(q.rng));
         d.rng = true;
-        let p = msbs::<16, 32>(q.rng);
+        let p = msbs::<W16, W32>(q.rng);
         d.sleep_counter = if p > q.write_probability {
             q.sleep_len
         } else {
@@ -94,7 +96,7 @@ mod tests {
 
     #[test]
     fn test_filler() -> miette::Result<()> {
-        let uut = U::<16>::default();
+        let uut = U::<W6>::default();
         let input = std::iter::repeat(I { full: false })
             .take(50)
             .stream_after_reset(1)
@@ -105,7 +107,7 @@ mod tests {
             .join("fifo")
             .join("filler");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["5dae5d555120bb169d3cf882d030bb291889c38963a71dfeea23f39f4324a30f"];
+        let expect = expect!["4a05c32ed83ff8ecc2bcfd374f4ebce4d1ae032fc0b582b56dc8f9019c228935"];
         let digest = vcd.dump_to_file(&root.join("filler.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -113,7 +115,7 @@ mod tests {
 
     #[test]
     fn test_filler_testbench() -> miette::Result<()> {
-        let uut = U::<16>::default();
+        let uut = U::<W6>::default();
         let input = std::iter::repeat(I { full: false })
             .take(50)
             .stream_after_reset(1)
