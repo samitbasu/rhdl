@@ -1846,9 +1846,9 @@ mod test {
                             attrs: [],
                             by_ref: None,
                             mutability: None,
-                            ident: Ident(
-                                a,
-                            ),
+                            ident: Ident {
+                                sym: a,
+                            },
                             subpat: None,
                         },
                         init: Some(
@@ -1863,9 +1863,9 @@ mod test {
                                             leading_colon: None,
                                             segments: [
                                                 PathSegment {
-                                                    ident: Ident(
-                                                        Some,
-                                                    ),
+                                                    ident: Ident {
+                                                        sym: Some,
+                                                    },
                                                     arguments: PathArguments::None,
                                                 },
                                             ],
@@ -1900,9 +1900,9 @@ mod test {
                                         leading_colon: None,
                                         segments: [
                                             PathSegment {
-                                                ident: Ident(
-                                                    Some,
-                                                ),
+                                                ident: Ident {
+                                                    sym: Some,
+                                                },
                                                 arguments: PathArguments::None,
                                             },
                                         ],
@@ -1913,9 +1913,9 @@ mod test {
                                             attrs: [],
                                             by_ref: None,
                                             mutability: None,
-                                            ident: Ident(
-                                                b,
-                                            ),
+                                            ident: Ident {
+                                                sym: b,
+                                            },
                                             subpat: None,
                                         },
                                     ],
@@ -1928,9 +1928,9 @@ mod test {
                                         leading_colon: None,
                                         segments: [
                                             PathSegment {
-                                                ident: Ident(
-                                                    a,
-                                                ),
+                                                ident: Ident {
+                                                    sym: a,
+                                                },
                                                 arguments: PathArguments::None,
                                             },
                                         ],
@@ -1948,9 +1948,9 @@ mod test {
                                                 leading_colon: None,
                                                 segments: [
                                                     PathSegment {
-                                                        ident: Ident(
-                                                            b,
-                                                        ),
+                                                        ident: Ident {
+                                                            sym: b,
+                                                        },
                                                         arguments: PathArguments::None,
                                                     },
                                                 ],
@@ -2015,9 +2015,9 @@ mod test {
                             leading_colon: None,
                             segments: [
                                 PathSegment {
-                                    ident: Ident(
-                                        l,
-                                    ),
+                                    ident: Ident {
+                                        sym: l,
+                                    },
                                     arguments: PathArguments::None,
                                 },
                             ],
@@ -2034,16 +2034,16 @@ mod test {
                                     leading_colon: None,
                                     segments: [
                                         PathSegment {
-                                            ident: Ident(
-                                                State,
-                                            ),
+                                            ident: Ident {
+                                                sym: State,
+                                            },
                                             arguments: PathArguments::None,
                                         },
                                         PathSep,
                                         PathSegment {
-                                            ident: Ident(
-                                                Init,
-                                            ),
+                                            ident: Ident {
+                                                sym: Init,
+                                            },
                                             arguments: PathArguments::None,
                                         },
                                     ],
@@ -2070,16 +2070,16 @@ mod test {
                                     leading_colon: None,
                                     segments: [
                                         PathSegment {
-                                            ident: Ident(
-                                                State,
-                                            ),
+                                            ident: Ident {
+                                                sym: State,
+                                            },
                                             arguments: PathArguments::None,
                                         },
                                         PathSep,
                                         PathSegment {
-                                            ident: Ident(
-                                                Run,
-                                            ),
+                                            ident: Ident {
+                                                sym: Run,
+                                            },
                                             arguments: PathArguments::None,
                                         },
                                     ],
@@ -2090,9 +2090,9 @@ mod test {
                                         attrs: [],
                                         by_ref: None,
                                         mutability: None,
-                                        ident: Ident(
-                                            a,
-                                        ),
+                                        ident: Ident {
+                                            sym: a,
+                                        },
                                         subpat: None,
                                     },
                                 ],
@@ -2118,16 +2118,16 @@ mod test {
                                     leading_colon: None,
                                     segments: [
                                         PathSegment {
-                                            ident: Ident(
-                                                State,
-                                            ),
+                                            ident: Ident {
+                                                sym: State,
+                                            },
                                             arguments: PathArguments::None,
                                         },
                                         PathSep,
                                         PathSegment {
-                                            ident: Ident(
-                                                Boom,
-                                            ),
+                                            ident: Ident {
+                                                sym: Boom,
+                                            },
                                             arguments: PathArguments::None,
                                         },
                                     ],
@@ -2154,16 +2154,16 @@ mod test {
                                     leading_colon: None,
                                     segments: [
                                         PathSegment {
-                                            ident: Ident(
-                                                State,
-                                            ),
+                                            ident: Ident {
+                                                sym: State,
+                                            },
                                             arguments: PathArguments::None,
                                         },
                                         PathSep,
                                         PathSegment {
-                                            ident: Ident(
-                                                NotOk,
-                                            ),
+                                            ident: Ident {
+                                                sym: NotOk,
+                                            },
                                             arguments: PathArguments::None,
                                         },
                                     ],
@@ -2786,9 +2786,9 @@ mod test {
                             leading_colon: None,
                             segments: [
                                 PathSegment {
-                                    ident: Ident(
-                                        Foo,
-                                    ),
+                                    ident: Ident {
+                                        sym: Foo,
+                                    },
                                     arguments: PathArguments::AngleBracketed {
                                         colon2_token: Some(
                                             PathSep,
@@ -2802,9 +2802,9 @@ mod test {
                                                         leading_colon: None,
                                                         segments: [
                                                             PathSegment {
-                                                                ident: Ident(
-                                                                    T,
-                                                                ),
+                                                                ident: Ident {
+                                                                    sym: T,
+                                                                },
                                                                 arguments: PathArguments::None,
                                                             },
                                                         ],
@@ -2822,9 +2822,9 @@ mod test {
                             FieldPat {
                                 attrs: [],
                                 member: Member::Named(
-                                    Ident(
-                                        a,
-                                    ),
+                                    Ident {
+                                        sym: a,
+                                    },
                                 ),
                                 colon_token: Some(
                                     Colon,
@@ -2840,9 +2840,9 @@ mod test {
                             FieldPat {
                                 attrs: [],
                                 member: Member::Named(
-                                    Ident(
-                                        b,
-                                    ),
+                                    Ident {
+                                        sym: b,
+                                    },
                                 ),
                                 colon_token: Some(
                                     Colon,
@@ -2878,9 +2878,9 @@ mod test {
                             leading_colon: None,
                             segments: [
                                 PathSegment {
-                                    ident: Ident(
-                                        Foo,
-                                    ),
+                                    ident: Ident {
+                                        sym: Foo,
+                                    },
                                     arguments: PathArguments::AngleBracketed {
                                         colon2_token: Some(
                                             PathSep,
@@ -2894,9 +2894,9 @@ mod test {
                                                         leading_colon: None,
                                                         segments: [
                                                             PathSegment {
-                                                                ident: Ident(
-                                                                    T,
-                                                                ),
+                                                                ident: Ident {
+                                                                    sym: T,
+                                                                },
                                                                 arguments: PathArguments::None,
                                                             },
                                                         ],
@@ -2914,18 +2914,18 @@ mod test {
                             FieldPat {
                                 attrs: [],
                                 member: Member::Named(
-                                    Ident(
-                                        a,
-                                    ),
+                                    Ident {
+                                        sym: a,
+                                    },
                                 ),
                                 colon_token: None,
                                 pat: Pat::Ident {
                                     attrs: [],
                                     by_ref: None,
                                     mutability: None,
-                                    ident: Ident(
-                                        a,
-                                    ),
+                                    ident: Ident {
+                                        sym: a,
+                                    },
                                     subpat: None,
                                 },
                             },
@@ -2933,18 +2933,18 @@ mod test {
                             FieldPat {
                                 attrs: [],
                                 member: Member::Named(
-                                    Ident(
-                                        b,
-                                    ),
+                                    Ident {
+                                        sym: b,
+                                    },
                                 ),
                                 colon_token: None,
                                 pat: Pat::Ident {
                                     attrs: [],
                                     by_ref: None,
                                     mutability: None,
-                                    ident: Ident(
-                                        b,
-                                    ),
+                                    ident: Ident {
+                                        sym: b,
+                                    },
                                     subpat: None,
                                 },
                             },
@@ -2972,9 +2972,9 @@ mod test {
                             leading_colon: None,
                             segments: [
                                 PathSegment {
-                                    ident: Ident(
-                                        Foo,
-                                    ),
+                                    ident: Ident {
+                                        sym: Foo,
+                                    },
                                     arguments: PathArguments::None,
                                 },
                             ],
@@ -2985,9 +2985,9 @@ mod test {
                                 attrs: [],
                                 by_ref: None,
                                 mutability: None,
-                                ident: Ident(
-                                    CACHE,
-                                ),
+                                ident: Ident {
+                                    sym: CACHE,
+                                },
                                 subpat: None,
                             },
                         ],
@@ -3013,9 +3013,9 @@ mod test {
                             leading_colon: None,
                             segments: [
                                 PathSegment {
-                                    ident: Ident(
-                                        Foo,
-                                    ),
+                                    ident: Ident {
+                                        sym: Foo,
+                                    },
                                     arguments: PathArguments::None,
                                 },
                             ],
@@ -3025,9 +3025,9 @@ mod test {
                             FieldPat {
                                 attrs: [],
                                 member: Member::Named(
-                                    Ident(
-                                        a,
-                                    ),
+                                    Ident {
+                                        sym: a,
+                                    },
                                 ),
                                 colon_token: Some(
                                     Colon,
@@ -3036,9 +3036,9 @@ mod test {
                                     attrs: [],
                                     by_ref: None,
                                     mutability: None,
-                                    ident: Ident(
-                                        x,
-                                    ),
+                                    ident: Ident {
+                                        sym: x,
+                                    },
                                     subpat: None,
                                 },
                             },
@@ -3066,9 +3066,9 @@ mod test {
                             leading_colon: None,
                             segments: [
                                 PathSegment {
-                                    ident: Ident(
-                                        Bar,
-                                    ),
+                                    ident: Ident {
+                                        sym: Bar,
+                                    },
                                     arguments: PathArguments::None,
                                 },
                             ],
@@ -3079,9 +3079,9 @@ mod test {
                                 attrs: [],
                                 by_ref: None,
                                 mutability: None,
-                                ident: Ident(
-                                    CACHE,
-                                ),
+                                ident: Ident {
+                                    sym: CACHE,
+                                },
                                 subpat: None,
                             },
                             Comma,
@@ -3089,9 +3089,9 @@ mod test {
                                 attrs: [],
                                 by_ref: None,
                                 mutability: None,
-                                ident: Ident(
-                                    x,
-                                ),
+                                ident: Ident {
+                                    sym: x,
+                                },
                                 subpat: None,
                             },
                         ],
@@ -3430,16 +3430,16 @@ mod test {
                             leading_colon: None,
                             segments: [
                                 PathSegment {
-                                    ident: Ident(
-                                        Baz,
-                                    ),
+                                    ident: Ident {
+                                        sym: Baz,
+                                    },
                                     arguments: PathArguments::None,
                                 },
                                 PathSep,
                                 PathSegment {
-                                    ident: Ident(
-                                        A,
-                                    ),
+                                    ident: Ident {
+                                        sym: A,
+                                    },
                                     arguments: PathArguments::None,
                                 },
                             ],
@@ -3466,16 +3466,16 @@ mod test {
                             leading_colon: None,
                             segments: [
                                 PathSegment {
-                                    ident: Ident(
-                                        Baz,
-                                    ),
+                                    ident: Ident {
+                                        sym: Baz,
+                                    },
                                     arguments: PathArguments::None,
                                 },
                                 PathSep,
                                 PathSegment {
-                                    ident: Ident(
-                                        B,
-                                    ),
+                                    ident: Ident {
+                                        sym: B,
+                                    },
                                     arguments: PathArguments::None,
                                 },
                             ],
@@ -3511,16 +3511,16 @@ mod test {
                             leading_colon: None,
                             segments: [
                                 PathSegment {
-                                    ident: Ident(
-                                        Baz,
-                                    ),
+                                    ident: Ident {
+                                        sym: Baz,
+                                    },
                                     arguments: PathArguments::None,
                                 },
                                 PathSep,
                                 PathSegment {
-                                    ident: Ident(
-                                        C,
-                                    ),
+                                    ident: Ident {
+                                        sym: C,
+                                    },
                                     arguments: PathArguments::None,
                                 },
                             ],
@@ -3530,9 +3530,9 @@ mod test {
                             FieldPat {
                                 attrs: [],
                                 member: Member::Named(
-                                    Ident(
-                                        x,
-                                    ),
+                                    Ident {
+                                        sym: x,
+                                    },
                                 ),
                                 colon_token: Some(
                                     Colon,
@@ -3548,9 +3548,9 @@ mod test {
                             FieldPat {
                                 attrs: [],
                                 member: Member::Named(
-                                    Ident(
-                                        y,
-                                    ),
+                                    Ident {
+                                        sym: y,
+                                    },
                                 ),
                                 colon_token: Some(
                                     Colon,
@@ -3586,16 +3586,16 @@ mod test {
                             leading_colon: None,
                             segments: [
                                 PathSegment {
-                                    ident: Ident(
-                                        Baz,
-                                    ),
+                                    ident: Ident {
+                                        sym: Baz,
+                                    },
                                     arguments: PathArguments::None,
                                 },
                                 PathSep,
                                 PathSegment {
-                                    ident: Ident(
-                                        C,
-                                    ),
+                                    ident: Ident {
+                                        sym: C,
+                                    },
                                     arguments: PathArguments::None,
                                 },
                             ],
@@ -3605,18 +3605,18 @@ mod test {
                             FieldPat {
                                 attrs: [],
                                 member: Member::Named(
-                                    Ident(
-                                        x,
-                                    ),
+                                    Ident {
+                                        sym: x,
+                                    },
                                 ),
                                 colon_token: None,
                                 pat: Pat::Ident {
                                     attrs: [],
                                     by_ref: None,
                                     mutability: None,
-                                    ident: Ident(
-                                        x,
-                                    ),
+                                    ident: Ident {
+                                        sym: x,
+                                    },
                                     subpat: None,
                                 },
                             },
@@ -3624,18 +3624,18 @@ mod test {
                             FieldPat {
                                 attrs: [],
                                 member: Member::Named(
-                                    Ident(
-                                        y,
-                                    ),
+                                    Ident {
+                                        sym: y,
+                                    },
                                 ),
                                 colon_token: None,
                                 pat: Pat::Ident {
                                     attrs: [],
                                     by_ref: None,
                                     mutability: None,
-                                    ident: Ident(
-                                        y,
-                                    ),
+                                    ident: Ident {
+                                        sym: y,
+                                    },
                                     subpat: None,
                                 },
                             },

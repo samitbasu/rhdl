@@ -8,10 +8,10 @@ pub type ResponseKind = Bits<W2>;
 pub mod response_codes {
     use rhdl::prelude::*;
 
-    pub const OKAY: u128 = 0;
-    pub const EXOKAY: u128 = 1;
-    pub const SLVERR: u128 = 2;
-    pub const DECERR: u128 = 3;
+    pub const OKAY: b2 = bits(0);
+    pub const EXOKAY: b2 = bits(1);
+    pub const SLVERR: b2 = bits(2);
+    pub const DECERR: b2 = bits(3);
 }
 
 pub type AxilData = Bits<W32>;
@@ -37,7 +37,7 @@ pub struct ReadResponse {
 impl Default for ReadResponse {
     fn default() -> Self {
         Self {
-            resp: bits(response_codes::OKAY),
+            resp: response_codes::OKAY,
             data: Bits::default(),
         }
     }
@@ -81,7 +81,7 @@ pub enum AXI4Error {
 
 #[kernel]
 pub fn read_response_to_result(resp: ReadResponse) -> Result<AxilData, AXI4Error> {
-    match resp.resp.raw() {
+    match resp.resp {
         response_codes::OKAY => Ok(resp.data),
         response_codes::EXOKAY => Ok(resp.data),
         response_codes::DECERR => Err(AXI4Error::DECERR),
@@ -93,16 +93,16 @@ pub fn read_response_to_result(resp: ReadResponse) -> Result<AxilData, AXI4Error
 pub fn result_to_read_response(resp: Result<AxilData, AXI4Error>) -> ReadResponse {
     match resp {
         Ok(data) => ReadResponse {
-            resp: bits(response_codes::OKAY),
+            resp: response_codes::OKAY,
             data,
         },
         Err(e) => match e {
             AXI4Error::SLVERR => ReadResponse {
-                resp: bits(response_codes::SLVERR),
+                resp: response_codes::SLVERR,
                 data: bits(0),
             },
             AXI4Error::DECERR => ReadResponse {
-                resp: bits(response_codes::DECERR),
+                resp: response_codes::DECERR,
                 data: bits(0),
             },
         },
@@ -111,18 +111,18 @@ pub fn result_to_read_response(resp: Result<AxilData, AXI4Error>) -> ReadRespons
 
 #[kernel]
 pub fn result_to_write_response(resp: Result<(), AXI4Error>) -> ResponseKind {
-    bits(match resp {
+    match resp {
         Ok(_) => response_codes::OKAY,
         Err(e) => match e {
             AXI4Error::SLVERR => response_codes::SLVERR,
             AXI4Error::DECERR => response_codes::DECERR,
         },
-    })
+    }
 }
 
 #[kernel]
 pub fn write_response_to_result(resp: ResponseKind) -> Result<(), AXI4Error> {
-    match resp.raw() {
+    match resp {
         response_codes::OKAY => Ok(()),
         response_codes::EXOKAY => Ok(()),
         response_codes::DECERR => Err(AXI4Error::DECERR),
