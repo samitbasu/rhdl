@@ -43,9 +43,7 @@ fn test_nested_enum_match_in_if_let_fails() -> miette::Result<()> {
         None,
     ];
 
-    let expect_err = expect![[
-        r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(707dfc356030d590): SpannedSource { source: "fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {\n    if let Some(Foo::Red(Bar(x, y))) = state.val() {\n        signal(x + y)\n    } else {\n        signal(bits(0))\n    }\n}\n", name: "add", span_map: {N24: 0..180, N9: 129..130, N7: 77..96, N11: 129..134, N3: 100..111, N17: 157..172, N4: 90..91, N19: 147..178, N13: 122..135, N22: 65..178, N1: 7..38, N8: 72..97, N6: 86..95, N23: 59..180, N21: 65..178, N0: 7..12, N5: 93..94, N2: 100..105, N20: 147..178, N12: 122..135, N10: 133..134, N18: 157..172, N16: 164..171, N14: 112..141, N15: 169..170}, fallback: N24, filename: "rhdl/tests/binding.rs:29", function_id: FnID(707dfc356030d590) }}, ranges: {FnID(707dfc356030d590): 0..181} }, err_span: SourceSpan { offset: SourceOffset(86), length: 9 } }))"#
-    ]];
+    let expect_err = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(37d8ad3153a9fe1a): SpannedSource { source: "fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {\n    if let Some(Foo::Red(Bar(x, y))) = state.val() {\n        signal((x + y).resize())\n    } else {\n        signal(bits(0))\n    }\n}\n", name: "add", span_map: {N14: 122..146, N3: 100..111, N15: 122..146, N22: 158..189, N21: 158..189, N24: 65..189, N11: 130..135, N9: 130..131, N17: 180..181, N26: 0..191, N8: 72..97, N6: 86..95, N13: 129..145, N20: 168..183, N16: 112..152, N5: 93..94, N12: 129..136, N25: 59..191, N23: 65..189, N1: 7..38, N4: 90..91, N0: 7..12, N7: 77..96, N2: 100..105, N18: 175..182, N19: 168..183, N10: 134..135}, fallback: N26, filename: "rhdl/tests/binding.rs:29", function_id: FnID(37d8ad3153a9fe1a) }}, ranges: {FnID(37d8ad3153a9fe1a): 0..192} }, err_span: SourceSpan { offset: SourceOffset(86), length: 9 } }))"#]];
     let res = compile_design::<add>(CompilationMode::Asynchronous);
     expect_err.assert_eq(&format!("{:?}", res));
     Ok(())
