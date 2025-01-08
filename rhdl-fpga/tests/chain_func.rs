@@ -6,22 +6,18 @@ mod auto_counter {
     use rhdl_fpga::core::dff;
 
     #[derive(Debug, Clone, Default, SynchronousDQ, Synchronous)]
-    pub struct U<const N: usize> {
+    pub struct U<N: BitWidth> {
         count: dff::U<Bits<N>>,
     }
 
-    impl<const N: usize> SynchronousIO for U<N> {
+    impl<N: BitWidth> SynchronousIO for U<N> {
         type I = ();
         type O = Bits<N>;
         type Kernel = auto_counter_kernel<N>;
     }
 
     #[kernel]
-    pub fn auto_counter_kernel<const N: usize>(
-        _cr: ClockReset,
-        _i: (),
-        q: Q<N>,
-    ) -> (Bits<N>, D<N>) {
+    pub fn auto_counter_kernel<N: BitWidth>(_cr: ClockReset, _i: (), q: Q<N>) -> (Bits<N>, D<N>) {
         (q.count, D::<N> { count: q.count + 1 })
     }
 }
@@ -30,7 +26,7 @@ mod doubler {
     use rhdl::prelude::*;
 
     #[kernel]
-    pub fn doubler<const N: usize>(_cr: ClockReset, i: Bits<N>) -> Bits<N> {
+    pub fn doubler<N: BitWidth>(_cr: ClockReset, i: Bits<N>) -> Bits<N> {
         i << 1
     }
 }

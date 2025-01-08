@@ -140,11 +140,8 @@ mod tests {
     use std::iter::once;
 
     use crate::{
-        clock::clock,
-        clock_reset,
         sim::{clock_pos_edge::ClockPosEdgeExt, stream::TimedStreamExt, ResetOrData},
         timed_sample,
-        types::reset::reset,
     };
 
     use super::*;

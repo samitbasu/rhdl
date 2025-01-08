@@ -7,7 +7,6 @@
 
 use rhdl::prelude::*;
 
-use rhdl_core::types::signal;
 use CompilationMode::Asynchronous;
 
 #[test]

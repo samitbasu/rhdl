@@ -24,15 +24,15 @@ use rhdl::{
 /// they are generally not portable.  If you need one of those, you should
 /// create a custom model for it.
 #[derive(Debug, Clone, Default)]
-pub struct U<T: Digital, W: Domain, R: Domain, const N: usize> {
+pub struct U<T: Digital, W: Domain, R: Domain, N: BitWidth> {
     initial: BTreeMap<Bits<N>, T>,
     _w: std::marker::PhantomData<W>,
     _r: std::marker::PhantomData<R>,
 }
 
-impl<T: Digital, W: Domain, R: Domain, const N: usize> U<T, W, R, N> {
+impl<T: Digital, W: Domain, R: Domain, N: BitWidth> U<T, W, R, N> {
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
-        let len = (1 << N) as usize;
+        let len = (1 << N::BITS) as usize;
         Self {
             initial: initial.into_iter().take(len).collect(),
             _w: Default::default(),
@@ -47,7 +47,7 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> U<T, W, R, N> {
 /// The read input lines contain the current address and the
 /// clock signal.
 #[derive(Debug, Digital)]
-pub struct ReadI<const N: usize> {
+pub struct ReadI<N: BitWidth> {
     pub addr: Bits<N>,
     pub clock: Clock,
 }
@@ -56,7 +56,7 @@ pub struct ReadI<const N: usize> {
 /// It contains the address to write to, the data, and the
 /// enable and clock signal.
 #[derive(Debug, Digital)]
-pub struct WriteI<T: Digital, const N: usize> {
+pub struct WriteI<T: Digital, N: BitWidth> {
     pub addr: Bits<N>,
     pub data: T,
     pub enable: bool,
@@ -64,24 +64,24 @@ pub struct WriteI<T: Digital, const N: usize> {
 }
 
 #[derive(Debug, Digital, Timed)]
-pub struct I<T: Digital, W: Domain, R: Domain, const N: usize> {
+pub struct I<T: Digital, W: Domain, R: Domain, N: BitWidth> {
     pub write: Signal<WriteI<T, N>, W>,
     pub read: Signal<ReadI<N>, R>,
 }
 
-impl<T: Digital, W: Domain, R: Domain, const N: usize> CircuitDQ for U<T, W, R, N> {
+impl<T: Digital, W: Domain, R: Domain, N: BitWidth> CircuitDQ for U<T, W, R, N> {
     type D = ();
     type Q = ();
 }
 
-impl<T: Digital, W: Domain, R: Domain, const N: usize> CircuitIO for U<T, W, R, N> {
+impl<T: Digital, W: Domain, R: Domain, N: BitWidth> CircuitIO for U<T, W, R, N> {
     type I = I<T, W, R, N>;
     type O = Signal<T, R>;
     type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct S<T: Digital, const N: usize> {
+pub struct S<T: Digital, N: BitWidth> {
     write_prev: WriteI<T, N>,
     contents: BTreeMap<Bits<N>, T>,
     read_clock: Clock,
@@ -89,7 +89,7 @@ pub struct S<T: Digital, const N: usize> {
     output_next: T,
 }
 
-impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N> {
+impl<T: Digital, W: Domain, R: Domain, N: BitWidth> Circuit for U<T, W, R, N> {
     type S = Rc<RefCell<S<T, N>>>;
 
     fn init(&self) -> Self::S {
@@ -105,7 +105,7 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N>
     fn description(&self) -> String {
         format!(
             "Block RAM with {} entries of type {}",
-            1 << N,
+            1 << N::BITS,
             std::any::type_name::<T>()
         )
     }
@@ -179,15 +179,15 @@ impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for U<T, W, R, N>
             port("o", Direction::Output, HDLKind::Reg, output_bits),
         ];
         module.declarations.extend([
-            unsigned_wire_decl("read_addr", N),
+            unsigned_wire_decl("read_addr", N::BITS),
             unsigned_wire_decl("read_clk", 1),
-            unsigned_wire_decl("write_addr", N),
+            unsigned_wire_decl("write_addr", N::BITS),
             unsigned_wire_decl("write_data", T::bits()),
             unsigned_wire_decl("write_enable", 1),
             unsigned_wire_decl("write_clk", 1),
             Declaration {
                 kind: HDLKind::Reg,
-                name: format!("mem[{}:0]", (1 << N) - 1),
+                name: format!("mem[{}:0]", (1 << N::BITS) - 1),
                 width: output_bits,
                 alias: None,
             },
@@ -265,11 +265,11 @@ mod tests {
 
     use super::*;
 
-    fn get_scan_out_stream<const N: usize>(
+    fn get_scan_out_stream<N: BitWidth>(
         read_clock: u64,
         count: usize,
     ) -> impl Iterator<Item = TimedSample<ReadI<N>>> + Clone {
-        let scan_addr = (0..(1 << N)).map(bits::<N>).cycle().take(count);
+        let scan_addr = (0..(1 << N::BITS)).map(bits::<N>).cycle().take(count);
         let stream_read = scan_addr.stream().clock_pos_edge(read_clock);
         stream_read.map(|t| {
             t.map(|(cr, val)| ReadI {
@@ -279,7 +279,7 @@ mod tests {
         })
     }
 
-    fn get_write_stream<T: Digital, const N: usize>(
+    fn get_write_stream<T: Digital, N: BitWidth>(
         write_clock: u64,
         write_data: impl Iterator<Item = Option<(Bits<N>, T)>> + Clone,
     ) -> impl Iterator<Item = TimedSample<WriteI<T, N>>> + Clone {
@@ -296,7 +296,7 @@ mod tests {
 
     #[test]
     fn test_ram_flow_graph() -> miette::Result<()> {
-        let uut = U::<Bits<8>, Red, Green, 4>::new(
+        let uut = U::<Bits<W8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -309,7 +309,7 @@ mod tests {
 
     #[test]
     fn test_ram_as_verilog() -> miette::Result<()> {
-        let uut = U::<Bits<8>, Red, Green, 4>::new(
+        let uut = U::<Bits<W8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -330,7 +330,7 @@ mod tests {
 
     #[test]
     fn test_ram_write_behavior() -> miette::Result<()> {
-        let uut = U::<Bits<8>, Red, Green, 4>::new(
+        let uut = U::<Bits<W8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits(0))),
@@ -376,7 +376,7 @@ mod tests {
     fn test_ram_read_only_behavior() -> miette::Result<()> {
         // Let's start with a simple test where the RAM is pre-initialized,
         // and we just want to read it.
-        let uut = U::<Bits<8>, Red, Green, 4>::new(
+        let uut = U::<Bits<W8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),

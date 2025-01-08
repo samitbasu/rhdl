@@ -1,7 +1,7 @@
 use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
-pub struct U<const N: usize> {
+pub struct U<N: BitWidth> {
     filler: crate::fifo::testing::filler::U<N>,
     sender: crate::lid::fifo_to_rv::U<Bits<N>>,
     relay: crate::lid::option_carloni::U<Bits<N>>,
@@ -9,7 +9,7 @@ pub struct U<const N: usize> {
     drainer: crate::fifo::testing::drainer::U<N>,
 }
 
-impl<const N: usize> Default for U<N> {
+impl<N: BitWidth> Default for U<N> {
     fn default() -> Self {
         Self {
             filler: crate::fifo::testing::filler::U::<N>::new(4, 0x8000),
@@ -21,14 +21,14 @@ impl<const N: usize> Default for U<N> {
     }
 }
 
-impl<const N: usize> SynchronousIO for U<N> {
+impl<N: BitWidth> SynchronousIO for U<N> {
     type I = ();
     type O = bool;
     type Kernel = single_kernel<N>;
 }
 
 #[kernel]
-pub fn single_kernel<const N: usize>(_cr: ClockReset, _i: (), q: Q<N>) -> (bool, D<N>) {
+pub fn single_kernel<N: BitWidth>(_cr: ClockReset, _i: (), q: Q<N>) -> (bool, D<N>) {
     let mut d = D::<N>::dont_care();
     // Connect the drainer to the FIFO side of the receiver
     d.receiver.next = q.drainer.next;

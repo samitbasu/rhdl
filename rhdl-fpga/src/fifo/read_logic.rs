@@ -18,19 +18,19 @@ use rhdl::prelude::*;
 /// addresses are equal, as it cannot otherwise distinguish between a full and
 /// empty FIFO.  So for N bits, this design can store 2^N-1 elements.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U<const N: usize> {
+pub struct U<N: BitWidth> {
     ram_read_address: dff::U<Bits<N>>,
     underflow: dff::U<bool>,
 }
 
 #[derive(Debug, Digital)]
-pub struct I<const N: usize> {
+pub struct I<N: BitWidth> {
     pub write_address: Bits<N>,
     pub next: bool,
 }
 
 #[derive(Debug, Digital)]
-pub struct O<const N: usize> {
+pub struct O<N: BitWidth> {
     pub empty: bool,
     pub almost_empty: bool,
     pub underflow: bool,
@@ -38,14 +38,14 @@ pub struct O<const N: usize> {
     pub will_advance: bool,
 }
 
-impl<const N: usize> SynchronousIO for U<N> {
+impl<N: BitWidth> SynchronousIO for U<N> {
     type I = I<N>;
     type O = O<N>;
     type Kernel = read_logic<N>;
 }
 
 #[kernel]
-pub fn read_logic<const N: usize>(cr: ClockReset, i: I<N>, q: Q<N>) -> (O<N>, D<N>) {
+pub fn read_logic<N: BitWidth>(cr: ClockReset, i: I<N>, q: Q<N>) -> (O<N>, D<N>) {
     // Compute the empty flag
     let empty = i.write_address == q.ram_read_address;
     // Compute the almost empty flag
@@ -60,10 +60,10 @@ pub fn read_logic<const N: usize>(cr: ClockReset, i: I<N>, q: Q<N>) -> (O<N>, D<
     // combinatorially to ensure that by the next clock edge, the
     // next value is already on the bus.
     let read_address = q.ram_read_address + if will_advance { 1 } else { 0 };
-    let mut d = D::<{ N }>::dont_care();
+    let mut d = D::<N>::dont_care();
     d.ram_read_address = read_address;
     d.underflow = underflow;
-    let mut o = O::<{ N }>::dont_care();
+    let mut o = O::<N>::dont_care();
     o.empty = empty;
     o.almost_empty = almost_empty;
     o.ram_read_address = read_address;

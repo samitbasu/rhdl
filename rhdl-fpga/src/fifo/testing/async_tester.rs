@@ -1,7 +1,7 @@
 use rhdl::prelude::*;
 
 #[derive(Clone, Circuit, CircuitDQ, Default)]
-pub struct U<W: Domain, R: Domain, const N: usize, const Z: usize> {
+pub struct U<W: Domain, R: Domain, N: BitWidth, const Z: usize> {
     filler: Adapter<crate::fifo::testing::filler::U<N>, W>,
     fifo: crate::fifo::asynchronous::U<Bits<N>, W, R, Z>,
     drainer: Adapter<crate::fifo::testing::drainer::U<N>, R>,
@@ -13,14 +13,14 @@ pub struct I<W: Domain, R: Domain> {
     pub cr_r: Signal<ClockReset, R>,
 }
 
-impl<W: Domain, R: Domain, const N: usize, const Z: usize> CircuitIO for U<W, R, N, Z> {
+impl<W: Domain, R: Domain, N: BitWidth, const Z: usize> CircuitIO for U<W, R, N, Z> {
     type I = I<W, R>;
     type O = Signal<bool, R>;
     type Kernel = fixture_kernel<W, R, N, Z>;
 }
 
 #[kernel]
-pub fn fixture_kernel<W: Domain, R: Domain, const N: usize, const Z: usize>(
+pub fn fixture_kernel<W: Domain, R: Domain, N: BitWidth, const Z: usize>(
     i: I<W, R>,
     q: Q<W, R, N, Z>,
 ) -> (Signal<bool, R>, D<W, R, N, Z>) {

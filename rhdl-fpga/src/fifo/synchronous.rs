@@ -9,7 +9,7 @@ use super::write_logic;
 /// ports.  The FIFO is parameterized by the number of bits in each element.
 /// The depth of the FIFO is 2^N-1 elements.  You cannot fill the FIFO to 2^N elements.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U<T: Digital + Default, const N: usize> {
+pub struct U<T: Digital + Default, N: BitWidth> {
     write_logic: write_logic::U<N>,
     read_logic: read_logic::U<N>,
     ram: ram::option_sync::U<T, N>,
@@ -31,14 +31,14 @@ pub struct O<T: Digital> {
     pub underflow: bool,
 }
 
-impl<T: Digital + Default, const N: usize> SynchronousIO for U<T, N> {
+impl<T: Digital + Default, N: BitWidth> SynchronousIO for U<T, N> {
     type I = I<T>;
     type O = O<T>;
     type Kernel = fifo_kernel<T, N>;
 }
 
 #[kernel]
-pub fn fifo_kernel<T: Digital + Default, const N: usize>(
+pub fn fifo_kernel<T: Digital + Default, N: BitWidth>(
     _cr: ClockReset,
     i: I<T>,
     q: Q<T, N>,
@@ -85,21 +85,21 @@ mod tests {
 
     use super::*;
 
-    fn write(data: b8) -> I<Bits<8>> {
+    fn write(data: b8) -> I<Bits<W8>> {
         I {
             data: Some(data),
             next: false,
         }
     }
 
-    fn read() -> I<Bits<8>> {
+    fn read() -> I<Bits<W8>> {
         I {
             data: None,
             next: true,
         }
     }
 
-    fn test_seq() -> impl Iterator<Item = TimedSample<(ClockReset, I<Bits<8>>)>> {
+    fn test_seq() -> impl Iterator<Item = TimedSample<(ClockReset, I<Bits<W8>>)>> {
         let write_seq = (0..7).map(|i| write(bits(i + 1)));
         let read_seq = (0..7).map(|_| read());
         write_seq
@@ -125,7 +125,7 @@ mod tests {
 
     #[test]
     fn basic_write_then_read_test() -> miette::Result<()> {
-        let uut = U::<Bits<8>, 3>::default();
+        let uut = U::<Bits<W8>, 3>::default();
         let stream = test_seq();
         let vcd = uut.run(stream)?.collect::<Vcd>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -141,7 +141,7 @@ mod tests {
 
     #[test]
     fn test_hdl_generation_fifo() -> miette::Result<()> {
-        let uut = U::<Bits<8>, 3>::default();
+        let uut = U::<Bits<W8>, 3>::default();
         let stream = test_seq();
         let test_bench = uut.run(stream)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
@@ -162,7 +162,7 @@ mod tests {
         let mut writer_iter = data.iter().copied().fuse();
         // The reader will read data from the FIFO if it is not empty, and if a random value is true.  The random value
         // determines how often the reader reads data from the FIFO.
-        type UC = U<Bits<8>, 3>;
+        type UC = U<Bits<W8>, W3>;
         let uut = UC::default();
         let mut writer_finished = false;
         let mut need_reset = true;

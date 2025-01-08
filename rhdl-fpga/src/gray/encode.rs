@@ -3,8 +3,8 @@ use rhdl::prelude::*;
 use super::Gray;
 
 #[kernel]
-pub fn gray_code<const N: usize>(i: Bits<N>) -> Gray<N> {
-    Gray::<{ N }>(i ^ (i >> 1))
+pub fn gray_code<N: BitWidth>(i: Bits<N>) -> Gray<N> {
+    Gray::<N>(i ^ (i >> 1))
 }
 
 #[cfg(test)]

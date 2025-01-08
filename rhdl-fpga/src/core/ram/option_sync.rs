@@ -2,11 +2,11 @@
 use rhdl::prelude::*;
 
 #[derive(Debug, Clone, Default, Synchronous, SynchronousDQ)]
-pub struct U<T: Digital + Default, const N: usize> {
+pub struct U<T: Digital + Default, N: BitWidth> {
     inner: super::synchronous::U<T, N>,
 }
 
-impl<T: Digital + Default, const N: usize> U<T, N> {
+impl<T: Digital + Default, N: BitWidth> U<T, N> {
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         Self {
             inner: super::synchronous::U::new(initial),
@@ -15,19 +15,19 @@ impl<T: Digital + Default, const N: usize> U<T, N> {
 }
 
 #[derive(Debug, Digital)]
-pub struct I<T: Digital + Default, const N: usize> {
+pub struct I<T: Digital + Default, N: BitWidth> {
     pub read_addr: Bits<N>,
     pub write: Option<(Bits<N>, T)>,
 }
 
-impl<T: Digital + Default, const N: usize> SynchronousIO for U<T, N> {
+impl<T: Digital + Default, N: BitWidth> SynchronousIO for U<T, N> {
     type I = I<T, N>;
     type O = T;
     type Kernel = ram_kernel<T, N>;
 }
 
 #[kernel]
-pub fn ram_kernel<T: Digital + Default, const N: usize>(
+pub fn ram_kernel<T: Digital + Default, N: BitWidth>(
     _cr: ClockReset,
     i: I<T, N>,
     q: Q<T, N>,
@@ -73,7 +73,7 @@ mod tests {
 
     struct TestItem(Cmd, b8);
 
-    impl From<Cmd> for I<b8, 4> {
+    impl From<Cmd> for I<b8, W4> {
         fn from(cmd: Cmd) -> Self {
             match cmd {
                 Cmd::Write(addr, value) => I {
@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn test_scan_out_ram() -> miette::Result<()> {
-        type UC = U<b8, 4>;
+        type UC = U<b8, W4>;
         let uut: UC = U::new(
             (0..)
                 .enumerate()
@@ -126,14 +126,14 @@ mod tests {
 
     fn random_command_stream(
         len: usize,
-    ) -> impl Iterator<Item = TimedSample<(ClockReset, I<b8, 4>)>> {
+    ) -> impl Iterator<Item = TimedSample<(ClockReset, I<b8, W4>)>> {
         let inputs = (0..).map(|_| rand_cmd().into()).take(len);
         inputs.stream_after_reset(1).clock_pos_edge(100)
     }
 
     #[test]
     fn test_hdl_output() -> miette::Result<()> {
-        type UC = U<b8, 4>;
+        type UC = U<b8, W4>;
         let uut: UC = U::new((0..).map(|ndx| (bits(ndx), bits(0))));
         let stream = random_command_stream(1000);
         let test_bench = uut.run(stream)?.collect::<SynchronousTestBench<_, _>>();
@@ -146,8 +146,8 @@ mod tests {
 
     #[test]
     fn test_ram_write_then_read() -> miette::Result<()> {
-        type UC = U<b8, 4>;
-        let uut: UC = U::new(repeat((Bits(0), b8::from(0))).take(16));
+        type UC = U<b8, W4>;
+        let uut: UC = U::new(repeat((bits(0), b8::from(0))).take(16));
         let test = vec![
             Cmd::Write(bits(0), bits(72)),
             Cmd::Write(bits(1), bits(99)),

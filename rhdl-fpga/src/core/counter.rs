@@ -6,11 +6,11 @@ use super::dff;
 // values it has seen.  It is parameterized by the number of
 // bits in the counter.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
-pub struct U<const N: usize> {
+pub struct U<N: BitWidth> {
     count: dff::U<Bits<N>>,
 }
 
-impl<const N: usize> Default for U<N> {
+impl<N: BitWidth> Default for U<N> {
     fn default() -> Self {
         Self {
             count: dff::U::new(Bits::<N>::default()),
@@ -18,17 +18,17 @@ impl<const N: usize> Default for U<N> {
     }
 }
 
-impl<const N: usize> SynchronousIO for U<N> {
+impl<N: BitWidth> SynchronousIO for U<N> {
     type I = bool;
     type O = Bits<N>;
     type Kernel = counter<N>;
 }
 
 #[kernel]
-pub fn counter<const N: usize>(cr: ClockReset, enable: bool, q: Q<N>) -> (Bits<N>, D<N>) {
+pub fn counter<N: BitWidth>(cr: ClockReset, enable: bool, q: Q<N>) -> (Bits<N>, D<N>) {
     let next_count = if enable { q.count + 1 } else { q.count };
     let next_count = if cr.reset.any() { bits(0) } else { next_count };
-    (q.count, D::<{ N }> { count: next_count })
+    (q.count, D::<N> { count: next_count })
 }
 
 #[cfg(test)]

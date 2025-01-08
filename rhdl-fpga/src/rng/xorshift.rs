@@ -9,10 +9,10 @@ use crate::core::dff;
 // actually a firmware implementation of XORSHIFT128.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U {
-    x: dff::U<Bits<32>>,
-    y: dff::U<Bits<32>>,
-    z: dff::U<Bits<32>>,
-    w: dff::U<Bits<32>>,
+    x: dff::U<Bits<W32>>,
+    y: dff::U<Bits<W32>>,
+    z: dff::U<Bits<W32>>,
+    w: dff::U<Bits<W32>>,
 }
 
 const SEED: u128 = 0x843233523a613966423b622562592c62;
@@ -30,12 +30,12 @@ impl Default for U {
 
 impl SynchronousIO for U {
     type I = bool;
-    type O = Bits<32>;
+    type O = Bits<W32>;
     type Kernel = lfsr_kernel;
 }
 
 #[kernel]
-pub fn lfsr_kernel(_cr: ClockReset, strobe: bool, q: Q) -> (Bits<32>, D) {
+pub fn lfsr_kernel(_cr: ClockReset, strobe: bool, q: Q) -> (Bits<W32>, D) {
     let mut d = D::dont_care();
     d.x = q.x;
     d.y = q.y;

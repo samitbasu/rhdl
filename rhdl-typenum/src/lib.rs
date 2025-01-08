@@ -37,6 +37,21 @@ seq!(N in 1..=128 {
     )*
 });
 
+pub trait ToBitWidth {
+    type Output: BitWidth;
+}
+
+pub struct Const<const N: usize>;
+
+seq!(N in 1..=128 {
+    #(
+    impl ToBitWidth for Const<N> {
+        type Output = W~N;
+    })*
+});
+
+pub type WN<const N: usize> = <Const<N> as ToBitWidth>::Output;
+
 #[cfg(test)]
 mod tests {
     use typenum::{Diff, Log2, Maximum, Minimum, Sum, Unsigned};

@@ -17,7 +17,7 @@ use rhdl::prelude::*;
 /// addresses are equal, as it cannot otherwise distinguish between a full and
 /// empty FIFO.  So for N bits, this design can store 2^N-1 elements.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U<const N: usize> {
+pub struct U<N: BitWidth> {
     write_address: dff::U<Bits<N>>,
     // We delay the write address by one clock before sending
     // it to the read side of the FIFO.  This is because it will
@@ -29,13 +29,13 @@ pub struct U<const N: usize> {
 }
 
 #[derive(Debug, Digital)]
-pub struct I<const N: usize> {
+pub struct I<N: BitWidth> {
     pub read_address: Bits<N>,
     pub write_enable: bool,
 }
 
 #[derive(Debug, Digital)]
-pub struct O<const N: usize> {
+pub struct O<N: BitWidth> {
     pub full: bool,
     pub almost_full: bool,
     pub overflow: bool,
@@ -43,14 +43,14 @@ pub struct O<const N: usize> {
     pub write_address: Bits<N>,
 }
 
-impl<const N: usize> SynchronousIO for U<N> {
+impl<N: BitWidth> SynchronousIO for U<N> {
     type I = I<N>;
     type O = O<N>;
     type Kernel = write_logic<N>;
 }
 
 #[kernel]
-pub fn write_logic<const N: usize>(cr: ClockReset, i: I<N>, q: Q<N>) -> (O<N>, D<N>) {
+pub fn write_logic<N: BitWidth>(cr: ClockReset, i: I<N>, q: Q<N>) -> (O<N>, D<N>) {
     // Compute the full flag
     let full = (q.write_address + 1) == i.read_address;
     // Compute the almost full flag
@@ -63,11 +63,11 @@ pub fn write_logic<const N: usize>(cr: ClockReset, i: I<N>, q: Q<N>) -> (O<N>, D
     let will_write = !full && i.write_enable;
     // If we will write, advance the write address
     let write_address = q.write_address + if will_write { 1 } else { 0 };
-    let mut d = D::<{ N }>::dont_care();
+    let mut d = D::<N>::dont_care();
     d.write_address_delayed = q.write_address;
     d.write_address = write_address;
     d.overflow = overflow;
-    let mut o = O::<{ N }>::dont_care();
+    let mut o = O::<N>::dont_care();
     o.full = full;
     o.almost_full = almost_full;
     // We output the current write address delayed by one clock, not the future one

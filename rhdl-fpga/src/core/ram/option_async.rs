@@ -1,11 +1,11 @@
 use rhdl::prelude::*;
 
 #[derive(Debug, Clone, Default, Circuit, CircuitDQ)]
-pub struct U<T: Digital + Default, W: Domain, R: Domain, const N: usize> {
+pub struct U<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> {
     inner: super::asynchronous::U<T, W, R, N>,
 }
 
-impl<T: Digital + Default, W: Domain, R: Domain, const N: usize> U<T, W, R, N> {
+impl<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> U<T, W, R, N> {
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         Self {
             inner: super::asynchronous::U::new(initial),
@@ -13,28 +13,28 @@ impl<T: Digital + Default, W: Domain, R: Domain, const N: usize> U<T, W, R, N> {
     }
 }
 
-type ReadI<const N: usize> = super::asynchronous::ReadI<N>;
+type ReadI<N: BitWidth> = super::asynchronous::ReadI<N>;
 
 #[derive(Debug, Digital)]
-pub struct WriteI<T: Digital + Default, const N: usize> {
+pub struct WriteI<T: Digital + Default, N: BitWidth> {
     pub clock: Clock,
     pub data: Option<(Bits<N>, T)>,
 }
 
 #[derive(Debug, Digital, Timed)]
-pub struct I<T: Digital + Default, W: Domain, R: Domain, const N: usize> {
+pub struct I<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> {
     pub write: Signal<WriteI<T, N>, W>,
     pub read: Signal<ReadI<N>, R>,
 }
 
-impl<T: Digital + Default, W: Domain, R: Domain, const N: usize> CircuitIO for U<T, W, R, N> {
+impl<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> CircuitIO for U<T, W, R, N> {
     type I = I<T, W, R, N>;
     type O = Signal<T, R>;
     type Kernel = ram_kernel<T, W, R, N>;
 }
 
 #[kernel]
-pub fn ram_kernel<T: Digital + Default, W: Domain, R: Domain, const N: usize>(
+pub fn ram_kernel<T: Digital + Default, W: Domain, R: Domain, N: BitWidth>(
     i: I<T, W, R, N>,
     q: Q<T, W, R, N>,
 ) -> (Signal<T, R>, D<T, W, R, N>) {
@@ -67,11 +67,11 @@ mod tests {
 
     use super::*;
 
-    fn get_scan_out_stream<const N: usize>(
+    fn get_scan_out_stream<N: BitWidth>(
         read_clock: u64,
         count: usize,
     ) -> impl Iterator<Item = TimedSample<ReadI<N>>> + Clone {
-        let scan_addr = (0..(1 << N)).map(bits::<N>).cycle().take(count);
+        let scan_addr = (0..(1 << N::BITS)).map(bits::<N>).cycle().take(count);
         let stream_read = scan_addr.stream().clock_pos_edge(read_clock);
         stream_read.map(|t| {
             t.map(|(cr, val)| ReadI {
@@ -81,7 +81,7 @@ mod tests {
         })
     }
 
-    fn get_write_stream<T: Digital + Default, const N: usize>(
+    fn get_write_stream<T: Digital + Default, N: BitWidth>(
         write_clock: u64,
         write_data: impl Iterator<Item = Option<(Bits<N>, T)>> + Clone,
     ) -> impl Iterator<Item = TimedSample<WriteI<T, N>>> + Clone {
@@ -96,7 +96,7 @@ mod tests {
 
     #[test]
     fn test_ram_flow_graph() -> miette::Result<()> {
-        let uut = U::<Bits<8>, Red, Green, 4>::new(
+        let uut = U::<Bits<W8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn test_ram_as_verilog() -> miette::Result<()> {
-        let uut = U::<Bits<8>, Red, Green, 4>::new(
+        let uut = U::<Bits<W8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -130,7 +130,7 @@ mod tests {
 
     #[test]
     fn test_ram_write_behavior() -> miette::Result<()> {
-        let uut = U::<Bits<8>, Red, Green, 4>::new(
+        let uut = U::<Bits<W8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits(0))),
@@ -176,7 +176,7 @@ mod tests {
     fn test_ram_read_only_behavior() -> miette::Result<()> {
         // Let's start with a simple test where the RAM is pre-initialized,
         // and we just want to read it.
-        let uut = U::<Bits<8>, Red, Green, 4>::new(
+        let uut = U::<Bits<W8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),

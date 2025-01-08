@@ -20,7 +20,7 @@ pub struct U {}
 */
 
 #[derive(Debug, Digital, Default)]
-pub struct I<const N: usize, const M: usize> {
+pub struct I<N: BitWidth, const M: usize> {
     /// The value taken when the interpolant is 0
     pub a: SignedBits<N>,
     /// The value taken when the interpolant is maximal
@@ -30,17 +30,14 @@ pub struct I<const N: usize, const M: usize> {
 }
 
 #[derive(Debug, Digital, Default)]
-pub struct O<const N: usize> {
+pub struct O<N: BitWidth> {
     /// The interpolated value
     pub y: SignedBits<N>,
 }
 
 //  Where A = M + 1, B = N + M + 1
 //#[kernel]
-pub fn lerp_kernel<const N: usize, const M: usize, const A: usize>(
-    _cr: ClockReset,
-    i: I<N, M>,
-) -> O<N>
+pub fn lerp_kernel<N: BitWidth, const M: usize, const A: usize>(_cr: ClockReset, i: I<N, M>) -> O<N>
 where
     SignedBits<A>: std::ops::Mul<SignedBits<N>, Output = SignedBits<M>>,
     SignedBits<N>: Pad,

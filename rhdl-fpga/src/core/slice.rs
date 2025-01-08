@@ -1,9 +1,9 @@
 use rhdl::prelude::*;
 
 #[kernel]
-pub fn lsbs<const N: usize, const M: usize>(n: Bits<M>) -> Bits<N> {
-    let mut o = Bits::<N>(0);
-    for i in 0..N {
+pub fn lsbs<N: BitWidth, M: BitWidth>(n: Bits<M>) -> Bits<N> {
+    let mut o = bits(0);
+    for i in 0..N::BITS {
         if n & (1 << i) != 0 {
             o |= 1 << i
         }
@@ -12,10 +12,10 @@ pub fn lsbs<const N: usize, const M: usize>(n: Bits<M>) -> Bits<N> {
 }
 
 #[kernel]
-pub fn msbs<const N: usize, const M: usize>(n: Bits<M>) -> Bits<N> {
-    let mut o = Bits::<N>(0);
-    for i in 0..N {
-        if n & (1 << (M - N + i)) != 0 {
+pub fn msbs<N: BitWidth, M: BitWidth>(n: Bits<M>) -> Bits<N> {
+    let mut o = bits(0);
+    for i in 0..N::BITS {
+        if n & (1 << (M::BITS - N::BITS + i)) != 0 {
             o |= 1 << i
         }
     }
