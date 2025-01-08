@@ -139,7 +139,7 @@ mod tests {
     }
 
     fn test_stream() -> impl Iterator<Item = TimedSample<I<Red, Blue>>> {
-        let red = (0..).stream_after_reset(1).clock_pos_edge(100);
+        let red = (0_usize..).stream_after_reset(1).clock_pos_edge(100);
         let blue = axi_test_seq().stream().clock_pos_edge(79);
         red.merge(blue, |r, b| I {
             reset_n: signal(reset_n(!r.0.reset.any())),

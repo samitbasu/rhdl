@@ -15,7 +15,7 @@ const RAM_ADDR: usize = 8;
 pub struct U {
     manager: manager::read::U,
     subordinate: bridge::read::U,
-    memory: ram::synchronous::U<Bits<32>, RAM_ADDR>,
+    memory: ram::synchronous::U<Bits<W32>, RAM_ADDR>,
     read_pending: dff::U<bool>,
 }
 
@@ -37,7 +37,7 @@ pub struct I {
 
 #[derive(Debug, Digital)]
 pub struct O {
-    pub data: Option<Result<Bits<32>, AXI4Error>>,
+    pub data: Option<Result<Bits<W32>, AXI4Error>>,
     pub full: bool,
 }
 
@@ -68,7 +68,7 @@ pub fn basic_test_kernel(cr: ClockReset, i: I, q: Q) -> (O, D) {
     // The read bridge uses a read strobe, but we will ignore that
     // for this test case, since the RAM does not care how many times
     // we read it.
-    let (read_request, axi_addr) = unpack::<Bits<32>>(q.subordinate.cmd);
+    let (read_request, axi_addr) = unpack::<Bits<W32>>(q.subordinate.cmd);
     let will_issue_read_request = read_request && slot_will_be_free;
     if will_issue_read_request {
         d.read_pending = true;

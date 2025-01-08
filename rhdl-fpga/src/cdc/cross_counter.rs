@@ -30,10 +30,13 @@ use super::synchronizer;
 /// counter increments are provided, and the R domain is used for
 /// the "reader" of the counter, where the count is read.
 #[derive(Clone, Circuit, CircuitDQ)]
-pub struct U<W: Domain, R: Domain, const N: usize> {
+pub struct U<W: Domain, R: Domain, const N: usize>
+where
+    Const<N>: ToBitWidth,
+{
     // This counter lives in the W domain, and
     // counts the number of input pulses.
-    counter: Adapter<dff::U<Bits<N>>, W>,
+    counter: Adapter<dff::U<Bits<WN<N>>>, W>,
     // This is the vector of synchronizers, one per
     // bit of the counter.  The synchronizers hold
     // the value of the count in the read domain
@@ -41,7 +44,10 @@ pub struct U<W: Domain, R: Domain, const N: usize> {
     syncs: [synchronizer::U<W, R>; N],
 }
 
-impl<W: Domain, R: Domain, const N: usize> Default for U<W, R, N> {
+impl<W: Domain, R: Domain, const N: usize> Default for U<W, R, N>
+where
+    Const<N>: ToBitWidth,
+{
     fn default() -> Self {
         Self {
             counter: Adapter::new(dff::U::default()),
@@ -51,7 +57,7 @@ impl<W: Domain, R: Domain, const N: usize> Default for U<W, R, N> {
 }
 
 #[derive(Debug, Digital, Timed)]
-pub struct I<W: Domain, R: Domain, const N: usize> {
+pub struct I<W: Domain, R: Domain> {
     /// The input data pulses to be counted from the W clock domain
     pub data: Signal<bool, W>,
     /// The clock and reset for the W clock domain
@@ -61,22 +67,31 @@ pub struct I<W: Domain, R: Domain, const N: usize> {
 }
 
 #[derive(Debug, Digital, Timed)]
-pub struct O<R: Domain, const N: usize> {
+pub struct O<R: Domain, N: BitWidth>
+where
+    Const<N>: ToBitWidth,
+{
     /// The count in the R domain (combinatorial decode of internal registers)
-    pub count: Signal<Bits<N>, R>,
+    pub count: Signal<Bits<WN<N>>, R>,
 }
 
-impl<W: Domain, R: Domain, const N: usize> CircuitIO for U<W, R, N> {
-    type I = I<W, R, N>;
+impl<W: Domain, R: Domain, N: BitWidth> CircuitIO for U<W, R, N>
+where
+    Const<N>: ToBitWidth,
+{
+    type I = I<W, R>;
     type O = O<R, N>;
     type Kernel = cross_counter_kernel<W, R, N>;
 }
 
 #[kernel]
-pub fn cross_counter_kernel<W: Domain, R: Domain, const N: usize>(
-    input: I<W, R, N>,
+pub fn cross_counter_kernel<W: Domain, R: Domain, N: BitWidth>(
+    input: I<W, R>,
     q: Q<W, R, N>,
-) -> (O<R, N>, D<W, R, N>) {
+) -> (O<R, N>, D<W, R, N>)
+where
+    Const<N>: ToBitWidth,
+{
     let mut d = D::<W, R, { N }>::dont_care();
     // The counter increments each time the input is high
     d.counter.clock_reset = input.data_cr;
@@ -113,7 +128,7 @@ mod tests {
 
     use super::*;
 
-    fn sync_stream() -> impl Iterator<Item = TimedSample<I<Red, Blue, 8>>> {
+    fn sync_stream() -> impl Iterator<Item = TimedSample<I<Red, Blue>>> {
         // Start with a stream of pulses
         let red = (0..).map(|_| random::<bool>()).take(100);
         // Clock them on the green domain

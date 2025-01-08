@@ -10,13 +10,13 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 /// interface.
 ///
 #[derive(Debug, Clone, Default)]
-pub struct U<T: Digital, const N: usize> {
+pub struct U<T: Digital, N: BitWidth> {
     initial: BTreeMap<Bits<N>, T>,
 }
 
-impl<T: Digital, const N: usize> U<T, N> {
+impl<T: Digital, N: BitWidth> U<T, N> {
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
-        let len = (1 << N) as usize;
+        let len = (1 << N::BITS) as usize;
         Self {
             initial: initial.into_iter().take(len).collect(),
         }
@@ -24,31 +24,31 @@ impl<T: Digital, const N: usize> U<T, N> {
 }
 
 #[derive(Debug, Digital)]
-pub struct Write<T: Digital, const N: usize> {
+pub struct Write<T: Digital, N: BitWidth> {
     pub addr: Bits<N>,
     pub value: T,
     pub enable: bool,
 }
 
 #[derive(Debug, Digital)]
-pub struct I<T: Digital, const N: usize> {
+pub struct I<T: Digital, N: BitWidth> {
     pub read_addr: Bits<N>,
     pub write: Write<T, N>,
 }
 
-impl<T: Digital, const N: usize> SynchronousDQ for U<T, N> {
+impl<T: Digital, N: BitWidth> SynchronousDQ for U<T, N> {
     type D = ();
     type Q = ();
 }
 
-impl<T: Digital, const N: usize> SynchronousIO for U<T, N> {
+impl<T: Digital, N: BitWidth> SynchronousIO for U<T, N> {
     type I = I<T, N>;
     type O = T;
     type Kernel = NoKernel3<ClockReset, Self::I, (), (Self::O, ())>;
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct S<T: Digital, const N: usize> {
+pub struct S<T: Digital, N: BitWidth> {
     clock: Clock,
     contents: BTreeMap<Bits<N>, T>,
     output_current: T,
@@ -56,7 +56,7 @@ pub struct S<T: Digital, const N: usize> {
     write_prev: Write<T, N>,
 }
 
-impl<T: Digital, const N: usize> Synchronous for U<T, N> {
+impl<T: Digital, N: BitWidth> Synchronous for U<T, N> {
     type S = Rc<RefCell<S<T, N>>>;
 
     fn init(&self) -> Self::S {
@@ -72,7 +72,7 @@ impl<T: Digital, const N: usize> Synchronous for U<T, N> {
     fn description(&self) -> String {
         format!(
             "Synchronous RAM with {} entries of type {}",
-            1 << N,
+            1 << N::BITS,
             std::any::type_name::<T>()
         )
     }
@@ -147,14 +147,14 @@ impl<T: Digital, const N: usize> Synchronous for U<T, N> {
             alias: None,
         };
         module.declarations.extend([
-            wire_decl("read_addr", N),
-            wire_decl("write_addr", N),
+            wire_decl("read_addr", N::BITS),
+            wire_decl("write_addr", N::BITS),
             wire_decl("write_value", T::BITS),
             wire_decl("write_enable", 1),
             wire_decl("clock", 1),
             Declaration {
                 kind: HDLKind::Reg,
-                name: format!("mem[{}:0]", (1 << N) - 1),
+                name: format!("mem[{}:0]", (1 << N::BITS) - 1),
                 width: output_bits,
                 alias: None,
             },
@@ -235,7 +235,7 @@ mod tests {
 
     struct TestItem(Cmd, b8);
 
-    impl From<Cmd> for I<b8, 4> {
+    impl From<Cmd> for I<b8, W4> {
         fn from(cmd: Cmd) -> Self {
             match cmd {
                 Cmd::Write(addr, value) => I {
@@ -256,7 +256,7 @@ mod tests {
 
     #[test]
     fn test_scan_out_ram() -> miette::Result<()> {
-        type UC = U<b8, 4>;
+        type UC = U<b8, W4>;
         let uut: UC = U::new(
             (0..)
                 .enumerate()
@@ -292,14 +292,14 @@ mod tests {
 
     fn random_command_stream(
         len: usize,
-    ) -> impl Iterator<Item = TimedSample<(ClockReset, I<b8, 4>)>> {
+    ) -> impl Iterator<Item = TimedSample<(ClockReset, I<b8, W4>)>> {
         let inputs = (0..).map(|_| rand_cmd().into()).take(len);
         inputs.stream_after_reset(1).clock_pos_edge(100)
     }
 
     #[test]
     fn test_hdl_output() -> miette::Result<()> {
-        type UC = U<b8, 4>;
+        type UC = U<b8, W4>;
         let uut: UC = U::new((0..).map(|ndx| (bits(ndx), bits(0))));
         let stream = random_command_stream(1000);
         let test_bench = uut.run(stream)?.collect::<SynchronousTestBench<_, _>>();
@@ -312,8 +312,8 @@ mod tests {
 
     #[test]
     fn test_ram_write_then_read() -> miette::Result<()> {
-        type UC = U<b8, 4>;
-        let uut: UC = U::new(repeat((Bits(0), b8::from(0))).take(16));
+        type UC = U<b8, W4>;
+        let uut: UC = U::new(repeat((bits(0), b8::from(0))).take(16));
         let test = vec![
             Cmd::Write(bits(0), bits(72)),
             Cmd::Write(bits(1), bits(99)),

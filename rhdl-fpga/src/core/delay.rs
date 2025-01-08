@@ -40,7 +40,7 @@ mod tests {
 
     use super::*;
 
-    fn test_pulse() -> impl Iterator<Item = TimedSample<(ClockReset, Option<Bits<8>>)>> + Clone {
+    fn test_pulse() -> impl Iterator<Item = TimedSample<(ClockReset, Option<Bits<W8>>)>> + Clone {
         std::iter::once(Some(bits(42)))
             .chain(std::iter::repeat(None))
             .take(100)
@@ -50,7 +50,7 @@ mod tests {
 
     #[test]
     fn test_delay_trace() -> miette::Result<()> {
-        let uut = U::<Option<Bits<8>>, 4>::default();
+        let uut = U::<Option<Bits<W8>>, 4>::default();
         let input = test_pulse();
         let vcd = uut.run(input)?.collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -65,7 +65,7 @@ mod tests {
 
     #[test]
     fn test_delay_works() -> miette::Result<()> {
-        let uut = U::<Option<Bits<8>>, 4>::default();
+        let uut = U::<Option<Bits<W8>>, 4>::default();
         let input = test_pulse();
         let output = uut.run(input)?.synchronous_sample();
         let count = output.clone().filter(|t| t.value.2.is_some()).count();
@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn test_delay_hdl_works() -> miette::Result<()> {
-        let uut = U::<Option<Bits<8>>, 4>::default();
+        let uut = U::<Option<Bits<W8>>, 4>::default();
         let input = test_pulse();
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;

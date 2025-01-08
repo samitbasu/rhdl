@@ -12,15 +12,15 @@ use crate::core::{
 /// deterministic.  The number of sleep cycles is also fixed, so that a single parameter
 /// can be used to control the "burstiness" of the data.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
-pub struct U<const N: usize> {
+pub struct U<N: BitWidth> {
     rng: crate::rng::xorshift::U,
-    sleep_counter: dff::U<Bits<4>>,
-    sleep_len: constant::U<Bits<4>>,
-    write_probability: constant::U<Bits<16>>,
+    sleep_counter: dff::U<Bits<W4>>,
+    sleep_len: constant::U<Bits<W4>>,
+    write_probability: constant::U<Bits<W16>>,
 }
 
 /// The default configuration will sleep for 4 counts, with a roughly 50% probability
-impl<const N: usize> Default for U<N> {
+impl<N: BitWidth> Default for U<N> {
     fn default() -> Self {
         Self {
             rng: crate::rng::xorshift::U::default(),
@@ -31,7 +31,7 @@ impl<const N: usize> Default for U<N> {
     }
 }
 
-impl<const N: usize> U<N> {
+impl<N: BitWidth> U<N> {
     pub fn new(sleep_len: u8, write_probability: u16) -> Self {
         Self {
             rng: crate::rng::xorshift::U::default(),
@@ -48,18 +48,18 @@ pub struct I {
 }
 
 #[derive(Debug, Digital)]
-pub struct O<const N: usize> {
+pub struct O<N: BitWidth> {
     pub data: Option<Bits<N>>,
 }
 
-impl<const N: usize> SynchronousIO for U<N> {
+impl<N: BitWidth> SynchronousIO for U<N> {
     type I = I;
     type O = O<N>;
     type Kernel = filler_kernel<N>;
 }
 
 #[kernel]
-pub fn filler_kernel<const N: usize>(cr: ClockReset, i: I, q: Q<N>) -> (O<N>, D<N>) {
+pub fn filler_kernel<N: BitWidth>(cr: ClockReset, i: I, q: Q<N>) -> (O<N>, D<N>) {
     let mut d = D::<N>::dont_care();
     let mut o = O::<N>::dont_care();
     d.rng = false;

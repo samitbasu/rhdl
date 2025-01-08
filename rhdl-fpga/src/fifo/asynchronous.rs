@@ -13,7 +13,7 @@ use super::write_logic;
 /// synchronized to each other.  This means that the read and write ports
 /// can be in different clock domains.
 #[derive(Clone, Circuit, CircuitDQ, Default)]
-pub struct U<T: Digital + Default, W: Domain, R: Domain, const N: usize> {
+pub struct U<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> {
     write_logic: Adapter<write_logic::U<N>, W>,
     read_logic: Adapter<read_logic::U<N>, R>,
     ram: ram::option_async::U<T, W, R, N>,
@@ -49,14 +49,14 @@ pub struct O<T: Digital, W: Domain, R: Domain> {
     pub overflow: Signal<bool, W>,
 }
 
-impl<T: Digital + Default, W: Domain, R: Domain, const N: usize> CircuitIO for U<T, W, R, N> {
+impl<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> CircuitIO for U<T, W, R, N> {
     type I = I<T, W, R>;
     type O = O<T, W, R>;
     type Kernel = async_fifo_kernel<T, W, R, N>;
 }
 
 #[kernel]
-pub fn async_fifo_kernel<T: Digital + Default, W: Domain, R: Domain, const N: usize>(
+pub fn async_fifo_kernel<T: Digital + Default, W: Domain, R: Domain, N: BitWidth>(
     i: I<T, W, R>,
     q: Q<T, W, R, N>,
 ) -> (O<T, W, R>, D<T, W, R, N>) {
@@ -85,13 +85,13 @@ pub fn async_fifo_kernel<T: Digital + Default, W: Domain, R: Domain, const N: us
     d.ram.read = signal(ram_read);
     // Provide the write logic with the enable and the
     // read address as determined by the split counter.
-    d.write_logic.input = signal(write_logic::I::<{ N }> {
+    d.write_logic.input = signal(write_logic::I::<N> {
         read_address: q.read_count_for_write_logic.count.val(),
         write_enable,
     });
     // Provide the read logic with the next signal and the
     // write address as determined by the split counter.
-    d.read_logic.input = signal(read_logic::I::<{ N }> {
+    d.read_logic.input = signal(read_logic::I::<N> {
         next: i.next.val(),
         write_address: q.write_count_for_read_logic.count.val(),
     });
@@ -144,7 +144,7 @@ mod tests {
             cr_r: signal(r.0),
         });
         //        let input = test_stream();
-        let uut = U::<Bits<8>, Red, Blue, 5>::default();
+        let uut = U::<Bits<W8>, Red, Blue, 5>::default();
         let vcd = uut.run(input.clone())?.collect::<Vcd>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")

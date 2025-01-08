@@ -8,25 +8,25 @@ use super::Gray;
 // for high speed applications.
 
 #[kernel]
-pub fn gray_decode<const N: usize>(i: Gray<N>) -> Bits<N> {
+pub fn gray_decode<N: BitWidth>(i: Gray<N>) -> Bits<N> {
     let mut o = i.0;
     o ^= o >> 1;
-    if ({ N } > 2) {
+    if N::BITS > 2 {
         o ^= o >> 2;
     }
-    if ({ N } > 4) {
+    if N::BITS > 4 {
         o ^= o >> 4;
     }
-    if ({ N } > 8) {
+    if N::BITS > 8 {
         o ^= o >> 8;
     }
-    if ({ N } > 16) {
+    if N::BITS > 16 {
         o ^= o >> 16;
     }
-    if ({ N } > 32) {
+    if N::BITS > 32 {
         o ^= o >> 32;
     }
-    if ({ N } > 64) {
+    if N::BITS > 64 {
         o ^= o >> 64;
     }
     o
@@ -39,7 +39,7 @@ mod tests {
 
     use super::*;
 
-    fn test_gray_decode<const N: usize>(max_val: u128) {
+    fn test_gray_decode<N: BitWidth>(max_val: u128) {
         let values = (0..max_val).map(bits::<N>);
         let gray = values.clone().map(gray_code);
         let bin = gray.map(gray_decode);

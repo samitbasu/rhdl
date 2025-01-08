@@ -404,7 +404,6 @@ mod tests {
     use std::iter::repeat;
 
     use rhdl_bits::alias::*;
-    use rhdl_bits::Bits;
 
     use crate::{
         bitx::{bitx_vec, BitX},

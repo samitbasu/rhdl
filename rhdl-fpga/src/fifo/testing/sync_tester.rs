@@ -5,20 +5,20 @@ use rhdl::prelude::*;
 // output - a single "valid" bit that drops low if the fifo ever yields an
 // invalid value.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U<const N: usize, const Z: usize> {
+pub struct U<N: BitWidth, Z: BitWidth> {
     filler: crate::fifo::testing::filler::U<N>,
     fifo: crate::fifo::synchronous::U<Bits<N>, Z>,
     drainer: crate::fifo::testing::drainer::U<N>,
 }
 
-impl<const N: usize, const Z: usize> SynchronousIO for U<N, Z> {
+impl<N: BitWidth, Z: BitWidth> SynchronousIO for U<N, Z> {
     type I = ();
     type O = bool;
     type Kernel = fixture_kernel<N, Z>;
 }
 
 #[kernel]
-pub fn fixture_kernel<const N: usize, const Z: usize>(
+pub fn fixture_kernel<N: BitWidth, Z: BitWidth>(
     _cr: ClockReset,
     _i: (),
     q: Q<N, Z>,
