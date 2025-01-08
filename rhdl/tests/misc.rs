@@ -30,6 +30,12 @@ fn test_missing_register() {
 }
 
 #[test]
+#[should_panic]
+fn test_cast_to_b16_of_big_number_fails() {
+    let x: b16 = bits(5 + !8);
+}
+
+#[test]
 #[allow(clippy::needless_late_init)]
 #[allow(clippy::no_effect)]
 fn test_compile() -> miette::Result<()> {
@@ -80,7 +86,7 @@ fn test_compile() -> miette::Result<()> {
         }
         a.b = {
             7 + 9;
-            bits(5 + !8)
+            bits(5 + 8)
         };
         a.a = if 1 > 3 {
             bits(7)
