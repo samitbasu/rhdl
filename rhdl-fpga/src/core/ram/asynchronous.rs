@@ -23,7 +23,7 @@ use rhdl::{
 /// provide the read output on the same clock as the read address).  But
 /// they are generally not portable.  If you need one of those, you should
 /// create a custom model for it.
-#[derive(Debug, Clone, Default)]
+#[derive(PartialEq, Debug, Clone, Default)]
 pub struct U<T: Digital, W: Domain, R: Domain, N: BitWidth> {
     initial: BTreeMap<Bits<N>, T>,
     _w: std::marker::PhantomData<W>,
@@ -46,7 +46,7 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> U<T, W, R, N> {
 /// them out.
 /// The read input lines contain the current address and the
 /// clock signal.
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct ReadI<N: BitWidth> {
     pub addr: Bits<N>,
     pub clock: Clock,
@@ -55,7 +55,7 @@ pub struct ReadI<N: BitWidth> {
 /// The write input lines control the write side of the RAM.
 /// It contains the address to write to, the data, and the
 /// enable and clock signal.
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct WriteI<T: Digital, N: BitWidth> {
     pub addr: Bits<N>,
     pub data: T,
@@ -63,7 +63,7 @@ pub struct WriteI<T: Digital, N: BitWidth> {
     pub clock: Clock,
 }
 
-#[derive(Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Timed)]
 pub struct I<T: Digital, W: Domain, R: Domain, N: BitWidth> {
     pub write: Signal<WriteI<T, N>, W>,
     pub read: Signal<ReadI<N>, R>,
@@ -80,7 +80,7 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> CircuitIO for U<T, W, R, N> 
     type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct S<T: Digital, N: BitWidth> {
     write_prev: WriteI<T, N>,
     contents: BTreeMap<Bits<N>, T>,
@@ -197,7 +197,7 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> Circuit for U<T, W, R, N> {
                 .iter()
                 .map(|(a, d)| {
                     let d: BitString = d.typed_bits().into();
-                    assign(&format!("mem[{}]", a.0), bit_string(&d))
+                    assign(&format!("mem[{}]", a.raw()), bit_string(&d))
                 })
                 .collect(),
         ));
@@ -296,7 +296,7 @@ mod tests {
 
     #[test]
     fn test_ram_flow_graph() -> miette::Result<()> {
-        let uut = U::<Bits<W8>, Red, Green, 4>::new(
+        let uut = U::<Bits<W8>, Red, Green, W4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -309,7 +309,7 @@ mod tests {
 
     #[test]
     fn test_ram_as_verilog() -> miette::Result<()> {
-        let uut = U::<Bits<W8>, Red, Green, 4>::new(
+        let uut = U::<Bits<W8>, Red, Green, W4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -330,7 +330,7 @@ mod tests {
 
     #[test]
     fn test_ram_write_behavior() -> miette::Result<()> {
-        let uut = U::<Bits<W8>, Red, Green, 4>::new(
+        let uut = U::<Bits<W8>, Red, Green, W4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits(0))),
@@ -357,7 +357,7 @@ mod tests {
             .join("ram")
             .join("asynchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["ee3fdfccffbab7ba748b21150c6bbb15c1d63b355d2faa2a58156c38ca8d5163"];
+        let expect = expect!["1ed3acf464b556e0755bcdcc29fe15a20ef2050c9dc0ee3a1af719c3eea34147"];
         let digest = vcd.dump_to_file(&root.join("ram_write.vcd")).unwrap();
         expect.assert_eq(&digest);
         let output = uut
@@ -376,7 +376,7 @@ mod tests {
     fn test_ram_read_only_behavior() -> miette::Result<()> {
         // Let's start with a simple test where the RAM is pre-initialized,
         // and we just want to read it.
-        let uut = U::<Bits<W8>, Red, Green, 4>::new(
+        let uut = U::<Bits<W8>, Red, Green, W4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),

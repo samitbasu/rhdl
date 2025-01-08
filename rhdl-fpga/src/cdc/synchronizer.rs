@@ -5,13 +5,13 @@ use rhdl::{
 
 /// A simple two-register synchronizer for crossing
 /// a single bit from the W domain to the R domain
-#[derive(Debug, Clone, Default)]
+#[derive(PartialEq, Debug, Clone, Default)]
 pub struct U<W: Domain, R: Domain> {
     _w: std::marker::PhantomData<W>,
     _r: std::marker::PhantomData<R>,
 }
 
-#[derive(Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Timed)]
 pub struct I<W: Domain, R: Domain> {
     pub data: Signal<bool, W>,
     pub cr: Signal<ClockReset, R>,
@@ -28,7 +28,7 @@ impl<W: Domain, R: Domain> CircuitIO for U<W, R> {
     type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct S {
     clock: Clock,
     reg1_next: bool,

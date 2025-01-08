@@ -13,15 +13,18 @@ use super::write_logic;
 /// synchronized to each other.  This means that the read and write ports
 /// can be in different clock domains.
 #[derive(Clone, Circuit, CircuitDQ, Default)]
-pub struct U<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> {
-    write_logic: Adapter<write_logic::U<N>, W>,
-    read_logic: Adapter<read_logic::U<N>, R>,
-    ram: ram::option_async::U<T, W, R, N>,
+pub struct U<T: Digital + Default, W: Domain, R: Domain, const N: usize>
+where
+    Const<N>: ToBitWidth,
+{
+    write_logic: Adapter<write_logic::U<WN<N>>, W>,
+    read_logic: Adapter<read_logic::U<WN<N>>, R>,
+    ram: ram::option_async::U<T, W, R, WN<N>>,
     read_count_for_write_logic: cross_counter::U<R, W, N>,
     write_count_for_read_logic: cross_counter::U<W, R, N>,
 }
 
-#[derive(Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Timed)]
 pub struct I<T: Digital, W: Domain, R: Domain> {
     /// The data to be written to the FIFO in the W domain
     pub data: Signal<Option<T>, W>,
@@ -33,7 +36,7 @@ pub struct I<T: Digital, W: Domain, R: Domain> {
     pub cr_r: Signal<ClockReset, R>,
 }
 
-#[derive(Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Timed)]
 pub struct O<T: Digital, W: Domain, R: Domain> {
     /// The data read from the FIFO in the R domain
     pub data: Signal<Option<T>, R>,
@@ -49,17 +52,23 @@ pub struct O<T: Digital, W: Domain, R: Domain> {
     pub overflow: Signal<bool, W>,
 }
 
-impl<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> CircuitIO for U<T, W, R, N> {
+impl<T: Digital + Default, W: Domain, R: Domain, const N: usize> CircuitIO for U<T, W, R, N>
+where
+    Const<N>: ToBitWidth,
+{
     type I = I<T, W, R>;
     type O = O<T, W, R>;
     type Kernel = async_fifo_kernel<T, W, R, N>;
 }
 
 #[kernel]
-pub fn async_fifo_kernel<T: Digital + Default, W: Domain, R: Domain, N: BitWidth>(
+pub fn async_fifo_kernel<T: Digital + Default, W: Domain, R: Domain, const N: usize>(
     i: I<T, W, R>,
     q: Q<T, W, R, N>,
-) -> (O<T, W, R>, D<T, W, R, N>) {
+) -> (O<T, W, R>, D<T, W, R, N>)
+where
+    Const<N>: ToBitWidth,
+{
     let mut d = D::<T, W, R, N>::dont_care();
     // Clock the various components
     d.write_logic.clock_reset = i.cr_w;
@@ -67,7 +76,7 @@ pub fn async_fifo_kernel<T: Digital + Default, W: Domain, R: Domain, N: BitWidth
     // Create a struct to drive the inputs of the RAM on the
     // write side.  These signals are all clocked in the write
     // domain.
-    let mut ram_write = ram::option_async::WriteI::<T, N>::dont_care();
+    let mut ram_write = ram::option_async::WriteI::<T, WN<N>>::dont_care();
     let ram_write_addr = q.write_logic.val().ram_write_address;
     ram_write.clock = i.cr_w.val().clock;
     let mut write_enable = false;
@@ -79,19 +88,19 @@ pub fn async_fifo_kernel<T: Digital + Default, W: Domain, R: Domain, N: BitWidth
     };
     d.ram.write = signal(ram_write);
     // Do the same thing for the read side of the RAM.
-    let mut ram_read = ram::asynchronous::ReadI::<N>::dont_care();
+    let mut ram_read = ram::asynchronous::ReadI::<WN<N>>::dont_care();
     ram_read.clock = i.cr_r.val().clock;
     ram_read.addr = q.read_logic.val().ram_read_address;
     d.ram.read = signal(ram_read);
     // Provide the write logic with the enable and the
     // read address as determined by the split counter.
-    d.write_logic.input = signal(write_logic::I::<N> {
+    d.write_logic.input = signal(write_logic::I::<WN<N>> {
         read_address: q.read_count_for_write_logic.count.val(),
         write_enable,
     });
     // Provide the read logic with the next signal and the
     // write address as determined by the split counter.
-    d.read_logic.input = signal(read_logic::I::<N> {
+    d.read_logic.input = signal(read_logic::I::<WN<N>> {
         next: i.next.val(),
         write_address: q.write_count_for_read_logic.count.val(),
     });
@@ -151,7 +160,7 @@ mod tests {
             .join("fifo")
             .join("asynchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["a9c9560048aa1679b00baf08cd4aef35812bdf8055c3ff73af8a65593e7be087"];
+        let expect = expect!["f3e7074900f02203378c57cfd4c2dda205c70daa46122080338196189f52edf0"];
         let digest = vcd
             .dump_to_file(&root.join("async_fifo_write_test.vcd"))
             .unwrap();

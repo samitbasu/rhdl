@@ -48,36 +48,36 @@ mod tests {
 
     #[test]
     fn test_gray_round_trip_1() {
-        test_gray_decode::<1>(1 << 1);
+        test_gray_decode::<W1>(1 << 1);
     }
 
     #[test]
     fn test_gray_round_trip_2() {
-        test_gray_decode::<2>(1 << 2);
+        test_gray_decode::<W2>(1 << 2);
     }
 
     #[test]
     fn test_gray_round_trip_3() {
-        test_gray_decode::<3>(1 << 3);
+        test_gray_decode::<W3>(1 << 3);
     }
 
     #[test]
     fn test_gray_round_trip_8() {
-        test_gray_decode::<8>(1 << 8);
+        test_gray_decode::<W8>(1 << 8);
     }
 
     #[test]
     fn test_gray_round_trip_16() {
-        test_gray_decode::<16>(1 << 16);
+        test_gray_decode::<W16>(1 << 16);
     }
 
     #[test]
     fn test_gray_round_trip_19() {
-        test_gray_decode::<19>(1 << 19);
+        test_gray_decode::<W19>(1 << 19);
     }
 
     #[test]
     fn test_gray_round_trip_24() {
-        test_gray_decode::<24>(1 << 24);
+        test_gray_decode::<W24>(1 << 24);
     }
 }

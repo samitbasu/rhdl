@@ -9,12 +9,12 @@ pub mod receiver;
 pub mod sender;
 pub mod testing;
 
-#[derive(Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Default)]
 pub struct Ready {
     pub ready: bool,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct DataValid<T: Digital> {
     pub data: T,
     pub valid: bool,

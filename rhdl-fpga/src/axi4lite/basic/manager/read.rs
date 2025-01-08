@@ -20,7 +20,7 @@ pub struct U {
     data: receiver::U<ReadResponse>,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I {
     // Bus side of the manager
     pub axi: ReadMISO,
@@ -32,7 +32,7 @@ pub struct I {
     pub next: bool,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct O {
     // Bus side of the manager
     pub axi: ReadMOSI,

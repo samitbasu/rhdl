@@ -56,7 +56,7 @@ where
     }
 }
 
-#[derive(Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Timed)]
 pub struct I<W: Domain, R: Domain> {
     /// The input data pulses to be counted from the W clock domain
     pub data: Signal<bool, W>,
@@ -66,8 +66,8 @@ pub struct I<W: Domain, R: Domain> {
     pub cr: Signal<ClockReset, R>,
 }
 
-#[derive(Debug, Digital, Timed)]
-pub struct O<R: Domain, N: BitWidth>
+#[derive(PartialEq, Debug, Digital, Timed)]
+pub struct O<R: Domain, const N: usize>
 where
     Const<N>: ToBitWidth,
 {
@@ -75,7 +75,7 @@ where
     pub count: Signal<Bits<WN<N>>, R>,
 }
 
-impl<W: Domain, R: Domain, N: BitWidth> CircuitIO for U<W, R, N>
+impl<W: Domain, R: Domain, const N: usize> CircuitIO for U<W, R, N>
 where
     Const<N>: ToBitWidth,
 {
@@ -85,7 +85,7 @@ where
 }
 
 #[kernel]
-pub fn cross_counter_kernel<W: Domain, R: Domain, N: BitWidth>(
+pub fn cross_counter_kernel<W: Domain, R: Domain, const N: usize>(
     input: I<W, R>,
     q: Q<W, R, N>,
 ) -> (O<R, N>, D<W, R, N>)
@@ -97,7 +97,7 @@ where
     d.counter.clock_reset = input.data_cr;
     d.counter.input = signal(q.counter.val() + if input.data.val() { 1 } else { 0 });
     // The current counter output is gray coded
-    let current_count = gray_code::<N>(q.counter.val()).0;
+    let current_count = gray_code::<WN<N>>(q.counter.val()).0;
     // Each synchronizer is fed a bit from the gray coded count
     for i in 0..N {
         d.syncs[i].data = signal((current_count & (1 << i)) != 0);
@@ -112,7 +112,7 @@ where
         }
     }
     // Decode this signal back to a binary count
-    let read_o = gray_decode::<N>(Gray::<N>(read_o));
+    let read_o = gray_decode::<WN<N>>(Gray::<WN<N>>(read_o));
     // The read side of the output comes from o, the
     // write side is simply the output of the internal counter
     let mut o = O::<R, { N }>::dont_care();

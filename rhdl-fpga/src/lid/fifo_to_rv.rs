@@ -25,7 +25,7 @@ use crate::core::{dff, option::is_some};
 /// skid buffers, the output is presented as an `Option<T>`, and underflow is not possible,
 /// as `None` is returned when the buffer is empty.
 ///
-#[derive(Digital, Default, Debug)]
+#[derive(PartialEq, Digital, Default, Debug)]
 pub enum State {
     #[default]
     Empty,
@@ -34,7 +34,7 @@ pub enum State {
     Error,
 }
 
-#[derive(Debug, Clone, SynchronousDQ, Synchronous)]
+#[derive(PartialEq, Debug, Clone, SynchronousDQ, Synchronous)]
 pub struct U<T: Digital> {
     /// The state of the buffer
     state: dff::U<State>,
@@ -66,7 +66,7 @@ impl<T: Digital> Default for U<T> {
 /// It is important that the full signal is not dependant on the consumer,
 /// so that the pull-pull buffer isolates the producer from the consumer
 /// and vice versa.
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I<T: Digital> {
     // The producers data and write enable
     pub data: Option<T>,
@@ -74,7 +74,7 @@ pub struct I<T: Digital> {
     pub ready: bool,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct O<T: Digital> {
     // The consumers data
     pub data: Option<T>,

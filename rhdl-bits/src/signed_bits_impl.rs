@@ -24,19 +24,11 @@ use seq_macro::seq;
 ///
 /// If you want to right shift a signed value without sign extension,
 /// then you should convert it to a [Bits] type first.
-#[derive(Clone, Debug, Copy)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq)]
 pub struct SignedBits<Len> {
     pub(crate) marker: std::marker::PhantomData<Len>,
     pub(crate) val: i128,
 }
-
-impl<Len: BitWidth> std::cmp::PartialEq for SignedBits<Len> {
-    fn eq(&self, other: &Self) -> bool {
-        self.val == other.val
-    }
-}
-
-impl<Len: BitWidth> std::cmp::Eq for SignedBits<Len> {}
 
 impl<Len: BitWidth> std::cmp::PartialOrd for SignedBits<Len> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -404,5 +396,24 @@ mod test {
         let a1 = s8(-32);
         let b1 = s8(-24);
         assert!(a1 < b1);
+    }
+
+    const OPT1: SignedBits<W8> = s8(-0b0101_1010);
+    const OPT2: SignedBits<W8> = s8(0b0010_0100);
+
+    #[test]
+    fn test_match_works() {
+        let bits: SignedBits<W8> = (-0b101_1010).into();
+        match bits {
+            OPT1 => {
+                eprintln!("Matched");
+            }
+            OPT2 => {
+                panic!("Did not match");
+            }
+            _ => {
+                panic!("Did not match");
+            }
+        }
     }
 }

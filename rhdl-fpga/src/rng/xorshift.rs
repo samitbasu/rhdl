@@ -115,7 +115,7 @@ mod tests {
             .map(|x| x.value.2);
         let validate = XorShift128::default();
         for (value, expected) in values.zip(validate.take(100)) {
-            assert_eq!((value.0 & 0xFFFF_FFFF) as u32, expected);
+            assert_eq!((value.raw() & 0xFFFF_FFFF) as u32, expected);
         }
         Ok(())
     }

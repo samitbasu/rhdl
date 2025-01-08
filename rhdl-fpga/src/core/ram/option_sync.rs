@@ -1,7 +1,7 @@
 // A synchronous ram wrapped in an interface that accepts Option<T> for writing
 use rhdl::prelude::*;
 
-#[derive(Debug, Clone, Default, Synchronous, SynchronousDQ)]
+#[derive(PartialEq, Debug, Clone, Default, Synchronous, SynchronousDQ)]
 pub struct U<T: Digital + Default, N: BitWidth> {
     inner: super::synchronous::U<T, N>,
 }
@@ -14,7 +14,7 @@ impl<T: Digital + Default, N: BitWidth> U<T, N> {
     }
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I<T: Digital + Default, N: BitWidth> {
     pub read_addr: Bits<N>,
     pub write: Option<(Bits<N>, T)>,
@@ -54,7 +54,7 @@ mod tests {
     use super::*;
     use std::{iter::repeat, path::PathBuf};
 
-    #[derive(Debug, Clone, PartialEq, Copy)]
+    #[derive(PartialEq, Debug, Clone, Copy)]
     enum Cmd {
         Write(b4, b8),
         Read(b4),
@@ -110,7 +110,7 @@ mod tests {
             .join("ram")
             .join("option_sync");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["1ece6de59fdbc859b9bb790a924f1082993cec62c05b2de72bab49287e83c0ab"];
+        let expect = expect!["6635cc6c6e6e04f46adeb41770025dc2e469580a516f84d469b44c1556405863"];
         let digest = vcd
             .dump_to_file(&root.join("test_scan_out_option_ram.vcd"))
             .unwrap();

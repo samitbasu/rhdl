@@ -30,12 +30,12 @@ impl Default for U {
     }
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I {
     pub cmd: Option<b32>,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct O {
     pub data: Option<Result<Bits<W32>, AXI4Error>>,
     pub full: bool,

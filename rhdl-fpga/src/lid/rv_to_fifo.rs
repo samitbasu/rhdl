@@ -4,7 +4,7 @@ use crate::core::{dff, option::is_some};
 
 /// A READY/VALID-to-FIFO converter is a highly specialized two element
 /// FIFO backed with a pair of registers instead of a BRAM.  
-#[derive(Digital, Default, Debug)]
+#[derive(PartialEq, Digital, Default, Debug)]
 pub enum State {
     #[default]
     Empty,
@@ -13,7 +13,7 @@ pub enum State {
     Error,
 }
 
-#[derive(Debug, Clone, SynchronousDQ, Synchronous)]
+#[derive(PartialEq, Debug, Clone, SynchronousDQ, Synchronous)]
 pub struct U<T: Digital> {
     /// The state of the buffer
     state: dff::U<State>,
@@ -46,7 +46,7 @@ impl<T: Digital> Default for U<T> {
 /// This buffer cannot overflow, since it consumes incoming data only when
 /// ready.  However, it can underflow if the receiver signals a next
 /// when there is no data available.
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I<T: Digital> {
     // The data from the bus
     pub data: Option<T>,
@@ -54,7 +54,7 @@ pub struct I<T: Digital> {
     pub next: bool,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct O<T: Digital> {
     // The data to the consumer
     pub data: Option<T>,

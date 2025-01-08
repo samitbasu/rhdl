@@ -8,7 +8,7 @@ use rhdl::prelude::*;
 
 #[test]
 fn test_vcd_enum() {
-    #[derive(Debug, Digital, Default)]
+    #[derive(PartialEq, Debug, Digital, Default)]
     enum Enum {
         #[default]
         None,
@@ -45,7 +45,7 @@ fn test_vcd_enum() {
 
 #[test]
 fn test_vcd_basic() {
-    #[derive(Digital)]
+    #[derive(PartialEq, Digital)]
     pub struct Simple {
         a: bool,
         b: Bits<W8>,

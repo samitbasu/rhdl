@@ -30,12 +30,12 @@ impl<const BANK_SIZE: usize> Default for U<BANK_SIZE> {
     }
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I {
     pub axi: MOSI,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct O<const BANK_SIZE: usize> {
     pub axi: MISO,
     pub read_data: [AxilData; BANK_SIZE],

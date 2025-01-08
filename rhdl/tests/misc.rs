@@ -40,14 +40,14 @@ fn test_cast_to_b16_of_big_number_fails() {
 #[allow(clippy::no_effect)]
 fn test_compile() -> miette::Result<()> {
     use rhdl_bits::alias::*;
-    #[derive(Digital)]
+    #[derive(PartialEq, Digital)]
     pub struct Foo {
         a: b8,
         b: b16,
         c: [b8; 3],
     }
 
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     pub enum NooState {
         #[default]
         Init,

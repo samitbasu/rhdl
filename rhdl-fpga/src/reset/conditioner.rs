@@ -6,13 +6,13 @@ use rhdl::{
 // Given a reset signal in domain W that is asynchronous to
 // the clock of domain R, generate a reset signal in domain R
 // that is synchronous to the clock of domain R.
-#[derive(Debug, Clone, Default)]
+#[derive(PartialEq, Debug, Clone, Default)]
 pub struct U<W: Domain, R: Domain> {
     _w: std::marker::PhantomData<W>,
     _r: std::marker::PhantomData<R>,
 }
 
-#[derive(Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Timed)]
 pub struct I<W: Domain, R: Domain> {
     pub reset: Signal<Reset, W>,
     pub clock: Signal<Clock, R>,

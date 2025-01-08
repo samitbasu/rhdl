@@ -43,7 +43,7 @@ mod tests {
 
     #[test]
     fn test_sync_fifo_trace() -> miette::Result<()> {
-        let uut = U::<16, 6>::default();
+        let uut = U::<W16, W6>::default();
         let input = std::iter::repeat(())
             .take(1000)
             .stream_after_reset(1)
@@ -53,7 +53,7 @@ mod tests {
             .join("vcd")
             .join("fifo");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["ebf9f3ee1bac27b03409ddc5174ee955d2df8c0dcff6c8d12a17f1325bfd2018"];
+        let expect = expect!["744375a6ab1347d3b98524ee90d50f649c7e10dea3706978563cd6796e5c5a85"];
         let digest = vcd.dump_to_file(&root.join("sync_fifo.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     fn test_sync_fifo_valid() -> miette::Result<()> {
-        let uut = U::<16, 6>::default();
+        let uut = U::<W16, W6>::default();
         let input = std::iter::repeat(())
             .take(100_000)
             .stream_after_reset(1)

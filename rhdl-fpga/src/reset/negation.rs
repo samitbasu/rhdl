@@ -1,9 +1,9 @@
 use rhdl::{
-    core::{hdl::ast::unary, rhif::spec::AluUnary},
+    core::{hdl::ast::unary, rtl::spec::AluUnary},
     prelude::*,
 };
 
-#[derive(Debug, Clone, Default)]
+#[derive(PartialEq, Debug, Clone, Default)]
 pub struct U<C: Domain> {
     _c: std::marker::PhantomData<C>,
 }

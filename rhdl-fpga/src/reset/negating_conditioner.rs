@@ -6,7 +6,7 @@ pub struct U<W: Domain, R: Domain> {
     cond: super::conditioner::U<W, R>,
 }
 
-#[derive(Digital, Timed)]
+#[derive(PartialEq, Digital, Timed)]
 pub struct I<W: Domain, R: Domain> {
     pub reset_n: Signal<ResetN, W>,
     pub clock: Signal<Clock, R>,

@@ -15,10 +15,10 @@ use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 
 #[test]
 fn test_nested_enum_match_in_if_let_fails() -> miette::Result<()> {
-    #[derive(Digital)]
+    #[derive(PartialEq, Digital)]
     pub struct Bar(b8, b8);
 
-    #[derive(Digital, Default)]
+    #[derive(PartialEq, Digital, Default)]
     pub enum Foo {
         Red(Bar),
         Blue(b8),
@@ -43,7 +43,9 @@ fn test_nested_enum_match_in_if_let_fails() -> miette::Result<()> {
         None,
     ];
 
-    let expect_err = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(37d8ad3153a9fe1a): SpannedSource { source: "fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {\n    if let Some(Foo::Red(Bar(x, y))) = state.val() {\n        signal((x + y).resize())\n    } else {\n        signal(bits(0))\n    }\n}\n", name: "add", span_map: {N14: 122..146, N3: 100..111, N15: 122..146, N22: 158..189, N21: 158..189, N24: 65..189, N11: 130..135, N9: 130..131, N17: 180..181, N26: 0..191, N8: 72..97, N6: 86..95, N13: 129..145, N20: 168..183, N16: 112..152, N5: 93..94, N12: 129..136, N25: 59..191, N23: 65..189, N1: 7..38, N4: 90..91, N0: 7..12, N7: 77..96, N2: 100..105, N18: 175..182, N19: 168..183, N10: 134..135}, fallback: N26, filename: "rhdl/tests/binding.rs:29", function_id: FnID(37d8ad3153a9fe1a) }}, ranges: {FnID(37d8ad3153a9fe1a): 0..192} }, err_span: SourceSpan { offset: SourceOffset(86), length: 9 } }))"#]];
+    let expect_err = expect![[
+        r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(37d8ad3153a9fe1a): SpannedSource { source: "fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {\n    if let Some(Foo::Red(Bar(x, y))) = state.val() {\n        signal((x + y).resize())\n    } else {\n        signal(bits(0))\n    }\n}\n", name: "add", span_map: {N14: 122..146, N3: 100..111, N15: 122..146, N22: 158..189, N21: 158..189, N24: 65..189, N11: 130..135, N9: 130..131, N17: 180..181, N26: 0..191, N8: 72..97, N6: 86..95, N13: 129..145, N20: 168..183, N16: 112..152, N5: 93..94, N12: 129..136, N25: 59..191, N23: 65..189, N1: 7..38, N4: 90..91, N0: 7..12, N7: 77..96, N2: 100..105, N18: 175..182, N19: 168..183, N10: 134..135}, fallback: N26, filename: "rhdl/tests/binding.rs:29", function_id: FnID(37d8ad3153a9fe1a) }}, ranges: {FnID(37d8ad3153a9fe1a): 0..192} }, err_span: SourceSpan { offset: SourceOffset(86), length: 9 } }))"#
+    ]];
     let res = compile_design::<add>(CompilationMode::Asynchronous);
     expect_err.assert_eq(&format!("{:?}", res));
     Ok(())
@@ -51,10 +53,10 @@ fn test_nested_enum_match_in_if_let_fails() -> miette::Result<()> {
 
 #[test]
 fn test_nested_rebind_in_if_let() -> miette::Result<()> {
-    #[derive(Digital)]
+    #[derive(PartialEq, Digital)]
     pub struct Bar(b8, b8);
 
-    #[derive(Digital)]
+    #[derive(PartialEq, Digital)]
     pub struct Foo {
         a: b8,
         b: Bar,
@@ -96,10 +98,10 @@ fn test_nested_rebind_in_if_let() -> miette::Result<()> {
 
 #[test]
 fn test_nested_rebind_inlet() -> miette::Result<()> {
-    #[derive(Digital)]
+    #[derive(PartialEq, Digital)]
     pub struct Bar(b8, b8);
 
-    #[derive(Digital)]
+    #[derive(PartialEq, Digital)]
     pub struct Foo {
         a: b8,
         b: Bar,
@@ -136,7 +138,7 @@ fn test_nested_rebind_inlet() -> miette::Result<()> {
 
 #[test]
 fn test_rebind_in_let() -> miette::Result<()> {
-    #[derive(Digital)]
+    #[derive(PartialEq, Digital)]
     pub struct Foo {
         a: b8,
         b: b8,
@@ -173,7 +175,7 @@ fn test_rebind_in_let() -> miette::Result<()> {
 
 #[test]
 fn test_rebind_compile() -> miette::Result<()> {
-    #[derive(Debug, Digital, Default)]
+    #[derive(PartialEq, Debug, Digital, Default)]
     pub enum SimpleEnum {
         #[default]
         Init,
@@ -219,7 +221,7 @@ fn test_rebind_compile() -> miette::Result<()> {
 #[test]
 fn test_importing() {
     use rhdl_bits::alias::*;
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     pub enum Rad {
         A,
         B(b4),

@@ -21,19 +21,11 @@ use seq_macro::seq;
 /// Note also that the [Bits] kind is treated as an unsigned value for
 /// the purposes of comparisons.  If you need signed comparisons, you
 /// will need the [SignedBits] type.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Bits<Len> {
     pub(crate) marker: std::marker::PhantomData<Len>,
     pub val: u128,
 }
-
-impl<Len: BitWidth> std::cmp::PartialEq for Bits<Len> {
-    fn eq(&self, other: &Self) -> bool {
-        self.val == other.val
-    }
-}
-
-impl<Len: BitWidth> std::cmp::Eq for Bits<Len> {}
 
 impl<Len: BitWidth> std::cmp::PartialOrd for Bits<Len> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -328,14 +320,17 @@ mod tests {
         assert_eq!(new_bits, 0b0000_0000_1101_1010);
     }
 
+    const OPT1: Bits<W8> = b8(0b1101_1010);
+    const OPT2: Bits<W8> = b8(0b0010_0100);
+
     #[test]
     fn test_match() {
         let bits: Bits<W8> = 0b1101_1010.into();
-        match bits.raw() {
-            218 => {
+        match bits {
+            OPT1 => {
                 eprintln!("Matched");
             }
-            36 => {
+            OPT2 => {
                 panic!("Did not match");
             }
             _ => {

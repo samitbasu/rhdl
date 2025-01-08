@@ -9,13 +9,13 @@ pub struct U<T: Digital + Default> {
     inner: fifo_to_rv::U<T>,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I<T: Digital> {
     pub bus: Ready,
     pub to_send: Option<T>,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct O<T: Digital> {
     pub bus: DataValid<T>,
     pub full: bool,

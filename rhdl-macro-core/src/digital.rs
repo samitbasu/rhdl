@@ -40,7 +40,7 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let fqdn = crate::utils::get_fqdn(&decl);
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
     let clone = derive_clone_from_inner(decl.clone())?;
-    let partial_eq = derive_partial_eq_from_inner(decl.clone())?;
+    //let partial_eq = derive_partial_eq_from_inner(decl.clone())?;
     match decl.data {
         Data::Struct(s) => {
             let fields = s
@@ -61,7 +61,7 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
 
                 #clone
 
-                #partial_eq
+                //#partial_eq
 
                 impl #impl_generics rhdl::core::Digital for #struct_name #ty_generics #where_clause {
                     const BITS: usize = #(
@@ -127,7 +127,7 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
     let clone = derive_clone_from_inner(decl.clone())?;
-    let partial_eq = derive_partial_eq_from_inner(decl.clone())?;
+    //let partial_eq = derive_partial_eq_from_inner(decl.clone())?;
     let fqdn = crate::utils::get_fqdn(&decl);
     match decl.data {
         Data::Struct(s) => {
@@ -148,7 +148,7 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
 
                 #clone
 
-                #partial_eq
+                //#partial_eq
 
                 impl #impl_generics rhdl::core::Digital for #struct_name #ty_generics #where_clause {
                     const BITS: usize = #(

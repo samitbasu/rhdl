@@ -11,7 +11,7 @@ use rhdl_core::sim::testbench::kernel::{
 
 #[test]
 fn test_option_is_digital() {
-    #[derive(Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital)]
     struct Test {
         a: Option<b8>,
         b: Option<b8>,
@@ -29,7 +29,7 @@ fn test_option_is_digital() {
 
 #[test]
 fn test_result_is_digital() -> miette::Result<()> {
-    #[derive(Debug, Digital, Default)]
+    #[derive(PartialEq, Debug, Digital, Default)]
     enum Eflag {
         BadNumber,
         OutOfRange,
@@ -108,14 +108,14 @@ fn test_option_is_kernel_ok() -> miette::Result<()> {
 
 #[test]
 fn test_option_result_no_ice() -> miette::Result<()> {
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
         DECERR = 1,
     }
 
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,
@@ -159,14 +159,14 @@ fn test_option_result_no_ice() -> miette::Result<()> {
 
 #[test]
 fn test_option_result_match_func() -> miette::Result<()> {
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
         DECERR = 1,
     }
 
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,
@@ -204,14 +204,14 @@ fn test_option_result_match_func() -> miette::Result<()> {
 
 #[test]
 fn test_option_result_if_let() -> miette::Result<()> {
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
         DECERR = 1,
     }
 
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,
@@ -250,14 +250,14 @@ fn test_option_result_if_let() -> miette::Result<()> {
 
 #[test]
 fn test_nested_matches() -> miette::Result<()> {
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
         DECERR = 1,
     }
 
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,
@@ -265,7 +265,7 @@ fn test_nested_matches() -> miette::Result<()> {
         DECERR = 2,
     }
 
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     pub struct ReadResponse<N: BitWidth> {
         data: Bits<N>,
         resp: ResponseCode,
@@ -301,14 +301,14 @@ fn test_nested_matches() -> miette::Result<()> {
 
 #[test]
 fn test_option_result_nested_option_result_destructure() -> miette::Result<()> {
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
         DECERR = 1,
     }
 
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,
@@ -342,14 +342,14 @@ fn test_option_result_nested_option_result_destructure() -> miette::Result<()> {
 
 #[test]
 fn test_option_result_nested_option_result_destructure_simple() -> miette::Result<()> {
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
         _UNUSED,
     }
 
-    #[derive(Default, Digital)]
+    #[derive(PartialEq, Default, Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,

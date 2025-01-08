@@ -14,7 +14,7 @@ impl Default for U {
             filler: crate::fifo::testing::filler::U::new(2, 0x8000),
             source: crate::axi4lite::stream::source::U::default(),
             sink: crate::axi4lite::stream::sink::U::default(),
-            drainer: crate::fifo::testing::drainer::U::new(2, 0x8000),
+            drainer: crate::fifo::testing::drainer::U::<W32>::new(2, 0x8000),
         }
     }
 }
@@ -61,7 +61,7 @@ mod tests {
             .join("vcd")
             .join("stream");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["9908ccf8cbc1e14fdf941f02837f3f7f0a7bcbce0d9a48abd3898c5fdf08e9ae"];
+        let expect = expect!["b106432f21741bc5739e6488cd95bd30708fd7b7c0198d9578699682de4e6aa0"];
         let digest = vcd.dump_to_file(&root.join("stream.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

@@ -9,13 +9,13 @@ pub struct U<T: Digital + Default> {
     inner: carloni::U<T>,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I<T: Digital> {
     pub data: Option<T>,
     pub ready: bool,
 }
 
-#[derive(Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct O<T: Digital> {
     pub data: Option<T>,
     pub ready: bool,
