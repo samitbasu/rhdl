@@ -13,7 +13,7 @@ impl<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> U<T, W, R, N> {
     }
 }
 
-type ReadI<N: BitWidth> = super::asynchronous::ReadI<N>;
+type ReadI<N> = super::asynchronous::ReadI<N>;
 
 #[derive(PartialEq, Debug, Digital)]
 pub struct WriteI<T: Digital + Default, N: BitWidth> {

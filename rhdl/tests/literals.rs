@@ -6,6 +6,23 @@ use common::*;
 use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 
 #[test]
+fn test_const_match_finite_bits() -> miette::Result<()> {
+    const ONE: b8 = bits(1);
+    const TWO: b8 = bits(2);
+    const THREE: b8 = bits(3);
+    #[kernel]
+    fn add<C: Domain>(a: Signal<b8, C>) -> Signal<b8, C> {
+        signal(match a.val() {
+            ONE => TWO,
+            TWO => THREE,
+            _ => ONE,
+        })
+    }
+    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_b8())?;
+    Ok(())
+}
+
+#[test]
 fn test_const_literal_match() {
     #[kernel]
     fn add<C: Domain>(a: Signal<b8, C>) -> Signal<b8, C> {
