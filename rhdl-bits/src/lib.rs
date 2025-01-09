@@ -405,7 +405,13 @@ pub mod signed_bits_impl;
 #[doc(hidden)]
 pub mod sub;
 #[doc(hidden)]
+pub mod xadd;
+#[doc(hidden)]
+pub mod xmul;
+#[doc(hidden)]
 pub mod xor;
+#[doc(hidden)]
+pub mod xsub;
 
 pub mod alias {
     //!
