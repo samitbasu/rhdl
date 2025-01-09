@@ -166,6 +166,8 @@ pub enum AluBinary {
     Ne,
     Ge,
     Gt,
+    XAdd,
+    XSub,
 }
 
 impl AluBinary {

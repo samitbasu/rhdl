@@ -1,7 +1,7 @@
 use crate::{
     bitx::{bitx_string, BitX},
     hdl::ast::Events,
-    rhif::spec::AluBinary,
+    rtl::spec::AluBinary,
     rtl::spec::AluUnary,
     types::bit_string::BitString,
 };

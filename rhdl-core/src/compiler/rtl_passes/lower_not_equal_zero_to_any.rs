@@ -1,5 +1,5 @@
 use crate::{
-    rhif::spec::AluBinary,
+    rtl::spec::AluBinary,
     rtl::{
         object::LocatedOpCode,
         spec::{AluUnary, Binary, OpCode, Operand, Unary},

@@ -1,7 +1,5 @@
 use std::ops::Range;
 
-use crate::rhif::spec::AluBinary;
-
 #[derive(Clone, PartialEq, Hash)]
 pub enum OpCode {
     Noop,
@@ -105,6 +103,45 @@ impl std::fmt::Debug for Operand {
         match self {
             Operand::Literal(l) => write!(f, "{:?}", l),
             Operand::Register(r) => write!(f, "{:?}", r),
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Hash)]
+pub enum AluBinary {
+    Add,
+    Sub,
+    Mul,
+    BitXor,
+    BitAnd,
+    BitOr,
+    Shl,
+    Shr,
+    Eq,
+    Lt,
+    Le,
+    Ne,
+    Ge,
+    Gt,
+}
+
+impl From<AluBinary> for crate::rhif::spec::AluBinary {
+    fn from(op: AluBinary) -> Self {
+        match op {
+            AluBinary::Add => crate::rhif::spec::AluBinary::Add,
+            AluBinary::Sub => crate::rhif::spec::AluBinary::Sub,
+            AluBinary::Mul => crate::rhif::spec::AluBinary::Mul,
+            AluBinary::BitXor => crate::rhif::spec::AluBinary::BitXor,
+            AluBinary::BitAnd => crate::rhif::spec::AluBinary::BitAnd,
+            AluBinary::BitOr => crate::rhif::spec::AluBinary::BitOr,
+            AluBinary::Shl => crate::rhif::spec::AluBinary::Shl,
+            AluBinary::Shr => crate::rhif::spec::AluBinary::Shr,
+            AluBinary::Eq => crate::rhif::spec::AluBinary::Eq,
+            AluBinary::Lt => crate::rhif::spec::AluBinary::Lt,
+            AluBinary::Le => crate::rhif::spec::AluBinary::Le,
+            AluBinary::Ne => crate::rhif::spec::AluBinary::Ne,
+            AluBinary::Ge => crate::rhif::spec::AluBinary::Ge,
+            AluBinary::Gt => crate::rhif::spec::AluBinary::Gt,
         }
     }
 }

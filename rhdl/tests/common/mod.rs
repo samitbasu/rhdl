@@ -6,6 +6,12 @@ pub fn exhaustive<N: BitWidth>() -> Vec<Bits<N>> {
     (0..(1 << N::BITS)).map(bits).collect()
 }
 
+pub fn exhaustive_signed<N: BitWidth>() -> Vec<SignedBits<N>> {
+    (SignedBits::<N>::min_value()..=SignedBits::<N>::max_value())
+        .map(signed)
+        .collect()
+}
+
 pub fn tuple_exhaustive_red<N: BitWidth>() -> impl Iterator<Item = (Signal<Bits<N>, Red>,)> + Clone
 {
     exhaustive::<N>().into_iter().map(|x| (signal(x),))

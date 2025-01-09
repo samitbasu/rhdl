@@ -1,9 +1,30 @@
 use crate::{rtl::spec::CastKind, util::splice};
 
 use super::spec::{
-    Assign, Binary, Case, Cast, Concat, DynamicIndex, DynamicSplice, Index, OpCode, Select, Splice,
-    Unary,
+    AluBinary, Assign, Binary, Case, Cast, Concat, DynamicIndex, DynamicSplice, Index, OpCode,
+    Select, Splice, Unary,
 };
+
+impl std::fmt::Debug for AluBinary {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AluBinary::Add => write!(f, "+"),
+            AluBinary::Sub => write!(f, "-"),
+            AluBinary::Mul => write!(f, "*"),
+            AluBinary::BitAnd => write!(f, "&"),
+            AluBinary::BitOr => write!(f, "|"),
+            AluBinary::BitXor => write!(f, "^"),
+            AluBinary::Shl => write!(f, "<<"),
+            AluBinary::Shr => write!(f, ">>"),
+            AluBinary::Eq => write!(f, "=="),
+            AluBinary::Ne => write!(f, "!="),
+            AluBinary::Lt => write!(f, "<"),
+            AluBinary::Le => write!(f, "<="),
+            AluBinary::Gt => write!(f, ">"),
+            AluBinary::Ge => write!(f, ">="),
+        }
+    }
+}
 
 impl std::fmt::Debug for OpCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

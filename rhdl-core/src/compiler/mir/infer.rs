@@ -297,10 +297,12 @@ impl<'a> MirTypeInference<'a> {
             | AluBinary::Sub => {
                 self.enforce_data_types_binary(loc, op.lhs, op.arg1, op.arg2)?;
             }
-            /*             AluBinary::Mul => {
-                           self.try_mul(loc, op.lhs, op.arg1, op.arg2)?;
-                       }
-            */
+            AluBinary::XAdd => {
+                self.try_xadd(loc, op.lhs, op.arg1, op.arg2)?;
+            }
+            AluBinary::XSub => {
+                self.try_xsub(loc, op.lhs, op.arg1, op.arg2)?;
+            }
             AluBinary::Eq
             | AluBinary::Lt
             | AluBinary::Le
@@ -414,35 +416,28 @@ impl<'a> MirTypeInference<'a> {
                 .into()),
         }
     }
-    fn try_mul(
+    fn try_xsub(
         &mut self,
         loc: SourceLocation,
         lhs: TypeId,
         arg1: TypeId,
         arg2: TypeId,
     ) -> Result<()> {
-        // LHS of a multiplication is always bit depth M+N, where
-        // X: Bits<M> and Y: Bits<N>, Z = X * Y
-        let lhs_sign_flag = self.ctx.ty_var(loc);
+        let size_computation = |a: usize, b: usize| a.max(b) + 1;
         let lhs_len = self.ctx.ty_var(loc);
-        let a1_is_signal = self.ctx.is_signal(arg1);
-        let a2_is_signal = self.ctx.is_signal(arg2);
-        let a1_data = self.ctx.project_signal_data(arg1);
-        let a2_data = self.ctx.project_signal_data(arg2);
-        let Some(a1_sign) = self.ctx.project_sign_flag(a1_data) else {
+        let Some(a1_sign) = self.ctx.project_sign_flag(arg1) else {
             return Ok(());
         };
-        let Some(a2_sign) = self.ctx.project_sign_flag(a2_data) else {
+        let Some(a2_sign) = self.ctx.project_sign_flag(arg2) else {
             return Ok(());
         };
-        // The sign flag must be the same across all operands
-        self.unify(loc, a1_sign, lhs_sign_flag)?;
-        self.unify(loc, a2_sign, lhs_sign_flag)?;
+        // Both arguments must have the same sign
+        self.unify(loc, a1_sign, a2_sign)?;
         // Get the bit length of the operands
-        let Some(a1_len) = self.ctx.project_bit_length(a1_data) else {
+        let Some(a1_len) = self.ctx.project_bit_length(arg1) else {
             return Ok(());
         };
-        let Some(a2_len) = self.ctx.project_bit_length(a2_data) else {
+        let Some(a2_len) = self.ctx.project_bit_length(arg2) else {
             return Ok(());
         };
         let Ok(a1_len) = self.ctx.cast_ty_as_bit_length(a1_len) else {
@@ -451,27 +446,52 @@ impl<'a> MirTypeInference<'a> {
         let Ok(a2_len) = self.ctx.cast_ty_as_bit_length(a2_len) else {
             return Ok(());
         };
-        let lhs_computed_len = self.ctx.ty_const_len(loc, a1_len + a2_len);
+        let lhs_computed_len = self.ctx.ty_const_len(loc, size_computation(a1_len, a2_len));
+        self.unify(loc, lhs_len, lhs_computed_len)?;
+        let lhs_sign_flag = self.ctx.ty_sign_flag(loc, SignFlag::Signed);
+        let lhs_data = self
+            .ctx
+            .ty_with_sign_and_len(loc, lhs_sign_flag, lhs_computed_len);
+        return self.unify(loc, lhs, lhs_data);
+    }
+
+    fn try_xadd(
+        &mut self,
+        loc: SourceLocation,
+        lhs: TypeId,
+        arg1: TypeId,
+        arg2: TypeId,
+    ) -> Result<()> {
+        let size_computation = |a: usize, b: usize| a.max(b) + 1;
+        let lhs_sign_flag = self.ctx.ty_var(loc);
+        let lhs_len = self.ctx.ty_var(loc);
+        let Some(a1_sign) = self.ctx.project_sign_flag(arg1) else {
+            return Ok(());
+        };
+        let Some(a2_sign) = self.ctx.project_sign_flag(arg2) else {
+            return Ok(());
+        };
+        self.unify(loc, a1_sign, lhs_sign_flag)?;
+        self.unify(loc, a2_sign, lhs_sign_flag)?;
+        // Get the bit length of the operands
+        let Some(a1_len) = self.ctx.project_bit_length(arg1) else {
+            return Ok(());
+        };
+        let Some(a2_len) = self.ctx.project_bit_length(arg2) else {
+            return Ok(());
+        };
+        let Ok(a1_len) = self.ctx.cast_ty_as_bit_length(a1_len) else {
+            return Ok(());
+        };
+        let Ok(a2_len) = self.ctx.cast_ty_as_bit_length(a2_len) else {
+            return Ok(());
+        };
+        let lhs_computed_len = self.ctx.ty_const_len(loc, size_computation(a1_len, a2_len));
         self.unify(loc, lhs_len, lhs_computed_len)?;
         let lhs_data = self
             .ctx
             .ty_with_sign_and_len(loc, lhs_sign_flag, lhs_computed_len);
-        if !a1_is_signal && !a2_is_signal {
-            return self.unify(loc, lhs, lhs_data);
-        }
-        if let Some(a1_clock) = self.ctx.project_signal_clock(arg1) {
-            let lhs_clock = self.ctx.ty_var(loc);
-            self.unify(loc, lhs_clock, a1_clock)?;
-            let lhs_sig = self.ctx.ty_signal(loc, lhs_data, lhs_clock);
-            self.unify(loc, lhs, lhs_sig)?;
-        }
-        if let Some(a2_clock) = self.ctx.project_signal_clock(arg2) {
-            let lhs_clock = self.ctx.ty_var(loc);
-            self.unify(loc, lhs_clock, a2_clock)?;
-            let lhs_sig = self.ctx.ty_signal(loc, lhs_data, lhs_clock);
-            self.unify(loc, lhs, lhs_sig)?;
-        }
-        Ok(())
+        return self.unify(loc, lhs, lhs_data);
     }
     // Given Y <- A op B, ensure that the data types of
     // Y, A, an B are all compatible.

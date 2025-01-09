@@ -87,6 +87,9 @@ pub use rhdl_macro::Synchronous;
 pub use rhdl_macro::SynchronousDQ;
 pub use rhdl_macro::Timed;
 // Use the extension traits
+pub use rhdl_bits::xadd::XAdd;
+pub use rhdl_bits::xmul::XMul;
+pub use rhdl_bits::xsub::XSub;
 pub use rhdl_core::bitx::bitx_parse;
 pub use rhdl_core::bitx::bitx_string;
 pub use rhdl_core::bitx_vec;

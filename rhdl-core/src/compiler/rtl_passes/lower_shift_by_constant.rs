@@ -1,7 +1,7 @@
 use crate::{
     ast::source::source_location::SourceLocation,
     compiler::mir::error::ICE,
-    rhif::spec::AluBinary,
+    rtl::spec::AluBinary,
     rtl::{
         object::{LocatedOpCode, RegisterKind},
         spec::{Binary, Cast, CastKind, Concat, Index, LiteralId, OpCode, Operand},

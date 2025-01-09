@@ -35,6 +35,27 @@ struct RTLCompiler<'a> {
     register_count: usize,
 }
 
+// map a binary op from RHIF to RTL if possible
+fn map_binop(op: hf::AluBinary) -> Option<tl::AluBinary> {
+    match op {
+        AluBinary::Add => Some(tl::AluBinary::Add),
+        AluBinary::Sub => Some(tl::AluBinary::Sub),
+        AluBinary::Mul => Some(tl::AluBinary::Mul),
+        AluBinary::BitXor => Some(tl::AluBinary::BitXor),
+        AluBinary::BitAnd => Some(tl::AluBinary::BitAnd),
+        AluBinary::BitOr => Some(tl::AluBinary::BitOr),
+        AluBinary::Shl => Some(tl::AluBinary::Shl),
+        AluBinary::Shr => Some(tl::AluBinary::Shr),
+        AluBinary::Eq => Some(tl::AluBinary::Eq),
+        AluBinary::Lt => Some(tl::AluBinary::Lt),
+        AluBinary::Le => Some(tl::AluBinary::Le),
+        AluBinary::Ne => Some(tl::AluBinary::Ne),
+        AluBinary::Ge => Some(tl::AluBinary::Ge),
+        AluBinary::Gt => Some(tl::AluBinary::Gt),
+        _ => None,
+    }
+}
+
 impl<'a> RTLCompiler<'a> {
     fn new(object: &'a rhif::object::Object) -> Self {
         let mut symbols = SymbolMap::default();
@@ -129,6 +150,12 @@ impl<'a> RTLCompiler<'a> {
             Operand::Register(register_id) => self.registers[&register_id].len(),
         }
     }
+    fn operand_is_signed(&self, operand: Operand) -> bool {
+        match operand {
+            Operand::Literal(literal_id) => self.literals[&literal_id].is_signed(),
+            Operand::Register(register_id) => self.registers[&register_id].is_signed(),
+        }
+    }
     fn raise_ice(&self, cause: ICE, loc: SourceLocation) -> RHDLError {
         rhdl_error(RHDLCompileError {
             cause,
@@ -219,7 +246,7 @@ impl<'a> RTLCompiler<'a> {
             self.lop(
                 tl::OpCode::Binary(tl::Binary {
                     lhs: prod_uncast,
-                    op: AluBinary::Mul,
+                    op: crate::rtl::spec::AluBinary::Mul,
                     arg1: reg,
                     arg2: stride,
                 }),
@@ -241,7 +268,7 @@ impl<'a> RTLCompiler<'a> {
             self.lop(
                 tl::OpCode::Binary(tl::Binary {
                     lhs: sum,
-                    op: AluBinary::Add,
+                    op: crate::rtl::spec::AluBinary::Add,
                     arg1: index_sum,
                     arg2: prod,
                 }),
@@ -413,33 +440,17 @@ impl<'a> RTLCompiler<'a> {
         }
         Ok(())
     }
-    fn make_binary(&mut self, binary: &hf::Binary, loc: SourceLocation) -> Result<()> {
-        let hf::Binary {
-            lhs,
-            op,
-            arg1,
-            arg2,
-        } = *binary;
-        if !lhs.is_empty() {
-            if op != AluBinary::Mul {
-                let lhs = self.operand(lhs, loc)?;
-                let arg1 = self.operand(arg1, loc)?;
-                let arg2 = self.operand(arg2, loc)?;
-                self.lop(
-                    tl::OpCode::Binary(tl::Binary {
-                        lhs,
-                        op,
-                        arg1,
-                        arg2,
-                    }),
-                    loc,
-                );
-            } else {
+    fn make_xop(&mut self, binary: &hf::Binary, loc: SourceLocation) -> Result<()> {
+        let lhs = binary.lhs;
+        let arg1 = binary.arg1;
+        let arg2 = binary.arg2;
+        match binary.op {
+            hf::AluBinary::XAdd => {
                 let lhs = self.operand(lhs, loc)?;
                 let arg1 = self.operand(arg1, loc)?;
                 let arg2 = self.operand(arg2, loc)?;
                 let Operand::Register(lhs_id) = lhs else {
-                    return Err(self.raise_ice(ICE::MulResultMustBeRegister, loc));
+                    return Err(self.raise_ice(ICE::XopsResultMustBeRegister, loc));
                 };
                 let lhs_reg_kind = self.registers[&lhs_id];
                 let arg1_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
@@ -465,12 +476,108 @@ impl<'a> RTLCompiler<'a> {
                 self.lop(
                     tl::OpCode::Binary(tl::Binary {
                         lhs,
-                        op,
+                        op: tl::AluBinary::Add,
                         arg1: arg1_cast,
                         arg2: arg2_cast,
                     }),
                     loc,
                 );
+            }
+            hf::AluBinary::XSub => {
+                let lhs = self.operand(lhs, loc)?;
+                let arg1 = self.operand(arg1, loc)?;
+                let arg2 = self.operand(arg2, loc)?;
+                let Operand::Register(lhs_id) = lhs else {
+                    return Err(self.raise_ice(ICE::XopsResultMustBeRegister, loc));
+                };
+                // The cast operation has to be split into two steps depending
+                // on the sign of the operands.  The result is always signed.
+                let lhs_reg_kind = self.registers[&lhs_id];
+                let lhs_len = lhs_reg_kind.len();
+                let extension_kind = if self.operand_is_signed(arg1) {
+                    RegisterKind::Signed(lhs_len)
+                } else {
+                    RegisterKind::Unsigned(lhs_len)
+                };
+                // First we extend the operands to the required number of bits
+                let arg1_extend = self.allocate_register_with_register_kind(&extension_kind, loc);
+                let arg2_extend = self.allocate_register_with_register_kind(&extension_kind, loc);
+                self.lop(
+                    tl::OpCode::Cast(tl::Cast {
+                        lhs: arg1_extend,
+                        arg: arg1,
+                        len: lhs_len,
+                        kind: CastKind::Resize,
+                    }),
+                    loc,
+                );
+                self.lop(
+                    tl::OpCode::Cast(tl::Cast {
+                        lhs: arg2_extend,
+                        arg: arg2,
+                        len: lhs_len,
+                        kind: CastKind::Resize,
+                    }),
+                    loc,
+                );
+                // This guarantees that the sign bit will be zero when we reinterepret them as signed values
+                let arg1_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
+                let arg2_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
+                self.lop(
+                    tl::OpCode::Cast(tl::Cast {
+                        lhs: arg1_cast,
+                        arg: arg1_extend,
+                        len: lhs_reg_kind.len(),
+                        kind: CastKind::Signed,
+                    }),
+                    loc,
+                );
+                self.lop(
+                    tl::OpCode::Cast(tl::Cast {
+                        lhs: arg2_cast,
+                        arg: arg2_extend,
+                        len: lhs_reg_kind.len(),
+                        kind: CastKind::Signed,
+                    }),
+                    loc,
+                );
+                self.lop(
+                    tl::OpCode::Binary(tl::Binary {
+                        lhs,
+                        op: tl::AluBinary::Sub,
+                        arg1: arg1_cast,
+                        arg2: arg2_cast,
+                    }),
+                    loc,
+                );
+            }
+            _ => todo!(),
+        }
+        Ok(())
+    }
+    fn make_binary(&mut self, binary: &hf::Binary, loc: SourceLocation) -> Result<()> {
+        let hf::Binary {
+            lhs,
+            op,
+            arg1,
+            arg2,
+        } = *binary;
+        if !lhs.is_empty() {
+            if let Some(op) = map_binop(op) {
+                let lhs = self.operand(lhs, loc)?;
+                let arg1 = self.operand(arg1, loc)?;
+                let arg2 = self.operand(arg2, loc)?;
+                self.lop(
+                    tl::OpCode::Binary(tl::Binary {
+                        lhs,
+                        op,
+                        arg1,
+                        arg2,
+                    }),
+                    loc,
+                );
+            } else {
+                self.make_xop(binary, loc)?;
             }
         }
         Ok(())

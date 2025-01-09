@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 use rhdl_core::{
-    rhif::spec::AluBinary, rtl::spec::Binary, sim::testbench::kernel::test_kernel_vm_and_verilog,
+    rtl::spec::AluBinary, rtl::spec::Binary, sim::testbench::kernel::test_kernel_vm_and_verilog,
 };
 #[cfg(test)]
 mod common;

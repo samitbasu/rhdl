@@ -8,7 +8,7 @@ use crate::{
         flow_graph_impl::{FlowIx, GraphType},
     },
     hdl::ast::SignedWidth,
-    rhif::spec::AluBinary,
+    rtl::spec::AluBinary,
     FlowGraph, RHDLError,
 };
 

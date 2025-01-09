@@ -1,3 +1,5 @@
+use num_bigint::{BigInt, BigUint};
+
 use crate::bitx::dyn_bit_manip::{from_bigint, from_biguint, to_bigint, to_biguint};
 use crate::error::rhdl_error;
 use crate::types::error::DynamicTypeError;
@@ -39,6 +41,82 @@ fn mul(a: TypedBits, b: TypedBits) -> Result<TypedBits, RHDLError> {
         Ok(TypedBits {
             bits: from_biguint(&result, a.bits.len()),
             kind: Kind::Bits(a.bits.len()),
+        })
+    }
+}
+
+fn xsub(a: TypedBits, b: TypedBits) -> Result<TypedBits, RHDLError> {
+    let size_fn = |a: usize, b| a.max(b) + 1;
+    if a.kind.is_signed() ^ b.kind.is_signed() {
+        return Err(rhdl_error(
+            DynamicTypeError::BinaryOperationRequiresCompatibleType {
+                lhs: a.kind,
+                rhs: b.kind,
+            },
+        ));
+    }
+    if a.kind.is_signed() {
+        let a_bi = to_bigint(&a.bits).ok_or_else(|| {
+            rhdl_error(DynamicTypeError::CannotConvertUninitToInt { value: a.clone() })
+        })?;
+        let b_bi = to_bigint(&b.bits).ok_or_else(|| {
+            rhdl_error(DynamicTypeError::CannotConvertUninitToInt { value: b.clone() })
+        })?;
+        let result = a_bi - b_bi;
+        Ok(TypedBits {
+            bits: from_bigint(&result, size_fn(a.bits.len(), b.bits.len())),
+            kind: Kind::Signed(size_fn(a.bits.len(), b.bits.len())),
+        })
+    } else {
+        let a_bi = to_biguint(&a.bits).ok_or_else(|| {
+            rhdl_error(DynamicTypeError::CannotConvertUninitToInt { value: a.clone() })
+        })?;
+        let b_bi = to_biguint(&b.bits).ok_or_else(|| {
+            rhdl_error(DynamicTypeError::CannotConvertUninitToInt { value: b.clone() })
+        })?;
+        let a_bi: BigInt = a_bi.into();
+        let b_bi: BigInt = b_bi.into();
+        let result = a_bi - b_bi;
+        Ok(TypedBits {
+            bits: from_bigint(&result, size_fn(a.bits.len(), b.bits.len())),
+            kind: Kind::Signed(size_fn(a.bits.len(), b.bits.len())),
+        })
+    }
+}
+
+fn xadd(a: TypedBits, b: TypedBits) -> Result<TypedBits, RHDLError> {
+    let size_fn = |a: usize, b| a.max(b) + 1;
+    if a.kind.is_signed() ^ b.kind.is_signed() {
+        return Err(rhdl_error(
+            DynamicTypeError::BinaryOperationRequiresCompatibleType {
+                lhs: a.kind,
+                rhs: b.kind,
+            },
+        ));
+    }
+    if a.kind.is_signed() {
+        let a_bi = to_bigint(&a.bits).ok_or_else(|| {
+            rhdl_error(DynamicTypeError::CannotConvertUninitToInt { value: a.clone() })
+        })?;
+        let b_bi = to_bigint(&b.bits).ok_or_else(|| {
+            rhdl_error(DynamicTypeError::CannotConvertUninitToInt { value: b.clone() })
+        })?;
+        let result = a_bi + b_bi;
+        Ok(TypedBits {
+            bits: from_bigint(&result, size_fn(a.bits.len(), b.bits.len())),
+            kind: Kind::Signed(size_fn(a.bits.len(), b.bits.len())),
+        })
+    } else {
+        let a_bi = to_biguint(&a.bits).ok_or_else(|| {
+            rhdl_error(DynamicTypeError::CannotConvertUninitToInt { value: a.clone() })
+        })?;
+        let b_bi = to_biguint(&b.bits).ok_or_else(|| {
+            rhdl_error(DynamicTypeError::CannotConvertUninitToInt { value: b.clone() })
+        })?;
+        let result = a_bi + b_bi;
+        Ok(TypedBits {
+            bits: from_biguint(&result, size_fn(a.bits.len(), b.bits.len())),
+            kind: Kind::Bits(size_fn(a.bits.len(), b.bits.len())),
         })
     }
 }
@@ -153,7 +231,11 @@ fn xmul_rtl(a: TypedBits, b: TypedBits) -> Result<TypedBits, RHDLError> {
     }
 }
 
-pub fn binary(op: AluBinary, arg1: TypedBits, arg2: TypedBits) -> Result<TypedBits, RHDLError> {
+pub fn binary(
+    op: crate::rhif::spec::AluBinary,
+    arg1: TypedBits,
+    arg2: TypedBits,
+) -> Result<TypedBits, RHDLError> {
     match op {
         AluBinary::Add => arg1 + arg2,
         AluBinary::Sub => arg1 - arg2,
@@ -169,13 +251,8 @@ pub fn binary(op: AluBinary, arg1: TypedBits, arg2: TypedBits) -> Result<TypedBi
         AluBinary::Gt => Ok((arg1 > arg2).typed_bits()),
         AluBinary::Ge => Ok((arg1 >= arg2).typed_bits()),
         AluBinary::Mul => mul(arg1, arg2),
-    }
-}
-
-pub fn binary_rtl(op: AluBinary, arg1: TypedBits, arg2: TypedBits) -> Result<TypedBits, RHDLError> {
-    match op {
-        AluBinary::Mul => mul_rtl(arg1, arg2),
-        _ => binary(op, arg1, arg2),
+        AluBinary::XAdd => xadd(arg1, arg2),
+        AluBinary::XSub => xsub(arg1, arg2),
     }
 }
 
@@ -191,11 +268,6 @@ pub fn unary(op: AluUnary, arg1: TypedBits) -> Result<TypedBits, RHDLError> {
         AluUnary::Val => Ok(arg1.val()),
         AluUnary::Pad => arg1.pad(),
     }
-}
-
-pub fn unary_rtl(op: crate::rtl::spec::AluUnary, arg1: TypedBits) -> Result<TypedBits, RHDLError> {
-    let op = op.into();
-    unary(op, arg1)
 }
 
 pub fn tuple(fields: &[TypedBits]) -> TypedBits {
