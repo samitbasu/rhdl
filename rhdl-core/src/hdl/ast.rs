@@ -1,5 +1,5 @@
 use crate::{
-    bitx::BitX, rhif::spec::AluBinary, rtl::object::RegisterKind, rtl::spec::AluUnary,
+    bitx::BitX, rtl::object::RegisterKind, rtl::spec::AluBinary, rtl::spec::AluUnary,
     types::bit_string::BitString,
 };
 

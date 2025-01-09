@@ -1240,6 +1240,16 @@ impl<'a> MirContext<'a> {
             self.op(op_assign(lhs, arg), id);
             return Ok(lhs);
         }
+        if method_call.method == "xadd" {
+            let rhs = self.expr(&method_call.args[0])?;
+            self.op(op_binary(AluBinary::XAdd, lhs, arg, rhs), id);
+            return Ok(lhs);
+        }
+        if method_call.method == "xsub" {
+            let rhs = self.expr(&method_call.args[0])?;
+            self.op(op_binary(AluBinary::XSub, lhs, arg, rhs), id);
+            return Ok(lhs);
+        }
         let op = match method_call.method {
             "any" => AluUnary::Any,
             "all" => AluUnary::All,

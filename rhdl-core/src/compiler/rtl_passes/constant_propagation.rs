@@ -39,7 +39,7 @@ fn propagate_binary(
     if let (Operand::Literal(arg1), Operand::Literal(arg2)) = (arg1, arg2) {
         let arg1_val: TypedBits = obj.literals[&arg1].clone().into();
         let arg2_val: TypedBits = obj.literals[&arg2].clone().into();
-        let result: BitString = crate::rhif::runtime_ops::binary(op, arg1_val, arg2_val)?.into();
+        let result: BitString = crate::rtl::runtime_ops::binary(op, arg1_val, arg2_val)?.into();
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs,
@@ -68,7 +68,7 @@ fn propagate_unary(
     let Unary { lhs, op, arg1 } = params;
     if let Operand::Literal(arg1) = arg1 {
         let arg_val: TypedBits = obj.literals[&arg1].clone().into();
-        let result: BitString = crate::rhif::runtime_ops::unary_rtl(op, arg_val)?.into();
+        let result: BitString = crate::rtl::runtime_ops::unary(op, arg_val)?.into();
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs,

@@ -1,7 +1,7 @@
 use rhdl_bits::alias::b8;
 
 use crate::{
-    rhif::spec::AluBinary,
+    rtl::spec::AluBinary,
     rtl::{
         object::LocatedOpCode,
         spec::{Binary, Cast, CastKind, OpCode, Operand},

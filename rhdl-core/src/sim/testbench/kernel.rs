@@ -386,6 +386,7 @@ where
     debug!("{:?}", design);
     debug!("----- RTL ------");
     debug!("{:?}", rtl);
+    debug!("Running RHIF VM check");
     for input in vm_inputs {
         let args_for_vm = input.vec_tb();
         let expected = uut.apply(input).typed_bits();
@@ -395,6 +396,7 @@ where
         }
     }
     let rtl_inputs = vals.clone();
+    debug!("Running RTL VM check");
     for input in rtl_inputs {
         let args_for_rtl: Vec<BitString> = input
             .vec_tb()
@@ -407,6 +409,7 @@ where
             return Err(RHDLError::VerilogVerificationErrorRTL { expected, actual });
         }
     }
+    debug!("Generating Verilog to run external checks");
     let hdl = generate_verilog(&rtl)?;
     let tm = test_module(&uut, hdl, vals.clone());
     std::fs::write("testbench.v", tm.to_string())?;

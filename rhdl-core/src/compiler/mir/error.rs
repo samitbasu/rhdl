@@ -194,10 +194,10 @@ pub enum ICE {
     WrapRequiresOptionKind { kind: Kind },
     #[error("Attempted to select based on an uninitialized value")]
     SelectOnUninitializedValue { value: BitString },
-    #[error("Invalid arguments to multiplication {a:?} and {b:?}")]
-    InvalidMulKind { a: Kind, b: Kind },
-    #[error("Result of a multiplication cannot be assigned to a literal")]
-    MulResultMustBeRegister,
+    #[error("Invalid arguments to Xops operation {a:?} and {b:?}")]
+    InvalidXopsKind { a: Kind, b: Kind },
+    #[error("Result of an Xops (xadd, xsub, xmul) cannot be assigned to a literal")]
+    XopsResultMustBeRegister,
     #[error("Argument of pad operation must be either a Bits or SignedBits value")]
     InvalidPadKind { a: Kind },
 }

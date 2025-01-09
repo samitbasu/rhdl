@@ -842,11 +842,13 @@ impl Context {
             "val",
             "resize",
             "raw",
+            "xadd",
+            "xsub",
         ]
         .contains(&method.to_string().as_str())
         {
             return Err(syn::Error::new(
-                expr.span(),
+                method.span(),
                 format!(
                     "Unsupported method call {} in an rhdl kernel function",
                     quote!(#expr)

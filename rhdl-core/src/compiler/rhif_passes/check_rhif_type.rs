@@ -53,13 +53,28 @@ fn pad_kind(obj: &Object, loc: SourceLocation, a: Kind) -> Result<Kind, RHDLErro
     }
 }
 
-fn mul_kind(obj: &Object, loc: SourceLocation, a: Kind, b: Kind) -> Result<Kind, RHDLError> {
+fn xadd_kind(obj: &Object, loc: SourceLocation, a: Kind, b: Kind) -> Result<Kind, RHDLError> {
+    let size_fn = |a: usize, b: usize| a.max(b) + 1;
     match (a, b) {
-        (Kind::Bits(a), Kind::Bits(b)) => Ok(Kind::Bits(a + b)),
-        (Kind::Signed(a), Kind::Signed(b)) => Ok(Kind::Signed(a + b)),
+        (Kind::Bits(a), Kind::Bits(b)) => Ok(Kind::Bits(size_fn(a, b))),
+        (Kind::Signed(a), Kind::Signed(b)) => Ok(Kind::Signed(size_fn(a, b))),
         _ => Err(TypeCheckPass::raise_ice(
             obj,
-            ICE::InvalidMulKind { a, b },
+            ICE::InvalidXopsKind { a, b },
+            loc,
+        )),
+    }
+}
+
+fn xsub_kind(obj: &Object, loc: SourceLocation, a: Kind, b: Kind) -> Result<Kind, RHDLError> {
+    let size_fn = |a: usize, b: usize| a.max(b) + 1;
+    match (a, b) {
+        (Kind::Bits(a), Kind::Bits(b)) | (Kind::Signed(a), Kind::Signed(b)) => {
+            Ok(Kind::Signed(size_fn(a, b)))
+        }
+        _ => Err(TypeCheckPass::raise_ice(
+            obj,
+            ICE::InvalidXopsKind { a, b },
             loc,
         )),
     }
@@ -112,18 +127,28 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 eq_kinds(slot_type(lhs), slot_type(arg1), loc)?;
                 eq_kinds(slot_type(lhs), slot_type(arg2), loc)?;
             }
-            /*             OpCode::Binary(Binary {
-                           op: AluBinary::XMul,
-                           lhs,
-                           arg1,
-                           arg2,
-                       }) => {
-                           let arg1_ty = slot_type(arg1);
-                           let arg2_ty = slot_type(arg2);
-                           let result_ty = mul_kind(obj, loc, arg1_ty, arg2_ty)?;
-                           eq_kinds(slot_type(lhs), result_ty, loc)?;
-                       }
-            */
+            OpCode::Binary(Binary {
+                op: AluBinary::XAdd,
+                lhs,
+                arg1,
+                arg2,
+            }) => {
+                let arg1_ty = slot_type(arg1);
+                let arg2_ty = slot_type(arg2);
+                let result_ty = xadd_kind(obj, loc, arg1_ty, arg2_ty)?;
+                eq_kinds(slot_type(lhs), result_ty, loc)?;
+            }
+            OpCode::Binary(Binary {
+                op: AluBinary::XSub,
+                lhs,
+                arg1,
+                arg2,
+            }) => {
+                let arg1_ty = slot_type(arg1);
+                let arg2_ty = slot_type(arg2);
+                let result_ty = xsub_kind(obj, loc, arg1_ty, arg2_ty)?;
+                eq_kinds(slot_type(lhs), result_ty, loc)?;
+            }
             OpCode::Binary(Binary {
                 op: AluBinary::Shl | AluBinary::Shr,
                 lhs,

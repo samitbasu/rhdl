@@ -1,6 +1,6 @@
 use crate::{
     ast::source::source_location::SourceLocation, bitx::BitX, hdl::ast::SignedWidth,
-    rhif::spec::AluBinary, rtl::spec::AluUnary, types::bit_string::BitString,
+    rtl::spec::AluBinary, rtl::spec::AluUnary, types::bit_string::BitString,
 };
 
 #[derive(Debug, Clone, Hash)]

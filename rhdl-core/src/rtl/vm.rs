@@ -5,10 +5,9 @@ use crate::{
     bitx::BitX,
     compiler::mir::error::{RHDLCompileError, ICE},
     error::rhdl_error,
-    rhif::spec::AluBinary,
     rtl::spec::{
-        AluUnary, Case, CaseArgument, Cast, CastKind, Concat, DynamicIndex, DynamicSplice, Index,
-        Select, Splice, Unary,
+        AluBinary, AluUnary, Case, CaseArgument, Cast, CastKind, Concat, DynamicIndex,
+        DynamicSplice, Index, Select, Splice, Unary,
     },
     types::bit_string::BitString,
     RHDLError, TypedBits,
@@ -16,6 +15,7 @@ use crate::{
 
 use super::{
     object::{LocatedOpCode, RegisterKind},
+    runtime_ops::{binary, unary},
     spec::{Assign, Binary, LiteralId, OpCode, Operand},
     Object,
 };
@@ -46,7 +46,7 @@ impl VMState<'_> {
     ) -> Result<BitString> {
         let arg1: TypedBits = arg1.into();
         let arg2: TypedBits = arg2.into();
-        match crate::rhif::runtime_ops::binary_rtl(op, arg1, arg2) {
+        match binary(op, arg1, arg2) {
             Ok(result) => Ok(result.into()),
             Err(e) => Err(self.raise_ice(ICE::BinaryOperatorError(Box::new(e)), loc)),
         }
@@ -54,7 +54,7 @@ impl VMState<'_> {
 
     fn unary(&self, op: AluUnary, arg1: BitString, loc: SourceLocation) -> Result<BitString> {
         let arg1: TypedBits = arg1.into();
-        match crate::rhif::runtime_ops::unary_rtl(op, arg1) {
+        match unary(op, arg1) {
             Ok(result) => Ok(result.into()),
             Err(e) => Err(self.raise_ice(ICE::UnaryOperatorError(Box::new(e)), loc)),
         }

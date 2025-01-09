@@ -178,6 +178,8 @@ impl std::fmt::Debug for AluBinary {
             AluBinary::Le => write!(f, "<="),
             AluBinary::Gt => write!(f, ">"),
             AluBinary::Ge => write!(f, ">="),
+            AluBinary::XAdd => write!(f, "xadd"),
+            AluBinary::XSub => write!(f, "xsub"),
         }
     }
 }

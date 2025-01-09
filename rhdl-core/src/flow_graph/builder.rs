@@ -4,7 +4,7 @@ use crate::{
     ast::source::source_location::SourceLocation,
     bitx::BitX,
     hdl::ast::{unsigned_width, SignedWidth},
-    rhif::spec::AluBinary,
+    rtl::spec::AluBinary,
     rtl::{
         object::LocatedOpCode,
         spec::{AluUnary, OpCode, Operand},
