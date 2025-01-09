@@ -293,12 +293,14 @@ impl<'a> MirTypeInference<'a> {
             | AluBinary::BitAnd
             | AluBinary::BitOr
             | AluBinary::BitXor
+            | AluBinary::Mul
             | AluBinary::Sub => {
                 self.enforce_data_types_binary(loc, op.lhs, op.arg1, op.arg2)?;
             }
-            AluBinary::Mul => {
-                self.try_mul(loc, op.lhs, op.arg1, op.arg2)?;
-            }
+            /*             AluBinary::Mul => {
+                           self.try_mul(loc, op.lhs, op.arg1, op.arg2)?;
+                       }
+            */
             AluBinary::Eq
             | AluBinary::Lt
             | AluBinary::Le

@@ -103,6 +103,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                     | AluBinary::Sub
                     | AluBinary::BitAnd
                     | AluBinary::BitOr
+                    | AluBinary::Mul
                     | AluBinary::BitXor,
                 lhs,
                 arg1,
@@ -111,17 +112,18 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 eq_kinds(slot_type(lhs), slot_type(arg1), loc)?;
                 eq_kinds(slot_type(lhs), slot_type(arg2), loc)?;
             }
-            OpCode::Binary(Binary {
-                op: AluBinary::Mul,
-                lhs,
-                arg1,
-                arg2,
-            }) => {
-                let arg1_ty = slot_type(arg1);
-                let arg2_ty = slot_type(arg2);
-                let result_ty = mul_kind(obj, loc, arg1_ty, arg2_ty)?;
-                eq_kinds(slot_type(lhs), result_ty, loc)?;
-            }
+            /*             OpCode::Binary(Binary {
+                           op: AluBinary::XMul,
+                           lhs,
+                           arg1,
+                           arg2,
+                       }) => {
+                           let arg1_ty = slot_type(arg1);
+                           let arg2_ty = slot_type(arg2);
+                           let result_ty = mul_kind(obj, loc, arg1_ty, arg2_ty)?;
+                           eq_kinds(slot_type(lhs), result_ty, loc)?;
+                       }
+            */
             OpCode::Binary(Binary {
                 op: AluBinary::Shl | AluBinary::Shr,
                 lhs,

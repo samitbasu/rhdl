@@ -590,7 +590,7 @@ fn test_maybe_init_does_not_allow_select() -> miette::Result<()> {
 #[test]
 fn test_multiply() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b16, Red> {
+    fn do_stuff(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
         let a = a.val();
         let b = b.val();
         let c = a * b;
