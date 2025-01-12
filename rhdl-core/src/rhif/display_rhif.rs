@@ -206,6 +206,7 @@ impl std::fmt::Debug for AluUnary {
                 write!(f, "xshr<W{}> ", diff)
             }
             AluUnary::XNeg => write!(f, "xneg "),
+            AluUnary::XSgn => write!(f, "xsgn "),
         }
     }
 }

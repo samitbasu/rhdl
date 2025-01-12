@@ -297,7 +297,7 @@ impl<'a> MirTypeInference<'a> {
                 let lhs_ty = self.ctx.ty_with_sign_and_len(loc, a1_sign, len);
                 self.unify(loc, op.lhs, lhs_ty)?;
             }
-            AluUnary::XNeg => {
+            AluUnary::XNeg | AluUnary::XSgn => {
                 let Some(a1_len) = self.ctx.project_bit_length(a1) else {
                     return Ok(());
                 };
@@ -870,7 +870,8 @@ impl<'a> MirTypeInference<'a> {
                         | AluUnary::XExt(_)
                         | AluUnary::XShl(_)
                         | AluUnary::XShr(_)
-                        | AluUnary::XNeg => {
+                        | AluUnary::XNeg
+                        | AluUnary::XSgn => {
                             self.type_ops.push(TypeOperation {
                                 loc: op.loc,
                                 kind: TypeOperationKind::UnaryOp(TypeUnaryOp {

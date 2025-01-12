@@ -7,9 +7,39 @@ pub trait BitWidth: Copy + Clone + PartialEq + Eq + Default + 'static {
     const BITS: usize;
 }
 
+pub trait Min<Rhs = Self>
+where
+    Self: BitWidth,
+    Rhs: BitWidth,
+{
+    /// The type of the minimum of `Self` and `Rhs`
+    type Output: BitWidth;
+    /// Method returning the minimum
+    fn min(self, rhs: Rhs) -> Self::Output;
+}
+
+pub trait Max<Rhs = Self>
+where
+    Self: BitWidth,
+    Rhs: BitWidth,
+{
+    /// The type of the maximum of `Self` and `Rhs`
+    type Output: BitWidth;
+    /// Method returning the maximum
+    fn max(self, rhs: Rhs) -> Self::Output;
+}
+
+/// Alias for the associated type of `Min`: `Minimum<A, B> = <A as Min<B>>::Output`
+pub type Minimum<A, B> = <A as Min<B>>::Output;
+
+/// Alias for the associated type of `Max`: `Maximum<A, B> = <A as Max<B>>::Output`
+pub type Maximum<A, B> = <A as Max<B>>::Output;
+
+pub type Sum<A, B> = <A as std::ops::Add<B>>::Output;
+
 // Re-export the typenum types so that users of this crate
 // don't have to import them separately.
-pub use typenum::{Diff, Log2, Logarithm2, Max, Maximum, Minimum, Sum, Unsigned};
+pub use typenum::{Diff, Log2, Logarithm2, Unsigned};
 
 // These are the type numbers that represent widths of the
 // unsigned and signed bit types in RHDL.  I didn't use the
@@ -37,6 +67,26 @@ seq!(N in 1..=128 {
     )*
 });
 
+impl<W> Max<W> for W
+where
+    W: BitWidth,
+{
+    type Output = W;
+    fn max(self, _rhs: W) -> Self::Output {
+        self
+    }
+}
+
+impl<W> Min<W> for W
+where
+    W: BitWidth,
+{
+    type Output = W;
+    fn min(self, _rhs: W) -> Self::Output {
+        self
+    }
+}
+
 pub trait ToBitWidth {
     type Output: BitWidth;
 }
@@ -54,7 +104,7 @@ pub type WN<const N: usize> = <Const<N> as ToBitWidth>::Output;
 
 #[cfg(test)]
 mod tests {
-    use typenum::{Diff, Log2, Maximum, Minimum, Sum, Unsigned};
+    use typenum::{Diff, Log2, Sum, Unsigned};
 
     use typenum::consts::*;
 

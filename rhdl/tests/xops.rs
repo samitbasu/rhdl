@@ -132,6 +132,19 @@ fn test_xmul_signed() -> miette::Result<()> {
 }
 
 #[test]
+fn test_xsgn() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff(a: Signal<b8, Red>) -> Signal<s9, Red> {
+        let a = a.val();
+        let c = a.xsgn();
+        signal(c)
+    }
+
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_b8::<Red>())?;
+    Ok(())
+}
+
+#[test]
 fn test_xneg_unsigned() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b8, Red>) -> Signal<s9, Red> {

@@ -413,6 +413,8 @@ pub mod xneg;
 #[doc(hidden)]
 pub mod xor;
 #[doc(hidden)]
+pub mod xsgn;
+#[doc(hidden)]
 pub mod xsub;
 
 pub mod alias {

@@ -64,6 +64,17 @@ fn xneg_kind(obj: &Object, loc: SourceLocation, a: Kind) -> Result<Kind, RHDLErr
     }
 }
 
+fn xsgn_kind(obj: &Object, loc: SourceLocation, a: Kind) -> Result<Kind, RHDLError> {
+    match a {
+        Kind::Bits(a) => Ok(Kind::Signed(a + 1)),
+        _ => Err(TypeCheckPass::raise_ice(
+            obj,
+            ICE::InvalidPadKind { a },
+            loc,
+        )),
+    }
+}
+
 fn xadd_xmul_kind<F: Fn(usize, usize) -> usize>(
     obj: &Object,
     loc: SourceLocation,
@@ -249,6 +260,13 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
             }
             OpCode::Unary(Unary {
                 op: AluUnary::XNeg,
+                lhs,
+                arg1,
+            }) => {
+                eq_kinds(slot_type(lhs), xneg_kind(obj, loc, slot_type(arg1))?, loc)?;
+            }
+            OpCode::Unary(Unary {
+                op: AluUnary::XSgn,
                 lhs,
                 arg1,
             }) => {

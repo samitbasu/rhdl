@@ -206,6 +206,10 @@ pub fn unary(op: AluUnary, arg1: TypedBits) -> Result<TypedBits, RHDLError> {
             };
             -arg1
         }
+        AluUnary::XSgn => {
+            let arg1 = arg1.xext(1)?;
+            arg1.as_signed()
+        }
     }
 }
 
