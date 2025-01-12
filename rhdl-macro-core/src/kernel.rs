@@ -826,14 +826,7 @@ impl Context {
     }
 
     fn method_call(&mut self, expr: &syn::ExprMethodCall) -> Result<TS> {
-        let receiver = self.expr(&expr.receiver)?;
-        let args = expr
-            .args
-            .iter()
-            .map(|x| self.expr(x))
-            .collect::<Result<Vec<_>>>()?;
-        let method = &expr.method;
-        if ![
+        const KNOWN_METHODS: [&str; 15] = [
             "any",
             "all",
             "xor",
@@ -844,9 +837,22 @@ impl Context {
             "raw",
             "xadd",
             "xsub",
-        ]
-        .contains(&method.to_string().as_str())
-        {
+            "xmul",
+            "xneg",
+            "xext",
+            "xshl",
+            "xshr",
+        ];
+        const TURBO_METHODS: [&str; 4] = ["resize", "xext", "xshl", "xshr"];
+
+        let receiver = self.expr(&expr.receiver)?;
+        let args = expr
+            .args
+            .iter()
+            .map(|x| self.expr(x))
+            .collect::<Result<Vec<_>>>()?;
+        let method = &expr.method;
+        if !KNOWN_METHODS.contains(&method.to_string().as_str()) {
             return Err(syn::Error::new(
                 method.span(),
                 format!(
@@ -856,10 +862,10 @@ impl Context {
             ));
         }
         let turbo = if let Some(x) = &expr.turbofish {
-            if (x.args.len() != 1) || (method != "resize") {
+            if (x.args.len() != 1) || (TURBO_METHODS.iter().all(|x| method != x)) {
                 return Err(syn::Error::new(
                     x.span(),
-                    "Unsupported turbofish in rhdl kernel function - only resize::<N>() is supported",
+                    format!("Unsupported turbofish in rhdl kernel function - only {TURBO_METHODS:?} are supported")
                 ));
             }
             let x = x.args.iter().next().unwrap();

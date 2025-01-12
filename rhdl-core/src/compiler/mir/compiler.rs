@@ -1229,10 +1229,30 @@ impl<'a> MirContext<'a> {
         }
         Ok(lhs)
     }
+    fn xops(
+        &mut self,
+        id: NodeId,
+        args: &ExprMethodCall,
+        op: fn(usize) -> AluUnary,
+    ) -> Result<Slot> {
+        let lhs = self.reg(id);
+        let arg = self.expr(&args.receiver)?;
+        let Some(len) = args.turbo else {
+            return Err(self
+                .raise_syntax_error(Syntax::XOpsWithoutLength, id)
+                .into());
+        };
+        self.op(op_unary(op(len), lhs, arg), id);
+        Ok(lhs)
+    }
     fn method_call(&mut self, id: NodeId, method_call: &ExprMethodCall) -> Result<Slot> {
-        // Special case the `cast` method calls
-        if method_call.method == "resize" {
-            return self.resize(id, method_call);
+        // Special case the `cast` method calls and the extended arithmetic ops
+        match method_call.method {
+            "resize" => return self.resize(id, method_call),
+            "xext" => return self.xops(id, method_call, AluUnary::XExt),
+            "xshl" => return self.xops(id, method_call, AluUnary::XShl),
+            "xshr" => return self.xops(id, method_call, AluUnary::XShr),
+            _ => {}
         }
         let lhs = self.reg(id);
         let arg = self.expr(&method_call.receiver)?;
@@ -1240,14 +1260,14 @@ impl<'a> MirContext<'a> {
             self.op(op_assign(lhs, arg), id);
             return Ok(lhs);
         }
-        if method_call.method == "xadd" {
+        if let Some(op) = match method_call.method {
+            "xadd" => Some(AluBinary::XAdd),
+            "xsub" => Some(AluBinary::XSub),
+            "xmul" => Some(AluBinary::XMul),
+            _ => None,
+        } {
             let rhs = self.expr(&method_call.args[0])?;
-            self.op(op_binary(AluBinary::XAdd, lhs, arg, rhs), id);
-            return Ok(lhs);
-        }
-        if method_call.method == "xsub" {
-            let rhs = self.expr(&method_call.args[0])?;
-            self.op(op_binary(AluBinary::XSub, lhs, arg, rhs), id);
+            self.op(op_binary(op, lhs, arg, rhs), id);
             return Ok(lhs);
         }
         let op = match method_call.method {
@@ -1256,7 +1276,7 @@ impl<'a> MirContext<'a> {
             "xor" => AluUnary::Xor,
             "as_unsigned" => AluUnary::Unsigned,
             "as_signed" => AluUnary::Signed,
-            "pad" => AluUnary::Pad,
+            "xneg" => AluUnary::XNeg,
             // The `val` method is a special case used to strip the clocking context
             // from a signal.
             "val" => AluUnary::Val,

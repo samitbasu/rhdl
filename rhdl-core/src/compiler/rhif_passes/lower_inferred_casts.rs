@@ -1,7 +1,7 @@
 use crate::{
     error::RHDLError,
     rhif::{
-        spec::{Cast, OpCode},
+        spec::{AluUnary, Cast, OpCode, Unary},
         Object,
     },
 };

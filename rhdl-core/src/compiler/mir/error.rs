@@ -198,8 +198,10 @@ pub enum ICE {
     InvalidXopsKind { a: Kind, b: Kind },
     #[error("Result of an Xops (xadd, xsub, xmul) cannot be assigned to a literal")]
     XopsResultMustBeRegister,
-    #[error("Argument of pad operation must be either a Bits or SignedBits value")]
+    #[error("Argument of pad operation must be either a Bits or SignedBits value, not {a:?}")]
     InvalidPadKind { a: Kind },
+    #[error("Argument of cut operation must be either a Bits or SignedBits value, not {a:?}")]
+    InvalidCutKind { a: Kind },
 }
 
 #[derive(Error, Debug, Diagnostic)]
@@ -245,6 +247,11 @@ pub enum Syntax {
     #[error("RHDL does not support functions with empty return types")]
     #[diagnostic(help("You cannot have a function with an empty return type in RHDL.  You should return a value or a tuple of values."))]
     EmptyReturnForFunction,
+    #[error("RHDL cannot infer the number of bits in an xext/xshl/xshr operation")]
+    #[diagnostic(help(
+        "Use a turbofish to indicate how many bits you want to prepend (msb), e.g., a.xext::<W4>() or how many bits to shift left or right, as a.xshr<W2>()"
+    ))]
+    XOpsWithoutLength,
 }
 
 #[derive(Debug, Error, Diagnostic)]

@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+use rhdl_bits::alias::b8;
+
 use crate::ast::ast_impl::{FunctionId, WrapOp};
 use crate::ast::source::source_location::SourceLocation;
 use crate::error::rhdl_error;
@@ -440,119 +442,119 @@ impl<'a> RTLCompiler<'a> {
         }
         Ok(())
     }
-    fn make_xop(&mut self, binary: &hf::Binary, loc: SourceLocation) -> Result<()> {
-        let lhs = binary.lhs;
-        let arg1 = binary.arg1;
-        let arg2 = binary.arg2;
-        match binary.op {
-            hf::AluBinary::XAdd => {
-                let lhs = self.operand(lhs, loc)?;
-                let arg1 = self.operand(arg1, loc)?;
-                let arg2 = self.operand(arg2, loc)?;
-                let Operand::Register(lhs_id) = lhs else {
-                    return Err(self.raise_ice(ICE::XopsResultMustBeRegister, loc));
-                };
-                let lhs_reg_kind = self.registers[&lhs_id];
-                let arg1_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
-                let arg2_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
-                self.lop(
-                    tl::OpCode::Cast(tl::Cast {
-                        lhs: arg1_cast,
-                        arg: arg1,
-                        len: lhs_reg_kind.len(),
-                        kind: CastKind::Resize,
-                    }),
-                    loc,
-                );
-                self.lop(
-                    tl::OpCode::Cast(tl::Cast {
-                        lhs: arg2_cast,
-                        arg: arg2,
-                        len: lhs_reg_kind.len(),
-                        kind: CastKind::Resize,
-                    }),
-                    loc,
-                );
-                self.lop(
-                    tl::OpCode::Binary(tl::Binary {
-                        lhs,
-                        op: tl::AluBinary::Add,
-                        arg1: arg1_cast,
-                        arg2: arg2_cast,
-                    }),
-                    loc,
-                );
-            }
-            hf::AluBinary::XSub => {
-                let lhs = self.operand(lhs, loc)?;
-                let arg1 = self.operand(arg1, loc)?;
-                let arg2 = self.operand(arg2, loc)?;
-                let Operand::Register(lhs_id) = lhs else {
-                    return Err(self.raise_ice(ICE::XopsResultMustBeRegister, loc));
-                };
-                // The cast operation has to be split into two steps depending
-                // on the sign of the operands.  The result is always signed.
-                let lhs_reg_kind = self.registers[&lhs_id];
-                let lhs_len = lhs_reg_kind.len();
-                let extension_kind = if self.operand_is_signed(arg1) {
-                    RegisterKind::Signed(lhs_len)
-                } else {
-                    RegisterKind::Unsigned(lhs_len)
-                };
-                // First we extend the operands to the required number of bits
-                let arg1_extend = self.allocate_register_with_register_kind(&extension_kind, loc);
-                let arg2_extend = self.allocate_register_with_register_kind(&extension_kind, loc);
-                self.lop(
-                    tl::OpCode::Cast(tl::Cast {
-                        lhs: arg1_extend,
-                        arg: arg1,
-                        len: lhs_len,
-                        kind: CastKind::Resize,
-                    }),
-                    loc,
-                );
-                self.lop(
-                    tl::OpCode::Cast(tl::Cast {
-                        lhs: arg2_extend,
-                        arg: arg2,
-                        len: lhs_len,
-                        kind: CastKind::Resize,
-                    }),
-                    loc,
-                );
-                // This guarantees that the sign bit will be zero when we reinterepret them as signed values
-                let arg1_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
-                let arg2_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
-                self.lop(
-                    tl::OpCode::Cast(tl::Cast {
-                        lhs: arg1_cast,
-                        arg: arg1_extend,
-                        len: lhs_reg_kind.len(),
-                        kind: CastKind::Signed,
-                    }),
-                    loc,
-                );
-                self.lop(
-                    tl::OpCode::Cast(tl::Cast {
-                        lhs: arg2_cast,
-                        arg: arg2_extend,
-                        len: lhs_reg_kind.len(),
-                        kind: CastKind::Signed,
-                    }),
-                    loc,
-                );
-                self.lop(
-                    tl::OpCode::Binary(tl::Binary {
-                        lhs,
-                        op: tl::AluBinary::Sub,
-                        arg1: arg1_cast,
-                        arg2: arg2_cast,
-                    }),
-                    loc,
-                );
-            }
-            _ => todo!(),
-        }
+    fn make_xadd_or_xmul(
+        &mut self,
+        lhs: Operand,
+        arg1: Operand,
+        arg2: Operand,
+        loc: SourceLocation,
+        op: tl::AluBinary,
+    ) -> Result<()> {
+        let Operand::Register(lhs_id) = lhs else {
+            return Err(self.raise_ice(ICE::XopsResultMustBeRegister, loc));
+        };
+        let lhs_reg_kind = self.registers[&lhs_id];
+        let arg1_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
+        let arg2_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
+        self.lop(
+            tl::OpCode::Cast(tl::Cast {
+                lhs: arg1_cast,
+                arg: arg1,
+                len: lhs_reg_kind.len(),
+                kind: CastKind::Resize,
+            }),
+            loc,
+        );
+        self.lop(
+            tl::OpCode::Cast(tl::Cast {
+                lhs: arg2_cast,
+                arg: arg2,
+                len: lhs_reg_kind.len(),
+                kind: CastKind::Resize,
+            }),
+            loc,
+        );
+        self.lop(
+            tl::OpCode::Binary(tl::Binary {
+                lhs,
+                op,
+                arg1: arg1_cast,
+                arg2: arg2_cast,
+            }),
+            loc,
+        );
+        Ok(())
+    }
+    fn make_xsub(
+        &mut self,
+        lhs: Operand,
+        arg1: Operand,
+        arg2: Operand,
+        loc: SourceLocation,
+    ) -> Result<()> {
+        let Operand::Register(lhs_id) = lhs else {
+            return Err(self.raise_ice(ICE::XopsResultMustBeRegister, loc));
+        };
+        // The cast operation has to be split into two steps depending
+        // on the sign of the operands.  The result is always signed.
+        let lhs_reg_kind = self.registers[&lhs_id];
+        let lhs_len = lhs_reg_kind.len();
+        let extension_kind = if self.operand_is_signed(arg1) {
+            RegisterKind::Signed(lhs_len)
+        } else {
+            RegisterKind::Unsigned(lhs_len)
+        };
+        // First we extend the operands to the required number of bits
+        let arg1_extend = self.allocate_register_with_register_kind(&extension_kind, loc);
+        let arg2_extend = self.allocate_register_with_register_kind(&extension_kind, loc);
+        self.lop(
+            tl::OpCode::Cast(tl::Cast {
+                lhs: arg1_extend,
+                arg: arg1,
+                len: lhs_len,
+                kind: CastKind::Resize,
+            }),
+            loc,
+        );
+        self.lop(
+            tl::OpCode::Cast(tl::Cast {
+                lhs: arg2_extend,
+                arg: arg2,
+                len: lhs_len,
+                kind: CastKind::Resize,
+            }),
+            loc,
+        );
+        // This guarantees that the sign bit will be zero when we reinterepret them as signed values
+        let arg1_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
+        let arg2_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
+        self.lop(
+            tl::OpCode::Cast(tl::Cast {
+                lhs: arg1_cast,
+                arg: arg1_extend,
+                len: lhs_reg_kind.len(),
+                kind: CastKind::Signed,
+            }),
+            loc,
+        );
+        self.lop(
+            tl::OpCode::Cast(tl::Cast {
+                lhs: arg2_cast,
+                arg: arg2_extend,
+                len: lhs_reg_kind.len(),
+                kind: CastKind::Signed,
+            }),
+            loc,
+        );
+        self.lop(
+            tl::OpCode::Binary(tl::Binary {
+                lhs,
+                op: tl::AluBinary::Sub,
+                arg1: arg1_cast,
+                arg2: arg2_cast,
+            }),
+            loc,
+        );
         Ok(())
     }
     fn make_binary(&mut self, binary: &hf::Binary, loc: SourceLocation) -> Result<()> {
@@ -562,25 +564,43 @@ impl<'a> RTLCompiler<'a> {
             arg1,
             arg2,
         } = *binary;
-        if !lhs.is_empty() {
-            if let Some(op) = map_binop(op) {
-                let lhs = self.operand(lhs, loc)?;
-                let arg1 = self.operand(arg1, loc)?;
-                let arg2 = self.operand(arg2, loc)?;
-                self.lop(
-                    tl::OpCode::Binary(tl::Binary {
-                        lhs,
-                        op,
-                        arg1,
-                        arg2,
-                    }),
-                    loc,
-                );
-            } else {
-                self.make_xop(binary, loc)?;
-            }
+        if lhs.is_empty() {
+            return Ok(());
         }
-        Ok(())
+        let lhs = self.operand(lhs, loc)?;
+        let arg1 = self.operand(arg1, loc)?;
+        let arg2 = self.operand(arg2, loc)?;
+        let mut rtl_binop = |op| {
+            self.lop(
+                tl::OpCode::Binary(tl::Binary {
+                    lhs,
+                    op,
+                    arg1,
+                    arg2,
+                }),
+                loc,
+            );
+            Ok(())
+        };
+        match op {
+            AluBinary::Add => rtl_binop(tl::AluBinary::Add),
+            AluBinary::Sub => rtl_binop(tl::AluBinary::Sub),
+            AluBinary::Mul => rtl_binop(tl::AluBinary::Mul),
+            AluBinary::BitAnd => rtl_binop(tl::AluBinary::BitAnd),
+            AluBinary::BitOr => rtl_binop(tl::AluBinary::BitOr),
+            AluBinary::BitXor => rtl_binop(tl::AluBinary::BitXor),
+            AluBinary::Shl => rtl_binop(tl::AluBinary::Shl),
+            AluBinary::Shr => rtl_binop(tl::AluBinary::Shr),
+            AluBinary::Eq => rtl_binop(tl::AluBinary::Eq),
+            AluBinary::Ne => rtl_binop(tl::AluBinary::Ne),
+            AluBinary::Lt => rtl_binop(tl::AluBinary::Lt),
+            AluBinary::Le => rtl_binop(tl::AluBinary::Le),
+            AluBinary::Gt => rtl_binop(tl::AluBinary::Gt),
+            AluBinary::Ge => rtl_binop(tl::AluBinary::Ge),
+            AluBinary::XAdd => self.make_xadd_or_xmul(lhs, arg1, arg2, loc, tl::AluBinary::Add),
+            AluBinary::XSub => self.make_xsub(lhs, arg1, arg2, loc),
+            AluBinary::XMul => self.make_xadd_or_xmul(lhs, arg1, arg2, loc, tl::AluBinary::Mul),
+        }
     }
     fn make_case_argument(
         &mut self,
@@ -929,6 +949,111 @@ impl<'a> RTLCompiler<'a> {
         self.lop(tl::OpCode::Concat(tl::Concat { lhs, args }), loc);
         Ok(())
     }
+    fn make_xshr(&mut self, lhs: Operand, arg: Operand, shift: usize, loc: SourceLocation) {
+        // First apply the right shift operation
+        let count = b8(shift as u128);
+        let right_shift_amount = self.allocate_literal(&count.typed_bits(), loc);
+        let operand_bits = self.operand_bit_width(arg);
+        let operand_signed = self.operand_is_signed(arg);
+        let arg_shifted = if operand_signed {
+            self.allocate_register_with_register_kind(&RegisterKind::Signed(operand_bits), loc)
+        } else {
+            self.allocate_register_with_register_kind(&RegisterKind::Unsigned(operand_bits), loc)
+        };
+        self.lop(
+            tl::OpCode::Binary(tl::Binary {
+                lhs: arg_shifted,
+                op: tl::AluBinary::Shr,
+                arg1: arg,
+                arg2: right_shift_amount,
+            }),
+            loc,
+        );
+        // Now resize the result into the LHS
+        self.lop(
+            tl::OpCode::Cast(tl::Cast {
+                lhs,
+                arg: arg_shifted,
+                len: operand_bits.saturating_sub(shift),
+                kind: CastKind::Resize,
+            }),
+            loc,
+        )
+    }
+    fn make_xshl(&mut self, lhs: Operand, arg: Operand, count: usize, loc: SourceLocation) {
+        // First pad the operand by the shift count
+        let arg_len = self.operand_bit_width(arg);
+        let arg_padded = if self.operand_is_signed(arg) {
+            self.allocate_register_with_register_kind(&RegisterKind::Signed(arg_len + count), loc)
+        } else {
+            self.allocate_register_with_register_kind(&RegisterKind::Unsigned(arg_len + count), loc)
+        };
+        // Now we resize cast the argument into this larger register
+        self.lop(
+            tl::OpCode::Cast(tl::Cast {
+                lhs: arg_padded,
+                arg,
+                len: arg_len + count,
+                kind: CastKind::Resize,
+            }),
+            loc,
+        );
+        let count = b8(count as u128);
+        let left_shift_amount = self.allocate_literal(&count.typed_bits(), loc);
+        // Now we issue the shl operation (lossy)
+        self.lop(
+            tl::OpCode::Binary(tl::Binary {
+                lhs,
+                op: tl::AluBinary::Shl,
+                arg1: arg_padded,
+                arg2: left_shift_amount,
+            }),
+            loc,
+        );
+    }
+    fn make_xneg(&mut self, lhs: Operand, arg: Operand, loc: SourceLocation) {
+        // First pad the width by 1 bit
+        let arg_len = self.operand_bit_width(arg);
+        let mut arg_padded = if self.operand_is_signed(arg) {
+            self.allocate_register_with_register_kind(&RegisterKind::Signed(arg_len + 1), loc)
+        } else {
+            self.allocate_register_with_register_kind(&RegisterKind::Unsigned(arg_len + 1), loc)
+        };
+        // Now we resize cast the argument into this larger register
+        self.lop(
+            tl::OpCode::Cast(tl::Cast {
+                lhs: arg_padded,
+                arg,
+                len: arg_len + 1,
+                kind: CastKind::Resize,
+            }),
+            loc,
+        );
+        // We need an extra step if the argument is unsigned
+        if !self.operand_is_signed(arg) {
+            let padded_and_signed =
+                self.allocate_register_with_register_kind(&RegisterKind::Signed(arg_len + 1), loc);
+            self.lop(
+                tl::OpCode::Cast(tl::Cast {
+                    lhs: padded_and_signed,
+                    arg: arg_padded,
+                    len: arg_len + 1,
+                    kind: CastKind::Signed,
+                }),
+                loc,
+            );
+            arg_padded = padded_and_signed;
+        }
+        // Now we can negate the value
+        self.lop(
+            tl::OpCode::Unary(tl::Unary {
+                lhs,
+                op: tl::AluUnary::Neg,
+                arg1: arg_padded,
+            }),
+            loc,
+        );
+    }
     fn make_unary(&mut self, unary: &hf::Unary, loc: SourceLocation) -> Result<()> {
         let hf::Unary { lhs, op, arg1 } = *unary;
         if lhs.is_empty() {
@@ -936,31 +1061,32 @@ impl<'a> RTLCompiler<'a> {
         }
         let lhs = self.operand(lhs, loc)?;
         let arg1 = self.operand(arg1, loc)?;
-        if op == hf::AluUnary::Pad {
-            let arg1_len = self.operand_bit_width(arg1);
-            self.lop(
-                tl::OpCode::Cast(tl::Cast {
-                    lhs,
-                    arg: arg1,
-                    len: arg1_len + 1,
-                    kind: CastKind::Resize,
-                }),
-                loc,
-            );
-        } else {
-            let op = match op {
-                hf::AluUnary::Pad => unreachable!(),
-                hf::AluUnary::Neg => tl::AluUnary::Neg,
-                hf::AluUnary::Not => tl::AluUnary::Not,
-                hf::AluUnary::All => tl::AluUnary::All,
-                hf::AluUnary::Any => tl::AluUnary::Any,
-                hf::AluUnary::Xor => tl::AluUnary::Xor,
-                hf::AluUnary::Signed => tl::AluUnary::Signed,
-                hf::AluUnary::Unsigned => tl::AluUnary::Unsigned,
-                hf::AluUnary::Val => tl::AluUnary::Val,
-            };
-            self.lop(tl::OpCode::Unary(tl::Unary { lhs, op, arg1 }), loc);
-        }
+        let mut unop = |op| self.lop(tl::OpCode::Unary(tl::Unary { lhs, op, arg1 }), loc);
+        match op {
+            hf::AluUnary::Neg => unop(tl::AluUnary::Neg),
+            hf::AluUnary::Not => unop(tl::AluUnary::Not),
+            hf::AluUnary::All => unop(tl::AluUnary::All),
+            hf::AluUnary::Any => unop(tl::AluUnary::Any),
+            hf::AluUnary::Xor => unop(tl::AluUnary::Xor),
+            hf::AluUnary::Signed => unop(tl::AluUnary::Signed),
+            hf::AluUnary::Unsigned => unop(tl::AluUnary::Unsigned),
+            hf::AluUnary::Val => unop(tl::AluUnary::Val),
+            hf::AluUnary::XExt(_) => {
+                let lhs_len = self.operand_bit_width(lhs);
+                self.lop(
+                    tl::OpCode::Cast(tl::Cast {
+                        lhs,
+                        arg: arg1,
+                        len: lhs_len,
+                        kind: CastKind::Resize,
+                    }),
+                    loc,
+                );
+            }
+            hf::AluUnary::XShl(cnt) => self.make_xshl(lhs, arg1, cnt, loc),
+            hf::AluUnary::XShr(cnt) => self.make_xshr(lhs, arg1, cnt, loc),
+            hf::AluUnary::XNeg => self.make_xneg(lhs, arg1, loc),
+        };
         Ok(())
     }
     fn translate(mut self) -> Result<Self> {

@@ -269,7 +269,7 @@ impl<'a> MirTypeInference<'a> {
                     self.unify(loc, op.lhs, bool_ty)?;
                 }
             }
-            AluUnary::Pad => {
+            AluUnary::XExt(diff) | AluUnary::XShl(diff) => {
                 let Some(a1_len) = self.ctx.project_bit_length(a1) else {
                     return Ok(());
                 };
@@ -279,8 +279,33 @@ impl<'a> MirTypeInference<'a> {
                 let Some(a1_sign) = self.ctx.project_sign_flag(a1) else {
                     return Ok(());
                 };
-                let len = self.ctx.ty_const_len(loc, a1_len + 1);
+                let len = self.ctx.ty_const_len(loc, a1_len + diff);
                 let lhs_ty = self.ctx.ty_with_sign_and_len(loc, a1_sign, len);
+                self.unify(loc, op.lhs, lhs_ty)?;
+            }
+            AluUnary::XShr(diff) => {
+                let Some(a1_len) = self.ctx.project_bit_length(a1) else {
+                    return Ok(());
+                };
+                let Ok(a1_len) = self.ctx.cast_ty_as_bit_length(a1_len) else {
+                    return Ok(());
+                };
+                let Some(a1_sign) = self.ctx.project_sign_flag(a1) else {
+                    return Ok(());
+                };
+                let len = self.ctx.ty_const_len(loc, a1_len.saturating_sub(diff));
+                let lhs_ty = self.ctx.ty_with_sign_and_len(loc, a1_sign, len);
+                self.unify(loc, op.lhs, lhs_ty)?;
+            }
+            AluUnary::XNeg => {
+                let Some(a1_len) = self.ctx.project_bit_length(a1) else {
+                    return Ok(());
+                };
+                let Ok(a1_len) = self.ctx.cast_ty_as_bit_length(a1_len) else {
+                    return Ok(());
+                };
+                let len = self.ctx.ty_const_len(loc, a1_len + 1);
+                let lhs_ty = self.ctx.ty_signed(loc, len);
                 self.unify(loc, op.lhs, lhs_ty)?;
             }
             _ => {}
@@ -298,10 +323,13 @@ impl<'a> MirTypeInference<'a> {
                 self.enforce_data_types_binary(loc, op.lhs, op.arg1, op.arg2)?;
             }
             AluBinary::XAdd => {
-                self.try_xadd(loc, op.lhs, op.arg1, op.arg2)?;
+                self.try_xadd_xmul(loc, op.lhs, op.arg1, op.arg2, |a, b| a.max(b) + 1)?;
             }
             AluBinary::XSub => {
                 self.try_xsub(loc, op.lhs, op.arg1, op.arg2)?;
+            }
+            AluBinary::XMul => {
+                self.try_xadd_xmul(loc, op.lhs, op.arg1, op.arg2, |a, b| a + b)?;
             }
             AluBinary::Eq
             | AluBinary::Lt
@@ -454,15 +482,15 @@ impl<'a> MirTypeInference<'a> {
             .ty_with_sign_and_len(loc, lhs_sign_flag, lhs_computed_len);
         return self.unify(loc, lhs, lhs_data);
     }
-
-    fn try_xadd(
+    fn try_xadd_xmul<F: Fn(usize, usize) -> usize>(
         &mut self,
         loc: SourceLocation,
         lhs: TypeId,
         arg1: TypeId,
         arg2: TypeId,
+        size_computation: F,
     ) -> Result<()> {
-        let size_computation = |a: usize, b: usize| a.max(b) + 1;
+        //        let size_computation = |a: usize, b: usize| a.max(b) + 1;
         let lhs_sign_flag = self.ctx.ty_var(loc);
         let lhs_len = self.ctx.ty_var(loc);
         let Some(a1_sign) = self.ctx.project_sign_flag(arg1) else {
@@ -836,7 +864,13 @@ impl<'a> MirTypeInference<'a> {
                                 .into());
                             }
                         }
-                        AluUnary::All | AluUnary::Any | AluUnary::Xor | AluUnary::Pad => {
+                        AluUnary::All
+                        | AluUnary::Any
+                        | AluUnary::Xor
+                        | AluUnary::XExt(_)
+                        | AluUnary::XShl(_)
+                        | AluUnary::XShr(_)
+                        | AluUnary::XNeg => {
                             self.type_ops.push(TypeOperation {
                                 loc: op.loc,
                                 kind: TypeOperationKind::UnaryOp(TypeUnaryOp {

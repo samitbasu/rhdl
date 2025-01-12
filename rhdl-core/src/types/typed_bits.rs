@@ -160,8 +160,39 @@ impl TypedBits {
             })),
         }
     }
-    pub fn pad(&self) -> Result<TypedBits> {
-        self.resize(self.kind.bits() + 1)
+    pub fn xext(&self, len: usize) -> Result<TypedBits> {
+        self.resize(self.kind.bits() + len)
+    }
+    pub fn xshl(&self, len: usize) -> Result<TypedBits> {
+        let kind = match &self.kind {
+            Kind::Bits(n) => Kind::make_bits(n + len),
+            Kind::Signed(n) => Kind::make_signed(n + len),
+            _ => {
+                return Err(rhdl_error(DynamicTypeError::XshlFailed {
+                    value: self.clone(),
+                    len,
+                }))
+            }
+        };
+        let bits = repeat(BitX::Zero)
+            .take(len)
+            .chain(self.bits.iter().copied())
+            .collect();
+        Ok(TypedBits { bits, kind })
+    }
+    pub fn xshr(&self, len: usize) -> Result<TypedBits> {
+        let kind = match &self.kind {
+            Kind::Bits(n) => Kind::make_bits(n - len),
+            Kind::Signed(n) => Kind::make_signed(n - len),
+            _ => {
+                return Err(rhdl_error(DynamicTypeError::XshrFailed {
+                    value: self.clone(),
+                    len,
+                }))
+            }
+        };
+        let bits = self.bits.iter().copied().skip(len).collect();
+        Ok(TypedBits { bits, kind })
     }
     pub fn unsigned_cast(&self, bits: usize) -> Result<TypedBits> {
         if bits > self.kind.bits() {
