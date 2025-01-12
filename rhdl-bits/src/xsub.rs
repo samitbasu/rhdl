@@ -81,6 +81,22 @@ mod tests {
 
     use super::*;
 
+    fn xsub_trait<N: BitWidth>()
+    where
+        N: Add<W1>,
+        Sum<N, W1>: BitWidth,
+    {
+        let a = bits::<N>(42);
+        let b = bits::<N>(36);
+        let c = a.xsub(b);
+        assert_eq!(c.raw(), signed::<Sum<N, W1>>(42 - 36).raw());
+    }
+
+    #[test]
+    fn test_xsub_trait() {
+        xsub_trait::<W8>();
+    }
+
     #[test]
     fn test_xsub() {
         let a = bits::<W32>(0x1234_5678);
@@ -101,5 +117,14 @@ mod tests {
         assert_eq!(c, signed(127 + 128));
         let c = b.xsub(a);
         assert_eq!(c, signed(-127 - 128));
+    }
+
+    #[test]
+    fn test_xsub_size_trait() {
+        let a = signed::<W4>(7);
+        let b: SignedBits<W8> = signed::<W8>(3);
+        let c: SignedBits<W9> = a.xsub(b);
+        let w = Maximum::<W4, W8>::BITS;
+        assert_eq!(w, 8);
     }
 }

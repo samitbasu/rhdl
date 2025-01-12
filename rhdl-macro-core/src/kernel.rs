@@ -826,7 +826,7 @@ impl Context {
     }
 
     fn method_call(&mut self, expr: &syn::ExprMethodCall) -> Result<TS> {
-        const KNOWN_METHODS: [&str; 15] = [
+        const KNOWN_METHODS: [&str; 16] = [
             "any",
             "all",
             "xor",
@@ -842,6 +842,7 @@ impl Context {
             "xext",
             "xshl",
             "xshr",
+            "xsgn",
         ];
         const TURBO_METHODS: [&str; 4] = ["resize", "xext", "xshl", "xshr"];
 

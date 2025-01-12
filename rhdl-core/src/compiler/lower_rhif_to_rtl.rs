@@ -1011,6 +1011,33 @@ impl<'a> RTLCompiler<'a> {
             loc,
         );
     }
+    fn make_xsgn(&mut self, lhs: Operand, arg: Operand, loc: SourceLocation) {
+        // The argument must be unsigned.
+        // First pad the width by 1 bit
+        let arg_len = self.operand_bit_width(arg);
+        let arg_padded =
+            self.allocate_register_with_register_kind(&RegisterKind::Unsigned(arg_len + 1), loc);
+        // Now we resize cast the argument into this larger register
+        self.lop(
+            tl::OpCode::Cast(tl::Cast {
+                lhs: arg_padded,
+                arg,
+                len: arg_len + 1,
+                kind: CastKind::Resize,
+            }),
+            loc,
+        );
+        // Next, we cast it as signed in this larger size
+        self.lop(
+            tl::OpCode::Cast(tl::Cast {
+                lhs,
+                arg: arg_padded,
+                len: arg_len + 1,
+                kind: CastKind::Signed,
+            }),
+            loc,
+        );
+    }
     fn make_xneg(&mut self, lhs: Operand, arg: Operand, loc: SourceLocation) {
         // First pad the width by 1 bit
         let arg_len = self.operand_bit_width(arg);
@@ -1086,6 +1113,7 @@ impl<'a> RTLCompiler<'a> {
             hf::AluUnary::XShl(cnt) => self.make_xshl(lhs, arg1, cnt, loc),
             hf::AluUnary::XShr(cnt) => self.make_xshr(lhs, arg1, cnt, loc),
             hf::AluUnary::XNeg => self.make_xneg(lhs, arg1, loc),
+            hf::AluUnary::XSgn => self.make_xsgn(lhs, arg1, loc),
         };
         Ok(())
     }

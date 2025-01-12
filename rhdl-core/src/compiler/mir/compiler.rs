@@ -1277,6 +1277,7 @@ impl<'a> MirContext<'a> {
             "as_unsigned" => AluUnary::Unsigned,
             "as_signed" => AluUnary::Signed,
             "xneg" => AluUnary::XNeg,
+            "xsgn" => AluUnary::XSgn,
             // The `val` method is a special case used to strip the clocking context
             // from a signal.
             "val" => AluUnary::Val,

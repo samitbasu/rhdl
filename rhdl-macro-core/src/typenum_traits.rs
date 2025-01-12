@@ -80,7 +80,7 @@ fn impl_bin_op(params: ImplBinOp, input: TokenStream) -> syn::Result<TokenStream
 
 pub fn impl_add_trait(input: TokenStream) -> syn::Result<TokenStream> {
     fn add(x: usize, y: usize) -> Option<usize> {
-        (x + y <= 128).then(|| x + y)
+        ((x > y) && (x + y <= 128)).then(|| x + y)
     }
 
     impl_bin_op(
@@ -110,12 +110,16 @@ pub fn impl_sub_trait(input: TokenStream) -> syn::Result<TokenStream> {
 
 pub fn impl_max_trait(input: TokenStream) -> syn::Result<TokenStream> {
     fn max(x: usize, y: usize) -> Option<usize> {
-        Some(x.max(y))
+        if x != y {
+            Some(x.max(y))
+        } else {
+            None
+        }
     }
 
     impl_bin_op(
         ImplBinOp {
-            trait_name: quote!(typenum::Max),
+            trait_name: quote!(crate::Max),
             func_name: "max",
             op: max,
         },
@@ -125,12 +129,16 @@ pub fn impl_max_trait(input: TokenStream) -> syn::Result<TokenStream> {
 
 pub fn impl_min_trait(input: TokenStream) -> syn::Result<TokenStream> {
     fn min(x: usize, y: usize) -> Option<usize> {
-        Some(x.min(y))
+        if x != y {
+            Some(x.min(y))
+        } else {
+            None
+        }
     }
 
     impl_bin_op(
         ImplBinOp {
-            trait_name: quote!(typenum::Min),
+            trait_name: quote!(crate::Min),
             func_name: "min",
             op: min,
         },

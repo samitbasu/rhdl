@@ -203,6 +203,7 @@ pub enum AluUnary {
     XShl(usize),
     XShr(usize),
     XNeg,
+    XSgn,
 }
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
