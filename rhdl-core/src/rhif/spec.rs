@@ -168,6 +168,7 @@ pub enum AluBinary {
     Gt,
     XAdd,
     XSub,
+    XMul,
 }
 
 impl AluBinary {
@@ -198,7 +199,10 @@ pub enum AluUnary {
     Signed,
     Unsigned,
     Val,
-    Pad,
+    XExt(usize),
+    XShl(usize),
+    XShr(usize),
+    XNeg,
 }
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]

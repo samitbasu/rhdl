@@ -41,10 +41,10 @@ fn approximate_dynamic_paths(path: &Path) -> Path {
         .collect()
 }
 
-fn pad_kind(obj: &Object, loc: SourceLocation, a: Kind) -> Result<Kind, RHDLError> {
+fn xops_kind(obj: &Object, loc: SourceLocation, a: Kind, diff: isize) -> Result<Kind, RHDLError> {
     match a {
-        Kind::Bits(a) => Ok(Kind::Bits(a + 1)),
-        Kind::Signed(a) => Ok(Kind::Signed(a + 1)),
+        Kind::Bits(a) => Ok(Kind::Bits(((a as isize) + diff) as usize)),
+        Kind::Signed(a) => Ok(Kind::Signed(((a as isize) + diff) as usize)),
         _ => Err(TypeCheckPass::raise_ice(
             obj,
             ICE::InvalidPadKind { a },
@@ -53,8 +53,24 @@ fn pad_kind(obj: &Object, loc: SourceLocation, a: Kind) -> Result<Kind, RHDLErro
     }
 }
 
-fn xadd_kind(obj: &Object, loc: SourceLocation, a: Kind, b: Kind) -> Result<Kind, RHDLError> {
-    let size_fn = |a: usize, b: usize| a.max(b) + 1;
+fn xneg_kind(obj: &Object, loc: SourceLocation, a: Kind) -> Result<Kind, RHDLError> {
+    match a {
+        Kind::Signed(a) | Kind::Bits(a) => Ok(Kind::Signed(a + 1)),
+        _ => Err(TypeCheckPass::raise_ice(
+            obj,
+            ICE::InvalidPadKind { a },
+            loc,
+        )),
+    }
+}
+
+fn xadd_xmul_kind<F: Fn(usize, usize) -> usize>(
+    obj: &Object,
+    loc: SourceLocation,
+    a: Kind,
+    b: Kind,
+    size_fn: F,
+) -> Result<Kind, RHDLError> {
     match (a, b) {
         (Kind::Bits(a), Kind::Bits(b)) => Ok(Kind::Bits(size_fn(a, b))),
         (Kind::Signed(a), Kind::Signed(b)) => Ok(Kind::Signed(size_fn(a, b))),
@@ -135,7 +151,18 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
             }) => {
                 let arg1_ty = slot_type(arg1);
                 let arg2_ty = slot_type(arg2);
-                let result_ty = xadd_kind(obj, loc, arg1_ty, arg2_ty)?;
+                let result_ty = xadd_xmul_kind(obj, loc, arg1_ty, arg2_ty, |a, b| a.max(b) + 1)?;
+                eq_kinds(slot_type(lhs), result_ty, loc)?;
+            }
+            OpCode::Binary(Binary {
+                op: AluBinary::XMul,
+                lhs,
+                arg1,
+                arg2,
+            }) => {
+                let arg1_ty = slot_type(arg1);
+                let arg2_ty = slot_type(arg2);
+                let result_ty = xadd_xmul_kind(obj, loc, arg1_ty, arg2_ty, |a, b| a + b)?;
                 eq_kinds(slot_type(lhs), result_ty, loc)?;
             }
             OpCode::Binary(Binary {
@@ -199,11 +226,33 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 eq_kinds(slot_type(lhs), Kind::make_bool(), loc)?;
             }
             OpCode::Unary(Unary {
-                op: AluUnary::Pad,
+                op: AluUnary::XExt(diff) | AluUnary::XShl(diff),
                 lhs,
                 arg1,
             }) => {
-                eq_kinds(slot_type(lhs), pad_kind(obj, loc, slot_type(arg1))?, loc)?;
+                eq_kinds(
+                    slot_type(lhs),
+                    xops_kind(obj, loc, slot_type(arg1), *diff as isize)?,
+                    loc,
+                )?;
+            }
+            OpCode::Unary(Unary {
+                op: AluUnary::XShr(diff),
+                lhs,
+                arg1,
+            }) => {
+                eq_kinds(
+                    slot_type(lhs),
+                    xops_kind(obj, loc, slot_type(arg1), -(*diff as isize))?,
+                    loc,
+                )?;
+            }
+            OpCode::Unary(Unary {
+                op: AluUnary::XNeg,
+                lhs,
+                arg1,
+            }) => {
+                eq_kinds(slot_type(lhs), xneg_kind(obj, loc, slot_type(arg1))?, loc)?;
             }
             OpCode::Unary(Unary {
                 op: AluUnary::Signed,

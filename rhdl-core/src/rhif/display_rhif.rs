@@ -180,6 +180,7 @@ impl std::fmt::Debug for AluBinary {
             AluBinary::Ge => write!(f, ">="),
             AluBinary::XAdd => write!(f, "xadd"),
             AluBinary::XSub => write!(f, "xsub"),
+            AluBinary::XMul => write!(f, "xmul"),
         }
     }
 }
@@ -195,7 +196,16 @@ impl std::fmt::Debug for AluUnary {
             AluUnary::Signed => write!(f, "signed "),
             AluUnary::Unsigned => write!(f, "unsigned "),
             AluUnary::Val => write!(f, "val "),
-            AluUnary::Pad => write!(f, "pad "),
+            AluUnary::XExt(diff) => {
+                write!(f, "xext<W{}> ", diff)
+            }
+            AluUnary::XShl(diff) => {
+                write!(f, "xshl<W{}> ", diff)
+            }
+            AluUnary::XShr(diff) => {
+                write!(f, "xshr<W{}> ", diff)
+            }
+            AluUnary::XNeg => write!(f, "xneg "),
         }
     }
 }

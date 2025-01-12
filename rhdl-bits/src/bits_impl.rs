@@ -1,4 +1,6 @@
 #![allow(non_camel_case_types)]
+use std::ops::{Add, Sub};
+
 use crate::{signed, signed_bits_impl::SignedBits};
 use rhdl_typenum::*;
 use seq_macro::seq;
@@ -167,6 +169,31 @@ impl<N: BitWidth> Bits<N> {
             marker: std::marker::PhantomData,
             val: u128::MAX >> (128 - N::BITS),
         }
+    }
+    /// Extend a value by the number of bits specified.
+    pub const fn xext<M>(self) -> Bits<Sum<N, M>>
+    where
+        N: BitWidth + Add<M>,
+        M: BitWidth,
+        Sum<N, M>: BitWidth,
+    {
+        bits::<Sum<N, M>>(self.val)
+    }
+    pub const fn xshr<M>(self) -> Bits<Diff<N, M>>
+    where
+        N: BitWidth + Sub<M>,
+        M: BitWidth,
+        Diff<N, M>: BitWidth,
+    {
+        bits::<Diff<N, M>>(self.val >> M::BITS)
+    }
+    pub const fn xshl<M>(self) -> Bits<Sum<N, M>>
+    where
+        N: BitWidth + Add<M>,
+        M: BitWidth,
+        Sum<N, M>: BitWidth,
+    {
+        bits::<Sum<N, M>>(self.val << M::BITS)
     }
     pub const fn resize<M: BitWidth>(self) -> Bits<M> {
         let mask = Bits::<M>::mask();
@@ -344,5 +371,32 @@ mod tests {
         let a = b8(32);
         let b = b8(64);
         assert!(a < b);
+    }
+
+    #[test]
+    fn test_xext() {
+        for i in 0..=u8::MAX {
+            let a = b8(i as u128);
+            let b = a.xext::<W1>();
+            assert_eq!(b, b9(i as u128));
+        }
+    }
+
+    #[test]
+    fn test_xshl() {
+        for i in 0..=u8::MAX {
+            let a = b8(i as u128);
+            let b = a.xshl::<W1>();
+            assert_eq!(b, b9((i as u128) << 1));
+        }
+    }
+
+    #[test]
+    fn test_xshr() {
+        for i in 0..=u8::MAX {
+            let a = b8(i as u128);
+            let b = a.xshr::<W1>();
+            assert_eq!(b, b7((i as u128) >> 1));
+        }
     }
 }

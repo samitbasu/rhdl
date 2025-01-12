@@ -154,7 +154,7 @@ pub struct Binary {
     pub arg2: Operand,
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, Hash)]
+#[derive(Clone, Copy, PartialEq, Hash)]
 pub enum AluUnary {
     Neg,
     Not,

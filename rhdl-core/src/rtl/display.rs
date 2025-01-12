@@ -1,8 +1,8 @@
 use crate::{rtl::spec::CastKind, util::splice};
 
 use super::spec::{
-    AluBinary, Assign, Binary, Case, Cast, Concat, DynamicIndex, DynamicSplice, Index, OpCode,
-    Select, Splice, Unary,
+    AluBinary, AluUnary, Assign, Binary, Case, Cast, Concat, DynamicIndex, DynamicSplice, Index,
+    OpCode, Select, Splice, Unary,
 };
 
 impl std::fmt::Debug for AluBinary {
@@ -23,6 +23,25 @@ impl std::fmt::Debug for AluBinary {
             AluBinary::Gt => write!(f, ">"),
             AluBinary::Ge => write!(f, ">="),
         }
+    }
+}
+
+impl std::fmt::Debug for AluUnary {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                AluUnary::Neg => "-",
+                AluUnary::Not => "!",
+                AluUnary::All => "&",
+                AluUnary::Any => "|",
+                AluUnary::Xor => "^",
+                AluUnary::Signed => "signed ",
+                AluUnary::Unsigned => "unsigned ",
+                AluUnary::Val => "val",
+            }
+        )
     }
 }
 

@@ -409,6 +409,8 @@ pub mod xadd;
 #[doc(hidden)]
 pub mod xmul;
 #[doc(hidden)]
+pub mod xneg;
+#[doc(hidden)]
 pub mod xor;
 #[doc(hidden)]
 pub mod xsub;
@@ -448,7 +450,6 @@ pub mod alias {
 
 pub use bits_impl::bits;
 pub use bits_impl::Bits;
-//pub use pad::Pad;
 pub use signed_bits_impl::signed;
 pub use signed_bits_impl::SignedBits;
 

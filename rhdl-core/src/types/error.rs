@@ -85,4 +85,8 @@ pub enum DynamicTypeError {
     CannotCoerceUninitToBool { value: TypedBits },
     #[error("Cannot convert {value:?} into an integer - it contains uninitialized bits")]
     CannotConvertUninitToInt { value: TypedBits },
+    #[error("Cannot left shift the value {value:?} by {len:?}")]
+    XshlFailed { value: TypedBits, len: usize },
+    #[error("Cannot right shift the value {value:?} by {len:?}")]
+    XshrFailed { value: TypedBits, len: usize },
 }
