@@ -48,7 +48,7 @@ mod tests {
         let inputs = inputs.stream_after_reset(4);
         let inputs = inputs.clock_pos_edge(100);
         let inputs = inputs.collect::<Vec<_>>();
-        let uut: U<W6> = U::default();
+        let uut: U<U6> = U::default();
         let output = uut.run(inputs)?.count();
         assert_eq!(output, 311);
         Ok(())
@@ -60,7 +60,7 @@ mod tests {
         let inputs_2 = inputs_1.clone();
         let input = inputs_1.chain(inputs_2);
         let input = input.clock_pos_edge(100);
-        let uut: U<W6> = U::default();
+        let uut: U<U6> = U::default();
         let vcd: Vcd = uut.run(input)?.collect();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
@@ -83,7 +83,7 @@ mod tests {
             .iter()
             .fold(0, |acc, x| acc + if *x { 1 } else { 0 });
         let stream = rand_set.stream_after_reset(4).clock_pos_edge(100);
-        let uut: U<W6> = U::default();
+        let uut: U<U6> = U::default();
         let out_stream = uut.run(stream)?;
         let output = out_stream.clone().last().map(|x| x.value.2);
         assert_eq!(output, Some(bits(ground_truth)));

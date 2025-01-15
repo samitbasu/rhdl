@@ -1,9 +1,9 @@
-use rhdl_typenum::BitWidth;
 use std::ops::BitXor;
 use std::ops::BitXorAssign;
 
 use crate::bits_impl::Bits;
 use crate::signed_bits_impl::SignedBits;
+use crate::BitWidth;
 
 impl<N: BitWidth> BitXor<Bits<N>> for u128 {
     type Output = Bits<N>;
@@ -47,32 +47,33 @@ impl<N: BitWidth> BitXorAssign<i128> for SignedBits<N> {
 
 #[cfg(test)]
 mod test {
+    use typenum::{consts::U12, U128, U54, U8};
+
     use super::*;
-    use rhdl_typenum::*;
 
     #[test]
     fn test_xor_bits() {
-        let bits: Bits<W8> = 0b1101_1010.into();
+        let bits: Bits<U8> = 0b1101_1010.into();
         let result = bits ^ bits;
         assert_eq!(result.val, 0_u128);
-        let bits: Bits<W8> = 0b1101_1010.into();
+        let bits: Bits<U8> = 0b1101_1010.into();
         let result = bits ^ 0b1111_0000;
         assert_eq!(result.val, 0b0010_1010_u128);
-        let bits: Bits<W8> = 0b1101_1010.into();
+        let bits: Bits<U8> = 0b1101_1010.into();
         let result = 0b1111_0000 ^ bits;
         assert_eq!(result.val, 0b0010_1010_u128);
-        let mut bits: Bits<W128> = 0.into();
+        let mut bits: Bits<U128> = 0.into();
         bits = crate::test::set_bit(bits, 127, true);
         let result = bits ^ bits;
         assert_eq!(result.val, 0_u128);
-        let bits: Bits<W54> = 0b1101_1010.into();
+        let bits: Bits<U54> = 0b1101_1010.into();
         let result = bits ^ 1;
         assert_eq!(result.val, 0b1101_1011_u128);
         let result = 1 ^ bits;
         assert_eq!(result.val, 0b1101_1011_u128);
-        let a: Bits<W12> = 0b1010_1010_1010.into();
-        let b: Bits<W12> = 0b0110_0100_0000.into();
-        let c: Bits<W12> = 0b1100_1110_1010.into();
+        let a: Bits<U12> = 0b1010_1010_1010.into();
+        let b: Bits<U12> = 0b0110_0100_0000.into();
+        let c: Bits<U12> = 0b1100_1110_1010.into();
         assert_eq!(a ^ b, c);
     }
 }

@@ -58,7 +58,7 @@ mod tests {
 
     #[test]
     fn test_double_trace() -> miette::Result<()> {
-        let uut = U::<W6>::default();
+        let uut = U::<U6>::default();
         let input = std::iter::repeat(())
             .take(5000)
             .stream_after_reset(1)
@@ -76,7 +76,7 @@ mod tests {
 
     #[test]
     fn test_double_is_valid() -> miette::Result<()> {
-        let uut = U::<W6>::default();
+        let uut = U::<U6>::default();
         let input = std::iter::repeat(())
             .take(100_000)
             .stream_after_reset(1)
@@ -88,7 +88,7 @@ mod tests {
 
     #[test]
     fn test_double_hdl() -> miette::Result<()> {
-        let uut = U::<W6>::default();
+        let uut = U::<U6>::default();
         let input = std::iter::repeat(())
             .take(500)
             .stream_after_reset(1)

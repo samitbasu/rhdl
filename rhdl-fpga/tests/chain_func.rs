@@ -37,7 +37,7 @@ fn test_auto_counter_counts() -> miette::Result<()> {
         .take(100)
         .stream_after_reset(1)
         .clock_pos_edge(100);
-    let uut = auto_counter::U::<W4>::default();
+    let uut = auto_counter::U::<U4>::default();
     let vcd = uut.run(input)?.collect::<Vcd>();
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("vcd")
@@ -55,7 +55,7 @@ fn test_auto_counter_is_correct() -> miette::Result<()> {
         .take(100)
         .stream_after_reset(1)
         .clock_pos_edge(100);
-    let uut = auto_counter::U::<W4>::default();
+    let uut = auto_counter::U::<U4>::default();
     let output = uut
         .run(input)?
         .synchronous_sample()
@@ -73,8 +73,8 @@ fn test_chain_auto_counter() -> miette::Result<()> {
         .take(100)
         .stream_after_reset(1)
         .clock_pos_edge(100);
-    let c1 = auto_counter::U::<W4>::default();
-    let c2 = Func::new::<doubler::doubler<W4>>()?;
+    let c1 = auto_counter::U::<U4>::default();
+    let c2 = Func::new::<doubler::doubler<U4>>()?;
     let uut = Chain::new(c1, c2);
     let output = uut
         .run(input)?

@@ -15,7 +15,7 @@ use super::write_logic;
 #[derive(Clone, Circuit, CircuitDQ, Default)]
 pub struct U<T: Digital + Default, W: Domain, R: Domain, const N: usize>
 where
-    Const<N>: ToBitWidth,
+    Const<N>: BitWidth,
 {
     write_logic: Adapter<write_logic::U<WN<N>>, W>,
     read_logic: Adapter<read_logic::U<WN<N>>, R>,
@@ -54,7 +54,7 @@ pub struct O<T: Digital, W: Domain, R: Domain> {
 
 impl<T: Digital + Default, W: Domain, R: Domain, const N: usize> CircuitIO for U<T, W, R, N>
 where
-    Const<N>: ToBitWidth,
+    Const<N>: BitWidth,
 {
     type I = I<T, W, R>;
     type O = O<T, W, R>;
@@ -67,7 +67,7 @@ pub fn async_fifo_kernel<T: Digital + Default, W: Domain, R: Domain, const N: us
     q: Q<T, W, R, N>,
 ) -> (O<T, W, R>, D<T, W, R, N>)
 where
-    Const<N>: ToBitWidth,
+    Const<N>: BitWidth,
 {
     let mut d = D::<T, W, R, N>::dont_care();
     // Clock the various components
@@ -153,7 +153,7 @@ mod tests {
             cr_r: signal(r.0),
         });
         //        let input = test_stream();
-        let uut = U::<Bits<W8>, Red, Blue, 5>::default();
+        let uut = U::<Bits<U8>, Red, Blue, 5>::default();
         let vcd = uut.run(input.clone())?.collect::<Vcd>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")

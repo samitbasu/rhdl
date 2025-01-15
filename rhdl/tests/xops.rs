@@ -17,8 +17,8 @@ fn test_xadd_unsigned() -> miette::Result<()> {
         signal(c)
     }
 
-    let args = exhaustive::<W4>().into_iter().flat_map(|a1| {
-        exhaustive::<W8>()
+    let args = exhaustive::<U4>().into_iter().flat_map(|a1| {
+        exhaustive::<U8>()
             .into_iter()
             .map(move |a2| (red(a1), red(a2)))
     });
@@ -36,8 +36,8 @@ fn test_xadd_signed() -> miette::Result<()> {
         signal(c)
     }
 
-    let args = exhaustive_signed::<W4>().into_iter().flat_map(|a1| {
-        exhaustive_signed::<W8>()
+    let args = exhaustive_signed::<U4>().into_iter().flat_map(|a1| {
+        exhaustive_signed::<U8>()
             .into_iter()
             .map(move |a2| (red(a1), red(a2)))
     });
@@ -56,8 +56,8 @@ fn test_xsub_unsigned() -> miette::Result<()> {
         signal((c, d))
     }
 
-    let args = exhaustive::<W4>().into_iter().flat_map(|a1| {
-        exhaustive::<W8>()
+    let args = exhaustive::<U4>().into_iter().flat_map(|a1| {
+        exhaustive::<U8>()
             .into_iter()
             .map(move |a2| (red(a1), red(a2)))
     });
@@ -76,8 +76,8 @@ fn test_xsub_signed() -> miette::Result<()> {
         signal((c, d))
     }
 
-    let args = exhaustive_signed::<W4>().into_iter().flat_map(|a1| {
-        exhaustive_signed::<W8>()
+    let args = exhaustive_signed::<U4>().into_iter().flat_map(|a1| {
+        exhaustive_signed::<U8>()
             .into_iter()
             .map(move |a2| (red(a1), red(a2)))
     });
@@ -96,8 +96,8 @@ fn test_xmul_unsigned() -> miette::Result<()> {
         signal((c, d))
     }
 
-    let args = exhaustive::<W4>().into_iter().flat_map(|a1| {
-        exhaustive::<W8>()
+    let args = exhaustive::<U4>().into_iter().flat_map(|a1| {
+        exhaustive::<U8>()
             .into_iter()
             .map(move |a2| (red(a1), red(a2)))
     });
@@ -116,8 +116,8 @@ fn test_xmul_signed() -> miette::Result<()> {
         signal((c, d))
     }
 
-    let args = exhaustive_signed::<W4>().into_iter().flat_map(|a1| {
-        exhaustive_signed::<W8>()
+    let args = exhaustive_signed::<U4>().into_iter().flat_map(|a1| {
+        exhaustive_signed::<U8>()
             .into_iter()
             .map(move |a2| (red(a1), red(a2)))
     });
@@ -181,7 +181,7 @@ fn test_xneg_signed() -> miette::Result<()> {
 fn test_xshl_unsigned() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b8, Red>) -> Signal<b10, Red> {
-        signal(a.val().xshl::<W2>())
+        signal(a.val().xshl::<U2>())
     }
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_b8::<Red>())?;
@@ -192,7 +192,7 @@ fn test_xshl_unsigned() -> miette::Result<()> {
 fn test_xshl_signed() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<s8, Red>) -> Signal<s10, Red> {
-        signal(a.val().xshl::<W2>())
+        signal(a.val().xshl::<U2>())
     }
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, s8_red())?;
@@ -203,12 +203,12 @@ fn test_xshl_signed() -> miette::Result<()> {
 fn test_xshr_unsigned() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b8, Red>) -> Signal<b6, Red> {
-        signal(a.val().xshr::<W2>())
+        signal(a.val().xshr::<U2>())
     }
 
     // Test that xshr does the right thing.
     let x = b8(0b1010_1111);
-    let y = x.xshr::<W2>();
+    let y = x.xshr::<U2>();
     assert_eq!(y, b6(0b10_1011));
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_b8::<Red>())?;
@@ -219,7 +219,7 @@ fn test_xshr_unsigned() -> miette::Result<()> {
 fn test_xshr_signed() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<s8, Red>) -> Signal<s6, Red> {
-        signal(a.val().xshr::<W2>())
+        signal(a.val().xshr::<U2>())
     }
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, s8_red())?;
@@ -230,7 +230,7 @@ fn test_xshr_signed() -> miette::Result<()> {
 fn test_xext_unsigned() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b8, Red>) -> Signal<b9, Red> {
-        signal(a.val().xext::<W1>())
+        signal(a.val().xext::<U1>())
     }
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_b8::<Red>())?;
@@ -241,7 +241,7 @@ fn test_xext_unsigned() -> miette::Result<()> {
 fn test_xext_signed() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<s8, Red>) -> Signal<s9, Red> {
-        signal(a.val().xext::<W1>())
+        signal(a.val().xext::<U1>())
     }
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, s8_red())?;
@@ -253,7 +253,7 @@ fn test_xext_unsigned_inferred() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b8, Red>) -> Signal<b10, Red> {
         let a = a.val();
-        let b = a.xext::<W2>();
+        let b = a.xext::<U2>();
         signal(b)
     }
 

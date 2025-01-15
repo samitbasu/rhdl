@@ -1,10 +1,10 @@
 #![allow(non_camel_case_types)]
-
+use crate::bitwidth::*;
 use std::ops::{Add, Sub};
 
-use crate::{bits, bits_impl::bits_masked, Bits};
-use rhdl_typenum::*;
+use crate::{bits, bits_impl::bits_masked, BitWidth, Bits};
 use seq_macro::seq;
+use typenum::op;
 
 /// The [SignedBits] type is a fixed-size bit vector.  It is
 /// meant to imitate the behavior of signed bit vectors in hardware.
@@ -27,7 +27,7 @@ use seq_macro::seq;
 /// If you want to right shift a signed value without sign extension,
 /// then you should convert it to a [Bits] type first.
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
-pub struct SignedBits<Len> {
+pub struct SignedBits<Len: BitWidth> {
     pub(crate) marker: std::marker::PhantomData<Len>,
     pub(crate) val: i128,
 }
@@ -125,9 +125,9 @@ impl<Len: BitWidth> std::ops::BitXorAssign for SignedBits<Len> {
 
 seq!(N in 2..=128 {
     #(
-        pub type s~N = SignedBits<W~N>;
+        pub type s~N = SignedBits<U~N>;
         pub const fn s~N(value: i128) -> s~N {
-            signed::<W~N>(value)
+            signed::<U~N>(value)
         }
     )*
 });
@@ -135,15 +135,15 @@ seq!(N in 2..=128 {
 /// Helper function for creating a signed bits value
 /// from a constant.
 /// ```
-/// # use rhdl_bits::{W8, SignedBits, signed, alias::b8};
-/// let value : SignedBits<W8> = b8(0b1010_1010).as_signed();
+/// # use rhdl_bits::{consts::U8, SignedBits, signed, alias::b8};
+/// let value : SignedBits<U8> = b8(0b1010_1010).as_signed();
 /// assert_eq!(value.raw(), -86);
 /// ```
 /// Because the function is `const`, you can use it a constant
 /// context:
 /// ```
-/// # use rhdl_bits::{W8, SignedBits, signed, alias::b8};
-/// const VALUE : SignedBits<W8> = b8(0b1010_1010).as_signed();
+/// # use rhdl_bits::{consts::U8, SignedBits, signed, alias::b8};
+/// const VALUE : SignedBits<U8> = b8(0b1010_1010).as_signed();
 /// assert_eq!(VALUE.raw(), -86);
 /// ```
 pub const fn signed<N: BitWidth>(val: i128) -> SignedBits<N> {
@@ -180,8 +180,8 @@ impl<N: BitWidth> SignedBits<N> {
     /// Return the largest positive value that can be represented
     /// by this sized [SignedBits] value.
     /// ```
-    /// # use rhdl_bits::{W8, SignedBits};
-    /// assert_eq!(SignedBits::<W8>::max_value(), i8::MAX as i128);
+    /// # use rhdl_bits::{consts::U8, SignedBits};
+    /// assert_eq!(SignedBits::<U8>::max_value(), i8::MAX as i128);
     /// ```
     pub const fn max_value() -> i128 {
         // The maximum value for an i128 is 0x7FF..FF
@@ -191,28 +191,28 @@ impl<N: BitWidth> SignedBits<N> {
     /// Return the smallest negative value that can be represented
     /// by this sized [SignedBits] value.
     /// ```
-    /// # use rhdl_bits::{W8, SignedBits};
-    /// assert_eq!(SignedBits::<W8>::min_value(), i8::MIN as i128);
+    /// # use rhdl_bits::{consts::U8, SignedBits};
+    /// assert_eq!(SignedBits::<U8>::min_value(), i8::MIN as i128);
     /// ```
     pub const fn min_value() -> i128 {
         i128::MIN >> (128 - N::BITS)
     }
     /// Test if the value is negative.
     /// ```
-    /// # use rhdl_bits::{W8, signed};
-    /// assert!(signed::<W8>(-1).is_negative());
-    /// assert!(!signed::<W8>(0).is_negative());
-    /// assert!(!signed::<W8>(1).is_negative());
+    /// # use rhdl_bits::{consts::U8, signed};
+    /// assert!(signed::<U8>(-1).is_negative());
+    /// assert!(!signed::<U8>(0).is_negative());
+    /// assert!(!signed::<U8>(1).is_negative());
     /// ```
     pub fn is_negative(&self) -> bool {
         self.val < 0
     }
     /// Test if the value is positive or zero.
     /// ```
-    /// # use rhdl_bits::{W8, signed};
-    /// assert!(!signed::<W8>(-1).is_non_negative());
-    /// assert!(signed::<W8>(0).is_non_negative());
-    /// assert!(signed::<W8>(1).is_non_negative());
+    /// # use rhdl_bits::{consts::U8, signed};
+    /// assert!(!signed::<U8>(-1).is_non_negative());
+    /// assert!(signed::<U8>(0).is_non_negative());
+    /// assert!(signed::<U8>(1).is_non_negative());
     /// ```
     pub fn is_non_negative(&self) -> bool {
         self.val >= 0
@@ -222,9 +222,9 @@ impl<N: BitWidth> SignedBits<N> {
     /// bit manipulations on the value that may or not
     /// preserve the 2's complement nature of the value.
     /// ```
-    /// # use rhdl_bits::{W8, Bits, SignedBits, signed};
-    /// let x = signed::<W8>(-14); // In binary: 1111_0010
-    /// let y : Bits<W8> = x.as_unsigned();
+    /// # use rhdl_bits::{consts::U8, Bits, SignedBits, signed};
+    /// let x = signed::<U8>(-14); // In binary: 1111_0010
+    /// let y : Bits<U8> = x.as_unsigned();
     /// assert_eq!(y, 0b1111_0010);
     /// ```
     pub const fn as_unsigned(self) -> Bits<N> {
@@ -259,29 +259,28 @@ impl<N: BitWidth> SignedBits<N> {
         x & 1 == 1
     }
     /// Sign extend a value by the number of bits specified.
-    pub const fn xext<M>(self) -> SignedBits<Sum<N, M>>
+    pub const fn xext<M>(self) -> SignedBits<op!(N + M)>
     where
-        N: BitWidth + Add<M>,
-        M: BitWidth,
-        Sum<N, M>: BitWidth,
+        N: Add<M>,
+        op!(N + M): BitWidth,
     {
-        signed_wrapped::<Sum<N, M>>(self.val)
+        signed_wrapped::<op!(N + M)>(self.val)
     }
-    pub const fn xshr<M>(self) -> SignedBits<Diff<N, M>>
+    pub const fn xshr<M>(self) -> SignedBits<op!(N - M)>
     where
-        N: BitWidth + Sub<M>,
+        N: Sub<M>,
         M: BitWidth,
-        Diff<N, M>: BitWidth,
+        op!(N - M): BitWidth,
     {
-        signed_wrapped::<Diff<N, M>>(self.val >> M::BITS)
+        signed_wrapped::<op!(N - M)>(self.val >> M::BITS)
     }
-    pub const fn xshl<M>(self) -> SignedBits<Sum<N, M>>
+    pub const fn xshl<M>(self) -> SignedBits<op!(N + M)>
     where
-        N: BitWidth + Add<M>,
+        N: Add<M>,
         M: BitWidth,
-        Sum<N, M>: BitWidth,
+        op!(N + M): BitWidth,
     {
-        signed_wrapped::<Sum<N, M>>(self.val << M::BITS)
+        signed_wrapped::<op!(N + M)>(self.val << M::BITS)
     }
     pub const fn resize<M: BitWidth>(self) -> SignedBits<M> {
         if M::BITS > N::BITS {
@@ -349,13 +348,13 @@ mod test {
 
     #[test]
     fn test_display_for_signed_values() {
-        println!("SignedBits::<W8>(-1) = {:x}", signed::<W8>(-1));
+        println!("SignedBits::<U8>(-1) = {:x}", signed::<U8>(-1));
     }
 
     #[test]
     fn test_set_bit_for_signed_values() {
         for bit in 0..8 {
-            let mut value = SignedBits::<W8>::from(0);
+            let mut value = SignedBits::<U8>::from(0);
             value = crate::test::set_bit(value.as_unsigned(), bit, true).as_signed();
             assert_eq!(value, i8::wrapping_shl(1, bit as u32) as i128);
         }
@@ -363,58 +362,58 @@ mod test {
 
     #[test]
     fn test_sign_test_is_correct() {
-        assert!(signed::<W8>(-1).is_negative());
-        assert!(!signed::<W8>(-1).is_non_negative());
-        assert!(!signed::<W8>(0).is_negative());
-        assert!(signed::<W8>(0).is_non_negative());
-        assert!(!signed::<W8>(1).is_negative());
-        assert!(signed::<W8>(1).is_non_negative());
+        assert!(signed::<U8>(-1).is_negative());
+        assert!(!signed::<U8>(-1).is_non_negative());
+        assert!(!signed::<U8>(0).is_negative());
+        assert!(signed::<U8>(0).is_non_negative());
+        assert!(!signed::<U8>(1).is_negative());
+        assert!(signed::<U8>(1).is_non_negative());
     }
 
     #[test]
     fn test_max_value_is_correct() {
-        assert_eq!(SignedBits::<W8>::max_value(), i8::MAX as i128);
-        assert_eq!(SignedBits::<W16>::max_value(), i16::MAX as i128);
-        assert_eq!(SignedBits::<W32>::max_value(), i32::MAX as i128);
-        assert_eq!(SignedBits::<W64>::max_value(), i64::MAX as i128);
-        assert_eq!(SignedBits::<W128>::max_value(), i128::MAX);
-        assert_eq!(SignedBits::<W12>::max_value(), 0b0111_1111_1111);
+        assert_eq!(SignedBits::<U8>::max_value(), i8::MAX as i128);
+        assert_eq!(SignedBits::<U16>::max_value(), i16::MAX as i128);
+        assert_eq!(SignedBits::<U32>::max_value(), i32::MAX as i128);
+        assert_eq!(SignedBits::<U64>::max_value(), i64::MAX as i128);
+        assert_eq!(SignedBits::<U128>::max_value(), i128::MAX);
+        assert_eq!(SignedBits::<U12>::max_value(), 0b0111_1111_1111);
     }
 
     #[test]
     fn test_min_value_is_correct() {
-        assert_eq!(SignedBits::<W8>::min_value(), i8::MIN as i128);
-        assert_eq!(SignedBits::<W16>::min_value(), i16::MIN as i128);
-        assert_eq!(SignedBits::<W32>::min_value(), i32::MIN as i128);
-        assert_eq!(SignedBits::<W64>::min_value(), i64::MIN as i128);
-        assert_eq!(SignedBits::<W128>::min_value(), i128::MIN);
-        assert_eq!(SignedBits::<W12>::min_value(), -0b1000_0000_0000);
+        assert_eq!(SignedBits::<U8>::min_value(), i8::MIN as i128);
+        assert_eq!(SignedBits::<U16>::min_value(), i16::MIN as i128);
+        assert_eq!(SignedBits::<U32>::min_value(), i32::MIN as i128);
+        assert_eq!(SignedBits::<U64>::min_value(), i64::MIN as i128);
+        assert_eq!(SignedBits::<U128>::min_value(), i128::MIN);
+        assert_eq!(SignedBits::<U12>::min_value(), -0b1000_0000_0000);
     }
 
     #[test]
     #[should_panic]
     fn test_overflow_causes_panic() {
-        let _ = signed::<W8>(128);
+        let _ = signed::<U8>(128);
     }
 
     #[test]
     #[should_panic]
     fn test_underflow_causes_panic() {
-        let _ = signed::<W8>(-129);
+        let _ = signed::<U8>(-129);
     }
 
     #[test]
     fn test_signed_cast() {
-        let value = signed::<W8>(-14);
-        let extended = value.resize::<W16>();
+        let value = signed::<U8>(-14);
+        let extended = value.resize::<U16>();
         assert_eq!(extended, -14);
-        let value = signed::<W8>(-86);
-        let truncated = value.resize::<W4>();
+        let value = signed::<U8>(-86);
+        let truncated = value.resize::<U4>();
         assert_eq!(truncated, -6);
-        let truncated = value.resize::<W5>();
+        let truncated = value.resize::<U5>();
         assert_eq!(truncated, 10);
-        let value = signed::<W8>(3);
-        let extended = value.resize::<W16>();
+        let value = signed::<U8>(3);
+        let extended = value.resize::<U16>();
         assert_eq!(extended, 3);
     }
 
@@ -425,12 +424,12 @@ mod test {
         assert!(a1 < b1);
     }
 
-    const OPT1: SignedBits<W8> = s8(-0b0101_1010);
-    const OPT2: SignedBits<W8> = s8(0b0010_0100);
+    const OPT1: SignedBits<U8> = s8(-0b0101_1010);
+    const OPT2: SignedBits<U8> = s8(0b0010_0100);
 
     #[test]
     fn test_match_works() {
-        let bits: SignedBits<W8> = (-0b101_1010).into();
+        let bits: SignedBits<U8> = (-0b101_1010).into();
         match bits {
             OPT1 => {
                 eprintln!("Matched");
@@ -448,7 +447,7 @@ mod test {
     fn test_xext() {
         for i in i8::MIN..=i8::MAX {
             let a = s8(i as i128);
-            let b = a.xext::<W1>();
+            let b = a.xext::<U1>();
             assert_eq!(b, s9(i as i128));
         }
     }
@@ -457,7 +456,7 @@ mod test {
     fn test_xshl() {
         for i in i8::MIN..=i8::MAX {
             let a = s8(i as i128);
-            let b = a.xshl::<W1>();
+            let b = a.xshl::<U1>();
             assert_eq!(b, s9((i as i128) << 1));
         }
     }
@@ -466,7 +465,7 @@ mod test {
     fn test_xshr() {
         for i in i8::MIN..=i8::MAX {
             let a = s8(i as i128);
-            let b = a.xshr::<W1>();
+            let b = a.xshr::<U1>();
             assert_eq!(b, s7((i as i128) >> 1));
         }
     }

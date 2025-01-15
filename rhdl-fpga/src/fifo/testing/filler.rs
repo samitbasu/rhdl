@@ -15,9 +15,9 @@ use crate::core::{
 pub struct U<N: BitWidth> {
     _marker: constant::U<Bits<N>>,
     rng: crate::rng::xorshift::U,
-    sleep_counter: dff::U<Bits<W4>>,
-    sleep_len: constant::U<Bits<W4>>,
-    write_probability: constant::U<Bits<W16>>,
+    sleep_counter: dff::U<Bits<U4>>,
+    sleep_len: constant::U<Bits<U4>>,
+    write_probability: constant::U<Bits<U16>>,
 }
 
 /// The default configuration will sleep for 4 counts, with a roughly 50% probability
@@ -70,9 +70,9 @@ pub fn filler_kernel<N: BitWidth>(cr: ClockReset, i: I, q: Q<N>) -> (O<N>, D<N>)
     d.sleep_counter = q.sleep_counter;
     // If the fifo is not full, and we are not sleeping, then write the next value to the FIFO
     if !is_full && q.sleep_counter == 0 {
-        o.data = Some(lsbs::<N, W32>(q.rng));
+        o.data = Some(lsbs::<N, U32>(q.rng));
         d.rng = true;
-        let p = msbs::<W16, W32>(q.rng);
+        let p = msbs::<U16, U32>(q.rng);
         d.sleep_counter = if p > q.write_probability {
             q.sleep_len
         } else {
@@ -96,7 +96,7 @@ mod tests {
 
     #[test]
     fn test_filler() -> miette::Result<()> {
-        let uut = U::<W6>::default();
+        let uut = U::<U6>::default();
         let input = std::iter::repeat(I { full: false })
             .take(50)
             .stream_after_reset(1)
@@ -115,7 +115,7 @@ mod tests {
 
     #[test]
     fn test_filler_testbench() -> miette::Result<()> {
-        let uut = U::<W6>::default();
+        let uut = U::<U6>::default();
         let input = std::iter::repeat(I { full: false })
             .take(50)
             .stream_after_reset(1)

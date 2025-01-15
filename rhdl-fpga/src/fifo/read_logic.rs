@@ -88,15 +88,15 @@ mod tests {
 
     #[test]
     fn test_empty_condition() {
-        let q = Q::<W4> {
+        let q = Q::<U4> {
             ram_read_address: bits(0),
             underflow: false,
         };
-        let i = I::<W4> {
+        let i = I::<U4> {
             write_address: bits(0),
             next: false,
         };
-        let (o, d) = read_logic::<W4>(ClockReset::dont_care(), i, q);
+        let (o, d) = read_logic::<U4>(ClockReset::dont_care(), i, q);
         assert!(o.empty);
         assert!(o.almost_empty);
         assert!(!o.underflow);
@@ -107,15 +107,15 @@ mod tests {
 
     #[test]
     fn test_next_increments_read_address() {
-        let q = Q::<W4> {
+        let q = Q::<U4> {
             ram_read_address: bits(0),
             underflow: false,
         };
-        let i = I::<W4> {
+        let i = I::<U4> {
             write_address: bits(1),
             next: true,
         };
-        let (o, d) = read_logic::<W4>(ClockReset::dont_care(), i, q);
+        let (o, d) = read_logic::<U4>(ClockReset::dont_care(), i, q);
         assert!(!o.empty);
         assert!(o.almost_empty);
         assert!(!o.underflow);
@@ -126,15 +126,15 @@ mod tests {
 
     #[test]
     fn test_empty_with_read_leads_to_underflow() {
-        let q = Q::<W4> {
+        let q = Q::<U4> {
             ram_read_address: bits(0),
             underflow: false,
         };
-        let i = I::<W4> {
+        let i = I::<U4> {
             write_address: bits(0),
             next: true,
         };
-        let (o, d) = read_logic::<W4>(ClockReset::dont_care(), i, q);
+        let (o, d) = read_logic::<U4>(ClockReset::dont_care(), i, q);
         assert!(o.empty);
         assert!(o.almost_empty);
         assert!(o.underflow);
@@ -145,15 +145,15 @@ mod tests {
 
     #[test]
     fn test_underflow_is_latching() {
-        let q = Q::<W4> {
+        let q = Q::<U4> {
             ram_read_address: bits(0),
             underflow: true,
         };
-        let i = I::<W4> {
+        let i = I::<U4> {
             write_address: bits(0),
             next: false,
         };
-        let (o, d) = read_logic::<W4>(ClockReset::dont_care(), i, q);
+        let (o, d) = read_logic::<U4>(ClockReset::dont_care(), i, q);
         assert!(o.empty);
         assert!(o.almost_empty);
         assert!(o.underflow);
@@ -164,15 +164,15 @@ mod tests {
 
     #[test]
     fn test_almost_empty_flag_is_clear_with_at_least_2_elements() {
-        let q = Q::<W4> {
+        let q = Q::<U4> {
             ram_read_address: bits(0),
             underflow: false,
         };
-        let i = I::<W4> {
+        let i = I::<U4> {
             write_address: bits(2),
             next: true,
         };
-        let (o, d) = read_logic::<W4>(ClockReset::dont_care(), i, q);
+        let (o, d) = read_logic::<U4>(ClockReset::dont_care(), i, q);
         assert!(!o.empty);
         assert!(!o.almost_empty);
         assert!(!o.underflow);
@@ -183,16 +183,16 @@ mod tests {
 
     #[test]
     fn test_reset_condition() {
-        let q = Q::<W4> {
+        let q = Q::<U4> {
             ram_read_address: bits(3),
             underflow: true,
         };
-        let i = I::<W4> {
+        let i = I::<U4> {
             write_address: bits(3),
             next: false,
         };
         let cr = clock_reset(clock(false), reset(true));
-        let (o, d) = read_logic::<W4>(cr, i, q);
+        let (o, d) = read_logic::<U4>(cr, i, q);
         assert!(o.empty);
         assert!(o.almost_empty);
         assert!(!o.underflow);

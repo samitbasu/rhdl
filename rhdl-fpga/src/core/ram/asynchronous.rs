@@ -296,7 +296,7 @@ mod tests {
 
     #[test]
     fn test_ram_flow_graph() -> miette::Result<()> {
-        let uut = U::<Bits<W8>, Red, Green, W4>::new(
+        let uut = U::<Bits<U8>, Red, Green, U4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -309,7 +309,7 @@ mod tests {
 
     #[test]
     fn test_ram_as_verilog() -> miette::Result<()> {
-        let uut = U::<Bits<W8>, Red, Green, W4>::new(
+        let uut = U::<Bits<U8>, Red, Green, U4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -330,7 +330,7 @@ mod tests {
 
     #[test]
     fn test_ram_write_behavior() -> miette::Result<()> {
-        let uut = U::<Bits<W8>, Red, Green, W4>::new(
+        let uut = U::<Bits<U8>, Red, Green, U4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits(0))),
@@ -376,7 +376,7 @@ mod tests {
     fn test_ram_read_only_behavior() -> miette::Result<()> {
         // Let's start with a simple test where the RAM is pre-initialized,
         // and we just want to read it.
-        let uut = U::<Bits<W8>, Red, Green, W4>::new(
+        let uut = U::<Bits<U8>, Red, Green, U4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),

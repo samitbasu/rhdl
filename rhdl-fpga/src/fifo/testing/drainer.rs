@@ -8,9 +8,9 @@ use crate::core::{constant, dff, option::unpack, slice::lsbs};
 pub struct U<N: BitWidth> {
     _marker: constant::U<Bits<N>>,
     rng: crate::rng::xorshift::U,
-    sleep_counter: dff::U<Bits<W4>>,
-    sleep_len: constant::U<Bits<W4>>,
-    read_probability: constant::U<Bits<W16>>,
+    sleep_counter: dff::U<Bits<U4>>,
+    sleep_len: constant::U<Bits<U4>>,
+    read_probability: constant::U<Bits<U16>>,
     valid: dff::U<bool>,
 }
 
@@ -67,7 +67,7 @@ pub fn drain_kernel<N: BitWidth>(cr: ClockReset, input: I<N>, q: Q<N>) -> (O, D<
     // If there is data available and we are not sleeping, then read the next
     // value.  Validate against the RNG, and advance the rNG
     let (data_available, data) = unpack::<Bits<N>>(input.data);
-    let validation = lsbs::<N, W32>(q.rng);
+    let validation = lsbs::<N, U32>(q.rng);
     let data_matches = data == validation;
     let will_read = data_available && q.sleep_counter == 0;
     trace("data", &data);
@@ -82,7 +82,7 @@ pub fn drain_kernel<N: BitWidth>(cr: ClockReset, input: I<N>, q: Q<N>) -> (O, D<
         d.rng = true;
         o.next = true;
         d.valid = data_matches && was_valid;
-        let p = lsbs::<W16, W32>(q.rng);
+        let p = lsbs::<U16, U32>(q.rng);
         d.sleep_counter = if p > q.read_probability {
             q.sleep_len
         } else {
@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn test_drainer_validation_works() {
-        let uut = U::<W16>::default();
+        let uut = U::<U16>::default();
         let mut need_reset = true;
         let mut xorshift = crate::rng::xorshift::XorShift128::default();
         let mut rng_out = xorshift.next().unwrap();
@@ -145,7 +145,7 @@ mod tests {
 
     #[test]
     fn test_drainer() {
-        let uut = U::<W16>::default();
+        let uut = U::<U16>::default();
         let mut need_reset = true;
         let mut xorshift = crate::rng::xorshift::XorShift128::default();
         let mut rng_out = xorshift.next().unwrap();
@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_drainer_hdl() -> miette::Result<()> {
-        let uut = U::<W16>::default();
+        let uut = U::<U16>::default();
         let mut need_reset = true;
         let mut xorshift = crate::rng::xorshift::XorShift128::default();
         let mut rng_out = xorshift.next().unwrap();

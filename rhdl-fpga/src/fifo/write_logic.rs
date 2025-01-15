@@ -95,11 +95,11 @@ mod tests {
     #[test]
     fn test_full_condition() {
         let cr = ClockReset::dont_care();
-        let i = I::<W4> {
+        let i = I::<U4> {
             read_address: bits(0b0000),
             write_enable: false,
         };
-        let q = Q::<W4> {
+        let q = Q::<U4> {
             write_address: bits(0b1111),
             write_address_delayed: bits(0b1111),
             overflow: false,
@@ -116,11 +116,11 @@ mod tests {
     #[test]
     fn test_almost_full_condition() {
         let cr = ClockReset::dont_care();
-        let i = I::<W4> {
+        let i = I::<U4> {
             read_address: bits(0b0000),
             write_enable: false,
         };
-        let q = Q::<W4> {
+        let q = Q::<U4> {
             write_address: bits(0b1110),
             write_address_delayed: bits(0b1110),
             overflow: false,
@@ -137,11 +137,11 @@ mod tests {
     #[test]
     fn test_write_enable_increments_next_write_address() {
         let cr = ClockReset::dont_care();
-        let i = I::<W4> {
+        let i = I::<U4> {
             read_address: bits(0b0000),
             write_enable: true,
         };
-        let q = Q::<W4> {
+        let q = Q::<U4> {
             write_address: bits(0b1100),
             write_address_delayed: bits(0b1100),
             overflow: false,
@@ -158,11 +158,11 @@ mod tests {
     #[test]
     fn test_full_with_write_enable_leads_to_overflow() {
         let cr = ClockReset::dont_care();
-        let i = I::<W4> {
+        let i = I::<U4> {
             read_address: bits(0b0000),
             write_enable: true,
         };
-        let q = Q::<W4> {
+        let q = Q::<U4> {
             write_address: bits(0b1111),
             write_address_delayed: bits(0b1111),
             overflow: false,
@@ -179,11 +179,11 @@ mod tests {
     #[test]
     fn test_overflow_is_latching() {
         let cr = ClockReset::dont_care();
-        let i = I::<W4> {
+        let i = I::<U4> {
             read_address: bits(0b0000),
             write_enable: false,
         };
-        let q = Q::<W4> {
+        let q = Q::<U4> {
             write_address: bits(0b1111),
             write_address_delayed: bits(0b1111),
             overflow: true,
@@ -200,11 +200,11 @@ mod tests {
     #[test]
     fn test_almost_full_flag_is_clear_with_at_least_2_spots() {
         let cr = ClockReset::dont_care();
-        let i = I::<W4> {
+        let i = I::<U4> {
             read_address: bits(0b0000),
             write_enable: false,
         };
-        let q = Q::<W4> {
+        let q = Q::<U4> {
             write_address: bits(0b1100),
             write_address_delayed: bits(0b1100),
             overflow: false,
@@ -221,11 +221,11 @@ mod tests {
     #[test]
     fn test_reset_condition() {
         let cr = clock_reset(clock(false), reset(true));
-        let i = I::<W4> {
+        let i = I::<U4> {
             read_address: bits(0b0000),
             write_enable: false,
         };
-        let q = Q::<W4> {
+        let q = Q::<U4> {
             write_address: bits(0b1111),
             write_address_delayed: bits(0b1111),
             overflow: true,

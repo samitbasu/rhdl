@@ -1,7 +1,6 @@
-use rhdl_typenum::BitWidth;
 use std::ops::{BitAnd, BitAndAssign};
 
-use crate::{bits_impl::Bits, signed_bits_impl::SignedBits};
+use crate::{bits_impl::Bits, signed_bits_impl::SignedBits, BitWidth};
 
 impl<N: BitWidth> BitAnd<Bits<N>> for u128 {
     type Output = Bits<N>;
@@ -46,24 +45,24 @@ impl<N: BitWidth> BitAndAssign<i128> for SignedBits<N> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use rhdl_typenum::*;
+    use crate::bitwidth::*;
 
     #[test]
     fn test_and_bits() {
-        let bits: Bits<W8> = 0b1101_1010.into();
+        let bits: Bits<U8> = 0b1101_1010.into();
         let result = bits & bits;
         assert_eq!(result.val, 0b1101_1010_u128);
-        let bits: Bits<W8> = 0b1101_1010.into();
+        let bits: Bits<U8> = 0b1101_1010.into();
         let result = bits & 0b1111_0000;
         assert_eq!(result.val, 0b1101_0000_u128);
-        let bits: Bits<W8> = 0b1101_1010.into();
+        let bits: Bits<U8> = 0b1101_1010.into();
         let result = 0b1111_0000 & bits;
         assert_eq!(result.val, 0b1101_0000_u128);
-        let mut bits: Bits<W128> = 0.into();
+        let mut bits: Bits<U128> = 0.into();
         bits = crate::test::set_bit(bits, 127, true);
         let result = bits & bits;
         assert_eq!(result.val, 1_u128 << 127);
-        let bits: Bits<W54> = 0b1101_1010.into();
+        let bits: Bits<U54> = 0b1101_1010.into();
         let result = bits & 1;
         assert_eq!(result.val, 0_u128);
         let result = 1 & bits;
@@ -72,27 +71,27 @@ mod test {
 
     #[test]
     fn test_andassign_bits() {
-        let mut bits: Bits<W8> = 0b1101_1010.into();
+        let mut bits: Bits<U8> = 0b1101_1010.into();
         bits &= bits;
         assert_eq!(bits.val, 0b1101_1010_u128);
-        let mut bits: Bits<W8> = 0b1101_1010.into();
+        let mut bits: Bits<U8> = 0b1101_1010.into();
         bits &= 0b1111_0000;
         assert_eq!(bits.val, 0b1101_0000_u128);
-        let mut bits: Bits<W8> = 0b1101_1010.into();
+        let mut bits: Bits<U8> = 0b1101_1010.into();
         bits &= 0b1111_0000;
         assert_eq!(bits.val, 0b1101_0000_u128);
-        let mut bits: Bits<W128> = 0.into();
+        let mut bits: Bits<U128> = 0.into();
         bits = crate::test::set_bit(bits, 127, true);
         bits &= bits;
         assert_eq!(bits.val, 1_u128 << 127);
-        let mut bits: Bits<W54> = 0b1101_1010.into();
+        let mut bits: Bits<U54> = 0b1101_1010.into();
         bits &= 1;
         assert_eq!(bits.val, 0_u128);
-        let mut bits: Bits<W54> = 0b1101_1010.into();
+        let mut bits: Bits<U54> = 0b1101_1010.into();
         bits &= 1;
         assert_eq!(bits.val, 0_u128);
-        let a: Bits<W12> = 0b1010_1010_1010.into();
-        let b: Bits<W12> = 0b1111_0101_0111.into();
+        let a: Bits<U12> = 0b1010_1010_1010.into();
+        let b: Bits<U12> = 0b1111_0101_0111.into();
         let mut c = a;
         c &= b;
         assert_eq!(c.val, 0b1010_0000_0010);
@@ -108,16 +107,16 @@ mod test {
 
     #[test]
     fn test_and_assign_signed() {
-        let mut x = SignedBits::<W8>::from(-3);
-        let y = SignedBits::<W8>::from(4);
+        let mut x = SignedBits::<U8>::from(-3);
+        let y = SignedBits::<U8>::from(4);
         x &= y;
         assert_eq!(x.val, 4);
     }
 
     #[test]
     fn test_and_signed() {
-        let x = SignedBits::<W8>::from(-3);
-        let y = SignedBits::<W8>::from(4);
+        let x = SignedBits::<U8>::from(-3);
+        let y = SignedBits::<U8>::from(4);
         let z = x & y;
         assert_eq!(z.val, 4);
     }
@@ -126,8 +125,8 @@ mod test {
     fn test_and_signed_i8() {
         for i in i8::MIN..i8::MAX {
             for j in i8::MIN..i8::MAX {
-                let x: SignedBits<W8> = (i as i128).into();
-                let y: SignedBits<W8> = (j as i128).into();
+                let x: SignedBits<U8> = (i as i128).into();
+                let y: SignedBits<U8> = (j as i128).into();
                 let z = x & y;
                 assert_eq!(z.val, (i & j) as i128);
             }
@@ -138,8 +137,8 @@ mod test {
     fn test_and_assign_signed_i8() {
         for i in i8::MIN..i8::MAX {
             for j in i8::MIN..i8::MAX {
-                let mut x: SignedBits<W8> = (i as i128).into();
-                let y: SignedBits<W8> = (j as i128).into();
+                let mut x: SignedBits<U8> = (i as i128).into();
+                let y: SignedBits<U8> = (j as i128).into();
                 x &= y;
                 assert_eq!(x.val, (i & j) as i128);
             }

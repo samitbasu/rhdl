@@ -43,7 +43,7 @@ mod tests {
 
     #[test]
     fn test_sync_fifo_trace() -> miette::Result<()> {
-        let uut = U::<W16, W6>::default();
+        let uut = U::<U16, U6>::default();
         let input = std::iter::repeat(())
             .take(1000)
             .stream_after_reset(1)
@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     fn test_sync_fifo_valid() -> miette::Result<()> {
-        let uut = U::<W16, W6>::default();
+        let uut = U::<U16, U6>::default();
         let input = std::iter::repeat(())
             .take(100_000)
             .stream_after_reset(1)

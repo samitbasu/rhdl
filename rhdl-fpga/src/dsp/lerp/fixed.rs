@@ -99,20 +99,20 @@ where
 pub fn lerp_unsigned<N, M>(lower_value: Bits<N>, upper_value: Bits<N>, factor: Bits<M>) -> Bits<N>
 where
     // We need to be able to add 1 to the width of the interpolation factor
-    M: BitWidth + Add<W1>,
-    Sum<M, W1>: BitWidth,
+    M: BitWidth + Add<U1>,
+    Sum<M, U1>: BitWidth,
     // We also need to be able to add 1 to the width of the values
-    N: BitWidth + Add<W1> + Add<M>,
-    Sum<N, W1>: BitWidth,
-    // We also need M+W1 and N+W1 to be multiplicatively compatible
-    Sum<M, W1>: Add<Sum<N, W1>>,
-    Sum<Sum<M, W1>, Sum<N, W1>>: BitWidth,
+    N: BitWidth + Add<U1> + Add<M>,
+    Sum<N, U1>: BitWidth,
+    // We also need M+U1 and N+U1 to be multiplicatively compatible
+    Sum<M, U1>: Add<Sum<N, U1>>,
+    Sum<Sum<M, U1>, Sum<N, U1>>: BitWidth,
     // We need N+M to be a thing
-    Sum<N, M>: BitWidth + Add<W1>,
+    Sum<N, M>: BitWidth + Add<U1>,
     // We need N+M+1 to be a thing also
-    Sum<Sum<N, M>, W1>: BitWidth + Add<W1>,
+    Sum<Sum<N, M>, U1>: BitWidth + Add<U1>,
     // As well as N+M+2
-    Sum<Sum<Sum<N, M>, W1>, W1>: BitWidth,
+    Sum<Sum<Sum<N, M>, U1>, U1>: BitWidth,
 {
     // Signed factor is signed M+1 bits wide
     let signed_factor = factor.xsgn();
@@ -123,7 +123,7 @@ where
     // Shift the lower value by M bits to the left
     let lower_value = lower_value.xshl::<M>();
     // Convert it to a signed value so we can add the correction (requires an additional bit)
-    let lower_value = lower_value.xsgn().xext::<W1>();
+    let lower_value = lower_value.xsgn().xext::<U1>();
     // Compute the correction - we do not need overflow on this, so a regular add (wrapping) is fine
     let y = lower_value + correction;
 
@@ -137,7 +137,7 @@ where
        // This is now N+1 bits wide and signed
        let delta = upper_value.xsub(lower_value);
        // We need the lower value to also be N+1 bits wide and signed
-       let lower_value = lower_value.xext::<W1>().as_signed();
+       let lower_value = lower_value.xext::<U1>().as_signed();
        // Next, we will multiply delta times the factor.  The result is M+N+1 bits wide
        let delta_times_factor = delta.xmul(factor);
     */

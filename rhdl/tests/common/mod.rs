@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 use rhdl::prelude::*;
-use rhdl_core::digital_fn::BitWidth;
 
 pub fn exhaustive<N: BitWidth>() -> Vec<Bits<N>> {
     (0..(1 << N::BITS)).map(bits).collect()
@@ -22,23 +21,23 @@ pub fn tuple_b8<C: Domain>() -> impl Iterator<Item = (Signal<b8, C>,)> + Clone {
 }
 
 pub fn tuple_pair_b8_red() -> impl Iterator<Item = (Signal<b8, Red>, Signal<b8, Red>)> + Clone {
-    exhaustive::<W8>().into_iter().flat_map(|x| {
-        exhaustive::<W8>()
+    exhaustive::<U8>().into_iter().flat_map(|x| {
+        exhaustive::<U8>()
             .into_iter()
             .map(move |y| (red(x), red(y)))
     })
 }
 
 pub fn tuple_pair_s8_red() -> impl Iterator<Item = (Signal<s8, Red>, Signal<s8, Red>)> + Clone {
-    exhaustive::<W8>().into_iter().flat_map(|x| {
-        exhaustive::<W8>()
+    exhaustive::<U8>().into_iter().flat_map(|x| {
+        exhaustive::<U8>()
             .into_iter()
             .map(move |y| (red(x.as_signed()), red(y.as_signed())))
     })
 }
 
 pub fn s8_red() -> impl Iterator<Item = (Signal<s8, Red>,)> + Clone {
-    exhaustive::<W8>()
+    exhaustive::<U8>()
         .into_iter()
         .map(|x| (red(x.as_signed()),))
 }

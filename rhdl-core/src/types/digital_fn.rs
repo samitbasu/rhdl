@@ -1,7 +1,8 @@
 #![allow(clippy::type_complexity)]
 
+use rhdl_bits::BitWidth;
+
 pub use crate::{kernel::KernelFnKind, Digital, Kind};
-pub use rhdl_typenum::*;
 
 pub trait DigitalFn {
     fn kernel_fn() -> Option<KernelFnKind> {

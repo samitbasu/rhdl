@@ -10,4 +10,4 @@ keywords = ["fpga", "hdl", "hardware", "binary", "bitvec"]
 
 [dependencies]
 seq-macro = "0.3.5"
-rhdl-typenum = { path = "../rhdl-typenum" }
+typenum = "1.17.0"

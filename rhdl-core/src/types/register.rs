@@ -1,5 +1,4 @@
-use rhdl_bits::{Bits, SignedBits};
-use rhdl_typenum::*;
+use rhdl_bits::{BitWidth, Bits, SignedBits};
 
 use crate::{Digital, Kind};
 
