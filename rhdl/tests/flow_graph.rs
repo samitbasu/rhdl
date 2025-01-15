@@ -178,9 +178,9 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
     }
 
     let uut = parent::Parent::default();
-    let inputs = exhaustive::<W4>()
+    let inputs = exhaustive::<U4>()
         .into_iter()
-        .flat_map(|x| exhaustive::<W4>().into_iter().map(move |y| (x, y)));
+        .flat_map(|x| exhaustive::<U4>().into_iter().map(move |y| (x, y)));
     let inputs = inputs.stream_after_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
@@ -217,9 +217,9 @@ fn test_add_inline() -> miette::Result<()> {
     }
 
     let uut = parent::Parent::default();
-    let inputs = exhaustive::<W4>()
+    let inputs = exhaustive::<U4>()
         .into_iter()
-        .flat_map(|x| exhaustive::<W4>().into_iter().map(move |y| (x, y)));
+        .flat_map(|x| exhaustive::<U4>().into_iter().map(move |y| (x, y)));
     let inputs = inputs.stream_after_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     Ok(())
@@ -289,9 +289,9 @@ fn test_async_add() -> miette::Result<()> {
     }
 
     let uut = U::default();
-    let inputs = exhaustive::<W8>()
+    let inputs = exhaustive::<U8>()
         .into_iter()
-        .flat_map(|x| exhaustive::<W8>().into_iter().map(move |y| (x, y)))
+        .flat_map(|x| exhaustive::<U8>().into_iter().map(move |y| (x, y)))
         .map(signal::<_, Red>)
         .enumerate()
         .map(|(ndx, val)| timed_sample((ndx * 100) as u64, val));

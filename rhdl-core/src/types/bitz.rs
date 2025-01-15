@@ -1,5 +1,4 @@
-use rhdl_bits::Bits;
-use rhdl_typenum::*;
+use rhdl_bits::{BitWidth, Bits};
 
 use crate::{bitx::BitX, trace::bit::TraceBit, Digital, Kind};
 

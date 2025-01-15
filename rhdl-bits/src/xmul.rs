@@ -1,8 +1,8 @@
 use std::ops::Add;
 
-use rhdl_typenum::*;
+use typenum::op;
 
-use crate::{bits, signed, Bits, SignedBits};
+use crate::{bits, signed, BitWidth, Bits, SignedBits};
 
 pub trait XMul<Rhs = Self> {
     type Output;
@@ -11,11 +11,11 @@ pub trait XMul<Rhs = Self> {
 
 impl<N, M> XMul<Bits<M>> for Bits<N>
 where
-    N: BitWidth + Add<M>,
+    N: Add<M> + BitWidth,
     M: BitWidth,
-    Sum<N, M>: BitWidth,
+    op!(N + M): BitWidth,
 {
-    type Output = Bits<Sum<N, M>>;
+    type Output = Bits<op!(N + M)>;
     fn xmul(self, rhs: Bits<M>) -> Self::Output {
         bits(self.val.wrapping_mul(rhs.val))
     }
@@ -23,11 +23,11 @@ where
 
 impl<N, M> XMul<SignedBits<M>> for SignedBits<N>
 where
-    N: BitWidth + Add<M>,
+    N: Add<M> + BitWidth,
     M: BitWidth,
-    Sum<N, M>: BitWidth,
+    op!(N + M): BitWidth,
 {
-    type Output = SignedBits<Sum<N, M>>;
+    type Output = SignedBits<op!(N + M)>;
     fn xmul(self, rhs: SignedBits<M>) -> Self::Output {
         signed(self.val.wrapping_mul(rhs.val))
     }
@@ -35,27 +35,29 @@ where
 
 #[cfg(test)]
 mod tests {
+    use typenum::{consts::U16, U32, U64, U8};
+
     use super::*;
     use crate::alias::*;
 
     #[test]
     fn test_xmul() {
-        let a = bits::<W32>(0x1234_5678);
-        let b = bits::<W32>(0x8765_4321);
+        let a = bits::<U32>(0x1234_5678);
+        let b = bits::<U32>(0x8765_4321);
         let c = a.xmul(b);
-        assert_eq!(c, bits::<W64>(0x1234_5678 * 0x8765_4321));
-        let a = signed::<W32>(-456);
-        let b = signed::<W32>(123);
+        assert_eq!(c, bits::<U64>(0x1234_5678 * 0x8765_4321));
+        let a = signed::<U32>(-456);
+        let b = signed::<U32>(123);
         let c = a.xmul(b);
-        assert_eq!(c, signed::<W64>(-456 * 123));
-        let a = bits::<W8>(255);
-        let b = bits::<W8>(255);
+        assert_eq!(c, signed::<U64>(-456 * 123));
+        let a = bits::<U8>(255);
+        let b = bits::<U8>(255);
         let c = a.xmul(b);
-        assert_eq!(c, bits::<W16>(255 * 255));
-        let a = signed::<W8>(-128);
-        let b = signed::<W8>(-128);
+        assert_eq!(c, bits::<U16>(255 * 255));
+        let a = signed::<U8>(-128);
+        let b = signed::<U8>(-128);
         let c = a.xmul(b);
-        assert_eq!(c, signed::<W16>(-128 * -128));
+        assert_eq!(c, signed::<U16>(-128 * -128));
     }
 
     #[test]

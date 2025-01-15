@@ -1,7 +1,8 @@
-use rhdl_typenum::*;
 use std::ops::{Add, Mul};
 
-use crate::{bits_impl::bits_masked, signed, signed_bits_impl::signed_wrapped, Bits, SignedBits};
+use crate::{
+    bits_impl::bits_masked, signed, signed_bits_impl::signed_wrapped, BitWidth, Bits, SignedBits,
+};
 
 impl<N: BitWidth> Mul for Bits<N> {
     type Output = Bits<N>;
@@ -19,18 +20,19 @@ impl<N: BitWidth> Mul for SignedBits<N> {
 
 #[cfg(test)]
 mod tests {
+    use crate::bitwidth::*;
     use crate::{alias::*, bits};
 
     use super::*;
 
     #[test]
     fn test_mul() {
-        let a = bits::<W32>(0x1234_5678);
-        let b = bits::<W32>(0x8765_4321);
+        let a = bits::<U32>(0x1234_5678);
+        let b = bits::<U32>(0x8765_4321);
         let c = a * b;
         assert_eq!(
             c,
-            bits::<W32>(0x1234_5678_u32.wrapping_mul(0x8765_4321) as u128)
+            bits::<U32>(0x1234_5678_u32.wrapping_mul(0x8765_4321) as u128)
         );
     }
 }

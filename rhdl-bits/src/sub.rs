@@ -1,12 +1,11 @@
 use std::ops::Sub;
 use std::ops::SubAssign;
 
-use rhdl_typenum::*;
-
 use crate::bits_impl::bits_masked;
 use crate::bits_impl::Bits;
 use crate::signed_bits_impl::signed_wrapped;
 use crate::signed_bits_impl::SignedBits;
+use crate::BitWidth;
 
 impl<N: BitWidth> Sub for Bits<N> {
     type Output = Self;
@@ -47,10 +46,10 @@ impl<N: BitWidth> SubAssign<u128> for Bits<N> {
 where
     N: BitWidth + Max<M>,
     M: BitWidth,
-    Maximum<N, M>: Add<W1>,
-    Sum<Maximum<N, M>, W1>: BitWidth,
+    Maximum<N, M>: Add<U1>,
+    Sum<Maximum<N, M>, U1>: BitWidth,
 {
-    type Output = SignedBits<Sum<Maximum<N, M>, W1>>;
+    type Output = SignedBits<Sum<Maximum<N, M>, U1>>;
     fn sub(self, rhs: Bits<M>) -> Self::Output {
         signed((self.val as i128).wrapping_sub(rhs.val as i128))
     }
@@ -106,40 +105,41 @@ impl<N: BitWidth> SubAssign<SignedBits<N>> for i128 {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::bitwidth::*;
 
     #[test]
     fn test_sub_bits() {
-        let bits: Bits<W8> = 0b1101_1010.into();
+        let bits: Bits<U8> = 0b1101_1010.into();
         let result = bits - bits;
         assert_eq!(result.val, 0);
-        let bits: SignedBits<W8> = 0b0101_1010.into();
+        let bits: SignedBits<U8> = 0b0101_1010.into();
         let result = bits - bits - bits;
         assert_eq!(result.val, -bits.val);
-        let mut bits: Bits<W126> = 0.into();
+        let mut bits: Bits<U126> = 0.into();
         bits = crate::test::set_bit(bits, 125, true);
         let result = bits - bits;
         assert_eq!(result.val, 0);
-        let bits: Bits<W54> = 0b1101_1010.into();
+        let bits: Bits<U54> = 0b1101_1010.into();
         let x = bits.val;
         let result = bits - 1;
-        let bits_m_1: Bits<W54> = 0b1101_1001.into();
+        let bits_m_1: Bits<U54> = 0b1101_1001.into();
         assert_eq!(result, bits_m_1);
         let result = 1 - bits;
         // The 2s complement equivalent of 1 - x is 1 + (x::mask() - x) + 1
         // which is 2 + (x::mask() - x)
         assert_eq!(
             result,
-            SignedBits::<W54>::from(1 - (x as i128)).as_unsigned()
+            SignedBits::<U54>::from(1 - (x as i128)).as_unsigned()
         );
     }
 
     #[test]
     fn test_subassign_bits() {
-        let mut bits: Bits<W8> = 0b1101_1010.into();
-        let bits_m_1: Bits<W8> = 0b1101_1001.into();
+        let mut bits: Bits<U8> = 0b1101_1010.into();
+        let bits_m_1: Bits<U8> = 0b1101_1001.into();
         bits -= bits_m_1;
         assert_eq!(bits.val, 1_u128);
-        let mut bits: Bits<W8> = 0b1101_1010.into();
+        let mut bits: Bits<U8> = 0b1101_1010.into();
         bits -= 1;
         assert_eq!(bits.val, 0b1101_1001_u128);
     }
@@ -148,8 +148,8 @@ mod test {
     fn test_subtraction_i8() {
         for i in i8::MIN..i8::MAX {
             for j in i8::MIN..i8::MAX {
-                let signed_i: SignedBits<W8> = (i as i128).into();
-                let signed_j: SignedBits<W8> = (j as i128).into();
+                let signed_i: SignedBits<U8> = (i as i128).into();
+                let signed_j: SignedBits<U8> = (j as i128).into();
                 let signed_k = signed_i - signed_j;
                 let built_in_k = i.wrapping_sub(j) as i128;
                 assert_eq!(signed_k.val, built_in_k);
@@ -159,12 +159,12 @@ mod test {
 
     #[test]
     fn test_subtraction_i128() {
-        let min = SignedBits::<W128>::min_value();
-        let max = SignedBits::<W128>::max_value();
+        let min = SignedBits::<U128>::min_value();
+        let max = SignedBits::<U128>::max_value();
         for i in [min, -1, 0, 1, max] {
             for j in [min, -1, 0, 1, max] {
-                let signed_i: SignedBits<W128> = i.into();
-                let signed_j: SignedBits<W128> = j.into();
+                let signed_i: SignedBits<U128> = i.into();
+                let signed_j: SignedBits<U128> = j.into();
                 let signed_k = signed_i - signed_j;
                 let built_in_k = i.wrapping_sub(j);
                 assert_eq!(signed_k.val, built_in_k);
@@ -174,7 +174,7 @@ mod test {
 
     #[test]
     fn test_subassign() {
-        let mut x = SignedBits::<W8>::from(1);
+        let mut x = SignedBits::<U8>::from(1);
         x -= -2;
         assert_eq!(x.val, 3);
     }

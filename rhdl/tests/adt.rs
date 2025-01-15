@@ -257,7 +257,7 @@ fn test_adt_inference() -> miette::Result<()> {
         let y1 = b6(6);
         let mut ar = [b4(1), b4(1), b4(3)];
         ar[1] = b4(2);
-        let _z: [Bits<W4>; 3] = ar;
+        let _z: [Bits<U4>; 3] = ar;
         let _q = ar[1];
         let f: [b4; 5] = [b4(1); 5];
         let _h = f[2];

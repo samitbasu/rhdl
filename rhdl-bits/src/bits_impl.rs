@@ -1,10 +1,10 @@
 #![allow(non_camel_case_types)]
 use std::ops::{Add, Sub};
 
-use crate::{signed, signed_bits_impl::SignedBits};
-use rhdl_typenum::*;
+use crate::bitwidth::*;
+use crate::{signed, signed_bits_impl::SignedBits, BitWidth};
 use seq_macro::seq;
-
+use typenum::op;
 /// The [Bits] type is a fixed-sized bit vector.  It is meant to
 /// imitate the behavior of bit vectors in hardware.  Due to the
 /// design of the [Bits] type, you can only create a [Bits] type of
@@ -23,8 +23,10 @@ use seq_macro::seq;
 /// Note also that the [Bits] kind is treated as an unsigned value for
 /// the purposes of comparisons.  If you need signed comparisons, you
 /// will need the [SignedBits] type.
+///
+
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Bits<Len> {
+pub struct Bits<Len: BitWidth> {
     pub(crate) marker: std::marker::PhantomData<Len>,
     pub val: u128,
 }
@@ -112,9 +114,9 @@ impl<Len: BitWidth> std::ops::BitXorAssign for Bits<Len> {
 
 seq!(N in 1..=128 {
     #(
-        pub type b~N = Bits<W~N>;
+        pub type b~N = Bits<U~N>;
         pub const fn b~N(value: u128) -> b~N {
-            bits::<W~N>(value)
+            bits::<U~N>(value)
         }
     )*
 });
@@ -122,15 +124,15 @@ seq!(N in 1..=128 {
 /// Helper function for creating a bits value from
 /// a constant.
 /// ```
-/// # use rhdl_bits::{W8, Bits, bits};
-/// let value : Bits<W8> = bits(0b1010_1010);
+/// # use rhdl_bits::{consts::U8, Bits, bits};
+/// let value : Bits<U8> = bits(0b1010_1010);
 /// assert_eq!(value, 0b1010_1010);
 /// ```
 /// Because the function is `const`, you can use it a constant
 /// context:
 /// ```
-/// # use rhdl_bits::{W8, Bits, bits};
-/// const VALUE : Bits<W8> = bits(0b1010_1010);
+/// # use rhdl_bits::{consts::U8, Bits, bits};
+/// const VALUE : Bits<U8> = bits(0b1010_1010);
 /// ```
 pub const fn bits<N: BitWidth>(value: u128) -> Bits<N> {
     assert!(value <= Bits::<N>::mask().val);
@@ -160,8 +162,8 @@ impl<N: BitWidth> Bits<N> {
     };
     /// Return a [Bits] value with all bits set to 1.
     /// ```
-    /// # use rhdl_bits::{W8, Bits};
-    /// let bits = Bits::<W8>::mask();
+    /// # use rhdl_bits::{consts::U8, Bits};
+    /// let bits = Bits::<U8>::mask();
     /// assert_eq!(bits, 0xFF);
     /// ```
     pub const fn mask() -> Self {
@@ -171,29 +173,28 @@ impl<N: BitWidth> Bits<N> {
         }
     }
     /// Extend a value by the number of bits specified.
-    pub const fn xext<M>(self) -> Bits<Sum<N, M>>
+    pub const fn xext<M>(self) -> Bits<op!(N + M)>
     where
-        N: BitWidth + Add<M>,
-        M: BitWidth,
-        Sum<N, M>: BitWidth,
+        N: Add<M>,
+        op!(N + M): BitWidth,
     {
-        bits::<Sum<N, M>>(self.val)
+        bits::<op!(N + M)>(self.val)
     }
-    pub const fn xshr<M>(self) -> Bits<Diff<N, M>>
+    pub const fn xshr<M>(self) -> Bits<op!(N - M)>
     where
-        N: BitWidth + Sub<M>,
+        N: Sub<M>,
         M: BitWidth,
-        Diff<N, M>: BitWidth,
+        op!(N - M): BitWidth,
     {
-        bits::<Diff<N, M>>(self.val >> M::BITS)
+        bits::<op!(N - M)>(self.val >> M::BITS)
     }
-    pub const fn xshl<M>(self) -> Bits<Sum<N, M>>
+    pub const fn xshl<M>(self) -> Bits<op!(N + M)>
     where
-        N: BitWidth + Add<M>,
+        N: Add<M>,
         M: BitWidth,
-        Sum<N, M>: BitWidth,
+        op!(N + M): BitWidth,
     {
-        bits::<Sum<N, M>>(self.val << M::BITS)
+        bits::<op!(N + M)>(self.val << M::BITS)
     }
     pub const fn resize<M: BitWidth>(self) -> Bits<M> {
         let mask = Bits::<M>::mask();
@@ -303,32 +304,34 @@ impl<T, N: BitWidth, const M: usize> std::ops::IndexMut<Bits<N>> for [T; M] {
 
 #[cfg(test)]
 mod tests {
+    use typenum::op;
+
     use super::*;
 
     #[test]
     fn test_mask() {
-        let bits = Bits::<W128>::mask();
+        let bits = Bits::<U128>::mask();
         assert_eq!(bits.val, u128::MAX);
-        let bits = Bits::<W32>::mask();
+        let bits = Bits::<U32>::mask();
         assert_eq!(bits.val, 0xFFFF_FFFF_u128);
     }
 
     #[test]
     fn test_binary_format() {
-        let bits: Bits<W8> = 0b1101_1010.into();
+        let bits: Bits<U8> = 0b1101_1010.into();
         assert_eq!(format!("{:b}", bits), "8'b11011010");
     }
 
     #[test]
     fn test_hex_format() {
-        let bits: Bits<W8> = 0b1101_1010.into();
+        let bits: Bits<U8> = 0b1101_1010.into();
         assert_eq!(format!("{:x}", bits), "8'hda");
         assert_eq!(format!("{:X}", bits), "8'HDA");
     }
 
     #[test]
     fn test_to_bits_method() {
-        let bits: Bits<W8> = 0b1101_1010.into();
+        let bits: Bits<U8> = 0b1101_1010.into();
         let result = bits.to_bools();
         assert_eq!(
             result,
@@ -338,21 +341,21 @@ mod tests {
 
     #[test]
     fn test_self_cast() {
-        let bits: Bits<W8> = 0b1101_1010.into();
-        let new_bits: Bits<W8> = bits.resize();
+        let bits: Bits<U8> = 0b1101_1010.into();
+        let new_bits: Bits<U8> = bits.resize();
         assert_eq!(new_bits, 0b1101_1010);
-        let new_bits = bits.resize::<W4>();
+        let new_bits = bits.resize::<U4>();
         assert_eq!(new_bits, 0b1010);
-        let new_bits = bits.resize::<W16>();
+        let new_bits = bits.resize::<U16>();
         assert_eq!(new_bits, 0b0000_0000_1101_1010);
     }
 
-    const OPT1: Bits<W8> = b8(0b1101_1010);
-    const OPT2: Bits<W8> = b8(0b0010_0100);
+    const OPT1: Bits<U8> = b8(0b1101_1010);
+    const OPT2: Bits<U8> = b8(0b0010_0100);
 
     #[test]
     fn test_match() {
-        let bits: Bits<W8> = 0b1101_1010.into();
+        let bits: Bits<U8> = 0b1101_1010.into();
         match bits {
             OPT1 => {
                 eprintln!("Matched");
@@ -377,7 +380,7 @@ mod tests {
     fn test_xext() {
         for i in 0..=u8::MAX {
             let a = b8(i as u128);
-            let b = a.xext::<W1>();
+            let b = a.xext::<U1>();
             assert_eq!(b, b9(i as u128));
         }
     }
@@ -386,7 +389,7 @@ mod tests {
     fn test_xshl() {
         for i in 0..=u8::MAX {
             let a = b8(i as u128);
-            let b = a.xshl::<W1>();
+            let b = a.xshl::<U1>();
             assert_eq!(b, b9((i as u128) << 1));
         }
     }
@@ -395,8 +398,14 @@ mod tests {
     fn test_xshr() {
         for i in 0..=u8::MAX {
             let a = b8(i as u128);
-            let b = a.xshr::<W1>();
+            let b = a.xshr::<U1>();
             assert_eq!(b, b7((i as u128) >> 1));
         }
+    }
+
+    #[test]
+    fn test_no_wide_bits() {
+        let _a = Bits::<U128>::mask();
+        let _b = Bits::<op!(U127 + U1)>::mask();
     }
 }

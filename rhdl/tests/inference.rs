@@ -380,9 +380,9 @@ fn test_resize_unsigned_inference() -> miette::Result<()> {
         let c = b.resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff<W12>, _, _, _>(do_stuff::<W12>, tuple_exhaustive_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<W8>, _, _, _>(do_stuff::<W8>, tuple_exhaustive_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<W4>, _, _, _>(do_stuff::<W4>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<U12>, _, _, _>(do_stuff::<U12>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<U8>, _, _, _>(do_stuff::<U8>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<U4>, _, _, _>(do_stuff::<U4>, tuple_exhaustive_red())?;
     Ok(())
 }
 
@@ -395,9 +395,9 @@ fn test_resize_signed_inferred() -> miette::Result<()> {
         let c = c.resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff<W12>, _, _, _>(do_stuff::<W12>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<W4>, _, _, _>(do_stuff::<W4>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<W8>, _, _, _>(do_stuff::<W8>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<U12>, _, _, _>(do_stuff::<U12>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<U4>, _, _, _>(do_stuff::<U4>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<U8>, _, _, _>(do_stuff::<U8>, tuple_pair_s8_red())?;
     Ok(())
 }
 
@@ -411,8 +411,8 @@ fn test_resize_signed_explicit() -> miette::Result<()> {
         let c = c.resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff<W12>, _, _, _>(do_stuff::<W12>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<W4>, _, _, _>(do_stuff::<W4>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<U12>, _, _, _>(do_stuff::<U12>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<U4>, _, _, _>(do_stuff::<U4>, tuple_pair_s8_red())?;
     Ok(())
 }
 

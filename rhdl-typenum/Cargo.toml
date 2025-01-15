@@ -6,4 +6,3 @@ edition = "2021"
 [dependencies]
 rhdl-macro = { version = "0.0.2", path = "../rhdl-macro" }
 seq-macro = "0.3.5"
-typenum = "1.17.0"

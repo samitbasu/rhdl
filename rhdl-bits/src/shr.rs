@@ -5,7 +5,7 @@ use crate::bits_impl::bits_masked;
 use crate::bits_impl::Bits;
 use crate::signed;
 use crate::signed_bits_impl::SignedBits;
-use rhdl_typenum::*;
+use crate::BitWidth;
 
 impl<N> Shr<u128> for Bits<N>
 where
@@ -100,22 +100,23 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::bitwidth::*;
 
     #[test]
     fn test_shr_bits() {
-        let bits: Bits<W8> = 0b1101_1010.into();
+        let bits: Bits<U8> = 0b1101_1010.into();
         let result = bits >> 4;
         assert_eq!(result.val, 0b0000_1101_u128);
-        let bits: Bits<W16> = 0b1101_1010_0000_0000.into();
+        let bits: Bits<U16> = 0b1101_1010_0000_0000.into();
         let result = bits >> 8;
         assert_eq!(result.val, 0b0000_0000_1101_1010_u128);
-        let shift: Bits<W4> = 8.into();
+        let shift: Bits<U4> = 8.into();
         let result = bits >> shift;
         assert_eq!(result.val, 0b0000_0000_1101_1010_u128);
-        let bits: Bits<W8> = 0b1101_1010.into();
+        let bits: Bits<U8> = 0b1101_1010.into();
         let result = bits >> 8;
         assert_eq!(result.val, 0);
-        let shift: Bits<W8> = 4.into();
+        let shift: Bits<U8> = 4.into();
         let result = 0b1101_1010_0000 >> shift;
         assert_eq!(result.val, 0b1101_1010u128);
     }
@@ -133,7 +134,7 @@ mod test {
     fn test_shr_signed() {
         for i in i8::MIN..i8::MAX {
             for shift in 0..8_u32 {
-                let bits: SignedBits<W8> = (i as i128).into();
+                let bits: SignedBits<U8> = (i as i128).into();
                 let result = bits >> (shift as u128);
                 assert_eq!(
                     result.val,
@@ -142,7 +143,7 @@ mod test {
                     i,
                     shift
                 );
-                let shift_as_bits: Bits<W3> = (shift as u128).into();
+                let shift_as_bits: Bits<U3> = (shift as u128).into();
                 let result = bits >> shift_as_bits;
                 assert_eq!(result.val, i128::wrapping_shr(i as i128, shift));
             }

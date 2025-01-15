@@ -32,11 +32,11 @@ fn test_func_with_structured_args() -> miette::Result<()> {
 fn test_basic_cast() -> miette::Result<()> {
     #[kernel]
     fn do_stuff<DATA: BitWidth>(a: Signal<b8, Red>) -> Signal<b8, Red> {
-        let bytes_per_word: Bits<W8> = bits(({ DATA::BITS } >> 3) as u128);
+        let bytes_per_word: Bits<U8> = bits(({ DATA::BITS } >> 3) as u128);
         let b = a.val() + bytes_per_word;
         signal(b.resize())
     }
-    test_kernel_vm_and_verilog::<do_stuff<W32>, _, _, _>(do_stuff::<W32>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<U32>, _, _, _>(do_stuff::<U32>, tuple_exhaustive_red())?;
     Ok(())
 }
 
@@ -506,9 +506,9 @@ fn test_for_loop_const_generics() -> miette::Result<()> {
         trace("a", &a);
         signal(ret)
     }
-    let res = compile_design::<sum_bits<W8>>(CompilationMode::Asynchronous)?;
+    let res = compile_design::<sum_bits<U8>>(CompilationMode::Asynchronous)?;
     let inputs = (0..256).map(|x| (signal(bits(x)),));
-    test_kernel_vm_and_verilog::<sum_bits<W8>, _, _, _>(sum_bits::<W8>, inputs)?;
+    test_kernel_vm_and_verilog::<sum_bits<U8>, _, _, _>(sum_bits::<U8>, inputs)?;
     Ok(())
 }
 

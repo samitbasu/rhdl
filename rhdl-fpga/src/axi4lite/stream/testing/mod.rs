@@ -2,10 +2,10 @@ use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U {
-    filler: crate::fifo::testing::filler::U<W32>,
-    source: crate::axi4lite::stream::source::U<Bits<W32>>,
-    sink: crate::axi4lite::stream::sink::U<Bits<W32>>,
-    drainer: crate::fifo::testing::drainer::U<W32>,
+    filler: crate::fifo::testing::filler::U<U32>,
+    source: crate::axi4lite::stream::source::U<Bits<U32>>,
+    sink: crate::axi4lite::stream::sink::U<Bits<U32>>,
+    drainer: crate::fifo::testing::drainer::U<U32>,
 }
 
 impl Default for U {
@@ -14,7 +14,7 @@ impl Default for U {
             filler: crate::fifo::testing::filler::U::new(2, 0x8000),
             source: crate::axi4lite::stream::source::U::default(),
             sink: crate::axi4lite::stream::sink::U::default(),
-            drainer: crate::fifo::testing::drainer::U::<W32>::new(2, 0x8000),
+            drainer: crate::fifo::testing::drainer::U::<U32>::new(2, 0x8000),
         }
     }
 }

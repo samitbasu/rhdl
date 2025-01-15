@@ -3,7 +3,7 @@ use rhdl::prelude::*;
 #[derive(Clone, Circuit, CircuitDQ, Default)]
 pub struct U<W: Domain, R: Domain, N: BitWidth, const Z: usize>
 where
-    Const<Z>: ToBitWidth,
+    Const<Z>: BitWidth,
 {
     filler: Adapter<crate::fifo::testing::filler::U<N>, W>,
     fifo: crate::fifo::asynchronous::U<Bits<N>, W, R, Z>,
@@ -18,7 +18,7 @@ pub struct I<W: Domain, R: Domain> {
 
 impl<W: Domain, R: Domain, N: BitWidth, const Z: usize> CircuitIO for U<W, R, N, Z>
 where
-    Const<Z>: ToBitWidth,
+    Const<Z>: BitWidth,
 {
     type I = I<W, R>;
     type O = Signal<bool, R>;
@@ -31,7 +31,7 @@ pub fn fixture_kernel<W: Domain, R: Domain, N: BitWidth, const Z: usize>(
     q: Q<W, R, N, Z>,
 ) -> (Signal<bool, R>, D<W, R, N, Z>)
 where
-    Const<Z>: ToBitWidth,
+    Const<Z>: BitWidth,
 {
     let mut d = D::<W, R, N, Z>::dont_care();
     // The filler needs access to the full signal of the FIFO
@@ -61,8 +61,8 @@ mod tests {
 
     #[test]
     fn test_async_fifo_trace() -> miette::Result<()> {
-        let uut = U::<Red, Blue, W16, 4> {
-            drainer: Adapter::new(crate::fifo::testing::drainer::U::<W16>::new(5, 0xD000)),
+        let uut = U::<Red, Blue, U16, 4> {
+            drainer: Adapter::new(crate::fifo::testing::drainer::U::<U16>::new(5, 0xD000)),
             ..Default::default()
         };
         let red_input = std::iter::repeat(())
@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn test_async_fifo_works_fast_reader() -> miette::Result<()> {
-        let uut: U<Red, Blue, W16, 4> = Default::default();
+        let uut: U<Red, Blue, U16, 4> = Default::default();
         let red_input = std::iter::repeat(())
             .stream_after_reset(1)
             .clock_pos_edge(50);
@@ -108,7 +108,7 @@ mod tests {
 
     #[test]
     fn test_async_fifo_works_slow_reader() -> miette::Result<()> {
-        let uut: U<Red, Blue, W16, 4> = Default::default();
+        let uut: U<Red, Blue, U16, 4> = Default::default();
         let red_input = std::iter::repeat(())
             .stream_after_reset(1)
             .clock_pos_edge(50);
@@ -126,7 +126,7 @@ mod tests {
 
     #[test]
     fn test_async_fifo_test_hdl() -> miette::Result<()> {
-        let uut: U<Red, Blue, W16, 4> = Default::default();
+        let uut: U<Red, Blue, U16, 4> = Default::default();
         let red_input = std::iter::repeat(())
             .stream_after_reset(1)
             .clock_pos_edge(50);

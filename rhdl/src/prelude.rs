@@ -1,7 +1,10 @@
 pub use rhdl_bits::alias::*;
 pub use rhdl_bits::bits;
+pub use rhdl_bits::consts::*;
 pub use rhdl_bits::signed;
+pub use rhdl_bits::BitWidth;
 pub use rhdl_bits::Bits;
+pub use rhdl_bits::Const;
 pub use rhdl_bits::SignedBits;
 pub use rhdl_core::circuit::adapter::Adapter;
 pub use rhdl_core::circuit::circuit_descriptor::CircuitDescriptor;
@@ -110,4 +113,3 @@ pub use rhdl_core::sim::testbench::TestBenchOptions;
 pub use rhdl_core::sim::vcd::Vcd;
 pub use rhdl_core::BitX;
 pub use rhdl_macro::export;
-pub use rhdl_typenum::*;

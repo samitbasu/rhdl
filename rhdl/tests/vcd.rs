@@ -48,7 +48,7 @@ fn test_vcd_basic() {
     #[derive(PartialEq, Digital)]
     pub struct Simple {
         a: bool,
-        b: Bits<W8>,
+        b: Bits<U8>,
     }
 
     let simple = Simple {

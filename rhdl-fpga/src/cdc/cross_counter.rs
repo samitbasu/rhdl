@@ -32,7 +32,7 @@ use super::synchronizer;
 #[derive(Clone, Circuit, CircuitDQ)]
 pub struct U<W: Domain, R: Domain, const N: usize>
 where
-    Const<N>: ToBitWidth,
+    Const<N>: BitWidth,
 {
     // This counter lives in the W domain, and
     // counts the number of input pulses.
@@ -46,7 +46,7 @@ where
 
 impl<W: Domain, R: Domain, const N: usize> Default for U<W, R, N>
 where
-    Const<N>: ToBitWidth,
+    Const<N>: BitWidth,
 {
     fn default() -> Self {
         Self {
@@ -69,7 +69,7 @@ pub struct I<W: Domain, R: Domain> {
 #[derive(PartialEq, Debug, Digital, Timed)]
 pub struct O<R: Domain, const N: usize>
 where
-    Const<N>: ToBitWidth,
+    Const<N>: BitWidth,
 {
     /// The count in the R domain (combinatorial decode of internal registers)
     pub count: Signal<Bits<WN<N>>, R>,
@@ -77,7 +77,7 @@ where
 
 impl<W: Domain, R: Domain, const N: usize> CircuitIO for U<W, R, N>
 where
-    Const<N>: ToBitWidth,
+    Const<N>: BitWidth,
 {
     type I = I<W, R>;
     type O = O<R, N>;
@@ -90,7 +90,7 @@ pub fn cross_counter_kernel<W: Domain, R: Domain, const N: usize>(
     q: Q<W, R, N>,
 ) -> (O<R, N>, D<W, R, N>)
 where
-    Const<N>: ToBitWidth,
+    Const<N>: BitWidth,
 {
     let mut d = D::<W, R, { N }>::dont_care();
     // The counter increments each time the input is high

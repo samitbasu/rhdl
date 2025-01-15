@@ -85,21 +85,21 @@ mod tests {
 
     use super::*;
 
-    fn write(data: b8) -> I<Bits<W8>> {
+    fn write(data: b8) -> I<Bits<U8>> {
         I {
             data: Some(data),
             next: false,
         }
     }
 
-    fn read() -> I<Bits<W8>> {
+    fn read() -> I<Bits<U8>> {
         I {
             data: None,
             next: true,
         }
     }
 
-    fn test_seq() -> impl Iterator<Item = TimedSample<(ClockReset, I<Bits<W8>>)>> {
+    fn test_seq() -> impl Iterator<Item = TimedSample<(ClockReset, I<Bits<U8>>)>> {
         let write_seq = (0..7).map(|i| write(bits(i + 1)));
         let read_seq = (0..7).map(|_| read());
         write_seq
@@ -110,7 +110,7 @@ mod tests {
 
     #[test]
     fn check_that_output_is_valid() -> miette::Result<()> {
-        let uut = U::<b8, W3>::default();
+        let uut = U::<b8, U3>::default();
         let stream = test_seq();
         let output = uut
             .run(stream)?
@@ -125,7 +125,7 @@ mod tests {
 
     #[test]
     fn basic_write_then_read_test() -> miette::Result<()> {
-        let uut = U::<Bits<W8>, W3>::default();
+        let uut = U::<Bits<U8>, U3>::default();
         let stream = test_seq();
         let vcd = uut.run(stream)?.collect::<Vcd>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -141,7 +141,7 @@ mod tests {
 
     #[test]
     fn test_hdl_generation_fifo() -> miette::Result<()> {
-        let uut = U::<Bits<W8>, W3>::default();
+        let uut = U::<Bits<U8>, U3>::default();
         let stream = test_seq();
         let test_bench = uut.run(stream)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
@@ -162,7 +162,7 @@ mod tests {
         let mut writer_iter = data.iter().copied().fuse();
         // The reader will read data from the FIFO if it is not empty, and if a random value is true.  The random value
         // determines how often the reader reads data from the FIFO.
-        type UC = U<Bits<W8>, W3>;
+        type UC = U<Bits<U8>, U3>;
         let uut = UC::default();
         let mut writer_finished = false;
         let mut need_reset = true;

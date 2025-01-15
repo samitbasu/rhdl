@@ -14,10 +14,10 @@ fn test_derive() {
     #[derive(PartialEq, Default, Digital)]
     enum Test {
         A,
-        B(Bits<W16>),
+        B(Bits<U16>),
         C {
-            a: Bits<W32>,
-            b: Bits<W8>,
+            a: Bits<U32>,
+            b: Bits<U8>,
         },
         #[default]
         D,

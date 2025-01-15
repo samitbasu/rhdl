@@ -4,7 +4,7 @@ use std::ops::ShlAssign;
 use crate::bits_impl::bits_masked;
 use crate::bits_impl::Bits;
 use crate::signed_bits_impl::SignedBits;
-use rhdl_typenum::*;
+use crate::BitWidth;
 
 // Note! When reviewing this code remember that wrapping is not the same
 // as rotate.
@@ -102,30 +102,31 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::bitwidth::*;
 
     #[test]
     fn test_shl_bits() {
-        let bits: Bits<W8> = 0b1101_1010.into();
+        let bits: Bits<U8> = 0b1101_1010.into();
         let result = bits << 4;
         assert_eq!(result.val, 0b1010_0000_u128);
-        let bits: Bits<W16> = 0b0000_0000_1101_1010.into();
+        let bits: Bits<U16> = 0b0000_0000_1101_1010.into();
         let result = bits << 8;
         assert_eq!(result.val, 0b1101_1010_0000_0000_u128);
-        let shift: Bits<W4> = 8.into();
+        let shift: Bits<U4> = 8.into();
         let result = bits << shift;
         assert_eq!(result.val, 0b1101_1010_0000_0000_u128);
     }
 
     #[test]
     fn test_shl_signed_bits() {
-        let bits: SignedBits<W8> = (-38).into();
+        let bits: SignedBits<U8> = (-38).into();
         let result = bits << 1;
         assert_eq!(result.val, -76_i128);
         for shift in 0..8 {
-            let bits: SignedBits<W8> = (-38).into();
+            let bits: SignedBits<U8> = (-38).into();
             let result = bits << shift;
             assert_eq!(result.val, ((-38_i128 << shift) as i8) as i128);
-            let shift_as_bits: Bits<W3> = shift.into();
+            let shift_as_bits: Bits<U3> = shift.into();
             let result = bits << shift_as_bits;
             assert_eq!(result.val, ((-38_i128 << shift) as i8) as i128);
         }
@@ -133,15 +134,15 @@ mod test {
 
     #[test]
     fn test_shl_assign_signed_bits() {
-        let mut bits: SignedBits<W8> = (-38).into();
+        let mut bits: SignedBits<U8> = (-38).into();
         bits <<= 1;
         assert_eq!(bits.val, -76_i128);
         for shift in 0..8 {
-            let mut bits: SignedBits<W8> = (-38).into();
+            let mut bits: SignedBits<U8> = (-38).into();
             bits <<= shift;
             assert_eq!(bits.val, ((-38_i128 << shift) as i8) as i128);
-            let shift_as_bits: Bits<W3> = shift.into();
-            let mut bits: SignedBits<W8> = (-38).into();
+            let shift_as_bits: Bits<U3> = shift.into();
+            let mut bits: SignedBits<U8> = (-38).into();
             bits <<= shift_as_bits;
             assert_eq!(bits.val, ((-38_i128 << shift) as i8) as i128);
         }

@@ -2,7 +2,7 @@
 // The valid and ready signals are handled by the channel.
 use rhdl::prelude::*;
 
-pub type ResponseKind = Bits<W2>;
+pub type ResponseKind = Bits<U2>;
 
 // The response kinds
 pub mod response_codes {
@@ -14,9 +14,9 @@ pub mod response_codes {
     pub const DECERR: b2 = bits(3);
 }
 
-pub type AxilData = Bits<W32>;
-pub type AxilAddr = Bits<W32>;
-pub type AxilStrobe = Bits<W4>;
+pub type AxilData = Bits<U32>;
+pub type AxilAddr = Bits<U32>;
+pub type AxilStrobe = Bits<U4>;
 
 #[derive(PartialEq, Debug, Digital, Default)]
 pub struct StrobedData {
@@ -53,7 +53,7 @@ pub struct WriteCommand {
 
 // convert a strobe into a mask
 #[kernel]
-pub fn strobe_to_mask(strobe: Bits<W4>) -> Bits<W32> {
+pub fn strobe_to_mask(strobe: Bits<U4>) -> Bits<U32> {
     let mut mask = bits(0);
     if strobe & 1 != 0 {
         mask |= bits(0xff);
@@ -160,7 +160,7 @@ pub struct ReadMISO {
     /// Read Data
     pub rdata: AxilData,
     /// Read Data response
-    pub rresp: Bits<W2>,
+    pub rresp: Bits<U2>,
     /// Read Data valid
     pub rvalid: bool,
 }
@@ -188,7 +188,7 @@ pub struct WriteMISO {
     /// Write Data ready
     pub wready: bool,
     /// Write Response
-    pub bresp: Bits<W2>,
+    pub bresp: Bits<U2>,
     /// Write Response valid
     pub bvalid: bool,
 }

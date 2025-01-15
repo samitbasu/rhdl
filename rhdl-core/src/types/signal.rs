@@ -1,5 +1,4 @@
-use rhdl_bits::Bits;
-use rhdl_typenum::*;
+use rhdl_bits::{BitWidth, Bits};
 
 use crate::{BitX, Digital, Domain, Kind, Timed};
 use rhdl_trace_type as rtt;
