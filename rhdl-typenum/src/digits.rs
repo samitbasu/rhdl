@@ -14,6 +14,6 @@ seq!(N in 0..=9 {
     }
 
     impl Digit for D~N {
-        const USIZE: usize = N;
+        const DIGIT_USIZE: usize = N;
     }
 });
