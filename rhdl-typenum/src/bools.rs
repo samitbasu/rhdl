@@ -1,0 +1,27 @@
+use crate::Bool;
+
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, Default)]
+pub struct True;
+
+impl True {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl Bool for True {
+    const BOOL: bool = true;
+}
+
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, Default)]
+pub struct False;
+
+impl False {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl Bool for False {
+    const BOOL: bool = false;
+}

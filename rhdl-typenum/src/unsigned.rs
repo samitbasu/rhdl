@@ -41,7 +41,7 @@ impl Len for UTerm {
 }
 
 impl<U: Unsigned, B: Digit> Unsigned for UInt<U, B> {
-    const USIZE: usize = U::USIZE * 10 + B::USIZE;
+    const USIZE: usize = U::USIZE * 10 + B::DIGIT_USIZE;
 }
 
 impl Trim for UInt<UTerm, D0> {
@@ -60,7 +60,7 @@ seq!(N in 1..=9 {
     }
 });
 
-impl<U, B: Digit> Trim for UInt<U, B>
+impl<U: Unsigned, B: Digit> Trim for UInt<U, B>
 where
     U: Trim,
 {
