@@ -25,3 +25,11 @@ impl False {
 impl Bool for False {
     const BOOL: bool = false;
 }
+
+pub trait IsTrue {}
+
+impl IsTrue for True {}
+
+pub trait IsFalse {}
+
+impl IsFalse for False {}

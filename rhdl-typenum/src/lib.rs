@@ -5,6 +5,7 @@ pub mod bools;
 pub mod cmp;
 pub mod consts;
 pub mod digits;
+pub mod is_cmp;
 pub mod len;
 pub mod operators;
 pub mod sub;
@@ -18,7 +19,9 @@ pub use unsigned::{UInt, UTerm};
 
 #[cfg(test)]
 mod tests {
+    use bools::{IsFalse, IsTrue};
     use cmp::{Equal, FoldCmp, FoldOut, PCmp, PrivateCmp};
+    use static_assertions::assert_impl_all;
     use sub::PDiff;
 
     use super::consts::*;
@@ -75,13 +78,6 @@ mod tests {
         let c = Diff::<U42, U41>::new();
         let c = Diff::<U42, U41>::new();
         let c = Diff::<U42, U42>::new();
-
-        /*         let b: U13 = UInt::new();
-               let c = a - b;
-               assert_eq!(c, U180::default());
-               type Q = Add1<Diff<U93, U13>>;
-               assert_eq!(Q::USIZE, 81);
-        */
     }
 
     #[test]
@@ -106,5 +102,26 @@ mod tests {
         let k: Maximum<U33, U33> = Default::default();
         let p: Maximum<U23, U0> = Default::default();
         let q: Minimum<U33, U23> = Default::default();
+        assert_eq!(CmpOut::<Sum<U45, U1>, U46>::default(), Equal);
+        assert_eq_num!(Sum<U45, U1>, U46);
     }
+
+    #[test]
+    fn test_is_ops() {
+        let c: IsLessThan<U245, U145> = Default::default();
+        let d: IsLessThanOrEqualTo<U123, U128> = Default::default();
+        assert_impl_all!(IsLessThanOrEqualTo<U123, U128>: IsTrue);
+        assert_impl_all!(IsLessThanOrEqualTo<U123, U123>: IsTrue);
+        assert_impl_all!(IsLessThanOrEqualTo<U123, U120>: IsFalse);
+        assert_impl_all!(IsEqualTo<Sum<U123,U5>,U128>: IsTrue);
+        assert_impl_all!(IsGreaterThanOrEqualTo<U123, U128>: IsFalse);
+        assert_impl_all!(IsGreaterThanOrEqualTo<U130, U128>: IsTrue);
+    }
+}
+
+#[macro_export]
+macro_rules! assert_eq_num {
+    ($ex1: ty, $ex2: ty) => {
+        assert_eq!(CmpOut::<$ex1, $ex2>::default(), Equal);
+    };
 }
