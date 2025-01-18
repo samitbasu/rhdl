@@ -1,6 +1,6 @@
 use seq_macro::seq;
 
-use crate::{digits::*, CmpOut};
+use crate::{digits::*, CmpOut, Max, Min, Select, SelectOut};
 use crate::{Cmp, Digit, UInt, UTerm, Unsigned};
 
 /// A potential output from `Cmp`, this is the type equivalent to the enum variant
@@ -137,16 +137,6 @@ where
     type Output = CompChain<PCmp<Ul, Ur>, CmpOut<Bl, Br>>;
 }
 
-// The result of the comparison chain is a type list of the form
-//   CTerm -> GEL -> GEL -> ... -> GEL
-// where each GEL is either Greater, Equal or Less
-// We need to collapse this list to get a single
-// value.  The rules for combination are:
-//   CTerm -> G results in the final answer being G
-//   CTerm -> L results in the final answer being L
-//   CTerm -> E results in the final answer being determined by the next token in the list
-//
-
 pub trait FoldCmp<T> {
     type Output: ComparisonResult;
 }
@@ -191,4 +181,45 @@ where
     PCmp<Ul, Ur>: FoldCmp<CmpOut<Bl, Br>>,
 {
     type Output = FoldOut<PCmp<Ul, Ur>, CmpOut<Bl, Br>>;
+}
+
+impl<Ul: Unsigned, Bl: Digit> Cmp<UTerm> for UInt<Ul, Bl> {
+    type Output = Greater;
+}
+
+impl<Ur: Unsigned, Br: Digit> Cmp<UInt<Ur, Br>> for UTerm {
+    type Output = Less;
+}
+
+impl Cmp<UTerm> for UTerm {
+    type Output = Equal;
+}
+
+impl<A: Unsigned, B: Unsigned> Max<B> for A
+where
+    A: Cmp<B> + Select<B, CmpOut<A, B>>,
+    CmpOut<A, B>: ComparisonResult,
+{
+    type Output = SelectOut<A, B, CmpOut<A, B>>;
+}
+
+impl<A: Unsigned, B: Unsigned> Select<B, Greater> for A {
+    type Output = A;
+}
+
+impl<A: Unsigned, B: Unsigned> Select<B, Less> for A {
+    type Output = B;
+}
+
+impl<A: Unsigned, B: Unsigned> Select<B, Equal> for A {
+    type Output = A;
+}
+
+impl<A: Unsigned, B: Unsigned> Min<B> for A
+where
+    A: Cmp<B>,
+    B: Select<A, CmpOut<A, B>>,
+    CmpOut<A, B>: ComparisonResult,
+{
+    type Output = SelectOut<B, A, CmpOut<A, B>>;
 }

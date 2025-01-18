@@ -98,6 +98,13 @@ mod tests {
         let c: CmpOut<U245, U247> = Default::default();
         let c: CmpOut<U4, U5> = Default::default();
         let c: CmpOut<U5, U4> = Default::default();
+        let c: CmpOut<U5, U0> = Default::default();
+        let c: CmpOut<U0, U0> = Default::default();
         let c: CmpOut<U5, Sum<U2, U3>> = Default::default();
+        let h: Maximum<U245, U145> = Default::default();
+        let i: Maximum<U134, U200> = Default::default();
+        let k: Maximum<U33, U33> = Default::default();
+        let p: Maximum<U23, U0> = Default::default();
+        let q: Minimum<U33, U23> = Default::default();
     }
 }

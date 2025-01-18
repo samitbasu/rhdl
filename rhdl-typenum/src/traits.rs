@@ -25,10 +25,11 @@ pub trait Trim {
     fn trim(&self) -> Self::Output;
 }
 
-pub trait Select<A: Unsigned, B: Unsigned> {
+pub trait Select<B: Unsigned, C: ComparisonResult> {
     type Output: Unsigned;
-    fn select(&self, _: A, _: B) -> Self::Output;
 }
+
+pub type SelectOut<A, B, C> = <A as Select<B, C>>::Output;
 
 pub trait Cmp<Rhs = Self> {
     /// The result of the comparison. It should only ever be one of `Greater`, `Less`, or `Equal`.
@@ -36,3 +37,15 @@ pub trait Cmp<Rhs = Self> {
 }
 
 pub type CmpOut<A, B> = <A as Cmp<B>>::Output;
+
+pub trait Max<Rhs = Self> {
+    type Output: Unsigned;
+}
+
+pub type Maximum<A, B> = <A as Max<B>>::Output;
+
+pub trait Min<Rhs = Self> {
+    type Output: Unsigned;
+}
+
+pub type Minimum<A, B> = <A as Min<B>>::Output;
