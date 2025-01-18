@@ -3,37 +3,36 @@ use std::ops::Sub;
 use seq_macro::seq;
 
 use crate::digits::*;
-use crate::operators::Trimmed;
-use crate::traits::Trim;
+use crate::normalize::{Normalize, Normalized};
 use crate::Diff;
-use crate::{Digit, UInt, UTerm, Unsigned};
+use crate::{Digit, Unsigned, T_, U_};
 
-impl Sub<UTerm> for UTerm {
-    type Output = UTerm;
-    fn sub(self, _: UTerm) -> Self::Output {
-        UTerm
+impl Sub<T_> for T_ {
+    type Output = T_;
+    fn sub(self, _: T_) -> Self::Output {
+        T_
     }
 }
 
-impl PrivateSub<UTerm> for UTerm {
-    type Output = UTerm;
+impl PrivateSub<T_> for T_ {
+    type Output = T_;
 }
 
-impl Sub<D0> for UTerm {
-    type Output = UTerm;
+impl Sub<D0> for T_ {
+    type Output = T_;
     fn sub(self, _: D0) -> Self::Output {
-        UTerm
+        T_
     }
 }
 
-impl PrivateSub<D0> for UTerm {
-    type Output = UTerm;
+impl PrivateSub<D0> for T_ {
+    type Output = T_;
 }
 
 seq!(N in 0..=9 {
-    impl Sub<UTerm> for D~N {
+    impl Sub<T_> for D~N {
         type Output = D~N;
-        fn sub(self, _: UTerm) -> Self::Output {
+        fn sub(self, _: T_) -> Self::Output {
             self
         }
     }
@@ -171,49 +170,53 @@ sub_digit_impls!(
     (D9, D9, D0, D0)
 );
 
-impl<U: Unsigned, B: Digit, A: Digit> PrivateSub<A> for UInt<U, B>
+impl<U: Unsigned, B: Digit, A: Digit> PrivateSub<A> for U_<U, B>
 where
     B: SubDigit<A>,
     U: Sub<B::Borrow>,
 {
-    type Output = UInt<Diff<U, B::Borrow>, B::Output>;
+    type Output = U_<Diff<U, B::Borrow>, B::Output>;
 }
 
-impl<Ul: Unsigned, Bl: Digit, Ur: Unsigned, Br: Digit> PrivateSub<UInt<Ur, Br>> for UInt<Ul, Bl>
+impl<Ul: Unsigned, Bl: Digit, Ur: Unsigned, Br: Digit> PrivateSub<U_<Ur, Br>> for U_<Ul, Bl>
 where
     Bl: SubDigit<Br>,
     Ul: PrivateSub<Ur>,
     PDiff<Ul, Ur>: PrivateSub<Bl::Borrow>,
 {
-    type Output = UInt<PDiff<PDiff<Ul, Ur>, Bl::Borrow>, Bl::Output>;
+    type Output = U_<PDiff<PDiff<Ul, Ur>, Bl::Borrow>, Bl::Output>;
 }
 
-impl<U: Unsigned, B: Digit, A: Digit> Sub<A> for UInt<U, B>
+impl<U: Unsigned, B: Digit> PrivateSub<T_> for U_<U, B> {
+    type Output = U_<U, B>;
+}
+
+impl<U: Unsigned, B: Digit, A: Digit> Sub<A> for U_<U, B>
 where
-    UInt<U, B>: PrivateSub<A>,
-    PDiff<UInt<U, B>, A>: Trim,
+    U_<U, B>: PrivateSub<A>,
+    PDiff<U_<U, B>, A>: Normalize,
 {
-    type Output = Trimmed<PDiff<UInt<U, B>, A>>;
+    type Output = Normalized<PDiff<U_<U, B>, A>>;
     fn sub(self, _rhs: A) -> Self::Output {
         Self::Output::new()
     }
 }
 
 // -- Subtracting unsigned integers
-impl<U: Unsigned, B: Digit> Sub<UTerm> for UInt<U, B> {
-    type Output = UInt<U, B>;
-    fn sub(self, _: UTerm) -> Self::Output {
+impl<U: Unsigned, B: Digit> Sub<T_> for U_<U, B> {
+    type Output = U_<U, B>;
+    fn sub(self, _: T_) -> Self::Output {
         self
     }
 }
 
-impl<Ul: Unsigned, Bl: Digit, Ur: Unsigned, Br: Digit> Sub<UInt<Ur, Br>> for UInt<Ul, Bl>
+impl<Ul: Unsigned, Bl: Digit, Ur: Unsigned, Br: Digit> Sub<U_<Ur, Br>> for U_<Ul, Bl>
 where
-    UInt<Ul, Bl>: PrivateSub<UInt<Ur, Br>>,
-    PDiff<UInt<Ul, Bl>, UInt<Ur, Br>>: Trim,
+    U_<Ul, Bl>: PrivateSub<U_<Ur, Br>>,
+    PDiff<U_<Ul, Bl>, U_<Ur, Br>>: Normalize,
 {
-    type Output = Trimmed<PDiff<UInt<Ul, Bl>, UInt<Ur, Br>>>;
-    fn sub(self, _: UInt<Ur, Br>) -> Self::Output {
+    type Output = Normalized<PDiff<U_<Ul, Bl>, U_<Ur, Br>>>;
+    fn sub(self, _: U_<Ur, Br>) -> Self::Output {
         Self::Output::new()
     }
 }

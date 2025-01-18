@@ -4,10 +4,10 @@ use crate::{
     digits::D1,
     operators::{Add1, Length},
     traits::{Digit, Len, Unsigned},
-    unsigned::UInt,
+    unsigned::U_,
 };
 
-impl<U: Unsigned, B: Digit> Len for UInt<U, B>
+impl<U: Unsigned, B: Digit> Len for U_<U, B>
 where
     U: Len,
     Length<U>: Add<D1>,

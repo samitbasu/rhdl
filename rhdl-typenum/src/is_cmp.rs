@@ -1,8 +1,7 @@
 use crate::{
     bools::{False, True},
-    cmp::{Equal, Greater, Less},
-    Bool, Cmp, CmpOut, IsEqual, IsGreater, IsGreaterThanOrEqual, IsLess, IsLessThanOrEqual,
-    IsNotEqual,
+    cmp::{Cmp, CmpOut, Equal, Greater, Less},
+    Bool, IsEqual, IsGreater, IsGreaterThanOrEqual, IsLess, IsLessThanOrEqual, IsNotEqual,
 };
 
 pub trait IsLessPrivate<B, T> {

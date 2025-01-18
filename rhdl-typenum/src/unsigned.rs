@@ -1,19 +1,13 @@
-use seq_macro::seq;
-
 use crate::consts::U0;
-use crate::{digits::*, Trimmed};
-use crate::{
-    traits::{Digit, Len, Unsigned},
-    Trim,
-};
+use crate::traits::{Digit, Len, Unsigned};
 
-impl Unsigned for UTerm {}
+impl Unsigned for T_ {}
 
 // Define the terminal symbol
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, Default)]
-pub struct UTerm;
+pub struct T_;
 
-impl UTerm {
+impl T_ {
     pub fn new() -> Self {
         Self
     }
@@ -21,51 +15,25 @@ impl UTerm {
 
 // Define an unsigned integer
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, Default)]
-pub struct UInt<U, B> {
+pub struct U_<U, B> {
     pub msb: U,
     pub lsb: B,
 }
 
-impl<U: Unsigned, B: Digit> UInt<U, B> {
+impl<U: Unsigned, B: Digit> U_<U, B> {
     #[inline]
-    pub fn new() -> UInt<U, B> {
-        UInt::default()
+    pub fn new() -> U_<U, B> {
+        U_::default()
     }
 }
 
-impl Len for UTerm {
+impl Len for T_ {
     type Output = U0;
     fn len(&self) -> Self::Output {
-        UTerm
+        T_
     }
 }
 
-impl<U: Unsigned, B: Digit> Unsigned for UInt<U, B> {
+impl<U: Unsigned, B: Digit> Unsigned for U_<U, B> {
     const USIZE: usize = U::USIZE * 10 + B::DIGIT_USIZE;
-}
-
-impl Trim for UInt<UTerm, D0> {
-    type Output = UTerm;
-    fn trim(&self) -> Self::Output {
-        UTerm
-    }
-}
-
-seq!(N in 1..=9 {
-    impl Trim for UInt<UTerm, D~N> {
-        type Output = UInt<UTerm, D~N>;
-        fn trim(&self) -> Self::Output {
-            UInt::new()
-        }
-    }
-});
-
-impl<U: Unsigned, B: Digit> Trim for UInt<U, B>
-where
-    U: Trim,
-{
-    type Output = UInt<Trimmed<U>, B>;
-    fn trim(&self) -> Self::Output {
-        UInt::new()
-    }
 }

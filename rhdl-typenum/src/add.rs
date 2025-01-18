@@ -1,4 +1,3 @@
-use crate::operators::Add1;
 use crate::{
     digits::*,
     traits::{Digit, Unsigned},
@@ -10,21 +9,21 @@ use seq_macro::seq;
 use crate::{
     digits::D0,
     operators::*,
-    unsigned::{UInt, UTerm},
+    unsigned::{T_, U_},
 };
 
-impl Add<D0> for UTerm {
-    type Output = UTerm;
+impl Add<D0> for T_ {
+    type Output = T_;
     fn add(self, _: D0) -> Self::Output {
-        UTerm
+        T_
     }
 }
 
 seq!(N in 1..=9 {
-    impl Add<D~N> for UTerm {
-        type Output = UInt<UTerm, D~N>;
+    impl Add<D~N> for T_ {
+        type Output = U_<T_, D~N>;
         fn add(self, _: D~N) -> Self::Output {
-            UInt::new()
+            U_::new()
         }
     }
 });
@@ -165,19 +164,19 @@ pub trait AddDigit<Rhs = Self> {
     type Output: Digit;
 }
 
-impl<U: Unsigned, B: Digit, A: Digit> Add<A> for UInt<U, B>
+impl<U: Unsigned, B: Digit, A: Digit> Add<A> for U_<U, B>
 where
     B: AddDigit<A>,
     U: Add<B::Carry>,
     Sum<U, B::Carry>: Unsigned,
 {
-    type Output = UInt<Sum<U, B::Carry>, <B as AddDigit<A>>::Output>;
+    type Output = U_<Sum<U, B::Carry>, <B as AddDigit<A>>::Output>;
     fn add(self, _: A) -> Self::Output {
-        UInt::new()
+        U_::new()
     }
 }
 
-impl<Ul: Unsigned, Bl: Digit, Ur: Unsigned, Br: Digit> Add<UInt<Ur, Br>> for UInt<Ul, Bl>
+impl<Ul: Unsigned, Bl: Digit, Ur: Unsigned, Br: Digit> Add<U_<Ur, Br>> for U_<Ul, Bl>
 where
     Bl: AddDigit<Br>,
     Ul: Add<Ur>,
@@ -185,15 +184,15 @@ where
     Sum<Ul, Ur>: Add<Bl::Carry>,
     Sum<Sum<Ul, Ur>, Bl::Carry>: Unsigned,
 {
-    type Output = UInt<Sum<Sum<Ul, Ur>, Bl::Carry>, <Bl as AddDigit<Br>>::Output>;
-    fn add(self, _: UInt<Ur, Br>) -> Self::Output {
-        UInt::new()
+    type Output = U_<Sum<Sum<Ul, Ur>, Bl::Carry>, <Bl as AddDigit<Br>>::Output>;
+    fn add(self, _: U_<Ur, Br>) -> Self::Output {
+        U_::new()
     }
 }
 // -- Adding unsigned integers
 
 /// UTerm + U = U
-impl<U: Unsigned> Add<U> for UTerm {
+impl<U: Unsigned> Add<U> for T_ {
     type Output = U;
     fn add(self, rhs: U) -> Self::Output {
         rhs
@@ -201,9 +200,9 @@ impl<U: Unsigned> Add<U> for UTerm {
 }
 
 /// UInt<U,B> + UTerm = UInt<U, B>
-impl<U: Unsigned, B: Digit> Add<UTerm> for UInt<U, B> {
-    type Output = UInt<U, B>;
-    fn add(self, _: UTerm) -> Self::Output {
+impl<U: Unsigned, B: Digit> Add<T_> for U_<U, B> {
+    type Output = U_<U, B>;
+    fn add(self, _: T_) -> Self::Output {
         self
     }
 }
