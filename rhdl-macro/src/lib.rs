@@ -73,40 +73,8 @@ pub fn export(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn add_impl(input: TokenStream) -> TokenStream {
-    match rhdl_macro_core::impl_add_trait(input.into()) {
-        Ok(output) => output.into(),
-        Err(err) => err.to_compile_error().into(),
-    }
-}
-
-#[proc_macro]
-pub fn sub_impl(input: TokenStream) -> TokenStream {
-    match rhdl_macro_core::impl_sub_trait(input.into()) {
-        Ok(output) => output.into(),
-        Err(err) => err.to_compile_error().into(),
-    }
-}
-
-#[proc_macro]
-pub fn max_impl(input: TokenStream) -> TokenStream {
-    match rhdl_macro_core::impl_max_trait(input.into()) {
-        Ok(output) => output.into(),
-        Err(err) => err.to_compile_error().into(),
-    }
-}
-
-#[proc_macro]
-pub fn min_impl(input: TokenStream) -> TokenStream {
-    match rhdl_macro_core::impl_min_trait(input.into()) {
-        Ok(output) => output.into(),
-        Err(err) => err.to_compile_error().into(),
-    }
-}
-
-#[proc_macro]
-pub fn log2_impl(input: TokenStream) -> TokenStream {
-    match rhdl_macro_core::impl_log2_trait(input.into()) {
+pub fn op(input: TokenStream) -> TokenStream {
+    match rhdl_macro_core::typenum_op::typenum_op(input.into()) {
         Ok(output) => output.into(),
         Err(err) => err.to_compile_error().into(),
     }

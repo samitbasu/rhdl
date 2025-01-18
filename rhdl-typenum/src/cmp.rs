@@ -1,8 +1,16 @@
 use seq_macro::seq;
 
-use crate::bools::{False, True};
-use crate::{digits::*, Bool, CmpOut, IsGreater, IsLess, Max, Min, Select, SelectOut};
-use crate::{Cmp, Digit, UInt, UTerm, Unsigned};
+use crate::{digits::*, Max, Min, Select, SelectOut};
+use crate::{Digit, Unsigned, T_, U_};
+
+pub type Compare<A, B> = <A as Cmp<B>>::Output;
+
+pub trait Cmp<Rhs = Self> {
+    /// The result of the comparison. It should only ever be one of `Greater`, `Less`, or `Equal`.
+    type Output: ComparisonResult;
+}
+
+pub type CmpOut<A, B> = <A as Cmp<B>>::Output;
 
 /// A potential output from `Cmp`, this is the type equivalent to the enum variant
 /// `core::cmp::Ordering::Greater`.
@@ -102,17 +110,17 @@ impl_cmp_digits!(D7, D9);
 impl_cmp_digits!(D8, D9);
 
 /// Zero == Zero
-impl PrivateCmp<UTerm> for UTerm {
+impl PrivateCmp<T_> for T_ {
     type Output = CTerm;
 }
 
 /// Nonzero > Zero
-impl<U: Unsigned, B: Digit> PrivateCmp<UTerm> for UInt<U, B> {
+impl<U: Unsigned, B: Digit> PrivateCmp<T_> for U_<U, B> {
     type Output = CompChain<CTerm, Greater>;
 }
 
 /// Zero < Nonzero
-impl<U: Unsigned, B: Digit> PrivateCmp<UInt<U, B>> for UTerm {
+impl<U: Unsigned, B: Digit> PrivateCmp<U_<U, B>> for T_ {
     type Output = CompChain<CTerm, Less>;
 }
 
@@ -130,7 +138,7 @@ where
 }
 
 // Build a digit-wise comparison chain
-impl<Ul: Unsigned, Ur: Unsigned, Bl: Digit, Br: Digit> PrivateCmp<UInt<Ur, Br>> for UInt<Ul, Bl>
+impl<Ul: Unsigned, Ur: Unsigned, Bl: Digit, Br: Digit> PrivateCmp<U_<Ur, Br>> for U_<Ul, Bl>
 where
     Ul: PrivateCmp<Ur>,
     Bl: Cmp<Br>,
@@ -175,7 +183,7 @@ where
     type Output = T;
 }
 
-impl<Ul: Unsigned, Bl: Digit, Ur: Unsigned, Br: Digit> Cmp<UInt<Ur, Br>> for UInt<Ul, Bl>
+impl<Ul: Unsigned, Bl: Digit, Ur: Unsigned, Br: Digit> Cmp<U_<Ur, Br>> for U_<Ul, Bl>
 where
     Ul: PrivateCmp<Ur>,
     Bl: Cmp<Br>,
@@ -184,15 +192,15 @@ where
     type Output = FoldOut<PCmp<Ul, Ur>, CmpOut<Bl, Br>>;
 }
 
-impl<Ul: Unsigned, Bl: Digit> Cmp<UTerm> for UInt<Ul, Bl> {
+impl<Ul: Unsigned, Bl: Digit> Cmp<T_> for U_<Ul, Bl> {
     type Output = Greater;
 }
 
-impl<Ur: Unsigned, Br: Digit> Cmp<UInt<Ur, Br>> for UTerm {
+impl<Ur: Unsigned, Br: Digit> Cmp<U_<Ur, Br>> for T_ {
     type Output = Less;
 }
 
-impl Cmp<UTerm> for UTerm {
+impl Cmp<T_> for T_ {
     type Output = Equal;
 }
 

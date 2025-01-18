@@ -20,23 +20,11 @@ pub trait Unsigned: Copy + Default + 'static {
     }
 }
 
-pub trait Trim {
-    type Output: Unsigned;
-    fn trim(&self) -> Self::Output;
-}
-
 pub trait Select<B: Unsigned, C: ComparisonResult> {
     type Output: Unsigned;
 }
 
 pub type SelectOut<A, B, C> = <A as Select<B, C>>::Output;
-
-pub trait Cmp<Rhs = Self> {
-    /// The result of the comparison. It should only ever be one of `Greater`, `Less`, or `Equal`.
-    type Output: ComparisonResult;
-}
-
-pub type CmpOut<A, B> = <A as Cmp<B>>::Output;
 
 pub trait Max<Rhs = Self> {
     type Output: Unsigned;
