@@ -1,12 +1,13 @@
 use seq_macro::seq;
 
-use crate::{digits::*, CmpOut, Max, Min, Select, SelectOut};
+use crate::bools::{False, True};
+use crate::{digits::*, Bool, CmpOut, IsGreater, IsLess, Max, Min, Select, SelectOut};
 use crate::{Cmp, Digit, UInt, UTerm, Unsigned};
 
 /// A potential output from `Cmp`, this is the type equivalent to the enum variant
 /// `core::cmp::Ordering::Greater`.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, Default)]
-pub struct Greater;
+pub struct Greater {}
 
 /// A potential output from `Cmp`, this is the type equivalent to the enum variant
 /// `core::cmp::Ordering::Less`.
