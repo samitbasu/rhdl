@@ -3,6 +3,7 @@
 pub mod add;
 pub mod bools;
 pub mod cmp;
+pub mod const_generics;
 pub mod consts;
 pub mod digits;
 pub mod invert;
