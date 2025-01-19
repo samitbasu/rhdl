@@ -10,6 +10,7 @@ pub mod is_cmp;
 pub mod len;
 pub mod normalize;
 pub mod operators;
+pub mod prelude;
 pub mod same;
 pub mod sub;
 pub mod traits;
@@ -18,6 +19,7 @@ pub mod unsigned;
 
 pub use digits::*;
 pub use operators::*;
+pub use rhdl_macro::op;
 pub use traits::*;
 pub use unsigned::{T_, U_};
 

@@ -421,10 +421,10 @@ pub mod xsub;
 
 #[doc(hidden)]
 pub mod consts {
-    pub use typenum::consts::*;
+    pub use rhdl_typenum::consts::*;
 }
 
-pub use typenum::Const;
+//pub use typenum::Const;
 
 pub mod alias {
     //!

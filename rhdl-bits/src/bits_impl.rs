@@ -4,7 +4,6 @@ use std::ops::{Add, Sub};
 use crate::bitwidth::*;
 use crate::{signed, signed_bits_impl::SignedBits, BitWidth};
 use seq_macro::seq;
-use typenum::op;
 /// The [Bits] type is a fixed-sized bit vector.  It is meant to
 /// imitate the behavior of bit vectors in hardware.  Due to the
 /// design of the [Bits] type, you can only create a [Bits] type of
@@ -304,7 +303,6 @@ impl<T, N: BitWidth, const M: usize> std::ops::IndexMut<Bits<N>> for [T; M] {
 
 #[cfg(test)]
 mod tests {
-    use typenum::op;
 
     use super::*;
 

@@ -79,7 +79,7 @@ impl<A, B> IsEqualPrivate<B, Less> for A {
     type Output = False;
 }
 
-pub trait IsLessThanOrEqualPrivate<B, T> {
+pub trait IsLessThanOrEqualPrivate<B, T = Greater> {
     type Output: Bool;
 }
 

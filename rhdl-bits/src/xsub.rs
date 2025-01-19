@@ -1,6 +1,6 @@
 use std::ops::Add;
 
-use typenum::{op, Max, Maximum, Sum, U1};
+use rhdl_typenum::prelude::*;
 
 use crate::{signed, BitWidth, Bits, SignedBits};
 
@@ -77,7 +77,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use typenum::{consts::U32, U4, U8, U9};
 
     use crate::bits;
 
