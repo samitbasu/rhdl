@@ -1,4 +1,7 @@
-use crate::{Digit, Unsigned, T_, U_};
+use crate::{
+    digits::Digit,
+    unsigned::{Unsigned, T_, U_},
+};
 
 // Reverse the order of digits, so that the MSB is now the LSB.
 pub trait Invert {

@@ -1,7 +1,7 @@
 use crate::{
     invert::{Invert, InvertOut},
     trim::{Trim, Trimmed},
-    Unsigned,
+    unsigned::Unsigned,
 };
 
 pub trait Normalize {

@@ -1,8 +1,43 @@
 use crate::{
-    bools::{False, True},
+    bools::{Bool, False, True},
     cmp::{Cmp, CmpOut, Equal, Greater, Less},
-    Bool, IsEqual, IsGreater, IsGreaterThanOrEqual, IsLess, IsLessThanOrEqual, IsNotEqual,
 };
+
+pub trait IsLess<Rhs = Self> {
+    type Output: Bool;
+}
+
+pub type IsLessThan<A, B> = <A as IsLess<B>>::Output;
+
+pub trait IsGreater<Rhs = Self> {
+    type Output: Bool;
+}
+
+pub type IsGreaterThan<A, B> = <A as IsGreater<B>>::Output;
+
+pub trait IsEqual<Rhs = Self> {
+    type Output: Bool;
+}
+
+pub type IsEqualTo<A, B> = <A as IsEqual<B>>::Output;
+
+pub trait IsLessThanOrEqual<Rhs = Self> {
+    type Output: Bool;
+}
+
+pub type IsLessThanOrEqualTo<A, B> = <A as IsLessThanOrEqual<B>>::Output;
+
+pub trait IsGreaterThanOrEqual<Rhs = Self> {
+    type Output: Bool;
+}
+
+pub type IsGreaterThanOrEqualTo<A, B> = <A as IsGreaterThanOrEqual<B>>::Output;
+
+pub trait IsNotEqual<Rhs = Self> {
+    type Output: Bool;
+}
+
+pub type IsNotEqualTo<A, B> = <A as IsNotEqual<B>>::Output;
 
 pub trait IsLessPrivate<B, T> {
     type Output: Bool;

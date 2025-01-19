@@ -8,26 +8,23 @@ pub mod digits;
 pub mod invert;
 pub mod is_cmp;
 pub mod len;
+pub mod minmax;
 pub mod normalize;
-pub mod operators;
 pub mod prelude;
 pub mod same;
 pub mod sub;
-pub mod traits;
 pub mod trim;
 pub mod unsigned;
-
-pub use digits::*;
-pub use operators::*;
 pub use rhdl_macro::op;
-pub use traits::*;
-pub use unsigned::{T_, U_};
 
 #[cfg(test)]
 #[rust_analyzer::skip]
+#[allow(unused_variables)]
+#[allow(dead_code)]
 mod tests {
+    use crate::prelude::*;
     use bools::{IsFalse, IsTrue};
-    use cmp::{CmpOut, Equal, FoldCmp, FoldOut, PCmp, PrivateCmp};
+    use cmp::{CmpOut, Equal, FoldOut, PCmp};
     use invert::InvertOut;
     use normalize::Normalized;
     use same::IsSame;
@@ -36,7 +33,6 @@ mod tests {
     use rhdl_macro::op;
     use trim::Trimmed;
 
-    use super::consts::*;
     use super::*;
 
     include!(concat!(env!("OUT_DIR"), "/tests.rs"));
@@ -82,6 +78,7 @@ mod tests {
         let e: U_<T_, D0> = Default::default();
         let f = Trimmed::<U_<T_, D0>>::new();
         type T = Trimmed<U_<U_<T_, D1>, D0>>;
+        assert_impl_all!(T: IsSame<U_<T_, D1>>);
     }
 
     #[test]

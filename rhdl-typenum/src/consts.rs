@@ -1,7 +1,8 @@
+use crate::{
+    digits::*,
+    unsigned::{T_, U_},
+};
 use seq_macro::seq;
-
-use crate::digits::*;
-use crate::{U_, T_};
 
 pub type U0 = T_;
 

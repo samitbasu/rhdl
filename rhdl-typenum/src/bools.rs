@@ -1,5 +1,3 @@
-use crate::Bool;
-
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, Default)]
 pub struct True;
 
@@ -7,6 +5,10 @@ impl True {
     pub fn new() -> Self {
         Self
     }
+}
+
+pub trait Bool: Copy + Default + 'static {
+    const BOOL: bool;
 }
 
 impl Bool for True {

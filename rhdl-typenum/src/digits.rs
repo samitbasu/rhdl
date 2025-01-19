@@ -1,6 +1,8 @@
 use seq_macro::seq;
 
-use crate::traits::Digit;
+pub trait Digit: Copy + Default + 'static {
+    const DIGIT_USIZE: usize = 0;
+}
 
 // Derive the 10 digits
 seq!(N in 0..=9 {

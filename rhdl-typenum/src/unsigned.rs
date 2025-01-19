@@ -1,5 +1,11 @@
-use crate::consts::U0;
-use crate::traits::{Digit, Len, Unsigned};
+use crate::digits::Digit;
+
+pub trait Unsigned: Copy + Default + 'static {
+    const USIZE: usize = 0;
+    fn new() -> Self {
+        Self::default()
+    }
+}
 
 impl Unsigned for T_ {}
 
@@ -24,13 +30,6 @@ impl<U: Unsigned, B: Digit> U_<U, B> {
     #[inline]
     pub fn new() -> U_<U, B> {
         U_::default()
-    }
-}
-
-impl Len for T_ {
-    type Output = U0;
-    fn len(&self) -> Self::Output {
-        T_
     }
 }
 
