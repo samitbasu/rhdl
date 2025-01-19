@@ -1,7 +1,7 @@
-use crate::{bitwidth::*, signed_bits_impl::signed_wrapped};
+use crate::signed_bits_impl::signed_wrapped;
 
-use crate::{signed, signed_bits_impl::SignedBits, BitWidth};
-use std::ops::{Add, Neg};
+use crate::{signed_bits_impl::SignedBits, BitWidth};
+use std::ops::Neg;
 
 impl<N: BitWidth> Neg for SignedBits<N> {
     type Output = SignedBits<N>;

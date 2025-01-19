@@ -1,4 +1,4 @@
-use crate::{bools::True, Bool};
+use crate::bools::{Bool, True};
 
 pub trait IsSame<Rhs = Self> {
     type Output: Bool;

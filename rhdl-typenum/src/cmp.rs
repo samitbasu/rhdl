@@ -1,7 +1,7 @@
 use seq_macro::seq;
 
-use crate::{digits::*, Max, Min, Select, SelectOut};
-use crate::{Digit, Unsigned, T_, U_};
+use crate::digits::*;
+use crate::unsigned::{Unsigned, T_, U_};
 
 pub type Compare<A, B> = <A as Cmp<B>>::Output;
 
@@ -202,33 +202,4 @@ impl<Ur: Unsigned, Br: Digit> Cmp<U_<Ur, Br>> for T_ {
 
 impl Cmp<T_> for T_ {
     type Output = Equal;
-}
-
-impl<A: Unsigned, B: Unsigned> Max<B> for A
-where
-    A: Cmp<B> + Select<B, CmpOut<A, B>>,
-    CmpOut<A, B>: ComparisonResult,
-{
-    type Output = SelectOut<A, B, CmpOut<A, B>>;
-}
-
-impl<A: Unsigned, B: Unsigned> Select<B, Greater> for A {
-    type Output = A;
-}
-
-impl<A: Unsigned, B: Unsigned> Select<B, Less> for A {
-    type Output = B;
-}
-
-impl<A: Unsigned, B: Unsigned> Select<B, Equal> for A {
-    type Output = A;
-}
-
-impl<A: Unsigned, B: Unsigned> Min<B> for A
-where
-    A: Cmp<B>,
-    B: Select<A, CmpOut<A, B>>,
-    CmpOut<A, B>: ComparisonResult,
-{
-    type Output = SelectOut<B, A, CmpOut<A, B>>;
 }

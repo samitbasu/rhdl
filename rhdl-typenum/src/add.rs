@@ -1,16 +1,9 @@
-use crate::{
-    digits::*,
-    traits::{Digit, Unsigned},
-};
+use crate::{digits::*, unsigned::Unsigned};
 use std::ops::Add;
 
 use seq_macro::seq;
 
-use crate::{
-    digits::D0,
-    operators::*,
-    unsigned::{T_, U_},
-};
+use crate::unsigned::{T_, U_};
 
 impl Add<D0> for T_ {
     type Output = T_;
@@ -206,3 +199,6 @@ impl<U: Unsigned, B: Digit> Add<T_> for U_<U, B> {
         self
     }
 }
+
+pub type Add1<A> = <A as Add<D1>>::Output;
+pub type Sum<A, B> = <A as Add<B>>::Output;

@@ -4,8 +4,8 @@ use seq_macro::seq;
 
 use crate::digits::*;
 use crate::normalize::{Normalize, Normalized};
-use crate::Diff;
-use crate::{Digit, Unsigned, T_, U_};
+use crate::prelude::Unsigned;
+use crate::unsigned::{T_, U_};
 
 impl Sub<T_> for T_ {
     type Output = T_;
@@ -220,3 +220,6 @@ where
         Self::Output::new()
     }
 }
+
+pub type Sub1<A> = <A as Sub<D1>>::Output;
+pub type Diff<A, B> = <A as Sub<B>>::Output;

@@ -1,11 +1,18 @@
 use std::ops::Add;
 
 use crate::{
-    digits::D1,
-    operators::{Add1, Length},
-    traits::{Digit, Len, Unsigned},
-    unsigned::U_,
+    add::Add1,
+    consts::U0,
+    digits::{Digit, D1},
+    unsigned::{Unsigned, T_, U_},
 };
+
+pub trait Len {
+    type Output: Unsigned;
+    fn len(&self) -> Self::Output;
+}
+
+pub type Length<T> = <T as Len>::Output;
 
 impl<U: Unsigned, B: Digit> Len for U_<U, B>
 where
@@ -16,5 +23,12 @@ where
     type Output = Add1<Length<U>>;
     fn len(&self) -> Self::Output {
         self.msb.len() + D1
+    }
+}
+
+impl Len for T_ {
+    type Output = U0;
+    fn len(&self) -> Self::Output {
+        T_
     }
 }

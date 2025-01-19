@@ -1,7 +1,7 @@
 use seq_macro::seq;
 
-use crate::{digits::*, Unsigned};
-use crate::{T_, U_};
+use crate::digits::*;
+use crate::unsigned::{Unsigned, T_, U_};
 
 pub trait Trim {
     type Output: Unsigned;

@@ -125,7 +125,7 @@ mod tests {
     fn test_xsub_size_trait() {
         let a = signed::<U4>(7);
         let b: SignedBits<U8> = signed::<U8>(3);
-        let c: SignedBits<U9> = a.xsub(b);
+        let _c: SignedBits<U9> = a.xsub(b);
         let w = Maximum::<U4, U8>::BITS;
         assert_eq!(w, 8);
     }
