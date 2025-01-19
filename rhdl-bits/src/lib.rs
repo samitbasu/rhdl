@@ -424,7 +424,7 @@ pub mod consts {
     pub use rhdl_typenum::consts::*;
 }
 
-//pub use typenum::Const;
+pub use rhdl_typenum::const_generics::Const;
 
 pub mod alias {
     //!
