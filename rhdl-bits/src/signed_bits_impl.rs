@@ -4,7 +4,6 @@ use std::ops::{Add, Sub};
 
 use crate::{bits, bits_impl::bits_masked, BitWidth, Bits};
 use seq_macro::seq;
-use typenum::op;
 
 /// The [SignedBits] type is a fixed-size bit vector.  It is
 /// meant to imitate the behavior of signed bit vectors in hardware.

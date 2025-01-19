@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 seq-macro = "0.3.5"
+rhdl-macro = { version = "0.0.2", path = "../rhdl-macro" }
 
 [dev-dependencies]
 static_assertions = "1.1.0"
-rhdl-macro = { version = "0.0.2", path = "../rhdl-macro" }

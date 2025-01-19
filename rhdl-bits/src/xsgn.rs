@@ -1,6 +1,6 @@
 use std::ops::Add;
 
-use typenum::{op, U1};
+use rhdl_typenum::prelude::*;
 
 use crate::{signed, BitWidth, Bits, SignedBits};
 

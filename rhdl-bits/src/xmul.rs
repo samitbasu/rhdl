@@ -1,8 +1,6 @@
-use std::ops::Add;
-
-use typenum::op;
-
 use crate::{bits, signed, BitWidth, Bits, SignedBits};
+use rhdl_typenum::prelude::*;
+use std::ops::Add;
 
 pub trait XMul<Rhs = Self> {
     type Output;
@@ -35,7 +33,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use typenum::{consts::U16, U32, U64, U8};
 
     use super::*;
     use crate::alias::*;

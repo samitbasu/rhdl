@@ -1,8 +1,6 @@
-use std::ops::Add;
-
-use typenum::{op, Max, Maximum, Sum, U1};
-
 use crate::{bits, signed, BitWidth, Bits, SignedBits};
+use rhdl_typenum::prelude::*;
+use std::ops::Add;
 
 pub trait XAdd<Rhs = Self> {
     type Output;
@@ -45,7 +43,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use typenum::{consts::U32, U33, U8, U9};
 
     use super::*;
 

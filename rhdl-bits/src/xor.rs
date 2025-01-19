@@ -47,9 +47,8 @@ impl<N: BitWidth> BitXorAssign<i128> for SignedBits<N> {
 
 #[cfg(test)]
 mod test {
-    use typenum::{consts::U12, U128, U54, U8};
-
     use super::*;
+    use rhdl_typenum::prelude::*;
 
     #[test]
     fn test_xor_bits() {

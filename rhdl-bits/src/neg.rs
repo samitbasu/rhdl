@@ -1,5 +1,4 @@
 use crate::{bitwidth::*, signed_bits_impl::signed_wrapped};
-use typenum::op;
 
 use crate::{signed, signed_bits_impl::SignedBits, BitWidth};
 use std::ops::{Add, Neg};
