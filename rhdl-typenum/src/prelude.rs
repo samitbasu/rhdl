@@ -3,6 +3,7 @@ pub use crate::add::Sum;
 pub use crate::bools::IsFalse;
 pub use crate::bools::IsTrue;
 pub use crate::cmp::Cmp;
+pub use crate::const_generics::*;
 pub use crate::consts::*;
 pub use crate::digits::*;
 pub use crate::is_cmp::IsEqual;

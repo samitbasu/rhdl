@@ -36,7 +36,7 @@ where
 {
     // This counter lives in the W domain, and
     // counts the number of input pulses.
-    counter: Adapter<dff::U<Bits<WN<N>>>, W>,
+    counter: Adapter<dff::U<Bits<Const<N>>>, W>,
     // This is the vector of synchronizers, one per
     // bit of the counter.  The synchronizers hold
     // the value of the count in the read domain
@@ -72,7 +72,7 @@ where
     Const<N>: BitWidth,
 {
     /// The count in the R domain (combinatorial decode of internal registers)
-    pub count: Signal<Bits<WN<N>>, R>,
+    pub count: Signal<Bits<Const<N>>, R>,
 }
 
 impl<W: Domain, R: Domain, const N: usize> CircuitIO for U<W, R, N>
@@ -97,7 +97,7 @@ where
     d.counter.clock_reset = input.data_cr;
     d.counter.input = signal(q.counter.val() + if input.data.val() { 1 } else { 0 });
     // The current counter output is gray coded
-    let current_count = gray_code::<WN<N>>(q.counter.val()).0;
+    let current_count = gray_code::<Const<N>>(q.counter.val()).0;
     // Each synchronizer is fed a bit from the gray coded count
     for i in 0..N {
         d.syncs[i].data = signal((current_count & (1 << i)) != 0);
@@ -112,7 +112,7 @@ where
         }
     }
     // Decode this signal back to a binary count
-    let read_o = gray_decode::<WN<N>>(Gray::<WN<N>>(read_o));
+    let read_o = gray_decode::<Const<N>>(Gray::<Const<N>>(read_o));
     // The read side of the output comes from o, the
     // write side is simply the output of the internal counter
     let mut o = O::<R, { N }>::dont_care();
