@@ -17,9 +17,9 @@ pub struct U<T: Digital + Default, W: Domain, R: Domain, const N: usize>
 where
     Const<N>: BitWidth,
 {
-    write_logic: Adapter<write_logic::U<WN<N>>, W>,
-    read_logic: Adapter<read_logic::U<WN<N>>, R>,
-    ram: ram::option_async::U<T, W, R, WN<N>>,
+    write_logic: Adapter<write_logic::U<Const<N>>, W>,
+    read_logic: Adapter<read_logic::U<Const<N>>, R>,
+    ram: ram::option_async::U<T, W, R, Const<N>>,
     read_count_for_write_logic: cross_counter::U<R, W, N>,
     write_count_for_read_logic: cross_counter::U<W, R, N>,
 }
@@ -76,7 +76,7 @@ where
     // Create a struct to drive the inputs of the RAM on the
     // write side.  These signals are all clocked in the write
     // domain.
-    let mut ram_write = ram::option_async::WriteI::<T, WN<N>>::dont_care();
+    let mut ram_write = ram::option_async::WriteI::<T, Const<N>>::dont_care();
     let ram_write_addr = q.write_logic.val().ram_write_address;
     ram_write.clock = i.cr_w.val().clock;
     let mut write_enable = false;
@@ -88,19 +88,19 @@ where
     };
     d.ram.write = signal(ram_write);
     // Do the same thing for the read side of the RAM.
-    let mut ram_read = ram::asynchronous::ReadI::<WN<N>>::dont_care();
+    let mut ram_read = ram::asynchronous::ReadI::<Const<N>>::dont_care();
     ram_read.clock = i.cr_r.val().clock;
     ram_read.addr = q.read_logic.val().ram_read_address;
     d.ram.read = signal(ram_read);
     // Provide the write logic with the enable and the
     // read address as determined by the split counter.
-    d.write_logic.input = signal(write_logic::I::<WN<N>> {
+    d.write_logic.input = signal(write_logic::I::<Const<N>> {
         read_address: q.read_count_for_write_logic.count.val(),
         write_enable,
     });
     // Provide the read logic with the next signal and the
     // write address as determined by the split counter.
-    d.read_logic.input = signal(read_logic::I::<WN<N>> {
+    d.read_logic.input = signal(read_logic::I::<Const<N>> {
         next: i.next.val(),
         write_address: q.write_count_for_read_logic.count.val(),
     });

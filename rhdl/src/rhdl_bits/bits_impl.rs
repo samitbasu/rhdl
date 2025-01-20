@@ -1,8 +1,8 @@
 #![allow(non_camel_case_types)]
 use std::ops::{Add, Sub};
 
-use crate::rhdl_bits::bitwidth::*;
 use super::{signed, signed_bits_impl::SignedBits, BitWidth};
+use crate::rhdl_bits::bitwidth::*;
 use seq_macro::seq;
 /// The [Bits] type is a fixed-sized bit vector.  It is meant to
 /// imitate the behavior of bit vectors in hardware.  Due to the
@@ -25,7 +25,7 @@ use seq_macro::seq;
 ///
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Bits<Len: BitWidth> {
+pub struct Bits<Len> {
     pub(crate) marker: std::marker::PhantomData<Len>,
     pub val: u128,
 }

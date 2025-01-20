@@ -98,21 +98,29 @@ where
 /// truncate the value to N bits, and cast as unsigned.
 pub fn lerp_unsigned<N, M>(lower_value: Bits<N>, upper_value: Bits<N>, factor: Bits<M>) -> Bits<N>
 where
-    // We need to be able to add 1 to the width of the interpolation factor
-    M: BitWidth + Add<U1>,
-    Sum<M, U1>: BitWidth,
-    // We also need to be able to add 1 to the width of the values
+    // We need to +be able to add 1 to the width of the interpolation factor
     N: BitWidth + Add<U1> + Add<M>,
-    Sum<N, U1>: BitWidth,
-    // We also need M+U1 and N+U1 to be multiplicatively compatible
-    Sum<M, U1>: Add<Sum<N, U1>>,
-    Sum<Sum<M, U1>, Sum<N, U1>>: BitWidth,
-    // We need N+M to be a thing
-    Sum<N, M>: BitWidth + Add<U1>,
-    // We need N+M+1 to be a thing also
-    Sum<Sum<N, M>, U1>: BitWidth + Add<U1>,
-    // As well as N+M+2
-    Sum<Sum<Sum<N, M>, U1>, U1>: BitWidth,
+    M: BitWidth + Add<U1>,
+    op!(M + U1): BitWidth + Add<op!(N + U1)>,
+    op!(N + U1): BitWidth,
+    op!((M + U1) + (N + U1)): BitWidth,
+    op!(N + M): BitWidth + Add<U1>,
+    op!(N + M + U1): BitWidth + Add<U1>,
+    op!(N + M + U1 + U1): BitWidth,
+    /*
+        // We also need to be able to add 1 to the width of the values
+        N: BitWidth + Add<U1> + Add<M>,
+        op!(N + U1): BitWidth,
+        // We also need M+U1 and N+U1 to be multiplicatively compatible
+        op!(M + U1): Add<Sum<N, U1>>,
+        Sum<Sum<M, U1>, Sum<N, U1>>: BitWidth,
+        // We need N+M to be a thing
+        Sum<N, M>: BitWidth + Add<U1>,
+        // We need N+M+1 to be a thing also
+        Sum<Sum<N, M>, U1>: BitWidth + Add<U1>,
+        // As well as N+M+2
+        Sum<Sum<Sum<N, M>, U1>, U1>: BitWidth,
+    */
 {
     // Signed factor is signed M+1 bits wide
     let signed_factor = factor.xsgn();
