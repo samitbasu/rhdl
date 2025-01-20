@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "rhdl",
-    "rhdl-bits",
+#    "rhdl-bits",
     "rhdl-macro-core",
     "rhdl-core",
     "rhdl-macro",

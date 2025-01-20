@@ -11,3 +11,6 @@ keywords = ["fpga", "hdl", "hardware", "binary", "bitvec"]
 [dependencies]
 seq-macro = "0.3.5"
 rhdl-typenum = { path = "../rhdl-typenum" }
+
+[dev-dependencies]
+static_assertions = "1.1.0"

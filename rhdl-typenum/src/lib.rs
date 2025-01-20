@@ -18,6 +18,7 @@ pub mod trim;
 pub mod unsigned;
 pub use rhdl_macro::op;
 
+#[cfg(feature = "typenum_tests")]
 #[cfg(test)]
 #[rust_analyzer::skip]
 #[allow(unused_variables)]
