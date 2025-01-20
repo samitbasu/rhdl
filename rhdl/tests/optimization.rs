@@ -1,5 +1,5 @@
 use rhdl::prelude::*;
-use rhdl_core::{
+use rhdl::core::{
     rtl::spec::AluBinary, rtl::spec::Binary, sim::testbench::kernel::test_kernel_vm_and_verilog,
 };
 #[cfg(test)]
@@ -20,8 +20,8 @@ fn test_dynamic_vs_static_indexing_on_assign() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::DynamicIndex(_)
-                | rhdl_core::rtl::spec::OpCode::DynamicSplice(_)
+            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
+                | rhdl::core::rtl::spec::OpCode::DynamicSplice(_)
         ))
     });
     Ok(())
@@ -38,8 +38,8 @@ fn test_dynamic_vs_static_indexing() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::DynamicIndex(_)
-                | rhdl_core::rtl::spec::OpCode::DynamicSplice(_)
+            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
+                | rhdl::core::rtl::spec::OpCode::DynamicSplice(_)
         ))
     });
     Ok(())
@@ -57,7 +57,7 @@ fn test_dynamic_indexing_lowers_with_multiple_dimensions() -> miette::Result<()>
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::DynamicIndex(_)
+            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
         ))
     });
     Ok(())
@@ -76,8 +76,8 @@ fn test_dynamic_splice_lowers_with_multiple_dimensions() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::DynamicSplice(_)
-                | rhdl_core::rtl::spec::OpCode::DynamicIndex(_)
+            rhdl::core::rtl::spec::OpCode::DynamicSplice(_)
+                | rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
         ))
     });
     Ok(())
@@ -96,7 +96,7 @@ fn test_left_signed_shift_with_constant_argument() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::Binary(Binary {
+            rhdl::core::rtl::spec::OpCode::Binary(Binary {
                 op: AluBinary::Shl,
                 ..
             })
@@ -119,7 +119,7 @@ fn test_left_shift_with_constant_argument() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::Binary(Binary {
+            rhdl::core::rtl::spec::OpCode::Binary(Binary {
                 op: AluBinary::Shl,
                 ..
             })
@@ -142,7 +142,7 @@ fn test_right_shift_with_constant_argument() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::Binary(Binary {
+            rhdl::core::rtl::spec::OpCode::Binary(Binary {
                 op: AluBinary::Shr,
                 ..
             })
@@ -165,7 +165,7 @@ fn test_right_signed_shift_with_constant_argument() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::Binary(Binary {
+            rhdl::core::rtl::spec::OpCode::Binary(Binary {
                 op: AluBinary::Shr,
                 ..
             })
@@ -186,7 +186,7 @@ fn test_constant_propagation_with_dynamic_indexing() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::DynamicIndex(_)
+            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
         ))
     });
     Ok(())
@@ -204,7 +204,7 @@ fn test_constant_propagation_with_array() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::DynamicIndex(_)
+            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
         ))
     });
     Ok(())
@@ -223,7 +223,7 @@ fn test_constant_propagation_with_tuple() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::DynamicIndex(_)
+            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
         ))
     });
     Ok(())
@@ -244,8 +244,8 @@ fn test_constant_propogation_with_select() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::DynamicSplice(_)
-                | rhdl_core::rtl::spec::OpCode::DynamicIndex(_)
+            rhdl::core::rtl::spec::OpCode::DynamicSplice(_)
+                | rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
         ))
     });
     Ok(())
@@ -265,8 +265,8 @@ fn test_constant_propogation_with_splice() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::DynamicSplice(_)
-                | rhdl_core::rtl::spec::OpCode::DynamicIndex(_)
+            rhdl::core::rtl::spec::OpCode::DynamicSplice(_)
+                | rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
         ))
     });
     Ok(())
@@ -294,8 +294,8 @@ fn test_constant_propogation_with_struct() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::DynamicSplice(_)
-                | rhdl_core::rtl::spec::OpCode::DynamicIndex(_)
+            rhdl::core::rtl::spec::OpCode::DynamicSplice(_)
+                | rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
         ))
     });
     Ok(())
@@ -324,8 +324,8 @@ fn test_constant_propogation_with_struct_with_rest() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::DynamicSplice(_)
-                | rhdl_core::rtl::spec::OpCode::DynamicIndex(_)
+            rhdl::core::rtl::spec::OpCode::DynamicSplice(_)
+                | rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
         ))
     });
     Ok(())
@@ -354,8 +354,8 @@ fn test_constant_propogation_with_enum() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::DynamicSplice(_)
-                | rhdl_core::rtl::spec::OpCode::DynamicIndex(_)
+            rhdl::core::rtl::spec::OpCode::DynamicSplice(_)
+                | rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
         ))
     });
     Ok(())
@@ -376,7 +376,7 @@ fn test_constant_propagation_through_assigns() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::DynamicIndex(_)
+            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
         ))
     });
     Ok(())
@@ -398,7 +398,7 @@ fn test_constant_propagation_through_loops() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::DynamicIndex(_)
+            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
         ))
     });
     Ok(())
@@ -424,7 +424,7 @@ fn test_constant_propagation_through_sub_kernels() -> miette::Result<()> {
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
-            rhdl_core::rtl::spec::OpCode::DynamicIndex(_)
+            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
         ))
     });
     Ok(())
@@ -535,7 +535,7 @@ fn test_empty_dynamic_index_dropped() -> miette::Result<()> {
     assert!(rtl
         .ops
         .iter()
-        .all(|op| matches!(op.op, rhdl_core::rtl::spec::OpCode::Comment(_))));
+        .all(|op| matches!(op.op, rhdl::core::rtl::spec::OpCode::Comment(_))));
     Ok(())
 }
 
@@ -550,7 +550,7 @@ fn test_lower_multiplies_to_shifts() -> miette::Result<()> {
     eprintln!("{:?}", rtl);
     assert!(rtl.ops.iter().all(|op| !matches!(
         op.op,
-        rhdl_core::rtl::spec::OpCode::Binary(Binary {
+        rhdl::core::rtl::spec::OpCode::Binary(Binary {
             op: AluBinary::Mul,
             ..
         })

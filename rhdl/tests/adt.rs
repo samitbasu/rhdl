@@ -12,7 +12,7 @@ use rhdl::prelude::*;
 mod common;
 #[cfg(test)]
 use common::*;
-use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
+use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 
 #[test]
 fn test_adt_use() -> miette::Result<()> {
@@ -104,8 +104,8 @@ fn test_unit_enums_are_repr() -> miette::Result<()> {
 
 #[test]
 fn test_adt_inference_subset() -> miette::Result<()> {
-    use rhdl_bits::alias::*;
-    use rhdl_bits::bits;
+    use rhdl::bits::alias::*;
+    use rhdl::bits::bits;
 
     #[derive(PartialEq, Digital, Default)]
     pub enum Rad {
@@ -188,8 +188,8 @@ fn test_adt_inference_subset() -> miette::Result<()> {
 
 #[test]
 fn test_adt_inference() -> miette::Result<()> {
-    use rhdl_bits::alias::*;
-    use rhdl_bits::bits;
+    use rhdl::bits::alias::*;
+    use rhdl::bits::bits;
 
     #[derive(PartialEq, Digital, Default)]
     pub enum Rad {

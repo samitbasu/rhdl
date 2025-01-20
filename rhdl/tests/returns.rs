@@ -11,7 +11,7 @@ use rhdl::prelude::*;
 mod common;
 #[cfg(test)]
 use common::*;
-use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
+use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 
 #[test]
 fn test_early_return() {

@@ -2,9 +2,11 @@
 resolver = "2"
 members = [
     "rhdl",
-#    "rhdl-bits",
+    #    "rhdl-bits",
     "rhdl-macro-core",
-    "rhdl-core",
+    #    "rhdl-core",
     "rhdl-macro",
-    "rhdl-fpga", "rhdl-trace-type", "rhdl-typenum",
+    "rhdl-fpga",
+    "rhdl-trace-type",
+    #    "rhdl-typenum",
 ]

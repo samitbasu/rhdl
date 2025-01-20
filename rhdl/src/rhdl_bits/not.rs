@@ -1,6 +1,6 @@
 use std::ops::Not;
 
-use crate::{bits_impl::Bits, signed_bits_impl::SignedBits, BitWidth};
+use super::{bits_impl::Bits, signed_bits_impl::SignedBits, BitWidth};
 
 impl<N: BitWidth> Not for Bits<N> {
     type Output = Self;
@@ -23,7 +23,7 @@ impl<N: BitWidth> Not for SignedBits<N> {
 mod test {
 
     use super::*;
-    use crate::bitwidth::*;
+    use crate::rhdl_bits::bitwidth::*;
 
     #[test]
     fn test_not_bits() {
@@ -31,7 +31,7 @@ mod test {
         let result = !bits;
         assert_eq!(result.val, 0b0010_0101_u128);
         let mut bits: Bits<U128> = 0.into();
-        bits = crate::test::set_bit(bits, 127, true);
+        bits = crate::rhdl_bits::test::set_bit(bits, 127, true);
         let result = !bits;
         assert_eq!(result.val, !0_u128 - (1 << 127));
         let bits: Bits<U14> = 0b1101_1010.into();

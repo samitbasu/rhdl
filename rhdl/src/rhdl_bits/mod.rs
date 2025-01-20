@@ -50,7 +50,7 @@
 //! `s128` for [SignedBits].  So, for example, if you want to represent a 32 bit value, you can
 //! use the type alias `b32` instead of the full type name [Bits]<32>.  For example:
 //! ```
-//! use rhdl_bits::alias::*;
+//! use rhdl::bits::alias::*;
 //! let bits: b32 = 0xDEAD_BEEF.into();
 //! let signed_bits: s4 = (-2).into();
 //! ```
@@ -70,7 +70,7 @@
 //! There are several ways to construct a [Bits] value.  The simplest is to use the
 //! [From] trait, and convert from integer literals.  For example:
 //! ```
-//! use rhdl_bits::{Bits, consts::U8, alias::*};
+//! use rhdl::bits::{Bits, consts::U8, alias::*};
 //! let bits: Bits<U8> = 0b1101_1010.into(); // Long form
 //! let bits: b8 = 0b1101_1010.into(); // Short form (not the same as u8)
 //! ```
@@ -79,7 +79,7 @@
 //!
 //! You can also construct a [Bits] value from a [u128] value:
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits, alias::*};
+//! # use rhdl::bits::{consts::U8, Bits, alias::*};
 //! let bits: Bits<U8> = 0b1101_1010_u128.into(); // Long form
 //! let bits: b8 = 0b1101_1010_u128.into(); // Short form (not the same as u8)
 //! ```
@@ -96,14 +96,14 @@
 //! The [SignedBits] type can be constructed in the same way as the [Bits] type.  The
 //! only difference is that the [SignedBits] type can be constructed from a [i128] value:
 //! ```
-//! # use rhdl_bits::{consts::U8, SignedBits, alias::*};
+//! # use rhdl::bits::{consts::U8, SignedBits, alias::*};
 //! let bits: SignedBits<U8> = 0b0101_1010_i128.into(); // Long form
 //! let bits: s8 = 0b0101_1010_i128.into(); // Short form
 //! ```
 //!
 //! Likewise, you can construct a [SignedBits] from a signed literal
 //! ```
-//! # use rhdl_bits::{consts::U8, SignedBits, alias::*};
+//! # use rhdl::bits::{consts::U8, SignedBits, alias::*};
 //! let bits: SignedBits<U8> = (-42).into(); // Long form
 //! let bits: s8 = (-42).into(); // Short form
 //! ```
@@ -119,7 +119,7 @@
 //! of the _same width_, or you can use integer literals, which will be converted to
 //! [Bits] types of the appropriate width.  For example:
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits, alias::*};
+//! # use rhdl::bits::{consts::U8, Bits, alias::*};
 //! let bits: Bits<U8> = 0b1101_1010.into();  // Long form
 //! let result = bits & 0b1111_0000;
 //! assert_eq!(result, 0b1101_0000);
@@ -158,14 +158,14 @@
 //! [Bits] values together, or you can add a [Bits] value to an integer literal.
 //! For example:
 //! ```
-//! # use rhdl_bits::alias::*;
+//! # use rhdl::bits::alias::*;
 //! let x: b32 = 0xDEAD_BEEE.into();
 //! let y: b32 = x + 1;
 //! assert_eq!(y, 0xDEAD_BEEF);
 //! ```
 //! The order of the arguments does not matter:
 //! ```
-//! # use rhdl_bits::alias::*;
+//! # use rhdl::bits::alias::*;
 //! let x: b32 = 0xDEAD_BEEE.into();
 //! let y: b32 = 1 + x;
 //! assert_eq!(y, 0xDEAD_BEEF);
@@ -173,7 +173,7 @@
 //!
 //! Or using two [Bits] values:
 //! ```
-//! # use rhdl_bits::alias::*;
+//! # use rhdl::bits::alias::*;
 //! let x: b32 = 0xDEAD_0000.into();
 //! let y: b32 = 0xBEEF.into();
 //! let z: b32 = x + y;
@@ -183,7 +183,7 @@
 //! The [AddAssign](std::ops::AddAssign) trait is also implemented for [Bits] and
 //! [SignedBits], so you can use the `+=` operator as well:
 //! ```
-//! # use rhdl_bits::alias::*;
+//! # use rhdl::bits::alias::*;
 //! let mut x: b32 = 0xDEAD_0000.into();
 //! x += 0xBEEF;
 //! assert_eq!(x, 0xDEAD_BEEF);
@@ -194,7 +194,7 @@
 //! overflow, you will need to implement that yourself.
 //!
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits};
+//! # use rhdl::bits::{consts::U8, Bits};
 //! let mut x: Bits<U8> = 0b1111_1111.into();
 //! x += 1;
 //! assert_eq!(x, 0);
@@ -216,7 +216,7 @@
 //! circumstances.
 //!
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits};
+//! # use rhdl::bits::{consts::U8, Bits};
 //! let x: Bits<U8> = 0b0000_0001.into();
 //! let y: Bits<U8> = 0b0000_0010.into();
 //! let z: Bits<U8> = x - y; // 1 - 2 = -1
@@ -240,7 +240,7 @@
 //!
 //! For [SignedBits], the result is the same, but interpreted correctly:
 //! ```
-//! # use rhdl_bits::alias::*;
+//! # use rhdl::bits::alias::*;
 //! let x: s8 = 0b0000_0001.into();
 //! let y: s8 = 0b0000_0010.into();
 //! let z: s8 = x - y; // 1 - 2 = -1
@@ -250,7 +250,7 @@
 //! The [SubAssign](std::ops::SubAssign) trait is implemented for both [Bits] and [SignedBits],
 //! so you can use the `-=` operator as well:
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits};
+//! # use rhdl::bits::{consts::U8, Bits};
 //! let mut x: Bits<U8> = 0b0000_0001.into();
 //! x -= 1;
 //! assert_eq!(x, 0);
@@ -271,7 +271,7 @@
 //!
 //! Here is an example of the binary operators in action:
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits};
+//! # use rhdl::bits::{consts::U8, Bits};
 //! let x: Bits<U8> = 0b1101_1010.into();
 //! let y: Bits<U8> = 0b1111_0000.into();
 //! let z: Bits<U8> = x | y;
@@ -321,7 +321,7 @@
 //! In order to model this, the shift operators are generic over both the number of bits in the value
 //! being shifted, _and_ the number of bits in the value that controls the shift.  For example:
 //! ```
-//! # use rhdl_bits::{consts::U3, consts::U8, Bits};
+//! # use rhdl::bits::{consts::U3, consts::U8, Bits};
 //! let x: Bits<U8> = 0b1101_1010.into();
 //! let y: Bits<U3> = 0b101.into();
 //! let z: Bits<U8> = x >> y;
@@ -330,7 +330,7 @@
 //!
 //! You can also use an integer literal to control the shift amount
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits};
+//! # use rhdl::bits::{consts::U8, Bits};
 //! let x: Bits<U8> = 0b1101_1010.into();
 //! let z: Bits<U8> = x >> 3;
 //! assert_eq!(z, 0b0001_1011);
@@ -351,7 +351,7 @@
 //! in RHDL.
 //!
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits};
+//! # use rhdl::bits::{consts::U8, Bits};
 //! let x: Bits<U8> = 0b1101_1010.into();
 //! let z: Bits<U8> = x >> 10;
 //! assert_eq!(z, 0);
@@ -368,14 +368,14 @@
 //! unsigned arithmetic for [Bits].  This is the same behavior that you would see in hardware designs.
 //! For example, with [Bits]:
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits};
+//! # use rhdl::bits::{consts::U8, Bits};
 //! let x: Bits<U8> = 0b1111_1111.into();
 //! let y: Bits<U8> = 0b0000_0000.into();
 //! assert!(x > y);
 //! ```
 //! On the other hand with [SignedBits]:
 //! ```
-//! # use rhdl_bits::alias::*;
+//! # use rhdl::bits::alias::*;
 //! let x: s8 = (-0b0000_0001).into();
 //! let y: s8 = 0b0000_0000.into();
 //! assert!(x < y);
@@ -421,10 +421,10 @@ pub mod xsub;
 
 #[doc(hidden)]
 pub mod consts {
-    pub use rhdl_typenum::consts::*;
+    pub use crate::rhdl_typenum::consts::*;
 }
 
-pub use rhdl_typenum::const_generics::Const;
+pub use crate::rhdl_typenum::const_generics::Const;
 
 pub mod alias {
     //!
@@ -434,7 +434,7 @@ pub mod alias {
     //! `s128` for [SignedBits].  So, for example, if you want to represent a 32 bit value,
     //! you can use the type alias `b32` instead of the full type name [Bits]<32>.  For example:
     //! ```
-    //! use rhdl_bits::alias::*;
+    //! use rhdl::bits::alias::*;
     //! let bits: b32 = 0xDEAD_BEEF.into();
     //! let signed_bits: s4 = (-2).into();
     //! ```
@@ -449,12 +449,12 @@ pub mod alias {
     //!
     seq_macro::seq!(N in 1..=128 {
         #(
-            pub use crate::bits_impl::b~N;
+            pub use super::bits_impl::b~N;
         )*
     });
     seq_macro::seq!(N in 2..=128 {
         #(
-            pub use crate::signed_bits_impl::s~N;
+            pub use super::signed_bits_impl::s~N;
         )*
     });
 }

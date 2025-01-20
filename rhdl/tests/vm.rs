@@ -11,7 +11,7 @@ use rhdl::prelude::*;
 mod common;
 #[cfg(test)]
 use common::*;
-use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
+use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 
 #[test]
 fn test_vm_simple_function() -> miette::Result<()> {
@@ -32,7 +32,7 @@ fn test_vm_simple_function_with_invalid_args_causes_ice() -> miette::Result<()> 
     }
     let design = compile_design_stage1::<pass<Red>>(CompilationMode::Asynchronous)?;
     eprintln!("design: {:?}", design);
-    let res = rhdl_core::rhif::vm::execute(&design, vec![b16(42).typed_bits()]);
+    let res = rhdl::core::rhif::vm::execute(&design, vec![b16(42).typed_bits()]);
     assert!(res.is_err());
     Ok(())
 }

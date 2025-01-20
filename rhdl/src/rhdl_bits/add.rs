@@ -1,11 +1,11 @@
 use std::ops::Add;
 use std::ops::AddAssign;
 
-use crate::bits_impl::bits_masked;
-use crate::bits_impl::Bits;
-use crate::signed_bits_impl::signed_wrapped;
-use crate::signed_bits_impl::SignedBits;
-use crate::BitWidth;
+use super::bits_impl::bits_masked;
+use super::bits_impl::Bits;
+use super::signed_bits_impl::signed_wrapped;
+use super::signed_bits_impl::SignedBits;
+use super::BitWidth;
 
 // By default, all add operations are wrapping.
 
@@ -89,7 +89,7 @@ impl<N: BitWidth> AddAssign<SignedBits<N>> for i128 {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::bitwidth::*;
+    use crate::rhdl_bits::bitwidth::*;
 
     #[test]
     fn test_add_bits() {
@@ -100,7 +100,7 @@ mod test {
         let result = bits + bits + bits;
         assert_eq!(result.val, (b_val as u8).wrapping_mul(3) as u128);
         let mut bits: Bits<U124> = 0.into();
-        bits = crate::test::set_bit(bits, 123, true);
+        bits = crate::rhdl_bits::test::set_bit(bits, 123, true);
         bits = (bits + bits).resize();
         let result = bits;
         assert_eq!(result.val, 0_u128);
@@ -117,7 +117,7 @@ mod test {
         bits = (bits + bits).resize();
         assert_eq!(bits.val, ((218 * 4) as u128) & 0xff);
         let mut bits: Bits<U126> = 0.into();
-        bits = crate::test::set_bit(bits, 125, true);
+        bits = crate::rhdl_bits::test::set_bit(bits, 125, true);
         bits = (bits + bits).resize();
         assert_eq!(bits.val, 0_u128);
         let mut bits: Bits<U54> = 0b1101_1010.into();

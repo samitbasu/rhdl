@@ -1,8 +1,8 @@
 use std::ops::Add;
 
-use rhdl_typenum::prelude::*;
+use crate::rhdl_typenum::prelude::*;
 
-use crate::{signed, BitWidth, Bits, SignedBits};
+use super::{signed, BitWidth, Bits, SignedBits};
 
 pub trait XSub<Rhs = Self> {
     type Output;
@@ -78,7 +78,7 @@ where
 #[cfg(test)]
 mod tests {
 
-    use crate::bits;
+    use crate::rhdl_bits::bits;
 
     use super::*;
 

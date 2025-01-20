@@ -1,8 +1,8 @@
 use std::ops::Add;
 
-use rhdl_typenum::prelude::*;
+use crate::rhdl_typenum::prelude::*;
 
-use crate::{signed, BitWidth, Bits, SignedBits};
+use super::{signed, BitWidth, Bits, SignedBits};
 
 pub trait XSgn {
     type Output;

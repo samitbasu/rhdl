@@ -1,5 +1,5 @@
-use crate::{bits, signed, BitWidth, Bits, SignedBits};
-use rhdl_typenum::prelude::*;
+use super::{bits, signed, BitWidth, Bits, SignedBits};
+use crate::rhdl_typenum::prelude::*;
 use std::ops::Add;
 
 pub trait XMul<Rhs = Self> {
@@ -35,7 +35,7 @@ where
 mod tests {
 
     use super::*;
-    use crate::alias::*;
+    use crate::rhdl_bits::alias::*;
 
     #[test]
     fn test_xmul() {
