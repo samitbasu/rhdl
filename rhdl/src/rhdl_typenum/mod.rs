@@ -18,12 +18,13 @@ pub mod trim;
 pub mod unsigned;
 pub use rhdl_macro::op;
 
-#[cfg(feature = "typenum-tests")]
 #[cfg(test)]
 #[rust_analyzer::skip]
 #[allow(unused_variables)]
 #[allow(dead_code)]
 mod tests {
+    use crate::assert_eq_num;
+
     use super::prelude::*;
     use bools::{IsFalse, IsTrue};
     use cmp::{CmpOut, Equal, FoldOut, PCmp};
@@ -37,6 +38,7 @@ mod tests {
 
     use super::*;
 
+    #[cfg(feature = "typenum-tests")]
     include!(concat!(env!("OUT_DIR"), "/tests.rs"));
 
     #[test]
