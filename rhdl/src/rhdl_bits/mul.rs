@@ -1,6 +1,6 @@
 use std::ops::Mul;
 
-use crate::{bits_impl::bits_masked, signed_bits_impl::signed_wrapped, BitWidth, Bits, SignedBits};
+use super::{bits_impl::bits_masked, signed_bits_impl::signed_wrapped, BitWidth, Bits, SignedBits};
 
 impl<N: BitWidth> Mul for Bits<N> {
     type Output = Bits<N>;
@@ -18,8 +18,8 @@ impl<N: BitWidth> Mul for SignedBits<N> {
 
 #[cfg(test)]
 mod tests {
-    use crate::bits;
-    use crate::bitwidth::*;
+    use crate::rhdl_bits::bits;
+    use crate::rhdl_bits::bitwidth::*;
 
     #[test]
     fn test_mul() {

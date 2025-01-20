@@ -11,12 +11,12 @@ use rhdl::prelude::*;
 mod common;
 #[cfg(test)]
 use common::*;
-use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
+use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 
 #[test]
 #[allow(clippy::assign_op_pattern)]
 fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
-    use rhdl_bits::alias::*;
+    use rhdl::bits::alias::*;
     #[derive(PartialEq, Digital)]
     pub struct Foo {
         a: b8,
@@ -207,8 +207,8 @@ fn test_simple_type_inference() -> miette::Result<()> {
 
 #[test]
 fn test_struct_inference_inferred_lengths() -> miette::Result<()> {
-    use rhdl_bits::alias::*;
-    use rhdl_bits::bits;
+    use rhdl::bits::alias::*;
+    use rhdl::bits::bits;
 
     #[derive(PartialEq, Digital)]
     pub struct Rad {
@@ -278,8 +278,8 @@ fn test_struct_inference_inferred_lengths() -> miette::Result<()> {
 
 #[test]
 fn test_struct_inference() -> miette::Result<()> {
-    use rhdl_bits::alias::*;
-    use rhdl_bits::bits;
+    use rhdl::bits::alias::*;
+    use rhdl::bits::bits;
 
     #[derive(PartialEq, Digital)]
     pub struct Rad {

@@ -5,8 +5,8 @@
 #![allow(unused_must_use)]
 #![allow(dead_code)]
 
+use rhdl::core::compiler::mir::error::Syntax;
 use rhdl::prelude::*;
-use rhdl_core::compiler::mir::error::Syntax;
 
 #[test]
 fn test_roll_your_own_binop_fails() -> miette::Result<()> {
@@ -101,7 +101,7 @@ fn test_roll_your_own_not_fails() -> miette::Result<()> {
     };
     assert!(matches!(
         err.cause,
-        rhdl_core::compiler::mir::error::Syntax::RollYourOwnUnary { op: _ }
+        rhdl::core::compiler::mir::error::Syntax::RollYourOwnUnary { op: _ }
     ));
 
     Ok(())

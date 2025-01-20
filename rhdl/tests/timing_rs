@@ -1,6 +1,6 @@
 use petgraph::dot::Dot;
 use rhdl::prelude::*;
-use rhdl_core::rhif::spec::{AluUnary, Unary};
+use rhdl::core::rhif::spec::{AluUnary, Unary};
 
 struct TestComputer {}
 

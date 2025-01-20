@@ -1,9 +1,9 @@
 use std::ops::BitXor;
 use std::ops::BitXorAssign;
 
-use crate::bits_impl::Bits;
-use crate::signed_bits_impl::SignedBits;
-use crate::BitWidth;
+use super::bits_impl::Bits;
+use super::signed_bits_impl::SignedBits;
+use super::BitWidth;
 
 impl<N: BitWidth> BitXor<Bits<N>> for u128 {
     type Output = Bits<N>;
@@ -48,7 +48,7 @@ impl<N: BitWidth> BitXorAssign<i128> for SignedBits<N> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use rhdl_typenum::prelude::*;
+    use crate::rhdl_typenum::prelude::*;
 
     #[test]
     fn test_xor_bits() {
@@ -62,7 +62,7 @@ mod test {
         let result = 0b1111_0000 ^ bits;
         assert_eq!(result.val, 0b0010_1010_u128);
         let mut bits: Bits<U128> = 0.into();
-        bits = crate::test::set_bit(bits, 127, true);
+        bits = crate::rhdl_bits::test::set_bit(bits, 127, true);
         let result = bits ^ bits;
         assert_eq!(result.val, 0_u128);
         let bits: Bits<U54> = 0b1101_1010.into();

@@ -1,11 +1,11 @@
 use std::ops::Shr;
 use std::ops::ShrAssign;
 
-use crate::bits_impl::bits_masked;
-use crate::bits_impl::Bits;
-use crate::signed;
-use crate::signed_bits_impl::SignedBits;
-use crate::BitWidth;
+use super::bits_impl::bits_masked;
+use super::bits_impl::Bits;
+use super::signed;
+use super::signed_bits_impl::SignedBits;
+use super::BitWidth;
 
 impl<N> Shr<u128> for Bits<N>
 where
@@ -100,7 +100,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::bitwidth::*;
+    use crate::rhdl_bits::bitwidth::*;
 
     #[test]
     fn test_shr_bits() {

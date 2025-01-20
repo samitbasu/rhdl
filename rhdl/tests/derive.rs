@@ -43,7 +43,7 @@ fn test_derive_no_payload() {
 
 #[test]
 fn test_derive_digital_simple_struct() {
-    use rhdl_bits::alias::*;
+    use rhdl::bits::alias::*;
 
     #[derive(PartialEq, Debug, Digital)]
     struct Test {
@@ -75,8 +75,8 @@ fn test_derive_digital_simple_struct() {
 #[test]
 #[allow(dead_code)]
 fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
-    use rhdl_bits::alias::*;
-    use rhdl_core::types::path::*;
+    use rhdl::bits::alias::*;
+    use rhdl::core::types::path::*;
 
     #[derive(PartialEq, Debug, Default, Digital)]
     enum Test {
@@ -108,7 +108,7 @@ fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
 
 #[test]
 fn test_derive_digital_complex_enum() {
-    use rhdl_bits::alias::*;
+    use rhdl::bits::alias::*;
 
     #[derive(PartialEq, Debug, Default, Digital)]
     enum Test {
@@ -149,7 +149,7 @@ fn test_derive_digital_complex_enum() {
 
 #[test]
 fn test_derive_enum_explicit_discriminant_width() {
-    use rhdl_bits::alias::*;
+    use rhdl::bits::alias::*;
 
     #[derive(PartialEq, Debug, Default, Digital)]
     #[rhdl(discriminant_width = 4)]
@@ -171,7 +171,7 @@ fn test_derive_enum_explicit_discriminant_width() {
 
 #[test]
 fn test_derive_enum_alignment_lsb() {
-    use rhdl_bits::alias::*;
+    use rhdl::bits::alias::*;
 
     #[derive(PartialEq, Debug, Default, Digital)]
     #[rhdl(discriminant_align = "lsb")]

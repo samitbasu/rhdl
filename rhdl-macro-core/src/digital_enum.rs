@@ -500,8 +500,8 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
             // BITS is the width of the discriminant (#width_bits) plus the maximum width
             // of the variant payloads.  This is calculated by taking the maximum width of
             // all the variant payloads and adding #width_bits.
-            const BITS: usize = #width_bits + rhdl::core::const_max!(#(#variant_bits_mapping),*);
-            const TRACE_BITS: usize = #width_bits + rhdl::core::const_max!(#(#variant_trace_bits_mapping),*);
+            const BITS: usize = #width_bits + rhdl::const_max!(#(#variant_bits_mapping),*);
+            const TRACE_BITS: usize = #width_bits + rhdl::const_max!(#(#variant_trace_bits_mapping),*);
             fn static_kind() -> rhdl::core::Kind {
                 rhdl::core::Kind::make_enum(
                     #fqdn,

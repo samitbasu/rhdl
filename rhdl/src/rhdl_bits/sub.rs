@@ -1,11 +1,11 @@
 use std::ops::Sub;
 use std::ops::SubAssign;
 
-use crate::bits_impl::bits_masked;
-use crate::bits_impl::Bits;
-use crate::signed_bits_impl::signed_wrapped;
-use crate::signed_bits_impl::SignedBits;
-use crate::BitWidth;
+use super::bits_impl::bits_masked;
+use super::bits_impl::Bits;
+use super::signed_bits_impl::signed_wrapped;
+use super::signed_bits_impl::SignedBits;
+use super::BitWidth;
 
 impl<N: BitWidth> Sub for Bits<N> {
     type Output = Self;
@@ -105,7 +105,7 @@ impl<N: BitWidth> SubAssign<SignedBits<N>> for i128 {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::bitwidth::*;
+    use crate::rhdl_bits::bitwidth::*;
 
     #[test]
     fn test_sub_bits() {
@@ -116,7 +116,7 @@ mod test {
         let result = bits - bits - bits;
         assert_eq!(result.val, -bits.val);
         let mut bits: Bits<U126> = 0.into();
-        bits = crate::test::set_bit(bits, 125, true);
+        bits = crate::rhdl_bits::test::set_bit(bits, 125, true);
         let result = bits - bits;
         assert_eq!(result.val, 0);
         let bits: Bits<U54> = 0b1101_1010.into();

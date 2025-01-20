@@ -10,8 +10,8 @@ use itertools::iproduct;
 mod common;
 #[cfg(test)]
 use common::*;
+use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 use rhdl::prelude::*;
-use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 
 #[test]
 fn test_func_with_structured_args() -> miette::Result<()> {
@@ -43,7 +43,7 @@ fn test_basic_cast() -> miette::Result<()> {
 #[test]
 #[allow(clippy::assign_op_pattern)]
 fn test_ast_basic_func() -> miette::Result<()> {
-    use rhdl_bits::alias::*;
+    use rhdl::bits::alias::*;
     #[derive(PartialEq, Digital, Default)]
     pub struct Foo {
         a: b8,

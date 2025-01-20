@@ -1,5 +1,5 @@
-use crate::{bits, signed, BitWidth, Bits, SignedBits};
-use rhdl_typenum::prelude::*;
+use super::{bits, signed, BitWidth, Bits, SignedBits};
+use crate::rhdl_typenum::prelude::*;
 use std::ops::Add;
 
 pub trait XAdd<Rhs = Self> {

@@ -12,7 +12,7 @@ use rhdl::prelude::*;
 mod common;
 #[cfg(test)]
 use common::*;
-use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
+use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 
 #[test]
 fn test_missing_register() {
@@ -39,7 +39,7 @@ fn test_cast_to_b16_of_big_number_fails() {
 #[allow(clippy::needless_late_init)]
 #[allow(clippy::no_effect)]
 fn test_compile() -> miette::Result<()> {
-    use rhdl_bits::alias::*;
+    use rhdl::bits::alias::*;
     #[derive(PartialEq, Digital)]
     pub struct Foo {
         a: b8,

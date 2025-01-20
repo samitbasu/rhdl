@@ -11,7 +11,7 @@ use rhdl::prelude::*;
 mod common;
 #[cfg(test)]
 use common::*;
-use rhdl_core::sim::testbench::kernel::test_kernel_vm_and_verilog;
+use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 
 #[test]
 fn test_nested_enum_match_in_if_let_fails() -> miette::Result<()> {
@@ -43,7 +43,7 @@ fn test_nested_enum_match_in_if_let_fails() -> miette::Result<()> {
         None,
     ];
 
-    let expect_err = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(96e94559b495af4c): SpannedSource { source: "fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {\n    if let Some(Foo::Red(Bar(x, y))) = state.val() {\n        signal((x + y).resize())\n    } else {\n        signal(bits(0))\n    }\n}\n", name: "add", span_map: {N3: 100..111, N11: 130..135, N13: 129..145, N10: 134..135, N22: 158..189, N20: 168..183, N6: 86..95, N4: 90..91, N1: 7..38, N9: 130..131, N19: 168..183, N17: 180..181, N21: 158..189, N18: 175..182, N26: 0..191, N12: 129..136, N5: 93..94, N25: 59..191, N23: 65..189, N0: 7..12, N2: 100..105, N24: 65..189, N16: 112..152, N8: 72..97, N7: 77..96, N15: 122..146, N14: 122..146}, fallback: N26, filename: "rhdl/tests/binding.rs:29", function_id: FnID(96e94559b495af4c) }}, ranges: {FnID(96e94559b495af4c): 0..192} }, err_span: SourceSpan { offset: SourceOffset(86), length: 9 } }))"#]];
+    let expect_err = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(131b68f5511d6605): SpannedSource { source: "fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {\n    if let Some(Foo::Red(Bar(x, y))) = state.val() {\n        signal((x + y).resize())\n    } else {\n        signal(bits(0))\n    }\n}\n", name: "add", span_map: {N8: 72..97, N4: 90..91, N15: 122..146, N25: 59..191, N14: 122..146, N11: 130..135, N20: 168..183, N18: 175..182, N17: 180..181, N16: 112..152, N24: 65..189, N0: 7..12, N7: 77..96, N12: 129..136, N23: 65..189, N13: 129..145, N9: 130..131, N6: 86..95, N5: 93..94, N3: 100..111, N2: 100..105, N26: 0..191, N10: 134..135, N22: 158..189, N21: 158..189, N19: 168..183, N1: 7..38}, fallback: N26, filename: "rhdl/tests/binding.rs:29", function_id: FnID(131b68f5511d6605) }}, ranges: {FnID(131b68f5511d6605): 0..192} }, err_span: SourceSpan { offset: SourceOffset(86), length: 9 } }))"#]];
     let res = compile_design::<add>(CompilationMode::Asynchronous);
     expect_err.assert_eq(&format!("{:?}", res));
     Ok(())
@@ -218,7 +218,7 @@ fn test_rebind_compile() -> miette::Result<()> {
 
 #[test]
 fn test_importing() {
-    use rhdl_bits::alias::*;
+    use rhdl::bits::alias::*;
     #[derive(PartialEq, Default, Digital)]
     pub enum Rad {
         A,

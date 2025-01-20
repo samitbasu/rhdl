@@ -1,10 +1,10 @@
 use std::ops::Shl;
 use std::ops::ShlAssign;
 
-use crate::bits_impl::bits_masked;
-use crate::bits_impl::Bits;
-use crate::signed_bits_impl::SignedBits;
-use crate::BitWidth;
+use super::bits_impl::bits_masked;
+use super::bits_impl::Bits;
+use super::signed_bits_impl::SignedBits;
+use super::BitWidth;
 
 // Note! When reviewing this code remember that wrapping is not the same
 // as rotate.
@@ -102,7 +102,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::bitwidth::*;
+    use crate::rhdl_bits::bitwidth::*;
 
     #[test]
     fn test_shl_bits() {
