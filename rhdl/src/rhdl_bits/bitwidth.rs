@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 pub use crate::rhdl_typenum::prelude::*;
 use crate::rhdl_typenum::{bools::True, const_generics::Const};
 use seq_macro::seq;
@@ -31,7 +33,7 @@ mod tests {
     #[test]
     fn test_const_bitwidth() {
         seq!(N in 1..=128 {
-        assert_eq!(<Const<N> as BitWidth>::BITS, N);
+            assert_eq!(<Const<N> as BitWidth>::BITS, N);
         });
     }
 }

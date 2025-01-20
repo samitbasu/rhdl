@@ -4,20 +4,18 @@ use crate::rhdl_typenum::prelude::*;
 
 use super::{signed, BitWidth, Bits, SignedBits};
 
-pub trait XSub<Rhs = Self> {
+pub trait XSub {
     type Output;
-    fn xsub(self, rhs: Rhs) -> Self::Output;
+    fn xsub(self, rhs: Self) -> Self::Output;
 }
 
-impl<N, M> XSub<Bits<M>> for Bits<N>
+impl<N> XSub for Bits<N>
 where
-    M: BitWidth,
-    N: Max<M> + BitWidth,
-    Maximum<N, M>: Add<U1>,
-    op!(max(N, M) + U1): BitWidth,
+    N: BitWidth + Add<U1>,
+    op!(N + U1): BitWidth,
 {
-    type Output = SignedBits<op!(max(N, M) + U1)>;
-    fn xsub(self, rhs: Bits<M>) -> Self::Output {
+    type Output = SignedBits<op!(N + U1)>;
+    fn xsub(self, rhs: Bits<N>) -> Self::Output {
         // The rationale here is as follows.
         // If
         //     A in [0, 2^n-1]
@@ -40,14 +38,12 @@ where
     }
 }
 
-impl<N, M> XSub<SignedBits<M>> for SignedBits<N>
+impl<N> XSub for SignedBits<N>
 where
-    N: Max<M> + BitWidth,
-    M: BitWidth,
-    Maximum<N, M>: Add<U1>,
-    op!(max(N, M) + U1): BitWidth,
+    N: Add<U1> + BitWidth,
+    op!(N + U1): BitWidth,
 {
-    type Output = SignedBits<op!(max(N, M) + U1)>;
+    type Output = SignedBits<op!(N + U1)>;
     // The rationale here is as follows.
     //    A in [-2^(n-1), 2^(n-1)-1]
     //    B in [-2^(m-1), 2^(m-1)-1]
@@ -70,7 +66,7 @@ where
     // So, if we want to represent the full range of
     // the difference, we need
     //    k-1 >= p, or k >= max(m,n) + 1
-    fn xsub(self, rhs: SignedBits<M>) -> Self::Output {
+    fn xsub(self, rhs: Self) -> Self::Output {
         signed(self.val.wrapping_sub(rhs.val))
     }
 }
@@ -82,23 +78,6 @@ mod tests {
 
     use super::*;
 
-    /*    fn xsub_trait<N>()
-        where
-            N: BitWidth,
-            op!(N + U1): BitWidth,
-            op!(max(N, N) + U1): BitWidth,
-        {
-            let a = bits::<N>(42);
-            let b = bits::<N>(36);
-            let c = a.xsub(b);
-            assert_eq!(c.raw(), signed::<Sum<N, U1>>(42 - 36).raw());
-        }
-
-        #[test]
-        fn test_xsub_trait() {
-            xsub_trait::<U8>();
-        }
-    */
     #[test]
     fn test_xsub() {
         let a = bits::<U32>(0x1234_5678);
@@ -125,7 +104,7 @@ mod tests {
     fn test_xsub_size_trait() {
         let a = signed::<U4>(7);
         let b: SignedBits<U8> = signed::<U8>(3);
-        let _c: SignedBits<U9> = a.xsub(b);
+        let _c: SignedBits<U9> = a.xext::<U4>().xsub(b);
         let w = Maximum::<U4, U8>::BITS;
         assert_eq!(w, 8);
     }
