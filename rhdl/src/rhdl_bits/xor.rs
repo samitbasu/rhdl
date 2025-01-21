@@ -1,54 +1,30 @@
 use std::ops::BitXor;
 use std::ops::BitXorAssign;
 
+use crate::impl_assign_op;
+use crate::impl_binop;
+
+use super::bits_impl::bits_masked;
 use super::bits_impl::Bits;
-use super::signed_bits_impl::SignedBits;
+use super::dyn_bits::DynBits;
 use super::BitWidth;
 
-impl<N: BitWidth> BitXor<Bits<N>> for u128 {
-    type Output = Bits<N>;
-    fn bitxor(self, rhs: Bits<N>) -> Self::Output {
-        Bits::<N>::from(self) ^ rhs
-    }
-}
-
-impl<N: BitWidth> BitXor<u128> for Bits<N> {
-    type Output = Self;
-    fn bitxor(self, rhs: u128) -> Self::Output {
-        self ^ Bits::<N>::from(rhs)
-    }
-}
-
-impl<N: BitWidth> BitXorAssign<u128> for Bits<N> {
-    fn bitxor_assign(&mut self, rhs: u128) {
-        self.val ^= rhs;
-    }
-}
-
-impl<N: BitWidth> BitXor<SignedBits<N>> for i128 {
-    type Output = SignedBits<N>;
-    fn bitxor(self, rhs: SignedBits<N>) -> Self::Output {
-        SignedBits::<N>::from(self) ^ rhs
-    }
-}
-
-impl<N: BitWidth> BitXor<i128> for SignedBits<N> {
-    type Output = Self;
-    fn bitxor(self, rhs: i128) -> Self::Output {
-        self ^ SignedBits::<N>::from(rhs)
-    }
-}
-
-impl<N: BitWidth> BitXorAssign<i128> for SignedBits<N> {
-    fn bitxor_assign(&mut self, rhs: i128) {
-        self.val ^= rhs;
-    }
-}
+impl_binop!(BitXor, bitxor, u128::bitxor);
+impl_assign_op!(BitXorAssign, bitxor_assign, u128::bitxor);
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::rhdl_typenum::prelude::*;
+    use crate::{rhdl_typenum::prelude::*, test_binop};
+
+    #[test]
+    fn test_xor() {
+        for i in 0..=255 {
+            for j in 0..=255 {
+                test_binop!(^, i, j);
+            }
+        }
+    }
 
     #[test]
     fn test_xor_bits() {

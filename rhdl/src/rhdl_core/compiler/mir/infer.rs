@@ -1,6 +1,6 @@
 use crate::rhdl_bits::alias::{b128, s128};
 use log::{debug, trace};
-use std::collections::BTreeMap;
+use std::{char::MAX, collections::BTreeMap};
 
 use crate::rhdl_core::{
     ast::{
@@ -91,6 +91,8 @@ type Result<T> = std::result::Result<T, RHDLError>;
 
 
 */
+
+const MAX_BIT_SIZE: usize = 128;
 
 impl<'a> MirTypeInference<'a> {
     fn new(mir: &'a Mir) -> Self {
@@ -253,6 +255,14 @@ impl<'a> MirTypeInference<'a> {
         }
         None
     }
+    fn validate_bit_size(&self, size: usize, loc: SourceLocation) -> Result<usize> {
+        if size > MAX_BIT_SIZE {
+            return Err(self
+                .raise_type_error(TypeCheck::BitWidthOverflow, loc)
+                .into());
+        }
+        Ok(size)
+    }
     fn try_unary(&mut self, loc: SourceLocation, op: &TypeUnaryOp) -> Result<()> {
         let a1 = self.ctx.apply(op.arg1);
         match op.op {
@@ -279,7 +289,8 @@ impl<'a> MirTypeInference<'a> {
                 let Some(a1_sign) = self.ctx.project_sign_flag(a1) else {
                     return Ok(());
                 };
-                let len = self.ctx.ty_const_len(loc, a1_len + diff);
+                let computed_size = self.validate_bit_size(a1_len + diff, loc)?;
+                let len = self.ctx.ty_const_len(loc, computed_size);
                 let lhs_ty = self.ctx.ty_with_sign_and_len(loc, a1_sign, len);
                 self.unify(loc, op.lhs, lhs_ty)?;
             }
@@ -293,7 +304,8 @@ impl<'a> MirTypeInference<'a> {
                 let Some(a1_sign) = self.ctx.project_sign_flag(a1) else {
                     return Ok(());
                 };
-                let len = self.ctx.ty_const_len(loc, a1_len.saturating_sub(diff));
+                let computed_len = self.validate_bit_size(a1_len.saturating_sub(diff), loc)?;
+                let len = self.ctx.ty_const_len(loc, computed_len);
                 let lhs_ty = self.ctx.ty_with_sign_and_len(loc, a1_sign, len);
                 self.unify(loc, op.lhs, lhs_ty)?;
             }
@@ -304,7 +316,8 @@ impl<'a> MirTypeInference<'a> {
                 let Ok(a1_len) = self.ctx.cast_ty_as_bit_length(a1_len) else {
                     return Ok(());
                 };
-                let len = self.ctx.ty_const_len(loc, a1_len + 1);
+                let computed_len = self.validate_bit_size(a1_len + 1, loc)?;
+                let len = self.ctx.ty_const_len(loc, computed_len);
                 let lhs_ty = self.ctx.ty_signed(loc, len);
                 self.unify(loc, op.lhs, lhs_ty)?;
             }
@@ -474,13 +487,14 @@ impl<'a> MirTypeInference<'a> {
         let Ok(a2_len) = self.ctx.cast_ty_as_bit_length(a2_len) else {
             return Ok(());
         };
-        let lhs_computed_len = self.ctx.ty_const_len(loc, size_computation(a1_len, a2_len));
+        let computed_size = self.validate_bit_size(size_computation(a1_len, a2_len), loc)?;
+        let lhs_computed_len = self.ctx.ty_const_len(loc, computed_size);
         self.unify(loc, lhs_len, lhs_computed_len)?;
         let lhs_sign_flag = self.ctx.ty_sign_flag(loc, SignFlag::Signed);
         let lhs_data = self
             .ctx
             .ty_with_sign_and_len(loc, lhs_sign_flag, lhs_computed_len);
-        return self.unify(loc, lhs, lhs_data);
+        self.unify(loc, lhs, lhs_data)
     }
     fn try_xadd_xmul<F: Fn(usize, usize) -> usize>(
         &mut self,
@@ -514,12 +528,13 @@ impl<'a> MirTypeInference<'a> {
         let Ok(a2_len) = self.ctx.cast_ty_as_bit_length(a2_len) else {
             return Ok(());
         };
-        let lhs_computed_len = self.ctx.ty_const_len(loc, size_computation(a1_len, a2_len));
+        let computed_size = self.validate_bit_size(size_computation(a1_len, a2_len), loc)?;
+        let lhs_computed_len = self.ctx.ty_const_len(loc, computed_size);
         self.unify(loc, lhs_len, lhs_computed_len)?;
         let lhs_data = self
             .ctx
             .ty_with_sign_and_len(loc, lhs_sign_flag, lhs_computed_len);
-        return self.unify(loc, lhs, lhs_data);
+        self.unify(loc, lhs, lhs_data)
     }
     // Given Y <- A op B, ensure that the data types of
     // Y, A, an B are all compatible.

@@ -1,5 +1,6 @@
 use super::signed_bits_impl::signed_wrapped;
 
+use super::signed_dyn_bits::SignedDynBits;
 use super::{signed_bits_impl::SignedBits, BitWidth};
 use std::ops::Neg;
 
@@ -7,6 +8,17 @@ impl<N: BitWidth> Neg for SignedBits<N> {
     type Output = SignedBits<N>;
     fn neg(self) -> Self::Output {
         signed_wrapped(-self.val)
+    }
+}
+
+impl Neg for SignedDynBits {
+    type Output = SignedDynBits;
+    fn neg(self) -> Self::Output {
+        SignedDynBits {
+            val: -self.val,
+            bits: self.bits,
+        }
+        .wrapped()
     }
 }
 

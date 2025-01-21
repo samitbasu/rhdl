@@ -2,7 +2,7 @@
 use crate::rhdl_bits::bitwidth::*;
 use std::ops::{Add, Sub};
 
-use super::{bits, bits_impl::bits_masked, BitWidth, Bits};
+use super::{bits, bits_impl::bits_masked, signed_dyn_bits::SignedDynBits, BitWidth, Bits};
 use seq_macro::seq;
 
 /// The [SignedBits] type is a fixed-size bit vector.  It is
@@ -80,45 +80,6 @@ impl<Len: BitWidth> std::fmt::Binary for SignedBits<Len> {
         } else {
             write!(f, "{}'sb{:b}", Len::BITS, self.val)
         }
-    }
-}
-
-impl<Len: BitWidth> std::ops::BitAnd for SignedBits<Len> {
-    type Output = Self;
-    fn bitand(self, rhs: Self) -> Self {
-        signed(self.val & rhs.val)
-    }
-}
-
-impl<Len: BitWidth> std::ops::BitAndAssign for SignedBits<Len> {
-    fn bitand_assign(&mut self, rhs: Self) {
-        self.val &= rhs.val;
-    }
-}
-
-impl<Len: BitWidth> std::ops::BitOr for SignedBits<Len> {
-    type Output = Self;
-    fn bitor(self, rhs: Self) -> Self {
-        signed(self.val | rhs.val)
-    }
-}
-
-impl<Len: BitWidth> std::ops::BitOrAssign for SignedBits<Len> {
-    fn bitor_assign(&mut self, rhs: Self) {
-        self.val |= rhs.val;
-    }
-}
-
-impl<Len: BitWidth> std::ops::BitXor for SignedBits<Len> {
-    type Output = Self;
-    fn bitxor(self, rhs: Self) -> Self {
-        signed(self.val ^ rhs.val)
-    }
-}
-
-impl<Len: BitWidth> std::ops::BitXorAssign for SignedBits<Len> {
-    fn bitxor_assign(&mut self, rhs: Self) {
-        self.val ^= rhs.val;
     }
 }
 
@@ -203,7 +164,7 @@ impl<N: BitWidth> SignedBits<N> {
     /// assert!(!signed::<U8>(0).is_negative());
     /// assert!(!signed::<U8>(1).is_negative());
     /// ```
-    pub fn is_negative(&self) -> bool {
+    pub const fn is_negative(&self) -> bool {
         self.val < 0
     }
     /// Test if the value is positive or zero.
@@ -213,7 +174,7 @@ impl<N: BitWidth> SignedBits<N> {
     /// assert!(signed::<U8>(0).is_non_negative());
     /// assert!(signed::<U8>(1).is_non_negative());
     /// ```
-    pub fn is_non_negative(&self) -> bool {
+    pub const fn is_non_negative(&self) -> bool {
         self.val >= 0
     }
     /// Reinterpret the [SignedBits] value as an unsigned
@@ -231,8 +192,16 @@ impl<N: BitWidth> SignedBits<N> {
     }
     /// Extract the raw signed `i128` backing this SignedBits
     /// value.
-    pub fn raw(self) -> i128 {
+    pub const fn raw(self) -> i128 {
         self.val
+    }
+    /// Convert the compile time sized [SignedBits] value
+    /// to a run-time traced [SignedDynBits] value.
+    pub const fn dyn_bits(self) -> SignedDynBits {
+        SignedDynBits {
+            val: self.val,
+            bits: N::BITS,
+        }
     }
     /// Build a (dynamic, stack allocated) vector
     /// containing the bits that make up this value.
@@ -240,13 +209,13 @@ impl<N: BitWidth> SignedBits<N> {
     pub fn to_bools(self) -> Vec<bool> {
         self.as_unsigned().to_bools()
     }
-    pub fn any(self) -> bool {
+    pub const fn any(self) -> bool {
         self.val != 0
     }
-    pub fn all(self) -> bool {
+    pub const fn all(self) -> bool {
         self.val == -1
     }
-    pub fn xor(self) -> bool {
+    pub const fn xor(self) -> bool {
         let mut x = self.val;
         x ^= x >> 1;
         x ^= x >> 2;

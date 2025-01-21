@@ -1,54 +1,30 @@
 use std::ops::BitOr;
 use std::ops::BitOrAssign;
 
+use crate::impl_assign_op;
+use crate::impl_binop;
+
+use super::bits_impl::bits_masked;
 use super::bits_impl::Bits;
-use super::signed_bits_impl::SignedBits;
+use super::dyn_bits::DynBits;
 use super::BitWidth;
 
-impl<N: BitWidth> BitOr<Bits<N>> for u128 {
-    type Output = Bits<N>;
-    fn bitor(self, rhs: Bits<N>) -> Self::Output {
-        Bits::<N>::from(self) | rhs
-    }
-}
-
-impl<N: BitWidth> BitOr<u128> for Bits<N> {
-    type Output = Self;
-    fn bitor(self, rhs: u128) -> Self::Output {
-        self | Bits::<N>::from(rhs)
-    }
-}
-
-impl<N: BitWidth> BitOrAssign<u128> for Bits<N> {
-    fn bitor_assign(&mut self, rhs: u128) {
-        self.val |= rhs;
-    }
-}
-
-impl<N: BitWidth> BitOr<SignedBits<N>> for i128 {
-    type Output = SignedBits<N>;
-    fn bitor(self, rhs: SignedBits<N>) -> Self::Output {
-        SignedBits::<N>::from(self) | rhs
-    }
-}
-
-impl<N: BitWidth> BitOr<i128> for SignedBits<N> {
-    type Output = Self;
-    fn bitor(self, rhs: i128) -> Self::Output {
-        self | SignedBits::<N>::from(rhs)
-    }
-}
-
-impl<N: BitWidth> BitOrAssign<i128> for SignedBits<N> {
-    fn bitor_assign(&mut self, rhs: i128) {
-        self.val |= rhs;
-    }
-}
+impl_binop!(BitOr, bitor, u128::bitor);
+impl_assign_op!(BitOrAssign, bitor_assign, u128::bitor);
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::rhdl_bits::bitwidth::*;
+    use crate::{rhdl_bits::bitwidth::*, test_binop};
+
+    #[test]
+    fn test_or() {
+        for i in 0..=255 {
+            for j in 0..=255 {
+                test_binop!(|, i, j);
+            }
+        }
+    }
 
     #[test]
     fn test_or_bits() {
@@ -74,33 +50,5 @@ mod test {
         let b: Bits<U12> = 0b0101_0101_0101.into();
         let c = a | b;
         assert_eq!(c.val, 0b1111_1111_1111);
-    }
-
-    #[test]
-    fn test_or_signed_bits() {
-        let bits: SignedBits<U8> = (-38).into();
-        let result = bits | bits;
-        assert_eq!(result.val, -38);
-        for i in i8::MIN..i8::MAX {
-            for j in i8::MIN..i8::MAX {
-                let bits: SignedBits<U8> = (i as i128).into();
-                let result = bits | (j as i128);
-                assert_eq!(result.val, (i | j) as i128);
-            }
-        }
-    }
-
-    #[test]
-    fn test_or_assign_signed_bits() {
-        let mut bits: SignedBits<U8> = (-38).into();
-        bits |= bits;
-        assert_eq!(bits.val, -38);
-        for i in i8::MIN..i8::MAX {
-            for j in i8::MIN..i8::MAX {
-                let mut bits: SignedBits<U8> = (i as i128).into();
-                bits |= j as i128;
-                assert_eq!(bits.val, (i | j) as i128);
-            }
-        }
     }
 }

@@ -1,4 +1,6 @@
-use super::{bits, signed, BitWidth, Bits, SignedBits};
+use super::{
+    bits, dyn_bits::DynBits, signed, signed_dyn_bits::SignedDynBits, BitWidth, Bits, SignedBits,
+};
 use crate::rhdl_typenum::prelude::*;
 use std::ops::Add;
 
@@ -24,6 +26,42 @@ where
     }
 }
 
+impl<N: BitWidth> XAdd<DynBits> for Bits<N> {
+    type Output = DynBits;
+    fn xadd(self, rhs: DynBits) -> Self::Output {
+        assert!(rhs.bits.max(N::BITS) < 128);
+        DynBits {
+            val: self.val.wrapping_add(rhs.val),
+            bits: N::BITS.max(rhs.bits) + 1,
+        }
+        .wrapped()
+    }
+}
+
+impl<N: BitWidth> XAdd<Bits<N>> for DynBits {
+    type Output = DynBits;
+    fn xadd(self, rhs: Bits<N>) -> Self::Output {
+        assert!(self.bits.max(N::BITS) < 128);
+        DynBits {
+            val: self.val.wrapping_add(rhs.val),
+            bits: self.bits.max(N::BITS) + 1,
+        }
+        .wrapped()
+    }
+}
+
+impl XAdd<DynBits> for DynBits {
+    type Output = DynBits;
+    fn xadd(self, rhs: DynBits) -> Self::Output {
+        assert!(self.bits.max(rhs.bits) < 128);
+        DynBits {
+            val: self.val.wrapping_add(rhs.val),
+            bits: self.bits.max(rhs.bits) + 1,
+        }
+        .wrapped()
+    }
+}
+
 impl<N, M> XAdd<SignedBits<M>> for SignedBits<N>
 where
     M: BitWidth,
@@ -38,6 +76,42 @@ where
         // in the larger type, it should never actually
         // wrap.
         signed(self.val.wrapping_add(rhs.val))
+    }
+}
+
+impl<N: BitWidth> XAdd<SignedDynBits> for SignedBits<N> {
+    type Output = SignedDynBits;
+    fn xadd(self, rhs: SignedDynBits) -> Self::Output {
+        assert!(rhs.bits.max(N::BITS) < 128);
+        SignedDynBits {
+            val: self.val.wrapping_add(rhs.val),
+            bits: N::BITS.max(rhs.bits) + 1,
+        }
+        .wrapped()
+    }
+}
+
+impl<N: BitWidth> XAdd<SignedBits<N>> for SignedDynBits {
+    type Output = SignedDynBits;
+    fn xadd(self, rhs: SignedBits<N>) -> Self::Output {
+        assert!(self.bits.max(N::BITS) < 128);
+        SignedDynBits {
+            val: self.val.wrapping_add(rhs.val),
+            bits: self.bits.max(N::BITS) + 1,
+        }
+        .wrapped()
+    }
+}
+
+impl XAdd<SignedDynBits> for SignedDynBits {
+    type Output = SignedDynBits;
+    fn xadd(self, rhs: SignedDynBits) -> Self::Output {
+        assert!(self.bits.max(rhs.bits) < 128);
+        SignedDynBits {
+            val: self.val.wrapping_add(rhs.val),
+            bits: self.bits.max(rhs.bits) + 1,
+        }
+        .wrapped()
     }
 }
 

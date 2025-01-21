@@ -603,7 +603,8 @@ impl<'a> MirContext<'a> {
                     }),
                 );
                 let disc_as_i64 = discriminant.as_i64()?;
-                let path = crate::rhdl_core::types::path::Path::default().payload_by_value(disc_as_i64);
+                let path =
+                    crate::rhdl_core::types::path::Path::default().payload_by_value(disc_as_i64);
                 let payload = self.reg(arm_enum.pat.id);
                 self.op(op_index(payload, target, path), arm_enum.pat.id);
                 self.initialize_local(&arm_enum.pat, payload)?;
@@ -1140,7 +1141,11 @@ impl<'a> MirContext<'a> {
         let arg = self.expr(&index.expr)?;
         let index = self.expr(&index.index)?;
         self.op(
-            op_index(lhs, arg, crate::rhdl_core::types::path::Path::default().dynamic(index)),
+            op_index(
+                lhs,
+                arg,
+                crate::rhdl_core::types::path::Path::default().dynamic(index),
+            ),
             id,
         );
         Ok(lhs)
@@ -1256,7 +1261,9 @@ impl<'a> MirContext<'a> {
         }
         let lhs = self.reg(id);
         let arg = self.expr(&method_call.receiver)?;
-        if method_call.method == "raw" {
+        // These are all no-ops as far as RHDL is concerned.
+        // They exist to satisfy the Rust type system
+        if ["raw", "dyn_bits", "as_bits", "as_signed_bits"].contains(&method_call.method) {
             self.op(op_assign(lhs, arg), id);
             return Ok(lhs);
         }

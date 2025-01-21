@@ -1,95 +1,39 @@
 use std::ops::Add;
 use std::ops::AddAssign;
 
+use crate::impl_assign_op;
+use crate::impl_assigned_signed_op;
+use crate::impl_binop;
+use crate::impl_signed_binop;
+
 use super::bits_impl::bits_masked;
 use super::bits_impl::Bits;
+use super::dyn_bits::DynBits;
 use super::signed_bits_impl::signed_wrapped;
 use super::signed_bits_impl::SignedBits;
+use super::signed_dyn_bits::SignedDynBits;
 use super::BitWidth;
-
 // By default, all add operations are wrapping.
 
-impl<N: BitWidth> Add<u128> for Bits<N> {
-    type Output = Bits<N>;
-    fn add(self, rhs: u128) -> Self::Output {
-        assert!(rhs <= Self::MASK.val);
-        bits_masked(self.val.wrapping_add(rhs))
-    }
-}
-
-impl<N: BitWidth> Add<Bits<N>> for u128 {
-    type Output = Bits<N>;
-    fn add(self, rhs: Bits<N>) -> Self::Output {
-        assert!(self <= Bits::<N>::MASK.val);
-        bits_masked(self.wrapping_add(rhs.val))
-    }
-}
-
-impl<N: BitWidth> Add for Bits<N> {
-    type Output = Self;
-    fn add(self, rhs: Self) -> Self::Output {
-        bits_masked(u128::wrapping_add(self.val, rhs.val))
-    }
-}
-
-impl<N: BitWidth> AddAssign for Bits<N> {
-    fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs;
-    }
-}
-
-impl<N: BitWidth> AddAssign<u128> for Bits<N> {
-    fn add_assign(&mut self, rhs: u128) {
-        *self = *self + rhs;
-    }
-}
-
-impl<N: BitWidth> Add<i128> for SignedBits<N> {
-    type Output = SignedBits<N>;
-    fn add(self, rhs: i128) -> Self::Output {
-        signed_wrapped(self.val.wrapping_add(rhs))
-    }
-}
-
-impl<N: BitWidth> Add<SignedBits<N>> for i128
-where
-    N: BitWidth,
-{
-    type Output = SignedBits<N>;
-    fn add(self, rhs: SignedBits<N>) -> Self::Output {
-        signed_wrapped(self.wrapping_add(rhs.val))
-    }
-}
-
-impl<N: BitWidth> Add for SignedBits<N> {
-    type Output = Self;
-    fn add(self, rhs: Self) -> Self::Output {
-        signed_wrapped(self.val.wrapping_add(rhs.val))
-    }
-}
-
-impl<N: BitWidth> AddAssign for SignedBits<N> {
-    fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs;
-    }
-}
-
-impl<N: BitWidth> AddAssign<i128> for SignedBits<N> {
-    fn add_assign(&mut self, rhs: i128) {
-        *self = *self + rhs;
-    }
-}
-
-impl<N: BitWidth> AddAssign<SignedBits<N>> for i128 {
-    fn add_assign(&mut self, rhs: SignedBits<N>) {
-        *self = *self + rhs.val;
-    }
-}
+impl_binop!(Add, add, u128::wrapping_add);
+impl_assign_op!(AddAssign, add_assign, u128::wrapping_add);
+impl_signed_binop!(Add, add, i128::wrapping_add);
+impl_assigned_signed_op!(AddAssign, add_assign, i128::wrapping_add);
 
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::rhdl_bits::bitwidth::*;
+    use crate::test_binop;
+
+    #[test]
+    fn test_add() {
+        for i in 0..=255 {
+            for j in 0..=255 {
+                test_binop!(+, i, j);
+            }
+        }
+    }
 
     #[test]
     fn test_add_bits() {

@@ -391,6 +391,8 @@ pub mod bits_impl;
 #[doc(hidden)]
 pub mod bitwidth;
 #[doc(hidden)]
+pub mod dyn_bits;
+#[doc(hidden)]
 pub mod mul;
 #[doc(hidden)]
 pub mod neg;
@@ -405,6 +407,8 @@ pub mod shr;
 #[doc(hidden)]
 pub mod signed_bits_impl;
 #[doc(hidden)]
+pub mod signed_dyn_bits;
+#[doc(hidden)]
 pub mod sub;
 #[doc(hidden)]
 pub mod xadd;
@@ -418,6 +422,9 @@ pub mod xor;
 pub mod xsgn;
 #[doc(hidden)]
 pub mod xsub;
+
+#[doc(hidden)]
+mod impl_macro;
 
 #[doc(hidden)]
 pub mod consts {
