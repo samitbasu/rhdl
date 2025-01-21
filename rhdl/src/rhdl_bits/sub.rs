@@ -1,111 +1,37 @@
 use std::ops::Sub;
 use std::ops::SubAssign;
 
+use crate::impl_assign_op;
+use crate::impl_assigned_signed_op;
+use crate::impl_binop;
+use crate::impl_signed_binop;
+
 use super::bits_impl::bits_masked;
 use super::bits_impl::Bits;
+use super::dyn_bits::DynBits;
 use super::signed_bits_impl::signed_wrapped;
 use super::signed_bits_impl::SignedBits;
+use super::signed_dyn_bits::SignedDynBits;
 use super::BitWidth;
 
-impl<N: BitWidth> Sub for Bits<N> {
-    type Output = Self;
-    fn sub(self, rhs: Self) -> Self::Output {
-        bits_masked(self.val.wrapping_sub(rhs.val))
-    }
-}
-
-impl<N: BitWidth> Sub<u128> for Bits<N> {
-    type Output = Self;
-    fn sub(self, rhs: u128) -> Self::Output {
-        assert!(rhs <= Self::mask().val);
-        bits_masked(self.val.wrapping_sub(rhs))
-    }
-}
-
-impl<N: BitWidth> Sub<Bits<N>> for u128 {
-    type Output = Bits<N>;
-    fn sub(self, rhs: Bits<N>) -> Self::Output {
-        assert!(self <= Bits::<N>::mask().val);
-        bits_masked(self.wrapping_sub(rhs.val))
-    }
-}
-
-impl<N: BitWidth> SubAssign for Bits<N> {
-    fn sub_assign(&mut self, rhs: Self) {
-        *self = *self - rhs;
-    }
-}
-
-impl<N: BitWidth> SubAssign<u128> for Bits<N> {
-    fn sub_assign(&mut self, rhs: u128) {
-        *self = *self - rhs;
-    }
-}
-
-/* impl<N, M> Sub<Bits<M>> for Bits<N>
-where
-    N: BitWidth + Max<M>,
-    M: BitWidth,
-    Maximum<N, M>: Add<U1>,
-    Sum<Maximum<N, M>, U1>: BitWidth,
-{
-    type Output = SignedBits<Sum<Maximum<N, M>, U1>>;
-    fn sub(self, rhs: Bits<M>) -> Self::Output {
-        signed((self.val as i128).wrapping_sub(rhs.val as i128))
-    }
-}
- */
-// To subtract 2 N-bit unsigned, numbers, imagine they are 4 bit
-// numbers.  Then each is in the range 0..15.  The difference is
-// thus in the range -15..15.
-
-impl<N: BitWidth> Sub for SignedBits<N> {
-    type Output = Self;
-    fn sub(self, rhs: Self) -> Self::Output {
-        signed_wrapped(self.val.wrapping_sub(rhs.val))
-    }
-}
-
-impl<N: BitWidth> Sub<i128> for SignedBits<N> {
-    type Output = Self;
-    fn sub(self, rhs: i128) -> Self::Output {
-        assert!(rhs >= Self::min_value());
-        assert!(rhs <= Self::max_value());
-        signed_wrapped(self.val.wrapping_sub(rhs))
-    }
-}
-
-impl<N: BitWidth> Sub<SignedBits<N>> for i128 {
-    type Output = SignedBits<N>;
-    fn sub(self, rhs: SignedBits<N>) -> Self::Output {
-        assert!(self >= SignedBits::<N>::min_value());
-        assert!(self <= SignedBits::<N>::max_value());
-        signed_wrapped(self.wrapping_sub(rhs.val))
-    }
-}
-
-impl<N: BitWidth> SubAssign for SignedBits<N> {
-    fn sub_assign(&mut self, rhs: Self) {
-        *self = *self - rhs;
-    }
-}
-
-impl<N: BitWidth> SubAssign<i128> for SignedBits<N> {
-    fn sub_assign(&mut self, rhs: i128) {
-        *self = *self - rhs;
-    }
-}
-
-impl<N: BitWidth> SubAssign<SignedBits<N>> for i128 {
-    fn sub_assign(&mut self, rhs: SignedBits<N>) {
-        *self = *self - rhs.val;
-    }
-}
+impl_binop!(Sub, sub, u128::wrapping_sub);
+impl_assign_op!(SubAssign, sub_assign, u128::wrapping_sub);
+impl_signed_binop!(Sub, sub, i128::wrapping_sub);
+impl_assigned_signed_op!(SubAssign, sub_assign, i128::wrapping_sub);
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::rhdl_bits::bitwidth::*;
+    use crate::{rhdl_bits::bitwidth::*, test_binop};
+
+    #[test]
+    fn test_sub() {
+        for i in 0..=255 {
+            for j in 0..=255 {
+                test_binop!(-, i, j);
+            }
+        }
+    }
 
     #[test]
     fn test_sub_bits() {

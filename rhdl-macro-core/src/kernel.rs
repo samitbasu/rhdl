@@ -1,4 +1,3 @@
-use core::num;
 use std::collections::HashSet;
 
 use inflections::Inflect;
@@ -826,7 +825,7 @@ impl Context {
     }
 
     fn method_call(&mut self, expr: &syn::ExprMethodCall) -> Result<TS> {
-        const KNOWN_METHODS: [&str; 16] = [
+        const KNOWN_METHODS: &[&str] = &[
             "any",
             "all",
             "xor",
@@ -843,8 +842,11 @@ impl Context {
             "xshl",
             "xshr",
             "xsgn",
+            "dyn_bits",
+            "as_bits",
+            "as_signed_bits",
         ];
-        const TURBO_METHODS: [&str; 4] = ["resize", "xext", "xshl", "xshr"];
+        const TURBO_METHODS: &[&str] = &["resize", "xext", "xshl", "xshr"];
 
         let receiver = self.expr(&expr.receiver)?;
         let args = expr

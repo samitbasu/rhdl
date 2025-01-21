@@ -106,26 +106,8 @@ fn test_vm_signed_arith_function() -> miette::Result<()> {
         signal(a.val() - b.val())
     }
 
-    #[kernel]
-    fn and<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<s8, C> {
-        signal(a.val() & b.val())
-    }
-
-    #[kernel]
-    fn or<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<s8, C> {
-        signal(a.val() | b.val())
-    }
-
-    #[kernel]
-    fn xor<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<s8, C> {
-        signal(a.val() ^ b.val())
-    }
-
     test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_pair_s8_red())?;
     test_kernel_vm_and_verilog::<sub<Red>, _, _, _>(sub::<Red>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<and<Red>, _, _, _>(and::<Red>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<or<Red>, _, _, _>(or::<Red>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<xor<Red>, _, _, _>(xor::<Red>, tuple_pair_s8_red())?;
     Ok(())
 }
 

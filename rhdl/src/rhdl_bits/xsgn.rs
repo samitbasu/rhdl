@@ -1,8 +1,8 @@
 use std::ops::Add;
 
-use crate::rhdl_typenum::prelude::*;
+use crate::{rhdl_bits::signed_dyn_bits::SignedDynBits, rhdl_typenum::prelude::*};
 
-use super::{signed, BitWidth, Bits, SignedBits};
+use super::{dyn_bits::DynBits, signed, BitWidth, Bits, SignedBits};
 
 pub trait XSgn {
     type Output;
@@ -19,5 +19,18 @@ where
 
     fn xsgn(self) -> Self::Output {
         signed(self.raw() as i128)
+    }
+}
+
+impl XSgn for DynBits {
+    type Output = SignedDynBits;
+
+    fn xsgn(self) -> Self::Output {
+        assert!(self.bits < 128);
+        SignedDynBits {
+            val: self.val as i128,
+            bits: self.bits + 1,
+        }
+        .wrapped()
     }
 }

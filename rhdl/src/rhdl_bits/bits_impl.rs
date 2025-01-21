@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types)]
 use std::ops::{Add, Sub};
 
-use super::{signed, signed_bits_impl::SignedBits, BitWidth};
+use super::{dyn_bits::DynBits, signed, signed_bits_impl::SignedBits, BitWidth};
 use crate::rhdl_bits::bitwidth::*;
 use seq_macro::seq;
 /// The [Bits] type is a fixed-sized bit vector.  It is meant to
@@ -69,45 +69,6 @@ impl<Len: BitWidth> std::fmt::UpperHex for Bits<Len> {
 impl<Len: BitWidth> std::fmt::Binary for Bits<Len> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}'b{:b}", Len::BITS, self.val)
-    }
-}
-
-impl<Len: BitWidth> std::ops::BitAnd for Bits<Len> {
-    type Output = Self;
-    fn bitand(self, rhs: Self) -> Self {
-        bits(self.val & rhs.val)
-    }
-}
-
-impl<Len: BitWidth> std::ops::BitAndAssign for Bits<Len> {
-    fn bitand_assign(&mut self, rhs: Self) {
-        self.val &= rhs.val;
-    }
-}
-
-impl<Len: BitWidth> std::ops::BitOr for Bits<Len> {
-    type Output = Self;
-    fn bitor(self, rhs: Self) -> Self {
-        bits(self.val | rhs.val)
-    }
-}
-
-impl<Len: BitWidth> std::ops::BitOrAssign for Bits<Len> {
-    fn bitor_assign(&mut self, rhs: Self) {
-        self.val |= rhs.val;
-    }
-}
-
-impl<Len: BitWidth> std::ops::BitXor for Bits<Len> {
-    type Output = Self;
-    fn bitxor(self, rhs: Self) -> Self {
-        bits(self.val ^ rhs.val)
-    }
-}
-
-impl<Len: BitWidth> std::ops::BitXorAssign for Bits<Len> {
-    fn bitxor_assign(&mut self, rhs: Self) {
-        self.val ^= rhs.val;
     }
 }
 
@@ -211,6 +172,15 @@ impl<N: BitWidth> Bits<N> {
     /// Extract the raw `u128` behind the [Bits] value.
     pub const fn raw(self) -> u128 {
         self.val
+    }
+    /// Convert the compile-time sized [Bits] to a run-time
+    /// tracked [DynBits] value.
+    pub const fn dyn_bits(self) -> DynBits {
+        DynBits {
+            val: self.val,
+            bits: N::BITS,
+        }
+        .wrapped()
     }
     /// Build a (dynamic, stack allocated) vector containing
     /// the bits that make up this value.  This will be slow.

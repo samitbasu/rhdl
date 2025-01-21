@@ -22,4 +22,5 @@ rhdl = { path = "../rhdl" }
 rhdl-fpga = { path = "../rhdl-fpga" }
 smallvec = "1.13.2"
 syn = { version = "2.0.61", features = ["full", "extra-traits"] }
+typenum = "1.17.0"
 vcd = "0.7.0"

@@ -1,7 +1,5 @@
-use std::ops::Add;
-
+use crate::rhdl_typenum::bools::True;
 pub use crate::rhdl_typenum::prelude::*;
-use crate::rhdl_typenum::{bools::True, const_generics::Const};
 use seq_macro::seq;
 
 pub trait BitWidth: Copy + Clone + Default + PartialEq + Eq + 'static {

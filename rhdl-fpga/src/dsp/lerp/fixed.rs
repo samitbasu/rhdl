@@ -103,7 +103,7 @@ where
     M: BitWidth + Add<U1>,
     op!(M + U1): BitWidth + Add<op!(N + U1)>,
     op!(N + U1): BitWidth,
-    op!((M + U1) + (N + U1)): BitWidth,
+    op!((M + U1) + (N + U1)): BitWidth + Add<op!(N + M + U1 + U1)>,
     op!(N + M): BitWidth + Add<U1>,
     op!(N + M + U1): BitWidth + Add<U1>,
     op!(N + M + U1 + U1): BitWidth,

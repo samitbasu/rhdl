@@ -1,7 +1,7 @@
 use std::ops::Add;
 
-use super::{signed, BitWidth, Bits, SignedBits};
-use crate::rhdl_typenum::prelude::*;
+use super::{dyn_bits::DynBits, signed, BitWidth, Bits, SignedBits};
+use crate::{rhdl_bits::signed_dyn_bits::SignedDynBits, rhdl_typenum::prelude::*};
 
 pub trait XNeg {
     type Output;
@@ -19,6 +19,18 @@ where
     }
 }
 
+impl XNeg for DynBits {
+    type Output = DynBits;
+    fn xneg(self) -> Self::Output {
+        assert!(self.bits < 128);
+        DynBits {
+            val: self.val.wrapping_neg(),
+            bits: self.bits + 1,
+        }
+        .wrapped()
+    }
+}
+
 impl<N> XNeg for SignedBits<N>
 where
     N: Add<U1> + BitWidth,
@@ -27,5 +39,17 @@ where
     type Output = SignedBits<op!(N + U1)>;
     fn xneg(self) -> Self::Output {
         signed(self.val.wrapping_neg())
+    }
+}
+
+impl XNeg for SignedDynBits {
+    type Output = SignedDynBits;
+    fn xneg(self) -> Self::Output {
+        assert!(self.bits < 128);
+        SignedDynBits {
+            val: self.val.wrapping_neg(),
+            bits: self.bits + 1,
+        }
+        .wrapped()
     }
 }

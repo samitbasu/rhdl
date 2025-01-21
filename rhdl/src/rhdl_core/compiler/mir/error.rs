@@ -46,6 +46,8 @@ pub enum TypeCheck {
     PathMismatchInTypeInference,
     #[error("Cannot determine the sign of this value")]
     ExpectedSignFlag,
+    #[error("Expression causes an overflow in bit widths (currently a maximum of 128 bits is supported)")]
+    BitWidthOverflow,
 }
 
 #[derive(Error, Debug, Diagnostic)]
@@ -105,9 +107,13 @@ pub enum ICE {
     #[error("Slot {slot:?} is read before being written")]
     SlotIsReadBeforeBeingWritten { slot: Slot },
     #[error("Cannot write to a literal {ndx:?}")]
-    CannotWriteToRHIFLiteral { ndx: crate::rhdl_core::rhif::spec::LiteralId },
+    CannotWriteToRHIFLiteral {
+        ndx: crate::rhdl_core::rhif::spec::LiteralId,
+    },
     #[error("Cannot write to a RTL literal {ndx:?}")]
-    CannotWriteToRTLLiteral { ndx: crate::rhdl_core::rtl::spec::LiteralId },
+    CannotWriteToRTLLiteral {
+        ndx: crate::rhdl_core::rtl::spec::LiteralId,
+    },
     #[error("Slot {slot:?} is written twice")]
     SlotIsWrittenTwice { slot: Slot },
     #[error("Mismatch in data types (clock domain ignored) {lhs:?} and {rhs:?}")]
@@ -159,9 +165,13 @@ pub enum ICE {
     #[error("Malformed RTL flow graph returned")]
     MalformedRTLFlowGraph,
     #[error("VM encountered an uninitialized RHIF register {r:?}")]
-    UninitializedRegister { r: crate::rhdl_core::rhif::spec::RegisterId },
+    UninitializedRegister {
+        r: crate::rhdl_core::rhif::spec::RegisterId,
+    },
     #[error("VM encountered an uninitialized RTL register {r:?}")]
-    UninitializedRTLRegister { r: crate::rhdl_core::rtl::spec::RegisterId },
+    UninitializedRTLRegister {
+        r: crate::rhdl_core::rtl::spec::RegisterId,
+    },
     #[error("VM cannot write a non-empty value to an empty slot")]
     CannotWriteNonEmptyValueToEmptySlot,
     #[error("VM encountered a discriminant {discriminant:?} with no matching arm")]

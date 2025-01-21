@@ -1,25 +1,29 @@
 use std::ops::Mul;
 
+use crate::{impl_binop, impl_signed_binop};
+
+use super::dyn_bits::DynBits;
+use super::signed_dyn_bits::SignedDynBits;
 use super::{bits_impl::bits_masked, signed_bits_impl::signed_wrapped, BitWidth, Bits, SignedBits};
 
-impl<N: BitWidth> Mul for Bits<N> {
-    type Output = Bits<N>;
-    fn mul(self, rhs: Bits<N>) -> Self::Output {
-        bits_masked(self.val.wrapping_mul(rhs.val))
-    }
-}
-
-impl<N: BitWidth> Mul for SignedBits<N> {
-    type Output = SignedBits<N>;
-    fn mul(self, rhs: SignedBits<N>) -> Self::Output {
-        signed_wrapped(self.val.wrapping_mul(rhs.val))
-    }
-}
+impl_binop!(Mul, mul, u128::wrapping_mul);
+impl_signed_binop!(Mul, mul, i128::wrapping_mul);
 
 #[cfg(test)]
 mod tests {
     use crate::rhdl_bits::bits;
+    use crate::rhdl_bits::bits_impl::bits_masked;
     use crate::rhdl_bits::bitwidth::*;
+    use crate::test_binop;
+
+    #[test]
+    fn test_muls() {
+        for i in 0..=255 {
+            for j in 0..=255 {
+                test_binop!(*, i, j);
+            }
+        }
+    }
 
     #[test]
     fn test_mul() {
