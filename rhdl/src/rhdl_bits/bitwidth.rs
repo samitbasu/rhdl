@@ -1,6 +1,4 @@
-use crate::rhdl_typenum::bools::True;
 pub use crate::rhdl_typenum::prelude::*;
-use seq_macro::seq;
 
 pub trait BitWidth: Copy + Clone + Default + PartialEq + Eq + 'static {
     const BITS: usize;
@@ -9,17 +7,9 @@ pub trait BitWidth: Copy + Clone + Default + PartialEq + Eq + 'static {
 impl<N> BitWidth for N
 where
     N: Unsigned + Copy + Clone + Default + PartialEq + Eq + 'static,
-    N: IsLessThanOrEqual<U128>,
-    IsLessThanOrEqualTo<N, U128>: IsTrue,
 {
     const BITS: usize = N::USIZE;
 }
-
-seq!(N in 1..=128 {
-    impl IsLessThanOrEqual<U128> for Const<N> {
-        type Output = True;
-    }
-});
 
 #[cfg(test)]
 mod tests {
