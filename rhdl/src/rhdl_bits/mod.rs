@@ -477,6 +477,9 @@ mod test {
 
     use super::alias::*;
     use super::*;
+    use crate::rhdl_bits::xadd::XAdd;
+    use crate::rhdl_bits::xmul::XMul;
+    use crate::rhdl_bits::xsub::XSub;
 
     pub(crate) fn set_bit<N: BitWidth>(x: Bits<N>, i: usize, value: bool) -> Bits<N> {
         let selector = 1_u128 << i;
@@ -510,4 +513,7 @@ mod test {
         println!("Time elapsed in expensive_function() is: {:?}", duration);
         println!("c = {:b}", c);
     }
+
+    #[cfg(feature = "typenum-tests")]
+    include!(concat!(env!("OUT_DIR"), "/bit_tests.rs"));
 }

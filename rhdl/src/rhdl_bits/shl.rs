@@ -3,7 +3,9 @@ use std::ops::ShlAssign;
 
 use super::bits_impl::bits_masked;
 use super::bits_impl::Bits;
+use super::dyn_bits::DynBits;
 use super::signed_bits_impl::SignedBits;
+use super::signed_dyn_bits::SignedDynBits;
 use super::BitWidth;
 
 // Note! When reviewing this code remember that wrapping is not the same
@@ -37,6 +39,56 @@ where
     type Output = Self;
     fn shl(self, rhs: Bits<M>) -> Self::Output {
         bits_masked(u128::wrapping_shl(self.val, rhs.val as u32))
+    }
+}
+
+impl<N> Shl<Bits<N>> for DynBits
+where
+    N: BitWidth,
+{
+    type Output = DynBits;
+    fn shl(self, rhs: Bits<N>) -> Self::Output {
+        assert!(rhs.raw() < self.bits as u128);
+        DynBits {
+            val: self.val.wrapping_shl(rhs.val as u32),
+            bits: self.bits,
+        }
+        .wrapped()
+    }
+}
+
+impl<N> Shl<DynBits> for Bits<N>
+where
+    N: BitWidth,
+{
+    type Output = Bits<N>;
+    fn shl(self, rhs: DynBits) -> Self::Output {
+        assert!(rhs.raw() <= N::BITS as u128);
+        bits_masked(self.val.wrapping_shl(rhs.val as u32))
+    }
+}
+
+impl Shl<DynBits> for DynBits {
+    type Output = DynBits;
+    fn shl(self, rhs: DynBits) -> Self::Output {
+        assert!(rhs.raw() < self.bits as u128);
+        DynBits {
+            val: self.val.wrapping_shl(rhs.val as u32),
+            bits: self.bits,
+        }
+        .wrapped()
+    }
+}
+
+impl Shl<u128> for DynBits {
+    type Output = DynBits;
+    fn shl(self, rhs: u128) -> Self::Output {
+        assert!(rhs <= self.bits as u128);
+        DynBits {
+            val: self.val.wrapping_shl(rhs as u32),
+            bits: self.bits,
+        }
+        .wrapped()
     }
 }
 
@@ -80,6 +132,17 @@ where
     }
 }
 
+impl<N> Shl<DynBits> for SignedBits<N>
+where
+    N: BitWidth,
+{
+    type Output = Self;
+    fn shl(self, rhs: DynBits) -> Self::Output {
+        assert!(rhs.raw() < N::BITS as u128);
+        self.as_unsigned().shl(rhs).as_signed()
+    }
+}
+
 impl<N, M> ShlAssign<Bits<M>> for SignedBits<N>
 where
     N: BitWidth,
@@ -96,6 +159,45 @@ where
 {
     fn shl_assign(&mut self, rhs: u128) {
         *self = *self << rhs;
+    }
+}
+
+impl<N> Shl<Bits<N>> for SignedDynBits
+where
+    N: BitWidth,
+{
+    type Output = Self;
+    fn shl(self, rhs: Bits<N>) -> Self::Output {
+        assert!(rhs.raw() <= self.bits as u128);
+        SignedDynBits {
+            val: self.val.wrapping_shl(rhs.val as u32),
+            bits: self.bits,
+        }
+        .wrapped()
+    }
+}
+
+impl Shl<DynBits> for SignedDynBits {
+    type Output = SignedDynBits;
+    fn shl(self, rhs: DynBits) -> Self::Output {
+        assert!(rhs.raw() <= self.bits as u128);
+        SignedDynBits {
+            val: self.val.wrapping_shl(rhs.val as u32),
+            bits: self.bits,
+        }
+        .wrapped()
+    }
+}
+
+impl Shl<u128> for SignedDynBits {
+    type Output = SignedDynBits;
+    fn shl(self, rhs: u128) -> Self::Output {
+        assert!(rhs <= self.bits as u128);
+        SignedDynBits {
+            val: self.val.wrapping_shl(rhs as u32),
+            bits: self.bits,
+        }
+        .wrapped()
     }
 }
 

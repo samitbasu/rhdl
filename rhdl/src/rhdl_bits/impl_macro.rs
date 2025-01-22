@@ -277,7 +277,7 @@ macro_rules! impl_assigned_signed_op {
 
 #[macro_export]
 macro_rules! test_binop {
-    ($op: tt, $val1: expr, $val2: expr) => {
+    ($op: tt, $wrap: path, $val1: expr, $val2: expr) => {
         {
             use $crate::rhdl_bits::alias::*;
             use $crate::rhdl_bits::bits;
@@ -288,14 +288,14 @@ macro_rules! test_binop {
             // Check all reasonable combinations.  For each combination,
             // the result should be the same as if we had added the two
             // values together and then masked the result.
-            assert_eq!(x $op y, bits_masked(x.val $op y));
-            assert_eq!(y $op x, bits_masked(y $op x.val));
-            assert_eq!(x $op z, bits_masked(x.val $op z.val));
-            assert_eq!(z $op x, bits_masked(z.val $op x.val));
-            assert_eq!(z $op y, bits_masked::<U8>(z.val $op y).dyn_bits());
-            assert_eq!(y $op z, bits_masked::<U8>(y $op z.val).dyn_bits());
-            assert_eq!(z $op z, bits_masked::<U8>(z.val $op z.val).dyn_bits());
-            assert_eq!(x $op x, bits_masked(x.val $op x.val));
+            assert_eq!(x $op y, bits_masked($wrap(x.val, y)));
+            assert_eq!(y $op x, bits_masked($wrap(y, x.val)));
+            assert_eq!(x $op z, bits_masked($wrap(x.val, z.val)));
+            assert_eq!(z $op x, bits_masked($wrap(z.val, x.val)));
+            assert_eq!(z $op y, bits_masked::<U8>($wrap(z.val, y)).dyn_bits());
+            assert_eq!(y $op z, bits_masked::<U8>($wrap(y, z.val)).dyn_bits());
+            assert_eq!(z $op z, bits_masked::<U8>($wrap(z.val, z.val)).dyn_bits());
+            assert_eq!(x $op x, bits_masked($wrap(x.val, x.val)));
             // Assert that all of the outputs are the same size ( 8 bits )
             assert_eq!((z $op y).bits(), 8);
             assert_eq!((y $op z).bits(), 8);

@@ -45,7 +45,7 @@ smallvec = "1.13.2"
 vcd = "0.7.0"
 
 [features]
-default = ["svg", "iverilog"]
+default = ["svg", "iverilog", "typenum-tests"]
 svg = ["dep:svg"]
 iverilog = []
 typenum-tests = []

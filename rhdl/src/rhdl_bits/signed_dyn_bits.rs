@@ -8,6 +8,12 @@ pub struct SignedDynBits {
     pub bits: usize,
 }
 
+impl std::fmt::Debug for SignedDynBits {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{val}_ds{bits}", bits = self.bits, val = self.val)
+    }
+}
+
 impl SignedDynBits {
     pub const fn max_value(self) -> i128 {
         i128::MAX >> (128 - self.bits)

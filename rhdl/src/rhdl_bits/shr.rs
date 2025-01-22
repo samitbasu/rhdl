@@ -1,8 +1,11 @@
 use std::ops::Shr;
 use std::ops::ShrAssign;
 
+use crate::rhdl_bits::signed_dyn_bits::SignedDynBits;
+
 use super::bits_impl::bits_masked;
 use super::bits_impl::Bits;
+use super::dyn_bits::DynBits;
 use super::signed;
 use super::signed_bits_impl::SignedBits;
 use super::BitWidth;
@@ -35,6 +38,56 @@ where
     type Output = Self;
     fn shr(self, rhs: Bits<M>) -> Self::Output {
         bits_masked(u128::wrapping_shr(self.val, rhs.val as u32))
+    }
+}
+
+impl<N> Shr<Bits<N>> for DynBits
+where
+    N: BitWidth,
+{
+    type Output = DynBits;
+    fn shr(self, rhs: Bits<N>) -> Self::Output {
+        assert!(rhs.raw() < self.bits as u128);
+        DynBits {
+            val: self.val.wrapping_shr(rhs.val as u32),
+            bits: self.bits,
+        }
+        .wrapped()
+    }
+}
+
+impl<N> Shr<DynBits> for Bits<N>
+where
+    N: BitWidth,
+{
+    type Output = Bits<N>;
+    fn shr(self, rhs: DynBits) -> Self::Output {
+        assert!(rhs.raw() < N::BITS as u128);
+        bits_masked(self.val.wrapping_shr(rhs.val as u32))
+    }
+}
+
+impl Shr<DynBits> for DynBits {
+    type Output = DynBits;
+    fn shr(self, rhs: DynBits) -> Self::Output {
+        assert!(rhs.raw() < self.bits as u128);
+        DynBits {
+            val: self.val.wrapping_shr(rhs.val as u32),
+            bits: self.bits,
+        }
+        .wrapped()
+    }
+}
+
+impl Shr<u128> for DynBits {
+    type Output = DynBits;
+    fn shr(self, rhs: u128) -> Self::Output {
+        assert!(rhs <= self.bits as u128);
+        DynBits {
+            val: self.val.wrapping_shr(rhs as u32),
+            bits: self.bits,
+        }
+        .wrapped()
     }
 }
 
@@ -94,6 +147,56 @@ where
 {
     fn shr_assign(&mut self, rhs: u128) {
         *self = *self >> rhs;
+    }
+}
+
+impl<N> Shr<DynBits> for SignedBits<N>
+where
+    N: BitWidth,
+{
+    type Output = Self;
+    fn shr(self, rhs: DynBits) -> Self::Output {
+        assert!(rhs.raw() < N::BITS as u128);
+        signed(i128::wrapping_shr(self.val, rhs.val as u32))
+    }
+}
+
+impl<N> Shr<Bits<N>> for SignedDynBits
+where
+    N: BitWidth,
+{
+    type Output = Self;
+    fn shr(self, rhs: Bits<N>) -> Self::Output {
+        assert!(rhs.raw() <= self.bits as u128);
+        SignedDynBits {
+            val: self.val.wrapping_shr(rhs.val as u32),
+            bits: self.bits,
+        }
+        .wrapped()
+    }
+}
+
+impl Shr<DynBits> for SignedDynBits {
+    type Output = SignedDynBits;
+    fn shr(self, rhs: DynBits) -> Self::Output {
+        assert!(rhs.raw() <= self.bits as u128);
+        SignedDynBits {
+            val: self.val.wrapping_shr(rhs.val as u32),
+            bits: self.bits,
+        }
+        .wrapped()
+    }
+}
+
+impl Shr<u128> for SignedDynBits {
+    type Output = SignedDynBits;
+    fn shr(self, rhs: u128) -> Self::Output {
+        assert!(rhs <= self.bits as u128);
+        SignedDynBits {
+            val: self.val.wrapping_shr(rhs as u32),
+            bits: self.bits,
+        }
+        .wrapped()
     }
 }
 
