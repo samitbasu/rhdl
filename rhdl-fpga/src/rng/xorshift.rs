@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use rhdl::prelude::*;
 
 use crate::core::dff;
 
