@@ -45,10 +45,10 @@ smallvec = "1.13.2"
 vcd = "0.7.0"
 
 [features]
-default = ["svg", "iverilog", "typenum-tests"]
+default = ["svg", "iverilog"]
 svg = ["dep:svg"]
 iverilog = []
-typenum-tests = []
+exhaustive-tests = []
 
 [dev-dependencies]
 itertools = "0.12.0"
