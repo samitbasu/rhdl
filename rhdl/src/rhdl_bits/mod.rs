@@ -514,6 +514,6 @@ mod test {
         println!("c = {:b}", c);
     }
 
-    //    #[cfg(feature = "typenum-tests")]
-    //include!(concat!(env!("OUT_DIR"), "/bit_tests.rs"));
+    #[cfg(feature = "exhaustive-tests")]
+    include!(concat!(env!("OUT_DIR"), "/bit_tests.rs"));
 }
