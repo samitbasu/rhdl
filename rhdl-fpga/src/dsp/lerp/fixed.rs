@@ -2,66 +2,6 @@ use std::ops::Add;
 
 use rhdl::prelude::*;
 
-use crate::cdc::synchronizer::S;
-
-/// A Linear Interpolation unit.  This unit takes a pair of values that and an
-/// interpolation factor, and then produces the linear interpolation of the
-/// two values.  The interpolation factor is a fixed-point number, with a
-/// magnitude strictly less than 1.0.
-///
-/// Given two input samples A, and B, and a linear interpolation value of x
-/// the output is:
-///     A * (1 - x) + B * x
-/// Or equivalently:
-///    A + (B - A) * x
-/// Because x is represented as a fixed point number it really represents
-///    f * 2^N
-/// So we need to calculate
-///    A + (B - A) * f * 2^N
-
-/*#[derive(Debug, Clone, Synchronous)]
-pub struct U {}
-*/
-
-
-/*
-
-#[derive(PartialEq, Debug, Digital, Default)]
-pub struct I<N: BitWidth, const M: usize> {
-    /// The value taken when the interpolant is 0
-    pub a: SignedBits<N>,
-    /// The value taken when the interpolant is maximal
-    pub b: SignedBits<N>,
-    /// The interpolation value (0 <= x < 1)
-    pub x: Bits<M>,
-}
-
-#[derive(PartialEq, Debug, Digital, Default)]
-pub struct O<N: BitWidth> {
-    /// The interpolated value
-    pub y: SignedBits<N>,
-}
-
-//  Where A = M + 1, B = N + M + 1
-//#[kernel]
-pub fn lerp_kernel<N: BitWidth, const M: usize, const A: usize>(_cr: ClockReset, i: I<N, M>) -> O<N>
-where
-    SignedBits<A>: std::ops::Mul<SignedBits<N>, Output = SignedBits<M>>,
-    SignedBits<N>: Pad,
-{
-    let a: SignedBits<N> = i.a.resize();
-    let ax = a.pad();
-    let b: SignedBits<N> = i.b.resize();
-    let delt = b - a;
-    let _a = a << (A as u128);
-    let x: Bits<A> = i.x.resize();
-    let x: SignedBits<A> = x.as_signed();
-    let z = x * delt;
-    //    let y = (a + delt * x) >> (A as u128);
-    O::<N> { y: z.resize() }
-}
-*/
-
 /// Linear interpolation as a function - for unsigned values
 ///
 /// Given A: Bits<N>, B: Bits<N> and a factor: Bits<M>,
@@ -96,58 +36,73 @@ where
 ///
 /// We can (after adding it), right shift by M bits to retrieve Y, and then
 /// truncate the value to N bits, and cast as unsigned.
+#[kernel]
 pub fn lerp_unsigned<N, M>(lower_value: Bits<N>, upper_value: Bits<N>, factor: Bits<M>) -> Bits<N>
 where
-    // We need to +be able to add 1 to the width of the interpolation factor
-    N: BitWidth + Add<U1> + Add<M>,
+    N: BitWidth,
     M: BitWidth + Add<U1>,
-    op!(M + U1): BitWidth + Add<op!(N + U1)>,
-    op!(N + U1): BitWidth,
-    op!((M + U1) + (N + U1)): BitWidth + Add<op!(N + M + U1 + U1)>,
-    op!(N + M): BitWidth + Add<U1>,
-    op!(N + M + U1): BitWidth + Add<U1>,
-    op!(N + M + U1 + U1): BitWidth,
-    /*
-        // We also need to be able to add 1 to the width of the values
-        N: BitWidth + Add<U1> + Add<M>,
-        op!(N + U1): BitWidth,
-        // We also need M+U1 and N+U1 to be multiplicatively compatible
-        op!(M + U1): Add<Sum<N, U1>>,
-        Sum<Sum<M, U1>, Sum<N, U1>>: BitWidth,
-        // We need N+M to be a thing
-        Sum<N, M>: BitWidth + Add<U1>,
-        // We need N+M+1 to be a thing also
-        Sum<Sum<N, M>, U1>: BitWidth + Add<U1>,
-        // As well as N+M+2
-        Sum<Sum<Sum<N, M>, U1>, U1>: BitWidth,
-    */
+    op!(M + U1): BitWidth,
 {
-    // Signed factor is signed M+1 bits wide
-    let signed_factor = factor.xsgn();
-    // Compute B - A.  This will also be signed of width N+1
-    let diff = upper_value.xsub(lower_value);
-    // Compute signed_factor * B - A = correction.  This has size M+1 + N+1 = M+N+2
-    let correction = signed_factor.xmul(diff);
-    // Shift the lower value by M bits to the left
-    let lower_value = lower_value.xshl::<M>();
-    // Convert it to a signed value so we can add the correction (requires an additional bit)
-    let lower_value = lower_value.xsgn().xext::<U1>();
-    // Compute the correction - we do not need overflow on this, so a regular add (wrapping) is fine
-    let y = lower_value + correction;
+    // Convert them to DynBits so we can manipulate them
+    let lower_value = lower_value.dyn_bits(); // Size N
+    let upper_value = upper_value.dyn_bits(); // Size N
+    let factor = factor.dyn_bits(); // Size M
+    let signed_factor = factor.xsgn(); // Size M + 1
+    let diff = upper_value.xsub(lower_value); // Size N + 1
+    let correction = signed_factor.xmul(diff); // Size N + M + 2
+    let lower_value = lower_value.xshl::<M>(); // Size N + M
+    let lower_value = lower_value.xsgn(); // Size N + M + 1
+    let lower_value = lower_value.xext::<U1>(); // Size N + M + 2
+    let y = lower_value + correction; // Size N + M + 2 - we can use a wrapped sum here
+    let y = y.xshr::<M>(); // Size N + 2
+    let y = y.as_unsigned().resize::<N>(); // Size N
+    y.as_bits()
+}
 
-    /*
-       // Calculate the product.  This will be signed of width N+M+2
-       let product = signed_factor.xmul(diff);
+#[cfg(test)]
+mod tests {
+    use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog_synchronous;
 
-       let b_frac = upper_value.xmul(factor);
-       let a_frac = lower_value.xmul(factor);
+    use super::*;
 
-       // This is now N+1 bits wide and signed
-       let delta = upper_value.xsub(lower_value);
-       // We need the lower value to also be N+1 bits wide and signed
-       let lower_value = lower_value.xext::<U1>().as_signed();
-       // Next, we will multiply delta times the factor.  The result is M+N+1 bits wide
-       let delta_times_factor = delta.xmul(factor);
-    */
-    todo!()
+    fn lerp_i32(a: i32, b: i32, f: i32, shift: u8) -> i32 {
+        ((a << shift) + (b - a) * f) >> shift
+    }
+
+    #[test]
+    fn test_lerp_exhaustive() {
+        for a in 0..16 {
+            for b in 0..16 {
+                for factor in 0..32 {
+                    let x = b4(a);
+                    let y = b4(b);
+                    let f = b5(factor);
+                    // Compute the "right answer", but use integer arithmetic, not floating point.
+                    let expected = lerp_i32(a as i32, b as i32, factor as i32, 5) as u128;
+                    let expected = expected as u128;
+                    assert_eq!(
+                        lerp_unsigned(x, y, f).raw(),
+                        expected,
+                        "{} {} {}",
+                        a,
+                        b,
+                        factor
+                    );
+                }
+            }
+        }
+    }
+    #[test]
+    fn test_lerp_kernel() -> miette::Result<()> {
+        let vals = (0..16)
+            .map(b4)
+            .flat_map(|x| (0..16).map(move |y| (x, b4(y))))
+            .flat_map(|(x, y)| (0..32).map(move |f| (x, y, b5(f))))
+            .collect::<Vec<_>>();
+        test_kernel_vm_and_verilog_synchronous::<lerp_unsigned<U4, U5>, _, _, _>(
+            lerp_unsigned,
+            vals.into_iter(),
+        )?;
+        Ok(())
+    }
 }
