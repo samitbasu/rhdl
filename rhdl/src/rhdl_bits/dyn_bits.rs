@@ -8,6 +8,12 @@ pub struct DynBits {
     pub bits: usize,
 }
 
+impl std::fmt::Debug for DynBits {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{val}_db{bits}", bits = self.bits, val = self.val)
+    }
+}
+
 impl DynBits {
     pub const fn masked(self) -> DynBits {
         DynBits {
@@ -91,12 +97,6 @@ impl DynBits {
     }
     pub const fn bits(self) -> usize {
         self.bits
-    }
-}
-
-impl std::fmt::Debug for DynBits {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}_b{}", self.val, self.bits)
     }
 }
 

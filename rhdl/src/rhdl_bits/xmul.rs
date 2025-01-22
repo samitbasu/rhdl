@@ -1,4 +1,6 @@
-use super::{bits, signed, BitWidth, Bits, SignedBits};
+use super::{
+    bits, dyn_bits::DynBits, signed, signed_dyn_bits::SignedDynBits, BitWidth, Bits, SignedBits,
+};
 use crate::rhdl_typenum::prelude::*;
 use std::ops::Add;
 
@@ -19,6 +21,48 @@ where
     }
 }
 
+impl<N> XMul<Bits<N>> for DynBits
+where
+    N: BitWidth,
+{
+    type Output = DynBits;
+    fn xmul(self, rhs: Bits<N>) -> Self::Output {
+        assert!(self.bits + N::BITS <= 128);
+        DynBits {
+            val: self.val.wrapping_mul(rhs.val),
+            bits: self.bits + N::BITS,
+        }
+        .wrapped()
+    }
+}
+
+impl<N> XMul<DynBits> for Bits<N>
+where
+    N: BitWidth,
+{
+    type Output = DynBits;
+    fn xmul(self, rhs: DynBits) -> Self::Output {
+        assert!(N::BITS + rhs.bits <= 128);
+        DynBits {
+            val: self.val.wrapping_mul(rhs.val),
+            bits: N::BITS + rhs.bits,
+        }
+        .wrapped()
+    }
+}
+
+impl XMul<DynBits> for DynBits {
+    type Output = DynBits;
+    fn xmul(self, rhs: DynBits) -> Self::Output {
+        assert!(self.bits + rhs.bits <= 128);
+        DynBits {
+            val: self.val.wrapping_mul(rhs.val),
+            bits: self.bits + rhs.bits,
+        }
+        .wrapped()
+    }
+}
+
 impl<N, M> XMul<SignedBits<M>> for SignedBits<N>
 where
     N: Add<M> + BitWidth,
@@ -28,6 +72,48 @@ where
     type Output = SignedBits<op!(N + M)>;
     fn xmul(self, rhs: SignedBits<M>) -> Self::Output {
         signed(self.val.wrapping_mul(rhs.val))
+    }
+}
+
+impl<N> XMul<SignedBits<N>> for SignedDynBits
+where
+    N: BitWidth,
+{
+    type Output = SignedDynBits;
+    fn xmul(self, rhs: SignedBits<N>) -> Self::Output {
+        assert!(self.bits + N::BITS <= 128);
+        SignedDynBits {
+            val: self.val.wrapping_mul(rhs.val),
+            bits: self.bits + N::BITS,
+        }
+        .wrapped()
+    }
+}
+
+impl<N> XMul<SignedDynBits> for SignedBits<N>
+where
+    N: BitWidth,
+{
+    type Output = SignedDynBits;
+    fn xmul(self, rhs: SignedDynBits) -> Self::Output {
+        assert!(N::BITS + rhs.bits <= 128);
+        SignedDynBits {
+            val: self.val.wrapping_mul(rhs.val),
+            bits: N::BITS + rhs.bits,
+        }
+        .wrapped()
+    }
+}
+
+impl XMul<SignedDynBits> for SignedDynBits {
+    type Output = SignedDynBits;
+    fn xmul(self, rhs: SignedDynBits) -> Self::Output {
+        assert!(self.bits + rhs.bits <= 128);
+        SignedDynBits {
+            val: self.val.wrapping_mul(rhs.val),
+            bits: self.bits + rhs.bits,
+        }
+        .wrapped()
     }
 }
 

@@ -11,6 +11,7 @@ use crate::const_max;
 use super::kind::DiscriminantLayout;
 
 use rhdl_trace_type as rtt;
+use seq_macro::seq;
 
 /// This is the core trait for all of `RHDL` data elements.  If you
 /// want to use a data type in the hardware part of the design,
@@ -442,105 +443,56 @@ impl<N: BitWidth> Digital for SignedBits<N> {
     }
 }
 
-// Add blanket implementation for tuples up to size 4.
-impl<T0: Digital> Digital for (T0,) {
-    const BITS: usize = T0::BITS;
-    fn static_kind() -> Kind {
-        Kind::make_tuple(vec![T0::static_kind()])
-    }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::make_tuple(vec![T0::static_trace_type()])
-    }
-    fn bin(self) -> Vec<BitX> {
-        self.0.bin()
-    }
-    fn dont_care() -> Self {
-        (T0::dont_care(),)
-    }
-}
-
-impl<T0: Digital, T1: Digital> Digital for (T0, T1) {
-    const BITS: usize = T0::BITS + T1::BITS;
-    fn static_kind() -> Kind {
-        Kind::make_tuple(vec![T0::static_kind(), T1::static_kind()])
-    }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::make_tuple(vec![T0::static_trace_type(), T1::static_trace_type()])
-    }
-    fn bin(self) -> Vec<BitX> {
-        let mut v = Vec::with_capacity(Self::BITS);
-        v.extend(self.0.bin());
-        v.extend(self.1.bin());
-        v
-    }
-    fn dont_care() -> Self {
-        (T0::dont_care(), T1::dont_care())
-    }
-}
-
-impl<T0: Digital, T1: Digital, T2: Digital> Digital for (T0, T1, T2) {
-    const BITS: usize = T0::BITS + T1::BITS + T2::BITS;
-    fn static_kind() -> Kind {
-        Kind::make_tuple(vec![
-            T0::static_kind(),
-            T1::static_kind(),
-            T2::static_kind(),
-        ])
-    }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::make_tuple(vec![
-            T0::static_trace_type(),
-            T1::static_trace_type(),
-            T2::static_trace_type(),
-        ])
-    }
-    fn bin(self) -> Vec<BitX> {
-        let mut v = Vec::with_capacity(Self::BITS);
-        v.extend(self.0.bin());
-        v.extend(self.1.bin());
-        v.extend(self.2.bin());
-        v
-    }
-    fn dont_care() -> Self {
-        (T0::dont_care(), T1::dont_care(), T2::dont_care())
+// Use the seq! macro to generate an implementation for a tuple of size N
+macro_rules! impl_tuple_for_digital {
+    ($size: expr) => {
+        seq!(N in 0..$size {
+            impl<
+              #(T~N: Digital,)*
+            > Digital for
+            (
+                #(T~N,)*
+            ) {
+                const BITS: usize = 0_usize #(+T~N::BITS)*;
+                fn static_kind() -> Kind {
+                    Kind::make_tuple(vec![
+                        #(T~N::static_kind(),)*
+                        ])
+                }
+                fn static_trace_type() -> rhdl_trace_type::TraceType {
+                    rtt::make_tuple(vec![
+                        #(T~N::static_trace_type(),)*
+                        ])
+                }
+                fn bin(self) -> Vec<BitX> {
+                    let mut v = Vec::with_capacity(Self::BITS);
+                    #(
+                        v.extend(self.N.bin());
+                    )*
+                    v
+                }
+                fn dont_care() -> Self {
+                    (
+                        #( T~N::dont_care(), )*
+                    )
+                }
+            }
+        });
     }
 }
 
-impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital> Digital for (T0, T1, T2, T3) {
-    const BITS: usize = T0::BITS + T1::BITS + T2::BITS + T3::BITS;
-    fn static_kind() -> Kind {
-        Kind::make_tuple(vec![
-            T0::static_kind(),
-            T1::static_kind(),
-            T2::static_kind(),
-            T3::static_kind(),
-        ])
-    }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::make_tuple(vec![
-            T0::static_trace_type(),
-            T1::static_trace_type(),
-            T2::static_trace_type(),
-            T3::static_trace_type(),
-        ])
-    }
-    fn bin(self) -> Vec<BitX> {
-        let mut v = Vec::with_capacity(Self::BITS);
-        v.extend(self.0.bin());
-        v.extend(self.1.bin());
-        v.extend(self.2.bin());
-        v.extend(self.3.bin());
-        v
-    }
-    fn dont_care() -> Self {
-        (
-            T0::dont_care(),
-            T1::dont_care(),
-            T2::dont_care(),
-            T3::dont_care(),
-        )
-    }
-}
+impl_tuple_for_digital!(1);
+impl_tuple_for_digital!(2);
+impl_tuple_for_digital!(3);
+impl_tuple_for_digital!(4);
+impl_tuple_for_digital!(5);
+impl_tuple_for_digital!(6);
+impl_tuple_for_digital!(7);
+impl_tuple_for_digital!(8);
+impl_tuple_for_digital!(9);
+impl_tuple_for_digital!(10);
+impl_tuple_for_digital!(11);
+impl_tuple_for_digital!(12);
 
 // macro to add digital trait for array of size N
 // The following macro is used to generate the implementations for

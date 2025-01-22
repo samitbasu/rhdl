@@ -21,7 +21,7 @@ mod test {
     fn test_or() {
         for i in 0..=255 {
             for j in 0..=255 {
-                test_binop!(|, i, j);
+                test_binop!(|, u128::bitor, i, j);
             }
         }
     }

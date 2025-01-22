@@ -17,7 +17,7 @@ mod test {
     fn test_and() {
         for i in 0..=255 {
             for j in 0..=255 {
-                test_binop!(&, i, j);
+                test_binop!(&, u128::bitand, i, j);
             }
         }
     }

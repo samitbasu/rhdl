@@ -20,7 +20,7 @@ mod tests {
     fn test_muls() {
         for i in 0..=255 {
             for j in 0..=255 {
-                test_binop!(*, i, j);
+                test_binop!(*, u128::wrapping_mul, i, j);
             }
         }
     }
