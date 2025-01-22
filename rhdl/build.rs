@@ -485,7 +485,7 @@ fn write_typenum_impl_func(name: &str, op: &str, f: fn(usize, usize) -> Option<u
     let file = std::fs::File::create(&dest_path).unwrap();
     let mut writer = io::BufWriter::new(file);
     for x in 1..=128 {
-        for y in 1..=129 {
+        for y in 1..=128 {
             if let Some(result) = f(x, y) {
                 if result > 0 && result <= 128 {
                     writeln!(writer, "impl {name}<U{y}> for U{x} {{",).unwrap();
