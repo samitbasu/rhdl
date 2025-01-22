@@ -1,6 +1,6 @@
 use crate::rhdl_bits::alias::{b128, s128};
 use log::{debug, trace};
-use std::{char::MAX, collections::BTreeMap};
+use std::collections::BTreeMap;
 
 use crate::rhdl_core::{
     ast::{

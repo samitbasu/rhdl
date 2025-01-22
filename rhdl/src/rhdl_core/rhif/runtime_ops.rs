@@ -1,5 +1,4 @@
-use crate::rhdl_bits::alias::b8;
-use num_bigint::{BigInt, BigUint};
+use num_bigint::BigInt;
 
 use crate::rhdl_core::bitx::dyn_bit_manip::{from_bigint, from_biguint, to_bigint, to_biguint};
 use crate::rhdl_core::error::rhdl_error;

@@ -270,7 +270,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 lhs,
                 arg1,
             }) => {
-                eq_kinds(slot_type(lhs), xneg_kind(obj, loc, slot_type(arg1))?, loc)?;
+                eq_kinds(slot_type(lhs), xsgn_kind(obj, loc, slot_type(arg1))?, loc)?;
             }
             OpCode::Unary(Unary {
                 op: AluUnary::Signed,
