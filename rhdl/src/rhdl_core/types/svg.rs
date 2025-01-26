@@ -2,6 +2,17 @@ use std::{iter::repeat, ops::Range};
 
 use super::kind::{DiscriminantAlignment, Kind};
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SvgOrientation {
+    Horizontal,
+    Vertical,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SvgOptions {
+    pub orientation: SvgOrientation,
+}
+
 #[derive(Clone, Debug)]
 struct KindLayout {
     row: usize,
