@@ -40,8 +40,7 @@ use rhdl::prelude::*;
 pub fn lerp_unsigned<N, M>(lower_value: Bits<N>, upper_value: Bits<N>, factor: Bits<M>) -> Bits<N>
 where
     N: BitWidth,
-    M: BitWidth + Add<U1>,
-    op!(M + U1): BitWidth,
+    M: BitWidth,
 {
     // Convert them to DynBits so we can manipulate them
     let lower_value = lower_value.dyn_bits(); // Size N
@@ -52,11 +51,33 @@ where
     let correction = signed_factor.xmul(diff); // Size N + M + 2
     let lower_value = lower_value.xshl::<M>(); // Size N + M
     let lower_value = lower_value.xsgn(); // Size N + M + 1
-    let lower_value = lower_value.xext::<U1>(); // Size N + M + 2
-    let y = lower_value + correction; // Size N + M + 2 - we can use a wrapped sum here
-    let y = y.xshr::<M>(); // Size N + 2
+    let y = lower_value.xadd(correction); // Size N + M + 3
+    let y = y.xshr::<M>(); // Size N + 3
     let y = y.as_unsigned().resize::<N>(); // Size N
     y.as_bits()
+}
+
+#[kernel]
+pub fn lerp_signed<N, M>(
+    lower_value: SignedBits<N>,
+    upper_value: SignedBits<N>,
+    factor: Bits<M>,
+) -> SignedBits<N>
+where
+    N: BitWidth,
+    M: BitWidth,
+{
+    let lower_value = lower_value.dyn_bits(); // Size N
+    let upper_value = upper_value.dyn_bits(); // Size N
+    let factor = factor.dyn_bits(); // Size M
+    let signed_factor = factor.xsgn(); // Size M + 1
+    let diff = upper_value.xsub(lower_value); // Size N + 1
+    let correction = signed_factor.xmul(diff); // Size N + M + 2
+    let lower_value = lower_value.xshl::<M>(); // Size N + M
+    let y = lower_value.xadd(correction); // Size N + M + 3
+    let y = y.xshr::<M>(); // Size N + 3
+    let y = y.resize::<N>(); // Size N
+    y.as_signed_bits()
 }
 
 #[cfg(test)]
@@ -67,6 +88,30 @@ mod tests {
 
     fn lerp_i32(a: i32, b: i32, f: i32, shift: u8) -> i32 {
         ((a << shift) + (b - a) * f) >> shift
+    }
+
+    #[test]
+    fn test_lerp_signed_exhaustive() {
+        for a in -8..7 {
+            for b in -8..7 {
+                for factor in 0..32 {
+                    let x = s4(a);
+                    let y = s4(b);
+                    let f = b5(factor);
+                    // Compute the "right answer", but use integer arithmetic, not floating point.
+                    let expected = lerp_i32(a as i32, b as i32, factor as i32, 5) as u128;
+                    let expected = expected as i128;
+                    assert_eq!(
+                        lerp_signed(x, y, f).raw(),
+                        expected,
+                        "{} {} {}",
+                        a,
+                        b,
+                        factor
+                    );
+                }
+            }
+        }
     }
 
     #[test]
@@ -101,6 +146,20 @@ mod tests {
             .collect::<Vec<_>>();
         test_kernel_vm_and_verilog_synchronous::<lerp_unsigned<U4, U5>, _, _, _>(
             lerp_unsigned,
+            vals.into_iter(),
+        )?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_signed_lerp_kernel() -> miette::Result<()> {
+        let vals = (-8..7)
+            .map(s4)
+            .flat_map(|x| (-8..7).map(move |y| (x, s4(y))))
+            .flat_map(|(x, y)| (0..32).map(move |f| (x, y, b5(f))))
+            .collect::<Vec<_>>();
+        test_kernel_vm_and_verilog_synchronous::<lerp_signed<U4, U5>, _, _, _>(
+            lerp_signed,
             vals.into_iter(),
         )?;
         Ok(())

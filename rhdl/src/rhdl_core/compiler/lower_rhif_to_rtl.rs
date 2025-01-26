@@ -37,27 +37,6 @@ struct RTLCompiler<'a> {
     register_count: usize,
 }
 
-// map a binary op from RHIF to RTL if possible
-fn map_binop(op: hf::AluBinary) -> Option<tl::AluBinary> {
-    match op {
-        AluBinary::Add => Some(tl::AluBinary::Add),
-        AluBinary::Sub => Some(tl::AluBinary::Sub),
-        AluBinary::Mul => Some(tl::AluBinary::Mul),
-        AluBinary::BitXor => Some(tl::AluBinary::BitXor),
-        AluBinary::BitAnd => Some(tl::AluBinary::BitAnd),
-        AluBinary::BitOr => Some(tl::AluBinary::BitOr),
-        AluBinary::Shl => Some(tl::AluBinary::Shl),
-        AluBinary::Shr => Some(tl::AluBinary::Shr),
-        AluBinary::Eq => Some(tl::AluBinary::Eq),
-        AluBinary::Lt => Some(tl::AluBinary::Lt),
-        AluBinary::Le => Some(tl::AluBinary::Le),
-        AluBinary::Ne => Some(tl::AluBinary::Ne),
-        AluBinary::Ge => Some(tl::AluBinary::Ge),
-        AluBinary::Gt => Some(tl::AluBinary::Gt),
-        _ => None,
-    }
-}
-
 impl<'a> RTLCompiler<'a> {
     fn new(object: &'a rhif::object::Object) -> Self {
         let mut symbols = SymbolMap::default();

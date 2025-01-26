@@ -13,6 +13,7 @@ pub mod register;
 pub mod reset;
 pub mod reset_n;
 pub mod signal;
+pub mod svg;
 pub mod timed;
 pub mod timed_sample;
 pub mod typed_bits;
