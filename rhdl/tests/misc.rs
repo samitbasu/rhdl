@@ -169,6 +169,61 @@ fn test_custom_suffix() {
 }
 
 #[test]
+fn test_latte_match() -> miette::Result<()> {
+    #[derive(PartialEq, Digital, Default)]
+    enum MyEnum {
+        #[default]
+        A, // No payload
+        B(b4, b6), // 4-bit and 6-bit tuple payload
+        C {
+            x: b4,
+            y: b6,
+            z: [b3; 3],
+        }, // Struct payload
+    }
+
+    #[kernel]
+    fn do_stuff(w: MyEnum) -> b4 {
+        let v = match w {
+            MyEnum::A => bits(1),
+            MyEnum::B(a, _) => a,
+            MyEnum::C { x, y: _, z: _ } => x,
+        };
+        v
+    }
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Debug)
+        .is_test(true)
+        .init();
+    // Get the RHIF implementation of the kernel
+    let obj = compile_design_stage1::<do_stuff>(CompilationMode::Synchronous)?;
+    eprintln!("{:?}", obj);
+    Ok(())
+}
+
+#[test]
+fn test_latte_opcode() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff(y: bool) -> b4 {
+        let mut z = bits(0);
+        let x = if y {
+            z += 1;
+            z
+        } else {
+            z
+        };
+        x
+    }
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Debug)
+        .is_test(true)
+        .init();
+    // Get the RHIF implementation of the kernel
+    let obj = compile_design_stage1::<do_stuff>(CompilationMode::Synchronous)?;
+    Ok(())
+}
+
+#[test]
 fn test_svg_diagram() {
     #[derive(PartialEq, Digital, Default)]
     pub enum MyEnum {
