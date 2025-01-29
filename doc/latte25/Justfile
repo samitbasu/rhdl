@@ -1,2 +1,3 @@
 build:
     pdflatex -shell-escape ./latte.tex
+    pdflatex -shell-escape ./latte.tex

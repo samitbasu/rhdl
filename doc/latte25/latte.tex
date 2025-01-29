@@ -1,9 +1,12 @@
 \documentclass[sigplan,screen,sigconf]{acmart}
 \usepackage{minted}
 \usepackage{fbox}
+\usepackage{caption}
+\setlength{\intextsep}{5pt plus 2pt}   % default value 12pt plus 2pt minus 2pt
 \settopmatter{printfolios=false,printacmref=false}
 \bibliographystyle{ACM-Reference-Format}
 \definecolor{bg}{rgb}{0.95,0.95,0.95}
+\captionsetup[figure]{font=small,skip=5pt}
 
 \setcopyright{rightsretained}
 \acmDOI{}
@@ -21,14 +24,13 @@
 \title{RHDL: Rust as a Hardware Description Language}
 
 \begin{abstract}
-In \cite{b13} proposed Rust as an excellent language for hardware description\footnote{FPGA Gateware or ASIC design}.  The initial attempt described in that paper was published as RustHDL \cite{b6}.  However, feedback from developers learning RustHDL revealed several weaknesses in the design.  As a result, I have developed RHDL \cite{b10}, which is a complete rewrite of RustHDL that attempts to address these shortcomings and significantly expand the capabilities of the tool.
+In \cite{b13}, I proposed Rust as an excellent language for hardware description\footnote{FPGA Gateware or ASIC design}.  The initial attempt described in that paper was published as RustHDL \cite{b6}.  However, feedback from developers learning RustHDL revealed several weaknesses in the design.  As a result, I have developed RHDL \cite{b10}, which is a complete rewrite of RustHDL that attempts to address these shortcomings and significantly expand the capabilities of the tool.
 \end{abstract}
 
 \maketitle
 
 \section{Introduction}
-
-In my prior paper, I described the various reasons that Rust makes an excellent choice for a hardware description language.  This includes strong typing, functional programming features, package management and tooling, generics and a strong open ecosystem \cite{b0}, \cite{b9}. I also introduced RustHDL, which transforms a carefully selected subset of Rust into synthesizable Verilog.  Within a set of implicit rules, gateware can be built using Rust code.  There are, however, several shortcomings that became apparent as more engineers began to use RustHDL.  The complete list of feature requests is too long to list here, but includes:
+In my prior paper, I described the various reasons that Rust makes an excellent choice for a hardware description language.  This includes strong typing, functional programming features, package management and tooling, generics and a strong open ecosystem \cite{b0}, \cite{b9}. I also introduced RustHDL, which transforms a carefully selected subset of Rust into synthesizable Verilog.  Within a set of implicit rules, gateware can be built using Rust code.  There are, however, several shortcomings that became apparent as more engineers began to use RustHDL.  A subset of the features requested:
 
 \begin{itemize}
 \item Algebraic Data Types (enums with data).
@@ -36,16 +38,15 @@ In my prior paper, I described the various reasons that Rust makes an excellent 
 \item Early returns, match and if expressions.
 \item Timing estimation and analysis.
 \end{itemize}
-
 Adding these features has required the development of a co-compiler that runs alongside \verb|rustc| to analyze the Rust source code and generate a series of HDL-compatible representations that are successively lowered to the hardware. Both compilers work together to ensure that the language invariants are met at all stages, and that undefined behavior is prevented.  The new framework, called RHDL is meant to be a zero-cost abstraction, meaning that the framework itself does not limit the performance of the design.
 
 \section{New Features}
-RHDL (like it's predecessor RustHDL) is embedded in the Rust programming language, much as 
+RHDL (like its predecessor RustHDL) is embedded in the Rust programming language, much as 
 MyHDL is embedded in Python\cite{b3} and Chisel is embedded in Scala \cite{b2}.  As a result,
-all RHDL code must be valid Rust and must meet all the requirements of the Rust compiler.  This design means an entire class of errors are eliminated, as the language enforces correct usage of types, prevents use-before-initialization, unassigned outputs, etc.  Furthermore, by using Rust itself, as opposed to something Rust-like or a DSL \footnote{Both Spade \cite{b1} and XLS \cite{b4} use a Rust-inspired syntax for hardware description.} all the tools that work with Rust can be used with RHDL unmodified.  Of course, the challenge with this approach is that only a very small set of Rust code can be directly mapped to Verilog.  Mapping a large subset of Rust to hardware requires significant analysis of the underlying code to enable the relevant transformations.  A brief summary of some of the more significant changes follows.
+all RHDL code must be valid Rust and must meet all the requirements of the Rust compiler.  This design means an entire class of errors are eliminated, as the language enforces correct usage of types, prevents use-before-initialization, unassigned outputs, etc.  Furthermore, by using Rust itself, as opposed to something Rust-like or a DSL\footnote{Both Spade \cite{b1} and XLS \cite{b4} use a Rust-inspired syntax for hardware description.}, all the tools that work with Rust can be used with RHDL unmodified.  Of course, the challenge with this approach is that only a very small set of Rust code can be directly mapped to Verilog.  Mapping a large subset of Rust to hardware requires significant analysis of the underlying code to enable the relevant transformations.  A brief summary of some of the more significant changes follows.
 
 \subsection{Algebraic Data Types}
-The main request from RustHDL users was support for Algebraic Data Types. These are essentially tagged unions, where the tag is created and tracked by the compiler, \emph{and it is guaranteed via the type system to be a valid combination of tag and data}.  This is an incredibly powerful feature in Rust that RustHDL was unable to support due to lack of any direct equivalent in Verilog.  RHDL provides first class support for ADTs. For example, the following can be used in synthesizable designs, where the language invariants guarantee that the payload is valid if and only if the appropriate tag is set in the discriminant of the enum:
+The main request from RustHDL users was support for Algebraic Data Types. These are essentially tagged unions, where the tag is created and tracked by the compiler, \emph{and it is guaranteed via the type system that a value is a valid combination of tag and data}.  This is an incredibly powerful feature in Rust that RustHDL was unable to support due to lack of any direct equivalent in Verilog.  RHDL provides first class support for ADTs. For example, the following can be used in synthesizable designs, where the language invariants guarantee that the payload is valid if and only if the appropriate tag is set in the discriminant of the enum:
 \begin{minted}[fontsize=\footnotesize]{rust}
 enum MyEnum {
   A, // No payload
@@ -54,11 +55,11 @@ enum MyEnum {
 }
 \end{minted}
 All of these \emph{variants} are stored in a union that will be sized large enough to store the largest variant together with the discriminant.  In this case, the type is 21 bits wide.  See Figure~\ref{fig:my_enum} for an auto-generated layout diagram of the type.
-\begin{figure}[H]
+\begin{figure*}[h]
   \centering
-  \includegraphics[width=8.5cm]{my_enum.png}
+  \includegraphics[width=15cm]{my_enum.png}
   \caption{Autogenerated layout of MyEnum.} \label{fig:my_enum}
-\end{figure}
+\end{figure*}
 
 
 Using ADTs in Rust requires pattern matching and destructuring.  These are lowered into \verb|case| expressions automatically:
@@ -76,18 +77,19 @@ let v = match w {
 $\rightarrow$
 \begin{minipage}{4.1cm}
 \begin{minted}[fontsize=\footnotesize]{rust}
-let w = MyEnum::B(1, 2);
-let a_if_w_is_B = __field(w,0); 
-let x_if_w_is_C = __field(w,"x");
-case __disc(w) {
-  0 => y = bits::<4>(1),
-  1 => y = a_if_w_is_B,
-  2 => y = x_if_w_is_C,
+// Assume r0 = w, r6 = v
+r1 <- r0# // r1 <- discriminant(w)
+r2 <- r0#1 // r2 <- payload(w, 1)
+r3 <- r2.0 // r3 <- r2.a
+r4 <- r0#2  // r4 <- payload(w, 2)
+r5 <- r4.x // r5 <- r4.x
+r6 <- case r1 {
+   0 => 1, 1 => r3, 2 => r5
 }
 \end{minted}
 \end{minipage}
 \end{center}
-Note that this representation is notional - the actual compiler uses a different approach to transform the code, closer to a series of SSA opcodes.
+Here, the right hand side shows the intermediate form generated by the compiler.  It is a register-based, static single assignment (SSA) series of opcodes that are later lowered into RTL and then into Verilog.  At this stage, each of the register values is strongly typed.
 
 \subsection{Type Inference and Local Variables}
 Rust relies heavily on type inference to make the language less verbose.  RHDL uses a type inference pass to deduce and annotate the types of all variables in the original code.  This type pass \emph{must} agree with the types inferred by \verb|rustc| to avoid miscompilation.  Passes are included to ensure that all variables are typed by RHDL and that the typing is consisting with \verb|rustc|:
@@ -113,7 +115,7 @@ $\rightarrow$
 \end{minipage}
 \end{center}
 
-Type inference and type checking are also used to enforce correctness of the design.  For example, in \verb|RHDL|, a \verb|Signal| type indicates the clock domain it belongs to by use of a parameter (designated via a color).  So, for example, \verb|Signal<b4, Red>| indicates a nibble that changes on edges in the \verb|Red| clock domain, and \verb|Signal<b4, Blue>| signifies a nibble that changes in the \verb|Blue| clock domain.   Here is an example that attempts to add signals from different clock domains (which is not allowed)
+Type inference and type checking are also used to enforce correctness of the design.  For example, in \verb|RHDL|, a \verb|Signal| type indicates the clock domain it belongs to by use of a marker type parameter (arbitrarily chosen to be a color).  So, for example, \verb|Signal<b4, Red>| indicates a nibble that changes on edges in the \verb|Red| clock domain, and \verb|Signal<b4, Blue>| signifies a nibble that changes in the \verb|Blue| clock domain.   The color marker type distinguishes signals from different clock domains as being different types, so that \verb|rustc| will prevent inadvertent substitution. Here is an example that fails to compile due to an adder that crosses clock domainsm with the error shown in Figure~\ref{fig:clock_error}:
 \begin{minted}[fontsize=\footnotesize]{rust}
 function(a: Signal<b4, Red>, b: Signal<b4, Blue>) 
    -> (Signal<b4, Red>, Signal<b4, Blue>) {
@@ -123,17 +125,16 @@ function(a: Signal<b4, Red>, b: Signal<b4, Blue>)
   (signal(a), signal(b))
 }
 \end{minted}
-The user is presented with an error when attempting to compile this design:
-\begin{figure}[H]
+Clock domain crossings require special constructs provided in the RHDL core library.
+\begin{figure}[!h]
   \centering
-  \includegraphics[width=6.5cm]{clock_error.png}
-  \caption{Clock domain error message.}
+  \includegraphics[width=7.0cm]{clock_error.png}
+  \caption{Clock domain error message. \label{fig:clock_error}}
 \end{figure}
-Clock domain crossings require special constructs that can safely cross signals from different clock domains.
+
 
 \subsection{Expression Transformations}
 Many Rust constructs are not directly mappable to Verilog.  For example, in Rust, all \verb|if| constructs are expressions, and can be used in any context where a value is expected.  Blocks also have values (in addition to side effects).  These are transformed into a series of mux expressions with renaming of local variables.
-
 \begin{center}
   \begin{minipage}{0.25\linewidth}
     \begin{minted}[fontsize=\footnotesize]{rust}
@@ -148,42 +149,36 @@ let x = if y {
   \end{minipage}
     $\rightarrow$
     \begin{minipage}{0.57\linewidth}
-  \begin{minted}[fontsize=\footnotesize]{rust}
-let z = 0;
-let z_if_y = z + 1;
-let z_if_not_y = z;
-let x = select(y, z_if_y, z_if_not_y);
-let z = select(y, z_if_y, z_if_not_y);
-  \end{minted}
+\begin{minted}[fontsize=\footnotesize]{rust}
+// Assume r0 = z (at the beginning), 
+// l0 = 1, r1 = y
+// r3 = x, r4 = z (at the end)
+r2 <- r0 + l0; // z_if_y = z + 1
+r3 <- r1 ? r2 : r0; // x = y ? z_if_y : z
+r4 <- r1 ? r2 : r0; // z = y ? z_if_y : z
+\end{minted}
 \end{minipage}
 \end{center}
-Note that the mutable variable is also removed by renaming.  In this case, type inference will also be required as the types of all of the variables are implicit.  Similar transformations are applied for \verb|match| expressions, early returns and other flow control constructs.
+In this case, type inference will also be required as the types of all of the variables are implicit.  Similar transformations are applied for \verb|match| expressions, early returns and other flow control constructs.  
 
 \subsection{Timing Estimation}
-A significant problem that arises in high level HDLs is the difficulty in fixing timing closure issues\footnote{Or any issues identified in downstream processing, such as floor planning, etc.} with the generated design.  This results from the very loose coupling between the design as expressed in the HDL and the resulting low level representation that feeds the synthesis tools.  RHDL includes a simple critical timing path estimator that can reference back to the source code:
-
-\begin{figure}[h]
+A significant problem that arises in high level HDLs is the difficulty in fixing timing closure issues\footnote{Or any issues identified in downstream processing, such as floor planning, etc.} with the generated design.  This results from the very loose coupling between the design as expressed in the HDL and the resulting low level representation that feeds the synthesis tools.  RHDL includes a simple critical timing path estimator that can reference back to the source code, see Figure~\ref{fig:timing}.
+While basic, the intent is to build upon this capability to eventually include a closed loop from 3rd party tools back to the original source code.  The user can supply their own timing estimator, or use the built-in heuristic, which counts the number of non-trivial operations on every path (after optimization).
+\begin{figure}[!h]
   \centering
-  \includegraphics[width=6.5cm]{timing.png}
-  \caption{Timing path estimation in RHDL}
+  \includegraphics[width=7.0cm]{timing.png}
+  \caption{Timing path estimation in RHDL \label{fig:timing}}
 \end{figure}
-
-While basic, the intent is to build upon this capability to eventually include a closed loop from 3rd party tools back to the original source code.
 
 \section{Internals}
 
-RHDL requires a significantly more complex compiler than RustHDL.  RustHDL \cite{b13} is a transpiler, which generates Verilog syntax that is matched to the allowed subset of Rust that RustHDL supports, stripping type information out of the AST, and providing small shims to convert, e.g., \verb|match| statements into Verilog \verb|case| statements.  RHDL, on the other hand, requires a full compiler that treats Verilog more like a machine-code target than as a high level language.  The high level steps are:
+RustHDL \cite{b13} is a transpiler, which generates Verilog syntax that is matched to the allowed subset of Rust that RustHDL supports, stripping type information out of the AST, and providing small shims to convert, e.g., \verb|match| statements into Verilog \verb|case| statements.  RHDL, on the other hand, includes a compiler that treats Verilog like a machine-code target, lowering in steps that include:
 \begin{itemize}
-\item The AST is transformed to a Mid-level Intermediate Representation (MIR) which is typed static single assignment opcodes.
-\item Type inference and lowering to RHDL Hardware Intermediate Form (RHIF).
-\item RHIF is checked for type and clock domain issues, and optimized.
-\item RHIF is lowered to an untyped RTL form after inlining.
-\item RTL is further optimized and checked for correctness.
-\item At this point, the module can be exported as Verilog for synthesis.
-\item RTL is lowered into a flow graph representation (essentially a netlist).
-\item Timing information is extracted from the flow graph.
+\item RHDL Hardware Intermediate Form (RHIF), which is a strongly typed, static single assignment (SSA), register-based virtual machine instruction set.
+\item RTL, which is an untyped SSA register-based virtual machine instruction set.
+\item Flow graph, which is a netlist representation (which may not be directed if the design has loops).
 \end{itemize}
-In addition to these steps, the original code is compiled to a native binary by \verb|rustc|, and can be run using the built-in simulation engine to verify correctness of the design.  A few simple code annotations indicate what functions and structures are targets of synthesis.
+Invoking the compiler is as trivial as adding an annotation to the Rust source code and adding a dependency on the appropriate packages.
 
 \section{Conclusion}
 RHDL is a significant step forward from RustHDL.  It enables the use of a more complete subset of Rust, and supports many more of the language features that make Rust a powerful language for software development.  These features should enable RHDL to support a wider range of hardware designs with code that is easier to write, correct, and efficient.
