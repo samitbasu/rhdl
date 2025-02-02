@@ -241,3 +241,21 @@ fn test_svg_diagram() {
     let doc = MyEnum::static_kind().svg("MyEnum");
     svg::save("my_enum.svg", &doc).unwrap();
 }
+
+#[test]
+fn test_layout_compressed() {
+    #[derive(PartialEq, Digital, Default)]
+    pub enum MyEnum {
+        #[default]
+        A,
+        B(b4, b6),
+        C {
+            x: b4,
+            y: b6,
+            z: [b3; 3],
+        },
+        D(bool),
+    }
+    let doc = MyEnum::static_kind().svg("MyEnum");
+    svg::save("my_enum.svg", &doc).unwrap();
+}

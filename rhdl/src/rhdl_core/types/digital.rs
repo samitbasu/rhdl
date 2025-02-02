@@ -675,10 +675,6 @@ mod test {
         assert_eq!(Mixed::BITS, Mixed::static_kind().bits());
         println!("{:?}", Mixed::None.bin());
         println!("{:?}", Mixed::Bool(true).bin());
-        println!(
-            "{}",
-            crate::rhdl_core::text_grid(&Mixed::static_kind(), "val")
-        );
         #[cfg(feature = "svg")]
         {
             let svg = crate::rhdl_core::svg_grid(&Mixed::static_kind(), "val");

@@ -1,4 +1,4 @@
-use std::{iter::repeat, ops::Range};
+use std::ops::Range;
 
 use super::kind::{DiscriminantAlignment, Kind};
 
@@ -14,14 +14,54 @@ pub struct SvgOptions {
 }
 
 #[derive(Clone, Debug)]
-struct KindLayout {
-    row: usize,
-    depth: usize,
-    cols: Range<usize>,
-    name: String,
+pub enum LayoutLabel {
+    Name(String),
+    Bits(Range<usize>),
 }
 
-fn generate_kind_layout(
+impl LayoutLabel {
+    fn len(&self) -> usize {
+        match self {
+            LayoutLabel::Name(x) => x.len(),
+            LayoutLabel::Bits(range) => format!("{}:{}", range.start, range.end).len(),
+        }
+    }
+    fn as_lsb(&self) -> LayoutLabel {
+        match self {
+            LayoutLabel::Name(s) => LayoutLabel::Name(s.into()),
+            LayoutLabel::Bits(r) => LayoutLabel::Bits(r.end..r.start),
+        }
+    }
+}
+
+impl std::fmt::Display for LayoutLabel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LayoutLabel::Name(s) => write!(f, "{s}"),
+            LayoutLabel::Bits(b) => {
+                if b.end.abs_diff(b.start) == 1 {
+                    write!(f, "{}", b.start.min(b.end))
+                } else if b.start > b.end {
+                    write!(f, "{}:{}", b.start - 1, b.end)
+                } else {
+                    write!(f, "{}:{}", b.start, b.end - 1)
+                }
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct KindLayout {
+    pub row: usize,
+    pub size: usize,
+    pub cols: Range<usize>,
+    pub label: Option<LayoutLabel>,
+    pub fill_color: Option<&'static str>,
+    pub stroke_color: Option<&'static str>,
+}
+
+pub fn generate_kind_layout(
     kind: &Kind,
     name: &str,
     mut offset_row: usize,
@@ -33,25 +73,28 @@ fn generate_kind_layout(
         Kind::Bits(digits) => {
             vec![KindLayout {
                 row: offset_row,
-                depth: 1,
+                size: 1,
                 cols: offset_col..offset_col + digits,
-                name: format!("{name} b{digits}"),
+                label: Some(LayoutLabel::Name(format!("{name} b{digits}"))),
+                ..Default::default()
             }]
         }
         Kind::Signed(digits) => {
             vec![KindLayout {
                 row: offset_row,
-                depth: 1,
+                size: 1,
                 cols: offset_col..offset_col + digits,
-                name: format!("{name} s{digits}"),
+                label: Some(LayoutLabel::Name(format!("{name} s{digits}"))),
+                ..Default::default()
             }]
         }
         Kind::Struct(s) => {
             let mut result = vec![KindLayout {
                 row: offset_row,
-                depth: 1,
+                size: 1,
                 cols: offset_col..(offset_col + kind.bits()),
-                name: format!("{{{name}}}"),
+                label: Some(LayoutLabel::Name(format!("{{{name}}}"))),
+                ..Default::default()
             }];
             for field in &s.fields {
                 result.extend(generate_kind_layout(
@@ -67,9 +110,10 @@ fn generate_kind_layout(
         Kind::Tuple(t) => {
             let mut result = vec![KindLayout {
                 row: offset_row,
-                depth: 1,
+                size: 1,
                 cols: offset_col..(offset_col + kind.bits()),
-                name: format!("({name})"),
+                label: Some(LayoutLabel::Name(format!("({name})"))),
+                ..Default::default()
             }];
             for (ndx, element) in t.elements.iter().enumerate() {
                 let element_layout =
@@ -82,9 +126,10 @@ fn generate_kind_layout(
         Kind::Array(a) => {
             let mut result = vec![KindLayout {
                 row: offset_row,
-                depth: 1,
+                size: 1,
                 cols: offset_col..(offset_col + kind.bits()),
-                name: format!("{name}[{}]", a.size),
+                label: Some(LayoutLabel::Name(format!("{name}[{}]", a.size))),
+                ..Default::default()
             }];
             for ndx in 0..a.size {
                 result.extend(generate_kind_layout(
@@ -101,8 +146,9 @@ fn generate_kind_layout(
             let mut result = vec![KindLayout {
                 row: offset_row,
                 cols: offset_col..(offset_col + kind.bits()),
-                depth: 1,
-                name: format!("{name}|{}|", kind.bits()),
+                size: 1,
+                label: Some(LayoutLabel::Name(format!("{name}|{}|", kind.bits()))),
+                ..Default::default()
             }];
             let variant_cols = match e.discriminant_layout.alignment {
                 DiscriminantAlignment::Lsb => {
@@ -126,14 +172,15 @@ fn generate_kind_layout(
                 };
                 result.push(KindLayout {
                     row: offset_row + 1,
-                    depth: 1,
+                    size: 1,
                     cols: variant_cols.clone(),
-                    name: format!(
+                    label: Some(LayoutLabel::Name(format!(
                         "{}({:0width$b})",
                         variant.name,
                         discriminant,
                         width = disc_width
-                    ),
+                    ))),
+                    ..Default::default()
                 });
                 let variant_layout = generate_kind_layout(
                     &variant.kind,
@@ -146,7 +193,7 @@ fn generate_kind_layout(
                     .map(|x| x.row)
                     .max()
                     .unwrap_or(offset_row + 1);
-                result.last_mut().unwrap().depth = new_offset_row - offset_row;
+                result.last_mut().unwrap().size = new_offset_row - offset_row;
                 offset_row = new_offset_row;
                 result.extend(variant_layout);
             }
@@ -155,76 +202,61 @@ fn generate_kind_layout(
     }
 }
 
-// Validate a layout
-fn is_layout_valid(layout: &[KindLayout]) -> bool {
-    // Get the range of rows and colums
-    // For each row, check that the columns do not overlap
-    // For each column, check that the rows do not overlap
-    let num_cols = layout.iter().map(|x| x.cols.end).max().unwrap_or(0);
-    let num_rows = layout.iter().map(|x| x.row).max().unwrap_or(0) + 1;
-    let mut grid = vec![vec![false; num_cols]; num_rows];
-    for entry in layout {
-        if grid[entry.row][entry.cols.start..entry.cols.end]
-            .iter()
-            .cloned()
-            .any(|x| x)
-        {
-            println!("Overlap: {:#?}", entry);
-            return false;
-        }
-        grid[entry.row][entry.cols.start..entry.cols.end]
-            .iter_mut()
-            .for_each(|x| *x = true);
-    }
-    // Dump the grid to the console
-    for row in grid {
-        for col in row {
-            print!("{}", if col { "X" } else { "." });
-        }
-        println!();
-    }
-    true
-}
-
 // Calculate the number of characters per bit in the layout
 fn get_chars_per_bit(layout: &[KindLayout]) -> usize {
     layout
         .iter()
-        .map(|x| x.name.len().div_ceil(x.cols.len()))
+        .flat_map(|x| x.label.as_ref().map(|t| (x.cols.clone(), t)))
+        .map(|(cols, x)| x.len().div_ceil(cols.len()))
         .max()
         .unwrap_or(0)
 }
 
-// Generate a string (text) representation of the layout
-pub fn text_grid(kind: &Kind, name: &str) -> String {
-    let layout = generate_kind_layout(kind, name, 0, 0);
-    assert!(is_layout_valid(&layout));
-    let chars_per_bit = get_chars_per_bit(&layout);
-    let mut result = String::new();
-    let num_rows = layout.iter().map(|x| x.row).max().unwrap_or(0) + 1;
-    for row in 0..num_rows {
-        let row_layout = layout.iter().filter(|x| x.row == row);
-        let mut col_cursor = 0;
-        for entry in row_layout {
-            if entry.cols.start > col_cursor {
-                result.extend(repeat('.').take((entry.cols.start - col_cursor) * chars_per_bit));
-            }
-            result.extend(
-                entry
-                    .name
-                    .chars()
-                    .chain(repeat('+'))
-                    .take(entry.cols.len() * chars_per_bit),
-            );
-            col_cursor = entry.cols.end;
-        }
-        result.push('\n');
-    }
-    result
+pub fn color_layout(iter: impl Iterator<Item = KindLayout>) -> impl Iterator<Item = KindLayout> {
+    let soft_palette_colors = [
+        "#99FFCC", "#CCCC99", "#CCCCCC", "#CCCCFF", "#CCFF99", "#CCFFCC", "#CCFFFF", "#FFCC99",
+        "#FFCCCC", "#FFCCFF", "#FFFF99", "#FFFFCC",
+    ];
+    iter.zip(soft_palette_colors.into_iter().cycle())
+        .map(|(layout, color)| KindLayout {
+            fill_color: Some(color),
+            stroke_color: Some("gray"),
+            ..layout
+        })
+}
+
+pub fn fixed_color(
+    iter: impl Iterator<Item = KindLayout>,
+    fill_color: &'static str,
+    stroke_color: &'static str,
+) -> impl Iterator<Item = KindLayout> {
+    iter.map(|x| KindLayout {
+        fill_color: Some(fill_color),
+        stroke_color: Some(stroke_color),
+        ..x
+    })
+}
+
+pub fn make_lsb_kind(layout: &[KindLayout]) -> Vec<KindLayout> {
+    let max_cols = layout.iter().map(|l| l.cols.end).max().unwrap_or(1);
+    layout
+        .iter()
+        .cloned()
+        .map(|l| KindLayout {
+            cols: (max_cols - l.cols.end)..(max_cols - l.cols.start),
+            label: l.label.map(|t| t.as_lsb()),
+            ..l
+        })
+        .collect()
 }
 
 #[cfg(feature = "svg")]
 pub mod kind_svg {
+    use std::{
+        collections::{BTreeMap, BTreeSet},
+        iter::once,
+    };
+
     use svg::Document;
 
     // To render the kind into an SVG, we define a grid of cells
@@ -264,114 +296,10 @@ pub mod kind_svg {
             .set("stroke", stroke_color);
         document.add(rect).add(text)
     }
-
-    pub fn svg_grid_vertical(kind: &Kind, name: &str) -> svg::Document {
-        let layout = generate_kind_layout(kind, name, 0, 0);
-        let num_cols = layout.iter().map(|x| x.row).max().unwrap_or(0) + 1;
-        let num_bits = layout.iter().map(|x| x.cols.end).max().unwrap_or(0);
-        let pixels_per_char = 16_usize;
-        let col_widths = (0..num_cols)
-            .map(|col| {
-                layout
-                    .iter()
-                    .filter(|x| x.row == col)
-                    .map(|x| x.name.len())
-                    .max()
-                    .unwrap_or(0)
-            })
-            .collect::<Vec<_>>();
-        // Accumulate these widths to get the start position of each column
-        let col_starts: Vec<usize> = col_widths
-            .iter()
-            .scan(0, |state, x| {
-                let result = *state;
-                *state += x;
-                Some(result)
-            })
-            .collect();
-        let total_col_width = col_widths.iter().sum::<usize>() as i32;
-        let bit_digits = (num_bits as f32).log10().ceil().max(1.0) as i32;
-        let mut document = Document::new().set(
-            "viewBox",
-            (
-                -bit_digits * pixels_per_char as i32,
-                0,
-                (2 * bit_digits + total_col_width) * pixels_per_char as i32,
-                num_bits * pixels_per_char,
-            ),
-        );
-        let soft_palette_colors = [
-            "#99FFCC", "#CCCC99", "#CCCCCC", "#CCCCFF", "#CCFF99", "#CCFFCC", "#CCFFFF", "#FFCC99",
-            "#FFCCCC", "#FFCCFF", "#FFFF99", "#FFFFCC",
-        ];
-        // Provide a background rectangle for the diagram of light gray
-        let background = svg::node::element::Rectangle::new()
-            .set("x", 0)
-            .set("y", 0)
-            .set("width", total_col_width * pixels_per_char as i32)
-            .set("height", num_bits * pixels_per_char)
-            .set("fill", "#EEEEEE")
-            .set("stroke", "darkblue");
-        document = document.add(background);
-        // Add bit rectangles to each row, and horizontal faint gray dashed grid
-        // lines
-        for bit in 0..num_bits {
-            let x = -bit_digits * pixels_per_char as i32;
-            let y = (bit * pixels_per_char) as i32;
-            let width = bit_digits * pixels_per_char as i32;
-            let height = pixels_per_char as i32;
-            document = text_box(
-                (x, y, width, height),
-                &format!("{}", bit),
-                "#EEEEEE",
-                "darkblue",
-                document,
-            );
-            let x = total_col_width * pixels_per_char as i32;
-            document = text_box(
-                (x, y, width, height),
-                &format!("{}", bit),
-                "#EEEEEE",
-                "darkblue",
-                document,
-            );
-            // Add a grid line in a faint dashed gray
-            let line = svg::node::element::Line::new()
-                .set("x1", 0)
-                .set("y1", y)
-                .set("x2", total_col_width * pixels_per_char as i32)
-                .set("y2", y)
-                .set("stroke", "#DFDFDF")
-                .set("stroke-width", 1)
-                .set("stroke-dasharray", "1,1");
-            document = document.add(line);
-        }
-        // For each cell add a rectangle, where
-        // the x coordinate is
-        for (cell, color) in layout.iter().zip(soft_palette_colors.iter().cycle()) {
-            let x = col_starts[cell.row] * pixels_per_char;
-            let y = cell.cols.start * pixels_per_char;
-            let width: usize = col_widths[cell.row..(cell.row + cell.depth)]
-                .iter()
-                .sum::<usize>()
-                * pixels_per_char;
-            let height = pixels_per_char * cell.cols.len();
-            document = text_box(
-                (x as i32, y as i32, width as i32, height as i32),
-                &cell.name,
-                color,
-                "gray",
-                document,
-            );
-        }
-        document
-    }
-
-    pub fn svg_grid(kind: &Kind, name: &str) -> svg::Document {
-        let layout = generate_kind_layout(kind, name, 0, 0);
+    pub fn svg_grid_from_layout_precolored(layout: &[KindLayout]) -> svg::Document {
         let num_rows = layout.iter().map(|x| x.row).max().unwrap_or(0) + 1;
         let num_cols = layout.iter().map(|x| x.cols.end).max().unwrap_or(0);
-        let chars_per_bit = get_chars_per_bit(&layout);
+        let chars_per_bit = get_chars_per_bit(layout);
         let pixels_per_char = 16;
         let mut document = Document::new().set(
             "viewBox",
@@ -382,10 +310,6 @@ pub mod kind_svg {
                 (num_rows + 2) * pixels_per_char,
             ),
         );
-        let soft_palette_colors = [
-            "#99FFCC", "#CCCC99", "#CCCCCC", "#CCCCFF", "#CCFF99", "#CCFFCC", "#CCFFFF", "#FFCC99",
-            "#FFCCCC", "#FFCCFF", "#FFFF99", "#FFFFCC",
-        ];
         // Provide a background rectangle for the diagram of light gray
         let background = svg::node::element::Rectangle::new()
             .set("x", 0)
@@ -395,55 +319,69 @@ pub mod kind_svg {
             .set("fill", "#EEEEEE")
             .set("stroke", "darkblue");
         document = document.add(background);
-        // Add a rectangle for each bit indicating the bit number.  One at the
-        // top and one along the bottom of the diagram.
-        for bit in 0..num_cols {
-            let x = bit * chars_per_bit * pixels_per_char;
-            let y = -(pixels_per_char as i32);
-            let width = chars_per_bit * pixels_per_char;
-            let height = pixels_per_char as i32;
-            document = text_box(
-                (x as i32, y, width as i32, height),
-                &format!("{}", bit),
-                "#EEEEEE",
-                "darkblue",
-                document,
-            );
-            let y = (num_rows * pixels_per_char) as i32;
-            document = text_box(
-                (x as i32, y, width as i32, height),
-                &format!("{}", bit),
-                "#EEEEEE",
-                "darkblue",
-                document,
-            );
-            // Add a grid line in a faint dashed gray
-            let line = svg::node::element::Line::new()
-                .set("x1", x)
-                .set("y1", 0)
-                .set("x2", x)
-                .set("y2", (num_rows * pixels_per_char) as i32)
-                .set("stroke", "#DFDFDF")
-                .set("stroke-width", 1)
-                .set("stroke-dasharray", "1,1");
-            document = document.add(line);
-        }
         // For each cell, add a rectangle to the SVG with the
         // name of the cell centered in the rectangle
-        for (cell, color) in layout.iter().zip(soft_palette_colors.iter().cycle()) {
+        for cell in layout {
             let x = cell.cols.start * chars_per_bit * pixels_per_char;
             let y = cell.row * pixels_per_char;
             let width = cell.cols.len() * chars_per_bit * pixels_per_char;
-            let height = pixels_per_char * cell.depth;
-            document = text_box(
-                (x as i32, y as i32, width as i32, height as i32),
-                &cell.name,
-                color,
-                "gray",
-                document,
-            );
+            let height = pixels_per_char * cell.size;
+            if let (Some(fill_color), Some(stroke_color), Some(label)) =
+                (cell.fill_color, cell.stroke_color, cell.label.as_ref())
+            {
+                document = text_box(
+                    (x as i32, y as i32, width as i32, height as i32),
+                    &label.to_string(),
+                    fill_color,
+                    stroke_color,
+                    document,
+                );
+            }
         }
         document
+    }
+
+    pub fn svg_grid(kind: &Kind, name: &str) -> svg::Document {
+        let mut layout = generate_kind_layout(kind, name, 0, 0);
+        let max_rows = layout.iter().map(|x| x.row + x.size).max().unwrap_or(1);
+        // Collect the bit breakpoints
+        let bit_breaks: BTreeSet<usize> = layout
+            .iter()
+            .flat_map(|x| once(x.cols.start).chain(once(x.cols.end)))
+            .collect();
+        let reverse_hash: BTreeMap<usize, usize> = bit_breaks
+            .iter()
+            .enumerate()
+            .map(|(ndx, &bit)| (bit, ndx))
+            .collect();
+        layout.iter_mut().for_each(|x| {
+            x.row += 1;
+            x.cols.start = reverse_hash[&x.cols.start];
+            x.cols.end = reverse_hash[&x.cols.end];
+        });
+        let bit_bins: Vec<usize> = bit_breaks.iter().copied().collect();
+        let bit_boxes = bit_bins.windows(2).enumerate().map(|(ndx, x)| {
+            let end = x[1];
+            let start = x[0];
+            KindLayout {
+                row: 0,
+                size: 1,
+                cols: ndx..(ndx + 1),
+                label: Some(LayoutLabel::Bits(start..end)),
+                fill_color: Some("#EEEEEE"),
+                stroke_color: Some("darkblue"),
+            }
+        });
+        let bottom_bit_boxes = bit_boxes.clone().map(|x| KindLayout {
+            row: max_rows + 1,
+            ..x
+        });
+        let layout = bit_boxes
+            .chain(color_layout(layout.iter().cloned()))
+            .chain(bottom_bit_boxes)
+            .collect::<Vec<_>>();
+        let layout = make_lsb_kind(&layout);
+        svg_grid_from_layout_precolored(&layout)
     }
 }
 
@@ -681,17 +619,10 @@ mod test {
     #[test]
     fn test_layout_of_complex_kind() {
         let kind = make_complex_kind();
-        let layout = generate_kind_layout(&kind, "value", 0, 0);
-        println!("{:#?}", layout);
-        assert!(is_layout_valid(&layout));
-        println!("Chars per bit {}", get_chars_per_bit(&layout));
-        println!("{}", text_grid(&kind, "value"));
         #[cfg(feature = "svg")]
         {
             let svg = kind_svg::svg_grid(&kind, "value");
             svg::save("test.svg", &svg).unwrap();
-            let svg = kind_svg::svg_grid_vertical(&kind, "value");
-            svg::save("test_vertical.svg", &svg).unwrap();
         }
     }
     #[test]
@@ -713,13 +644,10 @@ mod test {
                 },
             ],
         );
-        let layout = generate_kind_layout(&kind, "value", 0, 0);
         #[cfg(feature = "svg")]
         {
             let svg = kind_svg::svg_grid(&kind, "value");
             svg::save("test.svg", &svg).unwrap();
-            let svg = kind_svg::svg_grid_vertical(&kind, "value");
-            svg::save("test_vertical.svg", &svg).unwrap();
         }
     }
     #[test]
@@ -753,13 +681,10 @@ mod test {
                 },
             ],
         );
-        let layout = generate_kind_layout(&kind, "value", 0, 0);
         #[cfg(feature = "svg")]
         {
             let svg = kind_svg::svg_grid(&kind, "value");
             svg::save("test.svg", &svg).unwrap();
-            let svg = kind_svg::svg_grid_vertical(&kind, "value");
-            svg::save("test_vertical.svg", &svg).unwrap();
         }
     }
 
@@ -790,13 +715,10 @@ mod test {
                 DiscriminantType::Unsigned,
             ),
         );
-        let layout = generate_kind_layout(&kind, "value", 0, 0);
         #[cfg(feature = "svg")]
         {
             let svg = kind_svg::svg_grid(&kind, "value");
             svg::save("test.svg", &svg).unwrap();
-            let svg = kind_svg::svg_grid_vertical(&kind, "value");
-            svg::save("test_vertical.svg", &svg).unwrap();
         }
     }
 

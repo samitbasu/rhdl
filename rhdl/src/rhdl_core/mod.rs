@@ -27,9 +27,6 @@ pub use types::reset_n::ResetN;
 pub use types::signal::Signal;
 #[cfg(feature = "svg")]
 pub use types::svg::kind_svg::svg_grid;
-#[cfg(feature = "svg")]
-pub use types::svg::kind_svg::svg_grid_vertical;
-pub use types::svg::text_grid;
 pub use types::timed::Timed;
 pub mod ast;
 pub mod circuit;
