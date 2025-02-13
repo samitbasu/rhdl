@@ -4,7 +4,8 @@
 #![allow(unreachable_code)]
 #![allow(unused_must_use)]
 #![allow(dead_code)]
-use rhdl::prelude::*;
+use expect_test::expect;
+use rhdl::{core::trace::svgx::format_as_label, prelude::*};
 
 #[test]
 fn test_vcd_enum() {
@@ -70,4 +71,77 @@ fn test_vcd_basic() {
     trace("simple", &simple);
     let mut vcd_file = std::fs::File::create("test.vcd").unwrap();
     guard.take().dump_vcd(&mut vcd_file, None).unwrap();
+}
+
+#[test]
+fn test_label_for_tuple_struct() {
+    #[derive(PartialEq, Digital)]
+    pub struct TupleStruct(b6, b3);
+
+    let tuple = TupleStruct(bits(13), bits(4));
+    let label = format_as_label(&tuple.typed_bits()).unwrap();
+    let expect = expect!["{0: 0d, 1: 4}"];
+    expect.assert_eq(&label);
+}
+
+#[test]
+fn test_label_for_struct() {
+    #[derive(PartialEq, Digital)]
+    pub struct Simple {
+        a: b4,
+        b: (b4, b4),
+        c: [b5; 3],
+    }
+
+    let simple = Simple {
+        a: bits(6),
+        b: (bits(8), bits(9)),
+        c: [bits(10), bits(11), bits(12)],
+    };
+
+    let label = format_as_label(&simple.typed_bits()).unwrap();
+    let expect = expect!["{a: 6, b: (8, 9), c: [0a, 0b, 0c]}"];
+    expect.assert_eq(&label);
+}
+
+#[test]
+fn test_label_for_signed() {
+    #[derive(PartialEq, Digital)]
+    pub struct Signed {
+        a: s8,
+        b: b8,
+    }
+
+    let signed = Signed {
+        a: signed(-42),
+        b: bits(42),
+    };
+    let label = format_as_label(&signed.typed_bits()).unwrap();
+    let expect = expect!["{a: -42, b: 2a}"];
+    expect.assert_eq(&label);
+}
+
+#[test]
+fn test_label_for_enum() {
+    #[derive(PartialEq, Digital, Default)]
+    enum Value {
+        #[default]
+        Empty,
+        A(b8, b16),
+        B {
+            name: b8,
+        },
+        C(bool),
+    }
+
+    let val_array = [
+        Value::Empty,
+        Value::A(bits(42), bits(1024)),
+        Value::B { name: bits(67) },
+        Value::C(true),
+    ];
+
+    let label = format_as_label(&val_array.typed_bits()).unwrap();
+    let expect = expect!["[Empty, A(2a, 0400), B{name: 43}, C(1)]"];
+    expect.assert_eq(&label);
 }

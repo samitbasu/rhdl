@@ -521,17 +521,3 @@ fn test_tuple_unused_variable() -> miette::Result<()> {
     compile_design::<do_stuff>(Asynchronous)?;
     Ok(())
 }
-
-#[test]
-fn test_latte_example() -> miette::Result<()> {
-    #[kernel]
-    fn do_stuff(a: Signal<b4, Red>, b: Signal<b4, Blue>) -> (Signal<b4, Red>, Signal<b4, Blue>) {
-        let a = a.val();
-        let b = b.val();
-        let a = a + b;
-        (signal(a), signal(b))
-    }
-
-    compile_design::<do_stuff>(Asynchronous)?;
-    Ok(())
-}

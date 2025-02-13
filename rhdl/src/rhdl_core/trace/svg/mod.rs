@@ -1,7 +1,3 @@
-use crate::docs::vcd2svg::display_metrics::DisplayMetrics;
-use crate::docs::vcd2svg::trace_collection::TraceCollection;
-use crate::docs::vcd2svg::vcd_style::VCDStyle;
-
 pub mod display_metrics;
 mod interval;
 mod renderable;
