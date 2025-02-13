@@ -245,6 +245,16 @@ impl TraceDB {
                 .collect(),
         )
     }
+    /*     pub fn dump_svg(&self, time_set: Option<&fnv::FnvHashSet<u64>>) -> svg::Document {
+           let root_scope = hierarchical_walk(self.details.iter().map(|(hash, details)| TSItem {
+               path: &details.path,
+               name: &details.key,
+               hash: *hash,
+           }));
+           let mut cursors = vec![];
+           let min_time = time_set.and_then(|x| x.iter().copied().min()).unwrap_or(0);
+       }
+    */
     pub fn dump_vcd<W: Write>(
         &self,
         w: W,
