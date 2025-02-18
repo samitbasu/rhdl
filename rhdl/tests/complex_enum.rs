@@ -224,7 +224,6 @@ fn test_nested_struct_case() {
     )
 }
 
-#[cfg(feature = "svg")]
 #[test]
 fn test_documentation_svgs() {
     let svg = rhdl::core::svg_grid(&Packet::static_kind(), "Packet");

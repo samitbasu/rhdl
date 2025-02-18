@@ -5,7 +5,13 @@
 #![allow(unused_must_use)]
 #![allow(dead_code)]
 use expect_test::expect;
-use rhdl::{core::trace::svgx::format_as_label, prelude::*};
+use rhdl::{
+    core::{
+        trace::svgx::{format_as_label, pretty_leaf_paths, SvgOptions},
+        types::path::leaf_paths,
+    },
+    prelude::*,
+};
 
 #[test]
 fn test_vcd_enum() {
@@ -144,4 +150,305 @@ fn test_label_for_enum() {
     let label = format_as_label(&val_array.typed_bits()).unwrap();
     let expect = expect!["[Empty, A(2a, 0400), B{name: 43}, C(1)]"];
     expect.assert_eq(&label);
+}
+
+#[test]
+fn test_leaf_paths_for_slicing() {
+    #[derive(PartialEq, Digital, Default)]
+    enum Value {
+        #[default]
+        Empty,
+        A(Option<bool>),
+        B,
+    }
+    let expect = expect![[r#"
+        [
+            ,
+            #Empty,
+            #A.0,
+            #A.0#None,
+            #A.0#Some.0,
+            #B,
+        ]
+    "#]];
+    let actual = pretty_leaf_paths(&Value::static_kind(), Path::default());
+    expect.assert_debug_eq(&actual);
+}
+
+#[test]
+fn test_time_slice_with_nested_enums() {
+    #[derive(PartialEq, Digital, Default)]
+    enum Value {
+        #[default]
+        Empty,
+        A(Option<bool>),
+        B,
+    }
+
+    let val_array = [
+        Value::Empty.typed_bits(),
+        Value::A(Some(true)).typed_bits(),
+        Value::B.typed_bits(),
+    ];
+
+    let path = Path::default().payload("A").tuple_index(0).payload("Some");
+    let mapped = val_array
+        .iter()
+        .map(|v| trace::svgx::try_path(v, &path))
+        .collect::<Vec<_>>();
+    let expect = expect![[r#"
+        [
+            None,
+            Some(
+                (true),
+            ),
+            None,
+        ]
+    "#]];
+    expect.assert_debug_eq(&mapped);
+}
+
+#[test]
+fn test_time_slice_for_enum_with_discriminant() {
+    #[derive(PartialEq, Digital, Default)]
+    enum Value {
+        #[default]
+        Empty,
+        A(bool),
+        B,
+    }
+
+    let val_array = [
+        Value::Empty.typed_bits(),
+        Value::A(true).typed_bits(),
+        Value::B.typed_bits(),
+    ];
+
+    let path = Path::default().payload("A");
+    let mapped = val_array
+        .iter()
+        .map(|v| trace::svgx::try_path(v, &path))
+        .collect::<Vec<_>>();
+    let expect = expect![[r#"
+        [
+            None,
+            Some(
+                (true),
+            ),
+            None,
+        ]
+    "#]];
+    expect.assert_debug_eq(&mapped);
+}
+
+#[test]
+fn test_trace_out_for_enum() {
+    #[derive(PartialEq, Digital, Default)]
+    enum Value {
+        #[default]
+        Empty,
+        A(b8, b16),
+        B {
+            name: b8,
+        },
+        C(bool),
+    }
+
+    let val_array = [
+        (0, Value::Empty),
+        (5, Value::A(bits(42), bits(1024))),
+        (10, Value::B { name: bits(67) }),
+        (15, Value::C(true)),
+        (20, Value::C(true)),
+    ];
+
+    let traces = trace::svgx::trace_out("val", &val_array);
+    eprintln!("{:?}", traces);
+    let options = SvgOptions {
+        pixels_per_time_unit: 10.0,
+        font_size_in_pixels: 10.0,
+        spacing: 15,
+    };
+    let svg = trace::svgx::render_traces_to_svg(&traces, &options);
+    eprintln!("{:?}", svg);
+    let svg = trace::svgx::render_traces_as_svg_document(&traces, &options);
+    svg::save("test_enum.svg", &svg).unwrap();
+}
+
+#[test]
+fn test_time_slice_for_enum() {
+    #[derive(PartialEq, Digital, Default)]
+    enum Value {
+        #[default]
+        Empty,
+        A(b8, b16),
+        B {
+            name: b8,
+        },
+        C(bool),
+    }
+
+    let val_array = [
+        (0, Value::Empty),
+        (5, Value::A(bits(42), bits(1024))),
+        (10, Value::B { name: bits(67) }),
+        (15, Value::C(true)),
+    ];
+
+    let label = trace::svgx::build_time_trace(&val_array, &Default::default());
+    let expect = expect![[r#"
+        [
+            Region {
+                start: 0,
+                end: 5,
+                tag: Some(
+                    "Empty",
+                ),
+                kind: Multibit,
+            },
+            Region {
+                start: 5,
+                end: 10,
+                tag: Some(
+                    "A(2a, 0400)",
+                ),
+                kind: Multibit,
+            },
+            Region {
+                start: 10,
+                end: 15,
+                tag: Some(
+                    "B{name: 43}",
+                ),
+                kind: Multibit,
+            },
+            Region {
+                start: 15,
+                end: 15,
+                tag: Some(
+                    "C",
+                ),
+                kind: Multibit,
+            },
+        ]
+    "#]];
+    expect.assert_debug_eq(&label);
+}
+
+#[test]
+fn test_time_slice_for_struct() {
+    #[derive(PartialEq, Digital)]
+    pub struct Simple {
+        a: b4,
+        b: (b4, b4, bool),
+        c: [b5; 3],
+    }
+
+    let bld = |a, b, c, d| Simple {
+        a: bits(a),
+        b: (bits(b), bits(b + 1), d),
+        c: [bits(c), bits(c + 1), bits(c + 2)],
+    };
+
+    let data = [
+        (0, bld(2, 4, 1, false)),
+        (10, bld(2, 5, 3, true)),
+        (15, bld(4, 5, 1, true)),
+        (20, bld(3, 0, 2, false)),
+    ];
+
+    let path = Path::default().field("b").tuple_index(2);
+    let time_trace = trace::svgx::build_time_trace(&data, &path);
+    let expect = expect![[r#"
+        [
+            Region {
+                start: 0,
+                end: 10,
+                tag: None,
+                kind: False,
+            },
+            Region {
+                start: 10,
+                end: 20,
+                tag: None,
+                kind: True,
+            },
+            Region {
+                start: 20,
+                end: 20,
+                tag: None,
+                kind: False,
+            },
+        ]
+    "#]];
+    expect.assert_debug_eq(&time_trace);
+    let path = Path::default().field("b");
+    let time_trace = trace::svgx::build_time_trace(&data, &path);
+    let expect = expect![[r#"
+        [
+            Region {
+                start: 0,
+                end: 10,
+                tag: Some(
+                    "(4, 5)",
+                ),
+                kind: Multibit,
+            },
+            Region {
+                start: 10,
+                end: 20,
+                tag: Some(
+                    "(5, 6)",
+                ),
+                kind: Multibit,
+            },
+            Region {
+                start: 20,
+                end: 20,
+                tag: Some(
+                    "(0, 1)",
+                ),
+                kind: Multibit,
+            },
+        ]
+    "#]];
+    expect.assert_debug_eq(&time_trace);
+    let time_trace = trace::svgx::build_time_trace(&data, &Default::default());
+    let expect = expect![[r#"
+        [
+            Region {
+                start: 0,
+                end: 10,
+                tag: Some(
+                    "{a: 2, b: (4, 5), c: [01, 02, 03]}",
+                ),
+                kind: Multibit,
+            },
+            Region {
+                start: 10,
+                end: 15,
+                tag: Some(
+                    "{a: 2, b: (5, 6), c: [03, 04, 05]}",
+                ),
+                kind: Multibit,
+            },
+            Region {
+                start: 15,
+                end: 20,
+                tag: Some(
+                    "{a: 4, b: (5, 6), c: [01, 02, 03]}",
+                ),
+                kind: Multibit,
+            },
+            Region {
+                start: 20,
+                end: 20,
+                tag: Some(
+                    "{a: 3, b: (0, 1), c: [02, 03, 04]}",
+                ),
+                kind: Multibit,
+            },
+        ]
+    "#]];
+    expect.assert_debug_eq(&time_trace);
 }
