@@ -501,7 +501,6 @@ impl Kind {
         true
     }
 
-    #[cfg(feature = "svg")]
     pub fn svg(&self, name: &str) -> svg::Document {
         crate::core::svg_grid(self, name)
     }

@@ -226,6 +226,10 @@ impl Path {
                 .collect(),
         }
     }
+
+    pub(crate) fn with_element(x: PathElement) -> Path {
+        Path { elements: vec![x] }
+    }
 }
 
 impl From<Member> for Path {
@@ -452,7 +456,9 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                             range.end - enumerate.discriminant_layout.width..range.end
                         }
                     };
-                    kind = if enumerate.discriminant_layout.ty == crate::rhdl_core::DiscriminantType::Signed {
+                    kind = if enumerate.discriminant_layout.ty
+                        == crate::rhdl_core::DiscriminantType::Signed
+                    {
                         Kind::make_signed(enumerate.discriminant_layout.width)
                     } else {
                         Kind::make_bits(enumerate.discriminant_layout.width)

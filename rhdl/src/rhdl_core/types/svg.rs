@@ -250,7 +250,6 @@ pub fn make_lsb_kind(layout: &[KindLayout]) -> Vec<KindLayout> {
         .collect()
 }
 
-#[cfg(feature = "svg")]
 pub mod kind_svg {
     use std::{
         collections::{BTreeMap, BTreeSet},
@@ -269,7 +268,7 @@ pub mod kind_svg {
     // Given this layout tree, we can then render it as required.
     use super::*;
 
-    fn text_box(
+    pub(crate) fn text_box(
         pos: (i32, i32, i32, i32),
         text: &str,
         fill_color: &str,
@@ -619,11 +618,8 @@ mod test {
     #[test]
     fn test_layout_of_complex_kind() {
         let kind = make_complex_kind();
-        #[cfg(feature = "svg")]
-        {
-            let svg = kind_svg::svg_grid(&kind, "value");
-            svg::save("test.svg", &svg).unwrap();
-        }
+        let svg = kind_svg::svg_grid(&kind, "value");
+        svg::save("test.svg", &svg).unwrap();
     }
     #[test]
     fn test_layout_of_struct() {
@@ -644,11 +640,8 @@ mod test {
                 },
             ],
         );
-        #[cfg(feature = "svg")]
-        {
-            let svg = kind_svg::svg_grid(&kind, "value");
-            svg::save("test.svg", &svg).unwrap();
-        }
+        let svg = kind_svg::svg_grid(&kind, "value");
+        svg::save("test.svg", &svg).unwrap();
     }
     #[test]
     fn test_layout_of_struct_with_nesting() {
@@ -681,11 +674,8 @@ mod test {
                 },
             ],
         );
-        #[cfg(feature = "svg")]
-        {
-            let svg = kind_svg::svg_grid(&kind, "value");
-            svg::save("test.svg", &svg).unwrap();
-        }
+        let svg = kind_svg::svg_grid(&kind, "value");
+        svg::save("test.svg", &svg).unwrap();
     }
 
     #[test]
@@ -715,11 +705,8 @@ mod test {
                 DiscriminantType::Unsigned,
             ),
         );
-        #[cfg(feature = "svg")]
-        {
-            let svg = kind_svg::svg_grid(&kind, "value");
-            svg::save("test.svg", &svg).unwrap();
-        }
+        let svg = kind_svg::svg_grid(&kind, "value");
+        svg::save("test.svg", &svg).unwrap();
     }
 
     #[test]
