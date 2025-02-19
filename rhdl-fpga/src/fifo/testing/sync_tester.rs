@@ -38,6 +38,7 @@ pub fn fixture_kernel<N: BitWidth, Z: BitWidth>(
 #[cfg(test)]
 mod tests {
     use expect_test::expect;
+    use rhdl::core::trace::svgx::SvgOptions;
 
     use super::*;
 
@@ -56,6 +57,22 @@ mod tests {
         let expect = expect!["744375a6ab1347d3b98524ee90d50f649c7e10dea3706978563cd6796e5c5a85"];
         let digest = vcd.dump_to_file(&root.join("sync_fifo.vcd")).unwrap();
         expect.assert_eq(&digest);
+        Ok(())
+    }
+
+    #[test]
+    fn test_sync_fifo_svg() -> miette::Result<()> {
+        let uut = U::<U16, U6>::default();
+        let input = std::iter::repeat(())
+            .take(1000)
+            .stream_after_reset(1)
+            .clock_pos_edge(100)
+            .take_while(|x| x.time <= 2500);
+        let vcd = uut.run(input)?.collect::<Vcd>();
+        let mut options = SvgOptions::default();
+        options.pixels_per_time_unit = 1.0;
+        let svg = vcd.dump_svg(None, &options);
+        svg::save("sync_fifo.svg", &svg).unwrap();
         Ok(())
     }
 
