@@ -11,7 +11,12 @@ use smallvec::SmallVec;
 
 use crate::rhdl_core::Digital;
 
-use super::{bit::TraceBit, key::TraceKey, vcd::VCDWrite};
+use super::{
+    bit::TraceBit,
+    key::TraceKey,
+    svgx::{render_traces_as_svg_document, trace_out, SvgOptions, Trace},
+    vcd::VCDWrite,
+};
 
 type TimeSeriesHash = u32;
 
@@ -26,6 +31,10 @@ trait TimeSeriesWalk {
     ) -> Option<Cursor>;
     fn advance_cursor(&self, cursor: &mut Cursor);
     fn write_vcd(&self, cursor: &mut Cursor, writer: &mut dyn VCDWrite) -> std::io::Result<()>;
+}
+
+trait SVGRender {
+    fn render(&self, name: &str, time_set: Option<&fnv::FnvHashSet<u64>>) -> Box<[Trace]>;
 }
 
 struct Cursor {
@@ -70,7 +79,13 @@ impl<T: Digital> TimeSeries<T> {
     }
 }
 
-trait AnyTimeSeries: AsAny + TimeSeriesWalk {}
+trait AnyTimeSeries: AsAny + TimeSeriesWalk + SVGRender {}
+
+impl<T: Digital> SVGRender for TimeSeries<T> {
+    fn render(&self, name: &str, time_set: Option<&fnv::FnvHashSet<u64>>) -> Box<[Trace]> {
+        trace_out(name, &self.0, time_set)
+    }
+}
 
 impl<T: Digital> AnyTimeSeries for TimeSeries<T> {}
 
@@ -245,16 +260,22 @@ impl TraceDB {
                 .collect(),
         )
     }
-    /*     pub fn dump_svg(&self, time_set: Option<&fnv::FnvHashSet<u64>>) -> svg::Document {
-           let root_scope = hierarchical_walk(self.details.iter().map(|(hash, details)| TSItem {
-               path: &details.path,
-               name: &details.key,
-               hash: *hash,
-           }));
-           let mut cursors = vec![];
-           let min_time = time_set.and_then(|x| x.iter().copied().min()).unwrap_or(0);
-       }
-    */
+    pub fn dump_svg(
+        &self,
+        time_set: Option<&fnv::FnvHashSet<u64>>,
+        options: &SvgOptions,
+    ) -> svg::Document {
+        let traces = self
+            .details
+            .iter()
+            .flat_map(|(key, details)| {
+                let series = &self.db[key];
+                let name = format!("{}.{}", [&details.path[..]].concat().join("."), details.key);
+                series.render(&name, time_set)
+            })
+            .collect::<Box<_>>();
+        render_traces_as_svg_document(&traces, options)
+    }
     pub fn dump_vcd<W: Write>(
         &self,
         w: W,

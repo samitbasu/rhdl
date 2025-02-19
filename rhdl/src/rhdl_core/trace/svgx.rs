@@ -32,6 +32,16 @@ pub struct SvgOptions {
     pub spacing: i32,
 }
 
+impl Default for SvgOptions {
+    fn default() -> Self {
+        SvgOptions {
+            pixels_per_time_unit: 10.0,
+            font_size_in_pixels: 10.0,
+            spacing: 15,
+        }
+    }
+}
+
 // Vertically stack a set of svg regions with the given gap
 fn stack_svg_regions(regions: &[Box<[SvgRegion]>], options: &SvgOptions) -> Box<[SvgRegion]> {
     let mut start_y = 0;
@@ -68,15 +78,14 @@ fn regions_to_svg_regions(regions: &[Region], options: &SvgOptions) -> Box<[SvgR
                     tag += "...";
                 }
             }
-            let region = SvgRegion {
+            SvgRegion {
                 start_x,
                 start_y: 0,
                 full_tag,
                 width,
                 tag,
                 kind,
-            };
-            region
+            }
         })
         .collect()
 }
@@ -167,12 +176,16 @@ pub fn render_traces_as_svg_document(traces: &[Trace], options: &SvgOptions) -> 
     document
 }
 
-pub fn trace_out<T: Digital>(label: &str, db: &[(u64, T)]) -> Box<[Trace]> {
+pub fn trace_out<T: Digital>(
+    label: &str,
+    db: &[(u64, T)],
+    time_set: Option<&fnv::FnvHashSet<u64>>,
+) -> Box<[Trace]> {
     let kind = T::static_kind();
     pretty_leaf_paths(&kind, Path::default())
         .into_iter()
         .map(|path| {
-            let data = build_time_trace(db, &path);
+            let data = build_time_trace(db, &path, time_set);
             Trace {
                 label: format!("{label}{:?}", path),
                 data,
@@ -181,19 +194,27 @@ pub fn trace_out<T: Digital>(label: &str, db: &[(u64, T)]) -> Box<[Trace]> {
         .collect()
 }
 
-pub fn build_time_trace<T: Digital>(data: &[(u64, T)], path: &Path) -> Box<[Region]> {
-    slice_by_path_and_bucketize(data, path)
+pub fn build_time_trace<T: Digital>(
+    data: &[(u64, T)],
+    path: &Path,
+    time_set: Option<&fnv::FnvHashSet<u64>>,
+) -> Box<[Region]> {
+    slice_by_path_and_bucketize(data, path, time_set)
         .iter()
         .map(map_bucket_to_region)
         .collect()
 }
 
-fn slice_by_path_and_bucketize<T: Digital>(data: &[(u64, T)], path: &Path) -> Box<[Bucket]> {
+fn slice_by_path_and_bucketize<T: Digital>(
+    data: &[(u64, T)],
+    path: &Path,
+    time_set: Option<&fnv::FnvHashSet<u64>>,
+) -> Box<[Bucket]> {
     let sliced = data
         .iter()
         .map(|(time, value)| (*time, value.typed_bits()))
         .map(|(time, tb)| (time, try_path(&tb, path)));
-    bucketize(sliced)
+    bucketize(sliced, time_set)
 }
 
 fn path_slice<T: Digital>(data: &[(u64, T)], path: &Path) -> Vec<(u64, TypedBits)> {
@@ -227,7 +248,10 @@ struct Bucket {
     data: TypedBits,
 }
 
-fn bucketize(data: impl IntoIterator<Item = (u64, Option<TypedBits>)>) -> Box<[Bucket]> {
+fn bucketize(
+    data: impl IntoIterator<Item = (u64, Option<TypedBits>)>,
+    time_set: Option<&fnv::FnvHashSet<u64>>,
+) -> Box<[Bucket]> {
     let mut buckets = Vec::new();
     let mut last_time = !0;
     let mut last_data = None;
@@ -240,11 +264,18 @@ fn bucketize(data: impl IntoIterator<Item = (u64, Option<TypedBits>)>) -> Box<[B
         } else {
             if !last_data.eq(&data) {
                 if let Some(data) = last_data {
-                    buckets.push(Bucket {
-                        start: start_time,
-                        end: time,
-                        data: data.clone(),
-                    });
+                    let time_stamp_contained = if let Some(time_set) = time_set {
+                        time_set.contains(&time) && time_set.contains(&start_time)
+                    } else {
+                        true
+                    };
+                    if time_stamp_contained {
+                        buckets.push(Bucket {
+                            start: start_time,
+                            end: time,
+                            data: data.clone(),
+                        });
+                    }
                 }
                 start_time = time;
                 last_data = data.clone();
@@ -456,7 +487,7 @@ mod tests {
     #[test]
     fn test_bucket_empty() {
         let data = [];
-        let buckets = bucketize(data);
+        let buckets = bucketize(data, None);
         assert_eq!(buckets.len(), 0);
     }
 
@@ -470,7 +501,7 @@ mod tests {
             (15, Some(b4(3).typed_bits())),
             (20, None),
         ];
-        let buckets = bucketize(data);
+        let buckets = bucketize(data, None);
         assert_eq!(buckets.len(), 2);
         assert_eq!(
             buckets[0],
@@ -493,7 +524,7 @@ mod tests {
     #[test]
     fn test_bucket_single() {
         let data = [(0, Some(b8(8).typed_bits()))];
-        let buckets = bucketize(data);
+        let buckets = bucketize(data, None);
         assert_eq!(buckets.len(), 1);
         assert_eq!(
             buckets[0],
@@ -513,7 +544,7 @@ mod tests {
             (1, Some(n8.clone())),
             (2, Some(n8.clone())),
         ];
-        let buckets = bucketize(data);
+        let buckets = bucketize(data, None);
         assert_eq!(buckets.len(), 1);
         assert_eq!(
             buckets[0],
@@ -532,7 +563,7 @@ mod tests {
             (1, Some(b8(4).typed_bits())),
             (3, Some(b8(5).typed_bits())),
         ];
-        let buckets = bucketize(data);
+        let buckets = bucketize(data, None);
         assert_eq!(buckets.len(), 3);
         assert_eq!(
             buckets[0],

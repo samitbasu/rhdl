@@ -2,7 +2,10 @@ use std::{io::Write, path::Path};
 
 use sha2::Digest;
 
-use crate::rhdl_core::{trace::db::TraceDBGuard, trace_init_db, Digital, TimedSample};
+use crate::{
+    prelude::trace::svgx::SvgOptions,
+    rhdl_core::{trace::db::TraceDBGuard, trace_init_db, Digital, TimedSample},
+};
 
 pub struct Vcd {
     guard: TraceDBGuard,
@@ -36,5 +39,13 @@ impl Vcd {
         let hash = sha2::Sha256::digest(&buf);
         std::fs::write(path, &buf)?;
         Ok(format!("{:x}", hash))
+    }
+    pub fn dump_svg(
+        self,
+        time_set: Option<&fnv::FnvHashSet<u64>>,
+        options: &SvgOptions,
+    ) -> svg::Document {
+        let db = self.guard.take();
+        db.dump_svg(time_set, options)
     }
 }
