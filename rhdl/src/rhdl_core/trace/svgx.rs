@@ -29,7 +29,15 @@ pub struct SvgRegion {
 pub struct SvgOptions {
     pub pixels_per_time_unit: f32,
     pub font_size_in_pixels: f32,
-    pub spacing: i32,
+    pub shim: i32,
+    pub height: i32,
+    pub label_width: i32,
+}
+
+impl SvgOptions {
+    pub fn spacing(&self) -> i32 {
+        self.height + self.shim * 2
+    }
 }
 
 impl Default for SvgOptions {
@@ -37,7 +45,9 @@ impl Default for SvgOptions {
         SvgOptions {
             pixels_per_time_unit: 10.0,
             font_size_in_pixels: 10.0,
-            spacing: 15,
+            shim: 3,
+            height: 14,
+            label_width: 40,
         }
     }
 }
@@ -52,7 +62,7 @@ fn stack_svg_regions(regions: &[Box<[SvgRegion]>], options: &SvgOptions) -> Box<
             r.start_y = start_y;
             result.push(r);
         }
-        start_y += options.spacing;
+        start_y += options.spacing();
     }
     result.into()
 }
@@ -109,11 +119,27 @@ enum RegionKind {
 #[derive(Debug)]
 pub struct Trace {
     pub label: String,
+    pub hint: String,
     pub data: Box<[Region]>,
 }
 
 fn render_trace_to_svg(trace: &Trace, options: &SvgOptions) -> Box<[SvgRegion]> {
-    regions_to_svg_regions(&trace.data, options)
+    let label_width = options.font_size_in_pixels as i32 * options.label_width;
+    let label_region = SvgRegion {
+        start_x: 0,
+        start_y: 0,
+        width: label_width,
+        tag: trace.label.clone(),
+        full_tag: trace.hint.clone(),
+        kind: RegionKind::Label,
+    };
+    let data_regions = regions_to_svg_regions(&trace.data, options).to_vec();
+    std::iter::once(label_region)
+        .chain(data_regions.into_iter().map(|mut x| {
+            x.start_x += label_width;
+            x
+        }))
+        .collect()
 }
 
 pub fn render_traces_to_svg(traces: &[Trace], options: &SvgOptions) -> Box<[SvgRegion]> {
@@ -126,9 +152,52 @@ pub fn render_traces_to_svg(traces: &[Trace], options: &SvgOptions) -> Box<[SvgR
     )
 }
 
+fn rewrite_trace_names_into_tree(mut traces: Box<[Trace]>) -> Box<[Trace]> {
+    let labels = traces.iter().map(|t| t.label.as_str()).collect::<Vec<_>>();
+    let tree: Vec<IndentedLabel> = tree_view("top", &labels).into();
+    traces.iter_mut().zip(tree).for_each(|(trace, label)| {
+        trace.label = label.compute_label();
+        trace.hint = label.full_text;
+    });
+    traces
+}
+
+const GREEN: &str = "#56C126";
+
+// Generate an iterator that yields 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, etc.
+//    This works by decomposing the number into
+//  n       m    n / 3   n % 3
+//  0       1      0       0
+//  1       2      0       1
+//  2       5      0       2
+//  3      10      1       0
+//  4      20      1       1
+//  5      50      1       2
+fn candidate_deltas() -> impl Iterator<Item = u64> {
+    const SEQ: &[u64] = &[1, 2, 5];
+    (0..).map(|n| {
+        let m = n / 3;
+        let n = n % 3;
+        10u64.pow(m) * SEQ[n as usize]
+    })
+}
+
+fn select_time_delta(options: &SvgOptions) -> u64 {
+    // Need 10 characters * options.font_size_in_pixels < pixels_per_time_unit * time_delta
+    candidate_deltas()
+        .find(|x| (*x as f32 * options.pixels_per_time_unit) >= 10.0 * options.font_size_in_pixels)
+        .unwrap()
+}
+
 // TODO - remove the duplication
-pub fn render_traces_as_svg_document(traces: &[Trace], options: &SvgOptions) -> svg::Document {
-    let regions = render_traces_to_svg(traces, options);
+pub fn render_traces_as_svg_document(
+    start_time: u64,
+    traces: Box<[Trace]>,
+    options: &SvgOptions,
+) -> svg::Document {
+    let time_delta = select_time_delta(options);
+    let traces = rewrite_trace_names_into_tree(traces);
+    let regions = render_traces_to_svg(&traces, options);
     let width = regions
         .iter()
         .map(|r| r.start_x + r.width)
@@ -136,7 +205,7 @@ pub fn render_traces_as_svg_document(traces: &[Trace], options: &SvgOptions) -> 
         .unwrap_or_default();
     let height = regions
         .iter()
-        .map(|r| r.start_y + options.spacing)
+        .map(|r| r.start_y + options.spacing())
         .max()
         .unwrap_or_default();
     let mut document = svg::Document::new().set("viewBox", (0, 0, width, height));
@@ -146,32 +215,170 @@ pub fn render_traces_as_svg_document(traces: &[Trace], options: &SvgOptions) -> 
         .set("y", 0)
         .set("width", width)
         .set("height", height)
-        .set("fill", "#EEEEEE")
+        .set("fill", "#0B151D")
         .set("stroke", "darkblue");
     document = document.add(background);
+
+    // Add a set of time labels
+    // The start time may not lie on the grid.  E.g., we may start at time 77, but the grid is 50
+    // We will start at the first grid point after the start time (or equal if it lies on a grid point)
+    let grid_start = (start_time / time_delta) + if start_time % time_delta != 0 { 1 } else { 0 };
+    let mut ndx = grid_start;
+    let label_end = options.label_width as f32 * options.font_size_in_pixels;
+    while (ndx * time_delta - start_time) as f32 * options.pixels_per_time_unit
+        < width as f32 - label_end
+    {
+        let x = (ndx * time_delta - start_time) as f32 * options.pixels_per_time_unit + label_end;
+        let text = svg::node::element::Text::new(format!("{}", ndx * time_delta));
+        document = document.add(
+            svg::node::element::Line::new()
+                .set("x1", x)
+                .set("y1", 0)
+                .set("x2", x)
+                .set("y2", height)
+                .set("stroke", "#222222")
+                .set("stroke-width", 1.0),
+        );
+        document = document.add(
+            text.set("x", x)
+                .set("y", 10)
+                .set("font-family", "monospace")
+                .set("font-size", "10px")
+                .set("text-anchor", "middle")
+                .set("fill", "#D4D4D4"),
+        );
+        ndx += 1;
+    }
+
     // For each cell, add a rectangle to the SVG with the
     // name of the cell centered in the rectangle
     for region in regions {
         let x = region.start_x;
         let y = region.start_y;
         let width = region.width;
-        let height = options.spacing;
+        let height = options.spacing();
+        let shim = options.shim;
         let fill_color = match region.kind {
             RegionKind::True => "green",
             RegionKind::False => "red",
             RegionKind::Multibit => "blue",
-            RegionKind::Label => "black",
+            RegionKind::Label => "white",
         };
         let stroke_color = "black";
         let text = region.tag.clone();
-        eprintln!("{x} {y} {full_tag}", full_tag = region.full_tag);
-        document = crate::rhdl_core::types::svg::kind_svg::text_box(
-            (x, y, width, height),
-            &text,
-            fill_color,
-            stroke_color,
-            document,
-        );
+        let tip = region.full_tag.clone();
+        let text_x = if matches!(region.kind, RegionKind::Label) {
+            x + shim
+        } else {
+            x + width / 2
+        };
+        let text_y = y + height / 2;
+        let text = svg::node::element::Text::new(text)
+            .set("x", text_x)
+            .set("y", text_y)
+            .set("xml:space", "preserve")
+            .set("font-family", "monospace")
+            .set("font-size", "10px")
+            .set("fill", "#D4D4D4");
+        let text = if matches!(region.kind, RegionKind::Label) {
+            text.set("text-anchor", "start")
+        } else {
+            text.set("text-anchor", "middle")
+        };
+        let text = text.set("dominant-baseline", "middle");
+        match region.kind {
+            RegionKind::True => {
+                let x1 = x;
+                let y1 = y + height / 2;
+                let x2 = x;
+                let y2 = y + shim;
+                let x3 = x + width;
+                let y3 = y + shim;
+                let x4 = x + width;
+                let y4 = y + height / 2;
+                document = document.add(
+                    svg::node::element::Rectangle::new()
+                        .set("x", x + 1)
+                        .set("y", y + shim)
+                        .set("width", width - 2)
+                        .set("height", height - shim * 2)
+                        .set("fill", "#1a381f")
+                        .set("stroke", "none"),
+                );
+                document = document.add(
+                    svg::node::element::Path::new()
+                        .set(
+                            "d",
+                            format!("M {x1} {y1} L {x2} {y2} L {x3} {y3} L {x4} {y4}"),
+                        )
+                        .set("fill", "none")
+                        .set("stroke", GREEN)
+                        .set("stroke-width", 1),
+                );
+            }
+            RegionKind::False => {
+                let x1 = x;
+                let y1 = y + height / 2;
+                let x2 = x;
+                let y2 = y + height - shim;
+                let x3 = x + width;
+                let y3 = y + height - shim;
+                let x4 = x + width;
+                let y4 = y + height / 2;
+                document = document.add(
+                    svg::node::element::Path::new()
+                        .set(
+                            "d",
+                            format!("M {x1} {y1} L {x2} {y2} L {x3} {y3} L {x4} {y4}"),
+                        )
+                        .set("fill", "none")
+                        .set("stroke", GREEN)
+                        .set("stroke-width", 1),
+                );
+            }
+            RegionKind::Multibit => {
+                let shim = shim.min(width / 2);
+                let x1 = x;
+                let y1 = y + height / 2;
+                let x2 = x + shim;
+                let y2 = y + shim;
+                let x3 = x + width - shim;
+                let y3 = y + shim;
+                let x4 = x + width;
+                let y4 = y + height / 2;
+                let x5 = x + width - shim;
+                let y5 = y + height - shim;
+                let x6 = x + shim;
+                let y6 = y + height - shim;
+                document = document.add(
+                    svg::node::element::Path::new()
+                    .set("d", format!("M {x1} {y1} L {x2} {y2} L {x3} {y3} L {x4} {y4} L {x5} {y5} L {x6} {y6} Z"))
+                    .set("fill", "none")
+                    .set("stroke", GREEN)
+                    .set("stroke-width", 1)
+                );
+                let title = svg::node::element::Title::new(tip);
+                let text = text.add(title);
+                document = document.add(text);
+            }
+            RegionKind::Label => {
+                let title = svg::node::element::Title::new(tip);
+                let text = text.add(title);
+                document = document.add(text);
+            }
+            _ => {}
+        }
+        /*         let rect = svg::node::element::Rectangle::new()
+                   .set("x", x)
+                   .set("y", y)
+                   .set("width", width)
+                   .set("height", height)
+                   .set("fill", fill_color)
+                   .set("stroke", stroke_color);
+               let title = svg::node::element::Title::new(tip);
+               let rect = rect.add(title);
+               document = document.add(rect).add(text);
+        */
     }
     document
 }
@@ -179,15 +386,16 @@ pub fn render_traces_as_svg_document(traces: &[Trace], options: &SvgOptions) -> 
 pub fn trace_out<T: Digital>(
     label: &str,
     db: &[(u64, T)],
-    time_set: Option<&fnv::FnvHashSet<u64>>,
+    time_set: std::ops::RangeInclusive<u64>,
 ) -> Box<[Trace]> {
     let kind = T::static_kind();
     pretty_leaf_paths(&kind, Path::default())
         .into_iter()
         .map(|path| {
-            let data = build_time_trace(db, &path, time_set);
+            let data = build_time_trace(db, &path, time_set.clone());
             Trace {
                 label: format!("{label}{:?}", path),
+                hint: Default::default(),
                 data,
             }
         })
@@ -197,7 +405,7 @@ pub fn trace_out<T: Digital>(
 pub fn build_time_trace<T: Digital>(
     data: &[(u64, T)],
     path: &Path,
-    time_set: Option<&fnv::FnvHashSet<u64>>,
+    time_set: std::ops::RangeInclusive<u64>,
 ) -> Box<[Region]> {
     slice_by_path_and_bucketize(data, path, time_set)
         .iter()
@@ -208,20 +416,13 @@ pub fn build_time_trace<T: Digital>(
 fn slice_by_path_and_bucketize<T: Digital>(
     data: &[(u64, T)],
     path: &Path,
-    time_set: Option<&fnv::FnvHashSet<u64>>,
+    time_set: std::ops::RangeInclusive<u64>,
 ) -> Box<[Bucket]> {
     let sliced = data
         .iter()
         .map(|(time, value)| (*time, value.typed_bits()))
         .map(|(time, tb)| (time, try_path(&tb, path)));
     bucketize(sliced, time_set)
-}
-
-fn path_slice<T: Digital>(data: &[(u64, T)], path: &Path) -> Vec<(u64, TypedBits)> {
-    data.iter()
-        .map(|(time, value)| (*time, value.typed_bits()))
-        .flat_map(|(time, tb)| tb.path(path).ok().map(|tb| (time, tb)))
-        .collect()
 }
 
 fn map_bucket_to_region(bucket: &Bucket) -> Region {
@@ -250,12 +451,14 @@ struct Bucket {
 
 fn bucketize(
     data: impl IntoIterator<Item = (u64, Option<TypedBits>)>,
-    time_set: Option<&fnv::FnvHashSet<u64>>,
+    time_set: std::ops::RangeInclusive<u64>,
 ) -> Box<[Bucket]> {
     let mut buckets = Vec::new();
     let mut last_time = !0;
     let mut last_data = None;
     let mut start_time = !0;
+    let min_time = *time_set.start();
+    let end_time = *time_set.end();
     for (time, data) in data.into_iter() {
         if last_time == !0 {
             last_time = time;
@@ -264,15 +467,10 @@ fn bucketize(
         } else {
             if !last_data.eq(&data) {
                 if let Some(data) = last_data {
-                    let time_stamp_contained = if let Some(time_set) = time_set {
-                        time_set.contains(&time) && time_set.contains(&start_time)
-                    } else {
-                        true
-                    };
-                    if time_stamp_contained {
+                    if time_set.contains(&start_time) && start_time != time {
                         buckets.push(Bucket {
-                            start: start_time,
-                            end: time,
+                            start: start_time - min_time,
+                            end: time - min_time,
                             data: data.clone(),
                         });
                     }
@@ -283,11 +481,11 @@ fn bucketize(
             last_time = time;
         }
     }
-    if last_time != !0 {
+    if start_time != end_time {
         if let Some(data) = last_data {
             buckets.push(Bucket {
-                start: start_time,
-                end: last_time,
+                start: start_time - min_time,
+                end: end_time - min_time,
                 data,
             });
         }
@@ -400,7 +598,7 @@ fn format_as_label_inner(t: &TypedBits) -> Option<String> {
         Kind::Array(inner) => {
             let vals = (0..inner.size)
                 .flat_map(|i| t.path(&Path::default().index(i)).ok())
-                .flat_map(|element| format_as_label(&element))
+                .flat_map(|element| format_as_label_inner(&element))
                 .collect::<Vec<_>>()
                 .join(", ");
             Some(format!("[{}]", vals))
@@ -411,7 +609,7 @@ fn format_as_label_inner(t: &TypedBits) -> Option<String> {
                 .iter()
                 .enumerate()
                 .flat_map(|(i, _)| t.path(&Path::default().tuple_index(i)).ok())
-                .flat_map(|element| format_as_label(&element))
+                .flat_map(|element| format_as_label_inner(&element))
                 .collect::<Vec<_>>()
                 .join(", ");
             Some(format!("({})", vals))
@@ -425,7 +623,7 @@ fn format_as_label_inner(t: &TypedBits) -> Option<String> {
                         .map(|x| (field, x))
                         .ok()
                 })
-                .flat_map(|(name, field)| format_as_label(&field).map(|x| (name, x)))
+                .flat_map(|(name, field)| format_as_label_inner(&field).map(|x| (name, x)))
                 .map(|(name, val)| format!("{}: {}", name.name, val))
                 .collect::<Vec<_>>()
                 .join(", ");
@@ -440,7 +638,7 @@ fn format_as_label_inner(t: &TypedBits) -> Option<String> {
             let payload = t
                 .path(&Path::default().payload_by_value(discriminant))
                 .ok()?;
-            let payload = format_as_label(&payload).unwrap_or_default();
+            let payload = format_as_label_inner(&payload).unwrap_or_default();
             Some(format!("{}{}", variant.name, payload))
         }
         Kind::Bits(inner) => {
@@ -471,23 +669,116 @@ fn format_as_label_inner(t: &TypedBits) -> Option<String> {
         }
         Kind::Signal(_inner, color) => {
             let val = &t.val();
-            let val = format_as_label(val)?;
+            let val = format_as_label_inner(val)?;
             Some(format!("{:?}@({})", color, val))
         }
         Kind::Empty => None,
     }
 }
 
+#[derive(Debug, Clone)]
+struct IndentedLabel {
+    text: String,
+    indent: usize,
+    full_text: String,
+}
+
+impl IndentedLabel {
+    fn compute_label(&self) -> String {
+        (0..self.indent.saturating_sub(1))
+            .map(|_| "   ")
+            .chain(std::iter::once(self.text.as_str()))
+            .collect()
+    }
+}
+
+// Compute a map indicating which time series in the list
+// is a "parent" of this one.  The parent is defined as
+// a time series with a path that is a prefix of the current
+// path.  We search backwards to find the closest anscestor.
+fn build_parent_map(labels: &[&str]) -> Box<[usize]> {
+    // Every node starts out parented to the root
+    let mut parents = vec![0; labels.len()];
+    // Work down the list
+    for (ndx, label) in labels.iter().enumerate() {
+        for i in 0..ndx {
+            let break_char = labels[ndx - 1 - i].len();
+            if label.starts_with(labels[ndx - 1 - i]) {
+                if let Some(char) = label.chars().nth(break_char) {
+                    if ['.', '#', '['].contains(&char) {
+                        parents[ndx] = ndx - 1 - i;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    parents.into()
+}
+
+// Given a list of parents, compute the indentation for each
+// label.  The indentation is defined as the number of
+// ancestors of the label.  Because we scan the list forward,
+// we can keep track of the indentation level for a parent
+// and increment it for each child.
+fn compute_indentation(parents: &[usize]) -> Box<[usize]> {
+    let mut indentation = vec![0; parents.len()];
+    for ndx in 1..parents.len() {
+        indentation[ndx] = indentation[parents[ndx]] + 1;
+    }
+    // Fix up the first entry
+    indentation[0] = 1;
+    indentation.into()
+}
+
+fn tree_view(root: &str, labels: &[&str]) -> Box<[IndentedLabel]> {
+    let parent_map = build_parent_map(labels);
+    let indentation = compute_indentation(&parent_map);
+    labels
+        .iter()
+        .enumerate()
+        .map(|(ndx, label)| {
+            let mut text = label.to_string();
+            let parent_text = if parent_map[ndx] == 0 {
+                root
+            } else {
+                labels[parent_map[ndx]]
+            };
+            if text.starts_with(parent_text) {
+                text = text.replacen(parent_text, "", 1);
+            }
+            IndentedLabel {
+                text,
+                indent: indentation[ndx],
+                full_text: label.to_string(),
+            }
+        })
+        .collect()
+}
+
+// The time bar can have steps of
+// [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000], etc.
+// To determine the step, we calculate the
+
 #[cfg(test)]
 mod tests {
+    use expect_test::{expect, expect_file};
+
     use crate::prelude::{b4, b8};
 
     use super::*;
 
     #[test]
+    fn test_format() {
+        let label = "foo.bar.baz";
+        let x = format!("{:>width$}", ">", width = label.len());
+        assert_eq!(x, "          >");
+    }
+
+    #[test]
     fn test_bucket_empty() {
         let data = [];
-        let buckets = bucketize(data, None);
+        let buckets = bucketize(data, 0..=20);
         assert_eq!(buckets.len(), 0);
     }
 
@@ -501,7 +792,7 @@ mod tests {
             (15, Some(b4(3).typed_bits())),
             (20, None),
         ];
-        let buckets = bucketize(data, None);
+        let buckets = bucketize(data, 0..=20);
         assert_eq!(buckets.len(), 2);
         assert_eq!(
             buckets[0],
@@ -524,13 +815,13 @@ mod tests {
     #[test]
     fn test_bucket_single() {
         let data = [(0, Some(b8(8).typed_bits()))];
-        let buckets = bucketize(data, None);
+        let buckets = bucketize(data, 0..=20);
         assert_eq!(buckets.len(), 1);
         assert_eq!(
             buckets[0],
             Bucket {
                 start: 0,
-                end: 0,
+                end: 20,
                 data: b8(8).typed_bits()
             }
         );
@@ -544,7 +835,7 @@ mod tests {
             (1, Some(n8.clone())),
             (2, Some(n8.clone())),
         ];
-        let buckets = bucketize(data, None);
+        let buckets = bucketize(data, 0..=2);
         assert_eq!(buckets.len(), 1);
         assert_eq!(
             buckets[0],
@@ -563,7 +854,7 @@ mod tests {
             (1, Some(b8(4).typed_bits())),
             (3, Some(b8(5).typed_bits())),
         ];
-        let buckets = bucketize(data, None);
+        let buckets = bucketize(data, 0..=4);
         assert_eq!(buckets.len(), 3);
         assert_eq!(
             buckets[0],
@@ -585,9 +876,64 @@ mod tests {
             buckets[2],
             Bucket {
                 start: 3,
-                end: 3,
+                end: 4,
                 data: b8(5).typed_bits()
             }
         );
+    }
+
+    #[test]
+    fn test_parent_map() {
+        let sample_paths = &[
+            "top.clock",                             // 0
+            "top.drainer.drain_kernel.data",         // 0
+            "top.drainer.drain_kernel.data_matches", // 0
+            "top.drainer.drain_kernel.valid",        // 0
+            "top.drainer.input",                     // 0
+            "top.drainer.input.data",                // 3
+            "top.drainer.input.data#None",           // 4
+            "top.drainer.input.data#Some.0",         // 4
+            "top.drainer.input.data#Some.0.foo",     // 6
+            "top.fifo.input",                        // 0
+            "top.fifo.input.data",                   // 8
+            "top.fifo.input.data#None",              // 9
+            "top.fifo.input.data#Some.0",            // 9
+        ];
+        let parent_map = build_parent_map(sample_paths);
+        assert_eq!(*parent_map, [0, 0, 0, 0, 0, 3, 4, 4, 6, 0, 8, 9, 9]);
+    }
+
+    #[test]
+    fn test_indentation_calculation() {
+        let parent_map = [0, 0, 0, 0, 3, 4, 4, 6, 0, 8, 9, 9];
+        let indentation = compute_indentation(&parent_map);
+        assert_eq!(*indentation, [1, 1, 1, 1, 2, 3, 3, 4, 1, 2, 3, 3]);
+    }
+
+    #[test]
+    fn test_candidate_deltas() {
+        let candidates = candidate_deltas().take(10).collect::<Vec<_>>();
+        assert_eq!(candidates, [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]);
+    }
+
+    #[test]
+    fn test_tree_view() {
+        let sample_paths = &[
+            "top.clock",                         // 0
+            "top.drainer.drain_kernel.data",     // 0
+            "top.drainer.drain_kernel.valid",    // 0
+            "top.drainer.input",                 // 0
+            "top.drainer.input.data",            // 3
+            "top.drainer.input.data#None",       // 4
+            "top.drainer.input.data#Some.0",     // 4
+            "top.drainer.input.data#Some.0.foo", // 6
+            "top.fifo.input",                    // 0
+            "top.fifo.input.data",               // 8
+            "top.fifo.input.data#None",          // 9
+            "top.fifo.input.data#Some.0",        // 9
+        ];
+        let tree = tree_view("top", sample_paths);
+        let expect = expect_file!["test_tree_view.expect"];
+        expect.assert_debug_eq(&tree);
     }
 }

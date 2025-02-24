@@ -67,11 +67,12 @@ mod tests {
             .take(1000)
             .stream_after_reset(1)
             .clock_pos_edge(100)
-            .take_while(|x| x.time <= 2500);
+            .skip_while(|x| x.time < 2000)
+            .take_while(|x| x.time <= 3000);
         let vcd = uut.run(input)?.collect::<Vcd>();
         let mut options = SvgOptions::default();
         options.pixels_per_time_unit = 1.0;
-        let svg = vcd.dump_svg(None, &options);
+        let svg = vcd.dump_svg(&options);
         svg::save("sync_fifo.svg", &svg).unwrap();
         Ok(())
     }
