@@ -197,7 +197,11 @@ pub fn render_traces_as_svg_document(
 ) -> svg::Document {
     let time_delta = select_time_delta(options);
     let traces = rewrite_trace_names_into_tree(traces);
-    let regions = render_traces_to_svg(&traces, options);
+    let mut regions = render_traces_to_svg(&traces, options);
+    // Shift the traces down so we can fit the timeline in at the top
+    regions
+        .iter_mut()
+        .for_each(|r| r.start_y += options.spacing());
     let width = regions
         .iter()
         .map(|r| r.start_x + r.width)
@@ -209,6 +213,17 @@ pub fn render_traces_as_svg_document(
         .max()
         .unwrap_or_default();
     let mut document = svg::Document::new().set("viewBox", (0, 0, width, height));
+    document = document.add(
+        svg::node::element::Definitions::new().add(
+            svg::node::element::ClipPath::new().set("id", "clip").add(
+                svg::node::element::Rectangle::new()
+                    .set("x", 0)
+                    .set("y", 0)
+                    .set("width", width)
+                    .set("height", height),
+            ),
+        ),
+    );
     // Provide a background rectangle for the diagram of light gray
     let background = svg::node::element::Rectangle::new()
         .set("x", 0)
@@ -226,7 +241,7 @@ pub fn render_traces_as_svg_document(
     let mut ndx = grid_start;
     let label_end = options.label_width as f32 * options.font_size_in_pixels;
     while (ndx * time_delta - start_time) as f32 * options.pixels_per_time_unit
-        < width as f32 - label_end
+        <= width as f32 - label_end
     {
         let x = (ndx * time_delta - start_time) as f32 * options.pixels_per_time_unit + label_end;
         let text = svg::node::element::Text::new(format!("{}", ndx * time_delta));
@@ -236,19 +251,32 @@ pub fn render_traces_as_svg_document(
                 .set("y1", 0)
                 .set("x2", x)
                 .set("y2", height)
-                .set("stroke", "#222222")
+                .set("stroke", "#333333")
                 .set("stroke-width", 1.0),
         );
         document = document.add(
             text.set("x", x)
-                .set("y", 10)
+                .set("y", options.spacing() / 2)
                 .set("font-family", "monospace")
                 .set("font-size", "10px")
                 .set("text-anchor", "middle")
-                .set("fill", "#D4D4D4"),
+                .set("dominant-baseline", "middle")
+                .set("fill", "#D4D4D4")
+                .set("clip-path", "url(#clip)"),
         );
         ndx += 1;
     }
+
+    document = document.add(
+        svg::node::element::Text::new("Time:")
+            .set("x", options.shim)
+            .set("y", options.spacing() / 2)
+            .set("font-family", "monospace")
+            .set("font-size", "10px")
+            .set("text-anchor", "start")
+            .set("dominant-baseline", "middle")
+            .set("fill", "#D4D4D4"),
+    );
 
     // For each cell, add a rectangle to the SVG with the
     // name of the cell centered in the rectangle
