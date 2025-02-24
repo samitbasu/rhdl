@@ -34,7 +34,7 @@ trait TimeSeriesWalk {
 }
 
 trait SVGRender {
-    fn render(&self, name: &str, time_set: Option<&fnv::FnvHashSet<u64>>) -> Box<[Trace]>;
+    fn render(&self, name: &str, time_set: std::ops::RangeInclusive<u64>) -> Box<[Trace]>;
 }
 
 struct Cursor {
@@ -82,7 +82,7 @@ impl<T: Digital> TimeSeries<T> {
 trait AnyTimeSeries: AsAny + TimeSeriesWalk + SVGRender {}
 
 impl<T: Digital> SVGRender for TimeSeries<T> {
-    fn render(&self, name: &str, time_set: Option<&fnv::FnvHashSet<u64>>) -> Box<[Trace]> {
+    fn render(&self, name: &str, time_set: std::ops::RangeInclusive<u64>) -> Box<[Trace]> {
         trace_out(name, &self.0, time_set)
     }
 }
@@ -262,19 +262,29 @@ impl TraceDB {
     }
     pub fn dump_svg(
         &self,
-        time_set: Option<&fnv::FnvHashSet<u64>>,
+        time_set: std::ops::RangeInclusive<u64>,
         options: &SvgOptions,
     ) -> svg::Document {
-        let traces = self
+        let trace_order = self
             .details
             .iter()
-            .flat_map(|(key, details)| {
+            .map(|(key, details)| {
+                let name = format!(
+                    "{}.{}",
+                    [&["top"], &details.path[..]].concat().join("."),
+                    details.key
+                );
+                (name, *key)
+            })
+            .collect::<BTreeMap<_, _>>();
+        let traces = trace_order
+            .iter()
+            .flat_map(|(name, key)| {
                 let series = &self.db[key];
-                let name = format!("{}.{}", [&details.path[..]].concat().join("."), details.key);
-                series.render(&name, time_set)
+                series.render(name, time_set.clone())
             })
             .collect::<Box<_>>();
-        render_traces_as_svg_document(&traces, options)
+        render_traces_as_svg_document(*time_set.start(), traces, options)
     }
     pub fn dump_vcd<W: Write>(
         &self,

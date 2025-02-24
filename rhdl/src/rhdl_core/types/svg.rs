@@ -268,7 +268,7 @@ pub mod kind_svg {
     // Given this layout tree, we can then render it as required.
     use super::*;
 
-    pub(crate) fn text_box(
+    fn text_box(
         pos: (i32, i32, i32, i32),
         text: &str,
         fill_color: &str,

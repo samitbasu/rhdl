@@ -6,10 +6,7 @@
 #![allow(dead_code)]
 use expect_test::expect;
 use rhdl::{
-    core::{
-        trace::svgx::{format_as_label, pretty_leaf_paths, SvgOptions},
-        types::path::leaf_paths,
-    },
+    core::trace::svgx::{format_as_label, pretty_leaf_paths, SvgOptions},
     prelude::*,
 };
 
@@ -97,16 +94,18 @@ fn test_label_for_struct() {
         a: b4,
         b: (b4, b4),
         c: [b5; 3],
+        d: bool,
     }
 
     let simple = Simple {
         a: bits(6),
         b: (bits(8), bits(9)),
         c: [bits(10), bits(11), bits(12)],
+        d: false,
     };
 
     let label = format_as_label(&simple.typed_bits()).unwrap();
-    let expect = expect!["{a: 6, b: (8, 9), c: [0a, 0b, 0c]}"];
+    let expect = expect!["{a: 6, b: (8, 9), c: [0a, 0b, 0c], d: 0}"];
     expect.assert_eq(&label);
 }
 
@@ -262,16 +261,17 @@ fn test_trace_out_for_enum() {
         (20, Value::C(true)),
     ];
 
-    let traces = trace::svgx::trace_out("val", &val_array, None);
+    let traces = trace::svgx::trace_out("val", &val_array, 0..=25);
     eprintln!("{:?}", traces);
     let options = SvgOptions {
         pixels_per_time_unit: 10.0,
         font_size_in_pixels: 10.0,
-        spacing: 15,
+        shim: 3,
+        height: 15,
     };
     let svg = trace::svgx::render_traces_to_svg(&traces, &options);
     eprintln!("{:?}", svg);
-    let svg = trace::svgx::render_traces_as_svg_document(&traces, &options);
+    let svg = trace::svgx::render_traces_as_svg_document(traces, &options);
     svg::save("test_enum.svg", &svg).unwrap();
 }
 
@@ -295,7 +295,7 @@ fn test_time_slice_for_enum() {
         (15, Value::C(true)),
     ];
 
-    let label = trace::svgx::build_time_trace(&val_array, &Default::default(), None);
+    let label = trace::svgx::build_time_trace(&val_array, &Default::default(), 0..=20);
     let expect = expect![[r#"
         [
             Region {
@@ -358,7 +358,7 @@ fn test_time_slice_for_struct() {
     ];
 
     let path = Path::default().field("b").tuple_index(2);
-    let time_trace = trace::svgx::build_time_trace(&data, &path, None);
+    let time_trace = trace::svgx::build_time_trace(&data, &path, 0..=25);
     let expect = expect![[r#"
         [
             Region {
@@ -383,7 +383,7 @@ fn test_time_slice_for_struct() {
     "#]];
     expect.assert_debug_eq(&time_trace);
     let path = Path::default().field("b");
-    let time_trace = trace::svgx::build_time_trace(&data, &path, None);
+    let time_trace = trace::svgx::build_time_trace(&data, &path, 0..=25);
     let expect = expect![[r#"
         [
             Region {
@@ -413,7 +413,7 @@ fn test_time_slice_for_struct() {
         ]
     "#]];
     expect.assert_debug_eq(&time_trace);
-    let time_trace = trace::svgx::build_time_trace(&data, &Default::default(), None);
+    let time_trace = trace::svgx::build_time_trace(&data, &Default::default(), 0..=25);
     let expect = expect![[r#"
         [
             Region {

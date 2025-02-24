@@ -40,12 +40,10 @@ impl Vcd {
         std::fs::write(path, &buf)?;
         Ok(format!("{:x}", hash))
     }
-    pub fn dump_svg(
-        self,
-        time_set: Option<&fnv::FnvHashSet<u64>>,
-        options: &SvgOptions,
-    ) -> svg::Document {
+    pub fn dump_svg(self, options: &SvgOptions) -> svg::Document {
         let db = self.guard.take();
-        db.dump_svg(time_set, options)
+        let min = self.time_set.iter().min().copied().unwrap_or_default();
+        let max = self.time_set.iter().max().copied().unwrap_or_default();
+        db.dump_svg(min..=max, options)
     }
 }
