@@ -1,6 +1,6 @@
 use crate::{
     prelude::{BitX, Digital, Kind, Path},
-    rhdl_core::{types::path::PathElement, TypedBits},
+    rhdl_core::{types::path::PathElement, Color, TypedBits},
 };
 
 // We want to take a series of time/bool values and turn it into an SVG thing.
@@ -43,7 +43,7 @@ impl SvgOptions {
 impl Default for SvgOptions {
     fn default() -> Self {
         SvgOptions {
-            pixels_per_time_unit: 10.0,
+            pixels_per_time_unit: 1.0,
             font_size_in_pixels: 10.0,
             shim: 3,
             height: 14,
@@ -160,6 +160,34 @@ fn rewrite_trace_names_into_tree(mut traces: Box<[Trace]>) -> Box<[Trace]> {
         trace.hint = label.full_text;
     });
     traces
+}
+
+// The Clock to color map
+fn line_color(color: Color) -> &'static str {
+    match color {
+        Color::Red => "#D62246",
+        Color::Orange => "#FF7F11",
+        Color::Yellow => "#F7B32B",
+        Color::Green => "#56C126",
+        Color::Blue => "#5C95FF",
+        Color::Indigo => "#9000B3",
+        Color::Violet => "#672856",
+    }
+}
+
+const MULTI_COLOR_LINE: &str = "#E7ECEF";
+const MULTI_COLOR_FILL: &str = "#4D4E4F";
+
+fn fill_color(color: Color) -> &'static str {
+    match color {
+        Color::Red => "#470B17",
+        Color::Orange => "#552A05",
+        Color::Yellow => "#523B0E",
+        Color::Green => "#1C400C",
+        Color::Blue => "#1E3155",
+        Color::Indigo => "#30003B",
+        Color::Violet => "#220D1C",
+    }
 }
 
 const GREEN: &str = "#56C126";
@@ -314,6 +342,7 @@ pub fn render_traces_as_svg_document(
             text.set("text-anchor", "middle")
         };
         let text = text.set("dominant-baseline", "middle");
+        let shim = shim.min(width / 2);
         match region.kind {
             RegionKind::True => {
                 let x1 = x;
@@ -365,7 +394,6 @@ pub fn render_traces_as_svg_document(
                 );
             }
             RegionKind::Multibit => {
-                let shim = shim.min(width / 2);
                 let x1 = x;
                 let y1 = y + height / 2;
                 let x2 = x + shim;
@@ -416,6 +444,9 @@ pub fn trace_out<T: Digital>(
     db: &[(u64, T)],
     time_set: std::ops::RangeInclusive<u64>,
 ) -> Box<[Trace]> {
+    if T::BITS == 0 {
+        return Default::default();
+    }
     let kind = T::static_kind();
     pretty_leaf_paths(&kind, Path::default())
         .into_iter()
