@@ -60,6 +60,28 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_async_fifo_svg() -> miette::Result<()> {
+        let uut = U::<Red, Blue, U16, 4> {
+            drainer: Adapter::new(crate::fifo::testing::drainer::U::<U16>::new(5, 0xD000)),
+            ..Default::default()
+        };
+        let red_input = std::iter::repeat(())
+            .stream_after_reset(1)
+            .clock_pos_edge(50);
+        let blue_input = std::iter::repeat(())
+            .stream_after_reset(1)
+            .clock_pos_edge(78);
+        let input = red_input.merge(blue_input, |r, b| I {
+            cr_w: signal(r.0),
+            cr_r: signal(b.0),
+        });
+        let vcd = uut.run(input.take(100))?.collect::<Vcd>();
+        let svg = vcd.dump_svg(&Default::default());
+        svg::save("async_fifo.svg", &svg).unwrap();
+        Ok(())
+    }
+
+    #[test]
     fn test_async_fifo_trace() -> miette::Result<()> {
         let uut = U::<Red, Blue, U16, 4> {
             drainer: Adapter::new(crate::fifo::testing::drainer::U::<U16>::new(5, 0xD000)),

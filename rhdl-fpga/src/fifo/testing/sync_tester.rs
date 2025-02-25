@@ -70,8 +70,7 @@ mod tests {
             .skip_while(|x| x.time < 2000)
             .take_while(|x| x.time <= 3000);
         let vcd = uut.run(input)?.collect::<Vcd>();
-        let mut options = SvgOptions::default();
-        options.pixels_per_time_unit = 1.0;
+        let options = SvgOptions::default();
         let svg = vcd.dump_svg(&options);
         svg::save("sync_fifo.svg", &svg).unwrap();
         Ok(())
