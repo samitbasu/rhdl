@@ -1,3 +1,5 @@
+use std::task::ready;
+
 use crate::{
     prelude::{BitX, Digital, Kind, Path},
     rhdl_core::{types::path::PathElement, Color, TypedBits},
@@ -24,6 +26,7 @@ pub struct SvgRegion {
     tag: String,
     full_tag: String,
     kind: RegionKind,
+    color: TraceColor,
 }
 
 pub struct SvgOptions {
@@ -95,6 +98,7 @@ fn regions_to_svg_regions(regions: &[Region], options: &SvgOptions) -> Box<[SvgR
                 width,
                 tag,
                 kind,
+                color: r.color,
             }
         })
         .collect()
@@ -106,6 +110,7 @@ pub struct Region {
     end: u64,
     tag: Option<String>,
     kind: RegionKind,
+    color: TraceColor,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -132,6 +137,7 @@ fn render_trace_to_svg(trace: &Trace, options: &SvgOptions) -> Box<[SvgRegion]> 
         tag: trace.label.clone(),
         full_tag: trace.hint.clone(),
         kind: RegionKind::Label,
+        color: TraceColor::MultiColor,
     };
     let data_regions = regions_to_svg_regions(&trace.data, options).to_vec();
     std::iter::once(label_region)
@@ -163,30 +169,29 @@ fn rewrite_trace_names_into_tree(mut traces: Box<[Trace]>) -> Box<[Trace]> {
 }
 
 // The Clock to color map
-fn line_color(color: Color) -> &'static str {
+fn stroke_color(color: TraceColor) -> &'static str {
     match color {
-        Color::Red => "#D62246",
-        Color::Orange => "#FF7F11",
-        Color::Yellow => "#F7B32B",
-        Color::Green => "#56C126",
-        Color::Blue => "#5C95FF",
-        Color::Indigo => "#9000B3",
-        Color::Violet => "#672856",
+        TraceColor::Single(Color::Red) => "#D62246",
+        TraceColor::Single(Color::Orange) => "#FF7F11",
+        TraceColor::Single(Color::Yellow) => "#F7B32B",
+        TraceColor::Single(Color::Green) => "#56C126",
+        TraceColor::Single(Color::Blue) => "#5C95FF",
+        TraceColor::Single(Color::Indigo) => "#9000B3",
+        TraceColor::Single(Color::Violet) => "#672856",
+        TraceColor::MultiColor => "#E7ECEF",
     }
 }
 
-const MULTI_COLOR_LINE: &str = "#E7ECEF";
-const MULTI_COLOR_FILL: &str = "#4D4E4F";
-
-fn fill_color(color: Color) -> &'static str {
+fn fill_color(color: TraceColor) -> &'static str {
     match color {
-        Color::Red => "#470B17",
-        Color::Orange => "#552A05",
-        Color::Yellow => "#523B0E",
-        Color::Green => "#1C400C",
-        Color::Blue => "#1E3155",
-        Color::Indigo => "#30003B",
-        Color::Violet => "#220D1C",
+        TraceColor::Single(Color::Red) => "#470B17",
+        TraceColor::Single(Color::Orange) => "#552A05",
+        TraceColor::Single(Color::Yellow) => "#523B0E",
+        TraceColor::Single(Color::Green) => "#1C400C",
+        TraceColor::Single(Color::Blue) => "#1E3155",
+        TraceColor::Single(Color::Indigo) => "#30003B",
+        TraceColor::Single(Color::Violet) => "#220D1C",
+        TraceColor::MultiColor => "#4D4E4F",
     }
 }
 
@@ -314,13 +319,8 @@ pub fn render_traces_as_svg_document(
         let width = region.width;
         let height = options.spacing();
         let shim = options.shim;
-        let fill_color = match region.kind {
-            RegionKind::True => "green",
-            RegionKind::False => "red",
-            RegionKind::Multibit => "blue",
-            RegionKind::Label => "white",
-        };
-        let stroke_color = "black";
+        let fill_color = fill_color(region.color);
+        let stroke_color = stroke_color(region.color);
         let text = region.tag.clone();
         let tip = region.full_tag.clone();
         let text_x = if matches!(region.kind, RegionKind::Label) {
@@ -359,7 +359,7 @@ pub fn render_traces_as_svg_document(
                         .set("y", y + shim)
                         .set("width", width - 2)
                         .set("height", height - shim * 2)
-                        .set("fill", "#1a381f")
+                        .set("fill", fill_color)
                         .set("stroke", "none"),
                 );
                 document = document.add(
@@ -369,7 +369,7 @@ pub fn render_traces_as_svg_document(
                             format!("M {x1} {y1} L {x2} {y2} L {x3} {y3} L {x4} {y4}"),
                         )
                         .set("fill", "none")
-                        .set("stroke", GREEN)
+                        .set("stroke", stroke_color)
                         .set("stroke-width", 1),
                 );
             }
@@ -389,7 +389,7 @@ pub fn render_traces_as_svg_document(
                             format!("M {x1} {y1} L {x2} {y2} L {x3} {y3} L {x4} {y4}"),
                         )
                         .set("fill", "none")
-                        .set("stroke", GREEN)
+                        .set("stroke", stroke_color)
                         .set("stroke-width", 1),
                 );
             }
@@ -410,7 +410,7 @@ pub fn render_traces_as_svg_document(
                     svg::node::element::Path::new()
                     .set("d", format!("M {x1} {y1} L {x2} {y2} L {x3} {y3} L {x4} {y4} L {x5} {y5} L {x6} {y6} Z"))
                     .set("fill", "none")
-                    .set("stroke", GREEN)
+                    .set("stroke", stroke_color)
                     .set("stroke-width", 1)
                 );
                 let title = svg::node::element::Title::new(tip);
@@ -424,19 +424,57 @@ pub fn render_traces_as_svg_document(
             }
             _ => {}
         }
-        /*         let rect = svg::node::element::Rectangle::new()
-                   .set("x", x)
-                   .set("y", y)
-                   .set("width", width)
-                   .set("height", height)
-                   .set("fill", fill_color)
-                   .set("stroke", stroke_color);
-               let title = svg::node::element::Title::new(tip);
-               let rect = rect.add(title);
-               document = document.add(rect).add(text);
-        */
     }
     document
+}
+
+#[derive(Clone, Debug, Copy, PartialEq)]
+pub enum TraceColor {
+    Single(Color),
+    MultiColor,
+}
+
+impl Default for TraceColor {
+    fn default() -> Self {
+        TraceColor::Single(Color::Green)
+    }
+}
+
+impl TraceColor {
+    fn merge(self, other: TraceColor) -> TraceColor {
+        match (self, other) {
+            (TraceColor::Single(s), TraceColor::Single(o)) if s == o => TraceColor::Single(s),
+            _ => TraceColor::MultiColor,
+        }
+    }
+}
+
+fn color_merged(list: impl Iterator<Item = TraceColor>) -> Option<TraceColor> {
+    let mut ret = None;
+    for color in list {
+        ret = match (ret, color) {
+            (None, x) => Some(x),
+            (Some(c), d) => Some(c.merge(d)),
+        }
+    }
+    ret
+}
+
+fn compute_trace_color(kind: Kind) -> Option<TraceColor> {
+    match kind {
+        Kind::Signal(_, color) => Some(TraceColor::Single(color)),
+        Kind::Bits(_) | Kind::Signed(_) | Kind::Empty | Kind::Enum(_) => None,
+        Kind::Struct(inner) => color_merged(
+            inner
+                .fields
+                .iter()
+                .flat_map(|x| compute_trace_color(x.kind)),
+        ),
+        Kind::Tuple(inner) => {
+            color_merged(inner.elements.iter().flat_map(|x| compute_trace_color(*x)))
+        }
+        Kind::Array(inner) => compute_trace_color(*inner.base),
+    }
 }
 
 pub fn trace_out<T: Digital>(
@@ -477,11 +515,12 @@ fn slice_by_path_and_bucketize<T: Digital>(
     path: &Path,
     time_set: std::ops::RangeInclusive<u64>,
 ) -> Box<[Bucket]> {
+    let parent_color = compute_trace_color(T::static_kind());
     let sliced = data
         .iter()
         .map(|(time, value)| (*time, value.typed_bits()))
         .map(|(time, tb)| (time, try_path(&tb, path)));
-    bucketize(sliced, time_set)
+    bucketize(sliced, time_set, parent_color)
 }
 
 fn map_bucket_to_region(bucket: &Bucket) -> Region {
@@ -498,6 +537,7 @@ fn map_bucket_to_region(bucket: &Bucket) -> Region {
         end: bucket.end,
         tag: format_as_label(&bucket.data),
         kind,
+        color: bucket.color,
     }
 }
 
@@ -506,11 +546,13 @@ struct Bucket {
     start: u64,
     end: u64,
     data: TypedBits,
+    color: TraceColor,
 }
 
 fn bucketize(
     data: impl IntoIterator<Item = (u64, Option<TypedBits>)>,
     time_set: std::ops::RangeInclusive<u64>,
+    parent_color: Option<TraceColor>,
 ) -> Box<[Bucket]> {
     let mut buckets = Vec::new();
     let mut last_time = !0;
@@ -518,6 +560,7 @@ fn bucketize(
     let mut start_time = !0;
     let min_time = *time_set.start();
     let end_time = *time_set.end();
+    let mut trace_color = None;
     for (time, data) in data.into_iter() {
         if last_time == !0 {
             last_time = time;
@@ -526,12 +569,20 @@ fn bucketize(
         } else {
             if !last_data.eq(&data) {
                 if let Some(data) = last_data {
+                    if trace_color.is_none() {
+                        trace_color = compute_trace_color(data.kind)
+                            .or(parent_color)
+                            .or(Some(Default::default()));
+                    }
                     if time_set.contains(&start_time) && start_time != time {
-                        buckets.push(Bucket {
-                            start: start_time - min_time,
-                            end: time - min_time,
-                            data: data.clone(),
-                        });
+                        if let Some(color) = trace_color {
+                            buckets.push(Bucket {
+                                start: start_time - min_time,
+                                end: time - min_time,
+                                data: data.clone(),
+                                color,
+                            });
+                        }
                     }
                 }
                 start_time = time;
@@ -545,6 +596,7 @@ fn bucketize(
             buckets.push(Bucket {
                 start: start_time - min_time,
                 end: end_time - min_time,
+                color: trace_color.unwrap_or_default(),
                 data,
             });
         }
@@ -837,7 +889,7 @@ mod tests {
     #[test]
     fn test_bucket_empty() {
         let data = [];
-        let buckets = bucketize(data, 0..=20);
+        let buckets = bucketize(data, 0..=20, None);
         assert_eq!(buckets.len(), 0);
     }
 
@@ -851,14 +903,15 @@ mod tests {
             (15, Some(b4(3).typed_bits())),
             (20, None),
         ];
-        let buckets = bucketize(data, 0..=20);
+        let buckets = bucketize(data, 0..=20, None);
         assert_eq!(buckets.len(), 2);
         assert_eq!(
             buckets[0],
             Bucket {
                 start: 5,
                 end: 10,
-                data: b4(3).typed_bits()
+                data: b4(3).typed_bits(),
+                color: TraceColor::default()
             }
         );
         assert_eq!(
@@ -866,7 +919,8 @@ mod tests {
             Bucket {
                 start: 15,
                 end: 20,
-                data: b4(3).typed_bits()
+                data: b4(3).typed_bits(),
+                color: TraceColor::default()
             }
         );
     }
@@ -874,14 +928,15 @@ mod tests {
     #[test]
     fn test_bucket_single() {
         let data = [(0, Some(b8(8).typed_bits()))];
-        let buckets = bucketize(data, 0..=20);
+        let buckets = bucketize(data, 0..=20, None);
         assert_eq!(buckets.len(), 1);
         assert_eq!(
             buckets[0],
             Bucket {
                 start: 0,
                 end: 20,
-                data: b8(8).typed_bits()
+                data: b8(8).typed_bits(),
+                color: TraceColor::default()
             }
         );
     }
@@ -894,14 +949,15 @@ mod tests {
             (1, Some(n8.clone())),
             (2, Some(n8.clone())),
         ];
-        let buckets = bucketize(data, 0..=2);
+        let buckets = bucketize(data, 0..=2, None);
         assert_eq!(buckets.len(), 1);
         assert_eq!(
             buckets[0],
             Bucket {
                 start: 0,
                 end: 2,
-                data: n8
+                data: n8,
+                color: TraceColor::default()
             }
         );
     }
@@ -913,14 +969,15 @@ mod tests {
             (1, Some(b8(4).typed_bits())),
             (3, Some(b8(5).typed_bits())),
         ];
-        let buckets = bucketize(data, 0..=4);
+        let buckets = bucketize(data, 0..=4, None);
         assert_eq!(buckets.len(), 3);
         assert_eq!(
             buckets[0],
             Bucket {
                 start: 0,
                 end: 1,
-                data: b8(8).typed_bits()
+                data: b8(8).typed_bits(),
+                color: TraceColor::default()
             }
         );
         assert_eq!(
@@ -928,7 +985,8 @@ mod tests {
             Bucket {
                 start: 1,
                 end: 3,
-                data: b8(4).typed_bits()
+                data: b8(4).typed_bits(),
+                color: TraceColor::default()
             }
         );
         assert_eq!(
@@ -936,7 +994,8 @@ mod tests {
             Bucket {
                 start: 3,
                 end: 4,
-                data: b8(5).typed_bits()
+                data: b8(5).typed_bits(),
+                color: TraceColor::default()
             }
         );
     }
@@ -994,5 +1053,26 @@ mod tests {
         let tree = tree_view("top", sample_paths);
         let expect = expect_file!["test_tree_view.expect"];
         expect.assert_debug_eq(&tree);
+    }
+
+    #[test]
+    fn test_compute_trace_color() {
+        let k = Kind::make_bool();
+        assert_eq!(compute_trace_color(k), None);
+        let k = Kind::make_signal(Kind::make_bool(), Color::Indigo);
+        assert_eq!(
+            compute_trace_color(k),
+            Some(TraceColor::Single(Color::Indigo))
+        );
+        let k = Kind::make_signal(Kind::make_bool(), Color::Blue);
+        let y = Kind::make_signal(Kind::make_bool(), Color::Green);
+        let k = Kind::make_tuple(vec![k, y]);
+        assert_eq!(compute_trace_color(k), Some(TraceColor::MultiColor));
+        let k = Kind::make_signal(Kind::make_bool(), Color::Blue);
+        let k = Kind::make_tuple(vec![k, k]);
+        assert_eq!(
+            compute_trace_color(k),
+            Some(TraceColor::Single(Color::Blue))
+        );
     }
 }
