@@ -593,6 +593,10 @@ fn bucketize(
     }
     if start_time != end_time {
         if let Some(data) = last_data {
+            eprintln!(
+                "Bucketize type {:?}, color: {:?}, parent: {:?}",
+                data.kind, trace_color, parent_color
+            );
             buckets.push(Bucket {
                 start: start_time - min_time,
                 end: end_time - min_time,
