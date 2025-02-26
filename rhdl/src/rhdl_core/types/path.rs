@@ -230,6 +230,10 @@ impl Path {
     pub(crate) fn with_element(x: PathElement) -> Path {
         Path { elements: vec![x] }
     }
+
+    pub(crate) fn pop(&mut self) -> Option<PathElement> {
+        self.elements.pop()
+    }
 }
 
 impl From<Member> for Path {
