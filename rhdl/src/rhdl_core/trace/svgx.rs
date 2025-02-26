@@ -2,7 +2,10 @@ use std::task::ready;
 
 use crate::{
     prelude::{BitX, Digital, Kind, Path},
-    rhdl_core::{types::path::PathElement, Color, TypedBits},
+    rhdl_core::{
+        types::path::{sub_kind, PathElement},
+        Color, TypedBits,
+    },
 };
 
 // We want to take a series of time/bool values and turn it into an SVG thing.
@@ -194,8 +197,6 @@ fn fill_color(color: TraceColor) -> &'static str {
         TraceColor::MultiColor => "#4D4E4F",
     }
 }
-
-const GREEN: &str = "#56C126";
 
 // Generate an iterator that yields 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, etc.
 //    This works by decomposing the number into
@@ -515,12 +516,12 @@ fn slice_by_path_and_bucketize<T: Digital>(
     path: &Path,
     time_set: std::ops::RangeInclusive<u64>,
 ) -> Box<[Bucket]> {
-    let parent_color = compute_trace_color(T::static_kind());
+    let trace_color = compute_trace_color_from_path(T::static_kind(), path).unwrap_or_default();
     let sliced = data
         .iter()
         .map(|(time, value)| (*time, value.typed_bits()))
         .map(|(time, tb)| (time, try_path(&tb, path)));
-    bucketize(sliced, time_set, parent_color)
+    bucketize(sliced, time_set, trace_color)
 }
 
 fn map_bucket_to_region(bucket: &Bucket) -> Region {
@@ -552,7 +553,7 @@ struct Bucket {
 fn bucketize(
     data: impl IntoIterator<Item = (u64, Option<TypedBits>)>,
     time_set: std::ops::RangeInclusive<u64>,
-    parent_color: Option<TraceColor>,
+    color: TraceColor,
 ) -> Box<[Bucket]> {
     let mut buckets = Vec::new();
     let mut last_time = !0;
@@ -560,7 +561,6 @@ fn bucketize(
     let mut start_time = !0;
     let min_time = *time_set.start();
     let end_time = *time_set.end();
-    let mut trace_color = None;
     for (time, data) in data.into_iter() {
         if last_time == !0 {
             last_time = time;
@@ -569,20 +569,13 @@ fn bucketize(
         } else {
             if !last_data.eq(&data) {
                 if let Some(data) = last_data {
-                    if trace_color.is_none() {
-                        trace_color = compute_trace_color(data.kind)
-                            .or(parent_color)
-                            .or(Some(Default::default()));
-                    }
                     if time_set.contains(&start_time) && start_time != time {
-                        if let Some(color) = trace_color {
-                            buckets.push(Bucket {
-                                start: start_time - min_time,
-                                end: time - min_time,
-                                data: data.clone(),
-                                color,
-                            });
-                        }
+                        buckets.push(Bucket {
+                            start: start_time - min_time,
+                            end: time - min_time,
+                            data: data.clone(),
+                            color,
+                        });
                     }
                 }
                 start_time = time;
@@ -593,14 +586,11 @@ fn bucketize(
     }
     if start_time != end_time {
         if let Some(data) = last_data {
-            eprintln!(
-                "Bucketize type {:?}, color: {:?}, parent: {:?}",
-                data.kind, trace_color, parent_color
-            );
+            eprintln!("Bucketize type {:?}, color: {:?}", data.kind, color);
             buckets.push(Bucket {
                 start: start_time - min_time,
                 end: end_time - min_time,
-                color: trace_color.unwrap_or_default(),
+                color,
                 data,
             });
         }
@@ -664,6 +654,23 @@ pub fn pretty_leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
     // Remove all instances of #variant followed by #variant.0 - the
     // first does not add any value when pretty printing
     pretty_leaf_paths_inner(kind, base)
+}
+
+// Compute the color of a path applied to a TypedBits.  It may be None if
+// no colors are encountered.  Otherwise, it is the color "closest" to the
+// path in question (closest ancestor).
+pub fn compute_trace_color_from_path(t: Kind, path: &Path) -> Option<TraceColor> {
+    let mut my_color = None;
+    let mut path = path.clone();
+    while my_color.is_none() {
+        let my_kind = sub_kind(t, &path).ok()?;
+        my_color = compute_trace_color(my_kind);
+        if path.is_empty() {
+            break;
+        }
+        path.pop();
+    }
+    my_color
 }
 
 // Apply a path sequence to a TypedBits object, but use None instead of blindly
@@ -893,7 +900,7 @@ mod tests {
     #[test]
     fn test_bucket_empty() {
         let data = [];
-        let buckets = bucketize(data, 0..=20, None);
+        let buckets = bucketize(data, 0..=20, Default::default());
         assert_eq!(buckets.len(), 0);
     }
 
@@ -907,7 +914,7 @@ mod tests {
             (15, Some(b4(3).typed_bits())),
             (20, None),
         ];
-        let buckets = bucketize(data, 0..=20, None);
+        let buckets = bucketize(data, 0..=20, Default::default());
         assert_eq!(buckets.len(), 2);
         assert_eq!(
             buckets[0],
@@ -932,7 +939,7 @@ mod tests {
     #[test]
     fn test_bucket_single() {
         let data = [(0, Some(b8(8).typed_bits()))];
-        let buckets = bucketize(data, 0..=20, None);
+        let buckets = bucketize(data, 0..=20, Default::default());
         assert_eq!(buckets.len(), 1);
         assert_eq!(
             buckets[0],
@@ -953,7 +960,7 @@ mod tests {
             (1, Some(n8.clone())),
             (2, Some(n8.clone())),
         ];
-        let buckets = bucketize(data, 0..=2, None);
+        let buckets = bucketize(data, 0..=2, Default::default());
         assert_eq!(buckets.len(), 1);
         assert_eq!(
             buckets[0],
@@ -973,7 +980,7 @@ mod tests {
             (1, Some(b8(4).typed_bits())),
             (3, Some(b8(5).typed_bits())),
         ];
-        let buckets = bucketize(data, 0..=4, None);
+        let buckets = bucketize(data, 0..=4, Default::default());
         assert_eq!(buckets.len(), 3);
         assert_eq!(
             buckets[0],
