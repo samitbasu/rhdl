@@ -298,7 +298,6 @@ fn test_signal_cast_works() -> anyhow::Result<()> {
         signal::<b8, C>(z.resize())
     }
     let obj = compile_design::<add<Red>>(Asynchronous)?;
-    eprintln!("{:?}", obj);
     Ok(())
 }
 

@@ -5,7 +5,7 @@
 #![allow(unused_must_use)]
 #![allow(dead_code)]
 
-use expect_test::expect;
+use expect_test::expect_file;
 use rhdl::prelude::*;
 #[cfg(test)]
 mod common;
@@ -43,64 +43,7 @@ fn test_nested_enum_match_in_if_let_fails() -> miette::Result<()> {
         None,
     ];
 
-    let expect_err = expect![[r#"
-        Err(
-            RHDLTypeError(
-                RHDLTypeError {
-                    cause: PathMismatchInTypeInference,
-                    src: SourcePool {
-                        source: {
-                            FnID(2a849a685e0d9753): SpannedSource {
-                                source: "fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {\n    if let Some(Foo::Red(Bar(x, y))) = state.val() {\n        signal((x + y).resize())\n    } else {\n        signal(bits(0))\n    }\n}\n",
-                                name: "add",
-                                span_map: {
-                                    N14: 122..146,
-                                    N11: 130..135,
-                                    N9: 130..131,
-                                    N2: 100..105,
-                                    N22: 158..189,
-                                    N25: 59..191,
-                                    N19: 168..183,
-                                    N17: 180..181,
-                                    N13: 129..145,
-                                    N23: 65..189,
-                                    N18: 175..182,
-                                    N20: 168..183,
-                                    N4: 90..91,
-                                    N12: 129..136,
-                                    N7: 77..96,
-                                    N1: 7..38,
-                                    N0: 7..12,
-                                    N6: 86..95,
-                                    N21: 158..189,
-                                    N26: 0..191,
-                                    N24: 65..189,
-                                    N3: 100..111,
-                                    N10: 134..135,
-                                    N16: 112..152,
-                                    N5: 93..94,
-                                    N15: 122..146,
-                                    N8: 72..97,
-                                },
-                                fallback: N26,
-                                filename: "rhdl/tests/binding.rs:29",
-                                function_id: FnID(2a849a685e0d9753),
-                            },
-                        },
-                        ranges: {
-                            FnID(2a849a685e0d9753): 0..192,
-                        },
-                    },
-                    err_span: SourceSpan {
-                        offset: SourceOffset(
-                            86,
-                        ),
-                        length: 9,
-                    },
-                },
-            ),
-        )
-    "#]];
+    let expect_err = expect_file!["nested_enum_in_if_let.expect"];
     let res = compile_design::<add>(CompilationMode::Asynchronous);
     expect_err.assert_debug_eq(&res);
     Ok(())

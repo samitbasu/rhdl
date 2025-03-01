@@ -38,7 +38,7 @@ pub fn fixture_kernel<N: BitWidth, Z: BitWidth>(
 #[cfg(test)]
 mod tests {
     use expect_test::expect;
-    use rhdl::core::trace::svgx::SvgOptions;
+    use rhdl::core::trace::svg::SvgOptions;
 
     use super::*;
 

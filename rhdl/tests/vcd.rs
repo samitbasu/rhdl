@@ -4,9 +4,9 @@
 #![allow(unreachable_code)]
 #![allow(unused_must_use)]
 #![allow(dead_code)]
-use expect_test::expect;
+use expect_test::{expect, expect_file};
 use rhdl::{
-    core::trace::svgx::{format_as_label, pretty_leaf_paths, SvgOptions},
+    core::trace::svg::{format_as_label, pretty_leaf_paths, SvgOptions},
     prelude::*,
 };
 
@@ -193,7 +193,7 @@ fn test_time_slice_with_nested_enums() {
     let path = Path::default().payload("A").tuple_index(0).payload("Some");
     let mapped = val_array
         .iter()
-        .map(|v| trace::svgx::try_path(v, &path))
+        .map(|v| trace::svg::try_path(v, &path))
         .collect::<Vec<_>>();
     let expect = expect![[r#"
         [
@@ -226,7 +226,7 @@ fn test_time_slice_for_enum_with_discriminant() {
     let path = Path::default().payload("A");
     let mapped = val_array
         .iter()
-        .map(|v| trace::svgx::try_path(v, &path))
+        .map(|v| trace::svg::try_path(v, &path))
         .collect::<Vec<_>>();
     let expect = expect![[r#"
         [
@@ -261,17 +261,10 @@ fn test_trace_out_for_enum() {
         (20, Value::C(true)),
     ];
 
-    let traces = trace::svgx::trace_out("val", &val_array, 0..=25);
-    eprintln!("{:?}", traces);
-    let options = SvgOptions {
-        pixels_per_time_unit: 10.0,
-        font_size_in_pixels: 10.0,
-        shim: 3,
-        height: 15,
-    };
-    let svg = trace::svgx::render_traces_to_svg(&traces, &options);
-    eprintln!("{:?}", svg);
-    let svg = trace::svgx::render_traces_as_svg_document(traces, &options);
+    let traces = trace::svg::trace_out("val", &val_array, 0..=25);
+    let options = SvgOptions::default();
+    let svg = trace::svg::render_traces_to_svg(&traces, &options);
+    let svg = trace::svg::render_traces_as_svg_document(0, traces, &options);
     svg::save("test_enum.svg", &svg).unwrap();
 }
 
@@ -295,43 +288,8 @@ fn test_time_slice_for_enum() {
         (15, Value::C(true)),
     ];
 
-    let label = trace::svgx::build_time_trace(&val_array, &Default::default(), 0..=20);
-    let expect = expect![[r#"
-        [
-            Region {
-                start: 0,
-                end: 5,
-                tag: Some(
-                    "Empty",
-                ),
-                kind: Multibit,
-            },
-            Region {
-                start: 5,
-                end: 10,
-                tag: Some(
-                    "A(2a, 0400)",
-                ),
-                kind: Multibit,
-            },
-            Region {
-                start: 10,
-                end: 15,
-                tag: Some(
-                    "B{name: 43}",
-                ),
-                kind: Multibit,
-            },
-            Region {
-                start: 15,
-                end: 15,
-                tag: Some(
-                    "C",
-                ),
-                kind: Multibit,
-            },
-        ]
-    "#]];
+    let label = trace::svg::build_time_trace(&val_array, &Default::default(), 0..=20);
+    let expect = expect_file!["time_slice_for_enum.expect"];
     expect.assert_debug_eq(&label);
 }
 
@@ -358,97 +316,14 @@ fn test_time_slice_for_struct() {
     ];
 
     let path = Path::default().field("b").tuple_index(2);
-    let time_trace = trace::svgx::build_time_trace(&data, &path, 0..=25);
-    let expect = expect![[r#"
-        [
-            Region {
-                start: 0,
-                end: 10,
-                tag: None,
-                kind: False,
-            },
-            Region {
-                start: 10,
-                end: 20,
-                tag: None,
-                kind: True,
-            },
-            Region {
-                start: 20,
-                end: 20,
-                tag: None,
-                kind: False,
-            },
-        ]
-    "#]];
+    let time_trace = trace::svg::build_time_trace(&data, &path, 0..=25);
+    let expect = expect_file!["time_slice_for_struct.expect"];
     expect.assert_debug_eq(&time_trace);
     let path = Path::default().field("b");
-    let time_trace = trace::svgx::build_time_trace(&data, &path, 0..=25);
-    let expect = expect![[r#"
-        [
-            Region {
-                start: 0,
-                end: 10,
-                tag: Some(
-                    "(4, 5)",
-                ),
-                kind: Multibit,
-            },
-            Region {
-                start: 10,
-                end: 20,
-                tag: Some(
-                    "(5, 6)",
-                ),
-                kind: Multibit,
-            },
-            Region {
-                start: 20,
-                end: 20,
-                tag: Some(
-                    "(0, 1)",
-                ),
-                kind: Multibit,
-            },
-        ]
-    "#]];
+    let time_trace = trace::svg::build_time_trace(&data, &path, 0..=25);
+    let expect = expect_file!["time_trace_for_struct_b.expect"];
     expect.assert_debug_eq(&time_trace);
-    let time_trace = trace::svgx::build_time_trace(&data, &Default::default(), 0..=25);
-    let expect = expect![[r#"
-        [
-            Region {
-                start: 0,
-                end: 10,
-                tag: Some(
-                    "{a: 2, b: (4, 5), c: [01, 02, 03]}",
-                ),
-                kind: Multibit,
-            },
-            Region {
-                start: 10,
-                end: 15,
-                tag: Some(
-                    "{a: 2, b: (5, 6), c: [03, 04, 05]}",
-                ),
-                kind: Multibit,
-            },
-            Region {
-                start: 15,
-                end: 20,
-                tag: Some(
-                    "{a: 4, b: (5, 6), c: [01, 02, 03]}",
-                ),
-                kind: Multibit,
-            },
-            Region {
-                start: 20,
-                end: 20,
-                tag: Some(
-                    "{a: 3, b: (0, 1), c: [02, 03, 04]}",
-                ),
-                kind: Multibit,
-            },
-        ]
-    "#]];
+    let time_trace = trace::svg::build_time_trace(&data, &Default::default(), 0..=25);
+    let expect = expect_file!["time_trace_for_struct_root.expect"];
     expect.assert_debug_eq(&time_trace);
 }

@@ -1,0 +1,240 @@
+[
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    false,
+                ),
+                reset: Reset(
+                    true,
+                ),
+            },
+            0_b8,
+        ),
+        time: 0,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    true,
+                ),
+                reset: Reset(
+                    true,
+                ),
+            },
+            0_b8,
+        ),
+        time: 5,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    true,
+                ),
+                reset: Reset(
+                    true,
+                ),
+            },
+            0_b8,
+        ),
+        time: 6,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    false,
+                ),
+                reset: Reset(
+                    true,
+                ),
+            },
+            0_b8,
+        ),
+        time: 10,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    true,
+                ),
+                reset: Reset(
+                    true,
+                ),
+            },
+            0_b8,
+        ),
+        time: 15,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    true,
+                ),
+                reset: Reset(
+                    false,
+                ),
+            },
+            1_b8,
+        ),
+        time: 16,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    false,
+                ),
+                reset: Reset(
+                    false,
+                ),
+            },
+            1_b8,
+        ),
+        time: 20,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    true,
+                ),
+                reset: Reset(
+                    false,
+                ),
+            },
+            1_b8,
+        ),
+        time: 25,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    true,
+                ),
+                reset: Reset(
+                    false,
+                ),
+            },
+            2_b8,
+        ),
+        time: 26,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    false,
+                ),
+                reset: Reset(
+                    false,
+                ),
+            },
+            2_b8,
+        ),
+        time: 30,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    true,
+                ),
+                reset: Reset(
+                    false,
+                ),
+            },
+            2_b8,
+        ),
+        time: 35,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    true,
+                ),
+                reset: Reset(
+                    false,
+                ),
+            },
+            3_b8,
+        ),
+        time: 36,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    false,
+                ),
+                reset: Reset(
+                    false,
+                ),
+            },
+            3_b8,
+        ),
+        time: 40,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    true,
+                ),
+                reset: Reset(
+                    false,
+                ),
+            },
+            3_b8,
+        ),
+        time: 45,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    true,
+                ),
+                reset: Reset(
+                    false,
+                ),
+            },
+            4_b8,
+        ),
+        time: 46,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    false,
+                ),
+                reset: Reset(
+                    false,
+                ),
+            },
+            4_b8,
+        ),
+        time: 50,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    true,
+                ),
+                reset: Reset(
+                    false,
+                ),
+            },
+            4_b8,
+        ),
+        time: 55,
+    },
+]

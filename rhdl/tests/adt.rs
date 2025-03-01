@@ -98,7 +98,6 @@ fn test_unit_enums_are_repr() -> miette::Result<()> {
 
     let x = Rad::D;
     let x = x.bin();
-    eprintln!("{}", bitx_string(&x));
     Ok(())
 }
 
