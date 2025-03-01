@@ -31,7 +31,6 @@ fn test_vm_simple_function_with_invalid_args_causes_ice() -> miette::Result<()> 
         a
     }
     let design = compile_design_stage1::<pass<Red>>(CompilationMode::Asynchronous)?;
-    eprintln!("design: {:?}", design);
     let res = rhdl::core::rhif::vm::execute(&design, vec![b16(42).typed_bits()]);
     assert!(res.is_err());
     Ok(())

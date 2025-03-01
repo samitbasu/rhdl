@@ -1,5 +1,3 @@
-use std::task::ready;
-
 use crate::{
     prelude::{BitX, Digital, Kind, Path},
     rhdl_core::{
@@ -423,7 +421,6 @@ pub fn render_traces_as_svg_document(
                 let text = text.add(title);
                 document = document.add(text);
             }
-            _ => {}
         }
     }
     document
@@ -586,7 +583,6 @@ fn bucketize(
     }
     if start_time != end_time {
         if let Some(data) = last_data {
-            eprintln!("Bucketize type {:?}, color: {:?}", data.kind, color);
             buckets.push(Bucket {
                 start: start_time - min_time,
                 end: end_time - min_time,
@@ -884,7 +880,7 @@ fn tree_view(root: &str, labels: &[&str]) -> Box<[IndentedLabel]> {
 
 #[cfg(test)]
 mod tests {
-    use expect_test::{expect, expect_file};
+    use expect_test::expect_file;
 
     use crate::prelude::{b4, b8};
 
@@ -1014,22 +1010,22 @@ mod tests {
     #[test]
     fn test_parent_map() {
         let sample_paths = &[
-            "top.clock",                             // 0
-            "top.drainer.drain_kernel.data",         // 0
-            "top.drainer.drain_kernel.data_matches", // 0
-            "top.drainer.drain_kernel.valid",        // 0
-            "top.drainer.input",                     // 0
-            "top.drainer.input.data",                // 3
-            "top.drainer.input.data#None",           // 4
-            "top.drainer.input.data#Some.0",         // 4
-            "top.drainer.input.data#Some.0.foo",     // 6
-            "top.fifo.input",                        // 0
-            "top.fifo.input.data",                   // 8
-            "top.fifo.input.data#None",              // 9
-            "top.fifo.input.data#Some.0",            // 9
+            "top.clock",                             // 0 0
+            "top.drainer.drain_kernel.data",         // 0 1
+            "top.drainer.drain_kernel.data_matches", // 0 2
+            "top.drainer.drain_kernel.valid",        // 0 3
+            "top.drainer.input",                     // 0 4
+            "top.drainer.input.data",                // 4 5
+            "top.drainer.input.data#None",           // 5 6
+            "top.drainer.input.data#Some.0",         // 5 7
+            "top.drainer.input.data#Some.0.foo",     // 7 8
+            "top.fifo.input",                        // 0 9
+            "top.fifo.input.data",                   // 9 10
+            "top.fifo.input.data#None",              // 10 11
+            "top.fifo.input.data#Some.0",            // 10 12
         ];
         let parent_map = build_parent_map(sample_paths);
-        assert_eq!(*parent_map, [0, 0, 0, 0, 0, 3, 4, 4, 6, 0, 8, 9, 9]);
+        assert_eq!(*parent_map, [0, 0, 0, 0, 0, 4, 5, 5, 7, 0, 9, 10, 10]);
     }
 
     #[test]

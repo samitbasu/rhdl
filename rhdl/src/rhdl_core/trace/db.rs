@@ -14,7 +14,7 @@ use crate::rhdl_core::Digital;
 use super::{
     bit::TraceBit,
     key::TraceKey,
-    svgx::{render_traces_as_svg_document, trace_out, SvgOptions, Trace},
+    svg::{render_traces_as_svg_document, trace_out, SvgOptions, Trace},
     vcd::VCDWrite,
 };
 

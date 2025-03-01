@@ -608,7 +608,6 @@ mod tests {
         for path in path1_star {
             assert_eq!(path.elements.len(), 3);
             assert!(!path.any_dynamic());
-            eprintln!("{:?}", path);
         }
         let path2 = Path::default()
             .field("d")
@@ -619,7 +618,6 @@ mod tests {
         for path in path2_star {
             assert_eq!(path.elements.len(), 3);
             assert!(!path.any_dynamic());
-            eprintln!("{:?}", path);
         }
         let path3 = Path::default()
             .field("d")
@@ -631,7 +629,6 @@ mod tests {
         for path in path3_star {
             assert_eq!(path.elements.len(), 4);
             assert!(!path.any_dynamic());
-            eprintln!("{:?}", path);
         }
     }
 }

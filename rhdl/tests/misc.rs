@@ -197,7 +197,6 @@ fn test_latte_match() -> miette::Result<()> {
         .init();
     // Get the RHIF implementation of the kernel
     let obj = compile_design_stage1::<do_stuff>(CompilationMode::Synchronous)?;
-    eprintln!("{:?}", obj);
     Ok(())
 }
 

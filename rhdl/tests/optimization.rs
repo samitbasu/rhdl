@@ -1,7 +1,7 @@
-use rhdl::prelude::*;
 use rhdl::core::{
     rtl::spec::AluBinary, rtl::spec::Binary, sim::testbench::kernel::test_kernel_vm_and_verilog,
 };
+use rhdl::prelude::*;
 #[cfg(test)]
 mod common;
 
@@ -92,7 +92,6 @@ fn test_left_signed_shift_with_constant_argument() -> miette::Result<()> {
         signal(a)
     }
     let rtl = compile_design::<foo>(CompilationMode::Asynchronous)?;
-    eprintln!("{:?}", rtl);
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -115,7 +114,6 @@ fn test_left_shift_with_constant_argument() -> miette::Result<()> {
         signal(a)
     }
     let rtl = compile_design::<foo>(CompilationMode::Asynchronous)?;
-    eprintln!("{:?}", rtl);
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -138,7 +136,6 @@ fn test_right_shift_with_constant_argument() -> miette::Result<()> {
         signal(a)
     }
     let rtl = compile_design::<foo>(CompilationMode::Asynchronous)?;
-    eprintln!("{:?}", rtl);
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -161,7 +158,6 @@ fn test_right_signed_shift_with_constant_argument() -> miette::Result<()> {
         signal(a)
     }
     let rtl = compile_design::<foo>(CompilationMode::Asynchronous)?;
-    eprintln!("{:?}", rtl);
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -394,7 +390,6 @@ fn test_constant_propagation_through_loops() -> miette::Result<()> {
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
 
-    eprintln!("{:?}", rtl);
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -420,7 +415,6 @@ fn test_constant_propagation_through_sub_kernels() -> miette::Result<()> {
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
 
-    eprintln!("{:?}", rtl);
     rtl.ops.iter().for_each(|op| {
         assert!(!matches!(
             op.op,
@@ -464,7 +458,6 @@ fn test_empty_expressions_dropped() -> miette::Result<()> {
     }
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    eprintln!("{:?}", rtl);
     assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
     assert!(rtl.literals.values().all(|v| !v.is_empty()));
     Ok(())
@@ -500,7 +493,6 @@ fn test_empty_index_dropped() -> miette::Result<()> {
     }
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    eprintln!("{:?}", rtl);
     assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
     assert!(rtl.literals.values().all(|v| !v.is_empty()));
     Ok(())
@@ -515,7 +507,6 @@ fn test_empty_dynamic_splices_dropped() -> miette::Result<()> {
     }
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    eprintln!("{:?}", rtl);
     assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
     assert!(rtl.literals.values().all(|v| !v.is_empty()));
     Ok(())
@@ -529,7 +520,6 @@ fn test_empty_dynamic_index_dropped() -> miette::Result<()> {
     }
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    eprintln!("{:?}", rtl);
     assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
     assert!(rtl.literals.values().all(|v| !v.is_empty()));
     assert!(rtl
@@ -547,7 +537,6 @@ fn test_lower_multiplies_to_shifts() -> miette::Result<()> {
     }
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    eprintln!("{:?}", rtl);
     assert!(rtl.ops.iter().all(|op| !matches!(
         op.op,
         rhdl::core::rtl::spec::OpCode::Binary(Binary {
@@ -574,7 +563,6 @@ fn test_empty_indices_dropped() -> miette::Result<()> {
         a.a
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    eprintln!("{:?}", rtl);
     assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
     assert!(rtl.literals.values().all(|v| !v.is_empty()));
     Ok(())
@@ -613,7 +601,6 @@ fn test_empty_case_dropped() -> miette::Result<()> {
         ret
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    eprintln!("{:?}", rtl);
     assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
     assert!(rtl.literals.values().all(|v| !v.is_empty()));
     Ok(())

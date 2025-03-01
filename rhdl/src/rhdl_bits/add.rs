@@ -97,11 +97,6 @@ mod test {
 
     #[test]
     fn test_signed_range() {
-        eprintln!(
-            "signed range {}..{}",
-            SignedBits::<U9>::min_value(),
-            SignedBits::<U9>::max_value()
-        );
         assert_eq!(SignedBits::<U9>::min_value(), -256);
         assert_eq!(SignedBits::<U9>::max_value(), 255);
     }

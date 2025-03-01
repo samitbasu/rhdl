@@ -1,5 +1,5 @@
 #![allow(clippy::upper_case_acronyms)]
-use expect_test::expect;
+use expect_test::expect_file;
 use rhdl::prelude::*;
 #[cfg(test)]
 mod common;
@@ -194,7 +194,7 @@ fn test_option_result_match_func() -> miette::Result<()> {
         signal(d)
     }
 
-    let expect = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(51b7d64721a556a4): SpannedSource { source: "fn do_stuff(i: Signal<Option<Result>, Red>) -> Signal<Option<ResponseCode>, Red> {\n    let d = match i.val() {\n        Some(Result::Ok(())) => Some(ResponseCode::OKAY),\n        Some(Result::Err(e)) => Some(err_map(e)),\n        None => None,\n    };\n    signal(d)\n}\n", name: "do_stuff", span_map: {N26: 252..261, N10: 119..168, N22: 87..247, N2: 91..92, N12: 182..196, N14: 214..215, N18: 227..231, N21: 95..246, N6: 124..138, N25: 252..261, N7: 119..139, N20: 227..240, N19: 235..239, N4: 101..108, N11: 194..195, N9: 143..167, N5: 135..137, N17: 177..218, N13: 177..197, N16: 201..217, N3: 101..102, N15: 206..216, N24: 259..260, N1: 12..42, N8: 148..166, N28: 0..263, N0: 12..13, N27: 81..263, N23: 87..247}, fallback: N28, filename: "rhdl/tests/option.rs:187", function_id: FnID(51b7d64721a556a4) }}, ranges: {FnID(51b7d64721a556a4): 0..264} }, err_span: SourceSpan { offset: SourceOffset(135), length: 2 } }))"#]];
+    let expect = expect_file!["option_result_match.expect"];
     let res = compile_design::<do_stuff>(CompilationMode::Asynchronous);
     expect.assert_eq(&format!("{:?}", res));
     Ok(())
@@ -330,7 +330,7 @@ fn test_option_result_nested_option_result_destructure() -> miette::Result<()> {
         signal(d)
     }
 
-    let expect = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(4432552bf210aac5): SpannedSource { source: "fn do_stuff(i: Signal<Option<Result>, Red>) -> Signal<Option<ResponseCode>, Red> {\n    let resp = i.val();\n    let d = match resp {\n        Some(Result::Ok(())) => Some(ResponseCode::OKAY),\n        Some(Result::Err(e)) => {\n            Some(\n                match e {\n                    AXI4Error::SLVERR => ResponseCode::SLVERR,\n                    AXI4Error::DECERR => ResponseCode::DECERR,\n                },\n            )\n        }\n        None => None,\n    };\n    signal(d)\n}\n", name: "do_stuff", span_map: {N8: 125..129, N9: 156..158, N21: 372..392, N22: 351..393, N1: 12..42, N31: 111..465, N7: 115..116, N11: 140..160, N4: 98..105, N13: 164..188, N28: 445..458, N30: 111..465, N29: 119..464, N15: 215..216, N27: 453..457, N6: 87..106, N35: 81..481, N10: 145..159, N32: 477..478, N14: 140..189, N34: 470..479, N5: 87..106, N19: 309..329, N16: 203..217, N3: 98..99, N26: 445..449, N2: 91..95, N25: 198..436, N17: 198..218, N0: 12..13, N12: 169..187, N33: 470..479, N23: 258..411, N24: 236..426, N20: 288..330, N18: 264..265, N36: 0..481}, fallback: N36, filename: "rhdl/tests/option.rs:319", function_id: FnID(4432552bf210aac5) }}, ranges: {FnID(4432552bf210aac5): 0..482} }, err_span: SourceSpan { offset: SourceOffset(156), length: 2 } }))"#]];
+    let expect = expect_file!["option_result_nested_option_result_destructure.expect"];
     let res = compile_design::<do_stuff>(CompilationMode::Asynchronous);
     expect.assert_eq(&format!("{:?}", res));
     Ok(())
@@ -365,7 +365,7 @@ fn test_option_result_nested_option_result_destructure_simple() -> miette::Resul
         signal(d)
     }
 
-    let expect_err = expect![[r#"Err(RHDLTypeError(RHDLTypeError { cause: PathMismatchInTypeInference, src: SourcePool { source: {FnID(9dea70ee2e643e8c): SpannedSource { source: "fn do_stuff(i: Signal<Option<Result>, Red>) -> Signal<Option<AXI4Error>, Red> {\n    let resp = i.val();\n    let d = match resp {\n        Some(Result::Ok(())) => Some(AXI4Error::SLVERR),\n        Some(Err(e)) => Some(e),\n        None => None,\n    };\n    signal(d)\n}\n", name: "do_stuff", span_map: {N24: 116..246, N20: 194..218, N7: 112..113, N22: 235..239, N30: 78..263, N11: 137..157, N17: 194..206, N0: 12..13, N18: 215..216, N10: 142..156, N26: 108..247, N21: 227..231, N16: 199..205, N28: 252..261, N25: 108..247, N14: 137..185, N3: 95..96, N9: 153..155, N27: 259..260, N19: 210..217, N8: 122..126, N5: 84..103, N1: 12..42, N23: 227..240, N2: 88..92, N13: 161..184, N15: 203..204, N12: 166..183, N29: 252..261, N31: 0..263, N6: 84..103, N4: 95..102}, fallback: N31, filename: "rhdl/tests/option.rs:357", function_id: FnID(9dea70ee2e643e8c) }}, ranges: {FnID(9dea70ee2e643e8c): 0..264} }, err_span: SourceSpan { offset: SourceOffset(153), length: 2 } }))"#]];
+    let expect_err = expect_file!["option_result_more.expect"];
     let err = compile_design::<do_stuff>(CompilationMode::Asynchronous);
     expect_err.assert_eq(&format!("{:?}", err));
     Ok(())

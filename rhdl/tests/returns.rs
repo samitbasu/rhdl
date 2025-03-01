@@ -59,7 +59,6 @@ fn test_early_return_empty_element_constructed() -> miette::Result<()> {
     }
 
     let module = compile_design::<foo>(CompilationMode::Synchronous)?;
-    eprintln!("{module:?}");
     Ok(())
 }
 

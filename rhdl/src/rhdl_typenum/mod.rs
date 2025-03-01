@@ -98,26 +98,26 @@ mod tests {
         let a = U32;
         let b = U32;
         let c = a + b;
-        let d = c - b;
-        type D = Sum<U32, U32>;
-        assert_impl_all!(D: IsEqualTo<U64>);
+        let _d = c - b;
+        type _D = Sum<U32, U32>;
+        assert_impl_all!(_D: IsEqualTo<U64>);
     }
 
     #[test]
     fn test_sub() {
-        type D = Diff<U34, U2>;
-        assert_impl_all!(D: IsEqualTo<U32>);
+        type _D = Diff<U34, U2>;
+        assert_impl_all!(_D: IsEqualTo<U32>);
     }
 
     #[test]
     fn test_max() {
-        type D = Maximum<U34, U15>;
-        assert_impl_all!(D: IsEqualTo<U34>);
+        type _D = Maximum<U34, U15>;
+        assert_impl_all!(_D: IsEqualTo<U34>);
     }
 
     #[test]
     fn test_min() {
-        type D = Minimum<U34, U15>;
-        assert_impl_all!(D: IsEqualTo<U15>);
+        type _D = Minimum<U34, U15>;
+        assert_impl_all!(_D: IsEqualTo<U15>);
     }
 }

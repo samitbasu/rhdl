@@ -3,7 +3,7 @@ use std::{io::Write, path::Path};
 use sha2::Digest;
 
 use crate::{
-    prelude::trace::svgx::SvgOptions,
+    prelude::trace::svg::SvgOptions,
     rhdl_core::{trace::db::TraceDBGuard, trace_init_db, Digital, TimedSample},
 };
 
