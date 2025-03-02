@@ -1,0 +1,190 @@
+Stmt::Expr(
+    Expr::Match {
+        attrs: [],
+        match_token: Match,
+        expr: Expr::Path {
+            attrs: [],
+            qself: None,
+            path: Path {
+                leading_colon: None,
+                segments: [
+                    PathSegment {
+                        ident: Ident(
+                            l,
+                        ),
+                        arguments: PathArguments::None,
+                    },
+                ],
+            },
+        },
+        brace_token: Brace,
+        arms: [
+            Arm {
+                attrs: [],
+                pat: Pat::Path {
+                    attrs: [],
+                    qself: None,
+                    path: Path {
+                        leading_colon: None,
+                        segments: [
+                            PathSegment {
+                                ident: Ident(
+                                    State,
+                                ),
+                                arguments: PathArguments::None,
+                            },
+                            PathSep,
+                            PathSegment {
+                                ident: Ident(
+                                    Init,
+                                ),
+                                arguments: PathArguments::None,
+                            },
+                        ],
+                    },
+                },
+                guard: None,
+                fat_arrow_token: FatArrow,
+                body: Expr::Block {
+                    attrs: [],
+                    label: None,
+                    block: Block {
+                        brace_token: Brace,
+                        stmts: [],
+                    },
+                },
+                comma: None,
+            },
+            Arm {
+                attrs: [],
+                pat: Pat::TupleStruct {
+                    attrs: [],
+                    qself: None,
+                    path: Path {
+                        leading_colon: None,
+                        segments: [
+                            PathSegment {
+                                ident: Ident(
+                                    State,
+                                ),
+                                arguments: PathArguments::None,
+                            },
+                            PathSep,
+                            PathSegment {
+                                ident: Ident(
+                                    Run,
+                                ),
+                                arguments: PathArguments::None,
+                            },
+                        ],
+                    },
+                    paren_token: Paren,
+                    elems: [
+                        Pat::Ident {
+                            attrs: [],
+                            by_ref: None,
+                            mutability: None,
+                            ident: Ident(
+                                a,
+                            ),
+                            subpat: None,
+                        },
+                    ],
+                },
+                guard: None,
+                fat_arrow_token: FatArrow,
+                body: Expr::Block {
+                    attrs: [],
+                    label: None,
+                    block: Block {
+                        brace_token: Brace,
+                        stmts: [],
+                    },
+                },
+                comma: None,
+            },
+            Arm {
+                attrs: [],
+                pat: Pat::Path {
+                    attrs: [],
+                    qself: None,
+                    path: Path {
+                        leading_colon: None,
+                        segments: [
+                            PathSegment {
+                                ident: Ident(
+                                    State,
+                                ),
+                                arguments: PathArguments::None,
+                            },
+                            PathSep,
+                            PathSegment {
+                                ident: Ident(
+                                    Boom,
+                                ),
+                                arguments: PathArguments::None,
+                            },
+                        ],
+                    },
+                },
+                guard: None,
+                fat_arrow_token: FatArrow,
+                body: Expr::Block {
+                    attrs: [],
+                    label: None,
+                    block: Block {
+                        brace_token: Brace,
+                        stmts: [],
+                    },
+                },
+                comma: None,
+            },
+            Arm {
+                attrs: [],
+                pat: Pat::TupleStruct {
+                    attrs: [],
+                    qself: None,
+                    path: Path {
+                        leading_colon: None,
+                        segments: [
+                            PathSegment {
+                                ident: Ident(
+                                    State,
+                                ),
+                                arguments: PathArguments::None,
+                            },
+                            PathSep,
+                            PathSegment {
+                                ident: Ident(
+                                    NotOk,
+                                ),
+                                arguments: PathArguments::None,
+                            },
+                        ],
+                    },
+                    paren_token: Paren,
+                    elems: [
+                        Pat::Lit {
+                            attrs: [],
+                            lit: Lit::Int {
+                                token: 3,
+                            },
+                        },
+                    ],
+                },
+                guard: None,
+                fat_arrow_token: FatArrow,
+                body: Expr::Block {
+                    attrs: [],
+                    label: None,
+                    block: Block {
+                        brace_token: Brace,
+                        stmts: [],
+                    },
+                },
+                comma: None,
+            },
+        ],
+    },
+    None,
+)

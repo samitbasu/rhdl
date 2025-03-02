@@ -4,7 +4,7 @@ use syn::{spanned::Spanned, Data, DeriveInput};
 
 use crate::{
     clone::derive_clone_from_inner, digital_enum::derive_digital_enum,
-    partial_eq::derive_partial_eq_from_inner, utils::parse_rhdl_skip_attribute,
+    utils::parse_rhdl_skip_attribute,
 };
 
 pub fn derive_digital(input: TokenStream) -> syn::Result<TokenStream> {
@@ -203,7 +203,7 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use expect_test::expect;
+    use expect_test::expect_file;
 
     #[test]
     fn test_digital_proc_macro() {
@@ -215,9 +215,7 @@ mod test {
             }
         );
         let output = derive_digital(decl).unwrap().to_string();
-        let expected = expect![[r#"
-            "impl core :: marker :: Copy for NestedBits { } impl Clone for NestedBits { # [inline] fn clone (& self) -> Self { Self { nest_1 : self . nest_1 . clone () , nest_2 : self . nest_2 . clone () , nest_3 : self . nest_3 . clone () , } } } impl rhdl :: core :: Digital for NestedBits { const BITS : usize = < bool as rhdl :: core :: Digital > :: BITS + < u8 as rhdl :: core :: Digital > :: BITS + < TwoBits as rhdl :: core :: Digital > :: BITS ; const TRACE_BITS : usize = < bool as rhdl :: core :: Digital > :: TRACE_BITS + < u8 as rhdl :: core :: Digital > :: TRACE_BITS + < TwoBits as rhdl :: core :: Digital > :: TRACE_BITS ; fn static_kind () -> rhdl :: core :: Kind { rhdl :: core :: Kind :: make_struct (concat ! (module_path ! () , \"::\" , stringify ! (NestedBits)) , vec ! [rhdl :: core :: Kind :: make_field (stringify ! (nest_1) , < bool as rhdl :: core :: Digital > :: static_kind ()) , rhdl :: core :: Kind :: make_field (stringify ! (nest_2) , < u8 as rhdl :: core :: Digital > :: static_kind ()) , rhdl :: core :: Kind :: make_field (stringify ! (nest_3) , < TwoBits as rhdl :: core :: Digital > :: static_kind ()) ,] ,) } fn static_trace_type () -> rhdl :: core :: TraceType { rhdl :: rtt :: make_struct (concat ! (module_path ! () , \"::\" , stringify ! (NestedBits)) , vec ! [rhdl :: rtt :: make_field (stringify ! (nest_1) , < bool as rhdl :: core :: Digital > :: static_trace_type ()) , rhdl :: rtt :: make_field (stringify ! (nest_2) , < u8 as rhdl :: core :: Digital > :: static_trace_type ()) , rhdl :: rtt :: make_field (stringify ! (nest_3) , < TwoBits as rhdl :: core :: Digital > :: static_trace_type ()) ,] ,) } fn bin (self) -> Vec < rhdl :: core :: BitX > { [self . nest_1 . bin () . as_slice () , self . nest_2 . bin () . as_slice () , self . nest_3 . bin () . as_slice () ,] . concat () } fn trace (self) -> Vec < rhdl :: core :: TraceBit > { [self . nest_1 . trace () . as_slice () , self . nest_2 . trace () . as_slice () , self . nest_3 . trace () . as_slice () ,] . concat () } fn dont_care () -> Self { Self { nest_1 : < bool as rhdl :: core :: Digital > :: dont_care () , nest_2 : < u8 as rhdl :: core :: Digital > :: dont_care () , nest_3 : < TwoBits as rhdl :: core :: Digital > :: dont_care () , } } }"
-        "#]];
+        let expected = expect_file!["expect/digital_proc_macro.expect"];
         expected.assert_debug_eq(&output);
     }
 
@@ -231,9 +229,7 @@ mod test {
             }
         );
         let output = derive_digital(decl).unwrap().to_string();
-        let expected = expect![[
-            r#"impl core :: marker :: Copy for Inputs { } impl Clone for Inputs { # [inline] fn clone (& self) -> Self { Self { input : self . input . clone () , write : self . write . clone () , read : self . read . clone () , } } } impl rhdl :: core :: Digital for Inputs { const BITS : usize = < u32 as rhdl :: core :: Digital > :: BITS + < bool as rhdl :: core :: Digital > :: BITS + < bool as rhdl :: core :: Digital > :: BITS ; const TRACE_BITS : usize = < u32 as rhdl :: core :: Digital > :: TRACE_BITS + < bool as rhdl :: core :: Digital > :: TRACE_BITS + < bool as rhdl :: core :: Digital > :: TRACE_BITS ; fn static_kind () -> rhdl :: core :: Kind { rhdl :: core :: Kind :: make_struct (concat ! (module_path ! () , "::" , stringify ! (Inputs)) , vec ! [rhdl :: core :: Kind :: make_field (stringify ! (input) , < u32 as rhdl :: core :: Digital > :: static_kind ()) , rhdl :: core :: Kind :: make_field (stringify ! (write) , < bool as rhdl :: core :: Digital > :: static_kind ()) , rhdl :: core :: Kind :: make_field (stringify ! (read) , < bool as rhdl :: core :: Digital > :: static_kind ()) ,] ,) } fn static_trace_type () -> rhdl :: core :: TraceType { rhdl :: rtt :: make_struct (concat ! (module_path ! () , "::" , stringify ! (Inputs)) , vec ! [rhdl :: rtt :: make_field (stringify ! (input) , < u32 as rhdl :: core :: Digital > :: static_trace_type ()) , rhdl :: rtt :: make_field (stringify ! (write) , < bool as rhdl :: core :: Digital > :: static_trace_type ()) , rhdl :: rtt :: make_field (stringify ! (read) , < bool as rhdl :: core :: Digital > :: static_trace_type ()) ,] ,) } fn bin (self) -> Vec < rhdl :: core :: BitX > { [self . input . bin () . as_slice () , self . write . bin () . as_slice () , self . read . bin () . as_slice () ,] . concat () } fn trace (self) -> Vec < rhdl :: core :: TraceBit > { [self . input . trace () . as_slice () , self . write . trace () . as_slice () , self . read . trace () . as_slice () ,] . concat () } fn dont_care () -> Self { Self { input : < u32 as rhdl :: core :: Digital > :: dont_care () , write : < bool as rhdl :: core :: Digital > :: dont_care () , read : < bool as rhdl :: core :: Digital > :: dont_care () , } } }"#
-        ]];
+        let expected = expect_file!["expect/digital_with_struct.expect"];
         expected.assert_eq(&output);
     }
 
@@ -247,9 +243,7 @@ mod test {
             }
         );
         let output = derive_digital(decl).unwrap().to_string();
-        let expected = expect![[
-            r#"impl < T : Digital > core :: marker :: Copy for Inputs < T > { } impl < T : Digital > Clone for Inputs < T > { # [inline] fn clone (& self) -> Self { Self { input : self . input . clone () , write : self . write . clone () , read : self . read . clone () , } } } impl < T : Digital > rhdl :: core :: Digital for Inputs < T > { const BITS : usize = < T as rhdl :: core :: Digital > :: BITS + < bool as rhdl :: core :: Digital > :: BITS + < bool as rhdl :: core :: Digital > :: BITS ; const TRACE_BITS : usize = < T as rhdl :: core :: Digital > :: TRACE_BITS + < bool as rhdl :: core :: Digital > :: TRACE_BITS + < bool as rhdl :: core :: Digital > :: TRACE_BITS ; fn static_kind () -> rhdl :: core :: Kind { rhdl :: core :: Kind :: make_struct (& vec ! [module_path ! () . to_string () , "::" . to_string () , stringify ! (Inputs) . to_string () , "<" . to_string () , std :: any :: type_name :: < T > () . to_string () , ">" . to_string ()] . join ("") , vec ! [rhdl :: core :: Kind :: make_field (stringify ! (input) , < T as rhdl :: core :: Digital > :: static_kind ()) , rhdl :: core :: Kind :: make_field (stringify ! (write) , < bool as rhdl :: core :: Digital > :: static_kind ()) , rhdl :: core :: Kind :: make_field (stringify ! (read) , < bool as rhdl :: core :: Digital > :: static_kind ()) ,] ,) } fn static_trace_type () -> rhdl :: core :: TraceType { rhdl :: rtt :: make_struct (& vec ! [module_path ! () . to_string () , "::" . to_string () , stringify ! (Inputs) . to_string () , "<" . to_string () , std :: any :: type_name :: < T > () . to_string () , ">" . to_string ()] . join ("") , vec ! [rhdl :: rtt :: make_field (stringify ! (input) , < T as rhdl :: core :: Digital > :: static_trace_type ()) , rhdl :: rtt :: make_field (stringify ! (write) , < bool as rhdl :: core :: Digital > :: static_trace_type ()) , rhdl :: rtt :: make_field (stringify ! (read) , < bool as rhdl :: core :: Digital > :: static_trace_type ()) ,] ,) } fn bin (self) -> Vec < rhdl :: core :: BitX > { [self . input . bin () . as_slice () , self . write . bin () . as_slice () , self . read . bin () . as_slice () ,] . concat () } fn trace (self) -> Vec < rhdl :: core :: TraceBit > { [self . input . trace () . as_slice () , self . write . trace () . as_slice () , self . read . trace () . as_slice () ,] . concat () } fn dont_care () -> Self { Self { input : < T as rhdl :: core :: Digital > :: dont_care () , write : < bool as rhdl :: core :: Digital > :: dont_care () , read : < bool as rhdl :: core :: Digital > :: dont_care () , } } }"#
-        ]];
+        let expected = expect_file!["expect/struct_with_generics.expect"];
         expected.assert_eq(&output);
     }
 
@@ -263,9 +257,7 @@ mod test {
             }
         );
         let output = derive_digital(decl).unwrap().to_string();
-        let expected = expect![[
-            r#"impl core :: marker :: Copy for Inputs { } impl Clone for Inputs { # [inline] fn clone (& self) -> Self { Self { input : self . input . clone () , write : self . write . clone () , read : self . read . clone () , } } } impl rhdl :: core :: Digital for Inputs { const BITS : usize = < u32 as rhdl :: core :: Digital > :: BITS + < bool as rhdl :: core :: Digital > :: BITS + < (bool , bool) as rhdl :: core :: Digital > :: BITS ; const TRACE_BITS : usize = < u32 as rhdl :: core :: Digital > :: TRACE_BITS + < bool as rhdl :: core :: Digital > :: TRACE_BITS + < (bool , bool) as rhdl :: core :: Digital > :: TRACE_BITS ; fn static_kind () -> rhdl :: core :: Kind { rhdl :: core :: Kind :: make_struct (concat ! (module_path ! () , "::" , stringify ! (Inputs)) , vec ! [rhdl :: core :: Kind :: make_field (stringify ! (input) , < u32 as rhdl :: core :: Digital > :: static_kind ()) , rhdl :: core :: Kind :: make_field (stringify ! (write) , < bool as rhdl :: core :: Digital > :: static_kind ()) , rhdl :: core :: Kind :: make_field (stringify ! (read) , < (bool , bool) as rhdl :: core :: Digital > :: static_kind ()) ,] ,) } fn static_trace_type () -> rhdl :: core :: TraceType { rhdl :: rtt :: make_struct (concat ! (module_path ! () , "::" , stringify ! (Inputs)) , vec ! [rhdl :: rtt :: make_field (stringify ! (input) , < u32 as rhdl :: core :: Digital > :: static_trace_type ()) , rhdl :: rtt :: make_field (stringify ! (write) , < bool as rhdl :: core :: Digital > :: static_trace_type ()) , rhdl :: rtt :: make_field (stringify ! (read) , < (bool , bool) as rhdl :: core :: Digital > :: static_trace_type ()) ,] ,) } fn bin (self) -> Vec < rhdl :: core :: BitX > { [self . input . bin () . as_slice () , self . write . bin () . as_slice () , self . read . bin () . as_slice () ,] . concat () } fn trace (self) -> Vec < rhdl :: core :: TraceBit > { [self . input . trace () . as_slice () , self . write . trace () . as_slice () , self . read . trace () . as_slice () ,] . concat () } fn dont_care () -> Self { Self { input : < u32 as rhdl :: core :: Digital > :: dont_care () , write : < bool as rhdl :: core :: Digital > :: dont_care () , read : < (bool , bool) as rhdl :: core :: Digital > :: dont_care () , } } }"#
-        ]];
+        let expected = expect_file!["expect/struct_with_tuple_field.expect"];
         expected.assert_eq(&output);
     }
 
@@ -275,9 +267,7 @@ mod test {
             pub struct Inputs(pub u32, pub bool, pub bool);
         );
         let output = derive_digital(decl).unwrap().to_string();
-        let expected = expect![[
-            r#"impl core :: marker :: Copy for Inputs { } impl Clone for Inputs { # [inline] fn clone (& self) -> Self { Self (self . 0 . clone () , self . 1 . clone () , self . 2 . clone () ,) } } impl rhdl :: core :: Digital for Inputs { const BITS : usize = < u32 as rhdl :: core :: Digital > :: BITS + < bool as rhdl :: core :: Digital > :: BITS + < bool as rhdl :: core :: Digital > :: BITS ; const TRACE_BITS : usize = < u32 as rhdl :: core :: Digital > :: TRACE_BITS + < bool as rhdl :: core :: Digital > :: TRACE_BITS + < bool as rhdl :: core :: Digital > :: TRACE_BITS ; fn static_kind () -> rhdl :: core :: Kind { rhdl :: core :: Kind :: make_struct (concat ! (module_path ! () , "::" , stringify ! (Inputs)) , vec ! [rhdl :: core :: Kind :: make_field (stringify ! (0) , < u32 as rhdl :: core :: Digital > :: static_kind ()) , rhdl :: core :: Kind :: make_field (stringify ! (1) , < bool as rhdl :: core :: Digital > :: static_kind ()) , rhdl :: core :: Kind :: make_field (stringify ! (2) , < bool as rhdl :: core :: Digital > :: static_kind ()) ,]) } fn static_trace_type () -> rhdl :: rtt :: TraceType { rhdl :: rtt :: make_struct (concat ! (module_path ! () , "::" , stringify ! (Inputs)) , vec ! [rhdl :: rtt :: make_field (stringify ! (0) , < u32 as rhdl :: core :: Digital > :: static_trace_type ()) , rhdl :: rtt :: make_field (stringify ! (1) , < bool as rhdl :: core :: Digital > :: static_trace_type ()) , rhdl :: rtt :: make_field (stringify ! (2) , < bool as rhdl :: core :: Digital > :: static_trace_type ()) ,]) } fn bin (self) -> Vec < rhdl :: core :: BitX > { [self . 0 . bin () . as_slice () , self . 1 . bin () . as_slice () , self . 2 . bin () . as_slice () ,] . concat () } fn trace (self) -> Vec < rhdl :: core :: TraceBit > { [self . 0 . trace () . as_slice () , self . 1 . trace () . as_slice () , self . 2 . trace () . as_slice () ,] . concat () } fn dont_care () -> Self { Self (< u32 as rhdl :: core :: Digital > :: dont_care () , < bool as rhdl :: core :: Digital > :: dont_care () , < bool as rhdl :: core :: Digital > :: dont_care () ,) } } impl rhdl :: core :: DigitalFn for Inputs { fn kernel_fn () -> Option < rhdl :: core :: KernelFnKind > { Some (rhdl :: core :: KernelFnKind :: TupleStructConstructor (< Self as rhdl :: core :: Digital > :: static_kind () . place_holder ())) } }"#
-        ]];
+        let expected = expect_file!["expect/digital_with_tuple_struct.expect"];
         expected.assert_eq(&output);
     }
 }

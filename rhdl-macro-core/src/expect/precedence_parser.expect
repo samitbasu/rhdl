@@ -1,0 +1,14 @@
+fn jnk() -> Vec<Stmt> {
+    bob.block_expr(
+        bob
+            .block(
+                vec![
+                    bob.expr_stmt(bob.binary_expr(rhdl::core::ast::builder::BinOp::Add,
+                    bob.lit_expr(bob.expr_lit_int(stringify!(1))), bob
+                    .binary_expr(rhdl::core::ast::builder::BinOp::Mul, bob.lit_expr(bob
+                    .expr_lit_int(stringify!(3))), bob.lit_expr(bob
+                    .expr_lit_int(stringify!(9))))))
+                ],
+            ),
+    )
+}

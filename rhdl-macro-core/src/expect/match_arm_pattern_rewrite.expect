@@ -1,0 +1,77 @@
+fn update(z: Bar) {
+    #[forbid(non_snake_case)]
+    #[forbid(non_upper_case_globals)]
+    #[forbid(unreachable_patterns)]
+    #[allow(clippy::manual_map)]
+    #[allow(clippy::redundant_pattern_matching)]
+    #[forbid(path_statements)]
+    #[forbid(unused_variables)]
+    fn inner(z: Bar) {
+        {
+            match z {
+                Bar::A => {}
+                Bar::B(x) => {}
+                Bar::C { x, y } => {}
+            }
+        }
+    }
+    rhdl::core::trace_push_path(stringify!(update));
+    let ret = inner(z);
+    rhdl::core::trace_pop_path();
+    ret
+}
+#[allow(non_camel_case_types)]
+struct update {}
+impl rhdl::core::digital_fn::DigitalFn1 for update {
+    type A0 = Bar;
+    type O = ();
+    fn func() -> fn(Bar) {
+        update
+    }
+}
+impl rhdl::core::digital_fn::DigitalFn for update {
+    fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+        let bob = rhdl::core::ast::builder::ASTBuilder::default();
+        Some(
+            bob
+                .kernel_fn(
+                    stringify!(update),
+                    vec! {
+                        bob.type_pat(bob.ident_pat(stringify!(z), false), < Bar as
+                        rhdl::core::Digital > ::static_kind())
+                    },
+                    rhdl::core::Kind::Empty,
+                    bob
+                        .block(
+                            vec![
+                                bob.expr_stmt(bob.match_expr(bob.path_expr(bob.path(vec![bob
+                                .path_segment(stringify!(z), bob.path_arguments_none())],)),
+                                vec![bob.arm(bob.arm_kind_constant(bob
+                                .expr_lit_typed_bits(rhdl::core::Digital::typed_bits(Bar::A),
+                                stringify!(Bar::A))), bob.block_expr(bob.block(vec![],))),
+                                bob.arm(bob.arm_kind_enum(bob.tuple_struct_pat(bob
+                                .path(vec![bob.path_segment(stringify!(Bar), bob
+                                .path_arguments_none()), bob.path_segment(stringify!(B), bob
+                                .path_arguments_none())],), vec![bob
+                                .ident_pat(stringify!(x), false)]),
+                                rhdl::core::Digital::discriminant(Bar::B(Default::default()))),
+                                bob.block_expr(bob.block(vec![],))), bob.arm(bob
+                                .arm_kind_enum(bob.struct_pat(bob.path(vec![bob
+                                .path_segment(stringify!(Bar), bob.path_arguments_none()),
+                                bob.path_segment(stringify!(C), bob
+                                .path_arguments_none())],), vec![bob.field_pat(bob
+                                .member_named(stringify!(x)), bob.ident_pat(stringify!(x),
+                                false)), bob.field_pat(bob.member_named(stringify!(y)), bob
+                                .ident_pat(stringify!(y), false))], false),
+                                rhdl::core::Digital::discriminant(Bar::C { x :
+                                Default::default(), y : Default::default() })), bob
+                                .block_expr(bob.block(vec![],)))]))
+                            ],
+                        ),
+                    std::any::TypeId::of::<update>(),
+                    "fn update(z: Bar) {\n    match z {\n        Bar::A => {}\n        Bar::B(x) => {}\n        Bar::C { x, y } => {}\n    }\n}\n",
+                    concat!(file!(), ":", line!()),
+                ),
+        )
+    }
+}

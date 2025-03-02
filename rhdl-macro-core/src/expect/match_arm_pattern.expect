@@ -1,0 +1,65 @@
+fn update(z: u8) {
+    #[forbid(non_snake_case)]
+    #[forbid(non_upper_case_globals)]
+    #[forbid(unreachable_patterns)]
+    #[allow(clippy::manual_map)]
+    #[allow(clippy::redundant_pattern_matching)]
+    #[forbid(path_statements)]
+    #[forbid(unused_variables)]
+    fn inner(z: u8) {
+        {
+            match z {
+                1_u4 => {}
+                2_u4 => {}
+                CONST_VAL => {}
+            }
+        }
+    }
+    rhdl::core::trace_push_path(stringify!(update));
+    let ret = inner(z);
+    rhdl::core::trace_pop_path();
+    ret
+}
+#[allow(non_camel_case_types)]
+struct update {}
+impl rhdl::core::digital_fn::DigitalFn1 for update {
+    type A0 = u8;
+    type O = ();
+    fn func() -> fn(u8) {
+        update
+    }
+}
+impl rhdl::core::digital_fn::DigitalFn for update {
+    fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+        let bob = rhdl::core::ast::builder::ASTBuilder::default();
+        Some(
+            bob
+                .kernel_fn(
+                    stringify!(update),
+                    vec! {
+                        bob.type_pat(bob.ident_pat(stringify!(z), false), < u8 as
+                        rhdl::core::Digital > ::static_kind())
+                    },
+                    rhdl::core::Kind::Empty,
+                    bob
+                        .block(
+                            vec![
+                                bob.expr_stmt(bob.match_expr(bob.path_expr(bob.path(vec![bob
+                                .path_segment(stringify!(z), bob.path_arguments_none())],)),
+                                vec![bob.arm(bob.arm_kind_constant(bob
+                                .expr_lit_int(stringify!(1_u4))), bob.block_expr(bob
+                                .block(vec![],))), bob.arm(bob.arm_kind_constant(bob
+                                .expr_lit_int(stringify!(2_u4))), bob.block_expr(bob
+                                .block(vec![],))), bob.arm(bob.arm_kind_constant(bob
+                                .expr_lit_typed_bits(rhdl::core::Digital::typed_bits(CONST_VAL),
+                                stringify!(CONST_VAL))), bob.block_expr(bob
+                                .block(vec![],)))]))
+                            ],
+                        ),
+                    std::any::TypeId::of::<update>(),
+                    "fn update(z: u8) {\n    match z {\n        1_u4 => {}\n        2_u4 => {}\n        CONST_VAL => {}\n    }\n}\n",
+                    concat!(file!(), ":", line!()),
+                ),
+        )
+    }
+}

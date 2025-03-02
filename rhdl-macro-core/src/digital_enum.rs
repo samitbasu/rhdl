@@ -12,7 +12,6 @@ use syn::Variant;
 use syn::{Data, DeriveInput};
 
 use crate::clone::derive_clone_from_inner;
-use crate::partial_eq::derive_partial_eq_from_inner;
 use crate::utils::evaluate_const_expression;
 
 // To determine the number of bits needed to represent the discriminant, we
