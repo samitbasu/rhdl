@@ -135,7 +135,7 @@ mod tests {
         let output = typenum_op(input).unwrap();
         assert_eq!(
             output.to_string(),
-            quote! { Sum<Minimum<A, Maximum<B, U0>>, U4> }.to_string()
+            quote! { Sum<Minimum<A, Maximum<B, U0> >, U4> }.to_string()
         );
     }
 }

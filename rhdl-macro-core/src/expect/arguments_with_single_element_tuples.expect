@@ -1,0 +1,102 @@
+fn counter<const N: usize>(
+    i: CounterIn<N>,
+    (count_q,): (Bits<N>,),
+) -> (Bits<N>, (DFFIn<Bits<N>>,)) {
+    #[forbid(non_snake_case)]
+    #[forbid(non_upper_case_globals)]
+    #[forbid(unreachable_patterns)]
+    #[allow(clippy::manual_map)]
+    #[allow(clippy::redundant_pattern_matching)]
+    #[forbid(path_statements)]
+    #[forbid(unused_variables)]
+    fn inner<const N: usize>(
+        i: CounterIn<N>,
+        (count_q,): (Bits<N>,),
+    ) -> (Bits<N>, (DFFIn<Bits<N>>,)) {
+        {
+            let count_q = count_q.0;
+            let next = if i.enable { count_q + 1 } else { count_q };
+            (
+                count_q,
+                (
+                    DFFIn {
+                        clock: i.clock,
+                        data: next,
+                    },
+                ),
+            )
+        }
+    }
+    rhdl::core::trace_push_path(stringify!(counter));
+    let ret = inner::<N>(i, (count_q,));
+    rhdl::core::trace_pop_path();
+    ret
+}
+#[allow(non_camel_case_types)]
+struct counter<const N: usize> {}
+impl<const N: usize> rhdl::core::digital_fn::DigitalFn2 for counter<N> {
+    type A0 = CounterIn<N>;
+    type A1 = (Bits<N>,);
+    type O = (Bits<N>, (DFFIn<Bits<N>>,));
+    fn func() -> fn(CounterIn<N>, (Bits<N>,)) -> (Bits<N>, (DFFIn<Bits<N>>,)) {
+        counter::<N>
+    }
+}
+impl<const N: usize> rhdl::core::digital_fn::DigitalFn for counter<N> {
+    fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+        let bob = rhdl::core::ast::builder::ASTBuilder::default();
+        Some(
+            bob
+                .kernel_fn(
+                    stringify!(counter),
+                    vec! {
+                        bob.type_pat(bob.ident_pat(stringify!(i), false), < CounterIn < N
+                        > as rhdl::core::Digital > ::static_kind()), bob.type_pat(bob
+                        .tuple_pat(vec![bob.ident_pat(stringify!(count_q), false)]), <
+                        (Bits < N >,) as rhdl::core::Digital > ::static_kind())
+                    },
+                    <(Bits<N>, (DFFIn<Bits<N>>,)) as rhdl::core::Digital>::static_kind(),
+                    bob
+                        .block(
+                            vec![
+                                bob.local_stmt(bob.ident_pat(stringify!(count_q), false),
+                                Some(bob.field_expr(bob.path_expr(bob.path(vec![bob
+                                .path_segment(stringify!(count_q), bob
+                                .path_arguments_none())],)), bob.member_unnamed(0u32)))),
+                                bob.local_stmt(bob.ident_pat(stringify!(next), false),
+                                Some(bob.if_expr(bob.field_expr(bob.path_expr(bob
+                                .path(vec![bob.path_segment(stringify!(i), bob
+                                .path_arguments_none())],)), bob
+                                .member_named(stringify!(enable))), bob.block(vec![bob
+                                .expr_stmt(bob
+                                .binary_expr(rhdl::core::ast::builder::BinOp::Add, bob
+                                .path_expr(bob.path(vec![bob
+                                .path_segment(stringify!(count_q), bob
+                                .path_arguments_none())],)), bob.lit_expr(bob
+                                .expr_lit_int(stringify!(1)))))],), Some(bob.block_expr(bob
+                                .block(vec![bob.expr_stmt(bob.path_expr(bob.path(vec![bob
+                                .path_segment(stringify!(count_q), bob
+                                .path_arguments_none())],)))],)))))), bob.expr_stmt(bob
+                                .tuple_expr(vec![bob.path_expr(bob.path(vec![bob
+                                .path_segment(stringify!(count_q), bob
+                                .path_arguments_none())],)), bob.tuple_expr(vec![bob
+                                .struct_expr(bob.path(vec![bob
+                                .path_segment(stringify!(DFFIn), bob
+                                .path_arguments_none())],), vec![bob.field_value(bob
+                                .member_named(stringify!(clock)), bob.field_expr(bob
+                                .path_expr(bob.path(vec![bob.path_segment(stringify!(i), bob
+                                .path_arguments_none())],)), bob
+                                .member_named(stringify!(clock)))), bob.field_value(bob
+                                .member_named(stringify!(data)), bob.path_expr(bob
+                                .path(vec![bob.path_segment(stringify!(next), bob
+                                .path_arguments_none())],)))], None, < DFFIn as
+                                rhdl::core::Digital > ::static_kind().place_holder())])]))
+                            ],
+                        ),
+                    std::any::TypeId::of::<counter<N>>(),
+                    "fn counter<const N: usize>(\n    i: CounterIn<N>,\n    (count_q,): (Bits<N>,),\n) -> (Bits<N>, (DFFIn<Bits<N>>,)) {\n    let count_q = count_q.0;\n    let next = if i.enable { count_q + 1 } else { count_q };\n    (\n        count_q,\n        (\n            DFFIn {\n                clock: i.clock,\n                data: next,\n            },\n        ),\n    )\n}\n",
+                    concat!(file!(), ":", line!()),
+                ),
+        )
+    }
+}

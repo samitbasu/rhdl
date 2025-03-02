@@ -1,0 +1,88 @@
+fn do_stuff<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {
+    #[forbid(non_snake_case)]
+    #[forbid(non_upper_case_globals)]
+    #[forbid(unreachable_patterns)]
+    #[allow(clippy::manual_map)]
+    #[allow(clippy::redundant_pattern_matching)]
+    #[forbid(path_statements)]
+    #[forbid(unused_variables)]
+    fn inner<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {
+        {
+            let c = x.a;
+            let d = (x.a, y.b);
+            let e = Foo::<T> { a: c, b: c };
+            e == x
+        }
+    }
+    rhdl::core::trace_push_path(stringify!(do_stuff));
+    let ret = inner::<T, S>(x, y);
+    rhdl::core::trace_pop_path();
+    ret
+}
+#[allow(non_camel_case_types)]
+struct do_stuff<T: Digital, S: Digital> {
+    __phantom_0: std::marker::PhantomData<T>,
+    __phantom_1: std::marker::PhantomData<S>,
+}
+impl<T: Digital, S: Digital> rhdl::core::digital_fn::DigitalFn2 for do_stuff<T, S> {
+    type A0 = Foo<T>;
+    type A1 = Foo<S>;
+    type O = bool;
+    fn func() -> fn(Foo<T>, Foo<S>) -> bool {
+        do_stuff::<T, S>
+    }
+}
+impl<T: Digital, S: Digital> rhdl::core::digital_fn::DigitalFn for do_stuff<T, S> {
+    fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+        let bob = rhdl::core::ast::builder::ASTBuilder::default();
+        Some(
+            bob
+                .kernel_fn(
+                    stringify!(do_stuff),
+                    vec! {
+                        bob.type_pat(bob.ident_pat(stringify!(x), false), < Foo < T > as
+                        rhdl::core::Digital > ::static_kind()), bob.type_pat(bob
+                        .ident_pat(stringify!(y), false), < Foo < S > as
+                        rhdl::core::Digital > ::static_kind())
+                    },
+                    <bool as rhdl::core::Digital>::static_kind(),
+                    bob
+                        .block(
+                            vec![
+                                bob.local_stmt(bob.ident_pat(stringify!(c), false), Some(bob
+                                .field_expr(bob.path_expr(bob.path(vec![bob
+                                .path_segment(stringify!(x), bob.path_arguments_none())],)),
+                                bob.member_named(stringify!(a))))), bob.local_stmt(bob
+                                .ident_pat(stringify!(d), false), Some(bob
+                                .tuple_expr(vec![bob.field_expr(bob.path_expr(bob
+                                .path(vec![bob.path_segment(stringify!(x), bob
+                                .path_arguments_none())],)), bob
+                                .member_named(stringify!(a))), bob.field_expr(bob
+                                .path_expr(bob.path(vec![bob.path_segment(stringify!(y), bob
+                                .path_arguments_none())],)), bob
+                                .member_named(stringify!(b)))]))), bob.local_stmt(bob
+                                .ident_pat(stringify!(e), false), Some(bob.struct_expr(bob
+                                .path(vec![bob.path_segment(stringify!(Foo),
+                                vec![stringify!(T)])],), vec![bob.field_value(bob
+                                .member_named(stringify!(a)), bob.path_expr(bob
+                                .path(vec![bob.path_segment(stringify!(c), bob
+                                .path_arguments_none())],))), bob.field_value(bob
+                                .member_named(stringify!(b)), bob.path_expr(bob
+                                .path(vec![bob.path_segment(stringify!(c), bob
+                                .path_arguments_none())],)))], None, < Foo:: < T > as
+                                rhdl::core::Digital > ::static_kind().place_holder()))), bob
+                                .expr_stmt(bob
+                                .binary_expr(rhdl::core::ast::builder::BinOp::Eq, bob
+                                .path_expr(bob.path(vec![bob.path_segment(stringify!(e), bob
+                                .path_arguments_none())],)), bob.path_expr(bob.path(vec![bob
+                                .path_segment(stringify!(x), bob
+                                .path_arguments_none())],))))
+                            ],
+                        ),
+                    std::any::TypeId::of::<do_stuff<T, S>>(),
+                    "fn do_stuff<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {\n    let c = x.a;\n    let d = (x.a, y.b);\n    let e = Foo::<T> { a: c, b: c };\n    e == x\n}\n",
+                    concat!(file!(), ":", line!()),
+                ),
+        )
+    }
+}

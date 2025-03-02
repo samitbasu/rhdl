@@ -1,0 +1,58 @@
+fn update((a, b): (u8, u8)) -> (u8, u8) {
+    #[forbid(non_snake_case)]
+    #[forbid(non_upper_case_globals)]
+    #[forbid(unreachable_patterns)]
+    #[allow(clippy::manual_map)]
+    #[allow(clippy::redundant_pattern_matching)]
+    #[forbid(path_statements)]
+    #[forbid(unused_variables)]
+    fn inner((a, b): (u8, u8)) -> (u8, u8) {
+        { (a, a + b) }
+    }
+    rhdl::core::trace_push_path(stringify!(update));
+    let ret = inner((a, b));
+    rhdl::core::trace_pop_path();
+    ret
+}
+#[allow(non_camel_case_types)]
+struct update {}
+impl rhdl::core::digital_fn::DigitalFn1 for update {
+    type A0 = (u8, u8);
+    type O = (u8, u8);
+    fn func() -> fn((u8, u8)) -> (u8, u8) {
+        update
+    }
+}
+impl rhdl::core::digital_fn::DigitalFn for update {
+    fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+        let bob = rhdl::core::ast::builder::ASTBuilder::default();
+        Some(
+            bob
+                .kernel_fn(
+                    stringify!(update),
+                    vec! {
+                        bob.type_pat(bob.tuple_pat(vec![bob.ident_pat(stringify!(a),
+                        false), bob.ident_pat(stringify!(b), false)]), < (u8, u8) as
+                        rhdl::core::Digital > ::static_kind())
+                    },
+                    <(u8, u8) as rhdl::core::Digital>::static_kind(),
+                    bob
+                        .block(
+                            vec![
+                                bob.expr_stmt(bob.tuple_expr(vec![bob.path_expr(bob
+                                .path(vec![bob.path_segment(stringify!(a), bob
+                                .path_arguments_none())],)), bob
+                                .binary_expr(rhdl::core::ast::builder::BinOp::Add, bob
+                                .path_expr(bob.path(vec![bob.path_segment(stringify!(a), bob
+                                .path_arguments_none())],)), bob.path_expr(bob.path(vec![bob
+                                .path_segment(stringify!(b), bob
+                                .path_arguments_none())],)))]))
+                            ],
+                        ),
+                    std::any::TypeId::of::<update>(),
+                    "fn update((a, b): (u8, u8)) -> (u8, u8) {\n    (a, a + b)\n}\n",
+                    concat!(file!(), ":", line!()),
+                ),
+        )
+    }
+}

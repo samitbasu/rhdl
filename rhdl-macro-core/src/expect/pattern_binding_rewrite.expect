@@ -1,0 +1,253 @@
+[
+    Arm {
+        attrs: [],
+        pat: Pat::Path {
+            attrs: [],
+            qself: None,
+            path: Path {
+                leading_colon: None,
+                segments: [
+                    PathSegment {
+                        ident: Ident(
+                            Baz,
+                        ),
+                        arguments: PathArguments::None,
+                    },
+                    PathSep,
+                    PathSegment {
+                        ident: Ident(
+                            A,
+                        ),
+                        arguments: PathArguments::None,
+                    },
+                ],
+            },
+        },
+        guard: None,
+        fat_arrow_token: FatArrow,
+        body: Expr::Block {
+            attrs: [],
+            label: None,
+            block: Block {
+                brace_token: Brace,
+                stmts: [],
+            },
+        },
+        comma: None,
+    },
+    Arm {
+        attrs: [],
+        pat: Pat::TupleStruct {
+            attrs: [],
+            qself: None,
+            path: Path {
+                leading_colon: None,
+                segments: [
+                    PathSegment {
+                        ident: Ident(
+                            Baz,
+                        ),
+                        arguments: PathArguments::None,
+                    },
+                    PathSep,
+                    PathSegment {
+                        ident: Ident(
+                            B,
+                        ),
+                        arguments: PathArguments::None,
+                    },
+                ],
+            },
+            paren_token: Paren,
+            elems: [
+                Pat::Lit {
+                    attrs: [],
+                    lit: Lit::Int {
+                        token: 3,
+                    },
+                },
+            ],
+        },
+        guard: None,
+        fat_arrow_token: FatArrow,
+        body: Expr::Block {
+            attrs: [],
+            label: None,
+            block: Block {
+                brace_token: Brace,
+                stmts: [],
+            },
+        },
+        comma: None,
+    },
+    Arm {
+        attrs: [],
+        pat: Pat::Struct {
+            attrs: [],
+            qself: None,
+            path: Path {
+                leading_colon: None,
+                segments: [
+                    PathSegment {
+                        ident: Ident(
+                            Baz,
+                        ),
+                        arguments: PathArguments::None,
+                    },
+                    PathSep,
+                    PathSegment {
+                        ident: Ident(
+                            C,
+                        ),
+                        arguments: PathArguments::None,
+                    },
+                ],
+            },
+            brace_token: Brace,
+            fields: [
+                FieldPat {
+                    attrs: [],
+                    member: Member::Named(
+                        Ident(
+                            x,
+                        ),
+                    ),
+                    colon_token: Some(
+                        Colon,
+                    ),
+                    pat: Pat::Lit {
+                        attrs: [],
+                        lit: Lit::Int {
+                            token: 3,
+                        },
+                    },
+                },
+                Comma,
+                FieldPat {
+                    attrs: [],
+                    member: Member::Named(
+                        Ident(
+                            y,
+                        ),
+                    ),
+                    colon_token: Some(
+                        Colon,
+                    ),
+                    pat: Pat::Lit {
+                        attrs: [],
+                        lit: Lit::Int {
+                            token: 4,
+                        },
+                    },
+                },
+            ],
+            rest: None,
+        },
+        guard: None,
+        fat_arrow_token: FatArrow,
+        body: Expr::Block {
+            attrs: [],
+            label: None,
+            block: Block {
+                brace_token: Brace,
+                stmts: [],
+            },
+        },
+        comma: None,
+    },
+    Arm {
+        attrs: [],
+        pat: Pat::Struct {
+            attrs: [],
+            qself: None,
+            path: Path {
+                leading_colon: None,
+                segments: [
+                    PathSegment {
+                        ident: Ident(
+                            Baz,
+                        ),
+                        arguments: PathArguments::None,
+                    },
+                    PathSep,
+                    PathSegment {
+                        ident: Ident(
+                            C,
+                        ),
+                        arguments: PathArguments::None,
+                    },
+                ],
+            },
+            brace_token: Brace,
+            fields: [
+                FieldPat {
+                    attrs: [],
+                    member: Member::Named(
+                        Ident(
+                            x,
+                        ),
+                    ),
+                    colon_token: None,
+                    pat: Pat::Ident {
+                        attrs: [],
+                        by_ref: None,
+                        mutability: None,
+                        ident: Ident(
+                            x,
+                        ),
+                        subpat: None,
+                    },
+                },
+                Comma,
+                FieldPat {
+                    attrs: [],
+                    member: Member::Named(
+                        Ident(
+                            y,
+                        ),
+                    ),
+                    colon_token: None,
+                    pat: Pat::Ident {
+                        attrs: [],
+                        by_ref: None,
+                        mutability: None,
+                        ident: Ident(
+                            y,
+                        ),
+                        subpat: None,
+                    },
+                },
+            ],
+            rest: None,
+        },
+        guard: None,
+        fat_arrow_token: FatArrow,
+        body: Expr::Block {
+            attrs: [],
+            label: None,
+            block: Block {
+                brace_token: Brace,
+                stmts: [],
+            },
+        },
+        comma: None,
+    },
+    Arm {
+        attrs: [],
+        pat: Pat::Wild {
+            attrs: [],
+            underscore_token: Underscore,
+        },
+        guard: None,
+        fat_arrow_token: FatArrow,
+        body: Expr::Block {
+            attrs: [],
+            label: None,
+            block: Block {
+                brace_token: Brace,
+                stmts: [],
+            },
+        },
+        comma: None,
+    },
+]

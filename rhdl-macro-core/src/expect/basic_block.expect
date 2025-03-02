@@ -1,0 +1,37 @@
+fn jnk() -> Vec<Stmt> {
+    bob.block_expr(
+        bob
+            .block(
+                vec![
+                    bob.local_stmt(bob.ident_pat(stringify!(a), false), Some(bob
+                    .lit_expr(bob.expr_lit_int(stringify!(1))))), bob.local_stmt(bob
+                    .ident_pat(stringify!(b), false), Some(bob.lit_expr(bob
+                    .expr_lit_int(stringify!(2))))), bob.local_stmt(bob
+                    .ident_pat(stringify!(q), false), Some(bob.lit_expr(bob
+                    .expr_lit_int(stringify!(0x1234_u32))))), bob.local_stmt(bob
+                    .ident_pat(stringify!(c), false), Some(bob
+                    .binary_expr(rhdl::core::ast::builder::BinOp::Add, bob.path_expr(bob
+                    .path(vec![bob.path_segment(stringify!(a), bob
+                    .path_arguments_none())],)), bob.path_expr(bob.path(vec![bob
+                    .path_segment(stringify!(b), bob.path_arguments_none())],))))), bob
+                    .local_stmt(bob.ident_pat(stringify!(d), true), Some(bob.lit_expr(bob
+                    .expr_lit_int(stringify!(3))))), bob.local_stmt(bob
+                    .ident_pat(stringify!(g), false), Some(bob.struct_expr(bob
+                    .path(vec![bob.path_segment(stringify!(Foo), bob
+                    .path_arguments_none())],), vec![bob.field_value(bob
+                    .member_named(stringify!(r)), bob.lit_expr(bob
+                    .expr_lit_int(stringify!(1)))), bob.field_value(bob
+                    .member_named(stringify!(g)), bob.lit_expr(bob
+                    .expr_lit_int(stringify!(120)))), bob.field_value(bob
+                    .member_named(stringify!(b)), bob.lit_expr(bob
+                    .expr_lit_int(stringify!(33))))], None, < Foo as rhdl::core::Digital
+                    > ::static_kind().place_holder()))), bob.local_stmt(bob
+                    .ident_pat(stringify!(h), false), Some(bob.field_expr(bob
+                    .path_expr(bob.path(vec![bob.path_segment(stringify!(g), bob
+                    .path_arguments_none())],)), bob.member_named(stringify!(r))))), bob
+                    .expr_stmt(bob.path_expr(bob.path(vec![bob
+                    .path_segment(stringify!(c), bob.path_arguments_none())],)))
+                ],
+            ),
+    )
+}

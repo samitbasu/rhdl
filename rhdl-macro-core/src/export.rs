@@ -164,7 +164,7 @@ pub fn export_macro(input: TokenStream) -> syn::Result<TokenStream> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use expect_test::expect;
+    use expect_test::expect_file;
     use quote::quote;
 
     #[test]
@@ -176,7 +176,7 @@ mod test {
             output foo => o.foo
         );
         let result = export_macro(decls).unwrap();
-        let expected = expect!["[(rhdl :: prelude :: Direction :: Input , stringify ! (aclk) , i . kind () , Path :: default () . field (stringify ! (clock))) , (rhdl :: prelude :: Direction :: Input , stringify ! (aresetn) , i . kind () , Path :: default () . field (stringify ! (reset_n))) , (rhdl :: prelude :: Direction :: Input , stringify ! (data) , i . kind () , Path :: default () . field (stringify ! (axi)) . signal_value () . field (stringify ! (data)) . tuple_index (1u32 as usize)) , (rhdl :: prelude :: Direction :: Output , stringify ! (foo) , o . kind () , Path :: default () . field (stringify ! (foo)))]"];
+        let expected = expect_file!["expect/export_macro.expect"];
         expected.assert_eq(&result.to_string());
     }
 }

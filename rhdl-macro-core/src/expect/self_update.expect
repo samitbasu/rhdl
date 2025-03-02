@@ -1,0 +1,21 @@
+fn jnk() -> Vec<Stmt> {
+    bob.local_stmt(
+        bob
+            .tuple_pat(
+                vec![
+                    bob.ident_pat(stringify!(a), false), bob.ident_pat(stringify!(b),
+                    false), bob.ident_pat(stringify!(c), false)
+                ],
+            ),
+        Some(
+            bob
+                .tuple_expr(
+                    vec![
+                        bob.lit_expr(bob.expr_lit_int(stringify!(3))), bob.lit_expr(bob
+                        .expr_lit_int(stringify!(4))), bob.lit_expr(bob
+                        .expr_lit_int(stringify!(5)))
+                    ],
+                ),
+        ),
+    )
+}

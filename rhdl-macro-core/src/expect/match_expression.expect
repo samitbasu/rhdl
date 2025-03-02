@@ -1,0 +1,28 @@
+fn jnk() -> Vec<Stmt> {
+    bob.block_expr(
+        bob
+            .block(
+                vec![
+                    bob.local_stmt(bob.ident_pat(stringify!(l), false), Some(bob
+                    .lit_expr(bob.expr_lit_int(stringify!(3))))), bob.expr_stmt(bob
+                    .match_expr(bob.path_expr(bob.path(vec![bob
+                    .path_segment(stringify!(l), bob.path_arguments_none())],)), vec![bob
+                    .arm(bob.arm_kind_constant(bob
+                    .expr_lit_typed_bits(rhdl::core::Digital::typed_bits(State::Init),
+                    stringify!(State::Init))), bob.block_expr(bob.block(vec![],))), bob
+                    .arm(bob.arm_kind_enum(bob.tuple_struct_pat(bob.path(vec![bob
+                    .path_segment(stringify!(State), bob.path_arguments_none()), bob
+                    .path_segment(stringify!(Run), bob.path_arguments_none())],),
+                    vec![bob.ident_pat(stringify!(a), false)]),
+                    rhdl::core::Digital::discriminant(State::Run(Default::default()))),
+                    bob.block_expr(bob.block(vec![bob.semi_stmt(bob.assign_expr(bob
+                    .path_expr(bob.path(vec![bob.path_segment(stringify!(l), bob
+                    .path_arguments_none())],)), bob.path_expr(bob.path(vec![bob
+                    .path_segment(stringify!(a), bob.path_arguments_none())],))))],))),
+                    bob.arm(bob.arm_kind_constant(bob
+                    .expr_lit_typed_bits(rhdl::core::Digital::typed_bits(State::Boom),
+                    stringify!(State::Boom))), bob.block_expr(bob.block(vec![],)))]))
+                ],
+            ),
+    )
+}
