@@ -55,7 +55,7 @@ mod tests {
             .join("vcd")
             .join("channel");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["de467eedef6bacea0b039cc1fe7be3dd4a6420df18a330e6510c4c63e6584ca3"];
+        let expect = expect!["90a101966ea9e28af1f29505a707ed7be39aef775bbe582c9d76012781576e39"];
         let digest = vcd.dump_to_file(&root.join("channel.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

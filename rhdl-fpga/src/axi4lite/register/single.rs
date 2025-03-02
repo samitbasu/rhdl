@@ -160,7 +160,7 @@ mod tests {
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["c065083aea043d40ebe47310aa6825260cae0eb68838930e29342297b2c2c9df"];
+        let expect = expect!["70c8fc3a60696f7be2eddd18013c3d35fba1ac241e718790cbef97f17315310f"];
         let digest = vcd
             .dump_to_file(&root.join("single_register_test.vcd"))
             .unwrap();

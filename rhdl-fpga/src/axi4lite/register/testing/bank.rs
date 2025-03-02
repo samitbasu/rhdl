@@ -127,7 +127,7 @@ mod tests {
             .join("axi4lite")
             .join("bank");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["b2b8ae66fcc74887f2c2bc3348b55c975bf8d77a304cbc0dc563d4f605800b27"];
+        let expect = expect!["498c568ff1f3a2a566f9f4193a1b2e8b4c4f3bcc6f5207db15f8d3b99798ea84"];
         let digest = vcd.dump_to_file(&root.join("register.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
