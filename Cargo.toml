@@ -7,6 +7,6 @@ members = [
     #    "rhdl-core",
     "rhdl-macro",
     "rhdl-fpga",
-    "rhdl-trace-type",
+    "rhdl-trace-type", "rhdl-bsp",
     #    "rhdl-typenum",
 ]

@@ -10,6 +10,7 @@ pub mod gray;
 pub mod lid;
 pub mod reset;
 pub mod rng;
+pub mod tristate;
 /* pub use core::bga::bga_pin;
 pub use core::bga::BGAPin;
 pub use core::bga::BGARow;
