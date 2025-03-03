@@ -98,6 +98,7 @@ pub use crate::rhdl_bits::xsub::XSub;
 pub use crate::rhdl_core::bitx::bitx_parse;
 pub use crate::rhdl_core::bitx::bitx_string;
 pub use crate::rhdl_core::bitx_vec;
+pub use crate::rhdl_core::hdl::export::export_hdl_module;
 pub use crate::rhdl_core::sim::clock_pos_edge::ClockPosEdgeExt;
 pub use crate::rhdl_core::sim::merge::merge;
 pub use crate::rhdl_core::sim::merge::MergeExt;

@@ -57,7 +57,7 @@ mod comb_adder {
     }
 }
 
-#[derive(PartialEq, Clone, Copy, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct I {
     pub enable: bool,
 }
