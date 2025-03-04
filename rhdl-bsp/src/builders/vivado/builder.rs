@@ -24,6 +24,10 @@ impl Builder {
             root_path: path.into(),
         }
     }
+    pub fn step<T: std::fmt::Display>(mut self, x: T) -> Self {
+        self.script.add(x);
+        self
+    }
     pub fn build(self) -> anyhow::Result<()> {
         let file = std::fs::File::create(self.root_path.join("run.tcl"))?;
         let mut buf = std::io::BufWriter::new(file);
@@ -36,12 +40,27 @@ impl Builder {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
+    use crate::builders::vivado::tcl::{ConfigureIp, CreateIp, GenerateIp};
+
     use super::*;
 
     #[test]
     fn builder_test() {
         std::fs::create_dir_all("jnk").unwrap();
-        let builder = Builder::new("jnk", "demo", "xc7a50tfgg484-1")
+        let mig_prj_path = PathBuf::from("jnk").join("mig_a.prj");
+        Builder::new("jnk", "demo", "xc7a50tfgg484-1")
+            .step(CreateIp::xilinx("mig_7series", "4.2", "mig7"))
+            .step(ConfigureIp::new("mig7", "BOARD_MIG_PARAM", "Custom"))
+            .step(ConfigureIp::new("mig7", "MIG_DONT_TOUCH_PARAM", "Custom"))
+            .step(ConfigureIp::new("mig7", "RESET_BOARD_INTERFACE", "Custom"))
+            .step(ConfigureIp::new(
+                "mig7",
+                "XML_INPUT_FILE",
+                &mig_prj_path.to_string_lossy(),
+            ))
+            .step(GenerateIp::new("mig7"))
             .build()
             .unwrap();
     }
