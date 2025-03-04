@@ -30,6 +30,87 @@ impl std::fmt::Display for CloseProject {
     }
 }
 
+pub struct GenerateIp {
+    pub module_name: String,
+}
+
+impl GenerateIp {
+    pub fn new(module_name: &str) -> Self {
+        GenerateIp {
+            module_name: module_name.into(),
+        }
+    }
+}
+
+impl std::fmt::Display for GenerateIp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "generate_target all [get_files {name}.xci]",
+            name = self.module_name
+        )
+    }
+}
+
+pub struct ConfigureIp {
+    pub module_name: String,
+    pub key: String,
+    pub value: String,
+}
+
+impl ConfigureIp {
+    pub fn new(module_name: &str, key: &str, value: &str) -> Self {
+        ConfigureIp {
+            module_name: module_name.into(),
+            key: key.into(),
+            value: value.into(),
+        }
+    }
+}
+
+impl std::fmt::Display for ConfigureIp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "set_property CONFIG.{key} {value} [get_ips {name}]",
+            key = self.key,
+            value = self.value,
+            name = self.module_name
+        )
+    }
+}
+
+pub struct CreateIp {
+    pub name: String,
+    pub vendor: String,
+    pub library: String,
+    pub version: String,
+    pub module_name: String,
+}
+
+impl CreateIp {
+    pub fn xilinx(ip_name: &str, version: &str, module_name: &str) -> CreateIp {
+        CreateIp {
+            name: ip_name.into(),
+            vendor: "xilinx.com".into(),
+            library: "ip".into(),
+            version: version.into(),
+            module_name: module_name.into(),
+        }
+    }
+}
+
+impl std::fmt::Display for CreateIp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "create_ip -name {name} -vendor {vendor} -library {library} -version {version} -module_name {module_name}",
+        name = self.name,
+        vendor = self.vendor,
+        library = self.library,
+        version = self.version,
+        module_name = self.module_name)
+    }
+}
+
 pub struct CreateBlockDesign {
     pub name: String,
 }
