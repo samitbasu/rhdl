@@ -63,7 +63,9 @@ pub fn synth_yosys_nextpnr_icepack(v: &ConstrainedVerilog, path: &Path) -> Resul
     {
         nextpnr.arg("--pcf-allow-unconstrained");
     }
-    let nextpnr = nextpnr.output()?;
+    let nextpnr = nextpnr
+        .output()
+        .expect("nextpnr (nextpnr-ice40) should be installed and in your PATH.");
     std::fs::write(path.join("nextpnr.stdout"), &nextpnr.stdout)?;
     std::fs::write(path.join("nextpnr.stderr"), &nextpnr.stderr)?;
     if !nextpnr.status.success() {
@@ -79,7 +81,8 @@ pub fn synth_yosys_nextpnr_icepack(v: &ConstrainedVerilog, path: &Path) -> Resul
         .current_dir(path)
         .arg("top.asc")
         .arg("top.bin")
-        .output()?;
+        .output()
+        .expect("icepack should be installed and in your PATH.");
     std::fs::write(path.join("icepack.stdout"), &icepack.stdout)?;
     std::fs::write(path.join("icepack.stderr"), &icepack.stderr)?;
     if !icepack.status.success() {
