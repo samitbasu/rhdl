@@ -45,6 +45,7 @@ mod tests {
     use crate::builders::vivado::tcl::{ConfigureIp, CreateIp, GenerateIp};
 
     use super::*;
+    // Run with vivado -mode tcl -source run.tcl
 
     #[test]
     fn builder_test() {
@@ -58,7 +59,7 @@ mod tests {
             .step(ConfigureIp::new(
                 "mig7",
                 "XML_INPUT_FILE",
-                &mig_prj_path.to_string_lossy(),
+                "/home/samitbasu/Devel/rhdl/rhdl-bsp/jnk/mig_a.prj",
             ))
             .step(GenerateIp::new("mig7"))
             .build()
