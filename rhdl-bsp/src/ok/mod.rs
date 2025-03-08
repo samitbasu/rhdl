@@ -52,3 +52,4 @@ struct O {
 // The top module for export (to the synthesis tool) cannot have inputs or outputs
 //
 // Why the funky Module internal syntax?  I think it's to be language neutral...
+pub mod drivers;

@@ -28,7 +28,7 @@ impl Builder {
         self.script.add(x);
         self
     }
-    pub fn build(self) -> anyhow::Result<()> {
+    pub fn build(self) -> std::io::Result<()> {
         let file = std::fs::File::create(self.root_path.join("run.tcl"))?;
         let mut buf = std::io::BufWriter::new(file);
         for cmd in self.script.commands {

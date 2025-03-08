@@ -112,6 +112,7 @@ pub use crate::rhdl_core::sim::testbench::asynchronous::TestBench;
 pub use crate::rhdl_core::sim::testbench::synchronous::SynchronousTestBench;
 pub use crate::rhdl_core::sim::testbench::TestBenchOptions;
 pub use crate::rhdl_core::sim::vcd::Vcd;
+pub use crate::rhdl_core::types::path::sub_trace_type;
 pub use crate::rhdl_core::BitX;
 pub use crate::rhdl_typenum::unsigned::Unsigned;
 pub use crate::rhdl_typenum::Add1;
