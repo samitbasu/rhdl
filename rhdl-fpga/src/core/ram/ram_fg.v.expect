@@ -1,0 +1,150 @@
+//
+module top(input wire [18:0] arg_0, output reg [7:0] out);
+    reg [0:0] node_0;  // [i]<-in<0, 0>
+    reg [0:0] node_1;  // [i]<-in<0, 1>
+    reg [0:0] node_2;  // [i]<-in<0, 2>
+    reg [0:0] node_3;  // [i]<-in<0, 3>
+    reg [0:0] node_4;  // [i]<-in<0, 4>
+    reg [0:0] node_5;  // [i]<-in<0, 5>
+    reg [0:0] node_6;  // [i]<-in<0, 6>
+    reg [0:0] node_7;  // [i]<-in<0, 7>
+    reg [0:0] node_8;  // [i]<-in<0, 8>
+    reg [0:0] node_9;  // [i]<-in<0, 9>
+    reg [0:0] node_10;  // [i]<-in<0, 10>
+    reg [0:0] node_11;  // [i]<-in<0, 11>
+    reg [0:0] node_12;  // [i]<-in<0, 12>
+    reg [0:0] node_13;  // [i]<-in<0, 13>
+    reg [0:0] node_14;  // [i]<-in<0, 14>
+    reg [0:0] node_15;  // [i]<-in<0, 15>
+    reg [0:0] node_16;  // [i]<-in<0, 16>
+    reg [0:0] node_17;  // [i]<-in<0, 17>
+    reg [0:0] node_18;  // [i]<-in<0, 18>
+    reg [0:0] node_19;  // [o]->out<0>
+    reg [0:0] node_20;  // [o]->out<1>
+    reg [0:0] node_21;  // [o]->out<2>
+    reg [0:0] node_22;  // [o]->out<3>
+    reg [0:0] node_23;  // [o]->out<4>
+    reg [0:0] node_24;  // [o]->out<5>
+    reg [0:0] node_25;  // [o]->out<6>
+    reg [0:0] node_26;  // [o]->out<7>
+    reg [0:0] node_27;  // uut_inner_0[0]
+    reg [0:0] node_28;  // uut_inner_1[1]
+    reg [0:0] node_29;  // uut_inner_2[2]
+    reg [0:0] node_30;  // uut_inner_3[3]
+    reg [0:0] node_31;  // uut_inner_4[4]
+    reg [0:0] node_32;  // uut_inner_5[5]
+    reg [0:0] node_33;  // uut_inner_6[6]
+    reg [0:0] node_34;  // uut_inner_7[7]
+    reg [0:0] node_35;  // uut_inner_8[8]
+    reg [0:0] node_36;  // uut_inner_9[9]
+    reg [0:0] node_37;  // uut_inner_10[10]
+    reg [0:0] node_38;  // uut_inner_11[11]
+    reg [0:0] node_39;  // uut_inner_12[12]
+    reg [0:0] node_40;  // uut_inner_13[13]
+    reg [0:0] node_41;  // uut_inner_14[14]
+    reg [0:0] node_42;  // uut_inner_15[15]
+    reg [0:0] node_43;  // uut_inner_16[16]
+    reg [0:0] node_44;  // uut_inner_17[17]
+    reg [0:0] node_45;  // uut_inner_18[18]
+    wire [0:0] node_46;  // uut_inner_0[0]
+    wire [0:0] node_47;  // uut_inner_1[1]
+    wire [0:0] node_48;  // uut_inner_2[2]
+    wire [0:0] node_49;  // uut_inner_3[3]
+    wire [0:0] node_50;  // uut_inner_4[4]
+    wire [0:0] node_51;  // uut_inner_5[5]
+    wire [0:0] node_52;  // uut_inner_6[6]
+    wire [0:0] node_53;  // uut_inner_7[7]
+    uut_inner bb_0 (.o({ node_53, node_52, node_51, node_50, node_49, node_48, node_47, node_46 }),.i({ node_45, node_44, node_43, node_42, node_41, node_40, node_39, node_38, node_37, node_36, node_35, node_34, node_33, node_32, node_31, node_30, node_29, node_28, node_27 }));
+    always @(*) begin
+        node_26 = node_53;
+        node_25 = node_52;
+        node_24 = node_51;
+        node_23 = node_50;
+        node_22 = node_49;
+        node_21 = node_48;
+        node_20 = node_47;
+        node_19 = node_46;
+        node_18 = arg_0[18];
+        node_45 = node_18;
+        node_17 = arg_0[17];
+        node_44 = node_17;
+        node_16 = arg_0[16];
+        node_43 = node_16;
+        node_15 = arg_0[15];
+        node_42 = node_15;
+        node_14 = arg_0[14];
+        node_41 = node_14;
+        node_13 = arg_0[13];
+        node_40 = node_13;
+        node_12 = arg_0[12];
+        node_39 = node_12;
+        node_11 = arg_0[11];
+        node_38 = node_11;
+        node_10 = arg_0[10];
+        node_37 = node_10;
+        node_9 = arg_0[9];
+        node_36 = node_9;
+        node_8 = arg_0[8];
+        node_35 = node_8;
+        node_7 = arg_0[7];
+        node_34 = node_7;
+        node_6 = arg_0[6];
+        node_33 = node_6;
+        node_5 = arg_0[5];
+        node_32 = node_5;
+        node_4 = arg_0[4];
+        node_31 = node_4;
+        node_3 = arg_0[3];
+        node_30 = node_3;
+        node_2 = arg_0[2];
+        node_29 = node_2;
+        node_1 = arg_0[1];
+        node_28 = node_1;
+        node_0 = arg_0[0];
+        node_27 = node_0;
+        out = { node_26, node_25, node_24, node_23, node_22, node_21, node_20, node_19 };
+    end
+endmodule
+//
+module uut_inner(input wire [18:0] i, output reg [7:0] o);
+    wire [3:0] read_addr;
+    wire [0:0] read_clk;
+    wire [3:0] write_addr;
+    wire [7:0] write_data;
+    wire [0:0] write_enable;
+    wire [0:0] write_clk;
+    reg [7:0] mem[15:0];
+    initial begin
+        mem[0] = 8'b00001111;
+        mem[1] = 8'b00001110;
+        mem[2] = 8'b00001101;
+        mem[3] = 8'b00001100;
+        mem[4] = 8'b00001011;
+        mem[5] = 8'b00001010;
+        mem[6] = 8'b00001001;
+        mem[7] = 8'b00001000;
+        mem[8] = 8'b00000111;
+        mem[9] = 8'b00000110;
+        mem[10] = 8'b00000101;
+        mem[11] = 8'b00000100;
+        mem[12] = 8'b00000011;
+        mem[13] = 8'b00000010;
+        mem[14] = 8'b00000001;
+        mem[15] = 8'b00000000;
+    end
+    assign read_addr = i[17:14];
+    assign read_clk = i[18];
+    assign write_addr = i[3:0];
+    assign write_data = i[11:4];
+    assign write_enable = i[12];
+    assign write_clk = i[13];
+    always @(posedge read_clk) begin
+        o <= mem[read_addr];
+    end
+    always @(posedge write_clk) begin
+        if (write_enable)
+        begin
+            mem[write_addr] <= write_data;
+        end
+    end
+endmodule

@@ -1,0 +1,3648 @@
+// AXI4 Lite register
+module axi_reg_module(input wire [0:0] aclk, input wire [0:0] aresetn, input wire [31:0] s_axi_awaddr, input wire [0:0] s_axi_awvalid, output wire [0:0] s_axi_awready, input wire [31:0] s_axi_wdata, input wire [3:0] s_axi_wstrb, input wire [0:0] s_axi_wvalid, output wire [0:0] s_axi_wready, output wire [1:0] s_axi_bresp, output wire [0:0] s_axi_bvalid, input wire [0:0] s_axi_bready, input wire [31:0] s_axi_araddr, input wire [0:0] s_axi_arvalid, output wire [0:0] s_axi_arready, output wire [31:0] s_axi_rdata, output wire [1:0] s_axi_rresp, output wire [0:0] s_axi_rvalid, input wire [0:0] s_axi_rready, output wire [31:0] data);
+    wire [106:0] i;
+    wire [72:0] o;
+    assign i[1:1] = aclk;
+    assign i[0:0] = aresetn;
+    assign i[67:36] = s_axi_awaddr;
+    assign i[68:68] = s_axi_awvalid;
+    assign s_axi_awready = o[36:36];
+    assign i[100:69] = s_axi_wdata;
+    assign i[104:101] = s_axi_wstrb;
+    assign i[105:105] = s_axi_wvalid;
+    assign s_axi_wready = o[37:37];
+    assign s_axi_bresp = o[39:38];
+    assign s_axi_bvalid = o[40:40];
+    assign i[106:106] = s_axi_bready;
+    assign i[33:2] = s_axi_araddr;
+    assign i[34:34] = s_axi_arvalid;
+    assign s_axi_arready = o[0:0];
+    assign s_axi_rdata = o[32:1];
+    assign s_axi_rresp = o[34:33];
+    assign s_axi_rvalid = o[35:35];
+    assign i[35:35] = s_axi_rready;
+    assign data = o[72:41];
+    axi_reg_module_inner sub (.i(i),.o(o));
+endmodule
+// circuit rhdl_fpga::axi4lite::register::testing::fixture::U<rhdl::rhdl_core::types::domain::Red, rhdl::rhdl_core::types::domain::Blue>
+module axi_reg_module_inner(input wire [106:0] i, output wire [72:0] o);
+    wire [181:0] od;
+    wire [108:0] d;
+    wire [73:0] q;
+    assign o = od[72:0];
+    axi_reg_module_inner_register c0 (.i(d[108:2]),.o(q[73:1]));
+    axi_reg_module_inner_resetn_conditioner c1 (.i(d[1:0]),.o(q[0]));
+    assign od = kernel_fixture_kernel(i, q);
+    assign d = od[181:73];
+    function [181:0] kernel_fixture_kernel(input reg [106:0] arg_0, input reg [73:0] arg_1);
+        reg [0:0] r0;
+        reg [106:0] r1;
+        reg [108:0] r2;
+        reg [0:0] r3;
+        reg [108:0] r4;
+        reg [0:0] r5;
+        reg [0:0] r7;
+        reg [73:0] r8;
+        reg [1:0] r11;
+        reg [1:0] r12;
+        reg [108:0] r14;
+        reg [104:0] r15;
+        reg [104:0] r18;
+        reg [108:0] r20;
+        reg [72:0] r21;
+        reg [40:0] r23;
+        reg [72:0] r25;
+        reg [72:0] r26;
+        reg [31:0] r28;
+        reg [72:0] r30;
+        reg [181:0] r31;
+        localparam l0 = 109'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l1 = 2'b00;
+        localparam l2 = 105'b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000;
+        localparam l3 = 73'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        begin
+            r1 = arg_0;
+            r8 = arg_1;
+            // let d = D::<W,R>::dont_care();
+            //
+            // let o = O::<R>::dont_care();
+            //
+            // d.resetn_conditioner.reset_n = i.reset_n;
+            //
+            r0 = r1[0];
+            r2 = l0; r2[0:0] = r0;
+            // d.resetn_conditioner.clock = i.clock;
+            //
+            r3 = r1[1];
+            r4 = r2; r4[1:1] = r3;
+            // d.register.clock_reset = signal(ClockReset/* ClockReset */ {clock: i.clock.val(), reset: q.resetn_conditioner.val(),});
+            //
+            r5 = r1[1];
+            r7 = r8[0];
+            r11 = l1; r11[0:0] = r5;
+            r12 = r11; r12[1:1] = r7;
+            r14 = r4; r14[3:2] = r12;
+            // d.register.input = signal(crate::axi4lite::register::single::I/* rhdl_fpga::axi4lite::register::single::I */ {axi: i.axi.val(),});
+            //
+            r15 = r1[106:2];
+            r18 = l2; r18[104:0] = r15;
+            r20 = r14; r20[108:4] = r18;
+            // o.axi = signal(q.register.val().axi);
+            //
+            r21 = r8[73:1];
+            r23 = r21[40:0];
+            r25 = l3; r25[40:0] = r23;
+            // o.read_data = signal(q.register.val().read_data);
+            //
+            r26 = r8[73:1];
+            r28 = r26[72:41];
+            r30 = r25; r30[72:41] = r28;
+            // (o, d, )
+            //
+            r31 = { r20, r30 };
+            kernel_fixture_kernel = r31;
+        end
+    endfunction
+endmodule
+// Asynchronous adaptor for synchronous circuit rhdl_fpga::axi4lite::register::single::U
+module axi_reg_module_inner_register(input wire [106:0] i, output wire [72:0] o);
+    axi_reg_module_inner_register_inner c (.clock_reset({ i[1], i[0] }),.i(i[106:2]),.o(o));
+endmodule
+// synchronous circuit rhdl_fpga::axi4lite::register::single::U
+module axi_reg_module_inner_register_inner(input wire [1:0] clock_reset, input wire [104:0] i, output wire [72:0] o);
+    wire [248:0] od;
+    wire [175:0] d;
+    wire [176:0] q;
+    assign o = od[72:0];
+    axi_reg_module_inner_register_inner_read_bridge c0 (.clock_reset(clock_reset),.i(d[68:0]),.o(q[69:0]));
+    axi_reg_module_inner_register_inner_reg c1 (.clock_reset(clock_reset),.i(d[100:69]),.o(q[101:70]));
+    axi_reg_module_inner_register_inner_write_bridge c2 (.clock_reset(clock_reset),.i(d[175:101]),.o(q[176:102]));
+    assign od = kernel_single_kernel(clock_reset, i, q);
+    assign d = od[248:73];
+    function [248:0] kernel_single_kernel(input reg [1:0] arg_0, input reg [104:0] arg_1, input reg [176:0] arg_2);
+        reg [104:0] r1;
+        reg [33:0] r2;
+        reg [175:0] r3;
+        reg [69:0] r4;
+        reg [176:0] r5;
+        reg [35:0] r6;
+        reg [72:0] r7;
+        reg [70:0] r9;
+        reg [175:0] r10;
+        reg [74:0] r11;
+        reg [4:0] r12;
+        reg [72:0] r13;
+        reg [31:0] r14;
+        reg [175:0] r15;
+        reg [69:0] r16;
+        reg [32:0] r17;
+        reg [32:0] r19;
+        reg [0:0] r20;
+        reg [31:0] r21;
+        reg [32:0] r23;
+        reg [0:0] r25;
+        reg [31:0] r26;
+        reg [175:0] r27;
+        reg [175:0] r30;
+        reg [69:0] r31;
+        reg [0:0] r32;
+        reg [0:0] r33;
+        reg [0:0] r34;
+        reg [175:0] r35;
+        reg [0:0] r36;
+        reg [31:0] r37;
+        reg [31:0] r38;
+        reg [32:0] r39;
+        reg [31:0] r40;
+        reg [33:0] r41;
+        reg [32:0] r42;
+        reg [175:0] r43;
+        reg [175:0] r44;
+        reg [175:0] r45;
+        reg [175:0] r46;
+        reg [74:0] r47;
+        reg [68:0] r48;
+        reg [68:0] r50;
+        reg [0:0] r51;
+        reg [67:0] r52;
+        reg [68:0] r54;
+        reg [0:0] r56;
+        reg [67:0] r57;
+        reg [175:0] r58;
+        reg [175:0] r61;
+        reg [74:0] r62;
+        reg [0:0] r63;
+        reg [0:0] r64;
+        reg [0:0] r65;
+        reg [175:0] r66;
+        reg [31:0] r67;
+        reg [0:0] r68;
+        reg [35:0] r69;
+        reg [3:0] r70;
+        reg [31:0] r72;
+        reg [3:0] r73;
+        reg [0:0] r74;
+        reg [31:0] r75;
+        reg [3:0] r76;
+        reg [0:0] r77;
+        reg [31:0] r78;
+        reg [31:0] r79;
+        reg [3:0] r80;
+        reg [0:0] r81;
+        reg [31:0] r82;
+        reg [31:0] r83;
+        reg [3:0] r84;
+        reg [0:0] r85;
+        reg [31:0] r86;
+        reg [35:0] r88;
+        reg [31:0] r89;
+        reg [31:0] r90;
+        reg [31:0] r91;
+        reg [31:0] r92;
+        reg [31:0] r93;
+        reg [31:0] r94;
+        reg [175:0] r95;
+        reg [175:0] r96;
+        reg [175:0] r97;
+        reg [175:0] r98;
+        reg [175:0] r99;
+        reg [31:0] r100;
+        reg [72:0] r101;
+        reg [248:0] r102;
+        reg [1:0] r103;
+        localparam l0 = 176'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l1 = 73'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l2 = 1'b1;
+        localparam l3 = 1'b0;
+        localparam l4 = 33'b000000000000000000000000000000000;
+        localparam l5 = 1'b1;
+        localparam l6 = 1'b0;
+        localparam l9 = 1'b1;
+        localparam l10 = 32'b00000000000000000000000000000000;
+        localparam l11 = 1'b1;
+        localparam l12 = 1'b1;
+        localparam l13 = 34'b1000000000000000000000000000000001;
+        localparam l14 = 1'b1;
+        localparam l15 = 1'b0;
+        localparam l16 = 69'b000000000000000000000000000000000000000000000000000000000000000000000;
+        localparam l17 = 1'b1;
+        localparam l18 = 1'b0;
+        localparam l21 = 1'b1;
+        localparam l22 = 32'b00000000000000000000000000000000;
+        localparam l23 = 4'b0001;
+        localparam l25 = 32'b00000000000000000000000011111111;
+        localparam l26 = 32'b00000000000000000000000000000000;
+        localparam l27 = 4'b0010;
+        localparam l29 = 32'b00000000000000001111111100000000;
+        localparam l30 = 4'b0100;
+        localparam l32 = 32'b00000000111111110000000000000000;
+        localparam l33 = 4'b1000;
+        localparam l35 = 32'b11111111000000000000000000000000;
+        localparam l36 = 3'b110;
+        localparam l37 = 3'b101;
+        localparam l40 = 34'b0000000000000000000000000000000000;
+        localparam l41 = 3'b000;
+        begin
+            r103 = arg_0;
+            r1 = arg_1;
+            r5 = arg_2;
+            // let d = D::dont_care();
+            //
+            // let o = O::dont_care();
+            //
+            // d.read_bridge.axi = i.axi.read;
+            //
+            r2 = r1[33:0];
+            r3 = l0; r3[33:0] = r2;
+            // o.axi.read = q.read_bridge.axi;
+            //
+            r4 = r5[69:0];
+            r6 = r4[35:0];
+            r7 = l1; r7[35:0] = r6;
+            // d.write_bridge.axi = i.axi.write;
+            //
+            r9 = r1[104:34];
+            r10 = r3; r10[171:101] = r9;
+            // o.axi.write = q.write_bridge.axi;
+            //
+            r11 = r5[176:102];
+            r12 = r11[4:0];
+            r13 = r7; r13[40:36] = r12;
+            // d.reg = q.reg;
+            //
+            r14 = r5[101:70];
+            r15 = r10; r15[100:69] = r14;
+            // let (read_requested, read_addr, ) = unpack(q.read_bridge.cmd);
+            //
+            r16 = r5[69:0];
+            r17 = r16[68:36];
+            // match opt {
+            //    _#false => (false, T::default(), ),
+            //    Some(t, )#true => (true, t, ),
+            // }
+            //
+            r20 = r17[32];
+            r21 = r17[31:0];
+            r23 = { r21, l2 };
+            case (r20)
+                1'b0: r19 = l4;
+                1'b1: r19 = r23;
+            endcase
+            r25 = r19[0];
+            r26 = r19[32:1];
+            // d.read_bridge.cmd_next = false;
+            //
+            r27 = r15; r27[68:68] = l6;
+            // d.read_bridge.reply = None();
+            //
+            r30 = r27; r30[67:34] = l40;
+            // if !q.read_bridge.reply_full && read_requested {
+            //    d.read_bridge.cmd_next = true;
+            //    if read_addr == 0 {
+            //       d.read_bridge.reply = Some(Ok(q.reg.resize()));
+            //    }
+            //     else {
+            //       d.read_bridge.reply = Some(Err(AXI4Error :: DECERR));
+            //    }
+            //
+            // }
+            //
+            //
+            r31 = r5[69:0];
+            r32 = r31[69];
+            r33 = ~(r32);
+            r34 = r33 & r25;
+            // d.read_bridge.cmd_next = true;
+            //
+            r35 = r30; r35[68:68] = l9;
+            // if read_addr == 0 {
+            //    d.read_bridge.reply = Some(Ok(q.reg.resize()));
+            // }
+            //  else {
+            //    d.read_bridge.reply = Some(Err(AXI4Error :: DECERR));
+            // }
+            //
+            //
+            r36 = r26 == l10;
+            // d.read_bridge.reply = Some(Ok(q.reg.resize()));
+            //
+            r37 = r5[101:70];
+            r38 = r37[31:0];
+            r40 = r38[31:0];
+            r39 = { l11, r40 };
+            r42 = r39[32:0];
+            r41 = { l12, r42 };
+            r43 = r35; r43[67:34] = r41;
+            // d.read_bridge.reply = Some(Err(AXI4Error :: DECERR));
+            //
+            r44 = r35; r44[67:34] = l13;
+            r45 = (r36) ? (r43) : (r44);
+            r46 = (r34) ? (r45) : (r30);
+            // let (write_requested, write_command, ) = unpack(q.write_bridge.cmd);
+            //
+            r47 = r5[176:102];
+            r48 = r47[73:5];
+            // match opt {
+            //    _#false => (false, T::default(), ),
+            //    Some(t, )#true => (true, t, ),
+            // }
+            //
+            r51 = r48[68];
+            r52 = r48[67:0];
+            r54 = { r52, l14 };
+            case (r51)
+                1'b0: r50 = l16;
+                1'b1: r50 = r54;
+            endcase
+            r56 = r50[0];
+            r57 = r50[68:1];
+            // d.write_bridge.cmd_next = false;
+            //
+            r58 = r46; r58[175:175] = l18;
+            // d.write_bridge.reply = None();
+            //
+            r61 = r58; r61[174:172] = l41;
+            // if !q.write_bridge.reply_full && write_requested {
+            //    d.write_bridge.cmd_next = true;
+            //    if write_command.addr == 0 {
+            //       let mask = strobe_to_mask(write_command.strobed_data.strobe);
+            //       d.reg = (write_command.strobed_data.data & mask) | (q.reg & !mask);
+            //       d.write_bridge.reply = Some(Ok(()));
+            //    }
+            //     else {
+            //       d.write_bridge.reply = Some(Err(AXI4Error :: DECERR));
+            //    }
+            //
+            // }
+            //
+            //
+            r62 = r5[176:102];
+            r63 = r62[74];
+            r64 = ~(r63);
+            r65 = r64 & r56;
+            // d.write_bridge.cmd_next = true;
+            //
+            r66 = r61; r66[175:175] = l21;
+            // if write_command.addr == 0 {
+            //    let mask = strobe_to_mask(write_command.strobed_data.strobe);
+            //    d.reg = (write_command.strobed_data.data & mask) | (q.reg & !mask);
+            //    d.write_bridge.reply = Some(Ok(()));
+            // }
+            //  else {
+            //    d.write_bridge.reply = Some(Err(AXI4Error :: DECERR));
+            // }
+            //
+            //
+            r67 = r57[31:0];
+            r68 = r67 == l22;
+            // let mask = strobe_to_mask(write_command.strobed_data.strobe);
+            //
+            r69 = r57[67:32];
+            r70 = r69[35:32];
+            // let mask = bits(0);
+            //
+            // if strobe & 1 != 0 {
+            //    mask |= bits(0xff);
+            // }
+            //
+            //
+            r73 = r70 & l23;
+            r74 = |(r73);
+            // mask |= bits(0xff);
+            //
+            r75 = (r74) ? (l25) : (l26);
+            // if strobe & 2 != 0 {
+            //    mask |= bits(0xff00);
+            // }
+            //
+            //
+            r76 = r70 & l27;
+            r77 = |(r76);
+            // mask |= bits(0xff00);
+            //
+            r78 = r75 | l29;
+            r79 = (r77) ? (r78) : (r75);
+            // if strobe & 4 != 0 {
+            //    mask |= bits(0xff0000);
+            // }
+            //
+            //
+            r80 = r70 & l30;
+            r81 = |(r80);
+            // mask |= bits(0xff0000);
+            //
+            r82 = r79 | l32;
+            r83 = (r81) ? (r82) : (r79);
+            // if strobe & 8 != 0 {
+            //    mask |= bits(0xff000000);
+            // }
+            //
+            //
+            r84 = r70 & l33;
+            r85 = |(r84);
+            // mask |= bits(0xff000000);
+            //
+            r86 = r83 | l35;
+            r72 = (r85) ? (r86) : (r83);
+            // mask
+            //
+            // d.reg = (write_command.strobed_data.data & mask) | (q.reg & !mask);
+            //
+            r88 = r57[67:32];
+            r89 = r88[31:0];
+            r90 = r89 & r72;
+            r91 = r5[101:70];
+            r92 = ~(r72);
+            r93 = r91 & r92;
+            r94 = r90 | r93;
+            r95 = r66; r95[100:69] = r94;
+            // d.write_bridge.reply = Some(Ok(()));
+            //
+            r96 = r95; r96[174:172] = l36;
+            // d.write_bridge.reply = Some(Err(AXI4Error :: DECERR));
+            //
+            r97 = r66; r97[174:172] = l37;
+            r98 = (r68) ? (r96) : (r97);
+            r99 = (r65) ? (r98) : (r61);
+            // o.read_data = q.reg;
+            //
+            r100 = r5[101:70];
+            r101 = r13; r101[72:41] = r100;
+            // (o, d, )
+            //
+            r102 = { r99, r101 };
+            kernel_single_kernel = r102;
+        end
+    endfunction
+endmodule
+// synchronous circuit rhdl_fpga::axi4lite::basic::bridge::read::U
+module axi_reg_module_inner_register_inner_read_bridge(input wire [1:0] clock_reset, input wire [68:0] i, output wire [69:0] o);
+    wire [139:0] od;
+    wire [69:0] d;
+    wire [69:0] q;
+    assign o = od[69:0];
+    axi_reg_module_inner_register_inner_read_bridge_cmd c0 (.clock_reset(clock_reset),.i(d[33:0]),.o(q[33:0]));
+    axi_reg_module_inner_register_inner_read_bridge_reply c1 (.clock_reset(clock_reset),.i(d[69:34]),.o(q[69:34]));
+    assign od = kernel_read_bridge_kernel(clock_reset, i, q);
+    assign d = od[139:70];
+    function [139:0] kernel_read_bridge_kernel(input reg [1:0] arg_0, input reg [68:0] arg_1, input reg [69:0] arg_2);
+        reg [33:0] r0;
+        reg [68:0] r1;
+        reg [31:0] r2;
+        reg [69:0] r3;
+        reg [33:0] r4;
+        reg [0:0] r5;
+        reg [69:0] r6;
+        reg [33:0] r7;
+        reg [69:0] r8;
+        reg [0:0] r9;
+        reg [69:0] r11;
+        reg [33:0] r12;
+        reg [0:0] r13;
+        reg [69:0] r14;
+        reg [35:0] r15;
+        reg [34:0] r16;
+        reg [33:0] r17;
+        reg [31:0] r18;
+        reg [69:0] r19;
+        reg [35:0] r20;
+        reg [34:0] r21;
+        reg [33:0] r22;
+        reg [1:0] r23;
+        reg [69:0] r24;
+        reg [35:0] r25;
+        reg [34:0] r26;
+        reg [0:0] r27;
+        reg [69:0] r28;
+        reg [33:0] r29;
+        reg [32:0] r30;
+        reg [69:0] r31;
+        reg [35:0] r32;
+        reg [0:0] r33;
+        reg [69:0] r34;
+        reg [69:0] r37;
+        reg [33:0] r38;
+        reg [0:0] r39;
+        reg [32:0] r40;
+        reg [33:0] r43;
+        reg [0:0] r44;
+        reg [31:0] r45;
+        reg [33:0] r48;
+        reg [0:0] r50;
+        reg [33:0] r53;
+        reg [34:0] r55;
+        reg [33:0] r56;
+        reg [69:0] r57;
+        reg [69:0] r58;
+        reg [0:0] r59;
+        reg [69:0] r60;
+        reg [0:0] r61;
+        reg [1:0] r62;
+        reg [0:0] r63;
+        reg [69:0] r66;
+        reg [69:0] r67;
+        reg [139:0] r68;
+        localparam l0 = 70'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l1 = 70'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l6 = 1'b0;
+        localparam l7 = 34'b0000000000000000000000000000000010;
+        localparam l8 = 1'b1;
+        localparam l9 = 34'b0000000000000000000000000000000011;
+        localparam l10 = 1'b1;
+        localparam l11 = 1'b0;
+        localparam l12 = 1'b1;
+        localparam l13 = 1'b1;
+        localparam l17 = 34'b0000000000000000000000000000000000;
+        localparam l19 = 35'b00000000000000000000000000000000000;
+        localparam l20 = 33'b000000000000000000000000000000000;
+        begin
+            r62 = arg_0;
+            r1 = arg_1;
+            r8 = arg_2;
+            // let d = D::dont_care();
+            //
+            // let o = O::dont_care();
+            //
+            // d.cmd.bus.data = i.axi.araddr;
+            //
+            r0 = r1[33:0];
+            r2 = r0[31:0];
+            r3 = l0; r3[31:0] = r2;
+            // d.cmd.bus.valid = i.axi.arvalid;
+            //
+            r4 = r1[33:0];
+            r5 = r4[32];
+            r6 = r3; r6[32:32] = r5;
+            // o.axi.arready = q.cmd.bus.ready;
+            //
+            r7 = r8[33:0];
+            r9 = r7[33];
+            r11 = l1; r11[0:0] = r9;
+            // d.reply.bus.ready = i.axi.rready;
+            //
+            r12 = r1[33:0];
+            r13 = r12[33];
+            r14 = r6; r14[34:34] = r13;
+            // o.axi.rdata = q.reply.bus.data.data;
+            //
+            r15 = r8[69:34];
+            r16 = r15[34:0];
+            r17 = r16[33:0];
+            r18 = r17[33:2];
+            r19 = r11; r19[32:1] = r18;
+            // o.axi.rresp = q.reply.bus.data.resp;
+            //
+            r20 = r8[69:34];
+            r21 = r20[34:0];
+            r22 = r21[33:0];
+            r23 = r22[1:0];
+            r24 = r19; r24[34:33] = r23;
+            // o.axi.rvalid = q.reply.bus.valid;
+            //
+            r25 = r8[69:34];
+            r26 = r25[34:0];
+            r27 = r26[34];
+            r28 = r24; r28[35:35] = r27;
+            // o.cmd = q.cmd.data;
+            //
+            r29 = r8[33:0];
+            r30 = r29[32:0];
+            r31 = r28; r31[68:36] = r30;
+            // o.reply_full = q.reply.full;
+            //
+            r32 = r8[69:34];
+            r33 = r32[35];
+            r34 = r31; r34[69:69] = r33;
+            // d.reply.to_send = None();
+            //
+            r37 = r14; r37[69:35] = l19;
+            // if let Some(resp, )#true = i.reply{
+            //    let axi_response = result_to_read_response(resp);
+            //    d.reply.to_send = Some(axi_response);
+            // }
+            //
+            //
+            r38 = r1[67:34];
+            r39 = r38[33];
+            r40 = r38[32:0];
+            // let axi_response = result_to_read_response(resp);
+            //
+            // match resp {
+            //    Ok(data, )#true => ReadResponse/* rhdl_fpga::axi4lite::types::ReadResponse */ {resp: response_codes :: OKAY, data: data,},
+            //    Err(e, )#false => match e {
+            //       const AXI4Error::SLVERR => ReadResponse/* rhdl_fpga::axi4lite::types::ReadResponse */ {resp: response_codes :: SLVERR, data: bits(0),},
+            //       const AXI4Error::DECERR => ReadResponse/* rhdl_fpga::axi4lite::types::ReadResponse */ {resp: response_codes :: DECERR, data: bits(0),},
+            //    },
+            // }
+            //
+            r44 = r40[32];
+            r45 = r40[31:0];
+            r48 = l17; r48[33:2] = r45;
+            r50 = r40[0];
+            case (r50)
+                1'b0: r53 = l7;
+                1'b1: r53 = l9;
+            endcase
+            case (r44)
+                1'b1: r43 = r48;
+                1'b0: r43 = r53;
+            endcase
+            // d.reply.to_send = Some(axi_response);
+            //
+            r56 = r43[33:0];
+            r55 = { l12, r56 };
+            r57 = r37; r57[69:35] = r55;
+            case (r39)
+                1'b1: r58 = r57;
+                default: r58 = r37;
+            endcase
+            // d.cmd.next = i.cmd_next;
+            //
+            r59 = r1[68];
+            r60 = r58; r60[33:33] = r59;
+            // if cr.reset.any() {
+            //    o.cmd = None();
+            // }
+            //
+            //
+            r61 = r62[1];
+            r63 = |(r61);
+            // o.cmd = None();
+            //
+            r66 = r34; r66[68:36] = l20;
+            r67 = (r63) ? (r66) : (r34);
+            // (o, d, )
+            //
+            r68 = { r60, r67 };
+            kernel_read_bridge_kernel = r68;
+        end
+    endfunction
+endmodule
+// synchronous circuit rhdl_fpga::axi4lite::channel::receiver::U<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>
+module axi_reg_module_inner_register_inner_read_bridge_cmd(input wire [1:0] clock_reset, input wire [33:0] i, output wire [33:0] o);
+    wire [67:0] od;
+    wire [33:0] d;
+    wire [34:0] q;
+    assign o = od[33:0];
+    axi_reg_module_inner_register_inner_read_bridge_cmd_inner c0 (.clock_reset(clock_reset),.i(d[33:0]),.o(q[34:0]));
+    assign od = kernel_receiver_kernel(clock_reset, i, q);
+    assign d = od[67:34];
+    function [67:0] kernel_receiver_kernel(input reg [1:0] arg_0, input reg [33:0] arg_1, input reg [34:0] arg_2);
+        reg [0:0] r0;
+        reg [33:0] r1;
+        reg [33:0] r2;
+        reg [32:0] r3;
+        reg [0:0] r4;
+        reg [32:0] r5;
+        reg [31:0] r6;
+        reg [32:0] r9;
+        reg [31:0] r10;
+        reg [32:0] r11;
+        reg [33:0] r15;
+        reg [34:0] r17;
+        reg [32:0] r18;
+        reg [33:0] r19;
+        reg [0:0] r21;
+        reg [33:0] r22;
+        reg [0:0] r23;
+        reg [1:0] r24;
+        reg [0:0] r25;
+        reg [33:0] r28;
+        reg [33:0] r29;
+        reg [33:0] r30;
+        reg [67:0] r31;
+        localparam l0 = 34'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l1 = 1'b1;
+        localparam l4 = 34'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l7 = 1'b0;
+        localparam l10 = 33'b000000000000000000000000000000000;
+        localparam l11 = 33'b000000000000000000000000000000000;
+        begin
+            r24 = arg_0;
+            r1 = arg_1;
+            r17 = arg_2;
+            // let d = D::<T>::dont_care();
+            //
+            // let o = O::<T>::dont_care();
+            //
+            // d.inner.next = i.next;
+            //
+            r0 = r1[33];
+            r2 = l0; r2[33:33] = r0;
+            // d.inner.data = pack(i.bus.valid, i.bus.data);
+            //
+            r3 = r1[32:0];
+            r4 = r3[32];
+            r5 = r1[32:0];
+            r6 = r5[31:0];
+            // if valid {
+            //    Some(data)
+            // }
+            //  else {
+            //    None()
+            // }
+            //
+            //
+            // Some(data)
+            //
+            r10 = r6[31:0];
+            r11 = { l1, r10 };
+            // None()
+            //
+            r9 = (r4) ? (r11) : (l10);
+            r15 = r2; r15[32:0] = r9;
+            // o.data = q.inner.data;
+            //
+            r18 = r17[32:0];
+            r19 = l4; r19[32:0] = r18;
+            // o.bus.ready = q.inner.ready;
+            //
+            r21 = r17[33];
+            r22 = r19; r22[33:33] = r21;
+            // if cr.reset.any() {
+            //    o.data = None();
+            //    o.bus.ready = false;
+            // }
+            //
+            //
+            r23 = r24[1];
+            r25 = |(r23);
+            // o.data = None();
+            //
+            r28 = r22; r28[32:0] = l11;
+            // o.bus.ready = false;
+            //
+            r29 = r28; r29[33:33] = l7;
+            r30 = (r25) ? (r29) : (r22);
+            // (o, d, )
+            //
+            r31 = { r15, r30 };
+            kernel_receiver_kernel = r31;
+        end
+    endfunction
+endmodule
+// synchronous circuit rhdl_fpga::lid::rv_to_fifo::U<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>
+module axi_reg_module_inner_register_inner_read_bridge_cmd_inner(input wire [1:0] clock_reset, input wire [33:0] i, output wire [34:0] o);
+    wire [102:0] od;
+    wire [67:0] d;
+    wire [67:0] q;
+    assign o = od[34:0];
+    axi_reg_module_inner_register_inner_read_bridge_cmd_inner_one_slot c0 (.clock_reset(clock_reset),.i(d[65:34]),.o(q[65:34]));
+    axi_reg_module_inner_register_inner_read_bridge_cmd_inner_read_slot c1 (.clock_reset(clock_reset),.i(d[67]),.o(q[67]));
+    axi_reg_module_inner_register_inner_read_bridge_cmd_inner_state c2 (.clock_reset(clock_reset),.i(d[1:0]),.o(q[1:0]));
+    axi_reg_module_inner_register_inner_read_bridge_cmd_inner_write_slot c3 (.clock_reset(clock_reset),.i(d[66]),.o(q[66]));
+    axi_reg_module_inner_register_inner_read_bridge_cmd_inner_zero_slot c4 (.clock_reset(clock_reset),.i(d[33:2]),.o(q[33:2]));
+    assign od = kernel_kernel(clock_reset, i, q);
+    assign d = od[102:35];
+    function [102:0] kernel_kernel(input reg [1:0] arg_0, input reg [33:0] arg_1, input reg [67:0] arg_2);
+        reg [0:0] r0;
+        reg [33:0] r1;
+        reg [32:0] r2;
+        reg [0:0] r4;
+        reg [0:0] r5;
+        reg [1:0] r7;
+        reg [67:0] r8;
+        reg [1:0] r10;
+        reg [1:0] r11;
+        reg [1:0] r12;
+        reg [1:0] r13;
+        reg [1:0] r14;
+        reg [1:0] r15;
+        reg [67:0] r16;
+        reg [1:0] r17;
+        reg [0:0] r18;
+        reg [1:0] r19;
+        reg [0:0] r20;
+        reg [0:0] r21;
+        reg [0:0] r22;
+        reg [31:0] r23;
+        reg [67:0] r24;
+        reg [31:0] r25;
+        reg [67:0] r26;
+        reg [32:0] r27;
+        reg [0:0] r28;
+        reg [31:0] r29;
+        reg [0:0] r31;
+        reg [67:0] r32;
+        reg [67:0] r33;
+        reg [67:0] r34;
+        reg [67:0] r35;
+        reg [67:0] r36;
+        reg [0:0] r37;
+        reg [0:0] r38;
+        reg [67:0] r39;
+        reg [0:0] r40;
+        reg [0:0] r41;
+        reg [67:0] r42;
+        reg [1:0] r43;
+        reg [0:0] r44;
+        reg [0:0] r48;
+        reg [0:0] r49;
+        reg [31:0] r50;
+        reg [32:0] r51;
+        reg [31:0] r52;
+        reg [34:0] r53;
+        reg [31:0] r54;
+        reg [32:0] r55;
+        reg [31:0] r56;
+        reg [34:0] r57;
+        reg [34:0] r58;
+        reg [34:0] r59;
+        reg [34:0] r60;
+        reg [1:0] r61;
+        reg [0:0] r62;
+        reg [34:0] r63;
+        reg [102:0] r64;
+        reg [1:0] r65;
+        localparam l0 = 1'b1;
+        localparam l1 = 1'b1;
+        localparam l2 = 1'b0;
+        localparam l3 = 1'b0;
+        localparam l4 = 2'b11;
+        localparam l5 = 2'b00;
+        localparam l6 = 2'b01;
+        localparam l7 = 2'b00;
+        localparam l8 = 2'b01;
+        localparam l9 = 2'b01;
+        localparam l10 = 2'b10;
+        localparam l11 = 2'b10;
+        localparam l12 = 2'b00;
+        localparam l13 = 2'b11;
+        localparam l14 = 2'b01;
+        localparam l15 = 2'b01;
+        localparam l16 = 2'b10;
+        localparam l17 = 2'b00;
+        localparam l18 = 2'b01;
+        localparam l19 = 2'b10;
+        localparam l20 = 2'b11;
+        localparam l21 = 2'b11;
+        localparam l22 = 68'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l23 = 2'b10;
+        localparam l24 = 2'b11;
+        localparam l25 = 1'b1;
+        localparam l26 = 2'b00;
+        localparam l29 = 35'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l30 = 1'b1;
+        localparam l31 = 1'b1;
+        localparam l32 = 2'b11;
+        localparam l35 = 35'bxx000000000000000000000000000000000;
+        begin
+            r65 = arg_0;
+            r1 = arg_1;
+            r8 = arg_2;
+            // let d = D::<T>::dont_care();
+            //
+            // let will_read = i.next;
+            //
+            r0 = r1[33];
+            // let can_write = is_some(i.data);
+            //
+            r2 = r1[32:0];
+            // match x {
+            //    Some(_, )#true => true,
+            //    _#false => false,
+            // }
+            //
+            r5 = r2[32];
+            case (r5)
+                1'b1: r4 = l1;
+                1'b0: r4 = l3;
+            endcase
+            // d.state = match q.state {
+            //    const State::Empty => {
+            //       if can_write {
+            //          State :: OneLoaded
+            //       }
+            //        else if will_read {
+            //          State :: Error
+            //       }
+            //        else {
+            //          State :: Empty
+            //       }
+            //
+            //    }
+            //    ,
+            //    const State::OneLoaded => match (can_write, will_read, ) {
+            //       const (false,false) => State :: OneLoaded,
+            //       const (true,false) => State :: TwoLoaded,
+            //       const (false,true) => State :: Empty,
+            //       const (true,true) => State :: OneLoaded,
+            //    },
+            //    const State::TwoLoaded => {
+            //       if will_read {
+            //          State :: OneLoaded
+            //       }
+            //        else {
+            //          State :: TwoLoaded
+            //       }
+            //
+            //    }
+            //    ,
+            //    const State::Error => State :: Error,
+            // };
+            //
+            r7 = r8[1:0];
+            // if can_write {
+            //    State :: OneLoaded
+            // }
+            //  else if will_read {
+            //    State :: Error
+            // }
+            //  else {
+            //    State :: Empty
+            // }
+            //
+            //
+            // State :: OneLoaded
+            //
+            // State :: Error
+            //
+            // State :: Empty
+            //
+            r10 = (r0) ? (l4) : (l5);
+            r11 = (r4) ? (l6) : (r10);
+            r12 = { r0, r4 };
+            case (r12)
+                2'b00: r13 = l8;
+                2'b01: r13 = l10;
+                2'b10: r13 = l12;
+                2'b11: r13 = l14;
+            endcase
+            // if will_read {
+            //    State :: OneLoaded
+            // }
+            //  else {
+            //    State :: TwoLoaded
+            // }
+            //
+            //
+            // State :: OneLoaded
+            //
+            // State :: TwoLoaded
+            //
+            r14 = (r0) ? (l15) : (l16);
+            case (r7)
+                2'b00: r15 = r11;
+                2'b01: r15 = r13;
+                2'b10: r15 = r14;
+                2'b11: r15 = l21;
+            endcase
+            r16 = l22; r16[1:0] = r15;
+            // let write_is_allowed = q.state != State :: TwoLoaded && q.state != State :: Error;
+            //
+            r17 = r8[1:0];
+            r18 = r17 != l23;
+            r19 = r8[1:0];
+            r20 = r19 != l24;
+            r21 = r18 & r20;
+            // let will_write = can_write && write_is_allowed;
+            //
+            r22 = r4 & r21;
+            // d.zero_slot = q.zero_slot;
+            //
+            r23 = r8[33:2];
+            r24 = r16; r24[33:2] = r23;
+            // d.one_slot = q.one_slot;
+            //
+            r25 = r8[65:34];
+            r26 = r24; r26[65:34] = r25;
+            // if let Some(data, )#true = i.data{
+            //    if will_write {
+            //       if q.write_slot {
+            //          d.one_slot = data;
+            //       }
+            //        else {
+            //          d.zero_slot = data;
+            //       }
+            //
+            //    }
+            //
+            // }
+            //
+            //
+            r27 = r1[32:0];
+            r28 = r27[32];
+            r29 = r27[31:0];
+            // if will_write {
+            //    if q.write_slot {
+            //       d.one_slot = data;
+            //    }
+            //     else {
+            //       d.zero_slot = data;
+            //    }
+            //
+            // }
+            //
+            //
+            // if q.write_slot {
+            //    d.one_slot = data;
+            // }
+            //  else {
+            //    d.zero_slot = data;
+            // }
+            //
+            //
+            r31 = r8[66];
+            // d.one_slot = data;
+            //
+            r32 = r26; r32[65:34] = r29;
+            // d.zero_slot = data;
+            //
+            r33 = r26; r33[33:2] = r29;
+            r34 = (r31) ? (r32) : (r33);
+            r35 = (r22) ? (r34) : (r26);
+            case (r28)
+                1'b1: r36 = r35;
+                default: r36 = r26;
+            endcase
+            // d.write_slot = will_write ^ q.write_slot;
+            //
+            r37 = r8[66];
+            r38 = r22 ^ r37;
+            r39 = r36; r39[66:66] = r38;
+            // d.read_slot = will_read ^ q.read_slot;
+            //
+            r40 = r8[67];
+            r41 = r0 ^ r40;
+            r42 = r39; r42[67:67] = r41;
+            // let o = O::<T>::dont_care();
+            //
+            // if q.state == State :: Empty {
+            //    o.data = None();
+            // }
+            //  else if !q.read_slot {
+            //    o.data = Some(q.zero_slot);
+            // }
+            //  else {
+            //    o.data = Some(q.one_slot);
+            // }
+            //
+            //
+            r43 = r8[1:0];
+            r44 = r43 == l26;
+            // o.data = None();
+            //
+            r48 = r8[67];
+            r49 = ~(r48);
+            // o.data = Some(q.zero_slot);
+            //
+            r50 = r8[33:2];
+            r52 = r50[31:0];
+            r51 = { l30, r52 };
+            r53 = l29; r53[32:0] = r51;
+            // o.data = Some(q.one_slot);
+            //
+            r54 = r8[65:34];
+            r56 = r54[31:0];
+            r55 = { l31, r56 };
+            r57 = l29; r57[32:0] = r55;
+            r58 = (r49) ? (r53) : (r57);
+            r59 = (r44) ? (l35) : (r58);
+            // o.ready = write_is_allowed;
+            //
+            r60 = r59; r60[33:33] = r21;
+            // o.error = q.state == State :: Error;
+            //
+            r61 = r8[1:0];
+            r62 = r61 == l32;
+            r63 = r60; r63[34:34] = r62;
+            // (o, d, )
+            //
+            r64 = { r42, r63 };
+            kernel_kernel = r64;
+        end
+    endfunction
+endmodule
+//
+module axi_reg_module_inner_register_inner_read_bridge_cmd_inner_one_slot(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 32'b00000000000000000000000000000000;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 32'b00000000000000000000000000000000;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_read_bridge_cmd_inner_read_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 1'b0;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 1'b0;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_read_bridge_cmd_inner_state(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 2'b00;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 2'b00;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_read_bridge_cmd_inner_write_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 1'b0;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 1'b0;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_read_bridge_cmd_inner_zero_slot(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 32'b00000000000000000000000000000000;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 32'b00000000000000000000000000000000;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+// synchronous circuit rhdl_fpga::axi4lite::channel::sender::U<rhdl_fpga::axi4lite::types::ReadResponse>
+module axi_reg_module_inner_register_inner_read_bridge_reply(input wire [1:0] clock_reset, input wire [35:0] i, output wire [35:0] o);
+    wire [71:0] od;
+    wire [35:0] d;
+    wire [36:0] q;
+    assign o = od[35:0];
+    axi_reg_module_inner_register_inner_read_bridge_reply_inner c0 (.clock_reset(clock_reset),.i(d[35:0]),.o(q[36:0]));
+    assign od = kernel_sender_kernel(clock_reset, i, q);
+    assign d = od[71:36];
+    function [71:0] kernel_sender_kernel(input reg [1:0] arg_0, input reg [35:0] arg_1, input reg [36:0] arg_2);
+        reg [34:0] r0;
+        reg [35:0] r1;
+        reg [35:0] r2;
+        reg [0:0] r3;
+        reg [35:0] r5;
+        reg [36:0] r7;
+        reg [34:0] r8;
+        reg [0:0] r9;
+        reg [33:0] r10;
+        reg [35:0] r12;
+        reg [35:0] r13;
+        reg [35:0] r14;
+        reg [0:0] r16;
+        reg [35:0] r17;
+        reg [0:0] r18;
+        reg [1:0] r19;
+        reg [0:0] r20;
+        reg [35:0] r21;
+        reg [35:0] r22;
+        reg [71:0] r23;
+        localparam l0 = 36'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l1 = 36'bx00000000000000000000000000000000000;
+        localparam l2 = 1'b1;
+        localparam l3 = 1'b1;
+        localparam l4 = 1'b0;
+        begin
+            r19 = arg_0;
+            r1 = arg_1;
+            r7 = arg_2;
+            // let d = D::<T>::dont_care();
+            //
+            // let o = O::<T>::dont_care();
+            //
+            // d.inner.data = i.to_send;
+            //
+            r0 = r1[35:1];
+            r2 = l0; r2[34:0] = r0;
+            // d.inner.ready = i.bus.ready;
+            //
+            r3 = r1[0];
+            r5 = r2; r5[35:35] = r3;
+            // o.bus.data = T::default();
+            //
+            // o.bus.valid = false;
+            //
+            // if let Some(data, )#true = q.inner.data{
+            //    o.bus.data = data;
+            //    o.bus.valid = true;
+            // }
+            //
+            //
+            r8 = r7[34:0];
+            r9 = r8[34];
+            r10 = r8[33:0];
+            // o.bus.data = data;
+            //
+            r12 = l1; r12[33:0] = r10;
+            // o.bus.valid = true;
+            //
+            r13 = r12; r13[34:34] = l2;
+            case (r9)
+                1'b1: r14 = r13;
+                default: r14 = l1;
+            endcase
+            // o.full = q.inner.full;
+            //
+            r16 = r7[35];
+            r17 = r14; r17[35:35] = r16;
+            // if cr.reset.any() {
+            //    o.bus.valid = false;
+            // }
+            //
+            //
+            r18 = r19[1];
+            r20 = |(r18);
+            // o.bus.valid = false;
+            //
+            r21 = r17; r21[34:34] = l4;
+            r22 = (r20) ? (r21) : (r17);
+            // (o, d, )
+            //
+            r23 = { r5, r22 };
+            kernel_sender_kernel = r23;
+        end
+    endfunction
+endmodule
+// synchronous circuit rhdl_fpga::lid::fifo_to_rv::U<rhdl_fpga::axi4lite::types::ReadResponse>
+module axi_reg_module_inner_register_inner_read_bridge_reply_inner(input wire [1:0] clock_reset, input wire [35:0] i, output wire [36:0] o);
+    wire [108:0] od;
+    wire [71:0] d;
+    wire [71:0] q;
+    assign o = od[36:0];
+    axi_reg_module_inner_register_inner_read_bridge_reply_inner_one_slot c0 (.clock_reset(clock_reset),.i(d[69:36]),.o(q[69:36]));
+    axi_reg_module_inner_register_inner_read_bridge_reply_inner_read_slot c1 (.clock_reset(clock_reset),.i(d[71]),.o(q[71]));
+    axi_reg_module_inner_register_inner_read_bridge_reply_inner_state c2 (.clock_reset(clock_reset),.i(d[1:0]),.o(q[1:0]));
+    axi_reg_module_inner_register_inner_read_bridge_reply_inner_write_slot c3 (.clock_reset(clock_reset),.i(d[70]),.o(q[70]));
+    axi_reg_module_inner_register_inner_read_bridge_reply_inner_zero_slot c4 (.clock_reset(clock_reset),.i(d[35:2]),.o(q[35:2]));
+    assign od = kernel_kernel(clock_reset, i, q);
+    assign d = od[108:37];
+    function [108:0] kernel_kernel(input reg [1:0] arg_0, input reg [35:0] arg_1, input reg [71:0] arg_2);
+        reg [34:0] r0;
+        reg [35:0] r1;
+        reg [0:0] r3;
+        reg [0:0] r4;
+        reg [0:0] r6;
+        reg [1:0] r7;
+        reg [71:0] r8;
+        reg [1:0] r10;
+        reg [1:0] r11;
+        reg [1:0] r12;
+        reg [1:0] r13;
+        reg [1:0] r14;
+        reg [1:0] r15;
+        reg [71:0] r16;
+        reg [33:0] r17;
+        reg [71:0] r18;
+        reg [33:0] r19;
+        reg [71:0] r20;
+        reg [34:0] r21;
+        reg [0:0] r22;
+        reg [33:0] r23;
+        reg [0:0] r25;
+        reg [0:0] r26;
+        reg [71:0] r27;
+        reg [71:0] r28;
+        reg [71:0] r29;
+        reg [71:0] r30;
+        reg [1:0] r31;
+        reg [0:0] r32;
+        reg [0:0] r33;
+        reg [1:0] r34;
+        reg [0:0] r35;
+        reg [0:0] r36;
+        reg [0:0] r37;
+        reg [0:0] r38;
+        reg [71:0] r39;
+        reg [0:0] r40;
+        reg [0:0] r41;
+        reg [71:0] r42;
+        reg [1:0] r43;
+        reg [0:0] r44;
+        reg [0:0] r48;
+        reg [0:0] r49;
+        reg [33:0] r50;
+        reg [34:0] r51;
+        reg [33:0] r52;
+        reg [36:0] r53;
+        reg [33:0] r54;
+        reg [34:0] r55;
+        reg [33:0] r56;
+        reg [36:0] r57;
+        reg [36:0] r58;
+        reg [36:0] r59;
+        reg [1:0] r60;
+        reg [0:0] r61;
+        reg [36:0] r62;
+        reg [1:0] r63;
+        reg [0:0] r64;
+        reg [36:0] r65;
+        reg [108:0] r66;
+        reg [1:0] r67;
+        localparam l0 = 1'b1;
+        localparam l1 = 1'b1;
+        localparam l2 = 1'b0;
+        localparam l3 = 1'b0;
+        localparam l4 = 2'b01;
+        localparam l5 = 2'b00;
+        localparam l6 = 2'b00;
+        localparam l7 = 2'b01;
+        localparam l8 = 2'b01;
+        localparam l9 = 2'b10;
+        localparam l10 = 2'b10;
+        localparam l11 = 2'b00;
+        localparam l12 = 2'b11;
+        localparam l13 = 2'b01;
+        localparam l14 = 2'b01;
+        localparam l15 = 2'b10;
+        localparam l16 = 2'b11;
+        localparam l17 = 2'b00;
+        localparam l18 = 2'b01;
+        localparam l19 = 2'b10;
+        localparam l20 = 2'b11;
+        localparam l21 = 2'b11;
+        localparam l22 = 72'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l23 = 1'b1;
+        localparam l25 = 2'b11;
+        localparam l26 = 2'b00;
+        localparam l29 = 37'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l30 = 1'b1;
+        localparam l31 = 1'b1;
+        localparam l32 = 2'b10;
+        localparam l33 = 2'b11;
+        localparam l36 = 37'bxx00000000000000000000000000000000000;
+        begin
+            r67 = arg_0;
+            r1 = arg_1;
+            r8 = arg_2;
+            // let d = D::<T>::dont_care();
+            //
+            // let will_write = is_some(i.data);
+            //
+            r0 = r1[34:0];
+            // match x {
+            //    Some(_, )#true => true,
+            //    _#false => false,
+            // }
+            //
+            r4 = r0[34];
+            case (r4)
+                1'b1: r3 = l1;
+                1'b0: r3 = l3;
+            endcase
+            // let can_read = i.ready;
+            //
+            r6 = r1[35];
+            // d.state = match q.state {
+            //    const State::Empty => {
+            //       if will_write {
+            //          State :: OneLoaded
+            //       }
+            //        else {
+            //          State :: Empty
+            //       }
+            //
+            //    }
+            //    ,
+            //    const State::OneLoaded => match (will_write, can_read, ) {
+            //       const (false,false) => State :: OneLoaded,
+            //       const (true,false) => State :: TwoLoaded,
+            //       const (false,true) => State :: Empty,
+            //       const (true,true) => State :: OneLoaded,
+            //    },
+            //    const State::TwoLoaded => {
+            //       if will_write {
+            //          State :: Error
+            //       }
+            //        else if can_read {
+            //          State :: OneLoaded
+            //       }
+            //        else {
+            //          State :: TwoLoaded
+            //       }
+            //
+            //    }
+            //    ,
+            //    const State::Error => State :: Error,
+            // };
+            //
+            r7 = r8[1:0];
+            // if will_write {
+            //    State :: OneLoaded
+            // }
+            //  else {
+            //    State :: Empty
+            // }
+            //
+            //
+            // State :: OneLoaded
+            //
+            // State :: Empty
+            //
+            r10 = (r3) ? (l4) : (l5);
+            r11 = { r6, r3 };
+            case (r11)
+                2'b00: r12 = l7;
+                2'b01: r12 = l9;
+                2'b10: r12 = l11;
+                2'b11: r12 = l13;
+            endcase
+            // if will_write {
+            //    State :: Error
+            // }
+            //  else if can_read {
+            //    State :: OneLoaded
+            // }
+            //  else {
+            //    State :: TwoLoaded
+            // }
+            //
+            //
+            // State :: Error
+            //
+            // State :: OneLoaded
+            //
+            // State :: TwoLoaded
+            //
+            r13 = (r6) ? (l14) : (l15);
+            r14 = (r3) ? (l16) : (r13);
+            case (r7)
+                2'b00: r15 = r10;
+                2'b01: r15 = r12;
+                2'b10: r15 = r14;
+                2'b11: r15 = l21;
+            endcase
+            r16 = l22; r16[1:0] = r15;
+            // d.zero_slot = q.zero_slot;
+            //
+            r17 = r8[35:2];
+            r18 = r16; r18[35:2] = r17;
+            // d.one_slot = q.one_slot;
+            //
+            r19 = r8[69:36];
+            r20 = r18; r20[69:36] = r19;
+            // if let Some(data, )#true = i.data{
+            //    if !q.write_slot {
+            //       d.zero_slot = data;
+            //    }
+            //     else {
+            //       d.one_slot = data;
+            //    }
+            //
+            // }
+            //
+            //
+            r21 = r1[34:0];
+            r22 = r21[34];
+            r23 = r21[33:0];
+            // if !q.write_slot {
+            //    d.zero_slot = data;
+            // }
+            //  else {
+            //    d.one_slot = data;
+            // }
+            //
+            //
+            r25 = r8[70];
+            r26 = ~(r25);
+            // d.zero_slot = data;
+            //
+            r27 = r20; r27[35:2] = r23;
+            // d.one_slot = data;
+            //
+            r28 = r20; r28[69:36] = r23;
+            r29 = (r26) ? (r27) : (r28);
+            case (r22)
+                1'b1: r30 = r29;
+                default: r30 = r20;
+            endcase
+            // let next_item = can_read && q.state != State :: Empty && q.state != State :: Error;
+            //
+            r31 = r8[1:0];
+            r32 = |(r31);
+            r33 = r6 & r32;
+            r34 = r8[1:0];
+            r35 = r34 != l25;
+            r36 = r33 & r35;
+            // d.write_slot = will_write ^ q.write_slot;
+            //
+            r37 = r8[70];
+            r38 = r3 ^ r37;
+            r39 = r30; r39[70:70] = r38;
+            // d.read_slot = next_item ^ q.read_slot;
+            //
+            r40 = r8[71];
+            r41 = r36 ^ r40;
+            r42 = r39; r42[71:71] = r41;
+            // let o = O::<T>::dont_care();
+            //
+            // if q.state == State :: Empty {
+            //    o.data = None()
+            // }
+            //  else if !q.read_slot {
+            //    o.data = Some(q.zero_slot);
+            // }
+            //  else {
+            //    o.data = Some(q.one_slot);
+            // }
+            // ;
+            //
+            r43 = r8[1:0];
+            r44 = r43 == l26;
+            // o.data = None()
+            //
+            r48 = r8[71];
+            r49 = ~(r48);
+            // o.data = Some(q.zero_slot);
+            //
+            r50 = r8[35:2];
+            r52 = r50[33:0];
+            r51 = { l30, r52 };
+            r53 = l29; r53[34:0] = r51;
+            // o.data = Some(q.one_slot);
+            //
+            r54 = r8[69:36];
+            r56 = r54[33:0];
+            r55 = { l31, r56 };
+            r57 = l29; r57[34:0] = r55;
+            r58 = (r49) ? (r53) : (r57);
+            r59 = (r44) ? (l36) : (r58);
+            // o.full = q.state == State :: TwoLoaded;
+            //
+            r60 = r8[1:0];
+            r61 = r60 == l32;
+            r62 = r59; r62[35:35] = r61;
+            // o.error = q.state == State :: Error;
+            //
+            r63 = r8[1:0];
+            r64 = r63 == l33;
+            r65 = r62; r65[36:36] = r64;
+            // (o, d, )
+            //
+            r66 = { r42, r65 };
+            kernel_kernel = r66;
+        end
+    endfunction
+endmodule
+//
+module axi_reg_module_inner_register_inner_read_bridge_reply_inner_one_slot(input wire [1:0] clock_reset, input wire [33:0] i, output reg [33:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 34'b0000000000000000000000000000000000;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 34'b0000000000000000000000000000000000;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_read_bridge_reply_inner_read_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 1'b0;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 1'b0;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_read_bridge_reply_inner_state(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 2'b00;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 2'b00;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_read_bridge_reply_inner_write_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 1'b0;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 1'b0;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_read_bridge_reply_inner_zero_slot(input wire [1:0] clock_reset, input wire [33:0] i, output reg [33:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 34'b0000000000000000000000000000000000;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 34'b0000000000000000000000000000000000;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_reg(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 32'b00000000000000000000000000000000;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 32'b00000000000000000000000000000000;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+// synchronous circuit rhdl_fpga::axi4lite::basic::bridge::write::U
+module axi_reg_module_inner_register_inner_write_bridge(input wire [1:0] clock_reset, input wire [74:0] i, output wire [74:0] o);
+    wire [150:0] od;
+    wire [75:0] d;
+    wire [75:0] q;
+    assign o = od[74:0];
+    axi_reg_module_inner_register_inner_write_bridge_addr c0 (.clock_reset(clock_reset),.i(d[33:0]),.o(q[33:0]));
+    axi_reg_module_inner_register_inner_write_bridge_resp c1 (.clock_reset(clock_reset),.i(d[75:72]),.o(q[75:72]));
+    axi_reg_module_inner_register_inner_write_bridge_strobed_data c2 (.clock_reset(clock_reset),.i(d[71:34]),.o(q[71:34]));
+    assign od = kernel_write_bridge_kernel(clock_reset, i, q);
+    assign d = od[150:75];
+    function [150:0] kernel_write_bridge_kernel(input reg [1:0] arg_0, input reg [74:0] arg_1, input reg [75:0] arg_2);
+        reg [70:0] r0;
+        reg [74:0] r1;
+        reg [31:0] r2;
+        reg [75:0] r3;
+        reg [70:0] r4;
+        reg [0:0] r5;
+        reg [75:0] r6;
+        reg [33:0] r7;
+        reg [75:0] r8;
+        reg [0:0] r9;
+        reg [74:0] r11;
+        reg [70:0] r12;
+        reg [31:0] r13;
+        reg [75:0] r14;
+        reg [70:0] r15;
+        reg [3:0] r16;
+        reg [75:0] r17;
+        reg [70:0] r18;
+        reg [0:0] r19;
+        reg [75:0] r20;
+        reg [37:0] r21;
+        reg [0:0] r22;
+        reg [74:0] r24;
+        reg [70:0] r25;
+        reg [0:0] r26;
+        reg [75:0] r27;
+        reg [3:0] r28;
+        reg [2:0] r29;
+        reg [1:0] r30;
+        reg [74:0] r31;
+        reg [3:0] r32;
+        reg [2:0] r33;
+        reg [0:0] r34;
+        reg [74:0] r35;
+        reg [74:0] r38;
+        reg [33:0] r39;
+        reg [32:0] r40;
+        reg [32:0] r42;
+        reg [0:0] r43;
+        reg [31:0] r44;
+        reg [32:0] r46;
+        reg [0:0] r48;
+        reg [31:0] r49;
+        reg [37:0] r50;
+        reg [36:0] r51;
+        reg [36:0] r53;
+        reg [0:0] r54;
+        reg [35:0] r55;
+        reg [36:0] r57;
+        reg [0:0] r59;
+        reg [35:0] r60;
+        reg [0:0] r61;
+        reg [67:0] r63;
+        reg [67:0] r64;
+        reg [68:0] r65;
+        reg [67:0] r66;
+        reg [74:0] r67;
+        reg [74:0] r68;
+        reg [0:0] r69;
+        reg [75:0] r70;
+        reg [0:0] r71;
+        reg [75:0] r72;
+        reg [3:0] r73;
+        reg [0:0] r74;
+        reg [74:0] r75;
+        reg [2:0] r76;
+        reg [0:0] r77;
+        reg [1:0] r78;
+        reg [1:0] r81;
+        reg [0:0] r82;
+        reg [0:0] r83;
+        reg [1:0] r86;
+        reg [2:0] r88;
+        reg [1:0] r89;
+        reg [2:0] r92;
+        reg [75:0] r93;
+        reg [150:0] r94;
+        reg [1:0] r95;
+        localparam l0 = 76'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l1 = 75'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l4 = 1'b1;
+        localparam l5 = 1'b0;
+        localparam l6 = 33'b000000000000000000000000000000000;
+        localparam l7 = 1'b1;
+        localparam l8 = 1'b1;
+        localparam l9 = 1'b0;
+        localparam l10 = 37'b0000000000000000000000000000000000000;
+        localparam l11 = 1'b1;
+        localparam l12 = 68'b00000000000000000000000000000000000000000000000000000000000000000000;
+        localparam l13 = 1'b1;
+        localparam l14 = 1'b0;
+        localparam l15 = 2'b10;
+        localparam l16 = 1'b1;
+        localparam l17 = 2'b11;
+        localparam l18 = 1'b1;
+        localparam l19 = 2'b00;
+        localparam l20 = 1'b0;
+        localparam l21 = 1'b1;
+        localparam l24 = 1'b1;
+        localparam l27 = 69'b000000000000000000000000000000000000000000000000000000000000000000000;
+        localparam l28 = 3'b000;
+        begin
+            r95 = arg_0;
+            r1 = arg_1;
+            r8 = arg_2;
+            // let d = D::dont_care();
+            //
+            // let o = O::dont_care();
+            //
+            // d.addr.bus.data = i.axi.awaddr;
+            //
+            r0 = r1[70:0];
+            r2 = r0[31:0];
+            r3 = l0; r3[31:0] = r2;
+            // d.addr.bus.valid = i.axi.awvalid;
+            //
+            r4 = r1[70:0];
+            r5 = r4[32];
+            r6 = r3; r6[32:32] = r5;
+            // o.axi.awready = q.addr.bus.ready;
+            //
+            r7 = r8[33:0];
+            r9 = r7[33];
+            r11 = l1; r11[0:0] = r9;
+            // d.strobed_data.bus.data.data = i.axi.wdata;
+            //
+            r12 = r1[70:0];
+            r13 = r12[64:33];
+            r14 = r6; r14[65:34] = r13;
+            // d.strobed_data.bus.data.strobe = i.axi.wstrb;
+            //
+            r15 = r1[70:0];
+            r16 = r15[68:65];
+            r17 = r14; r17[69:66] = r16;
+            // d.strobed_data.bus.valid = i.axi.wvalid;
+            //
+            r18 = r1[70:0];
+            r19 = r18[69];
+            r20 = r17; r20[70:70] = r19;
+            // o.axi.wready = q.strobed_data.bus.ready;
+            //
+            r21 = r8[71:34];
+            r22 = r21[37];
+            r24 = r11; r24[1:1] = r22;
+            // d.resp.bus.ready = i.axi.bready;
+            //
+            r25 = r1[70:0];
+            r26 = r25[70];
+            r27 = r20; r27[72:72] = r26;
+            // o.axi.bresp = q.resp.bus.data;
+            //
+            r28 = r8[75:72];
+            r29 = r28[2:0];
+            r30 = r29[1:0];
+            r31 = r24; r31[3:2] = r30;
+            // o.axi.bvalid = q.resp.bus.valid;
+            //
+            r32 = r8[75:72];
+            r33 = r32[2:0];
+            r34 = r33[2];
+            r35 = r31; r35[4:4] = r34;
+            // o.cmd = None();
+            //
+            r38 = r35; r38[73:5] = l27;
+            // let (addr_is_valid, addr, ) = unpack(q.addr.data);
+            //
+            r39 = r8[33:0];
+            r40 = r39[32:0];
+            // match opt {
+            //    _#false => (false, T::default(), ),
+            //    Some(t, )#true => (true, t, ),
+            // }
+            //
+            r43 = r40[32];
+            r44 = r40[31:0];
+            r46 = { r44, l4 };
+            case (r43)
+                1'b0: r42 = l6;
+                1'b1: r42 = r46;
+            endcase
+            r48 = r42[0];
+            r49 = r42[32:1];
+            // let (data_is_valid, strobed_data, ) = unpack(q.strobed_data.data);
+            //
+            r50 = r8[71:34];
+            r51 = r50[36:0];
+            // match opt {
+            //    _#false => (false, T::default(), ),
+            //    Some(t, )#true => (true, t, ),
+            // }
+            //
+            r54 = r51[36];
+            r55 = r51[35:0];
+            r57 = { r55, l8 };
+            case (r54)
+                1'b0: r53 = l10;
+                1'b1: r53 = r57;
+            endcase
+            r59 = r53[0];
+            r60 = r53[36:1];
+            // if addr_is_valid && data_is_valid {
+            //    o.cmd = Some(WriteCommand/* rhdl_fpga::axi4lite::types::WriteCommand */ {addr: addr, strobed_data: strobed_data,});
+            // }
+            //
+            //
+            r61 = r48 & r59;
+            // o.cmd = Some(WriteCommand/* rhdl_fpga::axi4lite::types::WriteCommand */ {addr: addr, strobed_data: strobed_data,});
+            //
+            r63 = l12; r63[31:0] = r49;
+            r64 = r63; r64[67:32] = r60;
+            r66 = r64[67:0];
+            r65 = { l13, r66 };
+            r67 = r38; r67[73:5] = r65;
+            r68 = (r61) ? (r67) : (r38);
+            // d.addr.next = i.cmd_next;
+            //
+            r69 = r1[74];
+            r70 = r27; r70[33:33] = r69;
+            // d.strobed_data.next = i.cmd_next;
+            //
+            r71 = r1[74];
+            r72 = r70; r72[71:71] = r71;
+            // o.reply_full = q.resp.full;
+            //
+            r73 = r8[75:72];
+            r74 = r73[3];
+            r75 = r68; r75[74:74] = r74;
+            // d.resp.to_send = if let Some(response, )#true = i.reply{
+            //    Some(result_to_write_response(response))
+            // }
+            //  else {
+            //    None()
+            // }
+            // ;
+            //
+            r76 = r1[73:71];
+            r77 = r76[2];
+            r78 = r76[1:0];
+            // Some(result_to_write_response(response))
+            //
+            // match resp {
+            //    Ok(_, )#true => response_codes :: OKAY,
+            //    Err(e, )#false => match e {
+            //       const AXI4Error::SLVERR => response_codes :: SLVERR,
+            //       const AXI4Error::DECERR => response_codes :: DECERR,
+            //    },
+            // }
+            //
+            r82 = r78[1];
+            r83 = r78[0];
+            case (r83)
+                1'b0: r86 = l15;
+                1'b1: r86 = l17;
+            endcase
+            case (r82)
+                1'b1: r81 = l19;
+                1'b0: r81 = r86;
+            endcase
+            r89 = r81[1:0];
+            r88 = { l21, r89 };
+            // None()
+            //
+            case (r77)
+                1'b1: r92 = r88;
+                default: r92 = l28;
+            endcase
+            r93 = r72; r93[75:73] = r92;
+            // (o, d, )
+            //
+            r94 = { r93, r75 };
+            kernel_write_bridge_kernel = r94;
+        end
+    endfunction
+endmodule
+// synchronous circuit rhdl_fpga::axi4lite::channel::receiver::U<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>
+module axi_reg_module_inner_register_inner_write_bridge_addr(input wire [1:0] clock_reset, input wire [33:0] i, output wire [33:0] o);
+    wire [67:0] od;
+    wire [33:0] d;
+    wire [34:0] q;
+    assign o = od[33:0];
+    axi_reg_module_inner_register_inner_write_bridge_addr_inner c0 (.clock_reset(clock_reset),.i(d[33:0]),.o(q[34:0]));
+    assign od = kernel_receiver_kernel(clock_reset, i, q);
+    assign d = od[67:34];
+    function [67:0] kernel_receiver_kernel(input reg [1:0] arg_0, input reg [33:0] arg_1, input reg [34:0] arg_2);
+        reg [0:0] r0;
+        reg [33:0] r1;
+        reg [33:0] r2;
+        reg [32:0] r3;
+        reg [0:0] r4;
+        reg [32:0] r5;
+        reg [31:0] r6;
+        reg [32:0] r9;
+        reg [31:0] r10;
+        reg [32:0] r11;
+        reg [33:0] r15;
+        reg [34:0] r17;
+        reg [32:0] r18;
+        reg [33:0] r19;
+        reg [0:0] r21;
+        reg [33:0] r22;
+        reg [0:0] r23;
+        reg [1:0] r24;
+        reg [0:0] r25;
+        reg [33:0] r28;
+        reg [33:0] r29;
+        reg [33:0] r30;
+        reg [67:0] r31;
+        localparam l0 = 34'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l1 = 1'b1;
+        localparam l4 = 34'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l7 = 1'b0;
+        localparam l10 = 33'b000000000000000000000000000000000;
+        localparam l11 = 33'b000000000000000000000000000000000;
+        begin
+            r24 = arg_0;
+            r1 = arg_1;
+            r17 = arg_2;
+            // let d = D::<T>::dont_care();
+            //
+            // let o = O::<T>::dont_care();
+            //
+            // d.inner.next = i.next;
+            //
+            r0 = r1[33];
+            r2 = l0; r2[33:33] = r0;
+            // d.inner.data = pack(i.bus.valid, i.bus.data);
+            //
+            r3 = r1[32:0];
+            r4 = r3[32];
+            r5 = r1[32:0];
+            r6 = r5[31:0];
+            // if valid {
+            //    Some(data)
+            // }
+            //  else {
+            //    None()
+            // }
+            //
+            //
+            // Some(data)
+            //
+            r10 = r6[31:0];
+            r11 = { l1, r10 };
+            // None()
+            //
+            r9 = (r4) ? (r11) : (l10);
+            r15 = r2; r15[32:0] = r9;
+            // o.data = q.inner.data;
+            //
+            r18 = r17[32:0];
+            r19 = l4; r19[32:0] = r18;
+            // o.bus.ready = q.inner.ready;
+            //
+            r21 = r17[33];
+            r22 = r19; r22[33:33] = r21;
+            // if cr.reset.any() {
+            //    o.data = None();
+            //    o.bus.ready = false;
+            // }
+            //
+            //
+            r23 = r24[1];
+            r25 = |(r23);
+            // o.data = None();
+            //
+            r28 = r22; r28[32:0] = l11;
+            // o.bus.ready = false;
+            //
+            r29 = r28; r29[33:33] = l7;
+            r30 = (r25) ? (r29) : (r22);
+            // (o, d, )
+            //
+            r31 = { r15, r30 };
+            kernel_receiver_kernel = r31;
+        end
+    endfunction
+endmodule
+// synchronous circuit rhdl_fpga::lid::rv_to_fifo::U<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>
+module axi_reg_module_inner_register_inner_write_bridge_addr_inner(input wire [1:0] clock_reset, input wire [33:0] i, output wire [34:0] o);
+    wire [102:0] od;
+    wire [67:0] d;
+    wire [67:0] q;
+    assign o = od[34:0];
+    axi_reg_module_inner_register_inner_write_bridge_addr_inner_one_slot c0 (.clock_reset(clock_reset),.i(d[65:34]),.o(q[65:34]));
+    axi_reg_module_inner_register_inner_write_bridge_addr_inner_read_slot c1 (.clock_reset(clock_reset),.i(d[67]),.o(q[67]));
+    axi_reg_module_inner_register_inner_write_bridge_addr_inner_state c2 (.clock_reset(clock_reset),.i(d[1:0]),.o(q[1:0]));
+    axi_reg_module_inner_register_inner_write_bridge_addr_inner_write_slot c3 (.clock_reset(clock_reset),.i(d[66]),.o(q[66]));
+    axi_reg_module_inner_register_inner_write_bridge_addr_inner_zero_slot c4 (.clock_reset(clock_reset),.i(d[33:2]),.o(q[33:2]));
+    assign od = kernel_kernel(clock_reset, i, q);
+    assign d = od[102:35];
+    function [102:0] kernel_kernel(input reg [1:0] arg_0, input reg [33:0] arg_1, input reg [67:0] arg_2);
+        reg [0:0] r0;
+        reg [33:0] r1;
+        reg [32:0] r2;
+        reg [0:0] r4;
+        reg [0:0] r5;
+        reg [1:0] r7;
+        reg [67:0] r8;
+        reg [1:0] r10;
+        reg [1:0] r11;
+        reg [1:0] r12;
+        reg [1:0] r13;
+        reg [1:0] r14;
+        reg [1:0] r15;
+        reg [67:0] r16;
+        reg [1:0] r17;
+        reg [0:0] r18;
+        reg [1:0] r19;
+        reg [0:0] r20;
+        reg [0:0] r21;
+        reg [0:0] r22;
+        reg [31:0] r23;
+        reg [67:0] r24;
+        reg [31:0] r25;
+        reg [67:0] r26;
+        reg [32:0] r27;
+        reg [0:0] r28;
+        reg [31:0] r29;
+        reg [0:0] r31;
+        reg [67:0] r32;
+        reg [67:0] r33;
+        reg [67:0] r34;
+        reg [67:0] r35;
+        reg [67:0] r36;
+        reg [0:0] r37;
+        reg [0:0] r38;
+        reg [67:0] r39;
+        reg [0:0] r40;
+        reg [0:0] r41;
+        reg [67:0] r42;
+        reg [1:0] r43;
+        reg [0:0] r44;
+        reg [0:0] r48;
+        reg [0:0] r49;
+        reg [31:0] r50;
+        reg [32:0] r51;
+        reg [31:0] r52;
+        reg [34:0] r53;
+        reg [31:0] r54;
+        reg [32:0] r55;
+        reg [31:0] r56;
+        reg [34:0] r57;
+        reg [34:0] r58;
+        reg [34:0] r59;
+        reg [34:0] r60;
+        reg [1:0] r61;
+        reg [0:0] r62;
+        reg [34:0] r63;
+        reg [102:0] r64;
+        reg [1:0] r65;
+        localparam l0 = 1'b1;
+        localparam l1 = 1'b1;
+        localparam l2 = 1'b0;
+        localparam l3 = 1'b0;
+        localparam l4 = 2'b11;
+        localparam l5 = 2'b00;
+        localparam l6 = 2'b01;
+        localparam l7 = 2'b00;
+        localparam l8 = 2'b01;
+        localparam l9 = 2'b01;
+        localparam l10 = 2'b10;
+        localparam l11 = 2'b10;
+        localparam l12 = 2'b00;
+        localparam l13 = 2'b11;
+        localparam l14 = 2'b01;
+        localparam l15 = 2'b01;
+        localparam l16 = 2'b10;
+        localparam l17 = 2'b00;
+        localparam l18 = 2'b01;
+        localparam l19 = 2'b10;
+        localparam l20 = 2'b11;
+        localparam l21 = 2'b11;
+        localparam l22 = 68'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l23 = 2'b10;
+        localparam l24 = 2'b11;
+        localparam l25 = 1'b1;
+        localparam l26 = 2'b00;
+        localparam l29 = 35'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l30 = 1'b1;
+        localparam l31 = 1'b1;
+        localparam l32 = 2'b11;
+        localparam l35 = 35'bxx000000000000000000000000000000000;
+        begin
+            r65 = arg_0;
+            r1 = arg_1;
+            r8 = arg_2;
+            // let d = D::<T>::dont_care();
+            //
+            // let will_read = i.next;
+            //
+            r0 = r1[33];
+            // let can_write = is_some(i.data);
+            //
+            r2 = r1[32:0];
+            // match x {
+            //    Some(_, )#true => true,
+            //    _#false => false,
+            // }
+            //
+            r5 = r2[32];
+            case (r5)
+                1'b1: r4 = l1;
+                1'b0: r4 = l3;
+            endcase
+            // d.state = match q.state {
+            //    const State::Empty => {
+            //       if can_write {
+            //          State :: OneLoaded
+            //       }
+            //        else if will_read {
+            //          State :: Error
+            //       }
+            //        else {
+            //          State :: Empty
+            //       }
+            //
+            //    }
+            //    ,
+            //    const State::OneLoaded => match (can_write, will_read, ) {
+            //       const (false,false) => State :: OneLoaded,
+            //       const (true,false) => State :: TwoLoaded,
+            //       const (false,true) => State :: Empty,
+            //       const (true,true) => State :: OneLoaded,
+            //    },
+            //    const State::TwoLoaded => {
+            //       if will_read {
+            //          State :: OneLoaded
+            //       }
+            //        else {
+            //          State :: TwoLoaded
+            //       }
+            //
+            //    }
+            //    ,
+            //    const State::Error => State :: Error,
+            // };
+            //
+            r7 = r8[1:0];
+            // if can_write {
+            //    State :: OneLoaded
+            // }
+            //  else if will_read {
+            //    State :: Error
+            // }
+            //  else {
+            //    State :: Empty
+            // }
+            //
+            //
+            // State :: OneLoaded
+            //
+            // State :: Error
+            //
+            // State :: Empty
+            //
+            r10 = (r0) ? (l4) : (l5);
+            r11 = (r4) ? (l6) : (r10);
+            r12 = { r0, r4 };
+            case (r12)
+                2'b00: r13 = l8;
+                2'b01: r13 = l10;
+                2'b10: r13 = l12;
+                2'b11: r13 = l14;
+            endcase
+            // if will_read {
+            //    State :: OneLoaded
+            // }
+            //  else {
+            //    State :: TwoLoaded
+            // }
+            //
+            //
+            // State :: OneLoaded
+            //
+            // State :: TwoLoaded
+            //
+            r14 = (r0) ? (l15) : (l16);
+            case (r7)
+                2'b00: r15 = r11;
+                2'b01: r15 = r13;
+                2'b10: r15 = r14;
+                2'b11: r15 = l21;
+            endcase
+            r16 = l22; r16[1:0] = r15;
+            // let write_is_allowed = q.state != State :: TwoLoaded && q.state != State :: Error;
+            //
+            r17 = r8[1:0];
+            r18 = r17 != l23;
+            r19 = r8[1:0];
+            r20 = r19 != l24;
+            r21 = r18 & r20;
+            // let will_write = can_write && write_is_allowed;
+            //
+            r22 = r4 & r21;
+            // d.zero_slot = q.zero_slot;
+            //
+            r23 = r8[33:2];
+            r24 = r16; r24[33:2] = r23;
+            // d.one_slot = q.one_slot;
+            //
+            r25 = r8[65:34];
+            r26 = r24; r26[65:34] = r25;
+            // if let Some(data, )#true = i.data{
+            //    if will_write {
+            //       if q.write_slot {
+            //          d.one_slot = data;
+            //       }
+            //        else {
+            //          d.zero_slot = data;
+            //       }
+            //
+            //    }
+            //
+            // }
+            //
+            //
+            r27 = r1[32:0];
+            r28 = r27[32];
+            r29 = r27[31:0];
+            // if will_write {
+            //    if q.write_slot {
+            //       d.one_slot = data;
+            //    }
+            //     else {
+            //       d.zero_slot = data;
+            //    }
+            //
+            // }
+            //
+            //
+            // if q.write_slot {
+            //    d.one_slot = data;
+            // }
+            //  else {
+            //    d.zero_slot = data;
+            // }
+            //
+            //
+            r31 = r8[66];
+            // d.one_slot = data;
+            //
+            r32 = r26; r32[65:34] = r29;
+            // d.zero_slot = data;
+            //
+            r33 = r26; r33[33:2] = r29;
+            r34 = (r31) ? (r32) : (r33);
+            r35 = (r22) ? (r34) : (r26);
+            case (r28)
+                1'b1: r36 = r35;
+                default: r36 = r26;
+            endcase
+            // d.write_slot = will_write ^ q.write_slot;
+            //
+            r37 = r8[66];
+            r38 = r22 ^ r37;
+            r39 = r36; r39[66:66] = r38;
+            // d.read_slot = will_read ^ q.read_slot;
+            //
+            r40 = r8[67];
+            r41 = r0 ^ r40;
+            r42 = r39; r42[67:67] = r41;
+            // let o = O::<T>::dont_care();
+            //
+            // if q.state == State :: Empty {
+            //    o.data = None();
+            // }
+            //  else if !q.read_slot {
+            //    o.data = Some(q.zero_slot);
+            // }
+            //  else {
+            //    o.data = Some(q.one_slot);
+            // }
+            //
+            //
+            r43 = r8[1:0];
+            r44 = r43 == l26;
+            // o.data = None();
+            //
+            r48 = r8[67];
+            r49 = ~(r48);
+            // o.data = Some(q.zero_slot);
+            //
+            r50 = r8[33:2];
+            r52 = r50[31:0];
+            r51 = { l30, r52 };
+            r53 = l29; r53[32:0] = r51;
+            // o.data = Some(q.one_slot);
+            //
+            r54 = r8[65:34];
+            r56 = r54[31:0];
+            r55 = { l31, r56 };
+            r57 = l29; r57[32:0] = r55;
+            r58 = (r49) ? (r53) : (r57);
+            r59 = (r44) ? (l35) : (r58);
+            // o.ready = write_is_allowed;
+            //
+            r60 = r59; r60[33:33] = r21;
+            // o.error = q.state == State :: Error;
+            //
+            r61 = r8[1:0];
+            r62 = r61 == l32;
+            r63 = r60; r63[34:34] = r62;
+            // (o, d, )
+            //
+            r64 = { r42, r63 };
+            kernel_kernel = r64;
+        end
+    endfunction
+endmodule
+//
+module axi_reg_module_inner_register_inner_write_bridge_addr_inner_one_slot(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 32'b00000000000000000000000000000000;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 32'b00000000000000000000000000000000;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_write_bridge_addr_inner_read_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 1'b0;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 1'b0;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_write_bridge_addr_inner_state(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 2'b00;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 2'b00;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_write_bridge_addr_inner_write_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 1'b0;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 1'b0;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_write_bridge_addr_inner_zero_slot(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 32'b00000000000000000000000000000000;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 32'b00000000000000000000000000000000;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+// synchronous circuit rhdl_fpga::axi4lite::channel::sender::U<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U2>>
+module axi_reg_module_inner_register_inner_write_bridge_resp(input wire [1:0] clock_reset, input wire [3:0] i, output wire [3:0] o);
+    wire [7:0] od;
+    wire [3:0] d;
+    wire [4:0] q;
+    assign o = od[3:0];
+    axi_reg_module_inner_register_inner_write_bridge_resp_inner c0 (.clock_reset(clock_reset),.i(d[3:0]),.o(q[4:0]));
+    assign od = kernel_sender_kernel(clock_reset, i, q);
+    assign d = od[7:4];
+    function [7:0] kernel_sender_kernel(input reg [1:0] arg_0, input reg [3:0] arg_1, input reg [4:0] arg_2);
+        reg [2:0] r0;
+        reg [3:0] r1;
+        reg [3:0] r2;
+        reg [0:0] r3;
+        reg [3:0] r5;
+        reg [4:0] r7;
+        reg [2:0] r8;
+        reg [0:0] r9;
+        reg [1:0] r10;
+        reg [3:0] r12;
+        reg [3:0] r13;
+        reg [3:0] r14;
+        reg [0:0] r16;
+        reg [3:0] r17;
+        reg [0:0] r18;
+        reg [1:0] r19;
+        reg [0:0] r20;
+        reg [3:0] r21;
+        reg [3:0] r22;
+        reg [7:0] r23;
+        localparam l0 = 4'bxxxx;
+        localparam l1 = 4'bx000;
+        localparam l2 = 1'b1;
+        localparam l3 = 1'b1;
+        localparam l4 = 1'b0;
+        begin
+            r19 = arg_0;
+            r1 = arg_1;
+            r7 = arg_2;
+            // let d = D::<T>::dont_care();
+            //
+            // let o = O::<T>::dont_care();
+            //
+            // d.inner.data = i.to_send;
+            //
+            r0 = r1[3:1];
+            r2 = l0; r2[2:0] = r0;
+            // d.inner.ready = i.bus.ready;
+            //
+            r3 = r1[0];
+            r5 = r2; r5[3:3] = r3;
+            // o.bus.data = T::default();
+            //
+            // o.bus.valid = false;
+            //
+            // if let Some(data, )#true = q.inner.data{
+            //    o.bus.data = data;
+            //    o.bus.valid = true;
+            // }
+            //
+            //
+            r8 = r7[2:0];
+            r9 = r8[2];
+            r10 = r8[1:0];
+            // o.bus.data = data;
+            //
+            r12 = l1; r12[1:0] = r10;
+            // o.bus.valid = true;
+            //
+            r13 = r12; r13[2:2] = l2;
+            case (r9)
+                1'b1: r14 = r13;
+                default: r14 = l1;
+            endcase
+            // o.full = q.inner.full;
+            //
+            r16 = r7[3];
+            r17 = r14; r17[3:3] = r16;
+            // if cr.reset.any() {
+            //    o.bus.valid = false;
+            // }
+            //
+            //
+            r18 = r19[1];
+            r20 = |(r18);
+            // o.bus.valid = false;
+            //
+            r21 = r17; r21[2:2] = l4;
+            r22 = (r20) ? (r21) : (r17);
+            // (o, d, )
+            //
+            r23 = { r5, r22 };
+            kernel_sender_kernel = r23;
+        end
+    endfunction
+endmodule
+// synchronous circuit rhdl_fpga::lid::fifo_to_rv::U<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U2>>
+module axi_reg_module_inner_register_inner_write_bridge_resp_inner(input wire [1:0] clock_reset, input wire [3:0] i, output wire [4:0] o);
+    wire [12:0] od;
+    wire [7:0] d;
+    wire [7:0] q;
+    assign o = od[4:0];
+    axi_reg_module_inner_register_inner_write_bridge_resp_inner_one_slot c0 (.clock_reset(clock_reset),.i(d[5:4]),.o(q[5:4]));
+    axi_reg_module_inner_register_inner_write_bridge_resp_inner_read_slot c1 (.clock_reset(clock_reset),.i(d[7]),.o(q[7]));
+    axi_reg_module_inner_register_inner_write_bridge_resp_inner_state c2 (.clock_reset(clock_reset),.i(d[1:0]),.o(q[1:0]));
+    axi_reg_module_inner_register_inner_write_bridge_resp_inner_write_slot c3 (.clock_reset(clock_reset),.i(d[6]),.o(q[6]));
+    axi_reg_module_inner_register_inner_write_bridge_resp_inner_zero_slot c4 (.clock_reset(clock_reset),.i(d[3:2]),.o(q[3:2]));
+    assign od = kernel_kernel(clock_reset, i, q);
+    assign d = od[12:5];
+    function [12:0] kernel_kernel(input reg [1:0] arg_0, input reg [3:0] arg_1, input reg [7:0] arg_2);
+        reg [2:0] r0;
+        reg [3:0] r1;
+        reg [0:0] r3;
+        reg [0:0] r4;
+        reg [0:0] r6;
+        reg [1:0] r7;
+        reg [7:0] r8;
+        reg [1:0] r10;
+        reg [1:0] r11;
+        reg [1:0] r12;
+        reg [1:0] r13;
+        reg [1:0] r14;
+        reg [1:0] r15;
+        reg [7:0] r16;
+        reg [1:0] r17;
+        reg [7:0] r18;
+        reg [1:0] r19;
+        reg [7:0] r20;
+        reg [2:0] r21;
+        reg [0:0] r22;
+        reg [1:0] r23;
+        reg [0:0] r25;
+        reg [0:0] r26;
+        reg [7:0] r27;
+        reg [7:0] r28;
+        reg [7:0] r29;
+        reg [7:0] r30;
+        reg [1:0] r31;
+        reg [0:0] r32;
+        reg [0:0] r33;
+        reg [1:0] r34;
+        reg [0:0] r35;
+        reg [0:0] r36;
+        reg [0:0] r37;
+        reg [0:0] r38;
+        reg [7:0] r39;
+        reg [0:0] r40;
+        reg [0:0] r41;
+        reg [7:0] r42;
+        reg [1:0] r43;
+        reg [0:0] r44;
+        reg [0:0] r48;
+        reg [0:0] r49;
+        reg [1:0] r50;
+        reg [2:0] r51;
+        reg [1:0] r52;
+        reg [4:0] r53;
+        reg [1:0] r54;
+        reg [2:0] r55;
+        reg [1:0] r56;
+        reg [4:0] r57;
+        reg [4:0] r58;
+        reg [4:0] r59;
+        reg [1:0] r60;
+        reg [0:0] r61;
+        reg [4:0] r62;
+        reg [1:0] r63;
+        reg [0:0] r64;
+        reg [4:0] r65;
+        reg [12:0] r66;
+        reg [1:0] r67;
+        localparam l0 = 1'b1;
+        localparam l1 = 1'b1;
+        localparam l2 = 1'b0;
+        localparam l3 = 1'b0;
+        localparam l4 = 2'b01;
+        localparam l5 = 2'b00;
+        localparam l6 = 2'b00;
+        localparam l7 = 2'b01;
+        localparam l8 = 2'b01;
+        localparam l9 = 2'b10;
+        localparam l10 = 2'b10;
+        localparam l11 = 2'b00;
+        localparam l12 = 2'b11;
+        localparam l13 = 2'b01;
+        localparam l14 = 2'b01;
+        localparam l15 = 2'b10;
+        localparam l16 = 2'b11;
+        localparam l17 = 2'b00;
+        localparam l18 = 2'b01;
+        localparam l19 = 2'b10;
+        localparam l20 = 2'b11;
+        localparam l21 = 2'b11;
+        localparam l22 = 8'bxxxxxxxx;
+        localparam l23 = 1'b1;
+        localparam l25 = 2'b11;
+        localparam l26 = 2'b00;
+        localparam l29 = 5'bxxxxx;
+        localparam l30 = 1'b1;
+        localparam l31 = 1'b1;
+        localparam l32 = 2'b10;
+        localparam l33 = 2'b11;
+        localparam l36 = 5'bxx000;
+        begin
+            r67 = arg_0;
+            r1 = arg_1;
+            r8 = arg_2;
+            // let d = D::<T>::dont_care();
+            //
+            // let will_write = is_some(i.data);
+            //
+            r0 = r1[2:0];
+            // match x {
+            //    Some(_, )#true => true,
+            //    _#false => false,
+            // }
+            //
+            r4 = r0[2];
+            case (r4)
+                1'b1: r3 = l1;
+                1'b0: r3 = l3;
+            endcase
+            // let can_read = i.ready;
+            //
+            r6 = r1[3];
+            // d.state = match q.state {
+            //    const State::Empty => {
+            //       if will_write {
+            //          State :: OneLoaded
+            //       }
+            //        else {
+            //          State :: Empty
+            //       }
+            //
+            //    }
+            //    ,
+            //    const State::OneLoaded => match (will_write, can_read, ) {
+            //       const (false,false) => State :: OneLoaded,
+            //       const (true,false) => State :: TwoLoaded,
+            //       const (false,true) => State :: Empty,
+            //       const (true,true) => State :: OneLoaded,
+            //    },
+            //    const State::TwoLoaded => {
+            //       if will_write {
+            //          State :: Error
+            //       }
+            //        else if can_read {
+            //          State :: OneLoaded
+            //       }
+            //        else {
+            //          State :: TwoLoaded
+            //       }
+            //
+            //    }
+            //    ,
+            //    const State::Error => State :: Error,
+            // };
+            //
+            r7 = r8[1:0];
+            // if will_write {
+            //    State :: OneLoaded
+            // }
+            //  else {
+            //    State :: Empty
+            // }
+            //
+            //
+            // State :: OneLoaded
+            //
+            // State :: Empty
+            //
+            r10 = (r3) ? (l4) : (l5);
+            r11 = { r6, r3 };
+            case (r11)
+                2'b00: r12 = l7;
+                2'b01: r12 = l9;
+                2'b10: r12 = l11;
+                2'b11: r12 = l13;
+            endcase
+            // if will_write {
+            //    State :: Error
+            // }
+            //  else if can_read {
+            //    State :: OneLoaded
+            // }
+            //  else {
+            //    State :: TwoLoaded
+            // }
+            //
+            //
+            // State :: Error
+            //
+            // State :: OneLoaded
+            //
+            // State :: TwoLoaded
+            //
+            r13 = (r6) ? (l14) : (l15);
+            r14 = (r3) ? (l16) : (r13);
+            case (r7)
+                2'b00: r15 = r10;
+                2'b01: r15 = r12;
+                2'b10: r15 = r14;
+                2'b11: r15 = l21;
+            endcase
+            r16 = l22; r16[1:0] = r15;
+            // d.zero_slot = q.zero_slot;
+            //
+            r17 = r8[3:2];
+            r18 = r16; r18[3:2] = r17;
+            // d.one_slot = q.one_slot;
+            //
+            r19 = r8[5:4];
+            r20 = r18; r20[5:4] = r19;
+            // if let Some(data, )#true = i.data{
+            //    if !q.write_slot {
+            //       d.zero_slot = data;
+            //    }
+            //     else {
+            //       d.one_slot = data;
+            //    }
+            //
+            // }
+            //
+            //
+            r21 = r1[2:0];
+            r22 = r21[2];
+            r23 = r21[1:0];
+            // if !q.write_slot {
+            //    d.zero_slot = data;
+            // }
+            //  else {
+            //    d.one_slot = data;
+            // }
+            //
+            //
+            r25 = r8[6];
+            r26 = ~(r25);
+            // d.zero_slot = data;
+            //
+            r27 = r20; r27[3:2] = r23;
+            // d.one_slot = data;
+            //
+            r28 = r20; r28[5:4] = r23;
+            r29 = (r26) ? (r27) : (r28);
+            case (r22)
+                1'b1: r30 = r29;
+                default: r30 = r20;
+            endcase
+            // let next_item = can_read && q.state != State :: Empty && q.state != State :: Error;
+            //
+            r31 = r8[1:0];
+            r32 = |(r31);
+            r33 = r6 & r32;
+            r34 = r8[1:0];
+            r35 = r34 != l25;
+            r36 = r33 & r35;
+            // d.write_slot = will_write ^ q.write_slot;
+            //
+            r37 = r8[6];
+            r38 = r3 ^ r37;
+            r39 = r30; r39[6:6] = r38;
+            // d.read_slot = next_item ^ q.read_slot;
+            //
+            r40 = r8[7];
+            r41 = r36 ^ r40;
+            r42 = r39; r42[7:7] = r41;
+            // let o = O::<T>::dont_care();
+            //
+            // if q.state == State :: Empty {
+            //    o.data = None()
+            // }
+            //  else if !q.read_slot {
+            //    o.data = Some(q.zero_slot);
+            // }
+            //  else {
+            //    o.data = Some(q.one_slot);
+            // }
+            // ;
+            //
+            r43 = r8[1:0];
+            r44 = r43 == l26;
+            // o.data = None()
+            //
+            r48 = r8[7];
+            r49 = ~(r48);
+            // o.data = Some(q.zero_slot);
+            //
+            r50 = r8[3:2];
+            r52 = r50[1:0];
+            r51 = { l30, r52 };
+            r53 = l29; r53[2:0] = r51;
+            // o.data = Some(q.one_slot);
+            //
+            r54 = r8[5:4];
+            r56 = r54[1:0];
+            r55 = { l31, r56 };
+            r57 = l29; r57[2:0] = r55;
+            r58 = (r49) ? (r53) : (r57);
+            r59 = (r44) ? (l36) : (r58);
+            // o.full = q.state == State :: TwoLoaded;
+            //
+            r60 = r8[1:0];
+            r61 = r60 == l32;
+            r62 = r59; r62[3:3] = r61;
+            // o.error = q.state == State :: Error;
+            //
+            r63 = r8[1:0];
+            r64 = r63 == l33;
+            r65 = r62; r65[4:4] = r64;
+            // (o, d, )
+            //
+            r66 = { r42, r65 };
+            kernel_kernel = r66;
+        end
+    endfunction
+endmodule
+//
+module axi_reg_module_inner_register_inner_write_bridge_resp_inner_one_slot(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 2'b00;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 2'b00;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_write_bridge_resp_inner_read_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 1'b0;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 1'b0;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_write_bridge_resp_inner_state(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 2'b00;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 2'b00;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_write_bridge_resp_inner_write_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 1'b0;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 1'b0;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_write_bridge_resp_inner_zero_slot(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 2'b00;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 2'b00;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+// synchronous circuit rhdl_fpga::axi4lite::channel::receiver::U<rhdl_fpga::axi4lite::types::StrobedData>
+module axi_reg_module_inner_register_inner_write_bridge_strobed_data(input wire [1:0] clock_reset, input wire [37:0] i, output wire [37:0] o);
+    wire [75:0] od;
+    wire [37:0] d;
+    wire [38:0] q;
+    assign o = od[37:0];
+    axi_reg_module_inner_register_inner_write_bridge_strobed_data_inner c0 (.clock_reset(clock_reset),.i(d[37:0]),.o(q[38:0]));
+    assign od = kernel_receiver_kernel(clock_reset, i, q);
+    assign d = od[75:38];
+    function [75:0] kernel_receiver_kernel(input reg [1:0] arg_0, input reg [37:0] arg_1, input reg [38:0] arg_2);
+        reg [0:0] r0;
+        reg [37:0] r1;
+        reg [37:0] r2;
+        reg [36:0] r3;
+        reg [0:0] r4;
+        reg [36:0] r5;
+        reg [35:0] r6;
+        reg [36:0] r9;
+        reg [35:0] r10;
+        reg [36:0] r11;
+        reg [37:0] r15;
+        reg [38:0] r17;
+        reg [36:0] r18;
+        reg [37:0] r19;
+        reg [0:0] r21;
+        reg [37:0] r22;
+        reg [0:0] r23;
+        reg [1:0] r24;
+        reg [0:0] r25;
+        reg [37:0] r28;
+        reg [37:0] r29;
+        reg [37:0] r30;
+        reg [75:0] r31;
+        localparam l0 = 38'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l1 = 1'b1;
+        localparam l4 = 38'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l7 = 1'b0;
+        localparam l10 = 37'b0000000000000000000000000000000000000;
+        localparam l11 = 37'b0000000000000000000000000000000000000;
+        begin
+            r24 = arg_0;
+            r1 = arg_1;
+            r17 = arg_2;
+            // let d = D::<T>::dont_care();
+            //
+            // let o = O::<T>::dont_care();
+            //
+            // d.inner.next = i.next;
+            //
+            r0 = r1[37];
+            r2 = l0; r2[37:37] = r0;
+            // d.inner.data = pack(i.bus.valid, i.bus.data);
+            //
+            r3 = r1[36:0];
+            r4 = r3[36];
+            r5 = r1[36:0];
+            r6 = r5[35:0];
+            // if valid {
+            //    Some(data)
+            // }
+            //  else {
+            //    None()
+            // }
+            //
+            //
+            // Some(data)
+            //
+            r10 = r6[35:0];
+            r11 = { l1, r10 };
+            // None()
+            //
+            r9 = (r4) ? (r11) : (l10);
+            r15 = r2; r15[36:0] = r9;
+            // o.data = q.inner.data;
+            //
+            r18 = r17[36:0];
+            r19 = l4; r19[36:0] = r18;
+            // o.bus.ready = q.inner.ready;
+            //
+            r21 = r17[37];
+            r22 = r19; r22[37:37] = r21;
+            // if cr.reset.any() {
+            //    o.data = None();
+            //    o.bus.ready = false;
+            // }
+            //
+            //
+            r23 = r24[1];
+            r25 = |(r23);
+            // o.data = None();
+            //
+            r28 = r22; r28[36:0] = l11;
+            // o.bus.ready = false;
+            //
+            r29 = r28; r29[37:37] = l7;
+            r30 = (r25) ? (r29) : (r22);
+            // (o, d, )
+            //
+            r31 = { r15, r30 };
+            kernel_receiver_kernel = r31;
+        end
+    endfunction
+endmodule
+// synchronous circuit rhdl_fpga::lid::rv_to_fifo::U<rhdl_fpga::axi4lite::types::StrobedData>
+module axi_reg_module_inner_register_inner_write_bridge_strobed_data_inner(input wire [1:0] clock_reset, input wire [37:0] i, output wire [38:0] o);
+    wire [114:0] od;
+    wire [75:0] d;
+    wire [75:0] q;
+    assign o = od[38:0];
+    axi_reg_module_inner_register_inner_write_bridge_strobed_data_inner_one_slot c0 (.clock_reset(clock_reset),.i(d[73:38]),.o(q[73:38]));
+    axi_reg_module_inner_register_inner_write_bridge_strobed_data_inner_read_slot c1 (.clock_reset(clock_reset),.i(d[75]),.o(q[75]));
+    axi_reg_module_inner_register_inner_write_bridge_strobed_data_inner_state c2 (.clock_reset(clock_reset),.i(d[1:0]),.o(q[1:0]));
+    axi_reg_module_inner_register_inner_write_bridge_strobed_data_inner_write_slot c3 (.clock_reset(clock_reset),.i(d[74]),.o(q[74]));
+    axi_reg_module_inner_register_inner_write_bridge_strobed_data_inner_zero_slot c4 (.clock_reset(clock_reset),.i(d[37:2]),.o(q[37:2]));
+    assign od = kernel_kernel(clock_reset, i, q);
+    assign d = od[114:39];
+    function [114:0] kernel_kernel(input reg [1:0] arg_0, input reg [37:0] arg_1, input reg [75:0] arg_2);
+        reg [0:0] r0;
+        reg [37:0] r1;
+        reg [36:0] r2;
+        reg [0:0] r4;
+        reg [0:0] r5;
+        reg [1:0] r7;
+        reg [75:0] r8;
+        reg [1:0] r10;
+        reg [1:0] r11;
+        reg [1:0] r12;
+        reg [1:0] r13;
+        reg [1:0] r14;
+        reg [1:0] r15;
+        reg [75:0] r16;
+        reg [1:0] r17;
+        reg [0:0] r18;
+        reg [1:0] r19;
+        reg [0:0] r20;
+        reg [0:0] r21;
+        reg [0:0] r22;
+        reg [35:0] r23;
+        reg [75:0] r24;
+        reg [35:0] r25;
+        reg [75:0] r26;
+        reg [36:0] r27;
+        reg [0:0] r28;
+        reg [35:0] r29;
+        reg [0:0] r31;
+        reg [75:0] r32;
+        reg [75:0] r33;
+        reg [75:0] r34;
+        reg [75:0] r35;
+        reg [75:0] r36;
+        reg [0:0] r37;
+        reg [0:0] r38;
+        reg [75:0] r39;
+        reg [0:0] r40;
+        reg [0:0] r41;
+        reg [75:0] r42;
+        reg [1:0] r43;
+        reg [0:0] r44;
+        reg [0:0] r48;
+        reg [0:0] r49;
+        reg [35:0] r50;
+        reg [36:0] r51;
+        reg [35:0] r52;
+        reg [38:0] r53;
+        reg [35:0] r54;
+        reg [36:0] r55;
+        reg [35:0] r56;
+        reg [38:0] r57;
+        reg [38:0] r58;
+        reg [38:0] r59;
+        reg [38:0] r60;
+        reg [1:0] r61;
+        reg [0:0] r62;
+        reg [38:0] r63;
+        reg [114:0] r64;
+        reg [1:0] r65;
+        localparam l0 = 1'b1;
+        localparam l1 = 1'b1;
+        localparam l2 = 1'b0;
+        localparam l3 = 1'b0;
+        localparam l4 = 2'b11;
+        localparam l5 = 2'b00;
+        localparam l6 = 2'b01;
+        localparam l7 = 2'b00;
+        localparam l8 = 2'b01;
+        localparam l9 = 2'b01;
+        localparam l10 = 2'b10;
+        localparam l11 = 2'b10;
+        localparam l12 = 2'b00;
+        localparam l13 = 2'b11;
+        localparam l14 = 2'b01;
+        localparam l15 = 2'b01;
+        localparam l16 = 2'b10;
+        localparam l17 = 2'b00;
+        localparam l18 = 2'b01;
+        localparam l19 = 2'b10;
+        localparam l20 = 2'b11;
+        localparam l21 = 2'b11;
+        localparam l22 = 76'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l23 = 2'b10;
+        localparam l24 = 2'b11;
+        localparam l25 = 1'b1;
+        localparam l26 = 2'b00;
+        localparam l29 = 39'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+        localparam l30 = 1'b1;
+        localparam l31 = 1'b1;
+        localparam l32 = 2'b11;
+        localparam l35 = 39'bxx0000000000000000000000000000000000000;
+        begin
+            r65 = arg_0;
+            r1 = arg_1;
+            r8 = arg_2;
+            // let d = D::<T>::dont_care();
+            //
+            // let will_read = i.next;
+            //
+            r0 = r1[37];
+            // let can_write = is_some(i.data);
+            //
+            r2 = r1[36:0];
+            // match x {
+            //    Some(_, )#true => true,
+            //    _#false => false,
+            // }
+            //
+            r5 = r2[36];
+            case (r5)
+                1'b1: r4 = l1;
+                1'b0: r4 = l3;
+            endcase
+            // d.state = match q.state {
+            //    const State::Empty => {
+            //       if can_write {
+            //          State :: OneLoaded
+            //       }
+            //        else if will_read {
+            //          State :: Error
+            //       }
+            //        else {
+            //          State :: Empty
+            //       }
+            //
+            //    }
+            //    ,
+            //    const State::OneLoaded => match (can_write, will_read, ) {
+            //       const (false,false) => State :: OneLoaded,
+            //       const (true,false) => State :: TwoLoaded,
+            //       const (false,true) => State :: Empty,
+            //       const (true,true) => State :: OneLoaded,
+            //    },
+            //    const State::TwoLoaded => {
+            //       if will_read {
+            //          State :: OneLoaded
+            //       }
+            //        else {
+            //          State :: TwoLoaded
+            //       }
+            //
+            //    }
+            //    ,
+            //    const State::Error => State :: Error,
+            // };
+            //
+            r7 = r8[1:0];
+            // if can_write {
+            //    State :: OneLoaded
+            // }
+            //  else if will_read {
+            //    State :: Error
+            // }
+            //  else {
+            //    State :: Empty
+            // }
+            //
+            //
+            // State :: OneLoaded
+            //
+            // State :: Error
+            //
+            // State :: Empty
+            //
+            r10 = (r0) ? (l4) : (l5);
+            r11 = (r4) ? (l6) : (r10);
+            r12 = { r0, r4 };
+            case (r12)
+                2'b00: r13 = l8;
+                2'b01: r13 = l10;
+                2'b10: r13 = l12;
+                2'b11: r13 = l14;
+            endcase
+            // if will_read {
+            //    State :: OneLoaded
+            // }
+            //  else {
+            //    State :: TwoLoaded
+            // }
+            //
+            //
+            // State :: OneLoaded
+            //
+            // State :: TwoLoaded
+            //
+            r14 = (r0) ? (l15) : (l16);
+            case (r7)
+                2'b00: r15 = r11;
+                2'b01: r15 = r13;
+                2'b10: r15 = r14;
+                2'b11: r15 = l21;
+            endcase
+            r16 = l22; r16[1:0] = r15;
+            // let write_is_allowed = q.state != State :: TwoLoaded && q.state != State :: Error;
+            //
+            r17 = r8[1:0];
+            r18 = r17 != l23;
+            r19 = r8[1:0];
+            r20 = r19 != l24;
+            r21 = r18 & r20;
+            // let will_write = can_write && write_is_allowed;
+            //
+            r22 = r4 & r21;
+            // d.zero_slot = q.zero_slot;
+            //
+            r23 = r8[37:2];
+            r24 = r16; r24[37:2] = r23;
+            // d.one_slot = q.one_slot;
+            //
+            r25 = r8[73:38];
+            r26 = r24; r26[73:38] = r25;
+            // if let Some(data, )#true = i.data{
+            //    if will_write {
+            //       if q.write_slot {
+            //          d.one_slot = data;
+            //       }
+            //        else {
+            //          d.zero_slot = data;
+            //       }
+            //
+            //    }
+            //
+            // }
+            //
+            //
+            r27 = r1[36:0];
+            r28 = r27[36];
+            r29 = r27[35:0];
+            // if will_write {
+            //    if q.write_slot {
+            //       d.one_slot = data;
+            //    }
+            //     else {
+            //       d.zero_slot = data;
+            //    }
+            //
+            // }
+            //
+            //
+            // if q.write_slot {
+            //    d.one_slot = data;
+            // }
+            //  else {
+            //    d.zero_slot = data;
+            // }
+            //
+            //
+            r31 = r8[74];
+            // d.one_slot = data;
+            //
+            r32 = r26; r32[73:38] = r29;
+            // d.zero_slot = data;
+            //
+            r33 = r26; r33[37:2] = r29;
+            r34 = (r31) ? (r32) : (r33);
+            r35 = (r22) ? (r34) : (r26);
+            case (r28)
+                1'b1: r36 = r35;
+                default: r36 = r26;
+            endcase
+            // d.write_slot = will_write ^ q.write_slot;
+            //
+            r37 = r8[74];
+            r38 = r22 ^ r37;
+            r39 = r36; r39[74:74] = r38;
+            // d.read_slot = will_read ^ q.read_slot;
+            //
+            r40 = r8[75];
+            r41 = r0 ^ r40;
+            r42 = r39; r42[75:75] = r41;
+            // let o = O::<T>::dont_care();
+            //
+            // if q.state == State :: Empty {
+            //    o.data = None();
+            // }
+            //  else if !q.read_slot {
+            //    o.data = Some(q.zero_slot);
+            // }
+            //  else {
+            //    o.data = Some(q.one_slot);
+            // }
+            //
+            //
+            r43 = r8[1:0];
+            r44 = r43 == l26;
+            // o.data = None();
+            //
+            r48 = r8[75];
+            r49 = ~(r48);
+            // o.data = Some(q.zero_slot);
+            //
+            r50 = r8[37:2];
+            r52 = r50[35:0];
+            r51 = { l30, r52 };
+            r53 = l29; r53[36:0] = r51;
+            // o.data = Some(q.one_slot);
+            //
+            r54 = r8[73:38];
+            r56 = r54[35:0];
+            r55 = { l31, r56 };
+            r57 = l29; r57[36:0] = r55;
+            r58 = (r49) ? (r53) : (r57);
+            r59 = (r44) ? (l35) : (r58);
+            // o.ready = write_is_allowed;
+            //
+            r60 = r59; r60[37:37] = r21;
+            // o.error = q.state == State :: Error;
+            //
+            r61 = r8[1:0];
+            r62 = r61 == l32;
+            r63 = r60; r63[38:38] = r62;
+            // (o, d, )
+            //
+            r64 = { r42, r63 };
+            kernel_kernel = r64;
+        end
+    endfunction
+endmodule
+//
+module axi_reg_module_inner_register_inner_write_bridge_strobed_data_inner_one_slot(input wire [1:0] clock_reset, input wire [35:0] i, output reg [35:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 36'b000000000000000000000000000000000000;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 36'b000000000000000000000000000000000000;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_write_bridge_strobed_data_inner_read_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 1'b0;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 1'b0;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_write_bridge_strobed_data_inner_state(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 2'b00;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 2'b00;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_write_bridge_strobed_data_inner_write_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 1'b0;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 1'b0;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_register_inner_write_bridge_strobed_data_inner_zero_slot(input wire [1:0] clock_reset, input wire [35:0] i, output reg [35:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 36'b000000000000000000000000000000000000;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 36'b000000000000000000000000000000000000;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+// circuit rhdl_fpga::reset::negating_conditioner::U<rhdl::rhdl_core::types::domain::Red, rhdl::rhdl_core::types::domain::Blue>
+module axi_reg_module_inner_resetn_conditioner(input wire [1:0] i, output wire [0:0] o);
+    wire [3:0] od;
+    wire [2:0] d;
+    wire [1:0] q;
+    assign o = od[0];
+    axi_reg_module_inner_resetn_conditioner_cond c0 (.i(d[2:1]),.o(q[1]));
+    axi_reg_module_inner_resetn_conditioner_neg c1 (.i(d[0]),.o(q[0]));
+    assign od = kernel_negating_conditioner_kernel(i, q);
+    assign d = od[3:1];
+    function [3:0] kernel_negating_conditioner_kernel(input reg [1:0] arg_0, input reg [1:0] arg_1);
+        reg [0:0] r0;
+        reg [1:0] r1;
+        reg [2:0] r2;
+        reg [0:0] r3;
+        reg [1:0] r4;
+        reg [2:0] r5;
+        reg [0:0] r6;
+        reg [2:0] r7;
+        reg [0:0] r8;
+        reg [3:0] r9;
+        localparam l0 = 3'bxxx;
+        begin
+            r1 = arg_0;
+            r4 = arg_1;
+            // let d = D::<W,R>::dont_care();
+            //
+            // d.neg = i.reset_n;
+            //
+            r0 = r1[0];
+            r2 = l0; r2[0:0] = r0;
+            // d.cond.reset = q.neg;
+            //
+            r3 = r4[0];
+            r5 = r2; r5[1:1] = r3;
+            // d.cond.clock = i.clock;
+            //
+            r6 = r1[1];
+            r7 = r5; r7[2:2] = r6;
+            // let o = q.cond;
+            //
+            r8 = r4[1];
+            // (o, d, )
+            //
+            r9 = { r7, r8 };
+            kernel_negating_conditioner_kernel = r9;
+        end
+    endfunction
+endmodule
+//
+module axi_reg_module_inner_resetn_conditioner_cond(input wire [1:0] i, output wire [0:0] o);
+    wire [0:0] i_reset;
+    wire [0:0] clock;
+    reg [0:0] reg1;
+    reg [0:0] reg2;
+    assign i_reset = i[0];
+    assign clock = i[1];
+    assign o = reg2;
+    always @(posedge clock or posedge i_reset) begin
+        if (i_reset)
+        begin
+            reg1 <= 1'b1;
+        end else begin
+            reg1 <= 1'b0;
+        end
+        if (i_reset)
+        begin
+            reg2 <= 1'b1;
+        end else begin
+            reg2 <= reg1;
+        end
+    end
+endmodule
+//
+module axi_reg_module_inner_resetn_conditioner_neg(input wire [0:0] i, output wire [0:0] o);
+    assign o = ~(i);
+endmodule

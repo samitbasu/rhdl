@@ -30,7 +30,7 @@ pub fn fixture(_cr: ClockReset, i: I, q: Q) -> (O, D) {
 
 #[cfg(test)]
 mod tests {
-    use expect_test::expect;
+    use expect_test::{expect, expect_file};
 
     use crate::tristate::simple::sender::Cmd;
 
@@ -72,7 +72,8 @@ mod tests {
             output data => o.val().data,
         ];
         let module = export_hdl_module(&uut, "tristate_sender", "TriState Sender Module", binds)?;
-        std::fs::write("tristate.v", module.as_verilog()).unwrap();
+        let expect = expect_file!["tristate.expect"];
+        expect.assert_eq(&module.as_verilog());
         Ok(())
     }
 }
