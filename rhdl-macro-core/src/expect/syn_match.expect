@@ -9,9 +9,9 @@ Stmt::Expr(
                 leading_colon: None,
                 segments: [
                     PathSegment {
-                        ident: Ident(
-                            l,
-                        ),
+                        ident: Ident {
+                            sym: l,
+                        },
                         arguments: PathArguments::None,
                     },
                 ],
@@ -28,16 +28,16 @@ Stmt::Expr(
                         leading_colon: None,
                         segments: [
                             PathSegment {
-                                ident: Ident(
-                                    State,
-                                ),
+                                ident: Ident {
+                                    sym: State,
+                                },
                                 arguments: PathArguments::None,
                             },
                             PathSep,
                             PathSegment {
-                                ident: Ident(
-                                    Init,
-                                ),
+                                ident: Ident {
+                                    sym: Init,
+                                },
                                 arguments: PathArguments::None,
                             },
                         ],
@@ -64,16 +64,16 @@ Stmt::Expr(
                         leading_colon: None,
                         segments: [
                             PathSegment {
-                                ident: Ident(
-                                    State,
-                                ),
+                                ident: Ident {
+                                    sym: State,
+                                },
                                 arguments: PathArguments::None,
                             },
                             PathSep,
                             PathSegment {
-                                ident: Ident(
-                                    Run,
-                                ),
+                                ident: Ident {
+                                    sym: Run,
+                                },
                                 arguments: PathArguments::None,
                             },
                         ],
@@ -84,9 +84,9 @@ Stmt::Expr(
                             attrs: [],
                             by_ref: None,
                             mutability: None,
-                            ident: Ident(
-                                a,
-                            ),
+                            ident: Ident {
+                                sym: a,
+                            },
                             subpat: None,
                         },
                     ],
@@ -112,16 +112,16 @@ Stmt::Expr(
                         leading_colon: None,
                         segments: [
                             PathSegment {
-                                ident: Ident(
-                                    State,
-                                ),
+                                ident: Ident {
+                                    sym: State,
+                                },
                                 arguments: PathArguments::None,
                             },
                             PathSep,
                             PathSegment {
-                                ident: Ident(
-                                    Boom,
-                                ),
+                                ident: Ident {
+                                    sym: Boom,
+                                },
                                 arguments: PathArguments::None,
                             },
                         ],
@@ -148,16 +148,16 @@ Stmt::Expr(
                         leading_colon: None,
                         segments: [
                             PathSegment {
-                                ident: Ident(
-                                    State,
-                                ),
+                                ident: Ident {
+                                    sym: State,
+                                },
                                 arguments: PathArguments::None,
                             },
                             PathSep,
                             PathSegment {
-                                ident: Ident(
-                                    NotOk,
-                                ),
+                                ident: Ident {
+                                    sym: NotOk,
+                                },
                                 arguments: PathArguments::None,
                             },
                         ],
