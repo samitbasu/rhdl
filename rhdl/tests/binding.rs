@@ -6,7 +6,7 @@
 #![allow(dead_code)]
 
 use expect_test::expect_file;
-use rhdl::prelude::*;
+use rhdl::{core::compiler::mir::error::RHDLTypeError, prelude::*};
 #[cfg(test)]
 mod common;
 #[cfg(test)]
@@ -45,7 +45,9 @@ fn test_nested_enum_match_in_if_let_fails() -> miette::Result<()> {
 
     let expect_err = expect_file!["nested_enum_in_if_let.expect"];
     let res = compile_design::<add>(CompilationMode::Asynchronous);
-    expect_err.assert_debug_eq(&res);
+    let err = res.err().unwrap();
+    let report: miette::Report = err.into();
+    expect_err.assert_eq(&report.to_string());
     Ok(())
 }
 

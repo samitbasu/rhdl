@@ -8,9 +8,9 @@ Block {
                 attrs: [],
                 by_ref: None,
                 mutability: None,
-                ident: Ident(
-                    a,
-                ),
+                ident: Ident {
+                    sym: a,
+                },
                 subpat: None,
             },
             init: Some(
@@ -25,9 +25,9 @@ Block {
                                 leading_colon: None,
                                 segments: [
                                     PathSegment {
-                                        ident: Ident(
-                                            Some,
-                                        ),
+                                        ident: Ident {
+                                            sym: Some,
+                                        },
                                         arguments: PathArguments::None,
                                     },
                                 ],
@@ -62,9 +62,9 @@ Block {
                             leading_colon: None,
                             segments: [
                                 PathSegment {
-                                    ident: Ident(
-                                        Some,
-                                    ),
+                                    ident: Ident {
+                                        sym: Some,
+                                    },
                                     arguments: PathArguments::None,
                                 },
                             ],
@@ -75,9 +75,9 @@ Block {
                                 attrs: [],
                                 by_ref: None,
                                 mutability: None,
-                                ident: Ident(
-                                    b,
-                                ),
+                                ident: Ident {
+                                    sym: b,
+                                },
                                 subpat: None,
                             },
                         ],
@@ -90,9 +90,9 @@ Block {
                             leading_colon: None,
                             segments: [
                                 PathSegment {
-                                    ident: Ident(
-                                        a,
-                                    ),
+                                    ident: Ident {
+                                        sym: a,
+                                    },
                                     arguments: PathArguments::None,
                                 },
                             ],
@@ -110,9 +110,9 @@ Block {
                                     leading_colon: None,
                                     segments: [
                                         PathSegment {
-                                            ident: Ident(
-                                                b,
-                                            ),
+                                            ident: Ident {
+                                                sym: b,
+                                            },
                                             arguments: PathArguments::None,
                                         },
                                     ],
