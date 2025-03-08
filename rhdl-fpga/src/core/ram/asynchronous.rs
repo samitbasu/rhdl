@@ -261,7 +261,7 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> Circuit for U<T, W, R, N> {
 mod tests {
     use std::path::PathBuf;
 
-    use expect_test::expect;
+    use expect_test::{expect, expect_file};
 
     use super::*;
 
@@ -303,7 +303,8 @@ mod tests {
         );
         let fg = uut.flow_graph("uut")?;
         let hdl = fg.hdl("top")?;
-        std::fs::write("ram_fg.v", hdl.to_string()).unwrap();
+        let expect = expect_file!["ram_fg.v.expect"];
+        expect.assert_eq(&hdl.to_string());
         Ok(())
     }
 

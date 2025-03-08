@@ -125,3 +125,4 @@ pub use crate::rhdl_typenum::Maximum;
 pub use crate::rhdl_typenum::Sum;
 pub use rhdl_macro::export;
 pub use rhdl_macro::op;
+pub use rhdl_macro::path;

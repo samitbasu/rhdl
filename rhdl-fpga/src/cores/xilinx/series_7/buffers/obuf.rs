@@ -93,4 +93,8 @@ endmodule
 //
 //  That inputs can only come from output ports, and
 //  that outputs can only go to input ports.
+// Drivers should support templating (maybe via tiny template)
+// The side of the driver that faces the circuit should be
+// typed.
+//
 */

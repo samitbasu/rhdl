@@ -90,7 +90,7 @@ pub fn filler_kernel<N: BitWidth>(cr: ClockReset, i: I, q: Q<N>) -> (O<N>, D<N>)
 
 #[cfg(test)]
 mod tests {
-    use expect_test::expect;
+    use expect_test::{expect, expect_file};
 
     use super::*;
 
@@ -122,7 +122,8 @@ mod tests {
             .clock_pos_edge(100);
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let test_module = test_bench.rtl(&uut, &TestBenchOptions::default())?;
-        std::fs::write("filler.v", test_module.to_string()).unwrap();
+        let expect = expect_file!["filler.expect"];
+        expect.assert_eq(&test_module.to_string());
         test_module.run_iverilog()?;
         let test_module = test_bench.flow_graph(&uut, &TestBenchOptions::default())?;
         test_module.run_iverilog()?;

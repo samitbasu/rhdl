@@ -54,7 +54,7 @@ pub fn fixture_kernel<W: Domain, R: Domain>(i: I<W, R>, q: Q<W, R>) -> (O<R>, D<
 
 #[cfg(test)]
 mod tests {
-    use expect_test::expect;
+    use expect_test::{expect, expect_file};
 
     use crate::axi4lite::types::{ReadMOSI, WriteMOSI};
 
@@ -194,7 +194,8 @@ mod tests {
             output data => o.read_data                          // Register read data
         ];
         let module = export_hdl_module(&uut, "axi_reg_module", "AXI4 Lite register", binds)?;
-        std::fs::write("axi_reg_module.v", module.to_string()).unwrap();
+        let expect = expect_file!["axi_reg_module.v.expect"];
+        expect.assert_eq(&module.to_string());
         Ok(())
     }
 }

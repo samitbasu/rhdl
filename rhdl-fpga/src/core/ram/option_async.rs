@@ -63,7 +63,7 @@ pub fn ram_kernel<T: Digital + Default, W: Domain, R: Domain, N: BitWidth>(
 mod tests {
     use std::path::PathBuf;
 
-    use expect_test::expect;
+    use expect_test::{expect, expect_file};
 
     use super::*;
 
@@ -103,7 +103,8 @@ mod tests {
         );
         let fg = uut.flow_graph("uut")?;
         let hdl = fg.hdl("top")?;
-        std::fs::write("ram_fg.v", hdl.to_string()).unwrap();
+        let expect = expect_file!["ram_fg.expect"];
+        expect.assert_eq(&hdl.to_string());
         Ok(())
     }
 

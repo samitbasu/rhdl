@@ -55,7 +55,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use expect_test::expect;
+    use expect_test::{expect, expect_file};
 
     use super::*;
 
@@ -77,7 +77,8 @@ mod tests {
         });
         let vcd = uut.run(input.take(100))?.collect::<Vcd>();
         let svg = vcd.dump_svg(&Default::default());
-        svg::save("async_fifo.svg", &svg).unwrap();
+        let expect = expect_file!["async_fifo.svg.expect"];
+        expect.assert_eq(&svg.to_string());
         Ok(())
     }
 

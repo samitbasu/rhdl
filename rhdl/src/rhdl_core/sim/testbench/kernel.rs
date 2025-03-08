@@ -412,7 +412,6 @@ where
     debug!("Generating Verilog to run external checks");
     let hdl = generate_verilog(&rtl)?;
     let tm = test_module(&uut, hdl, vals.clone());
-    std::fs::write("testbench.v", tm.to_string())?;
     tm.run_iverilog()?;
     let flow_graph = build_rtl_flow_graph(&rtl);
     let flow_graph = optimize_flow_graph(flow_graph)?;

@@ -1,0 +1,323 @@
+// TriState Sender Module
+module tristate_sender(input wire [1:0] cr, input wire [15:0] bitz, input wire [9:0] cmd, output wire [15:0] bitz, output wire [1:0] control, output wire [8:0] data);
+    wire [27:0] i;
+    wire [26:0] o;
+    assign i[1:0] = cr;
+    assign i[17:2] = bitz;
+    assign i[27:18] = cmd;
+    assign bitz = o[15:0];
+    assign control = o[17:16];
+    assign data = o[26:18];
+    tristate_sender_inner sub (.i(i),.o(o));
+endmodule
+// Asynchronous adaptor for synchronous circuit rhdl_fpga::tristate::simple::sender::U
+module tristate_sender_inner(input wire [27:0] i, output wire [26:0] o);
+    tristate_sender_inner_inner c (.clock_reset({ i[1], i[0] }),.i(i[27:2]),.o(o));
+endmodule
+// synchronous circuit rhdl_fpga::tristate::simple::sender::U
+module tristate_sender_inner_inner(input wire [1:0] clock_reset, input wire [25:0] i, output wire [26:0] o);
+    wire [37:0] od;
+    wire [10:0] d;
+    wire [10:0] q;
+    assign o = od[26:0];
+    tristate_sender_inner_inner_reg c0 (.clock_reset(clock_reset),.i(d[10:3]),.o(q[10:3]));
+    tristate_sender_inner_inner_state c1 (.clock_reset(clock_reset),.i(d[2:0]),.o(q[2:0]));
+    assign od = kernel_trizsnd(clock_reset, i, q);
+    assign d = od[37:27];
+    function [37:0] kernel_trizsnd(input reg [1:0] arg_0, input reg [25:0] arg_1, input reg [10:0] arg_2);
+        reg [7:0] r0;
+        reg [10:0] r1;
+        reg [10:0] r2;
+        reg [2:0] r3;
+        reg [9:0] r5;
+        reg [25:0] r6;
+        reg [0:0] r7;
+        reg [8:0] r8;
+        reg [0:0] r10;
+        reg [7:0] r11;
+        reg [10:0] r13;
+        reg [10:0] r14;
+        reg [2:0] r15;
+        reg [10:0] r16;
+        reg [2:0] r17;
+        reg [7:0] r18;
+        reg [26:0] r19;
+        reg [26:0] r20;
+        reg [26:0] r21;
+        reg [15:0] r22;
+        reg [7:0] r23;
+        reg [10:0] r24;
+        reg [7:0] r25;
+        reg [8:0] r26;
+        reg [7:0] r27;
+        reg [26:0] r28;
+        reg [10:0] r29;
+        reg [26:0] r30;
+        reg [2:0] r31;
+        reg [15:0] r32;
+        reg [7:0] r33;
+        reg [15:0] r34;
+        reg [7:0] r35;
+        reg [7:0] r36;
+        reg [26:0] r37;
+        reg [15:0] r38;
+        reg [7:0] r39;
+        reg [15:0] r40;
+        reg [7:0] r41;
+        reg [15:0] r42;
+        reg [7:0] r43;
+        reg [7:0] r44;
+        reg [7:0] r45;
+        reg [26:0] r46;
+        reg [10:0] r47;
+        reg [37:0] r48;
+        reg [1:0] r49;
+        localparam l0 = 11'bxxxxxxxxxxx;
+        localparam l1 = 1'b0;
+        localparam l2 = 1'b1;
+        localparam l3 = 3'b001;
+        localparam l4 = 3'b010;
+        localparam l5 = 1'b1;
+        localparam l6 = 27'b000000000000000000000000000;
+        localparam l7 = 8'b11111111;
+        localparam l8 = 2'b10;
+        localparam l9 = 1'b1;
+        localparam l10 = 3'b000;
+        localparam l11 = 3'b001;
+        localparam l12 = 3'b010;
+        localparam l13 = 3'b011;
+        localparam l14 = 3'b100;
+        localparam l15 = 27'b000000000110000000000000000;
+        localparam l16 = 3'b000;
+        localparam l17 = 3'b011;
+        localparam l18 = 3'b100;
+        localparam l19 = 3'b000;
+        begin
+            r49 = arg_0;
+            r6 = arg_1;
+            r1 = arg_2;
+            // let d = D::dont_care();
+            //
+            // d.reg = q.reg;
+            //
+            r0 = r1[10:3];
+            r2 = l0; r2[10:3] = r0;
+            // let state = q.state;
+            //
+            r3 = r1[2:0];
+            // let o = O::default();
+            //
+            // match state {
+            //    const State::Idle => {
+            //       if let Some(cmd, )#true = i.cmd{
+            //          match cmd {
+            //             Cmd::Write(data, )#false => {
+            //                state = State :: Write;
+            //                d.reg = data;
+            //             }
+            //             ,
+            //             const Cmd::Read => {
+            //                state = State :: ReadReq;
+            //             }
+            //             ,
+            //          }
+            //       }
+            //
+            //    }
+            //    ,
+            //    const State::Write => {
+            //       o.bitz.value = q.reg;
+            //       o.bitz.mask = bits(0xff);
+            //       o.control = Some(LineState :: Write);
+            //       state = State :: Idle;
+            //    }
+            //    ,
+            //    const State::ReadReq => {
+            //       o.control = Some(LineState :: Read);
+            //       state = State :: ReadRcv;
+            //    }
+            //    ,
+            //    const State::ReadRcv => {
+            //       d.reg = i.bitz.value;
+            //       state = State :: ValueEmit;
+            //    }
+            //    ,
+            //    const State::ValueEmit => {
+            //       state = State :: Idle;
+            //       o.data = Some(q.reg);
+            //    }
+            //    ,
+            // }
+            //
+            // if let Some(cmd, )#true = i.cmd{
+            //    match cmd {
+            //       Cmd::Write(data, )#false => {
+            //          state = State :: Write;
+            //          d.reg = data;
+            //       }
+            //       ,
+            //       const Cmd::Read => {
+            //          state = State :: ReadReq;
+            //       }
+            //       ,
+            //    }
+            // }
+            //
+            //
+            r5 = r6[25:16];
+            r7 = r5[9];
+            r8 = r5[8:0];
+            // match cmd {
+            //    Cmd::Write(data, )#false => {
+            //       state = State :: Write;
+            //       d.reg = data;
+            //    }
+            //    ,
+            //    const Cmd::Read => {
+            //       state = State :: ReadReq;
+            //    }
+            //    ,
+            // }
+            //
+            r10 = r8[8];
+            r11 = r8[7:0];
+            // state = State :: Write;
+            //
+            // d.reg = data;
+            //
+            r13 = r2; r13[10:3] = r11;
+            // state = State :: ReadReq;
+            //
+            case (r10)
+                1'b0: r14 = r13;
+                1'b1: r14 = r2;
+            endcase
+            case (r10)
+                1'b0: r15 = l3;
+                1'b1: r15 = l4;
+            endcase
+            case (r7)
+                1'b1: r16 = r14;
+                default: r16 = r2;
+            endcase
+            case (r7)
+                1'b1: r17 = r15;
+                default: r17 = r3;
+            endcase
+            // o.bitz.value = q.reg;
+            //
+            r18 = r1[10:3];
+            r19 = l6; r19[7:0] = r18;
+            // o.bitz.mask = bits(0xff);
+            //
+            r20 = r19; r20[15:8] = l7;
+            // o.control = Some(LineState :: Write);
+            //
+            r21 = r20; r21[17:16] = l8;
+            // state = State :: Idle;
+            //
+            // o.control = Some(LineState :: Read);
+            //
+            // state = State :: ReadRcv;
+            //
+            // d.reg = i.bitz.value;
+            //
+            r22 = r6[15:0];
+            r23 = r22[7:0];
+            r24 = r2; r24[10:3] = r23;
+            // state = State :: ValueEmit;
+            //
+            // state = State :: Idle;
+            //
+            // o.data = Some(q.reg);
+            //
+            r25 = r1[10:3];
+            r27 = r25[7:0];
+            r26 = { l9, r27 };
+            r28 = l6; r28[26:18] = r26;
+            case (r3)
+                3'b000: r29 = r16;
+                3'b001: r29 = r2;
+                3'b010: r29 = r2;
+                3'b011: r29 = r24;
+                3'b100: r29 = r2;
+            endcase
+            case (r3)
+                3'b000: r30 = l6;
+                3'b001: r30 = r21;
+                3'b010: r30 = l15;
+                3'b011: r30 = l6;
+                3'b100: r30 = r28;
+            endcase
+            case (r3)
+                3'b000: r31 = r17;
+                3'b001: r31 = l16;
+                3'b010: r31 = l17;
+                3'b011: r31 = l18;
+                3'b100: r31 = l19;
+            endcase
+            // o.bitz.mask |= i.bitz.mask;
+            //
+            r32 = r30[15:0];
+            r33 = r32[15:8];
+            r34 = r6[15:0];
+            r35 = r34[15:8];
+            r36 = r33 | r35;
+            r37 = r30; r37[15:8] = r36;
+            // o.bitz.value |= i.bitz.value & i.bitz.mask;
+            //
+            r38 = r37[15:0];
+            r39 = r38[7:0];
+            r40 = r6[15:0];
+            r41 = r40[7:0];
+            r42 = r6[15:0];
+            r43 = r42[15:8];
+            r44 = r41 & r43;
+            r45 = r39 | r44;
+            r46 = r37; r46[7:0] = r45;
+            // d.state = state;
+            //
+            r47 = r29; r47[2:0] = r31;
+            // (o, d, )
+            //
+            r48 = { r47, r46 };
+            kernel_trizsnd = r48;
+        end
+    endfunction
+endmodule
+//
+module tristate_sender_inner_inner_reg(input wire [1:0] clock_reset, input wire [7:0] i, output reg [7:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 8'b00000000;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 8'b00000000;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule
+//
+module tristate_sender_inner_inner_state(input wire [1:0] clock_reset, input wire [2:0] i, output reg [2:0] o);
+    wire [0:0] clock;
+    wire [0:0] reset;
+    initial begin
+        o = 3'b000;
+    end
+    assign clock = clock_reset[0];
+    assign reset = clock_reset[1];
+    always @(posedge clock) begin
+        if (reset)
+        begin
+            o <= 3'b000;
+        end else begin
+            o <= i;
+        end
+    end
+endmodule

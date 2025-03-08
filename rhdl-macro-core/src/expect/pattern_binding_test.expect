@@ -8,9 +8,9 @@
                 leading_colon: None,
                 segments: [
                     PathSegment {
-                        ident: Ident {
-                            sym: Foo,
-                        },
+                        ident: Ident(
+                            Foo,
+                        ),
                         arguments: PathArguments::AngleBracketed {
                             colon2_token: Some(
                                 PathSep,
@@ -24,9 +24,9 @@
                                             leading_colon: None,
                                             segments: [
                                                 PathSegment {
-                                                    ident: Ident {
-                                                        sym: T,
-                                                    },
+                                                    ident: Ident(
+                                                        T,
+                                                    ),
                                                     arguments: PathArguments::None,
                                                 },
                                             ],
@@ -44,9 +44,9 @@
                 FieldPat {
                     attrs: [],
                     member: Member::Named(
-                        Ident {
-                            sym: a,
-                        },
+                        Ident(
+                            a,
+                        ),
                     ),
                     colon_token: Some(
                         Colon,
@@ -62,9 +62,9 @@
                 FieldPat {
                     attrs: [],
                     member: Member::Named(
-                        Ident {
-                            sym: b,
-                        },
+                        Ident(
+                            b,
+                        ),
                     ),
                     colon_token: Some(
                         Colon,
@@ -100,9 +100,9 @@
                 leading_colon: None,
                 segments: [
                     PathSegment {
-                        ident: Ident {
-                            sym: Foo,
-                        },
+                        ident: Ident(
+                            Foo,
+                        ),
                         arguments: PathArguments::AngleBracketed {
                             colon2_token: Some(
                                 PathSep,
@@ -116,9 +116,9 @@
                                             leading_colon: None,
                                             segments: [
                                                 PathSegment {
-                                                    ident: Ident {
-                                                        sym: T,
-                                                    },
+                                                    ident: Ident(
+                                                        T,
+                                                    ),
                                                     arguments: PathArguments::None,
                                                 },
                                             ],
@@ -136,18 +136,18 @@
                 FieldPat {
                     attrs: [],
                     member: Member::Named(
-                        Ident {
-                            sym: a,
-                        },
+                        Ident(
+                            a,
+                        ),
                     ),
                     colon_token: None,
                     pat: Pat::Ident {
                         attrs: [],
                         by_ref: None,
                         mutability: None,
-                        ident: Ident {
-                            sym: a,
-                        },
+                        ident: Ident(
+                            a,
+                        ),
                         subpat: None,
                     },
                 },
@@ -155,18 +155,18 @@
                 FieldPat {
                     attrs: [],
                     member: Member::Named(
-                        Ident {
-                            sym: b,
-                        },
+                        Ident(
+                            b,
+                        ),
                     ),
                     colon_token: None,
                     pat: Pat::Ident {
                         attrs: [],
                         by_ref: None,
                         mutability: None,
-                        ident: Ident {
-                            sym: b,
-                        },
+                        ident: Ident(
+                            b,
+                        ),
                         subpat: None,
                     },
                 },
@@ -194,9 +194,9 @@
                 leading_colon: None,
                 segments: [
                     PathSegment {
-                        ident: Ident {
-                            sym: Foo,
-                        },
+                        ident: Ident(
+                            Foo,
+                        ),
                         arguments: PathArguments::None,
                     },
                 ],
@@ -207,9 +207,9 @@
                     attrs: [],
                     by_ref: None,
                     mutability: None,
-                    ident: Ident {
-                        sym: CACHE,
-                    },
+                    ident: Ident(
+                        CACHE,
+                    ),
                     subpat: None,
                 },
             ],
@@ -235,9 +235,9 @@
                 leading_colon: None,
                 segments: [
                     PathSegment {
-                        ident: Ident {
-                            sym: Foo,
-                        },
+                        ident: Ident(
+                            Foo,
+                        ),
                         arguments: PathArguments::None,
                     },
                 ],
@@ -247,9 +247,9 @@
                 FieldPat {
                     attrs: [],
                     member: Member::Named(
-                        Ident {
-                            sym: a,
-                        },
+                        Ident(
+                            a,
+                        ),
                     ),
                     colon_token: Some(
                         Colon,
@@ -258,9 +258,9 @@
                         attrs: [],
                         by_ref: None,
                         mutability: None,
-                        ident: Ident {
-                            sym: x,
-                        },
+                        ident: Ident(
+                            x,
+                        ),
                         subpat: None,
                     },
                 },
@@ -288,9 +288,9 @@
                 leading_colon: None,
                 segments: [
                     PathSegment {
-                        ident: Ident {
-                            sym: Bar,
-                        },
+                        ident: Ident(
+                            Bar,
+                        ),
                         arguments: PathArguments::None,
                     },
                 ],
@@ -301,9 +301,9 @@
                     attrs: [],
                     by_ref: None,
                     mutability: None,
-                    ident: Ident {
-                        sym: CACHE,
-                    },
+                    ident: Ident(
+                        CACHE,
+                    ),
                     subpat: None,
                 },
                 Comma,
@@ -311,9 +311,9 @@
                     attrs: [],
                     by_ref: None,
                     mutability: None,
-                    ident: Ident {
-                        sym: x,
-                    },
+                    ident: Ident(
+                        x,
+                    ),
                     subpat: None,
                 },
             ],

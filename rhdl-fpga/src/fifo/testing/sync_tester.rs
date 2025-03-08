@@ -37,7 +37,7 @@ pub fn fixture_kernel<N: BitWidth, Z: BitWidth>(
 
 #[cfg(test)]
 mod tests {
-    use expect_test::expect;
+    use expect_test::{expect, expect_file};
     use rhdl::core::trace::svg::SvgOptions;
 
     use super::*;
@@ -72,7 +72,8 @@ mod tests {
         let vcd = uut.run(input)?.collect::<Vcd>();
         let options = SvgOptions::default();
         let svg = vcd.dump_svg(&options);
-        svg::save("sync_fifo.svg", &svg).unwrap();
+        let expect = expect_file!["sync_fifo.svg.expect"];
+        expect.assert_eq(&svg.to_string());
         Ok(())
     }
 

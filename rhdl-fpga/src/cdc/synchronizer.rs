@@ -204,9 +204,16 @@ mod tests {
         let uut = U::<Red, Blue>::default();
         let stream = sync_stream();
         let test_bench = uut.run(stream)?.collect::<TestBench<_, _>>();
-        let test_mod =
-            test_bench.rtl(&uut, &TestBenchOptions::default().vcd("hdl.vcd").skip(!0))?;
-        std::fs::write("synchronizer.v", test_mod.to_string()).unwrap();
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("synchronizer");
+        std::fs::create_dir_all(&root).unwrap();
+        let test_mod = test_bench.rtl(
+            &uut,
+            &TestBenchOptions::default()
+                .vcd(&root.join("hdl.vcd").to_string_lossy())
+                .skip(!0),
+        )?;
         test_mod.run_iverilog()?;
         Ok(())
     }

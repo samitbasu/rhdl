@@ -164,10 +164,14 @@ mod tests {
         type UC = U<Red, Blue, 8>;
         let uut = UC::default();
         let input = sync_stream();
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("cross");
+        std::fs::create_dir_all(&root).unwrap();
         let outputs = uut
             .run(input)?
             .sample_at_pos_edge(|t| t.value.0.cr.val().clock)
-            .vcd_file(&PathBuf::from("rw_counter.vcd"))
+            .vcd_file(&root.join("rw_counter.vcd"))
             .map(|t| t.value.1.count.val())
             .collect::<Vec<_>>();
         outputs.windows(2).for_each(|w| {
@@ -182,17 +186,21 @@ mod tests {
         let uut = UC::default();
         let input = sync_stream();
         let test_bench = uut.run(input)?.collect::<TestBench<_, _>>();
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("cross");
+        std::fs::create_dir_all(&root).unwrap();
         let test_mod = test_bench.rtl(
             &uut,
             &TestBenchOptions::default()
-                .vcd("split_counter.vcd")
+                .vcd(&root.join("split_counter.vcd").to_string_lossy())
                 .skip(10),
         )?;
         test_mod.run_iverilog()?;
         let test_mod = test_bench.flow_graph(
             &uut,
             &TestBenchOptions::default()
-                .vcd("split_counter_fg.vcd")
+                .vcd(&root.join("split_counter_fg.vcd").to_string_lossy())
                 .skip(10),
         )?;
         test_mod.run_iverilog()?;

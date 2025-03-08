@@ -1,0 +1,1894 @@
+// Testbench for synchronous module
+    module testbench();
+        reg [1:0] clock_reset;
+        reg [0:0] i;
+        wire [6:0] o;
+        reg [6:0] rust_out;
+        uut t (.clock_reset(clock_reset),.i(i),.o(o));
+        initial begin
+            #0;
+            clock_reset = 2'b10;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 1 at time 0", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b11;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1100010;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 3 at time 51", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1100010;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 4 at time 100", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 6 at time 151", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 7 at time 200", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 9 at time 251", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 10 at time 300", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 12 at time 351", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 13 at time 400", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 15 at time 451", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 16 at time 500", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1100101;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1100101;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 18 at time 551", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1100101;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 19 at time 600", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 21 at time 651", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 22 at time 700", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 24 at time 751", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 25 at time 800", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 27 at time 851", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 28 at time 900", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 30 at time 951", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 31 at time 1000", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1100110;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1100110;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 33 at time 1051", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1100110;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 34 at time 1100", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1010010;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1010010;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 36 at time 1151", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1010010;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 37 at time 1200", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1001010;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1001010;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 39 at time 1251", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1001010;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 40 at time 1300", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1010001;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1010001;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 42 at time 1351", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1010001;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 43 at time 1400", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1111100;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1111100;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 45 at time 1451", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1111100;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 46 at time 1500", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 48 at time 1551", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 49 at time 1600", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 51 at time 1651", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 52 at time 1700", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 54 at time 1751", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 55 at time 1800", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 57 at time 1851", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 58 at time 1900", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1111100;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1111100;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 60 at time 1951", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1111100;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 61 at time 2000", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1000101;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1000101;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 63 at time 2051", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1000101;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 64 at time 2100", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 66 at time 2151", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 67 at time 2200", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 69 at time 2251", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 70 at time 2300", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 72 at time 2351", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 73 at time 2400", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 75 at time 2451", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 76 at time 2500", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1001101;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1001101;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 78 at time 2551", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1001101;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 79 at time 2600", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 81 at time 2651", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 82 at time 2700", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 84 at time 2751", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 85 at time 2800", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 87 at time 2851", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 88 at time 2900", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 90 at time 2951", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 91 at time 3000", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1110001;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1110001;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 93 at time 3051", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1110001;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 94 at time 3100", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1001011;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1001011;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 96 at time 3151", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1001011;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 97 at time 3200", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 99 at time 3251", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 100 at time 3300", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 102 at time 3351", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 103 at time 3400", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 105 at time 3451", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 106 at time 3500", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 108 at time 3551", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 109 at time 3600", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1000110;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1000110;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 111 at time 3651", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1000110;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 112 at time 3700", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 114 at time 3751", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 115 at time 3800", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 117 at time 3851", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 118 at time 3900", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 120 at time 3951", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 121 at time 4000", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 123 at time 4051", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 124 at time 4100", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1000001;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1000001;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 126 at time 4151", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1000001;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 127 at time 4200", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1111101;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1111101;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 129 at time 4251", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1111101;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 130 at time 4300", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 132 at time 4351", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 133 at time 4400", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1010001;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1010001;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 135 at time 4451", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1010001;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 136 at time 4500", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 138 at time 4551", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 139 at time 4600", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 141 at time 4651", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 142 at time 4700", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 144 at time 4751", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 145 at time 4800", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 147 at time 4851", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 148 at time 4900", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1111101;
+            #1;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b1111101;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 150 at time 4951", o, rust_out);
+                $finish;
+            end
+            #48;
+            clock_reset = 2'b00;
+            i = 1'b0;
+            rust_out = 7'b1111101;
+            #1;
+            if (o !== rust_out) begin
+                $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE Test 151 at time 5000", o, rust_out);
+                $finish;
+            end
+            #49;
+            clock_reset = 2'b01;
+            i = 1'b0;
+            rust_out = 7'b0000000;
+            $display("TESTBENCH OK", );
+            $finish;
+        end
+    endmodule
+    // synchronous circuit rhdl_fpga::fifo::testing::filler::U<rhdl::rhdl_typenum::consts::U6>
+    module uut(input wire [1:0] clock_reset, input wire [0:0] i, output wire [6:0] o);
+        wire [11:0] od;
+        wire [4:0] d;
+        wire [61:0] q;
+        assign o = od[6:0];
+        uut__marker_const_0_b6 c0 (.clock_reset(clock_reset),.o(q[5:0]));
+        uut_rng c1 (.clock_reset(clock_reset),.i(d[0]),.o(q[37:6]));
+        uut_sleep_counter c2 (.clock_reset(clock_reset),.i(d[4:1]),.o(q[41:38]));
+        uut_sleep_len_const_4_b4 c3 (.clock_reset(clock_reset),.o(q[45:42]));
+        uut_write_probability_const_8000_b16 c4 (.clock_reset(clock_reset),.o(q[61:46]));
+        assign od = kernel_filler_kernel(clock_reset, i, q);
+        assign d = od[11:7];
+        function [11:0] kernel_filler_kernel(input reg [1:0] arg_0, input reg [0:0] arg_1, input reg [61:0] arg_2);
+            reg [0:0] r4;
+            reg [3:0] r5;
+            reg [61:0] r6;
+            reg [4:0] r7;
+            reg [0:0] r8;
+            reg [3:0] r9;
+            reg [0:0] r10;
+            reg [0:0] r11;
+            reg [31:0] r12;
+            reg [5:0] r14;
+            reg [31:0] r15;
+            reg [0:0] r16;
+            reg [5:0] r17;
+            reg [31:0] r18;
+            reg [0:0] r19;
+            reg [5:0] r20;
+            reg [5:0] r21;
+            reg [31:0] r22;
+            reg [0:0] r23;
+            reg [5:0] r24;
+            reg [5:0] r25;
+            reg [31:0] r26;
+            reg [0:0] r27;
+            reg [5:0] r28;
+            reg [5:0] r29;
+            reg [31:0] r30;
+            reg [0:0] r31;
+            reg [5:0] r32;
+            reg [5:0] r33;
+            reg [31:0] r34;
+            reg [0:0] r35;
+            reg [5:0] r36;
+            reg [6:0] r38;
+            reg [5:0] r39;
+            reg [6:0] r40;
+            reg [4:0] r41;
+            reg [31:0] r42;
+            reg [15:0] r44;
+            reg [31:0] r45;
+            reg [0:0] r46;
+            reg [15:0] r47;
+            reg [31:0] r48;
+            reg [0:0] r49;
+            reg [15:0] r50;
+            reg [15:0] r51;
+            reg [31:0] r52;
+            reg [0:0] r53;
+            reg [15:0] r54;
+            reg [15:0] r55;
+            reg [31:0] r56;
+            reg [0:0] r57;
+            reg [15:0] r58;
+            reg [15:0] r59;
+            reg [31:0] r60;
+            reg [0:0] r61;
+            reg [15:0] r62;
+            reg [15:0] r63;
+            reg [31:0] r64;
+            reg [0:0] r65;
+            reg [15:0] r66;
+            reg [15:0] r67;
+            reg [31:0] r68;
+            reg [0:0] r69;
+            reg [15:0] r70;
+            reg [15:0] r71;
+            reg [31:0] r72;
+            reg [0:0] r73;
+            reg [15:0] r74;
+            reg [15:0] r75;
+            reg [31:0] r76;
+            reg [0:0] r77;
+            reg [15:0] r78;
+            reg [15:0] r79;
+            reg [31:0] r80;
+            reg [0:0] r81;
+            reg [15:0] r82;
+            reg [15:0] r83;
+            reg [31:0] r84;
+            reg [0:0] r85;
+            reg [15:0] r86;
+            reg [15:0] r87;
+            reg [31:0] r88;
+            reg [0:0] r89;
+            reg [15:0] r90;
+            reg [15:0] r91;
+            reg [31:0] r92;
+            reg [0:0] r93;
+            reg [15:0] r94;
+            reg [15:0] r95;
+            reg [31:0] r96;
+            reg [0:0] r97;
+            reg [15:0] r98;
+            reg [15:0] r99;
+            reg [31:0] r100;
+            reg [0:0] r101;
+            reg [15:0] r102;
+            reg [15:0] r103;
+            reg [31:0] r104;
+            reg [0:0] r105;
+            reg [15:0] r106;
+            reg [15:0] r108;
+            reg [0:0] r109;
+            reg [3:0] r110;
+            reg [3:0] r111;
+            reg [4:0] r112;
+            reg [4:0] r113;
+            reg [6:0] r114;
+            reg [3:0] r115;
+            reg [0:0] r116;
+            reg [3:0] r117;
+            reg [3:0] r118;
+            reg [4:0] r119;
+            reg [4:0] r120;
+            reg [0:0] r121;
+            reg [1:0] r122;
+            reg [0:0] r123;
+            reg [6:0] r126;
+            reg [6:0] r127;
+            reg [11:0] r128;
+            localparam l3 = 5'bxxxx0;
+            localparam l4 = 4'b0000;
+            localparam l5 = 32'b00000000000000000000000000000001;
+            localparam l7 = 6'b000001;
+            localparam l8 = 6'b000000;
+            localparam l9 = 32'b00000000000000000000000000000010;
+            localparam l11 = 6'b000010;
+            localparam l12 = 32'b00000000000000000000000000000100;
+            localparam l14 = 6'b000100;
+            localparam l15 = 32'b00000000000000000000000000001000;
+            localparam l17 = 6'b001000;
+            localparam l18 = 32'b00000000000000000000000000010000;
+            localparam l20 = 6'b010000;
+            localparam l21 = 32'b00000000000000000000000000100000;
+            localparam l23 = 6'b100000;
+            localparam l24 = 1'b1;
+            localparam l25 = 1'b1;
+            localparam l26 = 32'b00000000000000010000000000000000;
+            localparam l28 = 16'b0000000000000001;
+            localparam l29 = 16'b0000000000000000;
+            localparam l30 = 32'b00000000000000100000000000000000;
+            localparam l32 = 16'b0000000000000010;
+            localparam l33 = 32'b00000000000001000000000000000000;
+            localparam l35 = 16'b0000000000000100;
+            localparam l36 = 32'b00000000000010000000000000000000;
+            localparam l38 = 16'b0000000000001000;
+            localparam l39 = 32'b00000000000100000000000000000000;
+            localparam l41 = 16'b0000000000010000;
+            localparam l42 = 32'b00000000001000000000000000000000;
+            localparam l44 = 16'b0000000000100000;
+            localparam l45 = 32'b00000000010000000000000000000000;
+            localparam l47 = 16'b0000000001000000;
+            localparam l48 = 32'b00000000100000000000000000000000;
+            localparam l50 = 16'b0000000010000000;
+            localparam l51 = 32'b00000001000000000000000000000000;
+            localparam l53 = 16'b0000000100000000;
+            localparam l54 = 32'b00000010000000000000000000000000;
+            localparam l56 = 16'b0000001000000000;
+            localparam l57 = 32'b00000100000000000000000000000000;
+            localparam l59 = 16'b0000010000000000;
+            localparam l60 = 32'b00001000000000000000000000000000;
+            localparam l62 = 16'b0000100000000000;
+            localparam l63 = 32'b00010000000000000000000000000000;
+            localparam l65 = 16'b0001000000000000;
+            localparam l66 = 32'b00100000000000000000000000000000;
+            localparam l68 = 16'b0010000000000000;
+            localparam l69 = 32'b01000000000000000000000000000000;
+            localparam l71 = 16'b0100000000000000;
+            localparam l72 = 32'b10000000000000000000000000000000;
+            localparam l74 = 16'b1000000000000000;
+            localparam l75 = 4'b0000;
+            localparam l77 = 4'b0001;
+            localparam l83 = 7'b0000000;
+            localparam l84 = 7'b0000000;
+            begin
+                r122 = arg_0;
+                r4 = arg_1;
+                r6 = arg_2;
+                // let d = D::<N>::dont_care();
+                //
+                // let o = O::<N>::dont_care();
+                //
+                // d.rng = false;
+                //
+                // o.data = None();
+                //
+                // let is_full = i.full;
+                //
+                // d.sleep_counter = q.sleep_counter;
+                //
+                r5 = r6[41:38];
+                r7 = l3; r7[4:1] = r5;
+                // if !is_full && q.sleep_counter == 0 {
+                //    o.data = Some(lsbs(q.rng));
+                //    d.rng = true;
+                //    let p = msbs(q.rng);
+                //    d.sleep_counter = if p > q.write_probability {
+                //       q.sleep_len
+                //    }
+                //     else {
+                //       bits(0)
+                //    }
+                //    ;
+                // }
+                //
+                //
+                r8 = ~(r4);
+                r9 = r6[41:38];
+                r10 = r9 == l4;
+                r11 = r8 & r10;
+                // o.data = Some(lsbs(q.rng));
+                //
+                r12 = r6[37:6];
+                // let o = bits(0);
+                //
+                // for i in 0..N :: BITS {
+                //    if n & (1 << i) != 0 {
+                //       o |= 1 << i
+                //    }
+                //
+                // }
+                //
+                //
+                // if n & (1 << i) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r15 = r12 & l5;
+                r16 = |(r15);
+                // o |= 1 << i
+                //
+                r17 = (r16) ? (l7) : (l8);
+                // if n & (1 << i) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r18 = r12 & l9;
+                r19 = |(r18);
+                // o |= 1 << i
+                //
+                r20 = r17 | l11;
+                r21 = (r19) ? (r20) : (r17);
+                // if n & (1 << i) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r22 = r12 & l12;
+                r23 = |(r22);
+                // o |= 1 << i
+                //
+                r24 = r21 | l14;
+                r25 = (r23) ? (r24) : (r21);
+                // if n & (1 << i) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r26 = r12 & l15;
+                r27 = |(r26);
+                // o |= 1 << i
+                //
+                r28 = r25 | l17;
+                r29 = (r27) ? (r28) : (r25);
+                // if n & (1 << i) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r30 = r12 & l18;
+                r31 = |(r30);
+                // o |= 1 << i
+                //
+                r32 = r29 | l20;
+                r33 = (r31) ? (r32) : (r29);
+                // if n & (1 << i) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r34 = r12 & l21;
+                r35 = |(r34);
+                // o |= 1 << i
+                //
+                r36 = r33 | l23;
+                r14 = (r35) ? (r36) : (r33);
+                // o
+                //
+                r39 = r14[5:0];
+                r38 = { l24, r39 };
+                r40 = l84; r40[6:0] = r38;
+                // d.rng = true;
+                //
+                r41 = r7; r41[0:0] = l25;
+                // let p = msbs(q.rng);
+                //
+                r42 = r6[37:6];
+                // let o = bits(0);
+                //
+                // for i in 0..N :: BITS {
+                //    if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //       o |= 1 << i
+                //    }
+                //
+                // }
+                //
+                //
+                // if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r45 = r42 & l26;
+                r46 = |(r45);
+                // o |= 1 << i
+                //
+                r47 = (r46) ? (l28) : (l29);
+                // if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r48 = r42 & l30;
+                r49 = |(r48);
+                // o |= 1 << i
+                //
+                r50 = r47 | l32;
+                r51 = (r49) ? (r50) : (r47);
+                // if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r52 = r42 & l33;
+                r53 = |(r52);
+                // o |= 1 << i
+                //
+                r54 = r51 | l35;
+                r55 = (r53) ? (r54) : (r51);
+                // if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r56 = r42 & l36;
+                r57 = |(r56);
+                // o |= 1 << i
+                //
+                r58 = r55 | l38;
+                r59 = (r57) ? (r58) : (r55);
+                // if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r60 = r42 & l39;
+                r61 = |(r60);
+                // o |= 1 << i
+                //
+                r62 = r59 | l41;
+                r63 = (r61) ? (r62) : (r59);
+                // if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r64 = r42 & l42;
+                r65 = |(r64);
+                // o |= 1 << i
+                //
+                r66 = r63 | l44;
+                r67 = (r65) ? (r66) : (r63);
+                // if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r68 = r42 & l45;
+                r69 = |(r68);
+                // o |= 1 << i
+                //
+                r70 = r67 | l47;
+                r71 = (r69) ? (r70) : (r67);
+                // if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r72 = r42 & l48;
+                r73 = |(r72);
+                // o |= 1 << i
+                //
+                r74 = r71 | l50;
+                r75 = (r73) ? (r74) : (r71);
+                // if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r76 = r42 & l51;
+                r77 = |(r76);
+                // o |= 1 << i
+                //
+                r78 = r75 | l53;
+                r79 = (r77) ? (r78) : (r75);
+                // if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r80 = r42 & l54;
+                r81 = |(r80);
+                // o |= 1 << i
+                //
+                r82 = r79 | l56;
+                r83 = (r81) ? (r82) : (r79);
+                // if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r84 = r42 & l57;
+                r85 = |(r84);
+                // o |= 1 << i
+                //
+                r86 = r83 | l59;
+                r87 = (r85) ? (r86) : (r83);
+                // if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r88 = r42 & l60;
+                r89 = |(r88);
+                // o |= 1 << i
+                //
+                r90 = r87 | l62;
+                r91 = (r89) ? (r90) : (r87);
+                // if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r92 = r42 & l63;
+                r93 = |(r92);
+                // o |= 1 << i
+                //
+                r94 = r91 | l65;
+                r95 = (r93) ? (r94) : (r91);
+                // if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r96 = r42 & l66;
+                r97 = |(r96);
+                // o |= 1 << i
+                //
+                r98 = r95 | l68;
+                r99 = (r97) ? (r98) : (r95);
+                // if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r100 = r42 & l69;
+                r101 = |(r100);
+                // o |= 1 << i
+                //
+                r102 = r99 | l71;
+                r103 = (r101) ? (r102) : (r99);
+                // if n & (1 << (M :: BITS - N :: BITS + i)) != 0 {
+                //    o |= 1 << i
+                // }
+                //
+                //
+                r104 = r42 & l72;
+                r105 = |(r104);
+                // o |= 1 << i
+                //
+                r106 = r103 | l74;
+                r44 = (r105) ? (r106) : (r103);
+                // o
+                //
+                // d.sleep_counter = if p > q.write_probability {
+                //    q.sleep_len
+                // }
+                //  else {
+                //    bits(0)
+                // }
+                // ;
+                //
+                r108 = r6[61:46];
+                r109 = r44 > r108;
+                // q.sleep_len
+                //
+                r110 = r6[45:42];
+                // bits(0)
+                //
+                r111 = (r109) ? (r110) : (l75);
+                r112 = r41; r112[4:1] = r111;
+                r113 = (r11) ? (r112) : (r7);
+                r114 = (r11) ? (r40) : (l84);
+                // if q.sleep_counter != 0 {
+                //    d.sleep_counter = q.sleep_counter - 1;
+                // }
+                //
+                //
+                r115 = r6[41:38];
+                r116 = |(r115);
+                // d.sleep_counter = q.sleep_counter - 1;
+                //
+                r117 = r6[41:38];
+                r118 = r117 - l77;
+                r119 = r113; r119[4:1] = r118;
+                r120 = (r116) ? (r119) : (r113);
+                // if cr.reset.any() {
+                //    o.data = None();
+                // }
+                //
+                //
+                r121 = r122[1];
+                r123 = |(r121);
+                // o.data = None();
+                //
+                r126 = r114; r126[6:0] = l83;
+                r127 = (r123) ? (r126) : (r114);
+                // (o, d, )
+                //
+                r128 = { r120, r127 };
+                kernel_filler_kernel = r128;
+            end
+        endfunction
+    endmodule
+    //
+    module uut__marker_const_0_b6(input wire [1:0] clock_reset, output wire [5:0] o);
+        assign o = 6'b000000;
+    endmodule
+    // synchronous circuit rhdl_fpga::rng::xorshift::U
+    module uut_rng(input wire [1:0] clock_reset, input wire [0:0] i, output wire [31:0] o);
+        wire [159:0] od;
+        wire [127:0] d;
+        wire [127:0] q;
+        assign o = od[31:0];
+        uut_rng_w c0 (.clock_reset(clock_reset),.i(d[127:96]),.o(q[127:96]));
+        uut_rng_x c1 (.clock_reset(clock_reset),.i(d[31:0]),.o(q[31:0]));
+        uut_rng_y c2 (.clock_reset(clock_reset),.i(d[63:32]),.o(q[63:32]));
+        uut_rng_z c3 (.clock_reset(clock_reset),.i(d[95:64]),.o(q[95:64]));
+        assign od = kernel_lfsr_kernel(clock_reset, i, q);
+        assign d = od[159:32];
+        function [159:0] kernel_lfsr_kernel(input reg [1:0] arg_0, input reg [0:0] arg_1, input reg [127:0] arg_2);
+            reg [31:0] r0;
+            reg [127:0] r1;
+            reg [127:0] r2;
+            reg [31:0] r3;
+            reg [127:0] r4;
+            reg [31:0] r5;
+            reg [127:0] r6;
+            reg [31:0] r7;
+            reg [127:0] r8;
+            reg [31:0] r9;
+            reg [31:0] r10;
+            reg [31:0] r11;
+            reg [31:0] r12;
+            reg [31:0] r13;
+            reg [127:0] r14;
+            reg [31:0] r15;
+            reg [127:0] r16;
+            reg [31:0] r17;
+            reg [127:0] r18;
+            reg [31:0] r19;
+            reg [31:0] r20;
+            reg [31:0] r21;
+            reg [31:0] r22;
+            reg [31:0] r23;
+            reg [31:0] r24;
+            reg [31:0] r25;
+            reg [127:0] r26;
+            reg [127:0] r27;
+            reg [0:0] r28;
+            reg [159:0] r29;
+            reg [1:0] r30;
+            reg [20:0] r31;
+            reg [50:0] r32;
+            reg [39:0] r33;
+            localparam l0 = 128'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+            localparam l4 = 11'b00000000000;
+            begin
+                r30 = arg_0;
+                r28 = arg_1;
+                r1 = arg_2;
+                // let d = D::dont_care();
+                //
+                // d.x = q.x;
+                //
+                r0 = r1[31:0];
+                r2 = l0; r2[31:0] = r0;
+                // d.y = q.y;
+                //
+                r3 = r1[63:32];
+                r4 = r2; r4[63:32] = r3;
+                // d.z = q.z;
+                //
+                r5 = r1[95:64];
+                r6 = r4; r6[95:64] = r5;
+                // d.w = q.w;
+                //
+                r7 = r1[127:96];
+                r8 = r6; r8[127:96] = r7;
+                // let o = q.x ^ (q.x << 11);
+                //
+                r9 = r1[31:0];
+                r10 = r1[31:0];
+                r31 = r10[20:0];
+                r11 = { r31, l4 };
+                r12 = r9 ^ r11;
+                // if strobe {
+                //    d.x = q.y;
+                //    d.y = q.z;
+                //    d.z = q.w;
+                //    d.w = q.w ^ (q.w >> 19) ^ o ^ (o >> 8);
+                // }
+                //
+                //
+                // d.x = q.y;
+                //
+                r13 = r1[63:32];
+                r14 = r8; r14[31:0] = r13;
+                // d.y = q.z;
+                //
+                r15 = r1[95:64];
+                r16 = r14; r16[63:32] = r15;
+                // d.z = q.w;
+                //
+                r17 = r1[127:96];
+                r18 = r16; r18[95:64] = r17;
+                // d.w = q.w ^ (q.w >> 19) ^ o ^ (o >> 8);
+                //
+                r19 = r1[127:96];
+                r20 = r1[127:96];
+                r32 = { {19{1'b0}}, r20 };
+                r21 = r32[50:19];
+                r22 = r19 ^ r21;
+                r23 = r22 ^ r12;
+                r33 = { {8{1'b0}}, r12 };
+                r24 = r33[39:8];
+                r25 = r23 ^ r24;
+                r26 = r18; r26[127:96] = r25;
+                r27 = (r28) ? (r26) : (r8);
+                // (o, d, )
+                //
+                r29 = { r27, r12 };
+                kernel_lfsr_kernel = r29;
+            end
+        endfunction
+    endmodule
+    //
+    module uut_rng_w(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
+        wire [0:0] clock;
+        wire [0:0] reset;
+        initial begin
+            o = 32'b10000100001100100011001101010010;
+        end
+        assign clock = clock_reset[0];
+        assign reset = clock_reset[1];
+        always @(posedge clock) begin
+            if (reset)
+            begin
+                o <= 32'b10000100001100100011001101010010;
+            end else begin
+                o <= i;
+            end
+        end
+    endmodule
+    //
+    module uut_rng_x(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
+        wire [0:0] clock;
+        wire [0:0] reset;
+        initial begin
+            o = 32'b01100010010110010010110001100010;
+        end
+        assign clock = clock_reset[0];
+        assign reset = clock_reset[1];
+        always @(posedge clock) begin
+            if (reset)
+            begin
+                o <= 32'b01100010010110010010110001100010;
+            end else begin
+                o <= i;
+            end
+        end
+    endmodule
+    //
+    module uut_rng_y(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
+        wire [0:0] clock;
+        wire [0:0] reset;
+        initial begin
+            o = 32'b01000010001110110110001000100101;
+        end
+        assign clock = clock_reset[0];
+        assign reset = clock_reset[1];
+        always @(posedge clock) begin
+            if (reset)
+            begin
+                o <= 32'b01000010001110110110001000100101;
+            end else begin
+                o <= i;
+            end
+        end
+    endmodule
+    //
+    module uut_rng_z(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
+        wire [0:0] clock;
+        wire [0:0] reset;
+        initial begin
+            o = 32'b00111010011000010011100101100110;
+        end
+        assign clock = clock_reset[0];
+        assign reset = clock_reset[1];
+        always @(posedge clock) begin
+            if (reset)
+            begin
+                o <= 32'b00111010011000010011100101100110;
+            end else begin
+                o <= i;
+            end
+        end
+    endmodule
+    //
+    module uut_sleep_counter(input wire [1:0] clock_reset, input wire [3:0] i, output reg [3:0] o);
+        wire [0:0] clock;
+        wire [0:0] reset;
+        initial begin
+            o = 4'b0000;
+        end
+        assign clock = clock_reset[0];
+        assign reset = clock_reset[1];
+        always @(posedge clock) begin
+            if (reset)
+            begin
+                o <= 4'b0000;
+            end else begin
+                o <= i;
+            end
+        end
+    endmodule
+    //
+    module uut_sleep_len_const_4_b4(input wire [1:0] clock_reset, output wire [3:0] o);
+        assign o = 4'b0100;
+    endmodule
+    //
+    module uut_write_probability_const_8000_b16(input wire [1:0] clock_reset, output wire [15:0] o);
+        assign o = 16'b1000000000000000;
+    endmodule

@@ -173,7 +173,15 @@ mod tests {
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;
-        let tm = test_bench.flow_graph(&uut, &TestBenchOptions::default().vcd("rbank.vcd"))?;
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("vcd")
+            .join("axi4lite")
+            .join("bank");
+        std::fs::create_dir_all(&root).unwrap();
+        let tm = test_bench.flow_graph(
+            &uut,
+            &TestBenchOptions::default().vcd(&root.join("rbank.vcd").to_string_lossy()),
+        )?;
         tm.run_iverilog()?;
         Ok(())
     }
