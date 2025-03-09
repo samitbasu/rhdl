@@ -9,4 +9,6 @@ pub enum BspError {
     RHDLError(#[from] RHDLError),
     #[error("Templating Error {0}")]
     TemplateError(#[from] tinytemplate::error::Error),
+    #[error("Mismatch in signal width: expected {expected} bits, but input is {actual} bits wide")]
+    SignalWidthMismatch { expected: i32, actual: usize },
 }

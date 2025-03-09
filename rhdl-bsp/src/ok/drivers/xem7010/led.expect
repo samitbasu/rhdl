@@ -1,0 +1,11 @@
+Driver {
+    ports: [
+        Port {
+            name: "led",
+            direction: Output,
+            width: 8,
+        },
+    ],
+    hdl: "\nassign _drive_led = inner_output[7:0];\nassign led[0] = (_drive_led[0] == 1'b1) ? (1'b0) : (1'bz);\nassign led[1] = (_drive_led[1] == 1'b1) ? (1'b0) : (1'bz);\nassign led[2] = (_drive_led[2] == 1'b1) ? (1'b0) : (1'bz);\nassign led[3] = (_drive_led[3] == 1'b1) ? (1'b0) : (1'bz);\nassign led[4] = (_drive_led[4] == 1'b1) ? (1'b0) : (1'bz);\nassign led[5] = (_drive_led[5] == 1'b1) ? (1'b0) : (1'bz);\nassign led[6] = (_drive_led[6] == 1'b1) ? (1'b0) : (1'bz);\nassign led[7] = (_drive_led[7] == 1'b1) ? (1'b0) : (1'bz);\n\n",
+    constraints: "\nset_property IOSTANDARD LVCMOS33 [get_ports led[0]]\nset_property PACKAGE_PIN N13 [get_ports led[0]]\nset_property IOSTANDARD LVCMOS33 [get_ports led[1]]\nset_property PACKAGE_PIN N14 [get_ports led[1]]\nset_property IOSTANDARD LVCMOS33 [get_ports led[2]]\nset_property PACKAGE_PIN P15 [get_ports led[2]]\nset_property IOSTANDARD LVCMOS33 [get_ports led[3]]\nset_property PACKAGE_PIN P16 [get_ports led[3]]\nset_property IOSTANDARD LVCMOS33 [get_ports led[4]]\nset_property PACKAGE_PIN N17 [get_ports led[4]]\nset_property IOSTANDARD LVCMOS33 [get_ports led[5]]\nset_property PACKAGE_PIN P17 [get_ports led[5]]\nset_property IOSTANDARD LVCMOS33 [get_ports led[6]]\nset_property PACKAGE_PIN R16 [get_ports led[6]]\nset_property IOSTANDARD LVCMOS33 [get_ports led[7]]\nset_property PACKAGE_PIN R17 [get_ports led[7]]\n\n",
+}

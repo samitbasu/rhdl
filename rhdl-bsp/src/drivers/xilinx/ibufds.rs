@@ -2,10 +2,9 @@
 
 use rhdl::prelude::*;
 use serde::Serialize;
-use tinytemplate::TinyTemplate;
 
 use crate::{
-    constraints::{Constraint, Location, MountPoint, SignalType},
+    constraints::{Location, MountPoint, SignalType},
     drivers::{port, Direction, Driver},
     error::BspError,
     utils::tt_render,
@@ -40,6 +39,7 @@ IBUFDS #(
 "#;
 
 static XDC: &str = r#"
+# IBUFDS {name} ##########################################################
 set_property IOSTANDARD {options.io_standard} [get_ports \{ {name}_p }]
 set_property PACKAGE_PIN {options.pos_pin} [get_ports \{ {name}_p }]
 set_property IOSTANDARD {options.io_standard} [get_ports \{ {name}_n }]
@@ -69,7 +69,7 @@ pub fn build<T: CircuitIO>(name: &str, path: &Path, options: &Options) -> Result
 mod tests {
     use expect_test::expect;
 
-    use crate::{constraints::BGARow, utils::tt_render};
+    use crate::{bga_pin, utils::tt_render};
 
     use super::*;
 
@@ -82,14 +82,8 @@ mod tests {
                 diff_term: false,
                 ibuf_low_pwr: true,
                 io_standard: Some(SignalType::LowVoltageDifferentialSignal_2v5),
-                pos_pin: Location::BGABall {
-                    row: BGARow::K,
-                    col: 4,
-                },
-                neg_pin: Location::BGABall {
-                    row: BGARow::J,
-                    col: 4,
-                },
+                pos_pin: bga_pin!(K, 4),
+                neg_pin: bga_pin!(J, 4),
             },
         };
         let res = serde_json::to_string_pretty(&context).unwrap();
@@ -123,6 +117,7 @@ mod tests {
         let tt = tt_render(XDC, &context).unwrap();
         let expect = expect![[r#"
 
+            # IBUFDS sysclk ##########################################################
             set_property IOSTANDARD LVDS_25 [get_ports { sysclk_p }]
             set_property PACKAGE_PIN K4 [get_ports { sysclk_p }]
             set_property IOSTANDARD LVDS_25 [get_ports { sysclk_n }]

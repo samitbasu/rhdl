@@ -1,3 +1,4 @@
+use crate::bga_pin;
 use crate::constraints::{BGARow, Location, SignalType};
 use crate::drivers::xilinx::ibufds;
 use crate::{drivers::Driver, error::BspError};
@@ -11,32 +12,28 @@ pub fn sys_clock<T: CircuitIO>(path: &Path) -> Result<Driver, BspError> {
     if target_trace != TraceType::Clock {
         return Err(BspError::NotAClockInput(path.clone()));
     }
-    let (bits, sub) = bit_range(<T::I as Timed>::static_kind(), &path)?;
+    let (bits, sub) = bit_range(<T::I as Timed>::static_kind(), path)?;
     if bits.len() != 1 || sub.is_signal() {
         return Err(BspError::NotAClockInput(path.clone()));
     }
-    ibufds::build::<T>(
+    let mut driver = ibufds::build::<T>(
         "sysclk",
         path,
         &ibufds::Options {
             diff_term: false,
             ibuf_low_pwr: true,
             io_standard: Some(SignalType::LowVoltageDifferentialSignal_2v5),
-            pos_pin: Location::BGABall {
-                row: BGARow::K,
-                col: 4,
-            },
-            neg_pin: Location::BGABall {
-                row: BGARow::J,
-                col: 4,
-            },
+            pos_pin: bga_pin!(K, 4),
+            neg_pin: bga_pin!(J, 4),
         },
-    )
+    )?;
+    driver.constraints += "create_clock -period 5 [get_ports sys_clk_p]\n";
+    Ok(driver)
 }
 
 #[cfg(test)]
 mod tests {
-    use expect_test::expect;
+    use expect_test::expect_file;
     use rhdl::prelude::*;
 
     #[test]
@@ -62,24 +59,7 @@ mod tests {
         }
 
         let clock_driver = super::sys_clock::<T>(&path!(.clock.val())).unwrap();
-        let expect = expect![[r#"
-            Driver {
-                ports: [
-                    Port {
-                        name: "sysclk_p",
-                        direction: Input,
-                        width: 1,
-                    },
-                    Port {
-                        name: "sysclk_n",
-                        direction: Input,
-                        width: 1,
-                    },
-                ],
-                hdl: "\nIBUFDS #(\n   .DIFF_TERM(\"false\"),       // Differential Termination\n   .IBUF_LOW_PWR(\"true\"),     // Low power=\"TRUE\", Highest performance=\"FALSE\"\n   .IOSTANDARD(\"LVDS_25\")     // Specify the input I/O standard\n) ibufds_sysclk (\n   .O(inner_input[0]),  // Buffer output\n   .I(sysclk_p),  // Diff_p buffer input (connect directly to top-level port)\n   .IB(sysclk_n) // Diff_n buffer input (connect directly to top-level port)\n);\n",
-                constraints: "\nset_property IOSTANDARD LVDS_25 [get_ports { sysclk_p }]\nset_property PACKAGE_PIN K4 [get_ports { sysclk_p }]\nset_property IOSTANDARD LVDS_25 [get_ports { sysclk_n }]\nset_property PACKAGE_PIN J4 [get_ports { sysclk_n }]\n",
-            }
-        "#]];
+        let expect = expect_file!["sys_clock.expect"];
         expect.assert_debug_eq(&clock_driver);
     }
 }

@@ -1,0 +1,1 @@
+rhdl :: rhdl_core :: types :: path :: Path :: default () . index (3 as usize) . field (stringify ! (foo)) . signal_value () . tuple_index (4 as usize) . field (stringify ! (val))
