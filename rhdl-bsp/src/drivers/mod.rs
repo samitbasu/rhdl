@@ -1,5 +1,3 @@
-use crate::constraints::Constraint;
-
 pub mod lattice;
 pub mod xilinx;
 

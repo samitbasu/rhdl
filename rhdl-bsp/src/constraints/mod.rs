@@ -163,3 +163,13 @@ impl Serialize for MountPoint {
         }
     }
 }
+
+#[macro_export]
+macro_rules! bga_pin {
+    ($row:ident, $col:expr) => {
+        $crate::constraints::Location::BGABall {
+            row: $crate::constraints::BGARow::$row,
+            col: $col,
+        }
+    };
+}
