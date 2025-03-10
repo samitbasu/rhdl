@@ -45,12 +45,12 @@ pub fn build<T: CircuitIO>(
     name: &str,
     path: &Path,
     options: &Options,
-) -> Result<Driver, RHDLError> {
+) -> Result<Driver<T>, RHDLError> {
     let mut driver = Driver::default();
     // We have two ports
     driver.input_port(&format!("{name}_p"), 1);
     driver.input_port(&format!("{name}_n"), 1);
-    let output = driver.read_from_inner_output::<T>(path)?;
+    let output = driver.write_to_inner_input(path)?;
     let context = Context {
         name: name.into(),
         options: options.clone(),

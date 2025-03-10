@@ -6,7 +6,7 @@ use rhdl::{prelude::*, rtt::TraceType};
 
 // Create a driver that provides the sys clock (200 MHz)
 // You must connect it to an input that expects a Signal<Clock, D> input
-pub fn sys_clock<T: CircuitIO>(path: &Path) -> Result<Driver, BspError> {
+pub fn sys_clock<T: CircuitIO>(path: &Path) -> Result<Driver<T>, BspError> {
     let trace_type = <T::I as Digital>::static_trace_type();
     let target_trace = sub_trace_type(trace_type, path)?;
     if target_trace != TraceType::Clock {
