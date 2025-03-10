@@ -1,7 +1,7 @@
 use crate::bga_pin;
-use crate::constraints::{BGARow, Location, SignalType};
+use crate::constraints::IOStandard;
 use crate::drivers::xilinx::ibufds;
-use crate::{drivers::Driver, error::BspError};
+use crate::error::BspError;
 use rhdl::{prelude::*, rtt::TraceType};
 
 // Create a driver that provides the sys clock (200 MHz)
@@ -22,7 +22,7 @@ pub fn sys_clock<T: CircuitIO>(path: &Path) -> Result<Driver, BspError> {
         &ibufds::Options {
             diff_term: false,
             ibuf_low_pwr: true,
-            io_standard: Some(SignalType::LowVoltageDifferentialSignal_2v5),
+            io_standard: Some(IOStandard::LowVoltageDifferentialSignal_2v5),
             pos_pin: bga_pin!(K, 4),
             neg_pin: bga_pin!(J, 4),
         },

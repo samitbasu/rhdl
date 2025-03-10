@@ -1,16 +1,14 @@
 use rhdl::prelude::*;
 use serde::Serialize;
 
-use crate::drivers::{port, Direction, Driver};
-use crate::utils::tt_render;
 use crate::{
-    constraints::{Location, MountPoint, SignalType},
+    constraints::{IOStandard, Location},
     error::BspError,
 };
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Options {
-    pub io_standard: SignalType,
+    pub io_standard: IOStandard,
     pub pins: Vec<Location>,
 }
 
@@ -37,17 +35,17 @@ set_property PACKAGE_PIN {pin} [get_ports {name}[{@index}]]
 
 pub fn build<T: CircuitIO>(name: &str, path: &Path, options: &Options) -> Result<Driver, BspError> {
     let (bits, _) = bit_range(<T::O as Timed>::static_kind(), path)?;
-    let ports = vec![port(name, Direction::Output, bits.len())];
+    let mut driver = Driver::default();
+    driver.output_port(name, bits.len());
+    let output = driver.read_from_inner_output::<T>(path)?;
     let context = Context {
         name: name.into(),
         options: options.clone(),
-        output: MountPoint::Output(bits),
+        output,
     };
-    Ok(Driver {
-        ports,
-        hdl: tt_render(HDL, &context)?,
-        constraints: tt_render(XDC, &context)?,
-    })
+    driver.render_hdl(HDL, &context)?;
+    driver.render_constraints(XDC, &context)?;
+    Ok(driver)
 }
 
 #[cfg(test)]
@@ -59,7 +57,7 @@ mod tests {
     #[test]
     fn test_open_collector() {
         let options = Options {
-            io_standard: SignalType::LowVoltageCMOS_3v3,
+            io_standard: IOStandard::LowVoltageCMOS_3v3,
             pins: vec![bga_pin!(A, 1), bga_pin!(B, 3)],
         };
 

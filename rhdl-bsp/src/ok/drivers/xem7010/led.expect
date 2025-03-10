@@ -1,6 +1,11 @@
 Driver {
+    mounts: [
+        Output(
+            0..8,
+        ),
+    ],
     ports: [
-        Port {
+        DriverPort {
             name: "led",
             direction: Output,
             width: 8,

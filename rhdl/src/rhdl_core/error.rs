@@ -69,8 +69,8 @@ pub enum RHDLError {
     NoOutputsError,
     #[error("syn parsing error: {0}")]
     SynError(#[from] syn::Error),
-    #[error("Inputs are not covered in exported core:\n{0}")]
-    InputsNotCovered(String),
+    #[error("Top module export error: {0}")]
+    ExportError(#[from] crate::rhdl_core::circuit::fixture::ExportError),
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

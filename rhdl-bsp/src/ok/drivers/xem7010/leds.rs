@@ -1,7 +1,6 @@
 use crate::bga_pin;
 use crate::drivers::xilinx::open_collector::Options;
-use crate::drivers::{port, Direction};
-use crate::{drivers::Driver, error::BspError};
+use crate::error::BspError;
 use rhdl::prelude::*;
 
 // Create a driver for the LEDs.  These are open-collector type outputs.
@@ -14,7 +13,7 @@ pub fn leds<T: CircuitIO>(path: &Path) -> Result<Driver, BspError> {
         });
     }
     let options = Options {
-        io_standard: crate::constraints::SignalType::LowVoltageCMOS_3v3,
+        io_standard: crate::constraints::IOStandard::LowVoltageCMOS_3v3,
         pins: vec![
             bga_pin!(N, 13),
             bga_pin!(N, 14),

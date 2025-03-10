@@ -93,7 +93,7 @@ pub enum SlewType {
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Debug, Serialize)]
-pub enum SignalType {
+pub enum IOStandard {
     #[serde(rename = "LVCMOS18")]
     LowVoltageCMOS_1v8,
     #[serde(rename = "LVCMOS33")]
@@ -114,54 +114,10 @@ pub enum SignalType {
 
 #[derive(Clone, Debug)]
 pub enum Constraint {
-    Signal(SignalType),
+    Signal(IOStandard),
     Slew(SlewType),
     Location(Location),
     Custom(String),
-}
-
-#[derive(Clone, Debug)]
-pub enum MountPoint {
-    Input(std::ops::Range<usize>),
-    Output(std::ops::Range<usize>),
-}
-
-impl Serialize for MountPoint {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match self {
-            MountPoint::Input(range) => {
-                if range.is_empty() {
-                    panic!("Invalid input for Mount Point");
-                }
-                if range.len() == 1 {
-                    serializer.serialize_str(&format!("inner_input[{}]", range.start))
-                } else {
-                    serializer.serialize_str(&format!(
-                        "inner_input[{}:{}]",
-                        range.end.saturating_sub(1),
-                        range.start
-                    ))
-                }
-            }
-            MountPoint::Output(range) => {
-                if range.is_empty() {
-                    panic!("Invalid output for Mount Point");
-                }
-                if range.len() == 1 {
-                    serializer.serialize_str(&format!("inner_output[{}]", range.start))
-                } else {
-                    serializer.serialize_str(&format!(
-                        "inner_output[{}:{}]",
-                        range.end.saturating_sub(1),
-                        range.start
-                    ))
-                }
-            }
-        }
-    }
 }
 
 #[macro_export]

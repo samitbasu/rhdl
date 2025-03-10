@@ -61,17 +61,14 @@ mod tests {
     fn test_export() -> miette::Result<()> {
         type U = Adapter<sender::U, Red>;
         let uut = U::default();
-        let i = <U as CircuitIO>::I::dont_care();
-        let o = <U as CircuitIO>::O::dont_care();
-        let binds = export![
-            input cr => i.clock_reset,
-            input bitz => i.input.val().bitz,
-            input cmd => i.input.val().cmd,
-            output bitz => o.val().bitz,
-            output control => o.val().control,
-            output data => o.val().data,
-        ];
-        let module = export_hdl_module(&uut, "tristate_sender", "TriState Sender Module", binds)?;
+        let mut top = Fixture::new("top", uut);
+        top.pass_through_input("cr", &path!(.clock_reset))?;
+        top.pass_through_input("bitz", &path!(.input.val().bitz))?;
+        top.pass_through_input("cmd", &path!(.input.val().cmd))?;
+        top.pass_through_output("bitz", &path!(.val().bitz))?;
+        top.pass_through_output("control", &path!(.val().control))?;
+        top.pass_through_output("data", &path!(.val().data))?;
+        let module = top.module()?;
         let expect = expect_file!["tristate.expect"];
         expect.assert_eq(&module.as_verilog());
         Ok(())

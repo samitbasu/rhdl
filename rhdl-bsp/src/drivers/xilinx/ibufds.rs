@@ -3,18 +3,13 @@
 use rhdl::prelude::*;
 use serde::Serialize;
 
-use crate::{
-    constraints::{Location, MountPoint, SignalType},
-    drivers::{port, Direction, Driver},
-    error::BspError,
-    utils::tt_render,
-};
+use crate::constraints::{IOStandard, Location};
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Options {
     pub diff_term: bool,
     pub ibuf_low_pwr: bool,
-    pub io_standard: Option<SignalType>,
+    pub io_standard: Option<IOStandard>,
     pub pos_pin: Location,
     pub neg_pin: Location,
 }
@@ -46,23 +41,24 @@ set_property IOSTANDARD {options.io_standard} [get_ports \{ {name}_n }]
 set_property PACKAGE_PIN {options.neg_pin} [get_ports \{ {name}_n }]
 "#;
 
-pub fn build<T: CircuitIO>(name: &str, path: &Path, options: &Options) -> Result<Driver, BspError> {
+pub fn build<T: CircuitIO>(
+    name: &str,
+    path: &Path,
+    options: &Options,
+) -> Result<Driver, RHDLError> {
+    let mut driver = Driver::default();
     // We have two ports
-    let ports = vec![
-        port(&format!("{name}_p"), Direction::Input, 1),
-        port(&format!("{name}_n"), Direction::Input, 1),
-    ];
-    let (bits, _) = bit_range(<T::I as Timed>::static_kind(), path)?;
+    driver.input_port(&format!("{name}_p"), 1);
+    driver.input_port(&format!("{name}_n"), 1);
+    let output = driver.read_from_inner_output::<T>(path)?;
     let context = Context {
         name: name.into(),
         options: options.clone(),
-        output: MountPoint::Input(bits),
+        output,
     };
-    Ok(Driver {
-        ports,
-        hdl: tt_render(HDL, &context)?,
-        constraints: tt_render(XDC, &context)?,
-    })
+    driver.render_hdl(HDL, &context)?;
+    driver.render_constraints(XDC, &context)?;
+    Ok(driver)
 }
 
 #[cfg(test)]
@@ -81,7 +77,7 @@ mod tests {
             options: Options {
                 diff_term: false,
                 ibuf_low_pwr: true,
-                io_standard: Some(SignalType::LowVoltageDifferentialSignal_2v5),
+                io_standard: Some(IOStandard::LowVoltageDifferentialSignal_2v5),
                 pos_pin: bga_pin!(K, 4),
                 neg_pin: bga_pin!(J, 4),
             },

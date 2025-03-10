@@ -59,7 +59,6 @@ mod tests {
     use crate::axi4lite::types::{ReadMOSI, WriteMOSI};
 
     use super::*;
-    use rhdl::core::hdl::export::export_hdl_module;
 
     fn axi_null_cmd() -> MOSI {
         MOSI {
@@ -167,33 +166,30 @@ mod tests {
     }
 
     #[test]
-    fn test_export_fn() -> miette::Result<()> {
+    fn test_export_fixture() -> miette::Result<()> {
         let uut = U::<Red, Blue>::default();
-        let i = I::<Red, Green>::dont_care();
-        let o = O::<Green>::dont_care();
-        let binds = export![
-            input aclk => i.clock,                              // Master AXI4-Lite clock
-            input aresetn => i.reset_n,                         // Master AXI4-Lite reset
-            input s_axi_awaddr => i.axi.val().write.awaddr,     // AXI4-Lite slave: Write address
-            input s_axi_awvalid => i.axi.val().write.awvalid,   // AXI4-Lite slave: Write address valid
-            output s_axi_awready => o.axi.val().write.awready,  // AXI4-Lite slave: Write address ready
-            input s_axi_wdata => i.axi.val().write.wdata,       // AXI4-Lite slave: Write data
-            input s_axi_wstrb => i.axi.val().write.wstrb,       // AXI4-Lite slave: Write strobe
-            input s_axi_wvalid => i.axi.val().write.wvalid,     // AXI4-Lite slave: Write data valid
-            output s_axi_wready => o.axi.val().write.wready,    // AXI4-Lite slave: Write data ready
-            output s_axi_bresp => o.axi.val().write.bresp,      // AXI4-Lite slave: Write response
-            output s_axi_bvalid => o.axi.val().write.bvalid,    // AXI4-Lite slave: Write response valid
-            input s_axi_bready => i.axi.val().write.bready,     // AXI4-Lite slave: Write response ready
-            input s_axi_araddr => i.axi.val().read.araddr,      // AXI4-Lite slave: Read address
-            input s_axi_arvalid => i.axi.val().read.arvalid,    // AXI4-Lite slave: Read address valid
-            output s_axi_arready => o.axi.val().read.arready,   // AXI4-Lite slave: Read address ready
-            output s_axi_rdata => o.axi.val().read.rdata,       // AXI4-Lite slave: Read data
-            output s_axi_rresp => o.axi.val().read.rresp,       // AXI4-Lite slave: Read data response
-            output s_axi_rvalid => o.axi.val().read.rvalid,     // AXI4-Lite slave: Read data valid
-            input s_axi_rready => i.axi.val().read.rready,       // AXI4-Lite slave: Read data ready
-            output data => o.read_data                          // Register read data
-        ];
-        let module = export_hdl_module(&uut, "axi_reg_module", "AXI4 Lite register", binds)?;
+        let mut top = Fixture::new("top", uut);
+        top.pass_through_input("aclk", &path!(.clock))?; // Master AXI4-Lite clock
+        top.pass_through_input("aresetn", &path!(.reset_n))?; // Master AXI4-Lite reset
+        top.pass_through_input("s_axi_awaddr", &path!(.axi.val().write.awaddr))?; // AXI4-Lite slave: Write address
+        top.pass_through_input("s_axi_awvalid", &path!(.axi.val().write.awvalid))?; // AXI4-Lite slave: Write address valid
+        top.pass_through_output("s_axi_awready", &path!(.axi.val().write.awready))?; // AXI4-Lite slave: Write address ready
+        top.pass_through_input("s_axi_wdata", &path!(.axi.val().write.wdata))?; // AXI4-Lite slave: Write data
+        top.pass_through_input("s_axi_wstrb", &path!(.axi.val().write.wstrb))?; // AXI4-Lite slave: Write strobe
+        top.pass_through_input("s_axi_wvalid", &path!(.axi.val().write.wvalid))?; // AXI4-Lite slave: Write data valid
+        top.pass_through_output("s_axi_wready", &path!(.axi.val().write.wready))?; // AXI4-Lite slave: Write data ready
+        top.pass_through_output("s_axi_bresp", &path!(.axi.val().write.bresp))?; // AXI4-Lite slave: Write response
+        top.pass_through_output("s_axi_bvalid", &path!(.axi.val().write.bvalid))?; // AXI4-Lite slave: Write response valid
+        top.pass_through_input("s_axi_bready", &path!(.axi.val().write.bready))?; // AXI4-Lite slave: Write response ready
+        top.pass_through_input("s_axi_araddr", &path!(.axi.val().read.araddr))?; // AXI4-Lite slave: Read address
+        top.pass_through_input("s_axi_arvalid", &path!(.axi.val().read.arvalid))?; // AXI4-Lite slave: Read address valid
+        top.pass_through_output("s_axi_arready", &path!(.axi.val().read.arready))?; // AXI4-Lite slave: Read address ready
+        top.pass_through_output("s_axi_rdata", &path!(.axi.val().read.rdata))?; // AXI4-Lite slave: Read data
+        top.pass_through_output("s_axi_rresp", &path!(.axi.val().read.rresp))?; // AXI4-Lite slave: Read data response
+        top.pass_through_output("s_axi_rvalid", &path!(.axi.val().read.rvalid))?; // AXI4-Lite slave: Read data valid
+        top.pass_through_input("s_axi_rready", &path!(.axi.val().read.rready))?; // AXI4-Lite slave: Read data ready
+        top.pass_through_output("data", &path!(.read_data))?; // Register read data))?;    Ok(())
+        let module = top.module()?;
         let expect = expect_file!["axi_reg_module.v.expect"];
         expect.assert_eq(&module.to_string());
         Ok(())
