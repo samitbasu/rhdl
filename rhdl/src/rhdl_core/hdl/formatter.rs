@@ -25,8 +25,12 @@ fn kind(ast: &HDLKind) -> &'static str {
 
 fn signed_width(ast: &SignedWidth) -> String {
     match ast {
-        SignedWidth::Unsigned(width) => format!("[{}:0]", width.saturating_sub(1)),
-        SignedWidth::Signed(width) => format!("signed [{}:0]", width.saturating_sub(1)),
+        SignedWidth::Unsigned(width) => {
+            format!("[{}:0]", width.saturating_sub(1))
+        }
+        SignedWidth::Signed(width) => {
+            format!("signed [{}:0]", width.saturating_sub(1))
+        }
     }
 }
 

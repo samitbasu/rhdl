@@ -1,5 +1,6 @@
 use log::debug;
 use miette::Diagnostic;
+use rhdl_trace_type::TraceType;
 use std::iter::once;
 use std::ops::Range;
 use thiserror::Error;
@@ -19,20 +20,34 @@ pub enum PathError {
     DynamicIndexOnNonArray { element: PathElement, kind: Kind },
     #[error("Signal value not valid for non-signal type {kind:?}")]
     SignalValueOnNonSignal { kind: Kind },
+    #[error("Signal value not valid for non-signal type {trace:?}")]
+    SignalValueOnNonSignalTrace { trace: TraceType },
     #[error("Tuple index {ndx} out of bounds for {kind:?}")]
     TupleIndexOutOfBounds { ndx: usize, kind: Kind },
+    #[error("Tuple index {ndx} out of bounds for {trace:?}")]
+    TupleIndexOutOfBoundsTrace { ndx: usize, trace: TraceType },
     #[error("Struct index {ndx} out of bounds for {kind:?}")]
     StructIndexOutOfBounds { ndx: usize, kind: Kind },
     #[error("Tuple indexing not allowed on this type {kind:?}")]
     TupleIndexingNotAllowed { kind: Kind },
+    #[error("Tuple indexing not allowed on this type {trace:?}")]
+    TupleIndexingNotAllowedTrace { trace: TraceType },
     #[error("Array index {ndx} out of bounds for {kind:?}")]
     ArrayIndexOutOfBounds { ndx: usize, kind: Kind },
+    #[error("Array index {ndx} out of bounds for {trace:?}")]
+    ArrayIndexOutOfBoundsTrace { ndx: usize, trace: TraceType },
     #[error("Indexing not allowed on this type {kind:?}")]
     IndexingNotAllowed { kind: Kind },
+    #[error("Array indexing not allowed on this type {trace:?}")]
+    IndexingNotAllowedTrace { trace: TraceType },
     #[error("Field {field} not found in {kind:?}")]
     FieldNotFound { field: String, kind: Kind },
+    #[error("Field {field} not found in {trace:?}")]
+    FieldNotFoundTrace { field: String, trace: TraceType },
     #[error("Field indexing not allowed on this type {kind:?}")]
     FieldIndexingNotAllowed { kind: Kind },
+    #[error("Field indexing not allowed on this type {trace:?}")]
+    FieldIndexingNotAllowedTrace { trace: TraceType },
     #[error("Enum variant {name} payload not found for {kind:?}")]
     EnumPayloadNotFound { name: String, kind: Kind },
     #[error("Enum payload not valid for non-enum type {kind:?}")]
@@ -43,6 +58,8 @@ pub enum PathError {
     EnumPayloadByValueNotValid { kind: Kind },
     #[error("Dynamic indices must be resolved {path:?} before calling bit_range")]
     DynamicIndicesNotResolved { path: Path },
+    #[error("Unsupported path type {path:?} for trace {trace:?}")]
+    UnsupportedPathTypeForTrace { path: Path, trace: TraceType },
 }
 
 type Result<T> = std::result::Result<T, RHDLError>;
@@ -330,6 +347,73 @@ pub fn sub_kind(kind: Kind, path: &Path) -> Result<Kind> {
     bit_range(kind, path).map(|(_, kind)| kind)
 }
 
+pub fn sub_trace_type(trace: TraceType, path: &Path) -> Result<TraceType> {
+    let mut trace = trace;
+    for p in &path.elements {
+        match p {
+            PathElement::SignalValue => {
+                if let TraceType::Signal(base, _) = trace {
+                    trace = *base;
+                } else {
+                    return Err(rhdl_error(PathError::SignalValueOnNonSignalTrace { trace }));
+                }
+            }
+            PathElement::TupleIndex(i) => match &trace {
+                TraceType::Tuple(tuple) => {
+                    if i >= &tuple.elements.len() {
+                        return Err(rhdl_error(PathError::TupleIndexOutOfBoundsTrace {
+                            ndx: *i,
+                            trace,
+                        }));
+                    }
+                    trace = tuple.elements[*i].clone();
+                }
+                _ => {
+                    return Err(rhdl_error(PathError::TupleIndexingNotAllowedTrace {
+                        trace,
+                    }))
+                }
+            },
+            PathElement::Index(i) => match &trace {
+                TraceType::Array(array) => {
+                    if i >= &array.size {
+                        return Err(rhdl_error(PathError::ArrayIndexOutOfBoundsTrace {
+                            ndx: *i,
+                            trace,
+                        }));
+                    }
+                    trace = *array.base.clone();
+                }
+                _ => return Err(rhdl_error(PathError::IndexingNotAllowedTrace { trace })),
+            },
+            PathElement::Field(field) => match &trace {
+                TraceType::Struct(strukt) => {
+                    if !strukt.fields.iter().any(|f| &f.name == field) {
+                        return Err(rhdl_error(PathError::FieldNotFoundTrace {
+                            field: field.clone(),
+                            trace,
+                        }));
+                    }
+                    let field = &strukt.fields.iter().find(|f| &f.name == field).unwrap().ty;
+                    trace = field.clone();
+                }
+                _ => {
+                    return Err(rhdl_error(PathError::FieldIndexingNotAllowedTrace {
+                        trace,
+                    }))
+                }
+            },
+            _ => {
+                return Err(rhdl_error(PathError::UnsupportedPathTypeForTrace {
+                    path: path.clone(),
+                    trace,
+                }))
+            }
+        }
+    }
+    Ok(trace)
+}
+
 // Given a Kind and a Vec<Path>, compute the bit offsets of
 // the endpoint of the path within the original data structure.
 pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
@@ -377,7 +461,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                     range = range.start + offset..range.start + offset + size;
                     kind = structure.fields[*i].kind;
                 }
-                _ => panic!("tuple index?"), //return Err(rhdl_error(PathError::TupleIndexingNotAllowed { kind })),
+                _ => return Err(rhdl_error(PathError::TupleIndexingNotAllowed { kind })),
             },
             PathElement::Index(i) => match &kind {
                 Kind::Array(array) => {

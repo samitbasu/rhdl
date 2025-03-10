@@ -412,11 +412,14 @@ where
     debug!("Generating Verilog to run external checks");
     let hdl = generate_verilog(&rtl)?;
     let tm = test_module(&uut, hdl, vals.clone());
+    debug!("{}", tm);
     tm.run_iverilog()?;
     let flow_graph = build_rtl_flow_graph(&rtl);
     let flow_graph = optimize_flow_graph(flow_graph)?;
     let desc = generate_hdl("dut", &flow_graph)?;
     let tm = test_module_for_flowgraph(uut, desc, vals);
+    debug!("Running flow graph test");
+    debug!("{}", tm);
     tm.run_iverilog()?;
     Ok(())
 }
