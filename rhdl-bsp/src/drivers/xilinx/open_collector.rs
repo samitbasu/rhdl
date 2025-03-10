@@ -33,11 +33,15 @@ set_property PACKAGE_PIN {pin} [get_ports {name}[{@index}]]
 {{ endfor}}
 "#;
 
-pub fn build<T: CircuitIO>(name: &str, path: &Path, options: &Options) -> Result<Driver, BspError> {
+pub fn build<T: CircuitIO>(
+    name: &str,
+    path: &Path,
+    options: &Options,
+) -> Result<Driver<T>, BspError> {
     let (bits, _) = bit_range(<T::O as Timed>::static_kind(), path)?;
     let mut driver = Driver::default();
     driver.output_port(name, bits.len());
-    let output = driver.read_from_inner_output::<T>(path)?;
+    let output = driver.read_from_inner_output(path)?;
     let context = Context {
         name: name.into(),
         options: options.clone(),

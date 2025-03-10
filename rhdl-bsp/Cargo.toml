@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+rhdl-fpga = { path = "../rhdl-fpga" }
 camino = "1.1.9"
 expect-test = "1.5.1"
 rhdl = { path = "../rhdl" }

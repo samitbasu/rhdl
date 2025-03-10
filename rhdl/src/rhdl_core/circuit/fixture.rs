@@ -1,9 +1,11 @@
 use super::{circuit_impl::Circuit, hdl_backend::maybe_decl_wire};
 use crate::{
-    prelude::{bit_range, CircuitIO, Direction, HDLKind, Kind, Module, Path, RHDLError, Timed},
+    prelude::{
+        bit_range, BitX, CircuitIO, Digital, Direction, HDLKind, Kind, Module, Path, RHDLError,
+        Timed,
+    },
     rhdl_core::{
-        hdl::ast::id,
-        hdl::ast::{component_instance, connection, Port, SignedWidth, Statement},
+        hdl::ast::{component_instance, connection, id, Port, SignedWidth, Statement},
         types::path::leaf_paths,
     },
 };
@@ -20,6 +22,8 @@ pub enum ExportError {
     InputsNotCovered(String),
     #[error("Templating Error {0}")]
     TemplateError(#[from] tinytemplate::error::Error),
+    #[error("Wrong constant type provided.  Expected {required:?}, and got {provided:?}")]
+    WrongConstantType { provided: Kind, required: Kind },
 }
 
 #[derive(Clone, Debug)]
@@ -111,12 +115,36 @@ impl DriverPort {
     }
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct Driver {
+#[derive(Clone)]
+pub struct Driver<T> {
+    marker: std::marker::PhantomData<T>,
     mounts: Vec<MountPoint>,
     pub ports: Vec<DriverPort>,
     pub hdl: String,
     pub constraints: String,
+}
+
+impl<T> std::fmt::Debug for Driver<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Driver")
+            .field("mounts", &self.mounts)
+            .field("ports", &self.ports)
+            .field("hdl", &self.hdl)
+            .field("constraints", &self.constraints)
+            .finish()
+    }
+}
+
+impl<T> Default for Driver<T> {
+    fn default() -> Self {
+        Self {
+            marker: std::marker::PhantomData,
+            mounts: Default::default(),
+            ports: Default::default(),
+            hdl: Default::default(),
+            constraints: Default::default(),
+        }
+    }
 }
 
 fn render(template: &'static str, context: impl Serialize) -> Result<String, RHDLError> {
@@ -127,7 +155,7 @@ fn render(template: &'static str, context: impl Serialize) -> Result<String, RHD
         .map_err(|err| RHDLError::ExportError(ExportError::TemplateError(err)))
 }
 
-impl Driver {
+impl<T: CircuitIO> Driver<T> {
     pub fn input_port(&mut self, name: &str, width: usize) {
         self.ports.push(DriverPort::input(name, width))
     }
@@ -137,19 +165,13 @@ impl Driver {
     pub fn inout_port(&mut self, name: &str, width: usize) {
         self.ports.push(DriverPort::inout(name, width))
     }
-    pub fn write_to_inner_input<T: CircuitIO>(
-        &mut self,
-        path: &Path,
-    ) -> Result<MountPoint, RHDLError> {
+    pub fn write_to_inner_input(&mut self, path: &Path) -> Result<MountPoint, RHDLError> {
         let (bits, _) = bit_range(<T::I as Timed>::static_kind(), path)?;
         let mount = MountPoint::Input(bits);
         self.mounts.push(mount.clone());
         Ok(mount)
     }
-    pub fn read_from_inner_output<T: CircuitIO>(
-        &mut self,
-        path: &Path,
-    ) -> Result<MountPoint, RHDLError> {
+    pub fn read_from_inner_output(&mut self, path: &Path) -> Result<MountPoint, RHDLError> {
         let (bits, _) = bit_range(<T::O as Timed>::static_kind(), path)?;
         let mount = MountPoint::Output(bits);
         self.mounts.push(mount.clone());
@@ -179,27 +201,63 @@ impl Driver {
     }
 }
 
-pub fn passthrough_output_driver<T: Circuit>(name: &str, path: &Path) -> Result<Driver, RHDLError> {
+pub fn passthrough_output_driver<T: Circuit>(
+    name: &str,
+    path: &Path,
+) -> Result<Driver<T>, RHDLError> {
     let (bits, _) = bit_range(<T::O as Timed>::static_kind(), path)?;
     let mut driver = Driver::default();
     driver.output_port(name, bits.len());
-    let output = driver.read_from_inner_output::<T>(path)?;
+    let output = driver.read_from_inner_output(path)?;
     driver.hdl = format!("assign {name} = {output};");
     Ok(driver)
 }
 
-pub fn passthrough_input_driver<T: Circuit>(name: &str, path: &Path) -> Result<Driver, RHDLError> {
+pub fn passthrough_input_driver<T: Circuit>(
+    name: &str,
+    path: &Path,
+) -> Result<Driver<T>, RHDLError> {
     let (bits, _) = bit_range(<T::I as Timed>::static_kind(), path)?;
     let mut driver = Driver::default();
     driver.input_port(name, bits.len());
-    let input = driver.write_to_inner_input::<T>(path)?;
+    let input = driver.write_to_inner_input(path)?;
     driver.hdl = format!("assign {input} = {name};");
+    Ok(driver)
+}
+
+pub fn constant_driver<T: Circuit, S: Digital>(
+    val: S,
+    path: &Path,
+) -> Result<Driver<T>, RHDLError> {
+    let (_bits, sub_kind) = bit_range(<T::I as Timed>::static_kind(), path)?;
+    if S::static_kind() != sub_kind {
+        return Err(RHDLError::ExportError(ExportError::WrongConstantType {
+            provided: S::static_kind(),
+            required: sub_kind,
+        }));
+    }
+    let mut driver = Driver::<T>::default();
+    let input = driver.write_to_inner_input(path)?;
+    let val = val.bin();
+    let val_as_literal = val
+        .into_iter()
+        .map(|x| match x {
+            BitX::One => '1',
+            BitX::Zero => '0',
+            BitX::X => 'x',
+        })
+        .collect::<String>();
+    driver.hdl = format!(
+        "assign {input} = {len}'b{literal};",
+        len = val_as_literal.len(),
+        literal = val_as_literal
+    );
     Ok(driver)
 }
 
 pub struct Fixture<T> {
     name: String,
-    drivers: Vec<Driver>,
+    drivers: Vec<Driver<T>>,
     circuit: T,
 }
 
@@ -224,7 +282,7 @@ impl<T: Circuit> Fixture<T> {
             circuit: t,
         }
     }
-    pub fn add_driver(&mut self, driver: Driver) {
+    pub fn add_driver(&mut self, driver: Driver<T>) {
         self.drivers.push(driver)
     }
     pub fn pass_through_input(&mut self, name: &str, path: &Path) -> Result<(), RHDLError> {
@@ -235,6 +293,10 @@ impl<T: Circuit> Fixture<T> {
         self.add_driver(passthrough_output_driver::<T>(name, path)?);
         Ok(())
     }
+    pub fn constant_input<S: Digital>(&mut self, val: S, path: &Path) -> Result<(), RHDLError> {
+        self.add_driver(constant_driver::<T, S>(val, path)?);
+        Ok(())
+    }
     pub fn module(self) -> Result<Module, RHDLError> {
         let ports = self
             .drivers
@@ -243,9 +305,9 @@ impl<T: Circuit> Fixture<T> {
             .map(|x| x.as_module_port())
             .collect();
         // Declare the mount points for the circuit
-        let i_kind = <T as CircuitIO>::I::static_kind();
+        let i_kind = <<T as CircuitIO>::I as Timed>::static_kind();
         let inputs_len = i_kind.bits();
-        let outputs_len = <T as CircuitIO>::O::static_kind().bits();
+        let outputs_len = <<T as CircuitIO>::O as Timed>::static_kind().bits();
         let declarations = [
             maybe_decl_wire(inputs_len, "inner_input"),
             maybe_decl_wire(outputs_len, "inner_output"),

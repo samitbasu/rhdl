@@ -4,7 +4,7 @@ use crate::error::BspError;
 use rhdl::prelude::*;
 
 // Create a driver for the LEDs.  These are open-collector type outputs.
-pub fn leds<T: CircuitIO>(path: &Path) -> Result<Driver, BspError> {
+pub fn leds<T: CircuitIO>(path: &Path) -> Result<Driver<T>, BspError> {
     let (bits, _sub) = bit_range(<T::O as Timed>::static_kind(), path)?;
     if bits.len() != 8 {
         return Err(BspError::SignalWidthMismatch {
