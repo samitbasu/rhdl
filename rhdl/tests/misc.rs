@@ -184,12 +184,11 @@ fn test_latte_match() -> miette::Result<()> {
 
     #[kernel]
     fn do_stuff(w: MyEnum) -> b4 {
-        let v = match w {
+        match w {
             MyEnum::A => bits(1),
             MyEnum::B(a, _) => a,
             MyEnum::C { x, y: _, z: _ } => x,
-        };
-        v
+        }
     }
     env_logger::builder()
         .filter_level(log::LevelFilter::Debug)
@@ -205,13 +204,12 @@ fn test_latte_opcode() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(y: bool) -> b4 {
         let mut z = bits(0);
-        let x = if y {
+        if y {
             z += 1;
             z
         } else {
             z
-        };
-        x
+        }
     }
     // Get the RHIF implementation of the kernel
     let _obj = compile_design_stage1::<do_stuff>(CompilationMode::Synchronous);

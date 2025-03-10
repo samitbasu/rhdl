@@ -6,7 +6,7 @@
 #![allow(dead_code)]
 
 use expect_test::expect_file;
-use rhdl::{core::compiler::mir::error::RHDLTypeError, prelude::*};
+use rhdl::prelude::*;
 #[cfg(test)]
 mod common;
 #[cfg(test)]
