@@ -5,10 +5,31 @@ use serde::Serialize;
 
 use crate::constraints::{IOStandard, Location};
 
+#[derive(Clone, Debug)]
+pub struct UpcaseBool(bool);
+
+impl From<bool> for UpcaseBool {
+    fn from(t: bool) -> Self {
+        Self(t)
+    }
+}
+
+impl Serialize for UpcaseBool {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self.0 {
+            true => serializer.serialize_str("TRUE"),
+            false => serializer.serialize_str("FALSE"),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct Options {
-    pub diff_term: bool,
-    pub ibuf_low_pwr: bool,
+    pub diff_term: UpcaseBool,
+    pub ibuf_low_pwr: UpcaseBool,
     pub io_standard: Option<IOStandard>,
     pub pos_pin: Location,
     pub neg_pin: Location,
@@ -75,8 +96,8 @@ mod tests {
             name: "sysclk".into(),
             output: MountPoint::Output(12..13),
             options: Options {
-                diff_term: false,
-                ibuf_low_pwr: true,
+                diff_term: false.into(),
+                ibuf_low_pwr: true.into(),
                 io_standard: Some(IOStandard::LowVoltageDifferentialSignal_2v5),
                 pos_pin: bga_pin!(K, 4),
                 neg_pin: bga_pin!(J, 4),

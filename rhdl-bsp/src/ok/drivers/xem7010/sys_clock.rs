@@ -20,8 +20,8 @@ pub fn sys_clock<T: CircuitIO>(path: &Path) -> Result<Driver<T>, BspError> {
         "sysclk",
         path,
         &ibufds::Options {
-            diff_term: false,
-            ibuf_low_pwr: true,
+            diff_term: false.into(),
+            ibuf_low_pwr: true.into(),
             io_standard: Some(IOStandard::LowVoltageDifferentialSignal_2v5),
             pos_pin: bga_pin!(K, 4),
             neg_pin: bga_pin!(J, 4),
