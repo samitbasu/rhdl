@@ -297,7 +297,7 @@ impl<T: Circuit> Fixture<T> {
         self.add_driver(constant_driver::<T, S>(val, path)?);
         Ok(())
     }
-    pub fn module(self) -> Result<Module, RHDLError> {
+    pub fn module(&self) -> Result<Module, RHDLError> {
         let ports = self
             .drivers
             .iter()
@@ -353,7 +353,7 @@ impl<T: Circuit> Fixture<T> {
             ],
         ));
         Ok(Module {
-            name: self.name,
+            name: self.name.clone(),
             description: format!("Fixture for {}", self.circuit.description()),
             ports,
             declarations,
@@ -361,5 +361,13 @@ impl<T: Circuit> Fixture<T> {
             submodules: vec![verilog],
             ..Default::default()
         })
+    }
+    pub fn constraints(&self) -> String {
+        let xdc = self
+            .drivers
+            .iter()
+            .map(|x| x.constraints.clone())
+            .collect::<Vec<_>>();
+        xdc.join("\n")
     }
 }
