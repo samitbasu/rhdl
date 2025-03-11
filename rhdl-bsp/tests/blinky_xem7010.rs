@@ -30,7 +30,7 @@ mod blinker {
         let mut d = D::dont_care();
         // The counter is always enabled.
         d.counter = true;
-        let output_bit = (q.counter >> 20) & 1 != 0;
+        let output_bit = (q.counter >> 28) & 1 != 0;
         let o = if output_bit { bits(0xaa) } else { bits(0x55) };
         (o, d)
     }

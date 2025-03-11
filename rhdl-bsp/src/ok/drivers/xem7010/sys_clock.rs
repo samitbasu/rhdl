@@ -27,7 +27,7 @@ pub fn sys_clock<T: CircuitIO>(path: &Path) -> Result<Driver<T>, BspError> {
             neg_pin: bga_pin!(J, 4),
         },
     )?;
-    driver.constraints += "create_clock -period 5 [get_ports sys_clk_p]\n";
+    driver.constraints += "create_clock -period 5 [get_ports sysclk_p]\n";
     Ok(driver)
 }
 

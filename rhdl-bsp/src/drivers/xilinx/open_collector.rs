@@ -15,14 +15,16 @@ pub struct Options {
 #[derive(Serialize)]
 struct Context {
     name: String,
+    pins_msb: usize,
     options: Options,
     output: MountPoint,
 }
 
 static HDL: &str = r#"
+wire [{pins_msb}:0] _drive_{name};
 assign _drive_{name} = {output};
 {{ for pin in options.pins -}}
-assign {name}[{@index}] = (_drive_{name}[{@index}] == 1'b1) ? (1'b0) : (1'bz);
+assign {name}[{@index}] = (_drive_{name}[{@index}] == 1'b1) ? (1'b0) : (1'b1);
 {{ endfor }}
 "#;
 
@@ -44,6 +46,7 @@ pub fn build<T: CircuitIO>(
     let output = driver.read_from_inner_output(path)?;
     let context = Context {
         name: name.into(),
+        pins_msb: options.pins.len() - 1,
         options: options.clone(),
         output,
     };
