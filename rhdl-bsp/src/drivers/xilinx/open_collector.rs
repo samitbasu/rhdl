@@ -1,10 +1,7 @@
 use rhdl::prelude::*;
 use serde::Serialize;
 
-use crate::{
-    constraints::{IOStandard, Location},
-    error::BspError,
-};
+use crate::constraints::{IOStandard, Location};
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Options {
@@ -39,7 +36,7 @@ pub fn build<T: CircuitIO>(
     name: &str,
     path: &Path,
     options: &Options,
-) -> Result<Driver<T>, BspError> {
+) -> Result<Driver<T>, RHDLError> {
     let (bits, _) = bit_range(<T::O as Timed>::static_kind(), path)?;
     let mut driver = Driver::default();
     driver.output_port(name, bits.len());

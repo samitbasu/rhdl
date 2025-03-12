@@ -1,4 +1,9 @@
-use super::tcl;
+use rhdl::{
+    core::RHDLError,
+    prelude::{Circuit, Fixture},
+};
+
+use super::tcl::{self, AddFiles, FileType};
 use std::io::Write;
 
 pub struct Builder {
@@ -9,20 +14,21 @@ pub struct Builder {
 }
 
 impl Builder {
-    pub fn new(path: &str, project_name: &str, part_name: &str) -> Self {
+    pub fn new(path: &str, project_name: &str, part_name: &str) -> Result<Self, RHDLError> {
         let mut script = tcl::Script::default();
+        std::fs::create_dir_all(path)?;
         script.add(tcl::CreateProject {
             path: path.into(),
             part: part_name.into(),
             name: project_name.into(),
             force: true,
         });
-        Self {
+        Ok(Self {
             project_name: project_name.into(),
             part_name: part_name.into(),
             script,
             root_path: path.into(),
-        }
+        })
     }
     pub fn step<T: std::fmt::Display>(mut self, x: T) -> Self {
         self.script.add(x);
@@ -35,6 +41,23 @@ impl Builder {
             writeln!(buf, "{cmd}")?;
         }
         Ok(())
+    }
+    pub fn add_fixture<T: Circuit>(self, fixture: Fixture<T>) -> Result<Self, RHDLError> {
+        let fixture_v_path = self.root_path.join(format!("{}.v", fixture.name()));
+        let module = fixture.module()?;
+        std::fs::write(&fixture_v_path, module.to_string())?;
+        let xdc_path = self.root_path.join(format!("{}.xdc", fixture.name()));
+        let constraints = fixture.constraints();
+        std::fs::write(&xdc_path, &constraints)?;
+        Ok(self
+            .step(AddFiles {
+                kind: FileType::Source,
+                paths: vec![fixture_v_path],
+            })
+            .step(AddFiles {
+                kind: FileType::Constraint,
+                paths: vec![xdc_path],
+            }))
     }
 }
 
@@ -52,6 +75,7 @@ mod tests {
         std::fs::create_dir_all("jnk").unwrap();
         let mig_prj_path = PathBuf::from("jnk").join("mig_a.prj");
         Builder::new("jnk", "demo", "xc7a50tfgg484-1")
+            .unwrap()
             .step(CreateIp::xilinx("mig_7series", "4.2", "mig7"))
             .step(ConfigureIp::new("mig7", "BOARD_MIG_PARAM", "Custom"))
             .step(ConfigureIp::new("mig7", "MIG_DONT_TOUCH_PARAM", "Custom"))

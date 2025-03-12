@@ -1,0 +1,22 @@
+
+// Opal Kelly Module Interface Connections
+wire        ti_clk;
+wire [30:0] ok1;
+wire [16:0] ok2;
+
+assign hi_muxsel    = 1'b0;
+ 
+wire [17*2-1:0]  ok2x;
+okWireOR # (.N(2)) wireOR (.ok2(ok2), .ok2s(ok2x));
+
+
+okHost okHI(
+        .hi_in(hi_in), .hi_out(hi_out), .hi_inout(hi_inout), .hi_aa(hi_aa), .ti_clk(ti_clk),
+        .ok1(ok1) , .ok2(ok2)  );
+
+okWireIn   ok_wire_in_0 (.ok1(ok1), .ep_addr(8'd0), .ep_dataout(inner_input[15:0]));
+okWireIn   ok_wire_in_1 (.ok1(ok1), .ep_addr(8'd2), .ep_dataout(inner_input[31:16]));
+
+okWireOut  ok_wire_out_0(.ok1(ok1), .ok2(ok2x[ 0*17 +: 17 ]), .ep_addr(8'd32), .ep_datain(inner_output[15:0]));
+okWireOut  ok_wire_out_1(.ok1(ok1), .ok2(ok2x[ 1*17 +: 17 ]), .ep_addr(8'd36), .ep_datain(inner_output[31:16]));
+

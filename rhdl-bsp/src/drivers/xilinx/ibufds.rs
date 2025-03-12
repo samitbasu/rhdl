@@ -108,8 +108,8 @@ mod tests {
             {
               "name": "sysclk",
               "options": {
-                "diff_term": false,
-                "ibuf_low_pwr": true,
+                "diff_term": "FALSE",
+                "ibuf_low_pwr": "TRUE",
                 "io_standard": "LVDS_25",
                 "pos_pin": "K4",
                 "neg_pin": "J4"
@@ -121,8 +121,8 @@ mod tests {
         let expect = expect![[r#"
 
             IBUFDS #(
-               .DIFF_TERM("false"),       // Differential Termination
-               .IBUF_LOW_PWR("true"),     // Low power="TRUE", Highest performance="FALSE"
+               .DIFF_TERM("FALSE"),       // Differential Termination
+               .IBUF_LOW_PWR("TRUE"),     // Low power="TRUE", Highest performance="FALSE"
                .IOSTANDARD("LVDS_25")     // Specify the input I/O standard
             ) ibufds_sysclk (
                .O(inner_output[12]),  // Buffer output
