@@ -101,6 +101,7 @@ pub use crate::rhdl_core::bitx_vec;
 pub use crate::rhdl_core::circuit::fixture::passthrough_input_driver;
 pub use crate::rhdl_core::circuit::fixture::passthrough_output_driver;
 pub use crate::rhdl_core::circuit::fixture::Driver;
+pub use crate::rhdl_core::circuit::fixture::ExportError;
 pub use crate::rhdl_core::circuit::fixture::Fixture;
 pub use crate::rhdl_core::circuit::fixture::MountPoint;
 pub use crate::rhdl_core::sim::clock_pos_edge::ClockPosEdgeExt;

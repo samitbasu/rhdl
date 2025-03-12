@@ -24,6 +24,12 @@ pub enum ExportError {
     TemplateError(#[from] tinytemplate::error::Error),
     #[error("Wrong constant type provided.  Expected {required:?}, and got {provided:?}")]
     WrongConstantType { provided: Kind, required: Kind },
+    #[error("Path {0:?} on input is not a clock input")]
+    NotAClockInput(Path),
+    #[error("Mismatch in signal width: expected {expected} bits, but got {actual}")]
+    SignalWidthMismatch { expected: i32, actual: usize },
+    #[error("Export error {0}")]
+    Custom(Box<dyn std::error::Error>),
 }
 
 #[derive(Clone, Debug)]
@@ -281,6 +287,9 @@ impl<T: Circuit> Fixture<T> {
             drivers: vec![],
             circuit: t,
         }
+    }
+    pub fn name(&self) -> &str {
+        &self.name
     }
     pub fn add_driver(&mut self, driver: Driver<T>) {
         self.drivers.push(driver)
