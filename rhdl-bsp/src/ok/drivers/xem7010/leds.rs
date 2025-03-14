@@ -1,16 +1,11 @@
 use crate::bga_pin;
+use crate::drivers::get_untyped_output;
 use crate::drivers::xilinx::open_collector::Options;
 use rhdl::prelude::*;
 
 // Create a driver for the LEDs.  These are open-collector type outputs.
 pub fn leds<T: CircuitIO>(path: &Path) -> Result<Driver<T>, RHDLError> {
-    let (bits, _sub) = bit_range(<T::O as Timed>::static_kind(), path)?;
-    if bits.len() != 8 {
-        return Err(RHDLError::ExportError(ExportError::SignalWidthMismatch {
-            expected: 8,
-            actual: bits.len(),
-        }));
-    }
+    let _ = get_untyped_output::<T>(path, 8)?;
     let options = Options {
         io_standard: crate::constraints::IOStandard::LowVoltageCMOS_3v3,
         pins: vec![
