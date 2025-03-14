@@ -26,10 +26,24 @@ pub enum ExportError {
     WrongConstantType { provided: Kind, required: Kind },
     #[error("Path {0:?} on input is not a clock input")]
     NotAClockInput(Path),
-    #[error("Mismatch in signal width: expected {expected} bits, but got {actual}")]
-    SignalWidthMismatch { expected: i32, actual: usize },
-    #[error("Export error {0}")]
-    Custom(Box<dyn std::error::Error>),
+    #[error(
+        "Mismatch in signal width on input: expected {expected} bits, but got {actual} with path {path:?}"
+    )]
+    SignalWidthMismatchInput {
+        expected: usize,
+        actual: usize,
+        path: Path,
+    },
+    #[error(
+        "Mismatch in signal width on output: expected {expected} bits, but got {actual} with path {path:?}"
+    )]
+    SignalWidthMismatchOutput {
+        expected: usize,
+        actual: usize,
+        path: Path,
+    },
+    #[error("Path {0:?} on input is not a clock output")]
+    NotAClockOutput(Path),
 }
 
 #[derive(Clone, Debug)]
