@@ -7,7 +7,8 @@ use crate::core::dff;
 use crate::core::option::unpack;
 use crate::core::ram;
 
-const RAM_ADDR: usize = 8;
+//const RAM_ADDR: usize = 8;
+type RAM_ADDR = U8;
 
 // This is a simple test harness that connects a basic manager and subordinate
 // into a test fixture.

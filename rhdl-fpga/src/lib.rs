@@ -6,6 +6,7 @@ pub use anyhow::Result;
 pub mod axi4lite;
 pub mod cdc;
 pub mod dsp;
+pub mod gearbox;
 pub mod gray;
 pub mod lid;
 pub mod reset;

@@ -44,6 +44,8 @@ pub enum ExportError {
     },
     #[error("Path {0:?} on input is not a clock output")]
     NotAClockOutput(Path),
+    #[error("BSP Error {0}")]
+    Custom(anyhow::Error),
 }
 
 #[derive(Clone, Debug)]

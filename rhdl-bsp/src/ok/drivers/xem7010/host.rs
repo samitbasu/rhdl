@@ -19,23 +19,38 @@ pub struct PipeOutAddress(u8);
 
 #[derive(Error, Debug)]
 pub enum OkHostError {
-    #[error("Invalid Wire In Address {0} (valid range is 0x00..0x1F)")]
+    #[error("Invalid Wire In Address {0} (valid range is 0x00..0x20)")]
     InvalidWireInAddress(u8),
     #[error("Duplicate Wire In Address {0}")]
     DuplicateWireInAddress(u8),
-    #[error("Invalid Wire Out Address {0} (valid range is 0x20..0x3F)")]
+    #[error("Invalid Wire Out Address {0} (valid range is 0x20..0x40)")]
     InvalidWireOutAddress(u8),
     #[error("Duplicate Wire Out Address {0}")]
     DuplicateWireOutAddress(u8),
-    #[error("Invalid Trigger In Address {0} (valid range is 0x40..0x5F)")]
+    #[error("Invalid Trigger In Address {0} (valid range is 0x40..0x60)")]
     InvalidTriggerInAddress(u8),
     #[error("Duplicate Trigger In Address {0}")]
     DuplicateTriggerInAddress(u8),
-    #[error("Invalid Trigger Out Address {0} (valid range is 0x60..0x7F)")]
+    #[error("Invalid Trigger Out Address {0} (valid range is 0x60..0x80)")]
     InvalidTriggerOutAddress(u8),
     #[error("Duplicate Trigger Out Address {0}")]
     DuplicateTriggerOutAddress(u8),
+    #[error("Invalid Pipe In Address {0} (valid range is 0x80..0xA0")]
+    InvalidPipeInAddress(u8),
+    #[error("Duplicate Pipe In Address {0}")]
+    DuplicatePipeInAddress(u8),
+    #[error("Invalid Pipe Out Address {0} (valid range is 0xA0..0xC0")]
+    InvalidPipeOutAddress(u8),
+    #[error("Duplicate Pipe Out Address {0}")]
+    DuplicatePipeOutAddress(u8),
 }
+
+const WIRE_IN_ADDRESS_RANGE: std::ops::Range<u8> = 0x00..0x20;
+const WIRE_OUT_ADDRESS_RANGE: std::ops::Range<u8> = 0x20..0x40;
+const TRIGGER_IN_ADDRESS_RANGE: std::ops::Range<u8> = 0x40..0x60;
+const TRIGGER_OUT_ADDRESS_RANGE: std::ops::Range<u8> = 0x60..0x80;
+const PIPE_IN_ADDRESS_RANGE: std::ops::Range<u8> = 0x80..0xA0;
+const PIPE_OUT_ADDRESS_RANGE: std::ops::Range<u8> = 0xA0..0xC0;
 
 #[derive(Serialize)]
 pub struct Host<T> {
@@ -44,6 +59,10 @@ pub struct Host<T> {
     wire_out: BTreeMap<u8, MountPoint>,
     trigger_in: BTreeMap<u8, TriggerPoint>,
     trigger_out: BTreeMap<u8, TriggerPoint>,
+    pipe_in: BTreeMap<u8, PipePoint>,
+    pipe_out: BTreeMap<u8, PipePoint>,
+    bt_pipe_in: BTreeMap<u8, BTPipePoint>,
+    bt_pipe_out: BTreeMap<u8, BTPipePoint>,
     /*
        pipe_in: BTreeSet<PipeInAddress>,
        pipe_out: BTreeSet<PipeOutAddress>,
@@ -58,12 +77,16 @@ impl<T> Default for Host<T> {
             wire_out: Default::default(),
             trigger_in: Default::default(),
             trigger_out: Default::default(),
+            pipe_in: Default::default(),
+            pipe_out: Default::default(),
+            bt_pipe_in: Default::default(),
+            bt_pipe_out: Default::default(),
         }
     }
 }
 
 fn mk_err(t: OkHostError) -> RHDLError {
-    RHDLError::ExportError(ExportError::Custom(Box::new(t)))
+    RHDLError::ExportError(ExportError::Custom(t.into()))
 }
 
 #[derive(Serialize)]
@@ -80,12 +103,32 @@ struct TriggerPoint {
 }
 
 #[derive(Serialize)]
+struct PipePoint {
+    address: u8,
+    data_mount: MountPoint,
+    flag_mount: MountPoint,
+}
+
+#[derive(Serialize)]
+struct BTPipePoint {
+    address: u8,
+    data_mount: MountPoint,
+    flag_mount: MountPoint,
+    ready_mount: MountPoint,
+    strobe_mount: MountPoint,
+}
+
+#[derive(Serialize)]
 struct Context {
     num_outputs: usize,
     wire_ins: Vec<WirePoint>,
     wire_outs: Vec<(usize, WirePoint)>,
     trigger_ins: Vec<TriggerPoint>,
     trigger_outs: Vec<(usize, TriggerPoint)>,
+    pipe_ins: Vec<(usize, PipePoint)>,
+    pipe_outs: Vec<(usize, PipePoint)>,
+    bt_pipe_ins: Vec<(usize, BTPipePoint)>,
+    bt_pipe_outs: Vec<(usize, BTPipePoint)>,
 }
 
 static HDL: &str = r#"
@@ -136,12 +179,62 @@ okTriggerOut ok_trigger_out{@index} (
     .ep_trigger({trigger_out.1.triggers})
 );
 {{ endfor }}
+{{ for pipe_in in pipe_ins -}}
+okPipeIn ok_pipe_in{@index} (
+    .ok1(ok1),
+    .ok2(ok2x[ {pipe_in.0}*17 +: 17 ]),
+    .ep_addr(8'd{pipe_in.1.address}),
+    .ep_dataout({pipe_in.1.data_mount}),
+    .ep_write({pipe_in.1.flag_mount}),
+);
+{{ endfor }}
+{{ for pipe_out in pipe_outs -}}
+okPipeOut ok_pipe_out{@index} (
+    .ok1(ok1),
+    .ok2(ok2x[ {pipe_out.0}*17 +: 17 ]),
+    .ep_addr(8'd{pipe_out.1.address}),
+    .ep_datain({pipe_out.1.data_mount}),
+    .ep_read({pipe_out.1.flag_mount}),
+);
+{{ endfor }}
+{{ for bt_pipe_in in bt_pipe_ins -}}
+okBTPipeIn ok_bt_pipe_in{@index} (
+    ok1(ok1),
+    ok2(ok2x[ {bt_pipe_in.0}*17 +: 17]),
+    .ep_addr(8'd{bt_pipe_in.1.address}),
+    .ep_dataout({bt_pipe_in.1.data_mount}),
+    .ep_write({bt_pipe_in.1.flag_mount}),
+    .ep_blockstrobe({bt_pipe_in.1.strobe_mount}),
+    .ep_ready({bt_pipe_in.1.ready_mount}),
+);
+{{ endfor }}
+{{ for bt_pipe_out in bt_pipe_outs -}}
+okBTPipeOut ok_bt_pipe_out{@index} (
+    ok1(ok1),
+    ok2(ok2x[ {bt_pipe_out.0}*17 +: 17]),
+    .ep_addr(8'd{bt_pipe_out.1.address}),
+    .ep_datain({bt_pipe_out.1.data_mount}),
+    .ep_read({bt_pipe_out.1.flag_mount}),
+    .ep_blockstrobe({bt_pipe_out.1.strobe_mount}),
+    .ep_ready({bt_pipe_out.1.ready_mount}),
+);
+{{ endfor }}
 "#;
+
+fn tag_with_output_slot<S>(output_counter: &mut usize, data: BTreeMap<u8, S>) -> Vec<(usize, S)> {
+    data.into_values()
+        .map(|x| {
+            let out = *output_counter;
+            *output_counter += 1;
+            (out, x)
+        })
+        .collect()
+}
 
 impl<T: CircuitIO> Host<T> {
     pub fn wire_in(&mut self, address: u8, path: &Path) -> Result<(), RHDLError> {
         let value = get_untyped_input::<T>(path, 16)?;
-        if !(0x00..=0x1F).contains(&address) {
+        if !WIRE_IN_ADDRESS_RANGE.contains(&address) {
             return Err(mk_err(OkHostError::InvalidWireInAddress(address)));
         }
         if self.wire_in.contains_key(&address) {
@@ -152,7 +245,7 @@ impl<T: CircuitIO> Host<T> {
     }
     pub fn wire_out(&mut self, address: u8, path: &Path) -> Result<(), RHDLError> {
         let value = get_untyped_output::<T>(path, 16)?;
-        if !(0x20..=0x3F).contains(&address) {
+        if !WIRE_OUT_ADDRESS_RANGE.contains(&address) {
             return Err(mk_err(OkHostError::InvalidWireOutAddress(address)));
         }
         if self.wire_out.contains_key(&address) {
@@ -170,7 +263,7 @@ impl<T: CircuitIO> Host<T> {
         // We need an input clock
         let clock = get_clock_output::<T>(clock_path)?;
         let triggers = get_untyped_input::<T>(trigger_path, 16)?;
-        if !(0x40..=0x5F).contains(&address) {
+        if !TRIGGER_IN_ADDRESS_RANGE.contains(&address) {
             return Err(mk_err(OkHostError::InvalidTriggerInAddress(address)));
         }
         if self.trigger_in.contains_key(&address) {
@@ -194,7 +287,7 @@ impl<T: CircuitIO> Host<T> {
     ) -> Result<(), RHDLError> {
         let clock = get_clock_output::<T>(clock_path)?;
         let triggers = get_untyped_output::<T>(trigger_path, 16)?;
-        if !(0x60..=0x7F).contains(&address) {
+        if !TRIGGER_OUT_ADDRESS_RANGE.contains(&address) {
             return Err(mk_err(OkHostError::InvalidTriggerOutAddress(address)));
         }
         if self.trigger_out.contains_key(&address) {
@@ -206,6 +299,114 @@ impl<T: CircuitIO> Host<T> {
                 address,
                 clock,
                 triggers,
+            },
+        );
+        Ok(())
+    }
+    pub fn pipe_in(
+        &mut self,
+        address: u8,
+        data_path: &Path,
+        write_flag_path: &Path,
+    ) -> Result<(), RHDLError> {
+        let data_mount = get_untyped_input::<T>(data_path, 16)?;
+        let flag_mount = get_untyped_input::<T>(write_flag_path, 1)?;
+        if !PIPE_IN_ADDRESS_RANGE.contains(&address) {
+            return Err(mk_err(OkHostError::InvalidPipeInAddress(address)));
+        }
+        if self.pipe_in.contains_key(&address) || self.bt_pipe_in.contains_key(&address) {
+            return Err(mk_err(OkHostError::DuplicatePipeInAddress(address)));
+        }
+        self.pipe_in.insert(
+            address,
+            PipePoint {
+                address,
+                data_mount,
+                flag_mount,
+            },
+        );
+        Ok(())
+    }
+    pub fn bt_pipe_in(
+        &mut self,
+        address: u8,
+        data_path: &Path,
+        ready_path: &Path,
+        strobe_path: &Path,
+        write_flag_path: &Path,
+    ) -> Result<(), RHDLError> {
+        let data_mount = get_untyped_input::<T>(data_path, 16)?;
+        let ready_mount = get_untyped_output::<T>(ready_path, 1)?;
+        let strobe_mount = get_untyped_input::<T>(strobe_path, 1)?;
+        let flag_mount = get_untyped_input::<T>(write_flag_path, 1)?;
+        if !PIPE_IN_ADDRESS_RANGE.contains(&address) {
+            return Err(mk_err(OkHostError::InvalidPipeInAddress(address)));
+        }
+        if self.pipe_in.contains_key(&address) || self.bt_pipe_in.contains_key(&address) {
+            return Err(mk_err(OkHostError::DuplicatePipeInAddress(address)));
+        }
+        self.bt_pipe_in.insert(
+            address,
+            BTPipePoint {
+                address,
+                data_mount,
+                flag_mount,
+                ready_mount,
+                strobe_mount,
+            },
+        );
+        Ok(())
+    }
+    pub fn pipe_out(
+        &mut self,
+        address: u8,
+        data_path: &Path,
+        read_next_path: &Path,
+    ) -> Result<(), RHDLError> {
+        let data_mount = get_untyped_output::<T>(data_path, 16)?;
+        let flag_mount = get_untyped_input::<T>(read_next_path, 1)?;
+        if !PIPE_OUT_ADDRESS_RANGE.contains(&address) {
+            return Err(mk_err(OkHostError::InvalidPipeOutAddress(address)));
+        }
+        if self.pipe_out.contains_key(&address) || self.bt_pipe_out.contains_key(&address) {
+            return Err(mk_err(OkHostError::DuplicatePipeOutAddress(address)));
+        }
+        self.pipe_out.insert(
+            address,
+            PipePoint {
+                address,
+                data_mount,
+                flag_mount,
+            },
+        );
+        Ok(())
+    }
+    pub fn bt_pipe_out(
+        &mut self,
+        address: u8,
+        data_path: &Path,
+        ready_path: &Path,
+        strobe_path: &Path,
+        read_next_path: &Path,
+    ) -> Result<(), RHDLError> {
+        let data_mount = get_untyped_output::<T>(data_path, 16)?;
+        let ready_mount = get_untyped_output::<T>(ready_path, 1)?;
+        let strobe_mount = get_untyped_input::<T>(strobe_path, 1)?;
+        let flag_mount = get_untyped_input::<T>(read_next_path, 1)?;
+        if !PIPE_OUT_ADDRESS_RANGE.contains(&address) {
+            return Err(mk_err(OkHostError::InvalidPipeOutAddress(address)));
+        }
+        if self.pipe_out.contains_key(&address) || self.bt_pipe_out.contains_key(&address) {
+            return Err(mk_err(OkHostError::DuplicatePipeOutAddress(address)));
+        }
+        self.bt_pipe_out.insert(
+            address,
+            BTPipePoint {
+                address,
+                data_mount,
+                flag_mount,
+                ready_mount,
+                strobe_mount,
             },
         );
         Ok(())
@@ -242,22 +443,30 @@ impl<T: CircuitIO> Host<T> {
             })
             .collect();
         let trigger_ins = self.trigger_in.into_values().collect();
-        let trigger_outs: Vec<(usize, TriggerPoint)> = self
-            .trigger_out
-            .into_values()
-            .map(|x| {
-                let out = output_counter;
-                output_counter += 1;
-                (out, x)
-            })
-            .collect();
-        let num_outputs = wire_outs.len() + trigger_outs.len();
+        let trigger_outs = tag_with_output_slot(&mut output_counter, self.trigger_out);
+        let pipe_ins = tag_with_output_slot(&mut output_counter, self.pipe_in);
+        let pipe_outs: Vec<(usize, PipePoint)> =
+            tag_with_output_slot(&mut output_counter, self.pipe_out);
+        let bt_pipe_ins: Vec<(usize, BTPipePoint)> =
+            tag_with_output_slot(&mut output_counter, self.bt_pipe_in);
+        let bt_pipe_outs: Vec<(usize, BTPipePoint)> =
+            tag_with_output_slot(&mut output_counter, self.bt_pipe_out);
+        let num_outputs = wire_outs.len()
+            + trigger_outs.len()
+            + pipe_ins.len()
+            + pipe_outs.len()
+            + bt_pipe_ins.len()
+            + bt_pipe_outs.len();
         let context = Context {
             num_outputs,
             wire_ins,
             wire_outs,
             trigger_ins,
             trigger_outs,
+            pipe_ins,
+            pipe_outs,
+            bt_pipe_ins,
+            bt_pipe_outs,
         };
         driver.render_hdl(HDL, &context)?;
         Ok(driver)
@@ -277,6 +486,8 @@ mod tests {
             out2: Signal<b16, Red>,
             t_clk: Signal<Clock, Red>,
             t_out: Signal<b16, Red>,
+            p_out: Signal<b16, Red>,
+            bt_ready: Signal<bool, Red>,
         }
 
         #[derive(PartialEq, Digital, Timed)]
@@ -285,6 +496,10 @@ mod tests {
             in2: Signal<b16, Red>,
             t_in: Signal<b16, Red>,
             t_in2: Signal<b16, Red>,
+            p_in: Signal<b16, Red>,
+            p_in_write: Signal<bool, Red>,
+            p_out_read: Signal<bool, Red>,
+            bt_strobe: Signal<bool, Red>,
         }
 
         #[derive(Clone)]
@@ -309,6 +524,22 @@ mod tests {
         ok_host.trigger_in(0x42, &path!(.t_clk.val()), &path!(.t_in))?;
         ok_host.trigger_in(0x40, &path!(.t_clk.val()), &path!(.t_in2))?;
         ok_host.trigger_out(0x60, &path!(.t_clk.val()), &path!(.t_out))?;
+        ok_host.pipe_in(0x80, &path!(.p_in), &path!(.p_in_write))?;
+        ok_host.pipe_out(0xA0, &path!(.p_out), &path!(.p_out_read))?;
+        ok_host.bt_pipe_in(
+            0x81,
+            &path!(.p_in),
+            &path!(.bt_ready),
+            &path!(.bt_strobe),
+            &path!(.p_in_write),
+        )?;
+        ok_host.bt_pipe_out(
+            0xA1,
+            &path!(.p_out),
+            &path!(.bt_ready),
+            &path!(.bt_strobe),
+            &path!(.p_out_read),
+        )?;
         let driver = ok_host.build()?;
         let expect = expect_file!("ok_host.expect");
         expect.assert_eq(&driver.hdl);

@@ -65,6 +65,7 @@ pub fn build_hdl<C: Circuit>(
     let child_decls = descriptor
         .children
         .iter()
+        .filter(|(_, desc)| !desc.output_kind.is_empty())
         .enumerate()
         .map(|(ndx, (local_name, descriptor))| {
             let child_path = Path::default().field(local_name);
@@ -149,6 +150,7 @@ pub fn build_synchronous_hdl<C: Synchronous>(
     let child_decls = descriptor
         .children
         .iter()
+        .filter(|(_, desc)| !desc.output_kind.is_empty())
         .enumerate()
         .map(|(ndx, (local_name, descriptor))| {
             let child_path = Path::default().field(local_name);
