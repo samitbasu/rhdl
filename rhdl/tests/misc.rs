@@ -316,6 +316,7 @@ fn test_layout_example_latte25() -> miette::Result<()> {
     }
 
     #[kernel]
+    #[allow(clippy::let_and_return)]
     fn clock_cross_fails(a: Signal<b8, Red>, b: Signal<b8, Blue>) -> Signal<b8, Red> {
         let a = a.val(); // <--- Erases the clock domain of a
         let b = b.val(); // <--- Erases the clock domain of b
@@ -324,7 +325,8 @@ fn test_layout_example_latte25() -> miette::Result<()> {
         d // <--- All good, right??
     }
 
-    compile_design::<clock_cross_fails>(CompilationMode::Asynchronous)?;
+    // Uncomment to get an error report.
+    //    compile_design::<clock_cross_fails>(CompilationMode::Asynchronous)?;
 
     let doc = OpCode::static_kind().svg("OpCode");
     svg::save("op_code.svg", &doc).unwrap();
