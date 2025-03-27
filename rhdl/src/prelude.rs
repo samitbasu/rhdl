@@ -98,6 +98,7 @@ pub use crate::rhdl_bits::xsub::XSub;
 pub use crate::rhdl_core::bitx::bitx_parse;
 pub use crate::rhdl_core::bitx::bitx_string;
 pub use crate::rhdl_core::bitx_vec;
+pub use crate::rhdl_core::circuit::drc;
 pub use crate::rhdl_core::circuit::fixture::passthrough_input_driver;
 pub use crate::rhdl_core::circuit::fixture::passthrough_output_driver;
 pub use crate::rhdl_core::circuit::fixture::Driver;

@@ -122,7 +122,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
 
     use rand::random;
 

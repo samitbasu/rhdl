@@ -252,3 +252,81 @@ fn test_layout_compressed() {
     let doc = MyEnum::static_kind().svg("MyEnum");
     svg::save("my_enum.svg", &doc).unwrap();
 }
+
+#[test]
+fn test_layout_example_latte25() -> miette::Result<()> {
+    #[derive(PartialEq, Digital, Default)]
+    #[rhdl(discriminant_width = "4")]
+    pub enum Register {
+        #[default]
+        R0,
+        R1,
+        R2,
+        R3,
+        R4,
+        R5,
+    }
+
+    #[derive(PartialEq, Digital, Default)]
+    #[rhdl(discriminant_align = "lsb")]
+    pub enum Target {
+        #[default]
+        Zero,
+        Register(Register),
+        Literal(b8),
+    }
+
+    #[derive(PartialEq, Digital, Default)]
+    pub enum OpCode {
+        #[default]
+        Nop,
+        Add(Target, Target),
+        Mul(Register, b8),
+    }
+
+    fn decode(t: Target) -> b8 {
+        todo!()
+    }
+
+    fn register_val(r: Register) -> b8 {
+        todo!()
+    }
+
+    fn alu(t: OpCode) -> Option<b8> {
+        match t {
+            OpCode::Nop => None,
+            OpCode::Add(t1, t2) => {
+                let v1 = decode(t1);
+                let v2 = decode(t2);
+                Some(v1 + v2)
+            }
+            OpCode::Mul(r1, s) => {
+                let v1 = register_val(r1);
+                Some(v1 * s)
+            }
+        }
+    }
+
+    #[kernel]
+    fn alu_stuff(a: b8, b: b8) -> b8 {
+        let c = a + b;
+        let d = a | b;
+        let e = a * b;
+        c + d + e
+    }
+
+    #[kernel]
+    fn clock_cross_fails(a: Signal<b8, Red>, b: Signal<b8, Blue>) -> Signal<b8, Red> {
+        let a = a.val(); // <--- Erases the clock domain of a
+        let b = b.val(); // <--- Erases the clock domain of b
+        let c = a | b; // <--- Combines the two signals with an OR gate
+        let d = signal(c); // <--- rustc infers Red based on return type
+        d // <--- All good, right??
+    }
+
+    compile_design::<clock_cross_fails>(CompilationMode::Asynchronous)?;
+
+    let doc = OpCode::static_kind().svg("OpCode");
+    svg::save("op_code.svg", &doc).unwrap();
+    Ok(())
+}

@@ -60,7 +60,7 @@ impl<T: Digital + Default> SynchronousIO for U<T> {
 }
 
 #[kernel]
-pub fn carloni_kernel<T: Digital + Default>(_cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
+pub fn carloni_kernel<T: Digital + Default>(cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
     let mut d = D::<T>::dont_care();
     let mut o = O::<T>::dont_care();
     // There are 4 control signals
@@ -102,5 +102,9 @@ pub fn carloni_kernel<T: Digital + Default>(_cr: ClockReset, i: I<T>, q: Q<T>) -
     o.data_out = q.main_ff;
     o.void_out = q.void_ff;
     o.stop_out = stop_out;
+    if cr.reset.any() {
+        o.void_out = true;
+        o.stop_out = true;
+    }
     (o, d)
 }

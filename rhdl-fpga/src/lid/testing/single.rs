@@ -48,7 +48,9 @@ pub fn single_kernel<N: BitWidth>(_cr: ClockReset, _i: (), q: Q<N>) -> (bool, D<
 
 #[cfg(test)]
 mod tests {
+
     use expect_test::expect;
+    use rhdl::core::circuit::drc;
 
     use super::*;
 
@@ -64,7 +66,7 @@ mod tests {
             .join("vcd")
             .join("lid");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["a14d4fedccb215481c98ab426be8f9227d2b74c738c0a93fe2454247f544e091"];
+        let expect = expect!(["4fe137573e5d1e1989ce1403d81322dc691d9ebb1477308ec21d11975007c934"]);
         let digest = vcd.dump_to_file(&root.join("single.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -94,6 +96,17 @@ mod tests {
         tm.run_iverilog()?;
         let tm = test_bench.flow_graph(&uut, &Default::default())?;
         tm.run_iverilog()?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_no_combinatorial_paths() -> miette::Result<()> {
+        let uut = crate::lid::option_carloni::U::<Bits<U16>>::default();
+        drc::no_combinatorial_paths(&uut)?;
+        let uut = crate::lid::fifo_to_rv::U::<Bits<U8>>::default();
+        drc::no_combinatorial_paths(&uut)?;
+        let uut = crate::lid::rv_to_fifo::U::<Bits<U8>>::default();
+        drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }
 }

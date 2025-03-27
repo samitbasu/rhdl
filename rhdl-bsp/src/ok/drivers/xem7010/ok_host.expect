@@ -6,8 +6,8 @@ wire [16:0] ok2;
 
 assign hi_muxsel    = 1'b0;
  
-wire [17*3-1:0]  ok2x;
-okWireOR # (.N(3)) wireOR (.ok2(ok2), .ok2s(ok2x));
+wire [17*7-1:0]  ok2x;
+okWireOR # (.N(7)) wireOR (.ok2(ok2), .ok2s(ok2x));
 
 
 okHost okHI(
@@ -57,5 +57,41 @@ okTriggerOut ok_trigger_out0 (
     .ep_addr(8'd96),
     .ep_clk(inner_input[32])
     .ep_trigger(inner_output[48:33])
+);
+
+okPipeIn ok_pipe_in0 (
+    .ok1(ok1),
+    .ok2(ok2x[ 3*17 +: 17 ]),
+    .ep_addr(8'd128),
+    .ep_dataout(inner_input[79:64]),
+    .ep_write(inner_input[80]),
+);
+
+okPipeOut ok_pipe_out0 (
+    .ok1(ok1),
+    .ok2(ok2x[ 4*17 +: 17 ]),
+    .ep_addr(8'd160),
+    .ep_datain(inner_output[64:49]),
+    .ep_read(inner_input[81]),
+);
+
+okBTPipeIn ok_bt_pipe_in0 (
+    ok1(ok1),
+    ok2(ok2x[ 5*17 +: 17]),
+    .ep_addr(8'd129),
+    .ep_dataout(inner_input[79:64]),
+    .ep_write(inner_input[80]),
+    .ep_blockstrobe(inner_input[82]),
+    .ep_ready(inner_output[65]),
+);
+
+okBTPipeOut ok_bt_pipe_out0 (
+    ok1(ok1),
+    ok2(ok2x[ 6*17 +: 17]),
+    .ep_addr(8'd161),
+    .ep_datain(inner_output[64:49]),
+    .ep_read(inner_input[81]),
+    .ep_blockstrobe(inner_input[82]),
+    .ep_ready(inner_output[65]),
 );
 
