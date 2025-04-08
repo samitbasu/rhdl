@@ -69,18 +69,27 @@ mod tests {
 
     #[test]
     fn test_lsb_first() -> miette::Result<()> {
+        // Instantiate the test circuit (a 16 -> 8 bit reducer with a RNG feeder)
         let uut = U::default();
+        // Create an input stream of clock and reset signal
         let input = std::iter::repeat(())
             .take(50)
             .stream_after_reset(1)
             .clock_pos_edge(100);
+        // Use the Rust impl of the RNG to predict the 8-bit output values
         let validate = XorShift128::default().flat_map(|x| [x & 0xFF, (x & 0xFF00) >> 8]);
+        // Run the Rust co-simulation of the design
         let vals = uut
             .run(input)?
+            // Sample the output stream synchronously (on each positive clock edge)
             .synchronous_sample()
+            // Extract the output value
             .flat_map(|x| x.value.2)
+            // Convert to a raw 32 bit value
             .map(|x| x.raw() as u32);
+        // Compare the two iterators by XOR-ing their values
         let mut test = vals.zip(validate).map(|(x, y)| x ^ y);
+        // Assert that all is correct.
         assert!(test.all(|x| x == 0));
         Ok(())
     }
