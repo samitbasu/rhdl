@@ -105,12 +105,12 @@ where
         write_address: q.write_count_for_read_logic.count.val(),
     });
     // Feed the read count to the read counter
-    d.read_count_for_write_logic.data = signal(q.read_logic.val().will_advance);
-    d.read_count_for_write_logic.data_cr = i.cr_r;
+    d.read_count_for_write_logic.incr = signal(q.read_logic.val().will_advance);
+    d.read_count_for_write_logic.incr_cr = i.cr_r;
     d.read_count_for_write_logic.cr = i.cr_w;
     // Feed the write count to the write counter
-    d.write_count_for_read_logic.data = signal(write_enable);
-    d.write_count_for_read_logic.data_cr = i.cr_w;
+    d.write_count_for_read_logic.incr = signal(write_enable);
+    d.write_count_for_read_logic.incr_cr = i.cr_w;
     d.write_count_for_read_logic.cr = i.cr_r;
     // Populate the output signals
     let mut o = O::<T, W, R>::dont_care();

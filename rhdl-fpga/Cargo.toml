@@ -11,6 +11,7 @@ array-init = "2.1.0"
 
 rhdl = { path = "../rhdl" }
 strum = { version = "0.25.0", features = ["derive"] }
+badascii-doc = "0.3.0"
 
 [dev-dependencies]
 env_logger = "0.11.5"
