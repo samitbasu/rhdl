@@ -498,6 +498,7 @@ fn trace_wrap_function(function: &syn::ItemFn) -> Result<TS> {
     let ty_generics = ty_generics.as_turbofish();
     Ok(quote! {
 
+        #( #attrs )*
         #vis fn #orig_name #impl_generics (#outer_args) #ret #where_clause {
             #[forbid(non_snake_case)]
             #[forbid(non_upper_case_globals)]
@@ -592,6 +593,7 @@ impl Context {
             #wrapped_function
 
             #[allow(non_camel_case_types)]
+            #[doc(hidden)]
             #vis struct #name #impl_generics {#(#phantom_fields,)*}
 
             #digital_fnk_impl
