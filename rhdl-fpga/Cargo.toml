@@ -12,6 +12,7 @@ array-init = "2.1.0"
 rhdl = { path = "../rhdl" }
 strum = { version = "0.25.0", features = ["derive"] }
 badascii-doc = "0.3.0"
+include-doc = "0.2.2"
 
 [dev-dependencies]
 env_logger = "0.11.5"
@@ -20,3 +21,7 @@ log = "0.4.22"
 miette = "7.2.0"
 rand = "0.8.5"
 svg = "0.18.0"
+
+[[example]]
+name = "ex01"
+doc-scrape-examples = true

@@ -1,21 +1,14 @@
+//! # Clock domain crossing counter
+//!
+//! # Purpose
+//!
 //! This core provides a counter where the input pulses
 //! come from one clock domain, and the output count
 //! is in a different clock domain.  The count in the output
 //! clock domain is guaranteed to lag behind an equivalent count
 //! in the input clock domain.  
 //!
-//! SAFETY - this core uses a vector of 1-bit synchronizers, but
-//! with a Gray-coded counter to cross the clock domains.  
-//! This is safe because the first stage
-//! of registers in the synchronizers will sample the Gray-coded signal
-//! essentially simultaneously.  The Gray-coded signal is guaranteed to
-//! have at most one bit changing at any time point.  Thus, all bits
-//! will be correct when sampled with the possible exception of the
-//! bit that is changing at that time.  This bit may resolve to the correct
-//! value, or it may not.  If it does not, the transition will be missed
-//! and the counter will be off by one.  However, at the next sample point,
-//! this bit will be correct.  As the counter is monotonic, it will always
-//! lag behind the actual count.
+//! # Connections
 //!
 //! The W domain is used for the "writer" to the counter, where the
 //! counter increments are provided, and the R domain is used for
@@ -34,6 +27,26 @@
                |                 |                 
                +-----------------+                 
 ")]
+//!
+//! The use is straight forward.  In the domain where the pulses to be counted
+//! originate, you need to provide a clock and reset signal.  You also need
+//! to provide a clock and reset in the domain where the count is provided.
+//!
+//! # Internals
+//!
+//! This core uses a vector of 1-bit synchronizers, but
+//! with a Gray-coded counter to cross the clock domains.  
+//! This is safe because the first stage
+//! of registers in the synchronizers will sample the Gray-coded signal
+//! essentially simultaneously.  The Gray-coded signal is guaranteed to
+//! have at most one bit changing at any time point.  Thus, all bits
+//! will be correct when sampled with the possible exception of the
+//! bit that is changing at that time.  This bit may resolve to the correct
+//! value, or it may not.  If it does not, the transition will be missed
+//! and the counter will be off by one.  However, at the next sample point,
+//! this bit will be correct.  As the counter is monotonic, it will always
+//! lag behind the actual count.
+//!
 //! Here is a rough diagram of the contents of the block.
 #![doc = badascii_doc::badascii!("
                                                 Combinatorial Blocks                          
@@ -55,6 +68,7 @@ Input   |                      |                  |  +---------+ ||  |          
                                         input clock       +       output clock                
                                              W                         R                      
 ")]
+//!
 //! The counter is synchronous the input domain.  The output count is fed
 //! into a Gray coder, which ensures only one bit changes at a time for each
 //! input count.  The individual bits of the Gray coder can then be passed
@@ -62,6 +76,56 @@ Input   |                      |                  |  +---------+ ||  |          
 //! is then combinatorially decoded into a count.  Note that the output contains
 //! combinatorial delays to the output DFFs of the CDCs.  A pipeline stage may
 //! be needed to isolate that logic if high speed is required.
+//!
+//! # Example
+//!
+//! ```
+//! use rand::random;
+//! use rhdl::{core::trace::svg::SvgOptions, prelude::*};
+//! use rhdl_fpga::cdc::cross_counter::{In, Out, Unit};
+//!
+//! // This function will generate a stream of random pulses in the red
+//! // clock domain.
+//! fn sync_stream() -> impl Iterator<Item = TimedSample<In<Red, Blue>>> {
+//!     // Start with a stream of pulses
+//!     let red = (0..).map(|_| random::<bool>()).take(100);
+//!     // Clock them on the red domain
+//!     let red = red.stream_after_reset(1).clock_pos_edge(100);
+//!     // Create an empty stream on the blue domain
+//!     let blue = std::iter::repeat(false)
+//!         .stream_after_reset(1)
+//!         .clock_pos_edge(79);
+//!     // Merge them
+//!     merge(red, blue, |r: (ClockReset, bool), b: (ClockReset, bool)| {
+//!         In {
+//!             incr: signal(r.1),
+//!             incr_cr: signal(r.0),
+//!             cr: signal(b.0),
+//!         }
+//!     })
+//! }
+//!
+//! fn main() -> Result<(), RHDLError> {
+//!     // Next we create an instance of the clock-domain crossing core, with
+//!     // the appropriate clock domains.
+//!     let uut = Unit::<Red, Blue, 4>::default();
+//!     // Simulate the crosser, and collect into a VCD
+//!     let vcd = uut
+//!         .run(sync_stream())?
+//!         .take_while(|x| x.time < 1000)
+//!         .collect::<Vcd>();
+//!     std::fs::create_dir_all("test_vcd").unwrap();
+//!     let mut options = SvgOptions::default();
+//!     options.label_width = 20;
+//!     std::fs::write(
+//!         "test_vcd/cross_counter.svg",
+//!         &vcd.dump_svg(&options).to_string(),
+//!     )
+//!     .unwrap();
+//!     Ok(())
+//! }
+//! ```
+#![doc = include_str!("../../test_vcd/cross_counter.svg")]
 
 use rhdl::prelude::*;
 
@@ -73,7 +137,13 @@ use crate::{
 use super::synchronizer;
 
 #[derive(Clone, Circuit, CircuitDQ)]
-pub struct U<W: Domain, R: Domain, const N: usize>
+/// Unit to instantiate.
+///
+/// The type parameters are:
+///   - W: The domain where the input pulses come from
+///   - R: The domain where the output count is provided
+///   - N: The number of bits in the counter
+pub struct Unit<W: Domain, R: Domain, const N: usize>
 where
     Const<N>: BitWidth,
 {
@@ -87,7 +157,7 @@ where
     syncs: [synchronizer::U<W, R>; N],
 }
 
-impl<W: Domain, R: Domain, const N: usize> Default for U<W, R, N>
+impl<W: Domain, R: Domain, const N: usize> Default for Unit<W, R, N>
 where
     Const<N>: BitWidth,
 {
@@ -100,7 +170,8 @@ where
 }
 
 #[derive(PartialEq, Debug, Digital, Timed)]
-pub struct I<W: Domain, R: Domain> {
+/// Inputs to the core
+pub struct In<W: Domain, R: Domain> {
     /// The input data pulses to be counted from the W clock domain
     pub incr: Signal<bool, W>,
     /// The clock and reset for the W clock domain
@@ -110,7 +181,8 @@ pub struct I<W: Domain, R: Domain> {
 }
 
 #[derive(PartialEq, Debug, Digital, Timed)]
-pub struct O<R: Domain, const N: usize>
+/// Outputs from the core
+pub struct Out<R: Domain, const N: usize>
 where
     Const<N>: BitWidth,
 {
@@ -118,20 +190,21 @@ where
     pub count: Signal<Bits<Const<N>>, R>,
 }
 
-impl<W: Domain, R: Domain, const N: usize> CircuitIO for U<W, R, N>
+impl<W: Domain, R: Domain, const N: usize> CircuitIO for Unit<W, R, N>
 where
     Const<N>: BitWidth,
 {
-    type I = I<W, R>;
-    type O = O<R, N>;
+    type I = In<W, R>;
+    type O = Out<R, N>;
     type Kernel = cross_counter_kernel<W, R, N>;
 }
 
 #[kernel]
+/// The kernel function for the cross-counter.
 pub fn cross_counter_kernel<W: Domain, R: Domain, const N: usize>(
-    input: I<W, R>,
+    input: In<W, R>,
     q: Q<W, R, N>,
-) -> (O<R, N>, D<W, R, N>)
+) -> (Out<R, N>, D<W, R, N>)
 where
     Const<N>: BitWidth,
 {
@@ -158,7 +231,7 @@ where
     let read_o = gray_decode::<Const<N>>(Gray::<Const<N>>(read_o));
     // The read side of the output comes from o, the
     // write side is simply the output of the internal counter
-    let mut o = O::<R, { N }>::dont_care();
+    let mut o = Out::<R, { N }>::dont_care();
     o.count = signal(read_o);
     (o, d)
 }
@@ -170,28 +243,26 @@ mod tests {
 
     use super::*;
 
-    fn sync_stream() -> impl Iterator<Item = TimedSample<I<Red, Blue>>> {
+    fn sync_stream() -> impl Iterator<Item = TimedSample<In<Red, Blue>>> {
         // Start with a stream of pulses
         let red = (0..).map(|_| random::<bool>()).take(100);
         // Clock them on the green domain
         let red = red.stream_after_reset(1).clock_pos_edge(100);
         // Create an empty stream on the red domain
-        let blue = std::iter::repeat(false)
+        let blue = std::iter::repeat(())
             .stream_after_reset(1)
             .clock_pos_edge(79);
         // Merge them
-        merge(red, blue, |r: (ClockReset, bool), b: (ClockReset, bool)| {
-            I {
-                incr: signal(r.1),
-                incr_cr: signal(r.0),
-                cr: signal(b.0),
-            }
+        merge(red, blue, |r: (ClockReset, bool), b: (ClockReset, ())| In {
+            incr: signal(r.1),
+            incr_cr: signal(r.0),
+            cr: signal(b.0),
         })
     }
 
     #[test]
     fn test_performance() -> miette::Result<()> {
-        type UC = U<Red, Blue, 8>;
+        type UC = Unit<Red, Blue, 8>;
         let uut = UC::default();
         let input = sync_stream();
         let _ = uut
@@ -203,7 +274,7 @@ mod tests {
 
     #[test]
     fn test_read_counter_is_monotonic() -> miette::Result<()> {
-        type UC = U<Red, Blue, 8>;
+        type UC = Unit<Red, Blue, 8>;
         let uut = UC::default();
         let input = sync_stream();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -224,7 +295,7 @@ mod tests {
 
     #[test]
     fn test_hdl_generation() -> miette::Result<()> {
-        type UC = U<Red, Blue, 8>;
+        type UC = Unit<Red, Blue, 8>;
         let uut = UC::default();
         let input = sync_stream();
         let test_bench = uut.run(input)?.collect::<TestBench<_, _>>();

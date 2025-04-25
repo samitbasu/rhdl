@@ -36,6 +36,7 @@ pub struct SvgOptions {
     pub shim: i32,
     pub height: i32,
     pub label_width: i32,
+    pub glitch_filter: Option<u32>,
 }
 
 impl SvgOptions {
@@ -52,6 +53,7 @@ impl Default for SvgOptions {
             shim: 3,
             height: 14,
             label_width: 40,
+            glitch_filter: Some(2),
         }
     }
 }
@@ -77,7 +79,16 @@ fn stack_svg_regions(regions: &[Box<[SvgRegion]>], options: &SvgOptions) -> Box<
 fn regions_to_svg_regions(regions: &[Region], options: &SvgOptions) -> Box<[SvgRegion]> {
     regions
         .iter()
-        .map(|r| {
+        .filter_map(|r| {
+            if r.start > r.end {
+                return None;
+            }
+            let len = r.end - r.start;
+            if let Some(min_time) = options.glitch_filter {
+                if len < min_time as u64 {
+                    return None;
+                }
+            }
             let width = ((r.end - r.start) as f32 * options.pixels_per_time_unit) as i32;
             let start_x = (r.start as f32 * options.pixels_per_time_unit) as i32;
             let kind = r.kind;
@@ -92,7 +103,7 @@ fn regions_to_svg_regions(regions: &[Region], options: &SvgOptions) -> Box<[SvgR
                     tag += "...";
                 }
             }
-            SvgRegion {
+            Some(SvgRegion {
                 start_x,
                 start_y: 0,
                 full_tag,
@@ -100,7 +111,7 @@ fn regions_to_svg_regions(regions: &[Region], options: &SvgOptions) -> Box<[SvgR
                 tag,
                 kind,
                 color: r.color,
-            }
+            })
         })
         .collect()
 }
