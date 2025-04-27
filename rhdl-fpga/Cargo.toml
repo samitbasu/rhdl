@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.98"
 array-init = "2.1.0"
-badascii-doc = "0.3.0"
+badascii-doc = "0.4.0"
 rhdl = { path = "../rhdl" }
 strum = { version = "0.25.0", features = ["derive"] }
 [dev-dependencies]

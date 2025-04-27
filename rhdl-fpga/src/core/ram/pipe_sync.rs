@@ -98,22 +98,16 @@
 //!         .clock_pos_edge(100);
 //!     let uut = PipeBRAM::new((0..).map(|x| (b3(x), b8(x))));
 //!     let vcd = uut.run(inputs)?.collect::<Vcd>();
-//!#     std::fs::create_dir_all("pipe_ram_vcd").unwrap();
-//!#     std::fs::write(
-//!#         "test_vcd/pipe_ramp.svg",
-//!#         vcd.dump_svg(
-//!#             &SvgOptions::default()
+//!#    rhdl_fpga::doc::write_svg_as_markdown(vcd,"pipe_ram.md",
+//!#              SvgOptions::default()
 //!#                 .with_label_width(20)
 //!#                 .with_filter("(^top.clock.*)|(^top.input.*)|(^top.output.*)"),
-//!#         )
-//!#         .to_string(),
-//!#     )
-//!#     .unwrap();
+//!#    ).unwrap();
 //!#     Ok(())
 //!# }
 //!```
 //! The resulting trace file is:
-#![doc = include_str!("../../../test_vcd/pipe_ramp.svg")]
+#![doc = include_str!("../../../doc/pipe_ram.md")]
 
 use rhdl::prelude::*;
 
