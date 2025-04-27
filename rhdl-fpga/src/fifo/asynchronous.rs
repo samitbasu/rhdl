@@ -20,8 +20,8 @@ where
     write_logic: Adapter<write_logic::U<Const<N>>, W>,
     read_logic: Adapter<read_logic::U<Const<N>>, R>,
     ram: ram::option_async::U<T, W, R, Const<N>>,
-    read_count_for_write_logic: cross_counter::Unit<R, W, N>,
-    write_count_for_read_logic: cross_counter::Unit<W, R, N>,
+    read_count_for_write_logic: cross_counter::CrossCounter<R, W, N>,
+    write_count_for_read_logic: cross_counter::CrossCounter<W, R, N>,
 }
 
 #[derive(PartialEq, Debug, Digital, Timed)]

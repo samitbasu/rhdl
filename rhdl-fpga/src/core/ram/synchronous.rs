@@ -1,5 +1,8 @@
-//! A simple synchronous block ram.  The contents are generic over
+//! A simple synchronous block ram.  
+//!
+//! The contents are generic over
 //! a type T, and the address is assumed to be N bits wide.
+//!
 //! Here is the schematic symbol
 #![doc = badascii_doc::badascii!(r#"
       +--+SyncBRAM+---------+    
