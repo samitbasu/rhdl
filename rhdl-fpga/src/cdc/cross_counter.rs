@@ -1,6 +1,6 @@
-//! # Clock domain crossing counter
+//!# Clock domain crossing counter
 //!
-//! # Purpose
+//!# Purpose
 //!
 //! This core provides a counter where the input pulses
 //! come from one clock domain, and the output count
@@ -8,7 +8,7 @@
 //! clock domain is guaranteed to lag behind an equivalent count
 //! in the input clock domain.  
 //!
-//! # Connections
+//!# Connections
 //!
 //! The W domain is used for the "writer" to the counter, where the
 //! counter increments are provided, and the R domain is used for
@@ -32,7 +32,7 @@
 //! originate, you need to provide a clock and reset signal.  You also need
 //! to provide a clock and reset in the domain where the count is provided.
 //!
-//! # Internals
+//!# Internals
 //!
 //! This core uses a vector of 1-bit synchronizers, but
 //! with a Gray-coded counter to cross the clock domains.  
@@ -76,7 +76,7 @@ Input   |           |                  |  +---------+ ||  |        |    count
 //! combinatorial delays to the output DFFs of the CDCs.  A pipeline stage may
 //! be needed to isolate that logic if high speed is required.
 //!
-//! # Example
+//!# Example
 //!
 //!```
 #![doc = include_str!("../../examples/cross_counter.rs")]
@@ -96,9 +96,9 @@ use super::synchronizer;
 /// Unit to instantiate.
 ///
 /// The type parameters are:
-///   - W: The domain where the input pulses come from
-///   - R: The domain where the output count is provided
-///   - N: The number of bits in the counter
+///   - `W`: The domain where the input pulses come from
+///   - `R`: The domain where the output count is provided
+///   - `N`: The number of bits in the counter
 pub struct CrossCounter<W: Domain, R: Domain, const N: usize>
 where
     Const<N>: BitWidth,
@@ -110,7 +110,7 @@ where
     /// bit of the counter.  The synchronizers hold
     /// the value of the count in the read domain
     /// as a gray encoded value.
-    syncs: [synchronizer::U<W, R>; N],
+    syncs: [synchronizer::Sync1Bit<W, R>; N],
 }
 
 impl<W: Domain, R: Domain, const N: usize> Default for CrossCounter<W, R, N>
@@ -120,7 +120,7 @@ where
     fn default() -> Self {
         Self {
             counter: Adapter::new(dff::U::default()),
-            syncs: array_init::array_init(|_| synchronizer::U::default()),
+            syncs: array_init::array_init(|_| synchronizer::Sync1Bit::default()),
         }
     }
 }

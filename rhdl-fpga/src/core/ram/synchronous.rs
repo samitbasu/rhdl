@@ -17,6 +17,7 @@ bool  |                     |
       |                     |    
       +---------------------+    
 "#)]
+//!# Timing
 //! From a timing perspective, it is assumed that the block ram
 //! implements a single cycle delay on both the read and write
 //! interfaces.  Reading and writing to the same address cell at

@@ -1,14 +1,17 @@
+//! An asynchronous RAM
+//!
+//!
 use rhdl::prelude::*;
 
 #[derive(PartialEq, Debug, Clone, Default, Circuit, CircuitDQ)]
 pub struct U<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> {
-    inner: super::asynchronous::U<T, W, R, N>,
+    inner: super::asynchronous::AsyncBRAM<T, W, R, N>,
 }
 
 impl<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> U<T, W, R, N> {
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         Self {
-            inner: super::asynchronous::U::new(initial),
+            inner: super::asynchronous::AsyncBRAM::new(initial),
         }
     }
 }

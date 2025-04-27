@@ -13,7 +13,7 @@ use super::write_logic;
 /// synchronized to each other.  This means that the read and write ports
 /// can be in different clock domains.
 #[derive(Clone, Circuit, CircuitDQ, Default)]
-pub struct U<T: Digital + Default, W: Domain, R: Domain, const N: usize>
+pub struct AsyncFIFO<T: Digital + Default, W: Domain, R: Domain, const N: usize>
 where
     Const<N>: BitWidth,
 {
@@ -52,7 +52,7 @@ pub struct O<T: Digital, W: Domain, R: Domain> {
     pub overflow: Signal<bool, W>,
 }
 
-impl<T: Digital + Default, W: Domain, R: Domain, const N: usize> CircuitIO for U<T, W, R, N>
+impl<T: Digital + Default, W: Domain, R: Domain, const N: usize> CircuitIO for AsyncFIFO<T, W, R, N>
 where
     Const<N>: BitWidth,
 {
@@ -153,7 +153,7 @@ mod tests {
             cr_r: signal(r.0),
         });
         //        let input = test_stream();
-        let uut = U::<Bits<U8>, Red, Blue, 5>::default();
+        let uut = AsyncFIFO::<Bits<U8>, Red, Blue, 5>::default();
         let vcd = uut.run(input.clone())?.collect::<Vcd>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")

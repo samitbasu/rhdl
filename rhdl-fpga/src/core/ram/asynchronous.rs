@@ -1,3 +1,97 @@
+//! An asynchornous block RAM
+//!
+//! A simple block ram that stores 2^N values of type T.
+//! It has two interfaces for read and writing, and supports
+//! two different clocks.  This RAM is meant primarily for
+//! FPGAs, as you can specify the initial contents of the
+//! RAM.  For ASICs, you should probably assume the contents
+//! of the RAM are random on initialization and implement
+//! reset mechanism.
+//!
+//! This block ram is not "combinatorial" but is rather
+//! "fully registered".  That means that the read address
+//! is sampled on the positive edge of the read clock, and the
+//! data is presented prior to the positive edge of the _next_ clock.
+//!
+//! There are block rams that don't have this limitation (i.e., they
+//! provide the read output on the same clock as the read address).  But
+//! they are generally not portable.  If you need one of those, you should
+//! create a custom model for it.
+//!
+//! Here is the schematic symbol:
+#![doc = badascii_doc::badascii_formal!(r"
+      +----+AsyncRAM+-------------+     
+ B<N> |                           | T   
++---->| read.addr          output +---->
+ clk  |                           |     
++---->| read.clock                |     
+      |                           |     
+      |                           |     
+ B<N> |                           |     
++---->| write.addr                |     
+  T   |                           |     
++---->| write.data                |     
+ bool |                           |     
++---->| write.enable              |     
+ clk  |                           |     
++---->| write.clock               |     
+      |                           |     
+      +---------------------------+     
+")]
+//!
+//!# Timing
+//!
+//! From a timing perspective, the asynchronous RAM operates
+//! with two clocks, a read clock and a write clock.  The output
+//! is synchronous with the read clock, as indicated by the
+//! type signature.  The write inputs are synchronous to their own
+//! write clock.
+//!
+//! It is considered undefined behavior to read and write simultaneously
+//! to the same address in the block RAM.  With multiple clocks, it
+//! becomes even more nebulous to define what "simultaneous" means.
+//! In general, you should avoid accessing the same address/row of the RAM
+//! from both the read and write sides of the interface at the same
+//! time.
+//!
+//! Here is a simple timing diagram:
+#![doc = badascii_doc::badascii!(r"
+                    +----+    +----+    +----+    +----+
+read.clock     +----+    +----+    +----+    +----+     
+                    :         :         :               
+               +---+A1+--+---+A2+--+---+A1+--+-----     
+read.addr      +---------+---------+---------+-----     
+                                                        
+                         +---+D1+--+---+D2+--+---+42+--+
+output         +---------+---------+---------+---------+
+                                                        
+                   +---+   +---+   +---+   +---+        
+write.clock    +---+   +---+   +---+   +---+   +---+    
+                                                        
+                       +-+42+--+                        
+write.data     +-------+-------+-----------------------+
+                                                        
+                       +-+A1+--+                        
+write.addr     +-------+-------+-----------------------+
+                                                        
+                       +-------+                        
+write.enable   +-------+       +-----------------------+
+")]
+//!
+//! In general, I don't recommend using an [AsyncBRAM].
+//! It's easier and more idiomatic to use an [OptionAsyncBRAM]
+//! or a [PipeAsyncBRAM] which provide [Option]-based interfaces.
+//!
+//!# Example
+//!
+//! Here is an example running the timing pattern shown
+//! above.
+//!```
+#![doc = include_str!("../../../examples/async_bram.rs")]
+//!```
+//! With a simulation trace:
+#![doc = include_str!("../../../doc/async_bram.md")]
+
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 use rhdl::{
@@ -5,32 +99,14 @@ use rhdl::{
     prelude::*,
 };
 
-///
-/// A simple block ram that stores 2^N values of type T.
-/// It has two interfaces for read and writing, and supports
-/// two different clocks.  This RAM is meant primarily for
-/// FPGAs, as you can specify the initial contents of the
-/// RAM.  For ASICs, you should probably assume the contents
-/// of the RAM are random on initialization and implement
-/// reset mechanism.
-///
-/// This block ram is not "combinatorial" but is rather
-/// "fully registered".  That means that the read address
-/// is sampled on the positive edge of the read clock, and the
-/// data is presented on the positive edge of the _next_ clock.
-///
-/// There are block rams that don't have this limitation (i.e., they
-/// provide the read output on the same clock as the read address).  But
-/// they are generally not portable.  If you need one of those, you should
-/// create a custom model for it.
 #[derive(PartialEq, Debug, Clone, Default)]
-pub struct U<T: Digital, W: Domain, R: Domain, N: BitWidth> {
+pub struct AsyncBRAM<T: Digital, W: Domain, R: Domain, N: BitWidth> {
     initial: BTreeMap<Bits<N>, T>,
     _w: std::marker::PhantomData<W>,
     _r: std::marker::PhantomData<R>,
 }
 
-impl<T: Digital, W: Domain, R: Domain, N: BitWidth> U<T, W, R, N> {
+impl<T: Digital, W: Domain, R: Domain, N: BitWidth> AsyncBRAM<T, W, R, N> {
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         let len = (1 << N::BITS) as usize;
         Self {
@@ -64,18 +140,18 @@ pub struct WriteI<T: Digital, N: BitWidth> {
 }
 
 #[derive(PartialEq, Debug, Digital, Timed)]
-pub struct I<T: Digital, W: Domain, R: Domain, N: BitWidth> {
+pub struct In<T: Digital, W: Domain, R: Domain, N: BitWidth> {
     pub write: Signal<WriteI<T, N>, W>,
     pub read: Signal<ReadI<N>, R>,
 }
 
-impl<T: Digital, W: Domain, R: Domain, N: BitWidth> CircuitDQ for U<T, W, R, N> {
+impl<T: Digital, W: Domain, R: Domain, N: BitWidth> CircuitDQ for AsyncBRAM<T, W, R, N> {
     type D = ();
     type Q = ();
 }
 
-impl<T: Digital, W: Domain, R: Domain, N: BitWidth> CircuitIO for U<T, W, R, N> {
-    type I = I<T, W, R, N>;
+impl<T: Digital, W: Domain, R: Domain, N: BitWidth> CircuitIO for AsyncBRAM<T, W, R, N> {
+    type I = In<T, W, R, N>;
     type O = Signal<T, R>;
     type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
 }
@@ -89,7 +165,7 @@ pub struct S<T: Digital, N: BitWidth> {
     output_next: T,
 }
 
-impl<T: Digital, W: Domain, R: Domain, N: BitWidth> Circuit for U<T, W, R, N> {
+impl<T: Digital, W: Domain, R: Domain, N: BitWidth> Circuit for AsyncBRAM<T, W, R, N> {
     type S = Rc<RefCell<S<T, N>>>;
 
     fn init(&self) -> Self::S {
@@ -296,7 +372,7 @@ mod tests {
 
     #[test]
     fn test_ram_flow_graph() -> miette::Result<()> {
-        let uut = U::<Bits<U8>, Red, Green, U4>::new(
+        let uut = AsyncBRAM::<Bits<U8>, Red, Green, U4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -310,7 +386,7 @@ mod tests {
 
     #[test]
     fn test_ram_as_verilog() -> miette::Result<()> {
-        let uut = U::<Bits<U8>, Red, Green, U4>::new(
+        let uut = AsyncBRAM::<Bits<U8>, Red, Green, U4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -319,7 +395,7 @@ mod tests {
         // The write interface will be dormant
         let stream_write = get_write_stream(70, std::iter::repeat(None).take(50));
         // Stitch the two streams together
-        let stream = stream_read.merge(stream_write, |r, w| I {
+        let stream = stream_read.merge(stream_write, |r, w| In {
             read: signal(r),
             write: signal(w),
         });
@@ -331,7 +407,7 @@ mod tests {
 
     #[test]
     fn test_ram_write_behavior() -> miette::Result<()> {
-        let uut = U::<Bits<U8>, Red, Green, U4>::new(
+        let uut = AsyncBRAM::<Bits<U8>, Red, Green, U4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits(0))),
@@ -345,7 +421,7 @@ mod tests {
         ];
         let stream_read = get_scan_out_stream(100, 32);
         let stream_write = get_write_stream(70, writes.into_iter().chain(std::iter::repeat(None)));
-        let stream = stream_read.merge(stream_write, |r, w| I {
+        let stream = stream_read.merge(stream_write, |r, w| In {
             read: signal(r),
             write: signal(w),
         });
@@ -377,7 +453,7 @@ mod tests {
     fn test_ram_read_only_behavior() -> miette::Result<()> {
         // Let's start with a simple test where the RAM is pre-initialized,
         // and we just want to read it.
-        let uut = U::<Bits<U8>, Red, Green, U4>::new(
+        let uut = AsyncBRAM::<Bits<U8>, Red, Green, U4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -386,7 +462,7 @@ mod tests {
         // The write interface will be dormant
         let stream_write = get_write_stream(70, std::iter::repeat(None).take(50));
         // Stitch the two streams together
-        let stream = merge(stream_read, stream_write, |r, w| I {
+        let stream = merge(stream_read, stream_write, |r, w| In {
             read: signal(r),
             write: signal(w),
         });
