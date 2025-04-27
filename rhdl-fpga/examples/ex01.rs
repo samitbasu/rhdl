@@ -1,10 +1,11 @@
 use rand::random;
 use rhdl::prelude::*;
-use rhdl_fpga::cdc::cross_counter::{In, Out, Unit};
+use rhdl_fpga::{
+    cdc::cross_counter::{CrossCounter, In, Out},
+    doc::write_svg_as_markdown,
+};
 
-// This function will generate a stream of random pulses in the red
-// clock domain.
-fn sync_stream() -> impl Iterator<Item = TimedSample<In<Red, Blue>>> {
+fn main() -> Result<(), RHDLError> {
     // Start with a stream of pulses
     let red = (0..).map(|_| random::<bool>()).take(100);
     // Clock them on the red domain
@@ -14,33 +15,25 @@ fn sync_stream() -> impl Iterator<Item = TimedSample<In<Red, Blue>>> {
         .stream_after_reset(1)
         .clock_pos_edge(79);
     // Merge them
-    merge(red, blue, |r: (ClockReset, bool), b: (ClockReset, bool)| {
+    let inputs = merge(red, blue, |r: (ClockReset, bool), b: (ClockReset, bool)| {
         In {
             incr: signal(r.1),
             incr_cr: signal(r.0),
             cr: signal(b.0),
         }
-    })
-}
-
-fn main() -> Result<(), RHDLError> {
+    });
     // Next we create an instance of the clock-domain crossing core, with
     // the appropriate clock domains.
-    let uut = Unit::<Red, Blue, 4>::default();
+    let uut = CrossCounter::<Red, Blue, 4>::default();
     // Simulate the crosser, and collect into a VCD
     let vcd = uut
-        .run(sync_stream())?
+        .run(inputs)?
         .take_while(|x| x.time < 1000)
         .collect::<Vcd>();
-    std::fs::create_dir_all("test_vcd").unwrap();
     let options = SvgOptions {
         label_width: 20,
         ..Default::default()
     };
-    std::fs::write(
-        "test_vcd/cross_counter.svg",
-        vcd.dump_svg(&options).to_string(),
-    )
-    .unwrap();
+    write_svg_as_markdown(vcd, "cross_counter.md", options)?;
     Ok(())
 }

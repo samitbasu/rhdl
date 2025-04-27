@@ -49,24 +49,23 @@
 //!
 //! Here is a rough diagram of the contents of the block.
 #![doc = badascii_doc::badascii!("
-                                                Combinatorial Blocks                          
-                                          ++--------------------------------+                 
-                                          |                                 |                 
-Input   +----------------------+          v          +---------+            v                 
-incr    |                      |    +----------+  +->|1-bit cdc+--+  +-------------+          
-  +---->| incr           count +--->|Gray Coder++-+  +---------+  |  |             |          
-        |                      |    +----------+  |       :  ^    +->| Gray Decode |          
-        |       Counter        |                  |       :  +---+|  |             +--> Output
-Input   |                      |                  |  +---------+ ||  |             |    count 
- cr +-->| cr                   |                  +->|1-bit cdc+-++  +-------------+          
-        +----------------------+                     +---------+ |                            
-                                                          ^      |                            
-                                                          +------+--------------------+ target
-                                                                                            cr
-                                                          +                                   
-                                      Synchronous to   <+ | +>  Synchronous to                
-                                        input clock       +       output clock                
-                                             W                         R                      
+                                     Combinatorial Blocks                      
+                               ++------------------------------+               
+                               v                               v               
+Input   +-+Counter+-+                     +---------+                         
+incr    |           |    +----------+  +->|1-bit cdc+--+  +--------+           
+  +---->|incr  count+--->|Gray Coder++-+  +---------+  |  |        |           
+        |           |    +----------+  |       :  ^    +->| Gray   |           
+        |           |                  |       :  +---+|  | Decode +--> Output 
+Input   |           |                  |  +---------+ ||  |        |    count  
+ cr +-->|clk/rst    |                  +->|1-bit cdc+-++  +--------+           
+        +-----------+                     +---------+ |                        
+                                               ^      |                        
+                                               +------+---------------+ target 
+                                                                        clk/rst
+                                               +                               
+                           Synchronous to   <+ | +>  Synchronous to            
+                           input clock  W      +       output clock  R          
 ")]
 //!
 //! The counter is synchronous the input domain.  The output count is fed
@@ -80,13 +79,14 @@ Input   |                      |                  |  +---------+ ||  |          
 //! # Example
 //!
 //!```
-//! use rand::random;
-//! use rhdl::{core::trace::svg::SvgOptions, prelude::*};
-//! use rhdl_fpga::cdc::cross_counter::{In, Out, Unit};
-//!
-//! // This function will generate a stream of random pulses in the red
-//! // clock domain.
-//! fn sync_stream() -> impl Iterator<Item = TimedSample<In<Red, Blue>>> {
+//!# use rand::random;
+//!# use rhdl::prelude::*;
+//!# use rhdl_fpga::{
+//!#     cdc::cross_counter::{In, Out, CrossCounter},
+//!#     doc::write_svg_as_markdown,
+//!# };
+//!#
+//!# fn main() -> Result<(), RHDLError> {
 //!     // Start with a stream of pulses
 //!     let red = (0..).map(|_| random::<bool>()).take(100);
 //!     // Clock them on the red domain
@@ -96,36 +96,30 @@ Input   |                      |                  |  +---------+ ||  |          
 //!         .stream_after_reset(1)
 //!         .clock_pos_edge(79);
 //!     // Merge them
-//!     merge(red, blue, |r: (ClockReset, bool), b: (ClockReset, bool)| {
+//!     let inputs = merge(red, blue, |r: (ClockReset, bool), b: (ClockReset, bool)| {
 //!         In {
 //!             incr: signal(r.1),
 //!             incr_cr: signal(r.0),
 //!             cr: signal(b.0),
 //!         }
-//!     })
-//! }
-//!
-//! fn main() -> Result<(), RHDLError> {
+//!     });
 //!     // Next we create an instance of the clock-domain crossing core, with
 //!     // the appropriate clock domains.
-//!     let uut = Unit::<Red, Blue, 4>::default();
+//!     let uut = CrossCounter::<Red, Blue, 4>::default();
 //!     // Simulate the crosser, and collect into a VCD
 //!     let vcd = uut
-//!         .run(sync_stream())?
+//!         .run(inputs)?
 //!         .take_while(|x| x.time < 1000)
 //!         .collect::<Vcd>();
-//!     std::fs::create_dir_all("test_vcd").unwrap();
-//!     let mut options = SvgOptions::default();
-//!     options.label_width = 20;
-//!     std::fs::write(
-//!         "test_vcd/cross_counter.svg",
-//!         &vcd.dump_svg(&options).to_string(),
-//!     )
-//!     .unwrap();
-//!     Ok(())
-//! }
+//!#     let options = SvgOptions {
+//!#         label_width: 20,
+//!#         ..Default::default()
+//!#     };
+//!#     write_svg_as_markdown(vcd, "cross_counter.md", options)?;
+//!#     Ok(())
+//!# }
 //!```
-#![doc = include_str!("../../test_vcd/cross_counter.svg")]
+#![doc = include_str!("../../doc/cross_counter.md")]
 
 use rhdl::prelude::*;
 
@@ -143,7 +137,7 @@ use super::synchronizer;
 ///   - W: The domain where the input pulses come from
 ///   - R: The domain where the output count is provided
 ///   - N: The number of bits in the counter
-pub struct Unit<W: Domain, R: Domain, const N: usize>
+pub struct CrossCounter<W: Domain, R: Domain, const N: usize>
 where
     Const<N>: BitWidth,
 {
@@ -157,7 +151,7 @@ where
     syncs: [synchronizer::U<W, R>; N],
 }
 
-impl<W: Domain, R: Domain, const N: usize> Default for Unit<W, R, N>
+impl<W: Domain, R: Domain, const N: usize> Default for CrossCounter<W, R, N>
 where
     Const<N>: BitWidth,
 {
@@ -190,7 +184,7 @@ where
     pub count: Signal<Bits<Const<N>>, R>,
 }
 
-impl<W: Domain, R: Domain, const N: usize> CircuitIO for Unit<W, R, N>
+impl<W: Domain, R: Domain, const N: usize> CircuitIO for CrossCounter<W, R, N>
 where
     Const<N>: BitWidth,
 {
@@ -262,7 +256,7 @@ mod tests {
 
     #[test]
     fn test_performance() -> miette::Result<()> {
-        type UC = Unit<Red, Blue, 8>;
+        type UC = CrossCounter<Red, Blue, 8>;
         let uut = UC::default();
         let input = sync_stream();
         let _ = uut
@@ -274,7 +268,7 @@ mod tests {
 
     #[test]
     fn test_read_counter_is_monotonic() -> miette::Result<()> {
-        type UC = Unit<Red, Blue, 8>;
+        type UC = CrossCounter<Red, Blue, 8>;
         let uut = UC::default();
         let input = sync_stream();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -295,7 +289,7 @@ mod tests {
 
     #[test]
     fn test_hdl_generation() -> miette::Result<()> {
-        type UC = Unit<Red, Blue, 8>;
+        type UC = CrossCounter<Red, Blue, 8>;
         let uut = UC::default();
         let input = sync_stream();
         let test_bench = uut.run(input)?.collect::<TestBench<_, _>>();
