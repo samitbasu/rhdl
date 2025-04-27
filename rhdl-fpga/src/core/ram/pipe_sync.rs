@@ -1,3 +1,5 @@
+//! A pipeline interface to a BRAM
+//!
 //! This is a pipeline RAM interface.  It provides the ability to
 //! read and write from the RAM using the `Option<T>` interface
 //! for a non-stallable pipeline.  What this means is that you can
@@ -6,13 +8,13 @@
 //! the corresponding data element D.
 //!
 //! The schematic symbol for this unit looks like this:
-#![doc = badascii_doc::badascii!("
-       +-+BRAM+----+    
- ?(A,D)|           |    
-+----->|write      |    
-   ?A  |           | ?D 
-+----->|read   data+--->
-       +-----------+    
+#![doc = badascii_doc::badascii_formal!("
+       +-+PipeSyncBRAM+--+    
+ ?(A,D)|                 |    
++----->|write            |    
+   ?A  |                 | ?D 
++----->|read         data+--->
+       +-----------------+    
 ")]
 //! where `?` is short for `Option`.  
 //!
@@ -75,36 +77,14 @@
 +--------------------------------------------+
 ")]
 //!
+//!
 //! # Example
 //!
 //! Here is an example of the the `PipeSyncBRAM` being
 //! used with the same test sequence illustrated above.
 //!
 //!```
-//!# use rhdl::prelude::*;
-//!# use rhdl_fpga::core::ram::pipe_sync::{In, PipeBRAM};
-//!#
-//!# fn main() -> Result<(), RHDLError> {
-//!     // Generate the stream example from the timing diagram.
-//!     // Read location 2, then 3 then 2 again
-//!     let reads = [None, Some(b3(2)), Some(b3(3)), Some(b3(2)), None];
-//!     // Write to location 2 while reading from 3
-//!     let writes = [None, None, Some((b3(2), b8(42))), None, None];
-//!     let inputs = reads
-//!         .into_iter()
-//!         .zip(writes)
-//!         .map(|(r, w)| In { read: r, write: w })
-//!         .stream_after_reset(1)
-//!         .clock_pos_edge(100);
-//!     let uut = PipeBRAM::new((0..).map(|x| (b3(x), b8(x))));
-//!     let vcd = uut.run(inputs)?.collect::<Vcd>();
-//!#    rhdl_fpga::doc::write_svg_as_markdown(vcd,"pipe_ram.md",
-//!#              SvgOptions::default()
-//!#                 .with_label_width(20)
-//!#                 .with_filter("(^top.clock.*)|(^top.input.*)|(^top.output.*)"),
-//!#    ).unwrap();
-//!#     Ok(())
-//!# }
+#![doc = include_str!("../../../examples/pipe_sync.rs")]
 //!```
 //! The resulting trace file is:
 #![doc = include_str!("../../../doc/pipe_ram.md")]
@@ -119,12 +99,16 @@ use crate::core::{
 use super::option_sync::OptionSyncBRAM;
 
 #[derive(PartialEq, Debug, Clone, Default, Synchronous, SynchronousDQ)]
-pub struct PipeBRAM<T: Digital + Default, N: BitWidth> {
+/// The unit that implements the [PipeBRAM]
+/// The `T` parameter indicates the type of data held in the BRAM.
+/// The `N` parameter indicates the number of address bits.
+pub struct PipeSyncBRAM<T: Digital + Default, N: BitWidth> {
     ram: super::option_sync::OptionSyncBRAM<T, N>,
     delay: dff::U<bool>,
 }
 
-impl<T: Digital + Default, N: BitWidth> PipeBRAM<T, N> {
+impl<T: Digital + Default, N: BitWidth> PipeSyncBRAM<T, N> {
+    /// Construct a new [PipeSyncBRAM] with the provided initial contents.
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         Self {
             ram: OptionSyncBRAM::new(initial),
@@ -134,18 +118,25 @@ impl<T: Digital + Default, N: BitWidth> PipeBRAM<T, N> {
 }
 
 #[derive(PartialEq, Debug, Digital)]
+/// The inputs for the [PipeBRAM]
 pub struct In<T: Digital + Default, N: BitWidth> {
+    /// The read commands.  For the output to be
+    /// valid, you provide [Some] address.  And then
+    /// one cycle later, the output will also be [Some].
     pub read: Option<Bits<N>>,
+    /// The write commands.  See [OptionSyncBRAM] for how
+    /// to use this.
     pub write: Option<(Bits<N>, T)>,
 }
 
-impl<T: Digital + Default, N: BitWidth> SynchronousIO for PipeBRAM<T, N> {
+impl<T: Digital + Default, N: BitWidth> SynchronousIO for PipeSyncBRAM<T, N> {
     type I = In<T, N>;
     type O = Option<T>;
     type Kernel = kernel<T, N>;
 }
 
 #[kernel]
+/// The kernel for the [PipeBRAM]
 pub fn kernel<T: Digital + Default, N: BitWidth>(
     _cr: ClockReset,
     i: In<T, N>,
@@ -177,7 +168,7 @@ mod tests {
             .map(|(r, w)| In { read: r, write: w })
             .stream_after_reset(1)
             .clock_pos_edge(100);
-        let uut = PipeBRAM::new((0..).map(|x| (b3(x), b8(x))));
+        let uut = PipeSyncBRAM::new((0..).map(|x| (b3(x), b8(x))));
         let vcd = uut
             .run(inputs)?
             .sample_at_pos_edge(|x| x.value.0.clock)

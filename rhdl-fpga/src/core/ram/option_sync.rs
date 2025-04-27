@@ -1,10 +1,10 @@
-//! A synchronous ram wrapped in an interface that accepts Option<T> for writing
+//! A synchronous ram wrapped in an interface that accepts `Option<T>` for writing
 //!
-//! This version of the BRAM replaces the write enable with an Option<T> interface
+//! This version of the BRAM replaces the write enable with an `Option<T>` interface
 //! which is more idiomatic for RHDL.  THe schematic symbol looks like this:
 //!
-#![doc = badascii_doc::badascii!(r#"
-         +---+OptionBRAM+-----+       
+#![doc = badascii_doc::badascii_formal!(r#"
+         +-+OptionSyncBRAM+---+       
     B<N> |                    | T     
   +----->|read_addr     output+------>
 ?(B<N>,T)|                    |       
@@ -34,14 +34,43 @@
            |                                                          |     
            +----------------------------------------------------------+     
 "#)]
+//!# Example
+//!
+//! Here is a simple example that issues reads and writes using the
+//! two interfaces.  The setup for the read is
+#![doc = badascii_doc::badascii!(r"
+ cycle   0    1   2    3   4   5  
++------+----+---+----+---+---+---+
+| read | 4  | 5 | 2  | 1 | 4 | X |
++------+----+---+----+---+---+---+
+|write | 2  |   | 4  |   |   |   |
+|  data| 42 |   | 21 |   |   |   |
++------+----+---+----+---+---+---+
+")]
+//! where the last cycle is included to allow for the latency of
+//! the read in cycle 4.
+//!
+//!```
+#![doc = include_str!("../../../examples/option_bram.rs")]
+//!```
+//!
+//! With a resulting trace file here.
+#![doc = include_str!("../../../doc/option_bram.md")]
+
 use rhdl::prelude::*;
 
 #[derive(PartialEq, Debug, Clone, Default, Synchronous, SynchronousDQ)]
+/// The unit to include that wraps the [SyncBRAM]
+/// The `T` parameter indicates the type of element stored in the
+/// BRAM.  It must implement [Digital].
+/// The `N` parameter indicates the number of address bits.  Thus,
+/// the BRAM will hold `2^N` elements.
 pub struct OptionSyncBRAM<T: Digital + Default, N: BitWidth> {
     inner: super::synchronous::SyncBRAM<T, N>,
 }
 
 impl<T: Digital + Default, N: BitWidth> OptionSyncBRAM<T, N> {
+    /// Create a new [OptionSyncBRAM] with the provided initial contents.
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         Self {
             inner: super::synchronous::SyncBRAM::new(initial),
@@ -50,8 +79,13 @@ impl<T: Digital + Default, N: BitWidth> OptionSyncBRAM<T, N> {
 }
 
 #[derive(PartialEq, Debug, Digital)]
+/// The input struct for the [OptionSyncBRAM]
 pub struct In<T: Digital + Default, N: BitWidth> {
+    /// The address to read from
     pub read_addr: Bits<N>,
+    /// The write instruction - if [Some] then take the
+    /// address and data element and issue a write.  Otherwise
+    /// the write instruction does nothing.
     pub write: Option<(Bits<N>, T)>,
 }
 
@@ -62,6 +96,7 @@ impl<T: Digital + Default, N: BitWidth> SynchronousIO for OptionSyncBRAM<T, N> {
 }
 
 #[kernel]
+/// Kernel function for [OptionSyncBRAM]
 pub fn ram_kernel<T: Digital + Default, N: BitWidth>(
     _cr: ClockReset,
     i: In<T, N>,
