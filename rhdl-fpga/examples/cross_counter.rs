@@ -11,16 +11,14 @@ fn main() -> Result<(), RHDLError> {
     // Clock them on the red domain
     let red = red.stream_after_reset(1).clock_pos_edge(100);
     // Create an empty stream on the blue domain
-    let blue = std::iter::repeat(false)
+    let blue = std::iter::repeat(())
         .stream_after_reset(1)
         .clock_pos_edge(79);
     // Merge them
-    let inputs = merge(red, blue, |r: (ClockReset, bool), b: (ClockReset, bool)| {
-        In {
-            incr: signal(r.1),
-            incr_cr: signal(r.0),
-            cr: signal(b.0),
-        }
+    let inputs = merge(red, blue, |r: (ClockReset, bool), b: (ClockReset, ())| In {
+        incr: signal(r.1),
+        incr_cr: signal(r.0),
+        cr: signal(b.0),
     });
     // Next we create an instance of the clock-domain crossing core, with
     // the appropriate clock domains.

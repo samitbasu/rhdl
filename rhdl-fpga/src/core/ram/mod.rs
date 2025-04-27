@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 pub mod asynchronous;
 pub mod option_async;
 pub mod option_sync;

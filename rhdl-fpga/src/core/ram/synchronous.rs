@@ -4,7 +4,7 @@
 //! a type T, and the address is assumed to be N bits wide.
 //!
 //! Here is the schematic symbol
-#![doc = badascii_doc::badascii!(r#"
+#![doc = badascii_doc::badascii_formal!(r#"
       +--+SyncBRAM+---------+    
 B<N>  |                     | T  
 +---->|read_addr        out +--->
@@ -52,6 +52,20 @@ bool  |                     |
 |                                                                  |
 +------------------------------------------------------------------+
 "#)]
+//!
+//! In general, I don't recommend using a [SyncBRAM].  It's easier
+//! and more idiomatic to use either [OptionSyncBRAM](super::option_sync::OptionSyncBRAM)
+//! or [PipeSyncBRAM](super::pipe_sync::PipeSyncBRAM),
+//! which provide [Option] interfaces.
+//!
+//!# Example
+//!
+//! Here we encode the example above.  
+//! ```
+#![doc = include_str!("../../../examples/sync_bram.rs")]
+//! ```
+//! The trace below demonstrates the result.
+#![doc = include_str!("../../../doc/sync_bram.md")]
 
 use rhdl::{
     core::hdl::ast::{index, index_bit, memory_index, Declaration},
@@ -59,17 +73,19 @@ use rhdl::{
 };
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
-/// The synchronous version of the block ram.  This one assumes a clock
+/// The synchronous version of the block ram.  
+///
+/// This one assumes a clock
 /// for both the read and write interfaces, and since the clock and reset
 /// lines are implied with Synchronous circuits, they do not appear in the
 /// interface.
-///
 #[derive(PartialEq, Debug, Clone, Default)]
 pub struct SyncBRAM<T: Digital, N: BitWidth> {
     initial: BTreeMap<Bits<N>, T>,
 }
 
 impl<T: Digital, N: BitWidth> SyncBRAM<T, N> {
+    /// Create a new [SyncBRAM] with the provided initial contents.
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         let len = (1 << N::BITS) as usize;
         Self {
@@ -79,15 +95,22 @@ impl<T: Digital, N: BitWidth> SyncBRAM<T, N> {
 }
 
 #[derive(PartialEq, Debug, Digital)]
+/// A collection of signals for a raw write interface
 pub struct Write<T: Digital, N: BitWidth> {
+    /// The address for the write operation
     pub addr: Bits<N>,
+    /// The value to write in the write operation
     pub value: T,
+    /// Set this to `true` to enable a write
     pub enable: bool,
 }
 
 #[derive(PartialEq, Debug, Digital)]
+/// Core inputs
 pub struct In<T: Digital, N: BitWidth> {
+    /// The read address to provide to the [SyncBRAM]
     pub read_addr: Bits<N>,
+    /// The write parameters as a [Write] struct.
     pub write: Write<T, N>,
 }
 
@@ -103,6 +126,7 @@ impl<T: Digital, N: BitWidth> SynchronousIO for SyncBRAM<T, N> {
 }
 
 #[derive(PartialEq, Debug, Clone)]
+#[doc(hidden)]
 pub struct S<T: Digital, N: BitWidth> {
     clock: Clock,
     contents: BTreeMap<Bits<N>, T>,
@@ -269,7 +293,7 @@ mod tests {
     use rhdl::prelude::*;
 
     use super::*;
-    use std::{iter::repeat, path::PathBuf};
+    use std::path::PathBuf;
 
     #[derive(PartialEq, Debug, Clone, Copy)]
     enum Cmd {
@@ -368,7 +392,7 @@ mod tests {
     #[test]
     fn test_ram_write_then_read() -> miette::Result<()> {
         type UC = SyncBRAM<b8, U4>;
-        let uut: UC = SyncBRAM::new(repeat((bits(0), b8::from(0))).take(16));
+        let uut: UC = SyncBRAM::new(std::iter::repeat_n((bits(0), b8::from(0)), 16));
         let test = vec![
             Cmd::Write(bits(0), bits(72)),
             Cmd::Write(bits(1), bits(99)),

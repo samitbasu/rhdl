@@ -117,7 +117,7 @@ mod tests {
         );
         let stream_read = get_scan_out_stream(100, 34);
         // The write interface will be dormant
-        let stream_write = get_write_stream(70, std::iter::repeat(None).take(50));
+        let stream_write = get_write_stream(70, std::iter::repeat_n(None, 50));
         // Stitch the two streams together
         let stream = stream_read.merge(stream_write, |r, w| I {
             read: signal(r),
@@ -184,7 +184,7 @@ mod tests {
         );
         let stream_read = get_scan_out_stream(100, 32);
         // The write interface will be dormant
-        let stream_write = get_write_stream(70, std::iter::repeat(None).take(50));
+        let stream_write = get_write_stream(70, std::iter::repeat_n(None, 50));
         // Stitch the two streams together
         let stream = merge(stream_read, stream_write, |r, w| I {
             read: signal(r),
