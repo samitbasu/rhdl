@@ -6,7 +6,7 @@ where
     Const<Z>: BitWidth,
 {
     filler: Adapter<crate::fifo::testing::filler::U<N>, W>,
-    fifo: crate::fifo::asynchronous::U<Bits<N>, W, R, Z>,
+    fifo: crate::fifo::asynchronous::AsyncFIFO<Bits<N>, W, R, Z>,
     drainer: Adapter<crate::fifo::testing::drainer::U<N>, R>,
 }
 
