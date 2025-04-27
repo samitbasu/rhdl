@@ -12,7 +12,7 @@ use super::write_logic;
 pub struct U<T: Digital + Default, N: BitWidth> {
     write_logic: write_logic::U<N>,
     read_logic: read_logic::U<N>,
-    ram: ram::option_sync::U<T, N>,
+    ram: ram::option_sync::OptionSyncBRAM<T, N>,
 }
 
 #[derive(PartialEq, Debug, Digital)]
@@ -133,7 +133,7 @@ mod tests {
             .join("fifo")
             .join("synchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["8ae871f0cc557a41a98640bc3e750a9138821e2741f3b4f7adebe413d6d8ce34"];
+        let expect = expect!["66e5851b6db9dc9c8b409336c7c51c05573beffa46ffb1d7e37ded9ea48d5833"];
         let digest = vcd.dump_to_file(&root.join("fifo.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

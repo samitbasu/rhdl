@@ -79,7 +79,7 @@ Input   |                      |                  |  +---------+ ||  |          
 //!
 //! # Example
 //!
-//! ```
+//!```
 //! use rand::random;
 //! use rhdl::{core::trace::svg::SvgOptions, prelude::*};
 //! use rhdl_fpga::cdc::cross_counter::{In, Out, Unit};
@@ -124,7 +124,7 @@ Input   |                      |                  |  +---------+ ||  |          
 //!     .unwrap();
 //!     Ok(())
 //! }
-//! ```
+//!```
 #![doc = include_str!("../../test_vcd/cross_counter.svg")]
 
 use rhdl::prelude::*;

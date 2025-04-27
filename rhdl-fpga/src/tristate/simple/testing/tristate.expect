@@ -31,9 +31,9 @@ module inner_inner(input wire [1:0] clock_reset, input wire [25:0] i, output wir
         reg [2:0] r3;
         reg [9:0] r5;
         reg [25:0] r6;
-        reg  r7;
+        reg [0:0] r7;
         reg [8:0] r8;
-        reg  r10;
+        reg [0:0] r10;
         reg [7:0] r11;
         reg [10:0] r13;
         reg [10:0] r14;
@@ -287,8 +287,8 @@ module inner_inner(input wire [1:0] clock_reset, input wire [25:0] i, output wir
 endmodule
 //
 module inner_inner_reg(input wire [1:0] clock_reset, input wire [7:0] i, output reg [7:0] o);
-    wire  clock;
-    wire  reset;
+    wire [0:0] clock;
+    wire [0:0] reset;
     initial begin
         o = 8'b00000000;
     end
@@ -305,8 +305,8 @@ module inner_inner_reg(input wire [1:0] clock_reset, input wire [7:0] i, output 
 endmodule
 //
 module inner_inner_state(input wire [1:0] clock_reset, input wire [2:0] i, output reg [2:0] o);
-    wire  clock;
-    wire  reset;
+    wire [0:0] clock;
+    wire [0:0] reset;
     initial begin
         o = 3'b000;
     end

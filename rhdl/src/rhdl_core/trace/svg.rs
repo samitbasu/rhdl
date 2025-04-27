@@ -37,11 +37,24 @@ pub struct SvgOptions {
     pub height: i32,
     pub label_width: i32,
     pub glitch_filter: Option<u32>,
+    pub name_filters: Option<regex::Regex>,
 }
 
 impl SvgOptions {
     pub fn spacing(&self) -> i32 {
         self.height + self.shim * 2
+    }
+    pub fn with_label_width(self, width: i32) -> Self {
+        Self {
+            label_width: width,
+            ..self
+        }
+    }
+    pub fn with_filter(self, regex: &str) -> Self {
+        Self {
+            name_filters: Some(regex::Regex::new(regex).unwrap()),
+            ..self
+        }
     }
 }
 
@@ -54,6 +67,7 @@ impl Default for SvgOptions {
             height: 14,
             label_width: 40,
             glitch_filter: Some(2),
+            name_filters: None,
         }
     }
 }
@@ -164,6 +178,13 @@ pub fn render_traces_to_svg(traces: &[Trace], options: &SvgOptions) -> Box<[SvgR
     stack_svg_regions(
         &traces
             .iter()
+            .filter(|t| {
+                options
+                    .name_filters
+                    .as_ref()
+                    .map(|f| f.is_match(&t.hint))
+                    .unwrap_or(true)
+            })
             .map(|trace| render_trace_to_svg(trace, options))
             .collect::<Vec<_>>(),
         options,
