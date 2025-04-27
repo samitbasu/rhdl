@@ -87,7 +87,7 @@ mod tests {
     use rhdl::prelude::*;
 
     use super::*;
-    use std::{iter::repeat, path::PathBuf};
+    use std::path::PathBuf;
 
     #[derive(PartialEq, Debug, Clone, Copy)]
     enum Cmd {
@@ -182,7 +182,7 @@ mod tests {
     #[test]
     fn test_ram_write_then_read() -> miette::Result<()> {
         type UC = OptionSyncBRAM<b8, U4>;
-        let uut: UC = OptionSyncBRAM::new(repeat((bits(0), b8::from(0))).take(16));
+        let uut: UC = OptionSyncBRAM::new(std::iter::repeat_n((bits(0), b8::from(0)), 16));
         let test = vec![
             Cmd::Write(bits(0), bits(72)),
             Cmd::Write(bits(1), bits(99)),

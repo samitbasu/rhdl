@@ -5,6 +5,7 @@ pub mod pin;
 pub use anyhow::Result;
 pub mod axi4lite;
 pub mod cdc;
+pub mod doc;
 pub mod dsp;
 pub mod gearbox;
 pub mod gray;
