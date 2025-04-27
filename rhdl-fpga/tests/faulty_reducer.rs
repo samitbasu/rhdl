@@ -113,8 +113,7 @@ pub fn kernel<DW: BitWidth, DN: BitWidth>(
 #[test]
 fn test_no_combinatorial_paths() -> miette::Result<()> {
     let uut = U::<U16, U8>::default();
-    //assert!(drc::no_combinatorial_paths(&uut).is_err());
-    //  Uncomment to get the error report
-    drc::no_combinatorial_paths(&uut)?;
+    let res = drc::no_combinatorial_paths(&uut);
+    assert!(res.is_err());
     Ok(())
 }

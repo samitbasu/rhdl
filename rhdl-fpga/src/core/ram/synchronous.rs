@@ -1,3 +1,55 @@
+//! A simple synchronous block ram.  The contents are generic over
+//! a type T, and the address is assumed to be N bits wide.
+//! Here is the schematic symbol
+#![doc = badascii_doc::badascii!(r#"
+      +--+SyncBRAM+---------+    
+B<N>  |                     | T  
++---->|read_addr        out +--->
+B<N>  |                     |    
++---->|write.addr           |    
+ T    |                     |    
++---->|write.value          |    
+bool  |                     |    
++---->|write.enable         |    
+      |                     |    
+      +---------------------+    
+"#)]
+//! From a timing perspective, it is assumed that the block ram
+//! implements a single cycle delay on both the read and write
+//! interfaces.  Reading and writing to the same address cell at
+//! the same clock cycle does not result in defined behavior.  The
+//! underlying primitive may provide some guarantees (like write before read),
+//! but these are not enforced, so use with caution.
+//!
+//! The following diagram illustrates the basic timing.  The `Data@A1`
+//! indicates the nominal contents of the BRAM cell at address `A1`:
+#![doc = badascii_doc::badascii!(r#"
++------+Timing+----------------------------------------------------+
+|                                                                  |
+|             +----+    +----+    +----+    +----+    +            |
+|      clk  +-+    +----+    +----+    +----+    +----+            |
+|             :         :         :         :         :            |
+| read_addr   XXXX +---+A1+--+---+A2+--+---+A1+--+  ...            |
+|           +------+---------+---------+---------+-----+           |
+|             :         :         :         :         :            |
+|       out           XXXX   +---+D1+--+---+D2+--+---+D3+--+  ...  |
+|           +----------------+---------+---------+---------+-----+ |
+|             :         :         :         :         :            |
+| write.addr                 +---+A1+--+                           |
+|           +----------------+---------+--------------------+      |
+|             :         :         :         :         :            |
+| write.value                +---+D3+--+                           |
+|             +--------------+---------+--------------------+      |
+|             :         :         :         :         :            |
+| write.enable               +---------+                           |
+|              ++------------+    : δt +--------------------+      |
+|             :         :         +-->      :         :            |
+| Data@A1      +-----+D1+-------------+-+D3+---------------+       |
+|              +----------------------+--------------------+       |
+|                                                                  |
++------------------------------------------------------------------+
+"#)]
+
 use rhdl::{
     core::hdl::ast::{index, index_bit, memory_index, Declaration},
     prelude::*,
@@ -10,11 +62,11 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 /// interface.
 ///
 #[derive(PartialEq, Debug, Clone, Default)]
-pub struct U<T: Digital, N: BitWidth> {
+pub struct SyncBRAM<T: Digital, N: BitWidth> {
     initial: BTreeMap<Bits<N>, T>,
 }
 
-impl<T: Digital, N: BitWidth> U<T, N> {
+impl<T: Digital, N: BitWidth> SyncBRAM<T, N> {
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         let len = (1 << N::BITS) as usize;
         Self {
@@ -31,18 +83,18 @@ pub struct Write<T: Digital, N: BitWidth> {
 }
 
 #[derive(PartialEq, Debug, Digital)]
-pub struct I<T: Digital, N: BitWidth> {
+pub struct In<T: Digital, N: BitWidth> {
     pub read_addr: Bits<N>,
     pub write: Write<T, N>,
 }
 
-impl<T: Digital, N: BitWidth> SynchronousDQ for U<T, N> {
+impl<T: Digital, N: BitWidth> SynchronousDQ for SyncBRAM<T, N> {
     type D = ();
     type Q = ();
 }
 
-impl<T: Digital, N: BitWidth> SynchronousIO for U<T, N> {
-    type I = I<T, N>;
+impl<T: Digital, N: BitWidth> SynchronousIO for SyncBRAM<T, N> {
+    type I = In<T, N>;
     type O = T;
     type Kernel = NoKernel3<ClockReset, Self::I, (), (Self::O, ())>;
 }
@@ -56,7 +108,7 @@ pub struct S<T: Digital, N: BitWidth> {
     write_prev: Write<T, N>,
 }
 
-impl<T: Digital, N: BitWidth> Synchronous for U<T, N> {
+impl<T: Digital, N: BitWidth> Synchronous for SyncBRAM<T, N> {
     type S = Rc<RefCell<S<T, N>>>;
 
     fn init(&self) -> Self::S {
@@ -235,10 +287,10 @@ mod tests {
 
     struct TestItem(Cmd, b8);
 
-    impl From<Cmd> for I<b8, U4> {
+    impl From<Cmd> for In<b8, U4> {
         fn from(cmd: Cmd) -> Self {
             match cmd {
-                Cmd::Write(addr, value) => I {
+                Cmd::Write(addr, value) => In {
                     read_addr: bits(0),
                     write: Write {
                         addr,
@@ -246,7 +298,7 @@ mod tests {
                         enable: true,
                     },
                 },
-                Cmd::Read(addr) => I {
+                Cmd::Read(addr) => In {
                     read_addr: addr,
                     write: Write::dont_care(),
                 },
@@ -256,8 +308,8 @@ mod tests {
 
     #[test]
     fn test_scan_out_ram() -> miette::Result<()> {
-        type UC = U<b8, U4>;
-        let uut: UC = U::new(
+        type UC = SyncBRAM<b8, U4>;
+        let uut: UC = SyncBRAM::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -276,7 +328,7 @@ mod tests {
             .join("ram")
             .join("synchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["7ef5bcb37435d0ebd082cdf3775b44a45259e5dcc006bb127d14569292aaec64"];
+        let expect = expect!["1308d1e201408d4630039df66282029c8ca0c49d914fd0baa60f1dbe4f0e135a"];
         let digest = vcd
             .dump_to_file(&root.join("test_scan_out_ram.vcd"))
             .unwrap();
@@ -292,15 +344,15 @@ mod tests {
 
     fn random_command_stream(
         len: usize,
-    ) -> impl Iterator<Item = TimedSample<(ClockReset, I<b8, U4>)>> {
+    ) -> impl Iterator<Item = TimedSample<(ClockReset, In<b8, U4>)>> {
         let inputs = (0..).map(|_| rand_cmd().into()).take(len);
         inputs.stream_after_reset(1).clock_pos_edge(100)
     }
 
     #[test]
     fn test_hdl_output() -> miette::Result<()> {
-        type UC = U<b8, U4>;
-        let uut: UC = U::new((0..).map(|ndx| (bits(ndx), bits(0))));
+        type UC = SyncBRAM<b8, U4>;
+        let uut: UC = SyncBRAM::new((0..).map(|ndx| (bits(ndx), bits(0))));
         let stream = random_command_stream(1000);
         let test_bench = uut.run(stream)?.collect::<SynchronousTestBench<_, _>>();
         let test_mod = test_bench.flow_graph(&uut, &TestBenchOptions::default().skip(2))?;
@@ -312,8 +364,8 @@ mod tests {
 
     #[test]
     fn test_ram_write_then_read() -> miette::Result<()> {
-        type UC = U<b8, U4>;
-        let uut: UC = U::new(repeat((bits(0), b8::from(0))).take(16));
+        type UC = SyncBRAM<b8, U4>;
+        let uut: UC = SyncBRAM::new(repeat((bits(0), b8::from(0))).take(16));
         let test = vec![
             Cmd::Write(bits(0), bits(72)),
             Cmd::Write(bits(1), bits(99)),

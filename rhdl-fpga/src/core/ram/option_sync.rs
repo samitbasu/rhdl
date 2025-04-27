@@ -1,27 +1,62 @@
-// A synchronous ram wrapped in an interface that accepts Option<T> for writing
+//! A synchronous ram wrapped in an interface that accepts Option<T> for writing
+//!
+//! This version of the BRAM replaces the write enable with an Option<T> interface
+//! which is more idiomatic for RHDL.  THe schematic symbol looks like this:
+//!
+#![doc = badascii_doc::badascii!(r#"
+         +---+OptionBRAM+-----+       
+    B<N> |                    | T     
+  +----->|read_addr     output+------>
+?(B<N>,T)|                    |       
+  +----->|write               |       
+         |                    |       
+         +--------------------+       
+"#)]
+//!
+//! Internally, the circuitry is very simple.  The option is decoded
+//! (combinatorially) into a write enable flag, an address and a
+//! data value.  These are then forwarded to the regular synchronous
+//! BRAM.
+#![doc = badascii_doc::badascii!(r#"
+           +-+OptionSyncBRAM+-----------------------------------------+     
+           |                                                          |     
+           |                               +--+SyncBRAM+---------+    |     
+ B<N>      |                         B<N>  |                     |    |  T  
++----------+------------------------------>|read_addr        out +----+---->
+           |                     .0  B<N>  |                     |    |     
+ ?(B<N>,T) |     ++Unpack+-+   +---------->|write.addr           |    |     
++----------+---->|         |   | .1   T    |                     |    |     
+           |     | (B<N>,T)++--+---------->|write.value          |    |     
+           |     |         |         bool  |                     |    |     
+           |     |    valid+-------------->|write.enable         |    |     
+           |     +---------+               |                     |    |     
+           |                               +---------------------+    |     
+           |                                                          |     
+           +----------------------------------------------------------+     
+"#)]
 use rhdl::prelude::*;
 
 #[derive(PartialEq, Debug, Clone, Default, Synchronous, SynchronousDQ)]
-pub struct U<T: Digital + Default, N: BitWidth> {
-    inner: super::synchronous::U<T, N>,
+pub struct OptionSyncBRAM<T: Digital + Default, N: BitWidth> {
+    inner: super::synchronous::SyncBRAM<T, N>,
 }
 
-impl<T: Digital + Default, N: BitWidth> U<T, N> {
+impl<T: Digital + Default, N: BitWidth> OptionSyncBRAM<T, N> {
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         Self {
-            inner: super::synchronous::U::new(initial),
+            inner: super::synchronous::SyncBRAM::new(initial),
         }
     }
 }
 
 #[derive(PartialEq, Debug, Digital)]
-pub struct I<T: Digital + Default, N: BitWidth> {
+pub struct In<T: Digital + Default, N: BitWidth> {
     pub read_addr: Bits<N>,
     pub write: Option<(Bits<N>, T)>,
 }
 
-impl<T: Digital + Default, N: BitWidth> SynchronousIO for U<T, N> {
-    type I = I<T, N>;
+impl<T: Digital + Default, N: BitWidth> SynchronousIO for OptionSyncBRAM<T, N> {
+    type I = In<T, N>;
     type O = T;
     type Kernel = ram_kernel<T, N>;
 }
@@ -29,7 +64,7 @@ impl<T: Digital + Default, N: BitWidth> SynchronousIO for U<T, N> {
 #[kernel]
 pub fn ram_kernel<T: Digital + Default, N: BitWidth>(
     _cr: ClockReset,
-    i: I<T, N>,
+    i: In<T, N>,
     q: Q<T, N>,
 ) -> (T, D<T, N>) {
     let mut d = D::<T, N>::dont_care();
@@ -73,14 +108,14 @@ mod tests {
 
     struct TestItem(Cmd, b8);
 
-    impl From<Cmd> for I<b8, U4> {
+    impl From<Cmd> for In<b8, U4> {
         fn from(cmd: Cmd) -> Self {
             match cmd {
-                Cmd::Write(addr, value) => I {
+                Cmd::Write(addr, value) => In {
                     read_addr: bits(0),
                     write: Some((addr, value)),
                 },
-                Cmd::Read(addr) => I {
+                Cmd::Read(addr) => In {
                     read_addr: addr,
                     write: None,
                 },
@@ -90,8 +125,8 @@ mod tests {
 
     #[test]
     fn test_scan_out_ram() -> miette::Result<()> {
-        type UC = U<b8, U4>;
-        let uut: UC = U::new(
+        type UC = OptionSyncBRAM<b8, U4>;
+        let uut: UC = OptionSyncBRAM::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -110,7 +145,7 @@ mod tests {
             .join("ram")
             .join("option_sync");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["1cf9d446f10be94a6ee388f76baf7717a32b833496325f4ce7fb0f6a43bdf1fc"];
+        let expect = expect!["6ae49265b7848fe1c8bc2104362a0e21b17df25808b81663aeffff5476524191"];
         let digest = vcd
             .dump_to_file(&root.join("test_scan_out_option_ram.vcd"))
             .unwrap();
@@ -126,15 +161,15 @@ mod tests {
 
     fn random_command_stream(
         len: usize,
-    ) -> impl Iterator<Item = TimedSample<(ClockReset, I<b8, U4>)>> {
+    ) -> impl Iterator<Item = TimedSample<(ClockReset, In<b8, U4>)>> {
         let inputs = (0..).map(|_| rand_cmd().into()).take(len);
         inputs.stream_after_reset(1).clock_pos_edge(100)
     }
 
     #[test]
     fn test_hdl_output() -> miette::Result<()> {
-        type UC = U<b8, U4>;
-        let uut: UC = U::new((0..).map(|ndx| (bits(ndx), bits(0))));
+        type UC = OptionSyncBRAM<b8, U4>;
+        let uut: UC = OptionSyncBRAM::new((0..).map(|ndx| (bits(ndx), bits(0))));
         let stream = random_command_stream(1000);
         let test_bench = uut.run(stream)?.collect::<SynchronousTestBench<_, _>>();
         let test_mod = test_bench.flow_graph(&uut, &TestBenchOptions::default().skip(2))?;
@@ -146,8 +181,8 @@ mod tests {
 
     #[test]
     fn test_ram_write_then_read() -> miette::Result<()> {
-        type UC = U<b8, U4>;
-        let uut: UC = U::new(repeat((bits(0), b8::from(0))).take(16));
+        type UC = OptionSyncBRAM<b8, U4>;
+        let uut: UC = OptionSyncBRAM::new(repeat((bits(0), b8::from(0))).take(16));
         let test = vec![
             Cmd::Write(bits(0), bits(72)),
             Cmd::Write(bits(1), bits(99)),

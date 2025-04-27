@@ -54,7 +54,7 @@ mod tests {
             .join("vcd")
             .join("fifo");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["8f9450e679089c0611b60776c37c3832b60a572d23a34abcebcb15ded632e05f"];
+        let expect = expect!["def730194c809a48ee8188f83360b2a5173a26d54de45a5c3b86272b36869b38"];
         let digest = vcd.dump_to_file(&root.join("sync_fifo.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

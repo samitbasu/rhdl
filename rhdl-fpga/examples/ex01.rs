@@ -1,5 +1,5 @@
 use rand::random;
-use rhdl::{core::trace::svg::SvgOptions, prelude::*};
+use rhdl::prelude::*;
 use rhdl_fpga::cdc::cross_counter::{In, Out, Unit};
 
 // This function will generate a stream of random pulses in the red
@@ -33,11 +33,13 @@ fn main() -> Result<(), RHDLError> {
         .take_while(|x| x.time < 1000)
         .collect::<Vcd>();
     std::fs::create_dir_all("test_vcd").unwrap();
-    let mut options = SvgOptions::default();
-    options.label_width = 20;
+    let options = SvgOptions {
+        label_width: 20,
+        ..Default::default()
+    };
     std::fs::write(
         "test_vcd/cross_counter.svg",
-        &vcd.dump_svg(&options).to_string(),
+        vcd.dump_svg(&options).to_string(),
     )
     .unwrap();
     Ok(())
