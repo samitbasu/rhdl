@@ -78,7 +78,7 @@
 ")]
 //!
 //!
-//! # Example
+//!# Example
 //!
 //! Here is an example of the the `PipeSyncBRAM` being
 //! used with the same test sequence illustrated above.
@@ -104,7 +104,7 @@ use super::option_sync::OptionSyncBRAM;
 /// The `N` parameter indicates the number of address bits.
 pub struct PipeSyncBRAM<T: Digital + Default, N: BitWidth> {
     ram: super::option_sync::OptionSyncBRAM<T, N>,
-    delay: dff::U<bool>,
+    delay: dff::DFF<bool>,
 }
 
 impl<T: Digital + Default, N: BitWidth> PipeSyncBRAM<T, N> {
@@ -112,7 +112,7 @@ impl<T: Digital + Default, N: BitWidth> PipeSyncBRAM<T, N> {
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         Self {
             ram: OptionSyncBRAM::new(initial),
-            delay: dff::U::default(),
+            delay: dff::DFF::default(),
         }
     }
 }

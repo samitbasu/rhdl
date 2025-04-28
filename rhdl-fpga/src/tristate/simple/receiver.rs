@@ -18,8 +18,8 @@ pub struct I {
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U {
-    state: dff::U<State>,
-    reg: dff::U<b8>,
+    state: dff::DFF<State>,
+    reg: dff::DFF<b8>,
 }
 
 impl SynchronousIO for U {

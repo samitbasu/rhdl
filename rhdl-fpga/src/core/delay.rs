@@ -1,27 +1,75 @@
+//! Delay Line
+//!
+//! This module implements a delay line in which the
+//! data type propagating through the delay is generic
+//! of type `T`, and the length of the delay is compile
+//! time configurable.
+//!
+//! Here is the schematic symbol
+#![doc = badascii_doc::badascii_formal!("
+    +--+Delay+---------+   
+  T |                  | T 
++-->| input     output +-->
+    |                  |   
+    +------------------+   
+")]
+//!# Internals
+//! Internally the delay is simply a chain of `N`
+//! [DFF]s, in a linear chain.  Note that the flip flops
+//! will reset to the default value for `T`, which is
+//! why it is required for `T: Default`.
+//!
+#![doc = badascii_doc::badascii!("
+       +----+   +----+       +----+       
+       |DFF1|   |DFF2|       |DFFN|       
+     T |    |   |    |  ...  |    | T     
+  +--->|d  q+-->|d  q+->  +->|d  q+-->    
+input  +----+   +----+       +----+ output
+")]
+//!
+//!
+//!# Example
+//!
+//! The delay is a fairly simple core, and
+//! the example is pretty basic.  To make it slightly more
+//! interesting, we demonstrate the case that the
+//! data being carried is an enum.
+//!
+//!```
+#![doc = include_str!("../../examples/delay.rs")]
+//!```
+//!
+//! The resulting trace is show below.
+#![doc = include_str!("../../doc/delay.md")]
+//!
 use rhdl::prelude::*;
 
 use super::dff;
 
 #[derive(PartialEq, Debug, Clone, Synchronous, SynchronousDQ)]
-pub struct U<T: Digital, const N: usize> {
-    dffs: [dff::U<T>; N],
+/// The Delay core
+/// `T` is the type carried by the core
+/// `N` is the length of the delay line
+pub struct Delay<T: Digital, const N: usize> {
+    dffs: [dff::DFF<T>; N],
 }
 
-impl<T: Digital + Default, const N: usize> Default for U<T, N> {
+impl<T: Digital + Default, const N: usize> Default for Delay<T, N> {
     fn default() -> Self {
         Self {
-            dffs: array_init::array_init(|_| dff::U::new(T::default())),
+            dffs: array_init::array_init(|_| dff::DFF::new(T::default())),
         }
     }
 }
 
-impl<T: Digital, const N: usize> SynchronousIO for U<T, N> {
+impl<T: Digital, const N: usize> SynchronousIO for Delay<T, N> {
     type I = T;
     type O = T;
     type Kernel = delay<T, N>;
 }
 
 #[kernel]
+/// Kernel for delay core
 pub fn delay<T: Digital, const N: usize>(_cr: ClockReset, i: T, q: Q<T, N>) -> (T, D<T, N>) {
     let mut d = D::<T, N>::dont_care();
     d.dffs[0] = i;
@@ -50,7 +98,7 @@ mod tests {
 
     #[test]
     fn test_delay_trace() -> miette::Result<()> {
-        let uut = U::<Option<Bits<U8>>, 4>::default();
+        let uut = Delay::<Option<Bits<U8>>, 4>::default();
         let input = test_pulse();
         let vcd = uut.run(input)?.collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -65,7 +113,7 @@ mod tests {
 
     #[test]
     fn test_delay_works() -> miette::Result<()> {
-        let uut = U::<Option<Bits<U8>>, 4>::default();
+        let uut = Delay::<Option<Bits<U8>>, 4>::default();
         let input = test_pulse();
         let output = uut.run(input)?.synchronous_sample();
         let count = output.clone().filter(|t| t.value.2.is_some()).count();
@@ -85,7 +133,7 @@ mod tests {
 
     #[test]
     fn test_delay_hdl_works() -> miette::Result<()> {
-        let uut = U::<Option<Bits<U8>>, 4>::default();
+        let uut = Delay::<Option<Bits<U8>>, 4>::default();
         let input = test_pulse();
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;

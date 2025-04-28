@@ -1,30 +1,54 @@
+//! A simple counter
+//!
+//! A simple counter that counts the number of boolean true
+//! values it has seen.  It is parameterized by the number of
+//! bits in the counter.
+//!
+//! Here is the schematic symbol
+#![doc = badascii_doc::badascii_formal!("
+      +-+Counter+-------+      
+      |                 |      
+ bool |                 |B<N>  
++---->+ input     count +----->
+      |                 |      
+      +-----------------+      
+")]
+//!
+//!# Example
+//!
+//! Here's a simple example of a counter.
+//!```
+#![doc = include_str!("../../examples/counter.rs")]
+//!```
+//! The trace below demonstrates the result.
+#![doc = include_str!("../../doc/counter.md")]
 use rhdl::prelude::*;
 
 use super::dff;
 
-// A simple counter that counts the number of boolean true
-// values it has seen.  It is parameterized by the number of
-// bits in the counter.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
-pub struct U<N: BitWidth> {
-    count: dff::U<Bits<N>>,
+/// The counter core
+///   `N` is the bitwidth of the counter
+pub struct Counter<N: BitWidth> {
+    count: dff::DFF<Bits<N>>,
 }
 
-impl<N: BitWidth> Default for U<N> {
+impl<N: BitWidth> Default for Counter<N> {
     fn default() -> Self {
         Self {
-            count: dff::U::new(Bits::<N>::default()),
+            count: dff::DFF::new(Bits::<N>::default()),
         }
     }
 }
 
-impl<N: BitWidth> SynchronousIO for U<N> {
+impl<N: BitWidth> SynchronousIO for Counter<N> {
     type I = bool;
     type O = Bits<N>;
     type Kernel = counter<N>;
 }
 
 #[kernel]
+/// Counter kernel function
 pub fn counter<N: BitWidth>(cr: ClockReset, enable: bool, q: Q<N>) -> (Bits<N>, D<N>) {
     let next_count = if enable { q.count + 1 } else { q.count };
     let next_count = if cr.reset.any() { bits(0) } else { next_count };
@@ -37,10 +61,7 @@ mod tests {
     use rand::random;
 
     use super::*;
-    use std::{
-        iter::{once, repeat},
-        path::PathBuf,
-    };
+    use std::{iter::once, path::PathBuf};
 
     #[test]
     fn test_counter_on_vec() -> miette::Result<()> {
@@ -48,7 +69,7 @@ mod tests {
         let inputs = inputs.stream_after_reset(4);
         let inputs = inputs.clock_pos_edge(100);
         let inputs = inputs.collect::<Vec<_>>();
-        let uut: U<U6> = U::default();
+        let uut: Counter<U6> = Counter::default();
         let output = uut.run(inputs)?.count();
         assert_eq!(output, 311);
         Ok(())
@@ -56,11 +77,11 @@ mod tests {
 
     #[test]
     fn test_counter() -> miette::Result<()> {
-        let inputs_1 = repeat(true).take(100).stream_after_reset(4);
+        let inputs_1 = std::iter::repeat_n(true, 100).stream_after_reset(4);
         let inputs_2 = inputs_1.clone();
         let input = inputs_1.chain(inputs_2);
         let input = input.clock_pos_edge(100);
-        let uut: U<U6> = U::default();
+        let uut: Counter<U6> = Counter::default();
         let vcd: Vcd = uut.run(input)?.collect();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
@@ -83,7 +104,7 @@ mod tests {
             .iter()
             .fold(0, |acc, x| acc + if *x { 1 } else { 0 });
         let stream = rand_set.stream_after_reset(4).clock_pos_edge(100);
-        let uut: U<U6> = U::default();
+        let uut: Counter<U6> = Counter::default();
         let out_stream = uut.run(stream)?;
         let output = out_stream.clone().last().map(|x| x.value.2);
         assert_eq!(output, Some(bits(ground_truth)));

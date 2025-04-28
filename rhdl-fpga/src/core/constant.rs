@@ -1,3 +1,32 @@
+//! Constant driver
+//!
+//! This core provides a constant value that can be provided
+//! later in the compilation phase (i.e., not when `rustc` runs).
+//!
+//! The schematic symbol is simple:
+#![doc = badascii_doc::badascii_formal!("
+++Constant+-+    
+|           | T  
+|       val +--->
+|           |    
++-----------+    
+")]
+//!
+//! There is no timing information, the constant
+//! core simply provides the constant value all the
+//! time.
+//!
+//!# Example
+//!
+//! Here is an example of the constant being
+//! used.
+//!
+//!```
+#![doc = include_str!("../../examples/constant.rs")]
+//!```
+//!
+//! The simulation trace is pretty boring.  
+#![doc = include_str!("../../doc/constant.md")]
 use rhdl::{
     core::{
         hdl::ast::{
@@ -10,33 +39,38 @@ use rhdl::{
 };
 
 #[derive(Clone, Debug)]
-pub struct U<T: Digital> {
+/// The core to include for the constant driver
+pub struct Constant<T: Digital> {
     value: T,
 }
 
-impl<T: Digital> U<T> {
+impl<T: Digital> Constant<T> {
+    ///. Create a new constant driver with the provided value
     pub fn new(value: T) -> Self {
         Self { value }
     }
 }
 
-impl<T: Digital> SynchronousIO for U<T> {
+impl<T: Digital> SynchronousIO for Constant<T> {
     type I = ();
     type O = T;
     type Kernel = NoKernel3<ClockReset, (), (), (T, ())>;
 }
 
-impl<T: Digital> SynchronousDQ for U<T> {
+impl<T: Digital> SynchronousDQ for Constant<T> {
     type D = ();
     type Q = ();
 }
 
-impl<T: Digital> Synchronous for U<T> {
+impl<T: Digital> Synchronous for Constant<T> {
     type S = ();
 
     fn init(&self) -> Self::S {}
 
     fn sim(&self, _clock_reset: ClockReset, _input: Self::I, _state: &mut Self::S) -> Self::O {
+        trace_push_path("constant");
+        trace("value", &self.value);
+        trace_pop_path();
         self.value
     }
 
@@ -69,9 +103,9 @@ impl<T: Digital> Synchronous for U<T> {
     }
 }
 
-impl<T: Digital> DigitalFn for U<T> {}
+impl<T: Digital> DigitalFn for Constant<T> {}
 
-impl<T: Digital> U<T> {
+impl<T: Digital> Constant<T> {
     fn as_verilog(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = self.descriptor(name)?.unique_name;
         let mut module = Module {

@@ -16,26 +16,26 @@ pub enum State {
 #[derive(PartialEq, Debug, Clone, SynchronousDQ, Synchronous)]
 pub struct U<T: Digital> {
     /// The state of the buffer
-    state: dff::U<State>,
+    state: dff::DFF<State>,
     /// The 0 slot of the buffer,
-    zero_slot: dff::U<T>,
+    zero_slot: dff::DFF<T>,
     /// The 1 slot of the buffer,
-    one_slot: dff::U<T>,
+    one_slot: dff::DFF<T>,
     /// Where to write next item - in this case
     /// we use false for zero and true for one
-    write_slot: dff::U<bool>,
+    write_slot: dff::DFF<bool>,
     /// Where to read next item
-    read_slot: dff::U<bool>,
+    read_slot: dff::DFF<bool>,
 }
 
 impl<T: Digital> Default for U<T> {
     fn default() -> Self {
         Self {
-            state: dff::U::default(),
-            zero_slot: dff::U::new(T::dont_care()),
-            one_slot: dff::U::new(T::dont_care()),
-            write_slot: dff::U::default(),
-            read_slot: dff::U::default(),
+            state: dff::DFF::default(),
+            zero_slot: dff::DFF::new(T::dont_care()),
+            one_slot: dff::DFF::new(T::dont_care()),
+            write_slot: dff::DFF::default(),
+            read_slot: dff::DFF::default(),
         }
     }
 }

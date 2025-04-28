@@ -14,14 +14,14 @@ pub struct U<
 > {
     // The FF to hold the input data - combined with
     // the void_in flag
-    data_in_ff: dff::U<Option<X>>,
+    data_in_ff: dff::DFF<Option<X>>,
     // The FF to hold the stop out flag
-    ready_out_ff: dff::U<bool>,
+    ready_out_ff: dff::DFF<bool>,
     // The FF to hold the output data - combined with
     // the void_out flag
-    data_out_ff: dff::U<Option<Y>>,
+    data_out_ff: dff::DFF<Option<Y>>,
     // The FF to hold the stop in flag
-    ready_in_ff: dff::U<bool>,
+    ready_in_ff: dff::DFF<bool>,
 }
 
 #[derive(PartialEq, Debug, Digital)]

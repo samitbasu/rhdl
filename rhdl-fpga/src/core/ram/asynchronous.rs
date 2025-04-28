@@ -24,11 +24,11 @@
  B<N> |                           | T   
 +---->| read.addr          output +---->
  clk  |                           |     
-+---->| read.clock                |     
-      |                           |     
-      |                           |     
- B<N> |                           |     
-+---->| write.addr                |     
++---->| read.clock      R domain  |     
+      |               ^           |     
+      |          +----+-----+     |     
+ B<N> |               v           |     
++---->| write.addr      W domain  |     
   T   |                           |     
 +---->| write.data                |     
  bool |                           |     
@@ -36,7 +36,7 @@
  clk  |                           |     
 +---->| write.clock               |     
       |                           |     
-      +---------------------------+     
+      +---------------------------+         
 ")]
 //!
 //!# Timing

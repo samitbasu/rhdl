@@ -17,7 +17,7 @@ pub struct U {
     // We need a read bridge
     read_bridge: bridge::read::U,
     // And a register to hold the value
-    reg: dff::U<AxilData>,
+    reg: dff::DFF<AxilData>,
     // And a write bridge
     write_bridge: bridge::write::U,
 }

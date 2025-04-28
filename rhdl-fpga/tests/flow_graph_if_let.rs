@@ -4,7 +4,7 @@ use rhdl_fpga::core::dff;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U {
-    reg: dff::U<b8>,
+    reg: dff::DFF<b8>,
 }
 
 impl SynchronousIO for U {

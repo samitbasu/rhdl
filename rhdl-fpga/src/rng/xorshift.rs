@@ -9,10 +9,10 @@ use crate::core::dff;
 // actually a firmware implementation of XORSHIFT128.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U {
-    x: dff::U<Bits<U32>>,
-    y: dff::U<Bits<U32>>,
-    z: dff::U<Bits<U32>>,
-    w: dff::U<Bits<U32>>,
+    x: dff::DFF<Bits<U32>>,
+    y: dff::DFF<Bits<U32>>,
+    z: dff::DFF<Bits<U32>>,
+    w: dff::DFF<Bits<U32>>,
 }
 
 const SEED: u128 = 0x843233523a613966423b622562592c62;
@@ -20,10 +20,10 @@ const SEED: u128 = 0x843233523a613966423b622562592c62;
 impl Default for U {
     fn default() -> Self {
         Self {
-            x: dff::U::new(bits(SEED & 0xFFFF_FFFF)),
-            y: dff::U::new(bits((SEED >> 32) & 0xFFFF_FFFF)),
-            z: dff::U::new(bits((SEED >> 64) & 0xFFFF_FFFF)),
-            w: dff::U::new(bits((SEED >> 96) & 0xFFFF_FFFF)),
+            x: dff::DFF::new(bits(SEED & 0xFFFF_FFFF)),
+            y: dff::DFF::new(bits((SEED >> 32) & 0xFFFF_FFFF)),
+            z: dff::DFF::new(bits((SEED >> 64) & 0xFFFF_FFFF)),
+            w: dff::DFF::new(bits((SEED >> 96) & 0xFFFF_FFFF)),
         }
     }
 }

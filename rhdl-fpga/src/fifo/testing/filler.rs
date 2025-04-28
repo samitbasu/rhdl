@@ -13,22 +13,22 @@ use crate::core::{
 /// can be used to control the "burstiness" of the data.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U<N: BitWidth> {
-    _marker: constant::U<Bits<N>>,
+    _marker: constant::Constant<Bits<N>>,
     rng: crate::rng::xorshift::U,
-    sleep_counter: dff::U<Bits<U4>>,
-    sleep_len: constant::U<Bits<U4>>,
-    write_probability: constant::U<Bits<U16>>,
+    sleep_counter: dff::DFF<Bits<U4>>,
+    sleep_len: constant::Constant<Bits<U4>>,
+    write_probability: constant::Constant<Bits<U16>>,
 }
 
 /// The default configuration will sleep for 4 counts, with a roughly 50% probability
 impl<N: BitWidth> Default for U<N> {
     fn default() -> Self {
         Self {
-            _marker: constant::U::new(bits(0)),
+            _marker: constant::Constant::new(bits(0)),
             rng: crate::rng::xorshift::U::default(),
-            sleep_counter: dff::U::new(bits(0)),
-            sleep_len: constant::U::new(bits(4)),
-            write_probability: constant::U::new(bits(0x8000)),
+            sleep_counter: dff::DFF::new(bits(0)),
+            sleep_len: constant::Constant::new(bits(4)),
+            write_probability: constant::Constant::new(bits(0x8000)),
         }
     }
 }
@@ -36,9 +36,9 @@ impl<N: BitWidth> Default for U<N> {
 impl<N: BitWidth> U<N> {
     pub fn new(sleep_len: u8, write_probability: u16) -> Self {
         Self {
-            sleep_counter: dff::U::new(bits(0)),
-            sleep_len: constant::U::new(bits(sleep_len as u128)),
-            write_probability: constant::U::new(bits(write_probability as u128)),
+            sleep_counter: dff::DFF::new(bits(0)),
+            sleep_len: constant::Constant::new(bits(sleep_len as u128)),
+            write_probability: constant::Constant::new(bits(write_probability as u128)),
             ..Default::default()
         }
     }
