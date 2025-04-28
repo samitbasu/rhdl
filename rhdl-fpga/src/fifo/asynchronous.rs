@@ -1,3 +1,29 @@
+//! A simple asynchronous FIFO.
+//!
+//! This FIFO is designed to be as simple as possible
+//! and thus be robust.  It is a two-port FIFO, with separate read and write
+//! ports.  The FIFO is parameterized by the number of bits in each element.
+//! The depth of the FIFO is 2^N-1 elements.  You cannot fill the FIFO to 2^N elements.
+//! The FIFO is asynchronous, meaning that the read and write ports are not
+//! synchronized to each other.  This means that the read and write ports
+//! can be in different clock domains.
+//!
+//! Here is the schematic symbol for the FIFO
+#![doc = badascii_doc::badascii_formal!("
+      +-----+AsyncFIFO+------------------------+     
+  ?T  |                   +                    | ?T  
++---->| data       W      |     R         data +---->
+      |         domain   <+>  domain           |     
+<-----+ full              |               next |<---+
+      |                   +                    |     
+<-----+ almost_full               almost_empty +---->
+      |                                        |     
+<-----+ overflow                     underflow +---->
+      |                                        |     
++---->| cr_w                              cr_r |<---+
+      |                                        |     
+      +----------------------------------------+     
+")]
 use crate::cdc::cross_counter;
 use crate::core::ram;
 use rhdl::prelude::*;
@@ -5,13 +31,13 @@ use rhdl::prelude::*;
 use super::read_logic;
 use super::write_logic;
 
-/// A simple asynchronous FIFO.  This FIFO is designed to be as simple as possible
-/// and thus be robust.  It is a two-port FIFO, with separate read and write
-/// ports.  The FIFO is parameterized by the number of bits in each element.
-/// The depth of the FIFO is 2^N-1 elements.  You cannot fill the FIFO to 2^N elements.
-/// The FIFO is asynchronous, meaning that the read and write ports are not
-/// synchronized to each other.  This means that the read and write ports
-/// can be in different clock domains.
+/// A simple asynchronous FIFO.  
+///  `T` is the data type held by the FIFO.  Must satisfy
+/// `T : Default`.
+///  `W` the clock domain for the write side of the FIFO.
+///  `R` the clock domain for the read side of the FIFO
+///  `N` the number bits in the address.  FIFO holds `2^{N-1}` elements
+///  when full.
 #[derive(Clone, Circuit, CircuitDQ, Default)]
 pub struct AsyncFIFO<T: Digital + Default, W: Domain, R: Domain, const N: usize>
 where
@@ -25,7 +51,8 @@ where
 }
 
 #[derive(PartialEq, Debug, Digital, Timed)]
-pub struct I<T: Digital, W: Domain, R: Domain> {
+/// Inputs for the FIFO
+pub struct In<T: Digital, W: Domain, R: Domain> {
     /// The data to be written to the FIFO in the W domain
     pub data: Signal<Option<T>, W>,
     /// The next signal for the read logic in the R domain
@@ -37,7 +64,8 @@ pub struct I<T: Digital, W: Domain, R: Domain> {
 }
 
 #[derive(PartialEq, Debug, Digital, Timed)]
-pub struct O<T: Digital, W: Domain, R: Domain> {
+/// Outputs from the FIFO
+pub struct Out<T: Digital, W: Domain, R: Domain> {
     /// The data read from the FIFO in the R domain
     pub data: Signal<Option<T>, R>,
     /// The almost empty flag in the R domain
@@ -56,16 +84,17 @@ impl<T: Digital + Default, W: Domain, R: Domain, const N: usize> CircuitIO for A
 where
     Const<N>: BitWidth,
 {
-    type I = I<T, W, R>;
-    type O = O<T, W, R>;
+    type I = In<T, W, R>;
+    type O = Out<T, W, R>;
     type Kernel = async_fifo_kernel<T, W, R, N>;
 }
 
 #[kernel]
+/// Async FIFO kernel
 pub fn async_fifo_kernel<T: Digital + Default, W: Domain, R: Domain, const N: usize>(
-    i: I<T, W, R>,
+    i: In<T, W, R>,
     q: Q<T, W, R, N>,
-) -> (O<T, W, R>, D<T, W, R, N>)
+) -> (Out<T, W, R>, D<T, W, R, N>)
 where
     Const<N>: BitWidth,
 {
@@ -113,7 +142,7 @@ where
     d.write_count_for_read_logic.incr_cr = i.cr_w;
     d.write_count_for_read_logic.cr = i.cr_r;
     // Populate the output signals
-    let mut o = O::<T, W, R>::dont_care();
+    let mut o = Out::<T, W, R>::dont_care();
     o.data = signal(if q.read_logic.val().empty {
         None
     } else {
@@ -141,12 +170,11 @@ mod tests {
             .chain(std::iter::repeat(None))
             .stream_after_reset(1)
             .clock_pos_edge(100);
-        let read = std::iter::repeat(false)
-            .take(32)
-            .chain(std::iter::repeat(true).take(16))
+        let read = std::iter::repeat_n(false, 32)
+            .chain(std::iter::repeat_n(true, 16))
             .stream_after_reset(1)
             .clock_pos_edge(75);
-        let input = write.merge(read, |w, r| I {
+        let input = write.merge(read, |w, r| In {
             data: signal(w.1),
             next: signal(r.1),
             cr_w: signal(w.0),
