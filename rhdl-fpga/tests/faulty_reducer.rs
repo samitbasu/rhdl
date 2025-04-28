@@ -21,10 +21,10 @@ pub enum State {
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ)]
 pub struct U<DW: BitWidth, DN: BitWidth> {
-    state: dff::U<State>,
-    data_store: dff::U<Bits<DW>>,
+    state: dff::DFF<State>,
+    data_store: dff::DFF<Bits<DW>>,
     // TODO - make a marker?
-    _unused: constant::U<Bits<DN>>,
+    _unused: constant::Constant<Bits<DN>>,
 }
 
 impl<W, N> Default for U<W, N>
@@ -36,9 +36,9 @@ where
 {
     fn default() -> Self {
         Self {
-            state: dff::U::<State>::default(),
-            data_store: dff::U::<Bits<W>>::default(),
-            _unused: constant::U::<Bits<N>>::new(bits(0)),
+            state: dff::DFF::<State>::default(),
+            data_store: dff::DFF::<Bits<W>>::default(),
+            _unused: constant::Constant::<Bits<N>>::new(bits(0)),
         }
     }
 }

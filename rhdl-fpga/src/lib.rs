@@ -1,4 +1,3 @@
-pub mod bsp;
 pub mod core;
 pub mod fifo;
 pub mod pin;

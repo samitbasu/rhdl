@@ -105,7 +105,7 @@ where
 {
     /// This counter lives in the W domain, and
     /// counts the number of input pulses.
-    counter: Adapter<dff::U<Bits<Const<N>>>, W>,
+    counter: Adapter<dff::DFF<Bits<Const<N>>>, W>,
     /// This is the vector of synchronizers, one per
     /// bit of the counter.  The synchronizers hold
     /// the value of the count in the read domain
@@ -119,7 +119,7 @@ where
 {
     fn default() -> Self {
         Self {
-            counter: Adapter::new(dff::U::default()),
+            counter: Adapter::new(dff::DFF::default()),
             syncs: array_init::array_init(|_| synchronizer::Sync1Bit::default()),
         }
     }

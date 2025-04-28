@@ -9,16 +9,16 @@ use rhdl::prelude::*;
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U<W: Digital + Default, X: Digital + Default, Y: Digital + Default> {
     // The FF to hold the input data for first channel
-    data_1_in_ff: dff::U<Option<W>>,
+    data_1_in_ff: dff::DFF<Option<W>>,
     // The FF to hold the input data for second channel
-    data_2_in_ff: dff::U<Option<X>>,
+    data_2_in_ff: dff::DFF<Option<X>>,
     // The FF to hold the stop out flag
-    ready_out_ff: dff::U<bool>,
+    ready_out_ff: dff::DFF<bool>,
     // The FF to hold the output data - combined with
     // the void_out flag
-    data_out_ff: dff::U<Option<Y>>,
+    data_out_ff: dff::DFF<Option<Y>>,
     // The FF to hold the stop in flag
-    ready_in_ff: dff::U<bool>,
+    ready_in_ff: dff::DFF<bool>,
 }
 
 #[derive(PartialEq, Debug, Digital)]

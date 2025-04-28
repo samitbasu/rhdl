@@ -15,7 +15,7 @@ pub struct U<const BANK_SIZE: usize> {
     // We need a read bridge
     read_bridge: bridge::read::U,
     // And a set of registers to hold the values
-    reg: [dff::U<AxilData>; BANK_SIZE],
+    reg: [dff::DFF<AxilData>; BANK_SIZE],
     // And a write bridge
     write_bridge: bridge::write::U,
 }

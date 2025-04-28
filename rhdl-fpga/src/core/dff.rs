@@ -1,3 +1,64 @@
+//! Digital Flip Flop
+//!
+//! The [DFF] is the building block for nearly all synchronous
+//! logic.  The [DFF] is generic over the type `T` it holds,
+//! and can store a custom value for the reset value to take.
+//! The [DFF] is positive edge triggered, with an active
+//! high reset.  It is a [Synchronous] component, and meant
+//! to be used in synchronous circuits.  
+//!
+//! Here is the schematic symbol
+//!
+#![doc = badascii_doc::badascii_formal!(r"
+    +--+DFF+----+   
+  T |           | T 
++-->|input  out +-->
+    | (d)   (q) |   
+    |           |   
+    +-----------+   
+")]
+//!
+//!# Timing
+//!
+//! Good resources are available online to understand how digital
+//! flip flops work, and what they do.  The simplest explanation is
+//! that they operate like 1-tap delay lines, in which the data
+//! presented at a clock edge appears on the output at the next
+//! clock edge.  
+//!
+//! Roughly, this looks like this:
+//!
+#![doc = badascii_doc::badascii!(r"
+          +---+   +---+   +---+   +---+
+ clk  +---+   +---+   +---+   +---+    
+                                       
+      +-+D1+--+-+D2+--+-+D3+--+-+D4+--+
+ input+---+---+-------+-------+-------+
+          +---------+                  
+                    v                  
+      +-+XX+--+-+D1+--+-+D2+--+-+D3+--+
+output+-------+-------+-------+-------+
+")]
+//! One of the primary purposes of [DFF]s in designs is to decouple
+//! the input side of the flip flop from the output side.  This allows
+//! the output side of the FF to only depend on a fixed quantity (the
+//! last recorded value), instead of the potentially changing input
+//! side.
+//!
+//! [DFF]s are used in state machines, as memory storage elements,
+//! and to break up pipelines.
+//!
+//!# Example
+//!
+//! Here is a simple example of a state machine recognizing a sequence
+//! using a [DFF].
+//!
+//!```
+#![doc = include_str!("../../examples/dff.rs")]
+//!```
+//!
+//! The trace shows the FSM working.
+#![doc = include_str!("../../doc/dff.md")]
 use rhdl::{
     core::{
         hdl::ast::{
@@ -11,17 +72,24 @@ use rhdl::{
 };
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct U<T: Digital> {
+/// Basic Digital Flip Flop
+///
+/// Carries type `T`, with a given
+/// reset value.  Is positive edge
+/// triggered on the synchronous clock.
+pub struct DFF<T: Digital> {
     reset: T,
 }
 
-impl<T: Digital> U<T> {
+impl<T: Digital> DFF<T> {
+    /// Create a new [DFF] with the
+    /// provided reset value.
     pub fn new(reset: T) -> Self {
         Self { reset }
     }
 }
 
-impl<T: Digital + Default> Default for U<T> {
+impl<T: Digital + Default> Default for DFF<T> {
     fn default() -> Self {
         Self {
             reset: T::default(),
@@ -29,18 +97,19 @@ impl<T: Digital + Default> Default for U<T> {
     }
 }
 
-impl<T: Digital> SynchronousIO for U<T> {
+impl<T: Digital> SynchronousIO for DFF<T> {
     type I = T;
     type O = T;
     type Kernel = NoKernel3<ClockReset, T, (), (T, ())>;
 }
 
-impl<T: Digital> SynchronousDQ for U<T> {
+impl<T: Digital> SynchronousDQ for DFF<T> {
     type D = ();
     type Q = ();
 }
 
 #[derive(PartialEq, Debug, Digital)]
+#[doc(hidden)]
 pub struct S<T: Digital> {
     cr: ClockReset,
     reset: Reset,
@@ -48,7 +117,7 @@ pub struct S<T: Digital> {
     next: T,
 }
 
-impl<T: Digital> Synchronous for U<T> {
+impl<T: Digital> Synchronous for DFF<T> {
     type S = S<T>;
 
     fn init(&self) -> Self::S {
@@ -108,7 +177,7 @@ impl<T: Digital> Synchronous for U<T> {
     }
 }
 
-impl<T: Digital> U<T> {
+impl<T: Digital> DFF<T> {
     fn as_verilog(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let mut module = Module {
             name: name.into(),

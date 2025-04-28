@@ -18,14 +18,14 @@ use rhdl::prelude::*;
 /// empty FIFO.  So for N bits, this design can store 2^N-1 elements.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U<N: BitWidth> {
-    write_address: dff::U<Bits<N>>,
+    write_address: dff::DFF<Bits<N>>,
     // We delay the write address by one clock before sending
     // it to the read side of the FIFO.  This is because it will
     // take one clock for the write to actually happen, and we
     // want to make sure the value is valid on the read side before
     // "counting" the write.
-    write_address_delayed: dff::U<Bits<N>>,
-    overflow: dff::U<bool>,
+    write_address_delayed: dff::DFF<Bits<N>>,
+    overflow: dff::DFF<bool>,
 }
 
 #[derive(PartialEq, Debug, Digital)]

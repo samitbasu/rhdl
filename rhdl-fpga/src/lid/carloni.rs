@@ -11,13 +11,13 @@ use crate::core::dff;
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U<T: Digital + Default> {
     // The main FF
-    main_ff: dff::U<T>,
+    main_ff: dff::DFF<T>,
     // The aux FF
-    aux_ff: dff::U<T>,
+    aux_ff: dff::DFF<T>,
     // The void FF
-    void_ff: dff::U<bool>,
+    void_ff: dff::DFF<bool>,
     // The state FF
-    state_ff: dff::U<State>,
+    state_ff: dff::DFF<State>,
 }
 
 // The state is either Run or Stall
@@ -31,10 +31,10 @@ pub enum State {
 impl<T: Digital + Default> Default for U<T> {
     fn default() -> Self {
         Self {
-            main_ff: dff::U::new(T::default()),
-            aux_ff: dff::U::new(T::default()),
-            void_ff: dff::U::new(true),
-            state_ff: dff::U::new(State::Run),
+            main_ff: dff::DFF::new(T::default()),
+            aux_ff: dff::DFF::new(T::default()),
+            void_ff: dff::DFF::new(true),
+            state_ff: dff::DFF::new(State::Run),
         }
     }
 }

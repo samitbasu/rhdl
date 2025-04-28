@@ -8,15 +8,15 @@ pub struct I {
 
 #[derive(Clone, Debug, Synchronous)]
 pub struct U<N: BitWidth> {
-    counter: dff::U<Bits<N>>,
-    threshold: constant::U<Bits<N>>,
+    counter: dff::DFF<Bits<N>>,
+    threshold: constant::Constant<Bits<N>>,
 }
 
 impl<N: BitWidth> U<N> {
     pub fn new(threshold: Bits<N>) -> Self {
         Self {
-            counter: dff::U::new(Bits::ZERO),
-            threshold: constant::U::new(threshold),
+            counter: dff::DFF::new(Bits::ZERO),
+            threshold: constant::Constant::new(threshold),
         }
     }
 }

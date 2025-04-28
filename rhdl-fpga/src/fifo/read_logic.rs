@@ -19,8 +19,8 @@ use rhdl::prelude::*;
 /// empty FIFO.  So for N bits, this design can store 2^N-1 elements.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U<N: BitWidth> {
-    ram_read_address: dff::U<Bits<N>>,
-    underflow: dff::U<bool>,
+    ram_read_address: dff::DFF<Bits<N>>,
+    underflow: dff::DFF<bool>,
 }
 
 #[derive(PartialEq, Debug, Digital)]

@@ -7,7 +7,7 @@ mod sub {
 
     #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
     pub struct U {
-        data: dff::U<b2>,
+        data: dff::DFF<b2>,
     }
 
     #[derive(PartialEq, Digital)]

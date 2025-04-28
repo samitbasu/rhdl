@@ -7,7 +7,7 @@ mod auto_counter {
 
     #[derive(Debug, Clone, Default, SynchronousDQ, Synchronous)]
     pub struct U<N: BitWidth> {
-        count: dff::U<Bits<N>>,
+        count: dff::DFF<Bits<N>>,
     }
 
     impl<N: BitWidth> SynchronousIO for U<N> {
