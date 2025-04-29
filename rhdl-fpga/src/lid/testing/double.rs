@@ -2,21 +2,21 @@ use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U<N: BitWidth> {
-    filler: crate::fifo::testing::filler::U<N>,
+    filler: crate::fifo::testing::filler::FIFOFiller<N>,
     push_pull: crate::lid::fifo_to_rv::U<Bits<N>>,
     relay1: crate::lid::option_carloni::U<Bits<N>>,
     relay2: crate::lid::option_carloni::U<Bits<N>>,
-    drainer: crate::fifo::testing::drainer::U<N>,
+    drainer: crate::fifo::testing::drainer::FIFODrainer<N>,
 }
 
 impl<N: BitWidth> Default for U<N> {
     fn default() -> Self {
         Self {
-            filler: crate::fifo::testing::filler::U::<N>::new(4, 0x8000),
+            filler: crate::fifo::testing::filler::FIFOFiller::<N>::new(4, 0.5),
             push_pull: crate::lid::fifo_to_rv::U::<Bits<N>>::default(),
             relay1: crate::lid::option_carloni::U::<Bits<N>>::default(),
             relay2: crate::lid::option_carloni::U::<Bits<N>>::default(),
-            drainer: crate::fifo::testing::drainer::U::<N>::new(4, 0x8000),
+            drainer: crate::fifo::testing::drainer::FIFODrainer::<N>::new(4, 0.5),
         }
     }
 }

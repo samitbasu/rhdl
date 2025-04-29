@@ -1,3 +1,11 @@
+//! Bursty FIFO Filler
+//!
+//! A bursty, random FIFO filler.  Uses a sequence of values from an XorShift128 to
+//! fill a FIFO.  The lowest N bits of the output number are used as the data.  Based
+//! on the random value, the filler will also decide to "sleep" for a number of clock
+//! cycles.  This is to simulate a bursty data source.  Note that the behavior is
+//! deterministic.  The number of sleep cycles is also fixed, so that a single parameter
+//! can be used to control the "burstiness" of the data.
 use rhdl::prelude::*;
 
 use crate::core::{
@@ -5,27 +13,22 @@ use crate::core::{
     slice::{lsbs, msbs},
 };
 
-/// A bursty, random FIFO filler.  Uses a sequence of values from an XorShift128 to
-/// fill a FIFO.  The lowest N bits of the output number are used as the data.  Based
-/// on the random value, the filler will also decide to "sleep" for a number of clock
-/// cycles.  This is to simulate a bursty data source.  Note that the behavior is
-/// deterministic.  The number of sleep cycles is also fixed, so that a single parameter
-/// can be used to control the "burstiness" of the data.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
-pub struct U<N: BitWidth> {
+/// The FIFO Filler core
+pub struct FIFOFiller<N: BitWidth> {
     _marker: constant::Constant<Bits<N>>,
-    rng: crate::rng::xorshift::U,
+    rng: crate::rng::xorshift::XorShift,
     sleep_counter: dff::DFF<Bits<U4>>,
     sleep_len: constant::Constant<Bits<U4>>,
     write_probability: constant::Constant<Bits<U16>>,
 }
 
 /// The default configuration will sleep for 4 counts, with a roughly 50% probability
-impl<N: BitWidth> Default for U<N> {
+impl<N: BitWidth> Default for FIFOFiller<N> {
     fn default() -> Self {
         Self {
             _marker: constant::Constant::new(bits(0)),
-            rng: crate::rng::xorshift::U::default(),
+            rng: crate::rng::xorshift::XorShift::default(),
             sleep_counter: dff::DFF::new(bits(0)),
             sleep_len: constant::Constant::new(bits(4)),
             write_probability: constant::Constant::new(bits(0x8000)),
@@ -33,8 +36,12 @@ impl<N: BitWidth> Default for U<N> {
     }
 }
 
-impl<N: BitWidth> U<N> {
-    pub fn new(sleep_len: u8, write_probability: u16) -> Self {
+impl<N: BitWidth> FIFOFiller<N> {
+    /// Create a new [FIFOFiller] which writes with probability
+    /// `write_probability`, and sleeps otherwise, with a
+    /// duration of `sleep_len` cycles.
+    pub fn new(sleep_len: u8, write_probability: f32) -> Self {
+        let write_probability = 65535.0 * write_probability.clamp(0.0, 1.0);
         Self {
             sleep_counter: dff::DFF::new(bits(0)),
             sleep_len: constant::Constant::new(bits(sleep_len as u128)),
@@ -45,25 +52,30 @@ impl<N: BitWidth> U<N> {
 }
 
 #[derive(PartialEq, Debug, Digital)]
-pub struct I {
+/// Inputs to the [FIFOFiller] core
+pub struct In {
+    /// Input from the `full` signal of the FIFO
     pub full: bool,
 }
 
 #[derive(PartialEq, Debug, Digital)]
-pub struct O<N: BitWidth> {
+/// Outputs from the [FIFOFiller] core
+pub struct Out<N: BitWidth> {
+    /// The data from the filler to feed into the FIFO.
     pub data: Option<Bits<N>>,
 }
 
-impl<N: BitWidth> SynchronousIO for U<N> {
-    type I = I;
-    type O = O<N>;
+impl<N: BitWidth> SynchronousIO for FIFOFiller<N> {
+    type I = In;
+    type O = Out<N>;
     type Kernel = filler_kernel<N>;
 }
 
 #[kernel]
-pub fn filler_kernel<N: BitWidth>(cr: ClockReset, i: I, q: Q<N>) -> (O<N>, D<N>) {
+#[doc(hidden)]
+pub fn filler_kernel<N: BitWidth>(cr: ClockReset, i: In, q: Q<N>) -> (Out<N>, D<N>) {
     let mut d = D::<N>::dont_care();
-    let mut o = O::<N>::dont_care();
+    let mut o = Out::<N>::dont_care();
     d.rng = false;
     o.data = None;
     let is_full = i.full;
@@ -96,9 +108,8 @@ mod tests {
 
     #[test]
     fn test_filler() -> miette::Result<()> {
-        let uut = U::<U6>::default();
-        let input = std::iter::repeat(I { full: false })
-            .take(50)
+        let uut = FIFOFiller::<U6>::default();
+        let input = std::iter::repeat_n(In { full: false }, 50)
             .stream_after_reset(1)
             .clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
@@ -115,9 +126,8 @@ mod tests {
 
     #[test]
     fn test_filler_testbench() -> miette::Result<()> {
-        let uut = U::<U6>::default();
-        let input = std::iter::repeat(I { full: false })
-            .take(50)
+        let uut = FIFOFiller::<U6>::default();
+        let input = std::iter::repeat_n(In { full: false }, 50)
             .stream_after_reset(1)
             .clock_pos_edge(100);
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
