@@ -7,10 +7,10 @@ use rhdl::prelude::*;
 // an invalid value.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U<N: BitWidth> {
-    filler: crate::fifo::testing::filler::U<N>,
+    filler: crate::fifo::testing::filler::FIFOFiller<N>,
     sender: crate::axi4lite::channel::sender::U<Bits<N>>,
     receiver: crate::axi4lite::channel::receiver::U<Bits<N>>,
-    drainer: crate::fifo::testing::drainer::U<N>,
+    drainer: crate::fifo::testing::drainer::FIFODrainer<N>,
 }
 
 impl<N: BitWidth> SynchronousIO for U<N> {

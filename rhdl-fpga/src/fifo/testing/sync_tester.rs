@@ -1,23 +1,27 @@
+//! Sync Tester
+//!
+//! This is a test harness that connects a random filler, a random drainer
+//! and a synchronous fifo into a single fixture.  It is easy to monitor the
+//! output - a single "valid" bit that drops low if the fifo ever yields an
+//! invalid value.
 use rhdl::prelude::*;
 
-// This is a test harness that connects a random filler, a random drainer
-// and a synchronous fifo into a single fixture.  It is easy to monitor the
-// output - a single "valid" bit that drops low if the fifo ever yields an
-// invalid value.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U<N: BitWidth, Z: BitWidth> {
-    filler: crate::fifo::testing::filler::U<N>,
-    fifo: crate::fifo::synchronous::U<Bits<N>, Z>,
-    drainer: crate::fifo::testing::drainer::U<N>,
+/// This core provides a synchronous test fixture
+pub struct SyncTester<N: BitWidth, Z: BitWidth> {
+    filler: crate::fifo::testing::filler::FIFOFiller<N>,
+    fifo: crate::fifo::synchronous::SyncFIFO<Bits<N>, Z>,
+    drainer: crate::fifo::testing::drainer::FIFODrainer<N>,
 }
 
-impl<N: BitWidth, Z: BitWidth> SynchronousIO for U<N, Z> {
+impl<N: BitWidth, Z: BitWidth> SynchronousIO for SyncTester<N, Z> {
     type I = ();
     type O = bool;
     type Kernel = fixture_kernel<N, Z>;
 }
 
 #[kernel]
+/// Kernel for the [SyncTester]
 pub fn fixture_kernel<N: BitWidth, Z: BitWidth>(
     _cr: ClockReset,
     _i: (),
@@ -44,9 +48,8 @@ mod tests {
 
     #[test]
     fn test_sync_fifo_trace() -> miette::Result<()> {
-        let uut = U::<U16, U6>::default();
-        let input = std::iter::repeat(())
-            .take(1000)
+        let uut = SyncTester::<U16, U6>::default();
+        let input = std::iter::repeat_n((), 1000)
             .stream_after_reset(1)
             .clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
@@ -62,9 +65,8 @@ mod tests {
 
     #[test]
     fn test_sync_fifo_svg() -> miette::Result<()> {
-        let uut = U::<U16, U6>::default();
-        let input = std::iter::repeat(())
-            .take(1000)
+        let uut = SyncTester::<U16, U6>::default();
+        let input = std::iter::repeat_n((), 1000)
             .stream_after_reset(1)
             .clock_pos_edge(100)
             .skip_while(|x| x.time < 2000)
@@ -79,9 +81,8 @@ mod tests {
 
     #[test]
     fn test_sync_fifo_valid() -> miette::Result<()> {
-        let uut = U::<U16, U6>::default();
-        let input = std::iter::repeat(())
-            .take(100_000)
+        let uut = SyncTester::<U16, U6>::default();
+        let input = std::iter::repeat_n((), 100_000)
             .stream_after_reset(1)
             .clock_pos_edge(100);
         let last = uut.run(input)?.last().unwrap();

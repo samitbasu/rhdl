@@ -4,7 +4,7 @@ use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U {
-    filler: crate::fifo::testing::filler::U<U16>,
+    filler: crate::fifo::testing::filler::FIFOFiller<U16>,
     sender: crate::lid::fifo_to_rv::U<b16>,
     reducer: crate::gearbox::reducer::U<U16, U8>,
 }
@@ -12,7 +12,7 @@ pub struct U {
 impl Default for U {
     fn default() -> Self {
         Self {
-            filler: crate::fifo::testing::filler::U::new(4, 0x8000),
+            filler: crate::fifo::testing::filler::FIFOFiller::new(4, 0.5),
             sender: crate::lid::fifo_to_rv::U::default(),
             reducer: crate::gearbox::reducer::U::default(),
         }

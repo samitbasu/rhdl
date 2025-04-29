@@ -2,19 +2,19 @@ use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U {
-    filler: crate::fifo::testing::filler::U<U32>,
+    filler: crate::fifo::testing::filler::FIFOFiller<U32>,
     source: crate::axi4lite::stream::source::U<Bits<U32>>,
     sink: crate::axi4lite::stream::sink::U<Bits<U32>>,
-    drainer: crate::fifo::testing::drainer::U<U32>,
+    drainer: crate::fifo::testing::drainer::FIFODrainer<U32>,
 }
 
 impl Default for U {
     fn default() -> Self {
         Self {
-            filler: crate::fifo::testing::filler::U::new(2, 0x8000),
+            filler: crate::fifo::testing::filler::FIFOFiller::new(2, 0.5),
             source: crate::axi4lite::stream::source::U::default(),
             sink: crate::axi4lite::stream::sink::U::default(),
-            drainer: crate::fifo::testing::drainer::U::<U32>::new(2, 0x8000),
+            drainer: crate::fifo::testing::drainer::FIFODrainer::<U32>::new(2, 0.5),
         }
     }
 }

@@ -100,6 +100,11 @@ use rhdl::{
 };
 
 #[derive(PartialEq, Debug, Clone, Default)]
+/// The [AsyncBRAM] core.  It stores elements of
+/// type `T`.  The write side is on the `W` clock domain,
+/// and the read side is on the `R` clock domain.
+/// The `N` parameter indicates the number of address bits
+/// which determines the size of the BRAM.
 pub struct AsyncBRAM<T: Digital, W: Domain, R: Domain, N: BitWidth> {
     initial: BTreeMap<Bits<N>, T>,
     _w: std::marker::PhantomData<W>,
@@ -107,6 +112,7 @@ pub struct AsyncBRAM<T: Digital, W: Domain, R: Domain, N: BitWidth> {
 }
 
 impl<T: Digital, W: Domain, R: Domain, N: BitWidth> AsyncBRAM<T, W, R, N> {
+    /// Create a new [AsyncBRAM] with the given initialization values.
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         let len = (1 << N::BITS) as usize;
         Self {
@@ -124,7 +130,9 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> AsyncBRAM<T, W, R, N> {
 /// clock signal.
 #[derive(PartialEq, Debug, Digital)]
 pub struct ReadI<N: BitWidth> {
+    /// The address to read from
     pub addr: Bits<N>,
+    /// The read clock
     pub clock: Clock,
 }
 
@@ -133,15 +141,22 @@ pub struct ReadI<N: BitWidth> {
 /// enable and clock signal.
 #[derive(PartialEq, Debug, Digital)]
 pub struct WriteI<T: Digital, N: BitWidth> {
+    /// The address to write to
     pub addr: Bits<N>,
+    /// The data to write to the BRAM
     pub data: T,
+    /// The enable flag to enable a write operation
     pub enable: bool,
+    /// The write clock
     pub clock: Clock,
 }
 
 #[derive(PartialEq, Debug, Digital, Timed)]
+/// The inputs for the [AsyncBRAM] core
 pub struct In<T: Digital, W: Domain, R: Domain, N: BitWidth> {
+    /// The write interface
     pub write: Signal<WriteI<T, N>, W>,
+    /// The read interface
     pub read: Signal<ReadI<N>, R>,
 }
 
@@ -157,6 +172,7 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> CircuitIO for AsyncBRAM<T, W
 }
 
 #[derive(PartialEq, Debug, Clone)]
+#[doc(hidden)]
 pub struct S<T: Digital, N: BitWidth> {
     write_prev: WriteI<T, N>,
     contents: BTreeMap<Bits<N>, T>,
@@ -393,7 +409,7 @@ mod tests {
         );
         let stream_read = get_scan_out_stream(100, 34);
         // The write interface will be dormant
-        let stream_write = get_write_stream(70, std::iter::repeat(None).take(50));
+        let stream_write = get_write_stream(70, std::iter::repeat_n(None, 50));
         // Stitch the two streams together
         let stream = stream_read.merge(stream_write, |r, w| In {
             read: signal(r),
@@ -460,7 +476,7 @@ mod tests {
         );
         let stream_read = get_scan_out_stream(100, 32);
         // The write interface will be dormant
-        let stream_write = get_write_stream(70, std::iter::repeat(None).take(50));
+        let stream_write = get_write_stream(70, std::iter::repeat_n(None, 50));
         // Stitch the two streams together
         let stream = merge(stream_read, stream_write, |r, w| In {
             read: signal(r),

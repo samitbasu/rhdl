@@ -8,7 +8,7 @@ use crate::core::dff;
 // as the "next" signal to advance the LFSR. - This in turn is
 // actually a firmware implementation of XORSHIFT128.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
-pub struct U {
+pub struct XorShift {
     x: dff::DFF<Bits<U32>>,
     y: dff::DFF<Bits<U32>>,
     z: dff::DFF<Bits<U32>>,
@@ -17,7 +17,7 @@ pub struct U {
 
 const SEED: u128 = 0x843233523a613966423b622562592c62;
 
-impl Default for U {
+impl Default for XorShift {
     fn default() -> Self {
         Self {
             x: dff::DFF::new(bits(SEED & 0xFFFF_FFFF)),
@@ -28,7 +28,7 @@ impl Default for U {
     }
 }
 
-impl SynchronousIO for U {
+impl SynchronousIO for XorShift {
     type I = bool;
     type O = Bits<U32>;
     type Kernel = lfsr_kernel;
@@ -104,7 +104,7 @@ mod tests {
 
     #[test]
     fn test_uut() -> miette::Result<()> {
-        let uut = U::default();
+        let uut = XorShift::default();
         let input = std::iter::repeat(true)
             .stream_after_reset(1)
             .clock_pos_edge(100);

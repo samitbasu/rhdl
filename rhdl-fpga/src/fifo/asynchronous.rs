@@ -43,8 +43,8 @@ pub struct AsyncFIFO<T: Digital + Default, W: Domain, R: Domain, const N: usize>
 where
     Const<N>: BitWidth,
 {
-    write_logic: Adapter<write_logic::U<Const<N>>, W>,
-    read_logic: Adapter<read_logic::U<Const<N>>, R>,
+    write_logic: Adapter<write_logic::FIFOWriteCore<Const<N>>, W>,
+    read_logic: Adapter<read_logic::FIFOReadCore<Const<N>>, R>,
     ram: ram::option_async::OptionAsyncBRAM<T, W, R, Const<N>>,
     read_count_for_write_logic: cross_counter::CrossCounter<R, W, N>,
     write_count_for_read_logic: cross_counter::CrossCounter<W, R, N>,
@@ -123,13 +123,13 @@ where
     d.ram.read = signal(ram_read);
     // Provide the write logic with the enable and the
     // read address as determined by the split counter.
-    d.write_logic.input = signal(write_logic::I::<Const<N>> {
+    d.write_logic.input = signal(write_logic::In::<Const<N>> {
         read_address: q.read_count_for_write_logic.count.val(),
         write_enable,
     });
     // Provide the read logic with the next signal and the
     // write address as determined by the split counter.
-    d.read_logic.input = signal(read_logic::I::<Const<N>> {
+    d.read_logic.input = signal(read_logic::In::<Const<N>> {
         next: i.next.val(),
         write_address: q.write_count_for_read_logic.count.val(),
     });

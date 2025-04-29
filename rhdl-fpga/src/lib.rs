@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 pub mod core;
 pub mod fifo;
 pub mod pin;

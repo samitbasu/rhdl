@@ -1,53 +1,86 @@
+//! A simple synchronous FIFO.
+//!
+//! This FIFO is designed to be as simple as possible
+//! and thus be robust.  It is a two-port FIFO, with separate read and write
+//! ports.  The FIFO is parameterized by the number of bits in each element.
+//! The depth of the FIFO is 2^N-1 elements.  You cannot fill the FIFO to 2^N elements.
+//!
+//! Here is the schematic symbol for the FIFO
+#![doc = badascii_doc::badascii_formal!("
+      +------+SyncFIFO+-----------+     
+  ?T  |                           | ?T  
++---->| data                 data +---->
+      |                           |     
+<-----+ full                 next |<---+
+      |                           |     
+<-----+ almost_full  almost_empty +---->
+      |                           |     
+<-----+ overflow        underflow +---->
+      |                           |     
+      +---------------------------+     
+")]
 use crate::core::ram;
 use rhdl::prelude::*;
 
 use super::read_logic;
 use super::write_logic;
 
-/// A simple synchronous FIFO.  This FIFO is designed to be as simple as possible
-/// and thus be robust.  It is a two-port FIFO, with separate read and write
-/// ports.  The FIFO is parameterized by the number of bits in each element.
-/// The depth of the FIFO is 2^N-1 elements.  You cannot fill the FIFO to 2^N elements.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U<T: Digital + Default, N: BitWidth> {
-    write_logic: write_logic::U<N>,
-    read_logic: read_logic::U<N>,
+/// A simple synchronous FIFO
+///    `T` is the data type held by the FIFO.
+/// Note that we need `T: Default`.
+///  `N` the number bits in the address.  FIFO holds `2^{N-1}` elements
+///  when full.
+pub struct SyncFIFO<T: Digital + Default, N: BitWidth> {
+    write_logic: write_logic::FIFOWriteCore<N>,
+    read_logic: read_logic::FIFOReadCore<N>,
     ram: ram::option_sync::OptionSyncBRAM<T, N>,
 }
 
 #[derive(PartialEq, Debug, Digital)]
-pub struct I<T: Digital> {
+/// Inputs for the FIFO
+pub struct In<T: Digital> {
+    /// The data to be written to the FIFO
     pub data: Option<T>,
+    /// The next signal for the read side
     pub next: bool,
 }
 
 #[derive(PartialEq, Debug, Digital)]
-pub struct O<T: Digital> {
+/// Outputs from the FIFO
+pub struct Out<T: Digital> {
+    /// The output data
     pub data: Option<T>,
+    /// The full signal
     pub full: bool,
+    /// The almost empty signal
     pub almost_empty: bool,
+    /// The almost full signal
     pub almost_full: bool,
+    /// The overflow signal
     pub overflow: bool,
+    /// The underflow signal
     pub underflow: bool,
 }
 
-impl<T: Digital + Default, N: BitWidth> SynchronousIO for U<T, N> {
-    type I = I<T>;
-    type O = O<T>;
+impl<T: Digital + Default, N: BitWidth> SynchronousIO for SyncFIFO<T, N> {
+    type I = In<T>;
+    type O = Out<T>;
     type Kernel = fifo_kernel<T, N>;
 }
 
 #[kernel]
+/// The compute kernel for the [SyncFIFO]
 pub fn fifo_kernel<T: Digital + Default, N: BitWidth>(
     _cr: ClockReset,
-    i: I<T>,
+    i: In<T>,
     q: Q<T, N>,
-) -> (O<T>, D<T, N>) {
+) -> (Out<T>, D<T, N>) {
     // This is essentially a wiring exercise.  The clock
     // and reset are propagated to the sub-elements automatically
     // so we just need to route the signals.
     let mut d = D::<T, N>::dont_care();
-    let mut o = O::<T>::dont_care();
+    let mut o = Out::<T>::dont_care();
     // Connect the read logic inputs
     d.read_logic.write_address = q.write_logic.write_address;
     d.read_logic.next = i.next;
@@ -85,21 +118,21 @@ mod tests {
 
     use super::*;
 
-    fn write(data: b8) -> I<Bits<U8>> {
-        I {
+    fn write(data: b8) -> In<Bits<U8>> {
+        In {
             data: Some(data),
             next: false,
         }
     }
 
-    fn read() -> I<Bits<U8>> {
-        I {
+    fn read() -> In<Bits<U8>> {
+        In {
             data: None,
             next: true,
         }
     }
 
-    fn test_seq() -> impl Iterator<Item = TimedSample<(ClockReset, I<Bits<U8>>)>> {
+    fn test_seq() -> impl Iterator<Item = TimedSample<(ClockReset, In<Bits<U8>>)>> {
         let write_seq = (0..7).map(|i| write(bits(i + 1)));
         let read_seq = (0..7).map(|_| read());
         write_seq
@@ -110,7 +143,7 @@ mod tests {
 
     #[test]
     fn check_that_output_is_valid() -> miette::Result<()> {
-        let uut = U::<b8, U3>::default();
+        let uut = SyncFIFO::<b8, U3>::default();
         let stream = test_seq();
         let output = uut
             .run(stream)?
@@ -125,7 +158,7 @@ mod tests {
 
     #[test]
     fn basic_write_then_read_test() -> miette::Result<()> {
-        let uut = U::<Bits<U8>, U3>::default();
+        let uut = SyncFIFO::<Bits<U8>, U3>::default();
         let stream = test_seq();
         let vcd = uut.run(stream)?.collect::<Vcd>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -141,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_hdl_generation_fifo() -> miette::Result<()> {
-        let uut = U::<Bits<U8>, U3>::default();
+        let uut = SyncFIFO::<Bits<U8>, U3>::default();
         let stream = test_seq();
         let test_bench = uut.run(stream)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
@@ -162,7 +195,7 @@ mod tests {
         let mut writer_iter = data.iter().copied().fuse();
         // The reader will read data from the FIFO if it is not empty, and if a random value is true.  The random value
         // determines how often the reader reads data from the FIFO.
-        type UC = U<Bits<U8>, U3>;
+        type UC = SyncFIFO<Bits<U8>, U3>;
         let uut = UC::default();
         let mut writer_finished = false;
         let mut need_reset = true;
@@ -173,7 +206,7 @@ mod tests {
                         need_reset = false;
                         return Some(ResetOrData::Reset);
                     }
-                    let mut next_input = I {
+                    let mut next_input = In {
                         data: None,
                         next: false,
                     };
