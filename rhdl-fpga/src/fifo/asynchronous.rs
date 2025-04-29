@@ -24,6 +24,22 @@
       |                                        |     
       +----------------------------------------+     
 ")]
+//!
+//!# Example
+//!
+//! It's difficult to write a simple test case for an
+//! [AsyncFIFO], so RHDL includes a dedicated tester for it.
+//! The [AsyncFIFOTester] will feed a pseudorandom sequence
+//! into the FIFO (with random sleeps) and check that the
+//! output of that sequence (which also sleeps) will match
+//! the input exactly.
+//!
+//!```
+#![doc = include_str!("../../examples/async_fifo.rs")]
+//!```
+//! The trace below demonstrates the result.
+#![doc = include_str!("../../doc/async_fifo.md")]
+
 use crate::cdc::cross_counter;
 use crate::core::ram;
 use rhdl::prelude::*;
@@ -202,5 +218,5 @@ mod tests {
     }
 
     #[test]
-    fn test_hdl_generation() {}
+    fn test_hdl_generation() -> miette::Result<()> {}
 }

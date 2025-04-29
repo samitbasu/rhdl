@@ -4,6 +4,8 @@
 //! test fixture.
 use rhdl::prelude::*;
 
+use super::drainer::FIFODrainer;
+
 #[derive(Clone, Circuit, CircuitDQ, Default)]
 /// The tester fixture
 pub struct AsyncFIFOTester<W: Domain, R: Domain, N: BitWidth, const Z: usize>
@@ -13,6 +15,14 @@ where
     filler: Adapter<crate::fifo::testing::filler::FIFOFiller<N>, W>,
     fifo: crate::fifo::asynchronous::AsyncFIFO<Bits<N>, W, R, Z>,
     drainer: Adapter<crate::fifo::testing::drainer::FIFODrainer<N>, R>,
+}
+
+impl<W: Domain, R: Domain, N: BitWidth, const Z: usize> AsyncFIFOTester<W, R, N, Z> {
+    /// Replace the drainer with the supplied one
+    pub fn with_drainer(mut self, drainer: FIFODrainer<N>) -> Self {
+        self.drainer = Adapter::new(drainer);
+        self
+    }
 }
 
 #[derive(PartialEq, Debug, Digital, Timed)]
