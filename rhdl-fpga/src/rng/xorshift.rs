@@ -1,12 +1,14 @@
+//! A Pseudorandom Number Generator based on XORSHIFT128
+//!
+//! A port of the LFSR from Alchitry.com's Lucid module `pn_gen`.
+//! The default seed is the same as the one in the Lucid module.
+//! Any non-zero seed will work.  It takes a boolean  signal
+//! as the "next" signal to advance the LFSR. - This in turn is
+//! actually a firmware implementation of XORSHIFT128.
 use rhdl::prelude::*;
 
 use crate::core::dff;
 
-// A port of the LFSR from Alchitry.com's Lucid module `pn_gen`.
-// The default seed is the same as the one in the Lucid module.
-// Any non-zero seed will work.  It takes a boolean  signal
-// as the "next" signal to advance the LFSR. - This in turn is
-// actually a firmware implementation of XORSHIFT128.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct XorShift {
     x: dff::DFF<Bits<U32>>,
@@ -35,6 +37,7 @@ impl SynchronousIO for XorShift {
 }
 
 #[kernel]
+#[doc(hidden)]
 pub fn lfsr_kernel(_cr: ClockReset, strobe: bool, q: Q) -> (Bits<U32>, D) {
     let mut d = D::dont_care();
     d.x = q.x;

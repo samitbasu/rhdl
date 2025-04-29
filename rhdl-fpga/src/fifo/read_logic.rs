@@ -31,6 +31,9 @@ FIFOWriteCore     |                        almost_empty +---->
                   |                                     |      
                   +-------------------------------------+      
 ")]
+//! The [FIFOReadCore] is more of an internal component, that you are
+//! unlikely to use directly.  Instead, use a [SyncFIFO] or [AsyncFIFO]
+//! instead.
 use crate::core::dff;
 use rhdl::prelude::*;
 
