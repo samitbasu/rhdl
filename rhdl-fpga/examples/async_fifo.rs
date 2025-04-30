@@ -1,32 +1,40 @@
 use rhdl::prelude::*;
-use rhdl_fpga::{
-    doc::write_svg_as_markdown,
-    fifo::testing::{
-        async_tester::{AsyncFIFOTester, In},
-        drainer::FIFODrainer,
-    },
-};
+use rhdl_fpga::{doc::write_svg_as_markdown, fifo::asynchronous::AsyncFIFO};
 
 fn main() -> Result<(), RHDLError> {
-    // Use the AsyncFIFOTester to exercise an async fifo
-    let uut =
-        AsyncFIFOTester::<Red, Blue, U16, 2>::default().with_drainer(FIFODrainer::new(5, 0.812));
-    let red_input = std::iter::repeat(())
-        .stream_after_reset(1)
-        .clock_pos_edge(50);
-    let blue_input = std::iter::repeat(())
-        .stream_after_reset(1)
-        .clock_pos_edge(78);
-    let input = red_input.merge(blue_input, |r, b| In {
-        cr_w: signal(r.0),
-        cr_r: signal(b.0),
-    });
-    let vcd = uut
-        .run(input.take(10000))?
-        .take_while(|t| t.time < 1500)
-        .collect::<Vcd>();
-    let options =
-        SvgOptions::default().with_filter(r"(^top.fifo.input(.*))|(^top.fifo.outputs(.*))");
+    let uut = AsyncFIFO::<Bits<U16>, Red, Blue, 3>::default();
+    let test_seq = (0..)
+        .map(|_| b16(rand::random::<u16>() as u128))
+        .take(100)
+        .collect::<Vec<_>>();
+    let mut input_seq = test_seq.iter().copied();
+    let mut output_seq = test_seq.iter().copied();
+    let vcd = run_async_red_blue(
+        &uut,
+        |output, input| {
+            // By default, we do not insert data.
+            input.data = signal(None);
+            if !output.full.val() && rand::random::<bool>() {
+                input.data = signal(input_seq.next());
+            }
+        },
+        |output, input| {
+            input.next = signal(false);
+            if output.data.val().is_some() && rand::random::<bool>() {
+                input.next = signal(true);
+                assert_eq!(output_seq.next(), output.data.val())
+            }
+        },
+        50,
+        78,
+        |red, blue, input| {
+            input.cr_r = blue;
+            input.cr_w = red;
+        },
+    )
+    .take_while(|t| t.time < 1500)
+    .collect::<Vcd>();
+    let options = SvgOptions::default().with_filter("(^top.input(.*))|(^top.outputs(.*))");
     write_svg_as_markdown(vcd, "async_fifo.md", options)?;
     Ok(())
 }

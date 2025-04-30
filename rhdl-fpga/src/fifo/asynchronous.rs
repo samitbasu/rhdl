@@ -28,11 +28,22 @@
 //!# Example
 //!
 //! It's difficult to write a simple test case for an
-//! [AsyncFIFO], so RHDL includes a dedicated tester for it.
-//! The [AsyncFIFOTester] will feed a pseudorandom sequence
-//! into the FIFO (with random sleeps) and check that the
-//! output of that sequence (which also sleeps) will match
-//! the input exactly.
+//! [AsyncFIFO] for two reasons.  The first is that
+//! it includes two clock domains, and so you need
+//! to merge 2 input streams to feed a simulation.  The
+//! bigger problem is that the interface has feedback on
+//! both sides.  That is to say, that the write interface on the input
+//! must respond to the `full` signal in the output, and
+//! the read interface on the output must respond to the
+//! emptiness of the output (i.e., if `data` is `None`, then
+//! the FIFO is empty, and `next = true` will cause an underflow.)
+//!
+//! Thus to test the FIFO, you can either use an [AsyncFIFOTester], which
+//! includes a feed and drain, or you can use the [run_async_red_blue] helper
+//! function, which allows you to run a double-feedback simulation with
+//! two clocks.  It requires care, as RHDL does not enforce the
+//! constraint that the feedback loops only modify inputs that are
+//! connected to their clock domain.  So be very careful!
 //!
 //!```
 #![doc = include_str!("../../examples/async_fifo.rs")]
@@ -216,7 +227,4 @@ mod tests {
         tm.run_iverilog()?;
         Ok(())
     }
-
-    #[test]
-    fn test_hdl_generation() -> miette::Result<()> {}
 }

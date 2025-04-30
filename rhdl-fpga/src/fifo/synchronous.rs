@@ -19,6 +19,28 @@
       |                           |     
       +---------------------------+     
 ")]
+//!
+//!# Example
+//!
+//! Testing a synchronous FIFO is a little tricky, since
+//! the input and output interfaces have feedback, and thus
+//! do not lend themselves to the regular `input -> uut -> output`
+//! type of testing.  
+//!
+//! Instead, we can either build custom testing harnesses (see [SyncFIFOTester])
+//! or use the feedback testing mechanism.  The feedback testing
+//! mechanism allows you to provide a closure that computes the next
+//! set of inputs given the current outputs.  For synchronous
+//! circuits, like this one, the clock is handled for you, so your
+//! function need not worry about clock edges.  Here is
+//! an example.
+//!
+//!```
+#![doc = include_str!("../../examples/sync_fifo.rs")]
+//!```
+//! The trace below demonstrates the result.
+#![doc = include_str!("../../doc/sync_fifo.md")]
+
 use crate::core::ram;
 use rhdl::prelude::*;
 

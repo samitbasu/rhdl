@@ -110,6 +110,7 @@ pub use crate::rhdl_core::sim::merge::merge;
 pub use crate::rhdl_core::sim::merge::MergeExt;
 pub use crate::rhdl_core::sim::probe::ext::ProbeExt;
 pub use crate::rhdl_core::sim::probe::ext::SynchronousProbeExt;
+pub use crate::rhdl_core::sim::run::async_fn::run_async_red_blue;
 pub use crate::rhdl_core::sim::run::asynchronous::RunExt;
 pub use crate::rhdl_core::sim::run::sync_fn::RunSynchronousFeedbackExt;
 pub use crate::rhdl_core::sim::run::synchronous::RunSynchronousExt;
