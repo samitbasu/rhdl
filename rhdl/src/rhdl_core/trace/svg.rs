@@ -65,7 +65,7 @@ impl Default for SvgOptions {
             font_size_in_pixels: 10.0,
             shim: 3,
             height: 14,
-            label_width: 40,
+            label_width: 20,
             glitch_filter: Some(2),
             name_filters: None,
         }

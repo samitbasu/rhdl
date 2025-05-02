@@ -21,7 +21,7 @@ use crate::core::{dff, option::is_some};
 ///
 /// The design of the buffer uses a state to manage the fill level, and uses the extra
 /// value of a fill level of 3 to indicate that the push-pull buffer is in an error condition
-/// due to either overflow of the input.  To make this buffer easy to use with Carloni
+/// due to overflow of the input.  To make this buffer easy to use with Carloni
 /// skid buffers, the output is presented as an `Option<T>`, and underflow is not possible,
 /// as `None` is returned when the buffer is empty.
 ///
