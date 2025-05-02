@@ -1,8 +1,14 @@
+//! Gray Code Encoder
+//!
+//! Encode a bit value as Gray code.  This is a combinatorial block, but
+//! is pretty simple.  It should be OK in high speed applications.
+//!  
 use rhdl::prelude::*;
 
 use super::Gray;
 
 #[kernel]
+/// Gray encoder
 pub fn gray_code<N: BitWidth>(i: Bits<N>) -> Gray<N> {
     Gray::<N>(i ^ (i >> 1))
 }

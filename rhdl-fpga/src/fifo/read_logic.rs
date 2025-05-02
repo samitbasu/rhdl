@@ -1,4 +1,5 @@
 //! FIFO Read Core
+//!
 //! The read side of a FIFO.  In this design (which is meant to be maximally
 //! simple, but also as robust as possible), the read side of the FIFO stores
 //! an internal read address and an underflow flag.  The write address (owned by

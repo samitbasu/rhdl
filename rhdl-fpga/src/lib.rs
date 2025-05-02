@@ -1,7 +1,7 @@
+//! FPGA Support for RHDL
 #![warn(missing_docs)]
 pub mod core;
 pub mod fifo;
-pub mod pin;
 pub use anyhow::Result;
 pub mod axi4lite;
 pub mod cdc;

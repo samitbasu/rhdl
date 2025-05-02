@@ -9,7 +9,7 @@ pub struct U<
     W: Domain, // Clock domain for the reset signal
     R: Domain, // Clock domain for everything else
 > {
-    pub resetn_conditioner: crate::reset::negating_conditioner::U<W, R>,
+    pub resetn_conditioner: crate::reset::negating_conditioner::NegatingConditioner<W, R>,
     pub register: Adapter<crate::axi4lite::register::single::U, R>,
 }
 
