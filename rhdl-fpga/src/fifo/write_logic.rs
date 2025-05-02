@@ -1,4 +1,5 @@
 //! FIFO Write Core
+//!
 //! The write side of the FIFO.  In this design (which is meant to be maximally
 //! simple, but also as robust as possible), the write side of the FIFO stores
 //! an internal write address and an overflow flag.  The read address (owned by

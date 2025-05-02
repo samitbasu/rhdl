@@ -1,13 +1,16 @@
+//! Gray Decoder
+//!
+//! A combinatorial gray code decoder.  Given a gray coded number,
+//! this module will generate the binary number for that gray code.
+//! Note that this is purely combinatorial, and thus may be too slow
+//! for high speed applications.
+//!
 use rhdl::prelude::*;
 
 use super::Gray;
 
-// A combinatorial gray code decoder.  Given a gray coded number,
-// this module will generate the binary number for that gray code.
-// Note that this is purely combinatorial, and thus may be too slow
-// for high speed applications.
-
 #[kernel]
+/// The gray code decoder.
 pub fn gray_decode<N: BitWidth>(i: Gray<N>) -> Bits<N> {
     let mut o = i.0;
     o ^= o >> 1;
