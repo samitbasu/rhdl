@@ -4,12 +4,42 @@
 //! The default seed is the same as the one in the Lucid module.
 //! Any non-zero seed will work.  It takes a boolean  signal
 //! as the "next" signal to advance the LFSR. - This in turn is
-//! actually a firmware implementation of XORSHIFT128.
+//! actually a gateware implementation of XORSHIFT128.
+//!
+//!# Schematic symbol
+//!
+#![doc = badascii_formal!("
+      ++XorShift+-----+     
+bool  |               | b32 
++---->|input    output+---->
+      |               |     
+      +---------------+     
+")]
+//!
+//! The usage is simple.  If `input` is `true`, then `output`
+//! will advance to the next pseudo-random number in the sequence.
+//! Otherwise, the output is latched by internal flip flops.
+//!
+//!# Example
+//!
+//! This core is simple to use.
+//!
+//!```
+#![doc = include_str!("../../examples/xor_png.rs")]
+//!```
+//!
+//! Here is the trace.
+//!
+#![doc = include_str!("../../doc/xor_png.md")]
+
+use badascii_doc::badascii_formal;
 use rhdl::prelude::*;
 
 use crate::core::dff;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+/// The [XorShift] core.  Note that resetting the
+/// core resets the sequence.
 pub struct XorShift {
     x: dff::DFF<Bits<U32>>,
     y: dff::DFF<Bits<U32>>,
@@ -26,6 +56,18 @@ impl Default for XorShift {
             y: dff::DFF::new(bits((SEED >> 32) & 0xFFFF_FFFF)),
             z: dff::DFF::new(bits((SEED >> 64) & 0xFFFF_FFFF)),
             w: dff::DFF::new(bits((SEED >> 96) & 0xFFFF_FFFF)),
+        }
+    }
+}
+
+impl XorShift {
+    /// Use the provided seed instead of the default.
+    pub fn new(seed: u128) -> Self {
+        Self {
+            x: dff::DFF::new(bits(seed & 0xFFFF_FFFF)),
+            y: dff::DFF::new(bits((seed >> 32) & 0xFFFF_FFFF)),
+            z: dff::DFF::new(bits((seed >> 64) & 0xFFFF_FFFF)),
+            w: dff::DFF::new(bits((seed >> 96) & 0xFFFF_FFFF)),
         }
     }
 }
@@ -54,7 +96,10 @@ pub fn lfsr_kernel(_cr: ClockReset, strobe: bool, q: Q) -> (Bits<U32>, D) {
     (o, d)
 }
 
-/// For testing, it's handy to have a way to generate the same sequence as the hardware.
+/// For testing, it's handy to have a way to generate
+/// the same sequence as the hardware.  This
+/// struct `impl Iterator` and yields the same
+/// sequence as the hardware with the default seed.
 pub struct XorShift128 {
     state: [u32; 4],
 }

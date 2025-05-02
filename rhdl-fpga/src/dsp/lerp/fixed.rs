@@ -1,42 +1,78 @@
-use std::ops::Add;
-
+//!# Linear Interpolation Functions
+//!
+//! In DSP work, you often need to linearly interpolate
+//! between two values.  These functions provide that
+//! computation, with a variable number of bits in the
+//! two input arguments and a variable number of bits in
+//! the interpolation factor.  
+//!
+//!# Internal Details
+//! There are various subtleties at play here.  
+//! Given A: Bits<N>, B: Bits<N> and a factor: Bits<M>,
+//!
+//! we want to compute
+//!
+//!```
+//! A * (1 - delta) + B * delta = Y
+//!```
+//!
+//! where
+//!
+//!```
+//!  0 <= delta = factor / 2^M < 1
+//!```
+//!
+//! The `< 1` part is important, since with `M` bits, it is
+//! not possible to represent `2^M`.  The largest value that
+//! `delta` can take is `2^(M-1)/2^M`.  Normally, when
+//! linear interpolation is used, this limitation is not a problem.
+//! However, you should be aware, in case you need the function
+//! to be able to handle the case of `delta = 1`.  
+//!
+//!
+//! Substituting delta, we get
+//!
+//!```
+//! A * ( 1 - factor / 2^M) + B * factor / 2^M = Y
+//!```
+//!
+//! Multiplying out by 2^M, we get
+//!
+//!```
+//! A * 2^M - A * factor + B * factor = Y * 2^M
+//!```
+//!
+//! To get this into a single multiplication, we need
+//!
+//!```
+//! A * 2^M + (B - A) * factor = Y * 2^M
+//!```
+//!
+//! Even if `B` and `A` are unsigned, the `B - A` term is
+//! signed, so we need to promote the factor to be signed as well
+//!
+//!```
+//! A * 2^M + Diff * signed_factor = Y * 2^M
+//!```
+//!
+//! Here `signed_factor`` will be `M+1`` bits wide, and `Diff` will be `N+1`
+//! bits wide
+//!
+//! The product will thus be `M+N+2` bits wide.  The factor `A * 2^M`
+//! will be `N+M` bits wide,
+//! and is unsigned.  So we need to convert it to a signed value (which adds 1 bit) and
+//! then extend it (signed) by a bit.
+//!
+//! We can (after adding it), right shift by `M` bits to retrieve `Y`, and then
+//! truncate the value to `N` bits, and safely cast as unsigned.
 use rhdl::prelude::*;
 
-/// Linear interpolation as a function - for unsigned values
-///
-/// Given A: Bits<N>, B: Bits<N> and a factor: Bits<M>,
-///
-/// we want to compute
-///
-/// A * (1 - delta) + B * delta = Y
-///
-/// where delta = factor / 2^M
-///
-/// Substituting delta, we get
-///
-/// A * ( 1 - factor / 2^M) + B * factor / 2^M = Y
-///
-/// Multiplying out by 2^M, we get
-///
-/// A * 2^M - A * factor + B * factor = Y * 2^M
-///
-/// To get this into a single multiplication, we need
-///
-/// A * 2^M + (B - A) * factor = Y * 2^M
-///
-/// The  B - A term is signed, so we need to promote the factor to be signed as well
-///
-/// A * 2^M + Diff * signed_factor = Y * 2^M
-///
-/// Here signed_factor will be M+1 bits wide, and E will be N+1 bits wide
-///
-/// The product will thus be M+N+2 bits wide.  The factor A * 2^M will be N+M bits wide,
-/// and is unsigned.  So we need to convert it to a signed value (which adds 1 bit) and
-/// then extend it (signed) by a bit.
-///
-/// We can (after adding it), right shift by M bits to retrieve Y, and then
-/// truncate the value to N bits, and cast as unsigned.
 #[kernel]
+/// Linearly interpolate between unsigned
+/// values `lower_value` and `upper_value` with a factor
+/// of `factor/2^M` where `M` is the number of bits in `factor`.  Note that
+/// `factor/2^M < 1`, so the output cannot equal `upper_value`.  This core is
+/// just a function since it has no state.  It _does_ require a multiplier.
 pub fn lerp_unsigned<N, M>(lower_value: Bits<N>, upper_value: Bits<N>, factor: Bits<M>) -> Bits<N>
 where
     N: BitWidth,
@@ -58,6 +94,11 @@ where
 }
 
 #[kernel]
+/// Linearly interpolate between signed
+/// values `lower_value` and `upper_value` with a factor
+/// of `factor/2^M` where `M` is the number of bits in `factor`.  Note that
+/// `factor/2^M < 1`, so the output cannot equal `upper_value`.  This core is
+/// just a function since it has no state.  It _does_ require a multiplier.
 pub fn lerp_signed<N, M>(
     lower_value: SignedBits<N>,
     upper_value: SignedBits<N>,

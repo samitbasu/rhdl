@@ -5,6 +5,7 @@ pub mod fifo;
 pub use anyhow::Result;
 pub mod axi4lite;
 pub mod cdc;
+#[doc(hidden)]
 pub mod doc;
 pub mod dsp;
 pub mod gearbox;
