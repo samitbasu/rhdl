@@ -64,12 +64,30 @@
 //! then extend it (signed) by a bit.
 //!
 //! We can (after adding it), right shift by `M` bits to retrieve `Y`, and then
-//! truncate the value to `N` bits, and safely cast as unsigned.
+//! truncate the value to `N` bits, and safely cast as unsigned.  Because the
+//! output is guaranteed to be unsigned and the number of bits cannot increase
+//! (ignoring fractional bits, of course), this operation can be safely
+//! carried out with a truncation operation.
+//!
+//!# Example
+//!
+//! The following example demos the unsigned `lerp` function, by wrapping
+//! it into a core using the [Func] wrapper.
+//!
+//!```
+#![doc = include_str!("../../../examples/lerp.rs")]
+//!```
+//!
+//! The resulting trace shows the linear interpolation
+//!
+#![doc = include_str!("../../../doc/lerp.md")]
+//!
 use rhdl::prelude::*;
 
 #[kernel]
-/// Linearly interpolate between unsigned
-/// values `lower_value` and `upper_value` with a factor
+/// Linearly interpolate between unsigned values
+///
+/// Interpolates between values `lower_value` and `upper_value` with a factor
 /// of `factor/2^M` where `M` is the number of bits in `factor`.  Note that
 /// `factor/2^M < 1`, so the output cannot equal `upper_value`.  This core is
 /// just a function since it has no state.  It _does_ require a multiplier.
@@ -94,8 +112,9 @@ where
 }
 
 #[kernel]
-/// Linearly interpolate between signed
-/// values `lower_value` and `upper_value` with a factor
+/// Linearly interpolate between signed values
+///
+/// Interpolates between `lower_value` and `upper_value` with a factor
 /// of `factor/2^M` where `M` is the number of bits in `factor`.  Note that
 /// `factor/2^M < 1`, so the output cannot equal `upper_value`.  This core is
 /// just a function since it has no state.  It _does_ require a multiplier.
