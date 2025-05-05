@@ -56,6 +56,15 @@ impl SvgOptions {
             ..self
         }
     }
+    pub fn with_io_filter(self) -> Self {
+        Self {
+            name_filters: Some(
+                regex::Regex::new("(^top.input(.*))|(^top.outputs(.*))|(^top.reset)|(^top.clock)")
+                    .unwrap(),
+            ),
+            ..self
+        }
+    }
 }
 
 impl Default for SvgOptions {

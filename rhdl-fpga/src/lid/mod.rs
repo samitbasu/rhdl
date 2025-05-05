@@ -1,3 +1,4 @@
+//! Cores for Latency Insensitive Design (LID)
 pub mod carloni;
 pub mod fifo_to_rv;
 pub mod option_carloni;
