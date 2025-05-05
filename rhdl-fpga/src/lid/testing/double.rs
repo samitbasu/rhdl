@@ -4,8 +4,8 @@ use rhdl::prelude::*;
 pub struct U<N: BitWidth> {
     filler: crate::fifo::testing::filler::FIFOFiller<N>,
     push_pull: crate::lid::fifo_to_rv::U<Bits<N>>,
-    relay1: crate::lid::option_carloni::U<Bits<N>>,
-    relay2: crate::lid::option_carloni::U<Bits<N>>,
+    relay1: crate::lid::option_carloni::OptionCarloni<Bits<N>>,
+    relay2: crate::lid::option_carloni::OptionCarloni<Bits<N>>,
     drainer: crate::fifo::testing::drainer::FIFODrainer<N>,
 }
 
@@ -14,8 +14,8 @@ impl<N: BitWidth> Default for U<N> {
         Self {
             filler: crate::fifo::testing::filler::FIFOFiller::<N>::new(4, 0.5),
             push_pull: crate::lid::fifo_to_rv::U::<Bits<N>>::default(),
-            relay1: crate::lid::option_carloni::U::<Bits<N>>::default(),
-            relay2: crate::lid::option_carloni::U::<Bits<N>>::default(),
+            relay1: crate::lid::option_carloni::OptionCarloni::<Bits<N>>::default(),
+            relay2: crate::lid::option_carloni::OptionCarloni::<Bits<N>>::default(),
             drainer: crate::fifo::testing::drainer::FIFODrainer::<N>::new(4, 0.5),
         }
     }

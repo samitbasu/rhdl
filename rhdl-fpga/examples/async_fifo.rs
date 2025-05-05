@@ -34,7 +34,7 @@ fn main() -> Result<(), RHDLError> {
     )
     .take_while(|t| t.time < 1500)
     .collect::<Vcd>();
-    let options = SvgOptions::default().with_filter("(^top.input(.*))|(^top.outputs(.*))");
+    let options = SvgOptions::default().with_io_filter();
     write_svg_as_markdown(vcd, "async_fifo.md", options)?;
     Ok(())
 }
