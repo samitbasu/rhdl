@@ -1,31 +1,132 @@
+//! A FIFO-to-Ready/Valid buffer
+//!
+//!# Purpose
+//! A FIFO-to-READY/VALID buffer is a highly specialized two element FIFO backed with a pair
+//! of registers instead of a BRAM.  The idea is to allow two pipelines to be joined
+//! where the supply side pipeline has "push" semantics (meaning that it is triggered
+//! by some other process and produces data elements at it's own pace) and the demand
+//! side pipeline has "pull" semantics - meaning that it is triggered at some rate that
+//! moderates consumption of the data elements.
+//!
+//! The other way to conceptualize this is as a source and sink pair.  The supply side
+//! pipeline is a data source - it produces data elements at it's own pace.  The demand
+//! side pipeline is a data sink - it consumes data elements at it's own pace.  The push
+//! pull buffer in general would be a FIFO, and indeed the Carloni papers show FIFOs as
+//! the implementation of push-pull buffers.  However, in many cases, we only need minimal
+//! buffering, and a pair of registers is sufficient.  
+//!
+//! Note that a normal synchronous FIFO as included in `rhdl` will not work here - if it has
+//! only two slots in it, it cannot (by design) fill both slots.
+//!
+//! The design of the buffer uses a state to manage the fill level, and uses the extra
+//! value of a fill level of 3 to indicate that the push-pull buffer is in an error condition
+//! due to overflow of the input.  To make this buffer easy to use with Carloni
+//! skid buffers, the output is presented as an `Option<T>`, and underflow is not possible,
+//! as `None` is returned when the buffer is empty.
+//!
+//! Note that one use case for the [FIFOToReadyValid] buffer is when we need to be able to
+//! anticipate by a clock cycle that a pipeline is able to push data forward.  Here is
+//! an example of the problem:
+//!
+#![doc = badascii!("
+             +---------+               
+ready  +-----+         +--------------+
+                                       
+                       +---+Some+-----+
+data   +---------------+     T         
+                                       
+             +----+    +----+    +----+
+clk     +----+    +----+    +----+     
+                                       
+             <--+t1+-->|<----+t2+----->
+")]
+//!
+//! During the time `t1`, the downstream pipeline was available for us to push a new data item,
+//! but our upstream process was not ready.  In time `t2`, the downstream pipeline is no longer
+//! available, but the upstream process has produced a data item.  The upstream process must
+//! stall and hold this output value until the downstream pipeline re-raises `ready` for a clock
+//! cycle.
+//!
+//! With the [FIFOToReadyValid] buffer, we have an addition invariant:
+//!   - A FIFO that is not `full` on cycle `T` cannot be full on cycle `T+1` if we do not add data to it.
+//!
+//! This invariant means that the equivalent timing diagram with a [FIFOToReadyValid] buffer
+//! looks like this instead
+//!
+#![doc = badascii!("
+       +-----+                         
+full         +------------------------+
+             :         :               
+             :         +---+Some+-----+
+data   +---------------+     T         
+             :         :               
+             +----+    +----+    +----+
+clk     +----+    +----+    +----+     
+                                       
+             <--+t1+-->|<----+t2+----->
+")]
+//!
+//! The important difference is that if the input stage is `!full`, as happens in interval `t1`, the
+//! upstream pipeline is guaranteed to be able to run and produce a data item, even if it is in the
+//! future.  Thus, if the upstream pipeline waits for the output to be `!full`, it can gaurantee that
+//! one output item can be produced.
+//!
+//!# Schematic Symbol
+//!
+//! Here is the schematic symbol for the [FIFOToReadyValid] buffer
+//!
+#![doc = badascii_formal!("
+     +-+FifoToRV+---+     
+ ?T  |              +?T   
++--->|data     data +---->
+     |              |     
+<----+full     ready|<---+
+     |              |     
+<----+error         |     
+     +--------------+     
+")]
+//!
+//!# Internals
+//!
+//! Effectively, the [FIFOToReadyValid] buffer is simply a 2-element FIFO.  It is implemented with
+//! a pair of registers and manual control logic, since the general FIFO logic does not handle
+//! such small sizes well.
+//!
+//! Roughly the internal circuitry looks like this:
+//!
+#![doc = badascii!(r"
+ ?T  +----+FIFO+----+  ?T             
++--->|data      data+--------+--->    
+     |              |        |is_some 
+<----+full      next|<---+   +        
+     |              |    +--+&        
+     |              |        +  ready 
+     +--------------+        +-------+
+")]
+//! The FIFO is advanced only if the output is `Some`, and if the `ready` signal is asserted.
+//!
+//! Note that there are no combinatorial paths between the inputs and
+//! outputs, and a test is used to verify this property.
+//!
+//!# Example
+//!
+//! Here is an example of the interface.
+//!
+//!```
+#![doc = include_str!("../../examples/fifo_to_rv.rs")]
+//!```
+//!
+//! With an output.
+//!
+#![doc = include_str!("../../doc/fifo_to_rv.md")]
+//!
+use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
 use crate::core::{dff, option::is_some};
 
-/// A FIFO-to-READY/VALID buffer is a highly specialized two element FIFO backed with a pair
-/// of registers instead of a BRAM.  The idea is to allow two pipelines to be joined
-/// where the supply side pipeline has "push" semantics (meaning that it is triggered
-/// by some other process and produces data elements at it's own pace) and the demand
-/// side pipeline has "pull" semantics - meaning that it is triggered at some rate that
-/// moderates consumption of the data elements.
-///
-/// The other way to conceptualize this is as a source and sink pair.  The supply side
-/// pipeline is a data source - it produces data elements at it's own pace.  The demand
-/// side pipeline is a data sink - it consumes data elements at it's own pace.  The push
-/// pull buffer in general would be a FIFO, and indeed the Carloni papers show FIFOs as
-/// the implementation of push-pull buffers.  However, in many cases, we only need minimal
-/// buffering, and a pair of registers is sufficient.  
-///
-/// Note that a normal synchronous FIFO as included in `rhdl` will not work here - if it has
-/// only two slots in it, it cannot (by design) fill both slots.
-///
-/// The design of the buffer uses a state to manage the fill level, and uses the extra
-/// value of a fill level of 3 to indicate that the push-pull buffer is in an error condition
-/// due to overflow of the input.  To make this buffer easy to use with Carloni
-/// skid buffers, the output is presented as an `Option<T>`, and underflow is not possible,
-/// as `None` is returned when the buffer is empty.
-///
 #[derive(PartialEq, Digital, Default, Debug)]
+#[doc(hidden)]
 pub enum State {
     #[default]
     Empty,
@@ -35,7 +136,10 @@ pub enum State {
 }
 
 #[derive(PartialEq, Debug, Clone, SynchronousDQ, Synchronous)]
-pub struct U<T: Digital> {
+/// The [FIFOToReadyValid] Buffer core.
+///
+/// `T` is the type of the data elements flowing in the pipeline.
+pub struct FIFOToReadyValid<T: Digital> {
     /// The state of the buffer
     state: dff::DFF<State>,
     /// The 0 slot of the buffer,
@@ -49,7 +153,7 @@ pub struct U<T: Digital> {
     read_slot: dff::DFF<bool>,
 }
 
-impl<T: Digital> Default for U<T> {
+impl<T: Digital> Default for FIFOToReadyValid<T> {
     fn default() -> Self {
         Self {
             state: dff::DFF::default(),
@@ -61,38 +165,43 @@ impl<T: Digital> Default for U<T> {
     }
 }
 
+#[derive(PartialEq, Debug, Digital)]
+/// Inputs to the [FIFOToReadyValid] buffer
+///
 /// For inputs, the push pull buffer has a Option<T> input to combine the
 /// write enable with the data signal, and provides a full signal back.
 /// It is important that the full signal is not dependant on the consumer,
 /// so that the pull-pull buffer isolates the producer from the consumer
 /// and vice versa.
-#[derive(PartialEq, Debug, Digital)]
-pub struct I<T: Digital> {
-    // The producers data and write enable
+pub struct In<T: Digital> {
+    /// The producers data and write enable
     pub data: Option<T>,
-    // The consumers "stop/ready" signal
+    /// The consumers "stop/ready" signal
     pub ready: bool,
 }
 
 #[derive(PartialEq, Debug, Digital)]
-pub struct O<T: Digital> {
-    // The consumers data
+/// Outputs from the [FIFOToReadyValid] buffer
+pub struct Out<T: Digital> {
+    /// The consumers data
     pub data: Option<T>,
-    // The producers "Q is full" signal
+    /// The producers "Q is full" signal
     pub full: bool,
-    // An error flag to indicate that the core has
-    // overflowed.
+    /// An error flag to indicate that the core has
+    /// overflowed.  This occurs if the producer attempts
+    /// to write data when the FIFO is full.
     pub error: bool,
 }
 
-impl<T: Digital> SynchronousIO for U<T> {
-    type I = I<T>;
-    type O = O<T>;
+impl<T: Digital> SynchronousIO for FIFOToReadyValid<T> {
+    type I = In<T>;
+    type O = Out<T>;
     type Kernel = kernel<T>;
 }
 
 #[kernel]
-pub fn kernel<T: Digital>(_cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
+#[doc(hidden)]
+pub fn kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
     let mut d = D::<T>::dont_care();
     let will_write = is_some::<T>(i.data);
     let can_read = i.ready;
@@ -141,7 +250,7 @@ pub fn kernel<T: Digital>(_cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
     d.read_slot = next_item ^ q.read_slot;
     // The output is set to void if we are empty, otherwise
     // the contents of the designated read slot
-    let mut o = O::<T>::dont_care();
+    let mut o = Out::<T>::dont_care();
     if q.state == State::Empty {
         o.data = None
     } else if !q.read_slot {
@@ -152,4 +261,54 @@ pub fn kernel<T: Digital>(_cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
     o.full = q.state == State::TwoLoaded;
     o.error = q.state == State::Error;
     (o, d)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::rng::xorshift::XorShift128;
+
+    use super::*;
+
+    #[test]
+    fn test_no_combinatorial_paths() -> miette::Result<()> {
+        let uut = FIFOToReadyValid::<b16>::default();
+        drc::no_combinatorial_paths(&uut)?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_operation() -> miette::Result<()> {
+        // The buffer will manage items of 4 bits
+        let uut = FIFOToReadyValid::<b4>::default();
+        // The test harness will include a consumer that
+        // randomly pauses the upstream producer.
+        let mut need_reset = true;
+        let mut source_rng = XorShift128::default().map(|x| bits((x & 0xF) as u128));
+        let mut dest_rng = source_rng.clone();
+        uut.run_fn(
+            |out| {
+                if need_reset {
+                    need_reset = false;
+                    return Some(rhdl::core::sim::ResetOrData::Reset);
+                }
+                let mut input = super::In::<b4>::dont_care();
+                let want_to_pause = rand::random::<u8>() > 200;
+                input.ready = !want_to_pause;
+                // Decide if the producer will generate a data item
+                let want_to_send = rand::random::<u8>() < 200;
+                input.data = None;
+                if !out.full && want_to_send {
+                    input.data = source_rng.next();
+                }
+                if out.data.is_some() && input.ready {
+                    assert_eq!(out.data, dest_rng.next());
+                }
+                Some(rhdl::core::sim::ResetOrData::Data(input))
+            },
+            100,
+        )
+        .take_while(|t| t.time < 100_000)
+        .for_each(drop);
+        Ok(())
+    }
 }
