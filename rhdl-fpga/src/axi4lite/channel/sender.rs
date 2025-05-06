@@ -6,7 +6,7 @@ use super::{DataValid, Ready};
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U<T: Digital + Default> {
-    inner: fifo_to_rv::U<T>,
+    inner: fifo_to_rv::FIFOToReadyValid<T>,
 }
 
 #[derive(PartialEq, Debug, Digital)]

@@ -173,6 +173,7 @@ impl<T: Digital + Default> SynchronousIO for Carloni<T> {
 }
 
 #[kernel]
+#[doc(hidden)]
 pub fn carloni_kernel<T: Digital + Default>(cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
     let mut d = D::<T>::dont_care();
     let mut o = Out::<T>::dont_care();

@@ -100,6 +100,7 @@ pub fn lfsr_kernel(_cr: ClockReset, strobe: bool, q: Q) -> (Bits<U32>, D) {
 /// the same sequence as the hardware.  This
 /// struct `impl Iterator` and yields the same
 /// sequence as the hardware with the default seed.
+#[derive(Clone)]
 pub struct XorShift128 {
     state: [u32; 4],
 }

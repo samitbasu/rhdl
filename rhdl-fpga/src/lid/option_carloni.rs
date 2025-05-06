@@ -31,6 +31,25 @@
 //! [Option<T>]  to a pair of `data` and `valid` lines.
 //! The code is pretty short and self-expanatory.
 //!
+//! Here is a sketch of the internals
+//!
+#![doc = badascii!(r"
+                            +-----+Carloni+-------+                          
+      ++unpck++             |                     |           ++pack+-+      
+ data |       |  +--------->| data_in    data_out +-------+   |       | data 
++---->|in    T+--+          |                     |       +-->|T   out+----->
+      |       |        +----+ stop_out   stop_in  |<---+      |       |      
+      |  valid+--+     |    |                     |    |      |       |      
+      |       |  +-----+--->| void_in    void_out +----+----->|valid  |      
+      +-------+        |    |                     |    |      +-------+      
+                       |    +---------------------+    |                     
+          +            |                               |        +            
+ ready   /|            |                               |       /|  ready     
+<-----+○+ |<-----------+                               +----+○+ |<------+    
+         \|                                                    \|            
+          +                                                     +            
+")]
+//!
 //!# Example
 //!
 //! Here is the example from the [CarloniBuffer] with an [Option<T>]
@@ -44,7 +63,7 @@
 //!
 #![doc = include_str!("../../doc/option_carloni.md")]
 //!
-use badascii_doc::badascii_formal;
+use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
 use crate::core::option::pack;
