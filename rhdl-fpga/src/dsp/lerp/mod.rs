@@ -1,2 +1,2 @@
-/// Linear interpolation core
+//! Linear interpolation core
 pub mod fixed;

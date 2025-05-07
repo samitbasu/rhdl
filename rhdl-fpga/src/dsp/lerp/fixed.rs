@@ -12,15 +12,11 @@
 //!
 //! we want to compute
 //!
-//!```
-//! A * (1 - delta) + B * delta = Y
-//!```
+//!> A * (1 - delta) + B * delta = Y
 //!
 //! where
 //!
-//!```
-//!  0 <= delta = factor / 2^M < 1
-//!```
+//!> 0 <= delta = factor / 2^M < 1
 //!
 //! The `< 1` part is important, since with `M` bits, it is
 //! not possible to represent `2^M`.  The largest value that
@@ -32,28 +28,20 @@
 //!
 //! Substituting delta, we get
 //!
-//!```
-//! A * ( 1 - factor / 2^M) + B * factor / 2^M = Y
-//!```
+//!> A * ( 1 - factor / 2^M) + B * factor / 2^M = Y
 //!
 //! Multiplying out by 2^M, we get
 //!
-//!```
-//! A * 2^M - A * factor + B * factor = Y * 2^M
-//!```
+//!> A * 2^M - A * factor + B * factor = Y * 2^M
 //!
 //! To get this into a single multiplication, we need
 //!
-//!```
-//! A * 2^M + (B - A) * factor = Y * 2^M
-//!```
+//!> A * 2^M + (B - A) * factor = Y * 2^M
 //!
 //! Even if `B` and `A` are unsigned, the `B - A` term is
 //! signed, so we need to promote the factor to be signed as well
 //!
-//!```
-//! A * 2^M + Diff * signed_factor = Y * 2^M
-//!```
+//!> A * 2^M + Diff * signed_factor = Y * 2^M
 //!
 //! Here `signed_factor`` will be `M+1`` bits wide, and `Diff` will be `N+1`
 //! bits wide

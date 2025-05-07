@@ -105,7 +105,7 @@ mod tests {
             .join("reset")
             .join("negating_conditioner");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["d540b8b97b19eb4b62624b97c88ccdc7dcf3ed57c157c1d9e4331c485861db49"];
+        let expect = expect!["ef450241e0b4b60df0b6d71efaa80758bc484c2fda3a69dfbbea06e6e7cb46ab"];
         let digest = vcd
             .dump_to_file(&root.join("negating_conditioner.vcd"))
             .unwrap();

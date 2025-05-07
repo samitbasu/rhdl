@@ -175,44 +175,34 @@ Time:
 .input
 <title>top.input</title>
 </text>
-<path d="M 200 50 L 200 57 L 551 57 L 551 50" fill="none" stroke="#D62246" stroke-width="1"/>
-<rect fill="#470B17" height="14" stroke="none" width="98" x="552" y="43"/>
-<path d="M 551 50 L 551 43 L 651 43 L 651 50" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 651 50 L 651 57 L 1151 57 L 1151 50" fill="none" stroke="#D62246" stroke-width="1"/>
-<rect fill="#470B17" height="14" stroke="none" width="98" x="1152" y="43"/>
-<path d="M 1151 50 L 1151 43 L 1251 43 L 1251 50" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 1251 50 L 1251 57 L 1751 57 L 1751 50" fill="none" stroke="#D62246" stroke-width="1"/>
-<rect fill="#470B17" height="14" stroke="none" width="98" x="1752" y="43"/>
-<path d="M 1751 50 L 1751 43 L 1851 43 L 1851 50" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 1851 50 L 1851 57 L 2190 57 L 2190 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 200 50 L 200 57 L 1351 57 L 1351 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<rect fill="#470B17" height="14" stroke="none" width="198" x="1352" y="43"/>
+<path d="M 1351 50 L 1351 43 L 1551 43 L 1551 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 1551 50 L 1551 57 L 1851 57 L 1851 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<rect fill="#470B17" height="14" stroke="none" width="198" x="1852" y="43"/>
+<path d="M 1851 50 L 1851 43 L 2051 43 L 2051 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 2051 50 L 2051 57 L 2190 57 L 2190 50" fill="none" stroke="#D62246" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="70">
 .input@
 <title>top.input@</title>
 </text>
-<path d="M 200 70 L 200 77 L 551 77 L 551 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<rect fill="#470B17" height="14" stroke="none" width="98" x="552" y="63"/>
-<path d="M 551 70 L 551 63 L 651 63 L 651 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 651 70 L 651 77 L 1151 77 L 1151 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<rect fill="#470B17" height="14" stroke="none" width="98" x="1152" y="63"/>
-<path d="M 1151 70 L 1151 63 L 1251 63 L 1251 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 1251 70 L 1251 77 L 1751 77 L 1751 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<rect fill="#470B17" height="14" stroke="none" width="98" x="1752" y="63"/>
-<path d="M 1751 70 L 1751 63 L 1851 63 L 1851 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 1851 70 L 1851 77 L 2190 77 L 2190 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 200 70 L 200 77 L 1351 77 L 1351 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<rect fill="#470B17" height="14" stroke="none" width="198" x="1352" y="63"/>
+<path d="M 1351 70 L 1351 63 L 1551 63 L 1551 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 1551 70 L 1551 77 L 1851 77 L 1851 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<rect fill="#470B17" height="14" stroke="none" width="198" x="1852" y="63"/>
+<path d="M 1851 70 L 1851 63 L 2051 63 L 2051 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 2051 70 L 2051 77 L 2190 77 L 2190 70" fill="none" stroke="#D62246" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="90">
 .output
 <title>top.output</title>
 </text>
-<path d="M 200 90 L 200 97 L 707 97 L 707 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="76" x="708" y="83"/>
-<path d="M 707 90 L 707 83 L 785 83 L 785 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<path d="M 785 90 L 785 97 L 1253 97 L 1253 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="76" x="1254" y="83"/>
-<path d="M 1253 90 L 1253 83 L 1331 83 L 1331 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<path d="M 1331 90 L 1331 97 L 1877 97 L 1877 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="76" x="1878" y="83"/>
-<path d="M 1877 90 L 1877 83 L 1955 83 L 1955 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<path d="M 1955 90 L 1955 97 L 2190 97 L 2190 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 200 90 L 200 97 L 1487 97 L 1487 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="154" x="1488" y="83"/>
+<path d="M 1487 90 L 1487 83 L 1643 83 L 1643 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 1643 90 L 1643 97 L 1955 97 L 1955 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="232" x="1956" y="83"/>
+<path d="M 1955 90 L 1955 83 L 2189 83 L 2189 90" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="110">
 .reset
 <title>top.reset</title>
