@@ -92,7 +92,7 @@ clk     +----+    +----+    +----+
 //! a pair of registers and manual control logic, since the general FIFO logic does not handle
 //! such small sizes well.
 //!
-//! Roughly the internal circuitry looks like this:
+//! Roughly the internal circuitry is equivalent to this:
 //!
 #![doc = badascii!(r"
  ?T  +----+FIFO+----+  ?T             

@@ -5,7 +5,7 @@ pub struct U<N: BitWidth> {
     filler: crate::fifo::testing::filler::FIFOFiller<N>,
     sender: crate::lid::fifo_to_rv::FIFOToReadyValid<Bits<N>>,
     relay: crate::lid::option_carloni::OptionCarloni<Bits<N>>,
-    receiver: crate::lid::rv_to_fifo::U<Bits<N>>,
+    receiver: crate::lid::rv_to_fifo::ReadyValidToFIFO<Bits<N>>,
     drainer: crate::fifo::testing::drainer::FIFODrainer<N>,
 }
 
@@ -15,7 +15,7 @@ impl<N: BitWidth> Default for U<N> {
             filler: crate::fifo::testing::filler::FIFOFiller::<N>::new(4, 0.5),
             sender: crate::lid::fifo_to_rv::FIFOToReadyValid::<Bits<N>>::default(),
             relay: crate::lid::option_carloni::OptionCarloni::<Bits<N>>::default(),
-            receiver: crate::lid::rv_to_fifo::U::<Bits<N>>::default(),
+            receiver: crate::lid::rv_to_fifo::ReadyValidToFIFO::<Bits<N>>::default(),
             drainer: crate::fifo::testing::drainer::FIFODrainer::<N>::new(4, 0.5),
         }
     }
@@ -105,7 +105,7 @@ mod tests {
         drc::no_combinatorial_paths(&uut)?;
         let uut = crate::lid::fifo_to_rv::FIFOToReadyValid::<Bits<U8>>::default();
         drc::no_combinatorial_paths(&uut)?;
-        let uut = crate::lid::rv_to_fifo::U::<Bits<U8>>::default();
+        let uut = crate::lid::rv_to_fifo::ReadyValidToFIFO::<Bits<U8>>::default();
         drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }
