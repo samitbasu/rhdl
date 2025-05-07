@@ -1123,7 +1123,7 @@
             $finish;
         end
     endmodule
-    // synchronous circuit rhdl_fpga::fifo::testing::filler::U<rhdl::rhdl_typenum::consts::U6>
+    // synchronous circuit rhdl_fpga::fifo::testing::filler::FIFOFiller<rhdl::rhdl_typenum::consts::U6>
     module uut(input wire [1:0] clock_reset, input wire [0:0] i, output wire [6:0] o);
         wire [11:0] od;
         wire [4:0] d;
@@ -1316,7 +1316,7 @@
                 r6 = arg_2;
                 // let d = D::<N>::dont_care();
                 //
-                // let o = O::<N>::dont_care();
+                // let o = Out::<N>::dont_care();
                 //
                 // d.rng = false;
                 //
@@ -1676,7 +1676,7 @@
     module uut__marker_const_0_b6(input wire [1:0] clock_reset, output wire [5:0] o);
         assign o = 6'b000000;
     endmodule
-    // synchronous circuit rhdl_fpga::rng::xorshift::U
+    // synchronous circuit rhdl_fpga::rng::xorshift::XorShift
     module uut_rng(input wire [1:0] clock_reset, input wire [0:0] i, output wire [31:0] o);
         wire [159:0] od;
         wire [127:0] d;

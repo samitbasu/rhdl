@@ -61,7 +61,7 @@ mod tests {
             .join("vcd")
             .join("gearbox");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["7b1ea08421646c2e13eea4b1183e191badf1fab4cc213c61015ec4e154e395ce"];
+        let expect = expect!["bf0dcab77368e53296d25bdf6ab3277e04406f30e0fbcddfb41d8050152a3b1b"];
         let digest = vcd.dump_to_file(&root.join("single.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

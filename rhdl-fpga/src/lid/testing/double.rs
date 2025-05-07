@@ -59,8 +59,7 @@ mod tests {
     #[test]
     fn test_double_trace() -> miette::Result<()> {
         let uut = U::<U6>::default();
-        let input = std::iter::repeat(())
-            .take(5000)
+        let input = std::iter::repeat_n((), 5000)
             .stream_after_reset(1)
             .clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
@@ -68,7 +67,7 @@ mod tests {
             .join("vcd")
             .join("lid");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!("eeb3fdebc6a63887ec424a5aabb3b5a57e8dbd5603a6da6575cf5d5fadbba76d");
+        let expect = expect!("a19cf129674c790324f2263dc685ccd847e033d053b28e5d100ad13224b9d537");
         let digest = vcd.dump_to_file(&root.join("double.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -77,8 +76,7 @@ mod tests {
     #[test]
     fn test_double_is_valid() -> miette::Result<()> {
         let uut = U::<U6>::default();
-        let input = std::iter::repeat(())
-            .take(100_000)
+        let input = std::iter::repeat_n((), 100_000)
             .stream_after_reset(1)
             .clock_pos_edge(100);
         let last = uut.run(input)?.last().unwrap();
@@ -89,8 +87,7 @@ mod tests {
     #[test]
     fn test_double_hdl() -> miette::Result<()> {
         let uut = U::<U6>::default();
-        let input = std::iter::repeat(())
-            .take(500)
+        let input = std::iter::repeat_n((), 500)
             .stream_after_reset(1)
             .clock_pos_edge(100);
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
