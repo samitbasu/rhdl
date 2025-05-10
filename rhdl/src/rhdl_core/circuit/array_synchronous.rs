@@ -25,6 +25,11 @@ impl<T: SynchronousIO, const N: usize> SynchronousDQ for [T; N] {
     type Q = ();
 }
 
+const ARRAY_ENTRIES: &[&str] = &[
+    "[0]", "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]", "[10]", "[11]", "[12]",
+    "[13]", "[14]", "[15]", "[XX]",
+];
+
 impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
     type S = [T::S; N];
 
@@ -36,7 +41,9 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
         trace_push_path("array");
         let mut output = [T::O::dont_care(); N];
         for i in 0..N {
+            trace_push_path(ARRAY_ENTRIES[i.min(16)]);
             output[i] = self[i].sim(clock_reset, input[i], &mut state[i]);
+            trace_pop_path();
         }
         trace_pop_path();
         output
@@ -49,7 +56,10 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
     // This requires a custom implementation because the default implementation
     // assumes that the children of the current circuit are named with field names
     // as part of a struct.
-    fn descriptor(&self, name: &str) -> Result<crate::rhdl_core::CircuitDescriptor, crate::rhdl_core::RHDLError> {
+    fn descriptor(
+        &self,
+        name: &str,
+    ) -> Result<crate::rhdl_core::CircuitDescriptor, crate::rhdl_core::RHDLError> {
         let mut fg = crate::rhdl_core::FlowGraph::default();
         let cr_kind: RegisterKind = ClockReset::static_kind().into();
         let input_kind: RegisterKind = Self::I::static_kind().into();

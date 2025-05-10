@@ -71,6 +71,8 @@ pub enum RHDLError {
     SynError(#[from] syn::Error),
     #[error("Top module export error: {0}")]
     ExportError(#[from] crate::rhdl_core::circuit::fixture::ExportError),
+    #[error("This module is not synthesizable")]
+    NotSynthesizable,
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

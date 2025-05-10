@@ -1,17 +1,18 @@
-//! A PipeReducer Core
+//! Flatten Pipe Core
 //!
 //!# Purpose
 //!
-//! A [PipeReducer] Core takes arrays of type `T` and
-//! splits it into it's constituent elements, each of
-//! which is output in sequence.
+//! A [FlattenPipe] Core takes a sequence of arrays of
+//! type `[T; N]` and splits them into individual items of
+//! type `T`.  It is roughly equivalent to calling
+//! `.iter().flatten()` on an iterator that returns `[T; N]` slices.
 //!
 //!# Schematic Symbol
 //!
-//! Here is the schematic symbol for the [PipeReducer] buffer
+//! Here is the schematic symbol for the [FlattenPipe] buffer
 //!
 #![doc = badascii_formal!("
-         +-+PipeReducer+--+        
+         +-+FlattenPipe+--+        
  ?[T;N]  |                |  ?T    
 +------->+ data     data  +------->
          |                |        
@@ -23,7 +24,7 @@
 //!
 //!# Internals
 //!
-//! The [PipeReducer] contains an entry flip flop to hold the input data (shown
+//! The [FlattenPipe] contains an entry flip flop to hold the input data (shown
 //! below with an enable signal).  This DFF holds the current value being processed
 //! and is needed to avoid a pipeline delay in the upstream pipeline producing a
 //! new value to feed the reducer.  The tag and data are separated, and the
@@ -84,12 +85,12 @@ valid    +---------------------------------+     +------+
 //! Here is an example of running the pipelined reducer.
 //!
 //!```
-#![doc = include_str!("../../examples/pipe_reducer.rs")]
+#![doc = include_str!("../../examples/flatten.rs")]
 //!```
 //!
 //! with a trace file like this:
 //!
-#![doc = include_str!("../../doc/pipe_reducer.md")]
+#![doc = include_str!("../../doc/flatten.md")]
 //!
 use crate::{
     core::{
@@ -102,13 +103,15 @@ use crate::{
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
+use super::PipeIO;
+
 #[derive(Debug, Clone, Synchronous, SynchronousDQ)]
-/// The PipeReducer Core
+/// The [FlattenPipe] Core
 ///
 /// This core takes a stream of `[T; N]`, and produces
 /// a stream of `T`, reading out the input stream in
 /// index order (`0, 1, 2..`).  
-pub struct PipeReducer<M: BitWidth, T: Digital, const N: usize>
+pub struct FlattenPipe<M: BitWidth, T: Digital, const N: usize>
 where
     [T; N]: Default,
     T: Default,
@@ -118,7 +121,7 @@ where
     buffer: option_carloni::OptionCarloni<T>,
 }
 
-impl<M: BitWidth, T: Digital, const N: usize> Default for PipeReducer<M, T, N>
+impl<M: BitWidth, T: Digital, const N: usize> Default for FlattenPipe<M, T, N>
 where
     [T; N]: Default,
     T: Default,
@@ -133,25 +136,13 @@ where
     }
 }
 
-#[derive(Debug, PartialEq, Digital)]
-/// Inputs for the [PipeReducer] core
-pub struct In<T: Digital, const N: usize> {
-    /// Input data elements that need to be reduced
-    pub data: Option<[T; N]>,
-    /// Input ready flag from downstream
-    pub ready: bool,
-}
+/// Inputs for the [FlattenPipe] core
+pub type In<T, const N: usize> = PipeIO<[T; N]>;
 
-#[derive(Debug, PartialEq, Digital)]
-/// Outputs from the [PipeReducer] core
-pub struct Out<T: Digital> {
-    /// Output data elements from the input array
-    pub data: Option<T>,
-    /// Output ready flag to upstream
-    pub ready: bool,
-}
+/// Outputs from the [FlattenPipe] core
+pub type Out<T> = PipeIO<T>;
 
-impl<M: BitWidth, T: Digital, const N: usize> SynchronousIO for PipeReducer<M, T, N>
+impl<M: BitWidth, T: Digital, const N: usize> SynchronousIO for FlattenPipe<M, T, N>
 where
     [T; N]: Default,
     T: Default,
@@ -213,14 +204,14 @@ mod tests {
 
     #[test]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
-        let uut = PipeReducer::<U2, b4, 4>::default();
+        let uut = FlattenPipe::<U2, b4, 4>::default();
         drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }
 
     #[test]
     fn test_operation() -> miette::Result<()> {
-        type Uut = PipeReducer<U2, b4, 4>;
+        type Uut = FlattenPipe<U2, b4, 4>;
         let uut = Uut::default();
         let mut need_reset = true;
         let mut source_rng = XorShift128::default().map(|x| bits((x & 0xF) as u128));

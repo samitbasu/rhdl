@@ -33,7 +33,7 @@ impl Vcd {
         let db = self.guard.take();
         db.dump_vcd(writer, Some(&self.time_set))
     }
-    pub fn dump_to_file(self, path: &Path) -> std::io::Result<String> {
+    pub fn dump_to_file<P: AsRef<Path>>(self, path: P) -> std::io::Result<String> {
         let mut buf = vec![];
         self.dump(&mut buf)?;
         let hash = sha2::Sha256::digest(&buf);
