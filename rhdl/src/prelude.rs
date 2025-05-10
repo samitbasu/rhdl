@@ -114,6 +114,7 @@ pub use crate::rhdl_core::sim::run::async_fn::run_async_red_blue;
 pub use crate::rhdl_core::sim::run::asynchronous::RunExt;
 pub use crate::rhdl_core::sim::run::sync_fn::RunSynchronousFeedbackExt;
 pub use crate::rhdl_core::sim::run::synchronous::RunSynchronousExt;
+pub use crate::rhdl_core::sim::run::synchronous::RunWithoutSynthesisSynchronousExt;
 pub use crate::rhdl_core::sim::stream::TimedStreamExt;
 pub use crate::rhdl_core::sim::testbench::asynchronous::TestBench;
 pub use crate::rhdl_core::sim::testbench::synchronous::SynchronousTestBench;

@@ -66,7 +66,7 @@
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use crate::core::option::pack;
+use crate::{core::option::pack, pipe::PipeIO};
 
 use super::carloni;
 
@@ -79,23 +79,11 @@ pub struct OptionCarloni<T: Digital + Default> {
     inner: carloni::Carloni<T>,
 }
 
-#[derive(PartialEq, Debug, Digital)]
 /// Inputs to the [OptionCarloni] buffer core
-pub struct In<T: Digital> {
-    /// The data flowing into the buffer
-    pub data: Option<T>,
-    /// Ready signal from downstream cores
-    pub ready: bool,
-}
+pub type In<T> = PipeIO<T>;
 
-#[derive(PartialEq, Debug, Digital)]
 /// Outputs from the [OptionCarloni] buffer core
-pub struct Out<T: Digital> {
-    /// Data flowing to downstream cores
-    pub data: Option<T>,
-    /// Ready signal for upstream cores
-    pub ready: bool,
-}
+pub type Out<T> = PipeIO<T>;
 
 impl<T: Digital + Default> SynchronousIO for OptionCarloni<T> {
     type I = In<T>;

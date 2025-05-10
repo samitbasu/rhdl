@@ -123,7 +123,10 @@ clk     +----+    +----+    +----+
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use crate::core::{dff, option::is_some};
+use crate::{
+    core::{dff, option::is_some},
+    pipe::PipeIO,
+};
 
 #[derive(PartialEq, Digital, Default, Debug)]
 #[doc(hidden)]
@@ -165,7 +168,6 @@ impl<T: Digital> Default for FIFOToReadyValid<T> {
     }
 }
 
-#[derive(PartialEq, Debug, Digital)]
 /// Inputs to the [FIFOToReadyValid] buffer
 ///
 /// For inputs, the push pull buffer has a Option<T> input to combine the
@@ -173,12 +175,7 @@ impl<T: Digital> Default for FIFOToReadyValid<T> {
 /// It is important that the full signal is not dependant on the consumer,
 /// so that the pull-pull buffer isolates the producer from the consumer
 /// and vice versa.
-pub struct In<T: Digital> {
-    /// The producers data and write enable
-    pub data: Option<T>,
-    /// The consumers "stop/ready" signal
-    pub ready: bool,
-}
+pub type In<T: Digital> = PipeIO<T>;
 
 #[derive(PartialEq, Debug, Digital)]
 /// Outputs from the [FIFOToReadyValid] buffer
@@ -194,7 +191,7 @@ pub struct Out<T: Digital> {
 }
 
 impl<T: Digital> SynchronousIO for FIFOToReadyValid<T> {
-    type I = In<T>;
+    type I = PipeIO<T>;
     type O = Out<T>;
     type Kernel = kernel<T>;
 }

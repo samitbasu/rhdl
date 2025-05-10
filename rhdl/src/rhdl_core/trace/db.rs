@@ -56,6 +56,7 @@ impl<T: Digital> AsAny for TimeSeries<T> {
 
 struct TimeSeries<T: Digital>(Vec<(u64, T)>);
 
+#[derive(Debug)]
 struct TimeSeriesDetails {
     hash: TimeSeriesHash,
     trace_type: TraceType,

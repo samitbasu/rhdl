@@ -1,4 +1,6 @@
-use crate::rhdl_core::{trace, trace_time, ClockReset, RHDLError, Synchronous, SynchronousIO, TimedSample};
+use crate::rhdl_core::{
+    trace, trace_time, ClockReset, RHDLError, Synchronous, SynchronousIO, TimedSample,
+};
 
 #[must_use = "To run the simulation, you must exhaust the iterator or collect it into a VCD"]
 pub struct RunSynchronous<'a, T, I, S> {
@@ -86,6 +88,37 @@ where
     > {
         let _ = self.hdl("top")?;
         let _ = self.flow_graph("name")?;
+        Ok(run_synchronous(self, iter.into_iter()))
+    }
+}
+
+pub trait RunWithoutSynthesisSynchronousExt<I>: Synchronous + Sized {
+    fn run_without_synthesis(
+        &self,
+        iter: I,
+    ) -> Result<
+        RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S>,
+        RHDLError,
+    >
+    where
+        I: IntoIterator;
+}
+
+impl<T, I> RunWithoutSynthesisSynchronousExt<I> for T
+where
+    T: Synchronous,
+    I: IntoIterator<Item = TimedSample<(ClockReset, <T as SynchronousIO>::I)>>,
+{
+    fn run_without_synthesis(
+        &self,
+        iter: I,
+    ) -> Result<
+        RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S>,
+        RHDLError,
+    >
+    where
+        I: IntoIterator,
+    {
         Ok(run_synchronous(self, iter.into_iter()))
     }
 }
