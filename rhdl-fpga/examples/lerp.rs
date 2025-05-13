@@ -31,7 +31,7 @@ where
 
 fn main() -> Result<(), RHDLError> {
     // The [Func] wrapper gives us a core we can simulate
-    let uut: Func<LerpIn<U8, U4>, Bits<U8>> = Func::new::<wrap_lerp<U8, U4>>()?;
+    let uut: Func<LerpIn<U8, U4>, Bits<U8>> = Func::try_new::<wrap_lerp<U8, U4>>()?;
     // Simulate a ramp
     let ramp = (0..15)
         .map(|x| LerpIn {

@@ -74,7 +74,7 @@ fn test_chain_auto_counter() -> miette::Result<()> {
         .stream_after_reset(1)
         .clock_pos_edge(100);
     let c1 = auto_counter::U::<U4>::default();
-    let c2 = Func::new::<doubler::doubler<U4>>()?;
+    let c2 = Func::try_new::<doubler::doubler<U4>>()?;
     let uut = Chain::new(c1, c2);
     let output = uut
         .run(input)?

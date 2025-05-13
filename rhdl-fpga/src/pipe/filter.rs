@@ -1,19 +1,20 @@
-//! Map Pipe Core
+//! Filter Pipe Core
 //!
 //!# Purpose
 //!
-//! A [MapPipe] Core takes a sequence of elements of type `T` and
-//! a synthesizable function `fn(T) -> S`, and feeds a pipeline
-//! that carries type `S`.  This is equivalent to using `.map()` on
-//! an interator.
+//! A [FilterPipe] Core takes a sequence of elements of type `T`
+//! and a function `fn(T) -> bool`, and keeps only those items for
+//! which the function evaluates to `true`.  The filter function is
+//! provided in the form of a synthesizable function.  This is
+//! equivalent to using `.filter()` on an interator.
 //!
 //!# Schematic Symbol
 //!
 //! Here is the schematic symbol for the [FilterPipe] buffer
 //!
 #![doc = badascii_formal!("
-         +--+MapPipe+--+        
- ?[T;N]  |                |  ?S   
+         +--+FilterPipe+--+        
+ ?[T;N]  |                |  ?T    
 +------->+ data     data  +------->
          |                |        
          |                |        
@@ -24,47 +25,42 @@
 //!
 //!# Internals
 //!
-//! Unlike [FlattenPipe] or [ChunkedPipe], the [MapPipe] does not
+//! Unlike [FlattenPipe] or [ChunkedPipe], the [FilterPipe] does not
 //! impose any flow control on the upstream pipe.  Because it can
 //! at most produce as many items as the source pipe, it can be
 //! implemented with simple [OptionCarloni] buffers at the input
 //! and output, which are needed to isolate the combinatorial
-//! `map` function from the remaining parts of the pipeline.  
-//! Note that if you need a more expensive `map` function (i.e., one
+//! filter function from the remaining parts of the pipeline.  
+//! Note that if you need a more expensive filter function (i.e., one
 //! that itself is pipelined), then you cannot use this construct.
 //!
 #![doc = badascii!(r"
                                       +-+Func+--+                                      
-                                      |         | S                                     
-                                    +>|in    out+--+                                   
+                                      |         |                                      
+                                    +>|in   keep+--+                                   
      +-+Input Buf++     +-+upck+-+  | +---------+  |   +-+pck+-+     ++Output Buf++    
- ?T  |            | ?T  |        |T |              |   |       |?S   |            | ?S 
-+--->|data    data+---->|in   out+--+              +-->|in  out+---->|data    data+--->
-     |            |     |        |                     |       |     |            |    
-<----+ready  ready|<-+  |     tag+-------------------->|tag    |  +--+ready  ready|<--+
+ ?T  |            | ?T  |        |T |              |   |       |?T   |            | ?T 
++--->|data    data+---->|in   out+--+-------------+|+->|in  out+---->|data    data+--->
+     |            |     |        |                 +   |       |     |            |    
+<----+ready  ready|<-+  |     tag+---------------> &+->|tag    |  +--+ready  ready|<--+
      +------------+  |  +--------+                     +-------+  |  +------------+    
        ?Carloni      |                                            |    ?Carloni        
                      +--------------------------------------------+                    
 ")]
 //!# Example
 //!
-//! Here is an example of running the map pipe, transforming
-//! elements.
+//! Here is an example of running the pipeline filter.
 //!
 //!```
-#![doc = include_str!("../../examples/map.rs")]
+#![doc = include_str!("../../examples/filter.rs")]
 //!```
 //!
 //! with a trace file like this:
 //!
-#![doc = include_str!("../../doc/map.md")]
+#![doc = include_str!("../../doc/filter.md")]
 //!
-
 use badascii_doc::{badascii, badascii_formal};
-use rhdl::{
-    core::{ClockReset, DigitalFn, DigitalFn2, RHDLError},
-    prelude::*,
-};
+use rhdl::prelude::*;
 
 use crate::{
     core::option::{pack, unpack},
@@ -74,72 +70,69 @@ use crate::{
 use super::PipeIO;
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
-/// The MapPipe Core
+/// The FilterPipe Core
 ///
-/// Here `T` is the input type, and `S` is the
-/// output type.  A provided (combinatorial) function
-/// performs the mapping function.
-pub struct MapPipe<T: Digital + Default, S: Digital + Default> {
+/// Here `T` is the type flowing in the pipe.
+/// At construction time, you provide a synthesizable
+/// function to filter the contents of the pipe.
+/// Only items for which `fn(T)` returns `true` will
+/// be passed on downstream.
+pub struct FilterPipe<T: Digital + Default> {
     input_buffer: OptionCarloni<T>,
-    func: Func<T, S>,
-    output_buffer: OptionCarloni<S>,
+    func: Func<T, bool>,
+    output_buffer: OptionCarloni<T>,
 }
 
-impl<T, S> MapPipe<T, S>
+impl<T> FilterPipe<T>
 where
     T: Digital + Default,
-    S: Digital + Default,
 {
-    /// Construct a Map Pipe
+    /// Construct a Filter Pipe
     ///
-    /// The argument to the map pipe `try_new` function
+    /// The argument to the filter pipe `try_new` function
     /// is a synthesizable function (i.e., one marked with the
     /// `#[kernel]` attribute).  It must have a signature of
-    /// `fn(T) -> S`.
-    pub fn try_new<K>() -> Result<Self, RHDLError>
+    /// `fn(ClockReset, T) -> bool`.
+    pub fn try_new<S>() -> Result<Self, RHDLError>
     where
-        K: DigitalFn,
-        K: DigitalFn2<A0 = ClockReset, A1 = T, O = S>,
+        S: DigitalFn,
+        S: DigitalFn2<A0 = ClockReset, A1 = T, O = bool>,
     {
         Ok(Self {
             input_buffer: OptionCarloni::default(),
-            func: Func::try_new::<K>()?,
             output_buffer: OptionCarloni::default(),
+            func: Func::try_new::<S>()?,
         })
     }
 }
 
-/// The input for the [MapPipe]
+/// The input for the [FilterPipe]
 pub type In<T> = PipeIO<T>;
 
-/// The output for the [MapPipe]
-pub type Out<S> = PipeIO<S>;
+/// The output of the [FilterPipe]
+pub type Out<T> = PipeIO<T>;
 
-impl<T, S> SynchronousIO for MapPipe<T, S>
+impl<T> SynchronousIO for FilterPipe<T>
 where
     T: Digital + Default,
-    S: Digital + Default,
 {
     type I = In<T>;
-    type O = Out<S>;
-    type Kernel = kernel<T, S>;
+    type O = Out<T>;
+    type Kernel = kernel<T>;
 }
 
 #[kernel]
 #[doc(hidden)]
-pub fn kernel<T, S>(_cr: ClockReset, i: In<T>, q: Q<T, S>) -> (Out<S>, D<T, S>)
-where
-    T: Digital + Default,
-    S: Digital + Default,
-{
-    let mut d = D::<T, S>::dont_care();
+pub fn kernel<T: Digital + Default>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
+    let mut d = D::<T>::dont_care();
     d.input_buffer.data = i.data;
     let (tag, data) = unpack::<T>(q.input_buffer.data);
     d.func = data;
-    d.output_buffer.data = pack::<S>(tag, q.func);
+    let tag = tag && q.func;
+    d.output_buffer.data = pack::<T>(tag, data);
     d.output_buffer.ready = i.ready;
     d.input_buffer.ready = q.output_buffer.ready;
-    let o = Out::<S> {
+    let o = Out::<T> {
         data: q.output_buffer.data,
         ready: q.input_buffer.ready,
     };
@@ -151,7 +144,6 @@ mod tests {
     use std::iter::repeat_n;
 
     use crate::{
-        core::slice::lsbs,
         pipe::testing::{single_stage::single_stage, utils::stalling},
         rng::xorshift::XorShift128,
     };
@@ -159,25 +151,23 @@ mod tests {
     use super::*;
 
     #[kernel]
-    fn map_item(_cr: ClockReset, t: b4) -> b2 {
-        lsbs::<U2, U4>(t)
+    fn keep_even(_cr: ClockReset, t: b4) -> bool {
+        !(t & bits(1)).any()
     }
 
     #[test]
     fn test_operation() -> Result<(), RHDLError> {
         let a_rng = XorShift128::default().map(|x| b4((x & 0xF) as u128));
-        let mut b_rng = a_rng.clone();
         let a_rng = stalling(a_rng, 0.23);
-        let consume = move |data: Option<b2>| {
+        let consume = move |data: Option<b4>| {
             if let Some(data) = data {
-                let orig = b_rng.next().unwrap();
-                let orig_lsb = lsbs::<U2, U4>(orig);
-                assert_eq!(data, orig_lsb);
+                // Only even values kept
+                assert!(data.raw() & 1 == 0);
             }
             rand::random::<f64>() > 0.2
         };
-        let map = MapPipe::try_new::<map_item>()?;
-        let uut = single_stage(map, a_rng, consume);
+        let filter = FilterPipe::try_new::<keep_even>()?;
+        let uut = single_stage(filter, a_rng, consume);
         // Run a few samples through
         let input = repeat_n((), 10_000)
             .stream_after_reset(1)

@@ -24,62 +24,56 @@
 //!
 //!# Internals
 //!
-//! The [FlattenPipe] contains an entry flip flop to hold the input data (shown
-//! below with an enable signal).  This DFF holds the current value being processed
-//! and is needed to avoid a pipeline delay in the upstream pipeline producing a
-//! new value to feed the reducer.  The tag and data are separated, and the
-//! data element is selected using a counter fed from the control logic.
-//! The tag is re-united in the packer, and then an [OptionCarloni] buffer
-//! is used to isolate the input ready signal from the output ready signal.
-//! Without this buffer, a combinatorial path will exist between the input and
-//! outputs of the core, violating a general principle of latency insensitive
-//! design.
+//! The [FlattenPipe] uses a loadable delay line to hold the array in a
+//! set of chained flip flops.  The output is then clocked off the end
+//! of the chain, one element at a time.  When it is empty, the delay
+//! line can be reloaded from the input buffer.  Buffers at the input
+//! and output eliminate combinatorial paths.  This design is a bit
+//! register/flip flop heavy, so be careful with it's use.
 //!
 #![doc = badascii!(r"
-                                        +                                               
-         +DFF++        +-+unpck++       |\         +--+pck+--+      +-+?Carloni+--+     
-         |    |        |        | [T;N] | +  T     |         | ?T   |             | ?T  
-  ?[T;N] |    | ?[T;N] |    data+------>|n+------->|data  out+----->|data    data +---->
-+------->|d  q+------->|in      |       | +        |         |      |             |     
-         |    |        |     tag+--+    |/   +---->|tag      |   +--+ready   ready|<---+
-         | en |        |        |  |    +^   |     |         |   |  |             |     
-         +----+        +--------+  |     |   |     +---------+   |  +-------------+
-           ^                       +-----+---+                   |      
-           +-------------------+         |                       |       
-                               |         |                       |                      
-                            +--+---------+--+                    |                      
-                            |next       sel |                    |                      
-    ready                   |               |                    |                      
-  <-------------------------+          ready|<-------------------+                      
-                            |               |                                           
-                            +--+Control+----+                                           
-")]
-//! Here is a rough timing diagram of how the control section operates.  I have
-//! assumed that the pipline will run on every clock, which is only true if the
-//! output [FifoToReadyValid] buffer is not `full` and data is present.  But
-//! for brevity, I left it out.
-//!
-#![doc = badascii!("
-data    D0  D0  D0  D0  D1  D1  D1  D1  D1  X  X  D2  D2 
-           :   :   :   :   :   :   :   :   :  :  :   :   
-sel      0   1   2   3   0   1   2   3   4  0  0   0   1 
-           :   :   :   :   :   :   :   :   :  :  :   :   
-                   +---+           +---+                 
-next     +---------+   +-----------+   +----------------+
-                                           :  :  :       
-valid    +---------------------------------+     +------+
-                                           +-----+       
+        +IBuf+-----+        +-+unpck++                                                        
+ ?[T;N] |          | ?[T;N] |        | [T;N]                                                  
++------>|data  data+------->|in  data+-------+---+---+                                        
+        |          |        |        |       v   v   v        +--+pck+-+    +OBuf+-----+      
+<-------+ready next|<----+  |     tag+-+   +------------+     |        | ?T |          | ?T   
+        |          |     |  |        | |   | Delay Line +---->|data out+--->|data  data+----->
+        +----------+     |  +--------+ |   |      run   |     |        |    |          |      
+                         |             v   +------------+ +-->|tag     | +--+full ready|<----+
+                         |  +-----------+          ^      |   |        | |  |          |      
+                         |  |   Control +----------+      |   +--------+ |  +----------+      
+                         +--+           +-----------------+              |                    
+                            |           |<-------------------------------+                    
+                            +-----------+                                                     
 ")]
 //!
-//! From this diagram, a few key ideas emerge:
-//!
-//!   - The validity of the output data is taken from
-//! the input data (as stored in the holding DFF).
-//!   - The counter advances (with a wrap at `N-1`) as
-//! long as the data is valid
-//!   - The holding DFF is enabled when the counter reaches
-//! `N-1`
-//!
+//! The control is governed by a simple two-state state machine.  The state diagram
+//! is as follows:
+#![doc = badascii!(r"
+                           +---------+                          
+                           |         |                          
+   !full && cnt == N-1     | Loading |                          
+     && !in_is_some     +->|         +--+    in_is_some         
+   +----------------+  /   +---------+   \  +-----------+       
+       cnt = 1        +                   +   next = 1          
+       load = 0       |                   |   cnt = 0           
+                      +                   +   load = 1          
+                       \   +---------+   /                      
+!full && cnt == N-1     +--+         |<-+                       
+     && in_is_some         | Running |                          
++------------------+  +--->|         +-----+                    
+    next = 1          |    |         |     | !full && cnt != N-1
+    cnt = 0           |    |         |     | +-----------------+
+    load = 1          |    |         |<----+    run = 1         
+                      +----+         |          cnt += 1        
+                           +-------+-+                          
+                              ^    |                            
+                              +----+                            
+                               full                             
+                              +----+                            
+                               run=0                            
+                               load=0                           
+")]
 //!# Example
 //!
 //! Here is an example of running the pipelined reducer.
@@ -93,17 +87,22 @@ valid    +---------------------------------+     +------+
 #![doc = include_str!("../../doc/flatten.md")]
 //!
 use crate::{
-    core::{
-        dff,
-        option::{pack, unpack},
-    },
-    lid::option_carloni,
+    core::{dff, option::unpack},
+    lid::{fifo_to_rv::FIFOToReadyValid, rv_to_fifo::ReadyValidToFIFO},
 };
 
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
 use super::PipeIO;
+
+#[derive(Debug, Default, PartialEq, Digital)]
+#[doc(hidden)]
+pub enum State {
+    #[default]
+    Loading,
+    Running,
+}
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ)]
 /// The [FlattenPipe] Core
@@ -116,9 +115,11 @@ where
     [T; N]: Default,
     T: Default,
 {
-    store: dff::DFF<Option<[T; N]>>,
+    input_buffer: ReadyValidToFIFO<[T; N]>,
+    delay: [dff::DFF<T>; N],
     count: dff::DFF<Bits<M>>,
-    buffer: option_carloni::OptionCarloni<T>,
+    output_buffer: FIFOToReadyValid<T>,
+    state: dff::DFF<State>,
 }
 
 impl<M: BitWidth, T: Digital, const N: usize> Default for FlattenPipe<M, T, N>
@@ -129,9 +130,11 @@ where
     fn default() -> Self {
         assert!((1 << M::BITS) >= N, "Expect that the bitwidth of the counter is sufficient to count the elements in the array.  I.e., (1 << M) >= N");
         Self {
-            store: dff::DFF::new(None),
+            delay: core::array::from_fn(|_| dff::DFF::default()),
+            input_buffer: ReadyValidToFIFO::default(),
             count: dff::DFF::new(bits(0)),
-            buffer: option_carloni::OptionCarloni::default(),
+            output_buffer: FIFOToReadyValid::default(),
+            state: dff::DFF::new(State::Loading),
         }
     }
 }
@@ -163,32 +166,80 @@ where
     [T; N]: Default,
     T: Digital + Default,
 {
-    // Extract the tag from the input
-    let (tag, data) = unpack::<[T; N]>(q.store);
-    let mut out = Out::<T>::dont_care();
-    // This boolean indicates the pipeline will advance
-    let will_run = tag && q.buffer.ready;
+    let n_minus_1 = bits::<M>(N as u128 - 1);
     let mut d = D::<M, T, N>::dont_care();
-    // The output value is the input data selected with
-    // the tag copied from the input
-    d.buffer.data = pack::<T>(tag, data[q.count]);
-    d.buffer.ready = i.ready;
-    // If we advance, then roll the counter
-    d.count = q.count + if will_run { 1 } else { 0 };
-    // The store DFF will normally hold state unless
-    // it is empty.
-    d.store = q.store;
-    out.data = q.buffer.data;
-    out.ready = false;
-    // The two cases where it will be open to the input
-    // bus is if it is empty/None, or if we will finish
-    // with the contents.
-    if !tag || (will_run && q.count == bits((N - 1) as u128)) {
-        d.store = i.data;
-        d.count = bits(0);
-        out.ready = true;
+    // Connect the input buffer to the input data stream
+    d.input_buffer.data = i.data;
+    // Do not advance the input buffer unless asked.
+    d.input_buffer.next = false;
+    // Control line to load the delay line from the
+    // input buffer
+    let mut load_line = false;
+    // Control line to write the delay line output
+    // to the output buffer (also advances the delay line)
+    let mut write = false;
+    // By default, do not change the count or state
+    d.count = q.count;
+    d.state = q.state;
+    let out_full = q.output_buffer.full;
+    let (in_some, idata) = unpack::<[T; N]>(q.input_buffer.data);
+    // Update the state and compute transition actions
+    match q.state {
+        State::Loading => {
+            if in_some {
+                // Accept the input data
+                d.input_buffer.next = true;
+                // Load the data into the delay line
+                load_line = true;
+                // Reset the counter
+                d.count = bits(0);
+                d.state = State::Running;
+            }
+        }
+        State::Running => {
+            if !out_full {
+                write = true;
+                if q.count != n_minus_1 {
+                    d.count = q.count + 1;
+                } else if in_some {
+                    // Finished, and on this write, we
+                    // will load the next data (which is available)
+                    d.input_buffer.next = true;
+                    d.count = bits(0);
+                    load_line = true;
+                } else {
+                    // No more data.  Go back to Loading
+                    d.state = State::Loading;
+                }
+            }
+        }
     }
-    (out, d)
+    // By default, the delay line holds it's current
+    // state
+    for i in 0..N {
+        d.delay[i] = q.delay[i];
+    }
+    if write {
+        // The write signal indicates the delay line should
+        // shift
+        for i in 1..N {
+            d.delay[i - 1] = q.delay[i]
+        }
+    }
+    if load_line {
+        // Reload the delay line from the input buffer
+        for i in 0..N {
+            d.delay[i] = idata[i]
+        }
+    }
+    // Use the write flag to strobe data into the output FIFO
+    d.output_buffer.data = if write { Some(q.delay[0]) } else { None };
+    d.output_buffer.ready = i.ready;
+    let o = Out::<T> {
+        data: q.output_buffer.data,
+        ready: q.input_buffer.ready,
+    };
+    (o, d)
 }
 
 #[cfg(test)]

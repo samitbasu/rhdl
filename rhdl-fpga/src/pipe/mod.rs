@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 //! Pipe Cores
 //!
 //! Pipe cores are used to implement stream processing, in
@@ -18,9 +19,12 @@
 use badascii_doc::badascii;
 use rhdl::prelude::Digital;
 pub mod chunked;
+pub mod filter;
+pub mod filter_map;
 pub mod flatten;
-//pub mod map;
+pub mod map;
 pub mod testing;
+pub mod zip;
 
 #[derive(PartialEq, Digital)]
 /// A generic Pipe type that holds a data and ready
