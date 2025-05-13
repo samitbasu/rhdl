@@ -16,7 +16,7 @@ use rhdl::prelude::*;
 use rhdl_fpga::{
     pipe::{
         flatten::FlattenPipe,
-        testing::{single_stage::single_stage, stalling::stalling},
+        testing::{single_stage::single_stage, utils::stalling},
     },
     rng::xorshift::XorShift128,
 };
@@ -55,7 +55,7 @@ fn main() -> Result<(), RHDLError> {
     rhdl_fpga::doc::write_svg_as_markdown(
         vcd,
         "flatten.md",
-        SvgOptions::default().with_filter("(^top.uut.input)|(^top.uut.outputs)"),
+        SvgOptions::default().with_filter("(^top.uut.input.data)|(^top.uut.outputs.data)"),
     )?;
     Ok(())
 }

@@ -18,7 +18,7 @@ use rhdl_fpga::{
         chunked::ChunkedPipe,
         testing::{
             single_stage::single_stage, sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn,
-            stalling::stalling,
+            utils::stalling,
         },
     },
     rng::xorshift::XorShift128,

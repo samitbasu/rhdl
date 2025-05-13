@@ -33,7 +33,7 @@ impl<I: Digital, O: Digital> SynchronousDQ for Func<I, O> {
 }
 
 impl<I: Digital, O: Digital> Func<I, O> {
-    pub fn new<T>() -> Result<Self, RHDLError>
+    pub fn try_new<T>() -> Result<Self, RHDLError>
     where
         T: DigitalFn,
         T: DigitalFn2<A0 = ClockReset, A1 = I, O = O>,
