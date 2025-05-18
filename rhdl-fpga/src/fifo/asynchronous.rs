@@ -217,7 +217,7 @@ mod tests {
         std::fs::create_dir_all(&root).unwrap();
         let expect = expect!["bff63c1614ad7ce399d420bde794f954265a34f898b6eba5b9bfa9a54eadea1b"];
         let digest = vcd
-            .dump_to_file(&root.join("async_fifo_write_test.vcd"))
+            .dump_to_file(root.join("async_fifo_write_test.vcd"))
             .unwrap();
         expect.assert_eq(&digest);
         let test_bench = uut.run(input)?.collect::<TestBench<_, _>>();
