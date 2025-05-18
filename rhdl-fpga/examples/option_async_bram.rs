@@ -10,18 +10,26 @@ use rhdl_fpga::{
 fn main() -> Result<(), RHDLError> {
     let read = [b3(1), b3(2), b3(1), b3(1)];
     let write = [None, Some((b3(1), b8(42))), None, None, None, None];
-    let read = read.into_iter().stream().clock_pos_edge(100).map(|t| {
-        t.map(|(cr, val)| ReadI {
-            addr: val,
-            clock: cr.clock,
-        })
-    });
-    let write = write.into_iter().stream().clock_pos_edge(79).map(|t| {
-        t.map(|(cr, val)| WriteI {
-            data: val,
-            clock: cr.clock,
-        })
-    });
+    let read = read
+        .into_iter()
+        .without_reset()
+        .clock_pos_edge(100)
+        .map(|t| {
+            t.map(|(cr, val)| ReadI {
+                addr: val,
+                clock: cr.clock,
+            })
+        });
+    let write = write
+        .into_iter()
+        .without_reset()
+        .clock_pos_edge(79)
+        .map(|t| {
+            t.map(|(cr, val)| WriteI {
+                data: val,
+                clock: cr.clock,
+            })
+        });
     // Merge them
     let input = merge(read, write, |r, w| In {
         read: signal(r),

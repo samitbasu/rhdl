@@ -2,11 +2,11 @@ use std::iter::repeat_n;
 
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    pipe::{
-        testing::{sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn, utils::stalling},
-        zip::ZipPipe,
-    },
     rng::xorshift::XorShift128,
+    stream::{
+        testing::{sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn, utils::stalling},
+        zip::Zip,
+    },
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
@@ -15,7 +15,7 @@ use rhdl_fpga::{
 struct TestFixture {
     a_source: SourceFromFn<b4>,
     b_source: SourceFromFn<b6>,
-    zip: ZipPipe<b4, b6>,
+    zip: Zip<b4, b6>,
     sink: SinkFromFn<(b4, b6)>,
 }
 
@@ -53,11 +53,11 @@ fn main() -> Result<(), RHDLError> {
     let uut = TestFixture {
         a_source: SourceFromFn::new(a_rng),
         b_source: SourceFromFn::new(b_rng),
-        zip: ZipPipe::default(),
+        zip: Zip::default(),
         sink: SinkFromFn::new(consume),
     };
     // Run a few samples through
-    let input = repeat_n((), 15).stream_after_reset(1).clock_pos_edge(100);
+    let input = repeat_n((), 15).with_reset(1).clock_pos_edge(100);
     let vcd = uut.run_without_synthesis(input)?.collect::<Vcd>();
     rhdl_fpga::doc::write_svg_as_markdown(
         vcd,

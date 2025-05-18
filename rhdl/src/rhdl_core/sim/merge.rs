@@ -140,7 +140,7 @@ mod tests {
     use std::iter::once;
 
     use crate::rhdl_core::{
-        sim::{clock_pos_edge::ClockPosEdgeExt, stream::TimedStreamExt, ResetOrData},
+        sim::{clock_pos_edge::ClockPosEdgeExt, reset::TimedStreamExt, ResetOrData},
         timed_sample,
     };
 
@@ -148,7 +148,7 @@ mod tests {
 
     #[test]
     fn test_merge_reset() {
-        let merged = once(b8(1)).stream_after_reset(4);
+        let merged = once(b8(1)).with_reset(4);
         let expected = vec![
             ResetOrData::Reset,
             ResetOrData::Reset,
@@ -161,15 +161,15 @@ mod tests {
 
     #[test]
     fn test_merge_reset_no_pulse() {
-        let merged = once(b8(1)).stream();
+        let merged = once(b8(1)).without_reset();
         let expected = vec![ResetOrData::Data(b8(1))];
         assert_eq!(merged.collect::<Vec<_>>(), expected);
     }
 
     #[test]
     fn test_merge_reset_two_pulses() {
-        let part_a = [1, 2, 3, 4].into_iter().map(b8).stream_after_reset(2);
-        let part_b = [].into_iter().stream_after_reset(1);
+        let part_a = [1, 2, 3, 4].into_iter().map(b8).with_reset(2);
+        let part_b = [].into_iter().with_reset(1);
         let rst = part_a.chain(part_b);
         let expected = vec![
             ResetOrData::Reset,
@@ -188,7 +188,7 @@ mod tests {
         let input = [1, 2, 3, 4]
             .into_iter()
             .map(b8)
-            .stream_after_reset(2)
+            .with_reset(2)
             .clock_pos_edge(10)
             .collect::<Vec<_>>();
         let expected = expect_file!["merge_reset.expect"];

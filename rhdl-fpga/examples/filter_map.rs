@@ -3,12 +3,12 @@ use std::iter::repeat_n;
 use rhdl::prelude::*;
 use rhdl_fpga::{
     core::slice::lsbs,
-    pipe::{
-        filter_map::FilterMapPipe,
-        map::MapPipe,
+    rng::xorshift::XorShift128,
+    stream::{
+        filter_map::FilterMap,
+        map::Map,
         testing::{single_stage::single_stage, utils::stalling},
     },
-    rng::xorshift::XorShift128,
 };
 
 // Let's assume we are processing a stream of enums
@@ -53,10 +53,10 @@ fn main() -> Result<(), RHDLError> {
         }
         rand::random::<f64>() > 0.2
     };
-    let filter_map = FilterMapPipe::try_new::<extract_i_values>()?;
+    let filter_map = FilterMap::try_new::<extract_i_values>()?;
     let uut = single_stage(filter_map, a_rng, consume);
     // Run a few samples through
-    let input = repeat_n((), 15).stream_after_reset(1).clock_pos_edge(100);
+    let input = repeat_n((), 15).with_reset(1).clock_pos_edge(100);
     let vcd = uut.run_without_synthesis(input)?.collect::<Vcd>();
     rhdl_fpga::doc::write_svg_as_markdown(vcd, "filter_map.md", SvgOptions::default())?;
     Ok(())

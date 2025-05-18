@@ -14,14 +14,14 @@
 use badascii_doc::badascii;
 use rhdl::{core::sim::run::synchronous::RunWithoutSynthesisSynchronousExt, prelude::*};
 use rhdl_fpga::{
-    pipe::{
-        chunked::ChunkedPipe,
+    rng::xorshift::XorShift128,
+    stream::{
+        chunked::Chunked,
         testing::{
             single_stage::single_stage, sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn,
             utils::stalling,
         },
     },
-    rng::xorshift::XorShift128,
 };
 
 fn mk_array<T, const N: usize>(mut t: impl Iterator<Item = T>) -> impl Iterator<Item = [T; N]> {
@@ -41,7 +41,7 @@ fn main() -> Result<(), RHDLError> {
     // into groups of 4 elements.
     let mut dest_rng_chunked = mk_array::<_, 4>(dest_rng);
     // Create the thing to test
-    let uut = ChunkedPipe::<U2, b4, 4>::default();
+    let uut = Chunked::<U2, b4, 4>::default();
     // Create the consumption function.
     let consume = move |data| {
         // The sink simply compares the `Some` values with
@@ -59,7 +59,7 @@ fn main() -> Result<(), RHDLError> {
     let uut = single_stage(uut, stalling_source, consume);
     // Feed the UUT a steady diet of clock pulses signals
     let input = std::iter::repeat_n((), 15)
-        .stream_after_reset(1)
+        .with_reset(1)
         .clock_pos_edge(100);
     let vcd = uut.run_without_synthesis(input)?.collect::<Vcd>();
     rhdl_fpga::doc::write_svg_as_markdown(

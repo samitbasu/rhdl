@@ -7,13 +7,13 @@ use rhdl_fpga::{
 fn main() -> Result<(), RHDLError> {
     let read = [b3(1), b3(2), b3(1), b3(1)];
     let write = [None, Some((b3(1), 42)), None, None, None, None];
-    let read = read.into_iter().stream().clock_pos_edge(100).map(|t| {
+    let read = read.into_iter().without_reset().clock_pos_edge(100).map(|t| {
         t.map(|(cr, val)| ReadI {
             addr: val,
             clock: cr.clock,
         })
     });
-    let write = write.into_iter().stream().clock_pos_edge(79).map(|t| {
+    let write = write.into_iter().without_reset().clock_pos_edge(79).map(|t| {
         t.map(|(cr, val)| match val {
             Some((addr, data)) => WriteI {
                 addr,

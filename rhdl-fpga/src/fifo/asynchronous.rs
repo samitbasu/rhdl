@@ -195,11 +195,11 @@ mod tests {
         let write = (0..16)
             .map(|x| Some(bits(x)))
             .chain(std::iter::repeat(None))
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let read = std::iter::repeat_n(false, 32)
             .chain(std::iter::repeat_n(true, 16))
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(75);
         let input = write.merge(read, |w, r| In {
             data: signal(w.1),

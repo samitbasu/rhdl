@@ -57,7 +57,7 @@ pub fn kernel(_cr: ClockReset, i: bool, q: Q) -> (bool, D) {
 fn main() -> Result<(), RHDLError> {
     // Recognize the sequence `0 0 1`
     let input = [false, true, false, true, true, false, false, true, false];
-    let input = input.into_iter().stream_after_reset(1).clock_pos_edge(100);
+    let input = input.into_iter().with_reset(1).clock_pos_edge(100);
     let uut = Recognizer::default();
     let vcd = uut.run(input)?.collect::<Vcd>();
     let options = SvgOptions::default().with_label_width(20);

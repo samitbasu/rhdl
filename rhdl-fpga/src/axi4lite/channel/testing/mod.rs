@@ -48,14 +48,14 @@ mod tests {
         let uut = U::<U6>::default();
         let input = std::iter::repeat(())
             .take(1000)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("channel");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["395d8e982b708dccb4aa9972eaf7a3fbbe7320c006eb1ec98dd09f29642b0a9a"];
+        let expect = expect!["ede27cec8455e4a99b2f94e2aa86bfe26240da738b88ccd034a0a1afe21f5fe0"];
         let digest = vcd.dump_to_file(&root.join("channel.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -66,7 +66,7 @@ mod tests {
         let uut = U::<U6>::default();
         let input = std::iter::repeat(())
             .take(100_000)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let last = uut.run(input)?.last().unwrap();
         assert!(last.value.2);
@@ -78,7 +78,7 @@ mod tests {
         let uut = U::<U6>::default();
         let input = std::iter::repeat(())
             .take(100)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;

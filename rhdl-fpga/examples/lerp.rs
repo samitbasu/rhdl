@@ -39,7 +39,7 @@ fn main() -> Result<(), RHDLError> {
             lower_value: bits(0),
             factor: bits(x),
         })
-        .stream()
+        .without_reset()
         .clock_pos_edge(100);
     let vcd = uut.run(ramp)?.collect::<Vcd>();
     write_svg_as_markdown(vcd, "lerp.md", SvgOptions::default())?;

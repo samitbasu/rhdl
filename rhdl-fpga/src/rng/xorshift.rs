@@ -155,7 +155,7 @@ mod tests {
     fn test_uut() -> miette::Result<()> {
         let uut = XorShift::default();
         let input = std::iter::repeat(true)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let values = uut
             .run(input)?

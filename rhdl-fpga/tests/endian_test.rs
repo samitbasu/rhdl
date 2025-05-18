@@ -133,7 +133,7 @@ fn test_input_stream() -> impl Iterator<Item = TimedSample<(ClockReset, Option<(
         None,
     ]
     .into_iter()
-    .stream_after_reset(1)
+    .with_reset(1)
     .clock_pos_edge(100)
 }
 

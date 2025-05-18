@@ -1,8 +1,8 @@
-//! Chunked Pipe Core
+//! Chunked Stream Core
 //!
 //!# Purpose
 //!
-//! A [ChunkedPipe] Core takes a sequence of `T` data elements
+//! A [Chunked] Stream Core takes a sequence of `T` data elements
 //! and chunks them into an array of `N`.  It is roughly equivalent
 //! to the `.chunks()` method on slices.  Note that each chunk
 //! will contain a disjoint set of samples.  
@@ -21,7 +21,7 @@ out               [d0..d3]         [d4..d7]
 //! Here is the schematic symbol for the [ChunkedPipe] core.
 //!
 #![doc = badascii_formal!("
-     ++ChunkPipe+---+        
+     ++Chunked+-----+        
  ?T  |              | ?[T;N] 
 +--->|data      data+------->
      |              |        
@@ -32,7 +32,7 @@ out               [d0..d3]         [d4..d7]
 //!
 //!# Internals
 //!
-//! Roughly, the internal of the [ChunkedPipe] core includes
+//! Roughly, the internal of the [Chunked] core includes
 //! a pipeline delay stage, along with taps to extract the
 //! delayed signals.  Buffers are needed at the input and
 //! output to isolate the combinatorial signals from each other.
@@ -94,7 +94,7 @@ use crate::{
     lid::{fifo_to_rv, rv_to_fifo},
 };
 
-use super::PipeIO;
+use super::StreamIO;
 
 #[derive(Debug, Default, PartialEq, Digital)]
 #[doc(hidden)]
@@ -105,13 +105,13 @@ pub enum State {
 }
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ)]
-/// The ChunkedPipe Core
+/// The Chunked Stream Core
 ///
 /// This core takes a stream of `T` and produces
 /// a stream of chunks `[T;N]`, assembling the array
 /// in index order, so that `t0, t1, t2,...` are
 /// packed such that the `out[0] = t0`, etc.
-pub struct ChunkedPipe<M: BitWidth, T: Digital, const N: usize>
+pub struct Chunked<M: BitWidth, T: Digital, const N: usize>
 where
     [T; N]: Default,
     T: Default,
@@ -123,7 +123,7 @@ where
     state: dff::DFF<State>,
 }
 
-impl<M: BitWidth, T: Digital, const N: usize> Default for ChunkedPipe<M, T, N>
+impl<M: BitWidth, T: Digital, const N: usize> Default for Chunked<M, T, N>
 where
     [T; N]: Default,
     T: Default,
@@ -141,13 +141,13 @@ where
     }
 }
 
-/// Inputs for the [ChunkedStream] core
-pub type In<T> = PipeIO<T>;
+/// Inputs for the [Chunked] core
+pub type In<T> = StreamIO<T>;
 
-/// Outputs from the [ChunkedStream] core
-pub type Out<T, const N: usize> = PipeIO<[T; N]>;
+/// Outputs from the [Chunked] core
+pub type Out<T, const N: usize> = StreamIO<[T; N]>;
 
-impl<M: BitWidth, T: Digital, const N: usize> SynchronousIO for ChunkedPipe<M, T, N>
+impl<M: BitWidth, T: Digital, const N: usize> SynchronousIO for Chunked<M, T, N>
 where
     [T; N]: Default,
     T: Default,
@@ -249,7 +249,7 @@ mod tests {
 
     #[test]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
-        let uut = ChunkedPipe::<U2, b4, 4>::default();
+        let uut = Chunked::<U2, b4, 4>::default();
         drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }
@@ -270,7 +270,7 @@ mod tests {
     where
         [b4; N]: Default,
     {
-        let uut = ChunkedPipe::<M, b4, N>::default();
+        let uut = Chunked::<M, b4, N>::default();
         let mut need_reset = true;
         let mut source_rng = XorShift128::default().map(|x| bits((x & 0xF) as u128));
         let dest_rng = source_rng.clone();

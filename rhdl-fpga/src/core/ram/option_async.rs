@@ -150,7 +150,7 @@ mod tests {
         count: usize,
     ) -> impl Iterator<Item = TimedSample<ReadI<N>>> + Clone {
         let scan_addr = (0..(1 << N::BITS)).map(bits::<N>).cycle().take(count);
-        let stream_read = scan_addr.stream().clock_pos_edge(read_clock);
+        let stream_read = scan_addr.without_reset().clock_pos_edge(read_clock);
         stream_read.map(|t| {
             t.map(|(cr, val)| ReadI {
                 addr: val,
@@ -163,7 +163,7 @@ mod tests {
         write_clock: u64,
         write_data: impl Iterator<Item = Option<(Bits<N>, T)>> + Clone,
     ) -> impl Iterator<Item = TimedSample<WriteI<T, N>>> + Clone {
-        let stream_write = write_data.stream().clock_pos_edge(write_clock);
+        let stream_write = write_data.without_reset().clock_pos_edge(write_clock);
         stream_write.map(|t| {
             t.map(|(cr, val)| WriteI {
                 data: val,

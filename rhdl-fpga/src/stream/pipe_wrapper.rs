@@ -1,6 +1,12 @@
-//! A Credit-based Pipeline Wrapper
+//! Wrap a Pipe into a Stream
 //!
 //!# Purpose
+//!
+//! This core is used to take a pipeline with no backpressure, and interface it into a stream.
+//! The backpressure is handled by an internal FIFO where output elements of the pipe are
+//! allocated space (like a credit-based system in networking).  
+//!
+//!# Details
 //!
 //! The original Latency Insensitive Design work focused on stallable pipelines.  That
 //! is to say, that if the `ready` signal was taken away (or equivalently, if the
@@ -59,8 +65,8 @@
 //! backpressure, since the controller will stop the inflow of data when there is insufficient credit
 //! in the FIFO to start processing more data elements.
 //!
-//! Furthermore this design is invariant to the latency introduced by the pipeline.  It is irrelevant.  The
-//! latency may even be variable.  Each output slot in the FIFO is reserved for a pending computation, and
+//! Furthermore this design is invariant to the latency introduced by the pipeline.  It can even be variable.
+//! Each output slot in the FIFO is reserved for a pending computation, and
 //! credit tracking makes no assumptions about how long those reservations are held for.
 //!
 #![doc = badascii!(r"
@@ -79,10 +85,10 @@
 //!
 //!# Schematic Symbol
 //!
-//! Here is the schematic symbol for the [CreditPipelineWrapper].
+//! Here is the schematic symbol for the [PipeWrapper].
 //!
 #![doc = badascii_formal!("
-      +-+CreditWrapper+----+       
+      +-+PipeWrapper+------+       
   ?S  |                    |  ?T   
 +---->| data         data  +------>
       |                    |       
@@ -93,9 +99,8 @@
 ")]
 //!
 //! It is understood that the pipline will start when fed `Some(S)` data
-//! element, and will produce multiple [Option<T>] output elements.  The
-//! number of outputs per input is a const generic argument to the core.
-//! Also, the internal FIFO size is exposed, since knowledge of how big the
+//! element, and will produce exactly one [Option<T>] output element at some
+//! time in the future.  The internal FIFO size is exposed, since knowledge of how big the
 //! output FIFO will need to be is a design decision.
 use crate::{
     core::{dff::DFF, option::unpack},
@@ -106,14 +111,22 @@ use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
-pub struct CreditWrapper<S: Digital + Default, T: Digital + Default, N: BitWidth> {
+/// [PipeWrapper] core for wrapping a pipeline into a stream
+///
+/// This core allows you to run a pipeline (that accepts no backpressure)
+/// inside a stream.   An internal fifo with `N` address bits is used to
+/// hold reserved slots for the output of the pipeline.  The input stream
+/// carries elements of type `S` and the pipeline is assumed to produce elements
+/// of type `T`.  This core assumes a 1-1 relationship, i.e., each `Some(S)` will
+/// produce exactly one `Some(T)`.
+pub struct PipeWrapper<S: Digital + Default, T: Digital + Default, N: BitWidth> {
     in_buffer: ReadyValidToFIFO<S>,
     fifo: SyncFIFO<T, N>,
     out_buffer: FIFOToReadyValid<T>,
     counter: DFF<Bits<N>>,
 }
 
-impl<S: Digital + Default, T: Digital + Default, N: BitWidth> Default for CreditWrapper<S, T, N> {
+impl<S: Digital + Default, T: Digital + Default, N: BitWidth> Default for PipeWrapper<S, T, N> {
     fn default() -> Self {
         Self {
             in_buffer: ReadyValidToFIFO::default(),
@@ -125,29 +138,29 @@ impl<S: Digital + Default, T: Digital + Default, N: BitWidth> Default for Credit
 }
 
 #[derive(PartialEq, Digital)]
-/// Inputs for the [CreditWrapper]
+/// Inputs for the [PipeWrapper]
 pub struct In<S: Digital, T: Digital> {
-    /// Input data for the pipeline
+    /// Input data for the upstream
     data: Option<S>,
-    /// Input ready signal for the downstream pipeline
+    /// Input ready signal for the downstream
     ready: bool,
-    /// The values that come from the push-pipe
+    /// The values that come from the pipeline
     from_pipe: Option<T>,
 }
 
 #[derive(PartialEq, Digital)]
-/// Outputs from the [CreditWrapper]
+/// Outputs from the [PipeWrapper]
 pub struct Out<S: Digital, T: Digital> {
-    /// Output data from the core
+    /// Output data for the downstream
     data: Option<T>,
-    /// Ready signal for the upstream pipeline
+    /// Ready signal for the upstream
     ready: bool,
-    /// To the push-pipe values
+    /// Data to feed the pipeline
     to_pipe: Option<S>,
 }
 
 impl<S: Digital + Default, T: Digital + Default, N: BitWidth> SynchronousIO
-    for CreditWrapper<S, T, N>
+    for PipeWrapper<S, T, N>
 {
     type I = In<S, T>;
     type O = Out<S, T>;
@@ -199,8 +212,10 @@ mod tests {
     use super::*;
     use crate::{
         core::{dff::DFF, option::pack, slice::lsbs},
-        pipe::testing::{sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn, utils::stalling},
         rng::xorshift::XorShift128,
+        stream::testing::{
+            sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn, utils::stalling,
+        },
     };
 
     pub mod delay {
@@ -249,7 +264,7 @@ mod tests {
     struct TestFixture {
         source: SourceFromFn<b6>,
         delay: DelayLine,
-        wrapper: CreditWrapper<b6, b4, U2>,
+        wrapper: PipeWrapper<b6, b4, U2>,
         sink: SinkFromFn<b4>,
     }
 
@@ -287,11 +302,11 @@ mod tests {
         let uut = TestFixture {
             source: SourceFromFn::new(b_rng),
             delay: DelayLine::default(),
-            wrapper: CreditWrapper::default(),
+            wrapper: PipeWrapper::default(),
             sink: SinkFromFn::new(consume),
         };
         // Run a few samples through
-        let input = repeat_n((), 205).stream_after_reset(1).clock_pos_edge(100);
+        let input = repeat_n((), 205).with_reset(1).clock_pos_edge(100);
         let vcd = uut.run_without_synthesis(input)?.collect::<Vcd>();
         vcd.dump_to_file("credit.vcd")?;
         Ok(())

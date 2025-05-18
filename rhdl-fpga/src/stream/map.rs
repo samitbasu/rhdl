@@ -1,18 +1,18 @@
-//! Map Pipe Core
+//! Map Stream Core
 //!
 //!# Purpose
 //!
-//! A [MapPipe] Core takes a sequence of elements of type `T` and
-//! a synthesizable function `fn(T) -> S`, and feeds a pipeline
+//! A [Map] Core takes a stream of elements of type `T` and
+//! a synthesizable function `fn(T) -> S`, and feeds a stream
 //! that carries type `S`.  This is equivalent to using `.map()` on
 //! an interator.
 //!
 //!# Schematic Symbol
 //!
-//! Here is the schematic symbol for the [FilterPipe] buffer
+//! Here is the schematic symbol for the [Map] buffer
 //!
 #![doc = badascii_formal!("
-         +--+MapPipe+--+        
+         +--+Map+---------+        
  ?[T;N]  |                |  ?S   
 +------->+ data     data  +------->
          |                |        
@@ -24,12 +24,12 @@
 //!
 //!# Internals
 //!
-//! Unlike [FlattenPipe] or [ChunkedPipe], the [MapPipe] does not
-//! impose any flow control on the upstream pipe.  Because it can
-//! at most produce as many items as the source pipe, it can be
+//! Unlike [Flatten] or [Chunked], the [Map] does not
+//! impose any flow control on the upstream.  Because it can
+//! at most produce as many items as the source stream, it can be
 //! implemented with simple [OptionCarloni] buffers at the input
 //! and output, which are needed to isolate the combinatorial
-//! `map` function from the remaining parts of the pipeline.  
+//! `map` function from the remaining parts of the stream.  
 //! Note that if you need a more expensive `map` function (i.e., one
 //! that itself is pipelined), then you cannot use this construct.
 //!
@@ -48,7 +48,7 @@
 ")]
 //!# Example
 //!
-//! Here is an example of running the map pipe, transforming
+//! Here is an example of mapping a stream, transforming
 //! elements.
 //!
 //!```
@@ -71,21 +71,21 @@ use crate::{
     lid::option_carloni::OptionCarloni,
 };
 
-use super::PipeIO;
+use super::StreamIO;
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
-/// The MapPipe Core
+/// The Map Core
 ///
 /// Here `T` is the input type, and `S` is the
 /// output type.  A provided (combinatorial) function
 /// performs the mapping function.
-pub struct MapPipe<T: Digital + Default, S: Digital + Default> {
+pub struct Map<T: Digital + Default, S: Digital + Default> {
     input_buffer: OptionCarloni<T>,
     func: Func<T, S>,
     output_buffer: OptionCarloni<S>,
 }
 
-impl<T, S> MapPipe<T, S>
+impl<T, S> Map<T, S>
 where
     T: Digital + Default,
     S: Digital + Default,
@@ -109,13 +109,13 @@ where
     }
 }
 
-/// The input for the [MapPipe]
-pub type In<T> = PipeIO<T>;
+/// The input for the [Map]
+pub type In<T> = StreamIO<T>;
 
-/// The output for the [MapPipe]
-pub type Out<S> = PipeIO<S>;
+/// The output for the [Map]
+pub type Out<S> = StreamIO<S>;
 
-impl<T, S> SynchronousIO for MapPipe<T, S>
+impl<T, S> SynchronousIO for Map<T, S>
 where
     T: Digital + Default,
     S: Digital + Default,
@@ -152,8 +152,8 @@ mod tests {
 
     use crate::{
         core::slice::lsbs,
-        pipe::testing::{single_stage::single_stage, utils::stalling},
         rng::xorshift::XorShift128,
+        stream::testing::{single_stage::single_stage, utils::stalling},
     };
 
     use super::*;
@@ -176,12 +176,10 @@ mod tests {
             }
             rand::random::<f64>() > 0.2
         };
-        let map = MapPipe::try_new::<map_item>()?;
+        let map = Map::try_new::<map_item>()?;
         let uut = single_stage(map, a_rng, consume);
         // Run a few samples through
-        let input = repeat_n((), 10_000)
-            .stream_after_reset(1)
-            .clock_pos_edge(100);
+        let input = repeat_n((), 10_000).with_reset(1).clock_pos_edge(100);
         uut.run_without_synthesis(input)?.for_each(drop);
         Ok(())
     }

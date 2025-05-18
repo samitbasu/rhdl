@@ -152,7 +152,7 @@ mod tests {
         let uut = U::default();
         let input = test_seq()
             .map(|x| I { axi: x })
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -160,7 +160,7 @@ mod tests {
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["51280e3e71776abbbfe5f98ae210c26b3466bba0505fd86677e0e312bc6af442"];
+        let expect = expect!["e35af530fe69f5414ec50c495a7354abe1f34aeb597a037fe3022b22c95e5547"];
         let digest = vcd
             .dump_to_file(&root.join("single_register_test.vcd"))
             .unwrap();
@@ -173,7 +173,7 @@ mod tests {
         let uut = U::default();
         let input = test_seq()
             .map(|x| I { axi: x })
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;

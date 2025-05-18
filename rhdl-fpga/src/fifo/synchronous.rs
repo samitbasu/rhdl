@@ -159,7 +159,7 @@ mod tests {
         let read_seq = (0..7).map(|_| read());
         write_seq
             .chain(read_seq)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100)
     }
 

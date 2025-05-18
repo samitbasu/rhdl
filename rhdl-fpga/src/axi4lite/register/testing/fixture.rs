@@ -138,8 +138,8 @@ mod tests {
     }
 
     fn test_stream() -> impl Iterator<Item = TimedSample<I<Red, Blue>>> {
-        let red = (0_usize..).stream_after_reset(1).clock_pos_edge(100);
-        let blue = axi_test_seq().stream().clock_pos_edge(79);
+        let red = (0_usize..).with_reset(1).clock_pos_edge(100);
+        let blue = axi_test_seq().without_reset().clock_pos_edge(79);
         red.merge(blue, |r, b| I {
             reset_n: signal(reset_n(!r.0.reset.any())),
             clock: signal(b.0.clock),
@@ -157,7 +157,7 @@ mod tests {
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["4c42470c7c672d54fced152943b10e1429a38c7234299b6841a6a97ed70ab709"];
+        let expect = expect!["e482bdfa1a45fdbf86df05767e3e4f873f283ca66ee01e1fdffb08098762507b"];
         let digest = vcd
             .dump_to_file(&root.join("axi4lite_register.vcd"))
             .unwrap();

@@ -203,10 +203,10 @@ mod tests {
         // Start with a stream of pulses
         let red = (0..).map(|_| random::<bool>()).take(100);
         // Clock them on the green domain
-        let red = red.stream_after_reset(1).clock_pos_edge(100);
+        let red = red.with_reset(1).clock_pos_edge(100);
         // Create an empty stream on the red domain
         let blue = std::iter::repeat(())
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(79);
         // Merge them
         merge(red, blue, |r: (ClockReset, bool), b: (ClockReset, ())| In {

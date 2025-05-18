@@ -28,7 +28,7 @@ fn main() -> Result<(), RHDLError> {
             read_addr: r,
             write: w,
         })
-        .stream_after_reset(1)
+        .with_reset(1)
         .clock_pos_edge(100);
     let uut = SyncBRAM::new((0..).map(|x| (b4(x), b8(x))));
     let vcd = uut.run(input)?.collect::<Vcd>();

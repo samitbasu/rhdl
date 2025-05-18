@@ -166,7 +166,7 @@ mod tests {
             .into_iter()
             .zip(writes)
             .map(|(r, w)| In { read: r, write: w })
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let uut = PipeSyncBRAM::new((0..).map(|x| (b3(x), b8(x))));
         let vcd = uut

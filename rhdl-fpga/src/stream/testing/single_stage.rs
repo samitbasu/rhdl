@@ -20,7 +20,7 @@
 //! The consumer function provides the `ready` signal back to the
 //! pipeline to supply backpressure.
 
-use crate::pipe::PipeIO;
+use crate::stream::StreamIO;
 
 use super::{sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn};
 use badascii_doc::badascii;
@@ -35,7 +35,7 @@ pub struct SingleStage<S, T, C>
 where
     S: Digital,
     T: Digital,
-    C: Synchronous<I = PipeIO<S>, O = PipeIO<T>>,
+    C: Synchronous<I = StreamIO<S>, O = StreamIO<T>>,
 {
     source: SourceFromFn<S>,
     uut: C,
@@ -50,8 +50,8 @@ where
     T: Digital,
 {
     source: bool,
-    uut: PipeIO<S>,
-    sink: PipeIO<T>,
+    uut: StreamIO<S>,
+    sink: StreamIO<T>,
 }
 
 #[derive(PartialEq, Digital)]
@@ -62,7 +62,7 @@ where
     T: Digital,
 {
     source: Option<S>,
-    uut: PipeIO<T>,
+    uut: StreamIO<T>,
     sink: bool,
 }
 
@@ -70,7 +70,7 @@ impl<S, T, C> SynchronousDQ for SingleStage<S, T, C>
 where
     S: Digital,
     T: Digital,
-    C: Synchronous<I = PipeIO<S>, O = PipeIO<T>>,
+    C: Synchronous<I = StreamIO<S>, O = StreamIO<T>>,
 {
     type D = D<S, T>;
     type Q = Q<S, T>;
@@ -93,7 +93,7 @@ pub fn single_stage<S, T, C>(
 where
     S: Digital,
     T: Digital,
-    C: Synchronous<I = PipeIO<S>, O = PipeIO<T>>,
+    C: Synchronous<I = StreamIO<S>, O = StreamIO<T>>,
 {
     SingleStage {
         source: SourceFromFn::new(source),
@@ -106,7 +106,7 @@ impl<S, T, C> SynchronousIO for SingleStage<S, T, C>
 where
     S: Digital,
     T: Digital,
-    C: Synchronous<I = PipeIO<S>, O = PipeIO<T>>,
+    C: Synchronous<I = StreamIO<S>, O = StreamIO<T>>,
 {
     type I = ();
     type O = ();
@@ -117,7 +117,7 @@ impl<S, T, C> Synchronous for SingleStage<S, T, C>
 where
     S: Digital,
     T: Digital,
-    C: Synchronous<I = PipeIO<S>, O = PipeIO<T>>,
+    C: Synchronous<I = StreamIO<S>, O = StreamIO<T>>,
 {
     type S = (
         Self::Q,

@@ -120,14 +120,14 @@ mod tests {
     #[test]
     fn test_register_trace() -> miette::Result<()> {
         let uut = U::default();
-        let input = test_stream().stream_after_reset(1).clock_pos_edge(100);
+        let input = test_stream().with_reset(1).clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("axi4lite")
             .join("bank");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["ea0aec3b575311bada83f3fb3a03f5c9d2191e6fd40d5c0d2a4357bd5e7f0289"];
+        let expect = expect!["a3edc7cedb549ab4c1e490bf87b82c536fc79a87c848185cec13e0d9e5b823b5"];
         let digest = vcd.dump_to_file(&root.join("register.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -147,7 +147,7 @@ mod tests {
     #[test]
     fn test_bank_works() -> miette::Result<()> {
         let uut = U::default();
-        let input = test_stream().stream_after_reset(1).clock_pos_edge(100);
+        let input = test_stream().with_reset(1).clock_pos_edge(100);
         let io = uut.run(input)?.synchronous_sample();
         let io = io.filter_map(|x| x.value.2.read_data).collect::<Vec<_>>();
         assert_eq!(
@@ -169,7 +169,7 @@ mod tests {
     #[test]
     fn test_hdl_generation() -> miette::Result<()> {
         let uut = U::default();
-        let input = test_stream().stream_after_reset(1).clock_pos_edge(100);
+        let input = test_stream().with_reset(1).clock_pos_edge(100);
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;

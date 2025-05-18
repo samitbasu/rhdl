@@ -9,7 +9,7 @@ pub mod dsp;
 pub mod fifo;
 pub mod gray;
 pub mod lid;
-pub mod pipe;
 pub mod reset;
 pub mod rng;
+pub mod stream;
 pub mod tristate;

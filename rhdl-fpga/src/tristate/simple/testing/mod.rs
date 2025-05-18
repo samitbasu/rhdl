@@ -44,7 +44,7 @@ mod tests {
             .chain(once(Some(Cmd::Write(bits(0x15)))))
             .chain(repeat(None).take(2))
             .chain(once(Some(Cmd::Read)).chain(repeat(None).take(4)));
-        let input = input.stream_after_reset(1).clock_pos_edge(100);
+        let input = input.with_reset(1).clock_pos_edge(100);
         let uut = super::U::default();
         let vcd = uut.run(input)?.collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))

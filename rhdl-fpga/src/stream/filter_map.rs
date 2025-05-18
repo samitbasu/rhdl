@@ -68,7 +68,7 @@ use rhdl::prelude::*;
 
 use crate::{core::option::unpack, lid::option_carloni::OptionCarloni};
 
-use super::PipeIO;
+use super::StreamIO;
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
 /// The FilterMap Core
@@ -76,20 +76,20 @@ use super::PipeIO;
 /// Here `T` is the input type, and `S` is the
 /// output type.  A provided (combinatorial) function
 /// performs the mapping function.
-pub struct FilterMapPipe<T: Digital + Default, S: Digital + Default> {
+pub struct FilterMap<T: Digital + Default, S: Digital + Default> {
     input_buffer: OptionCarloni<T>,
     func: Func<T, Option<S>>,
     output_buffer: OptionCarloni<S>,
 }
 
-impl<T, S> FilterMapPipe<T, S>
+impl<T, S> FilterMap<T, S>
 where
     T: Digital + Default,
     S: Digital + Default,
 {
-    /// Construct a Filter Map Pipe
+    /// Construct a Filter Map Stream
     ///
-    /// The argument to the filter map pipe
+    /// The argument to the filter map
     /// `try_new` function is a synthesizable function
     /// (i.e., one marked with the `#[kernel]` attribute).
     /// It must have a signature `fn(T) -> Option<S>`.
@@ -106,13 +106,13 @@ where
     }
 }
 
-/// The input for the [FilterMapPipe]
-pub type In<T> = PipeIO<T>;
+/// The input for the [FilterMap]
+pub type In<T> = StreamIO<T>;
 
-/// The output type for the [FilterMapPipe]
-pub type Out<S> = PipeIO<S>;
+/// The output type for the [FilterMap]
+pub type Out<S> = StreamIO<S>;
 
-impl<T, S> SynchronousIO for FilterMapPipe<T, S>
+impl<T, S> SynchronousIO for FilterMap<T, S>
 where
     T: Digital + Default,
     S: Digital + Default,
@@ -149,8 +149,8 @@ mod tests {
 
     use crate::{
         core::slice::lsbs,
-        pipe::testing::{single_stage::single_stage, utils::stalling},
         rng::xorshift::XorShift128,
+        stream::testing::{single_stage::single_stage, utils::stalling},
     };
 
     use super::*;
@@ -182,12 +182,10 @@ mod tests {
             }
             rand::random::<f64>() > 0.2
         };
-        let map = FilterMapPipe::try_new::<filter_map_item>()?;
+        let map = FilterMap::try_new::<filter_map_item>()?;
         let uut = single_stage(map, a_rng, consume);
         // Run a few samples through
-        let input = repeat_n((), 10_000)
-            .stream_after_reset(1)
-            .clock_pos_edge(100);
+        let input = repeat_n((), 10_000).with_reset(1).clock_pos_edge(100);
         uut.run_without_synthesis(input)?.for_each(drop);
         Ok(())
     }
