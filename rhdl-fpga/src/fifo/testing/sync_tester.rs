@@ -50,7 +50,7 @@ mod tests {
     fn test_sync_fifo_trace() -> miette::Result<()> {
         let uut = SyncTester::<U16, U6>::default();
         let input = std::iter::repeat_n((), 1000)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -67,7 +67,7 @@ mod tests {
     fn test_sync_fifo_svg() -> miette::Result<()> {
         let uut = SyncTester::<U16, U6>::default();
         let input = std::iter::repeat_n((), 1000)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100)
             .skip_while(|x| x.time < 2000)
             .take_while(|x| x.time <= 3000);
@@ -83,7 +83,7 @@ mod tests {
     fn test_sync_fifo_valid() -> miette::Result<()> {
         let uut = SyncTester::<U16, U6>::default();
         let input = std::iter::repeat_n((), 100_000)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let last = uut.run(input)?.last().unwrap();
         assert!(last.value.2);

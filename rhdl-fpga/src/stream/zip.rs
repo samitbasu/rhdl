@@ -1,19 +1,19 @@
-//! Zip Pipe Core
+//! Zip Stream Core
 //!
 //!# Purpose
 //!
-//! A [ZipPipe] Core takes 2 pipelines as inputs and yields a
+//! A [Zip] Core takes 2 streams as inputs and yields a
 //! single pipeline of outputs consisting of tuples formed
 //! from the two input pipelines.  It is roughly equivalent to
-//! the `.zip()` method on iterators.  The [ZipPipe] propogates
+//! the `.zip()` method on iterators.  The [Zip] propogates
 //! backpressure up the two source pipes.
 //!
 //!# Schematic Symbol
 //!
-//! Here is the schematic symbol for the [ZipPipe] core
+//! Here is the schematic symbol for the [Zip] core
 //!
 #![doc = badascii_formal!("
-        +--+ZipPipe+-----+        
+        +--+Zip+---------+        
   ?S    |                |        
 +------>|a.data          |        
         |                | ?(S,T) 
@@ -22,13 +22,12 @@
 +------>|b.data     ready|<------+
         |                |        
  <------+b.ready         |        
-        |                |        
         +----------------+        
 ")]
 //!
 //!# Internals
 //!
-//! The [ZipPipe] uses input FIFOs to buffer incoming data elements
+//! The [Zip] uses input FIFOs to buffer incoming data elements
 //! on each of the two upstream pipes, and then advances them to the
 //! output FIFO when both are ready.  Otherwise, the control logic
 //! is straightfoward, and purely combinatorial.
@@ -55,7 +54,7 @@
 //!
 //!# Example
 //!
-//! An example of using a [ZipPipe] is here.
+//! An example of using a [Zip] is here.
 //!
 //!```
 #![doc = include_str!("../../examples/zip.rs")]
@@ -74,40 +73,40 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ, Default)]
-/// The [ZipPipe] Core
+/// The [Zip] Core
 ///
-/// This core takes two piped streams.  One of type
+/// This core takes two streams.  One of type
 /// `S`, and one of type `T`, and generates a stream
 /// of `(S,T)` elements.
-pub struct ZipPipe<S: Digital + Default, T: Digital + Default> {
+pub struct Zip<S: Digital + Default, T: Digital + Default> {
     a_buffer: ReadyValidToFIFO<S>,
     b_buffer: ReadyValidToFIFO<T>,
     out_buffer: FIFOToReadyValid<(S, T)>,
 }
 
 #[derive(PartialEq, Digital)]
-/// Input struct for the [ZipPipe]
+/// Input struct for the [Zip]
 pub struct In<S: Digital, T: Digital> {
-    /// Input data for the `a` pipe
+    /// Input data for the `a` stream
     pub a_data: Option<S>,
-    /// Input data for the `b` pipe
+    /// Input data for the `b` stream
     pub b_data: Option<T>,
-    /// Ready signal for the downstream pipe
+    /// Ready signal for the downstream
     pub ready: bool,
 }
 
 #[derive(PartialEq, Digital)]
-/// Output struct for the [ZipPipe]
+/// Output struct for the [Zip]
 pub struct Out<S: Digital, T: Digital> {
-    /// Ready signal for the `a`` pipe
+    /// Ready signal for the `a`` stream
     pub a_ready: bool,
-    /// Ready signal for the `b` pipe
+    /// Ready signal for the `b` stream
     pub b_ready: bool,
     /// Output data containing the tuples
     pub data: Option<(S, T)>,
 }
 
-impl<S: Digital + Default, T: Digital + Default> SynchronousIO for ZipPipe<S, T> {
+impl<S: Digital + Default, T: Digital + Default> SynchronousIO for Zip<S, T> {
     type I = In<S, T>;
     type O = Out<S, T>;
     type Kernel = kernel<S, T>;
@@ -145,15 +144,17 @@ mod tests {
 
     use super::*;
     use crate::{
-        pipe::testing::{sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn, utils::stalling},
         rng::xorshift::XorShift128,
+        stream::testing::{
+            sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn, utils::stalling,
+        },
     };
 
     #[derive(Clone, Synchronous, SynchronousDQ)]
     struct TestFixture {
         a_source: SourceFromFn<b4>,
         b_source: SourceFromFn<b6>,
-        zip: ZipPipe<b4, b6>,
+        zip: Zip<b4, b6>,
         sink: SinkFromFn<(b4, b6)>,
     }
 
@@ -192,13 +193,11 @@ mod tests {
         let uut = TestFixture {
             a_source: SourceFromFn::new(a_rng),
             b_source: SourceFromFn::new(b_rng),
-            zip: ZipPipe::default(),
+            zip: Zip::default(),
             sink: SinkFromFn::new(consume),
         };
         // Run a few samples through
-        let input = repeat_n((), 10_000)
-            .stream_after_reset(1)
-            .clock_pos_edge(100);
+        let input = repeat_n((), 10_000).with_reset(1).clock_pos_edge(100);
         uut.run_without_synthesis(input)?.for_each(drop);
         Ok(())
     }

@@ -2,12 +2,12 @@ use crate::rhdl_core::Digital;
 
 use super::ResetOrData;
 
-pub struct Stream<I> {
+pub struct ResetWrapper<I> {
     reset_counter: usize,
     input: I,
 }
 
-impl<I> Iterator for Stream<I>
+impl<I> Iterator for ResetWrapper<I>
 where
     I: Iterator,
     <I as Iterator>::Item: Digital,
@@ -24,31 +24,31 @@ where
     }
 }
 
-impl<I> Clone for Stream<I>
+impl<I> Clone for ResetWrapper<I>
 where
     I: Clone,
 {
     fn clone(&self) -> Self {
-        Stream {
+        ResetWrapper {
             input: self.input.clone(),
             reset_counter: self.reset_counter,
         }
     }
 }
 
-pub fn stream<I>(input: I) -> Stream<I> {
-    Stream {
+pub fn without_reset<I>(input: I) -> ResetWrapper<I> {
+    ResetWrapper {
         input,
         reset_counter: 0,
     }
 }
 
-pub fn stream_after_reset<I>(input: I, pulse: usize) -> Stream<I>
+pub fn with_reset<I>(input: I, pulse: usize) -> ResetWrapper<I>
 where
     I: Iterator,
     <I as Iterator>::Item: Digital,
 {
-    Stream {
+    ResetWrapper {
         input,
         reset_counter: pulse,
     }
@@ -58,9 +58,9 @@ pub trait TimedStreamExt<Q>: IntoIterator + Sized
 where
     Q: Digital,
 {
-    fn stream(self) -> Stream<<Self as IntoIterator>::IntoIter>;
+    fn without_reset(self) -> ResetWrapper<<Self as IntoIterator>::IntoIter>;
 
-    fn stream_after_reset(self, pulse: usize) -> Stream<<Self as IntoIterator>::IntoIter>;
+    fn with_reset(self, pulse: usize) -> ResetWrapper<<Self as IntoIterator>::IntoIter>;
 }
 
 impl<I, Q> TimedStreamExt<Q> for I
@@ -68,12 +68,12 @@ where
     I: IntoIterator<Item = Q>,
     Q: Digital,
 {
-    fn stream(self) -> Stream<I::IntoIter> {
-        stream(self.into_iter())
+    fn without_reset(self) -> ResetWrapper<I::IntoIter> {
+        without_reset(self.into_iter())
     }
 
-    fn stream_after_reset(self, pulse: usize) -> Stream<I::IntoIter> {
-        stream_after_reset(self.into_iter(), pulse)
+    fn with_reset(self, pulse: usize) -> ResetWrapper<I::IntoIter> {
+        with_reset(self.into_iter(), pulse)
     }
 }
 
@@ -86,7 +86,7 @@ mod tests {
     #[test]
     fn test_stream_on_iterator() {
         let k = 0..10;
-        let s = k.map(b8).stream();
+        let s = k.map(b8).without_reset();
         let v = s.collect::<Vec<_>>();
         assert_eq!(
             v,
@@ -97,7 +97,7 @@ mod tests {
     #[test]
     fn test_stream_on_vector() {
         let k = vec![0, 1, 2, 3, 4];
-        let s = k.into_iter().map(b8).stream();
+        let s = k.into_iter().map(b8).without_reset();
         let v = s.collect::<Vec<_>>();
         assert_eq!(
             v,

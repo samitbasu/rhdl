@@ -110,7 +110,7 @@ mod tests {
     fn test_filler() -> miette::Result<()> {
         let uut = FIFOFiller::<U6>::default();
         let input = std::iter::repeat_n(In { full: false }, 50)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -128,7 +128,7 @@ mod tests {
     fn test_filler_testbench() -> miette::Result<()> {
         let uut = FIFOFiller::<U6>::default();
         let input = std::iter::repeat_n(In { full: false }, 50)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let test_module = test_bench.rtl(&uut, &TestBenchOptions::default())?;

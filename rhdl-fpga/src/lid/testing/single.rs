@@ -58,14 +58,14 @@ mod tests {
     fn test_single_trace() -> miette::Result<()> {
         let uut = U::<U6>::default();
         let input = std::iter::repeat_n((), 5000)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("lid");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!("f16b0d42f8cbba204d7cd45b37e77a447f97e435ba7116871c5d39cbe9499d17");
+        let expect = expect!("400834543520ed448c41b9d0697dcba7dfa4ceb5e92cd610f9be0ef6096bb113");
         let digest = vcd.dump_to_file(&root.join("single.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -75,7 +75,7 @@ mod tests {
     fn test_single_is_valid() -> miette::Result<()> {
         let uut = U::<U6>::default();
         let input = std::iter::repeat_n((), 100_000)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let last = uut.run(input)?.last().unwrap();
         assert!(last.value.2);
@@ -86,7 +86,7 @@ mod tests {
     fn test_single_hdl() -> miette::Result<()> {
         let uut = U::<U6>::default();
         let input = std::iter::repeat_n((), 500)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;

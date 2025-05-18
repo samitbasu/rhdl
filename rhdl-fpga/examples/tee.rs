@@ -2,17 +2,17 @@ use std::iter::repeat_n;
 
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    pipe::{
-        tee::TeePipe,
+    rng::xorshift::XorShift128,
+    stream::{
+        tee::Tee,
         testing::{sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn, utils::stalling},
     },
-    rng::xorshift::XorShift128,
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
 struct TestFixture {
     source: SourceFromFn<(b4, b6)>,
-    tee: TeePipe<b4, b6>,
+    tee: Tee<b4, b6>,
     s_sink: SinkFromFn<b4>,
     t_sink: SinkFromFn<b6>,
 }
@@ -60,12 +60,12 @@ fn main() -> Result<(), RHDLError> {
     };
     let uut = TestFixture {
         source: SourceFromFn::new(a_rng),
-        tee: TeePipe::default(),
+        tee: Tee::default(),
         s_sink: SinkFromFn::new(consume_s),
         t_sink: SinkFromFn::new(consume_t),
     };
     // Run a few samples through
-    let input = repeat_n((), 15).stream_after_reset(1).clock_pos_edge(100);
+    let input = repeat_n((), 15).with_reset(1).clock_pos_edge(100);
     let vcd = uut.run_without_synthesis(input)?.collect::<Vcd>();
     rhdl_fpga::doc::write_svg_as_markdown(
         vcd,

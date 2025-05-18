@@ -2,7 +2,7 @@
 //!
 //!# Purpose
 //!
-//! A [FilterPipe] Core takes a sequence of elements of type `T`
+//! A [Filter] Core takes a stream of elements of type `T`
 //! and a function `fn(T) -> bool`, and keeps only those items for
 //! which the function evaluates to `true`.  The filter function is
 //! provided in the form of a synthesizable function.  This is
@@ -10,24 +10,22 @@
 //!
 //!# Schematic Symbol
 //!
-//! Here is the schematic symbol for the [FilterPipe] buffer
+//! Here is the schematic symbol for the [Filter] buffer
 //!
 #![doc = badascii_formal!("
          +--+FilterPipe+--+        
  ?[T;N]  |                |  ?T    
 +------->+ data     data  +------->
          |                |        
-         |                |        
 <--------+ ready    ready |<------+
-         |                |        
          +----------------+       
 ")]
 //!
 //!# Internals
 //!
-//! Unlike [FlattenPipe] or [ChunkedPipe], the [FilterPipe] does not
-//! impose any flow control on the upstream pipe.  Because it can
-//! at most produce as many items as the source pipe, it can be
+//! Unlike [Flatten] or [Chunked], the [FilterPipe] does not
+//! impose any flow control on the upstream.  Because it can
+//! at most produce as many items as the source, it can be
 //! implemented with simple [OptionCarloni] buffers at the input
 //! and output, which are needed to isolate the combinatorial
 //! filter function from the remaining parts of the pipeline.  
@@ -49,7 +47,7 @@
 ")]
 //!# Example
 //!
-//! Here is an example of running the pipeline filter.
+//! Here is an example of filtering a stream.
 //!
 //!```
 #![doc = include_str!("../../examples/filter.rs")]
@@ -67,27 +65,27 @@ use crate::{
     lid::option_carloni::OptionCarloni,
 };
 
-use super::PipeIO;
+use super::StreamIO;
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
-/// The FilterPipe Core
+/// The [Filter] Stream Core
 ///
-/// Here `T` is the type flowing in the pipe.
+/// Here `T` is the type flowing in the stream.
 /// At construction time, you provide a synthesizable
-/// function to filter the contents of the pipe.
+/// function to filter the contents of the stream.
 /// Only items for which `fn(T)` returns `true` will
 /// be passed on downstream.
-pub struct FilterPipe<T: Digital + Default> {
+pub struct Filter<T: Digital + Default> {
     input_buffer: OptionCarloni<T>,
     func: Func<T, bool>,
     output_buffer: OptionCarloni<T>,
 }
 
-impl<T> FilterPipe<T>
+impl<T> Filter<T>
 where
     T: Digital + Default,
 {
-    /// Construct a Filter Pipe
+    /// Construct a [Filter] Stream
     ///
     /// The argument to the filter pipe `try_new` function
     /// is a synthesizable function (i.e., one marked with the
@@ -107,12 +105,12 @@ where
 }
 
 /// The input for the [FilterPipe]
-pub type In<T> = PipeIO<T>;
+pub type In<T> = StreamIO<T>;
 
 /// The output of the [FilterPipe]
-pub type Out<T> = PipeIO<T>;
+pub type Out<T> = StreamIO<T>;
 
-impl<T> SynchronousIO for FilterPipe<T>
+impl<T> SynchronousIO for Filter<T>
 where
     T: Digital + Default,
 {
@@ -144,8 +142,8 @@ mod tests {
     use std::iter::repeat_n;
 
     use crate::{
-        pipe::testing::{single_stage::single_stage, utils::stalling},
         rng::xorshift::XorShift128,
+        stream::testing::{single_stage::single_stage, utils::stalling},
     };
 
     use super::*;
@@ -166,12 +164,10 @@ mod tests {
             }
             rand::random::<f64>() > 0.2
         };
-        let filter = FilterPipe::try_new::<keep_even>()?;
+        let filter = Filter::try_new::<keep_even>()?;
         let uut = single_stage(filter, a_rng, consume);
         // Run a few samples through
-        let input = repeat_n((), 10_000)
-            .stream_after_reset(1)
-            .clock_pos_edge(100);
+        let input = repeat_n((), 10_000).with_reset(1).clock_pos_edge(100);
         uut.run_without_synthesis(input)?.for_each(drop);
         Ok(())
     }

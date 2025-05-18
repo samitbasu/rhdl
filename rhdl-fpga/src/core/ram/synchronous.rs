@@ -348,7 +348,7 @@ mod tests {
             .take(17);
         let inputs = test.clone().map(|item| item.0.into());
         let expected = test.map(|item| item.1).take(16);
-        let stream = inputs.stream_after_reset(1).clock_pos_edge(100);
+        let stream = inputs.with_reset(1).clock_pos_edge(100);
         let sim = uut.run(stream)?;
         let vcd = sim.clone().collect::<Vcd>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -374,7 +374,7 @@ mod tests {
         len: usize,
     ) -> impl Iterator<Item = TimedSample<(ClockReset, In<b8, U4>)>> {
         let inputs = (0..).map(|_| rand_cmd().into()).take(len);
-        inputs.stream_after_reset(1).clock_pos_edge(100)
+        inputs.with_reset(1).clock_pos_edge(100)
     }
 
     #[test]
@@ -406,7 +406,7 @@ mod tests {
         let inputs = test
             .into_iter()
             .map(|x| x.into())
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let sim = uut.run(inputs)?;
         let outputs = sim

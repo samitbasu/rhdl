@@ -125,7 +125,7 @@ use rhdl::prelude::*;
 
 use crate::{
     core::{dff, option::is_some},
-    pipe::PipeIO,
+    stream::StreamIO,
 };
 
 #[derive(PartialEq, Digital, Default, Debug)]
@@ -175,7 +175,7 @@ impl<T: Digital> Default for FIFOToReadyValid<T> {
 /// It is important that the full signal is not dependant on the consumer,
 /// so that the pull-pull buffer isolates the producer from the consumer
 /// and vice versa.
-pub type In<T: Digital> = PipeIO<T>;
+pub type In<T: Digital> = StreamIO<T>;
 
 #[derive(PartialEq, Debug, Digital)]
 /// Outputs from the [FIFOToReadyValid] buffer
@@ -191,7 +191,7 @@ pub struct Out<T: Digital> {
 }
 
 impl<T: Digital> SynchronousIO for FIFOToReadyValid<T> {
-    type I = PipeIO<T>;
+    type I = StreamIO<T>;
     type O = Out<T>;
     type Kernel = kernel<T>;
 }

@@ -13,7 +13,7 @@ fn main() -> Result<(), RHDLError> {
         read_addr: r,
         write: w,
     });
-    let inputs = inputs.stream_after_reset(1).clock_pos_edge(100);
+    let inputs = inputs.with_reset(1).clock_pos_edge(100);
     let uut = OptionSyncBRAM::<b8, U4>::new((0..).map(|ndx| (b4(ndx), b8(ndx))));
     let vcd = uut.run(inputs)?.collect::<Vcd>();
     let options = SvgOptions {

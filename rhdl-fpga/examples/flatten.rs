@@ -14,11 +14,11 @@
 use badascii_doc::badascii;
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    pipe::{
-        flatten::FlattenPipe,
+    rng::xorshift::XorShift128,
+    stream::{
+        flatten::Flatten,
         testing::{single_stage::single_stage, utils::stalling},
     },
-    rng::xorshift::XorShift128,
 };
 
 fn mk_array<T, const N: usize>(mut t: impl Iterator<Item = T>) -> impl Iterator<Item = [T; N]> {
@@ -35,7 +35,7 @@ fn main() -> Result<(), RHDLError> {
     // Wrap the source into a stalling iterator to minic starvation
     let stalling_source = stalling(source_rng, 0.2);
     // Create the unit to test
-    let uut = FlattenPipe::<U2, b4, 4>::default();
+    let uut = Flatten::<U2, b4, 4>::default();
     // Create the consumption function.  We should get the elements
     // back in the order they were generated
     let consume = move |data| {
@@ -49,7 +49,7 @@ fn main() -> Result<(), RHDLError> {
     let uut = single_stage(uut, stalling_source, consume);
     // Feed the UUT a steady diet of clock pulses signals
     let input = std::iter::repeat_n((), 15)
-        .stream_after_reset(1)
+        .with_reset(1)
         .clock_pos_edge(100);
     let vcd = uut.run_without_synthesis(input)?.collect::<Vcd>();
     rhdl_fpga::doc::write_svg_as_markdown(

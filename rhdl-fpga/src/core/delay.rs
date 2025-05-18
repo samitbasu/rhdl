@@ -92,7 +92,7 @@ mod tests {
         std::iter::once(Some(bits(42)))
             .chain(std::iter::repeat(None))
             .take(100)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100)
     }
 
@@ -105,7 +105,7 @@ mod tests {
             .join("vcd")
             .join("delay");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["34c226392adbee49c56ab241694533d312c46226645d7a0f78e9d95c12248ce7"];
+        let expect = expect!["1effd605e24dde66b455cbaf15edfac857518732bbbc60bce54b3eeda19eee16"];
         let digest = vcd.dump_to_file(&root.join("delay.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

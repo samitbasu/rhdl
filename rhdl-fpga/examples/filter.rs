@@ -2,11 +2,11 @@ use std::iter::repeat_n;
 
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    pipe::{
-        filter::FilterPipe,
+    rng::xorshift::XorShift128,
+    stream::{
+        filter::Filter,
         testing::{single_stage::single_stage, utils::stalling},
     },
-    rng::xorshift::XorShift128,
 };
 
 #[kernel]
@@ -24,10 +24,10 @@ fn main() -> Result<(), RHDLError> {
         }
         rand::random::<f64>() > 0.2
     };
-    let filter = FilterPipe::try_new::<keep_even>()?;
+    let filter = Filter::try_new::<keep_even>()?;
     let uut = single_stage(filter, a_rng, consume);
     // Run a few samples through
-    let input = repeat_n((), 15).stream_after_reset(1).clock_pos_edge(100);
+    let input = repeat_n((), 15).with_reset(1).clock_pos_edge(100);
     let vcd = uut.run_without_synthesis(input)?.collect::<Vcd>();
     rhdl_fpga::doc::write_svg_as_markdown(vcd, "filter.md", SvgOptions::default())?;
     Ok(())

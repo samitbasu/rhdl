@@ -122,14 +122,14 @@ mod tests {
     #[test]
     fn test_register_trace() -> miette::Result<()> {
         let uut = U::default();
-        let input = test_stream().stream_after_reset(1).clock_pos_edge(100);
+        let input = test_stream().with_reset(1).clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["0b7869df507bf87cdc77e3ed281ab8fd192948e8bcff0a96306645022beec8fe"];
+        let expect = expect!["9654b2cca87d35178fbbe5bdfa6e23d73093137e383104e4fa8aa12c4110206d"];
         let digest = vcd.dump_to_file(&root.join("register.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -149,7 +149,7 @@ mod tests {
     #[test]
     fn test_register_works() -> miette::Result<()> {
         let uut = U::default();
-        let input = test_stream().stream_after_reset(1).clock_pos_edge(100);
+        let input = test_stream().with_reset(1).clock_pos_edge(100);
         let io = uut.run(input)?.synchronous_sample();
         let io = io.filter_map(|x| x.value.2.read_data).collect::<Vec<_>>();
         assert_eq!(
@@ -171,7 +171,7 @@ mod tests {
     #[test]
     fn test_hdl_generation() -> miette::Result<()> {
         let uut = U::default();
-        let input = test_stream().stream_after_reset(1).clock_pos_edge(100);
+        let input = test_stream().with_reset(1).clock_pos_edge(100);
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;

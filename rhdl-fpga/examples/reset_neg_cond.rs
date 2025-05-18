@@ -11,9 +11,9 @@ fn istream() -> impl Iterator<Item = TimedSample<In<Red, Blue>>> {
     let red = (0..)
         .map(move |_| rng.gen::<u8>() < 200)
         .take(100)
-        .stream()
+        .without_reset()
         .clock_pos_edge(100);
-    let blue = std::iter::repeat(()).stream().clock_pos_edge(79);
+    let blue = std::iter::repeat(()).without_reset().clock_pos_edge(79);
     red.merge(blue, |r, b| In {
         reset_n: signal(reset_n(r.1)),
         clock: signal(b.0.clock),

@@ -5,7 +5,7 @@ fn main() -> Result<(), RHDLError> {
     let input = (0..15)
         .map(|_| rand::random::<bool>())
         .map(|b| signal(reset_n(b)))
-        .stream()
+        .without_reset()
         .clock_pos_edge(100)
         .map(|t| t.map(|x| x.1));
     let uut = ResetNegation::<Red>::default();

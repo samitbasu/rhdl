@@ -181,7 +181,7 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
     let inputs = exhaustive::<U4>()
         .into_iter()
         .flat_map(|x| exhaustive::<U4>().into_iter().map(move |y| (x, y)));
-    let inputs = inputs.stream_after_reset(4).clock_pos_edge(100);
+    let inputs = inputs.with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg
@@ -220,7 +220,7 @@ fn test_add_inline() -> miette::Result<()> {
     let inputs = exhaustive::<U4>()
         .into_iter()
         .flat_map(|x| exhaustive::<U4>().into_iter().map(move |y| (x, y)));
-    let inputs = inputs.stream_after_reset(4).clock_pos_edge(100);
+    let inputs = inputs.with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     Ok(())
 }
@@ -252,7 +252,7 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
 
     let uut = parent::Parent::default();
     let inputs = std::iter::once(())
-        .stream_after_reset(4)
+        .with_reset(4)
         .clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
@@ -327,7 +327,7 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
 
     let uut = parent::Parent::default();
     let inputs = std::iter::once(())
-        .stream_after_reset(4)
+        .with_reset(4)
         .clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
@@ -365,7 +365,7 @@ fn test_constant_propagates_through_indexing() -> miette::Result<()> {
     }
 
     let uut = parent::Parent::default();
-    let inputs = [false, true].stream_after_reset(4).clock_pos_edge(100);
+    let inputs = [false, true].with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg
@@ -403,7 +403,7 @@ fn test_constant_propagates_through_splicing() -> miette::Result<()> {
     }
 
     let uut = parent::Parent::default();
-    let inputs = [false, true].stream_after_reset(4).clock_pos_edge(100);
+    let inputs = [false, true].with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let fg = uut.flow_graph("uut")?;
     assert!(!fg

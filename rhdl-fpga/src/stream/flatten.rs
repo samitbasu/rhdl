@@ -1,8 +1,8 @@
-//! Flatten Pipe Core
+//! Flatten Core
 //!
 //!# Purpose
 //!
-//! A [FlattenPipe] Core takes a sequence of arrays of
+//! A [Flatten] Core takes a sequence of arrays of
 //! type `[T; N]` and splits them into individual items of
 //! type `T`.  It is roughly equivalent to calling
 //! `.iter().flatten()` on an iterator that returns `[T; N]` slices.
@@ -24,7 +24,7 @@
 //!
 //!# Internals
 //!
-//! The [FlattenPipe] uses a loadable delay line to hold the array in a
+//! The [Flatten] core uses a loadable delay line to hold the array in a
 //! set of chained flip flops.  The output is then clocked off the end
 //! of the chain, one element at a time.  When it is empty, the delay
 //! line can be reloaded from the input buffer.  Buffers at the input
@@ -94,7 +94,7 @@ use crate::{
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use super::PipeIO;
+use super::StreamIO;
 
 #[derive(Debug, Default, PartialEq, Digital)]
 #[doc(hidden)]
@@ -105,12 +105,12 @@ pub enum State {
 }
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ)]
-/// The [FlattenPipe] Core
+/// The [Flatten] Core
 ///
 /// This core takes a stream of `[T; N]`, and produces
 /// a stream of `T`, reading out the input stream in
 /// index order (`0, 1, 2..`).  
-pub struct FlattenPipe<M: BitWidth, T: Digital, const N: usize>
+pub struct Flatten<M: BitWidth, T: Digital, const N: usize>
 where
     [T; N]: Default,
     T: Default,
@@ -122,7 +122,7 @@ where
     state: dff::DFF<State>,
 }
 
-impl<M: BitWidth, T: Digital, const N: usize> Default for FlattenPipe<M, T, N>
+impl<M: BitWidth, T: Digital, const N: usize> Default for Flatten<M, T, N>
 where
     [T; N]: Default,
     T: Default,
@@ -140,12 +140,12 @@ where
 }
 
 /// Inputs for the [FlattenPipe] core
-pub type In<T, const N: usize> = PipeIO<[T; N]>;
+pub type In<T, const N: usize> = StreamIO<[T; N]>;
 
 /// Outputs from the [FlattenPipe] core
-pub type Out<T> = PipeIO<T>;
+pub type Out<T> = StreamIO<T>;
 
-impl<M: BitWidth, T: Digital, const N: usize> SynchronousIO for FlattenPipe<M, T, N>
+impl<M: BitWidth, T: Digital, const N: usize> SynchronousIO for Flatten<M, T, N>
 where
     [T; N]: Default,
     T: Default,
@@ -255,14 +255,14 @@ mod tests {
 
     #[test]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
-        let uut = FlattenPipe::<U2, b4, 4>::default();
+        let uut = Flatten::<U2, b4, 4>::default();
         drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }
 
     #[test]
     fn test_operation() -> miette::Result<()> {
-        type Uut = FlattenPipe<U2, b4, 4>;
+        type Uut = Flatten<U2, b4, 4>;
         let uut = Uut::default();
         let mut need_reset = true;
         let mut source_rng = XorShift128::default().map(|x| bits((x & 0xF) as u128));

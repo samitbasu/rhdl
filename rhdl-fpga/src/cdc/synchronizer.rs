@@ -334,10 +334,10 @@ mod tests {
         let red = (0..)
             .map(move |_| rng.gen::<bool>())
             .take(100)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let blue = std::iter::repeat(false)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(79);
         red.merge(blue, |r, g| In {
             data: signal(r.1),

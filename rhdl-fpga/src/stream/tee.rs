@@ -1,19 +1,19 @@
-//! Tee Pipe Core
+//! Tee Stream Core
 //!
 //!# Purpose
 //!
-//! A [TeePipe] Core takes a single pipeline as inputs
-//! and yields two pipelines of outputs.  It is roughly
+//! A [Tee] Core takes a single stream as input
+//! and yields two streams of outputs.  It is roughly
 //! equivalent to `.unzip()` method on iterators.  The
-//! [TeePipe] will merge backpressure from the two
-//! destination pipes.
+//! [Tee] will merge backpressure from the two
+//! destination streams.
 //!
 //!# Schematic Symbol
 //!
-//! Here is the schematic symbol for the [TeePipe] core
+//! Here is the schematic symbol for the [Tee] core
 //!
 #![doc = badascii_formal!("
-         +--+TeePipe+----+       
+         +--+Tee+--------+       
   ?(S,T) |               | ?S    
 +------->|data    a.data +------>
          |               |       
@@ -22,13 +22,12 @@
          |        b.data +------>
          |               |       
          |        b.ready|<-----+
-         |               |       
          +---------------+          
 ")]
 //!
 //!# Internals
 //!
-//! The [TeePipe] contains a couple of buffers and
+//! The [Tee] contains a couple of buffers and
 //! a combinatorial block to split the `Option<(S,T)>`
 //! into `Option<S>` and `Option<T>`.
 //!
@@ -73,28 +72,28 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ, Default)]
-/// The [TeePipe] Core
+/// The [Tee] Core
 ///
-/// This core takes a single pipe stream of type `(S,T)`, and connects to
+/// This core takes a single stream of type `(S,T)`, and connects to
 /// two outgoing streams of type `S` and `T`.
-pub struct TeePipe<S: Digital + Default, T: Digital + Default> {
+pub struct Tee<S: Digital + Default, T: Digital + Default> {
     in_buffer: ReadyValidToFIFO<(S, T)>,
     s_buffer: FIFOToReadyValid<S>,
     t_buffer: FIFOToReadyValid<T>,
 }
 
-/// Input struct for the [TeePipe]
+/// Input struct for the [Tee]
 #[derive(PartialEq, Digital)]
 pub struct In<S: Digital, T: Digital> {
-    /// The input data for the [TeePipe]
+    /// The input data for the [Tee]
     pub data: Option<(S, T)>,
-    /// The downstream ready signal for the S pipe
+    /// The downstream ready signal for the S stream
     pub s_ready: bool,
-    /// The downstream ready signal for the T pipe
+    /// The downstream ready signal for the T stream
     pub t_ready: bool,
 }
 
-/// Output struct for the [TeePipe]
+/// Output struct for the [Tee]
 #[derive(PartialEq, Digital)]
 pub struct Out<S: Digital, T: Digital> {
     /// The output data for the S stream
@@ -105,7 +104,7 @@ pub struct Out<S: Digital, T: Digital> {
     pub ready: bool,
 }
 
-impl<S: Digital + Default, T: Digital + Default> SynchronousIO for TeePipe<S, T> {
+impl<S: Digital + Default, T: Digital + Default> SynchronousIO for Tee<S, T> {
     type I = In<S, T>;
     type O = Out<S, T>;
     type Kernel = kernel<S, T>;
@@ -144,17 +143,17 @@ mod tests {
 
     use rhdl::core::SynchronousIO;
 
-    use super::TeePipe;
+    use super::Tee;
     use super::*;
-    use crate::pipe::testing::sink_from_fn::SinkFromFn;
-    use crate::pipe::testing::source_from_fn::SourceFromFn;
-    use crate::pipe::testing::utils::stalling;
     use crate::rng::xorshift::XorShift128;
+    use crate::stream::testing::sink_from_fn::SinkFromFn;
+    use crate::stream::testing::source_from_fn::SourceFromFn;
+    use crate::stream::testing::utils::stalling;
 
     #[derive(Clone, Synchronous, SynchronousDQ)]
     struct TestFixture {
         source: SourceFromFn<(b4, b6)>,
-        tee: TeePipe<b4, b6>,
+        tee: Tee<b4, b6>,
         s_sink: SinkFromFn<b4>,
         t_sink: SinkFromFn<b6>,
     }
@@ -203,14 +202,12 @@ mod tests {
         };
         let uut = TestFixture {
             source: SourceFromFn::new(a_rng),
-            tee: TeePipe::default(),
+            tee: Tee::default(),
             s_sink: SinkFromFn::new(consume_s),
             t_sink: SinkFromFn::new(consume_t),
         };
         // Run a few samples through
-        let input = repeat_n((), 10_000)
-            .stream_after_reset(1)
-            .clock_pos_edge(100);
+        let input = repeat_n((), 10_000).with_reset(1).clock_pos_edge(100);
         uut.run_without_synthesis(input)?.for_each(drop);
         Ok(())
     }

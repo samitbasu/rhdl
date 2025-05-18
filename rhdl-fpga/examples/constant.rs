@@ -2,7 +2,7 @@ use rhdl::prelude::*;
 use rhdl_fpga::{core::constant::Constant, doc::write_svg_as_markdown};
 
 fn main() -> Result<(), RHDLError> {
-    let inputs = std::iter::repeat(()).stream().clock_pos_edge(100);
+    let inputs = std::iter::repeat(()).without_reset().clock_pos_edge(100);
     let uut = Constant::new(b8(42));
     let vcd = uut
         .run(inputs)?

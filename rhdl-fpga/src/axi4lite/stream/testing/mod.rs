@@ -54,14 +54,14 @@ mod tests {
         let uut = U::default();
         let input = std::iter::repeat(())
             .take(1000)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let vcd = uut.run(input)?.collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("stream");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["84e78c366944103ade0b92c1c6a8ba612daff59cc8c7500d944356798fa9cbb3"];
+        let expect = expect!["83471ef1b4c912f5d06658e6f253d48d75400d1f58ff13006b454c70c30eb4d3"];
         let digest = vcd.dump_to_file(&root.join("stream.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -72,7 +72,7 @@ mod tests {
         let uut = U::default();
         let input = std::iter::repeat(())
             .take(100_000)
-            .stream_after_reset(1)
+            .with_reset(1)
             .clock_pos_edge(100);
         let last = uut.run(input)?.last().unwrap();
         assert!(last.value.2);

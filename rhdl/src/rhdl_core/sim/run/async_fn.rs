@@ -40,10 +40,10 @@ where
     let mut prev_red_cr = signal::<_, R>(clock_reset(clock(false), reset(true)));
     let mut prev_blue_cr = signal::<_, B>(clock_reset(clock(false), reset(true)));
     let red_input = std::iter::repeat(())
-        .stream_after_reset(1)
+        .with_reset(1)
         .clock_pos_edge(red_period);
     let blue_input = std::iter::repeat(())
-        .stream_after_reset(1)
+        .with_reset(1)
         .clock_pos_edge(blue_period);
     let mut sequence = red_input.merge(blue_input, |r, b| (r, b));
     std::iter::from_fn(move || {
