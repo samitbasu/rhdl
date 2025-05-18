@@ -17,10 +17,7 @@ use rhdl_fpga::{
     rng::xorshift::XorShift128,
     stream::{
         chunked::Chunked,
-        testing::{
-            single_stage::single_stage, sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn,
-            utils::stalling,
-        },
+        testing::{single_stage::single_stage, utils::stalling},
     },
 };
 
