@@ -100,11 +100,10 @@
 use crate::{
     core::{dff::DFF, option::unpack},
     fifo::synchronous::SyncFIFO,
+    lid::{fifo_to_rv::FIFOToReadyValid, rv_to_fifo::ReadyValidToFIFO},
 };
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
-
-use super::{fifo_to_rv::FIFOToReadyValid, rv_to_fifo::ReadyValidToFIFO};
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
 pub struct CreditWrapper<S: Digital + Default, T: Digital + Default, N: BitWidth> {
@@ -112,6 +111,17 @@ pub struct CreditWrapper<S: Digital + Default, T: Digital + Default, N: BitWidth
     fifo: SyncFIFO<T, N>,
     out_buffer: FIFOToReadyValid<T>,
     counter: DFF<Bits<N>>,
+}
+
+impl<S: Digital + Default, T: Digital + Default, N: BitWidth> Default for CreditWrapper<S, T, N> {
+    fn default() -> Self {
+        Self {
+            in_buffer: ReadyValidToFIFO::default(),
+            fifo: SyncFIFO::default(),
+            out_buffer: FIFOToReadyValid::default(),
+            counter: DFF::new(Bits::<N>::MAX),
+        }
+    }
 }
 
 #[derive(PartialEq, Digital)]
@@ -163,6 +173,7 @@ pub fn kernel<S: Digital + Default, T: Digital + Default, N: BitWidth>(
     o.to_pipe = if will_accept { Some(s_data) } else { None };
     o.ready = q.in_buffer.ready;
     o.data = q.out_buffer.data;
+    d.in_buffer.next = will_accept;
     d.in_buffer.data = i.data;
     d.out_buffer.ready = i.ready;
     let (t_tag, t_data) = unpack::<T>(q.fifo.data);
@@ -171,9 +182,118 @@ pub fn kernel<S: Digital + Default, T: Digital + Default, N: BitWidth>(
     d.fifo.next = will_unload;
     d.fifo.data = i.from_pipe;
     d.counter = match (will_accept, will_unload) {
-        (false, false) | (true, true) => q.counter,
-        (true, false) => q.counter + 1,
-        (false, true) => q.counter - 1,
+        (false, false) => q.counter,
+        (true, true) => q.counter,
+        (true, false) => q.counter - 1,
+        (false, true) => q.counter + 1,
     };
     (o, d)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::iter::repeat_n;
+
+    use delay::DelayLine;
+
+    use super::*;
+    use crate::{
+        core::{dff::DFF, option::pack, slice::lsbs},
+        pipe::testing::{sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn, utils::stalling},
+        rng::xorshift::XorShift128,
+    };
+
+    pub mod delay {
+        use super::*;
+        #[derive(Clone, Synchronous, SynchronousDQ, Default)]
+        pub struct DelayLine {
+            stage_0: DFF<Option<b6>>,
+            stage_1: DFF<Option<b6>>,
+            stage_2: DFF<Option<b4>>,
+        }
+
+        impl SynchronousIO for DelayLine {
+            type I = Option<b6>;
+            type O = Option<b4>;
+            type Kernel = kernel;
+        }
+
+        #[kernel]
+        pub fn kernel(_cr: ClockReset, i: Option<b6>, q: Q) -> (Option<b4>, D) {
+            let mut d = D::dont_care();
+            d.stage_0 = i;
+            d.stage_1 = q.stage_0;
+            let (tag, data) = unpack::<b6>(q.stage_1);
+            let data = lsbs::<U4, U6>(data);
+            d.stage_2 = pack::<b4>(tag, data);
+            (q.stage_2, d)
+        }
+    }
+
+    ///
+    /// Here is a sketch of the internals:
+    ///
+    #[doc = badascii!(r"
++Source+-+    +Wrapper+-----+     +Sink+--+
+|        | ?T |             | ?S  |       |
+|    data+--->|data     data+---->|data   |
+|        |    |             |     |       |
+|   ready|<---+ready   ready|<----+ready  |
++--------+    +--+------+---+     +-------+
+           +-----+      +----+             
+         ?T|  +------------+ |?S           
+           +->|in       out+-+             
+              +------------+               
+")]
+    #[derive(Clone, Synchronous, SynchronousDQ)]
+    struct TestFixture {
+        source: SourceFromFn<b6>,
+        delay: DelayLine,
+        wrapper: CreditWrapper<b6, b4, U2>,
+        sink: SinkFromFn<b4>,
+    }
+
+    impl SynchronousIO for TestFixture {
+        type I = ();
+        type O = ();
+        type Kernel = kernel;
+    }
+
+    #[kernel]
+    #[doc(hidden)]
+    pub fn kernel(_cr: ClockReset, _i: (), q: Q) -> ((), D) {
+        let mut d = D::dont_care();
+        d.wrapper.data = q.source;
+        d.source = q.wrapper.ready;
+        d.sink = q.wrapper.data;
+        d.wrapper.ready = q.sink;
+        d.delay = q.wrapper.to_pipe;
+        d.wrapper.from_pipe = q.delay;
+        ((), d)
+    }
+
+    #[test]
+    fn test_operation() -> Result<(), RHDLError> {
+        let b_rng = XorShift128::default().map(|x| b6(((x >> 8) & 0x3F) as u128));
+        let mut c_rng = b_rng.clone();
+        let b_rng = stalling(b_rng, 0.13);
+        let consume = move |data| {
+            if let Some(data) = data {
+                let validation = lsbs::<U4, U6>(c_rng.next().unwrap());
+                assert_eq!(data, validation);
+            }
+            rand::random::<f64>() > 0.2
+        };
+        let uut = TestFixture {
+            source: SourceFromFn::new(b_rng),
+            delay: DelayLine::default(),
+            wrapper: CreditWrapper::default(),
+            sink: SinkFromFn::new(consume),
+        };
+        // Run a few samples through
+        let input = repeat_n((), 205).stream_after_reset(1).clock_pos_edge(100);
+        let vcd = uut.run_without_synthesis(input)?.collect::<Vcd>();
+        vcd.dump_to_file("credit.vcd")?;
+        Ok(())
+    }
 }

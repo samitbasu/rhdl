@@ -19,10 +19,12 @@
 use badascii_doc::badascii;
 use rhdl::prelude::Digital;
 pub mod chunked;
+pub mod credit_wrapper;
 pub mod filter;
 pub mod filter_map;
 pub mod flatten;
 pub mod map;
+pub mod tee;
 pub mod testing;
 pub mod zip;
 

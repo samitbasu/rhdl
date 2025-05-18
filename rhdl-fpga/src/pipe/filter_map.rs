@@ -14,7 +14,7 @@
 //!
 #![doc = badascii_formal!("
          ++FilterMapPipe+-+        
- ?[T;N]  |                |  ?T    
+ ?T      |                |  ?S    
 +------->+ data     data  +------->
          |                |        
          |                |        
@@ -35,16 +35,16 @@
 //! that itself is pipelined), then you cannot use this construct.
 //!
 #![doc = badascii!(r"
-                                    ++func++  +unpack+                                       
-                                    |      |?S|      | S                                     
-                                  +>|in out+->|in out+----+                                  
-     +-+Input Buf++     +unpack+  | +------+  |      |    |  +-+pck+-+     ++Output Buf++    
- ?T  |            | ?T  |      |T |           |   tag+-+  |  |       |?S   |            | ?S 
-+--->|data    data+---->|in out+--+           +------+ v  +->|in  out+---->|data    data+--->
-     |            |     |      |                             |       |     |            |    
-<----+ready  ready|<-+  |   tag+---------------------> X+--->|tag    |  +--+ready  ready|<--+
-     +------------+  |  +------+                             +-------+  |  +------------+    
-       ?Carloni      +--------------------------------------------------+    ?Carloni        
+                                    ++func++   +                          
+                                    |      |?S |\                         
+                                  +>|in out+-->|1+                        
+     +-+Input Buf++     +unpack+  | +------+   | +-+    ++Output Buf++    
+ ?T  |            | ?T  |      |T |     None+->|0+ |    |            | ?S 
++--->|data    data+---->|in out+--+            |/  +--->|data    data+--->
+     |            |     |      |               +^       |            |    
+<----+ready  ready|<-+  |   tag+----------------+    +--+ready  ready|<--+
+     +------------+  |  +------+                     |  +------------+    
+       ?Carloni      +-------------------------------+    ?Carloni        
 ")]
 //!# Example
 //!
