@@ -2,11 +2,9 @@ use std::iter::repeat_n;
 
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    core::slice::lsbs,
     rng::xorshift::XorShift128,
     stream::{
         filter_map::FilterMap,
-        map::Map,
         testing::{single_stage::single_stage, utils::stalling},
     },
 };
@@ -21,7 +19,7 @@ enum Item {
 }
 
 // And we only want to process `I` values in the
-// downstream pipe.
+// downstream.
 #[kernel]
 fn extract_i_values(_cr: ClockReset, t: Item) -> Option<b4> {
     match t {

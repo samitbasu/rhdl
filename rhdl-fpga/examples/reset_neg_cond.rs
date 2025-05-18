@@ -9,7 +9,7 @@ fn istream() -> impl Iterator<Item = TimedSample<In<Red, Blue>>> {
     // Use a seeded RNG to get repeatable results
     let mut rng = rand::rngs::StdRng::seed_from_u64(0xdead_beef);
     let red = (0..)
-        .map(move |_| rng.gen::<u8>() < 200)
+        .map(move |_| rng.random::<u8>() < 200)
         .take(100)
         .without_reset()
         .clock_pos_edge(100);

@@ -11,7 +11,7 @@ use rhdl_fpga::{
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
 /// The test fixture has 2 sources feeding
-///  a [ZipPipe] and a sink to consume the output.
+///  a [Zip] core and a sink to consume the output.
 struct TestFixture {
     a_source: SourceFromFn<b4>,
     b_source: SourceFromFn<b6>,
