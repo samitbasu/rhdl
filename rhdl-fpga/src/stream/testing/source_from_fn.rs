@@ -2,7 +2,7 @@
 //!
 //!# Purpose
 //!
-//! For testing pipes, it's often handy to have a source of data elements
+//! For testing streams, it's often handy to have a source of data elements
 //! that can be generated from a closure without worrying about creating
 //! something that is synthesizable.  This struct takes an iterator and
 //! wraps it into a simulatable (but _not_ synthesizable) core that can
@@ -29,7 +29,8 @@ impl<T: Digital> SourceFromFn<T> {
     /// Note that the iterator will return a sequence of [Option<T>].
     /// When the iterator is exhausted, no further data items will be
     /// returned.  _This does not stop the simulation_.  Stopping the
-    /// simulation.
+    /// simulation must be handled in some other way, as `rhdl` does
+    /// not know when the last item might exit the stream.
     pub fn new<S: Iterator<Item = Option<T>> + 'static>(generator: S) -> Self {
         Self {
             generator: std::sync::Arc::new(std::sync::Mutex::new(generator)),

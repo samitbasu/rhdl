@@ -1,0 +1,175 @@
+//! AXI Stream to RHDL Stream adapter
+//!
+//! This core is a very lightweight shim that
+//! presents an AXI Stream interface on one side
+//! and a RHDL Stream interface on the other side.
+//!
+//!# Schematic Symbol
+//!
+#![doc = badascii_formal!(r"
+      +----+AXI2RHDL+-----+       
+      |  AXI     :  RHDL  |       
+  T   |          :        | ?T    
++---->| tdata    :  data  +------>
+      |          :        |       
++---->| tvalid   :        |       
+      |          :        |       
+<-----+ tready   :  ready |<-----+
+      +-------------------+       
+")]
+//!
+//!# Internal details
+//!
+//! The core is simple.  It simply [pack]'s the
+//! data and the valid flag into an [Option], and
+//! forwards the `ready` signal.
+//!
+#![doc = badascii!(r"
+         ++pack++      
+ tdata   |      |      
++------->|data  | data 
+ tvalid  |      +----->
++------->|tag   |      
+         |      |      
+         +------+      
+ tready          ready 
+<---------------------+
+")]
+//!
+//!# Example
+//!
+//! The core is very simple, so the test does not really
+//! show much.
+//!
+//!```
+#![doc = include_str!("../../../examples/axi_2_rhdl_stream.rs")]
+//!```
+//!
+//! With trace
+//!
+#![doc = include_str!("../../../doc/axi_2_rhdl_stream.md")]
+
+use std::marker::PhantomData;
+
+use badascii_doc::{badascii, badascii_formal};
+use rhdl::prelude::*;
+
+use crate::core::option::pack;
+
+#[derive(Clone, PartialEq, Default, Synchronous, SynchronousDQ)]
+/// AXI to RHDL Stream Shim
+///
+/// This core provides a shim to convert an AXI stream
+/// into a RHDL stream.  The type `T` is the data type
+/// being transported on the stream.  Note that this
+/// core is purely combinatorial, and does not register
+/// the inputs or outputs.
+pub struct Axi2Rhdl<T: Digital> {
+    marker: PhantomData<T>,
+}
+
+#[derive(Debug, PartialEq, Digital)]
+/// Inputs for the [Axi2Rhdl] core
+pub struct In<T: Digital> {
+    /// The data signal on the AXI (incoming) side
+    pub tdata: T,
+    /// The valid flag on the AXI (incoming) side
+    pub tvalid: bool,
+    /// The ready signal from the RHDL stream
+    pub ready: bool,
+}
+
+#[derive(Debug, PartialEq, Digital)]
+/// Outputs from the [Axi2Rhdl] core
+pub struct Out<T: Digital> {
+    /// The data to the RHDL stream
+    pub data: Option<T>,
+    /// The `tready` signal for the AXI (incoming) side
+    pub tready: bool,
+}
+
+impl<T: Digital> SynchronousIO for Axi2Rhdl<T> {
+    type I = In<T>;
+    type O = Out<T>;
+    type Kernel = kernel<T>;
+}
+
+#[kernel]
+#[doc(hidden)]
+pub fn kernel<T: Digital>(_cr: ClockReset, i: In<T>, _q: Q<T>) -> (Out<T>, D<T>) {
+    let packed = pack::<T>(i.tvalid, i.tdata);
+    (
+        Out::<T> {
+            data: packed,
+            tready: i.ready,
+        },
+        D::<T> { marker: () },
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    // Easiest way to test this is to use a RHDL [SourceFromFn] for the
+    // stream and then decode it to feed the AXI stream.  Kinda nuts.
+
+    use std::iter;
+
+    use rhdl::prelude::*;
+
+    use crate::{
+        core::option::unpack,
+        rng::xorshift::XorShift128,
+        stream::testing::{
+            sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn, utils::stalling,
+        },
+    };
+
+    use super::Axi2Rhdl;
+
+    #[derive(Clone, Synchronous, SynchronousDQ)]
+    struct TestFixture {
+        source: SourceFromFn<b8>,
+        axi_2_rhdl: Axi2Rhdl<b8>,
+        sink: SinkFromFn<b8>,
+    }
+
+    impl SynchronousIO for TestFixture {
+        type I = ();
+        type O = ();
+        type Kernel = kernel;
+    }
+
+    #[kernel]
+    pub fn kernel(_cr: ClockReset, _i: (), q: Q) -> ((), D) {
+        let mut d = D::dont_care();
+        let (valid, data) = unpack::<b8>(q.source);
+        d.axi_2_rhdl.tdata = data;
+        d.axi_2_rhdl.tvalid = valid;
+        d.sink = q.axi_2_rhdl.data;
+        d.axi_2_rhdl.ready = q.sink;
+        d.source = q.axi_2_rhdl.tready;
+        ((), d)
+    }
+
+    #[test]
+    fn test_axi_to_rhdl() -> Result<(), RHDLError> {
+        let a_rng = XorShift128::default().map(|x| b8((x & 0xFF) as u128));
+        let mut b_rng = a_rng.clone();
+        let a_rng = stalling(a_rng, 0.23);
+        let consume = move |data: Option<b8>| {
+            if let Some(data) = data {
+                let orig = b_rng.next().unwrap();
+                assert_eq!(data, orig);
+            }
+            rand::random::<f64>() > 0.2
+        };
+        let uut = TestFixture {
+            source: SourceFromFn::new(a_rng),
+            axi_2_rhdl: Axi2Rhdl::default(),
+            sink: SinkFromFn::new(consume),
+        };
+        let input = iter::repeat_n((), 10_000).with_reset(1).clock_pos_edge(100);
+        uut.run_without_synthesis(input)?.for_each(drop);
+        Ok(())
+    }
+}

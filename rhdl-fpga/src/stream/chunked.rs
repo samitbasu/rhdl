@@ -91,7 +91,7 @@ use rhdl::prelude::*;
 
 use crate::{
     core::{dff, option::unpack},
-    lid::{fifo_to_rv, rv_to_fifo},
+    stream::{fifo_to_stream, stream_to_fifo},
 };
 
 use super::StreamIO;
@@ -116,10 +116,10 @@ where
     [T; N]: Default,
     T: Default,
 {
-    input_buffer: rv_to_fifo::ReadyValidToFIFO<T>,
+    input_buffer: stream_to_fifo::StreamToFIFO<T>,
     delay_line: [dff::DFF<T>; N],
     count: dff::DFF<Bits<M>>,
-    output_buffer: fifo_to_rv::FIFOToReadyValid<[T; N]>,
+    output_buffer: fifo_to_stream::FIFOToStream<[T; N]>,
     state: dff::DFF<State>,
 }
 
@@ -132,10 +132,10 @@ where
         assert!(N > 1, "Can only chunk streams with N > 1");
         assert!((1 << M::BITS) >= N, "Expect that the bitwidth of the counter is sufficiently large to express values up to N");
         Self {
-            input_buffer: rv_to_fifo::ReadyValidToFIFO::default(),
+            input_buffer: stream_to_fifo::StreamToFIFO::default(),
             delay_line: core::array::from_fn(|_| dff::DFF::default()),
             count: dff::DFF::new(bits(0)),
-            output_buffer: fifo_to_rv::FIFOToReadyValid::default(),
+            output_buffer: fifo_to_stream::FIFOToStream::default(),
             state: dff::DFF::new(State::Loading),
         }
     }

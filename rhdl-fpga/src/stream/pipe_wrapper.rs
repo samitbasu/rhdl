@@ -102,10 +102,24 @@
 //! element, and will produce exactly one [Option<T>] output element at some
 //! time in the future.  The internal FIFO size is exposed, since knowledge of how big the
 //! output FIFO will need to be is a design decision.
+//!
+//!# Example
+//!
+//! An example of wrapping a pipeline with a [PipeWrapper] core
+//! is here.
+//!
+//!```
+#![doc = include_str!("../../examples/pipe_wrap.rs")]
+//!```
+//!
+//! With the resulting trace.
+//!
+#![doc = include_str!("../../doc/pipe_wrap.md")]
+
 use crate::{
     core::{dff::DFF, option::unpack},
     fifo::synchronous::SyncFIFO,
-    lid::{fifo_to_rv::FIFOToReadyValid, rv_to_fifo::ReadyValidToFIFO},
+    stream::{fifo_to_stream::FIFOToStream, stream_to_fifo::StreamToFIFO},
 };
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
@@ -120,18 +134,18 @@ use rhdl::prelude::*;
 /// of type `T`.  This core assumes a 1-1 relationship, i.e., each `Some(S)` will
 /// produce exactly one `Some(T)`.
 pub struct PipeWrapper<S: Digital + Default, T: Digital + Default, N: BitWidth> {
-    in_buffer: ReadyValidToFIFO<S>,
+    in_buffer: StreamToFIFO<S>,
     fifo: SyncFIFO<T, N>,
-    out_buffer: FIFOToReadyValid<T>,
+    out_buffer: FIFOToStream<T>,
     counter: DFF<Bits<N>>,
 }
 
 impl<S: Digital + Default, T: Digital + Default, N: BitWidth> Default for PipeWrapper<S, T, N> {
     fn default() -> Self {
         Self {
-            in_buffer: ReadyValidToFIFO::default(),
+            in_buffer: StreamToFIFO::default(),
             fifo: SyncFIFO::default(),
-            out_buffer: FIFOToReadyValid::default(),
+            out_buffer: FIFOToStream::default(),
             counter: DFF::new(Bits::<N>::MAX),
         }
     }
@@ -141,22 +155,22 @@ impl<S: Digital + Default, T: Digital + Default, N: BitWidth> Default for PipeWr
 /// Inputs for the [PipeWrapper]
 pub struct In<S: Digital, T: Digital> {
     /// Input data for the upstream
-    data: Option<S>,
+    pub data: Option<S>,
     /// Input ready signal for the downstream
-    ready: bool,
+    pub ready: bool,
     /// The values that come from the pipeline
-    from_pipe: Option<T>,
+    pub from_pipe: Option<T>,
 }
 
 #[derive(PartialEq, Digital)]
 /// Outputs from the [PipeWrapper]
 pub struct Out<S: Digital, T: Digital> {
     /// Output data for the downstream
-    data: Option<T>,
+    pub data: Option<T>,
     /// Ready signal for the upstream
-    ready: bool,
+    pub ready: bool,
     /// Data to feed the pipeline
-    to_pipe: Option<S>,
+    pub to_pipe: Option<S>,
 }
 
 impl<S: Digital + Default, T: Digital + Default, N: BitWidth> SynchronousIO
@@ -306,9 +320,8 @@ mod tests {
             sink: SinkFromFn::new(consume),
         };
         // Run a few samples through
-        let input = repeat_n((), 205).with_reset(1).clock_pos_edge(100);
-        let vcd = uut.run_without_synthesis(input)?.collect::<Vcd>();
-        vcd.dump_to_file("credit.vcd")?;
+        let input = repeat_n((), 10_000).with_reset(1).clock_pos_edge(100);
+        uut.run_without_synthesis(input)?.for_each(drop);
         Ok(())
     }
 }

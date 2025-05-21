@@ -1,9 +1,9 @@
 use rhdl::prelude::*;
-use rhdl_fpga::{lid::rv_to_fifo::ReadyValidToFIFO, rng::xorshift::XorShift128};
+use rhdl_fpga::{rng::xorshift::XorShift128, stream::stream_to_fifo::StreamToFIFO};
 
 fn main() -> Result<(), RHDLError> {
     // The buffer will manage items of 4 bits
-    let uut = ReadyValidToFIFO::<b4>::default();
+    let uut = StreamToFIFO::<b4>::default();
     // The test harness will include a consumer that
     // randomly pauses the upstream producer.
     let mut need_reset = true;
@@ -17,7 +17,7 @@ fn main() -> Result<(), RHDLError> {
                     need_reset = false;
                     return Some(rhdl::core::sim::ResetOrData::Reset);
                 }
-                let mut input = rhdl_fpga::lid::rv_to_fifo::In::<b4>::dont_care();
+                let mut input = rhdl_fpga::stream::stream_to_fifo::In::<b4>::dont_care();
                 let may_accept = rand::random::<u8>() > 150;
                 let will_accept = may_accept & out.data.is_some();
                 input.next = false;

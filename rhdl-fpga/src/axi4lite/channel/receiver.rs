@@ -1,12 +1,12 @@
 use rhdl::prelude::*;
 
-use crate::{core::option::pack, lid::rv_to_fifo};
+use crate::{core::option::pack, stream::stream_to_fifo};
 
 use super::{DataValid, Ready};
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 pub struct U<T: Digital + Default> {
-    inner: rv_to_fifo::ReadyValidToFIFO<T>,
+    inner: stream_to_fifo::StreamToFIFO<T>,
 }
 
 #[derive(PartialEq, Debug, Digital)]
