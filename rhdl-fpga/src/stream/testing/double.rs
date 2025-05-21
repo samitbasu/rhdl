@@ -4,8 +4,8 @@ use rhdl::prelude::*;
 pub struct U<N: BitWidth> {
     filler: crate::fifo::testing::filler::FIFOFiller<N>,
     push_pull: crate::stream::fifo_to_stream::FIFOToStream<Bits<N>>,
-    relay1: crate::lid::option_carloni::OptionCarloni<Bits<N>>,
-    relay2: crate::lid::option_carloni::OptionCarloni<Bits<N>>,
+    relay1: crate::stream::stream_buffer::StreamBuffer<Bits<N>>,
+    relay2: crate::stream::stream_buffer::StreamBuffer<Bits<N>>,
     drainer: crate::fifo::testing::drainer::FIFODrainer<N>,
 }
 
@@ -14,8 +14,8 @@ impl<N: BitWidth> Default for U<N> {
         Self {
             filler: crate::fifo::testing::filler::FIFOFiller::<N>::new(4, 0.5),
             push_pull: crate::stream::fifo_to_stream::FIFOToStream::<Bits<N>>::default(),
-            relay1: crate::lid::option_carloni::OptionCarloni::<Bits<N>>::default(),
-            relay2: crate::lid::option_carloni::OptionCarloni::<Bits<N>>::default(),
+            relay1: crate::stream::stream_buffer::StreamBuffer::<Bits<N>>::default(),
+            relay2: crate::stream::stream_buffer::StreamBuffer::<Bits<N>>::default(),
             drainer: crate::fifo::testing::drainer::FIFODrainer::<N>::new(4, 0.5),
         }
     }
@@ -67,7 +67,7 @@ mod tests {
             .join("vcd")
             .join("lid");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!("93b418a49a77dc7730360de117d3d5df275d89763364fc15dea5c935d0f0e74d");
+        let expect = expect!("464bd4b44cc89c32e4bb69dfd5d2c7f321708a781aab25a4addf5e19b6184ccf");
         let digest = vcd.dump_to_file(&root.join("double.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

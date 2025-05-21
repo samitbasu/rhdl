@@ -27,7 +27,7 @@
 //! Unlike [Flatten] or [Chunked], the [Map] does not
 //! impose any flow control on the upstream.  Because it can
 //! at most produce as many items as the source stream, it can be
-//! implemented with simple [OptionCarloni] buffers at the input
+//! implemented with simple [StreamBuffer] buffers at the input
 //! and output, which are needed to isolate the combinatorial
 //! `map` function from the remaining parts of the stream.  
 //! Note that if you need a more expensive `map` function (i.e., one
@@ -66,12 +66,9 @@ use rhdl::{
     prelude::*,
 };
 
-use crate::{
-    core::option::{pack, unpack},
-    lid::option_carloni::OptionCarloni,
-};
+use crate::core::option::{pack, unpack};
 
-use super::StreamIO;
+use super::{stream_buffer::StreamBuffer, StreamIO};
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
 /// The Map Core
@@ -80,9 +77,9 @@ use super::StreamIO;
 /// output type.  A provided (combinatorial) function
 /// performs the mapping function.
 pub struct Map<T: Digital + Default, S: Digital + Default> {
-    input_buffer: OptionCarloni<T>,
+    input_buffer: StreamBuffer<T>,
     func: Func<T, S>,
-    output_buffer: OptionCarloni<S>,
+    output_buffer: StreamBuffer<S>,
 }
 
 impl<T, S> Map<T, S>
@@ -102,9 +99,9 @@ where
         K: DigitalFn2<A0 = ClockReset, A1 = T, O = S>,
     {
         Ok(Self {
-            input_buffer: OptionCarloni::default(),
+            input_buffer: StreamBuffer::default(),
             func: Func::try_new::<K>()?,
-            output_buffer: OptionCarloni::default(),
+            output_buffer: StreamBuffer::default(),
         })
     }
 }

@@ -4,7 +4,7 @@ use rhdl::prelude::*;
 pub struct U<N: BitWidth> {
     filler: crate::fifo::testing::filler::FIFOFiller<N>,
     sender: crate::stream::fifo_to_stream::FIFOToStream<Bits<N>>,
-    relay: crate::lid::option_carloni::OptionCarloni<Bits<N>>,
+    relay: crate::stream::stream_buffer::StreamBuffer<Bits<N>>,
     receiver: crate::stream::stream_to_fifo::StreamToFIFO<Bits<N>>,
     drainer: crate::fifo::testing::drainer::FIFODrainer<N>,
 }
@@ -14,7 +14,7 @@ impl<N: BitWidth> Default for U<N> {
         Self {
             filler: crate::fifo::testing::filler::FIFOFiller::<N>::new(4, 0.5),
             sender: crate::stream::fifo_to_stream::FIFOToStream::<Bits<N>>::default(),
-            relay: crate::lid::option_carloni::OptionCarloni::<Bits<N>>::default(),
+            relay: crate::stream::stream_buffer::StreamBuffer::<Bits<N>>::default(),
             receiver: crate::stream::stream_to_fifo::StreamToFIFO::<Bits<N>>::default(),
             drainer: crate::fifo::testing::drainer::FIFODrainer::<N>::new(4, 0.5),
         }
@@ -65,7 +65,7 @@ mod tests {
             .join("vcd")
             .join("lid");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!("400834543520ed448c41b9d0697dcba7dfa4ceb5e92cd610f9be0ef6096bb113");
+        let expect = expect!("553edbf1746dc6fec9ebd67d33b45d985df5cf515cc02efb39f62a420ced9729");
         let digest = vcd.dump_to_file(&root.join("single.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -98,7 +98,7 @@ mod tests {
 
     #[test]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
-        let uut = crate::lid::option_carloni::OptionCarloni::<Bits<U16>>::default();
+        let uut = crate::stream::stream_buffer::StreamBuffer::<Bits<U16>>::default();
         drc::no_combinatorial_paths(&uut)?;
         let uut = crate::stream::fifo_to_stream::FIFOToStream::<Bits<U8>>::default();
         drc::no_combinatorial_paths(&uut)?;

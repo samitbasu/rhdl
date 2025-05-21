@@ -56,7 +56,7 @@
 //! based interface.
 //!
 //!```
-#![doc = include_str!("../../examples/option_carloni.rs")]
+#![doc = include_str!("../../examples/stream_buffer.rs")]
 //!```
 //!
 //! With trace
@@ -66,26 +66,24 @@
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use crate::{core::option::pack, stream::StreamIO};
-
-use super::carloni;
+use crate::{core::option::pack, lid::carloni::Carloni, stream::StreamIO};
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 /// Option-based Carloni buffer core
 ///
 /// Here `T` is the data type being transported through
 /// the buffer.
-pub struct OptionCarloni<T: Digital + Default> {
-    inner: carloni::Carloni<T>,
+pub struct StreamBuffer<T: Digital + Default> {
+    inner: Carloni<T>,
 }
 
-/// Inputs to the [OptionCarloni] buffer core
+/// Inputs to the [StreamBuffer] buffer core
 pub type In<T> = StreamIO<T>;
 
-/// Outputs from the [OptionCarloni] buffer core
+/// Outputs from the [StreamBuffer] buffer core
 pub type Out<T> = StreamIO<T>;
 
-impl<T: Digital + Default> SynchronousIO for OptionCarloni<T> {
+impl<T: Digital + Default> SynchronousIO for StreamBuffer<T> {
     type I = In<T>;
     type O = Out<T>;
     type Kernel = option_carloni_kernel<T>;
@@ -122,7 +120,7 @@ mod tests {
 
     #[test]
     fn test_option_carloni_buffer() {
-        let uut = OptionCarloni::<b32>::default();
+        let uut = StreamBuffer::<b32>::default();
         let mut need_reset = true;
         let mut source_rng = XorShift128::default();
         let mut output_rng = XorShift128::default();

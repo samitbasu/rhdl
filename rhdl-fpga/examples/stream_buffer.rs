@@ -1,12 +1,12 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    lid::option_carloni::{self, OptionCarloni},
     rng::xorshift::XorShift128,
+    stream::stream_buffer::{self, StreamBuffer},
 };
 
 fn main() -> Result<(), RHDLError> {
     // The buffer will manage items of 4 bits
-    let uut = OptionCarloni::<b4>::default();
+    let uut = StreamBuffer::<b4>::default();
     // Create a random data stream that pauses randomly
     let mut source_rng = XorShift128::default();
     let mut send = (0..).map(move |_| {
@@ -24,7 +24,7 @@ fn main() -> Result<(), RHDLError> {
                     need_reset = false;
                     return Some(rhdl::core::sim::ResetOrData::Reset);
                 }
-                let mut input = option_carloni::In::<b4>::dont_care();
+                let mut input = stream_buffer::In::<b4>::dont_care();
                 // if the valid flag is high, then advance the source RNG (maybe)
                 input.data = None;
                 if out.ready {
