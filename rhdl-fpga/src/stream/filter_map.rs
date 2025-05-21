@@ -1,4 +1,4 @@
-//! Filter Map Pipe Core
+//! Filter Map Stream Core
 //!
 //!# Purpose
 //!
@@ -10,22 +10,20 @@
 //!
 //!# Schematic Symbol
 //!
-//! Here is the schematic symbol for the [FilterMapPipe] buffer
+//! Here is the schematic symbol for the [FilterMap] stream
 //!
 #![doc = badascii_formal!("
-         ++FilterMapPipe+-+        
- ?T      |                |  ?S    
-+------->+ data     data  +------->
-         |                |        
-         |                |        
-<--------+ ready    ready |<------+
-         |                |        
-         +----------------+       
+     ++FilterMap+---+        
+ ?T  |              | ?S    
++--->+ data   data  +---->
+     |              |        
+<----+ ready  ready |<---+
+     +--------------+       
 ")]
 //!
 //!# Internals
 //!
-//! Unlike [FlattenPipe] or [ChunkedPipe], the [FilterMapPipe] does not
+//! Unlike [FlattenPipe] or [ChunkedPipe], the [FilterMap] does not
 //! impose any flow control on the upstream pipe.  Because it can
 //! at most produce as many items as the source pipe, it can be
 //! implemented with simple [StreamBuffer] buffers at the input
@@ -44,7 +42,7 @@
      |            |     |      |               +^       |            |    
 <----+ready  ready|<-+  |   tag+----------------+    +--+ready  ready|<--+
      +------------+  |  +------+                     |  +------------+    
-       ?Carloni      +-------------------------------+    ?Carloni        
+                     +-------------------------------+         
 ")]
 //!# Example
 //!
@@ -75,7 +73,8 @@ use super::{stream_buffer::StreamBuffer, StreamIO};
 ///
 /// Here `T` is the input type, and `S` is the
 /// output type.  A provided (combinatorial) function
-/// performs the mapping function.
+/// performs the mapping function.  It must have a
+/// signature of `fn(T) -> Option<S>`.
 pub struct FilterMap<T: Digital + Default, S: Digital + Default> {
     input_buffer: StreamBuffer<T>,
     func: Func<T, Option<S>>,

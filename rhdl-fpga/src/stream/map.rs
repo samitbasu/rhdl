@@ -12,14 +12,12 @@
 //! Here is the schematic symbol for the [Map] buffer
 //!
 #![doc = badascii_formal!("
-         +--+Map+---------+        
- ?[T;N]  |                |  ?S   
-+------->+ data     data  +------->
-         |                |        
-         |                |        
-<--------+ ready    ready |<------+
-         |                |        
-         +----------------+       
+     +--+Map+---------+        
+ ?T  |                | ?S   
++--->+ data     data  +---->
+     |                |        
+<----+ ready    ready |<---+
+     +----------------+       
 ")]
 //!
 //!# Internals
@@ -37,13 +35,13 @@
                                       +-+Func+--+                                      
                                       |         | S                                     
                                     +>|in    out+--+                                   
-     +-+Input Buf++     +-+upck+-+  | +---------+  |   +-+pck+-+     ++Output Buf++    
+     +-+Buffer+---+     +-+upck+-+  | +---------+  |   +-+pck+-+     +-+Buffer+---+    
  ?T  |            | ?T  |        |T |              |   |       |?S   |            | ?S 
 +--->|data    data+---->|in   out+--+              +-->|in  out+---->|data    data+--->
      |            |     |        |                     |       |     |            |    
 <----+ready  ready|<-+  |     tag+-------------------->|tag    |  +--+ready  ready|<--+
      +------------+  |  +--------+                     +-------+  |  +------------+    
-       ?Carloni      |                                            |    ?Carloni        
+                     |                                            |           
                      +--------------------------------------------+                    
 ")]
 //!# Example
@@ -52,12 +50,12 @@
 //! elements.
 //!
 //!```
-#![doc = include_str!("../../examples/map.rs")]
+#![doc = include_str!("../../examples/stream_map.rs")]
 //!```
 //!
 //! with a trace file like this:
 //!
-#![doc = include_str!("../../doc/map.md")]
+#![doc = include_str!("../../doc/stream_map.md")]
 //!
 
 use badascii_doc::{badascii, badascii_formal};
@@ -71,7 +69,7 @@ use crate::core::option::{pack, unpack};
 use super::{stream_buffer::StreamBuffer, StreamIO};
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
-/// The Map Core
+/// The Map Core (Stream Version)
 ///
 /// Here `T` is the input type, and `S` is the
 /// output type.  A provided (combinatorial) function
@@ -87,12 +85,12 @@ where
     T: Digital + Default,
     S: Digital + Default,
 {
-    /// Construct a Map Pipe
+    /// Construct a Map Stream
     ///
-    /// The argument to the map pipe `try_new` function
+    /// The argument to the map stream `try_new` function
     /// is a synthesizable function (i.e., one marked with the
     /// `#[kernel]` attribute).  It must have a signature of
-    /// `fn(T) -> S`.
+    /// `fn(ClockReset, T) -> S`.
     pub fn try_new<K>() -> Result<Self, RHDLError>
     where
         K: DigitalFn,
