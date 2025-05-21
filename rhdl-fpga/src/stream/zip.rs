@@ -33,15 +33,15 @@
 //! is straightfoward, and purely combinatorial.
 //!
 #![doc = badascii!(r"
-      ++RVToFIFO+--+    ++unpck+-+     +conct++                                        
-  ?S  |            | ?S |        |  S  |      |      +-+pack+-+      ++FIFOToRV+       
+      ++Stm2FIFO+--+    ++unpck+-+     +conct++                                        
+  ?S  |            | ?S |        |  S  |      |      +-+pack+-+      ++FIFO2Stm+       
 +---->| data  data +--->|in   out+---->|.0    |      |        |?(S,T)|         | ?(S,T)
       |            |    |        |     |   out+----->|data out+----->|in    out+------>
  <----+ ready next |<+  |     tag+-+ +>|.1    |      |        |      |         |       
       |            | |  |        | | | |      |   +->|tag     |   +--+full  rdy|<-----+
       +------------+ |  +--------+ | | +------+   |  |        |   |  |         |       
                      |             +-+---------+  |  +--------+   |  +---------+       
-      ++RVToFIFO+--+ +  ++unpck+-+   |         v  |               |                    
+      ++Stm2FIFO+--+ +  ++unpck+-+   |         v  |               |                    
   ?T  |            | ?T |        | T |    +-------+-------+       |                    
 +---->| data  data +--->|in   out+---+    |               |       |                    
       |            | +  |        |        |    Control    |<------+                    
@@ -69,7 +69,7 @@ use rhdl::prelude::*;
 
 use crate::{
     core::option::{pack, unpack},
-    lid::{fifo_to_rv::FIFOToReadyValid, rv_to_fifo::ReadyValidToFIFO},
+    stream::{fifo_to_stream::FIFOToStream, stream_to_fifo::StreamToFIFO},
 };
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ, Default)]
@@ -79,9 +79,9 @@ use crate::{
 /// `S`, and one of type `T`, and generates a stream
 /// of `(S,T)` elements.
 pub struct Zip<S: Digital + Default, T: Digital + Default> {
-    a_buffer: ReadyValidToFIFO<S>,
-    b_buffer: ReadyValidToFIFO<T>,
-    out_buffer: FIFOToReadyValid<(S, T)>,
+    a_buffer: StreamToFIFO<S>,
+    b_buffer: StreamToFIFO<T>,
+    out_buffer: FIFOToStream<(S, T)>,
 }
 
 #[derive(PartialEq, Digital)]

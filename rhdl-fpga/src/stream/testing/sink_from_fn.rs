@@ -2,8 +2,8 @@
 //!
 //!# Purpose
 //!
-//! For testing pipes, it's often handy to have a
-//! source that can be generated from a closure without
+//! For testing stream processes, it's often handy to have a
+//! sink for a stream that can be generated from a closure without
 //! worrying that something that is synthesizable.  
 //!
 use rhdl::prelude::*;
@@ -13,8 +13,8 @@ use rhdl::prelude::*;
 ///
 /// This is the core to include in your design if you want to  
 /// use a closure or other general Rust function to assess the
-/// correctness of the pipe output.  It can also control the
-/// backpressure to the pipeline, by returning a boolean that
+/// correctness of the stream output.  It can also control the
+/// backpressure to the stream, by returning a boolean that
 /// is converted into the `ready` input.  
 pub struct SinkFromFn<T: Digital> {
     consumer: std::sync::Arc<std::sync::Mutex<dyn FnMut(Option<T>) -> bool>>,

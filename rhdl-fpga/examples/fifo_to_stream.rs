@@ -1,12 +1,12 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    lid::fifo_to_rv::{self, FIFOToReadyValid},
     rng::xorshift::XorShift128,
+    stream::fifo_to_stream::{self, FIFOToStream},
 };
 
 fn main() -> Result<(), RHDLError> {
     // The buffer will manage items of 4 bits
-    let uut = FIFOToReadyValid::<b4>::default();
+    let uut = FIFOToStream::<b4>::default();
     // The test harness will include a consumer that
     // randomly pauses the upstream producer.
     let mut need_reset = true;
@@ -18,7 +18,7 @@ fn main() -> Result<(), RHDLError> {
                     need_reset = false;
                     return Some(rhdl::core::sim::ResetOrData::Reset);
                 }
-                let mut input = fifo_to_rv::In::<b4>::dont_care();
+                let mut input = fifo_to_stream::In::<b4>::dont_care();
                 let want_to_pause = rand::random::<u8>() > 200;
                 input.ready = !want_to_pause;
                 // Decide if the producer will generate a data item

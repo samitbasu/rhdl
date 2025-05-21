@@ -5,7 +5,7 @@
 //! FIFO backed with a pair of registers instead of a BRAM.  
 //! Note that any FIFO can be interfaced to a Ready/Valid bus by
 //! simply setting `ready = !full`.  The particular use of this
-//! [ReadyValidToFIFO] buffer is to minimize the number of resources
+//! [StreamToFIFO] buffer is to minimize the number of resources
 //! needed.  As it only requires a couple of registers, it is generally
 //! far less resource intensive than a full FIFO.  But it is not
 //! special in any other meaningful way, and a regular [SyncFIFO]
@@ -13,10 +13,10 @@
 //!
 //!# Schematic Symbol
 //!
-//! Here is the schematic symbol for the [ReadyValidToFIFO] buffer
+//! Here is the schematic symbol for the [StreamToFIFO] buffer
 //!
 #![doc = badascii_formal!("
-     ++RVToFIFO+--+     
+     ++Stm2FIFO+--+     
  ?T  |            | ?T  
 +--->|data    data+---->
      |            |     
@@ -28,7 +28,7 @@
 //!
 //!# Internals
 //!
-//! Effectively, the [ReadyValidToFIFO] buffer is simply a 2-element FIFO.
+//! Effectively, the [StreamToFIFO] buffer is simply a 2-element FIFO.
 //! It is implemented with a pair of registers and manual control logic,
 //! since the general FIFO logic doesn't work with such small sizes.
 //!
@@ -55,7 +55,7 @@
 //! Here is an example of the buffer in action.
 //!
 //!```
-#![doc = include_str!("../../examples/rv_to_fifo.rs")]
+#![doc = include_str!("../../examples/stream_to_fifo.rs")]
 //!```
 //!
 //! With the output.
@@ -79,10 +79,10 @@ pub enum State {
 }
 
 #[derive(PartialEq, Debug, Clone, SynchronousDQ, Synchronous)]
-/// The [ReadyValidToFIFO] Buffer Core
+/// The [StreamToFIFO] Buffer Core
 ///
 /// `T` is the type of the data elements flowing in the pipeline.
-pub struct ReadyValidToFIFO<T: Digital> {
+pub struct StreamToFIFO<T: Digital> {
     /// The state of the buffer
     state: dff::DFF<State>,
     /// The 0 slot of the buffer,
@@ -96,7 +96,7 @@ pub struct ReadyValidToFIFO<T: Digital> {
     read_slot: dff::DFF<bool>,
 }
 
-impl<T: Digital> Default for ReadyValidToFIFO<T> {
+impl<T: Digital> Default for StreamToFIFO<T> {
     fn default() -> Self {
         Self {
             state: dff::DFF::default(),
@@ -109,7 +109,7 @@ impl<T: Digital> Default for ReadyValidToFIFO<T> {
 }
 
 #[derive(PartialEq, Debug, Digital)]
-/// Inputs to the [ReadyValidToFIFO] buffer
+/// Inputs to the [StreamToFIFO] buffer
 ///
 /// For inputs, we accept an Option<T> input from the ready/valid bus
 /// and a next signal to acknowledge that data had been consumed.
@@ -125,7 +125,7 @@ pub struct In<T: Digital> {
 }
 
 #[derive(PartialEq, Debug, Digital)]
-/// Outputs from the [ReadyValidToFIFO] buffer
+/// Outputs from the [StreamToFIFO] buffer
 pub struct Out<T: Digital> {
     /// The data to the consumer
     pub data: Option<T>,
@@ -136,7 +136,7 @@ pub struct Out<T: Digital> {
     pub error: bool,
 }
 
-impl<T: Digital> SynchronousIO for ReadyValidToFIFO<T> {
+impl<T: Digital> SynchronousIO for StreamToFIFO<T> {
     type I = In<T>;
     type O = Out<T>;
     type Kernel = kernel<T>;
@@ -209,11 +209,11 @@ mod tests {
 
     use crate::rng::xorshift::XorShift128;
 
-    use super::ReadyValidToFIFO;
+    use super::StreamToFIFO;
 
     #[test]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
-        let uut = ReadyValidToFIFO::<b16>::default();
+        let uut = StreamToFIFO::<b16>::default();
         drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }
@@ -221,7 +221,7 @@ mod tests {
     #[test]
     fn test_operation() -> miette::Result<()> {
         // The buffer will manage items of 4 bits
-        let uut = ReadyValidToFIFO::<b4>::default();
+        let uut = StreamToFIFO::<b4>::default();
         // The test harness will include a consumer that
         // randomly pauses the upstream producer.
         let mut need_reset = true;

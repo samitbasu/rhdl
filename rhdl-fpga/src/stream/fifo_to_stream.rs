@@ -24,7 +24,7 @@
 //! skid buffers, the output is presented as an `Option<T>`, and underflow is not possible,
 //! as `None` is returned when the buffer is empty.
 //!
-//! Note that one use case for the [FIFOToReadyValid] buffer is when we need to be able to
+//! Note that one use case for the [FIFOToStream] buffer is when we need to be able to
 //! anticipate by a clock cycle that a pipeline is able to push data forward.  Here is
 //! an example of the problem:
 //!
@@ -47,10 +47,10 @@ clk     +----+    +----+    +----+
 //! stall and hold this output value until the downstream pipeline re-raises `ready` for a clock
 //! cycle.
 //!
-//! With the [FIFOToReadyValid] buffer, we have an addition invariant:
+//! With the [FIFOToStream] buffer, we have an addition invariant:
 //!   - A FIFO that is not `full` on cycle `T` cannot be full on cycle `T+1` if we do not add data to it.
 //!
-//! This invariant means that the equivalent timing diagram with a [FIFOToReadyValid] buffer
+//! This invariant means that the equivalent timing diagram with a [FIFOToStream] buffer
 //! looks like this instead
 //!
 #![doc = badascii!("
@@ -73,7 +73,7 @@ clk     +----+    +----+    +----+
 //!
 //!# Schematic Symbol
 //!
-//! Here is the schematic symbol for the [FIFOToReadyValid] buffer
+//! Here is the schematic symbol for the [FIFOToStream] buffer
 //!
 #![doc = badascii_formal!("
      +-+FifoToRV+---+     
@@ -88,7 +88,7 @@ clk     +----+    +----+    +----+
 //!
 //!# Internals
 //!
-//! Effectively, the [FIFOToReadyValid] buffer is simply a 2-element FIFO.  It is implemented with
+//! Effectively, the [FIFOToStream] buffer is simply a 2-element FIFO.  It is implemented with
 //! a pair of registers and manual control logic, since the general FIFO logic does not handle
 //! such small sizes well.
 //!
@@ -113,7 +113,7 @@ clk     +----+    +----+    +----+
 //! Here is an example of the interface.
 //!
 //!```
-#![doc = include_str!("../../examples/fifo_to_rv.rs")]
+#![doc = include_str!("../../examples/fifo_to_stream.rs")]
 //!```
 //!
 //! With an output.
@@ -139,10 +139,10 @@ pub enum State {
 }
 
 #[derive(PartialEq, Debug, Clone, SynchronousDQ, Synchronous)]
-/// The [FIFOToReadyValid] Buffer core.
+/// The [FIFOToStream] Buffer core.
 ///
 /// `T` is the type of the data elements flowing in the pipeline.
-pub struct FIFOToReadyValid<T: Digital> {
+pub struct FIFOToStream<T: Digital> {
     /// The state of the buffer
     state: dff::DFF<State>,
     /// The 0 slot of the buffer,
@@ -156,7 +156,7 @@ pub struct FIFOToReadyValid<T: Digital> {
     read_slot: dff::DFF<bool>,
 }
 
-impl<T: Digital> Default for FIFOToReadyValid<T> {
+impl<T: Digital> Default for FIFOToStream<T> {
     fn default() -> Self {
         Self {
             state: dff::DFF::default(),
@@ -168,17 +168,17 @@ impl<T: Digital> Default for FIFOToReadyValid<T> {
     }
 }
 
-/// Inputs to the [FIFOToReadyValid] buffer
+/// Inputs to the [FIFOToStream] buffer
 ///
 /// For inputs, the push pull buffer has a Option<T> input to combine the
 /// write enable with the data signal, and provides a full signal back.
 /// It is important that the full signal is not dependant on the consumer,
 /// so that the pull-pull buffer isolates the producer from the consumer
 /// and vice versa.
-pub type In<T: Digital> = StreamIO<T>;
+pub type In<T> = StreamIO<T>;
 
 #[derive(PartialEq, Debug, Digital)]
-/// Outputs from the [FIFOToReadyValid] buffer
+/// Outputs from the [FIFOToStream] buffer
 pub struct Out<T: Digital> {
     /// The consumers data
     pub data: Option<T>,
@@ -190,7 +190,7 @@ pub struct Out<T: Digital> {
     pub error: bool,
 }
 
-impl<T: Digital> SynchronousIO for FIFOToReadyValid<T> {
+impl<T: Digital> SynchronousIO for FIFOToStream<T> {
     type I = StreamIO<T>;
     type O = Out<T>;
     type Kernel = kernel<T>;
@@ -268,7 +268,7 @@ mod tests {
 
     #[test]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
-        let uut = FIFOToReadyValid::<b16>::default();
+        let uut = FIFOToStream::<b16>::default();
         drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }
@@ -276,7 +276,7 @@ mod tests {
     #[test]
     fn test_operation() -> miette::Result<()> {
         // The buffer will manage items of 4 bits
-        let uut = FIFOToReadyValid::<b4>::default();
+        let uut = FIFOToStream::<b4>::default();
         // The test harness will include a consumer that
         // randomly pauses the upstream producer.
         let mut need_reset = true;

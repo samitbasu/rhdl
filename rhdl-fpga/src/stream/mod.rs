@@ -19,11 +19,13 @@
 use badascii_doc::badascii;
 use rhdl::prelude::Digital;
 pub mod chunked;
+pub mod fifo_to_stream;
 pub mod filter;
 pub mod filter_map;
 pub mod flatten;
 pub mod map;
 pub mod pipe_wrapper;
+pub mod stream_to_fifo;
 pub mod tee;
 pub mod testing;
 pub mod zip;

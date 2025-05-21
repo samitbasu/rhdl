@@ -34,7 +34,7 @@
 #![doc = badascii!("
                                                       ++pack++      ++FIFO2RV+-+     
                          +unpck+++     +split+ S      |      |      |          | ?S  
-       ++RVToFIFO++      |       |(S,T)|   .0+------->|in out+----->|data  data+---->
+       ++Stm2FIFO++      |       |(S,T)|   .0+------->|in out+----->|data  data+---->
  ?(S,T)|          |?(S,T)|   data+---->|in   | T      |      |      |          |     
 +----->|data  data+----->|in     |     |   .1+--+ +-->|tag   |  +---+full ready|<---+
        |          |      |    tag+-+   |     |  | |   +------+  |   |          |     
@@ -68,7 +68,7 @@ use rhdl::prelude::*;
 
 use crate::{
     core::option::{pack, unpack},
-    lid::{fifo_to_rv::FIFOToReadyValid, rv_to_fifo::ReadyValidToFIFO},
+    stream::{fifo_to_stream::FIFOToStream, stream_to_fifo::StreamToFIFO},
 };
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ, Default)]
@@ -77,9 +77,9 @@ use crate::{
 /// This core takes a single stream of type `(S,T)`, and connects to
 /// two outgoing streams of type `S` and `T`.
 pub struct Tee<S: Digital + Default, T: Digital + Default> {
-    in_buffer: ReadyValidToFIFO<(S, T)>,
-    s_buffer: FIFOToReadyValid<S>,
-    t_buffer: FIFOToReadyValid<T>,
+    in_buffer: StreamToFIFO<(S, T)>,
+    s_buffer: FIFOToStream<S>,
+    t_buffer: FIFOToStream<T>,
 }
 
 /// Input struct for the [Tee]

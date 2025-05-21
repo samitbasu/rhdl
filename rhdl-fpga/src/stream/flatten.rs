@@ -88,7 +88,7 @@
 //!
 use crate::{
     core::{dff, option::unpack},
-    lid::{fifo_to_rv::FIFOToReadyValid, rv_to_fifo::ReadyValidToFIFO},
+    stream::{fifo_to_stream::FIFOToStream, stream_to_fifo::StreamToFIFO},
 };
 
 use badascii_doc::{badascii, badascii_formal};
@@ -115,10 +115,10 @@ where
     [T; N]: Default,
     T: Default,
 {
-    input_buffer: ReadyValidToFIFO<[T; N]>,
+    input_buffer: StreamToFIFO<[T; N]>,
     delay: [dff::DFF<T>; N],
     count: dff::DFF<Bits<M>>,
-    output_buffer: FIFOToReadyValid<T>,
+    output_buffer: FIFOToStream<T>,
     state: dff::DFF<State>,
 }
 
@@ -131,9 +131,9 @@ where
         assert!((1 << M::BITS) >= N, "Expect that the bitwidth of the counter is sufficient to count the elements in the array.  I.e., (1 << M) >= N");
         Self {
             delay: core::array::from_fn(|_| dff::DFF::default()),
-            input_buffer: ReadyValidToFIFO::default(),
+            input_buffer: StreamToFIFO::default(),
             count: dff::DFF::new(bits(0)),
-            output_buffer: FIFOToReadyValid::default(),
+            output_buffer: FIFOToStream::default(),
             state: dff::DFF::new(State::Loading),
         }
     }

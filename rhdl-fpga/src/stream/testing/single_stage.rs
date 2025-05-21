@@ -18,7 +18,7 @@
 //! with each accepted data element as a [Option<S>], with the
 //! `Some` variant indicating that the data element is valid.
 //! The consumer function provides the `ready` signal back to the
-//! pipeline to supply backpressure.
+//! stream to supply backpressure.
 
 use crate::stream::StreamIO;
 
@@ -78,13 +78,13 @@ where
 
 /// Create a single stage test fixture
 ///
-/// `uut` is the pipe stage to be tested
+/// `uut` is the stream stage to be tested
 /// `source` is an iterator that returns items of type `Option<S>`
 /// `sink` is a function that consumes elements of type `Option<T>`
 /// and provides the backpressure signal as a return.
 ///
-/// To see example usages, look at the [FlattenPipe] and
-/// [ChunkPipe] examples.
+/// To see example usages, look at the [Flatten] and
+/// [Chunked] examples.
 pub fn single_stage<S, T, C>(
     uut: C,
     source: impl Iterator<Item = Option<S>> + 'static,

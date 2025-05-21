@@ -87,7 +87,7 @@ where
 {
     /// Construct a [Filter] Stream
     ///
-    /// The argument to the filter pipe `try_new` function
+    /// The argument to the filter `try_new` function
     /// is a synthesizable function (i.e., one marked with the
     /// `#[kernel]` attribute).  It must have a signature of
     /// `fn(ClockReset, T) -> bool`.
@@ -104,10 +104,10 @@ where
     }
 }
 
-/// The input for the [FilterPipe]
+/// The input for the [Filter]
 pub type In<T> = StreamIO<T>;
 
-/// The output of the [FilterPipe]
+/// The output of the [Filter]
 pub type Out<T> = StreamIO<T>;
 
 impl<T> SynchronousIO for Filter<T>

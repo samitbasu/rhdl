@@ -175,25 +175,35 @@ Time:
 .input
 <title>top.input</title>
 </text>
-<path d="M 200 50 L 200 57 L 1951 57 L 1951 50" fill="none" stroke="#D62246" stroke-width="1"/>
-<rect fill="#470B17" height="14" stroke="none" width="198" x="1952" y="43"/>
-<path d="M 1951 50 L 1951 43 L 2151 43 L 2151 50" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 2151 50 L 2151 57 L 2190 57 L 2190 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 200 50 L 200 57 L 1451 57 L 1451 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<rect fill="#470B17" height="14" stroke="none" width="98" x="1452" y="43"/>
+<path d="M 1451 50 L 1451 43 L 1551 43 L 1551 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 1551 50 L 1551 57 L 1851 57 L 1851 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<rect fill="#470B17" height="14" stroke="none" width="98" x="1852" y="43"/>
+<path d="M 1851 50 L 1851 43 L 1951 43 L 1951 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 1951 50 L 1951 57 L 2190 57 L 2190 50" fill="none" stroke="#D62246" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="70">
 .input@
 <title>top.input@</title>
 </text>
-<path d="M 200 70 L 200 77 L 1951 77 L 1951 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<rect fill="#470B17" height="14" stroke="none" width="198" x="1952" y="63"/>
-<path d="M 1951 70 L 1951 63 L 2151 63 L 2151 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 2151 70 L 2151 77 L 2190 77 L 2190 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 200 70 L 200 77 L 1451 77 L 1451 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<rect fill="#470B17" height="14" stroke="none" width="98" x="1452" y="63"/>
+<path d="M 1451 70 L 1451 63 L 1551 63 L 1551 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 1551 70 L 1551 77 L 1851 77 L 1851 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<rect fill="#470B17" height="14" stroke="none" width="98" x="1852" y="63"/>
+<path d="M 1851 70 L 1851 63 L 1951 63 L 1951 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 1951 70 L 1951 77 L 2190 77 L 2190 70" fill="none" stroke="#D62246" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="90">
 .output
 <title>top.output</title>
 </text>
-<path d="M 200 90 L 200 97 L 2033 97 L 2033 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="155" x="2034" y="83"/>
-<path d="M 2033 90 L 2033 83 L 2190 83 L 2190 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 200 90 L 200 97 L 1565 97 L 1565 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="76" x="1566" y="83"/>
+<path d="M 1565 90 L 1565 83 L 1643 83 L 1643 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 1643 90 L 1643 97 L 1955 97 L 1955 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="76" x="1956" y="83"/>
+<path d="M 1955 90 L 1955 83 L 2033 83 L 2033 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2033 90 L 2033 97 L 2190 97 L 2190 90" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="110">
 .reset
 <title>top.reset</title>
