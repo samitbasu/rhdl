@@ -25,6 +25,7 @@ pub mod filter_map;
 pub mod flatten;
 pub mod map;
 pub mod pipe_wrapper;
+pub mod stream_buffer;
 pub mod stream_to_fifo;
 pub mod tee;
 pub mod testing;

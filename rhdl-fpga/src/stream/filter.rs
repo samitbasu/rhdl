@@ -26,7 +26,7 @@
 //! Unlike [Flatten] or [Chunked], the [FilterPipe] does not
 //! impose any flow control on the upstream.  Because it can
 //! at most produce as many items as the source, it can be
-//! implemented with simple [OptionCarloni] buffers at the input
+//! implemented with simple [StreamBuffer] buffers at the input
 //! and output, which are needed to isolate the combinatorial
 //! filter function from the remaining parts of the pipeline.  
 //! Note that if you need a more expensive filter function (i.e., one
@@ -60,12 +60,9 @@
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use crate::{
-    core::option::{pack, unpack},
-    lid::option_carloni::OptionCarloni,
-};
+use crate::core::option::{pack, unpack};
 
-use super::StreamIO;
+use super::{stream_buffer::StreamBuffer, StreamIO};
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
 /// The [Filter] Stream Core
@@ -76,9 +73,9 @@ use super::StreamIO;
 /// Only items for which `fn(T)` returns `true` will
 /// be passed on downstream.
 pub struct Filter<T: Digital + Default> {
-    input_buffer: OptionCarloni<T>,
+    input_buffer: StreamBuffer<T>,
     func: Func<T, bool>,
-    output_buffer: OptionCarloni<T>,
+    output_buffer: StreamBuffer<T>,
 }
 
 impl<T> Filter<T>
@@ -97,8 +94,8 @@ where
         S: DigitalFn2<A0 = ClockReset, A1 = T, O = bool>,
     {
         Ok(Self {
-            input_buffer: OptionCarloni::default(),
-            output_buffer: OptionCarloni::default(),
+            input_buffer: StreamBuffer::default(),
+            output_buffer: StreamBuffer::default(),
             func: Func::try_new::<S>()?,
         })
     }

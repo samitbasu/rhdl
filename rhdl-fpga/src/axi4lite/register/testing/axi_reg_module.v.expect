@@ -781,7 +781,7 @@ module inner_register_inner_read_bridge_cmd(input wire [1:0] clock_reset, input 
         end
     endfunction
 endmodule
-// synchronous circuit rhdl_fpga::lid::rv_to_fifo::ReadyValidToFIFO<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>
+// synchronous circuit rhdl_fpga::stream::stream_to_fifo::StreamToFIFO<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>
 module inner_register_inner_read_bridge_cmd_inner(input wire [1:0] clock_reset, input wire [33:0] i, output wire [34:0] o);
     wire [102:0] od;
     wire [67:0] d;
@@ -1299,7 +1299,7 @@ module inner_register_inner_read_bridge_reply(input wire [1:0] clock_reset, inpu
         end
     endfunction
 endmodule
-// synchronous circuit rhdl_fpga::lid::fifo_to_rv::FIFOToReadyValid<rhdl_fpga::axi4lite::types::ReadResponse>
+// synchronous circuit rhdl_fpga::stream::fifo_to_stream::FIFOToStream<rhdl_fpga::axi4lite::types::ReadResponse>
 module inner_register_inner_read_bridge_reply_inner(input wire [1:0] clock_reset, input wire [35:0] i, output wire [36:0] o);
     wire [108:0] od;
     wire [71:0] d;
@@ -2116,7 +2116,7 @@ module inner_register_inner_write_bridge_addr(input wire [1:0] clock_reset, inpu
         end
     endfunction
 endmodule
-// synchronous circuit rhdl_fpga::lid::rv_to_fifo::ReadyValidToFIFO<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>
+// synchronous circuit rhdl_fpga::stream::stream_to_fifo::StreamToFIFO<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>
 module inner_register_inner_write_bridge_addr_inner(input wire [1:0] clock_reset, input wire [33:0] i, output wire [34:0] o);
     wire [102:0] od;
     wire [67:0] d;
@@ -2634,7 +2634,7 @@ module inner_register_inner_write_bridge_resp(input wire [1:0] clock_reset, inpu
         end
     endfunction
 endmodule
-// synchronous circuit rhdl_fpga::lid::fifo_to_rv::FIFOToReadyValid<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U2>>
+// synchronous circuit rhdl_fpga::stream::fifo_to_stream::FIFOToStream<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U2>>
 module inner_register_inner_write_bridge_resp_inner(input wire [1:0] clock_reset, input wire [3:0] i, output wire [4:0] o);
     wire [12:0] od;
     wire [7:0] d;
@@ -3147,7 +3147,7 @@ module inner_register_inner_write_bridge_strobed_data(input wire [1:0] clock_res
         end
     endfunction
 endmodule
-// synchronous circuit rhdl_fpga::lid::rv_to_fifo::ReadyValidToFIFO<rhdl_fpga::axi4lite::types::StrobedData>
+// synchronous circuit rhdl_fpga::stream::stream_to_fifo::StreamToFIFO<rhdl_fpga::axi4lite::types::StrobedData>
 module inner_register_inner_write_bridge_strobed_data_inner(input wire [1:0] clock_reset, input wire [37:0] i, output wire [38:0] o);
     wire [114:0] od;
     wire [75:0] d;
