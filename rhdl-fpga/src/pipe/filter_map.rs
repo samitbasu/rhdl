@@ -10,13 +10,13 @@
 //!
 //!# Schematic Symbol
 //!
-//! //! Here is the schematic symbol for the [FilterMap] stream
+//! Here is the schematic symbol for the [FilterMap] stream
 //!
 #![doc = badascii_formal!("
-     ++FilterMap+---+        
- ?T  |              | ?S    
-+--->+ data   data  +---->
-     +--------------+       
+     ++FilterMap++        
+ ?T  |           | ?S    
++--->+ in    out +---->
+     +-----------+       
 ")]
 //!
 //!# Internals
@@ -35,6 +35,7 @@
                   |   tag+----------------+     
                   +------+                      
 ")]
+//!
 //!# Example
 //!
 //! Here is an example of running the pipeline filter map.  It is
@@ -141,7 +142,7 @@ mod tests {
     #[test]
     fn test_operation() -> Result<(), RHDLError> {
         let a_rng = XorShift128::default().map(|x| b4((x & 0xF) as u128));
-        let mut b_rng = a_rng.clone().filter_map(|x| {
+        let b_rng = a_rng.clone().filter_map(|x| {
             if (x & bits(1)).any() {
                 None
             } else {

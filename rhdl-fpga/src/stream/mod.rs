@@ -42,7 +42,6 @@ pub mod zip;
  ?T  |            | ?S  
 +--->|data    data+---->
      |            |     
-     |            |     
 <---+|ready  ready|<---+
      +------------+     
 ")]
