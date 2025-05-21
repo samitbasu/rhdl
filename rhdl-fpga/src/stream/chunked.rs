@@ -42,8 +42,8 @@ out               [d0..d3]         [d4..d7]
 //! a combinatorial path between the input and output.  
 //!
 #![doc = badascii!(r"
-                      ++unpck+-+    ++TappedDelay+---+ [T;N]  ++pck++      ++Fifo2RV+-+      
-     ++RV2Fifo+-+     |        |  T |             out+------->|data |?[T;N]|          |      
+                      ++unpck+-+    ++TappedDelay+---+ [T;N]  ++pck++      ++Fifo2St+-+      
+     ++St2Fifo+-+     |        |  T |             out+------->|data |?[T;N]|          |      
  ?T  |          | ?T  |    data+--->|in     run      |        |  out+----->|data  data+----->
 +--->|data  data+---->|in      |    +----------------+   +--->|tag  |      |          |      
      |          |     |     tag+--+          ^           |    |     |   +--+full ready|<----+
@@ -111,6 +111,8 @@ pub enum State {
 /// a stream of chunks `[T;N]`, assembling the array
 /// in index order, so that `t0, t1, t2,...` are
 /// packed such that the `out[0] = t0`, etc.
+/// Note that `M` is a bitwidth for the internal counter
+/// and must satisfy `1 << M <= N`.
 pub struct Chunked<M: BitWidth, T: Digital, const N: usize>
 where
     [T; N]: Default,

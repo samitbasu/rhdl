@@ -1,4 +1,4 @@
-//! Filter Pipe Core
+//! Filter Stream Core
 //!
 //!# Purpose
 //!
@@ -10,15 +10,15 @@
 //!
 //!# Schematic Symbol
 //!
-//! Here is the schematic symbol for the [Filter] buffer
+//! Here is the schematic symbol for the [Filter] core
 //!
 #![doc = badascii_formal!("
-         +--+FilterPipe+--+        
- ?[T;N]  |                |  ?T    
-+------->+ data     data  +------->
-         |                |        
-<--------+ ready    ready |<------+
-         +----------------+       
+      +--+Filter+------+        
+ ?T   |                | ?T    
++---->+ data     data  +----->
+      |                |        
+<-----+ ready    ready |<----+
+      +----------------+       
 ")]
 //!
 //!# Internals
@@ -42,7 +42,7 @@
      |            |     |        |                 +   |       |     |            |    
 <----+ready  ready|<-+  |     tag+---------------> &+->|tag    |  +--+ready  ready|<--+
      +------------+  |  +--------+                     +-------+  |  +------------+    
-       ?Carloni      |                                            |    ?Carloni        
+                     |                                            |   
                      +--------------------------------------------+                    
 ")]
 //!# Example
