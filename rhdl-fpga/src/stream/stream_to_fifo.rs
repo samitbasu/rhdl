@@ -1,14 +1,14 @@
-//! A Ready/Valid-to-FIFO buffer
+//! A Stream-to-FIFO buffer
 //!
 //!# Purpose
-//! A READY/VALID-to-FIFO buffer is a highly specialized two element
+//! A Stream-to-FIFO buffer is a highly specialized two element
 //! FIFO backed with a pair of registers instead of a BRAM.  
-//! Note that any FIFO can be interfaced to a Ready/Valid bus by
+//! Note that any FIFO can be interfaced to a stream by
 //! simply setting `ready = !full`.  The particular use of this
 //! [StreamToFIFO] buffer is to minimize the number of resources
 //! needed.  As it only requires a couple of registers, it is generally
 //! far less resource intensive than a full FIFO.  But it is not
-//! special in any other meaningful way, and a regular [SyncFIFO]
+//! special in any other meaningful way, and a regular [crate::fifo::synchronous::SyncFIFO]
 //! might be a better choice.
 //!
 //!# Schematic Symbol
@@ -39,8 +39,6 @@
 +------------>|data      data+---->
   ready       |              |     
 <-----+! <----+full      next|<---+
-              |              |     
-              |              |     
               +--------------+     
 ")]
 //! The FIFO will signal that it is `ready` as long as it is not `full`.
@@ -111,9 +109,9 @@ impl<T: Digital> Default for StreamToFIFO<T> {
 #[derive(PartialEq, Debug, Digital)]
 /// Inputs to the [StreamToFIFO] buffer
 ///
-/// For inputs, we accept an Option<T> input from the ready/valid bus
+/// For inputs, we accept an `Option<T>` input from the ready/valid bus
 /// and a next signal to acknowledge that data had been consumed.
-/// The output is an Option<T> and a ready signal to provide backpressure.
+/// The output is an `Option<T>` and a ready signal to provide backpressure.
 /// This buffer cannot overflow, since it consumes incoming data only when
 /// ready.  However, it can underflow if the receiver signals a next
 /// when there is no data available.
@@ -132,7 +130,7 @@ pub struct Out<T: Digital> {
     /// The ready signal to the producer
     pub ready: bool,
     /// An error flag to indicate that the core has
-    /// underflow-ed.
+    /// underflowed.
     pub error: bool,
 }
 

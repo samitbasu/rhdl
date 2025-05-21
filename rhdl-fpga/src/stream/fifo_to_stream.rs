@@ -1,12 +1,11 @@
-//! A FIFO-to-Ready/Valid buffer
+//! A FIFO-to-Stream buffer
 //!
 //!# Purpose
-//! A FIFO-to-READY/VALID buffer is a highly specialized two element FIFO backed with a pair
-//! of registers instead of a BRAM.  The idea is to allow two pipelines to be joined
-//! where the supply side pipeline has "push" semantics (meaning that it is triggered
-//! by some other process and produces data elements at it's own pace) and the demand
-//! side pipeline has "pull" semantics - meaning that it is triggered at some rate that
-//! moderates consumption of the data elements.
+//! A FIFO-to-Stream buffer is a highly specialized two element FIFO backed with a pair
+//! of registers instead of a BRAM.  The idea is to allow logic that has "push" semantics
+//! like a FIFO interface, to connecto to stream, which has "pull" semantics.  Both
+//! interfaces support backpressure (the FIFO via the `full` signal, and the stream via
+//! the `ready` signal).
 //!
 //! The other way to conceptualize this is as a source and sink pair.  The supply side
 //! pipeline is a data source - it produces data elements at it's own pace.  The demand
