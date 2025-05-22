@@ -15,13 +15,11 @@
 //!
 #![doc = badascii_formal!("
      +-----+Carloni+-------+    
-     |                     |    
 +--->| data_in    data_out +--->
      |                     |    
  <---+ stop_out   stop_in  |<--+
      |                     +    
 +--->| void_in    void_out +--->
-     |                     |    
      +---------------------+    
 ")]
 //! The `void` signal indicates the validity of the data line,

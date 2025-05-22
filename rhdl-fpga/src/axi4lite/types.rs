@@ -122,6 +122,20 @@ pub enum AXI4Error {
     DECERR,
 }
 
+#[derive(PartialEq, Debug, Digital)]
+/// An AXI4 read result type.
+pub enum ReadResult {
+    Ok(b32),
+    ExOk(b32),
+    Err(AXI4Error),
+}
+
+impl Default for ReadResult {
+    fn default() -> Self {
+        Self::Err(AXI4Error::SLVERR)
+    }
+}
+
 #[kernel]
 /// Helper function to recode a [ReadResponse] into a [Result].
 ///

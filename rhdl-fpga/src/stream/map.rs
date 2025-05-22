@@ -32,17 +32,17 @@
 //! that itself is pipelined), then you cannot use this construct.
 //!
 #![doc = badascii!(r"
-                                      +-+Func+--+                                      
-                                      |         | S                                     
-                                    +>|in    out+--+                                   
-     +-+Buffer+---+     +-+upck+-+  | +---------+  |   +-+pck+-+     +-+Buffer+---+    
- ?T  |            | ?T  |        |T |              |   |       |?S   |            | ?S 
-+--->|data    data+---->|in   out+--+              +-->|in  out+---->|data    data+--->
-     |            |     |        |                     |       |     |            |    
-<----+ready  ready|<-+  |     tag+-------------------->|tag    |  +--+ready  ready|<--+
-     +------------+  |  +--------+                     +-------+  |  +------------+    
-                     |                                            |           
-                     +--------------------------------------------+                    
+                                      +-+Func+--+                       
+                                      |         | S                     
+                                    +>|in    out+--+                    
+     +-+Buffer+---+     +-+upck+-+  | +---------+  |   +-+pck+-+        
+ ?T  |            | ?T  |        |T |              |   |       |?S  data
++--->|data    data+---->|in   out+--+              +-->|in  out+------->
+     |            |     |        |                     |       |   ready
+<----+ready  ready|<-+  |     tag+-------------------->|tag    |  +----+
+     +------------+  |  +--------+                     +-------+  |     
+                     |                                            |     
+                     +--------------------------------------------+     
 ")]
 //!# Example
 //!
@@ -77,7 +77,6 @@ use super::{stream_buffer::StreamBuffer, StreamIO};
 pub struct Map<T: Digital + Default, S: Digital + Default> {
     input_buffer: StreamBuffer<T>,
     func: Func<T, S>,
-    output_buffer: StreamBuffer<S>,
 }
 
 impl<T, S> Map<T, S>
@@ -99,7 +98,6 @@ where
         Ok(Self {
             input_buffer: StreamBuffer::default(),
             func: Func::try_new::<K>()?,
-            output_buffer: StreamBuffer::default(),
         })
     }
 }
@@ -131,11 +129,9 @@ where
     d.input_buffer.data = i.data;
     let (tag, data) = unpack::<T>(q.input_buffer.data);
     d.func = data;
-    d.output_buffer.data = pack::<S>(tag, q.func);
-    d.output_buffer.ready = i.ready;
-    d.input_buffer.ready = q.output_buffer.ready;
+    d.input_buffer.ready = i.ready;
     let o = Out::<S> {
-        data: q.output_buffer.data,
+        data: pack::<S>(tag, q.func),
         ready: q.input_buffer.ready,
     };
     (o, d)
@@ -156,6 +152,13 @@ mod tests {
     #[kernel]
     fn map_item(_cr: ClockReset, t: b4) -> b2 {
         lsbs::<U2, U4>(t)
+    }
+
+    #[test]
+    fn test_no_combinatorial_paths() -> miette::Result<()> {
+        let uut = Map::try_new::<map_item>()?;
+        drc::no_combinatorial_paths(&uut)?;
+        Ok(())
     }
 
     #[test]
