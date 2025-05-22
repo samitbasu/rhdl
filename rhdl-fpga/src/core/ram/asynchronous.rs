@@ -451,7 +451,7 @@ mod tests {
             .join("asynchronous");
         std::fs::create_dir_all(&root).unwrap();
         let expect = expect!["22337818f27e37faed647f24e318274119160a8b615e75d4fa541e7e28ce655f"];
-        let digest = vcd.dump_to_file(&root.join("ram_write.vcd")).unwrap();
+        let digest = vcd.dump_to_file(root.join("ram_write.vcd")).unwrap();
         expect.assert_eq(&digest);
         let output = uut
             .run(stream)?
