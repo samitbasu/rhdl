@@ -1,27 +1,26 @@
-//! AXI4Lite Read Interface Core
+//! AXI4Lite Read Endpoint Interface
 //!
 //!# Purpose
 //!
 //! This core provides a way to interface RHDL stream cores to the
-//! AXI4Lite bus interface.  This purely combinatorial core simply
+//! AXI4Lite bus interface.  This interface core simply
 //! repackages the signals to and from the AXI bus into RHDL streams.
-//! The addresses are provided on a source stream, and the
+//! The addresses are provided on a source stream, and the result of
+//! the read (including error conditions) is fed to a sink stream.
 //!
 //!# Schematic Symbol
 //!
 //! Here is the symbol for the core. It provides a source stream
 //! for the addresses (which are `b32`), and sinks a stream of
-//! values (which are `Result<b32, AXI4Error>`).  If you do not need
-//! the source stream addresses, you can simply remap the stream
-//! to discard them.
+//! values (which are [ReadResult]).
 //!
 #![doc = badascii_formal!(r"
-         +-+ReadBridge+-+            
+         ++AxiReadStrms++
   araddr |      source  |            
 +------->|              | ?b32       
  arvalid |    req.data  +----->      
-+------->|    req.ready |<----+      
- arready |              |            
++------->|              |
+ arready |    req.ready |<----+            
 <--------+              |            
          |  - - - - - - |            
  rdata   |              |            
@@ -37,7 +36,7 @@
 //!
 //!# Internal Details
 //!
-//! Internally, the [ReadBridge] consists of the following rough
+//! Internally, the [Axi2ReadStreams] consists of the following rough
 //! contents.  A [crate::stream::map::Map] core is used to map the
 //! [ReadResult] to a [ReadResponse], which is then adapted out to the
 //! AXI bus.
@@ -63,7 +62,7 @@
                                      +-------------+       
 ")]
 //!
-//! The [Axi2Rhdl] and [Rhdl2Axi] cores register their
+//! The [Axi2Rhdl] and [Rhdl2Axi] cores buffer their
 //! inputs (and outputs) so as to be spec compliant (i.e., no
 //! combinatorial logic on the bus is allowed in AXI).
 //!
@@ -79,30 +78,24 @@ use crate::{
 use rhdl::prelude::*;
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
-/// AXI Read Interface
+/// AXI Read Endpoint
 ///
 /// This core converts the AXI bus signals into a RHDL stream
 /// source of read addresses, and a RHDL stream sink of
 /// read results.  
-pub struct AxiReadStreams {
+pub struct ReadEndpoint {
     inbuf: Axi2Rhdl<b32>,
     map: Map<ReadResult, ReadResponse>,
     outbuf: Rhdl2Axi<ReadResponse>,
 }
 
-impl AxiReadStreams {
-    /// Create a new [AxiReadStreams]
-    ///
-    /// This creates a new core to map the AXI read
-    /// interface into a pair of streams (one source and
-    /// one sink).  It should not fail, but can if the
-    /// internal map stage fails to compile.
-    pub fn try_new() -> Result<Self, RHDLError> {
-        Ok(Self {
+impl Default for ReadEndpoint {
+    fn default() -> Self {
+        Self {
             inbuf: Axi2Rhdl::default(),
-            map: Map::try_new::<map_result>()?,
+            map: Map::try_new::<map_result>().expect("ICE! Compilation of map_result failed!"),
             outbuf: Rhdl2Axi::default(),
-        })
+        }
     }
 }
 
@@ -153,7 +146,7 @@ pub struct Out {
     pub resp_ready: bool,
 }
 
-impl SynchronousIO for AxiReadStreams {
+impl SynchronousIO for ReadEndpoint {
     type I = In;
     type O = Out;
     type Kernel = kernel; //NoKernel3<ClockReset, In, Q, (Out, D)>;
@@ -190,7 +183,7 @@ mod tests {
 
     #[test]
     fn no_combinatorial_paths() -> miette::Result<()> {
-        let uut = AxiReadStreams::try_new()?;
+        let uut = ReadEndpoint::default();
         drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }

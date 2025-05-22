@@ -182,7 +182,7 @@ mod tests {
         std::fs::create_dir_all(&root).unwrap();
         let expect = expect!["c6f08c7d143179f825245b2e05d17a85a3a550a90a8127cf3e0980d9e4b68842"];
         let digest = vcd
-            .dump_to_file(&root.join("test_scan_out_option_ram.vcd"))
+            .dump_to_file(root.join("test_scan_out_option_ram.vcd"))
             .unwrap();
         expect.assert_eq(&digest);
         let values = sim

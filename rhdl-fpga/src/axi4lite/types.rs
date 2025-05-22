@@ -125,8 +125,11 @@ pub enum AXI4Error {
 #[derive(PartialEq, Debug, Digital)]
 /// An AXI4 read result type.
 pub enum ReadResult {
+    /// The read succeeded and returned the provided value
     Ok(b32),
+    /// The Exclusive Read succeeded and returned the provided value
     ExOk(b32),
+    /// An error occured, details included
     Err(AXI4Error),
 }
 

@@ -55,8 +55,6 @@ tready       |                     |   tvalid  |      +----->
 //!
 #![doc = include_str!("../../../doc/axi_2_rhdl_stream.md")]
 
-use std::marker::PhantomData;
-
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 

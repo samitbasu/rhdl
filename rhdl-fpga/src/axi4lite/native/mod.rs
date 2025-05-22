@@ -6,5 +6,5 @@
 //!
 //! These cores provide wrappers that allow you to interface native cores
 //! into the AXI interface, on either the read side or the write side (or both).
-pub mod read;
-pub mod write;
+pub mod controller;
+pub mod endpoint;

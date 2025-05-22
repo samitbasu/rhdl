@@ -86,12 +86,8 @@ mod tests {
             )),
             ..Default::default()
         };
-        let red_input = std::iter::repeat(())
-            .with_reset(1)
-            .clock_pos_edge(50);
-        let blue_input = std::iter::repeat(())
-            .with_reset(1)
-            .clock_pos_edge(78);
+        let red_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(50);
+        let blue_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(78);
         let input = red_input.merge(blue_input, |r, b| In {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
@@ -111,12 +107,8 @@ mod tests {
             )),
             ..Default::default()
         };
-        let red_input = std::iter::repeat(())
-            .with_reset(1)
-            .clock_pos_edge(50);
-        let blue_input = std::iter::repeat(())
-            .with_reset(1)
-            .clock_pos_edge(78);
+        let red_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(50);
+        let blue_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(78);
         let input = red_input.merge(blue_input, |r, b| In {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
@@ -127,9 +119,7 @@ mod tests {
             .join("fifo");
         std::fs::create_dir_all(&root).unwrap();
         let expect = expect!["7d4029c92dcc4111b03e828bad59d82c93fe435cd819988d581af0d563adddb4"];
-        let digest = vcd
-            .dump_to_file(&root.join("async_fifo_trace.vcd"))
-            .unwrap();
+        let digest = vcd.dump_to_file(root.join("async_fifo_trace.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
     }
@@ -137,12 +127,8 @@ mod tests {
     #[test]
     fn test_async_fifo_works_fast_reader() -> miette::Result<()> {
         let uut: AsyncFIFOTester<Red, Blue, U16, 4> = Default::default();
-        let red_input = std::iter::repeat(())
-            .with_reset(1)
-            .clock_pos_edge(50);
-        let blue_input = std::iter::repeat(())
-            .with_reset(1)
-            .clock_pos_edge(26);
+        let red_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(50);
+        let blue_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(26);
         let input = red_input.merge(blue_input, |r, b| In {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
@@ -155,12 +141,8 @@ mod tests {
     #[test]
     fn test_async_fifo_works_slow_reader() -> miette::Result<()> {
         let uut: AsyncFIFOTester<Red, Blue, U16, 4> = Default::default();
-        let red_input = std::iter::repeat(())
-            .with_reset(1)
-            .clock_pos_edge(50);
-        let blue_input = std::iter::repeat(())
-            .with_reset(1)
-            .clock_pos_edge(126);
+        let red_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(50);
+        let blue_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(126);
         let input = red_input.merge(blue_input, |r, b| In {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
@@ -173,12 +155,8 @@ mod tests {
     #[test]
     fn test_async_fifo_test_hdl() -> miette::Result<()> {
         let uut: AsyncFIFOTester<Red, Blue, U16, 4> = Default::default();
-        let red_input = std::iter::repeat(())
-            .with_reset(1)
-            .clock_pos_edge(50);
-        let blue_input = std::iter::repeat(())
-            .with_reset(1)
-            .clock_pos_edge(126);
+        let red_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(50);
+        let blue_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(126);
         let input = red_input.merge(blue_input, |r, b| In {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
