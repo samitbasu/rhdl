@@ -13,12 +13,12 @@
 //! Here is the schematic symbol for the [Filter] core
 //!
 #![doc = badascii_formal!("
-      +--+Filter+------+        
- ?T   |                | ?T    
-+---->+ data     data  +----->
-      |                |        
-<-----+ ready    ready |<----+
-      +----------------+       
+      +-+Filter+-----+        
+ ?T   |              | ?T    
++---->+data     data +----->
+      |              |        
+<-----+ready    ready|<----+
+      +--------------+       
 ")]
 //!
 //!# Internals
@@ -26,24 +26,24 @@
 //! Unlike [Flatten] or [Chunked], the [FilterPipe] does not
 //! impose any flow control on the upstream.  Because it can
 //! at most produce as many items as the source, it can be
-//! implemented with simple [StreamBuffer] buffers at the input
-//! and output, which are needed to isolate the combinatorial
-//! filter function from the remaining parts of the pipeline.  
+//! implemented with a [StreamBuffer] buffers at the input
+//! which is needed to isolate the combinatorial
+//! filter function from the remaining parts of the stream.  
 //! Note that if you need a more expensive filter function (i.e., one
 //! that itself is pipelined), then you cannot use this construct.
 //!
 #![doc = badascii!(r"
-                                      +-+Func+--+                                      
-                                      |         |                                      
-                                    +>|in   keep+--+                                   
-     +-+Input Buf++     +-+upck+-+  | +---------+  |   +-+pck+-+     ++Output Buf++    
- ?T  |            | ?T  |        |T |              |   |       |?T   |            | ?T 
-+--->|data    data+---->|in   out+--+-------------+|+->|in  out+---->|data    data+--->
-     |            |     |        |                 +   |       |     |            |    
-<----+ready  ready|<-+  |     tag+---------------> &+->|tag    |  +--+ready  ready|<--+
-     +------------+  |  +--------+                     +-------+  |  +------------+    
-                     |                                            |   
-                     +--------------------------------------------+                    
+                                      +-+Func+--+                        
+                                      |         |                        
+                                    +>|in   keep+--+                     
+     +-+Input Buf++     +-+upck+-+  | +---------+  |   +-+pck+-+         
+ ?T  |            | ?T  |        |T |              |   |       |?T data  
++--->|data    data+---->|in   out+--+-------------+|+->|in  out+-------->
+     |            |     |        |                 +   |       |   ready 
+<----+ready  ready|<-+  |     tag+---------------> &+->|tag    |  +-----+
+     +------------+  |  +--------+                     +-------+  |      
+                     |                                            |      
+                     +--------------------------------------------+      
 ")]
 //!# Example
 //!
@@ -75,7 +75,6 @@ use super::{stream_buffer::StreamBuffer, StreamIO};
 pub struct Filter<T: Digital + Default> {
     input_buffer: StreamBuffer<T>,
     func: Func<T, bool>,
-    output_buffer: StreamBuffer<T>,
 }
 
 impl<T> Filter<T>
@@ -95,7 +94,6 @@ where
     {
         Ok(Self {
             input_buffer: StreamBuffer::default(),
-            output_buffer: StreamBuffer::default(),
             func: Func::try_new::<S>()?,
         })
     }
@@ -124,11 +122,9 @@ pub fn kernel<T: Digital + Default>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<
     let (tag, data) = unpack::<T>(q.input_buffer.data);
     d.func = data;
     let tag = tag && q.func;
-    d.output_buffer.data = pack::<T>(tag, data);
-    d.output_buffer.ready = i.ready;
-    d.input_buffer.ready = q.output_buffer.ready;
+    d.input_buffer.ready = i.ready;
     let o = Out::<T> {
-        data: q.output_buffer.data,
+        data: pack::<T>(tag, data),
         ready: q.input_buffer.ready,
     };
     (o, d)
@@ -148,6 +144,13 @@ mod tests {
     #[kernel]
     fn keep_even(_cr: ClockReset, t: b4) -> bool {
         !(t & bits(1)).any()
+    }
+
+    #[test]
+    fn test_no_combinatorial_paths() -> miette::Result<()> {
+        let filter = Filter::try_new::<keep_even>()?;
+        drc::no_combinatorial_paths(&filter)?;
+        Ok(())
     }
 
     #[test]

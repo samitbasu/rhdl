@@ -24,17 +24,19 @@
 //! [Option] data input into a `tvalid` flag and
 //! a `tdata` output to comply with the AXI stream
 //! definition.  The `tready` signal is simply forwarded.
+//! A [Carloni] buffer is used on the output to break
+//! combinatorial paths.
 //!
 #![doc = badascii!(r"
-     +-+unpack++ T 
-     |   tdata +-->
-  ?T |         |   
-+--->|data     |   
-     |         |   
-     |   tvalid+-->
-     +---------+   
- ready      tready 
-<-----------------+
+     +-+unpack++ T        tdata      +-----+Carloni+-------+ tdata  
+     |   tdata +-------------------->| data_in    data_out +------> 
+  ?T |         |          ready      |                     | !tvalid
++--->|data     |         +----+ ! <--+ stop_out   void_out +------> 
+     |         |         +           |                     + !tready
+     |   tvalid+-->  ! +------------>| void_in    stop_in  |<-----+ 
+     +---------+         +           +---------------------+        
+ ready                   |                                          
+<------------------------+                                          
 ")]
 //!
 //!# Example
@@ -50,14 +52,12 @@
 //!
 #![doc = include_str!("../../../doc/rhdl_2_axi_stream.md")]
 
-use std::marker::PhantomData;
-
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use crate::core::option::unpack;
+use crate::{core::option::unpack, lid::carloni::Carloni};
 
-#[derive(Clone, PartialEq, Default, Synchronous, SynchronousDQ)]
+#[derive(Clone, Default, Synchronous, SynchronousDQ)]
 /// RHDL Stream to AXI Stream shim
 ///
 /// This core provides a shim to convert a RHDL stream into
@@ -65,7 +65,7 @@ use crate::core::option::unpack;
 /// on the stream.  Note that this core is purely combinatorial, and
 /// does not register the inputs or outputs.
 pub struct Rhdl2Axi<T: Digital + Default> {
-    marker: PhantomData<T>,
+    outbuf: Carloni<T>,
 }
 
 #[derive(Debug, PartialEq, Digital)]
@@ -96,16 +96,17 @@ impl<T: Digital + Default> SynchronousIO for Rhdl2Axi<T> {
 
 #[kernel]
 #[doc(hidden)]
-pub fn kernel<T: Digital + Default>(_cr: ClockReset, i: In<T>, _q: Q<T>) -> (Out<T>, D<T>) {
+pub fn kernel<T: Digital + Default>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
     let (tvalid, tdata) = unpack::<T>(i.data);
-    (
-        Out::<T> {
-            tdata,
-            tvalid,
-            ready: i.tready,
-        },
-        D::<T> { marker: () },
-    )
+    let mut d = D::<T>::dont_care();
+    let mut o = Out::<T>::dont_care();
+    d.outbuf.data_in = tdata;
+    d.outbuf.void_in = !tvalid;
+    d.outbuf.stop_in = !i.tready;
+    o.tdata = q.outbuf.data_out;
+    o.tvalid = !q.outbuf.void_out;
+    o.ready = !q.outbuf.stop_out;
+    (o, d)
 }
 
 #[cfg(test)]
@@ -145,6 +146,13 @@ mod tests {
         d.sink = q.axi_2_rhdl.data;
         d.axi_2_rhdl.ready = q.sink;
         ((), d)
+    }
+
+    #[test]
+    fn test_no_combinatorial_paths() -> miette::Result<()> {
+        let uut: Axi2Rhdl<b8> = Axi2Rhdl::default();
+        drc::no_combinatorial_paths(&uut)?;
+        Ok(())
     }
 
     #[test]

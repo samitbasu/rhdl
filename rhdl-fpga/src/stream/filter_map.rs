@@ -33,16 +33,16 @@
 //! that itself is pipelined), then you cannot use this construct.
 //!
 #![doc = badascii!(r"
-                                    ++func++   +                          
-                                    |      |?S |\                         
-                                  +>|in out+-->|1+                        
-     +-+Input Buf++     +unpack+  | +------+   | +-+    ++Output Buf++    
- ?T  |            | ?T  |      |T |     None+->|0+ |    |            | ?S 
-+--->|data    data+---->|in out+--+            |/  +--->|data    data+--->
-     |            |     |      |               +^       |            |    
-<----+ready  ready|<-+  |   tag+----------------+    +--+ready  ready|<--+
-     +------------+  |  +------+                     |  +------------+    
-                     +-------------------------------+         
+                                    ++func++   +          
+                                    |      |?S |\         
+                                  +>|in out+-->|1+  data  
+     +-+Input Buf++     +unpack+  | +------+   | +------->
+ ?T  |            | ?T  |      |T |     None+->|0+        
++--->|data    data+---->|in out+--+            |/         
+     |            |     |      |               +^   ready 
+<----+ready  ready|<-+  |   tag+----------------+  +-----+
+     +------------+  |  +------+                   |      
+                     +-----------------------------+      
 ")]
 //!# Example
 //!
@@ -78,7 +78,6 @@ use super::{stream_buffer::StreamBuffer, StreamIO};
 pub struct FilterMap<T: Digital + Default, S: Digital + Default> {
     input_buffer: StreamBuffer<T>,
     func: Func<T, Option<S>>,
-    output_buffer: StreamBuffer<S>,
 }
 
 impl<T, S> FilterMap<T, S>
@@ -100,7 +99,6 @@ where
         Ok(Self {
             input_buffer: StreamBuffer::default(),
             func: Func::try_new::<K>()?,
-            output_buffer: StreamBuffer::default(),
         })
     }
 }
@@ -132,11 +130,9 @@ where
     d.input_buffer.data = i.data;
     let (tag, data) = unpack::<T>(q.input_buffer.data);
     d.func = data;
-    d.output_buffer.data = if !tag { None } else { q.func };
-    d.output_buffer.ready = i.ready;
-    d.input_buffer.ready = q.output_buffer.ready;
+    d.input_buffer.ready = i.ready;
     let o = Out::<S> {
-        data: q.output_buffer.data,
+        data: if !tag { None } else { q.func },
         ready: q.input_buffer.ready,
     };
     (o, d)
@@ -161,6 +157,13 @@ mod tests {
         } else {
             Some(lsbs::<U2, U4>(t))
         }
+    }
+
+    #[test]
+    fn test_no_combinatorial_paths() -> miette::Result<()> {
+        let map = FilterMap::try_new::<filter_map_item>()?;
+        drc::no_combinatorial_paths(&map)?;
+        Ok(())
     }
 
     #[test]
