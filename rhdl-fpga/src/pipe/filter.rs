@@ -73,14 +73,14 @@ use crate::core::{
 /// function to filter the contents of the stream.
 /// Only items for which `fn(T)` returns `true` will
 /// be passed on downstream.
-pub struct Filter<T: Digital + Default> {
+pub struct Filter<T: Digital> {
     input: DFF<Option<T>>,
     func: Func<T, bool>,
 }
 
 impl<T> Filter<T>
 where
-    T: Digital + Default,
+    T: Digital,
 {
     /// Construct a [Filter] Pipe
     ///
@@ -108,7 +108,7 @@ pub type Out<T> = Option<T>;
 
 impl<T> SynchronousIO for Filter<T>
 where
-    T: Digital + Default,
+    T: Digital,
 {
     type I = In<T>;
     type O = Out<T>;
@@ -117,13 +117,17 @@ where
 
 #[kernel]
 #[doc(hidden)]
-pub fn kernel<T: Digital + Default>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
+pub fn kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
     let mut d = D::<T>::dont_care();
     d.input = i;
-    let (tag, data) = unpack::<T>(q.input);
-    d.func = data;
-    let tag = tag && q.func;
-    let o = pack::<T>(tag, data);
+    let mut o = None;
+    d.func = T::dont_care();
+    if let Some(data) = q.input {
+        d.func = data;
+        if q.func {
+            o = Some(data);
+        }
+    }
     (o, d)
 }
 

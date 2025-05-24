@@ -4,6 +4,7 @@ fn do_stuff<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {
     #[forbid(unreachable_patterns)]
     #[allow(clippy::manual_map)]
     #[allow(clippy::redundant_pattern_matching)]
+    #[allow(clippy::manual_memcpy)]
     #[forbid(path_statements)]
     #[forbid(unused_variables)]
     fn inner<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {
@@ -20,6 +21,7 @@ fn do_stuff<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {
     ret
 }
 #[allow(non_camel_case_types)]
+#[doc(hidden)]
 struct do_stuff<T: Digital, S: Digital> {
     __phantom_0: std::marker::PhantomData<T>,
     __phantom_1: std::marker::PhantomData<S>,

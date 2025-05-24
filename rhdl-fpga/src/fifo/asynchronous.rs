@@ -66,7 +66,7 @@ use super::write_logic;
 ///  `N` the number bits in the address.  FIFO holds `2^{N-1}` elements
 ///  when full.
 #[derive(Clone, Circuit, CircuitDQ, Default)]
-pub struct AsyncFIFO<T: Digital + Default, W: Domain, R: Domain, const N: usize>
+pub struct AsyncFIFO<T: Digital, W: Domain, R: Domain, const N: usize>
 where
     Const<N>: BitWidth,
 {
@@ -107,7 +107,7 @@ pub struct Out<T: Digital, W: Domain, R: Domain> {
     pub overflow: Signal<bool, W>,
 }
 
-impl<T: Digital + Default, W: Domain, R: Domain, const N: usize> CircuitIO for AsyncFIFO<T, W, R, N>
+impl<T: Digital, W: Domain, R: Domain, const N: usize> CircuitIO for AsyncFIFO<T, W, R, N>
 where
     Const<N>: BitWidth,
 {
@@ -118,7 +118,7 @@ where
 
 #[kernel]
 /// Async FIFO kernel
-pub fn async_fifo_kernel<T: Digital + Default, W: Domain, R: Domain, const N: usize>(
+pub fn async_fifo_kernel<T: Digital, W: Domain, R: Domain, const N: usize>(
     i: In<T, W, R>,
     q: Q<T, W, R, N>,
 ) -> (Out<T, W, R>, D<T, W, R, N>)

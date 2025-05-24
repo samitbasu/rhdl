@@ -1,6 +1,7 @@
 (
     PathExpression {
         elements: [
+            Default,
             ArrayIndex(
                 Literal {
                     lit: 3,
@@ -10,6 +11,7 @@
     },
     PathExpression {
         elements: [
+            Default,
             ArrayIndex(
                 Literal {
                     lit: 3,
@@ -26,6 +28,7 @@
     },
     PathExpression {
         elements: [
+            Default,
             ArrayIndex(
                 Literal {
                     lit: 3,

@@ -918,6 +918,11 @@ impl Context {
                 "Unsupported function call in rhdl kernel function (only paths allowed here)",
             ));
         };
+        // If the caller provided a path, we assume it's not one of these
+        // special case calls.
+        if func_path.path.segments.len() != 1 {
+            return Ok(None);
+        }
         let Some(name) = func_path.path.segments.last() else {
             return Ok(None);
         };

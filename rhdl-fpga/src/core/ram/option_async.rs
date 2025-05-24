@@ -69,11 +69,11 @@ use rhdl::prelude::*;
 /// the BRAM will hold `2^N` elements.
 /// The `W` domain is the clock domain where data is written.
 /// The `R` domain is the clock domain where the reads run.
-pub struct OptionAsyncBRAM<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> {
+pub struct OptionAsyncBRAM<T: Digital, W: Domain, R: Domain, N: BitWidth> {
     inner: super::asynchronous::AsyncBRAM<T, W, R, N>,
 }
 
-impl<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> OptionAsyncBRAM<T, W, R, N> {
+impl<T: Digital, W: Domain, R: Domain, N: BitWidth> OptionAsyncBRAM<T, W, R, N> {
     /// Create a new [OptionAsyncBRAM] with the provided initial contents.
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         Self {
@@ -86,7 +86,7 @@ type ReadI<N> = super::asynchronous::ReadI<N>;
 
 #[derive(PartialEq, Debug, Digital)]
 /// The write interface for the [OptionAsyncBRAM].
-pub struct WriteI<T: Digital + Default, N: BitWidth> {
+pub struct WriteI<T: Digital, N: BitWidth> {
     /// The clock signal for the write.
     pub clock: Clock,
     /// The data command for writing
@@ -95,16 +95,14 @@ pub struct WriteI<T: Digital + Default, N: BitWidth> {
 
 #[derive(PartialEq, Debug, Digital, Timed)]
 /// The input struct for the [OptionAsyncBRAM]
-pub struct In<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> {
+pub struct In<T: Digital, W: Domain, R: Domain, N: BitWidth> {
     /// The write instruction
     pub write: Signal<WriteI<T, N>, W>,
     /// The read instruction
     pub read: Signal<ReadI<N>, R>,
 }
 
-impl<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> CircuitIO
-    for OptionAsyncBRAM<T, W, R, N>
-{
+impl<T: Digital, W: Domain, R: Domain, N: BitWidth> CircuitIO for OptionAsyncBRAM<T, W, R, N> {
     type I = In<T, W, R, N>;
     type O = Signal<T, R>;
     type Kernel = ram_kernel<T, W, R, N>;
@@ -112,7 +110,7 @@ impl<T: Digital + Default, W: Domain, R: Domain, N: BitWidth> CircuitIO
 
 #[kernel]
 /// Kernel function for [OptionAsyncBRAM]
-pub fn ram_kernel<T: Digital + Default, W: Domain, R: Domain, N: BitWidth>(
+pub fn ram_kernel<T: Digital, W: Domain, R: Domain, N: BitWidth>(
     i: In<T, W, R, N>,
     q: Q<T, W, R, N>,
 ) -> (Signal<T, R>, D<T, W, R, N>) {
@@ -126,7 +124,7 @@ pub fn ram_kernel<T: Digital + Default, W: Domain, R: Domain, N: BitWidth>(
         w.enable = true;
         w.addr = addr;
     } else {
-        w.data = T::default();
+        w.data = T::dont_care();
         w.enable = false;
         w.addr = bits(0);
     }
@@ -159,7 +157,7 @@ mod tests {
         })
     }
 
-    fn get_write_stream<T: Digital + Default, N: BitWidth>(
+    fn get_write_stream<T: Digital, N: BitWidth>(
         write_clock: u64,
         write_data: impl Iterator<Item = Option<(Bits<N>, T)>> + Clone,
     ) -> impl Iterator<Item = TimedSample<WriteI<T, N>>> + Clone {

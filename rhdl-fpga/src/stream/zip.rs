@@ -67,10 +67,7 @@
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use crate::{
-    core::option::{pack, unpack},
-    stream::{fifo_to_stream::FIFOToStream, stream_to_fifo::StreamToFIFO},
-};
+use crate::stream::{fifo_to_stream::FIFOToStream, stream_to_fifo::StreamToFIFO};
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ, Default)]
 /// The [Zip] Core
@@ -78,7 +75,7 @@ use crate::{
 /// This core takes two streams.  One of type
 /// `S`, and one of type `T`, and generates a stream
 /// of `(S,T)` elements.
-pub struct Zip<S: Digital + Default, T: Digital + Default> {
+pub struct Zip<S: Digital, T: Digital> {
     a_buffer: StreamToFIFO<S>,
     b_buffer: StreamToFIFO<T>,
     out_buffer: FIFOToStream<(S, T)>,
@@ -106,7 +103,7 @@ pub struct Out<S: Digital, T: Digital> {
     pub data: Option<(S, T)>,
 }
 
-impl<S: Digital + Default, T: Digital + Default> SynchronousIO for Zip<S, T> {
+impl<S: Digital, T: Digital> SynchronousIO for Zip<S, T> {
     type I = In<S, T>;
     type O = Out<S, T>;
     type Kernel = kernel<S, T>;
@@ -114,7 +111,7 @@ impl<S: Digital + Default, T: Digital + Default> SynchronousIO for Zip<S, T> {
 
 #[kernel]
 #[doc(hidden)]
-pub fn kernel<S: Digital + Default, T: Digital + Default>(
+pub fn kernel<S: Digital, T: Digital>(
     _cr: ClockReset,
     i: In<S, T>,
     q: Q<S, T>,
@@ -122,12 +119,18 @@ pub fn kernel<S: Digital + Default, T: Digital + Default>(
     let mut d = D::<S, T>::dont_care();
     d.a_buffer.data = i.a_data;
     d.b_buffer.data = i.b_data;
-    let (tag_a, data_a) = unpack::<S>(q.a_buffer.data);
-    let (tag_b, data_b) = unpack::<T>(q.b_buffer.data);
-    let out_tag = tag_a && tag_b && !q.out_buffer.full;
-    let out_data = pack::<(S, T)>(out_tag, (data_a, data_b));
-    d.a_buffer.next = out_tag;
-    d.b_buffer.next = out_tag;
+    let mut out_data = None;
+    let mut next = false;
+    if !q.out_buffer.full {
+        if let Some(data_a) = q.a_buffer.data {
+            if let Some(data_b) = q.b_buffer.data {
+                out_data = Some((data_a, data_b));
+                next = true;
+            }
+        }
+    }
+    d.a_buffer.next = next;
+    d.b_buffer.next = next;
     d.out_buffer.data = out_data;
     d.out_buffer.ready = i.ready;
     let o = Out::<S, T> {

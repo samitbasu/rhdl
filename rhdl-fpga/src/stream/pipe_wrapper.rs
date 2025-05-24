@@ -117,7 +117,10 @@
 #![doc = include_str!("../../doc/pipe_wrap.md")]
 
 use crate::{
-    core::{dff::DFF, option::unpack},
+    core::{
+        dff::DFF,
+        option::{is_some, unpack},
+    },
     fifo::synchronous::SyncFIFO,
     stream::{fifo_to_stream::FIFOToStream, stream_to_fifo::StreamToFIFO},
 };
@@ -133,14 +136,14 @@ use rhdl::prelude::*;
 /// carries elements of type `S` and the pipeline is assumed to produce elements
 /// of type `T`.  This core assumes a 1-1 relationship, i.e., each `Some(S)` will
 /// produce exactly one `Some(T)`.
-pub struct PipeWrapper<S: Digital + Default, T: Digital + Default, N: BitWidth> {
+pub struct PipeWrapper<S: Digital, T: Digital, N: BitWidth> {
     in_buffer: StreamToFIFO<S>,
     fifo: SyncFIFO<T, N>,
     out_buffer: FIFOToStream<T>,
     counter: DFF<Bits<N>>,
 }
 
-impl<S: Digital + Default, T: Digital + Default, N: BitWidth> Default for PipeWrapper<S, T, N> {
+impl<S: Digital, T: Digital, N: BitWidth> Default for PipeWrapper<S, T, N> {
     fn default() -> Self {
         Self {
             in_buffer: StreamToFIFO::default(),
@@ -173,9 +176,7 @@ pub struct Out<S: Digital, T: Digital> {
     pub to_pipe: Option<S>,
 }
 
-impl<S: Digital + Default, T: Digital + Default, N: BitWidth> SynchronousIO
-    for PipeWrapper<S, T, N>
-{
+impl<S: Digital, T: Digital, N: BitWidth> SynchronousIO for PipeWrapper<S, T, N> {
     type I = In<S, T>;
     type O = Out<S, T>;
     type Kernel = kernel<S, T, N>;
@@ -183,29 +184,33 @@ impl<S: Digital + Default, T: Digital + Default, N: BitWidth> SynchronousIO
 
 #[kernel]
 #[doc(hidden)]
-pub fn kernel<S: Digital + Default, T: Digital + Default, N: BitWidth>(
+pub fn kernel<S: Digital, T: Digital, N: BitWidth>(
     _cr: ClockReset,
     i: In<S, T>,
     q: Q<S, T, N>,
 ) -> (Out<S, T>, D<S, T, N>) {
     let mut d = D::<S, T, N>::dont_care();
-    // Is more data available to feed the pipeline
-    let (s_tag, s_data) = unpack::<S>(q.in_buffer.data);
     // Is there a slot available?
     let is_slot_available = (q.counter > 0) && !q.out_buffer.full;
     // If the data is available and a slot is available
     // then feed it a new data element
-    let will_accept = s_tag && is_slot_available;
     let mut o = Out::<S, T>::dont_care();
-    o.to_pipe = if will_accept { Some(s_data) } else { None };
+    o.to_pipe = None;
+    let mut will_accept = false;
+    if is_slot_available {
+        // Is more data available to feed the pipeline?
+        if let Some(s_data) = q.in_buffer.data {
+            will_accept = true;
+            o.to_pipe = Some(s_data);
+        }
+    }
     o.ready = q.in_buffer.ready;
     o.data = q.out_buffer.data;
     d.in_buffer.next = will_accept;
     d.in_buffer.data = i.data;
     d.out_buffer.ready = i.ready;
-    let (t_tag, t_data) = unpack::<T>(q.fifo.data);
+    let t_tag = is_some::<T>(q.fifo.data);
     let will_unload = t_tag && !q.out_buffer.full;
-    d.out_buffer.data = if will_unload { Some(t_data) } else { None };
     d.fifo.next = will_unload;
     d.fifo.data = i.from_pipe;
     d.counter = match (will_accept, will_unload) {
@@ -252,7 +257,7 @@ mod tests {
             let mut d = D::dont_care();
             d.stage_0 = i;
             d.stage_1 = q.stage_0;
-            let (tag, data) = unpack::<b6>(q.stage_1);
+            let (tag, data) = unpack::<b6>(q.stage_1, bits(0));
             let data = lsbs::<U4, U6>(data);
             d.stage_2 = pack::<b4>(tag, data);
             (q.stage_2, d)

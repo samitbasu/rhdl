@@ -1,6 +1,5 @@
 use crate::prelude::{
-    clock, reset, signal, trace_time, Blue, ClockPosEdgeExt, Domain, MergeExt, Red, Signal,
-    TimedStreamExt,
+    clock, reset, signal, trace_time, ClockPosEdgeExt, Domain, MergeExt, Signal, TimedStreamExt,
 };
 use crate::prelude::{Circuit, CircuitIO, TimedSample};
 use crate::prelude::{ClockReset, Digital};

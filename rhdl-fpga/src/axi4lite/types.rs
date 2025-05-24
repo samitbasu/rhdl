@@ -122,22 +122,20 @@ pub enum AXI4Error {
     DECERR,
 }
 
-#[derive(PartialEq, Debug, Digital)]
-/// An AXI4 read result type.
-pub enum ReadResult {
-    /// The read succeeded and returned the provided value
-    Ok(b32),
-    /// The Exclusive Read succeeded and returned the provided value
-    ExOk(b32),
-    /// An error occured, details included
-    Err(AXI4Error),
+#[derive(PartialEq, Debug, Digital, Default)]
+/// Flag to indicate if the operation
+/// was exclusive or not
+pub enum ExFlag {
+    #[default]
+    /// The operation was normal
+    Normal,
+    /// The operation was exclusive
+    Exclusive,
 }
 
-impl Default for ReadResult {
-    fn default() -> Self {
-        Self::Err(AXI4Error::SLVERR)
-    }
-}
+pub type WriteResult = Result<ExFlag, AXI4Error>;
+
+pub type ReadResult = Result<(ExFlag, b32), AXI4Error>;
 
 #[kernel]
 /// Helper function to recode a [ReadResponse] into a [Result].

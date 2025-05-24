@@ -5,7 +5,7 @@ use crate::{core::option::pack, stream::stream_to_fifo};
 use super::{DataValid, Ready};
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U<T: Digital + Default> {
+pub struct U<T: Digital> {
     inner: stream_to_fifo::StreamToFIFO<T>,
 }
 
@@ -25,14 +25,14 @@ pub struct O<T: Digital> {
     pub bus: Ready,
 }
 
-impl<T: Digital + Default> SynchronousIO for U<T> {
+impl<T: Digital> SynchronousIO for U<T> {
     type I = I<T>;
     type O = O<T>;
     type Kernel = receiver_kernel<T>;
 }
 
 #[kernel]
-pub fn receiver_kernel<T: Digital + Default>(cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
+pub fn receiver_kernel<T: Digital>(cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
     let mut d = D::<T>::dont_care();
     let mut o = O::<T>::dont_care();
     d.inner.next = i.next;

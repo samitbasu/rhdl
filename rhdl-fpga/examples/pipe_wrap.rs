@@ -39,7 +39,7 @@ pub mod delay {
         let mut d = D::dont_care();
         d.stage_0 = i;
         d.stage_1 = q.stage_0;
-        let (tag, data) = unpack::<b6>(q.stage_1);
+        let (tag, data) = unpack::<b6>(q.stage_1, bits(0));
         let data = lsbs::<U4, U6>(data);
         d.stage_2 = pack::<b4>(tag, data);
         (q.stage_2, d)

@@ -80,7 +80,7 @@ pub fn drain_kernel<N: BitWidth>(cr: ClockReset, input: In<N>, q: Q<N>) -> (Out,
     d.valid = was_valid;
     // If there is data available and we are not sleeping, then read the next
     // value.  Validate against the RNG, and advance the rNG
-    let (data_available, data) = unpack::<Bits<N>>(input.data);
+    let (data_available, data) = unpack::<Bits<N>>(input.data, bits(0));
     let validation = lsbs::<N, U32>(q.rng);
     let data_matches = data == validation;
     let will_read = data_available && q.sleep_counter == 0;

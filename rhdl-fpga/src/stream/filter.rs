@@ -72,14 +72,14 @@ use super::{stream_buffer::StreamBuffer, StreamIO};
 /// function to filter the contents of the stream.
 /// Only items for which `fn(T)` returns `true` will
 /// be passed on downstream.
-pub struct Filter<T: Digital + Default> {
+pub struct Filter<T: Digital> {
     input_buffer: StreamBuffer<T>,
     func: Func<T, bool>,
 }
 
 impl<T> Filter<T>
 where
-    T: Digital + Default,
+    T: Digital,
 {
     /// Construct a [Filter] Stream
     ///
@@ -107,7 +107,7 @@ pub type Out<T> = StreamIO<T>;
 
 impl<T> SynchronousIO for Filter<T>
 where
-    T: Digital + Default,
+    T: Digital,
 {
     type I = In<T>;
     type O = Out<T>;
@@ -116,16 +116,25 @@ where
 
 #[kernel]
 #[doc(hidden)]
-pub fn kernel<T: Digital + Default>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
+pub fn kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
     let mut d = D::<T>::dont_care();
     d.input_buffer.data = i.data;
-    let (tag, data) = unpack::<T>(q.input_buffer.data);
-    d.func = data;
+    d.func = T::dont_care();
+    let mut tag = false;
+    if let Some(data) = q.input_buffer.data {
+        d.func = data;
+        tag = true;
+    }
     let tag = tag && q.func;
     d.input_buffer.ready = i.ready;
-    let o = Out::<T> {
-        data: pack::<T>(tag, data),
+    let mut o = Out::<T> {
+        data: None,
         ready: q.input_buffer.ready,
+    };
+    if let Some(data) = q.input_buffer.data {
+        if tag {
+            o.data = Some(data);
+        }
     };
     (o, d)
 }

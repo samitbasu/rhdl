@@ -59,17 +59,25 @@
 
 use rhdl::prelude::*;
 
-#[derive(PartialEq, Debug, Clone, Default, Synchronous, SynchronousDQ)]
+#[derive(PartialEq, Debug, Clone, Synchronous, SynchronousDQ)]
 /// The unit to include that wraps the [SyncBRAM]
 /// The `T` parameter indicates the type of element stored in the
 /// BRAM.  It must implement [Digital].
 /// The `N` parameter indicates the number of address bits.  Thus,
 /// the BRAM will hold `2^N` elements.
-pub struct OptionSyncBRAM<T: Digital + Default, N: BitWidth> {
+pub struct OptionSyncBRAM<T: Digital, N: BitWidth> {
     inner: super::synchronous::SyncBRAM<T, N>,
 }
 
-impl<T: Digital + Default, N: BitWidth> OptionSyncBRAM<T, N> {
+impl<T: Digital, N: BitWidth> Default for OptionSyncBRAM<T, N> {
+    fn default() -> Self {
+        Self {
+            inner: super::synchronous::SyncBRAM::default(),
+        }
+    }
+}
+
+impl<T: Digital, N: BitWidth> OptionSyncBRAM<T, N> {
     /// Create a new [OptionSyncBRAM] with the provided initial contents.
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         Self {
@@ -80,7 +88,7 @@ impl<T: Digital + Default, N: BitWidth> OptionSyncBRAM<T, N> {
 
 #[derive(PartialEq, Debug, Digital)]
 /// The input struct for the [OptionSyncBRAM]
-pub struct In<T: Digital + Default, N: BitWidth> {
+pub struct In<T: Digital, N: BitWidth> {
     /// The address to read from
     pub read_addr: Bits<N>,
     /// The write instruction - if [Some] then take the
@@ -89,7 +97,7 @@ pub struct In<T: Digital + Default, N: BitWidth> {
     pub write: Option<(Bits<N>, T)>,
 }
 
-impl<T: Digital + Default, N: BitWidth> SynchronousIO for OptionSyncBRAM<T, N> {
+impl<T: Digital, N: BitWidth> SynchronousIO for OptionSyncBRAM<T, N> {
     type I = In<T, N>;
     type O = T;
     type Kernel = ram_kernel<T, N>;
@@ -97,7 +105,7 @@ impl<T: Digital + Default, N: BitWidth> SynchronousIO for OptionSyncBRAM<T, N> {
 
 #[kernel]
 /// Kernel function for [OptionSyncBRAM]
-pub fn ram_kernel<T: Digital + Default, N: BitWidth>(
+pub fn ram_kernel<T: Digital, N: BitWidth>(
     _cr: ClockReset,
     i: In<T, N>,
     q: Q<T, N>,
@@ -106,7 +114,7 @@ pub fn ram_kernel<T: Digital + Default, N: BitWidth>(
     d.inner.write.enable = false;
     d.inner.write.addr = bits(0);
     d.inner.read_addr = i.read_addr;
-    d.inner.write.value = T::default();
+    d.inner.write.value = T::dont_care();
     if let Some((addr, data)) = i.write {
         d.inner.write.addr = addr;
         d.inner.write.value = data;

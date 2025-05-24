@@ -15,7 +15,7 @@
 //! values (which are [ReadResult]).
 //!
 #![doc = badascii_formal!(r"
-         ++AxiReadStrms++
+         ++ReadEndpoint++
   araddr |      source  |            
 +------->|              | ?b32       
  arvalid |    req.data  +----->      
@@ -66,12 +66,50 @@
 //! inputs (and outputs) so as to be spec compliant (i.e., no
 //! combinatorial logic on the bus is allowed in AXI).
 //!
+//!
+//!# Example
+//!
+//! An example of using a [ReadController] and [ReadEndpoint]
+//! together in a test harness is included here:
+//!
+#![doc = badascii!(r"
+
+                      ++ReadController++                  ++ReadEndpoint++      +ReqSink+       
++ReqSource+           |  sink          | araddr    araddr |      source  |      |       |       
+|         |   ?b32    |                +--------->------->|              | ?b32 |       |       
+|         +---------->| req.data       | arvalid  arvalid |    req.data  +----->|       |       
+|         |           |                +--------->------->|              |      |       |       
+|         |<----------+ req.ready      | arready  arready |    req.ready |<----+|       |       
+|         |           |                |<--------+--------+              |      +-------+       
++---------+           |  - - - - - -   |                  |  - - - - - - |                      
+                      |                | rdata    rdata   |              |                      
+                      |                |<--------+--------+              |                      
+                      |  source        | rresp    rresp   |      sink    |            +ReplySrc+
++ReplySink+?ReadResult|                |<--------+--------+              | ?ReadResult|        |
+|         |<----------+ resp.data      | rvalid   rvalid  |   resp.data  |<-----------+        |
+|         |           |                |<--------+--------+              |            |        |
+|         +---------->| resp.ready     | rready   rready  |   resp.ready +----------->|        |
++---------+           |                +--------->------->+              |            +--------+
+                      +----------------+                  +--------------+                      
+")]
+//!
+//! Non-synthesizable functions are used to generate the request addresses and the
+//! replies for demonstration purposes.
+//!
+//!```
+#![doc = include_str!("../../../../examples/axi_read.rs")]
+//!```
+//!
+//! with a trace file
+//!
+#![doc = include_str!("../../../../doc/axi_read.md")]
+
 use badascii_doc::{badascii, badascii_formal};
 
 use crate::{
     axi4lite::{
         stream::{axi_to_rhdl::Axi2Rhdl, rhdl_to_axi::Rhdl2Axi},
-        types::{response_codes, AXI4Error, ReadMISO, ReadMOSI, ReadResponse, ReadResult},
+        types::{response_codes, AXI4Error, ExFlag, ReadMISO, ReadMOSI, ReadResponse, ReadResult},
     },
     stream::map::Map,
 };
@@ -103,13 +141,15 @@ impl Default for ReadEndpoint {
 #[doc(hidden)]
 pub fn map_result(_cr: ClockReset, res: ReadResult) -> ReadResponse {
     match res {
-        ReadResult::Ok(x) => ReadResponse {
-            resp: response_codes::OKAY,
-            data: x,
-        },
-        ReadResult::ExOk(x) => ReadResponse {
-            resp: response_codes::EXOKAY,
-            data: x,
+        ReadResult::Ok((flag, data)) => match flag {
+            ExFlag::Normal => ReadResponse {
+                resp: response_codes::OKAY,
+                data,
+            },
+            ExFlag::Exclusive => ReadResponse {
+                resp: response_codes::EXOKAY,
+                data,
+            },
         },
         ReadResult::Err(err) => match err {
             AXI4Error::SLVERR => ReadResponse {

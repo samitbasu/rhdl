@@ -47,16 +47,26 @@ use rhdl::prelude::*;
 use super::read_logic;
 use super::write_logic;
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 /// A simple synchronous FIFO
 ///    `T` is the data type held by the FIFO.
 /// Note that we need `T: Default`.
 ///  `N` the number bits in the address.  FIFO holds `2^{N-1}` elements
 ///  when full.
-pub struct SyncFIFO<T: Digital + Default, N: BitWidth> {
+pub struct SyncFIFO<T: Digital, N: BitWidth> {
     write_logic: write_logic::FIFOWriteCore<N>,
     read_logic: read_logic::FIFOReadCore<N>,
     ram: ram::option_sync::OptionSyncBRAM<T, N>,
+}
+
+impl<T: Digital, N: BitWidth> Default for SyncFIFO<T, N> {
+    fn default() -> Self {
+        Self {
+            write_logic: write_logic::FIFOWriteCore::default(),
+            read_logic: read_logic::FIFOReadCore::default(),
+            ram: ram::option_sync::OptionSyncBRAM::default(),
+        }
+    }
 }
 
 #[derive(PartialEq, Debug, Digital)]
@@ -85,7 +95,7 @@ pub struct Out<T: Digital> {
     pub underflow: bool,
 }
 
-impl<T: Digital + Default, N: BitWidth> SynchronousIO for SyncFIFO<T, N> {
+impl<T: Digital, N: BitWidth> SynchronousIO for SyncFIFO<T, N> {
     type I = In<T>;
     type O = Out<T>;
     type Kernel = fifo_kernel<T, N>;
@@ -93,7 +103,7 @@ impl<T: Digital + Default, N: BitWidth> SynchronousIO for SyncFIFO<T, N> {
 
 #[kernel]
 /// The compute kernel for the [SyncFIFO]
-pub fn fifo_kernel<T: Digital + Default, N: BitWidth>(
+pub fn fifo_kernel<T: Digital, N: BitWidth>(
     _cr: ClockReset,
     i: In<T>,
     q: Q<T, N>,
@@ -157,10 +167,7 @@ mod tests {
     fn test_seq() -> impl Iterator<Item = TimedSample<(ClockReset, In<Bits<U8>>)>> {
         let write_seq = (0..7).map(|i| write(bits(i + 1)));
         let read_seq = (0..7).map(|_| read());
-        write_seq
-            .chain(read_seq)
-            .with_reset(1)
-            .clock_pos_edge(100)
+        write_seq.chain(read_seq).with_reset(1).clock_pos_edge(100)
     }
 
     #[test]

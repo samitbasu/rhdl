@@ -4,6 +4,7 @@ fn update((a, b): (u8, u8)) -> (u8, u8) {
     #[forbid(unreachable_patterns)]
     #[allow(clippy::manual_map)]
     #[allow(clippy::redundant_pattern_matching)]
+    #[allow(clippy::manual_memcpy)]
     #[forbid(path_statements)]
     #[forbid(unused_variables)]
     fn inner((a, b): (u8, u8)) -> (u8, u8) {
@@ -15,6 +16,7 @@ fn update((a, b): (u8, u8)) -> (u8, u8) {
     ret
 }
 #[allow(non_camel_case_types)]
+#[doc(hidden)]
 struct update {}
 impl rhdl::core::digital_fn::DigitalFn1 for update {
     type A0 = (u8, u8);

@@ -65,15 +65,15 @@ use crate::core::{dff::DFF, option::unpack};
 /// output type.  The provided combinatorial function
 /// performs the mapping.  It must have a signature of
 /// `fn(T) -> Option<S>`.
-pub struct FilterMap<T: Digital + Default, S: Digital + Default> {
+pub struct FilterMap<T: Digital, S: Digital> {
     input: DFF<Option<T>>,
     func: Func<T, Option<S>>,
 }
 
 impl<T, S> FilterMap<T, S>
 where
-    T: Digital + Default,
-    S: Digital + Default,
+    T: Digital,
+    S: Digital,
 {
     /// Construct a Filter Map Stream
     ///
@@ -101,8 +101,8 @@ pub type Out<S> = Option<S>;
 
 impl<T, S> SynchronousIO for FilterMap<T, S>
 where
-    T: Digital + Default,
-    S: Digital + Default,
+    T: Digital,
+    S: Digital,
 {
     type I = In<T>;
     type O = Out<S>;
@@ -113,14 +113,17 @@ where
 #[doc(hidden)]
 pub fn kernel<T, S>(_cr: ClockReset, i: In<T>, q: Q<T, S>) -> (Out<S>, D<T, S>)
 where
-    T: Digital + Default,
-    S: Digital + Default,
+    T: Digital,
+    S: Digital,
 {
     let mut d = D::<T, S>::dont_care();
     d.input = i;
-    let (tag, data) = unpack::<T>(q.input);
-    d.func = data;
-    let o = if !tag { None } else { q.func };
+    d.func = T::dont_care();
+    let mut o = None;
+    if let Some(data) = q.input {
+        d.func = data;
+        o = q.func;
+    }
     (o, d)
 }
 

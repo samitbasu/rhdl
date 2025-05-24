@@ -22,7 +22,7 @@ impl SynchronousIO for TestFixture {
 #[kernel]
 pub fn kernel(_cr: ClockReset, _i: (), q: Q) -> ((), D) {
     let mut d = D::dont_care();
-    let (valid, data) = unpack::<b8>(q.source);
+    let (valid, data) = unpack::<b8>(q.source, bits(0));
     d.axi_2_rhdl.tdata = data;
     d.axi_2_rhdl.tvalid = valid;
     d.sink = q.axi_2_rhdl.data;

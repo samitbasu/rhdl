@@ -112,7 +112,7 @@ use crate::core::dff;
 /// `T` is the type of the data flowing through
 /// the buffer.
 ///
-pub struct Carloni<T: Digital + Default> {
+pub struct Carloni<T: Digital> {
     // The main FF
     main_ff: dff::DFF<T>,
     // The aux FF
@@ -131,11 +131,22 @@ pub enum State {
     Stall,
 }
 
-impl<T: Digital + Default> Default for Carloni<T> {
+impl<T: Digital> Default for Carloni<T> {
     fn default() -> Self {
         Self {
-            main_ff: dff::DFF::new(T::default()),
-            aux_ff: dff::DFF::new(T::default()),
+            main_ff: dff::DFF::new(T::dont_care()),
+            aux_ff: dff::DFF::new(T::dont_care()),
+            void_ff: dff::DFF::new(true),
+            state_ff: dff::DFF::new(State::Run),
+        }
+    }
+}
+
+impl<T: Digital> Carloni<T> {
+    fn new_with_reset_value(value: T) -> Self {
+        Self {
+            main_ff: dff::DFF::new(value),
+            aux_ff: dff::DFF::new(value),
             void_ff: dff::DFF::new(true),
             state_ff: dff::DFF::new(State::Run),
         }
@@ -164,7 +175,7 @@ pub struct Out<T: Digital> {
     pub stop_out: bool,
 }
 
-impl<T: Digital + Default> SynchronousIO for Carloni<T> {
+impl<T: Digital> SynchronousIO for Carloni<T> {
     type I = In<T>;
     type O = Out<T>;
     type Kernel = carloni_kernel<T>;
@@ -172,7 +183,7 @@ impl<T: Digital + Default> SynchronousIO for Carloni<T> {
 
 #[kernel]
 #[doc(hidden)]
-pub fn carloni_kernel<T: Digital + Default>(cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
+pub fn carloni_kernel<T: Digital>(cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
     let mut d = D::<T>::dont_care();
     let mut o = Out::<T>::dont_care();
     // There are 4 control signals

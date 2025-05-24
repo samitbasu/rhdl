@@ -68,13 +68,21 @@ use rhdl::prelude::*;
 
 use crate::{core::option::pack, lid::carloni::Carloni, stream::StreamIO};
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 /// Option-based Carloni buffer core
 ///
 /// Here `T` is the data type being transported through
 /// the buffer.
-pub struct StreamBuffer<T: Digital + Default> {
+pub struct StreamBuffer<T: Digital> {
     inner: Carloni<T>,
+}
+
+impl<T: Digital> Default for StreamBuffer<T> {
+    fn default() -> Self {
+        Self {
+            inner: Carloni::default(),
+        }
+    }
 }
 
 /// Inputs to the [StreamBuffer] buffer core
@@ -83,7 +91,7 @@ pub type In<T> = StreamIO<T>;
 /// Outputs from the [StreamBuffer] buffer core
 pub type Out<T> = StreamIO<T>;
 
-impl<T: Digital + Default> SynchronousIO for StreamBuffer<T> {
+impl<T: Digital> SynchronousIO for StreamBuffer<T> {
     type I = In<T>;
     type O = Out<T>;
     type Kernel = option_carloni_kernel<T>;
@@ -91,15 +99,11 @@ impl<T: Digital + Default> SynchronousIO for StreamBuffer<T> {
 
 #[kernel]
 #[doc(hidden)]
-pub fn option_carloni_kernel<T: Digital + Default>(
-    _cr: ClockReset,
-    i: In<T>,
-    q: Q<T>,
-) -> (Out<T>, D<T>) {
+pub fn option_carloni_kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
     let mut d = D::<T>::dont_care();
     let (data_valid, data) = match i.data {
         Some(data) => (true, data),
-        None => (false, T::default()),
+        None => (false, T::dont_care()),
     };
     d.inner.data_in = data;
     d.inner.void_in = !data_valid;

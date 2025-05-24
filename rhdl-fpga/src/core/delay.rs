@@ -57,7 +57,15 @@ pub struct Delay<T: Digital, const N: usize> {
 impl<T: Digital + Default, const N: usize> Default for Delay<T, N> {
     fn default() -> Self {
         Self {
-            dffs: array_init::array_init(|_| dff::DFF::new(T::default())),
+            dffs: core::array::from_fn(|_| dff::DFF::new(T::default())),
+        }
+    }
+}
+
+impl<T: Digital, const N: usize> Delay<T, N> {
+    pub fn new_with_init(init: T) -> Self {
+        Self {
+            dffs: core::array::from_fn(|_| dff::DFF::new(init)),
         }
     }
 }

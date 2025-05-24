@@ -60,7 +60,10 @@ out               [d0..d3]         [d4..d7]
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use crate::core::{dff::DFF, option::unpack};
+use crate::core::{
+    dff::DFF,
+    option::{is_some, unpack},
+};
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ)]
 /// The Chunked Pipe Core
@@ -69,28 +72,20 @@ use crate::core::{dff::DFF, option::unpack};
 /// a pipeline of `[T; N]`, assembling the array in
 /// index order, so that `t0, t1, t2, ...` are
 /// packed such that `out[0] = t0`, etc.
-pub struct Chunked<M: BitWidth, T: Digital, const N: usize>
-where
-    [T; N]: Default,
-    T: Default,
-{
+pub struct Chunked<M: BitWidth, T: Digital, const N: usize> {
     input: DFF<Option<T>>,
     delay_line: [DFF<T>; N],
     count: DFF<Bits<M>>,
     valid: DFF<bool>,
 }
 
-impl<M: BitWidth, T: Digital, const N: usize> Default for Chunked<M, T, N>
-where
-    [T; N]: Default,
-    T: Default,
-{
+impl<M: BitWidth, T: Digital, const N: usize> Default for Chunked<M, T, N> {
     fn default() -> Self {
         assert!(N > 1, "Can only chunk streams with N > 1");
         assert!((1 << M::BITS) >= N, "Expect that the bitwidth of the counter is sufficiently large to express values up to N");
         Self {
             input: DFF::new(None),
-            delay_line: core::array::from_fn(|_| DFF::default()),
+            delay_line: core::array::from_fn(|_| DFF::new(T::dont_care())),
             count: DFF::new(bits(0)),
             valid: DFF::new(false),
         }
@@ -103,11 +98,7 @@ pub type In<T> = Option<T>;
 /// Outputs for the [Chunked] Pipe
 pub type Out<T, const N: usize> = Option<[T; N]>;
 
-impl<M: BitWidth, T: Digital, const N: usize> SynchronousIO for Chunked<M, T, N>
-where
-    [T; N]: Default,
-    T: Default,
-{
+impl<M: BitWidth, T: Digital, const N: usize> SynchronousIO for Chunked<M, T, N> {
     type I = In<T>;
     type O = Out<T, N>;
     type Kernel = kernel<M, T, N>;
@@ -115,20 +106,15 @@ where
 
 #[kernel]
 #[doc(hidden)]
-pub fn kernel<M: BitWidth, T, const N: usize>(
+pub fn kernel<M: BitWidth, T: Digital, const N: usize>(
     _cr: ClockReset,
     i: In<T>,
     q: Q<M, T, N>,
-) -> (Out<T, N>, D<M, T, N>)
-where
-    [T; N]: Default,
-    T: Default + Digital,
-{
+) -> (Out<T, N>, D<M, T, N>) {
     let n_minus_1 = bits::<M>(N as u128 - 1);
     let mut d = D::<M, T, N>::dont_care();
     d.input = i;
-    let (in_some, idata) = unpack::<T>(q.input);
-    let run = in_some;
+    let run = is_some::<T>(q.input);
     d.count = q.count;
     d.valid = false;
     if run {
@@ -141,7 +127,9 @@ where
     }
     // Implement the delay line
     if run {
-        d.delay_line[0] = idata;
+        if let Some(idata) = q.input {
+            d.delay_line[0] = idata;
+        }
     } else {
         d.delay_line[0] = q.delay_line[0];
     }

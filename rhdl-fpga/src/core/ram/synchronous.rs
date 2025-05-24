@@ -80,9 +80,17 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 /// for both the read and write interfaces, and since the clock and reset
 /// lines are implied with Synchronous circuits, they do not appear in the
 /// interface.
-#[derive(PartialEq, Debug, Clone, Default)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct SyncBRAM<T: Digital, N: BitWidth> {
     initial: BTreeMap<Bits<N>, T>,
+}
+
+impl<T: Digital, N: BitWidth> Default for SyncBRAM<T, N> {
+    fn default() -> Self {
+        Self {
+            initial: BTreeMap::default(),
+        }
+    }
 }
 
 impl<T: Digital, N: BitWidth> SyncBRAM<T, N> {

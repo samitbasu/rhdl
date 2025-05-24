@@ -1,13 +1,13 @@
 //
 module top(input wire [18:0] arg_0, output reg [7:0] out);
-    reg [0:0] node_211;  // 0
-    reg [0:0] node_212;  // 0
-    reg [0:0] node_213;  // 0
-    reg [0:0] node_214;  // 0
-    reg [0:0] node_215;  // 0
-    reg [0:0] node_216;  // 0
-    reg [0:0] node_217;  // 0
-    reg [0:0] node_218;  // 0
+    reg [0:0] node_211;  // x
+    reg [0:0] node_212;  // x
+    reg [0:0] node_213;  // x
+    reg [0:0] node_214;  // x
+    reg [0:0] node_215;  // x
+    reg [0:0] node_216;  // x
+    reg [0:0] node_217;  // x
+    reg [0:0] node_218;  // x
     reg [0:0] node_248;  // 0
     reg [0:0] node_249;  // 0
     reg [0:0] node_250;  // 0
@@ -121,7 +121,7 @@ module top(input wire [18:0] arg_0, output reg [7:0] out);
         //         w.enable = true;
         //         w.addr = addr;
         //     } else {
-        //         w.data = T::default();
+        //         w.data = T::dont_care();
         //         w.enable = false;
         //         w.addr = bits(0);
         //     }
@@ -134,7 +134,7 @@ module top(input wire [18:0] arg_0, output reg [7:0] out);
         //         w.enable = true;
         //         w.addr = addr;
         //     } else {
-        //         w.data = T::default();
+        //         w.data = T::dont_care();
         //         w.enable = false;
         //         w.addr = bits(0);
         //     }
@@ -147,7 +147,7 @@ module top(input wire [18:0] arg_0, output reg [7:0] out);
         //         w.enable = true;
         //         w.addr = addr;
         //     } else {
-        //         w.data = T::default();
+        //         w.data = T::dont_care();
         //         w.enable = false;
         //         w.addr = bits(0);
         //     }
@@ -160,111 +160,111 @@ module top(input wire [18:0] arg_0, output reg [7:0] out);
         //         w.enable = true;
         //         w.addr = addr;
         //     } else {
-        //         w.data = T::default();
+        //         w.data = T::dont_care();
         //         w.enable = false;
         //         w.addr = bits(0);
         //     }
         node_266 = (node_390) ? (node_378) : (node_248);
         node_458 = node_266;
-        // w.data = T::default()
-        node_218 = 1'b0;
+        // w.data = T::dont_care()
+        node_218 = 1'bx;
         // if let Some((addr, data)) = i_val.data {
         //         w.data = data;
         //         w.enable = true;
         //         w.addr = addr;
         //     } else {
-        //         w.data = T::default();
+        //         w.data = T::dont_care();
         //         w.enable = false;
         //         w.addr = bits(0);
         //     }
         node_277 = (node_390) ? (node_389) : (node_218);
         node_469 = node_277;
-        // w.data = T::default()
-        node_217 = 1'b0;
+        // w.data = T::dont_care()
+        node_217 = 1'bx;
         // if let Some((addr, data)) = i_val.data {
         //         w.data = data;
         //         w.enable = true;
         //         w.addr = addr;
         //     } else {
-        //         w.data = T::default();
+        //         w.data = T::dont_care();
         //         w.enable = false;
         //         w.addr = bits(0);
         //     }
         node_276 = (node_390) ? (node_388) : (node_217);
         node_468 = node_276;
-        // w.data = T::default()
-        node_216 = 1'b0;
+        // w.data = T::dont_care()
+        node_216 = 1'bx;
         // if let Some((addr, data)) = i_val.data {
         //         w.data = data;
         //         w.enable = true;
         //         w.addr = addr;
         //     } else {
-        //         w.data = T::default();
+        //         w.data = T::dont_care();
         //         w.enable = false;
         //         w.addr = bits(0);
         //     }
         node_275 = (node_390) ? (node_387) : (node_216);
         node_467 = node_275;
-        // w.data = T::default()
-        node_215 = 1'b0;
+        // w.data = T::dont_care()
+        node_215 = 1'bx;
         // if let Some((addr, data)) = i_val.data {
         //         w.data = data;
         //         w.enable = true;
         //         w.addr = addr;
         //     } else {
-        //         w.data = T::default();
+        //         w.data = T::dont_care();
         //         w.enable = false;
         //         w.addr = bits(0);
         //     }
         node_274 = (node_390) ? (node_386) : (node_215);
         node_466 = node_274;
-        // w.data = T::default()
-        node_214 = 1'b0;
+        // w.data = T::dont_care()
+        node_214 = 1'bx;
         // if let Some((addr, data)) = i_val.data {
         //         w.data = data;
         //         w.enable = true;
         //         w.addr = addr;
         //     } else {
-        //         w.data = T::default();
+        //         w.data = T::dont_care();
         //         w.enable = false;
         //         w.addr = bits(0);
         //     }
         node_273 = (node_390) ? (node_385) : (node_214);
         node_465 = node_273;
-        // w.data = T::default()
-        node_213 = 1'b0;
+        // w.data = T::dont_care()
+        node_213 = 1'bx;
         // if let Some((addr, data)) = i_val.data {
         //         w.data = data;
         //         w.enable = true;
         //         w.addr = addr;
         //     } else {
-        //         w.data = T::default();
+        //         w.data = T::dont_care();
         //         w.enable = false;
         //         w.addr = bits(0);
         //     }
         node_272 = (node_390) ? (node_384) : (node_213);
         node_464 = node_272;
-        // w.data = T::default()
-        node_212 = 1'b0;
+        // w.data = T::dont_care()
+        node_212 = 1'bx;
         // if let Some((addr, data)) = i_val.data {
         //         w.data = data;
         //         w.enable = true;
         //         w.addr = addr;
         //     } else {
-        //         w.data = T::default();
+        //         w.data = T::dont_care();
         //         w.enable = false;
         //         w.addr = bits(0);
         //     }
         node_271 = (node_390) ? (node_383) : (node_212);
         node_463 = node_271;
-        // w.data = T::default()
-        node_211 = 1'b0;
+        // w.data = T::dont_care()
+        node_211 = 1'bx;
         // if let Some((addr, data)) = i_val.data {
         //         w.data = data;
         //         w.enable = true;
         //         w.addr = addr;
         //     } else {
-        //         w.data = T::default();
+        //         w.data = T::dont_care();
         //         w.enable = false;
         //         w.addr = bits(0);
         //     }

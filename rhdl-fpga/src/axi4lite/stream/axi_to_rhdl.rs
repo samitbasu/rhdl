@@ -68,7 +68,7 @@ use crate::{core::option::pack, lid::carloni::Carloni};
 /// being transported on the stream.  Note that this
 /// core is purely combinatorial, and does not register
 /// the inputs or outputs.
-pub struct Axi2Rhdl<T: Digital + Default> {
+pub struct Axi2Rhdl<T: Digital> {
     inbuf: Carloni<T>,
 }
 
@@ -92,7 +92,7 @@ pub struct Out<T: Digital> {
     pub tready: bool,
 }
 
-impl<T: Digital + Default> SynchronousIO for Axi2Rhdl<T> {
+impl<T: Digital> SynchronousIO for Axi2Rhdl<T> {
     type I = In<T>;
     type O = Out<T>;
     type Kernel = kernel<T>;
@@ -100,7 +100,7 @@ impl<T: Digital + Default> SynchronousIO for Axi2Rhdl<T> {
 
 #[kernel]
 #[doc(hidden)]
-pub fn kernel<T: Digital + Default>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
+pub fn kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
     let mut d = D::<T>::dont_care();
     d.inbuf.data_in = i.tdata;
     d.inbuf.void_in = !i.tvalid;
@@ -147,7 +147,7 @@ mod tests {
     #[kernel]
     pub fn kernel(_cr: ClockReset, _i: (), q: Q) -> ((), D) {
         let mut d = D::dont_care();
-        let (valid, data) = unpack::<b8>(q.source);
+        let (valid, data) = unpack::<b8>(q.source, bits(0));
         d.axi_2_rhdl.tdata = data;
         d.axi_2_rhdl.tvalid = valid;
         d.sink = q.axi_2_rhdl.data;

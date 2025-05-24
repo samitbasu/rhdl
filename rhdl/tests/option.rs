@@ -373,3 +373,41 @@ fn test_option_result_nested_option_result_destructure_simple() -> miette::Resul
     expect_err.assert_eq(&format!("{}", err));
     Ok(())
 }
+
+#[test]
+fn test_ok_err_variants_allowed_in_non_result() -> miette::Result<()> {
+    // Check that we can use Ok and Err without the
+    // compiler erroneously assuming its a standard Result type.
+    #[derive(PartialEq, Debug, Digital)]
+    pub enum MyResult {
+        Ok(b8),
+        AlsoOk(b8),
+        Err(b8),
+    }
+
+    impl Default for MyResult {
+        fn default() -> Self {
+            Self::Err(bits(0))
+        }
+    }
+
+    const OK_VAL: b8 = bits(10);
+    const ALSO_OK_VAL: b8 = bits(20);
+
+    #[kernel]
+    fn kernel(x: b8) -> MyResult {
+        match x {
+            OK_VAL => MyResult::Ok(OK_VAL),
+            ALSO_OK_VAL => MyResult::AlsoOk(ALSO_OK_VAL),
+            _ => MyResult::Err(x),
+        }
+    }
+
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Debug)
+        .is_test(true)
+        .init();
+
+    compile_design::<kernel>(CompilationMode::Synchronous)?;
+    Ok(())
+}
