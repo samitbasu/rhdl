@@ -74,15 +74,15 @@ use crate::core::{
 /// output type as carried by the pipe.  A provided
 /// (combinatorial) function performs the mapping
 /// function.
-pub struct Map<T: Digital + Default, S: Digital + Default> {
+pub struct Map<T: Digital, S: Digital> {
     input: DFF<Option<T>>,
     func: Func<T, S>,
 }
 
 impl<T, S> Map<T, S>
 where
-    T: Digital + Default,
-    S: Digital + Default,
+    T: Digital,
+    S: Digital,
 {
     /// Construct a Map Pipe
     ///
@@ -110,8 +110,8 @@ pub type Out<S> = Option<S>;
 
 impl<T, S> SynchronousIO for Map<T, S>
 where
-    T: Digital + Default,
-    S: Digital + Default,
+    T: Digital,
+    S: Digital,
 {
     type I = In<T>;
     type O = Out<S>;
@@ -122,14 +122,18 @@ where
 #[doc(hidden)]
 pub fn kernel<T, S>(_cr: ClockReset, i: In<T>, q: Q<T, S>) -> (Out<S>, D<T, S>)
 where
-    T: Digital + Default,
-    S: Digital + Default,
+    T: Digital,
+    S: Digital,
 {
     let mut d = D::<T, S>::dont_care();
     d.input = i;
-    let (tag, data) = unpack::<T>(q.input);
-    d.func = data;
-    let o = pack::<S>(tag, q.func);
+    d.func = T::dont_care();
+    let o = if let Some(data) = q.input {
+        d.func = data;
+        Some(q.func)
+    } else {
+        None
+    };
     (o, d)
 }
 

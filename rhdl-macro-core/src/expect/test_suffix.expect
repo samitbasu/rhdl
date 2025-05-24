@@ -4,6 +4,7 @@ fn update() {
     #[forbid(unreachable_patterns)]
     #[allow(clippy::manual_map)]
     #[allow(clippy::redundant_pattern_matching)]
+    #[allow(clippy::manual_memcpy)]
     #[forbid(path_statements)]
     #[forbid(unused_variables)]
     fn inner() {
@@ -39,6 +40,7 @@ fn update() {
     ret
 }
 #[allow(non_camel_case_types)]
+#[doc(hidden)]
 struct update {}
 impl rhdl::core::digital_fn::DigitalFn0 for update {
     type O = ();

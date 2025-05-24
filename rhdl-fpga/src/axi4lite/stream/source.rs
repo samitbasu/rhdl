@@ -10,13 +10,13 @@ use super::{StreamMISO, StreamMOSI};
 /// component is not ready, eventually the `full` signal will
 /// be set.  At this point, you cannot continue to send data.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U<T: Digital + Default> {
+pub struct U<T: Digital> {
     // We just need a sender for the data.  That's all there is to it.
     pub data: sender::U<T>,
 }
 
 #[derive(PartialEq, Debug, Digital)]
-pub struct I<T: Digital + Default> {
+pub struct I<T: Digital> {
     /// The ready signal from the downstream component
     pub axi: StreamMISO,
     /// The data to be sent
@@ -24,21 +24,21 @@ pub struct I<T: Digital + Default> {
 }
 
 #[derive(PartialEq, Debug, Digital)]
-pub struct O<T: Digital + Default> {
+pub struct O<T: Digital> {
     /// The data signal to the downstream component
     pub axi: StreamMOSI<T>,
     /// The write-pipeline is full.  Do not write
     pub full: bool,
 }
 
-impl<T: Digital + Default> SynchronousIO for U<T> {
+impl<T: Digital> SynchronousIO for U<T> {
     type I = I<T>;
     type O = O<T>;
     type Kernel = kernel<T>;
 }
 
 #[kernel]
-pub fn kernel<T: Digital + Default>(_cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
+pub fn kernel<T: Digital>(_cr: ClockReset, i: I<T>, q: Q<T>) -> (O<T>, D<T>) {
     let mut d = D::<T>::dont_care();
     let mut o = O::<T>::dont_care();
     // Wire up the data channel

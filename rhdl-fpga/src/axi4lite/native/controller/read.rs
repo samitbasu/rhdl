@@ -2,7 +2,7 @@
 //!
 //!# Purpose
 //!
-//! This core provides a way to build am AXI controller using a
+//! This core provides a way to build an AXI read controller using a
 //! pair of RHDL streams.  One is a stream for addresses to read
 //! from the AXI bus.  The other is a stream of responses from
 //! the bus back to the controller.  Each request must generate
@@ -13,13 +13,13 @@
 //!# Schematic Symbol
 //!
 //! Here is the symbol for the core.  The core will sink a stream
-//! of addresses (which are `b32`) and source a stream of
+//! of addresses (which are [AxilAddr]) and source a stream of
 //! [ReadResult].
 //!
 #![doc = badascii_formal!(r"
            ++ReadController++          
            |  sink          | araddr   
-   ?b32    |                +--------->
+ ?AxilAddr |                +--------->
  +-------->| req.data       | arvalid  
            |                +--------->
 <----------+ req.ready      | arready  
@@ -44,7 +44,7 @@
 #![doc = badascii!(r"
 +-+From Core+-->                                                   
                      +-+Strm2AXI+---+ araddr                       
-              ?b32   |              +---------->                   
+            AxilAddr |              +---------->                   
             +------->|              | arvalid                      
              ready   |    inbuf     +---------->                   
             <--------+              | arready                      
@@ -65,12 +65,52 @@
 //! inputs (outputs) so as to be spec compliant (i.e., no
 //! combinatorial logic on the bus is allowed in AXI).
 //!
+//!# Example
+//!
+//! An example of using a [ReadController] and [ReadEndpoint]
+//! together in a test harness is included here:
+//!
+#![doc = badascii!(r"
+
+                      ++ReadController++                  ++ReadEndpoint++      +ReqSink+       
++ReqSource+           |  sink          | araddr    araddr |      source  |?Axil |       |       
+|         | ?AxilAddr |                +--------->------->|              | Addr |       |       
+|         +---------->| req.data       | arvalid  arvalid |    req.data  +----->|       |       
+|         |           |                +--------->------->|              |      |       |       
+|         |<----------+ req.ready      | arready  arready |    req.ready |<----+|       |       
+|         |           |                |<--------+--------+              |      +-------+       
++---------+           |  - - - - - -   |                  |  - - - - - - |                      
+                      |                | rdata    rdata   |              |                      
+                      |                |<--------+--------+              |                      
+                      |  source        | rresp    rresp   |      sink    |            +ReplySrc+
++ReplySink+?ReadResult|                |<--------+--------+              | ?ReadResult|        |
+|         |<----------+ resp.data      | rvalid   rvalid  |   resp.data  |<-----------+        |
+|         |           |                |<--------+--------+              |            |        |
+|         +---------->| resp.ready     | rready   rready  |   resp.ready +----------->|        |
++---------+           |                +--------->------->+              |            +--------+
+                      +----------------+                  +--------------+                      
+")]
+//!
+//! Non-synthesizable functions are used to generate the request addresses and the
+//! replies for demonstration purposes.
+//!
+//!```
+#![doc = include_str!("../../../../examples/axi_read.rs")]
+//!```
+//!
+//! with a trace file
+//!
+#![doc = include_str!("../../../../doc/axi_read.md")]
+
 use badascii_doc::{badascii, badascii_formal};
 
 use crate::{
     axi4lite::{
         stream::{axi_to_rhdl::Axi2Rhdl, rhdl_to_axi::Rhdl2Axi},
-        types::{response_codes, AXI4Error, ReadMISO, ReadMOSI, ReadResponse, ReadResult},
+        types::{
+            response_codes, AXI4Error, AxilAddr, ExFlag, ReadMISO, ReadMOSI, ReadResponse,
+            ReadResult,
+        },
     },
     stream::map::Map,
 };
@@ -84,7 +124,7 @@ use rhdl::prelude::*;
 /// converts the resulting stream of read responses into
 /// a source stream of [ReadResult].
 pub struct ReadController {
-    inbuf: Rhdl2Axi<b32>,
+    inbuf: Rhdl2Axi<AxilAddr>,
     map: Map<ReadResponse, ReadResult>,
     outbuf: Axi2Rhdl<ReadResponse>,
 }
@@ -103,8 +143,8 @@ impl Default for ReadController {
 #[doc(hidden)]
 pub fn map_result(_cr: ClockReset, resp: ReadResponse) -> ReadResult {
     match resp.resp {
-        response_codes::OKAY => ReadResult::Ok(resp.data),
-        response_codes::EXOKAY => ReadResult::ExOk(resp.data),
+        response_codes::OKAY => ReadResult::Ok((ExFlag::Normal, resp.data)),
+        response_codes::EXOKAY => ReadResult::Ok((ExFlag::Exclusive, resp.data)),
         response_codes::DECERR => ReadResult::Err(AXI4Error::DECERR),
         response_codes::SLVERR => ReadResult::Err(AXI4Error::SLVERR),
         _ => ReadResult::Err(AXI4Error::DECERR),
@@ -117,7 +157,7 @@ pub struct In {
     /// AXI signals from bus
     pub axi: ReadMISO,
     /// Request data stream
-    pub req_data: Option<b32>,
+    pub req_data: Option<AxilAddr>,
     /// Response ready signal
     pub resp_ready: bool,
 }
@@ -136,7 +176,7 @@ pub struct Out {
 impl SynchronousIO for ReadController {
     type I = In;
     type O = Out;
-    type Kernel = NoKernel3<ClockReset, In, Q, (Out, D)>;
+    type Kernel = kernel;
 }
 
 #[kernel]
@@ -164,4 +204,22 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
     o.axi.arvalid = q.inbuf.tvalid;
     o.axi.rready = q.outbuf.tready;
     (o, d)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn no_combinatorial_paths() -> miette::Result<()> {
+        let uut = ReadController::default();
+        drc::no_combinatorial_paths(&uut)?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_compile() -> miette::Result<()> {
+        compile_design::<map_result>(CompilationMode::Synchronous)?;
+        Ok(())
+    }
 }

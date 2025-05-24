@@ -64,7 +64,7 @@ use crate::{core::option::unpack, lid::carloni::Carloni};
 /// an AXI Stream.  The type `T` is the data type being transported
 /// on the stream.  Note that this core is purely combinatorial, and
 /// does not register the inputs or outputs.
-pub struct Rhdl2Axi<T: Digital + Default> {
+pub struct Rhdl2Axi<T: Digital> {
     outbuf: Carloni<T>,
 }
 
@@ -88,7 +88,7 @@ pub struct Out<T: Digital> {
     pub ready: bool,
 }
 
-impl<T: Digital + Default> SynchronousIO for Rhdl2Axi<T> {
+impl<T: Digital> SynchronousIO for Rhdl2Axi<T> {
     type I = In<T>;
     type O = Out<T>;
     type Kernel = kernel<T>;
@@ -96,8 +96,8 @@ impl<T: Digital + Default> SynchronousIO for Rhdl2Axi<T> {
 
 #[kernel]
 #[doc(hidden)]
-pub fn kernel<T: Digital + Default>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
-    let (tvalid, tdata) = unpack::<T>(i.data);
+pub fn kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
+    let (tvalid, tdata) = unpack::<T>(i.data, T::dont_care());
     let mut d = D::<T>::dont_care();
     let mut o = Out::<T>::dont_care();
     d.outbuf.data_in = tdata;

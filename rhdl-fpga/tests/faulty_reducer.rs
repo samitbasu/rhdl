@@ -71,7 +71,7 @@ pub fn kernel<DW: BitWidth, DN: BitWidth>(
     // Latch prevention
     d.state = q.state;
     d.data_store = q.data_store;
-    let (in_valid, in_data) = unpack::<Bits<DW>>(i.data);
+    let (in_valid, in_data) = unpack::<Bits<DW>>(i.data, bits(0));
     let stop_in = !i.ready;
     match q.state {
         State::Empty => {

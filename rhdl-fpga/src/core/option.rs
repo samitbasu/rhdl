@@ -7,10 +7,11 @@ use rhdl::prelude::*;
 #[kernel]
 /// Unpacks an [Option<T>] into a tag (or valid flag)
 /// of `bool`, and the underlying `T`.  Requires that
-/// `T: Default` which is returned for a `None` variant.
-pub fn unpack<T: Digital + Default>(opt: Option<T>) -> (bool, T) {
+/// you provide a value for `T` that is returned for
+/// the `None` variant.
+pub fn unpack<T: Digital>(opt: Option<T>, fallback: T) -> (bool, T) {
     match opt {
-        None => (false, T::default()),
+        None => (false, fallback),
         Some(t) => (true, t),
     }
 }

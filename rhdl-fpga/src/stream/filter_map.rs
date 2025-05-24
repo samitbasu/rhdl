@@ -75,15 +75,15 @@ use super::{stream_buffer::StreamBuffer, StreamIO};
 /// output type.  A provided (combinatorial) function
 /// performs the mapping function.  It must have a
 /// signature of `fn(T) -> Option<S>`.
-pub struct FilterMap<T: Digital + Default, S: Digital + Default> {
+pub struct FilterMap<T: Digital, S: Digital> {
     input_buffer: StreamBuffer<T>,
     func: Func<T, Option<S>>,
 }
 
 impl<T, S> FilterMap<T, S>
 where
-    T: Digital + Default,
-    S: Digital + Default,
+    T: Digital,
+    S: Digital,
 {
     /// Construct a Filter Map Stream
     ///
@@ -111,8 +111,8 @@ pub type Out<S> = StreamIO<S>;
 
 impl<T, S> SynchronousIO for FilterMap<T, S>
 where
-    T: Digital + Default,
-    S: Digital + Default,
+    T: Digital,
+    S: Digital,
 {
     type I = In<T>;
     type O = Out<S>;
@@ -123,13 +123,17 @@ where
 #[doc(hidden)]
 pub fn kernel<T, S>(_cr: ClockReset, i: In<T>, q: Q<T, S>) -> (Out<S>, D<T, S>)
 where
-    T: Digital + Default,
-    S: Digital + Default,
+    T: Digital,
+    S: Digital,
 {
     let mut d = D::<T, S>::dont_care();
     d.input_buffer.data = i.data;
-    let (tag, data) = unpack::<T>(q.input_buffer.data);
-    d.func = data;
+    d.func = T::dont_care();
+    let mut tag = false;
+    if let Some(data) = q.input_buffer.data {
+        d.func = data;
+        tag = true;
+    }
     d.input_buffer.ready = i.ready;
     let o = Out::<S> {
         data: if !tag { None } else { q.func },

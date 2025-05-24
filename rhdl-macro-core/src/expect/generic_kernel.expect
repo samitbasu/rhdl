@@ -4,6 +4,7 @@ fn update<T: Digital>(a: T, b: T) -> [T; 2] {
     #[forbid(unreachable_patterns)]
     #[allow(clippy::manual_map)]
     #[allow(clippy::redundant_pattern_matching)]
+    #[allow(clippy::manual_memcpy)]
     #[forbid(path_statements)]
     #[forbid(unused_variables)]
     fn inner<T: Digital>(a: T, b: T) -> [T; 2] {
@@ -15,6 +16,7 @@ fn update<T: Digital>(a: T, b: T) -> [T; 2] {
     ret
 }
 #[allow(non_camel_case_types)]
+#[doc(hidden)]
 struct update<T: Digital> {
     __phantom_0: std::marker::PhantomData<T>,
 }

@@ -87,7 +87,7 @@
 #![doc = include_str!("../../doc/flatten.md")]
 //!
 use crate::{
-    core::{dff, option::unpack},
+    core::{dff, option::is_some},
     stream::{fifo_to_stream::FIFOToStream, stream_to_fifo::StreamToFIFO},
 };
 
@@ -110,11 +110,7 @@ pub enum State {
 /// This core takes a stream of `[T; N]`, and produces
 /// a stream of `T`, reading out the input stream in
 /// index order (`0, 1, 2..`).  
-pub struct Flatten<M: BitWidth, T: Digital, const N: usize>
-where
-    [T; N]: Default,
-    T: Default,
-{
+pub struct Flatten<M: BitWidth, T: Digital, const N: usize> {
     input_buffer: StreamToFIFO<[T; N]>,
     delay: [dff::DFF<T>; N],
     count: dff::DFF<Bits<M>>,
@@ -122,15 +118,11 @@ where
     state: dff::DFF<State>,
 }
 
-impl<M: BitWidth, T: Digital, const N: usize> Default for Flatten<M, T, N>
-where
-    [T; N]: Default,
-    T: Default,
-{
+impl<M: BitWidth, T: Digital, const N: usize> Default for Flatten<M, T, N> {
     fn default() -> Self {
         assert!((1 << M::BITS) >= N, "Expect that the bitwidth of the counter is sufficient to count the elements in the array.  I.e., (1 << M) >= N");
         Self {
-            delay: core::array::from_fn(|_| dff::DFF::default()),
+            delay: core::array::from_fn(|_| dff::DFF::new(T::dont_care())),
             input_buffer: StreamToFIFO::default(),
             count: dff::DFF::new(bits(0)),
             output_buffer: FIFOToStream::default(),
@@ -145,11 +137,7 @@ pub type In<T, const N: usize> = StreamIO<[T; N]>;
 /// Outputs from the [FlattenPipe] core
 pub type Out<T> = StreamIO<T>;
 
-impl<M: BitWidth, T: Digital, const N: usize> SynchronousIO for Flatten<M, T, N>
-where
-    [T; N]: Default,
-    T: Default,
-{
+impl<M: BitWidth, T: Digital, const N: usize> SynchronousIO for Flatten<M, T, N> {
     type I = In<T, N>;
     type O = Out<T>;
     type Kernel = kernel<M, T, N>;
@@ -157,15 +145,11 @@ where
 
 #[kernel]
 #[doc(hidden)]
-pub fn kernel<M: BitWidth, T, const N: usize>(
+pub fn kernel<M: BitWidth, T: Digital, const N: usize>(
     _cr: ClockReset,
     i: In<T, N>,
     q: Q<M, T, N>,
-) -> (Out<T>, D<M, T, N>)
-where
-    [T; N]: Default,
-    T: Digital + Default,
-{
+) -> (Out<T>, D<M, T, N>) {
     let n_minus_1 = bits::<M>(N as u128 - 1);
     let mut d = D::<M, T, N>::dont_care();
     // Connect the input buffer to the input data stream
@@ -182,7 +166,7 @@ where
     d.count = q.count;
     d.state = q.state;
     let out_full = q.output_buffer.full;
-    let (in_some, idata) = unpack::<[T; N]>(q.input_buffer.data);
+    let in_some = is_some::<[T; N]>(q.input_buffer.data);
     // Update the state and compute transition actions
     match q.state {
         State::Loading => {
@@ -227,9 +211,11 @@ where
         }
     }
     if load_line {
-        // Reload the delay line from the input buffer
-        for i in 0..N {
-            d.delay[i] = idata[i]
+        if let Some(idata) = q.input_buffer.data {
+            // Reload the delay line from the input buffer
+            for i in 0..N {
+                d.delay[i] = idata[i]
+            }
         }
     }
     // Use the write flag to strobe data into the output FIFO

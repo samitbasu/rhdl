@@ -74,15 +74,15 @@ use super::{stream_buffer::StreamBuffer, StreamIO};
 /// Here `T` is the input type, and `S` is the
 /// output type.  A provided (combinatorial) function
 /// performs the mapping function.
-pub struct Map<T: Digital + Default, S: Digital + Default> {
+pub struct Map<T: Digital, S: Digital> {
     input_buffer: StreamBuffer<T>,
     func: Func<T, S>,
 }
 
 impl<T, S> Map<T, S>
 where
-    T: Digital + Default,
-    S: Digital + Default,
+    T: Digital,
+    S: Digital,
 {
     /// Construct a Map Stream
     ///
@@ -110,8 +110,8 @@ pub type Out<S> = StreamIO<S>;
 
 impl<T, S> SynchronousIO for Map<T, S>
 where
-    T: Digital + Default,
-    S: Digital + Default,
+    T: Digital,
+    S: Digital,
 {
     type I = In<T>;
     type O = Out<S>;
@@ -122,16 +122,21 @@ where
 #[doc(hidden)]
 pub fn kernel<T, S>(_cr: ClockReset, i: In<T>, q: Q<T, S>) -> (Out<S>, D<T, S>)
 where
-    T: Digital + Default,
-    S: Digital + Default,
+    T: Digital,
+    S: Digital,
 {
     let mut d = D::<T, S>::dont_care();
     d.input_buffer.data = i.data;
-    let (tag, data) = unpack::<T>(q.input_buffer.data);
-    d.func = data;
     d.input_buffer.ready = i.ready;
+    let o_data = if let Some(data) = q.input_buffer.data {
+        d.func = data;
+        Some(q.func)
+    } else {
+        d.func = T::dont_care();
+        None
+    };
     let o = Out::<S> {
-        data: pack::<S>(tag, q.func),
+        data: o_data,
         ready: q.input_buffer.ready,
     };
     (o, d)

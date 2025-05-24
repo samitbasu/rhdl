@@ -76,7 +76,7 @@ use crate::{
 ///
 /// This core takes a single stream of type `(S,T)`, and connects to
 /// two outgoing streams of type `S` and `T`.
-pub struct Tee<S: Digital + Default, T: Digital + Default> {
+pub struct Tee<S: Digital, T: Digital> {
     in_buffer: StreamToFIFO<(S, T)>,
     s_buffer: FIFOToStream<S>,
     t_buffer: FIFOToStream<T>,
@@ -104,7 +104,7 @@ pub struct Out<S: Digital, T: Digital> {
     pub ready: bool,
 }
 
-impl<S: Digital + Default, T: Digital + Default> SynchronousIO for Tee<S, T> {
+impl<S: Digital, T: Digital> SynchronousIO for Tee<S, T> {
     type I = In<S, T>;
     type O = Out<S, T>;
     type Kernel = kernel<S, T>;
@@ -112,20 +112,26 @@ impl<S: Digital + Default, T: Digital + Default> SynchronousIO for Tee<S, T> {
 
 #[kernel]
 #[doc(hidden)]
-pub fn kernel<S: Digital + Default, T: Digital + Default>(
+pub fn kernel<S: Digital, T: Digital>(
     _cr: ClockReset,
     i: In<S, T>,
     q: Q<S, T>,
 ) -> (Out<S, T>, D<S, T>) {
     let mut d = D::<S, T>::dont_care();
-    let (tag, data) = unpack::<(S, T)>(q.in_buffer.data);
+    let mut s_val = None;
+    let mut t_val = None;
     let full = q.s_buffer.full || q.t_buffer.full;
-    let tag = tag && !full;
-    let s_val = pack::<S>(tag, data.0);
-    let t_val = pack::<T>(tag, data.1);
+    let mut next = false;
+    if !full {
+        if let Some(data) = q.in_buffer.data {
+            s_val = Some(data.0);
+            t_val = Some(data.1);
+            next = true;
+        }
+    }
     d.s_buffer.data = s_val;
     d.t_buffer.data = t_val;
-    d.in_buffer.next = tag;
+    d.in_buffer.next = next;
     d.in_buffer.data = i.data;
     d.s_buffer.ready = i.s_ready;
     d.t_buffer.ready = i.t_ready;

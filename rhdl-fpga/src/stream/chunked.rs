@@ -90,7 +90,10 @@ use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
 use crate::{
-    core::{dff, option::unpack},
+    core::{
+        dff,
+        option::{is_some, unpack},
+    },
     stream::{fifo_to_stream, stream_to_fifo},
 };
 
@@ -179,11 +182,11 @@ where
     d.count = q.count;
     d.state = q.state;
     let out_full = q.output_buffer.full;
-    let (in_some, idata) = unpack::<T>(q.input_buffer.data);
     // Update the state and compute transition actions
+    d.delay_line[0] = q.delay_line[0];
     match q.state {
         State::Loading => {
-            if in_some {
+            if let Some(idata) = q.input_buffer.data {
                 if q.count != n_minus_1 {
                     run = true;
                     d.count = q.count + 1;
@@ -191,27 +194,24 @@ where
                     run = true;
                     d.state = State::Full;
                 }
+                d.delay_line[0] = idata;
             }
         }
         State::Full => {
             if !out_full {
                 write = true;
                 d.state = State::Loading;
-                if !in_some {
-                    d.count = bits(0);
-                } else {
-                    run = true;
+                if let Some(idata) = q.input_buffer.data {
                     d.count = bits(1);
+                    d.delay_line[0] = idata;
+                    run = true;
+                } else {
+                    d.count = bits(0);
                 }
             }
         }
     }
     // Implement the delay line
-    if run {
-        d.delay_line[0] = idata;
-    } else {
-        d.delay_line[0] = q.delay_line[0];
-    }
     for i in 1..N {
         d.delay_line[i] = if run {
             q.delay_line[i - 1]

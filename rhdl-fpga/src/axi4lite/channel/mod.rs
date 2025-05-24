@@ -20,7 +20,7 @@ pub struct DataValid<T: Digital> {
     pub valid: bool,
 }
 
-impl<T: Digital + Default> Default for DataValid<T> {
+impl<T: Digital> Default for DataValid<T> {
     fn default() -> Self {
         Self {
             data: T::default(),

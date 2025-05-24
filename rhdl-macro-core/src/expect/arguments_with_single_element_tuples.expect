@@ -7,6 +7,7 @@ fn counter<const N: usize>(
     #[forbid(unreachable_patterns)]
     #[allow(clippy::manual_map)]
     #[allow(clippy::redundant_pattern_matching)]
+    #[allow(clippy::manual_memcpy)]
     #[forbid(path_statements)]
     #[forbid(unused_variables)]
     fn inner<const N: usize>(
@@ -33,6 +34,7 @@ fn counter<const N: usize>(
     ret
 }
 #[allow(non_camel_case_types)]
+#[doc(hidden)]
 struct counter<const N: usize> {}
 impl<const N: usize> rhdl::core::digital_fn::DigitalFn2 for counter<N> {
     type A0 = CounterIn<N>;

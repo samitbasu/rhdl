@@ -87,7 +87,7 @@ impl CoverageMap<'_> {
             .entry(slot)
             .or_insert_with(|| {
                 let kind = self.obj.kind(slot);
-                std::iter::repeat(false).take(kind.bits()).collect()
+                std::iter::repeat_n(false, kind.bits()).collect()
             })
             .clone()
     }
