@@ -550,7 +550,6 @@ impl<T: Digital, const N: usize> Digital for [T; N] {
 
 #[cfg(test)]
 mod test {
-    use std::iter::repeat;
 
     use super::*;
     use crate::rhdl_bits::{alias::*, consts::U3};
@@ -661,7 +660,7 @@ mod test {
                 if raw.len() < self.kind().bits() {
                     let missing = self.kind().bits() - raw.len();
                     raw.into_iter()
-                        .chain(repeat(BitX::Zero).take(missing))
+                        .chain(std::iter::repeat_n(BitX::Zero, missing))
                         .collect()
                 } else {
                     raw

@@ -51,7 +51,7 @@ fn test_trace() -> miette::Result<()> {
     std::fs::create_dir_all(&root).unwrap();
     let expect = expect!["4a38bb60748b7bf521c5f8e862822ec7f09f26244c7c34c6cdf59ff13bba1123"];
     let digest = vcd
-        .dump_to_file(&root.join("flow_graph_if_let.vcd"))
+        .dump_to_file(root.join("flow_graph_if_let.vcd"))
         .unwrap();
     expect.assert_eq(&digest);
     Ok(())

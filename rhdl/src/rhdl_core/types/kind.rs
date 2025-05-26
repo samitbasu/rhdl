@@ -1,5 +1,3 @@
-use std::iter::repeat;
-
 use internment::Intern;
 
 use crate::rhdl_core::{
@@ -225,7 +223,9 @@ impl Kind {
             panic!("Too many bits for kind!");
         }
         let pad_len = self.bits() - bits.len();
-        let bits = bits.into_iter().chain(repeat(BitX::Zero).take(pad_len));
+        let bits = bits
+            .into_iter()
+            .chain(std::iter::repeat_n(BitX::Zero, pad_len));
         match self {
             Kind::Enum(kind) => match kind.discriminant_layout.alignment {
                 DiscriminantAlignment::Lsb => bits.collect(),
@@ -323,7 +323,7 @@ impl Kind {
     // prover cannot handle the early return logic properly.
     pub fn place_holder(&self) -> TypedBits {
         TypedBits {
-            bits: repeat(BitX::Zero).take(self.bits()).collect(),
+            bits: std::iter::repeat_n(BitX::Zero, self.bits()).collect(),
             kind: *self,
         }
     }
