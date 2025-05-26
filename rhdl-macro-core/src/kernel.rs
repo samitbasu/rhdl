@@ -1,14 +1,11 @@
 use std::collections::HashSet;
 
 use inflections::Inflect;
-use proc_macro2::Punct;
 use quote::{format_ident, quote};
 use syn::{
-    parse::Parser, punctuated::Punctuated, spanned::Spanned, token::Comma, Expr, FnArg, Ident, Lit,
-    Pat, PatType, Path, ReturnType, Token,
+    parse::Parser, punctuated::Punctuated, spanned::Spanned, token::Comma, FnArg, Ident, Pat,
+    PatType, Path, ReturnType, Token,
 };
-
-use crate::utils::parse_rhdl_allow_weak_partial;
 
 // use crate::suffix::CustomSuffix;
 type TS = proc_macro2::TokenStream;
