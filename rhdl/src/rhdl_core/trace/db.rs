@@ -443,7 +443,6 @@ pub fn trace(key: impl TraceKey, value: &impl Digital) {
 
 #[cfg(test)]
 mod tests {
-    use std::iter::repeat;
 
     use crate::rhdl_bits::alias::*;
 
@@ -564,7 +563,7 @@ mod tests {
                 if raw.len() < self.kind().bits() {
                     let missing = self.kind().bits() - raw.len();
                     raw.into_iter()
-                        .chain(repeat(BitX::Zero).take(missing))
+                        .chain(std::iter::repeat_n(BitX::Zero, missing))
                         .collect()
                 } else {
                     raw

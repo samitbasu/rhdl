@@ -133,9 +133,29 @@ pub enum ExFlag {
     Exclusive,
 }
 
+#[derive(PartialEq, Debug, Digital)]
+/// The read result with a flag to indicate
+/// the exclusive nature of the read
+pub enum ReadOperation {
+    /// The read operation was normal with the enclosed
+    /// payload
+    Normal(b32),
+    /// The read operation was exclusive with the enclosed
+    /// payload
+    Exclusive(b32),
+}
+
+impl Default for ReadOperation {
+    fn default() -> Self {
+        Self::Normal(bits(0))
+    }
+}
+
+/// The result of a write operation
 pub type WriteResult = Result<ExFlag, AXI4Error>;
 
-pub type ReadResult = Result<(ExFlag, b32), AXI4Error>;
+/// The result of a read operation
+pub type ReadResult = Result<ReadOperation, AXI4Error>;
 
 #[kernel]
 /// Helper function to recode a [ReadResponse] into a [Result].

@@ -886,7 +886,7 @@ fn compute_indentation(parents: &[usize]) -> Box<[usize]> {
         indentation[ndx] = indentation[parents[ndx]] + 1;
     }
     // Fix up the first entry
-    if indentation.len() != 0 {
+    if !indentation.is_empty() {
         indentation[0] = 1;
     }
     indentation.into()

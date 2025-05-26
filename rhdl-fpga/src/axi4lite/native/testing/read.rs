@@ -74,7 +74,8 @@ mod tests {
     use std::iter::repeat_n;
 
     use crate::{
-        axi4lite::types::ExFlag, rng::xorshift::XorShift128, stream::testing::utils::stalling,
+        axi4lite::types::ReadOperation, rng::xorshift::XorShift128,
+        stream::testing::utils::stalling,
     };
 
     use super::*;
@@ -91,7 +92,9 @@ mod tests {
             }
             rand::random::<f32>() > 0.3
         };
-        let reply = rng.clone().map(|x| ReadResult::Ok((ExFlag::Normal, x)));
+        let reply = rng
+            .clone()
+            .map(|x| ReadResult::Ok(ReadOperation::Normal(x)));
         let mut reply_sink = reply.clone();
         let reply = stalling(reply, 0.23);
         let reply_acceptor = move |x| {
