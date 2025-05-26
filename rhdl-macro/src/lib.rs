@@ -17,16 +17,8 @@ pub fn timed(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn kernel(_attr: TokenStream, input: TokenStream) -> TokenStream {
-    match rhdl_macro_core::hdl_kernel(input.into()) {
-        Ok(output) => output.into(),
-        Err(err) => err.to_compile_error().into(),
-    }
-}
-
-#[proc_macro]
-pub fn hdl(input: TokenStream) -> TokenStream {
-    match rhdl_macro_core::hdl_kernel(input.into()) {
+pub fn kernel(attr: TokenStream, input: TokenStream) -> TokenStream {
+    match rhdl_macro_core::hdl_kernel(attr.into(), input.into()) {
         Ok(output) => output.into(),
         Err(err) => err.to_compile_error().into(),
     }

@@ -56,7 +56,7 @@ impl rhdl::core::digital_fn::DigitalFn for update {
                                 .path_arguments_none()), bob.path_segment(stringify!(B), bob
                                 .path_arguments_none())],), vec![bob
                                 .ident_pat(stringify!(x), false)]),
-                                rhdl::core::Digital::discriminant(Bar::B(Default::default()))),
+                                rhdl::core::Digital::discriminant(Bar::B(Digital::dont_care()))),
                                 bob.block_expr(bob.block(vec![],))), bob.arm(bob
                                 .arm_kind_enum(bob.struct_pat(bob.path(vec![bob
                                 .path_segment(stringify!(Bar), bob.path_arguments_none()),
@@ -66,13 +66,14 @@ impl rhdl::core::digital_fn::DigitalFn for update {
                                 false)), bob.field_pat(bob.member_named(stringify!(y)), bob
                                 .ident_pat(stringify!(y), false))], false),
                                 rhdl::core::Digital::discriminant(Bar::C { x :
-                                Default::default(), y : Default::default() })), bob
+                                Digital::dont_care(), y : Digital::dont_care() })), bob
                                 .block_expr(bob.block(vec![],)))]))
                             ],
                         ),
                     std::any::TypeId::of::<update>(),
                     "fn update(z: Bar) {\n    match z {\n        Bar::A => {}\n        Bar::B(x) => {}\n        Bar::C { x, y } => {}\n    }\n}\n",
                     concat!(file!(), ":", line!()),
+                    vec![],
                 ),
         )
     }

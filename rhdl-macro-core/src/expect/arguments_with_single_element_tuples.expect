@@ -98,6 +98,7 @@ impl<const N: usize> rhdl::core::digital_fn::DigitalFn for counter<N> {
                     std::any::TypeId::of::<counter<N>>(),
                     "fn counter<const N: usize>(\n    i: CounterIn<N>,\n    (count_q,): (Bits<N>,),\n) -> (Bits<N>, (DFFIn<Bits<N>>,)) {\n    let count_q = count_q.0;\n    let next = if i.enable { count_q + 1 } else { count_q };\n    (\n        count_q,\n        (\n            DFFIn {\n                clock: i.clock,\n                data: next,\n            },\n        ),\n    )\n}\n",
                     concat!(file!(), ":", line!()),
+                    vec![],
                 ),
         )
     }

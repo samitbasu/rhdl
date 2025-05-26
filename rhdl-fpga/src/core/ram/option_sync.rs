@@ -103,7 +103,7 @@ impl<T: Digital, N: BitWidth> SynchronousIO for OptionSyncBRAM<T, N> {
     type Kernel = ram_kernel<T, N>;
 }
 
-#[kernel]
+#[kernel(allow_weak_partial)]
 /// Kernel function for [OptionSyncBRAM]
 pub fn ram_kernel<T: Digital, N: BitWidth>(
     _cr: ClockReset,

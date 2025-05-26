@@ -81,7 +81,6 @@ pub use crate::rhdl_core::{
     types::bit_string::BitString,
     util::hash_id,
 };
-pub use rhdl_macro::hdl;
 pub use rhdl_macro::kernel;
 pub use rhdl_macro::Circuit;
 pub use rhdl_macro::CircuitDQ;

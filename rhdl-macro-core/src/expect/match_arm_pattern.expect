@@ -61,6 +61,7 @@ impl rhdl::core::digital_fn::DigitalFn for update {
                     std::any::TypeId::of::<update>(),
                     "fn update(z: u8) {\n    match z {\n        1_u4 => {}\n        2_u4 => {}\n        CONST_VAL => {}\n    }\n}\n",
                     concat!(file!(), ":", line!()),
+                    vec![],
                 ),
         )
     }

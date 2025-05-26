@@ -5,6 +5,7 @@ use crate::rhdl_core::{
     ast::{
         ast_impl::{ExprLit, FunctionId},
         source::source_location::SourceLocation,
+        KernelFlags,
     },
     rhif::{
         object::{LocatedOpCode, SymbolMap},
@@ -32,6 +33,7 @@ pub struct Mir {
     pub arguments: Vec<Slot>,
     pub fn_id: FunctionId,
     pub name: String,
+    pub flags: Vec<KernelFlags>,
 }
 
 impl Mir {

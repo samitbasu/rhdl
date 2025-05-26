@@ -7,6 +7,7 @@ use std::ops::Range;
 
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
 use crate::rhdl_core::ast::source::spanned_source_set::SpannedSourceSet;
+use crate::rhdl_core::ast::KernelFlags;
 use crate::rhdl_core::SourcePool;
 use crate::rhdl_core::{
     ast::ast_impl::{FunctionId, NodeId},
@@ -105,6 +106,7 @@ pub struct Object {
     pub arguments: Vec<RegisterId>,
     pub name: String,
     pub fn_id: FunctionId,
+    pub flags: Vec<KernelFlags>,
 }
 
 impl Object {

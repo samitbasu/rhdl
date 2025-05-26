@@ -1,11 +1,14 @@
 use std::collections::HashSet;
 
 use inflections::Inflect;
+use proc_macro2::Punct;
 use quote::{format_ident, quote};
 use syn::{
-    punctuated::Punctuated, spanned::Spanned, token::Comma, FnArg, Ident, Pat, PatType, Path,
-    ReturnType,
+    parse::Parser, punctuated::Punctuated, spanned::Spanned, token::Comma, Expr, FnArg, Ident, Lit,
+    Pat, PatType, Path, ReturnType, Token,
 };
+
+use crate::utils::parse_rhdl_allow_weak_partial;
 
 // use crate::suffix::CustomSuffix;
 type TS = proc_macro2::TokenStream;
@@ -156,38 +159,38 @@ fn rewrite_pattern_as_typed_bits(pat: &syn::Pat) -> syn::Result<TS> {
     }
 }
 
-fn rewrite_pattern_to_use_defaults_for_bindings(pat: &syn::Pat) -> TS {
+fn rewrite_pattern_to_use_dont_care_for_bindings(pat: &syn::Pat) -> TS {
     match pat {
         Pat::Ident(_) => {
-            quote! { Default::default() }
+            quote! { Digital::dont_care() }
         }
         Pat::Or(subs) => {
             let cases = subs
                 .cases
                 .iter()
-                .map(rewrite_pattern_to_use_defaults_for_bindings);
+                .map(rewrite_pattern_to_use_dont_care_for_bindings);
             quote! { #(#cases) |* }
         }
-        Pat::Paren(pat) => rewrite_pattern_to_use_defaults_for_bindings(&pat.pat),
+        Pat::Paren(pat) => rewrite_pattern_to_use_dont_care_for_bindings(&pat.pat),
         Pat::Slice(slice) => {
             let elems = slice
                 .elems
                 .iter()
-                .map(rewrite_pattern_to_use_defaults_for_bindings);
+                .map(rewrite_pattern_to_use_dont_care_for_bindings);
             quote! { [#(#elems),*] }
         }
         Pat::Tuple(tuple) => {
             let elems = tuple
                 .elems
                 .iter()
-                .map(rewrite_pattern_to_use_defaults_for_bindings);
+                .map(rewrite_pattern_to_use_dont_care_for_bindings);
             quote! { (#(#elems),*) }
         }
         Pat::Struct(struct_) => {
             let path = &struct_.path;
             let fields = struct_.fields.iter().map(|x| {
                 let field_name = &x.member;
-                let field_pat = rewrite_pattern_to_use_defaults_for_bindings(&x.pat);
+                let field_pat = rewrite_pattern_to_use_dont_care_for_bindings(&x.pat);
                 quote!( #field_name: #field_pat)
             });
             quote! { #path {#(#fields),*} }
@@ -197,11 +200,11 @@ fn rewrite_pattern_to_use_defaults_for_bindings(pat: &syn::Pat) -> TS {
             let elems = tuple
                 .elems
                 .iter()
-                .map(rewrite_pattern_to_use_defaults_for_bindings);
+                .map(rewrite_pattern_to_use_dont_care_for_bindings);
             quote! { #path (#(#elems),*) }
         }
-        Pat::Type(ty) => rewrite_pattern_to_use_defaults_for_bindings(&ty.pat),
-        Pat::Wild(_) => quote! { Default::default() },
+        Pat::Type(ty) => rewrite_pattern_to_use_dont_care_for_bindings(&ty.pat),
+        Pat::Wild(_) => quote! { Digital::dont_care() },
         _ => quote! { #pat },
     }
 }
@@ -313,10 +316,12 @@ impl Context {
     }
 }
 
-pub fn hdl_kernel(input: TS) -> Result<TS> {
+pub fn hdl_kernel(attrs: TS, input: TS) -> Result<TS> {
+    let parser = Punctuated::<Ident, Token![,]>::parse_terminated;
+    let attrs = parser.parse(attrs.into())?;
     let input = syn::parse::<syn::ItemFn>(input.into())?;
     let mut context = Context::default();
-    context.function(input)
+    context.function(&attrs, input)
 }
 
 // Convert a pattern that would appear in a function argument into an expression.
@@ -521,10 +526,20 @@ fn trace_wrap_function(function: &syn::ItemFn) -> Result<TS> {
 }
 
 impl Context {
-    fn function(&mut self, function: syn::ItemFn) -> Result<TS> {
+    fn function(
+        &mut self,
+        attrs: &Punctuated<Ident, Token![,]>,
+        function: syn::ItemFn,
+    ) -> Result<TS> {
         let orig_name = &function.sig.ident;
         let vis = &function.vis;
         let (impl_generics, ty_generics, where_clause) = function.sig.generics.split_for_impl();
+        let weak_partial_flag = attrs.iter().any(|x| x == "allow_weak_partial");
+        let flags = if !weak_partial_flag {
+            quote!(vec![])
+        } else {
+            quote!(vec![rhdl::core::ast::KernelFlags::AllowWeakPartial])
+        };
         let phantom_fields = function
             .sig
             .generics
@@ -610,6 +625,7 @@ impl Context {
                         std::any::TypeId::of::<#name #ty_generics>(),
                         #text,
                         concat!(file!(), ":", line!()),
+                        #flags
                     ))
                 }
             }
@@ -1197,7 +1213,7 @@ impl Context {
             let body = self.expr(body)?;
             let mut discriminant = option_or_result_discriminant.map(|x| quote!(#x.typed_bits()));
             if discriminant.is_none() {
-                let pat_as_expr = rewrite_pattern_to_use_defaults_for_bindings(pat);
+                let pat_as_expr = rewrite_pattern_to_use_dont_care_for_bindings(pat);
                 discriminant = Some(quote!(rhdl::core::Digital::discriminant(#pat_as_expr)));
             }
             let inner = self.pat(pat)?;
@@ -1244,7 +1260,7 @@ impl Context {
             let body = self.block_inner(then_branch)?;
             let mut discriminant = option_or_result_discriminant.map(|x| quote!(#x.typed_bits()));
             if discriminant.is_none() {
-                let pat_as_expr = rewrite_pattern_to_use_defaults_for_bindings(pat);
+                let pat_as_expr = rewrite_pattern_to_use_dont_care_for_bindings(pat);
                 discriminant = Some(quote!(rhdl::core::Digital::discriminant(#pat_as_expr)));
             }
             let inner = self.pat(pat)?;
@@ -1300,11 +1316,9 @@ impl Context {
     //
     // the type could be either an enum or a struct.  If it's an enum, we cannot
     // legally call <Foo as Digital>, since `Foo` is not a type.  However, we
-    // can take advantage of the requirement that `Digital: Default`, and that
-    // all fields of a `Digital` struct or `Digital` enum must also implement `Default`
-    // to generate an instance of the thing at run time using
+    // can generate an instance of the thing at run time using
     //
-    //  (Foo {a: Default::default(), b: Default::default()}).kind()
+    //  (Foo {a: Digital::dont_care(), b: Digital::dont_care()}).kind()
     //
     // In both cases, we want to include the Kind information into the AST at the
     // point the AST is generated.
@@ -1563,6 +1577,24 @@ mod test {
     use super::*;
 
     #[test]
+    fn test_allow_weak_partial() {
+        let test_code = quote! {
+            #[rhdl(allow_weak_partial)]
+            fn update<T: Digital>(a: T, b: T) -> [T; 2] {
+                [a, b]
+            }
+        };
+        let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
+        let item = Context::default()
+            .function(&Punctuated::default(), function)
+            .unwrap();
+        let new_code = quote! {#item};
+        let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
+        let expect = expect_file!["expect/allow_weak_partial.expect"];
+        expect.assert_eq(&result);
+    }
+
+    #[test]
     fn test_generic_kernel() {
         let test_code = quote! {
             fn update<T: Digital>(a: T, b: T) -> [T; 2] {
@@ -1570,7 +1602,9 @@ mod test {
             }
         };
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
-        let item = Context::default().function(function).unwrap();
+        let item = Context::default()
+            .function(&Punctuated::default(), function)
+            .unwrap();
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         let expect = expect_file!["expect/generic_kernel.expect"];
@@ -1761,7 +1795,9 @@ mod test {
             }
         };
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
-        let item = Context::default().function(function).unwrap();
+        let item = Context::default()
+            .function(&Punctuated::default(), function)
+            .unwrap();
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         let expect = expect_file!["expect/test_suffix.expect"];
@@ -1780,7 +1816,9 @@ mod test {
             }
         };
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
-        let item = Context::default().function(function).unwrap();
+        let item = Context::default()
+            .function(&Punctuated::default(), function)
+            .unwrap();
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         let expect = expect_file!["expect/match_arm_pattern.expect"];
@@ -1799,7 +1837,9 @@ mod test {
             }
         };
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
-        let item = Context::default().function(function).unwrap();
+        let item = Context::default()
+            .function(&Punctuated::default(), function)
+            .unwrap();
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         let expect = expect_file!["expect/match_arm_pattern_rewrite.expect"];
@@ -1817,7 +1857,9 @@ mod test {
             }
         };
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
-        let item = Context::default().function(function).unwrap();
+        let item = Context::default()
+            .function(&Punctuated::default(), function)
+            .unwrap();
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         let expect = expect_file!["expect/generics.expect"];
@@ -1850,7 +1892,9 @@ mod test {
             }
         };
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
-        let item = Context::default().function(function).unwrap();
+        let item = Context::default()
+            .function(&Punctuated::default(), function)
+            .unwrap();
         let new_code = quote! {#item};
         let new_code = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         let expect = expect_file!["expect/wrap_handles_mut_arg.expect"];
@@ -1865,7 +1909,9 @@ mod test {
             }
         };
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
-        let item = Context::default().function(function).unwrap();
+        let item = Context::default()
+            .function(&Punctuated::default(), function)
+            .unwrap();
         let new_code = quote! {#item};
         let new_code = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         let expect = expect_file!["expect/argument_tuple.expect"];
@@ -1888,7 +1934,9 @@ mod test {
             }
         };
         let function = syn::parse2::<syn::ItemFn>(test_code).unwrap();
-        let item = Context::default().function(function).unwrap();
+        let item = Context::default()
+            .function(&Punctuated::default(), function)
+            .unwrap();
         let new_code = quote! {#item};
         let new_code = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
         let expect = expect_file!["expect/arguments_with_single_element_tuples.expect"];

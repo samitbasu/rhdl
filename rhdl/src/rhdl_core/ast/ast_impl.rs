@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::rhdl_core::{
     kernel::KernelFnKind, rhif::spec::Member, types::typed_bits::TypedBits, DigitalSignature, Kind,
 };
@@ -466,6 +468,11 @@ impl std::fmt::LowerHex for FunctionId {
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Hash)]
+pub enum KernelFlags {
+    AllowWeakPartial,
+}
+
 #[derive(Debug, Clone, Hash)]
 pub struct KernelFn {
     pub id: NodeId,
@@ -476,6 +483,7 @@ pub struct KernelFn {
     pub fn_id: FunctionId,
     pub text: &'static str,
     pub file: &'static str,
+    pub flags: Vec<KernelFlags>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Hash)]

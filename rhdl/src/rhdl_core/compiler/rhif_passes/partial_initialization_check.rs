@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::rhdl_core::{
-    ast::source::source_location::SourceLocation,
+    ast::{source::source_location::SourceLocation, KernelFlags},
     compiler::mir::error::RHDLPartialInitializationError,
     error::rhdl_error,
     rhif::{
@@ -64,7 +64,7 @@ impl CoverageMap<'_> {
             entry.iter_mut().for_each(|b| *b = true);
         } else {
             let kind = self.obj.kind(slot);
-            let all_covered = std::iter::repeat(true).take(kind.bits()).collect();
+            let all_covered = std::iter::repeat_n(true, kind.bits()).collect();
             self.map.insert(slot, all_covered);
         }
     }
@@ -100,12 +100,18 @@ fn typed_bit_cover(tb: &TypedBits) -> Vec<bool> {
     tb.bits.iter().map(|b| *b != BitX::X).collect()
 }
 
-fn merge_cover(a: &mut [bool], b: &[bool]) {
-    a.iter_mut().zip(b.iter()).for_each(|(a, b)| *a &= *b);
+fn merge_cover(a: &mut [bool], b: &[bool], weak_mode: bool) {
+    a.iter_mut()
+        .zip(b.iter())
+        .for_each(|(a, b)| if weak_mode { *a |= *b } else { *a &= *b });
 }
 
 fn check_for_partial_initialization(map: &mut CoverageMap) -> Result<(), RHDLError> {
     let obj = map.obj;
+    let weak_mode = obj
+        .flags
+        .iter()
+        .any(|x| matches!(x, KernelFlags::AllowWeakPartial));
     obj.arguments.iter().for_each(|arg| {
         map.declare_covered(Slot::Register(*arg));
     });
@@ -153,9 +159,10 @@ fn check_for_partial_initialization(map: &mut CoverageMap) -> Result<(), RHDLErr
                 map.declare_covered(inner.lhs);
             }
             OpCode::Exec(inner) => {
-                inner.args.iter().for_each(|arg| {
-                    map.ensure_covered(*arg, loc).unwrap();
-                });
+                inner
+                    .args
+                    .iter()
+                    .try_for_each(|arg| map.ensure_covered(*arg, loc))?;
                 map.declare_covered(inner.lhs);
             }
             OpCode::Unary(inner) => {
@@ -166,7 +173,7 @@ fn check_for_partial_initialization(map: &mut CoverageMap) -> Result<(), RHDLErr
                 map.ensure_covered(inner.cond, loc)?;
                 let mut true_cover = map.coverage(inner.true_value);
                 let false_cover = map.coverage(inner.false_value);
-                merge_cover(&mut true_cover, &false_cover);
+                merge_cover(&mut true_cover, &false_cover, weak_mode);
                 map.cover(inner.lhs, true_cover);
             }
             OpCode::Index(inner) => {
@@ -237,12 +244,11 @@ fn check_for_partial_initialization(map: &mut CoverageMap) -> Result<(), RHDLErr
             OpCode::Case(case) => {
                 map.ensure_covered(case.discriminant, loc)?;
                 let lhs_kind = obj.kind(case.lhs);
-                let mut lhs_cover = std::iter::repeat(true)
-                    .take(lhs_kind.bits())
-                    .collect::<Vec<bool>>();
+                let mut lhs_cover =
+                    std::iter::repeat_n(true, lhs_kind.bits()).collect::<Vec<bool>>();
                 for (_, val) in &case.table {
                     let case_cover = map.coverage(*val);
-                    merge_cover(&mut lhs_cover, &case_cover);
+                    merge_cover(&mut lhs_cover, &case_cover, weak_mode);
                 }
                 map.cover(case.lhs, lhs_cover);
             }

@@ -14,7 +14,7 @@ fn jnk() -> Vec<Stmt> {
                     .path_segment(stringify!(State), bob.path_arguments_none()), bob
                     .path_segment(stringify!(Run), bob.path_arguments_none())],),
                     vec![bob.ident_pat(stringify!(a), false)]),
-                    rhdl::core::Digital::discriminant(State::Run(Default::default()))),
+                    rhdl::core::Digital::discriminant(State::Run(Digital::dont_care()))),
                     bob.block_expr(bob.block(vec![bob.semi_stmt(bob.assign_expr(bob
                     .path_expr(bob.path(vec![bob.path_segment(stringify!(l), bob
                     .path_arguments_none())],)), bob.path_expr(bob.path(vec![bob

@@ -1150,5 +1150,6 @@ pub fn infer(mir: Mir) -> Result<Object> {
         externals: mir.stash,
         name: mir.name,
         fn_id: mir.fn_id,
+        flags: mir.flags,
     })
 }
