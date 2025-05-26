@@ -84,6 +84,7 @@ impl<T: Digital, S: Digital> rhdl::core::digital_fn::DigitalFn for do_stuff<T, S
                     std::any::TypeId::of::<do_stuff<T, S>>(),
                     "fn do_stuff<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {\n    let c = x.a;\n    let d = (x.a, y.b);\n    let e = Foo::<T> { a: c, b: c };\n    e == x\n}\n",
                     concat!(file!(), ":", line!()),
+                    vec![],
                 ),
         )
     }

@@ -115,7 +115,7 @@ where
     type Kernel = kernel<T>;
 }
 
-#[kernel]
+#[kernel(allow_weak_partial)]
 #[doc(hidden)]
 pub fn kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
     let mut d = D::<T>::dont_care();

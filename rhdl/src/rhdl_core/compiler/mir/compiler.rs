@@ -1625,5 +1625,6 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
         ty_equate: compiler.ty_equate,
         stash: compiler.stash,
         name: compiler.name.to_string(),
+        flags: func.inner().flags.clone(),
     })
 }

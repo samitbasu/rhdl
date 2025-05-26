@@ -126,12 +126,11 @@ pub fn kernel<M: BitWidth, T: Digital, const N: usize>(
         }
     }
     // Implement the delay line
+    d.delay_line[0] = q.delay_line[0];
     if run {
         if let Some(idata) = q.input {
             d.delay_line[0] = idata;
         }
-    } else {
-        d.delay_line[0] = q.delay_line[0];
     }
     for i in 1..N {
         d.delay_line[i] = if run {

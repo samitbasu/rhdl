@@ -108,7 +108,7 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> CircuitIO for OptionAsyncBRA
     type Kernel = ram_kernel<T, W, R, N>;
 }
 
-#[kernel]
+#[kernel(allow_weak_partial)]
 /// Kernel function for [OptionAsyncBRAM]
 pub fn ram_kernel<T: Digital, W: Domain, R: Domain, N: BitWidth>(
     i: In<T, W, R, N>,

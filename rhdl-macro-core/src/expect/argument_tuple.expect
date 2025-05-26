@@ -54,6 +54,7 @@ impl rhdl::core::digital_fn::DigitalFn for update {
                     std::any::TypeId::of::<update>(),
                     "fn update((a, b): (u8, u8)) -> (u8, u8) {\n    (a, a + b)\n}\n",
                     concat!(file!(), ":", line!()),
+                    vec![],
                 ),
         )
     }

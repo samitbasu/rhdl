@@ -469,6 +469,7 @@ impl ASTBuilder {
         fn_id: std::any::TypeId,
         text: &'static str,
         file: &'static str,
+        flags: Vec<KernelFlags>,
     ) -> KernelFnKind {
         let id = self.id();
         // Hash the typeID into a 64 bit unsigned int
@@ -485,6 +486,7 @@ impl ASTBuilder {
                 fn_id,
                 text,
                 file,
+                flags,
             })
             .into(),
         )

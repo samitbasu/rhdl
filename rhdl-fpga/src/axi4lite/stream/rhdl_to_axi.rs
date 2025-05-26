@@ -94,10 +94,15 @@ impl<T: Digital> SynchronousIO for Rhdl2Axi<T> {
     type Kernel = kernel<T>;
 }
 
-#[kernel]
+#[kernel(allow_weak_partial)]
 #[doc(hidden)]
 pub fn kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) {
-    let (tvalid, tdata) = unpack::<T>(i.data, T::dont_care());
+    let mut tdata = T::dont_care();
+    let mut tvalid = false;
+    if let Some(data) = i.data {
+        tdata = data;
+        tvalid = true;
+    }
     let mut d = D::<T>::dont_care();
     let mut o = Out::<T>::dont_care();
     d.outbuf.data_in = tdata;

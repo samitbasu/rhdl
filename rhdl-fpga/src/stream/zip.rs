@@ -122,11 +122,9 @@ pub fn kernel<S: Digital, T: Digital>(
     let mut out_data = None;
     let mut next = false;
     if !q.out_buffer.full {
-        if let Some(data_a) = q.a_buffer.data {
-            if let Some(data_b) = q.b_buffer.data {
-                out_data = Some((data_a, data_b));
-                next = true;
-            }
+        if let (Some::<S>(data_a), Some::<T>(data_b)) = (q.a_buffer.data, q.b_buffer.data) {
+            out_data = Some((data_a, data_b));
+            next = true;
         }
     }
     d.a_buffer.next = next;

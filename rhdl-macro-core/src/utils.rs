@@ -100,3 +100,16 @@ pub(crate) fn parse_rhdl_skip_attribute(attrs: &[Attribute]) -> bool {
     }
     false
 }
+
+pub(crate) fn parse_rhdl_allow_weak_partial(attrs: &[Attribute]) -> bool {
+    for attr in attrs {
+        if attr.path().is_ident("rhdl") {
+            if let Ok(Expr::Path(path)) = attr.parse_args() {
+                if path.path.is_ident("allow_weak_partial") {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}

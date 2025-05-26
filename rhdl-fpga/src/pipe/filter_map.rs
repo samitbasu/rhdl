@@ -109,7 +109,7 @@ where
     type Kernel = kernel<T, S>;
 }
 
-#[kernel]
+#[kernel(allow_weak_partial)]
 #[doc(hidden)]
 pub fn kernel<T, S>(_cr: ClockReset, i: In<T>, q: Q<T, S>) -> (Out<S>, D<T, S>)
 where
