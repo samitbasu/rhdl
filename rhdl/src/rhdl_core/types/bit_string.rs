@@ -1,5 +1,3 @@
-use std::iter::repeat;
-
 use crate::rhdl_core::{
     bitx::{bitx_string, BitX},
     rtl::object::RegisterKind,
@@ -71,7 +69,7 @@ impl BitString {
     }
 
     pub(crate) fn zeros(shift_amount: usize) -> BitString {
-        BitString::Unsigned(repeat(BitX::Zero).take(shift_amount).collect())
+        BitString::Unsigned(std::iter::repeat_n(BitX::Zero, shift_amount).collect())
     }
 
     pub(crate) fn dont_care(&self) -> BitString {
@@ -84,8 +82,12 @@ impl BitString {
     }
     pub(crate) fn dont_care_from_kind(kind: RegisterKind) -> BitString {
         match kind {
-            RegisterKind::Unsigned(len) => BitString::Unsigned(repeat(BitX::X).take(len).collect()),
-            RegisterKind::Signed(len) => BitString::Signed(repeat(BitX::X).take(len).collect()),
+            RegisterKind::Unsigned(len) => {
+                BitString::Unsigned(std::iter::repeat_n(BitX::X, len).collect())
+            }
+            RegisterKind::Signed(len) => {
+                BitString::Signed(std::iter::repeat_n(BitX::X, len).collect())
+            }
         }
     }
 }

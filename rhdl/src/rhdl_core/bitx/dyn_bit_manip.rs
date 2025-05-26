@@ -97,8 +97,7 @@ pub(crate) fn bits_or(a: &[BitX], b: &[BitX]) -> Vec<BitX> {
 }
 
 pub(crate) fn bits_shl(a: &[BitX], b: i64) -> Vec<BitX> {
-    repeat(BitX::Zero)
-        .take(b as usize)
+    std::iter::repeat_n(BitX::Zero, b as usize)
         .chain(a.iter().copied())
         .take(a.len())
         .collect()
@@ -108,7 +107,7 @@ pub(crate) fn bits_shr(a: &[BitX], b: i64) -> Vec<BitX> {
     a.iter()
         .copied()
         .skip(b as usize)
-        .chain(repeat(BitX::Zero).take(b as usize))
+        .chain(std::iter::repeat_n(BitX::Zero, b as usize))
         .take(a.len())
         .collect()
 }

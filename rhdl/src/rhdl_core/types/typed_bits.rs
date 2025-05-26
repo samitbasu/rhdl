@@ -174,8 +174,7 @@ impl TypedBits {
                 }))
             }
         };
-        let bits = repeat(BitX::Zero)
-            .take(len)
+        let bits = std::iter::repeat_n(BitX::Zero, len)
             .chain(self.bits.iter().copied())
             .collect();
         Ok(TypedBits { bits, kind })
@@ -418,7 +417,7 @@ impl TypedBits {
             bits: self
                 .bits
                 .into_iter()
-                .chain(repeat(BitX::Zero).take(pad).chain(once(BitX::One)))
+                .chain(std::iter::repeat_n(BitX::Zero, pad).chain(once(BitX::One)))
                 .collect(),
             kind: *option_kind,
         })
@@ -442,7 +441,7 @@ impl TypedBits {
             bits: self
                 .bits
                 .into_iter()
-                .chain(repeat(BitX::Zero).take(pad).chain(once(BitX::Zero)))
+                .chain(std::iter::repeat_n(BitX::Zero, pad).chain(once(BitX::Zero)))
                 .collect(),
             kind: *option_kind,
         })
@@ -466,7 +465,7 @@ impl TypedBits {
             bits: self
                 .bits
                 .into_iter()
-                .chain(repeat(BitX::Zero).take(pad).chain(once(BitX::Zero)))
+                .chain(std::iter::repeat_n(BitX::Zero, pad).chain(once(BitX::Zero)))
                 .collect(),
             kind: *result_kind,
         })
@@ -490,7 +489,7 @@ impl TypedBits {
             bits: self
                 .bits
                 .into_iter()
-                .chain(repeat(BitX::Zero).take(pad).chain(once(BitX::One)))
+                .chain(std::iter::repeat_n(BitX::Zero, pad).chain(once(BitX::One)))
                 .collect(),
             kind: *result_kind,
         })
@@ -748,8 +747,7 @@ fn interpret_bits_as_i64(bits: &[BitX], signed: bool) -> i64 {
     // If the value is signed, then we sign extend it to 128 bits
     let value = if signed {
         let sign = bits.last().copied().unwrap_or(BitX::Zero);
-        repeat(&sign)
-            .take(128 - bits.len())
+        std::iter::repeat_n(&sign, 128 - bits.len())
             .chain(bits.iter().rev())
             .fold(0_i128, |acc, b| (acc << 1) | (*b as i128))
     } else {
@@ -859,8 +857,7 @@ fn write_signed(bits: &[BitX], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Res
     // We know that the bits array will fit into a i128.
     let bit_len = bits.len();
     let sign_bit = bits.last().cloned().unwrap_or(BitX::Zero);
-    let val = repeat(&sign_bit)
-        .take(128 - bit_len)
+    let val = std::iter::repeat_n(&sign_bit, 128 - bit_len)
         .chain(bits.iter().rev())
         .fold(0_i128, |acc, b| (acc << 1_i128) | (*b as i128));
     write!(f, "{}_s{}", val, bits.len())

@@ -143,7 +143,8 @@ impl<T: Digital> Default for Carloni<T> {
 }
 
 impl<T: Digital> Carloni<T> {
-    fn new_with_reset_value(value: T) -> Self {
+    /// Create a new [Carloni] buffer with the provided reset value
+    pub fn new_with_reset_value(value: T) -> Self {
         Self {
             main_ff: dff::DFF::new(value),
             aux_ff: dff::DFF::new(value),

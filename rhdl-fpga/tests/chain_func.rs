@@ -33,8 +33,7 @@ mod doubler {
 
 #[test]
 fn test_auto_counter_counts() -> miette::Result<()> {
-    let input = std::iter::repeat(())
-        .take(100)
+    let input = std::iter::repeat_n((), 100)
         .with_reset(1)
         .clock_pos_edge(100);
     let uut = auto_counter::U::<U4>::default();
@@ -44,15 +43,14 @@ fn test_auto_counter_counts() -> miette::Result<()> {
         .join("chain_func");
     std::fs::create_dir_all(&root).unwrap();
     let expect = expect!["a00439c6689e90a5fe2f8ec7812ed70dcac787261d99e747d4bfc2d80d7aa1a5"];
-    let digest = vcd.dump_to_file(&root.join("auto_counter.vcd")).unwrap();
+    let digest = vcd.dump_to_file(root.join("auto_counter.vcd")).unwrap();
     expect.assert_eq(&digest);
     Ok(())
 }
 
 #[test]
 fn test_auto_counter_is_correct() -> miette::Result<()> {
-    let input = std::iter::repeat(())
-        .take(100)
+    let input = std::iter::repeat_n((), 100)
         .with_reset(1)
         .clock_pos_edge(100);
     let uut = auto_counter::U::<U4>::default();
@@ -69,8 +67,7 @@ fn test_auto_counter_is_correct() -> miette::Result<()> {
 
 #[test]
 fn test_chain_auto_counter() -> miette::Result<()> {
-    let input = std::iter::repeat(())
-        .take(100)
+    let input = std::iter::repeat_n((), 100)
         .with_reset(1)
         .clock_pos_edge(100);
     let c1 = auto_counter::U::<U4>::default();

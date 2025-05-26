@@ -2,8 +2,6 @@ use rhdl::prelude::*;
 
 use std::ops::Add;
 
-use rhdl::prelude::*;
-
 use rhdl_fpga::core::{
     constant, dff,
     option::unpack,
