@@ -64,8 +64,6 @@ use rhdl::{
     prelude::*,
 };
 
-use crate::core::option::{pack, unpack};
-
 use super::{stream_buffer::StreamBuffer, StreamIO};
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
