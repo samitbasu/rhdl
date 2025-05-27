@@ -332,13 +332,11 @@ mod tests {
         let mut rng = rand::rngs::StdRng::seed_from_u64(0xdead_beef);
         // Assume the red stuff comes on the edges of a clock
         let red = (0..)
-            .map(move |_| rng.gen::<bool>())
+            .map(move |_| rng.random::<bool>())
             .take(100)
             .with_reset(1)
             .clock_pos_edge(100);
-        let blue = std::iter::repeat(false)
-            .with_reset(1)
-            .clock_pos_edge(79);
+        let blue = std::iter::repeat(false).with_reset(1).clock_pos_edge(79);
         red.merge(blue, |r, g| In {
             data: signal(r.1),
             cr: signal(g.0),
@@ -411,7 +409,7 @@ mod tests {
             .join("synchronizer");
         std::fs::create_dir_all(&root).unwrap();
         let expect = expect!["6447afec090e6d976ed27898d22bfef13361bff6b78b6dbc7db1ada3bcd29252"];
-        let digest = vcd.dump_to_file(&root.join("synchronizer.vcd")).unwrap();
+        let digest = vcd.dump_to_file(root.join("synchronizer.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
     }

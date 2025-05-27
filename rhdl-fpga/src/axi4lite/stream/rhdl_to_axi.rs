@@ -55,7 +55,7 @@
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use crate::{core::option::unpack, lid::carloni::Carloni};
+use crate::lid::carloni::Carloni;
 
 #[derive(Clone, Default, Synchronous, SynchronousDQ)]
 /// RHDL Stream to AXI Stream shim

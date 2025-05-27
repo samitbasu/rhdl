@@ -117,10 +117,7 @@
 #![doc = include_str!("../../doc/pipe_wrap.md")]
 
 use crate::{
-    core::{
-        dff::DFF,
-        option::{is_some, unpack},
-    },
+    core::{dff::DFF, option::is_some},
     fifo::synchronous::SyncFIFO,
     stream::{fifo_to_stream::FIFOToStream, stream_to_fifo::StreamToFIFO},
 };
@@ -238,6 +235,8 @@ mod tests {
     };
 
     pub mod delay {
+        use crate::core::option::unpack;
+
         use super::*;
         #[derive(Clone, Synchronous, SynchronousDQ, Default)]
         pub struct DelayLine {

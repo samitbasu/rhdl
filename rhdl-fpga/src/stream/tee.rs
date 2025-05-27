@@ -66,10 +66,7 @@
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use crate::{
-    core::option::{pack, unpack},
-    stream::{fifo_to_stream::FIFOToStream, stream_to_fifo::StreamToFIFO},
-};
+use crate::stream::{fifo_to_stream::FIFOToStream, stream_to_fifo::StreamToFIFO};
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ, Default)]
 /// The [Tee] Core

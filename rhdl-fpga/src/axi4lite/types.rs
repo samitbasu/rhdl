@@ -133,8 +133,10 @@ pub enum ExFlag {
     Exclusive,
 }
 
+/// The result of a Write operation on the AXI bus
 pub type WriteResult = Result<ExFlag, AXI4Error>;
 
+/// The result of a Read operation on the AXI bus
 pub type ReadResult = Result<(ExFlag, b32), AXI4Error>;
 
 #[kernel]
