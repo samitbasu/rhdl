@@ -471,6 +471,21 @@ macro_rules! impl_tuple_for_digital {
                     )*
                     v
                 }
+                fn discriminant(self) -> TypedBits {
+                    // The discriminant of a tuple is the
+                    // tuple of the discriminants.
+                    let mut k = Vec::default();
+                    let mut v = Vec::with_capacity(Self::BITS);
+                    #(
+                        let d = self.N.discriminant();
+                        k.push(d.kind);
+                        v.extend(d.bits);
+                    )*
+                    TypedBits {
+                        kind: Kind::make_tuple(k),
+                        bits: v,
+                    }
+                }
                 fn dont_care() -> Self {
                     (
                         #( T~N::dont_care(), )*
@@ -545,6 +560,19 @@ impl<T: Digital, const N: usize> Digital for [T; N] {
     }
     fn dont_care() -> Self {
         [T::dont_care(); N]
+    }
+    fn discriminant(self) -> TypedBits {
+        // The discriminant of an array is an array of
+        // discriminants.
+        if N == 0 {
+            return TypedBits::EMPTY;
+        }
+        let kind = Kind::make_array(self[0].discriminant().kind, N);
+        let mut v = Vec::with_capacity(Self::BITS);
+        for x in self.iter() {
+            v.extend(x.discriminant().bits)
+        }
+        TypedBits { kind, bits: v }
     }
 }
 

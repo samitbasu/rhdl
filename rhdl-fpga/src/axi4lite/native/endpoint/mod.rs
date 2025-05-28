@@ -34,3 +34,4 @@ From Bus         |           +----> write   +->
 use badascii_doc::badascii;
 
 pub mod read;
+pub mod write;

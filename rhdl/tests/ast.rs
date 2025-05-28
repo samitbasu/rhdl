@@ -190,6 +190,57 @@ fn test_repeat_with_generic() -> miette::Result<()> {
 }
 
 #[test]
+fn test_match_two_enums() -> miette::Result<()> {
+    #[derive(PartialEq, Digital)]
+    enum Foo {
+        Bar(b8),
+        Baz(b8),
+    }
+
+    impl Default for Foo {
+        fn default() -> Self {
+            Self::Bar(bits(0))
+        }
+    }
+
+    #[kernel]
+    fn foo(a: Foo, b: Foo) -> bool {
+        match (a, b) {
+            (Foo::Bar(x), Foo::Baz(y)) => x == y,
+            _ => false,
+        }
+    }
+
+    env_logger::builder()
+        .is_test(true)
+        .filter_level(log::LevelFilter::Trace)
+        .init();
+    compile_design::<foo>(CompilationMode::Asynchronous)?;
+    Ok(())
+}
+
+#[test]
+fn test_if_let_with_two_things() -> miette::Result<()> {
+    #[kernel]
+    fn foo(a: Signal<Option<bool>, Red>, b: Signal<Option<bool>, Red>) -> Signal<bool, Red> {
+        let a = a.val();
+        let b = b.val();
+        let mut c = false;
+        if let (Some::<bool>(a), Some::<bool>(b)) = (a, b) {
+            c = a & b;
+        }
+        signal(c)
+    }
+
+    env_logger::builder()
+        .is_test(true)
+        .filter_level(log::LevelFilter::Trace)
+        .init();
+    compile_design::<foo>(CompilationMode::Asynchronous)?;
+    Ok(())
+}
+
+#[test]
 fn test_if_let_syntax() -> miette::Result<()> {
     #[derive(PartialEq, Debug, Default, Digital)]
     pub enum Foo {

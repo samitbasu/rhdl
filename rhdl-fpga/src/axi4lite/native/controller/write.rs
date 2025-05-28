@@ -52,30 +52,30 @@
 //! the AXI [ResponseKind] to a [WriteResponse].  A [crate::stream::tee::Tee] core
 //! is used to feed the address and data channels from the single input stream.
 #![doc = badascii!(r"
-                                      +-+Strm2AXI+---+ awaddr       
-+-+From Core+-->                      |              +---------->   
-                       +------------->|              | awvalid      
-                       |              |  addr_buf    +---------->   
-                       | +------------+              | awready      
+                                      +-+Strm2AXI+---+ awaddr  7     
++-+From Core+-->              2       |              +---------->   
+                       +------------->|              | awvalid 8     
+                       |      3       |  addr_buf    +---------->   
+                       | +------------+              | awready 9     
             ++Tee+--+  | |            |              |<---------+   
-   ?WriteCmd|   addr+--+ |            +--------------+              
+ 1 ?WriteCmd|   addr+--+ |            +--------------+              
    +------->|in     | A  |                                          
-    ready   |    rdy|<---+            +-+Strm2AXI+---+ wdata/wstrobe
-   <--------+       |                 |              +---------->   
-            |   data+---------------->|              | wvalid       
-            |       | B               |  data_buf    +---------->   
-            |    rdy|<----------------+              | wready       
+ 6  ready   |    rdy|<---+            +-+Strm2AXI+---+ wdata/wstrobe 10/11
+   <--------+       |         4       |              +---------->   
+            |   data+---------------->|              | wvalid   12    
+            |       | B       5       |  data_buf    +---------->   
+            |    rdy|<----------------+              | wready   13    
             +-------+                 |              |<---------+   
                                       +--------------+              
                                                                     
                                                     +--+To Core+--->
                                                                     
-   bresp        +-+AXI2Strm+---+               +Map+---+            
+   bresp   14   +-+AXI2Strm+---+     17        +Map+---+    19        
   +------------>|              | ?ReadResponse |       |?ReadResult 
-   bvalid       |              +-------------->|       +----------->
-  +------------>|  outbuf      | ready         |       | resp_ready 
-   bready       |              |<--------------+       |<----------+
-  <-------------+              |               |       |            
+   bvalid  15   |              +-------------->|       +----------->
+  +------------>|  outbuf      | ready  18     |       | resp_ready 
+   bready  16   |              |<--------------+       |<----------+
+  <-------------+              |               |       |    20        
                 +--------------+               +-------+            
 ")]
 //!
@@ -107,10 +107,23 @@ use crate::{
 /// and then converts the resulting responses into a stream
 /// of [WriteResult].
 pub struct WriteController {
-    inbuv: Rhdl2Axi<WriteCommand>,
     tee: Tee<AxilAddr, StrobedData>,
+    addr_buf: Rhdl2Axi<AxilAddr>,
+    data_buf: Rhdl2Axi<StrobedData>,
     map: Map<ResponseKind, WriteResult>,
     outbuf: Axi2Rhdl<ResponseKind>,
+}
+
+impl Default for WriteController {
+    fn default() -> Self {
+        Self {
+            tee: Tee::default(),
+            addr_buf: Rhdl2Axi::default(),
+            data_buf: Rhdl2Axi::default(),
+            map: Map::try_new::<map_result>().expect("ICE! Compilation of `map_result` failed!"),
+            outbuf: Axi2Rhdl::default(),
+        }
+    }
 }
 
 #[kernel]
@@ -136,7 +149,7 @@ pub struct In {
 }
 
 #[derive(PartialEq, Debug, Digital)]
-/// Output fro the [WriteController] core
+/// Output from the [WriteController] core
 pub struct Out {
     /// AXI signals to the bus
     pub axi: WriteMOSI,
@@ -149,5 +162,74 @@ pub struct Out {
 impl SynchronousIO for WriteController {
     type I = In;
     type O = Out;
-    type Kernel = NoKernel3<ClockReset, In, Q, (Out, D)>;
+    type Kernel = kernel;
+}
+
+#[kernel]
+#[doc(hidden)]
+pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
+    let mut d = D::dont_care();
+    // Connection 1
+    d.tee.data = None;
+    if let Some(cmd) = i.req_data {
+        d.tee.data = Some((cmd.addr, cmd.strobed_data));
+    }
+    // Connection 2
+    d.addr_buf.data = q.tee.s_data;
+    // Connection 3
+    d.tee.s_ready = q.addr_buf.ready;
+    // Connection 4
+    d.data_buf.data = q.tee.t_data;
+    // Connection 5
+    d.tee.t_ready = q.data_buf.ready;
+    let mut o = Out::dont_care();
+    // Connection 6
+    o.req_ready = q.tee.ready;
+    // Connection 7
+    o.axi.awaddr = q.addr_buf.tdata;
+    // Connection 8
+    o.axi.awvalid = q.addr_buf.tvalid;
+    // Connection 9
+    d.addr_buf.tready = i.axi.awready;
+    // Connection 10
+    o.axi.wdata = q.data_buf.tdata.data;
+    // Connection 11
+    o.axi.wstrb = q.data_buf.tdata.strobe;
+    // Connection 12
+    o.axi.wvalid = q.data_buf.tvalid;
+    // Connection 13
+    d.data_buf.tready = i.axi.wready;
+    // Connection 14
+    d.outbuf.tdata = i.axi.bresp;
+    // Connection 15
+    d.outbuf.tvalid = i.axi.bvalid;
+    // Connection 16
+    o.axi.bready = q.outbuf.tready;
+    // Connection 17
+    d.map.data = q.outbuf.data;
+    // Connection 18
+    d.outbuf.ready = q.map.ready;
+    // Connection 19
+    o.resp_data = q.map.data;
+    // Connection 20
+    d.map.ready = i.resp_ready;
+    (o, d)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn no_combinatorial_paths() -> miette::Result<()> {
+        let uut = WriteController::default();
+        drc::no_combinatorial_paths(&uut)?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_compile() -> miette::Result<()> {
+        compile_design::<map_result>(CompilationMode::Synchronous)?;
+        Ok(())
+    }
 }

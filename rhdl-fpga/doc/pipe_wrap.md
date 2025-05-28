@@ -101,26 +101,16 @@ Some(09)
 </text>
 <path d="M 550 30 L 553 23 L 647 23 L 650 30 L 647 37 L 553 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="600" xml:space="preserve" y="30">
-None
-<title>None</title>
-</text>
-<path d="M 650 30 L 653 23 L 747 23 L 750 30 L 747 37 L 653 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="700" xml:space="preserve" y="30">
 Some(23)
 <title>Some(23)</title>
 </text>
-<path d="M 750 30 L 753 23 L 847 23 L 850 30 L 847 37 L 753 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="800" xml:space="preserve" y="30">
-None
-<title>None</title>
-</text>
-<path d="M 850 30 L 853 23 L 947 23 L 950 30 L 947 37 L 853 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="900" xml:space="preserve" y="30">
+<path d="M 650 30 L 653 23 L 747 23 L 750 30 L 747 37 L 653 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="700" xml:space="preserve" y="30">
 Some(35)
 <title>Some(35)</title>
 </text>
-<path d="M 950 30 L 953 23 L 1147 23 L 1150 30 L 1147 37 L 953 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1050" xml:space="preserve" y="30">
+<path d="M 750 30 L 753 23 L 1147 23 L 1150 30 L 1147 37 L 753 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="950" xml:space="preserve" y="30">
 Some(08)
 <title>Some(08)</title>
 </text>
@@ -148,16 +138,6 @@ Some(2e)
 
 <title></title>
 </text>
-<path d="M 550 50 L 553 43 L 647 43 L 650 50 L 647 57 L 553 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="600" xml:space="preserve" y="50">
-
-<title></title>
-</text>
-<path d="M 750 50 L 753 43 L 847 43 L 850 50 L 847 57 L 753 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="800" xml:space="preserve" y="50">
-
-<title></title>
-</text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="70">
       #Some.0
 <title>top.wrapper.input.data#Some.0</title>
@@ -177,18 +157,18 @@ Some(2e)
 09
 <title>09</title>
 </text>
-<path d="M 650 70 L 653 63 L 747 63 L 750 70 L 747 77 L 653 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="700" xml:space="preserve" y="70">
+<path d="M 550 70 L 553 63 L 647 63 L 650 70 L 647 77 L 553 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="600" xml:space="preserve" y="70">
 23
 <title>23</title>
 </text>
-<path d="M 850 70 L 853 63 L 947 63 L 950 70 L 947 77 L 853 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="900" xml:space="preserve" y="70">
+<path d="M 650 70 L 653 63 L 747 63 L 750 70 L 747 77 L 653 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="700" xml:space="preserve" y="70">
 35
 <title>35</title>
 </text>
-<path d="M 950 70 L 953 63 L 1147 63 L 1150 70 L 1147 77 L 953 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1050" xml:space="preserve" y="70">
+<path d="M 750 70 L 753 63 L 1147 63 L 1150 70 L 1147 77 L 753 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="950" xml:space="preserve" y="70">
 08
 <title>08</title>
 </text>

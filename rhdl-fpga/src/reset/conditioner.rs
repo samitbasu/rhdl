@@ -270,13 +270,11 @@ mod tests {
         let mut rng = rand::rngs::StdRng::seed_from_u64(0xdead_beef);
         // Assume the red stuff comes on the edges of a clock
         let red = (0..)
-            .map(move |_| rng.gen::<u8>() > 200)
+            .map(move |_| rng.random::<u8>() > 200)
             .take(100)
             .with_reset(1)
             .clock_pos_edge(100);
-        let blue = std::iter::repeat(false)
-            .with_reset(1)
-            .clock_pos_edge(79);
+        let blue = std::iter::repeat(false).with_reset(1).clock_pos_edge(79);
         red.merge(blue, |r, g| In {
             reset: signal(reset(r.1)),
             clock: signal(g.0.clock),
@@ -307,7 +305,7 @@ mod tests {
         std::fs::create_dir_all(&root).unwrap();
         let expect = expect!["916eaf247cb94b037c4eef3c96cea34d53d7ff20998c38f794aaf898e7c7e16d"];
         let digest = output
-            .dump_to_file(&root.join("reset_conditioner.vcd"))
+            .dump_to_file(root.join("reset_conditioner.vcd"))
             .unwrap();
         expect.assert_eq(&digest);
         Ok(())
