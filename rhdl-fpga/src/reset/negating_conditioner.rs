@@ -84,7 +84,7 @@ mod tests {
         // Use a seeded RNG to get repeatable results
         let mut rng = rand::rngs::StdRng::seed_from_u64(0xdead_beef);
         let red = (0..)
-            .map(move |_| rng.gen::<u8>() < 200)
+            .map(move |_| rng.random::<u8>() < 200)
             .take(100)
             .without_reset()
             .clock_pos_edge(100);
@@ -107,7 +107,7 @@ mod tests {
         std::fs::create_dir_all(&root).unwrap();
         let expect = expect!["ef450241e0b4b60df0b6d71efaa80758bc484c2fda3a69dfbbea06e6e7cb46ab"];
         let digest = vcd
-            .dump_to_file(&root.join("negating_conditioner.vcd"))
+            .dump_to_file(root.join("negating_conditioner.vcd"))
             .unwrap();
         expect.assert_eq(&digest);
         Ok(())

@@ -11,6 +11,7 @@ use crate::rhdl_core::rhif::spec::Member;
 use crate::rhdl_core::rhif::spec::Slot;
 use crate::rhdl_core::DiscriminantAlignment;
 use crate::rhdl_core::Kind;
+use crate::rhdl_core::TypedBits;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum PathError {
@@ -76,7 +77,7 @@ pub enum PathElement {
     SignalValue,
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, PartialEq, Hash, Default)]
 pub struct Path {
     pub elements: Vec<PathElement>,
 }
@@ -98,7 +99,7 @@ impl std::fmt::Debug for Path {
                 PathElement::Field(s) => write!(f, ".{}", s)?,
                 PathElement::EnumDiscriminant => write!(f, "#")?,
                 PathElement::EnumPayload(s) => write!(f, "#{}", s)?,
-                PathElement::EnumPayloadByValue(v) => write!(f, "#{}", v)?,
+                PathElement::EnumPayloadByValue(v) => write!(f, "#{:?}", v)?,
                 PathElement::DynamicIndex(slot) => write!(f, "[[{:?}]]", slot)?,
                 PathElement::SignalValue => write!(f, "@")?,
             }
@@ -166,7 +167,7 @@ impl Path {
     pub fn is_empty(&self) -> bool {
         self.elements.is_empty()
     }
-    pub fn payload_by_value(mut self, discriminant: i64) -> Self {
+    pub fn payload_by_value(mut self, discriminant: TypedBits) -> Self {
         self.elements
             .push(PathElement::EnumPayloadByValue(discriminant));
         self
@@ -289,12 +290,7 @@ pub fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
         Kind::Enum(enumeration) => enumeration
             .variants
             .iter()
-            .flat_map(|variant| {
-                leaf_paths(
-                    &variant.kind,
-                    base.clone().payload_by_value(variant.discriminant),
-                )
-            })
+            .flat_map(|variant| leaf_paths(&variant.kind, base.clone().payload(&variant.name)))
             .chain(once(base.clone().discriminant()))
             .collect(),
         Kind::Bits(_) | Kind::Signed(_) | Kind::Empty => vec![base.clone()],
