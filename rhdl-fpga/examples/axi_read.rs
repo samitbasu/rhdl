@@ -53,32 +53,18 @@ pub fn kernel(_cr: ClockReset, _i: (), q: Q) -> ((), D) {
 
 fn main() -> Result<(), RHDLError> {
     let rng = XorShift128::default().map(|x| bits(x as u128));
-    let mut address_sink = rng.clone();
+    let address_sink = rng.clone();
     let address = stalling(rng.clone(), 0.23);
-    let address_acceptor = move |x| {
-        if let Some(addr) = x {
-            let y = address_sink.next().unwrap();
-            assert_eq!(addr, y);
-        }
-        rand::random::<f32>() > 0.3
-    };
     let reply = rng.clone().map(|x| ReadResult::Ok((ExFlag::Normal, x)));
-    let mut reply_sink = reply.clone();
+    let reply_sink = reply.clone();
     let reply = stalling(reply, 0.23);
-    let reply_acceptor = move |x| {
-        if let Some(reply) = x {
-            let y = reply_sink.next().unwrap();
-            assert_eq!(reply, y);
-        }
-        rand::random::<f32>() > 0.1
-    };
     let uut = TestFixture {
         req_source: SourceFromFn::new(address),
         controller: ReadController::default(),
         endpoint: ReadEndpoint::default(),
-        req_sink: SinkFromFn::new(address_acceptor),
+        req_sink: SinkFromFn::new_from_iter(address_sink, 0.3),
         reply_source: SourceFromFn::new(reply),
-        reply_sink: SinkFromFn::new(reply_acceptor),
+        reply_sink: SinkFromFn::new_from_iter(reply_sink, 0.1),
     };
     let input = repeat_n((), 250);
     let input = input

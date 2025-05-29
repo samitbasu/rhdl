@@ -1213,6 +1213,12 @@ impl Context {
                 let pat_as_expr = rewrite_pattern_to_use_dont_care_for_bindings(pat);
                 discriminant = Some(quote!(rhdl::core::Digital::discriminant(#pat_as_expr)));
             }
+            if let Pat::Tuple(_) = pat {
+                return Err(syn::Error::new(
+                    pat.span(),
+                    "Tuple patterns are not currently supported in match arms",
+                ));
+            }
             let inner = self.pat(pat)?;
             let kind = quote! {bob.arm_kind_enum(#inner, #discriminant)};
             quote! {bob.arm(#kind, #body)}
@@ -1259,6 +1265,12 @@ impl Context {
             if discriminant.is_none() {
                 let pat_as_expr = rewrite_pattern_to_use_dont_care_for_bindings(pat);
                 discriminant = Some(quote!(rhdl::core::Digital::discriminant(#pat_as_expr)));
+            }
+            if let Pat::Tuple(_) = pat {
+                return Err(syn::Error::new(
+                    pat.span(),
+                    "Tuple patterns are not currently supported in if let patterns",
+                ));
             }
             let inner = self.pat(pat)?;
             let kind = quote! {bob.arm_kind_enum(#inner, #discriminant)};

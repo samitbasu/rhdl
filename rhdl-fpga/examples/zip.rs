@@ -40,21 +40,14 @@ pub fn kernel(_cr: ClockReset, _i: (), q: Q) -> ((), D) {
 fn main() -> Result<(), RHDLError> {
     let a_rng = XorShift128::default().map(|x| b4((x & 0xF) as u128));
     let b_rng = XorShift128::default().map(|x| b6(((x >> 8) & 0x3F) as u128));
-    let mut c_rng = a_rng.clone().zip(b_rng.clone());
+    let c_rng = a_rng.clone().zip(b_rng.clone());
     let a_rng = stalling(a_rng, 0.23);
     let b_rng = stalling(b_rng, 0.15);
-    let consume = move |data| {
-        if let Some(data) = data {
-            let validation = c_rng.next().unwrap();
-            assert_eq!(data, validation);
-        }
-        rand::random::<f64>() > 0.2
-    };
     let uut = TestFixture {
         a_source: SourceFromFn::new(a_rng),
         b_source: SourceFromFn::new(b_rng),
         zip: Zip::default(),
-        sink: SinkFromFn::new(consume),
+        sink: SinkFromFn::new_from_iter(c_rng, 0.2),
     };
     // Run a few samples through
     let input = repeat_n((), 15).with_reset(1).clock_pos_edge(100);

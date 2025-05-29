@@ -122,13 +122,11 @@ pub fn kernel<S: Digital, T: Digital>(
     let mut out_data = None;
     let mut next = false;
     if !q.out_buffer.full {
-        // TODO - allow for this to be a single statement.
-        match (q.a_buffer.data, q.b_buffer.data) {
-            (Some::<S>(data_a), Some::<T>(data_b)) => {
+        if let Some::<S>(data_a) = q.a_buffer.data {
+            if let Some::<T>(data_b) = q.b_buffer.data {
                 out_data = Some((data_a, data_b));
                 next = true;
             }
-            _ => {}
         }
     }
     d.a_buffer.next = next;
@@ -185,21 +183,14 @@ mod tests {
     fn test_operation() -> Result<(), RHDLError> {
         let a_rng = XorShift128::default().map(|x| b4((x & 0xF) as u128));
         let b_rng = XorShift128::default().map(|x| b6(((x >> 8) & 0x3F) as u128));
-        let mut c_rng = a_rng.clone().zip(b_rng.clone());
+        let c_rng = a_rng.clone().zip(b_rng.clone());
         let a_rng = stalling(a_rng, 0.23);
         let b_rng = stalling(b_rng, 0.15);
-        let consume = move |data| {
-            if let Some(data) = data {
-                let validation = c_rng.next().unwrap();
-                assert_eq!(data, validation);
-            }
-            rand::random::<f64>() > 0.2
-        };
         let uut = TestFixture {
             a_source: SourceFromFn::new(a_rng),
             b_source: SourceFromFn::new(b_rng),
             zip: Zip::default(),
-            sink: SinkFromFn::new(consume),
+            sink: SinkFromFn::new_from_iter(c_rng, 0.2),
         };
         // Run a few samples through
         let input = repeat_n((), 10_000).with_reset(1).clock_pos_edge(100);

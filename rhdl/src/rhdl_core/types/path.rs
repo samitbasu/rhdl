@@ -11,7 +11,6 @@ use crate::rhdl_core::rhif::spec::Member;
 use crate::rhdl_core::rhif::spec::Slot;
 use crate::rhdl_core::DiscriminantAlignment;
 use crate::rhdl_core::Kind;
-use crate::rhdl_core::TypedBits;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum PathError {
@@ -65,7 +64,7 @@ pub enum PathError {
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub enum PathElement {
     Index(usize),
     TupleIndex(usize),
@@ -99,7 +98,7 @@ impl std::fmt::Debug for Path {
                 PathElement::Field(s) => write!(f, ".{}", s)?,
                 PathElement::EnumDiscriminant => write!(f, "#")?,
                 PathElement::EnumPayload(s) => write!(f, "#{}", s)?,
-                PathElement::EnumPayloadByValue(v) => write!(f, "#{:?}", v)?,
+                PathElement::EnumPayloadByValue(v) => write!(f, "#{}", v)?,
                 PathElement::DynamicIndex(slot) => write!(f, "[[{:?}]]", slot)?,
                 PathElement::SignalValue => write!(f, "@")?,
             }
@@ -167,7 +166,7 @@ impl Path {
     pub fn is_empty(&self) -> bool {
         self.elements.is_empty()
     }
-    pub fn payload_by_value(mut self, discriminant: TypedBits) -> Self {
+    pub fn payload_by_value(mut self, discriminant: i64) -> Self {
         self.elements
             .push(PathElement::EnumPayloadByValue(discriminant));
         self

@@ -35,6 +35,27 @@ impl<T: Digital> SinkFromFn<T> {
     }
 }
 
+impl<T: Digital + std::fmt::Debug> SinkFromFn<T> {
+    /// Create a new [SinkFromFn] object from the given iterator
+    ///
+    /// This constructor will create a sink that expects each item from the
+    /// sink to match an item from the generated iterator.  It will also
+    /// return a random number indicating acceptance based on the passed probability.
+    pub fn new_from_iter<S: Iterator<Item = T> + 'static>(
+        mut iter: S,
+        stall_probability: f32,
+    ) -> Self {
+        let func = move |x| {
+            if let Some(res) = x {
+                let y = iter.next().unwrap();
+                assert_eq!(res, y);
+            }
+            rand::random::<f32>() > stall_probability
+        };
+        Self::new(func)
+    }
+}
+
 impl<T> SynchronousIO for SinkFromFn<T>
 where
     T: Digital,

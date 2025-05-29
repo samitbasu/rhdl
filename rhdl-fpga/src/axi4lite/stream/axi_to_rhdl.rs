@@ -159,19 +159,12 @@ mod tests {
     #[test]
     fn test_axi_to_rhdl() -> Result<(), RHDLError> {
         let a_rng = XorShift128::default().map(|x| b8((x & 0xFF) as u128));
-        let mut b_rng = a_rng.clone();
+        let b_rng = a_rng.clone();
         let a_rng = stalling(a_rng, 0.23);
-        let consume = move |data: Option<b8>| {
-            if let Some(data) = data {
-                let orig = b_rng.next().unwrap();
-                assert_eq!(data, orig);
-            }
-            rand::random::<f64>() > 0.2
-        };
         let uut = TestFixture {
             source: SourceFromFn::new(a_rng),
             axi_2_rhdl: Axi2Rhdl::default(),
-            sink: SinkFromFn::new(consume),
+            sink: SinkFromFn::new_from_iter(b_rng, 0.2),
         };
         let input = iter::repeat_n((), 10_000).with_reset(1).clock_pos_edge(100);
         uut.run_without_synthesis(input)?.for_each(drop);
