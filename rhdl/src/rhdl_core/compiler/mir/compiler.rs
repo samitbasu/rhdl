@@ -589,27 +589,6 @@ impl<'a> MirContext<'a> {
                 Ok(CaseArgument::Slot(disc))
             }
             ArmKind::Enum(arm_enum) => {
-                /*
-
-                target is the target of the match.  So we have something
-                like:
-
-                match target {
-                   pattern_1(a, b, c) => {block_1},
-                   pattern_2(a, b, c) => {block_2},
-                }
-
-                The bind_pattern method already handles creating names for (a, b, c).
-                The discriminant is the discriminant of the pattern when interpreted as
-                a value.  So, for example, if the pattern was
-
-                (Some(a), Err(b)) --> (true, false) // Assuming discriminant is true for Some, etc.
-
-                This matters because the variable bindings depend on destructuring the
-                target using the particulars of the discriminants.  In the above example, we
-                know that target has the type `(Some::<T>, Result::<O, E>)`.
-
-                 */
                 log::trace!("arm enum {:?}", arm_enum);
                 self.new_scope();
                 // Allocate the local bindings for the match pattern
@@ -631,15 +610,6 @@ impl<'a> MirContext<'a> {
                 let disc_as_i64 = discriminant.as_i64()?;
                 let path =
                     crate::rhdl_core::types::path::Path::default().payload_by_value(disc_as_i64);
-                // Payload represents:
-                //   (target.0#disc0, target.1#disc1)
-                // if the payload is a tuple.
-                // This operation is a bit complicated.  Ideally, it should be
-                // represented by the path operation
-                //   target#(disc0, disc1)
-                // which means that the discriminant operation now needs to take
-                // a more complicated notion of the discriminant.  A simple 64 bit
-                // integer no longer works.
                 let payload = self.reg(arm_enum.pat.id);
                 self.op(op_index(payload, target, path), arm_enum.pat.id);
                 self.initialize_local(&arm_enum.pat, payload)?;
