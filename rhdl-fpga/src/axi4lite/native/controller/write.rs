@@ -83,6 +83,46 @@
 //! inputs (outputs) so as to be spec compliant (i.e., no
 //! combinatorial logic on the bus is allowed in AXI).
 //!
+//!# Example
+//!
+//! An example of using a [WriteController] and [WriteEndpoint]
+//! together in a test harness is included here:
+//!
+#![doc = badascii!(r"
++CmdSrc+-+         ++WriteController+   5/6    +-+WriteEndpoint+-+    7    +CmdSink++
+|        |     1   |  sink          | awaddr   |   source        |?WriteCmd|        |
+|        |?WriteCmd|                +--------->|       req.data  +-------->|        |
+|        +-------->| req.data       | awvalid  |                 |    8    |        |
+|        |     2   |                +--------->|       req.ready |<-------+|        |
+|        |<--------+ req.ready      | awready  |                 |         |        |
+|        |         |                |<---------+                 |         |        |
++--------+         |                | wdata    |                 |         +--------+
+                   |                +--------->| axi             |                   
+                   |                | wstrobe  |                 |                   
+                   |                +--------->|                 |                   
+                   |                | wvalid   |                 |                   
+                   |                +--------->|                 |                   
+                   |                | wready   |                 |                   
+                   |  - - - - - -   |<---------+  - - - - - -    |                   
++------+       3   |  source        | bresp    |  sink           |     9     +------+
+|      |?WriteReslt|                |<---------+                 |?WriteReslt|      |
+|Write |<----------+ resp.data      | bvalid   |       resp.data |<----------+Write |
+|Result|       4   |                |<---------+                 |     10    |Result|
+|Sink  +---------->| resp.ready     | bready   |      resp.ready +---------->|Source|
+|      |           |                +--------->|                 |           |      |
++------+           +----------------+          +-----------------+           +------+
+")]
+//!
+//! Non-synthesizable functions are used to generate a stream of random
+//! [WriteCommand]s and [WriteResult]s.
+//!
+//!```
+#![doc = include_str!("../../../../examples/axi_write.rs")]
+//!```
+//!
+//! with a trace file
+//!
+#![doc = include_str!("../../../../doc/axi_write.md")]
 
 use badascii_doc::{badascii, badascii_formal};
 

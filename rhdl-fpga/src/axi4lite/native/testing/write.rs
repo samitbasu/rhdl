@@ -88,7 +88,7 @@ mod tests {
                 addr: bits(addr as u128),
                 strobed_data: StrobedData {
                     data: bits(data as u128),
-                    strobe: bits(0b0011 as u128),
+                    strobe: bits(0b0011),
                 },
             }
         })
