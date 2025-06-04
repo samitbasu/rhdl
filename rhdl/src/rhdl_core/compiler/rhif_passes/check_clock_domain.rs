@@ -25,6 +25,9 @@ impl Pass for CheckClockDomain {
         check_clock_domain(&input)?;
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Check for clock domain crossing errors"
+    }
 }
 
 struct ClockDomainContext<'a> {

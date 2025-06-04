@@ -68,4 +68,7 @@ impl Pass for LowerMultiplyToShift {
         }
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Lower multiply by 2^N to a shift"
+    }
 }

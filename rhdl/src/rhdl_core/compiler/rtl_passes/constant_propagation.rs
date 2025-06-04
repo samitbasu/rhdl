@@ -39,7 +39,8 @@ fn propagate_binary(
     if let (Operand::Literal(arg1), Operand::Literal(arg2)) = (arg1, arg2) {
         let arg1_val: TypedBits = obj.literals[&arg1].clone().into();
         let arg2_val: TypedBits = obj.literals[&arg2].clone().into();
-        let result: BitString = crate::rhdl_core::rtl::runtime_ops::binary(op, arg1_val, arg2_val)?.into();
+        let result: BitString =
+            crate::rhdl_core::rtl::runtime_ops::binary(op, arg1_val, arg2_val)?.into();
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs,
@@ -390,5 +391,8 @@ impl Pass for ConstantPropagationPass {
             })
             .collect::<Result<Vec<_>, RHDLError>>()?;
         Ok(input)
+    }
+    fn description() -> &'static str {
+        "Constant propagation"
     }
 }

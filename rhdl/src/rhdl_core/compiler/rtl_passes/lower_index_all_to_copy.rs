@@ -28,4 +28,7 @@ impl Pass for LowerIndexAllToCopy {
         input.ops = ops;
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Lower index all to a copy"
+    }
 }

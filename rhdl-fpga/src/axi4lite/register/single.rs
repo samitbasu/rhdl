@@ -1,185 +1,176 @@
-// A simple single register with an AXI bus interface for reading
-// and writing it.  Ignores the address information (i.e., the
-// register is read or written for any address in the address space
-// of the bus).  This is fine, since it is the responsibility of the
-// interconnect to ensure non-overlapping address spaces.
-use crate::{
-    axi4lite::{
-        basic::bridge,
-        types::{strobe_to_mask, AXI4Error, AxilAddr, AxilData, WriteCommand, MISO, MOSI},
-    },
-    core::{dff, option::unpack},
-};
+//! A Single register on the AXI Bus
+//!
+//! A simple dual ported register with an AXI4Lite bus interface.
+//! The address of the register is provided when the core is
+//! instantiated.
+//!
+//!# Schematic Symbol
+//!
+//! Here is the symbol for the core.
+//!
+#![doc = badascii_formal!(r"
+      +--+AXI4Reg+-+       
+      |            | b32     
+      |      read  +------>
++---->|            |       
+ axi  |            | ?b32    
+<----+|     write  |<-----+
+      |            |       
+      +------------+      
+")]
+//!
+//!# Internal Details
+//!
+//! Internally, the register contains both a [ReadEndpoint] and
+//! [WriteEndpoint] for communication with the AXI bus.  The
+//! address is checked against a provided value.  Write contention
+//! (i.e., writes to the register from both the client side
+//! and the AXI side on the same clock cycle) are resolved in
+//! factor of the client.
+#![doc = badascii!(r"
+                          Write                 Read                          
+       ++WriteEp++       ++Dec++   ++Reg+--+   ++Dec++ ?Axil ++ReadEp++       
+       |         |?WrCmd |     |   |       |   |     |  Addr |        |       
+       |         +------>|     |   |       |   |     |<------+        |       
++----->|         | ready |     +-->|       +-->|     | ready |        +------>
+  axi  |         |<------+     |   |  b32  |   |     +------>|        |  axi  
+<------+         |?WrResp|     |   |       |   |     |?RdResp|        |<-----+
+       |         |<------+     |<--+       |<--+     +------>|        |       
+       |         | ready |     |   |       |   |     | ready |        |       
+       |         +------>|     |   | o   i |   |     |<------+        |       
+       +---------+       +-----+   +-+-----+   +-----+       +--------+       
+                                     |   ^                                    
+                                     v   |                                    
+                                         +                                    
+")]
+use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U {
-    // We need a read bridge
-    read_bridge: bridge::read::U,
-    // And a register to hold the value
-    reg: dff::DFF<AxilData>,
-    // And a write bridge
-    write_bridge: bridge::write::U,
+use crate::{
+    axi4lite::{
+        native::endpoint::{read::ReadEndpoint, write::WriteEndpoint},
+        types::{
+            strobe_to_mask, AXI4Error, AxilAddr, AxilData, ExFlag, ReadMISO, ReadMOSI, WriteMISO,
+            WriteMOSI,
+        },
+    },
+    core::{constant::Constant, dff::DFF},
+};
+
+#[derive(Clone, Synchronous, SynchronousDQ)]
+/// AXI Register
+///
+/// This core provides a single dual-ported register
+/// that has an AXI4Lite bus interface.  The address
+/// of the register is provided at construction time.
+pub struct AxiRegister {
+    read: ReadEndpoint,
+    write: WriteEndpoint,
+    data: DFF<AxilData>,
+    address: Constant<AxilAddr>,
+}
+
+impl AxiRegister {
+    /// Create a register with the provided
+    /// default value and the given register
+    /// Where `address` is the address of the register
+    /// and `reset_val` is the reset value of the
+    /// register.
+    pub fn new(address: AxilAddr, reset_val: AxilData) -> Self {
+        Self {
+            read: ReadEndpoint::default(),
+            write: WriteEndpoint::default(),
+            data: DFF::new(reset_val),
+            address: Constant::new(address),
+        }
+    }
 }
 
 #[derive(PartialEq, Debug, Digital)]
-pub struct I {
-    pub axi: MOSI,
+/// Input for the [AxiRegister]
+pub struct In {
+    /// AXI signals from the bus for reading
+    pub read_axi: ReadMOSI,
+    /// AXI signals from the bus for writing
+    pub write_axi: WriteMOSI,
+    /// Write data from the client side
+    pub data: Option<AxilData>,
 }
 
 #[derive(PartialEq, Debug, Digital)]
-pub struct O {
-    pub axi: MISO,
-    pub read_data: AxilData,
+/// Output for the [AxiRegister]
+pub struct Out {
+    /// AXI signals to the bus for reading
+    pub read_axi: ReadMISO,
+    /// AXI signals to the bus for writing
+    pub write_axi: WriteMISO,
+    /// Read data from the client side
+    pub data: AxilData,
 }
 
-impl SynchronousIO for U {
-    type I = I;
-    type O = O;
-    type Kernel = single_kernel;
+impl SynchronousIO for AxiRegister {
+    type I = In;
+    type O = Out;
+    type Kernel = kernel;
 }
 
 #[kernel]
-pub fn single_kernel(_cr: ClockReset, i: I, q: Q) -> (O, D) {
+#[doc(hidden)]
+pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
     let mut d = D::dont_care();
-    let mut o = O::dont_care();
-    // Connect the read bridge inputs and outputs to the bus
-    d.read_bridge.axi = i.axi.read;
-    o.axi.read = q.read_bridge.axi;
-    // Connect the write bridge inputs and outputs to the bus
-    d.write_bridge.axi = i.axi.write;
-    o.axi.write = q.write_bridge.axi;
-    // Connect the register
-    d.reg = q.reg;
-    // Determine if a read was requested
-    let (read_requested, read_addr) = unpack::<AxilAddr>(q.read_bridge.cmd);
-    // We can only accept new read commands if the reply sender is not full
-    d.read_bridge.cmd_next = false;
-    d.read_bridge.reply = None;
-    if !q.read_bridge.reply_full && read_requested {
-        // Ack the command
-        d.read_bridge.cmd_next = true;
-        if read_addr == 0 {
-            d.read_bridge.reply = Some(Ok(q.reg.resize()));
-        } else {
-            d.read_bridge.reply = Some(Err(AXI4Error::DECERR));
+    let mut o = Out::dont_care();
+    d.write.axi = i.write_axi;
+    o.write_axi = q.write.axi;
+    d.read.axi = i.read_axi;
+    o.read_axi = q.read.axi;
+    d.write.req_ready = q.write.resp_ready;
+    d.write.resp_data = None;
+    d.data = q.data;
+    if let Some(cmd) = q.write.req_data {
+        if q.write.resp_ready {
+            if cmd.addr == q.address {
+                let mask = strobe_to_mask(cmd.strobed_data.strobe);
+                d.data = (q.data & (!mask)) | (cmd.strobed_data.data & mask);
+                d.write.resp_data = Some(Ok(ExFlag::Normal));
+            } else {
+                d.write.resp_data = Some(Err(AXI4Error::DECERR));
+            }
         }
     }
-    // Determine if a write was requested
-    let (write_requested, write_command) = unpack::<WriteCommand>(q.write_bridge.cmd);
-    // We can only accept new write commands if the reply sender is not full
-    d.write_bridge.cmd_next = false;
-    d.write_bridge.reply = None;
-    if !q.write_bridge.reply_full && write_requested {
-        // Ack the command
-        d.write_bridge.cmd_next = true;
-        if write_command.addr == 0 {
-            let mask = strobe_to_mask(write_command.strobed_data.strobe);
-            d.reg = (write_command.strobed_data.data & mask) | (q.reg & !mask);
-            d.write_bridge.reply = Some(Ok(()));
-        } else {
-            d.write_bridge.reply = Some(Err(AXI4Error::DECERR));
+    d.read.req_ready = q.read.resp_ready;
+    d.read.resp_data = None;
+    if let Some(req) = q.read.req_data {
+        if q.read.resp_ready {
+            if req == q.address {
+                d.read.resp_data = Some(Ok((ExFlag::Normal, q.data)));
+            } else {
+                d.read.resp_data = Some(Err(AXI4Error::DECERR));
+            }
         }
     }
-    // Copy out the register
-    o.read_data = q.reg;
+    if let Some(write) = i.data {
+        d.data = write;
+    }
+    o.data = q.data;
     (o, d)
 }
 
 #[cfg(test)]
 mod tests {
-    use expect_test::expect;
-
-    use crate::axi4lite::types::{ReadMOSI, WriteMOSI};
-
     use super::*;
 
-    fn write_val(addr: b32, val: b32) -> MOSI {
-        MOSI {
-            read: ReadMOSI {
-                araddr: bits(0),
-                arvalid: false,
-                rready: true,
-            },
-            write: WriteMOSI {
-                awaddr: addr,
-                awvalid: true,
-                wstrb: bits(0b1111),
-                wdata: val,
-                wvalid: true,
-                bready: true,
-            },
-        }
-    }
-
-    fn idle_val() -> MOSI {
-        MOSI {
-            read: ReadMOSI {
-                araddr: bits(0),
-                arvalid: false,
-                rready: true,
-            },
-            write: WriteMOSI {
-                awaddr: bits(0),
-                awvalid: false,
-                wdata: bits(0),
-                wstrb: bits(0),
-                wvalid: false,
-                bready: true,
-            },
-        }
-    }
-
-    fn test_seq() -> impl Iterator<Item = MOSI> {
-        [
-            idle_val(),
-            idle_val(),
-            write_val(bits(0), bits(42)),
-            idle_val(),
-            write_val(bits(4), bits(49)),
-            idle_val(),
-            write_val(bits(8), bits(20)),
-            idle_val(),
-            idle_val(),
-            idle_val(),
-            idle_val(),
-        ]
-        .into_iter()
-    }
-
     #[test]
-    fn test_register_trace() -> miette::Result<()> {
-        let uut = U::default();
-        let input = test_seq()
-            .map(|x| I { axi: x })
-            .with_reset(1)
-            .clock_pos_edge(100);
-        let vcd = uut.run(input)?.collect::<Vcd>();
-        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("vcd")
-            .join("axi4lite")
-            .join("register");
-        std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["a9ca4a460f2d5987f12e258478de21c90e8f301ec444b85e9d975a2302e603e4"];
-        let digest = vcd
-            .dump_to_file(&root.join("single_register_test.vcd"))
-            .unwrap();
-        expect.assert_eq(&digest);
+    fn no_combinatorial_paths() -> miette::Result<()> {
+        let uut = AxiRegister::new(bits(0), bits(0));
+        AxiRegister::new(bits(0), bits(0));
+        drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }
 
     #[test]
-    fn test_hdl_generation() -> miette::Result<()> {
-        let uut = U::default();
-        let input = test_seq()
-            .map(|x| I { axi: x })
-            .with_reset(1)
-            .clock_pos_edge(100);
-        let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
-        let tm = test_bench.rtl(&uut, &Default::default())?;
-        tm.run_iverilog()?;
-        let tm = test_bench.flow_graph(&uut, &Default::default())?;
-        tm.run_iverilog()?;
+    fn hdl_is_ok() -> miette::Result<()> {
+        let uut = AxiRegister::new(bits(0), bits(0));
+        let _ = uut.hdl("top")?;
         Ok(())
     }
 }

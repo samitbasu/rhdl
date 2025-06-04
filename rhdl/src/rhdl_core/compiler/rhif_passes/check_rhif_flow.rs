@@ -26,6 +26,9 @@ impl Pass for DataFlowCheckPass {
         check_rhif_flow(&input)?;
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Check that RHIF obeys SSA rules"
+    }
 }
 
 impl InitSet<'_> {

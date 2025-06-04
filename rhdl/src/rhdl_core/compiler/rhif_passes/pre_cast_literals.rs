@@ -22,6 +22,9 @@ struct CastCandidate {
 }
 
 impl Pass for PreCastLiterals {
+    fn description() -> &'static str {
+        "Pre-cast literals to final type"
+    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         // Collect a candidate list of literals to cast
         let mut candidates: HashSet<CastCandidate> = Default::default();

@@ -16,4 +16,5 @@ pub trait Pass {
         })
     }
     fn run(input: Object) -> Result<Object, RHDLError>;
+    fn description() -> &'static str;
 }

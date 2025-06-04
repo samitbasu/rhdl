@@ -27,4 +27,7 @@ impl Pass for LowerSingleConcatToCopy {
         input.ops = ops;
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Lower single concat to a copy"
+    }
 }

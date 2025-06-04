@@ -57,4 +57,7 @@ impl Pass for LowerNotEqualZeroToAny {
             .collect();
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Lower NotEqual to Any"
+    }
 }

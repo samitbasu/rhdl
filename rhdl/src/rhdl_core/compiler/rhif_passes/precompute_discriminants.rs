@@ -13,6 +13,9 @@ use super::pass::Pass;
 pub struct PrecomputeDiscriminantPass {}
 
 impl Pass for PrecomputeDiscriminantPass {
+    fn description() -> &'static str {
+        "Precompute discriminants of literals"
+    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut new_literals = vec![];
         let literals = input.literals.clone();

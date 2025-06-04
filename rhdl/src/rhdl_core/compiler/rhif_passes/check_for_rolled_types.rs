@@ -38,6 +38,9 @@ fn check_register_like(
 }
 
 impl Pass for CheckForRolledTypesPass {
+    fn description() -> &'static str {
+        "Check for hand rolled types in use"
+    }
     fn run(obj: Object) -> Result<Object, RHDLError> {
         let slot_type = |slot: &Slot| -> Kind { obj.kind(*slot) };
         let roll_error = |cause: Syntax, slot: Slot, loc: SourceLocation| -> RHDLError {

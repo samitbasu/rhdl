@@ -81,4 +81,7 @@ impl Pass for DeadCodeEliminationPass {
             .collect();
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Dead code elimination"
+    }
 }

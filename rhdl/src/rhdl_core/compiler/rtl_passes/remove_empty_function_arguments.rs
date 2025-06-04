@@ -48,4 +48,7 @@ impl Pass for RemoveEmptyFunctionArguments {
             .collect();
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Remove empty function arguments"
+    }
 }

@@ -19,6 +19,9 @@ fn find_assign_op(ops: &[LocatedOpCode]) -> Option<usize> {
 }
 
 impl Pass for RemoveExtraRegistersPass {
+    fn description() -> &'static str {
+        "Remove extra registers"
+    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         while let Some(op_ndx) = find_assign_op(&input.ops) {
             let lop = input.ops[op_ndx].clone();

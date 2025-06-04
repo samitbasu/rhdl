@@ -35,4 +35,7 @@ impl Pass for RemoveUnusedOperandsPass {
             .retain(|&lit_id, _| used_set.contains(&Operand::Literal(lit_id)));
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Remove unused operands from input list"
+    }
 }

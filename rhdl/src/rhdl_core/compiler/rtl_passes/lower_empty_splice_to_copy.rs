@@ -34,4 +34,7 @@ impl Pass for LowerEmptySpliceToCopy {
         input.ops = ops;
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Lower empty splice to copy"
+    }
 }

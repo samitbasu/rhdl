@@ -12,6 +12,9 @@ use super::pass::Pass;
 pub struct LowerInferredCastsPass {}
 
 impl Pass for LowerInferredCastsPass {
+    fn description() -> &'static str {
+        "Lower inferred casts to concrete casts"
+    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut ops = input.ops.clone();
         for lop in ops.iter_mut() {

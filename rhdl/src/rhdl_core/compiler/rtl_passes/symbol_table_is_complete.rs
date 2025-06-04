@@ -40,4 +40,7 @@ impl Pass for SymbolTableIsComplete {
         }
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Check that symbol table is complete"
+    }
 }

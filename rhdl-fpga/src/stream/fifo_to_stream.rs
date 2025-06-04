@@ -75,7 +75,7 @@ clk     +----+    +----+    +----+
 //! Here is the schematic symbol for the [FIFOToStream] buffer
 //!
 #![doc = badascii_formal!("
-     +-+FifoToRV+---+     
+     ++FifoToStrm+--+     
  ?T  |              +?T   
 +--->|data     data +---->
      |              |     

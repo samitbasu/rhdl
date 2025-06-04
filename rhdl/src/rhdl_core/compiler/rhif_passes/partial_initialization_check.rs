@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+use log::trace;
+
 use crate::rhdl_core::{
     ast::{source::source_location::SourceLocation, KernelFlags},
     compiler::mir::error::RHDLPartialInitializationError,
@@ -20,6 +22,9 @@ pub struct PartialInitializationCheck;
 // We want to prove that it cannot be partially initialized.
 
 impl Pass for PartialInitializationCheck {
+    fn description() -> &'static str {
+        "Check for incomplete initialization"
+    }
     fn run(input: Object) -> Result<Object, RHDLError> {
         let mut map: CoverageMap = CoverageMap {
             obj: &input,
@@ -60,6 +65,7 @@ impl CoverageMap<'_> {
         })
     }
     fn declare_covered(&mut self, slot: Slot) {
+        trace!("Slot {slot:?} is covered");
         if let Some(entry) = self.map.get_mut(&slot) {
             entry.iter_mut().for_each(|b| *b = true);
         } else {
@@ -69,6 +75,7 @@ impl CoverageMap<'_> {
         }
     }
     fn ensure_covered(&self, slot: Slot, loc: SourceLocation) -> Result<(), RHDLError> {
+        trace!("Ensure {slot:?} is covered");
         if self.obj.kind(slot).is_empty() {
             return Ok(());
         }
@@ -92,6 +99,14 @@ impl CoverageMap<'_> {
             .clone()
     }
     fn cover(&mut self, slot: Slot, coverage: Vec<bool>) {
+        trace!(
+            "Cover {slot:?} with pattern {}",
+            coverage
+                .iter()
+                .rev()
+                .map(|x| if *x { '1' } else { '0' })
+                .collect::<String>()
+        );
         self.map.insert(slot, coverage);
     }
 }
@@ -125,6 +140,7 @@ fn check_for_partial_initialization(map: &mut CoverageMap) -> Result<(), RHDLErr
         map.cover(Slot::Literal(*literal), coverage);
     }
     for lop in &obj.ops {
+        trace!("Analyzing op {:?}", lop.op);
         let op = &lop.op;
         let loc = lop.loc;
         match op {
@@ -192,12 +208,8 @@ fn check_for_partial_initialization(map: &mut CoverageMap) -> Result<(), RHDLErr
             }
             OpCode::Splice(inner) => {
                 if inner.path.any_dynamic() {
-                    map.ensure_covered(inner.orig, loc)?;
-                    map.ensure_covered(inner.subst, loc)?;
-                    for slot in inner.path.dynamic_slots() {
-                        map.ensure_covered(*slot, loc)?;
-                    }
-                    map.declare_covered(inner.lhs);
+                    let arg = map.coverage(inner.orig);
+                    map.cover(inner.lhs, arg);
                 } else {
                     let kind = obj.kind(inner.orig);
                     let (bits, _) = bit_range(kind, &inner.path)?;

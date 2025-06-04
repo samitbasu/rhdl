@@ -40,4 +40,7 @@ impl Pass for LowerShiftsByZeroToCopy {
             .collect();
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Lower shift by zero to a copy"
+    }
 }

@@ -28,4 +28,7 @@ impl Pass for CheckNoZeroResize {
         }
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Check for no resize to zero"
+    }
 }
