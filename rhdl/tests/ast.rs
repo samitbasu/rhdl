@@ -641,3 +641,25 @@ fn test_maybe_init_with_enum() -> miette::Result<()> {
     compile_design::<do_stuff>(CompilationMode::Asynchronous)?;
     Ok(())
 }
+
+#[test]
+fn test_maybe_init_with_slice() -> miette::Result<()> {
+    #[derive(PartialEq, Digital)]
+    pub struct Foo {
+        fields: [b4; 3],
+        data: bool,
+    }
+
+    #[kernel]
+    fn do_stuff(_cr: ClockReset, val: bool, ndx: b2) -> Foo {
+        let mut d = Foo::dont_care();
+        d.fields = <[b4; 3]>::default();
+        if val {
+            d.fields[ndx] = bits(3);
+        }
+        d.data = val;
+        d
+    }
+    compile_design::<do_stuff>(CompilationMode::Synchronous)?;
+    Ok(())
+}
