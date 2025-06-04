@@ -1,3 +1,5 @@
+use log::info;
+
 use crate::rhdl_core::{
     compiler::{
         mir::{compiler::compile_mir, infer::infer},
@@ -30,6 +32,7 @@ use crate::rhdl_core::{
 type Result<T> = std::result::Result<T, RHDLError>;
 
 fn wrap_pass<P: Pass>(obj: Object) -> Result<Object> {
+    info!("Running Stage 1 Compiler Pass {}", P::description());
     let obj = P::run(obj)?;
     let obj = SymbolTableIsComplete::run(obj)?;
     Ok(obj)
@@ -62,6 +65,10 @@ pub(crate) fn compile(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
         hash = new_hash;
     }
     if matches!(mode, CompilationMode::Asynchronous) {
+        info!(
+            "Running Stage 1 Compiler Pass {}",
+            CheckClockDomain::description()
+        );
         obj = CheckClockDomain::run(obj)?;
     }
     let mut hash = obj.hash_value();
@@ -86,8 +93,20 @@ pub(crate) fn compile(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
         }
         hash = new_hash;
     }
+    info!(
+        "Running Stage 1 Compiler Pass {}",
+        TypeCheckPass::description()
+    );
     obj = TypeCheckPass::run(obj)?;
+    info!(
+        "Running Stage 1 Compiler Pass {}",
+        DataFlowCheckPass::description()
+    );
     obj = DataFlowCheckPass::run(obj)?;
+    info!(
+        "Running Stage 1 Compiler Pass {}",
+        PartialInitializationCheck::description()
+    );
     obj = PartialInitializationCheck::run(obj)?;
     Ok(obj)
 }

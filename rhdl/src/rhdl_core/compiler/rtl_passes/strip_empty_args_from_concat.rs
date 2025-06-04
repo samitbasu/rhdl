@@ -25,4 +25,7 @@ impl Pass for StripEmptyArgsFromConcat {
         input.ops = ops;
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Strip empty args from concats"
+    }
 }

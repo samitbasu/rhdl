@@ -497,7 +497,12 @@ fn propogate_exec(
 }
 
 impl Pass for ConstantPropagation {
-    fn run(mut input: crate::rhdl_core::rhif::Object) -> Result<crate::rhdl_core::rhif::Object, crate::rhdl_core::RHDLError> {
+    fn description() -> &'static str {
+        "RHIF constant propogation"
+    }
+    fn run(
+        mut input: crate::rhdl_core::rhif::Object,
+    ) -> Result<crate::rhdl_core::rhif::Object, crate::rhdl_core::RHDLError> {
         let ops = std::mem::take(&mut input.ops);
         input.ops = ops
             .into_iter()

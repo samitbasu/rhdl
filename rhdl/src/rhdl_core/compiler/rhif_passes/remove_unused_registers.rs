@@ -11,6 +11,9 @@ use super::pass::Pass;
 pub struct RemoveUnusedRegistersPass {}
 
 impl Pass for RemoveUnusedRegistersPass {
+    fn description() -> &'static str {
+        "Remove unused registers"
+    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut used_set: HashSet<Slot> = Default::default();
         used_set.extend(input.arguments.iter().map(|r| Slot::Register(*r)));

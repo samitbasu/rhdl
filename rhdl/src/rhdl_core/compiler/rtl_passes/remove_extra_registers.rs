@@ -80,4 +80,7 @@ impl Pass for RemoveExtraRegistersPass {
         }
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Remove extra registers"
+    }
 }

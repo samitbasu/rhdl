@@ -26,6 +26,9 @@ impl Pass for TypeCheckPass {
         check_type_correctness(&input)?;
         Ok(input)
     }
+    fn description() -> &'static str {
+        "RHIF code type checking"
+    }
 }
 
 // For type checking purposes, a dynamic path index

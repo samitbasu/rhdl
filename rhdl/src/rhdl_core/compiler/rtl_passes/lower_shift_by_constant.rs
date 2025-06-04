@@ -137,4 +137,7 @@ impl Pass for LowerShiftByConstant {
         }
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Lower shift by a constant to index/concat operation"
+    }
 }

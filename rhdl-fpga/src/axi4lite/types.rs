@@ -215,7 +215,7 @@ pub fn write_response_to_result(resp: ResponseKind) -> Result<(), AXI4Error> {
 
 */
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Default)]
 /// MOSI signals for the read interface
 ///
 /// These are the address, and protocol lines for the

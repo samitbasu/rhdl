@@ -6,18 +6,43 @@
 //! cycles.  This is to simulate a bursty data source.  Note that the behavior is
 //! deterministic.  The number of sleep cycles is also fixed, so that a single parameter
 //! can be used to control the "burstiness" of the data.
+//!
+//!# Schematic Symbol
+//!
+//! The [FIFOFiller] has the following symbol:
+//!
+#![doc = badascii_formal!(r"
+++FIFOFiller++      
+|            | ?bN  
+|      data  +----->
+|            |      
+|            |      
+|       full |<----+
+|            |      
++------------+      
+")]
+//!
+//! Internally, the [FIFOFiller] uses an [XorShift]
+//! core to generate a sequence of pseudorandom 32
+//! bit values.  These are used to both generate the
+//! output data, and to determine if the core will sleep.
+//!
+use badascii_doc::badascii_formal;
 use rhdl::prelude::*;
 
-use crate::core::{
-    constant, dff,
-    slice::{lsbs, msbs},
+use crate::{
+    core::{
+        constant, dff,
+        slice::{lsbs, msbs},
+    },
+    rng::xorshift::XorShift,
 };
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 /// The FIFO Filler core
 pub struct FIFOFiller<N: BitWidth> {
     _marker: constant::Constant<Bits<N>>,
-    rng: crate::rng::xorshift::XorShift,
+    rng: XorShift,
     sleep_counter: dff::DFF<Bits<U4>>,
     sleep_len: constant::Constant<Bits<U4>>,
     write_probability: constant::Constant<Bits<U16>>,

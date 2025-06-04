@@ -32,4 +32,7 @@ impl Pass for LowerSignalCasts {
         input.ops = input.ops.into_iter().map(lower_cast).collect();
         Ok(input)
     }
+    fn description() -> &'static str {
+        "Lower signal casts to noop"
+    }
 }

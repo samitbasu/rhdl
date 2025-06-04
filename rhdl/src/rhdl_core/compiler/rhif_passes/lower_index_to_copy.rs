@@ -11,6 +11,9 @@ use super::pass::Pass;
 pub struct LowerIndexToCopy {}
 
 impl Pass for LowerIndexToCopy {
+    fn description() -> &'static str {
+        "Lower index operations to copies"
+    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut ops = Vec::new();
         for lop in input.ops {

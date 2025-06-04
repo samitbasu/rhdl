@@ -12,6 +12,9 @@ use super::pass::Pass;
 pub struct RemoveUnneededMuxesPass {}
 
 impl Pass for RemoveUnneededMuxesPass {
+    fn description() -> &'static str {
+        "Remove unneeded muxes (literal selector or equal branches)"
+    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         for lop in input.ops.iter_mut() {
             if let OpCode::Select(select) = lop.op.clone() {

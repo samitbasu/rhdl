@@ -21,36 +21,41 @@ use crate::rhdl_core::{
     },
     rtl, RHDLError,
 };
-use log::debug;
+use log::{debug, info};
 
 type Result<T> = std::result::Result<T, RHDLError>;
+
+fn wrap_pass<P: Pass>(obj: rtl::Object) -> Result<rtl::Object> {
+    info!("Running Stage 2 compiler Pass {}", P::description());
+    P::run(obj)
+}
 
 pub(crate) fn compile(object: &crate::rhdl_core::rhif::Object) -> Result<rtl::Object> {
     let mut rtl = compile_to_rtl(object)?;
     let mut hash = rtl.hash_value();
     loop {
-        rtl = LowerSignalCasts::run(rtl)?;
-        rtl = RemoveExtraRegistersPass::run(rtl)?;
-        rtl = SymbolTableIsComplete::run(rtl)?;
-        rtl = RemoveUnusedOperandsPass::run(rtl)?;
-        rtl = StripEmptyArgsFromConcat::run(rtl)?;
-        rtl = DeadCodeEliminationPass::run(rtl)?;
-        rtl = LowerEmptySpliceToCopy::run(rtl)?;
-        rtl = LowerSingleConcatToCopy::run(rtl)?;
-        rtl = LowerIndexAllToCopy::run(rtl)?;
-        rtl = RemoveEmptyFunctionArguments::run(rtl)?;
-        rtl = LowerMultiplyToShift::run(rtl)?;
-        rtl = LowerShiftByConstant::run(rtl)?;
-        rtl = LowerShiftsByZeroToCopy::run(rtl)?;
-        rtl = LowerNotEqualZeroToAny::run(rtl)?;
-        rtl = ConstantPropagationPass::run(rtl)?;
+        rtl = wrap_pass::<LowerSignalCasts>(rtl)?;
+        rtl = wrap_pass::<RemoveExtraRegistersPass>(rtl)?;
+        rtl = wrap_pass::<SymbolTableIsComplete>(rtl)?;
+        rtl = wrap_pass::<RemoveUnusedOperandsPass>(rtl)?;
+        rtl = wrap_pass::<StripEmptyArgsFromConcat>(rtl)?;
+        rtl = wrap_pass::<DeadCodeEliminationPass>(rtl)?;
+        rtl = wrap_pass::<LowerEmptySpliceToCopy>(rtl)?;
+        rtl = wrap_pass::<LowerSingleConcatToCopy>(rtl)?;
+        rtl = wrap_pass::<LowerIndexAllToCopy>(rtl)?;
+        rtl = wrap_pass::<RemoveEmptyFunctionArguments>(rtl)?;
+        rtl = wrap_pass::<LowerMultiplyToShift>(rtl)?;
+        rtl = wrap_pass::<LowerShiftByConstant>(rtl)?;
+        rtl = wrap_pass::<LowerShiftsByZeroToCopy>(rtl)?;
+        rtl = wrap_pass::<LowerNotEqualZeroToAny>(rtl)?;
+        rtl = wrap_pass::<ConstantPropagationPass>(rtl)?;
         let new_hash = rtl.hash_value();
         if new_hash == hash {
             break;
         }
         hash = new_hash;
     }
-    rtl = CheckNoZeroResize::run(rtl)?;
+    rtl = wrap_pass::<CheckNoZeroResize>(rtl)?;
     debug!("{rtl:?}");
     Ok(rtl)
 }

@@ -1,109 +1,180 @@
+//! A Register bank on the AXI Bus
+//!
+//! This is a simple dual ported bank fo registers
+//! with an AXI4Lite bus interface.  The bank decodes
+//! the addresses and supports concurrent read and
+//! write operations from both the AXI4Lite bus interface
+//! and from the core itself.
+//!
+//!# Schematic Symbol
+//!
+//! Here is the symbol for the core.  For
+//! simplicity, we assume that 8 bits are enough
+//! to select one of the registers in the bank).
+//!
+#![doc = badascii_formal!(r"
+      ++AXI4RegBnk++      
+      |            | [b32; N]     
+      |      read  +--------->
++---->|            |      
+ axi  |            | ?(b8,b32)
+<----+|     write  |<--------+
+      |            |
+      +------------+      
+")]
+//!
+//!# Internal Details
+//!
+//! Internally, the register contains both a [ReadEndpoint] and
+//! [WriteEndpoint] for communication with the AXI bus.  The
+//! address is checked against a provided value.  Write contention
+//! (i.e., writes to the register from both the client side
+//! and the AXI side on the same clock cycle) are resolved in
+//! factor of the client.
+#![doc = badascii!(r"
+                          Write                 Read                          
+       ++WriteEp++       ++Dec++   ++Reg+--+   ++Dec++ ?Axil ++ReadEp++       
+       |         |?WrCmd |     |   |       |   |     |  Addr |        |       
+       |         +------>|     |   |       |   |     |<------+        |       
++----->|         | ready |     +-->|       +-->|     | ready |        +------>
+  axi  |         |<------+     |   |[b32;N]|   |     +------>|        |  axi  
+<------+         |?WrResp|     |   |       |   |     |?RdResp|        |<-----+
+       |         |<------+     |<--+       |<--+     +------>|        |       
+       |         | ready |     |   |       |   |     | ready |        |       
+       |         +------>|     |   | o   i |   |     |<------+        |       
+       +---------+       +-----+   +-+-----+   +-----+       +--------+       
+                                     |   ^                                    
+                                     v   |                                    
+                                 [b32;N] +?(ndx, data)                                   
+")]
+
+use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
 use crate::{
     axi4lite::{
-        basic::bridge,
-        types::{strobe_to_mask, AXI4Error, AxilAddr, AxilData, WriteCommand, MISO, MOSI},
+        native::endpoint::{read::ReadEndpoint, write::WriteEndpoint},
+        types::{
+            strobe_to_mask, AXI4Error, AxilAddr, AxilData, ExFlag, ReadMISO, ReadMOSI, WriteMISO,
+            WriteMOSI,
+        },
     },
-    core::{dff, option::unpack},
+    core::{constant::Constant, dff::DFF},
 };
 
-// Each register is at a different word address
-
-#[derive(Clone, Debug, SynchronousDQ, Synchronous)]
-pub struct U<const BANK_SIZE: usize> {
-    // We need a read bridge
-    read_bridge: bridge::read::U,
-    // And a set of registers to hold the values
-    reg: [dff::DFF<AxilData>; BANK_SIZE],
-    // And a write bridge
-    write_bridge: bridge::write::U,
+#[derive(Clone, Synchronous, SynchronousDQ)]
+/// AXI Register
+///
+/// This core provides a single dual-ported register
+/// that has an AXI4Lite bus interface.  The address
+/// of the register is provided at construction time.
+pub struct AxiRegBank<const N: usize> {
+    read: ReadEndpoint,
+    write: WriteEndpoint,
+    data: [DFF<AxilData>; N],
+    address_low: Constant<AxilAddr>,
+    address_high: Constant<AxilAddr>,
 }
 
-impl<const BANK_SIZE: usize> Default for U<BANK_SIZE> {
-    fn default() -> Self {
+impl<const N: usize> AxiRegBank<N> {
+    /// Create a register with the provided
+    /// default value and the given register
+    /// Where `address` is the address of the register
+    /// and `reset_val` is the reset value of the
+    /// register.
+    pub fn new(address: AxilAddr, reset_val: [AxilData; N]) -> Self {
+        assert!(N > 0 && N <= 256);
         Self {
-            read_bridge: Default::default(),
-            reg: array_init::array_init(|_| Default::default()),
-            write_bridge: Default::default(),
+            read: ReadEndpoint::default(),
+            write: WriteEndpoint::default(),
+            data: core::array::from_fn(|i| DFF::new(reset_val[i])),
+            address_low: Constant::new(address),
+            address_high: Constant::new(address + bits(N as u128 * 4)),
         }
     }
 }
 
 #[derive(PartialEq, Debug, Digital)]
-pub struct I {
-    pub axi: MOSI,
+/// Input for the [AxiRegBank]
+pub struct In {
+    /// AXI signals from the bus for reading
+    pub read_axi: ReadMOSI,
+    /// AXI signals from the bus for writing
+    pub write_axi: WriteMOSI,
+    /// Write data from the client side
+    pub data: Option<(b8, AxilData)>,
 }
 
 #[derive(PartialEq, Debug, Digital)]
-pub struct O<const BANK_SIZE: usize> {
-    pub axi: MISO,
-    pub read_data: [AxilData; BANK_SIZE],
+/// Output for the [AxiRegBank]
+pub struct Out<const N: usize> {
+    /// AXI signals to the bus for reading
+    pub read_axi: ReadMISO,
+    /// AXI signals to the bus for writing
+    pub write_axi: WriteMISO,
+    /// Read data from the client side
+    pub data: [AxilData; N],
 }
 
-impl<const BANK_SIZE: usize> SynchronousIO for U<BANK_SIZE> {
-    type I = I;
-    type O = O<BANK_SIZE>;
-    type Kernel = bank_kernel<BANK_SIZE>;
+impl<const N: usize> SynchronousIO for AxiRegBank<N> {
+    type I = In;
+    type O = Out<N>;
+    type Kernel = kernel<N>;
 }
 
 #[kernel]
-pub fn bank_kernel<const BANK_SIZE: usize>(
-    _cr: ClockReset,
-    i: I,
-    q: Q<BANK_SIZE>,
-) -> (O<BANK_SIZE>, D<BANK_SIZE>) {
-    let mut d = D::<BANK_SIZE>::dont_care();
-    let mut o = O::<BANK_SIZE>::dont_care();
-    // Connect the read bridge inputs and outputs to the bus
-    d.read_bridge.axi = i.axi.read;
-    o.axi.read = q.read_bridge.axi;
-    // Connect the write bridge inputs and outputs to the bus
-    d.write_bridge.axi = i.axi.write;
-    o.axi.write = q.write_bridge.axi;
-    // Connect the registers
-    for i in 0..BANK_SIZE {
-        d.reg[i] = q.reg[i];
-    }
-    let max_bank: AxilAddr = bits(BANK_SIZE as u128);
-    trace("max_bank", &max_bank);
-    // Determine if a read was requested
-    let (read_requested, read_addr) = unpack::<AxilAddr>(q.read_bridge.cmd);
-    // We can only accept new read commands if the reply sender is not full
-    d.read_bridge.cmd_next = false;
-    d.read_bridge.reply = None;
-    if !q.read_bridge.reply_full && read_requested {
-        // Acq the command
-        d.read_bridge.cmd_next = true;
-        // The right shift 2 here is because the address is in 8-bit bytes (octets),
-        // and we want to address 32 bit words.  Each work is 4 bytes.  Thus we
-        // need to divide the byte address by 4 to get the word address.
-        let word_addr = read_addr >> 2;
-        trace("word_addr", &word_addr);
-        if word_addr < max_bank {
-            d.read_bridge.reply = Some(Ok(q.reg[word_addr].resize()));
-        } else {
-            d.read_bridge.reply = Some(Err(AXI4Error::DECERR));
+#[doc(hidden)]
+pub fn kernel<const N: usize>(_cr: ClockReset, i: In, q: Q<N>) -> (Out<N>, D<N>) {
+    let mut d = D::<N>::dont_care();
+    let mut o = Out::<N>::dont_care();
+    d.write.axi = i.write_axi;
+    o.write_axi = q.write.axi;
+    d.read.axi = i.read_axi;
+    o.read_axi = q.read.axi;
+    d.write.req_ready = q.write.resp_ready;
+    d.write.resp_data = None;
+    d.data = q.data;
+    if let Some(cmd) = q.write.req_data {
+        if q.write.resp_ready {
+            if cmd.addr < q.address_low || cmd.addr > q.address_high {
+                d.write.resp_data = Some(Err(AXI4Error::DECERR));
+            } else {
+                // Each register takes 4 bytes, so we need to right shfit by 2
+                let reg_ndx = (cmd.addr - q.address_low) >> 2;
+                let mask = strobe_to_mask(cmd.strobed_data.strobe);
+                d.data[reg_ndx] = (q.data[reg_ndx] & (!mask)) | (cmd.strobed_data.data & mask);
+                d.write.resp_data = Some(Ok(ExFlag::Normal));
+            }
         }
     }
-    // Determine if a write was requested
-    let (write_requested, write_cmd) = unpack::<WriteCommand>(q.write_bridge.cmd);
-    // We can only accept new write commands if the reply sender is not full
-    d.write_bridge.cmd_next = false;
-    d.write_bridge.reply = None;
-    if !q.write_bridge.reply_full && write_requested {
-        // Ack the command
-        d.write_bridge.cmd_next = true;
-        let word_addr = write_cmd.addr >> 2;
-        if word_addr < max_bank {
-            let mask = strobe_to_mask(write_cmd.strobed_data.strobe);
-            d.reg[word_addr] = (write_cmd.strobed_data.data & mask) | (q.reg[word_addr] & !mask);
-            d.write_bridge.reply = Some(Ok(()));
-        } else {
-            d.write_bridge.reply = Some(Err(AXI4Error::DECERR));
+    d.read.req_ready = q.read.resp_ready;
+    d.read.resp_data = None;
+    if let Some(req) = q.read.req_data {
+        if q.read.resp_ready {
+            if req < q.address_low || req > q.address_high {
+                d.read.resp_data = Some(Err(AXI4Error::DECERR));
+            } else {
+                // Each register takes 4 bytes, so we need to right shift by 2
+                let reg_ndx = (req - q.address_low) >> 2;
+                d.read.resp_data = Some(Ok((ExFlag::Normal, q.data[reg_ndx])))
+            }
         }
     }
-    // Copy out the register
-    o.read_data = q.reg;
+    if let Some((ndx, write)) = i.data {
+        d.data[ndx] = write;
+    }
+    o.data = q.data;
     (o, d)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn no_combinatorial_paths() -> miette::Result<()> {
+        let uut: AxiRegBank<4> = AxiRegBank::new(bits(0x4_000_000), Default::default());
+        drc::no_combinatorial_paths(&uut)?;
+        Ok(())
+    }
 }

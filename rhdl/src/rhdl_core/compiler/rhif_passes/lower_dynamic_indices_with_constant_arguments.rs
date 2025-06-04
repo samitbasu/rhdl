@@ -27,6 +27,9 @@ fn simplify_path(path: Path, obj: &Object) -> Path {
 }
 
 impl Pass for LowerDynamicIndicesWithConstantArguments {
+    fn description() -> &'static str {
+        "Lower dynamic index ops with constant arguments"
+    }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let ops = input
             .ops
