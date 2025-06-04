@@ -43,6 +43,9 @@ fn is_buffer_like_select(node: FlowIx, graph: &GraphType) -> Option<Replacement>
 }
 
 impl Pass for LowerSelectWithIdenticalArgs {
+    fn description() -> &'static str {
+        "Lower select with identical args to buffers"
+    }
     fn run(mut input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         let mut graph = std::mem::take(&mut input.graph);
         let candidates = graph

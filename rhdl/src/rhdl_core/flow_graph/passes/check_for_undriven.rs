@@ -13,6 +13,9 @@ use super::pass::Pass;
 pub struct CheckForUndrivenPass {}
 
 impl Pass for CheckForUndrivenPass {
+    fn description() -> &'static str {
+        "Check for undriven nodes"
+    }
     fn run(input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         for node in input.graph.node_indices() {
             let component = input.graph.node_weight(node).unwrap();

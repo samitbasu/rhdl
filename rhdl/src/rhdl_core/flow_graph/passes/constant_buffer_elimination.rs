@@ -16,6 +16,9 @@ struct Candidate {
 }
 
 impl Pass for ConstantBufferEliminationPass {
+    fn description() -> &'static str {
+        "Constant buffer elimination"
+    }
     fn run(mut input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         let mut graph = std::mem::take(&mut input.graph);
         // Do this in several passes.  The first pass, scans the graph and finds buffer nodes

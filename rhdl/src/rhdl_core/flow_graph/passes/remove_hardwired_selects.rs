@@ -59,6 +59,10 @@ fn is_select_with_hardwired_control(graph: &GraphType, node: NodeIndex) -> bool 
 }
 
 impl Pass for RemoveHardwiredSelectsPass {
+    fn description() -> &'static str {
+        "Remove hardwired selects"
+    }
+
     fn run(mut input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         let mut graph = std::mem::take(&mut input.graph);
         let target_nodes = graph

@@ -54,6 +54,9 @@ fn is_identity_select(node: FlowIx, graph: &GraphType) -> Option<Replacement> {
 }
 
 impl Pass for LowerSelectToBufferPass {
+    fn description() -> &'static str {
+        "Lower identity-like select to buffers"
+    }
     fn run(mut input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         let mut graph = std::mem::take(&mut input.graph);
         let candidates = graph

@@ -22,4 +22,5 @@ pub trait Pass {
         })
     }
     fn run(input: FlowGraph) -> Result<FlowGraph, RHDLError>;
+    fn description() -> &'static str;
 }

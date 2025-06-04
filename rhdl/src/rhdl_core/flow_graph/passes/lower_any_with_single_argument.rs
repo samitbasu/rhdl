@@ -11,6 +11,10 @@ use super::pass::Pass;
 pub struct LowerAnyWithSingleArgument {}
 
 impl Pass for LowerAnyWithSingleArgument {
+    fn description() -> &'static str {
+        "Lower .any() for single bit values"
+    }
+
     fn run(mut input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         let mut graph = std::mem::take(&mut input.graph);
         let candidates = graph

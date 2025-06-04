@@ -199,6 +199,10 @@ fn compute_constant_equivalent(node: FlowIx, graph: &GraphType) -> Option<BitStr
 }
 
 impl Pass for ConstantPropagationPass {
+    fn description() -> &'static str {
+        "Constant propagation"
+    }
+
     fn run(mut input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         let mut graph = std::mem::take(&mut input.graph);
         let all_inputs_constant = |node| {

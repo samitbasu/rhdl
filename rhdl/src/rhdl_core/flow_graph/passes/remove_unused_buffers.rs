@@ -6,6 +6,9 @@ use super::pass::Pass;
 pub struct RemoveUnusedBuffers {}
 
 impl Pass for RemoveUnusedBuffers {
+    fn description() -> &'static str {
+        "Remove unused buffers"
+    }
     fn run(mut input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         let mut graph = std::mem::take(&mut input.graph);
         graph.retain_nodes(|graph, node| {
