@@ -84,6 +84,9 @@ fn rewrite_any_operation(orig_node: FlowIx, graph: &GraphType) -> Option<Replace
 }
 
 impl Pass for RemoveZerosFromAnyPass {
+    fn description() -> &'static str {
+        "Remove zeros from .any() inputs"
+    }
     fn run(mut input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         let mut graph = std::mem::take(&mut input.graph);
         let candidates = graph

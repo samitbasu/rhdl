@@ -39,6 +39,9 @@ fn get_select_constant_replacement(node: FlowIx, graph: &GraphType) -> Option<bo
 }
 
 impl Pass for RemoveUselessSelectsPass {
+    fn description() -> &'static str {
+        "Remove useless selects"
+    }
     fn run(mut input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         let mut graph = std::mem::take(&mut input.graph);
         let candidates = graph

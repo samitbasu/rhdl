@@ -20,27 +20,32 @@ use super::passes::{
     remove_zeros_from_any::RemoveZerosFromAnyPass,
 };
 
+fn run_pass<P: Pass>(flow_graph: FlowGraph) -> Result<FlowGraph, RHDLError> {
+    log::info!("Flow graph optimization pass {}", P::description());
+    P::run(flow_graph)
+}
+
 pub fn optimize_flow_graph(mut flow_graph: FlowGraph) -> Result<FlowGraph, RHDLError> {
     loop {
         let hash_id = flow_graph.hash_value();
-        flow_graph = ConstantBufferEliminationPass::run(flow_graph)?;
-        flow_graph = RemoveOrphanConstantsPass::run(flow_graph)?;
-        flow_graph = RemoveHardwiredSelectsPass::run(flow_graph)?;
-        flow_graph = RemoveUnusedBuffers::run(flow_graph)?;
-        flow_graph = ConstantPropagationPass::run(flow_graph)?;
-        flow_graph = RemoveUselessSelectsPass::run(flow_graph)?;
-        flow_graph = LowerCaseToSelectPass::run(flow_graph)?;
-        flow_graph = RemoveOrWithConstantPass::run(flow_graph)?;
-        flow_graph = RemoveAndWithConstantPass::run(flow_graph)?;
-        flow_graph = RemoveZerosFromAnyPass::run(flow_graph)?;
-        flow_graph = LowerAnyWithSingleArgument::run(flow_graph)?;
-        flow_graph = LowerSelectWithIdenticalArgs::run(flow_graph)?;
-        flow_graph = LowerSelectToBufferPass::run(flow_graph)?;
+        flow_graph = run_pass::<ConstantBufferEliminationPass>(flow_graph)?;
+        flow_graph = run_pass::<RemoveOrphanConstantsPass>(flow_graph)?;
+        flow_graph = run_pass::<RemoveHardwiredSelectsPass>(flow_graph)?;
+        flow_graph = run_pass::<RemoveUnusedBuffers>(flow_graph)?;
+        flow_graph = run_pass::<ConstantPropagationPass>(flow_graph)?;
+        flow_graph = run_pass::<RemoveUselessSelectsPass>(flow_graph)?;
+        flow_graph = run_pass::<LowerCaseToSelectPass>(flow_graph)?;
+        flow_graph = run_pass::<RemoveOrWithConstantPass>(flow_graph)?;
+        flow_graph = run_pass::<RemoveAndWithConstantPass>(flow_graph)?;
+        flow_graph = run_pass::<RemoveZerosFromAnyPass>(flow_graph)?;
+        flow_graph = run_pass::<LowerAnyWithSingleArgument>(flow_graph)?;
+        flow_graph = run_pass::<LowerSelectWithIdenticalArgs>(flow_graph)?;
+        flow_graph = run_pass::<LowerSelectToBufferPass>(flow_graph)?;
         if flow_graph.hash_value() == hash_id {
             break;
         }
     }
-    flow_graph = CheckForUndrivenPass::run(flow_graph)?;
-    flow_graph = CheckForLogicLoops::run(flow_graph)?;
+    flow_graph = run_pass::<CheckForUndrivenPass>(flow_graph)?;
+    flow_graph = run_pass::<CheckForLogicLoops>(flow_graph)?;
     Ok(flow_graph)
 }

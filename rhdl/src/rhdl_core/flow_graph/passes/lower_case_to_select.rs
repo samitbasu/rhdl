@@ -81,6 +81,10 @@ fn is_select_like_case(node: FlowIx, graph: &GraphType) -> Option<Replacement> {
 }
 
 impl Pass for LowerCaseToSelectPass {
+    fn description() -> &'static str {
+        "Lower case with 2 arms to a select"
+    }
+
     fn run(mut input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         let mut graph = std::mem::take(&mut input.graph);
         let candidates = graph

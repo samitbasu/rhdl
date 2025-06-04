@@ -24,6 +24,10 @@ fn _walk_incoming(graph: &FlowGraph, node: FlowIx, locations: &mut Vec<SourceLoc
 }
 
 impl Pass for CheckForUnconnectedClockReset {
+    fn description() -> &'static str {
+        "Check for unconnected clock reset (bypassed)"
+    }
+
     fn run(input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         /*         let need_connection = input.graph.node_indices().filter(|node| {
                    let component = input.graph.node_weight(*node).unwrap();

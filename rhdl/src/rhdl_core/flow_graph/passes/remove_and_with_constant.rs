@@ -64,6 +64,10 @@ fn get_useless_and_replacement(node: FlowIx, graph: &GraphType) -> Option<FlowIx
 }
 
 impl Pass for RemoveAndWithConstantPass {
+    fn description() -> &'static str {
+        "Remove & with a constant"
+    }
+
     fn run(mut input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         let mut graph = std::mem::take(&mut input.graph);
         // candidates is a list of original, replacement pairs

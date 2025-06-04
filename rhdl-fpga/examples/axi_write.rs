@@ -3,7 +3,6 @@
 
 use std::iter::repeat_n;
 
-use badascii_doc::badascii;
 use rhdl::prelude::*;
 use rhdl_fpga::{
     axi4lite::{

@@ -32,6 +32,9 @@ fn raise_loop_error(input: &FlowGraph, nodes: &[FlowIx]) -> RHDLError {
 }
 
 impl Pass for CheckForLogicLoops {
+    fn description() -> &'static str {
+        "Check for logic loops"
+    }
     fn run(input: FlowGraph) -> Result<FlowGraph, RHDLError> {
         let graph = &input.graph;
         let contains_cycles = is_cyclic_directed(graph);
