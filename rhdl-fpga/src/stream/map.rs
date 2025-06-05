@@ -15,7 +15,7 @@
      +--+Map+---------+        
  ?T  |                | ?S   
 +--->+ data     data  +---->
-     |                |        
+Ry<T>|                | Ry<S>       
 <----+ ready    ready |<---+
      +----------------+       
 ")]
@@ -36,9 +36,9 @@
                                       |         | S                     
                                     +>|in    out+--+                    
      +-+Buffer+---+     +-+upck+-+  | +---------+  |   +-+pck+-+        
- ?T  |            | ?T  |        |T |              |   |       |?S  data
+ ?T  |            | ?T  |        |T |              |   |       |   ?S
 +--->|data    data+---->|in   out+--+              +-->|in  out+------->
-     |            |     |        |                     |       |   ready
+Ry<T>|            |     |        |                     |       |   Ry<S>
 <----+ready  ready|<-+  |     tag+-------------------->|tag    |  +----+
      +------------+  |  +--------+                     +-------+  |     
                      |                                            |     
@@ -64,7 +64,7 @@ use rhdl::{
     prelude::*,
 };
 
-use super::{stream_buffer::StreamBuffer, StreamIO};
+use super::{ready_cast, stream_buffer::StreamBuffer, Ready};
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
 /// The Map Core (Stream Version)
@@ -101,31 +101,39 @@ where
 }
 
 /// The input for the [Map]
-pub type In<T> = StreamIO<T>;
+#[derive(PartialEq, Digital)]
+pub struct In<T: Digital, S: Digital> {
+    pub data: Option<T>,
+    pub ready: Ready<S>,
+}
 
 /// The output for the [Map]
-pub type Out<S> = StreamIO<S>;
+#[derive(PartialEq, Digital)]
+pub struct Out<T: Digital, S: Digital> {
+    pub data: Option<S>,
+    pub ready: Ready<T>,
+}
 
 impl<T, S> SynchronousIO for Map<T, S>
 where
     T: Digital,
     S: Digital,
 {
-    type I = In<T>;
-    type O = Out<S>;
+    type I = In<T, S>;
+    type O = Out<T, S>;
     type Kernel = kernel<T, S>;
 }
 
 #[kernel(allow_weak_partial)]
 #[doc(hidden)]
-pub fn kernel<T, S>(_cr: ClockReset, i: In<T>, q: Q<T, S>) -> (Out<S>, D<T, S>)
+pub fn kernel<T, S>(_cr: ClockReset, i: In<T, S>, q: Q<T, S>) -> (Out<T, S>, D<T, S>)
 where
     T: Digital,
     S: Digital,
 {
     let mut d = D::<T, S>::dont_care();
     d.input_buffer.data = i.data;
-    d.input_buffer.ready = i.ready;
+    d.input_buffer.ready = ready_cast::<T, S>(i.ready);
     let o_data = if let Some(data) = q.input_buffer.data {
         d.func = data;
         Some(q.func)
@@ -133,7 +141,7 @@ where
         d.func = T::dont_care();
         None
     };
-    let o = Out::<S> {
+    let o = Out::<T, S> {
         data: o_data,
         ready: q.input_buffer.ready,
     };

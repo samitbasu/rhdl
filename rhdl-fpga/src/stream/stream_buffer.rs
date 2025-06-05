@@ -15,13 +15,13 @@
 //! Here is the symbol for the buffer.
 //!
 #![doc = badascii_formal!("
-     +-+OptionCarloni++      
- ?T  |                | ?T   
-+--->|data        data+----> 
-     |                |      
-<----+ready      ready|<----+
-     |                |      
-     +----------------+      
+        +-+OptionCarloni++      
+    ?T  |                | ?T   
+   +--->|data        data+----> 
+Ready<T>|                | Ready<T>     
+   <----+ready      ready|<----+
+        |                |      
+        +----------------+      
 ")]
 //!
 //!# Internal details

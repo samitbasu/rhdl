@@ -109,7 +109,7 @@ use badascii_doc::{badascii, badascii_formal};
 use crate::{
     axi4lite::{
         stream::{axi_to_rhdl::Axi2Rhdl, rhdl_to_axi::Rhdl2Axi},
-        types::{response_codes, AXI4Error, ExFlag, ReadMISO, ReadMOSI, ReadResponse, ReadResult},
+        types::{response_codes, AXI4Error, ReadMISO, ReadMOSI, ReadResponse, ReadResult},
     },
     stream::map::Map,
 };
@@ -141,15 +141,9 @@ impl Default for ReadEndpoint {
 #[doc(hidden)]
 pub fn map_result(_cr: ClockReset, res: ReadResult) -> ReadResponse {
     match res {
-        ReadResult::Ok((flag, data)) => match flag {
-            ExFlag::Normal => ReadResponse {
-                resp: response_codes::OKAY,
-                data,
-            },
-            ExFlag::Exclusive => ReadResponse {
-                resp: response_codes::EXOKAY,
-                data,
-            },
+        ReadResult::Ok(data) => ReadResponse {
+            resp: response_codes::OKAY,
+            data,
         },
         ReadResult::Err(err) => match err {
             AXI4Error::SLVERR => ReadResponse {

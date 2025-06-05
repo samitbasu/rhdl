@@ -50,8 +50,7 @@ use crate::{
     axi4lite::{
         native::endpoint::{read::ReadEndpoint, write::WriteEndpoint},
         types::{
-            strobe_to_mask, AXI4Error, AxilAddr, AxilData, ExFlag, ReadMISO, ReadMOSI, WriteMISO,
-            WriteMOSI,
+            strobe_to_mask, AXI4Error, AxilAddr, AxilData, ReadMISO, ReadMOSI, WriteMISO, WriteMOSI,
         },
     },
     core::{constant::Constant, dff::DFF},
@@ -131,7 +130,7 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
             if cmd.addr == q.address {
                 let mask = strobe_to_mask(cmd.strobed_data.strobe);
                 d.data = (q.data & (!mask)) | (cmd.strobed_data.data & mask);
-                d.write.resp_data = Some(Ok(ExFlag::Normal));
+                d.write.resp_data = Some(Ok(()));
             } else {
                 d.write.resp_data = Some(Err(AXI4Error::DECERR));
             }
@@ -142,7 +141,7 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
     if let Some(req) = q.read.req_data {
         if q.read.resp_ready {
             if req == q.address {
-                d.read.resp_data = Some(Ok((ExFlag::Normal, q.data)));
+                d.read.resp_data = Some(Ok(q.data));
             } else {
                 d.read.resp_data = Some(Err(AXI4Error::DECERR));
             }

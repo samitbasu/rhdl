@@ -73,9 +73,7 @@ pub fn kernel(_cr: ClockReset, _i: (), q: Q) -> ((), D) {
 mod tests {
     use std::iter::repeat_n;
 
-    use crate::{
-        axi4lite::types::ExFlag, rng::xorshift::XorShift128, stream::testing::utils::stalling,
-    };
+    use crate::{rng::xorshift::XorShift128, stream::testing::utils::stalling};
 
     use super::*;
 
@@ -84,7 +82,7 @@ mod tests {
         let rng = XorShift128::default().map(|x| bits(x as u128));
         let address_sink = rng.clone();
         let address = stalling(rng.clone(), 0.23);
-        let reply = rng.clone().map(|x| ReadResult::Ok((ExFlag::Normal, x)));
+        let reply = rng.clone().map(ReadResult::Ok);
         let reply_sink = reply.clone();
         let reply = stalling(reply, 0.23);
         let uut = TestFixture {

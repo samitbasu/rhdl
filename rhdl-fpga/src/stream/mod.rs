@@ -16,8 +16,10 @@
 //! protocol from the AXI spec for channels.
 //!
 
+use std::marker::PhantomData;
+
 use badascii_doc::badascii;
-use rhdl::prelude::Digital;
+use rhdl::prelude::{kernel, Digital};
 pub mod chunked;
 pub mod fifo_to_stream;
 pub mod filter;
@@ -53,9 +55,35 @@ pub mod zip;
 ///```
 /// This type exists so that cores can be reused by constraining
 /// the input and output types.
-pub struct StreamIO<T: Digital> {
+pub struct StreamIO<T: Digital, S: Digital> {
     /// The data either flowing into or out of the Pipe core
     pub data: Option<T>,
     /// The ready signal either flowing into or out of the Pipe core
+    pub ready: Ready<S>,
+}
+
+#[derive(PartialEq, Digital)]
+pub struct Ready<T: Digital> {
+    /// A marker that this is a ready signal for a stream of type `T`
+    marker: PhantomData<T>,
+    /// The ready signal itself
     pub ready: bool,
+}
+
+#[kernel]
+/// Helper function to convert a raw signal into a typed `Ready`
+fn ready<T: Digital>(raw: bool) -> Ready<T> {
+    Ready::<T> {
+        marker: PhantomData::<T>,
+        ready: raw,
+    }
+}
+
+#[kernel]
+/// Helper function to cast from one ready signal to another
+fn ready_cast<T: Digital, S: Digital>(input: Ready<S>) -> Ready<T> {
+    Ready::<T> {
+        marker: PhantomData::<T>,
+        ready: input.ready,
+    }
 }

@@ -9,9 +9,10 @@
 //!
 //!# Schematic Symbol
 //!
-//! The core uses a FIFO interface for the requests and the results.  If you need
-//! a stream interface, you can couple it to a set of [FIFO2Stream] cores.  In general
-//! though, given the blocking nature, streams present no real benefit here.
+//! The core sinks a stream of [BlockRequest]s and then sources a
+//! stream of [BlockResponse].  The [BlockRequest] stream will
+//! generally be stalled, as new requests are only accepted when the
+//! previous request has completed.
 //!
 #![doc = badascii_formal!(r"
            ++BlockRWCntrl+--+       
@@ -19,16 +20,16 @@
  ?BlockReq |                |       
  +-------->| req.data       |       
            |                |       
-<----------+ req.full       |       
+<----------+ req.ready      |       
            |                |  AXI  
            |  - - - - - -   |<----->
            |                |       
            |                |       
            |  source        |       
-?BlockReslt|                |       
+?BlockResp |                |       
 <----------+ resp.data      |       
            |                |       
-+--------->| resp.next      |       
++--------->| resp.ready     |       
            |                |       
            +----------------+       
 ")]
@@ -36,34 +37,38 @@
 //!# Internal Details
 //!
 //! Internally, the [BlockReadWriteController] splits the
-//! request streams based
+//! request streams based on the variant of the [BlockRequest]
+//! but will also blank/void out the request if it is
+//! waiting for the previous transaction to complete.
+//! The backpressure signal for the output (response) stream
+//! comes from the external `resp_ready` signal.
 //!
 use badascii_doc::badascii;
 #[doc = badascii!(r"
-               ++FIFO+----++          ++Map+-+                ++WriteCntrl+     
-    ?BlockReq  |           |?BlockReq |      |?WriteCmd       |           |     
-   +---------->|data   data+--------->|in   a+--------------->|req        |     
-               |           |          |      |?AxilAddr       |        axi|<--> 
-   <-----------+full   next|<+ +----->|en   b+---+ +----------+ready      |write
-               +-----------+ | |      +------+   | |          |           |bus  
-                             | |       +--------+|++ +--------+resp       |     
-                             | |       |         +   |        |           |     
-                             | |       |  +----------+   +--->|ready      |     
-                   +---------+-++      |  |      +       |    +-----------+     
-                   |    Control +------+  |      |       |                      
-                   |            +         |      |       |                      
-                   +-+--------+++         +      |       |                      
-                     |         +----------------+|+----+ |    ++ReadCntrl++     
-                     |                    +      |     | +    |           |read 
-                     |                    |      +----+|+---->|req        |bus  
-         ++FIFO+---+ | +------+ ?WriteResp|            | |    |        axi|<--> 
-?BlckResp|         | +>|en   a|<----------+            +------+ready      |     
- <-------+data data|<--+      |            ?ReadResp     |    |           |     
-    next |         |   |out  b|<------------------------------+resp       |     
-  +----->|     full+-+ |      |                          +    |           |     
-         +---------+ | ++Map+-+                          +--->|ready      |     
-                     |                                   |    +-----------+     
-                     +-------> ! +-----------------------+                      
+                      ++Map+-+                ++WriteCntrl+     
+    ?BlockReq         |      |?WriteCmd       |           |     
+   +----------------->|in   a+--------------->|req        |     
+    ready             |      |?AxilAddr       |        axi|<--> 
+   <---------+ +----->|en   b+---+ +----------+ready      |write
+             | |      +------+   | |          |           |bus  
+             | |       +--------+|++ +--------+resp       |     
+             | |       |         +   |        |           |     
+             | |       |  +----------+    +-->|ready      |     
+   +---------+-++      |  |      +        |   +-----------+     
+   |    Control |<-----+  |      |        |                     
+   +-+----------+         |      |        |                     
+          ^   ^           +      |        |                     
+          |   +-----------------+|+----+  |   ++ReadCntrl++     
+   is_some|               +      |     |  +   |           |read 
+          |               |      +----+|+---->|req        |bus  
+?Block +--+---+ ?WriteResp|            |  |   |        axi|<--> 
+ Resp  |     a|<----------+            +------+ready      |     
+<------+      |            ?ReadResp      |   |           |     
+       |out  b|<------------------------------+resp       |     
+       |      |                           +   |           |     
+       ++Map+-+                           +-->|ready      |     
+ ready                                    |   +-----------+     
++-----------------------------------------+                     
 ")]
 use badascii_doc::badascii_formal;
 
@@ -76,14 +81,16 @@ use crate::{
     },
     core::{dff::DFF, option::is_some},
     fifo::synchronous::SyncFIFO,
-    stream::{fifo_to_stream::FIFOToStream, stream_to_fifo::StreamToFIFO},
 };
 
 use super::{read::ReadController, write::WriteController};
 
 #[derive(PartialEq, Digital)]
+/// Make a blocking read or write request on an AXI bus
 pub enum BlockRequest {
+    /// Make a blocking write request with the given [WriteCommand]
     Write(WriteCommand),
+    /// Make a blocking read request to the given [AxilAddr]
     Read(AxilAddr),
 }
 
@@ -100,8 +107,11 @@ impl Default for BlockRequest {
 }
 
 #[derive(PartialEq, Digital)]
+/// The response to a [BlockRequest]
 pub enum BlockResponse {
+    /// The response to a write [BlockRequest] in the form of a [WriteResult]
     Write(WriteResult),
+    /// The response to a read [BlockRequest] in the form of a [ReadResult]
     Read(ReadResult),
 }
 
@@ -112,6 +122,7 @@ impl Default for BlockResponse {
 }
 
 #[derive(PartialEq, Digital, Default)]
+#[doc(hidden)]
 pub enum State {
     #[default]
     Idle,
@@ -124,33 +135,36 @@ pub enum State {
 ///
 /// Executes a sequence of read/write commands provided
 /// at the input one at a time in a blocking fashion, and
-/// returns the results in an output queue.  Uses FIFO interfaces
-/// instead of stream interfaces, but you can adapt it to use
-/// streams easily.  To avoid excess generics, this controller
-/// has a hardwired input FIFO size of 8.
+/// sources a stream with the output results.
 pub struct BlockReadWriteController {
-    inbuf: SyncFIFO<BlockRequest, U3>,
     write_controller: WriteController,
     read_controller: ReadController,
-    outbuf: SyncFIFO<BlockResponse, U3>,
     state: DFF<State>,
 }
 
 #[derive(PartialEq, Digital)]
 /// Input for the [BlockReadWriteController]
 pub struct In {
+    /// The [BlockRequest] input for the request stream
     pub request: Option<BlockRequest>,
-    pub resp_next: bool,
+    /// Backpressure/ready signal for the response stream
+    pub resp_ready: bool,
+    /// The input side of the write AXI bus
     pub write_axi: WriteMISO,
+    /// The input side of the read AXI bus
     pub read_axi: ReadMISO,
 }
 
 #[derive(PartialEq, Digital)]
 /// Output for the [BlockReadWriteController]
 pub struct Out {
+    /// The [BlockResponse] stream output
     pub response: Option<BlockResponse>,
-    pub req_full: bool,
+    /// Backpressure/ready signal for the request stream
+    pub req_ready: bool,
+    /// The output side of the write AXI bus
     pub write_axi: WriteMOSI,
+    /// The output side of the read AXI bus
     pub read_axi: ReadMOSI,
 }
 
@@ -167,10 +181,38 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
     let mut o = Out::dont_care();
     d.state = q.state;
     d.inbuf.data = i.request;
+    // First check to see if we can capture a response
+    let mut will_unload = false;
+    let can_accept = !q.outbuf.full;
+    d.read_controller.resp_ready = can_accept;
+    d.write_controller.resp_ready = can_accept;
+    d.outbuf.data = None;
+    // There is space to hold a result... check
+    match q.state {
+        State::Idle => {}
+        State::Reading => {
+            if let Some(resp) = q.read_controller.resp_data {
+                d.outbuf.data = Some(BlockResponse::Read(resp));
+                if can_accept {
+                    d.state = State::Idle;
+                    will_unload = true;
+                }
+            }
+        }
+        State::Writing => {
+            if let Some(resp) = q.write_controller.resp_data {
+                d.outbuf.data = Some(BlockResponse::Write(resp));
+                if can_accept {
+                    d.state = State::Idle;
+                    will_unload = true;
+                }
+            }
+        }
+    }
     // Decide if we will issue a new command on this cycle
     let will_start = q.write_controller.req_ready
         & q.read_controller.req_ready
-        & (q.state == State::Idle)
+        & ((q.state == State::Idle) | will_unload)
         & is_some::<BlockRequest>(q.inbuf.data);
     // Feed the write and read controllers
     d.write_controller.axi = i.write_axi;
@@ -192,29 +234,9 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
             };
         }
     }
-    d.outbuf.next = i.resp_next;
-    let can_accept = !q.outbuf.full;
-    d.read_controller.resp_ready = can_accept;
-    d.write_controller.resp_ready = can_accept;
-    d.outbuf.data = None;
-    // There is space to hold a result... check
-    match q.state {
-        State::Idle => {}
-        State::Reading => {
-            if let Some(resp) = q.read_controller.resp_data {
-                d.outbuf.data = Some(BlockResponse::Read(resp));
-                d.state = if can_accept { State::Idle } else { q.state };
-            }
-        }
-        State::Writing => {
-            if let Some(resp) = q.write_controller.resp_data {
-                d.outbuf.data = Some(BlockResponse::Write(resp));
-                d.state = if can_accept { State::Idle } else { q.state };
-            }
-        }
-    }
+    d.outbuf.next = i.resp_ready;
     o.read_axi = q.read_controller.axi;
-    o.req_full = q.inbuf.full;
+    o.req_ready = q.inbuf.full;
     o.response = q.outbuf.data;
     o.write_axi = q.write_controller.axi;
     (o, d)

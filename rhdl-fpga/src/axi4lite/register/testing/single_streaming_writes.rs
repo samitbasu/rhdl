@@ -4,7 +4,7 @@ use crate::{
     axi4lite::{
         native::controller::write::WriteController,
         register::single::AxiRegister,
-        types::{ExFlag, ReadMOSI, StrobedData, WriteCommand, WriteResult},
+        types::{ReadMOSI, StrobedData, WriteCommand, WriteResult},
     },
     core::dff::DFF,
     rng::xorshift::{XorShift, XorShift128},
@@ -36,7 +36,7 @@ impl Default for Fixture {
         // For the write sink, we expect all writes to succeed
         let acceptor = |x: Option<WriteResult>| {
             if let Some(res) = x {
-                assert_eq!(res, Ok(ExFlag::Normal));
+                assert_eq!(res, Ok(()));
             }
             rand::random_bool(0.85)
         };

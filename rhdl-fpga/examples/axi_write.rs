@@ -7,7 +7,7 @@ use rhdl::prelude::*;
 use rhdl_fpga::{
     axi4lite::{
         native::{controller::write::WriteController, endpoint::write::WriteEndpoint},
-        types::{AXI4Error, ExFlag, StrobedData, WriteCommand, WriteResult},
+        types::{AXI4Error, StrobedData, WriteCommand, WriteResult},
     },
     doc::write_svg_as_markdown,
     rng::xorshift::XorShift128,
@@ -64,8 +64,8 @@ fn iter_results() -> impl Iterator<Item = WriteResult> {
     XorShift128::default().map(|x| {
         let x = x & 0b11;
         match x {
-            0 => Ok(ExFlag::Normal),
-            1 => Ok(ExFlag::Exclusive),
+            0 => Ok(()),
+            1 => Ok(()),
             2 => Err(AXI4Error::DECERR),
             _ => Err(AXI4Error::SLVERR),
         }

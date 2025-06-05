@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use crate::rhdl_bits::{consts::U128, consts::U32, consts::U64, BitWidth, Bits, SignedBits};
 
 use crate::rhdl_core::{
@@ -542,6 +544,26 @@ impl_array!(6);
 impl_array!(7);
 impl_array!(8);
  */
+
+impl<T: Digital> Digital for PhantomData<T> {
+    const BITS: usize = 0;
+
+    fn static_kind() -> Kind {
+        Kind::Empty
+    }
+
+    fn static_trace_type() -> rhdl_trace_type::TraceType {
+        rtt::TraceType::Empty
+    }
+
+    fn bin(self) -> Vec<BitX> {
+        vec![]
+    }
+
+    fn dont_care() -> Self {
+        Self
+    }
+}
 
 impl<T: Digital, const N: usize> Digital for [T; N] {
     const BITS: usize = T::BITS * N;

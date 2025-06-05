@@ -132,7 +132,7 @@ use crate::{
     axi4lite::{
         stream::{axi_to_rhdl::Axi2Rhdl, rhdl_to_axi::Rhdl2Axi},
         types::{
-            response_codes, AXI4Error, AxilAddr, ExFlag, ResponseKind, StrobedData, WriteCommand,
+            response_codes, AXI4Error, AxilAddr, ResponseKind, StrobedData, WriteCommand,
             WriteMISO, WriteMOSI, WriteResult,
         },
     },
@@ -170,8 +170,8 @@ impl Default for WriteController {
 #[doc(hidden)]
 pub fn map_result(_cr: ClockReset, resp: ResponseKind) -> WriteResult {
     match resp {
-        response_codes::OKAY => Ok(ExFlag::Normal),
-        response_codes::EXOKAY => Ok(ExFlag::Exclusive),
+        response_codes::OKAY => Ok(()),
+        response_codes::EXOKAY => Ok(()),
         response_codes::SLVERR => Err(AXI4Error::SLVERR),
         _ => Err(AXI4Error::DECERR),
     }

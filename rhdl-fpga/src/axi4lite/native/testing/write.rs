@@ -73,9 +73,7 @@ mod tests {
     use std::iter::repeat_n;
 
     use crate::{
-        axi4lite::types::{ExFlag, StrobedData},
-        rng::xorshift::XorShift128,
-        stream::testing::utils::stalling,
+        axi4lite::types::StrobedData, rng::xorshift::XorShift128, stream::testing::utils::stalling,
     };
 
     use super::*;
@@ -98,8 +96,8 @@ mod tests {
         XorShift128::default().map(|x| {
             let x = x & 0b11;
             match x {
-                0 => Ok(ExFlag::Normal),
-                1 => Ok(ExFlag::Exclusive),
+                0 => Ok(()),
+                1 => Ok(()),
                 2 => Err(crate::axi4lite::types::AXI4Error::DECERR),
                 _ => Err(crate::axi4lite::types::AXI4Error::SLVERR),
             }
