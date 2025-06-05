@@ -7,7 +7,7 @@ use rhdl::prelude::*;
 use rhdl_fpga::{
     axi4lite::{
         native::{controller::read::ReadController, endpoint::read::ReadEndpoint},
-        types::{ExFlag, ReadResult},
+        types::ReadResult,
     },
     doc::write_svg_as_markdown,
     rng::xorshift::XorShift128,
@@ -55,7 +55,7 @@ fn main() -> Result<(), RHDLError> {
     let rng = XorShift128::default().map(|x| bits(x as u128));
     let address_sink = rng.clone();
     let address = stalling(rng.clone(), 0.23);
-    let reply = rng.clone().map(|x| ReadResult::Ok((ExFlag::Normal, x)));
+    let reply = rng.clone().map(ReadResult::Ok);
     let reply_sink = reply.clone();
     let reply = stalling(reply, 0.23);
     let uut = TestFixture {

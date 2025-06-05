@@ -108,8 +108,7 @@ use crate::{
     axi4lite::{
         stream::{axi_to_rhdl::Axi2Rhdl, rhdl_to_axi::Rhdl2Axi},
         types::{
-            response_codes, AXI4Error, AxilAddr, ExFlag, ReadMISO, ReadMOSI, ReadResponse,
-            ReadResult,
+            response_codes, AXI4Error, AxilAddr, ReadMISO, ReadMOSI, ReadResponse, ReadResult,
         },
     },
     stream::map::Map,
@@ -143,8 +142,8 @@ impl Default for ReadController {
 #[doc(hidden)]
 pub fn map_result(_cr: ClockReset, resp: ReadResponse) -> ReadResult {
     match resp.resp {
-        response_codes::OKAY => ReadResult::Ok((ExFlag::Normal, resp.data)),
-        response_codes::EXOKAY => ReadResult::Ok((ExFlag::Exclusive, resp.data)),
+        response_codes::OKAY => ReadResult::Ok(resp.data),
+        response_codes::EXOKAY => ReadResult::Ok(resp.data),
         response_codes::DECERR => ReadResult::Err(AXI4Error::DECERR),
         response_codes::SLVERR => ReadResult::Err(AXI4Error::SLVERR),
         _ => ReadResult::Err(AXI4Error::DECERR),

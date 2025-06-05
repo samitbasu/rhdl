@@ -133,7 +133,7 @@ use crate::{
     axi4lite::{
         stream::{axi_to_rhdl::Axi2Rhdl, rhdl_to_axi::Rhdl2Axi},
         types::{
-            response_codes, AXI4Error, AxilAddr, ExFlag, ResponseKind, StrobedData, WriteCommand,
+            response_codes, AXI4Error, AxilAddr, ResponseKind, StrobedData, WriteCommand,
             WriteMISO, WriteMOSI, WriteResult,
         },
     },
@@ -171,10 +171,7 @@ impl Default for WriteEndpoint {
 #[doc(hidden)]
 pub fn map_result(_cr: ClockReset, resp: WriteResult) -> ResponseKind {
     match resp {
-        Ok(flag) => match flag {
-            ExFlag::Normal => response_codes::OKAY,
-            ExFlag::Exclusive => response_codes::EXOKAY,
-        },
+        Ok(_) => response_codes::OKAY,
         Err(err) => match err {
             AXI4Error::DECERR => response_codes::DECERR,
             AXI4Error::SLVERR => response_codes::SLVERR,

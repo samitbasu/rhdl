@@ -55,8 +55,7 @@ use crate::{
     axi4lite::{
         native::endpoint::{read::ReadEndpoint, write::WriteEndpoint},
         types::{
-            strobe_to_mask, AXI4Error, AxilAddr, AxilData, ExFlag, ReadMISO, ReadMOSI, WriteMISO,
-            WriteMOSI,
+            strobe_to_mask, AXI4Error, AxilAddr, AxilData, ReadMISO, ReadMOSI, WriteMISO, WriteMOSI,
         },
     },
     core::{constant::Constant, dff::DFF},
@@ -143,7 +142,7 @@ pub fn kernel<const N: usize>(_cr: ClockReset, i: In, q: Q<N>) -> (Out<N>, D<N>)
                 let reg_ndx = (cmd.addr - q.address_low) >> 2;
                 let mask = strobe_to_mask(cmd.strobed_data.strobe);
                 d.data[reg_ndx] = (q.data[reg_ndx] & (!mask)) | (cmd.strobed_data.data & mask);
-                d.write.resp_data = Some(Ok(ExFlag::Normal));
+                d.write.resp_data = Some(Ok(()));
             }
         }
     }
@@ -156,7 +155,7 @@ pub fn kernel<const N: usize>(_cr: ClockReset, i: In, q: Q<N>) -> (Out<N>, D<N>)
             } else {
                 // Each register takes 4 bytes, so we need to right shift by 2
                 let reg_ndx = (req - q.address_low) >> 2;
-                d.read.resp_data = Some(Ok((ExFlag::Normal, q.data[reg_ndx])))
+                d.read.resp_data = Some(Ok(q.data[reg_ndx]));
             }
         }
     }

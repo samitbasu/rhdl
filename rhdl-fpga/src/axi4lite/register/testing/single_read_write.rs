@@ -50,8 +50,8 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
     d.register.write_axi = q.controller.write_axi;
     d.register.data = None;
     d.controller.request = i.cmd;
-    d.controller.resp_next = i.next;
-    o.full = q.controller.req_full;
+    d.controller.resp_ready = i.next;
+    o.full = q.controller.req_ready;
     o.reply = q.controller.response;
     (o, d)
 }
@@ -61,7 +61,7 @@ mod tests {
     use expect_test::expect;
     use rhdl::core::sim::ResetOrData;
 
-    use crate::axi4lite::types::{AXI4Error, ExFlag, StrobedData, WriteCommand};
+    use crate::axi4lite::types::{AXI4Error, StrobedData, WriteCommand};
 
     use super::*;
 
@@ -135,7 +135,7 @@ mod tests {
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["37faec81fd22d8f2305c70b0b77909e461831259e13ccde663a5da13661f9980"];
+        let expect = expect!["08f7cb679ce32d7773c214b7e295de5dbcf8cd121b3916ab1bb962f396866ec2"];
         let digest = vcd.dump_to_file(root.join("register.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -179,14 +179,14 @@ mod tests {
         assert_eq!(
             io,
             vec![
-                Ok((ExFlag::Normal, bits(42))),
-                Ok((ExFlag::Normal, bits(43))),
-                Ok((ExFlag::Normal, bits(42))),
+                Ok(bits(42)),
+                Ok(bits(43)),
+                Ok(bits(42)),
                 Err(AXI4Error::DECERR),
-                Ok((ExFlag::Normal, bits(0x00_00_00_EF))),
-                Ok((ExFlag::Normal, bits(0x00_00_BE_EF))),
-                Ok((ExFlag::Normal, bits(0x00_AD_BE_EF))),
-                Ok((ExFlag::Normal, bits(0xDE_AD_BE_EF))),
+                Ok(bits(0x00_00_00_EF)),
+                Ok(bits(0x00_00_BE_EF)),
+                Ok(bits(0x00_AD_BE_EF)),
+                Ok(bits(0xDE_AD_BE_EF)),
             ]
         );
         Ok(())

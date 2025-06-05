@@ -87,7 +87,7 @@ pub fn read_logic<N: BitWidth>(cr: ClockReset, i: In<N>, q: Q<N>) -> (Out<N>, D<
     // and the condition is latching.
     let underflow = q.underflow || (i.next && empty);
     // Decide if we will advance the read pointer
-    let will_advance = i.next;
+    let will_advance = i.next && !empty;
     // If we will read, advance the read address - this is done
     // combinatorially to ensure that by the next clock edge, the
     // next value is already on the bus.
