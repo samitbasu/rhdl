@@ -16,7 +16,7 @@
  ?[T;N]  |                |  ?T    
 +------->+ data     data  +------->
          |                |        
-         |                |        
+ R<[T;N]>|                | R<T>       
 <--------+ ready    ready |<------+
          |                |        
          +----------------+       
@@ -35,10 +35,10 @@
         +IBuf+-----+        +-+unpck++                                                        
  ?[T;N] |          | ?[T;N] |        | [T;N]                                                  
 +------>|data  data+------->|in  data+-------+---+---+                                        
-        |          |        |        |       v   v   v        +--+pck+-+    +OBuf+-----+      
+R<[T;N]>|          |        |        |       v   v   v        +--+pck+-+    +OBuf+-----+      
 <-------+ready next|<----+  |     tag+-+   +------------+     |        | ?T |          | ?T   
         |          |     |  |        | |   | Delay Line +---->|data out+--->|data  data+----->
-        +----------+     |  +--------+ |   |      run   |     |        |    |          |      
+        +----------+     |  +--------+ |   |      run   |     |        |    |          | R<T>      
                          |             v   +------------+ +-->|tag     | +--+full ready|<----+
                          |  +-----------+          ^      |   |        | |  |          |      
                          |  |   Control +----------+      |   +--------+ |  +----------+      
@@ -132,14 +132,14 @@ impl<M: BitWidth, T: Digital, const N: usize> Default for Flatten<M, T, N> {
 }
 
 /// Inputs for the [FlattenPipe] core
-pub type In<T, const N: usize> = StreamIO<[T; N]>;
+pub type In<T, const N: usize> = StreamIO<[T; N], T>;
 
 /// Outputs from the [FlattenPipe] core
-pub type Out<T> = StreamIO<T>;
+pub type Out<T, const N: usize> = StreamIO<T, [T; N]>;
 
 impl<M: BitWidth, T: Digital, const N: usize> SynchronousIO for Flatten<M, T, N> {
     type I = In<T, N>;
-    type O = Out<T>;
+    type O = Out<T, N>;
     type Kernel = kernel<M, T, N>;
 }
 
@@ -149,7 +149,7 @@ pub fn kernel<M: BitWidth, T: Digital, const N: usize>(
     _cr: ClockReset,
     i: In<T, N>,
     q: Q<M, T, N>,
-) -> (Out<T>, D<M, T, N>) {
+) -> (Out<T, N>, D<M, T, N>) {
     let n_minus_1 = bits::<M>(N as u128 - 1);
     let mut d = D::<M, T, N>::dont_care();
     // Connect the input buffer to the input data stream
@@ -221,7 +221,7 @@ pub fn kernel<M: BitWidth, T: Digital, const N: usize>(
     // Use the write flag to strobe data into the output FIFO
     d.output_buffer.data = if write { Some(q.delay[0]) } else { None };
     d.output_buffer.ready = i.ready;
-    let o = Out::<T> {
+    let o = Out::<T, N> {
         data: q.output_buffer.data,
         ready: q.input_buffer.ready,
     };
@@ -231,7 +231,7 @@ pub fn kernel<M: BitWidth, T: Digital, const N: usize>(
 #[cfg(test)]
 mod tests {
 
-    use crate::rng::xorshift::XorShift128;
+    use crate::{rng::xorshift::XorShift128, stream::ready};
 
     use super::*;
 
@@ -263,10 +263,10 @@ mod tests {
                 let mut input = super::In::<b4, 4>::dont_care();
                 // Downstream is likely to run
                 let want_to_pause = rand::random::<u8>() > 200;
-                input.ready = !want_to_pause;
+                input.ready = ready(!want_to_pause);
                 // Decide if the producer will generate a new data item
                 let willing_to_send = rand::random::<u8>() < 200;
-                if out.ready {
+                if out.ready.raw {
                     // The pipeline wants more data
                     if willing_to_send {
                         latched_input = Some(mk_array(&mut source_rng));
@@ -275,7 +275,7 @@ mod tests {
                     }
                 }
                 input.data = latched_input;
-                if input.ready && out.data.is_some() {
+                if input.ready.raw && out.data.is_some() {
                     assert_eq!(dest_rng.next(), out.data);
                 }
                 Some(rhdl::core::sim::ResetOrData::Data(input))

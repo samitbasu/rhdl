@@ -66,7 +66,11 @@ Ready<T>|                | Ready<T>
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use crate::{core::option::pack, lid::carloni::Carloni, stream::StreamIO};
+use crate::{
+    core::option::pack,
+    lid::carloni::Carloni,
+    stream::{ready, StreamIO},
+};
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 /// Option-based Carloni buffer core
@@ -86,10 +90,10 @@ impl<T: Digital> Default for StreamBuffer<T> {
 }
 
 /// Inputs to the [StreamBuffer] buffer core
-pub type In<T> = StreamIO<T>;
+pub type In<T> = StreamIO<T, T>;
 
 /// Outputs from the [StreamBuffer] buffer core
-pub type Out<T> = StreamIO<T>;
+pub type Out<T> = StreamIO<T, T>;
 
 impl<T: Digital> SynchronousIO for StreamBuffer<T> {
     type I = In<T>;
@@ -107,9 +111,9 @@ pub fn option_carloni_kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> 
     };
     d.inner.data_in = data;
     d.inner.void_in = !data_valid;
-    d.inner.stop_in = !i.ready;
+    d.inner.stop_in = !i.ready.raw;
     let mut o = Out::<T>::dont_care();
-    o.ready = !q.inner.stop_out;
+    o.ready = ready::<T>(!q.inner.stop_out);
     o.data = pack::<T>(!q.inner.void_out, q.inner.data_out);
     (o, d)
 }
@@ -137,17 +141,17 @@ mod tests {
                 let mut input = In::<b32>::dont_care();
                 // Downstream reandomly wants to pause
                 let want_to_pause = rand::random::<u8>() > 200;
-                input.ready = !want_to_pause;
+                input.ready = ready(!want_to_pause);
                 // Upstream may have paused
                 let want_to_send = rand::random::<u8>() < 200;
                 input.data = None;
-                if out.ready && want_to_send {
+                if out.ready.raw && want_to_send {
                     // The receiver did not tell us to stop, and
                     // we want to send something
                     input.data = Some(bits(source_rng.next().unwrap() as u128));
                 }
                 // Check output
-                if out.data.is_some() && input.ready {
+                if out.data.is_some() && input.ready.raw {
                     // The output will advance on this clock cycle
                     assert_eq!(out.data, Some(bits(output_rng.next().unwrap() as u128)));
                 }
