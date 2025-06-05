@@ -41,6 +41,29 @@
 //! Again, this core does very little mostly buffering of the signals
 //! at the AXI interface to be spec compliant, and recoding of the
 //! AXI spec error signals into more ergonomic Rust enums.
+//!
+//! The AXI spec allows a controller to block between transfers.  For
+//! that use case, the following core can be used.
+//!
+#![doc = badascii!(r"
+                  +-----------+               
+                  |           |   To Bus      
++-+ read/write +->|           |               
+     requests     |BlockRW2Axi|               
+                  |           +----+ AXI +--->
+<--+ response +---+           |               
+     data         |           |               
+                  +-----------+               
+")]
+//! In this case, the request is wrapped in an enum that allows either
+//! read or write requests to be dispatched (but not both simultaneously),
+//! and the responses are collected in order.  To avoid races, the core will
+//! block on each request, meaning that the read or write request must complete
+//! before the next one is dispatched.  Needless to say, this is not a
+//! high performance way to use the bus, but it's useful for testing and
+//! simpler use cases.
+//!
 use badascii_doc::badascii;
+pub mod blocking;
 pub mod read;
 pub mod write;

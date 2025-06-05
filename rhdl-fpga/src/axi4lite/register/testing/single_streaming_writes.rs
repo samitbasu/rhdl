@@ -4,7 +4,7 @@ use crate::{
     axi4lite::{
         native::controller::write::WriteController,
         register::single::AxiRegister,
-        types::{AxilAddr, ExFlag, ReadMOSI, ReadResponse, StrobedData, WriteCommand, WriteResult},
+        types::{ExFlag, ReadMOSI, StrobedData, WriteCommand, WriteResult},
     },
     core::dff::DFF,
     rng::xorshift::{XorShift, XorShift128},
