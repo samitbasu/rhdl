@@ -40,18 +40,18 @@ pub mod zip;
 /// So a typical Stream core will look like this:
 ///
 #[doc = badascii!("
-     +-+UUT+------+     
- ?T  |            | ?S  
-+--->|data    data+---->
-     |            |     
-<---+|ready  ready|<---+
-     +------------+     
+      +-+UUT+------+     
+  ?T  |            | ?S  
++---->|data    data+---->
+ R<T> |            | R<S>    
+<----+|ready  ready|<---+
+      +------------+     
 ")]
 ///
 ///  In this case, we would have that
 ///```ignore
-/// <UUT as SynchronousIO>::In == StreamIO<T>
-/// <UUT as SynchronousIO>::Out == StreamIO<S>
+/// <UUT as SynchronousIO>::In == StreamIO<T, S>
+/// <UUT as SynchronousIO>::Out == StreamIO<S, T>
 ///```
 /// This type exists so that cores can be reused by constraining
 /// the input and output types.
@@ -62,28 +62,28 @@ pub struct StreamIO<T: Digital, S: Digital> {
     pub ready: Ready<S>,
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Debug, Digital)]
 pub struct Ready<T: Digital> {
     /// A marker that this is a ready signal for a stream of type `T`
     marker: PhantomData<T>,
     /// The ready signal itself
-    pub ready: bool,
+    pub raw: bool,
 }
 
 #[kernel]
 /// Helper function to convert a raw signal into a typed `Ready`
-fn ready<T: Digital>(raw: bool) -> Ready<T> {
+pub fn ready<T: Digital>(raw: bool) -> Ready<T> {
     Ready::<T> {
         marker: PhantomData::<T>,
-        ready: raw,
+        raw,
     }
 }
 
 #[kernel]
 /// Helper function to cast from one ready signal to another
-fn ready_cast<T: Digital, S: Digital>(input: Ready<S>) -> Ready<T> {
+pub fn ready_cast<T: Digital, S: Digital>(input: Ready<S>) -> Ready<T> {
     Ready::<T> {
         marker: PhantomData::<T>,
-        ready: input.ready,
+        raw: input.raw,
     }
 }

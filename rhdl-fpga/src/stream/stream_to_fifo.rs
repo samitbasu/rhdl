@@ -19,7 +19,7 @@
      ++Stm2FIFO+--+     
  ?T  |            | ?T  
 +--->|data    data+---->
-     |            |     
+R<T> |            |     
 <----+ready   next|<---+
      |            |     
      |       error+---->
@@ -37,7 +37,7 @@
 #![doc = badascii!("
          ?T   +----+FIFO+----+ ?T  
 +------------>|data      data+---->
-  ready       |              |     
+  Ready<T>    |              |     
 <-----+! <----+full      next|<---+
               +--------------+     
 ")]
@@ -62,7 +62,12 @@
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use crate::core::{dff, option::is_some};
+use crate::{
+    core::{dff, option::is_some},
+    stream::ready,
+};
+
+use super::Ready;
 
 /// A READY/VALID-to-FIFO converter is a highly specialized two element
 /// FIFO backed with a pair of registers instead of a BRAM.  
@@ -128,7 +133,7 @@ pub struct Out<T: Digital> {
     /// The data to the consumer
     pub data: Option<T>,
     /// The ready signal to the producer
-    pub ready: bool,
+    pub ready: Ready<T>,
     /// An error flag to indicate that the core has
     /// underflowed.
     pub error: bool,
@@ -196,7 +201,7 @@ pub fn kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) 
     } else {
         o.data = Some(q.one_slot);
     }
-    o.ready = write_is_allowed;
+    o.ready = ready::<T>(write_is_allowed);
     o.error = q.state == State::Error;
     (o, d)
 }
@@ -246,7 +251,7 @@ mod tests {
                 } else {
                     input.data = None;
                 }
-                let will_advance = will_offer & out.ready;
+                let will_advance = will_offer & out.ready.raw;
                 if will_advance {
                     source_datum = source_rng.next();
                 }

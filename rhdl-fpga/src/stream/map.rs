@@ -64,7 +64,7 @@ use rhdl::{
     prelude::*,
 };
 
-use super::{ready_cast, stream_buffer::StreamBuffer, Ready};
+use super::{ready_cast, stream_buffer::StreamBuffer, Ready, StreamIO};
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
 /// The Map Core (Stream Version)
@@ -101,18 +101,10 @@ where
 }
 
 /// The input for the [Map]
-#[derive(PartialEq, Digital)]
-pub struct In<T: Digital, S: Digital> {
-    pub data: Option<T>,
-    pub ready: Ready<S>,
-}
+pub type In<T, S> = StreamIO<T, S>;
 
 /// The output for the [Map]
-#[derive(PartialEq, Digital)]
-pub struct Out<T: Digital, S: Digital> {
-    pub data: Option<S>,
-    pub ready: Ready<T>,
-}
+pub type Out<T, S> = StreamIO<S, T>;
 
 impl<T, S> SynchronousIO for Map<T, S>
 where

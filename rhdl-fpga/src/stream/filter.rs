@@ -16,7 +16,7 @@
       +-+Filter+-----+        
  ?T   |              | ?T    
 +---->+data     data +----->
-      |              |        
+ R<T> |              | R<T>       
 <-----+ready    ready|<----+
       +--------------+       
 ")]
@@ -39,7 +39,7 @@
      +-+Input Buf++     +-+upck+-+  | +---------+  |   +-+pck+-+         
  ?T  |            | ?T  |        |T |              |   |       |?T data  
 +--->|data    data+---->|in   out+--+-------------+|+->|in  out+-------->
-     |            |     |        |                 +   |       |   ready 
+R<T> |            |     |        |                 +   |       |   Ready<T>
 <----+ready  ready|<-+  |     tag+---------------> &+->|tag    |  +-----+
      +------------+  |  +--------+                     +-------+  |      
                      |                                            |      
@@ -98,10 +98,10 @@ where
 }
 
 /// The input for the [Filter]
-pub type In<T> = StreamIO<T>;
+pub type In<T> = StreamIO<T, T>;
 
 /// The output of the [Filter]
-pub type Out<T> = StreamIO<T>;
+pub type Out<T> = StreamIO<T, T>;
 
 impl<T> SynchronousIO for Filter<T>
 where
