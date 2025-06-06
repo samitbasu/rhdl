@@ -130,11 +130,11 @@ pub fn kernel<const N: usize>(_cr: ClockReset, i: In, q: Q<N>) -> (Out<N>, D<N>)
     o.write_axi = q.write.axi;
     d.read.axi = i.read_axi;
     o.read_axi = q.read.axi;
-    d.write.req_ready = q.write.resp_ready;
+    d.write.req_ready.raw = q.write.resp_ready.raw;
     d.write.resp_data = None;
     d.data = q.data;
     if let Some(cmd) = q.write.req_data {
-        if q.write.resp_ready {
+        if q.write.resp_ready.raw {
             if cmd.addr < q.address_low || cmd.addr > q.address_high {
                 d.write.resp_data = Some(Err(AXI4Error::DECERR));
             } else {
@@ -146,10 +146,10 @@ pub fn kernel<const N: usize>(_cr: ClockReset, i: In, q: Q<N>) -> (Out<N>, D<N>)
             }
         }
     }
-    d.read.req_ready = q.read.resp_ready;
+    d.read.req_ready.raw = q.read.resp_ready.raw;
     d.read.resp_data = None;
     if let Some(req) = q.read.req_data {
-        if q.read.resp_ready {
+        if q.read.resp_ready.raw {
             if req < q.address_low || req > q.address_high {
                 d.read.resp_data = Some(Err(AXI4Error::DECERR));
             } else {
