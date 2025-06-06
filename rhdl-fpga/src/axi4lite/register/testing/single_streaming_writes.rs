@@ -2,7 +2,7 @@ use rhdl::prelude::*;
 
 use crate::{
     axi4lite::{
-        native::controller::write::WriteController,
+        core::controller::write::WriteController,
         register::single::AxiRegister,
         types::{ReadMOSI, StrobedData, WriteCommand, WriteResult},
     },

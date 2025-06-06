@@ -26,7 +26,7 @@ use rhdl::prelude::*;
 
 use crate::{
     axi4lite::{
-        native::{controller::read::ReadController, endpoint::read::ReadEndpoint},
+        core::{controller::read::ReadController, endpoint::read::ReadEndpoint},
         types::ReadResult,
     },
     stream::testing::{sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn},

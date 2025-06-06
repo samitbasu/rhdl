@@ -53,7 +53,7 @@ use rhdl::prelude::*;
 
 use crate::{
     axi4lite::{
-        native::endpoint::{read::ReadEndpoint, write::WriteEndpoint},
+        core::endpoint::{read::ReadEndpoint, write::WriteEndpoint},
         types::{
             strobe_to_mask, AXI4Error, AxilAddr, AxilData, ReadMISO, ReadMOSI, WriteMISO, WriteMOSI,
         },
