@@ -3,7 +3,7 @@
 
 use crate::{
     axi4lite::{
-        native::controller::blocking::{BlockReadWriteController, BlockRequest, BlockResponse},
+        core::controller::blocking::{BlockReadWriteController, BlockRequest, BlockResponse},
         register::single::AxiRegister,
     },
     stream::Ready,

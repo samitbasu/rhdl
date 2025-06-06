@@ -6,7 +6,7 @@ use std::iter::repeat_n;
 use rhdl::prelude::*;
 use rhdl_fpga::{
     axi4lite::{
-        native::{controller::read::ReadController, endpoint::read::ReadEndpoint},
+        core::{controller::read::ReadController, endpoint::read::ReadEndpoint},
         types::ReadResult,
     },
     doc::write_svg_as_markdown,

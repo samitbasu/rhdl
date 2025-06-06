@@ -30,7 +30,7 @@ use rhdl::prelude::*;
 
 use crate::{
     axi4lite::{
-        native::{controller::write::WriteController, endpoint::write::WriteEndpoint},
+        core::{controller::write::WriteController, endpoint::write::WriteEndpoint},
         types::{WriteCommand, WriteResult},
     },
     stream::testing::{sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn},
