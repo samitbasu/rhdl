@@ -122,11 +122,11 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
     o.write_axi = q.write.axi;
     d.read.axi = i.read_axi;
     o.read_axi = q.read.axi;
-    d.write.req_ready = q.write.resp_ready;
+    d.write.req_ready.raw = q.write.resp_ready.raw;
     d.write.resp_data = None;
     d.data = q.data;
     if let Some(cmd) = q.write.req_data {
-        if q.write.resp_ready {
+        if q.write.resp_ready.raw {
             if cmd.addr == q.address {
                 let mask = strobe_to_mask(cmd.strobed_data.strobe);
                 d.data = (q.data & (!mask)) | (cmd.strobed_data.data & mask);
@@ -136,10 +136,10 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
             }
         }
     }
-    d.read.req_ready = q.read.resp_ready;
+    d.read.req_ready.raw = q.read.resp_ready.raw;
     d.read.resp_data = None;
     if let Some(req) = q.read.req_data {
-        if q.read.resp_ready {
+        if q.read.resp_ready.raw {
             if req == q.address {
                 d.read.resp_data = Some(Ok(q.data));
             } else {

@@ -1,9 +1,12 @@
 // Create a test fixture with a single register
 // and a read and write controller for it
 
-use crate::axi4lite::{
-    native::controller::blocking::{BlockReadWriteController, BlockRequest, BlockResponse},
-    register::single::AxiRegister,
+use crate::{
+    axi4lite::{
+        native::controller::blocking::{BlockReadWriteController, BlockRequest, BlockResponse},
+        register::single::AxiRegister,
+    },
+    stream::Ready,
 };
 use rhdl::prelude::*;
 
@@ -25,13 +28,12 @@ impl Default for TestFixture {
 #[derive(PartialEq, Digital)]
 pub struct In {
     pub cmd: Option<BlockRequest>,
-    pub next: bool,
 }
 
 #[derive(PartialEq, Digital)]
 pub struct Out {
     pub reply: Option<BlockResponse>,
-    pub full: bool,
+    pub cmd_ready: Ready<BlockRequest>,
 }
 
 impl SynchronousIO for TestFixture {
@@ -50,8 +52,8 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
     d.register.write_axi = q.controller.write_axi;
     d.register.data = None;
     d.controller.request = i.cmd;
-    d.controller.resp_ready = i.next;
-    o.full = q.controller.req_ready;
+    d.controller.resp_ready.raw = true;
+    o.cmd_ready = q.controller.req_ready;
     o.reply = q.controller.response;
     (o, d)
 }
@@ -103,6 +105,13 @@ mod tests {
     }
 
     #[test]
+    fn test_synthesizable() -> miette::Result<()> {
+        let uut = TestFixture::default();
+        let _ = uut.hdl("top")?;
+        Ok(())
+    }
+
+    #[test]
     fn test_register_trace() -> miette::Result<()> {
         let uut = TestFixture::default();
         let mut need_reset = true;
@@ -116,9 +125,8 @@ mod tests {
                         return Some(ResetOrData::Reset);
                     }
                     let mut input = In::dont_care();
-                    input.next = o.reply.is_some();
                     input.cmd = None;
-                    if !o.full {
+                    if o.cmd_ready.raw {
                         input.cmd = seq.next();
                         if input.cmd.is_none() && tail > 100 {
                             return None;
@@ -135,7 +143,7 @@ mod tests {
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["08f7cb679ce32d7773c214b7e295de5dbcf8cd121b3916ab1bb962f396866ec2"];
+        let expect = expect!["efe5aeb3b5dff66ea80200f244c8a5141727504545e60b9cb3843cadb5e70651"];
         let digest = vcd.dump_to_file(root.join("register.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -155,9 +163,8 @@ mod tests {
                         return Some(ResetOrData::Reset);
                     }
                     let mut input = In::dont_care();
-                    input.next = o.reply.is_some();
                     input.cmd = None;
-                    if !o.full {
+                    if o.cmd_ready.raw {
                         input.cmd = seq.next();
                         if input.cmd.is_none() && tail > 100 {
                             return None;
