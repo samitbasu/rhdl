@@ -8,6 +8,8 @@
 //!
 use rhdl::prelude::*;
 
+use crate::stream::{ready, Ready};
+
 #[derive(Clone)]
 /// The [SinkFromFn] core
 ///
@@ -63,8 +65,8 @@ where
     // Data signal
     type I = Option<T>;
     // Ready signal
-    type O = bool;
-    type Kernel = NoKernel3<ClockReset, Option<T>, (), (bool, ())>;
+    type O = Ready<T>;
+    type Kernel = NoKernel3<ClockReset, Option<T>, (), (Ready<T>, ())>;
 }
 
 impl<T> SynchronousDQ for SinkFromFn<T>
@@ -129,7 +131,7 @@ impl<T: Digital> Synchronous for SinkFromFn<T> {
         me.prev_clock = clock_reset.clock;
         trace("output", &me.ready);
         trace_pop_path();
-        me.ready
+        ready(me.ready)
     }
     fn descriptor(&self, _name: &str) -> Result<CircuitDescriptor, RHDLError> {
         Err(RHDLError::NotSynthesizable)

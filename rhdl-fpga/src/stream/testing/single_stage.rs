@@ -5,11 +5,11 @@
 //!
 #![doc=badascii!(r"
 +-+Source+-+     +-+UUT+------+      +-+Sink+---+
-|          | ?T  |            | ?S   |          |
+|          | ?S  |            | ?T   |          |
 |     data +---->|in       out+----->|data      |
 |          |     |            |      |          |
-|          |     |            |      |          |
-|    ready |<---+|ready  ready|<-----+ready     |
+|          | R<S>|            | R<T> |          |
+|    ready |<----+ready  ready|<-----+ready     |
 +----------+     +------------+      +----------+
 ")]
 //! The source is provided by an iterator that yields [Option<T>]
@@ -20,7 +20,7 @@
 //! The consumer function provides the `ready` signal back to the
 //! stream to supply backpressure.
 
-use crate::stream::StreamIO;
+use crate::stream::{Ready, StreamIO};
 
 use super::{sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn};
 use badascii_doc::badascii;
@@ -35,7 +35,7 @@ pub struct SingleStage<S, T, C>
 where
     S: Digital,
     T: Digital,
-    C: Synchronous<I = StreamIO<S>, O = StreamIO<T>>,
+    C: Synchronous<I = StreamIO<S, T>, O = StreamIO<T, S>>,
 {
     source: SourceFromFn<S>,
     uut: C,
@@ -49,9 +49,9 @@ where
     S: Digital,
     T: Digital,
 {
-    source: bool,
-    uut: StreamIO<S>,
-    sink: StreamIO<T>,
+    source: Ready<S>,
+    uut: StreamIO<S, T>,
+    sink: Option<T>,
 }
 
 #[derive(PartialEq, Digital)]
@@ -62,15 +62,15 @@ where
     T: Digital,
 {
     source: Option<S>,
-    uut: StreamIO<T>,
-    sink: bool,
+    uut: StreamIO<T, S>,
+    sink: Ready<T>,
 }
 
 impl<S, T, C> SynchronousDQ for SingleStage<S, T, C>
 where
     S: Digital,
     T: Digital,
-    C: Synchronous<I = StreamIO<S>, O = StreamIO<T>>,
+    C: Synchronous<I = StreamIO<S, T>, O = StreamIO<T, S>>,
 {
     type D = D<S, T>;
     type Q = Q<S, T>;
@@ -93,7 +93,7 @@ pub fn single_stage<S, T, C>(
 where
     S: Digital,
     T: Digital,
-    C: Synchronous<I = StreamIO<S>, O = StreamIO<T>>,
+    C: Synchronous<I = StreamIO<S, T>, O = StreamIO<T, S>>,
 {
     SingleStage {
         source: SourceFromFn::new(source),
@@ -106,7 +106,7 @@ impl<S, T, C> SynchronousIO for SingleStage<S, T, C>
 where
     S: Digital,
     T: Digital,
-    C: Synchronous<I = StreamIO<S>, O = StreamIO<T>>,
+    C: Synchronous<I = StreamIO<S, T>, O = StreamIO<T, S>>,
 {
     type I = ();
     type O = ();
@@ -117,7 +117,7 @@ impl<S, T, C> Synchronous for SingleStage<S, T, C>
 where
     S: Digital,
     T: Digital,
-    C: Synchronous<I = StreamIO<S>, O = StreamIO<T>>,
+    C: Synchronous<I = StreamIO<S, T>, O = StreamIO<T, S>>,
 {
     type S = (
         Self::Q,
@@ -154,10 +154,10 @@ where
             // Do the wiring here
             //
             // +-+Source+-+     +-+UUT+------+      +-+Sink+---+
-            // |          | ?T  |            | ?S   |          |
+            // |          | ?S  |            | ?T   |          |
             // |     data +---->|in       out+----->|data      |
             // |          |     |            |      |          |
-            // |          |     |            |      |          |
+            // |          | R<S>|            | R<T> |          |
             // |    ready |<---+|ready  ready|<-----+ready     |
             // +----------+     +------------+      +----------+
             //
@@ -165,7 +165,7 @@ where
             internal_inputs.source = state.0.uut.ready;
             internal_inputs.uut.ready = state.0.sink;
             internal_inputs.uut.data = state.0.source;
-            internal_inputs.sink.data = state.0.uut.data;
+            internal_inputs.sink = state.0.uut.data;
             let outputs = ();
             rhdl::core::trace_push_path(stringify!(source));
             state.0.source = self
@@ -178,7 +178,7 @@ where
             rhdl::core::trace_push_path(stringify!(sink));
             state.0.sink = self
                 .sink
-                .sim(clock_reset, internal_inputs.sink.data, &mut state.3);
+                .sim(clock_reset, internal_inputs.sink, &mut state.3);
             rhdl::core::trace_pop_path();
             if state == &prev_state {
                 rhdl::core::trace("outputs", &outputs);

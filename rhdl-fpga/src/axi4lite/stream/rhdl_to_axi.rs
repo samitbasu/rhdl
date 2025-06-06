@@ -13,7 +13,7 @@
 +---->|data   : tdata +---> 
       |       :       |     
       |       : tvalid+---> 
-      |       :       |     
+ R<T> |       :       |     
  <----+ready  : tready|<---+
       +---------------+     
 ")]
@@ -35,7 +35,7 @@
      |         |         +           |                     + !tready
      |   tvalid+-->  ! +------------>| void_in    stop_in  |<-----+ 
      +---------+         +           +---------------------+        
- ready                   |                                          
+ ready R<T>              |                                          
 <------------------------+                                          
 ")]
 //!
@@ -55,7 +55,10 @@
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use crate::lid::carloni::Carloni;
+use crate::{
+    lid::carloni::Carloni,
+    stream::{ready, Ready},
+};
 
 #[derive(Clone, Default, Synchronous, SynchronousDQ)]
 /// RHDL Stream to AXI Stream shim
@@ -85,7 +88,7 @@ pub struct Out<T: Digital> {
     /// The valid signal on the AXI downstream
     pub tvalid: bool,
     /// The ready signal to the RHDL upstream
-    pub ready: bool,
+    pub ready: Ready<T>,
 }
 
 impl<T: Digital> SynchronousIO for Rhdl2Axi<T> {
@@ -110,7 +113,7 @@ pub fn kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) 
     d.outbuf.stop_in = !i.tready;
     o.tdata = q.outbuf.data_out;
     o.tvalid = !q.outbuf.void_out;
-    o.ready = !q.outbuf.stop_out;
+    o.ready = ready::<T>(!q.outbuf.stop_out);
     (o, d)
 }
 

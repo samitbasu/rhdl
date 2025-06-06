@@ -27,7 +27,7 @@ pub fn kernel(_cr: ClockReset, _i: (), q: Q) -> ((), D) {
     d.axi_2_rhdl.tvalid = valid;
     d.sink = q.axi_2_rhdl.data;
     d.axi_2_rhdl.ready = q.sink;
-    d.source = q.axi_2_rhdl.tready;
+    d.source.raw = q.axi_2_rhdl.tready;
     ((), d)
 }
 

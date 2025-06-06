@@ -24,7 +24,7 @@ out               [d0..d3]         [d4..d7]
      ++Chunked+-----+        
  ?T  |              | ?[T;N] 
 +--->|data      data+------->
-     |              |        
+ R<T>|              | R<[T;N]>       
 <----+ready    ready|<------+
      |              |        
      +--------------+        
@@ -144,17 +144,17 @@ where
 }
 
 /// Inputs for the [Chunked] core
-pub type In<T> = StreamIO<T>;
+pub type In<T, const N: usize> = StreamIO<T, [T; N]>;
 
 /// Outputs from the [Chunked] core
-pub type Out<T, const N: usize> = StreamIO<[T; N]>;
+pub type Out<T, const N: usize> = StreamIO<[T; N], T>;
 
 impl<M: BitWidth, T: Digital, const N: usize> SynchronousIO for Chunked<M, T, N>
 where
     [T; N]: Default,
     T: Default,
 {
-    type I = In<T>;
+    type I = In<T, N>;
     type O = Out<T, N>;
     type Kernel = kernel<M, T, N>;
 }
@@ -163,7 +163,7 @@ where
 #[doc(hidden)]
 pub fn kernel<M: BitWidth, T, const N: usize>(
     _cr: ClockReset,
-    i: In<T>,
+    i: In<T, N>,
     q: Q<M, T, N>,
 ) -> (Out<T, N>, D<M, T, N>)
 where
@@ -238,7 +238,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::rng::xorshift::XorShift128;
+    use crate::{rng::xorshift::XorShift128, stream::ready};
 
     use super::*;
 
@@ -281,13 +281,13 @@ mod tests {
                     need_reset = false;
                     return Some(rhdl::core::sim::ResetOrData::Reset);
                 }
-                let mut input = super::In::<b4>::dont_care();
+                let mut input = super::In::<b4, N>::dont_care();
                 // Downstream is likely to run
                 let want_to_pause = rand::random::<u8>() > 200;
-                input.ready = !want_to_pause;
+                input.ready = ready(!want_to_pause);
                 // Decide if the producer will generate a new data item
                 let willing_to_send = rand::random::<u8>() < 200;
-                if out.ready {
+                if out.ready.raw {
                     // The pipeline wants more data
                     if willing_to_send {
                         latched_input = source_rng.next();
@@ -296,7 +296,7 @@ mod tests {
                     }
                 }
                 input.data = latched_input;
-                if input.ready && out.data.is_some() {
+                if input.ready.raw && out.data.is_some() {
                     assert_eq!(dest_rng.next(), out.data);
                 }
                 Some(rhdl::core::sim::ResetOrData::Data(input))

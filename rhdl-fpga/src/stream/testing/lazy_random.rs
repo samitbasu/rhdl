@@ -13,7 +13,7 @@
 |           | ?b32    
 |      data +-------->
 |           |         
-|           |         
+|           | R<b32>        
 |     ready |<-------+
 |           |         
 +-----------+         
@@ -34,7 +34,7 @@
 ++FIFOFiller++             ++FifoToStrm+--+     
 |            | ?b32        |              + ?b32
 |      data  +------------>|data     data +---->
-|            |             |              |     
+|            |             |              | R<b32>    
 |            |        +----+full     ready|<---+
 |       full |<-------+    |              |     
 |            |             +error         |     
@@ -60,7 +60,10 @@
 
 use badascii_doc::{badascii, badascii_formal};
 
-use crate::{fifo::testing::filler::FIFOFiller, stream::fifo_to_stream::FIFOToStream};
+use crate::{
+    fifo::testing::filler::FIFOFiller,
+    stream::{fifo_to_stream::FIFOToStream, Ready},
+};
 use rhdl::prelude::*;
 
 #[derive(Clone, Synchronous, SynchronousDQ, Default)]
@@ -87,7 +90,7 @@ impl LazyRng {
 /// provides backpressure.
 pub struct In {
     /// Ready signal from downstream
-    pub ready: bool,
+    pub ready: Ready<b32>,
 }
 
 #[derive(PartialEq, Digital)]
@@ -119,13 +122,15 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
 
 #[cfg(test)]
 mod tests {
+    use crate::stream::ready;
+
     use super::*;
 
     #[test]
     fn test_operation() -> Result<(), RHDLError> {
         let input = (0..)
             .map(|_| rand::random_bool(0.8))
-            .map(|ready| In { ready })
+            .map(|r| In { ready: ready(r) })
             .with_reset(1)
             .clock_pos_edge(100)
             .take(1000);

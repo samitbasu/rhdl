@@ -103,30 +103,25 @@ Time:
 1
 <title>1</title>
 </text>
-<path d="M 350 50 L 353 43 L 447 43 L 450 50 L 447 57 L 353 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="400" xml:space="preserve" y="50">
+<path d="M 351 50 L 354 43 L 448 43 L 451 50 L 448 57 L 354 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="401" xml:space="preserve" y="50">
+1
+<title>1</title>
+</text>
+<path d="M 451 50 L 454 43 L 547 43 L 550 50 L 547 57 L 454 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="500" xml:space="preserve" y="50">
 2
 <title>2</title>
 </text>
-<path d="M 451 50 L 454 43 L 548 43 L 551 50 L 548 57 L 454 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="501" xml:space="preserve" y="50">
-2
-<title>2</title>
-</text>
-<path d="M 551 50 L 554 43 L 647 43 L 650 50 L 647 57 L 554 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 550 50 L 553 43 L 647 43 L 650 50 L 647 57 L 553 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="600" xml:space="preserve" y="50">
 3
 <title>3</title>
 </text>
-<path d="M 651 50 L 654 43 L 1048 43 L 1051 50 L 1048 57 L 654 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="851" xml:space="preserve" y="50">
+<path d="M 651 50 L 654 43 L 1148 43 L 1151 50 L 1148 57 L 654 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="901" xml:space="preserve" y="50">
 3
 <title>3</title>
-</text>
-<path d="M 1051 50 L 1054 43 L 1147 43 L 1150 50 L 1147 57 L 1054 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1100" xml:space="preserve" y="50">
-4
-<title>4</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="70">
 .count.dff.output
@@ -137,17 +132,17 @@ Time:
 0
 <title>0</title>
 </text>
-<path d="M 350 70 L 353 63 L 447 63 L 450 70 L 447 77 L 353 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="400" xml:space="preserve" y="70">
+<path d="M 350 70 L 353 63 L 547 63 L 550 70 L 547 77 L 353 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="450" xml:space="preserve" y="70">
 1
 <title>1</title>
 </text>
-<path d="M 450 70 L 453 63 L 647 63 L 650 70 L 647 77 L 453 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="550" xml:space="preserve" y="70">
+<path d="M 550 70 L 553 63 L 647 63 L 650 70 L 647 77 L 553 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="600" xml:space="preserve" y="70">
 2
 <title>2</title>
 </text>
-<path d="M 650 70 L 653 63 L 1147 63 L 1150 70 L 1147 77 L 653 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 650 70 L 653 63 L 1148 63 L 1151 70 L 1148 77 L 653 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="900" xml:space="preserve" y="70">
 3
 <title>3</title>
@@ -157,14 +152,12 @@ Time:
 <title>top.input</title>
 </text>
 <path d="M 200 90 L 200 97 L 251 97 L 251 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="198" x="252" y="83"/>
-<path d="M 251 90 L 251 83 L 451 83 L 451 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<path d="M 451 90 L 451 97 L 551 97 L 551 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="98" x="552" y="83"/>
-<path d="M 551 90 L 551 83 L 651 83 L 651 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<path d="M 651 90 L 651 97 L 1051 97 L 1051 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="98" x="1052" y="83"/>
-<path d="M 1051 90 L 1051 83 L 1151 83 L 1151 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="98" x="252" y="83"/>
+<path d="M 251 90 L 251 83 L 351 83 L 351 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 351 90 L 351 97 L 451 97 L 451 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="198" x="452" y="83"/>
+<path d="M 451 90 L 451 83 L 651 83 L 651 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 651 90 L 651 97 L 1151 97 L 1151 90" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="110">
 .outputs
 <title>top.outputs</title>
@@ -174,17 +167,17 @@ Time:
 0
 <title>0</title>
 </text>
-<path d="M 350 110 L 353 103 L 447 103 L 450 110 L 447 117 L 353 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="400" xml:space="preserve" y="110">
+<path d="M 350 110 L 353 103 L 547 103 L 550 110 L 547 117 L 353 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="450" xml:space="preserve" y="110">
 1
 <title>1</title>
 </text>
-<path d="M 450 110 L 453 103 L 647 103 L 650 110 L 647 117 L 453 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="550" xml:space="preserve" y="110">
+<path d="M 550 110 L 553 103 L 647 103 L 650 110 L 647 117 L 553 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="600" xml:space="preserve" y="110">
 2
 <title>2</title>
 </text>
-<path d="M 650 110 L 653 103 L 1147 103 L 1150 110 L 1147 117 L 653 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 650 110 L 653 103 L 1148 103 L 1151 110 L 1148 117 L 653 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="900" xml:space="preserve" y="110">
 3
 <title>3</title>

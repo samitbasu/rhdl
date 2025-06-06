@@ -21,7 +21,7 @@
            |  sink          | araddr   
  ?AxilAddr |                +--------->
  +-------->| req.data       | arvalid  
-           |                +--------->
+R<AxilAddr>|                +--------->
 <----------+ req.ready      | arready  
            |                |<--------+
            |  - - - - - -   |          
@@ -30,7 +30,7 @@
            |  source        | rresp    
 ?ReadResult|                |<--------+
 <----------+ resp.data      | rvalid   
-           |                |<--------+
+R<ReadRslt>|                |<--------+
 +--------->| resp.ready     | rready   
            |                +--------->
            +----------------+          
@@ -111,7 +111,7 @@ use crate::{
             response_codes, AXI4Error, AxilAddr, ReadMISO, ReadMOSI, ReadResponse, ReadResult,
         },
     },
-    stream::map::Map,
+    stream::{map::Map, Ready},
 };
 use rhdl::prelude::*;
 
@@ -158,7 +158,7 @@ pub struct In {
     /// Request data stream
     pub req_data: Option<AxilAddr>,
     /// Response ready signal
-    pub resp_ready: bool,
+    pub resp_ready: Ready<ReadResult>,
 }
 
 #[derive(PartialEq, Debug, Digital)]
@@ -167,7 +167,7 @@ pub struct Out {
     /// AXI signals to the bus
     pub axi: ReadMOSI,
     /// Request stream ready signal
-    pub req_ready: bool,
+    pub req_ready: Ready<AxilAddr>,
     /// Response data stream
     pub resp_data: Option<ReadResult>,
 }

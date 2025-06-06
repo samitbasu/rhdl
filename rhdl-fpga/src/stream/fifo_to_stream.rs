@@ -78,7 +78,7 @@ clk     +----+    +----+    +----+
      ++FifoToStrm+--+     
  ?T  |              +?T   
 +--->|data     data +---->
-     |              |     
+     |              |R<T>     
 <----+full     ready|<---+
      |              |     
 <----+error         |     
@@ -174,7 +174,7 @@ impl<T: Digital> Default for FIFOToStream<T> {
 /// It is important that the full signal is not dependant on the consumer,
 /// so that the pull-pull buffer isolates the producer from the consumer
 /// and vice versa.
-pub type In<T> = StreamIO<T>;
+pub type In<T> = StreamIO<T, T>;
 
 #[derive(PartialEq, Debug, Digital)]
 /// Outputs from the [FIFOToStream] buffer
@@ -190,7 +190,7 @@ pub struct Out<T: Digital> {
 }
 
 impl<T: Digital> SynchronousIO for FIFOToStream<T> {
-    type I = StreamIO<T>;
+    type I = StreamIO<T, T>;
     type O = Out<T>;
     type Kernel = kernel<T>;
 }
@@ -210,7 +210,7 @@ pub fn kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) 
                 State::Empty
             }
         }
-        State::OneLoaded => match (will_write, can_read) {
+        State::OneLoaded => match (will_write, can_read.raw) {
             (false, false) => State::OneLoaded, // No change
             (true, false) => State::TwoLoaded,  // Producer wants to write
             (false, true) => State::Empty, // Consumer can read, and we have valid data, so we will be empty.
@@ -220,7 +220,7 @@ pub fn kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) 
             // Any write in this state is an error
             if will_write {
                 State::Error
-            } else if can_read {
+            } else if can_read.raw {
                 State::OneLoaded
             } else {
                 State::TwoLoaded
@@ -240,7 +240,7 @@ pub fn kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) 
             d.one_slot = data;
         }
     }
-    let next_item = can_read && q.state != State::Empty && q.state != State::Error;
+    let next_item = can_read.raw && q.state != State::Empty && q.state != State::Error;
     // Toggle the read and write slots.
     d.write_slot = will_write ^ q.write_slot;
     d.read_slot = next_item ^ q.read_slot;
@@ -261,7 +261,7 @@ pub fn kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) 
 
 #[cfg(test)]
 mod tests {
-    use crate::rng::xorshift::XorShift128;
+    use crate::{rng::xorshift::XorShift128, stream::ready};
 
     use super::*;
 
@@ -289,14 +289,14 @@ mod tests {
                 }
                 let mut input = super::In::<b4>::dont_care();
                 let want_to_pause = rand::random::<u8>() > 200;
-                input.ready = !want_to_pause;
+                input.ready = ready(!want_to_pause);
                 // Decide if the producer will generate a data item
                 let want_to_send = rand::random::<u8>() < 200;
                 input.data = None;
                 if !out.full && want_to_send {
                     input.data = source_rng.next();
                 }
-                if out.data.is_some() && input.ready {
+                if out.data.is_some() && input.ready.raw {
                     assert_eq!(out.data, dest_rng.next());
                 }
                 Some(rhdl::core::sim::ResetOrData::Data(input))

@@ -16,11 +16,11 @@
          +--+Tee+--------+       
   ?(S,T) |               | ?S    
 +------->|data    a.data +------>
-         |               |       
+ R<(S,T)>|               | R<S>      
  <-------+ready   a.ready|<-----+
          |               | ?T    
          |        b.data +------>
-         |               |       
+         |               | R<T>      
          |        b.ready|<-----+
          +---------------+          
 ")]
@@ -32,23 +32,23 @@
 //! into `Option<S>` and `Option<T>`.
 //!
 #![doc = badascii!("
-                                                      ++pack++      ++FIFO2RV+-+     
-                         +unpck+++     +split+ S      |      |      |          | ?S  
-       ++Stm2FIFO++      |       |(S,T)|   .0+------->|in out+----->|data  data+---->
- ?(S,T)|          |?(S,T)|   data+---->|in   | T      |      |      |          |     
-+----->|data  data+----->|in     |     |   .1+--+ +-->|tag   |  +---+full ready|<---+
-       |          |      |    tag+-+   |     |  | |   +------+  |   |          |     
- <-----+ready next|<-+   |       | |   +-----+  | |             |   +----------+     
-       |          |  |   +-------+ |            | |             |                    
-       +----------+  |             v            | |             |                    
-                     |      +----------+        | |   ++pack++  |   ++FIFO2RV+-+     
-                     |   run| Control  |        | +   |      |  |   |          | ?T  
-                     +------+          +----+   +---->|in out+-+v+->|data  data+---->
-                            |      full|    |     +   |      |      |          |     
-                            +----------+    +-----+-->|tag   |  OR+-+full ready|<---+
-                                    ^                 +------+  +   |          |     
-                                    |                           |   +----------+     
-                                    +---------------------------+
+                                                       ++pack++      ++FIFO2RV+-+     
+                          +unpck+++     +split+ S      |      |      |          | ?S  
+        ++Stm2FIFO++      |       |(S,T)|   .0+------->|in out+----->|data  data+---->
+  ?(S,T)|          |?(S,T)|   data+---->|in   | T      |      |      |          | R<S>    
+ +----->|data  data+----->|in     |     |   .1+--+ +-->|tag   |  +---+full ready|<---+
+R<(S,T)>|          |      |    tag+-+   |     |  | |   +------+  |   |          |     
+<-------+ready next|<-+   |       | |   +-----+  | |             |   +----------+     
+        |          |  |   +-------+ |            | |             |                    
+        +----------+  |             v            | |             |                    
+                      |      +----------+        | |   ++pack++  |   ++FIFO2RV+-+     
+                      |   run| Control  |        | +   |      |  |   |          | ?T  
+                      +------+          +----+   +---->|in out+-+v+->|data  data+---->
+                             |      full|    |     +   |      |      |          | R<T>    
+                             +----------+    +-----+-->|tag   |  OR+-+full ready|<---+
+                                     ^                 +------+  +   |          |     
+                                     |                           |   +----------+     
+                                     +---------------------------+
 ")]
 //!
 //!# Example
@@ -68,6 +68,8 @@ use rhdl::prelude::*;
 
 use crate::stream::{fifo_to_stream::FIFOToStream, stream_to_fifo::StreamToFIFO};
 
+use super::Ready;
+
 #[derive(Debug, Clone, Synchronous, SynchronousDQ, Default)]
 /// The [Tee] Core
 ///
@@ -85,9 +87,9 @@ pub struct In<S: Digital, T: Digital> {
     /// The input data for the [Tee]
     pub data: Option<(S, T)>,
     /// The downstream ready signal for the S stream
-    pub s_ready: bool,
+    pub s_ready: Ready<S>,
     /// The downstream ready signal for the T stream
-    pub t_ready: bool,
+    pub t_ready: Ready<T>,
 }
 
 /// Output struct for the [Tee]
@@ -98,7 +100,7 @@ pub struct Out<S: Digital, T: Digital> {
     /// The output data for the T stream
     pub t_data: Option<T>,
     /// The upstream ready signal
-    pub ready: bool,
+    pub ready: Ready<(S, T)>,
 }
 
 impl<S: Digital, T: Digital> SynchronousIO for Tee<S, T> {

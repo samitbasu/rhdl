@@ -11,6 +11,8 @@
 
 use rhdl::prelude::*;
 
+use crate::stream::Ready;
+
 #[derive(Clone)]
 /// The [SourceFromFn] core
 ///
@@ -43,10 +45,10 @@ where
     T: Digital,
 {
     // Ready signal
-    type I = bool;
+    type I = Ready<T>;
     // data element
     type O = Option<T>;
-    type Kernel = NoKernel3<ClockReset, bool, (), (Option<T>, ())>;
+    type Kernel = NoKernel3<ClockReset, Ready<T>, (), (Option<T>, ())>;
 }
 
 impl<T> SynchronousDQ for SourceFromFn<T>
@@ -133,7 +135,7 @@ impl<T: Digital> Synchronous for SourceFromFn<T> {
             State::Done => {}
         }
         if !clock_reset.clock.raw() {
-            me.latched_ready = input;
+            me.latched_ready = input.raw;
         }
         me.prev_clock = clock_reset.clock;
         trace("output", &me.value);
