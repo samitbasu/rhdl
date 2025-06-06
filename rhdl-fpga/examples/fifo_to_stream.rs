@@ -20,7 +20,7 @@ fn main() -> Result<(), RHDLError> {
                 }
                 let mut input = fifo_to_stream::In::<b4>::dont_care();
                 let want_to_pause = rand::random::<u8>() > 200;
-                input.ready = !want_to_pause;
+                input.ready.raw = !want_to_pause;
                 // Decide if the producer will generate a data item
                 let want_to_send = rand::random::<u8>() < 200;
                 input.data = None;

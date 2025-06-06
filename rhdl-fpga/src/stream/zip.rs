@@ -16,11 +16,11 @@
         +--+Zip+---------+        
   ?S    |                |        
 +------>|a.data          |        
-        |                | ?(S,T) 
+ R<S>   |                | ?(S,T) 
  <------+a.ready     data+------> 
-  ?T    |                |        
+  ?T    |                | R<(S,T)>       
 +------>|b.data     ready|<------+
-        |                |        
+ R<T>   |                |        
  <------+b.ready         |        
         +----------------+        
 ")]
@@ -36,15 +36,15 @@
       ++Stm2FIFO+--+    ++unpck+-+     +conct++                                        
   ?S  |            | ?S |        |  S  |      |      +-+pack+-+      ++FIFO2Stm+       
 +---->| data  data +--->|in   out+---->|.0    |      |        |?(S,T)|         | ?(S,T)
-      |            |    |        |     |   out+----->|data out+----->|in    out+------>
- <----+ ready next |<+  |     tag+-+ +>|.1    |      |        |      |         |       
+ R<S> |            |    |        |     |   out+----->|data out+----->|in    out+------>
+ <----+ ready next |<+  |     tag+-+ +>|.1    |      |        |      |         | R<(S,T)>      
       |            | |  |        | | | |      |   +->|tag     |   +--+full  rdy|<-----+
       +------------+ |  +--------+ | | +------+   |  |        |   |  |         |       
                      |             +-+---------+  |  +--------+   |  +---------+       
       ++Stm2FIFO+--+ +  ++unpck+-+   |         v  |               |                    
   ?T  |            | ?T |        | T |    +-------+-------+       |                    
 +---->| data  data +--->|in   out+---+    |               |       |                    
-      |            | +  |        |        |    Control    |<------+                    
+ R<T> |            | +  |        |        |    Control    |<------+                    
  <----+ ready next |<+  |     tag+------->|               |                            
       |            | |  |        |        |               |                            
       +------------+ |  +--------+        +-+-------------+                            
@@ -69,6 +69,8 @@ use rhdl::prelude::*;
 
 use crate::stream::{fifo_to_stream::FIFOToStream, stream_to_fifo::StreamToFIFO};
 
+use super::Ready;
+
 #[derive(Debug, Clone, Synchronous, SynchronousDQ, Default)]
 /// The [Zip] Core
 ///
@@ -89,16 +91,16 @@ pub struct In<S: Digital, T: Digital> {
     /// Input data for the `b` stream
     pub b_data: Option<T>,
     /// Ready signal for the downstream
-    pub ready: bool,
+    pub ready: Ready<(S, T)>,
 }
 
 #[derive(PartialEq, Digital)]
 /// Output struct for the [Zip]
 pub struct Out<S: Digital, T: Digital> {
     /// Ready signal for the `a`` stream
-    pub a_ready: bool,
+    pub a_ready: Ready<S>,
     /// Ready signal for the `b` stream
-    pub b_ready: bool,
+    pub b_ready: Ready<T>,
     /// Output data containing the tuples
     pub data: Option<(S, T)>,
 }

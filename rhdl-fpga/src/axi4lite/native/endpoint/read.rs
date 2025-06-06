@@ -19,7 +19,7 @@
   araddr |      source  |            
 +------->|              | ?b32       
  arvalid |    req.data  +----->      
-+------->|              |
++------->|              | R<b32>
  arready |    req.ready |<----+            
 <--------+              |            
          |  - - - - - - |            
@@ -28,7 +28,7 @@
  rresp   |      sink    |            
 <--------+              | ?ReadResult
  rvalid  |   resp.data  |<----------+
-<--------+              |
+<--------+              | R<ReadResult>
  rready  |   resp.ready +----------->
 +------->+              |            
          +--------------+            
@@ -111,7 +111,7 @@ use crate::{
         stream::{axi_to_rhdl::Axi2Rhdl, rhdl_to_axi::Rhdl2Axi},
         types::{response_codes, AXI4Error, ReadMISO, ReadMOSI, ReadResponse, ReadResult},
     },
-    stream::map::Map,
+    stream::{map::Map, Ready},
 };
 use rhdl::prelude::*;
 
@@ -164,7 +164,7 @@ pub struct In {
     /// AXI signals for core
     pub axi: ReadMOSI,
     /// Request stream ready signal from core
-    pub req_ready: bool,
+    pub req_ready: Ready<b32>,
     /// Response data stream from core
     pub resp_data: Option<ReadResult>,
 }
@@ -177,7 +177,7 @@ pub struct Out {
     /// Request data to the core
     pub req_data: Option<b32>,
     /// Response ready signal to core
-    pub resp_ready: bool,
+    pub resp_ready: Ready<ReadResult>,
 }
 
 impl SynchronousIO for ReadEndpoint {

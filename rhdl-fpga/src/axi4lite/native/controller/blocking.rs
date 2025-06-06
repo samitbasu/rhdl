@@ -19,7 +19,7 @@
            |  sink          |       
  ?BlockReq |                |       
  +-------->| req.data       |       
-           |                |       
+R<BlockReq>|                |       
 <----------+ req.ready      |       
            |                |  AXI  
            |  - - - - - -   |<----->
@@ -28,7 +28,7 @@
            |  source        |       
 ?BlockResp |                |       
 <----------+ resp.data      |       
-           |                |       
+R<BlockRsp>|                |       
 +--------->| resp.ready     |       
            |                |       
            +----------------+       
@@ -45,30 +45,30 @@
 //!
 use badascii_doc::badascii;
 #[doc = badascii!(r"
-                      ++Map+-+                ++WriteCntrl+     
-    ?BlockReq         |      |?WriteCmd       |           |     
-   +----------------->|in   a+--------------->|req        |     
-    ready             |      |?AxilAddr       |        axi|<--> 
-   <---------+ +----->|en   b+---+ +----------+ready      |write
-             | |      +------+   | |          |           |bus  
-             | |       +--------+|++ +--------+resp       |     
-             | |       |         +   |        |           |     
-             | |       |  +----------+    +-->|ready      |     
-   +---------+-++      |  |      +        |   +-----------+     
-   |    Control |<-----+  |      |        |                     
-   +-+----------+         |      |        |                     
-          ^   ^           +      |        |                     
-          |   +-----------------+|+----+  |   ++ReadCntrl++     
-   is_some|               +      |     |  +   |           |read 
-          |               |      +----+|+---->|req        |bus  
-?Block +--+---+ ?WriteResp|            |  |   |        axi|<--> 
- Resp  |     a|<----------+            +------+ready      |     
-<------+      |            ?ReadResp      |   |           |     
-       |out  b|<------------------------------+resp       |     
-       |      |                           +   |           |     
-       ++Map+-+                           +-->|ready      |     
- ready                                    |   +-----------+     
-+-----------------------------------------+                     
+        ++StrmBuf++                   ++Map+-+                ++WriteCntrl+     
+ ?BlkReq|         | ?BlockReq         |      |?WriteCmd       |           |     
+ +----->|data data+------------------>|in   a+--------------->|req        |     
+R<BlkRq>|         | ready             |      |?AxilAddr       |        axi|<--> 
+ <------+rdy   rdy|<---------+ +----->|en   b+---+ +----------+ready      |write
+        +---------+          | |      +------+   | |          |           |bus  
+                             | |       +--------+|++ +--------+resp       |     
+                             | |       |         +   |        |           |     
+                             | |       |  +----------+    +-->|ready      |     
+                   +---------+-++      |  |      +        |   +-----------+     
+                   |    Control |<-----+  |      |        |                     
+                   +-+----------+         |      |        |                     
+                          ^   ^           +      |        |                     
+                          |   +-----------------+|+----+  |   ++ReadCntrl++     
+                   is_some|               +      |     |  +   |           |read 
+                          |               |      +----+|+---->|req        |bus  
+       +StmBuf++?Block +--+---+ ?WriteResp|            |  |   |        axi|<--> 
+  ?BRsp|       | Resp  |     a|<----------+            +------+ready      |     
+  <----+       |<------+      |            ?ReadResp      |   |           |     
+       |       |       |out  b|<------------------------------+resp       |     
+R<BRsp>|       |ready  |      |                           +   |           |     
+ +---->|       +----+  ++Map+-+                           +-->|ready      |     
+       +-------+    |                                     |   +-----------+     
+                    +-------------------------------------+                     
 ")]
 use badascii_doc::badascii_formal;
 
@@ -80,7 +80,7 @@ use crate::{
         WriteResult,
     },
     core::{dff::DFF, option::is_some},
-    fifo::synchronous::SyncFIFO,
+    stream::{stream_buffer::StreamBuffer, Ready},
 };
 
 use super::{read::ReadController, write::WriteController};
@@ -137,8 +137,10 @@ pub enum State {
 /// at the input one at a time in a blocking fashion, and
 /// sources a stream with the output results.
 pub struct BlockReadWriteController {
+    inbuf: StreamBuffer<BlockRequest>,
     write_controller: WriteController,
     read_controller: ReadController,
+    outbuf: StreamBuffer<BlockResponse>,
     state: DFF<State>,
 }
 
@@ -148,7 +150,7 @@ pub struct In {
     /// The [BlockRequest] input for the request stream
     pub request: Option<BlockRequest>,
     /// Backpressure/ready signal for the response stream
-    pub resp_ready: bool,
+    pub resp_ready: Ready<BlockResponse>,
     /// The input side of the write AXI bus
     pub write_axi: WriteMISO,
     /// The input side of the read AXI bus
@@ -161,7 +163,7 @@ pub struct Out {
     /// The [BlockResponse] stream output
     pub response: Option<BlockResponse>,
     /// Backpressure/ready signal for the request stream
-    pub req_ready: bool,
+    pub req_ready: Ready<BlockRequest>,
     /// The output side of the write AXI bus
     pub write_axi: WriteMOSI,
     /// The output side of the read AXI bus
@@ -183,9 +185,9 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
     d.inbuf.data = i.request;
     // First check to see if we can capture a response
     let mut will_unload = false;
-    let can_accept = !q.outbuf.full;
-    d.read_controller.resp_ready = can_accept;
-    d.write_controller.resp_ready = can_accept;
+    let can_accept = q.outbuf.ready.raw;
+    d.read_controller.resp_ready.raw = can_accept;
+    d.write_controller.resp_ready.raw = can_accept;
     d.outbuf.data = None;
     // There is space to hold a result... check
     match q.state {
@@ -210,8 +212,8 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
         }
     }
     // Decide if we will issue a new command on this cycle
-    let will_start = q.write_controller.req_ready
-        & q.read_controller.req_ready
+    let will_start = q.write_controller.req_ready.raw
+        & q.read_controller.req_ready.raw
         & ((q.state == State::Idle) | will_unload)
         & is_some::<BlockRequest>(q.inbuf.data);
     // Feed the write and read controllers
@@ -219,7 +221,7 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
     d.write_controller.req_data = None;
     d.read_controller.axi = i.read_axi;
     d.read_controller.req_data = None;
-    d.inbuf.next = will_start;
+    d.inbuf.ready.raw = will_start;
     if will_start {
         if let Some(req) = q.inbuf.data {
             match req {
@@ -234,9 +236,9 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
             };
         }
     }
-    d.outbuf.next = i.resp_ready;
+    d.outbuf.ready = i.resp_ready;
     o.read_axi = q.read_controller.axi;
-    o.req_ready = q.inbuf.full;
+    o.req_ready = q.inbuf.ready;
     o.response = q.outbuf.data;
     o.write_axi = q.write_controller.axi;
     (o, d)

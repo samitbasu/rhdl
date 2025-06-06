@@ -16,7 +16,7 @@
      ++FilterMap+---+        
  ?T  |              | ?S    
 +--->+ data   data  +---->
-     |              |        
+ R<T>|              | R<S>       
 <----+ ready  ready |<---+
      +--------------+       
 ")]
@@ -39,7 +39,7 @@
      +-+Input Buf++     +unpack+  | +------+   | +------->
  ?T  |            | ?T  |      |T |     None+->|0+        
 +--->|data    data+---->|in out+--+            |/         
-     |            |     |      |               +^   ready 
+ R<T>|            |     |      |               +^   R<S> 
 <----+ready  ready|<-+  |   tag+----------------+  +-----+
      +------------+  |  +------+                   |      
                      +-----------------------------+      
@@ -63,6 +63,8 @@
 use badascii_doc::{badascii, badascii_formal};
 
 use rhdl::prelude::*;
+
+use crate::stream::ready_cast;
 
 use super::{stream_buffer::StreamBuffer, StreamIO};
 
@@ -102,24 +104,24 @@ where
 }
 
 /// The input for the [FilterMap]
-pub type In<T> = StreamIO<T>;
+pub type In<T, S> = StreamIO<T, S>;
 
 /// The output type for the [FilterMap]
-pub type Out<S> = StreamIO<S>;
+pub type Out<T, S> = StreamIO<S, T>;
 
 impl<T, S> SynchronousIO for FilterMap<T, S>
 where
     T: Digital,
     S: Digital,
 {
-    type I = In<T>;
-    type O = Out<S>;
+    type I = In<T, S>;
+    type O = Out<T, S>;
     type Kernel = kernel<T, S>;
 }
 
 #[kernel(allow_weak_partial)]
 #[doc(hidden)]
-pub fn kernel<T, S>(_cr: ClockReset, i: In<T>, q: Q<T, S>) -> (Out<S>, D<T, S>)
+pub fn kernel<T, S>(_cr: ClockReset, i: In<T, S>, q: Q<T, S>) -> (Out<T, S>, D<T, S>)
 where
     T: Digital,
     S: Digital,
@@ -132,8 +134,8 @@ where
         d.func = data;
         tag = true;
     }
-    d.input_buffer.ready = i.ready;
-    let o = Out::<S> {
+    d.input_buffer.ready = ready_cast::<T, S>(i.ready);
+    let o = Out::<T, S> {
         data: if !tag { None } else { q.func },
         ready: q.input_buffer.ready,
     };

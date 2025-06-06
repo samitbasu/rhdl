@@ -21,7 +21,7 @@
                        +-+WriteEndpoint+-+           
               awaddr   |   source        |?WriteCmd  
 +            +-------->|       req.data  +-------->  
-| Write       awvalid  |                 |           
+| Write       awvalid  |                 |R<WriteCmd>           
 | Address    +-------->|       req.ready |<-------+  
 | Channel     awready  |                 |           
 +            <---------+                 |           
@@ -36,7 +36,7 @@
               bresp    |  sink           |           
 +            <---------+                 |?WriteReslt
 | Write       bvalid   |       resp.data |<-------+  
-| Response   <---------+                 |           
+| Response   <---------+                 |R<WriteRslt>           
 | Channel     bready   |      resp.ready +-------->  
 +            +-------->|                 |           
                        +-----------------+           
@@ -137,7 +137,7 @@ use crate::{
             WriteMISO, WriteMOSI, WriteResult,
         },
     },
-    stream::{map::Map, zip::Zip},
+    stream::{map::Map, zip::Zip, Ready},
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
@@ -185,7 +185,7 @@ pub struct In {
     /// AXI signals from the bus
     pub axi: WriteMOSI,
     /// request stream ready signal
-    pub req_ready: bool,
+    pub req_ready: Ready<WriteCommand>,
     /// Response data stream
     pub resp_data: Option<WriteResult>,
 }
@@ -198,7 +198,7 @@ pub struct Out {
     /// Request data stream
     pub req_data: Option<WriteCommand>,
     /// Response ready signal
-    pub resp_ready: bool,
+    pub resp_ready: Ready<WriteResult>,
 }
 
 impl SynchronousIO for WriteEndpoint {
@@ -239,7 +239,7 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
         o.req_data = Some(WriteCommand { addr, strobed_data });
     }
     // Connection 12
-    d.zip.ready = i.req_ready;
+    d.zip.ready.raw = i.req_ready.raw;
     // Connection 13
     d.map.data = i.resp_data;
     // Connection 14

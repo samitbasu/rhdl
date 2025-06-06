@@ -1,5 +1,7 @@
 use rhdl::prelude::*;
 
+use crate::stream::ready;
+
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 pub struct U<N: BitWidth> {
     filler: crate::fifo::testing::filler::FIFOFiller<N>,
@@ -42,7 +44,7 @@ pub fn double_kernel<N: BitWidth>(_cr: ClockReset, _i: (), q: Q<N>) -> (bool, D<
     d.relay2.data = q.relay1.data;
     d.drainer.data = q.relay2.data;
     // Fill the ready values
-    d.relay2.ready = q.drainer.next;
+    d.relay2.ready = ready::<Bits<N>>(q.drainer.next);
     d.relay1.ready = q.relay2.ready;
     d.push_pull.ready = q.relay1.ready;
     d.filler.full = q.push_pull.full;
@@ -67,7 +69,7 @@ mod tests {
             .join("vcd")
             .join("lid");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!("464bd4b44cc89c32e4bb69dfd5d2c7f321708a781aab25a4addf5e19b6184ccf");
+        let expect = expect!("0747ee8fba925094285b9b9ae57cddd3f928642f6f07f43e4f017710a3b85457");
         let digest = vcd.dump_to_file(root.join("double.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

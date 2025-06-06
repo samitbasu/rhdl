@@ -17,7 +17,7 @@
 +---->| tdata    :  data  +------>
       |          :        |       
 +---->| tvalid   :        |       
-      |          :        |       
+      |          :        | R<T>      
 <-----+ tready   :  ready |<-----+
       +-------------------+       
 ")]
@@ -38,7 +38,7 @@ tready       |                     |   tvalid  |      +----->
 <----+ ! <---+ stop_out   void_out +---------->|tag   |      
 !tvalid      |                     +           |      |      
 +----------->| void_in    stop_in  |<--+ ! <+  +------+      
-             +---------------------+        |          ready 
+             +---------------------+        |       Ready<T> 
                                             +---------------+
 ")]
 //!
@@ -58,7 +58,7 @@ tready       |                     |   tvalid  |      +----->
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use crate::{core::option::pack, lid::carloni::Carloni};
+use crate::{core::option::pack, lid::carloni::Carloni, stream::Ready};
 
 #[derive(Clone, Default, Synchronous, SynchronousDQ)]
 /// AXI to RHDL Stream Shim
@@ -80,7 +80,7 @@ pub struct In<T: Digital> {
     /// The valid flag on the AXI (incoming) side
     pub tvalid: bool,
     /// The ready signal from the RHDL stream
-    pub ready: bool,
+    pub ready: Ready<T>,
 }
 
 #[derive(Debug, PartialEq, Digital)]
@@ -104,7 +104,7 @@ pub fn kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> (Out<T>, D<T>) 
     let mut d = D::<T>::dont_care();
     d.inbuf.data_in = i.tdata;
     d.inbuf.void_in = !i.tvalid;
-    d.inbuf.stop_in = !i.ready;
+    d.inbuf.stop_in = !i.ready.raw;
     let packed = pack::<T>(!q.inbuf.void_out, q.inbuf.data_out);
     let mut o = Out::<T>::dont_care();
     o.tready = !q.inbuf.stop_out;
@@ -124,8 +124,9 @@ mod tests {
     use crate::{
         core::option::unpack,
         rng::xorshift::XorShift128,
-        stream::testing::{
-            sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn, utils::stalling,
+        stream::{
+            ready,
+            testing::{sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn, utils::stalling},
         },
     };
 
@@ -152,7 +153,7 @@ mod tests {
         d.axi_2_rhdl.tvalid = valid;
         d.sink = q.axi_2_rhdl.data;
         d.axi_2_rhdl.ready = q.sink;
-        d.source = q.axi_2_rhdl.tready;
+        d.source = ready::<b8>(q.axi_2_rhdl.tready);
         ((), d)
     }
 

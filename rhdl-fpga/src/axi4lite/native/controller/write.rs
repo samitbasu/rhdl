@@ -21,7 +21,7 @@
            |  sink          | awaddr               
   ?WriteCmd|                +--------->  +         
  +-------->| req.data       | awvalid    | Write   
-           |                +--------->  | Address 
+R<WriteCmd>|                +--------->  | Address 
 <----------+ req.ready      | awready    | Channel 
            |                |<--------+  +         
            |                | wdata                
@@ -35,7 +35,7 @@
            |  source        | bresp                
 ?WriteReslt|                |<--------+  +         
 <----------+ resp.data      | bvalid     | Write   
-           |                |<--------+  | Response
+R<WrtRslt> |                |<--------+  | Response
 +--------->| resp.ready     | bready     | Channel 
            |                +--------->  +         
            +----------------+                      
@@ -136,7 +136,7 @@ use crate::{
             WriteMISO, WriteMOSI, WriteResult,
         },
     },
-    stream::{map::Map, tee::Tee},
+    stream::{map::Map, ready, tee::Tee, Ready},
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
@@ -185,7 +185,7 @@ pub struct In {
     /// Request data stream
     pub req_data: Option<WriteCommand>,
     /// Response ready signal
-    pub resp_ready: bool,
+    pub resp_ready: Ready<WriteResult>,
 }
 
 #[derive(PartialEq, Debug, Digital)]
@@ -194,7 +194,7 @@ pub struct Out {
     /// AXI signals to the bus
     pub axi: WriteMOSI,
     /// Request stream ready signal
-    pub req_ready: bool,
+    pub req_ready: Ready<WriteCommand>,
     /// Response data stream
     pub resp_data: Option<WriteResult>,
 }
@@ -224,7 +224,7 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
     d.tee.t_ready = q.data_buf.ready;
     let mut o = Out::dont_care();
     // Connection 6
-    o.req_ready = q.tee.ready;
+    o.req_ready = ready::<WriteCommand>(q.tee.ready.raw);
     // Connection 7
     o.axi.awaddr = q.addr_buf.tdata;
     // Connection 8

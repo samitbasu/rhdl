@@ -27,10 +27,10 @@ fn main() -> Result<(), RHDLError> {
                 let mut input = stream_buffer::In::<b4>::dont_care();
                 // if the valid flag is high, then advance the source RNG (maybe)
                 input.data = None;
-                if out.ready {
+                if out.ready.raw {
                     input.data = send.next().unwrap();
                 }
-                input.ready = rand::random::<u8>() < 170;
+                input.ready.raw = rand::random::<u8>() < 170;
                 Some(rhdl::core::sim::ResetOrData::Data(input))
             },
             100,

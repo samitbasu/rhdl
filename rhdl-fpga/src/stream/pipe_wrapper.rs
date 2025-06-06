@@ -73,8 +73,8 @@
                            +                                                       
   ?S +-+RV2FIFO+--+ ?S     |\                                                      
 +--->|data    data+------->|1+ ?S ++Pipeline++ ?T +-+FIFO+----+ ?T +-+FIFO2RV+-+ ?T
-     |            |        | +--->|in    out +--->|data   data+--->|data   data+-->
-<----+ready   next|<+None+>|0+    | delay N  |    |           |    |           |   
+ R<S>|            |        | +--->|in    out +--->|data   data+--->|data   data+-->
+<----+ready   next|<+None+>|0+    | delay N  |    |           |    |           | R<T>  
      +------------+ |      |/     +----------+ +--+full   next|  +-+full  ready|<-+
                     |      +^    +---------+   |  +-----------+  | +-----------+   
                     |       +----+ Control |<--+            ^    |                 
@@ -91,7 +91,7 @@
       +-+PipeWrapper+------+       
   ?S  |                    |  ?T   
 +---->| data         data  +------>
-      |                    |       
+ R<S> |                    | R<T>     
 <-----+ ready        ready |<-----+
    ?S |                    |  ?T   
 <-----+ to_pipe  from_pipe |<-----+
@@ -123,6 +123,8 @@ use crate::{
 };
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
+
+use super::Ready;
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
 /// [PipeWrapper] core for wrapping a pipeline into a stream
@@ -157,7 +159,7 @@ pub struct In<S: Digital, T: Digital> {
     /// Input data for the upstream
     pub data: Option<S>,
     /// Input ready signal for the downstream
-    pub ready: bool,
+    pub ready: Ready<T>,
     /// The values that come from the pipeline
     pub from_pipe: Option<T>,
 }
@@ -168,7 +170,7 @@ pub struct Out<S: Digital, T: Digital> {
     /// Output data for the downstream
     pub data: Option<T>,
     /// Ready signal for the upstream
-    pub ready: bool,
+    pub ready: Ready<S>,
     /// Data to feed the pipeline
     pub to_pipe: Option<S>,
 }

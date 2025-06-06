@@ -31,7 +31,7 @@ fn main() -> Result<(), RHDLError> {
                 } else {
                     input.data = None;
                 }
-                let will_advance = will_offer & out.ready;
+                let will_advance = will_offer & out.ready.raw;
                 if will_advance {
                     source_datum = source_rng.next();
                 }
