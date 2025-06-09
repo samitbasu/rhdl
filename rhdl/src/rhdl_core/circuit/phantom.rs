@@ -27,7 +27,7 @@ impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
             ..Default::default()
         };
         Ok(CircuitDescriptor {
-            unique_name: format!("{name}_phantom_{:?}", T::static_kind()),
+            unique_name: format!("{name}_phantom"),
             input_kind: Kind::Empty,
             output_kind: Kind::Empty,
             d_kind: Kind::Empty,

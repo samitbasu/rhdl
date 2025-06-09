@@ -6,6 +6,7 @@ use petgraph::{
 use crate::rhdl_core::{
     error::rhdl_error,
     flow_graph::{
+        dot,
         error::{FlowGraphError, FlowGraphICE},
         flow_graph_impl::FlowIx,
     },
@@ -36,6 +37,10 @@ impl Pass for CheckForLogicLoops {
         "Check for logic loops"
     }
     fn run(input: FlowGraph) -> Result<FlowGraph, RHDLError> {
+        // Print the loop to a report
+        use miette::SourceCode;
+        use std::io::Write;
+        let mut file = std::fs::File::create("report.txt").unwrap();
         let graph = &input.graph;
         let contains_cycles = is_cyclic_directed(graph);
         if contains_cycles {
@@ -48,6 +53,15 @@ impl Pass for CheckForLogicLoops {
             let Some(first_round_trip) = round_trip.next() else {
                 return Err(raise_loop_error(&input, &[edge.source(), edge.target()]));
             };
+            for node in &first_round_trip {
+                writeln!(file, "Node {:?}", node).unwrap();
+                let source = input.code.source();
+                if let Some(location) = input.graph[*node].location {
+                    let span: miette::SourceSpan = input.code.span(location).into();
+                    let text = source.read_span(&span, 0, 0).unwrap();
+                    file.write_all(text.data()).unwrap();
+                }
+            }
             return Err(raise_loop_error(&input, &first_round_trip));
         }
         Ok(input)

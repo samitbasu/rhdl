@@ -86,7 +86,7 @@ where
         RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S>,
         RHDLError,
     > {
-        let _ = self.hdl("top")?;
+        self.yosys_check()?;
         let _ = self.flow_graph("name")?;
         Ok(run_synchronous(self, iter.into_iter()))
     }

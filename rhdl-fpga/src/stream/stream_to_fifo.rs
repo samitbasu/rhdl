@@ -3,13 +3,13 @@
 //!# Purpose
 //! A Stream-to-FIFO buffer is a highly specialized two element
 //! FIFO backed with a pair of registers instead of a BRAM.  
-//! Note that any FIFO can be interfaced to a stream by
-//! simply setting `ready = !full`.  The particular use of this
+//! Note that a FIFO cannot be interfaced to a stream by
+//! simply setting `ready = !full`.  This is because the FIFO
+//! interface contract says that setting `data = Some(_)` when
+//! `full = true` leads to an overflow. The particular use of this
 //! [StreamToFIFO] buffer is to minimize the number of resources
 //! needed.  As it only requires a couple of registers, it is generally
-//! far less resource intensive than a full FIFO.  But it is not
-//! special in any other meaningful way, and a regular [crate::fifo::synchronous::SyncFIFO]
-//! might be a better choice.
+//! far less resource intensive than a full FIFO.
 //!
 //!# Schematic Symbol
 //!
@@ -35,13 +35,16 @@ R<T> |            |
 //! Roughly the internal circuitry is equivalent to this:
 //!
 #![doc = badascii!("
-         ?T   +----+FIFO+----+ ?T  
+     ?T       +----+FIFO+----+ ?T  
 +------------>|data      data+---->
   Ready<T>    |              |     
 <-----+! <----+full      next|<---+
               +--------------+     
 ")]
-//! The FIFO will signal that it is `ready` as long as it is not `full`.
+//! Unlike the general FIFOs, it will not overflow, as it assumes that the
+//! data signal will be held until the `Ready` signal is provided.  This is
+//! different from normal FIFOs, which will overflow under those conditions.
+//!  The FIFO will signal that it is `ready` as long as it is not `full`.
 //! The consumer can use the `next` signal to accept the current `data`
 //! element.
 //!

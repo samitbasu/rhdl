@@ -2,6 +2,7 @@ use miette::Diagnostic;
 use thiserror::Error;
 
 use crate::rhdl_core::{
+    circuit::yosys::YosysSynthError,
     types::{bit_string::BitString, path::PathError},
     KernelFnKind, TypedBits,
 };
@@ -73,6 +74,8 @@ pub enum RHDLError {
     ExportError(#[from] crate::rhdl_core::circuit::fixture::ExportError),
     #[error("This module is not synthesizable")]
     NotSynthesizable,
+    #[error("Yosys synthesis error: {0}")]
+    YosysSynthError(#[from] YosysSynthError),
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

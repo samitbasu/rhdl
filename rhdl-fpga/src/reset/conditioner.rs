@@ -237,21 +237,22 @@ impl<W: Domain, R: Domain> Circuit for ResetConditioner<W, R> {
         */
         let reset_val = true.typed_bits().into();
         let normal_val = false.typed_bits().into();
-        let reg1 = if_statement(
+        let if_block = if_statement(
             id("i_reset"),
-            vec![non_blocking_assignment("reg1", bit_string(&reset_val))],
-            vec![non_blocking_assignment("reg1", bit_string(&normal_val))],
-        );
-        let reg2 = if_statement(
-            id("i_reset"),
-            vec![non_blocking_assignment("reg2", bit_string(&reset_val))],
-            vec![non_blocking_assignment("reg2", id("reg1"))],
+            vec![
+                non_blocking_assignment("reg1", bit_string(&reset_val)),
+                non_blocking_assignment("reg2", bit_string(&reset_val)),
+            ],
+            vec![
+                non_blocking_assignment("reg1", bit_string(&normal_val)),
+                non_blocking_assignment("reg2", id("reg1")),
+            ],
         );
         let events = vec![
             Events::Posedge("clock".into()),
             Events::Posedge("i_reset".into()),
         ];
-        module.statements.push(always(events, vec![reg1, reg2]));
+        module.statements.push(always(events, vec![if_block]));
         Ok(HDLDescriptor {
             name: name.into(),
             body: module,

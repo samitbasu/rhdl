@@ -1,16 +1,18 @@
-use std::collections::HashMap;
-
 use crate::rhdl_core::{
-    ast::source::source_location::SourceLocation,
+    ast::{
+        ast_impl::{FunctionId, NodeId},
+        source::{source_location::SourceLocation, spanned_source::SpannedSource},
+    },
     bitx::BitX,
     hdl::ast::{unsigned_width, SignedWidth},
-    rtl::spec::AluBinary,
     rtl::{
         object::LocatedOpCode,
-        spec::{AluUnary, OpCode, Operand},
+        spec::{AluBinary, AluUnary, OpCode, Operand},
         Object,
     },
 };
+use std::fmt::Write;
+use std::{collections::HashMap, ops::Range};
 
 use super::{
     component::{Binary, Case, CaseEntry, ComponentKind, DynamicIndex, DynamicSplice, Unary},
@@ -24,6 +26,39 @@ struct FlowGraphBuilder<'a> {
     object: &'a Object,
     fg: FlowGraph,
     operand_map: HashMap<Operand, Vec<FlowIx>>,
+}
+
+fn write_rtl_as_spanned_source(object: &Object) -> Result<SpannedSource, std::fmt::Error> {
+    // Dump the RTL out as a SpannedSource.  The output
+    // is a spanned source, as well as map for each opcode to the
+    // span of the spanned source
+    let mut span_map: HashMap<NodeId, Range<usize>> = HashMap::default();
+    let mut f = String::new();
+    writeln!(f, "Object {}", object.name)?;
+    writeln!(f, "  fn_id {:?}", object.fn_id)?;
+    writeln!(f, "  arguments {:?}", object.arguments)?;
+    writeln!(f, "  return_register {:?}", object.return_register)?;
+    for (reg, kind) in &object.register_kind {
+        writeln!(f, "Reg {reg:?} : {kind:?}")?;
+    }
+    for (id, literal) in &object.literals {
+        writeln!(f, "Lit {id:?} : {literal:?}")?;
+    }
+    for lop in &object.ops {
+        let start = f.len();
+        writeln!(f, "{:?}", lop.op)?;
+        let end = f.len();
+        span_map.insert(lop.loc.node, start..end);
+    }
+    span_map.insert(NodeId::new(0), 0..f.len());
+    Ok(SpannedSource {
+        source: f,
+        name: object.name.clone(),
+        span_map,
+        fallback: NodeId::new(0),
+        filename: format!("RTL For {}", object.name),
+        function_id: object.fn_id,
+    })
 }
 
 pub fn build_rtl_flow_graph(object: &Object) -> FlowGraph {
@@ -47,6 +82,11 @@ pub fn build_rtl_flow_graph(object: &Object) -> FlowGraph {
     for (reg, output) in ret_operand.iter().zip(bob.fg.output.clone().iter()) {
         bob.fg.edge(*reg, *output, EdgeKind::ArgBit(0, 0));
     }
+    let rtl_source = write_rtl_as_spanned_source(object).expect("String manipulation failed");
+    bob.fg
+        .code
+        .sources
+        .insert(rtl_source.function_id, rtl_source);
     bob.fg
 }
 
