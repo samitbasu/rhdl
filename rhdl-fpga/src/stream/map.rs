@@ -64,7 +64,7 @@ use rhdl::{
     prelude::*,
 };
 
-use super::{ready_cast, stream_buffer::StreamBuffer, Ready, StreamIO};
+use super::{ready_cast, stream_buffer::StreamBuffer, StreamIO};
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
 /// The Map Core (Stream Version)

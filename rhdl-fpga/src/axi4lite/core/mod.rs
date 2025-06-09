@@ -8,5 +8,6 @@
 //! into the AXI interface, on either the read side or the write side (or both).
 pub mod controller;
 pub mod endpoint;
+pub mod switch;
 #[doc(hidden)]
 pub mod testing;

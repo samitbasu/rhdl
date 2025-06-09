@@ -31,8 +31,8 @@ pub mod stream_buffer;
 pub mod stream_to_fifo;
 pub mod tee;
 pub mod testing;
+pub mod xfer;
 pub mod zip;
-
 #[derive(PartialEq, Digital)]
 /// A generic Stream IO type that holds a data and ready
 /// signal.  Note that in a Stream interface, these

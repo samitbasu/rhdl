@@ -1,8 +1,12 @@
 use std::collections::HashSet;
 
 use miette::{Diagnostic, SourceSpan};
+use tempfile::tempfile;
 
-use crate::{prelude::Synchronous, rhdl_core::SourcePool};
+use crate::{
+    prelude::{Circuit, RHDLError, Synchronous},
+    rhdl_core::SourcePool,
+};
 use thiserror::Error;
 
 #[derive(Debug, Error)]

@@ -1,6 +1,6 @@
 use crate::rhdl_core::{
-    digital_fn::DigitalFn2, error::RHDLError, flow_graph::optimization::optimize_flow_graph,
-    DigitalFn, FlowGraph, Timed,
+    circuit::yosys::run_yosys_synth, digital_fn::DigitalFn2, error::RHDLError,
+    flow_graph::optimization::optimize_flow_graph, DigitalFn, FlowGraph, Timed,
 };
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
@@ -41,5 +41,9 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO {
     fn flow_graph(&self, name: &str) -> Result<FlowGraph, RHDLError> {
         let flow_graph = self.descriptor(name)?.flow_graph.clone();
         optimize_flow_graph(flow_graph)
+    }
+
+    fn yosys_check(&self) -> Result<(), RHDLError> {
+        run_yosys_synth(self.hdl("top")?)
     }
 }

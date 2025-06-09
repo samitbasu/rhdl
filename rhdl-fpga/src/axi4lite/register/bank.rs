@@ -64,9 +64,9 @@ use crate::{
 #[derive(Clone, Synchronous, SynchronousDQ)]
 /// AXI Register
 ///
-/// This core provides a single dual-ported register
-/// that has an AXI4Lite bus interface.  The address
-/// of the register is provided at construction time.
+/// This core provides a bank of dual-ported registers
+/// that has an AXI4Lite bus interface.  The base address
+/// of the registers are provided at construction time.
 pub struct AxiRegBank<const N: usize> {
     read: ReadEndpoint,
     write: WriteEndpoint,
