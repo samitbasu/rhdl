@@ -8,7 +8,7 @@ pub enum OpCode {
     // lhs <- arg1 op arg2
     Binary(Binary),
     // [lhs.0..lhs.N-1] <- [arg1.0..arg1.N-1] op [arg2.0..arg2.N-1]
-    Vector(VectorOp),
+    Vector(Vector),
     // lhs <- case [arg1] {pattern0 : arg0, pattern1: arg1, ...}
     Case(Case),
     // Comment
@@ -25,11 +25,13 @@ pub enum OpCode {
     Dff(Dff),
     // [lhs...] = black_box([arg...])
     BlackBox(BlackBox),
+    // lhs <- reduce(arg)
+    Unary(Unary),
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct BlackBox {
-    pub lhs: Vec<RegisterId>,
+    pub lhs: Vec<Operand>,
     pub arg: Vec<Operand>,
     pub code: BlackBoxId,
 }
@@ -45,14 +47,14 @@ pub struct Dff {
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct DynamicIndex {
-    pub lhs: Vec<RegisterId>,
+    pub lhs: Vec<Operand>,
     pub arg: Vec<Operand>,
     pub offset: Vec<Operand>,
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct DynamicSplice {
-    pub lhs: Vec<RegisterId>,
+    pub lhs: Vec<Operand>,
     pub arg: Vec<Operand>,
     pub offset: Vec<Operand>,
     pub value: Vec<Operand>,
@@ -60,7 +62,7 @@ pub struct DynamicSplice {
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Select {
-    pub lhs: RegisterId,
+    pub lhs: Operand,
     pub selector: Operand,
     pub true_case: Operand,
     pub false_case: Operand,
@@ -68,9 +70,9 @@ pub struct Select {
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Case {
-    pub lhs: RegisterId,
+    pub lhs: Operand,
     pub discriminant: Vec<Operand>,
-    pub entries: Vec<CaseEntry>,
+    pub entries: Vec<(CaseEntry, Operand)>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq)]
@@ -82,10 +84,17 @@ pub enum CaseEntry {
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Vector {
     pub op: VectorOp,
-    pub lhs: Vec<RegisterId>,
+    pub lhs: Vec<Operand>,
     pub arg1: Vec<Operand>,
     pub arg2: Vec<Operand>,
     pub signed: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Hash)]
+pub struct Unary {
+    pub op: UnaryOp,
+    pub lhs: Vec<Operand>,
+    pub arg: Vec<Operand>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Hash)]
@@ -99,22 +108,29 @@ pub enum VectorOp {
     Le,
     Gt,
     Ge,
+    Shl,
+    Shr,
     BitSelect,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+pub enum UnaryOp {
     All,
     Any,
     Neg,
+    Xor,
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Not {
-    pub lhs: RegisterId,
+    pub lhs: Operand,
     pub arg: Operand,
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Binary {
     pub op: BinaryOp,
-    pub lhs: RegisterId,
+    pub lhs: Operand,
     pub arg1: Operand,
     pub arg2: Operand,
 }
@@ -128,11 +144,11 @@ pub enum BinaryOp {
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Assign {
-    pub lhs: RegisterId,
+    pub lhs: Operand,
     pub rhs: Operand,
 }
 
-#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub enum Operand {
     Zero,
     One,
@@ -140,8 +156,25 @@ pub enum Operand {
     Register(RegisterId),
 }
 
+impl std::fmt::Debug for Operand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Operand::Zero => write!(f, "0"),
+            Operand::One => write!(f, "1"),
+            Operand::X => write!(f, "X"),
+            Operand::Register(rid) => write!(f, "r{}", rid.0),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub struct RegisterId(usize, usize);
+pub struct RegisterId(usize);
+
+impl RegisterId {
+    pub(crate) fn new(val: usize) -> Self {
+        Self(val)
+    }
+}
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct BlackBoxId(usize);
