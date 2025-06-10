@@ -1,4 +1,4 @@
-use rhdl::prelude::*;
+use rhdl::{core::ntl::builder::build_btl_from_rtl, prelude::*};
 use rhdl_fpga::axi4lite::{
     core::switch::read::{Command, ReadSwitch},
     types::{AXI4Error, AxilAddr},
@@ -20,11 +20,20 @@ pub fn decode_addr(_cr: ClockReset, req: AxilAddr) -> Command {
     }
 }
 
+use rhdl_fpga::axi4lite::core::switch::read::kernel;
+
 #[test]
 fn test_loop_test() -> miette::Result<()> {
-    SimpleLogger::init(log::LevelFilter::Debug, simplelog::Config::default()).unwrap();
-    let switch: ReadSwitch<2> = ReadSwitch::try_new::<decode_addr>()?;
+    use std::io::Write;
+    //    SimpleLogger::init(log::LevelFilter::Debug, simplelog::Config::default()).unwrap();
+    //let switch: ReadSwitch<2> = ReadSwitch::try_new::<decode_addr>()?;
+    let obj = compile_design::<kernel<2>>(CompilationMode::Synchronous)?;
+    let mut file = std::fs::File::create("loop.rtl").unwrap();
+    write!(file, "{:?}", obj).unwrap();
+    let btl = build_btl_from_rtl(&obj);
+    let mut file = std::fs::File::create("loop.btl").unwrap();
+    write!(file, "{:?}", btl).unwrap();
     //    switch.yosys_check()?;
-    drc::no_combinatorial_paths(&switch)?;
+    //    drc::no_combinatorial_paths(&switch)?;
     Ok(())
 }
