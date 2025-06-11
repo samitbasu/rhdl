@@ -1,4 +1,4 @@
-use crate::prelude::BitString;
+use crate::prelude::{BitString, BitX};
 
 #[derive(Clone, PartialEq, Hash)]
 pub enum OpCode {
@@ -156,12 +156,30 @@ pub enum Operand {
     Register(RegisterId),
 }
 
+impl From<BitX> for Operand {
+    fn from(x: BitX) -> Operand {
+        match x {
+            BitX::One => Operand::One,
+            BitX::Zero => Operand::Zero,
+            BitX::X => Operand::X,
+        }
+    }
+}
+
 impl Operand {
     pub fn reg(&self) -> Option<RegisterId> {
         if let Operand::Register(reg) = self {
             Some(*reg)
         } else {
             None
+        }
+    }
+    pub fn bitx(&self) -> Option<BitX> {
+        match self {
+            Operand::Zero => Some(BitX::Zero),
+            Operand::One => Some(BitX::One),
+            Operand::X => Some(BitX::X),
+            _ => None,
         }
     }
 }
@@ -187,7 +205,16 @@ impl RegisterId {
     pub(crate) fn raw(self) -> u32 {
         self.0
     }
+    pub(crate) fn offset(self, offset: u32) -> Self {
+        Self(self.0 + offset)
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct BlackBoxId(usize);
+
+impl BlackBoxId {
+    pub(crate) fn offset(self, offset: usize) -> Self {
+        Self(self.0 + offset)
+    }
+}

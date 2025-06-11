@@ -1,12 +1,15 @@
 use super::circuit_impl::Circuit;
 use crate::rhdl_core::flow_graph::edge_kind::EdgeKind;
 use crate::rhdl_core::flow_graph::flow_graph_impl::{FlowGraph, FlowIx};
+use crate::rhdl_core::ntl::builder::build_ntl_from_rtl;
 use crate::rhdl_core::rtl::object::RegisterKind;
 use crate::rhdl_core::rtl::Object;
 use crate::rhdl_core::types::digital::Digital;
 use crate::rhdl_core::types::path::{bit_range, Path};
 use crate::rhdl_core::Kind;
-use crate::rhdl_core::{build_rtl_flow_graph, compile_design, CompilationMode, RHDLError, Synchronous};
+use crate::rhdl_core::{
+    build_rtl_flow_graph, compile_design, CompilationMode, RHDLError, Synchronous,
+};
 use std::collections::BTreeMap;
 
 // A few notes on the circuit descriptor struct
@@ -25,6 +28,7 @@ pub struct CircuitDescriptor {
     pub q_kind: Kind,
     pub flow_graph: FlowGraph,
     pub rtl: Option<Object>,
+    pub ntl: crate::core::ntl::object::Object,
     pub children: BTreeMap<String, CircuitDescriptor>,
 }
 
@@ -151,7 +155,29 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     name: &str,
     children: BTreeMap<String, CircuitDescriptor>,
 ) -> Result<CircuitDescriptor, RHDLError> {
+    use crate::core::ntl;
+
     let module = compile_design::<C::Kernel>(CompilationMode::Synchronous)?;
+    // Build the netlist
+    // First construct the netlist for the update function
+    let update_netlist = build_ntl_from_rtl(&module);
+    // Now, we create the high level netlist.
+    let mut net = ntl::object::Object::default();
+    net.name = name.into();
+    // This is the kind of output of the update kernel - it must be equal to
+    // (Update::O, Update::D)
+    // The update_fg will have 3 arguments (rst,i,q) and 2 outputs (o,d)
+    let output_kind: RegisterKind = C::O::static_kind().into();
+    if output_kind.is_empty() {
+        return Err(RHDLError::NoOutputsError);
+    }
+    let d_kind: RegisterKind = C::D::static_kind().into();
+    let q_kind: RegisterKind = C::Q::static_kind().into();
+    let input_kind: RegisterKind = C::I::static_kind().into();
+
+    let update_register_offset = net.link(&update_netlist);
+    //
+
     let update_flow_graph = build_rtl_flow_graph(&module);
     // A synchronous flow graph has separate clock and
     // reset inputs, but these don't really factor into

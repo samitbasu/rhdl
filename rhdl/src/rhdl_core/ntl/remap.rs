@@ -106,3 +106,201 @@ pub fn remap_operands<F: FnMut(Operand) -> Operand>(op: OpCode, mut f: F) -> OpC
         }),
     }
 }
+
+fn vec_v<F: FnMut(&Operand)>(f: &mut F, v: &[Operand]) {
+    v.iter().for_each(f);
+}
+
+pub fn visit_operands<F: FnMut(&Operand)>(op: &OpCode, mut f: F) {
+    match op {
+        OpCode::Noop => {}
+        OpCode::Assign(Assign { lhs, rhs }) => {
+            f(lhs);
+            f(rhs);
+        }
+        OpCode::Binary(Binary {
+            op,
+            lhs,
+            arg1,
+            arg2,
+        }) => {
+            f(lhs);
+            f(arg1);
+            f(arg2);
+        }
+        OpCode::Vector(Vector {
+            op,
+            lhs,
+            arg1,
+            arg2,
+            signed,
+        }) => {
+            vec_v(&mut f, lhs);
+            vec_v(&mut f, arg1);
+            vec_v(&mut f, arg2);
+        }
+        OpCode::Case(Case {
+            lhs,
+            discriminant,
+            entries,
+        }) => {
+            f(lhs);
+            vec_v(&mut f, discriminant);
+            for (_, entry) in entries {
+                f(entry);
+            }
+        }
+        OpCode::Comment(comment) => {}
+        OpCode::DynamicIndex(DynamicIndex { lhs, arg, offset }) => {
+            vec_v(&mut f, lhs);
+            vec_v(&mut f, arg);
+            vec_v(&mut f, offset);
+        }
+        OpCode::DynamicSplice(DynamicSplice {
+            lhs,
+            arg,
+            offset,
+            value,
+        }) => {
+            vec_v(&mut f, lhs);
+            vec_v(&mut f, arg);
+            vec_v(&mut f, offset);
+            vec_v(&mut f, value);
+        }
+        OpCode::Select(Select {
+            lhs,
+            selector,
+            true_case,
+            false_case,
+        }) => {
+            f(lhs);
+            f(selector);
+            f(true_case);
+            f(false_case);
+        }
+        OpCode::Not(Not { lhs, arg }) => {
+            f(lhs);
+            f(arg);
+        }
+        OpCode::Dff(Dff {
+            lhs,
+            arg,
+            clock,
+            reset,
+            reset_value,
+        }) => {
+            f(lhs);
+            f(arg);
+            f(clock);
+            f(reset);
+        }
+        OpCode::BlackBox(BlackBox { lhs, arg, code }) => {
+            vec_v(&mut f, lhs);
+            vec_v(&mut f, arg);
+        }
+        OpCode::Unary(Unary { op, lhs, arg }) => {
+            vec_v(&mut f, lhs);
+            vec_v(&mut f, arg);
+        }
+    }
+}
+
+fn vec_m<F: FnMut(&mut Operand)>(f: &mut F, v: &mut [Operand]) {
+    for op in v {
+        f(op)
+    }
+}
+
+pub fn visit_operands_mut<F: FnMut(&mut Operand)>(op: &mut OpCode, mut f: F) {
+    match op {
+        OpCode::Noop => {}
+        OpCode::Assign(Assign { lhs, rhs }) => {
+            f(lhs);
+            f(rhs);
+        }
+        OpCode::Binary(Binary {
+            op,
+            lhs,
+            arg1,
+            arg2,
+        }) => {
+            f(lhs);
+            f(arg1);
+            f(arg2);
+        }
+        OpCode::Vector(Vector {
+            op,
+            lhs,
+            arg1,
+            arg2,
+            signed,
+        }) => {
+            vec_m(&mut f, lhs);
+            vec_m(&mut f, arg1);
+            vec_m(&mut f, arg2);
+        }
+        OpCode::Case(Case {
+            lhs,
+            discriminant,
+            entries,
+        }) => {
+            f(lhs);
+            vec_m(&mut f, discriminant);
+            for (_, entry) in entries {
+                f(entry);
+            }
+        }
+        OpCode::Comment(comment) => {}
+        OpCode::DynamicIndex(DynamicIndex { lhs, arg, offset }) => {
+            vec_m(&mut f, lhs);
+            vec_m(&mut f, arg);
+            vec_m(&mut f, offset);
+        }
+        OpCode::DynamicSplice(DynamicSplice {
+            lhs,
+            arg,
+            offset,
+            value,
+        }) => {
+            vec_m(&mut f, lhs);
+            vec_m(&mut f, arg);
+            vec_m(&mut f, offset);
+            vec_m(&mut f, value);
+        }
+        OpCode::Select(Select {
+            lhs,
+            selector,
+            true_case,
+            false_case,
+        }) => {
+            f(lhs);
+            f(selector);
+            f(true_case);
+            f(false_case);
+        }
+        OpCode::Not(Not { lhs, arg }) => {
+            f(lhs);
+            f(arg);
+        }
+        OpCode::Dff(Dff {
+            lhs,
+            arg,
+            clock,
+            reset,
+            reset_value,
+        }) => {
+            f(lhs);
+            f(arg);
+            f(clock);
+            f(reset);
+        }
+        OpCode::BlackBox(BlackBox { lhs, arg, code }) => {
+            vec_m(&mut f, lhs);
+            vec_m(&mut f, arg);
+        }
+        OpCode::Unary(Unary { op, lhs, arg }) => {
+            vec_m(&mut f, lhs);
+            vec_m(&mut f, arg);
+        }
+    }
+}

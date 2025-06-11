@@ -8,7 +8,7 @@ use crate::{
         compiler::ntl_passes::pass::Pass,
         ntl::{
             object::{LocatedOpCode, Object},
-            remap::remap_operands,
+            remap::{remap_operands, visit_operands, visit_operands_mut},
             spec::{Assign, OpCode, Operand, RegisterId},
         },
     },
@@ -38,23 +38,26 @@ impl UnifyKey for RegisterKey {
 
 impl Pass for RemoveExtraRegistersPass {
     fn run(mut input: Object) -> Result<Object, RHDLError> {
-        let ops = std::mem::take(&mut input.ops);
+        let mut ops = std::mem::take(&mut input.ops);
         // Create a union table
         let mut table = InPlaceUnificationTable::<RegisterKey>::default();
         let mut reg_set: HashSet<RegisterId> = HashSet::default();
+        for arg in &input.inputs {
+            arg.iter().for_each(|&r| {
+                reg_set.insert(r);
+            });
+        }
+        for arg in input.outputs.iter().filter_map(Operand::reg) {
+            reg_set.insert(arg);
+        }
         // Define each of the operands
-        let ops = ops
-            .into_iter()
-            .map(|lop| LocatedOpCode {
-                loc: lop.loc,
-                op: remap_operands(lop.op, |op| {
-                    if let Some(reg) = op.reg() {
-                        reg_set.insert(reg);
-                    }
-                    op
-                }),
-            })
-            .collect::<Vec<_>>();
+        for lop in &ops {
+            visit_operands(&lop.op, |op| {
+                if let Some(reg) = op.reg() {
+                    reg_set.insert(reg);
+                }
+            });
+        }
         // Map each operand to a key in the table
         let reg_map: HashMap<RegisterId, RegisterKey> = reg_set
             .into_iter()
@@ -77,29 +80,39 @@ impl Pass for RemoveExtraRegistersPass {
             }
         }
         // Next, rewrite the ops, where for each operand, we take the root of the unify tree
-        let ops = ops
-            .into_iter()
-            .map(|lop| LocatedOpCode {
-                loc: lop.loc,
-                op: remap_operands(lop.op, |op| {
-                    if let Some(reg) = op.reg() {
-                        let key = reg_map[&reg];
-                        let root = table.find(key);
-                        Operand::Register(inv_map[&root])
-                    } else {
-                        op
-                    }
-                }),
-            })
-            .filter(|lop| {
-                if let OpCode::Assign(Assign { lhs, rhs }) = lop.op {
-                    lhs != rhs
-                } else {
-                    true
+        for op in &mut ops {
+            visit_operands_mut(&mut op.op, |op| {
+                if let Some(reg) = op.reg() {
+                    let key = reg_map[&reg];
+                    let root = table.find(key);
+                    *op = Operand::Register(inv_map[&root])
                 }
             })
-            .collect();
-
+        }
+        ops.retain(|lop| {
+            if let OpCode::Assign(Assign { lhs, rhs }) = lop.op {
+                lhs != rhs
+            } else {
+                true
+            }
+        });
+        // Finally, rewrite the inputs and outputs
+        input.inputs.iter_mut().for_each(|v| {
+            v.iter_mut().for_each(|r| {
+                let key = reg_map[&*r];
+                let root = table.find(key);
+                *r = inv_map[&root];
+            })
+        });
+        input.outputs.iter_mut().for_each(|o| {
+            *o = if let Some(reg) = o.reg() {
+                let key = reg_map[&reg];
+                let root = table.find(key);
+                Operand::Register(inv_map[&root])
+            } else {
+                *o
+            }
+        });
         input.ops = ops;
         Ok(input)
     }
