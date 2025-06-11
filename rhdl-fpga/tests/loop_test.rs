@@ -40,6 +40,23 @@ fn test_loop_test() -> miette::Result<()> {
         rhdl::core::compiler::ntl_passes::remove_extra_registers::RemoveExtraRegistersPass::run(
             ntl,
         )?;
+    let ntl = rhdl::core::compiler::ntl_passes::contstant_reg_elimination::ConstantRegisterElimination::run(ntl)?;
+    let ntl = rhdl::core::compiler::ntl_passes::lower_selects::LowerSelects::run(ntl)?;
+    let ntl = rhdl::core::compiler::ntl_passes::lower_case::LowerCase::run(ntl)?;
+    let ntl =
+        rhdl::core::compiler::ntl_passes::remove_extra_registers::RemoveExtraRegistersPass::run(
+            ntl,
+        )?;
+    let ntl = rhdl::core::compiler::ntl_passes::contstant_reg_elimination::ConstantRegisterElimination::run(ntl)?;
+    let ntl = rhdl::core::compiler::ntl_passes::lower_selects::LowerSelects::run(ntl)?;
+    let ntl = rhdl::core::compiler::ntl_passes::lower_case::LowerCase::run(ntl)?;
+    //16444
+    /*
+       r16503 <- case {r378} {
+             Literal(b1) => r15014
+             WildCard => r9250
+    }
+    */
     let mut file = std::fs::File::create("loop_opt.btl").unwrap();
     write!(file, "{:?}", ntl).unwrap();
     //    drc::no_combinatorial_paths(&switch)?;

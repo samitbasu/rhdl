@@ -35,6 +35,7 @@ impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
             flow_graph,
             children: Default::default(),
             rtl: None,
+            ntl: crate::core::ntl::object::Object::default(),
         })
     }
 
