@@ -1,4 +1,7 @@
-use rhdl::{core::ntl::builder::build_btl_from_rtl, prelude::*};
+use rhdl::{
+    core::{compiler::ntl_passes::pass::Pass, ntl::builder::build_ntl_from_rtl},
+    prelude::*,
+};
 use rhdl_fpga::axi4lite::{
     core::switch::read::{Command, ReadSwitch},
     types::{AXI4Error, AxilAddr},
@@ -30,10 +33,15 @@ fn test_loop_test() -> miette::Result<()> {
     let obj = compile_design::<kernel<2>>(CompilationMode::Synchronous)?;
     let mut file = std::fs::File::create("loop.rtl").unwrap();
     write!(file, "{:?}", obj).unwrap();
-    let btl = build_btl_from_rtl(&obj);
+    let ntl = build_ntl_from_rtl(&obj);
     let mut file = std::fs::File::create("loop.btl").unwrap();
-    write!(file, "{:?}", btl).unwrap();
-    //    switch.yosys_check()?;
+    write!(file, "{:?}", ntl).unwrap();
+    let ntl =
+        rhdl::core::compiler::ntl_passes::remove_extra_registers::RemoveExtraRegistersPass::run(
+            ntl,
+        )?;
+    let mut file = std::fs::File::create("loop_opt.btl").unwrap();
+    write!(file, "{:?}", ntl).unwrap();
     //    drc::no_combinatorial_paths(&switch)?;
     Ok(())
 }

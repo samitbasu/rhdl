@@ -9,3 +9,4 @@ mod stage1;
 mod stage2;
 pub use stage1::CompilationMode;
 mod lower_rhif_to_rtl;
+pub mod ntl_passes;
