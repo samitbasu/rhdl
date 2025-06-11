@@ -38,7 +38,7 @@ pub struct BlackBox {
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Dff {
-    pub lhs: RegisterId,
+    pub lhs: Operand,
     pub arg: Operand,
     pub clock: Operand,
     pub reset: Operand,
@@ -156,6 +156,16 @@ pub enum Operand {
     Register(RegisterId),
 }
 
+impl Operand {
+    pub fn reg(&self) -> Option<RegisterId> {
+        if let Operand::Register(reg) = self {
+            Some(*reg)
+        } else {
+            None
+        }
+    }
+}
+
 impl std::fmt::Debug for Operand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -168,11 +178,14 @@ impl std::fmt::Debug for Operand {
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub struct RegisterId(usize);
+pub struct RegisterId(u32);
 
 impl RegisterId {
-    pub(crate) fn new(val: usize) -> Self {
+    pub(crate) fn new(val: u32) -> Self {
         Self(val)
+    }
+    pub(crate) fn raw(self) -> u32 {
+        self.0
     }
 }
 

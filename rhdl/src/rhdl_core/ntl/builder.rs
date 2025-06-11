@@ -17,15 +17,15 @@ use crate::rhdl_core::ntl::spec::Vector;
 use ntl::spec as bt;
 use rtl::spec as tl;
 
-struct BtlBuilder<'a> {
+struct NtlBuilder<'a> {
     object: &'a rtl::Object,
     btl: ntl::object::Object,
     operand_map: HashMap<tl::Operand, Vec<bt::Operand>>,
-    reg_count: usize,
+    reg_count: u32,
 }
 
-pub fn build_btl_from_rtl(object: &rtl::Object) -> ntl::object::Object {
-    let mut bob = BtlBuilder::new(object);
+pub fn build_ntl_from_rtl(object: &rtl::Object) -> ntl::object::Object {
+    let mut bob = NtlBuilder::new(object);
     for lop in &object.ops {
         bob.op(lop);
     }
@@ -50,7 +50,7 @@ pub fn build_btl_from_rtl(object: &rtl::Object) -> ntl::object::Object {
     bob.btl
 }
 
-impl<'a> BtlBuilder<'a> {
+impl<'a> NtlBuilder<'a> {
     fn new(object: &'a rtl::Object) -> Self {
         let btl = ntl::object::Object {
             code: object.symbols.source_set.clone(),

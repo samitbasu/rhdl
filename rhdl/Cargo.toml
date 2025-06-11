@@ -46,6 +46,7 @@ vcd = "0.7.0"
 tinytemplate = "1.2.1"
 serde = { version = "1.0.218", features = ["derive"], default-features = false }
 regex = "1.11.1"
+ena = "0.14.3"
 
 [features]
 default = ["iverilog"]
