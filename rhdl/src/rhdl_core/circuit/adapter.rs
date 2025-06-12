@@ -1,14 +1,14 @@
 use crate::rhdl_core::{
     bitx::BitX,
     digital_fn::NoKernel2,
-    flow_graph::edge_kind::EdgeKind,
     hdl::ast::{
         component_instance, concatenate, connection, id, index, index_bit, Direction, Module,
     },
+    ntl,
     rtl::object::RegisterKind,
     types::{kind::Field, signal::signal},
-    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, ClockReset, Digital, DigitalFn, Domain,
-    FlowGraph, Kind, RHDLError, Signal, Synchronous, Timed,
+    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, ClockReset, Digital, DigitalFn, Domain, Kind,
+    RHDLError, Signal, Synchronous, Timed,
 };
 
 use super::hdl_backend::maybe_port_wire;
@@ -117,36 +117,29 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
 
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
         // We build a custom flow graph to connect the input to the circuit and the circuit to the output.
-        let mut fg = FlowGraph::default();
+        let mut builder = ntl::Builder::new(name);
+        let child_descriptor = self.circuit.descriptor(&format!("{name}_inner"))?;
         // This includes the clock and reset signals
         // It should be [clock, reset, inputs...]
         let input_reg: RegisterKind = <Self::I as Timed>::static_kind().into();
-        let input_buffer = fg.input(input_reg, 0, name);
         let output_reg: RegisterKind = <Self::O as Timed>::static_kind().into();
-        let output_buffer = fg.output(output_reg, name);
-        // Embed the flow graph for the child circuit
-        let child_descriptor = self.circuit.descriptor(&format!("{name}_inner"))?;
-        let child_fg = &child_descriptor.flow_graph;
-        let child_remap = fg.merge(child_fg);
-        let child_inputs = child_fg.inputs[0].iter().chain(child_fg.inputs[1].iter());
-        let parent_inputs = input_buffer.iter();
-        for (parent_input, child_input) in parent_inputs.zip(child_inputs) {
-            let child_input = child_remap[child_input];
-            fg.edge(*parent_input, child_input, EdgeKind::ArgBit(0, 0));
+        let ti = builder.add_input(input_reg.len());
+        let to = builder.allocate_outputs(output_reg.len());
+        let child_offset = builder.link(&child_descriptor.ntl);
+        let child_inputs = child_descriptor.ntl.inputs.iter().flatten();
+        for (&t, c) in ti.iter().zip(child_inputs) {
+            builder.copy_from_to(t, c.offset(child_offset));
         }
-        for (parent_output, child_output) in output_buffer.iter().zip(&child_fg.output) {
-            let child_output = child_remap[child_output];
-            fg.edge(child_output, *parent_output, EdgeKind::ArgBit(0, 0));
+        for (&t, c) in to.iter().zip(&child_descriptor.ntl.outputs) {
+            builder.copy_from_to(c.offset(child_offset), t);
         }
-        fg.inputs = vec![input_buffer];
-        fg.output = output_buffer;
         Ok(CircuitDescriptor {
             unique_name: name.into(),
             input_kind: <<Self as CircuitIO>::I as Timed>::static_kind(),
             output_kind: <<Self as CircuitIO>::O as Timed>::static_kind(),
             d_kind: <<Self as CircuitDQ>::D as Timed>::static_kind(),
             q_kind: <<Self as CircuitDQ>::Q as Timed>::static_kind(),
-            flow_graph: fg,
+            ntl: builder.build(),
             rtl: None,
             children: Default::default(),
         })

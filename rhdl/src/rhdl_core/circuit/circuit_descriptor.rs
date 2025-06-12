@@ -1,15 +1,12 @@
 use super::circuit_impl::Circuit;
-use crate::rhdl_core::flow_graph::edge_kind::EdgeKind;
-use crate::rhdl_core::flow_graph::flow_graph_impl::{FlowGraph, FlowIx};
-use crate::rhdl_core::ntl::builder::build_ntl_from_rtl;
+use crate::rhdl_core::ntl::from_rtl::build_ntl_from_rtl;
+use crate::rhdl_core::ntl::spec::Operand;
 use crate::rhdl_core::rtl::object::RegisterKind;
 use crate::rhdl_core::rtl::Object;
 use crate::rhdl_core::types::digital::Digital;
 use crate::rhdl_core::types::path::{bit_range, Path};
 use crate::rhdl_core::Kind;
-use crate::rhdl_core::{
-    build_rtl_flow_graph, compile_design, CompilationMode, RHDLError, Synchronous,
-};
+use crate::rhdl_core::{compile_design, CompilationMode, RHDLError, Synchronous};
 use std::collections::BTreeMap;
 
 // A few notes on the circuit descriptor struct
@@ -26,7 +23,6 @@ pub struct CircuitDescriptor {
     pub output_kind: Kind,
     pub d_kind: Kind,
     pub q_kind: Kind,
-    pub flow_graph: FlowGraph,
     pub rtl: Option<Object>,
     pub ntl: crate::core::ntl::object::Object,
     pub children: BTreeMap<String, CircuitDescriptor>,
@@ -54,76 +50,72 @@ pub fn build_descriptor<C: Circuit>(
     name: &str,
     children: BTreeMap<String, CircuitDescriptor>,
 ) -> Result<CircuitDescriptor, RHDLError> {
+    use crate::core::ntl;
     let module = compile_design::<C::Kernel>(CompilationMode::Asynchronous)?;
-    let update_flow_graph = build_rtl_flow_graph(&module);
-    let mut fg = FlowGraph::default();
+    // Build the netlist
+    // First construct the netlist for the update function
+    let update_netlist = build_ntl_from_rtl(&module);
+    // Create a manual builder for the top level netlist
+    let mut builder = ntl::builder::Builder::new(name);
     let output_kind: RegisterKind = C::O::static_kind().into();
     if output_kind.is_empty() {
         return Err(RHDLError::NoOutputsError);
     }
-    let d_kind: RegisterKind = C::D::static_kind().into();
-    let q_kind: RegisterKind = C::Q::static_kind().into();
     let input_kind: RegisterKind = C::I::static_kind().into();
-    // Merge in the flow graph of the update function (and keep it's remap)
-    let update_remap = fg.merge(&update_flow_graph);
-    let remap_bits = |x: &[FlowIx]| x.iter().map(|y| update_remap[y]).collect::<Vec<_>>();
-    // We need an input buffer
-    let input_buffer = fg.input(input_kind, 0, name);
-    let input_from_update = remap_bits(&update_flow_graph.inputs[0]);
-    // Link the input to its buffer
-    for (input, input_buffer) in input_from_update.iter().zip(input_buffer.iter()) {
-        fg.edge(*input_buffer, *input, EdgeKind::ArgBit(0, 0));
+    let top_i = builder.add_input(input_kind.len());
+    let top_o = builder.allocate_outputs(output_kind.len());
+    let update_register_offset = builder.link(&update_netlist);
+    // Link the module input to the input of the update function
+    for (&top_i_bit, &update_i_bit) in top_i.iter().zip(&update_netlist.inputs[0]) {
+        builder.copy_from_to(top_i_bit, update_i_bit.offset(update_register_offset));
     }
-    let update_q_input = remap_bits(&update_flow_graph.inputs[1]);
-    // We need an output buffer, but will need to split the output from the update map into its two constituent components.
-    let update_output = remap_bits(&update_flow_graph.output);
-    let output_buffer_location = update_flow_graph.graph[update_flow_graph.output[0]].location;
-    // This is the circuit output buffer (contains the circuit output)
-    let circuit_output_buffer = fg.output(output_kind, name);
-    let mut update_output_bits = update_output.iter();
-    // Assign the output buffer to the output of the update function
-    for (circuit, output) in circuit_output_buffer.iter().zip(&mut update_output_bits) {
-        fg.edge(*output, *circuit, EdgeKind::ArgBit(0, 0));
+    // Link up the output bits from the update_netlist
+    for (&top_o_bit, &update_o_bit) in top_o.iter().zip(&update_netlist.outputs) {
+        builder.copy_from_to(update_o_bit.offset(update_register_offset), top_o_bit);
     }
-    // Create a buffer to hold the "D" output of the update function
-    let circuit_d_buffer = fg.buffer(d_kind, "d", output_buffer_location);
-    for (d, output) in circuit_d_buffer.iter().zip(&mut update_output_bits) {
-        fg.edge(*output, *d, EdgeKind::ArgBit(0, 0));
-    }
-    // Create a buffer to hold the "Q" input of the update function
-    let q_buffer = fg.buffer(q_kind, "q", output_buffer_location);
-    for (buffer, q) in q_buffer.iter().zip(&update_q_input) {
-        fg.edge(*buffer, *q, EdgeKind::ArgBit(0, 0));
-    }
+    // Get the "D" vector by skipping the first |O| bits, and pre-map them into their new addresses
+    let d_vec = update_netlist
+        .outputs
+        .iter()
+        .skip(output_kind.len())
+        .map(|op| op.offset(update_register_offset))
+        .collect::<Vec<_>>();
+    // Get the "Q" vector by remapping the 2nd input to the update function.
+    // Note that the update function signature for a synchronous function is (ClockReset, I, Q) -> (O, D)
+    let q_vec = update_netlist.inputs[1]
+        .iter()
+        .map(|op| Operand::Register(op.offset(update_register_offset)))
+        .collect::<Vec<_>>();
     // Create the inputs for the children by splitting bits off of the d_index
     for (child_name, child_descriptor) in &children {
         // Compute the bit range for this child's input based on its name
         let child_path = Path::default().field(child_name);
         let (output_bit_range, _) = bit_range(C::D::static_kind(), &child_path)?;
         let (input_bit_range, _) = bit_range(C::Q::static_kind(), &child_path)?;
-        let child_flow_graph = &child_descriptor.flow_graph;
-        let child_remap = fg.merge(child_flow_graph);
-        let remap_child = |x: &[FlowIx]| x.iter().map(|y| child_remap[y]).collect::<Vec<_>>();
-        let child_inputs = remap_child(&child_flow_graph.inputs[0]);
-        let child_output = remap_child(&child_flow_graph.output);
-        let mut d_iter = circuit_d_buffer.iter().skip(output_bit_range.start);
-        for (child_input, d_index) in child_inputs.iter().zip(&mut d_iter) {
-            fg.edge(*d_index, *child_input, EdgeKind::ArgBit(0, 0));
+        // Merge the child's netlist into ours
+        let child_offset = builder.link(&child_descriptor.ntl);
+        // Connect the child's input registers to the given bits of the D register
+        for (&d_bit, &child_i) in d_vec[output_bit_range]
+            .iter()
+            .zip(&child_descriptor.ntl.inputs[1])
+        {
+            builder.copy_from_to(d_bit, child_i.offset(child_offset));
         }
-        let mut q_iter = q_buffer.iter().skip(input_bit_range.start);
-        for (child_output, q_index) in child_output.iter().zip(&mut q_iter) {
-            fg.edge(*child_output, *q_index, EdgeKind::ArgBit(0, 0));
+        // Connect the childs output registers to the given bits of the Q register
+        for (&q_bit, &child_o) in q_vec[input_bit_range]
+            .iter()
+            .zip(&child_descriptor.ntl.outputs)
+        {
+            builder.copy_from_to(child_o.offset(child_offset), q_bit);
         }
     }
-    fg.inputs = vec![input_buffer];
-    fg.output = circuit_output_buffer;
     Ok(CircuitDescriptor {
         unique_name: name.into(),
         input_kind: C::I::static_kind(),
         output_kind: C::O::static_kind(),
         d_kind: C::D::static_kind(),
         q_kind: C::Q::static_kind(),
-        flow_graph: fg,
+        ntl: builder.build(),
         rtl: Some(module),
         children,
     })
@@ -156,14 +148,12 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     children: BTreeMap<String, CircuitDescriptor>,
 ) -> Result<CircuitDescriptor, RHDLError> {
     use crate::core::ntl;
-
     let module = compile_design::<C::Kernel>(CompilationMode::Synchronous)?;
     // Build the netlist
     // First construct the netlist for the update function
     let update_netlist = build_ntl_from_rtl(&module);
-    // Now, we create the high level netlist.
-    let mut net = ntl::object::Object::default();
-    net.name = name.into();
+    // Create a manual builder for the top level netlist
+    let mut builder = ntl::builder::Builder::new(name);
     // This is the kind of output of the update kernel - it must be equal to
     // (Update::O, Update::D)
     // The update_fg will have 3 arguments (rst,i,q) and 2 outputs (o,d)
@@ -171,70 +161,39 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     if output_kind.is_empty() {
         return Err(RHDLError::NoOutputsError);
     }
-    let d_kind: RegisterKind = C::D::static_kind().into();
-    let q_kind: RegisterKind = C::Q::static_kind().into();
     let input_kind: RegisterKind = C::I::static_kind().into();
-
-    let update_register_offset = net.link(&update_netlist);
-    //
-
-    let update_flow_graph = build_rtl_flow_graph(&module);
-    // A synchronous flow graph has separate clock and
-    // reset inputs, but these don't really factor into
-    // data flow, since the assumption is that all elements
-    // of a synchronous circuit are clocked and reset together.
-    // However, we fan out the clock and reset to each of the children
-    // in so they can use them.
-    let mut fg = FlowGraph::default();
-    // This is the kind of output of the update kernel - it must be equal to
-    // (Update::O, Update::D)
-    // The update_fg will have 3 arguments (rst,i,q) and 2 outputs (o,d)
-    let output_kind: RegisterKind = C::O::static_kind().into();
-    if output_kind.is_empty() {
-        return Err(RHDLError::NoOutputsError);
+    // The inputs to the circuit are [cr, I], the output is [O]
+    // Allocate these as inputs to the netlist
+    let top_cr = builder.add_input(2);
+    let top_i = builder.add_input(input_kind.len());
+    let top_o = builder.allocate_outputs(output_kind.len());
+    // Link in the update code.
+    let update_register_offset = builder.link(&update_netlist);
+    // Link the ClockReset signal from the top down into the update code.
+    for (&top_cr_bit, &update_cr_bit) in top_cr.iter().zip(&update_netlist.inputs[0]) {
+        builder.copy_from_to(top_cr_bit, update_cr_bit.offset(update_register_offset));
     }
-    let d_kind: RegisterKind = C::D::static_kind().into();
-    let q_kind: RegisterKind = C::Q::static_kind().into();
-    let input_kind: RegisterKind = C::I::static_kind().into();
-    // Merge in the flow graph of the update function (and keep it's remap)
-    let update_remap = fg.merge(&update_flow_graph);
-    let remap_bits = |x: &[FlowIx]| x.iter().map(|y| update_remap[y]).collect::<Vec<_>>();
-    // We need a cr buffer - it is mandatory.
-    let cr_buffer = fg.buffer(RegisterKind::Unsigned(2), "cr", None);
-    // We also need an input buffer
-    let input_buffer = fg.input(input_kind, 0, name);
-    let cr_for_update = remap_bits(&update_flow_graph.inputs[0]);
-    // We need an input buffer (if we have any inputs)
-    let input_from_update = remap_bits(&update_flow_graph.inputs[1]);
-    // Link the input and reset to their respective buffers
-    for (reset, reset_buffer) in cr_for_update.iter().zip(cr_buffer.iter()) {
-        fg.edge(*reset_buffer, *reset, EdgeKind::ArgBit(0, 0));
+    // Link the module input to the input of the update function
+    for (&top_i_bit, &update_i_bit) in top_i.iter().zip(&update_netlist.inputs[1]) {
+        builder.copy_from_to(top_i_bit, update_i_bit.offset(update_register_offset));
     }
-    for (input, input_buffer) in input_from_update.iter().zip(input_buffer.iter()) {
-        fg.edge(*input_buffer, *input, EdgeKind::ArgBit(0, 0));
+    // Link up the output bits from the update_netlist
+    for (&top_o_bit, &update_o_bit) in top_o.iter().zip(&update_netlist.outputs) {
+        builder.copy_from_to(update_o_bit.offset(update_register_offset), top_o_bit);
     }
-    let update_q_input = remap_bits(&update_flow_graph.inputs[2]);
-    // We need an output buffer, but we will need to split the output from the update map into it's two constituent components.
-    let update_output = remap_bits(&update_flow_graph.output);
-    let output_buffer_location = update_flow_graph.graph[update_flow_graph.output[0]].location;
-    // This is the circuit output buffer (contains the circuit output)
-    let circuit_output_buffer = fg.output(output_kind, name);
-    let mut update_output_bits = update_output.iter();
-    // Assign the output buffer to the output of the update function
-    for (circuit, output) in circuit_output_buffer.iter().zip(&mut update_output_bits) {
-        fg.edge(*output, *circuit, EdgeKind::ArgBit(0, 0));
-    }
-    // Create a buffer to hold the "D" output of the update function
-    let circuit_d_buffer = fg.buffer(d_kind, "d", output_buffer_location);
-    for (d, output) in circuit_d_buffer.iter().zip(&mut update_output_bits) {
-        fg.edge(*output, *d, EdgeKind::ArgBit(0, 0));
-    }
-    // Create a buffer to hold the "Q" input of the update function
-    let q_buffer = fg.buffer(q_kind, "q", output_buffer_location);
-    // Wire that buffer to the input of the update function
-    for (buffer, q) in q_buffer.iter().zip(&update_q_input) {
-        fg.edge(*buffer, *q, EdgeKind::ArgBit(0, 0));
-    }
+    // Get the "D" vector by skipping the first |O| bits, and pre-map them into their new addresses
+    let d_vec = update_netlist
+        .outputs
+        .iter()
+        .skip(output_kind.len())
+        .map(|op| op.offset(update_register_offset))
+        .collect::<Vec<_>>();
+    // Get the "Q" vector by remapping the 3rd input to the update function.
+    // Note that the update function signature for a synchronous function is (ClockReset, I, Q) -> (O, D)
+    let q_vec = update_netlist.inputs[2]
+        .iter()
+        .map(|op| Operand::Register(op.offset(update_register_offset)))
+        .collect::<Vec<_>>();
     // Create the inputs for the children by splitting bits off of the d_index
     for (child_name, child_descriptor) in &children {
         // Compute the bit range for this child's input based on its name
@@ -242,27 +201,27 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         let child_path = Path::default().field(child_name);
         let (output_bit_range, _) = bit_range(C::D::static_kind(), &child_path)?;
         let (input_bit_range, _) = bit_range(C::Q::static_kind(), &child_path)?;
-        let child_flow_graph = &child_descriptor.flow_graph;
-        let child_remap = fg.merge(child_flow_graph);
-        let remap_child = |x: &[FlowIx]| x.iter().map(|y| child_remap[y]).collect::<Vec<_>>();
-        let child_inputs = remap_child(&child_flow_graph.inputs[1]);
-        let child_output = remap_child(&child_flow_graph.output);
-        let mut d_iter = circuit_d_buffer.iter().skip(output_bit_range.start);
-        for (child_input, d_index) in child_inputs.iter().zip(&mut d_iter) {
-            fg.edge(*d_index, *child_input, EdgeKind::ArgBit(0, 0));
+        // Merge the child's netlist into ours
+        let child_offset = builder.link(&child_descriptor.ntl);
+        // Connect the child's clock and reset to the top level clock and reset
+        for (&top_cr, &child_cr) in top_cr.iter().zip(&child_descriptor.ntl.inputs[0]) {
+            builder.copy_from_to(top_cr, child_cr.offset(child_offset));
         }
-        let mut q_iter = q_buffer.iter().skip(input_bit_range.start);
-        for (child_output, q_index) in child_output.iter().zip(&mut q_iter) {
-            fg.edge(*child_output, *q_index, EdgeKind::ArgBit(0, 0));
+        // Connect the child's input registers to the given bits of the D register
+        for (&d_bit, &child_i) in d_vec[output_bit_range]
+            .iter()
+            .zip(&child_descriptor.ntl.inputs[1])
+        {
+            builder.copy_from_to(d_bit, child_i.offset(child_offset));
         }
-        // Connect the cr lines
-        let cr_line = remap_child(&child_flow_graph.inputs[0]);
-        for (reset_buffer, reset_line) in cr_buffer.iter().zip(cr_line.iter()) {
-            fg.edge(*reset_buffer, *reset_line, EdgeKind::ArgBit(0, 0));
+        // Connect the childs output registers to the given bits of the Q register
+        for (&q_bit, &child_o) in q_vec[input_bit_range]
+            .iter()
+            .zip(&child_descriptor.ntl.outputs)
+        {
+            builder.copy_from_to(child_o.offset(child_offset), q_bit);
         }
     }
-    fg.inputs = vec![cr_buffer, input_buffer];
-    fg.output = circuit_output_buffer;
     Ok(CircuitDescriptor {
         unique_name: name.into(),
         input_kind: C::I::static_kind(),
@@ -271,6 +230,6 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         q_kind: C::Q::static_kind(),
         children,
         rtl: Some(module),
-        flow_graph: fg,
+        ntl: builder.build(),
     })
 }

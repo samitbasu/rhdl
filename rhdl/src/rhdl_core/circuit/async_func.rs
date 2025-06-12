@@ -1,10 +1,11 @@
 use crate::rhdl_core::{
-    build_rtl_flow_graph, compile_design,
+    compile_design,
     digital_fn::{DigitalFn1, NoKernel2},
     hdl::{
         ast::{continuous_assignment, function_call, id, Direction, Module},
         builder::generate_verilog,
     },
+    ntl::from_rtl::build_ntl_from_rtl,
     rtl::Object,
     Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, CompilationMode, DigitalFn, HDLDescriptor,
     Kind, RHDLError, Timed,
@@ -57,7 +58,7 @@ impl<I: Timed, O: Timed> Circuit for AsyncFunc<I, O> {
             output_kind: <Self::O as Timed>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            flow_graph: build_rtl_flow_graph(&self.module),
+            ntl: build_ntl_from_rtl(&self.module),
             rtl: Some(self.module.clone()),
             children: Default::default(),
         })

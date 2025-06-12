@@ -1,13 +1,13 @@
 use crate::{
     prelude::{trace, trace_pop_path, trace_push_path},
     rhdl_core::{
-        build_rtl_flow_graph, compile_design,
+        compile_design,
         digital_fn::{DigitalFn2, NoKernel3},
         hdl::{
             ast::{continuous_assignment, function_call, id, Direction, Module},
             builder::generate_verilog,
         },
-        ntl::builder::build_ntl_from_rtl,
+        ntl::from_rtl::build_ntl_from_rtl,
         rtl::Object,
         CircuitDescriptor, ClockReset, CompilationMode, Digital, DigitalFn, HDLDescriptor, Kind,
         RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
@@ -66,7 +66,6 @@ impl<I: Digital, O: Digital> Synchronous for Func<I, O> {
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            flow_graph: build_rtl_flow_graph(&self.module),
             rtl: Some(self.module.clone()),
             children: Default::default(),
             ntl: build_ntl_from_rtl(&self.module),

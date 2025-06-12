@@ -156,6 +156,12 @@ pub enum Operand {
     Register(RegisterId),
 }
 
+impl From<RegisterId> for Operand {
+    fn from(x: RegisterId) -> Operand {
+        Operand::Register(x)
+    }
+}
+
 impl From<BitX> for Operand {
     fn from(x: BitX) -> Operand {
         match x {
@@ -180,6 +186,13 @@ impl Operand {
             Operand::One => Some(BitX::One),
             Operand::X => Some(BitX::X),
             _ => None,
+        }
+    }
+    pub fn offset(&self, shift: u32) -> Self {
+        if let Some(reg) = self.reg() {
+            Operand::Register(reg.offset(shift))
+        } else {
+            *self
         }
     }
 }
