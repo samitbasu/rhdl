@@ -1,15 +1,14 @@
-use std::collections::BTreeMap;
-
+use crate::rhdl_core::ntl;
 use crate::rhdl_core::{
     digital_fn::NoKernel3,
-    flow_graph::edge_kind::EdgeKind,
     hdl::ast::{
         component_instance, connection, id, unsigned_width, Declaration, Direction, HDLKind, Module,
     },
     rtl::object::RegisterKind,
-    trace_pop_path, trace_push_path, CircuitDescriptor, ClockReset, Digital, FlowGraph,
-    HDLDescriptor, Kind, Synchronous, SynchronousDQ, SynchronousIO,
+    trace_pop_path, trace_push_path, CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind,
+    Synchronous, SynchronousDQ, SynchronousIO,
 };
+use std::collections::BTreeMap;
 
 use super::hdl_backend::maybe_port_wire;
 
@@ -47,7 +46,12 @@ where
         (self.a.init(), self.b.init())
     }
 
-    fn sim(&self, clock_reset: crate::rhdl_core::ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
+    fn sim(
+        &self,
+        clock_reset: crate::rhdl_core::ClockReset,
+        input: Self::I,
+        state: &mut Self::S,
+    ) -> Self::O {
         trace_push_path("chain");
         trace_push_path("a");
         let p = self.a.sim(clock_reset, input, &mut state.0);
@@ -67,60 +71,63 @@ where
         )
     }
 
-    fn descriptor(&self, name: &str) -> Result<crate::rhdl_core::CircuitDescriptor, crate::rhdl_core::RHDLError> {
+    fn descriptor(
+        &self,
+        name: &str,
+    ) -> Result<crate::rhdl_core::CircuitDescriptor, crate::rhdl_core::RHDLError> {
         let a_name = format!("{name}_a");
         let b_name = format!("{name}_b");
         let desc_a = self.a.descriptor(&a_name)?;
         let desc_b = self.b.descriptor(&b_name)?;
-        let fg_a = &desc_a.flow_graph;
-        let fg_b = &desc_b.flow_graph;
-        let mut fg = FlowGraph::default();
-        let a_remap = fg.merge(fg_a);
-        let b_remap = fg.merge(fg_b);
-        // Create a buffer to hold the clock and reset signals
-        let cr_buffer = fg.buffer(RegisterKind::Unsigned(2), "cr", None);
-        // Connect the clock and reset signals to the input of the first circuit
-        for (cr, a_input) in cr_buffer.iter().zip(&fg_a.inputs[0]) {
-            fg.edge(*cr, a_remap[a_input], EdgeKind::ArgBit(0, 0));
-        }
-        // Connect the clock and reset signals to the input of the second circuit
-        for (cr, b_input) in cr_buffer.iter().zip(&fg_b.inputs[0]) {
-            fg.edge(*cr, b_remap[b_input], EdgeKind::ArgBit(0, 0));
-        }
+        let mut builder = ntl::Builder::new(name);
         let input_kind: RegisterKind = <A as SynchronousIO>::I::static_kind().into();
-        // Allocate the input buffer for the chain
-        let input_buffer = fg.input(input_kind, 0, name);
-        // Connect the input buffer to the input of the first circuit
-        for (parent_input, child_input) in input_buffer.iter().zip(&fg_a.inputs[1]) {
-            fg.edge(*parent_input, a_remap[child_input], EdgeKind::ArgBit(0, 0));
-        }
-        // Connect the output of the first circuit to the input of the second circuit
-        for (a_output, b_input) in fg_a.output.iter().zip(&fg_b.inputs[1]) {
-            fg.edge(a_remap[a_output], b_remap[b_input], EdgeKind::ArgBit(0, 0));
-        }
-        // Allocate the output buffer for the chain
         let output_kind: RegisterKind = <B as SynchronousIO>::O::static_kind().into();
-        let output_buffer = fg.output(output_kind, name);
-        // Connect the output of the second circuit to the output buffer
-        for (b_output, parent_output) in fg_b.output.iter().zip(output_buffer.iter()) {
-            fg.edge(b_remap[b_output], *parent_output, EdgeKind::ArgBit(0, 0));
+        // The inputs to the circuit are [cr, I], the output is [O]
+        // Allocate these as inputs to the netlist
+        let top_cr = builder.add_input(2);
+        let top_i = builder.add_input(input_kind.len());
+        let top_o = builder.allocate_outputs(output_kind.len());
+        // Link in the A and B children
+        let a_offset = builder.link(&desc_a.ntl);
+        let b_offset = builder.link(&desc_b.ntl);
+        // Connect the clock and reset to the A and B netlists.
+        for ((tcr, acr), bcr) in top_cr
+            .iter()
+            .zip(&desc_a.ntl.inputs[0])
+            .zip(&desc_b.ntl.inputs[0])
+        {
+            builder.copy_from_to(*tcr, acr.offset(a_offset));
+            builder.copy_from_to(*tcr, bcr.offset(b_offset));
         }
-        fg.inputs = vec![cr_buffer, input_buffer];
-        fg.output = output_buffer;
+        // Connect the input of the NTL to the input of the first circuit
+        for (ti, ai) in top_i.iter().zip(&desc_a.ntl.inputs[1]) {
+            builder.copy_from_to(*ti, ai.offset(a_offset));
+        }
+        // Connect the circuit A to the input of circuit B
+        for (ao, bi) in desc_a.ntl.outputs.iter().zip(&desc_b.ntl.inputs[1]) {
+            builder.copy_from_to(ao.offset(a_offset), bi.offset(b_offset));
+        }
+        // Connec the output of circuit B to the NTL output
+        for (to, bo) in top_o.iter().zip(&desc_b.ntl.outputs) {
+            builder.copy_from_to(bo.offset(b_offset), *to)
+        }
         let desc = CircuitDescriptor {
             unique_name: name.into(),
             input_kind: desc_a.input_kind,
             output_kind: desc_b.output_kind,
             q_kind: Kind::Empty,
             d_kind: Kind::Empty,
-            flow_graph: fg,
+            ntl: builder.build(),
             rtl: None,
             children: BTreeMap::from_iter(vec![(a_name, desc_a), (b_name, desc_b)]),
         };
         Ok(desc)
     }
 
-    fn hdl(&self, name: &str) -> Result<crate::rhdl_core::HDLDescriptor, crate::rhdl_core::RHDLError> {
+    fn hdl(
+        &self,
+        name: &str,
+    ) -> Result<crate::rhdl_core::HDLDescriptor, crate::rhdl_core::RHDLError> {
         let mut module = Module {
             name: name.into(),
             description: self.description(),

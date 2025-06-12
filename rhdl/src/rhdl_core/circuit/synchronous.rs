@@ -31,11 +31,6 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO {
 
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError>;
 
-    fn flow_graph(&self, name: &str) -> Result<FlowGraph, RHDLError> {
-        let flow_graph = self.descriptor(name)?.flow_graph.clone();
-        optimize_flow_graph(flow_graph)
-    }
-
     fn yosys_check(&self) -> Result<(), RHDLError> {
         run_yosys_synth(self.hdl("top")?)
     }

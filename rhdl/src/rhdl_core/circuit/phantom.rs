@@ -21,18 +21,12 @@ impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
     }
 
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        let flow_graph = FlowGraph {
-            output: vec![],
-            inputs: vec![vec![], vec![]],
-            ..Default::default()
-        };
         Ok(CircuitDescriptor {
             unique_name: format!("{name}_phantom"),
             input_kind: Kind::Empty,
             output_kind: Kind::Empty,
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            flow_graph,
             children: Default::default(),
             rtl: None,
             ntl: crate::core::ntl::object::Object::default(),

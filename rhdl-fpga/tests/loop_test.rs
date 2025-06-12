@@ -1,5 +1,5 @@
 use rhdl::{
-    core::{compiler::ntl_passes::pass::Pass, ntl::builder::build_ntl_from_rtl},
+    core::{compiler::ntl_passes::pass::Pass, ntl::from_rtl::build_ntl_from_rtl},
     prelude::*,
 };
 use rhdl_fpga::axi4lite::{

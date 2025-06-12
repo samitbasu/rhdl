@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     prelude::HDLDescriptor,
     rhdl_core::{
@@ -8,7 +6,7 @@ use crate::{
             source::{source_location::SourceLocation, spanned_source_set::SpannedSourceSet},
         },
         ntl::{
-            remap::{remap_operands, visit_operands, visit_operands_mut},
+            remap::{visit_operands, visit_operands_mut},
             spec::{OpCode, Operand, RegisterId},
         },
     },
@@ -86,14 +84,14 @@ impl Object {
 #[derive(Clone, Hash)]
 pub struct LocatedOpCode {
     pub op: OpCode,
-    pub loc: SourceLocation,
+    pub loc: Option<SourceLocation>,
 }
 
 impl LocatedOpCode {
     pub fn new(op: OpCode, id: NodeId, func: FunctionId) -> Self {
         Self {
             op,
-            loc: SourceLocation { node: id, func },
+            loc: Some(SourceLocation { node: id, func }),
         }
     }
 }

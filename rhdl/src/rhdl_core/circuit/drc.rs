@@ -38,6 +38,7 @@ impl Diagnostic for CombinatorialPath {
 }
 
 pub fn no_combinatorial_paths<T: Synchronous>(uut: &T) -> miette::Result<()> {
+    /*
     let flow_graph = uut.flow_graph("top")?;
     // We know that input[1] is the one we care about. input[0] is the clock and reset input.
     let inputs: HashSet<_> = flow_graph.inputs[1].iter().collect();
@@ -62,6 +63,6 @@ pub fn no_combinatorial_paths<T: Synchronous>(uut: &T) -> miette::Result<()> {
                 }));
             }
         }
-    }
-    Ok(())
+    }*/
+    todo!()
 }

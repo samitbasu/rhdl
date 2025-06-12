@@ -2,13 +2,12 @@ use std::collections::BTreeMap;
 
 use crate::rhdl_core::{
     digital_fn::NoKernel2,
-    flow_graph::flow_graph_impl::FlowIx,
     hdl::ast::{component_instance, connection, index, Direction, Module, Statement},
+    ntl,
     rtl::object::RegisterKind,
     trace_pop_path, trace_push_path,
     types::path::{bit_range, Path},
-    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, Digital, FlowGraph, HDLDescriptor, Kind,
-    RHDLError,
+    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, Digital, HDLDescriptor, Kind, RHDLError,
 };
 
 use super::hdl_backend::maybe_port_wire;
@@ -50,39 +49,35 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
     // assumes that the children of the current circuit are named with field names
     // as part of a struct.
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        let mut fg = FlowGraph::default();
+        let mut builder = ntl::Builder::new(name);
         let input_kind: RegisterKind = Self::I::static_kind().into();
         let output_kind: RegisterKind = Self::O::static_kind().into();
-        let input_buffer = fg.input(input_kind, 0, "i");
-        let output_buffer = fg.output(output_kind, "o");
+        let ti = builder.add_input(input_kind.len());
+        let to = builder.allocate_outputs(output_kind.len());
         let mut children = BTreeMap::default();
-        (0..N).try_for_each(|i| {
+        for i in 0..N {
             let child_path = Path::default().index(i);
             let (output_bit_range, _) = bit_range(Self::O::static_kind(), &child_path)?;
             let (input_bit_range, _) = bit_range(Self::I::static_kind(), &child_path)?;
             let child_name = format!("{}_{}", name, i);
             let child_desc = self[i].descriptor(&child_name)?;
-            let child_flow_graph = &child_desc.flow_graph;
-            let child_remap = fg.merge(child_flow_graph);
-            let remap_child = |x: &[FlowIx]| x.iter().map(|y| child_remap[y]).collect::<Vec<_>>();
-            let child_inputs = remap_child(&child_flow_graph.inputs[0]);
-            let child_output = remap_child(&child_flow_graph.output);
-            let mut i_iter = input_buffer.iter().skip(input_bit_range.start).copied();
-            fg.zip(&mut i_iter, child_inputs.into_iter());
-            let mut o_iter = output_buffer.iter().skip(output_bit_range.start).copied();
-            fg.zip(child_output.into_iter(), &mut o_iter);
+            let offset = builder.link(&child_desc.ntl);
+            // Wire up the child circuit inputs and outputs
+            for (&t, c) in ti[input_bit_range].iter().zip(&child_desc.ntl.inputs[0]) {
+                builder.copy_from_to(t, c.offset(offset));
+            }
+            for (&t, c) in to[output_bit_range].iter().zip(&child_desc.ntl.outputs) {
+                builder.copy_from_to(c.offset(offset), t);
+            }
             children.insert(child_name, child_desc);
-            Ok::<(), RHDLError>(())
-        })?;
-        fg.inputs = vec![input_buffer];
-        fg.output = output_buffer;
+        }
         Ok(CircuitDescriptor {
             unique_name: name.into(),
             input_kind: Self::I::static_kind(),
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            flow_graph: fg,
+            ntl: builder.build(),
             rtl: None,
             children,
         })
