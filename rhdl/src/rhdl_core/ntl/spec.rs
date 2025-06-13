@@ -110,7 +110,6 @@ pub enum VectorOp {
     Ge,
     Shl,
     Shr,
-    BitSelect,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Hash)]

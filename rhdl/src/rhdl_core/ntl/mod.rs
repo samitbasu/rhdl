@@ -6,3 +6,5 @@ pub mod remap;
 pub mod spec;
 pub(crate) use builder::Builder;
 pub use object::Object;
+pub mod error;
+pub mod hdl;
