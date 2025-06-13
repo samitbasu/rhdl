@@ -76,6 +76,9 @@ pub enum RHDLError {
     NotSynthesizable,
     #[error("Yosys synthesis error: {0}")]
     YosysSynthError(#[from] YosysSynthError),
+    #[error("Netlist Error")]
+    #[diagnostic(transparent)]
+    NetListError(#[from] Box<crate::rhdl_core::ntl::error::NetListError>),
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

@@ -131,7 +131,9 @@ impl<'a> NtlBuilder<'a> {
         let arg1 = self.operand(binary.arg1);
         let arg2 = self.operand(binary.arg2);
         let lhs = self.operand(binary.lhs);
-        let signed = self.object.kind(binary.lhs).is_signed();
+        let signed = self.object.kind(binary.lhs).is_signed()
+            || (self.object.kind(binary.arg1).is_signed()
+                && self.object.kind(binary.arg2).is_signed());
         match classify_binary(binary.op) {
             BinOpClass::Bitwise(binop) => {
                 for (&lhs, (&arg1, &arg2)) in lhs.iter().zip(arg1.iter().zip(arg2.iter())) {
