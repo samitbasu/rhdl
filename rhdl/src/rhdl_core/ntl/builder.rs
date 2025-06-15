@@ -1,8 +1,12 @@
-use crate::rhdl_core::{
-    ast::source::{source_location::SourceLocation, spanned_source_set::SpannedSourceSet},
-    ntl::{
-        object::{LocatedOpCode, Object},
-        spec::{Assign, OpCode, Operand, RegisterId},
+use crate::{
+    prelude::RHDLError,
+    rhdl_core::{
+        ast::source::spanned_source_set::SpannedSourceSet,
+        compiler::optimize_ntl,
+        ntl::{
+            object::{LocatedOpCode, Object},
+            spec::{Assign, OpCode, Operand, RegisterId},
+        },
     },
 };
 
@@ -42,8 +46,8 @@ impl Builder {
         self.object.outputs = ret.iter().copied().map(Operand::Register).collect();
         ret
     }
-    pub fn build(self) -> Object {
-        self.object
+    pub fn build(self) -> Result<Object, RHDLError> {
+        optimize_ntl(self.object)
     }
     pub fn link(&mut self, other: &Object) -> u32 {
         self.add_code(&other.code);

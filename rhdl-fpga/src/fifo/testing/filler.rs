@@ -160,7 +160,7 @@ mod tests {
         let expect = expect_file!["filler.expect"];
         expect.assert_eq(&test_module.to_string());
         test_module.run_iverilog()?;
-        let test_module = test_bench.flow_graph(&uut, &TestBenchOptions::default())?;
+        let test_module = test_bench.ntl(&uut, &TestBenchOptions::default())?;
         test_module.run_iverilog()?;
         Ok(())
     }

@@ -107,54 +107,60 @@ pub fn remap_operands<F: FnMut(Operand) -> Operand>(op: OpCode, mut f: F) -> OpC
     }
 }
 
-fn vec_v<F: FnMut(&Operand)>(f: &mut F, v: &[Operand]) {
-    v.iter().for_each(f);
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Sense {
+    Read,
+    Write,
 }
 
-pub fn visit_operands<F: FnMut(&Operand)>(op: &OpCode, mut f: F) {
+fn vec_v<F: FnMut(Sense, &Operand)>(f: &mut F, sense: Sense, v: &[Operand]) {
+    v.iter().for_each(|v| f(sense, v));
+}
+
+pub fn visit_operands<F: FnMut(Sense, &Operand)>(op: &OpCode, mut f: F) {
     match op {
         OpCode::Noop => {}
         OpCode::Assign(Assign { lhs, rhs }) => {
-            f(lhs);
-            f(rhs);
+            f(Sense::Write, lhs);
+            f(Sense::Read, rhs);
         }
         OpCode::Binary(Binary {
-            op,
+            op: _,
             lhs,
             arg1,
             arg2,
         }) => {
-            f(lhs);
-            f(arg1);
-            f(arg2);
+            f(Sense::Write, lhs);
+            f(Sense::Read, arg1);
+            f(Sense::Read, arg2);
         }
         OpCode::Vector(Vector {
-            op,
+            op: _,
             lhs,
             arg1,
             arg2,
-            signed,
+            signed: _,
         }) => {
-            vec_v(&mut f, lhs);
-            vec_v(&mut f, arg1);
-            vec_v(&mut f, arg2);
+            vec_v(&mut f, Sense::Write, lhs);
+            vec_v(&mut f, Sense::Read, arg1);
+            vec_v(&mut f, Sense::Read, arg2);
         }
         OpCode::Case(Case {
             lhs,
             discriminant,
             entries,
         }) => {
-            f(lhs);
-            vec_v(&mut f, discriminant);
+            f(Sense::Write, lhs);
+            vec_v(&mut f, Sense::Read, discriminant);
             for (_, entry) in entries {
-                f(entry);
+                f(Sense::Read, entry);
             }
         }
-        OpCode::Comment(comment) => {}
+        OpCode::Comment(_) => {}
         OpCode::DynamicIndex(DynamicIndex { lhs, arg, offset }) => {
-            vec_v(&mut f, lhs);
-            vec_v(&mut f, arg);
-            vec_v(&mut f, offset);
+            vec_v(&mut f, Sense::Write, lhs);
+            vec_v(&mut f, Sense::Read, arg);
+            vec_v(&mut f, Sense::Read, offset);
         }
         OpCode::DynamicSplice(DynamicSplice {
             lhs,
@@ -162,10 +168,10 @@ pub fn visit_operands<F: FnMut(&Operand)>(op: &OpCode, mut f: F) {
             offset,
             value,
         }) => {
-            vec_v(&mut f, lhs);
-            vec_v(&mut f, arg);
-            vec_v(&mut f, offset);
-            vec_v(&mut f, value);
+            vec_v(&mut f, Sense::Write, lhs);
+            vec_v(&mut f, Sense::Read, arg);
+            vec_v(&mut f, Sense::Read, offset);
+            vec_v(&mut f, Sense::Read, value);
         }
         OpCode::Select(Select {
             lhs,
@@ -173,34 +179,34 @@ pub fn visit_operands<F: FnMut(&Operand)>(op: &OpCode, mut f: F) {
             true_case,
             false_case,
         }) => {
-            f(lhs);
-            f(selector);
-            f(true_case);
-            f(false_case);
+            f(Sense::Write, lhs);
+            f(Sense::Read, selector);
+            f(Sense::Read, true_case);
+            f(Sense::Read, false_case);
         }
         OpCode::Not(Not { lhs, arg }) => {
-            f(lhs);
-            f(arg);
+            f(Sense::Write, lhs);
+            f(Sense::Read, arg);
         }
         OpCode::Dff(Dff {
             lhs,
             arg,
             clock,
             reset,
-            reset_value,
+            reset_value: _,
         }) => {
-            f(lhs);
-            f(arg);
-            f(clock);
-            f(reset);
+            f(Sense::Write, lhs);
+            f(Sense::Read, arg);
+            f(Sense::Read, clock);
+            f(Sense::Read, reset);
         }
         OpCode::BlackBox(BlackBox { lhs, arg, code }) => {
-            vec_v(&mut f, lhs);
-            vec_v(&mut f, arg);
+            vec_v(&mut f, Sense::Write, lhs);
+            vec_v(&mut f, Sense::Read, arg);
         }
         OpCode::Unary(Unary { op, lhs, arg }) => {
-            vec_v(&mut f, lhs);
-            vec_v(&mut f, arg);
+            vec_v(&mut f, Sense::Write, lhs);
+            vec_v(&mut f, Sense::Read, arg);
         }
     }
 }

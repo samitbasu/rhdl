@@ -77,7 +77,7 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            ntl: builder.build(),
+            ntl: builder.build()?,
             rtl: None,
             children,
         })

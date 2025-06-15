@@ -2,9 +2,10 @@ use log::debug;
 use std::iter::once;
 
 use crate::rhdl_core::{
-    build_rtl_flow_graph,
-    compiler::driver::{compile_design_stage1, compile_design_stage2},
-    flow_graph::{hdl::generate_hdl, optimization::optimize_flow_graph},
+    compiler::{
+        driver::{compile_design_stage1, compile_design_stage2},
+        optimize_ntl,
+    },
     hdl::{
         ast::{
             assert, assign, bit_string, component_instance, connection, continuous_assignment,
@@ -13,6 +14,7 @@ use crate::rhdl_core::{
         },
         builder::generate_verilog,
     },
+    ntl::{from_rtl::build_ntl_from_rtl, hdl::generate_hdl},
     sim::test_module::TestModule,
     types::bit_string::BitString,
     Digital, DigitalFn, RHDLError, TypedBits,
@@ -321,11 +323,11 @@ where
     top.into()
 }
 
-// In general, a flow graph cannot be reduced to a pure function, as it may contain internal
+// In general, a netlist cannot be reduced to a pure function, as it may contain internal
 // state/etc.  However, in this context (for kernel testing), we can assume it is equivalent
 // to a function, and generate the test vectors that way.  This is not equivalent to a full test
-// module for the flow graph.  That has to go elsewhere.
-fn test_module_for_flowgraph<F, Args, T0>(
+// module for the netlist.  That has to go elsewhere.
+fn test_module_for_netlist<F, Args, T0>(
     uut: F,
     desc: Module,
     vals: impl Iterator<Item = Args>,
@@ -414,11 +416,12 @@ where
     let tm = test_module(&uut, hdl, vals.clone());
     debug!("{}", tm);
     tm.run_iverilog()?;
-    let flow_graph = build_rtl_flow_graph(&rtl);
-    let flow_graph = optimize_flow_graph(flow_graph)?;
-    let desc = generate_hdl("dut", &flow_graph)?;
-    let tm = test_module_for_flowgraph(uut, desc, vals);
-    debug!("Running flow graph test");
+    debug!("Generating netlist from rtl");
+    let ntl = build_ntl_from_rtl(&rtl);
+    let ntl = optimize_ntl(ntl)?;
+    let desc = generate_hdl("dut", &ntl)?;
+    let tm = test_module_for_netlist(uut, desc, vals);
+    debug!("Running netlist test");
     debug!("{}", tm);
     tm.run_iverilog()?;
     Ok(())

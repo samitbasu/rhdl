@@ -115,7 +115,7 @@ pub fn build_descriptor<C: Circuit>(
         output_kind: C::O::static_kind(),
         d_kind: C::D::static_kind(),
         q_kind: C::Q::static_kind(),
-        ntl: builder.build(),
+        ntl: builder.build()?,
         rtl: Some(module),
         children,
     })
@@ -230,6 +230,6 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         q_kind: C::Q::static_kind(),
         children,
         rtl: Some(module),
-        ntl: builder.build(),
+        ntl: builder.build()?,
     })
 }

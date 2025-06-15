@@ -64,7 +64,7 @@ fn test_hdl() -> miette::Result<()> {
     let tb = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
     let tm = tb.rtl(&uut, &Default::default())?;
     tm.run_iverilog()?;
-    let tm = tb.flow_graph(&uut, &Default::default())?;
+    let tm = tb.ntl(&uut, &Default::default())?;
     tm.run_iverilog()?;
     Ok(())
 }

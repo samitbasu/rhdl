@@ -215,7 +215,7 @@ mod tests {
         let uut: UC = OptionSyncBRAM::new((0..).map(|ndx| (bits(ndx), bits(0))));
         let stream = random_command_stream(1000);
         let test_bench = uut.run(stream)?.collect::<SynchronousTestBench<_, _>>();
-        let test_mod = test_bench.flow_graph(&uut, &TestBenchOptions::default().skip(2))?;
+        let test_mod = test_bench.ntl(&uut, &TestBenchOptions::default().skip(2))?;
         test_mod.run_iverilog()?;
         let test_mod = test_bench.rtl(&uut, &TestBenchOptions::default().skip(2))?;
         test_mod.run_iverilog()?;
