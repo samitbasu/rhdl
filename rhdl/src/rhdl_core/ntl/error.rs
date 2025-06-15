@@ -9,6 +9,11 @@ use crate::rhdl_core::SourcePool;
 pub enum NetListICE {
     #[error("Expected a register to write to, not a constant")]
     ExpectedRegisterNotConstant,
+    #[error("Design contains a logic loop")]
+    #[diagnostic(help(
+        "The design includes a loop of logic elements which is not allowed.  That loop includes the identified instruction."
+    ))]
+    LogicLoop,
 }
 
 #[derive(Debug, Error)]

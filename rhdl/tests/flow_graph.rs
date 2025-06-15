@@ -327,7 +327,7 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
 
     let uut = parent::Parent::default();
     let inputs = std::iter::once(()).with_reset(4).clock_pos_edge(100);
-    //test_synchronous_hdl(&uut, inputs)?;
+    test_synchronous_hdl(&uut, inputs)?;
     let desc = uut.descriptor("uut")?;
     assert!(!desc
         .ntl

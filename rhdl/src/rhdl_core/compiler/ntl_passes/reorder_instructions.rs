@@ -2,10 +2,15 @@ use std::collections::HashMap;
 
 use crate::{
     prelude::RHDLError,
-    rhdl_core::ntl::{
-        remap::{visit_operands, Sense},
-        spec::RegisterId,
-        Object,
+    rhdl_core::{
+        ast::source::source_location::SourceLocation,
+        error::rhdl_error,
+        ntl::{
+            error::{NetListError, NetListICE},
+            remap::{visit_operands, Sense},
+            spec::RegisterId,
+            Object,
+        },
     },
 };
 
@@ -17,6 +22,17 @@ pub struct ReorderInstructions {}
 enum WriteSource {
     Input,
     OpCode(usize),
+}
+
+fn raise_cycle_error(input: &Object, location: Option<SourceLocation>) -> RHDLError {
+    rhdl_error(NetListError {
+        cause: NetListICE::LogicLoop,
+        src: input.code.source(),
+        elements: location
+            .map(|loc| input.code.span(loc).into())
+            .into_iter()
+            .collect(),
+    })
 }
 
 fn make_reg_map(input: &Object) -> HashMap<RegisterId, WriteSource> {
@@ -101,7 +117,11 @@ impl Pass for ReorderInstructions {
                 }
             }
             Err(cycle) => {
-                eprintln!("Err")
+                let source_location = match &dep_graph[cycle.node_id()] {
+                    WriteSource::Input => None,
+                    WriteSource::OpCode(ndx) => input.ops[*ndx].loc,
+                };
+                return Err(raise_cycle_error(&input, source_location));
             }
         }
         Ok(input)
