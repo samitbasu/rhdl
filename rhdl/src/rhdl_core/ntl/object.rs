@@ -11,6 +11,10 @@ use crate::{
         },
     },
 };
+use std::hash::Hash;
+use std::hash::Hasher;
+
+use fnv::FnvHasher;
 
 #[derive(Clone, Hash, PartialEq, Copy, Debug)]
 pub enum BlackBoxMode {
@@ -20,11 +24,13 @@ pub enum BlackBoxMode {
 
 #[derive(Clone, Hash)]
 pub struct BlackBox {
-    code: HDLDescriptor,
-    mode: BlackBoxMode,
+    pub inputs: Vec<Vec<Operand>>,
+    pub outputs: Vec<Operand>,
+    pub code: HDLDescriptor,
+    pub mode: BlackBoxMode,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Hash)]
 pub struct Object {
     pub name: String,
     pub inputs: Vec<Vec<RegisterId>>,
@@ -46,7 +52,7 @@ impl Object {
             max_reg = max_reg.max(output.raw())
         }
         for lop in &self.ops {
-            visit_operands(&lop.op, |op| {
+            visit_operands(&lop.op, |_sense, op| {
                 if let Some(reg) = op.reg() {
                     max_reg = max_reg.max(reg.raw())
                 }
@@ -78,6 +84,11 @@ impl Object {
         self.code.extend(other.code.sources.clone());
         self.black_boxes.extend(other.black_boxes.clone());
         max_reg
+    }
+    pub fn hash_value(&self) -> u64 {
+        let mut hasher = FnvHasher::default();
+        self.hash(&mut hasher);
+        hasher.finish()
     }
 }
 

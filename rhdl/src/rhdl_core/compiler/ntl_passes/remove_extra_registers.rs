@@ -52,7 +52,7 @@ impl Pass for RemoveExtraRegistersPass {
         }
         // Define each of the operands
         for lop in &ops {
-            visit_operands(&lop.op, |op| {
+            visit_operands(&lop.op, |_sense, op| {
                 if let Some(reg) = op.reg() {
                     reg_set.insert(reg);
                 }

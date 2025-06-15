@@ -40,16 +40,18 @@ fn test_loop_test() -> miette::Result<()> {
         rhdl::core::compiler::ntl_passes::remove_extra_registers::RemoveExtraRegistersPass::run(
             ntl,
         )?;
-    let ntl = rhdl::core::compiler::ntl_passes::contstant_reg_elimination::ConstantRegisterElimination::run(ntl)?;
+    let ntl = rhdl::core::compiler::ntl_passes::constant_reg_elimination::ConstantRegisterElimination::run(ntl)?;
     let ntl = rhdl::core::compiler::ntl_passes::lower_selects::LowerSelects::run(ntl)?;
     let ntl = rhdl::core::compiler::ntl_passes::lower_case::LowerCase::run(ntl)?;
     let ntl =
         rhdl::core::compiler::ntl_passes::remove_extra_registers::RemoveExtraRegistersPass::run(
             ntl,
         )?;
-    let ntl = rhdl::core::compiler::ntl_passes::contstant_reg_elimination::ConstantRegisterElimination::run(ntl)?;
+    let ntl = rhdl::core::compiler::ntl_passes::constant_reg_elimination::ConstantRegisterElimination::run(ntl)?;
     let ntl = rhdl::core::compiler::ntl_passes::lower_selects::LowerSelects::run(ntl)?;
     let ntl = rhdl::core::compiler::ntl_passes::lower_case::LowerCase::run(ntl)?;
+    let ntl =
+        rhdl::core::compiler::ntl_passes::reorder_instructions::ReorderInstructions::run(ntl)?;
     //16444
     /*
        r16503 <- case {r378} {

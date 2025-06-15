@@ -1,8 +1,10 @@
-pub mod contstant_reg_elimination;
+pub mod constant_propagation;
+pub mod constant_reg_elimination;
 pub mod lower_case;
 pub mod lower_selects;
 pub mod pass;
 pub mod remove_extra_registers;
+pub mod reorder_instructions;
 
 /*
 pub mod check_for_logic_loops;

@@ -70,7 +70,7 @@ mod tests {
     #[test]
     fn test_logic_loop() -> miette::Result<()> {
         let uut = U::default();
-        assert!(uut.flow_graph("uut").is_err());
+        assert!(uut.descriptor("uut").is_err());
         Ok(())
     }
 }

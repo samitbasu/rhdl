@@ -171,6 +171,15 @@ impl From<BitX> for Operand {
     }
 }
 
+impl From<bool> for Operand {
+    fn from(x: bool) -> Operand {
+        match x {
+            true => Operand::One,
+            false => Operand::Zero,
+        }
+    }
+}
+
 impl Operand {
     pub fn reg(&self) -> Option<RegisterId> {
         if let Operand::Register(reg) = self {

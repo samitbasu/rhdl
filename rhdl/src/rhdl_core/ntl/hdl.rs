@@ -1,16 +1,21 @@
 use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 use crate::prelude::Module;
 use crate::prelude::RHDLError;
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
 use crate::rhdl_core::error::rhdl_error;
 use crate::rhdl_core::hdl;
+use crate::rhdl_core::hdl::ast;
 use crate::rhdl_core::hdl::ast::CaseItem;
 use crate::rhdl_core::ntl::error::NetListError;
 use crate::rhdl_core::ntl::error::NetListICE;
 use crate::rhdl_core::ntl::remap::visit_operands;
+use crate::rhdl_core::ntl::remap::Sense;
 use crate::rhdl_core::ntl::spec;
 use crate::rhdl_core::ntl::spec::CaseEntry;
+use crate::rhdl_core::ntl::spec::DynamicIndex;
+use crate::rhdl_core::ntl::spec::DynamicSplice;
 use crate::rhdl_core::ntl::spec::Operand;
 use crate::rhdl_core::ntl::spec::VectorOp;
 use crate::rhdl_core::ntl::Object;
@@ -19,13 +24,14 @@ use crate::rhdl_core::rtl::spec::AluUnary;
 
 struct NetListHDLBuilder<'a> {
     ntl: &'a Object,
-    body: Vec<hdl::ast::Statement>,
-    decls: Vec<hdl::ast::Declaration>,
+    body: Vec<ast::Statement>,
+    decls: Vec<ast::Declaration>,
     name: String,
+    temporary_counter: usize,
 }
 
-fn opex(operand: Operand) -> hdl::ast::Expression {
-    use hdl::ast::id;
+fn opex(operand: Operand) -> ast::Expression {
+    use ast::id;
     match operand {
         Operand::One => id("1'b1"),
         Operand::Zero => id("1'b0"),
@@ -34,8 +40,8 @@ fn opex(operand: Operand) -> hdl::ast::Expression {
     }
 }
 
-fn opex_v(operands: &[Operand]) -> hdl::ast::Expression {
-    hdl::ast::concatenate(operands.iter().copied().map(opex).collect())
+fn opex_v(operands: &[Operand]) -> ast::Expression {
+    ast::concatenate(operands.iter().rev().copied().map(opex).collect())
 }
 
 impl<'a> NetListHDLBuilder<'a> {
@@ -45,6 +51,7 @@ impl<'a> NetListHDLBuilder<'a> {
             body: vec![],
             decls: vec![],
             name: name.into(),
+            temporary_counter: 0,
         }
     }
     fn raise_ice(&self, cause: NetListICE, location: Option<SourceLocation>) -> RHDLError {
@@ -71,11 +78,12 @@ impl<'a> NetListHDLBuilder<'a> {
     ) -> Result<String, RHDLError> {
         let args = operands
             .iter()
-            .map(|op| self.reg(&op, location))
+            .rev()
+            .map(|&op| self.reg(op, location))
             .collect::<Result<Vec<String>, RHDLError>>()?;
         Ok(format!("{{ {} }}", args.join(",")))
     }
-    fn stmt(&mut self, statement: hdl::ast::Statement) {
+    fn stmt(&mut self, statement: ast::Statement) {
         self.body.push(statement);
     }
     fn select_op(
@@ -84,9 +92,9 @@ impl<'a> NetListHDLBuilder<'a> {
         location: Option<SourceLocation>,
     ) -> Result<(), RHDLError> {
         let target = self.reg(op.lhs, location)?;
-        self.stmt(hdl::ast::assign(
+        self.stmt(ast::assign(
             &target,
-            hdl::ast::select(opex(op.selector), opex(op.true_case), opex(op.false_case)),
+            ast::select(opex(op.selector), opex(op.true_case), opex(op.false_case)),
         ));
         Ok(())
     }
@@ -96,7 +104,7 @@ impl<'a> NetListHDLBuilder<'a> {
         location: Option<SourceLocation>,
     ) -> Result<(), RHDLError> {
         let target = self.reg(op.lhs, location)?;
-        self.stmt(hdl::ast::assign(&target, opex(op.rhs)));
+        self.stmt(ast::assign(&target, opex(op.rhs)));
         Ok(())
     }
     fn binary_op(
@@ -110,8 +118,8 @@ impl<'a> NetListHDLBuilder<'a> {
             spec::BinaryOp::And => AluBinary::BitAnd,
             spec::BinaryOp::Or => AluBinary::BitOr,
         };
-        let expr = hdl::ast::binary(alu, opex(op.arg1), opex(op.arg2));
-        self.stmt(hdl::ast::assign(&target, expr));
+        let expr = ast::binary(alu, opex(op.arg1), opex(op.arg2));
+        self.stmt(ast::assign(&target, expr));
         Ok(())
     }
     fn vector_op(
@@ -136,16 +144,16 @@ impl<'a> NetListHDLBuilder<'a> {
         let arg1 = opex_v(&op.arg1);
         let arg2 = opex_v(&op.arg2);
         let arg1 = if op.signed {
-            hdl::ast::unary(crate::rhdl_core::rtl::spec::AluUnary::Signed, arg1)
+            ast::unary(crate::rhdl_core::rtl::spec::AluUnary::Signed, arg1)
         } else {
             arg1
         };
         let arg2 = if op.signed {
-            hdl::ast::unary(crate::rhdl_core::rtl::spec::AluUnary::Signed, arg2)
+            ast::unary(crate::rhdl_core::rtl::spec::AluUnary::Signed, arg2)
         } else {
             arg2
         };
-        self.stmt(hdl::ast::assign(&target, hdl::ast::binary(alu, arg1, arg2)));
+        self.stmt(ast::assign(&target, ast::binary(alu, arg1, arg2)));
         Ok(())
     }
     fn not_op(
@@ -154,9 +162,9 @@ impl<'a> NetListHDLBuilder<'a> {
         location: Option<SourceLocation>,
     ) -> Result<(), RHDLError> {
         let target = self.reg(op.lhs, location)?;
-        self.stmt(hdl::ast::assign(
+        self.stmt(ast::assign(
             &target,
-            hdl::ast::unary(crate::rhdl_core::rtl::spec::AluUnary::Not, opex(op.arg)),
+            ast::unary(crate::rhdl_core::rtl::spec::AluUnary::Not, opex(op.arg)),
         ));
         Ok(())
     }
@@ -175,11 +183,11 @@ impl<'a> NetListHDLBuilder<'a> {
                     CaseEntry::Literal(value) => CaseItem::Literal(value.clone()),
                     CaseEntry::WildCard => CaseItem::Wild,
                 };
-                let statement = hdl::ast::assign(&target, opex(*operand));
+                let statement = ast::assign(&target, opex(*operand));
                 (item, statement)
             })
             .collect();
-        self.stmt(hdl::ast::case(discriminant, table));
+        self.stmt(ast::case(discriminant, table));
         Ok(())
     }
     fn unary_op(
@@ -195,7 +203,53 @@ impl<'a> NetListHDLBuilder<'a> {
             spec::UnaryOp::Neg => AluUnary::Neg,
             spec::UnaryOp::Xor => AluUnary::Xor,
         };
-        self.stmt(hdl::ast::assign(&target, hdl::ast::unary(alu, arg)));
+        self.stmt(ast::assign(&target, ast::unary(alu, arg)));
+        Ok(())
+    }
+    fn dynamic_index(
+        &mut self,
+        op: &DynamicIndex,
+        location: Option<SourceLocation>,
+    ) -> Result<(), RHDLError> {
+        let target = self.reg_v(&op.lhs, location)?;
+        let offset = opex_v(&op.offset);
+        let arg = opex_v(&op.arg);
+        // The target of a dynamic index expression ( e.g., foo[expr])
+        // must be a name. It cannot be an expression like ({{r0, r1..}}[expr]).  So we
+        // need a temporary to assign the argument to.
+        let temp_reg = format!("dyn_ndx_{}", self.temporary_counter);
+        self.temporary_counter += 1;
+        self.decls.push(ast::declaration(
+            ast::HDLKind::Reg,
+            &temp_reg,
+            ast::unsigned_width(op.arg.len()),
+            Some("Dynamic index temporary register".to_string()),
+        ));
+        self.stmt(ast::assign(&temp_reg, arg));
+        self.stmt(ast::assign(
+            &target,
+            ast::dynamic_index(&temp_reg, offset, op.lhs.len()),
+        ));
+        Ok(())
+    }
+    fn dynamic_splice(
+        &mut self,
+        op: &DynamicSplice,
+        location: Option<SourceLocation>,
+    ) -> Result<(), RHDLError> {
+        let arg = opex_v(&op.arg);
+        let lhs = self.reg_v(&op.lhs, location)?;
+        // Now collect the splice bits (which are the substitution)
+        let value = opex_v(&op.value);
+        // Now collect the offset bits
+        let offset = opex_v(&op.offset);
+        self.stmt(ast::dynamic_splice(
+            &lhs,
+            arg,
+            offset,
+            value,
+            op.value.len(),
+        ));
         Ok(())
     }
     fn op_code(
@@ -210,11 +264,15 @@ impl<'a> NetListHDLBuilder<'a> {
             spec::OpCode::Vector(vector) => self.vector_op(vector, location),
             spec::OpCode::Case(case) => self.case_op(case, location),
             spec::OpCode::Comment(comment) => {
-                self.stmt(hdl::ast::comment(comment));
+                self.stmt(ast::comment(comment));
                 Ok(())
             }
-            spec::OpCode::DynamicIndex(dynamic_index) => todo!(),
-            spec::OpCode::DynamicSplice(dynamic_splice) => todo!(),
+            spec::OpCode::DynamicIndex(dynamic_index) => {
+                self.dynamic_index(dynamic_index, location)
+            }
+            spec::OpCode::DynamicSplice(dynamic_splice) => {
+                self.dynamic_splice(dynamic_splice, location)
+            }
             spec::OpCode::Select(select) => self.select_op(select, location),
             spec::OpCode::Not(not) => self.not_op(not, location),
             spec::OpCode::Dff(dff) => todo!(),
@@ -230,35 +288,94 @@ impl<'a> NetListHDLBuilder<'a> {
             .enumerate()
             .flat_map(|(ndx, x)| {
                 (!x.is_empty()).then(|| {
-                    hdl::ast::port(
+                    ast::port(
                         &format!("arg_{ndx}"),
-                        hdl::ast::Direction::Input,
-                        hdl::ast::HDLKind::Wire,
-                        hdl::ast::unsigned_width(x.len()),
+                        ast::Direction::Input,
+                        ast::HDLKind::Wire,
+                        ast::unsigned_width(x.len()),
                     )
                 })
             })
-            .chain(std::iter::once(hdl::ast::port(
+            .chain(std::iter::once(ast::port(
                 "out",
-                hdl::ast::Direction::Output,
-                hdl::ast::HDLKind::Reg,
-                hdl::ast::unsigned_width(self.ntl.outputs.len()),
+                ast::Direction::Output,
+                ast::HDLKind::Reg,
+                ast::unsigned_width(self.ntl.outputs.len()),
             )))
             .collect();
         let mut registers = BTreeSet::default();
         for lop in &self.ntl.ops {
-            visit_operands(&lop.op, |op| {
+            visit_operands(&lop.op, |_sense, op| {
                 if let Some(reg) = op.reg() {
                     registers.insert(reg);
                 }
             });
         }
+        registers.extend(self.ntl.inputs.iter().flatten());
         let mut declarations = registers
             .iter()
             .map(|ndx| {
-                hdl::ast::declaration(hdl::ast::HDLKind::Reg, &format!("r{}", ndx.raw()), 1, None)
+                ast::declaration(
+                    ast::HDLKind::Reg,
+                    &format!("r{}", ndx.raw()),
+                    ast::unsigned_width(1),
+                    None,
+                )
             })
             .collect::<Vec<_>>();
+        let mut statements = vec![];
+        let mut submodules = vec![];
+        // Connect the input registers to their module input names
+        for (ndx, arg) in self.ntl.inputs.iter().enumerate() {
+            for (bit, &reg) in arg.iter().enumerate() {
+                self.stmt(ast::assign(
+                    &self.reg(Operand::Register(reg), None)?,
+                    ast::index_bit(&format!("arg_{ndx}"), bit),
+                ))
+            }
+        }
+        assert!(self.ntl.black_boxes.is_empty(), "Black boxes are TODO");
+        for lop in &self.ntl.ops {
+            self.op_code(&lop.op, lop.loc)?;
+        }
+        let output_bits =
+            ast::concatenate(self.ntl.outputs.iter().rev().copied().map(opex).collect());
+        self.stmt(ast::assign("out", output_bits));
+        // Check if any of the inputs are used by the body of the module
+        let input_set = self.ntl.inputs.iter().flatten().collect::<HashSet<_>>();
+        let inputs_used = self.ntl.ops.iter().any(|lop| {
+            let mut uses_input = false;
+            visit_operands(&lop.op, |sense, op| {
+                if let Some(reg_id) = op.reg() {
+                    if (sense == Sense::Read) && input_set.contains(&reg_id) {
+                        uses_input = true;
+                    }
+                }
+            });
+            uses_input
+        });
+        let inputs_used = inputs_used
+            || self.ntl.outputs.iter().any(|out| {
+                if let Some(reg) = out.reg() {
+                    input_set.contains(&reg)
+                } else {
+                    false
+                }
+            });
+        if inputs_used {
+            statements.push(ast::always(vec![ast::Events::Star], self.body));
+        } else {
+            statements.push(ast::initial(self.body));
+        }
+        declarations.extend(self.decls);
+        Ok(Module {
+            name: self.name,
+            ports,
+            declarations,
+            statements,
+            submodules,
+            ..Default::default()
+        })
     }
 }
 
