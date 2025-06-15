@@ -238,18 +238,27 @@ impl<'a> NetListHDLBuilder<'a> {
         location: Option<SourceLocation>,
     ) -> Result<(), RHDLError> {
         let arg = opex_v(&op.arg);
+        let temp_reg = format!("dyn_sel_{}", self.temporary_counter);
+        self.temporary_counter += 1;
+        self.decls.push(ast::declaration(
+            ast::HDLKind::Reg,
+            &temp_reg,
+            ast::unsigned_width(op.arg.len()),
+            Some("Dynamic splice temporary register".to_string()),
+        ));
         let lhs = self.reg_v(&op.lhs, location)?;
         // Now collect the splice bits (which are the substitution)
         let value = opex_v(&op.value);
         // Now collect the offset bits
         let offset = opex_v(&op.offset);
         self.stmt(ast::dynamic_splice(
-            &lhs,
+            &temp_reg,
             arg,
             offset,
             value,
             op.value.len(),
         ));
+        self.stmt(ast::assign(&lhs, ast::id(&temp_reg)));
         Ok(())
     }
     fn op_code(
