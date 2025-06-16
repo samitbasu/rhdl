@@ -1,5 +1,9 @@
-use crate::rhdl_core::{
-    circuit::yosys::run_yosys_synth, digital_fn::DigitalFn2, error::RHDLError, DigitalFn, Timed,
+use crate::{
+    prelude::Module,
+    rhdl_core::{
+        circuit::yosys::run_yosys_synth, digital_fn::DigitalFn2, error::RHDLError,
+        ntl::hdl::generate_hdl, DigitalFn, Timed,
+    },
 };
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
@@ -38,5 +42,10 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO {
 
     fn yosys_check(&self) -> Result<(), RHDLError> {
         run_yosys_synth(self.hdl("top")?)
+    }
+
+    fn netlist_hdl(&self, name: &str) -> Result<Module, RHDLError> {
+        let descriptor = self.descriptor(name)?;
+        generate_hdl(name, &descriptor.ntl)
     }
 }

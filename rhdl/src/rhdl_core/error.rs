@@ -59,9 +59,6 @@ pub enum RHDLError {
         expected: BitString,
         actual: BitString,
     },
-    #[error("Flow Graph Error")]
-    #[diagnostic(transparent)]
-    FlowGraphError(#[from] Box<crate::rhdl_core::flow_graph::error::FlowGraphError>),
     #[error("Verilog verification error: {0}")]
     VerilogVerificationErrorString(String),
     #[error("Testbench Construction Error: {0}")]

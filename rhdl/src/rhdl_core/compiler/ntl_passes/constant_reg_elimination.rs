@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use crate::{
     prelude::{BitX, RHDLError},
     rhdl_core::ntl::{
-        object::{LocatedOpCode, Object},
-        remap::{remap_operands, visit_operands_mut},
+        object::Object,
+        visit::visit_operands_mut,
         spec::{Assign, OpCode, Operand, RegisterId},
     },
 };

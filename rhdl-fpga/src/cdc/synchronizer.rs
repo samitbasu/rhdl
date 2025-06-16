@@ -249,20 +249,15 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
     }
 
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        let mut flow_graph = FlowGraph::default();
-        let hdl = self.hdl(&format!("{name}_inner"))?;
-        let (input, output) = flow_graph.circuit_black_box::<Self>(hdl);
-        flow_graph.inputs = vec![input];
-        flow_graph.output = output;
         Ok(CircuitDescriptor {
             unique_name: name.to_string(),
-            flow_graph,
             input_kind: <Self::I as Timed>::static_kind(),
             output_kind: <Self::O as Timed>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             children: Default::default(),
             rtl: None,
+            ntl: rhdl::core::ntl::builder::circuit_black_box(self, name)?,
         })
     }
 

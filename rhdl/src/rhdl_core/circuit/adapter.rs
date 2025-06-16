@@ -139,7 +139,7 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
             output_kind: <<Self as CircuitIO>::O as Timed>::static_kind(),
             d_kind: <<Self as CircuitDQ>::D as Timed>::static_kind(),
             q_kind: <<Self as CircuitDQ>::Q as Timed>::static_kind(),
-            ntl: builder.build()?,
+            ntl: builder.build(ntl::builder::BuilderMode::Asynchronous)?,
             rtl: None,
             children: Default::default(),
         })

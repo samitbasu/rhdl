@@ -21,8 +21,6 @@ pub enum OpCode {
     Select(Select),
     // lhs <- ! arg
     Not(Not),
-    // lhs <- DFF(arg)
-    Dff(Dff),
     // [lhs...] = black_box([arg...])
     BlackBox(BlackBox),
     // lhs <- reduce(arg)
@@ -32,17 +30,8 @@ pub enum OpCode {
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct BlackBox {
     pub lhs: Vec<Operand>,
-    pub arg: Vec<Operand>,
+    pub arg: Vec<Vec<Operand>>,
     pub code: BlackBoxId,
-}
-
-#[derive(Debug, Clone, PartialEq, Hash)]
-pub struct Dff {
-    pub lhs: Operand,
-    pub arg: Operand,
-    pub clock: Operand,
-    pub reset: Operand,
-    pub reset_value: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]
@@ -203,6 +192,13 @@ impl Operand {
             *self
         }
     }
+    pub fn bool(&self) -> Option<bool> {
+        match self {
+            Operand::Zero => Some(false),
+            Operand::One => Some(true),
+            _ => None,
+        }
+    }
 }
 
 impl std::fmt::Debug for Operand {
@@ -231,11 +227,24 @@ impl RegisterId {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct BlackBoxId(usize);
 
+impl std::fmt::Debug for BlackBoxId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 impl BlackBoxId {
+    pub(crate) fn new(x: usize) -> Self {
+        Self(x)
+    }
     pub(crate) fn offset(self, offset: usize) -> Self {
         Self(self.0 + offset)
+    }
+
+    pub(crate) fn raw(self) -> usize {
+        self.0
     }
 }

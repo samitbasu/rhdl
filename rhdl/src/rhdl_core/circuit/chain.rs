@@ -117,7 +117,7 @@ where
             output_kind: desc_b.output_kind,
             q_kind: Kind::Empty,
             d_kind: Kind::Empty,
-            ntl: builder.build()?,
+            ntl: builder.build(ntl::builder::BuilderMode::Synchronous)?,
             rtl: None,
             children: BTreeMap::from_iter(vec![(a_name, desc_a), (b_name, desc_b)]),
         };

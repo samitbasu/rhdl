@@ -1,7 +1,4 @@
-use rhdl::{
-    core::{compiler::ntl_passes::pass::Pass, ntl::from_rtl::build_ntl_from_rtl},
-    prelude::*,
-};
+use rhdl::prelude::*;
 use rhdl_fpga::axi4lite::{
     core::switch::read::{Command, ReadSwitch},
     types::{AXI4Error, AxilAddr},
@@ -28,39 +25,7 @@ use rhdl_fpga::axi4lite::core::switch::read::kernel;
 #[test]
 fn test_loop_test() -> miette::Result<()> {
     use std::io::Write;
-    //    SimpleLogger::init(log::LevelFilter::Debug, simplelog::Config::default()).unwrap();
-    //let switch: ReadSwitch<2> = ReadSwitch::try_new::<decode_addr>()?;
     let obj = compile_design::<kernel<2>>(CompilationMode::Synchronous)?;
-    let mut file = std::fs::File::create("loop.rtl").unwrap();
-    write!(file, "{:?}", obj).unwrap();
-    let ntl = build_ntl_from_rtl(&obj);
-    let mut file = std::fs::File::create("loop.btl").unwrap();
-    write!(file, "{:?}", ntl).unwrap();
-    let ntl =
-        rhdl::core::compiler::ntl_passes::remove_extra_registers::RemoveExtraRegistersPass::run(
-            ntl,
-        )?;
-    let ntl = rhdl::core::compiler::ntl_passes::constant_reg_elimination::ConstantRegisterElimination::run(ntl)?;
-    let ntl = rhdl::core::compiler::ntl_passes::lower_selects::LowerSelects::run(ntl)?;
-    let ntl = rhdl::core::compiler::ntl_passes::lower_case::LowerCase::run(ntl)?;
-    let ntl =
-        rhdl::core::compiler::ntl_passes::remove_extra_registers::RemoveExtraRegistersPass::run(
-            ntl,
-        )?;
-    let ntl = rhdl::core::compiler::ntl_passes::constant_reg_elimination::ConstantRegisterElimination::run(ntl)?;
-    let ntl = rhdl::core::compiler::ntl_passes::lower_selects::LowerSelects::run(ntl)?;
-    let ntl = rhdl::core::compiler::ntl_passes::lower_case::LowerCase::run(ntl)?;
-    let ntl =
-        rhdl::core::compiler::ntl_passes::reorder_instructions::ReorderInstructions::run(ntl)?;
-    //16444
-    /*
-       r16503 <- case {r378} {
-             Literal(b1) => r15014
-             WildCard => r9250
-    }
-    */
-    let mut file = std::fs::File::create("loop_opt.btl").unwrap();
-    write!(file, "{:?}", ntl).unwrap();
     //    drc::no_combinatorial_paths(&switch)?;
     Ok(())
 }

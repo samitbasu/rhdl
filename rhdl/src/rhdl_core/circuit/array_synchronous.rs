@@ -78,10 +78,10 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
             for (&t, c) in tcr.iter().zip(&child_desc.ntl.inputs[0]) {
                 builder.copy_from_to(t, c.offset(offset));
             }
-            for (&t, c) in ti.iter().zip(&child_desc.ntl.inputs[1]) {
+            for (&t, c) in ti[input_bit_range].iter().zip(&child_desc.ntl.inputs[1]) {
                 builder.copy_from_to(t, c.offset(offset));
             }
-            for (&t, c) in to.iter().zip(&child_desc.ntl.outputs) {
+            for (&t, c) in to[output_bit_range].iter().zip(&child_desc.ntl.outputs) {
                 builder.copy_from_to(c.offset(offset), t);
             }
             children.insert(child_name, child_desc);
@@ -92,7 +92,7 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            ntl: builder.build()?,
+            ntl: builder.build(ntl::builder::BuilderMode::Synchronous)?,
             rtl: None,
             children,
         })

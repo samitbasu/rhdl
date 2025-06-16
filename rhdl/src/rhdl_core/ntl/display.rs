@@ -76,8 +76,16 @@ impl std::fmt::Debug for OpCode {
             OpCode::Not(not) => {
                 write!(f, " {:?} <- !{:?}", not.lhs, not.arg)
             }
-            OpCode::Dff(dff) => todo!(),
-            OpCode::BlackBox(black_box) => todo!(),
+            OpCode::BlackBox(black_box) => {
+                write!(f, " ")?;
+                vec_disp(f, &black_box.lhs)?;
+                write!(f, " <- black_box_{:?}(", black_box.code)?;
+                for a in &black_box.arg {
+                    vec_disp(f, a)?;
+                    write!(f, ", ")?;
+                }
+                write!(f, ")")
+            }
             OpCode::Unary(unary) => {
                 write!(f, " ")?;
                 vec_disp(f, &unary.lhs)?;

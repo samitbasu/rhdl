@@ -69,7 +69,10 @@ bool  |                     |
 #![doc = include_str!("../../../doc/sync_bram.md")]
 
 use rhdl::{
-    core::hdl::ast::{index, index_bit, memory_index, Declaration},
+    core::{
+        hdl::ast::{index, index_bit, memory_index, Declaration},
+        ntl::builder::synchronous_black_box,
+    },
     prelude::*,
 };
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
@@ -193,20 +196,15 @@ impl<T: Digital, N: BitWidth> Synchronous for SyncBRAM<T, N> {
     }
 
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        let mut flow_graph = FlowGraph::default();
-        let hdl = self.hdl(&format!("{name}_inner"))?;
-        let (clock_reset, input, output) = flow_graph.synchronous_black_box::<Self>(hdl);
-        flow_graph.inputs = vec![clock_reset, input];
-        flow_graph.output = output;
         Ok(CircuitDescriptor {
             unique_name: name.to_string(),
-            flow_graph,
             input_kind: <Self::I as Digital>::static_kind(),
             output_kind: <Self::O as Digital>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             children: Default::default(),
             rtl: None,
+            ntl: synchronous_black_box(self, name)?,
         })
     }
 

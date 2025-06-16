@@ -1,280 +1,122 @@
 //
-module top(input wire [18:0] arg_0, output reg [7:0] out);
-    reg [0:0] node_211;  // x
-    reg [0:0] node_212;  // x
-    reg [0:0] node_213;  // x
-    reg [0:0] node_214;  // x
-    reg [0:0] node_215;  // x
-    reg [0:0] node_216;  // x
-    reg [0:0] node_217;  // x
-    reg [0:0] node_218;  // x
-    reg [0:0] node_248;  // 0
-    reg [0:0] node_249;  // 0
-    reg [0:0] node_250;  // 0
-    reg [0:0] node_251;  // 0
-    reg [0:0] node_266;  // ?
-    reg [0:0] node_267;  // ?
-    reg [0:0] node_268;  // ?
-    reg [0:0] node_269;  // ?
-    reg [0:0] node_270;  // ?
-    reg [0:0] node_271;  // ?
-    reg [0:0] node_272;  // ?
-    reg [0:0] node_273;  // ?
-    reg [0:0] node_274;  // ?
-    reg [0:0] node_275;  // ?
-    reg [0:0] node_276;  // ?
-    reg [0:0] node_277;  // ?
-    reg [0:0] node_377;  // [uut]<-in<0, 0>
-    reg [0:0] node_378;  // [uut]<-in<0, 1>
-    reg [0:0] node_379;  // [uut]<-in<0, 2>
-    reg [0:0] node_380;  // [uut]<-in<0, 3>
-    reg [0:0] node_381;  // [uut]<-in<0, 4>
-    reg [0:0] node_382;  // [uut]<-in<0, 5>
-    reg [0:0] node_383;  // [uut]<-in<0, 6>
-    reg [0:0] node_384;  // [uut]<-in<0, 7>
-    reg [0:0] node_385;  // [uut]<-in<0, 8>
-    reg [0:0] node_386;  // [uut]<-in<0, 9>
-    reg [0:0] node_387;  // [uut]<-in<0, 10>
-    reg [0:0] node_388;  // [uut]<-in<0, 11>
-    reg [0:0] node_389;  // [uut]<-in<0, 12>
-    reg [0:0] node_390;  // [uut]<-in<0, 13>
-    reg [0:0] node_391;  // [uut]<-in<0, 14>
-    reg [0:0] node_392;  // [uut]<-in<0, 15>
-    reg [0:0] node_393;  // [uut]<-in<0, 16>
-    reg [0:0] node_394;  // [uut]<-in<0, 17>
-    reg [0:0] node_395;  // [uut]<-in<0, 18>
-    reg [0:0] node_396;  // [uut]->out<0>
-    reg [0:0] node_397;  // [uut]->out<1>
-    reg [0:0] node_398;  // [uut]->out<2>
-    reg [0:0] node_399;  // [uut]->out<3>
-    reg [0:0] node_400;  // [uut]->out<4>
-    reg [0:0] node_401;  // [uut]->out<5>
-    reg [0:0] node_402;  // [uut]->out<6>
-    reg [0:0] node_403;  // [uut]->out<7>
-    reg [0:0] node_458;  // uut_inner_inner_0[0]
-    reg [0:0] node_459;  // uut_inner_inner_1[1]
-    reg [0:0] node_460;  // uut_inner_inner_2[2]
-    reg [0:0] node_461;  // uut_inner_inner_3[3]
-    reg [0:0] node_462;  // uut_inner_inner_4[4]
-    reg [0:0] node_463;  // uut_inner_inner_5[5]
-    reg [0:0] node_464;  // uut_inner_inner_6[6]
-    reg [0:0] node_465;  // uut_inner_inner_7[7]
-    reg [0:0] node_466;  // uut_inner_inner_8[8]
-    reg [0:0] node_467;  // uut_inner_inner_9[9]
-    reg [0:0] node_468;  // uut_inner_inner_10[10]
-    reg [0:0] node_469;  // uut_inner_inner_11[11]
-    reg [0:0] node_470;  // uut_inner_inner_12[12]
-    reg [0:0] node_471;  // uut_inner_inner_13[13]
-    reg [0:0] node_472;  // uut_inner_inner_14[14]
-    reg [0:0] node_473;  // uut_inner_inner_15[15]
-    reg [0:0] node_474;  // uut_inner_inner_16[16]
-    reg [0:0] node_475;  // uut_inner_inner_17[17]
-    reg [0:0] node_476;  // uut_inner_inner_18[18]
-    wire [0:0] node_477;  // uut_inner_inner_0[0]
-    wire [0:0] node_478;  // uut_inner_inner_1[1]
-    wire [0:0] node_479;  // uut_inner_inner_2[2]
-    wire [0:0] node_480;  // uut_inner_inner_3[3]
-    wire [0:0] node_481;  // uut_inner_inner_4[4]
-    wire [0:0] node_482;  // uut_inner_inner_5[5]
-    wire [0:0] node_483;  // uut_inner_inner_6[6]
-    wire [0:0] node_484;  // uut_inner_inner_7[7]
-    uut_inner_inner bb_0 (.o({ node_484, node_483, node_482, node_481, node_480, node_479, node_478, node_477 }),.i({ node_476, node_475, node_474, node_473, node_472, node_471, node_470, node_469, node_468, node_467, node_466, node_465, node_464, node_463, node_462, node_461, node_460, node_459, node_458 }));
+module uut(input wire [18:0] arg_0, output reg [7:0] out);
+    reg [0:0] r41;
+    reg [0:0] r42;
+    reg [0:0] r43;
+    reg [0:0] r44;
+    reg [0:0] r45;
+    reg [0:0] r46;
+    reg [0:0] r47;
+    reg [0:0] r48;
+    reg [0:0] r49;
+    reg [0:0] r50;
+    reg [0:0] r51;
+    reg [0:0] r52;
+    reg [0:0] r53;
+    reg [0:0] r54;
+    reg [0:0] r55;
+    reg [0:0] r56;
+    reg [0:0] r57;
+    reg [0:0] r58;
+    reg [0:0] r59;
+    reg [0:0] r197;
+    reg [0:0] r198;
+    reg [0:0] r199;
+    reg [0:0] r200;
+    reg [0:0] r201;
+    reg [0:0] r202;
+    reg [0:0] r203;
+    reg [0:0] r204;
+    reg [0:0] r205;
+    reg [0:0] r206;
+    reg [0:0] r207;
+    reg [0:0] r208;
+    wire [0:0] r281;
+    wire [0:0] r282;
+    wire [0:0] r283;
+    wire [0:0] r284;
+    wire [0:0] r285;
+    wire [0:0] r286;
+    wire [0:0] r287;
+    wire [0:0] r288;
+    uut_inner bb_0 (.o({ r288, r287, r286, r285, r284, r283, r282, r281 }),.i({ r59, r58, r57, r56, r55, r41, r54, r208, r207, r206, r205, r204, r203, r202, r201, r200, r199, r198, r197 }));
     always @(*) begin
-        node_403 = node_484;
-        node_402 = node_483;
-        node_401 = node_482;
-        node_400 = node_481;
-        node_399 = node_480;
-        node_398 = node_479;
-        node_397 = node_478;
-        node_396 = node_477;
-        node_395 = arg_0[18];
-        node_476 = node_395;
-        node_394 = arg_0[17];
-        node_475 = node_394;
-        node_393 = arg_0[16];
-        node_474 = node_393;
-        node_392 = arg_0[15];
-        node_473 = node_392;
-        node_391 = arg_0[14];
-        node_472 = node_391;
-        node_390 = arg_0[13];
-        node_470 = node_390;
-        node_389 = arg_0[12];
-        node_388 = arg_0[11];
-        node_387 = arg_0[10];
-        node_386 = arg_0[9];
-        node_385 = arg_0[8];
-        node_384 = arg_0[7];
-        node_383 = arg_0[6];
-        node_382 = arg_0[5];
-        node_381 = arg_0[4];
-        node_380 = arg_0[3];
-        node_379 = arg_0[2];
-        node_378 = arg_0[1];
-        node_377 = arg_0[0];
-        node_471 = node_377;
-        // w.addr = bits(0)
-        node_251 = 1'b0;
-        // if let Some((addr, data)) = i_val.data {
-        //         w.data = data;
-        //         w.enable = true;
-        //         w.addr = addr;
-        //     } else {
-        //         w.data = T::dont_care();
-        //         w.enable = false;
-        //         w.addr = bits(0);
-        //     }
-        node_269 = (node_390) ? (node_381) : (node_251);
-        node_461 = node_269;
-        // w.addr = bits(0)
-        node_250 = 1'b0;
-        // if let Some((addr, data)) = i_val.data {
-        //         w.data = data;
-        //         w.enable = true;
-        //         w.addr = addr;
-        //     } else {
-        //         w.data = T::dont_care();
-        //         w.enable = false;
-        //         w.addr = bits(0);
-        //     }
-        node_268 = (node_390) ? (node_380) : (node_250);
-        node_460 = node_268;
-        // w.addr = bits(0)
-        node_249 = 1'b0;
-        // if let Some((addr, data)) = i_val.data {
-        //         w.data = data;
-        //         w.enable = true;
-        //         w.addr = addr;
-        //     } else {
-        //         w.data = T::dont_care();
-        //         w.enable = false;
-        //         w.addr = bits(0);
-        //     }
-        node_267 = (node_390) ? (node_379) : (node_249);
-        node_459 = node_267;
-        // w.addr = bits(0)
-        node_248 = 1'b0;
-        // if let Some((addr, data)) = i_val.data {
-        //         w.data = data;
-        //         w.enable = true;
-        //         w.addr = addr;
-        //     } else {
-        //         w.data = T::dont_care();
-        //         w.enable = false;
-        //         w.addr = bits(0);
-        //     }
-        node_266 = (node_390) ? (node_378) : (node_248);
-        node_458 = node_266;
-        // w.data = T::dont_care()
-        node_218 = 1'bx;
-        // if let Some((addr, data)) = i_val.data {
-        //         w.data = data;
-        //         w.enable = true;
-        //         w.addr = addr;
-        //     } else {
-        //         w.data = T::dont_care();
-        //         w.enable = false;
-        //         w.addr = bits(0);
-        //     }
-        node_277 = (node_390) ? (node_389) : (node_218);
-        node_469 = node_277;
-        // w.data = T::dont_care()
-        node_217 = 1'bx;
-        // if let Some((addr, data)) = i_val.data {
-        //         w.data = data;
-        //         w.enable = true;
-        //         w.addr = addr;
-        //     } else {
-        //         w.data = T::dont_care();
-        //         w.enable = false;
-        //         w.addr = bits(0);
-        //     }
-        node_276 = (node_390) ? (node_388) : (node_217);
-        node_468 = node_276;
-        // w.data = T::dont_care()
-        node_216 = 1'bx;
-        // if let Some((addr, data)) = i_val.data {
-        //         w.data = data;
-        //         w.enable = true;
-        //         w.addr = addr;
-        //     } else {
-        //         w.data = T::dont_care();
-        //         w.enable = false;
-        //         w.addr = bits(0);
-        //     }
-        node_275 = (node_390) ? (node_387) : (node_216);
-        node_467 = node_275;
-        // w.data = T::dont_care()
-        node_215 = 1'bx;
-        // if let Some((addr, data)) = i_val.data {
-        //         w.data = data;
-        //         w.enable = true;
-        //         w.addr = addr;
-        //     } else {
-        //         w.data = T::dont_care();
-        //         w.enable = false;
-        //         w.addr = bits(0);
-        //     }
-        node_274 = (node_390) ? (node_386) : (node_215);
-        node_466 = node_274;
-        // w.data = T::dont_care()
-        node_214 = 1'bx;
-        // if let Some((addr, data)) = i_val.data {
-        //         w.data = data;
-        //         w.enable = true;
-        //         w.addr = addr;
-        //     } else {
-        //         w.data = T::dont_care();
-        //         w.enable = false;
-        //         w.addr = bits(0);
-        //     }
-        node_273 = (node_390) ? (node_385) : (node_214);
-        node_465 = node_273;
-        // w.data = T::dont_care()
-        node_213 = 1'bx;
-        // if let Some((addr, data)) = i_val.data {
-        //         w.data = data;
-        //         w.enable = true;
-        //         w.addr = addr;
-        //     } else {
-        //         w.data = T::dont_care();
-        //         w.enable = false;
-        //         w.addr = bits(0);
-        //     }
-        node_272 = (node_390) ? (node_384) : (node_213);
-        node_464 = node_272;
-        // w.data = T::dont_care()
-        node_212 = 1'bx;
-        // if let Some((addr, data)) = i_val.data {
-        //         w.data = data;
-        //         w.enable = true;
-        //         w.addr = addr;
-        //     } else {
-        //         w.data = T::dont_care();
-        //         w.enable = false;
-        //         w.addr = bits(0);
-        //     }
-        node_271 = (node_390) ? (node_383) : (node_212);
-        node_463 = node_271;
-        // w.data = T::dont_care()
-        node_211 = 1'bx;
-        // if let Some((addr, data)) = i_val.data {
-        //         w.data = data;
-        //         w.enable = true;
-        //         w.addr = addr;
-        //     } else {
-        //         w.data = T::dont_care();
-        //         w.enable = false;
-        //         w.addr = bits(0);
-        //     }
-        node_270 = (node_390) ? (node_382) : (node_211);
-        node_462 = node_270;
-        out = { node_403, node_402, node_401, node_400, node_399, node_398, node_397, node_396 };
+        r41 = arg_0[0];
+        r42 = arg_0[1];
+        r43 = arg_0[2];
+        r44 = arg_0[3];
+        r45 = arg_0[4];
+        r46 = arg_0[5];
+        r47 = arg_0[6];
+        r48 = arg_0[7];
+        r49 = arg_0[8];
+        r50 = arg_0[9];
+        r51 = arg_0[10];
+        r52 = arg_0[11];
+        r53 = arg_0[12];
+        r54 = arg_0[13];
+        r55 = arg_0[14];
+        r56 = arg_0[15];
+        r57 = arg_0[16];
+        r58 = arg_0[17];
+        r59 = arg_0[18];
+        // (o, d, )
+        //
+        // let o = q.inner;
+        //
+        // d.inner.read = i.read;
+        //
+        // d.inner.write = signal(w);
+        //
+        // let d = D::<T,W,R,N>::dont_care();
+        //
+        // w.addr = bits(0);
+        //
+        // w.enable = false;
+        //
+        // w.data = T::dont_care();
+        //
+        // w.addr = addr;
+        //
+        // w.enable = true;
+        //
+        // w.data = data;
+        //
+        // if let Some((addr, data, ), )#true = i_val.data{
+        //    w.data = data;
+        //    w.enable = true;
+        //    w.addr = addr;
+        // }
+        //  else {
+        //    w.data = T::dont_care();
+        //    w.enable = false;
+        //    w.addr = bits(0);
+        // }
+        //
+        //
+        // w.clock = i_val.clock;
+        //
+        // let i_val = i.write.val();
+        //
+        // let w = super::asynchronous::WriteI::<T,N>::dont_care();
+        //
+        r208 = (r54) ? (r53) : (1'bX);
+        r207 = (r54) ? (r52) : (1'bX);
+        r206 = (r54) ? (r51) : (1'bX);
+        r205 = (r54) ? (r50) : (1'bX);
+        r204 = (r54) ? (r49) : (1'bX);
+        r203 = (r54) ? (r48) : (1'bX);
+        r202 = (r54) ? (r47) : (1'bX);
+        r201 = (r54) ? (r46) : (1'bX);
+        r200 = (r54) ? (r45) : (1'b0);
+        r199 = (r54) ? (r44) : (1'b0);
+        r198 = (r54) ? (r43) : (1'b0);
+        r197 = (r54) ? (r42) : (1'b0);
+        out = { r288, r287, r286, r285, r284, r283, r282, r281 };
     end
 endmodule
 //
-module uut_inner_inner(input wire [18:0] i, output reg [7:0] o);
+module uut_inner(input wire [18:0] i, output reg [7:0] o);
     wire [3:0] read_addr;
     wire [0:0] read_clk;
     wire [3:0] write_addr;

@@ -14,6 +14,8 @@ pub enum NetListICE {
         "The design includes a loop of logic elements which is not allowed.  That loop includes the identified instruction."
     ))]
     LogicLoop,
+    #[error("Net list contains an undriven node")]
+    UndrivenNetlistNode,
 }
 
 #[derive(Debug, Error)]

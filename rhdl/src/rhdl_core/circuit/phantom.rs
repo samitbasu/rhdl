@@ -1,6 +1,6 @@
 use crate::prelude::{
-    CircuitDescriptor, ClockReset, Digital, FlowGraph, HDLDescriptor, Kind, Module, NoKernel3,
-    RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
+    CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, Module, NoKernel3, RHDLError,
+    Synchronous, SynchronousDQ, SynchronousIO,
 };
 
 impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
