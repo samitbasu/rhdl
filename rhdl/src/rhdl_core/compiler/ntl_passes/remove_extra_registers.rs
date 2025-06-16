@@ -1,15 +1,15 @@
 use std::collections::{HashMap, HashSet};
 
-use ena::unify::{EqUnifyValue, InPlaceUnificationTable, UnifyKey};
+use ena::unify::{InPlaceUnificationTable, UnifyKey};
 
 use crate::{
     prelude::RHDLError,
     rhdl_core::{
         compiler::ntl_passes::pass::Pass,
         ntl::{
-            object::{LocatedOpCode, Object},
-            remap::{remap_operands, visit_operands, visit_operands_mut},
+            object::Object,
             spec::{Assign, OpCode, Operand, RegisterId},
+            visit::{visit_operands, visit_operands_mut},
         },
     },
 };

@@ -171,14 +171,13 @@ mod tests {
     }
 
     #[test]
-    fn test_ram_flow_graph() -> miette::Result<()> {
+    fn test_ram_netlist() -> miette::Result<()> {
         let uut = OptionAsyncBRAM::<Bits<U8>, Red, Green, U4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
         );
-        let fg = uut.flow_graph("uut")?;
-        let hdl = fg.hdl("top")?;
+        let hdl = uut.netlist_hdl("uut")?;
         let expect = expect_file!["ram_fg.expect"];
         expect.assert_eq(&hdl.to_string());
         Ok(())

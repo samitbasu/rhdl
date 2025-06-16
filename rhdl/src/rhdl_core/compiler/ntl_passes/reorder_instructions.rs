@@ -7,8 +7,8 @@ use crate::{
         error::rhdl_error,
         ntl::{
             error::{NetListError, NetListICE},
-            remap::{visit_operands, Sense},
-            spec::RegisterId,
+            spec::{OpCode, RegisterId},
+            visit::{visit_operands, Sense},
             Object,
         },
     },
@@ -19,6 +19,7 @@ use super::pass::Pass;
 #[derive(Default, Debug, Clone)]
 pub struct ReorderInstructions {}
 
+#[derive(Debug)]
 enum WriteSource {
     Input,
     OpCode(usize),
@@ -72,6 +73,9 @@ fn make_dep_graph(
     // add an edge to the graph from that input's write source to
     // the current opcode
     for (ndx, lop) in input.ops.iter().enumerate() {
+        if matches!(lop.op, OpCode::BlackBox(_)) {
+            continue;
+        }
         let target = op_ndx[ndx];
         visit_operands(&lop.op, |sense, operand| {
             if let Some(reg) = operand.reg() {
@@ -100,7 +104,7 @@ impl Pass for ReorderInstructions {
     ///    3. Perform a topological sort of the dependency graph.  Reorder
     ///       the opcodes based on the topological order.  If cycles exist,
     ///       raise an error.
-    fn run(input: Object) -> Result<Object, RHDLError> {
+    fn run(mut input: Object) -> Result<Object, RHDLError> {
         // Pass 1 - make a map from register to the source of where it is
         // written.
         let reg_map = make_reg_map(&input);
@@ -109,17 +113,21 @@ impl Pass for ReorderInstructions {
         // Pass 3 perform a topo sort of the graph
         match petgraph::algo::toposort(&dep_graph, None) {
             Ok(order) => {
+                let orig_order = std::mem::take(&mut input.ops);
                 for elt in order {
-                    match &dep_graph[elt] {
-                        WriteSource::Input => eprintln!("ord: input"),
-                        WriteSource::OpCode(x) => eprintln!("ord: {:?}", input.ops[*x].op),
+                    if let WriteSource::OpCode(ndx) = &dep_graph[elt] {
+                        input.ops.push(orig_order[*ndx].clone());
                     }
                 }
             }
             Err(cycle) => {
+                log::warn!("{:?}", &dep_graph[cycle.node_id()]);
                 let source_location = match &dep_graph[cycle.node_id()] {
                     WriteSource::Input => None,
-                    WriteSource::OpCode(ndx) => input.ops[*ndx].loc,
+                    WriteSource::OpCode(ndx) => {
+                        log::warn!("{:?}", input.ops[*ndx].op);
+                        input.ops[*ndx].loc
+                    }
                 };
                 return Err(raise_cycle_error(&input, source_location));
             }

@@ -6,8 +6,8 @@ use crate::{
             source::{source_location::SourceLocation, spanned_source_set::SpannedSourceSet},
         },
         ntl::{
-            remap::{visit_operands, visit_operands_mut},
             spec::{OpCode, Operand, RegisterId},
+            visit::{visit_operands, visit_operands_mut},
         },
     },
 };
@@ -24,8 +24,6 @@ pub enum BlackBoxMode {
 
 #[derive(Clone, Hash)]
 pub struct BlackBox {
-    pub inputs: Vec<Vec<Operand>>,
-    pub outputs: Vec<Operand>,
     pub code: HDLDescriptor,
     pub mode: BlackBoxMode,
 }
@@ -64,6 +62,8 @@ impl Object {
     /// Link another netlist, and return the offset added
     /// to registers
     pub fn link(&mut self, other: &Object) -> u32 {
+        log::info!("Root {:?}", self);
+        log::info!("Other {:?}", other);
         let max_reg = self.max_reg() + 1;
         let mut other_ops = other.ops.clone();
         for lop in &mut other_ops {
@@ -83,6 +83,7 @@ impl Object {
         self.ops.extend(other_ops);
         self.code.extend(other.code.sources.clone());
         self.black_boxes.extend(other.black_boxes.clone());
+        log::info!("Linked {:?}", self);
         max_reg
     }
     pub fn hash_value(&self) -> u64 {

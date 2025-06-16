@@ -19,11 +19,6 @@ pub use crate::rhdl_core::circuit::synchronous::SynchronousIO;
 pub use crate::rhdl_core::compile_design;
 pub use crate::rhdl_core::compiler::driver::compile_design_stage1;
 pub use crate::rhdl_core::error::RHDLError;
-pub use crate::rhdl_core::flow_graph::build_rtl_flow_graph;
-pub use crate::rhdl_core::flow_graph::component::Component;
-pub use crate::rhdl_core::flow_graph::component::ComponentKind;
-pub use crate::rhdl_core::flow_graph::dot::write_dot;
-pub use crate::rhdl_core::flow_graph::flow_graph_impl::{FlowGraph, FlowIx};
 pub use crate::rhdl_core::hdl::ast::{
     always, assign, bit_string, continuous_assignment, id, if_statement, initial, port,
 };
@@ -40,7 +35,6 @@ pub use crate::rhdl_core::trace_init_db;
 pub use crate::rhdl_core::trace_pop_path;
 pub use crate::rhdl_core::trace_push_path;
 pub use crate::rhdl_core::trace_time;
-pub use crate::rhdl_core::trivial_cost;
 pub use crate::rhdl_core::types::bitz::BitZ;
 pub use crate::rhdl_core::types::clock::clock;
 pub use crate::rhdl_core::types::clock::Clock;
@@ -75,7 +69,6 @@ pub use crate::rhdl_core::ClockReset;
 pub use crate::rhdl_core::CompilationMode;
 pub use crate::rhdl_core::TraceKey;
 pub use crate::rhdl_core::{
-    flow_graph::edge_kind::EdgeKind,
     hdl::ast::{signed_width, unsigned_width, Module},
     rtl::object::RegisterKind,
     types::bit_string::BitString,

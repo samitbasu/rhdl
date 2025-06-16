@@ -1,112 +1,58 @@
 //
-module top(input wire [18:0] arg_0, output reg [7:0] out);
-    reg [0:0] node_0;  // [i]<-in<0, 0>
-    reg [0:0] node_1;  // [i]<-in<0, 1>
-    reg [0:0] node_2;  // [i]<-in<0, 2>
-    reg [0:0] node_3;  // [i]<-in<0, 3>
-    reg [0:0] node_4;  // [i]<-in<0, 4>
-    reg [0:0] node_5;  // [i]<-in<0, 5>
-    reg [0:0] node_6;  // [i]<-in<0, 6>
-    reg [0:0] node_7;  // [i]<-in<0, 7>
-    reg [0:0] node_8;  // [i]<-in<0, 8>
-    reg [0:0] node_9;  // [i]<-in<0, 9>
-    reg [0:0] node_10;  // [i]<-in<0, 10>
-    reg [0:0] node_11;  // [i]<-in<0, 11>
-    reg [0:0] node_12;  // [i]<-in<0, 12>
-    reg [0:0] node_13;  // [i]<-in<0, 13>
-    reg [0:0] node_14;  // [i]<-in<0, 14>
-    reg [0:0] node_15;  // [i]<-in<0, 15>
-    reg [0:0] node_16;  // [i]<-in<0, 16>
-    reg [0:0] node_17;  // [i]<-in<0, 17>
-    reg [0:0] node_18;  // [i]<-in<0, 18>
-    reg [0:0] node_19;  // [o]->out<0>
-    reg [0:0] node_20;  // [o]->out<1>
-    reg [0:0] node_21;  // [o]->out<2>
-    reg [0:0] node_22;  // [o]->out<3>
-    reg [0:0] node_23;  // [o]->out<4>
-    reg [0:0] node_24;  // [o]->out<5>
-    reg [0:0] node_25;  // [o]->out<6>
-    reg [0:0] node_26;  // [o]->out<7>
-    reg [0:0] node_27;  // uut_inner_0[0]
-    reg [0:0] node_28;  // uut_inner_1[1]
-    reg [0:0] node_29;  // uut_inner_2[2]
-    reg [0:0] node_30;  // uut_inner_3[3]
-    reg [0:0] node_31;  // uut_inner_4[4]
-    reg [0:0] node_32;  // uut_inner_5[5]
-    reg [0:0] node_33;  // uut_inner_6[6]
-    reg [0:0] node_34;  // uut_inner_7[7]
-    reg [0:0] node_35;  // uut_inner_8[8]
-    reg [0:0] node_36;  // uut_inner_9[9]
-    reg [0:0] node_37;  // uut_inner_10[10]
-    reg [0:0] node_38;  // uut_inner_11[11]
-    reg [0:0] node_39;  // uut_inner_12[12]
-    reg [0:0] node_40;  // uut_inner_13[13]
-    reg [0:0] node_41;  // uut_inner_14[14]
-    reg [0:0] node_42;  // uut_inner_15[15]
-    reg [0:0] node_43;  // uut_inner_16[16]
-    reg [0:0] node_44;  // uut_inner_17[17]
-    reg [0:0] node_45;  // uut_inner_18[18]
-    wire [0:0] node_46;  // uut_inner_0[0]
-    wire [0:0] node_47;  // uut_inner_1[1]
-    wire [0:0] node_48;  // uut_inner_2[2]
-    wire [0:0] node_49;  // uut_inner_3[3]
-    wire [0:0] node_50;  // uut_inner_4[4]
-    wire [0:0] node_51;  // uut_inner_5[5]
-    wire [0:0] node_52;  // uut_inner_6[6]
-    wire [0:0] node_53;  // uut_inner_7[7]
-    uut_inner bb_0 (.o({ node_53, node_52, node_51, node_50, node_49, node_48, node_47, node_46 }),.i({ node_45, node_44, node_43, node_42, node_41, node_40, node_39, node_38, node_37, node_36, node_35, node_34, node_33, node_32, node_31, node_30, node_29, node_28, node_27 }));
+module uut(input wire [18:0] arg_0, output reg [7:0] out);
+    reg [0:0] r0;
+    reg [0:0] r1;
+    reg [0:0] r2;
+    reg [0:0] r3;
+    reg [0:0] r4;
+    reg [0:0] r5;
+    reg [0:0] r6;
+    reg [0:0] r7;
+    reg [0:0] r8;
+    reg [0:0] r9;
+    reg [0:0] r10;
+    reg [0:0] r11;
+    reg [0:0] r12;
+    reg [0:0] r13;
+    reg [0:0] r14;
+    reg [0:0] r15;
+    reg [0:0] r16;
+    reg [0:0] r17;
+    reg [0:0] r18;
+    wire [0:0] r19;
+    wire [0:0] r20;
+    wire [0:0] r21;
+    wire [0:0] r22;
+    wire [0:0] r23;
+    wire [0:0] r24;
+    wire [0:0] r25;
+    wire [0:0] r26;
+    uut bb_0 (.o({ r26, r25, r24, r23, r22, r21, r20, r19 }),.i({ r18, r17, r16, r15, r14, r13, r12, r11, r10, r9, r8, r7, r6, r5, r4, r3, r2, r1, r0 }));
     always @(*) begin
-        node_26 = node_53;
-        node_25 = node_52;
-        node_24 = node_51;
-        node_23 = node_50;
-        node_22 = node_49;
-        node_21 = node_48;
-        node_20 = node_47;
-        node_19 = node_46;
-        node_18 = arg_0[18];
-        node_45 = node_18;
-        node_17 = arg_0[17];
-        node_44 = node_17;
-        node_16 = arg_0[16];
-        node_43 = node_16;
-        node_15 = arg_0[15];
-        node_42 = node_15;
-        node_14 = arg_0[14];
-        node_41 = node_14;
-        node_13 = arg_0[13];
-        node_40 = node_13;
-        node_12 = arg_0[12];
-        node_39 = node_12;
-        node_11 = arg_0[11];
-        node_38 = node_11;
-        node_10 = arg_0[10];
-        node_37 = node_10;
-        node_9 = arg_0[9];
-        node_36 = node_9;
-        node_8 = arg_0[8];
-        node_35 = node_8;
-        node_7 = arg_0[7];
-        node_34 = node_7;
-        node_6 = arg_0[6];
-        node_33 = node_6;
-        node_5 = arg_0[5];
-        node_32 = node_5;
-        node_4 = arg_0[4];
-        node_31 = node_4;
-        node_3 = arg_0[3];
-        node_30 = node_3;
-        node_2 = arg_0[2];
-        node_29 = node_2;
-        node_1 = arg_0[1];
-        node_28 = node_1;
-        node_0 = arg_0[0];
-        node_27 = node_0;
-        out = { node_26, node_25, node_24, node_23, node_22, node_21, node_20, node_19 };
+        r0 = arg_0[0];
+        r1 = arg_0[1];
+        r2 = arg_0[2];
+        r3 = arg_0[3];
+        r4 = arg_0[4];
+        r5 = arg_0[5];
+        r6 = arg_0[6];
+        r7 = arg_0[7];
+        r8 = arg_0[8];
+        r9 = arg_0[9];
+        r10 = arg_0[10];
+        r11 = arg_0[11];
+        r12 = arg_0[12];
+        r13 = arg_0[13];
+        r14 = arg_0[14];
+        r15 = arg_0[15];
+        r16 = arg_0[16];
+        r17 = arg_0[17];
+        r18 = arg_0[18];
+        out = { r26, r25, r24, r23, r22, r21, r20, r19 };
     end
 endmodule
 //
-module uut_inner(input wire [18:0] i, output reg [7:0] o);
+module uut(input wire [18:0] i, output reg [7:0] o);
     wire [3:0] read_addr;
     wire [0:0] read_clk;
     wire [3:0] write_addr;
