@@ -13,10 +13,6 @@ pub enum OpCode {
     Case(Case),
     // Comment
     Comment(String),
-    // lhs <- rhs[ndx]
-    DynamicIndex(DynamicIndex),
-    // lhs[ndx] <- rhs/[ndx]=val
-    DynamicSplice(DynamicSplice),
     // lhs <- cond ? true_value : false_value
     Select(Select),
     // lhs <- ! arg
@@ -32,21 +28,6 @@ pub struct BlackBox {
     pub lhs: Vec<Operand>,
     pub arg: Vec<Vec<Operand>>,
     pub code: BlackBoxId,
-}
-
-#[derive(Debug, Clone, PartialEq, Hash)]
-pub struct DynamicIndex {
-    pub lhs: Vec<Operand>,
-    pub arg: Vec<Operand>,
-    pub offset: Vec<Operand>,
-}
-
-#[derive(Debug, Clone, PartialEq, Hash)]
-pub struct DynamicSplice {
-    pub lhs: Vec<Operand>,
-    pub arg: Vec<Operand>,
-    pub offset: Vec<Operand>,
-    pub value: Vec<Operand>,
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]

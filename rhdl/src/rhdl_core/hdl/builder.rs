@@ -4,8 +4,8 @@ use crate::rhdl_core::{
     compiler::mir::error::{RHDLCompileError, ICE},
     error::rhdl_error,
     hdl::ast::{
-        self, assign, concatenate, constant, declaration, dynamic_index, id, index, index_bit,
-        input_reg, literal, repeat, unary, CaseItem, Function, HDLKind,
+        self, assign, concatenate, constant, declaration, id, index, index_bit, input_reg, literal,
+        repeat, unary, CaseItem, Function, HDLKind,
     },
     rtl::{
         self,
@@ -169,27 +169,6 @@ impl TranslationContext<'_> {
         self.func.block.push(assign(&lhs, concatenate(args)));
         Ok(())
     }
-    fn translate_dynamic_index(&mut self, index: &tl::DynamicIndex) -> Result<()> {
-        let lhs = self.rtl.op_name(index.lhs);
-        let arg = self.rtl.op_name(index.arg);
-        let offset = self.rtl.op_name(index.offset);
-        let len = index.len;
-        self.func
-            .block
-            .push(assign(&lhs, dynamic_index(&arg, id(&offset), len)));
-        Ok(())
-    }
-    fn translate_dynamic_splice(&mut self, splice: &tl::DynamicSplice) -> Result<()> {
-        let lhs = self.rtl.op_name(splice.lhs);
-        let arg = id(&self.rtl.op_name(splice.arg));
-        let offset = id(&self.rtl.op_name(splice.offset));
-        let value = id(&self.rtl.op_name(splice.value));
-        let len = splice.len;
-        self.func
-            .block
-            .push(ast::dynamic_splice(&lhs, arg, offset, value, len));
-        Ok(())
-    }
     fn translate_index(&mut self, index: &tl::Index) -> Result<()> {
         let lhs = self.rtl.op_name(index.lhs);
         let arg = self.rtl.op_name(index.arg);
@@ -243,8 +222,6 @@ impl TranslationContext<'_> {
             tl::OpCode::Cast(cast) => self.translate_cast(cast, lop.loc),
             tl::OpCode::Comment(comment) => self.translate_comment(comment),
             tl::OpCode::Concat(concat) => self.translate_concat(concat),
-            tl::OpCode::DynamicIndex(index) => self.translate_dynamic_index(index),
-            tl::OpCode::DynamicSplice(splice) => self.translate_dynamic_splice(splice),
             tl::OpCode::Index(index) => self.translate_index(index),
             tl::OpCode::Select(select) => self.translate_select(select),
             tl::OpCode::Splice(splice) => self.translate_splice(splice),

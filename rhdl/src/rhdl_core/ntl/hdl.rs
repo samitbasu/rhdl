@@ -14,8 +14,6 @@ use crate::rhdl_core::ntl::object::BlackBoxMode;
 use crate::rhdl_core::ntl::spec;
 use crate::rhdl_core::ntl::spec::BlackBox;
 use crate::rhdl_core::ntl::spec::CaseEntry;
-use crate::rhdl_core::ntl::spec::DynamicIndex;
-use crate::rhdl_core::ntl::spec::DynamicSplice;
 use crate::rhdl_core::ntl::spec::OpCode;
 use crate::rhdl_core::ntl::spec::Operand;
 use crate::rhdl_core::ntl::spec::VectorOp;
@@ -236,61 +234,6 @@ impl<'a> NetListHDLBuilder<'a> {
         ));
         Ok(())
     }
-    fn dynamic_index(
-        &mut self,
-        op: &DynamicIndex,
-        location: Option<SourceLocation>,
-    ) -> Result<(), RHDLError> {
-        let target = self.reg_v(&op.lhs, location)?;
-        let offset = opex_v(&op.offset);
-        let arg = opex_v(&op.arg);
-        // The target of a dynamic index expression ( e.g., foo[expr])
-        // must be a name. It cannot be an expression like ({{r0, r1..}}[expr]).  So we
-        // need a temporary to assign the argument to.
-        let temp_reg = format!("dyn_ndx_{}", self.temporary_counter);
-        self.temporary_counter += 1;
-        self.decls.push(ast::declaration(
-            ast::HDLKind::Reg,
-            &temp_reg,
-            ast::unsigned_width(op.arg.len()),
-            Some("Dynamic index temporary register".to_string()),
-        ));
-        self.push_body(ast::assign(&temp_reg, arg));
-        self.push_body(ast::assign(
-            &target,
-            ast::dynamic_index(&temp_reg, offset, op.lhs.len()),
-        ));
-        Ok(())
-    }
-    fn dynamic_splice(
-        &mut self,
-        op: &DynamicSplice,
-        location: Option<SourceLocation>,
-    ) -> Result<(), RHDLError> {
-        let arg = opex_v(&op.arg);
-        let temp_reg = format!("dyn_sel_{}", self.temporary_counter);
-        self.temporary_counter += 1;
-        self.decls.push(ast::declaration(
-            ast::HDLKind::Reg,
-            &temp_reg,
-            ast::unsigned_width(op.arg.len()),
-            Some("Dynamic splice temporary register".to_string()),
-        ));
-        let lhs = self.reg_v(&op.lhs, location)?;
-        // Now collect the splice bits (which are the substitution)
-        let value = opex_v(&op.value);
-        // Now collect the offset bits
-        let offset = opex_v(&op.offset);
-        self.push_body(ast::dynamic_splice(
-            &temp_reg,
-            arg,
-            offset,
-            value,
-            op.value.len(),
-        ));
-        self.push_body(ast::assign(&lhs, ast::id(&temp_reg)));
-        Ok(())
-    }
     fn op_code(
         &mut self,
         op: &spec::OpCode,
@@ -305,12 +248,6 @@ impl<'a> NetListHDLBuilder<'a> {
             spec::OpCode::Comment(comment) => {
                 self.push_body(ast::comment(comment));
                 Ok(())
-            }
-            spec::OpCode::DynamicIndex(dynamic_index) => {
-                self.dynamic_index(dynamic_index, location)
-            }
-            spec::OpCode::DynamicSplice(dynamic_splice) => {
-                self.dynamic_splice(dynamic_splice, location)
             }
             spec::OpCode::Select(select) => self.select_op(select, location),
             spec::OpCode::Not(not) => self.not_op(not, location),

@@ -6,8 +6,6 @@ use crate::prelude::BitX;
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
 use crate::rhdl_core::ntl::spec::Assign;
 use crate::rhdl_core::ntl::spec::Binary;
-use crate::rhdl_core::ntl::spec::DynamicIndex;
-use crate::rhdl_core::ntl::spec::DynamicSplice;
 use crate::rhdl_core::ntl::spec::Not;
 use crate::rhdl_core::ntl::spec::RegisterId;
 use crate::rhdl_core::ntl::spec::Select;
@@ -84,10 +82,6 @@ impl<'a> NtlBuilder<'a> {
             tl::OpCode::Cast(cast) => self.build_cast(loc, cast),
             tl::OpCode::Comment(comment) => self.push(loc, bt::OpCode::Comment(comment.clone())),
             tl::OpCode::Concat(concat) => self.build_concat(loc, concat),
-            tl::OpCode::DynamicIndex(dynamic_index) => self.build_dynamic_index(loc, dynamic_index),
-            tl::OpCode::DynamicSplice(dynamic_splice) => {
-                self.build_dynamic_splice(loc, dynamic_splice)
-            }
             tl::OpCode::Index(index) => self.build_index(loc, index),
             tl::OpCode::Select(select) => self.build_select(loc, select),
             tl::OpCode::Splice(splice) => self.build_splice(loc, splice),
@@ -233,31 +227,6 @@ impl<'a> NtlBuilder<'a> {
         for (&lhs, &rhs) in lhs.iter().zip(args.iter().flatten()) {
             self.push(loc, bt::OpCode::Assign(Assign { lhs, rhs }));
         }
-    }
-    // [lhs_0..lhs_n] = {arg_0...arg_m}[offset += ]
-    fn build_dynamic_index(&mut self, loc: SourceLocation, dynamic_index: &tl::DynamicIndex) {
-        let lhs = self.operand(dynamic_index.lhs);
-        let arg = self.operand(dynamic_index.arg);
-        let offset = self.operand(dynamic_index.offset);
-        self.push(
-            loc,
-            bt::OpCode::DynamicIndex(DynamicIndex { lhs, arg, offset }),
-        )
-    }
-    fn build_dynamic_splice(&mut self, loc: SourceLocation, dynamic_splice: &tl::DynamicSplice) {
-        let lhs = self.operand(dynamic_splice.lhs);
-        let arg = self.operand(dynamic_splice.arg);
-        let offset = self.operand(dynamic_splice.offset);
-        let value = self.operand(dynamic_splice.value);
-        self.push(
-            loc,
-            bt::OpCode::DynamicSplice(DynamicSplice {
-                lhs,
-                arg,
-                offset,
-                value,
-            }),
-        )
     }
     fn build_index(&mut self, loc: SourceLocation, index: &tl::Index) {
         let lhs = self.operand(index.lhs);

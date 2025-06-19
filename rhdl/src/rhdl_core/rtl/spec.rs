@@ -15,10 +15,6 @@ pub enum OpCode {
     Comment(String),
     // lhs <- {{ r1, r2, ... }}
     Concat(Concat),
-    // lhs <- arg[offset +: len]
-    DynamicIndex(DynamicIndex),
-    // lhs <- arg; lhs[base_offset + arg * stride +: len] <- value
-    DynamicSplice(DynamicSplice),
     // lhs <- arg[bit_range]
     Index(Index),
     // lhs <- cond ? true_value : false_value
@@ -200,23 +196,6 @@ pub struct Select {
 pub struct Concat {
     pub lhs: Operand,
     pub args: Vec<Operand>,
-}
-
-#[derive(Debug, Clone, PartialEq, Hash)]
-pub struct DynamicIndex {
-    pub lhs: Operand,
-    pub arg: Operand,
-    pub offset: Operand,
-    pub len: usize,
-}
-
-#[derive(Debug, Clone, PartialEq, Hash)]
-pub struct DynamicSplice {
-    pub lhs: Operand,
-    pub arg: Operand,
-    pub offset: Operand,
-    pub len: usize,
-    pub value: Operand,
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]

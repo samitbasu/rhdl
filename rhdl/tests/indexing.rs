@@ -239,6 +239,7 @@ fn test_complex_array_dynamic_indexing() -> miette::Result<()> {
 fn test_array_dynamic_indexing() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<[b8; 8], Red>, b: Signal<b3, Red>) -> Signal<b8, Red> {
+        let a = a.val();
         signal(a[b])
     }
 

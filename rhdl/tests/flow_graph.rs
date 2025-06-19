@@ -370,11 +370,6 @@ fn test_constant_propagates_through_indexing() -> miette::Result<()> {
     let inputs = [false, true].with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let desc = uut.descriptor("uut")?;
-    assert!(!desc
-        .ntl
-        .ops
-        .iter()
-        .any(|w| matches!(w.op, OpCode::DynamicIndex(_))));
     Ok(())
 }
 
@@ -409,10 +404,5 @@ fn test_constant_propagates_through_splicing() -> miette::Result<()> {
     let inputs = [false, true].with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let desc = uut.descriptor("uut")?;
-    assert!(!desc
-        .ntl
-        .ops
-        .iter()
-        .any(|w| matches!(w.op, OpCode::DynamicSplice(_))));
     Ok(())
 }

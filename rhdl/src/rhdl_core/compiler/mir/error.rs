@@ -212,6 +212,8 @@ pub enum ICE {
     InvalidPadKind { a: Kind },
     #[error("Argument of cut operation must be either a Bits or SignedBits value, not {a:?}")]
     InvalidCutKind { a: Kind },
+    #[error("Dynamic index in path {path:?} is a literal value")]
+    DynamicIndexHasLiteral { path: Path },
 }
 
 #[derive(Error, Debug, Diagnostic)]

@@ -17,13 +17,9 @@ fn test_dynamic_vs_static_indexing_on_assign() -> miette::Result<()> {
         a[c]
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    rtl.ops.iter().for_each(|op| {
-        assert!(!matches!(
-            op.op,
-            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
-                | rhdl::core::rtl::spec::OpCode::DynamicSplice(_)
-        ))
-    });
+    rtl.ops
+        .iter()
+        .for_each(|op| assert!(!matches!(op.op, rhdl::core::rtl::spec::OpCode::Case(_))));
     Ok(())
 }
 
@@ -35,13 +31,9 @@ fn test_dynamic_vs_static_indexing() -> miette::Result<()> {
         a[c] // Should compile down to a static index.
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    rtl.ops.iter().for_each(|op| {
-        assert!(!matches!(
-            op.op,
-            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
-                | rhdl::core::rtl::spec::OpCode::DynamicSplice(_)
-        ))
-    });
+    rtl.ops
+        .iter()
+        .for_each(|op| assert!(!matches!(op.op, rhdl::core::rtl::spec::OpCode::Case(_))));
     Ok(())
 }
 
@@ -54,12 +46,9 @@ fn test_dynamic_indexing_lowers_with_multiple_dimensions() -> miette::Result<()>
         a[c][d] // Should compile down to a static index.
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    rtl.ops.iter().for_each(|op| {
-        assert!(!matches!(
-            op.op,
-            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
-        ))
-    });
+    rtl.ops
+        .iter()
+        .for_each(|op| assert!(!matches!(op.op, rhdl::core::rtl::spec::OpCode::Case(_))));
     Ok(())
 }
 
@@ -73,13 +62,9 @@ fn test_dynamic_splice_lowers_with_multiple_dimensions() -> miette::Result<()> {
         a[c][d]
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    rtl.ops.iter().for_each(|op| {
-        assert!(!matches!(
-            op.op,
-            rhdl::core::rtl::spec::OpCode::DynamicSplice(_)
-                | rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
-        ))
-    });
+    rtl.ops
+        .iter()
+        .for_each(|op| assert!(!matches!(op.op, rhdl::core::rtl::spec::OpCode::Case(_))));
     Ok(())
 }
 
@@ -179,12 +164,9 @@ fn test_constant_propagation_with_dynamic_indexing() -> miette::Result<()> {
         a[c + 1] // Should compile down to a static index.
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    rtl.ops.iter().for_each(|op| {
-        assert!(!matches!(
-            op.op,
-            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
-        ))
-    });
+    rtl.ops
+        .iter()
+        .for_each(|op| assert!(!matches!(op.op, rhdl::core::rtl::spec::OpCode::Case(_))));
     Ok(())
 }
 
@@ -197,12 +179,9 @@ fn test_constant_propagation_with_array() -> miette::Result<()> {
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
 
-    rtl.ops.iter().for_each(|op| {
-        assert!(!matches!(
-            op.op,
-            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
-        ))
-    });
+    rtl.ops
+        .iter()
+        .for_each(|op| assert!(!matches!(op.op, rhdl::core::rtl::spec::OpCode::Case(_))));
     Ok(())
 }
 
@@ -216,12 +195,9 @@ fn test_constant_propagation_with_tuple() -> miette::Result<()> {
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
 
-    rtl.ops.iter().for_each(|op| {
-        assert!(!matches!(
-            op.op,
-            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
-        ))
-    });
+    rtl.ops
+        .iter()
+        .for_each(|op| assert!(!matches!(op.op, rhdl::core::rtl::spec::OpCode::Case(_))));
     Ok(())
 }
 
@@ -237,13 +213,9 @@ fn test_constant_propogation_with_select() -> miette::Result<()> {
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
 
-    rtl.ops.iter().for_each(|op| {
-        assert!(!matches!(
-            op.op,
-            rhdl::core::rtl::spec::OpCode::DynamicSplice(_)
-                | rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
-        ))
-    });
+    rtl.ops
+        .iter()
+        .for_each(|op| assert!(!matches!(op.op, rhdl::core::rtl::spec::OpCode::Case(_))));
     Ok(())
 }
 
@@ -258,13 +230,9 @@ fn test_constant_propogation_with_splice() -> miette::Result<()> {
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
 
-    rtl.ops.iter().for_each(|op| {
-        assert!(!matches!(
-            op.op,
-            rhdl::core::rtl::spec::OpCode::DynamicSplice(_)
-                | rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
-        ))
-    });
+    rtl.ops
+        .iter()
+        .for_each(|op| assert!(!matches!(op.op, rhdl::core::rtl::spec::OpCode::Case(_))));
     Ok(())
 }
 
@@ -287,13 +255,9 @@ fn test_constant_propogation_with_struct() -> miette::Result<()> {
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
 
-    rtl.ops.iter().for_each(|op| {
-        assert!(!matches!(
-            op.op,
-            rhdl::core::rtl::spec::OpCode::DynamicSplice(_)
-                | rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
-        ))
-    });
+    rtl.ops
+        .iter()
+        .for_each(|op| assert!(!matches!(op.op, rhdl::core::rtl::spec::OpCode::Case(_))));
     Ok(())
 }
 
@@ -317,13 +281,9 @@ fn test_constant_propogation_with_struct_with_rest() -> miette::Result<()> {
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
 
-    rtl.ops.iter().for_each(|op| {
-        assert!(!matches!(
-            op.op,
-            rhdl::core::rtl::spec::OpCode::DynamicSplice(_)
-                | rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
-        ))
-    });
+    rtl.ops
+        .iter()
+        .for_each(|op| assert!(!matches!(op.op, rhdl::core::rtl::spec::OpCode::Case(_))));
     Ok(())
 }
 
@@ -347,13 +307,9 @@ fn test_constant_propogation_with_enum() -> miette::Result<()> {
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
 
-    rtl.ops.iter().for_each(|op| {
-        assert!(!matches!(
-            op.op,
-            rhdl::core::rtl::spec::OpCode::DynamicSplice(_)
-                | rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
-        ))
-    });
+    rtl.ops
+        .iter()
+        .for_each(|op| assert!(!matches!(op.op, rhdl::core::rtl::spec::OpCode::Case(_))));
     Ok(())
 }
 
@@ -369,12 +325,9 @@ fn test_constant_propagation_through_assigns() -> miette::Result<()> {
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
 
-    rtl.ops.iter().for_each(|op| {
-        assert!(!matches!(
-            op.op,
-            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
-        ))
-    });
+    rtl.ops
+        .iter()
+        .for_each(|op| assert!(!matches!(op.op, rhdl::core::rtl::spec::OpCode::Case(_))));
     Ok(())
 }
 
@@ -390,12 +343,9 @@ fn test_constant_propagation_through_loops() -> miette::Result<()> {
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
 
-    rtl.ops.iter().for_each(|op| {
-        assert!(!matches!(
-            op.op,
-            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
-        ))
-    });
+    rtl.ops
+        .iter()
+        .for_each(|op| assert!(!matches!(op.op, rhdl::core::rtl::spec::OpCode::Case(_))));
     Ok(())
 }
 
@@ -415,12 +365,9 @@ fn test_constant_propagation_through_sub_kernels() -> miette::Result<()> {
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
 
-    rtl.ops.iter().for_each(|op| {
-        assert!(!matches!(
-            op.op,
-            rhdl::core::rtl::spec::OpCode::DynamicIndex(_)
-        ))
-    });
+    rtl.ops
+        .iter()
+        .for_each(|op| assert!(!matches!(op.op, rhdl::core::rtl::spec::OpCode::Case(_))));
     Ok(())
 }
 
