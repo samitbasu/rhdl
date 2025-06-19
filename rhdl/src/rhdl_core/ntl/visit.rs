@@ -81,13 +81,13 @@ pub fn visit_operands<F: FnMut(Sense, &Operand)>(op: &OpCode, mut f: F) {
             f(Sense::Write, lhs);
             f(Sense::Read, arg);
         }
-        OpCode::BlackBox(BlackBox { lhs, arg, code }) => {
+        OpCode::BlackBox(BlackBox { lhs, arg, code: _ }) => {
             vec_v(&mut f, Sense::Write, lhs);
             for a in arg {
                 vec_v(&mut f, Sense::Read, a);
             }
         }
-        OpCode::Unary(Unary { op, lhs, arg }) => {
+        OpCode::Unary(Unary { op: _, lhs, arg }) => {
             vec_v(&mut f, Sense::Write, lhs);
             vec_v(&mut f, Sense::Read, arg);
         }
@@ -108,7 +108,7 @@ pub fn visit_operands_mut<F: FnMut(&mut Operand)>(op: &mut OpCode, mut f: F) {
             f(rhs);
         }
         OpCode::Binary(Binary {
-            op,
+            op: _,
             lhs,
             arg1,
             arg2,
@@ -118,11 +118,11 @@ pub fn visit_operands_mut<F: FnMut(&mut Operand)>(op: &mut OpCode, mut f: F) {
             f(arg2);
         }
         OpCode::Vector(Vector {
-            op,
+            op: _,
             lhs,
             arg1,
             arg2,
-            signed,
+            signed: _,
         }) => {
             vec_m(&mut f, lhs);
             vec_m(&mut f, arg1);
@@ -139,7 +139,7 @@ pub fn visit_operands_mut<F: FnMut(&mut Operand)>(op: &mut OpCode, mut f: F) {
                 f(entry);
             }
         }
-        OpCode::Comment(comment) => {}
+        OpCode::Comment(_comment) => {}
         OpCode::DynamicIndex(DynamicIndex { lhs, arg, offset }) => {
             vec_m(&mut f, lhs);
             vec_m(&mut f, arg);
@@ -173,11 +173,11 @@ pub fn visit_operands_mut<F: FnMut(&mut Operand)>(op: &mut OpCode, mut f: F) {
         }
         OpCode::BlackBox(BlackBox { lhs, arg, code: _ }) => {
             vec_m(&mut f, lhs);
-            for mut a in arg {
+            for a in arg {
                 vec_m(&mut f, a);
             }
         }
-        OpCode::Unary(Unary { op, lhs, arg }) => {
+        OpCode::Unary(Unary { op: _, lhs, arg }) => {
             vec_m(&mut f, lhs);
             vec_m(&mut f, arg);
         }

@@ -112,6 +112,8 @@ risk than a technical one.
 - [x] Add AXI4-Stream support
 - [ ] Port the `RustHDL` widget library to `RHDL`
 - [ ] Port the various FPGA BSPs to `RHDL` from `RustHDL`.
+- [ ] macro for hdl
+- [ ] AXI for non-32 bit width?
 
 Some other topics I'm thinking about
 

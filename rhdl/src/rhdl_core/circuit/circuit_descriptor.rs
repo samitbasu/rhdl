@@ -203,6 +203,7 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         let (input_bit_range, _) = bit_range(C::Q::static_kind(), &child_path)?;
         // Merge the child's netlist into ours
         let child_offset = builder.link(&child_descriptor.ntl);
+        log::info!("Link child {child_name} into descriptor for {name}");
         // Connect the child's clock and reset to the top level clock and reset
         for (&top_cr, &child_cr) in top_cr.iter().zip(&child_descriptor.ntl.inputs[0]) {
             builder.copy_from_to(top_cr, child_cr.offset(child_offset));

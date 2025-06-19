@@ -367,6 +367,10 @@ mod tests {
 
     #[test]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
+        env_logger::builder()
+            .filter_level(log::LevelFilter::Warn)
+            .is_test(true)
+            .init();
         let switch: ReadSwitch<2> = ReadSwitch::try_new::<decode_addr>()?;
         switch.yosys_check()?;
         drc::no_combinatorial_paths(&switch)?;
