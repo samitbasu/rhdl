@@ -23,14 +23,6 @@ module uut(input wire [18:0] arg_0, output reg [7:0] out);
     reg [0:0] r198;
     reg [0:0] r199;
     reg [0:0] r200;
-    reg [0:0] r201;
-    reg [0:0] r202;
-    reg [0:0] r203;
-    reg [0:0] r204;
-    reg [0:0] r205;
-    reg [0:0] r206;
-    reg [0:0] r207;
-    reg [0:0] r208;
     wire [0:0] r281;
     wire [0:0] r282;
     wire [0:0] r283;
@@ -39,7 +31,7 @@ module uut(input wire [18:0] arg_0, output reg [7:0] out);
     wire [0:0] r286;
     wire [0:0] r287;
     wire [0:0] r288;
-    uut_inner bb_0 (.o({ r288, r287, r286, r285, r284, r283, r282, r281 }),.i({ r59, r58, r57, r56, r55, r41, r54, r208, r207, r206, r205, r204, r203, r202, r201, r200, r199, r198, r197 }));
+    uut_inner bb_0 (.o({ r288, r287, r286, r285, r284, r283, r282, r281 }),.i({ r59, r58, r57, r56, r55, r41, r54, r53, r52, r51, r50, r49, r48, r47, r46, r200, r199, r198, r197 }));
     always @(*) begin
         r41 = arg_0[0];
         r42 = arg_0[1];
@@ -100,18 +92,10 @@ module uut(input wire [18:0] arg_0, output reg [7:0] out);
         //
         // let w = super::asynchronous::WriteI::<T,N>::dont_care();
         //
-        r208 = (r54) ? (r53) : (1'bX);
-        r207 = (r54) ? (r52) : (1'bX);
-        r206 = (r54) ? (r51) : (1'bX);
-        r205 = (r54) ? (r50) : (1'bX);
-        r204 = (r54) ? (r49) : (1'bX);
-        r203 = (r54) ? (r48) : (1'bX);
-        r202 = (r54) ? (r47) : (1'bX);
-        r201 = (r54) ? (r46) : (1'bX);
-        r200 = (r54) ? (r45) : (1'b0);
-        r199 = (r54) ? (r44) : (1'b0);
-        r198 = (r54) ? (r43) : (1'b0);
-        r197 = (r54) ? (r42) : (1'b0);
+        r200 = r54 & r45;
+        r199 = r54 & r44;
+        r198 = r54 & r43;
+        r197 = r54 & r42;
         out = { r288, r287, r286, r285, r284, r283, r282, r281 };
     end
 endmodule

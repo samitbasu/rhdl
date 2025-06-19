@@ -52,7 +52,8 @@ impl Pass for ReorderInstructions {
             }
             Err(cycle) => {
                 log::warn!("{:?}", input);
-                log::warn!("{:?}", &dep.graph[cycle.node_id()]);
+                log::warn!("cycle node {:?}", &dep.graph[cycle.node_id()]);
+                std::fs::write("reorder.txt", format!("{:?}", input)).unwrap();
                 let node = cycle.node_id();
                 let source_location = if let Some(path) =
                     petgraph::algo::all_simple_paths::<Vec<_>, _>(&dep.graph, node, node, 1, None)

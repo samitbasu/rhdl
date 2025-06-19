@@ -55,6 +55,34 @@ fn rewrite_select_with_not(op: &mut OpCode) {
     })
 }
 
+// a <- s ? b : X
+// a <- b
+fn rewrite_select_with_dont_care_in_false(op: &mut OpCode) {
+    let OpCode::Select(select) = &op else {
+        return;
+    };
+    let Operand::X = select.false_case else {
+        return;
+    };
+    *op = OpCode::Assign(Assign {
+        lhs: select.lhs,
+        rhs: select.true_case,
+    })
+}
+
+fn rewrite_select_with_dont_care_in_true(op: &mut OpCode) {
+    let OpCode::Select(select) = &op else {
+        return;
+    };
+    let Operand::X = select.true_case else {
+        return;
+    };
+    *op = OpCode::Assign(Assign {
+        lhs: select.lhs,
+        rhs: select.false_case,
+    })
+}
+
 fn rewrite_select_with_assign(op: &mut OpCode) {
     let OpCode::Select(select) = &op else {
         return;
@@ -71,11 +99,29 @@ fn rewrite_select_with_assign(op: &mut OpCode) {
     })
 }
 
+fn rewrite_select_with_zero_false(op: &mut OpCode) {
+    let OpCode::Select(select) = &op else {
+        return;
+    };
+    let Operand::Zero = select.false_case else {
+        return;
+    };
+    *op = OpCode::Binary(Binary {
+        op: BinaryOp::And,
+        lhs: select.lhs,
+        arg1: select.selector,
+        arg2: select.true_case,
+    })
+}
+
 fn lower_select(op: &mut OpCode) {
     rewrite_select_with_equal_branches(op);
     rewrite_select_with_hardwired_selector(op);
     rewrite_select_with_not(op);
     rewrite_select_with_assign(op);
+    rewrite_select_with_dont_care_in_false(op);
+    rewrite_select_with_dont_care_in_true(op);
+    rewrite_select_with_zero_false(op);
 }
 
 impl Pass for LowerSelects {

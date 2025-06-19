@@ -234,6 +234,7 @@ impl<'a> NtlBuilder<'a> {
             self.push(loc, bt::OpCode::Assign(Assign { lhs, rhs }));
         }
     }
+    // [lhs_0..lhs_n] = {arg_0...arg_m}[offset += ]
     fn build_dynamic_index(&mut self, loc: SourceLocation, dynamic_index: &tl::DynamicIndex) {
         let lhs = self.operand(dynamic_index.lhs);
         let arg = self.operand(dynamic_index.arg);
