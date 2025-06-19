@@ -51,7 +51,6 @@ impl Pass for ReorderInstructions {
                 }
             }
             Err(cycle) => {
-                log::warn!("{:?}", input);
                 log::warn!("cycle node {:?}", &dep.graph[cycle.node_id()]);
                 std::fs::write("reorder.txt", format!("{:?}", input)).unwrap();
                 let node = cycle.node_id();

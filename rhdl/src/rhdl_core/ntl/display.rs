@@ -45,27 +45,6 @@ impl std::fmt::Debug for OpCode {
             OpCode::Comment(comment) => {
                 write!(f, "// {}", comment)
             }
-            OpCode::DynamicIndex(dynamic_index) => {
-                write!(f, " ")?;
-                vec_disp(f, &dynamic_index.lhs)?;
-                write!(f, " <- ")?;
-                vec_disp(f, &dynamic_index.arg)?;
-                write!(f, "[")?;
-                vec_disp(f, &dynamic_index.offset)?;
-                write!(f, " +: {}]", dynamic_index.lhs.len())
-            }
-            OpCode::DynamicSplice(dynamic_splice) => {
-                write!(f, " ")?;
-                vec_disp(f, &dynamic_splice.lhs)?;
-                write!(f, " <- ")?;
-                vec_disp(f, &dynamic_splice.arg)?;
-                write!(f, "; ")?;
-                vec_disp(f, &dynamic_splice.lhs)?;
-                write!(f, "[")?;
-                vec_disp(f, &dynamic_splice.offset)?;
-                write!(f, " +: {}] <- ", dynamic_splice.lhs.len())?;
-                vec_disp(f, &dynamic_splice.value)
-            }
             OpCode::Select(select) => {
                 write!(
                     f,

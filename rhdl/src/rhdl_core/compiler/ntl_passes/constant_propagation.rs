@@ -5,8 +5,8 @@ use crate::{
         ntl::{
             object::LocatedOpCode,
             spec::{
-                Assign, Binary, BinaryOp, Case, CaseEntry, DynamicIndex, DynamicSplice, OpCode,
-                Operand, Unary, UnaryOp, Vector, VectorOp,
+                Assign, Binary, BinaryOp, Case, CaseEntry, OpCode, Operand, Unary, UnaryOp, Vector,
+                VectorOp,
             },
             Object,
         },
@@ -142,96 +142,6 @@ fn compute_case(case: Case) -> OpCode {
     })
 }
 
-fn compute_dynamic_splice(
-    dyn_splice: DynamicSplice,
-    loc: Option<SourceLocation>,
-    ops: &mut Vec<LocatedOpCode>,
-) {
-    let Some(arg) = vec_op(false, &dyn_splice.arg) else {
-        ops.push(LocatedOpCode {
-            loc,
-            op: OpCode::DynamicSplice(dyn_splice),
-        });
-        return;
-    };
-    let Some(value) = vec_op(false, &dyn_splice.value) else {
-        ops.push(LocatedOpCode {
-            loc,
-            op: OpCode::DynamicSplice(dyn_splice),
-        });
-        return;
-    };
-    let Some(offset) = vec_op(false, &dyn_splice.offset) else {
-        ops.push(LocatedOpCode {
-            loc,
-            op: OpCode::DynamicSplice(dyn_splice),
-        });
-        return;
-    };
-    let Ok(offset) = offset.as_i64() else {
-        ops.push(LocatedOpCode {
-            loc,
-            op: OpCode::DynamicSplice(dyn_splice),
-        });
-        return;
-    };
-    let splice_len = arg.bits.len();
-    let spliced_value = arg
-        .bits
-        .iter()
-        .take(offset as usize)
-        .chain(&value.bits)
-        .chain(arg.bits.iter().skip(offset as usize + splice_len));
-    for (&lhs, &rhs) in dyn_splice.lhs.iter().zip(spliced_value) {
-        ops.push(LocatedOpCode {
-            loc,
-            op: OpCode::Assign(Assign {
-                lhs,
-                rhs: Operand::from(rhs),
-            }),
-        });
-    }
-}
-
-fn compute_dynamic_index(
-    dyn_index: DynamicIndex,
-    loc: Option<SourceLocation>,
-    ops: &mut Vec<LocatedOpCode>,
-) {
-    let Some(arg) = vec_op(false, &dyn_index.arg) else {
-        ops.push(LocatedOpCode {
-            loc,
-            op: OpCode::DynamicIndex(dyn_index),
-        });
-        return;
-    };
-    let Some(offset) = vec_op(false, &dyn_index.offset) else {
-        ops.push(LocatedOpCode {
-            loc,
-            op: OpCode::DynamicIndex(dyn_index),
-        });
-        return;
-    };
-    let Ok(offset) = offset.as_i64() else {
-        ops.push(LocatedOpCode {
-            loc,
-            op: OpCode::DynamicIndex(dyn_index),
-        });
-        return;
-    };
-    let arg: BitString = arg.into();
-    let result = arg.bits().iter().skip(offset as usize);
-    for (&lhs, &rhs) in dyn_index.lhs.iter().zip(result) {
-        ops.push(LocatedOpCode {
-            loc,
-            op: OpCode::Assign(Assign {
-                lhs,
-                rhs: Operand::from(rhs),
-            }),
-        });
-    }
-}
-
 impl Pass for ConstantPropagationPass {
     fn description() -> &'static str {
         "Constant propagation"
@@ -252,12 +162,6 @@ impl Pass for ConstantPropagationPass {
                     op: compute_case(case),
                 }),
                 OpCode::Unary(unary) => compute_unary(unary, lop.loc, &mut ops),
-                OpCode::DynamicIndex(dyn_index) => {
-                    compute_dynamic_index(dyn_index, lop.loc, &mut ops)
-                }
-                OpCode::DynamicSplice(dyn_splice) => {
-                    compute_dynamic_splice(dyn_splice, lop.loc, &mut ops)
-                }
                 _ => ops.push(lop),
             }
         }

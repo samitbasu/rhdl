@@ -50,22 +50,6 @@ pub fn visit_operands<F: FnMut(Sense, &Operand)>(op: &OpCode, mut f: F) {
             }
         }
         OpCode::Comment(_) => {}
-        OpCode::DynamicIndex(DynamicIndex { lhs, arg, offset }) => {
-            vec_v(&mut f, Sense::Write, lhs);
-            vec_v(&mut f, Sense::Read, arg);
-            vec_v(&mut f, Sense::Read, offset);
-        }
-        OpCode::DynamicSplice(DynamicSplice {
-            lhs,
-            arg,
-            offset,
-            value,
-        }) => {
-            vec_v(&mut f, Sense::Write, lhs);
-            vec_v(&mut f, Sense::Read, arg);
-            vec_v(&mut f, Sense::Read, offset);
-            vec_v(&mut f, Sense::Read, value);
-        }
         OpCode::Select(Select {
             lhs,
             selector,
@@ -140,22 +124,6 @@ pub fn visit_operands_mut<F: FnMut(&mut Operand)>(op: &mut OpCode, mut f: F) {
             }
         }
         OpCode::Comment(_comment) => {}
-        OpCode::DynamicIndex(DynamicIndex { lhs, arg, offset }) => {
-            vec_m(&mut f, lhs);
-            vec_m(&mut f, arg);
-            vec_m(&mut f, offset);
-        }
-        OpCode::DynamicSplice(DynamicSplice {
-            lhs,
-            arg,
-            offset,
-            value,
-        }) => {
-            vec_m(&mut f, lhs);
-            vec_m(&mut f, arg);
-            vec_m(&mut f, offset);
-            vec_m(&mut f, value);
-        }
         OpCode::Select(Select {
             lhs,
             selector,

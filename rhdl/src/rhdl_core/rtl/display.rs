@@ -1,8 +1,7 @@
 use crate::rhdl_core::{rtl::spec::CastKind, util::splice};
 
 use super::spec::{
-    AluBinary, AluUnary, Assign, Binary, Case, Cast, Concat, DynamicIndex, DynamicSplice, Index,
-    OpCode, Select, Splice, Unary,
+    AluBinary, AluUnary, Assign, Binary, Case, Cast, Concat, Index, OpCode, Select, Splice, Unary,
 };
 
 impl std::fmt::Debug for AluBinary {
@@ -97,26 +96,6 @@ impl std::fmt::Debug for OpCode {
             }
             OpCode::Concat(Concat { lhs, args }) => {
                 write!(f, " {:?} <- {{ {} }}", lhs, splice(args, ", "))
-            }
-            OpCode::DynamicIndex(DynamicIndex {
-                lhs,
-                arg,
-                offset,
-                len,
-            }) => {
-                write!(f, " {:?} <- {:?}[{:?} +: {:?}]", lhs, arg, offset, len)
-            }
-            OpCode::DynamicSplice(DynamicSplice {
-                lhs,
-                arg,
-                offset,
-                len,
-                value,
-            }) => {
-                write!(
-                    f,
-                    " {lhs:?} <- {arg:?}; {lhs:?}[{offset:?} +: {len}] <- {value:?}"
-                )
             }
             OpCode::Index(Index {
                 lhs,

@@ -6,8 +6,8 @@ use crate::rhdl_core::{
     compiler::mir::error::{RHDLCompileError, ICE},
     error::rhdl_error,
     rtl::spec::{
-        AluBinary, AluUnary, Case, CaseArgument, Cast, CastKind, Concat, DynamicIndex,
-        DynamicSplice, Index, Select, Splice, Unary,
+        AluBinary, AluUnary, Case, CaseArgument, Cast, CastKind, Concat, Index, Select, Splice,
+        Unary,
     },
     types::bit_string::BitString,
     RHDLError, TypedBits,
@@ -152,50 +152,6 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                     }
                     RegisterKind::Unsigned(_) => {
                         state.write(*lhs, BitString::Unsigned(combined), loc)?;
-                    }
-                }
-            }
-            OpCode::DynamicIndex(DynamicIndex {
-                lhs,
-                arg,
-                offset,
-                len,
-            }) => {
-                let arg = state.read(*arg, loc)?;
-                let offset = state.read(*offset, loc)?;
-                let offset: TypedBits = offset.into();
-                let offset = offset.as_i64()? as usize;
-                let slice = arg.bits()[offset..(offset + *len)].to_vec();
-                match state.obj.kind(*lhs) {
-                    RegisterKind::Signed(_) => {
-                        state.write(*lhs, BitString::Signed(slice), loc)?;
-                    }
-                    RegisterKind::Unsigned(_) => {
-                        state.write(*lhs, BitString::Unsigned(slice), loc)?;
-                    }
-                }
-            }
-            OpCode::DynamicSplice(DynamicSplice {
-                lhs,
-                arg,
-                offset,
-                len,
-                value,
-            }) => {
-                let arg = state.read(*arg, loc)?;
-                let value = state.read(*value, loc)?;
-                let offset = state.read(*offset, loc)?;
-                let offset: TypedBits = offset.into();
-                let offset = offset.as_i64()? as usize;
-                let mut arg = arg.bits().to_vec();
-                let value = value.bits();
-                arg.splice(offset..(offset + len), value.iter().copied());
-                match state.obj.kind(*lhs) {
-                    RegisterKind::Signed(_) => {
-                        state.write(*lhs, BitString::Signed(arg), loc)?;
-                    }
-                    RegisterKind::Unsigned(_) => {
-                        state.write(*lhs, BitString::Unsigned(arg), loc)?;
                     }
                 }
             }

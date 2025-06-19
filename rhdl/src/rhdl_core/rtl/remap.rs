@@ -1,6 +1,5 @@
 use super::spec::{
-    Assign, Binary, Case, CaseArgument, Cast, Concat, DynamicIndex, DynamicSplice, Index, OpCode,
-    Operand, Select, Splice, Unary,
+    Assign, Binary, Case, CaseArgument, Cast, Concat, Index, OpCode, Operand, Select, Splice, Unary,
 };
 
 pub fn remap_operands<F: FnMut(Operand) -> Operand>(op: OpCode, mut f: F) -> OpCode {
@@ -62,30 +61,6 @@ pub fn remap_operands<F: FnMut(Operand) -> Operand>(op: OpCode, mut f: F) -> OpC
         OpCode::Concat(Concat { lhs, args }) => OpCode::Concat(Concat {
             lhs: f(lhs),
             args: args.into_iter().map(f).collect(),
-        }),
-        OpCode::DynamicIndex(DynamicIndex {
-            lhs,
-            arg,
-            offset,
-            len,
-        }) => OpCode::DynamicIndex(DynamicIndex {
-            lhs: f(lhs),
-            arg: f(arg),
-            offset: f(offset),
-            len,
-        }),
-        OpCode::DynamicSplice(DynamicSplice {
-            lhs,
-            arg,
-            offset,
-            len,
-            value,
-        }) => OpCode::DynamicSplice(DynamicSplice {
-            lhs: f(lhs),
-            arg: f(arg),
-            offset: f(offset),
-            len,
-            value: f(value),
         }),
         OpCode::Index(Index {
             lhs,
