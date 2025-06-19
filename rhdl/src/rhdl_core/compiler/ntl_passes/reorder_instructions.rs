@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     prelude::RHDLError,
     rhdl_core::{
@@ -7,8 +5,7 @@ use crate::{
         error::rhdl_error,
         ntl::{
             error::{NetListError, NetListICE},
-            spec::{OpCode, RegisterId},
-            visit::{visit_operands, Sense},
+            graph::{make_net_graph, GraphMode, WriteSource},
             Object,
         },
     },
@@ -19,77 +16,15 @@ use super::pass::Pass;
 #[derive(Default, Debug, Clone)]
 pub struct ReorderInstructions {}
 
-#[derive(Debug)]
-enum WriteSource {
-    Input,
-    OpCode(usize),
-}
-
-fn raise_cycle_error(input: &Object, location: Option<SourceLocation>) -> RHDLError {
+fn raise_cycle_error(input: &Object, location: Vec<SourceLocation>) -> RHDLError {
     rhdl_error(NetListError {
         cause: NetListICE::LogicLoop,
         src: input.code.source(),
         elements: location
-            .map(|loc| input.code.span(loc).into())
-            .into_iter()
+            .iter()
+            .map(|&loc| input.code.span(loc).into())
             .collect(),
     })
-}
-
-fn make_reg_map(input: &Object) -> HashMap<RegisterId, WriteSource> {
-    let mut reg_map: HashMap<RegisterId, WriteSource> = HashMap::default();
-    // Pass 1
-    for (ndx, lop) in input.ops.iter().enumerate() {
-        visit_operands(&lop.op, |sense, operand| {
-            if let Some(reg) = operand.reg() {
-                if sense == Sense::Write {
-                    reg_map.insert(reg, WriteSource::OpCode(ndx));
-                }
-            }
-        });
-    }
-    reg_map.extend(
-        input
-            .inputs
-            .iter()
-            .flatten()
-            .map(|r| (*r, WriteSource::Input)),
-    );
-    reg_map
-}
-
-fn make_dep_graph(
-    input: &Object,
-    reg_map: &HashMap<RegisterId, WriteSource>,
-) -> petgraph::graph::DiGraph<WriteSource, ()> {
-    let mut g = petgraph::graph::DiGraph::default();
-    // Add a node for the input source
-    let input_node = g.add_node(WriteSource::Input);
-    // Add a node for each opcode.
-    let op_ndx = (0..input.ops.len())
-        .map(|ndx| g.add_node(WriteSource::OpCode(ndx)))
-        .collect::<Vec<_>>();
-    // For each opcode, scan the inputs.  For each input,
-    // add an edge to the graph from that input's write source to
-    // the current opcode
-    for (ndx, lop) in input.ops.iter().enumerate() {
-        if matches!(lop.op, OpCode::BlackBox(_)) {
-            continue;
-        }
-        let target = op_ndx[ndx];
-        visit_operands(&lop.op, |sense, operand| {
-            if let Some(reg) = operand.reg() {
-                if sense == Sense::Read {
-                    let source = match reg_map[&reg] {
-                        WriteSource::Input => input_node,
-                        WriteSource::OpCode(ndx) => op_ndx[ndx],
-                    };
-                    g.add_edge(source, target, ());
-                }
-            }
-        });
-    }
-    g
 }
 
 impl Pass for ReorderInstructions {
@@ -105,29 +40,43 @@ impl Pass for ReorderInstructions {
     ///       the opcodes based on the topological order.  If cycles exist,
     ///       raise an error.
     fn run(mut input: Object) -> Result<Object, RHDLError> {
-        // Pass 1 - make a map from register to the source of where it is
-        // written.
-        let reg_map = make_reg_map(&input);
-        // Pass 2 - make a graph of the write sources.
-        let dep_graph = make_dep_graph(&input, &reg_map);
-        // Pass 3 perform a topo sort of the graph
-        match petgraph::algo::toposort(&dep_graph, None) {
+        let dep = make_net_graph(&input, GraphMode::Asynchronous);
+        match petgraph::algo::toposort(&dep.graph, None) {
             Ok(order) => {
                 let orig_order = std::mem::take(&mut input.ops);
                 for elt in order {
-                    if let WriteSource::OpCode(ndx) = &dep_graph[elt] {
+                    if let WriteSource::OpCode(ndx) = &dep.graph[elt] {
                         input.ops.push(orig_order[*ndx].clone());
                     }
                 }
             }
             Err(cycle) => {
-                log::warn!("{:?}", &dep_graph[cycle.node_id()]);
-                let source_location = match &dep_graph[cycle.node_id()] {
-                    WriteSource::Input => None,
-                    WriteSource::OpCode(ndx) => {
-                        log::warn!("{:?}", input.ops[*ndx].op);
-                        input.ops[*ndx].loc
+                log::warn!("{:?}", input);
+                log::warn!("{:?}", &dep.graph[cycle.node_id()]);
+                let node = cycle.node_id();
+                let source_location = if let Some(path) =
+                    petgraph::algo::all_simple_paths::<Vec<_>, _>(&dep.graph, node, node, 1, None)
+                        .next()
+                {
+                    path.into_iter()
+                        .flat_map(|id| match &dep.graph[id] {
+                            WriteSource::OpCode(ndx) => {
+                                log::warn!("{:?}", input.ops[*ndx].op);
+                                input.ops[*ndx].loc
+                            }
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>()
+                } else {
+                    match &dep.graph[cycle.node_id()] {
+                        WriteSource::OpCode(ndx) => {
+                            log::warn!("{:?}", input.ops[*ndx].op);
+                            input.ops[*ndx].loc
+                        }
+                        _ => None,
                     }
+                    .into_iter()
+                    .collect()
                 };
                 return Err(raise_cycle_error(&input, source_location));
             }
