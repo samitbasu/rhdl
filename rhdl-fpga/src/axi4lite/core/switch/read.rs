@@ -372,8 +372,6 @@ mod tests {
             .is_test(true)
             .init();
         let switch: ReadSwitch<2> = ReadSwitch::try_new::<decode_addr>()?;
-        let rhif = compile_design::<super::kernel<2>>(CompilationMode::Synchronous)?;
-        log::warn!("{:?}", rhif);
         switch.yosys_check()?;
         drc::no_combinatorial_paths(&switch)?;
         Ok(())
