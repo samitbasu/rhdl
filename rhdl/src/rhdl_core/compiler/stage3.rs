@@ -38,7 +38,6 @@ pub fn optimize_ntl(mut input: Object) -> Result<Object, RHDLError> {
         }
         hash = new_hash;
     }
-
     input = wrap_pass::<ReorderInstructions>(input)?;
     input = wrap_pass::<CheckForUndriven>(input)?;
     Ok(input)
