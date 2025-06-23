@@ -329,7 +329,7 @@ impl<'a> NetListHDLBuilder<'a> {
             .map(|bb| bb.code.as_module())
             .collect();
         for lop in &self.ntl.ops {
-            self.op_code(&lop.op, lop.loc)?;
+            self.op_code(&lop.op, None)?;
         }
         let output_bits =
             ast::concatenate(self.ntl.outputs.iter().rev().copied().map(opex).collect());

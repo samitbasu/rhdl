@@ -25,7 +25,7 @@ impl SymbolMap {
     pub fn source(&self) -> SourcePool {
         self.source_set.source()
     }
-    pub fn span(&self, loc: SourceLocation) -> Range<usize> {
+    pub fn span<T: Into<SourceLocation>>(&self, loc: T) -> Range<usize> {
         self.source_set.span(loc)
     }
     pub fn alias(&mut self, op: Operand, alias: Operand) {

@@ -1,10 +1,8 @@
 use crate::rhdl_core::{
-    ast::source::source_location::SourceLocation,
     compiler::mir::error::ICE,
-    rtl::spec::AluBinary,
     rtl::{
-        object::{LocatedOpCode, RegisterKind},
-        spec::{Binary, Cast, CastKind, Concat, Index, LiteralId, OpCode, Operand},
+        object::{LocatedOpCode, RegisterKind, SourceOpCode},
+        spec::{AluBinary, Binary, Cast, CastKind, Concat, Index, LiteralId, OpCode, Operand},
         Object,
     },
     types::bit_string::BitString,
@@ -20,7 +18,7 @@ impl LowerShiftByConstant {
     fn shift_amount_as_usize(
         input: &Object,
         lit: LiteralId,
-        loc: SourceLocation,
+        loc: SourceOpCode,
     ) -> Result<usize, RHDLError> {
         let shift_amount: TypedBits = (&input.literals[&lit]).into();
         let shift_amount = shift_amount.as_i64()?;
@@ -41,7 +39,7 @@ impl LowerShiftByConstant {
         lhs: Operand,
         arg1: Operand,
         lit: LiteralId,
-        loc: SourceLocation,
+        loc: SourceOpCode,
     ) -> Result<(), RHDLError> {
         let shift_amount = Self::shift_amount_as_usize(input, lit, loc)?;
         let arg1_len = input.kind(arg1).len();
@@ -51,7 +49,7 @@ impl LowerShiftByConstant {
         } else {
             RegisterKind::Unsigned(arg1_ext_len)
         };
-        let ext = allocate_register(input, ext_kind, loc);
+        let ext = allocate_register(input, ext_kind, loc.into());
         input.ops.push(LocatedOpCode {
             op: OpCode::Cast(Cast {
                 lhs: Operand::Register(ext),
@@ -77,19 +75,19 @@ impl LowerShiftByConstant {
         lhs: Operand,
         arg1: Operand,
         lit: LiteralId,
-        loc: SourceLocation,
+        loc: SourceOpCode,
     ) -> Result<(), RHDLError> {
         let shift_amount = Self::shift_amount_as_usize(input, lit, loc)?;
         let arg1_len = input.kind(arg1).len();
         let arg1_lsbs_len = arg1_len.saturating_sub(shift_amount);
         // Allocate a new literal to hold the zeros shifted in on the right.
-        let zero_lit = allocate_literal(input, loc, BitString::zeros(shift_amount));
+        let zero_lit = allocate_literal(input, loc.into(), BitString::zeros(shift_amount));
         let lsb_kind = if input.kind(arg1).is_signed() {
             RegisterKind::Signed(arg1_lsbs_len)
         } else {
             RegisterKind::Unsigned(arg1_lsbs_len)
         };
-        let lsbs = allocate_register(input, lsb_kind, loc);
+        let lsbs = allocate_register(input, lsb_kind, loc.into());
         input.ops.push(LocatedOpCode {
             op: OpCode::Index(Index {
                 lhs: Operand::Register(lsbs),

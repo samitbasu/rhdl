@@ -6,10 +6,9 @@ use log::debug;
 use crate::rhdl_bits::alias::b8;
 
 use crate::rhdl_core::ast::ast_impl::{FunctionId, WrapOp};
-use crate::rhdl_core::ast::source::source_location::SourceLocation;
 use crate::rhdl_core::error::rhdl_error;
 use crate::rhdl_core::rhif::spec::{AluBinary, Slot};
-use crate::rhdl_core::rtl::object::{lop, RegisterKind};
+use crate::rhdl_core::rtl::object::{RegisterKind, SourceOpCode};
 use crate::rhdl_core::rtl::remap::remap_operands;
 use crate::rhdl_core::rtl::spec::{CastKind, Concat, LiteralId, Operand, RegisterId};
 use crate::rhdl_core::rtl::symbols::SymbolMap;
@@ -37,6 +36,7 @@ struct RTLCompiler<'a> {
     ops: Vec<rtl::object::LocatedOpCode>,
     literal_count: usize,
     register_count: usize,
+    rhifs: BTreeMap<FunctionId, rhif::Object>,
 }
 
 #[derive(Debug, Clone)]
@@ -142,22 +142,19 @@ impl<'a> RTLCompiler<'a> {
             ops: Default::default(),
             literal_count: 0,
             register_count: 0,
+            rhifs: BTreeMap::from([(object.fn_id, object.clone())]),
         }
     }
-    fn associate(&mut self, operand: Operand, loc: SourceLocation) {
-        self.symbols.operand_map.insert(operand, loc);
+    fn associate(&mut self, operand: Operand, loc: SourceOpCode) {
+        self.symbols.operand_map.insert(operand, loc.into());
     }
-    fn allocate_literal(&mut self, bits: &TypedBits, loc: SourceLocation) -> Operand {
+    fn allocate_literal(&mut self, bits: &TypedBits, loc: SourceOpCode) -> Operand {
         let bits: BitString = bits.into();
         self.allocate_literal_from_bit_string(&bits, loc)
     }
-    fn allocate_literal_from_bit_string(
-        &mut self,
-        bits: &BitString,
-        loc: SourceLocation,
-    ) -> Operand {
+    fn allocate_literal_from_bit_string(&mut self, bits: &BitString, loc: SourceOpCode) -> Operand {
         if let Some((reuse_id, _)) = self.literals.iter().find(|(id, bs)| {
-            bits.eq(bs) && self.symbols.operand_map[&Operand::Literal(**id)] == loc
+            bits.eq(bs) && self.symbols.operand_map[&Operand::Literal(**id)] == loc.rhif
         }) {
             return Operand::Literal(*reuse_id);
         }
@@ -168,7 +165,7 @@ impl<'a> RTLCompiler<'a> {
         self.associate(literal, loc);
         literal
     }
-    fn allocate_signed(&mut self, length: usize, loc: SourceLocation) -> Operand {
+    fn allocate_signed(&mut self, length: usize, loc: SourceOpCode) -> Operand {
         let register_id = RegisterId::new(self.register_count);
         self.register_count += 1;
         self.registers
@@ -177,7 +174,7 @@ impl<'a> RTLCompiler<'a> {
         self.associate(register, loc);
         register
     }
-    fn allocate_unsigned(&mut self, length: usize, loc: SourceLocation) -> Operand {
+    fn allocate_unsigned(&mut self, length: usize, loc: SourceOpCode) -> Operand {
         let register_id = RegisterId::new(self.register_count);
         self.register_count += 1;
         self.registers
@@ -186,7 +183,7 @@ impl<'a> RTLCompiler<'a> {
         self.associate(register, loc);
         register
     }
-    fn allocate_register(&mut self, kind: &Kind, loc: SourceLocation) -> Operand {
+    fn allocate_register(&mut self, kind: &Kind, loc: SourceOpCode) -> Operand {
         let len = kind.bits();
         if kind.is_signed() {
             self.allocate_signed(len, loc)
@@ -197,7 +194,7 @@ impl<'a> RTLCompiler<'a> {
     fn allocate_register_with_register_kind(
         &mut self,
         kind: &RegisterKind,
-        loc: SourceLocation,
+        loc: SourceOpCode,
     ) -> Operand {
         let register_id = RegisterId::new(self.register_count);
         self.register_count += 1;
@@ -218,21 +215,21 @@ impl<'a> RTLCompiler<'a> {
             Operand::Register(register_id) => self.registers[&register_id].is_signed(),
         }
     }
-    fn raise_ice(&self, cause: ICE, loc: SourceLocation) -> RHDLError {
+    fn raise_ice(&self, cause: ICE, loc: SourceOpCode) -> RHDLError {
         rhdl_error(RHDLCompileError {
             cause,
             src: self.object.symbols.source(),
-            err_span: self.object.symbols.span(loc).into(),
+            err_span: self.object.symbols.span(loc.into()).into(),
         })
     }
-    fn lop(&mut self, opcode: tl::OpCode, loc: SourceLocation) {
+    fn lop(&mut self, opcode: tl::OpCode, loc: SourceOpCode) {
         self.ops.push((opcode, loc).into())
     }
     fn build_dynamic_index(
         &mut self,
         arg_kind: Kind,
         path: &Path,
-        loc: SourceLocation,
+        loc: SourceOpCode,
     ) -> Result<DynamicIndexDetails> {
         let dynamic_slots: Vec<Slot> = path.dynamic_slots().copied().collect();
         // Each of the selectors should be a register.  Any literals should have
@@ -295,7 +292,7 @@ impl<'a> RTLCompiler<'a> {
             table: test_values.into(),
         })
     }
-    fn operand(&mut self, slot: Slot, loc: SourceLocation) -> Result<Operand> {
+    fn operand(&mut self, slot: Slot, loc: SourceOpCode) -> Result<Operand> {
         if let Some(operand) = self.reverse_operand_map.get(&(self.object.fn_id, slot)) {
             return Ok(*operand);
         }
@@ -323,7 +320,7 @@ impl<'a> RTLCompiler<'a> {
             Slot::Empty => panic!("empty slot"), //Err(self.raise_ice(ICE::EmptySlotInRTL, id)),
         }
     }
-    fn make_operand_list(&mut self, args: &[Slot], loc: SourceLocation) -> Result<Vec<Operand>> {
+    fn make_operand_list(&mut self, args: &[Slot], loc: SourceOpCode) -> Result<Vec<Operand>> {
         args.iter()
             .filter_map(|a| {
                 if a.is_empty() {
@@ -334,7 +331,7 @@ impl<'a> RTLCompiler<'a> {
             })
             .collect()
     }
-    fn make_array(&mut self, args: &hf::Array, loc: SourceLocation) -> Result<()> {
+    fn make_array(&mut self, args: &hf::Array, loc: SourceOpCode) -> Result<()> {
         let hf::Array { lhs, elements } = args;
         if lhs.is_empty() {
             return Ok(());
@@ -350,7 +347,7 @@ impl<'a> RTLCompiler<'a> {
         );
         Ok(())
     }
-    fn make_resize(&mut self, cast: &hf::Cast, loc: SourceLocation) -> Result<()> {
+    fn make_resize(&mut self, cast: &hf::Cast, loc: SourceOpCode) -> Result<()> {
         let hf::Cast { lhs, arg, len } = cast;
         let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, loc))?;
         if !lhs.is_empty() && !arg.is_empty() {
@@ -368,7 +365,7 @@ impl<'a> RTLCompiler<'a> {
         }
         Ok(())
     }
-    fn make_wrap(&mut self, wrap: &hf::Wrap, loc: SourceLocation) -> Result<()> {
+    fn make_wrap(&mut self, wrap: &hf::Wrap, loc: SourceOpCode) -> Result<()> {
         let hf::Wrap { lhs, op, arg, kind } = wrap;
         let kind = kind.ok_or_else(|| self.raise_ice(ICE::WrapMissingKind, loc))?;
         let discriminant = match op {
@@ -412,7 +409,7 @@ impl<'a> RTLCompiler<'a> {
         };
         Ok(())
     }
-    fn make_as_bits(&mut self, cast: &hf::Cast, loc: SourceLocation) -> Result<()> {
+    fn make_as_bits(&mut self, cast: &hf::Cast, loc: SourceOpCode) -> Result<()> {
         let hf::Cast { lhs, arg, len } = cast;
         let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, loc))?;
         if !lhs.is_empty() && !arg.is_empty() {
@@ -430,7 +427,7 @@ impl<'a> RTLCompiler<'a> {
         }
         Ok(())
     }
-    fn make_as_signed(&mut self, cast: &hf::Cast, loc: SourceLocation) -> Result<()> {
+    fn make_as_signed(&mut self, cast: &hf::Cast, loc: SourceOpCode) -> Result<()> {
         let hf::Cast { lhs, arg, len } = cast;
         let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, loc))?;
         if !lhs.is_empty() && !arg.is_empty() {
@@ -448,7 +445,7 @@ impl<'a> RTLCompiler<'a> {
         }
         Ok(())
     }
-    fn make_assign(&mut self, assign: &hf::Assign, loc: SourceLocation) -> Result<()> {
+    fn make_assign(&mut self, assign: &hf::Assign, loc: SourceOpCode) -> Result<()> {
         let hf::Assign { lhs, rhs } = assign;
         if !lhs.is_empty() && !rhs.is_empty() {
             let lhs = self.operand(*lhs, loc)?;
@@ -462,7 +459,7 @@ impl<'a> RTLCompiler<'a> {
         lhs: Operand,
         arg1: Operand,
         arg2: Operand,
-        loc: SourceLocation,
+        loc: SourceOpCode,
         op: tl::AluBinary,
     ) -> Result<()> {
         let Operand::Register(lhs_id) = lhs else {
@@ -505,7 +502,7 @@ impl<'a> RTLCompiler<'a> {
         lhs: Operand,
         arg1: Operand,
         arg2: Operand,
-        loc: SourceLocation,
+        loc: SourceOpCode,
     ) -> Result<()> {
         let Operand::Register(lhs_id) = lhs else {
             return Err(self.raise_ice(ICE::XopsResultMustBeRegister, loc));
@@ -572,7 +569,7 @@ impl<'a> RTLCompiler<'a> {
         );
         Ok(())
     }
-    fn make_binary(&mut self, binary: &hf::Binary, loc: SourceLocation) -> Result<()> {
+    fn make_binary(&mut self, binary: &hf::Binary, loc: SourceOpCode) -> Result<()> {
         let hf::Binary {
             lhs,
             op,
@@ -620,7 +617,7 @@ impl<'a> RTLCompiler<'a> {
     fn make_case_argument(
         &mut self,
         case_argument: &hf::CaseArgument,
-        loc: SourceLocation,
+        loc: SourceOpCode,
     ) -> Result<tl::CaseArgument> {
         match case_argument {
             hf::CaseArgument::Slot(slot) => {
@@ -636,7 +633,7 @@ impl<'a> RTLCompiler<'a> {
             hf::CaseArgument::Wild => Ok(tl::CaseArgument::Wild),
         }
     }
-    fn make_case(&mut self, case: &hf::Case, loc: SourceLocation) -> Result<()> {
+    fn make_case(&mut self, case: &hf::Case, loc: SourceOpCode) -> Result<()> {
         let hf::Case {
             lhs,
             discriminant,
@@ -665,7 +662,7 @@ impl<'a> RTLCompiler<'a> {
         );
         Ok(())
     }
-    fn make_dynamic_splice(&mut self, splice: &hf::Splice, loc: SourceLocation) -> Result<()> {
+    fn make_dynamic_splice(&mut self, splice: &hf::Splice, loc: SourceOpCode) -> Result<()> {
         let hf::Splice {
             lhs,
             orig,
@@ -706,7 +703,7 @@ impl<'a> RTLCompiler<'a> {
         );
         Ok(())
     }
-    fn make_enum(&mut self, enumerate: &hf::Enum, id: SourceLocation) -> Result<()> {
+    fn make_enum(&mut self, enumerate: &hf::Enum, id: SourceOpCode) -> Result<()> {
         let hf::Enum {
             lhs,
             fields,
@@ -740,13 +737,14 @@ impl<'a> RTLCompiler<'a> {
         self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), id);
         Ok(())
     }
-    fn make_exec(&mut self, exec: &hf::Exec, loc: SourceLocation) -> Result<()> {
+    fn make_exec(&mut self, exec: &hf::Exec, loc: SourceOpCode) -> Result<()> {
         let hf::Exec { lhs, id, args } = exec;
         if lhs.is_empty() {
             return Ok(());
         }
         // Look up the function ID from the external functions.
         let func = &self.object.externals[id];
+        self.rhifs.insert(func.fn_id, func.as_ref().clone());
         // Compile it...
         let func_rtl = compile_rtl(func)?;
         // Inline it.
@@ -793,7 +791,7 @@ impl<'a> RTLCompiler<'a> {
             .into_iter()
             .map(|old_lop| {
                 let op = remap_operands(old_lop.op, &mut op_remap);
-                lop(op, old_lop.loc.node, old_lop.loc.func)
+                (op, old_lop.loc).into()
             })
             .collect::<Vec<_>>();
         self.ops.extend(translated);
@@ -828,7 +826,7 @@ impl<'a> RTLCompiler<'a> {
     ///          0, 1  => a.foo[0].bar.baz[1]
     ///           etc.
     ///      }
-    fn make_dynamic_index(&mut self, index: &hf::Index, loc: SourceLocation) -> Result<()> {
+    fn make_dynamic_index(&mut self, index: &hf::Index, loc: SourceOpCode) -> Result<()> {
         let hf::Index { lhs, arg, path } = index;
         if lhs.is_empty() {
             return Ok(());
@@ -863,7 +861,7 @@ impl<'a> RTLCompiler<'a> {
         );
         Ok(())
     }
-    fn make_index(&mut self, index: &hf::Index, loc: SourceLocation) -> Result<()> {
+    fn make_index(&mut self, index: &hf::Index, loc: SourceOpCode) -> Result<()> {
         if index.lhs.is_empty() {
             return Ok(());
         }
@@ -884,7 +882,7 @@ impl<'a> RTLCompiler<'a> {
         );
         Ok(())
     }
-    fn make_repeat(&mut self, repeat: &hf::Repeat, loc: SourceLocation) -> Result<()> {
+    fn make_repeat(&mut self, repeat: &hf::Repeat, loc: SourceOpCode) -> Result<()> {
         let hf::Repeat { lhs, value, len } = *repeat;
         if lhs.is_empty() {
             return Ok(());
@@ -895,7 +893,7 @@ impl<'a> RTLCompiler<'a> {
         self.lop(tl::OpCode::Concat(tl::Concat { lhs, args }), loc);
         Ok(())
     }
-    fn make_retime(&mut self, retime: &hf::Retime, loc: SourceLocation) -> Result<()> {
+    fn make_retime(&mut self, retime: &hf::Retime, loc: SourceOpCode) -> Result<()> {
         let hf::Retime { lhs, arg, color: _ } = *retime;
         if lhs.is_empty() {
             return Ok(());
@@ -905,7 +903,7 @@ impl<'a> RTLCompiler<'a> {
         self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), loc);
         Ok(())
     }
-    fn make_select(&mut self, select: &hf::Select, loc: SourceLocation) -> Result<()> {
+    fn make_select(&mut self, select: &hf::Select, loc: SourceOpCode) -> Result<()> {
         let hf::Select {
             lhs,
             cond,
@@ -930,7 +928,7 @@ impl<'a> RTLCompiler<'a> {
         );
         Ok(())
     }
-    fn make_splice(&mut self, splice: &hf::Splice, loc: SourceLocation) -> Result<()> {
+    fn make_splice(&mut self, splice: &hf::Splice, loc: SourceOpCode) -> Result<()> {
         if splice.lhs.is_empty() {
             return Ok(());
         }
@@ -959,7 +957,7 @@ impl<'a> RTLCompiler<'a> {
         );
         Ok(())
     }
-    fn make_struct(&mut self, strukt: &hf::Struct, loc: SourceLocation) -> Result<()> {
+    fn make_struct(&mut self, strukt: &hf::Struct, loc: SourceOpCode) -> Result<()> {
         let hf::Struct {
             lhs,
             fields,
@@ -995,7 +993,7 @@ impl<'a> RTLCompiler<'a> {
         self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), loc);
         Ok(())
     }
-    fn make_tuple(&mut self, tuple: &hf::Tuple, loc: SourceLocation) -> Result<()> {
+    fn make_tuple(&mut self, tuple: &hf::Tuple, loc: SourceOpCode) -> Result<()> {
         let hf::Tuple { lhs, fields } = tuple;
         if lhs.is_empty() {
             return Ok(());
@@ -1005,7 +1003,7 @@ impl<'a> RTLCompiler<'a> {
         self.lop(tl::OpCode::Concat(tl::Concat { lhs, args }), loc);
         Ok(())
     }
-    fn make_xshr(&mut self, lhs: Operand, arg: Operand, shift: usize, loc: SourceLocation) {
+    fn make_xshr(&mut self, lhs: Operand, arg: Operand, shift: usize, loc: SourceOpCode) {
         // First apply the right shift operation
         let count = b8(shift as u128);
         let right_shift_amount = self.allocate_literal(&count.typed_bits(), loc);
@@ -1036,7 +1034,7 @@ impl<'a> RTLCompiler<'a> {
             loc,
         )
     }
-    fn make_xshl(&mut self, lhs: Operand, arg: Operand, count: usize, loc: SourceLocation) {
+    fn make_xshl(&mut self, lhs: Operand, arg: Operand, count: usize, loc: SourceOpCode) {
         // First pad the operand by the shift count
         let arg_len = self.operand_bit_width(arg);
         let arg_padded = if self.operand_is_signed(arg) {
@@ -1067,7 +1065,7 @@ impl<'a> RTLCompiler<'a> {
             loc,
         );
     }
-    fn make_xsgn(&mut self, lhs: Operand, arg: Operand, loc: SourceLocation) {
+    fn make_xsgn(&mut self, lhs: Operand, arg: Operand, loc: SourceOpCode) {
         // The argument must be unsigned.
         // First pad the width by 1 bit
         let arg_len = self.operand_bit_width(arg);
@@ -1094,7 +1092,7 @@ impl<'a> RTLCompiler<'a> {
             loc,
         );
     }
-    fn make_xneg(&mut self, lhs: Operand, arg: Operand, loc: SourceLocation) {
+    fn make_xneg(&mut self, lhs: Operand, arg: Operand, loc: SourceOpCode) {
         // First pad the width by 1 bit
         let arg_len = self.operand_bit_width(arg);
         let mut arg_padded = if self.operand_is_signed(arg) {
@@ -1137,7 +1135,7 @@ impl<'a> RTLCompiler<'a> {
             loc,
         );
     }
-    fn make_unary(&mut self, unary: &hf::Unary, loc: SourceLocation) -> Result<()> {
+    fn make_unary(&mut self, unary: &hf::Unary, loc: SourceOpCode) -> Result<()> {
         let hf::Unary { lhs, op, arg1 } = *unary;
         if lhs.is_empty() {
             return Ok(());
@@ -1174,8 +1172,8 @@ impl<'a> RTLCompiler<'a> {
         Ok(())
     }
     fn translate(mut self) -> Result<Self> {
-        for lop in &self.object.ops {
-            let loc = lop.loc;
+        for (ndx, lop) in self.object.ops.iter().enumerate() {
+            let loc = SourceOpCode::new(lop.loc, ndx);
             match &lop.op {
                 hf::OpCode::Array(array) => {
                     self.make_array(array, loc)?;
@@ -1251,7 +1249,7 @@ fn compile_rtl(object: &rhif::Object) -> Result<rtl::object::Object> {
             if object.kind[x].is_empty() {
                 None
             } else if let Ok(Operand::Register(reg_id)) =
-                compiler.operand(Slot::Register(*x), fallback)
+                compiler.operand(Slot::Register(*x), SourceOpCode::new(fallback, 0))
             {
                 Some(reg_id)
             } else {
@@ -1269,6 +1267,7 @@ fn compile_rtl(object: &rhif::Object) -> Result<rtl::object::Object> {
         arguments,
         name: object.name.clone(),
         fn_id: object.fn_id,
+        rhifs: compiler.rhifs,
     })
 }
 

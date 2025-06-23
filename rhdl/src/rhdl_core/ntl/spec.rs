@@ -193,7 +193,7 @@ impl std::fmt::Debug for Operand {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct RegisterId(u32);
 
 impl RegisterId {
@@ -205,6 +205,12 @@ impl RegisterId {
     }
     pub(crate) fn offset(self, offset: u32) -> Self {
         Self(self.0 + offset)
+    }
+}
+
+impl std::fmt::Debug for RegisterId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "r{}", self.0)
     }
 }
 

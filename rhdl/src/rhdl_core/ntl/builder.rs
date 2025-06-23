@@ -1,6 +1,7 @@
 use crate::core::types::digital::Digital;
 use crate::prelude::Circuit;
 use crate::rhdl_core::ntl::spec::{self, BlackBoxId};
+use crate::rhdl_core::rtl;
 use crate::{
     prelude::{RHDLError, Synchronous},
     rhdl_core::{
@@ -50,6 +51,9 @@ impl Builder {
         let ret = (0..len).map(|_| self.reg()).collect::<Vec<_>>();
         self.object.outputs = ret.iter().copied().map(Operand::Register).collect();
         ret
+    }
+    pub fn add_rtl(&mut self, rtl: &rtl::Object) {
+        self.object.rtl.insert(rtl.fn_id, rtl.clone());
     }
     pub fn build(mut self, mode: BuilderMode) -> Result<Object, RHDLError> {
         match mode {

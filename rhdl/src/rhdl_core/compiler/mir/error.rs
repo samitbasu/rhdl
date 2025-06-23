@@ -214,6 +214,10 @@ pub enum ICE {
     InvalidCutKind { a: Kind },
     #[error("Dynamic index in path {path:?} is a literal value")]
     DynamicIndexHasLiteral { path: Path },
+    #[error("Multiple writes to a single register {op:?}")]
+    MultipleWritesToRegister {
+        op: crate::rhdl_core::ntl::spec::Operand,
+    },
 }
 
 #[derive(Error, Debug, Diagnostic)]

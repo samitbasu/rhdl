@@ -1,13 +1,15 @@
 use std::collections::BTreeMap;
 
 use crate::rhdl_core::{
-    ast::source::source_location::SourceLocation,
     bitx::BitX,
     compiler::mir::error::{RHDLCompileError, ICE},
     error::rhdl_error,
-    rtl::spec::{
-        AluBinary, AluUnary, Case, CaseArgument, Cast, CastKind, Concat, Index, Select, Splice,
-        Unary,
+    rtl::{
+        object::SourceOpCode,
+        spec::{
+            AluBinary, AluUnary, Case, CaseArgument, Cast, CastKind, Concat, Index, Select, Splice,
+            Unary,
+        },
     },
     types::bit_string::BitString,
     RHDLError, TypedBits,
@@ -29,7 +31,7 @@ struct VMState<'a> {
 }
 
 impl VMState<'_> {
-    fn raise_ice(&self, cause: ICE, loc: SourceLocation) -> RHDLError {
+    fn raise_ice(&self, cause: ICE, loc: SourceOpCode) -> RHDLError {
         let symbols = &self.obj.symbols;
         RHDLError::RHDLInternalCompilerError(Box::new(RHDLCompileError {
             cause,
@@ -42,7 +44,7 @@ impl VMState<'_> {
         op: AluBinary,
         arg1: BitString,
         arg2: BitString,
-        loc: SourceLocation,
+        loc: SourceOpCode,
     ) -> Result<BitString> {
         let arg1: TypedBits = arg1.into();
         let arg2: TypedBits = arg2.into();
@@ -52,14 +54,14 @@ impl VMState<'_> {
         }
     }
 
-    fn unary(&self, op: AluUnary, arg1: BitString, loc: SourceLocation) -> Result<BitString> {
+    fn unary(&self, op: AluUnary, arg1: BitString, loc: SourceOpCode) -> Result<BitString> {
         let arg1: TypedBits = arg1.into();
         match unary(op, arg1) {
             Ok(result) => Ok(result.into()),
             Err(e) => Err(self.raise_ice(ICE::UnaryOperatorError(Box::new(e)), loc)),
         }
     }
-    fn read(&self, operand: Operand, loc: SourceLocation) -> Result<BitString> {
+    fn read(&self, operand: Operand, loc: SourceOpCode) -> Result<BitString> {
         match operand {
             Operand::Literal(l) => Ok(self.literals[&l].clone()),
             Operand::Register(r) => self.reg_stack[r.raw()]
@@ -67,7 +69,7 @@ impl VMState<'_> {
                 .ok_or(self.raise_ice(ICE::UninitializedRTLRegister { r }, loc)),
         }
     }
-    fn write(&mut self, operand: Operand, value: BitString, loc: SourceLocation) -> Result<()> {
+    fn write(&mut self, operand: Operand, value: BitString, loc: SourceOpCode) -> Result<()> {
         match operand {
             Operand::Literal(ndx) => Err(self.raise_ice(ICE::CannotWriteToRTLLiteral { ndx }, loc)),
             Operand::Register(r) => {

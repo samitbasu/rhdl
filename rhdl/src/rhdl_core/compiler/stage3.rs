@@ -10,7 +10,7 @@ use crate::{
             lower_bitwise_op_with_constant::LowerBitwiseOpWithConstant, lower_case::LowerCase,
             lower_selects::LowerSelects, pass::Pass,
             remove_extra_registers::RemoveExtraRegistersPass,
-            reorder_instructions::ReorderInstructions,
+            reorder_instructions::ReorderInstructions, single_write::SingleRegisterWrite,
         },
         ntl::Object,
     },
@@ -38,6 +38,7 @@ pub fn optimize_ntl(mut input: Object) -> Result<Object, RHDLError> {
         }
         hash = new_hash;
     }
+    input = wrap_pass::<SingleRegisterWrite>(input)?;
     input = wrap_pass::<ReorderInstructions>(input)?;
     input = wrap_pass::<CheckForUndriven>(input)?;
     Ok(input)

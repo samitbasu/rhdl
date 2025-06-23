@@ -1,6 +1,6 @@
 use crate::rhdl_core::{
     rtl::{
-        object::LocatedOpCode,
+        object::{LocatedOpCode, SourceOpCode},
         spec::{Assign, OpCode, Operand},
         Object,
     },
@@ -37,7 +37,7 @@ impl Pass for RemoveEmptyFunctionArguments {
                     lhs: Operand::Register(*arg),
                     rhs: my_empty,
                 }),
-                loc: fallback,
+                loc: SourceOpCode::new(fallback, 0),
             })
             .collect::<Vec<_>>();
         input.ops = preamble.into_iter().chain(input.ops).collect();
