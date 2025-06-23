@@ -6,3 +6,4 @@ pub mod remap;
 pub mod runtime_ops;
 pub mod symbols;
 pub mod vm;
+pub use object::SourceOpCode;

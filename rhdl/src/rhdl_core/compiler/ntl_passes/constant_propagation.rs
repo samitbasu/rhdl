@@ -1,12 +1,11 @@
 use crate::{
     prelude::{BitString, RHDLError},
     rhdl_core::{
-        ast::source::source_location::SourceLocation,
         ntl::{
-            object::LocatedOpCode,
+            object::{LocatedOpCode, SourceOpCode},
             spec::{
-                Assign, Binary, BinaryOp, Case, CaseEntry, OpCode, Operand, Unary, UnaryOp, Vector,
-                VectorOp,
+                Assign, Binary, BinaryOp, Case, CaseEntry, Not, OpCode, Operand, Unary, UnaryOp,
+                Vector, VectorOp,
             },
             Object,
         },
@@ -52,7 +51,18 @@ fn vec_op(signed: bool, arg: &[Operand]) -> Option<TypedBits> {
     })
 }
 
-fn compute_unary(unary_op: Unary, source: Option<SourceLocation>, lop: &mut Vec<LocatedOpCode>) {
+fn compute_not(not_op: Not) -> OpCode {
+    if let Some(val) = not_op.arg.bitx() {
+        OpCode::Assign(Assign {
+            lhs: not_op.lhs,
+            rhs: Operand::from(!val),
+        })
+    } else {
+        OpCode::Not(not_op)
+    }
+}
+
+fn compute_unary(unary_op: Unary, source: Option<SourceOpCode>, lop: &mut Vec<LocatedOpCode>) {
     let signed = unary_op.op == UnaryOp::Neg;
     let arg = vec_op(signed, &unary_op.arg);
     let alu = match unary_op.op {
@@ -81,7 +91,7 @@ fn compute_unary(unary_op: Unary, source: Option<SourceLocation>, lop: &mut Vec<
     })
 }
 
-fn compute_vector(vector: Vector, source: Option<SourceLocation>, lop: &mut Vec<LocatedOpCode>) {
+fn compute_vector(vector: Vector, source: Option<SourceOpCode>, lop: &mut Vec<LocatedOpCode>) {
     let arg1 = vec_op(vector.signed, &vector.arg1);
     let arg2 = vec_op(vector.signed, &vector.arg2);
     match (arg1, arg2) {
@@ -162,6 +172,10 @@ impl Pass for ConstantPropagationPass {
                     op: compute_case(case),
                 }),
                 OpCode::Unary(unary) => compute_unary(unary, lop.loc, &mut ops),
+                OpCode::Not(not) => ops.push(LocatedOpCode {
+                    loc: lop.loc,
+                    op: compute_not(not),
+                }),
                 _ => ops.push(lop),
             }
         }

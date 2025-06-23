@@ -1,5 +1,4 @@
 use crate::rhdl_core::{
-    ast::source::source_location::SourceLocation,
     bitx::BitX,
     compiler::mir::error::{RHDLCompileError, ICE},
     error::rhdl_error,
@@ -11,6 +10,7 @@ use crate::rhdl_core::{
         self,
         object::LocatedOpCode,
         spec::{AluUnary, CaseArgument, CastKind, Operand},
+        SourceOpCode,
     },
     RHDLError,
 };
@@ -25,7 +25,7 @@ struct TranslationContext<'a> {
 }
 
 impl TranslationContext<'_> {
-    fn raise_ice(&self, cause: ICE, id: SourceLocation) -> RHDLError {
+    fn raise_ice(&self, cause: ICE, id: SourceOpCode) -> RHDLError {
         rhdl_error(RHDLCompileError {
             cause,
             src: self.rtl.symbols.source(),
@@ -34,7 +34,7 @@ impl TranslationContext<'_> {
     }
     /// Cast the argument ot the desired width, considering the result a signed value.
     /// The cast length must be less than or equal to the argument length, or an ICE is raised.
-    fn translate_as_signed(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
+    fn translate_as_signed(&mut self, cast: &tl::Cast, id: SourceOpCode) -> Result<()> {
         if cast.len > self.rtl.kind(cast.arg).len() {
             return Err(self.raise_ice(
                 ICE::InvalidSignedCast {
@@ -91,7 +91,7 @@ impl TranslationContext<'_> {
             ));
         }
     }
-    fn translate_resize(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
+    fn translate_resize(&mut self, cast: &tl::Cast, id: SourceOpCode) -> Result<()> {
         if cast.len == 0 {
             return Err(self.raise_ice(
                 ICE::InvalidResize {
@@ -109,7 +109,7 @@ impl TranslationContext<'_> {
         }
         Ok(())
     }
-    fn translate_cast(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
+    fn translate_cast(&mut self, cast: &tl::Cast, id: SourceOpCode) -> Result<()> {
         match cast.kind {
             CastKind::Signed => self.translate_as_signed(cast, id),
             CastKind::Unsigned => {

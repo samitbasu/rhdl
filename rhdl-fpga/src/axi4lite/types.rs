@@ -137,7 +137,7 @@ pub enum ExFlag {
 pub type WriteResult = Result<(), AXI4Error>;
 
 /// The result of a Read operation on the AXI bus
-pub type ReadResult = Result<b32, AXI4Error>;
+pub type ReadResult = Result<AxilData, AXI4Error>;
 
 #[kernel]
 /// Helper function to recode a [ReadResponse] into a [Result].

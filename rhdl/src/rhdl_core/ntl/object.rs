@@ -2,17 +2,18 @@ use crate::{
     prelude::HDLDescriptor,
     rhdl_core::{
         ast::{
-            ast_impl::{FunctionId, NodeId},
+            ast_impl::FunctionId,
             source::{source_location::SourceLocation, spanned_source_set::SpannedSourceSet},
         },
         ntl::{
             spec::{OpCode, Operand, RegisterId},
             visit::{visit_operands, visit_operands_mut},
         },
+        rtl,
     },
 };
-use std::hash::Hash;
 use std::hash::Hasher;
+use std::{collections::BTreeMap, hash::Hash};
 
 use fnv::FnvHasher;
 
@@ -35,6 +36,7 @@ pub struct Object {
     pub outputs: Vec<Operand>,
     pub ops: Vec<LocatedOpCode>,
     pub code: SpannedSourceSet,
+    pub rtl: BTreeMap<FunctionId, rtl::Object>,
     pub black_boxes: Vec<BlackBox>,
 }
 
@@ -62,8 +64,6 @@ impl Object {
     /// Link another netlist, and return the offset added
     /// to registers
     pub fn link(&mut self, other: &Object) -> u32 {
-        log::info!("Root {:?}", self);
-        log::info!("Other {:?}", other);
         let max_reg = self.max_reg() + 1;
         let mut other_ops = other.ops.clone();
         for lop in &mut other_ops {
@@ -83,7 +83,7 @@ impl Object {
         self.ops.extend(other_ops);
         self.code.extend(other.code.sources.clone());
         self.black_boxes.extend(other.black_boxes.clone());
-        log::info!("Linked {:?}", self);
+        self.rtl.extend(other.rtl.clone());
         max_reg
     }
     pub fn hash_value(&self) -> u64 {
@@ -96,14 +96,27 @@ impl Object {
 #[derive(Clone, Hash)]
 pub struct LocatedOpCode {
     pub op: OpCode,
-    pub loc: Option<SourceLocation>,
+    pub loc: Option<SourceOpCode>,
 }
 
-impl LocatedOpCode {
-    pub fn new(op: OpCode, id: NodeId, func: FunctionId) -> Self {
+#[derive(Clone, Hash, Copy)]
+pub struct SourceOpCode {
+    pub rtl: rtl::object::SourceOpCode,
+    pub op: usize,
+    pub bit: Option<usize>,
+}
+
+impl SourceOpCode {
+    pub fn with_bit(self, ndx: usize) -> Self {
         Self {
-            op,
-            loc: Some(SourceLocation { node: id, func }),
+            bit: Some(ndx),
+            ..self
         }
+    }
+}
+
+impl From<SourceOpCode> for SourceLocation {
+    fn from(value: SourceOpCode) -> SourceLocation {
+        value.rtl.into()
     }
 }

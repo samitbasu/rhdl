@@ -45,6 +45,33 @@ pub enum OpCode {
     Comment(String),
 }
 
+impl OpCode {
+    pub fn lhs(&self) -> Option<Slot> {
+        match self {
+            OpCode::Noop => None,
+            OpCode::Binary(Binary { lhs, .. })
+            | OpCode::Unary(Unary { lhs, .. })
+            | OpCode::Select(Select { lhs, .. })
+            | OpCode::Index(Index { lhs, .. })
+            | OpCode::Assign(Assign { lhs, .. })
+            | OpCode::Splice(Splice { lhs, .. })
+            | OpCode::Repeat(Repeat { lhs, .. })
+            | OpCode::Struct(Struct { lhs, .. })
+            | OpCode::Tuple(Tuple { lhs, .. })
+            | OpCode::Case(Case { lhs, .. })
+            | OpCode::Exec(Exec { lhs, .. })
+            | OpCode::Array(Array { lhs, .. })
+            | OpCode::Enum(Enum { lhs, .. })
+            | OpCode::AsBits(Cast { lhs, .. })
+            | OpCode::AsSigned(Cast { lhs, .. })
+            | OpCode::Resize(Cast { lhs, .. })
+            | OpCode::Retime(Retime { lhs, .. })
+            | OpCode::Wrap(Wrap { lhs, .. }) => Some(*lhs),
+            OpCode::Comment(_) => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Wrap {
     pub op: WrapOp,

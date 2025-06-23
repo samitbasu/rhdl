@@ -1,9 +1,8 @@
 use crate::rhdl_core::{
-    ast::source::source_location::SourceLocation,
     compiler::mir::error::{RHDLCompileError, ICE},
     error::rhdl_error,
     rtl::{
-        object::{LocatedOpCode, RegisterKind},
+        object::{LocatedOpCode, RegisterKind, SourceOpCode},
         spec::{
             Assign, Binary, Case, CaseArgument, Cast, CastKind, Concat, Index, LiteralId, OpCode,
             Operand, Select, Splice, Unary,
@@ -16,17 +15,17 @@ use crate::rhdl_core::{
 
 use super::pass::Pass;
 
-fn assign_literal(loc: SourceLocation, value: BitString, obj: &mut Object) -> Operand {
+fn assign_literal(loc: SourceOpCode, value: BitString, obj: &mut Object) -> Operand {
     let literal = obj.literal_max_index().next();
     obj.literals.insert(literal, value);
     obj.symbols
         .operand_map
-        .insert(Operand::Literal(literal), loc);
+        .insert(Operand::Literal(literal), loc.into());
     Operand::Literal(literal)
 }
 
 fn propagate_binary(
-    loc: SourceLocation,
+    loc: SourceOpCode,
     params: Binary,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -62,7 +61,7 @@ fn propagate_binary(
 }
 
 fn propagate_unary(
-    loc: SourceLocation,
+    loc: SourceOpCode,
     params: Unary,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -86,7 +85,7 @@ fn propagate_unary(
 }
 
 fn propagate_concat(
-    loc: SourceLocation,
+    loc: SourceOpCode,
     concat: Concat,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -124,7 +123,7 @@ fn propagate_concat(
 }
 
 fn propagate_case(
-    loc: SourceLocation,
+    loc: SourceOpCode,
     case: Case,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -156,7 +155,7 @@ fn propagate_case(
 }
 
 fn propagate_cast(
-    loc: SourceLocation,
+    loc: SourceOpCode,
     cast: crate::rhdl_core::rtl::spec::Cast,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -189,7 +188,7 @@ fn propagate_cast(
 }
 
 fn propagate_select(
-    loc: SourceLocation,
+    loc: SourceOpCode,
     select: Select,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -222,7 +221,7 @@ fn propagate_select(
 }
 
 fn propagate_splice(
-    loc: SourceLocation,
+    loc: SourceOpCode,
     splice: Splice,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -257,7 +256,7 @@ fn propagate_splice(
 }
 
 fn propagate_index(
-    loc: SourceLocation,
+    loc: SourceOpCode,
     index: Index,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {

@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::rhdl_core::{
     compiler::mir::error::ICE,
-    rtl::{remap::remap_operands, spec::Operand, Object},
+    rtl::{object::SourceOpCode, remap::remap_operands, spec::Operand, Object},
     RHDLError,
 };
 
@@ -34,7 +34,7 @@ impl Pass for SymbolTableIsComplete {
                 return Err(Self::raise_ice(
                     &input,
                     ICE::RTLSymbolTableIsIncomplete { operand },
-                    id,
+                    SourceOpCode::new(id, 0),
                 ));
             }
         }

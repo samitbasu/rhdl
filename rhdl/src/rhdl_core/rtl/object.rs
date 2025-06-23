@@ -7,6 +7,7 @@ use fnv::FnvHasher;
 
 use crate::rhdl_core::ast::ast_impl::{FunctionId, NodeId};
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
+use crate::rhdl_core::rhif;
 use crate::rhdl_core::types::bit_string::BitString;
 use crate::rhdl_core::{Digital, Kind};
 
@@ -16,32 +17,59 @@ use super::symbols::SymbolMap;
 #[derive(Clone, Hash)]
 pub struct LocatedOpCode {
     pub op: OpCode,
-    pub loc: SourceLocation,
+    pub loc: SourceOpCode,
 }
 
-impl LocatedOpCode {
-    pub fn new(op: OpCode, id: NodeId, func: FunctionId) -> Self {
+#[derive(Clone, Hash, Copy, PartialEq, Debug)]
+pub struct SourceOpCode {
+    pub rhif: SourceLocation,
+    pub op: Option<usize>,
+}
+
+impl SourceOpCode {
+    pub fn new(base: SourceLocation, ndx: usize) -> Self {
         Self {
-            op,
-            loc: SourceLocation { node: id, func },
+            rhif: base,
+            op: Some(ndx),
         }
     }
 }
 
-impl From<(OpCode, NodeId, FunctionId)> for LocatedOpCode {
-    fn from((op, id, func): (OpCode, NodeId, FunctionId)) -> Self {
-        Self::new(op, id, func)
+impl From<SourceOpCode> for SourceLocation {
+    fn from(val: SourceOpCode) -> SourceLocation {
+        val.rhif
     }
 }
 
-impl From<(OpCode, SourceLocation)> for LocatedOpCode {
-    fn from((op, loc): (OpCode, SourceLocation)) -> Self {
+impl From<SourceLocation> for SourceOpCode {
+    fn from(val: SourceLocation) -> SourceOpCode {
+        SourceOpCode {
+            rhif: val,
+            op: None,
+        }
+    }
+}
+
+impl LocatedOpCode {
+    pub fn new(op: OpCode, id: NodeId, func: FunctionId, rhif_op: usize) -> Self {
+        Self {
+            op,
+            loc: SourceOpCode {
+                rhif: SourceLocation { node: id, func },
+                op: Some(rhif_op),
+            },
+        }
+    }
+}
+
+impl From<(OpCode, SourceOpCode)> for LocatedOpCode {
+    fn from((op, loc): (OpCode, SourceOpCode)) -> Self {
         Self { op, loc }
     }
 }
 
-pub fn lop(op: OpCode, id: NodeId, func: FunctionId) -> LocatedOpCode {
-    LocatedOpCode::new(op, id, func)
+pub fn lop(op: OpCode, id: NodeId, func: FunctionId, rhif_op: usize) -> LocatedOpCode {
+    LocatedOpCode::new(op, id, func, rhif_op)
 }
 
 #[derive(Clone, Copy, Hash)]
@@ -117,6 +145,7 @@ pub struct Object {
     pub arguments: Vec<Option<RegisterId>>,
     pub name: String,
     pub fn_id: FunctionId,
+    pub rhifs: BTreeMap<FunctionId, rhif::Object>,
 }
 
 impl Object {

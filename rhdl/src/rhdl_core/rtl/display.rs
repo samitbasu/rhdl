@@ -92,7 +92,10 @@ impl std::fmt::Debug for OpCode {
                 )
             }
             OpCode::Comment(comment) => {
-                write!(f, "// {}", comment)
+                for line in comment.lines() {
+                    writeln!(f, "// {}", line)?;
+                }
+                Ok(())
             }
             OpCode::Concat(Concat { lhs, args }) => {
                 write!(f, " {:?} <- {{ {} }}", lhs, splice(args, ", "))

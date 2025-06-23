@@ -35,10 +35,10 @@ impl Pass for LowerMultiplyToShift {
                                 .unsigned_cast(literal_bits)
                                 .unwrap()
                                 .into();
-                            let shift = allocate_literal(&mut input, lop.loc, literal_bs);
+                            let shift = allocate_literal(&mut input, lop.loc.into(), literal_bs);
                             let lhs_kind = input.kind(binary.lhs);
                             // Allocate a register to hold the sign extended of the rhs
-                            let r_extend = allocate_register(&mut input, lhs_kind, lop.loc);
+                            let r_extend = allocate_register(&mut input, lhs_kind, lop.loc.into());
                             input.ops.push(LocatedOpCode {
                                 op: OpCode::Cast(Cast {
                                     lhs: Operand::Register(r_extend),

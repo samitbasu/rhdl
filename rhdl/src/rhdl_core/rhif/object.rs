@@ -128,6 +128,9 @@ impl Object {
         self.hash(&mut hasher);
         hasher.finish()
     }
+    pub fn filename(&self) -> &str {
+        self.symbols.source_set.filename(self.fn_id)
+    }
 }
 
 impl std::fmt::Debug for Object {
