@@ -1,6 +1,6 @@
 use crate::core::types::digital::Digital;
 use crate::prelude::Circuit;
-use crate::rhdl_core::ntl::spec::{self, BlackBoxId};
+use crate::rhdl_core::ntl::spec::{self, Assign, BlackBoxId, Link, LinkDetails};
 use crate::rhdl_core::rtl;
 use crate::{
     prelude::{RHDLError, Synchronous},
@@ -9,7 +9,7 @@ use crate::{
         compiler::optimize_ntl,
         ntl::{
             object::{BlackBox, BlackBoxMode, LocatedOpCode, Object},
-            spec::{Assign, OpCode, Operand, RegisterId},
+            spec::{OpCode, Operand, RegisterId},
         },
     },
 };
@@ -71,16 +71,31 @@ impl Builder {
         }
         optimize_ntl(self.object)
     }
-    pub fn link(&mut self, other: &Object) -> u32 {
+    pub fn import(&mut self, other: &Object) -> u32 {
         self.add_code(&other.code);
-        self.object.link(other)
+        self.object.import(other)
     }
     pub fn copy_from_to<T: Into<Operand>, S: Into<Operand>>(&mut self, rhs: T, lhs: S) {
         self.object.ops.push(LocatedOpCode {
-            loc: None,
             op: OpCode::Assign(Assign {
                 lhs: lhs.into(),
                 rhs: rhs.into(),
+            }),
+            loc: None,
+        })
+    }
+    pub fn link_from_to<T: Into<Operand>, S: Into<Operand>>(
+        &mut self,
+        rhs: T,
+        lhs: S,
+        details: LinkDetails,
+    ) {
+        self.object.ops.push(LocatedOpCode {
+            loc: None,
+            op: OpCode::Link(Link {
+                lhs: lhs.into(),
+                rhs: rhs.into(),
+                details,
             }),
         })
     }

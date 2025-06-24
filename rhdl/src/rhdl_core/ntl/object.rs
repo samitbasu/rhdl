@@ -63,7 +63,7 @@ impl Object {
 
     /// Link another netlist, and return the offset added
     /// to registers
-    pub fn link(&mut self, other: &Object) -> u32 {
+    pub fn import(&mut self, other: &Object) -> u32 {
         let max_reg = self.max_reg() + 1;
         let mut other_ops = other.ops.clone();
         for lop in &mut other_ops {

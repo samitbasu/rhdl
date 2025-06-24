@@ -4,8 +4,8 @@ use crate::{
     prelude::{BitX, RHDLError},
     rhdl_core::ntl::{
         object::Object,
-        visit::visit_operands_mut,
         spec::{Assign, OpCode, Operand, RegisterId},
+        visit::visit_operands_mut,
     },
 };
 

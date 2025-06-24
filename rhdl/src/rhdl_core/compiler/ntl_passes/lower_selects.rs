@@ -70,6 +70,8 @@ fn rewrite_select_with_dont_care_in_false(op: &mut OpCode) {
     })
 }
 
+// a <- s ? X : b
+// a <- b
 fn rewrite_select_with_dont_care_in_true(op: &mut OpCode) {
     let OpCode::Select(select) = &op else {
         return;

@@ -1,7 +1,7 @@
 use crate::{
     prelude::RHDLError,
     rhdl_core::ntl::{
-        spec::{Assign, Binary, BinaryOp, Not, OpCode, Operand},
+        spec::{assign, Binary, BinaryOp, Not, OpCode, Operand},
         Object,
     },
 };
@@ -39,31 +39,19 @@ fn lower_binary_op(op: &OpCode) -> Option<OpCode> {
         BinaryOp::And => {
             if lower_args.constant_arg {
                 // x AND 1 -> x
-                Some(OpCode::Assign(Assign {
-                    lhs: binary.lhs,
-                    rhs: lower_args.reg_arg,
-                }))
+                Some(assign(binary.lhs, lower_args.reg_arg))
             } else {
                 // x AND 0 -> 0
-                Some(OpCode::Assign(Assign {
-                    lhs: binary.lhs,
-                    rhs: Operand::Zero,
-                }))
+                Some(assign(binary.lhs, Operand::Zero))
             }
         }
         BinaryOp::Or => {
             if lower_args.constant_arg {
                 // x OR 1 -> 1
-                Some(OpCode::Assign(Assign {
-                    lhs: binary.lhs,
-                    rhs: Operand::One,
-                }))
+                Some(assign(binary.lhs, Operand::One))
             } else {
                 // x OR 0 -> x
-                Some(OpCode::Assign(Assign {
-                    lhs: binary.lhs,
-                    rhs: lower_args.reg_arg,
-                }))
+                Some(assign(binary.lhs, lower_args.reg_arg))
             }
         }
         BinaryOp::Xor => {
@@ -75,10 +63,7 @@ fn lower_binary_op(op: &OpCode) -> Option<OpCode> {
                 }))
             } else {
                 // x XOR 0 -> x
-                Some(OpCode::Assign(Assign {
-                    lhs: binary.lhs,
-                    rhs: lower_args.reg_arg,
-                }))
+                Some(assign(binary.lhs, lower_args.reg_arg))
             }
         }
     }

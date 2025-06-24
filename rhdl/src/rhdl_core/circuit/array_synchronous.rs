@@ -74,7 +74,7 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
             let (input_bit_range, _) = bit_range(Self::I::static_kind(), &child_path)?;
             let child_name = format!("{}_{}", name, i);
             let child_desc = self[i].descriptor(&child_name)?;
-            let offset = builder.link(&child_desc.ntl);
+            let offset = builder.import(&child_desc.ntl);
             for (&t, c) in tcr.iter().zip(&child_desc.ntl.inputs[0]) {
                 builder.copy_from_to(t, c.offset(offset));
             }

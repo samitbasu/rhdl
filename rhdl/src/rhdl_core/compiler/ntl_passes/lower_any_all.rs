@@ -1,7 +1,7 @@
 use crate::{
     prelude::RHDLError,
     rhdl_core::ntl::{
-        spec::{Assign, OpCode, Operand, Unary, UnaryOp},
+        spec::{assign, OpCode, Operand, Unary, UnaryOp},
         Object,
     },
 };
@@ -19,10 +19,7 @@ fn lower_any_all(op: &OpCode) -> Option<OpCode> {
         UnaryOp::All => {
             if unary.arg.iter().any(|op| op.bool() == Some(false)) {
                 // Short cut this all instruction - it must be false
-                Some(OpCode::Assign(Assign {
-                    lhs: unary.lhs[0],
-                    rhs: Operand::Zero,
-                }))
+                Some(assign(unary.lhs[0], Operand::Zero))
             } else {
                 // Filter out any arguments that are boolean true
                 let rhs = unary
@@ -32,10 +29,7 @@ fn lower_any_all(op: &OpCode) -> Option<OpCode> {
                     .copied()
                     .collect::<Vec<_>>();
                 if rhs.len() == 1 {
-                    Some(OpCode::Assign(Assign {
-                        lhs: unary.lhs[0],
-                        rhs: rhs[0],
-                    }))
+                    Some(assign(unary.lhs[0], rhs[0]))
                 } else {
                     Some(OpCode::Unary(Unary {
                         op: UnaryOp::All,
@@ -48,10 +42,7 @@ fn lower_any_all(op: &OpCode) -> Option<OpCode> {
         UnaryOp::Any => {
             if unary.arg.iter().any(|op| op.bool() == Some(true)) {
                 // Short cut this any instruction - it must be true
-                Some(OpCode::Assign(Assign {
-                    lhs: unary.lhs[0],
-                    rhs: Operand::One,
-                }))
+                Some(assign(unary.lhs[0], Operand::One))
             } else {
                 // Filter out any arguments that are boolean false
                 let rhs = unary
@@ -61,10 +52,7 @@ fn lower_any_all(op: &OpCode) -> Option<OpCode> {
                     .copied()
                     .collect::<Vec<_>>();
                 if rhs.len() == 1 {
-                    Some(OpCode::Assign(Assign {
-                        lhs: unary.lhs[0],
-                        rhs: rhs[0],
-                    }))
+                    Some(assign(unary.lhs[0], rhs[0]))
                 } else {
                     Some(OpCode::Unary(Unary {
                         op: UnaryOp::Any,
