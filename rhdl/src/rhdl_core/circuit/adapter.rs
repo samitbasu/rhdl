@@ -125,7 +125,7 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         let output_reg: RegisterKind = <Self::O as Timed>::static_kind().into();
         let ti = builder.add_input(input_reg.len());
         let to = builder.allocate_outputs(output_reg.len());
-        let child_offset = builder.link(&child_descriptor.ntl);
+        let child_offset = builder.import(&child_descriptor.ntl);
         let child_inputs = child_descriptor.ntl.inputs.iter().flatten();
         for (&t, c) in ti.iter().zip(child_inputs) {
             builder.copy_from_to(t, c.offset(child_offset));

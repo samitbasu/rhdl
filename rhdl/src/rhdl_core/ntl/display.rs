@@ -1,6 +1,12 @@
-use crate::rhdl_core::ntl::{
-    object::Object,
-    spec::{Assign, Binary, OpCode, Operand},
+use crate::{
+    prelude::{bit_range, Kind, Path},
+    rhdl_core::{
+        ntl::{
+            object::Object,
+            spec::{Assign, Binary, Link, LinkDetails, LinkEndpoint, LinkKind, OpCode, Operand},
+        },
+        types::path::leaf_paths,
+    },
 };
 
 fn vec_disp(f: &mut std::fmt::Formatter<'_>, data: &[Operand]) -> std::fmt::Result {
@@ -14,11 +20,70 @@ fn vec_disp(f: &mut std::fmt::Formatter<'_>, data: &[Operand]) -> std::fmt::Resu
     write!(f, "}}")
 }
 
+pub fn summarize_path(ty: Kind, bit: usize) -> String {
+    let paths = leaf_paths(&ty, Path::default());
+    if let Some(path) = paths.iter().find(|p| {
+        let Ok((bits1, _)) = bit_range(ty, p) else {
+            return false;
+        };
+        bits1.contains(&bit)
+    }) {
+        if !path.is_empty() {
+            format!("Bit {bit} of {{ {path:?} }}")
+        } else {
+            format!("All")
+        }
+    } else {
+        format!("Unknown")
+    }
+}
+
+impl std::fmt::Debug for LinkEndpoint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{name}[{path}]",
+            name = self.name,
+            path = summarize_path(self.kind, self.bit)
+        )
+    }
+}
+
+impl std::fmt::Debug for LinkDetails {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.kind {
+            LinkKind::ClockResetFanOut => write!(
+                f,
+                "clock & reset fan out from {source:?} -> {dest:?}",
+                source = &self.source,
+                dest = &self.dest
+            ),
+            LinkKind::ParentDToChildI => write!(
+                f,
+                "parent D {source:?} -> child I {dest:?}",
+                source = &self.source,
+                dest = &self.dest
+            ),
+            LinkKind::ChildOToParentQ => write!(
+                f,
+                "child O {source:?} -> parent Q {dest:?}",
+                source = &self.source,
+                dest = &self.dest
+            ),
+        }
+    }
+}
+
 impl std::fmt::Debug for OpCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             OpCode::Noop => write!(f, "Noop"),
-            OpCode::Assign(Assign { lhs, rhs }) => write!(f, " {:?} <- {:?}", lhs, rhs),
+            OpCode::Assign(Assign { lhs, rhs }) => {
+                write!(f, " {lhs:?} <- {rhs:?}")
+            }
+            OpCode::Link(Link { lhs, rhs, details }) => {
+                write!(f, " {lhs:?} <- {rhs:?}  // {details:?}")
+            }
             OpCode::Binary(Binary {
                 op,
                 lhs,

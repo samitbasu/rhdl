@@ -1,4 +1,4 @@
-use crate::prelude::{BitString, BitX};
+use crate::prelude::{BitString, BitX, Kind};
 
 #[derive(Clone, PartialEq, Hash)]
 pub enum OpCode {
@@ -21,6 +21,48 @@ pub enum OpCode {
     BlackBox(BlackBox),
     // lhs <- reduce(arg)
     Unary(Unary),
+    // lhs <- arg (between circuits)
+    Link(Link),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+pub enum LinkKind {
+    ClockResetFanOut,
+    ParentDToChildI,
+    ChildOToParentQ,
+}
+
+#[derive(Clone, PartialEq, Hash)]
+pub struct LinkEndpoint {
+    pub name: String,
+    pub kind: Kind,
+    pub bit: usize,
+}
+
+pub fn link_endpoint(name: &str, kind: Kind, bit: usize) -> LinkEndpoint {
+    LinkEndpoint {
+        name: name.into(),
+        kind,
+        bit,
+    }
+}
+
+#[derive(Clone, PartialEq, Hash)]
+pub struct LinkDetails {
+    pub source: LinkEndpoint,
+    pub dest: LinkEndpoint,
+    pub kind: LinkKind,
+}
+
+pub fn link_details(source: LinkEndpoint, dest: LinkEndpoint, kind: LinkKind) -> LinkDetails {
+    LinkDetails { source, dest, kind }
+}
+
+#[derive(Debug, Clone, PartialEq, Hash)]
+pub struct Link {
+    pub lhs: Operand,
+    pub rhs: Operand,
+    pub details: LinkDetails,
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]
@@ -115,6 +157,10 @@ pub enum BinaryOp {
 pub struct Assign {
     pub lhs: Operand,
     pub rhs: Operand,
+}
+
+pub fn assign(lhs: Operand, rhs: Operand) -> OpCode {
+    OpCode::Assign(Assign { lhs, rhs })
 }
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]

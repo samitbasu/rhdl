@@ -17,6 +17,14 @@ pub fn visit_operands<F: FnMut(Sense, &Operand)>(op: &OpCode, mut f: F) {
             f(Sense::Write, lhs);
             f(Sense::Read, rhs);
         }
+        OpCode::Link(Link {
+            lhs,
+            rhs,
+            details: _,
+        }) => {
+            f(Sense::Write, lhs);
+            f(Sense::Read, rhs);
+        }
         OpCode::Binary(Binary {
             op: _,
             lhs,
@@ -88,6 +96,14 @@ pub fn visit_operands_mut<F: FnMut(&mut Operand)>(op: &mut OpCode, mut f: F) {
     match op {
         OpCode::Noop => {}
         OpCode::Assign(Assign { lhs, rhs }) => {
+            f(lhs);
+            f(rhs);
+        }
+        OpCode::Link(Link {
+            lhs,
+            rhs,
+            details: _,
+        }) => {
             f(lhs);
             f(rhs);
         }

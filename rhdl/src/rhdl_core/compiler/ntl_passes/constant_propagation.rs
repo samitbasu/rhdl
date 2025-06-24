@@ -4,7 +4,7 @@ use crate::{
         ntl::{
             object::{LocatedOpCode, SourceOpCode},
             spec::{
-                Assign, Binary, BinaryOp, Case, CaseEntry, Not, OpCode, Operand, Unary, UnaryOp,
+                assign, Binary, BinaryOp, Case, CaseEntry, Not, OpCode, Operand, Unary, UnaryOp,
                 Vector, VectorOp,
             },
             Object,
@@ -30,10 +30,7 @@ fn compute_binary(binary: Binary) -> OpCode {
                 BinaryOp::Or => reg1 | reg2,
                 BinaryOp::Xor => reg1 ^ reg2,
             };
-            OpCode::Assign(Assign {
-                lhs: binary.lhs,
-                rhs: Operand::from(res),
-            })
+            assign(binary.lhs, Operand::from(res))
         }
         _ => OpCode::Binary(binary),
     }
@@ -53,10 +50,7 @@ fn vec_op(signed: bool, arg: &[Operand]) -> Option<TypedBits> {
 
 fn compute_not(not_op: Not) -> OpCode {
     if let Some(val) = not_op.arg.bitx() {
-        OpCode::Assign(Assign {
-            lhs: not_op.lhs,
-            rhs: Operand::from(!val),
-        })
+        assign(not_op.lhs, Operand::from(!val))
     } else {
         OpCode::Not(not_op)
     }
@@ -75,10 +69,7 @@ fn compute_unary(unary_op: Unary, source: Option<SourceOpCode>, lop: &mut Vec<Lo
         if let Ok(val) = unary(alu, arg) {
             for (&lhs, &rhs) in unary_op.lhs.iter().zip(&val.bits) {
                 lop.push(LocatedOpCode {
-                    op: OpCode::Assign(Assign {
-                        lhs,
-                        rhs: Operand::from(rhs),
-                    }),
+                    op: assign(lhs, Operand::from(rhs)),
                     loc: source,
                 })
             }
@@ -112,10 +103,7 @@ fn compute_vector(vector: Vector, source: Option<SourceOpCode>, lop: &mut Vec<Lo
             if let Ok(res) = binary(alu, arg1, arg2) {
                 for (&lhs, &rhs) in vector.lhs.iter().zip(&res.bits) {
                     lop.push(LocatedOpCode {
-                        op: OpCode::Assign(Assign {
-                            lhs,
-                            rhs: Operand::from(rhs),
-                        }),
+                        op: assign(lhs, Operand::from(rhs)),
                         loc: source,
                     })
                 }
@@ -146,10 +134,7 @@ fn compute_case(case: Case) -> OpCode {
     if let Some(_input) = case.entries[entry_ndx].1.reg() {
         return OpCode::Case(case);
     }
-    OpCode::Assign(Assign {
-        lhs: case.lhs,
-        rhs: case.entries[entry_ndx].1,
-    })
+    assign(case.lhs, case.entries[entry_ndx].1)
 }
 
 impl Pass for ConstantPropagationPass {

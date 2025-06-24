@@ -4,7 +4,6 @@ use crate::core::ntl;
 use crate::core::rtl;
 use crate::prelude::BitX;
 use crate::rhdl_core::ntl::object::SourceOpCode;
-use crate::rhdl_core::ntl::spec::Assign;
 use crate::rhdl_core::ntl::spec::Binary;
 use crate::rhdl_core::ntl::spec::Not;
 use crate::rhdl_core::ntl::spec::RegisterId;
@@ -123,7 +122,7 @@ impl<'a> NtlBuilder<'a> {
         let rhs = self.operand(assign.rhs);
         let lhs = self.operand(assign.lhs);
         for (ndx, (&lhs, &rhs)) in lhs.iter().zip(rhs.iter()).enumerate() {
-            self.push(loc.with_bit(ndx), bt::OpCode::Assign(Assign { lhs, rhs }));
+            self.push(loc.with_bit(ndx), bt::assign(lhs, rhs));
         }
     }
     fn build_binary(&mut self, loc: SourceOpCode, binary: &tl::Binary) {
@@ -202,28 +201,19 @@ impl<'a> NtlBuilder<'a> {
         let lhs = self.operand(cast.lhs);
         let arg = self.operand(cast.arg);
         for (bit, (&lhs, &rhs)) in lhs.iter().zip(arg.iter()).enumerate() {
-            self.push(loc.with_bit(bit), bt::OpCode::Assign(Assign { lhs, rhs }));
+            self.push(loc.with_bit(bit), bt::assign(lhs, rhs));
         }
         let lhs_signed = self.object.kind(cast.lhs).is_signed();
         let use_unsigned = matches!(cast.kind, tl::CastKind::Unsigned)
             || (matches!(cast.kind, tl::CastKind::Resize) && !lhs_signed);
         if use_unsigned {
             for (ndx, &lhs) in lhs.iter().enumerate().skip(arg.len()) {
-                self.push(
-                    loc.with_bit(ndx),
-                    bt::OpCode::Assign(Assign {
-                        lhs,
-                        rhs: bt::Operand::Zero,
-                    }),
-                );
+                self.push(loc.with_bit(ndx), bt::assign(lhs, bt::Operand::Zero));
             }
         } else {
             let &msb = arg.last().unwrap();
             for (bit, &lhs) in lhs.iter().enumerate().skip(arg.len()) {
-                self.push(
-                    loc.with_bit(bit),
-                    bt::OpCode::Assign(Assign { lhs, rhs: msb }),
-                );
+                self.push(loc.with_bit(bit), bt::assign(lhs, msb));
             }
         }
     }
@@ -235,7 +225,7 @@ impl<'a> NtlBuilder<'a> {
             .map(|x| self.operand(*x))
             .collect::<Vec<_>>();
         for (bit, (&lhs, &rhs)) in lhs.iter().zip(args.iter().flatten()).enumerate() {
-            self.push(loc.with_bit(bit), bt::OpCode::Assign(Assign { lhs, rhs }));
+            self.push(loc.with_bit(bit), bt::assign(lhs, rhs));
         }
     }
     fn build_index(&mut self, loc: SourceOpCode, index: &tl::Index) {
@@ -246,7 +236,7 @@ impl<'a> NtlBuilder<'a> {
             .zip(arg.iter().skip(index.bit_range.start))
             .enumerate()
         {
-            self.push(loc.with_bit(bit), bt::OpCode::Assign(Assign { lhs, rhs }));
+            self.push(loc.with_bit(bit), bt::assign(lhs, rhs));
         }
     }
     fn build_select(&mut self, loc: SourceOpCode, select: &tl::Select) {
@@ -279,7 +269,7 @@ impl<'a> NtlBuilder<'a> {
         let msb_iter = orig.iter().skip(splice.bit_range.end);
         let rhs = lsb_iter.chain(center_iter).chain(msb_iter);
         for (bit, (&lhs, &rhs)) in lhs.iter().zip(rhs).enumerate() {
-            self.push(loc.with_bit(bit), bt::OpCode::Assign(Assign { lhs, rhs }));
+            self.push(loc.with_bit(bit), bt::assign(lhs, rhs));
         }
     }
     fn build_unary(&mut self, loc: SourceOpCode, unary: &tl::Unary) {
@@ -293,10 +283,7 @@ impl<'a> NtlBuilder<'a> {
             }
             UnaryOpClass::Copy => {
                 for (bit, (&lhs, arg)) in lhs.iter().zip(arg).enumerate() {
-                    self.push(
-                        loc.with_bit(bit),
-                        bt::OpCode::Assign(Assign { lhs, rhs: arg }),
-                    )
+                    self.push(loc.with_bit(bit), bt::assign(lhs, arg));
                 }
             }
             UnaryOpClass::Unary(unary_op) => self.push(

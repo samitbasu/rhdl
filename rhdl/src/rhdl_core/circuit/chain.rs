@@ -88,8 +88,8 @@ where
         let top_i = builder.add_input(input_kind.len());
         let top_o = builder.allocate_outputs(output_kind.len());
         // Link in the A and B children
-        let a_offset = builder.link(&desc_a.ntl);
-        let b_offset = builder.link(&desc_b.ntl);
+        let a_offset = builder.import(&desc_a.ntl);
+        let b_offset = builder.import(&desc_b.ntl);
         // Connect the clock and reset to the A and B netlists.
         for ((tcr, acr), bcr) in top_cr
             .iter()

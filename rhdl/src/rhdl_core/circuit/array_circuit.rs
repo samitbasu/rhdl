@@ -61,7 +61,7 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
             let (input_bit_range, _) = bit_range(Self::I::static_kind(), &child_path)?;
             let child_name = format!("{}_{}", name, i);
             let child_desc = self[i].descriptor(&child_name)?;
-            let offset = builder.link(&child_desc.ntl);
+            let offset = builder.import(&child_desc.ntl);
             // Wire up the child circuit inputs and outputs
             for (&t, c) in ti[input_bit_range].iter().zip(&child_desc.ntl.inputs[0]) {
                 builder.copy_from_to(t, c.offset(offset));
