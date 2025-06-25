@@ -131,45 +131,22 @@ impl Pass for ReorderInstructions {
         if let Some(mut failed) = needed.iter().find(|r| !finished.contains(r)).copied() {
             // Construct a diagnostic.
             let mut diag = vec![];
-            use std::io::Write;
-            let file = std::fs::File::create("report.txt").unwrap();
-            let mut buf = std::io::BufWriter::new(file);
-            writeln!(buf, "Design likely contains a logic loop.")?;
             let mut len = 0;
             let mut visited = HashSet::new();
             loop {
-                writeln!(
-                    buf,
-                    "The value {failed:?} is computed by the following instruction"
-                )?;
                 let opc = write_regs_to_op[&failed];
                 let lop = &input.ops[opc];
-                writeln!(buf)?;
-                writeln!(buf, "*** NTL ***")?;
-                writeln!(buf, "  {:?}", lop.op)?;
-                writeln!(buf)?;
                 if let Some(src_op) = lop.loc {
                     let rtl_bit = src_op.bit.unwrap_or_default();
-                    writeln!(buf, " which is bit {rtl_bit} of ")?;
                     // Figure out where this source op code belongs
                     let rtl_obj = &input.rtl[&src_op.rtl.rhif.func];
                     let rtl_op = &rtl_obj.ops[src_op.op];
-                    writeln!(buf)?;
-                    writeln!(buf, "*** RTL ***")?;
-                    writeln!(buf, "{:?}", rtl_op.op)?;
-                    writeln!(buf)?;
                     if let Some(src) = rtl_op.loc.op {
                         let rhif_obj = &rtl_obj.rhifs[&rtl_op.loc.rhif.func];
-                        let filename = rhif_obj.filename();
-                        let name = &rhif_obj.name;
-                        writeln!(buf)?;
-                        writeln!(buf, "*** RHIF ({filename}/{name}) ***")?;
                         let rhif_lop = &rhif_obj.ops[src];
                         let rhif_op = &rhif_lop.op;
-                        writeln!(buf, "{:?}", rhif_op)?;
                         if let Some(lhs) = rhif_op.lhs() {
                             let ty = rhif_obj.kind(lhs);
-                            writeln!(buf, "The output slot {lhs:?} is of type: {ty:?}")?;
                             let paths = leaf_paths(&ty, Path::default());
                             if let Some(path) = paths.iter().find(|p| {
                                 let Ok((bits1, _)) = bit_range(ty, p) else {
@@ -178,16 +155,8 @@ impl Pass for ReorderInstructions {
                                 bits1.contains(&rtl_bit)
                             }) {
                                 let value_description = if !path.is_empty() {
-                                    writeln!(
-                                    buf,
-                                    "The referenced NTL instruction is computing path {{ {path:?} }}"
-                                )?;
                                     Some(format!("{path:?}"))
                                 } else {
-                                    writeln!(
-                                        buf,
-                                        "The referenced NTL instruction computes the entire value"
-                                    )?;
                                     None
                                 };
                                 let span: miette::SourceSpan =
@@ -195,19 +164,9 @@ impl Pass for ReorderInstructions {
                                 diag.push((value_description, span));
                             }
                         }
-                        // Get the Rust code for this op.
-                        let source_loc = rhif_lop.loc;
-                        let pool = rhif_obj.symbols.source();
-                        let span = rhif_obj.symbols.span(source_loc);
-                        let Ok(txt) = pool.read_span(&span.into(), 1, 1) else {
-                            continue;
-                        };
-                        buf.write_all(txt.data())?;
-                        writeln!(buf)?;
                     }
                 }
                 if visited.contains(&failed) {
-                    writeln!(buf, "Report terminated at loop.")?;
                     break;
                 }
                 visited.insert(failed);
@@ -216,7 +175,6 @@ impl Pass for ReorderInstructions {
                 };
                 len += 1;
                 if len > 100 {
-                    writeln!(buf, "Report terminated.")?;
                     break;
                 }
                 failed = next;
