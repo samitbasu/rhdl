@@ -7,8 +7,7 @@ use crate::{
     rhdl_core::{
         error::rhdl_error,
         ntl::{
-            error::{NetListError, NetListICE},
-            object::SourceOpCode,
+            error::NetLoopError,
             spec::{OpCode, Operand, RegisterId},
             visit::{visit_operands, Sense},
             Object,
@@ -22,14 +21,13 @@ use super::pass::Pass;
 #[derive(Default, Debug, Clone)]
 pub struct ReorderInstructions {}
 
-fn raise_cycle_error(input: &Object, location: Vec<SourceOpCode>) -> RHDLError {
-    rhdl_error(NetListError {
-        cause: NetListICE::LogicLoop,
+fn raise_cycle_error(
+    input: &Object,
+    elements: Vec<(Option<String>, miette::SourceSpan)>,
+) -> RHDLError {
+    rhdl_error(NetLoopError {
         src: input.code.source(),
-        elements: location
-            .iter()
-            .map(|&loc| input.code.span(loc).into())
-            .collect(),
+        elements,
     })
 }
 
@@ -131,6 +129,8 @@ impl Pass for ReorderInstructions {
         }
         // Hope springs eternal...
         if let Some(mut failed) = needed.iter().find(|r| !finished.contains(r)).copied() {
+            // Construct a diagnostic.
+            let mut diag = vec![];
             use std::io::Write;
             let file = std::fs::File::create("report.txt").unwrap();
             let mut buf = std::io::BufWriter::new(file);
@@ -148,12 +148,12 @@ impl Pass for ReorderInstructions {
                 writeln!(buf, "*** NTL ***")?;
                 writeln!(buf, "  {:?}", lop.op)?;
                 writeln!(buf)?;
-                if let Some(src) = lop.loc {
-                    let rtl_bit = src.bit.unwrap_or_default();
+                if let Some(src_op) = lop.loc {
+                    let rtl_bit = src_op.bit.unwrap_or_default();
                     writeln!(buf, " which is bit {rtl_bit} of ")?;
                     // Figure out where this source op code belongs
-                    let rtl_obj = &input.rtl[&src.rtl.rhif.func];
-                    let rtl_op = &rtl_obj.ops[src.op];
+                    let rtl_obj = &input.rtl[&src_op.rtl.rhif.func];
+                    let rtl_op = &rtl_obj.ops[src_op.op];
                     writeln!(buf)?;
                     writeln!(buf, "*** RTL ***")?;
                     writeln!(buf, "{:?}", rtl_op.op)?;
@@ -177,17 +177,22 @@ impl Pass for ReorderInstructions {
                                 };
                                 bits1.contains(&rtl_bit)
                             }) {
-                                if !path.is_empty() {
+                                let value_description = if !path.is_empty() {
                                     writeln!(
                                     buf,
                                     "The referenced NTL instruction is computing path {{ {path:?} }}"
                                 )?;
+                                    Some(format!("{path:?}"))
                                 } else {
                                     writeln!(
                                         buf,
                                         "The referenced NTL instruction computes the entire value"
                                     )?;
-                                }
+                                    None
+                                };
+                                let span: miette::SourceSpan =
+                                    input.code.span(src_op.rtl.rhif).into();
+                                diag.push((value_description, span));
                             }
                         }
                         // Get the Rust code for this op.
@@ -210,13 +215,13 @@ impl Pass for ReorderInstructions {
                     break;
                 };
                 len += 1;
-                if len > 20 {
+                if len > 100 {
                     writeln!(buf, "Report terminated.")?;
                     break;
                 }
                 failed = next;
             }
-            panic!("No success");
+            return Err(raise_cycle_error(&input, diag));
         }
         // Reorder and select
         let reordered = scheduled

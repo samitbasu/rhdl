@@ -1,6 +1,6 @@
 use crate::core::types::digital::Digital;
 use crate::prelude::Circuit;
-use crate::rhdl_core::ntl::spec::{self, Assign, BlackBoxId, Link, LinkDetails};
+use crate::rhdl_core::ntl::spec::{self, Assign, BlackBoxId};
 use crate::rhdl_core::rtl;
 use crate::{
     prelude::{RHDLError, Synchronous},
@@ -82,21 +82,6 @@ impl Builder {
                 rhs: rhs.into(),
             }),
             loc: None,
-        })
-    }
-    pub fn link_from_to<T: Into<Operand>, S: Into<Operand>>(
-        &mut self,
-        rhs: T,
-        lhs: S,
-        details: LinkDetails,
-    ) {
-        self.object.ops.push(LocatedOpCode {
-            loc: None,
-            op: OpCode::Link(Link {
-                lhs: lhs.into(),
-                rhs: rhs.into(),
-                details,
-            }),
         })
     }
 }

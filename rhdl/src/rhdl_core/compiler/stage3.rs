@@ -23,6 +23,7 @@ fn wrap_pass<P: Pass>(obj: Object) -> Result<Object, RHDLError> {
 
 pub fn optimize_ntl(mut input: Object) -> Result<Object, RHDLError> {
     let mut hash = input.hash_value();
+    input = wrap_pass::<ReorderInstructions>(input)?;
     loop {
         input = wrap_pass::<ConstantRegisterElimination>(input)?;
         input = wrap_pass::<LowerCase>(input)?;
