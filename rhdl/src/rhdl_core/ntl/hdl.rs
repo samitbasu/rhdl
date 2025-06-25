@@ -101,15 +101,6 @@ impl<'a> NetListHDLBuilder<'a> {
         ));
         Ok(())
     }
-    fn link_op(
-        &mut self,
-        op: &spec::Link,
-        location: Option<SourceLocation>,
-    ) -> Result<(), RHDLError> {
-        let target = self.reg(op.lhs, location)?;
-        self.push_body(ast::assign(&target, opex(op.rhs)));
-        Ok(())
-    }
     fn assign_op(
         &mut self,
         op: &spec::Assign,
@@ -250,7 +241,6 @@ impl<'a> NetListHDLBuilder<'a> {
     ) -> Result<(), RHDLError> {
         match op {
             spec::OpCode::Noop => Ok(()),
-            spec::OpCode::Link(link) => self.link_op(link, location),
             spec::OpCode::Assign(assign) => self.assign_op(assign, location),
             spec::OpCode::Binary(binary) => self.binary_op(binary, location),
             spec::OpCode::Vector(vector) => self.vector_op(vector, location),

@@ -76,6 +76,9 @@ pub enum RHDLError {
     #[error("Netlist Error")]
     #[diagnostic(transparent)]
     NetListError(#[from] Box<crate::rhdl_core::ntl::error::NetListError>),
+    #[error("Logic Loop")]
+    #[diagnostic(transparent)]
+    NetLoopError(#[from] Box<crate::rhdl_core::ntl::error::NetLoopError>),
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

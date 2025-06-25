@@ -1,7 +1,6 @@
 use super::circuit_impl::Circuit;
-use crate::prelude::ClockReset;
 use crate::rhdl_core::ntl::from_rtl::build_ntl_from_rtl;
-use crate::rhdl_core::ntl::spec::{link_details, link_endpoint, LinkKind, Operand};
+use crate::rhdl_core::ntl::spec::Operand;
 use crate::rhdl_core::rtl::object::RegisterKind;
 use crate::rhdl_core::rtl::Object;
 use crate::rhdl_core::types::digital::Digital;
@@ -96,26 +95,18 @@ pub fn build_descriptor<C: Circuit>(
         // Merge the child's netlist into ours
         let child_offset = builder.import(&child_descriptor.ntl);
         // Connect the child's input registers to the given bits of the D register
-        for (ndx, (&d_bit, &child_i)) in d_vec[output_bit_range.clone()]
+        for (&d_bit, &child_i) in d_vec[output_bit_range.clone()]
             .iter()
             .zip(&child_descriptor.ntl.inputs[0])
-            .enumerate()
         {
-            let source = link_endpoint(name, C::D::static_kind(), output_bit_range.start + ndx);
-            let dest = link_endpoint(child_name, child_descriptor.input_kind, ndx);
-            let details = link_details(source, dest, LinkKind::ParentDToChildI);
-            builder.link_from_to(d_bit, child_i.offset(child_offset), details);
+            builder.copy_from_to(d_bit, child_i.offset(child_offset));
         }
         // Connect the childs output registers to the given bits of the Q register
-        for (ndx, (&q_bit, &child_o)) in q_vec[input_bit_range.clone()]
+        for (&q_bit, &child_o) in q_vec[input_bit_range.clone()]
             .iter()
             .zip(&child_descriptor.ntl.outputs)
-            .enumerate()
         {
-            let source = link_endpoint(child_name, child_descriptor.output_kind, ndx);
-            let dest = link_endpoint(name, C::Q::static_kind(), input_bit_range.start + ndx);
-            let details = link_details(source, dest, LinkKind::ChildOToParentQ);
-            builder.link_from_to(child_o.offset(child_offset), q_bit, details);
+            builder.copy_from_to(child_o.offset(child_offset), q_bit);
         }
     }
     Ok(CircuitDescriptor {
@@ -214,37 +205,22 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         let child_offset = builder.import(&child_descriptor.ntl);
         log::info!("Link child {child_name} into descriptor for {name}");
         // Connect the child's clock and reset to the top level clock and reset
-        for (ndx, (&top_cr, &child_cr)) in top_cr
-            .iter()
-            .zip(&child_descriptor.ntl.inputs[0])
-            .enumerate()
-        {
-            let source = link_endpoint(name, ClockReset::static_kind(), ndx);
-            let dest = link_endpoint(child_name, ClockReset::static_kind(), ndx);
-            let details = link_details(source, dest, LinkKind::ClockResetFanOut);
-            builder.link_from_to(top_cr, child_cr.offset(child_offset), details);
+        for (&top_cr, &child_cr) in top_cr.iter().zip(&child_descriptor.ntl.inputs[0]) {
+            builder.copy_from_to(top_cr, child_cr.offset(child_offset));
         }
         // Connect the child's input registers to the given bits of the D register
-        for (ndx, (&d_bit, &child_i)) in d_vec[output_bit_range.clone()]
+        for (&d_bit, &child_i) in d_vec[output_bit_range.clone()]
             .iter()
             .zip(&child_descriptor.ntl.inputs[1])
-            .enumerate()
         {
-            let source = link_endpoint(name, C::D::static_kind(), output_bit_range.start + ndx);
-            let dest = link_endpoint(child_name, child_descriptor.input_kind, ndx);
-            let details = link_details(source, dest, LinkKind::ParentDToChildI);
-            builder.link_from_to(d_bit, child_i.offset(child_offset), details);
+            builder.copy_from_to(d_bit, child_i.offset(child_offset));
         }
         // Connect the childs output registers to the given bits of the Q register
-        for (ndx, (&q_bit, &child_o)) in q_vec[input_bit_range.clone()]
+        for (&q_bit, &child_o) in q_vec[input_bit_range.clone()]
             .iter()
             .zip(&child_descriptor.ntl.outputs)
-            .enumerate()
         {
-            let source = link_endpoint(child_name, child_descriptor.output_kind, ndx);
-            let dest = link_endpoint(name, C::Q::static_kind(), input_bit_range.start + ndx);
-            let details = link_details(source, dest, LinkKind::ChildOToParentQ);
-            builder.link_from_to(child_o.offset(child_offset), q_bit, details);
+            builder.copy_from_to(child_o.offset(child_offset), q_bit);
         }
     }
     Ok(CircuitDescriptor {
