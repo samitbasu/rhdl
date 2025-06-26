@@ -11,6 +11,7 @@ use crate::{
             lower_selects::LowerSelects, pass::Pass,
             remove_extra_registers::RemoveExtraRegistersPass,
             reorder_instructions::ReorderInstructions, single_write::SingleRegisterWrite,
+            symbol_table_is_complete::SymbolTableIsComplete,
         },
         ntl::Object,
     },
@@ -23,7 +24,7 @@ fn wrap_pass<P: Pass>(obj: Object) -> Result<Object, RHDLError> {
 
 pub fn optimize_ntl(mut input: Object) -> Result<Object, RHDLError> {
     let mut hash = input.hash_value();
-    input = wrap_pass::<ReorderInstructions>(input)?;
+    input = wrap_pass::<SymbolTableIsComplete>(input)?;
     loop {
         input = wrap_pass::<ConstantRegisterElimination>(input)?;
         input = wrap_pass::<LowerCase>(input)?;
@@ -39,6 +40,7 @@ pub fn optimize_ntl(mut input: Object) -> Result<Object, RHDLError> {
         }
         hash = new_hash;
     }
+    input = wrap_pass::<SymbolTableIsComplete>(input)?;
     input = wrap_pass::<SingleRegisterWrite>(input)?;
     input = wrap_pass::<ReorderInstructions>(input)?;
     input = wrap_pass::<CheckForUndriven>(input)?;

@@ -1,10 +1,9 @@
-use std::collections::{HashMap, HashSet, VecDeque};
-
-use miette::SourceCode;
+use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 
 use crate::{
     prelude::{bit_range, Path, RHDLError},
     rhdl_core::{
+        compiler::mir::error::ICE,
         error::rhdl_error,
         ntl::{
             error::NetLoopError,
@@ -36,14 +35,14 @@ impl Pass for ReorderInstructions {
         // An implementation of Kahn's algorithm
         // The set N contains the set of register values that are
         // required for the reordering to be successful
-        let mut needed = HashSet::<RegisterId>::new();
+        let mut needed = BTreeSet::<RegisterId>::new();
         needed.extend(input.outputs.iter().flat_map(Operand::reg));
         // The set S contains the working set of defined register values.
         let mut satisfied = VecDeque::<RegisterId>::default();
         // The vector P contains the ordering of op codes
         let mut scheduled = Vec::<usize>::default();
         // The set L contains the completed set of register values
-        let mut finished = HashSet::<RegisterId>::default();
+        let mut finished = BTreeSet::<RegisterId>::default();
         // We start by pre-populating the satisfied set with all of the inputs
         satisfied.extend(input.inputs.iter().flatten());
         // Next we scan through all op-codes and pre-emit those that correspond
@@ -63,9 +62,9 @@ impl Pass for ReorderInstructions {
         // Now, we create a pair of maps.  The first, maps each register to the set of
         // opcodes that depend on it.  The second maps each opcode to the set of registers
         // that it depends on.
-        let mut reg_to_op = HashMap::<RegisterId, HashSet<usize>>::default();
-        let mut op_to_read_regs = HashMap::<usize, HashSet<RegisterId>>::default();
-        let mut write_regs_to_op = HashMap::<RegisterId, usize>::default();
+        let mut reg_to_op = BTreeMap::<RegisterId, BTreeSet<usize>>::default();
+        let mut op_to_read_regs = BTreeMap::<usize, BTreeSet<RegisterId>>::default();
+        let mut write_regs_to_op = BTreeMap::<RegisterId, usize>::default();
         for (ndx, lop) in input.ops.iter().enumerate() {
             visit_operands(&lop.op, |sense, opnd| {
                 if sense == Sense::Read {
@@ -102,7 +101,7 @@ impl Pass for ReorderInstructions {
                 continue;
             };
             for op in dep_ops {
-                // The given operand has a dependency on this register.
+                // The given opcode has a dependency on this register.
                 // Remove the dependency
                 let can_schedule = if let Some(deps) = op_to_read_regs.get_mut(&op) {
                     deps.remove(&n);
@@ -129,12 +128,45 @@ impl Pass for ReorderInstructions {
         }
         // Hope springs eternal...
         if let Some(mut failed) = needed.iter().find(|r| !finished.contains(r)).copied() {
-            // Construct a diagnostic.
-            let mut diag = vec![];
-            let mut len = 0;
+            // Isolate a loop
+            let mut regs = VecDeque::new();
             let mut visited = HashSet::new();
             loop {
+                regs.push_back(failed);
+                visited.insert(failed);
+                // This is the opcode that writes the missing reg
                 let opc = write_regs_to_op[&failed];
+                // That opcode must be missing an argument (or it would have been scheduled already)
+                let Some(&next) = op_to_read_regs[&opc].iter().next() else {
+                    // This is an error, since if the op had no unsatisfied inputs
+                    // it should have been scheduled.
+                    return Err(Self::raise_ice(
+                        &input,
+                        ICE::LoopIsolationAlgorithmFailed,
+                        None,
+                    ));
+                };
+                if visited.contains(&next) {
+                    // This reg is in the loop.  Discard regs from the
+                    // list that come before this one
+                    while !regs.is_empty() && regs.front() != Some(&next) {
+                        regs.pop_front();
+                    }
+                    break;
+                }
+            }
+            if regs.is_empty() {
+                return Err(Self::raise_ice(
+                    &input,
+                    ICE::LoopIsolationAlgorithmFailed,
+                    None,
+                ));
+            }
+
+            // Construct a diagnostic.
+            let mut diag = vec![];
+            for reg in regs {
+                let opc = write_regs_to_op[&reg];
                 let lop = &input.ops[opc];
                 if let Some(src_op) = lop.loc {
                     let rtl_bit = src_op.bit.unwrap_or_default();
@@ -166,18 +198,6 @@ impl Pass for ReorderInstructions {
                         }
                     }
                 }
-                if visited.contains(&failed) {
-                    break;
-                }
-                visited.insert(failed);
-                let Some(&next) = op_to_read_regs[&opc].iter().next() else {
-                    break;
-                };
-                len += 1;
-                if len > 100 {
-                    break;
-                }
-                failed = next;
             }
             return Err(raise_cycle_error(&input, diag));
         }

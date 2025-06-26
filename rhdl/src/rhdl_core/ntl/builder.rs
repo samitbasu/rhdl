@@ -52,9 +52,6 @@ impl Builder {
         self.object.outputs = ret.iter().copied().map(Operand::Register).collect();
         ret
     }
-    pub fn add_rtl(&mut self, rtl: &rtl::Object) {
-        self.object.rtl.insert(rtl.fn_id, rtl.clone());
-    }
     pub fn build(mut self, mode: BuilderMode) -> Result<Object, RHDLError> {
         match mode {
             BuilderMode::Asynchronous => {

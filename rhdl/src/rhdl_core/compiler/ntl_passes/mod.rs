@@ -10,6 +10,7 @@ pub mod pass;
 pub mod remove_extra_registers;
 pub mod reorder_instructions;
 pub mod single_write;
+pub mod symbol_table_is_complete;
 /*
 pub mod check_for_unconnected_clock_reset;
 pub mod check_for_undriven;
