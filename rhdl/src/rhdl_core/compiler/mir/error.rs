@@ -218,6 +218,10 @@ pub enum ICE {
     MultipleWritesToRegister {
         op: crate::rhdl_core::ntl::spec::Operand,
     },
+    #[error("Symbol table is incomplete")]
+    IncompleteSymbolTable,
+    #[error("Loop Isolation Algorithm Failed")]
+    LoopIsolationAlgorithmFailed,
 }
 
 #[derive(Error, Debug, Diagnostic)]
