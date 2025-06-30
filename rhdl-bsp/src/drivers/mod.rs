@@ -1,5 +1,3 @@
-use std::os::macos::raw::stat;
-
 use rhdl::{
     core::{CircuitIO, RHDLError, Timed},
     prelude::{bit_range, sub_trace_type, Digital, ExportError, MountPoint, Path},
