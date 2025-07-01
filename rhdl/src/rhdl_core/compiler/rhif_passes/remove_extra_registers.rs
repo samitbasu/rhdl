@@ -2,10 +2,10 @@ use super::pass::Pass;
 use crate::rhdl_core::{
     error::RHDLError,
     rhif::{
+        Object,
         object::LocatedOpCode,
         remap::rename_read_register,
         spec::{Assign, OpCode},
-        Object,
     },
 };
 use log::debug;
@@ -89,6 +89,6 @@ fn merge_names(a: Option<&String>, b: Option<&String>) -> Option<String> {
         (Some(a), None) => Some(a.clone()),
         (None, Some(b)) => Some(b.clone()),
         (Some(a), Some(b)) if a == b => Some(a.clone()),
-        (Some(a), Some(b)) => Some(format!("{}_then_{}", b, a)),
+        (Some(a), Some(b)) => Some(format!("{b}_then_{a}")),
     }
 }

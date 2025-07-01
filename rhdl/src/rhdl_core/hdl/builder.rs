@@ -1,18 +1,18 @@
 use crate::rhdl_core::{
+    RHDLError,
+    ast::source::source_location::SourceLocation,
     bitx::BitX,
-    compiler::mir::error::{RHDLCompileError, ICE},
+    compiler::mir::error::{ICE, RHDLCompileError},
     error::rhdl_error,
     hdl::ast::{
-        self, assign, concatenate, constant, declaration, id, index, index_bit, input_reg, literal,
-        repeat, unary, CaseItem, Function, HDLKind,
+        self, CaseItem, Function, HDLKind, assign, concatenate, constant, declaration, id, index,
+        index_bit, input_reg, literal, repeat, unary,
     },
     rtl::{
         self,
         object::LocatedOpCode,
         spec::{AluUnary, CaseArgument, CastKind, Operand},
-        SourceOpCode,
     },
-    RHDLError,
 };
 
 use rtl::spec as tl;
@@ -25,7 +25,7 @@ struct TranslationContext<'a> {
 }
 
 impl TranslationContext<'_> {
-    fn raise_ice(&self, cause: ICE, id: SourceOpCode) -> RHDLError {
+    fn raise_ice(&self, cause: ICE, id: SourceLocation) -> RHDLError {
         rhdl_error(RHDLCompileError {
             cause,
             src: self.rtl.symbols.source(),
@@ -34,7 +34,7 @@ impl TranslationContext<'_> {
     }
     /// Cast the argument ot the desired width, considering the result a signed value.
     /// The cast length must be less than or equal to the argument length, or an ICE is raised.
-    fn translate_as_signed(&mut self, cast: &tl::Cast, id: SourceOpCode) -> Result<()> {
+    fn translate_as_signed(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
         if cast.len > self.rtl.kind(cast.arg).len() {
             return Err(self.raise_ice(
                 ICE::InvalidSignedCast {
@@ -91,7 +91,7 @@ impl TranslationContext<'_> {
             ));
         }
     }
-    fn translate_resize(&mut self, cast: &tl::Cast, id: SourceOpCode) -> Result<()> {
+    fn translate_resize(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
         if cast.len == 0 {
             return Err(self.raise_ice(
                 ICE::InvalidResize {
@@ -109,7 +109,7 @@ impl TranslationContext<'_> {
         }
         Ok(())
     }
-    fn translate_cast(&mut self, cast: &tl::Cast, id: SourceOpCode) -> Result<()> {
+    fn translate_cast(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
         match cast.kind {
             CastKind::Signed => self.translate_as_signed(cast, id),
             CastKind::Unsigned => {
@@ -238,19 +238,19 @@ impl TranslationContext<'_> {
             .iter()
             .enumerate()
             .flat_map(|(ndx, x)| x.map(|r| (ndx, r)))
-            .map(|(ndx, reg)| input_reg(&format!("arg_{ndx}"), self.rtl.register_kind[&reg].into()))
+            .map(|(ndx, reg)| input_reg(&format!("arg_{ndx}"), self.rtl.register_size[&reg].into()))
             .collect::<Vec<_>>();
         self.func.arguments = arg_decls;
         let reg_decls = self
             .rtl
-            .register_kind
+            .register_size
             .keys()
             .map(|reg| {
                 let alias = self.rtl.op_alias(Operand::Register(*reg));
                 declaration(
                     HDLKind::Reg,
                     &self.rtl.op_name(Operand::Register(*reg)),
-                    self.rtl.register_kind[reg].into(),
+                    self.rtl.register_size[reg].into(),
                     alias,
                 )
             })
@@ -267,7 +267,7 @@ impl TranslationContext<'_> {
         for (ndx, reg) in self.rtl.arguments.iter().enumerate() {
             if let Some(reg) = reg {
                 let reg_name = self.rtl.op_name(Operand::Register(*reg));
-                let arg_name = format!("arg_{}", ndx);
+                let arg_name = format!("arg_{ndx}");
                 self.func.block.push(assign(&reg_name, id(&arg_name)));
             }
         }

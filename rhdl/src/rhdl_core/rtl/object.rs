@@ -7,7 +7,6 @@ use fnv::FnvHasher;
 
 use crate::rhdl_core::ast::ast_impl::{FunctionId, NodeId};
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
-use crate::rhdl_core::rhif;
 use crate::rhdl_core::types::bit_string::BitString;
 use crate::rhdl_core::{Digital, Kind};
 
@@ -17,78 +16,45 @@ use super::symbols::SymbolMap;
 #[derive(Clone, Hash)]
 pub struct LocatedOpCode {
     pub op: OpCode,
-    pub loc: SourceOpCode,
-}
-
-#[derive(Clone, Hash, Copy, PartialEq, Debug)]
-pub struct SourceOpCode {
-    pub rhif: SourceLocation,
-    pub op: Option<usize>,
-}
-
-impl SourceOpCode {
-    pub fn new(base: SourceLocation, ndx: usize) -> Self {
-        Self {
-            rhif: base,
-            op: Some(ndx),
-        }
-    }
-}
-
-impl From<SourceOpCode> for SourceLocation {
-    fn from(val: SourceOpCode) -> SourceLocation {
-        val.rhif
-    }
-}
-
-impl From<SourceLocation> for SourceOpCode {
-    fn from(val: SourceLocation) -> SourceOpCode {
-        SourceOpCode {
-            rhif: val,
-            op: None,
-        }
-    }
+    pub loc: SourceLocation,
 }
 
 impl LocatedOpCode {
-    pub fn new(op: OpCode, id: NodeId, func: FunctionId, rhif_op: usize) -> Self {
+    pub fn new(op: OpCode, id: NodeId, func: FunctionId) -> Self {
         Self {
             op,
-            loc: SourceOpCode {
-                rhif: SourceLocation { node: id, func },
-                op: Some(rhif_op),
-            },
+            loc: SourceLocation { node: id, func },
         }
     }
 }
 
-impl From<(OpCode, SourceOpCode)> for LocatedOpCode {
-    fn from((op, loc): (OpCode, SourceOpCode)) -> Self {
+impl From<(OpCode, SourceLocation)> for LocatedOpCode {
+    fn from((op, loc): (OpCode, SourceLocation)) -> Self {
         Self { op, loc }
     }
 }
 
-pub fn lop(op: OpCode, id: NodeId, func: FunctionId, rhif_op: usize) -> LocatedOpCode {
-    LocatedOpCode::new(op, id, func, rhif_op)
+pub fn lop(op: OpCode, id: NodeId, func: FunctionId) -> LocatedOpCode {
+    LocatedOpCode::new(op, id, func)
 }
 
 #[derive(Clone, Copy, Hash)]
-pub enum RegisterKind {
+pub enum RegisterSize {
     Signed(usize),
     Unsigned(usize),
 }
 
-impl RegisterKind {
+impl RegisterSize {
     pub fn is_signed(&self) -> bool {
-        matches!(self, RegisterKind::Signed(_))
+        matches!(self, RegisterSize::Signed(_))
     }
     pub fn is_unsigned(&self) -> bool {
-        matches!(self, RegisterKind::Unsigned(_))
+        matches!(self, RegisterSize::Unsigned(_))
     }
     pub fn len(&self) -> usize {
         match self {
-            RegisterKind::Signed(len) => *len,
-            RegisterKind::Unsigned(len) => *len,
+            RegisterSize::Signed(len) => *len,
+            RegisterSize::Unsigned(len) => *len,
         }
     }
     pub fn is_empty(&self) -> bool {
@@ -96,41 +62,41 @@ impl RegisterKind {
     }
     pub fn from_digital(t: impl Digital) -> Self {
         match t.kind() {
-            Kind::Signed(len) => RegisterKind::Signed(len),
-            _ => RegisterKind::Unsigned(t.bin().len()),
+            Kind::Signed(len) => RegisterSize::Signed(len),
+            _ => RegisterSize::Unsigned(t.bin().len()),
         }
     }
 }
 
-impl From<&Kind> for RegisterKind {
+impl From<&Kind> for RegisterSize {
     fn from(value: &Kind) -> Self {
         match value {
-            Kind::Signed(len) => RegisterKind::Signed(*len),
-            _ => RegisterKind::Unsigned(value.bits()),
+            Kind::Signed(len) => RegisterSize::Signed(*len),
+            _ => RegisterSize::Unsigned(value.bits()),
         }
     }
 }
 
-impl From<Kind> for RegisterKind {
+impl From<Kind> for RegisterSize {
     fn from(value: Kind) -> Self {
         (&value).into()
     }
 }
 
-impl From<&BitString> for RegisterKind {
+impl From<&BitString> for RegisterSize {
     fn from(bs: &BitString) -> Self {
         match bs {
-            BitString::Signed(bits) => RegisterKind::Signed(bits.len()),
-            BitString::Unsigned(bits) => RegisterKind::Unsigned(bits.len()),
+            BitString::Signed(bits) => RegisterSize::Signed(bits.len()),
+            BitString::Unsigned(bits) => RegisterSize::Unsigned(bits.len()),
         }
     }
 }
 
-impl std::fmt::Debug for RegisterKind {
+impl std::fmt::Debug for RegisterSize {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RegisterKind::Signed(width) => write!(f, "s{}", width),
-            RegisterKind::Unsigned(width) => write!(f, "b{}", width),
+            RegisterSize::Signed(width) => write!(f, "s{}", width),
+            RegisterSize::Unsigned(width) => write!(f, "b{}", width),
         }
     }
 }
@@ -139,18 +105,17 @@ impl std::fmt::Debug for RegisterKind {
 pub struct Object {
     pub symbols: SymbolMap,
     pub literals: BTreeMap<LiteralId, BitString>,
-    pub register_kind: BTreeMap<RegisterId, RegisterKind>,
+    pub register_size: BTreeMap<RegisterId, RegisterSize>,
     pub return_register: Operand,
     pub ops: Vec<LocatedOpCode>,
     pub arguments: Vec<Option<RegisterId>>,
     pub name: String,
     pub fn_id: FunctionId,
-    pub rhifs: BTreeMap<FunctionId, rhif::Object>,
 }
 
 impl Object {
     pub fn reg_max_index(&self) -> RegisterId {
-        self.register_kind
+        self.register_size
             .keys()
             .max()
             .copied()
@@ -169,9 +134,9 @@ impl Object {
     pub fn op_alias(&self, op: Operand) -> Option<String> {
         self.symbols.operand_names.get(&op).cloned()
     }
-    pub fn kind(&self, op: Operand) -> RegisterKind {
+    pub fn kind(&self, op: Operand) -> RegisterSize {
         match op {
-            Operand::Register(reg) => self.register_kind[&reg],
+            Operand::Register(reg) => self.register_size[&reg],
             Operand::Literal(lit) => (&self.literals[&lit]).into(),
         }
     }
@@ -188,7 +153,7 @@ impl std::fmt::Debug for Object {
         writeln!(f, "  fn_id {:?}", self.fn_id)?;
         writeln!(f, "  arguments {:?}", self.arguments)?;
         writeln!(f, "  return_register {:?}", self.return_register)?;
-        for (reg, kind) in &self.register_kind {
+        for (reg, kind) in &self.register_size {
             writeln!(f, "Reg {reg:?} : {kind:?}")?;
         }
         for (id, literal) in &self.literals {

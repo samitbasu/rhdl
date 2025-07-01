@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
 use crate::rhdl_core::{
-    compiler::mir::error::ICE,
-    rtl::{object::SourceOpCode, remap::remap_operands, spec::Operand, Object},
     RHDLError,
+    compiler::mir::error::ICE,
+    rtl::{Object, remap::remap_operands, spec::Operand},
 };
 
 use super::pass::Pass;
@@ -30,11 +30,13 @@ impl Pass for SymbolTableIsComplete {
         }
         let id = input.symbols.fallback(input.fn_id);
         for operand in used_set {
-            if !input.symbols.operand_map.contains_key(&operand) {
+            if !input.symbols.operand_map.contains_key(&operand)
+                || !input.symbols.rhif_types.contains_key(&operand)
+            {
                 return Err(Self::raise_ice(
                     &input,
                     ICE::RTLSymbolTableIsIncomplete { operand },
-                    SourceOpCode::new(id, 0),
+                    id,
                 ));
             }
         }

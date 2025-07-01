@@ -69,7 +69,7 @@ impl Pass for RemoveExtraRegistersPass {
                     })
                     .collect();
                 input
-                    .register_kind
+                    .register_size
                     .remove(&assign.lhs.as_register().unwrap());
                 input.return_register = if input.return_register == assign.lhs {
                     assign.rhs

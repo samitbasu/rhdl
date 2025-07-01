@@ -82,10 +82,10 @@ impl AsciiRenderer {
     fn render_member(&mut self, member: &Member) -> Result<()> {
         match member {
             Member::Named(name) => {
-                self.push(&format!("member named {}", name));
+                self.push(&format!("member named {name}"));
             }
             Member::Unnamed(index) => {
-                self.push(&format!("member unnamed {}", index));
+                self.push(&format!("member unnamed {index}"));
             }
         }
         Ok(())
@@ -147,10 +147,10 @@ impl AsciiRenderer {
                 self.indent -= 1;
             }
             ExprKind::Lit(lit) => {
-                self.push(&format!("lit {:?}", lit));
+                self.push(&format!("lit {lit:?}"));
             }
             ExprKind::Path(path) => {
-                self.push(&format!("path {:?}", path));
+                self.push(&format!("path {path:?}"));
             }
             ExprKind::Assign(assign) => {
                 self.push("assign");
@@ -280,16 +280,16 @@ impl AsciiRenderer {
 
         match &pat.kind {
             PatKind::Ident(ident) => {
-                self.push(&format!("ident {:?}", ident));
+                self.push(&format!("ident {ident:?}"));
             }
             PatKind::Lit(lit) => {
-                self.push(&format!("lit {:?}", lit));
+                self.push(&format!("lit {lit:?}"));
             }
             PatKind::Path(path) => {
-                self.push(&format!("path {:?}", path));
+                self.push(&format!("path {path:?}"));
             }
             PatKind::Struct(struct_) => {
-                self.push(&format!("struct {:?}", struct_));
+                self.push(&format!("struct {struct_:?}"));
             }
             PatKind::TupleStruct(tuple) => {
                 self.push("tuple_struct ");
@@ -301,13 +301,13 @@ impl AsciiRenderer {
                 self.indent -= 1;
             }
             PatKind::Tuple(tuple) => {
-                self.push(&format!("tuple {:?}", tuple));
+                self.push(&format!("tuple {tuple:?}"));
             }
             PatKind::Wild => {
                 self.push("wild");
             }
             PatKind::Type(ty) => {
-                self.push(&format!("type {:?}", ty));
+                self.push(&format!("type {ty:?}"));
             }
             _ => {
                 self.push(&format!("unhandled {:?}", pat.kind));

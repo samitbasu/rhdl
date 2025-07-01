@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::core::ntl;
 use crate::core::rtl;
 use crate::prelude::BitX;
-use crate::rhdl_core::ntl::object::SourceOpCode;
+use crate::rhdl_core::ast::source::source_location::SourceLocation;
 use crate::rhdl_core::ntl::spec::Binary;
 use crate::rhdl_core::ntl::spec::Not;
 use crate::rhdl_core::ntl::spec::RegisterId;
@@ -23,8 +23,8 @@ struct NtlBuilder<'a> {
 
 pub fn build_ntl_from_rtl(object: &rtl::Object) -> ntl::object::Object {
     let mut bob = NtlBuilder::new(object);
-    for (ndx, lop) in object.ops.iter().enumerate() {
-        bob.op(lop, ndx);
+    for lop in object.ops.iter() {
+        bob.op(lop);
     }
     let inputs = object
         .arguments
@@ -44,7 +44,6 @@ pub fn build_ntl_from_rtl(object: &rtl::Object) -> ntl::object::Object {
     let outputs = bob.operand(object.return_register);
     bob.btl.inputs = inputs;
     bob.btl.outputs = outputs;
-    bob.btl.rtl.insert(object.fn_id, object.clone());
     bob.btl
 }
 
@@ -67,17 +66,13 @@ impl<'a> NtlBuilder<'a> {
         self.reg_count += 1;
         RegisterId::new(num)
     }
-    fn push(&mut self, loc: SourceOpCode, op: bt::OpCode) {
+    fn push(&mut self, loc: SourceLocation, op: bt::OpCode) {
         self.btl
             .ops
             .push(ntl::object::LocatedOpCode { loc: Some(loc), op });
     }
-    fn op(&mut self, lop: &rtl::object::LocatedOpCode, ndx: usize) {
-        let loc = SourceOpCode {
-            rtl: lop.loc,
-            op: ndx,
-            bit: None,
-        };
+    fn op(&mut self, lop: &rtl::object::LocatedOpCode) {
+        let loc = lop.loc;
         match &lop.op {
             tl::OpCode::Noop => {}
             tl::OpCode::Assign(assign) => self.build_assign(loc, assign),
@@ -109,7 +104,7 @@ impl<'a> NtlBuilder<'a> {
                     .collect::<Vec<_>>()
             }
             tl::Operand::Register(register_id) => {
-                let reg = self.object.register_kind[&register_id];
+                let reg = self.object.register_size[&register_id];
                 (0..reg.len())
                     .map(|_| bt::Operand::Register(self.reg()))
                     .collect::<Vec<_>>()
@@ -118,14 +113,14 @@ impl<'a> NtlBuilder<'a> {
         self.operand_map.insert(operand, ndx.clone());
         ndx
     }
-    fn build_assign(&mut self, loc: SourceOpCode, assign: &tl::Assign) {
+    fn build_assign(&mut self, loc: SourceLocation, assign: &tl::Assign) {
         let rhs = self.operand(assign.rhs);
         let lhs = self.operand(assign.lhs);
-        for (ndx, (&lhs, &rhs)) in lhs.iter().zip(rhs.iter()).enumerate() {
-            self.push(loc.with_bit(ndx), bt::assign(lhs, rhs));
+        for (&lhs, &rhs) in lhs.iter().zip(rhs.iter()) {
+            self.push(loc, bt::assign(lhs, rhs));
         }
     }
-    fn build_binary(&mut self, loc: SourceOpCode, binary: &tl::Binary) {
+    fn build_binary(&mut self, loc: SourceLocation, binary: &tl::Binary) {
         let arg1 = self.operand(binary.arg1);
         let arg2 = self.operand(binary.arg2);
         let lhs = self.operand(binary.lhs);
@@ -134,11 +129,9 @@ impl<'a> NtlBuilder<'a> {
                 && self.object.kind(binary.arg2).is_signed());
         match classify_binary(binary.op) {
             BinOpClass::Bitwise(binop) => {
-                for (bit, (&lhs, (&arg1, &arg2))) in
-                    lhs.iter().zip(arg1.iter().zip(arg2.iter())).enumerate()
-                {
+                for (&lhs, (&arg1, &arg2)) in lhs.iter().zip(arg1.iter().zip(arg2.iter())) {
                     self.push(
-                        loc.with_bit(bit),
+                        loc,
                         bt::OpCode::Binary(Binary {
                             op: binop,
                             lhs,
@@ -160,7 +153,7 @@ impl<'a> NtlBuilder<'a> {
             ),
         }
     }
-    fn build_case(&mut self, loc: SourceOpCode, case: &tl::Case) {
+    fn build_case(&mut self, loc: SourceLocation, case: &tl::Case) {
         let lhs = self.operand(case.lhs);
         let discriminant = self.operand(case.discriminant);
         let table = case
@@ -188,7 +181,7 @@ impl<'a> NtlBuilder<'a> {
                 .map(|(case_entry, argument)| (case_entry, argument[bit]))
                 .collect();
             self.push(
-                loc.with_bit(bit),
+                loc,
                 bt::OpCode::Case(bt::Case {
                     lhs: lhs[bit],
                     discriminant: discriminant.clone(),
@@ -197,60 +190,54 @@ impl<'a> NtlBuilder<'a> {
             );
         }
     }
-    fn build_cast(&mut self, loc: SourceOpCode, cast: &tl::Cast) {
+    fn build_cast(&mut self, loc: SourceLocation, cast: &tl::Cast) {
         let lhs = self.operand(cast.lhs);
         let arg = self.operand(cast.arg);
-        for (bit, (&lhs, &rhs)) in lhs.iter().zip(arg.iter()).enumerate() {
-            self.push(loc.with_bit(bit), bt::assign(lhs, rhs));
+        for (&lhs, &rhs) in lhs.iter().zip(arg.iter()) {
+            self.push(loc, bt::assign(lhs, rhs));
         }
         let lhs_signed = self.object.kind(cast.lhs).is_signed();
         let use_unsigned = matches!(cast.kind, tl::CastKind::Unsigned)
             || (matches!(cast.kind, tl::CastKind::Resize) && !lhs_signed);
         if use_unsigned {
-            for (ndx, &lhs) in lhs.iter().enumerate().skip(arg.len()) {
-                self.push(loc.with_bit(ndx), bt::assign(lhs, bt::Operand::Zero));
+            for &lhs in lhs.iter().skip(arg.len()) {
+                self.push(loc, bt::assign(lhs, bt::Operand::Zero));
             }
         } else {
             let &msb = arg.last().unwrap();
-            for (bit, &lhs) in lhs.iter().enumerate().skip(arg.len()) {
-                self.push(loc.with_bit(bit), bt::assign(lhs, msb));
+            for &lhs in lhs.iter().skip(arg.len()) {
+                self.push(loc, bt::assign(lhs, msb));
             }
         }
     }
-    fn build_concat(&mut self, loc: SourceOpCode, concat: &tl::Concat) {
+    fn build_concat(&mut self, loc: SourceLocation, concat: &tl::Concat) {
         let lhs = self.operand(concat.lhs);
         let args = concat
             .args
             .iter()
             .map(|x| self.operand(*x))
             .collect::<Vec<_>>();
-        for (bit, (&lhs, &rhs)) in lhs.iter().zip(args.iter().flatten()).enumerate() {
-            self.push(loc.with_bit(bit), bt::assign(lhs, rhs));
+        for (&lhs, &rhs) in lhs.iter().zip(args.iter().flatten()) {
+            self.push(loc, bt::assign(lhs, rhs));
         }
     }
-    fn build_index(&mut self, loc: SourceOpCode, index: &tl::Index) {
+    fn build_index(&mut self, loc: SourceLocation, index: &tl::Index) {
         let lhs = self.operand(index.lhs);
         let arg = self.operand(index.arg);
-        for (bit, (&lhs, &rhs)) in lhs
-            .iter()
-            .zip(arg.iter().skip(index.bit_range.start))
-            .enumerate()
-        {
-            self.push(loc.with_bit(bit), bt::assign(lhs, rhs));
+        for (&lhs, &rhs) in lhs.iter().zip(arg.iter().skip(index.bit_range.start)) {
+            self.push(loc, bt::assign(lhs, rhs));
         }
     }
-    fn build_select(&mut self, loc: SourceOpCode, select: &tl::Select) {
+    fn build_select(&mut self, loc: SourceLocation, select: &tl::Select) {
         let lhs = self.operand(select.lhs);
         let cond = self.operand(select.cond);
         let true_case = self.operand(select.true_value);
         let false_case = self.operand(select.false_value);
-        for (bit, (&lhs, (&true_case, &false_case))) in lhs
-            .iter()
-            .zip(true_case.iter().zip(false_case.iter()))
-            .enumerate()
+        for (&lhs, (&true_case, &false_case)) in
+            lhs.iter().zip(true_case.iter().zip(false_case.iter()))
         {
             self.push(
-                loc.with_bit(bit),
+                loc,
                 bt::OpCode::Select(Select {
                     lhs,
                     selector: cond[0],
@@ -260,7 +247,7 @@ impl<'a> NtlBuilder<'a> {
             );
         }
     }
-    fn build_splice(&mut self, loc: SourceOpCode, splice: &tl::Splice) {
+    fn build_splice(&mut self, loc: SourceLocation, splice: &tl::Splice) {
         let lhs = self.operand(splice.lhs);
         let orig = self.operand(splice.orig);
         let value = self.operand(splice.value);
@@ -268,22 +255,22 @@ impl<'a> NtlBuilder<'a> {
         let center_iter = value.iter();
         let msb_iter = orig.iter().skip(splice.bit_range.end);
         let rhs = lsb_iter.chain(center_iter).chain(msb_iter);
-        for (bit, (&lhs, &rhs)) in lhs.iter().zip(rhs).enumerate() {
-            self.push(loc.with_bit(bit), bt::assign(lhs, rhs));
+        for (&lhs, &rhs) in lhs.iter().zip(rhs) {
+            self.push(loc, bt::assign(lhs, rhs));
         }
     }
-    fn build_unary(&mut self, loc: SourceOpCode, unary: &tl::Unary) {
+    fn build_unary(&mut self, loc: SourceLocation, unary: &tl::Unary) {
         let lhs = self.operand(unary.lhs);
         let arg = self.operand(unary.arg1);
         match classify_unary(unary.op) {
             UnaryOpClass::Not => {
-                for (bit, (&lhs, arg)) in lhs.iter().zip(arg).enumerate() {
-                    self.push(loc.with_bit(bit), bt::OpCode::Not(Not { lhs, arg }))
+                for (&lhs, arg) in lhs.iter().zip(arg) {
+                    self.push(loc, bt::OpCode::Not(Not { lhs, arg }))
                 }
             }
             UnaryOpClass::Copy => {
-                for (bit, (&lhs, arg)) in lhs.iter().zip(arg).enumerate() {
-                    self.push(loc.with_bit(bit), bt::assign(lhs, arg));
+                for (&lhs, arg) in lhs.iter().zip(arg) {
+                    self.push(loc, bt::assign(lhs, arg));
                 }
             }
             UnaryOpClass::Unary(unary_op) => self.push(

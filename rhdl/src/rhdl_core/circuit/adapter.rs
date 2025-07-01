@@ -1,14 +1,14 @@
 use crate::rhdl_core::{
+    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, ClockReset, Digital, DigitalFn, Domain, Kind,
+    RHDLError, Signal, Synchronous, Timed,
     bitx::BitX,
     digital_fn::NoKernel2,
     hdl::ast::{
-        component_instance, concatenate, connection, id, index, index_bit, Direction, Module,
+        Direction, Module, component_instance, concatenate, connection, id, index, index_bit,
     },
     ntl,
-    rtl::object::RegisterKind,
+    rtl::object::RegisterSize,
     types::{kind::Field, signal::signal},
-    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, ClockReset, Digital, DigitalFn, Domain, Kind,
-    RHDLError, Signal, Synchronous, Timed,
 };
 
 use super::hdl_backend::maybe_port_wire;
@@ -121,8 +121,8 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         let child_descriptor = self.circuit.descriptor(&format!("{name}_inner"))?;
         // This includes the clock and reset signals
         // It should be [clock, reset, inputs...]
-        let input_reg: RegisterKind = <Self::I as Timed>::static_kind().into();
-        let output_reg: RegisterKind = <Self::O as Timed>::static_kind().into();
+        let input_reg: RegisterSize = <Self::I as Timed>::static_kind().into();
+        let output_reg: RegisterSize = <Self::O as Timed>::static_kind().into();
         let ti = builder.add_input(input_reg.len());
         let to = builder.allocate_outputs(output_reg.len());
         let child_offset = builder.import(&child_descriptor.ntl);
@@ -162,7 +162,7 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         .into_iter()
         .flatten()
         .collect();
-        let child_name = &format!("{}_inner", name);
+        let child_name = &format!("{name}_inner");
         let child = self.circuit.descriptor(child_name)?;
         let clock_reset = concatenate(vec![index_bit("i", 1), index_bit("i", 0)]);
         let cr_connection = Some(connection("clock_reset", clock_reset));

@@ -1,14 +1,15 @@
 use crate::{
     prelude::RHDLError,
     rhdl_core::{
-        compiler::mir::error::{RHDLCompileError, ICE},
+        ast::source::source_location::SourceLocation,
+        compiler::mir::error::{ICE, RHDLCompileError},
         error::rhdl_error,
-        ntl::object::{Object, SourceOpCode},
+        ntl::object::Object,
     },
 };
 
 pub trait Pass {
-    fn raise_ice(obj: &Object, cause: ICE, loc: Option<SourceOpCode>) -> RHDLError {
+    fn raise_ice(obj: &Object, cause: ICE, loc: Option<SourceLocation>) -> RHDLError {
         let err_span = if let Some(source_op) = loc {
             obj.code.span(source_op)
         } else {

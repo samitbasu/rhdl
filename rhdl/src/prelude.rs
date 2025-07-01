@@ -70,7 +70,7 @@ pub use crate::rhdl_core::CompilationMode;
 pub use crate::rhdl_core::TraceKey;
 pub use crate::rhdl_core::{
     hdl::ast::{signed_width, unsigned_width, Module},
-    rtl::object::RegisterKind,
+    rtl::object::RegisterSize,
     types::bit_string::BitString,
     util::hash_id,
 };

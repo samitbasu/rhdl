@@ -1,5 +1,5 @@
 use crate::{
-    prelude::{bit_range, Kind, Path},
+    prelude::{Kind, Path, bit_range},
     rhdl_core::{
         ntl::{
             object::Object,
@@ -121,11 +121,6 @@ impl std::fmt::Debug for Object {
         vec_disp(f, &self.outputs)?;
         writeln!(f)?;
         for lop in &self.ops {
-            if let Some(source) = lop.loc {
-                if let Some(obj) = self.rtl.get(&source.rtl.rhif.func) {
-                    writeln!(f, "> {:?}", obj.ops[source.op].op)?;
-                }
-            }
             writeln!(f, "{:?}", lop.op)?;
         }
         Ok(())

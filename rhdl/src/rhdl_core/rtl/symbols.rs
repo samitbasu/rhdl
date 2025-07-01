@@ -3,12 +3,15 @@ use std::{
     ops::Range,
 };
 
-use crate::rhdl_core::{
-    ast::{
-        ast_impl::FunctionId,
-        source::{source_location::SourceLocation, spanned_source_set::SpannedSourceSet},
+use crate::{
+    prelude::Kind,
+    rhdl_core::{
+        SourcePool,
+        ast::{
+            ast_impl::FunctionId,
+            source::{source_location::SourceLocation, spanned_source_set::SpannedSourceSet},
+        },
     },
-    SourcePool,
 };
 
 use super::spec::Operand;
@@ -19,6 +22,7 @@ pub struct SymbolMap {
     pub operand_map: BTreeMap<Operand, SourceLocation>,
     pub operand_names: BTreeMap<Operand, String>,
     pub aliases: BTreeMap<Operand, BTreeSet<Operand>>,
+    pub rhif_types: BTreeMap<Operand, Kind>,
 }
 
 impl SymbolMap {

@@ -15,6 +15,9 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::iter::once;
 
+use crate::rhdl_core::KernelFnKind;
+use crate::rhdl_core::Kind;
+use crate::rhdl_core::TypedBits;
 use crate::rhdl_core::ast::ast_impl;
 use crate::rhdl_core::ast::ast_impl::BitsKind;
 use crate::rhdl_core::ast::ast_impl::ExprBits;
@@ -37,11 +40,12 @@ use crate::rhdl_core::builder::BinOp;
 use crate::rhdl_core::builder::UnOp;
 use crate::rhdl_core::compiler::ascii;
 use crate::rhdl_core::compiler::display_ast::pretty_print_statement;
-use crate::rhdl_core::compiler::stage1::compile;
 use crate::rhdl_core::compiler::stage1::CompilationMode;
+use crate::rhdl_core::compiler::stage1::compile;
 use crate::rhdl_core::error::RHDLError;
 use crate::rhdl_core::kernel::Kernel;
 use crate::rhdl_core::rhif;
+use crate::rhdl_core::rhif::Object;
 use crate::rhdl_core::rhif::object::LocatedOpCode;
 use crate::rhdl_core::rhif::object::SymbolMap;
 use crate::rhdl_core::rhif::rhif_builder::op_as_bits_inferred;
@@ -56,7 +60,6 @@ use crate::rhdl_core::rhif::spec::CaseArgument;
 use crate::rhdl_core::rhif::spec::Member;
 use crate::rhdl_core::rhif::spec::RegisterId;
 use crate::rhdl_core::rhif::spec::{FuncId, LiteralId};
-use crate::rhdl_core::rhif::Object;
 use crate::rhdl_core::rhif::{
     rhif_builder::{
         op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
@@ -65,18 +68,15 @@ use crate::rhdl_core::rhif::{
     spec::AluBinary,
 };
 use crate::rhdl_core::types::path::Path;
-use crate::rhdl_core::KernelFnKind;
-use crate::rhdl_core::Kind;
-use crate::rhdl_core::TypedBits;
 use crate::rhdl_core::{
     ast::ast_impl::{Expr, ExprKind, ExprLit, FunctionId},
     rhif::spec::{OpCode, Slot},
 };
 
+use super::error::ICE;
 use super::error::RHDLCompileError;
 use super::error::RHDLSyntaxError;
 use super::error::Syntax;
-use super::error::ICE;
 use super::interner::Intern;
 use super::interner::InternKey;
 use super::mir_impl::Mir;
@@ -161,7 +161,7 @@ impl std::fmt::Debug for Scope {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Scope {{")?;
         for (name, id) in &self.names {
-            writeln!(f, "  {} -> {:?}", name, id)?;
+            writeln!(f, "  {name} -> {id:?}")?;
         }
         writeln!(f, "}}")
     }
@@ -208,10 +208,10 @@ impl std::fmt::Debug for MirContext<'_> {
             writeln!(f, "{:?} : {:?}", slot, self.kinds[kind])?;
         }
         for (lit, expr) in &self.literals {
-            writeln!(f, "{:?} -> {:?}", lit, expr)?;
+            writeln!(f, "{lit:?} -> {expr:?}")?;
         }
         for (id, func) in self.stash.iter() {
-            writeln!(f, "Function f{:?} {:?}", id, func)?;
+            writeln!(f, "Function f{id:?} {func:?}")?;
         }
         for op in &self.ops {
             writeln!(f, "{:?}", op.op)?;
@@ -660,7 +660,7 @@ impl<'a> MirContext<'a> {
             _ => {
                 return Err(self
                     .raise_ice(ICE::UnexpectedBinopInSelfAssign { op: *op }, id)
-                    .into())
+                    .into());
             }
         };
         self.ty_equate.insert(TypeEquivalence {
@@ -1296,7 +1296,7 @@ impl<'a> MirContext<'a> {
             _ => {
                 return Err(self
                     .raise_syntax_error(Syntax::UnsupportedMethodCall, id)
-                    .into())
+                    .into());
             }
         };
         self.op(op_unary(op, lhs, arg), id);
@@ -1588,7 +1588,7 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
         let node = NodeId::new(id);
         if !source.span_map.contains_key(&node) {
             debug!("AST: {}", ascii::render_ast_to_string(&func)?);
-            panic!("Missing span for node {:?}", node);
+            panic!("Missing span for node {node:?}");
         }
     }
     let copy_source = source.clone();
