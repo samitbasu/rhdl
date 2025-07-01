@@ -1,11 +1,11 @@
 use crate::rhdl_core::{
+    RHDLError,
     rtl::{
-        object::{LocatedOpCode, SourceOpCode},
-        spec::{Assign, OpCode, Operand},
         Object,
+        object::LocatedOpCode,
+        spec::{Assign, OpCode, Operand},
     },
     types::bit_string::BitString,
-    RHDLError,
 };
 
 use super::pass::Pass;
@@ -19,7 +19,7 @@ impl Pass for RemoveEmptyFunctionArguments {
             .arguments
             .iter()
             .flat_map(|x| x.as_ref())
-            .filter(|x| input.register_kind[*x].is_empty())
+            .filter(|x| input.register_size[*x].is_empty())
             .copied()
             .collect::<Vec<_>>();
         if empty_args.is_empty() {
@@ -37,7 +37,7 @@ impl Pass for RemoveEmptyFunctionArguments {
                     lhs: Operand::Register(*arg),
                     rhs: my_empty,
                 }),
-                loc: SourceOpCode::new(fallback, 0),
+                loc: fallback,
             })
             .collect::<Vec<_>>();
         input.ops = preamble.into_iter().chain(input.ops).collect();

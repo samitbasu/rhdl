@@ -1,6 +1,8 @@
 use std::fmt::{Display, Formatter};
 
-use crate::rhdl_core::{ast::ast_impl::*, kernel::Kernel, rhif::spec::Member, util::IndentingFormatter, Kind};
+use crate::rhdl_core::{
+    Kind, ast::ast_impl::*, kernel::Kernel, rhif::spec::Member, util::IndentingFormatter,
+};
 use anyhow::Result;
 
 #[derive(Default)]
@@ -80,7 +82,7 @@ impl PrettyPrinter {
                 self.push(" {");
                 for field in &pat.fields {
                     if let Member::Named(name) = &field.member {
-                        self.push(&format!("{}: ", name));
+                        self.push(&format!("{name}: "));
                     }
                     self.print_pattern(&field.pat)?;
                     self.push(", ");
@@ -145,8 +147,8 @@ impl PrettyPrinter {
     fn print_kind(&mut self, kind: &Kind) -> Result<()> {
         match kind {
             Kind::Empty => self.push("()"),
-            Kind::Signed(n) => self.push(&format!("s{}", n)),
-            Kind::Bits(n) => self.push(&format!("b{}", n)),
+            Kind::Signed(n) => self.push(&format!("s{n}")),
+            Kind::Bits(n) => self.push(&format!("b{n}")),
             Kind::Tuple(kinds) => {
                 self.push("(");
                 for kind in &kinds.elements {
@@ -170,7 +172,7 @@ impl PrettyPrinter {
             }
             Kind::Signal(base, color) => {
                 self.print_kind(base)?;
-                self.push(&format!("@{:?}", color));
+                self.push(&format!("@{color:?}"));
             }
         }
         Ok(())
@@ -266,7 +268,7 @@ impl PrettyPrinter {
                 self.print_expr(&expr.value)?;
             }
             ExprKind::Lit(expr) => {
-                self.push(&format!("{:?}", expr));
+                self.push(&format!("{expr:?}"));
             }
             ExprKind::Match(expr) => {
                 self.push("match ");
@@ -333,7 +335,7 @@ impl PrettyPrinter {
                 self.push(" {");
                 for field in &expr.fields {
                     if let Member::Named(name) = &field.member {
-                        self.push(&format!("{}: ", name));
+                        self.push(&format!("{name}: "));
                     }
                     self.print_expr(&field.value)?;
                     self.push(", ");
@@ -385,8 +387,8 @@ impl PrettyPrinter {
 impl std::fmt::Debug for ExprLit {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ExprLit::Int(int) => write!(f, "{}", int),
-            ExprLit::Bool(bool) => write!(f, "{}", bool),
+            ExprLit::Int(int) => write!(f, "{int}"),
+            ExprLit::Bool(bool) => write!(f, "{bool}"),
             ExprLit::TypedBits(ty) => write!(f, "{}", ty.code),
         }
     }
@@ -446,8 +448,8 @@ impl Display for UnOp {
 impl Display for Member {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Member::Named(name) => write!(f, "{}", name),
-            Member::Unnamed(index) => write!(f, "{}", index),
+            Member::Named(name) => write!(f, "{name}"),
+            Member::Unnamed(index) => write!(f, "{index}"),
         }
     }
 }

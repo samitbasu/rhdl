@@ -4,7 +4,7 @@ use crate::rhdl_core::{
     hdl::ast::{
         component_instance, connection, id, unsigned_width, Declaration, Direction, HDLKind, Module,
     },
-    rtl::object::RegisterKind,
+    rtl::object::RegisterSize,
     trace_pop_path, trace_push_path, CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind,
     Synchronous, SynchronousDQ, SynchronousIO,
 };
@@ -80,8 +80,8 @@ where
         let desc_a = self.a.descriptor(&a_name)?;
         let desc_b = self.b.descriptor(&b_name)?;
         let mut builder = ntl::Builder::new(name);
-        let input_kind: RegisterKind = <A as SynchronousIO>::I::static_kind().into();
-        let output_kind: RegisterKind = <B as SynchronousIO>::O::static_kind().into();
+        let input_kind: RegisterSize = <A as SynchronousIO>::I::static_kind().into();
+        let output_kind: RegisterSize = <B as SynchronousIO>::O::static_kind().into();
         // The inputs to the circuit are [cr, I], the output is [O]
         // Allocate these as inputs to the netlist
         let top_cr = builder.add_input(2);

@@ -3,12 +3,12 @@ use std::ops::ShrAssign;
 
 use crate::rhdl_bits::signed_dyn_bits::SignedDynBits;
 
-use super::bits_impl::bits_masked;
+use super::BitWidth;
 use super::bits_impl::Bits;
+use super::bits_impl::bits_masked;
 use super::dyn_bits::DynBits;
 use super::signed;
 use super::signed_bits_impl::SignedBits;
-use super::BitWidth;
 
 impl<N> Shr<u128> for Bits<N>
 where
@@ -242,9 +242,7 @@ mod test {
                 assert_eq!(
                     result.val,
                     i128::wrapping_shr(i as i128, shift),
-                    "i = {:b}, shift = {}",
-                    i,
-                    shift
+                    "i = {i:b}, shift = {shift}"
                 );
                 let shift_as_bits: Bits<U3> = (shift as u128).into();
                 let result = bits >> shift_as_bits;

@@ -1,14 +1,14 @@
 use std::collections::BTreeMap;
 
 use crate::rhdl_core::{
-    digital_fn::NoKernel3,
-    hdl::ast::{component_instance, connection, id, index, Direction, Module, Statement},
-    ntl,
-    rtl::object::RegisterKind,
-    trace_pop_path, trace_push_path,
-    types::path::{bit_range, Path},
     CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, RHDLError, Synchronous,
     SynchronousDQ, SynchronousIO,
+    digital_fn::NoKernel3,
+    hdl::ast::{Direction, Module, Statement, component_instance, connection, id, index},
+    ntl,
+    rtl::object::RegisterSize,
+    trace_pop_path, trace_push_path,
+    types::path::{Path, bit_range},
 };
 
 use super::hdl_backend::maybe_port_wire;
@@ -61,9 +61,9 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
         name: &str,
     ) -> Result<crate::rhdl_core::CircuitDescriptor, crate::rhdl_core::RHDLError> {
         let mut builder = ntl::Builder::new(name);
-        let cr_kind: RegisterKind = ClockReset::static_kind().into();
-        let input_kind: RegisterKind = Self::I::static_kind().into();
-        let output_kind: RegisterKind = Self::O::static_kind().into();
+        let cr_kind: RegisterSize = ClockReset::static_kind().into();
+        let input_kind: RegisterSize = Self::I::static_kind().into();
+        let output_kind: RegisterSize = Self::O::static_kind().into();
         let tcr = builder.add_input(cr_kind.len());
         let ti = builder.add_input(input_kind.len());
         let to = builder.allocate_outputs(output_kind.len());
@@ -72,7 +72,7 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
             let child_path = Path::default().index(i);
             let (output_bit_range, _) = bit_range(Self::O::static_kind(), &child_path)?;
             let (input_bit_range, _) = bit_range(Self::I::static_kind(), &child_path)?;
-            let child_name = format!("{}_{}", name, i);
+            let child_name = format!("{name}_{i}");
             let child_desc = self[i].descriptor(&child_name)?;
             let offset = builder.import(&child_desc.ntl);
             for (&t, c) in tcr.iter().zip(&child_desc.ntl.inputs[0]) {
@@ -109,7 +109,7 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
 
         let children = (0..N)
             .map(|ndx| {
-                let name = format!("{}_{}", name, ndx);
+                let name = format!("{name}_{ndx}");
                 let hdl = self[ndx].hdl(&name)?;
                 Ok((name, hdl))
             })

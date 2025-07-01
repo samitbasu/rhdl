@@ -152,7 +152,7 @@ impl<'a> SpannedSourceBuilder<'a> {
             (_, ast::PatKind::Wild) => Ok(()),
             _ => Err(syn::Error::new(
                 syn_pat.span(),
-                format!("Mismatched pattern kinds {:#?} {:#?}", syn_pat, ast_pat,),
+                format!("Mismatched pattern kinds {syn_pat:#?} {ast_pat:#?}",),
             )),
         }
     }
@@ -325,7 +325,10 @@ impl<'a> SpannedSourceBuilder<'a> {
                     ));
                 }
                 let syn::Stmt::Expr(syn_expr, _) = &syn.block.stmts[0] else {
-                    return Err(syn::Error::new(syn.span(), "Expected an expression statement"));
+                    return Err(syn::Error::new(
+                        syn.span(),
+                        "Expected an expression statement",
+                    ));
                 };
                 self.expr(syn_expr, ast)
             }
@@ -357,7 +360,9 @@ impl<'a> SpannedSourceBuilder<'a> {
                 syn.span(),
                 format!(
                     "Mismatched expression kinds \n\n ----- \n {:?} \n ---- \n {:?} \n ----- \n {:?}\n",
-                    syn, quote!(#syn).to_string(), ast,
+                    syn,
+                    quote!(#syn).to_string(),
+                    ast,
                 ),
             )),
         }

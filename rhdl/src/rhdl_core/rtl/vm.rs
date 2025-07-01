@@ -1,25 +1,23 @@
 use std::collections::BTreeMap;
 
 use crate::rhdl_core::{
+    RHDLError, TypedBits,
+    ast::source::source_location::SourceLocation,
     bitx::BitX,
-    compiler::mir::error::{RHDLCompileError, ICE},
+    compiler::mir::error::{ICE, RHDLCompileError},
     error::rhdl_error,
-    rtl::{
-        object::SourceOpCode,
-        spec::{
-            AluBinary, AluUnary, Case, CaseArgument, Cast, CastKind, Concat, Index, Select, Splice,
-            Unary,
-        },
+    rtl::spec::{
+        AluBinary, AluUnary, Case, CaseArgument, Cast, CastKind, Concat, Index, Select, Splice,
+        Unary,
     },
     types::bit_string::BitString,
-    RHDLError, TypedBits,
 };
 
 use super::{
-    object::{LocatedOpCode, RegisterKind},
+    Object,
+    object::{LocatedOpCode, RegisterSize},
     runtime_ops::{binary, unary},
     spec::{Assign, Binary, LiteralId, OpCode, Operand},
-    Object,
 };
 
 type Result<T> = core::result::Result<T, RHDLError>;
@@ -31,7 +29,7 @@ struct VMState<'a> {
 }
 
 impl VMState<'_> {
-    fn raise_ice(&self, cause: ICE, loc: SourceOpCode) -> RHDLError {
+    fn raise_ice(&self, cause: ICE, loc: SourceLocation) -> RHDLError {
         let symbols = &self.obj.symbols;
         RHDLError::RHDLInternalCompilerError(Box::new(RHDLCompileError {
             cause,
@@ -44,7 +42,7 @@ impl VMState<'_> {
         op: AluBinary,
         arg1: BitString,
         arg2: BitString,
-        loc: SourceOpCode,
+        loc: SourceLocation,
     ) -> Result<BitString> {
         let arg1: TypedBits = arg1.into();
         let arg2: TypedBits = arg2.into();
@@ -54,14 +52,14 @@ impl VMState<'_> {
         }
     }
 
-    fn unary(&self, op: AluUnary, arg1: BitString, loc: SourceOpCode) -> Result<BitString> {
+    fn unary(&self, op: AluUnary, arg1: BitString, loc: SourceLocation) -> Result<BitString> {
         let arg1: TypedBits = arg1.into();
         match unary(op, arg1) {
             Ok(result) => Ok(result.into()),
             Err(e) => Err(self.raise_ice(ICE::UnaryOperatorError(Box::new(e)), loc)),
         }
     }
-    fn read(&self, operand: Operand, loc: SourceOpCode) -> Result<BitString> {
+    fn read(&self, operand: Operand, loc: SourceLocation) -> Result<BitString> {
         match operand {
             Operand::Literal(l) => Ok(self.literals[&l].clone()),
             Operand::Register(r) => self.reg_stack[r.raw()]
@@ -69,7 +67,7 @@ impl VMState<'_> {
                 .ok_or(self.raise_ice(ICE::UninitializedRTLRegister { r }, loc)),
         }
     }
-    fn write(&mut self, operand: Operand, value: BitString, loc: SourceOpCode) -> Result<()> {
+    fn write(&mut self, operand: Operand, value: BitString, loc: SourceLocation) -> Result<()> {
         match operand {
             Operand::Literal(ndx) => Err(self.raise_ice(ICE::CannotWriteToRTLLiteral { ndx }, loc)),
             Operand::Register(r) => {
@@ -149,10 +147,10 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                     .copied()
                     .collect::<Vec<BitX>>();
                 match state.obj.kind(*lhs) {
-                    RegisterKind::Signed(_) => {
+                    RegisterSize::Signed(_) => {
                         state.write(*lhs, BitString::Signed(combined), loc)?;
                     }
-                    RegisterKind::Unsigned(_) => {
+                    RegisterSize::Unsigned(_) => {
                         state.write(*lhs, BitString::Unsigned(combined), loc)?;
                     }
                 }
@@ -165,10 +163,10 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let arg = state.read(*arg, loc)?;
                 let slice = arg.bits()[bit_range.clone()].to_vec();
                 match state.obj.kind(*lhs) {
-                    RegisterKind::Signed(_) => {
+                    RegisterSize::Signed(_) => {
                         state.write(*lhs, BitString::Signed(slice), loc)?;
                     }
-                    RegisterKind::Unsigned(_) => {
+                    RegisterSize::Unsigned(_) => {
                         state.write(*lhs, BitString::Unsigned(slice), loc)?;
                     }
                 }
@@ -200,10 +198,10 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let value = value.bits();
                 orig.splice(bit_range.clone(), value.iter().copied());
                 match state.obj.kind(*lhs) {
-                    RegisterKind::Signed(_) => {
+                    RegisterSize::Signed(_) => {
                         state.write(*lhs, BitString::Signed(orig), loc)?;
                     }
-                    RegisterKind::Unsigned(_) => {
+                    RegisterSize::Unsigned(_) => {
                         state.write(*lhs, BitString::Unsigned(orig), loc)?;
                     }
                 }

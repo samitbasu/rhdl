@@ -1,7 +1,7 @@
 use super::circuit_impl::Circuit;
 use crate::rhdl_core::ntl::from_rtl::build_ntl_from_rtl;
 use crate::rhdl_core::ntl::spec::Operand;
-use crate::rhdl_core::rtl::object::RegisterKind;
+use crate::rhdl_core::rtl::object::RegisterSize;
 use crate::rhdl_core::rtl::Object;
 use crate::rhdl_core::types::digital::Digital;
 use crate::rhdl_core::types::path::{bit_range, Path};
@@ -57,11 +57,11 @@ pub fn build_descriptor<C: Circuit>(
     let update_netlist = build_ntl_from_rtl(&module);
     // Create a manual builder for the top level netlist
     let mut builder = ntl::builder::Builder::new(name);
-    let output_kind: RegisterKind = C::O::static_kind().into();
+    let output_kind: RegisterSize = C::O::static_kind().into();
     if output_kind.is_empty() {
         return Err(RHDLError::NoOutputsError);
     }
-    let input_kind: RegisterKind = C::I::static_kind().into();
+    let input_kind: RegisterSize = C::I::static_kind().into();
     let top_i = builder.add_input(input_kind.len());
     let top_o = builder.allocate_outputs(output_kind.len());
     let update_register_offset = builder.import(&update_netlist);
@@ -157,11 +157,11 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     // This is the kind of output of the update kernel - it must be equal to
     // (Update::O, Update::D)
     // The update_fg will have 3 arguments (rst,i,q) and 2 outputs (o,d)
-    let output_kind: RegisterKind = C::O::static_kind().into();
+    let output_kind: RegisterSize = C::O::static_kind().into();
     if output_kind.is_empty() {
         return Err(RHDLError::NoOutputsError);
     }
-    let input_kind: RegisterKind = C::I::static_kind().into();
+    let input_kind: RegisterSize = C::I::static_kind().into();
     // The inputs to the circuit are [cr, I], the output is [O]
     // Allocate these as inputs to the netlist
     let top_cr = builder.add_input(2);

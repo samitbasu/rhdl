@@ -17,13 +17,7 @@ impl Pass for SymbolTableIsComplete {
             let Some(location) = lop.loc else {
                 continue;
             };
-            let rtl = location.rtl;
-            let location = rtl.rhif;
             if !input.code.sources.contains_key(&location.func) {
-                return Err(Self::raise_ice(&input, ICE::IncompleteSymbolTable, None));
-            }
-            if !input.rtl.contains_key(&location.func) {
-                eprintln!("input rtl lib is missing {:?}", location.func);
                 return Err(Self::raise_ice(&input, ICE::IncompleteSymbolTable, None));
             }
         }

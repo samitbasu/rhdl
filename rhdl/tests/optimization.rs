@@ -405,7 +405,7 @@ fn test_empty_expressions_dropped() -> miette::Result<()> {
     }
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
+    assert!(rtl.register_size.values().all(|v| !v.is_empty()));
     assert!(rtl.literals.values().all(|v| !v.is_empty()));
     Ok(())
 }
@@ -425,7 +425,7 @@ fn test_empty_splices_dropped() -> miette::Result<()> {
     }
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
+    assert!(rtl.register_size.values().all(|v| !v.is_empty()));
     assert!(rtl.literals.values().all(|v| !v.is_empty()));
     Ok(())
 }
@@ -440,7 +440,7 @@ fn test_empty_index_dropped() -> miette::Result<()> {
     }
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
+    assert!(rtl.register_size.values().all(|v| !v.is_empty()));
     assert!(rtl.literals.values().all(|v| !v.is_empty()));
     Ok(())
 }
@@ -454,7 +454,7 @@ fn test_empty_dynamic_splices_dropped() -> miette::Result<()> {
     }
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
+    assert!(rtl.register_size.values().all(|v| !v.is_empty()));
     assert!(rtl.literals.values().all(|v| !v.is_empty()));
     Ok(())
 }
@@ -467,12 +467,13 @@ fn test_empty_dynamic_index_dropped() -> miette::Result<()> {
     }
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
+    assert!(rtl.register_size.values().all(|v| !v.is_empty()));
     assert!(rtl.literals.values().all(|v| !v.is_empty()));
-    assert!(rtl
-        .ops
-        .iter()
-        .all(|op| matches!(op.op, rhdl::core::rtl::spec::OpCode::Comment(_))));
+    assert!(
+        rtl.ops
+            .iter()
+            .all(|op| matches!(op.op, rhdl::core::rtl::spec::OpCode::Comment(_)))
+    );
     Ok(())
 }
 
@@ -510,7 +511,7 @@ fn test_empty_indices_dropped() -> miette::Result<()> {
         a.a
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
+    assert!(rtl.register_size.values().all(|v| !v.is_empty()));
     assert!(rtl.literals.values().all(|v| !v.is_empty()));
     Ok(())
 }
@@ -548,7 +549,7 @@ fn test_empty_case_dropped() -> miette::Result<()> {
         ret
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    assert!(rtl.register_kind.values().all(|v| !v.is_empty()));
+    assert!(rtl.register_size.values().all(|v| !v.is_empty()));
     assert!(rtl.literals.values().all(|v| !v.is_empty()));
     Ok(())
 }

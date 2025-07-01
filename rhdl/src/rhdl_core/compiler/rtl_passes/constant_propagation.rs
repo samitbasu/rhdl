@@ -1,21 +1,22 @@
 use crate::rhdl_core::{
-    compiler::mir::error::{RHDLCompileError, ICE},
+    RHDLError, TypedBits,
+    ast::source::source_location::SourceLocation,
+    compiler::mir::error::{ICE, RHDLCompileError},
     error::rhdl_error,
     rtl::{
-        object::{LocatedOpCode, RegisterKind, SourceOpCode},
+        Object,
+        object::{LocatedOpCode, RegisterSize},
         spec::{
             Assign, Binary, Case, CaseArgument, Cast, CastKind, Concat, Index, LiteralId, OpCode,
             Operand, Select, Splice, Unary,
         },
-        Object,
     },
     types::bit_string::BitString,
-    RHDLError, TypedBits,
 };
 
 use super::pass::Pass;
 
-fn assign_literal(loc: SourceOpCode, value: BitString, obj: &mut Object) -> Operand {
+fn assign_literal(loc: SourceLocation, value: BitString, obj: &mut Object) -> Operand {
     let literal = obj.literal_max_index().next();
     obj.literals.insert(literal, value);
     obj.symbols
@@ -25,7 +26,7 @@ fn assign_literal(loc: SourceOpCode, value: BitString, obj: &mut Object) -> Oper
 }
 
 fn propagate_binary(
-    loc: SourceOpCode,
+    loc: SourceLocation,
     params: Binary,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -61,7 +62,7 @@ fn propagate_binary(
 }
 
 fn propagate_unary(
-    loc: SourceOpCode,
+    loc: SourceLocation,
     params: Unary,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -85,7 +86,7 @@ fn propagate_unary(
 }
 
 fn propagate_concat(
-    loc: SourceOpCode,
+    loc: SourceLocation,
     concat: Concat,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -104,8 +105,8 @@ fn propagate_concat(
             .copied()
             .collect::<Vec<_>>();
         let arg = match obj.kind(concat.lhs) {
-            RegisterKind::Signed(_) => BitString::Signed(bits),
-            RegisterKind::Unsigned(_) => BitString::Unsigned(bits),
+            RegisterSize::Signed(_) => BitString::Signed(bits),
+            RegisterSize::Unsigned(_) => BitString::Unsigned(bits),
         };
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
@@ -123,7 +124,7 @@ fn propagate_concat(
 }
 
 fn propagate_case(
-    loc: SourceOpCode,
+    loc: SourceLocation,
     case: Case,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -155,7 +156,7 @@ fn propagate_case(
 }
 
 fn propagate_cast(
-    loc: SourceOpCode,
+    loc: SourceLocation,
     cast: crate::rhdl_core::rtl::spec::Cast,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -188,7 +189,7 @@ fn propagate_cast(
 }
 
 fn propagate_select(
-    loc: SourceOpCode,
+    loc: SourceLocation,
     select: Select,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -221,7 +222,7 @@ fn propagate_select(
 }
 
 fn propagate_splice(
-    loc: SourceOpCode,
+    loc: SourceLocation,
     splice: Splice,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -237,8 +238,8 @@ fn propagate_splice(
         let mut bits = orig.bits().to_vec();
         bits.splice(bit_range.clone(), value.bits().iter().copied());
         let result = match obj.kind(*lhs) {
-            RegisterKind::Signed(_) => BitString::Signed(bits),
-            RegisterKind::Unsigned(_) => BitString::Unsigned(bits),
+            RegisterSize::Signed(_) => BitString::Signed(bits),
+            RegisterSize::Unsigned(_) => BitString::Unsigned(bits),
         };
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
@@ -256,7 +257,7 @@ fn propagate_splice(
 }
 
 fn propagate_index(
-    loc: SourceOpCode,
+    loc: SourceLocation,
     index: Index,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
@@ -269,8 +270,8 @@ fn propagate_index(
         let arg = obj.literals[arg].clone();
         let slice = arg.bits()[bit_range.clone()].to_vec();
         let result = match obj.kind(*lhs) {
-            RegisterKind::Signed(_) => BitString::Signed(slice),
-            RegisterKind::Unsigned(_) => BitString::Unsigned(slice),
+            RegisterSize::Signed(_) => BitString::Signed(slice),
+            RegisterSize::Unsigned(_) => BitString::Unsigned(slice),
         };
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {

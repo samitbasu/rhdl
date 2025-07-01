@@ -28,7 +28,7 @@ impl Pass for RemoveUnusedOperandsPass {
             });
         }
         input
-            .register_kind
+            .register_size
             .retain(|&reg_id, _| used_set.contains(&Operand::Register(reg_id)));
         input
             .literals

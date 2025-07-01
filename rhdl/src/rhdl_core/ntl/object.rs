@@ -1,5 +1,5 @@
 use crate::{
-    prelude::HDLDescriptor,
+    prelude::{HDLDescriptor, Kind},
     rhdl_core::{
         ast::{
             ast_impl::FunctionId,
@@ -12,8 +12,8 @@ use crate::{
         rtl,
     },
 };
-use std::hash::Hasher;
 use std::{collections::BTreeMap, hash::Hash};
+use std::{collections::HashMap, hash::Hasher};
 
 use fnv::FnvHasher;
 
@@ -29,6 +29,12 @@ pub struct BlackBox {
     pub mode: BlackBoxMode,
 }
 
+#[derive(Clone, Copy, Debug, Hash)]
+pub struct KindAndBit {
+    kind: Kind,
+    bit: usize,
+}
+
 #[derive(Clone, Default, Hash)]
 pub struct Object {
     pub name: String,
@@ -36,8 +42,8 @@ pub struct Object {
     pub outputs: Vec<Operand>,
     pub ops: Vec<LocatedOpCode>,
     pub code: SpannedSourceSet,
-    pub rtl: BTreeMap<FunctionId, rtl::Object>,
     pub black_boxes: Vec<BlackBox>,
+    pub kinds: BTreeMap<Operand, KindAndBit>,
 }
 
 impl Object {
@@ -83,7 +89,6 @@ impl Object {
         self.ops.extend(other_ops);
         self.code.extend(other.code.sources.clone());
         self.black_boxes.extend(other.black_boxes.clone());
-        self.rtl.extend(other.rtl.clone());
         max_reg
     }
     pub fn hash_value(&self) -> u64 {
@@ -96,27 +101,5 @@ impl Object {
 #[derive(Clone, Hash)]
 pub struct LocatedOpCode {
     pub op: OpCode,
-    pub loc: Option<SourceOpCode>,
-}
-
-#[derive(Clone, Hash, Copy)]
-pub struct SourceOpCode {
-    pub rtl: rtl::object::SourceOpCode,
-    pub op: usize,
-    pub bit: Option<usize>,
-}
-
-impl SourceOpCode {
-    pub fn with_bit(self, ndx: usize) -> Self {
-        Self {
-            bit: Some(ndx),
-            ..self
-        }
-    }
-}
-
-impl From<SourceOpCode> for SourceLocation {
-    fn from(value: SourceOpCode) -> SourceLocation {
-        value.rtl.into()
-    }
+    pub loc: Option<SourceLocation>,
 }

@@ -1,5 +1,5 @@
 use crate::rhdl_core::{
-    bitx::BitX, rtl::object::RegisterKind, rtl::spec::AluBinary, rtl::spec::AluUnary,
+    bitx::BitX, rtl::object::RegisterSize, rtl::spec::AluBinary, rtl::spec::AluUnary,
     types::bit_string::BitString,
 };
 
@@ -80,11 +80,11 @@ impl SignedWidth {
     }
 }
 
-impl From<RegisterKind> for SignedWidth {
-    fn from(kind: RegisterKind) -> Self {
+impl From<RegisterSize> for SignedWidth {
+    fn from(kind: RegisterSize) -> Self {
         match kind {
-            RegisterKind::Signed(len) => SignedWidth::Signed(len),
-            RegisterKind::Unsigned(len) => SignedWidth::Unsigned(len),
+            RegisterSize::Signed(len) => SignedWidth::Signed(len),
+            RegisterSize::Unsigned(len) => SignedWidth::Unsigned(len),
         }
     }
 }
@@ -362,11 +362,11 @@ pub struct Assert {
 }
 
 pub fn dump_file(name: &str) -> Statement {
-    Statement::Custom(format!("$dumpfile(\"{}\");", name))
+    Statement::Custom(format!("$dumpfile(\"{name}\");"))
 }
 
 pub fn dump_vars(time: usize) -> Statement {
-    Statement::Custom(format!("$dumpvars({});", time))
+    Statement::Custom(format!("$dumpvars({time});"))
 }
 
 pub fn assert(left: Expression, right: Expression, cause: &str) -> Statement {

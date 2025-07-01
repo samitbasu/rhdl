@@ -1,12 +1,13 @@
 use crate::rhdl_core::{
+    RHDLError, TypedBits,
+    ast::source::source_location::SourceLocation,
     compiler::mir::error::ICE,
     rtl::{
-        object::{LocatedOpCode, RegisterKind, SourceOpCode},
-        spec::{AluBinary, Binary, Cast, CastKind, Concat, Index, LiteralId, OpCode, Operand},
         Object,
+        object::{LocatedOpCode, RegisterSize},
+        spec::{AluBinary, Binary, Cast, CastKind, Concat, Index, LiteralId, OpCode, Operand},
     },
     types::bit_string::BitString,
-    RHDLError, TypedBits,
 };
 
 use super::{allocate_literal, allocate_register, pass::Pass};
@@ -18,7 +19,7 @@ impl LowerShiftByConstant {
     fn shift_amount_as_usize(
         input: &Object,
         lit: LiteralId,
-        loc: SourceOpCode,
+        loc: SourceLocation,
     ) -> Result<usize, RHDLError> {
         let shift_amount: TypedBits = (&input.literals[&lit]).into();
         let shift_amount = shift_amount.as_i64()?;
@@ -39,15 +40,15 @@ impl LowerShiftByConstant {
         lhs: Operand,
         arg1: Operand,
         lit: LiteralId,
-        loc: SourceOpCode,
+        loc: SourceLocation,
     ) -> Result<(), RHDLError> {
         let shift_amount = Self::shift_amount_as_usize(input, lit, loc)?;
         let arg1_len = input.kind(arg1).len();
         let arg1_ext_len = arg1_len + shift_amount;
         let ext_kind = if input.kind(arg1).is_signed() {
-            RegisterKind::Signed(arg1_ext_len)
+            RegisterSize::Signed(arg1_ext_len)
         } else {
-            RegisterKind::Unsigned(arg1_ext_len)
+            RegisterSize::Unsigned(arg1_ext_len)
         };
         let ext = allocate_register(input, ext_kind, loc.into());
         input.ops.push(LocatedOpCode {
@@ -75,7 +76,7 @@ impl LowerShiftByConstant {
         lhs: Operand,
         arg1: Operand,
         lit: LiteralId,
-        loc: SourceOpCode,
+        loc: SourceLocation,
     ) -> Result<(), RHDLError> {
         let shift_amount = Self::shift_amount_as_usize(input, lit, loc)?;
         let arg1_len = input.kind(arg1).len();
@@ -83,9 +84,9 @@ impl LowerShiftByConstant {
         // Allocate a new literal to hold the zeros shifted in on the right.
         let zero_lit = allocate_literal(input, loc.into(), BitString::zeros(shift_amount));
         let lsb_kind = if input.kind(arg1).is_signed() {
-            RegisterKind::Signed(arg1_lsbs_len)
+            RegisterSize::Signed(arg1_lsbs_len)
         } else {
-            RegisterKind::Unsigned(arg1_lsbs_len)
+            RegisterSize::Unsigned(arg1_lsbs_len)
         };
         let lsbs = allocate_register(input, lsb_kind, loc.into());
         input.ops.push(LocatedOpCode {

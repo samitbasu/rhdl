@@ -1,19 +1,20 @@
 use crate::{
     prelude::{BitString, RHDLError},
     rhdl_core::{
+        TypedBits,
+        ast::source::source_location::SourceLocation,
         ntl::{
-            object::{LocatedOpCode, SourceOpCode},
-            spec::{
-                assign, Binary, BinaryOp, Case, CaseEntry, Not, OpCode, Operand, Unary, UnaryOp,
-                Vector, VectorOp,
-            },
             Object,
+            object::LocatedOpCode,
+            spec::{
+                Binary, BinaryOp, Case, CaseEntry, Not, OpCode, Operand, Unary, UnaryOp, Vector,
+                VectorOp, assign,
+            },
         },
         rtl::{
             runtime_ops::{binary, unary},
             spec::{AluBinary, AluUnary},
         },
-        TypedBits,
     },
 };
 
@@ -56,7 +57,7 @@ fn compute_not(not_op: Not) -> OpCode {
     }
 }
 
-fn compute_unary(unary_op: Unary, source: Option<SourceOpCode>, lop: &mut Vec<LocatedOpCode>) {
+fn compute_unary(unary_op: Unary, source: Option<SourceLocation>, lop: &mut Vec<LocatedOpCode>) {
     let signed = unary_op.op == UnaryOp::Neg;
     let arg = vec_op(signed, &unary_op.arg);
     let alu = match unary_op.op {
@@ -82,7 +83,7 @@ fn compute_unary(unary_op: Unary, source: Option<SourceOpCode>, lop: &mut Vec<Lo
     })
 }
 
-fn compute_vector(vector: Vector, source: Option<SourceOpCode>, lop: &mut Vec<LocatedOpCode>) {
+fn compute_vector(vector: Vector, source: Option<SourceLocation>, lop: &mut Vec<LocatedOpCode>) {
     let arg1 = vec_op(vector.signed, &vector.arg1);
     let arg2 = vec_op(vector.signed, &vector.arg2);
     match (arg1, arg2) {

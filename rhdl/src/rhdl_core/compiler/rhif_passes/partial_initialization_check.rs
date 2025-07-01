@@ -3,15 +3,15 @@ use std::collections::BTreeMap;
 use log::trace;
 
 use crate::rhdl_core::{
-    ast::{source::source_location::SourceLocation, KernelFlags},
+    BitX, RHDLError, TypedBits,
+    ast::{KernelFlags, source::source_location::SourceLocation},
     compiler::mir::error::RHDLPartialInitializationError,
     error::rhdl_error,
     rhif::{
-        spec::{OpCode, Slot},
         Object,
+        spec::{OpCode, Slot},
     },
-    types::path::{bit_range, leaf_paths, Path},
-    BitX, RHDLError, TypedBits,
+    types::path::{Path, bit_range, leaf_paths},
 };
 
 use super::pass::Pass;
@@ -50,7 +50,7 @@ impl CoverageMap<'_> {
             let (bits, _) = bit_range(kind, &path).unwrap();
             let covered = coverage[bits].iter().all(|b| *b);
             if !covered {
-                details.push_str(&format!("Path {:?} is not covered\n", path));
+                details.push_str(&format!("Path {path:?} is not covered\n"));
             }
         }
         details

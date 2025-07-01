@@ -1,15 +1,15 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 
 use crate::{
-    prelude::{bit_range, Path, RHDLError},
+    prelude::{Path, RHDLError, bit_range},
     rhdl_core::{
         compiler::mir::error::ICE,
         error::rhdl_error,
         ntl::{
+            Object,
             error::NetLoopError,
             spec::{OpCode, Operand, RegisterId},
-            visit::{visit_operands, Sense},
-            Object,
+            visit::{Sense, visit_operands},
         },
         types::path::leaf_paths,
     },
@@ -127,7 +127,7 @@ impl Pass for ReorderInstructions {
             }
         }
         // Hope springs eternal...
-        if let Some(mut failed) = needed.iter().find(|r| !finished.contains(r)).copied() {
+        if let Some(failed) = needed.iter().find(|r| !finished.contains(r)).copied() {
             // Isolate a loop
             let mut regs = VecDeque::new();
             let mut visited = HashSet::new();
@@ -164,7 +164,7 @@ impl Pass for ReorderInstructions {
             }
 
             // Construct a diagnostic.
-            let mut diag = vec![];
+            /*             let mut diag = vec![];
             for reg in regs {
                 let opc = write_regs_to_op[&reg];
                 let lop = &input.ops[opc];
@@ -199,7 +199,9 @@ impl Pass for ReorderInstructions {
                     }
                 }
             }
-            return Err(raise_cycle_error(&input, diag));
+             return Err(raise_cycle_error(&input, diag));
+             */
+            todo!();
         }
         // Reorder and select
         let reordered = scheduled

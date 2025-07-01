@@ -5,12 +5,12 @@ use std::{
 };
 
 use crate::rhdl_core::{
+    Color, DiscriminantAlignment, DiscriminantType, Kind,
     ast::source::source_location::SourceLocation,
     rhif::spec::Member,
     types::kind::{DiscriminantLayout, Enum, Field, Struct},
-    Color, DiscriminantAlignment, DiscriminantType, Kind,
 };
-use anyhow::{anyhow, bail, ensure, Result};
+use anyhow::{Result, anyhow, bail, ensure};
 
 use super::interner::{Intern, InternKey};
 
@@ -745,8 +745,8 @@ impl UnifyContext {
         match &self.types[ty.kind] {
             TypeKind::Var(v) => format!("V{}", v.0),
             TypeKind::Const(c) => match c {
-                Const::Clock(c) => format!("{:?}", c),
-                Const::Length(n) => format!("{}", n),
+                Const::Clock(c) => format!("{c:?}"),
+                Const::Length(n) => format!("{n}"),
                 Const::Signed(f) => {
                     if f.eq(&SignFlag::Signed) {
                         "s".to_string()
@@ -1141,6 +1141,6 @@ mod tests {
         assert!(ctx.unify(x, z).is_ok());
         debug!("{}", ctx);
         let m = ctx.into_kind(z).unwrap();
-        println!("{:?}", m);
+        println!("{m:?}");
     }
 }
