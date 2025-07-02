@@ -93,13 +93,13 @@ impl std::fmt::Debug for Path {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for e in &self.elements {
             match e {
-                PathElement::Index(i) => write!(f, "[{}]", i)?,
-                PathElement::TupleIndex(i) => write!(f, ".{}", i)?,
-                PathElement::Field(s) => write!(f, ".{}", s)?,
+                PathElement::Index(i) => write!(f, "[{i}]")?,
+                PathElement::TupleIndex(i) => write!(f, ".{i}")?,
+                PathElement::Field(s) => write!(f, ".{s}")?,
                 PathElement::EnumDiscriminant => write!(f, "#")?,
-                PathElement::EnumPayload(s) => write!(f, "#{}", s)?,
-                PathElement::EnumPayloadByValue(v) => write!(f, "#{}", v)?,
-                PathElement::DynamicIndex(slot) => write!(f, "[[{:?}]]", slot)?,
+                PathElement::EnumPayload(s) => write!(f, "#{s}")?,
+                PathElement::EnumPayloadByValue(v) => write!(f, "#{v}")?,
+                PathElement::DynamicIndex(slot) => write!(f, "[[{slot:?}]]")?,
                 PathElement::SignalValue => write!(f, "@")?,
             }
         }

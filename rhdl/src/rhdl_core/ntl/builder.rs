@@ -1,7 +1,6 @@
 use crate::core::types::digital::Digital;
 use crate::prelude::Circuit;
 use crate::rhdl_core::ntl::spec::{self, Assign, BlackBoxId};
-use crate::rhdl_core::rtl;
 use crate::{
     prelude::{RHDLError, Synchronous},
     rhdl_core::{

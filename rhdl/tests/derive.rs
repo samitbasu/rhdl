@@ -59,8 +59,8 @@ fn test_derive_digital_simple_struct() {
     println!("foo val: {}", foo_test.binary_string());
     let test_kind = Test::static_kind();
     let (range, kind) = bit_range(test_kind, &Path::default().field("b")).unwrap();
-    println!("range: {:?}", range);
-    println!("kind: {:?}", kind);
+    println!("range: {range:?}");
+    println!("kind: {kind:?}");
     assert_eq!(range, 1..9);
     assert_eq!(kind, Kind::make_bits(8));
     let bits = foo_test.bin();
@@ -93,13 +93,13 @@ fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
     let foo_test = Test::B(b2::from(0b10), b3::from(0b101));
     let disc = Path::default().payload(stringify!(B)).tuple_index(1);
     let index = bit_range(Test::static_kind(), &disc)?;
-    println!("{:?}", index);
+    println!("{index:?}");
     let bits = foo_test.bin();
     let bits = &bits[index.0];
     println!("Extracted bits: {}", bitx_string(bits));
     let (disc_range, disc_kind) = bit_range(Test::static_kind(), &Path::default().discriminant())?;
-    println!("{:?}", disc_range);
-    println!("{:?}", disc_kind);
+    println!("{disc_range:?}");
+    println!("{disc_kind:?}");
     let disc_bits = foo_test.bin();
     let disc_bits = &disc_bits[disc_range];
     assert_eq!(disc_bits, [BitX::One, BitX::Zero]);

@@ -33,8 +33,8 @@ pub(crate) fn assert_tokens_eq(
     );
 
     if expected != actual {
-        println!("expected: {}", expected);
-        println!("actual:   {}", actual);
+        println!("expected: {expected}");
+        println!("actual:   {actual}");
         // Print the lines that are different
         let expected_lines = expected.lines().collect::<Vec<_>>();
         let actual_lines = actual.lines().collect::<Vec<_>>();
@@ -56,7 +56,7 @@ pub(crate) fn evaluate_const_expression(expr: &syn::Expr) -> syn::Result<i64> {
         Ok(x) => Ok(x),
         Err(err) => Err(syn::Error::new(
             expr.span(),
-            format!("Failed to evaluate expression: {}", err),
+            format!("Failed to evaluate expression: {err}"),
         )),
     }
 }

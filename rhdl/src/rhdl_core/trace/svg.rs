@@ -530,7 +530,7 @@ pub fn trace_out<T: Digital>(
         .map(|path| {
             let data = build_time_trace(db, &path, time_set.clone());
             Trace {
-                label: format!("{label}{:?}", path),
+                label: format!("{label}{path:?}"),
                 hint: Default::default(),
                 data,
             }
@@ -760,7 +760,7 @@ fn format_as_label_inner(t: &TypedBits) -> Option<String> {
                 .flat_map(|element| format_as_label_inner(&element))
                 .collect::<Vec<_>>()
                 .join(", ");
-            Some(format!("[{}]", vals))
+            Some(format!("[{vals}]"))
         }
         Kind::Tuple(inner) => {
             let vals = inner
@@ -771,7 +771,7 @@ fn format_as_label_inner(t: &TypedBits) -> Option<String> {
                 .flat_map(|element| format_as_label_inner(&element))
                 .collect::<Vec<_>>()
                 .join(", ");
-            Some(format!("({})", vals))
+            Some(format!("({vals})"))
         }
         Kind::Struct(inner) => {
             let vals = inner
@@ -786,7 +786,7 @@ fn format_as_label_inner(t: &TypedBits) -> Option<String> {
                 .map(|(name, val)| format!("{}: {}", name.name, val))
                 .collect::<Vec<_>>()
                 .join(", ");
-            Some(format!("{{{}}}", vals))
+            Some(format!("{{{vals}}}"))
         }
         Kind::Enum(inner) => {
             let discriminant = t.discriminant().ok()?.as_i64().ok()?;
@@ -811,7 +811,7 @@ fn format_as_label_inner(t: &TypedBits) -> Option<String> {
             let num_nibbles = inner / 4 + if inner % 4 == 0 { 0 } else { 1 };
             // Format the val as a hex number with the given
             // number of nibbles, with left padding of zeros
-            Some(format!("{:0width$x}", val, width = num_nibbles))
+            Some(format!("{val:0num_nibbles$x}"))
         }
         Kind::Signed(inner) => {
             let mut val: i128 = 0;
@@ -824,12 +824,12 @@ fn format_as_label_inner(t: &TypedBits) -> Option<String> {
             if val & (1 << (inner - 1)) != 0 {
                 val |= !0 << inner;
             }
-            Some(format!("{}", val))
+            Some(format!("{val}"))
         }
         Kind::Signal(_inner, color) => {
             let val = &t.val();
             let val = format_as_label_inner(val)?;
-            Some(format!("{:?}@({})", color, val))
+            Some(format!("{color:?}@({val})"))
         }
         Kind::Empty => None,
     }

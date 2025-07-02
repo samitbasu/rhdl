@@ -183,7 +183,7 @@ mod tests {
         let uut: AxiRegBank<4> = AxiRegBank::new(bits(0x4_000_000), Default::default());
         let _hdl = uut.descriptor("top")?;
         let toc = tic.elapsed();
-        println!("HDL generation took {:?}", toc);
+        println!("HDL generation took {toc:?}");
         Ok(())
     }
 }

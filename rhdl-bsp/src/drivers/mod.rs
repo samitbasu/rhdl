@@ -1,4 +1,3 @@
-use std::os::macos::raw::stat;
 
 use rhdl::{
     core::{CircuitIO, RHDLError, Timed},

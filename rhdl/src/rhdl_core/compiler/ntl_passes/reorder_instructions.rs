@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 
 use crate::{
-    prelude::{Path, RHDLError, bit_range},
+    prelude::RHDLError,
     rhdl_core::{
         compiler::mir::error::ICE,
         error::rhdl_error,
@@ -11,7 +11,6 @@ use crate::{
             spec::{OpCode, Operand, RegisterId},
             visit::{Sense, visit_operands},
         },
-        types::path::leaf_paths,
     },
 };
 

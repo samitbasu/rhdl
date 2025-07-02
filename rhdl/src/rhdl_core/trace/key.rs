@@ -12,7 +12,7 @@ impl TraceKey for &'static str {
 
 impl TraceKey for usize {
     fn as_string(&self) -> String {
-        format!("{}", self)
+        format!("{self}")
     }
 }
 

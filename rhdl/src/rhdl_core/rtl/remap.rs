@@ -35,7 +35,7 @@ pub fn remap_operands<F: FnMut(Operand) -> Operand>(op: OpCode, mut f: F) -> OpC
                             CaseArgument::Literal(lit) => {
                                 let fn_id = f(Operand::Literal(lit));
                                 let Operand::Literal(fn_lit) = fn_id else {
-                                    panic!("Expected literal, got {:?}", fn_id);
+                                    panic!("Expected literal, got {fn_id:?}");
                                 };
                                 CaseArgument::Literal(fn_lit)
                             }

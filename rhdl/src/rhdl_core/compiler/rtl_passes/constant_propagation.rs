@@ -27,7 +27,7 @@ fn assign_literal(loc: SourceLocation, value: BitString, obj: &mut Object) -> Op
     obj.literals.insert(literal, value);
     obj.symbols
         .operand_map
-        .insert(Operand::Literal(literal), loc.into());
+        .insert(Operand::Literal(literal), loc);
     Operand::Literal(literal)
 }
 

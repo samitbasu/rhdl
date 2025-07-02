@@ -151,7 +151,7 @@ impl std::fmt::Debug for Object {
             writeln!(f, "Literal {:?} : {:?} = {:?}", slot, literal.kind, literal)?;
         }
         for (ndx, func) in self.externals.iter() {
-            writeln!(f, "Function {:?} object: {:?}", ndx, func)?;
+            writeln!(f, "Function {ndx:?} object: {func:?}")?;
         }
         let mut body_str = String::new();
         for lop in &self.ops {
@@ -171,7 +171,7 @@ impl std::fmt::Debug for Object {
             if line.contains('{') {
                 indent += 1;
             }
-            writeln!(f, "{}", line)?;
+            writeln!(f, "{line}")?;
         }
         Ok(())
     }

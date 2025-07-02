@@ -241,7 +241,7 @@ mod tests {
 
     use crate::{
         axi4lite::register::rom::AxiRom,
-        rng::xorshift::{XorShift, XorShift128},
+        rng::xorshift::XorShift128,
         stream::testing::{source_from_fn::SourceFromFn, utils::stalling},
     };
 

@@ -1636,7 +1636,7 @@ mod test {
         };
         let block = syn::parse2::<syn::Block>(test_code).unwrap();
         let result = Context::default().block(&block).unwrap();
-        let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
+        let result = format!("fn jnk() -> Vec<Stmt> {{ {result} }}");
         let result = result.replace("rhdl::core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
         let expect = expect_file!["expect/basic_block.expect"];
@@ -1651,7 +1651,7 @@ mod test {
         };
         let block = syn::parse2::<syn::Block>(test_code).unwrap();
         let result = Context::default().block(&block).unwrap();
-        let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
+        let result = format!("fn jnk() -> Vec<Stmt> {{ {result} }}");
         let result = result.replace("rhdl::core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
         let expect = expect_file!["expect/precedence_parser.expect"];
@@ -1665,7 +1665,7 @@ mod test {
         };
         let local = syn::parse2::<syn::Stmt>(test_code).unwrap();
         let result = Context::default().stmt(&local).unwrap();
-        let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
+        let result = format!("fn jnk() -> Vec<Stmt> {{ {result} }}");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
         let expect = expect_file!["expect/struct_expression_let.expect"];
         expect.assert_eq(&result);
@@ -1681,7 +1681,7 @@ mod test {
         };
         let local = syn::parse2::<syn::Block>(test_code).unwrap();
         let result = Context::default().block(&local).unwrap();
-        let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
+        let result = format!("fn jnk() -> Vec<Stmt> {{ {result} }}");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
         let expect = expect_file!["expect/struct_expression_let_with_spread.expect"];
         expect.assert_eq(&result);
@@ -1699,7 +1699,7 @@ mod test {
         };
         let if_expr = syn::parse2::<syn::Block>(test_code).unwrap();
         let result = Context::default().block(&if_expr).unwrap();
-        let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
+        let result = format!("fn jnk() -> Vec<Stmt> {{ {result} }}");
         let result = result.replace("rhdl::core :: ast :: ", "");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
         let expect = expect_file!["expect/if_expression.expect"];
@@ -1755,7 +1755,7 @@ mod test {
         };
         let match_expr = syn::parse2::<syn::Block>(test_code).unwrap();
         let result = Context::default().block(&match_expr).unwrap();
-        let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
+        let result = format!("fn jnk() -> Vec<Stmt> {{ {result} }}");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
         let expect = expect_file!["expect/match_expression.expect"];
         expect.assert_eq(&result);
@@ -1768,7 +1768,7 @@ mod test {
         };
         let assign = syn::parse2::<syn::Stmt>(test_code).unwrap();
         let result = Context::default().stmt(&assign).unwrap();
-        let result = format!("fn jnk() -> Vec<Stmt> {{ {} }}", result);
+        let result = format!("fn jnk() -> Vec<Stmt> {{ {result} }}");
         let result = prettyplease::unparse(&syn::parse_file(&result).unwrap());
         let expect = expect_file!["expect/self_update.expect"];
         expect.assert_eq(&result);

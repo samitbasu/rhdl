@@ -97,8 +97,8 @@ impl std::fmt::Debug for RegisterId {
 impl std::fmt::Debug for Operand {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Operand::Literal(l) => write!(f, "{:?}", l),
-            Operand::Register(r) => write!(f, "{:?}", r),
+            Operand::Literal(l) => write!(f, "{l:?}"),
+            Operand::Register(r) => write!(f, "{r:?}"),
         }
     }
 }

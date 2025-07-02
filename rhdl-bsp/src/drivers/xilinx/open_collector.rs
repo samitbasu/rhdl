@@ -80,6 +80,6 @@ mod tests {
         }
 
         let driver = build::<U>("led", &path!(.0.val()), &options).unwrap();
-        eprintln!("{:?}", driver);
+        eprintln!("{driver:?}");
     }
 }
