@@ -145,11 +145,13 @@ impl<'a> RTLCompiler<'a> {
         }
     }
     fn associate(&mut self, operand: Operand, loc: SourceLocation) {
-        self.symbols.operand_map.insert(operand, loc.into());
+        self.symbols.operand_map.insert(operand, loc);
     }
     fn allocate_literal(&mut self, bits: &TypedBits, loc: SourceLocation) -> Operand {
-        let bits: BitString = bits.into();
-        self.allocate_literal_from_bit_string(&bits, loc)
+        let bs: BitString = bits.into();
+        let operand = self.allocate_literal_from_bit_string(&bs, loc);
+        self.symbols.rhif_types.insert(operand, bits.kind);
+        operand
     }
     fn allocate_literal_from_bit_string(
         &mut self,
@@ -160,6 +162,9 @@ impl<'a> RTLCompiler<'a> {
         self.literal_count += 1;
         self.literals.insert(literal_id, bits.clone());
         let literal = Operand::Literal(literal_id);
+        self.symbols
+            .rhif_types
+            .insert(literal, Kind::Bits(bits.len()));
         self.associate(literal, loc);
         literal
     }
@@ -170,6 +175,9 @@ impl<'a> RTLCompiler<'a> {
             .insert(register_id, RegisterSize::Signed(length));
         let register = Operand::Register(register_id);
         self.associate(register, loc);
+        self.symbols
+            .rhif_types
+            .insert(register, Kind::Signed(length));
         register
     }
     fn allocate_unsigned(&mut self, length: usize, loc: SourceLocation) -> Operand {
@@ -179,17 +187,20 @@ impl<'a> RTLCompiler<'a> {
             .insert(register_id, RegisterSize::Unsigned(length));
         let register = Operand::Register(register_id);
         self.associate(register, loc);
+        self.symbols.rhif_types.insert(register, Kind::Bits(length));
         register
     }
     fn allocate_register(&mut self, kind: &Kind, loc: SourceLocation) -> Operand {
         let len = kind.bits();
-        if kind.is_signed() {
+        let op = if kind.is_signed() {
             self.allocate_signed(len, loc)
         } else {
             self.allocate_unsigned(len, loc)
-        }
+        };
+        self.symbols.rhif_types.insert(op, *kind);
+        op
     }
-    fn allocate_register_with_register_kind(
+    fn allocate_register_with_register_size(
         &mut self,
         kind: &RegisterSize,
         loc: SourceLocation,
@@ -198,6 +209,14 @@ impl<'a> RTLCompiler<'a> {
         self.register_count += 1;
         self.registers.insert(register_id, *kind);
         let register = Operand::Register(register_id);
+        match kind {
+            RegisterSize::Signed(len) => {
+                self.symbols.rhif_types.insert(register, Kind::Signed(*len))
+            }
+            RegisterSize::Unsigned(len) => {
+                self.symbols.rhif_types.insert(register, Kind::Bits(*len))
+            }
+        };
         self.associate(register, loc);
         register
     }
@@ -377,7 +396,7 @@ impl<'a> RTLCompiler<'a> {
         let lhs = self.operand(*lhs, loc)?;
         if width != 0 {
             let payload =
-                self.allocate_register_with_register_kind(&RegisterSize::Unsigned(width), loc);
+                self.allocate_register_with_register_size(&RegisterSize::Unsigned(width), loc);
             let arg = *arg;
             let arg = match arg {
                 Slot::Empty => self.allocate_literal(&false.typed_bits(), loc),
@@ -467,8 +486,8 @@ impl<'a> RTLCompiler<'a> {
             return Err(self.raise_ice(ICE::XopsResultMustBeRegister, loc));
         };
         let lhs_reg_kind = self.registers[&lhs_id];
-        let arg1_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
-        let arg2_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
+        let arg1_cast = self.allocate_register_with_register_size(&lhs_reg_kind, loc);
+        let arg2_cast = self.allocate_register_with_register_size(&lhs_reg_kind, loc);
         self.lop(
             tl::OpCode::Cast(tl::Cast {
                 lhs: arg1_cast,
@@ -518,8 +537,8 @@ impl<'a> RTLCompiler<'a> {
             RegisterSize::Unsigned(lhs_len)
         };
         // First we extend the operands to the required number of bits
-        let arg1_extend = self.allocate_register_with_register_kind(&extension_kind, loc);
-        let arg2_extend = self.allocate_register_with_register_kind(&extension_kind, loc);
+        let arg1_extend = self.allocate_register_with_register_size(&extension_kind, loc);
+        let arg2_extend = self.allocate_register_with_register_size(&extension_kind, loc);
         self.lop(
             tl::OpCode::Cast(tl::Cast {
                 lhs: arg1_extend,
@@ -539,8 +558,8 @@ impl<'a> RTLCompiler<'a> {
             loc,
         );
         // This guarantees that the sign bit will be zero when we reinterepret them as signed values
-        let arg1_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
-        let arg2_cast = self.allocate_register_with_register_kind(&lhs_reg_kind, loc);
+        let arg1_cast = self.allocate_register_with_register_size(&lhs_reg_kind, loc);
+        let arg2_cast = self.allocate_register_with_register_size(&lhs_reg_kind, loc);
         self.lop(
             tl::OpCode::Cast(tl::Cast {
                 lhs: arg1_cast,
@@ -753,7 +772,11 @@ impl<'a> RTLCompiler<'a> {
         for (fn_arg, arg) in func_rtl.arguments.iter().zip(args) {
             if let Some(fn_reg) = fn_arg {
                 let fn_reg_in_our_space =
-                    self.allocate_register_with_register_kind(&func_rtl.register_size[fn_reg], loc);
+                    self.allocate_register_with_register_size(&func_rtl.register_size[fn_reg], loc);
+                self.symbols.rhif_types.insert(
+                    fn_reg_in_our_space,
+                    func_rtl.symbols.rhif_types[&Operand::Register(*fn_reg)],
+                );
                 operand_translation.insert(Operand::Register(*fn_reg), fn_reg_in_our_space);
                 let arg = self.operand(*arg, loc)?;
                 self.lop(
@@ -776,10 +799,13 @@ impl<'a> RTLCompiler<'a> {
                 }
                 Operand::Register(old_reg_id) => {
                     let kind = func_rtl.register_size[&old_reg_id];
-                    self.allocate_register_with_register_kind(&kind, loc)
+                    self.allocate_register_with_register_size(&kind, loc)
                 }
             };
             operand_translation.insert(operand, new_operand);
+            self.symbols
+                .rhif_types
+                .insert(new_operand, func_rtl.symbols.rhif_types[&operand]);
             new_operand
         };
         let return_register = op_remap(func_rtl.return_register);
@@ -1010,9 +1036,9 @@ impl<'a> RTLCompiler<'a> {
         let operand_bits = self.operand_bit_width(arg);
         let operand_signed = self.operand_is_signed(arg);
         let arg_shifted = if operand_signed {
-            self.allocate_register_with_register_kind(&RegisterSize::Signed(operand_bits), loc)
+            self.allocate_register_with_register_size(&RegisterSize::Signed(operand_bits), loc)
         } else {
-            self.allocate_register_with_register_kind(&RegisterSize::Unsigned(operand_bits), loc)
+            self.allocate_register_with_register_size(&RegisterSize::Unsigned(operand_bits), loc)
         };
         self.lop(
             tl::OpCode::Binary(tl::Binary {
@@ -1038,9 +1064,9 @@ impl<'a> RTLCompiler<'a> {
         // First pad the operand by the shift count
         let arg_len = self.operand_bit_width(arg);
         let arg_padded = if self.operand_is_signed(arg) {
-            self.allocate_register_with_register_kind(&RegisterSize::Signed(arg_len + count), loc)
+            self.allocate_register_with_register_size(&RegisterSize::Signed(arg_len + count), loc)
         } else {
-            self.allocate_register_with_register_kind(&RegisterSize::Unsigned(arg_len + count), loc)
+            self.allocate_register_with_register_size(&RegisterSize::Unsigned(arg_len + count), loc)
         };
         // Now we resize cast the argument into this larger register
         self.lop(
@@ -1070,7 +1096,7 @@ impl<'a> RTLCompiler<'a> {
         // First pad the width by 1 bit
         let arg_len = self.operand_bit_width(arg);
         let arg_padded =
-            self.allocate_register_with_register_kind(&RegisterSize::Unsigned(arg_len + 1), loc);
+            self.allocate_register_with_register_size(&RegisterSize::Unsigned(arg_len + 1), loc);
         // Now we resize cast the argument into this larger register
         self.lop(
             tl::OpCode::Cast(tl::Cast {
@@ -1096,9 +1122,9 @@ impl<'a> RTLCompiler<'a> {
         // First pad the width by 1 bit
         let arg_len = self.operand_bit_width(arg);
         let mut arg_padded = if self.operand_is_signed(arg) {
-            self.allocate_register_with_register_kind(&RegisterSize::Signed(arg_len + 1), loc)
+            self.allocate_register_with_register_size(&RegisterSize::Signed(arg_len + 1), loc)
         } else {
-            self.allocate_register_with_register_kind(&RegisterSize::Unsigned(arg_len + 1), loc)
+            self.allocate_register_with_register_size(&RegisterSize::Unsigned(arg_len + 1), loc)
         };
         // Now we resize cast the argument into this larger register
         self.lop(
@@ -1113,7 +1139,7 @@ impl<'a> RTLCompiler<'a> {
         // We need an extra step if the argument is unsigned
         if !self.operand_is_signed(arg) {
             let padded_and_signed =
-                self.allocate_register_with_register_kind(&RegisterSize::Signed(arg_len + 1), loc);
+                self.allocate_register_with_register_size(&RegisterSize::Signed(arg_len + 1), loc);
             self.lop(
                 tl::OpCode::Cast(tl::Cast {
                     lhs: padded_and_signed,

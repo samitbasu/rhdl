@@ -158,6 +158,10 @@ fn test_empty_kernel_args_accepted() -> miette::Result<()> {
     let inputs = (0..8)
         .map(|x| (red(()), red(bits(x)), red(())))
         .collect::<Vec<_>>();
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Debug)
+        .is_test(true)
+        .init();
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, inputs.into_iter())?;
     Ok(())
 }
@@ -660,6 +664,7 @@ fn test_maybe_init_with_slice() -> miette::Result<()> {
         d.data = val;
         d
     }
+
     compile_design::<do_stuff>(CompilationMode::Synchronous)?;
     Ok(())
 }

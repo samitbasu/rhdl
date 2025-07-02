@@ -1,23 +1,29 @@
-use crate::rhdl_core::{
-    RHDLError, TypedBits,
-    ast::source::source_location::SourceLocation,
-    compiler::mir::error::{ICE, RHDLCompileError},
-    error::rhdl_error,
-    rtl::{
-        Object,
-        object::{LocatedOpCode, RegisterSize},
-        spec::{
-            Assign, Binary, Case, CaseArgument, Cast, CastKind, Concat, Index, LiteralId, OpCode,
-            Operand, Select, Splice, Unary,
+use crate::{
+    prelude::Kind,
+    rhdl_core::{
+        RHDLError, TypedBits,
+        ast::source::source_location::SourceLocation,
+        compiler::mir::error::{ICE, RHDLCompileError},
+        error::rhdl_error,
+        rtl::{
+            Object,
+            object::{LocatedOpCode, RegisterSize},
+            spec::{
+                Assign, Binary, Case, CaseArgument, Cast, CastKind, Concat, Index, LiteralId,
+                OpCode, Operand, Select, Splice, Unary,
+            },
         },
+        types::bit_string::BitString,
     },
-    types::bit_string::BitString,
 };
 
 use super::pass::Pass;
 
 fn assign_literal(loc: SourceLocation, value: BitString, obj: &mut Object) -> Operand {
     let literal = obj.literal_max_index().next();
+    obj.symbols
+        .rhif_types
+        .insert(Operand::Literal(literal), Kind::Bits(value.len()));
     obj.literals.insert(literal, value);
     obj.symbols
         .operand_map
