@@ -236,7 +236,7 @@ impl<'a> RTLCompiler<'a> {
         rhdl_error(RHDLCompileError {
             cause,
             src: self.object.symbols.source(),
-            err_span: self.object.symbols.span(loc.into()).into(),
+            err_span: self.object.symbols.span(loc).into(),
         })
     }
     fn lop(&mut self, opcode: tl::OpCode, loc: SourceLocation) {

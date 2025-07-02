@@ -319,7 +319,7 @@ pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
             .cloned()
             .ok_or(rhdl_error(RHDLCompileError {
                 cause: ICE::ReturnSlotNotFound {
-                    name: format!("{:?}", r),
+                    name: format!("{r:?}"),
                 },
                 src: symbols.source(),
                 err_span: symbols.span(loc).into(),

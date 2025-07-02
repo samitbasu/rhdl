@@ -51,7 +51,7 @@ impl std::fmt::Debug for OpCode {
                 write!(f, "Noop")
             }
             OpCode::Assign(Assign { lhs, rhs }) => {
-                write!(f, " {:?} <- {:?}", lhs, rhs)
+                write!(f, " {lhs:?} <- {rhs:?}")
             }
             OpCode::Binary(Binary {
                 op,
@@ -59,16 +59,16 @@ impl std::fmt::Debug for OpCode {
                 arg1,
                 arg2,
             }) => {
-                write!(f, " {:?} <- {:?} {:?} {:?}", lhs, arg1, op, arg2)
+                write!(f, " {lhs:?} <- {arg1:?} {op:?} {arg2:?}")
             }
             OpCode::Case(Case {
                 lhs,
                 discriminant,
                 table,
             }) => {
-                writeln!(f, " {:?} <- case {:?} {{", lhs, discriminant)?;
+                writeln!(f, " {lhs:?} <- case {discriminant:?} {{")?;
                 for (cond, val) in table {
-                    writeln!(f, "         {:?} => {:?}", cond, val)?;
+                    writeln!(f, "         {cond:?} => {val:?}")?;
                 }
                 write!(f, "}}")
             }
@@ -93,7 +93,7 @@ impl std::fmt::Debug for OpCode {
             }
             OpCode::Comment(comment) => {
                 for line in comment.lines() {
-                    writeln!(f, "// {}", line)?;
+                    writeln!(f, "// {line}")?;
                 }
                 Ok(())
             }
@@ -105,7 +105,7 @@ impl std::fmt::Debug for OpCode {
                 arg,
                 bit_range,
             }) => {
-                write!(f, " {:?} <- {:?}[{:?}]", lhs, arg, bit_range)
+                write!(f, " {lhs:?} <- {arg:?}[{bit_range:?}]")
             }
             OpCode::Select(Select {
                 lhs,
@@ -115,8 +115,7 @@ impl std::fmt::Debug for OpCode {
             }) => {
                 write!(
                     f,
-                    " {:?} <- {:?} ? {:?} : {:?}",
-                    lhs, cond, true_value, false_value
+                    " {lhs:?} <- {cond:?} ? {true_value:?} : {false_value:?}"
                 )
             }
             OpCode::Splice(Splice {
@@ -125,10 +124,10 @@ impl std::fmt::Debug for OpCode {
                 bit_range,
                 value,
             }) => {
-                write!(f, " {:?} <- {:?}/{:?}/{:?}", lhs, orig, bit_range, value)
+                write!(f, " {lhs:?} <- {orig:?}/{bit_range:?}/{value:?}")
             }
             OpCode::Unary(Unary { op, lhs, arg1 }) => {
-                write!(f, " {:?} <- {:?}{:?}", lhs, op, arg1)
+                write!(f, " {lhs:?} <- {op:?}{arg1:?}")
             }
         }
     }

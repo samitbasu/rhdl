@@ -22,7 +22,7 @@ fn test_option_is_digital() {
         b: None,
     };
 
-    println!("foo val: {:?}", foo_test);
+    println!("foo val: {foo_test:?}");
     assert_eq!(foo_test.a.bin(), b9::from(0b110101011).bin());
     assert_eq!(foo_test.b.bin(), bitx_parse("000000000").unwrap());
 }
@@ -197,7 +197,7 @@ fn test_option_result_match_func() -> miette::Result<()> {
     let expect = expect_file!["option_result_match.expect"];
     let res = compile_design::<do_stuff>(CompilationMode::Asynchronous);
     let res = res.err().unwrap();
-    expect.assert_eq(&format!("{}", res));
+    expect.assert_eq(&format!("{res}"));
     Ok(())
 }
 
@@ -334,7 +334,7 @@ fn test_option_result_nested_option_result_destructure() -> miette::Result<()> {
     let expect = expect_file!["option_result_nested_option_result_destructure.expect"];
     let res = compile_design::<do_stuff>(CompilationMode::Asynchronous);
     let res = res.err().unwrap();
-    expect.assert_eq(&format!("{}", res));
+    expect.assert_eq(&format!("{res}"));
     Ok(())
 }
 
@@ -370,7 +370,7 @@ fn test_option_result_nested_option_result_destructure_simple() -> miette::Resul
     let expect_err = expect_file!["option_result_more.expect"];
     let res = compile_design::<do_stuff>(CompilationMode::Asynchronous);
     let err = res.err().unwrap();
-    expect_err.assert_eq(&format!("{}", err));
+    expect_err.assert_eq(&format!("{err}"));
     Ok(())
 }
 

@@ -50,7 +50,7 @@ impl LowerShiftByConstant {
         } else {
             RegisterSize::Unsigned(arg1_ext_len)
         };
-        let ext = allocate_register(input, ext_kind, loc.into());
+        let ext = allocate_register(input, ext_kind, loc);
         input.ops.push(LocatedOpCode {
             op: OpCode::Cast(Cast {
                 lhs: Operand::Register(ext),
@@ -82,13 +82,13 @@ impl LowerShiftByConstant {
         let arg1_len = input.kind(arg1).len();
         let arg1_lsbs_len = arg1_len.saturating_sub(shift_amount);
         // Allocate a new literal to hold the zeros shifted in on the right.
-        let zero_lit = allocate_literal(input, loc.into(), BitString::zeros(shift_amount));
+        let zero_lit = allocate_literal(input, loc, BitString::zeros(shift_amount));
         let lsb_kind = if input.kind(arg1).is_signed() {
             RegisterSize::Signed(arg1_lsbs_len)
         } else {
             RegisterSize::Unsigned(arg1_lsbs_len)
         };
-        let lsbs = allocate_register(input, lsb_kind, loc.into());
+        let lsbs = allocate_register(input, lsb_kind, loc);
         input.ops.push(LocatedOpCode {
             op: OpCode::Index(Index {
                 lhs: Operand::Register(lsbs),

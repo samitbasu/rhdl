@@ -273,8 +273,8 @@ impl std::fmt::Debug for RegisterId {
 impl std::fmt::Debug for Slot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Slot::Literal(l) => write!(f, "{:?}", l),
-            Slot::Register(r) => write!(f, "{:?}", r),
+            Slot::Literal(l) => write!(f, "{l:?}"),
+            Slot::Register(r) => write!(f, "{r:?}"),
             Slot::Empty => write!(f, "()"),
         }
     }

@@ -1,13 +1,10 @@
 use rhdl::prelude::*;
-use rhdl::{core::CircuitIO, rtt::TraceType};
+use rhdl::core::CircuitIO;
 use serde::Serialize;
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    marker,
-};
+use std::collections::BTreeMap;
 use thiserror::Error;
 
-use crate::drivers::{get_clock_input, get_clock_output, get_untyped_input, get_untyped_output};
+use crate::drivers::{get_clock_output, get_untyped_input, get_untyped_output};
 
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
 pub struct WireInAddress(u8);

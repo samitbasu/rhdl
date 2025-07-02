@@ -119,7 +119,7 @@ impl std::fmt::Debug for DigitalSignature {
             "[{}] -> {:?}",
             self.arguments
                 .iter()
-                .map(|k| format!("{:?}", k))
+                .map(|k| format!("{k:?}"))
                 .collect::<Vec<_>>()
                 .join(", "),
             self.ret

@@ -95,8 +95,8 @@ impl From<&BitString> for RegisterSize {
 impl std::fmt::Debug for RegisterSize {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RegisterSize::Signed(width) => write!(f, "s{}", width),
-            RegisterSize::Unsigned(width) => write!(f, "b{}", width),
+            RegisterSize::Signed(width) => write!(f, "s{width}"),
+            RegisterSize::Unsigned(width) => write!(f, "b{width}"),
         }
     }
 }
@@ -175,7 +175,7 @@ impl std::fmt::Debug for Object {
             if line.contains('{') {
                 indent += 1;
             }
-            writeln!(f, "{}", line)?;
+            writeln!(f, "{line}")?;
         }
         Ok(())
     }

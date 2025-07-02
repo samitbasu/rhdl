@@ -229,7 +229,7 @@ impl<'a> NetListHDLBuilder<'a> {
         self.temporary_counter += 1;
         self.instances.push(hdl::ast::component_instance(
             &bb_core.code.name,
-            &format!("bb_{}", core_id),
+            &format!("bb_{core_id}"),
             connections,
         ));
         Ok(())

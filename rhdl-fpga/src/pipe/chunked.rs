@@ -62,7 +62,7 @@ use rhdl::prelude::*;
 
 use crate::core::{
     dff::DFF,
-    option::{is_some, unpack},
+    option::is_some,
 };
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ)]

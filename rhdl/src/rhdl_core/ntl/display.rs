@@ -12,7 +12,7 @@ use crate::{
 fn vec_disp(f: &mut std::fmt::Formatter<'_>, data: &[Operand]) -> std::fmt::Result {
     write!(f, "{{")?;
     for (ndx, op) in data.iter().enumerate() {
-        write!(f, "{:?}", op)?;
+        write!(f, "{op:?}")?;
         if ndx != (data.len() - 1) {
             write!(f, ",")?;
         }
@@ -31,10 +31,10 @@ pub fn summarize_path(ty: Kind, bit: usize) -> String {
         if !path.is_empty() {
             format!("Bit {bit} of {{ {path:?} }}")
         } else {
-            format!("All")
+            "All".to_string()
         }
     } else {
-        format!("Unknown")
+        "Unknown".to_string()
     }
 }
 
@@ -50,7 +50,7 @@ impl std::fmt::Debug for OpCode {
                 lhs,
                 arg1,
                 arg2,
-            }) => write!(f, " {:?} <- {:?} {:?} {:?}", lhs, arg1, op, arg2),
+            }) => write!(f, " {lhs:?} <- {arg1:?} {op:?} {arg2:?}"),
             OpCode::Vector(vector) => {
                 write!(f, " ")?;
                 vec_disp(f, &vector.lhs)?;
@@ -64,12 +64,12 @@ impl std::fmt::Debug for OpCode {
                 vec_disp(f, &case.discriminant)?;
                 writeln!(f, " {{")?;
                 for (cond, val) in &case.entries {
-                    writeln!(f, "          {:?} => {:?}", cond, val)?;
+                    writeln!(f, "          {cond:?} => {val:?}")?;
                 }
                 writeln!(f, " }}")
             }
             OpCode::Comment(comment) => {
-                write!(f, "// {}", comment)
+                write!(f, "// {comment}")
             }
             OpCode::Select(select) => {
                 write!(

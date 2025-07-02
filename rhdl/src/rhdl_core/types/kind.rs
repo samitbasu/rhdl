@@ -31,17 +31,17 @@ impl std::fmt::Debug for Kind {
                 let elements = tuple
                     .elements
                     .iter()
-                    .map(|x| format!("{:?}", x))
+                    .map(|x| format!("{x:?}"))
                     .collect::<Vec<_>>()
                     .join(", ");
-                write!(f, "({})", elements)
+                write!(f, "({elements})")
             }
             Kind::Struct(s) => write!(f, "{}", s.name),
             Kind::Enum(e) => write!(f, "{}", e.name),
-            Kind::Bits(digits) => write!(f, "b{}", digits),
-            Kind::Signed(digits) => write!(f, "s{}", digits),
+            Kind::Bits(digits) => write!(f, "b{digits}"),
+            Kind::Signed(digits) => write!(f, "s{digits}"),
             Kind::Empty => write!(f, "()"),
-            Kind::Signal(kind, color) => write!(f, "{:?}@{:?}", kind, color),
+            Kind::Signal(kind, color) => write!(f, "{kind:?}@{color:?}"),
         }
     }
 }
@@ -273,8 +273,8 @@ impl Kind {
     // Return a rust type-like name for the kind
     pub fn get_name(&self) -> String {
         match self {
-            Kind::Bits(digits) => format!("b{}", digits),
-            Kind::Signed(digits) => format!("s{}", digits),
+            Kind::Bits(digits) => format!("b{digits}"),
+            Kind::Signed(digits) => format!("s{digits}"),
             Kind::Array(array) => format!("[{}; {}]", array.base.get_name(), array.size),
             Kind::Empty => "()".to_string(),
             Kind::Tuple(tuple) => {
@@ -284,11 +284,11 @@ impl Kind {
                     .map(|x| x.get_name())
                     .collect::<Vec<_>>()
                     .join(", ");
-                format!("({})", elements)
+                format!("({elements})")
             }
             Kind::Struct(s) => s.name.clone(),
             Kind::Enum(e) => e.name.clone(),
-            Kind::Signal(kind, color) => format!("Sig::<{:?},{:?}>", kind, color),
+            Kind::Signal(kind, color) => format!("Sig::<{kind:?},{color:?}>"),
         }
     }
 

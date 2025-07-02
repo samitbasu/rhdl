@@ -148,7 +148,7 @@ mod tests {
     fn test_xorshift_seq() {
         let rng = XorShift128::default();
         for value in rng.take(10) {
-            eprintln!("{:x}", value);
+            eprintln!("{value:x}");
         }
     }
 

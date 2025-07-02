@@ -1,19 +1,15 @@
 use crate::{
     prelude::{HDLDescriptor, Kind},
     rhdl_core::{
-        ast::{
-            ast_impl::FunctionId,
-            source::{source_location::SourceLocation, spanned_source_set::SpannedSourceSet},
-        },
+        ast::source::{source_location::SourceLocation, spanned_source_set::SpannedSourceSet},
         ntl::{
             spec::{OpCode, Operand, RegisterId},
             visit::{visit_operands, visit_operands_mut},
         },
-        rtl,
     },
 };
 use std::{collections::BTreeMap, hash::Hash};
-use std::{collections::HashMap, hash::Hasher};
+use std::hash::Hasher;
 
 use fnv::FnvHasher;
 

@@ -258,7 +258,7 @@ pub fn execute(obj: &Object, arguments: Vec<BitString>) -> Result<BitString> {
             .ok_or(RHDLError::RHDLInternalCompilerError(Box::new(
                 RHDLCompileError {
                     cause: ICE::ReturnSlotNotFound {
-                        name: format!("{:?}", r),
+                        name: format!("{r:?}"),
                     },
                     src: symbols.source(),
                     err_span: symbols.span(loc).into(),

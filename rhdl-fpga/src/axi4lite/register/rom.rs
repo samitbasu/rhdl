@@ -45,12 +45,12 @@ use rhdl::prelude::*;
 
 use crate::{
     axi4lite::{
-        core::endpoint::{read::ReadEndpoint, write::WriteEndpoint},
+        core::endpoint::read::ReadEndpoint,
         types::{
-            strobe_to_mask, AXI4Error, AxilAddr, AxilData, ReadMISO, ReadMOSI, WriteMISO, WriteMOSI,
+            AXI4Error, AxilAddr, AxilData, ReadMISO, ReadMOSI,
         },
     },
-    core::{constant::Constant, dff::DFF},
+    core::constant::Constant,
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]

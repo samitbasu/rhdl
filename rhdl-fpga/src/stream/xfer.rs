@@ -104,7 +104,7 @@ mod tests {
         core::dff::DFF,
         rng::xorshift::XorShift128,
         stream::testing::{
-            single_stage::single_stage, sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn,
+            sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn,
             utils::stalling,
         },
     };

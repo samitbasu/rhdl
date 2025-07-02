@@ -1,4 +1,4 @@
-use crate::prelude::{BitString, BitX, Kind};
+use crate::prelude::{BitString, BitX};
 
 #[derive(Clone, PartialEq, Hash)]
 pub enum OpCode {
