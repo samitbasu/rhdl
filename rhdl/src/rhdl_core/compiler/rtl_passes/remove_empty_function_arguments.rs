@@ -1,11 +1,14 @@
-use crate::rhdl_core::{
-    RHDLError,
-    rtl::{
-        Object,
-        object::LocatedOpCode,
-        spec::{Assign, OpCode, Operand},
+use crate::{
+    prelude::Kind,
+    rhdl_core::{
+        RHDLError,
+        rtl::{
+            Object,
+            object::LocatedOpCode,
+            spec::{Assign, OpCode, Operand},
+        },
+        types::bit_string::BitString,
     },
-    types::bit_string::BitString,
 };
 
 use super::pass::Pass;
@@ -28,6 +31,7 @@ impl Pass for RemoveEmptyFunctionArguments {
         let my_empty = input.literal_max_index().next();
         input.literals.insert(my_empty, BitString::Unsigned(vec![]));
         let my_empty = Operand::Literal(my_empty);
+        input.symbols.rhif_types.insert(my_empty, Kind::Empty);
         let fallback = input.symbols.fallback(input.fn_id);
         input.symbols.operand_map.insert(my_empty, fallback);
         let preamble = empty_args

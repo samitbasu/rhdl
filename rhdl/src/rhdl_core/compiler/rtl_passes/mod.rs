@@ -52,6 +52,10 @@ fn allocate_literal(input: &mut Object, loc: SourceLocation, bs: BitString) -> L
         .symbols
         .rhif_types
         .insert(Operand::Literal(lit), (&bs).into());
+    input
+        .symbols
+        .rhif_types
+        .insert(Operand::Literal(lit), Kind::Bits(bs.len()));
     input.literals.insert(lit, bs);
     input.symbols.operand_map.insert(Operand::Literal(lit), loc);
     lit
