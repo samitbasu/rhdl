@@ -337,13 +337,12 @@ impl<'a> RTLCompiler<'a> {
                 self.operand_map.insert(operand, (self.object.fn_id, slot));
                 Ok(operand)
             }
-            Slot::Empty => panic!("empty slot"), //Err(self.raise_ice(ICE::EmptySlotInRTL, id)),
         }
     }
     fn make_operand_list(&mut self, args: &[Slot], loc: SourceLocation) -> Result<Vec<Operand>> {
         args.iter()
             .filter_map(|a| {
-                if a.is_empty() {
+                if self.object.kind(*a).is_empty() {
                     None
                 } else {
                     Some(self.operand(*a, loc))
@@ -353,7 +352,7 @@ impl<'a> RTLCompiler<'a> {
     }
     fn make_array(&mut self, args: &hf::Array, loc: SourceLocation) -> Result<()> {
         let hf::Array { lhs, elements } = args;
-        if lhs.is_empty() {
+        if self.object.kind(*lhs).is_empty() {
             return Ok(());
         }
         let lhs = self.operand(*lhs, loc)?;
@@ -370,7 +369,7 @@ impl<'a> RTLCompiler<'a> {
     fn make_resize(&mut self, cast: &hf::Cast, loc: SourceLocation) -> Result<()> {
         let hf::Cast { lhs, arg, len } = cast;
         let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, loc))?;
-        if !lhs.is_empty() && !arg.is_empty() {
+        if !self.object.kind(*lhs).is_empty() && !self.object.kind(*arg).is_empty() {
             let lhs = self.operand(*lhs, loc)?;
             let op_arg = self.operand(*arg, loc)?;
             self.lop(
@@ -398,10 +397,7 @@ impl<'a> RTLCompiler<'a> {
             let payload =
                 self.allocate_register_with_register_size(&RegisterSize::Unsigned(width), loc);
             let arg = *arg;
-            let arg = match arg {
-                Slot::Empty => self.allocate_literal(&false.typed_bits(), loc),
-                _ => self.operand(arg, loc)?,
-            };
+            let arg = self.operand(arg, loc)?;
             self.lop(
                 tl::OpCode::Cast(tl::Cast {
                     lhs: payload,
@@ -432,7 +428,7 @@ impl<'a> RTLCompiler<'a> {
     fn make_as_bits(&mut self, cast: &hf::Cast, loc: SourceLocation) -> Result<()> {
         let hf::Cast { lhs, arg, len } = cast;
         let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, loc))?;
-        if !lhs.is_empty() && !arg.is_empty() {
+        if !self.object.kind(*lhs).is_empty() && !self.object.kind(*arg).is_empty() {
             let lhs = self.operand(*lhs, loc)?;
             let arg = self.operand(*arg, loc)?;
             self.lop(
@@ -450,7 +446,7 @@ impl<'a> RTLCompiler<'a> {
     fn make_as_signed(&mut self, cast: &hf::Cast, loc: SourceLocation) -> Result<()> {
         let hf::Cast { lhs, arg, len } = cast;
         let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, loc))?;
-        if !lhs.is_empty() && !arg.is_empty() {
+        if !self.object.kind(*lhs).is_empty() && !self.object.kind(*arg).is_empty() {
             let lhs = self.operand(*lhs, loc)?;
             let arg = self.operand(*arg, loc)?;
             self.lop(
@@ -467,7 +463,7 @@ impl<'a> RTLCompiler<'a> {
     }
     fn make_assign(&mut self, assign: &hf::Assign, loc: SourceLocation) -> Result<()> {
         let hf::Assign { lhs, rhs } = assign;
-        if !lhs.is_empty() && !rhs.is_empty() {
+        if !self.object.kind(*lhs).is_empty() && !self.object.kind(*rhs).is_empty() {
             let lhs = self.operand(*lhs, loc)?;
             let rhs = self.operand(*rhs, loc)?;
             self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), loc);
@@ -596,7 +592,7 @@ impl<'a> RTLCompiler<'a> {
             arg1,
             arg2,
         } = *binary;
-        if lhs.is_empty() {
+        if self.object.kind(lhs).is_empty() {
             return Ok(());
         }
         let lhs = self.operand(lhs, loc)?;
@@ -659,7 +655,7 @@ impl<'a> RTLCompiler<'a> {
             discriminant,
             table,
         } = case;
-        if lhs.is_empty() {
+        if self.object.kind(*lhs).is_empty() {
             return Ok(());
         }
         let lhs = self.operand(*lhs, loc)?;
@@ -689,7 +685,7 @@ impl<'a> RTLCompiler<'a> {
             path,
             subst,
         } = splice;
-        if lhs.is_empty() {
+        if self.object.kind(*lhs).is_empty() {
             return Ok(());
         }
         let arg_kind = self.object.kind(*orig);
@@ -729,7 +725,7 @@ impl<'a> RTLCompiler<'a> {
             fields,
             template,
         } = enumerate;
-        if lhs.is_empty() {
+        if self.object.kind(*lhs).is_empty() {
             return Ok(());
         }
         let kind = template.kind;
@@ -759,7 +755,7 @@ impl<'a> RTLCompiler<'a> {
     }
     fn make_exec(&mut self, exec: &hf::Exec, loc: SourceLocation) -> Result<()> {
         let hf::Exec { lhs, id, args } = exec;
-        if lhs.is_empty() {
+        if self.object.kind(*lhs).is_empty() {
             return Ok(());
         }
         // Look up the function ID from the external functions.
@@ -854,7 +850,7 @@ impl<'a> RTLCompiler<'a> {
     ///      }
     fn make_dynamic_index(&mut self, index: &hf::Index, loc: SourceLocation) -> Result<()> {
         let hf::Index { lhs, arg, path } = index;
-        if lhs.is_empty() {
+        if self.object.kind(*lhs).is_empty() {
             return Ok(());
         }
         let arg_kind = self.object.kind(*arg);
@@ -888,7 +884,7 @@ impl<'a> RTLCompiler<'a> {
         Ok(())
     }
     fn make_index(&mut self, index: &hf::Index, loc: SourceLocation) -> Result<()> {
-        if index.lhs.is_empty() {
+        if self.object.kind(index.lhs).is_empty() {
             return Ok(());
         }
         if index.path.any_dynamic() {
@@ -910,7 +906,7 @@ impl<'a> RTLCompiler<'a> {
     }
     fn make_repeat(&mut self, repeat: &hf::Repeat, loc: SourceLocation) -> Result<()> {
         let hf::Repeat { lhs, value, len } = *repeat;
-        if lhs.is_empty() {
+        if self.object.kind(lhs).is_empty() {
             return Ok(());
         }
         let lhs = self.operand(lhs, loc)?;
@@ -921,7 +917,7 @@ impl<'a> RTLCompiler<'a> {
     }
     fn make_retime(&mut self, retime: &hf::Retime, loc: SourceLocation) -> Result<()> {
         let hf::Retime { lhs, arg, color: _ } = *retime;
-        if lhs.is_empty() {
+        if self.object.kind(lhs).is_empty() {
             return Ok(());
         }
         let lhs = self.operand(lhs, loc)?;
@@ -936,7 +932,7 @@ impl<'a> RTLCompiler<'a> {
             true_value,
             false_value,
         } = *select;
-        if lhs.is_empty() {
+        if self.object.kind(lhs).is_empty() {
             return Ok(());
         }
         let lhs = self.operand(lhs, loc)?;
@@ -955,7 +951,7 @@ impl<'a> RTLCompiler<'a> {
         Ok(())
     }
     fn make_splice(&mut self, splice: &hf::Splice, loc: SourceLocation) -> Result<()> {
-        if splice.lhs.is_empty() {
+        if self.object.kind(splice.lhs).is_empty() {
             return Ok(());
         }
         if splice.path.any_dynamic() {
@@ -990,7 +986,7 @@ impl<'a> RTLCompiler<'a> {
             rest,
             template,
         } = strukt;
-        if lhs.is_empty() {
+        if self.object.kind(*lhs).is_empty() {
             return Ok(());
         }
         let lhs = self.operand(*lhs, loc)?;
@@ -1021,7 +1017,7 @@ impl<'a> RTLCompiler<'a> {
     }
     fn make_tuple(&mut self, tuple: &hf::Tuple, loc: SourceLocation) -> Result<()> {
         let hf::Tuple { lhs, fields } = tuple;
-        if lhs.is_empty() {
+        if self.object.kind(*lhs).is_empty() {
             return Ok(());
         }
         let lhs = self.operand(*lhs, loc)?;
@@ -1163,7 +1159,7 @@ impl<'a> RTLCompiler<'a> {
     }
     fn make_unary(&mut self, unary: &hf::Unary, loc: SourceLocation) -> Result<()> {
         let hf::Unary { lhs, op, arg1 } = *unary;
-        if lhs.is_empty() {
+        if self.object.kind(lhs).is_empty() {
             return Ok(());
         }
         let lhs = self.operand(lhs, loc)?;

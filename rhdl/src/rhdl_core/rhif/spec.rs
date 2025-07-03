@@ -1,7 +1,7 @@
 // RHDL Intermediate Form (RHIF).
 use anyhow::Result;
 
-use crate::rhdl_core::{ast::ast_impl::WrapOp, types::path::Path, Color, Kind, TypedBits};
+use crate::rhdl_core::{Color, Kind, TypedBits, ast::ast_impl::WrapOp, types::path::Path};
 
 #[derive(Clone, PartialEq, Hash)]
 pub enum OpCode {
@@ -237,7 +237,6 @@ pub enum AluUnary {
 pub enum Slot {
     Literal(LiteralId),
     Register(RegisterId),
-    Empty,
 }
 
 #[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
@@ -275,7 +274,6 @@ impl std::fmt::Debug for Slot {
         match self {
             Slot::Literal(l) => write!(f, "{l:?}"),
             Slot::Register(r) => write!(f, "{r:?}"),
-            Slot::Empty => write!(f, "()"),
         }
     }
 }
@@ -303,20 +301,12 @@ impl Slot {
         matches!(self, Slot::Literal(_))
     }
 
-    pub fn is_empty(&self) -> bool {
-        matches!(self, Slot::Empty)
-    }
-
     pub(crate) fn is_reg(&self) -> bool {
         matches!(self, Slot::Register(_))
     }
 
     pub(crate) fn rename(&self, old: Slot, new: Slot) -> Slot {
-        if *self == old {
-            new
-        } else {
-            *self
-        }
+        if *self == old { new } else { *self }
     }
 }
 

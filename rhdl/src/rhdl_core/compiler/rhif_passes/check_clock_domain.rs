@@ -227,11 +227,11 @@ impl ClockDomainContext<'_> {
         debug!("unify clocks {:?}", slots);
         let ty_clock = self.ctx.ty_var(cause_id);
         for slot in slots {
-            if !slot.is_empty() {
-                let ty_slot = self.slot_type(slot);
-                if self.ctx.unify(ty_slot, ty_clock).is_err() {
-                    return Err(self.raise_clock_domain_error(cause_id, slots, cause).into());
-                }
+            // TODO - Does this need to be replaced?
+            // Had a guard about slot.is_empty()
+            let ty_slot = self.slot_type(slot);
+            if self.ctx.unify(ty_slot, ty_clock).is_err() {
+                return Err(self.raise_clock_domain_error(cause_id, slots, cause).into());
             }
         }
         Ok(())
@@ -345,15 +345,7 @@ impl ClockDomainContext<'_> {
         }
     }
     fn slot_type(&mut self, slot: &Slot) -> TypeId {
-        // If the slot is a literal or empty, just make up a new
-        // variable and return it.
-        match slot {
-            Slot::Empty => {
-                let id = self.obj.symbols.slot_map[slot];
-                self.ctx.ty_unclocked(id)
-            }
-            Slot::Register(_) | Slot::Literal(_) => self.slot_map[slot],
-        }
+        self.slot_map[slot]
     }
     fn check(&mut self) -> Result<(), RHDLError> {
         debug!("Code before clock check: {:?}", self.obj);

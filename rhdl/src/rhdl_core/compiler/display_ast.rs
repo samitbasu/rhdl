@@ -390,6 +390,7 @@ impl std::fmt::Debug for ExprLit {
             ExprLit::Int(int) => write!(f, "{int}"),
             ExprLit::Bool(bool) => write!(f, "{bool}"),
             ExprLit::TypedBits(ty) => write!(f, "{}", ty.code),
+            ExprLit::Empty => write!(f, "()"),
         }
     }
 }

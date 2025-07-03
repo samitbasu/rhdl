@@ -226,6 +226,8 @@ pub enum ICE {
     LoopIsolationAlgorithmFailed,
     #[error("Netlist contains an incomplete symbol table")]
     IncompleteSymbolTableInNetList,
+    #[error("Cannot coerce empty to an integer")]
+    CannotCoerceEmptyToInteger,
 }
 
 #[derive(Error, Debug, Diagnostic)]

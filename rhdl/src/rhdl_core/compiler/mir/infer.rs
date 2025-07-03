@@ -3,6 +3,7 @@ use log::{debug, trace};
 use std::collections::BTreeMap;
 
 use crate::rhdl_core::{
+    Digital, Kind, TypedBits,
     ast::{
         ast_impl::{ExprLit, WrapOp},
         source::source_location::SourceLocation,
@@ -13,16 +14,15 @@ use crate::rhdl_core::{
     },
     error::RHDLError,
     rhif::{
+        Object,
         object::LocatedOpCode,
         spec::{AluBinary, AluUnary, CaseArgument, OpCode, Slot},
-        Object,
     },
-    types::path::{sub_kind, Path, PathElement},
-    Digital, Kind, TypedBits,
+    types::path::{Path, PathElement, sub_kind},
 };
 
 use super::{
-    error::{RHDLCompileError, RHDLTypeError, TypeCheck, ICE},
+    error::{ICE, RHDLCompileError, RHDLTypeError, TypeCheck},
     mir_impl::{Mir, TypeEquivalence},
     ty::{TypeId, UnifyContext},
 };
@@ -162,6 +162,20 @@ impl<'a> MirTypeInference<'a> {
                 }
             }
             ExprLit::Bool(b) => b.typed_bits(),
+            ExprLit::Empty => {
+                if !kind.is_empty() {
+                    return Err(self
+                        .raise_type_error(
+                            TypeCheck::InferredLiteralTypeMismatch {
+                                typ: Kind::Empty,
+                                kind,
+                            },
+                            ty.loc,
+                        )
+                        .into());
+                }
+                TypedBits::EMPTY
+            }
         })
     }
     fn unify(&mut self, loc: SourceLocation, lhs: TypeId, rhs: TypeId) -> Result<()> {
@@ -195,6 +209,7 @@ impl<'a> MirTypeInference<'a> {
                 ExprLit::TypedBits(tb) => self.ctx.from_kind(id, &tb.value.kind),
                 ExprLit::Int(_) => self.ctx.ty_integer(id),
                 ExprLit::Bool(_) => self.ctx.ty_bool(id),
+                ExprLit::Empty => self.ctx.ty_empty(id),
             };
             self.slot_map.insert(*slot, ty);
         }
@@ -230,9 +245,6 @@ impl<'a> MirTypeInference<'a> {
     }
     fn slot_ty(&mut self, slot: Slot) -> TypeId {
         let id = self.mir.symbols.slot_map[&slot];
-        if matches!(slot, Slot::Empty) {
-            return self.ctx.ty_empty(id);
-        }
         if let Some(ty) = self.slot_map.get(&slot) {
             *ty
         } else {

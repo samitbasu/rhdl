@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::rhdl_core::ast::ast_impl::WrapOp;
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
-use crate::rhdl_core::compiler::mir::error::{RHDLCompileError, ICE};
+use crate::rhdl_core::compiler::mir::error::{ICE, RHDLCompileError};
 use crate::rhdl_core::error::rhdl_error;
 use crate::rhdl_core::rhif::object::Object;
 use crate::rhdl_core::rhif::spec::{
@@ -40,7 +40,6 @@ impl VMState<'_> {
             Slot::Register(r) => self.reg_stack[r.0]
                 .clone()
                 .ok_or(self.raise_ice(ICE::UninitializedRegister { r }, loc)),
-            Slot::Empty => Ok(TypedBits::EMPTY),
         }
     }
     fn write(&mut self, slot: Slot, value: TypedBits, loc: SourceLocation) -> Result<()> {
@@ -49,13 +48,6 @@ impl VMState<'_> {
             Slot::Register(r) => {
                 self.reg_stack[r.0] = Some(value);
                 Ok(())
-            }
-            Slot::Empty => {
-                if value.kind.is_empty() {
-                    Ok(())
-                } else {
-                    Err(self.raise_ice(ICE::CannotWriteNonEmptyValueToEmptySlot, loc))
-                }
             }
         }
     }
@@ -313,7 +305,6 @@ pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
     };
     execute_block(&obj.ops, &mut state)?;
     match obj.return_slot {
-        Slot::Empty => Ok(TypedBits::EMPTY),
         Slot::Register(r) => reg_stack
             .get(r.0)
             .cloned()
