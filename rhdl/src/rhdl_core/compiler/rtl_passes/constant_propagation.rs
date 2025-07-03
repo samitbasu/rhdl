@@ -110,7 +110,7 @@ fn propagate_concat(
             .flat_map(|lit| obj.literals[lit].bits())
             .copied()
             .collect::<Vec<_>>();
-        let arg = match obj.kind(concat.lhs) {
+        let arg = match obj.size(concat.lhs) {
             RegisterSize::Signed(_) => BitString::Signed(bits),
             RegisterSize::Unsigned(_) => BitString::Unsigned(bits),
         };
@@ -243,7 +243,7 @@ fn propagate_splice(
         let value = obj.literals[value].clone();
         let mut bits = orig.bits().to_vec();
         bits.splice(bit_range.clone(), value.bits().iter().copied());
-        let result = match obj.kind(*lhs) {
+        let result = match obj.size(*lhs) {
             RegisterSize::Signed(_) => BitString::Signed(bits),
             RegisterSize::Unsigned(_) => BitString::Unsigned(bits),
         };
@@ -275,7 +275,7 @@ fn propagate_index(
     if let Operand::Literal(arg) = arg {
         let arg = obj.literals[arg].clone();
         let slice = arg.bits()[bit_range.clone()].to_vec();
-        let result = match obj.kind(*lhs) {
+        let result = match obj.size(*lhs) {
             RegisterSize::Signed(_) => BitString::Signed(slice),
             RegisterSize::Unsigned(_) => BitString::Unsigned(slice),
         };

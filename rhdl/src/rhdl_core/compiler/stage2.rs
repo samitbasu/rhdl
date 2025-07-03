@@ -28,7 +28,6 @@ type Result<T> = std::result::Result<T, RHDLError>;
 
 fn wrap_pass<P: Pass>(obj: rtl::Object) -> Result<rtl::Object> {
     info!("Running Stage 2 compiler Pass {}", P::description());
-    let obj = SymbolTableIsComplete::run(obj)?;
     P::run(obj)
 }
 

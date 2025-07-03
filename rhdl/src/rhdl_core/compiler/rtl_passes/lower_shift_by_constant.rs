@@ -43,9 +43,9 @@ impl LowerShiftByConstant {
         loc: SourceLocation,
     ) -> Result<(), RHDLError> {
         let shift_amount = Self::shift_amount_as_usize(input, lit, loc)?;
-        let arg1_len = input.kind(arg1).len();
+        let arg1_len = input.size(arg1).len();
         let arg1_ext_len = arg1_len + shift_amount;
-        let ext_kind = if input.kind(arg1).is_signed() {
+        let ext_kind = if input.size(arg1).is_signed() {
             RegisterSize::Signed(arg1_ext_len)
         } else {
             RegisterSize::Unsigned(arg1_ext_len)
@@ -79,11 +79,11 @@ impl LowerShiftByConstant {
         loc: SourceLocation,
     ) -> Result<(), RHDLError> {
         let shift_amount = Self::shift_amount_as_usize(input, lit, loc)?;
-        let arg1_len = input.kind(arg1).len();
+        let arg1_len = input.size(arg1).len();
         let arg1_lsbs_len = arg1_len.saturating_sub(shift_amount);
         // Allocate a new literal to hold the zeros shifted in on the right.
         let zero_lit = allocate_literal(input, loc, BitString::zeros(shift_amount));
-        let lsb_kind = if input.kind(arg1).is_signed() {
+        let lsb_kind = if input.size(arg1).is_signed() {
             RegisterSize::Signed(arg1_lsbs_len)
         } else {
             RegisterSize::Unsigned(arg1_lsbs_len)

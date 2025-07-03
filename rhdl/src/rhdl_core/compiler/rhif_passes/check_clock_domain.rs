@@ -2,18 +2,18 @@ use log::debug;
 use std::collections::{BTreeMap, HashSet};
 
 use crate::rhdl_core::{
+    Color, Kind,
     ast::source::source_location::SourceLocation,
     compiler::mir::{
         error::{ClockError, RHDLClockDomainViolation},
-        ty::{make_variant_tag, AppTypeKind, Const, TypeId, TypeKind, UnifyContext},
+        ty::{AppTypeKind, Const, TypeId, TypeKind, UnifyContext, make_variant_tag},
     },
     error::RHDLError,
     rhif::{
-        spec::{AluUnary, CaseArgument, OpCode, Slot},
         Object,
+        spec::{AluUnary, CaseArgument, OpCode, Slot},
     },
     types::path::{Path, PathElement},
-    Color, Kind,
 };
 
 use super::pass::Pass;
@@ -36,22 +36,22 @@ struct ClockDomainContext<'a> {
     slot_map: BTreeMap<Slot, TypeId>,
 }
 
-impl ClockDomainContext<'_> {
-    fn collect_clock_domains(&mut self, ty: TypeId) -> Vec<TypeId> {
-        match self.ctx.ty(ty) {
-            TypeKind::Var(_) => vec![ty],
-            TypeKind::App(app) => app
-                .sub_types()
-                .into_iter()
-                .flat_map(|arg| self.collect_clock_domains(arg))
-                .collect(),
-            TypeKind::Const(Const::Clock(_)) => vec![ty],
-            _ => vec![],
-        }
+fn collect_clock_domains(ty: TypeId) -> Vec<TypeId> {
+    match (*ty.kind).clone() {
+        TypeKind::Var(_) => vec![ty],
+        TypeKind::App(app) => app
+            .sub_types()
+            .into_iter()
+            .flat_map(collect_clock_domains)
+            .collect(),
+        TypeKind::Const(Const::Clock(_)) => vec![ty],
+        _ => vec![],
     }
+}
+
+impl ClockDomainContext<'_> {
     fn clock_domain_for_error(&mut self, ty: TypeId) -> &'static str {
-        let domains = self
-            .collect_clock_domains(ty)
+        let domains = collect_clock_domains(ty)
             .into_iter()
             .map(|ty| {
                 if let Ok(clock) = self.ctx.cast_ty_as_clock(ty) {
@@ -247,10 +247,10 @@ impl ClockDomainContext<'_> {
         cause: ClockError,
     ) -> Result<(), RHDLError> {
         let lhs_ty = self.slot_type(&lhs);
-        let lhs_domains = self.collect_clock_domains(lhs_ty);
+        let lhs_domains = collect_clock_domains(lhs_ty);
         for lhs_domain in lhs_domains {
             let rhs_ty = self.slot_type(&rhs);
-            let rhs_domains = self.collect_clock_domains(rhs_ty);
+            let rhs_domains = collect_clock_domains(rhs_ty);
             for domain in rhs_domains {
                 if self.ctx.unify(lhs_domain, domain).is_err() {
                     return Err(self
@@ -305,8 +305,8 @@ impl ClockDomainContext<'_> {
                     }
                     // First, index the argument type to get a base type
                     arg = self.ctx.ty_index(arg, 0)?;
-                    let slot_domains = self.collect_clock_domains(slot_ty);
-                    let arg_domains = self.collect_clock_domains(arg);
+                    let slot_domains = collect_clock_domains(slot_ty);
+                    let arg_domains = collect_clock_domains(arg);
                     for arg_domain in arg_domains {
                         for slot_domain in &slot_domains {
                             if self.ctx.unify(arg_domain, *slot_domain).is_err() {

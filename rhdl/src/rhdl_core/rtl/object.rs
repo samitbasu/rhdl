@@ -134,7 +134,7 @@ impl Object {
     pub fn op_alias(&self, op: Operand) -> Option<String> {
         self.symbols.operand_names.get(&op).cloned()
     }
-    pub fn kind(&self, op: Operand) -> RegisterSize {
+    pub fn size(&self, op: Operand) -> RegisterSize {
         match op {
             Operand::Register(reg) => self.register_size[&reg],
             Operand::Literal(lit) => (&self.literals[&lit]).into(),
