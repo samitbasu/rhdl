@@ -8,8 +8,8 @@ use crate::{
         },
     },
 };
-use std::{collections::BTreeMap, hash::Hash};
 use std::hash::Hasher;
+use std::{collections::BTreeMap, hash::Hash};
 
 use fnv::FnvHasher;
 
@@ -27,8 +27,8 @@ pub struct BlackBox {
 
 #[derive(Clone, Copy, Debug, Hash)]
 pub struct KindAndBit {
-    kind: Kind,
-    bit: usize,
+    pub kind: Kind,
+    pub bit: usize,
 }
 
 #[derive(Clone, Default, Hash)]

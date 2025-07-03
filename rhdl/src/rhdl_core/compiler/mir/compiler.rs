@@ -77,8 +77,6 @@ use super::error::ICE;
 use super::error::RHDLCompileError;
 use super::error::RHDLSyntaxError;
 use super::error::Syntax;
-use super::interner::Intern;
-use super::interner::InternKey;
 use super::mir_impl::Mir;
 use super::mir_impl::TypeEquivalence;
 
@@ -141,8 +139,6 @@ fn coerce_literal_to_i32(val: &ExprLit) -> Result<i32> {
     }
 }
 
-type KindKey = InternKey<Kind>;
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ScopeIndex {
     scope: ScopeId,
@@ -172,13 +168,12 @@ const EARLY_RETURN_FLAG_NAME: &str = "__$early_return_flag";
 type Result<T> = std::result::Result<T, RHDLError>;
 
 pub struct MirContext<'a> {
-    kinds: Intern<Kind>,
     scopes: Vec<Scope>,
     ops: Vec<LocatedOpCode>,
     reg_count: usize,
     literals: BTreeMap<Slot, ExprLit>,
     reg_source_map: BTreeMap<Slot, NodeId>,
-    ty: BTreeMap<Slot, KindKey>,
+    ty: BTreeMap<Slot, Kind>,
     ty_equate: HashSet<TypeEquivalence>,
     stash: BTreeMap<FuncId, Box<Object>>,
     slot_names: BTreeMap<Slot, String>,
@@ -205,7 +200,7 @@ impl std::fmt::Debug for MirContext<'_> {
             self.name, arguments, self.return_slot, self.fn_id
         )?;
         for (slot, kind) in &self.ty {
-            writeln!(f, "{:?} : {:?}", slot, self.kinds[kind])?;
+            writeln!(f, "{slot:?} : {kind:?}")?;
         }
         for (lit, expr) in &self.literals {
             writeln!(f, "{lit:?} -> {expr:?}")?;
@@ -223,7 +218,6 @@ impl std::fmt::Debug for MirContext<'_> {
 impl<'a> MirContext<'a> {
     fn new(spanned_source: &'a SpannedSource, mode: CompilationMode, fn_id: FunctionId) -> Self {
         MirContext {
-            kinds: Intern::default(),
             scopes: vec![Scope {
                 names: HashMap::new(),
                 children: vec![],
@@ -261,9 +255,8 @@ impl<'a> MirContext<'a> {
     fn end_scope(&mut self) {
         self.active_scope = self.scopes[self.active_scope.0].parent;
     }
-    fn bind_slot_to_type(&mut self, slot: Slot, kind: &Kind) {
-        let key = self.kinds.intern(kind);
-        self.ty.insert(slot, key);
+    fn bind_slot_to_type(&mut self, slot: Slot, kind: Kind) {
+        self.ty.insert(slot, kind);
     }
     // Walk the scope hierarchy, and return a list of all local variables
     // visible from the current scope.  Some of these may not be accessible
@@ -310,7 +303,7 @@ impl<'a> MirContext<'a> {
                     .raise_ice(ICE::UnsupportedArgumentPattern { arg: arg.clone() }, id)
                     .into());
             };
-            self.bind_slot_to_type(slot, &ty.kind);
+            self.bind_slot_to_type(slot, ty.kind);
             self.arguments.push(slot);
         }
         Ok(())
@@ -720,7 +713,7 @@ impl<'a> MirContext<'a> {
         self.op(op_binary(alu, result, lhs, rhs), id);
         Ok(result)
     }
-    fn type_pattern(&mut self, pattern: &Pat, kind: &Kind) -> Result<()> {
+    fn type_pattern(&mut self, pattern: &Pat, kind: Kind) -> Result<()> {
         debug!("Type pattern {:?} {:?}", pattern, kind);
         match &pattern.kind {
             PatKind::Ident(ident) => {
@@ -738,25 +731,25 @@ impl<'a> MirContext<'a> {
             }
             PatKind::Tuple(tuple) => {
                 for (ndx, element) in tuple.elements.iter().enumerate() {
-                    self.type_pattern(element, &kind.get_tuple_kind(ndx)?)?;
+                    self.type_pattern(element, kind.get_tuple_kind(ndx)?)?;
                 }
                 Ok(())
             }
             PatKind::Struct(struct_pat) => {
                 for field in &struct_pat.fields {
-                    self.type_pattern(&field.pat, &kind.get_field_kind(&field.member)?)?;
+                    self.type_pattern(&field.pat, kind.get_field_kind(&field.member)?)?;
                 }
                 Ok(())
             }
             PatKind::TupleStruct(tuple_struct) => {
                 for (ndx, field) in tuple_struct.elems.iter().enumerate() {
-                    self.type_pattern(field, &kind.get_field_kind(&Member::Unnamed(ndx as u32))?)?;
+                    self.type_pattern(field, kind.get_field_kind(&Member::Unnamed(ndx as u32))?)?;
                 }
                 Ok(())
             }
             PatKind::Slice(slice) => {
                 for element in &slice.elems {
-                    self.type_pattern(element, &kind.get_base_kind()?)?;
+                    self.type_pattern(element, kind.get_base_kind()?)?;
                 }
                 Ok(())
             }
@@ -786,7 +779,7 @@ impl<'a> MirContext<'a> {
             }
             PatKind::Type(type_pat) => {
                 self.bind_pattern(&type_pat.pat)?;
-                self.type_pattern(&type_pat.pat, &type_pat.kind)
+                self.type_pattern(&type_pat.pat, type_pat.kind)
             }
             PatKind::Struct(struct_pat) => {
                 for field in &struct_pat.fields {
@@ -847,7 +840,7 @@ impl<'a> MirContext<'a> {
         match code {
             KernelFnKind::BitConstructor(len) => self.op(op_as_bits(lhs, args[0], *len), id),
             KernelFnKind::SignedBitsConstructor(len) => {
-                self.bind_slot_to_type(args[0], &Kind::make_signed(128));
+                self.bind_slot_to_type(args[0], Kind::make_signed(128));
                 self.op(op_as_signed(lhs, args[0], *len), id)
             }
             KernelFnKind::TupleStructConstructor(tb) => {
@@ -1594,13 +1587,8 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
     let copy_source = source.clone();
     let mut compiler = MirContext::new(&source, mode, func.inner().fn_id);
     compiler.visit_kernel_fn(func.inner())?;
-    compiler.bind_slot_to_type(compiler.return_slot, &func.inner().ret);
-    let ty: BTreeMap<Slot, Kind> = compiler
-        .ty
-        .iter()
-        .map(|(k, v)| (*k, compiler.kinds[v].to_owned()))
-        .collect();
-    if let Some(kind) = ty.get(&compiler.return_slot) {
+    compiler.bind_slot_to_type(compiler.return_slot, func.inner().ret);
+    if let Some(kind) = compiler.ty.get(&compiler.return_slot) {
         if kind.is_empty() {
             return Err(compiler
                 .raise_syntax_error(Syntax::EmptyReturnForFunction, func.inner().id)
@@ -1626,7 +1614,7 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
         literals: compiler.literals,
         return_slot: compiler.return_slot,
         fn_id: compiler.fn_id,
-        ty,
+        ty: compiler.ty,
         ty_equate: compiler.ty_equate,
         stash: compiler.stash,
         name: compiler.name.to_string(),

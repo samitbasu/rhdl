@@ -104,7 +104,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 discriminant,
                 table,
             }) => {
-                let lhs_kind = state.obj.kind(*lhs);
+                let lhs_kind = state.obj.size(*lhs);
                 let lhs_dont_care = BitString::dont_care_from_kind(lhs_kind);
                 let discriminant = state.read(*discriminant, loc)?;
                 let arm = table
@@ -146,7 +146,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                     .flat_map(|x| x.bits())
                     .copied()
                     .collect::<Vec<BitX>>();
-                match state.obj.kind(*lhs) {
+                match state.obj.size(*lhs) {
                     RegisterSize::Signed(_) => {
                         state.write(*lhs, BitString::Signed(combined), loc)?;
                     }
@@ -162,7 +162,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
             }) => {
                 let arg = state.read(*arg, loc)?;
                 let slice = arg.bits()[bit_range.clone()].to_vec();
-                match state.obj.kind(*lhs) {
+                match state.obj.size(*lhs) {
                     RegisterSize::Signed(_) => {
                         state.write(*lhs, BitString::Signed(slice), loc)?;
                     }
@@ -197,7 +197,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let mut orig = orig.bits().to_vec();
                 let value = value.bits();
                 orig.splice(bit_range.clone(), value.iter().copied());
-                match state.obj.kind(*lhs) {
+                match state.obj.size(*lhs) {
                     RegisterSize::Signed(_) => {
                         state.write(*lhs, BitString::Signed(orig), loc)?;
                     }

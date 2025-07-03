@@ -4,6 +4,7 @@ use crate::core::ntl;
 use crate::core::rtl;
 use crate::prelude::BitX;
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
+use crate::rhdl_core::ntl::object::KindAndBit;
 use crate::rhdl_core::ntl::spec::Binary;
 use crate::rhdl_core::ntl::spec::Not;
 use crate::rhdl_core::ntl::spec::RegisterId;
@@ -91,7 +92,7 @@ impl<'a> NtlBuilder<'a> {
         if let Some(port) = self.operand_map.get(&operand) {
             return port.clone();
         }
-        let ndx = match operand {
+        let operands = match operand {
             tl::Operand::Literal(literal_id) => {
                 let bs = &self.object.literals[&literal_id];
                 bs.bits()
@@ -110,8 +111,13 @@ impl<'a> NtlBuilder<'a> {
                     .collect::<Vec<_>>()
             }
         };
-        self.operand_map.insert(operand, ndx.clone());
-        ndx
+        // The symbol table completeness test guarantees this access is safe
+        let kind = self.object.symbols.rhif_types[&operand];
+        for (bit, operand) in operands.iter().enumerate() {
+            self.btl.kinds.insert(*operand, KindAndBit { kind, bit });
+        }
+        self.operand_map.insert(operand, operands.clone());
+        operands
     }
     fn build_assign(&mut self, loc: SourceLocation, assign: &tl::Assign) {
         let rhs = self.operand(assign.rhs);
@@ -124,9 +130,9 @@ impl<'a> NtlBuilder<'a> {
         let arg1 = self.operand(binary.arg1);
         let arg2 = self.operand(binary.arg2);
         let lhs = self.operand(binary.lhs);
-        let signed = self.object.kind(binary.lhs).is_signed()
-            || (self.object.kind(binary.arg1).is_signed()
-                && self.object.kind(binary.arg2).is_signed());
+        let signed = self.object.size(binary.lhs).is_signed()
+            || (self.object.size(binary.arg1).is_signed()
+                && self.object.size(binary.arg2).is_signed());
         match classify_binary(binary.op) {
             BinOpClass::Bitwise(binop) => {
                 for (&lhs, (&arg1, &arg2)) in lhs.iter().zip(arg1.iter().zip(arg2.iter())) {
@@ -196,7 +202,7 @@ impl<'a> NtlBuilder<'a> {
         for (&lhs, &rhs) in lhs.iter().zip(arg.iter()) {
             self.push(loc, bt::assign(lhs, rhs));
         }
-        let lhs_signed = self.object.kind(cast.lhs).is_signed();
+        let lhs_signed = self.object.size(cast.lhs).is_signed();
         let use_unsigned = matches!(cast.kind, tl::CastKind::Unsigned)
             || (matches!(cast.kind, tl::CastKind::Resize) && !lhs_signed);
         if use_unsigned {

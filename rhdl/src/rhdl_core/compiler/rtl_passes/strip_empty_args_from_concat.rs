@@ -17,7 +17,7 @@ impl Pass for StripEmptyArgsFromConcat {
                     .args
                     .iter()
                     .copied()
-                    .filter(|arg| !input.kind(*arg).is_empty())
+                    .filter(|arg| !input.size(*arg).is_empty())
                     .collect();
                 concat.args = args;
             }

@@ -1,15 +1,15 @@
 use crate::rhdl_bits::alias::b8;
 
 use crate::rhdl_core::{
+    Digital, RHDLError,
     rtl::spec::AluBinary,
     rtl::{
+        Object,
         object::LocatedOpCode,
         spec::{Binary, Cast, CastKind, OpCode, Operand},
-        Object,
     },
     types::bit_string::BitString,
     util::clog2,
-    Digital, RHDLError,
 };
 
 use super::{allocate_literal, allocate_register, pass::Pass};
@@ -36,7 +36,7 @@ impl Pass for LowerMultiplyToShift {
                                 .unwrap()
                                 .into();
                             let shift = allocate_literal(&mut input, lop.loc, literal_bs);
-                            let lhs_kind = input.kind(binary.lhs);
+                            let lhs_kind = input.size(binary.lhs);
                             // Allocate a register to hold the sign extended of the rhs
                             let r_extend = allocate_register(&mut input, lhs_kind, lop.loc);
                             input.ops.push(LocatedOpCode {

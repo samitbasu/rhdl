@@ -833,9 +833,9 @@ impl<'a> RTLCompiler<'a> {
             let new_op = operand_translation[old_op];
             let loc = func_rtl.symbols.operand_map[old_op];
             self.symbols.operand_map.insert(new_op, loc);
-            if let Some(name) = func_rtl.symbols.operand_names.get(old_op) {
-                self.symbols.operand_names.insert(new_op, name.clone());
-            }
+            //            if let Some(name) = func_rtl.symbols.operand_names.get(old_op) {
+            //self.symbols.operand_names.insert(new_op, name.clone());
+            //}
         }
         self.symbols
             .source_set
