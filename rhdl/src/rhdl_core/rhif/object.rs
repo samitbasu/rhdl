@@ -5,14 +5,14 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::ops::Range;
 
+use crate::rhdl_core::SourcePool;
+use crate::rhdl_core::ast::KernelFlags;
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
 use crate::rhdl_core::ast::source::spanned_source_set::SpannedSourceSet;
-use crate::rhdl_core::ast::KernelFlags;
-use crate::rhdl_core::SourcePool;
 use crate::rhdl_core::{
+    Kind, TypedBits,
     ast::ast_impl::{FunctionId, NodeId},
     rhif::spec::Slot,
-    Kind, TypedBits,
 };
 
 use super::spec::OpCode;
@@ -120,7 +120,6 @@ impl Object {
         match slot {
             Slot::Register(reg) => self.kind[&reg],
             Slot::Literal(lit) => self.literals[&lit].kind,
-            Slot::Empty => Kind::Empty,
         }
     }
     pub fn hash_value(&self) -> u64 {

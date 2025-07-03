@@ -1,6 +1,6 @@
 use crate::rhdl_core::{
     error::RHDLError,
-    rhif::{spec::OpCode, Object},
+    rhif::{Object, spec::OpCode},
 };
 
 use super::pass::Pass;
@@ -13,21 +13,23 @@ impl Pass for RemoveEmptyCasesPass {
         "Remove empty cases and empty selects"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
-        for lop in input.ops.iter_mut() {
+        let mut ops = std::mem::take(&mut input.ops);
+        for lop in ops.iter_mut() {
             match &lop.op {
                 OpCode::Case(case) => {
-                    if case.lhs.is_empty() {
+                    if input.kind(case.lhs).is_empty() {
                         lop.op = OpCode::Noop;
                     }
                 }
                 OpCode::Select(select) => {
-                    if select.lhs.is_empty() {
+                    if input.kind(select.lhs).is_empty() {
                         lop.op = OpCode::Noop;
                     }
                 }
                 _ => {}
             }
         }
+        input.ops = ops;
         Ok(input)
     }
 }

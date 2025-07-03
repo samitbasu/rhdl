@@ -2,19 +2,18 @@
 use log::debug;
 
 use crate::rhdl_core::{
+    Kind,
     ast::{ast_impl::WrapOp, source::source_location::SourceLocation},
     compiler::mir::error::ICE,
     error::RHDLError,
     rhif::{
-        self,
+        self, Object,
         spec::{
             AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
             Index, OpCode, Repeat, Retime, Select, Slot, Splice, Struct, Tuple, Unary, Wrap,
         },
-        Object,
     },
-    types::path::{sub_kind, Path, PathElement},
-    Kind,
+    types::path::{Path, PathElement, sub_kind},
 };
 
 use super::pass::Pass;
@@ -111,12 +110,7 @@ fn xsub_kind(obj: &Object, loc: SourceLocation, a: Kind, b: Kind) -> Result<Kind
 }
 
 fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
-    let slot_type = |slot: &Slot| -> Kind {
-        if matches!(*slot, Slot::Empty) {
-            return Kind::Empty;
-        }
-        obj.kind(*slot)
-    };
+    let slot_type = |slot: &Slot| -> Kind { obj.kind(*slot) };
     // Checks that two kinds are equal, but ignores clocking information
     let eq_kinds = |a: Kind, b: Kind, loc: SourceLocation| -> Result<(), RHDLError> {
         // Special case Empty == Tuple([])
