@@ -83,3 +83,4 @@ pub use bitx::BitX;
 pub use bitx::bitx_vec;
 pub mod allocator;
 pub mod ntl;
+pub mod symbol_table;

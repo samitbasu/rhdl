@@ -37,7 +37,7 @@ num-bigint = "0.4.6"
 rhdl-trace-type = { version = "0.1.0", path = "../rhdl-trace-type" }
 array-init = "2.1.0"
 thiserror = "2.0.11"
-internment = { version = "0.8.6", features = ["arc"] }
+internment = { version = "0.8.6", features = ["arc", "arena"] }
 ron = "0.8.1"
 tempfile = "3.15.0"
 sha2 = "0.10.8"
