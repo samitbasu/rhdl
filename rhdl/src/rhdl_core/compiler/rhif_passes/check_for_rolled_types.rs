@@ -1,12 +1,12 @@
 use crate::rhdl_core::{
+    Kind,
     ast::source::source_location::SourceLocation,
     compiler::mir::error::{RHDLSyntaxError, Syntax},
     error::RHDLError,
     rhif::{
-        spec::{AluBinary, AluUnary, Binary, OpCode, Slot, Unary},
         Object,
+        spec::{AluBinary, AluUnary, Binary, OpCode, Slot, Unary},
     },
-    Kind,
 };
 
 use super::pass::Pass;
@@ -26,10 +26,7 @@ fn check_register_like(
             return Err(Box::new(RHDLSyntaxError {
                 src: obj.symbols.source(),
                 cause,
-                err_span: obj
-                    .symbols
-                    .best_span_for_slot_in_expression(*slot, expr_loc)
-                    .into(),
+                err_span: obj.best_span_for_slot_in_expression(*slot, expr_loc).into(),
             })
             .into());
         }
@@ -47,10 +44,7 @@ impl Pass for CheckForRolledTypesPass {
             Box::new(RHDLSyntaxError {
                 src: obj.symbols.source(),
                 cause,
-                err_span: obj
-                    .symbols
-                    .best_span_for_slot_in_expression(slot, loc)
-                    .into(),
+                err_span: obj.best_span_for_slot_in_expression(slot, loc).into(),
             })
             .into()
         };

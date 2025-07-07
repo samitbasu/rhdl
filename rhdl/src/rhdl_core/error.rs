@@ -2,9 +2,10 @@ use miette::Diagnostic;
 use thiserror::Error;
 
 use crate::rhdl_core::{
-    circuit::yosys::YosysSynthError,
-    types::{bit_string::BitString, path::PathError},
     KernelFnKind, TypedBits,
+    circuit::yosys::YosysSynthError,
+    compiler::mir::ty::UnifyError,
+    types::{bit_string::BitString, path::PathError},
 };
 
 #[derive(Error, Debug, Diagnostic)]
@@ -79,6 +80,9 @@ pub enum RHDLError {
     #[error("Logic Loop")]
     #[diagnostic(transparent)]
     NetLoopError(#[from] Box<crate::rhdl_core::ntl::error::NetLoopError>),
+    #[error("Type Inference Error")]
+    #[diagnostic(transparent)]
+    TypeInferenceError(#[from] Box<UnifyError>),
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

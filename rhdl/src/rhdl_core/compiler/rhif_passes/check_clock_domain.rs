@@ -99,7 +99,6 @@ impl ClockDomainContext<'_> {
                         self.clock_domain_for_error(ty)
                     ),
                     self.obj
-                        .symbols
                         .best_span_for_slot_in_expression(slot, containing_id)
                         .into(),
                 )
@@ -205,16 +204,14 @@ impl ClockDomainContext<'_> {
         }
     }
     fn import_literals(&mut self) {
-        for &lit_id in self.obj.literals.keys() {
-            let id = self.obj.symbols.slot_map[&lit_id.into()];
-            let ty = self.ctx.ty_unclocked(id);
+        for (lit_id, (_tb, loc)) in self.obj.symtab.iter_lit() {
+            let ty = self.ctx.ty_unclocked(*loc);
             self.slot_map.insert(lit_id.into(), ty);
         }
     }
     fn import_registers(&mut self) {
-        for (&reg_id, kind) in &self.obj.kind {
-            let id = self.obj.symbols.slot_map[&reg_id.into()];
-            let ty = self.import_kind_with_unknown_domains(id, kind);
+        for (reg_id, (kind, loc)) in self.obj.symtab.iter_reg() {
+            let ty = self.import_kind_with_unknown_domains(*loc, kind);
             self.slot_map.insert(reg_id.into(), ty);
         }
     }
