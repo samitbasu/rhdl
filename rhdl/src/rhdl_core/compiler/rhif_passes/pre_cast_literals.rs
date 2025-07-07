@@ -1,11 +1,12 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::rhdl_core::{
+    common::symtab::LiteralId,
     error::RHDLError,
     rhif::{
-        remap::remap_slots,
-        spec::{LiteralId, OpCode, Slot},
         Object,
+        remap::remap_slots,
+        spec::{OpCode, Slot},
     },
 };
 

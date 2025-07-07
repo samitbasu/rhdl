@@ -46,7 +46,7 @@ impl InitSet<'_> {
                     return Err(DataFlowCheckPass::raise_ice(
                         self.obj,
                         ICE::SlotIsReadBeforeBeingWritten { slot: *slot },
-                        self.obj.symbols.slot_map[slot],
+                        self.obj.symtab[slot],
                     ));
                 }
             }
@@ -59,7 +59,7 @@ impl InitSet<'_> {
                 return Err(DataFlowCheckPass::raise_ice(
                     self.obj,
                     ICE::CannotWriteToRHIFLiteral { ndx: *ndx },
-                    self.obj.symbols.slot_map[slot],
+                    self.obj.symtab[slot],
                 ));
             }
             Slot::Register(_) => {
@@ -67,7 +67,7 @@ impl InitSet<'_> {
                     return Err(DataFlowCheckPass::raise_ice(
                         self.obj,
                         ICE::SlotIsWrittenTwice { slot: *slot },
-                        self.obj.symbols.slot_map[slot],
+                        self.obj.symtab[slot],
                     ));
                 }
                 self.set.insert(*slot);

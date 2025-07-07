@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::rhdl_core::{
     compiler::mir::error::ICE,
     error::RHDLError,
-    rhif::{remap::remap_slots, spec::Slot, Object},
+    rhif::{Object, remap::remap_slots, spec::Slot},
 };
 
 use super::pass::Pass;
@@ -27,7 +27,7 @@ impl Pass for SymbolTableIsComplete {
         }
         let id = input.symbols.fallback(input.fn_id);
         for slot in used_set {
-            if !input.symbols.slot_map.contains_key(&slot) {
+            if !input.symtab.is_ke_valid(&slot) {
                 return Err(Self::raise_ice(
                     &input,
                     ICE::SymbolTableIsIncomplete { slot },

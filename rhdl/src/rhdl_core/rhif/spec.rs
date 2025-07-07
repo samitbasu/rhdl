@@ -1,7 +1,7 @@
 // RHDL Intermediate Form (RHIF).
-use anyhow::Result;
-
-use crate::rhdl_core::{Color, Kind, TypedBits, ast::ast_impl::WrapOp, types::path::Path};
+use crate::rhdl_core::{
+    Color, Kind, TypedBits, ast::ast_impl::WrapOp, common::symtab::Symbol, types::path::Path,
+};
 
 #[derive(Clone, PartialEq, Hash)]
 pub enum OpCode {
@@ -233,82 +233,7 @@ pub enum AluUnary {
     XSgn,
 }
 
-#[derive(Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub enum Slot {
-    Literal(LiteralId),
-    Register(RegisterId),
-}
-
-#[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub struct LiteralId(pub usize);
-
-impl From<LiteralId> for Slot {
-    fn from(val: LiteralId) -> Self {
-        Slot::Literal(val)
-    }
-}
-
-impl std::fmt::Debug for LiteralId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "l{}", self.0)
-    }
-}
-
-#[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub struct RegisterId(pub usize);
-
-impl From<RegisterId> for Slot {
-    fn from(val: RegisterId) -> Self {
-        Slot::Register(val)
-    }
-}
-
-impl std::fmt::Debug for RegisterId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "r{}", self.0)
-    }
-}
-
-impl std::fmt::Debug for Slot {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Slot::Literal(l) => write!(f, "{l:?}"),
-            Slot::Register(r) => write!(f, "{r:?}"),
-        }
-    }
-}
-
-impl Slot {
-    pub fn reg(&self) -> Result<RegisterId> {
-        match self {
-            Slot::Register(r) => Ok(*r),
-            _ => Err(anyhow::anyhow!("Not a register")),
-        }
-    }
-    pub fn as_literal(self) -> Result<LiteralId> {
-        match self {
-            Slot::Literal(l) => Ok(l),
-            _ => Err(anyhow::anyhow!("Not a literal")),
-        }
-    }
-    pub fn as_reg(self) -> Result<RegisterId> {
-        match self {
-            Slot::Register(r) => Ok(r),
-            _ => Err(anyhow::anyhow!("Not a register")),
-        }
-    }
-    pub fn is_literal(&self) -> bool {
-        matches!(self, Slot::Literal(_))
-    }
-
-    pub(crate) fn is_reg(&self) -> bool {
-        matches!(self, Slot::Register(_))
-    }
-
-    pub(crate) fn rename(&self, old: Slot, new: Slot) -> Slot {
-        if *self == old { new } else { *self }
-    }
-}
+pub type Slot = Symbol;
 
 #[derive(Clone, PartialEq, Hash)]
 pub enum Member {

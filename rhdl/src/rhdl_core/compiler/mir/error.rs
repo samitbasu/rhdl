@@ -7,6 +7,7 @@ use crate::rhdl_core::{
     Kind, RHDLError, SourcePool, TypedBits,
     ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
     builder::BinOp,
+    common::symtab::{LiteralId, RegisterId},
     rhif::spec::{AluBinary, AluUnary, OpCode, Slot},
     rtl::spec::Operand,
     types::{bit_string::BitString, path::Path},
@@ -109,9 +110,7 @@ pub enum ICE {
     #[error("Slot {slot:?} is read before being written")]
     SlotIsReadBeforeBeingWritten { slot: Slot },
     #[error("Cannot write to a literal {ndx:?}")]
-    CannotWriteToRHIFLiteral {
-        ndx: crate::rhdl_core::rhif::spec::LiteralId,
-    },
+    CannotWriteToRHIFLiteral { ndx: LiteralId },
     #[error("Cannot write to a RTL literal {ndx:?}")]
     CannotWriteToRTLLiteral {
         ndx: crate::rhdl_core::rtl::spec::LiteralId,
@@ -167,9 +166,7 @@ pub enum ICE {
     #[error("Malformed RTL flow graph returned")]
     MalformedRTLFlowGraph,
     #[error("VM encountered an uninitialized RHIF register {r:?}")]
-    UninitializedRegister {
-        r: crate::rhdl_core::rhif::spec::RegisterId,
-    },
+    UninitializedRegister { r: RegisterId },
     #[error("VM encountered an uninitialized RTL register {r:?}")]
     UninitializedRTLRegister {
         r: crate::rhdl_core::rtl::spec::RegisterId,

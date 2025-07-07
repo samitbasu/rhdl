@@ -81,6 +81,5 @@ pub mod bitx;
 pub use ast::source::source_pool::SourcePool;
 pub use bitx::BitX;
 pub use bitx::bitx_vec;
-pub mod allocator;
+pub mod common;
 pub mod ntl;
-pub mod symbol_table;

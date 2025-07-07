@@ -5,12 +5,12 @@ use std::iter::once;
 use std::ops::Range;
 use thiserror::Error;
 
-use crate::rhdl_core::error::rhdl_error;
-use crate::rhdl_core::error::RHDLError;
-use crate::rhdl_core::rhif::spec::Member;
-use crate::rhdl_core::rhif::spec::Slot;
 use crate::rhdl_core::DiscriminantAlignment;
 use crate::rhdl_core::Kind;
+use crate::rhdl_core::error::RHDLError;
+use crate::rhdl_core::error::rhdl_error;
+use crate::rhdl_core::rhif::spec::Member;
+use crate::rhdl_core::rhif::spec::Slot;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum PathError {
@@ -366,7 +366,7 @@ pub fn sub_trace_type(trace: TraceType, path: &Path) -> Result<TraceType> {
                 _ => {
                     return Err(rhdl_error(PathError::TupleIndexingNotAllowedTrace {
                         trace,
-                    }))
+                    }));
                 }
             },
             PathElement::Index(i) => match &trace {
@@ -395,14 +395,14 @@ pub fn sub_trace_type(trace: TraceType, path: &Path) -> Result<TraceType> {
                 _ => {
                     return Err(rhdl_error(PathError::FieldIndexingNotAllowedTrace {
                         trace,
-                    }))
+                    }));
                 }
             },
             _ => {
                 return Err(rhdl_error(PathError::UnsupportedPathTypeForTrace {
                     path: path.clone(),
                     trace,
-                }))
+                }));
             }
         }
     }
@@ -599,7 +599,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
             PathElement::DynamicIndex(_slot) => {
                 return Err(rhdl_error(PathError::DynamicIndicesNotResolved {
                     path: path.clone(),
-                }))
+                }));
             }
         }
     }
@@ -609,12 +609,12 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
 #[cfg(test)]
 mod tests {
     use crate::rhdl_core::{
-        rhif::spec::{RegisterId, Slot},
-        types::{kind::DiscriminantLayout, path::path_star},
         Kind,
+        common::symtab::SymbolTable,
+        types::{kind::DiscriminantLayout, path::path_star},
     };
 
-    use super::{leaf_paths, Path};
+    use super::{Path, leaf_paths};
 
     #[test]
     fn test_leaf_path() {
@@ -657,6 +657,9 @@ mod tests {
 
     #[test]
     fn test_path_star() {
+        let mut symtab = SymbolTable::<(), (), ()>::default();
+        let s0 = symtab.reg((), ());
+        let s1 = symtab.reg((), ());
         let base_struct = Kind::make_struct(
             "base",
             vec![
@@ -678,20 +681,14 @@ mod tests {
         assert_eq!(path_star(&kind, &path1).unwrap().len(), 1);
         let path1 = Path::default().field("c").field("b").index(0);
         assert_eq!(path_star(&kind, &path1).unwrap().len(), 1);
-        let path1 = Path::default()
-            .field("c")
-            .field("b")
-            .dynamic(Slot::Register(RegisterId(0)));
+        let path1 = Path::default().field("c").field("b").dynamic(s0);
         let path1_star = path_star(&kind, &path1).unwrap();
         assert_eq!(path1_star.len(), 3);
         for path in path1_star {
             assert_eq!(path.elements.len(), 3);
             assert!(!path.any_dynamic());
         }
-        let path2 = Path::default()
-            .field("d")
-            .dynamic(Slot::Register(RegisterId(0)))
-            .field("b");
+        let path2 = Path::default().field("d").dynamic(s0).field("b");
         let path2_star = path_star(&kind, &path2).unwrap();
         assert_eq!(path2_star.len(), 4);
         for path in path2_star {
@@ -700,9 +697,9 @@ mod tests {
         }
         let path3 = Path::default()
             .field("d")
-            .dynamic(Slot::Register(RegisterId(0)))
+            .dynamic(s0)
             .field("b")
-            .dynamic(Slot::Register(RegisterId(1)));
+            .dynamic(s1);
         let path3_star = path_star(&kind, &path3).unwrap();
         assert_eq!(path3_star.len(), 12);
         for path in path3_star {

@@ -9,19 +9,19 @@ use crate::rhdl_core::SourcePool;
 use crate::rhdl_core::ast::KernelFlags;
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
 use crate::rhdl_core::ast::source::spanned_source_set::SpannedSourceSet;
+use crate::rhdl_core::common::symtab::{RegisterId, SymbolTable};
 use crate::rhdl_core::{
     Kind, TypedBits,
     ast::ast_impl::{FunctionId, NodeId},
     rhif::spec::Slot,
 };
 
+use super::spec::FuncId;
 use super::spec::OpCode;
-use super::spec::{FuncId, LiteralId, RegisterId};
 
 #[derive(Debug, Clone, Hash)]
 pub struct SymbolMap {
     pub source_set: SpannedSourceSet,
-    pub slot_map: BTreeMap<Slot, SourceLocation>,
     pub slot_names: BTreeMap<Slot, String>,
     pub aliases: BTreeMap<Slot, BTreeSet<Slot>>,
 }
@@ -30,35 +30,8 @@ impl SymbolMap {
     pub fn source(&self) -> SourcePool {
         self.source_set.source()
     }
-    pub fn slot_span(&self, slot: Slot) -> Option<Range<usize>> {
-        self.slot_map
-            .get(&slot)
-            .map(|loc| self.source_set.span(*loc))
-    }
     pub fn span(&self, loc: SourceLocation) -> Range<usize> {
         self.source_set.span(loc)
-    }
-    pub fn best_span_for_slot_in_expression(
-        &self,
-        slot: Slot,
-        expression: SourceLocation,
-    ) -> Range<usize> {
-        let expression_span = self.span(expression);
-        let mut best_range = self.slot_span(slot).unwrap_or(expression_span);
-        let mut best_range_len = best_range.len();
-        if let Some(equivalent) = self.aliases.get(&slot) {
-            for alias in equivalent {
-                let alias_range = self.best_span_for_slot_in_expression(*alias, expression);
-                let alias_range_len = alias_range.len();
-                if alias_range_len < best_range_len
-                    || (alias_range_len == best_range_len && alias_range.start > best_range.start)
-                {
-                    best_range = alias_range;
-                    best_range_len = alias_range_len;
-                }
-            }
-        }
-        best_range
     }
     pub fn alias(&mut self, from_slot: Slot, to_slot: Slot) {
         self.aliases.entry(from_slot).or_default().insert(to_slot);
@@ -98,8 +71,7 @@ impl From<(OpCode, SourceLocation)> for LocatedOpCode {
 #[derive(Clone, Hash)]
 pub struct Object {
     pub symbols: SymbolMap,
-    pub literals: BTreeMap<LiteralId, TypedBits>,
-    pub kind: BTreeMap<RegisterId, Kind>,
+    pub symtab: SymbolTable<TypedBits, Kind, SourceLocation>,
     pub return_slot: Slot,
     pub externals: BTreeMap<FuncId, Box<Object>>,
     pub ops: Vec<LocatedOpCode>,
@@ -110,16 +82,10 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn reg_max_index(&self) -> RegisterId {
-        self.kind.keys().max().copied().unwrap_or(RegisterId(0))
-    }
-    pub fn literal_max_index(&self) -> LiteralId {
-        self.literals.keys().max().copied().unwrap_or(LiteralId(0))
-    }
     pub fn kind(&self, slot: Slot) -> Kind {
         match slot {
-            Slot::Register(reg) => self.kind[&reg],
-            Slot::Literal(lit) => self.literals[&lit].kind,
+            Slot::Register(reg) => self.symtab[reg].0,
+            Slot::Literal(lit) => self.symtab[lit].0.kind,
         }
     }
     pub fn hash_value(&self) -> u64 {
@@ -130,6 +96,31 @@ impl Object {
     pub fn filename(&self) -> &str {
         self.symbols.source_set.filename(self.fn_id)
     }
+    pub fn slot_span(&self, slot: Slot) -> Range<usize> {
+        let loc = self.symtab[slot];
+        self.symbols.span(loc)
+    }
+    pub fn best_span_for_slot_in_expression(
+        &self,
+        slot: Slot,
+        expression: SourceLocation,
+    ) -> Range<usize> {
+        let mut best_range = self.slot_span(slot);
+        let mut best_range_len = best_range.len();
+        if let Some(equivalent) = self.symbols.aliases.get(&slot) {
+            for alias in equivalent {
+                let alias_range = self.best_span_for_slot_in_expression(*alias, expression);
+                let alias_range_len = alias_range.len();
+                if alias_range_len < best_range_len
+                    || (alias_range_len == best_range_len && alias_range.start > best_range.start)
+                {
+                    best_range = alias_range;
+                    best_range_len = alias_range_len;
+                }
+            }
+        }
+        best_range
+    }
 }
 
 impl std::fmt::Debug for Object {
@@ -137,17 +128,18 @@ impl std::fmt::Debug for Object {
         writeln!(f, "Object {}", self.name)?;
         writeln!(f, "  fn_id {:?}", self.fn_id)?;
         writeln!(f, "  return_slot {:?}", self.return_slot)?;
-        for regs in self.kind.keys() {
+        for (reg, (kind, _)) in self.symtab.iter_reg() {
             let slot_name = self
                 .symbols
                 .slot_names
-                .get(&Slot::Register(*regs))
+                .get(&Slot::Register(reg))
                 .map(|s| s.as_str())
                 .unwrap_or("");
-            writeln!(f, "Reg {:?} : {:?} // {}", regs, self.kind[regs], slot_name)?;
+            writeln!(f, "Reg {reg:?} : {kind:?} // {slot_name}")?;
         }
-        for (slot, literal) in self.literals.iter() {
-            writeln!(f, "Literal {:?} : {:?} = {:?}", slot, literal.kind, literal)?;
+        for (lit, (tb, _)) in self.symtab.iter_lit() {
+            let kind = tb.kind;
+            writeln!(f, "Literal {lit:?} : {kind:?} = {tb:?}")?;
         }
         for (ndx, func) in self.externals.iter() {
             writeln!(f, "Function {ndx:?} object: {func:?}")?;

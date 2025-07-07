@@ -131,13 +131,13 @@ fn check_for_partial_initialization(map: &mut CoverageMap) -> Result<(), RHDLErr
         map.declare_covered(Slot::Register(*arg));
     });
     // Check the literals...  For enums, we declare them covered
-    for (literal, tb) in &obj.literals {
+    for (literal, (tb, _)) in obj.symtab.iter_lit() {
         if tb.kind.is_enum() {
-            map.declare_covered(Slot::Literal(*literal));
+            map.declare_covered(Slot::Literal(literal));
             continue;
         }
         let coverage = typed_bit_cover(tb);
-        map.cover(Slot::Literal(*literal), coverage);
+        map.cover(Slot::Literal(literal), coverage);
     }
     for lop in &obj.ops {
         trace!("Analyzing op {:?}", lop.op);

@@ -47,6 +47,7 @@ tinytemplate = "1.2.1"
 serde = { version = "1.0.218", features = ["derive"], default-features = false }
 regex = "1.11.1"
 ena = "0.14.3"
+rand = "0.9.1"
 
 [features]
 default = ["iverilog"]

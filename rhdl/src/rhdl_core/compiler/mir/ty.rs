@@ -4,14 +4,18 @@ use std::{
     iter::once,
 };
 
-use crate::rhdl_core::{
-    Color, DiscriminantAlignment, DiscriminantType, Kind,
-    ast::source::source_location::SourceLocation,
-    rhif::spec::Member,
-    types::kind::{DiscriminantLayout, Enum, Field, Struct},
+use crate::{
+    prelude::RHDLError,
+    rhdl_core::{
+        Color, DiscriminantAlignment, DiscriminantType, Kind,
+        ast::source::source_location::SourceLocation,
+        rhif::spec::Member,
+        types::kind::{DiscriminantLayout, Enum, Field, Struct},
+    },
 };
-use anyhow::{Result, anyhow, bail, ensure};
 use internment::Intern;
+use miette::Diagnostic;
+use thiserror::Error;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct VarNum(u32);
@@ -45,10 +49,62 @@ pub enum AppType {
     Signal(AppSignal),
 }
 
+#[derive(Error, Debug, Diagnostic)]
+pub enum UnifyError {
+    #[error("Expected a struct, found {kind:?}")]
+    ExpectedStructTypeButFound { kind: TypeKind },
+    #[error("Expected an enum, found {kind:?}")]
+    ExpectedEnumTypeButFound { kind: TypeKind },
+    #[error("Expected a variable, found {kind:?}")]
+    ExpectedVariableButFound { kind: TypeKind },
+    #[error("Expected a sign flag, found {kind:?}")]
+    ExpectedSignFlagButFound { kind: TypeKind },
+    #[error("Expected a length, found {kind:?}")]
+    ExpectedLengthButFound { kind: TypeKind },
+    #[error("Expected a clock, found {kind:?}")]
+    ExpectedClockButFound { kind: TypeKind },
+    #[error("Unbound variable {kind:?}")]
+    UnboundVariable { kind: TypeKind },
+    #[error("Expected constant {kind:?}")]
+    ExpectedConstant { kind: TypeKind },
+    #[error("Cannot unify {x_kind:?} and {y_kind:?}")]
+    CannotUnifyKinds { x_kind: TypeKind, y_kind: TypeKind },
+    #[error("Recursive unification encountered {v:?}")]
+    RecursiveUnification { v: TypeKind },
+    #[error("Cannot unify tuples of different length {x:?} and {y:?}")]
+    CannotUnifyDifferentSizeTuples { x: AppTuple, y: AppTuple },
+    #[error("Cannot unify structs {x:?} and {y:?}")]
+    CannotUnifyStructs { x: AppStruct, y: AppStruct },
+    #[error("Cannot unify fields with names {x} and {y}")]
+    CannotUnifyFieldsWithNames { x: String, y: String },
+    #[error("Cannot unify enums with different variants {x:?} and {y:?}")]
+    CannotUnifyEnums { x: AppEnum, y: AppEnum },
+    #[error("Cannot unify variants of tags {x:?} and {y:?}")]
+    CannotUnifyVariants { x: VariantTag, y: VariantTag },
+    #[error("Expected app type instead of {x:?}")]
+    ExpectedAppType { x: TypeKind },
+    #[error("Cannot unify applicative types {x:?} and {y:?}")]
+    CannotUnifyApplicativeTypes { x: AppType, y: AppType },
+    #[error("Cannot unify {x:?} and unclocked")]
+    CannotUnifyUnclocked { x: AppType },
+    #[error("Expected a string, but found {x:?}")]
+    ExpectedStringNot { x: TypeKind },
+    #[error("Field {field} missing in struct definition")]
+    MissingFieldInStructDefinition { field: String },
+    #[error("Index {index} out of bounds")]
+    IndexOutOfBounds { index: usize },
+    #[error("Expected an array, tuple or struct, found {kind:?}")]
+    ExpectedArrayTupleOrStruct { kind: AppType },
+    #[error("Variant {tag:?} not found")]
+    VariantNotFound { tag: String },
+    #[error("Variant with discriminant {tag:?} not found")]
+    VariantWithDiscriminantNotFound { tag: i64 },
+}
+
 pub trait AppTypeKind {
     fn sub_types(&self) -> Vec<TypeId>;
     fn apply(self, context: &mut UnifyContext) -> Self;
-    fn into_kind(self, context: &mut UnifyContext) -> anyhow::Result<Kind>;
+    fn into_kind(self, context: &mut UnifyContext) -> Result<Kind, RHDLError>;
 }
 
 impl AppTypeKind for AppType {
@@ -72,7 +128,7 @@ impl AppTypeKind for AppType {
             AppType::Signal(signal) => AppType::Signal(signal.apply(context)),
         }
     }
-    fn into_kind(self, context: &mut UnifyContext) -> anyhow::Result<Kind> {
+    fn into_kind(self, context: &mut UnifyContext) -> Result<Kind, RHDLError> {
         match self {
             AppType::Tuple(tuple) => tuple.into_kind(context),
             AppType::Array(array) => array.into_kind(context),
@@ -100,7 +156,7 @@ impl AppTypeKind for AppBits {
             len: context.apply(self.len),
         }
     }
-    fn into_kind(self, context: &mut UnifyContext) -> anyhow::Result<Kind> {
+    fn into_kind(self, context: &mut UnifyContext) -> Result<Kind, RHDLError> {
         let sign_flag = context.cast_ty_as_sign_flag(self.sign_flag)?;
         let len = context.cast_ty_as_bit_length(self.len)?;
         match sign_flag {
@@ -126,7 +182,7 @@ impl AppTypeKind for AppSignal {
             clock: context.apply(self.clock),
         }
     }
-    fn into_kind(self, context: &mut UnifyContext) -> anyhow::Result<Kind> {
+    fn into_kind(self, context: &mut UnifyContext) -> Result<Kind, RHDLError> {
         let data = context.into_kind(self.data)?;
         let clock = context.cast_ty_as_clock(self.clock)?;
         Ok(Kind::Signal(internment::Intern::new(data), clock))
@@ -149,7 +205,7 @@ impl AppTypeKind for AppArray {
             len: context.apply(self.len),
         }
     }
-    fn into_kind(self, context: &mut UnifyContext) -> anyhow::Result<Kind> {
+    fn into_kind(self, context: &mut UnifyContext) -> Result<Kind, RHDLError> {
         let base = context.into_kind(self.base)?;
         let size = context.cast_ty_as_bit_length(self.len)?;
         Ok(Kind::make_array(base, size))
@@ -182,7 +238,7 @@ impl AppTypeKind for AppStruct {
             ..self
         }
     }
-    fn into_kind(self, context: &mut UnifyContext) -> anyhow::Result<Kind> {
+    fn into_kind(self, context: &mut UnifyContext) -> Result<Kind, RHDLError> {
         let fields = self
             .fields
             .into_iter()
@@ -190,7 +246,7 @@ impl AppTypeKind for AppStruct {
                 let kind = context.into_kind(t)?;
                 Ok(Field { name, kind })
             })
-            .collect::<Result<_>>()?;
+            .collect::<Result<_, RHDLError>>()?;
         Ok(Kind::make_struct(&self.name, fields))
     }
 }
@@ -223,7 +279,7 @@ impl AppTypeKind for AppEnum {
             ..self
         }
     }
-    fn into_kind(self, context: &mut UnifyContext) -> anyhow::Result<Kind> {
+    fn into_kind(self, context: &mut UnifyContext) -> Result<Kind, RHDLError> {
         let name = context.apply_string(self.name)?.to_owned();
         let variants = self
             .variants
@@ -236,7 +292,7 @@ impl AppTypeKind for AppEnum {
                     discriminant: v.discriminant,
                 })
             })
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>, RHDLError>>()?;
         let discriminant_kind = context.into_kind(self.discriminant)?;
         Ok(Kind::make_enum(
             &name,
@@ -268,12 +324,12 @@ impl AppTypeKind for AppTuple {
             elements: self.elements.iter().map(|t| context.apply(*t)).collect(),
         }
     }
-    fn into_kind(self, context: &mut UnifyContext) -> anyhow::Result<Kind> {
+    fn into_kind(self, context: &mut UnifyContext) -> Result<Kind, RHDLError> {
         let elements = self
             .elements
             .into_iter()
             .map(|t| context.into_kind(t))
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>, RHDLError>>()?;
         Ok(Kind::make_tuple(elements))
     }
 }
@@ -461,7 +517,7 @@ impl UnifyContext {
             .iter()
             .map(|field| {
                 let name = field.name.clone();
-                let ty = self.from_kind(loc, &field.kind);
+                let ty = self.from_kind(loc, field.kind);
                 (name, ty)
             })
             .collect();
@@ -517,7 +573,7 @@ impl UnifyContext {
             .iter()
             .map(|variant| {
                 let name = variant.name.clone();
-                let ty = self.from_kind(loc, &variant.kind);
+                let ty = self.from_kind(loc, variant.kind);
                 let tag = VariantTag {
                     name,
                     discriminant: variant.discriminant,
@@ -546,18 +602,22 @@ impl UnifyContext {
         }
     }
 
-    fn apply_string(&mut self, ty: TypeId) -> Result<&str> {
+    fn apply_string(&mut self, ty: TypeId) -> Result<&str, RHDLError> {
         let x = self.apply(ty);
         if let TypeKind::Const(Const::String(s)) = x.kind.as_ref() {
             Ok(s)
         } else {
-            bail!("Expected a string, found {:?}", x.kind);
+            Err(self.raise_type_error(UnifyError::ExpectedStringNot {
+                x: x.kind.as_ref().clone(),
+            }))
         }
     }
 
-    pub fn ty_index(&mut self, base: TypeId, index: usize) -> Result<TypeId> {
+    pub fn ty_index(&mut self, base: TypeId, index: usize) -> Result<TypeId, RHDLError> {
         let TypeKind::App(kind) = base.kind.as_ref() else {
-            bail!("Expected an application type, found {:?}", base.kind);
+            return Err(self.raise_type_error(UnifyError::ExpectedAppType {
+                x: base.kind.as_ref().clone(),
+            }));
         };
         match kind {
             AppType::Array(array) => Ok(array.base),
@@ -565,31 +625,44 @@ impl UnifyContext {
                 .elements
                 .get(index)
                 .cloned()
-                .ok_or_else(|| anyhow!("Index out of bounds")),
+                .ok_or_else(|| self.raise_type_error(UnifyError::IndexOutOfBounds { index })),
             AppType::Struct(strukt) => strukt
                 .fields
                 .get(index)
                 .map(|(_, ty)| *ty)
-                .ok_or_else(|| anyhow!("Index out of bounds")),
+                .ok_or_else(|| self.raise_type_error(UnifyError::IndexOutOfBounds { index })),
             AppType::Signal(signal) => Ok(self.ty_index(signal.data, index)?),
-            _ => bail!("Expected an array, tuple, or struct, found {:?}", kind),
+            _ => Err(self
+                .raise_type_error(UnifyError::ExpectedArrayTupleOrStruct { kind: kind.clone() })),
         }
     }
 
-    pub fn ty_variant(&mut self, base: TypeId, variant: &str) -> Result<TypeId> {
+    pub fn ty_variant(&mut self, base: TypeId, variant: &str) -> Result<TypeId, RHDLError> {
         let TypeKind::App(AppType::Enum(enumerate)) = base.kind.as_ref() else {
-            bail!("Expected an enum type, found {:?}", base.kind);
+            return Err(self.raise_type_error(UnifyError::ExpectedEnumTypeButFound {
+                kind: base.kind.as_ref().clone(),
+            }));
         };
         enumerate
             .variants
             .iter()
             .find_map(|(v, t)| if v.name == variant { Some(*t) } else { None })
-            .ok_or_else(|| anyhow!("Variant not found"))
+            .ok_or_else(|| {
+                self.raise_type_error(UnifyError::VariantNotFound {
+                    tag: variant.to_string(),
+                })
+            })
     }
 
-    pub(crate) fn ty_variant_by_value(&self, base: TypeId, value: i64) -> Result<TypeId> {
+    pub(crate) fn ty_variant_by_value(
+        &self,
+        base: TypeId,
+        value: i64,
+    ) -> Result<TypeId, RHDLError> {
         let TypeKind::App(AppType::Enum(enumerate)) = base.kind.as_ref() else {
-            bail!("Expected an enum type, found {:?}", base.kind);
+            return Err(self.raise_type_error(UnifyError::ExpectedEnumTypeButFound {
+                kind: base.kind.as_ref().clone(),
+            }));
         };
         enumerate
             .variants
@@ -601,21 +674,31 @@ impl UnifyContext {
                     None
                 }
             })
-            .ok_or_else(|| anyhow!("Variant not found"))
+            .ok_or_else(|| {
+                self.raise_type_error(UnifyError::VariantWithDiscriminantNotFound { tag: value })
+            })
     }
 
-    pub fn ty_field(&mut self, base: TypeId, member: &str) -> Result<TypeId> {
+    pub fn ty_field(&mut self, base: TypeId, member: &str) -> Result<TypeId, RHDLError> {
         let TypeKind::App(AppType::Struct(strukt)) = base.kind.as_ref() else {
-            bail!("Expected an a struct type, found {:?}", base.kind);
+            return Err(
+                self.raise_type_error(UnifyError::ExpectedStructTypeButFound {
+                    kind: base.kind.as_ref().clone(),
+                }),
+            );
         };
         strukt
             .fields
             .iter()
             .find_map(|f| if f.0 == member { Some(f.1) } else { None })
-            .ok_or_else(|| anyhow!("Field not found"))
+            .ok_or_else(|| {
+                self.raise_type_error(UnifyError::MissingFieldInStructDefinition {
+                    field: member.to_string(),
+                })
+            })
     }
 
-    pub fn ty_member(&mut self, base: TypeId, member: &Member) -> Result<TypeId> {
+    pub fn ty_member(&mut self, base: TypeId, member: &Member) -> Result<TypeId, RHDLError> {
         match member {
             Member::Named(name) => self.ty_field(base, name),
             Member::Unnamed(index) => self.ty_index(base, *index as usize),
@@ -647,74 +730,88 @@ impl UnifyContext {
         self.ty_app(loc, AppType::Bits(AppBits { sign_flag, len }))
     }
 
-    fn cast_ty_as_sign_flag(&mut self, ty: TypeId) -> Result<SignFlag> {
+    fn cast_ty_as_sign_flag(&mut self, ty: TypeId) -> Result<SignFlag, RHDLError> {
         let x = self.apply(ty);
         if let TypeKind::Const(Const::Signed(s)) = x.kind.as_ref() {
             Ok(*s)
         } else {
-            bail!("Expected a sign flag, found {:?}", x.kind);
+            Err(self.raise_type_error(UnifyError::ExpectedSignFlagButFound {
+                kind: x.kind.as_ref().clone(),
+            }))
         }
     }
 
-    pub fn cast_ty_as_bit_length(&mut self, ty: TypeId) -> Result<usize> {
+    pub fn cast_ty_as_bit_length(&mut self, ty: TypeId) -> Result<usize, RHDLError> {
         let x = self.apply(ty);
         if let TypeKind::Const(Const::Length(n)) = x.kind.as_ref() {
             Ok(*n)
         } else {
-            bail!("Expected a length, found {:?}", x.kind);
+            Err(self.raise_type_error(UnifyError::ExpectedLengthButFound {
+                kind: x.kind.as_ref().clone(),
+            }))
         }
     }
 
-    pub fn cast_ty_as_clock(&mut self, ty: TypeId) -> Result<Color> {
+    pub fn cast_ty_as_clock(&mut self, ty: TypeId) -> Result<Color, RHDLError> {
         let x = self.apply(ty);
         if let TypeKind::Const(Const::Clock(c)) = x.kind.as_ref() {
             Ok(*c)
         } else {
-            bail!("Expected a clock, found {:?}", x.kind);
+            Err(self.raise_type_error(UnifyError::ExpectedClockButFound {
+                kind: x.kind.as_ref().clone(),
+            }))
         }
     }
 
-    pub fn into_kind(&mut self, ty: TypeId) -> Result<Kind> {
+    pub fn into_kind(&mut self, ty: TypeId) -> Result<Kind, RHDLError> {
         let x = self.apply(ty);
         match x.kind.as_ref() {
-            TypeKind::Var(x) => bail!("Unbound variable {:?}", x),
+            TypeKind::Var(_) => {
+                return Err(self.raise_type_error(UnifyError::UnboundVariable {
+                    kind: x.kind.as_ref().clone(),
+                }));
+            }
             TypeKind::Const(c) => match c {
                 Const::Empty => Ok(Kind::Empty),
-                _ => bail!("Expected a constant, found {:?}", c),
+                _ => {
+                    return Err(self.raise_type_error(UnifyError::ExpectedConstant {
+                        kind: x.kind.as_ref().clone(),
+                    }));
+                }
             },
             TypeKind::App(app) => app.clone().into_kind(self),
         }
     }
 
-    pub fn from_kind(&mut self, loc: SourceLocation, kind: &Kind) -> TypeId {
+    pub fn from_kind(&mut self, loc: SourceLocation, kind: Kind) -> TypeId {
         match kind {
             Kind::Bits(n) => {
-                let n = self.ty_const_len(loc, *n);
+                let n = self.ty_const_len(loc, n);
                 self.ty_bits(loc, n)
             }
             Kind::Signed(n) => {
-                let n = self.ty_const_len(loc, *n);
+                let n = self.ty_const_len(loc, n);
                 self.ty_signed(loc, n)
             }
             Kind::Empty => self.ty_empty(loc),
-            Kind::Struct(strukt) => self.ty_struct(loc, strukt),
+            Kind::Struct(strukt) => self.ty_struct(loc, &strukt),
             Kind::Tuple(fields) => {
                 let arg = fields
                     .elements
                     .iter()
-                    .map(|k| self.from_kind(loc, k))
+                    .map(|k| self.from_kind(loc, *k))
                     .collect();
                 self.ty_tuple(loc, arg)
             }
-            Kind::Enum(enumerate) => self.ty_enum(loc, enumerate),
+            Kind::Enum(enumerate) => self.ty_enum(loc, &enumerate),
             Kind::Array(array) => {
-                let base = self.from_kind(loc, &array.base);
+                let base = self.from_kind(loc, *array.base);
                 let len = self.ty_const_len(loc, array.size);
                 self.ty_array(loc, base, len)
             }
             Kind::Signal(kind, clock) => {
-                let kind = self.from_kind(loc, kind);
-                let clock = self.ty_clock(loc, *clock);
+                let kind = self.from_kind(loc, *kind);
+                let clock = self.ty_clock(loc, clock);
                 self.ty_signal(loc, kind, clock)
             }
         }
@@ -799,16 +896,23 @@ impl Display for UnifyContext {
 }
 
 impl UnifyContext {
-    fn add_subst(&mut self, v: TypeId, x: TypeId) -> Result<()> {
+    fn raise_type_error(&self, cause: UnifyError) -> RHDLError {
+        Box::new(cause).into()
+    }
+    fn add_subst(&mut self, v: TypeId, x: TypeId) -> Result<(), RHDLError> {
         let TypeKind::Var(v) = v.kind.as_ref() else {
-            bail!("Expected a variable, found {:?}", v.kind);
+            return Err(self.raise_type_error(UnifyError::ExpectedVariableButFound {
+                kind: v.kind.as_ref().clone(),
+            }));
         };
         self.substitution_map.insert(*v, x);
         Ok(())
     }
-    fn subst(&self, ty: TypeId) -> anyhow::Result<Option<TypeId>> {
+    fn subst(&self, ty: TypeId) -> Result<Option<TypeId>, RHDLError> {
         let TypeKind::Var(v) = ty.kind.as_ref() else {
-            bail!("Expected a variable, found {:?}", ty.kind);
+            return Err(self.raise_type_error(UnifyError::ExpectedVariableButFound {
+                kind: ty.kind.as_ref().clone(),
+            }));
         };
         if let Some(t) = self.substitution_map.get(&v) {
             return Ok(Some(*t));
@@ -898,7 +1002,7 @@ impl UnifyContext {
             _ => ty,
         }
     }
-    pub fn unify(&mut self, x: TypeId, y: TypeId) -> Result<()> {
+    pub fn unify(&mut self, x: TypeId, y: TypeId) -> Result<(), RHDLError> {
         if x.kind == y.kind {
             return Ok(());
         }
@@ -911,12 +1015,19 @@ impl UnifyContext {
             (TypeKind::Const(Const::Unclocked), TypeKind::App(_)) => self.unify_app_unclocked(y, x),
             (TypeKind::Const(x), TypeKind::Const(y)) if x == y => Ok(()),
             (TypeKind::App(_), TypeKind::App(_)) => self.unify_app(x, y),
-            _ => bail!("Cannot unify {:?} and {:?}", x.kind, y.kind),
+            _ => Err(self.raise_type_error(UnifyError::CannotUnifyKinds {
+                x_kind: x.kind.as_ref().clone(),
+                y_kind: y.kind.as_ref().clone(),
+            })),
         }
     }
     // We want to declare v and x as equivalent.
-    fn unify_variable(&mut self, v: TypeId, x: TypeId) -> Result<()> {
-        ensure!(self.is_var(v), "Expected a variable, found {:?}", v.kind);
+    fn unify_variable(&mut self, v: TypeId, x: TypeId) -> Result<(), RHDLError> {
+        if !self.is_var(v) {
+            return Err(self.raise_type_error(UnifyError::ExpectedVariableButFound {
+                kind: v.kind.as_ref().clone(),
+            }));
+        }
         // If v is already in the substitution map, then we want
         // to unify x with the value in the map.
         if let Some(t) = self.subst(v)? {
@@ -936,12 +1047,14 @@ impl UnifyContext {
         // Check to make sure that if v -> x, we do not create a
         // recursive unification.
         if self.occurs(v, x) {
-            bail!("Recursive unification encountered");
+            return Err(self.raise_type_error(UnifyError::RecursiveUnification {
+                v: v.kind.as_ref().clone(),
+            }));
         }
         // All is good, so add the substitution to the map.
         self.add_subst(v, x)
     }
-    fn unify_unclocked_tuple(&mut self, x: &AppTuple, y: TypeId) -> Result<()> {
+    fn unify_unclocked_tuple(&mut self, x: &AppTuple, y: TypeId) -> Result<(), RHDLError> {
         if x.elements.is_empty() {
             return Ok(());
         }
@@ -950,77 +1063,103 @@ impl UnifyContext {
         }
         Ok(())
     }
-    fn unify_tuple(&mut self, x: &AppTuple, y: &AppTuple) -> Result<()> {
+    fn unify_tuple(&mut self, x: &AppTuple, y: &AppTuple) -> Result<(), RHDLError> {
         if x.elements.len() != y.elements.len() {
-            bail!("Cannot unify {:?} and {:?}", x, y);
+            return Err(
+                self.raise_type_error(UnifyError::CannotUnifyDifferentSizeTuples {
+                    x: x.clone(),
+                    y: y.clone(),
+                }),
+            );
         }
         for (a, b) in x.elements.iter().zip(y.elements.iter()) {
             self.unify(*a, *b)?;
         }
         Ok(())
     }
-    fn unify_unclocked_array(&mut self, x: &AppArray, y: TypeId) -> Result<()> {
+    fn unify_unclocked_array(&mut self, x: &AppArray, y: TypeId) -> Result<(), RHDLError> {
         self.unify(x.base, y)
     }
-    fn unify_array(&mut self, x: &AppArray, y: &AppArray) -> Result<()> {
+    fn unify_array(&mut self, x: &AppArray, y: &AppArray) -> Result<(), RHDLError> {
         self.unify(x.base, y.base)?;
         self.unify(x.len, y.len)
     }
-    fn unify_unclocked_struct(&mut self, x: &AppStruct, y: TypeId) -> Result<()> {
+    fn unify_unclocked_struct(&mut self, x: &AppStruct, y: TypeId) -> Result<(), RHDLError> {
         for (_, t) in x.fields.iter() {
             self.unify(*t, y)?;
         }
         Ok(())
     }
-    fn unify_struct(&mut self, x: &AppStruct, y: &AppStruct) -> Result<()> {
+    fn unify_struct(&mut self, x: &AppStruct, y: &AppStruct) -> Result<(), RHDLError> {
         if x.name != y.name {
-            bail!("Cannot unify {:?} and {:?}", x, y);
+            return Err(self.raise_type_error(UnifyError::CannotUnifyStructs {
+                x: x.clone(),
+                y: y.clone(),
+            }));
         }
         if x.fields.len() != y.fields.len() {
-            bail!("Cannot unify {:?} and {:?}", x, y);
+            return Err(self.raise_type_error(UnifyError::CannotUnifyStructs {
+                x: x.clone(),
+                y: y.clone(),
+            }));
         }
         for (a, b) in x.fields.iter().zip(y.fields.iter()) {
             if a.0 != b.0 {
-                bail!("Cannot unify {:?} and {:?}", a, b);
+                return Err(
+                    self.raise_type_error(UnifyError::CannotUnifyFieldsWithNames {
+                        x: a.0.clone(),
+                        y: b.0.clone(),
+                    }),
+                );
             }
             self.unify(a.1, b.1)?;
         }
         Ok(())
     }
-    fn unify_unclocked_enum(&mut self, x: &AppEnum, y: TypeId) -> Result<()> {
+    fn unify_unclocked_enum(&mut self, x: &AppEnum, y: TypeId) -> Result<(), RHDLError> {
         self.unify(x.discriminant, y)?;
         for (_, t) in x.variants.iter() {
             self.unify(*t, y)?;
         }
         Ok(())
     }
-    fn unify_enum(&mut self, x: &AppEnum, y: &AppEnum) -> Result<()> {
+    fn unify_enum(&mut self, x: &AppEnum, y: &AppEnum) -> Result<(), RHDLError> {
         self.unify(x.name, y.name)?;
         if x.variants.len() != y.variants.len() {
-            bail!("Cannot unify {:?} and {:?}", x, y);
+            return Err(self.raise_type_error(UnifyError::CannotUnifyEnums {
+                x: x.clone(),
+                y: y.clone(),
+            }));
         }
         for (a, b) in x.variants.iter().zip(y.variants.iter()) {
             if a.0 != b.0 {
-                bail!("Cannot unify {:?} and {:?}", a, b);
+                return Err(self.raise_type_error(UnifyError::CannotUnifyVariants {
+                    x: a.0.clone(),
+                    y: b.0.clone(),
+                }));
             }
             self.unify(a.1, b.1)?;
         }
         self.unify(x.discriminant, y.discriminant)
     }
-    fn unify_bits(&mut self, x: &AppBits, y: &AppBits) -> Result<()> {
+    fn unify_bits(&mut self, x: &AppBits, y: &AppBits) -> Result<(), RHDLError> {
         self.unify(x.sign_flag, y.sign_flag)?;
         self.unify(x.len, y.len)
     }
-    fn unify_signal(&mut self, x: &AppSignal, y: &AppSignal) -> Result<()> {
+    fn unify_signal(&mut self, x: &AppSignal, y: &AppSignal) -> Result<(), RHDLError> {
         self.unify(x.data, y.data)?;
         self.unify(x.clock, y.clock)
     }
-    fn unify_app(&mut self, x: TypeId, y: TypeId) -> Result<()> {
+    fn unify_app(&mut self, x: TypeId, y: TypeId) -> Result<(), RHDLError> {
         let TypeKind::App(app1) = (*x.kind).clone() else {
-            bail!("Expected app type instead of {:?}", x.kind);
+            return Err(self.raise_type_error(UnifyError::ExpectedAppType {
+                x: x.kind.as_ref().clone(),
+            }));
         };
         let TypeKind::App(app2) = (*y.kind).clone() else {
-            bail!("Expected app type instead of {:?}", y.kind);
+            return Err(self.raise_type_error(UnifyError::ExpectedAppType {
+                x: y.kind.as_ref().clone(),
+            }));
         };
         match (&app1, &app2) {
             (AppType::Tuple(t1), AppType::Tuple(t2)) => self.unify_tuple(t1, t2),
@@ -1029,19 +1168,26 @@ impl UnifyContext {
             (AppType::Enum(e1), AppType::Enum(e2)) => self.unify_enum(e1, e2),
             (AppType::Bits(b1), AppType::Bits(b2)) => self.unify_bits(b1, b2),
             (AppType::Signal(s1), AppType::Signal(s2)) => self.unify_signal(s1, s2),
-            _ => bail!("Cannot unify {:?} and {:?}", app1, app2),
+            _ => Err(
+                self.raise_type_error(UnifyError::CannotUnifyApplicativeTypes {
+                    x: app1.clone(),
+                    y: app2.clone(),
+                }),
+            ),
         }
     }
-    fn unify_app_unclocked(&mut self, x: TypeId, y: TypeId) -> Result<()> {
+    fn unify_app_unclocked(&mut self, x: TypeId, y: TypeId) -> Result<(), RHDLError> {
         let TypeKind::App(app) = (*x.kind).clone() else {
-            bail!("Expected app type instead of {:?}", x.kind);
+            return Err(self.raise_type_error(UnifyError::ExpectedAppType {
+                x: x.kind.as_ref().clone(),
+            }));
         };
         match &app {
             AppType::Tuple(t1) => self.unify_unclocked_tuple(t1, y),
             AppType::Array(a1) => self.unify_unclocked_array(a1, y),
             AppType::Struct(s1) => self.unify_unclocked_struct(s1, y),
             AppType::Enum(e1) => self.unify_unclocked_enum(e1, y),
-            _ => bail!("Cannot unify {:?} and Unclocked", app),
+            _ => Err(self.raise_type_error(UnifyError::CannotUnifyUnclocked { x: app.clone() })),
         }
     }
     fn occurs(&self, v: TypeId, term: TypeId) -> bool {
@@ -1089,7 +1235,7 @@ mod tests {
         let t = ctx.ty_tuple(id, vec![x, y, z]);
         let a = ctx.ty_integer(id);
         let b = ctx.ty_usize(id);
-        let c = ctx.from_kind(id, &Kind::Bits(128));
+        let c = ctx.from_kind(id, Kind::Bits(128));
         let u = ctx.ty_tuple(id, vec![a, b, c]);
         assert!(ctx.unify(t, u).is_ok());
         let x = ctx.apply(x);

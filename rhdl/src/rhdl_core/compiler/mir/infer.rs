@@ -1,4 +1,7 @@
-use crate::rhdl_bits::alias::{b128, s128};
+use crate::{
+    rhdl_bits::alias::{b128, s128},
+    rhdl_core::common::symtab::{Symbol, SymbolTable},
+};
 use log::{debug, trace};
 use std::collections::BTreeMap;
 
@@ -203,34 +206,34 @@ impl<'a> MirTypeInference<'a> {
         Ok(())
     }
     fn import_literals(&mut self) {
-        for (slot, lit) in &self.mir.literals {
-            let id = self.mir.symbols.slot_map[slot];
+        for (slot, (lit, id)) in self.mir.symtab.iter_lit() {
+            let id = *id;
             let ty = match lit {
-                ExprLit::TypedBits(tb) => self.ctx.from_kind(id, &tb.value.kind),
+                ExprLit::TypedBits(tb) => self.ctx.from_kind(id, tb.value.kind),
                 ExprLit::Int(_) => self.ctx.ty_integer(id),
                 ExprLit::Bool(_) => self.ctx.ty_bool(id),
                 ExprLit::Empty => self.ctx.ty_empty(id),
             };
-            self.slot_map.insert(*slot, ty);
+            self.slot_map.insert(slot.into(), ty);
         }
     }
     fn import_signature(&mut self) -> Result<()> {
         for slot in &self.mir.arguments {
-            let id = self.mir.symbols.slot_map[slot];
-            let kind = &self.mir.ty[slot];
+            let id = self.mir.symtab[slot];
+            let kind = self.mir.ty[slot];
             let ty = self.ctx.from_kind(id, kind);
             self.slot_map.insert(*slot, ty);
         }
-        let id = self.mir.symbols.slot_map[&self.mir.return_slot];
-        let return_kind = &self.mir.ty[&self.mir.return_slot];
+        let id = self.mir.symtab[self.mir.return_slot];
+        let return_kind = self.mir.ty[&self.mir.return_slot];
         let return_ty = self.ctx.from_kind(id, return_kind);
         self.slot_map.insert(self.mir.return_slot, return_ty);
         Ok(())
     }
     fn import_type_declarations(&mut self) -> Result<()> {
         for (slot, ty) in &self.mir.ty {
-            let id = self.mir.symbols.slot_map[slot];
-            let ty = self.ctx.from_kind(id, ty);
+            let id = self.mir.symtab[slot];
+            let ty = self.ctx.from_kind(id, *ty);
             self.slot_map.insert(*slot, ty);
         }
         Ok(())
@@ -244,7 +247,7 @@ impl<'a> MirTypeInference<'a> {
         Ok(())
     }
     fn slot_ty(&mut self, slot: Slot) -> TypeId {
-        let id = self.mir.symbols.slot_map[&slot];
+        let id = self.mir.symtab[&slot];
         if let Some(ty) = self.slot_map.get(&slot) {
             *ty
         } else {
@@ -430,7 +433,7 @@ impl<'a> MirTypeInference<'a> {
                 PathElement::DynamicIndex(slot) => {
                     let index = self.slot_ty(*slot);
                     let usize_ty = self.ctx.ty_usize(loc);
-                    if slot.is_literal() {
+                    if slot.is_lit() {
                         self.unify(loc, index, usize_ty)?;
                     } else {
                         let reg_ty = self.ctx.apply(index);
@@ -730,14 +733,14 @@ impl<'a> MirTypeInference<'a> {
                                 .tuple_index(*ndx as usize),
                         };
                         let field_kind = sub_kind(enumerate.template.kind, &path)?;
-                        let field_ty = self.ctx.from_kind(loc, &field_kind);
+                        let field_ty = self.ctx.from_kind(loc, field_kind);
                         let field_slot = self.slot_ty(field.value);
                         self.unify(loc, field_ty, field_slot)?;
                     }
                 }
                 OpCode::Exec(exec) => {
                     let external_fn = &self.mir.stash[&exec.id];
-                    let sub_args = external_fn.arguments.iter().map(|x| &external_fn.kind[x]);
+                    let sub_args = external_fn.arguments.iter().map(|x| external_fn.symtab[x]);
                     for (arg_kind, arg_slot) in sub_args.zip(exec.args.iter()) {
                         let arg_ty = self.slot_ty(*arg_slot);
                         let arg_kind = self.ctx.from_kind(loc, arg_kind);
@@ -746,7 +749,7 @@ impl<'a> MirTypeInference<'a> {
                     let ret_ty = self.slot_ty(exec.lhs);
                     let ret_kind = self
                         .ctx
-                        .from_kind(loc, &external_fn.kind(external_fn.return_slot));
+                        .from_kind(loc, external_fn.kind(external_fn.return_slot));
                     self.unify(loc, ret_ty, ret_kind)?;
                 }
                 OpCode::Index(index) => {
@@ -849,7 +852,7 @@ impl<'a> MirTypeInference<'a> {
                     self.unify(loc, lhs, lhs_ty)?;
                     for field in &structure.fields {
                         let field_kind = strukt.get_field_kind(&field.member)?;
-                        let field_ty = self.ctx.from_kind(loc, &field_kind);
+                        let field_ty = self.ctx.from_kind(loc, field_kind);
                         let field_slot = self.slot_ty(field.value);
                         self.unify(loc, field_ty, field_slot)?;
                     }
@@ -981,7 +984,7 @@ impl<'a> MirTypeInference<'a> {
                     };
                     let lhs = self.slot_ty(wrap.lhs);
                     self.unify(loc, lhs, lhs_ty)?;
-                    if let Some(kind) = &wrap.kind {
+                    if let Some(kind) = wrap.kind {
                         let kind = self.ctx.from_kind(loc, kind);
                         self.unify(loc, lhs_ty, kind)?;
                     }
@@ -1031,8 +1034,8 @@ pub fn infer(mir: Mir) -> Result<Object> {
     debug!("Try to replace generic literals with ?128");
     // Try to replace generic literals with (b/s)128
     if !infer.all_slots_resolved() {
-        for lit in mir.literals.keys() {
-            let ty = infer.slot_ty(*lit);
+        for lit in mir.symtab.iter_lit().map(|(lid, _)| lid) {
+            let ty = infer.slot_ty(lit.into());
             if infer.ctx.is_unsized_integer(ty) {
                 let i128_len = infer.ctx.ty_const_len(ty.loc, 128);
                 let m128_ty = infer.ctx.ty_maybe_signed(ty.loc, i128_len);
@@ -1052,8 +1055,8 @@ pub fn infer(mir: Mir) -> Result<Object> {
     debug!("Try to replace generic literals with i128");
     // Try to replace any generic literals with i128s
     if !infer.all_slots_resolved() {
-        for lit in mir.literals.keys() {
-            let ty = infer.slot_ty(*lit);
+        for lit in mir.symtab.iter_lit().map(|(lid, _)| lid) {
+            let ty = infer.slot_ty(lit.into());
             if let Some(ty_sign) = infer.ctx.project_sign_flag(ty) {
                 if infer.ctx.is_unresolved(ty_sign) {
                     let sign_flag = infer.ctx.ty_sign_flag(ty.loc, SignFlag::Signed);
@@ -1079,8 +1082,8 @@ pub fn infer(mir: Mir) -> Result<Object> {
 
         debug!("=================================");
 
-        for lit in mir.literals.keys() {
-            let ty = infer.slot_ty(*lit);
+        for lit in mir.symtab.iter_lit().map(|(lid, _)| lid) {
+            let ty = infer.slot_ty(lit.into());
             if infer.ctx.into_kind(ty).is_err() {
                 debug!("Literal {:?} -> {}", lit, infer.ctx.desc(ty));
             }
@@ -1103,32 +1106,21 @@ pub fn infer(mir: Mir) -> Result<Object> {
             (slot, ty)
         })
         .collect();
-    let kind = final_type_map
-        .iter()
-        .filter(|(slot, _)| slot.is_reg())
-        .map(|(slot, ty)| {
-            infer
-                .ctx
-                .into_kind(*ty)
-                .map(|val| (*slot, val))
-                .map(|(slot, val)| (slot.as_reg().unwrap(), val))
-        })
-        .collect::<anyhow::Result<BTreeMap<_, _>>>()
-        .unwrap();
+    // Because of the mutable borrow on infer.ctx, we do this transmute in parts
+    let (lit, reg) = infer.mir.symtab.clone().into_parts();
+    let lit = lit.try_transmute(|lit_id, (expr_lit, source_loc)| {
+        infer
+            .cast_literal_to_inferred_type(expr_lit, final_type_map[&Symbol::Literal(lit_id)])
+            .map(|value| (value, source_loc))
+    })?;
+    let reg = reg.try_transmute(|reg_id, (_, source_loc)| {
+        let ty = final_type_map[&Symbol::Register(reg_id)];
+        infer.ctx.into_kind(ty).map(|kind| (kind, source_loc))
+    })?;
+    let symtab = SymbolTable::from_parts(lit, reg);
     for op in mir.ops.iter() {
         debug!("{:?}", op.op);
     }
-    let literals = mir
-        .literals
-        .clone()
-        .into_iter()
-        .map(|(slot, lit)| {
-            infer
-                .cast_literal_to_inferred_type(lit, final_type_map[&slot])
-                .map(|value| (slot, value))
-                .map(|(slot, value)| (slot.as_literal().unwrap(), value))
-        })
-        .collect::<Result<_>>()?;
     let ops = mir
         .ops
         .iter()
@@ -1151,12 +1143,11 @@ pub fn infer(mir: Mir) -> Result<Object> {
     Ok(Object {
         symbols: mir.symbols,
         ops,
-        literals,
-        kind,
+        symtab,
         arguments: mir
             .arguments
             .into_iter()
-            .map(|x| x.as_reg().unwrap())
+            .map(|x| x.reg().unwrap())
             .collect(),
         return_slot: mir.return_slot,
         externals: mir.stash,

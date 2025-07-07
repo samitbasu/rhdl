@@ -13,31 +13,24 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::iter::once;
 
 use crate::rhdl_core::KernelFnKind;
 use crate::rhdl_core::Kind;
 use crate::rhdl_core::TypedBits;
 use crate::rhdl_core::ast::ast_impl;
-use crate::rhdl_core::ast::ast_impl::BitsKind;
-use crate::rhdl_core::ast::ast_impl::ExprBits;
-use crate::rhdl_core::ast::ast_impl::ExprBlock;
-use crate::rhdl_core::ast::ast_impl::ExprCast;
-use crate::rhdl_core::ast::ast_impl::ExprIfLet;
-use crate::rhdl_core::ast::ast_impl::ExprTry;
-use crate::rhdl_core::ast::ast_impl::ExprTypedBits;
-use crate::rhdl_core::ast::ast_impl::NodeId;
-use crate::rhdl_core::ast::ast_impl::WrapOp;
 use crate::rhdl_core::ast::ast_impl::{
-    Arm, ArmKind, Block, ExprArray, ExprAssign, ExprBinary, ExprCall, ExprField, ExprForLoop,
-    ExprIf, ExprIndex, ExprMatch, ExprMethodCall, ExprPath, ExprRepeat, ExprRet, ExprStruct,
-    ExprTuple, ExprUnary, FieldValue, Local, Pat, PatKind, Stmt, StmtKind,
+    Arm, ArmKind, BitsKind, Block, ExprArray, ExprAssign, ExprBinary, ExprBits, ExprBlock,
+    ExprCall, ExprCast, ExprField, ExprForLoop, ExprIf, ExprIfLet, ExprIndex, ExprMatch,
+    ExprMethodCall, ExprPath, ExprRepeat, ExprRet, ExprStruct, ExprTry, ExprTuple, ExprTypedBits,
+    ExprUnary, FieldValue, Local, NodeId, Pat, PatKind, Stmt, StmtKind, WrapOp,
 };
 use crate::rhdl_core::ast::source::builder::build_spanned_source_for_kernel;
 use crate::rhdl_core::ast::source::spanned_source::SpannedSource;
 use crate::rhdl_core::ast::visit::Visitor;
 use crate::rhdl_core::builder::BinOp;
 use crate::rhdl_core::builder::UnOp;
+use crate::rhdl_core::common::symtab::LiteralId;
+use crate::rhdl_core::common::symtab::SymbolTable;
 use crate::rhdl_core::compiler::ascii;
 use crate::rhdl_core::compiler::display_ast::pretty_print_statement;
 use crate::rhdl_core::compiler::stage1::CompilationMode;
@@ -48,18 +41,14 @@ use crate::rhdl_core::rhif;
 use crate::rhdl_core::rhif::Object;
 use crate::rhdl_core::rhif::object::LocatedOpCode;
 use crate::rhdl_core::rhif::object::SymbolMap;
-use crate::rhdl_core::rhif::rhif_builder::op_as_bits_inferred;
-use crate::rhdl_core::rhif::rhif_builder::op_as_signed_inferred;
-use crate::rhdl_core::rhif::rhif_builder::op_cast;
-use crate::rhdl_core::rhif::rhif_builder::op_resize;
-use crate::rhdl_core::rhif::rhif_builder::op_resize_inferred;
-use crate::rhdl_core::rhif::rhif_builder::op_retime;
-use crate::rhdl_core::rhif::rhif_builder::op_wrap;
+use crate::rhdl_core::rhif::rhif_builder::{
+    op_as_bits_inferred, op_as_signed_inferred, op_cast, op_resize, op_resize_inferred, op_retime,
+    op_wrap,
+};
 use crate::rhdl_core::rhif::spec::AluUnary;
 use crate::rhdl_core::rhif::spec::CaseArgument;
+use crate::rhdl_core::rhif::spec::FuncId;
 use crate::rhdl_core::rhif::spec::Member;
-use crate::rhdl_core::rhif::spec::RegisterId;
-use crate::rhdl_core::rhif::spec::{FuncId, LiteralId};
 use crate::rhdl_core::rhif::{
     rhif_builder::{
         op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
@@ -162,9 +151,7 @@ type Result<T> = std::result::Result<T, RHDLError>;
 pub struct MirContext<'a> {
     scopes: Vec<Scope>,
     ops: Vec<LocatedOpCode>,
-    reg_count: usize,
-    literals: BTreeMap<Slot, ExprLit>,
-    reg_source_map: BTreeMap<Slot, NodeId>,
+    symtab: SymbolTable<ExprLit, (), NodeId>,
     ty: BTreeMap<Slot, Kind>,
     ty_equate: HashSet<TypeEquivalence>,
     stash: BTreeMap<FuncId, Box<Object>>,
@@ -194,7 +181,7 @@ impl std::fmt::Debug for MirContext<'_> {
         for (slot, kind) in &self.ty {
             writeln!(f, "{slot:?} : {kind:?}")?;
         }
-        for (lit, expr) in &self.literals {
+        for (lit, (expr, _)) in self.symtab.iter_lit() {
             writeln!(f, "{lit:?} -> {expr:?}")?;
         }
         for (id, func) in self.stash.iter() {
@@ -216,9 +203,7 @@ impl<'a> MirContext<'a> {
                 parent: ROOT_SCOPE,
             }],
             ops: vec![],
-            reg_count: 0,
-            literals: BTreeMap::new(),
-            reg_source_map: BTreeMap::new(),
+            symtab: SymbolTable::default(),
             ty: BTreeMap::new(),
             ty_equate: Default::default(),
             stash: Default::default(),
@@ -335,18 +320,10 @@ impl<'a> MirContext<'a> {
         })
     }
     fn reg(&mut self, id: NodeId) -> Slot {
-        let reg = Slot::Register(RegisterId(self.reg_count));
-        self.reg_source_map.insert(reg, id);
-        self.reg_count += 1;
-        reg
+        self.symtab.reg((), id)
     }
     fn lit(&mut self, id: NodeId, lit: ExprLit) -> Slot {
-        let ndx = self.literals.len();
-        let slot = Slot::Literal(LiteralId(ndx));
-        debug!("Allocate literal {:?} for {:?} -> {:?}", lit, id, slot);
-        self.literals.insert(slot, lit);
-        self.reg_source_map.insert(slot, id);
-        slot
+        self.symtab.lit(lit, id)
     }
     fn literal_int(&mut self, id: NodeId, val: i32) -> Slot {
         self.lit(id, ExprLit::Int(val.to_string()))
@@ -380,12 +357,8 @@ impl<'a> MirContext<'a> {
         }
         None
     }
-    fn slot_to_index(&self, slot: Slot, id: NodeId) -> Result<usize> {
-        let Some(value) = self.literals.get(&slot) else {
-            return Err(self
-                .raise_ice(ICE::SlotToIndexNonLiteralSlot { slot }, id)
-                .into());
-        };
+    fn slot_to_index(&self, lid: LiteralId, id: NodeId) -> Result<usize> {
+        let value = &self.symtab[lid];
         let ndx = self.coerce_literal_to_i32(value, id)? as usize;
         Ok(ndx)
     }
@@ -976,8 +949,8 @@ impl<'a> MirContext<'a> {
             ExprKind::Index(index) => {
                 let (rebind, path) = self.expr_lhs(&index.expr)?;
                 let index = self.expr(&index.index)?;
-                if index.is_literal() {
-                    let ndx = self.slot_to_index(index, expr.id)?;
+                if let Some(lid) = index.lit() {
+                    let ndx = self.slot_to_index(lid, expr.id)?;
                     Ok((rebind, path.index(ndx)))
                 } else {
                     Ok((rebind, path.dynamic(index)))
@@ -1615,23 +1588,18 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
         }
     }
     let fn_id = compiler.fn_id;
-    let empty = compiler.lit_empty(func.inner().id);
-    let slot_map = compiler
-        .reg_source_map
-        .into_iter()
-        .chain(once((empty, func.inner().id)))
-        .map(|(slot, node)| (slot, (fn_id, node).into()))
-        .collect();
+    let symtab = compiler
+        .symtab
+        .transmute(|_, node_id| (compiler.fn_id, node_id).into());
     Ok(Mir {
         symbols: SymbolMap {
-            slot_map,
             source_set: (fn_id, copy_source).into(),
             slot_names: compiler.slot_names,
             aliases: Default::default(),
         },
         ops: compiler.ops,
         arguments: compiler.arguments,
-        literals: compiler.literals,
+        symtab,
         return_slot,
         fn_id: compiler.fn_id,
         ty: compiler.ty,
