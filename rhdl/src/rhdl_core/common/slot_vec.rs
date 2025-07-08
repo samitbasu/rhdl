@@ -53,6 +53,12 @@ impl<T, I: SlotKey> SlotVec<T, I> {
             .enumerate()
             .map(|(ndx, val)| (I::new(self.id, ndx), val))
     }
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (I, &mut T)> + '_ {
+        self.vals
+            .iter_mut()
+            .enumerate()
+            .map(|(ndx, val)| (I::new(self.id, ndx), val))
+    }
     pub fn transmute<S, F>(self, mut f: F) -> SlotVec<S, I>
     where
         F: FnMut(I, T) -> S,

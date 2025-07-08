@@ -7,6 +7,7 @@ use crate::rhdl_core::{
         Object,
         remap::remap_slots,
         spec::{OpCode, Slot},
+        visit::visit_slots,
     },
 };
 
@@ -34,7 +35,7 @@ impl Pass for PreCastLiterals {
             match &lop.op {
                 OpCode::AsBits(cast) => {
                     if let Some(len) = cast.len {
-                        if let Ok(id) = cast.arg.as_literal() {
+                        if let Some(id) = cast.arg.lit() {
                             candidates.insert(CastCandidate {
                                 id,
                                 len,
@@ -45,7 +46,7 @@ impl Pass for PreCastLiterals {
                 }
                 OpCode::AsSigned(cast) => {
                     if let Some(len) = cast.len {
-                        if let Ok(id) = cast.arg.as_literal() {
+                        if let Some(id) = cast.arg.lit() {
                             candidates.insert(CastCandidate {
                                 id,
                                 len,
@@ -56,9 +57,10 @@ impl Pass for PreCastLiterals {
                 }
                 _ => {}
             }
-            remap_slots(lop.op.clone(), |slot| {
-                *use_count.entry(slot).or_default() += 1;
-                slot
+            visit_slots(&lop.op, |sense, slot| {
+                if sense.is_read() {
+                    *use_count.entry(*slot).or_default() += 1;
+                }
             });
         }
         // Check that each candidate is referenced exactly once
@@ -68,22 +70,15 @@ impl Pass for PreCastLiterals {
             .map(|candidate| (candidate.id, candidate))
             .collect();
         // Because each literal is used exactly once, we can safely cast them
-        input.literals = input
-            .literals
-            .into_iter()
-            .map(|(slot, v)| {
-                if let Some(candidate) = candidates.get(&slot) {
-                    if candidate.signed {
-                        v.signed_cast(candidate.len)
-                    } else {
-                        v.unsigned_cast(candidate.len)
-                    }
+        for (slot, (value, _loc)) in input.symtab.iter_lit_mut() {
+            if let Some(candidate) = candidates.get(&slot) {
+                if candidate.signed {
+                    *value = value.signed_cast(candidate.len)?;
                 } else {
-                    Ok(v)
+                    *value = value.unsigned_cast(candidate.len)?;
                 }
-                .map(|res| (slot, res))
-            })
-            .collect::<Result<BTreeMap<_, _>, _>>()?;
+            }
+        }
         Ok(input)
     }
 }
