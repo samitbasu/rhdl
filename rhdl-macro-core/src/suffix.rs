@@ -21,16 +21,41 @@ impl VisitMut for CustomSuffix {
         }
         syn::visit_mut::visit_expr_mut(self, node);
     }
-    // TODO - Revisit in the future so that we can
-    // match on values with a custom suffix.
+    
     fn visit_pat_mut(&mut self, node: &mut Pat) {
-        // FIXME - Need to parse the pattern properly
-        if let Pat::TupleStruct(ts) = node {
-            if let Some(path) = ts.path.get_ident() {
-                if path == "b7" {
-                    ts.path = parse_quote!(rhdl::bits::Bits::<7>);
+        match node {
+            // Handle literal patterns with custom suffixes
+            Pat::Lit(pat_lit) => {
+                if let Lit::Int(int) = &pat_lit.lit {
+                    let suffix = int.suffix().replace('_', "");
+                    let unsuffixed: LitInt = syn::parse_str(int.base10_digits()).unwrap();
+                    let suffix_width: String = suffix.chars().skip(1).collect();
+                    if let Ok(suffix_width_digits) = suffix_width.parse::<usize>() {
+                        if suffix.starts_with('u') {
+                            *node = parse_quote!(rhdl::bits::Bits::<#suffix_width_digits>(#unsuffixed))
+                        } else if suffix.starts_with('i') {
+                            *node = parse_quote!(rhdl::bits::SignedBits::<#suffix_width_digits>(#unsuffixed))
+                        }
+                    }
                 }
             }
+            // Handle tuple struct patterns like b7(5)
+            Pat::TupleStruct(ts) => {
+                if let Some(path) = ts.path.get_ident() {
+                    let path_str = path.to_string();
+                    // Check if it's a custom bit width pattern like b7, b12, etc.
+                    if path_str.starts_with('b') {
+                        if let Ok(width) = path_str[1..].parse::<usize>() {
+                            ts.path = parse_quote!(rhdl::bits::Bits::<#width>);
+                        }
+                    } else if path_str.starts_with('s') {
+                        if let Ok(width) = path_str[1..].parse::<usize>() {
+                            ts.path = parse_quote!(rhdl::bits::SignedBits::<#width>);
+                        }
+                    }
+                }
+            }
+            _ => {}
         }
         syn::visit_mut::visit_pat_mut(self, node);
     }
