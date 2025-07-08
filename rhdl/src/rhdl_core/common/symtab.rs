@@ -107,6 +107,12 @@ impl<L, R, M> SymbolTable<L, R, M> {
                     .map(|(rid, (_, meta))| (Symbol::Register(rid), meta)),
             )
     }
+    pub fn iter_lit_mut(&mut self) -> impl Iterator<Item = (LiteralId, &mut (L, M))> + '_ {
+        self.lit.iter_mut()
+    }
+    pub fn iter_reg_mut(&mut self) -> impl Iterator<Item = (RegisterId, &mut (R, M))> + '_ {
+        self.reg.iter_mut()
+    }
     pub fn merge(&mut self, other: Self) -> impl Fn(Symbol) -> Symbol {
         let Self { lit, reg } = other;
         let lit_merge = self.lit.merge(lit);

@@ -84,8 +84,8 @@ pub struct Object {
 impl Object {
     pub fn kind(&self, slot: Slot) -> Kind {
         match slot {
-            Slot::Register(reg) => self.symtab[reg].0,
-            Slot::Literal(lit) => self.symtab[lit].0.kind,
+            Slot::Register(reg) => self.symtab[reg],
+            Slot::Literal(lit) => self.symtab[lit].kind,
         }
     }
     pub fn hash_value(&self) -> u64 {

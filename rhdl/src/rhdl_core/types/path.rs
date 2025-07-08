@@ -123,6 +123,12 @@ impl Path {
             _ => None,
         })
     }
+    pub fn dynamic_slots_mut(&mut self) -> impl Iterator<Item = &mut Slot> {
+        self.elements.iter_mut().filter_map(|e| match e {
+            PathElement::DynamicIndex(slot) => Some(slot),
+            _ => None,
+        })
+    }
     pub fn index(mut self, index: usize) -> Self {
         self.elements.push(PathElement::Index(index));
         self
