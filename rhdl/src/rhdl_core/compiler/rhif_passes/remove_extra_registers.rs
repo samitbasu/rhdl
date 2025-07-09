@@ -1,17 +1,39 @@
+use std::collections::HashMap;
+
 use super::pass::Pass;
 use crate::rhdl_core::{
+    common::symtab::RegisterId,
     error::RHDLError,
     rhif::{
         Object,
         object::LocatedOpCode,
-        remap::rename_read_register,
-        spec::{Assign, OpCode},
+        spec::{Assign, OpCode, Slot},
+        visit::visit_object_slots_mut,
     },
 };
-use log::debug;
+use ena::unify::{InPlaceUnificationTable, UnifyKey};
 
 #[derive(Default, Debug, Clone)]
 pub struct RemoveExtraRegistersPass {}
+
+#[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
+struct RegisterKey(u32);
+
+impl UnifyKey for RegisterKey {
+    type Value = ();
+
+    fn index(&self) -> u32 {
+        self.0
+    }
+
+    fn from_index(u: u32) -> Self {
+        Self(u)
+    }
+
+    fn tag() -> &'static str {
+        "RegisterKey"
+    }
+}
 
 fn find_assign_op(ops: &[LocatedOpCode]) -> Option<usize> {
     ops.iter()
@@ -23,62 +45,56 @@ impl Pass for RemoveExtraRegistersPass {
         "Remove extra registers"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
-        while let Some(op_ndx) = find_assign_op(&input.ops) {
-            let lop = input.ops[op_ndx].clone();
-            let op = &lop.op;
-            if let OpCode::Assign(assign) = op {
-                input.ops = input
-                    .ops
-                    .into_iter()
-                    .map(|lop| {
-                        let LocatedOpCode { op, loc } = lop;
-                        let old = assign.lhs;
-                        let new = assign.rhs;
-                        match op {
-                            OpCode::Assign(Assign { lhs, rhs }) => {
-                                let new_rhs = if rhs == old { new } else { rhs };
-                                if new_rhs == lhs {
-                                    (OpCode::Noop, loc).into()
-                                } else {
-                                    (OpCode::Assign(Assign { lhs, rhs: new_rhs }), loc).into()
-                                }
-                            }
-                            _ => (rename_read_register(op, old, new), loc).into(),
-                        }
-                    })
-                    .map(|lop| {
-                        let LocatedOpCode { op, loc } = lop;
-                        match op {
-                            OpCode::Assign(Assign { lhs, rhs: _ }) => {
-                                if lhs != assign.lhs {
-                                    (op, loc).into()
-                                } else {
-                                    (OpCode::Noop, loc).into()
-                                }
-                            }
-                            _ => (op, loc).into(),
-                        }
-                    })
-                    .collect();
-                // Merge the names of the registers
-                let lhs_name = input.symbols.slot_names.get(&assign.lhs);
-                let rhs_name = input.symbols.slot_names.get(&assign.rhs);
-                if let Some(merged_name) = merge_names(lhs_name, rhs_name) {
-                    input.symbols.slot_names.insert(assign.rhs, merged_name);
+        // Create a union table
+        let mut table = InPlaceUnificationTable::<RegisterKey>::new();
+        // Map each register ID to a RegisterKey
+        let reg_map: HashMap<RegisterId, RegisterKey> = input
+            .symtab
+            .iter_reg()
+            .map(|(reg, _)| (reg, table.new_key(())))
+            .collect();
+        let inv_map: HashMap<RegisterKey, RegisterId> =
+            reg_map.iter().map(|(&op, &key)| (key, op)).collect();
+        // Loop over the assignments in the opcodes. And for each assignment,
+        // union the arguments in the table.
+        for lop in &input.ops {
+            if let OpCode::Assign(assign) = &lop.op {
+                if let (Some(lhs_reg), Some(rhs_reg)) = (assign.lhs.reg(), assign.rhs.reg()) {
+                    let lhs_key = reg_map[&lhs_reg];
+                    let rhs_key = reg_map[&rhs_reg];
+                    table.union(lhs_key, rhs_key);
                 }
-                // Delete the register from the register map
-                //input.symbols.slot_map.remove(&assign.lhs);
-                debug!("Removing register {:?}", assign.lhs);
-                if assign.lhs.is_reg() {
-                    input.kind.remove(&assign.lhs.as_reg().unwrap());
-                }
-                // Check the output register
-                input.return_slot = input.return_slot.rename(assign.lhs, assign.rhs);
-                // Record the alias in the symbol table
-                // This is used to find equivalent expressions when emitting error messages
-                input.symbols.alias(assign.rhs, assign.lhs);
             }
         }
+        // Next, rewrite the ops, where for each operand, we take the root of the unify tree
+        let mut symbols = std::mem::take(&mut input.symbols);
+        let mut alias_pairs = vec![];
+        visit_object_slots_mut(&mut input, |_sense, slot| {
+            if let Some(reg) = slot.reg() {
+                let key = reg_map[&reg];
+                let root = table.find(key);
+                let replacement = Slot::Register(inv_map[&root]);
+                // We are replacing reg -> replacement
+                alias_pairs.push((*slot, replacement));
+                *slot = replacement;
+            }
+        });
+        for (slot, replacement) in alias_pairs {
+            let lhs_name = symbols.slot_names.get(&slot);
+            let rhs_name = symbols.slot_names.get(&replacement);
+            if let Some(merged_name) = merge_names(lhs_name, rhs_name) {
+                input.symbols.slot_names.insert(replacement, merged_name);
+            }
+            symbols.alias(slot, replacement);
+        }
+        input.ops.retain(|lop| {
+            if let OpCode::Assign(Assign { lhs, rhs }) = lop.op {
+                lhs != rhs
+            } else {
+                true
+            }
+        });
+        input.symbols = symbols;
         Ok(input)
     }
 }

@@ -315,9 +315,8 @@ impl<'a> RTLCompiler<'a> {
         }
         match slot {
             Slot::Literal(literal_id) => {
-                let bits = self.object.symtab.get_literal(literal_id);
+                let bits = &self.object.symtab[literal_id];
                 let operand = self.allocate_literal(bits, loc);
-                let loc = *self.object.symtab.get_meta_data(slot);
                 let kind = self.object.kind(slot);
                 self.symbols.operand_map.insert(operand, loc);
                 self.symbols.rhif_types.insert(operand, kind);
@@ -327,9 +326,8 @@ impl<'a> RTLCompiler<'a> {
                 Ok(operand)
             }
             Slot::Register(register_id) => {
-                let kind = self.object.symtab.get_register(register_id);
+                let kind = &self.object.symtab[register_id];
                 let operand = self.allocate_register(kind, loc);
-                let loc = *self.object.symtab.get_meta_data(slot);
                 self.symbols.operand_map.insert(operand, loc);
                 self.symbols.rhif_types.insert(operand, *kind);
                 self.reverse_operand_map
@@ -1268,7 +1266,7 @@ fn compile_rtl(object: &rhif::Object) -> Result<rtl::object::Object> {
         .arguments
         .iter()
         .map(|x| {
-            if object.symtab.get_register(*x).is_empty() {
+            if object.symtab[*x].is_empty() {
                 None
             } else if let Ok(Operand::Register(reg_id)) =
                 compiler.operand(Slot::Register(*x), fallback)
