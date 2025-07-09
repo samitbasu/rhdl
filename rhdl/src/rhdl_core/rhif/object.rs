@@ -19,7 +19,7 @@ use crate::rhdl_core::{
 use super::spec::FuncId;
 use super::spec::OpCode;
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, Default)]
 pub struct SymbolMap {
     pub source_set: SpannedSourceSet,
     pub slot_names: BTreeMap<Slot, String>,

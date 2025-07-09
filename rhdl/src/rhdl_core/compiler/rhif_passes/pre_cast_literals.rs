@@ -1,11 +1,10 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 
 use crate::rhdl_core::{
     common::symtab::LiteralId,
     error::RHDLError,
     rhif::{
         Object,
-        remap::remap_slots,
         spec::{OpCode, Slot},
         visit::visit_slots,
     },

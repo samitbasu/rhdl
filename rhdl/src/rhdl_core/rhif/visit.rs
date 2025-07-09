@@ -1,3 +1,5 @@
+use crate::rhdl_core::rhif::Object;
+
 use super::spec::*;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -279,4 +281,28 @@ pub fn visit_slots_mut<F: FnMut(Sense, &mut Slot)>(op: &mut OpCode, mut f: F) {
         }
         OpCode::Comment(_) => {}
     }
+}
+
+pub fn visit_object_slots<F: FnMut(Sense, &Slot)>(object: &Object, mut f: F) {
+    for arg in &object.arguments {
+        f(Sense::Write, &Slot::Register(*arg));
+    }
+    for lop in &object.ops {
+        visit_slots(&lop.op, &mut f);
+    }
+    f(Sense::Read, &object.return_slot);
+}
+
+pub fn visit_object_slots_mut<F: FnMut(Sense, &mut Slot)>(object: &mut Object, mut f: F) {
+    for arg in object.arguments.iter_mut() {
+        let mut slot = Slot::Register(*arg);
+        f(Sense::Write, &mut slot);
+        *arg = slot
+            .reg()
+            .expect("Argument slots must remain integer.  Do not mutate them into literals!");
+    }
+    for lop in object.ops.iter_mut() {
+        visit_slots_mut(&mut lop.op, &mut f);
+    }
+    f(Sense::Read, &mut object.return_slot);
 }
