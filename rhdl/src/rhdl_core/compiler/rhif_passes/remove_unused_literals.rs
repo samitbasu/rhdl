@@ -36,6 +36,7 @@ impl Pass for RemoveUnusedLiterals {
             }
         });
         input.symtab = SymbolTable::from_parts(literals, registers);
+        log::debug!("{input:?}");
         Ok(input)
     }
 }

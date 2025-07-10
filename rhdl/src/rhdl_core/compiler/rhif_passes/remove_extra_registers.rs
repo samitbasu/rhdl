@@ -6,7 +6,6 @@ use crate::rhdl_core::{
     error::RHDLError,
     rhif::{
         Object,
-        object::LocatedOpCode,
         spec::{Assign, OpCode, Slot},
         visit::visit_object_slots_mut,
     },
@@ -33,11 +32,6 @@ impl UnifyKey for RegisterKey {
     fn tag() -> &'static str {
         "RegisterKey"
     }
-}
-
-fn find_assign_op(ops: &[LocatedOpCode]) -> Option<usize> {
-    ops.iter()
-        .position(|lop| matches!(lop.op, OpCode::Assign(_)))
 }
 
 impl Pass for RemoveExtraRegistersPass {
@@ -67,26 +61,15 @@ impl Pass for RemoveExtraRegistersPass {
             }
         }
         // Next, rewrite the ops, where for each operand, we take the root of the unify tree
-        let mut symbols = std::mem::take(&mut input.symbols);
-        let mut alias_pairs = vec![];
+        let symbols = std::mem::take(&mut input.symbols);
         visit_object_slots_mut(&mut input, |_sense, slot| {
             if let Some(reg) = slot.reg() {
                 let key = reg_map[&reg];
                 let root = table.find(key);
                 let replacement = Slot::Register(inv_map[&root]);
-                // We are replacing reg -> replacement
-                alias_pairs.push((*slot, replacement));
                 *slot = replacement;
             }
         });
-        for (slot, replacement) in alias_pairs {
-            let lhs_name = symbols.slot_names.get(&slot);
-            let rhs_name = symbols.slot_names.get(&replacement);
-            if let Some(merged_name) = merge_names(lhs_name, rhs_name) {
-                input.symbols.slot_names.insert(replacement, merged_name);
-            }
-            symbols.alias(slot, replacement);
-        }
         input.ops.retain(|lop| {
             if let OpCode::Assign(Assign { lhs, rhs }) = lop.op {
                 lhs != rhs
