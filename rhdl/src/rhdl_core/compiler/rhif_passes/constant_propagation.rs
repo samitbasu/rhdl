@@ -3,7 +3,7 @@ use crate::rhdl_core::{
     ast::source::source_location::SourceLocation,
     rhif::{
         Object,
-        object::LocatedOpCode,
+        object::{LocatedOpCode, SourceDetails},
         runtime_ops::{array, binary, tuple, unary},
         spec::{
             Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, Index, OpCode, Repeat,
@@ -19,7 +19,13 @@ use super::pass::Pass;
 pub struct ConstantPropagation {}
 
 fn assign_literal(loc: SourceLocation, value: TypedBits, obj: &mut Object) -> Slot {
-    obj.symtab.lit(value, loc)
+    obj.symtab.lit(
+        value,
+        SourceDetails {
+            location: loc,
+            name: None,
+        },
+    )
 }
 
 fn propagate_array(

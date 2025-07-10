@@ -1,11 +1,11 @@
-use std::collections::BTreeMap;
-
 use crate::rhdl_core::{
     RHDLError, TypedBits,
     ast::source::source_location::SourceLocation,
     bitx::BitX,
+    common::slot_vec::SlotKey,
     compiler::mir::error::{ICE, RHDLCompileError},
     error::rhdl_error,
+    rhif::object::SourceDetails,
     rtl::spec::{
         AluBinary, AluUnary, Case, CaseArgument, Cast, CastKind, Concat, Index, Select, Splice,
         Unary,
@@ -17,14 +17,14 @@ use super::{
     Object,
     object::{LocatedOpCode, RegisterSize},
     runtime_ops::{binary, unary},
-    spec::{Assign, Binary, LiteralId, OpCode, Operand},
+    spec::{Assign, Binary, OpCode, Operand},
 };
 
 type Result<T> = core::result::Result<T, RHDLError>;
 
 struct VMState<'a> {
     reg_stack: &'a mut [Option<BitString>],
-    literals: &'a BTreeMap<LiteralId, BitString>,
+    literals: &'a [(TypedBits, SourceDetails)],
     obj: &'a Object,
 }
 
@@ -61,8 +61,8 @@ impl VMState<'_> {
     }
     fn read(&self, operand: Operand, loc: SourceLocation) -> Result<BitString> {
         match operand {
-            Operand::Literal(l) => Ok(self.literals[&l].clone()),
-            Operand::Register(r) => self.reg_stack[r.raw()]
+            Operand::Literal(l) => Ok((&self.literals[l.index()].0).into()),
+            Operand::Register(r) => self.reg_stack[r.index()]
                 .clone()
                 .ok_or(self.raise_ice(ICE::UninitializedRTLRegister { r }, loc)),
         }
@@ -71,7 +71,7 @@ impl VMState<'_> {
         match operand {
             Operand::Literal(ndx) => Err(self.raise_ice(ICE::CannotWriteToRTLLiteral { ndx }, loc)),
             Operand::Register(r) => {
-                self.reg_stack[r.raw()] = Some(value);
+                self.reg_stack[r.index()] = Some(value);
                 Ok(())
             }
         }
@@ -110,7 +110,9 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let arm = table
                     .iter()
                     .find(|(disc, _)| match disc {
-                        CaseArgument::Literal(l) => discriminant == state.literals[l],
+                        CaseArgument::Literal(l) => {
+                            discriminant == (&state.literals[l.index()].0).into()
+                        }
                         CaseArgument::Wild => true,
                     })
                     .map(|x| x.1);
@@ -237,23 +239,23 @@ pub fn execute(obj: &Object, arguments: Vec<BitString>) -> Result<BitString> {
         }
     }
     // Allocate registers for the function call.
-    let max_reg = obj.reg_max_index().next();
-    let mut reg_stack = vec![None; max_reg.raw() + 1];
+    let max_reg = obj.symtab.reg_vec().len();
+    let mut reg_stack = vec![None; max_reg];
     // Copy the arguments into the appropriate registers
     for (ndx, arg) in arguments.into_iter().enumerate() {
         if let Some(r) = obj.arguments[ndx] {
-            reg_stack[r.raw()] = Some(arg);
+            reg_stack[r.index()] = Some(arg);
         }
     }
     let mut state = VMState {
         reg_stack: &mut reg_stack,
-        literals: &obj.literals,
+        literals: obj.symtab.lit_vec(),
         obj,
     };
     execute_block(&obj.ops, &mut state)?;
     match obj.return_register {
         Operand::Register(r) => reg_stack
-            .get(r.raw())
+            .get(r.index())
             .cloned()
             .ok_or(RHDLError::RHDLInternalCompilerError(Box::new(
                 RHDLCompileError {
@@ -271,6 +273,6 @@ pub fn execute(obj: &Object, arguments: Vec<BitString>) -> Result<BitString> {
                     err_span: symbols.span(loc).into(),
                 },
             ))),
-        Operand::Literal(ndx) => Ok(obj.literals[&ndx].clone()),
+        Operand::Literal(ndx) => Ok((&obj.symtab[ndx]).into()),
     }
 }

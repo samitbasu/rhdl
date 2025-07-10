@@ -1,5 +1,7 @@
 use std::ops::Range;
 
+use crate::rhdl_core::common::symtab::{LiteralId, Symbol};
+
 #[derive(Clone, PartialEq, Hash)]
 pub enum OpCode {
     Noop,
@@ -25,83 +27,7 @@ pub enum OpCode {
     Unary(Unary),
 }
 
-#[derive(Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub enum Operand {
-    Literal(LiteralId),
-    Register(RegisterId),
-}
-
-impl Operand {
-    pub fn as_register(&self) -> Option<RegisterId> {
-        match self {
-            Operand::Register(r) => Some(*r),
-            _ => None,
-        }
-    }
-    pub fn is_literal(&self) -> bool {
-        matches!(self, Operand::Literal(_))
-    }
-}
-
-#[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub struct LiteralId(usize);
-
-impl LiteralId {
-    pub fn new(val: usize) -> Self {
-        LiteralId(val)
-    }
-    pub fn next(self) -> Self {
-        LiteralId(self.0 + 1)
-    }
-}
-
-impl From<LiteralId> for Operand {
-    fn from(l: LiteralId) -> Self {
-        Operand::Literal(l)
-    }
-}
-
-impl std::fmt::Debug for LiteralId {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "l{}", self.0)
-    }
-}
-
-#[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub struct RegisterId(usize);
-
-impl RegisterId {
-    pub fn new(val: usize) -> Self {
-        RegisterId(val)
-    }
-    pub fn next(self) -> Self {
-        RegisterId(self.0 + 1)
-    }
-    pub fn raw(self) -> usize {
-        self.0
-    }
-}
-
-impl From<RegisterId> for Operand {
-    fn from(r: RegisterId) -> Self {
-        Operand::Register(r)
-    }
-}
-
-impl std::fmt::Debug for RegisterId {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "r{}", self.0)
-    }
-}
-
-impl std::fmt::Debug for Operand {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Operand::Literal(l) => write!(f, "{l:?}"),
-            Operand::Register(r) => write!(f, "{r:?}"),
-        }
-    }
-}
+pub type Operand = Symbol;
 
 #[derive(Clone, Copy, PartialEq, Hash)]
 pub enum AluBinary {

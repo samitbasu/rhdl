@@ -2,7 +2,7 @@ use crate::{
     rhdl_bits::alias::{b128, s128},
     rhdl_core::{
         common::symtab::{Symbol, SymbolTable},
-        rhif::object::RegisterDetails,
+        rhif::object::SourceDetails,
     },
 };
 use log::{debug, trace};
@@ -743,10 +743,7 @@ impl<'a> MirTypeInference<'a> {
                 }
                 OpCode::Exec(exec) => {
                     let external_fn = &self.mir.stash[&exec.id];
-                    let sub_args = external_fn
-                        .arguments
-                        .iter()
-                        .map(|x| external_fn.symtab[x].kind);
+                    let sub_args = external_fn.arguments.iter().map(|x| external_fn.symtab[x]);
                     for (kind, arg_slot) in sub_args.zip(exec.args.iter()) {
                         let arg_ty = self.slot_ty(*arg_slot);
                         let arg_kind = self.ctx.from_kind(loc, kind);
@@ -1117,7 +1114,15 @@ pub fn infer(mir: Mir) -> Result<Object> {
     let lit = lit.try_transmute(|lit_id, (expr_lit, source_loc)| {
         infer
             .cast_literal_to_inferred_type(expr_lit, final_type_map[&Symbol::Literal(lit_id)])
-            .map(|value| (value, source_loc))
+            .map(|value| {
+                (
+                    value,
+                    SourceDetails {
+                        location: source_loc,
+                        name: None,
+                    },
+                )
+            })
     })?;
     // Edge case:  Some variables do not have a type because they are not actually used.  For example,
     // consider the `for loop`, which is unrolled.  The source code will state something like:
@@ -1128,17 +1133,22 @@ pub fn infer(mir: Mir) -> Result<Object> {
     // also not required.  In this case, we can assign it the empty kind by default.
     let reg = reg.try_transmute(|reg_id, (name, source_loc)| {
         if let Some(&ty) = final_type_map.get(&Symbol::Register(reg_id)) {
-            infer
-                .ctx
-                .into_kind(ty)
-                .map(|kind| (RegisterDetails { kind, name }, source_loc))
+            infer.ctx.into_kind(ty).map(|kind| {
+                (
+                    kind,
+                    SourceDetails {
+                        location: source_loc,
+                        name,
+                    },
+                )
+            })
         } else {
             Ok((
-                RegisterDetails {
-                    kind: Kind::Empty,
+                Kind::Empty,
+                SourceDetails {
+                    location: source_loc,
                     name,
                 },
-                source_loc,
             ))
         }
     })?;

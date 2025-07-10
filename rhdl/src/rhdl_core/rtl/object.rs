@@ -1,16 +1,19 @@
-use std::collections::BTreeMap;
 use std::fmt::Write;
 use std::hash::Hash;
 use std::hash::Hasher;
 
 use fnv::FnvHasher;
 
+use crate::rhdl_core::TypedBits;
 use crate::rhdl_core::ast::ast_impl::{FunctionId, NodeId};
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
+use crate::rhdl_core::common::symtab::RegisterId;
+use crate::rhdl_core::common::symtab::SymbolTable;
+use crate::rhdl_core::rhif::object::SourceDetails;
 use crate::rhdl_core::types::bit_string::BitString;
 use crate::rhdl_core::{Digital, Kind};
 
-use super::spec::{LiteralId, OpCode, Operand, RegisterId};
+use super::spec::{OpCode, Operand};
 use super::symbols::SymbolMap;
 
 #[derive(Clone, Hash)]
@@ -104,8 +107,7 @@ impl std::fmt::Debug for RegisterSize {
 #[derive(Clone, Hash)]
 pub struct Object {
     pub symbols: SymbolMap,
-    pub literals: BTreeMap<LiteralId, BitString>,
-    pub register_size: BTreeMap<RegisterId, RegisterSize>,
+    pub symtab: SymbolTable<TypedBits, Kind, SourceDetails>,
     pub return_register: Operand,
     pub ops: Vec<LocatedOpCode>,
     pub arguments: Vec<Option<RegisterId>>,
@@ -114,30 +116,16 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn reg_max_index(&self) -> RegisterId {
-        self.register_size
-            .keys()
-            .max()
-            .copied()
-            .unwrap_or(RegisterId::new(0))
-    }
-    pub fn literal_max_index(&self) -> LiteralId {
-        self.literals
-            .keys()
-            .max()
-            .copied()
-            .unwrap_or(LiteralId::new(0))
-    }
     pub fn op_name(&self, op: Operand) -> String {
         format!("{op:?}")
     }
     pub fn op_alias(&self, op: Operand) -> Option<String> {
-        self.symbols.operand_names.get(&op).cloned()
+        self.symtab[op].name.clone()
     }
     pub fn size(&self, op: Operand) -> RegisterSize {
         match op {
-            Operand::Register(reg) => self.register_size[&reg],
-            Operand::Literal(lit) => (&self.literals[&lit]).into(),
+            Operand::Register(reg) => self.symtab[reg].into(),
+            Operand::Literal(lit) => self.symtab[lit].kind.into(),
         }
     }
     pub fn hash_value(&self) -> u64 {
@@ -153,11 +141,18 @@ impl std::fmt::Debug for Object {
         writeln!(f, "  fn_id {:?}", self.fn_id)?;
         writeln!(f, "  arguments {:?}", self.arguments)?;
         writeln!(f, "  return_register {:?}", self.return_register)?;
-        for (reg, kind) in &self.register_size {
-            writeln!(f, "Reg {reg:?} : {kind:?}")?;
+        for (rid, (kind, details)) in self.symtab.iter_reg() {
+            let name = match details.name.as_ref() {
+                Some(s) => s.as_str(),
+                None => "",
+            };
+            let size: RegisterSize = kind.into();
+            writeln!(f, "Reg {rid:?} : {size:?} // {name} {kind:?}")?;
         }
-        for (id, literal) in &self.literals {
-            writeln!(f, "Lit {id:?} : {literal:?}")?;
+        for (lid, (literal, _)) in self.symtab.iter_lit() {
+            let bs: BitString = literal.into();
+            let kind = literal.kind;
+            writeln!(f, "Lit {lid:?} : {bs:?} // {kind:?}")?;
         }
         let mut body_str = String::new();
         for lop in &self.ops {

@@ -343,7 +343,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                         return Err(TypeCheckPass::raise_ice(
                             obj,
                             ICE::IndexValueMustBeUnsigned,
-                            obj.symtab[slot],
+                            obj.symtab[slot].location,
                         ));
                     }
                 }
@@ -390,7 +390,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                             variant: discriminant_value,
                             ty,
                         },
-                        obj.symtab[lhs],
+                        obj.symtab[lhs].location,
                     ))?
                     .kind;
                 for field in fields {
@@ -415,7 +415,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                     return Err(TypeCheckPass::raise_ice(
                         obj,
                         ICE::ExpectedArrayType { kind: ty },
-                        obj.symtab[lhs],
+                        obj.symtab[lhs].location,
                     ));
                 };
                 eq_kinds(ty, Kind::make_array(*array_ty.base.clone(), *len as _), loc)?;
@@ -435,7 +435,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                                 return Err(TypeCheckPass::raise_ice(
                                     obj,
                                     ICE::MatchPatternValueMustBeLiteral,
-                                    obj.symtab[slot],
+                                    obj.symtab[slot].location,
                                 ));
                             }
                             eq_kinds(arg_ty, slot_type(slot), loc)?;

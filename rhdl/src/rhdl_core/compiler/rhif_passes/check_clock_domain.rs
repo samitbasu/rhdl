@@ -202,14 +202,14 @@ impl ClockDomainContext<'_> {
         }
     }
     fn import_literals(&mut self) {
-        for (lit_id, (_tb, loc)) in self.obj.symtab.iter_lit() {
-            let ty = self.ctx.ty_unclocked(*loc);
+        for (lit_id, (_tb, det)) in self.obj.symtab.iter_lit() {
+            let ty = self.ctx.ty_unclocked(det.location);
             self.slot_map.insert(lit_id.into(), ty);
         }
     }
     fn import_registers(&mut self) {
-        for (reg_id, (details, loc)) in self.obj.symtab.iter_reg() {
-            let ty = self.import_kind_with_unknown_domains(*loc, &details.kind);
+        for (reg_id, (kind, det)) in self.obj.symtab.iter_reg() {
+            let ty = self.import_kind_with_unknown_domains(det.location, &kind);
             self.slot_map.insert(reg_id.into(), ty);
         }
     }
