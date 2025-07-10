@@ -1,5 +1,5 @@
 use fnv::FnvHasher;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fmt::Write;
 use std::hash::Hash;
 use std::hash::Hasher;
@@ -22,8 +22,6 @@ use super::spec::OpCode;
 #[derive(Debug, Clone, Hash, Default)]
 pub struct SymbolMap {
     pub source_set: SpannedSourceSet,
-    pub slot_names: BTreeMap<Slot, String>,
-    pub aliases: BTreeMap<Slot, BTreeSet<Slot>>,
 }
 
 impl SymbolMap {
@@ -32,9 +30,6 @@ impl SymbolMap {
     }
     pub fn span(&self, loc: SourceLocation) -> Range<usize> {
         self.source_set.span(loc)
-    }
-    pub fn alias(&mut self, from_slot: Slot, to_slot: Slot) {
-        self.aliases.entry(from_slot).or_default().insert(to_slot);
     }
     pub fn fallback(&self, func: FunctionId) -> SourceLocation {
         self.source_set.fallback(func)
@@ -68,10 +63,16 @@ impl From<(OpCode, SourceLocation)> for LocatedOpCode {
     }
 }
 
+#[derive(Clone, Hash, Debug)]
+pub struct RegisterDetails {
+    pub kind: Kind,
+    pub name: Option<String>,
+}
+
 #[derive(Clone, Hash)]
 pub struct Object {
     pub symbols: SymbolMap,
-    pub symtab: SymbolTable<TypedBits, Kind, SourceLocation>,
+    pub symtab: SymbolTable<TypedBits, RegisterDetails, SourceLocation>,
     pub return_slot: Slot,
     pub externals: BTreeMap<FuncId, Box<Object>>,
     pub ops: Vec<LocatedOpCode>,
@@ -84,7 +85,7 @@ pub struct Object {
 impl Object {
     pub fn kind(&self, slot: Slot) -> Kind {
         match slot {
-            Slot::Register(reg) => self.symtab[reg],
+            Slot::Register(reg) => self.symtab[reg].kind,
             Slot::Literal(lit) => self.symtab[lit].kind,
         }
     }
@@ -100,27 +101,6 @@ impl Object {
         let loc = self.symtab[slot];
         self.symbols.span(loc)
     }
-    pub fn best_span_for_slot_in_expression(
-        &self,
-        slot: Slot,
-        expression: SourceLocation,
-    ) -> Range<usize> {
-        let mut best_range = self.slot_span(slot);
-        let mut best_range_len = best_range.len();
-        if let Some(equivalent) = self.symbols.aliases.get(&slot) {
-            for alias in equivalent {
-                let alias_range = self.best_span_for_slot_in_expression(*alias, expression);
-                let alias_range_len = alias_range.len();
-                if alias_range_len < best_range_len
-                    || (alias_range_len == best_range_len && alias_range.start > best_range.start)
-                {
-                    best_range = alias_range;
-                    best_range_len = alias_range_len;
-                }
-            }
-        }
-        best_range
-    }
 }
 
 impl std::fmt::Debug for Object {
@@ -128,13 +108,12 @@ impl std::fmt::Debug for Object {
         writeln!(f, "Object {}", self.name)?;
         writeln!(f, "  fn_id {:?}", self.fn_id)?;
         writeln!(f, "  return_slot {:?}", self.return_slot)?;
-        for (reg, (kind, _)) in self.symtab.iter_reg() {
-            let slot_name = self
-                .symbols
-                .slot_names
-                .get(&Slot::Register(reg))
-                .map(|s| s.as_str())
-                .unwrap_or("");
+        for (reg, (details, _)) in self.symtab.iter_reg() {
+            let kind = details.kind;
+            let slot_name = match details.name.as_ref() {
+                Some(x) => x.as_str(),
+                None => "",
+            };
             writeln!(f, "Reg {reg:?} : {kind:?} // {slot_name}")?;
         }
         for (lit, (tb, _)) in self.symtab.iter_lit() {

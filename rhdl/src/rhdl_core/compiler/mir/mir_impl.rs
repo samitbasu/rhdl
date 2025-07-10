@@ -29,7 +29,7 @@ pub struct TypeEquivalence {
 pub struct Mir {
     pub symbols: SymbolMap,
     pub ops: Vec<LocatedOpCode>,
-    pub symtab: SymbolTable<ExprLit, (), SourceLocation>,
+    pub symtab: SymbolTable<ExprLit, Option<String>, SourceLocation>,
     pub ty: BTreeMap<Slot, Kind>,
     pub ty_equate: HashSet<TypeEquivalence>,
     pub stash: BTreeMap<FuncId, Box<Object>>,

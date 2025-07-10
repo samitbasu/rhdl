@@ -98,9 +98,7 @@ impl ClockDomainContext<'_> {
                         "Expression belongs to {} clock domain",
                         self.clock_domain_for_error(ty)
                     ),
-                    self.obj
-                        .best_span_for_slot_in_expression(slot, containing_id)
-                        .into(),
+                    self.obj.symbols.span(containing_id).into(),
                 )
             })
             .collect();
@@ -210,8 +208,8 @@ impl ClockDomainContext<'_> {
         }
     }
     fn import_registers(&mut self) {
-        for (reg_id, (kind, loc)) in self.obj.symtab.iter_reg() {
-            let ty = self.import_kind_with_unknown_domains(*loc, kind);
+        for (reg_id, (details, loc)) in self.obj.symtab.iter_reg() {
+            let ty = self.import_kind_with_unknown_domains(*loc, &details.kind);
             self.slot_map.insert(reg_id.into(), ty);
         }
     }
@@ -338,7 +336,7 @@ impl ClockDomainContext<'_> {
             .collect::<Vec<_>>();
         for ty in &resolved_map {
             let desc = self.ctx.desc(ty.1);
-            debug!("Slot {:?} has type {:?}", ty.0, desc);
+            debug!("Slot {} has type {:?}", ty.0, desc);
         }
     }
     fn slot_type(&mut self, slot: &Slot) -> TypeId {

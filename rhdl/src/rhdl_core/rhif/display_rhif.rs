@@ -43,10 +43,7 @@ impl std::fmt::Debug for OpCode {
                 true_value,
                 false_value,
             }) => {
-                write!(
-                    f,
-                    " {lhs:?} <- {cond:?} ? {true_value:?} : {false_value:?}"
-                )
+                write!(f, " {lhs:?} <- {cond:?} ? {true_value:?} : {false_value:?}")
             }
             OpCode::Tuple(Tuple { lhs, fields }) => {
                 write!(f, " {:?} <- ({})", lhs, splice(fields, ", "))

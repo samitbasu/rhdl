@@ -19,11 +19,15 @@ impl Pass for PrecomputeDiscriminantPass {
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let (mut literals, registers) = std::mem::take(&mut input.symtab).into_parts();
-        let mut ops = input.ops.clone();
+        let mut ops = std::mem::take(&mut input.ops);
         for lop in ops.iter_mut() {
             if let OpCode::Index(index) = &lop.op {
                 if index.path == Path::default().discriminant() {
-                    if !input.kind(index.arg).is_enum() {
+                    let kind = match index.arg {
+                        Slot::Register(rid) => registers[rid].0.kind,
+                        Slot::Literal(lid) => literals[lid].0.kind,
+                    };
+                    if !kind.is_enum() {
                         lop.op = OpCode::Assign(Assign {
                             lhs: index.lhs,
                             rhs: index.arg,

@@ -20,13 +20,13 @@ fn check_register_like(
     cause: Syntax,
     expr_loc: SourceLocation,
 ) -> Result<(), RHDLError> {
-    for (slot, kind) in vals {
+    for (_slot, kind) in vals {
         let kind = kind.signal_data();
         if !matches!(kind, Kind::Bits(_) | Kind::Signed(_)) {
             return Err(Box::new(RHDLSyntaxError {
                 src: obj.symbols.source(),
                 cause,
-                err_span: obj.best_span_for_slot_in_expression(*slot, expr_loc).into(),
+                err_span: obj.symbols.span(expr_loc).into(),
             })
             .into());
         }
@@ -40,11 +40,11 @@ impl Pass for CheckForRolledTypesPass {
     }
     fn run(obj: Object) -> Result<Object, RHDLError> {
         let slot_type = |slot: &Slot| -> Kind { obj.kind(*slot) };
-        let roll_error = |cause: Syntax, slot: Slot, loc: SourceLocation| -> RHDLError {
+        let roll_error = |cause: Syntax, _slot: Slot, loc: SourceLocation| -> RHDLError {
             Box::new(RHDLSyntaxError {
                 src: obj.symbols.source(),
                 cause,
-                err_span: obj.best_span_for_slot_in_expression(slot, loc).into(),
+                err_span: obj.symbols.span(loc).into(),
             })
             .into()
         };

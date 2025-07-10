@@ -222,7 +222,7 @@ macro_rules! new_key_type {
 
         impl std::fmt::Debug for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{}{}[{}]", $abbrev, self.index, self.id)
+                write!(f, "{}{}", $abbrev, self.index)
             }
         }
     };

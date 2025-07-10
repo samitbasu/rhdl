@@ -151,11 +151,10 @@ type Result<T> = std::result::Result<T, RHDLError>;
 pub struct MirContext<'a> {
     scopes: Vec<Scope>,
     ops: Vec<LocatedOpCode>,
-    symtab: SymbolTable<ExprLit, (), NodeId>,
+    symtab: SymbolTable<ExprLit, Option<String>, NodeId>,
     ty: BTreeMap<Slot, Kind>,
     ty_equate: HashSet<TypeEquivalence>,
     stash: BTreeMap<FuncId, Box<Object>>,
-    slot_names: BTreeMap<Slot, String>,
     return_slot: Option<Slot>,
     arguments: Vec<Slot>,
     fn_id: FunctionId,
@@ -212,7 +211,6 @@ impl<'a> MirContext<'a> {
             fn_id,
             name: "",
             active_scope: ROOT_SCOPE,
-            slot_names: BTreeMap::new(),
             spanned_source,
             mode,
         }
@@ -287,9 +285,8 @@ impl<'a> MirContext<'a> {
     // Create a local variable binding to the given name, and return the
     // resulting register.
     fn bind(&mut self, name: &'static str, id: NodeId) {
-        let reg = self.reg(id);
+        let reg = self.reg_named(id, name);
         debug!("Binding {}#{:?} to {:?}", name, id, reg);
-        self.slot_names.insert(reg, name.to_string());
         self.scopes[self.active_scope.0].names.insert(name, reg);
     }
     // Rebind a local variable to a new slot.  We need
@@ -300,7 +297,7 @@ impl<'a> MirContext<'a> {
     //  let a = 6; //<-- rebind of "a" to new slot
     //```
     fn rebind(&mut self, name: &'static str, id: NodeId) -> Result<Rebind> {
-        let reg = self.reg(id);
+        let reg = self.reg_named(id, name);
         let Some((prev, scope)) = self.lookup_name(name) else {
             return Err(self
                 .raise_ice(
@@ -311,7 +308,6 @@ impl<'a> MirContext<'a> {
                 )
                 .into());
         };
-        self.slot_names.insert(reg, name.to_string());
         self.scopes[scope.0].names.insert(name, reg);
         debug!("Rebound {} from {:?} to {:?}", name, prev, reg);
         Ok(Rebind {
@@ -320,7 +316,10 @@ impl<'a> MirContext<'a> {
         })
     }
     fn reg(&mut self, id: NodeId) -> Slot {
-        self.symtab.reg((), id)
+        self.symtab.reg(None, id)
+    }
+    fn reg_named(&mut self, id: NodeId, name: &str) -> Slot {
+        self.symtab.reg(Some(name.into()), id)
     }
     fn lit(&mut self, id: NodeId, lit: ExprLit) -> Slot {
         self.symtab.lit(lit, id)
@@ -1021,8 +1020,8 @@ impl<'a> MirContext<'a> {
             let value = self.literal_int(for_loop.pat.id, ndx);
             self.rebind(loop_var.name, for_loop.pat.id)?;
             self.initialize_local(&for_loop.pat, value)?;
-            let empty = self.lit_empty(for_loop.body.id);
-            self.block(empty, &for_loop.body)?;
+            let result = self.reg(for_loop.body.id);
+            self.block(result, &for_loop.body)?;
         }
         self.end_scope();
         let empty = self.lit_empty(for_loop.body.id);
@@ -1594,8 +1593,6 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
     Ok(Mir {
         symbols: SymbolMap {
             source_set: (fn_id, copy_source).into(),
-            slot_names: compiler.slot_names,
-            aliases: Default::default(),
         },
         ops: compiler.ops,
         arguments: compiler.arguments,

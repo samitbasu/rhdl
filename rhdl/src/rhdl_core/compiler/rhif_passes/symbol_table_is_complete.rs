@@ -16,7 +16,7 @@ impl Pass for SymbolTableIsComplete {
     fn run(input: Object) -> Result<Object, RHDLError> {
         let mut error = None;
         let id = input.symbols.fallback(input.fn_id);
-        visit_object_slots(&input, |_, &slot| {
+        visit_object_slots(&input, |sense, &slot| {
             if error.is_none() {
                 if !input.symtab.is_key_valid(slot) {
                     error = Some(Err(Self::raise_ice(
@@ -24,6 +24,11 @@ impl Pass for SymbolTableIsComplete {
                         ICE::SymbolTableIsIncomplete { slot },
                         id,
                     )));
+                }
+                if sense.is_write() && slot.is_lit() {
+                    log::info!("{input:?}");
+                    log::error!("Write to literal {slot} detected");
+                    panic!("Cannot write to literal slot {slot}!");
                 }
             }
         });

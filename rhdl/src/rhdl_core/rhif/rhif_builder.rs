@@ -1,11 +1,11 @@
 use crate::rhdl_core::{
+    Color, TypedBits,
     ast::ast_impl::WrapOp,
     rhif::spec::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
         FieldValue, FuncId, Index, OpCode, Repeat, Slot, Struct, Tuple, Unary,
     },
     types::path::Path,
-    Color, TypedBits,
 };
 
 use super::spec::{Retime, Select, Splice, Wrap};

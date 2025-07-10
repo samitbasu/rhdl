@@ -1,5 +1,6 @@
 use crate::rhdl_core::ast::ast_impl::WrapOp;
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
+use crate::rhdl_core::common::slot_vec::SlotKey;
 use crate::rhdl_core::compiler::mir::error::{ICE, RHDLCompileError};
 use crate::rhdl_core::error::rhdl_error;
 use crate::rhdl_core::rhif::object::Object;
@@ -34,8 +35,8 @@ impl VMState<'_> {
     }
     fn read(&self, slot: Slot, loc: SourceLocation) -> Result<TypedBits> {
         match slot {
-            Slot::Literal(l) => Ok(self.literals[usize::from(l)].0.clone()),
-            Slot::Register(r) => self.reg_stack[usize::from(r)]
+            Slot::Literal(l) => Ok(self.literals[l.index()].0.clone()),
+            Slot::Register(r) => self.reg_stack[r.index()]
                 .clone()
                 .ok_or(self.raise_ice(ICE::UninitializedRegister { r }, loc)),
         }
@@ -44,7 +45,7 @@ impl VMState<'_> {
         match slot {
             Slot::Literal(ndx) => Err(self.raise_ice(ICE::CannotWriteToRHIFLiteral { ndx }, loc)),
             Slot::Register(r) => {
-                self.reg_stack[usize::from(r)] = Some(value);
+                self.reg_stack[r.index()] = Some(value);
                 Ok(())
             }
         }
@@ -276,7 +277,7 @@ pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
     }
     for (ndx, arg) in arguments.iter().enumerate() {
         let arg_kind = &arg.kind;
-        let obj_kind = obj.symtab.get_register(obj.arguments[ndx]);
+        let obj_kind = &obj.symtab[obj.arguments[ndx]].kind;
         if obj_kind != arg_kind {
             return Err(rhdl_error(RHDLCompileError {
                 cause: ICE::ArgumentTypeMismatchOnCall {
@@ -294,7 +295,7 @@ pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
     // Copy the arguments into the appropriate registers
     for (ndx, arg) in arguments.into_iter().enumerate() {
         let r = obj.arguments[ndx];
-        reg_stack[usize::from(r)] = Some(arg);
+        reg_stack[r.index()] = Some(arg);
     }
     let mut state = VMState {
         reg_stack: &mut reg_stack,
@@ -304,7 +305,7 @@ pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
     execute_block(&obj.ops, &mut state)?;
     match obj.return_slot {
         Slot::Register(r) => reg_stack
-            .get(usize::from(r))
+            .get(r.index())
             .cloned()
             .ok_or(rhdl_error(RHDLCompileError {
                 cause: ICE::ReturnSlotNotFound {
@@ -318,6 +319,6 @@ pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
                 src: symbols.source(),
                 err_span: symbols.span(loc).into(),
             })),
-        Slot::Literal(ndx) => Ok(obj.symtab.get_literal(ndx).clone()),
+        Slot::Literal(ndx) => Ok(obj.symtab[ndx].clone()),
     }
 }
