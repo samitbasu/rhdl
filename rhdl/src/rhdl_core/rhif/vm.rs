@@ -3,7 +3,7 @@ use crate::rhdl_core::ast::source::source_location::SourceLocation;
 use crate::rhdl_core::common::slot_vec::SlotKey;
 use crate::rhdl_core::compiler::mir::error::{ICE, RHDLCompileError};
 use crate::rhdl_core::error::rhdl_error;
-use crate::rhdl_core::rhif::object::Object;
+use crate::rhdl_core::rhif::object::{Object, SourceDetails};
 use crate::rhdl_core::rhif::spec::{
     Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, Index, Member, OpCode, Repeat,
     Slot, Struct, Tuple, Unary,
@@ -20,7 +20,7 @@ type Result<T> = std::result::Result<T, RHDLError>;
 
 struct VMState<'a> {
     reg_stack: &'a mut [Option<TypedBits>],
-    literals: &'a [(TypedBits, SourceLocation)],
+    literals: &'a [(TypedBits, SourceDetails)],
     obj: &'a Object,
 }
 
@@ -277,7 +277,7 @@ pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
     }
     for (ndx, arg) in arguments.iter().enumerate() {
         let arg_kind = &arg.kind;
-        let obj_kind = &obj.symtab[obj.arguments[ndx]].kind;
+        let obj_kind = &obj.symtab[obj.arguments[ndx]];
         if obj_kind != arg_kind {
             return Err(rhdl_error(RHDLCompileError {
                 cause: ICE::ArgumentTypeMismatchOnCall {

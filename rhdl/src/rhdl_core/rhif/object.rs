@@ -64,15 +64,15 @@ impl From<(OpCode, SourceLocation)> for LocatedOpCode {
 }
 
 #[derive(Clone, Hash, Debug)]
-pub struct RegisterDetails {
-    pub kind: Kind,
+pub struct SourceDetails {
+    pub location: SourceLocation,
     pub name: Option<String>,
 }
 
 #[derive(Clone, Hash)]
 pub struct Object {
     pub symbols: SymbolMap,
-    pub symtab: SymbolTable<TypedBits, RegisterDetails, SourceLocation>,
+    pub symtab: SymbolTable<TypedBits, Kind, SourceDetails>,
     pub return_slot: Slot,
     pub externals: BTreeMap<FuncId, Box<Object>>,
     pub ops: Vec<LocatedOpCode>,
@@ -85,7 +85,7 @@ pub struct Object {
 impl Object {
     pub fn kind(&self, slot: Slot) -> Kind {
         match slot {
-            Slot::Register(reg) => self.symtab[reg].kind,
+            Slot::Register(reg) => self.symtab[reg],
             Slot::Literal(lit) => self.symtab[lit].kind,
         }
     }
@@ -98,8 +98,8 @@ impl Object {
         self.symbols.source_set.filename(self.fn_id)
     }
     pub fn slot_span(&self, slot: Slot) -> Range<usize> {
-        let loc = self.symtab[slot];
-        self.symbols.span(loc)
+        let loc = &self.symtab[slot];
+        self.symbols.span(loc.location)
     }
 }
 
@@ -108,8 +108,7 @@ impl std::fmt::Debug for Object {
         writeln!(f, "Object {}", self.name)?;
         writeln!(f, "  fn_id {:?}", self.fn_id)?;
         writeln!(f, "  return_slot {:?}", self.return_slot)?;
-        for (reg, (details, _)) in self.symtab.iter_reg() {
-            let kind = details.kind;
+        for (reg, (kind, details)) in self.symtab.iter_reg() {
             let slot_name = match details.name.as_ref() {
                 Some(x) => x.as_str(),
                 None => "",

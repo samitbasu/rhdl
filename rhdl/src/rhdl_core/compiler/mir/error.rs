@@ -112,9 +112,7 @@ pub enum ICE {
     #[error("Cannot write to a literal {ndx:?}")]
     CannotWriteToRHIFLiteral { ndx: LiteralId },
     #[error("Cannot write to a RTL literal {ndx:?}")]
-    CannotWriteToRTLLiteral {
-        ndx: crate::rhdl_core::rtl::spec::LiteralId,
-    },
+    CannotWriteToRTLLiteral { ndx: LiteralId },
     #[error("Slot {slot:?} is written twice")]
     SlotIsWrittenTwice { slot: Slot },
     #[error("Mismatch in data types (clock domain ignored) {lhs:?} and {rhs:?}")]
@@ -168,9 +166,7 @@ pub enum ICE {
     #[error("VM encountered an uninitialized RHIF register {r:?}")]
     UninitializedRegister { r: RegisterId },
     #[error("VM encountered an uninitialized RTL register {r:?}")]
-    UninitializedRTLRegister {
-        r: crate::rhdl_core::rtl::spec::RegisterId,
-    },
+    UninitializedRTLRegister { r: RegisterId },
     #[error("VM cannot write a non-empty value to an empty slot")]
     CannotWriteNonEmptyValueToEmptySlot,
     #[error("VM encountered a discriminant {discriminant:?} with no matching arm")]
