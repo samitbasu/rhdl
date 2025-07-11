@@ -1,6 +1,9 @@
 use std::ops::Range;
 
-use crate::rhdl_core::common::symtab::{LiteralId, Symbol};
+use crate::{
+    prelude::Path,
+    rhdl_core::common::symtab::{LiteralId, Symbol},
+};
 
 #[derive(Clone, PartialEq, Hash)]
 pub enum OpCode {
@@ -129,6 +132,7 @@ pub struct Index {
     pub lhs: Operand,
     pub arg: Operand,
     pub bit_range: Range<usize>,
+    pub path: Path,
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]
@@ -137,6 +141,7 @@ pub struct Splice {
     pub orig: Operand,
     pub bit_range: Range<usize>,
     pub value: Operand,
+    pub path: Path,
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]

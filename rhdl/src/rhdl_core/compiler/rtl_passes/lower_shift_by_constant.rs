@@ -1,11 +1,12 @@
 use crate::rhdl_core::{
     RHDLError, TypedBits,
     ast::source::source_location::SourceLocation,
+    common::symtab::LiteralId,
     compiler::mir::error::ICE,
     rtl::{
         Object,
         object::{LocatedOpCode, RegisterSize},
-        spec::{AluBinary, Binary, Cast, CastKind, Concat, Index, LiteralId, OpCode, Operand},
+        spec::{AluBinary, Binary, Cast, CastKind, Concat, Index, OpCode, Operand},
     },
     types::bit_string::BitString,
 };
@@ -21,7 +22,7 @@ impl LowerShiftByConstant {
         lit: LiteralId,
         loc: SourceLocation,
     ) -> Result<usize, RHDLError> {
-        let shift_amount: TypedBits = (&input.literals[&lit]).into();
+        let shift_amount: TypedBits = input.symtab[&lit].clone();
         let shift_amount = shift_amount.as_i64()?;
         if shift_amount < 0 {
             return Err(Self::raise_ice(
