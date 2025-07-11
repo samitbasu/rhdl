@@ -92,24 +92,26 @@ impl<T, I: SlotKey> SlotVec<T, I> {
         })
     }
     #[must_use]
-    pub fn merge(&mut self, mut other: Self) -> impl Fn(I) -> I {
+    pub fn merge(&mut self, mut other: Self) -> impl Fn(I) -> I + use<T, I> {
         let offset = self.vals.len();
         self.vals.append(&mut other.vals);
+        let other_id = other.id;
+        let self_id = self.id;
         move |index| {
             assert_eq!(
                 index.id(),
-                other.id,
+                other_id,
                 "Merge remap was applied to some other key.  Target id {}, other id {}, key id {}",
-                self.id,
-                other.id,
+                self_id,
+                other_id,
                 index.id()
             );
             let ndx: usize = index.index() + offset;
-            I::new(self.id, ndx)
+            I::new(self_id, ndx)
         }
     }
     #[must_use]
-    pub fn retain<F: Fn(I, &T) -> bool>(&mut self, f: F) -> BTreeMap<I, I> {
+    pub fn retain<F: Fn(I, &T) -> bool>(&mut self, f: F) -> impl Fn(I) -> Option<I> + use<T, I, F> {
         let mut reorder = BTreeMap::default();
         let mut counter = 0;
         let vals = std::mem::take(&mut self.vals);
@@ -126,7 +128,7 @@ impl<T, I: SlotKey> SlotVec<T, I> {
                 }
             })
             .collect();
-        reorder
+        move |index| reorder.get(&index).cloned()
     }
     pub fn is_key_valid(&self, index: I) -> bool {
         self.id == index.id() && index.index() < self.vals.len()
@@ -288,7 +290,7 @@ mod tests {
         let remap = left_vec.retain(|_ndx, val| *val != 42);
         let literals = literals
             .into_iter()
-            .filter_map(|i| remap.get(&i).copied())
+            .filter_map(remap)
             .collect::<Vec<Left>>();
         assert_eq!(literals.len(), 6);
         for val in left_vec.inner() {

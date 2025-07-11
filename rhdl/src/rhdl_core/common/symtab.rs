@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use super::slot_vec::*;
 
 new_key_type!(LiteralId, "l");
@@ -113,7 +111,7 @@ impl<L, R, M> SymbolTable<L, R, M> {
     pub fn iter_reg_mut(&mut self) -> impl Iterator<Item = (RegisterId, &mut (R, M))> + '_ {
         self.reg.iter_mut()
     }
-    pub fn merge(&mut self, other: Self) -> impl Fn(Symbol) -> Symbol {
+    pub fn merge(&mut self, other: Self) -> impl Fn(Symbol) -> Symbol + use<L, R, M> {
         let Self { lit, reg } = other;
         let lit_merge = self.lit.merge(lit);
         let reg_merge = self.reg.merge(reg);
@@ -125,25 +123,31 @@ impl<L, R, M> SymbolTable<L, R, M> {
     pub fn retain_literals<F: Fn(LiteralId, &(L, M)) -> bool>(
         &mut self,
         f: F,
-    ) -> BTreeMap<LiteralId, LiteralId> {
+    ) -> impl Fn(LiteralId) -> Option<LiteralId> + use<F, L, R, M> {
         self.lit.retain(f)
     }
     pub fn retain_registers<F: Fn(RegisterId, &(R, M)) -> bool>(
         &mut self,
         f: F,
-    ) -> BTreeMap<RegisterId, RegisterId> {
+    ) -> impl Fn(RegisterId) -> Option<RegisterId> + use<F, L, R, M> {
         self.reg.retain(f)
     }
-    pub fn retain<F: Fn(Symbol, &M) -> bool>(&mut self, f: F) -> BTreeMap<Symbol, Symbol> {
-        let retain_lit = self.lit.retain(|id, x| f(Symbol::Literal(id), &x.1));
-        let retain_reg = self.reg.retain(|id, x| f(Symbol::Register(id), &x.1));
-        let lits = retain_lit
-            .into_iter()
-            .map(|(lit_old, lit_new)| (Symbol::Literal(lit_old), Symbol::Literal(lit_new)));
-        let regs = retain_reg
-            .into_iter()
-            .map(|(reg_old, reg_new)| (Symbol::Register(reg_old), Symbol::Register(reg_new)));
-        lits.chain(regs).collect()
+    pub fn retain<F: Fn(Symbol, &M) -> bool + Clone>(
+        &mut self,
+        f: F,
+    ) -> impl Fn(Symbol) -> Option<Symbol> + use<F, L, R, M> {
+        let f_lit = f.clone();
+        let f_reg = f;
+        let retain_lit = self
+            .lit
+            .retain(move |id, x| f_lit(Symbol::Literal(id), &x.1));
+        let retain_reg = self
+            .reg
+            .retain(move |id, x| f_reg(Symbol::Register(id), &x.1));
+        move |symbol| match symbol {
+            Symbol::Literal(lid) => retain_lit(lid).map(Symbol::Literal),
+            Symbol::Register(rid) => retain_reg(rid).map(Symbol::Register),
+        }
     }
     pub fn transmute<T, F>(self, f: F) -> SymbolTable<L, R, T>
     where

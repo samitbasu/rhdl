@@ -7,13 +7,12 @@ use crate::rhdl_bits::alias::b8;
 
 use crate::rhdl_core::Digital;
 use crate::rhdl_core::TypedBits;
-use crate::rhdl_core::ast::ast_impl::{FunctionId, WrapOp};
+use crate::rhdl_core::ast::ast_impl::WrapOp;
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
 use crate::rhdl_core::common::symtab::SymbolTable;
 use crate::rhdl_core::error::rhdl_error;
 use crate::rhdl_core::rhif::object::SourceDetails;
 use crate::rhdl_core::rhif::spec::{AluBinary, Slot};
-use crate::rhdl_core::rtl::object::RegisterSize;
 use crate::rhdl_core::rtl::remap::remap_operands;
 use crate::rhdl_core::rtl::spec::{CastKind, Concat, Operand};
 use crate::rhdl_core::rtl::symbols::SymbolMap;
@@ -144,11 +143,11 @@ impl<'a> RTLCompiler<'a> {
             register_count: 0,
         }
     }
-    fn lit(&mut self, bits: TypedBits, loc: SourceDetails) -> Operand {
-        self.symtab.lit(bits, loc)
+    fn lit(&mut self, bits: TypedBits, loc: impl Into<SourceDetails>) -> Operand {
+        self.symtab.lit(bits, loc.into())
     }
-    fn reg(&mut self, kind: Kind, loc: SourceDetails) -> Operand {
-        self.symtab.reg(kind, loc)
+    fn reg(&mut self, kind: Kind, loc: impl Into<SourceDetails>) -> Operand {
+        self.symtab.reg(kind, loc.into())
     }
     fn operand_bit_width(&self, operand: Operand) -> usize {
         match operand {
@@ -191,14 +190,19 @@ impl<'a> RTLCompiler<'a> {
             .iter()
             .map(|slot| self.object.kind(*slot).bits())
             .collect::<Vec<usize>>();
-        // Calculate the total size of the selector in bits
-        let selector_size = dynamic_slot_bit_widths.iter().sum::<usize>();
+        // Create a tuple Kind that is the contatenation of the dynamic slot kinds
+        let selector_kind = Kind::make_tuple(
+            dynamic_slots
+                .iter()
+                .map(|slot| self.object.kind(*slot))
+                .collect(),
+        );
         // Allocate a register of this size.  It will hold the concatenation of the dynamic slots
-        let discriminant = self.allocate_unsigned(selector_size, loc);
+        let discriminant = self.reg(selector_kind, loc);
         let dynamic_slots_as_operands = dynamic_slots
             .iter()
-            .map(|slot| self.operand(*slot, loc))
-            .collect::<Result<Vec<_>>>()?;
+            .map(|slot| self.operand(*slot))
+            .collect::<Vec<_>>();
         self.lop(
             tl::OpCode::Concat(tl::Concat {
                 lhs: discriminant,
@@ -224,9 +228,12 @@ impl<'a> RTLCompiler<'a> {
                 })
                 .flat_map(|bs| bs.bits().to_vec())
                 .collect::<Vec<_>>();
-            let Operand::Literal(test_value) = self
-                .allocate_literal_from_bit_string(&BitString::Unsigned(dyn_slot_bit_strings), loc)
-            else {
+            // Add the type information
+            let dyn_slot_tb = TypedBits {
+                bits: dyn_slot_bit_strings,
+                kind: selector_kind,
+            };
+            let Operand::Literal(test_value) = self.lit(dyn_slot_tb, loc) else {
                 panic!("Allocate literal returned a register?")
             };
             test_values.push((
@@ -239,42 +246,43 @@ impl<'a> RTLCompiler<'a> {
             table: test_values.into(),
         })
     }
-    fn operand(&mut self, slot: Slot, source: SourceDetails) -> Operand {
+    fn operand(&mut self, slot: Slot) -> Operand {
         if let Some(operand) = self.reverse_operand_map.get(&slot) {
             return *operand;
         }
+        let details = self.object.symtab[slot].clone();
         let operand = match slot {
             Slot::Literal(literal_id) => {
                 let bits = &self.object.symtab[literal_id];
-                self.lit(bits.clone(), source)
+                self.lit(bits.clone(), details)
             }
             Slot::Register(register_id) => {
                 let kind = self.object.symtab[register_id];
-                self.reg(kind, source)
+                self.reg(kind, details)
             }
         };
         self.operand_map.insert(operand, slot);
         self.reverse_operand_map.insert(slot, operand);
         operand
     }
-    fn make_operand_list(&mut self, args: &[Slot], loc: SourceDetails) -> Vec<Operand> {
+    fn make_operand_list(&mut self, args: &[Slot]) -> Vec<Operand> {
         args.iter()
             .filter_map(|a| {
                 if self.object.kind(*a).is_empty() {
                     None
                 } else {
-                    Some(self.operand(*a, loc.clone()))
+                    Some(self.operand(*a))
                 }
             })
             .collect()
     }
-    fn make_array(&mut self, args: &hf::Array, loc: SourceDetails) -> Result<()> {
+    fn make_array(&mut self, args: &hf::Array, loc: SourceLocation) -> Result<()> {
         let hf::Array { lhs, elements } = args;
         if self.object.kind(*lhs).is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(*lhs, loc);
-        let elements = self.make_operand_list(elements, loc);
+        let lhs = self.operand(*lhs);
+        let elements = self.make_operand_list(elements);
         self.lop(
             tl::OpCode::Concat(tl::Concat {
                 lhs,
@@ -288,8 +296,8 @@ impl<'a> RTLCompiler<'a> {
         let hf::Cast { lhs, arg, len } = cast;
         let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, loc))?;
         if !self.object.kind(*lhs).is_empty() && !self.object.kind(*arg).is_empty() {
-            let lhs = self.operand(*lhs, loc)?;
-            let op_arg = self.operand(*arg, loc)?;
+            let lhs = self.operand(*lhs);
+            let op_arg = self.operand(*arg);
             self.lop(
                 tl::OpCode::Cast(tl::Cast {
                     lhs,
@@ -306,16 +314,15 @@ impl<'a> RTLCompiler<'a> {
         let hf::Wrap { lhs, op, arg, kind } = wrap;
         let kind = kind.ok_or_else(|| self.raise_ice(ICE::WrapMissingKind, loc))?;
         let discriminant = match op {
-            WrapOp::Ok | WrapOp::Some => self.lit(&true.typed_bits(), loc),
-            WrapOp::Err | WrapOp::None => self.lit(&false.typed_bits(), loc),
+            WrapOp::Ok | WrapOp::Some => self.lit(true.typed_bits(), loc),
+            WrapOp::Err | WrapOp::None => self.lit(false.typed_bits(), loc),
         };
         let width = kind.bits() - 1;
-        let lhs = self.operand(*lhs, loc)?;
+        let lhs = self.operand(*lhs);
         if width != 0 {
-            let payload =
-                self.allocate_register_with_register_size(&RegisterSize::Unsigned(width), loc);
+            let payload = self.reg(Kind::Bits(width), loc);
             let arg = *arg;
-            let arg = self.operand(arg, loc)?;
+            let arg = self.operand(arg);
             self.lop(
                 tl::OpCode::Cast(tl::Cast {
                     lhs: payload,
@@ -347,8 +354,8 @@ impl<'a> RTLCompiler<'a> {
         let hf::Cast { lhs, arg, len } = cast;
         let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, loc))?;
         if !self.object.kind(*lhs).is_empty() && !self.object.kind(*arg).is_empty() {
-            let lhs = self.operand(*lhs, loc)?;
-            let arg = self.operand(*arg, loc)?;
+            let lhs = self.operand(*lhs);
+            let arg = self.operand(*arg);
             self.lop(
                 tl::OpCode::Cast(tl::Cast {
                     lhs,
@@ -365,8 +372,8 @@ impl<'a> RTLCompiler<'a> {
         let hf::Cast { lhs, arg, len } = cast;
         let len = len.ok_or_else(|| self.raise_ice(ICE::BitCastMissingRequiredLength, loc))?;
         if !self.object.kind(*lhs).is_empty() && !self.object.kind(*arg).is_empty() {
-            let lhs = self.operand(*lhs, loc)?;
-            let arg = self.operand(*arg, loc)?;
+            let lhs = self.operand(*lhs);
+            let arg = self.operand(*arg);
             self.lop(
                 tl::OpCode::Cast(tl::Cast {
                     lhs,
@@ -382,8 +389,8 @@ impl<'a> RTLCompiler<'a> {
     fn make_assign(&mut self, assign: &hf::Assign, loc: SourceLocation) -> Result<()> {
         let hf::Assign { lhs, rhs } = assign;
         if !self.object.kind(*lhs).is_empty() && !self.object.kind(*rhs).is_empty() {
-            let lhs = self.operand(*lhs, loc)?;
-            let rhs = self.operand(*rhs, loc)?;
+            let lhs = self.operand(*lhs);
+            let rhs = self.operand(*rhs);
             self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), loc);
         }
         Ok(())
@@ -399,14 +406,14 @@ impl<'a> RTLCompiler<'a> {
         let Operand::Register(lhs_id) = lhs else {
             return Err(self.raise_ice(ICE::XopsResultMustBeRegister, loc));
         };
-        let lhs_reg_kind = self.registers[&lhs_id];
-        let arg1_cast = self.allocate_register_with_register_size(&lhs_reg_kind, loc);
-        let arg2_cast = self.allocate_register_with_register_size(&lhs_reg_kind, loc);
+        let lhs_reg_kind = self.symtab[&lhs_id];
+        let arg1_cast = self.reg(lhs_reg_kind, loc);
+        let arg2_cast = self.reg(lhs_reg_kind, loc);
         self.lop(
             tl::OpCode::Cast(tl::Cast {
                 lhs: arg1_cast,
                 arg: arg1,
-                len: lhs_reg_kind.len(),
+                len: lhs_reg_kind.bits(),
                 kind: CastKind::Resize,
             }),
             loc,
@@ -415,7 +422,7 @@ impl<'a> RTLCompiler<'a> {
             tl::OpCode::Cast(tl::Cast {
                 lhs: arg2_cast,
                 arg: arg2,
-                len: lhs_reg_kind.len(),
+                len: lhs_reg_kind.bits(),
                 kind: CastKind::Resize,
             }),
             loc,
@@ -443,16 +450,16 @@ impl<'a> RTLCompiler<'a> {
         };
         // The cast operation has to be split into two steps depending
         // on the sign of the operands.  The result is always signed.
-        let lhs_reg_kind = self.registers[&lhs_id];
-        let lhs_len = lhs_reg_kind.len();
+        let lhs_reg_kind = self.symtab[&lhs_id];
+        let lhs_len = lhs_reg_kind.bits();
         let extension_kind = if self.operand_is_signed(arg1) {
-            RegisterSize::Signed(lhs_len)
+            Kind::Signed(lhs_len)
         } else {
-            RegisterSize::Unsigned(lhs_len)
+            Kind::Bits(lhs_len)
         };
         // First we extend the operands to the required number of bits
-        let arg1_extend = self.allocate_register_with_register_size(&extension_kind, loc);
-        let arg2_extend = self.allocate_register_with_register_size(&extension_kind, loc);
+        let arg1_extend = self.reg(extension_kind, loc);
+        let arg2_extend = self.reg(extension_kind, loc);
         self.lop(
             tl::OpCode::Cast(tl::Cast {
                 lhs: arg1_extend,
@@ -472,13 +479,13 @@ impl<'a> RTLCompiler<'a> {
             loc,
         );
         // This guarantees that the sign bit will be zero when we reinterepret them as signed values
-        let arg1_cast = self.allocate_register_with_register_size(&lhs_reg_kind, loc);
-        let arg2_cast = self.allocate_register_with_register_size(&lhs_reg_kind, loc);
+        let arg1_cast = self.reg(lhs_reg_kind, loc);
+        let arg2_cast = self.reg(lhs_reg_kind, loc);
         self.lop(
             tl::OpCode::Cast(tl::Cast {
                 lhs: arg1_cast,
                 arg: arg1_extend,
-                len: lhs_reg_kind.len(),
+                len: lhs_reg_kind.bits(),
                 kind: CastKind::Signed,
             }),
             loc,
@@ -487,7 +494,7 @@ impl<'a> RTLCompiler<'a> {
             tl::OpCode::Cast(tl::Cast {
                 lhs: arg2_cast,
                 arg: arg2_extend,
-                len: lhs_reg_kind.len(),
+                len: lhs_reg_kind.bits(),
                 kind: CastKind::Signed,
             }),
             loc,
@@ -513,9 +520,9 @@ impl<'a> RTLCompiler<'a> {
         if self.object.kind(lhs).is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(lhs, loc)?;
-        let arg1 = self.operand(arg1, loc)?;
-        let arg2 = self.operand(arg2, loc)?;
+        let lhs = self.operand(lhs);
+        let arg1 = self.operand(arg1);
+        let arg2 = self.operand(arg2);
         let mut rtl_binop = |op| {
             self.lop(
                 tl::OpCode::Binary(tl::Binary {
@@ -558,7 +565,7 @@ impl<'a> RTLCompiler<'a> {
                 if !slot.is_lit() {
                     return Err(self.raise_ice(ICE::MatchPatternValueMustBeLiteral, loc));
                 };
-                let operand = self.operand(*slot, loc)?;
+                let operand = self.operand(*slot);
                 let Operand::Literal(literal_id) = operand else {
                     return Err(self.raise_ice(ICE::MatchPatternValueMustBeLiteral, loc));
                 };
@@ -576,13 +583,13 @@ impl<'a> RTLCompiler<'a> {
         if self.object.kind(*lhs).is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(*lhs, loc)?;
-        let discriminant = self.operand(*discriminant, loc)?;
+        let lhs = self.operand(*lhs);
+        let discriminant = self.operand(*discriminant);
         let table = table
             .iter()
             .map(|(cond, val)| {
                 let cond = self.make_case_argument(cond, loc)?;
-                let val = self.operand(*val, loc)?;
+                let val = self.operand(*val);
                 Ok((cond, val))
             })
             .collect::<Result<Vec<_>>>()?;
@@ -609,12 +616,12 @@ impl<'a> RTLCompiler<'a> {
         let arg_kind = self.object.kind(*orig);
         let details = self.build_dynamic_index(arg_kind, path, loc)?;
         let lhs_kind = self.object.kind(*lhs);
-        let lhs = self.operand(*lhs, loc)?;
-        let orig = self.operand(*orig, loc)?;
-        let subst = self.operand(*subst, loc)?;
+        let lhs = self.operand(*lhs);
+        let orig = self.operand(*orig);
+        let subst = self.operand(*subst);
         let mut table = vec![];
         for (literal, path) in details.table {
-            let case_value = self.reg(&lhs_kind, loc);
+            let case_value = self.reg(lhs_kind, loc);
             let (bit_range, _) = bit_range(arg_kind, &path)?;
             self.lop(
                 tl::OpCode::Splice(tl::Splice {
@@ -648,14 +655,14 @@ impl<'a> RTLCompiler<'a> {
         }
         let kind = template.kind;
         let discriminant = template.discriminant()?.as_i64()?;
-        let mut rhs = self.lit(template, id);
+        let mut rhs = self.lit(template.clone(), id);
         for field in fields {
-            let field_value = self.operand(field.value, id)?;
+            let field_value = self.operand(field.value);
             let path = Path::default()
                 .payload_by_value(discriminant)
                 .member(&field.member);
             let (field_range, _) = bit_range(kind, &path)?;
-            let reg = self.reg(&kind, id);
+            let reg = self.reg(kind, id);
             self.lop(
                 tl::OpCode::Splice(tl::Splice {
                     lhs: reg,
@@ -667,7 +674,7 @@ impl<'a> RTLCompiler<'a> {
             );
             rhs = reg;
         }
-        let lhs = self.operand(*lhs, id)?;
+        let lhs = self.operand(*lhs);
         self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), id);
         Ok(())
     }
@@ -685,14 +692,9 @@ impl<'a> RTLCompiler<'a> {
         // Rebind the arguments to local registers, and copy the values into them
         for (fn_arg, arg) in func_rtl.arguments.iter().zip(args) {
             if let Some(fn_reg) = fn_arg {
-                let fn_reg_in_our_space =
-                    self.allocate_register_with_register_size(&func_rtl.register_size[fn_reg], loc);
-                self.symbols.rhif_types.insert(
-                    fn_reg_in_our_space,
-                    func_rtl.symbols.rhif_types[&Operand::Register(*fn_reg)],
-                );
+                let fn_reg_in_our_space = self.reg(func_rtl.symtab[fn_reg], loc);
                 operand_translation.insert(Operand::Register(*fn_reg), fn_reg_in_our_space);
-                let arg = self.operand(*arg, loc)?;
+                let arg = self.operand(*arg);
                 self.lop(
                     tl::OpCode::Assign(tl::Assign {
                         lhs: fn_reg_in_our_space,
@@ -702,26 +704,7 @@ impl<'a> RTLCompiler<'a> {
                 );
             }
         }
-        let mut op_remap = |operand| {
-            if operand_translation.contains_key(&operand) {
-                return operand_translation[&operand];
-            }
-            let new_operand = match operand {
-                Operand::Literal(old_lit_id) => {
-                    let old_lit = func_rtl.literals[&old_lit_id].clone();
-                    self.allocate_literal_from_bit_string(&old_lit, loc)
-                }
-                Operand::Register(old_reg_id) => {
-                    let kind = func_rtl.register_size[&old_reg_id];
-                    self.allocate_register_with_register_size(&kind, loc)
-                }
-            };
-            operand_translation.insert(operand, new_operand);
-            self.symbols
-                .rhif_types
-                .insert(new_operand, func_rtl.symbols.rhif_types[&operand]);
-            new_operand
-        };
+        let mut op_remap = self.symtab.merge(func_rtl.symtab);
         let return_register = op_remap(func_rtl.return_register);
         // Translate each operation and add it to the existing function (inline).
         // Remap the operands of the opcode to allocate from the current function.
@@ -735,7 +718,7 @@ impl<'a> RTLCompiler<'a> {
             })
             .collect::<Vec<_>>();
         self.ops.extend(translated);
-        let lhs = self.operand(*lhs, loc)?;
+        let lhs = self.operand(*lhs);
         self.lop(
             tl::OpCode::Assign(tl::Assign {
                 lhs,
@@ -743,14 +726,6 @@ impl<'a> RTLCompiler<'a> {
             }),
             loc,
         );
-        for old_op in func_rtl.symbols.operand_map.keys() {
-            let new_op = operand_translation[old_op];
-            let loc = func_rtl.symbols.operand_map[old_op];
-            self.symbols.operand_map.insert(new_op, loc);
-            //            if let Some(name) = func_rtl.symbols.operand_names.get(old_op) {
-            //self.symbols.operand_names.insert(new_op, name.clone());
-            //}
-        }
         self.symbols
             .source_set
             .extend(func_rtl.symbols.source_set.sources);
@@ -774,11 +749,11 @@ impl<'a> RTLCompiler<'a> {
         let arg_kind = self.object.kind(*arg);
         let details = self.build_dynamic_index(arg_kind, path, loc)?;
         let lhs_kind = self.object.kind(index.lhs);
-        let arg = self.operand(*arg, loc)?;
+        let arg = self.operand(*arg);
         // Iterate over the cases
         let mut table = vec![];
         for (literal, path) in details.table {
-            let case_value = self.reg(&lhs_kind, loc);
+            let case_value = self.reg(lhs_kind, loc);
             let (bit_range, _) = bit_range(arg_kind, &path)?;
             self.lop(
                 tl::OpCode::Index(tl::Index {
@@ -790,7 +765,7 @@ impl<'a> RTLCompiler<'a> {
             );
             table.push((literal, case_value));
         }
-        let lhs = self.operand(*lhs, loc)?;
+        let lhs = self.operand(*lhs);
         self.lop(
             tl::OpCode::Case(tl::Case {
                 lhs,
@@ -810,8 +785,8 @@ impl<'a> RTLCompiler<'a> {
         }
         let arg_ty = self.object.kind(index.arg);
         let (bit_range, _) = bit_range(arg_ty, &index.path)?;
-        let lhs = self.operand(index.lhs, loc)?;
-        let arg = self.operand(index.arg, loc)?;
+        let lhs = self.operand(index.lhs);
+        let arg = self.operand(index.arg);
         self.lop(
             tl::OpCode::Index(tl::Index {
                 lhs,
@@ -827,8 +802,8 @@ impl<'a> RTLCompiler<'a> {
         if self.object.kind(lhs).is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(lhs, loc)?;
-        let arg = self.operand(value, loc)?;
+        let lhs = self.operand(lhs);
+        let arg = self.operand(value);
         let args = vec![arg; len as usize];
         self.lop(tl::OpCode::Concat(tl::Concat { lhs, args }), loc);
         Ok(())
@@ -838,8 +813,8 @@ impl<'a> RTLCompiler<'a> {
         if self.object.kind(lhs).is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(lhs, loc)?;
-        let rhs = self.operand(arg, loc)?;
+        let lhs = self.operand(lhs);
+        let rhs = self.operand(arg);
         self.lop(tl::OpCode::Assign(tl::Assign { lhs, rhs }), loc);
         Ok(())
     }
@@ -853,10 +828,10 @@ impl<'a> RTLCompiler<'a> {
         if self.object.kind(lhs).is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(lhs, loc)?;
-        let cond = self.operand(cond, loc)?;
-        let true_value = self.operand(true_value, loc)?;
-        let false_value = self.operand(false_value, loc)?;
+        let lhs = self.operand(lhs);
+        let cond = self.operand(cond);
+        let true_value = self.operand(true_value);
+        let false_value = self.operand(false_value);
         self.lop(
             tl::OpCode::Select(tl::Select {
                 lhs,
@@ -883,9 +858,9 @@ impl<'a> RTLCompiler<'a> {
         } = splice;
         let orig_ty = self.object.kind(*orig);
         let (bit_range, _) = bit_range(orig_ty, path)?;
-        let lhs = self.operand(*lhs, loc)?;
-        let orig = self.operand(*orig, loc)?;
-        let subst = self.operand(*subst, loc)?;
+        let lhs = self.operand(*lhs);
+        let orig = self.operand(*orig);
+        let subst = self.operand(*subst);
         self.lop(
             tl::OpCode::Splice(tl::Splice {
                 lhs,
@@ -907,18 +882,18 @@ impl<'a> RTLCompiler<'a> {
         if self.object.kind(*lhs).is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(*lhs, loc)?;
+        let lhs = self.operand(*lhs);
         let kind = template.kind;
         let mut rhs = if let Some(rest) = rest {
-            self.operand(*rest, loc)?
+            self.operand(*rest)
         } else {
-            self.lit(template, loc)
+            self.lit(template.clone(), loc)
         };
         for field in fields {
-            let field_value = self.operand(field.value, loc)?;
+            let field_value = self.operand(field.value);
             let path = Path::default().member(&field.member);
             let (field_range, _) = bit_range(kind, &path)?;
-            let reg = self.reg(&kind, loc);
+            let reg = self.reg(kind, loc);
             self.lop(
                 tl::OpCode::Splice(tl::Splice {
                     lhs: reg,
@@ -938,21 +913,21 @@ impl<'a> RTLCompiler<'a> {
         if self.object.kind(*lhs).is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(*lhs, loc)?;
-        let args = self.make_operand_list(fields, loc)?;
+        let lhs = self.operand(*lhs);
+        let args = self.make_operand_list(fields);
         self.lop(tl::OpCode::Concat(tl::Concat { lhs, args }), loc);
         Ok(())
     }
     fn make_xshr(&mut self, lhs: Operand, arg: Operand, shift: usize, loc: SourceLocation) {
         // First apply the right shift operation
         let count = b8(shift as u128);
-        let right_shift_amount = self.lit(&count.typed_bits(), loc);
+        let right_shift_amount = self.lit(count.typed_bits(), loc);
         let operand_bits = self.operand_bit_width(arg);
         let operand_signed = self.operand_is_signed(arg);
         let arg_shifted = if operand_signed {
-            self.allocate_register_with_register_size(&RegisterSize::Signed(operand_bits), loc)
+            self.reg(Kind::Signed(operand_bits), loc)
         } else {
-            self.allocate_register_with_register_size(&RegisterSize::Unsigned(operand_bits), loc)
+            self.reg(Kind::Bits(operand_bits), loc)
         };
         self.lop(
             tl::OpCode::Binary(tl::Binary {
@@ -978,9 +953,9 @@ impl<'a> RTLCompiler<'a> {
         // First pad the operand by the shift count
         let arg_len = self.operand_bit_width(arg);
         let arg_padded = if self.operand_is_signed(arg) {
-            self.allocate_register_with_register_size(&RegisterSize::Signed(arg_len + count), loc)
+            self.reg(Kind::Signed(arg_len + count), loc)
         } else {
-            self.allocate_register_with_register_size(&RegisterSize::Unsigned(arg_len + count), loc)
+            self.reg(Kind::Bits(arg_len + count), loc)
         };
         // Now we resize cast the argument into this larger register
         self.lop(
@@ -993,7 +968,7 @@ impl<'a> RTLCompiler<'a> {
             loc,
         );
         let count = b8(count as u128);
-        let left_shift_amount = self.lit(&count.typed_bits(), loc);
+        let left_shift_amount = self.lit(count.typed_bits(), loc);
         // Now we issue the shl operation (lossy)
         self.lop(
             tl::OpCode::Binary(tl::Binary {
@@ -1009,8 +984,7 @@ impl<'a> RTLCompiler<'a> {
         // The argument must be unsigned.
         // First pad the width by 1 bit
         let arg_len = self.operand_bit_width(arg);
-        let arg_padded =
-            self.allocate_register_with_register_size(&RegisterSize::Unsigned(arg_len + 1), loc);
+        let arg_padded = self.reg(Kind::Bits(arg_len + 1), loc);
         // Now we resize cast the argument into this larger register
         self.lop(
             tl::OpCode::Cast(tl::Cast {
@@ -1036,9 +1010,9 @@ impl<'a> RTLCompiler<'a> {
         // First pad the width by 1 bit
         let arg_len = self.operand_bit_width(arg);
         let mut arg_padded = if self.operand_is_signed(arg) {
-            self.allocate_register_with_register_size(&RegisterSize::Signed(arg_len + 1), loc)
+            self.reg(Kind::Signed(arg_len + 1), loc)
         } else {
-            self.allocate_register_with_register_size(&RegisterSize::Unsigned(arg_len + 1), loc)
+            self.reg(Kind::Bits(arg_len + 1), loc)
         };
         // Now we resize cast the argument into this larger register
         self.lop(
@@ -1052,8 +1026,7 @@ impl<'a> RTLCompiler<'a> {
         );
         // We need an extra step if the argument is unsigned
         if !self.operand_is_signed(arg) {
-            let padded_and_signed =
-                self.allocate_register_with_register_size(&RegisterSize::Signed(arg_len + 1), loc);
+            let padded_and_signed = self.reg(Kind::Signed(arg_len + 1), loc);
             self.lop(
                 tl::OpCode::Cast(tl::Cast {
                     lhs: padded_and_signed,
@@ -1080,8 +1053,8 @@ impl<'a> RTLCompiler<'a> {
         if self.object.kind(lhs).is_empty() {
             return Ok(());
         }
-        let lhs = self.operand(lhs, loc)?;
-        let arg1 = self.operand(arg1, loc)?;
+        let lhs = self.operand(lhs);
+        let arg1 = self.operand(arg1);
         let mut unop = |op| self.lop(tl::OpCode::Unary(tl::Unary { lhs, op, arg1 }), loc);
         match op {
             hf::AluUnary::Neg => unop(tl::AluUnary::Neg),
@@ -1181,28 +1154,24 @@ impl<'a> RTLCompiler<'a> {
 
 fn compile_rtl(object: &rhif::Object) -> Result<rtl::object::Object> {
     let mut compiler = RTLCompiler::new(object).translate()?;
-    let fallback = object.symbols.source_set.fallback(object.fn_id);
     let arguments = object
         .arguments
         .iter()
         .map(|x| {
-            if object.symtab[*x].kind.is_empty() {
+            if object.symtab[*x].is_empty() {
                 None
-            } else if let Ok(Operand::Register(reg_id)) =
-                compiler.operand(Slot::Register(*x), fallback)
-            {
+            } else if let Operand::Register(reg_id) = compiler.operand(Slot::Register(*x)) {
                 Some(reg_id)
             } else {
                 None
             }
         })
         .collect();
-    let return_register = compiler.reverse_operand_map[&(object.fn_id, object.return_slot)];
+    let return_register = compiler.reverse_operand_map[&object.return_slot];
     Ok(rtl::object::Object {
         symbols: compiler.symbols,
-        literals: compiler.literals,
+        symtab: compiler.symtab,
         return_register,
-        register_size: compiler.registers,
         ops: compiler.ops,
         arguments,
         name: object.name.clone(),

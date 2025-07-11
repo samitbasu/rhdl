@@ -28,7 +28,9 @@ impl Pass for RemoveUnusedRegistersPass {
         let remap = registers.retain(|rid, _| used_set.contains(&Slot::Register(rid)));
         visit_object_slots_mut(&mut input, |_sense, slot| {
             if let Some(rid) = slot.reg() {
-                *slot = Slot::Register(remap[&rid]);
+                *slot = Slot::Register(
+                    remap(rid).expect("New symbol table should include all used registers"),
+                );
             }
         });
         input.symtab = SymbolTable::from_parts(literals, registers);
