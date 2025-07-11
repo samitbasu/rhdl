@@ -31,7 +31,9 @@ impl Pass for RemoveUnusedLiterals {
         visit_object_slots_mut(&mut input, |sense, slot| {
             if sense.is_read() {
                 if let Some(lid) = slot.lit() {
-                    *slot = Slot::Literal(remap[&lid]);
+                    *slot = Slot::Literal(
+                        remap(lid).expect("New symtab should include all used literals"),
+                    );
                 }
             }
         });

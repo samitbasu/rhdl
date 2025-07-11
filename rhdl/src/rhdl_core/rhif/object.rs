@@ -69,6 +69,15 @@ pub struct SourceDetails {
     pub name: Option<String>,
 }
 
+impl From<SourceLocation> for SourceDetails {
+    fn from(val: SourceLocation) -> Self {
+        Self {
+            location: val,
+            name: None,
+        }
+    }
+}
+
 #[derive(Clone, Hash)]
 pub struct Object {
     pub symbols: SymbolMap,
