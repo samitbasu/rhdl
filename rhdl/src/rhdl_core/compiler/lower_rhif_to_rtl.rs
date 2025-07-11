@@ -629,6 +629,7 @@ impl<'a> RTLCompiler<'a> {
                     orig,
                     bit_range,
                     value: subst,
+                    path: path.clone(),
                 }),
                 loc,
             );
@@ -669,6 +670,7 @@ impl<'a> RTLCompiler<'a> {
                     orig: rhs,
                     bit_range: field_range,
                     value: field_value,
+                    path: path.clone(),
                 }),
                 id,
             );
@@ -760,6 +762,7 @@ impl<'a> RTLCompiler<'a> {
                     lhs: case_value,
                     arg,
                     bit_range,
+                    path: path.clone(),
                 }),
                 loc,
             );
@@ -792,6 +795,7 @@ impl<'a> RTLCompiler<'a> {
                 lhs,
                 arg,
                 bit_range,
+                path: index.path.clone(),
             }),
             loc,
         );
@@ -867,6 +871,7 @@ impl<'a> RTLCompiler<'a> {
                 orig,
                 bit_range,
                 value: subst,
+                path: path.clone(),
             }),
             loc,
         );
@@ -900,6 +905,7 @@ impl<'a> RTLCompiler<'a> {
                     orig: rhs,
                     bit_range: field_range,
                     value: field_value,
+                    path: path.clone(),
                 }),
                 loc,
             );

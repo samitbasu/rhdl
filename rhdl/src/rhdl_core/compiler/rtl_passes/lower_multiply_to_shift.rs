@@ -25,7 +25,7 @@ impl Pass for LowerMultiplyToShift {
             if let OpCode::Binary(binary) = &lop.op {
                 if binary.op == AluBinary::Mul {
                     if let Operand::Literal(lit) = binary.arg2 {
-                        let literal = &input.literals[&lit];
+                        let literal = &input.symtab[&lit];
                         let num_ones = literal.num_ones();
                         let trailing_zeros = literal.trailing_zeros();
                         if num_ones == 1 {

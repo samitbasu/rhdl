@@ -64,7 +64,7 @@ pub enum PathError {
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PathElement {
     Index(usize),
     TupleIndex(usize),
@@ -91,7 +91,7 @@ impl FromIterator<PathElement> for Path {
 
 impl std::fmt::Debug for Path {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for e in &self.elements {
+        for e in self.elements.iter() {
             match e {
                 PathElement::Index(i) => write!(f, "[{i}]")?,
                 PathElement::TupleIndex(i) => write!(f, ".{i}")?,
