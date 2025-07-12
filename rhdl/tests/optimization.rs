@@ -371,6 +371,14 @@ fn test_constant_propagation_through_sub_kernels() -> miette::Result<()> {
     Ok(())
 }
 
+fn no_empty_operands(rtl: &Object) -> bool {
+    rtl.symtab.iter_lit().all(|(_lid, (tb, _))| !tb.is_empty())
+        && rtl
+            .symtab
+            .iter_reg()
+            .all(|(_rid, (kind, _))| !kind.is_empty())
+}
+
 /*
 Object foo
   fn_id FnID(d86f2bbbdf22045f)
@@ -405,8 +413,7 @@ fn test_empty_expressions_dropped() -> miette::Result<()> {
     }
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    assert!(rtl.register_size.values().all(|v| !v.is_empty()));
-    assert!(rtl.literals.values().all(|v| !v.is_empty()));
+    assert!(no_empty_operands(&rtl));
     Ok(())
 }
 
@@ -425,8 +432,7 @@ fn test_empty_splices_dropped() -> miette::Result<()> {
     }
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    assert!(rtl.register_size.values().all(|v| !v.is_empty()));
-    assert!(rtl.literals.values().all(|v| !v.is_empty()));
+    assert!(no_empty_operands(&rtl));
     Ok(())
 }
 
@@ -440,8 +446,7 @@ fn test_empty_index_dropped() -> miette::Result<()> {
     }
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    assert!(rtl.register_size.values().all(|v| !v.is_empty()));
-    assert!(rtl.literals.values().all(|v| !v.is_empty()));
+    assert!(no_empty_operands(&rtl));
     Ok(())
 }
 
@@ -454,8 +459,7 @@ fn test_empty_dynamic_splices_dropped() -> miette::Result<()> {
     }
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    assert!(rtl.register_size.values().all(|v| !v.is_empty()));
-    assert!(rtl.literals.values().all(|v| !v.is_empty()));
+    assert!(no_empty_operands(&rtl));
     Ok(())
 }
 
@@ -467,8 +471,7 @@ fn test_empty_dynamic_index_dropped() -> miette::Result<()> {
     }
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    assert!(rtl.register_size.values().all(|v| !v.is_empty()));
-    assert!(rtl.literals.values().all(|v| !v.is_empty()));
+    assert!(no_empty_operands(&rtl));
     assert!(
         rtl.ops
             .iter()
@@ -511,8 +514,7 @@ fn test_empty_indices_dropped() -> miette::Result<()> {
         a.a
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    assert!(rtl.register_size.values().all(|v| !v.is_empty()));
-    assert!(rtl.literals.values().all(|v| !v.is_empty()));
+    assert!(no_empty_operands(&rtl));
     Ok(())
 }
 
@@ -549,7 +551,6 @@ fn test_empty_case_dropped() -> miette::Result<()> {
         ret
     }
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
-    assert!(rtl.register_size.values().all(|v| !v.is_empty()));
-    assert!(rtl.literals.values().all(|v| !v.is_empty()));
+    assert!(no_empty_operands(&rtl));
     Ok(())
 }

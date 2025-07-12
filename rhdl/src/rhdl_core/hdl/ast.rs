@@ -1,6 +1,13 @@
-use crate::rhdl_core::{
-    bitx::BitX, rtl::object::RegisterSize, rtl::spec::AluBinary, rtl::spec::AluUnary,
-    types::bit_string::BitString,
+use crate::{
+    prelude::Kind,
+    rhdl_core::{
+        bitx::BitX,
+        rtl::{
+            object::RegisterSize,
+            spec::{AluBinary, AluUnary},
+        },
+        types::bit_string::BitString,
+    },
 };
 
 use super::formatter;
@@ -77,6 +84,26 @@ impl SignedWidth {
     }
     pub fn is_signed(&self) -> bool {
         matches!(self, SignedWidth::Signed(_))
+    }
+}
+
+impl From<Kind> for SignedWidth {
+    fn from(kind: Kind) -> Self {
+        if kind.is_signed() {
+            SignedWidth::Signed(kind.bits())
+        } else {
+            SignedWidth::Unsigned(kind.bits())
+        }
+    }
+}
+
+impl From<&Kind> for SignedWidth {
+    fn from(kind: &Kind) -> Self {
+        if kind.is_signed() {
+            SignedWidth::Signed(kind.bits())
+        } else {
+            SignedWidth::Unsigned(kind.bits())
+        }
     }
 }
 

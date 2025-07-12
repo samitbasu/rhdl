@@ -71,6 +71,9 @@ impl TypedBits {
         bits: Vec::new(),
         kind: Kind::Empty,
     };
+    pub fn is_empty(&self) -> bool {
+        self.bits.is_empty()
+    }
     pub fn dont_care_from_kind(kind: Kind) -> Self {
         Self {
             bits: vec![BitX::X; kind.bits()],

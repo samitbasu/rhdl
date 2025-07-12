@@ -217,7 +217,7 @@ fn propagate_splice(
         orig,
         bit_range,
         value,
-        path,
+        path: _,
     } = &splice;
     if let (Operand::Literal(orig), Operand::Literal(value)) = (orig, value) {
         let orig = obj.symtab[orig].clone();
@@ -252,7 +252,7 @@ fn propagate_index(
         lhs,
         arg,
         bit_range,
-        path,
+        path: _,
     } = &index;
     if let Operand::Literal(arg) = arg {
         let arg = obj.symtab[arg].clone();

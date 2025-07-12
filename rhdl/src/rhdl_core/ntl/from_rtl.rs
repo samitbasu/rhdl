@@ -92,10 +92,11 @@ impl<'a> NtlBuilder<'a> {
         if let Some(port) = self.operand_map.get(&operand) {
             return port.clone();
         }
+        let kind = self.object.kind(operand);
         let operands = match operand {
             tl::Operand::Literal(literal_id) => {
-                let bs = &self.object.literals[&literal_id];
-                bs.bits()
+                let bs = &self.object.symtab[&literal_id];
+                bs.bits
                     .iter()
                     .map(|b| match b {
                         BitX::Zero => bt::Operand::Zero,
@@ -104,15 +105,14 @@ impl<'a> NtlBuilder<'a> {
                     })
                     .collect::<Vec<_>>()
             }
-            tl::Operand::Register(register_id) => {
-                let reg = self.object.register_size[&register_id];
-                (0..reg.len())
+            tl::Operand::Register(_) => {
+                let reg = kind.bits();
+                (0..reg)
                     .map(|_| bt::Operand::Register(self.reg()))
                     .collect::<Vec<_>>()
             }
         };
         // The symbol table completeness test guarantees this access is safe
-        let kind = self.object.symbols.rhif_types[&operand];
         for (bit, operand) in operands.iter().enumerate() {
             self.btl.kinds.insert(*operand, KindAndBit { kind, bit });
         }
@@ -167,7 +167,7 @@ impl<'a> NtlBuilder<'a> {
             .iter()
             .map(|(x, _)| {
                 if let tl::CaseArgument::Literal(lit_id) = x {
-                    bt::CaseEntry::Literal(self.object.literals[lit_id].clone())
+                    bt::CaseEntry::Literal((&self.object.symtab[lit_id]).into())
                 } else {
                     bt::CaseEntry::WildCard
                 }
