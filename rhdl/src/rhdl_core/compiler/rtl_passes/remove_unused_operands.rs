@@ -2,7 +2,11 @@ use std::collections::HashSet;
 
 use crate::rhdl_core::{
     error::RHDLError,
-    rtl::{remap::remap_operands, spec::Operand, Object},
+    rtl::{
+        Object,
+        spec::Operand,
+        visit::{visit_object_operands, visit_object_operands_mut},
+    },
 };
 
 use super::pass::Pass;
@@ -13,26 +17,13 @@ pub struct RemoveUnusedOperandsPass {}
 impl Pass for RemoveUnusedOperandsPass {
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut used_set: HashSet<Operand> = Default::default();
-        used_set.extend(
-            input
-                .arguments
-                .iter()
-                .flat_map(|r| r.as_ref())
-                .map(|r| Operand::Register(*r)),
-        );
-        used_set.insert(input.return_register);
-        for lop in input.ops.iter() {
-            remap_operands(lop.op.clone(), |slot| {
-                used_set.insert(slot);
-                slot
-            });
-        }
-        input
-            .register_size
-            .retain(|&reg_id, _| used_set.contains(&Operand::Register(reg_id)));
-        input
-            .literals
-            .retain(|&lit_id, _| used_set.contains(&Operand::Literal(lit_id)));
+        visit_object_operands(&input, |_sense, operand| {
+            used_set.insert(*operand);
+        });
+        let remap = input.symtab.retain(|symb, _| used_set.contains(&symb));
+        visit_object_operands_mut(&mut input, |_sense, operand| {
+            *operand = remap(*operand).expect("Remapped operand should be present");
+        });
         Ok(input)
     }
     fn description() -> &'static str {

@@ -502,6 +502,25 @@ impl TypedBits {
             WrapOp::Ok => self.wrap_ok(kind),
         }
     }
+    pub fn is_zero(&self) -> bool {
+        self.bits.iter().all(|b| *b == BitX::Zero)
+    }
+    pub fn num_ones(&self) -> usize {
+        self.bits.iter().filter(|b| **b == BitX::One).count()
+    }
+    pub fn trailing_zeros(&self) -> usize {
+        self.bits.iter().take_while(|b| **b == BitX::Zero).count()
+    }
+}
+
+impl FromIterator<TypedBits> for TypedBits {
+    fn from_iter<T: IntoIterator<Item = TypedBits>>(iter: T) -> Self {
+        let args = iter.into_iter().collect::<Vec<_>>();
+        let kinds = args.iter().map(|tb| tb.kind).collect::<Vec<_>>();
+        let kind = Kind::make_tuple(kinds);
+        let bits = args.into_iter().flat_map(|x| x.bits).collect::<Vec<_>>();
+        TypedBits { bits, kind }
+    }
 }
 
 fn binop_kind(lhs: &Kind, rhs: &Kind) -> Result<Kind> {

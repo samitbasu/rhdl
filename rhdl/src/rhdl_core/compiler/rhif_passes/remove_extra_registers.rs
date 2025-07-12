@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::pass::Pass;
 use crate::rhdl_core::{
-    common::symtab::RegisterId,
+    common::{symtab::RegisterId, unify_key::EnaKey},
     error::RHDLError,
     rhif::{
         Object,
@@ -10,29 +10,10 @@ use crate::rhdl_core::{
         visit::visit_object_slots_mut,
     },
 };
-use ena::unify::{InPlaceUnificationTable, UnifyKey};
+use ena::unify::InPlaceUnificationTable;
 
 #[derive(Default, Debug, Clone)]
 pub struct RemoveExtraRegistersPass {}
-
-#[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
-struct RegisterKey(u32);
-
-impl UnifyKey for RegisterKey {
-    type Value = ();
-
-    fn index(&self) -> u32 {
-        self.0
-    }
-
-    fn from_index(u: u32) -> Self {
-        Self(u)
-    }
-
-    fn tag() -> &'static str {
-        "RegisterKey"
-    }
-}
 
 impl Pass for RemoveExtraRegistersPass {
     fn description() -> &'static str {
@@ -40,14 +21,14 @@ impl Pass for RemoveExtraRegistersPass {
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         // Create a union table
-        let mut table = InPlaceUnificationTable::<RegisterKey>::new();
-        // Map each register ID to a RegisterKey
-        let reg_map: HashMap<RegisterId, RegisterKey> = input
+        let mut table = InPlaceUnificationTable::<EnaKey>::new();
+        // Map each register ID to a EnaKey
+        let reg_map: HashMap<RegisterId, EnaKey> = input
             .symtab
             .iter_reg()
             .map(|(reg, _)| (reg, table.new_key(())))
             .collect();
-        let inv_map: HashMap<RegisterKey, RegisterId> =
+        let inv_map: HashMap<EnaKey, RegisterId> =
             reg_map.iter().map(|(&op, &key)| (key, op)).collect();
         // Loop over the assignments in the opcodes. And for each assignment,
         // union the arguments in the table.

@@ -1,9 +1,20 @@
+use super::object::Object;
 use super::spec::*;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Sense {
     Read,
     Write,
+}
+
+impl Sense {
+    pub fn is_read(&self) -> bool {
+        matches!(self, Sense::Read)
+    }
+
+    pub fn is_write(&self) -> bool {
+        matches!(self, Sense::Write)
+    }
 }
 
 pub fn visit_operands<F: FnMut(Sense, &Operand)>(op: &OpCode, mut f: F) {
@@ -57,6 +68,7 @@ pub fn visit_operands<F: FnMut(Sense, &Operand)>(op: &OpCode, mut f: F) {
             lhs,
             arg,
             bit_range: _,
+            path: _,
         }) => {
             f(Sense::Write, lhs);
             f(Sense::Read, arg);
@@ -77,6 +89,7 @@ pub fn visit_operands<F: FnMut(Sense, &Operand)>(op: &OpCode, mut f: F) {
             orig,
             bit_range: _,
             value,
+            path: _,
         }) => {
             f(Sense::Write, lhs);
             f(Sense::Read, orig);
@@ -145,6 +158,7 @@ pub fn visit_operands_mut<F: FnMut(Sense, &mut Operand)>(op: &mut OpCode, mut f:
             lhs,
             arg,
             bit_range: _,
+            path: _,
         }) => {
             f(Sense::Write, lhs);
             f(Sense::Read, arg);
@@ -165,6 +179,7 @@ pub fn visit_operands_mut<F: FnMut(Sense, &mut Operand)>(op: &mut OpCode, mut f:
             orig,
             bit_range: _,
             value,
+            path: _,
         }) => {
             f(Sense::Write, lhs);
             f(Sense::Read, orig);
@@ -175,4 +190,28 @@ pub fn visit_operands_mut<F: FnMut(Sense, &mut Operand)>(op: &mut OpCode, mut f:
             f(Sense::Read, arg1);
         }
     }
+}
+
+pub fn visit_object_operands<F: FnMut(Sense, &Operand)>(object: &Object, mut f: F) {
+    for arg in object.arguments.iter().flatten() {
+        f(Sense::Write, &Operand::Register(*arg));
+    }
+    for lop in &object.ops {
+        visit_operands(&lop.op, &mut f);
+    }
+    f(Sense::Read, &object.return_register);
+}
+
+pub fn visit_object_operands_mut<F: FnMut(Sense, &mut Operand)>(object: &mut Object, mut f: F) {
+    for arg in object.arguments.iter_mut().flatten() {
+        let mut operand = Operand::Register(*arg);
+        f(Sense::Write, &mut operand);
+        *arg = operand
+            .reg()
+            .expect("Argument operands must remain registers.  Do not mutate them into literals!");
+    }
+    for lop in object.ops.iter_mut() {
+        visit_operands_mut(&mut lop.op, &mut f);
+    }
+    f(Sense::Read, &mut object.return_register)
 }

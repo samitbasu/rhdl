@@ -133,6 +133,13 @@ impl Object {
         self.hash(&mut hasher);
         hasher.finish()
     }
+
+    pub(crate) fn kind(&self, op: Operand) -> Kind {
+        match op {
+            Operand::Literal(lid) => self.symtab[lid].kind,
+            Operand::Register(rid) => self.symtab[rid],
+        }
+    }
 }
 
 impl std::fmt::Debug for Object {

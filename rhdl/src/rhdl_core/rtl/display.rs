@@ -104,6 +104,7 @@ impl std::fmt::Debug for OpCode {
                 lhs,
                 arg,
                 bit_range,
+                path,
             }) => {
                 write!(f, " {lhs:?} <- {arg:?}[{bit_range:?}]")
             }
@@ -113,16 +114,14 @@ impl std::fmt::Debug for OpCode {
                 true_value,
                 false_value,
             }) => {
-                write!(
-                    f,
-                    " {lhs:?} <- {cond:?} ? {true_value:?} : {false_value:?}"
-                )
+                write!(f, " {lhs:?} <- {cond:?} ? {true_value:?} : {false_value:?}")
             }
             OpCode::Splice(Splice {
                 lhs,
                 orig,
                 bit_range,
                 value,
+                path,
             }) => {
                 write!(f, " {lhs:?} <- {orig:?}/{bit_range:?}/{value:?}")
             }

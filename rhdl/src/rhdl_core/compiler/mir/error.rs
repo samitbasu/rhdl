@@ -198,7 +198,7 @@ pub enum ICE {
     #[error("Wrap opcode requires an option kind, not {kind:?}")]
     WrapRequiresOptionKind { kind: Kind },
     #[error("Attempted to select based on an uninitialized value")]
-    SelectOnUninitializedValue { value: BitString },
+    SelectOnUninitializedValue { value: TypedBits },
     #[error("Invalid arguments to Xops operation {a:?} and {b:?}")]
     InvalidXopsKind { a: Kind, b: Kind },
     #[error("Result of an Xops (xadd, xsub, xmul) cannot be assigned to a literal")]

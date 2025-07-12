@@ -1,17 +1,20 @@
-use crate::rhdl_core::{
-    RHDLError, TypedBits,
-    ast::source::source_location::SourceLocation,
-    common::symtab::LiteralId,
-    compiler::mir::error::ICE,
-    rtl::{
-        Object,
-        object::{LocatedOpCode, RegisterSize},
-        spec::{AluBinary, Binary, Cast, CastKind, Concat, Index, OpCode, Operand},
+use crate::{
+    prelude::{Kind, Path},
+    rhdl_core::{
+        RHDLError, TypedBits,
+        ast::source::source_location::SourceLocation,
+        common::symtab::LiteralId,
+        compiler::mir::error::ICE,
+        rtl::{
+            Object,
+            object::LocatedOpCode,
+            spec::{AluBinary, Binary, Cast, CastKind, Concat, Index, OpCode, Operand},
+        },
+        types::bit_string::BitString,
     },
-    types::bit_string::BitString,
 };
 
-use super::{allocate_literal, allocate_register, pass::Pass};
+use super::pass::Pass;
 
 #[derive(Default, Debug, Clone)]
 pub struct LowerShiftByConstant {}
@@ -44,17 +47,18 @@ impl LowerShiftByConstant {
         loc: SourceLocation,
     ) -> Result<(), RHDLError> {
         let shift_amount = Self::shift_amount_as_usize(input, lit, loc)?;
+        let source_details = input.symtab[arg1].clone();
         let arg1_len = input.size(arg1).len();
         let arg1_ext_len = arg1_len + shift_amount;
-        let ext_kind = if input.size(arg1).is_signed() {
-            RegisterSize::Signed(arg1_ext_len)
+        let ext_kind = if input.kind(arg1).is_signed() {
+            Kind::Signed(arg1_ext_len)
         } else {
-            RegisterSize::Unsigned(arg1_ext_len)
+            Kind::Bits(arg1_ext_len)
         };
-        let ext = allocate_register(input, ext_kind, loc);
+        let ext = input.symtab.reg(ext_kind, source_details);
         input.ops.push(LocatedOpCode {
             op: OpCode::Cast(Cast {
-                lhs: Operand::Register(ext),
+                lhs: ext,
                 arg: arg1,
                 kind: CastKind::Resize,
                 len: arg1_ext_len,
@@ -64,8 +68,9 @@ impl LowerShiftByConstant {
         input.ops.push(LocatedOpCode {
             op: OpCode::Index(Index {
                 lhs,
-                arg: Operand::Register(ext),
+                arg: ext,
                 bit_range: shift_amount..arg1_ext_len,
+                path: Path::default(),
             }),
             loc,
         });
@@ -83,25 +88,33 @@ impl LowerShiftByConstant {
         let arg1_len = input.size(arg1).len();
         let arg1_lsbs_len = arg1_len.saturating_sub(shift_amount);
         // Allocate a new literal to hold the zeros shifted in on the right.
-        let zero_lit = allocate_literal(input, loc, BitString::zeros(shift_amount));
-        let lsb_kind = if input.size(arg1).is_signed() {
-            RegisterSize::Signed(arg1_lsbs_len)
-        } else {
-            RegisterSize::Unsigned(arg1_lsbs_len)
+        let source_details = input.symtab[arg1].clone();
+        let zero_kind = Kind::Bits(shift_amount);
+        let zero_bits = BitString::zeros(shift_amount);
+        let zero_tb = TypedBits {
+            kind: zero_kind,
+            bits: zero_bits.bits().to_vec(),
         };
-        let lsbs = allocate_register(input, lsb_kind, loc);
+        let zero_lit = input.symtab.lit(zero_tb, source_details.clone());
+        let lsb_kind = if input.kind(arg1).is_signed() {
+            Kind::Signed(arg1_lsbs_len)
+        } else {
+            Kind::Bits(arg1_lsbs_len)
+        };
+        let lsbs = input.symtab.reg(lsb_kind, source_details);
         input.ops.push(LocatedOpCode {
             op: OpCode::Index(Index {
-                lhs: Operand::Register(lsbs),
+                lhs: lsbs,
                 arg: arg1,
                 bit_range: 0..arg1_lsbs_len,
+                path: Path::default(),
             }),
             loc,
         });
         input.ops.push(LocatedOpCode {
             op: OpCode::Concat(Concat {
                 lhs,
-                args: vec![Operand::Literal(zero_lit), Operand::Register(lsbs)],
+                args: vec![zero_lit, lsbs],
             }),
             loc,
         });
