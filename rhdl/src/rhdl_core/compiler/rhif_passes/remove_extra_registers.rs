@@ -23,12 +23,12 @@ impl Pass for RemoveExtraRegistersPass {
         // Create a union table
         let mut table = InPlaceUnificationTable::<EnaKey>::new();
         // Map each register ID to a EnaKey
-        let reg_map: HashMap<RegisterId, EnaKey> = input
+        let reg_map: HashMap<RegisterId<_>, EnaKey> = input
             .symtab
             .iter_reg()
             .map(|(reg, _)| (reg, table.new_key(())))
             .collect();
-        let inv_map: HashMap<EnaKey, RegisterId> =
+        let inv_map: HashMap<EnaKey, RegisterId<_>> =
             reg_map.iter().map(|(&op, &key)| (key, op)).collect();
         // Loop over the assignments in the opcodes. And for each assignment,
         // union the arguments in the table.

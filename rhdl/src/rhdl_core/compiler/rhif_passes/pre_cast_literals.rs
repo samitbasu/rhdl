@@ -5,7 +5,7 @@ use crate::rhdl_core::{
     error::RHDLError,
     rhif::{
         Object,
-        spec::{OpCode, Slot},
+        spec::{OpCode, Slot, SlotKind},
         visit::visit_slots,
     },
 };
@@ -17,7 +17,7 @@ pub struct PreCastLiterals {}
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 struct CastCandidate {
-    id: LiteralId,
+    id: LiteralId<SlotKind>,
     len: usize,
     signed: bool,
 }
@@ -63,7 +63,7 @@ impl Pass for PreCastLiterals {
             });
         }
         // Check that each candidate is referenced exactly once
-        let candidates: HashMap<LiteralId, CastCandidate> = candidates
+        let candidates: HashMap<LiteralId<_>, CastCandidate> = candidates
             .into_iter()
             .filter(|candidate| use_count.get(&Slot::Literal(candidate.id)) == Some(&1))
             .map(|candidate| (candidate.id, candidate))

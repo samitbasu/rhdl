@@ -8,7 +8,9 @@ use crate::{
         rtl::{
             Object,
             object::LocatedOpCode,
-            spec::{AluBinary, Binary, Cast, CastKind, Concat, Index, OpCode, Operand},
+            spec::{
+                AluBinary, Binary, Cast, CastKind, Concat, Index, OpCode, Operand, OperandKind,
+            },
         },
         types::bit_string::BitString,
     },
@@ -22,7 +24,7 @@ pub struct LowerShiftByConstant {}
 impl LowerShiftByConstant {
     fn shift_amount_as_usize(
         input: &Object,
-        lit: LiteralId,
+        lit: LiteralId<OperandKind>,
         loc: SourceLocation,
     ) -> Result<usize, RHDLError> {
         let shift_amount: TypedBits = input.symtab[&lit].clone();
@@ -43,7 +45,7 @@ impl LowerShiftByConstant {
         input: &mut Object,
         lhs: Operand,
         arg1: Operand,
-        lit: LiteralId,
+        lit: LiteralId<OperandKind>,
         loc: SourceLocation,
     ) -> Result<(), RHDLError> {
         let shift_amount = Self::shift_amount_as_usize(input, lit, loc)?;
@@ -81,7 +83,7 @@ impl LowerShiftByConstant {
         input: &mut Object,
         lhs: Operand,
         arg1: Operand,
-        lit: LiteralId,
+        lit: LiteralId<OperandKind>,
         loc: SourceLocation,
     ) -> Result<(), RHDLError> {
         let shift_amount = Self::shift_amount_as_usize(input, lit, loc)?;

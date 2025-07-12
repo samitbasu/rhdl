@@ -617,6 +617,7 @@ mod tests {
     use crate::rhdl_core::{
         Kind,
         common::symtab::SymbolTable,
+        rhif::spec::SlotKind,
         types::{kind::DiscriminantLayout, path::path_star},
     };
 
@@ -663,7 +664,7 @@ mod tests {
 
     #[test]
     fn test_path_star() {
-        let mut symtab = SymbolTable::<(), (), ()>::default();
+        let mut symtab = SymbolTable::<(), (), (), SlotKind>::default();
         let s0 = symtab.reg((), ());
         let s1 = symtab.reg((), ());
         let base_struct = Kind::make_struct(

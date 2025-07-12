@@ -5,7 +5,6 @@ use crate::rhdl_core::{
     common::{symtab::RegisterId, unify_key::EnaKey},
     rtl::{
         Object,
-        object::LocatedOpCode,
         spec::{Assign, OpCode, Operand},
         visit::visit_object_operands_mut,
     },
@@ -17,22 +16,17 @@ use super::pass::Pass;
 #[derive(Default, Debug, Clone)]
 pub struct RemoveExtraRegistersPass {}
 
-fn find_assign_op(ops: &[LocatedOpCode]) -> Option<usize> {
-    ops.iter()
-        .position(|lop| matches!(lop.op, OpCode::Assign(_)))
-}
-
 impl Pass for RemoveExtraRegistersPass {
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         // Create a union table
         let mut table = InPlaceUnificationTable::<EnaKey>::new();
         // Map each Register ID to an EnaKey
-        let reg_map: HashMap<RegisterId, EnaKey> = input
+        let reg_map: HashMap<RegisterId<_>, EnaKey> = input
             .symtab
             .iter_reg()
             .map(|(reg, _)| (reg, table.new_key(())))
             .collect();
-        let inv_map: HashMap<EnaKey, RegisterId> =
+        let inv_map: HashMap<EnaKey, RegisterId<_>> =
             reg_map.iter().map(|(&reg, &key)| (key, reg)).collect();
         // Loop over the assignment op codes, and union the arguments in the table
         for lop in &input.ops {

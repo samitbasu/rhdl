@@ -49,6 +49,7 @@ use crate::rhdl_core::rhif::spec::AluUnary;
 use crate::rhdl_core::rhif::spec::CaseArgument;
 use crate::rhdl_core::rhif::spec::FuncId;
 use crate::rhdl_core::rhif::spec::Member;
+use crate::rhdl_core::rhif::spec::SlotKind;
 use crate::rhdl_core::rhif::{
     rhif_builder::{
         op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
@@ -151,7 +152,7 @@ type Result<T> = std::result::Result<T, RHDLError>;
 pub struct MirContext<'a> {
     scopes: Vec<Scope>,
     ops: Vec<LocatedOpCode>,
-    symtab: SymbolTable<ExprLit, Option<String>, NodeId>,
+    symtab: SymbolTable<ExprLit, Option<String>, NodeId, SlotKind>,
     ty: BTreeMap<Slot, Kind>,
     ty_equate: HashSet<TypeEquivalence>,
     stash: BTreeMap<FuncId, Box<Object>>,
@@ -356,7 +357,7 @@ impl<'a> MirContext<'a> {
         }
         None
     }
-    fn slot_to_index(&self, lid: LiteralId, id: NodeId) -> Result<usize> {
+    fn slot_to_index(&self, lid: LiteralId<SlotKind>, id: NodeId) -> Result<usize> {
         let value = &self.symtab[lid];
         let ndx = self.coerce_literal_to_i32(value, id)? as usize;
         Ok(ndx)

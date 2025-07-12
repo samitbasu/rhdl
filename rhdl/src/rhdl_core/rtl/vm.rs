@@ -161,7 +161,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 lhs,
                 arg,
                 bit_range,
-                path,
+                path: _,
             }) => {
                 let arg = state.read(*arg, loc)?;
                 let slice = arg.bits()[bit_range.clone()].to_vec();
@@ -194,7 +194,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 orig,
                 value,
                 bit_range,
-                path,
+                path: _,
             }) => {
                 let orig = state.read(*orig, loc)?;
                 let value = state.read(*value, loc)?;

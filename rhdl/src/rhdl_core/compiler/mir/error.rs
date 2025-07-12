@@ -8,9 +8,9 @@ use crate::rhdl_core::{
     ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
     builder::BinOp,
     common::symtab::{LiteralId, RegisterId},
-    rhif::spec::{AluBinary, AluUnary, OpCode, Slot},
-    rtl::spec::Operand,
-    types::{bit_string::BitString, path::Path},
+    rhif::spec::{AluBinary, AluUnary, OpCode, Slot, SlotKind},
+    rtl::spec::{Operand, OperandKind},
+    types::path::Path,
 };
 
 use super::{compiler::ScopeIndex, ty::SignFlag};
@@ -110,9 +110,9 @@ pub enum ICE {
     #[error("Slot {slot:?} is read before being written")]
     SlotIsReadBeforeBeingWritten { slot: Slot },
     #[error("Cannot write to a literal {ndx:?}")]
-    CannotWriteToRHIFLiteral { ndx: LiteralId },
+    CannotWriteToRHIFLiteral { ndx: LiteralId<SlotKind> },
     #[error("Cannot write to a RTL literal {ndx:?}")]
-    CannotWriteToRTLLiteral { ndx: LiteralId },
+    CannotWriteToRTLLiteral { ndx: LiteralId<OperandKind> },
     #[error("Slot {slot:?} is written twice")]
     SlotIsWrittenTwice { slot: Slot },
     #[error("Mismatch in data types (clock domain ignored) {lhs:?} and {rhs:?}")]
@@ -149,6 +149,8 @@ pub enum ICE {
     VariantNotFoundInType { variant: i64, ty: Kind },
     #[error("Symbol table has no entry for slot {slot:?}")]
     SymbolTableIsIncomplete { slot: Slot },
+    #[error("Symbol table has no entry for operand {operand:?}")]
+    SymbolTableIsIncompleteForRTL { operand: Operand },
     #[error("Unable to infer clock domain for retime operation {op:?}")]
     UnableToInferClockDomainForRetime { op: OpCode },
     #[error("Empty slot passed to code generator in RTL")]
@@ -164,9 +166,9 @@ pub enum ICE {
     #[error("Malformed RTL flow graph returned")]
     MalformedRTLFlowGraph,
     #[error("VM encountered an uninitialized RHIF register {r:?}")]
-    UninitializedRegister { r: RegisterId },
+    UninitializedRegister { r: RegisterId<SlotKind> },
     #[error("VM encountered an uninitialized RTL register {r:?}")]
-    UninitializedRTLRegister { r: RegisterId },
+    UninitializedRTLRegister { r: RegisterId<OperandKind> },
     #[error("VM cannot write a non-empty value to an empty slot")]
     CannotWriteNonEmptyValueToEmptySlot,
     #[error("VM encountered a discriminant {discriminant:?} with no matching arm")]

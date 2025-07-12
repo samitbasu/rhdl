@@ -18,7 +18,7 @@ impl Pass for RemoveEmptyFunctionArguments {
             .arguments
             .iter()
             .flat_map(|x| x.as_ref())
-            .filter(|x| input.symtab[*x].is_empty())
+            .filter(|x| input.symtab[*x].bits() == 0)
             .copied()
             .collect::<Vec<_>>();
         if empty_args.is_empty() {

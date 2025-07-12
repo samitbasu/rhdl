@@ -14,6 +14,7 @@ use crate::rhdl_core::error::rhdl_error;
 use crate::rhdl_core::rhif::object::SourceDetails;
 use crate::rhdl_core::rhif::spec::{AluBinary, Slot};
 use crate::rhdl_core::rtl::remap::remap_operands;
+use crate::rhdl_core::rtl::spec::OperandKind;
 use crate::rhdl_core::rtl::spec::{CastKind, Concat, Operand};
 use crate::rhdl_core::rtl::symbols::SymbolMap;
 use crate::rhdl_core::types::bit_string::BitString;
@@ -31,7 +32,7 @@ type Result<T> = std::result::Result<T, RHDLError>;
 struct RTLCompiler<'a> {
     symbols: SymbolMap,
     object: &'a rhif::object::Object,
-    symtab: SymbolTable<TypedBits, Kind, SourceDetails>,
+    symtab: SymbolTable<TypedBits, Kind, SourceDetails, OperandKind>,
     operand_map: BTreeMap<Operand, Slot>,
     reverse_operand_map: BTreeMap<Slot, Operand>,
     ops: Vec<rtl::object::LocatedOpCode>,
@@ -684,29 +685,30 @@ impl<'a> RTLCompiler<'a> {
         // Look up the function ID from the external functions.
         let func = &self.object.externals[id];
         // Compile it...
-        let func_rtl = compile_rtl(func)?;
-        // Inline it.
-        let mut operand_translation = BTreeMap::new();
-        // Rebind the arguments to local registers, and copy the values into them
-        for (fn_arg, arg) in func_rtl.arguments.iter().zip(args) {
+        let func = compile_rtl(func)?;
+        // Merge in the symbols.  Each symbol in the executed function, now has a corresponding
+        // symbol in our symbol table
+        let mut op_remap = self.symtab.merge(func.symtab);
+        // We just need to assign each argument from the called function to the corresponding
+        // value from our symbol table.
+        for (fn_arg, arg) in func.arguments.iter().zip(args) {
             if let Some(fn_reg) = fn_arg {
-                let fn_reg_in_our_space = self.reg(func_rtl.symtab[fn_reg], loc);
-                operand_translation.insert(Operand::Register(*fn_reg), fn_reg_in_our_space);
+                let fn_reg_in_our_space = op_remap((*fn_reg).into());
+                let argument_in_caller_space = self.operand(*arg);
                 self.lop(
                     tl::OpCode::Assign(tl::Assign {
                         lhs: fn_reg_in_our_space,
-                        rhs: *arg,
+                        rhs: argument_in_caller_space,
                     }),
                     loc,
                 );
             }
         }
-        let mut op_remap = self.symtab.merge(func_rtl.symtab);
-        let return_register = op_remap(func_rtl.return_register);
+        let return_register = op_remap(func.return_register);
         // Translate each operation and add it to the existing function (inline).
         // Remap the operands of the opcode to allocate from the current function.
         // Note that we need to ensure that if a register is allocated it is reused..
-        let translated = func_rtl
+        let translated = func
             .ops
             .into_iter()
             .map(|old_lop| {
@@ -725,7 +727,7 @@ impl<'a> RTLCompiler<'a> {
         );
         self.symbols
             .source_set
-            .extend(func_rtl.symbols.source_set.sources);
+            .extend(func.symbols.source_set.sources);
         Ok(())
     }
     /// Lower the RHIF dynamic index to RTL
