@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use crate::{
     prelude::Path,
-    rhdl_core::common::symtab::{LiteralId, Symbol},
+    rhdl_core::common::symtab::{LiteralId, Symbol, SymbolKind},
 };
 
 #[derive(Clone, PartialEq, Hash)]
@@ -30,7 +30,14 @@ pub enum OpCode {
     Unary(Unary),
 }
 
-pub type Operand = Symbol;
+#[derive(Hash, Eq, Ord, PartialOrd, PartialEq, Copy, Clone, Default)]
+pub struct OperandKind {}
+
+impl SymbolKind for OperandKind {
+    const NAME: &'static str = "o";
+}
+
+pub type Operand = Symbol<OperandKind>;
 
 #[derive(Clone, Copy, PartialEq, Hash)]
 pub enum AluBinary {
@@ -152,7 +159,7 @@ pub struct Assign {
 
 #[derive(Clone, Debug, PartialEq, Hash)]
 pub enum CaseArgument {
-    Literal(LiteralId),
+    Literal(LiteralId<OperandKind>),
     Wild,
 }
 

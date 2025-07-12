@@ -18,7 +18,7 @@ impl Pass for SymbolTableIsComplete {
                 if !input.symtab.is_key_valid(operand) {
                     error = Some(Err(Self::raise_ice(
                         &input,
-                        ICE::SymbolTableIsIncomplete { slot: operand },
+                        ICE::SymbolTableIsIncompleteForRTL { operand },
                         id,
                     )));
                 }

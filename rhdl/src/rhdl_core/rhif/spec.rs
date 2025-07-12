@@ -1,6 +1,9 @@
 // RHDL Intermediate Form (RHIF).
 use crate::rhdl_core::{
-    Color, Kind, TypedBits, ast::ast_impl::WrapOp, common::symtab::Symbol, types::path::Path,
+    Color, Kind, TypedBits,
+    ast::ast_impl::WrapOp,
+    common::symtab::{Symbol, SymbolKind},
+    types::path::Path,
 };
 
 #[derive(Clone, PartialEq, Hash)]
@@ -233,7 +236,14 @@ pub enum AluUnary {
     XSgn,
 }
 
-pub type Slot = Symbol;
+#[derive(Hash, Eq, Ord, PartialOrd, PartialEq, Copy, Clone, Default)]
+pub struct SlotKind {}
+
+impl SymbolKind for SlotKind {
+    const NAME: &'static str = "s";
+}
+
+pub type Slot = Symbol<SlotKind>;
 
 #[derive(Clone, PartialEq, Hash)]
 pub enum Member {

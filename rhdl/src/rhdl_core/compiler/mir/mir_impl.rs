@@ -15,7 +15,7 @@ use crate::rhdl_core::{
     rhif::{
         Object,
         object::{LocatedOpCode, SymbolMap},
-        spec::{FuncId, OpCode, Slot},
+        spec::{FuncId, OpCode, Slot, SlotKind},
     },
 };
 
@@ -29,7 +29,7 @@ pub struct TypeEquivalence {
 pub struct Mir {
     pub symbols: SymbolMap,
     pub ops: Vec<LocatedOpCode>,
-    pub symtab: SymbolTable<ExprLit, Option<String>, SourceLocation>,
+    pub symtab: SymbolTable<ExprLit, Option<String>, SourceLocation, SlotKind>,
     pub ty: BTreeMap<Slot, Kind>,
     pub ty_equate: HashSet<TypeEquivalence>,
     pub stash: BTreeMap<FuncId, Box<Object>>,

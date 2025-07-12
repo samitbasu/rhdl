@@ -106,7 +106,7 @@ impl std::fmt::Debug for OpCode {
                 bit_range,
                 path,
             }) => {
-                write!(f, " {lhs:?} <- {arg:?}[{bit_range:?}]")
+                write!(f, " {lhs:?} <- {arg:?}[{bit_range:?}] // [{path:?}]")
             }
             OpCode::Select(Select {
                 lhs,
@@ -123,7 +123,10 @@ impl std::fmt::Debug for OpCode {
                 value,
                 path,
             }) => {
-                write!(f, " {lhs:?} <- {orig:?}/{bit_range:?}/{value:?}")
+                write!(
+                    f,
+                    " {lhs:?} <- {orig:?}/{bit_range:?}/{value:?} // [{path:?}]"
+                )
             }
             OpCode::Unary(Unary { op, lhs, arg1 }) => {
                 write!(f, " {lhs:?} <- {op:?}{arg1:?}")

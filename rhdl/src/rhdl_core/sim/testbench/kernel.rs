@@ -2,22 +2,22 @@ use log::debug;
 use std::iter::once;
 
 use crate::rhdl_core::{
+    Digital, DigitalFn, RHDLError, TypedBits,
     compiler::{
         driver::{compile_design_stage1, compile_design_stage2},
         optimize_ntl,
     },
     hdl::{
         ast::{
-            assert, assign, bit_string, component_instance, connection, continuous_assignment,
-            declaration, delay, display, finish, function_call, id, initial, unsigned_width,
-            Declaration, Function, HDLKind, Module, Statement,
+            Declaration, Function, HDLKind, Module, Statement, assert, assign, bit_string,
+            component_instance, connection, continuous_assignment, declaration, delay, display,
+            finish, function_call, id, initial, unsigned_width,
         },
         builder::generate_verilog,
     },
     ntl::{from_rtl::build_ntl_from_rtl, hdl::generate_hdl},
     sim::test_module::TestModule,
     types::bit_string::BitString,
-    Digital, DigitalFn, RHDLError, TypedBits,
 };
 
 pub trait TestArg {
@@ -419,6 +419,9 @@ where
     debug!("Generating netlist from rtl");
     let ntl = build_ntl_from_rtl(&rtl);
     let ntl = optimize_ntl(ntl)?;
+    debug!("{rtl:?}");
+    debug!("{ntl:?}");
+    panic!("Stop!");
     let desc = generate_hdl("dut", &ntl)?;
     let tm = test_module_for_netlist(uut, desc, vals);
     debug!("Running netlist test");

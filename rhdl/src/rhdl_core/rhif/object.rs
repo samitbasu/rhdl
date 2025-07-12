@@ -10,6 +10,7 @@ use crate::rhdl_core::ast::KernelFlags;
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
 use crate::rhdl_core::ast::source::spanned_source_set::SpannedSourceSet;
 use crate::rhdl_core::common::symtab::{RegisterId, SymbolTable};
+use crate::rhdl_core::rhif::spec::SlotKind;
 use crate::rhdl_core::{
     Kind, TypedBits,
     ast::ast_impl::{FunctionId, NodeId},
@@ -81,11 +82,11 @@ impl From<SourceLocation> for SourceDetails {
 #[derive(Clone, Hash)]
 pub struct Object {
     pub symbols: SymbolMap,
-    pub symtab: SymbolTable<TypedBits, Kind, SourceDetails>,
+    pub symtab: SymbolTable<TypedBits, Kind, SourceDetails, SlotKind>,
     pub return_slot: Slot,
     pub externals: BTreeMap<FuncId, Box<Object>>,
     pub ops: Vec<LocatedOpCode>,
-    pub arguments: Vec<RegisterId>,
+    pub arguments: Vec<RegisterId<SlotKind>>,
     pub name: String,
     pub fn_id: FunctionId,
     pub flags: Vec<KernelFlags>,

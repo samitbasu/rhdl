@@ -10,6 +10,7 @@ use crate::rhdl_core::ast::source::source_location::SourceLocation;
 use crate::rhdl_core::common::symtab::RegisterId;
 use crate::rhdl_core::common::symtab::SymbolTable;
 use crate::rhdl_core::rhif::object::SourceDetails;
+use crate::rhdl_core::rtl::spec::OperandKind;
 use crate::rhdl_core::types::bit_string::BitString;
 use crate::rhdl_core::{Digital, Kind};
 
@@ -107,10 +108,10 @@ impl std::fmt::Debug for RegisterSize {
 #[derive(Clone, Hash)]
 pub struct Object {
     pub symbols: SymbolMap,
-    pub symtab: SymbolTable<TypedBits, Kind, SourceDetails>,
+    pub symtab: SymbolTable<TypedBits, Kind, SourceDetails, OperandKind>,
     pub return_register: Operand,
     pub ops: Vec<LocatedOpCode>,
-    pub arguments: Vec<Option<RegisterId>>,
+    pub arguments: Vec<Option<RegisterId<OperandKind>>>,
     pub name: String,
     pub fn_id: FunctionId,
 }

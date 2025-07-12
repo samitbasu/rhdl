@@ -85,7 +85,7 @@ fn propagate_concat(
             Operand::Literal(lit) => Some(*lit),
             _ => None,
         })
-        .collect::<Option<Vec<LiteralId>>>();
+        .collect::<Option<Vec<LiteralId<_>>>>();
     if let Some(literals) = all_literals {
         let result: TypedBits = literals.iter().map(|lit| obj.symtab[lit].clone()).collect();
         let details = obj.symtab[&concat.lhs].clone();
