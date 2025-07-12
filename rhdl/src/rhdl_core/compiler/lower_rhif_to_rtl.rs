@@ -35,8 +35,6 @@ struct RTLCompiler<'a> {
     operand_map: BTreeMap<Operand, Slot>,
     reverse_operand_map: BTreeMap<Slot, Operand>,
     ops: Vec<rtl::object::LocatedOpCode>,
-    literal_count: usize,
-    register_count: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -139,8 +137,6 @@ impl<'a> RTLCompiler<'a> {
             operand_map: Default::default(),
             reverse_operand_map: Default::default(),
             ops: Default::default(),
-            literal_count: 0,
-            register_count: 0,
         }
     }
     fn lit(&mut self, bits: TypedBits, loc: impl Into<SourceDetails>) -> Operand {
@@ -696,11 +692,10 @@ impl<'a> RTLCompiler<'a> {
             if let Some(fn_reg) = fn_arg {
                 let fn_reg_in_our_space = self.reg(func_rtl.symtab[fn_reg], loc);
                 operand_translation.insert(Operand::Register(*fn_reg), fn_reg_in_our_space);
-                let arg = self.operand(*arg);
                 self.lop(
                     tl::OpCode::Assign(tl::Assign {
                         lhs: fn_reg_in_our_space,
-                        rhs: arg,
+                        rhs: *arg,
                     }),
                     loc,
                 );

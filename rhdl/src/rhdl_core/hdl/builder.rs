@@ -1,17 +1,20 @@
-use crate::rhdl_core::{
-    RHDLError,
-    ast::source::source_location::SourceLocation,
-    bitx::BitX,
-    compiler::mir::error::{ICE, RHDLCompileError},
-    error::rhdl_error,
-    hdl::ast::{
-        self, CaseItem, Function, HDLKind, assign, concatenate, constant, declaration, id, index,
-        index_bit, input_reg, literal, repeat, unary,
-    },
-    rtl::{
-        self,
-        object::LocatedOpCode,
-        spec::{AluUnary, CaseArgument, CastKind, Operand},
+use crate::{
+    prelude::BitString,
+    rhdl_core::{
+        RHDLError,
+        ast::source::source_location::SourceLocation,
+        bitx::BitX,
+        compiler::mir::error::{ICE, RHDLCompileError},
+        error::rhdl_error,
+        hdl::ast::{
+            self, CaseItem, Function, HDLKind, assign, concatenate, constant, declaration, id,
+            index, index_bit, input_reg, literal, repeat, unary,
+        },
+        rtl::{
+            self,
+            object::LocatedOpCode,
+            spec::{AluUnary, CaseArgument, CastKind, Operand},
+        },
     },
 };
 
@@ -146,7 +149,7 @@ impl TranslationContext<'_> {
             .map(|(arg, value)| {
                 let item = match arg {
                     CaseArgument::Literal(lit) => {
-                        let lit = self.rtl.literals[lit].clone();
+                        let lit = (&self.rtl.symtab[lit]).into();
                         CaseItem::Literal(lit)
                     }
                     CaseArgument::Wild => CaseItem::Wild,
@@ -238,19 +241,19 @@ impl TranslationContext<'_> {
             .iter()
             .enumerate()
             .flat_map(|(ndx, x)| x.map(|r| (ndx, r)))
-            .map(|(ndx, reg)| input_reg(&format!("arg_{ndx}"), self.rtl.register_size[&reg].into()))
+            .map(|(ndx, reg)| input_reg(&format!("arg_{ndx}"), self.rtl.symtab[&reg].into()))
             .collect::<Vec<_>>();
         self.func.arguments = arg_decls;
         let reg_decls = self
             .rtl
-            .register_size
-            .keys()
-            .map(|reg| {
-                let alias = self.rtl.op_alias(Operand::Register(*reg));
+            .symtab
+            .iter_reg()
+            .map(|(rid, (kind, _))| {
+                let alias = self.rtl.op_alias(Operand::Register(rid));
                 declaration(
                     HDLKind::Reg,
-                    &self.rtl.op_name(Operand::Register(*reg)),
-                    self.rtl.register_size[reg].into(),
+                    &self.rtl.op_name(Operand::Register(rid)),
+                    kind.into(),
                     alias,
                 )
             })
@@ -258,9 +261,12 @@ impl TranslationContext<'_> {
         self.func.registers = reg_decls;
         let literals = self
             .rtl
-            .literals
-            .iter()
-            .map(|(lit, bs)| literal(&self.rtl.op_name(Operand::Literal(*lit)), bs))
+            .symtab
+            .iter_lit()
+            .map(|(lit, (tb, _))| {
+                let bs: BitString = tb.into();
+                literal(&self.rtl.op_name(Operand::Literal(lit)), &bs)
+            })
             .collect::<Vec<_>>();
         self.func.literals = literals;
         // Bind the argument registers
