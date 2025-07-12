@@ -299,7 +299,7 @@ pub fn visit_object_slots_mut<F: FnMut(Sense, &mut Slot)>(object: &mut Object, m
         f(Sense::Write, &mut slot);
         *arg = slot
             .reg()
-            .expect("Argument slots must remain integer.  Do not mutate them into literals!");
+            .expect("Argument slots must remain register.  Do not mutate them into literals!");
     }
     for lop in object.ops.iter_mut() {
         visit_slots_mut(&mut lop.op, &mut f);
