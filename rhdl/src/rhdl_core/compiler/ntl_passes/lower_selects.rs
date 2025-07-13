@@ -43,10 +43,10 @@ fn rewrite_select_with_not(op: &mut OpCode) {
     let OpCode::Select(select) = &op else {
         return;
     };
-    let Operand::One = select.false_case else {
+    let Wire::One = select.false_case else {
         return;
     };
-    let Operand::Zero = select.true_case else {
+    let Wire::Zero = select.true_case else {
         return;
     };
     *op = OpCode::Not(Not {
@@ -61,7 +61,7 @@ fn rewrite_select_with_dont_care_in_false(op: &mut OpCode) {
     let OpCode::Select(select) = &op else {
         return;
     };
-    let Operand::X = select.false_case else {
+    let Wire::X = select.false_case else {
         return;
     };
     *op = OpCode::Assign(Assign {
@@ -76,7 +76,7 @@ fn rewrite_select_with_dont_care_in_true(op: &mut OpCode) {
     let OpCode::Select(select) = &op else {
         return;
     };
-    let Operand::X = select.true_case else {
+    let Wire::X = select.true_case else {
         return;
     };
     *op = OpCode::Assign(Assign {
@@ -89,10 +89,10 @@ fn rewrite_select_with_assign(op: &mut OpCode) {
     let OpCode::Select(select) = &op else {
         return;
     };
-    let Operand::Zero = select.false_case else {
+    let Wire::Zero = select.false_case else {
         return;
     };
-    let Operand::One = select.true_case else {
+    let Wire::One = select.true_case else {
         return;
     };
     *op = OpCode::Assign(Assign {
@@ -105,7 +105,7 @@ fn rewrite_select_with_zero_false(op: &mut OpCode) {
     let OpCode::Select(select) = &op else {
         return;
     };
-    let Operand::Zero = select.false_case else {
+    let Wire::Zero = select.false_case else {
         return;
     };
     *op = OpCode::Binary(Binary {

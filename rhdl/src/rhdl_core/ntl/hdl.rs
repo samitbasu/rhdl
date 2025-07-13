@@ -8,6 +8,7 @@ use crate::rhdl_core::error::rhdl_error;
 use crate::rhdl_core::hdl;
 use crate::rhdl_core::hdl::ast;
 use crate::rhdl_core::hdl::ast::CaseItem;
+use crate::rhdl_core::ntl::Object;
 use crate::rhdl_core::ntl::error::NetListError;
 use crate::rhdl_core::ntl::error::NetListICE;
 use crate::rhdl_core::ntl::object::BlackBoxMode;
@@ -15,11 +16,10 @@ use crate::rhdl_core::ntl::spec;
 use crate::rhdl_core::ntl::spec::BlackBox;
 use crate::rhdl_core::ntl::spec::CaseEntry;
 use crate::rhdl_core::ntl::spec::OpCode;
-use crate::rhdl_core::ntl::spec::Operand;
 use crate::rhdl_core::ntl::spec::VectorOp;
-use crate::rhdl_core::ntl::visit::visit_operands;
+use crate::rhdl_core::ntl::spec::Wire;
 use crate::rhdl_core::ntl::visit::Sense;
-use crate::rhdl_core::ntl::Object;
+use crate::rhdl_core::ntl::visit::visit_wires;
 use crate::rhdl_core::rtl::spec::AluBinary;
 use crate::rhdl_core::rtl::spec::AluUnary;
 
@@ -32,17 +32,15 @@ struct NetListHDLBuilder<'a> {
     temporary_counter: usize,
 }
 
-fn opex(operand: Operand) -> ast::Expression {
+fn opex(operand: Wire) -> ast::Expression {
     use ast::id;
     match operand {
-        Operand::One => id("1'b1"),
-        Operand::Zero => id("1'b0"),
-        Operand::X => id("1'bX"),
-        Operand::Register(rid) => id(&format!("r{}", rid.raw())),
+        Wire::Literal(lid) => id(&lid.to_string()),
+        Wire::Register(rid) => id(&rid.to_string()),
     }
 }
 
-fn opex_v(operands: &[Operand]) -> ast::Expression {
+fn opex_v(operands: &[Wire]) -> ast::Expression {
     ast::concatenate(operands.iter().rev().copied().map(opex).collect())
 }
 
@@ -67,21 +65,21 @@ impl<'a> NetListHDLBuilder<'a> {
                 .collect(),
         })
     }
-    fn reg(&self, operand: Operand, location: Option<SourceLocation>) -> Result<String, RHDLError> {
+    fn reg(&self, operand: Wire, location: Option<SourceLocation>) -> Result<String, RHDLError> {
         if let Some(rid) = operand.reg() {
-            Ok(format!("r{}", rid.raw()))
+            Ok(rid.to_string())
         } else {
             Err(self.raise_ice(NetListICE::ExpectedRegisterNotConstant, location))
         }
     }
     fn reg_v(
         &self,
-        operands: &[Operand],
+        operands: &[Wire],
         location: Option<SourceLocation>,
     ) -> Result<String, RHDLError> {
         let args = operands
             .iter()
-            .rev()
+            .rev() // <--- Super important!  Concat operator is MSB -> LSB
             .map(|&op| self.reg(op, location))
             .collect::<Result<Vec<String>, RHDLError>>()?;
         Ok(format!("{{ {} }}", args.join(",")))
@@ -280,7 +278,7 @@ impl<'a> NetListHDLBuilder<'a> {
             .collect();
         let mut registers = BTreeSet::default();
         for lop in &self.ntl.ops {
-            visit_operands(&lop.op, |_sense, op| {
+            visit_wires(&lop.op, |_sense, op| {
                 if let Some(reg) = op.reg() {
                     registers.insert(reg);
                 }
@@ -291,7 +289,7 @@ impl<'a> NetListHDLBuilder<'a> {
         let mut wires = BTreeSet::default();
         for lop in &self.ntl.ops {
             if let OpCode::BlackBox(black_box) = &lop.op {
-                wires.extend(black_box.lhs.iter().flat_map(Operand::reg))
+                wires.extend(black_box.lhs.iter().copied().flat_map(Wire::reg))
             }
         }
         let mut declarations = registers
@@ -299,7 +297,7 @@ impl<'a> NetListHDLBuilder<'a> {
             .map(|ndx| {
                 ast::declaration(
                     ast::HDLKind::Reg,
-                    &format!("r{}", ndx.raw()),
+                    &ndx.to_string(),
                     ast::unsigned_width(1),
                     None,
                 )
@@ -307,7 +305,7 @@ impl<'a> NetListHDLBuilder<'a> {
             .chain(wires.iter().map(|ndx| {
                 ast::declaration(
                     ast::HDLKind::Wire,
-                    &format!("r{}", ndx.raw()),
+                    &ndx.to_string(),
                     ast::unsigned_width(1),
                     None,
                 )
@@ -317,7 +315,7 @@ impl<'a> NetListHDLBuilder<'a> {
         for (ndx, arg) in self.ntl.inputs.iter().enumerate() {
             for (bit, &reg) in arg.iter().enumerate() {
                 self.push_body(ast::assign(
-                    &self.reg(Operand::Register(reg), None)?,
+                    &self.reg(Wire::Register(reg), None)?,
                     ast::index_bit(&format!("arg_{ndx}"), bit),
                 ))
             }
@@ -338,7 +336,7 @@ impl<'a> NetListHDLBuilder<'a> {
         let input_set = self.ntl.inputs.iter().flatten().collect::<HashSet<_>>();
         let inputs_used = self.ntl.ops.iter().any(|lop| {
             let mut uses_input = false;
-            visit_operands(&lop.op, |sense, op| {
+            visit_wires(&lop.op, |sense, op| {
                 if let Some(reg_id) = op.reg() {
                     if (sense == Sense::Read) && input_set.contains(&reg_id) {
                         uses_input = true;

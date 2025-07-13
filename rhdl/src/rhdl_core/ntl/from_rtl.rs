@@ -4,13 +4,13 @@ use crate::core::ntl;
 use crate::core::rtl;
 use crate::prelude::BitX;
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
-use crate::rhdl_core::ntl::object::KindAndBit;
+use crate::rhdl_core::ntl::object::WireDetails;
 use crate::rhdl_core::ntl::spec::Binary;
 use crate::rhdl_core::ntl::spec::Not;
-use crate::rhdl_core::ntl::spec::RegisterId;
 use crate::rhdl_core::ntl::spec::Select;
 use crate::rhdl_core::ntl::spec::Unary;
 use crate::rhdl_core::ntl::spec::Vector;
+use crate::rhdl_core::ntl::spec::Wire;
 
 use ntl::spec as bt;
 use rtl::spec as tl;
@@ -18,7 +18,7 @@ use rtl::spec as tl;
 struct NtlBuilder<'a> {
     object: &'a rtl::Object,
     btl: ntl::object::Object,
-    operand_map: HashMap<tl::Operand, Vec<bt::Operand>>,
+    operand_map: HashMap<tl::Operand, Vec<bt::Wire>>,
     reg_count: u32,
 }
 
@@ -35,7 +35,7 @@ pub fn build_ntl_from_rtl(object: &rtl::Object) -> ntl::object::Object {
                 .operand(tl::Operand::Register(*id))
                 .iter()
                 .map(|x| match x {
-                    bt::Operand::Register(rid) => *rid,
+                    bt::Wire::Register(rid) => *rid,
                     _ => panic!("Argument mapped to a constant!"),
                 })
                 .collect(),
@@ -62,12 +62,13 @@ impl<'a> NtlBuilder<'a> {
             reg_count: 0,
         }
     }
-    fn reg(&mut self) -> bt::RegisterId {
-        let num = self.reg_count;
-        self.reg_count += 1;
-        RegisterId::new(num)
+    fn reg(&mut self, details: impl Into<WireDetails>) -> Wire {
+        self.btl.symtab.reg((), details.into())
     }
-    fn push(&mut self, loc: SourceLocation, op: bt::OpCode) {
+    fn lit(&mut self, value: BitX, details: impl Into<WireDetails>) -> Wire {
+        self.btl.symtab.lit(value, details.into())
+    }
+    fn lop(&mut self, loc: SourceLocation, op: bt::OpCode) {
         self.btl
             .ops
             .push(ntl::object::LocatedOpCode { loc: Some(loc), op });
@@ -80,7 +81,7 @@ impl<'a> NtlBuilder<'a> {
             tl::OpCode::Binary(binary) => self.build_binary(loc, binary),
             tl::OpCode::Case(case) => self.build_case(loc, case),
             tl::OpCode::Cast(cast) => self.build_cast(loc, cast),
-            tl::OpCode::Comment(comment) => self.push(loc, bt::OpCode::Comment(comment.clone())),
+            tl::OpCode::Comment(comment) => self.lop(loc, bt::OpCode::Comment(comment.clone())),
             tl::OpCode::Concat(concat) => self.build_concat(loc, concat),
             tl::OpCode::Index(index) => self.build_index(loc, index),
             tl::OpCode::Select(select) => self.build_select(loc, select),
@@ -88,34 +89,42 @@ impl<'a> NtlBuilder<'a> {
             tl::OpCode::Unary(unary) => self.build_unary(loc, unary),
         }
     }
-    fn operand(&mut self, operand: tl::Operand) -> Vec<bt::Operand> {
+    fn operand(&mut self, operand: tl::Operand) -> Vec<bt::Wire> {
         if let Some(port) = self.operand_map.get(&operand) {
             return port.clone();
         }
         let kind = self.object.kind(operand);
+        let details = self.object.symtab[operand].clone();
         let operands = match operand {
             tl::Operand::Literal(literal_id) => {
                 let bs = &self.object.symtab[&literal_id];
                 bs.bits
                     .iter()
-                    .map(|b| match b {
-                        BitX::Zero => bt::Operand::Zero,
-                        BitX::One => bt::Operand::One,
-                        BitX::X => bt::Operand::X,
+                    .enumerate()
+                    .map(|(ndx, &b)| {
+                        let wd = WireDetails {
+                            source_details: Some(details.clone()),
+                            kind,
+                            bit: ndx,
+                        };
+                        self.lit(b, wd)
                     })
                     .collect::<Vec<_>>()
             }
             tl::Operand::Register(_) => {
                 let reg = kind.bits();
                 (0..reg)
-                    .map(|_| bt::Operand::Register(self.reg()))
+                    .map(|ndx| {
+                        let wd = WireDetails {
+                            source_details: Some(details.clone()),
+                            kind,
+                            bit: ndx,
+                        };
+                        self.reg(wd)
+                    })
                     .collect::<Vec<_>>()
             }
         };
-        // The symbol table completeness test guarantees this access is safe
-        for (bit, operand) in operands.iter().enumerate() {
-            self.btl.kinds.insert(*operand, KindAndBit { kind, bit });
-        }
         self.operand_map.insert(operand, operands.clone());
         operands
     }
@@ -123,7 +132,7 @@ impl<'a> NtlBuilder<'a> {
         let rhs = self.operand(assign.rhs);
         let lhs = self.operand(assign.lhs);
         for (&lhs, &rhs) in lhs.iter().zip(rhs.iter()) {
-            self.push(loc, bt::assign(lhs, rhs));
+            self.lop(loc, bt::assign(lhs, rhs));
         }
     }
     fn build_binary(&mut self, loc: SourceLocation, binary: &tl::Binary) {
@@ -136,7 +145,7 @@ impl<'a> NtlBuilder<'a> {
         match classify_binary(binary.op) {
             BinOpClass::Bitwise(binop) => {
                 for (&lhs, (&arg1, &arg2)) in lhs.iter().zip(arg1.iter().zip(arg2.iter())) {
-                    self.push(
+                    self.lop(
                         loc,
                         bt::OpCode::Binary(Binary {
                             op: binop,
@@ -147,7 +156,7 @@ impl<'a> NtlBuilder<'a> {
                     );
                 }
             }
-            BinOpClass::Vector(vectorop) => self.push(
+            BinOpClass::Vector(vectorop) => self.lop(
                 loc,
                 bt::OpCode::Vector(Vector {
                     op: vectorop,
@@ -186,7 +195,7 @@ impl<'a> NtlBuilder<'a> {
                 .zip(arguments.iter())
                 .map(|(case_entry, argument)| (case_entry, argument[bit]))
                 .collect();
-            self.push(
+            self.lop(
                 loc,
                 bt::OpCode::Case(bt::Case {
                     lhs: lhs[bit],
@@ -200,19 +209,25 @@ impl<'a> NtlBuilder<'a> {
         let lhs = self.operand(cast.lhs);
         let arg = self.operand(cast.arg);
         for (&lhs, &rhs) in lhs.iter().zip(arg.iter()) {
-            self.push(loc, bt::assign(lhs, rhs));
+            self.lop(loc, bt::assign(lhs, rhs));
         }
         let lhs_signed = self.object.size(cast.lhs).is_signed();
         let use_unsigned = matches!(cast.kind, tl::CastKind::Unsigned)
             || (matches!(cast.kind, tl::CastKind::Resize) && !lhs_signed);
+        let wd = WireDetails {
+            source_details: Some(loc.into()),
+            kind: self.object.kind(cast.arg),
+            bit: 0,
+        };
+        let zero = self.lit(BitX::Zero, wd);
         if use_unsigned {
             for &lhs in lhs.iter().skip(arg.len()) {
-                self.push(loc, bt::assign(lhs, bt::Operand::Zero));
+                self.lop(loc, bt::assign(lhs, zero));
             }
         } else {
             let &msb = arg.last().unwrap();
             for &lhs in lhs.iter().skip(arg.len()) {
-                self.push(loc, bt::assign(lhs, msb));
+                self.lop(loc, bt::assign(lhs, msb));
             }
         }
     }
@@ -224,14 +239,14 @@ impl<'a> NtlBuilder<'a> {
             .map(|x| self.operand(*x))
             .collect::<Vec<_>>();
         for (&lhs, &rhs) in lhs.iter().zip(args.iter().flatten()) {
-            self.push(loc, bt::assign(lhs, rhs));
+            self.lop(loc, bt::assign(lhs, rhs));
         }
     }
     fn build_index(&mut self, loc: SourceLocation, index: &tl::Index) {
         let lhs = self.operand(index.lhs);
         let arg = self.operand(index.arg);
         for (&lhs, &rhs) in lhs.iter().zip(arg.iter().skip(index.bit_range.start)) {
-            self.push(loc, bt::assign(lhs, rhs));
+            self.lop(loc, bt::assign(lhs, rhs));
         }
     }
     fn build_select(&mut self, loc: SourceLocation, select: &tl::Select) {
@@ -242,7 +257,7 @@ impl<'a> NtlBuilder<'a> {
         for (&lhs, (&true_case, &false_case)) in
             lhs.iter().zip(true_case.iter().zip(false_case.iter()))
         {
-            self.push(
+            self.lop(
                 loc,
                 bt::OpCode::Select(Select {
                     lhs,
@@ -262,7 +277,7 @@ impl<'a> NtlBuilder<'a> {
         let msb_iter = orig.iter().skip(splice.bit_range.end);
         let rhs = lsb_iter.chain(center_iter).chain(msb_iter);
         for (&lhs, &rhs) in lhs.iter().zip(rhs) {
-            self.push(loc, bt::assign(lhs, rhs));
+            self.lop(loc, bt::assign(lhs, rhs));
         }
     }
     fn build_unary(&mut self, loc: SourceLocation, unary: &tl::Unary) {
@@ -271,15 +286,15 @@ impl<'a> NtlBuilder<'a> {
         match classify_unary(unary.op) {
             UnaryOpClass::Not => {
                 for (&lhs, arg) in lhs.iter().zip(arg) {
-                    self.push(loc, bt::OpCode::Not(Not { lhs, arg }))
+                    self.lop(loc, bt::OpCode::Not(Not { lhs, arg }))
                 }
             }
             UnaryOpClass::Copy => {
                 for (&lhs, arg) in lhs.iter().zip(arg) {
-                    self.push(loc, bt::assign(lhs, arg));
+                    self.lop(loc, bt::assign(lhs, arg));
                 }
             }
-            UnaryOpClass::Unary(unary_op) => self.push(
+            UnaryOpClass::Unary(unary_op) => self.lop(
                 loc,
                 bt::OpCode::Unary(Unary {
                     op: unary_op,

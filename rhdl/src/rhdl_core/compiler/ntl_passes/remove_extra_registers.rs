@@ -8,8 +8,8 @@ use crate::{
         compiler::ntl_passes::pass::Pass,
         ntl::{
             object::Object,
-            spec::{Assign, OpCode, Operand, RegisterId},
-            visit::{visit_operands, visit_operands_mut},
+            spec::{Assign, OpCode, Wire, RegisterId},
+            visit::{visit_wires, visit_wires_mut},
         },
     },
 };
@@ -47,12 +47,12 @@ impl Pass for RemoveExtraRegistersPass {
                 reg_set.insert(r);
             });
         }
-        for arg in input.outputs.iter().filter_map(Operand::reg) {
+        for arg in input.outputs.iter().filter_map(Wire::reg) {
             reg_set.insert(arg);
         }
         // Define each of the operands
         for lop in &ops {
-            visit_operands(&lop.op, |_sense, op| {
+            visit_wires(&lop.op, |_sense, op| {
                 if let Some(reg) = op.reg() {
                     reg_set.insert(reg);
                 }
@@ -81,11 +81,11 @@ impl Pass for RemoveExtraRegistersPass {
         }
         // Next, rewrite the ops, where for each operand, we take the root of the unify tree
         for op in &mut ops {
-            visit_operands_mut(&mut op.op, |op| {
+            visit_wires_mut(&mut op.op, |op| {
                 if let Some(reg) = op.reg() {
                     let key = reg_map[&reg];
                     let root = table.find(key);
-                    *op = Operand::Register(inv_map[&root])
+                    *op = Wire::Register(inv_map[&root])
                 }
             })
         }
@@ -108,7 +108,7 @@ impl Pass for RemoveExtraRegistersPass {
             *o = if let Some(reg) = o.reg() {
                 let key = reg_map[&reg];
                 let root = table.find(key);
-                Operand::Register(inv_map[&root])
+                Wire::Register(inv_map[&root])
             } else {
                 *o
             }

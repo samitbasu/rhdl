@@ -213,7 +213,7 @@ pub enum ICE {
     DynamicIndexHasLiteral { path: Path },
     #[error("Multiple writes to a single register {op:?}")]
     MultipleWritesToRegister {
-        op: crate::rhdl_core::ntl::spec::Operand,
+        op: crate::rhdl_core::ntl::spec::Wire,
     },
     #[error("Symbol table is incomplete")]
     IncompleteSymbolTable,

@@ -2,10 +2,13 @@ use std::collections::HashMap;
 
 use petgraph::graph::NodeIndex;
 
-use crate::rhdl_core::ntl::{
-    spec::{OpCode, RegisterId},
-    visit::{visit_operands, Sense},
-    Object,
+use crate::rhdl_core::{
+    common::symtab::RegisterId,
+    ntl::{
+        Object,
+        spec::{OpCode, WireKind},
+        visit::{Sense, visit_wires},
+    },
 };
 
 #[derive(Debug)]
@@ -13,7 +16,7 @@ use crate::rhdl_core::ntl::{
 /// in which each node represents the source of
 /// a register value, and each edge a dependency.
 pub struct NetGraph {
-    pub reg_map: HashMap<RegisterId, WriteSource>,
+    pub reg_map: HashMap<RegisterId<WireKind>, WriteSource>,
     pub graph: petgraph::graph::DiGraph<WriteSource, ()>,
     pub input_node: NodeIndex,
     pub op_nodes: Vec<NodeIndex>,
@@ -32,11 +35,11 @@ pub enum GraphMode {
     Asynchronous,
 }
 
-fn make_reg_map(input: &Object, mode: GraphMode) -> HashMap<RegisterId, WriteSource> {
-    let mut reg_map: HashMap<RegisterId, WriteSource> = HashMap::default();
+fn make_reg_map(input: &Object, mode: GraphMode) -> HashMap<RegisterId<WireKind>, WriteSource> {
+    let mut reg_map: HashMap<RegisterId<WireKind>, WriteSource> = HashMap::default();
     // Pass 1
     for (ndx, lop) in input.ops.iter().enumerate() {
-        visit_operands(&lop.op, |sense, operand| {
+        visit_wires(&lop.op, |sense, operand| {
             if let Some(reg) = operand.reg() {
                 if sense == Sense::Write {
                     reg_map.insert(reg, WriteSource::OpCode(ndx));
@@ -93,7 +96,7 @@ pub fn make_net_graph(input: &Object, mode: GraphMode) -> NetGraph {
             continue;
         }
         let target = op_nodes[ndx];
-        visit_operands(&lop.op, |sense, operand| {
+        visit_wires(&lop.op, |sense, operand| {
             if let Some(reg) = operand.reg() {
                 if sense == Sense::Read {
                     if let Some(source) = match reg_map[&reg] {

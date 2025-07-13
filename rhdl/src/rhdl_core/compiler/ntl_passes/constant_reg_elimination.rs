@@ -4,8 +4,8 @@ use crate::{
     prelude::{BitX, RHDLError},
     rhdl_core::ntl::{
         object::Object,
-        spec::{Assign, OpCode, Operand, RegisterId},
-        visit::visit_operands_mut,
+        spec::{Assign, OpCode, Wire, RegisterId},
+        visit::visit_wires_mut,
     },
 };
 
@@ -32,10 +32,10 @@ impl Pass for ConstantRegisterElimination {
         }
         // Rewrite ops to use constants where possible
         for lop in &mut ops {
-            visit_operands_mut(&mut lop.op, |op| {
+            visit_wires_mut(&mut lop.op, |op| {
                 if let Some(reg) = op.reg() {
                     if let Some(bitx) = constant_set.get(&reg) {
-                        *op = Operand::from(*bitx);
+                        *op = Wire::from(*bitx);
                     }
                 }
             });

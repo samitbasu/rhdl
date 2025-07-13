@@ -7,7 +7,7 @@ use crate::{
             Object,
             object::LocatedOpCode,
             spec::{
-                Binary, BinaryOp, Case, CaseEntry, Not, OpCode, Operand, Unary, UnaryOp, Vector,
+                Binary, BinaryOp, Case, CaseEntry, Not, OpCode, Wire, Unary, UnaryOp, Vector,
                 VectorOp, assign,
             },
         },
@@ -31,13 +31,13 @@ fn compute_binary(binary: Binary) -> OpCode {
                 BinaryOp::Or => reg1 | reg2,
                 BinaryOp::Xor => reg1 ^ reg2,
             };
-            assign(binary.lhs, Operand::from(res))
+            assign(binary.lhs, Wire::from(res))
         }
         _ => OpCode::Binary(binary),
     }
 }
 
-fn vec_op(signed: bool, arg: &[Operand]) -> Option<TypedBits> {
+fn vec_op(signed: bool, arg: &[Wire]) -> Option<TypedBits> {
     let bits = arg.iter().map(|x| x.bitx()).collect::<Option<Vec<_>>>();
     bits.map(|b| {
         if signed {
@@ -51,7 +51,7 @@ fn vec_op(signed: bool, arg: &[Operand]) -> Option<TypedBits> {
 
 fn compute_not(not_op: Not) -> OpCode {
     if let Some(val) = not_op.arg.bitx() {
-        assign(not_op.lhs, Operand::from(!val))
+        assign(not_op.lhs, Wire::from(!val))
     } else {
         OpCode::Not(not_op)
     }
@@ -70,7 +70,7 @@ fn compute_unary(unary_op: Unary, source: Option<SourceLocation>, lop: &mut Vec<
         if let Ok(val) = unary(alu, arg) {
             for (&lhs, &rhs) in unary_op.lhs.iter().zip(&val.bits) {
                 lop.push(LocatedOpCode {
-                    op: assign(lhs, Operand::from(rhs)),
+                    op: assign(lhs, Wire::from(rhs)),
                     loc: source,
                 })
             }
@@ -104,7 +104,7 @@ fn compute_vector(vector: Vector, source: Option<SourceLocation>, lop: &mut Vec<
             if let Ok(res) = binary(alu, arg1, arg2) {
                 for (&lhs, &rhs) in vector.lhs.iter().zip(&res.bits) {
                     lop.push(LocatedOpCode {
-                        op: assign(lhs, Operand::from(rhs)),
+                        op: assign(lhs, Wire::from(rhs)),
                         loc: source,
                     })
                 }

@@ -1,4 +1,7 @@
-use crate::prelude::{BitString, BitX};
+use crate::{
+    prelude::BitString,
+    rhdl_core::common::symtab::{Symbol, SymbolKind},
+};
 
 #[derive(Clone, PartialEq, Hash)]
 pub enum OpCode {
@@ -25,24 +28,24 @@ pub enum OpCode {
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct BlackBox {
-    pub lhs: Vec<Operand>,
-    pub arg: Vec<Vec<Operand>>,
+    pub lhs: Vec<Wire>,
+    pub arg: Vec<Vec<Wire>>,
     pub code: BlackBoxId,
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Select {
-    pub lhs: Operand,
-    pub selector: Operand,
-    pub true_case: Operand,
-    pub false_case: Operand,
+    pub lhs: Wire,
+    pub selector: Wire,
+    pub true_case: Wire,
+    pub false_case: Wire,
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Case {
-    pub lhs: Operand,
-    pub discriminant: Vec<Operand>,
-    pub entries: Vec<(CaseEntry, Operand)>,
+    pub lhs: Wire,
+    pub discriminant: Vec<Wire>,
+    pub entries: Vec<(CaseEntry, Wire)>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq)]
@@ -54,17 +57,17 @@ pub enum CaseEntry {
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Vector {
     pub op: VectorOp,
-    pub lhs: Vec<Operand>,
-    pub arg1: Vec<Operand>,
-    pub arg2: Vec<Operand>,
+    pub lhs: Vec<Wire>,
+    pub arg1: Vec<Wire>,
+    pub arg2: Vec<Wire>,
     pub signed: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Unary {
     pub op: UnaryOp,
-    pub lhs: Vec<Operand>,
-    pub arg: Vec<Operand>,
+    pub lhs: Vec<Wire>,
+    pub arg: Vec<Wire>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Hash)]
@@ -92,16 +95,16 @@ pub enum UnaryOp {
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Not {
-    pub lhs: Operand,
-    pub arg: Operand,
+    pub lhs: Wire,
+    pub arg: Wire,
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Binary {
     pub op: BinaryOp,
-    pub lhs: Operand,
-    pub arg1: Operand,
-    pub arg2: Operand,
+    pub lhs: Wire,
+    pub arg1: Wire,
+    pub arg2: Wire,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Hash)]
@@ -113,110 +116,22 @@ pub enum BinaryOp {
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Assign {
-    pub lhs: Operand,
-    pub rhs: Operand,
+    pub lhs: Wire,
+    pub rhs: Wire,
 }
 
-pub fn assign(lhs: Operand, rhs: Operand) -> OpCode {
+pub fn assign(lhs: Wire, rhs: Wire) -> OpCode {
     OpCode::Assign(Assign { lhs, rhs })
 }
 
-#[derive(Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub enum Operand {
-    Zero,
-    One,
-    X,
-    Register(RegisterId),
+#[derive(Hash, Eq, Ord, PartialOrd, PartialEq, Copy, Clone, Default)]
+pub struct WireKind {}
+
+impl SymbolKind for WireKind {
+    const NAME: &'static str = "w";
 }
 
-impl From<RegisterId> for Operand {
-    fn from(x: RegisterId) -> Operand {
-        Operand::Register(x)
-    }
-}
-
-impl From<BitX> for Operand {
-    fn from(x: BitX) -> Operand {
-        match x {
-            BitX::One => Operand::One,
-            BitX::Zero => Operand::Zero,
-            BitX::X => Operand::X,
-        }
-    }
-}
-
-impl From<bool> for Operand {
-    fn from(x: bool) -> Operand {
-        match x {
-            true => Operand::One,
-            false => Operand::Zero,
-        }
-    }
-}
-
-impl Operand {
-    pub fn reg(&self) -> Option<RegisterId> {
-        if let Operand::Register(reg) = self {
-            Some(*reg)
-        } else {
-            None
-        }
-    }
-    pub fn bitx(&self) -> Option<BitX> {
-        match self {
-            Operand::Zero => Some(BitX::Zero),
-            Operand::One => Some(BitX::One),
-            Operand::X => Some(BitX::X),
-            _ => None,
-        }
-    }
-    pub fn offset(&self, shift: u32) -> Self {
-        if let Some(reg) = self.reg() {
-            Operand::Register(reg.offset(shift))
-        } else {
-            *self
-        }
-    }
-    pub fn bool(&self) -> Option<bool> {
-        match self {
-            Operand::Zero => Some(false),
-            Operand::One => Some(true),
-            _ => None,
-        }
-    }
-}
-
-impl std::fmt::Debug for Operand {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Operand::Zero => write!(f, "0"),
-            Operand::One => write!(f, "1"),
-            Operand::X => write!(f, "X"),
-            Operand::Register(rid) => write!(f, "r{}", rid.0),
-        }
-    }
-}
-
-#[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub struct RegisterId(u32);
-
-impl RegisterId {
-    pub(crate) fn new(val: u32) -> Self {
-        Self(val)
-    }
-    pub(crate) fn raw(self) -> u32 {
-        self.0
-    }
-    pub(crate) fn offset(self, offset: u32) -> Self {
-        Self(self.0 + offset)
-    }
-}
-
-impl std::fmt::Debug for RegisterId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "r{}", self.0)
-    }
-}
+pub type Wire = Symbol<WireKind>;
 
 #[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct BlackBoxId(usize);

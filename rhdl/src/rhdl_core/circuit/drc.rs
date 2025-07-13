@@ -6,7 +6,7 @@ use crate::{
     rhdl_core::{
         ntl::{
             graph::{make_net_graph, GraphMode, WriteSource},
-            spec::Operand,
+            spec::Wire,
         },
         SourcePool,
     },
@@ -49,7 +49,7 @@ pub fn no_combinatorial_paths<T: Synchronous>(uut: &T) -> miette::Result<()> {
     let input_node = dep.input_node;
     let mut space = DfsSpace::new(&dep.graph);
     let code = &descriptor.ntl.code;
-    for output in descriptor.ntl.outputs.iter().flat_map(Operand::reg) {
+    for output in descriptor.ntl.outputs.iter().flat_map(Wire::reg) {
         let source = dep.reg_map[&output];
         match source {
             WriteSource::ClockReset => {}
