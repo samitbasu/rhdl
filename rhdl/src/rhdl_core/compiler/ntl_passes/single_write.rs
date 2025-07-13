@@ -6,7 +6,7 @@ use crate::{
         compiler::mir::error::ICE,
         ntl::{
             spec::RegisterId,
-            visit::{visit_operands, Sense},
+            visit::{visit_wires, Sense},
             Object,
         },
     },
@@ -26,7 +26,7 @@ impl Pass for SingleRegisterWrite {
         written_set.extend(input.inputs.iter().flatten());
         for lop in &input.ops {
             let mut err = None;
-            visit_operands(&lop.op, |sense, op| {
+            visit_wires(&lop.op, |sense, op| {
                 if sense == Sense::Write {
                     if let Some(reg) = op.reg() {
                         if !written_set.insert(reg) {

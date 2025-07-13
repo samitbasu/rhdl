@@ -7,7 +7,7 @@ use crate::{
         ntl::{
             error::NetListError,
             spec::RegisterId,
-            visit::{visit_operands, Sense},
+            visit::{visit_wires, Sense},
             Object,
         },
     },
@@ -25,7 +25,7 @@ impl Pass for CheckForUndriven {
     fn run(input: Object) -> Result<Object, RHDLError> {
         let mut written_set: HashSet<RegisterId> = HashSet::default();
         for lop in &input.ops {
-            visit_operands(&lop.op, |sense, op| {
+            visit_wires(&lop.op, |sense, op| {
                 if sense == Sense::Write {
                     if let Some(reg) = op.reg() {
                         written_set.insert(reg);
@@ -36,7 +36,7 @@ impl Pass for CheckForUndriven {
         written_set.extend(input.inputs.iter().flatten().copied());
         for lop in &input.ops {
             let mut err = None;
-            visit_operands(&lop.op, |sense, op| {
+            visit_wires(&lop.op, |sense, op| {
                 if sense == Sense::Read {
                     if let Some(reg) = op.reg() {
                         if !written_set.contains(&reg) {

@@ -1,7 +1,7 @@
 use crate::{
     prelude::RHDLError,
     rhdl_core::ntl::{
-        spec::{assign, Binary, BinaryOp, Not, OpCode, Operand},
+        spec::{assign, Binary, BinaryOp, Not, OpCode, Wire},
         Object,
     },
 };
@@ -13,7 +13,7 @@ pub struct LowerBitwiseOpWithConstant {}
 
 struct LowerArgs {
     constant_arg: bool,
-    reg_arg: Operand,
+    reg_arg: Wire,
 }
 
 fn classify_binary_args(binary: &Binary) -> Option<LowerArgs> {
@@ -42,13 +42,13 @@ fn lower_binary_op(op: &OpCode) -> Option<OpCode> {
                 Some(assign(binary.lhs, lower_args.reg_arg))
             } else {
                 // x AND 0 -> 0
-                Some(assign(binary.lhs, Operand::Zero))
+                Some(assign(binary.lhs, Wire::Zero))
             }
         }
         BinaryOp::Or => {
             if lower_args.constant_arg {
                 // x OR 1 -> 1
-                Some(assign(binary.lhs, Operand::One))
+                Some(assign(binary.lhs, Wire::One))
             } else {
                 // x OR 0 -> x
                 Some(assign(binary.lhs, lower_args.reg_arg))

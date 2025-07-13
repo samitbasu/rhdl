@@ -1,6 +1,6 @@
 use super::circuit_impl::Circuit;
 use crate::rhdl_core::ntl::from_rtl::build_ntl_from_rtl;
-use crate::rhdl_core::ntl::spec::Operand;
+use crate::rhdl_core::ntl::spec::Wire;
 use crate::rhdl_core::rtl::object::RegisterSize;
 use crate::rhdl_core::rtl::Object;
 use crate::rhdl_core::types::digital::Digital;
@@ -84,7 +84,7 @@ pub fn build_descriptor<C: Circuit>(
     // Note that the update function signature for a synchronous function is (ClockReset, I, Q) -> (O, D)
     let q_vec = update_netlist.inputs[1]
         .iter()
-        .map(|op| Operand::Register(op.offset(update_register_offset)))
+        .map(|op| Wire::Register(op.offset(update_register_offset)))
         .collect::<Vec<_>>();
     // Create the inputs for the children by splitting bits off of the d_index
     for (child_name, child_descriptor) in &children {
@@ -192,7 +192,7 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     // Note that the update function signature for a synchronous function is (ClockReset, I, Q) -> (O, D)
     let q_vec = update_netlist.inputs[2]
         .iter()
-        .map(|op| Operand::Register(op.offset(update_register_offset)))
+        .map(|op| Wire::Register(op.offset(update_register_offset)))
         .collect::<Vec<_>>();
     // Create the inputs for the children by splitting bits off of the d_index
     for (child_name, child_descriptor) in &children {

@@ -3,13 +3,13 @@ use crate::{
     rhdl_core::{
         ntl::{
             object::Object,
-            spec::{Assign, Binary, OpCode, Operand},
+            spec::{Assign, Binary, OpCode, Wire},
         },
         types::path::leaf_paths,
     },
 };
 
-fn vec_disp(f: &mut std::fmt::Formatter<'_>, data: &[Operand]) -> std::fmt::Result {
+fn vec_disp(f: &mut std::fmt::Formatter<'_>, data: &[Wire]) -> std::fmt::Result {
     write!(f, "{{")?;
     for (ndx, op) in data.iter().enumerate() {
         write!(f, "{op:?}")?;
@@ -106,11 +106,7 @@ impl std::fmt::Debug for Object {
         writeln!(f, "BTL {}", self.name)?;
         write!(f, "   arguments [")?;
         for (ndx, arg) in self.inputs.iter().enumerate() {
-            let arg_as_ops = arg
-                .iter()
-                .copied()
-                .map(Operand::Register)
-                .collect::<Vec<_>>();
+            let arg_as_ops = arg.iter().copied().map(Wire::Register).collect::<Vec<_>>();
             vec_disp(f, &arg_as_ops)?;
             if ndx != self.inputs.len() - 1 {
                 write!(f, ",")?;

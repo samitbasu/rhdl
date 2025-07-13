@@ -8,8 +8,8 @@ use crate::{
         ntl::{
             Object,
             error::NetLoopError,
-            spec::{OpCode, Operand, RegisterId},
-            visit::{Sense, visit_operands},
+            spec::{OpCode, RegisterId, Wire},
+            visit::{Sense, visit_wires},
         },
     },
 };
@@ -35,7 +35,7 @@ impl Pass for ReorderInstructions {
         // The set N contains the set of register values that are
         // required for the reordering to be successful
         let mut needed = BTreeSet::<RegisterId>::new();
-        needed.extend(input.outputs.iter().flat_map(Operand::reg));
+        needed.extend(input.outputs.iter().flat_map(Wire::reg));
         // The set S contains the working set of defined register values.
         let mut satisfied = VecDeque::<RegisterId>::default();
         // The vector P contains the ordering of op codes
@@ -55,8 +55,8 @@ impl Pass for ReorderInstructions {
                 _ => None,
             })
             .for_each(|black_box| {
-                satisfied.extend(black_box.lhs.iter().filter_map(Operand::reg));
-                needed.extend(black_box.arg.iter().flatten().flat_map(Operand::reg));
+                satisfied.extend(black_box.lhs.iter().filter_map(Wire::reg));
+                needed.extend(black_box.arg.iter().flatten().flat_map(Wire::reg));
             });
         // Now, we create a pair of maps.  The first, maps each register to the set of
         // opcodes that depend on it.  The second maps each opcode to the set of registers
@@ -65,7 +65,7 @@ impl Pass for ReorderInstructions {
         let mut op_to_read_regs = BTreeMap::<usize, BTreeSet<RegisterId>>::default();
         let mut write_regs_to_op = BTreeMap::<RegisterId, usize>::default();
         for (ndx, lop) in input.ops.iter().enumerate() {
-            visit_operands(&lop.op, |sense, opnd| {
+            visit_wires(&lop.op, |sense, opnd| {
                 if sense == Sense::Read {
                     if let Some(reg) = opnd.reg() {
                         reg_to_op.entry(reg).or_default().insert(ndx);
@@ -83,7 +83,7 @@ impl Pass for ReorderInstructions {
             if !matches!(lop.op, OpCode::BlackBox(_)) && !op_to_read_regs.contains_key(&ndx) {
                 scheduled.push(ndx);
                 let op_code = &input.ops[ndx].op;
-                visit_operands(op_code, |sense, operand| {
+                visit_wires(op_code, |sense, operand| {
                     if sense == Sense::Write {
                         if let Some(reg) = operand.reg() {
                             satisfied.push_back(reg);
@@ -114,7 +114,7 @@ impl Pass for ReorderInstructions {
                     // Mark the outputs of this op code as satisfied, unless we are a black box
                     let op_code = &input.ops[op].op;
                     if !matches!(op_code, OpCode::BlackBox(_)) {
-                        visit_operands(op_code, |sense, operand| {
+                        visit_wires(op_code, |sense, operand| {
                             if sense == Sense::Write {
                                 if let Some(reg) = operand.reg() {
                                     satisfied.push_back(reg);

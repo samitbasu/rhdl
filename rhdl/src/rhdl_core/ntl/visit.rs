@@ -1,3 +1,5 @@
+use crate::rhdl_core::ntl::Object;
+
 use super::spec::*;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -6,11 +8,11 @@ pub enum Sense {
     Write,
 }
 
-fn vec_v<F: FnMut(Sense, &Operand)>(f: &mut F, sense: Sense, v: &[Operand]) {
+fn vec_v<F: FnMut(Sense, &Wire)>(f: &mut F, sense: Sense, v: &[Wire]) {
     v.iter().for_each(|v| f(sense, v));
 }
 
-pub fn visit_operands<F: FnMut(Sense, &Operand)>(op: &OpCode, mut f: F) {
+pub fn visit_wires<F: FnMut(Sense, &Wire)>(op: &OpCode, mut f: F) {
     match op {
         OpCode::Noop => {}
         OpCode::Assign(Assign { lhs, rhs }) => {
@@ -78,18 +80,18 @@ pub fn visit_operands<F: FnMut(Sense, &Operand)>(op: &OpCode, mut f: F) {
     }
 }
 
-fn vec_m<F: FnMut(&mut Operand)>(f: &mut F, v: &mut [Operand]) {
+fn vec_m<F: FnMut(Sense, &mut Wire)>(f: &mut F, sense: Sense, v: &mut [Wire]) {
     for op in v {
-        f(op)
+        f(sense, op)
     }
 }
 
-pub fn visit_operands_mut<F: FnMut(&mut Operand)>(op: &mut OpCode, mut f: F) {
+pub fn visit_wires_mut<F: FnMut(Sense, &mut Wire)>(op: &mut OpCode, mut f: F) {
     match op {
         OpCode::Noop => {}
         OpCode::Assign(Assign { lhs, rhs }) => {
-            f(lhs);
-            f(rhs);
+            f(Sense::Write, lhs);
+            f(Sense::Read, rhs);
         }
         OpCode::Binary(Binary {
             op: _,
@@ -97,9 +99,9 @@ pub fn visit_operands_mut<F: FnMut(&mut Operand)>(op: &mut OpCode, mut f: F) {
             arg1,
             arg2,
         }) => {
-            f(lhs);
-            f(arg1);
-            f(arg2);
+            f(Sense::Write, lhs);
+            f(Sense::Read, arg1);
+            f(Sense::Read, arg2);
         }
         OpCode::Vector(Vector {
             op: _,
@@ -108,19 +110,19 @@ pub fn visit_operands_mut<F: FnMut(&mut Operand)>(op: &mut OpCode, mut f: F) {
             arg2,
             signed: _,
         }) => {
-            vec_m(&mut f, lhs);
-            vec_m(&mut f, arg1);
-            vec_m(&mut f, arg2);
+            vec_m(&mut f, Sense::Write, lhs);
+            vec_m(&mut f, Sense::Read, arg1);
+            vec_m(&mut f, Sense::Read, arg2);
         }
         OpCode::Case(Case {
             lhs,
             discriminant,
             entries,
         }) => {
-            f(lhs);
-            vec_m(&mut f, discriminant);
+            f(Sense::Write, lhs);
+            vec_m(&mut f, Sense::Read, discriminant);
             for (_, entry) in entries {
-                f(entry);
+                f(Sense::Read, entry);
             }
         }
         OpCode::Comment(_comment) => {}
@@ -130,24 +132,52 @@ pub fn visit_operands_mut<F: FnMut(&mut Operand)>(op: &mut OpCode, mut f: F) {
             true_case,
             false_case,
         }) => {
-            f(lhs);
-            f(selector);
-            f(true_case);
-            f(false_case);
+            f(Sense::Write, lhs);
+            f(Sense::Read, selector);
+            f(Sense::Read, true_case);
+            f(Sense::Read, false_case);
         }
         OpCode::Not(Not { lhs, arg }) => {
-            f(lhs);
-            f(arg);
+            f(Sense::Write, lhs);
+            f(Sense::Read, arg);
         }
         OpCode::BlackBox(BlackBox { lhs, arg, code: _ }) => {
-            vec_m(&mut f, lhs);
+            vec_m(&mut f, Sense::Write, lhs);
             for a in arg {
-                vec_m(&mut f, a);
+                vec_m(&mut f, Sense::Read, a);
             }
         }
         OpCode::Unary(Unary { op: _, lhs, arg }) => {
-            vec_m(&mut f, lhs);
-            vec_m(&mut f, arg);
+            vec_m(&mut f, Sense::Write, lhs);
+            vec_m(&mut f, Sense::Read, arg);
         }
+    }
+}
+
+pub fn visit_object_wires<F: FnMut(Sense, &Wire)>(object: &Object, mut f: F) {
+    for arg in object.inputs.iter().flatten() {
+        f(Sense::Write, &Wire::Register(*arg))
+    }
+    for lop in &object.ops {
+        visit_wires(&lop.op, &mut f);
+    }
+    for out in &object.outputs {
+        f(Sense::Read, out)
+    }
+}
+
+pub fn visit_object_wires_mut<F: FnMut(Sense, &mut Wire)>(object: &mut Object, mut f: F) {
+    for arg in object.inputs.iter_mut().flatten() {
+        let mut wire = Wire::Register(*arg);
+        f(Sense::Write, &mut wire);
+        *arg = wire
+            .reg()
+            .expect("Argument operands must remain registers.  Do not mutate them into literals");
+    }
+    for lop in object.ops.iter_mut() {
+        visit_wires_mut(&mut lop.op, &mut f);
+    }
+    for out in object.outputs.iter_mut() {
+        f(Sense::Read, out)
     }
 }

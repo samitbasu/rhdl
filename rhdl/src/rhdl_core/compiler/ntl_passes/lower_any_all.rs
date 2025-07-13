@@ -1,7 +1,7 @@
 use crate::{
     prelude::RHDLError,
     rhdl_core::ntl::{
-        spec::{assign, OpCode, Operand, Unary, UnaryOp},
+        spec::{assign, OpCode, Wire, Unary, UnaryOp},
         Object,
     },
 };
@@ -19,7 +19,7 @@ fn lower_any_all(op: &OpCode) -> Option<OpCode> {
         UnaryOp::All => {
             if unary.arg.iter().any(|op| op.bool() == Some(false)) {
                 // Short cut this all instruction - it must be false
-                Some(assign(unary.lhs[0], Operand::Zero))
+                Some(assign(unary.lhs[0], Wire::Zero))
             } else {
                 // Filter out any arguments that are boolean true
                 let rhs = unary
@@ -42,7 +42,7 @@ fn lower_any_all(op: &OpCode) -> Option<OpCode> {
         UnaryOp::Any => {
             if unary.arg.iter().any(|op| op.bool() == Some(true)) {
                 // Short cut this any instruction - it must be true
-                Some(assign(unary.lhs[0], Operand::One))
+                Some(assign(unary.lhs[0], Wire::One))
             } else {
                 // Filter out any arguments that are boolean false
                 let rhs = unary
