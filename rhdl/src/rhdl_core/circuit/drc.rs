@@ -4,11 +4,11 @@ use petgraph::algo::DfsSpace;
 use crate::{
     prelude::Synchronous,
     rhdl_core::{
+        SourcePool,
         ntl::{
-            graph::{make_net_graph, GraphMode, WriteSource},
+            graph::{GraphMode, WriteSource, make_net_graph},
             spec::Wire,
         },
-        SourcePool,
     },
 };
 use thiserror::Error;
@@ -49,7 +49,7 @@ pub fn no_combinatorial_paths<T: Synchronous>(uut: &T) -> miette::Result<()> {
     let input_node = dep.input_node;
     let mut space = DfsSpace::new(&dep.graph);
     let code = &descriptor.ntl.code;
-    for output in descriptor.ntl.outputs.iter().flat_map(Wire::reg) {
+    for output in descriptor.ntl.outputs.iter().copied().flat_map(Wire::reg) {
         let source = dep.reg_map[&output];
         match source {
             WriteSource::ClockReset => {}
@@ -57,7 +57,7 @@ pub fn no_combinatorial_paths<T: Synchronous>(uut: &T) -> miette::Result<()> {
                 return Err(miette::Report::new(CombinatorialPath {
                     src: code.source(),
                     elements: Vec::new(),
-                }))
+                }));
             }
             WriteSource::OpCode(ndx) => {
                 // The output is written by the opcode ndx.

@@ -281,10 +281,6 @@ fn test_array_dynamic_indexing_on_write() -> miette::Result<()> {
     ];
     let b = exhaustive();
     let inputs = b.into_iter().map(|b| (red(a), red(b))).collect::<Vec<_>>();
-    env_logger::builder()
-        .filter_level(log::LevelFilter::Debug)
-        .is_test(true)
-        .init();
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, inputs.into_iter())?;
     Ok(())
 }

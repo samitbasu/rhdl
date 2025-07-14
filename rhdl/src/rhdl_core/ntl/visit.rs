@@ -1,12 +1,6 @@
-use crate::rhdl_core::ntl::Object;
+use crate::rhdl_core::{common::sense::Sense, ntl::Object};
 
 use super::spec::*;
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum Sense {
-    Read,
-    Write,
-}
 
 fn vec_v<F: FnMut(Sense, &Wire)>(f: &mut F, sense: Sense, v: &[Wire]) {
     v.iter().for_each(|v| f(sense, v));

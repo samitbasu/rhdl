@@ -39,7 +39,6 @@ impl Pass for RemoveExtraRegistersPass {
             }
         }
         // Next, rewrite the ops, where for each operand, we take the root of the unify tree
-        let symbols = std::mem::take(&mut input.symbols);
         visit_object_operands_mut(&mut input, |_sense, operand| {
             if let Some(reg) = operand.reg() {
                 let key = reg_map[&reg];
@@ -55,7 +54,6 @@ impl Pass for RemoveExtraRegistersPass {
                 true
             }
         });
-        input.symbols = symbols;
         Ok(input)
     }
     fn description() -> &'static str {

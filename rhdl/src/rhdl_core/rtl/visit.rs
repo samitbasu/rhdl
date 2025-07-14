@@ -1,21 +1,7 @@
+use crate::rhdl_core::common::sense::Sense;
+
 use super::object::Object;
 use super::spec::*;
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum Sense {
-    Read,
-    Write,
-}
-
-impl Sense {
-    pub fn is_read(&self) -> bool {
-        matches!(self, Sense::Read)
-    }
-
-    pub fn is_write(&self) -> bool {
-        matches!(self, Sense::Write)
-    }
-}
 
 pub fn visit_operands<F: FnMut(Sense, &Operand)>(op: &OpCode, mut f: F) {
     match op {

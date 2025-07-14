@@ -1,8 +1,8 @@
 use crate::{
-    prelude::RHDLError,
+    prelude::{BitX, RHDLError},
     rhdl_core::ntl::{
-        spec::{assign, OpCode, Wire, Unary, UnaryOp},
         Object,
+        spec::{OpCode, Unary, UnaryOp, assign},
     },
 };
 
@@ -11,21 +11,25 @@ use super::pass::Pass;
 #[derive(Default, Debug, Clone)]
 pub struct LowerAnyAll {}
 
-fn lower_any_all(op: &OpCode) -> Option<OpCode> {
+fn lower_any_all(input: &Object, op: &OpCode) -> Option<OpCode> {
     let OpCode::Unary(unary) = op else {
         return None;
     };
     match unary.op {
         UnaryOp::All => {
-            if unary.arg.iter().any(|op| op.bool() == Some(false)) {
+            if let Some(arg) = unary
+                .arg
+                .iter()
+                .find(|op| input.bitx(**op) == Some(BitX::Zero))
+            {
                 // Short cut this all instruction - it must be false
-                Some(assign(unary.lhs[0], Wire::Zero))
+                Some(assign(unary.lhs[0], *arg))
             } else {
                 // Filter out any arguments that are boolean true
                 let rhs = unary
                     .arg
                     .iter()
-                    .filter(|op| op.bool() != Some(true))
+                    .filter(|op| input.bitx(**op) != Some(BitX::One))
                     .copied()
                     .collect::<Vec<_>>();
                 if rhs.len() == 1 {
@@ -40,15 +44,19 @@ fn lower_any_all(op: &OpCode) -> Option<OpCode> {
             }
         }
         UnaryOp::Any => {
-            if unary.arg.iter().any(|op| op.bool() == Some(true)) {
+            if let Some(arg) = unary
+                .arg
+                .iter()
+                .find(|op| input.bitx(**op) == Some(BitX::One))
+            {
                 // Short cut this any instruction - it must be true
-                Some(assign(unary.lhs[0], Wire::One))
+                Some(assign(unary.lhs[0], *arg))
             } else {
                 // Filter out any arguments that are boolean false
                 let rhs = unary
                     .arg
                     .iter()
-                    .filter(|op| op.bool() != Some(false))
+                    .filter(|op| input.bitx(**op) != Some(BitX::Zero))
                     .copied()
                     .collect::<Vec<_>>();
                 if rhs.len() == 1 {
@@ -71,11 +79,13 @@ impl Pass for LowerAnyAll {
         "Lower any and all ops with boolen arguments"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
-        input.ops.iter_mut().for_each(|lop| {
-            if let Some(rep_op) = lower_any_all(&lop.op) {
+        let mut ops = std::mem::take(&mut input.ops);
+        ops.iter_mut().for_each(|lop| {
+            if let Some(rep_op) = lower_any_all(&input, &lop.op) {
                 lop.op = rep_op;
             }
         });
+        input.ops = ops;
         Ok(input)
     }
 }

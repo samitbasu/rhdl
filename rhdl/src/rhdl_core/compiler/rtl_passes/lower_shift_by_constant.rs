@@ -52,7 +52,7 @@ impl LowerShiftByConstant {
         let source_details = input.symtab[arg1].clone();
         let arg1_len = input.size(arg1).len();
         let arg1_ext_len = arg1_len + shift_amount;
-        let ext_kind = if input.kind(arg1).is_signed() {
+        let ext_kind = if input.kind(lhs).is_signed() {
             Kind::Signed(arg1_ext_len)
         } else {
             Kind::Bits(arg1_ext_len)

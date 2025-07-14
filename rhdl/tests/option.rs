@@ -66,11 +66,7 @@ fn test_result_is_digital() -> miette::Result<()> {
 fn test_option_works() -> miette::Result<()> {
     #[kernel]
     fn opt(i: b8) -> Option<b8> {
-        if i.any() {
-            Some(i)
-        } else {
-            None
-        }
+        if i.any() { Some(i) } else { None }
     }
 
     test_kernel_vm_and_verilog_synchronous::<opt, _, _, _>(
@@ -84,11 +80,7 @@ fn test_option_works() -> miette::Result<()> {
 fn test_option_is_kernel_ok() -> miette::Result<()> {
     #[kernel]
     fn validify(i: b8) -> Option<b8> {
-        if i.any() {
-            Some(i)
-        } else {
-            None
-        }
+        if i.any() { Some(i) } else { None }
     }
 
     #[kernel]
@@ -402,12 +394,6 @@ fn test_ok_err_variants_allowed_in_non_result() -> miette::Result<()> {
             _ => MyResult::Err(x),
         }
     }
-
-    env_logger::builder()
-        .filter_level(log::LevelFilter::Debug)
-        .is_test(true)
-        .init();
-
     compile_design::<kernel>(CompilationMode::Synchronous)?;
     Ok(())
 }

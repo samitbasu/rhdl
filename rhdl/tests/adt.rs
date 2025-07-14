@@ -38,11 +38,6 @@ fn test_adt_use() -> miette::Result<()> {
                 },
         )
     }
-
-    env_logger::builder()
-        .filter_level(log::LevelFilter::Debug)
-        .is_test(true)
-        .init();
     test_kernel_vm_and_verilog::<get_color, _, _, _>(
         get_color,
         [
