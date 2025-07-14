@@ -50,7 +50,7 @@ impl LowerShiftByConstant {
     ) -> Result<(), RHDLError> {
         let shift_amount = Self::shift_amount_as_usize(input, lit, loc)?;
         let source_details = input.symtab[arg1].clone();
-        let arg1_len = input.size(arg1).len();
+        let arg1_len = input.kind(arg1).bits();
         let arg1_ext_len = arg1_len + shift_amount;
         let ext_kind = if input.kind(lhs).is_signed() {
             Kind::Signed(arg1_ext_len)
@@ -87,7 +87,7 @@ impl LowerShiftByConstant {
         loc: SourceLocation,
     ) -> Result<(), RHDLError> {
         let shift_amount = Self::shift_amount_as_usize(input, lit, loc)?;
-        let arg1_len = input.size(arg1).len();
+        let arg1_len = input.kind(arg1).bits();
         let arg1_lsbs_len = arg1_len.saturating_sub(shift_amount);
         // Allocate a new literal to hold the zeros shifted in on the right.
         let source_details = input.symtab[arg1].clone();

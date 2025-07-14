@@ -4,6 +4,7 @@ use std::hash::Hasher;
 
 use fnv::FnvHasher;
 
+use crate::rhdl_core::Kind;
 use crate::rhdl_core::TypedBits;
 use crate::rhdl_core::ast::ast_impl::{FunctionId, NodeId};
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
@@ -12,7 +13,6 @@ use crate::rhdl_core::common::symtab::SymbolTable;
 use crate::rhdl_core::rhif::object::SourceDetails;
 use crate::rhdl_core::rtl::spec::OperandKind;
 use crate::rhdl_core::types::bit_string::BitString;
-use crate::rhdl_core::{Digital, Kind};
 
 use super::spec::{OpCode, Operand};
 use super::symbols::SymbolMap;
@@ -42,69 +42,6 @@ pub fn lop(op: OpCode, id: NodeId, func: FunctionId) -> LocatedOpCode {
     LocatedOpCode::new(op, id, func)
 }
 
-#[derive(Clone, Copy, Hash)]
-pub enum RegisterSize {
-    Signed(usize),
-    Unsigned(usize),
-}
-
-impl RegisterSize {
-    pub fn is_signed(&self) -> bool {
-        matches!(self, RegisterSize::Signed(_))
-    }
-    pub fn is_unsigned(&self) -> bool {
-        matches!(self, RegisterSize::Unsigned(_))
-    }
-    pub fn len(&self) -> usize {
-        match self {
-            RegisterSize::Signed(len) => *len,
-            RegisterSize::Unsigned(len) => *len,
-        }
-    }
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-    pub fn from_digital(t: impl Digital) -> Self {
-        match t.kind() {
-            Kind::Signed(len) => RegisterSize::Signed(len),
-            _ => RegisterSize::Unsigned(t.bin().len()),
-        }
-    }
-}
-
-impl From<&Kind> for RegisterSize {
-    fn from(value: &Kind) -> Self {
-        match value {
-            Kind::Signed(len) => RegisterSize::Signed(*len),
-            _ => RegisterSize::Unsigned(value.bits()),
-        }
-    }
-}
-
-impl From<Kind> for RegisterSize {
-    fn from(value: Kind) -> Self {
-        (&value).into()
-    }
-}
-
-impl From<&BitString> for RegisterSize {
-    fn from(bs: &BitString) -> Self {
-        match bs {
-            BitString::Signed(bits) => RegisterSize::Signed(bits.len()),
-            BitString::Unsigned(bits) => RegisterSize::Unsigned(bits.len()),
-        }
-    }
-}
-
-impl std::fmt::Debug for RegisterSize {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            RegisterSize::Signed(width) => write!(f, "s{width}"),
-            RegisterSize::Unsigned(width) => write!(f, "b{width}"),
-        }
-    }
-}
-
 #[derive(Clone, Hash)]
 pub struct Object {
     pub symbols: SymbolMap,
@@ -122,12 +59,6 @@ impl Object {
     }
     pub fn op_alias(&self, op: Operand) -> Option<String> {
         self.symtab[op].name.clone()
-    }
-    pub fn size(&self, op: Operand) -> RegisterSize {
-        match op {
-            Operand::Register(reg) => self.symtab[reg].into(),
-            Operand::Literal(lit) => self.symtab[lit].kind.into(),
-        }
     }
     pub fn hash_value(&self) -> u64 {
         let mut hasher = FnvHasher::default();
@@ -154,8 +85,9 @@ impl std::fmt::Debug for Object {
                 Some(s) => s.as_str(),
                 None => "",
             };
-            let size: RegisterSize = kind.into();
-            writeln!(f, "Reg {rid:?} : {size:?} // {name} {kind:?}")?;
+            let reg_type = if kind.is_signed() { "s" } else { "b" };
+            let reg_bits = kind.bits();
+            writeln!(f, "Reg {rid:?} : {reg_type}{reg_bits} // {name} {kind:?}")?;
         }
         for (lid, (literal, _)) in self.symtab.iter_lit() {
             let bs: BitString = literal.into();

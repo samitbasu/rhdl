@@ -371,7 +371,7 @@ fn test_constant_propagates_through_indexing() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = [false, true].with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
-    let desc = uut.descriptor("uut")?;
+    let _desc = uut.descriptor("uut")?;
     Ok(())
 }
 
@@ -405,6 +405,6 @@ fn test_constant_propagates_through_splicing() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = [false, true].with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
-    let desc = uut.descriptor("uut")?;
+    let _desc = uut.descriptor("uut")?;
     Ok(())
 }

@@ -152,10 +152,6 @@ fn test_right_signed_shift_with_constant_argument() -> miette::Result<()> {
             })
         ))
     });
-    env_logger::builder()
-        .is_test(true)
-        .filter_level(log::LevelFilter::Debug)
-        .init();
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, s8_red())?;
     Ok(())
 }

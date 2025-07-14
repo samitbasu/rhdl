@@ -17,7 +17,6 @@ use crate::{
 
 pub(crate) struct Builder {
     object: Object,
-    reg_count: u32,
 }
 
 pub enum BuilderMode {
@@ -32,7 +31,6 @@ impl Builder {
                 name: name.into(),
                 ..Default::default()
             },
-            reg_count: 0,
         }
     }
     pub fn add_code(&mut self, code: &SpannedSourceSet) {

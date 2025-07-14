@@ -1,7 +1,6 @@
 use crate::rhdl_core::{
     Kind, RHDLError, TypedBits,
     bitx::{BitX, bitx_string},
-    rtl::object::RegisterSize,
 };
 
 #[derive(Clone, PartialEq, Hash)]
@@ -98,14 +97,11 @@ impl BitString {
             }
         }
     }
-    pub(crate) fn dont_care_from_kind(kind: RegisterSize) -> BitString {
-        match kind {
-            RegisterSize::Unsigned(len) => {
-                BitString::Unsigned(std::iter::repeat_n(BitX::X, len).collect())
-            }
-            RegisterSize::Signed(len) => {
-                BitString::Signed(std::iter::repeat_n(BitX::X, len).collect())
-            }
+    pub(crate) fn dont_care_from_kind(kind: Kind) -> BitString {
+        if kind.is_signed() {
+            BitString::Signed(std::iter::repeat_n(BitX::X, kind.bits()).collect())
+        } else {
+            BitString::Unsigned(std::iter::repeat_n(BitX::X, kind.bits()).collect())
         }
     }
 }

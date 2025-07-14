@@ -140,9 +140,9 @@ impl<'a> NtlBuilder<'a> {
         let arg1 = self.operand(binary.arg1);
         let arg2 = self.operand(binary.arg2);
         let lhs = self.operand(binary.lhs);
-        let signed = self.object.size(binary.lhs).is_signed()
-            || (self.object.size(binary.arg1).is_signed()
-                && self.object.size(binary.arg2).is_signed());
+        let signed = self.object.kind(binary.lhs).is_signed()
+            || (self.object.kind(binary.arg1).is_signed()
+                && self.object.kind(binary.arg2).is_signed());
         match classify_binary(binary.op) {
             BinOpClass::Bitwise(binop) => {
                 for (&lhs, (&arg1, &arg2)) in lhs.iter().zip(arg1.iter().zip(arg2.iter())) {
@@ -212,7 +212,7 @@ impl<'a> NtlBuilder<'a> {
         for (&lhs, &rhs) in lhs.iter().zip(arg.iter()) {
             self.lop(loc, bt::assign(lhs, rhs));
         }
-        let lhs_signed = self.object.size(cast.lhs).is_signed();
+        let lhs_signed = self.object.kind(cast.lhs).is_signed();
         let use_unsigned = matches!(cast.kind, tl::CastKind::Unsigned)
             || (matches!(cast.kind, tl::CastKind::Resize) && !lhs_signed);
         let wd = WireDetails {

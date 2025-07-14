@@ -1,6 +1,6 @@
 use crate::rhdl_core::{
-    rtl::{spec::OpCode, Object},
     RHDLError,
+    rtl::{Object, spec::OpCode},
 };
 
 use super::pass::Pass;
@@ -17,7 +17,7 @@ impl Pass for StripEmptyArgsFromConcat {
                     .args
                     .iter()
                     .copied()
-                    .filter(|arg| !input.size(*arg).is_empty())
+                    .filter(|arg| input.kind(*arg).bits() != 0)
                     .collect();
                 concat.args = args;
             }

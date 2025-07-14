@@ -2,10 +2,7 @@ use crate::{
     prelude::Kind,
     rhdl_core::{
         bitx::BitX,
-        rtl::{
-            object::RegisterSize,
-            spec::{AluBinary, AluUnary},
-        },
+        rtl::spec::{AluBinary, AluUnary},
         types::bit_string::BitString,
     },
 };
@@ -103,15 +100,6 @@ impl From<&Kind> for SignedWidth {
             SignedWidth::Signed(kind.bits())
         } else {
             SignedWidth::Unsigned(kind.bits())
-        }
-    }
-}
-
-impl From<RegisterSize> for SignedWidth {
-    fn from(kind: RegisterSize) -> Self {
-        match kind {
-            RegisterSize::Signed(len) => SignedWidth::Signed(len),
-            RegisterSize::Unsigned(len) => SignedWidth::Unsigned(len),
         }
     }
 }
