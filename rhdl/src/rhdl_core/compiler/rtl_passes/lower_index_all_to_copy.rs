@@ -16,7 +16,7 @@ impl Pass for LowerIndexAllToCopy {
         let mut ops = std::mem::take(&mut input.ops);
         for lop in ops.iter_mut() {
             if let OpCode::Index(index) = &mut lop.op {
-                let arg_len = input.size(index.arg).len();
+                let arg_len = input.kind(index.arg).bits();
                 if index.bit_range == (0..arg_len) {
                     lop.op = OpCode::Assign(Assign {
                         lhs: index.lhs,

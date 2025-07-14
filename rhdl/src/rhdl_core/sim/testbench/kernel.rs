@@ -413,8 +413,8 @@ where
     }
     debug!("Generating Verilog to run external checks");
     let hdl = generate_verilog(&rtl)?;
+    debug!("{}", hdl.as_verilog());
     let tm = test_module(&uut, hdl, vals.clone());
-    debug!("{}", tm);
     tm.run_iverilog()?;
     debug!("Generating netlist from rtl");
     let ntl = build_ntl_from_rtl(&rtl);

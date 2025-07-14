@@ -38,7 +38,7 @@ impl TranslationContext<'_> {
     /// Cast the argument ot the desired width, considering the result a signed value.
     /// The cast length must be less than or equal to the argument length, or an ICE is raised.
     fn translate_as_signed(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
-        if cast.len > self.rtl.size(cast.arg).len() {
+        if cast.len > self.rtl.kind(cast.arg).bits() {
             return Err(self.raise_ice(
                 ICE::InvalidSignedCast {
                     lhs: cast.lhs,
@@ -57,15 +57,15 @@ impl TranslationContext<'_> {
     }
     /// Cast the argument to the desired width, with no error and no sign extension
     fn translate_resize_unsigned(&mut self, cast: &tl::Cast) {
-        let arg_kind = self.rtl.size(cast.arg);
+        let arg_kind = self.rtl.kind(cast.arg);
         let lhs = self.rtl.op_name(cast.lhs);
         let arg = self.rtl.op_name(cast.arg);
         // Truncation case
-        if cast.len <= arg_kind.len() {
+        if cast.len <= arg_kind.bits() {
             self.func.block.push(assign(&lhs, index(&arg, 0..cast.len)));
         } else {
             // zero extend
-            let num_z = cast.len - arg_kind.len();
+            let num_z = cast.len - arg_kind.bits();
             let prefix = repeat(constant(BitX::Zero), num_z);
             self.func
                 .block
@@ -74,19 +74,19 @@ impl TranslationContext<'_> {
     }
     /// Cast the argument to the desired width, with sign extension if needed.
     fn translate_resize_signed(&mut self, cast: &tl::Cast) {
-        let arg_kind = self.rtl.size(cast.arg);
+        let arg_kind = self.rtl.kind(cast.arg);
         let lhs = self.rtl.op_name(cast.lhs);
         let arg = self.rtl.op_name(cast.arg);
         // Truncation case
-        if cast.len <= arg_kind.len() {
+        if cast.len <= arg_kind.bits() {
             self.func.block.push(assign(
                 &lhs,
                 unary(AluUnary::Signed, index(&arg, 0..cast.len)),
             ));
         } else {
             // sign extend
-            let num_s = cast.len - arg_kind.len();
-            let sign_bit = index_bit(&arg, arg_kind.len().saturating_sub(1));
+            let num_s = cast.len - arg_kind.bits();
+            let sign_bit = index_bit(&arg, arg_kind.bits().saturating_sub(1));
             let prefix = repeat(sign_bit, num_s);
             self.func.block.push(assign(
                 &lhs,
@@ -105,7 +105,7 @@ impl TranslationContext<'_> {
                 id,
             ));
         }
-        if self.rtl.size(cast.arg).is_signed() {
+        if self.rtl.kind(cast.arg).is_signed() {
             self.translate_resize_signed(cast);
         } else {
             self.translate_resize_unsigned(cast);
@@ -290,7 +290,7 @@ fn translate(object: &crate::rhdl_core::rtl::Object) -> Result<Function> {
     let context = TranslationContext {
         func: Function {
             name: format!("kernel_{}", object.name),
-            width: object.size(object.return_register).into(),
+            width: object.kind(object.return_register).into(),
             arguments: vec![],
             registers: vec![],
             literals: vec![],

@@ -15,7 +15,7 @@ use crate::rhdl_core::{
 
 use super::{
     Object,
-    object::{LocatedOpCode, RegisterSize},
+    object::LocatedOpCode,
     runtime_ops::{binary, unary},
     spec::{Assign, Binary, OpCode, Operand},
 };
@@ -104,7 +104,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 discriminant,
                 table,
             }) => {
-                let lhs_kind = state.obj.size(*lhs);
+                let lhs_kind = state.obj.kind(*lhs);
                 let lhs_dont_care = BitString::dont_care_from_kind(lhs_kind);
                 let discriminant = state.read(*discriminant, loc)?;
                 let arm = table
@@ -148,13 +148,10 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                     .flat_map(|x| x.bits())
                     .copied()
                     .collect::<Vec<BitX>>();
-                match state.obj.size(*lhs) {
-                    RegisterSize::Signed(_) => {
-                        state.write(*lhs, BitString::Signed(combined), loc)?;
-                    }
-                    RegisterSize::Unsigned(_) => {
-                        state.write(*lhs, BitString::Unsigned(combined), loc)?;
-                    }
+                if state.obj.kind(*lhs).is_signed() {
+                    state.write(*lhs, BitString::Signed(combined), loc)?;
+                } else {
+                    state.write(*lhs, BitString::Unsigned(combined), loc)?;
                 }
             }
             OpCode::Index(Index {
@@ -165,13 +162,10 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
             }) => {
                 let arg = state.read(*arg, loc)?;
                 let slice = arg.bits()[bit_range.clone()].to_vec();
-                match state.obj.size(*lhs) {
-                    RegisterSize::Signed(_) => {
-                        state.write(*lhs, BitString::Signed(slice), loc)?;
-                    }
-                    RegisterSize::Unsigned(_) => {
-                        state.write(*lhs, BitString::Unsigned(slice), loc)?;
-                    }
+                if state.obj.kind(*lhs).is_signed() {
+                    state.write(*lhs, BitString::Signed(slice), loc)?;
+                } else {
+                    state.write(*lhs, BitString::Unsigned(slice), loc)?;
                 }
             }
             OpCode::Select(Select {
@@ -201,13 +195,10 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let mut orig = orig.bits().to_vec();
                 let value = value.bits();
                 orig.splice(bit_range.clone(), value.iter().copied());
-                match state.obj.size(*lhs) {
-                    RegisterSize::Signed(_) => {
-                        state.write(*lhs, BitString::Signed(orig), loc)?;
-                    }
-                    RegisterSize::Unsigned(_) => {
-                        state.write(*lhs, BitString::Unsigned(orig), loc)?;
-                    }
+                if state.obj.kind(*lhs).is_signed() {
+                    state.write(*lhs, BitString::Signed(orig), loc)?;
+                } else {
+                    state.write(*lhs, BitString::Unsigned(orig), loc)?;
                 }
             }
             OpCode::Unary(Unary { op, lhs, arg1 }) => {

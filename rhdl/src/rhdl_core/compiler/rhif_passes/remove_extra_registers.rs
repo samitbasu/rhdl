@@ -60,13 +60,3 @@ impl Pass for RemoveExtraRegistersPass {
         Ok(input)
     }
 }
-
-fn merge_names(a: Option<&String>, b: Option<&String>) -> Option<String> {
-    match (a, b) {
-        (None, None) => None,
-        (Some(a), None) => Some(a.clone()),
-        (None, Some(b)) => Some(b.clone()),
-        (Some(a), Some(b)) if a == b => Some(a.clone()),
-        (Some(a), Some(b)) => Some(format!("{b}_then_{a}")),
-    }
-}
