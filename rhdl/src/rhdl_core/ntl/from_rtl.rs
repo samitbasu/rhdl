@@ -45,6 +45,7 @@ pub fn build_ntl_from_rtl(object: &rtl::Object) -> ntl::object::Object {
     let outputs = bob.operand(object.return_register);
     bob.btl.inputs = inputs;
     bob.btl.outputs = outputs;
+    log::debug!("NTL built: {ntl:?}", ntl = &bob.btl);
     bob.btl
 }
 

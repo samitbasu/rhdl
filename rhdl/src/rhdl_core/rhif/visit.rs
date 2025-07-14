@@ -1,21 +1,6 @@
-use crate::rhdl_core::rhif::Object;
+use crate::rhdl_core::{common::sense::Sense, rhif::Object};
 
 use super::spec::*;
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum Sense {
-    Read,
-    Write,
-}
-
-impl Sense {
-    pub fn is_read(&self) -> bool {
-        matches!(self, Sense::Read)
-    }
-    pub fn is_write(&self) -> bool {
-        matches!(self, Sense::Write)
-    }
-}
 
 pub fn visit_slots<F: FnMut(Sense, &Slot)>(op: &OpCode, mut f: F) {
     match op {

@@ -48,7 +48,8 @@ pub struct Object {
 impl Object {
     /// Link another netlist, and return the offset added
     /// to registers
-    pub fn import(&mut self, mut other: Object) -> impl Fn(Wire) -> Wire {
+    pub fn import(&mut self, other: &Object) -> impl Fn(Wire) -> Wire + use<> {
+        let mut other = other.clone();
         let remap = self.symtab.merge(std::mem::take(&mut other.symtab));
         visit_object_wires_mut(&mut other, |_sense, wire| *wire = remap(*wire));
         // Fix up black box references
@@ -67,6 +68,13 @@ impl Object {
         let mut hasher = FnvHasher::default();
         self.hash(&mut hasher);
         hasher.finish()
+    }
+    pub fn bitx(&self, wire: Wire) -> Option<BitX> {
+        if let Some(lid) = wire.lit() {
+            Some(self.symtab[lid])
+        } else {
+            None
+        }
     }
 }
 

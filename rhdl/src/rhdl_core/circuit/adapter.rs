@@ -7,7 +7,6 @@ use crate::rhdl_core::{
         Direction, Module, component_instance, concatenate, connection, id, index, index_bit,
     },
     ntl,
-    rtl::object::RegisterSize,
     types::{kind::Field, signal::signal},
 };
 
@@ -121,17 +120,17 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         let child_descriptor = self.circuit.descriptor(&format!("{name}_inner"))?;
         // This includes the clock and reset signals
         // It should be [clock, reset, inputs...]
-        let input_reg: RegisterSize = <Self::I as Timed>::static_kind().into();
-        let output_reg: RegisterSize = <Self::O as Timed>::static_kind().into();
-        let ti = builder.add_input(input_reg.len());
-        let to = builder.allocate_outputs(output_reg.len());
+        let input_reg: Kind = <Self::I as Timed>::static_kind();
+        let output_reg: Kind = <Self::O as Timed>::static_kind();
+        let ti = builder.add_input(input_reg);
+        let to = builder.allocate_outputs(output_reg);
         let child_offset = builder.import(&child_descriptor.ntl);
         let child_inputs = child_descriptor.ntl.inputs.iter().flatten();
         for (&t, c) in ti.iter().zip(child_inputs) {
-            builder.copy_from_to(t, c.offset(child_offset));
+            builder.copy_from_to(t, child_offset(c.into()));
         }
         for (&t, c) in to.iter().zip(&child_descriptor.ntl.outputs) {
-            builder.copy_from_to(c.offset(child_offset), t);
+            builder.copy_from_to(child_offset(*c), t);
         }
         Ok(CircuitDescriptor {
             unique_name: name.into(),

@@ -1,6 +1,5 @@
 use crate::core::types::digital::Digital;
 use crate::prelude::{Circuit, ClockReset, Kind};
-use crate::rhdl_core::ast::source::source_location::SourceLocation;
 use crate::rhdl_core::common::symtab::RegisterId;
 use crate::rhdl_core::ntl::object::WireDetails;
 use crate::rhdl_core::ntl::spec::{self, Assign, BlackBoxId, WireKind};
@@ -39,15 +38,11 @@ impl Builder {
     pub fn add_code(&mut self, code: &SpannedSourceSet) {
         self.object.code.extend(code.sources.clone());
     }
-    pub fn add_input(
-        &mut self,
-        kind: Kind,
-        loc: Option<SourceLocation>,
-    ) -> Vec<RegisterId<WireKind>> {
+    pub fn add_input(&mut self, kind: Kind) -> Vec<RegisterId<WireKind>> {
         let ret = (0..kind.bits())
             .map(|ndx| {
                 let wd = WireDetails {
-                    source_details: loc.map(|x| x.into()),
+                    source_details: None,
                     kind,
                     bit: ndx,
                 };
@@ -58,15 +53,11 @@ impl Builder {
         self.object.inputs.push(ret.clone());
         ret
     }
-    pub fn allocate_outputs(
-        &mut self,
-        kind: Kind,
-        loc: Option<SourceLocation>,
-    ) -> Vec<RegisterId<WireKind>> {
+    pub fn allocate_outputs(&mut self, kind: Kind) -> Vec<RegisterId<WireKind>> {
         let ret = (0..kind.bits())
             .map(|ndx| {
                 let wd = WireDetails {
-                    source_details: loc.map(|x| x.into()),
+                    source_details: None,
                     kind,
                     bit: ndx,
                 };
@@ -92,7 +83,7 @@ impl Builder {
         }
         optimize_ntl(self.object)
     }
-    pub fn import(&mut self, other: Object) -> impl Fn(Wire) -> Wire {
+    pub fn import(&mut self, other: &Object) -> impl Fn(Wire) -> Wire + use<> {
         self.add_code(&other.code);
         self.object.import(other)
     }
@@ -110,8 +101,8 @@ impl Builder {
 pub fn circuit_black_box<C: Circuit>(circuit: &C, name: &str) -> Result<Object, RHDLError> {
     let mut builder = Builder::new(name);
     let hdl = circuit.hdl(name)?;
-    let arg0 = builder.add_input(C::I::static_kind(), None);
-    let out = builder.allocate_outputs(C::O::static_kind(), None);
+    let arg0 = builder.add_input(C::I::static_kind());
+    let out = builder.allocate_outputs(C::O::static_kind());
     builder.object.black_boxes.push(BlackBox {
         code: hdl,
         mode: BlackBoxMode::Asynchronous,
@@ -133,9 +124,9 @@ pub fn synchronous_black_box<S: Synchronous>(circuit: &S, name: &str) -> Result<
     let mut builder = Builder::new(name);
     let hdl = circuit.hdl(name)?;
     // This is the Clock/Reset input
-    let arg0 = builder.add_input(ClockReset::static_kind(), None);
-    let arg1 = builder.add_input(S::I::static_kind(), None);
-    let out = builder.allocate_outputs(S::O::static_kind(), None);
+    let arg0 = builder.add_input(ClockReset::static_kind());
+    let arg1 = builder.add_input(S::I::static_kind());
+    let out = builder.allocate_outputs(S::O::static_kind());
     builder.object.black_boxes.push(BlackBox {
         code: hdl,
         mode: BlackBoxMode::Synchronous,

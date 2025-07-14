@@ -97,10 +97,6 @@ macro_rules! shift_test_bits {
 
 #[test]
 fn test_shift_via_dyn_bits() -> miette::Result<()> {
-    env_logger::builder()
-        .is_test(true)
-        .filter_level(log::LevelFilter::Debug)
-        .init();
     shift_test_bits!(>>);
     shift_test_bits!(<<);
     Ok(())

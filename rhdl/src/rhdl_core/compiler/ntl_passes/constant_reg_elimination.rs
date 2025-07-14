@@ -1,11 +1,14 @@
 use std::collections::HashMap;
 
 use crate::{
-    prelude::{BitX, RHDLError},
-    rhdl_core::ntl::{
-        object::Object,
-        spec::{Assign, OpCode, Wire, RegisterId},
-        visit::visit_wires_mut,
+    prelude::RHDLError,
+    rhdl_core::{
+        common::symtab::RegisterId,
+        ntl::{
+            object::Object,
+            spec::{Assign, OpCode, Wire, WireKind},
+            visit::visit_object_wires_mut,
+        },
     },
 };
 
@@ -19,47 +22,33 @@ impl Pass for ConstantRegisterElimination {
         "Constant Buffer Elimination"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
-        let mut constant_set: HashMap<RegisterId, BitX> = HashMap::default();
-        let mut ops = std::mem::take(&mut input.ops);
-        for op in &ops {
+        let mut constant_set: HashMap<RegisterId<WireKind>, Wire> = HashMap::default();
+        for op in &input.ops {
             if let OpCode::Assign(assign) = &op.op {
                 if let Some(reg_id) = assign.lhs.reg() {
-                    if let Some(bitx) = assign.rhs.bitx() {
-                        constant_set.insert(reg_id, bitx);
+                    if let Some(_) = input.bitx(assign.rhs) {
+                        constant_set.insert(reg_id, assign.rhs);
                     }
                 }
             }
         }
         // Rewrite ops to use constants where possible
-        for lop in &mut ops {
-            visit_wires_mut(&mut lop.op, |op| {
+        visit_object_wires_mut(&mut input, |sense, op| {
+            if sense.is_read() {
                 if let Some(reg) = op.reg() {
-                    if let Some(bitx) = constant_set.get(&reg) {
-                        *op = Wire::from(*bitx);
+                    if let Some(lit) = constant_set.get(&reg) {
+                        *op = *lit;
                     }
                 }
-            });
-        }
-        ops.retain(|lop| {
+            }
+        });
+        input.ops.retain(|lop| {
             if let OpCode::Assign(Assign { lhs, rhs }) = lop.op {
                 lhs != rhs
             } else {
                 true
             }
         });
-        input.outputs = input
-            .outputs
-            .into_iter()
-            .map(|o| {
-                if let Some(reg) = o.reg() {
-                    if let Some(&bitx) = constant_set.get(&reg) {
-                        return bitx.into();
-                    }
-                }
-                o
-            })
-            .collect();
-        input.ops = ops;
         Ok(input)
     }
 }

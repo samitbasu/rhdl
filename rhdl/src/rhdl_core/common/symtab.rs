@@ -112,6 +112,18 @@ impl<K: SymbolKind> From<RegisterId<K>> for Symbol<K> {
     }
 }
 
+impl<K: SymbolKind> From<&LiteralId<K>> for Symbol<K> {
+    fn from(val: &LiteralId<K>) -> Symbol<K> {
+        Symbol::Literal(*val)
+    }
+}
+
+impl<K: SymbolKind> From<&RegisterId<K>> for Symbol<K> {
+    fn from(val: &RegisterId<K>) -> Symbol<K> {
+        Symbol::Register(*val)
+    }
+}
+
 impl<K: SymbolKind> Symbol<K> {
     pub fn lit(self) -> Option<LiteralId<K>> {
         match self {

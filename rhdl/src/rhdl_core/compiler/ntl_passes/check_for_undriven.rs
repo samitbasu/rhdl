@@ -3,13 +3,9 @@ use std::collections::HashSet;
 use crate::{
     prelude::RHDLError,
     rhdl_core::{
+        common::symtab::RegisterId,
         error::rhdl_error,
-        ntl::{
-            error::NetListError,
-            spec::RegisterId,
-            visit::{visit_wires, Sense},
-            Object,
-        },
+        ntl::{Object, error::NetListError, spec::WireKind, visit::visit_wires},
     },
 };
 
@@ -23,10 +19,10 @@ impl Pass for CheckForUndriven {
         "Check For Undriven values"
     }
     fn run(input: Object) -> Result<Object, RHDLError> {
-        let mut written_set: HashSet<RegisterId> = HashSet::default();
+        let mut written_set: HashSet<RegisterId<WireKind>> = HashSet::default();
         for lop in &input.ops {
             visit_wires(&lop.op, |sense, op| {
-                if sense == Sense::Write {
+                if sense.is_write() {
                     if let Some(reg) = op.reg() {
                         written_set.insert(reg);
                     }
@@ -37,7 +33,7 @@ impl Pass for CheckForUndriven {
         for lop in &input.ops {
             let mut err = None;
             visit_wires(&lop.op, |sense, op| {
-                if sense == Sense::Read {
+                if sense.is_read() {
                     if let Some(reg) = op.reg() {
                         if !written_set.contains(&reg) {
                             err = Some(NetListError {

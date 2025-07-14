@@ -4,9 +4,7 @@ use crate::rhdl_core::{
     Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, Digital, HDLDescriptor, Kind, RHDLError,
     digital_fn::NoKernel2,
     hdl::ast::{Direction, Module, Statement, component_instance, connection, index},
-    ntl,
-    rtl::object::RegisterSize,
-    trace_pop_path, trace_push_path,
+    ntl, trace_pop_path, trace_push_path,
     types::path::{Path, bit_range},
 };
 
@@ -50,10 +48,10 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
     // as part of a struct.
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
         let mut builder = ntl::Builder::new(name);
-        let input_kind: RegisterSize = Self::I::static_kind().into();
-        let output_kind: RegisterSize = Self::O::static_kind().into();
-        let ti = builder.add_input(input_kind.len());
-        let to = builder.allocate_outputs(output_kind.len());
+        let input_kind: Kind = Self::I::static_kind();
+        let output_kind: Kind = Self::O::static_kind();
+        let ti = builder.add_input(input_kind);
+        let to = builder.allocate_outputs(output_kind);
         let mut children = BTreeMap::default();
         for i in 0..N {
             let child_path = Path::default().index(i);
@@ -64,10 +62,10 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
             let offset = builder.import(&child_desc.ntl);
             // Wire up the child circuit inputs and outputs
             for (&t, c) in ti[input_bit_range].iter().zip(&child_desc.ntl.inputs[0]) {
-                builder.copy_from_to(t, c.offset(offset));
+                builder.copy_from_to(t, offset(c.into()));
             }
             for (&t, c) in to[output_bit_range].iter().zip(&child_desc.ntl.outputs) {
-                builder.copy_from_to(c.offset(offset), t);
+                builder.copy_from_to(offset(*c), t);
             }
             children.insert(child_name, child_desc);
         }

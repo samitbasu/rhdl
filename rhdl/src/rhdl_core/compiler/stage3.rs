@@ -19,6 +19,7 @@ use crate::{
 
 fn wrap_pass<P: Pass>(obj: Object) -> Result<Object, RHDLError> {
     info!("Running Stage 3 compiler Pass {}", P::description());
+    log::debug!("{obj:?}");
     P::run(obj)
 }
 

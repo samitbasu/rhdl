@@ -421,7 +421,6 @@ where
     let ntl = optimize_ntl(ntl)?;
     debug!("{rtl:?}");
     debug!("{ntl:?}");
-    panic!("Stop!");
     let desc = generate_hdl("dut", &ntl)?;
     let tm = test_module_for_netlist(uut, desc, vals);
     debug!("Running netlist test");

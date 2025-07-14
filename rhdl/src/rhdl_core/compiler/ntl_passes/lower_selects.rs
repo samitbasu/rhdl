@@ -2,15 +2,16 @@ use super::pass::Pass;
 
 use crate::core::ntl::object::*;
 use crate::core::ntl::spec::*;
+use crate::prelude::BitX;
 use crate::prelude::RHDLError;
 
 pub struct LowerSelects;
 
-fn rewrite_select_with_hardwired_selector(op: &mut OpCode) {
+fn rewrite_select_with_hardwired_selector(object: &Object, op: &mut OpCode) {
     let OpCode::Select(select) = &op else {
         return;
     };
-    let Some(bitx) = select.selector.bitx() else {
+    let Some(bitx) = object.bitx(select.selector) else {
         return;
     };
     let Some(sel) = bitx.to_bool() else {
@@ -39,14 +40,14 @@ fn rewrite_select_with_equal_branches(op: &mut OpCode) {
     })
 }
 
-fn rewrite_select_with_not(op: &mut OpCode) {
+fn rewrite_select_with_not(object: &Object, op: &mut OpCode) {
     let OpCode::Select(select) = &op else {
         return;
     };
-    let Wire::One = select.false_case else {
+    let Some(BitX::One) = object.bitx(select.false_case) else {
         return;
     };
-    let Wire::Zero = select.true_case else {
+    let Some(BitX::Zero) = object.bitx(select.true_case) else {
         return;
     };
     *op = OpCode::Not(Not {
@@ -57,11 +58,11 @@ fn rewrite_select_with_not(op: &mut OpCode) {
 
 // a <- s ? b : X
 // a <- b
-fn rewrite_select_with_dont_care_in_false(op: &mut OpCode) {
+fn rewrite_select_with_dont_care_in_false(object: &Object, op: &mut OpCode) {
     let OpCode::Select(select) = &op else {
         return;
     };
-    let Wire::X = select.false_case else {
+    let Some(BitX::X) = object.bitx(select.false_case) else {
         return;
     };
     *op = OpCode::Assign(Assign {
@@ -72,11 +73,11 @@ fn rewrite_select_with_dont_care_in_false(op: &mut OpCode) {
 
 // a <- s ? X : b
 // a <- b
-fn rewrite_select_with_dont_care_in_true(op: &mut OpCode) {
+fn rewrite_select_with_dont_care_in_true(object: &Object, op: &mut OpCode) {
     let OpCode::Select(select) = &op else {
         return;
     };
-    let Wire::X = select.true_case else {
+    let Some(BitX::X) = object.bitx(select.true_case) else {
         return;
     };
     *op = OpCode::Assign(Assign {
@@ -85,14 +86,14 @@ fn rewrite_select_with_dont_care_in_true(op: &mut OpCode) {
     })
 }
 
-fn rewrite_select_with_assign(op: &mut OpCode) {
+fn rewrite_select_with_assign(object: &Object, op: &mut OpCode) {
     let OpCode::Select(select) = &op else {
         return;
     };
-    let Wire::Zero = select.false_case else {
+    let Some(BitX::Zero) = object.bitx(select.false_case) else {
         return;
     };
-    let Wire::One = select.true_case else {
+    let Some(BitX::One) = object.bitx(select.true_case) else {
         return;
     };
     *op = OpCode::Assign(Assign {
@@ -101,11 +102,11 @@ fn rewrite_select_with_assign(op: &mut OpCode) {
     })
 }
 
-fn rewrite_select_with_zero_false(op: &mut OpCode) {
+fn rewrite_select_with_zero_false(object: &Object, op: &mut OpCode) {
     let OpCode::Select(select) = &op else {
         return;
     };
-    let Wire::Zero = select.false_case else {
+    let Some(BitX::Zero) = object.bitx(select.false_case) else {
         return;
     };
     *op = OpCode::Binary(Binary {
@@ -116,14 +117,14 @@ fn rewrite_select_with_zero_false(op: &mut OpCode) {
     })
 }
 
-fn lower_select(op: &mut OpCode) {
+fn lower_select(input: &Object, op: &mut OpCode) {
     rewrite_select_with_equal_branches(op);
-    rewrite_select_with_hardwired_selector(op);
-    rewrite_select_with_not(op);
-    rewrite_select_with_assign(op);
-    rewrite_select_with_dont_care_in_false(op);
-    rewrite_select_with_dont_care_in_true(op);
-    rewrite_select_with_zero_false(op);
+    rewrite_select_with_hardwired_selector(input, op);
+    rewrite_select_with_not(input, op);
+    rewrite_select_with_assign(input, op);
+    rewrite_select_with_dont_care_in_false(input, op);
+    rewrite_select_with_dont_care_in_true(input, op);
+    rewrite_select_with_zero_false(input, op);
 }
 
 impl Pass for LowerSelects {
@@ -132,9 +133,11 @@ impl Pass for LowerSelects {
     }
 
     fn run(mut input: Object) -> Result<Object, RHDLError> {
-        input.ops.iter_mut().for_each(|lop| {
-            lower_select(&mut lop.op);
+        let mut ops = std::mem::take(&mut input.ops);
+        ops.iter_mut().for_each(|lop| {
+            lower_select(&input, &mut lop.op);
         });
+        input.ops = ops;
         Ok(input)
     }
 }

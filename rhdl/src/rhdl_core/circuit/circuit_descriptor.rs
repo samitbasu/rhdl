@@ -1,12 +1,11 @@
 use super::circuit_impl::Circuit;
+use crate::prelude::ClockReset;
+use crate::rhdl_core::Kind;
 use crate::rhdl_core::ntl::from_rtl::build_ntl_from_rtl;
-use crate::rhdl_core::ntl::spec::Wire;
-use crate::rhdl_core::rtl::object::RegisterSize;
 use crate::rhdl_core::rtl::Object;
 use crate::rhdl_core::types::digital::Digital;
-use crate::rhdl_core::types::path::{bit_range, Path};
-use crate::rhdl_core::Kind;
-use crate::rhdl_core::{compile_design, CompilationMode, RHDLError, Synchronous};
+use crate::rhdl_core::types::path::{Path, bit_range};
+use crate::rhdl_core::{CompilationMode, RHDLError, Synchronous, compile_design};
 use std::collections::BTreeMap;
 
 // A few notes on the circuit descriptor struct
@@ -57,34 +56,34 @@ pub fn build_descriptor<C: Circuit>(
     let update_netlist = build_ntl_from_rtl(&module);
     // Create a manual builder for the top level netlist
     let mut builder = ntl::builder::Builder::new(name);
-    let output_kind: RegisterSize = C::O::static_kind().into();
+    let output_kind: Kind = C::O::static_kind();
     if output_kind.is_empty() {
         return Err(RHDLError::NoOutputsError);
     }
-    let input_kind: RegisterSize = C::I::static_kind().into();
-    let top_i = builder.add_input(input_kind.len());
-    let top_o = builder.allocate_outputs(output_kind.len());
+    let input_kind: Kind = C::I::static_kind();
+    let top_i = builder.add_input(input_kind);
+    let top_o = builder.allocate_outputs(output_kind);
     let update_register_offset = builder.import(&update_netlist);
     // Link the module input to the input of the update function
     for (&top_i_bit, &update_i_bit) in top_i.iter().zip(&update_netlist.inputs[0]) {
-        builder.copy_from_to(top_i_bit, update_i_bit.offset(update_register_offset));
+        builder.copy_from_to(top_i_bit, update_register_offset(update_i_bit.into()));
     }
     // Link up the output bits from the update_netlist
     for (&top_o_bit, &update_o_bit) in top_o.iter().zip(&update_netlist.outputs) {
-        builder.copy_from_to(update_o_bit.offset(update_register_offset), top_o_bit);
+        builder.copy_from_to(update_register_offset(update_o_bit), top_o_bit);
     }
     // Get the "D" vector by skipping the first |O| bits, and pre-map them into their new addresses
     let d_vec = update_netlist
         .outputs
         .iter()
-        .skip(output_kind.len())
-        .map(|op| op.offset(update_register_offset))
+        .skip(output_kind.bits())
+        .map(|op| update_register_offset(*op))
         .collect::<Vec<_>>();
     // Get the "Q" vector by remapping the 2nd input to the update function.
     // Note that the update function signature for a synchronous function is (ClockReset, I, Q) -> (O, D)
     let q_vec = update_netlist.inputs[1]
         .iter()
-        .map(|op| Wire::Register(op.offset(update_register_offset)))
+        .map(|op| update_register_offset(op.into()))
         .collect::<Vec<_>>();
     // Create the inputs for the children by splitting bits off of the d_index
     for (child_name, child_descriptor) in &children {
@@ -95,18 +94,18 @@ pub fn build_descriptor<C: Circuit>(
         // Merge the child's netlist into ours
         let child_offset = builder.import(&child_descriptor.ntl);
         // Connect the child's input registers to the given bits of the D register
-        for (&d_bit, &child_i) in d_vec[output_bit_range.clone()]
+        for (&d_bit, child_i) in d_vec[output_bit_range.clone()]
             .iter()
             .zip(&child_descriptor.ntl.inputs[0])
         {
-            builder.copy_from_to(d_bit, child_i.offset(child_offset));
+            builder.copy_from_to(d_bit, child_offset(child_i.into()));
         }
         // Connect the childs output registers to the given bits of the Q register
         for (&q_bit, &child_o) in q_vec[input_bit_range.clone()]
             .iter()
             .zip(&child_descriptor.ntl.outputs)
         {
-            builder.copy_from_to(child_o.offset(child_offset), q_bit);
+            builder.copy_from_to(child_offset(child_o), q_bit);
         }
     }
     Ok(CircuitDescriptor {
@@ -157,42 +156,42 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     // This is the kind of output of the update kernel - it must be equal to
     // (Update::O, Update::D)
     // The update_fg will have 3 arguments (rst,i,q) and 2 outputs (o,d)
-    let output_kind: RegisterSize = C::O::static_kind().into();
+    let output_kind: Kind = C::O::static_kind();
     if output_kind.is_empty() {
         return Err(RHDLError::NoOutputsError);
     }
-    let input_kind: RegisterSize = C::I::static_kind().into();
+    let input_kind: Kind = C::I::static_kind();
     // The inputs to the circuit are [cr, I], the output is [O]
     // Allocate these as inputs to the netlist
-    let top_cr = builder.add_input(2);
-    let top_i = builder.add_input(input_kind.len());
-    let top_o = builder.allocate_outputs(output_kind.len());
+    let top_cr = builder.add_input(ClockReset::static_kind());
+    let top_i = builder.add_input(input_kind);
+    let top_o = builder.allocate_outputs(output_kind);
     // Link in the update code.
     let update_register_offset = builder.import(&update_netlist);
     // Link the ClockReset signal from the top down into the update code.
     for (&top_cr_bit, &update_cr_bit) in top_cr.iter().zip(&update_netlist.inputs[0]) {
-        builder.copy_from_to(top_cr_bit, update_cr_bit.offset(update_register_offset));
+        builder.copy_from_to(top_cr_bit, update_register_offset(update_cr_bit.into()));
     }
     // Link the module input to the input of the update function
-    for (&top_i_bit, &update_i_bit) in top_i.iter().zip(&update_netlist.inputs[1]) {
-        builder.copy_from_to(top_i_bit, update_i_bit.offset(update_register_offset));
+    for (&top_i_bit, update_i_bit) in top_i.iter().zip(&update_netlist.inputs[1]) {
+        builder.copy_from_to(top_i_bit, update_register_offset(update_i_bit.into()));
     }
     // Link up the output bits from the update_netlist
     for (&top_o_bit, &update_o_bit) in top_o.iter().zip(&update_netlist.outputs) {
-        builder.copy_from_to(update_o_bit.offset(update_register_offset), top_o_bit);
+        builder.copy_from_to(update_register_offset(update_o_bit), top_o_bit);
     }
     // Get the "D" vector by skipping the first |O| bits, and pre-map them into their new addresses
     let d_vec = update_netlist
         .outputs
         .iter()
-        .skip(output_kind.len())
-        .map(|op| op.offset(update_register_offset))
+        .skip(output_kind.bits())
+        .map(|op| update_register_offset(*op))
         .collect::<Vec<_>>();
     // Get the "Q" vector by remapping the 3rd input to the update function.
     // Note that the update function signature for a synchronous function is (ClockReset, I, Q) -> (O, D)
     let q_vec = update_netlist.inputs[2]
         .iter()
-        .map(|op| Wire::Register(op.offset(update_register_offset)))
+        .map(|op| update_register_offset(op.into()))
         .collect::<Vec<_>>();
     // Create the inputs for the children by splitting bits off of the d_index
     for (child_name, child_descriptor) in &children {
@@ -206,21 +205,21 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         log::info!("Link child {child_name} into descriptor for {name}");
         // Connect the child's clock and reset to the top level clock and reset
         for (&top_cr, &child_cr) in top_cr.iter().zip(&child_descriptor.ntl.inputs[0]) {
-            builder.copy_from_to(top_cr, child_cr.offset(child_offset));
+            builder.copy_from_to(top_cr, child_offset(child_cr.into()));
         }
         // Connect the child's input registers to the given bits of the D register
         for (&d_bit, &child_i) in d_vec[output_bit_range.clone()]
             .iter()
             .zip(&child_descriptor.ntl.inputs[1])
         {
-            builder.copy_from_to(d_bit, child_i.offset(child_offset));
+            builder.copy_from_to(d_bit, child_offset(child_i.into()));
         }
         // Connect the childs output registers to the given bits of the Q register
         for (&q_bit, &child_o) in q_vec[input_bit_range.clone()]
             .iter()
             .zip(&child_descriptor.ntl.outputs)
         {
-            builder.copy_from_to(child_o.offset(child_offset), q_bit);
+            builder.copy_from_to(child_offset(child_o), q_bit);
         }
     }
     Ok(CircuitDescriptor {
