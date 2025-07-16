@@ -137,9 +137,5 @@ pub fn terminate_list_optional_strings(args: &[Option<String>], term: &str) -> S
         .cloned()
         .collect::<Vec<_>>()
         .join(term);
-    if !ret.is_empty() {
-        ret + term
-    } else {
-        ret
-    }
+    if !ret.is_empty() { ret + term } else { ret }
 }

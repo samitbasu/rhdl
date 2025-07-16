@@ -18,16 +18,16 @@ impl std::fmt::Debug for OpCode {
                 arg1,
                 arg2,
             }) => {
-                write!(f, " {lhs:?} <- {arg1:?} {op:?} {arg2:?}")
+                write!(f, " {lhs} <- {arg1} {op:?} {arg2}")
             }
             OpCode::Unary(Unary { op, lhs, arg1 }) => {
-                write!(f, " {lhs:?} <- {op:?}{arg1:?}")
+                write!(f, " {lhs} <- {op:?}{arg1}")
             }
             OpCode::Array(Array { lhs, elements }) => {
                 write!(f, " {:?} <- [{}]", lhs, splice(elements, ", "))
             }
             OpCode::Assign(Assign { lhs, rhs }) => {
-                write!(f, "{lhs:?} <- {rhs:?}")
+                write!(f, "{lhs} <- {rhs}")
             }
             OpCode::Splice(Splice {
                 lhs,
@@ -35,7 +35,7 @@ impl std::fmt::Debug for OpCode {
                 path,
                 subst,
             }) => {
-                write!(f, "{lhs:?} <- {orig:?}/{path:?}/{subst:?}")
+                write!(f, "{lhs} <- {orig}/{path:?}/{subst}")
             }
             OpCode::Select(Select {
                 lhs,
@@ -43,27 +43,27 @@ impl std::fmt::Debug for OpCode {
                 true_value,
                 false_value,
             }) => {
-                write!(f, " {lhs:?} <- {cond:?} ? {true_value:?} : {false_value:?}")
+                write!(f, " {lhs} <- {cond} ? {true_value} : {false_value}")
             }
             OpCode::Tuple(Tuple { lhs, fields }) => {
-                write!(f, " {:?} <- ({})", lhs, splice(fields, ", "))
+                write!(f, " {lhs} <- ({})", splice(fields, ", "))
             }
             OpCode::Index(Index { lhs, arg, path }) => {
-                write!(f, " {lhs:?} <- {arg:?}{path:?}")
+                write!(f, " {lhs} <- {arg}{path:?}")
             }
             OpCode::Case(Case {
                 lhs,
                 discriminant: expr,
                 table,
             }) => {
-                writeln!(f, " {lhs:?} <- case {expr:?} {{")?;
+                writeln!(f, " {lhs} <- case {expr} {{")?;
                 for (cond, val) in table {
-                    writeln!(f, "         {cond:?} => {val:?}")?;
+                    writeln!(f, "         {cond:?} => {val}")?;
                 }
                 writeln!(f, " }}")
             }
             OpCode::Exec(Exec { lhs, id, args }) => {
-                write!(f, " {:?} <- {:?}({})", lhs, id, splice(args, ", "))
+                write!(f, " {lhs} <- {:?}({})", id, splice(args, ", "))
             }
             OpCode::Struct(Struct {
                 lhs,
@@ -77,11 +77,11 @@ impl std::fmt::Debug for OpCode {
                     lhs,
                     template.kind.get_name(),
                     splice(fields, ", "),
-                    rest.map(|x| format!("..{x:?}")).unwrap_or_default(),
+                    rest.map(|x| format!("..{x}")).unwrap_or_default(),
                 )
             }
             OpCode::Repeat(Repeat { lhs, value, len }) => {
-                write!(f, " {lhs:?} <- [{value:?}; {len}]")
+                write!(f, " {lhs} <- [{value}; {len}]")
             }
             OpCode::Comment(s) => write!(f, " # {}", s.trim_end().replace('\n', "\n   # ")),
             OpCode::Enum(Enum {
@@ -91,8 +91,7 @@ impl std::fmt::Debug for OpCode {
             }) => {
                 write!(
                     f,
-                    " {:?} <- {}#{:?}({})",
-                    lhs,
+                    " {lhs} <- {}#{:?}({})",
                     template.kind.get_name(),
                     template.discriminant().unwrap(),
                     splice(fields, ", ")
@@ -100,33 +99,33 @@ impl std::fmt::Debug for OpCode {
             }
             OpCode::AsBits(Cast { lhs, arg, len }) => {
                 if let Some(len) = len {
-                    write!(f, " {lhs:?} <- {arg:?} as b{len}")
+                    write!(f, " {lhs} <- {arg} as b{len}")
                 } else {
-                    write!(f, " {lhs:?} <- {arg:?} as bits")
+                    write!(f, " {lhs} <- {arg} as bits")
                 }
             }
             OpCode::AsSigned(Cast { lhs, arg, len }) => {
                 if let Some(len) = len {
-                    write!(f, " {lhs:?} <- {arg:?} as s{len}")
+                    write!(f, " {lhs} <- {arg} as s{len}")
                 } else {
-                    write!(f, " {lhs:?} <- {arg:?} as signed")
+                    write!(f, " {lhs} <- {arg} as signed")
                 }
             }
             OpCode::Resize(Cast { lhs, arg, len }) => {
                 if let Some(len) = len {
-                    write!(f, " {lhs:?} <- {arg:?}.resize::<{len}>")
+                    write!(f, " {lhs} <- {arg}.resize::<{len}>")
                 } else {
-                    write!(f, " {lhs:?} <- {arg:?}.resize")
+                    write!(f, " {lhs} <- {arg}.resize")
                 }
             }
             OpCode::Retime(Retime { lhs, arg, color }) => {
-                write!(f, " {lhs:?} <- {arg:?} retime {color:?}")
+                write!(f, " {lhs} <- {arg} retime {color:?}")
             }
             OpCode::Wrap(Wrap { op, lhs, arg, kind }) => {
                 if let Some(kind) = kind {
-                    write!(f, " {lhs:?} <- {op:?}({arg:?}) wrapped as {kind:?}")
+                    write!(f, " {lhs} <- {op:?}({arg}) wrapped as {kind:?}")
                 } else {
-                    write!(f, " {lhs:?} <- {op:?}({arg:?})")
+                    write!(f, " {lhs} <- {op:?}({arg})")
                 }
             }
         }
@@ -135,7 +134,7 @@ impl std::fmt::Debug for OpCode {
 
 impl std::fmt::Debug for FieldValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}: {:?}", self.member, self.value)
+        write!(f, "{:?}: {}", self.member, self.value)
     }
 }
 

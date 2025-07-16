@@ -164,7 +164,16 @@ impl Pass for ReorderInstructions {
                     None,
                 ));
             }
-
+            for reg in &regs {
+                let op = write_regs_to_op[reg];
+                let lop = &input.ops[op];
+                log::error!("Failed opcode -> {:?}", lop.op);
+                visit_wires(&lop.op, |_sense, wire| {
+                    if let Some(lid) = wire.lit() {
+                        log::error!("Literal {lid} -> {}", input.symtab[lid]);
+                    }
+                })
+            }
             let mut diag = vec![];
             for reg in regs {
                 let details = &input.symtab[Wire::Register(reg)];
