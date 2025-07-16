@@ -9,6 +9,7 @@ use crate::{
             dead_code_elimination::DeadCodeElimination, lower_any_all::LowerAnyAll,
             lower_bitwise_op_with_constant::LowerBitwiseOpWithConstant, lower_case::LowerCase,
             lower_selects::LowerSelects, pass::Pass,
+            remove_extra_literals::RemoveExtraLiteralsPass,
             remove_extra_registers::RemoveExtraRegistersPass,
             reorder_instructions::ReorderInstructions, single_write::SingleRegisterWrite,
             symbol_table_is_complete::SymbolTableIsComplete,
@@ -19,7 +20,6 @@ use crate::{
 
 fn wrap_pass<P: Pass>(obj: Object) -> Result<Object, RHDLError> {
     info!("Running Stage 3 compiler Pass {}", P::description());
-    log::debug!("{obj:?}");
     P::run(obj)
 }
 
@@ -27,6 +27,7 @@ pub fn optimize_ntl(mut input: Object) -> Result<Object, RHDLError> {
     let mut hash = input.hash_value();
     input = wrap_pass::<SymbolTableIsComplete>(input)?;
     loop {
+        input = wrap_pass::<RemoveExtraLiteralsPass>(input)?;
         input = wrap_pass::<ConstantRegisterElimination>(input)?;
         input = wrap_pass::<LowerCase>(input)?;
         input = wrap_pass::<LowerSelects>(input)?;

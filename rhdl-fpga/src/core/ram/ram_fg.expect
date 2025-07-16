@@ -52,27 +52,11 @@ module uut(input wire [18:0] arg_0, output reg [7:0] out);
         r57 = arg_0[16];
         r58 = arg_0[17];
         r59 = arg_0[18];
-        // (o, d, )
+        // let w = super::asynchronous::WriteI::<T,N>::dont_care();
         //
-        // let o = q.inner;
+        // let i_val = i.write.val();
         //
-        // d.inner.read = i.read;
-        //
-        // d.inner.write = signal(w);
-        //
-        // let d = D::<T,W,R,N>::dont_care();
-        //
-        // w.addr = bits(0);
-        //
-        // w.enable = false;
-        //
-        // w.data = T::dont_care();
-        //
-        // w.addr = addr;
-        //
-        // w.enable = true;
-        //
-        // w.data = data;
+        // w.clock = i_val.clock;
         //
         // if let Some((addr, data, ), )#true = i_val.data{
         //    w.data = data;
@@ -86,16 +70,32 @@ module uut(input wire [18:0] arg_0, output reg [7:0] out);
         // }
         //
         //
-        // w.clock = i_val.clock;
+        // w.data = data;
         //
-        // let i_val = i.write.val();
+        // w.enable = true;
         //
-        // let w = super::asynchronous::WriteI::<T,N>::dont_care();
+        // w.addr = addr;
         //
-        r200 = r54 & r45;
-        r199 = r54 & r44;
-        r198 = r54 & r43;
+        // w.data = T::dont_care();
+        //
+        // w.enable = false;
+        //
+        // w.addr = bits(0);
+        //
+        // let d = D::<T,W,R,N>::dont_care();
+        //
+        // d.inner.write = signal(w);
+        //
+        // d.inner.read = i.read;
+        //
+        // let o = q.inner;
+        //
+        // (o, d, )
+        //
         r197 = r54 & r42;
+        r198 = r54 & r43;
+        r199 = r54 & r44;
+        r200 = r54 & r45;
         out = { r288, r287, r286, r285, r284, r283, r282, r281 };
     end
 endmodule

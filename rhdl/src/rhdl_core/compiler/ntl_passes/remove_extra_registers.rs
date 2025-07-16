@@ -33,7 +33,6 @@ impl Pass for RemoveExtraRegistersPass {
             .into_iter()
             .map(|op| {
                 let key = table.new_key(());
-                log::info!("Map reg {op} -> {key:?}");
                 (op, key)
             })
             .collect();

@@ -12,7 +12,7 @@ use crate::{
 fn vec_disp(f: &mut std::fmt::Formatter<'_>, data: &[Wire]) -> std::fmt::Result {
     write!(f, "{{")?;
     for (ndx, op) in data.iter().enumerate() {
-        write!(f, "{op:?}")?;
+        write!(f, "{op}")?;
         if ndx != (data.len() - 1) {
             write!(f, ",")?;
         }
@@ -43,14 +43,14 @@ impl std::fmt::Debug for OpCode {
         match self {
             OpCode::Noop => write!(f, "Noop"),
             OpCode::Assign(Assign { lhs, rhs }) => {
-                write!(f, " {lhs:?} <- {rhs:?}")
+                write!(f, " {lhs} <- {rhs}")
             }
             OpCode::Binary(Binary {
                 op,
                 lhs,
                 arg1,
                 arg2,
-            }) => write!(f, " {lhs:?} <- {arg1:?} {op:?} {arg2:?}"),
+            }) => write!(f, " {lhs} <- {arg1} {op:?} {arg2}"),
             OpCode::Vector(vector) => {
                 write!(f, " ")?;
                 vec_disp(f, &vector.lhs)?;
@@ -60,11 +60,11 @@ impl std::fmt::Debug for OpCode {
                 vec_disp(f, &vector.arg2)
             }
             OpCode::Case(case) => {
-                write!(f, " {:?} <- case ", case.lhs)?;
+                write!(f, " {} <- case ", case.lhs)?;
                 vec_disp(f, &case.discriminant)?;
                 writeln!(f, " {{")?;
                 for (cond, val) in &case.entries {
-                    writeln!(f, "          {cond:?} => {val:?}")?;
+                    writeln!(f, "          {cond:?} => {val}")?;
                 }
                 writeln!(f, " }}")
             }
@@ -74,12 +74,12 @@ impl std::fmt::Debug for OpCode {
             OpCode::Select(select) => {
                 write!(
                     f,
-                    " {:?} <- {:?} ? {:?} : {:?}",
+                    " {} <- {} ? {} : {}",
                     select.lhs, select.selector, select.true_case, select.false_case
                 )
             }
             OpCode::Not(not) => {
-                write!(f, " {:?} <- !{:?}", not.lhs, not.arg)
+                write!(f, " {} <- !{}", not.lhs, not.arg)
             }
             OpCode::BlackBox(black_box) => {
                 write!(f, " ")?;

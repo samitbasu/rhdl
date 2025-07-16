@@ -19,7 +19,6 @@ struct NtlBuilder<'a> {
     object: &'a rtl::Object,
     btl: ntl::object::Object,
     operand_map: HashMap<tl::Operand, Vec<bt::Wire>>,
-    reg_count: u32,
 }
 
 pub fn build_ntl_from_rtl(object: &rtl::Object) -> ntl::object::Object {
@@ -60,7 +59,6 @@ impl<'a> NtlBuilder<'a> {
             object,
             btl,
             operand_map: HashMap::default(),
-            reg_count: 0,
         }
     }
     fn reg(&mut self, details: impl Into<WireDetails>) -> Wire {
