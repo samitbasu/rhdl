@@ -98,7 +98,7 @@ risk than a technical one.
 - [x] Replace Verilog string manipulation with a proper AST
 - [x] Add validators for common cases (e.g., pos edge designs, etc.)
 - [x] Fix naming of signals in the VCD traces
-- [ ] Add checks for combinatorial inputs or outputs
+- [x] Add checks for combinatorial inputs or outputs
 - [x] Add a flow graph level simulator to verify correctness
 - [x] Add timing estimator using longest path heuristics.
 - [x] Add checks for coverage of (o, d)
