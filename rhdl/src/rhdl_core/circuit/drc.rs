@@ -43,7 +43,6 @@ impl Diagnostic for CombinatorialPath {
 
 pub fn no_combinatorial_paths<T: Synchronous>(uut: &T) -> miette::Result<()> {
     let descriptor = uut.descriptor("uut")?;
-    return Ok(());
     let ntl = &descriptor.ntl;
     let dep = make_net_graph(ntl, GraphMode::Synchronous);
     // Get the graph node that represents the inputs for the device
